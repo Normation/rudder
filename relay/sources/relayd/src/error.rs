@@ -28,6 +28,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
+#![allow(clippy::enum_glob_use)]
 use self::Error::*;
 use chrono;
 use diesel;
@@ -39,54 +40,44 @@ use std::{
 };
 use toml;
 
-/// An enum of all error kinds.
 #[derive(Debug)]
 pub enum Error {
-    /// Report parsing
-    /// Unspecified nom parsing error
+    /// Unspecified parsing errors
     /// TODO add details
     InvalidRunLog,
     InvalidRunInfo,
+    InconsistentRunlog,
     EmptyRunlog,
-    /// Internal client error
-    Message(String),
-    /// Database error
+    Unspecified(String),
     Database(diesel::result::Error),
-    /// Database connection error
     DatabaseConnection(diesel::ConnectionError),
-    /// Connection pool error
     Pool(diesel::r2d2::PoolError),
-    /// IO error
     Io(io::Error),
-    /// TOML error
-    Toml(toml::de::Error),
-    /// Date error
+    ConfigurationParsing(toml::de::Error),
     DateParsing(chrono::ParseError),
-    /// JSON error
     JsonParsing(serde_json::Error),
-    /// Parse serial error
     IntegerParsing(num::ParseIntError),
-    /// UTF-8 parsing
     Utf8(std::string::FromUtf8Error),
 }
 
 impl Display for Error {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> Result<(), fmt::Error> {
-        fmt.write_str(&match *self {
-            InvalidRunLog => "invalid run log".to_owned(),
-            InvalidRunInfo => "invalid run info".to_owned(),
-            EmptyRunlog => "agent run log is empty".to_owned(),
-            Message(ref message) => message.clone(),
-            Database(ref err) => err.to_string(),
-            DatabaseConnection(ref err) => err.to_string(),
-            Pool(ref err) => err.to_string(),
-            Io(ref err) => err.to_string(),
-            Toml(ref err) => err.to_string(),
-            DateParsing(ref err) => err.to_string(),
-            JsonParsing(ref err) => err.to_string(),
-            IntegerParsing(ref err) => err.to_string(),
-            Utf8(ref err) => err.to_string(),
-        })
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+        match *self {
+            InvalidRunLog => write!(f, "invalid run log"),
+            InvalidRunInfo => write!(f, "invalid run info"),
+            InconsistentRunlog => write!(f, "inconsistent run log"),
+            EmptyRunlog => write!(f, "agent run log is empty"),
+            Unspecified(ref err) => write!(f, "internal error: {}", err),
+            Database(ref err) => write!(f, "database error: {}", err),
+            DatabaseConnection(ref err) => write!(f, "database connection error: {}", err),
+            Pool(ref err) => write!(f, "database connection pool error: {}", err),
+            Io(ref err) => write!(f, "I/O error: {}", err),
+            ConfigurationParsing(ref err) => write!(f, "configuration parsing error: {}", err),
+            DateParsing(ref err) => write!(f, "date parsing error: {}", err),
+            JsonParsing(ref err) => write!(f, "json parsing error: {}", err),
+            IntegerParsing(ref err) => write!(f, "integer parsing error: {}", err),
+            Utf8(ref err) => write!(f, "UTF-8 decoding error: {}", err),
+        }
     }
 }
 
@@ -97,7 +88,7 @@ impl StdError for Error {
             DatabaseConnection(ref err) => Some(err),
             Pool(ref err) => Some(err),
             Io(ref err) => Some(err),
-            Toml(ref err) => Some(err),
+            ConfigurationParsing(ref err) => Some(err),
             DateParsing(ref err) => Some(err),
             JsonParsing(ref err) => Some(err),
             IntegerParsing(ref err) => Some(err),
@@ -108,61 +99,60 @@ impl StdError for Error {
 }
 
 impl From<diesel::result::Error> for Error {
-    fn from(err: diesel::result::Error) -> Error {
+    fn from(err: diesel::result::Error) -> Self {
         Error::Database(err)
     }
 }
 
 impl From<diesel::ConnectionError> for Error {
-    fn from(err: diesel::ConnectionError) -> Error {
+    fn from(err: diesel::ConnectionError) -> Self {
         Error::DatabaseConnection(err)
     }
 }
 
 impl From<diesel::r2d2::PoolError> for Error {
-    fn from(err: diesel::r2d2::PoolError) -> Error {
+    fn from(err: diesel::r2d2::PoolError) -> Self {
         Error::Pool(err)
     }
 }
 
 impl From<String> for Error {
-    fn from(string: String) -> Error {
-        Error::Message(string)
+    fn from(string: String) -> Self {
+        Error::Unspecified(string)
     }
 }
 
 impl From<io::Error> for Error {
-    fn from(err: io::Error) -> Error {
+    fn from(err: io::Error) -> Self {
         Error::Io(err)
     }
 }
 
 impl From<toml::de::Error> for Error {
-    fn from(err: toml::de::Error) -> Error {
-        Error::Toml(err)
+    fn from(err: toml::de::Error) -> Self {
+        Error::ConfigurationParsing(err)
     }
 }
-
 impl From<chrono::ParseError> for Error {
-    fn from(err: chrono::ParseError) -> Error {
+    fn from(err: chrono::ParseError) -> Self {
         Error::DateParsing(err)
     }
 }
 
 impl From<serde_json::Error> for Error {
-    fn from(err: serde_json::Error) -> Error {
+    fn from(err: serde_json::Error) -> Self {
         Error::JsonParsing(err)
     }
 }
 
 impl From<num::ParseIntError> for Error {
-    fn from(err: num::ParseIntError) -> Error {
+    fn from(err: num::ParseIntError) -> Self {
         Error::IntegerParsing(err)
     }
 }
 
 impl From<std::string::FromUtf8Error> for Error {
-    fn from(err: std::string::FromUtf8Error) -> Error {
+    fn from(err: std::string::FromUtf8Error) -> Self {
         Error::Utf8(err)
     }
 }

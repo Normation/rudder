@@ -28,36 +28,58 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-extern crate relayd;
+use crate::error::Error;
+use serde::{Deserialize, Serialize};
+use serde_json;
+use slog::{slog_info, slog_trace};
+use slog_scope::{info, trace};
+use std::collections::HashMap;
+use std::fs::read_to_string;
+use std::path::Path;
+use std::str::FromStr;
 
-use clap::{crate_version, App, Arg};
-use relayd::fake::reporting::runlog;
+pub type Id = String;
+pub type Host = String;
 
-#[derive(Debug)]
-pub struct FakeNodeConfiguration {
-    pub node_id: Option<String>,
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Info {
+    pub hostname: String,
+    #[serde(rename = "policy-server")]
+    pub policy_server: Host,
+    #[serde(rename = "key-hash")]
+    pub key_hash: String,
 }
 
-pub fn parse() -> FakeNodeConfiguration {
-    let matches = App::new("agent")
-        .version(crate_version!())
-        .author("Rudder team")
-        .about("Rudder fake agent")
-        .arg(
-            Arg::with_name("node_id")
-                .short("i")
-                .long("node_id")
-                .value_name("ID")
-                .help("Set a specific node id for reporting")
-                .takes_value(true),
-        )
-        .get_matches();
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[serde(transparent)]
+pub struct List {
+    pub data: HashMap<Id, Info>,
+}
 
-    FakeNodeConfiguration {
-        node_id: matches.value_of("node_id").map(|x| x.to_string()),
+impl List {
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
+        info!("Parsing nodes list from {:#?}", path.as_ref());
+        let nodes = read_to_string(path)?.parse::<Self>()?;
+        trace!("Parsed nodes list:\n{:#?}", nodes);
+        Ok(nodes)
     }
 }
 
-fn main() {
-    println!("{:}", runlog(None));
+impl FromStr for List {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(serde_json::from_str(s)?)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_nodeslist() {
+        let nodeslist = List::new("tests/files/nodeslist.json").unwrap();
+        assert_eq!(nodeslist.data["root"].hostname, "server.rudder.local");
+    }
 }

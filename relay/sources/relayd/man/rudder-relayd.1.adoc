@@ -1,0 +1,41 @@
+= rudder-relayd(1)
+:doctype: manpage
+
+== NAME
+
+rudder-relayd - Rudder relay daemon that makes the link between nodes and root server.
+
+== SYNOPSIS
+
+*rudder-relayd* [--check] [--config _file_]
+
+*rudder-relayd* --help
+
+== DESCRIPTION
+
+A tool to process reports and inventories from Rudder agents and forward them to
+the upstream relay or send them to the root server.
+
+== OPTIONS
+
+*-c, --config* _file_::
+  Configuration file to load (default is _/opt/rudder/etc/rudder-relayd.conf_).
+*-k, --check*::
+  Test configuration file syntax and exit.
+*-h, --help*::
+  Print help information.
+*-V, --version*::
+  Print version information.
+
+== AUTHOR
+
+Rudder developers <dev@rudder.io>
+
+== RESOURCES
+
+Main web site: https://www.rudder.io/
+Documentation: https://docs.rudder.io/
+
+== COPYING
+
+Copyright \(C) 2019 Normation SAS.

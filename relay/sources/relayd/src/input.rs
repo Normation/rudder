@@ -28,290 +28,75 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
-    configuration::{
-        CatchupConfig, InventoryOutputSelect, ReportingOutputSelect, WatchedDirectory,
-    },
-    data::reporting::RunLog,
-    error::Error,
-    output::database::insert_runlog,
-    stats::Event,
-    JobConfig,
-};
-use futures::{
-    future::{poll_fn, Future},
-    lazy,
-    sync::mpsc,
-    Stream,
-};
-use inotify::{Inotify, WatchMask};
-use slog::{slog_debug, slog_info, slog_warn};
-use slog_scope::{debug, info, warn};
-use std::{
-    fs::create_dir_all,
-    path::PathBuf,
-    sync::Arc,
-    time::{Duration, Instant, SystemTime},
-};
-use tokio::{
-    fs::{file::File, read_dir},
-    prelude::*,
-    timer::Interval,
-};
+pub mod watch;
 
-pub type ReceivedFile = PathBuf;
+use crate::configuration::LogComponent;
+use crate::error::Error;
+use crate::processing::ReceivedFile;
+use flate2::read::GzDecoder;
+use slog::slog_debug;
+use slog_scope::debug;
+use std::ffi::OsStr;
+use std::io::Read;
+use xz2::read::XzDecoder;
 
-pub fn serve_reports(job_config: Arc<JobConfig>, stats: mpsc::Sender<Event>) {
-    let (reporting_tx, reporting_rx) = mpsc::channel(1_024);
-    tokio::spawn(treat_reports(
-        job_config.clone(),
-        reporting_rx,
-        stats.clone(),
-    ));
-    watch(
-        &job_config
-            .clone()
-            .cfg
-            .processing
-            .reporting
-            .directory
-            .join("incoming"),
-        job_config.clone(),
-        &reporting_tx,
-    );
-}
+pub fn read_file_content(path: &ReceivedFile) -> Result<String, Error> {
+    debug!("Reading {:#?} content", path);
+    let data = std::fs::read(path)?;
 
-pub fn serve_inventories(job_config: Arc<JobConfig>, stats: mpsc::Sender<Event>) {
-    let (inventory_tx, inventory_rx) = mpsc::channel(1_024);
-    tokio::spawn(treat_inventories(job_config.clone(), inventory_rx, stats));
-    watch(
-        &job_config
-            .clone()
-            .cfg
-            .processing
-            .inventory
-            .directory
-            .join("incoming"),
-        job_config.clone(),
-        &inventory_tx,
-    );
-    watch(
-        &job_config
-            .clone()
-            .cfg
-            .processing
-            .inventory
-            .directory
-            .join("accepted-nodes-updates"),
-        job_config.clone(),
-        &inventory_tx,
-    );
-}
-
-fn treat_reports(
-    job_config: Arc<JobConfig>,
-    rx: mpsc::Receiver<ReceivedFile>,
-    stats: mpsc::Sender<Event>,
-) -> impl Future<Item = (), Error = ()> {
-    rx.for_each(move |file| {
-        let stat_event = stats
-            .clone()
-            .send(Event::ReportReceived)
-            .map_err(|e| warn!("receive error: {}", e; "component" => "watcher"))
-            .map(|_| ());
-        tokio::spawn(lazy(|| stat_event));
-
-        debug!("received: {:?}", file; "component" => "watcher");
-
-        let treat_file = match job_config.cfg.processing.reporting.output {
-            ReportingOutputSelect::Database => insert(&file, job_config.clone(), stats.clone()),
-            ReportingOutputSelect::Upstream => unimplemented!(),
-            ReportingOutputSelect::Disabled => unreachable!(),
-        };
-
-        tokio::spawn(lazy(|| treat_file));
-        Ok(())
+    Ok(match path.extension().map(OsStr::to_str) {
+        Some(Some("gz")) => {
+            debug!("{:?} has .gz extension, extracting", path; "component" => LogComponent::Watcher);
+            let mut gz = GzDecoder::new(data.as_slice());
+            let mut s = String::new();
+            gz.read_to_string(&mut s)?;
+            s
+        }
+        Some(Some("xz")) => {
+            debug!("{:?} has .xz extension, extracting", path; "component" => LogComponent::Watcher);
+            let mut xz = XzDecoder::new(data.as_slice());
+            let mut s = String::new();
+            xz.read_to_string(&mut s)?;
+            s
+        }
+        // Let's assume everything else in this directory is a text file
+        _ => {
+            debug!("{:?} has no gz/xz extension, no extraction needed", path; "component" => LogComponent::Watcher);
+            String::from_utf8(data)?
+        }
     })
-}
-
-fn treat_inventories(
-    job_config: Arc<JobConfig>,
-    rx: mpsc::Receiver<ReceivedFile>,
-    stats: mpsc::Sender<Event>,
-) -> impl Future<Item = (), Error = ()> {
-    let stat_event = stats
-        .clone()
-        .send(Event::ReportReceived)
-        .map_err(|e| warn!("receive error: {}", e; "component" => "watcher"))
-        .map(|_| ());
-    tokio::spawn(lazy(|| stat_event));
-
-    rx.for_each(move |file| {
-        debug!("received: {:?}", file; "component" => "watcher");
-        let treat_file = match job_config.cfg.processing.inventory.output {
-            InventoryOutputSelect::Upstream => insert(&file, job_config.clone(), stats.clone()),
-            InventoryOutputSelect::Disabled => unreachable!(),
-        };
-
-        tokio::spawn(lazy(|| treat_file));
-        Ok(())
-    })
-}
-
-fn watch(path: &WatchedDirectory, job_config: Arc<JobConfig>, tx: &mpsc::Sender<ReceivedFile>) {
-    info!("Starting file watcher on {:#?}", &path; "component" => "watcher");
-    // Try to create target dir
-    create_dir_all(path).expect("Could not create watched directory");
-    tokio::spawn(list_files(
-        path.clone(),
-        job_config.cfg.processing.reporting.catchup,
-        tx.clone(),
-    ));
-    tokio::spawn(watch_files(path.clone(), tx.clone()));
-}
-
-fn list_files(
-    path: WatchedDirectory,
-    cfg: CatchupConfig,
-    tx: mpsc::Sender<ReceivedFile>,
-) -> impl Future<Item = (), Error = ()> {
-    Interval::new(Instant::now(), Duration::from_secs(cfg.frequency))
-        .map_err(|e| warn!("interval error: {}", e; "component" => "watcher"))
-        .for_each(move |_instant| {
-            debug!("listing {:?}", path; "component" => "watcher");
-
-            let tx = tx.clone();
-            let sys_time = SystemTime::now();
-
-            read_dir(path.clone())
-                .flatten_stream()
-                .take(cfg.limit)
-                .map_err(|e| warn!("list error: {}", e; "component" => "watcher"))
-                .filter(move |entry| {
-                    poll_fn(move || entry.poll_metadata())
-                        // If metadata can't be fetched, skip it for now
-                        .map(|metadata| metadata.modified().unwrap_or(sys_time))
-                        // An error indicates a file in the future, let's approximate it to now
-                        .map(|modified| {
-                            sys_time
-                                .duration_since(modified)
-                                .unwrap_or_else(|_| Duration::new(0, 0))
-                        })
-                        .map(|duration| duration > Duration::from_secs(30))
-                        .map_err(|e| warn!("list filter error: {}", e; "component" => "watcher"))
-                        // TODO async filter (https://github.com/rust-lang-nursery/futures-rs/pull/728)
-                        .wait()
-                        .unwrap_or(false)
-                })
-                .for_each(move |entry| {
-                    let path = entry.path();
-                    debug!("list: {:?}", path; "component" => "watcher");
-                    tx.clone()
-                        .send(path)
-                        .map_err(|e| warn!("list error: {}", e; "component" => "watcher"))
-                        .map(|_| ())
-                })
-        })
-}
-
-fn watch_stream(path: WatchedDirectory) -> inotify::EventStream<Vec<u8>> {
-    // https://github.com/linkerd/linkerd2-proxy/blob/c54377fe097208071a88d7b27501faa54ca212b0/lib/fs-watch/src/lib.rs#L189
-    let mut inotify = Inotify::init().expect("Could not initialize inotify");
-    inotify
-        .add_watch(path.clone(), WatchMask::CREATE | WatchMask::MODIFY)
-        .expect("Could not watch with inotify");
-    inotify.event_stream(Vec::from(&[0; 2048][..]))
-}
-
-fn watch_files(
-    path: WatchedDirectory,
-    tx: mpsc::Sender<ReceivedFile>,
-) -> impl Future<Item = (), Error = ()> {
-    watch_stream(path)
-        .map_err(|e| {
-            warn!("watch error: {}", e; "component" => "watcher");
-        })
-        .map(|entry| entry.name)
-        // If it is None, it means it is not an event on a file in the directory, skipping
-        .filter(|entry| entry.is_some())
-        .map(|entry| entry.expect("inotify entry has no name"))
-        .map(PathBuf::from)
-        .for_each(move |entry| {
-            tx.clone()
-                .send(entry)
-                .map_err(|e| warn!("watch send error: {}", e; "component" => "watcher"))
-                .map(|_| ())
-        })
-}
-
-fn insert(
-    path: &ReceivedFile,
-    job_config: Arc<JobConfig>,
-    stats: mpsc::Sender<Event>,
-) -> impl Future<Item = (), Error = ()> {
-    // TODO blocking
-    read_file(&path)
-        .and_then(|res| res.parse::<RunLog>())
-        .map_err(|e| warn!("send error: {}", e; "component" => "parser"))
-        .map(move |runlog| {
-            insert_runlog(
-                &job_config
-                    .pool
-                    .clone()
-                    .expect("output uses database but no config provided"),
-                &runlog,
-            )
-            .map_err(|e| warn!("parse error: {}", e; "component" => "parser"))
-        })
-        .and_then(|_| {
-            stats
-                .send(Event::ReportInserted)
-                .map_err(|e| warn!("send error: {}", e; "component" => "watcher"))
-                .map(|_| ())
-        })
-}
-
-fn read_file(path: &ReceivedFile) -> impl Future<Item = String, Error = Error> {
-    File::open(path.clone())
-        .and_then(|file| {
-            let buf: Vec<u8> = Vec::new();
-            tokio::io::read_to_end(file, buf)
-        })
-        .map_err(Error::from)
-        .and_then(|item| Ok(String::from_utf8(item.1)?))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{
-        fs::{create_dir_all, remove_file, File},
-        str::FromStr,
-    };
+    use std::path::PathBuf;
+    use std::{fs::read_to_string, str::FromStr};
 
     #[test]
-    fn it_watches_files() {
-        // TODO improve tmp dir handling
-        create_dir_all("tests/tmp/test_watch").unwrap();
-        // just in case
-        let _ = remove_file("tests/tmp/test_watch/2019-01-24T15:55:01+00:00@root.log");
+    fn it_reads_gzipped_files() {
+        let reference = read_to_string("tests/test_gz/normal.log").unwrap();
+        assert_eq!(
+            read_file_content(&PathBuf::from_str("tests/test_gz/normal.log.gz").unwrap()).unwrap(),
+            reference
+        );
+    }
 
-        let watch = watch_stream(PathBuf::from_str("tests/tmp/test_watch").unwrap());
-        File::create("tests/tmp/test_watch/2019-01-24T15:55:01+00:00@root.log").unwrap();
-        let events = watch.take(1).wait().collect::<Vec<_>>();
+    #[test]
+    fn it_reads_xzipped_files() {
+        let reference = read_to_string("tests/test_gz/normal.log").unwrap();
+        assert_eq!(
+            read_file_content(&PathBuf::from_str("tests/test_gz/normal.log.xz").unwrap()).unwrap(),
+            reference
+        );
+    }
 
-        assert_eq!(events.len(), 1);
-
-        for event in events {
-            if let Ok(event) = event {
-                assert_eq!(
-                    event.name.map(PathBuf::from).unwrap(),
-                    PathBuf::from_str("2019-01-24T15:55:01+00:00@root.log").unwrap()
-                );
-            }
-        }
-
-        // cleanup
-        let _ = remove_file("tests/tmp/test_watch/2019-01-24T15:55:01+00:00@root.log");
+    #[test]
+    fn it_reads_plain_files() {
+        let reference = read_to_string("tests/test_gz/normal.log").unwrap();
+        assert_eq!(
+            read_file_content(&PathBuf::from_str("tests/test_gz/normal.log").unwrap()).unwrap(),
+            reference
+        );
     }
 }

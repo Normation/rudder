@@ -2,24 +2,30 @@
 name = "relayd"
 # TODO automate version number
 version = "5.1.0-alpha1"
-authors = ["Rudder developpers <dev@rudder.io>"]
+authors = ["Rudder developers <dev@rudder.io>"]
 edition = "2018"
+description = "Rudder relay component"
+readme = "README.md"
+homepage = "https://www.rudder.io"
+repository = "https://github.com/Normation/rudder"
+license = "GPL3"
 
 [[bin]]
-name = "agent"
-path = "src/agent.rs"
-
-[[bin]]
-name = "relayd"
+name = "rudder-relayd"
 path = "src/relayd.rs"
 
-[dependencies]
+[[bench]]
+name = "runlog"
+harness = false
 
-## Good
+[dependencies]
+#### Good
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 nom = "4.2"
 clap = "2.32"
+# Could use native lib instead, but maybe not prod-ready
+flate2 = { version = "1.0", features = ["zlib"], default-features = false }
 diesel = { version = "1.4", features = ["postgres", "chrono", "r2d2"] }
 # Compile dev and release with trace logs enabled
 slog = { version = "2.4", features = ["max_level_trace", "release_max_level_trace"] }
@@ -29,18 +35,21 @@ slog-scope = "4.1"
 slog-stdlog = "3.0"
 slog-atomic = "2.0"
 slog-kvfilter = "0.7"
-
-## Bad (=Not widely used or <1.0)
+#### Bad (=Not widely used or <1.0)
 toml = "0.5"
 inotify = "0.7"
-uuid = { version = "0.7", features = ["v4"] }
-rand = "0.6"
+xz2 = "0.1"
 # Disable uneeded features (udp, unix socket, etc.)
 tokio = { version = "0.1", default-features = false, features = ["fs", "io", "reactor", "rt-full"] }
 tokio-signal = "0.2"
+tokio-threadpool = "0.1"
 futures = "0.1"
 warp = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+criterion = "0.2"
+filetime = "0.2"
 
 [profile.release]
 # Smaller binaries

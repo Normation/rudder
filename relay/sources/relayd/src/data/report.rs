@@ -28,22 +28,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{data::nodes::NodeId, error::Error, output::database::schema::ruddersysevents};
+use crate::{data::node, output::database::schema::ruddersysevents};
 use chrono::prelude::*;
-use nom::types::CompleteStr;
-use nom::*;
+use nom::{types::CompleteStr, *};
 use serde::{Deserialize, Serialize};
-use slog::{slog_debug, slog_warn};
-use slog_scope::{debug, warn};
-use std::{
-    fmt::{self, Display},
-    str::FromStr,
-};
-
-/*
-"^@@(?P<policy>.*)@@(?P<event_type>.*)@@(?P<rule_id>.*)@@(?P<directive_id>.*)@@(?P<serial>.*)@@
-(?P<component>.*)@@(?P<key_value>.*)@@(?P<start_datetime>.*)##(?P<node_id>.*)@#(?s)(?P<msg>.*)$"
-*/
+use std::fmt::{self, Display};
 
 // A detail log entry
 #[derive(Debug, PartialEq, Eq)]
@@ -123,26 +112,28 @@ named!(
 
 named!(log_entries<CompleteStr, Vec<LogEntry>>, many0!(log_entry));
 
-named!(parse_runlog<CompleteStr, Vec<RawReport>>,
-    many1!(
-        report
-    )
-);
+fn parse_date(input: CompleteStr) -> Result<DateTime<FixedOffset>, chrono::format::ParseError> {
+    DateTime::parse_from_str(input.as_ref(), "%Y-%m-%d %H:%M:%S%z")
+}
 
-named!(report<CompleteStr, RawReport>, do_parse!(
+fn parse_i32(input: CompleteStr) -> IResult<CompleteStr, i32> {
+    parse_to!(input, i32)
+}
+
+named!(pub report<CompleteStr, RawReport>, do_parse!(
     // TODO NOT CORRECT
-    // pas de line break dans une ligne
-    // gérer les reports interrompus
+    // no line break inside a filed (except message)
+    // handle partial reports without breaking following ones
     logs: log_entries >>
     rudder_report_begin >>
     policy: take_until_and_consume_s!("@@") >>
     event_type: take_until_and_consume_s!("@@") >>
     rule_id: take_until_and_consume_s!("@@") >>
     directive_id: take_until_and_consume_s!("@@") >>
-    serial: take_until_and_consume_s!("@@") >>
+    serial: map_res!(take_until_and_consume_s!("@@"), parse_i32) >>
     component: take_until_and_consume_s!("@@") >>
     key_value: take_until_and_consume_s!("@@") >>
-    start_datetime: take_until_and_consume_s!("##") >>
+    start_datetime: map_res!(take_until_and_consume_s!("##"), parse_date) >>
     node_id: take_until_and_consume_s!("@#") >>
     msg: multilines >>
         (RawReport {
@@ -150,19 +141,19 @@ named!(report<CompleteStr, RawReport>, do_parse!(
            // FIXME execution date should be generated at execution
            // We could skip parsing it but it would prevent consistency check that cannot
            // be done once inserted.
-            execution_datetime: DateTime::parse_from_str(&start_datetime.to_string(), "%Y-%m-%d %H:%M:%S%z").unwrap(),
+            execution_datetime: start_datetime,
             node_id: node_id.to_string(),
             rule_id: rule_id.to_string(),
             directive_id: directive_id.to_string(),
-            serial: serial.parse::<i32>().unwrap(),
+            serial: serial.1,
             component: component.to_string(),
             key_value: key_value.to_string(),
-            start_datetime: DateTime::parse_from_str(&start_datetime.to_string(), "%Y-%m-%d %H:%M:%S%z").unwrap(),
+            start_datetime: start_datetime,
             event_type: event_type.to_string(),
             msg: msg.to_string(),
             policy: policy.to_string(),
         },
-        logs
+            logs
         })
 ));
 
@@ -173,7 +164,7 @@ pub struct RawReport {
 }
 
 impl RawReport {
-    fn into_reports(self) -> Vec<Report> {
+    pub fn into_reports(self) -> Vec<Report> {
         let mut res = vec![];
         for log in self.logs {
             res.push(Report {
@@ -185,6 +176,31 @@ impl RawReport {
         res.push(self.report);
         res
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Queryable)]
+pub struct QueryableReport {
+    pub id: i64,
+    #[column_name = "executiondate"]
+    pub start_datetime: DateTime<Utc>,
+    #[column_name = "ruleid"]
+    pub rule_id: String,
+    #[column_name = "directiveid"]
+    pub directive_id: String,
+    pub component: String,
+    #[column_name = "keyvalue"]
+    pub key_value: Option<String>,
+    #[column_name = "eventtype"]
+    pub event_type: Option<String>,
+    #[column_name = "msg"]
+    pub msg: Option<String>,
+    #[column_name = "policy"]
+    pub policy: Option<String>,
+    #[column_name = "nodeid"]
+    pub node_id: node::Id,
+    #[column_name = "executiontimestamp"]
+    pub execution_datetime: Option<DateTime<Utc>>,
+    pub serial: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Insertable)]
@@ -207,7 +223,7 @@ pub struct Report {
     #[column_name = "policy"]
     pub policy: String,
     #[column_name = "nodeid"]
-    pub node_id: NodeId,
+    pub node_id: node::Id,
     #[column_name = "executiontimestamp"]
     pub execution_datetime: DateTime<FixedOffset>,
     pub serial: i32,
@@ -232,109 +248,13 @@ impl Display for Report {
     }
 }
 
-impl RunLog {
-    fn from_reports(raw_reports: Vec<RawReport>) -> Result<Self, Error> {
-        let reports: Vec<Report> = raw_reports
-            .into_iter()
-            .flat_map(|x| x.into_reports())
-            .collect();
-
-        let info = match reports.first() {
-            None => return Err(Error::EmptyRunlog),
-            Some(report) => RunInfo {
-                node_id: report.node_id.clone(),
-                timestamp: report.start_datetime,
-            },
-        };
-
-        for report in &reports {
-            if info.node_id != report.node_id {
-                warn!("Wrong node id in report {:#?}", report; "component" => "parser");
-            }
-            if info.timestamp != report.start_datetime {
-                warn!(
-                    "Wrong execution timestamp in report {:#?}",
-                    report; "component" => "parser"
-                );
-            }
-        }
-        Ok(RunLog { info, reports })
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct RunInfo {
-    pub node_id: NodeId,
-    pub timestamp: DateTime<FixedOffset>,
-}
-
-named!(parse_runinfo<CompleteStr, RunInfo>,
-    do_parse!(
-        timestamp: take_until_and_consume_s!("@") >>
-        node_id: take_until_and_consume_s!(".") >>
-        tag_s!("log") >>
-        (
-            RunInfo {
-                // FIXME same timestamp format as in the reports?
-                timestamp: DateTime::parse_from_str(&timestamp.to_string(), "%+").unwrap(),
-                node_id: node_id.to_string(),
-            }
-        )
-    )
-);
-
-impl FromStr for RunInfo {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match parse_runinfo(CompleteStr::from(s)) {
-            Ok(raw_runinfo) => {
-                debug!("Parsed run info {:#?}", raw_runinfo.1; "component" => "parser");
-                Ok(raw_runinfo.1)
-            }
-            Err(_) => Err(Error::InvalidRunInfo),
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct RunLog {
-    pub info: RunInfo,
-    pub reports: Vec<Report>,
-}
-
-impl Display for RunLog {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for report in &self.reports {
-            writeln!(f, "R: {:}", report)?
-        }
-        Ok(())
-    }
-}
-
-impl FromStr for RunLog {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match parse_runlog(CompleteStr::from(s)) {
-            Ok(raw_runlog) => {
-                debug!("Parsed runlog {:#?}", raw_runlog.1; "component" => "parser");
-                Ok(Self::from_reports(raw_runlog.1)?)
-            }
-            Err(_) => Err(Error::InvalidRunInfo),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::read_to_string;
 
     #[test]
     fn test_display_report() {
         let report = "@@Common@@result_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@None@@2018-08-24 15:55:01 +00:00##root@#Cron daemon status was repaired";
-        //let report = Report::from_str(report).unwrap();
         assert_eq!(
             report,
             format!(
@@ -361,19 +281,6 @@ mod tests {
                     .unwrap(),
                 }
             )
-        );
-    }
-
-    #[test]
-    fn test_parse_runinfo() {
-        let runlog_file = "2018-08-24T15:55:01+00:00@root.log";
-        let runinfo = RunInfo::from_str(runlog_file).unwrap();
-        assert_eq!(
-            runinfo,
-            RunInfo {
-                timestamp: DateTime::parse_from_str("2018-08-24T15:55:01+00:00", "%+").unwrap(),
-                node_id: "root".into(),
-            }
         );
     }
 
@@ -431,21 +338,5 @@ mod tests {
                 }
             ]
         )
-    }
-
-    #[test]
-    fn test_parse_runlog() {
-        let run_log = &read_to_string("tests/runlogs/2018-08-24T15:55:01+00:00@root.log").unwrap();
-        let run = RunLog::from_str(run_log).unwrap();
-        assert_eq!(run.info.node_id, "root".to_owned());
-        assert_eq!(run.reports[0].msg, "Start execution".to_owned());
-        assert_eq!(
-            run.reports[1].msg,
-            "Configuration library initialization\nwas correct".to_owned()
-        );
-        assert_eq!(
-            run.reports[11].msg,
-            "Remove file /var/rudder/tmp/rudder_monitoring.csv was correct".to_owned()
-        );
     }
 }

@@ -28,12 +28,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-#![no_main]
-#[macro_use] extern crate libfuzzer_sys;
-extern crate relayd;
+pub mod node;
+pub mod report;
+pub mod runinfo;
+pub mod runlog;
 
-use relayd::data::reporting::{Report, RunLog, RunInfo};
-
-fuzz_target!(|data: &[u8]| {
-    std::str::from_utf8(data).map(|x|x.parse::<Report>());
-});
+pub use report::Report;
+pub use runinfo::RunInfo;
+pub use runlog::RunLog;

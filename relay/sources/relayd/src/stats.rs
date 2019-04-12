@@ -28,6 +28,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::configuration::LogComponent;
 use futures::{stream::Stream, sync::mpsc, Future};
 use serde::Serialize;
 use slog::slog_trace;
@@ -68,18 +69,18 @@ impl Stats {
             Event::InventoryRefused => self.inventory_refused += 1,
         }
     }
-}
 
-pub fn stats_job(
-    stats: Arc<RwLock<Stats>>,
-    rx: mpsc::Receiver<Event>,
-) -> impl Future<Item = (), Error = ()> {
-    rx.for_each(move |event| {
-        stats
-            .write()
-            .expect("could not write lock stats")
-            .event(event);
-        trace!("Received stat event: {:?}", event; "component" => "statistics");
-        Ok(())
-    })
+    pub fn receiver(
+        stats: Arc<RwLock<Self>>,
+        rx: mpsc::Receiver<Event>,
+    ) -> impl Future<Item = (), Error = ()> {
+        rx.for_each(move |event| {
+            stats
+                .write()
+                .expect("could not write lock stats")
+                .event(event);
+            trace!("Received stat event: {:?}", event; "component" => LogComponent::Statistics);
+            Ok(())
+        })
+    }
 }
