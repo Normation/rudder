@@ -57,16 +57,20 @@ import java.io.File
 import net.liftweb.common.Loggable
 import com.normation.rudder.services.policies.InterpolatedValueCompilerImpl
 
+import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
+import com.normation.zio._
+
 @RunWith(classOf[JUnitRunner])
 class TestTechniqueWriter extends Specification with ContentMatchers with Loggable {
-  import ResultHelper._
   sequential
   val basePath = "/tmp/test-technique-writer" + DateTime.now.toString()
   new File(basePath).mkdirs()
 
   val expectedPath = "src/test/resources/configuration-repository"
   object TestTechniqueArchiver extends TechniqueArchiver {
-    def commitFile(technique : Technique, gitPath : String, modId: ModificationId, commiter:  EventActor, msg : String) : Result[Unit] =  Right(())
+    def commitFile(technique : Technique, gitPath : String, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = UIO.unit
   }
 
   object TestLibUpdater extends UpdateTechniqueLibrary {
@@ -176,7 +180,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   s"Preparing files for technique ${technique.name}" should {
 
     "Should write metadata file without problem" in {
-      writer.writeMetadata(technique, methods, ModificationId("test"), EventActor("test")) must beRight( expectedMetadataPath )
+      writer.writeMetadata(technique, methods, ModificationId("test"), EventActor("test")).either.runNow must beRight( expectedMetadataPath )
     }
 
     "Should generate expected metadata content for our technique" in {
@@ -186,7 +190,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     }
 
     "Should write dsc technique file without problem" in {
-      dscWriter.writeAgentFile(technique, methods) must beRight( beSome (dscTechniquePath ))
+      dscWriter.writeAgentFile(technique, methods).either.runNow must beRight( beSome (dscTechniquePath ))
     }
 
     "Should generate expected dsc technique content for our technique" in {
@@ -218,7 +222,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   s"Preparing files for technique ${technique.bundleName.value}" should {
 
     "Should write metadata file without problem" in {
-      writer.writeMetadata(technique_any, methods, ModificationId("test"), EventActor("test")) must beRight( expectedMetadataPath_any )
+      writer.writeMetadata(technique_any, methods, ModificationId("test"), EventActor("test")).either.runNow must beRight( expectedMetadataPath_any )
     }
 
     "Should generate expected metadata content for our technique" in {
@@ -228,7 +232,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     }
 
     "Should write dsc technique file without problem" in {
-      dscWriter.writeAgentFile(technique_any, methods) must beRight( beSome (dscTechniquePath_any ))
+      dscWriter.writeAgentFile(technique_any, methods).either.runNow must beRight( beSome (dscTechniquePath_any ))
     }
 
     "Should generate expected dsc technique content for our technique" in {
