@@ -168,13 +168,14 @@ class GitTechniqueReader(
   private case class NoRootCategory(msg: String) extends Exception(msg)
 
   private[this] var currentTechniquesInfoCache : TechniquesInfo = {
+    val currentRevTree = revisionProvider.currentRevTreeId.runNow
     try {
-      processRevTreeId(revisionProvider.currentRevTreeId.runNow)
+      processRevTreeId(currentRevTree)
     } catch {
       case NoRootCategory(msg) =>
-        logger.error(s"The stored Git revision does not provide a root category.xml, which is mandatory. Error message was: ${msg}")
-        val newRevTreeId = revisionProvider.getAvailableRevTreeId.runNow
-        if(newRevTreeId != revisionProvider.currentRevTreeId.runNow) {
+        logger.error(s"The stored Git revision '${currentRevTree}' does not provide a root category.xml, which is mandatory. Error message was: ${msg}")
+        val newRevTreeId     = revisionProvider.getAvailableRevTreeId.runNow
+        if(newRevTreeId != currentRevTree) {
           logger.error(s"Trying to load last available revision of the technique library to unstuck the situation.")
           revisionProvider.setCurrentRevTreeId(newRevTreeId).runNow
           processRevTreeId(newRevTreeId)
@@ -484,7 +485,7 @@ class GitTechniqueReader(
       //is valid
       while(tw.next) {
         val path = toTechniquePath(tw.getPathString) //we will need it to build the category id
-        processTechnique(repo.db.runNow.open(tw.getObjectId(0)).openStream, path.path, techniqueInfos, parseDescriptor, revTreeId)
+        processTechnique(repo.db.runNow.open(tw.getObjectId(0)).openStream, path.path, techniqueInfos, parseDescriptor, revTreeId).runNow
       }
   }
 
@@ -496,14 +497,14 @@ class GitTechniqueReader(
       tw.setRecursive(true)
       tw.reset(revTreeId)
 
-
       val maybeCategories = MutMap[TechniqueCategoryId, TechniqueCategory]()
 
       //now, for each potential path, look if the cat or policy
       //is valid
       while(tw.next) {
         val path = toTechniquePath(tw.getPathString) //we will need it to build the category id
-        registerMaybeCategory(tw.getObjectId(0), path.path, maybeCategories, parseDescriptor)
+        val cat = extractMaybeCategory(tw.getObjectId(0), path.path, parseDescriptor).runNow
+        maybeCategories.update(cat.id, cat)
       }
 
       val toRemove = new collection.mutable.HashSet[SubTechniqueCategoryId]()
@@ -519,7 +520,6 @@ class GitTechniqueReader(
 
       //update techniqueInfos
       techniqueInfos.subCategories ++= maybeCategories.collect { case (sId:SubTechniqueCategoryId, cat:SubTechniqueCategory) => (sId -> cat) }
-
 
       var root = maybeCategories.get(RootTechniqueCategoryId) match {
           case None =>
@@ -576,12 +576,12 @@ class GitTechniqueReader(
  )
 
   private[this] def processTechnique(
-      is:InputStream
-    , filePath:String
-    , techniquesInfo:InternalTechniquesInfo
-    , parseDescriptor:Boolean // that option is a success optimization for the case diff between old/new commit
-    , revTreeId: ObjectId
-  ): IO[RudderError, Unit] = {
+      is             : InputStream
+    , filePath       : String
+    , techniquesInfo : InternalTechniquesInfo
+    , parseDescriptor: Boolean // that option is a success optimization for the case diff between old/new commit
+    , revTreeId      : ObjectId
+  ): IOResult[Unit] = {
     def updateParentCat(catId: TechniqueCategoryId, techniqueId: TechniqueId, descriptorFile: File) : Boolean = {
       catId match {
         case RootTechniqueCategoryId =>
@@ -656,12 +656,11 @@ class GitTechniqueReader(
    * as a category, but the user did a mistake: signal it,
    * but DO use the folder as a category.
    */
-  private[this] def registerMaybeCategory(
+  private[this] def extractMaybeCategory(
       descriptorObjectId: ObjectId
     , filePath          : String
-    , maybeCategories   : MutMap[TechniqueCategoryId, TechniqueCategory]
     , parseDescriptor   : Boolean // that option is a success optimization for the case diff between old/new commit
-  ) : IO[RudderError, Unit] = {
+  ) : IOResult[TechniqueCategory] = {
 
     def nonEmpty(s: String): Option[String] = {
       s match {
@@ -669,9 +668,12 @@ class GitTechniqueReader(
         case _ => Some(s)
       }
     }
-    def parse(parseDesc:Boolean, catId: TechniqueCategoryId): IO[RudderError, (String, String, Boolean)] = {
+    def parse(parseDesc:Boolean, catId: TechniqueCategoryId): IOResult[(String, String, Boolean)] = {
       if(parseDesc) {
-        loadDescriptorFile(repo.db.runNow.open(descriptorObjectId).openStream, filePath).map { xml =>
+        for {
+          db  <- repo.db
+          xml <- loadDescriptorFile(repo.db.runNow.open(descriptorObjectId).openStream, filePath)
+        } yield {
           val name = nonEmpty((xml \\ "name").text).getOrElse(catId.name.value)
           val description = nonEmpty((xml \\ "description").text).getOrElse("")
           val isSystem = (nonEmpty((xml \\ "system").text).getOrElse("false")).equalsIgnoreCase("true")
@@ -690,11 +692,10 @@ class GitTechniqueReader(
       triple <- parse(parseDescriptor, catId)
     } yield {
       val (name, desc, system ) = triple
-      val cat = catId match {
-        case RootTechniqueCategoryId => RootTechniqueCategory(name, desc, isSystem = system)
+      catId match {
+        case RootTechniqueCategoryId    => RootTechniqueCategory(name, desc, isSystem = system)
         case sId:SubTechniqueCategoryId => SubTechniqueCategory(sId, name, desc, isSystem = system)
       }
-      maybeCategories(cat.id) = cat
     }
   }
 
@@ -703,7 +704,7 @@ class GitTechniqueReader(
    * @param file : the full filename
    * @return the xml representation of the file
    */
-  private[this] def loadDescriptorFile(is: InputStream, filePath : String ) : IO[RudderError, Elem] = {
+  private[this] def loadDescriptorFile(is: InputStream, filePath : String ) : IOResult[Elem] = {
     Task.effect {
       XML.load(is)
     }.foldM(

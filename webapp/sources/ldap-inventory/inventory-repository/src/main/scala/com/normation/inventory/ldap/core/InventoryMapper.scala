@@ -55,6 +55,7 @@ import com.normation.inventory.ldap.core.InventoryMappingResult._
 import scalaz.zio._
 import scalaz.zio.syntax._
 import com.softwaremill.quicklens._
+import com.normation.errors.IOResult
 
 sealed trait InventoryMappingRudderError extends RudderError
 object InventoryMappingRudderError {
@@ -71,7 +72,7 @@ object InventoryMappingRudderError {
 object InventoryMappingResult {
 
   type InventoryMappingPure[T] = Either[InventoryMappingRudderError, T]
-  type InventoryMappingResult[T] = IO[RudderError, T]
+  type InventoryMappingResult[T] = IOResult[T]
 
 
   implicit class RequiredAttrToPure(entry: LDAPEntry) {

@@ -38,21 +38,22 @@
 package com.normation.rudder.repository.jdbc
 
 import com.normation.rudder.repository.EventLogRepository
-import org.joda.time.DateTime
 import com.normation.eventlog._
-import com.normation.rudder.domain.eventlog._
-import java.sql.ResultSet
-import net.liftweb.common._
+
 import scala.xml._
 import com.normation.rudder.services.eventlog.EventLogFactory
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.workflows.ChangeRequestId
-
-import doobie._, doobie.implicits._
+import doobie._
+import doobie.implicits._
 import cats.implicits._
+import com.normation.NamedZioLogger
 import doobie.postgres.implicits._
 import com.normation.rudder.db.Doobie._
 import com.normation.rudder.db.Doobie
+
+import com.normation.errors._
+import scalaz.zio.syntax._
 
 /**
  * The EventLog repository
@@ -64,22 +65,23 @@ import com.normation.rudder.db.Doobie
 class EventLogJdbcRepository(
     doobie                      : Doobie
   , override val eventLogFactory: EventLogFactory
-) extends EventLogRepository with Loggable {
+) extends EventLogRepository with NamedZioLogger {
 
   import doobie._
 
+  override def loggerName: String = this.getClass.getName
 
   /**
    * Save an eventLog
    * Optionnal : the user. At least one of the eventLog user or user must be defined
    * Return the event log with its serialization number
    */
-  def saveEventLog(modId: ModificationId, eventLog : EventLog) : Box[EventLog] = {
+  def saveEventLog(modId: ModificationId, eventLog : EventLog) : IOResult[EventLog] = {
     //we only know how to store Elem, not NodeSeq
     eventLog.details match {
       case elt: Elem =>
 
-        val boxId: Box[Int] = transactRunBox(xa => sql"""
+        val boxId: IOResult[Int] = transactIOResult(s"Error when persisting event log ${eventLog.eventType.serialize}")(xa => sql"""
           insert into eventlog (creationdate, modificationid, principal, eventtype, severity, data, reason, causeid)
           values(${eventLog.creationDate}, ${modId.value}, ${eventLog.principal.name}, ${eventLog.eventType.serialize},
                  ${eventLog.severity}, ${elt}, ${eventLog.eventDetails.reason}, ${eventLog.cause}
@@ -89,11 +91,11 @@ class EventLogJdbcRepository(
         for {
           id      <- boxId
           details =  eventLog.eventDetails.copy(id = Some(id), modificationId = Some(modId))
-          saved   <- EventLogReportsMapper.mapEventLog(eventLog.eventType, details)
+          saved   <- EventLogReportsMapper.mapEventLog(eventLog.eventType, details).toIO
         } yield {
           saved
         }
-      case _ => Failure(s"Eventlog with type '${eventLog.eventType} has invalid XML for details (it must be a well formed document with only one root): ${eventLog.details}'")
+      case _ => Unconsistancy(s"Eventlog with type '${eventLog.eventType} has invalid XML for details (it must be a well formed document with only one root): ${eventLog.details}'").fail
     }
   }
 
@@ -109,9 +111,9 @@ class EventLogJdbcRepository(
         EventTypeFactory(eventType)
       , eventLogDetails
     ) match {
-      case Full(log)   => log
-      case e: EmptyBox =>
-        logger.warn(s"Error when trying to get the event type, recorded type was: '${eventType}'", e)
+      case Right(log)  => log
+      case Left(error) =>
+        logEffect.warn(s"Error when trying to get the event type, recorded type was: '${eventType}'")
         UnspecializedEventLog(eventLogDetails)
       }
   }
@@ -122,7 +124,7 @@ class EventLogJdbcRepository(
     , optLimit        : Option[Int] = None
     , orderBy         : Option[String] = None
     , eventTypeFilter : List[EventLogFilter] = Nil
-  ) : Box[Vector[EventLog]]= {
+  ) : IOResult[Vector[EventLog]]= {
 
     val order = orderBy.map(o => " order by " + o).getOrElse("")
     val limit = optLimit.map( l => " limit " + l).getOrElse("")
@@ -146,7 +148,7 @@ class EventLogJdbcRepository(
       current *> HPS.set(index+2, event.eventType.serialize)
     }
 
-    transactRunBox(xa => (for {
+    transactIOResult(s"Error when retrieving event logs for change request '${changeRequest.value}'")(xa => (for {
       entries <- HC.stream[(String, EventLogDetails)](q, param, 512).compile.toVector
     } yield {
       entries.map(toEventLog)
@@ -156,7 +158,7 @@ class EventLogJdbcRepository(
   def getLastEventByChangeRequest(
       xpath          : String
     , eventTypeFilter: List[EventLogFilter] = Nil
-  ) : Box[Map[ChangeRequestId,EventLog]] = {
+  ) : IOResult[Map[ChangeRequestId,EventLog]] = {
 
     val eventFilter = eventTypeFilter match {
       case Nil => ""
@@ -189,7 +191,7 @@ class EventLogJdbcRepository(
       HPS.set(index+1, event.eventType.serialize)
     }.void
 
-    transactRunBox(xa => (for {
+    transactIOResult(s"Error when retrieving event logs for change request '${xpath}'")(xa => (for {
       entries <- HC.stream[(String, String, EventLogDetails)](q, param, 512).compile.toVector
     } yield {
       entries.map { case (crid, tpe, details) =>
@@ -198,7 +200,7 @@ class EventLogJdbcRepository(
     }).transact(xa))
   }
 
-  def getEventLogByCriteria(criteria : Option[String], optLimit:Option[Int] = None, orderBy:Option[String]) : Box[Vector[EventLog]] = {
+  def getEventLogByCriteria(criteria : Option[String], optLimit:Option[Int] = None, orderBy:Option[String]) : IOResult[Vector[EventLog]] = {
 
     val where = criteria.map(c => s"where ${c}").getOrElse("")
     val order = orderBy.map(o => s" order by ${o}").getOrElse("")
@@ -210,14 +212,14 @@ class EventLogJdbcRepository(
       ${where} ${order} ${limit}
     """
 
-    transactRun(xa => (for {
+    transactIOResult(s"Error when retrieving event logs for change request with request: ${q}")(xa => (for {
       entries <- query[(String, EventLogDetails)](q).to[Vector]
     } yield {
       entries.map(toEventLog)
-    }).transact(xa).attempt) ?~! s"could not find event log with request ${q}"
+    }).transact(xa))
   }
 
-  def getEventLogWithChangeRequest(id:Int) : Box[Option[(EventLog,Option[ChangeRequestId])]] = {
+  def getEventLogWithChangeRequest(id:Int) : IOResult[Option[(EventLog,Option[ChangeRequestId])]] = {
 
     val select = sql"""
       SELECT E.eventtype, E.id, E.modificationid, E.principal, E.creationdate, E.causeid, E.severity, E.reason, E.data, CR.id as changeRequestId
@@ -225,57 +227,20 @@ class EventLogJdbcRepository(
       where E.id = ${id}
     """
 
-    transactRun(xa => (for {
+    transactIOResult(s"Error when retrieving event logs for change request with request: ${select}")(xa => (for {
       optEntry <- select.query[(String, EventLogDetails, Option[Int])].option
     } yield {
       optEntry.map { case (tpe, details, crid) =>
         (toEventLog((tpe, details)), crid.flatMap(i => if(i > 0) Some(ChangeRequestId(i)) else None))
       }
-    }).transact(xa).attempt) ?~! s"could not find event log with request ${select}"
+    }).transact(xa))
   }
 
 }
 
-private object EventLogReportsMapper extends Loggable {
-  def mapRow(rs : ResultSet, rowNum: Int) : EventLog = {
-    val eventLogDetails = EventLogDetails(
-        id             = Some(rs.getInt("id"))
-      , modificationId = {
-          val modId = rs.getString("modificationId")
-          if (modId != null && modId.size > 0)
-            Some(ModificationId(modId))
-          else
-            None
-        }
-      , principal      = EventActor(rs.getString("principal"))
-      , creationDate   = new DateTime(rs.getTimestamp("creationDate"))
-      , cause          = {
-                        if(rs.getInt("causeId")>0) {
-                          Some(rs.getInt("causeId"))
-                        } else None
-                      }
-      , severity    = rs.getInt("severity")
-      , reason      = {
-                        val desc = rs.getString("reason")
-                        if(desc != null && desc.size > 0) {
-                          Some(desc)
-                        } else None
-                      }
-      , details     = XML.load(rs.getSQLXML("data").getBinaryStream() )
-    )
+private object EventLogReportsMapper extends NamedZioLogger {
 
-    mapEventLog(
-        eventType = EventTypeFactory(rs.getString("eventType"))
-      , eventLogDetails
-    ) match {
-      case Full(e) => e
-      case e:EmptyBox =>
-        logger.warn("Error when trying to get the event type, recorded type was: " + rs.getString("eventType"), e)
-        UnspecializedEventLog(
-            eventLogDetails
-        )
-      }
-  }
+  override def loggerName: String = this.getClass.getName
 
   private[this] val logFilters =
         WorkflowStepChanged ::
@@ -299,17 +264,17 @@ private object EventLogReportsMapper extends Loggable {
   def mapEventLog(
       eventType      : EventLogType
     , eventLogDetails: EventLogDetails
-  ) : Box[EventLog] = {
+  ) : PureResult[EventLog] = {
 
     logFilters.find {
       pf => pf.isDefinedAt((eventType, eventLogDetails))
     }.map(
       x => x.apply((eventType, eventLogDetails))
     ) match {
-      case Some(value) => Full(value)
-      case None =>
-        logger.error("Could not match event type %s".format(eventType.serialize))
-        Failure("Unknow Event type")
+      case Some(value) =>
+        Right(value)
+      case None        =>
+        Left(Unconsistancy(s"Unknow Event type: '${eventType.serialize}'"))
     }
   }
 }

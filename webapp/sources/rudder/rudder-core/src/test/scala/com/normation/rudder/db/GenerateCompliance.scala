@@ -59,9 +59,10 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import org.joda.time.DateTime
 import cats.implicits._
+import com.normation.zio.ZioRuntime
 
 import scala.util.Random
-
+import com.normation.zio._
 
 /*
  * Allow to generate false compliance for testing purpose
@@ -109,6 +110,7 @@ object GenerateCompliance {
     , properties.getProperty("ldap.host")
     , properties.getProperty("ldap.port").toInt
     , poolSize = 2
+    , blockingModule = ZioRuntime.Environment
   )
   lazy val rwLdap =
     new RWPooledSimpleAuthConnectionProvider(
@@ -117,21 +119,13 @@ object GenerateCompliance {
     , properties.getProperty("ldap.host")
     , properties.getProperty("ldap.port").toInt
     , poolSize = 2
+    , blockingModule = ZioRuntime.Environment
     )
 
   lazy val rudderDit = new RudderDit(new DN(properties.getProperty("ldap.rudder.base")))
   lazy val nodesDit  = new NodeDit  (new DN(properties.getProperty("ldap.node.base")))
 
   final case class Rule(ruleId: String, directivesIds: Seq[String])
-
-  def getBox[T](b: Box[T], msg: String) = b match {
-    case eb: EmptyBox =>
-      val e = eb ?~! msg
-      System.err.println(e.messageChain)
-      e.rootExceptionCause.foreach(ex => ex.printStackTrace())
-      throw new RuntimeException("Irrecoverable error")
-    case Full(x)  => x
-  }
 
   // node config are a set of (rule ids -> {directive ids])
   final case class NodeConfig(rules: Seq[Rule])
@@ -376,18 +370,20 @@ object GenerateCompliance {
     import ch.qos.logback.classic.Logger
     LoggerFactory.getLogger("sql").asInstanceOf[Logger].setLevel(Level.DEBUG)
 
-    val rules = getBox(for {
-      ldap  <- roLdap
+    val rules = (for {
+      ldap    <- roLdap
+      entries <- ldap.searchOne(rudderDit.RULES.dn, AND(IS("rule"), EQ("isEnabled", "TRUE"), NOT(EQ("isSystem", "TRUE"))), "ruleId", "directiveId")
     } yield {
-      ldap.searchOne(rudderDit.RULES.dn, AND(IS("rule"), EQ("isEnabled", "TRUE"), NOT(EQ("isSystem", "TRUE"))), "ruleId", "directiveId").map(e => Rule(e("ruleId").getOrElse(""), e.valuesFor("directiveID").toSeq.sorted)).filter(x => x.ruleId.nonEmpty && x.directivesIds.nonEmpty)
-    }, "Error when recovering the set of user defined rules")
+      entries.map(e => Rule(e("ruleId").getOrElse(""), e.valuesFor("directiveID").toSeq.sorted)).filter(x => x.ruleId.nonEmpty && x.directivesIds.nonEmpty)
+    }).runNow
 
     // only nodeIds
-    val nodeIds = getBox(for {
-      ldap  <- roLdap
+    val nodeIds = (for {
+      ldap    <- roLdap
+      entries <- ldap.searchOne(nodesDit.NODES.dn, IS("rudderNode"), "nodeId")
     } yield {
-      ldap.searchOne(nodesDit.NODES.dn, IS("rudderNode"), "nodeId").map(e => e("nodeId").getOrElse("")).filter(x => x.nonEmpty)
-    }, "Error when recovering the set of nodes")
+      entries.map(e => e("nodeId").getOrElse("")).filter(x => x.nonEmpty)
+    }).runNow
 
     //println(rules.mkString("\n"))
     //println(nodeIds.mkString("\n"))

@@ -38,7 +38,6 @@
 package com.normation.rudder.db
 
 import javax.sql.DataSource
-import cats.data._, cats.effect.IO
 import org.joda.time.DateTime
 import scala.xml.XML
 import java.sql.SQLXML
@@ -54,10 +53,16 @@ import doobie.util.log.ExecFailure
 import doobie.util.log.ProcessingFailure
 import scala.language.implicitConversions
 import doobie.postgres.implicits._ // it is necessary whatever intellij/scalac tells
+import doobie._
 import cats.data._
 import cats.effect._
 import cats.implicits._
 import doobie._
+import doobie.implicits._
+
+import scalaz.zio.Task
+import scalaz.zio.interop.catz._
+import com.normation.errors._
 
 /**
  *
@@ -78,6 +83,14 @@ class Doobie(datasource: DataSource) {
       }
     }
     xa.use(xa => query(xa))
+  }
+
+  def transactTask[T](query: Transactor[IO] => IO[T]): Task[T] = {
+    transact(query).to[Task]
+  }
+
+  def transactIOResult[T](errorMsg: String)(query: Transactor[IO] => IO[T]): IOResult[T] = {
+    transact(query).to[Task].mapError(ex => SystemError(errorMsg, ex))
   }
 
   def transactRun[T](query: Transactor[IO] => IO[T]): T = {

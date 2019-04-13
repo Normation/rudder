@@ -201,7 +201,7 @@ object InventoryResult {
 
   // inventory result will use several other type of error, its error kind
   // must be RudderError
-  type InventoryResult[T] = IO[RudderError, T]
+  type InventoryResult[T] = IOResult[T]
 
   implicit class NotOptional[T](opt: Option[T]) {
     def notOptional(msg: String): InventoryResult[T] = opt match {

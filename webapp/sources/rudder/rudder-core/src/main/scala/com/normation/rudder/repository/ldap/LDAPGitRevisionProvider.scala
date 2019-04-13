@@ -60,7 +60,13 @@ import com.normation.errors._
  * commit into LDAP
  */
 class LDAPGitRevisionProvider(
-  ldap: LDAPConnectionProvider[RwLDAPConnection], rudderDit: RudderDit, gitRepo: GitRepositoryProvider, refPath: String) extends GitRevisionProvider with NamedZioLogger {
+    ldap     : LDAPConnectionProvider[RwLDAPConnection]
+  , rudderDit: RudderDit
+  , gitRepo  : GitRepositoryProvider
+  , refPath  : String
+) extends GitRevisionProvider with NamedZioLogger {
+
+  override def loggerName: String = this.getClass.getName
 
   if (!refPath.startsWith("refs/")) {
     logEffect.warn("The configured reference path for the Git repository of Active Technique Library does " +

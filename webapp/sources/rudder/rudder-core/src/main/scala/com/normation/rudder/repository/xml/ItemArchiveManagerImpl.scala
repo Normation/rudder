@@ -104,6 +104,7 @@ class ItemArchiveManagerImpl(
   override val relativePath = "."
   override val gitModificationRepository = gitModificationRepo
   ///// implementation /////
+  override def loggerName: String = this.getClass.getName
 
   // Clean a directory only if it exists, all exception are catched by the tryo
   private[this] def cleanExistingDirectory (directory : File) : IOResult[Unit] = {

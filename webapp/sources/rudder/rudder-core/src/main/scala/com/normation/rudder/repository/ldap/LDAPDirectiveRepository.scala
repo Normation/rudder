@@ -575,6 +575,7 @@ class WoLDAPDirectiveRepository(
 
   import roDirectiveRepos._
 
+  override def loggerName: String = this.getClass.getName
 
 
   /**

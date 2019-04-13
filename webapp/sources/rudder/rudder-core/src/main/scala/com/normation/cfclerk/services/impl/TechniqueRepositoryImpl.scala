@@ -48,6 +48,10 @@ import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Control
 
+import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
+
 class TechniqueRepositoryImpl(
     techniqueReader: TechniqueReader
   , refLibCallbacks: Seq[TechniquesLibraryUpdateNotification]
@@ -205,14 +209,14 @@ class TechniqueRepositoryImpl(
 
   override def getTechniqueLibrary: RootTechniqueCategory = techniqueInfosCache.rootCategory
 
-  override def getTechniqueCategory(id: TechniqueCategoryId): Box[TechniqueCategory] = {
+  override def getTechniqueCategory(id: TechniqueCategoryId): IOResult[TechniqueCategory] = {
     id match {
-      case RootTechniqueCategoryId => Full(this.techniqueInfosCache.rootCategory)
-      case sid: SubTechniqueCategoryId => this.techniqueInfosCache.subCategories.get(sid)
+      case RootTechniqueCategoryId     => this.techniqueInfosCache.rootCategory.succeed
+      case sid: SubTechniqueCategoryId => this.techniqueInfosCache.subCategories.get(sid).notOptional(s"The category with id '${id.name}' was not found.")
     }
   }
 
-  override def getParentTechniqueCategory_forTechnique(id: TechniqueId): Box[TechniqueCategory] = {
+  override def getParentTechniqueCategory_forTechnique(id: TechniqueId): IOResult[TechniqueCategory] = {
     for {
       cid <- this.techniqueInfosCache.techniquesCategory.get(id)
       cat <- cid match {
@@ -222,5 +226,5 @@ class TechniqueRepositoryImpl(
     } yield {
       cat
     }
-  }
+  }.notOptional(s"The parent category for '${id.toString}' was not found.")
 }

@@ -420,9 +420,9 @@ class TechniqueArchiverImpl (
   , override val relativePath              : String
   , override val gitModificationRepository : GitModificationRepository
   , personIdentservice : PersonIdentService
-) extends
-  Loggable with
-  GitArchiverUtils with TechniqueArchiver{
+) extends GitArchiverUtils with TechniqueArchiver{
+
+  override def loggerName: String = this.getClass.getName
 
   override val encoding : String = "UTF-8"
 

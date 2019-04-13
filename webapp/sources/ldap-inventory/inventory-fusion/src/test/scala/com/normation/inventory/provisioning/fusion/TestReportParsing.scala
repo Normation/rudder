@@ -62,7 +62,7 @@ import scalaz.zio.syntax._
 class TestReportParsing extends Specification with Loggable {
 
   private[this] implicit class TestParser(parser: FusionReportUnmarshaller) {
-    def parse(reportRelativePath: String): IO[RudderError, InventoryReport] = {
+    def parse(reportRelativePath: String): IOResult[InventoryReport] = {
       val url = this.getClass.getClassLoader.getResource(reportRelativePath)
       if(null == url) throw new NullPointerException(s"Resource with relative path '${reportRelativePath}' is null (missing resource? Spelling? Permissions?)")
 

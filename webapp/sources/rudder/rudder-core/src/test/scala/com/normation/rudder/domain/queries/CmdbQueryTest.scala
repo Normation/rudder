@@ -11,22 +11,22 @@ class CmdbQueryTest extends Specification {
   "French Datecomparator " should {
     "accept valid French date" in {
       DateComparator.validate("23/07/2012", "eq") match {
-        case e:EmptyBox =>failure("Invalid parsing")
-        case Full(_) => success
+        case Left(err) => failure(s"Invalid parsing: ${err.fullMsg}")
+        case Right(_)  => success
       }
     }
 
     "refuse an invalid French date" in {
       DateComparator.validate("07/23/2012", "eq") match {
-        case e:EmptyBox => success
-        case Full(_) => failure("This american date shouldn't have been accepted")
+        case Left(_)  => success
+        case Right(_) => failure("This american date shouldn't have been accepted")
       }
     }
 
     "successfully onvert to LDAP a valid French date" in {
       DateComparator.toLDAP("23/07/2012") match {
-        case e:EmptyBox =>failure("Invalid parsing")
-        case Full(_) => success
+        case Left(err) => failure(s"Invalid parsing: ${err.fullMsg}")
+        case Right(_)  => success
       }
     }
   }

@@ -67,6 +67,7 @@ import com.normation.rudder.domain.logger.ChangeRequestLogger
 import com.normation.rudder.services.queries.DynGroupUpdaterService
 
 import com.normation.box._
+import com.normation.errors._
 
 /**
  * A service responsible to actually commit a change request,
@@ -249,7 +250,7 @@ class CommitAndDeployChangeRequestServiceImpl(
 
     case object CheckGlobalParameter extends CheckChanges[GlobalParameter]  {
       def failureMessage(param : GlobalParameter)  = s"Parameter ${param.name}"
-      def getCurrentValue(param : GlobalParameter) = roParameterRepository.getGlobalParameter(param.name).toBox
+      def getCurrentValue(param : GlobalParameter) = roParameterRepository.getGlobalParameter(param.name).notOptional(s"Parameter '${param.name}' was not found").toBox
       def compareMethod(initial:GlobalParameter, current:GlobalParameter) = compareGlobalParameter(initial,current)
       def xmlSerialize(param : GlobalParameter) = Full(xmlSerializer.globalParam.serialise(param))
       def xmlUnserialize(xml : Node) = xmlUnserializer.globalParam.unserialise(xml)

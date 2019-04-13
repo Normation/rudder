@@ -91,10 +91,10 @@ import com.normation.rudder.hooks.HooksLogger
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
-
 import scalaz.zio._
 import scalaz.zio.syntax._
 import com.normation.box._
+import com.normation.errors.IOResult
 
 /**
  * A newNodeManager hook is a class that accept callbacks.
@@ -238,16 +238,17 @@ trait ListNewNode extends NewNodeManager {
   def pendingNodesDit:InventoryDit
 
   override def listNewNodes : Box[Seq[Srv]] = {
-    ldap flatMap  { con =>
-      con.searchOne(pendingNodesDit.NODES.dn,ALL,Srv.ldapAttributes:_*).map { seq => seq.flatMap(e =>
-        serverSummaryService.makeSrv(e) match {
-          case Full(x) => Some(x)
-          case b:EmptyBox =>
-            val error = b ?~! "Error when mapping a pending node entry to a node object: %s".format(e.dn)
-            NodeLogger.PendingNode.debug(error.messageChain)
-            None
-        }
-      )}
+    for {
+      con  <- ldap
+      seq  <- con.searchOne(pendingNodesDit.NODES.dn,ALL,Srv.ldapAttributes:_*)
+      srvs <- ZIO.foreach(seq) { e => serverSummaryService.makeSrv(e).foldM(
+                err =>
+                  IOResult.effect(NodeLogger.PendingNode.debug(s"Error when mapping a pending node entry '${e.dn}' to a node object. Error was: ${err.fullMsg}")) *>
+                  None.succeed
+              , srv => Some(srv).succeed
+              ) }
+    } yield {
+      srvs.flatten
     }
   }.toBox
 }

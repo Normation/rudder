@@ -64,7 +64,7 @@ class NameAndVersionIdFinder(
 ) extends SoftwareDNFinderAction {
 
   //the onlyTypes is an AND filter
-  override def tryWith(entities:Set[Software]) : IO[RudderError, MergedSoftware] = {
+  override def tryWith(entities:Set[Software]) : IOResult[MergedSoftware] = {
 
 
     val filter = OR(entities.map { entity =>

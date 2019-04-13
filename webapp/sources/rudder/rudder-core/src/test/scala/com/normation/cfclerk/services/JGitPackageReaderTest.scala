@@ -60,6 +60,8 @@ import net.liftweb.common.Loggable
 import org.joda.time.DateTime
 import java.nio.charset.StandardCharsets
 
+import com.normation.zio._
+
 /**
  * Details of tests executed in each instances of
  * the test.
@@ -138,7 +140,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
   //post init hook
   postInitHook
 
-  val reader = new GitTechniqueReader(
+  lazy val reader = new GitTechniqueReader(
                 policyParser
               , new SimpleGitRevisionProvider("refs/heads/master", repo)
               , repo
@@ -166,12 +168,12 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
 
   "The root category" should {
     val rootCat = infos.rootCategory
-    "be named 'Root category'" in "Root category" === rootCat.name
-    "has no description" in "" === rootCat.description
-    "has one policy technique..." in 1 === rootCat.techniqueIds.size
-    "...with name p_root_1" in "p_root_1" === rootCat.techniqueIds.head.name.value
-    "...with version 1.0" in "1.0" === rootCat.techniqueIds.head.version.toString
-    "has 1 valid subcategory (because cat2 has no category.xml descriptor)" in 1 === rootCat.subCategoryIds.size
+    "be named 'Root category'" in rootCat.name === "Root category"
+    "has no description" in rootCat.description === ""
+    "has one policy technique..." in rootCat.techniqueIds.size === 1
+    "...with name p_root_1" in rootCat.techniqueIds.head.name.value === "p_root_1"
+    "...with version 1.0" in rootCat.techniqueIds.head.version.toString === "1.0"
+    "has 1 valid subcategory (because cat2 has no category.xml descriptor)" in rootCat.subCategoryIds.size === 1
     "...with name cat1" in rootCat.subCategoryIds.head === rootCat.id / "cat1"
   }
 
@@ -241,7 +243,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
       val newPath = reader.canonizedRelativePath.map( _ + "/").getOrElse("") + "cat1/p1_1/2.0/newFile.st"
       val newFile = new File(gitRoot.getAbsoluteFile + "/" + newPath)
       FileUtils.writeStringToFile(newFile, "Some content for the new file", StandardCharsets.UTF_8)
-      val git = new Git(repo.db)
+      val git = new Git(repo.db.runNow)
       git.add.addFilepattern(newPath).call
       git.commit.setMessage("Modify PT: cat1/p1_1/2.0").call
 
@@ -263,7 +265,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
       reader.readTechniques()
       val newFile = new File(gitRoot.getAbsolutePath + "/" + name)
       FileUtils.writeStringToFile(newFile, "Some more content for the new file arg arg arg", StandardCharsets.UTF_8)
-      val git = new Git(repo.db)
+      val git = new Git(repo.db.runNow)
       git.add.addFilepattern(name).call
       git.commit.setMessage("Modify file /libdir/file1.txt in technique: cat1/p1_1/1.0").call
       val n = TechniqueName("p1_1")
@@ -304,7 +306,7 @@ class JGitPackageReader_ChildRootTest extends JGitPackageReaderSpec {
     logger.info("Add false techniques outside root in '%s'".format(gitRoot.getPath + "/phantomPTs"))
     FileUtils.copyDirectory(new File("src/test/resources/phantomTechniques") ,dest)
     //commit in git these files
-    val git = new Git(repo.db)
+    val git = new Git(repo.db.runNow)
     git.add.addFilepattern(destName).call
     git.commit.setMessage("Commit something looking like a technique but outside PT root directory").call
     ()

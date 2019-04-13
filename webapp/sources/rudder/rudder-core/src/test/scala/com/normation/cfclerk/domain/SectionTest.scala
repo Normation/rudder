@@ -46,7 +46,6 @@ import scala.xml._
 import com.normation.cfclerk.xmlparsers._
 import CfclerkXmlConstants._
 import scala.xml._
-import com.normation.cfclerk.exceptions.ParsingException
 import com.normation.utils.HashcodeCaching
 
 @RunWith(classOf[JUnitRunner])
@@ -61,24 +60,24 @@ class SectionTest extends Specification {
 
   "Example <variableUnderSections>" should {
     "leads to a parsing exception due to variable under <SECTIONS> tag" in {
-      sectionParser.parseXml(sectionsTag("variableUnderSections")) must throwA[ParsingException].like { case e =>
-        e.getMessage must =~("<%s> must contain only <%s> children".format(SECTIONS_ROOT, SECTION))
+      sectionParser.parseXml(sectionsTag("variableUnderSections")) must beLeft[LoadTechniqueError].like { case e =>
+        e.fullMsg must =~("<%s> must contain only <%s> children".format(SECTIONS_ROOT, SECTION))
       }
     }
   }
 
   "Example <nonUniqueSectionNames>" should {
     "leads to a parsing exception due to multiple section with the same name" in {
-      sectionParser.parseXml(sectionsTag("nonUniqueSectionNames")) must throwA[ParsingException].like { case e =>
-        e.getMessage must =~("At least two sections have the same name")
+      sectionParser.parseXml(sectionsTag("nonUniqueSectionNames")) must beLeft[LoadTechniqueError].like { case e =>
+        e.fullMsg must =~("At least two sections have the same name")
       }
     }
   }
 
   "Example <nonUniqueVariableNames>" should {
     "leads to a parsing exception due to multiple variables with the same name" in {
-      sectionParser.parseXml(sectionsTag("nonUniqueVariableNames")) must throwA[ParsingException].like { case e =>
-        e.getMessage must =~("At least two variables have the same name")
+      sectionParser.parseXml(sectionsTag("nonUniqueVariableNames")) must beLeft[LoadTechniqueError].like { case e =>
+        e.fullMsg must =~("At least two variables have the same name")
       }
     }
   }
@@ -87,7 +86,7 @@ class SectionTest extends Specification {
   ///// test on the well formed example /////
 
 
-  val rootSectionsOk = sectionParser.parseXml(sectionsTag("ok"))
+  val rootSectionsOk = sectionParser.parseXml(sectionsTag("ok")).getOrElse(throw new IllegalArgumentException("This must be valid for test!"))
 
   "the test sections <ok>" should {
     val vars = "A" :: "B" :: "C" :: "D" :: "E" :: "F" :: Nil
@@ -228,7 +227,7 @@ case class SectionParser(sectionSpecParser: SectionSpecParser) extends HashcodeC
   val id = new TechniqueId(new TechniqueName("test-TechniqueId"), TechniqueVersion("1.0"))
   val policyName = "test-policyName"
 
-  def parseXml(elt: Node): SectionSpec = {
+  def parseXml(elt: Node): Either[LoadTechniqueError, SectionSpec] = {
     sectionSpecParser.parseSectionsInPolicy(elt,id, policyName)
   }
 }

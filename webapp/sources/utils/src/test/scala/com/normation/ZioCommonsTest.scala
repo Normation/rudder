@@ -102,7 +102,7 @@ object TestImplicits {
     }
 
     object service1 {
-      def doStuff(param: String): IO[RudderError, String] = param.succeed
+      def doStuff(param: String): IOResult[String] = param.succeed
     }
   }
 
@@ -119,7 +119,7 @@ object TestImplicits {
     final case class TestError(msg: String) extends RudderError
 
     object service2 {
-      def doStuff(param: Int): IO[RudderError, Int] = TestError("ah ah ah I'm failing").fail
+      def doStuff(param: Int): IOResult[Int] = TestError("ah ah ah I'm failing").fail
     }
   }
 
@@ -149,11 +149,11 @@ object TestImplicits {
 
       def trace(msg: => AnyRef): UIO[Unit] = ZIO.effect(println(msg)).run.void
 
-      def test0(a: String): IO[RudderError, String] = service1.doStuff(a)
+      def test0(a: String): IOResult[String] = service1.doStuff(a)
 
-      def test1(a: Int): IO[RudderError, Int] = service2.doStuff(a)
+      def test1(a: Int): IOResult[Int] = service2.doStuff(a)
 
-      def test2(a: String, b: Int): IO[RudderError, (String, Int)] = {
+      def test2(a: String, b: Int): IOResult[(String, Int)] = {
         (for {
           x <- service1.doStuff(a)
           y <- service2.doStuff(b).chainError("Oups, I did it again")

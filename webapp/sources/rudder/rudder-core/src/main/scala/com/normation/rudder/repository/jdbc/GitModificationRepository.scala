@@ -11,34 +11,34 @@ import com.normation.rudder.db.Doobie
 
 import doobie.implicits._
 
+import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
+
 class GitModificationRepositoryImpl(
     db : Doobie
 ) extends GitModificationRepository {
   import db._
 
-  def addCommit(commit: GitCommitId, modId: ModificationId): Box[DB.GitCommitJoin] = {
+  def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin] = {
     val sql = sql"""
       insert into gitcommit (gitcommit, modificationid)
       values (${commit.value}, ${modId.value})
     """.update
 
-
-    transactRun(xa => sql.run.transact(xa).attempt) match {
-      case Right(x) => Full(DB.GitCommitJoin(commit, modId))
-      case Left(ex) => Failure(s"Error when trying to add a Git Commit in DB: ${ex.getMessage}", Full(ex), Empty)
-    }
+    transactIOResult(s"Error when trying to add a Git Commit in DB")(xa => sql.run.transact(xa)).map(x =>
+      DB.GitCommitJoin(commit, modId)
+    )
   }
 
-  def getCommits(modificationId: ModificationId): Box[Option[GitCommitId]] = {
+  def getCommits(modificationId: ModificationId): IOResult[Option[GitCommitId]] = {
 
     val sql = sql"""
       select gitcommit from gitcommit where modificationid=${modificationId.value}
     """.query[String].option
 
-    transactRun(xa => sql.transact(xa).attempt) match {
-      case Right(x)  => Full(x.map(id => GitCommitId(id)))
-      case Left(ex) => Failure(s"Error when trying to get Git Commit for modification ID '${modificationId.value}': ${ex.getMessage}", Full(ex), Empty)
-    }
+    transactIOResult(s"Error when trying to get Git Commit for modification ID '${modificationId.value}'")(xa => sql.transact(xa)).map(x =>
+      x.map(id => GitCommitId(id))
+    )
   }
-
 }

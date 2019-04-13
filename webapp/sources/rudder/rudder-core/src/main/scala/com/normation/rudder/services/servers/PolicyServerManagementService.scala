@@ -51,6 +51,8 @@ import ca.mrvisser.sealerate
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 
+import com.normation.box._
+
 /**
  * This service allows to manage properties linked to the root policy server,
  * like authorized network, policy server hostname, etc.
@@ -116,7 +118,7 @@ class PolicyServerManagementServiceImpl(
       val allowedNetworks = directive.parameters.getOrElse(Constants.V_ALLOWED_NETWORK, List())
       allowedNetworks
     }
-  }
+  }.toBox
 
   override def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], modId: ModificationId, actor:EventActor) : Box[Seq[String]] = {
 
@@ -132,14 +134,15 @@ class PolicyServerManagementServiceImpl(
     }
 
     for {
-      (activeTechnique, directive) <- roDirectiveRepository.getActiveTechniqueAndDirective(directiveId) ?~! s"Error when retrieving directive with ID ${directiveId.value}''"
+      res <- roDirectiveRepository.getActiveTechniqueAndDirective(directiveId).chainError(s"Error when retrieving directive with ID ${directiveId.value}''")
+      (activeTechnique, directive) = res
       newPi = directive.copy(parameters = directive.parameters + (Constants.V_ALLOWED_NETWORK -> validNets.map( _.toString)))
       msg = Some("Automatic update of system directive due to modification of accepted networks ")
-      saved <- woDirectiveRepository.saveSystemDirective(activeTechnique.id, newPi, modId, actor, msg) ?~! "Can not save directive for Active Technique '%s'".format(activeTechnique.id.value)
+      saved <- woDirectiveRepository.saveSystemDirective(activeTechnique.id, newPi, modId, actor, msg).chainError(s"Can not save directive for Active Technique '${activeTechnique.id.value}")
     } yield {
       networks
     }
-  }
+  }.toBox
 }
 
 sealed trait RelaySynchronizationMethod { def value: String }

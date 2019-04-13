@@ -80,7 +80,9 @@ object errors {
 
   // a common error for system error not specificaly bound to
   // a domain context.
-  final case class SystemError(msg: String, cause: Throwable) extends RudderError
+  final case class SystemError(msg: String, cause: Throwable) extends RudderError {
+    override def fullMsg: String = super.fullMsg + s"; cause was: ${cause.getMessage}"
+  }
 
   // a generic error to tell "I wasn't expecting that value"
   final case class Unexpected(msg: String) extends RudderError
@@ -182,8 +184,8 @@ object zio {
    * Default ZIO Runtime used everywhere.
    */
   object ZioRuntime extends DefaultRuntime {
-     def runNow[A](io: IOResult[A]): A = {
-      ZioRuntime.unsafeRunSync(io).fold(cause => throw cause.squashWith(err => new RuntimeException(err.fullMsg)), a => a)
+    def runNow[A](io: IOResult[A]): A = {
+      this.unsafeRunSync(io).fold(cause => throw cause.squashWith(err => new RuntimeException(err.fullMsg)), a => a)
     }
   }
 
@@ -245,26 +247,26 @@ trait ZioLogger {
 
   //the underlying logger
   def logEffect: Logger
-  def logAndForgetResult[T](log: Logger => T): UIO[Unit] = ZIO.effect(log(logEffect)).run.void
 
-  def trace(msg: => AnyRef): UIO[Unit] = logAndForgetResult(_.trace(msg))
-  def debug(msg: => AnyRef): UIO[Unit] = logAndForgetResult(_.debug(msg))
-  def info (msg: => AnyRef): UIO[Unit] = logAndForgetResult(_.info (msg))
-  def error(msg: => AnyRef): UIO[Unit] = logAndForgetResult(_.error(msg))
-  def warn (msg: => AnyRef): UIO[Unit] = logAndForgetResult(_.warn (msg))
+  final def logAndForgetResult[T](log: Logger => T): UIO[Unit] = ZIO.effect(log(logEffect)).run.void
 
-  def trace(msg: => AnyRef, t: Throwable): UIO[Unit] = logAndForgetResult(_.trace(msg, t))
-  def debug(msg: => AnyRef, t: Throwable): UIO[Unit] = logAndForgetResult(_.debug(msg, t))
-  def info (msg: => AnyRef, t: Throwable): UIO[Unit] = logAndForgetResult(_.info (msg, t))
-  def warn (msg: => AnyRef, t: Throwable): UIO[Unit] = logAndForgetResult(_.warn (msg, t))
-  def error(msg: => AnyRef, t: Throwable): UIO[Unit] = logAndForgetResult(_.error(msg, t))
+  final def trace(msg: => AnyRef): UIO[Unit] = logAndForgetResult(_.trace(msg))
+  final def debug(msg: => AnyRef): UIO[Unit] = logAndForgetResult(_.debug(msg))
+  final def info (msg: => AnyRef): UIO[Unit] = logAndForgetResult(_.info (msg))
+  final def error(msg: => AnyRef): UIO[Unit] = logAndForgetResult(_.error(msg))
+  final def warn (msg: => AnyRef): UIO[Unit] = logAndForgetResult(_.warn (msg))
 
-  def ifTraceEnabled[T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isTraceEnabled) action else () )
-  def ifDebugEnabled[T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isDebugEnabled) action else () )
-  def ifInfoEnabled [T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isInfoEnabled ) action else () )
-  def ifWarnEnabled [T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isWarnEnabled ) action else () )
-  def ifErrorEnabled[T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isErrorEnabled) action else () )
+  final def trace(msg: => AnyRef, t: Throwable): UIO[Unit] = logAndForgetResult(_.trace(msg, t))
+  final def debug(msg: => AnyRef, t: Throwable): UIO[Unit] = logAndForgetResult(_.debug(msg, t))
+  final def info (msg: => AnyRef, t: Throwable): UIO[Unit] = logAndForgetResult(_.info (msg, t))
+  final def warn (msg: => AnyRef, t: Throwable): UIO[Unit] = logAndForgetResult(_.warn (msg, t))
+  final def error(msg: => AnyRef, t: Throwable): UIO[Unit] = logAndForgetResult(_.error(msg, t))
 
+  final def ifTraceEnabled[T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isTraceEnabled) action else () )
+  final def ifDebugEnabled[T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isDebugEnabled) action else () )
+  final def ifInfoEnabled [T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isInfoEnabled ) action else () )
+  final def ifWarnEnabled [T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isWarnEnabled ) action else () )
+  final def ifErrorEnabled[T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isErrorEnabled) action else () )
 }
 
 // a default implementation that accepts a name for the logger.

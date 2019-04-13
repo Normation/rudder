@@ -42,6 +42,8 @@ import com.normation.inventory.domain.InventoryResult.InventoryResult
 import com.normation.inventory.domain._
 import scalaz.zio._
 
+import com.normation.errors._
+
 /**
  * Generic interface to the service that try
  * to find an existing ID for a given entity
@@ -78,6 +80,6 @@ trait SoftwareDNFinderAction {
 
   //black list / white list ?
 
-  def tryWith(entities: Set[Software]) : IO[RudderError, MergedSoftware]
+  def tryWith(entities: Set[Software]) : IOResult[MergedSoftware]
 }
 

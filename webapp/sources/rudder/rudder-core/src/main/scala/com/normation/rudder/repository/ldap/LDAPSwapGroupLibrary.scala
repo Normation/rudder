@@ -145,6 +145,7 @@ class ImportGroupLibraryImpl(
   , groupLibMutex: ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends ImportGroupLibrary with LDAPImportLibraryUtil {
 
+  override def loggerName: String = this.getClass.getName
 
   /**
    * That method swap an existing active technique library in LDAP

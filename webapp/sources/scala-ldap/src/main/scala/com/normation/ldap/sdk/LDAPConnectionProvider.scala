@@ -68,7 +68,7 @@ trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] {
    * Use the LDAP connection provider to execute a method whose
    * return type is Unit.
    */
-  def foreach(f: LDAP => Unit) : IO[RudderError, Unit] = {
+  def foreach(f: LDAP => Unit) : IOResult[Unit] = {
     withConLdap[Unit] { con => f(con) ; UIO.unit }
   }
 
@@ -85,7 +85,7 @@ trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] {
    * that is a ZIO ; deals with exception management
    *
    */
-  def flatMap[E <:RudderError, A](f: LDAP => IO[E, A]) : IO[RudderError, A] = {
+  def flatMap[E <:RudderError, A](f: LDAP => IO[E, A]) : IOResult[A] = {
     withCon[E, A] (con => f(con) )
   }
 
@@ -114,7 +114,7 @@ trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] {
    *   boxed version of the user method result, with exception
    *   transformed into Failure.
    */
-  protected[sdk] def withCon[E <:RudderError, A](f: LDAP => IO[E, A]) : IO[RudderError, A] = {
+  protected[sdk] def withCon[E <:RudderError, A](f: LDAP => IO[E, A]) : IOResult[A] = {
     IO.bracket(
       IO.effect(getInternalConnection).catchAll( ex =>
         LDAPConnectionLogger.error("Can't get a new LDAP connection", ex) *>

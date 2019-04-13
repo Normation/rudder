@@ -87,6 +87,9 @@ import scala.collection.SortedMap
 import com.normation.rudder.repository.ComplianceRepository
 import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 
+import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /**
  *
@@ -134,22 +137,22 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
   val directivesLib = NodeConfigData.directives
   val directivesRepos = new RoDirectiveRepository() {
-    def getFullDirectiveLibrary() : Box[FullActiveTechniqueCategory] = Full(directivesLib)
-    def getDirective(directiveId:DirectiveId) : Box[Directive] = ???
-    def getDirectiveWithContext(directiveId:DirectiveId) : Box[(Technique, ActiveTechnique, Directive)] = ???
-    def getActiveTechniqueAndDirective(id:DirectiveId) : Box[(ActiveTechnique, Directive)] = ???
-    def getDirectives(activeTechniqueId:ActiveTechniqueId, includeSystem:Boolean = false) : Box[Seq[Directive]] = ???
-    def getActiveTechniqueByCategory(includeSystem:Boolean = false) : Box[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
-    def getActiveTechnique(id:ActiveTechniqueId) : Box[Option[ActiveTechnique]] = ???
-    def getActiveTechnique(techniqueName: TechniqueName) : Box[Option[ActiveTechnique]] = ???
-    def activeTechniqueBreadCrump(id:ActiveTechniqueId) : Box[List[ActiveTechniqueCategory]] = ???
-    def getActiveTechniqueLibrary : Box[ActiveTechniqueCategory] = ???
-    def getAllActiveTechniqueCategories(includeSystem:Boolean = false) : Box[Seq[ActiveTechniqueCategory]] = ???
-    def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : Box[ActiveTechniqueCategory] = ???
-    def getParentActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : Box[ActiveTechniqueCategory] = ???
-    def getParentsForActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : Box[List[ActiveTechniqueCategory]] = ???
-    def getParentsForActiveTechnique(id:ActiveTechniqueId) : Box[ActiveTechniqueCategory] = ???
-    def containsDirective(id: ActiveTechniqueCategoryId) : Boolean = ???
+    def getFullDirectiveLibrary() : IOResult[FullActiveTechniqueCategory] = directivesLib.succeed
+    def getDirective(directiveId:DirectiveId) : IOResult[Directive] = ???
+    def getDirectiveWithContext(directiveId:DirectiveId) : IOResult[(Technique, ActiveTechnique, Directive)] = ???
+    def getActiveTechniqueAndDirective(id:DirectiveId) : IOResult[(ActiveTechnique, Directive)] = ???
+    def getDirectives(activeTechniqueId:ActiveTechniqueId, includeSystem:Boolean = false) : IOResult[Seq[Directive]] = ???
+    def getActiveTechniqueByCategory(includeSystem:Boolean = false) : IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
+    def getActiveTechnique(id:ActiveTechniqueId) : IOResult[Option[ActiveTechnique]] = ???
+    def getActiveTechnique(techniqueName: TechniqueName) : IOResult[Option[ActiveTechnique]] = ???
+    def activeTechniqueBreadCrump(id:ActiveTechniqueId) : IOResult[List[ActiveTechniqueCategory]] = ???
+    def getActiveTechniqueLibrary : IOResult[ActiveTechniqueCategory] = ???
+    def getAllActiveTechniqueCategories(includeSystem:Boolean = false) : IOResult[Seq[ActiveTechniqueCategory]] = ???
+    def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : IOResult[ActiveTechniqueCategory] = ???
+    def getParentActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : IOResult[ActiveTechniqueCategory] = ???
+    def getParentsForActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : IOResult[List[ActiveTechniqueCategory]] = ???
+    def getParentsForActiveTechnique(id:ActiveTechniqueId) : IOResult[ActiveTechniqueCategory] = ???
+    def containsDirective(id: ActiveTechniqueCategoryId) : UIO[Boolean] = ???
 
   }
 

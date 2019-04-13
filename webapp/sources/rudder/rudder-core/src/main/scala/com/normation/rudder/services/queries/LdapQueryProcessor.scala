@@ -52,9 +52,7 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.utils.Control.sequence
 import com.normation.utils.HashcodeCaching
 import com.unboundid.ldap.sdk.DereferencePolicy.NEVER
-import com.unboundid.ldap.sdk.{LDAPConnection => _}
-import com.unboundid.ldap.sdk.{SearchScope => _}
-import com.unboundid.ldap.sdk._
+import com.unboundid.ldap.sdk.{LDAPConnection => _, SearchScope => _, _}
 import net.liftweb.common._
 import net.liftweb.util.Helpers
 import org.slf4j.LoggerFactory
@@ -279,6 +277,7 @@ class InternalLDAPQueryProcessor(
 ) extends NamedZioLogger {
 
   import ditQueryData._
+  override def loggerName: String = this.getClass.getName
 
   /**
    *
@@ -447,53 +446,62 @@ class InternalLDAPQueryProcessor(
   /*
    * From the list of DN to query with their filters, build a list of LDAPObjectType
    */
-  private[this] def createLDAPObjects(normalizeQuery: LDAPNodeQuery, debugId: Long) : IOResult[Map[DnType, Map[String, LDAPObjectType]]] = {
-    ZIO.foreach(normalizeQuery.objectTypesFilters) { case (dnType, mapOtSubqueries) =>
-      val mapOt = mapOtSubqueries.map { case (ot, subQuery) =>
+  /*
+   * From the list of DN to query with their filters, build a list of LDAPObjectType
+   */
+  private[this] def createLDAPObjects(query: LDAPNodeQuery, debugId: Long) : IOResult[Map[DnType, Map[String, LDAPObjectType]]] = {
+    ZIO.foreach(query.objectTypesFilters) { case(dnType, mapOtSubQueries) =>
+      val sq = ZIO.foreach(mapOtSubQueries) { case (ot, listSubQueries) =>
 
-        unspecialiseFilters(subQuery.) match {
-          case Full((ldapFilters, specialFilters)) =>
-            val f = ldapFilters.size match {
-              case 0 => None
-              case 1 => Some(ldapFilters.head)
-              case n =>
-                normalizeQuery.composition match {
-                  case And => Some(AND(ldapFilters.toSeq:_*))
-                  case Or  => Some(OR(ldapFilters.toSeq:_*))
+        val subqueries = ZIO.foreach(listSubQueries) { case SubQuery(subQueryId, dnType, objectTypeName, filters) =>
+          (unspecialiseFilters(filters) match {
+            case Right((ldapFilters, specialFilters)) =>
+              val f = ldapFilters.size match {
+                case 0 => None
+                case 1 => Some(ldapFilters.head)
+                case n =>
+                  query.composition match {
+                    case And => Some(AND(ldapFilters.toSeq:_*))
+                    case Or  => Some(OR(ldapFilters.toSeq:_*))
+                  }
+              }
+
+              (query.composition match {
+                case And => (f, specialFilters.map( ( And:CriterionComposition , _)) )
+                case Or  => (f, specialFilters.map( ( Or :CriterionComposition , _)) )
+              }).succeed
+
+            case Left(e) =>
+              val error = Chained(s"Error when processing filters for object type '${ot}'", e)
+              logPure.debug(s"[${debugId}] `-> stop query due to error: ${error.fullMsg}") *>
+              error.fail
+          }).map { case (ldapFilters, specialFilters) =>
+
+            //for each set of filter, build the query
+            val f = ldapFilters match {
+              case None    => objectTypes(ot).filter
+              case Some(x) =>
+                objectTypes(ot).filter match {
+                  case Some(y) => Some(AND(y, x))
+                  case None => Some(x)
                 }
             }
 
-            normalizeQuery.composition match {
-              case And => (f, specialFilters.map( ( And:CriterionComposition , _)) )
-              case Or  => (f, specialFilters.map( ( Or :CriterionComposition , _)) )
-            }
-
-          case e:EmptyBox =>
-            val error = e ?~! "Error when processing filters for object type %s".format(ot)
-            logger.debug("[%s] `-> stop query due to error: %s".format(debugId,error))
-            return error
-        }.map { case (ldapFilters, specialFilters) =>
-
-          //for each set of filter, build the query
-          val f = ldapFilters match {
-            case None    => objectTypes(ot).filter
-            case Some(x) =>
-              objectTypes(ot).filter match {
-                case Some(y) => Some(AND(y, x))
-                case None => Some(x)
-              }
+            (subQueryId, objectTypes(ot).copy(
+                filter         = f
+              , join           = joinAttributes(ot)
+              , specialFilters = specialFilters
+            ))
           }
-
-          (ot, objectTypes(ot).copy(
-            filter=f,
-            join=joinAttributes(ot),
-            specialFilters=specialFilters
-          ))
         }
+        subqueries
       }
 
-      mapOt.map(x => (dnType, x) )
-    }.map( _.toMap )
+      // it's ok to List[Map[k, ot] to Map[k, ot] b/c k are unique,
+      // we had sorted by objectTye
+      sq.map(x => (dnType, x.flatten.toMap))
+
+    }.map( _.toMap)
   }
 
   //execute a query with special filter based on the composition
@@ -501,38 +509,41 @@ class InternalLDAPQueryProcessor(
 
     def buildSearchRequest(addedSpecialFilters:Set[SpecialFilter]) : IOResult[SearchRequest] = {
       //special filter can modify the filter and the attributes to get
-      val params = ( (filter,attributes) /: addedSpecialFilters) {
-            case ( (f, currentAttributes), r:GeneralRegexFilter) =>
-              val filterToApply = composition match {
-                case Or => Some(ALL)
-                case And => f.orElse(Some(ALL))             }
+      for {
+        params      <- ZIO.foldLeft(addedSpecialFilters)((filter,attributes)) {
+                         case ( (f, currentAttributes), r ) =>
+                           val filterToApply = composition match {
+                             case Or => Some(ALL)
+                             case And => f.orElse(Some(ALL))             }
 
-              (filterToApply, currentAttributes ++ getAdditionnalAttributes(Set(r)))
+                           (filterToApply, currentAttributes ++ getAdditionnalAttributes(Set(r))).succeed
 
-            case (_, sf) => return Failure("Unknow special filter, can not build a request with it: " + sf)
+                         case (_, sf) =>
+                           Unconsistancy("Unknow special filter, can not build a request with it: " + sf).fail
+
+                       }
+        finalFilter <- params._1 match {
+                        case None    => Unconsistancy("No filter (neither standard nor special) for request, can not process!").fail
+                        case Some(x) => AND(objectFilter.value, x).succeed
+                      }
+      } yield {
+         /*
+          * Optimization : we limit query time/size. That means that perhaps we won't have all response.
+          * That DOES not change the validity of each final answer, just we may don't find ALL valid answers.
+          * (in the case of a and, a missing result here can lead to an empty set at the end)
+          * TODO : this behavior should be removable
+          */
+        new SearchRequest(
+             base.toString
+           , scope
+           , NEVER
+           , limits.subRequestSizeLimit
+           , limits.subRequestTimeLimit
+           , false
+           , finalFilter
+           , params._2.toSeq:_*
+        )
       }
-
-      val finalFilter = params._1 match {
-        case None => return Failure("No filter (neither standard nor special) for request, can not process!")
-        case Some(x) => AND(objectFilter.value, x)
-      }
-
-       /*
-        * Optimization : we limit query time/size. That means that perhaps we won't have all response.
-        * That DOES not change the validity of each final answer, just we may don't find ALL valid answers.
-        * (in the case of a and, a missing result here can lead to an empty set at the end)
-        * TODO : this behavior should be removable
-        */
-      Full(new SearchRequest(
-           base.toString
-         , scope
-         , NEVER
-         , limits.subRequestSizeLimit
-         , limits.subRequestTimeLimit
-         , false
-         , finalFilter
-         , params._2.toSeq:_*
-       ))
     }
 
     def baseQuery(con:RoLDAPConnection, addedSpecialFilters:Set[SpecialFilter]) : IOResult[Seq[LDAPEntry]] = {
@@ -637,7 +648,7 @@ class InternalLDAPQueryProcessor(
    * Special filter are handled in their own place
    */
   private[this] def unspecialiseFilters(filters:Set[ExtendedFilter]) : PureResult[(Set[Filter], Set[SpecialFilter])] = {
-    val start = Either.asRight[RudderError]((Set[Filter](), Set[SpecialFilter]()))
+    val start = Right((Set(), Set())): Either[RudderError, (Set[Filter], Set[SpecialFilter])]
     filters.foldLeft(start) {
       case (  Right((ldapFilters, specials)), LDAPFilter(f)        ) => Right((ldapFilters + f, specials))
       case (  Right((ldapFilters, specials)), r:GeneralRegexFilter ) => Right((ldapFilters, specials + r))

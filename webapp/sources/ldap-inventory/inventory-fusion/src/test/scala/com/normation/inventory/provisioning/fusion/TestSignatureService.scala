@@ -62,7 +62,7 @@ class TestSignatureService extends Specification with Loggable {
 
   Security.addProvider(new BouncyCastleProvider());
 
-  private[this] def getInputStream (path : String) : IO[RudderError, InputStream] = {
+  private[this] def getInputStream (path : String) : IOResult[InputStream] = {
     Task.effect {
       val url = this.getClass.getClassLoader.getResource(path)
       if(null == url) throw new NullPointerException(s"Resource with relative path '${path}' is null (missing resource? Spelling? Permissions?)")

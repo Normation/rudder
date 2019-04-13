@@ -103,7 +103,7 @@ class LDAPEntityMapper(
 ) extends NamedZioLogger {
 
 
-  def loogerName = "rudder-ldap-entity-mapper"
+  def loggerName = "rudder-ldap-entity-mapper"
 
     //////////////////////////////    Node    //////////////////////////////
 
