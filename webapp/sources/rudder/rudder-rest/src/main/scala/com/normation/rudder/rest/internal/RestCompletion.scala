@@ -44,6 +44,8 @@ import net.liftweb.json.JsonDSL._
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
 
+import com.normation.box._
+
 class RestCompletion(
   completion : RestCompletionService
 ) extends RestHelper with Loggable {
@@ -112,7 +114,7 @@ class RestCompletionService (
 ) {
   def findDirectiveTagNames(matching : String) : Box[List[String]] = {
     for {
-      lib <- readDirective.getFullDirectiveLibrary()
+      lib <- readDirective.getFullDirectiveLibrary().toBox
     } yield {
       (for {
       tag <- lib.allDirectives.flatMap(_._2._2.tags.tags).toList
@@ -126,7 +128,7 @@ class RestCompletionService (
 
   def findDirectiveTagValues(matching : String, tagName : Option[String]) : Box[List[String]] = {
     for {
-      lib <- readDirective.getFullDirectiveLibrary()
+      lib <- readDirective.getFullDirectiveLibrary().toBox
     } yield {
       (for {
       tag <- lib.allDirectives.flatMap(_._2._2.tags.tags).toList
@@ -141,7 +143,7 @@ class RestCompletionService (
 
   def findRuleTagNames(matching : String) : Box[List[String]] = {
     for {
-      rules <- readRule.getAll(false)
+      rules <- readRule.getAll(false).toBox
     } yield {
       (for {
       tag <- rules.flatMap(_.tags.tags).toList
@@ -154,7 +156,7 @@ class RestCompletionService (
 
   def findRuleTagValues(matching : String, tagName : Option[String]) : Box[List[String]] = {
     for {
-      rules <- readRule.getAll(false)
+      rules <- readRule.getAll(false).toBox
     } yield {
       (for {
       tag <- rules.flatMap(_.tags.tags).toList

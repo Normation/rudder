@@ -76,6 +76,8 @@ import net.liftweb.json.JArray
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL._
 
+import com.normation.box._
+
 class DirectiveApi (
     readDirective       : RoDirectiveRepository
   , restExtractorService: RestExtractorService
@@ -246,7 +248,7 @@ class DirectiveAPIService2 (
 
   def listDirectives() : Box[JValue] = {
     for {
-      fullLibrary <- readDirective.getFullDirectiveLibrary ?~! "Could not fetch Directives"
+      fullLibrary <- readDirective.getFullDirectiveLibrary.toBox ?~! "Could not fetch Directives"
       atDirectives = fullLibrary.allDirectives.values.filter(!_._2.isSystem)
       serializedDirectives = ( for {
           (activeTechnique, directive) <- atDirectives
@@ -266,7 +268,7 @@ class DirectiveAPIService2 (
     val modId = ModificationId(uuidGen.newUuid)
     for {
       // Check if a directive exists with the current id
-      _ <- readDirective.getDirective(newDirective.id) match {
+      _ <- readDirective.getDirective(newDirective.id).toBox match {
         case Full(alreadyExists) => Failure(s"Cannot create a new Directive with id '${newDirective.id.value}' already exists")
         case _ => Full("ok")
       }
@@ -279,7 +281,7 @@ class DirectiveAPIService2 (
                             } yield { checkedParameters.toMap }
                           ) ?~ (s"Error with directive Parameters" )
 
-      saveDiff <- writeDirective.saveDirective(activeTechnique.id, newDirective, modId, actor, reason)  ?~! (s"Could not save Directive ${newDirective.id.value}" )
+      saveDiff <- writeDirective.saveDirective(activeTechnique.id, newDirective, modId, actor, reason).toBox  ?~! (s"Could not save Directive ${newDirective.id.value}" )
     } yield {
       // We need to deploy only if there is a saveDiff, that says that a deployment is needed
       if (saveDiff.map(_.needDeployment).getOrElse(false)) {
@@ -293,7 +295,7 @@ class DirectiveAPIService2 (
   def cloneDirective(directiveId : DirectiveId, restDirective: RestDirective, source : DirectiveId) : Box[( EventActor,ModificationId,  Option[String]) => Box[JValue]] = {
     for {
       name <- Box(restDirective.name) ?~! s"Directive name is not defined in request data."
-      (technique,activeTechnique,sourceDirective) <- readDirective.getDirectiveWithContext(source) ?~ s"Cannot find Directive ${source.value} to use as clone base."
+      (technique,activeTechnique,sourceDirective) <- readDirective.getDirectiveWithContext(source).toBox ?~ s"Cannot find Directive ${source.value} to use as clone base."
       version <- restExtractor.checkTechniqueVersion(technique.id.name, restDirective.techniqueVersion) ?~! (s"Cannot find a valid technique version" )
       newDirective = restDirective.copy(enabled = Some(false),techniqueVersion = version)
       baseDirective = sourceDirective.copy(id=directiveId)
@@ -306,7 +308,7 @@ class DirectiveAPIService2 (
     for {
       name <- Box(restDirective.name) ?~! s"Directive name is not defined in request data."
       technique <- restExtractor.extractTechnique(restDirective.techniqueName, restDirective.techniqueVersion)  ?~! s"Technique is not correctly defined in request data."
-      activeTechnique <- readDirective.getActiveTechnique(technique.id.name).flatMap(Box(_)) ?~! s"Technique ${technique.id.name} cannot be found."
+      activeTechnique <- readDirective.getActiveTechnique(technique.id.name).notOptional(s"Technique ${technique.id.name} cannot be found.").toBox
       baseDirective = Directive(directiveId,technique.id.version,Map(),name,"",None, _isEnabled = true)
       result = actualDirectiveCreation(restDirective,baseDirective,activeTechnique,technique) _
     } yield {
@@ -316,7 +318,7 @@ class DirectiveAPIService2 (
 
   def directiveDetails(id : DirectiveId) : Box[JValue] = {
     for {
-      (technique,activeTechnique,directive) <- readDirective.getDirectiveWithContext(id) ?~! s"Could not find Directive ${id.value}"
+      (technique,activeTechnique,directive) <- readDirective.getDirectiveWithContext(id).toBox ?~! s"Could not find Directive ${id.value}"
       jsonDirective = JArray(List(serialize(technique,directive, None)))
     } yield {
       jsonDirective
@@ -325,7 +327,7 @@ class DirectiveAPIService2 (
 
   def deleteDirective(id:DirectiveId) = {
     for {
-      (technique,activeTechnique,directive) <- readDirective.getDirectiveWithContext(id) ?~! s"Could not find Directive ${id.value}"
+      (technique,activeTechnique,directive) <- readDirective.getDirectiveWithContext(id).toBox ?~! s"Could not find Directive ${id.value}"
       deleteDirectiveDiff = DeleteDirectiveDiff(technique.id.name,directive)
       result = createChangeRequestAndAnswer(
             deleteDirectiveDiff
@@ -353,7 +355,7 @@ class DirectiveAPIService2 (
 
   private[this] def updateDirectiveModel(directiveId: DirectiveId, restDirective : RestDirective) = {
     for {
-     (oldTechnique, activeTechnique, oldDirective) <- readDirective.getDirectiveWithContext(directiveId) ?~ (s"Could not find Directive ${directiveId.value}" )
+     (oldTechnique, activeTechnique, oldDirective) <- readDirective.getDirectiveWithContext(directiveId).toBox ?~ (s"Could not find Directive ${directiveId.value}" )
 
       // Check if Technique version is changed (migration)
       updatedTechniqueId = TechniqueId(oldTechnique.id.name, restDirective.techniqueVersion.getOrElse(oldTechnique.id.version))

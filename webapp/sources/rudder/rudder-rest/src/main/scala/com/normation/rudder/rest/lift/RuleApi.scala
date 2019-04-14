@@ -78,6 +78,11 @@ import net.liftweb.json.JArray
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 
+import com.normation.box._
+import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
+
 class RuleApi(
     restExtractorService : RestExtractorService
   , apiV2                : RuleApiService2
@@ -323,7 +328,7 @@ class RuleApiService2 (
   def listRules(req : Req) = {
     implicit val action = "listRules"
     implicit val prettify = restExtractor.extractPrettify(req.params)
-    readRule.getAll(false) match {
+    readRule.getAll(false).toBox match {
       case Full(rules) =>
         toJsonResponse(None, ( "rules" -> JArray(rules.map(serialize(_,None)).toList)))
       case eb: EmptyBox =>
@@ -342,7 +347,7 @@ class RuleApiService2 (
     def actualRuleCreation(change: RuleChangeRequest) = {
       ( for {
         reason   <- restExtractor.extractReason(req)
-        saveDiff <-  writeRule.create(change.newRule, modId, actor, reason)
+        saveDiff <-  writeRule.create(change.newRule, modId, actor, reason).toBox
       } yield {
         saveDiff
       } ) match {
@@ -365,7 +370,7 @@ class RuleApiService2 (
         case Some(sourceId :: Nil) =>
           // clone existing rule
           for {
-            rule <- readRule.get(RuleId(sourceId)) ?~!
+            rule <- readRule.get(RuleId(sourceId)).toBox ?~!
               s"Could not create rule ${name} (id:${id.value}) by cloning rule '${sourceId}')"
           } yield {
             RuleChangeRequest(RuleModAction.Create, restRule.updateRule(rule), Some(rule))
@@ -422,7 +427,7 @@ class RuleApiService2 (
     implicit val action = "ruleDetails"
     implicit val prettify = restExtractor.extractPrettify(req.params)
 
-    readRule.get(RuleId(id)) match {
+    readRule.get(RuleId(id)).toBox match {
       case Full(rule) =>
         val jsonRule = List(serialize(rule,None))
         toJsonResponse(Some(id),("rules" -> JArray(jsonRule)))
@@ -439,7 +444,7 @@ class RuleApiService2 (
     val actor = RestUtils.getActor(req)
     val ruleId = RuleId(id)
 
-    readRule.get(ruleId) match {
+    readRule.get(ruleId).toBox match {
       case Full(rule) =>
         val deleteRuleDiff = DeleteRuleDiff(rule)
         val change = RuleChangeRequest(RuleModAction.Delete, rule, Some(rule))
@@ -458,7 +463,7 @@ class RuleApiService2 (
     val actor = getActor(req)
     val ruleId = RuleId(id)
 
-    readRule.get(ruleId) match {
+    readRule.get(ruleId).toBox match {
       case Full(rule) =>
         restValues match {
           case Full(restRule) =>
@@ -496,11 +501,11 @@ class RuleApiService6 (
     } yield {
       restDataSerializer.serializeRuleCategory(category, parent, rules.groupBy(_.categoryId), detail)
     }
-  }
+  }.toBox
 
   def getCategoryTree = {
     for {
-        root <- readRuleCategory.getRootCategory()
+        root       <- readRuleCategory.getRootCategory().toBox
         categories <- getCategoryInformations(root,root.id,FullDetails)
     } yield {
       categories
@@ -509,9 +514,10 @@ class RuleApiService6 (
 
   def getCategoryDetails(id : RuleCategoryId) = {
     for {
-      root <- readRuleCategory.getRootCategory()
-      (category,parent) <- root.find(id)
-      categories <- getCategoryInformations(category,parent,MinimalDetails)
+      root              <- readRuleCategory.getRootCategory().toBox
+      found             <- root.find(id)
+      (category,parent) =  found
+      categories       <- getCategoryInformations(category,parent,MinimalDetails)
     } yield {
       categories
     }
@@ -519,47 +525,49 @@ class RuleApiService6 (
 
   def deleteCategory(id : RuleCategoryId)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
     for {
-      root <- readRuleCategory.getRootCategory()
-      (category,parent) <- root.find(id)
-      rules <- readRule.getAll()
-      ok <- if (category.canBeDeleted(rules.toList)) {
-              Full("ok")
-            } else {
-              Failure(s"Cannot delete category '${category.name}' since that category is not empty")
-            }
-      _ <- writeRuleCategory.delete(id, modId, actor, reason)
-      category <- getCategoryInformations(category,parent,MinimalDetails)
+      root              <- readRuleCategory.getRootCategory()
+      found             <- root.find(id).toIO
+      (category,parent) =  found
+      rules             <- readRule.getAll()
+      ok                <- if (category.canBeDeleted(rules.toList)) {
+                             UIO.unit
+                           } else {
+                             Unconsistancy(s"Cannot delete category '${category.name}' since that category is not empty").fail
+                           }
+      _                <- writeRuleCategory.delete(id, modId, actor, reason)
+      category         <- getCategoryInformations(category,parent,MinimalDetails).toIO
     } yield {
       category
     }
-  }
+  }.toBox
 
   def updateCategory(id : RuleCategoryId, restData: RestRuleCategory)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
     logger.info(restData)
     for {
-      root <- readRuleCategory.getRootCategory()
-      (category,parent) <- root.find(id)
-      rules <- readRule.getAll()
-      update = restData.update(category)
-      updatedParent = restData.parent.getOrElse(parent)
+      root          <- readRuleCategory.getRootCategory()
+      found         <- root.find(id).toIO
+      (category,parent) = found
+      rules         <- readRule.getAll()
+      update        =  restData.update(category)
+      updatedParent =  restData.parent.getOrElse(parent)
 
-      _ <- restData.parent match {
-        case Some(parent) =>
-          writeRuleCategory.updateAndMove(update, parent, modId, actor, reason)
-        case None =>
-          writeRuleCategory.updateAndMove(update, parent, modId, actor, reason)
-      }
-      category <- getCategoryInformations(update,updatedParent,MinimalDetails)
+      _             <- restData.parent match {
+                         case Some(parent) =>
+                           writeRuleCategory.updateAndMove(update, parent, modId, actor, reason)
+                         case None =>
+                           writeRuleCategory.updateAndMove(update, parent, modId, actor, reason)
+                       }
+      category      <- getCategoryInformations(update,updatedParent,MinimalDetails).toIO
     } yield {
       category
     }
-  }
+  }.toBox
 
   def createCategory(id : RuleCategoryId, restData: RestRuleCategory)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
     for {
-      update <- restData.create(id)
-      parent = restData.parent.getOrElse(RuleCategoryId("rootRuleCategory"))
-      _ <-writeRuleCategory.create(update,parent, modId, actor, reason)
+      update   <- restData.create(id)
+      parent   =  restData.parent.getOrElse(RuleCategoryId("rootRuleCategory"))
+      _        <- writeRuleCategory.create(update,parent, modId, actor, reason).toBox
       category <- getCategoryInformations(update,parent,MinimalDetails)
     } yield {
       category

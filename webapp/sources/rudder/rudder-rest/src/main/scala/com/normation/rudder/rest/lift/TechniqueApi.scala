@@ -59,12 +59,16 @@ import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.JsonDSL.seq2jvalue
 
 import scala.collection.SortedMap
 import scala.util.Success
 import scala.util.Try
 import scala.util.{Failure => TryFailure}
+import com.normation.box._
+import com.normation.errors._
+import net.liftweb.json.JsonAST.JArray
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 class TechniqueApi (
     restExtractorService: RestExtractorService
@@ -148,56 +152,56 @@ class TechniqueAPIService6 (
   def serialize(technique : Technique, directive:Directive) = restDataSerializer.serializeDirective(technique, directive, None)
 
   def listTechniques : Box[JValue] = {
-    for {
-      lib <- readDirective.getFullDirectiveLibrary()
-      activeTechniques = lib.allActiveTechniques.values.toSeq
-
-      serialized = activeTechniques.map(restDataSerializer.serializeTechnique)
+    (for {
+      lib              <- readDirective.getFullDirectiveLibrary()
+      activeTechniques =  lib.allActiveTechniques.values.toSeq
+      serialized       =  activeTechniques.map(restDataSerializer.serializeTechnique)
     } yield {
       serialized
-    }
+    }).toBox.map(v => JArray(v.toList))
   }
 
   def listDirectives (techniqueName : TechniqueName, wantedVersions: Option[List[TechniqueVersion]])  : Box[JValue] = {
     def serializeDirectives (directives : Seq[Directive], techniques : SortedMap[TechniqueVersion, Technique], wantedVersions: Option[List[TechniqueVersion]] ) = {
-     for {
-       directive <- directives
-       if ( wantedVersions match {
-         case None => true
-         case Some(versions) => versions.contains(directive.techniqueVersion)
-       })
-     } yield {
-      techniques.get(directive.techniqueVersion) match {
-        case None => Failure(s"Version ${directive.techniqueVersion} of Technique '${techniqueName.value}' does not exist, but is used by Directive '${directive.id.value}'")
-        case Some(technique) => Full(serialize(technique,directive))
+      val filter = (d: Directive) => wantedVersions match {
+        case None => true
+        case Some(versions) => versions.contains(d.techniqueVersion)
       }
+
+      ZIO.foreach(directives.filter(filter)) { directive =>
+        techniques.get(directive.techniqueVersion) match {
+          case None            =>
+            Unconsistancy(s"Version ${directive.techniqueVersion} of Technique '${techniqueName.value}' does not exist, but is used by Directive '${directive.id.value}'").fail
+          case Some(technique) =>
+            serialize(technique,directive).succeed
+        }
      }
     }
 
     def checkWantedVersions( techniques : SortedMap[TechniqueVersion, Technique], wantedVersions: Option[List[TechniqueVersion]]) = {
       wantedVersions match {
         case Some(versions) =>
-          sequence(versions) { version =>
+          ZIO.foreach(versions) { version =>
             if  (techniques.keySet.contains(version)) {
-              Full("ok")
+              UIO.unit
             } else {
-              Failure(s"Version '${version}' of Technique '${techniqueName.value}' does not exist" )
+              Unconsistancy(s"Version '${version}' of Technique '${techniqueName.value}' does not exist").fail
             }
           }
-        case None => Full("ok")
+        case None => UIO.unit
       }
     }
 
-    for {
+    (for {
       lib        <- readDirective.getFullDirectiveLibrary()
-      activeTech <- Box(lib.allActiveTechniques.values.find { _.techniqueName == techniqueName }) ?~! s"Technique '${techniqueName.value}' does not exist"
+      activeTech <- lib.allActiveTechniques.values.find { _.techniqueName == techniqueName }.notOptional(s"Technique '${techniqueName.value}' does not exist")
 
       // Check if version we want exists in technique library, We don't need the result
       _                    <- checkWantedVersions(activeTech.techniques, wantedVersions)
-      serializedDirectives <- boxSequence(serializeDirectives(activeTech.directives, activeTech.techniques, wantedVersions))
+      serializedDirectives <- serializeDirectives(activeTech.directives, activeTech.techniques, wantedVersions)
     } yield {
       serializedDirectives.toList
-    }
+    }).toBox.map(v => JArray(v.toList))
   }
 
 }

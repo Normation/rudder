@@ -59,6 +59,8 @@ import net.liftweb.http.Req
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 
+import com.normation.box._
+
 class ComplianceApi(
     restExtractorService: RestExtractorService
   , complianceService   : ComplianceAPIService
@@ -238,13 +240,13 @@ class ComplianceAPIService(
  private[this] def getByRulesCompliance(rules: Set[Rule]) : Box[Seq[ByRuleRuleCompliance]] = {
 
     for {
-      groupLib      <- nodeGroupRepo.getFullGroupLibrary()
-      directivelib  <- directiveRepo.getFullDirectiveLibrary()
+      groupLib      <- nodeGroupRepo.getFullGroupLibrary().toBox
+      directivelib  <- directiveRepo.getFullDirectiveLibrary().toBox
       nodeInfos     <- nodeInfoService.getAll()
       compliance    <- getGlobalComplianceMode()
       reportsByNode <- reportingService.findRuleNodeStatusReports(
-                        nodeInfos.keySet, rules.map(_.id).toSet
-                      )
+                         nodeInfos.keySet, rules.map(_.id).toSet
+                       )
     } yield {
 
       //flatMap of Set is ok, since nodeRuleStatusReport are different for different nodeIds
@@ -321,7 +323,7 @@ class ComplianceAPIService(
 
   def getRuleCompliance(ruleId: RuleId): Box[ByRuleRuleCompliance] = {
     for {
-      rule    <- rulesRepo.get(ruleId)
+      rule    <- rulesRepo.get(ruleId).toBox
       reports <- getByRulesCompliance(Set(rule))
       report  <- Box(reports.find( _.id == ruleId)) ?~! s"No reports were found for rule with ID '${ruleId.value}'"
     } yield {
@@ -331,7 +333,7 @@ class ComplianceAPIService(
 
   def getRulesCompliance(): Box[Seq[ByRuleRuleCompliance]] = {
     for {
-      rules   <- rulesRepo.getAll()
+      rules   <- rulesRepo.getAll().toBox
       reports <- getByRulesCompliance(rules.toSet)
     } yield {
       reports
@@ -344,9 +346,9 @@ class ComplianceAPIService(
   private[this] def getByNodesCompliance(onlyNode: Option[NodeId]): Box[Seq[ByNodeNodeCompliance]] = {
 
     for {
-      rules        <- rulesRepo.getAll()
-      groupLib     <- nodeGroupRepo.getFullGroupLibrary()
-      directiveLib <- directiveRepo.getFullDirectiveLibrary().map(_.allDirectives)
+      rules        <- rulesRepo.getAll().toBox
+      groupLib     <- nodeGroupRepo.getFullGroupLibrary().toBox
+      directiveLib <- directiveRepo.getFullDirectiveLibrary().map(_.allDirectives).toBox
       allNodeInfos <- nodeInfoService.getAll()
       nodeInfos    <- onlyNode match {
                         case None => Full(allNodeInfos)

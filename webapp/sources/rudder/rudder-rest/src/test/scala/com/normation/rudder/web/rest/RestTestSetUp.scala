@@ -70,6 +70,8 @@ import com.normation.rudder.services.user.PersonIdentService
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.
@@ -94,7 +96,7 @@ object RestTestSetUp {
   // Instantiate Service needed to feed System API constructor
 
   val fakeUpdatePTLibService = new UpdateTechniqueLibrary() {
-      def update(modId: ModificationId, actor:EventActor, reason: Option[String]) : Box[Map[TechniqueName, TechniquesLibraryUpdateType]] = {
+      def update(modId: ModificationId, actor:EventActor, reason: Option[String])  = {
         Full(Map())
       }
       def registerCallback(callback:TechniquesLibraryUpdateNotification) : Unit = {}
@@ -129,8 +131,8 @@ object RestTestSetUp {
   // all other apis
 
   class FakeClearCacheService extends ClearCacheService {
-    override def action(actor: EventActor): Box[String] = null
-    override def clearNodeConfigurationCache(storeEvent: Boolean, actor: EventActor): Box[Unit] = null
+    override def action(actor: EventActor) = null
+    override def clearNodeConfigurationCache(storeEvent: Boolean, actor: EventActor) = null
   }
 
 
@@ -144,29 +146,29 @@ object RestTestSetUp {
   class FakeItemArchiveManager extends ItemArchiveManager {
 
     override def exportAll(commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
-    : Box[(GitArchiveId, NotArchivedElements)] = Full((fakeGitArchiveId, fakeNotArchivedElements))
+     = ZIO.succeed((fakeGitArchiveId, fakeNotArchivedElements))
     override def exportRules(commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
-    : Box[GitArchiveId] = Full(fakeGitArchiveId)
+     = ZIO.succeed(fakeGitArchiveId)
     override def exportTechniqueLibrary(commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
-    : Box[(GitArchiveId, NotArchivedElements)] = Full((fakeGitArchiveId, fakeNotArchivedElements))
+     = ZIO.succeed((fakeGitArchiveId, fakeNotArchivedElements))
     override def exportGroupLibrary(commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
-    : Box[GitArchiveId] = Full(fakeGitArchiveId)
+     = ZIO.succeed(fakeGitArchiveId)
     override def exportParameters(commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
-    : Box[GitArchiveId] = Full(fakeGitArchiveId)
+     = ZIO.succeed(fakeGitArchiveId)
 
 
     override def importAll(archiveId: GitCommitId, commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
-    : Box[GitCommitId] = Full(fakeGitCommitId)
+     = ZIO.succeed(fakeGitCommitId)
     override def importRules(archiveId: GitCommitId, commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
-    : Box[GitCommitId] = Full(fakeGitCommitId)
+     = ZIO.succeed(fakeGitCommitId)
     override def importTechniqueLibrary(archiveId: GitCommitId, commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
-    : Box[GitCommitId] = Full(fakeGitCommitId)
+     = ZIO.succeed(fakeGitCommitId)
     override def importGroupLibrary(archiveId: GitCommitId, commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
-    : Box[GitCommitId] = Full(fakeGitCommitId)
+     = ZIO.succeed(fakeGitCommitId)
     override def importParameters(archiveId: GitCommitId, commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
-    : Box[GitCommitId] = Full(fakeGitCommitId)
+     = ZIO.succeed(fakeGitCommitId)
     override def rollback(archiveId: GitCommitId, commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], rollbackedEvents: Seq[EventLog], target: EventLog, rollbackType: String, includeSystem: Boolean)
-    : Box[GitCommitId] = Full(fakeGitCommitId)
+     = ZIO.succeed(fakeGitCommitId)
 
     /**
       * These methods are called by the Archive API to get the git archives.
@@ -179,22 +181,22 @@ object RestTestSetUp {
             new DateTime(42) -> fakeGitArchiveId
     )
 
-    override def getFullArchiveTags: Box[Map[DateTime, GitArchiveId]] = Full(fakeArchives)
+    override def getFullArchiveTags = ZIO.succeed(fakeArchives)
 
-    override def getGroupLibraryTags: Box[Map[DateTime, GitArchiveId]] = Full(fakeArchives)
+    override def getGroupLibraryTags = ZIO.succeed(fakeArchives)
 
-    override def getTechniqueLibraryTags: Box[Map[DateTime, GitArchiveId]] = Full(fakeArchives)
+    override def getTechniqueLibraryTags = ZIO.succeed(fakeArchives)
 
-    override def getRulesTags: Box[Map[DateTime, GitArchiveId]] = Full(fakeArchives)
+    override def getRulesTags = ZIO.succeed(fakeArchives)
 
-    override def getParametersTags: Box[Map[DateTime, GitArchiveId]] = Full(fakeArchives)
+    override def getParametersTags = ZIO.succeed(fakeArchives)
   }
 
 
   val fakeItemArchiveManager = new FakeItemArchiveManager
   val fakeClearCacheService = new FakeClearCacheService
   val fakePersonIndentService = new PersonIdentService {
-    override def getPersonIdentOrDefault(username: String): Box[PersonIdent] = Full(fakePersonIdent)
+    override def getPersonIdentOrDefault(username: String) = ZIO.succeed(fakePersonIdent)
   }
   lazy val apiAuthorizationLevelService = new DefaultApiAuthorizationLevel(LiftApiProcessingLogger)
   lazy val apiDispatcher = new RudderEndpointDispatcher(LiftApiProcessingLogger)
@@ -204,7 +206,7 @@ object RestTestSetUp {
  val testNodeConfiguration = new TestNodeConfiguration()
  val fakeRepo = testNodeConfiguration.repo
  val fakeScriptLauncher = new DebugInfoService {
-   override def launch(): Box[DebugInfoScriptResult] = Full(DebugInfoScriptResult("test", new Array[Byte](42)))
+   override def launch() = Full(DebugInfoScriptResult("test", new Array[Byte](42)))
  }
 
   val apiService11 = new SystemApiService11(

@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.rest
+package com.normation.rudder.rest.v1
 
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -52,6 +52,11 @@ import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
+import com.normation.box._
+import com.normation.errors._
+import com.normation.rudder.rest.RestUtils
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /**
  * A rest api that allows to deploy promises.
@@ -144,8 +149,8 @@ extends RestHelper {
   ////////////////// implementation details //////////////////
   ////////////////////////////////////////////////////////////
 
-  private[this] def listTags(list:() => Box[Map[DateTime, GitArchiveId]], archiveType:String) = {
-      list() match {
+  private[this] def listTags(list:() => IOResult[Map[DateTime, GitArchiveId]], archiveType:String) = {
+      list().toBox match {
         case eb : EmptyBox =>
           val e = eb ?~! "Error when trying to list available archives for %s".format(archiveType)
           PlainTextResponse(e.messageChain, 503)
@@ -176,12 +181,12 @@ extends RestHelper {
     JObject(JField(archiveType,  ordered))
   }
 
-  private[this] def restoreLatestArchive(req:Req, list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,PersonIdent,ModificationId,EventActor,Option[String],Boolean) => Box[GitCommitId], archiveType:String) = {
+  private[this] def restoreLatestArchive(req:Req, list:() => IOResult[Map[DateTime, GitArchiveId]], restore:(GitCommitId,PersonIdent,ModificationId,EventActor,Option[String],Boolean) => IOResult[GitCommitId], archiveType:String) = {
     (for {
-      archives   <- list()
-      commiter   <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
+      archives   <- list().toBox
+      commiter   <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name).toBox
       (date,tag) <- Box(archives.toList.sortWith { case ( (d1,_), (d2,_) ) => d1.isAfter(d2) }.headOption) ?~! "No archive is available"
-      restored   <- restore(tag.commit,commiter,newModId,RestUtils.getActor(req),Some("Restore latest archive required from REST API"),false)
+      restored   <- restore(tag.commit,commiter,newModId,RestUtils.getActor(req),Some("Restore latest archive required from REST API"),false).toBox
     } yield {
       restored
     }) match {
@@ -193,10 +198,10 @@ extends RestHelper {
     }
   }
 
-  private[this] def restoreLatestCommit(req:Req, restore: (PersonIdent,ModificationId,EventActor,Option[String],Boolean) => Box[GitCommitId], archiveType:String) = {
+  private[this] def restoreLatestCommit(req:Req, restore: (PersonIdent,ModificationId,EventActor,Option[String],Boolean) => IOResult[GitCommitId], archiveType:String) = {
     (for {
-      commiter   <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
-      restored   <- restore(commiter,newModId,RestUtils.getActor(req),Some("Restore archive from latest commit on HEAD required from REST API"), false)
+      commiter   <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name).toBox
+      restored   <- restore(commiter,newModId,RestUtils.getActor(req),Some("Restore archive from latest commit on HEAD required from REST API"), false).toBox
     } yield {
       restored
     }) match {
@@ -208,13 +213,13 @@ extends RestHelper {
     }
   }
 
-  private[this] def restoreByDatetime(req:Req, list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,PersonIdent,ModificationId,EventActor,Option[String],Boolean) => Box[GitCommitId], datetime:String, archiveType:String) = {
+  private[this] def restoreByDatetime(req:Req, list:() => IOResult[Map[DateTime, GitArchiveId]], restore:(GitCommitId,PersonIdent,ModificationId,EventActor,Option[String],Boolean) => IOResult[GitCommitId], datetime:String, archiveType:String) = {
     (for {
       valideDate <- tryo { GitTagDateTimeFormatter.parseDateTime(datetime) } ?~! "The given archive id is not a valid archive tag: %s".format(datetime)
-      archives   <- list()
-      commiter   <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
+      archives   <- list().toBox
+      commiter   <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name).toBox
       tag        <- Box(archives.get(valideDate)) ?~! "The archive with tag '%s' is not available. Available archives: %s".format(datetime,archives.keySet.map( _.toString(GitTagDateTimeFormatter)).mkString(", "))
-      restored   <- restore(tag.commit,commiter,newModId,RestUtils.getActor(req),Some("Restore archive for date time %s requested from REST API".format(datetime)),false)
+      restored   <- restore(tag.commit,commiter,newModId,RestUtils.getActor(req),Some("Restore archive for date time %s requested from REST API".format(datetime)),false).toBox
     } yield {
       restored
     }) match {
@@ -226,13 +231,13 @@ extends RestHelper {
     }
   }
 
-  private[this] def archive(req:Req, archive:(PersonIdent,ModificationId,EventActor,Option[String],Boolean) => Box[GitArchiveId], archiveType:String) = {
+  private[this] def archive(req:Req, archive:(PersonIdent,ModificationId,EventActor,Option[String],Boolean) => IOResult[GitArchiveId], archiveType:String) = {
     (for {
       commiter  <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
       archiveId <- archive(commiter,newModId,RestUtils.getActor(req),Some("Create new archive requested from REST API"),false)
     } yield {
       archiveId
-    }) match {
+    }).toBox match {
       case eb:EmptyBox =>
         val e = eb ?~! "Error when trying to archive %s.".format(archiveType)
         PlainTextResponse(e.messageChain, 503)

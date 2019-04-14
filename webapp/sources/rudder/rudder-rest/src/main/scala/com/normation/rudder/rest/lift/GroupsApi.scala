@@ -60,6 +60,8 @@ import net.liftweb.http.Req
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 
+import com.normation.box._
+
 class GroupsApi(
     readGroup           : RoNodeGroupRepository
   , restExtractorService: RestExtractorService
@@ -333,7 +335,7 @@ class GroupApiService2 (
   def listGroups(req : Req, apiVersion: ApiVersion) = {
     implicit val action = "listGroups"
     implicit val prettify = restExtractor.extractPrettify(req.params)
-    readGroup.getAll match {
+    readGroup.getAll.toBox match {
       case Full(groups) =>
         toJsonResponse(None, ( "groups" -> JArray(groups.map(g => serializeGroup(g, None, apiVersion)).toList)))
       case eb: EmptyBox =>
@@ -352,7 +354,7 @@ class GroupApiService2 (
     def actualGroupCreation(change: NodeGroupChangeRequest) = {
       ( for {
         reason   <- restExtractor.extractReason(req)
-        saveDiff <- writeGroup.create(change.newGroup, change.category.getOrElse(readGroup.getRootCategory.id), modId, actor, reason)
+        saveDiff <- writeGroup.create(change.newGroup, change.category.getOrElse(readGroup.getRootCategory.id), modId, actor, reason).toBox
       } yield {
         saveDiff
       } ) match {
@@ -378,7 +380,7 @@ class GroupApiService2 (
         case Some(sourceId :: Nil) =>
           // clone existing rule
           for {
-            (group, cat) <- readGroup.getNodeGroup(NodeGroupId(sourceId)) ?~!
+            (group, cat) <- readGroup.getNodeGroup(NodeGroupId(sourceId)).toBox ?~!
               s"Could not create group ${name} (id:${id.value}) by cloning group '${sourceId}')"
           } yield {
             // in that case, we take rest category and if empty, we default to cloned group category
@@ -437,7 +439,7 @@ class GroupApiService2 (
     implicit val action = "groupDetails"
     implicit val prettify = restExtractor.extractPrettify(req.params)
 
-    readGroup.getNodeGroup(NodeGroupId(id)) match {
+    readGroup.getNodeGroup(NodeGroupId(id)).toBox match {
       case Full((group,_)) =>
         val jsonGroup = List(serializeGroup(group,None,apiVersion))
         toJsonResponse(Some(id),("groups" -> JArray(jsonGroup)))
@@ -453,7 +455,7 @@ class GroupApiService2 (
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor = RestUtils.getActor(req)
 
-    readGroup.getNodeGroup(NodeGroupId(id)) match {
+    readGroup.getNodeGroup(NodeGroupId(id)).toBox match {
       case Full((group,_)) =>
         group.query match {
           case Some(query) => queryProcessor.process(query) match {
@@ -485,7 +487,7 @@ class GroupApiService2 (
     val actor = RestUtils.getActor(req)
     val groupId = NodeGroupId(id)
 
-    readGroup.getNodeGroup(groupId) match {
+    readGroup.getNodeGroup(groupId).toBox match {
       case Full((group,_)) =>
         val deleteGroupDiff = DeleteNodeGroupDiff(group)
         createChangeRequestAndAnswer(id, deleteGroupDiff, group, Some(group), actor, req, DGModAction.Delete, apiVersion)
@@ -503,7 +505,7 @@ class GroupApiService2 (
     val actor = getActor(req)
     val groupId = NodeGroupId(id)
 
-    readGroup.getNodeGroup(groupId) match {
+    readGroup.getNodeGroup(groupId).toBox match {
       case Full((group,_)) =>
         restValues match {
           case Full(restGroup) =>
@@ -556,9 +558,9 @@ class GroupApiService6 (
 
   def getCategoryDetails(id : NodeGroupCategoryId, apiVersion: ApiVersion) = {
     for {
-      root <- readGroup.getFullGroupLibrary
+      root     <- readGroup.getFullGroupLibrary.toBox
       category <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
-      parent <- Box(root.parentCategories.get(id)) ?~! s"Cannot find Group category '${id.value}' parent"
+      parent   <- Box(root.parentCategories.get(id)) ?~! s"Cannot find Group category '${id.value}' parent"
     } yield {
       restDataSerializer.serializeGroupCategory(category, parent.id, MinimalDetails, apiVersion)
     }
@@ -566,10 +568,10 @@ class GroupApiService6 (
 
   def deleteCategory(id : NodeGroupCategoryId, apiVersion: ApiVersion)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
     for {
-      root <- readGroup.getFullGroupLibrary
+      root     <- readGroup.getFullGroupLibrary.toBox
       category <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
-      parent <- Box(root.parentCategories.get(id)) ?~! s"Cannot find Groupl category '${id.value}' parent"
-      _ <- writeGroup.delete(id, modId, actor, reason)
+      parent   <- Box(root.parentCategories.get(id)) ?~! s"Cannot find Groupl category '${id.value}' parent"
+      _        <- writeGroup.delete(id, modId, actor, reason).toBox
     } yield {
       restDataSerializer.serializeGroupCategory(category, parent.id, MinimalDetails, apiVersion)
     }
@@ -577,12 +579,12 @@ class GroupApiService6 (
 
   def updateCategory(id : NodeGroupCategoryId, restData: RestGroupCategory, apiVersion: ApiVersion)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
     for {
-      root <- readGroup.getFullGroupLibrary
-      category <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
+      root      <- readGroup.getFullGroupLibrary.toBox
+      category  <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
       oldParent <- Box(root.parentCategories.get(id)) ?~! s"Cannot find Group category '${id.value}' parent"
-      parent = restData.parent.getOrElse(oldParent.id)
-      update = restData.update(category)
-      _ <-writeGroup.saveGroupCategory(update.toNodeGroupCategory,parent, modId, actor, reason)
+      parent    =  restData.parent.getOrElse(oldParent.id)
+      update    =  restData.update(category)
+      _         <- writeGroup.saveGroupCategory(update.toNodeGroupCategory,parent, modId, actor, reason).toBox
     } yield {
       restDataSerializer.serializeGroupCategory(update, parent, MinimalDetails, apiVersion)
     }
@@ -590,10 +592,10 @@ class GroupApiService6 (
 
   def createCategory(id : NodeGroupCategoryId, restData: RestGroupCategory, apiVersion: ApiVersion)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
     for {
-      update <- restData.create(id)
-      category = update.toNodeGroupCategory
-      parent = restData.parent.getOrElse(NodeGroupCategoryId("GroupRoot"))
-      _ <-writeGroup.addGroupCategorytoCategory(category,parent, modId, actor, reason)
+      update   <- restData.create(id)
+      category =  update.toNodeGroupCategory
+      parent   =  restData.parent.getOrElse(NodeGroupCategoryId("GroupRoot"))
+      _        <- writeGroup.addGroupCategorytoCategory(category,parent, modId, actor, reason).toBox
     } yield {
       restDataSerializer.serializeGroupCategory(update, parent, MinimalDetails, apiVersion)
     }

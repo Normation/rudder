@@ -34,19 +34,16 @@
 *
 *************************************************************************************
 */
-package com.normation.rudder.appconfig
+package com.normation.appconfig
 
+import com.normation.NamedZioLogger
 import net.liftweb.common.Full
 import com.typesafe.config.Config
-import net.liftweb.common.Box
 import com.normation.rudder.batch.AsyncWorkflowInfo
 import com.normation.rudder.services.workflows.WorkflowUpdate
 import com.typesafe.config.ConfigFactory
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
-import net.liftweb.common.Failure
-import net.liftweb.common.Loggable
-import net.liftweb.common.EmptyBox
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.reports.FullCompliance
@@ -75,6 +72,9 @@ import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 import com.normation.rudder.services.servers.RelaySynchronizationMethod._
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 import com.normation.rudder.services.workflows.WorkflowLevelService
+import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /**
  * A service that Read mutable (runtime) configuration properties
@@ -88,9 +88,9 @@ trait ReadConfigService {
   /**
    * Change message properties
    */
-  def rudder_ui_changeMessage_enabled() : Box[Boolean]
-  def rudder_ui_changeMessage_mandatory() : Box[Boolean]
-  def rudder_ui_changeMessage_explanation() : Box[String]
+  def rudder_ui_changeMessage_enabled() : IOResult[Boolean]
+  def rudder_ui_changeMessage_mandatory() : IOResult[Boolean]
+  def rudder_ui_changeMessage_explanation() : IOResult[String]
 
   /**
    * Workflow.
@@ -99,63 +99,63 @@ trait ReadConfigService {
    * workflow plugin, you won't be able to enable it. And in the
    * line, once you have the plugin, you need to enable it their.
    */
-  def rudder_workflow_enabled(): Box[Boolean]
-  def rudder_workflow_self_validation(): Box[Boolean]
-  def rudder_workflow_self_deployment(): Box[Boolean]
+  def rudder_workflow_enabled(): IOResult[Boolean]
+  def rudder_workflow_self_validation(): IOResult[Boolean]
+  def rudder_workflow_self_deployment(): IOResult[Boolean]
 
   /**
    * CFEngine server properties
    */
-  def cfengine_server_denybadclocks(): Box[Boolean]
+  def cfengine_server_denybadclocks(): IOResult[Boolean]
 
   /**
    * Relay synchronization configuration
    */
-  def relay_server_sync_method()       : Box[RelaySynchronizationMethod]
-  def relay_server_syncpromises()      : Box[Boolean]
-  def relay_server_syncsharedfiles()   : Box[Boolean]
+  def relay_server_sync_method()       : IOResult[RelaySynchronizationMethod]
+  def relay_server_syncpromises()      : IOResult[Boolean]
+  def relay_server_syncsharedfiles()   : IOResult[Boolean]
 
   /**
    * Agent execution interval and start run
    */
-  def agent_run_interval(): Box[Int]
+  def agent_run_interval(): IOResult[Int]
 
-  def agent_run_splaytime(): Box[Int]
-  def agent_run_start_hour(): Box[Int]
-  def agent_run_start_minute(): Box[Int]
+  def agent_run_splaytime(): IOResult[Int]
+  def agent_run_start_hour(): IOResult[Int]
+  def agent_run_start_minute(): IOResult[Int]
 
   /**
    * CFEngine global properties
    */
-  def cfengine_modified_files_ttl(): Box[Int]
-  def cfengine_outputs_ttl(): Box[Int]
+  def cfengine_modified_files_ttl(): IOResult[Int]
+  def cfengine_outputs_ttl(): IOResult[Int]
 
   /**
    * Logging properties
    */
-  def rudder_store_all_centralized_logs_in_file(): Box[Boolean]
+  def rudder_store_all_centralized_logs_in_file(): IOResult[Boolean]
 
   /**
    * Compliance mode: See ComplianceMode class for more details
    */
-  def rudder_compliance_mode(): Box[GlobalComplianceMode] = {
+  def rudder_compliance_mode(): IOResult[GlobalComplianceMode] = {
     for {
-        name <- rudder_compliance_mode_name
-        modeName <- ComplianceModeName.parse(name)
-        period <- rudder_compliance_heartbeatPeriod
+        name     <- rudder_compliance_mode_name
+        modeName <- ComplianceModeName.parse(name).toIO
+        period   <- rudder_compliance_heartbeatPeriod
     } yield {
       GlobalComplianceMode(modeName,period)
     }
   }
 
-  def rudder_compliance_mode_name(): Box[String]
+  def rudder_compliance_mode_name(): IOResult[String]
 
-  def rudder_compliance_heartbeatPeriod(): Box[Int]
+  def rudder_compliance_heartbeatPeriod(): IOResult[Int]
 
   /**
    * Policy mode: See PolicyMode class for more details
    */
-  def rudder_global_policy_mode(): Box[GlobalPolicyMode] = {
+  def rudder_global_policy_mode(): IOResult[GlobalPolicyMode] = {
     for {
         mode        <- rudder_policy_mode_name
         overridable <- rudder_policy_overridable
@@ -163,46 +163,46 @@ trait ReadConfigService {
       GlobalPolicyMode(mode, if(overridable) PolicyModeOverrides.Always else PolicyModeOverrides.Unoverridable)
     }
   }
-  def rudder_policy_mode_name(): Box[PolicyMode]
-  def rudder_policy_overridable(): Box[Boolean]
+  def rudder_policy_mode_name(): IOResult[PolicyMode]
+  def rudder_policy_overridable(): IOResult[Boolean]
 
   /**
    * Send Metrics
    */
-  def send_server_metrics(): Box[Option[Boolean]]
+  def send_server_metrics(): IOResult[Option[Boolean]]
 
   /**
    * Report protocol
    */
-  def rudder_syslog_protocol(): Box[SyslogProtocol]
+  def rudder_syslog_protocol(): IOResult[SyslogProtocol]
 
   /**
    * Should we display recent changes graphs  ?
    */
-  def display_changes_graph(): Box[Boolean]
+  def display_changes_graph(): IOResult[Boolean]
 
   /**
    * Should we hide compliance/recent changes column in directive screen for rule ?
    */
-  def rudder_ui_display_ruleComplianceColumns(): Box[Boolean]
+  def rudder_ui_display_ruleComplianceColumns(): IOResult[Boolean]
 
   /**
    * Should we activate the script engine bar ?
    */
-  def rudder_featureSwitch_directiveScriptEngine(): Box[FeatureSwitch]
+  def rudder_featureSwitch_directiveScriptEngine(): IOResult[FeatureSwitch]
 
   /**
    * Default value for node properties after acceptation:
    * - policy mode
    * - node lifecycle state
    */
-  def rudder_node_onaccept_default_policy_mode(): Box[Option[PolicyMode]]
-  def rudder_node_onaccept_default_state(): Box[NodeState]
+  def rudder_node_onaccept_default_policy_mode(): IOResult[Option[PolicyMode]]
+  def rudder_node_onaccept_default_state(): IOResult[NodeState]
 
   /**
    * What is the behavior to adopt regarding unexpected reports ?
    */
-  def rudder_compliance_unexpected_report_interpretation(): Box[UnexpectedReportInterpretation]
+  def rudder_compliance_unexpected_report_interpretation(): IOResult[UnexpectedReportInterpretation]
 }
 
 /**
@@ -210,63 +210,63 @@ trait ReadConfigService {
  */
 trait UpdateConfigService {
 
-  def set_rudder_ui_changeMessage_enabled(value: Boolean): Box[Unit]
-  def set_rudder_ui_changeMessage_mandatory(value: Boolean): Box[Unit]
-  def set_rudder_ui_changeMessage_explanation(value: String): Box[Unit]
+  def set_rudder_ui_changeMessage_enabled(value: Boolean): IOResult[Unit]
+  def set_rudder_ui_changeMessage_mandatory(value: Boolean): IOResult[Unit]
+  def set_rudder_ui_changeMessage_explanation(value: String): IOResult[Unit]
 
   /**
    * Workflows
    */
-  def set_rudder_workflow_enabled(value: Boolean): Box[Unit]
-  def set_rudder_workflow_self_validation(value: Boolean): Box[Unit]
-  def set_rudder_workflow_self_deployment(value: Boolean): Box[Unit]
+  def set_rudder_workflow_enabled(value: Boolean): IOResult[Unit]
+  def set_rudder_workflow_self_validation(value: Boolean): IOResult[Unit]
+  def set_rudder_workflow_self_deployment(value: Boolean): IOResult[Unit]
 
   /**
    * Set CFEngine server properties
    */
-  def set_cfengine_server_denybadclocks(value: Boolean): Box[Unit]
-  def set_cfengine_server_skipidentify(value: Boolean): Box[Unit]
+  def set_cfengine_server_denybadclocks(value: Boolean): IOResult[Unit]
+  def set_cfengine_server_skipidentify(value: Boolean): IOResult[Unit]
 
   /**
    * Set Relay-Server synchronization method
    */
-  def set_relay_server_sync_method(value: RelaySynchronizationMethod): Box[Unit]
-  def set_relay_server_syncpromises(value: Boolean)    : Box[Unit]
-  def set_relay_server_syncsharedfiles(value: Boolean) : Box[Unit]
+  def set_relay_server_sync_method(value: RelaySynchronizationMethod): IOResult[Unit]
+  def set_relay_server_syncpromises(value: Boolean)    : IOResult[Unit]
+  def set_relay_server_syncsharedfiles(value: Boolean) : IOResult[Unit]
 
   /**
    * Agent frequency and start run
    */
-  def set_agent_run_interval(value: Int, actor : EventActor, reason: Option[String]): Box[Unit]
-  def set_agent_run_splaytime(value: Int, actor : EventActor, reason: Option[String]): Box[Unit]
-  def set_agent_run_start_hour(value: Int, actor : EventActor, reason: Option[String]): Box[Unit]
-  def set_agent_run_start_minute(value: Int, actor : EventActor, reason: Option[String]): Box[Unit]
+  def set_agent_run_interval(value: Int, actor : EventActor, reason: Option[String]): IOResult[Unit]
+  def set_agent_run_splaytime(value: Int, actor : EventActor, reason: Option[String]): IOResult[Unit]
+  def set_agent_run_start_hour(value: Int, actor : EventActor, reason: Option[String]): IOResult[Unit]
+  def set_agent_run_start_minute(value: Int, actor : EventActor, reason: Option[String]): IOResult[Unit]
 
   /**
    * Set CFEngine global properties
    */
-  def set_cfengine_modified_files_ttl(value: Int): Box[Unit]
-  def set_cfengine_outputs_ttl(value: Int): Box[Unit]
+  def set_cfengine_modified_files_ttl(value: Int): IOResult[Unit]
+  def set_cfengine_outputs_ttl(value: Int): IOResult[Unit]
 
   /**
    * Logging properties
    */
-  def set_rudder_store_all_centralized_logs_in_file(value: Boolean): Box[Unit]
+  def set_rudder_store_all_centralized_logs_in_file(value: Boolean): IOResult[Unit]
 
   /**
    * Send Metrics
    */
-  def set_send_server_metrics(value : Option[Boolean], actor : EventActor, reason: Option[String]): Box[Unit]
+  def set_send_server_metrics(value : Option[Boolean], actor : EventActor, reason: Option[String]): IOResult[Unit]
 
   /**
    * Set the compliance mode
    */
-  def set_rudder_compliance_mode(mode : ComplianceMode, actor: EventActor, reason: Option[String]): Box[Unit] = {
+  def set_rudder_compliance_mode(mode : ComplianceMode, actor: EventActor, reason: Option[String]): IOResult[Unit] = {
     for {
       _ <- set_rudder_compliance_mode_name(mode.name,actor, reason)
       u <- mode.name match {
              case ChangesOnly.name =>  set_rudder_compliance_heartbeatPeriod(mode.heartbeatPeriod, actor, reason)
-             case _ => Full(())
+             case _ => UIO.unit
            }
     } yield {
       u
@@ -274,34 +274,34 @@ trait UpdateConfigService {
 
   }
 
-  def set_rudder_compliance_mode_name(name : String, actor : EventActor, reason: Option[String]) : Box[Unit]
+  def set_rudder_compliance_mode_name(name : String, actor : EventActor, reason: Option[String]) : IOResult[Unit]
 
-  def set_rudder_compliance_heartbeatPeriod(frequency : Int, actor: EventActor, reason: Option[String]) : Box[Unit]
+  def set_rudder_compliance_heartbeatPeriod(frequency : Int, actor: EventActor, reason: Option[String]) : IOResult[Unit]
 
   /**
    * Report protocol
    */
-  def set_rudder_syslog_protocol(value : SyslogProtocol, actor : EventActor, reason: Option[String]): Box[Unit]
+  def set_rudder_syslog_protocol(value : SyslogProtocol, actor : EventActor, reason: Option[String]): IOResult[Unit]
 
   /**
    * Should we display recent changes graphs  ?
    */
-  def set_display_changes_graph(displayGraph : Boolean): Box[Unit]
+  def set_display_changes_graph(displayGraph : Boolean): IOResult[Unit]
 
   /**
    * Should we hide compliance/recent changes column in directive screen for rule ?
    */
-  def set_rudder_ui_display_ruleComplianceColumns(Columns: Boolean): Box[Unit]
+  def set_rudder_ui_display_ruleComplianceColumns(Columns: Boolean): IOResult[Unit]
 
   /**
    * Should we evaluate scripts in variable values?
    */
-  def set_rudder_featureSwitch_directiveScriptEngine(status: FeatureSwitch): Box[Unit]
+  def set_rudder_featureSwitch_directiveScriptEngine(status: FeatureSwitch): IOResult[Unit]
 
 /**
    * Set the compliance mode
    */
-  def set_rudder_policy_mode(mode : GlobalPolicyMode, actor: EventActor, reason: Option[String]): Box[Unit] = {
+  def set_rudder_policy_mode(mode : GlobalPolicyMode, actor: EventActor, reason: Option[String]): IOResult[Unit] = {
     for {
       _ <- set_rudder_policy_mode_name(mode.mode, actor, reason)
       u <- set_rudder_policy_overridable(if(mode.overridable == PolicyModeOverrides.Always) true else false, actor, reason)
@@ -311,18 +311,18 @@ trait UpdateConfigService {
 
   }
 
-  def set_rudder_policy_mode_name(name : PolicyMode, actor : EventActor, reason: Option[String]) : Box[Unit]
+  def set_rudder_policy_mode_name(name : PolicyMode, actor : EventActor, reason: Option[String]) : IOResult[Unit]
 
-  def set_rudder_policy_overridable(overridable : Boolean, actor: EventActor, reason: Option[String]) : Box[Unit]
+  def set_rudder_policy_overridable(overridable : Boolean, actor: EventActor, reason: Option[String]) : IOResult[Unit]
 
   /**
    * Default value for node properties after acceptation:
    * - policy mode
    * - node lifecycle state
    */
-  def set_rudder_node_onaccept_default_policy_mode(policyMode: Option[PolicyMode]): Box[Unit]
-  def set_rudder_node_onaccept_default_state(nodeState: NodeState): Box[Unit]
-  def set_rudder_compliance_unexpected_report_interpretation(mode: UnexpectedReportInterpretation) : Box[Unit]
+  def set_rudder_node_onaccept_default_policy_mode(policyMode: Option[PolicyMode]): IOResult[Unit]
+  def set_rudder_node_onaccept_default_state(nodeState: NodeState): IOResult[Unit]
+  def set_rudder_compliance_unexpected_report_interpretation(mode: UnexpectedReportInterpretation) : IOResult[Unit]
 }
 
 class LDAPBasedConfigService(
@@ -330,7 +330,9 @@ class LDAPBasedConfigService(
   , repos         : ConfigRepository
   , workflowUpdate: AsyncWorkflowInfo
   , workflowLevel : WorkflowLevelService
-) extends ReadConfigService with UpdateConfigService with Loggable {
+) extends ReadConfigService with UpdateConfigService with NamedZioLogger {
+
+  override def loggerName: String = this.getClass.getName
 
   /**
    * Create a cache for values that should never fail
@@ -378,22 +380,22 @@ class LDAPBasedConfigService(
    *
    */
 
-  private[this] def get[T](name: String)(implicit converter: RudderWebProperty => T) : Box[T] = {
+  private[this] def get[T](name: String)(implicit converter: RudderWebProperty => T) : IOResult[T] = {
     for {
       params <- repos.getConfigParameters
       param  <- params.find( _.name.value == name) match {
                   case None =>
                     val configName = name.replaceAll("_", ".")
-                    val value = configWithFallback.getString(configName)
+                    val value      = configWithFallback.getString(configName)
                     save(name, value)
-                  case Some(p) => Full(p)
+                  case Some(p) => p.succeed
                 }
     } yield {
       param
     }
   }
 
-  private[this] def save[T](name: String, value: T, modifyGlobalPropertyInfo : Option[ModifyGlobalPropertyInfo] = None)(implicit ser: T => String): Box[RudderWebProperty] = {
+  private[this] def save[T](name: String, value: T, modifyGlobalPropertyInfo : Option[ModifyGlobalPropertyInfo] = None)(implicit ser: T => String): IOResult[RudderWebProperty] = {
     val p = RudderWebProperty(RudderWebPropertyName(name), ser(value), "")
     repos.saveConfigParameter(p,modifyGlobalPropertyInfo)
   }
@@ -444,13 +446,13 @@ class LDAPBasedConfigService(
 
   private[this] implicit def toString(p: RudderWebProperty): String = p.value
 
-  private[this] implicit def toUnit(p: Box[RudderWebProperty]) : Box[Unit] = p.map( _ => ())
+  private[this] implicit def toUnit(p: IOResult[RudderWebProperty]) : IOResult[Unit] = p.map( _ => ())
 
-  private[this] implicit def toInt(p: Box[RudderWebProperty]) : Box[Int] = {
+  private[this] implicit def toInt(p: IOResult[RudderWebProperty]) : IOResult[Int] = {
     try {
       p.map(Integer.parseInt(_))
     } catch {
-      case ex:NumberFormatException => Failure(ex.getMessage)
+      case ex:NumberFormatException => Unconsistancy(ex.getMessage).fail
     }
   }
 
@@ -461,93 +463,93 @@ class LDAPBasedConfigService(
     case Full(status) => status
     case eb: EmptyBox =>
       val e = eb ?~! s"Error when trying to parse property '${p.name}' with value '${p.value}' into a feature switch status"
-      logger.warn(e.messageChain)
+      logEffect.warn(e.messageChain)
       FeatureSwitch.Disabled
   }
 
   def rudder_ui_changeMessage_enabled() = get("rudder_ui_changeMessage_enabled")
   def rudder_ui_changeMessage_mandatory() = get("rudder_ui_changeMessage_mandatory")
   def rudder_ui_changeMessage_explanation() = get("rudder_ui_changeMessage_explanation")
-  def set_rudder_ui_changeMessage_enabled(value: Boolean): Box[Unit] = save("rudder_ui_changeMessage_enabled", value)
-  def set_rudder_ui_changeMessage_mandatory(value: Boolean): Box[Unit] = save("rudder_ui_changeMessage_mandatory", value)
-  def set_rudder_ui_changeMessage_explanation(value: String): Box[Unit] = save("rudder_ui_changeMessage_explanation", value)
+  def set_rudder_ui_changeMessage_enabled(value: Boolean): IOResult[Unit] = save("rudder_ui_changeMessage_enabled", value)
+  def set_rudder_ui_changeMessage_mandatory(value: Boolean): IOResult[Unit] = save("rudder_ui_changeMessage_mandatory", value)
+  def set_rudder_ui_changeMessage_explanation(value: String): IOResult[Unit] = save("rudder_ui_changeMessage_explanation", value)
 
   ///// workflows /////
   def rudder_workflow_enabled() = {
     if(workflowLevel.workflowLevelAllowsEnable) {
       get("rudder_workflow_enabled")
     } else {
-      Full(false)
+      false.succeed
     }
   }
   def rudder_workflow_self_validation() = get("rudder_workflow_self_validation")
   def rudder_workflow_self_deployment() = get("rudder_workflow_self_deployment")
-  def set_rudder_workflow_enabled(value: Boolean): Box[Unit] = {
+  def set_rudder_workflow_enabled(value: Boolean): IOResult[Unit] = {
     if(workflowLevel.workflowLevelAllowsEnable) {
-      save("rudder_workflow_enabled", value)
-      Full(workflowUpdate ! WorkflowUpdate)
+      save("rudder_workflow_enabled", value) <*
+      IOResult.effect(workflowUpdate ! WorkflowUpdate)
     } else {
-      Failure("You can't change the change validation workflow type. Perhaps are you missing the 'changes validation' plugin?")
+      Unconsistancy("You can't change the change validation workflow type. Perhaps are you missing the 'changes validation' plugin?").fail
     }
   }
-  def set_rudder_workflow_self_validation(value: Boolean): Box[Unit] = save("rudder_workflow_self_validation", value)
-  def set_rudder_workflow_self_deployment(value: Boolean): Box[Unit] = save("rudder_workflow_self_deployment", value)
+  def set_rudder_workflow_self_validation(value: Boolean): IOResult[Unit] = save("rudder_workflow_self_validation", value)
+  def set_rudder_workflow_self_deployment(value: Boolean): IOResult[Unit] = save("rudder_workflow_self_deployment", value)
 
   ///// CFEngine server /////
-  def cfengine_server_denybadclocks(): Box[Boolean] = get("cfengine_server_denybadclocks")
-  def set_cfengine_server_denybadclocks(value: Boolean): Box[Unit] = save("cfengine_server_denybadclocks", value)
-  def cfengine_server_skipidentify(): Box[Boolean] = get("cfengine_server_skipidentify")
-  def set_cfengine_server_skipidentify(value: Boolean): Box[Unit] = save("cfengine_server_skipidentify", value)
+  def cfengine_server_denybadclocks(): IOResult[Boolean] = get("cfengine_server_denybadclocks")
+  def set_cfengine_server_denybadclocks(value: Boolean): IOResult[Unit] = save("cfengine_server_denybadclocks", value)
+  def cfengine_server_skipidentify(): IOResult[Boolean] = get("cfengine_server_skipidentify")
+  def set_cfengine_server_skipidentify(value: Boolean): IOResult[Unit] = save("cfengine_server_skipidentify", value)
 
   // Relay synchronization configuration
-  def relay_server_sync_method()     : Box[RelaySynchronizationMethod] = get("relay.sync.method")
-  def set_relay_server_sync_method(value: RelaySynchronizationMethod): Box[Unit] = save("relay.sync.method", value.value)
-  def relay_server_syncpromises()                      : Box[Boolean] = get("relay.sync.promises")
-  def set_relay_server_syncpromises(value    : Boolean): Box[Unit]    = save("relay.sync.promises", value)
-  def relay_server_syncsharedfiles()                   : Box[Boolean] = get("relay.sync.sharedfiles")
-  def set_relay_server_syncsharedfiles(value: Boolean) : Box[Unit]    = save("relay.sync.sharedfiles", value)
+  def relay_server_sync_method()     : IOResult[RelaySynchronizationMethod] = get("relay.sync.method")
+  def set_relay_server_sync_method(value: RelaySynchronizationMethod): IOResult[Unit] = save("relay.sync.method", value.value)
+  def relay_server_syncpromises()                      : IOResult[Boolean] = get("relay.sync.promises")
+  def set_relay_server_syncpromises(value    : Boolean): IOResult[Unit]    = save("relay.sync.promises", value)
+  def relay_server_syncsharedfiles()                   : IOResult[Boolean] = get("relay.sync.sharedfiles")
+  def set_relay_server_syncsharedfiles(value: Boolean) : IOResult[Unit]    = save("relay.sync.sharedfiles", value)
 
-  def agent_run_interval(): Box[Int] = get("agent_run_interval")
-  def set_agent_run_interval(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
+  def agent_run_interval(): IOResult[Int] = get("agent_run_interval")
+  def set_agent_run_interval(value: Int, actor: EventActor, reason: Option[String]): IOResult[Unit] = {
     val info = ModifyGlobalPropertyInfo(ModifyAgentRunIntervalEventType,actor,reason)
     save("agent_run_interval", value, Some(info))
   }
 
-  def agent_run_splaytime(): Box[Int] = get("agent_run_splaytime")
-  def set_agent_run_splaytime(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
+  def agent_run_splaytime(): IOResult[Int] = get("agent_run_splaytime")
+  def set_agent_run_splaytime(value: Int, actor: EventActor, reason: Option[String]): IOResult[Unit] = {
     val info = ModifyGlobalPropertyInfo(ModifyAgentRunSplaytimeEventType,actor,reason)
     save("agent_run_splaytime", value, Some(info))
   }
 
-  def agent_run_start_hour(): Box[Int] = get("agent_run_start_hour")
-  def set_agent_run_start_hour(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
+  def agent_run_start_hour(): IOResult[Int] = get("agent_run_start_hour")
+  def set_agent_run_start_hour(value: Int, actor: EventActor, reason: Option[String]): IOResult[Unit] = {
     val info = ModifyGlobalPropertyInfo(ModifyAgentRunStartHourEventType,actor,reason)
     save("agent_run_start_hour", value, Some(info))
   }
 
-  def agent_run_start_minute(): Box[Int] = get("agent_run_start_minute")
-  def set_agent_run_start_minute(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
+  def agent_run_start_minute(): IOResult[Int] = get("agent_run_start_minute")
+  def set_agent_run_start_minute(value: Int, actor: EventActor, reason: Option[String]): IOResult[Unit] = {
     val info = ModifyGlobalPropertyInfo(ModifyAgentRunStartMinuteEventType,actor,reason)
     save("agent_run_start_minute", value, Some(info))
   }
 
   ///// CFEngine server /////
-  def cfengine_modified_files_ttl(): Box[Int] = get("cfengine_modified_files_ttl")
-  def set_cfengine_modified_files_ttl(value: Int): Box[Unit] = save("cfengine_modified_files_ttl", value)
-  def cfengine_outputs_ttl(): Box[Int] = get("cfengine_outputs_ttl")
-  def set_cfengine_outputs_ttl(value: Int): Box[Unit] = save("cfengine_outputs_ttl", value)
+  def cfengine_modified_files_ttl(): IOResult[Int] = get("cfengine_modified_files_ttl")
+  def set_cfengine_modified_files_ttl(value: Int): IOResult[Unit] = save("cfengine_modified_files_ttl", value)
+  def cfengine_outputs_ttl(): IOResult[Int] = get("cfengine_outputs_ttl")
+  def set_cfengine_outputs_ttl(value: Int): IOResult[Unit] = save("cfengine_outputs_ttl", value)
 
   /**
    * Logging properties
    */
-  def rudder_store_all_centralized_logs_in_file(): Box[Boolean] = get("rudder_store_all_centralized_logs_in_file")
+  def rudder_store_all_centralized_logs_in_file(): IOResult[Boolean] = get("rudder_store_all_centralized_logs_in_file")
   def set_rudder_store_all_centralized_logs_in_file(value: Boolean) = save("rudder_store_all_centralized_logs_in_file", value)
 
   /**
    * Compliance mode
    */
-  def rudder_compliance_mode_name(): Box[String] = get("rudder_compliance_mode")
-  def set_rudder_compliance_mode_name(value: String, actor : EventActor, reason: Option[String]): Box[Unit] = {
+  def rudder_compliance_mode_name(): IOResult[String] = get("rudder_compliance_mode")
+  def set_rudder_compliance_mode_name(value: String, actor : EventActor, reason: Option[String]): IOResult[Unit] = {
     val info = ModifyGlobalPropertyInfo(ModifyComplianceModeEventType,actor,reason)
     save("rudder_compliance_mode", value, Some(info))
   }
@@ -555,20 +557,20 @@ class LDAPBasedConfigService(
   /**
    * Heartbeat frequency mode
    */
-  def rudder_compliance_heartbeatPeriod(): Box[Int] = get("rudder_compliance_heartbeatPeriod")
-  def set_rudder_compliance_heartbeatPeriod(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
+  def rudder_compliance_heartbeatPeriod(): IOResult[Int] = get("rudder_compliance_heartbeatPeriod")
+  def set_rudder_compliance_heartbeatPeriod(value: Int, actor: EventActor, reason: Option[String]): IOResult[Unit] = {
     val info = ModifyGlobalPropertyInfo(ModifyHeartbeatPeriodEventType,actor,reason)
     save("rudder_compliance_heartbeatPeriod", value, Some(info))
   }
 
-  def rudder_policy_mode_name(): Box[PolicyMode] = get("rudder_policy_mode_name").flatMap { PolicyMode.parse(_) }
-  def set_rudder_policy_mode_name(name : PolicyMode, actor : EventActor, reason: Option[String]) : Box[Unit] = {
+  def rudder_policy_mode_name(): IOResult[PolicyMode] = get("rudder_policy_mode_name").flatMap { PolicyMode.parse(_).toIO }
+  def set_rudder_policy_mode_name(name : PolicyMode, actor : EventActor, reason: Option[String]) : IOResult[Unit] = {
     val info = ModifyGlobalPropertyInfo(ModifyComplianceModeEventType,actor,reason)
     save("rudder_policy_mode_name", name, Some(info))
   }
 
-  def rudder_policy_overridable(): Box[Boolean] = get("rudder_policy_mode_overridable")
-  def set_rudder_policy_overridable(overridable : Boolean, actor: EventActor, reason: Option[String]) : Box[Unit] = {
+  def rudder_policy_overridable(): IOResult[Boolean] = get("rudder_policy_mode_overridable")
+  def set_rudder_policy_overridable(overridable : Boolean, actor: EventActor, reason: Option[String]) : IOResult[Unit] = {
     val info = ModifyGlobalPropertyInfo(ModifyComplianceModeEventType,actor,reason)
     save("rudder_policy_mode_overridable", overridable, Some(info))
   }
@@ -576,9 +578,9 @@ class LDAPBasedConfigService(
   /**
    * Send Metrics
    */
-  def send_server_metrics(): Box[Option[Boolean]] = get("send_server_metrics")
+  def send_server_metrics(): IOResult[Option[Boolean]] = get("send_server_metrics")
 
-  def set_send_server_metrics(value : Option[Boolean], actor : EventActor, reason: Option[String]): Box[Unit] = {
+  def set_send_server_metrics(value : Option[Boolean], actor : EventActor, reason: Option[String]): IOResult[Unit] = {
     val newVal = value.map(_.toString).getOrElse("none")
     val info = ModifyGlobalPropertyInfo(ModifySendServerMetricsEventType,actor,reason)
     save("send_server_metrics",newVal,Some(info))
@@ -587,8 +589,8 @@ class LDAPBasedConfigService(
   /**
    * Report protocol
    */
-  def rudder_syslog_protocol(): Box[SyslogProtocol] = get("rudder_syslog_protocol")
-  def set_rudder_syslog_protocol(protocol : SyslogProtocol, actor : EventActor, reason: Option[String]): Box[Unit] =  {
+  def rudder_syslog_protocol(): IOResult[SyslogProtocol] = get("rudder_syslog_protocol")
+  def set_rudder_syslog_protocol(protocol : SyslogProtocol, actor : EventActor, reason: Option[String]): IOResult[Unit] =  {
     val info = ModifyGlobalPropertyInfo(ModifyRudderSyslogProtocolEventType,actor,reason)
     save("rudder_syslog_protocol", protocol.value, Some(info))
   }
@@ -596,14 +598,14 @@ class LDAPBasedConfigService(
   /**
    * Should we display recent changes graphs  ?
    */
-  def display_changes_graph(): Box[Boolean] =  get("display_changes_graph")
-  def set_display_changes_graph(displayGraphs : Boolean): Box[Unit] = save("display_changes_graph", displayGraphs)
+  def display_changes_graph(): IOResult[Boolean] =  get("display_changes_graph")
+  def set_display_changes_graph(displayGraphs : Boolean): IOResult[Unit] = save("display_changes_graph", displayGraphs)
 
   /**
    * Should we always display compliance/recent change columns ?
    */
-  def rudder_ui_display_ruleComplianceColumns(): Box[Boolean] = get("rudder_ui_display_ruleComplianceColumns")
-  def set_rudder_ui_display_ruleComplianceColumns(displayColumns: Boolean): Box[Unit] = save("rudder_ui_display_ruleComplianceColumns", displayColumns)
+  def rudder_ui_display_ruleComplianceColumns(): IOResult[Boolean] = get("rudder_ui_display_ruleComplianceColumns")
+  def set_rudder_ui_display_ruleComplianceColumns(displayColumns: Boolean): IOResult[Unit] = save("rudder_ui_display_ruleComplianceColumns", displayColumns)
 
   /////
   ///// Feature switches /////
@@ -612,20 +614,20 @@ class LDAPBasedConfigService(
   /**
    * Should we evaluate scripts in the variables?
    */
-  def rudder_featureSwitch_directiveScriptEngine(): Box[FeatureSwitch] = get("rudder_featureSwitch_directiveScriptEngine")
-  def set_rudder_featureSwitch_directiveScriptEngine(status: FeatureSwitch): Box[Unit] = save("rudder_featureSwitch_directiveScriptEngine", status)
+  def rudder_featureSwitch_directiveScriptEngine(): IOResult[FeatureSwitch] = get("rudder_featureSwitch_directiveScriptEngine")
+  def set_rudder_featureSwitch_directiveScriptEngine(status: FeatureSwitch): IOResult[Unit] = save("rudder_featureSwitch_directiveScriptEngine", status)
 
   /**
    * Default value for node properties after acceptation:
    * - policy mode
    * - node lifecycle state
    */
-  def rudder_node_onaccept_default_policy_mode(): Box[Option[PolicyMode]] =get("rudder_node_onaccept_default_state")
-  def set_rudder_node_onaccept_default_policy_mode(policyMode: Option[PolicyMode]): Box[Unit] = save("rudder_node_onaccept_default_state", policyMode)
-  def rudder_node_onaccept_default_state(): Box[NodeState] = get("rudder_node_onaccept_default_policyMode")
-  def set_rudder_node_onaccept_default_state(nodeState: NodeState): Box[Unit] = save("rudder_node_onaccept_default_policyMode", nodeState)
+  def rudder_node_onaccept_default_policy_mode(): IOResult[Option[PolicyMode]] =get("rudder_node_onaccept_default_state")
+  def set_rudder_node_onaccept_default_policy_mode(policyMode: Option[PolicyMode]): IOResult[Unit] = save("rudder_node_onaccept_default_state", policyMode)
+  def rudder_node_onaccept_default_state(): IOResult[NodeState] = get("rudder_node_onaccept_default_policyMode")
+  def set_rudder_node_onaccept_default_state(nodeState: NodeState): IOResult[Unit] = save("rudder_node_onaccept_default_policyMode", nodeState)
 
-  def rudder_compliance_unexpected_report_interpretation(): Box[UnexpectedReportInterpretation] = {
+  def rudder_compliance_unexpected_report_interpretation(): IOResult[UnexpectedReportInterpretation] = {
     for {
       duplicate <- get[Boolean]("rudder_compliance_unexpectedReportAllowsDuplicate")
       iterators <- get[Boolean]("rudder_compliance_unexpectedReportUnboundedVarValues")
@@ -636,7 +638,7 @@ class LDAPBasedConfigService(
       )
     }
   }
-  def set_rudder_compliance_unexpected_report_interpretation(mode: UnexpectedReportInterpretation) : Box[Unit] = {
+  def set_rudder_compliance_unexpected_report_interpretation(mode: UnexpectedReportInterpretation) : IOResult[Unit] = {
     for {
       _ <- save("rudder_compliance_unexpectedReportAllowsDuplicate", mode.isSet(UnexpectedReportBehavior.AllowsDuplicate))
       _ <- save("rudder_compliance_unexpectedReportUnboundedVarValues", mode.isSet(UnexpectedReportBehavior.UnboundVarValues))

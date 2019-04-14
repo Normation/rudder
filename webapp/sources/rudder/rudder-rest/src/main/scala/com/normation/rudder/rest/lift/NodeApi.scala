@@ -93,6 +93,8 @@ import scalaj.http.Http
 import scalaj.http.HttpConstants
 import scalaj.http.HttpOptions
 
+import com.normation.box._
+
 /*
  * NodeApi implementation.
  *
@@ -479,19 +481,19 @@ class NodeApiService4 (
                      }
       runs        <- roAgentRunsRepository.getNodesLastRun(Set(nodeId))
       inventory <- if(detailLevel.needFullInventory()) {
-                     inventoryRepository.get(nodeId, state).map(Some(_))
+                     inventoryRepository.get(nodeId, state).toBox
                    } else {
                      Full(None)
                    }
       software  <- if(detailLevel.needSoftware()) {
-                     for {
+                     (for {
                        software <- inventory match {
                                       case Some(i) => softwareRepository.getSoftware(i.node.softwareIds)
-                                      case None    => softwareRepository.getSoftwareByNode(Set(nodeId), state).flatMap( _.get(nodeId))
+                                      case None    => softwareRepository.getSoftwareByNode(Set(nodeId), state).map( _.get(nodeId).getOrElse(Seq()))
                                     }
                      } yield {
                        software
-                     }
+                     }).toBox
                    } else {
                      Full(Seq())
                    }
@@ -559,12 +561,12 @@ class NodeApiService6 (
       nodeIds     =  nodeFilter.getOrElse(nodeInfos.keySet).toSet
       runs        <- roAgentRunsRepository.getNodesLastRun(nodeIds)
       inventories <- if(detailLevel.needFullInventory()) {
-                       inventoryRepository.getAllInventories(state)
+                       inventoryRepository.getAllInventories(state).toBox
                      } else {
                        Full(Map[NodeId, FullInventory]())
                      }
       software    <- if(detailLevel.needSoftware()) {
-                       softwareRepository.getSoftwareByNode(nodeInfos.keySet, state)
+                       softwareRepository.getSoftwareByNode(nodeInfos.keySet, state).toBox
                      } else {
                        Full(Map[NodeId, Seq[Software]]())
                      }
@@ -626,7 +628,7 @@ class NodeApiService8 (
       newProperties  <- CompareProperties.updateProperties(node.properties, restNode.properties)
       updated        =  node.copy(properties = newProperties, policyMode = restNode.policyMode.getOrElse(node.policyMode), state=restNode.state.getOrElse(node.state))
       saved          <- if(updated == node) Full(node)
-                        else nodeRepository.updateNode(updated, modId, actor, reason)
+                        else nodeRepository.updateNode(updated, modId, actor, reason).toBox
     } yield {
       if(node != updated) {
         asyncRegenerate ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor)

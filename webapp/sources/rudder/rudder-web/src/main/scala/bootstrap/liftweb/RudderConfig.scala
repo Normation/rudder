@@ -54,7 +54,7 @@ import com.normation.plugins.SnippetExtensionRegister
 import com.normation.plugins.SnippetExtensionRegisterImpl
 import com.normation.rudder.UserService
 import com.normation.rudder.api._
-import com.normation.rudder.appconfig._
+import com.normation.appconfig._
 import com.normation.rudder.batch._
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain._

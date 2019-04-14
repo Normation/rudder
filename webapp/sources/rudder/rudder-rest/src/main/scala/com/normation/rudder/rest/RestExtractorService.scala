@@ -82,6 +82,8 @@ import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.utils.Control
 
+import com.normation.box._
+
 case class RestExtractorService (
     readRule             : RoRuleRepository
   , readDirective        : RoDirectiveRepository
@@ -154,7 +156,7 @@ case class RestExtractorService (
   }
 
   private[this] def toQueryReturnType (value:String) : Box[QueryReturnType] = {
-    QueryReturnType(value)
+    QueryReturnType(value).toBox
   }
 
   private[this] def toQueryComposition (value:String) : Box[Option[String]] = {
@@ -194,7 +196,7 @@ case class RestExtractorService (
   }
 
   private[this] def toNodeGroupCategoryId (value:String) : Box[NodeGroupCategoryId] = {
-    readGroup.getGroupCategory(NodeGroupCategoryId(value)).map(_.id) ?~ s"Node group '$value' not found"
+    readGroup.getGroupCategory(NodeGroupCategoryId(value)).map(_.id).toBox ?~ s"Node group '$value' not found"
   }
   private[this] def toRuleCategoryId (value:String) : Box[RuleCategoryId] = {
   Full(RuleCategoryId(value))
@@ -205,7 +207,7 @@ case class RestExtractorService (
     Full(NodeGroupCategoryId(value))
   }
   private[this] def toDirectiveId (value:String) : Box[DirectiveId] = {
-    readDirective.getDirective(DirectiveId(value)).map(_.id) ?~ s"Directive '$value' not found"
+    readDirective.getDirective(DirectiveId(value)).map(_.id).toBox ?~ s"Directive '$value' not found"
   }
 
   private[this] def toApiAccountId (value:String) : Box[ApiAccountId] = {
@@ -598,7 +600,7 @@ case class RestExtractorService (
   def extractNode (params : Map[String, List[String]]) : Box[RestNode] = {
     for {
       properties <- extractNodeProperties(params)
-      mode       <- extractOneValue(params, "policyMode")(PolicyMode.parseDefault)
+      mode       <- extractOneValue(params, "policyMode")(PolicyMode.parseDefault(_).toBox)
       state      <- extractOneValue(params, "state")(x => NodeStateEncoder.dec(x).toOption)
     } yield {
       RestNode(properties, mode, state)
@@ -654,7 +656,7 @@ case class RestExtractorService (
   def extractNodeFromJSON (json : JValue) : Box[RestNode] = {
     for {
       properties <- extractNodePropertiesFromJSON(json)
-      mode       <- extractJsonString(json, "policyMode", PolicyMode.parseDefault)
+      mode       <- extractJsonString(json, "policyMode", PolicyMode.parseDefault(_).toBox)
       state      <- extractJsonString(json, "state", x => NodeStateEncoder.dec(x).toOption)
     } yield {
       RestNode(properties, mode, state)
@@ -698,7 +700,7 @@ case class RestExtractorService (
       parameters       <- extractOneValue(params, "parameters")(toDirectiveParam)
       techniqueName    <- extractOneValue(params, "techniqueName")(x => Full(TechniqueName(x)))
       techniqueVersion <- extractOneValue(params, "techniqueVersion")(x => Full(TechniqueVersion(x)))
-      policyMode       <- extractOneValue(params, "policyMode")(PolicyMode.parseDefault)
+      policyMode       <- extractOneValue(params, "policyMode")(PolicyMode.parseDefault(_).toBox)
       tagsList         <- extractList(params, "tags")(sequence(_)(toTag))
       tags             = tagsList.map(t => Tags(t.toSet))
     } yield {
@@ -777,7 +779,7 @@ case class RestExtractorService (
       parameters       <- extractJsonDirectiveParam(json)
       techniqueName    <- extractJsonString(json, "techniqueName", x => Full(TechniqueName(x)))
       techniqueVersion <- extractJsonString(json, "techniqueVersion", x => Full(TechniqueVersion(x)))
-      policyMode       <- extractJsonString(json, "policyMode", PolicyMode.parseDefault)
+      policyMode       <- extractJsonString(json, "policyMode", PolicyMode.parseDefault(_).toBox)
       tags             <- extractTagsFromJson(json \ "tags")  ?~! "Error when extracting Directive tags"
     } yield {
       RestDirective(name,shortDescription,longDescription,enabled,parameters,priority,techniqueName,techniqueVersion,policyMode,tags)
@@ -919,7 +921,7 @@ case class RestExtractorService (
               composition = optComposition.getOrElse(None)
 
               // Query may fail when parsing
-              stringQuery = StringQuery(returnType,composition,criterion.toSeq)
+              stringQuery = StringQuery(returnType,composition,criterion.toList)
               query <- queryParser.parse(stringQuery)
             } yield {
                Some(query)

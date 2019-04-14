@@ -61,6 +61,12 @@ import org.eclipse.jgit.revwalk.RevWalk
 import org.joda.time.DateTime
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatterBuilder}
 
+import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
+import com.normation.zio._
+import com.normation.box._
+
 class SystemApi(
     restExtractorService : RestExtractorService
   , apiv11service        : SystemApiService11
@@ -130,10 +136,7 @@ class SystemApi(
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val prettify = params.prettify
-      implicit val action = "getStatus"
-
-      toJsonResponse(None, ("global" -> "OK"))
+      apiv11service.INFO
     }
   }
 
@@ -156,6 +159,7 @@ class SystemApi(
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      println("************ on the process0")
       apiv11service.reloadTechniques(req, params)
     }
   }
@@ -431,7 +435,18 @@ class SystemApiService11(
 ) (implicit userService: UserService) extends Loggable {
 
 
-  // The private methods are the internal comportment of the API.
+  def INFO = {
+    val x = IOResult.effect {
+      implicit val prettify = false
+      implicit val action = "getStatus"
+
+      toJsonResponse(None, ("global" -> "OK"))
+    }
+    x.runNow
+  }
+
+
+  // The private methods are the internal behavior of the API.
   // They are helper functions called by the public method (implemented lower) to avoid code repetition.
 
   private[this] def reloadTechniquesWrapper(req: Req) : Either[String, JField] = {
@@ -476,85 +491,82 @@ class SystemApiService11(
     JField(archiveType,  ordered)
   }
 
-  private[this] def listTags(list:() => Box[Map[DateTime, GitArchiveId]], archiveType:String) : Either[String, JField] = {
-    list() match {
-      case Full(map) => Right(formatList(archiveType, map))
-      case eb : EmptyBox =>
-        val e = eb ?~! "Error when trying to list available archives for %s".format(archiveType)
-        Left(e.msg)
-    }
+  private[this] def listTags(list:() => IOResult[Map[DateTime, GitArchiveId]], archiveType:String) : Either[String, JField] = {
+    list().either.runNow fold(
+      err =>
+        Left(s"Error when trying to list available archives for ${archiveType}. Error was: ${err.fullMsg}")
+    , map =>
+        Right(formatList(archiveType, map))
+    )
   }
 
   private[this] def newModId = ModificationId(uuidGen.newUuid)
 
-  private[this] def restoreLatestArchive(req:Req, list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,PersonIdent,ModificationId,EventActor,Option[String],Boolean) => Box[GitCommitId], archiveType:String) : Either[String, JField] = {
+  private[this] def restoreLatestArchive(req:Req, list:() => IOResult[Map[DateTime, GitArchiveId]], restore:(GitCommitId,PersonIdent,ModificationId,EventActor,Option[String],Boolean) => IOResult[GitCommitId], archiveType:String) : Either[String, JField] = {
     (for {
       archives   <- list()
       commiter   <- personIdentService.getPersonIdentOrDefault(getActor(req).name)
-      (date,tag) <- Box(archives.toList.sortWith { case ( (d1,_), (d2,_) ) => d1.isAfter(d2) }.headOption) ?~! "No archive is available"
+      x          <- archives.toList.sortWith { case ( (d1,_), (d2,_) ) => d1.isAfter(d2) }.headOption.notOptional("No archive is available")
+      (date,tag) =  x
       restored   <- restore(tag.commit,commiter,newModId,RestUtils.getActor(req),Some("Restore latest archive required from REST API"),false)
     } yield {
       restored
-    }) match {
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error when trying to restore the latest archive for %s.".format(archiveType)
-        Left(e.msg)
-      case Full(x) =>
+    }).either.runNow fold(
+      err =>
+        Left(s"Error when trying to restore the latest archive for ${archiveType}. Error was: ${err.fullMsg}")
+     , x =>
         Right(JField(archiveType, "Started"))
-    }
+    )
   }
 
-  private[this] def restoreLatestCommit(req:Req, restore: (PersonIdent,ModificationId,EventActor,Option[String],Boolean) => Box[GitCommitId], archiveType:String) : Either[String, JField] = {
+  private[this] def restoreLatestCommit(req:Req, restore: (PersonIdent,ModificationId,EventActor,Option[String],Boolean) => IOResult[GitCommitId], archiveType:String) : Either[String, JField] = {
     (for {
       commiter   <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
       restored   <- restore(commiter,newModId,RestUtils.getActor(req),Some("Restore archive from latest commit on HEAD required from REST API"), false)
     } yield {
       restored
-    }) match {
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error when trying to restore the latest archive for %s.".format(archiveType)
-        Left(e.msg)
-      case Full(x) =>
+    }).either.runNow fold(
+      err =>
+        Left(s"Error when trying to restore the latest archive for ${archiveType}. Error was: ${err.fullMsg}")
+     , x =>
         Right(JField(archiveType, "Started"))
-    }
+    )
   }
 
 
-  private[this] def restoreByDatetime(req:Req, list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,PersonIdent,ModificationId,EventActor,Option[String],Boolean) => Box[GitCommitId], datetime:String, archiveType:String) : Either[String, JField] = {
+  private[this] def restoreByDatetime(req:Req, list:() => IOResult[Map[DateTime, GitArchiveId]], restore:(GitCommitId,PersonIdent,ModificationId,EventActor,Option[String],Boolean) => IOResult[GitCommitId], datetime:String, archiveType:String) : Either[String, JField] = {
     (for {
-      valideDate <- tryo { GitTagDateTimeFormatter.parseDateTime(datetime) } ?~! "The given archive id is not a valid archive tag: %s".format(datetime)
+      valideDate <- IOResult.effect(s"The given archive id is not a valid archive tag: ${datetime}")(GitTagDateTimeFormatter.parseDateTime(datetime))
       archives   <- list()
       commiter   <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
-      tag        <- Box(archives.get(valideDate)) ?~! "The archive with tag '%s' is not available. Available archives: %s".format(datetime,archives.keySet.map( _.toString(GitTagDateTimeFormatter)).mkString(", "))
+      tag        <- archives.get(valideDate).notOptional(s"The archive with tag '${datetime}' is not available. Available archives: ${archives.keySet.map( _.toString(GitTagDateTimeFormatter)).mkString(", ")}")
       restored   <- restore(tag.commit,commiter,newModId,RestUtils.getActor(req),Some("Restore archive for date time %s requested from REST API".format(datetime)),false)
     } yield {
       restored
-    }) match {
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error when trying to restore archive '%s' for %s.".format(datetime, archiveType)
-        Left(e.msg)
-      case Full(x) =>
+    }).either.runNow fold(
+      err =>
+        Left(s"Error when trying to restore archive '${datetime}' for ${archiveType}. Error was: ${err.fullMsg}")
+    , x   =>
         Right(JField(archiveType, "Started"))
-    }
+    )
   }
 
-  private[this] def archive(req:Req, archive:(PersonIdent,ModificationId,EventActor,Option[String],Boolean) => Box[GitArchiveId], archiveType:String) : Either[String, JField] = {
+  private[this] def archive(req:Req, archive:(PersonIdent,ModificationId,EventActor,Option[String],Boolean) => IOResult[GitArchiveId], archiveType:String) : Either[String, JField] = {
     (for {
       committer  <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
-      archiveId <- archive(committer,newModId,RestUtils.getActor(req),Some("Create new archive requested from REST API"),false)
+      archiveId  <- archive(committer,newModId,RestUtils.getActor(req),Some("Create new archive requested from REST API"),false)
     } yield {
       archiveId
-    }) match {
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error when trying to archive %s.".format(archiveType)
-        Left(e.msg)
-      case Full(x) =>
+    }).either.runNow fold (
+      err =>
+        Left(s"Error when trying to archive '${archiveType}'. Error: ${err.fullMsg}")
+    , x => {
         // archiveId is contained in gitPath, archive is archives/<kind>/archiveId
         // splitting on last an getting back last part, falling back to full Id
         val archiveId = x.path.value.split("/").lastOption.getOrElse(x.path.value)
         val res = ("committer" -> x.commiter.getName) ~ ("gitCommit" -> x.commit.value) ~ ("id" -> archiveId)
         Right(JField(archiveType, res))
-    }
+    })
   }
 
   private[this] val format = new DateTimeFormatterBuilder()
@@ -567,28 +579,22 @@ class SystemApiService11(
   private[this] val allFiles = "groups" :: ruleFiles ::: directiveFiles
 
   private[this] def getZip(commitId:String, paths:List[String], archiveType: String) : Either[String, (Array[Byte], List[(String, String)])] = {
-    val rw = new RevWalk(repo.db)
-    (for {
-      revCommit <- try {
-        val id = repo.db.resolve(commitId)
-        Full(rw.parseCommit(id))
-      } catch {
-        case e:Exception => Failure("Error when retrieving commit revision for " + commitId, Full(e), Empty)
-      } finally {
-        rw.dispose
+    (ZIO.bracket(repo.db.map(db => new RevWalk(db)))(rw => IOResult.effect(rw.dispose).run.void) { rw =>
+      for {
+        db        <- repo.db
+        revCommit <- IOResult.effect(s"Error when retrieving commit revision for '${commitId}'") {
+                       val id = db.resolve(commitId)
+                       rw.parseCommit(id)
+                     }
+        treeId      <- IOResult.effect(revCommit.getTree.getId)
+        bytes       <- GitFindUtils.getZip(db, treeId, paths)
+      } yield {
+        (bytes, format.print(new DateTime(revCommit.getCommitTime.toLong * 1000)))
       }
-      treeId    <- Helpers.tryo { revCommit.getTree.getId }
-      bytes     <- GitFindUtils.getZip(repo.db, treeId, paths)
-    } yield {
-      (bytes, format.print(new DateTime(revCommit.getCommitTime.toLong * 1000)))
-    }) match {
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error when trying to get archive as a Zip"
-        e.rootExceptionCause.foreach { ex =>
-          logger.debug("Root exception was:", ex)
-        }
-        Left(e.msg)
-      case Full((bytes, date)) =>
+    }).either.runNow match {
+      case Left(err) =>
+        Left(s"Error when trying to get archive as a Zip: ${err.fullMsg}")
+      case Right((bytes, date)) =>
         Right(
           (bytes
         ,   "Content-Type" -> "application/zip" ::
@@ -889,7 +895,7 @@ class SystemApiService11(
   }
 
   def reloadTechniques(req: Req, params: DefaultParams) : LiftResponse = {
-
+println("*****************  yes")
     implicit val action = "reloadTechniques"
     implicit val prettify = params.prettify
 
