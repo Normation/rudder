@@ -725,8 +725,22 @@ input[type=checkbox].form-control {
 label.form-control .deprecated-icon{
   cursor: inherit;
 }
+.popover{
+  max-width: 400px;
+}
 .popover-content b{
   color: #f08004;
+}
+.popover-content .deprecated-message{
+  margin: 2px 0 4px 0;
+  position: relative;
+  padding-left: 18px;
+}
+.popover-content .deprecated-message > b{
+  font-size: 1.3em;
+  position: absolute;
+  left: 0;
+  top: -3px;
 }
 #methodBlock h3 > .deprecated-icon{
   left: -4px;
