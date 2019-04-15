@@ -67,10 +67,10 @@ use std::iter::FromIterator;
 use std::process::exit;
 use std::string::ToString;
 use std::{
-    collections::{HashSet, HashMap},
+    collections::{HashMap, HashSet},
+    fs::create_dir_all,
     path::Path,
     sync::{Arc, RwLock},
-    fs::create_dir_all,
 };
 use tokio_signal::unix::{Signal, SIGHUP, SIGINT, SIGTERM};
 
@@ -245,7 +245,12 @@ impl JobConfig {
         // Create dirs
         if cfg.processing.inventory.output != InventoryOutputSelect::Disabled {
             create_dir_all(cfg.processing.inventory.directory.join("incoming"))?;
-            create_dir_all(cfg.processing.inventory.directory.join("accepted-nodes-updates"))?;
+            create_dir_all(
+                cfg.processing
+                    .inventory
+                    .directory
+                    .join("accepted-nodes-updates"),
+            )?;
             create_dir_all(cfg.processing.inventory.directory.join("failed"))?;
         }
         if cfg.processing.reporting.output != ReportingOutputSelect::Disabled {
@@ -269,4 +274,3 @@ impl JobConfig {
         Ok(())
     }
 }
-

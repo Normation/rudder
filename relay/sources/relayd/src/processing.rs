@@ -126,12 +126,10 @@ fn treat_reports(
         let file_move = file.clone();
         let job_config_clone = job_config.clone();
         let treat_file = match job_config.cfg.processing.reporting.output {
-            ReportingOutputSelect::Database => output_report_database(
-                file_clone,
-                job_config.clone(),
-            )
-            .and_then(|_| {
-                stats_ok
+            ReportingOutputSelect::Database => {
+                output_report_database(file_clone, job_config.clone())
+                    .and_then(|_| {
+                        stats_ok
                     .send(Event::ReportInserted)
                     .map_err(|e| error!("send error: {}", e; "component" => LogComponent::Parser))
                     .then(|_| {
@@ -141,26 +139,39 @@ fn treat_reports(
                                 |e| error!("error: {}", e; "component" => LogComponent::Parser),
                             )
                     })
-            })
-            .or_else(|_| {
-                stats_err
+                    })
+                    .or_else(|_| {
+                        stats_err
                     .send(Event::ReportRefused)
                     .map_err(|e| error!("send error: {}", e; "component" => LogComponent::Parser))
                     .then(move |_| {
                         rename(
                             file_move.clone(),
-                            job_config_clone.cfg.processing.reporting.directory.join("failed").join(file_move.file_name().expect("not a file"))
+                            job_config_clone
+                                .cfg
+                                .processing
+                                .reporting
+                                .directory
+                                .join("failed")
+                                .join(file_move.file_name().expect("not a file")),
                         )
                         .map(move |_| {
                             debug!(
                                 "moved: {:#?} to {:#?}",
                                 file_move,
-                                job_config_clone.cfg.processing.reporting.directory.join("failed").join(file_move.file_name().expect("not a file"))
+                                job_config_clone
+                                    .cfg
+                                    .processing
+                                    .reporting
+                                    .directory
+                                    .join("failed")
+                                    .join(file_move.file_name().expect("not a file"))
                             )
                         })
                         .map_err(|e| error!("error: {}", e; "component" => LogComponent::Parser))
                     })
-            }),
+                    })
+            }
             ReportingOutputSelect::Upstream => unimplemented!(),
             // The job should not be started in this case
             ReportingOutputSelect::Disabled => unreachable!("Report server should be disabled"),

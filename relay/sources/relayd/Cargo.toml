@@ -1,7 +1,6 @@
 [package]
 name = "relayd"
-# TODO automate version number
-version = "5.1.0-alpha1"
+version = "0.0.0-dev"
 authors = ["Rudder developers <dev@rudder.io>"]
 edition = "2018"
 description = "Rudder relay component"
