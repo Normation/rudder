@@ -26,7 +26,10 @@
           <div>This generic method is <b>deprecated</b>.</div>
         </script>
         <script type="text/ng-template" id="deprecatedCategory.html">
-          All generic methods in this category are <b>deprecated</b>.
+          <div>All generic methods in this category are <b>deprecated</b>.</div>
+        </script>
+        <script type="text/ng-template" id="TechniqueWithDeprecatedMethod.html">
+          <div>This technique uses <b>deprecated</b> generic methods.</div>
         </script>
         <script id="template/uib-accordion/uib-accordion-group.html" type="text/ng-template">
           <div class="panel panel-default">
@@ -140,53 +143,52 @@
         </div>
 
         <div  class="container Override row fill" ng-show="authenticated">
-          <div class="col-lg-2 col-md-2 col-sm-4 col-xs-12 ncf_col">
+          <div class="col-lg-2 col-md-2 col-sm-4 col-xs-12 ncf_col techniques_col">
                 <div class="title">Library</div>
                 <h3 >Techniques</h3>
-                <table class="table table-hover table-condensed table-ncf" >
-                    <thead>
-                        <tr>
-                            <th colspan=2 style="border:none;">
-				                      <button ng-click="newTechnique()" class="btn btn-success">Create <i class="fas fa-plus-circle"></i></button>
-                              <label class="btn btn-primary btn-outline pull-right" for="btn-import">
-                                    Import <i class="fas fa-file-import"></i>
-                                    <input id="btn-import" type="file" onchange="angular.element(this).scope().onImportFileChange(this)" class="hidden">
-                                </label>
-                            </th>
-                        </tr>
-                        <tr>
-                            <th colspan=2 style="border:none;">
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-addon" style="padding: 0 6px;"><span class="glyphicon glyphicon-search"></span></span>
-                                    <input type="text" class="form-control" placeholder="Filter" ng-model="searchText.name" style="padding:2px">
-                                </div>
-                            </th>
-                       </tr>
-                    </thead>
-                    <tbody>
-                        <tr  ng-repeat="technique in techniques | orderBy:'name':false | filter:searchText  track by $index" ng-click="checkSelect(technique,selectTechnique)">
-                            <td href="#" ng-class="{'active': isSelected(technique)}" style="height:100%;vertical-align:middle; padding: 0 5px">
-                                <span class="col-md-10">
-                                    {{technique.name}}
-                                    <span
-                                    class="cursor-help"                                    
-                                    ng-if="hasDeprecatedMethod(technique)"
-                                    popover-title="{{technique.name}}"
-                                    uib-popover-template="'TechniqueWithDeprecatedMethod.html'"
-                                    rel="popover"
-                                    popover-placement="bottom"
-                                    popover-trigger="mouseenter"
-                                    popover-append-to-body="body" >
-                                      <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
-                                    </span>
-                                </span>
-                            </td>
-                            <td href="#" ng-class="{'active': isSelected(technique)}" style="height:100%;vertical-align:middle">
-                                <i type="button" class="glyphicon pull-right icon-margin" ng-class="{'glyphicon-chevron-left': isSelected(technique), 'glyphicon-chevron-right': !isSelected(technique)}"></i>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+
+                <div class="techniques-list">
+
+                  <div class="btn-actions">
+                    <button ng-click="newTechnique()" class="btn btn-success">Create <i class="fas fa-plus-circle"></i></button>
+                    <label class="btn btn-primary btn-outline pull-right" for="btn-import">
+                      Import <i class="fas fa-file-import"></i>
+                      <input id="btn-import" type="file" onchange="angular.element(this).scope().onImportFileChange(this)" class="hidden">
+                    </label>
+                  </div>
+
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-addon" style="padding: 0 6px;"><span class="glyphicon glyphicon-search"></span></span>
+                    <input type="text" class="form-control" placeholder="Filter" ng-model="searchText.name" style="padding:2px">
+                  </div>
+                  <ul >
+                    <li
+                    ng-repeat="technique in listTechniques = ( techniques | orderBy:'name':false | filter:searchText ) track by $index "
+                    ng-click="checkSelect(technique,selectTechnique)"
+                    ng-class="{'active': isSelected(technique)}">
+                      <span>{{technique.name}}</span>
+                      <span
+                      class="cursor-help"
+                      ng-if="hasDeprecatedMethod(technique)"
+                      popover-title="{{technique.name}}"
+                      uib-popover-template="'TechniqueWithDeprecatedMethod.html'"
+                      rel="popover"
+                      popover-placement="right"
+                      popover-trigger="mouseenter"
+                      popover-append-to-body="true"
+                      >
+                        <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
+                      </span>
+                    </li>
+                    <div class="empty" ng-if="techniques.length<=0">
+                      The techniques list is empty.
+                    </div>
+                    <div class="empty" ng-if="listTechniques.length<=0 && techniques.length>0">
+                      No technique matches the search filter.
+                    </div>
+                  </ul>
+
+                </div>
             </div>
             <form class="form-horizontal editForm col-lg-5 col-md-5 col-sm-8 col-xs-12 ncf_col" name="editForm" novalidate >
             <div class="jumbotron" ng-if="selectedTechnique === undefined" >
