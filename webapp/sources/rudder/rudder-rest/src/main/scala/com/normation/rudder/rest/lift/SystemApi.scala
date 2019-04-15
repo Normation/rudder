@@ -136,7 +136,10 @@ class SystemApi(
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      apiv11service.INFO
+      implicit val prettify = false
+      implicit val action = "getStatus"
+
+      toJsonResponse(None, ("global" -> "OK"))
     }
   }
 
@@ -159,7 +162,6 @@ class SystemApi(
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      println("************ on the process0")
       apiv11service.reloadTechniques(req, params)
     }
   }
@@ -433,17 +435,6 @@ class SystemApiService11(
   , personIdentService   : PersonIdentService
   , repo                 : GitRepositoryProvider
 ) (implicit userService: UserService) extends Loggable {
-
-
-  def INFO = {
-    val x = IOResult.effect {
-      implicit val prettify = false
-      implicit val action = "getStatus"
-
-      toJsonResponse(None, ("global" -> "OK"))
-    }
-    x.runNow
-  }
 
 
   // The private methods are the internal behavior of the API.
@@ -895,7 +886,6 @@ class SystemApiService11(
   }
 
   def reloadTechniques(req: Req, params: DefaultParams) : LiftResponse = {
-println("*****************  yes")
     implicit val action = "reloadTechniques"
     implicit val prettify = params.prettify
 

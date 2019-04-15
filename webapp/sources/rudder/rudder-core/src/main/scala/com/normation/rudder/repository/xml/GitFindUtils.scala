@@ -151,9 +151,9 @@ object GitFindUtils extends NamedZioLogger {
   * a root path.
   */
   def getZip(db:Repository, revTreeId:ObjectId, onlyUnderPaths: List[String] = Nil) : IOResult[Array[Byte]] = {
-    val directories = scala.collection.mutable.Set[String]()
-    val zipEntries = scala.collection.mutable.Buffer[Zippable]()
-    IOResult.effect(s"Error when creating a zip from files in commit with id: '${revTreeId}'") {
+    IOResult.effectM(s"Error when creating a zip from files in commit with id: '${revTreeId}'") {
+      val directories = scala.collection.mutable.Set[String]()
+      val zipEntries = scala.collection.mutable.Buffer[Zippable]()
       val tw = new TreeWalk(db)
       //create a filter with a OR of all filters
       tw.setFilter(new FileTreeFilter(onlyUnderPaths, Nil))
@@ -170,8 +170,7 @@ object GitFindUtils extends NamedZioLogger {
       val all = directories.map(p => Zippable(p, None)).toSeq ++ zipEntries
       val out = new ByteArrayOutputStream()
 
-      ZipUtils.zip(out, all)
-      out.toByteArray()
+      ZipUtils.zip(out, all) *> out.toByteArray().succeed
     }
   }
 }
