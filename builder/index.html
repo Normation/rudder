@@ -207,9 +207,22 @@
                     <div class="title">Technique</div>
                     <h3 id="technique-name">{{originalTechnique.name}} <span ng-hide="originalTechnique.name">New Technique</span>
                       <div class="btn-technique">
-                        <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin btn-danger" ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)">Delete <i class="fas fa-times-circle"></i></a>
-                        <a ng-disabled="isNotSaved()" class="btn btn-success btn-outline pull-right top-margin right-margin" ng-click="checkSelect(selectedTechnique,clonePopup )">Clone <i class="fas fa-clone"></i></a>
-                        <a ng-disabled="isNotSaved()" class="btn btn-primary btn-outline pull-right top-margin right-margin" ng-click="exportTechnique(selectedTechnique)">Export <i class="fas fa-file-export"></i></a>
+                        <div class="btn-group">
+                          <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Actions <i class="caret"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li>
+                              <a ng-disabled="isNotSaved()" class="action-success" ng-click="checkSelect(selectedTechnique,clonePopup )">Clone <i class="fas fa-clone"></i></a>
+                            </li>
+                            <li>
+                              <a ng-disabled="isNotSaved()" class="action-primary" ng-click="exportTechnique(selectedTechnique)">Export <i class="fas fa-file-export"></i></a>
+                            </li>
+                            <li>
+                              <a ng-disabled="isNotSaved()" class="action-danger" ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)">Delete <i class="fas fa-times-circle"></i></a>
+                            </li>
+                          </ul>
+                        </div>
                       </div>
                     </h3>
                     <uib-accordion>
