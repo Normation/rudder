@@ -1,5 +1,0 @@
-# Apache modules
-APACHE_MODULES="${APACHE_MODULES} dav dav_fs ssl version wsgi filter deflate"
-
-# Apache configuration flags
-APACHE_SERVER_FLAGS="${APACHE_SERVER_FLAGS} SSL"

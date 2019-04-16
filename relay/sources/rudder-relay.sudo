@@ -1,4 +1,0 @@
-# Allow the relay API to trigger remote runs
-rudder ALL = NOPASSWD: /opt/rudder/bin/rudder remote run *
-# Allow the relay API to trigger local runs
-rudder ALL = NOPASSWD: /opt/rudder/bin/rudder agent run *

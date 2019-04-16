@@ -1,3 +1,0 @@
-flask==0.12.4
-requests==2.19.1
-pycrypto==2.6.1
