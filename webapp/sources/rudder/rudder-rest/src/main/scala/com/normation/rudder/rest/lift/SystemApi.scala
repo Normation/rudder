@@ -729,7 +729,7 @@ class SystemApiService11(
   }
 
   def archiveAll(req: Req, params: DefaultParams) : LiftResponse = {
-    implicit val action = "archiveFull"
+    implicit val action = "archiveAll"
     implicit val prettify = params.prettify
 
     archive(req, ((a,b,c,d,e) => itemArchiveManager.exportAll(a,b,c,d,e).map( _._1)), "full") match {
