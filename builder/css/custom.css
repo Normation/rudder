@@ -515,16 +515,11 @@ input.form-control.ng-invalid.ng-dirty:focus{
   right: 0;
   bottom: 0;
 }
-/* --- IFRAME --- */
-body.iframe .navbar-inverse.navbar-static-top {
-  display: none;
-}
-
-body.iframe .jumbotron h1{
+.jumbotron h1{
   padding-bottom: 5px;
   border-bottom: 2px solid #f08004;
 }
-body.iframe .Override.container {
+.Override.container {
   margin: 0;
   padding: 0;
 }
@@ -1096,4 +1091,26 @@ pre.whitespace {
 
 .markdown li {
   margin-left: 15px
+}
+
+/* LOADER */
+.loading{
+  position: absolute;
+  width: 100%;
+  top: 20%;
+}
+.loading > h1 {
+  color: #999;
+  font-style: italic;
+}
+.loading .loading-text{
+  position: relative;
+  padding-right: 60px;
+}
+.loading .loading-text > .ajaxloader{
+  height: 60px;
+  width: 60px;
+  position: absolute;
+  right: 0;
+  top: calc(50% - 30px);
 }

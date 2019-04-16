@@ -130,24 +130,15 @@
     </head>
     <body ng-controller="ncf-builder">
         <toast></toast>
-        <div role="navigation" class="navbar navbar-inverse navbar-static-top">
-            <div>
-                <div class="navbar-header">
-                  <a class="navbar-brand" href="/ncf-builder">ncf builder</a>
-                </div>
-                <div class="collapse navbar-collapse navbar-ex1-collapse">
-                    <ul class="nav navbar-nav">
-                        <li class="active">
-                            <a>Create and modify your own ncf technique</a>
-                        </li>
-                    </ul>
-                    <ul class="nav navbar-nav navbar-right">
-                    </ul>
-                </div>
-            </div>
+        <div class="loading" ng-show="authenticated==undefined">
+          <h1 class="text-center">
+            <span class="loading-text">
+              The Technique Editor is loading
+              <img class="ajaxloader svg-loader" src="ncf-builder/css/ajax-loader.svg"/>
+            </span>
+          </h1>
         </div>
-
-        <div  class="container Override row fill" ng-hide="authenticated" >
+        <div  class="container Override row fill" ng-show="authenticated===false">
             <div class="col-md-12 ncf_col text-center">
                 <h1>You are not authenticated in ncf-builder</h1>
                 <div>Please try again by clicking <a href="" ng-click="reloadPage()">here</a></div>

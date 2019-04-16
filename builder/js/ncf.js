@@ -203,7 +203,7 @@ app.controller('ncf-builder', function ($scope, $uibModal, $http, $log, $locatio
   // Information about the selected method in a technique
   $scope.selectedMethod;
   // Are we authenticated on the interface
-  $scope.authenticated = false;
+  $scope.authenticated = undefined;
   // Open/Close by default the Conditions box
   $scope.conditionIsOpen = false;
 
