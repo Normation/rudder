@@ -1,5 +1,0 @@
-/var/rudder/inventories/accepted-nodes-updates gen_context(system_u:object_r:httpd_sys_rw_content_t,s0)
-/var/rudder/inventories/incoming               gen_context(system_u:object_r:httpd_sys_rw_content_t,s0)
-/var/log/rudder/apache2(/.*)?                  gen_context(system_u:object_r:httpd_log_t,s0)
-/opt/rudder/etc/uuid.hive                      gen_context(system_u:object_r:httpd_sys_content_t,s0)
-
