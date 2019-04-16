@@ -1,41 +1,22 @@
-DESTDIR = $(CURDIR)/target
-RUDDER_VERSION_TO_PACKAGE = "5.1.0-alpha1"
+#####################################################################################
+# Copyright 2019 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
 
-### Packaging
-
-build-all: build-release man;
-
-build-release:
-	cargo build --release --bin rudder-relayd
-
-man: target/man/rudder-relayd.1.gz;
-
-target/man/%: man/%.adoc
-	mkdir -p target/man
-	a2x -D target/man --doctype manpage --format manpage $<
-
-target/man/%.gz: target/man/%
-	gzip -f $<
-
-install: build-all
-	# Directories
-	mkdir -p $(DESTDIR)/opt/rudder/bin/
-	mkdir -p $(DESTDIR)/opt/rudder/etc/
-	mkdir -p $(DESTDIR)/opt/rudder/share/man/man1/
-	mkdir -p $(DESTDIR)/usr/lib/systemd/system/
-	# Install binary
-	install -m 755 target/release/rudder-relayd $(DESTDIR)/opt/rudder/bin/rudder-relayd
-	# Install service
-	install -m 644 tools/rudder-relayd.service $(DESTDIR)/usr/lib/systemd/system/rudder-relayd.service
-	# Install man pages
-	install -m 644 target/man/rudder-relayd.1.gz $(DESTDIR)/opt/rudder/share/man/man1/
-	# Install default configuration file
-	install -m 644 tools/rudder-relayd.conf $(DESTDIR)/opt/rudder/etc/rudder-relayd.conf
-
-### Build
-
-# For CI check
-check: lint test audit bench;
+# Dev tools, for build see ../Makefile
 
 yum-dependencies:
 	yum install pkgconfig postgresql-devel openssl-devel zlib-devel xz-devel asciidoc
@@ -54,9 +35,6 @@ build-env-update:
 	rustup update
 	cargo install-update -a
 
-lint:
-	RUSTFLAGS="-D warnings" cargo clippy --all-targets --examples --tests -- -D clippy::all
-
 clean:
 	cargo clean
 	rm -rf target
@@ -64,8 +42,6 @@ clean:
 veryclean: clean
 	rustup self uninstall
 	rm -rf ~/.rustup ~/.cargo
-
-### Dev
 
 # fmt, build, test, audit, clean, bench, etc.
 %:
