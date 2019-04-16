@@ -100,6 +100,10 @@ object errors {
     override def fullMsg: String = msg
   }
 
+  final case class Accumulated[E <: RudderError](all: NonEmptyList[E]) extends RudderError {
+    def msg = all.map(_.fullMsg).toList.mkString(" ; ")
+  }
+
   /*
    * Chain multiple error. You will loose the specificity of the
    * error type doing so.
@@ -130,6 +134,27 @@ object errors {
   // also with the flatmap included to avoid a combinator
   implicit class MandatoryOptionIO[R, E <: RudderError, A](res: ZIO[R, E, Option[A]]) {
     def notOptional(error: String) = res.flatMap( _.notOptional(error))
+  }
+
+  /**
+   * Accumulate results of a ZIO execution in a ValidateNel
+   */
+  implicit class AccumulateErrorsNEL[A](in: Iterable[A]) {
+    def accumulateNEL[R, E, B](f: A => ZIO[R, E, B]): ZIO[R, NonEmptyList[E], List[B]] = {
+      ZIO.foreach(in){ x => f(x).either }.flatMap { list =>
+        val accumulated = list.traverse( _.toValidatedNel)
+        ZIO.fromEither(accumulated.toEither)
+      }
+    }
+  }
+
+  /*
+   * And a version that translate it to RudderError Accumulated.
+   */
+  implicit class AccumulateErrors[A](in: Iterable[A]) {
+    def accumulate[R, E <: RudderError, B](f: A => ZIO[R, E, B]): ZIO[R, Accumulated[E], List[B]] = {
+      in.accumulateNEL(f).mapError(errors => Accumulated(errors))
+    }
   }
 
   /**
@@ -189,17 +214,7 @@ object zio {
     }
   }
 
-  /**
-   * Accumulate results of a ZIO execution in a ValidateNel
-   */
-  implicit class Accumulate[A](in: Iterable[A]) {
-    def accumulate[R, E, B](f: A => ZIO[R, E, B]): ZIO[R, NonEmptyList[E], List[B]] = {
-      ZIO.foreach(in){ x => f(x).either }.flatMap { list =>
-        val accumulated = list.traverse( _.toValidatedNel)
-        ZIO.fromEither(accumulated.toEither)
-      }
-    }
-  }
+
 
   /*
    * When porting a class is too hard

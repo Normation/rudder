@@ -60,6 +60,8 @@ import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.web.ChooseTemplate
 
+import com.normation.box._
+
 object TechniqueEditForm {
 
   val componentTechniqueEditForm = "templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil
@@ -116,7 +118,7 @@ class TechniqueEditForm(
   private[this] var currentActiveTechnique: Box[ActiveTechnique] =  Box(activeTechnique).or {
     for {
       tech <- Box(technique)
-      optActiveTech <- roActiveTechniqueRepository.getActiveTechnique(tech.id.name)
+      optActiveTech <- roActiveTechniqueRepository.getActiveTechnique(tech.id.name).toBox
       activeTech <- optActiveTech
     } yield {
       activeTech
@@ -513,7 +515,7 @@ class TechniqueEditForm(
    */
   @throws(classOf[RuntimeException])
   private def findBreadCrump(target:Technique) : Seq[TechniqueCategory] = {
-    techniqueRepository.getTechniqueCategoriesBreadCrump(target.id) match {
+    techniqueRepository.getTechniqueCategoriesBreadCrump(target.id).toBox match {
       case Full(b) => b
       case e:EmptyBox =>
         logger.debug("Bread crumb error: %s".format(e) )
@@ -529,8 +531,8 @@ class TechniqueEditForm(
   private def findUserBreadCrump(target:Technique) : Option[List[ActiveTechniqueCategory]] = {
     //find the potential WBUsreTechnique for given WBTechnique
     ( for {
-      activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(target.id.name).flatMap(Box(_))
-      crump <- roActiveTechniqueRepository.activeTechniqueBreadCrump(activeTechnique.id)
+      activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(target.id.name).toBox.flatMap(Box(_))
+      crump <- roActiveTechniqueRepository.activeTechniqueBreadCrump(activeTechnique.id).toBox
     } yield {
       crump.reverse
     } ) match {
@@ -555,7 +557,7 @@ class TechniqueEditForm(
     val modId = ModificationId(uuidGen.newUuid)
     (for {
       save <- rwActiveTechniqueRepository.changeStatus(uactiveTechniqueId, status,
-                modId, CurrentUser.actor, crReasonsDisablePopup.map(_.get))
+                modId, CurrentUser.actor, crReasonsDisablePopup.map(_.get)).toBox
       deploy <- {
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
         Full("Policy update request sent")

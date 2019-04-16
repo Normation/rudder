@@ -49,7 +49,7 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 /**
  * Check at webapp startup if Rudder Technique library has to be reloaded
  * If flag file is present then reload technique library
- * This needs to be achieved after all tasks that could modify configuration (ie: CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace)
+ * This needs to be achieved after all tasks that could modify configuration
  */
 class CheckTechniqueLibraryReload(
     techniqueLibUpdater  : UpdateTechniqueLibrary
@@ -68,7 +68,7 @@ class CheckTechniqueLibraryReload(
     try {
       if (file.exists) {
         // File exists, reload
-        logger.info(s"Flag file '${forceReloadFlagPath}' found, reload Technique library now")
+        BootraspLogger.logEffect.info(s"Flag file '${forceReloadFlagPath}' found, reload Technique library now")
         techniqueLibUpdater.update(
             ModificationId(uuidGen.newUuid)
           , RudderEventActor
@@ -76,35 +76,35 @@ class CheckTechniqueLibraryReload(
         ) match {
           case Full(_) =>
             // Success! now try deleting the flag
-            logger.info(s"Successfully reloaded Technique library on start up. now deleting flag file '${forceReloadFlagPath}'")
+            BootraspLogger.logEffect.info(s"Successfully reloaded Technique library on start up. now deleting flag file '${forceReloadFlagPath}'")
             try {
               if (file.delete) {
                 // Deleted, come back to normal
-                logger.info(s"Flag file '${forceReloadFlagPath}' successfully removed")
+                BootraspLogger.logEffect.info(s"Flag file '${forceReloadFlagPath}' successfully removed")
               } else {
                 // File could not be deleted, seek for reason
                 if(!file.exists()) {
-                  logger.warn(s"Flag file '${forceReloadFlagPath}' could not be removed as it does not exist anymore")
+                  BootraspLogger.logEffect.warn(s"Flag file '${forceReloadFlagPath}' could not be removed as it does not exist anymore")
                 } else {
-                  logger.error(s"Flag file '${forceReloadFlagPath}' could not be removed, you may have to remove it manually, cause is: Permission denied or someone is actually editing the file")
+                  BootraspLogger.logEffect.error(s"Flag file '${forceReloadFlagPath}' could not be removed, you may have to remove it manually, cause is: Permission denied or someone is actually editing the file")
                 }
               }
             } catch {
               // Exception while deleting the file
               case e : Exception =>
-                logger.error(s"An error occurred while checking flag file '${forceReloadFlagPath}' after removal attempt, cause is: ${e.getMessage}")
+                BootraspLogger.logEffect.error(s"An error occurred while checking flag file '${forceReloadFlagPath}' after removal attempt, cause is: ${e.getMessage}")
             }
           case eb:EmptyBox =>
             val msg = (eb ?~! ("An error occured while updating")).messageChain
-            logger.error(s"Flag file '${forceReloadFlagPath}' but Techniques library reload failed, cause is: ${msg}")
+            BootraspLogger.logEffect.error(s"Flag file '${forceReloadFlagPath}' but Techniques library reload failed, cause is: ${msg}")
         }
       } else {
-        logger.info(s"Flag file '${forceReloadFlagPath}' does not exist, do not Technique library will not be reloaded")
+        BootraspLogger.logEffect.info(s"Flag file '${forceReloadFlagPath}' does not exist, do not Technique library will not be reloaded")
       }
     } catch {
       // Exception while checking the file existence
       case e : Exception =>
-        logger.error(s"An error occurred while accessing flag file '${forceReloadFlagPath}', cause is: ${e.getMessage}")
+        BootraspLogger.logEffect.error(s"An error occurred while accessing flag file '${forceReloadFlagPath}', cause is: ${e.getMessage}")
     }
   }
 

@@ -57,6 +57,8 @@ import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 import com.normation.inventory.domain.NodeId
 
+import com.normation.box._
+
 class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
 
   private[this] val psService            = RudderConfig.policyServerManagementService
@@ -165,7 +167,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
                                  modificationId = None
                                , principal = CurrentUser.actor
                                , details = modifications
-                               , reason = None))) ?~! "Unable to save the user event log for modification on authorized networks for policy server ${policyServerId.value}"
+                               , reason = None))).toBox ?~! "Unable to save the user event log for modification on authorized networks for policy server ${policyServerId.value}"
         } yield {
         }) match {
           case Full(_) =>

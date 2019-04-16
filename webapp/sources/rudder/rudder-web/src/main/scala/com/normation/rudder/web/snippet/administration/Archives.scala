@@ -53,6 +53,11 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 
+import com.normation.box._
+import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
+
 class Archives extends DispatchSnippet with Loggable {
 
   private[this] val DL_NAME = "Download as zip"
@@ -166,14 +171,14 @@ class Archives extends DispatchSnippet with Loggable {
       formName                  : String               //the element name to update on error/succes
     , archiveButtonId           : String               //input button
     , archiveButtonName         : String               //what is displayed on the button to the user
-    , archiveFunction           : (PersonIdent, ModificationId, EventActor, Option[String], Boolean) => Box[(GitArchiveId, NotArchivedElements)] //the actual logic to execute the action
+    , archiveFunction           : (PersonIdent, ModificationId, EventActor, Option[String], Boolean) => IOResult[(GitArchiveId, NotArchivedElements)] //the actual logic to execute the action
     , archiveErrorMessage       : String               //error message to display to the user
     , archiveSuccessDebugMessage: String => String     //debug log - the string param is the archive id
     , archiveDateSelectId       : String
-    , archiveListFunction       : () => Box[Map[DateTime,GitArchiveId]]
+    , archiveListFunction       : () => IOResult[Map[DateTime,GitArchiveId]]
     , restoreButtonId           : String               //input button id to restore an archive
     , restoreButtonName         : String               //what is displayed on the button to the user
-    , restoreFunction           : (GitCommitId, PersonIdent, ModificationId, EventActor, Option[String], Boolean) => Box[GitCommitId] //the actual logic to execute the action
+    , restoreFunction           : (GitCommitId, PersonIdent, ModificationId, EventActor, Option[String], Boolean) => IOResult[GitCommitId] //the actual logic to execute the action
     , restoreErrorMessage       : String               //error message to display to the user
     , restoreSuccessDebugMessage: String               //debug log - the string param is the archive id
     , downloadButtonId          : String               //input button id to download the zip of an archive
@@ -198,9 +203,9 @@ class Archives extends DispatchSnippet with Loggable {
           logger.debug( msg )
 
           if(!elements.isEmpty) {
-            val cats = elements.categories.map { case CategoryNotArchived(catId, f) => "Error when archiving Category with id '%s': %s".format(catId.value, f.messageChain) }
-            val ats = elements.activeTechniques.map { case ActiveTechniqueNotArchived(atId, f) => "Error when rchiving Active Technique with id '%s': %s".format(atId.value, f.messageChain) }
-            val dirs = elements.directives.map { case DirectiveNotArchived(dirId, f) => "Error when archiving Directive with id '%s': %s".format(dirId.value, f.messageChain) }
+            val cats = elements.categories.map { case CategoryNotArchived(catId, f) => "Error when archiving Category with id '%s': %s".format(catId.value, f.fullMsg) }
+            val ats = elements.activeTechniques.map { case ActiveTechniqueNotArchived(atId, f) => "Error when rchiving Active Technique with id '%s': %s".format(atId.value, f.fullMsg) }
+            val dirs = elements.directives.map { case DirectiveNotArchived(dirId, f) => "Error when archiving Directive with id '%s': %s".format(dirId.value, f.fullMsg) }
 
             val all = cats ++ ats ++ dirs
 
@@ -230,7 +235,7 @@ class Archives extends DispatchSnippet with Loggable {
         archive  <- archiveFunction(commiter, ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("User requested archive creation"), false)
       } yield {
         archive
-      }) match {
+      }).toBox match {
         case eb:EmptyBox => error(eb, archiveErrorMessage)
         case Full((aid, notArchiveElements))   => success(archiveSuccessDebugMessage(aid.commit.value), notArchiveElements)
       }
@@ -245,7 +250,7 @@ class Archives extends DispatchSnippet with Loggable {
             commiter <- personIdentService.getPersonIdentOrDefault(CurrentUser.actor.name)
             archive <- restoreFunction(commit, commiter, ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("User requested archive restoration to commit %s".format(commit.value)), false)
           } yield
-            archive ) match {
+            archive ).toBox match {
           case eb:EmptyBox => error(eb, restoreErrorMessage)
           case Full( _ )   => success(restoreSuccessDebugMessage, noElements)
         }
@@ -269,7 +274,7 @@ class Archives extends DispatchSnippet with Loggable {
         Nil
 
       //and perhaps we have also some dates/rev tags
-      val tagOptions: List[(Option[GitCommitId], String )] = archiveListFunction() match {
+      val tagOptions: List[(Option[GitCommitId], String )] = archiveListFunction().toBox match {
         case Empty =>
           logger.debug("No archive available from tags")
           Nil

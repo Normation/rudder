@@ -56,6 +56,8 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.web.ChooseTemplate
 
+import com.normation.box._
+
 /**
  * Create a group or a category
  * This is a popup that allows for the creation of a group or a category, or
@@ -195,7 +197,7 @@ class RuleCategoryPopup(
     targetCategory match {
       case Some(category) =>
         val modId = new ModificationId(uuidGen.newUuid)
-        woRulecategoryRepository.delete(category.id, modId , CurrentUser.actor, None, true) match {
+        woRulecategoryRepository.delete(category.id, modId , CurrentUser.actor, None, true).toBox match {
           case Full(x) =>
             closePopup() &
             onSuccessCallback(x.value) &
@@ -230,7 +232,7 @@ class RuleCategoryPopup(
 
           val parent = RuleCategoryId(categoryParent.get)
           val modId = new ModificationId(uuidGen.newUuid)
-          woRulecategoryRepository.create(newCategory, parent,modId , CurrentUser.actor, None)
+          woRulecategoryRepository.create(newCategory, parent,modId , CurrentUser.actor, None).toBox
         case Some(category) =>
           val updated = category.copy(
                             name        =  categoryName.get
@@ -242,7 +244,7 @@ class RuleCategoryPopup(
             Failure("There are no modifications to save")
           } else {
             val modId = new ModificationId(uuidGen.newUuid)
-            woRulecategoryRepository.updateAndMove(updated, parent,modId , CurrentUser.actor, None)
+            woRulecategoryRepository.updateAndMove(updated, parent,modId , CurrentUser.actor, None).toBox
           }
       }) match {
           case Full(x) => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)

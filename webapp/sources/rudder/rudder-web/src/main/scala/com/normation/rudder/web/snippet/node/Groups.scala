@@ -66,6 +66,8 @@ import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import scala.xml._
 
+import com.normation.box._
+
 object Groups {
   val htmlId_groupTree = "groupTree"
   val htmlId_item = "ajaxItemContainer"
@@ -86,10 +88,10 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
   private[this] val uuidGen               = RudderConfig.stringUuidGenerator
   private[this] val linkUtil              = RudderConfig.linkUtil
 
-  private[this] var boxGroupLib = getFullGroupLibrary()
+  private[this] var boxGroupLib = getFullGroupLibrary().toBox
 
   val mainDispatch = {
-    RudderConfig.configService.rudder_workflow_enabled match {
+    RudderConfig.configService.rudder_workflow_enabled.toBox match {
       case Full(workflowEnable) =>
         Map(
             "head" -> head _
@@ -257,7 +259,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
   //that must be separated from refreshTree/refreshRightPanel
   //to avoid duplicate refresh or useless one (when only displaying without modification)
   private[this] def refreshGroupLib() : Unit = {
-    boxGroupLib = getFullGroupLibrary()
+    boxGroupLib = getFullGroupLibrary().toBox
   }
 
   private[this] def setCreationPopup(rootCategory: FullNodeGroupCategory) : Unit = {
@@ -362,7 +364,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
        }) match {
         case (sourceGroupId, destCatId) :: Nil =>
           (for {
-            result <- woNodeGroupRepository.move(NodeGroupId(sourceGroupId), NodeGroupCategoryId(destCatId), ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("Group moved by user"))?~! "Error while trying to move group with requested id '%s' to category id '%s'".format(sourceGroupId,destCatId)
+            result <- woNodeGroupRepository.move(NodeGroupId(sourceGroupId), NodeGroupCategoryId(destCatId), ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("Group moved by user")).toBox ?~! "Error while trying to move group with requested id '%s' to category id '%s'".format(sourceGroupId,destCatId)
             group  <- Box(lib.allGroups.get(NodeGroupId(sourceGroupId))) ?~! s"No such group: ${sourceGroupId}"
           } yield {
             (group.nodeGroup, lib.categoryByGroupId(group.nodeGroup.id))
@@ -403,7 +405,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
                         , NodeGroupCategoryId(destCatId)
                         , ModificationId(uuidGen.newUuid)
                         , CurrentUser.actor
-                        , reason = None)?~! "Error while trying to move category with requested id '%s' to category id '%s'".format(sourceCatId,destCatId)
+                        , reason = None).toBox ?~! "Error while trying to move category with requested id '%s' to category id '%s'".format(sourceCatId,destCatId)
           } yield {
             (category.id.value, result)
           }) match {

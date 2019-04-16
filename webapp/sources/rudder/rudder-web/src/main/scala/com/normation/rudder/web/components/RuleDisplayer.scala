@@ -52,6 +52,8 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.web.components.popup.RuleCategoryPopup
 
+import com.normation.box._
+
 /**
  * the component in charge of displaying the rule grid, with category tree
  * and one line by rule.
@@ -76,7 +78,7 @@ class RuleDisplayer (
       case Some(appManagement) =>
         Full(appManagement.rootCategory)
       case None =>
-        roCategoryRepository.getRootCategory
+        roCategoryRepository.getRootCategory.toBox
     }
   }
 
@@ -369,7 +371,7 @@ class RuleDisplayer (
         , category
         , ruleCategoryTree.getSelected
         , {(r : RuleCategory) =>
-            root = roCategoryRepository.getRootCategory
+            root = roCategoryRepository.getRootCategory.toBox
             ruleCategoryTree.refreshTree(root) & refreshGrid
           }
       )
@@ -403,7 +405,7 @@ class RuleDisplayer (
       val popupHtml =
         ruleCategoryTree match {
           case Full(ruleCategoryTree) =>
-            val rules = directive.map(_.rules).getOrElse(ruleRepository.getAll().openOr(Seq())).toList
+            val rules = directive.map(_.rules).getOrElse(ruleRepository.getAll().toBox.openOr(Seq())).toList
             creationPopup(Some(category), ruleCategoryTree).deletePopupContent(category.canBeDeleted(rules))
           case eb:EmptyBox =>
             // Should not happen, the function will be called only if the rootCategory is Set

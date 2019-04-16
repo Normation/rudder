@@ -48,6 +48,8 @@ import org.slf4j.LoggerFactory
 import scalaz.zio._
 import scalaz.zio.syntax._
 
+import com.normation.errors._
+
 object NameAndVersionIdFinder {
   val logger = LoggerFactory.getLogger(classOf[NameAndVersionIdFinder])
 }

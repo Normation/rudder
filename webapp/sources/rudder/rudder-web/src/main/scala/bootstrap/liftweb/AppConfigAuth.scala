@@ -80,6 +80,9 @@ import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.security.web.authentication.AuthenticationFailureHandler
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler
 
+import com.normation.zio._
+import com.normation.errors._
+
 /**
  * Spring configuration for user authentication.
  *
@@ -494,10 +497,9 @@ class RestAuthenticationFilter(
        }
   )
 
-  private[this] def failsAuthentication(httpRequest: HttpServletRequest, httpResponse: HttpServletResponse, eb: EmptyBox) : Unit = {
-    val e = eb ?~! s"REST authentication failed from IP '${LogFailedLogin.getRemoteAddr(httpRequest)}'"
-    ApplicationLogger.warn(e.messageChain.replaceAll(" <-", ":"))
-    e.rootExceptionCause.foreach( ex => logger.debug(ex))
+  private[this] def failsAuthentication(httpRequest: HttpServletRequest, httpResponse: HttpServletResponse, error: RudderError) : Unit = {
+    val msg = s"REST authentication failed from IP '${LogFailedLogin.getRemoteAddr(httpRequest)}'. Error was: ${error.fullMsg}"
+    ApplicationLogger.warn(msg)
     httpResponse.sendError( HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized" )
   }
 
@@ -544,7 +546,7 @@ class RestAuthenticationFilter(
               ))
               chain.doFilter(request, response)
             } else {
-              failsAuthentication(httpRequest, httpResponse, Failure(s"Missing or empty HTTP header '${apiTokenHeaderName}'"))
+              failsAuthentication(httpRequest, httpResponse, Unconsistancy(s"Missing or empty HTTP header '${apiTokenHeaderName}'"))
             }
 
           case token =>
@@ -560,23 +562,23 @@ class RestAuthenticationFilter(
 
               chain.doFilter(request, response)
             } else { // standard token, try to find it in DB
-              apiTokenRepository.getByToken(apiToken) match {
-                case eb:EmptyBox =>
-                  failsAuthentication(httpRequest, httpResponse, eb)
+              apiTokenRepository.getByToken(apiToken).either.runNow match {
+                case Left(err) =>
+                  failsAuthentication(httpRequest, httpResponse, err)
 
-                case Full(None) =>
-                  failsAuthentication(httpRequest, httpResponse, Failure(s"No registered token '${token}'"))
+                case Right(None) =>
+                  failsAuthentication(httpRequest, httpResponse, Unconsistancy(s"No registered token '${token}'"))
 
-                case Full(Some(principal)) =>
+                case Right(Some(principal)) =>
 
                   if(principal.isEnabled) {
                     principal.kind match {
                       case ApiAccountKind.System => // we don't want to allow system account kind from DB
-                        failsAuthentication(httpRequest, httpResponse, Failure(s"A saved API account can not have the kind 'System': '${principal.name}'"))
+                        failsAuthentication(httpRequest, httpResponse, Unconsistancy(s"A saved API account can not have the kind 'System': '${principal.name}'"))
                       case ApiAccountKind.PublicApi(authz, expirationDate) =>
                         expirationDate match {
                           case Some(date) if(DateTime.now().isAfter(date)) =>
-                            failsAuthentication(httpRequest, httpResponse, Failure(s"Account with ID ${principal.id.value} is disabled"))
+                            failsAuthentication(httpRequest, httpResponse, Unconsistancy(s"Account with ID ${principal.id.value} is disabled"))
                           case _ => // no expiration date or expiration date not reached
 
                             val user = RudderUserDetail(
@@ -605,11 +607,11 @@ class RestAuthenticationFilter(
                             chain.doFilter(request, response)
 
                           case Left(er) =>
-                            failsAuthentication(httpRequest, httpResponse, Failure(er))
+                            failsAuthentication(httpRequest, httpResponse, Unconsistancy(er))
                         }
                     }
                   } else {
-                    failsAuthentication(httpRequest, httpResponse, Failure(s"Account with ID ${principal.id.value} is disabled"))
+                    failsAuthentication(httpRequest, httpResponse, Unconsistancy(s"Account with ID ${principal.id.value} is disabled"))
                   }
               }
             }

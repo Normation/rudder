@@ -58,6 +58,8 @@ import net.liftweb.json.JsonAST.JString
 import org.joda.time.format.DateTimeFormat
 import com.normation.rudder.web.ChooseTemplate
 
+import com.normation.box._
+
 /**
  * Show the reports from cfengine (raw data)
  */
@@ -143,11 +145,11 @@ class LogDisplayer(
     val ruleMap = mutable.Map[RuleId, String]()
 
     def getDirectiveName(directiveId : DirectiveId) : String = {
-      directiveMap.get(directiveId).getOrElse({val result = directiveRepository.getDirective(directiveId).map(_.name).openOr(directiveId.value); directiveMap += ( directiveId -> result); result } )
+      directiveMap.get(directiveId).getOrElse({val result = directiveRepository.getDirective(directiveId).map(_.name).toBox.openOr(directiveId.value); directiveMap += ( directiveId -> result); result } )
     }
 
     def getRuleName(ruleId : RuleId) : String = {
-      ruleMap.get(ruleId).getOrElse({val result = ruleRepository.get(ruleId).map(x => x.name).openOr(ruleId.value); ruleMap += ( ruleId -> result); result } )
+      ruleMap.get(ruleId).getOrElse({val result = ruleRepository.get(ruleId).map(x => x.name).toBox.openOr(ruleId.value); ruleMap += ( ruleId -> result); result } )
     }
 
     val lines = {

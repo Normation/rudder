@@ -112,7 +112,7 @@ class CommitAndDeployChangeRequestServiceImpl(
   , woParameterRepository : WoParameterRepository
   , asyncDeploymentAgent  : AsyncDeploymentActor
   , dependencyService     : DependencyAndDeletionService
-  , workflowEnabled       : () => Box[Boolean]
+  , workflowEnabled       : () => IOResult[Boolean]
   , xmlSerializer         : XmlSerializer
   , xmlUnserializer       : XmlUnserializer
   , sectionSpecParser     : SectionSpecParser
@@ -122,7 +122,7 @@ class CommitAndDeployChangeRequestServiceImpl(
   val logger = ChangeRequestLogger
 
   def save(changeRequest: ChangeRequest, actor:EventActor, reason: Option[String]) : Box[ChangeRequest] = {
-    workflowEnabled().foreach { if (_) {
+    workflowEnabled().toBox.foreach { if (_) {
       logger.info(s"Saving and deploying change request ${changeRequest.id.value}")
     } }
     for {
@@ -502,7 +502,7 @@ class CommitAndDeployChangeRequestServiceImpl(
     else
       //If workflow are disabled, a change is always mergeable.
       true
-    }) match {
+    }).toBox match {
       case Full(mergeable) => mergeable
       case eb : EmptyBox =>
         val fail = eb ?~ "An error occurred while checking the change request acceptance"

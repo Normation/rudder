@@ -176,7 +176,7 @@ class FullInventoryRepositoryImpl(
       case Some((id, status)) => new Modification(ModificationType.REPLACE, A_CONTAINER_DN, dn(id, status).toString)
     }
 
-    val res: ZIO[Any, NonEmptyList[LdapResultRudderError], List[LDIFChangeRecord]] = nodes.values.flatten.map( _.dn).accumulate { dn =>
+    val res: ZIO[Any, NonEmptyList[LdapResultRudderError], List[LDIFChangeRecord]] = nodes.values.flatten.map( _.dn).accumulateNEL { dn =>
       con.modify(dn, mod)
     }
     res.toLdapResult
@@ -193,7 +193,7 @@ class FullInventoryRepositoryImpl(
     for {
        con      <- ldap
        machines <- getExistingMachineDN(con,id).map( _.collect { case(exists,dn) if exists => dn }.toList)
-       res      <- machines.accumulate( dn => con.delete(dn) ).toLdapResult
+       res      <- machines.accumulateNEL( dn => con.delete(dn) ).toLdapResult
        machine  <- getNodesForMachine(con, id)
        nodes    <- updateNodes(con, machine, None)
     } yield res.flatten ++ nodes

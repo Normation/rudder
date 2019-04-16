@@ -47,7 +47,7 @@ import com.normation.eventlog.ModificationId
 import java.io.File
 import net.liftweb.util.ControlHelpers.tryo
 
-
+import com.normation.box._
 
 /**
  *
@@ -67,31 +67,31 @@ class CheckRootRuleCategoryExport(
   override def checks() : Unit = {
     (for {
       exists <- tryo{ categoryDirectory.exists() }
-      ident  <- personIdentService.getPersonIdentOrDefault(RudderEventActor.name)
+      ident  <- personIdentService.getPersonIdentOrDefault(RudderEventActor.name).toBox
     } yield {
       if(!exists) {
-        logger.info(s"Directory '${categoryDirectory.getAbsolutePath()}' is missing, initialize it by exporting Rules")
+        BootraspLogger.logEffect.info(s"Directory '${categoryDirectory.getAbsolutePath()}' is missing, initialize it by exporting Rules")
         itemArchiveManager.exportRules(ident, ModificationId(uuidGen.newUuid), RudderEventActor, Some("Initialising configuration-repository Rule categories directory"), false)
       } else {
-        logger.trace(s"Directory '${categoryDirectory.getAbsolutePath()}' exists")
+        BootraspLogger.logEffect.trace(s"Directory '${categoryDirectory.getAbsolutePath()}' exists")
         Full("OK")
       }
     }) match {
       case eb: EmptyBox =>
         val fail = eb ?~! s"Error when checking '${categoryDirectory}' directory existence"
-        logger.error(fail.msg)
+        BootraspLogger.logEffect.error(fail.msg)
         fail.rootExceptionCause.foreach { t =>
-          logger.error("Root exception was:", t)
+          BootraspLogger.logEffect.error("Root exception was:", t)
         }
       case Full(eb:EmptyBox) =>
         val fail = eb ?~! "Initialising configuration-repository Rule categories directory with a Rule archive"
-        logger.error(fail.msg)
+        BootraspLogger.logEffect.error(fail.msg)
         fail.rootExceptionCause.foreach { t =>
-          logger.error("Root exception was:", t)
+          BootraspLogger.logEffect.error("Root exception was:", t)
         }
 
       case Full(Full(_)) =>
-        logger.info(s"Creating directory '${categoryDirectory.getAbsolutePath()}' exists, done")
+        BootraspLogger.logEffect.info(s"Creating directory '${categoryDirectory.getAbsolutePath()}' exists, done")
     }
   }
 }

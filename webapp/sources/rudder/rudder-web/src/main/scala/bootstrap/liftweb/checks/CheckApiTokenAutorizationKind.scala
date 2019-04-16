@@ -43,10 +43,12 @@ import com.normation.ldap.sdk.LDAPConnectionProvider
 import javax.servlet.UnavailableException
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.ldap.sdk.BuildFilter
+import com.normation.ldap.sdk.LDAPEntry
 import com.normation.rudder.api.ApiAccountType
 import com.normation.rudder.api.ApiAuthorizationKind
-import net.liftweb.common.Full
-import net.liftweb.common.EmptyBox
+
+import scalaz.zio._
+import com.normation.zio._
 
 /**
  * This class add the "api acl" attribute to Api Token
@@ -67,24 +69,32 @@ class CheckApiTokenAutorizationKind(
     import com.normation.inventory.ldap.core.LDAPConstants.A_NAME
     import com.normation.rudder.domain.RudderLDAPConstants.{ OC_API_ACCOUNT, A_API_AUTHZ_KIND, A_API_UUID, A_API_KIND }
 
-    for {
-      ldap       <- ldapConnexion
-    } yield {
-      ldap.searchOne(rudderDit.API_ACCOUNTS.dn, BuildFilter.IS(OC_API_ACCOUNT), A_API_KIND, A_API_AUTHZ_KIND, A_NAME).foreach { e =>
-        // we are looking for entries where A_API_ACL is not defined
-        // we also want to exclude already ported ACL, ie the one where A_API_KIND is defined to something else than "public"
-        if(!e.hasAttribute(A_API_AUTHZ_KIND) && e(A_API_KIND).getOrElse(ApiAccountType.PublicApi.name) == ApiAccountType.PublicApi.name ) {
-          e += (A_API_AUTHZ_KIND, DEFAULT_AUTHZ.name)
-          val name = e(A_NAME).orElse(e(A_API_UUID)).getOrElse("")
-          ldap.save(e) match {
-            case Full(_) =>
-              logger.info(s"[migration] Adding default '${DEFAULT_AUTHZ.name.toUpperCase}' authorization level to API token '${name}'")
-            case eb: EmptyBox =>
-              val e = (eb ?~! s"Error when trying to add default '${DEFAULT_AUTHZ.name.toUpperCase}' authorization level to API token ${name}")
-              logger.error(e.messageChain)
-          }
-        }
+    /*
+     * Process one entry. Don't fail, but log the error
+     */
+    def processOne(ldap: RwLDAPConnection)(e: LDAPEntry): UIO[Unit] = {
+      // we are looking for entries where A_API_ACL is not defined
+      // we also want to exclude already ported ACL, ie the one where A_API_KIND is defined to something else than "public"
+      if(!e.hasAttribute(A_API_AUTHZ_KIND) && e(A_API_KIND).getOrElse(ApiAccountType.PublicApi.name) == ApiAccountType.PublicApi.name ) {
+        e += (A_API_AUTHZ_KIND, DEFAULT_AUTHZ.name)
+        val name = e(A_NAME).orElse(e(A_API_UUID)).getOrElse("")
+        ldap.save(e) foldM (
+          err =>
+            BootraspLogger.logPure.error(s"Error when trying to add default '${DEFAULT_AUTHZ.name.toUpperCase}' authorization level to API token ${name}. Error was: ${err.fullMsg}")
+        , ok  =>
+            BootraspLogger.logPure.info(s"[migration] Adding default '${DEFAULT_AUTHZ.name.toUpperCase}' authorization level to API token '${name}'")
+        )
+      } else {
+        UIO.unit
       }
     }
+
+    (for {
+      ldap    <- ldapConnexion
+      entries <- ldap.searchOne(rudderDit.API_ACCOUNTS.dn, BuildFilter.IS(OC_API_ACCOUNT), A_API_KIND, A_API_AUTHZ_KIND, A_NAME)
+      done    <- ZIO.foreach(entries)(processOne(ldap))
+    } yield {
+      done
+    }).run.void.runNow
   }
 }

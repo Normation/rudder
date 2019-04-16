@@ -50,6 +50,7 @@ import net.liftweb.common.Loggable
 import net.liftweb.common.Full
 import net.liftweb.common.Box
 
+import com.normation.box._
 
 /**
  * When a technique is updated, we may need to save back
@@ -71,7 +72,7 @@ class SaveDirectivesOnTechniqueCallback(
   override def updatedTechniques(gitRevId: String, techniqueIds: Map[TechniqueName, TechniquesLibraryUpdateType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
 
     for {
-      techLib  <- roDirectiveRepo.getFullDirectiveLibrary()
+      techLib  <- roDirectiveRepo.getFullDirectiveLibrary().toBox
       updated  <- bestEffort(techLib.allDirectives.values.toSeq) { case(inActiveTechnique, directive) =>
                     techniqueIds.get(inActiveTechnique.techniqueName) match {
                       case Some(mods) =>
@@ -79,9 +80,9 @@ class SaveDirectivesOnTechniqueCallback(
                           paramEditor  <- directiveEditorService.get(TechniqueId(inActiveTechnique.techniqueName, directive.techniqueVersion), directive.id, directive.parameters)
                           newDirective =  directive.copy(parameters = paramEditor.mapValueSeq)
                           saved        <- if(directive.isSystem) {
-                                            woDirectiveRepo.saveSystemDirective(inActiveTechnique.id, newDirective, modId, actor, reason)
+                                            woDirectiveRepo.saveSystemDirective(inActiveTechnique.id, newDirective, modId, actor, reason).toBox
                                           } else {
-                                            woDirectiveRepo.saveDirective(inActiveTechnique.id, newDirective, modId, actor, reason)
+                                            woDirectiveRepo.saveDirective(inActiveTechnique.id, newDirective, modId, actor, reason).toBox
                                           }
                         } yield {
                           logger.debug(s"Technique ${inActiveTechnique.techniqueName.value} changed => saving directive '${directive.name}' [${directive.id.value}]")

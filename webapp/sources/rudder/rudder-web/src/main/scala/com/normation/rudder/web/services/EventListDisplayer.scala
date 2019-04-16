@@ -81,6 +81,8 @@ import org.joda.time.format.DateTimeFormat
 import com.normation.rudder.web.model.LinkUtil
 import org.joda.time.format.ISODateTimeFormat
 
+import com.normation.box._
+
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment),
  * or in the administration EventLogsViewer
@@ -135,7 +137,7 @@ class EventListDisplayer(
                       case x => Failure("Error: missing end date and time")
                     }
         (start, end) = if(startStr.before(endStr)) (startStr, endStr) else (endStr, startStr)
-        logs     <- repos.getEventLogByCriteria(Some(s"creationdate >= '${start}' and creationdate < '${end}'"), None, Some("id DESC"))
+        logs     <- repos.getEventLogByCriteria(Some(s"creationdate >= '${start}' and creationdate < '${end}'"), None, Some("id DESC")).toBox
       } yield {
         logs
       })
@@ -167,7 +169,7 @@ class EventListDisplayer(
   case class EventLogLine(event : EventLog) extends JsTableLine {
     val detailsCallback = {
       AnonFunc("details",SHtml.ajaxCall(JsVar("details"), {(abc) =>
-        val crId = event.id.flatMap(repos.getEventLogWithChangeRequest(_) match {
+        val crId = event.id.flatMap(repos.getEventLogWithChangeRequest(_).toBox match {
           case Full(Some((_,crId))) => crId
           case _ => None
         })
@@ -333,8 +335,8 @@ class EventListDisplayer(
 
   def displayDetails(event:EventLog,changeRequestId:Option[ChangeRequestId]): NodeSeq = {
 
-    val groupLib = nodeGroupRepository.getFullGroupLibrary().openOr(return <div class="error">System error when trying to get the group library</div>)
-    val rootRuleCategory = ruleCatRepository.getRootCategory.openOr(return <div class="error">System error when trying to get the rule categories</div>)
+    val groupLib = nodeGroupRepository.getFullGroupLibrary().toBox.openOr(return <div class="error">System error when trying to get the group library</div>)
+    val rootRuleCategory = ruleCatRepository.getRootCategory.toBox.openOr(return <div class="error">System error when trying to get the rule categories</div>)
 
     val generatedByChangeRequest =
       changeRequestId match {
@@ -376,7 +378,7 @@ class EventListDisplayer(
         , () => {
             event.id match {
               case Some(id) => val select = action.selectRollbackedEventsRequest(id)
-                repos.getEventLogByCriteria(Some(select)) match {
+                repos.getEventLogByCriteria(Some(select)).toBox match {
                   case Full(events) =>
                     val rollbackedEvents = events.filter(_.canRollBack)
                     action.action(event,commiter,rollbackedEvents,event)
@@ -405,7 +407,7 @@ class EventListDisplayer(
     }
 
     def addRestoreAction() =
-      personIdentService.getPersonIdentOrDefault(CurrentUser.actor.name) match {
+      personIdentService.getPersonIdentOrDefault(CurrentUser.actor.name).toBox match {
       case Full(commiter) =>
         var rollbackAction : RollBackAction = null
 

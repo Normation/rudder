@@ -58,8 +58,6 @@ import com.normation.zio._
 @RunWith(classOf[JUnitRunner])
 class SystemApiTests extends Specification with AfterAll with Loggable {
 
-  sequential
-
   "Testing system API info" should {
     "match the response defined below" in {
 

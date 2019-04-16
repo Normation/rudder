@@ -43,20 +43,25 @@ import com.normation.ldap.sdk.BuildFilter
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPEntry
 import com.normation.ldap.sdk.RwLDAPConnection
-import com.normation.utils.Control._
 import com.unboundid.ldap.sdk.Attribute
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldif.LDIFChangeRecord
 import com.unboundid.ldif.LDIFReader
 import javax.servlet.UnavailableException
-import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
+
 import scala.util.control.NonFatal
-import net.liftweb.common.Logger
 import com.unboundid.ldap.sdk.RDN
 import java.io.File
 import java.io.FileInputStream
+
+import bootstrap.liftweb.BootraspLogger
+
+import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
+import com.normation.box._
 
 /**
  * The goal of that check is to help migration of Rudder version < 4.2
@@ -77,7 +82,7 @@ object CheckCfengineSystemRuleTargets {
    * compare the two and make de update if needed.
    * Factor out because of the ton of logs to write each time.
    */
-  def compare(con: RwLDAPConnection, logger: Logger, wanted: LDAPEntry, existing: LDAPEntry): Box[LDIFChangeRecord] = {
+  def compare(con: RwLDAPConnection, wanted: LDAPEntry, existing: LDAPEntry): IOResult[LDIFChangeRecord] = {
     // the list of attribute we don't want to copy from templates:
     // here, we reset all nodeId already present because there is not reason to force recalculating
     // that group (you can't have anything but cfengine agent yet)
@@ -89,13 +94,14 @@ object CheckCfengineSystemRuleTargets {
       existing -= attr
     }
     if(existing == wanted) {
-      Full(LDIFNoopChangeRecord(existing.dn))
+      LDIFNoopChangeRecord(existing.dn).succeed
     } else {
-      con.save(wanted, true, keepAttrs).map { mod =>
-        if(mod != LDIFNoopChangeRecord(wanted.dn)) {
-          logger.info(s"Updating system configuration stored in entry '${wanted.dn.toString}': ${mod}")
-        }
-        mod
+      con.save(wanted, true, keepAttrs).flatMap { mod =>
+        (if(mod != LDIFNoopChangeRecord(wanted.dn)) {
+          BootraspLogger.logPure.info(s"Updating system configuration stored in entry '${wanted.dn.toString}': ${mod}")
+        } else {
+          UIO.unit
+        }) *> mod.succeed
       }
     }
   }
@@ -110,7 +116,7 @@ class CheckCfengineSystemRuleTargets(
   override val description = "Check that system group / directive / rules for Rudder 4.2 are agent-specific"
 
   def FAIL(msg:String) = {
-    logger.error(msg)
+    BootraspLogger.logEffect.error(msg)
     throw new UnavailableException(msg)
   }
 
@@ -178,31 +184,37 @@ class CheckCfengineSystemRuleTargets(
       LDAPEntry(entry)
     }
 
-    def updateSimpleEntries(con: RwLDAPConnection, entries: List[LDAPEntry]): Box[Seq[LDIFChangeRecord]] = {
-      sequence(entries) { wanted =>
-        con.get(wanted.dn) match {
+    def updateSimpleEntries(con: RwLDAPConnection, entries: List[LDAPEntry]): IOResult[Seq[LDIFChangeRecord]] = {
+      ZIO.foreach(entries) { wanted =>
+        con.get(wanted.dn) foldM (
+          err =>
           // try to repare in case of failure / empty
-          case eb: EmptyBox =>
             con.save(wanted, true)
-          case Full(entry) =>
-            compare(con, logger, wanted, entry)
-        }
+        , opt => opt match {
+          case None        => con.save(wanted, true)
+          case Some(entry) => compare(con, wanted, entry)
+        })
       }
     }
 
-    def updateHasPolicyServer(con: RwLDAPConnection): Box[Seq[LDIFChangeRecord]] = {
+    def updateHasPolicyServer(con: RwLDAPConnection): IOResult[Seq[LDIFChangeRecord]] = {
       val hasPolicyServerRegEx = "hasPolicyServer-(.+)".r
 
-      sequence(con.searchOne(systemGroupDN, BuildFilter.SUB("nodeGroupId", "hasPolicyServer", null, null))) { entry =>
-        //by search construction, we do have attribute nodeGroupId with one value at least
-        entry("nodeGroupId") match {
-          case Some(hasPolicyServerRegEx(uuid)) =>
-            val wanted = hasPolicyServer(uuid)
-            compare(con, logger, wanted, entry)
-          case _ =>
-            logger.warn(s"Ignoring entry '${entry.dn.toString}' when updating 'hasPolicyServer-*' system groups: name is not well formed")
-            Full(LDIFNoopChangeRecord(entry.dn))
+      for {
+        entries <- con.searchOne(systemGroupDN, BuildFilter.SUB("nodeGroupId", "hasPolicyServer", null, null))
+        done    <- ZIO.foreach(entries) { entry =>
+                    //by search construction, we do have attribute nodeGroupId with one value at least
+                    entry("nodeGroupId") match {
+                      case Some(hasPolicyServerRegEx(uuid)) =>
+                        val wanted = hasPolicyServer(uuid)
+                        compare(con, wanted, entry)
+                      case _ =>
+                        BootraspLogger.logPure.warn(s"Ignoring entry '${entry.dn.toString}' when updating 'hasPolicyServer-*' system groups: name is not well formed") *>
+                        LDIFNoopChangeRecord(entry.dn).succeed
+                    }
         }
+      } yield {
+        done
       }
     }
 
@@ -215,11 +227,11 @@ class CheckCfengineSystemRuleTargets(
       simpleEntries   <- updateSimpleEntries(con, cfeGroup :: cfeInventoryAll :: Nil)
     } yield {
       hasPolicyGroups
-    }) match {
+    }).toBox match {
       case eb: EmptyBox =>
         val e = eb ?~! "Error when updating system configuration for CFEngine based agent"
         e.rootExceptionCause.foreach { ex =>
-          logger.debug("Exception was: ", ex)
+          BootraspLogger.logEffect.debug("Exception was: ", ex)
         }
         FAIL(e.messageChain)
 

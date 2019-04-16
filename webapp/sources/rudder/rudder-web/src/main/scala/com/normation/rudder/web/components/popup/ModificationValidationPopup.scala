@@ -69,6 +69,8 @@ import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.DisplayColumn
 
+import com.normation.box._
+
 /**
  * Validation pop-up for modification on group and directive.
  *
@@ -243,7 +245,7 @@ class ModificationValidationPopup(
       case _ =>
         item match {
           case Left(directiveChange) =>
-            dependencyService.directiveDependencies(directiveChange.newDirective.id, groupLib).map(_.rules ++ directiveChange.baseRules)
+            dependencyService.directiveDependencies(directiveChange.newDirective.id, groupLib.toBox).map(_.rules ++ directiveChange.baseRules)
 
           case Right(nodeGroupChange) =>
             dependencyService.targetDependencies(GroupTarget(nodeGroupChange.newGroup.id)).map( _.rules)
@@ -531,7 +533,7 @@ class ModificationValidationPopup(
             , ModificationId(uuidGen.newUuid)
             , CurrentUser.actor
             , crReasons.map( _.get )
-          ) match {
+          ).toBox match {
             case Full(_) => //ok, continue
             case eb:EmptyBox =>
               val e = eb ?~! "Error when moving the group (no change request was created)"
@@ -605,7 +607,7 @@ class ModificationValidationPopup(
     , why:Option[String]
     ): JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
-    woDirectiveRepository.saveDirective(activeTechniqueId, directive, modId, CurrentUser.actor, why) match {
+    woDirectiveRepository.saveDirective(activeTechniqueId, directive, modId, CurrentUser.actor, why).toBox match {
       case Full(optChanges) =>
         optChanges match {
           case Some(diff) if diff.needDeployment =>

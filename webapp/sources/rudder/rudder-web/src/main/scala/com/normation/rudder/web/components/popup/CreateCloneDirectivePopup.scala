@@ -54,6 +54,8 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 
+import com.normation.box._
+
 object CreateCloneDirectivePopup {
   val htmlId_popupContainer = "createCloneDirectiveContainer"
   val htmlId_popup = "createCloneDirectivePopup"
@@ -192,9 +194,9 @@ class CreateCloneDirectivePopup(
           , _isEnabled = directive.isEnabled
           , policyMode = directive.policyMode
         )
-      roDirectiveRepository.getActiveTechniqueAndDirective(directive.id) match {
+      roDirectiveRepository.getActiveTechniqueAndDirective(directive.id).toBox match {
         case Full((activeTechnique, _)) =>
-          woDirectiveRepository.saveDirective(activeTechnique.id, cloneDirective, ModificationId(uuidGen.newUuid), CurrentUser.actor, reasons.map(_.get)) match {
+          woDirectiveRepository.saveDirective(activeTechnique.id, cloneDirective, ModificationId(uuidGen.newUuid), CurrentUser.actor, reasons.map(_.get)).toBox match {
             case Full(directive) => {
                closePopup() & onSuccessCallback(cloneDirective)
             }

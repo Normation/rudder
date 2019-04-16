@@ -64,6 +64,8 @@ import com.normation.rudder.web.services.AgentCompat
 import net.liftweb.util.Helpers.TimeSpan
 import com.normation.cfclerk.domain.TechniqueGenerationMode._
 
+import com.normation.box._
+
 /**
  * Snippet for managing the System and Active Technique libraries.
  *
@@ -155,7 +157,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   def displayDirectiveLibrary(): NodeSeq = {
     (
       <div id={htmlId_activeTechniquesTree} class="col-xs-12">{
-          (directiveLibrary,rules,configService.rudder_global_policy_mode()) match {
+          (directiveLibrary.toBox,rules.toBox,configService.rudder_global_policy_mode().toBox) match {
             case (Full(activeTechLib), Full(allRules), Full(globalMode)) =>
               val usedDirectives = allRules.flatMap { case r =>
                   r.directiveIds.map( id => (id -> r.id))
@@ -424,8 +426,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                         directive.id
                       , ModificationId(RudderConfig.stringUuidGenerator.newUuid)
                       , CurrentUser.actor
-                      , Some(s"Deleting directive '${directive.name}' (${directive.id}) because its Technique isn't available anymore")
-                    ) match {
+                      , Some(s"Deleting directive '${directive.name}' (${directive.id}) because its Technique isn't available anymore").toBox
+                    ).toBox match {
                       case Full(diff)   =>
                         currentDirectiveSettingForm.set(Empty)
                         Replace(htmlId_policyConf, showDirectiveDetails) & JsRaw("""createTooltip();""") & onRemoveSuccessCallBack()
@@ -459,7 +461,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   }
 
   private[this] def newDirective(technique: Technique, activeTechnique: FullActiveTechnique)  = {
-    configService.rudder_global_policy_mode() match {
+    configService.rudder_global_policy_mode().toBox match {
       case Full(globalMode) =>
         val allDefaults = techniqueRepository.getTechniquesInfo.directivesDefaultNames
         val directiveDefaultName = allDefaults.get(technique.id.toString).orElse(allDefaults.get(technique.id.name.value)).getOrElse(technique.name)
@@ -503,9 +505,9 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       case Left(directive) => directive.id
       case Right(directiveId) => directiveId
     }
-    configService.rudder_global_policy_mode() match {
+    configService.rudder_global_policy_mode().toBox match {
       case Full(globalMode) =>
-        directiveLibrary.flatMap( _.allDirectives.get(directiveId)) match {
+        directiveLibrary.toBox.flatMap( _.allDirectives.get(directiveId)) match {
           // The directive exists, update directive form
           case Full((activeTechnique, directive)) =>
             // In priority, use the directive passed as parameter

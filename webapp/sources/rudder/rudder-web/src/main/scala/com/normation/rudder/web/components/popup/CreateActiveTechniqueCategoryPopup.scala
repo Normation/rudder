@@ -52,6 +52,8 @@ import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.ChooseTemplate
 
+import com.normation.box._
+
 class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () => Noop },
   onFailureCallback : () => JsCmd = { () => Noop }
        ) extends DispatchSnippet with Loggable {
@@ -66,7 +68,7 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
   private[this] val rwActiveTechniqueCategoryRepository = RudderConfig.woDirectiveRepository
   private[this] val uuidGen                             = RudderConfig.stringUuidGenerator
 
-  private[this] val categories = activeTechniqueCategoryRepository.getAllActiveTechniqueCategories()
+  private[this] val categories = activeTechniqueCategoryRepository.getAllActiveTechniqueCategories().toBox
 
   def dispatch = {
     case "popupContent" => popupContent _
@@ -143,7 +145,7 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
          , ModificationId(uuidGen.newUuid)
          , CurrentUser.actor
          , Some("user created a new category")
-      ) match {
+      ).toBox match {
           case Failure(m,_,_) =>
               logger.error("An error occurred while saving the category:" + m)
               formTracker.addFormError(error("An error occurred while saving the category:" + m))

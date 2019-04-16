@@ -73,7 +73,9 @@ import scala.util.control.NonFatal
 import scalaz.zio._
 import scalaz.zio.syntax._
 
-object InventoryProcessingLogger extends NamedZioLogger("inventory-processing")
+object InventoryProcessingLogger extends NamedZioLogger {
+  override def loggerName: String = "inventory-processing"
+}
 
 sealed trait InventoryProcessStatus { def report: InventoryReport }
 final object InventoryProcessStatus {

@@ -48,7 +48,7 @@ import com.normation.rudder.batch.AutomaticStartDeployment
 /**
  * Check at webapp startup if a policy update was running when webapp was stopped
  * If flag file is present then start a new policy update
- * This needs to be achieved after all tasks that could modify configuration (ie: CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace)
+ * This needs to be achieved after all tasks that could modify configuration
  */
 class ResumePolicyUpdateRunning(
     asyncGeneration : AsyncDeploymentActor
@@ -65,15 +65,15 @@ class ResumePolicyUpdateRunning(
     try {
       if (file.exists) {
         // File exists, update policies
-        logger.info(s"Flag file '${filePath}' found, Start a new policy update now")
+        BootraspLogger.logEffect.info(s"Flag file '${filePath}' found, Start a new policy update now")
         asyncGeneration ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor)
       } else {
-        logger.info(s"Flag file '${filePath}' does not exist, No need to start a new policy update")
+        BootraspLogger.logEffect.info(s"Flag file '${filePath}' does not exist, No need to start a new policy update")
       }
     } catch {
       // Exception while checking the file existence
       case e : Exception =>
-        logger.error(s"An error occurred while accessing flag file '${filePath}', cause is: ${e.getMessage}")
+        BootraspLogger.logEffect.error(s"An error occurred while accessing flag file '${filePath}', cause is: ${e.getMessage}")
     }
   }
 

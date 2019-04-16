@@ -52,6 +52,8 @@ import com.normation.rudder.web.services.ChangeLine
 import com.normation.rudder.services.reports.NodeChanges
 import com.normation.rudder.web.ChooseTemplate
 
+import com.normation.box._
+
 object RuleCompliance {
   private def details = ChooseTemplate(
       "templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil
@@ -212,7 +214,7 @@ class RuleCompliance (
     ( for {
       currentInterval <- int
       changesOnRule   <- recentChangesService.getChangesForInterval(rule.id, currentInterval, Some(10000))
-      directiveLib    <- getFullDirectiveLib()
+      directiveLib    <- getFullDirectiveLib().toBox
       allNodeInfos    <- getAllNodeInfos()
     } yield {
       val changesLine = ChangeLine.jsonByInterval(Map((currentInterval, changesOnRule)), Some(rule.name), directiveLib, allNodeInfos)
@@ -241,10 +243,10 @@ class RuleCompliance (
   def refreshCompliance() : JsCmd = {
     ( for {
         reports      <- reportingService.findDirectiveRuleStatusReportsByRule(rule.id)
-        updatedRule  <- roRuleRepository.get(rule.id)
-        directiveLib <- getFullDirectiveLib()
+        updatedRule  <- roRuleRepository.get(rule.id).toBox
+        directiveLib <- getFullDirectiveLib().toBox
         allNodeInfos <- getAllNodeInfos()
-        globalMode   <- configService.rudder_global_policy_mode()
+        globalMode   <- configService.rudder_global_policy_mode().toBox
       } yield {
 
         val directiveData = ComplianceData.getRuleByDirectivesComplianceDetails(reports, updatedRule, allNodeInfos, directiveLib, globalMode).json.toJsCmd

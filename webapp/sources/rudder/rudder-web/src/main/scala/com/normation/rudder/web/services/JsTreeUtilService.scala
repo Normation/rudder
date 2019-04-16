@@ -49,6 +49,8 @@ import com.normation.cfclerk.domain.TechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.cfclerk.domain.TechniqueName
 
+import com.normation.box._
+
 /**
  * An utility service for Directive* trees.
  *
@@ -62,7 +64,7 @@ class JsTreeUtilService(
 
     // get the Active Technique category, log on error
     def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId,logger:Logger) : Option[ActiveTechniqueCategory] = {
-      directiveRepository.getActiveTechniqueCategory(id) match {
+      directiveRepository.getActiveTechniqueCategory(id).toBox match {
         //remove sytem category
         case Full(cat) => if(cat.isSystem) None else Some(cat)
         case e:EmptyBox =>
@@ -74,7 +76,7 @@ class JsTreeUtilService(
     // get the Active Technique, log on error
     def getActiveTechnique(id : ActiveTechniqueId,logger:Logger) : Box[(ActiveTechnique, Option[Technique])] = {
       (for {
-        activeTechnique <- directiveRepository.getActiveTechnique(id).flatMap { Box(_) } ?~! "Error while fetching Active Technique %s".format(id)
+        activeTechnique <- directiveRepository.getActiveTechnique(id).toBox.flatMap { Box(_) } ?~! "Error while fetching Active Technique %s".format(id)
       } yield {
         (activeTechnique, techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName))
       }) match {
@@ -87,7 +89,7 @@ class JsTreeUtilService(
     }
 
     // get the Directive, log on error
-    def getPi(id:DirectiveId,logger:Logger) : Option[Directive] = directiveRepository.getDirective(id) match {
+    def getPi(id:DirectiveId,logger:Logger) : Option[Directive] = directiveRepository.getDirective(id).toBox match {
       case Full(directive) => Some(directive)
       case e:EmptyBox =>
         logger.error("Error while fetching node %s".format(id), e?~! "Error message was:")
@@ -96,7 +98,7 @@ class JsTreeUtilService(
 
 
     def getPtCategory(id:TechniqueCategoryId,logger:Logger) : Option[TechniqueCategory] = {
-      techniqueRepository.getTechniqueCategory(id) match {
+      techniqueRepository.getTechniqueCategory(id).toBox match {
         //remove sytem category
         case Full(cat) => if(cat.isSystem) None else Some(cat)
         case e:EmptyBox =>

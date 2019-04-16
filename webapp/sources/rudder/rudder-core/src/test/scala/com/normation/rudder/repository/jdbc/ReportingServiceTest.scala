@@ -321,7 +321,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     , nodeInfoService
     , directivesRepos
     , () => Full(compliance)
-    , () => Full(GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always))
+    , () => GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always).succeed
     , () => Full(UnexpectedReportInterpretation(Set()))
   )
 

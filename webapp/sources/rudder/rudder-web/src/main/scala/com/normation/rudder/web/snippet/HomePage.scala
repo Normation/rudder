@@ -67,6 +67,11 @@ import com.unboundid.ldap.sdk.controls.MatchedValuesRequestControl
 import com.unboundid.ldap.sdk.controls.MatchedValuesFilter
 import com.unboundid.ldap.sdk.DN
 
+import com.normation.box._
+import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
+
 sealed trait ComplianceLevelPieChart{
   def color : String
   def label : String
@@ -174,7 +179,7 @@ class HomePage extends Loggable {
     ( for {
       nodeInfos <- HomePage.boxNodeInfos.get
       n2 = System.currentTimeMillis
-      userRules <- roRuleRepo.getIds()
+      userRules <- roRuleRepo.getIds().toBox
       n3 = System.currentTimeMillis
       _ = TimingDebugLogger.trace(s"Get rules: ${n3 - n2}ms")
       reports   <- reportingService.findRuleNodeStatusReports(nodeInfos.keySet, userRules)
@@ -366,13 +371,13 @@ class HomePage extends Loggable {
 
     for {
       con              <- ldap
-      nodeInfos        <- HomePage.boxNodeInfos.get
+      nodeInfos        <- HomePage.boxNodeInfos.get.toIO
       n2               =  System.currentTimeMillis
-      agentSoftEntries =  con.searchOne(acceptedNodesDit.SOFTWARE.dn, OR(AgentType.allValues.toList.map(t => SUB(A_NAME, null, Array(t.inventorySoftwareName), null)):_*))
+      agentSoftEntries <-  con.searchOne(acceptedNodesDit.SOFTWARE.dn, OR(AgentType.allValues.toList.map(t => SUB(A_NAME, null, Array(t.inventorySoftwareName), null)):_*))
       agentSoftDn      =  agentSoftEntries.map(_.dn.toString).toSet
 
-      agentSoft        <- sequence(agentSoftEntries){ entry =>
-                            (mapper.softwareFromEntry(entry) ?~! s"Error when mapping LDAP entry ${entry} to a software").map { s =>
+      agentSoft        <- ZIO.foreach(agentSoftEntries){ entry =>
+                            (mapper.softwareFromEntry(entry).chainError(s"Error when mapping LDAP entry ${entry} to a software")).map { s =>
                               //here, we want to use Agent Version display name, not the software one
                               s.name match {
                                 case None => s
@@ -385,11 +390,11 @@ class HomePage extends Loggable {
                                   case _ => s
                                 }
                               }
-                            }
+                            }.toIO
                           }
       n3               =  System.currentTimeMillis
       _                =  TimingDebugLogger.debug(s"Get agent software entries: ${n3-n2}ms")
-      nodeEntries      =  {
+      nodeEntries      <-  {
                             val sr = new SearchRequest(
                                 acceptedNodesDit.NODES.dn.toString
                               , One
@@ -402,7 +407,7 @@ class HomePage extends Loggable {
                               sr.addControl(new MatchedValuesRequestControl(agentSoftDn.map(dn => MatchedValuesFilter.createEqualityFilter(A_SOFTWARE_DN, dn)).toSeq:_*))
                               con.search(sr)
                             } else {
-                              Seq()
+                              Seq().succeed
                             }
                           }
       n4               =  System.currentTimeMillis
@@ -415,7 +420,7 @@ class HomePage extends Loggable {
         (
             NodeId(e.value_!(A_NODE_UUID))
           , e.valuesFor(A_SOFTWARE_DN).intersect(agentSoftDn).flatMap { x =>
-              acceptedNodesDit.SOFTWARE.SOFT.idFromDN(new DN(x)).flatMap(s => agentMap(s.value).version)
+              acceptedNodesDit.SOFTWARE.SOFT.idFromDN(new DN(x)).toOption.flatMap(s => agentMap(s.value).version)
             }
         )
       }.toMap.mapValues{_.maxBy(_.value)} // Get the max version available
@@ -446,41 +451,41 @@ class HomePage extends Loggable {
       TimingDebugLogger.debug(s"=> group and count agents: ${System.currentTimeMillis-n4}ms")
       res
     }
-  }
+  }.toBox
 
   private[this] def countPendingNodes() : Box[Int] = {
-    ldap.map { con =>
+    ldap.flatMap { con =>
       con.searchOne(pendingNodesDit.NODES.dn, ALL, "1.1")
     }.map(x => x.size)
-  }
+  }.toBox
 
   private[this] def countAcceptedNodes() : Box[Int] = {
-    ldap.map { con =>
+    ldap.flatMap { con =>
       con.searchOne(nodeDit.NODES.dn, ALL, "1.1")
     }.map(x => x.size)
-  }
+  }.toBox
 
   private[this] def countAllRules() : Box[Int] = {
-    roRuleRepo.getIds().map(_.size)
+    roRuleRepo.getIds().map(_.size).toBox
   }
 
   private[this] def countAllDirectives() : Box[Int] = {
-    ldap.map { con =>
+    ldap.flatMap { con =>
       con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, AND(IS(OC_DIRECTIVE), EQ(A_IS_SYSTEM, FALSE.toLDAPString)), "1.1")
     }.map(x => x.size)
-  }
+  }.toBox
 
   private[this] def countAllTechniques() : Box[Int] = {
-    ldap.map { con =>
+    ldap.flatMap { con =>
       con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, AND(IS(OC_ACTIVE_TECHNIQUE), EQ(A_IS_SYSTEM, FALSE.toLDAPString)), "1.1")
     }.map(x => x.size)
-  }
+  }.toBox
 
   private[this] def countAllGroups() : Box[Int] = {
-    ldap.map { con =>
+    ldap.flatMap { con =>
       con.searchSub(rudderDit.GROUP.dn, AND(IS(OC_RUDDER_NODE_GROUP), EQ(A_IS_SYSTEM, FALSE.toLDAPString)), "1.1")
     }.map(x => x.size)
-  }
+  }.toBox
 
   private[this] def displayCount( count : () => Box[Int], name : String) ={
     Text((count() match {

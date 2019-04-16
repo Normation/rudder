@@ -58,6 +58,8 @@ import net.liftweb.http.js.JE.JsVar
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds._
 
+import com.normation.box._
+
 /**
  *
  * Snippet that handle the "searchNodes" page.
@@ -82,7 +84,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
   //the popup component to create the group
   private[this] val creationPopup = new LocalSnippet[CreateCategoryOrGroupPopup]
 
-  private[this] val groupLibrary = getFullGroupLibrary() match {
+  private[this] val groupLibrary = getFullGroupLibrary().toBox match {
     case Full(x) => x
     case eb:EmptyBox =>
       val e = eb ?~! "Major error: can not get the node group library"

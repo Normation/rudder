@@ -52,6 +52,8 @@ import com.normation.rudder.domain.RudderLDAPConstants.{A_NODE_GROUP_UUID, A_NOD
 import com.normation.rudder.domain.RudderDit
 import net.liftweb.common.Box
 
+import com.normation.errors._
+
 /*
  * Here we define all data needed logic by the webapp to create the search
  * form.
@@ -102,7 +104,7 @@ final case object NodeDnJoin extends LDAPJoinElement(A_NODE_UUID) with HashcodeC
 //request for that object type.
 final case class LDAPObjectTypeFilter(value: Filter)
 
-class DitQueryData(dit: InventoryDit, nodeDit: NodeDit, rudderDit: RudderDit, getGroups: () => PureResult[Seq[SubGroupChoice]]) {
+class DitQueryData(dit: InventoryDit, nodeDit: NodeDit, rudderDit: RudderDit, getGroups: () => IOResult[Seq[SubGroupChoice]]) {
   private val peObjectCriterion = ObjectCriterion(OC_PE, Seq(
     //Criterion(A_MACHINE_UUID, StringComparator),
     //Criterion(A_MACHINE_DN, StringComparator), //we don't want to search on that

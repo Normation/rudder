@@ -44,10 +44,10 @@ import net.liftweb.common.Logger
 import net.liftweb.common.Failure
 import com.normation.utils.Control.sequence
 import com.normation.eventlog.ModificationId
-import com.normation.ldap.sdk.{LDAPConnectionProvider,RoLDAPConnection,LDAPEntry,BuildFilter}
+import com.normation.ldap.sdk.{BuildFilter, LDAPConnectionProvider, LDAPEntry, RoLDAPConnection}
 import BuildFilter._
 import com.normation.rudder.repository.WoNodeGroupRepository
-import com.normation.rudder.domain.{RudderDit,RudderLDAPConstants}
+import com.normation.rudder.domain.{RudderDit, RudderLDAPConstants}
 import RudderLDAPConstants._
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -57,6 +57,10 @@ import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.repository.ldap.ScalaReadWriteLock
+import com.normation.box._
+import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /**
  * The goal is to check that system groups (name are "hasPolicyServer-")
@@ -77,9 +81,9 @@ class CheckSystemGroups(
   private[this] object logger extends Logger {
     override protected def _logger = LoggerFactory.getLogger("migration")
     val defaultErrorLogger : Failure => Unit = { f =>
-      _logger.error(f.messageChain)
+      logger.error(f.messageChain)
       f.rootExceptionCause.foreach { ex =>
-        _logger.error("Root exception was:", ex)
+        logger.error("Root exception was:", ex)
       }
     }
   }
@@ -98,14 +102,14 @@ class CheckSystemGroups(
   def extractPolicyServerId (groupId : NodeGroupId) = {
     val regexp ="hasPolicyServer-([\\w-]+)".r
     regexp.findFirstMatchIn(groupId.value) match {
-      case Some(matching) => Full(matching.group(1))
-      case None => Failure(s"could not extract policy server ID from group '${groupId.value}'")
+      case Some(matching) => matching.group(1).succeed
+      case None => Unconsistancy(s"could not extract policy server ID from group '${groupId.value}'").fail
     }
   }
 
-  def extractDataFromEntry(entry: LDAPEntry) : Box[(NodeGroup,String)]= {
+  def extractDataFromEntry(entry: LDAPEntry) : IOResult[(NodeGroup,String)]= {
     for {
-      group <-  mapper.entry2NodeGroup(entry) ?~! s"Error when mapping server group entry to its entity. Entry: ${entry}"
+      group <-  mapper.entry2NodeGroup(entry).toIO.chainError(s"Error when mapping server group entry to its entity. Entry: ${entry}")
       policyServerId <- extractPolicyServerId(group.id)
     } yield {
       (group,policyServerId)
@@ -118,10 +122,11 @@ class CheckSystemGroups(
       // Get all groups matching the filter
       for {
       con <- ldap
-      groups <- sequence(con.searchSub(rudderDit.GROUP.dn,  filter)) (extractDataFromEntry)
+      entries <- con.searchSub(rudderDit.GROUP.dn,  filter)
+      groups <- ZIO.foreach(entries)(extractDataFromEntry)
     } yield {
       groups
-    } } ) match {
+    } } ).toBox match {
       case Full(groups) => {
         for {
           (group,policyServerId) <- groups
@@ -142,15 +147,15 @@ class CheckSystemGroups(
           val query = Query(NodeAndPolicyServerReturnType,And,criteria :: Nil)
 
           val updatedGroup = group.copy(isDynamic = true, query = Some(query))
-          rwRepos.updateSystemGroup(updatedGroup, modId, RudderEventActor, Some(message))
-          logger.info(message)
+          rwRepos.updateSystemGroup(updatedGroup, modId, RudderEventActor, Some(message)).toBox
+          BootraspLogger.logEffect.info(message)
 
         }
       }
       case eb =>
         val message = "Could not migrate system groups"
         val fail = eb ?~ message
-        logger.error(fail)
+        BootraspLogger.logEffect.error(fail)
     }
   }
 }

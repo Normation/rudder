@@ -55,9 +55,14 @@ import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.util.Helpers._
 import org.joda.time.format.DateTimeFormat
-
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
+import com.normation.appconfig.ReadConfigService
+import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.domain.nodes.NodeState
+
+import com.normation.box._
 
 /**
  * Display the last reports of a server
@@ -293,13 +298,14 @@ class ReportDisplayer(
   }
 
   private[this] def displayReports(node : NodeInfo) : NodeSeq = {
-    val boxXml = if(node.state == NodeState.Ignored) {
-      Full(<div><div class="col-sm-3"><p class="center bg-info" style="padding: 25px; margin:5px;">This node is disabled.</p></div></div>)
-    } else {
-    for {
-      report       <- reportingService.findNodeStatusReport(node.id)
-      directiveLib <- directiveRepository.getFullDirectiveLibrary
-    } yield {
+    val boxXml = (
+      if(node.state == NodeState.Ignored) {
+        Full(<div><div class="col-sm-3"><p class="center bg-info" style="padding: 25px; margin:5px;">This node is disabled.</p></div></div>)
+      } else {
+      for {
+        report       <- reportingService.findNodeStatusReport(node.id)
+        directiveLib <- directiveRepository.getFullDirectiveLibrary.toBox
+      } yield {
 
       val intro = displayIntro(report)
 
@@ -409,10 +415,10 @@ class ReportDisplayer(
 
   private[this] def getComplianceData(nodeId: NodeId, reportStatus: NodeStatusReport) = {
     for {
-      directiveLib <- directiveRepository.getFullDirectiveLibrary
+      directiveLib <- directiveRepository.getFullDirectiveLibrary.toBox
       allNodeInfos <- getAllNodeInfos()
-      rules        <- ruleRepository.getAll(true)
-      globalMode   <- configService.rudder_global_policy_mode()
+      rules        <- ruleRepository.getAll(true).toBox
+      globalMode   <- configService.rudder_global_policy_mode().toBox
     } yield {
       ComplianceData.getNodeByRuleComplianceDetails(nodeId, reportStatus, allNodeInfos, directiveLib, rules, globalMode)
     }

@@ -69,6 +69,8 @@ import net.liftweb.sitemap.Loc.LocGroup
 import net.liftweb.sitemap.Loc.TestAccess
 import org.reflections.Reflections
 
+import com.normation.zio._
+
 /*
  * Utilities about rights
  */
@@ -445,7 +447,7 @@ class Boot extends Loggable {
     def utilitiesMenu = {
       // if we can't get the workflow property, default to false
       // (don't give rights if you don't know)
-      def workflowEnabled = RudderConfig.configService.rudder_workflow_enabled.getOrElse(false)
+      def workflowEnabled = RudderConfig.configService.rudder_workflow_enabled.either.runNow.getOrElse(false)
       Menu("UtilitiesHome", <i class="fa fa-wrench"></i> ++ <span>Utilities</span>) /
         "secure" / "utilities" / "index" >>
         TestAccess ( () =>

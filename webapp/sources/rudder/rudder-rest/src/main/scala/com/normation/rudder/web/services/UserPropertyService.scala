@@ -38,6 +38,11 @@ package com.normation.rudder.web.services
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 
+import com.normation.errors._
+import com.normation.box._
+import scalaz.zio._
+import scalaz.zio.syntax._
+
 object ReasonBehavior extends Enumeration {
   type ReasonBehavior = Value
   val Disabled, Mandatory, Optionnal = Value
@@ -60,7 +65,7 @@ trait UserPropertyService {
 
 class UserPropertyServiceImpl( val opt : ReasonsMessageInfo ) extends UserPropertyService {
 
-  private[this] val impl = new StatelessUserPropertyService(() => Full(opt.enabled), () => Full(opt.mandatory), () => Full(opt.explanation))
+  private[this] val impl = new StatelessUserPropertyService(() => opt.enabled.succeed, () => opt.mandatory.succeed, () => opt.explanation.succeed)
 
   override val reasonsFieldBehavior = impl.reasonsFieldBehavior
   override val reasonsFieldExplanation : String = impl.reasonsFieldExplanation
@@ -69,17 +74,17 @@ class UserPropertyServiceImpl( val opt : ReasonsMessageInfo ) extends UserProper
 /**
  * Reloadable service
  */
-class StatelessUserPropertyService(getEnable: () => Box[Boolean], getMandatory: () => Box[Boolean], getExplanation: () => Box[String]) extends UserPropertyService {
+class StatelessUserPropertyService(getEnable: () => IOResult[Boolean], getMandatory: () => IOResult[Boolean], getExplanation: () => IOResult[String]) extends UserPropertyService {
 
   // TODO: handle errors here!
 
 
-  override def reasonsFieldBehavior = ( getEnable().getOrElse(true), getMandatory().getOrElse(true) ) match {
+  override def reasonsFieldBehavior = ( getEnable().toBox.getOrElse(true), getMandatory().toBox.getOrElse(true) ) match {
     case ( true, true )  => ReasonBehavior.Mandatory
     case ( true, false ) => ReasonBehavior.Optionnal
     case ( false, _ )    => ReasonBehavior.Disabled
   }
-  override def reasonsFieldExplanation : String = getExplanation().getOrElse("")
+  override def reasonsFieldExplanation : String = getExplanation().toBox.getOrElse("")
 }
 
 

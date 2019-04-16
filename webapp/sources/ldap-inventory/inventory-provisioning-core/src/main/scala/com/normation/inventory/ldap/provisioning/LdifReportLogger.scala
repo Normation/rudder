@@ -72,7 +72,7 @@ trait LDIFReportLogger {
 }
 
 object DefaultLDIFReportLogger {
-  val logger = new NamedZioLogger("trace.ldif.in.file") {}
+  val logger = NamedZioLogger("trace.ldif.in.file")
   val defaultLogDir = System.getProperty("java.io.tmpdir") +
     System.getProperty("file.separator") + "LDIFLogReport"
 }

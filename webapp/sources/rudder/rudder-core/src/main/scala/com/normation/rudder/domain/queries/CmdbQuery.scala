@@ -70,6 +70,7 @@ import cats.implicits._
 import scalaz.zio._
 import scalaz.zio.syntax._
 import com.normation.errors._
+import com.normation.zio._
 
 sealed trait CriterionComparator {
   val id:String
@@ -819,7 +820,7 @@ case class NameValueComparator(ldapAttr: String) extends TStringComparator with 
  * of nodes.
  */
 final case class SubGroupChoice(id: NodeGroupId, name: String)
-class SubGroupComparator(getGroups: () => PureResult[Seq[SubGroupChoice]]) extends TStringComparator with Loggable {
+class SubGroupComparator(getGroups: () => IOResult[Seq[SubGroupChoice]]) extends TStringComparator with Loggable {
   override val comparators = Equals :: Nil
 
   override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = comparator match {
@@ -843,7 +844,7 @@ class SubGroupComparator(getGroups: () => PureResult[Seq[SubGroupChoice]]) exten
         } else {
           g
         }
-      }) match {
+      }).either.runNow match {
         case Right(list) => list.sortBy( _.label )
         case Left(error) => //if an error occure, log and display the error in place of the label
           logger.error(s"An error happens when trying to find the list of groups to use in sub-groups: ${error.fullMsg}")

@@ -67,6 +67,8 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.domain.nodes.NodeState
 
+import com.normation.box._
+
 object ShowNodeDetailsFromNode {
 
   private val groupTreeId = "node_groupTree"
@@ -108,7 +110,7 @@ class ShowNodeDetailsFromNode(
   }
   def getHeartBeat(nodeInfo : NodeInfo) : Box[(GlobalComplianceMode,NodeComplianceMode)] = {
     for {
-      globalMode  <- configService.rudder_compliance_mode()
+      globalMode  <- configService.rudder_compliance_mode().toBox
 
     } yield {
       // If heartbeat is not overriden, we revert to the default one
@@ -124,7 +126,7 @@ class ShowNodeDetailsFromNode(
     val modId = ModificationId(uuidGen.newUuid)
     boxNodeInfo = Full(Some(nodeInfo.copy( nodeInfo.node.copy( nodeReportingConfiguration = nodeInfo.node.nodeReportingConfiguration.copy(heartbeatConfiguration = Some(heartbeatConfiguration))))))
     for {
-      result <- nodeRepo.updateNode(nodeInfo.node, modId, CurrentUser.actor, None)
+      result <- nodeRepo.updateNode(nodeInfo.node, modId, CurrentUser.actor, None).toBox
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
     }
@@ -151,7 +153,7 @@ class ShowNodeDetailsFromNode(
     for {
       oldNode <- nodeInfoService.getNodeInfo(nodeId).flatMap( _.map( _.node )) // we can't change the state of a missing node
       newNode =  oldNode.copy(state = nodeState)
-      result  <- nodeRepo.updateNode(newNode, modId, user, None)
+      result  <- nodeRepo.updateNode(newNode, modId, user, None).toBox
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
       nodeState
@@ -173,7 +175,7 @@ class ShowNodeDetailsFromNode(
           , splaytime
         )
     }
-  }
+  }.toBox
 
   val emptyInterval = AgentRunInterval(Some(false), 5, 0, 0, 0) // if everything fails, we fall back to the default entry
   def getSchedule(nodeInfo : NodeInfo) : Box[AgentRunInterval] = {
@@ -187,7 +189,7 @@ class ShowNodeDetailsFromNode(
     boxNodeInfo = Full(Some(newNodeInfo))
     for {
       oldNode <- nodeInfoService.getNodeInfo(nodeId).flatMap( _.map( _.node ))
-      result  <- nodeRepo.updateNode(newNodeInfo.node, modId, user, None)
+      result  <- nodeRepo.updateNode(newNodeInfo.node, modId, user, None).toBox
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
     }
@@ -222,13 +224,13 @@ class ShowNodeDetailsFromNode(
           <p>Error message was: {e.messageChain}</p>
         </div>
       case Full(Some(node)) => // currentSelectedNode = Some(server)
-        serverAndMachineRepo.get(node.id, AcceptedInventory) match {
-          case Full(sm) =>
+        serverAndMachineRepo.get(node.id, AcceptedInventory).toBox match {
+          case Full(Some(sm)) =>
             val tab = if (displayCompliance) 1 else 0
             val jsId = JsNodeId(nodeId,"")
             def htmlId(jsId:JsNodeId, prefix:String) : String = prefix + jsId.toString
             val detailsId = htmlId(jsId,"details_")
-            configService.rudder_global_policy_mode() match {
+            configService.rudder_global_policy_mode().toBox match {
               case Full(globalMode) =>
 
                 bindNode(node, sm, withinPopup,displayCompliance, globalMode) ++ Script(
@@ -252,6 +254,10 @@ class ShowNodeDetailsFromNode(
                 logger.error(msg, e)
                 <div class="error">{msg}</div>
             }
+          case Full(None) =>
+            val msg = "Can not find inventory details for node with ID %s".format(node.id.value)
+            logger.error(msg)
+            <div class="error">{msg}</div>
           case e:EmptyBox =>
             val msg = "Can not find inventory details for node with ID %s".format(node.id.value)
             logger.error(msg, e)
@@ -262,7 +268,6 @@ class ShowNodeDetailsFromNode(
 
   /**
    * Show the content of a node in the portlet
-   * @param server
    * @return
    */
   private def bindNode(node : NodeInfo, inventory: FullInventory, withinPopup : Boolean , displayCompliance: Boolean, globalMode : GlobalPolicyMode) : NodeSeq = {

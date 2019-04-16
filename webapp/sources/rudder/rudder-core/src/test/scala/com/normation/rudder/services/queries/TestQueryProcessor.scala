@@ -56,6 +56,8 @@ import com.normation.rudder.services.nodes.NaiveNodeInfoServiceCachedImpl
 
 import com.normation.zio._
 import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 /*
  * Test query parsing.
@@ -100,7 +102,7 @@ class TestQueryProcessor extends Loggable {
   val nodeDit = new NodeDit(new DN("cn=rudder-configuration"))
   val rudderDit = new RudderDit(new DN("ou=Rudder, cn=rudder-configuration"))
 
-  val ditQueryData = new DitQueryData(DIT, nodeDit, rudderDit, () => Left(Unconsistancy("For test, no subgroup")))
+  val ditQueryData = new DitQueryData(DIT, nodeDit, rudderDit, () => Unconsistancy("For test, no subgroup").fail)
 
   val inventoryMapper = new InventoryMapper(ditService, pendingDIT, DIT, removedDIT)
   val ldapMapper = new LDAPEntityMapper(rudderDit, nodeDit, DIT, null, inventoryMapper)

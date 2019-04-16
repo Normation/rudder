@@ -59,6 +59,7 @@ import com.normation.rudder.reports.ReportsDisabled
 import com.normation.rudder.domain.nodes.NodeState
 
 import com.normation.box._
+import com.normation.errors._
 
 /**
  * Defaults non-cached version of the reporting service.
@@ -72,7 +73,7 @@ class ReportingServiceImpl(
   , val nodeInfoService            : NodeInfoService
   , val directivesRepo             : RoDirectiveRepository
   , val getGlobalComplianceMode    : () => Box[GlobalComplianceMode]
-  , val getGlobalPolicyMode        : () => Box[GlobalPolicyMode]
+  , val getGlobalPolicyMode        : () => IOResult[GlobalPolicyMode]
   , val getUnexpectedInterpretation: () => Box[UnexpectedReportInterpretation]
 ) extends ReportingService with RuleOrNodeReportingServiceImpl with DefaultFindRuleNodeStatusReports
 

@@ -44,6 +44,8 @@ import javax.servlet.UnavailableException
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.repository.jdbc.RudderDatasourceProvider
 
+import com.normation.box._
+
 /**
  * This class check that all external connection (LDAP, Postgres)
  * needed for the other bootstrap checks to run are OK.
@@ -59,12 +61,12 @@ class CheckConnections(
   override def checks() : Unit = {
 
     def FAIL(msg:String) = {
-      logger.error(msg)
+      BootraspLogger.logEffect.error(msg)
       throw new UnavailableException(msg)
     }
 
     //check that an LDAP connection is up and running
-    ldap.map(_.backed.isConnected) match {
+    ldap.map(_.backed.isConnected).toBox match {
       case _:EmptyBox | Full(false) => FAIL("Can not open LDAP connection")
       case _ => //ok
     }
@@ -76,7 +78,7 @@ class CheckConnections(
       case e: Exception => FAIL("Can not open connection to PostgreSQL database server")
     }
 
-    logger.info("LDAP and PostgreSQL connection are OK")
+    BootraspLogger.logEffect.info("LDAP and PostgreSQL connection are OK")
   }
 
 }

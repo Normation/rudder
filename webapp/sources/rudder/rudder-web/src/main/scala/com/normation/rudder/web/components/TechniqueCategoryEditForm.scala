@@ -51,6 +51,7 @@ import net.liftweb.util.Helpers._
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 
+import com.normation.box._
 
 /**
  * This component allows to display and update a category
@@ -115,7 +116,7 @@ class TechniqueCategoryEditForm(
   }
 
   private[this] def deleteCategory() : JsCmd = {
-    activeTechniqueCategoryRepository.delete(currentCategory.id, ModificationId(uuidGen.newUuid),CurrentUser.actor, Some("User deleted technique category from UI")) match {
+    activeTechniqueCategoryRepository.delete(currentCategory.id, ModificationId(uuidGen.newUuid),CurrentUser.actor, Some("User deleted technique category from UI")).toBox match {
       case Full(id) =>
         //update UI
         JsRaw("$('#removeCategoryActionDialog').bsModal('hide');") &
@@ -205,7 +206,7 @@ class TechniqueCategoryEditForm(
                    name = categoryName.get,
                    description = categoryDescription.get
                )
-               activeTechniqueCategoryRepository.saveActiveTechniqueCategory(updatedCategory, ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("User updated category from UI")) match {
+               activeTechniqueCategoryRepository.saveActiveTechniqueCategory(updatedCategory, ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("User updated category from UI")).toBox match {
                  case Failure(m,_,_) =>
                    categorFormTracker.addFormError(  error("An error occured: " + m) )
                  case Empty =>
