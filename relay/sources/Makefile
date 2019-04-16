@@ -35,13 +35,6 @@ APACHE_VHOSTDIR = apache2/sites-available
 
 localdepends: rudder-sources relay-api/virtualenv/virtualenv.py
 
-rudder-sources.tar.bz2:
-	$(GET) rudder-sources.tar.bz2 https://www.rudder-project.org/archives/rudder-sources-${RUDDER_VERSION_TO_PACKAGE}.tar.bz2 ""
-
-rudder-sources: rudder-sources.tar.bz2
-	tar -xjf rudder-sources.tar.bz2
-	mv rudder-sources-*/ rudder-sources/
-
 relay-api/virtualenv.tgz:
 	# Original URL: https://pypi.python.org/packages/source/v/virtualenv/virtualenv-12.0.7.tar.gz
 	$(GET) relay-api/virtualenv.tgz https://repository.rudder.io/build-dependencies/virtualenv/virtualenv-$(VIRTUALENV_RELEASE).tar.gz $(VIRTUALENV_SHA256)
@@ -120,12 +113,10 @@ endif
 
 clean: localclean
 localclean:
-	rm -rf ./rudder-sources
 # TODO replicate this on previous PR
 	rm -f build install
 
 distclean: veryclean
 veryclean: clean
-	rm -f ./rudder-sources.tar.bz2
 
 .PHONY: localdepends localclean veryclean
