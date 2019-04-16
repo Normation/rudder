@@ -1,0 +1,100 @@
+#!/bin/bash
+
+set -e
+
+FIRST_INSTALL="$1"
+APACHE="$2"
+APACHE_USER="$3"
+APACHE_GROUP="$4"
+
+echo -n "INFO: Stopping Apache HTTPd..."
+systemctl stop "${APACHE}" >dev/null
+echo " Done"
+
+# Create the rudder group if it does not exist
+if ! getent group rudder > /dev/null; then
+  echo -n "INFO: Creating group rudder..."
+  groupadd --system rudder
+  echo " Done"
+fi
+
+# Create the rudder-policy-reader group if it does not exist
+if ! getent group rudder-policy-reader > /dev/null; then
+  echo -n "INFO: Creating group rudder-policy-reader..."
+  groupadd --system rudder-policy-reader
+  usermod -a -G rudder-policy-reader "${APACHE_USER}"
+  echo " Done"
+fi
+
+# share directory with rudder-policy-reader
+chgrp -R rudder-policy-reader /var/rudder/share
+chmod 750 /var/rudder/share
+find /var/rudder/share -type d | xargs chmod g+s-w
+
+# Create the rudder user
+if ! getent passwd rudder >/dev/null; then
+  echo -n "INFO: Creating the rudder user..."
+  useradd -r -m -s /bin/false -g rudder -d /var/rudder -c "Rudder,,," rudder >/dev/null
+  echo " Done"
+fi
+
+# change some directory to rudder owner
+chown rudder: /var/rudder/shared-files
+chmod 770 /var/rudder/shared-files
+chmod 755 /var/rudder/inventories
+
+for inventorydir in /var/rudder/inventories/incoming /var/rudder/inventories/accepted-nodes-updates
+do
+  chmod 770 ${inventorydir}
+  chown root:${APACHE_GROUP} ${inventorydir}
+done
+
+# Setup password files for inventory reception WebDAV access
+for passwdfile in /opt/rudder/etc/htpasswd-webdav-initial /opt/rudder/etc/htpasswd-webdav
+do
+  htpasswd -bc ${passwdfile} rudder rudder >/dev/null
+done
+
+# Generate certificates if needed
+if [ ! -f /opt/rudder/etc/ssl/rudder.crt ] || [ ! -f /opt/rudder/etc/ssl/rudder.key ]; then
+  echo -n "INFO: No usable SSL certificate detected for Rudder relay HTTP/S support, generating one automatically..."
+  SUBJALTNAME=DNS:$(hostname --fqdn) openssl req -new -x509 -newkey rsa:2048 -subj "/C=FR/ST=France/L=Paris/CN=$(hostname --fqdn)/emailAddress=root@$(hostname --fqdn)/" -keyout /opt/rudder/etc/ssl/rudder.key -out /opt/rudder/etc/ssl/rudder.crt -days 1460 -nodes -sha256 -config /opt/rudder/etc/ssl/openssl.cnf -extensions server_cert >/dev/null
+  chgrp ${APACHE_GROUP} /opt/rudder/etc/ssl/rudder.key && chmod 640 /opt/rudder/etc/ssl/rudder.key
+  echo " Done"
+fi
+  
+# put this certificate in ca.cert if it doesn't exist (we need at least on certificate there)
+if [ ! -f /opt/rudder/etc/ssl/ca.cert ]; then
+  cp /opt/rudder/etc/ssl/rudder.crt /opt/rudder/etc/ssl/ca.cert
+fi
+
+echo -n "INFO: Starting Apache HTTPd..."
+systemctl start "${APACHE}" >/dev/null
+echo " Done"
+
+echo "INFO: rudder-server-relay setup complete."
+# Only output this notice during initial installation
+if [ -z "${FIRST_INSTALL}" ]; then
+  uuid_file="/opt/rudder/etc/uuid.hive"
+  if [ -f "${uuid_file}" ]; then
+    uuid=$(cat ${uuid_file})
+    if [ "${uuid}" != "root" ]; then
+      echo ""
+      echo "*****************************************************************************************"
+      echo "INFO: Now run on your root server:                                                             "
+      echo "INFO:   '/opt/rudder/bin/rudder-node-to-relay ${uuid}"
+      echo "INFO: Please look at the documentation for details (Section 'Relay servers')           "
+      echo "*****************************************************************************************"
+    fi
+  else # if for some reason there is no uuid here (should not happen)
+    echo ""
+    echo "*****************************************************************************************"
+    echo "INFO: * If you are installing a root server, configuration is automatically done         "
+    echo "INFO: * If you are installing a simple relay, run:                                       "
+    echo "INFO:   '/opt/rudder/bin/rudder-node-to-relay <your uuid>'          "
+    echo "INFO:   on your root server to complete this node transition to a relay server.          "
+    echo "INFO:   Please look at the documentation for details (Section 'Relay servers')           "
+    echo "*****************************************************************************************"
+  fi
+fi
+
