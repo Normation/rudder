@@ -23,17 +23,39 @@ package com.normation.rudder.repository.ldap
 
 import java.util.concurrent.locks.ReadWriteLock
 
+import com.normation.NamedZioLogger
 import com.normation.errors._
+import com.normation.zio.ZioRuntime
 import scalaz.zio._
+import scalaz.zio.clock.Clock
+import scalaz.zio.duration.Duration
 
+import scalaz.zio._
+import scalaz.zio.syntax._
+
+object LdapLockLogger extends NamedZioLogger {
+  override def loggerName: String = "ldap-rw-lock"
+}
 /**
  * Pimp^Wextend my Java Lock
  */
 trait ScalaLock {
   def lock(): Unit
   def unlock(): Unit
+  def clock: Clock
 
-  def apply[T](block: => IOResult[T]): IOResult[T] = ZIO.bracket(IO.effect(this.lock()).mapError(ex => SystemError(s"Error when trying to get LDAP lock", ex)) )(_ => IO.effect(this.unlock()).run.void)(_ => block)
+  def apply[T](name: String)(block: => IOResult[T]): IOResult[T] = ZIO.bracket(
+    LdapLockLogger.logPure.error("Get lock") *>
+    LdapLockLogger.logPure.error(Thread.currentThread().getStackTrace.mkString("\n")) *>
+    IO.effect(this.lock()).timeout(Duration.Finite(100*1000*1000 /* ns */))
+      .mapError(ex => SystemError(s"Error when trying to get LDAP lock", ex))
+  )(_ =>
+    LdapLockLogger.logPure.error("Release lock") *>
+    IO.effect(this.unlock()).run.void
+  )(_ =>
+    LdapLockLogger.logPure.error("Do things in lock") *>
+    block
+  ).provide(clock)
 }
 
 trait ScalaReadWriteLock {
@@ -47,9 +69,11 @@ object ScalaLock {
   import java.util.concurrent.locks.Lock
   import language.implicitConversions
 
+
   implicit def java2ScalaLock(javaLock:Lock) : ScalaLock = new ScalaLock {
     override def lock() = javaLock.lock()
     override def unlock() = javaLock.unlock()
+    override def clock = ZioRuntime.Environment
   }
 
   implicit def java2ScalaRWLock(lock:ReadWriteLock) : ScalaReadWriteLock = new ScalaReadWriteLock {

@@ -485,7 +485,10 @@ class GitTechniqueReader(
       //is valid
       while(tw.next) {
         val path = toTechniquePath(tw.getPathString) //we will need it to build the category id
-        processTechnique(repo.db.runNow.open(tw.getObjectId(0)).openStream, path.path, techniqueInfos, parseDescriptor, revTreeId).runNow
+        processTechnique(repo.db.runNow.open(tw.getObjectId(0)).openStream, path.path, techniqueInfos, parseDescriptor, revTreeId).either.runNow match {
+          case Left(err)  => logger.error(s"Error with technique at path: '${path.path}', it will be ignored. Error: ${err.fullMsg}")
+          case Right(()) => // ok
+        }
       }
   }
 
@@ -503,8 +506,10 @@ class GitTechniqueReader(
       //is valid
       while(tw.next) {
         val path = toTechniquePath(tw.getPathString) //we will need it to build the category id
-        val cat = extractMaybeCategory(tw.getObjectId(0), path.path, parseDescriptor).runNow
-        maybeCategories.update(cat.id, cat)
+        extractMaybeCategory(tw.getObjectId(0), path.path, parseDescriptor).either.runNow match {
+          case Left(err)  => logger.error(s"Error with category at path: '${path.path}', it will be ignored. Error: ${err.fullMsg}")
+          case Right(cat) => maybeCategories.update(cat.id, cat)
+        }
       }
 
       val toRemove = new collection.mutable.HashSet[SubTechniqueCategoryId]()
@@ -586,7 +591,7 @@ class GitTechniqueReader(
       catId match {
         case RootTechniqueCategoryId =>
           val cat = techniquesInfo.rootCategory.getOrElse(
-              throw new RuntimeException("Can not find the parent (root) category %s for package %s".format(descriptorFile.getParent, TechniqueId))
+              throw new RuntimeException(s"Can not find the parent (root) category '${descriptorFile.getParent}' for package '${techniqueId.toString()}'")
           )
           techniquesInfo.rootCategory = Some(cat.copy(techniqueIds = cat.techniqueIds + techniqueId ))
           true
@@ -597,7 +602,7 @@ class GitTechniqueReader(
               techniquesInfo.subCategories(sid) = cat.copy(techniqueIds = cat.techniqueIds + techniqueId )
               true
             case None =>
-              logger.error("Can not find the parent category %s for package %s".format(descriptorFile.getParent, TechniqueId))
+              logger.error(s"Can not find the parent (root) category '${descriptorFile.getParent}' for package '${techniqueId.toString()}'")
               false
           }
       }

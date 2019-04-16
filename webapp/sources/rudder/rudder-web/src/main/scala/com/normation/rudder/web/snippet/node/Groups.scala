@@ -91,25 +91,12 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
   private[this] var boxGroupLib = getFullGroupLibrary().toBox
 
   val mainDispatch = {
-    RudderConfig.configService.rudder_workflow_enabled.toBox match {
-      case Full(workflowEnable) =>
-        Map(
-            "head" -> head _
-          , "detailsPopup" ->   { _ : NodeSeq =>  NodeGroupForm.staticBody }
-          , "initRightPanel" -> { _ : NodeSeq => initRightPanel }
-          , "groupHierarchy" -> groupHierarchy(boxGroupLib)
-        )
-      case eb: EmptyBox =>
-        val e = eb ?~! "Error when getting Rudder application configuration for workflow activation"
-        logger.error(s"Error when displaying groups : ${e.messageChain}")
-        Map(
-            "head" -> { _:NodeSeq => NodeSeq.Empty }
-          , "detailsPopup" ->  { _:NodeSeq => NodeSeq.Empty }
-          , "initRightPanel" -> { _: NodeSeq => NodeSeq.Empty  }
-          , "groupHierarchy" -> { _: NodeSeq => <div class="error">{e.msg}</div> }
-        )
-    }
-
+    Map(
+        "head" -> head _
+      , "detailsPopup" ->   { _ : NodeSeq =>  NodeGroupForm.staticBody }
+      , "initRightPanel" -> { _ : NodeSeq => initRightPanel }
+      , "groupHierarchy" -> groupHierarchy(boxGroupLib)
+    )
   }
 
   //the current nodeGroupCategoryForm component
@@ -137,10 +124,11 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
    * @param html
    * @return
    */
-  def groupHierarchy(rootCategory: Box[FullNodeGroupCategory]) : CssSel = (
+  def groupHierarchy(rootCategory: Box[FullNodeGroupCategory]) : CssSel = {
+    (
       "#groupTree" #> buildGroupTree("")
     & "#newItem"   #> groupNewItem
-  )
+  )}
 
   def groupNewItem() : NodeSeq = {
       SHtml.ajaxButton("Create", () => showPopup, ("class","btn btn-success new-icon pull-right"))

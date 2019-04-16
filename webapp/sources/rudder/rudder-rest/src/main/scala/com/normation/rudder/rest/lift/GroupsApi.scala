@@ -105,6 +105,7 @@ class GroupsApi(
     val schema = API.GroupDetails
     val restExtractor = restExtractorService
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      println("****** in API.GroupDetails")
       serviceV2.groupDetails(id, req, version)
     }
   }
@@ -438,7 +439,7 @@ class GroupApiService2 (
   def groupDetails(id:String, req:Req, apiVersion: ApiVersion) = {
     implicit val action = "groupDetails"
     implicit val prettify = restExtractor.extractPrettify(req.params)
-
+    println("****** Read group never ending ?")
     readGroup.getNodeGroup(NodeGroupId(id)).toBox match {
       case Full((group,_)) =>
         val jsonGroup = List(serializeGroup(group,None,apiVersion))

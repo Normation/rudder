@@ -15,6 +15,7 @@ import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 
 import com.normation.box._
+import com.normation.zio._
 
 class SendMetricsPopup extends DispatchSnippet with Loggable {
 
@@ -77,7 +78,9 @@ class SendMetricsPopup extends DispatchSnippet with Loggable {
                   val modId = ModificationId(uuidGen.newUuid)
                   val actor = CurrentUser.actor
                   val property = RudderWebProperty(RudderWebPropertyName("send_server_metrics"),"none","")
-                    eventLogRepo.saveModifyGlobalProperty(modId, actor, property, property, ModifySendServerMetricsEventType, Some("Ask later for 'send metrics' value"))
+                    eventLogRepo.saveModifyGlobalProperty(modId, actor, property, property, ModifySendServerMetricsEventType, Some("Ask later for 'send metrics' value")).either.runNow.swap.foreach { err =>
+                      logger.error(s"Error when updating the status of Rudder configuration parameter: '${property.name}'. Error was: ${err.fullMsg}")
+                    }
                     JsRaw(s"""$$("#sendMetricsPopup").bsModal('hide')""")
 
               }

@@ -179,7 +179,9 @@ class RoLDAPNodeGroupRepository(
   def getNodeGroup(id: NodeGroupId): IOResult[(NodeGroup, NodeGroupCategoryId)] = {
     for {
       con     <- ldap
+      _ <- logPure.error("******* here, before read lock")
       sgEntry <- groupLibMutex.readLock { getSGEntry(con, id) }.notOptional(s"Error when retrieving the entry for NodeGroup '${id.value}")
+      _ <- logPure.error("******* here, after read lock")
       sg      <- mapper.entry2NodeGroup(sgEntry).toIO.chainError("Error when mapping server group entry to its entity. Entry: %s".format(sgEntry))
     } yield {
       //a group parent entry is its parent category
