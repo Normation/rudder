@@ -1,7 +1,9 @@
-a{
+a,
+.btn{
   outline: none !important;
   text-decoration: none !important;
 }
+
 .rudder-text-warning{
   color:#E07702;
 }
@@ -716,7 +718,6 @@ span.text-fit {
 #methods .btn-method .classic-icon{
   top: 1px;
 }
-
 .btn.dsc-filter{
   padding-right: 32px;
   color: #440e62;
@@ -739,9 +740,6 @@ span.text-fit {
   background-color: #440e62;
   color: #fff;
   border-color: #290041;
-}
-.btn.dsc-filter.active .dsc-icon{
-  background-image: url("dsc-icon-white.svg");
 }
 .title + h3 .dsc-icon{
   position: relative;
@@ -782,13 +780,32 @@ input[type=checkbox].form-control {
   height: auto;
   width: auto;
 }
-
-.deprecated-icon{
-  color:#f08004;
-  top: -6px;
-  left: -2px;
-  font-size: 0.6em !important;
+.tooltip-icon{
+  color :#3a7eb9;
   cursor: help;
+}
+.popover .description + .deprecated-info{
+  border-top: 1px solid #e5e5E5;
+  margin-top: 8px;
+  padding-top: 6px;
+}
+.deprecated-icon{
+  color:#f08004 !important;
+  opacity: 1 !important;
+}
+.panel-title .tooltip-icon,
+.method-name .tooltip-icon{
+  font-size: 14px !important;
+}
+h3 .tooltip-icon{
+  font-size: 16px !important;
+}
+#methods > li .tooltip-icon{
+  opacity: 0;
+  transition-duration: .2s;
+}
+#methods > li:hover .tooltip-icon{
+  opacity: 1;
 }
 .cursor-help{
   cursor: help;
@@ -798,7 +815,7 @@ label.form-control .deprecated-icon{
   cursor: inherit;
 }
 .popover{
-  max-width: 400px;
+  max-width: 450px;
 }
 .popover-content b{
   color: #f08004;
@@ -814,7 +831,7 @@ label.form-control .deprecated-icon{
   left: 0;
   top: -3px;
 }
-#methodBlock h3 > .deprecated-icon{
+#methodBlock h3 > .tooltip-icon{
   left: -4px;
   top: -8px;
 }
