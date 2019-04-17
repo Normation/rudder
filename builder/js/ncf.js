@@ -182,7 +182,7 @@ app.directive('popover', function() {
 });
 
 // Declare controller ncf-builder
-app.controller('ncf-builder', function ($scope, $uibModal, $http, $log, $location, $anchorScroll, ngToast, $timeout, focus) {
+app.controller('ncf-builder', function ($scope, $uibModal, $http, $log, $location, $anchorScroll, ngToast, $timeout, focus, $sce) {
   initScroll();
   // Variable we use in the whole application
   // Give access to the "General information" form
@@ -1311,6 +1311,17 @@ $scope.onImportFileChange = function (fileEl) {
     }
   return false;
   };
+
+  $scope.getTooltipContent = function(method){
+    var description = "";
+    var deprecatedMessage = "";
+    description = $scope.getMethodDescription(method)!= "" ? "<div class='description'>"+$scope.getMethodDescription(method)+"</div>" : "";
+    if(method.deprecated || $scope.isDeprecated(method.method_name)){
+      deprecatedMessage = "<div class='deprecated-info'><div>This generic method is <b>deprecated</b>.</div> <div class='deprecated-message'><b>↳</b>"+method.deprecated+"</div></div>";
+    }
+    var tooltipContent = "<div>" + description + deprecatedMessage + "</div>";
+    return $sce.trustAsHtml(tooltipContent);
+  }
 
   $scope.reloadData();
   $scope.setPath();
