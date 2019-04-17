@@ -17,7 +17,8 @@ except:
   pass
 
 try:
-  requests.packages.urllib3.disable_warnings()
+  from requests.packages import urllib3
+  urllib3.disable_warnings()
 except:
   pass
 
