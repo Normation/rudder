@@ -136,8 +136,6 @@ endif
 # Quality
 
 lint:
-	find relay-api/relay_api -name '*.py' | xargs pylint -E --disable=C,R --persistent=n
-	pylint -E --disable=C,R --persistent=n rudder-pkg
 	cd relayd && RUSTFLAGS="-D warnings" cargo clippy --all-targets --examples --tests -- -D clippy::all
 
 check: lint
