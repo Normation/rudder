@@ -508,13 +508,58 @@ input.form-control.ng-invalid.ng-dirty:focus{
 }
 #technique-name{
   position: relative;
-  padding-right: 150px;
+  padding-right: 100px;
 }
 #technique-name .btn-technique{
   position: absolute;
   right: 0;
   bottom: 0;
 }
+
+#technique-name .btn-technique .dropdown-menu{
+  left: auto;
+  right: -10px;
+  border: 1px solid #dddddd;
+  overflow: hidden;
+}
+
+#technique-name .btn-technique .dropdown-menu > li > a{
+  font-size: 14px;
+  padding: 10px;
+  transition-duration: .2s;
+}
+
+#technique-name .btn-technique .dropdown-menu > li:nth-child(1) > a{
+  color: #9bc832;
+}
+#technique-name .btn-technique .dropdown-menu > li:nth-child(1) > a:hover{
+  color: #fff;
+  background-color: #9bc832;
+  border-color: #8fb92a;
+}
+#technique-name .btn-technique .dropdown-menu > li:nth-child(2) > a{
+  color: #337ab7;
+}
+#technique-name .btn-technique .dropdown-menu > li:nth-child(2) > a:hover{
+  color: #fff;
+  background-color: #337ab7;
+  border-color: #2e6da4;
+}
+#technique-name .btn-technique .dropdown-menu > li:nth-child(3) > a{
+  color: #d43f3a;
+}
+#technique-name .btn-technique .dropdown-menu > li:nth-child(3) > a:hover{
+  color: #fff;
+  background-color: #d9534f;
+  border-color: #d43f3a;
+}
+#technique-name .btn-technique .dropdown-menu > li > a > i{
+  margin-left: 6px;
+}
+#technique-name .btn-technique .dropdown-menu .divider{
+  margin: 0px;
+}
+
 .jumbotron h1{
   padding-bottom: 5px;
   border-bottom: 2px solid #f08004;
