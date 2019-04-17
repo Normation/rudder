@@ -59,6 +59,7 @@ build: man relay-api/virtualenv/virtualenv.py
 	cd relay-api && for i in easy_install python pip; do rm -f flask/bin/$${i}*; done
 	# Build relayd
 	cd relayd && cargo build --release --bin rudder-relayd
+	strip --strip-all relayd/target/release/rudder-relayd
 
 ifeq ($(SELINUX),true)
 	# Build SELinux policy package
