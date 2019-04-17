@@ -21,6 +21,9 @@
 RUDDER_VERSION_TO_PACKAGE =
 VIRTUALENV_RELEASE = 16.0.0
 VIRTUALENV_SHA256 = ca07b4c0b54e14a91af9f34d0919790b016923d157afda5efdde55c96718f752
+RUST_RELEASE = 1.34.0
+RUST_PACKAGE = rust-$(RUST_RELEASE)-x86_64-unknown-linux-gnu
+RUST_SHA256 = 170647ed41b497dc937a6b2556700210bc4be187b1735029ef9ccf52e2cb5ab8
 
 PROXY_ENV = $(if $(PROXY), http_proxy=$(PROXY))
 # Usage: $(GET) <destination_file> <url> <hash>
@@ -32,6 +35,14 @@ GET=get() { $(PROXY_ENV) curl -s -L -o "$$1.part" "$$2" && { openssl dgst -sha25
 
 DESTDIR = $(CURDIR)/target
 APACHE_VHOSTDIR = apache2/sites-available
+
+$(RUST_PACKAGE).tar.gz:
+	$(GET) $(RUST_PACKAGE).tar.gz https://repository.rudder.io/build-dependencies/rust/$(RUST_PACKAGE).tar.gz $(RUST_SHA256)
+
+/usr/local/bin/cargo: $(RUST_PACKAGE).tar.gz
+	rm -rf $(RUST_PACKAGE)
+	tar -xzf $(RUST_PACKAGE).tar.gz
+	cd $(RUST_PACKAGE) && ./install.sh --components=cargo,rustc,rust-std-x86_64-unknown-linux-gnu
 
 relay-api/virtualenv.tgz:
 	# Original URL: https://pypi.python.org/packages/source/v/virtualenv/virtualenv-12.0.7.tar.gz
@@ -50,7 +61,7 @@ target/man/%: man/%.adoc
 target/man/%.gz: target/man/%
 	gzip -f $<
 
-build: man relay-api/virtualenv/virtualenv.py
+build: /usr/local/bin/cargo man relay-api/virtualenv/virtualenv.py
 	# Build virtualenv
 	cd relay-api && python virtualenv/virtualenv.py flask
 	# Get all requirements via pip
@@ -58,7 +69,7 @@ build: man relay-api/virtualenv/virtualenv.py
 	# Clean up unwanted binaries
 	cd relay-api && for i in easy_install python pip; do rm -f flask/bin/$${i}*; done
 	# Build relayd
-	cd relayd && cargo build --release --bin rudder-relayd
+	cd relayd && PATH="/usr/local/bin/:$$PATH" cargo build --release --bin rudder-relayd
 
 ifeq ($(SELINUX),true)
 	# Build SELinux policy package
@@ -150,7 +161,7 @@ check: lint
 clean:
 	rm -rf target relayd/target build install
 	rm -rf selinux/rudder-relay.pp
-	cd relayd && cargo clean
+	cd relayd && PATH="/usr/local/bin/:$$PATH" cargo clean
 
 veryclean: clean
 distclean: veryclean
