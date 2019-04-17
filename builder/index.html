@@ -24,17 +24,17 @@
         <script src="js/showdown-1.9.0.min.js?version=dev"></script>
         <script type="text/ng-template" id="deprecatedMethod.html">
           <div>
-            <div>This generic method is <b>deprecated</b>.</div>
             <!-- This template is used inside a tooltip, which appears : -->
 
             <!-- 1. In the general generic methods list -->
-            <div class="deprecated-message" ng-if="method_call === undefined && method"><b>↳</b> {{method.deprecated}}</div>
+            <div ng-if="method_call === undefined && method" ng-bind-html="getTooltipContent(method)"></div>
 
             <!-- 2. In the generic methods list of a technique -->
-            <div class="deprecated-message" ng-if="method_call"><b>↳</b> {{method_call.deprecated}}</div>
+            <div ng-if="method_call" ng-bind-html="getTooltipContent(method_call)"></div>
 
             <!-- 3. In the details of a selected generic method -->
-            <div class="deprecated-message" ng-if="method_call === undefined && selectedMethod"><b>↳</b> {{selectedMethod.deprecated}}</div>
+            <div ng-if="method_call === undefined && selectedMethod" ng-bind-html="getTooltipContent(selectedMethod)"></div>
+
           </div>
         </script>
         <script type="text/ng-template" id="deprecatedCategory.html">
@@ -189,7 +189,7 @@
                       popover-trigger="mouseenter"
                       popover-append-to-body="true"
                       >
-                        <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
+                        <i class="glyphicon glyphicon-info-sign deprecated-icon"></i>
                       </span>
                     </li>
                     <div class="empty" ng-if="techniques.length<=0">
@@ -356,20 +356,11 @@
                                     {{method_call.component}}
                                     <span
                                       class="cursor-help"
-                                      ng-if="(method_call.deprecated || isDeprecated(method_call.method_name))"
                                       uib-popover-template="'deprecatedMethod.html'"
                                       popover-title="{{getMethodName(method_call)}}"
                                       popover-trigger="mouseenter"
                                       popover-append-to-body="true">
-                                      <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
-                                    </span>
-                                    <span
-                                      class="cursor-help"
-                                      popover-title="{{getMethodName(method_call)}}"
-                                      uib-popover="{{getMethodDescription(method_call)}}"
-                                      popover-trigger="mouseenter"
-                                      popover-append-to-body="true">
-                                      <i class="glyphicon glyphicon-info-sign text-primary method-action cursor-help"></i>
+                                      <i class="glyphicon glyphicon-info-sign tooltip-icon" ng-class="{'deprecated-icon':(method_call.deprecated || isDeprecated(method_call.method_name))}"></i>
                                     </span>
                                   </div>
                                   <span class="input-group-addon method-actions"  ng-if="method_call.class_context === 'any'">
@@ -424,18 +415,15 @@
                 <div>
                     <div class="title">Method</div>
                     <h3 >{{getMethodName(selectedMethod)}}
-                        <span class="cursor-help" ng-if="isDeprecated(selectedMethod.method_name)"
-                              popover-title="{{getMethodName(selectedMethod)}}" uib-popover-template="'deprecatedMethod.html'"
-                              popover-placement="bottom" popover-trigger="mouseenter" popover-append-to-body="true">
-                          <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
-                        </span>
-                        <span class="cursor-help"
+                        <span
+                        class="cursor-help"
                         popover-title="{{getMethodName(selectedMethod)}}"
-                        uib-popover="{{getMethodDescription(selectedMethod)}}"
+                        uib-popover-template="'deprecatedMethod.html'"
                         popover-placement="bottom"
                         popover-trigger="mouseenter"
                         popover-append-to-body="true"
-                        ><i class="glyphicon glyphicon-info-sign text-primary method-action cursor-help"></i>
+                        >
+                          <i class="glyphicon glyphicon-info-sign tooltip-icon" ng-class="{'deprecated-icon':(selectedMethod.deprecated || isDeprecated(selectedMethod.method_name))}"></i>
                         </span>
                         <i class="{{getIconClassByAgentType(selectedMethod.method_name)}}"></i>
                         <button class="btn btn-default pull-right top-margin" ng-click="selectMethod(selectedMethod)">Close <i class="fas fa-times"></i></button>
@@ -579,7 +567,7 @@
                                 Classic <i class="glyphicon glyphicon-cog classic-icon"></i>
                               </button>
                               <button class="btn btn-default dsc-filter" ng-class="{active:filter.compatibility == 'dsc'}" ng-click="filter.compatibility='dsc'">
-                                DSC <img src="ncf-builder/css/dsc-icon.svg" class="dsc-icon"/>
+                                DSC <img ng-src="{{filter.compatibility == 'dsc' ? 'ncf-builder/css/dsc-icon-white.svg' : 'ncf-builder/css/dsc-icon.svg'}}" class="dsc-icon"/>
                               </button>
                             </div>
                           </div>
@@ -588,7 +576,7 @@
                               <input id="showDeprecated" type="checkbox" class="form-control" ng-model="filter.showDeprecated"/>
                             </div>
                             <label for="showDeprecated" class="form-control">
-                              Show deprecated generic methods <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
+                              Show deprecated generic methods <i class="glyphicon glyphicon-info-sign deprecated-icon"></i>
                               <i class="glyphicon glyphicon-ok pull-right" ng-if="filter.showDeprecated"></i>
                             </label>
                           </div>
@@ -615,11 +603,8 @@
                                   <span class="cursor-help" ng-if="method.deprecated"
                                         popover-title="{{method.name}}" uib-popover-template="'deprecatedMethod.html'"
                                         popover-placement="bottom" popover-trigger="mouseenter" popover-append-to-body="true">
-                                    <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
+                                    <i class="glyphicon glyphicon-info-sign tooltip-icon deprecated-icon"></i>
                                   </span>
-                                  <a ng-click="$event.stopPropagation();" target="_blank" ng-href="{{methodUrl(method)}}">
-                                    <i class="glyphicon glyphicon-info-sign text-primary method-action"></i>
-                                  </a>
                                 </span>
                                 <img src="ncf-builder/css/dsc-icon.svg" class="dsc-icon" ng-if="checkAgentSupport(method,'dsc')">
                                 <i class="glyphicon glyphicon-cog classic-icon" ng-if="checkAgentSupport(method,'cfengine-community')"></i>
@@ -653,7 +638,7 @@
                           popover-trigger="hover"
                           popover-append-to-body="true"
                           >
-                            <i class="glyphicon glyphicon-exclamation-sign deprecated-icon"></i>
+                            <i class="glyphicon glyphicon-info-sign deprecated-icon"></i>
                           </span>
                         </a>
                     </li>
