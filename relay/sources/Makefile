@@ -45,7 +45,7 @@ man: target/man/rudder-relayd.1.gz;
 
 target/man/%: man/%.adoc
 	mkdir -p target/man
-	a2x -D target/man --doctype manpage --format manpage $<
+	a2x -D target/man --no-xmllint --doctype manpage --format manpage $<
 
 target/man/%.gz: target/man/%
 	gzip -f $<
