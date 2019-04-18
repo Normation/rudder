@@ -19,6 +19,7 @@
 .DEFAULT_GOAL := build
 
 RUDDER_VERSION_TO_PACKAGE =
+RUDDER_MAJOR_VERSION := $(shell echo ${RUDDER_VERSION_TO_PACKAGE} | cut -d'.' -f 1-2)
 VIRTUALENV_RELEASE = 16.0.0
 VIRTUALENV_SHA256 = ca07b4c0b54e14a91af9f34d0919790b016923d157afda5efdde55c96718f752
 
@@ -41,14 +42,18 @@ relay-api/virtualenv/virtualenv.py: relay-api/virtualenv.tgz
 	cd relay-api && tar -xzf ./virtualenv.tgz
 	cd relay-api && mv ./virtualenv-$(VIRTUALENV_RELEASE)/ virtualenv/
 
+man-source: target/man-source/rudder-relayd.1;
+
+target/man-source/%: man/%.adoc
+	mkdir -p target/man-source
+	asciidoctor -D target/man-source -b manpage $<
+
 man: target/man/rudder-relayd.1.gz;
 
-target/man/%: man/%.adoc
-	mkdir -p target/man
-	a2x -D target/man --no-xmllint --doctype manpage --format manpage $<
-
-target/man/%.gz: target/man/%
-	gzip -f $<
+target/man/rudder-relayd.1.gz:
+	mkdir -p target/man/
+	$(GET) target/man/rudder-relayd.1 https://docs.rudder.io/man/${RUDDER_MAJOR_VERSION}/rudder-relayd.1 ""
+	gzip -f target/man/rudder-relayd.1
 
 build: man relay-api/virtualenv/virtualenv.py
 	# Build virtualenv
