@@ -36,6 +36,13 @@ import scalaz.zio.syntax._
 object LdapLockLogger extends NamedZioLogger {
   override def loggerName: String = "ldap-rw-lock"
 }
+
+trait ScalaReadWriteLock {
+  def readLock  : ScalaLock
+  def writeLock : ScalaLock
+
+}
+
 /**
  * Pimp^Wextend my Java Lock
  */
@@ -44,41 +51,68 @@ trait ScalaLock {
   def unlock(): Unit
   def clock: Clock
 
-  def apply[T](name: String)(block: => IOResult[T]): IOResult[T] = ZIO.bracket(
-    LdapLockLogger.logPure.error("Get lock") *>
-    LdapLockLogger.logPure.error(Thread.currentThread().getStackTrace.mkString("\n")) *>
-    IO.effect(this.lock()).timeout(Duration.Finite(100*1000*1000 /* ns */))
-      .mapError(ex => SystemError(s"Error when trying to get LDAP lock", ex))
-  )(_ =>
-    LdapLockLogger.logPure.error("Release lock") *>
-    IO.effect(this.unlock()).run.void
-  )(_ =>
-    LdapLockLogger.logPure.error("Do things in lock") *>
-    block
-  ).provide(clock)
+  def name: String
+
+  def apply[T](block: => IOResult[T]): IOResult[T] = {
+    println(s"***** calling lock '${name}'")
+    ZIO.bracket(
+      LdapLockLogger.logPure.error(s"Get lock '${name}'") *>
+      LdapLockLogger.logPure.error(Thread.currentThread().getStackTrace.mkString("\n")) *>
+      IO.effect(this.lock()).timeout(Duration.Finite(100*1000*1000 /* ns */))
+        .mapError(ex => SystemError(s"Error when trying to get LDAP lock", ex))
+    )(_ =>
+      LdapLockLogger.logPure.error("Release lock") *>
+      IO.effect(this.unlock()).run.void
+    )(_ =>
+      LdapLockLogger.logPure.error("Do things in lock") *>
+      block
+    ).provide(clock)
+  }
 }
 
-trait ScalaReadWriteLock {
 
-  def readLock  : ScalaLock
-  def writeLock : ScalaLock
-
-}
 
 object ScalaLock {
   import java.util.concurrent.locks.Lock
   import language.implicitConversions
 
 
-  implicit def java2ScalaLock(javaLock:Lock) : ScalaLock = new ScalaLock {
+  protected def java2ScalaLock(name: String, javaLock: Lock) : ScalaLock = new ScalaLock {
     override def lock() = javaLock.lock()
     override def unlock() = javaLock.unlock()
     override def clock = ZioRuntime.Environment
+    override def name: String = name
   }
 
-  implicit def java2ScalaRWLock(lock:ReadWriteLock) : ScalaReadWriteLock = new ScalaReadWriteLock {
-    override def readLock = lock.readLock
-    override def writeLock = lock.writeLock
+  protected def pureZioSemaphore(name: String, javaLock: Lock) : ScalaLock = new ScalaLock {
+    val semaphore = Semaphore.make(1)
+    override def lock(): Unit = ()
+    override def unlock(): Unit = ()
+    override def clock: Clock = ZioRuntime.Environment
+    override def name: String = name
+    override def apply[T](block: => IOResult[T]): IOResult[T] = {
+      for {
+        sem  <- semaphore
+        _    <- LdapLockLogger.error(s"*****zio** wait for lock '${name}'")
+        exec <- sem.withPermit(block)
+        _    <- LdapLockLogger.error(s"*****zio** done lock '${name}'")
+      } yield (exec)
+    }
+  }
+
+  protected def noopLock(name: String, javaLock: Lock) : ScalaLock = new ScalaLock {
+    val semaphore = Semaphore.make(1)
+    override def lock(): Unit = ()
+    override def unlock(): Unit = ()
+    override def clock: Clock = ZioRuntime.Environment
+    override def name: String = name
+    override def apply[T](block: => IOResult[T]): IOResult[T] = block
+  }
+
+  def java2ScalaRWLock(name: String, lock: ReadWriteLock) : ScalaReadWriteLock = new ScalaReadWriteLock {
+    override def readLock = noopLock(name, lock.readLock)
+    // for now, even setting a simple semaphore lead to dead lock (most likelly because not re-entrant)
+    override def writeLock = noopLock(name, lock.writeLock)
   }
 
 }

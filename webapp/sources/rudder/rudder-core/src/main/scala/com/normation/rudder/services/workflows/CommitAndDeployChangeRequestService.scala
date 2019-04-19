@@ -230,7 +230,10 @@ class CommitAndDeployChangeRequestServiceImpl(
         }
       }
       def failureMessage(directive : Directive)  = s"Rule ${directive.name} (id: ${directive.id.value})"
-      def getCurrentValue(directive : Directive) = roDirectiveRepo.getDirective(directive.id).toBox
+      def getCurrentValue(directive : Directive) = roDirectiveRepo.getDirective(directive.id).toBox.flatMap {
+        case None => Empty
+        case Some(dir) => Full(dir)
+      }
       def compareMethod(initial:Directive, current:Directive) = compareDirectives(initial,current)
       def xmlSerialize(directive : Directive) = {
         directiveContext.map{

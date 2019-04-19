@@ -77,7 +77,7 @@ class LogEventOnTechniqueReloadCallback(
     eventLogRepos.saveEventLog(modId, ReloadTechniqueLibrary(EventLogDetails(
         modificationId = None
       , principal      = actor
-      , details        = ReloadTechniqueLibrary.buildDetails(techniqueMods)
+      , details        = ReloadTechniqueLibrary.buildDetails(gitRev, techniqueMods)
       , reason = reason
     ))).chainError("Error when saving event log for techniques library reload").void.toBox
   }

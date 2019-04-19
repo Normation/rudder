@@ -207,7 +207,7 @@ case class RestExtractorService (
     Full(NodeGroupCategoryId(value))
   }
   private[this] def toDirectiveId (value:String) : Box[DirectiveId] = {
-    readDirective.getDirective(DirectiveId(value)).map(_.id).toBox ?~ s"Directive '$value' not found"
+    readDirective.getDirective(DirectiveId(value)).notOptional(s"Directive '$value' not found").map(_.id).toBox
   }
 
   private[this] def toApiAccountId (value:String) : Box[ApiAccountId] = {

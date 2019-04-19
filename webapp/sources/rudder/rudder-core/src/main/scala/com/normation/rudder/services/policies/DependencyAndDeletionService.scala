@@ -402,14 +402,22 @@ class DependencyAndDeletionServiceImpl(
         //group by target, and check if target is enable
         ZIO.foreach(enabledCr.groupBy { case (rule,id) => id }) { case (id, seq) =>
           for {
-            res <- roDirectiveRepository.getActiveTechniqueAndDirective(id).chainError(s"Error when retrieving directive with ID ${id.value}''")
+            optPair <- roDirectiveRepository.getActiveTechniqueAndDirective(id).chainError(s"Error when retrieving directive with ID ${id.value}'")
+            // here, if we don't have a directive for the ID, we assume it's a directive that was
+            // deleted but not cleanly removed everywhere.
+            res     <- optPair match {
+                         case None =>
+                           logPure.warn(s"Directive with id '${id.value}' is referenced in rules with names: '${seq.map(r =>r._1.name).mkString("','")}' but it was not found. Perhaps these rules should be updated (saved again).") *>
+                           Seq().succeed
+                         case Some((activeTechnique, directive)) =>
+                           if(directive.isEnabled && activeTechnique.isEnabled) {
+                             seq.map { case(rule, _) => rule }.succeed
+                           } else {
+                             Seq().succeed
+                           }
+                         }
           } yield {
-            val (activeTechnique, directive) = res
-            if(directive.isEnabled && activeTechnique.isEnabled) {
-              seq.map { case(id,_) => id }
-            } else {
-              Seq()
-            }
+            res
           }
         }.map( _.flatten )
     }

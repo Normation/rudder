@@ -368,8 +368,12 @@ class InternalLDAPQueryProcessor(
           case Or  =>
             Some(OR( ((ldapFilters /: filterSeqSet)( _ union _ )).toSeq:_*))
           case And => //if returnFilter is None, just and other filter, else add it. TODO : may it be empty ?
-            val seqFilter = ldapFilters.toSeq ++
-                filterSeqSet.map(s => if(s.size > 1) OR(s.toSeq:_*) else s.head ) //s should not be empty, since we returned earlier if it was the case
+            val seqFilter = ldapFilters.toSeq ++ filterSeqSet.flatMap(s => s.size match {
+                  case n if n < 1 => None
+                  case 1          => Some(s.head)
+                  case _          => Some(OR(s.toSeq:_*))
+                })
+
             seqFilter.size match {
               case x if x < 1 => None
               case 1 => Some(seqFilter.head)

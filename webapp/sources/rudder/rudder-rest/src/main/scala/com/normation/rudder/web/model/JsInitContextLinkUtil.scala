@@ -154,8 +154,10 @@ class LinkUtil (
 
   def createDirectiveLink(id:DirectiveId) = {
     roDirectiveRepository.getDirective(id).either.runNow match {
-      case Right(directive) => <span> <a href={baseDirectiveLink(id)}>{directive.name}</a> (Rudder ID: {id.value})</span>
-      case Left(err)        =>
+      case Right(Some(directive)) => <span> <a href={baseDirectiveLink(id)}>{directive.name}</a> (Rudder ID: {id.value})</span>
+      case Right(None)            =>
+        <span> {id.value} </span>
+      case Left(err)              =>
         logger.error(s"Could not find Directive with Id ${id.value}. Error was: ${err.fullMsg}")
         <span> {id.value} </span>
     }

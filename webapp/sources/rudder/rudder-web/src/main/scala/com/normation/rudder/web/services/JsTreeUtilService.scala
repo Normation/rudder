@@ -90,7 +90,7 @@ class JsTreeUtilService(
 
     // get the Directive, log on error
     def getPi(id:DirectiveId,logger:Logger) : Option[Directive] = directiveRepository.getDirective(id).toBox match {
-      case Full(directive) => Some(directive)
+      case Full(directive) => directive
       case e:EmptyBox =>
         logger.error("Error while fetching node %s".format(id), e?~! "Error message was:")
         None

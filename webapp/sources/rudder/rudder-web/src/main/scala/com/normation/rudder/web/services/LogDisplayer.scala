@@ -145,7 +145,11 @@ class LogDisplayer(
     val ruleMap = mutable.Map[RuleId, String]()
 
     def getDirectiveName(directiveId : DirectiveId) : String = {
-      directiveMap.get(directiveId).getOrElse({val result = directiveRepository.getDirective(directiveId).map(_.name).toBox.openOr(directiveId.value); directiveMap += ( directiveId -> result); result } )
+      directiveMap.getOrElse(directiveId, {
+        val result = directiveRepository.getDirective(directiveId).map(_.map(_.name).getOrElse(directiveId.value) ).toBox.openOr(directiveId.value)
+        directiveMap += ( directiveId -> result)
+        result
+      })
     }
 
     def getRuleName(ruleId : RuleId) : String = {

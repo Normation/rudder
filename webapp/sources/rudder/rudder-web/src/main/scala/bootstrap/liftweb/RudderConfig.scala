@@ -1136,10 +1136,10 @@ object RudderConfig extends Loggable {
   )
   ////////////// MUTEX FOR rwLdap REPOS //////////////
 
-  private[this] lazy val uptLibReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
-  private[this] lazy val groupLibReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
-  private[this] lazy val nodeReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
-  private[this] lazy val parameterReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
+  private[this] lazy val uptLibReadWriteMutex = ScalaLock.java2ScalaRWLock("directive-lock", new java.util.concurrent.locks.ReentrantReadWriteLock(true))
+  private[this] lazy val groupLibReadWriteMutex = ScalaLock.java2ScalaRWLock("group-lock", new java.util.concurrent.locks.ReentrantReadWriteLock(true))
+  private[this] lazy val nodeReadWriteMutex = ScalaLock.java2ScalaRWLock("node-lock", new java.util.concurrent.locks.ReentrantReadWriteLock(true))
+  private[this] lazy val parameterReadWriteMutex = ScalaLock.java2ScalaRWLock("parameter-lock", new java.util.concurrent.locks.ReentrantReadWriteLock(true))
 
   private[this] lazy val roLdapDirectiveRepository = new RoLDAPDirectiveRepository(
         rudderDitImpl, roLdap, ldapEntityMapper, techniqueRepositoryImpl, uptLibReadWriteMutex)

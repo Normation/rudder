@@ -122,7 +122,7 @@ class RemoveNodeServiceImpl(
     , nodeInfoService           : NodeInfoService
     , fullNodeRepo              : LDAPFullInventoryRepository
     , actionLogger              : EventLogRepository
-    , groupLibMutex             : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
+    , nodeLibMutex              : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
     , nodeInfoServiceCache      : NodeInfoService with CachedRepository
     , nodeConfigurationsRepo    : UpdateExpectedReportsRepository
     , pathComputer              : PathComputer
@@ -203,7 +203,7 @@ class RemoveNodeServiceImpl(
         case a : HookReturnCode.Error => Full(PreHookFailed(a))
         case _ =>
           for {
-            moved  <- groupLibMutex.writeLock {atomicDelete(nodeId, modId, actor) }.toBox ?~! "Error when deleting a node"
+            moved  <- nodeLibMutex.writeLock {atomicDelete(nodeId, modId, actor) }.toBox ?~! "Error when deleting a node"
             closed <- nodeConfigurationsRepo.closeNodeConfigurations(nodeId)
 
             invLogDetails = InventoryLogDetails (nodeInfo.id,nodeInfo.inventoryDate, nodeInfo.hostname, nodeInfo.osDetails.fullName, actor.name)

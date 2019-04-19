@@ -110,36 +110,48 @@ class RoLDAPDirectiveRepository(
    * Full((parent,directive)) : found the directive (directive.id == directiveId) in given parent
    *.fail => an error happened.
    */
-  override def getDirective(id:DirectiveId) : IOResult[Directive] = {
+  override def getDirective(id:DirectiveId) : IOResult[Option[Directive]] = {
     userLibMutex.readLock(for {
       con       <- ldap
-      piEntry   <- getDirectiveEntry(con, id).notOptional(s"Can not find directive with id '${id.value}'")
-      directive <- mapper.entry2Directive(piEntry).chainError("Error when transforming LDAP entry into a directive for id %s. Entry: %s".format(id, piEntry)).toIO
+      optEntry  <- getDirectiveEntry(con, id)
+      directive <- optEntry match {
+                     case Some(entry) => mapper.entry2Directive(entry).map(e => Some(e)).chainError("Error when transforming LDAP entry into a directive for id %s. Entry: %s".format(id, entry)).toIO
+                     case None => None.succeed
+                   }
     } yield {
       directive
     })
   }
 
-  override def getDirectiveWithContext(directiveId:DirectiveId) : IOResult[(Technique, ActiveTechnique, Directive)] = {
-    for {
-      dir                <- this.getActiveTechniqueAndDirective(directiveId).chainError(s"Error when retrieving directive with ID ${directiveId.value}''")
-      (activeTechnique
-           , directive     ) = dir
-      activeTechniqueId = TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)
-      technique         <- techniqueRepository.get(activeTechniqueId).notOptional(s"No Technique with ID='${activeTechniqueId.toString()}' found in reference library.")
-    } yield {
-      (technique, activeTechnique, directive)
+  override def getDirectiveWithContext(directiveId:DirectiveId) : IOResult[Option[(Technique, ActiveTechnique, Directive)]] = {
+    this.getActiveTechniqueAndDirective(directiveId).chainError(s"Error when retrieving directive with ID ${directiveId.value}''").flatMap {
+      case None    => None.succeed
+      case Some((activeTechnique, directive)) =>
+        val activeTechniqueId = TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)
+        for {
+          technique <- techniqueRepository.get(activeTechniqueId).notOptional(s"No Technique with ID='${activeTechniqueId.toString()}' found in reference library.")
+        } yield {
+          Some((technique, activeTechnique, directive))
+        }
     }
   }
 
-  def getActiveTechniqueAndDirectiveEntries(id:DirectiveId): IOResult[(LDAPEntry, LDAPEntry)] = {
+  /*
+   * For that method, we can optionnaly get a directive entry. But if we get one, not having a corresponding
+   * technique is an error
+   */
+  def getActiveTechniqueAndDirectiveEntries(id:DirectiveId): IOResult[Option[(LDAPEntry, LDAPEntry)]] = {
     userLibMutex.readLock(for {
       con      <- ldap
-      piEntry  <- getDirectiveEntry(con, id).notOptional(s"Can not find directive with id '${id.value}'")
-      uptEntry <- getUPTEntry(con, mapper.dn2ActiveTechniqueId(piEntry.dn.getParent), { id:ActiveTechniqueId => EQ(A_ACTIVE_TECHNIQUE_UUID, id.value) }).notOptional(
-                    "Can not find Active Technique entry in LDAP")
+      optEntry <- getDirectiveEntry(con, id)
+      pair     <- optEntry match {
+                    case None    => None.succeed
+                    case Some(dir) =>
+                      val atId = mapper.dn2ActiveTechniqueId(dir.dn.getParent)
+                      getUPTEntry(con, atId, { id:ActiveTechniqueId => EQ(A_ACTIVE_TECHNIQUE_UUID, id.value)}).notOptional(s"Can not find Active Technique entry '${atId.value}' in LDAP but directive with DN '${dir.dn}' exists: this is likely a bug, please report it.").map(at => Some((at, dir)))
+                  }
     } yield {
-      (uptEntry, piEntry)
+      pair
     })
   }
 
@@ -149,14 +161,16 @@ class RoLDAPDirectiveRepository(
    * Return empty if no such directive is known,
    * fails if no active technique match the directive.
    */
-  override def getActiveTechniqueAndDirective(id:DirectiveId) : IOResult[(ActiveTechnique, Directive)] = {
-    for {
-      entries <- getActiveTechniqueAndDirectiveEntries(id).chainError("Can not find Active Technique entry in LDAP")
-      (uptEntry, piEntry) = entries
-      activeTechnique     <- mapper.entry2ActiveTechnique(uptEntry).toIO.chainError("Error when mapping active technique entry to its entity. Entry: %s".format(uptEntry))
-      directive           <- mapper.entry2Directive(piEntry).toIO.chainError("Error when transforming LDAP entry into a directive for id %s. Entry: %s".format(id, piEntry))
-    } yield {
-      (activeTechnique, directive)
+  override def getActiveTechniqueAndDirective(id:DirectiveId) : IOResult[Option[(ActiveTechnique, Directive)]] = {
+    getActiveTechniqueAndDirectiveEntries(id).chainError("Can not find Active Technique entry in LDAP").flatMap {
+      case None => None.succeed
+      case Some((uptEntry, piEntry)) =>
+        for {
+          activeTechnique     <- mapper.entry2ActiveTechnique(uptEntry).toIO.chainError("Error when mapping active technique entry to its entity. Entry: %s".format(uptEntry))
+          directive           <- mapper.entry2Directive(piEntry).toIO.chainError("Error when transforming LDAP entry into a directive for id %s. Entry: %s".format(id, piEntry))
+        } yield {
+          Some((activeTechnique, directive))
+        }
     }
   }
 
@@ -585,8 +599,8 @@ class WoLDAPDirectiveRepository(
    * If the directive is already in the given technique,
    * update the directive.
    * If the directive is not in the system, add it.
-   *
-   * Returned the saved WBUserDirective
+   * If the directive is exactly the same, returns None diff.
+   * Returned the saved Directive
    */
   private[this] def internalSaveDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, modId: ModificationId, actor:EventActor, reason:Option[String], systemCall:Boolean) : IOResult[Option[DirectiveSaveDiff]] = {
     for {
@@ -606,14 +620,13 @@ class WoLDAPDirectiveRepository(
                          } else Unconsistancy(s"An other directive with the id '${directive.id.value}' exists in an other category that the one with id '${inActiveTechniqueId.value}}': ${otherPi.dn}}").fail
                      }
       // We have to keep the old rootSection to generate the event log
-      oldRootSection <- getActiveTechniqueAndDirective(directive.id).fold(
+      oldRootSection <- getActiveTechniqueAndDirective(directive.id).map {
                           // Directory did not exist before, this is a Rule addition.
-                          err => None
-                        , x => {
-                            val (oldActiveTechnique, oldDirective) = x
+                          case None => None
+                          case Some((oldActiveTechnique, oldDirective)) =>
                             val oldTechniqueId =  TechniqueId(oldActiveTechnique.techniqueName, oldDirective.techniqueVersion)
                             techniqueRepository.get(oldTechniqueId).map(_.rootSection)
-                        })
+                        }
       exists            <- directiveNameExists(con, directive.name, directive.id)
       nameIsAvailable    <- if (exists)
                               Unconsistancy(s"Cannot set directive with name '${directive.name}}' : this name is already in use.").fail
@@ -688,40 +701,42 @@ class WoLDAPDirectiveRepository(
    * delete dependent rule (or other items) by
    * hand if you want.
    */
-  override def delete(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[DeleteDirectiveDiff] = {
-    for {
-      con             <- ldap
-      //for logging, before deletion
-      atd             <- getActiveTechniqueAndDirectiveEntries(id)
-      (uptEntry
-      , entry  )      =  atd
-      activeTechnique <- mapper.entry2ActiveTechnique(uptEntry).chainError(s"Error when mapping active technique entry to its entity. Entry: ${uptEntry}").toIO
-      directive       <- mapper.entry2Directive(entry).chainError(s"Error when transforming LDAP entry into a directive for id '${id.value}'. Entry: ${entry}").toIO
-      okNotSystem     <- if(directive.isSystem) {
-                           s"Error: system directive (like '${directive.name} [id: ${directive.id.value}])' can't be deleted".fail
-                         } else {
-                           UIO.unit
-                         }
-      technique       <- techniqueRepository.get(TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion)).succeed
-      //delete
-      deleted         <- userLibMutex.writeLock { con.delete(entry.dn) }
-      diff            =  DeleteDirectiveDiff(activeTechnique.techniqueName, directive)
-      loggedAction    <- { //we can have a missing technique if the technique was deleted but not its directive. In that case, make a fake root section
-                           val rootSection = technique.map( _.rootSection).getOrElse(SectionSpec("Missing technique information"))
-                           actionLogger.saveDeleteDirective(
-                             modId, principal = actor, deleteDiff = diff, varsRootSectionSpec = rootSection, reason = reason
-                           )
-                         }
-      autoArchive     <- if (autoExportOnModify && deleted.size > 0 && !directive.isSystem) {
-                           for {
-                             parents  <- activeTechniqueBreadCrump(activeTechnique.id)
-                             commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                             archived <- gitPiArchiver.deleteDirective(directive.id, activeTechnique.techniqueName, parents.map( _.id), Some((modId, commiter, reason)))
-                           } yield archived
-                         } else UIO.unit
-    } yield {
-      diff
-    }
+  override def delete(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[DeleteDirectiveDiff]] = {
+    getActiveTechniqueAndDirectiveEntries(id).flatMap {
+      case None => // directive already deleted, do nothing
+        None.succeed
+      case Some((uptEntry, entry)) =>
+        for {
+          con             <- ldap
+          //for logging, before deletion
+          activeTechnique <- mapper.entry2ActiveTechnique(uptEntry).chainError(s"Error when mapping active technique entry to its entity. Entry: ${uptEntry}").toIO
+          directive       <- mapper.entry2Directive(entry).chainError(s"Error when transforming LDAP entry into a directive for id '${id.value}'. Entry: ${entry}").toIO
+          okNotSystem     <- if(directive.isSystem) {
+                               s"Error: system directive (like '${directive.name} [id: ${directive.id.value}])' can't be deleted".fail
+                             } else {
+                               UIO.unit
+                             }
+          technique       <- techniqueRepository.get(TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion)).succeed
+          //delete
+          deleted         <- userLibMutex.writeLock { con.delete(entry.dn) }
+          diff            =  DeleteDirectiveDiff(activeTechnique.techniqueName, directive)
+          loggedAction    <- { //we can have a missing technique if the technique was deleted but not its directive. In that case, make a fake root section
+                               val rootSection = technique.map( _.rootSection).getOrElse(SectionSpec("Missing technique information"))
+                               actionLogger.saveDeleteDirective(
+                                 modId, principal = actor, deleteDiff = diff, varsRootSectionSpec = rootSection, reason = reason
+                               )
+                             }
+          autoArchive     <- if (autoExportOnModify && deleted.size > 0 && !directive.isSystem) {
+                               for {
+                                 parents  <- activeTechniqueBreadCrump(activeTechnique.id)
+                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                 archived <- gitPiArchiver.deleteDirective(directive.id, activeTechnique.techniqueName, parents.map( _.id), Some((modId, commiter, reason)))
+                               } yield archived
+                             } else UIO.unit
+        } yield {
+          Some(diff)
+        }
+      }
   }
 
   /**

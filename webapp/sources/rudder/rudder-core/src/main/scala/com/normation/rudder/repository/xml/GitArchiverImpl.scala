@@ -321,7 +321,7 @@ class UpdatePiOnActiveTechniqueEvent(
 
     ZIO.foreach(activeTechnique.directives) { directiveId =>
       for {
-        directive            <- directiveRepository.getDirective(directiveId).chainError(s"Can not find directive with id '${directiveId.value}' in repository")
+        directive            <- directiveRepository.getDirective(directiveId).notOptional(s"Can not find directive with id '${directiveId.value}' in repository but it is viewed as a child of '${activeTechnique.id.value}'. This is likely a bug, please report it.")
         optDirectiveArchived <- ( if (directive.isSystem) {
                                   None.succeed
                                 } else {

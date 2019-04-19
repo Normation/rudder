@@ -115,8 +115,8 @@ class PolicyServerManagementServiceImpl(
     for {
       directive <- roDirectiveRepository.getDirective(Constants.buildCommonDirectiveId(policyServerId))
     } yield {
-      val allowedNetworks = directive.parameters.getOrElse(Constants.V_ALLOWED_NETWORK, List())
-      allowedNetworks
+      val allowedNetworks = directive.toList.flatMap(_.parameters.getOrElse(Constants.V_ALLOWED_NETWORK, List()))
+      allowedNetworks.toList
     }
   }.toBox
 
@@ -134,7 +134,7 @@ class PolicyServerManagementServiceImpl(
     }
 
     for {
-      res <- roDirectiveRepository.getActiveTechniqueAndDirective(directiveId).chainError(s"Error when retrieving directive with ID ${directiveId.value}''")
+      res <- roDirectiveRepository.getActiveTechniqueAndDirective(directiveId).notOptional(s"Error when retrieving system directive with ID ${directiveId.value}' which is mandatory for allowed networks configuration.")
       (activeTechnique, directive) = res
       newPi = directive.copy(parameters = directive.parameters + (Constants.V_ALLOWED_NETWORK -> validNets.map( _.toString)))
       msg = Some("Automatic update of system directive due to modification of accepted networks ")

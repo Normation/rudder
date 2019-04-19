@@ -138,9 +138,9 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   val directivesLib = NodeConfigData.directives
   val directivesRepos = new RoDirectiveRepository() {
     def getFullDirectiveLibrary() : IOResult[FullActiveTechniqueCategory] = directivesLib.succeed
-    def getDirective(directiveId:DirectiveId) : IOResult[Directive] = ???
-    def getDirectiveWithContext(directiveId:DirectiveId) : IOResult[(Technique, ActiveTechnique, Directive)] = ???
-    def getActiveTechniqueAndDirective(id:DirectiveId) : IOResult[(ActiveTechnique, Directive)] = ???
+    def getDirective(directiveId:DirectiveId) : IOResult[Option[Directive]] = ???
+    def getDirectiveWithContext(directiveId:DirectiveId) : IOResult[Option[(Technique, ActiveTechnique, Directive)]] = ???
+    def getActiveTechniqueAndDirective(id:DirectiveId) : IOResult[Option[(ActiveTechnique, Directive)]] = ???
     def getDirectives(activeTechniqueId:ActiveTechniqueId, includeSystem:Boolean = false) : IOResult[Seq[Directive]] = ???
     def getActiveTechniqueByCategory(includeSystem:Boolean = false) : IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
     def getActiveTechnique(id:ActiveTechniqueId) : IOResult[Option[ActiveTechnique]] = ???

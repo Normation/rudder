@@ -173,13 +173,13 @@ trait RoDirectiveRepository {
    * Full((parent,directive)) : found the directive (directive.id == directiveId) in given parent
    * Failure => an error happened.
    */
-  def getDirective(directiveId:DirectiveId) : IOResult[Directive]
+  def getDirective(directiveId:DirectiveId) : IOResult[Option[Directive]]
 
   /**
    * retrieve a Directive with its parent Technique and the
    * binding Active Technique
    */
-  def getDirectiveWithContext(directiveId:DirectiveId) : IOResult[(Technique, ActiveTechnique, Directive)]
+  def getDirectiveWithContext(directiveId:DirectiveId) : IOResult[Option[(Technique, ActiveTechnique, Directive)]]
 
   /**
    * Find the active technique for which the given directive is an instance.
@@ -187,7 +187,7 @@ trait RoDirectiveRepository {
    * Return empty if no such directive is known,
    * fails if no active technique match the directive.
    */
-  def getActiveTechniqueAndDirective(id:DirectiveId) : IOResult[(ActiveTechnique, Directive)]
+  def getActiveTechniqueAndDirective(id:DirectiveId) : IOResult[Option[(ActiveTechnique, Directive)]]
 
   /**
    * Get directives for given technique.
@@ -316,7 +316,7 @@ trait WoDirectiveRepository {
    *
    * System directive can't be deleted.
    */
-  def delete(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[DeleteDirectiveDiff]
+  def delete(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[DeleteDirectiveDiff]]
 
 
   /**

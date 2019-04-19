@@ -279,7 +279,7 @@ class TestReportParsing extends Specification with Loggable {
 
   "Parsing Mint" should {
     "parse as mint" in {
-      val os = parser.parse("fusion-report/mint.ocs").node.main.osDetails.os
+      val os = parseRun("fusion-report/mint.ocs").node.main.osDetails.os
       os == Mint
     }
   }

@@ -35,6 +35,8 @@ import cats.data._
 import cats.implicits._
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
+import scalaz.zio._
+import scalaz.zio.internal.PlatformLive.ExecutorUtil
 
 import scala.util.control.NonFatal
 
@@ -209,6 +211,25 @@ object zio {
    * Default ZIO Runtime used everywhere.
    */
   object ZioRuntime extends DefaultRuntime {
+    import java.util.{ WeakHashMap, Map => JMap }
+    import scalaz.zio.internal._
+    import scalaz.zio.Exit._
+    import scalaz.zio.Exit.Cause._
+    override val Platform: Platform = new Platform {
+      val executor: Executor                   = ExecutorUtil.makeDefault()
+      def fatal(t: Throwable): Boolean         = t.isInstanceOf[VirtualMachineError]
+      def reportFailure(cause: Cause[_]): Unit = {
+        cause match {
+          case Interrupt   => () // nothgin to print
+          case f @ Fail(_) => println(f)
+          case Die(ex)     => ex.printStackTrace()
+          case Both(l, r)  => reportFailure(l); reportFailure(r)
+          case Then(l, r)  => reportFailure(l); reportFailure(r)
+        }
+      }
+      def newWeakHashMap[A, B](): JMap[A, B]   = new WeakHashMap[A, B]()
+    }
+
     def runNow[A](io: IOResult[A]): A = {
       this.unsafeRunSync(io).fold(cause => throw cause.squashWith(err => new RuntimeException(err.fullMsg)), a => a)
     }

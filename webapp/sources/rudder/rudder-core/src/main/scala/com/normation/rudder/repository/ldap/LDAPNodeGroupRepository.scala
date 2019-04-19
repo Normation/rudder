@@ -120,7 +120,7 @@ class RoLDAPNodeGroupRepository(
       category.copy(
         children = subEntries._1.sortBy(e => e(A_NAME).map(_.toLowerCase())).map(e => mapper.dn2NodeGroupCategoryId(e.dn)).toList,
         items = (subEntries._2.sortBy(e => e(A_NAME).map(_.toLowerCase())).flatMap(entry => mapper.entry2RuleTargetInfo(entry) match {
-          case Right(targetInfo) => Some(targetInfo)
+          case Right(targetInfo) => Some(targetInfo.toTargetInfo)
           case Left(e) =>
             logEffect.error(s"Error when trying to get the child of group category '${category.id.value}' with DN '${entry.dn}': ${e.fullMsg}")
             None
@@ -179,9 +179,7 @@ class RoLDAPNodeGroupRepository(
   def getNodeGroup(id: NodeGroupId): IOResult[(NodeGroup, NodeGroupCategoryId)] = {
     for {
       con     <- ldap
-      _ <- logPure.error("******* here, before read lock")
       sgEntry <- groupLibMutex.readLock { getSGEntry(con, id) }.notOptional(s"Error when retrieving the entry for NodeGroup '${id.value}")
-      _ <- logPure.error("******* here, after read lock")
       sg      <- mapper.entry2NodeGroup(sgEntry).toIO.chainError("Error when mapping server group entry to its entity. Entry: %s".format(sgEntry))
     } yield {
       //a group parent entry is its parent category
@@ -484,35 +482,12 @@ class RoLDAPNodeGroupRepository(
            }
          } else if(isAGroup(e) || isASpecialTarget(e)){
            mapper.entry2RuleTargetInfo(e) match {
-             case Right(info) =>
-               mapper.entry2NodeGroup(e) match {
-                 case Left(err) => mappingError(current, e, err)
-                 case Right(g)  =>
-                   val fullRuleTarget = info.target match {
-                     case GroupTarget(groupId) =>
-                       FullGroupTarget(
-                           target = GroupTarget(groupId)
-                         , nodeGroup = g
-                       )
-                     case t:NonGroupRuleTarget =>
-                       FullOtherTarget(t)
-                     case rt: CompositeRuleTarget => FullCompositeRuleTarget(rt)
-                   }
-
-                   val fullInfo = FullRuleTargetInfo(
-                       target = fullRuleTarget
-                     , name = info.name
-                     , description = info.description
-                     , isEnabled = info.isEnabled
-                     , isSystem = info.isSystem
-                   )
-
-                   val catId = mapper.dn2NodeGroupCategoryId(e.dn.getParent)
-                   val infosForCatId = fullInfo :: current.targetByCategory.getOrElse(catId, Nil)
-                   current.copy(
-                       targetByCategory = current.targetByCategory + (catId -> infosForCatId)
-                   )
-               }
+             case Right(fullInfo) =>
+               val catId = mapper.dn2NodeGroupCategoryId(e.dn.getParent)
+               val infosForCatId = fullInfo :: current.targetByCategory.getOrElse(catId, Nil)
+               current.copy(
+                   targetByCategory = current.targetByCategory + (catId -> infosForCatId)
+               )
              case Left(err) => mappingError(current, e, err)
            }
          } else {

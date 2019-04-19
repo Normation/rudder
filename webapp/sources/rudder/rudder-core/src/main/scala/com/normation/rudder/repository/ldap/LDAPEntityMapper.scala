@@ -584,31 +584,35 @@ class LDAPEntityMapper(
       } yield {
          NodeGroup(NodeGroupId(id), name, description, query, isDynamic, nodeIds, isEnabled, isSystem)
       }
-    } else Left(Err.UnexpectedObject("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_RUDDER_NODE_GROUP, e)))
+    } else {
+      Thread.currentThread().getStackTrace.foreach(println)
+      Left(Err.UnexpectedObject("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_RUDDER_NODE_GROUP, e)))
+    }
   }
 
   //////////////////////////////    Special Policy target info    //////////////////////////////
 
-  def entry2RuleTargetInfo(e:LDAPEntry) : InventoryMappingPure[RuleTargetInfo] = {
-    for {
-      target <- {
-        if(e.isA(OC_RUDDER_NODE_GROUP)) {
-          e.required(A_NODE_GROUP_UUID).map(id => GroupTarget(NodeGroupId(id)))
-        } else if(e.isA(OC_SPECIAL_TARGET))
-          for {
-            targetString <- e.required(A_RULE_TARGET)
-            target <- RuleTarget.unser(targetString).notOptional("Can not unserialize target, '%s' does not match any known target format".format(targetString))
-          } yield {
-            target
-          } else Left(Err.UnexpectedObject(s"The given entry is not of the expected ObjectClass '${OC_RUDDER_NODE_GROUP}' or '${OC_SPECIAL_TARGET}. Entry details: ${e}"))
+  def entry2RuleTargetInfo(e:LDAPEntry) : InventoryMappingPure[FullRuleTargetInfo] = {
+    if(e.isA(OC_RUDDER_NODE_GROUP)) {
+      entry2NodeGroup(e).map(g => FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, g.description, g.isEnabled, g.isSystem))
+
+    } else if(e.isA(OC_SPECIAL_TARGET)) {
+      for {
+        targetString <- e.required(A_RULE_TARGET)
+        target       <- RuleTarget.unser(targetString).notOptional("Can not unserialize target, '%s' does not match any known target format".format(targetString))
+        name         <- e(A_NAME).notOptional("Missing required name (attribute name %s) in entry %s".format(A_NAME, e))
+        description  =  e(A_DESCRIPTION).getOrElse("")
+        isEnabled    =  e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
+        isSystem     =  e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
+        ruleTarget   <- target match {
+                          case x: NonGroupRuleTarget => Right(FullOtherTarget(x))
+                          case x => // group was processed previously, so in other case here, we raise an error
+                            Left(Err.UnexpectedObject(s"We we not able to unseriable target type, which is not a NonGroupRuleTarget, '${x}' for entry ${e}"))
+                        }
+      } yield {
+        FullRuleTargetInfo(ruleTarget, name , description , isEnabled , isSystem)
       }
-      name <-  e(A_NAME).notOptional("Missing required name (attribute name %s) in entry %s".format(A_NAME, e))
-      description = e(A_DESCRIPTION).getOrElse("")
-      isEnabled = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
-      isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
-    } yield {
-      RuleTargetInfo(target, name , description , isEnabled , isSystem)
-    }
+    } else Left(Err.UnexpectedObject(s"The given entry is not of the expected ObjectClass '${OC_RUDDER_NODE_GROUP}' or '${OC_SPECIAL_TARGET}. Entry details: ${e}"))
   }
 
   //////////////////////////////    Directive    //////////////////////////////
