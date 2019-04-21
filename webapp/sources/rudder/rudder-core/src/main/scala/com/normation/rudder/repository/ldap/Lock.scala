@@ -77,30 +77,35 @@ object ScalaLock {
   import language.implicitConversions
 
 
-  protected def java2ScalaLock(name: String, javaLock: Lock) : ScalaLock = new ScalaLock {
+  protected def java2ScalaLock(n: String, javaLock: Lock) : ScalaLock = new ScalaLock {
     override def lock() = javaLock.lock()
     override def unlock() = javaLock.unlock()
     override def clock = ZioRuntime.Environment
     override def name: String = name
   }
 
-  protected def pureZioSemaphore(name: String, javaLock: Lock) : ScalaLock = new ScalaLock {
+  protected def pureZioSemaphore(n: String, _not_used: Any) : ScalaLock = new ScalaLock {
+    import scala.concurrent.duration.{Duration => _, _}
+    // we set a timeout here to avoid deadlock. We prefer to identify them with errors
+    val timeout = 5.seconds
     val semaphore = Semaphore.make(1)
     override def lock(): Unit = ()
     override def unlock(): Unit = ()
     override def clock: Clock = ZioRuntime.Environment
-    override def name: String = name
+    override val name: String = n
     override def apply[T](block: => IOResult[T]): IOResult[T] = {
       for {
         sem  <- semaphore
-        _    <- LdapLockLogger.error(s"*****zio** wait for lock '${name}'")
-        exec <- sem.withPermit(block)
-        _    <- LdapLockLogger.error(s"*****zio** done lock '${name}'")
-      } yield (exec)
+        exec <- sem.withPermit(block).timeout(Duration.fromScala(timeout))
+        res  <- exec match {
+                  case None    => SystemError(s"Semaphore '${name}' acquisition timed out after ${timeout.toString()}", new RuntimeException("Time out")).fail
+                  case Some(x) => x.succeed
+                }
+      } yield (res)
     }
   }
 
-  protected def noopLock(name: String, javaLock: Lock) : ScalaLock = new ScalaLock {
+  protected def noopLock(n: String, javaLock: Lock) : ScalaLock = new ScalaLock {
     val semaphore = Semaphore.make(1)
     override def lock(): Unit = ()
     override def unlock(): Unit = ()
@@ -112,7 +117,7 @@ object ScalaLock {
   def java2ScalaRWLock(name: String, lock: ReadWriteLock) : ScalaReadWriteLock = new ScalaReadWriteLock {
     override def readLock = noopLock(name, lock.readLock)
     // for now, even setting a simple semaphore lead to dead lock (most likelly because not re-entrant)
-    override def writeLock = noopLock(name, lock.writeLock)
+    override def writeLock = pureZioSemaphore(name, lock.writeLock)
   }
 
 }

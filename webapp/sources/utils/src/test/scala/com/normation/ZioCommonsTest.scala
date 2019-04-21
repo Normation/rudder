@@ -38,15 +38,15 @@ import cats.data._
 import cats.implicits._
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
-
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 import specs2.run
 import specs2.arguments._
-
 import com.normation.errors._
 import com.normation.zio._
+import scalaz.zio.clock.Clock
+import scalaz.zio.duration.Duration
 
 @RunWith(classOf[JUnitRunner])
 class ZioCommonsTest extends Specification {
@@ -214,6 +214,149 @@ object TestLog {
   }
 }
 
+
+object TestSemaphore {
+
+  val log = NamedZioLogger("test-logger")
+  trait ScalaLock {
+    def apply[T](block: IOResult[T]): ZIO[Any with Clock, RudderError, T]
+  }
+  def pureZioSemaphore(name: String) : ScalaLock = new ScalaLock {
+    val semaphore = Semaphore.make(1)
+    override def apply[T](block: IOResult[T]): ZIO[Any with Clock, RudderError, T] = {
+      ZIO.accessM[Clock]( c =>
+      for {
+        _    <- log.logPure.error(s"*****zio** getting semaphore for lock '${name}'")
+       sem   <- semaphore
+        _    <- log.logPure.error(s"*****zio** wait for lock '${name}'")
+       exec  <- sem.withPermit(block).timeout(Duration(5, java.util.concurrent.TimeUnit.MILLISECONDS)).provide(c).fork
+       res   <- exec.join
+        _    <- log.logPure.error(s"*****zio** done lock '${name}'")
+       xxx   <- res match {
+         case Some(x) => x.succeed
+         case None    => Unexpected(s"Error: semaphore '${name}' timeout on section").fail
+       }
+      } yield (xxx)
+      )
+    }
+  }
+
+  val semaphore = Semaphore.make(1)
+  def inSem(c: Clock) = for {
+    _   <- log.logPure.error("before sem")
+    sem <- semaphore
+    _   <- log.logPure.error("sem get")
+    a   <- sem.withPermit(IOResult.effect(println("Hello world sem"))).fork
+    b   <- sem.withPermit(IOResult.effect({println("sleeping now"); Thread.sleep(2000); println("after sleep")})).fork
+    c   <- sem.withPermit(IOResult.effect(println("third hello"))).timeout(Duration(5, java.util.concurrent.TimeUnit.MILLISECONDS)).provide(c).fork
+    _   <- a.join
+    _   <- b.join
+    x   <- c.join
+    _   <- x match {
+             case None => log.error("Oh noes! Timeout!")
+             case Some(y) => log.error("yes! No Timeout! Or is it a noes?")
+           }
+    _   <- log.logPure.error("after sem")
+  } yield ()
+
+  val lock = pureZioSemaphore("plop")
+
+  def inLock = for {
+    _   <- log.logPure.error("lock get")
+    _   <- lock(IOResult.effect(println("Hello world lock")))
+    _   <- lock(IOResult.effect({println("sleeping now"); Thread.sleep(2000); println("after sleep")}))
+    x   <- lock(IOResult.effect(println("third hello"))).uninterruptible
+    _   <- log.logPure.error("after lock")
+  } yield ()
+
+  def main(args: Array[String]): Unit = {
+    //ZioRuntime.runNow(inSem(ZioRuntime.Environment))
+    //println("****************")
+    ZioRuntime.runNow(inLock.provide(ZioRuntime.Environment))
+  }
+
+}
+
+
+/*
+ * This test show that without a fork, execution is purely mono-fiber and sequential.
+ */
+object TestZioSemantic {
+  val rt = new DefaultRuntime {}
+  trait LOG {
+    def apply(s: String): UIO[Unit]
+  }
+  def makeLog = UIO(new LOG {
+    val zero = System.currentTimeMillis()
+    def apply(s : String) = UIO(println(s"[${System.currentTimeMillis()-zero}] $s"))
+  })
+
+  val semaphore = Semaphore.make(1)
+  def prog1(c: Clock) = for {
+    sem <- semaphore
+    log <- makeLog
+    _   <- log("sem get 1")
+    a   <- sem.withPermit(IO.effect(println("Hello world 1")))
+    _   <- log("sem get 2")
+    b   <- sem.withPermit(IO.effect({println("sleeping now"); Thread.sleep(2000); println("after sleep: second hello")}))
+    _   <- log("sem get 3")
+           // at tham point, the semaphore is free because b is fully executed, so no timeout
+    c   <- sem.withPermit(IO.effect(println("third hello"))).timeout(Duration(5, java.util.concurrent.TimeUnit.MILLISECONDS)).provide(c)
+    _   <- c match {
+             case None => log("---- A timeout happened")
+             case Some(y) => log("++++ No timeout")
+           }
+  } yield ()
+  def prog2(c: Clock) = for {
+    sem <- semaphore
+    log <- makeLog
+    _   <- log("sem get 1")
+    a   <- sem.withPermit(IO.effect(println("Hello world 1"))).fork
+    _   <- log("sem get 2")
+    b   <- sem.withPermit(IO.effect({println("sleeping now"); Thread.sleep(2000); println("after sleep: second hello")})).fork
+    _   <- log("sem get 3")
+    c   <- sem.withPermit(IO.effect(println("third hello"))).timeout(Duration(5, java.util.concurrent.TimeUnit.MILLISECONDS)).provide(c).fork
+    _   <- a.join
+    _   <- b.join
+    x   <- c.join
+    _   <- x match {
+             case None => log("---- A timeout happened")
+             case Some(y) => log("++++ No timeout")
+           }
+  } yield ()
+
+
+  def main(args: Array[String]): Unit = {
+    rt.unsafeRunSync(prog1(rt.Environment))
+    println("****************")
+    rt.unsafeRunSync(prog2(rt.Environment))
+
+/* exec prints:
+
+[2] sem get 1
+Hello world sem
+[50] sem get 2
+sleeping now
+after sleep: second hello
+[2053] sem get 3
+third hello
+[2178] ++++ No timeout
+****************
+[2] sem get 1
+Hello world sem
+[6] sem get 2
+sleeping now
+[10] sem get 3
+after sleep: second hello
+[2015] ---- A timeout happened
+
+Process finished with exit code 0
+
+ */
+  }
+
+
+}
 
 
 
