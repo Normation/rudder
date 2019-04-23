@@ -36,15 +36,16 @@ bundle agent define_expected_classes(class_prefix, status, id)
 {
   vars:
       "complete_suffix" slist => {"not_kept", "kept", "not_ok", "ok", "not_repaired", "repaired", "failed", "error"};
-      "error_suffix" slist => {"not_kept", "not_ok", "not_repaired", "failed", "error"};
+      "error_suffix"    slist => {"not_kept", "not_ok", "not_repaired", "failed", "error"};
       "repaired_suffix" slist => { "ok", "repaired", "not_kept" };
-      "success_suffix" slist => { "ok", "kept", "not_repaired" };
+      "success_suffix"  slist => { "ok", "kept", "not_repaired" };
 
-      "expected_string_${id}" string => concat(join(".", maplist("${class_prefix}_${this}", "@{${status}_suffix}")), ".${class_prefix}_reached");
+      "expected_string_${id}"   string => concat(join(".", maplist("${class_prefix}_${this}", "@{${status}_suffix}")), ".${class_prefix}_reached");
       "unexpected_string_${id}" string => join("|", maplist("${class_prefix}_${this}", difference(complete_suffix, "${status}_suffix")));
 
-      "report_string_${id}" string => "(${expected_string_${id}}).!(${unexpected_string_${id}})";
-
+      "report_string_${id}"      string => "(${expected_string_${id}}).!(${unexpected_string_${id}})";
+      "expected_classes_${id}"   slist => maplist("${class_prefix}_${this}", "@{${status}_suffix}");
+      "unexpected_classes_${id}" slist => maplist("${class_prefix}_${this}", difference(complete_suffix, "@{${status}_suffix}"));
 }
 
 bundle agent execute_serverspec(test_name, class_name, comment)
@@ -83,27 +84,29 @@ bundle agent execute_serverspec(test_name, class_name, comment)
 #       correct order.
 # status: expected result status, can be: success, error, repaired
 # result_class: prefix of the resulting class
-bundle agent apply_gm(name, args, status, result_class)
+bundle agent apply_gm(name, args, status, result_class, mode)
 {
   vars:
-     "length"  int => length("args");
-     "arg0" string => nth("args", "0");
-     "arg1" string => nth("args", "1");
-     "arg2" string => nth("args", "2");
-     "arg3" string => nth("args", "3");
-     "arg4" string => nth("args", "4");
-     "arg5" string => nth("args", "5");
+      "length"  int => length("args");
+      "arg0" string => nth("args", "0");
+      "arg1" string => nth("args", "1");
+      "arg2" string => nth("args", "2");
+      "arg3" string => nth("args", "3");
+      "arg4" string => nth("args", "4");
+      "arg5" string => nth("args", "5");
 
-     "old_class_prefix" string => "${${name}.old_class_prefix}";
+      "old_class_prefix" string => "${${name}.old_class_prefix}";
 
-     "report_param" string => join("_", args);
-     "full_class_prefix" string => canonify("${name}_${report_param}");
-     "class_prefix" string => string_head("${full_class_prefix}", "1000");
+      "report_param" string => join("_", args);
+      "full_class_prefix" string => canonify("${name}_${report_param}");
+      "class_prefix" string => string_head("${full_class_prefix}", "1000");
 
   classes:
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
+
+      "audit" expression => strcmp("${mode}", "audit");
 
       # Dynamic bundle call does not support undefined arg number
       # We have to explicitly define each possibility
@@ -117,16 +120,18 @@ bundle agent apply_gm(name, args, status, result_class)
       "8_arg" expression => strcmp("${length}", "8");
 
     pass2::
-      "old_class_prefix_ok" expression => "${define_expected_classes.report_string_old_class_prefix}";
-      "class_prefix_ok"     expression => "${define_expected_classes.report_string_class_prefix}";
+      "old_class_prefix_ok" expression => "${define_expected_classes.report_string_old_class_prefix_${result_class}}";
+      "class_prefix_ok"     expression => "${define_expected_classes.report_string_class_prefix_${result_class}}";
       "${result_class}_ok"  expression => "old_class_prefix_ok.class_prefix_ok",
         scope => "namespace";
 
 
   methods:
-    pass1::
-      "expected_classes" usebundle => define_expected_classes("${class_prefix}", "${status}", "class_prefix");
-      "expected_classes" usebundle => define_expected_classes("${old_class_prefix}", "${status}", "old_class_prefix");
+      "expected_classes" usebundle => define_expected_classes("${class_prefix}", "${status}", "class_prefix_${result_class}");
+      "expected_classes" usebundle => define_expected_classes("${old_class_prefix}", "${status}", "old_class_prefix_${result_class}");
+
+    audit::
+      "enable_${class_prefix}" usebundle => set_dry_run_mode("true");
 
     1_arg::
       "execute_gm" usebundle => ${name}("${arg0}");
@@ -145,11 +150,24 @@ bundle agent apply_gm(name, args, status, result_class)
     8_arg::
       "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}", "${arg5}", "${arg6}", "${arg7}");
 
-  reports:
-    pass2::
-      "Missing expected old class ${name}"
-        ifvarclass => "!old_class_prefix_ok";
+    pass3.audit::
+      "disable_${class_prefix}" usebundle => set_dry_run_mode("false");
 
-      "Missing expected class ${name}"
-        ifvarclass => "!class_prefix_ok";
+    pass3::
+      "cancel_classes" usebundle => _classes_cancel("${class_prefix}");
+      "cancel_classes" usebundle => _classes_cancel("${old_class_prefix}");
+
+  reports:
+    pass2.!pass3::
+      "Missing expected old class ${define_expected_classes.expected_classes_old_class_prefix_${result_class}}"
+        ifvarclass => "!${define_expected_classes.expected_classes_old_class_prefix_${result_class}}";
+
+      "Missing expected class ${define_expected_classes.expected_classes_class_prefix_${result_class}}"
+        ifvarclass => "!${define_expected_classes.expected_classes_class_prefix_${result_class}}";
+
+      "Found unexpected old class ${define_expected_classes.unexpected_classes_old_class_prefix_${result_class}}"
+        ifvarclass => "${define_expected_classes.unexpected_classes_old_class_prefix_${result_class}}";
+
+      "Found unexpected class ${define_expected_classes.unexpected_classes_class_prefix_${result_class}}"
+        ifvarclass => "${define_expected_classes.unexpected_classes_class_prefix_${result_class}}";
 }
