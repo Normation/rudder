@@ -101,6 +101,8 @@ class UpdateDynamicGroups(
     laUpdateDyngroupManager ! ManualStartUpdate
   }
 
+  def isIdle() = laUpdateDyngroupManager.isIdle()
+
   ////////////////////////////////////////////////////////////////
   //////////////////// implementation details ////////////////////
   ////////////////////////////////////////////////////////////////
@@ -129,6 +131,8 @@ class UpdateDynamicGroups(
         updateInterval
       }
     }
+
+    def isIdle() = currentState == IdleUdater
 
     private[this] def processUpdate = {
         logger.trace("***** Start a new update")
