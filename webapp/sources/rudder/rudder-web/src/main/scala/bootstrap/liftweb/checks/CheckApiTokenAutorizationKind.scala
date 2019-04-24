@@ -95,6 +95,6 @@ class CheckApiTokenAutorizationKind(
       done    <- ZIO.foreach(entries)(processOne(ldap))
     } yield {
       done
-    }).run.void.runNow
+    }).runNow
   }
 }

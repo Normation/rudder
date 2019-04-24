@@ -330,7 +330,7 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
     import scala.collection.mutable.ArrayBuffer
 
     gitRepo.db.flatMap(db =>
-      ZIO.bracket(IOResult.effect(new RevWalk(db)))(db => IOResult.effect(db.close).run.void){ revWalk =>
+      ZIO.bracket(IOResult.effect(new RevWalk(db)))(db => IOResult.effectRunVoid(db.close)){ revWalk =>
         IOResult.effect {
           val tags = ArrayBuffer[RevTag]()
           val refList = db.getRefDatabase().getRefsByPrefix(Constants.R_TAGS).asScala

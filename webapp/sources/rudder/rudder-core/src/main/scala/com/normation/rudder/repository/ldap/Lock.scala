@@ -43,9 +43,6 @@ trait ScalaReadWriteLock {
 
 }
 
-/**
- * Pimp^Wextend my Java Lock
- */
 trait ScalaLock {
   def lock(): Unit
   def unlock(): Unit
@@ -62,7 +59,7 @@ trait ScalaLock {
         .mapError(ex => SystemError(s"Error when trying to get LDAP lock", ex))
     )(_ =>
       LdapLockLogger.logPure.error("Release lock") *>
-      IO.effect(this.unlock()).run.void
+      IOResult.effectRunVoid(this.unlock())
     )(_ =>
       LdapLockLogger.logPure.error("Do things in lock") *>
       block
@@ -96,7 +93,7 @@ object ScalaLock {
     override def apply[T](block: => IOResult[T]): IOResult[T] = {
       for {
         sem  <- semaphore
-        exec <- sem.withPermit(block).timeout(Duration.fromScala(timeout))
+        exec <- sem.withPermit(block).timeout(Duration.fromScala(timeout)).provide(clock)
         res  <- exec match {
                   case None    => SystemError(s"Semaphore '${name}' acquisition timed out after ${timeout.toString()}", new RuntimeException("Time out")).fail
                   case Some(x) => x.succeed

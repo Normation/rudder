@@ -45,6 +45,7 @@ import specs2.run
 import specs2.arguments._
 import com.normation.errors._
 import com.normation.zio._
+import scalaz.zio.blocking.Blocking
 import scalaz.zio.clock.Clock
 import scalaz.zio.duration.Duration
 
@@ -147,7 +148,7 @@ object TestImplicits {
      */
     object service {
 
-      def trace(msg: => AnyRef): UIO[Unit] = ZIO.effect(println(msg)).run.void
+      def trace(msg: => AnyRef): UIO[Unit] = IOResult.effectRunVoid(println(msg))
 
       def test0(a: String): IOResult[String] = service1.doStuff(a)
 
@@ -277,6 +278,79 @@ object TestSemaphore {
 
 }
 
+/*
+ * This show that even if we lock a ZIO execution in a given threadpool, that does not
+ * work well with Java lock because we don't have a garantee that the same thread will
+ * do the first and second part of the bracket.
+ *
+ */
+object TestJavaLockWithZio {
+  def log(s : String) = UIO(println(s))
+
+  trait ScalaLock {
+    def lock(): Unit
+    def unlock(): Unit
+    def clock: Clock
+    def blocking: Blocking
+
+    def name: String
+
+    def apply[T](block: => IOResult[T]): IOResult[T] = {
+      println(s"***** calling lock '${name}'")
+      scalaz.zio.blocking.blockingExecutor.flatMap(executor =>
+      ZIO.bracket(
+        log(s"Get lock '${name}'") *>
+//        log(Thread.currentThread().getStackTrace.mkString("\n")) *>
+        IO.effect(this.lock()).lock(executor).timeout(Duration.Finite(100*1000*1000 /* ns */))
+          .mapError(ex => SystemError(s"Error when trying to get LDAP lock", ex))
+      )(_ =>
+        log(s"Release lock '${name}'") *>
+        IO.effect(this.unlock()).lock(executor).catchAll(t => log(s"${t.getClass.getName}:${t.getMessage}") *> ZIO.foreach(t.getStackTrace) { s => log(s.toString) }).void
+      )(_ =>
+        log(s"Do things in lock '${name}'") *>
+        block
+      ).provide(clock).lock(executor)).provide(blocking)
+    }
+  }
+  val lock = new ScalaLock {
+    val jrwlock = new java.util.concurrent.locks.ReentrantReadWriteLock(true)
+    override def lock(): Unit = {
+      println(s"lock info before get: ${jrwlock.toString}")
+      println(s"Thread info: " + Thread.currentThread().toString)
+      jrwlock.writeLock().lock
+    }
+
+    override def unlock(): Unit = {
+      println(s"lock info before release: ${jrwlock.toString}")
+      println(s"Thread info: " + Thread.currentThread().toString)
+      jrwlock.writeLock().unlock()
+      println(s"lock info after release: ${jrwlock.toString}")
+    }
+
+    override def clock: Clock = ZioRuntime.Environment
+    override def blocking: Blocking = ZioRuntime.Environment
+    override def name: String = "test-scala-lock"
+  }
+
+  def prog1(c: Clock) = for {
+    _   <- log("sem get 1")
+    a   <- lock(IOResult.effect(println("Hello world 1")))
+    _   <- log("sem get 2")
+    b   <- lock(IOResult.effect({println("sleeping now"); Thread.sleep(2000); println("after sleep: second hello")}))
+    _   <- log("sem get 3")
+           // at tham point, the semaphore is free because b is fully executed, so no timeout
+    c   <- lock(IOResult.effect(println("third hello"))).timeout(Duration(5, java.util.concurrent.TimeUnit.MILLISECONDS)).provide(c)
+    _   <- c match {
+             case None => log("---- A timeout happened")
+             case Some(y) => log("++++ No timeout")
+           }
+  } yield ()
+
+  def main(args: Array[String]): Unit = {
+    ZioRuntime.runNow(prog1(ZioRuntime.Environment))
+  }
+
+}
 
 /*
  * This test show that without a fork, execution is purely mono-fiber and sequential.
@@ -360,62 +434,57 @@ Process finished with exit code 0
 
 
 
-//
-//object Test {
-//  import zio._
-//  import scalaz.zio._
-//  import scalaz.zio.syntax._
-//  import cats.implicits._
-//
-//  def main(args: Array[String]): Unit = {
-//
-//    val l = List("ok", "ok", "booo", "ok", "plop")
-//
-//    def f(s: String) = if(s == "ok") 1.succeed else s.fail
-//
-//    val res = IO.foreach(l) { s => f(s).either }
-//
-//    val res2 = for {
-//      ll <- res
-//    } yield {
-//      ll.traverse( _.toValidatedNel)
-//    }
-//
-//    println(ZioRuntime.unsafeRun(res))
-//    println(ZioRuntime.unsafeRun(res2))
-//    println(ZioRuntime.unsafeRun(l.accumulate(f)))
-//
-//  }
-//
-//}
-//
-//object Test2 {
-//  import zio._
-//  import scalaz.zio._
-//  import scalaz.zio.syntax._
-//  import cats.implicits._
-//
-//  def main(args: Array[String]): Unit = {
-//
-//    case class BusinessError(msg: String)
-//
-//    val prog1 = Task.effect {
-//      val a = "plop"
-//      val b = throw new RuntimeException("foo bar bar")
-//      val c = "replop"
-//      a + c
-//    } mapError(e => BusinessError(e.getMessage))
-//
-//    val prog2 = Task.effect {
-//      val a = "plop"
-//      val b = throw new Error("I'm an java.lang.Error!")
-//      val c = "replop"
-//      a + c
-//    } mapError(e => BusinessError(e.getMessage))
-//
-//    //println(ZioRuntime.unsafeRun(prog1))
-//    println(ZioRuntime.unsafeRun(prog2))
-//
-//  }
-//
-//}
+/*
+ * Testing accumulation
+ */
+object TestAccumulate {
+  import cats.implicits._
+
+  def main(args: Array[String]): Unit = {
+
+    val l = List("ok", "ok", "booo", "ok", "plop")
+
+    def f(s: String) = if(s == "ok") 1.succeed else Unexpected(s).fail
+
+    val res = IO.foreach(l) { s => f(s).either }
+
+    val res2 = for {
+      ll <- res
+    } yield {
+      ll.traverse( _.toValidatedNel)
+    }
+
+    println(ZioRuntime.unsafeRun(res))
+    println(ZioRuntime.unsafeRun(res2))
+    println(ZioRuntime.unsafeRun(l.accumulate(f)))
+
+  }
+
+}
+
+object TestThrowError {
+
+  def main(args: Array[String]): Unit = {
+
+    case class BusinessError(msg: String)
+
+    val prog1 = Task.effect {
+      val a = "plop"
+      val b = throw new RuntimeException("foo bar bar")
+      val c = "replop"
+      a + c
+    } mapError(e => BusinessError(e.getMessage))
+
+    val prog2 = Task.effect {
+      val a = "plop"
+      val b = throw new Error("I'm an java.lang.Error!")
+      val c = "replop"
+      a + c
+    } mapError(e => BusinessError(e.getMessage))
+
+    //println(ZioRuntime.unsafeRun(prog1))
+    println(ZioRuntime.unsafeRun(prog2))
+
+  }
+
+}

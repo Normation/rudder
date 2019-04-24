@@ -69,6 +69,15 @@ object errors {
     def effectM[A](ioeffect: => IOResult[A]): IOResult[A] = {
       effectM("An error occured")(ioeffect)
     }
+
+    def effectRunVoid[A](effect: => A): UIO[Unit] = {
+      def printError(t: Throwable): UIO[Unit] = {
+        val print = (s:String) => IO.effect(System.err.println(s))
+        //here, we must run.void, because if it fails we can't do much more (and the app is certainly totally broken)
+        (print(s"${t.getClass.getName}:${t.getMessage}") *> ZIO.foreach(t.getStackTrace)(st => print(st.toString))).run.void
+      }
+      IO.effect(effect).catchAll(printError).void
+    }
   }
 
   trait RudderError {
@@ -215,6 +224,10 @@ object zio {
     import scalaz.zio.internal._
     import scalaz.zio.Exit._
     import scalaz.zio.Exit.Cause._
+    /*
+     * We need to overide the plateform to define "reportFailure" and get
+     * somthing usefull when an uncaught error happens.
+     */
     override val Platform: Platform = new Platform {
       val executor: Executor                   = ExecutorUtil.makeDefault()
       def fatal(t: Throwable): Boolean         = t.isInstanceOf[VirtualMachineError]
@@ -284,7 +297,21 @@ trait ZioLogger {
   //the underlying logger
   def logEffect: Logger
 
-  final def logAndForgetResult[T](log: Logger => T): UIO[Unit] = ZIO.effect(log(logEffect)).run.void
+  /*
+   * We don't want that errors happening during log be propagated to the app error channel,
+   * because it doesn't have anything to do with app logic and an user won't know what to
+   * do with them.
+   * Nonetheless, we want to log these errors, because we must have a trace somewhere
+   * that something went badly. Obviously, we won't use the logger for that.
+   */
+  final def logAndForgetResult[T](log: Logger => T): UIO[Unit] = {
+    def printError(t: Throwable): UIO[Unit] = {
+      val print = (s:String) => IO.effect(System.err.println(s))
+      //here, we must run.void, because if it fails we can't do much more (and the app is certainly totally broken)
+      (print(s"${t.getClass.getName}:${t.getMessage}") *> ZIO.foreach(t.getStackTrace)(st => print(st.toString))).run.void
+    }
+    IO.effect(log(logEffect)).catchAll(printError).void
+  }
 
   final def trace(msg: => AnyRef): UIO[Unit] = logAndForgetResult(_.trace(msg))
   final def debug(msg: => AnyRef): UIO[Unit] = logAndForgetResult(_.debug(msg))

@@ -318,7 +318,7 @@ class ItemArchiveManagerImpl(
       _          <- woRuleRepository.deleteSavedRuleArchiveId(imported).catchAll(err =>
                       logPure.warn(s"Error when trying to delete saved archive of old rule: ${err.fullMsg}")
                     )
-      _          <- IOResult.effect(if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)}).run.void
+      _          <- IOResult.effectRunVoid(if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)})
     } yield {
       if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }
       archiveId
@@ -386,7 +386,7 @@ class ItemArchiveManagerImpl(
       _        <- woParameterRepository.deleteSavedParametersArchiveId(imported).catchAll(err =>
                     logPure.warn(s"Error when trying to delete saved archive of old parameters: ${err.fullMsg}")
                   )
-      _        <- IOResult.effect(if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)}).run.void
+      _        <- IOResult.effectRunVoid(if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)})
     } yield {
       archiveId
     }

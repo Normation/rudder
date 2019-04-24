@@ -46,16 +46,15 @@ import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.treewalk.filter.PathFilter
 import org.eclipse.jgit.treewalk.filter.TreeFilter
 import org.eclipse.jgit.treewalk.TreeWalk
-import net.liftweb.common._
 import java.io.File
 import java.io.ByteArrayOutputStream
 
 import com.normation.NamedZioLogger
 import com.normation.rudder.repository.xml.ZipUtils.Zippable
-import com.normation.errors._
 
 import scalaz.zio._
 import scalaz.zio.syntax._
+import com.normation.errors._
 
 /**
  * Utility trait to find/list/get content
@@ -120,7 +119,7 @@ object GitFindUtils extends NamedZioLogger {
           case Nil =>
             Unconsistancy(s"No file were found at path '${filePath}}'").fail
           case h :: Nil =>
-            ZIO.bracket(IOResult.effect(db.open(h).openStream()))(s => IO.effect(s.close()).run.void)(useIt)
+            ZIO.bracket(IOResult.effect(db.open(h).openStream()))(s => IOResult.effectRunVoid(s.close()))(useIt)
           case _ =>
             Unconsistancy(s"More than exactly one matching file were found in the git tree for path '${filePath}', I can not know which one to choose. IDs: ${ids}}").fail
       }
