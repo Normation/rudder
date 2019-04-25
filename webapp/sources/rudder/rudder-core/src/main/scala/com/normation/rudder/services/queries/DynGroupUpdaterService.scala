@@ -38,7 +38,7 @@
 package com.normation.rudder.services.queries
 
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.nodes.{NodeGroup, NodeGroupId}
 import net.liftweb.common._
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
@@ -54,11 +54,18 @@ import com.normation.eventlog.ModificationId
  * state pre-update.
  */
 case class DynGroupDiff(
-    members:Seq[NodeId],
-    removed:Seq[NodeId],
-    added:Seq[NodeId]
+    members:Set[NodeId],
+    removed:Set[NodeId],
+    added:Set[NodeId]
 ) extends HashcodeCaching
 
+object DynGroupDiff {
+  def apply(newGroup : NodeGroup, oldGroup : NodeGroup): DynGroupDiff = {
+    val plus = newGroup.serverList -- oldGroup.serverList
+    val minus = newGroup.serverList -- newGroup.serverList
+    DynGroupDiff(newGroup.serverList, minus, plus)
+  }
+}
 
 trait DynGroupUpdaterService {
   /**
@@ -71,6 +78,10 @@ trait DynGroupUpdaterService {
    * @return
    */
   def update(dynGroupId:NodeGroupId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DynGroupDiff]
+
+  def updateAll(modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Seq[DynGroupDiff]]
+
+  def computeDynGroup (group : NodeGroup): Box[NodeGroup]
 }
 
 
@@ -80,25 +91,44 @@ class DynGroupUpdaterServiceImpl(
   queryProcessor     : QueryProcessor
 ) extends DynGroupUpdaterService with Loggable {
 
+  override def computeDynGroup (group : NodeGroup): Box[NodeGroup] = {
+    for {
+      _          <- if(group.isDynamic) Full("OK") else Failure("Can not update a not dynamic group")
+      query      <- Box(group.query) ?~! s"No query defined for group '${group.name}' (${group.id.value})"
+      newMembers <- queryProcessor.process(query) ?~! s"Error when processing request for updating dynamic group '${group.name}' (${group.id.value})"
+      //save
+      newMemberIdsSet = newMembers.map(_.id).toSet
+    } yield {
+      group.copy(serverList = newMemberIdsSet)
+    }
+  }
 
+  override def updateAll(modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Seq[DynGroupDiff]] = {
+    for {
+      allGroups <- roNodeGroupRepository.getAll()
+      dynGroups = allGroups.filter(_.isDynamic)
+      result    <- com.normation.utils.Control.sequence(dynGroups) {
+        group =>
+          for {
+            newGroup   <- computeDynGroup(group)
+            savedGroup <- woNodeGroupRepository.updateDynGroupNodes(newGroup, modId, actor, reason) ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.value})"
+          } yield {
+            DynGroupDiff(newGroup, group)
+          }
+      }
+    } yield {
+      result
+    }
+  }
 
   override def update(dynGroupId:NodeGroupId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DynGroupDiff] = {
 
     for {
-      (group,_) <- roNodeGroupRepository.getNodeGroup(dynGroupId)
-      isDynamic <- if(group.isDynamic) Full("OK") else Failure("Can not update a not dynamic group")
-      query <- group.query
-      newMembers <- queryProcessor.process(query) ?~! s"Error when processing request for updating dynamic group with id ${dynGroupId.value}"
-      //save
-      newMemberIdsSet = newMembers.map( _.id).toSet
-      savedGroup <- {
-                      val newGroup = group.copy(serverList = newMemberIdsSet)
-                      woNodeGroupRepository.updateDynGroupNodes(newGroup, modId, actor, reason)
-                    } ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.value})"
+      (group,_)  <- roNodeGroupRepository.getNodeGroup(dynGroupId)
+      newGroup   <- computeDynGroup(group)
+      savedGroup <- woNodeGroupRepository.updateDynGroupNodes(newGroup, modId, actor, reason) ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.value})"
     } yield {
-      val plus = newMemberIdsSet -- group.serverList
-      val minus = group.serverList -- newMemberIdsSet
-      DynGroupDiff(newMemberIdsSet.toSeq, minus.toSeq, plus.toSeq)
+      DynGroupDiff(newGroup, group)
     }
   }
 

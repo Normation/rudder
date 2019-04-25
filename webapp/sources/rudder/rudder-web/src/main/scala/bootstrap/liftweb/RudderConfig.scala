@@ -355,6 +355,7 @@ object RudderConfig extends Loggable {
   val eventListDisplayer: EventListDisplayer = eventListDisplayerImpl
   lazy val asyncDeploymentAgent: AsyncDeploymentActor = asyncDeploymentAgentImpl
   val policyServerManagementService: PolicyServerManagementService = psMngtService
+  val updateDynamicGroupsService : DynGroupUpdaterService = dynGroupUpdaterService
   val updateDynamicGroups: UpdateDynamicGroups = dyngroupUpdaterBatch
   val checkInventoryUpdate = new CheckInventoryUpdate(nodeInfoServiceImpl, asyncDeploymentAgent, stringUuidGenerator, 15.seconds)
   val databaseManager: DatabaseManager = databaseManagerImpl
@@ -1257,7 +1258,7 @@ object RudderConfig extends Loggable {
     , logRepository
     , asyncDeploymentAgentImpl
     , gitModificationRepository
-    , dyngroupUpdaterBatch
+    , updateDynamicGroupsService
   )
 
   private[this] lazy val globalComplianceModeService : ComplianceModeService =
@@ -1514,11 +1515,13 @@ object RudderConfig extends Loggable {
   private[this] lazy val categoryHierarchyDisplayerImpl: CategoryHierarchyDisplayer = new CategoryHierarchyDisplayer()
   private[this] lazy val dyngroupUpdaterBatch: UpdateDynamicGroups = new UpdateDynamicGroups(
       dynGroupServiceImpl
-    , new DynGroupUpdaterServiceImpl(roLdapNodeGroupRepository, woLdapNodeGroupRepository, queryProcessor)
+    , dynGroupUpdaterService
     , asyncDeploymentAgentImpl
     , uuidGen
     , RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL
   )
+
+  private[this] lazy val dynGroupUpdaterService = new DynGroupUpdaterServiceImpl(roLdapNodeGroupRepository, woLdapNodeGroupRepository, queryProcessor)
 
   private[this] lazy val dbCleaner: AutomaticReportsCleaning = {
     val cleanFrequency = AutomaticReportsCleaning.buildFrequency(
