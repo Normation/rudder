@@ -1375,7 +1375,7 @@ object RudderConfig extends Loggable {
     , logRepository
     , asyncDeploymentAgentImpl
     , gitModificationRepository
-    , updateDynamicGroupsService
+    , dynGroupUpdaterService
   )
 
   private[this] lazy val globalComplianceModeService : ComplianceModeService =
