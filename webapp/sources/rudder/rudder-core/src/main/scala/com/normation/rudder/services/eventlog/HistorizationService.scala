@@ -49,7 +49,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.DB
 
 /**
- * At each deployment, we compare the content of the groups/PI/CR in the ldap with the content
+ * At each deployment, we compare the content of the groups/directives/rules in the ldap with the content
  * in the database
  * If there is a change (serial updated, name changed, size of group modification, etc)
  * we close the previous entry, and add a new one
