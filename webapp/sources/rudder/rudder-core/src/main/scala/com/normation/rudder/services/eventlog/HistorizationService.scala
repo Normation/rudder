@@ -49,7 +49,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.DB
 
 /**
- * At each deployment, we compare the content of the groups/PI/CR in the ldap with the content
+ * At each deployment, we compare the content of the groups/directives/rules in the ldap with the content
  * in the database
  * If there is a change (serial updated, name changed, size of group modification, etc)
  * we close the previous entry, and add a new one
@@ -106,6 +106,12 @@ class HistorizationServiceImpl(
     }
   }
 
+  // Compare and Option[String] with a String, to check if they are equals
+  // returns true if entry is Some(value), or if entry is none and value is empty
+  private[this] def compareOptionString(entry: Option[String], value:String): Boolean = {
+    entry.getOrElse("") == value
+  }
+
   override def updateNodes(allNodeInfo: Set[NodeInfo]) : Box[Unit] = {
 
     val nodeInfos = allNodeInfo.filterNot(_.isPolicyServer).toSeq
@@ -117,7 +123,7 @@ class HistorizationServiceImpl(
       // detect changes
       val changed = nodeInfos.filter(x => registered.get(x.id.value) match {
         case None => true
-        case Some(entry) => (entry.nodeName != x.hostname || entry.nodeDescription != x.description )
+        case Some(entry) => entry.nodeName != x.hostname || !compareOptionString(entry.nodeDescription, x.description)
       })
 
       // a node closable is a node that is current in the database, but don't exist in the
@@ -143,7 +149,7 @@ class HistorizationServiceImpl(
         case None => true
         case Some((entry, nodes)) =>
           (entry.groupName != x.nodeGroup.name ||
-           entry.groupDescription != x.nodeGroup.description ||
+           !compareOptionString(entry.groupDescription, x.nodeGroup.description) ||
            nodes.map(x => NodeId(x.nodes)).toSet != x.nodeGroup.serverList ||
            DB.Historize.fromSQLtoDynamic(entry.groupStatus) != Some(x.nodeGroup.isDynamic))
       }).toSeq.map( _.nodeGroup )
@@ -178,11 +184,11 @@ class HistorizationServiceImpl(
           case None => true
           case Some(entry) => (
               entry.directiveName != directive.name
-           || entry.directiveDescription != directive.shortDescription
+           || !compareOptionString(entry.directiveDescription, directive.shortDescription)
            || entry.priority != directive.priority
            || entry.techniqueHumanName != technique.name
            || entry.techniqueName != fullActiveTechnique.techniqueName.value
-           || entry.techniqueDescription != technique.description
+           || !compareOptionString(entry.techniqueDescription, technique.description)
            || entry.techniqueVersion != directive.techniqueVersion.toString
           )
          }
