@@ -55,12 +55,16 @@ import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.parameters._
+
 import scala.xml._
 import com.normation.rudder.services.marshalling.XmlSerializer
 import com.normation.rudder.services.marshalling.XmlUnserializer
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import java.io.ByteArrayInputStream
+
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ChangeRequestLogger
+import com.normation.rudder.services.queries.DynGroupUpdaterService
 
 /**
  * A service responsible to actually commit a change request,
@@ -111,6 +115,7 @@ class CommitAndDeployChangeRequestServiceImpl(
   , xmlSerializer         : XmlSerializer
   , xmlUnserializer       : XmlUnserializer
   , sectionSpecParser     : SectionSpecParser
+  , updateDynamicGroups   : DynGroupUpdaterService
 ) extends CommitAndDeployChangeRequestService {
 
   val logger = ChangeRequestLogger
@@ -548,8 +553,17 @@ class CommitAndDeployChangeRequestServiceImpl(
                     case AddNodeGroupDiff(n) =>
                       Failure("You should not be able to create a group with a change request")
                     case ModifyToNodeGroupDiff(n) =>
-                      // if the update returns None, then we return the original modification object
-                      woNodeGroupRepo.update(n, modId, change.actor, change.reason).map(_.getOrElse(ModifyToNodeGroupDiff(n)))
+                      // we first need to refresh the node list if it's a dynamic group
+                      val group = if (n.isDynamic) updateDynamicGroups.computeDynGroup(n) else Full(n)
+
+                      // If we could get a nodeList, then we apply the change, else we bubble up the error
+                      group.flatMap { resultingGroup =>
+                        // if the update returns None, then we return the original modification object
+                        woNodeGroupRepo.update(resultingGroup, modId, change.actor, change.reason).map(_.getOrElse(ModifyToNodeGroupDiff(n)))
+                      }
+
+
+
                   }
       } yield {
         diff

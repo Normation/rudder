@@ -498,6 +498,7 @@ object RudderConfig extends Loggable {
       , xmlSerializer
       , xmlUnserializer
       , sectionSpecParser
+      , updateDynamicGroupsService
     )
   lazy val asyncWorkflowInfo = new AsyncWorkflowInfo
   val workflowService: WorkflowService = {
@@ -1269,7 +1270,7 @@ object RudderConfig extends Loggable {
     , logRepository
     , asyncDeploymentAgentImpl
     , gitModificationRepository
-    , updateDynamicGroupsService
+    , dynGroupUpdaterService
   )
 
   private[this] lazy val globalComplianceModeService : ComplianceModeService =
@@ -1377,6 +1378,7 @@ object RudderConfig extends Loggable {
       , HOOKS_D
       , HOOKS_IGNORE_SUFFIXES
   )}
+
 
   private[this] lazy val asyncDeploymentAgentImpl: AsyncDeploymentAgent = {
 
@@ -1752,7 +1754,10 @@ object RudderConfig extends Loggable {
     )
   }
 
- val aggregateReportScheduler = new FindNewReportsExecution(executionService,RUDDER_REPORTS_EXECUTION_INTERVAL)
+  val aggregateReportScheduler = new FindNewReportsExecution(executionService,RUDDER_REPORTS_EXECUTION_INTERVAL)
+
+  // This needs to be done at the end, to be sure that all is initialized
+  deploymentService.setDynamicsGroupsService(dyngroupUpdaterBatch)
 
 }
 
