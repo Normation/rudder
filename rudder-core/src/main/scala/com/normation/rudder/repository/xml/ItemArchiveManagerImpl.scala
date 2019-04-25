@@ -60,8 +60,13 @@ import com.normation.eventlog.EventLog
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import com.normation.rudder.rule.category.GitRuleCategoryArchiver
 import java.io.File
+
 import com.normation.rudder.rule.category.ImportRuleCategoryLibrary
 import com.normation.rudder.repository.EventLogRepository
+<<<<<<< HEAD:rudder-core/src/main/scala/com/normation/rudder/repository/xml/ItemArchiveManagerImpl.scala
+=======
+import com.normation.rudder.services.queries.DynGroupUpdaterService
+>>>>>>> 6b7a912... Fixes #4480: When restoring archive (full or groups) dynamic groups are created empty:webapp/sources/rudder/rudder-core/src/main/scala/com/normation/rudder/repository/xml/ItemArchiveManagerImpl.scala
 
 class ItemArchiveManagerImpl(
     roRuleRepository                  : RoRuleRepository
@@ -90,6 +95,7 @@ class ItemArchiveManagerImpl(
   , eventLogger                       : EventLogRepository
   , asyncDeploymentAgent              : AsyncDeploymentAgent
   , gitModificationRepo               : GitModificationRepository
+  , updateDynamicGroups               : DynGroupUpdaterService
 ) extends
   ItemArchiveManager with
   Loggable with
@@ -273,6 +279,7 @@ class ItemArchiveManagerImpl(
       eventLogged <- eventLogger.saveEventLog(modId,new ImportFullArchive(actor,archiveId, reason))
       commit      <- restoreCommitAtHead(commiter,"User %s requested full archive restoration to commit %s".format(actor.name,archiveId.value),archiveId,FullArchive,modId)
     } yield {
+
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
       archiveId
     }
@@ -353,6 +360,7 @@ class ItemArchiveManagerImpl(
       for {
         parsed   <- parseGroupLibrary.getArchive(archiveId)
         imported <- importGroupLibrary.swapGroupLibrary(parsed, includeSystem)
+        dynGroup <- updateDynamicGroups.updateAll(modId,actor,reason)
       } yield {
         if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }
         archiveId

@@ -148,7 +148,7 @@ class UpdateDynamicGroups(
         }
     }
 
-    private[this] def displayNodechange (nodes : Seq[NodeId]) : String = {
+    private[this] def displayNodechange (nodes : Set[NodeId]) : String = {
       if (nodes.nonEmpty) {
         nodes.map(_.value).mkString("[ ",", "," ]")
       } else {
