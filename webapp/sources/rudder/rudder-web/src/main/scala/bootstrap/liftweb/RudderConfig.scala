@@ -355,7 +355,7 @@ object RudderConfig extends Loggable {
   val eventListDisplayer: EventListDisplayer = eventListDisplayerImpl
   lazy val asyncDeploymentAgent: AsyncDeploymentActor = asyncDeploymentAgentImpl
   val policyServerManagementService: PolicyServerManagementService = psMngtService
-  val updateDynamicGroupsService : DynGroupUpdaterService = dynGroupUpdaterService
+  //val updateDynamicGroupsService : DynGroupUpdaterService = dynGroupUpdaterService
   val updateDynamicGroups: UpdateDynamicGroups = dyngroupUpdaterBatch
   val checkInventoryUpdate = new CheckInventoryUpdate(nodeInfoServiceImpl, asyncDeploymentAgent, stringUuidGenerator, 15.seconds)
   val databaseManager: DatabaseManager = databaseManagerImpl
@@ -492,6 +492,7 @@ object RudderConfig extends Loggable {
       , xmlSerializer
       , xmlUnserializer
       , sectionSpecParser
+      , dynGroupUpdaterService
     )
 
   val roParameterService : RoParameterService = roParameterServiceImpl
@@ -1258,7 +1259,7 @@ object RudderConfig extends Loggable {
     , logRepository
     , asyncDeploymentAgentImpl
     , gitModificationRepository
-    , updateDynamicGroupsService
+    , dynGroupUpdaterService
   )
 
   private[this] lazy val globalComplianceModeService : ComplianceModeService =
@@ -1368,7 +1369,6 @@ object RudderConfig extends Loggable {
   )}
 
   private[this] lazy val asyncDeploymentAgentImpl: AsyncDeploymentActor = {
-
     val agent = new AsyncDeploymentActor(
         deploymentService
       , eventLogDeploymentServiceImpl
@@ -1742,6 +1742,9 @@ object RudderConfig extends Loggable {
     )
   }
 
- val aggregateReportScheduler = new FindNewReportsExecution(executionService,RUDDER_REPORTS_EXECUTION_INTERVAL)
+  val aggregateReportScheduler = new FindNewReportsExecution(executionService,RUDDER_REPORTS_EXECUTION_INTERVAL)
+
+  // This needs to be done at the end, to be sure that all is initialized
+  deploymentService.setDynamicsGroupsService(dyngroupUpdaterBatch)
 
 }

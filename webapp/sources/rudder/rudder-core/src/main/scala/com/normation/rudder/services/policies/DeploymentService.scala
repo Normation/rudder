@@ -71,6 +71,7 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.inventory.domain.AixOS
+import com.normation.rudder.batch.UpdateDynamicGroups
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.hooks.RunHooks
@@ -132,10 +133,16 @@ trait PromiseGenerationService extends Loggable {
     import HooksImplicits._
 
     val result = for {
+      // trigger a dynamic group update
+      computeGroups        <- triggerNodeGroupUpdate()
+      timeComputeGroups    =  (System.currentTimeMillis - initialTime)
+      _                    =  logger.debug(s"Computing dynamic groups finished in ${timeComputeGroups} ms")
+      preGenHooksTime      =  System.currentTimeMillis
+
       //fetch all
       preHooks             <- RunHooks.getHooks(HOOKS_D + "/policy-generation-started", HOOKS_IGNORE_SUFFIXES)
       _                    <- RunHooks.syncRun(preHooks, HookEnvPairs.build( ("RUDDER_GENERATION_DATETIME", generationTime.toString) ), systemEnv)
-      timeRunPreGenHooks   =  (System.currentTimeMillis - initialTime)
+      timeRunPreGenHooks   =  (System.currentTimeMillis - preGenHooksTime)
       _                    =  logger.debug(s"Pre-policy-generation scripts hooks ran in ${timeRunPreGenHooks} ms")
 
       codePreGenHooksTime  =  System.currentTimeMillis
@@ -304,6 +311,9 @@ trait PromiseGenerationService extends Loggable {
   def getAgentRunStartMinute : () => Box[Int]
   def getScriptEngineEnabled : () => Box[FeatureSwitch]
   def getGlobalPolicyMode    : () => Box[GlobalPolicyMode]
+
+  // Trigger dynamic group update
+  def triggerNodeGroupUpdate(): Box[Unit]
 
   // code hooks
   def beforeDeploymentSync(generationTime: DateTime): Box[Unit]
@@ -500,12 +510,52 @@ class PromiseGenerationServiceImpl (
 
   private[this] val codeHooks = collection.mutable.Buffer[PromiseGenerationHooks]()
 
+  private[this] var dynamicsGroupsUpdate : Option[UpdateDynamicGroups] = None
+
   override def beforeDeploymentSync(generationTime: DateTime): Box[Unit] = {
     sequence(codeHooks) { _.beforeDeploymentSync(generationTime) }.map( _ => () )
   }
 
   def appendPreGenCodeHook(hook: PromiseGenerationHooks): Unit = {
     this.codeHooks.append(hook)
+  }
+
+  // We need to register the update dynamic group after instantiation of the class
+  // as the deployment service, the async deployment and the dynamic group update have cyclic dependencies
+  def setDynamicsGroupsService(updateDynamicGroups : UpdateDynamicGroups): Unit = {
+    this.dynamicsGroupsUpdate = Some(updateDynamicGroups)
+  }
+
+  override def triggerNodeGroupUpdate() : Box[Unit] = {
+    dynamicsGroupsUpdate.map(groupUpdate(_)).getOrElse(Failure("Dynamic group update is not registered, this is an error"))
+
+  }
+  private[this] def groupUpdate(updateDynamicGroups : UpdateDynamicGroups): Box[Unit] = {
+    // Trigger a manual update if one is not pending (otherwise it goes in infinit loop)
+    // It doesn't expose anything about its ending, so we need to wait for the update to be idle
+    if (updateDynamicGroups.isIdle()) {
+      updateDynamicGroups.startManualUpdate
+      // wait for it to finish. We unfortunately cannot do much more than waiting
+      // we do need a timeout though
+      // Leave some time for actor to kick in
+      Thread.sleep(100)
+    }
+
+
+    val TIMEOUT_FOR_GROUP_UPDATE = 10
+    val endWaitTime = System.currentTimeMillis + TIMEOUT_FOR_GROUP_UPDATE * 1000
+
+    while (System.currentTimeMillis() < endWaitTime && !updateDynamicGroups.isIdle()) {
+      Thread.sleep(50)
+    }
+
+    if (System.currentTimeMillis() > endWaitTime) {
+      val msg = s"Dynamic group update time-outed (waited for ${TIMEOUT_FOR_GROUP_UPDATE} secondes to finish)"
+      logger.error(msg)
+      Failure(msg)
+    } else {
+      Full(Unit)
+    }
   }
 }
 
