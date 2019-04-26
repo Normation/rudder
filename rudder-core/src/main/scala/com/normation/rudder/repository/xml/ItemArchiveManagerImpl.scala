@@ -63,10 +63,7 @@ import java.io.File
 
 import com.normation.rudder.rule.category.ImportRuleCategoryLibrary
 import com.normation.rudder.repository.EventLogRepository
-<<<<<<< HEAD:rudder-core/src/main/scala/com/normation/rudder/repository/xml/ItemArchiveManagerImpl.scala
-=======
 import com.normation.rudder.services.queries.DynGroupUpdaterService
->>>>>>> 6b7a912... Fixes #4480: When restoring archive (full or groups) dynamic groups are created empty:webapp/sources/rudder/rudder-core/src/main/scala/com/normation/rudder/repository/xml/ItemArchiveManagerImpl.scala
 
 class ItemArchiveManagerImpl(
     roRuleRepository                  : RoRuleRepository
