@@ -67,7 +67,7 @@ object StartAutomaticReporting
  * Informations of logs a are taken from different repository
  */
 class AutomaticReportLogger(
-    propertyRepository    : RudderPropertiesRepository
+    propertyRepository  : RudderPropertiesRepository
   , reportsRepository   : ReportsRepository
   , ruleRepository      : RoRuleRepository
   , directiveRepository : RoDirectiveRepository
