@@ -44,6 +44,8 @@ import java.util.function.BiPredicate
 import java.util.function.Consumer
 
 import com.normation.NamedZioLogger
+import com.normation.box._
+import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AcceptedInventory
@@ -54,7 +56,6 @@ import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.ldap.sdk.LDAPConnectionProvider
-import com.normation.ldap.sdk.LdapResult._
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.NodeDit
@@ -76,7 +77,6 @@ import com.normation.rudder.repository.ldap.ScalaReadWriteLock
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.write.NodePromisesPaths
 import com.normation.rudder.services.policies.write.PathComputer
-import com.normation.utils.Control.sequence
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
 import com.unboundid.ldif.LDIFChangeRecord
@@ -84,11 +84,7 @@ import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
-import net.liftweb.common.Loggable
-import com.normation.errors._
 import scalaz.zio._
-import scalaz.zio.syntax._
-import com.normation.box._
 
 sealed trait DeletionResult
 object DeletionResult {

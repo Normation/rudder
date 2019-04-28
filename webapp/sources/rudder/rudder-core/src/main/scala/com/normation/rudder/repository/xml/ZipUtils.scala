@@ -64,7 +64,7 @@ object ZipUtils {
    */
 
   def zip(zipout:OutputStream, toAdds:Seq[Zippable]) : IOResult[Unit] = {
-    ZIO.bracket(IOResult.effect(new ZipOutputStream(zipout)))(zout => IOResult.effectRunVoid(zout.close())) { zout =>
+    ZIO.bracket(IOResult.effect(new ZipOutputStream(zipout)))(zout => IOResult.effectRunUnit(zout.close())) { zout =>
       val addToZout = (is:InputStream) => IOResult.effect("Error when copying file")(IOUtils.copy(is, zout))
 
       ZIO.foreach(toAdds) { x =>
@@ -79,7 +79,7 @@ object ZipUtils {
           case None    => ().succeed
           case Some(x) => x(addToZout)
         }
-      }.void
+      }.unit
     }
   }
 
@@ -128,7 +128,7 @@ object ZipUtils {
         }
       } else {
         def buildContent(use: InputStream => Any) : IOResult[Any] = {
-          ZIO.bracket(IOResult.effect(new FileInputStream(f)))(is => IOResult.effectRunVoid(is.close)){ is =>
+          ZIO.bracket(IOResult.effect(new FileInputStream(f)))(is => IOResult.effectRunUnit(is.close)){ is =>
             IOResult.effect("Error when using file")(use(is))
           }
         }

@@ -37,16 +37,16 @@
 
 package com.normation.inventory.ldap.core
 
-import com.normation.inventory.domain._
-import com.normation.history.impl._
 import java.io.File
+import java.io.FileNotFoundException
+
+import com.normation.history.impl._
+import com.normation.errors._
+import com.normation.inventory.domain._
 import com.normation.ldap.sdk.LDAPEntry
 import com.unboundid.ldap.sdk.Entry
 import com.unboundid.ldif._
-import com.normation.inventory.domain.InventoryResult._
-import java.io.FileNotFoundException
 import scalaz.zio._
-import scalaz.zio.syntax._
 
 /**
  * A service that write and read ServerAndMachine inventory data to/from file.
@@ -58,7 +58,7 @@ class FullInventoryFileMarshalling(
     mapper:InventoryMapper
 ) extends FileMarshalling[FullInventory] {
 
-  def fromFile(in:File) : InventoryResult[FullInventory] = {
+  def fromFile(in:File) : IOResult[FullInventory] = {
     import scala.collection.mutable.Buffer
     IO.bracket(Task.effect(new LDIFReader(in)).mapError(e => InventoryError.System(e.getMessage)))(r => UIO(r.close)) { reader =>
       (Task.effect {
@@ -78,7 +78,7 @@ class FullInventoryFileMarshalling(
     }
   }
 
-  def toFile(out:File, data: FullInventory) : InventoryResult[FullInventory] = {
+  def toFile(out:File, data: FullInventory) : IOResult[FullInventory] = {
     ZIO.bracket(Task.effect(new LDIFWriter(out)).mapError(e => InventoryError.System(e.getMessage)))(is => Task.effect(is.close).run) { printer =>
       (Task.effect {
         mapper.treeFromNode(data.node).toLDIFRecords.foreach { r => printer.writeLDIFRecord(r) }

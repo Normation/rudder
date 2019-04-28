@@ -38,16 +38,17 @@
 package bootstrap.liftweb
 package checks
 
-import com.normation.rudder.repository.ItemArchiveManager
-import com.normation.rudder.services.user.PersonIdentService
-import com.normation.rudder.domain.eventlog.RudderEventActor
-import net.liftweb.common._
-import com.normation.utils.StringUuidGenerator
-import com.normation.eventlog.ModificationId
 import java.io.File
-import net.liftweb.util.ControlHelpers.tryo
 
 import com.normation.box._
+import com.normation.errors.IOResult
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.repository.ItemArchiveManager
+import com.normation.rudder.services.user.PersonIdentService
+import com.normation.utils.StringUuidGenerator
+import net.liftweb.common._
+import scalaz.zio._
 
 /**
  *
@@ -66,31 +67,25 @@ class CheckRootRuleCategoryExport(
 
   override def checks() : Unit = {
     (for {
-      exists <- tryo{ categoryDirectory.exists() }
-      ident  <- personIdentService.getPersonIdentOrDefault(RudderEventActor.name).toBox
+      exists <- IOResult.effect(categoryDirectory.exists).chainError(s"Error when checking '${categoryDirectory}' directory existence")
+      ident  <- personIdentService.getPersonIdentOrDefault(RudderEventActor.name)
+      res    <- if(!exists) {
+                  BootraspLogger.info(s"Directory '${categoryDirectory.getAbsolutePath()}' is missing, initialize it by exporting Rules") *>
+                  itemArchiveManager.exportRules(ident, ModificationId(uuidGen.newUuid), RudderEventActor, Some("Initialising configuration-repository Rule categories directory"), false)
+                } else {
+                  BootraspLogger.trace(s"Directory '${categoryDirectory.getAbsolutePath()}' exists") *>
+                  UIO.unit
+                }
     } yield {
-      if(!exists) {
-        BootraspLogger.logEffect.info(s"Directory '${categoryDirectory.getAbsolutePath()}' is missing, initialize it by exporting Rules")
-        itemArchiveManager.exportRules(ident, ModificationId(uuidGen.newUuid), RudderEventActor, Some("Initialising configuration-repository Rule categories directory"), false)
-      } else {
-        BootraspLogger.logEffect.trace(s"Directory '${categoryDirectory.getAbsolutePath()}' exists")
-        Full("OK")
-      }
-    }) match {
-      case eb: EmptyBox =>
-        val fail = eb ?~! s"Error when checking '${categoryDirectory}' directory existence"
-        BootraspLogger.logEffect.error(fail.msg)
-        fail.rootExceptionCause.foreach { t =>
-          BootraspLogger.logEffect.error("Root exception was:", t)
-        }
-      case Full(eb:EmptyBox) =>
+    }).toBox match {
+      case eb:EmptyBox =>
         val fail = eb ?~! "Initialising configuration-repository Rule categories directory with a Rule archive"
         BootraspLogger.logEffect.error(fail.msg)
         fail.rootExceptionCause.foreach { t =>
           BootraspLogger.logEffect.error("Root exception was:", t)
         }
 
-      case Full(Full(_)) =>
+      case Full(_) =>
         BootraspLogger.logEffect.info(s"Creating directory '${categoryDirectory.getAbsolutePath()}' exists, done")
     }
   }

@@ -37,12 +37,9 @@
 
 package com.normation.inventory.services.provisioning
 
-import com.normation.errors.RudderError
-import com.normation.inventory.domain.InventoryResult.InventoryResult
-import com.normation.inventory.domain._
-import scalaz.zio._
-
 import com.normation.errors._
+import com.normation.errors._
+import com.normation.inventory.domain._
 
 /**
  * Generic interface to the service that try
@@ -54,14 +51,14 @@ trait NodeInventoryDNFinderAction {
 
   //black list / white list ?
 
-  def tryWith(entity:NodeInventory) : InventoryResult[Option[(NodeId, InventoryStatus)]]
+  def tryWith(entity:NodeInventory) : IOResult[Option[(NodeId, InventoryStatus)]]
 }
 
 trait MachineDNFinderAction {
 
   //black list / white list ?
 
-  def tryWith(entity:MachineInventory) : InventoryResult[Option[(MachineUuid, InventoryStatus)]]
+  def tryWith(entity:MachineInventory) : IOResult[Option[(MachineUuid, InventoryStatus)]]
 }
 
 

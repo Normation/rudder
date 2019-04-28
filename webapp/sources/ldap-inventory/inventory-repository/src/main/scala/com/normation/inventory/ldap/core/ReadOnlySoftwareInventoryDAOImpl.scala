@@ -37,13 +37,13 @@
 
 package com.normation.inventory.ldap.core
 
-import com.normation.ldap.sdk._
-import BuildFilter.{EQ,OR}
+import com.normation.errors._
 import com.normation.inventory.domain._
+import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
-import LDAPConstants._
-import com.normation.inventory.domain.InventoryResult._
-import com.normation.ldap.sdk.LdapResult._
+import com.normation.ldap.sdk.BuildFilter.EQ
+import com.normation.ldap.sdk.BuildFilter.OR
+import com.normation.ldap.sdk._
 import scalaz.zio._
 import scalaz.zio.syntax._
 
@@ -53,7 +53,7 @@ class ReadOnlySoftwareDAOImpl(
   mapper:InventoryMapper
 ) extends ReadOnlySoftwareDAO {
 
-  private[this] def search(con: RoLDAPConnection, ids: Seq[SoftwareUuid]): InventoryResult[List[Software]] = {
+  private[this] def search(con: RoLDAPConnection, ids: Seq[SoftwareUuid]): IOResult[List[Software]] = {
     for {
       entries <- con.searchOne(inventoryDitService.getSoftwareBaseDN, OR(ids map {x:SoftwareUuid => EQ(A_SOFTWARE_UUID,x.value) }:_*)).map(_.toVector)
       soft    <- ZIO.foreach(entries) { entry =>
@@ -64,7 +64,7 @@ class ReadOnlySoftwareDAOImpl(
     }
   }
 
-  override def getSoftware(ids:Seq[SoftwareUuid]) : InventoryResult[Seq[Software]] = {
+  override def getSoftware(ids:Seq[SoftwareUuid]) : IOResult[Seq[Software]] = {
     if(ids.isEmpty) Seq().succeed
     else (for {
       con   <- ldap
@@ -78,7 +78,7 @@ class ReadOnlySoftwareDAOImpl(
   /**
    * softwares
    */
-  override def getSoftwareByNode(nodeIds: Set[NodeId], status: InventoryStatus): InventoryResult[Map[NodeId, Seq[Software]]] = {
+  override def getSoftwareByNode(nodeIds: Set[NodeId], status: InventoryStatus): IOResult[Map[NodeId, Seq[Software]]] = {
 
     val dit = inventoryDitService.getDit(status)
 

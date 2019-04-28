@@ -38,7 +38,7 @@
 package com.normation.inventory.services.provisioning
 
 import com.normation.inventory.domain.InventoryReport
-import com.normation.inventory.domain.InventoryResult.InventoryResult
+import com.normation.errors._
 
 
 /**
@@ -66,5 +66,5 @@ trait PostCommit[R] {
 
   def name : String
 
-  def apply(report:InventoryReport,records:R) : InventoryResult[R]
+  def apply(report:InventoryReport,records:R) : IOResult[R]
 }

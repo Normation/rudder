@@ -37,42 +37,41 @@
 
 package com.normation.rudder.web.components
 
+import bootstrap.liftweb.RudderConfig
+import com.normation.box._
 import com.normation.cfclerk.domain.Technique
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.repository._
-import net.liftweb.http.js._
-import JsCmds._
+import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
-import JE._
-import net.liftweb.common._
-import net.liftweb.http._
-import scala.xml._
-import net.liftweb.util.Helpers._
+import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.policies._
+import com.normation.rudder.repository._
+import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.services.reports.NodeChanges
+import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.web.services.ComputePolicyMode
+import com.normation.rudder.web.services.JsTableData
+import com.normation.rudder.web.services.JsTableLine
 import com.normation.utils.Control.sequence
 import com.normation.utils.HashcodeCaching
-import com.normation.eventlog.ModificationId
-import bootstrap.liftweb.RudderConfig
-import net.liftweb.json.JArray
-import net.liftweb.json.JsonParser
-import net.liftweb.json.JString
-import net.liftweb.json.JObject
-import net.liftweb.json.JField
-import com.normation.rudder.web.services.JsTableLine
-import com.normation.rudder.web.services.JsTableData
+import net.liftweb.common._
+import net.liftweb.http._
 import net.liftweb.http.js.JE.AnonFunc
+import net.liftweb.http.js.JE._
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js._
+import net.liftweb.json.JArray
+import net.liftweb.json.JField
+import net.liftweb.json.JObject
+import net.liftweb.json.JString
+import net.liftweb.json.JsonParser
+import net.liftweb.util.Helpers._
 import org.joda.time.Interval
-import com.normation.rudder.services.reports.NodeChanges
-import com.normation.rudder.domain.logger.TimingDebugLogger
-import scala.concurrent._
-import ExecutionContext.Implicits.global
-import com.normation.rudder.rule.category.RuleCategory
-import com.normation.rudder.web.services.ComputePolicyMode
-import com.normation.rudder.web.ChooseTemplate
 
-import com.normation.box._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent._
+import scala.xml._
 
 object RuleGrid {
   def staticInit =
@@ -538,7 +537,7 @@ class RuleGrid(
                       logger.warn(s"Rule '${rule.name}' (ID: '${rule.id.value}' target problem: " + f.messageChain)
                     case _ => // Group Ok!
                }
-             } ) match {
+             } ).toBox match {
                case eb: EmptyBox =>
                  val e = eb ?~! s"Error when to trying to disable the rule '${rule.name}' (ID: '${rule.id.value}') because it's data are unconsistant."
                  logger.warn(e.messageChain)

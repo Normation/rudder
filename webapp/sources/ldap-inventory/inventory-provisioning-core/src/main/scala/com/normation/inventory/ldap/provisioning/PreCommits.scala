@@ -37,12 +37,11 @@
 
 package com.normation.inventory.ldap.provisioning
 
-import com.normation.inventory.services.provisioning._
 import com.normation.inventory.domain.InventoryReport
-import com.normation.inventory.domain.InventoryResult.InventoryResult
+import com.normation.errors._
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.InventoryMapper
-import scalaz.zio._
+import com.normation.inventory.services.provisioning._
 import scalaz.zio.syntax._
 
 /**
@@ -54,7 +53,7 @@ object CheckOsType extends PreCommit {
 
   override val name = "pre_commit_inventory:check_os_type_is_known"
 
-  override def apply(report:InventoryReport) : InventoryResult[InventoryReport] = {
+  override def apply(report:InventoryReport) : IOResult[InventoryReport] = {
 
     report.node.main.osDetails.os match {
       case UnknownOSType =>
@@ -84,7 +83,7 @@ object CheckMachineName extends PreCommit {
 
   override val name = "pre_commit_inventory:check_machine_cn"
 
-  override def apply(report:InventoryReport) : InventoryResult[InventoryReport] = {
+  override def apply(report:InventoryReport) : IOResult[InventoryReport] = {
     //machine are in FullMachine and VMs
     report.copy(
       machine = checkName(report.machine),
@@ -110,7 +109,7 @@ class LogReportPreCommit(
 
   override val name = "pre_commit_inventory:log_inventory"
 
-  override def apply(report:InventoryReport) : InventoryResult[InventoryReport] = {
+  override def apply(report:InventoryReport) : IOResult[InventoryReport] = {
     ldifLogger.log(
         report.name,
         Some("LDIF describing the state of inventory to reach after save. What will be actually saved may be modified by pre/post processing"),
@@ -130,7 +129,7 @@ class LastInventoryDate() extends PreCommit {
 
   override val name = "pre_commit_inventory:set_last_inventory_date"
 
-  override def apply(report:InventoryReport) : InventoryResult[InventoryReport] = {
+  override def apply(report:InventoryReport) : IOResult[InventoryReport] = {
     val now = DateTime.now()
 
     report.copy (
@@ -148,7 +147,7 @@ object AddIpValues extends PreCommit {
 
   override val name = "pre_commit_inventory:add_ip_values"
 
-  override def apply(report:InventoryReport) : InventoryResult[InventoryReport] = {
+  override def apply(report:InventoryReport) : IOResult[InventoryReport] = {
 
     val ips = report.node.networks.flatMap(x => x.ifAddresses).map(x => x.getHostAddress() )
 

@@ -37,30 +37,19 @@
 
 package com.normation.rudder.repository
 
-import com.normation.rudder.domain.policies._
-import net.liftweb.common._
-import com.normation.eventlog.EventActor
 import com.normation.cfclerk.domain.Technique
-import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.policies._
+import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
-import net.liftweb.common._
 import com.normation.cfclerk.domain.TechniqueVersion
-import org.joda.time.DateTime
-import scala.collection.SortedMap
-import com.normation.utils.HashcodeCaching
+import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies._
-import net.liftweb.common._
+import com.normation.utils.HashcodeCaching
 import com.normation.utils.Utils
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
-import com.normation.cfclerk.domain.TechniqueId
-import com.normation.cfclerk.domain.TechniqueName
-import com.normation.cfclerk.domain.TechniqueId
+import org.joda.time.DateTime
 
-import com.normation.errors._
+import scala.collection.SortedMap
 
 
 /**

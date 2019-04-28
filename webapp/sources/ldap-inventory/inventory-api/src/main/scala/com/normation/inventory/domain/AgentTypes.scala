@@ -37,7 +37,7 @@
 
 package com.normation.inventory.domain
 
-import InventoryResult._
+import com.normation.errors._
 import scalaz.zio._
 import scalaz.zio.syntax._
 
@@ -227,7 +227,7 @@ object AgentInfoSerialisation {
    * but version isn't, and even if we don't parse it correctly, we
    * successfully return an agent (without version).
    */
-  def parseJson(s: String, optToken : Option[String]): InventoryResult[AgentInfo] = {
+  def parseJson(s: String, optToken : Option[String]): IOResult[AgentInfo] = {
     for {
       json <- ZIO.effect { parse(s) } mapError  { ex => InventoryError.Deserialisation(s"Can not parse agent info: ${ex.getMessage }", ex) }
       agentType <- (json \ "agentType") match {
@@ -254,7 +254,7 @@ object AgentInfoSerialisation {
    * - try to parse in json: if ok, we have the new version
    * - else, try to parse in old format, put None to version.
    */
-  def parseCompatNonJson(s: String, optToken : Option[String]): InventoryResult[AgentInfo] = {
+  def parseCompatNonJson(s: String, optToken : Option[String]): IOResult[AgentInfo] = {
     parseJson(s, optToken).catchAll { eb =>
 
         val jsonError = "Error when parsing JSON information about the agent type: " + eb.msg

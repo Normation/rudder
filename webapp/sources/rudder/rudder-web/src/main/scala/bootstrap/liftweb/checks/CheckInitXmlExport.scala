@@ -46,6 +46,7 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 
 import com.normation.box._
+import scalaz.zio._
 
 /**
  *
@@ -70,30 +71,25 @@ class CheckInitXmlExport(
     (for {
       tagMap <- itemArchiveManager.getFullArchiveTags
       ident  <- personIdentService.getPersonIdentOrDefault(RudderEventActor.name)
+      res    <- if(tagMap.isEmpty) {
+                  BootraspLogger.info("No full archive of configuration-repository items seems to have been done, initialising the system with one") *>
+                  itemArchiveManager.exportAll(ident, ModificationId(uuidGen.newUuid), RudderEventActor, Some("Initialising configuration-repository sub-system"), false)
+                } else {
+                  BootraspLogger.trace("At least a full archive of configuration items done, no need for further initialisation") *>
+                  UIO.unit
+                }
 
     } yield {
-      if(tagMap.isEmpty) {
-        BootraspLogger.logEffect.info("No full archive of configuration-repository items seems to have been done, initialising the system with one")
-        itemArchiveManager.exportAll(ident, ModificationId(uuidGen.newUuid), RudderEventActor, Some("Initialising configuration-repository sub-system"), false)
-      } else {
-        BootraspLogger.logEffect.trace("At least a full archive of configuration items done, no need for further initialisation")
-        Full("OK")
-      }
+      res
     }).toBox match {
-      case eb: EmptyBox =>
-        val fail = eb ?~! "Error when trying to get the list of archive tag"
-        BootraspLogger.logEffect.error(fail)
-        fail.rootExceptionCause.foreach { t =>
-          BootraspLogger.logEffect.error("Root exception was:", t)
-        }
-      case Full(eb:EmptyBox) =>
+      case eb:EmptyBox =>
         val fail = eb ?~! "Error when trying to initialise to configuration-repository sub-system with a first full archive"
         BootraspLogger.logEffect.error(fail)
         fail.rootExceptionCause.foreach { t =>
           BootraspLogger.logEffect.error("Root exception was:", t)
         }
 
-      case Full(Full(_)) =>
+      case Full(_) =>
         BootraspLogger.logEffect.info("First full archive of configuration-repository items done")
     }
   }

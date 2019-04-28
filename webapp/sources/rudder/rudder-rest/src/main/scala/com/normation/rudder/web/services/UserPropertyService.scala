@@ -35,12 +35,8 @@
 *************************************************************************************
 */
 package com.normation.rudder.web.services
-import net.liftweb.common.Box
-import net.liftweb.common.Full
-
-import com.normation.errors._
 import com.normation.box._
-import scalaz.zio._
+import com.normation.errors._
 import scalaz.zio.syntax._
 
 object ReasonBehavior extends Enumeration {

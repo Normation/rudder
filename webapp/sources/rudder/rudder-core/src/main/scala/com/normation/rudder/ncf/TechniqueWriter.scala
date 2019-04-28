@@ -37,37 +37,31 @@
 
 package com.normation.rudder.ncf
 
-import net.liftweb.common.Loggable
-import java.nio.file.Paths
-import java.nio.file.Files
-import scala.xml.NodeSeq
-import java.nio.charset.StandardCharsets
-import com.normation.inventory.domain.AgentType
-import net.liftweb.common.Box
-import com.normation.rudder.repository.xml.GitArchiverUtils
-import com.normation.cfclerk.services.GitRepositoryProvider
 import java.io.File
-import com.normation.rudder.repository.xml.RudderPrettyPrinter
-import com.normation.rudder.repository.GitModificationRepository
-import com.normation.eventlog.ModificationId
-import net.liftweb.common.Full
-import com.normation.eventlog.EventActor
-import com.normation.rudder.services.user.PersonIdentService
-import scala.xml.{ Node => XmlNode }
-import net.liftweb.common.EmptyBox
-import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import net.liftweb.common.Failure
-import net.liftweb.common.Empty
-import com.normation.rudder.services.policies.InterpolatedValueCompiler
-import scala.language.implicitConversions
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.Paths
 
+import cats.implicits._
+import com.normation.cfclerk.services.GitRepositoryProvider
+import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors._
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.AgentType
+import com.normation.rudder.repository.GitModificationRepository
+import com.normation.rudder.repository.xml.GitArchiverUtils
+import com.normation.rudder.repository.xml.RudderPrettyPrinter
+import com.normation.rudder.services.policies.InterpolatedValueCompiler
+import com.normation.rudder.services.user.PersonIdentService
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
 import scalaz.zio._
 import scalaz.zio.syntax._
 
-import cats._
-import cats.data._
-import cats.implicits._
+import scala.xml.NodeSeq
+import scala.xml.{Node => XmlNode}
 
 trait NcfError extends RudderError {
   def message : String
@@ -432,7 +426,7 @@ class TechniqueArchiverImpl (
       commit <- commitAddFile(modId,ident, gitPath, msg)
     } yield {
       gitPath
-    }).chainError(s"error when commiting file ${gitPath} for Technique '${technique.name}").void
+    }).chainError(s"error when commiting file ${gitPath} for Technique '${technique.name}").unit
   }
 
 }

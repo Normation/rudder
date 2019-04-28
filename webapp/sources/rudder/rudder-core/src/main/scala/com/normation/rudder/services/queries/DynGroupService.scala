@@ -37,27 +37,23 @@
 
 package com.normation.rudder.services.queries
 
+import cats.implicits._
+import com.normation.box._
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.nodes.{NodeGroup, NodeGroupId}
-import com.normation.ldap.sdk._
-import BuildFilter._
-import com.normation.rudder.domain.{RudderDit, RudderLDAPConstants}
-import RudderLDAPConstants._
-import com.normation.utils.Control.sequence
 import com.normation.inventory.ldap.core.LDAPConstants
+import com.normation.ldap.sdk.BuildFilter._
+import com.normation.ldap.sdk._
+import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.logger.NodeLogger
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Equals
 import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import net.liftweb.common._
-import com.normation.ldap.sdk.LdapResult._
-import cats.implicits._
-
 import scalaz.zio._
-import scalaz.zio.syntax._
-
-import com.normation.box._
 
 /**
  * A service used to manage dynamic groups : find
@@ -186,7 +182,7 @@ class CheckPendingNodeInDynGroups(
      * one step of the algo
      */
     def recProcess(todo: List[DynGroup], blocked: List[DynGroup], done: List[(NodeGroupId, Set[NodeId])]): Box[List[(NodeGroupId, Set[NodeId])]] = {
-      import com.normation.rudder.domain.queries.{ And => CAnd}
+      import com.normation.rudder.domain.queries.{And => CAnd}
 
       NodeLogger.PendingNode.Policies.trace("TODO   :" + todo.show   )
       NodeLogger.PendingNode.Policies.trace("BLOCKED:" + blocked.show)

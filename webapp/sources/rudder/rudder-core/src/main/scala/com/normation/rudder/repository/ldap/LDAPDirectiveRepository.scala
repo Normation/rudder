@@ -45,6 +45,7 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.ldap.core.LDAPConstants.A_NAME
@@ -53,10 +54,9 @@ import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.ldap.sdk.BuildFilter._
 import com.normation.ldap.sdk.LdapResult._
 import com.normation.ldap.sdk._
+import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.RudderLDAPConstants
 import com.normation.rudder.repository.ActiveTechniqueCategoryOrdering
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.EventLogRepository
@@ -73,11 +73,10 @@ import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Filter
 import net.liftweb.json.JsonAST
 import org.joda.time.DateTime
-
-import scala.collection.immutable.SortedMap
 import scalaz.zio._
 import scalaz.zio.syntax._
-import com.normation.errors._
+
+import scala.collection.immutable.SortedMap
 
 class RoLDAPDirectiveRepository(
     val rudderDit                     : RudderDit
@@ -509,7 +508,7 @@ class RoLDAPDirectiveRepository(
     def mappingError(current: AllMaps, e: LDAPEntry, err: RudderError) : AllMaps = {
       val error = Chained(s"Error when mapping entry with DN '${e.dn.toString}' from directive library", err)
 
-      logEffect.warn(err.fullMsg)
+      logEffect.warn(error.fullMsg)
       current
     }
 

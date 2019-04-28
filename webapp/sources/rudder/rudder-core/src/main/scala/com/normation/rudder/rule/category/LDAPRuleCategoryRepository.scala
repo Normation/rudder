@@ -39,6 +39,7 @@ package com.normation.rudder.rule.category
 
 import cats.implicits._
 import com.normation.NamedZioLogger
+import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.ldap.core.LDAPConstants._
@@ -56,9 +57,6 @@ import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Utils
 import com.unboundid.ldap.sdk.DN
-import com.unboundid.ldap.sdk.LDAPException
-import com.unboundid.ldap.sdk.ResultCode
-import com.normation.errors._
 import scalaz.zio._
 import scalaz.zio.syntax._
 

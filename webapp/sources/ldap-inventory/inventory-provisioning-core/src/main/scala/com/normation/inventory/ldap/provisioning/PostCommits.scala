@@ -37,17 +37,15 @@
 
 package com.normation.inventory.ldap.provisioning
 
-import com.normation.NamedZioLogger
 import com.normation.errors.SystemError
-import com.normation.inventory.services.provisioning._
 import com.normation.inventory.domain.InventoryReport
-import com.normation.inventory.domain.InventoryResult.InventoryResult
-import com.normation.inventory.services.core._
-import com.unboundid.ldif.LDIFChangeRecord
-import com.normation.inventory.ldap.core._
-import net.liftweb.common._
+import com.normation.errors._
 import com.normation.inventory.domain._
-import scalaz.zio._
+import com.normation.inventory.ldap.core._
+import com.normation.inventory.services.core._
+import com.normation.inventory.services.provisioning._
+import com.unboundid.ldif.LDIFChangeRecord
+import net.liftweb.common._
 import scalaz.zio.syntax._
 
 /*
@@ -67,7 +65,7 @@ class AcceptPendingMachineIfServerIsAccepted(
 
   override val name = "post_commit_inventory:accept_pending_machine_for_accepted_server"
 
-  override def apply(report:InventoryReport,records:Seq[LDIFChangeRecord]) : InventoryResult[Seq[LDIFChangeRecord]] = {
+  override def apply(report:InventoryReport,records:Seq[LDIFChangeRecord]) : IOResult[Seq[LDIFChangeRecord]] = {
     (report.node.main.status, report.machine.status ) match {
       case (AcceptedInventory,  PendingInventory) =>
         // Change the container state, no need to keep the machine
@@ -98,7 +96,7 @@ class PendingNodeIfNodeWasRemoved(
 
   override val name = "post_commit_inventory:pending_node_for_deleted_server"
 
-  override def apply(report:InventoryReport,records:Seq[LDIFChangeRecord]) : InventoryResult[Seq[LDIFChangeRecord]] = {
+  override def apply(report:InventoryReport,records:Seq[LDIFChangeRecord]) : IOResult[Seq[LDIFChangeRecord]] = {
 
     (report.node.main.status, report.machine.status ) match {
       case (RemovedInventory,  RemovedInventory) =>
@@ -133,7 +131,7 @@ class PostCommitLogger(log:LDIFReportLogger) extends PostCommit[Seq[LDIFChangeRe
 
   override val name = "post_commit_inventory:log_inventory"
 
-  override def apply(report:InventoryReport,records:Seq[LDIFChangeRecord]) : InventoryResult[Seq[LDIFChangeRecord]] = {
+  override def apply(report:InventoryReport,records:Seq[LDIFChangeRecord]) : IOResult[Seq[LDIFChangeRecord]] = {
     log.log(
         report.name
       , Some("LDIF actually commited to the LDAP directory for given report processing")

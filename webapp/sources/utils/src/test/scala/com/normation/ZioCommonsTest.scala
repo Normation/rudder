@@ -25,29 +25,23 @@
 
 package com.normation
 
-import java.io.FileInputStream
 import java.net.URL
-import java.util
 
-import scalaz.zio._
-import scalaz.zio.syntax._
-import com.normation.zio.ZioRuntime
-import net.liftweb.common._
-import cats._
-import cats.data._
-import cats.implicits._
+import com.github.ghik.silencer.silent
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
+import com.normation.errors._
+import com.normation.zio.ZioRuntime
+import com.normation.zio._
+import net.liftweb.common._
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
-import specs2.run
-import specs2.arguments._
-import com.normation.errors._
-import com.normation.zio._
+import scalaz.zio._
 import scalaz.zio.blocking.Blocking
 import scalaz.zio.clock.Clock
 import scalaz.zio.duration.Duration
+import scalaz.zio.syntax._
 
 @RunWith(classOf[JUnitRunner])
 class ZioCommonsTest extends Specification {
@@ -125,10 +119,9 @@ object TestImplicits {
   }
 
   object testModule {
+    import com.normation.errors._
     import module1._
     import module2._
-
-    import com.normation.errors._
     sealed trait M_3_Error extends RudderError
     object M_3_Error {
       final case class Some(msg: String) extends M_3_Error
@@ -138,17 +131,13 @@ object TestImplicits {
       // implicits ?
     }
 
-    import module1.M_1_Result._
-    import module2.M_2_Result._
-    import M_3_Result._
-
     /*
      * I would like all of that to be possible, with the minimum boilerplate,
      * and the maximum homogeneity between modules
      */
     object service {
 
-      def trace(msg: => AnyRef): UIO[Unit] = IOResult.effectRunVoid(println(msg))
+      def trace(msg: => AnyRef): UIO[Unit] = IOResult.effectRunUnit(println(msg))
 
       def test0(a: String): IOResult[String] = service1.doStuff(a)
 
@@ -305,7 +294,7 @@ object TestJavaLockWithZio {
           .mapError(ex => SystemError(s"Error when trying to get LDAP lock", ex))
       )(_ =>
         log(s"Release lock '${name}'") *>
-        IO.effect(this.unlock()).lock(executor).catchAll(t => log(s"${t.getClass.getName}:${t.getMessage}") *> ZIO.foreach(t.getStackTrace) { s => log(s.toString) }).void
+        IO.effect(this.unlock()).lock(executor).catchAll(t => log(s"${t.getClass.getName}:${t.getMessage}") *> ZIO.foreach(t.getStackTrace) { s => log(s.toString) }).unit
       )(_ =>
         log(s"Do things in lock '${name}'") *>
         block
@@ -462,6 +451,7 @@ object TestAccumulate {
 
 }
 
+@silent // dead code / local val
 object TestThrowError {
 
   def main(args: Array[String]): Unit = {

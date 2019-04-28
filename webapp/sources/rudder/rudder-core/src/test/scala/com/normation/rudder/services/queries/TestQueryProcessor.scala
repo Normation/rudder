@@ -37,26 +37,24 @@
 
 package com.normation.rudder.services.queries
 
-import org.junit._
-import org.junit.Assert._
-import org.junit.runner.RunWith
-import org.junit.runners.BlockJUnit4ClassRunner
-import com.normation.rudder.repository.ldap.LDAPEntityMapper
-import com.normation.rudder.domain.queries._
-import net.liftweb.common._
-import com.normation.rudder.domain._
-import com.unboundid.ldap.sdk.DN
+import com.normation.errors._
+import com.normation.inventory.domain.NodeId
+import com.normation.inventory.ldap.core._
 import com.normation.ldap.ldif._
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
 import com.normation.ldap.sdk._
-import com.normation.inventory.ldap.core._
-import com.normation.inventory.domain.NodeId
-import com.normation.utils.HashcodeCaching
+import com.normation.rudder.domain._
+import com.normation.rudder.domain.queries._
+import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.nodes.NaiveNodeInfoServiceCachedImpl
-
+import com.normation.utils.HashcodeCaching
 import com.normation.zio._
-import com.normation.errors._
-import scalaz.zio._
+import com.unboundid.ldap.sdk.DN
+import net.liftweb.common._
+import org.junit.Assert._
+import org.junit._
+import org.junit.runner.RunWith
+import org.junit.runners.BlockJUnit4ClassRunner
 import scalaz.zio.syntax._
 
 /*

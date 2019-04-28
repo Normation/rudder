@@ -3,7 +3,6 @@ package com.normation.rudder.domain.queries
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
-import net.liftweb.common._
 
 @RunWith(classOf[JUnitRunner])
 class CmdbQueryTest extends Specification {

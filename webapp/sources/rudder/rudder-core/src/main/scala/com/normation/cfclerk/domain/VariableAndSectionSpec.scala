@@ -37,13 +37,10 @@
 
 package com.normation.cfclerk.domain
 
-import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
-import com.normation.utils.HashcodeCaching
-import com.normation.cfclerk.xmlparsers.EmptyReportKeysValue
-
-import cats._
-import cats.data._
 import cats.implicits._
+import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
+import com.normation.cfclerk.xmlparsers.EmptyReportKeysValue
+import com.normation.utils.HashcodeCaching
 
 /**
  * This file define the model for metadata of object

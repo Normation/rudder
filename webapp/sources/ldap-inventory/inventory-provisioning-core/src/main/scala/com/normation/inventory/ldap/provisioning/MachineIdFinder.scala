@@ -44,7 +44,7 @@ import BuildFilter._
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core._
 import LDAPConstants._
-import com.normation.inventory.domain.InventoryResult.InventoryResult
+import com.normation.errors._
 import net.liftweb.common._
 import com.normation.ldap.sdk.LdapResult._
 import scalaz.zio._
@@ -63,7 +63,7 @@ class UseExistingMachineIdFinder(
     ldap:LDAPConnectionProvider[RoLDAPConnection],
     rootDN:DN
 ) extends MachineDNFinderAction {
-  override def tryWith(entity:MachineInventory) : InventoryResult[Option[(MachineUuid, InventoryStatus)]] = {
+  override def tryWith(entity:MachineInventory) : IOResult[Option[(MachineUuid, InventoryStatus)]] = {
     for {
       con   <- ldap
       entry <- con.searchSub(rootDN, AND(IS(OC_MACHINE),EQ(A_MACHINE_UUID, entity.id.value)), "1.1").map(_.headOption).notOptional(s"No machine entry found for id '${entity.id.value}'") //TODO: error if more than one !! #555
@@ -88,7 +88,7 @@ class FromMotherBoardUuidIdFinder(
 ) extends MachineDNFinderAction with Loggable {
 
   //the onlyTypes is an AND filter
-  override def tryWith(entity:MachineInventory) : InventoryResult[Option[(MachineUuid,InventoryStatus)]] = {
+  override def tryWith(entity:MachineInventory) : IOResult[Option[(MachineUuid,InventoryStatus)]] = {
     entity.mbUuid match {
       case None       => None.succeed
       case Some(uuid) =>

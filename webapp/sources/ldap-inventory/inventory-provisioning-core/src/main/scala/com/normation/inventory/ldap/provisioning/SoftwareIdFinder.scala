@@ -37,18 +37,15 @@
 
 package com.normation.inventory.ldap.provisioning
 
-import com.normation.inventory.services.provisioning._
-import com.normation.ldap.sdk._
-import BuildFilter._
-import com.normation.inventory.ldap.core._
-import LDAPConstants._
-import com.normation.errors.RudderError
+import com.normation.errors._
 import com.normation.inventory.domain._
+import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.inventory.ldap.core._
+import com.normation.inventory.services.provisioning._
+import com.normation.ldap.sdk.BuildFilter._
+import com.normation.ldap.sdk._
 import org.slf4j.LoggerFactory
 import scalaz.zio._
-import scalaz.zio.syntax._
-
-import com.normation.errors._
 
 object NameAndVersionIdFinder {
   val logger = LoggerFactory.getLogger(classOf[NameAndVersionIdFinder])

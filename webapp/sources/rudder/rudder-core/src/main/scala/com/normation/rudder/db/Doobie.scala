@@ -58,7 +58,6 @@ import cats.data._
 import cats.effect._
 import cats.implicits._
 import doobie._
-import doobie.implicits._
 
 import scalaz.zio.Task
 import scalaz.zio.interop.catz._

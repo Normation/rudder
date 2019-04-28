@@ -268,8 +268,7 @@ class ProcessFile(
   def processFile(file: File, locks: scalaz.zio.Ref[Set[String]]): Unit = {
     // the part that deals with sending to processor and then deplacing files
     // where they belong
-    import scalaz.zio.{scheduler => _, Task => ZioTask, _}
-    import scalaz.zio.syntax._
+    import scalaz.zio.{Task => ZioTask}
 
     def sendToProcessor(inventory: File, signature: Option[File]): IOResult[Unit] = {
       // we don't manage race condition very well, so we have cases where

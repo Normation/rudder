@@ -37,9 +37,12 @@
 
 package com.normation.rudder.repository.ldap
 
+import cats.implicits._
 import com.normation.cfclerk.domain._
+import com.normation.errors._
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.inventory.ldap.core.{InventoryMappingRudderError => Err}
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.ldap.sdk._
 import com.normation.rudder.api.ApiAccountKind.PublicApi
@@ -60,15 +63,6 @@ import com.unboundid.ldif.LDIFChangeRecord
 import com.unboundid.ldif.LDIFModifyChangeRecord
 import com.unboundid.ldif.LDIFModifyDNChangeRecord
 import net.liftweb.common._
-
-import cats._
-import cats.data._
-import cats.implicits._
-
-import com.normation.inventory.ldap.core.{InventoryMappingRudderError => Err}
-import com.normation.inventory.ldap.core.InventoryMappingResult._
-
-import com.normation.errors._
 
 class LDAPDiffMapper(
     mapper         : LDAPEntityMapper

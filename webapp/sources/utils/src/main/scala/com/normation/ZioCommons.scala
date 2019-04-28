@@ -70,13 +70,13 @@ object errors {
       effectM("An error occured")(ioeffect)
     }
 
-    def effectRunVoid[A](effect: => A): UIO[Unit] = {
+    def effectRunUnit[A](effect: => A): UIO[Unit] = {
       def printError(t: Throwable): UIO[Unit] = {
         val print = (s:String) => IO.effect(System.err.println(s))
         //here, we must run.void, because if it fails we can't do much more (and the app is certainly totally broken)
-        (print(s"${t.getClass.getName}:${t.getMessage}") *> ZIO.foreach(t.getStackTrace)(st => print(st.toString))).run.void
+        (print(s"${t.getClass.getName}:${t.getMessage}") *> IO.foreach(t.getStackTrace)(st => print(st.toString))).run.unit
       }
-      IO.effect(effect).catchAll(printError).void
+      IO.effect(effect).unit.catchAll(printError)
     }
   }
 
@@ -308,9 +308,9 @@ trait ZioLogger {
     def printError(t: Throwable): UIO[Unit] = {
       val print = (s:String) => IO.effect(System.err.println(s))
       //here, we must run.void, because if it fails we can't do much more (and the app is certainly totally broken)
-      (print(s"${t.getClass.getName}:${t.getMessage}") *> ZIO.foreach(t.getStackTrace)(st => print(st.toString))).run.void
+      (print(s"${t.getClass.getName}:${t.getMessage}") *> UIO.foreach(t.getStackTrace)(st => print(st.toString).run.unit)).run.unit
     }
-    IO.effect(log(logEffect)).catchAll(printError).void
+    IO.effect(log(logEffect)).unit.catchAll(printError)
   }
 
   final def trace(msg: => AnyRef): UIO[Unit] = logAndForgetResult(_.trace(msg))

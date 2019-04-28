@@ -41,28 +41,24 @@ import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import java.util.Properties
 
-import com.normation.rudder.db.Doobie.slf4jDoobieLogger
+import cats.implicits._
 import com.normation.ldap.sdk.BuildFilter
 import com.normation.ldap.sdk.ROPooledSimpleAuthConnectionProvider
 import com.normation.ldap.sdk.RWPooledSimpleAuthConnectionProvider
+import com.normation.rudder.db.Doobie._
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.repository.jdbc.RudderDatasourceProvider
+import com.normation.zio.ZioRuntime
+import com.normation.zio._
+import com.unboundid.ldap.sdk.DN
 import doobie._
 import doobie.implicits._
 import doobie.postgres.implicits._
-import com.normation.rudder.db.Doobie._
-import com.unboundid.ldap.sdk.DN
-import net.liftweb.common.Box
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
 import org.joda.time.DateTime
-import cats.implicits._
-import com.normation.zio.ZioRuntime
 
 import scala.util.Random
-import com.normation.zio._
 
 /*
  * Allow to generate false compliance for testing purpose
@@ -364,10 +360,9 @@ object GenerateCompliance {
 
   def main(args: Array[String]): Unit = {
     import BuildFilter._
-
-    import org.slf4j.LoggerFactory
     import ch.qos.logback.classic.Level
     import ch.qos.logback.classic.Logger
+    import org.slf4j.LoggerFactory
     LoggerFactory.getLogger("sql").asInstanceOf[Logger].setLevel(Level.DEBUG)
 
     val rules = (for {

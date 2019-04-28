@@ -38,27 +38,27 @@
 package bootstrap.liftweb
 package checks
 
-import net.liftweb.common._
-import org.slf4j.LoggerFactory
-import net.liftweb.common.Logger
-import net.liftweb.common.Failure
-import com.normation.utils.Control.sequence
-import com.normation.eventlog.ModificationId
-import com.normation.ldap.sdk.{BuildFilter, LDAPConnectionProvider, LDAPEntry, RoLDAPConnection}
-import BuildFilter._
-import com.normation.rudder.repository.WoNodeGroupRepository
-import com.normation.rudder.domain.{RudderDit, RudderLDAPConstants}
-import RudderLDAPConstants._
-import com.normation.rudder.repository.ldap.LDAPEntityMapper
-import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.queries._
-import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.domain.eventlog._
-import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.repository.ldap.ScalaReadWriteLock
 import com.normation.box._
 import com.normation.errors._
+import com.normation.eventlog.ModificationId
+import com.normation.ldap.sdk.BuildFilter._
+import com.normation.ldap.sdk.LDAPConnectionProvider
+import com.normation.ldap.sdk.LDAPEntry
+import com.normation.ldap.sdk.RoLDAPConnection
+import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.rudder.domain.eventlog._
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.queries._
+import com.normation.rudder.domain.RudderDit
+import com.normation.rudder.repository.WoNodeGroupRepository
+import com.normation.rudder.repository.ldap.LDAPEntityMapper
+import com.normation.rudder.repository.ldap.ScalaReadWriteLock
+import com.normation.utils.StringUuidGenerator
+import net.liftweb.common.Failure
+import net.liftweb.common.Logger
+import net.liftweb.common._
+import org.slf4j.LoggerFactory
 import scalaz.zio._
 import scalaz.zio.syntax._
 

@@ -36,24 +36,23 @@
 
 package com.normation.inventory.provisioning.fusion
 
+import java.security.Security
+
+import com.normation.errors._
+import com.normation.inventory.domain.InventoryError
+import com.normation.inventory.domain.InventoryReport
+import com.normation.errors._
+import com.normation.inventory.domain.KeyStatus
+import com.normation.inventory.domain.SecurityToken
+import com.normation.inventory.services.provisioning._
+import com.normation.utils.StringUuidGeneratorImpl
+import com.normation.zio.ZioRuntime
+import net.liftweb.common._
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-import com.normation.utils.StringUuidGeneratorImpl
-import net.liftweb.common._
-import com.normation.inventory.domain.InventoryReport
-import com.normation.inventory.services.provisioning._
-import com.normation.inventory.domain.KeyStatus
-import java.security.Security
-
-import org.bouncycastle.jce.provider.BouncyCastleProvider
-import com.normation.inventory.domain.SecurityToken
 import scalaz.zio._
-import scalaz.zio.syntax._
-import com.normation.errors._
-import com.normation.inventory.domain.InventoryError
-import com.normation.inventory.domain.InventoryResult._
-import com.normation.zio.ZioRuntime
 
 import scala.tools.nsc.interpreter.InputStream
 
@@ -71,7 +70,7 @@ class TestSignatureService extends Specification with Loggable {
   }
 
   private[this] implicit class TestParser(parser: FusionReportUnmarshaller) {
-    def parse(reportRelativePath: String): InventoryResult[InventoryReport] = {
+    def parse(reportRelativePath: String): IOResult[InventoryReport] = {
       ZIO.bracket(getInputStream(reportRelativePath))(is => Task.effect(is.close).run) { is =>
         parser.fromXml("report", is)
       }
@@ -100,8 +99,8 @@ class TestSignatureService extends Specification with Loggable {
 
   val parser = new FusionReportUnmarshaller(new StringUuidGeneratorImpl)
 
-  def parseSignature(path: String) = {
-     ZIO.bracket(getInputStream(path))(is => Task(is.close).run)(TestInventoryDigestServiceV1.parse)
+  def parseSignature(path: String): IOResult[InventoryDigest] = {
+     IO.bracket(getInputStream(path))(is => IOResult.effectRunUnit(is.close))(TestInventoryDigestServiceV1.parse)
   }
 
   val boxedSignature = parseSignature("fusion-report/signed_inventory.ocs.sign")

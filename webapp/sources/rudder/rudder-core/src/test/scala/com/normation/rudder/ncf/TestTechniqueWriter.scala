@@ -37,30 +37,29 @@
 
 package com.normation.rudder.ncf
 
-import com.normation.eventlog.ModificationId
-import com.normation.eventlog.EventActor
-import net.liftweb.common.Full
-import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import com.normation.rudder.repository.xml.RudderPrettyPrinter
-import net.liftweb.common.Box
+import java.io.File
+
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
+import com.normation.cfclerk.services.TechniquesLibraryUpdateType
+import com.normation.cfclerk.services.UpdateTechniqueLibrary
+import com.normation.errors._
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Version
-import org.junit.runner.RunWith
-import org.specs2.runner.JUnitRunner
-import org.specs2.mutable.Specification
-import org.joda.time.DateTime
-import org.specs2.matcher.ContentMatchers
-import java.io.File
-import net.liftweb.common.Loggable
+import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.services.policies.InterpolatedValueCompilerImpl
-
-import com.normation.errors._
-import scalaz.zio._
-import scalaz.zio.syntax._
 import com.normation.zio._
+import net.liftweb.common.Box
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
+import org.joda.time.DateTime
+import org.junit.runner.RunWith
+import org.specs2.matcher.ContentMatchers
+import org.specs2.mutable.Specification
+import org.specs2.runner.JUnitRunner
+import scalaz.zio._
 
 @RunWith(classOf[JUnitRunner])
 class TestTechniqueWriter extends Specification with ContentMatchers with Loggable {

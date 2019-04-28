@@ -50,7 +50,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.support.DefaultMultipartHttpServletRequest
-import scalaz.zio._
 import scalaz.zio.syntax._
 
 object FusionReportEndpoint{

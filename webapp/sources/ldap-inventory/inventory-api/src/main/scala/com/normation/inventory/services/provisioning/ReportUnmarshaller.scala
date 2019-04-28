@@ -41,7 +41,7 @@ import com.normation.inventory.domain.InventoryReport
 import java.io.InputStream
 
 import com.normation.inventory.domain.InventoryError
-import com.normation.inventory.domain.InventoryResult._
+import com.normation.errors._
 import scalaz.zio._
 import scalaz.zio.syntax._
 
@@ -75,7 +75,7 @@ trait ReportUnmarshaller {
    * In particular, we DO NOT bind os, vms and container here (what means that os#containers will
    * be empty even if the List<Container<StringId>> is not.
    */
-  def fromXml(reportName:String, s:InputStream) : InventoryResult[InventoryReport]
+  def fromXml(reportName:String, s:InputStream) : IOResult[InventoryReport]
 
 }
 
@@ -85,7 +85,7 @@ trait ReportUnmarshaller {
  */
 trait ParsedReportUnmarshaller extends ReportUnmarshaller {
 
-  override def fromXml(reportName:String,is:InputStream) : InventoryResult[InventoryReport] = {
+  override def fromXml(reportName:String,is:InputStream) : IOResult[InventoryReport] = {
     (Task.effect {
       XML.load(is)
     } mapError { ex =>
@@ -99,7 +99,7 @@ trait ParsedReportUnmarshaller extends ReportUnmarshaller {
     )
   }
 
-  def fromXmlDoc(reportName:String, xml:NodeSeq) : InventoryResult[InventoryReport]
+  def fromXmlDoc(reportName:String, xml:NodeSeq) : IOResult[InventoryReport]
 }
 
 /**
@@ -111,7 +111,7 @@ trait PipelinedReportUnmarshaller extends ParsedReportUnmarshaller {
   def preUnmarshallPipeline : Seq[PreUnmarshall]
   def reportUnmarshaller : ParsedReportUnmarshaller
 
-  override def fromXmlDoc(reportName:String, xml:NodeSeq) : InventoryResult[InventoryReport] = {
+  override def fromXmlDoc(reportName:String, xml:NodeSeq) : IOResult[InventoryReport] = {
     //init pipeline with the data structure initialized by the configured reportUnmarshaller
     for {
        //run each post processor of the pipeline sequentially, stop on the first which

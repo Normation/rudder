@@ -40,17 +40,15 @@ package com.normation.rudder.repository.xml
 import java.io.FileNotFoundException
 
 import com.normation.NamedZioLogger
-
-import scala.xml.Elem
-import scala.xml.XML
+import com.normation.errors._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
 import com.normation.rudder.exceptions.ParsingException
 import com.normation.rudder.repository.LicenseRepository
 import org.xml.sax.SAXParseException
-import com.normation.errors._
-import scalaz.zio._
-import scalaz.zio.syntax._
+
+import scala.xml.Elem
+import scala.xml.XML
 
 class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository with NamedZioLogger {
 

@@ -41,6 +41,8 @@ import java.io.File
 import java.nio.charset.StandardCharsets
 
 import bootstrap.liftweb.checks._
+import com.normation.appconfig._
+import com.normation.box._
 import com.normation.cfclerk.services._
 import com.normation.cfclerk.services.impl._
 import com.normation.cfclerk.xmlparsers._
@@ -54,7 +56,6 @@ import com.normation.plugins.SnippetExtensionRegister
 import com.normation.plugins.SnippetExtensionRegisterImpl
 import com.normation.rudder.UserService
 import com.normation.rudder.api._
-import com.normation.appconfig._
 import com.normation.rudder.batch._
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain._
@@ -112,20 +113,17 @@ import com.normation.rudder.web.services._
 import com.normation.templates.FillTemplatesService
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.StringUuidGeneratorImpl
+import com.normation.zio._
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigFactory
 import net.liftweb.common.Loggable
 import net.liftweb.common._
 import org.apache.commons.io.FileUtils
+import scalaz.zio.syntax._
 
 import scala.concurrent.duration._
 import scala.util.Try
-import com.normation.zio._
-import com.normation.errors._
-import com.normation.box._
-import scalaz.zio._
-import scalaz.zio.syntax._
 
 /**
  * Define a resource for configuration.

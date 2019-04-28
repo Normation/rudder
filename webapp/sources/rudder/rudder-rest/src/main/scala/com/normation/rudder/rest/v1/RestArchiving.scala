@@ -37,11 +37,14 @@
 
 package com.normation.rudder.rest.v1
 
+import com.normation.box._
+import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.UserService
 import com.normation.rudder.repository._
 import com.normation.rudder.repository.xml._
+import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common._
@@ -52,11 +55,6 @@ import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
-import com.normation.box._
-import com.normation.errors._
-import com.normation.rudder.rest.RestUtils
-import scalaz.zio._
-import scalaz.zio.syntax._
 
 /**
  * A rest api that allows to deploy promises.

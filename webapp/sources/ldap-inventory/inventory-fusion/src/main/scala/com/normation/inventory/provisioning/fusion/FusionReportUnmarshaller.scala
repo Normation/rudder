@@ -46,7 +46,7 @@ import java.net.InetAddress
 import java.util.Locale
 
 import com.normation.inventory.domain.InventoryError.Inconsistency
-import com.normation.inventory.domain.InventoryResult._
+import com.normation.errors._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
@@ -108,7 +108,7 @@ class FusionReportUnmarshaller(
       None
   } }
 
-  override def fromXmlDoc(reportName:String, doc:NodeSeq) : InventoryResult[InventoryReport] = {
+  override def fromXmlDoc(reportName:String, doc:NodeSeq) : IOResult[InventoryReport] = {
 
     // hostname is a little special and may fail
     (for {
@@ -250,7 +250,7 @@ class FusionReportUnmarshaller(
   }
 
   // Use RUDDER/HOSTNAME first and if missing OS/FQDN
-  def getHostname(xml : NodeSeq): InventoryResult[String] = {
+  def getHostname(xml : NodeSeq): IOResult[String] = {
     def validHostname( hostname : String ) : Boolean = {
       val invalidList = "localhost" :: "127.0.0.1" :: "::1" :: Nil
       /* Invalid cases are:
@@ -299,15 +299,15 @@ class FusionReportUnmarshaller(
    *
    * Because it is fully supported since Rudder 4.1 (so migration are OK).
    */
-  def processRudderElement(xml: NodeSeq, report: InventoryReport) : InventoryResult[InventoryReport]  = {
+  def processRudderElement(xml: NodeSeq, report: InventoryReport) : IOResult[InventoryReport]  = {
     // From an option and error message creates an option,
     // transform correctly option in a for comprehension
-    def boxFromOption[T]( opt : Option[T], errorMessage : String) : InventoryResult[T] = {
+    def boxFromOption[T]( opt : Option[T], errorMessage : String) : IOResult[T] = {
       ZIO.fromOption(opt).mapError(_ => InventoryError.Inconsistency(errorMessage))
     }
 
     // Check that a seq contains only one or identical values, if not fails
-    def uniqueValueInSeq[T]( seq: Seq[T], errorMessage : String) : InventoryResult[T] = {
+    def uniqueValueInSeq[T]( seq: Seq[T], errorMessage : String) : IOResult[T] = {
       seq.distinct match {
         case entry if entry.size != 1 => InventoryError.Inconsistency(s"${errorMessage} (${entry.size} value(s) found in place of exactly 1)").fail
         case entry if entry.size == 1 => entry.head.succeed

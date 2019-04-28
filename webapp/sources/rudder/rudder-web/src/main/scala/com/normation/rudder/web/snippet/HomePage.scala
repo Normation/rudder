@@ -38,39 +38,38 @@
 package com.normation.rudder.web.snippet
 
 //lift std import
-import scala.xml._
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.http.js._
-import JsCmds._
-import com.normation.ldap.sdk.BuildFilter._
-import com.normation.rudder.domain.RudderLDAPConstants._
-import JE._
 import bootstrap.liftweb.RudderConfig
-import com.normation.ldap.sdk.FALSE
-import com.normation.rudder.domain.reports.ComplianceLevel
-import com.normation.rudder.domain.logger.TimingDebugLogger
-import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.Version
-import com.normation.inventory.domain.WindowsType
-import com.normation.inventory.domain.LinuxType
-import com.normation.inventory.domain.SolarisOS
-import com.normation.inventory.domain.AixOS
-import com.normation.inventory.domain.BsdType
-import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.utils.Control.sequence
-import com.unboundid.ldap.sdk.SearchRequest
-import com.normation.inventory.domain.VirtualMachineType
-import com.normation.inventory.domain.PhysicalMachineType
-import com.normation.inventory.domain.AgentType
-import com.unboundid.ldap.sdk.controls.MatchedValuesRequestControl
-import com.unboundid.ldap.sdk.controls.MatchedValuesFilter
-import com.unboundid.ldap.sdk.DN
-
 import com.normation.box._
 import com.normation.errors._
+import com.normation.inventory.domain.AgentType
+import com.normation.inventory.domain.AixOS
+import com.normation.inventory.domain.BsdType
+import com.normation.inventory.domain.LinuxType
+import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.PhysicalMachineType
+import com.normation.inventory.domain.SolarisOS
+import com.normation.inventory.domain.Version
+import com.normation.inventory.domain.VirtualMachineType
+import com.normation.inventory.domain.WindowsType
+import com.normation.ldap.sdk.BuildFilter._
+import com.normation.ldap.sdk.FALSE
+import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.reports.ComplianceLevel
+import com.unboundid.ldap.sdk.DN
+import com.unboundid.ldap.sdk.SearchRequest
+import com.unboundid.ldap.sdk.controls.MatchedValuesFilter
+import com.unboundid.ldap.sdk.controls.MatchedValuesRequestControl
+import net.liftweb.common._
+import net.liftweb.http._
+import net.liftweb.http.js.JE._
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js._
 import scalaz.zio._
 import scalaz.zio.syntax._
+
+import scala.xml._
 
 sealed trait ComplianceLevelPieChart{
   def color : String
@@ -362,10 +361,12 @@ class HomePage extends Loggable {
    * Get the count of agent version name -> size for accepted nodes
    */
   private[this] def getRudderAgentVersion() : Box[Map[String, Int]] = {
-    import com.normation.ldap.sdk._
-    import com.normation.ldap.sdk.BuildFilter.SUB
+    import com.normation.inventory.ldap.core.LDAPConstants.A_NAME
+    import com.normation.inventory.ldap.core.LDAPConstants.A_NODE_UUID
+    import com.normation.inventory.ldap.core.LDAPConstants.A_SOFTWARE_DN
     import com.normation.ldap.sdk.BuildFilter.OR
-    import com.normation.inventory.ldap.core.LDAPConstants.{A_NAME, A_NODE_UUID, A_SOFTWARE_DN}
+    import com.normation.ldap.sdk.BuildFilter.SUB
+    import com.normation.ldap.sdk._
 
     val unknown = new Version("Unknown")
 

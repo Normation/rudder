@@ -1,17 +1,23 @@
 package com.normation.rudder.services
 
-import com.normation.eventlog.{EventActor, EventLog, EventLogDetails, ModificationId}
-import com.normation.rudder.repository.CachedRepository
-import com.normation.rudder.batch.{AsyncDeploymentActor, AutomaticStartDeployment}
+import com.normation.box._
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.EventLog
+import com.normation.eventlog.EventLogDetails
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.batch.AsyncDeploymentActor
+import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.ClearCacheEventLog
-import net.liftweb.common.{EmptyBox, Full, Loggable}
-import net.liftweb.http.S
+import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHashRepository
 import com.normation.utils.StringUuidGenerator
+import com.normation.zio._
 import net.liftweb.common.Box
-
-import com.normation.box._
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
+import net.liftweb.http.S
 
 trait ClearCacheService {
 
@@ -57,7 +63,7 @@ class ClearCacheServiceImpl(
                 , reason = Some("Node configuration cache deleted on user request")
               )
             )
-          ) match {
+          ).runNow match {
             case eb: EmptyBox =>
               val e = eb ?~! "Error when logging the cache event"
               logger.error(e.messageChain)

@@ -38,7 +38,7 @@
 package com.normation.inventory.services.provisioning
 
 import com.normation.inventory.domain.InventoryReport
-import com.normation.inventory.domain.InventoryResult.InventoryResult
+import com.normation.errors._
 
 /**
  * Define an action that happens before than the report
@@ -56,5 +56,5 @@ trait PreCommit {
 
   def name : String
 
-  def apply(report:InventoryReport) : InventoryResult[InventoryReport]
+  def apply(report:InventoryReport) : IOResult[InventoryReport]
 }

@@ -38,15 +38,13 @@
 package com.normation.inventory.provisioning.endpoint
 
 import com.normation.NamedZioLogger
-import com.normation.ZioLogger
 import com.normation.errors.Chained
 import com.normation.errors.IOResult
 import com.normation.errors.SystemError
 import com.normation.inventory.domain.CertifiedKey
-import com.normation.inventory.domain.InventoryError
 import com.normation.inventory.domain.InventoryLogger
 import com.normation.inventory.domain.InventoryReport
-import com.normation.inventory.domain.InventoryResult.InventoryResult
+import com.normation.errors._
 import com.normation.inventory.domain.UndefinedKey
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.provisioning.endpoint.FusionReportEndpoint._
@@ -67,11 +65,11 @@ import monix.reactive.OverflowStrategy.Unbounded
 import monix.reactive.observers.BufferedSubscriber
 import monix.reactive.observers.Subscriber
 import org.joda.time.Duration
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 import scala.tools.nsc.interpreter.InputStream
 import scala.util.control.NonFatal
-import scalaz.zio._
-import scalaz.zio.syntax._
 
 object InventoryProcessingLogger extends NamedZioLogger {
   override def loggerName: String = "inventory-processing"
@@ -141,7 +139,7 @@ class InventoryProcessor(
   // optimized :/
   def saveInventory(newInventoryStream: () => InputStream, inventoryFileName: String, optNewSignatureStream : Option[() => InputStream]): IOResult[InventoryProcessStatus] = {
 
-    def saveWithSignature(report: InventoryReport, newInventoryStream: () => InputStream, newSignature: () => InputStream): InventoryResult[InventoryProcessStatus] = {
+    def saveWithSignature(report: InventoryReport, newInventoryStream: () => InputStream, newSignature: () => InputStream): IOResult[InventoryProcessStatus] = {
       ZIO.bracket(Task.effect(newInventoryStream()).mapError(SystemError(s"Error when reading inventory file '${report.name}'", _)))(is => Task.effect(is.close()).run) { inventoryStream =>
         ZIO.bracket(Task.effect(newSignature()).mapError(SystemError(s"Error when reading signature for inventory file '${report.name}'", _)))(is => Task.effect(is.close()).run) { signatureStream =>
           for {
@@ -241,7 +239,7 @@ class InventoryProcessor(
    * avoid the case where we are telling the use "everything is fine"
    * but just fail after.
    */
-  def checkQueueAndSave(report: InventoryReport): InventoryResult[InventoryProcessStatus] = {
+  def checkQueueAndSave(report: InventoryReport): IOResult[InventoryProcessStatus] = {
     /*
      * A method that check LDAP health status.
      * It must be quick and simple.

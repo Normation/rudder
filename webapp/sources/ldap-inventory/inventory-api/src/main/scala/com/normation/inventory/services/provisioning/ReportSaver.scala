@@ -37,11 +37,10 @@
 
 package com.normation.inventory.services.provisioning
 
-import com.normation.inventory.domain.InventoryError
 import com.normation.inventory.domain.InventoryLogger
 import com.normation.inventory.domain.InventoryReport
+import com.normation.errors._
 import net.liftweb.common.Loggable
-import com.normation.inventory.domain.InventoryResult._
 import scalaz.zio._
 
 /**
@@ -65,7 +64,7 @@ import scalaz.zio._
  */
 trait ReportSaver[R] {
 
-  def save(report:InventoryReport) : InventoryResult[R]
+  def save(report:InventoryReport) : IOResult[R]
 
 }
 
@@ -88,9 +87,9 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] with Loggable {
    * @param report
    * @return
    */
-  def commitChange(report:InventoryReport) : InventoryResult[R]
+  def commitChange(report:InventoryReport) : IOResult[R]
 
-  override def save(report:InventoryReport) : InventoryResult[R] = {
+  override def save(report:InventoryReport) : IOResult[R] = {
 
     val t0 = System.currentTimeMillis
 

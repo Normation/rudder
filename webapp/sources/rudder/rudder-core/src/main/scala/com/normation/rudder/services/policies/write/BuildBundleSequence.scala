@@ -37,30 +37,28 @@
 
 package com.normation.rudder.services.policies.write
 
+import cats.implicits._
+import com.normation.box._
 import com.normation.cfclerk.domain.BundleName
+import com.normation.cfclerk.domain.RunHook
+import com.normation.cfclerk.domain.SystemVariable
+import com.normation.cfclerk.domain.TechniqueGenerationMode
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.cfclerk.services.SystemVariableSpecService
+import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.services.policies.BundleOrder
+import com.normation.rudder.services.policies.NodeRunHook
+import com.normation.rudder.services.policies.Policy
+import com.normation.rudder.services.policies.PolicyId
 import com.normation.utils.Control.sequence
 import net.liftweb.common._
-import com.normation.cfclerk.domain.SystemVariable
-import com.normation.cfclerk.services.SystemVariableSpecService
-import com.normation.inventory.domain.AgentType
-import com.normation.cfclerk.domain.TechniqueName
-import com.normation.cfclerk.domain.TechniqueId
-import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.rudder.services.policies.Policy
-import com.normation.cfclerk.domain.TechniqueGenerationMode
-import com.normation.rudder.services.policies.PolicyId
-import com.normation.rudder.services.policies.NodeRunHook
-import com.normation.cfclerk.domain.RunHook
-import scala.collection.immutable.ListMap
 
-import com.normation.box._
-import cats._
-import cats.data._
-import cats.implicits._
+import scala.collection.immutable.ListMap
 
 /**
  * This file groups together everything related to building the bundle sequence and

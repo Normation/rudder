@@ -40,19 +40,17 @@ package com.normation.cfclerk.services.impl
 
 import java.io.File
 
-import com.normation.NamedZioLogger
-import net.liftweb.common._
-import org.eclipse.jgit.lib.Repository
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder
-import org.eclipse.jgit.api.Git
-import org.eclipse.jgit.lib.{Constants => JConstants}
-import org.eclipse.jgit.treewalk.TreeWalk
-import org.eclipse.jgit.lib.ObjectId
-import org.eclipse.jgit.treewalk.filter.TreeFilter
-import org.eclipse.jgit.revwalk.RevWalk
 import com.normation.cfclerk.services._
-import org.eclipse.jgit.internal.storage.file.FileRepository
 import com.normation.errors._
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.internal.storage.file.FileRepository
+import org.eclipse.jgit.lib.ObjectId
+import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.lib.{Constants => JConstants}
+import org.eclipse.jgit.revwalk.RevWalk
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder
+import org.eclipse.jgit.treewalk.TreeWalk
+import org.eclipse.jgit.treewalk.filter.TreeFilter
 import scalaz.zio._
 import scalaz.zio.syntax._
 

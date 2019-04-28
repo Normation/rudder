@@ -37,27 +37,24 @@
 
 package com.normation.rudder.repository.xml
 
-import com.normation.cfclerk.services.GitRepositoryProvider
-import com.normation.eventlog.ModificationId
-import com.normation.rudder.repository._
 import java.io.File
-import java.io.IOException
 
 import com.normation.NamedZioLogger
-import net.liftweb.util.Helpers.tryo
-import org.eclipse.jgit.revwalk.RevTag
+import com.normation.cfclerk.services.GitRepositoryProvider
+import com.normation.errors._
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.repository._
+import com.normation.zio.ZioRuntime
+import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
 import org.eclipse.jgit.revwalk.RevTag
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 import scala.collection.JavaConverters._
 import scala.xml.Elem
-import org.apache.commons.io.FileUtils
-import com.normation.errors._
-import com.normation.zio.ZioRuntime
-import scalaz.zio._
-import scalaz.zio.syntax._
 
 /**
  * Utility trait that factor out file commits.
@@ -247,7 +244,7 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
     )
   }
 
-  def restoreCommitAtHead(commiter:PersonIdent, commitMessage:String, commit:GitCommitId, archiveMode:ArchiveMode,modId:ModificationId) = {
+  def restoreCommitAtHead(commiter:PersonIdent, commitMessage:String, commit:GitCommitId, archiveMode:ArchiveMode,modId:ModificationId): IOResult[GitCommitId] = {
     gitRepo.git.flatMap(git => gitRepo.db.flatMap(db =>
       IOResult.effect {
         // We don't want any commit when we are restoring HEAD
@@ -327,10 +324,11 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
     import org.eclipse.jgit.errors.IncorrectObjectTypeException
     import org.eclipse.jgit.lib._
     import org.eclipse.jgit.revwalk._
+
     import scala.collection.mutable.ArrayBuffer
 
     gitRepo.db.flatMap(db =>
-      ZIO.bracket(IOResult.effect(new RevWalk(db)))(db => IOResult.effectRunVoid(db.close)){ revWalk =>
+      ZIO.bracket(IOResult.effect(new RevWalk(db)))(db => IOResult.effectRunUnit(db.close)){ revWalk =>
         IOResult.effect {
           val tags = ArrayBuffer[RevTag]()
           val refList = db.getRefDatabase().getRefsByPrefix(Constants.R_TAGS).asScala

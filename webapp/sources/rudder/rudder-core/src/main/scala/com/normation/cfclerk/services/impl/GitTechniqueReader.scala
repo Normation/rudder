@@ -392,7 +392,7 @@ class GitTechniqueReader(
   }
 
 
-  override def needReload() = revisionProvider.currentRevTreeId != nextTechniquesInfoCache._1
+  override def needReload() = revisionProvider.currentRevTreeId.runNow != nextTechniquesInfoCache._1
 
   private[this] def processRevTreeId(id:ObjectId, parseDescriptor:Boolean = true) : TechniquesInfo = {
     /*
@@ -646,7 +646,7 @@ class GitTechniqueReader(
               , ok => ok.succeed
               )
     }yield {
-      res
+      ()
     }
   }
 

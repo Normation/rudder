@@ -48,7 +48,6 @@ import com.normation.rudder.repository.ldap._
 import cats.implicits._
 
 import scalaz.zio._
-import scalaz.zio.syntax._
 import com.normation.errors._
 
 trait ImportRuleCategoryLibrary {
@@ -197,17 +196,18 @@ class ImportRuleCategoryLibraryImpl(
     for {
       cleanLib <- checkUserLibConsistance(newRootCategory)
       moved    <- groupLibMutex.writeLock { atomicSwap(cleanLib) }.chainError("Error when swapping serialised library and existing one in LDAP")
-    } yield {
       //delete archive - not a real error if fails
-      val dn = rudderDit.ARCHIVES.RuleCategoryLibDN(moved)
-      (for {
-        con     <- ldap
-        deleted <- con.delete(dn)
-      } yield {
-        deleted
-      }) catchAll { e =>
-        logPure.warn("Error when deleting archived library in LDAP with DN '%s'".format(dn))
-      }
+      dn       =  rudderDit.ARCHIVES.RuleCategoryLibDN(moved)
+      _        <- (for {
+                    con <- ldap
+                    _   <- con.delete(dn)
+                  } yield {
+                    ()
+                  }).catchAll { e =>
+                    logPure.warn("Error when deleting archived library in LDAP with DN '%s'".format(dn))
+                 }
+    } yield {
+      ()
     }
   }
 }

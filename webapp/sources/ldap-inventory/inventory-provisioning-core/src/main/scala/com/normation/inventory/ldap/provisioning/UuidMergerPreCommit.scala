@@ -38,15 +38,14 @@
 package com.normation.inventory.ldap.provisioning
 
 
+import com.normation.errors.Chained
 import com.normation.inventory.domain.InventoryReport
-import com.normation.inventory.services.provisioning._
-import com.normation.utils.StringUuidGenerator
+import com.normation.errors._
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core._
+import com.normation.inventory.services.provisioning._
+import com.normation.utils.StringUuidGenerator
 import org.slf4j.LoggerFactory
-import UuidMergerPreCommit._
-import com.normation.errors.Chained
-import com.normation.inventory.domain.InventoryResult.InventoryResult
 import scalaz.zio._
 import scalaz.zio.syntax._
 
@@ -88,7 +87,7 @@ class UuidMergerPreCommit(
    *
    * @return The actually saved InventoryReport, or a failure if one happened
    */
-  override def apply(report: InventoryReport) : InventoryResult[InventoryReport] = {
+  override def apply(report: InventoryReport) : IOResult[InventoryReport] = {
 
 
     ///////
@@ -168,7 +167,7 @@ class UuidMergerPreCommit(
     }
   }
 
-  protected def mergeVm(machine:MachineInventory) : InventoryResult[Option[MachineInventory]] = {
+  protected def mergeVm(machine:MachineInventory) : IOResult[Option[MachineInventory]] = {
     for {
       opt <- vmIdFinder.tryWith(machine)
     } yield {
@@ -178,7 +177,7 @@ class UuidMergerPreCommit(
     }
   }
 
-  protected def mergeNode(node:NodeInventory) : InventoryResult[Option[NodeInventory]] = {
+  protected def mergeNode(node:NodeInventory) : IOResult[Option[NodeInventory]] = {
     for {
       opt <- serverIdFinder.tryWith(node)
     } yield {

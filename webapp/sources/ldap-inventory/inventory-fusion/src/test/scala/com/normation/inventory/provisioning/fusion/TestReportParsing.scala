@@ -37,20 +37,21 @@
 
 package com.normation.inventory.provisioning.fusion
 
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
-import com.normation.utils.StringUuidGeneratorImpl
-import net.liftweb.common._
 import java.io.File
 
 import com.normation.errors._
-import com.normation.inventory.domain._
 import com.normation.inventory.domain.AgentType._
+import com.normation.inventory.domain._
+import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.ZioRuntime
-import net.liftweb.json.JsonAST.{JBool, JInt, JString}
+import net.liftweb.common._
+import net.liftweb.json.JsonAST.JBool
+import net.liftweb.json.JsonAST.JInt
+import net.liftweb.json.JsonAST.JString
+import org.junit.runner._
+import org.specs2.mutable._
+import org.specs2.runner._
 import scalaz.zio._
-import scalaz.zio.syntax._
 
 /**
  * A simple test class to check that the demo data file is up to date

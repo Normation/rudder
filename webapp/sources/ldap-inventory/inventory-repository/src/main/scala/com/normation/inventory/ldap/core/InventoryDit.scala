@@ -37,14 +37,14 @@
 
 package com.normation.inventory.ldap.core
 
-import com.unboundid.ldap.sdk.{DN, RDN}
-import com.normation.ldap.sdk.LDAPEntry
-import LDAPConstants._
 import com.normation.inventory.domain._
-import com.normation.inventory.ldap.core.InventoryMappingRudderError.MalformedDN
-import com.normation.inventory.domain.InventoryResult._
 import com.normation.inventory.ldap.core.InventoryMappingResult.InventoryMappingPure
+import com.normation.inventory.ldap.core.InventoryMappingRudderError.MalformedDN
+import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.ldap.sdk.LDAPEntry
 import com.normation.utils.HashcodeCaching
+import com.unboundid.ldap.sdk.DN
+import com.unboundid.ldap.sdk.RDN
 
 
 /**

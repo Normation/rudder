@@ -40,7 +40,7 @@ import java.io.InputStream
 import java.util.Properties
 import java.security.Signature
 
-import com.normation.inventory.domain.InventoryResult._
+import com.normation.errors._
 import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
 import com.normation.inventory.domain.{PublicKey => AgentKey, _}
 import org.apache.commons.io.IOUtils
@@ -65,7 +65,7 @@ final case class InventoryDigestV1(
  * The actual checking is done in CheckInventoryDigest
  */
 trait ParseInventoryDigestFile {
-  def parse(is: InputStream): InventoryResult[InventoryDigest]
+  def parse(is: InputStream): IOResult[InventoryDigest]
 }
 
 /**
@@ -77,7 +77,7 @@ trait ParseInventoryDigestFile {
  * -------
  */
 class ParseInventoryDigestFileV1 extends ParseInventoryDigestFile {
-  def parse(is: InputStream): InventoryResult[InventoryDigest] = {
+  def parse(is: InputStream): IOResult[InventoryDigest] = {
 
     val properties = new Properties()
 
@@ -111,7 +111,7 @@ trait CheckInventoryDigest {
    * Here, we want to calculate the digest. The good library for that is most likely
    * bouncy castle: https://www.bouncycastle.org/
    */
-  def check(securityToken: SecurityToken, digest: InventoryDigest, inventoryStream: InputStream): InventoryResult[Boolean] = {
+  def check(securityToken: SecurityToken, digest: InventoryDigest, inventoryStream: InputStream): IOResult[Boolean] = {
     securityToken match {
       case rudderKey : com.normation.inventory.domain.PublicKey =>
         rudderKey.publicKey.flatMap { pubKey =>
@@ -142,7 +142,7 @@ trait CheckInventoryDigest {
  */
 trait GetKey {
 
-  def getKey (receivedInventory  : InventoryReport) : InventoryResult[(SecurityToken, KeyStatus)]
+  def getKey (receivedInventory  : InventoryReport) : IOResult[(SecurityToken, KeyStatus)]
 
 }
 
@@ -155,9 +155,9 @@ class InventoryDigestServiceV1(
    * either an inventory has already been treated before, it will look into ldap repository
    * or if there was no inventory before, it will look for the key in the received inventory
    */
-  def getKey (receivedInventory  : InventoryReport) : InventoryResult[(SecurityToken, KeyStatus)] = {
+  def getKey (receivedInventory  : InventoryReport) : IOResult[(SecurityToken, KeyStatus)] = {
 
-    def extractKey (node : NodeInventory) : InventoryResult[SecurityToken]= {
+    def extractKey (node : NodeInventory) : IOResult[SecurityToken]= {
       for {
         agent <- node.agents.headOption.notOptional("There is no public key in inventory")
       } yield {
@@ -168,7 +168,7 @@ class InventoryDigestServiceV1(
     repo.get(receivedInventory.node.main.id).flatMap {
       case Some(storedInventory) =>
         val status = storedInventory.node.main.keyStatus
-        val inventory  : InventoryResult[NodeInventory] = status match {
+        val inventory  : IOResult[NodeInventory] = status match {
           case UndefinedKey =>
             storedInventory.node.agents.map(_.securityToken).headOption match {
               case None =>

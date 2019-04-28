@@ -39,33 +39,48 @@
 package com.normation.rudder.rest.lift
 
 
-import com.normation.rudder.rest.{ApiPath, ApiVersion, AuthzToken, RestExtractorService, RestUtils, SystemApi => API}
-import net.liftweb.http.{InMemoryResponse, LiftResponse, Req}
-import com.normation.rudder.rest.RestUtils.{getActor, toJsonError, toJsonResponse}
-import net.liftweb.json.JsonDSL._
-import com.normation.eventlog.{EventActor, ModificationId}
-import com.normation.cfclerk.services.{GitRepositoryProvider, UpdateTechniqueLibrary}
-import com.normation.rudder.batch.{AsyncDeploymentAgent, ManualStartDeployment, UpdateDynamicGroups}
+import com.normation.cfclerk.services.GitRepositoryProvider
+import com.normation.cfclerk.services.UpdateTechniqueLibrary
+import com.normation.errors._
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
 import com.normation.rudder.UserService
-import com.normation.rudder.repository.xml.{GitFindUtils, GitTagDateTimeFormatter}
-import com.normation.rudder.repository.{GitArchiveId, GitCommitId, ItemArchiveManager}
-import com.normation.rudder.services.{ClearCacheService, DebugInfoScriptResult, DebugInfoService}
+import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.ManualStartDeployment
+import com.normation.rudder.batch.UpdateDynamicGroups
+import com.normation.rudder.repository.xml.GitFindUtils
+import com.normation.rudder.repository.xml.GitTagDateTimeFormatter
+import com.normation.rudder.repository.GitArchiveId
+import com.normation.rudder.repository.GitCommitId
+import com.normation.rudder.repository.ItemArchiveManager
+import com.normation.rudder.rest.RestUtils.getActor
+import com.normation.rudder.rest.RestUtils.toJsonError
+import com.normation.rudder.rest.RestUtils.toJsonResponse
+import com.normation.rudder.rest.ApiPath
+import com.normation.rudder.rest.ApiVersion
+import com.normation.rudder.rest.AuthzToken
+import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.RestUtils
+import com.normation.rudder.rest.{SystemApi => API}
 import com.normation.rudder.services.user.PersonIdentService
+import com.normation.rudder.services.ClearCacheService
+import com.normation.rudder.services.DebugInfoScriptResult
+import com.normation.rudder.services.DebugInfoService
 import com.normation.utils.StringUuidGenerator
+import com.normation.zio._
 import net.liftweb.common._
-import net.liftweb.json.JsonAST.{JField, JObject}
-import net.liftweb.util.Helpers
-import net.liftweb.util.Helpers.tryo
+import net.liftweb.http.InMemoryResponse
+import net.liftweb.http.LiftResponse
+import net.liftweb.http.Req
+import net.liftweb.json.JsonAST.JField
+import net.liftweb.json.JsonAST.JObject
+import net.liftweb.json.JsonDSL._
 import org.eclipse.jgit.lib.PersonIdent
 import org.eclipse.jgit.revwalk.RevWalk
 import org.joda.time.DateTime
-import org.joda.time.format.{DateTimeFormat, DateTimeFormatterBuilder}
-
-import com.normation.errors._
+import org.joda.time.format.DateTimeFormat
+import org.joda.time.format.DateTimeFormatterBuilder
 import scalaz.zio._
-import scalaz.zio.syntax._
-import com.normation.zio._
-import com.normation.box._
 
 class SystemApi(
     restExtractorService : RestExtractorService
@@ -570,7 +585,7 @@ class SystemApiService11(
   private[this] val allFiles = "groups" :: ruleFiles ::: directiveFiles
 
   private[this] def getZip(commitId:String, paths:List[String], archiveType: String) : Either[String, (Array[Byte], List[(String, String)])] = {
-    (ZIO.bracket(repo.db.map(db => new RevWalk(db)))(rw => IOResult.effectRunVoid(rw.dispose)) { rw =>
+    (ZIO.bracket(repo.db.map(db => new RevWalk(db)))(rw => IOResult.effectRunUnit(rw.dispose)) { rw =>
       for {
         db        <- repo.db
         revCommit <- IOResult.effect(s"Error when retrieving commit revision for '${commitId}'") {

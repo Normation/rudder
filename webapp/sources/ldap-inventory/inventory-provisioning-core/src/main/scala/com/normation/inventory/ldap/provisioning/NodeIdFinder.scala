@@ -37,17 +37,14 @@
 
 package com.normation.inventory.ldap.provisioning
 
-import com.normation.inventory.services.provisioning._
-import com.unboundid.ldap.sdk.DN
-import com.normation.ldap.sdk._
-import BuildFilter._
-import com.normation.inventory.ldap.core._
-import LDAPConstants._
-import com.normation.inventory.domain.InventoryResult._
+import com.normation.errors._
 import com.normation.inventory.domain._
-import scalaz.zio._
-import scalaz.zio.syntax._
-import com.normation.ldap.sdk.LdapResult._
+import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.inventory.ldap.core._
+import com.normation.inventory.services.provisioning._
+import com.normation.ldap.sdk.BuildFilter._
+import com.normation.ldap.sdk._
+import com.unboundid.ldap.sdk.DN
 
 
 trait NodeInventoryDNFinder extends NodeInventoryDNFinderAction
@@ -57,7 +54,7 @@ trait NodeInventoryDNFinder extends NodeInventoryDNFinderAction
  *
  */
 class UseExistingNodeIdFinder(inventoryDitService:InventoryDitService, ldap:LDAPConnectionProvider[RoLDAPConnection], rootDN:DN) extends NodeInventoryDNFinder {
-  override def tryWith(entity:NodeInventory) : InventoryResult[Option[(NodeId,InventoryStatus)]] = {
+  override def tryWith(entity:NodeInventory) : IOResult[Option[(NodeId,InventoryStatus)]] = {
     for {
       con   <- ldap
       entry <- con.searchSub(rootDN, AND(IS(OC_NODE), EQ(A_NODE_UUID, entity.main.id.value)), "1.1").map(_.headOption) //TODO: error if more than one !! #555

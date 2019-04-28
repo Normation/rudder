@@ -37,12 +37,17 @@
 
 package com.normation.rudder.repository.ldap
 
+import cats.implicits._
+import com.normation.NamedZioLogger
 import com.normation.cfclerk.domain._
+import com.normation.errors.{OptionToIoResult => _, _}
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryMapper
+import com.normation.inventory.ldap.core.InventoryMappingResult._
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.inventory.ldap.core.{InventoryMappingRudderError => Err}
 import com.normation.ldap.sdk._
 import com.normation.rudder.api._
 import com.normation.rudder.domain.NodeDit
@@ -67,15 +72,8 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
 import org.joda.time.DateTime
-import com.normation.inventory.ldap.core.{InventoryMappingRudderError => Err}
-import com.normation.inventory.ldap.core.InventoryMappingResult._
-import cats._
-import cats.data._
-import cats.implicits._
-import com.normation.NamedZioLogger
 import scalaz.zio._
 import scalaz.zio.syntax._
-import com.normation.errors.{OptionToIoResult => _, _}
 
 import scala.language.implicitConversions
 

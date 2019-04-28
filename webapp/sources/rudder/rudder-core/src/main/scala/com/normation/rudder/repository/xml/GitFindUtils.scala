@@ -119,7 +119,7 @@ object GitFindUtils extends NamedZioLogger {
           case Nil =>
             Unconsistancy(s"No file were found at path '${filePath}}'").fail
           case h :: Nil =>
-            ZIO.bracket(IOResult.effect(db.open(h).openStream()))(s => IOResult.effectRunVoid(s.close()))(useIt)
+            ZIO.bracket(IOResult.effect(db.open(h).openStream()))(s => IOResult.effectRunUnit(s.close()))(useIt)
           case _ =>
             Unconsistancy(s"More than exactly one matching file were found in the git tree for path '${filePath}', I can not know which one to choose. IDs: ${ids}}").fail
       }

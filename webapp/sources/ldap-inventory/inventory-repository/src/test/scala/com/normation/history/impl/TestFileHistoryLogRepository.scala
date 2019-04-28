@@ -20,19 +20,18 @@
 
 package com.normation.history.impl
 
-import org.junit._
-import org.junit.Assert._
-import org.junit.runner.RunWith
-import org.junit.runners.BlockJUnit4ClassRunner
-import org.joda.time.DateTime
-import org.apache.commons.io.FileUtils
 import java.io.File
 
 import com.normation.errors.RudderError
-import com.normation.inventory.domain.InventoryResult._
+import com.normation.errors._
 import com.normation.zio.ZioRuntime
+import org.apache.commons.io.FileUtils
+import org.joda.time.DateTime
+import org.junit.Assert._
+import org.junit._
+import org.junit.runner.RunWith
+import org.junit.runners.BlockJUnit4ClassRunner
 import scalaz.zio._
-import scalaz.zio.syntax._
 
 final case class SystemError(cause: Throwable) extends RudderError {
   def msg = "Error in test"
@@ -40,8 +39,8 @@ final case class SystemError(cause: Throwable) extends RudderError {
 
 object StringMarshaller extends FileMarshalling[String] {
   //simply read / write file content
-  override def fromFile(in:File) : InventoryResult[String] = IO.effect(FileUtils.readFileToString(in,"UTF-8")).mapError(SystemError)
-  override def toFile(out:File, data: String) : InventoryResult[String] = IO.effect {
+  override def fromFile(in:File) : IOResult[String] = IO.effect(FileUtils.readFileToString(in,"UTF-8")).mapError(SystemError)
+  override def toFile(out:File, data: String) : IOResult[String] = IO.effect {
     FileUtils.writeStringToFile(out,data, "UTF-8")
     data
   }.mapError(SystemError)
@@ -52,7 +51,7 @@ object StringId extends IdToFilenameConverter[String] {
   override def filenameToId(name:String) : String = name
 }
 
-import TestFileHistoryLogRepository._
+import com.normation.history.impl.TestFileHistoryLogRepository._
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TestFileHistoryLogRepository {

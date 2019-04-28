@@ -40,32 +40,26 @@ package com.normation.rudder.services.policies.write
 import com.normation.cfclerk.domain.PARAMETER_VARIABLE
 import com.normation.cfclerk.domain.SectionVariableSpec
 import com.normation.cfclerk.domain.SystemVariableSpec
+import com.normation.cfclerk.domain.TechniqueFile
+import com.normation.cfclerk.domain.TechniqueGenerationMode
 import com.normation.cfclerk.domain.TechniqueResourceId
 import com.normation.cfclerk.domain.TrackerVariableSpec
 import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.services.policies.NodeConfiguration
+import com.normation.rudder.services.policies.ParameterEntry
+import com.normation.rudder.services.policies.Policy
 import com.normation.templates.STVariable
+import com.normation.utils.Control
 import com.normation.utils.Control.bestEffort
 import com.normation.utils.Control.sequence
 import net.liftweb.common._
 import org.joda.time.DateTime
-
-import com.normation.inventory.domain.AgentType
-import com.normation.cfclerk.domain.TechniqueFile
-import com.normation.rudder.services.policies.ParameterEntry
-import com.normation.rudder.services.policies.Policy
-import com.normation.utils.Control.sequence
-import com.normation.cfclerk.domain.TechniqueGenerationMode
-import com.normation.utils.Control
-
-import cats._
-import cats.data._
-import cats.implicits._
 
 trait PrepareTemplateVariables {
 

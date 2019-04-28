@@ -36,27 +36,24 @@
 */
 package com.normation.rudder.repository.ldap
 
-import cats.implicits._
 import com.normation.NamedZioLogger
+import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.ldap.sdk.BuildFilter._
 import com.normation.ldap.sdk.LdapResult._
 import com.normation.ldap.sdk._
+import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.archives.ParameterArchiveId
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.parameters._
-import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.RudderLDAPConstants
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository._
 import com.normation.rudder.services.user.PersonIdentService
 import com.unboundid.ldif.LDIFChangeRecord
-import net.liftweb.common._
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import com.normation.errors._
 import scalaz.zio._
 import scalaz.zio.syntax._
 

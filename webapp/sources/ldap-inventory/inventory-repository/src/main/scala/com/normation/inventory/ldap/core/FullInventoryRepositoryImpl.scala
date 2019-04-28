@@ -38,24 +38,22 @@
 package com.normation.inventory.ldap.core
 
 
-import LDAPConstants.{A_CONTAINER_DN, A_NODE_UUID}
 import cats.data.NonEmptyList
-import com.normation.inventory.services.core._
+import com.normation.errors._
+import com.normation.errors._
 import com.normation.inventory.domain._
-import com.normation.ldap.ldif.LDIFNoopChangeRecord
-import com.normation.ldap.sdk._
-import com.unboundid.ldif.LDIFChangeRecord
-import com.unboundid.ldap.sdk.{Modification, ModificationType}
+import com.normation.inventory.ldap.core.LDAPConstants.A_CONTAINER_DN
+import com.normation.inventory.ldap.core.LDAPConstants.A_NODE_UUID
+import com.normation.inventory.services.core._
 import com.normation.ldap.sdk.BuildFilter.EQ
-import com.unboundid.ldap.sdk.DN
 import com.normation.ldap.sdk.LdapResult._
+import com.normation.ldap.sdk._
+import com.unboundid.ldap.sdk.DN
+import com.unboundid.ldap.sdk.Modification
+import com.unboundid.ldap.sdk.ModificationType
+import com.unboundid.ldif.LDIFChangeRecord
 import scalaz.zio._
 import scalaz.zio.syntax._
-import scalaz.zio.interop.catz._
-import cats.implicits._
-import com.normation.zio._
-import com.normation.errors._
-import com.normation.inventory.domain.InventoryResult._
 
 trait LDAPFullInventoryRepository extends FullInventoryRepository[Seq[LDIFChangeRecord]]
 
@@ -119,7 +117,7 @@ class FullInventoryRepositoryImpl(
   /**
    * Get a machine by its ID
    */
-  override def get(id:MachineUuid) : InventoryResult[Option[MachineInventory]] = {
+  override def get(id:MachineUuid) : IOResult[Option[MachineInventory]] = {
     for {
       con     <- ldap
       optDn   <- findDnForId[MachineUuid](con, id, dn)
@@ -182,14 +180,14 @@ class FullInventoryRepositoryImpl(
     res.toLdapResult
   }
 
-  override def save(machine: MachineInventory) : InventoryResult[Seq[LDIFChangeRecord]] = {
+  override def save(machine: MachineInventory) : IOResult[Seq[LDIFChangeRecord]] = {
     for {
       con <- ldap
       res <- con.saveTree(mapper.treeFromMachine(machine))
     } yield res
   }.chainError(s"Error when saving machine with ID '${machine.id.value}'")
 
-  override def delete(id:MachineUuid) : InventoryResult[Seq[LDIFChangeRecord]] = {
+  override def delete(id:MachineUuid) : IOResult[Seq[LDIFChangeRecord]] = {
     for {
        con      <- ldap
        machines <- getExistingMachineDN(con,id).map( _.collect { case(exists,dn) if exists => dn }.toList)
@@ -205,7 +203,7 @@ class FullInventoryRepositoryImpl(
    * as the node of highest priority (accepted > pending > removed),
    * and if no node, to the asked place.
    */
-  override def move(id:MachineUuid, into : InventoryStatus) : InventoryResult[Seq[LDIFChangeRecord]] = {
+  override def move(id:MachineUuid, into : InventoryStatus) : IOResult[Seq[LDIFChangeRecord]] = {
     val priorityStatus = Seq(AcceptedInventory, PendingInventory, RemovedInventory)
     for {
       con <- ldap
@@ -252,7 +250,7 @@ class FullInventoryRepositoryImpl(
    * Note: it may happen strange things between get:ServerAndMachine and Node if there is
    * several machine for one server, and that the first retrieved is not always the same.
    */
-  override def getMachineId(id:NodeId, inventoryStatus : InventoryStatus) : InventoryResult[Option[(MachineUuid,InventoryStatus)]] = {
+  override def getMachineId(id:NodeId, inventoryStatus : InventoryStatus) : IOResult[Option[(MachineUuid,InventoryStatus)]] = {
    for {
       con       <- ldap
       entry     <- con.get(dn(id, inventoryStatus), A_CONTAINER_DN)
@@ -265,7 +263,7 @@ class FullInventoryRepositoryImpl(
    }
   }.chainError(s"Error when getting machine with ID '${id.value}' and status '${inventoryStatus.name}'")
 
-  override def getAllNodeInventories(inventoryStatus : InventoryStatus): InventoryResult[Map[NodeId, NodeInventory]] = {
+  override def getAllNodeInventories(inventoryStatus : InventoryStatus): IOResult[Map[NodeId, NodeInventory]] = {
     (for {
       con       <- ldap
       nodeTrees <- con.getTree(inventoryDitService.getDit(inventoryStatus).NODES.dn)
@@ -279,7 +277,7 @@ class FullInventoryRepositoryImpl(
   }.chainError(s"Error when getting all node inventories")
 
 
-  override def getAllInventories(inventoryStatus : InventoryStatus): InventoryResult[Map[NodeId, FullInventory]] = {
+  override def getAllInventories(inventoryStatus : InventoryStatus): IOResult[Map[NodeId, FullInventory]] = {
 
     for {
       con  <- ldap
@@ -313,7 +311,7 @@ class FullInventoryRepositoryImpl(
   }.chainError(s"Error when getting all node inventories for status '${inventoryStatus.name}'")
 
 
-  override def get(id:NodeId, inventoryStatus : InventoryStatus) : InventoryResult[Option[FullInventory]] = {
+  override def get(id:NodeId, inventoryStatus : InventoryStatus) : IOResult[Option[FullInventory]] = {
     for {
       con    <- ldap
       tree   <- con.getTree(dn(id, inventoryStatus))
@@ -343,7 +341,7 @@ class FullInventoryRepositoryImpl(
 
 
 
-  override def get(id: NodeId) : InventoryResult[Option[FullInventory]] = {
+  override def get(id: NodeId) : IOResult[Option[FullInventory]] = {
     for {
       con    <- ldap
       nodeDn <- findDnForId[NodeId](con, id, dn)
@@ -357,7 +355,7 @@ class FullInventoryRepositoryImpl(
   }.chainError(s"Error when getting node with ID '${id.value}'")
 
 
-  override def save(inventory:FullInventory) : InventoryResult[Seq[LDIFChangeRecord]] = {
+  override def save(inventory:FullInventory) : IOResult[Seq[LDIFChangeRecord]] = {
     (for {
       con        <- ldap
       resServer  <- con.saveTree(mapper.treeFromNode(inventory.node))
@@ -368,7 +366,7 @@ class FullInventoryRepositoryImpl(
     } yield resServer ++ resMachine)
   }.chainError(s"Error when saving full inventory for node  with ID '${inventory.node.main.id.value}'")
 
-  override def delete(id:NodeId, inventoryStatus : InventoryStatus) : InventoryResult[Seq[LDIFChangeRecord]] = {
+  override def delete(id:NodeId, inventoryStatus : InventoryStatus) : IOResult[Seq[LDIFChangeRecord]] = {
     for {
       con          <- ldap
       //if there is only one node using the machine, delete it. Continue on error, but on success log ldif records
@@ -402,7 +400,7 @@ class FullInventoryRepositoryImpl(
     }
   }.chainError(s"Error when deleting node with ID '${id.value}'")
 
-  override def moveNode(id:NodeId, from: InventoryStatus, into : InventoryStatus) : InventoryResult[Seq[LDIFChangeRecord]] = {
+  override def moveNode(id:NodeId, from: InventoryStatus, into : InventoryStatus) : IOResult[Seq[LDIFChangeRecord]] = {
     if(from == into ) Seq().succeed
     else
       for {
@@ -415,7 +413,7 @@ class FullInventoryRepositoryImpl(
       }
   }.chainError(s"Error when moving node with ID '${id.value}' from '${from.name}' to '${into.name}'")
 
-  override def move(id:NodeId, from: InventoryStatus, into : InventoryStatus) : InventoryResult[Seq[LDIFChangeRecord]] = {
+  override def move(id:NodeId, from: InventoryStatus, into : InventoryStatus) : IOResult[Seq[LDIFChangeRecord]] = {
     for {
       con    <- ldap
       dnFrom =  dn(id, from)

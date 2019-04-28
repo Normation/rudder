@@ -37,38 +37,35 @@
 
 package com.normation.rudder.services.policies
 
-import com.normation.cfclerk.domain.LoadTechniqueError
+import com.normation.box._
+import com.normation.cfclerk.domain.SystemVariable
+import com.normation.cfclerk.domain.SystemVariableSpec
+import com.normation.cfclerk.domain.Variable
+import com.normation.cfclerk.services.MissingSystemVariable
 import com.normation.cfclerk.services.SystemVariableSpecService
+import com.normation.inventory.domain.Certificate
+import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.PublicKey
+import com.normation.inventory.domain.ServerRole
 import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
+import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.RuleTarget
-import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.services.servers.PolicyServerManagementService
-import com.normation.rudder.services.servers.RelaySynchronizationMethod
-import com.normation.rudder.reports.ComplianceMode
-import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.SyslogProtocol
+import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.services.servers.PolicyServerManagementService
+import com.normation.rudder.services.servers.RelaySynchronizationMethod
+import com.normation.zio._
 import net.liftweb.common.Box
+import net.liftweb.common.Empty
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
-import net.liftweb.common.Empty
-import com.normation.cfclerk.domain.Variable
-import com.normation.cfclerk.domain.SystemVariable
-import com.normation.cfclerk.domain.SystemVariableSpec
-import com.normation.cfclerk.services.MissingSystemVariable
 import net.liftweb.common.Loggable
-import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.ServerRole
-import com.normation.inventory.domain.PublicKey
-import com.normation.inventory.domain.Certificate
-import com.normation.zio._
-import com.normation.box._
-import com.normation.rudder.domain.logger.ApplicationLogger
 
 trait SystemVariableService {
   def getGlobalSystemVariables(globalAgentRun: AgentRunInterval):  Box[Map[String, Variable]]

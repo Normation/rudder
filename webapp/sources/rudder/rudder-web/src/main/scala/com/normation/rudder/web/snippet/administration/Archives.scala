@@ -55,8 +55,6 @@ import bootstrap.liftweb.RudderConfig
 
 import com.normation.box._
 import com.normation.errors._
-import scalaz.zio._
-import scalaz.zio.syntax._
 
 class Archives extends DispatchSnippet with Loggable {
 

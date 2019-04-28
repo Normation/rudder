@@ -23,12 +23,11 @@ package impl
 
 import java.io.File
 
+import com.normation.history.impl.FileHistoryLogRepository._
+import com.normation.inventory.domain.InventoryError
+import com.normation.errors._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import com.normation.inventory.domain.InventoryResult._
-import net.liftweb.util.ControlHelpers.tryo
-import FileHistoryLogRepository._
-import com.normation.inventory.domain.InventoryError
 import scalaz.zio._
 import scalaz.zio.syntax._
 
@@ -37,8 +36,8 @@ import scalaz.zio.syntax._
  * to/from files
  */
 trait FileMarshalling[T] {
-  def fromFile(in:File) : InventoryResult[T]
-  def toFile(out:File, data: T) : InventoryResult[T]
+  def fromFile(in:File) : IOResult[T]
+  def toFile(out:File, data: T) : IOResult[T]
 }
 
 trait IdToFilenameConverter[ID] {
@@ -81,7 +80,7 @@ class FileHistoryLogRepository[ID,T](
 
 
   //we don't want to catch exception here
-  private def root() : InventoryResult[File] = {
+  private def root() : IOResult[File] = {
     for {
       dir       <- UIO(new File(rootDir))
       isValid   <- if(dir.exists && !dir.isDirectory) InventoryError.System(s"'${dir.getAbsolutePath}' exists and is not a directory").fail else UIO.unit
@@ -109,7 +108,7 @@ class FileHistoryLogRepository[ID,T](
    * its version
    * @param historyLog
    */
-  def save(id: ID, data: T, datetime: DateTime = DateTime.now) : InventoryResult[HLog] = {
+  def save(id: ID, data: T, datetime: DateTime = DateTime.now) : IOResult[HLog] = {
     converter.idToFilename(id) match {
       case null | "" =>
         InventoryError.Inconsistency("History log name can not be null nor empty").fail
@@ -129,7 +128,7 @@ class FileHistoryLogRepository[ID,T](
   /**
    * Retrieve all ids known by the repository
    */
-  def getIds : InventoryResult[Seq[ID]] = {
+  def getIds : IOResult[Seq[ID]] = {
     for {
       r   <- root()
       res <- Task.effect(r.listFiles.collect { case(f) if(f.isDirectory) => converter.filenameToId(f.getName) }).mapError(e =>
@@ -145,7 +144,7 @@ class FileHistoryLogRepository[ID,T](
    * If reading any logs  throws an error, the full result is a
    * Failure
    */
-  def getAll(id:ID) : InventoryResult[Seq[HLog]] = {
+  def getAll(id:ID) : IOResult[Seq[HLog]] = {
     for {
       versions <- this.versions(id)
       hlogs    <- ZIO.foldLeft(versions)(Seq[HLog]()) { (current, v) =>
@@ -158,7 +157,7 @@ class FileHistoryLogRepository[ID,T](
    * Get the list of record for the given UUID and version.
    * If no version is specified, get the last.
    */
-  def getLast(id:ID) : InventoryResult[HLog] = {
+  def getLast(id:ID) : IOResult[HLog] = {
     for {
       versions <- this.versions(id)
       version  <- versions.headOption.notOptional(s"No version available for ${id}")
@@ -170,7 +169,7 @@ class FileHistoryLogRepository[ID,T](
    * Get the list of record for the given UUID and version.
    * If no version is specified, get the last.
    */
-  def get(id:ID, version:DateTime) : InventoryResult[HLog] = {
+  def get(id:ID, version:DateTime) : IOResult[HLog] = {
     for {
       i    <- idDir(id)
       file <- UIO(new File(i,vToS(version)))
@@ -195,7 +194,7 @@ class FileHistoryLogRepository[ID,T](
    * List is sorted with last version (most recent) first
    * ( versions.head > versions.head.head )
    */
-  def versions(id:ID) : InventoryResult[Seq[DateTime]] = {
+  def versions(id:ID) : IOResult[Seq[DateTime]] = {
     for {
       i  <- idDir(id)
       ok <- exists(id)

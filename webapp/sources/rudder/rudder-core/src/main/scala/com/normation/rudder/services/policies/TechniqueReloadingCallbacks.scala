@@ -79,7 +79,7 @@ class LogEventOnTechniqueReloadCallback(
       , principal      = actor
       , details        = ReloadTechniqueLibrary.buildDetails(gitRev, techniqueMods)
       , reason = reason
-    ))).chainError("Error when saving event log for techniques library reload").void.toBox
+    ))).chainError("Error when saving event log for techniques library reload").unit.toBox
   }
 }
 

@@ -59,7 +59,7 @@ trait ScalaLock {
         .mapError(ex => SystemError(s"Error when trying to get LDAP lock", ex))
     )(_ =>
       LdapLockLogger.logPure.error("Release lock") *>
-      IOResult.effectRunVoid(this.unlock())
+      IOResult.effectRunUnit(this.unlock())
     )(_ =>
       LdapLockLogger.logPure.error("Do things in lock") *>
       block
@@ -71,14 +71,13 @@ trait ScalaLock {
 
 object ScalaLock {
   import java.util.concurrent.locks.Lock
-  import language.implicitConversions
 
 
   protected def java2ScalaLock(n: String, javaLock: Lock) : ScalaLock = new ScalaLock {
     override def lock() = javaLock.lock()
     override def unlock() = javaLock.unlock()
     override def clock = ZioRuntime.Environment
-    override def name: String = name
+    override def name: String = n
   }
 
   protected def pureZioSemaphore(n: String, _not_used: Any) : ScalaLock = new ScalaLock {
@@ -103,11 +102,10 @@ object ScalaLock {
   }
 
   protected def noopLock(n: String, javaLock: Lock) : ScalaLock = new ScalaLock {
-    val semaphore = Semaphore.make(1)
     override def lock(): Unit = ()
     override def unlock(): Unit = ()
     override def clock: Clock = ZioRuntime.Environment
-    override def name: String = name
+    override def name: String = n
     override def apply[T](block: => IOResult[T]): IOResult[T] = block
   }
 

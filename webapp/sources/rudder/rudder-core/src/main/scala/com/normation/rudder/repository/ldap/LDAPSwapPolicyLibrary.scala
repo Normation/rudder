@@ -37,8 +37,8 @@
 
 package com.normation.rudder.repository.ldap
 
-import cats.implicits._
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.errors._
 import com.normation.inventory.ldap.core.LDAPConstants.A_OC
 import com.normation.ldap.sdk.GeneralizedTime
 import com.normation.ldap.sdk.LDAPConnectionProvider
@@ -56,8 +56,6 @@ import com.normation.rudder.repository.ImportTechniqueLibrary
 import com.unboundid.ldap.sdk.DN
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-
-import com.normation.errors._
 import scalaz.zio._
 import scalaz.zio.syntax._
 
@@ -256,18 +254,19 @@ class ImportTechniqueLibraryImpl(
     for {
       cleanLib <- checkUserLibConsistance(rootCategory)
       moved    <- userLibMutex.writeLock { atomicSwap(cleanLib) }.chainError("Error when swapping serialised library and existing one in LDAP")
-    } yield {
       //delete archive - not a real error if fails
-      val dn = rudderDit.ARCHIVES.userLibDN(moved)
-      (for {
-        con     <- ldap
-        deleted <- con.delete(dn)
-      } yield {
-        deleted
-      }).catchAll { e =>
-        // unit is expected
-        logPure.warn(s"Error when deleting archived library in LDAP with DN '${dn}': ${e.msg}")
-      }
+      dn       =  rudderDit.ARCHIVES.userLibDN(moved)
+      _        <- (for {
+                    con <- ldap
+                    _   <- con.delete(dn)
+                  } yield {
+                    ()
+                  }).catchAll { e =>
+                    // unit is expected
+                    logPure.warn(s"Error when deleting archived library in LDAP with DN '${dn}': ${e.msg}")
+                  }
+    } yield {
+      ()
     }
   }
 }

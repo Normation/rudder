@@ -38,27 +38,22 @@
 package com.normation.rudder.services.policies
 
 import com.normation.NamedZioLogger
+import com.normation.box._
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services._
-import com.normation.eventlog.ModificationId
+import com.normation.errors._
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
+import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.utils.StringUuidGenerator
-import com.normation.utils.Control
-import net.liftweb.common.Loggable
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
-import org.joda.time.DateTime
-import net.liftweb.common.Box
-import com.normation.errors._
-import com.normation.box._
 import com.normation.zio._
+import net.liftweb.common.Box
+import org.joda.time.DateTime
 import scalaz.zio._
-import scalaz.zio.syntax._
 
 /**
  * This handler is in charge to maintain a correct state
@@ -154,7 +149,7 @@ class TechniqueAcceptationUpdater(
                                 logPure.debug("Update acceptation datetime for: " + activeTechnique.techniqueName) *>
                                 rwActiveTechniqueRepo.setAcceptationDatetimes(activeTechnique.id, versionsMap, modId, actor, reason).chainError(
                                     s"Error when saving Active Technique ${activeTechnique.id.value} for technque ${activeTechnique.techniqueName}"
-                                ).void
+                                ).unit
 
                               case (TechniqueUpdated(name, mods), None) =>
 
@@ -200,7 +195,7 @@ class TechniqueAcceptationUpdater(
                                           logPure.info(s"Automatically adding technique '${name}' in category '${parentCat._2} (${parentCat._1.value})' of active techniques library") *>
                                           rwActiveTechniqueRepo.addTechniqueInUserLibrary(parentCat._1, name, mods.keys.toSeq, modId, actor, reason).chainError(
                                               s"Error when automatically activating technique '${name}'"
-                                          ).void
+                                          ).unit
                                         }
                                     }
 

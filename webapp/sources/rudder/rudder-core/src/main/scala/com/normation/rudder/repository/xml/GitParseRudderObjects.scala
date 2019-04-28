@@ -37,21 +37,15 @@
 
 package com.normation.rudder.repository.xml
 
-import com.normation.NamedZioLogger
-import org.eclipse.jgit.lib.ObjectId
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.errors.IOResult
-import com.normation.rudder.repository._
-import com.normation.rudder.services.marshalling.RuleUnserialisation
-import com.normation.utils.Control._
-import com.normation.utils.UuidRegex
-import net.liftweb.common.Loggable
-import com.normation.rudder.migration.XmlEntityMigration
 import com.normation.errors._
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTargetInfo
+import com.normation.rudder.migration.XmlEntityMigration
+import com.normation.rudder.repository._
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.marshalling.ActiveTechniqueCategoryUnserialisation
 import com.normation.rudder.services.marshalling.ActiveTechniqueUnserialisation
@@ -60,6 +54,9 @@ import com.normation.rudder.services.marshalling.GlobalParameterUnserialisation
 import com.normation.rudder.services.marshalling.NodeGroupCategoryUnserialisation
 import com.normation.rudder.services.marshalling.NodeGroupUnserialisation
 import com.normation.rudder.services.marshalling.RuleCategoryUnserialisation
+import com.normation.rudder.services.marshalling.RuleUnserialisation
+import com.normation.utils.UuidRegex
+import org.eclipse.jgit.lib.ObjectId
 import scalaz.zio._
 import scalaz.zio.syntax._
 

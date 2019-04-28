@@ -38,21 +38,13 @@
 package com.normation.rudder.repository
 
 import com.normation.cfclerk.domain.SectionSpec
+import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.AddApiAccountDiff
 import com.normation.rudder.api.DeleteApiAccountDiff
-import com.normation.cfclerk.domain.SectionSpec
-import com.normation.errors.IOResult
-import com.normation.rudder.domain.workflows.WorkflowStepChange
-import com.normation.rudder.domain.policies.DeleteTechniqueDiff
-import com.normation.rudder.domain.parameters.ModifyGlobalParameterDiff
-import com.normation.rudder.domain.parameters.AddGlobalParameterDiff
-import com.normation.rudder.domain.policies.DeleteRuleDiff
-import com.normation.rudder.domain.policies.ModifyTechniqueDiff
-import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.api.ModifyApiAccountDiff
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.eventlog.ChangeRequestDiff
@@ -76,7 +68,6 @@ import com.normation.rudder.domain.policies.ModifyTechniqueDiff
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.eventlog.EventLogFactory
-import net.liftweb.common._
 
 trait EventLogRepository {
   def eventLogFactory : EventLogFactory

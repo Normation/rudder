@@ -501,7 +501,7 @@ class Boot extends Loggable {
               , reason = None
             )
         )
-    ) match {
+    ).runNow match {
       case eb:EmptyBox =>
         val e = eb ?~! "Error when trying to save the EventLog for application start"
         ApplicationLogger.error(e.messageChain)

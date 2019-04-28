@@ -39,7 +39,6 @@ package com.normation.rudder.repository.xml
 
 import org.apache.commons.io.FileUtils
 import com.normation.rudder.repository._
-import com.normation.utils.Control._
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.rudder.domain.Constants.FULL_ARCHIVE_TAG
 import org.joda.time.DateTime
@@ -200,13 +199,13 @@ class ItemArchiveManagerImpl(
     ZIO.foldLeft(elements)(NotArchivedElements( Seq(), Seq(), Seq())) { case (notArchived, (categories, CategoryWithActiveTechniques(cat, activeTechniques))) =>
 
       //we try to save the category, and else record an error. It's a seq with at most one element
-      val catInErrorIO = gitActiveTechniqueCategoryArchiver.archiveActiveTechniqueCategory(cat,categories.reverse.tail, gitCommit = None).foldM(
+      val catInErrorIO: UIO[Seq[CategoryNotArchived]] = gitActiveTechniqueCategoryArchiver.archiveActiveTechniqueCategory(cat,categories.reverse.tail, gitCommit = None).foldM(
         err => Seq(CategoryNotArchived(cat.id, err)).succeed
       , suc => Seq().succeed
       )
 
       //now, we try to save the active techniques - we only
-      val activeTechniquesInErrorIO = ZIO.foreach(activeTechniques.filterNot(_.isSystem)) { activeTechnique =>
+      val activeTechniquesInErrorIO: UIO[List[(Seq[ActiveTechniqueNotArchived], Seq[DirectiveNotArchived])]]  = ZIO.foreach(activeTechniques.filterNot(_.isSystem)) { activeTechnique =>
         gitActiveTechniqueArchiver.archiveActiveTechnique(activeTechnique,categories.reverse, gitCommit = None).foldM(
           err => (Seq(ActiveTechniqueNotArchived(activeTechnique.id, err)), Seq.empty[DirectiveNotArchived]).succeed
           // in case of success, we can still have directive not archived
@@ -318,7 +317,7 @@ class ItemArchiveManagerImpl(
       _          <- woRuleRepository.deleteSavedRuleArchiveId(imported).catchAll(err =>
                       logPure.warn(s"Error when trying to delete saved archive of old rule: ${err.fullMsg}")
                     )
-      _          <- IOResult.effectRunVoid(if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)})
+      _          <- IOResult.effectRunUnit(if(deploy) {asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)})
     } yield {
       if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }
       archiveId
@@ -360,7 +359,7 @@ class ItemArchiveManagerImpl(
         _        <- logPure.info(s"Importing groups archive with id '${archiveId.value}'")
         parsed   <- parseGroupLibrary.getArchive(archiveId)
         imported <- importGroupLibrary.swapGroupLibrary(parsed, includeSystem)
-        dynGroup <- updateDynamicGroups.updateAll(modId,actor,reason)
+        dynGroup <- updateDynamicGroups.updateAll(modId,actor,reason).toIO
       } yield {
         if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }
         archiveId
@@ -371,8 +370,8 @@ class ItemArchiveManagerImpl(
     val commitMsg = "User %s requested Parameters archive restoration to commit %s".format(actor.name,archiveId.value)
     for {
     parametersArchiveId <- importParametersAndDeploy(archiveId, modId, actor, reason, includeSystem)
-    eventLogged    <- eventLogger.saveEventLog(modId,new ImportParametersArchive(actor,archiveId, reason))
-    commit         <- restoreCommitAtHead(commiter,commitMsg,archiveId,ParameterArchive,modId)
+    eventLogged         <- eventLogger.saveEventLog(modId,new ImportParametersArchive(actor,archiveId, reason))
+    commit              <- restoreCommitAtHead(commiter,commitMsg,archiveId,ParameterArchive,modId)
     } yield
       archiveId
   }
@@ -386,7 +385,7 @@ class ItemArchiveManagerImpl(
       _        <- woParameterRepository.deleteSavedParametersArchiveId(imported).catchAll(err =>
                     logPure.warn(s"Error when trying to delete saved archive of old parameters: ${err.fullMsg}")
                   )
-      _        <- IOResult.effectRunVoid(if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)})
+      _        <- IOResult.effectRunUnit(if(deploy) {asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)})
     } yield {
       archiveId
     }

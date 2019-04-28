@@ -37,29 +37,31 @@
 
 package com.normation.rudder.services.policies
 
-import com.normation.rudder.domain.policies.{CompositeRuleTarget, GroupTarget, RuleTarget}
-import com.normation.rudder.repository.ldap.LDAPEntityMapper
+import com.normation.NamedZioLogger
+import com.normation.box._
+import com.normation.errors._
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
+import com.normation.ldap.sdk.BuildFilter._
+import com.normation.ldap.sdk.LdapResult._
+import com.normation.ldap.sdk.RoLDAPConnection
+import com.normation.ldap.sdk.LDAPConnectionProvider
+import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.Rule
-import net.liftweb.common._
-import com.normation.rudder.domain.policies.{ActiveTechniqueId, DirectiveId, RuleId}
-import com.normation.rudder.domain.{RudderDit, RudderLDAPConstants}
-import RudderLDAPConstants._
-import com.normation.utils.Control.sequence
-import com.normation.ldap.sdk.{BuildFilter, LDAPConnectionProvider}
-import BuildFilter._
+import com.normation.rudder.domain.policies.ActiveTechniqueId
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.CompositeRuleTarget
+import com.normation.rudder.domain.policies.GroupTarget
+import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.repository._
-import com.normation.eventlog.EventActor
+import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.utils.HashcodeCaching
-import com.normation.eventlog.ModificationId
-import com.normation.ldap.sdk.RoLDAPConnection
-import com.normation.ldap.sdk.LdapResult._
-import cats.implicits._
-import com.normation.NamedZioLogger
+import net.liftweb.common._
 import scalaz.zio._
 import scalaz.zio.syntax._
-import com.normation.errors._
-import com.normation.box._
 
 /**
  * A container for items which depend on directives

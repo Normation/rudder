@@ -37,22 +37,23 @@
 
 package com.normation.rudder.domain.queries
 
-import com.unboundid.ldap.sdk.{DN, Filter}
-import com.normation.ldap.sdk._
+import com.normation.errors._
+import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.inventory.ldap.core._
-import LDAPConstants._
-import BuildFilter._
-import com.normation.errors.PureResult
-
-import scala.collection.SortedMap
+import com.normation.ldap.sdk.BuildFilter._
+import com.normation.ldap.sdk._
+import com.normation.rudder.domain.NodeDit
+import com.normation.rudder.domain.RudderDit
+import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_GROUP_UUID
+import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
+import com.normation.rudder.domain.RudderLDAPConstants.A_STATE
+import com.normation.rudder.domain.RudderLDAPConstants.OC_RUDDER_NODE_GROUP
 import com.normation.rudder.services.queries.SpecialFilter
 import com.normation.utils.HashcodeCaching
-import com.normation.rudder.domain.NodeDit
-import com.normation.rudder.domain.RudderLDAPConstants.{A_NODE_GROUP_UUID, A_NODE_PROPERTY, A_STATE, OC_RUDDER_NODE_GROUP}
-import com.normation.rudder.domain.RudderDit
-import net.liftweb.common.Box
+import com.unboundid.ldap.sdk.DN
+import com.unboundid.ldap.sdk.Filter
 
-import com.normation.errors._
+import scala.collection.SortedMap
 
 /*
  * Here we define all data needed logic by the webapp to create the search

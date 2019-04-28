@@ -38,20 +38,18 @@
 package com.normation.inventory.ldap.core
 
 import com.normation.errors.RudderError
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
-import com.normation.ldap.listener.InMemoryDsConnectionProvider
-import com.unboundid.ldap.sdk.DN
 import com.normation.inventory.domain._
+import com.normation.ldap.listener.InMemoryDsConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
-import com.normation.inventory.domain.InventoryResult._
 import com.normation.zio.ZioRuntime
+import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
+import org.junit.runner._
 import org.specs2.matcher.MatchResult
+import org.specs2.mutable._
+import org.specs2.runner._
 import scalaz.zio._
-import scalaz.zio.syntax._
 
 final case class SystemError(cause: Throwable) extends RudderError {
   def msg = "Error in test"

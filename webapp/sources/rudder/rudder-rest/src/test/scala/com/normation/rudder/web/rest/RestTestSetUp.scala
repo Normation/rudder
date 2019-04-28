@@ -37,41 +37,47 @@
 
 package com.normation.rudder.rest
 
-import org.specs2.matcher.MatchResult
+import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
+import com.normation.cfclerk.services.UpdateTechniqueLibrary
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.EventLog
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.AuthorizationType
+import com.normation.rudder.RudderAccount
+import com.normation.rudder.User
+import com.normation.rudder.UserService
+import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
+import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.StartDeploymentMessage
+import com.normation.rudder.batch.UpdateDynamicGroups
+import com.normation.rudder.repository._
+import com.normation.rudder.rest.lift.LiftApiProcessingLogger
+import com.normation.rudder.rest.lift.LiftHandler
+import com.normation.rudder.rest.lift.SystemApiService11
+import com.normation.rudder.rest.v1.RestStatus
+import com.normation.rudder.rest.v1.RestTechniqueReload
+import com.normation.rudder.services.policies.TestNodeConfiguration
+import com.normation.rudder.services.user.PersonIdentService
+import com.normation.rudder.services.ClearCacheService
+import com.normation.rudder.services.DebugInfoScriptResult
+import com.normation.rudder.services.DebugInfoService
+import com.normation.utils.StringUuidGenerator
+import net.liftweb.common.Box
+import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
+import net.liftweb.http.LiftResponse
 import net.liftweb.http.LiftRules
 import net.liftweb.http.LiftRulesMocker
 import net.liftweb.http.Req
+import net.liftweb.http.S
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mocks.MockHttpServletRequest
 import net.liftweb.mockweb.MockWeb
-import com.normation.utils.StringUuidGenerator
-import com.normation.cfclerk.services.{TechniquesLibraryUpdateNotification, TechniquesLibraryUpdateType, UpdateTechniqueLibrary}
-import com.normation.eventlog.{EventActor, EventLog, ModificationId}
-import net.liftweb.common.Box
-import com.normation.cfclerk.domain.TechniqueName
-import net.liftweb.http.LiftResponse
 import net.liftweb.util.NamedPF
-import net.liftweb.http.S
-import net.liftweb.common.EmptyBox
-import net.liftweb.json.JsonAST.JValue
-import com.normation.rudder.UserService
-import com.normation.rudder.User
-import com.normation.rudder.AuthorizationType
-import com.normation.rudder.RudderAccount
-import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
-import com.normation.rudder.batch.{AsyncDeploymentAgent, StartDeploymentMessage, UpdateDynamicGroups}
-import com.normation.rudder.repository._
-import com.normation.rudder.rest.v1.RestTechniqueReload
-import com.normation.rudder.rest.v1.RestStatus
-import com.normation.rudder.rest.lift.{LiftApiProcessingLogger, LiftHandler, SystemApiService11}
-import com.normation.rudder.services.{ClearCacheService, DebugInfoScriptResult, DebugInfoService}
-import com.normation.rudder.services.policies.TestNodeConfiguration
-import com.normation.rudder.services.user.PersonIdentService
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
-
+import org.specs2.matcher.MatchResult
 import scalaz.zio._
-import scalaz.zio.syntax._
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.

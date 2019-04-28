@@ -41,7 +41,7 @@ import cats.data.NonEmptyList
 import com.normation.errors.RudderError
 import com.normation.inventory.domain.InventoryLogger
 import com.normation.inventory.domain.InventoryReport
-import com.normation.inventory.domain.InventoryResult._
+import com.normation.errors._
 import com.normation.inventory.services.provisioning._
 import com.unboundid.ldif.LDIFChangeRecord
 import com.normation.ldap.sdk.LDAPConnectionProvider
@@ -68,14 +68,14 @@ class DefaultReportSaver(
   override val postCommitPipeline:Seq[PostCommit[Seq[LDIFChangeRecord]]]
 ) extends PipelinedReportSaver[Seq[LDIFChangeRecord]] {
 
-  def commitChange(report:InventoryReport) : InventoryResult[Seq[LDIFChangeRecord]] = {
+  def commitChange(report:InventoryReport) : IOResult[Seq[LDIFChangeRecord]] = {
 
     /*
      * we are saving with one connection by type of object so
      * that an LDAPException in one don't stop the
      * other to be saved
      */
-    var results = List[InventoryResult[Seq[LDIFChangeRecord]]]()
+    var results = List[IOResult[Seq[LDIFChangeRecord]]]()
 
     val t0 = System.currentTimeMillis
 

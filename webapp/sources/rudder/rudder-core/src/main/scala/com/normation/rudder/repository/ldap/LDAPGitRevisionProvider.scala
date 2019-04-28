@@ -40,6 +40,7 @@ package com.normation.rudder.repository.ldap
 import com.normation.NamedZioLogger
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.cfclerk.services.GitRevisionProvider
+import com.normation.errors._
 import com.normation.inventory.ldap.core.LDAPConstants.A_OC
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
@@ -47,12 +48,9 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.A_TECHNIQUE_LIB_VERSION
 import com.normation.rudder.domain.RudderLDAPConstants.OC_ACTIVE_TECHNIQUE_LIB_VERSION
 import com.normation.rudder.repository.xml.GitFindUtils
-import net.liftweb.common._
 import org.eclipse.jgit.lib.ObjectId
-
 import scalaz.zio._
 import scalaz.zio.syntax._
-import com.normation.errors._
 
 /**
  *
@@ -119,7 +117,7 @@ class LDAPGitRevisionProvider(
                case Some(root) =>
                  root += (A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
                  root +=! (A_TECHNIQUE_LIB_VERSION, id.getName)
-                 con.save(root).void
+                 con.save(root).unit
              }
     } yield {
       currentId = id.succeed

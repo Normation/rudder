@@ -37,20 +37,20 @@
 
 package com.normation.cfclerk.services.impl
 
-import com.normation.cfclerk.services._
+import java.io.File
+import java.io.InputStream
+
 import com.normation.cfclerk.domain._
-import net.liftweb.common._
-import Box._
-import java.io.{ File, InputStream }
-import scala.collection.SortedSet
+import com.normation.cfclerk.services._
+import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Control
-
-import com.normation.errors._
-import scalaz.zio._
+import com.normation.utils.StringUuidGenerator
+import net.liftweb.common._
 import scalaz.zio.syntax._
+
+import scala.collection.SortedSet
 
 class TechniqueRepositoryImpl(
     techniqueReader: TechniqueReader

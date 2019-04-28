@@ -37,14 +37,13 @@
 
 package com.normation.inventory.ldap.core
 
-import scala.collection.mutable.Buffer
-import com.normation.inventory.domain.InventoryResult._
-import com.normation.ldap.sdk.LDAPEntry
 import com.normation.inventory.domain.FullInventory
-import com.normation.ldap.sdk.LDAPTree
-import scalaz.zio._
-import scalaz.zio.syntax._
 import com.normation.errors._
+import com.normation.ldap.sdk.LDAPEntry
+import com.normation.ldap.sdk.LDAPTree
+import scalaz.zio.syntax._
+
+import scala.collection.mutable.Buffer
 
 class FullInventoryFromLdapEntriesImpl(
     inventoryDitService: InventoryDitService
@@ -53,7 +52,7 @@ class FullInventoryFromLdapEntriesImpl(
 
 
   //a dit without base dn
-  override def fromLdapEntries(entries:Seq[LDAPEntry]) : InventoryResult[FullInventory] = {
+  override def fromLdapEntries(entries:Seq[LDAPEntry]) : IOResult[FullInventory] = {
     val serverElts = Buffer[LDAPEntry]()
     val machineElts = Buffer[LDAPEntry]()
 

@@ -37,17 +37,15 @@
 
 package com.normation.cfclerk.xmlparsers
 
-import CfclerkXmlConstants._
+import cats.implicits._
 import com.normation.NamedZioLogger
 import com.normation.cfclerk.domain._
+import com.normation.cfclerk.domain.implicits._
 import com.normation.cfclerk.services.SystemVariableSpecService
+import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
+import com.normation.inventory.domain.AgentType
 
 import scala.xml._
-import com.normation.inventory.domain.AgentType
-import com.normation.cfclerk.domain.implicits._
-import cats._
-import cats.data._
-import cats.implicits._
 
 
 /**

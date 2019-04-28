@@ -38,6 +38,8 @@
 package com.normation.rudder.repository.ldap
 
 import cats.implicits._
+import com.normation.NamedZioLogger
+import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
@@ -51,9 +53,9 @@ import com.normation.ldap.sdk.BuildFilter.EQ
 import com.normation.ldap.sdk.BuildFilter.IS
 import com.normation.ldap.sdk.BuildFilter.NOT
 import com.normation.ldap.sdk.BuildFilter.OR
-import com.normation.ldap.sdk.LdapResult._
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPEntry
+import com.normation.ldap.sdk.LdapResult._
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.ldap.sdk.boolean2LDAP
@@ -80,21 +82,15 @@ import com.normation.rudder.repository.NodeGroupCategoryOrdering
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.services.user.PersonIdentService
-import com.normation.utils.Control.sequence
 import com.normation.utils.StringUuidGenerator
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Filter
 import net.liftweb.common._
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 import scala.Option.option2Iterable
 import scala.collection.immutable.SortedMap
-import scalaz.zio._
-import scalaz.zio.syntax._
-import com.normation.errors._
-import cats._
-import cats.data._
-import cats.implicits._
-import com.normation.NamedZioLogger
 
 class RoLDAPNodeGroupRepository(
     val rudderDit     : RudderDit
@@ -453,7 +449,7 @@ class RoLDAPNodeGroupRepository(
    def mappingError(current: AllMaps, e: LDAPEntry, err: RudderError) : AllMaps = {
       val error = Chained(s"Error when mapping entry with DN '${e.dn.toString}' from node groups library, that entry will be ignored", err)
 
-      logEffect.warn(err.fullMsg)
+      logEffect.warn(error.fullMsg)
       current
     }
 

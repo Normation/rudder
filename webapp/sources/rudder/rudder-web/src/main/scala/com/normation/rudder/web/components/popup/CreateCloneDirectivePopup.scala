@@ -37,24 +37,25 @@
 
 package com.normation.rudder.web.components.popup
 
-import net.liftweb.http.js._
-import JsCmds._
-import com.normation.rudder.domain.policies._
-import JE._
-import net.liftweb.common._
-import net.liftweb.http.{SHtml,DispatchSnippet}
-import scala.xml._
-import net.liftweb.util.Helpers._
-import com.normation.rudder.web.model.{
-  WBTextField, FormTracker, WBTextAreaField
-}
-import CreateCloneDirectivePopup._
-import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.rudder.web.model.CurrentUser
-import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
-
 import com.normation.box._
+import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.policies._
+import com.normation.rudder.web.components.popup.CreateCloneDirectivePopup._
+import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.model.FormTracker
+import com.normation.rudder.web.model.WBTextAreaField
+import com.normation.rudder.web.model.WBTextField
+import net.liftweb.common._
+import net.liftweb.http.js.JE._
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js._
+import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.SHtml
+import net.liftweb.util.Helpers._
+
+import scala.xml._
 
 object CreateCloneDirectivePopup {
   val htmlId_popupContainer = "createCloneDirectiveContainer"
@@ -194,8 +195,8 @@ class CreateCloneDirectivePopup(
           , _isEnabled = directive.isEnabled
           , policyMode = directive.policyMode
         )
-      roDirectiveRepository.getActiveTechniqueAndDirective(directive.id).toBox match {
-        case Full(Some((activeTechnique, _))) =>
+      roDirectiveRepository.getActiveTechniqueAndDirective(directive.id).notOptional(s"Error: active technique for directive '${directive.id}' was not found").toBox match {
+        case Full((activeTechnique, _)) =>
           woDirectiveRepository.saveDirective(activeTechnique.id, cloneDirective, ModificationId(uuidGen.newUuid), CurrentUser.actor, reasons.map(_.get)).toBox match {
             case Full(directive) => {
                closePopup() & onSuccessCallback(cloneDirective)

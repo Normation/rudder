@@ -44,7 +44,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import net.liftweb.http.S
 import net.liftweb.common.Full
-import net.liftweb.common.EmptyBox
 import net.liftweb.common.Loggable
 import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.policies.RuleTarget

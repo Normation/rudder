@@ -37,59 +37,53 @@
 
 package com.normation.rudder.repository.jdbc
 
-import org.joda.time.DateTime
-import org.junit.runner.RunWith
-import org.specs2.runner.JUnitRunner
-import net.liftweb.common.Full
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports._
-import com.normation.rudder.db.DBCommon
-import com.normation.rudder.reports.ChangesOnly
-import com.normation.rudder.reports.execution._
-import com.normation.rudder.reports.FullCompliance
-import com.normation.rudder.services.reports.ReportingServiceImpl
-import com.normation.rudder.reports.AgentRunIntervalService
-import org.joda.time.Duration
-import com.normation.rudder.reports.ResolvedAgentRunInterval
-import com.normation.rudder.reports.AgentRunInterval
-import net.liftweb.common.Box
-import com.normation.rudder.domain.logger.ComplianceDebugLogger
-import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
-import net.liftweb.common.Empty
-import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
-import com.normation.rudder.services.reports.DefaultFindRuleNodeStatusReports
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.reports.GlobalComplianceMode
-import com.normation.rudder.reports.GlobalComplianceMode
-import com.normation.rudder.services.reports.NodeChangesServiceImpl
-import doobie.implicits._
-import cats.implicits._
 import com.normation.BoxSpecMatcher
-import com.normation.rudder.services.policies.NodeConfigData
-import com.normation.rudder.services.nodes.LDAPNodeInfo
-import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.domain.nodes.Node
-import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.repository.FullActiveTechniqueCategory
-import com.normation.rudder.repository.CategoryWithActiveTechniques
-import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.errors._
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.DB
+import com.normation.rudder.db.DBCommon
+import com.normation.rudder.domain.nodes.Node
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.queries.CriterionComposition
 import com.normation.rudder.domain.queries.NodeInfoMatcher
-
-import scala.collection.SortedMap
+import com.normation.rudder.domain.reports._
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.reports.AgentRunIntervalService
+import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.reports.ResolvedAgentRunInterval
+import com.normation.rudder.reports.execution._
+import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.ComplianceRepository
+import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.services.nodes.LDAPNodeInfo
+import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.services.policies.NodeConfigData
+import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
+import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
+import com.normation.rudder.services.reports.DefaultFindRuleNodeStatusReports
+import com.normation.rudder.services.reports.NodeChangesServiceImpl
+import com.normation.rudder.services.reports.ReportingServiceImpl
 import com.normation.rudder.services.reports.UnexpectedReportInterpretation
-
-import com.normation.errors._
+import doobie.implicits._
+import net.liftweb.common.Box
+import net.liftweb.common.Empty
+import net.liftweb.common.Full
+import org.joda.time.DateTime
+import org.joda.time.Duration
+import org.junit.runner.RunWith
+import org.specs2.runner.JUnitRunner
 import scalaz.zio._
 import scalaz.zio.syntax._
+
+import scala.collection.SortedMap
 
 /**
  *
@@ -99,8 +93,6 @@ import scalaz.zio.syntax._
 @RunWith(classOf[JUnitRunner])
 class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   self =>
-
-  import ReportType._
 
   //clean data base
   def cleanTables() = {

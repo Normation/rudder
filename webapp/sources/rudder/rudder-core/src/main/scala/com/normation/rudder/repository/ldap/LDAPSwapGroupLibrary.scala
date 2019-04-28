@@ -37,8 +37,8 @@
 
 package com.normation.rudder.repository.ldap
 
-import cats.implicits._
 import com.normation.NamedZioLogger
+import com.normation.errors._
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.domain.RudderDit
@@ -52,7 +52,6 @@ import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import com.normation.errors._
 import scalaz.zio._
 import scalaz.zio.syntax._
 
@@ -326,7 +325,7 @@ class ImportGroupLibraryImpl(
         deleted <- con.delete(dn)
       } yield {
         deleted
-      }).catchAll(e =>
+      }).unit.catchAll[Any, RudderError, Unit](e =>  // type annotation needed to avoid warning
           // unit is expected
           logPure.warn(s"Error when deleting archived library in LDAP with DN '${dn}': ${e.msg}")
       )

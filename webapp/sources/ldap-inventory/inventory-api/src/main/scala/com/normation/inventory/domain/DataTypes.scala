@@ -49,7 +49,6 @@ import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import org.bouncycastle.cert.X509CertificateHolder
 import scalaz.zio._
 import scalaz.zio.syntax._
-import com.normation.inventory.domain.InventoryResult._
 
 /**
  * A file that contains all the simple data types, like Version,
@@ -102,7 +101,7 @@ final case class PublicKey(value : String) extends SecurityToken with HashcodeCa
       |-----END RSA PUBLIC KEY-----""".stripMargin
     }
   }
-  def publicKey : InventoryResult[java.security.PublicKey] = {
+  def publicKey : IOResult[java.security.PublicKey] = {
     ZIO.effect {
       new PEMParser(new StringReader(key))
     }.mapError { e =>
@@ -197,23 +196,4 @@ object InventoryError {
   final case class System(msg: String) extends InventoryError
 }
 
-object InventoryResult {
 
-  // inventory result will use several other type of error, its error kind
-  // must be RudderError
-  type InventoryResult[T] = IOResult[T]
-
-  implicit class NotOptional[T](opt: Option[T]) {
-    def notOptional(msg: String): InventoryResult[T] = opt match {
-      case None    => InventoryError.Inconsistency(msg).fail
-      case Some(x) => x.succeed
-    }
-  }
-
-  implicit class ChainError[T](res: InventoryResult[T]) {
-    def chainError(msg: String) = res.mapError(err =>
-      Chained(msg, err)
-    )
-  }
-
-}

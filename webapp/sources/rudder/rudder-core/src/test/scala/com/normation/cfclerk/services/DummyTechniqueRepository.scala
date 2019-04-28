@@ -37,13 +37,13 @@
 
 package com.normation.cfclerk.services
 
-import com.normation.cfclerk.domain._
 import java.io.InputStream
-import net.liftweb.common._
-import scala.collection.SortedSet
+
+import com.normation.cfclerk.domain._
+import com.normation.errors._
 import com.normation.inventory.domain.AgentType
 
-import com.normation.errors._
+import scala.collection.SortedSet
 
 class DummyTechniqueRepository(policies: Seq[Technique] = Seq()) extends TechniqueRepository {
 

@@ -1,19 +1,13 @@
 package com.normation.rudder.repository.jdbc
 
 
+import com.normation.errors._
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.db.DB
+import com.normation.rudder.db.Doobie
 import com.normation.rudder.repository.GitCommitId
 import com.normation.rudder.repository.GitModificationRepository
-
-import net.liftweb.common._
-import com.normation.rudder.db.Doobie
-
 import doobie.implicits._
-
-import com.normation.errors._
-import scalaz.zio._
-import scalaz.zio.syntax._
 
 class GitModificationRepositoryImpl(
     db : Doobie

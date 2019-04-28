@@ -37,13 +37,12 @@
 
 package com.normation.cfclerk.domain
 
-import scala.xml._
-import net.liftweb.common._
+import cats.implicits._
 import com.normation.utils.Control.bestEffort
 import com.normation.utils.HashcodeCaching
-import cats._
-import cats.data._
-import cats.implicits._
+import net.liftweb.common._
+
+import scala.xml._
 
 /* A SectionChild is either a Variable or a Section*/
 sealed trait SectionChild

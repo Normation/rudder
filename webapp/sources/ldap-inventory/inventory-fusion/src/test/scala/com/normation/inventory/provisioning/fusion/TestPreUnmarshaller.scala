@@ -36,22 +36,20 @@
 
 package com.normation.inventory.provisioning.fusion
 
+import java.io.InputStream
+
+import com.normation.errors.IOResult
+import com.normation.errors.RudderError
+import com.normation.errors.SystemError
+import com.normation.inventory.services.provisioning.PreUnmarshall
+import com.normation.zio._
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-
-import scala.xml.XML
-import com.normation.inventory.services.provisioning.PreUnmarshall
-import java.io.InputStream
-
-import com.normation.errors.RudderError
-import com.normation.errors.IOResult
-import com.normation.errors.SystemError
-import com.normation.zio.ZioRuntime
+import scalaz.zio._
 
 import scala.xml.NodeSeq
-import scalaz.zio._
-import scalaz.zio.syntax._
+import scala.xml.XML
 
 /**
  * A simple test class to check that the demo data file is up to date
@@ -69,17 +67,17 @@ class TestPreUnmarshaller extends Specification {
     }
 
     def check(checkRelativePath: String): Either[RudderError, NodeSeq] = {
-      ZioRuntime.unsafeRun((ZIO.bracket {
-        Task.effect {
+      (IO.bracket {
+        IOResult.effect {
           val url = this.getClass.getClassLoader.getResource(checkRelativePath)
           if(null == url) throw new NullPointerException(s"Resource with relative path '${checkRelativePath}' is null (missing resource? Spelling? Permissions?)")
           url.openStream()
-        }.mapError(e => SystemError("error in text", e))
+        }
       } { is =>
-       Task.effect(is.close).run
+       IOResult.effectRunUnit(is.close)
       } {
         is => fromXml("check", is).flatMap(pre.apply)
-      }).either)
+      }).either.runNow
     }
   }
   val post = new PreUnmarshallCheckConsistency

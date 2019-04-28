@@ -37,10 +37,12 @@
 
 package com.normation.rudder.rest.lift
 
+import com.normation.box._
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.errors._
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.rest.ApiPath
@@ -50,25 +52,20 @@ import com.normation.rudder.rest.RestDataSerializer
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils.response
 import com.normation.rudder.rest.{TechniqueApi => API}
-import com.normation.utils.Control.boxSequence
-import com.normation.utils.Control.sequence
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
-import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
+import net.liftweb.json.JsonAST.JArray
 import net.liftweb.json.JsonAST.JValue
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 import scala.collection.SortedMap
 import scala.util.Success
 import scala.util.Try
 import scala.util.{Failure => TryFailure}
-import com.normation.box._
-import com.normation.errors._
-import net.liftweb.json.JsonAST.JArray
-import scalaz.zio._
-import scalaz.zio.syntax._
 
 class TechniqueApi (
     restExtractorService: RestExtractorService

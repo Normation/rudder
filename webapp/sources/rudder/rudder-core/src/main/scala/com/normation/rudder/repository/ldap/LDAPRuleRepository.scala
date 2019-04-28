@@ -39,24 +39,22 @@ package com.normation.rudder.repository
 package ldap
 
 
-import cats.implicits._
 import com.normation.NamedZioLogger
+import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.ldap.core.LDAPConstants.A_NAME
 import com.normation.ldap.sdk.BuildFilter._
 import com.normation.ldap.sdk.LdapResult._
 import com.normation.ldap.sdk._
+import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.archives.RuleArchiveId
 import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.RudderLDAPConstants
 import com.normation.rudder.services.user.PersonIdentService
 import com.unboundid.ldif.LDIFChangeRecord
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import com.normation.errors._
 import scalaz.zio._
 import scalaz.zio.syntax._
 

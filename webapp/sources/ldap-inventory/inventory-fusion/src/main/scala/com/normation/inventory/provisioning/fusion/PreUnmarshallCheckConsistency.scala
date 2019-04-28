@@ -40,7 +40,7 @@ package fusion
 
 import com.normation.errors.RudderError
 import com.normation.inventory.domain.InventoryError
-import com.normation.inventory.domain.InventoryResult._
+import com.normation.errors._
 
 import scala.xml.NodeSeq
 import com.normation.inventory.services.provisioning._
@@ -66,7 +66,7 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall {
    *
    * If any of these variable are not set, just abort
    */
-  override def apply(report:NodeSeq) : InventoryResult[NodeSeq] = {
+  override def apply(report:NodeSeq) : IOResult[NodeSeq] = {
     val checks =
       checkId _ ::
       checkHostnameTags _ ::
@@ -85,7 +85,7 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall {
 
 
 
-  private[this] def checkNodeSeq(xml:NodeSeq, tag:String, directChildren:Boolean = false, optChild:Option[String] = None) : InventoryResult[String] = {
+  private[this] def checkNodeSeq(xml:NodeSeq, tag:String, directChildren:Boolean = false, optChild:Option[String] = None) : IOResult[String] = {
     val nodes = (
       if(directChildren) (xml \ tag)
       else (xml \\ tag)
@@ -105,15 +105,15 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall {
     }
   }
 
-  private[this] def checkInRudderTag(xml:NodeSeq,tag : String) : InventoryResult[String] = {
+  private[this] def checkInRudderTag(xml:NodeSeq,tag : String) : IOResult[String] = {
     checkNodeSeq(xml,"RUDDER",false,Some(tag))
   }
 
-  private[this] def checkInAgentTag(xml:NodeSeq,tag : String) : InventoryResult[String] = {
+  private[this] def checkInAgentTag(xml:NodeSeq,tag : String) : IOResult[String] = {
     checkNodeSeq(xml,"AGENT",false,Some(tag))
   }
 
-  private[this] def checkId(report:NodeSeq) : InventoryResult[NodeSeq] = {
+  private[this] def checkId(report:NodeSeq) : IOResult[NodeSeq] = {
     val tag = "UUID"
     for {
       tagHere <- {
@@ -127,7 +127,7 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall {
     }
   }
 
-  private[this] def checkHostnameTags(report:NodeSeq) : InventoryResult[NodeSeq] = {
+  private[this] def checkHostnameTags(report:NodeSeq) : IOResult[NodeSeq] = {
 
     // Hostname can be found in two tags:
     // Either RUDDER∕HOSTNAME or OPERATINGSYSTEM/FQDN
@@ -135,7 +135,7 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall {
       InventoryError.Inconsistency(s"Missing hostname tags (RUDDER∕HOSTNAME and OPERATINGSYSTEM/FQDN) in report. Having at least one of Those tags is mandatory."))
   }
 
-  private[this] def checkRoot(report:NodeSeq) : InventoryResult[NodeSeq] = {
+  private[this] def checkRoot(report:NodeSeq) : IOResult[NodeSeq] = {
     val agentTag = "OWNER"
     val tag = "USER"
     for {
@@ -148,7 +148,7 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall {
     }
   }
 
-  private[this] def checkPolicyServer(report:NodeSeq) : InventoryResult[NodeSeq] = {
+  private[this] def checkPolicyServer(report:NodeSeq) : IOResult[NodeSeq] = {
     val agentTag = "POLICY_SERVER_UUID"
     val tag = "POLICY_SERVER"
     for {
@@ -161,7 +161,7 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall {
     }
   }
 
-  private[this] def checkOS(report:NodeSeq) : InventoryResult[NodeSeq] = {
+  private[this] def checkOS(report:NodeSeq) : IOResult[NodeSeq] = {
     //VERSION is not mandatory on windows, it can't be added in that list
     val tags = "FULL_NAME" :: "KERNEL_NAME" :: "NAME" :: Nil
     val error = InventoryError.Inconsistency(s"Missing tags ${tags.map(t => s"OPERATINGSYSTEM/${t}").mkString(", ")}. At least one of them is mandatory")
@@ -181,7 +181,7 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall {
    * - (on AIX and non empty HARDWARE > OSVERSION )
    * Other cases are failure (missing required info)
    */
-  private[this] def checkKernelVersion(report:NodeSeq) : InventoryResult[NodeSeq] = {
+  private[this] def checkKernelVersion(report:NodeSeq) : IOResult[NodeSeq] = {
 
     val failure = "Missing attribute OPERATINGSYSTEM>KERNEL_VERSION in report. This attribute is mandatory".inconsistency
     val aixFailure = "Missing attribute HARDWARE>OSVERSION in report. This attribute is mandatory".inconsistency
@@ -216,7 +216,7 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall {
   }
 
 
-  private[this] def checkAgentType(report:NodeSeq) : InventoryResult[NodeSeq] = {
+  private[this] def checkAgentType(report:NodeSeq) : IOResult[NodeSeq] = {
     val agentTag = "AGENT_NAME"
     val tag = "AGENTNAME"
     for {
@@ -231,7 +231,7 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall {
   }
 
   // since Rudder 4.3, a security token is mandatory
-  private[this] def checkSecurityToken(report:NodeSeq) : InventoryResult[NodeSeq] = {
+  private[this] def checkSecurityToken(report:NodeSeq) : IOResult[NodeSeq] = {
     for {
       tagHere <- checkInAgentTag(report, "CFENGINE_KEY").orElse(checkInAgentTag(report, "AGENT_CERT")).chainError(
                              "Missing security token attribute (RUDDER/AGENT/CFENGINE_KEY or RUDDER/AGENT/AGENT_CERT) " +
@@ -248,7 +248,7 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall {
    *   having a # breaks javascript)
    */
   private[this] val uuidAuthCharRegex = """([a-zA-Z0-9\-]{1,50})""".r
-  private[this] def checkNodeUUID(uuid: String) : InventoryResult[String] = {
+  private[this] def checkNodeUUID(uuid: String) : IOResult[String] = {
     uuid match {
       case uuidAuthCharRegex(x) => uuid.succeed
       case _ => s"""The UUID '${uuid}' is not valid. It should be lesser than 50 chars and contains chars among the set [a-zA-Z0-9\-])""".inconsistency

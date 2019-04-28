@@ -107,13 +107,13 @@ class DynGroupUpdaterServiceImpl(
 
   override def updateAll(modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Seq[DynGroupDiff]] = {
     for {
-      allGroups <- roNodeGroupRepository.getAll()
+      allGroups <- roNodeGroupRepository.getAll().toBox
       dynGroups = allGroups.filter(_.isDynamic)
       result    <- com.normation.utils.Control.sequence(dynGroups) {
         group =>
           for {
             newGroup   <- computeDynGroup(group)
-            savedGroup <- woNodeGroupRepository.updateDynGroupNodes(newGroup, modId, actor, reason) ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.value})"
+            savedGroup <- woNodeGroupRepository.updateDynGroupNodes(newGroup, modId, actor, reason).toBox ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.value})"
           } yield {
             DynGroupDiff(newGroup, group)
           }
@@ -126,9 +126,9 @@ class DynGroupUpdaterServiceImpl(
   override def update(dynGroupId:NodeGroupId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DynGroupDiff] = {
 
     for {
-      (group,_)  <- roNodeGroupRepository.getNodeGroup(dynGroupId)
+      (group,_)  <- roNodeGroupRepository.getNodeGroup(dynGroupId).toBox
       newGroup   <- computeDynGroup(group)
-      savedGroup <- woNodeGroupRepository.updateDynGroupNodes(newGroup, modId, actor, reason) ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.value})"
+      savedGroup <- woNodeGroupRepository.updateDynGroupNodes(newGroup, modId, actor, reason).toBox ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.value})"
     } yield {
       DynGroupDiff(newGroup, group)
     }
