@@ -169,10 +169,11 @@
 
     <div id="ruleDirectives" ng-app="ruleDirectives">
       <div id="DirectiveCtrl" ng-controller="DirectiveCtrl">
-
-        <div class="section-title">
-          Directives
-          <lift:authz role="directive_write"><a class="title-link" href= "/secure/configurationManager/directiveManagement">(Create a new Directive)</a></lift:authz>
+        <div id="directives-section-title" class="unfoldedSection">
+          <div class="section-title" onclick="$('#directives-section').toggle(400); $('#directives-section-title').toggleClass('foldedSection').toggleClass('unfoldedSection');">
+            Directives <span class="badge include">{{getListLength(directives)}}</span>
+            <lift:authz role="directive_write"><a class="title-link" href= "/secure/configurationManager/directiveManagement">(Create a new Directive)</a></lift:authz>
+          </div>
         </div>
 
         <div id="selectDirectives" class="modal fade">
@@ -217,7 +218,7 @@
           </div>
         </div>
 
-        <div class="row">
+        <div class="row" id="directives-section">
           <div class="col-xs-12 col-lg-6">
             <h4 class="list-title">
               Apply these Directives
@@ -274,9 +275,11 @@
   <div id="groupManagement" ng-app="groupManagement">
     <div id="GroupCtrl" ng-controller="GroupCtrl">
 
-      <div class="section-title">
-        Groups
+      <div id="groups-section-title" class="unfoldedSection">
+        <div class="section-title" onclick="$('#groups-section').toggle(400); $('#groups-section-title').toggleClass('foldedSection').toggleClass('unfoldedSection');">
+        Groups <span class="badge include">{{getListLength(target.include.or)}}</span><span class="badge exclude">{{getListLength(target.exclude.or)}}</span>
         <lift:authz role="group_write"><a class="title-link" href= "/secure/nodeManager/groups">(Create a new Group)</a></lift:authz>
+        </div>
       </div>
 
       <div id="selectGroups" class="modal fade">
@@ -321,7 +324,7 @@
         </div>
       </div>
 
-      <div class="row">
+      <div class="row" id="groups-section">
         <div class="col-xs-12 col-lg-6">
           <h4 class="list-title">
             Apply to Nodes in any of these Groups

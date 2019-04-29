@@ -556,7 +556,10 @@ table .innerDetails li{
   padding: 5px 0 5px 0px;
   color: #333;
 }
-
+.foldedSection .section-title,
+.unfoldedSection .section-title {
+  cursor: pointer;
+}
 .portlet-header .ui-icon {
    float: right;
    cursor: pointer;

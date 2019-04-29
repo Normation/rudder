@@ -151,6 +151,10 @@ groupManagement.controller('GroupCtrl', ['$scope', function($scope) {
       return title + desc;
     }
 
+    $scope.getListLength = function(list){
+      return Object.keys(list).length;
+    };
+
   } ] ) ;
 
 // Add directive to create popup from angular, the directive should shared to future angular component
