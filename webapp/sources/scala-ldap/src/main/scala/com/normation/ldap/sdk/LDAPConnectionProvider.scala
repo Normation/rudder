@@ -24,7 +24,7 @@ import com.normation.ldap.ldif.{DefaultLDIFFileLogger, LDIFFileLogger}
 import com.unboundid.ldap.sdk.{LDAPConnectionOptions, LDAPConnectionPool}
 import scalaz.zio._
 import scalaz.zio.syntax._
-import com.normation.ldap.sdk.LdapResult._
+import com.normation.ldap.sdk.LDAPIOResult._
 import scalaz.zio.blocking.Blocking
 import com.normation.errors._
 
@@ -51,7 +51,7 @@ import com.normation.errors._
 // a class to have an error coerced to LdapError
 final class InternalConnection[LDAP <: RoLDAPConnection](provider: LDAPConnectionProvider[LDAP]) {
 
- def flatMap[A](f: LDAP => LdapResult[A]): LdapResult[A] = {
+ def flatMap[A](f: LDAP => LDAPIOResult[A]): LDAPIOResult[A] = {
     provider.withConLdap[A]( con => f(con))
   }
 }
@@ -75,7 +75,7 @@ trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] {
   /**
    * map on connection provider
    */
-  def map[A](f: LDAP => A) : LdapResult[A] = {
+  def map[A](f: LDAP => A) : LDAPIOResult[A] = {
     withConLdap[A] ( con => f(con).succeed )
   }
 
@@ -118,20 +118,20 @@ trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] {
     IO.bracket(
       IO.effect(getInternalConnection).catchAll( ex =>
         LDAPConnectionLogger.error("Can't get a new LDAP connection", ex) *>
-        IO.fail(LdapResultRudderError.BackendException("Can't get a new LDAP connection", ex))
-      ):LdapResult[LDAP]
+        IO.fail(LDAPRudderError.BackendException("Can't get a new LDAP connection", ex))
+      ):LDAPIOResult[LDAP]
     )(con =>
         IO.effect(releaseInternalConnection(con)).catchAll(ex =>
           LDAPConnectionLogger.error("Can't release LDAP connection", ex)
         )
     )(f)
   }
-  protected[sdk] def withConLdap[A](f: LDAP => LdapResult[A]) : LdapResult[A] = {
+  protected[sdk] def withConLdap[A](f: LDAP => LDAPIOResult[A]) : LDAPIOResult[A] = {
     IO.bracket(
       IO.effect(getInternalConnection).catchAll( ex =>
         LDAPConnectionLogger.error("Can't get a new LDAP connection", ex) *>
-        IO.fail(LdapResultRudderError.BackendException("Can't get a new LDAP connection", ex))
-      ):LdapResult[LDAP]
+        IO.fail(LDAPRudderError.BackendException("Can't get a new LDAP connection", ex))
+      ):LDAPIOResult[LDAP]
     )(con =>
         IO.effect(releaseInternalConnection(con)).catchAll(ex =>
           LDAPConnectionLogger.error("Can't release LDAP connection", ex)

@@ -60,7 +60,7 @@ import com.normation.rudder.domain.queries.And
 import com.normation.rudder.domain.queries.CriterionComposition
 import com.normation.rudder.domain.queries.NodeInfoMatcher
 import com.normation.rudder.domain.queries.Or
-import com.normation.ldap.sdk.LdapResult._
+import com.normation.ldap.sdk.LDAPIOResult._
 import scalaz.zio._
 import scalaz.zio.syntax._
 import com.normation.errors._
@@ -245,7 +245,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
    *
    * attributes is the list of attributes needed in returned entries
    */
-  def getNodeInfoEntries(con: RoLDAPConnection, attributes: Seq[String], status: InventoryStatus): LdapResult[Seq[LDAPEntry]]
+  def getNodeInfoEntries(con: RoLDAPConnection, attributes: Seq[String], status: InventoryStatus): LDAPIOResult[Seq[LDAPEntry]]
 
   /*
    * Our cache
@@ -559,7 +559,7 @@ class NaiveNodeInfoServiceCachedImpl(
    * - ou=Nodes,
    * - ou=[Node, Machine], ou=Accepted Inventories, etc
    */
-  override def getNodeInfoEntries(con: RoLDAPConnection, searchAttributes: Seq[String], status: InventoryStatus ): LdapResult[Seq[LDAPEntry]] = {
+  override def getNodeInfoEntries(con: RoLDAPConnection, searchAttributes: Seq[String], status: InventoryStatus ): LDAPIOResult[Seq[LDAPEntry]] = {
     for {
       nodeInvs    <- con.search(inventoryDit.NODES.dn, One, BuildFilter.ALL, searchAttributes:_*)
       machineInvs <- con.search(inventoryDit.MACHINES.dn, One, BuildFilter.ALL, searchAttributes:_*)
@@ -632,7 +632,7 @@ class NodeInfoServiceCachedImpl(
    *   back ~10ms on a dev machine.
    */
   override def checkUpToDate(lastKnowModification: DateTime, lastModEntryCSN: Seq[String]): IOResult[Boolean] = {
-    val searchRequest = new SearchRequest(nodeDit.BASE_DN.toString, Sub, DereferencePolicy.NEVER, 1, 0, false
+    val searchRequest = new SearchRequest(nodeDit.BASE_DN.toString, Sub.toUnboundid, DereferencePolicy.NEVER, 1, 0, false
       , AND(
             OR(
                 // ou=Removed Inventories,ou=Inventories,cn=rudder-configuration
@@ -678,7 +678,7 @@ class NodeInfoServiceCachedImpl(
    * - ou=Nodes,
    * - ou=[Node, Machine], ou=Accepted Inventories, etc
    */
-  override def getNodeInfoEntries(con: RoLDAPConnection, searchAttributes: Seq[String], status: InventoryStatus): LdapResult[Seq[LDAPEntry]] = {
+  override def getNodeInfoEntries(con: RoLDAPConnection, searchAttributes: Seq[String], status: InventoryStatus): LDAPIOResult[Seq[LDAPEntry]] = {
     val dit = status match {
       case AcceptedInventory => inventoryDit
       case PendingInventory  => pendingDit

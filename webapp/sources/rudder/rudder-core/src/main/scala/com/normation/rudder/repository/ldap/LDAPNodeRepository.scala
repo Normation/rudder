@@ -40,7 +40,7 @@ import com.normation.NamedZioLogger
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
-import com.normation.ldap.sdk.LdapResult._
+import com.normation.ldap.sdk.LDAPIOResult._
 import com.normation.ldap.sdk._
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.NodeDit

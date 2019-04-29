@@ -43,7 +43,7 @@ import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.ldap.sdk.BuildFilter._
-import com.normation.ldap.sdk.LdapResult._
+import com.normation.ldap.sdk.LDAPIOResult._
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.rudder.domain.RudderLDAPConstants._

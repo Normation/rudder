@@ -55,10 +55,10 @@ import com.normation.ldap.sdk.BuildFilter.NOT
 import com.normation.ldap.sdk.BuildFilter.OR
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPEntry
-import com.normation.ldap.sdk.LdapResult._
+import com.normation.ldap.sdk.LDAPIOResult._
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.ldap.sdk.RwLDAPConnection
-import com.normation.ldap.sdk.boolean2LDAP
+import com.normation.ldap.sdk.BooleanToLdapString
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.A_GROUP_CATEGORY_UUID
 import com.normation.rudder.domain.RudderLDAPConstants.A_IS_ENABLED

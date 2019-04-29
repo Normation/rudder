@@ -52,7 +52,7 @@ import com.normation.inventory.ldap.core.LDAPConstants.A_NAME
 import com.normation.inventory.ldap.core.LDAPConstants.A_OC
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.ldap.sdk.BuildFilter._
-import com.normation.ldap.sdk.LdapResult._
+import com.normation.ldap.sdk.LDAPIOResult._
 import com.normation.ldap.sdk._
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants._
@@ -91,12 +91,12 @@ class RoLDAPDirectiveRepository(
   /**
    * Retrieve the directive entry for the given ID, with the given connection
    */
-  def getDirectiveEntry(con:RoLDAPConnection, id:DirectiveId, attributes:String*) : LdapResult[Option[LDAPEntry]] = {
+  def getDirectiveEntry(con:RoLDAPConnection, id:DirectiveId, attributes:String*) : LDAPIOResult[Option[LDAPEntry]] = {
     con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn,  EQ(A_DIRECTIVE_UUID, id.value), attributes:_*).flatMap(piEntries =>
       piEntries.size match {
         case 0 => None.succeed
         case 1 => Some(piEntries(0)).succeed
-        case _ => LdapResultRudderError.Consistancy(s"Error, the directory contains multiple occurrence of directive with id '${id.value}'. DN: ${piEntries.map( _.dn).mkString("; ")}").fail
+        case _ => LDAPRudderError.Consistancy(s"Error, the directory contains multiple occurrence of directive with id '${id.value}'. DN: ${piEntries.map( _.dn).mkString("; ")}").fail
       }
     )
   }
@@ -426,13 +426,13 @@ class RoLDAPDirectiveRepository(
       id:ID,
       filter: ID => Filter,
       attributes:String*
-  ) : LdapResult[Option[LDAPEntry]] = {
+  ) : LDAPIOResult[Option[LDAPEntry]] = {
     for {
       uptEntries <- con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter(id), attributes:_*)
       entry      <- uptEntries.size match {
                       case 0 => None.succeed
                       case 1 => Some(uptEntries(0)).succeed
-                      case _ => LdapResultRudderError.Consistancy(s"Error, the directory contains multiple occurrence of active " +
+                      case _ => LDAPRudderError.Consistancy(s"Error, the directory contains multiple occurrence of active " +
                                                             s"technique with ID '${id}'. DNs involved: ${uptEntries.map( _.dn).mkString("; ")}").fail
                     }
     } yield {

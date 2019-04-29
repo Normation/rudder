@@ -44,6 +44,7 @@ import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.ldap.sdk.BuildFilter.EQ
 import com.normation.ldap.sdk.BuildFilter.OR
 import com.normation.ldap.sdk._
+import com.unboundid.ldap.sdk.DN
 import scalaz.zio._
 import scalaz.zio.syntax._
 
@@ -90,7 +91,7 @@ class ReadOnlySoftwareDAOImpl(
                           id <- e(A_NODE_UUID)
                           vs = for {
                                  dn <- e.valuesFor(A_SOFTWARE_DN)
-                                 s  <- inventoryDitService.getDit(AcceptedInventory).SOFTWARE.SOFT.idFromDN(dn).toOption
+                                 s  <- inventoryDitService.getDit(AcceptedInventory).SOFTWARE.SOFT.idFromDN(new DN(dn)).toOption
                                } yield {
                                  s
                                }

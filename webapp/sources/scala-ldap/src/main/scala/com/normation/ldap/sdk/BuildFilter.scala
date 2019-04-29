@@ -21,7 +21,7 @@
 package com.normation.ldap.sdk
 
 import com.unboundid.ldap.sdk.Filter
-import Filter._
+import com.unboundid.ldap.sdk.Filter._
 
 object BuildFilter {
 
@@ -36,7 +36,7 @@ object BuildFilter {
    * Creates a new AND search filter with the provided components.
    *
    * @param  andComponents  The set of filter components to include in the AND
-   *                        filter.  It must not be {@code null}.
+   *                        filter.  It must not be {null}.
    *
    * @return  The created AND search filter.
    */
@@ -46,7 +46,7 @@ object BuildFilter {
    * Creates a new OR search filter with the provided components.
    *
    * @param  orComponents  The set of filter components to include in the OR
-   *                       filter.  It must not be {@code null}.
+   *                       filter.  It must not be {null}.
    *
    * @return  The created OR search filter.
    */
@@ -58,7 +58,7 @@ object BuildFilter {
    * Creates a new NOT search filter with the provided component.
    *
    * @param  notComponent  The filter component to include in this NOT filter.
-   *                       It must not be {@code null}.
+   *                       It must not be {null}.
    *
    * @return  The created NOT search filter.
    */
@@ -68,9 +68,9 @@ object BuildFilter {
    * Creates a new equality search filter with the provided information.
    *
    * @param  attributeName   The attribute name for this equality filter.  It
-   *                         must not be {@code null}.
+   *                         must not be {null}.
    * @param  assertionValue  The assertion value for this equality filter.  It
-   *                         must not be {@code null}.
+   *                         must not be {null}.
    *
    * @return  The created equality search filter.
    */
@@ -80,9 +80,9 @@ object BuildFilter {
    * Creates a new equality search filter with the provided information.
    *
    * @param  attributeName   The attribute name for this equality filter.  It
-   *                         must not be {@code null}.
+   *                         must not be {null}.
    * @param  assertionValue  The assertion value for this equality filter.  It
-   *                         must not be {@code null}.
+   *                         must not be {null}.
    *
    * @return  The created equality search filter.
    */
@@ -96,10 +96,10 @@ object BuildFilter {
   /**
    * Creates a new substring search filter with the provided information.  At
    * least one of the subInitial, subAny, and subFinal components must not be
-   * {@code null}.
+   * {null}.
    *
    * @param  attributeName  The attribute name for this substring filter.  It
-   *                        must not be {@code null}.
+   *                        must not be {null}.
    * @param  subInitial     The subInitial component for this substring filter.
    * @param  subAny         The set of subAny components for this substring
    *                        filter.
@@ -114,10 +114,10 @@ object BuildFilter {
   /**
    * Creates a new substring search filter with the provided information.  At
    * least one of the subInitial, subAny, and subFinal components must not be
-   * {@code null}.
+   * {null}.
    *
    * @param  attributeName  The attribute name for this substring filter.  It
-   *                        must not be {@code null}.
+   *                        must not be {null}.
    * @param  subInitial     The subInitial component for this substring filter.
    * @param  subAny         The set of subAny components for this substring
    *                        filter.
@@ -133,9 +133,9 @@ object BuildFilter {
    * Creates a new greater-or-equal search filter with the provided information.
    *
    * @param  attributeName   The attribute name for this greater-or-equal
-   *                         filter.  It must not be {@code null}.
+   *                         filter.  It must not be {null}.
    * @param  assertionValue  The assertion value for this greater-or-equal
-   *                         filter.  It must not be {@code null}.
+   *                         filter.  It must not be {null}.
    *
    * @return  The created greater-or-equal search filter.
    */
@@ -145,9 +145,9 @@ object BuildFilter {
    * Creates a new greater-or-equal search filter with the provided information.
    *
    * @param  attributeName   The attribute name for this greater-or-equal
-   *                         filter.  It must not be {@code null}.
+   *                         filter.  It must not be {null}.
    * @param  assertionValue  The assertion value for this greater-or-equal
-   *                         filter.  It must not be {@code null}.
+   *                         filter.  It must not be {null}.
    *
    * @return  The created greater-or-equal search filter.
    */
@@ -157,9 +157,9 @@ object BuildFilter {
    * Creates a new less-or-equal search filter with the provided information.
    *
    * @param  attributeName   The attribute name for this less-or-equal
-   *                         filter.  It must not be {@code null}.
+   *                         filter.  It must not be {null}.
    * @param  assertionValue  The assertion value for this less-or-equal
-   *                         filter.  It must not be {@code null}.
+   *                         filter.  It must not be {null}.
    *
    * @return  The created less-or-equal search filter.
    */
@@ -169,9 +169,9 @@ object BuildFilter {
    * Creates a new less-or-equal search filter with the provided information.
    *
    * @param  attributeName   The attribute name for this less-or-equal
-   *                         filter.  It must not be {@code null}.
+   *                         filter.  It must not be {null}.
    * @param  assertionValue  The assertion value for this less-or-equal
-   *                         filter.  It must not be {@code null}.
+   *                         filter.  It must not be {null}.
    *
    * @return  The created less-or-equal search filter.
    */
@@ -181,7 +181,7 @@ object BuildFilter {
    * Creates a new presence search filter with the provided information.
    *
    * @param  attributeName   The attribute name for this presence filter.  It
-   *                         must not be {@code null}.
+   *                         must not be {null}.
    *
    * @return  The created presence search filter.
    */
@@ -193,9 +193,9 @@ object BuildFilter {
    * information.
    *
    * @param  attributeName   The attribute name for this approximate match
-   *                         filter.  It must not be {@code null}.
+   *                         filter.  It must not be {null}.
    * @param  assertionValue  The assertion value for this approximate match
-   *                         filter.  It must not be {@code null}.
+   *                         filter.  It must not be {null}.
    *
    * @return  The created approximate match search filter.
    */
@@ -206,9 +206,9 @@ object BuildFilter {
    * information.
    *
    * @param  attributeName   The attribute name for this approximate match
-   *                         filter.  It must not be {@code null}.
+   *                         filter.  It must not be {null}.
    * @param  assertionValue  The assertion value for this approximate match
-   *                         filter.  It must not be {@code null}.
+   *                         filter.  It must not be {null}.
    *
    * @return  The created approximate match search filter.
    */
@@ -226,7 +226,7 @@ object BuildFilter {
    * @param  dnAttributes    Indicates whether the match should be performed
    *                         against attributes in the target entry's DN.
    * @param  assertionValue  The assertion value for this extensible match
-   *                         filter.  It must not be {@code null}.
+   *                         filter.  It must not be {null}.
    *
    * @return  The created extensible match search filter.
    */
@@ -237,7 +237,7 @@ object BuildFilter {
    * Creates a new search filter from the provided string representation.
    *
    * @param  filterString  The string representation of the filter to create.
-   *                       It must not be {@code null}.
+   *                       It must not be {null}.
    *
    * @return  The search filter decoded from the provided filter string.
    *

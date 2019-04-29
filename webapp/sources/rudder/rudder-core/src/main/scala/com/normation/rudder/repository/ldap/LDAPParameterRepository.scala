@@ -41,7 +41,7 @@ import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.ldap.sdk.BuildFilter._
-import com.normation.ldap.sdk.LdapResult._
+import com.normation.ldap.sdk.LDAPIOResult._
 import com.normation.ldap.sdk._
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants._
@@ -82,7 +82,7 @@ class RoLDAPParameterRepository(
     })
   }
 
-  private def getGP(search: RoLDAPConnection => LdapResult[Seq[LDAPEntry]]): IOResult[Seq[GlobalParameter]] = {
+  private def getGP(search: RoLDAPConnection => LDAPIOResult[Seq[LDAPEntry]]): IOResult[Seq[GlobalParameter]] = {
     userLibMutex.readLock(for {
       con     <- ldap
       entries <- search(con)
@@ -223,12 +223,12 @@ class WoLDAPParameterRepository(
    */
   def swapParameters(newParameters:Seq[GlobalParameter]) : IOResult[ParameterArchiveId] = {
 
-    def saveParam(con:RwLDAPConnection, parameter:GlobalParameter) : LdapResult[LDIFChangeRecord] = {
+    def saveParam(con:RwLDAPConnection, parameter:GlobalParameter) : LDAPIOResult[LDIFChangeRecord] = {
       val entry = mapper.parameter2Entry(parameter)
       con.save(entry)
     }
     //restore the archive in case of error
-    def restore(con:RwLDAPConnection, previousParams:Seq[GlobalParameter]): LdapResult[Seq[LDIFChangeRecord]] = {
+    def restore(con:RwLDAPConnection, previousParams:Seq[GlobalParameter]): LDAPIOResult[Seq[LDIFChangeRecord]] = {
       for {
         deleteParams  <- con.delete(rudderDit.PARAMETERS.dn)
         savedBack     <- ZIO.foreach(previousParams) { params =>

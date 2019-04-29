@@ -46,7 +46,7 @@ import com.normation.inventory.ldap.core.LDAPConstants.A_CONTAINER_DN
 import com.normation.inventory.ldap.core.LDAPConstants.A_NODE_UUID
 import com.normation.inventory.services.core._
 import com.normation.ldap.sdk.BuildFilter.EQ
-import com.normation.ldap.sdk.LdapResult._
+import com.normation.ldap.sdk.LDAPIOResult._
 import com.normation.ldap.sdk._
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Modification
@@ -87,7 +87,7 @@ class FullInventoryRepositoryImpl(
    * index 2: Removed
    *
    */
-  private[this] def getExistingMachineDN(con: RwLDAPConnection, id: MachineUuid): LdapResult[Seq[(Boolean, DN)]] = {
+  private[this] def getExistingMachineDN(con: RwLDAPConnection, id: MachineUuid): LDAPIOResult[Seq[(Boolean, DN)]] = {
     val status = Seq(AcceptedInventory, PendingInventory, RemovedInventory)
     ZIO.foreach(status) { x =>
       val d = dn(id, x)
@@ -98,7 +98,7 @@ class FullInventoryRepositoryImpl(
   /*
    * find the first dn matching ID, starting with accepted, then pending, then deleted
    */
-  private[this] def findDnForId[ID](con: RwLDAPConnection, id:ID, fdn:(ID, InventoryStatus) => DN): LdapResult[Option[(DN, InventoryStatus)]] = {
+  private[this] def findDnForId[ID](con: RwLDAPConnection, id:ID, fdn:(ID, InventoryStatus) => DN): LDAPIOResult[Option[(DN, InventoryStatus)]] = {
     IO.foldLeft(Seq(AcceptedInventory, PendingInventory, RemovedInventory))(Option.empty[(DN, InventoryStatus)]) { (current, inventory) =>
       current match {
         case None     =>
@@ -145,7 +145,7 @@ class FullInventoryRepositoryImpl(
    * Return node entries with only the container attribute, in a map with
    * the node status for key.
    */
-  def getNodesForMachine(con: RwLDAPConnection, id:MachineUuid) : LdapResult[Map[InventoryStatus, Set[LDAPEntry]]] = {
+  def getNodesForMachine(con: RwLDAPConnection, id:MachineUuid) : LDAPIOResult[Map[InventoryStatus, Set[LDAPEntry]]] = {
 
     val status = Seq(PendingInventory, AcceptedInventory, RemovedInventory)
     val orFilter = BuildFilter.OR(status.map(x => EQ(A_CONTAINER_DN,dn(id, x).toString)):_*)
@@ -168,13 +168,13 @@ class FullInventoryRepositoryImpl(
    * Update the list of node, setting the container value to the one given.
    * Delete the attribute if None.
    */
-  private[this] def updateNodes(con: RwLDAPConnection, nodes: Map[InventoryStatus, Set[LDAPEntry]], newMachineId:Option[(MachineUuid, InventoryStatus)] ): LdapResult[List[LDIFChangeRecord]] = {
+  private[this] def updateNodes(con: RwLDAPConnection, nodes: Map[InventoryStatus, Set[LDAPEntry]], newMachineId:Option[(MachineUuid, InventoryStatus)] ): LDAPIOResult[List[LDIFChangeRecord]] = {
     val mod = newMachineId match {
       case None => new Modification(ModificationType.DELETE, A_CONTAINER_DN)
       case Some((id, status)) => new Modification(ModificationType.REPLACE, A_CONTAINER_DN, dn(id, status).toString)
     }
 
-    val res: ZIO[Any, NonEmptyList[LdapResultRudderError], List[LDIFChangeRecord]] = nodes.values.flatten.map( _.dn).accumulateNEL { dn =>
+    val res: ZIO[Any, NonEmptyList[LDAPRudderError], List[LDIFChangeRecord]] = nodes.values.flatten.map( _.dn).accumulateNEL { dn =>
       con.modify(dn, mod)
     }
     res.toLdapResult
@@ -287,14 +287,14 @@ class FullInventoryRepositoryImpl(
 
       // Get into Nodes subtree
       nodeTree    <- tree.flatMap(_.children.get(dit.NODES.rdn)) match {
-                      case None => LdapResultRudderError.Consistancy(s"Could not find node inventories in ${dit.BASE_DN}").fail
+                      case None => LDAPRudderError.Consistancy(s"Could not find node inventories in ${dit.BASE_DN}").fail
                       case Some(tree) => tree.succeed
                      }
       nodes       <- ZIO.foreach(nodeTree.children.values) { tree => mapper.nodeFromTree(tree) }
 
       // Get into Machines subtree
       machineTree <- tree.flatMap(_.children.get(dit.MACHINES.rdn)) match {
-                       case None => LdapResultRudderError.Consistancy(s"Could not find machine inventories in ${dit.BASE_DN}").fail
+                       case None => LDAPRudderError.Consistancy(s"Could not find machine inventories in ${dit.BASE_DN}").fail
                        case Some(tree) => tree.succeed
                      }
       machines    <- ZIO.foreach(machineTree.children.values){ tree => mapper.machineFromTree(tree) }

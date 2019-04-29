@@ -55,6 +55,7 @@ import com.normation.inventory.ldap.provisioning.PendingNodeIfNodeWasRemoved
 import java.security.Security
 
 import com.normation.zio.ZioRuntime
+import com.unboundid.ldap.sdk.DN
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 
 import scala.concurrent.duration._
@@ -108,13 +109,13 @@ class AppConfig {
 
   //TODO: only have a root DN here !
   @Bean
-  def acceptedNodesDit = new InventoryDit(ACCEPTED_INVENTORIES_DN,SOFTWARE_INVENTORIES_DN,"Accepted Servers")
+  def acceptedNodesDit = new InventoryDit(new DN(ACCEPTED_INVENTORIES_DN), new DN(SOFTWARE_INVENTORIES_DN), "Accepted Servers")
 
   @Bean
-  def pendingNodesDit = new InventoryDit(PENDING_INVENTORIES_DN,SOFTWARE_INVENTORIES_DN,"Pending Servers")
+  def pendingNodesDit = new InventoryDit(new DN(PENDING_INVENTORIES_DN), new DN(SOFTWARE_INVENTORIES_DN), "Pending Servers")
 
   @Bean
-  def removedNodesDit = new InventoryDit(REMOVED_INVENTORIES_DN,SOFTWARE_INVENTORIES_DN,"Removed Servers")
+  def removedNodesDit = new InventoryDit(new DN(REMOVED_INVENTORIES_DN), new DN(SOFTWARE_INVENTORIES_DN), "Removed Servers")
 
   @Bean
   def inventoryDitService = new InventoryDitServiceImpl(pendingNodesDit,acceptedNodesDit, removedNodesDit)

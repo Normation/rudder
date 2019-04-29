@@ -40,11 +40,13 @@ package com.normation.rudder.repository.ldap
 import cats.implicits._
 import com.normation.NamedZioLogger
 import com.normation.cfclerk.domain._
-import com.normation.errors.{OptionToIoResult => _, _}
+import com.normation.errors.{OptionToIoResult => _}
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.inventory.ldap.core.InventoryMappingResult._
+import com.normation.errors._
+import com.normation.inventory.ldap.core.InventoryMappingRudderError.UnexpectedObject
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.inventory.ldap.core.{InventoryMappingRudderError => Err}
@@ -171,7 +173,7 @@ class LDAPEntityMapper(
     if(e.isA(OC_RUDDER_NODE)||e.isA(OC_POLICY_SERVER_NODE)) {
       //OK, translate
       for {
-        id   <- nodeDit.NODES.NODE.idFromDn(e.dn).notOptional(s"Bad DN found for a Node: ${e.dn}")
+        id   <- nodeDit.NODES.NODE.idFromDn(e.dn).toRight(Unconsistancy(s"Bad DN found for a Node: ${e.dn}"))
         date <- e.requiredAs[GeneralizedTime]( _.getAsGTime, A_OBJECT_CREATION_DATE)
         agentRunInterval = e(A_SERIALIZED_AGENT_RUN_INTERVAL).map(unserializeAgentRunInterval(_))
         heartbeatConf = e(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION).map(unserializeNodeHeartbeatConfiguration(_))
@@ -239,7 +241,7 @@ class LDAPEntityMapper(
    */
   def convertEntriesToSpecialNodeInfos(inventoryEntry: LDAPEntry, machineEntry: Option[LDAPEntry]) : IOResult[NodeInfo] = {
     for {
-      id   <- inventoryEntry(A_NODE_UUID).notOptional(s"Missing node id information in Node entry: ${inventoryEntry}").toIO
+      id   <- inventoryEntry(A_NODE_UUID).notOptional(s"Missing node id information in Node entry: ${inventoryEntry}")
       node =  Node(
                   NodeId(id)
                 , inventoryEntry(A_NAME).getOrElse("")
@@ -285,6 +287,17 @@ class LDAPEntityMapper(
                          case (Some(name), Some(offset)) => Some(NodeTimezone(name, offset))
                          case _                          => None
                        }
+      // custom properties mapped as NodeProperties
+      properties    <- ZIO.foreach(inventoryEntry.valuesFor(A_CUSTOM_PROPERTY)) { json =>
+                         import inventoryMapper.CustomPropertiesSerialization._
+                         json.toCustomProperty.foldM(
+                           err =>
+                             logPure.error(Chained(s"Error when trying to deserialize Node Custom Property, it will be ignored", err).fullMsg) *>
+                             None.succeed
+                         , cs  =>
+                             Some(NodeProperty(cs.name, cs.value, Some(NodeProperty.customPropertyProvider))).succeed
+                         )
+                       }
     } yield {
       val machineInfo = machineEntry.flatMap { e =>
         for {
@@ -299,22 +312,12 @@ class LDAPEntityMapper(
           )
         }
       }
-      // custom properties mapped as NodeProperties
-      val customProperties = inventoryEntry.valuesFor(A_CUSTOM_PROPERTY).toList.flatMap { json =>
-        import inventoryMapper.CustomPropertiesSerialization._
-        json.toCustomProperty match {
-          case Left(ex)  =>
-            logEffect.error(s"Error when trying to deserialize Node Custom Property, it will be ignored: ${ex.getMessage}", ex)
-            None
-          case Right(cs) =>
-            Some(NodeProperty(cs.name, cs.value, Some(NodeProperty.customPropertyProvider)))
-        }
-      }
+
 
       // fetch the inventory datetime of the object
       val dateTime = inventoryEntry.getAsGTime(A_INVENTORY_DATE) map(_.dateTime) getOrElse(DateTime.now)
       NodeInfo(
-          node.copy(properties = overrideProperties(node.id, node.properties, customProperties))
+          node.copy(properties = overrideProperties(node.id, node.properties, properties.flatten))
         , inventoryEntry(A_HOSTNAME).getOrElse("")
         , machineInfo
         , osDetails
@@ -447,14 +450,14 @@ class LDAPEntityMapper(
     if(e.isA(OC_TECHNIQUE_CATEGORY)) {
       //OK, translate
       for {
-        id          <- e(A_TECHNIQUE_CATEGORY_UUID).notOptional("Missing required id (attribute name %s) in entry %s".format(A_TECHNIQUE_CATEGORY_UUID, e))
-        name        <- e(A_NAME).notOptional("Missing required name (attribute name %s) in entry %s".format(A_NAME, e))
+        id          <- e.required(A_TECHNIQUE_CATEGORY_UUID)
+        name        <- e.required(A_NAME)
         description =  e(A_DESCRIPTION).getOrElse("")
         isSystem    =  e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
       } yield {
          ActiveTechniqueCategory(ActiveTechniqueCategoryId(id), name, description, Nil, Nil, isSystem)
       }
-    } else Left(Err.UnexpectedObject("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_TECHNIQUE_CATEGORY, e)))
+    } else Left(Err.UnexpectedObject(s"The given entry is not of the expected ObjectClass '${OC_TECHNIQUE_CATEGORY}'. Entry details: ${e}"))
   }
 
   /**
@@ -499,11 +502,11 @@ class LDAPEntityMapper(
     if(e.isA(OC_ACTIVE_TECHNIQUE)) {
       //OK, translate
       for {
-        id <- e(A_ACTIVE_TECHNIQUE_UUID).notOptional("Missing required id (attribute name %s) in entry %s".format(A_ACTIVE_TECHNIQUE_UUID, e))
-        refTechniqueUuid <- e(A_TECHNIQUE_UUID).map(x => TechniqueName(x)).notOptional("Missing required name (attribute name %s) in entry %s".format(A_TECHNIQUE_UUID, e))
-        isEnabled = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
-        isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
-        acceptationDatetimes = e(A_ACCEPTATION_DATETIME).map(unserializeAcceptations(_)).getOrElse(Map())
+        id                   <- e.required(A_ACTIVE_TECHNIQUE_UUID)
+        refTechniqueUuid     <- e.required(A_TECHNIQUE_UUID).map(x => TechniqueName(x))
+        isEnabled            =  e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
+        isSystem             =  e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
+        acceptationDatetimes =  e(A_ACCEPTATION_DATETIME).map(unserializeAcceptations(_)).getOrElse(Map())
       } yield {
          ActiveTechnique(ActiveTechniqueId(id), refTechniqueUuid, acceptationDatetimes, Nil, isEnabled, isSystem)
       }
@@ -531,10 +534,10 @@ class LDAPEntityMapper(
     if(e.isA(OC_GROUP_CATEGORY)) {
       //OK, translate
       for {
-        id <- e(A_GROUP_CATEGORY_UUID).notOptional("Missing required id (attribute name %s) in entry %s".format(A_GROUP_CATEGORY_UUID, e))
-        name <- e(A_NAME).notOptional("Missing required name (attribute name %s) in entry %s".format(A_NAME, e))
-        description = e(A_DESCRIPTION).getOrElse("")
-        isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
+        id          <- e.required(A_GROUP_CATEGORY_UUID)
+        name        <- e.required(A_NAME)
+        description =  e(A_DESCRIPTION).getOrElse("")
+        isSystem    =  e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
       } yield {
          NodeGroupCategory(NodeGroupCategoryId(id), name, description, Nil, Nil, isSystem)
       }
@@ -597,8 +600,8 @@ class LDAPEntityMapper(
     } else if(e.isA(OC_SPECIAL_TARGET)) {
       for {
         targetString <- e.required(A_RULE_TARGET)
-        target       <- RuleTarget.unser(targetString).notOptional("Can not unserialize target, '%s' does not match any known target format".format(targetString))
-        name         <- e(A_NAME).notOptional("Missing required name (attribute name %s) in entry %s".format(A_NAME, e))
+        target       <- RuleTarget.unser(targetString).toRight(UnexpectedObject("Can not unserialize target, '%s' does not match any known target format".format(targetString)) )
+        name         <- e.required(A_NAME)
         description  =  e(A_DESCRIPTION).getOrElse("")
         isEnabled    =  e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         isSystem     =  e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
@@ -684,8 +687,8 @@ class LDAPEntityMapper(
     if(e.isA(OC_RULE_CATEGORY)) {
       //OK, translate
       for {
-        id          <- e(A_RULE_CATEGORY_UUID).notOptional(s"Missing required id (attribute name '${A_RULE_CATEGORY_UUID}) in entry ${e}")
-        name        <- e(A_NAME).notOptional(s"Missing required name (attribute name '${A_NAME}) in entry ${e}")
+        id          <- e.required(A_RULE_CATEGORY_UUID)
+        name        <- e.required(A_NAME)
         description =  e(A_DESCRIPTION).getOrElse("")
         isSystem    =  e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
       } yield {
@@ -706,7 +709,7 @@ class LDAPEntityMapper(
     optValue match {
       case None        => Right(None)
       case Some(value) =>
-        RuleTarget.unser(value).notOptional(s"Bad parameter for a rule target: ${value}").map(Some(_))
+        RuleTarget.unser(value).toRight(UnexpectedObject(s"Bad parameter for a rule target: ${value}")).map(Some(_))
     }
   }
 
@@ -819,11 +822,11 @@ class LDAPEntityMapper(
     if(e.isA(OC_API_ACCOUNT)) {
       //OK, translate
       for {
-        id                    <- e(A_API_UUID).map( ApiAccountId(_) ).notOptional(s"Missing required id (attribute name ${A_API_UUID}) in entry ${e}")
-        name                  <- e(A_NAME).map( ApiAccountName(_) ).notOptional(s"Missing required name (attribute name ${A_NAME}) in entry ${e}")
-        token                 <- e(A_API_TOKEN).map( ApiToken(_) ).notOptional(s"Missing required token (attribute name ${A_API_TOKEN}) in entry ${e}")
-        creationDatetime      <- e.getAsGTime(A_CREATION_DATETIME).notOptional(s"Missing required creation timestamp (attribute name ${A_CREATION_DATETIME}) in entry ${e}")
-        tokenCreationDatetime <- e.getAsGTime(A_API_TOKEN_CREATION_DATETIME).notOptional(s"Missing required token creation timestamp (attribute name ${A_API_TOKEN_CREATION_DATETIME}) in entry ${e}")
+        id                    <- e.required(A_API_UUID).map( ApiAccountId(_) )
+        name                  <- e.required(A_NAME).map( ApiAccountName(_) )
+        token                 <- e.required(A_API_TOKEN).map( ApiToken(_) )
+        creationDatetime      <- e.requiredAs[GeneralizedTime]( _.getAsGTime, A_CREATION_DATETIME)
+        tokenCreationDatetime <- e.requiredAs[GeneralizedTime]( _.getAsGTime, A_API_TOKEN_CREATION_DATETIME)
         isEnabled             =  e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         description           =  e(A_DESCRIPTION).getOrElse("")
         // expiration date is optionnal
@@ -922,10 +925,10 @@ class LDAPEntityMapper(
     if(e.isA(OC_PARAMETER)) {
       //OK, translate
       for {
-        name        <- e(A_PARAMETER_NAME).notOptional("Missing required attribute %s in entry %s".format(A_PARAMETER_NAME, e))
-        value       = e(A_PARAMETER_VALUE).getOrElse("")
-        description = e(A_DESCRIPTION).getOrElse("")
-        overridable = e.getAsBoolean(A_PARAMETER_OVERRIDABLE).getOrElse(true)
+        name        <- e.required(A_PARAMETER_NAME)
+        value       =  e(A_PARAMETER_VALUE).getOrElse("")
+        description =  e(A_DESCRIPTION).getOrElse("")
+        overridable =  e.getAsBoolean(A_PARAMETER_OVERRIDABLE).getOrElse(true)
       } yield {
         GlobalParameter(
             ParameterName(name)
@@ -953,7 +956,7 @@ class LDAPEntityMapper(
     if(e.isA(OC_PROPERTY)) {
       //OK, translate
       for {
-        name        <-e(A_PROPERTY_NAME).notOptional(s"Missing required attribute ${A_PROPERTY_NAME} in entry ${e}")
+        name        <-e.required(A_PROPERTY_NAME)
         value       = e(A_PROPERTY_VALUE).getOrElse("")
         description = e(A_DESCRIPTION).getOrElse("")
       } yield {

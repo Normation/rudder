@@ -117,6 +117,7 @@ import com.normation.zio._
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigFactory
+import com.unboundid.ldap.sdk.DN
 import net.liftweb.common.Loggable
 import net.liftweb.common._
 import org.apache.commons.io.FileUtils
@@ -786,11 +787,11 @@ object RudderConfig extends Loggable {
   )
 
   private[this] lazy val ruleApplicationStatusImpl: RuleApplicationStatusService = new RuleApplicationStatusServiceImpl()
-  private[this] lazy val acceptedNodesDitImpl: InventoryDit = new InventoryDit(LDAP_INVENTORIES_ACCEPTED_BASEDN, LDAP_INVENTORIES_SOFTWARE_BASEDN, "Accepted inventories")
-  private[this] lazy val pendingNodesDitImpl: InventoryDit = new InventoryDit(LDAP_INVENTORIES_PENDING_BASEDN, LDAP_INVENTORIES_SOFTWARE_BASEDN, "Pending inventories")
-  private[this] lazy val removedNodesDitImpl = new InventoryDit(LDAP_INVENTORIES_REMOVED_BASEDN,LDAP_INVENTORIES_SOFTWARE_BASEDN,"Removed Servers")
-  private[this] lazy val rudderDitImpl: RudderDit = new RudderDit(LDAP_RUDDER_BASE)
-  private[this] lazy val nodeDitImpl: NodeDit = new NodeDit(LDAP_NODE_BASE)
+  private[this] lazy val acceptedNodesDitImpl: InventoryDit = new InventoryDit(new DN(LDAP_INVENTORIES_ACCEPTED_BASEDN), new DN(LDAP_INVENTORIES_SOFTWARE_BASEDN), "Accepted inventories")
+  private[this] lazy val pendingNodesDitImpl: InventoryDit = new InventoryDit(new DN(LDAP_INVENTORIES_PENDING_BASEDN), new DN(LDAP_INVENTORIES_SOFTWARE_BASEDN), "Pending inventories")
+  private[this] lazy val removedNodesDitImpl = new InventoryDit(new DN(LDAP_INVENTORIES_REMOVED_BASEDN), new DN(LDAP_INVENTORIES_SOFTWARE_BASEDN),"Removed Servers")
+  private[this] lazy val rudderDitImpl: RudderDit = new RudderDit(new DN(LDAP_RUDDER_BASE))
+  private[this] lazy val nodeDitImpl: NodeDit = new NodeDit(new DN(LDAP_NODE_BASE))
   private[this] lazy val inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl,removedNodesDitImpl)
   private[this] lazy val uuidGen: StringUuidGenerator = new StringUuidGeneratorImpl
   private[this] lazy val systemVariableSpecService = new SystemVariableSpecServiceImpl()

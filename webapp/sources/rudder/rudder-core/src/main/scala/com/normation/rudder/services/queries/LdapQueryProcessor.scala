@@ -56,7 +56,7 @@ import com.unboundid.ldap.sdk.{LDAPConnection => _, SearchScope => _, _}
 import net.liftweb.common._
 import net.liftweb.util.Helpers
 import org.slf4j.LoggerFactory
-import com.normation.ldap.sdk.LdapResult._
+import com.normation.ldap.sdk.LDAPIOResult._
 import cats.implicits._
 import com.normation.NamedZioLogger
 import com.normation.box._
@@ -407,7 +407,7 @@ class InternalLDAPQueryProcessor(
       _        <- logPure.debug(s"[${debugId}] |- (final query) ${rt}")
       entries  <- (for {
                 con      <- ldap
-                results  <- executeQuery(rt.baseDn.toString, rt.scope, nodeObjectTypes.objectFilter, rt.filter, finalSpecialFilters, select.toSet, nq.composition, debugId)
+                results  <- executeQuery(rt.baseDn, rt.scope, nodeObjectTypes.objectFilter, rt.filter, finalSpecialFilters, select.toSet, nq.composition, debugId)
               } yield {
                 postFilterNode(results.groupBy( _.dn ).map( _._2.head ).toSeq, query.returnType, limitToNodeIds)
               }).foldM(
@@ -539,7 +539,7 @@ class InternalLDAPQueryProcessor(
           */
         new SearchRequest(
              base.toString
-           , scope
+           , scope.toUnboundid
            , NEVER
            , limits.subRequestSizeLimit
            , limits.subRequestTimeLimit

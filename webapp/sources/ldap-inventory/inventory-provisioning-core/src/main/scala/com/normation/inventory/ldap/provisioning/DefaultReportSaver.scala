@@ -49,7 +49,7 @@ import com.normation.inventory.ldap.core._
 import com.normation.ldap.sdk.RwLDAPConnection
 import scalaz.zio._
 import scalaz.zio.syntax._
-import com.normation.ldap.sdk.LdapResultRudderError
+import com.normation.ldap.sdk.LDAPRudderError
 
 /**
  * Post-commit convention:
@@ -140,7 +140,7 @@ class DefaultReportSaver(
     accumulated.flatMap { case (errors, successes) =>
       if(successes.isEmpty && errors.nonEmpty) {
         //merge errors and return now
-        LdapResultRudderError.Accumulated(NonEmptyList.fromListUnsafe(errors)).fail
+        LDAPRudderError.Accumulated(NonEmptyList.fromListUnsafe(errors)).fail
       } else { //ok, so at least one non error. Log errors, merge non error, and post-process it
         ZIO.foreach(errors)(e =>
             ZIO.effect(InventoryLogger.error(s"Report processing will be incomplete, found error: ${e.msg}")).orElse(ZIO.unit)) *> successes.flatten.succeed

@@ -141,7 +141,7 @@ class TestQueryProcessor extends Loggable {
     //just check that we correctly loaded demo data in serve
     val s = (for {
       con <- ldap
-      res <- con.search("cn=rudder-configuration", Sub, BuildFilter.ALL)
+      res <- con.search(new DN("cn=rudder-configuration"), Sub, BuildFilter.ALL)
     } yield {
       res.size
     }).runNow

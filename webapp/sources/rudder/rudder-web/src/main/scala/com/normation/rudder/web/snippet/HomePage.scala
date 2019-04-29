@@ -398,7 +398,7 @@ class HomePage extends Loggable {
       nodeEntries      <-  {
                             val sr = new SearchRequest(
                                 acceptedNodesDit.NODES.dn.toString
-                              , One
+                              , One.toUnboundid
                               , OR(agentSoft.map(x => EQ(A_SOFTWARE_DN, acceptedNodesDit.SOFTWARE.SOFT.dn(x.id).toString)):_*)
                               , A_NODE_UUID, A_SOFTWARE_DN
                             )

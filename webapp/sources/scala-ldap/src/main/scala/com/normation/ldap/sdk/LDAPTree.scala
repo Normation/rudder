@@ -28,7 +28,7 @@ import com.unboundid.ldif.LDIFRecord
 import scala.collection.mutable.Buffer
 import scala.collection.mutable.HashMap
 import scalaz.zio.syntax._
-import com.normation.ldap.sdk.LdapResult._
+import com.normation.ldap.sdk.LDAPIOResult._
 
 /*
  * An LDAP tree of entries.
@@ -138,13 +138,13 @@ object LDAPTree {
    * All entries in the list safe one (the one that will become the root of the tree)
    * must have a direct parent in other entries.
    */
-  def apply(entries:Iterable[LDAPEntry]) : LdapResult[LDAPTree] = {
-    if(null == entries || entries.isEmpty) LdapResultRudderError.Consistancy(s"You can't create a Tree from an empty list of entries").fail
+  def apply(entries:Iterable[LDAPEntry]) : LDAPIOResult[LDAPTree] = {
+    if(null == entries || entries.isEmpty) LDAPRudderError.Consistancy(s"You can't create a Tree from an empty list of entries").fail
     //verify that there is no duplicates
     else if(entries.map(_.dn).toSet.size != entries.size) {
       val s = entries.map(_.dn).toSet
       val res = entries.map(_.dn).filter(x => ! s.contains(x))
-      LdapResultRudderError.Consistancy(s"Some entries have the same dn, what is forbiden: ${res}").fail
+      LDAPRudderError.Consistancy(s"Some entries have the same dn, what is forbiden: ${res}").fail
     } else {
       val used = Buffer[DN]()
       /*
@@ -167,7 +167,7 @@ object LDAPTree {
 
       if(used.size < entries.size-1) {
         val s = entries.map(_.dn).filter(x => !used.contains(x))
-        LdapResultRudderError.Consistancy(s"Some entries have no parents: ${s}").fail
+        LDAPRudderError.Consistancy(s"Some entries have no parents: ${s}").fail
       } else root.succeed
     }
   }

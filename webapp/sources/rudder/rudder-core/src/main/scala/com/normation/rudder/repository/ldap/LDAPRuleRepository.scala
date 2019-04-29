@@ -45,7 +45,7 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.ldap.core.LDAPConstants.A_NAME
 import com.normation.ldap.sdk.BuildFilter._
-import com.normation.ldap.sdk.LdapResult._
+import com.normation.ldap.sdk.LDAPIOResult._
 import com.normation.ldap.sdk._
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants._
@@ -252,13 +252,13 @@ class WoLDAPRuleRepository(
   def swapRules(newCrs:Seq[Rule]) : IOResult[RuleArchiveId] = {
 
     //save rules, taking care of serial value
-    def saveCR(con:RwLDAPConnection, rule:Rule) : LdapResult[LDIFChangeRecord] = {
+    def saveCR(con:RwLDAPConnection, rule:Rule) : LDAPIOResult[LDIFChangeRecord] = {
       val entry = mapper.rule2Entry(rule)
       con.save(entry)
     }
     //restore the archive in case of error
     //that method will be hard to achieve out of here due to serial
-    def restore(con:RwLDAPConnection, previousCRs:Seq[Rule]): LdapResult[Seq[LDIFChangeRecord]] = {
+    def restore(con:RwLDAPConnection, previousCRs:Seq[Rule]): LDAPIOResult[Seq[LDIFChangeRecord]] = {
       for {
         deleteCR  <- con.delete(rudderDit.RULES.dn)
         savedBack <- ZIO.foreach(previousCRs) { rule =>

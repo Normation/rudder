@@ -102,10 +102,10 @@ final case class PublicKey(value : String) extends SecurityToken with HashcodeCa
     }
   }
   def publicKey : IOResult[java.security.PublicKey] = {
-    ZIO.effect {
+    IO.effect {
       new PEMParser(new StringReader(key))
-    }.mapError { e =>
-      InventoryError.Crypto(s"Key '${key}' cannot be parsed as a public key")
+    }.mapError { ex =>
+      InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a public key", ex)
     }.flatMap { reader =>
       reader.readObject() match {
         case a : SubjectPublicKeyInfo =>
@@ -129,15 +129,15 @@ final case class Certificate(value : String) extends SecurityToken with Hashcode
       |-----END CERTIFICATE-----""".stripMargin
     }
   }
-  def cert : IO[InventoryError.Crypto, X509CertificateHolder] = {
+  def cert : IO[InventoryError, X509CertificateHolder] = {
     for {
-      reader <- ZIO.effect {
+      reader <- IO.effect {
                   new PEMParser(new StringReader(key))
                 } mapError { e =>
-                  InventoryError.Crypto(s"Key '${key}' cannot be parsed as a valid certificate")
+                  InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a valid certificate", e)
                 }
-      obj    <- ZIO.effect(reader.readObject()).mapError { e =>
-                  InventoryError.Crypto(s"Key '${key}' cannot be parsed as a valid certificate")
+      obj    <- IO.effect(reader.readObject()).mapError { e =>
+                  InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a valid certificate", e)
                 }
       res    <- obj match {
                   case a : X509CertificateHolder =>

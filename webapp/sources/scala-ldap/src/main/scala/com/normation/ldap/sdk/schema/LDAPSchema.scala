@@ -122,7 +122,7 @@ class LDAPSchema {
    * And we pass the Set(top, A,B,C,D,E,F)
    * it returns Set(C,D,F)
    *
-   * @param name
+   * @param names
    * @return
    */
   def demux(names : String*) : S = {

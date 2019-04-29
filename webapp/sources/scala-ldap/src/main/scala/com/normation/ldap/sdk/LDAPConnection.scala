@@ -20,12 +20,10 @@
 
 package com.normation.ldap.sdk
 
-import cats.data.NonEmptyList
 import com.normation.NamedZioLogger
-import com.normation.errors.RudderError
 import com.normation.ldap.ldif.LDIFFileLogger
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
-import com.normation.ldap.sdk.LdapResult._
+import com.normation.ldap.sdk.LDAPIOResult._
 import com.unboundid.ldap.sdk.ResultCode._
 import com.unboundid.ldap.sdk.AddRequest
 import com.unboundid.ldap.sdk.DN
@@ -46,57 +44,11 @@ import scalaz.zio._
 import scalaz.zio.syntax._
 
 import scala.collection.JavaConverters._
-import org.slf4j.LoggerFactory
 
 /*
  * Logger for LDAP connection related information.
  */
 object LDAPConnectionLogger extends NamedZioLogger(){val loggerName = "ldap-connection"}
-
-sealed trait LdapResultRudderError extends RudderError {
-  def msg: String
-}
-
-object LdapResultRudderError {
-  // errors due to some LDAPException
-  final case class BackendException(msg: String, cause: Throwable)  extends LdapResultRudderError
-  // errors where there is a result, but result is not SUCCESS
-  final case class FailureResult(msg: String, result: LDAPResult)   extends LdapResultRudderError
-
-  final case class Consistancy(msg: String)                         extends LdapResultRudderError
-  // accumulated errors from multiple independent action
-  final case class Accumulated(errors: NonEmptyList[RudderError])   extends LdapResultRudderError {
-    def msg = s"Several errors encountered: ${errors.toList.map(_.msg).mkString("; ")}"
-  }
-}
-
-object LdapResult{
-  type LdapResult[T] = IO[LdapResultRudderError, T]
-
-  // transform an Option[T] into an error
-  implicit class StrictOption[T](opt: LdapResult[Option[T]]) {
-    def notOptional(msg: String) = IO.require[LdapResultRudderError, T](LdapResultRudderError.Consistancy(msg))(opt)
-  }
-
-  // same than above for a Rudder error from a string
-  implicit class ToFailureMsg(e: String) {
-    def fail = IO.fail(LdapResultRudderError.Consistancy(e))
-  }
-
-  implicit class ValidatedToLdapError[T](res: ZIO[Any, NonEmptyList[LdapResultRudderError], List[T]]) {
-    def toLdapResult: LdapResult[List[T]] = res.mapError(errors => LdapResultRudderError.Accumulated(errors))
-  }
-
-  implicit class EitherToLdapError[T](res: Either[RudderError, T]) {
-    def toLdapResult: LdapResult[T] = {
-      res match {
-        case Left(error) => LdapResultRudderError.Consistancy(error.msg).fail
-        case Right(x)    => x.succeed
-      }
-    }
-  }
-
-}
 
 trait ReadOnlyEntryLDAPConnection {
 
@@ -109,7 +61,7 @@ trait ReadOnlyEntryLDAPConnection {
    * @return
    *   The sequence of entries matching SearchRequest.
    */
-  def search(sr:SearchRequest): LdapResult[Seq[LDAPEntry]]
+  def search(sr: SearchRequest): LDAPIOResult[Seq[LDAPEntry]]
 
   /**
    * Retrieve entry with given 'dn', optionally restricting
@@ -125,7 +77,7 @@ trait ReadOnlyEntryLDAPConnection {
    *   Empty if no such entry exists
    *   Failure(message) if something bad happened
    */
-  def get(dn:DN, attributes:String*) : LdapResult[Option[LDAPEntry]]
+  def get(dn: DN, attributes: String*): LDAPIOResult[Option[LDAPEntry]]
 
   /**
    * A search with commonly used parameters
@@ -142,8 +94,8 @@ trait ReadOnlyEntryLDAPConnection {
    * @return
    *   The sequence of entries matching search request parameters.
    */
-  def search(baseDn:DN, scope:SearchScope, filter:Filter, attributes:String*) : LdapResult[Seq[LDAPEntry]] = {
-    search(new SearchRequest(baseDn.toString, scope, filter, attributes:_*))
+  def search(baseDn: DN, scope: SearchScope, filter: Filter, attributes: String*): LDAPIOResult[Seq[LDAPEntry]] = {
+    search(new SearchRequest(baseDn.toString, scope.toUnboundid, filter, attributes:_*))
   }
 
   /**
@@ -169,7 +121,7 @@ trait ReadOnlyEntryLDAPConnection {
    *   Failure(message) if something goes wrong
    *   Empty otherwise
    */
-  def get(baseDn:DN, filter:Filter, attributes:String*) : LdapResult[Option[LDAPEntry]] = {
+  def get(baseDn: DN, filter: Filter, attributes: String*): LDAPIOResult[Option[LDAPEntry]] = {
     searchOne(baseDn, filter, attributes:_*).map {
       case buf if(buf.isEmpty) => None
       case buf                 => Some(buf(0))
@@ -187,7 +139,7 @@ trait ReadOnlyEntryLDAPConnection {
    * @return
    *   True if the entry exists, false otherwise.
    */
-  def exists(dn:DN) : LdapResult[Boolean] = get(dn, "1.1").map( _.isDefined )
+  def exists(dn: DN): LDAPIOResult[Boolean] = get(dn, "1.1").map( _.isDefined )
 
   /**
    * Search method restricted to scope = One level
@@ -203,7 +155,7 @@ trait ReadOnlyEntryLDAPConnection {
    * @return
    *   The sequence of entries matching search request parameters.
    */
-  def searchOne(baseDn:DN,filter:Filter, attributes:String*) : LdapResult[Seq[LDAPEntry]] = search(baseDn,One,filter,attributes:_*)
+  def searchOne(baseDn: DN, filter: Filter, attributes: String*): LDAPIOResult[Seq[LDAPEntry]] = search(baseDn,One,filter,attributes:_*)
 
   /**
    * Search method restricted to scope = SubTree
@@ -219,7 +171,7 @@ trait ReadOnlyEntryLDAPConnection {
    * @return
    *   The sequence of entries matching search request parameters.
    */
-  def searchSub(baseDn:DN,filter:Filter, attributes:String*) : LdapResult[Seq[LDAPEntry]] = search(baseDn,Sub,filter,attributes:_*)
+  def searchSub(baseDn: DN, filter: Filter, attributes: String*): LDAPIOResult[Seq[LDAPEntry]] = search(baseDn,Sub,filter,attributes:_*)
 }
 
 trait WriteOnlyEntryLDAPConnection {
@@ -229,7 +181,7 @@ trait WriteOnlyEntryLDAPConnection {
    * Return the actual modification executed if success,
    * the error in other case.
    */
-  def modify(dn:DN, modifications:Modification*) : LdapResult[LDIFChangeRecord]
+  def modify(dn:DN, modifications: Modification*): LDAPIOResult[LDIFChangeRecord]
 
   /**
    * Move entry with given dn to new parent.
@@ -243,7 +195,7 @@ trait WriteOnlyEntryLDAPConnection {
    *   Full[Seq(ldifChangeRecord)] if the operation is successful
    *   Empty or Failure if an error occurred.
    */
-  def move(dn:DN,newParentDn:DN, newRDN:Option[RDN] = None) : LdapResult[LDIFChangeRecord]
+  def move(dn:DN, newParentDn:DN, newRDN: Option[RDN] = None): LDAPIOResult[LDIFChangeRecord]
 
   /**
    * Save an LDAP entry.
@@ -259,7 +211,7 @@ trait WriteOnlyEntryLDAPConnection {
    * - if "removeMissing" is set to true, you can still keep some attribute enumerated here. If removeMissing is false,
    *   that parameter is ignored.
    */
-  def save(entry : LDAPEntry, removeMissingAttributes:Boolean=false, forceKeepMissingAttributes:Seq[String] = Seq()) : LdapResult[LDIFChangeRecord]
+  def save(entry: LDAPEntry, removeMissingAttributes: Boolean = false, forceKeepMissingAttributes: Seq[String] = Seq()): LDAPIOResult[LDIFChangeRecord]
 
   /**
    * Delete entry at the given DN
@@ -270,7 +222,7 @@ trait WriteOnlyEntryLDAPConnection {
    *
    * If no entry has the given DN, nothing is done.
    */
-  def delete(dn:DN, recurse:Boolean = true) : LdapResult[Seq[LDIFChangeRecord]]
+  def delete(dn:DN, recurse: Boolean = true): LDAPIOResult[Seq[LDIFChangeRecord]]
 
 }
 
@@ -289,7 +241,7 @@ trait ReadOnlyTreeLDAPConnection {
    *   Empty if no entry has the given DN
    *   Failure(message) if something goes wrong.
    */
-  def getTree(dn:DN) : LdapResult[Option[LDAPTree]]
+  def getTree(dn:DN): LDAPIOResult[Option[LDAPTree]]
 }
 
 trait WriteOnlyTreeLDAPConnection {
@@ -302,7 +254,7 @@ trait WriteOnlyTreeLDAPConnection {
    * @param deleteRemoved
    * @return
    */
-  def saveTree(tree:LDAPTree, deleteRemoved:Boolean=false) : LdapResult[Seq[LDIFChangeRecord]]
+  def saveTree(tree:LDAPTree, deleteRemoved: Boolean = false): LDAPIOResult[Seq[LDIFChangeRecord]]
 }
 
 /**
@@ -319,12 +271,12 @@ trait UnboundidBackendLDAPConnection {
    * @return
    *   LDAPConnection object used in back-end.
    */
-  def backed : UnboundidLDAPConnection
+  def backed: UnboundidLDAPConnection
 
   /**
    * Close that LDAPConnection
    */
-  def close() : Unit = backed.close()
+  def close(): Unit = backed.close()
 
 }
 
@@ -336,19 +288,18 @@ object RoLDAPConnection {
    */
   def onlyReportOnSearch(errorCode:ResultCode) : Boolean = {
     errorCode match {
-      case TIME_LIMIT_EXCEEDED |
-        SIZE_LIMIT_EXCEEDED => true
-      case _ => false
+      case TIME_LIMIT_EXCEEDED | SIZE_LIMIT_EXCEEDED => true
+      case _                                         => false
     }
   }
 }
 
 
 sealed class RoLDAPConnection(
-    override val backed : UnboundidLDAPConnection
-  , val ldifFileLogger : LDIFFileLogger
+    override val backed   : UnboundidLDAPConnection
+  , val ldifFileLogger    : LDIFFileLogger
   , val onlyReportOnSearch: ResultCode => Boolean = RoLDAPConnection.onlyReportOnSearch
-  , val blockingModule: Blocking
+  , val blockingModule    : Blocking
 ) extends
   UnboundidBackendLDAPConnection with
   ReadOnlyEntryLDAPConnection with
@@ -357,39 +308,37 @@ sealed class RoLDAPConnection(
 
   def blocking[A](effect: => A): Task[A] = blockingModule.blocking.blocking( IO.effect(effect) )
 
-  val logger = LoggerFactory.getLogger(classOf[RoLDAPConnection])
-
   /*
    * //////////////////////////////////////////////////////////////////
    * // Read
    * //////////////////////////////////////////////////////////////////
    */
 
-  override def search(sr:SearchRequest) : LdapResult[Seq[LDAPEntry]] = {
+  override def search(sr:SearchRequest) : LDAPIOResult[Seq[LDAPEntry]] = {
     blocking {
-      backed.search(sr).getSearchEntries.asScala.map(e => LDAPEntry(e.getDN, e.getAttributes.asScala))
+      backed.search(sr).getSearchEntries.asScala.map(e => LDAPEntry(e.getParsedDN, e.getAttributes.asScala))
     } catchAll {
       case e:LDAPSearchException if(onlyReportOnSearch(e.getResultCode)) =>
-        logger.error("Ignored execption (configured to be ignored)", e)
-        e.getSearchEntries.asScala.map(e => LDAPEntry(e.getDN, e.getAttributes.asScala)).succeed
+        LDAPConnectionLogger.error("Ignored execption (configured to be ignored)", e) *>
+        e.getSearchEntries.asScala.map(e => LDAPEntry(e.getParsedDN, e.getAttributes.asScala)).succeed
       case ex: LDAPException =>
-        LdapResultRudderError.BackendException(s"Error during search: ${ex.getDiagnosticMessage}", ex).fail
+        LDAPRudderError.BackendException(s"Error during search: ${ex.getDiagnosticMessage}", ex).fail
       // catchAll is a lie, but if other kind of exception happens, we want to crash
       case ex => throw ex
     }
   }
 
-  override def get(dn:DN, attributes:String*) : LdapResult[Option[LDAPEntry]] = {
+  override def get(dn:DN, attributes:String*) : LDAPIOResult[Option[LDAPEntry]] = {
     blocking {
       val e = if(attributes.size == 0) backed.getEntry(dn.toString)
               else backed.getEntry(dn.toString, attributes:_*)
       e match {
         case null => None
-        case r    => Some(LDAPEntry(r.getDN, r.getAttributes.asScala))
+        case r    => Some(LDAPEntry(r.getParsedDN, r.getAttributes.asScala))
       }
     } catchAll {
       case ex: LDAPException =>
-        LdapResultRudderError.BackendException(s"Error when getting enty '${dn.toNormalizedString}': ${ex.getDiagnosticMessage}", ex).fail
+        LDAPRudderError.BackendException(s"Error when getting enty '${dn.toNormalizedString}': ${ex.getDiagnosticMessage}", ex).fail
       // catchAll is a lie, but if other kind of exception happens, we want to crash
       case ex => throw ex
     }
@@ -401,9 +350,9 @@ sealed class RoLDAPConnection(
    * //////////////////////////////////////////////////////////////////
    */
 
-  override def getTree(dn:DN) : LdapResult[Option[LDAPTree]] = {
+  override def getTree(dn:DN) : LDAPIOResult[Option[LDAPTree]] = {
     blocking {
-      backed.search(dn.toString,Sub,BuildFilter.ALL)
+      backed.search(dn.toString, Sub.toUnboundid, BuildFilter.ALL)
     } flatMap { all =>
       if(all.getEntryCount() > 0) {
         //build the tree
@@ -412,7 +361,7 @@ sealed class RoLDAPConnection(
     } catchAll {
       //a no such object error simply means that the required LDAP tree is not in the directory
       case e:LDAPSearchException if(NO_SUCH_OBJECT == e.getResultCode) => None.succeed
-      case e:LDAPException => LdapResultRudderError.BackendException(s"Can not get tree '${dn}': ${e.getDiagnosticMessage}", e).fail
+      case e:LDAPException => LDAPRudderError.BackendException(s"Can not get tree '${dn}': ${e.getDiagnosticMessage}", e).fail
     }
   }
 }
@@ -511,8 +460,6 @@ class RwLDAPConnection(
   WriteOnlyTreeLDAPConnection
 {
 
-  override val logger = LoggerFactory.getLogger(classOf[RwLDAPConnection])
-
   /**
    * Ask the directory if it knows how to
    * delete full sub-tree in one command.
@@ -522,7 +469,7 @@ class RwLDAPConnection(
       backed.getRootDSE.supportsControl(com.unboundid.ldap.sdk.controls.SubtreeDeleteRequestControl.SUBTREE_DELETE_REQUEST_OID)
     } catch {
       case e: LDAPException =>
-        logger.debug("Can not know if the LDAP server support recursive subtree delete request control, supposing not. Exception was: " + e.getMessage())
+        LDAPConnectionLogger.logEffect.debug("Can not know if the LDAP server support recursive subtree delete request control, supposing not. Exception was: " + e.getMessage())
         false
     }
   }
@@ -549,7 +496,7 @@ class RwLDAPConnection(
    * @param Seq[MOD]
    *   the list of modification to apply.
    */
-  private def applyMods[MOD <: ReadOnlyLDAPRequest](modName: String, toLDIFChangeRecord:MOD => LDIFChangeRecord, backendAction: MOD => LDAPResult, onlyReportThat: ResultCode => Boolean)(reqs: List[MOD]) : LdapResult[Seq[LDIFChangeRecord]] = {
+  private def applyMods[MOD <: ReadOnlyLDAPRequest](modName: String, toLDIFChangeRecord:MOD => LDIFChangeRecord, backendAction: MOD => LDAPResult, onlyReportThat: ResultCode => Boolean)(reqs: List[MOD]) : LDAPIOResult[Seq[LDIFChangeRecord]] = {
     if(reqs.size < 1) IO.succeed(Seq())
     else {
       ldifFileLogger.records(reqs map ( toLDIFChangeRecord (_) ))
@@ -569,7 +516,7 @@ class RwLDAPConnection(
    * better than us for orchestrating its changes.
    *
    */
-  private def applyMod[MOD <: ReadOnlyLDAPRequest](modName: String, toLDIFChangeRecord:MOD => LDIFChangeRecord, backendAction: MOD => LDAPResult, onlyReportThat: ResultCode => Boolean)(req:MOD) : LdapResult[LDIFChangeRecord] = {
+  private def applyMod[MOD <: ReadOnlyLDAPRequest](modName: String, toLDIFChangeRecord:MOD => LDIFChangeRecord, backendAction: MOD => LDAPResult, onlyReportThat: ResultCode => Boolean)(req:MOD) : LDAPIOResult[LDIFChangeRecord] = {
     val record = toLDIFChangeRecord(req)
     blocking {
       ldifFileLogger.records(Seq(record)) // ignore return value
@@ -580,7 +527,7 @@ class RwLDAPConnection(
       } else if(onlyReportThat(res.getResultCode)) {
         LDIFNoopChangeRecord(record.getParsedDN).succeed
       } else {
-        LdapResultRudderError.FailureResult(s"Error when doing action '${modName}' with and LDIF change request: ${res.getDiagnosticMessage}", res).fail
+        LDAPRudderError.FailureResult(s"Error when doing action '${modName}' with and LDIF change request: ${res.getDiagnosticMessage}", res).fail
       }
     } catchAll {
       case ex:LDAPException =>
@@ -588,7 +535,7 @@ class RwLDAPConnection(
           logIgnoredException(record.getDN, modName, ex)
           LDIFNoopChangeRecord(record.getParsedDN).succeed
         } else {
-          LdapResultRudderError.BackendException(s"Error when doing action '${modName}' with and LDIF change request: ${ex.getDiagnosticMessage}", ex).fail
+          LDAPRudderError.BackendException(s"Error when doing action '${modName}' with and LDIF change request: ${ex.getDiagnosticMessage}", ex).fail
         }
       // catchAll is still a lie, and we want to crash on an other exception
       case ex:Throwable => throw ex
@@ -598,7 +545,7 @@ class RwLDAPConnection(
 
   private[this] def logIgnoredException(dn: => String, action: String, e:Throwable) : Unit = {
       val message = s"Exception ignored (by configuration) when trying to $action entry '$dn'.  Reported exception was: ${e.getMessage}"
-      logger.error(message,e)
+      LDAPConnectionLogger.error(message,e)
   }
 
   /**
@@ -643,11 +590,11 @@ class RwLDAPConnection(
    * Return the actual modification executed if success,
    * the error in other case.
    */
-  override def modify(dn:DN, modifications:Modification*) : LdapResult[LDIFChangeRecord] = {
+  override def modify(dn:DN, modifications:Modification*) : LDAPIOResult[LDIFChangeRecord] = {
     applyModify(new ModifyRequest(dn.toString,modifications:_*))
   }
 
-  override def move(dn:DN, newParentDn:DN, newRDN:Option[RDN] = None) : LdapResult[LDIFChangeRecord] = {
+  override def move(dn:DN, newParentDn:DN, newRDN:Option[RDN] = None) : LDAPIOResult[LDIFChangeRecord] = {
     if(
         dn.getParent == newParentDn && (
             newRDN match {
@@ -667,7 +614,7 @@ class RwLDAPConnection(
     }
   }
 
-  override def save(entry : LDAPEntry, removeMissingAttributes:Boolean=false, forceKeepMissingAttributes:Seq[String] = Seq()) : LdapResult[LDIFChangeRecord] = {
+  override def save(entry : LDAPEntry, removeMissingAttributes:Boolean=false, forceKeepMissingAttributes:Seq[String] = Seq()) : LDAPIOResult[LDIFChangeRecord] = {
     synchronized {
       get(entry.dn) flatMap {  //TODO if removeMissing is false, only get attribute in entry (we don't care of others)
         case None =>
@@ -681,7 +628,7 @@ class RwLDAPConnection(
     }
   }
 
-  override def delete(dn:DN, recurse:Boolean = true) : LdapResult[Seq[LDIFChangeRecord]] = {
+  override def delete(dn:DN, recurse:Boolean = true) : LDAPIOResult[Seq[LDIFChangeRecord]] = {
     if(recurse) {
       if(canDeleteTree) {
         import com.unboundid.ldap.sdk.controls.SubtreeDeleteRequestControl
@@ -705,25 +652,25 @@ class RwLDAPConnection(
    * //////////////////////////////////////////////////////////////////
    */
 
-  protected def addTree(tree:LDAPTree) : LdapResult[Seq[LDIFChangeRecord]] = {
+  protected def addTree(tree:LDAPTree) : LDAPIOResult[Seq[LDIFChangeRecord]] = {
     applyAdds(tree.toSeq.toList.map {e => new AddRequest(e.backed) })
   }
 
-  override def saveTree(tree:LDAPTree, deleteRemoved:Boolean=false) : LdapResult[Seq[LDIFChangeRecord]] = {
+  override def saveTree(tree:LDAPTree, deleteRemoved:Boolean=false) : LDAPIOResult[Seq[LDIFChangeRecord]] = {
     //compose the result of unit modification
-    def doSave(tree:Tree[TreeModification]) : LdapResult[Seq[LDIFChangeRecord]] = {
+    def doSave(tree:Tree[TreeModification]) : LDAPIOResult[Seq[LDIFChangeRecord]] = {
       //utility method to process the good method given the type of modification
-      def applyTreeModification(mod:TreeModification) : LdapResult[Seq[LDIFChangeRecord]] = {
+      def applyTreeModification(mod:TreeModification) : LDAPIOResult[Seq[LDIFChangeRecord]] = {
         mod match {
           case NoMod => Seq().succeed //OK
           case Add(tree) => addTree(tree)
           case Delete(tree) =>
-            if(deleteRemoved) delete(tree.root.toString, true) //TODO : do we want to actually only try to delete these entry and not cut the full subtree ? likely to be error prone
+            if(deleteRemoved) delete(tree.root, true) //TODO : do we want to actually only try to delete these entry and not cut the full subtree ? likely to be error prone
             else Seq().succeed
           case Replace((dn,mods)) => IO.foreach(mods) { mod => modify(dn,mod) }
         }
       }
-      ((Seq().succeed:LdapResult[Seq[LDIFChangeRecord]])/:tree.toSeq) { (records, mod) =>
+      ((Seq().succeed:LDAPIOResult[Seq[LDIFChangeRecord]]) /: tree.toSeq) { (records, mod) =>
         records.flatMap { seq =>
           applyTreeModification(mod).map { newRecords =>
             (seq ++ newRecords)
@@ -733,9 +680,9 @@ class RwLDAPConnection(
     }
 
     for {
-      _   <- blocking(ldifFileLogger.tree(tree)) mapError (e => LdapResultRudderError.BackendException(s"Error when loggin operation on LDAP tree: '${tree.parentDn}'", e))
+      _   <- blocking(ldifFileLogger.tree(tree)) mapError (e => LDAPRudderError.BackendException(s"Error when loggin operation on LDAP tree: '${tree.parentDn}'", e))
              //process mofications
-      now <- getTree(tree.root.dn.toString)
+      now <- getTree(tree.root.dn)
       res <- (now match {
                case None => addTree(tree)
                case Some(t) => LDAPTree.diff(t, tree, deleteRemoved) match {
@@ -745,7 +692,7 @@ class RwLDAPConnection(
                  }
                  case None => Seq().succeed
                }
-             }):LdapResult[Seq[com.unboundid.ldif.LDIFChangeRecord]]
+             }):LDAPIOResult[Seq[com.unboundid.ldif.LDIFChangeRecord]]
     } yield {
       res
     }

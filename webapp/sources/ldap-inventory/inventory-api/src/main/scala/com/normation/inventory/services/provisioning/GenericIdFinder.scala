@@ -59,7 +59,7 @@ class NodeInventoryDNFinderService(actions: Seq[NamedNodeInventoryDNFinderAction
         InventoryLogger.debug(s"Processing node id finder '${next.name}'") *>
         next.action.tryWith(entity).flatMap {
           case Some((id, s)) => InventoryLogger.debug(s"Node Id '${id.value}' found in DIT '${s.name}' with id finder '${next.name}'") *> Some((id, s)).succeed
-          case None          => InventoryLogger.trace(s"'Node id '${entity.main.id.value}' not found with findder '${next.name}'") *> None.succeed
+          case None          => InventoryLogger.trace(s"Node id '${entity.main.id.value}' not found with findder '${next.name}'") *> None.succeed
       }
     }.flatMap {
       case None => InventoryLogger.debug(s"'Node id '${entity.main.id.value}' not found in base") *> None.succeed

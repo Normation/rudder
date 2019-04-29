@@ -52,7 +52,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.eventlog.EventActor
 import org.joda.time.DateTime
 import com.normation.utils.StringUuidGenerator
-import com.normation.ldap.sdk.LdapResultRudderError
+import com.normation.ldap.sdk.LDAPRudderError
 import com.normation.rudder.domain.logger.ApplicationLogger
 import scalaz.zio._
 import scalaz.zio.syntax._
@@ -197,7 +197,7 @@ final class WoLDAPApiAccountRepository(
                       case Some(e) => if(e(A_API_UUID) == Some(principal.id.value)) {
                                         Some(e).succeed
                                       } else {
-                                        LdapResultRudderError.Consistancy("An account with given token but different id already exists").fail
+                                        LDAPRudderError.Consistancy("An account with given token but different id already exists").fail
                                       }
                     }
         name     <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(LDAPConstants.A_NAME, principal.name.value)) map {
@@ -205,7 +205,7 @@ final class WoLDAPApiAccountRepository(
                       case Some(e) => if(e(A_API_UUID) == Some(principal.id.value)) {
                                         Some(e).succeed
                                       } else {
-                                        LdapResultRudderError.Consistancy(s"An account with the same name ${principal.name.value} exists").fail
+                                        LDAPRudderError.Consistancy(s"An account with the same name ${principal.name.value} exists").fail
                                       }
                     }
         optPrevious  <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(principal.id))
@@ -249,7 +249,7 @@ final class WoLDAPApiAccountRepository(
     for {
       ldap         <- ldapConnexion
       entry        <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id)).flatMap {
-                        case None    => LdapResultRudderError.Consistancy(s"Api Account with ID '${id.value}' is not present").fail
+                        case None    => LDAPRudderError.Consistancy(s"Api Account with ID '${id.value}' is not present").fail
                         case Some(x) => x.succeed
                       }
       oldAccount   <- mapper.entry2ApiAccount(entry).toIO

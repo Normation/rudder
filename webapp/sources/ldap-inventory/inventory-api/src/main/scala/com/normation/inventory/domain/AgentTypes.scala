@@ -133,13 +133,13 @@ object AgentType {
 
   def allValues = ca.mrvisser.sealerate.values[AgentType]
 
-  def fromValue(value : String) : Either[InventoryError.AgentType, AgentType] = {
+  def fromValue(value: String): Either[InventoryError.AgentType, AgentType] = {
     // Check if the value is correct compared to the agent tag name (fusion > 2.3) or its toString value (added by CFEngine)
     def checkValue( agent : AgentType) = {
       agent.inventoryAgentNames.contains(value.toLowerCase)
     }
 
-    allValues.find(checkValue)  match {
+    allValues.find(checkValue) match {
       case None        => Left(InventoryError.AgentType(s"Wrong type of value for the agent '${value}'"))
       case Some(agent) => Right(agent)
     }
@@ -229,20 +229,20 @@ object AgentInfoSerialisation {
    */
   def parseJson(s: String, optToken : Option[String]): IOResult[AgentInfo] = {
     for {
-      json <- ZIO.effect { parse(s) } mapError  { ex => InventoryError.Deserialisation(s"Can not parse agent info: ${ex.getMessage }", ex) }
+      json      <- IO.effect { parse(s) } mapError  { ex => InventoryError.Deserialisation(s"Can not parse agent info: ${ex.getMessage }", ex) }
       agentType <- (json \ "agentType") match {
-                     case JString(tpe) => IO.fromEither(AgentType.fromValue(tpe))
-                     case JNothing => InventoryError.SecurityToken("No value defined for security token").fail
+                     case JString(tpe) => AgentType.fromValue(tpe).toIO
+                     case JNothing     => InventoryError.SecurityToken("No value defined for security token").fail
                      case invalidJson  => InventoryError.AgentType(s"Error when trying to parse string as JSON Agent Info (missing required field 'agentType'): ${compactRender(invalidJson)}").fail
                    }
      agentVersion = json \ "version" match {
                       case JString(version) => Some(AgentVersion(version))
                       case _                => None
                     }
-     token <- IO.fromEither(json \ "securityToken" match {
+     token <- (json \ "securityToken" match {
                 case JObject(json) => parseSecurityToken(agentType, json, optToken)
                 case _             => parseSecurityToken(agentType, JNothing, optToken)
-              })
+              }).toIO
 
     } yield {
       AgentInfo(agentType, agentVersion, token)
@@ -257,15 +257,15 @@ object AgentInfoSerialisation {
   def parseCompatNonJson(s: String, optToken : Option[String]): IOResult[AgentInfo] = {
     parseJson(s, optToken).catchAll { eb =>
 
-        val jsonError = "Error when parsing JSON information about the agent type: " + eb.msg
+        val jsonError =  "Error when parsing JSON information about the agent type: " + eb.msg
         for {
-          agentType <- IO.fromEither(AgentType.fromValue(s)).mapError ( e =>
-               e.copy(e.msg + " <- " + s"Error when mapping '${s}' to an agent info. We are expecting either " +
-                 s"an agentType with allowed values in ${AgentType.allValues.mkString(", ")}" +
-                 s" or " +
-                 s"a json like {'agentType': type, 'version': opt_version, 'securityToken': ...} but we get: ${jsonError}"
-               ) )
-          token  <- IO.fromEither(parseSecurityToken(agentType, JNothing, optToken))
+          agentType   <- AgentType.fromValue(s).toIO.chainError(
+                           s"Error when mapping '${s}' to an agent info. We are expecting either " +
+                           s"an agentType with allowed values in ${AgentType.allValues.mkString(", ")}" +
+                           s" or " +
+                           s"a json like {'agentType': type, 'version': opt_version, 'securityToken': ...} but we get: ${jsonError}"
+                         )
+          token       <- IO.fromEither(parseSecurityToken(agentType, JNothing, optToken))
         } yield {
           AgentInfo(agentType, None, token)
         }

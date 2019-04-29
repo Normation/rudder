@@ -37,25 +37,25 @@
 
 package com.normation.inventory.ldap.core
 
-import LDAPConstants._
-import com.normation.inventory.domain._
-import com.unboundid.ldap.sdk.{Version => _, _}
-import com.normation.ldap.sdk._
-import com.normation.ldap.sdk.schema.LDAPObjectClass
-import org.joda.time.DateTime
-import net.liftweb.json._
 import java.net.InetAddress
 
-import InetAddressUtils._
-import com.normation.errors.BaseChainError
 import com.normation.errors.RudderError
+import com.normation.errors._
+import com.normation.inventory.domain.InetAddressUtils._
 import com.normation.inventory.domain.NodeTimezone
-import com.normation.inventory.ldap.core.InventoryMappingRudderError._
+import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.InventoryMappingResult._
+import com.normation.inventory.ldap.core.InventoryMappingRudderError._
+import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.ldap.sdk._
+import com.normation.ldap.sdk.schema.LDAPObjectClass
+import com.softwaremill.quicklens._
+import com.unboundid.ldap.sdk.{Version => _, _}
+import net.liftweb.json._
+import org.joda.time.DateTime
 import scalaz.zio._
 import scalaz.zio.syntax._
-import com.softwaremill.quicklens._
-import com.normation.errors.IOResult
+
 
 sealed trait InventoryMappingRudderError extends RudderError
 object InventoryMappingRudderError {
@@ -65,15 +65,12 @@ object InventoryMappingRudderError {
   final case class MalformedDN(msg: String)      extends InventoryMappingRudderError
   final case class MissingMandatory(msg: String) extends InventoryMappingRudderError
   final case class UnknownElement(msg: String)   extends InventoryMappingRudderError
-  final case class Chained[E <: RudderError](hint: String, cause: E) extends InventoryMappingRudderError with BaseChainError[E]
   final case class UnexpectedObject(msg: String) extends InventoryMappingRudderError
 }
 
 object InventoryMappingResult {
 
   type InventoryMappingPure[T] = Either[InventoryMappingRudderError, T]
-  type InventoryMappingResult[T] = IOResult[T]
-
 
   implicit class RequiredAttrToPure(entry: LDAPEntry) {
     def required(attribute: String): InventoryMappingPure[String] = entry(attribute) match {
@@ -85,14 +82,6 @@ object InventoryMappingResult {
   implicit class RequiredTypedAttrToPure(entry: LDAPEntry) {
     def requiredAs[T](f: LDAPEntry => String => Option[T], attribute: String): InventoryMappingPure[T] = f(entry)(attribute) match {
       case None    => Left(MissingMandatoryAttribute(attribute, entry))
-      case Some(x) => Right(x)
-    }
-  }
-
-
-  implicit class RequiredThing[T](opt: Option[T]) {
-    def notOptional(msg: String) = opt match {
-      case None    => Left(MissingMandatory(msg))
       case Some(x) => Right(x)
     }
   }
@@ -271,7 +260,7 @@ class InventoryMapper(
       name     <- e.required(A_PORT_NAME)
       desc     =  e(A_DESCRIPTION)
       smeType  =  e(A_SME_TYPE)
-      quantity = e.getAsInt(A_QUANTITY).getOrElse(1)
+      quantity =  e.getAsInt(A_QUANTITY).getOrElse(1)
     } yield {
       Port( name, desc, smeType, quantity )
     }
@@ -497,7 +486,7 @@ class InventoryMapper(
   private[this] def mapAndAddElementGeneric[U, T](from: U, e: LDAPEntry, name: String, f: LDAPEntry => InventoryMappingPure[T], path: U => PathModify[U, Seq[T]]): UIO[U] = {
     f(e) match {
       case Left(error) =>
-        InventoryLogger.error(s"Error when mapping LDAP entry to a '${name}'. Entry details: ${e}. Cause: ${e.getClass.getSimpleName}:${error.msg}") *>
+        InventoryLogger.error(Chained(s"Error when mapping LDAP entry to a '${name}'. Entry details: ${e}.", error).fullMsg) *>
         from.succeed
       case Right(value) =>
         path(from).using( value +: _ ).succeed
@@ -524,12 +513,12 @@ class InventoryMapper(
     }
   }
 
-  def machineFromTree(tree:LDAPTree) : InventoryMappingResult[MachineInventory] = {
+  def machineFromTree(tree:LDAPTree) : IOResult[MachineInventory] = {
     for {
-      dit                <- ZIO.fromEither(ditService.getDit(tree.root().dn).notOptional(s"Impossible to find DIT for entry '${tree.root().dn.toString()}'"))
+      dit                <- ditService.getDit(tree.root().dn).notOptional(s"Impossible to find DIT for entry '${tree.root().dn.toString()}'")
       inventoryStatus    =  ditService.getInventoryStatus(dit)
-      id                 <- ZIO.fromEither(dit.MACHINES.MACHINE.idFromDN(tree.root.dn))
-      machineType        <- ZIO.fromEither(machineTypeFromObjectClasses(tree.root().valuesFor(A_OC).toSet).notOptional("Can not find machine types"))
+      id                 <- dit.MACHINES.MACHINE.idFromDN(tree.root.dn).toIO
+      machineType        <- machineTypeFromObjectClasses(tree.root().valuesFor(A_OC).toSet).notOptional("Can not find machine types")
       name               =  tree.root()(A_NAME)
       mbUuid             =  tree.root()(A_MB_UUID) map { x => MotherBoardUuid(x) }
       inventoryDate      =  tree.root.getAsGTime(A_INVENTORY_DATE).map { _.dateTime }
@@ -671,13 +660,9 @@ class InventoryMapper(
     }
 
     implicit class Unserialize(json: String) {
-      def toCustomProperty: Either[Throwable, CustomProperty] = {
+      def toCustomProperty: IOResult[CustomProperty] = {
         implicit val formats = DefaultFormats
-        try {
-          Right(Serialization.read[CustomProperty](json))
-        } catch {
-          case ex: Exception => Left(ex)
-        }
+        IOResult.effect(Serialization.read[CustomProperty](json))
       }
     }
   }
@@ -821,7 +806,7 @@ class InventoryMapper(
     set.toSeq.flatMap { x =>
       (for {
         dn   <- try { Right(new DN(x)) } catch { case e:LDAPException => Left(MalformedDN(s"Can not parse DN: '${x}'. Exception was: ${e.getMessage}")) }
-        dit  <- ditService.getDit(dn).notOptional(s"Can not find DIT from DN '${x}'")
+        dit  <- ditService.getDit(dn).toRight(Unconsistancy(s"Can not find DIT from DN '${x}'"))
         uuid <- dit.MACHINES.MACHINE.idFromDN(dn)
         st   =  ditService.getInventoryStatus(dit)
       } yield (uuid, st) ) match {
@@ -898,33 +883,29 @@ class InventoryMapper(
     }
   }
 
-  def nodeFromEntry(entry:LDAPEntry) : InventoryMappingResult[NodeInventory] = {
-    implicit class ToZio[T](res: InventoryMappingPure[T]) {
-      def zio = ZIO.fromEither(res)
-    }
+  def nodeFromEntry(entry:LDAPEntry) : IOResult[NodeInventory] = {
+
     for {
-      dit                <- ditService.getDit(entry.dn).notOptional(s"DIT not found for entry ${entry.dn}").zio
+      dit                <- ditService.getDit(entry.dn).notOptional(s"DIT not found for entry ${entry.dn}")
       inventoryStatus    =  ditService.getInventoryStatus(dit)
-      id                 <- dit.NODES.NODE.idFromDN(entry.dn).zio
+      id                 <- dit.NODES.NODE.idFromDN(entry.dn).toIO
       keyStatus          <- ZIO.fromEither(entry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Right(UndefinedKey)))
-      hostname           <- entry.required(A_HOSTNAME).zio
-      rootUser           <- entry.required(A_ROOT_USER).zio
-      policyServerId     <- entry.required(A_POLICY_SERVER_UUID).zio
+      hostname           <- entry.required(A_HOSTNAME).toIO
+      rootUser           <- entry.required(A_ROOT_USER).toIO
+      policyServerId     <- entry.required(A_POLICY_SERVER_UUID).toIO
       publicKeys         =  entry.valuesFor(A_PKEYS).map(Some(_))
       agentNames         <- {
                               val agents = entry.valuesFor(A_AGENTS_NAME).toSeq.map(Some(_))
                               val agentWithKeys = agents.zipAll(publicKeys, None,None).filter(_._1.isDefined)
                               ZIO.foreach(agentWithKeys) {
                                 case (Some(agent), key) =>
-                                  AgentInfoSerialisation.parseCompatNonJson(agent,key).mapError(err =>
-                                    InventoryMappingRudderError.Chained(s"Error when parsing agent security token '${agent}'", err)
-                                  )
+                                  AgentInfoSerialisation.parseCompatNonJson(agent,key).chainError(s"Error when parsing agent security token '${agent}'")
                                 case (None, key)        =>
                                   InventoryMappingRudderError.MissingMandatory("Error when parsing agent security token: agent is undefined").fail
                               }
                             }
       //now, look for the OS type
-      osDetails          <- mapOsDetailsFromEntry(entry).zio
+      osDetails          <- mapOsDetailsFromEntry(entry).toIO
       // optional information
       name               =  entry(A_NAME)
       description        =  entry(A_DESCRIPTION)
@@ -960,9 +941,11 @@ class InventoryMapper(
                             }
       customProperties   <-  { import CustomPropertiesSerialization.Unserialize
                               ZIO.foreach(entry.valuesFor(A_CUSTOM_PROPERTY))( a =>
-                                ZIO.fromEither(a.toCustomProperty).foldM(ex =>
-                                    InventoryLogger.warn(s"Error when deserializing node inventory custom property (ignoring that property): ${ex.getMessage}", ex) *> None.succeed
-                                  , p => Some(p).succeed
+                                a.toCustomProperty.foldM(
+                                    err =>
+                                      InventoryLogger.warn(Chained(s"Error when deserializing node inventory custom property (ignoring that property)", err).fullMsg) *> None.succeed
+                                  , p =>
+                                      Some(p).succeed
                                 )
                               )
                             }
@@ -1001,7 +984,7 @@ class InventoryMapper(
     }
   }
 
-  def nodeFromTree(tree:LDAPTree) : InventoryMappingResult[NodeInventory] = {
+  def nodeFromTree(tree:LDAPTree) : IOResult[NodeInventory] = {
     for {
       node <- nodeFromEntry(tree.root)
       res  <- ZIO.foldLeft(tree.children)(node) { case (m,(rdn,t)) => mapAndAddNodeElement(t.root(),m) }
