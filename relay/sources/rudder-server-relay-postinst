@@ -11,6 +11,10 @@ echo -n "INFO: Stopping Apache HTTPd..."
 systemctl stop "${APACHE}" >dev/null
 echo " Done"
 
+echo -n "INFO: Stopping rudder-relayd..."
+systemctl stop rudder-relayd >/dev/null || true
+echo " Done"
+
 # Create the rudder group if it does not exist
 if ! getent group rudder > /dev/null; then
   echo -n "INFO: Creating group rudder..."
@@ -46,7 +50,7 @@ chmod 755 /var/rudder/inventories
 for inventorydir in /var/rudder/inventories/incoming /var/rudder/inventories/accepted-nodes-updates
 do
   chmod 770 ${inventorydir}
-  chown root:${APACHE_GROUP} ${inventorydir}
+  chown rudder:${APACHE_GROUP} ${inventorydir}
 done
 
 # Setup password files for inventory reception WebDAV access
@@ -67,6 +71,17 @@ fi
 if [ ! -f /opt/rudder/etc/ssl/ca.cert ]; then
   cp /opt/rudder/etc/ssl/rudder.crt /opt/rudder/etc/ssl/ca.cert
 fi
+
+if [ -z "${FIRST_INSTALL}" ]; then
+  echo -n "INFO: Setting rudder-relayd as a boot service..."
+  systemctl daemon-reload
+  systemctl enable rudder-relayd
+  echo " Done"
+fi
+
+echo -n "INFO: Starting rudder-relayd..."
+systemctl start rudder-relayd >/dev/null
+echo " Done"
 
 echo -n "INFO: Starting Apache HTTPd..."
 systemctl start "${APACHE}" >/dev/null
