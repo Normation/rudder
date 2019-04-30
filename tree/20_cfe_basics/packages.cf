@@ -424,7 +424,7 @@ body package_method redhat_local_install
     package_installed_regex => ".*";
     package_name_convention => "$(name)";
     package_list_update_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
-    package_list_update_ifelapsed => "0";     # sometimes, caching is pretty disturbing
+    package_list_update_ifelapsed => "240";     # sometimes, caching is pretty disturbing
     package_patch_installed_regex => "^\s.*";
     package_patch_name_regex    => "([^.]+).*";
     package_patch_version_regex => "[^\s]\s+([^\s]+).*";
@@ -452,7 +452,7 @@ body package_method redhat_install
     package_installed_regex => ".*";
     package_name_convention => "$(name)";
     package_list_update_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
-    package_list_update_ifelapsed => "0";     # sometimes, caching is pretty disturbing
+    package_list_update_ifelapsed => "240";     # sometimes, caching is pretty disturbing
     package_patch_installed_regex => "^\s.*";
     package_patch_name_regex    => "([^.]+).*";
     package_patch_version_regex => "[^\s]\s+([^\s]+).*";
@@ -474,7 +474,7 @@ body package_method debian_local_install
     package_list_command => "$(debian_knowledge.call_dpkg) -l";
     # set it to "0" to avoid caching of list during upgrade
     package_list_update_command => "$(debian_knowledge.call_apt_get) update";
-    package_list_update_ifelapsed => "0";
+    package_list_update_ifelapsed => "240";
     package_list_name_regex    => ".i\s+([^\s]+).*";
     package_list_version_regex => ".i\s+[^\s]+\s+([^\s]+).*";
     package_installed_regex => ".i.*"; # packages that have been uninstalled may be listed
@@ -534,7 +534,7 @@ body package_method ncf_generic
     package_installed_regex => ".*";
     package_name_convention => "$(name)";
     package_list_update_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
-    package_list_update_ifelapsed => "0";     # sometimes, caching is pretty disturbing
+    package_list_update_ifelapsed => "240";     # sometimes, caching is pretty disturbing
     package_patch_installed_regex => "^\s.*";
     package_patch_name_regex    => "([^.]+).*";
     package_patch_version_regex => "[^\s]\s+([^\s]+).*";
@@ -673,7 +673,7 @@ body package_method ncf_generic_version
     package_installed_regex => ".*";
     package_name_convention => "$(name)-$(version)";
     package_list_update_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
-    package_list_update_ifelapsed => "0";     # sometimes, caching is pretty disturbing
+    package_list_update_ifelapsed => "240";     # sometimes, caching is pretty disturbing
     package_patch_installed_regex => "^\s.*";
     package_patch_name_regex    => "([^.]+).*";
     package_patch_version_regex => "[^\s]\s+([^\s]+).*";
