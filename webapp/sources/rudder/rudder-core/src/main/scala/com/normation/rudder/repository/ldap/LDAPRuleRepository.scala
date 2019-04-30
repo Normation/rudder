@@ -130,6 +130,8 @@ class WoLDAPRuleRepository(
 
   import roLDAPRuleRepository._
 
+  val semaphore = Semaphore.make(1)
+
   override def loggerName: String = this.getClass.getName
 
   /**
@@ -167,66 +169,70 @@ class WoLDAPRuleRepository(
   }
 
   def create(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[AddRuleDiff] = {
-    repo.synchronized { for {
-      con             <- ldap
-      ruleExits       <- con.exists(rudderDit.RULES.configRuleDN(rule.id.value))
-      idDoesntExist   <- if(ruleExits) {
-                           s"Cannot create a rule with ID '${rule.id.value}' : there is already a rule with the same id".fail
-                         } else {
-                           UIO.unit
-                         }
-      nameExists      <- nodeRuleNameExists(con, rule.name, rule.id)
-      nameIsAvailable <- if (nameExists) "Cannot create a rule with name %s : there is already a rule with the same name".format(rule.name).fail
-                         else UIO.unit
-      crEntry         =  mapper.rule2Entry(rule)
-      result          <- con.save(crEntry).chainError(s"Error when saving rule entry in repository: ${crEntry}")
-      diff            <- diffMapper.addChangeRecords2RuleDiff(crEntry.dn,result).toIO
-      loggedAction    <- actionLogger.saveAddRule(modId, principal = actor, addDiff = diff, reason = reason)
-      autoArchive     <- (if(autoExportOnModify && !rule.isSystem) {
-                           for {
-                             commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                             archive  <- gitCrArchiver.archiveRule(rule, Some((modId, commiter, reason)))
-                           } yield {
-                             archive
+    semaphore.flatMap(_.withPermit(
+      for {
+        con             <- ldap
+        ruleExits       <- con.exists(rudderDit.RULES.configRuleDN(rule.id.value))
+        idDoesntExist   <- if(ruleExits) {
+                             s"Cannot create a rule with ID '${rule.id.value}' : there is already a rule with the same id".fail
+                           } else {
+                             UIO.unit
                            }
-                         } else UIO.unit)
-    } yield {
-      diff
-    } }
+        nameExists      <- nodeRuleNameExists(con, rule.name, rule.id)
+        nameIsAvailable <- if (nameExists) "Cannot create a rule with name %s : there is already a rule with the same name".format(rule.name).fail
+                           else UIO.unit
+        crEntry         =  mapper.rule2Entry(rule)
+        result          <- con.save(crEntry).chainError(s"Error when saving rule entry in repository: ${crEntry}")
+        diff            <- diffMapper.addChangeRecords2RuleDiff(crEntry.dn,result).toIO
+        loggedAction    <- actionLogger.saveAddRule(modId, principal = actor, addDiff = diff, reason = reason)
+        autoArchive     <- (if(autoExportOnModify && !rule.isSystem) {
+                             for {
+                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                               archive  <- gitCrArchiver.archiveRule(rule, Some((modId, commiter, reason)))
+                             } yield {
+                               archive
+                             }
+                           } else UIO.unit)
+      } yield {
+        diff
+    }
+    ))
   }
 
   private[this] def internalUpdate(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String], systemCall:Boolean) : IOResult[Option[ModifyRuleDiff]] = {
-    repo.synchronized { for {
-      con           <- ldap
-      existingEntry <- con.get(rudderDit.RULES.configRuleDN(rule.id.value)).notOptional(s"Cannot update rule with id ${rule.id.value} : there is no rule with that id")
-      oldRule       <- mapper.entry2Rule(existingEntry).toIO.chainError(s"Error when transforming LDAP entry into a Rule for id ${rule.id.value}. Entry: ${existingEntry}")
-      systemCheck   <- (oldRule.isSystem, systemCall) match {
-                       case (true, false) => s"System rule '${oldRule.name}' (${oldRule.id.value}) can not be modified".fail
-                       case (false, true) => "You can't modify a non-system rule with updateSystem method".fail
-                       case _ => UIO.unit
-                     }
-      exists          <- nodeRuleNameExists(con, rule.name, rule.id)
-      nameIsAvailable <- if (exists) {
-                           s"Cannot update rule with name ${rule.name}: this name is already in use.".fail
-                         } else UIO.unit
-      crEntry         =  mapper.rule2Entry(rule)
-      result          <- con.save(crEntry, true).chainError(s"Error when saving rule entry in repository: ${crEntry}")
-      optDiff         <- diffMapper.modChangeRecords2RuleDiff(existingEntry,result).toIO.chainError("Error when mapping rule '%s' update to an diff: %s".format(rule.id.value, result))
-      loggedAction    <- optDiff match {
-                           case None => UIO.unit
-                           case Some(diff) => actionLogger.saveModifyRule(modId, principal = actor, modifyDiff = diff, reason = reason)
-                         }
-      autoArchive     <- (if(autoExportOnModify && optDiff.isDefined  && !rule.isSystem) {
-                           for {
-                             commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                             archive  <- gitCrArchiver.archiveRule(rule, Some((modId, commiter, reason)))
-                           } yield {
-                             archive
+    semaphore.flatMap(_.withPermit(
+      for {
+        con           <- ldap
+        existingEntry <- con.get(rudderDit.RULES.configRuleDN(rule.id.value)).notOptional(s"Cannot update rule with id ${rule.id.value} : there is no rule with that id")
+        oldRule       <- mapper.entry2Rule(existingEntry).toIO.chainError(s"Error when transforming LDAP entry into a Rule for id ${rule.id.value}. Entry: ${existingEntry}")
+        systemCheck   <- (oldRule.isSystem, systemCall) match {
+                         case (true, false) => s"System rule '${oldRule.name}' (${oldRule.id.value}) can not be modified".fail
+                         case (false, true) => "You can't modify a non-system rule with updateSystem method".fail
+                         case _ => UIO.unit
+                       }
+        exists          <- nodeRuleNameExists(con, rule.name, rule.id)
+        nameIsAvailable <- if (exists) {
+                             s"Cannot update rule with name ${rule.name}: this name is already in use.".fail
+                           } else UIO.unit
+        crEntry         =  mapper.rule2Entry(rule)
+        result          <- con.save(crEntry, true).chainError(s"Error when saving rule entry in repository: ${crEntry}")
+        optDiff         <- diffMapper.modChangeRecords2RuleDiff(existingEntry,result).toIO.chainError("Error when mapping rule '%s' update to an diff: %s".format(rule.id.value, result))
+        loggedAction    <- optDiff match {
+                             case None => UIO.unit
+                             case Some(diff) => actionLogger.saveModifyRule(modId, principal = actor, modifyDiff = diff, reason = reason)
                            }
-                         } else UIO.unit)
-    } yield {
-      optDiff
-    } }
+        autoArchive     <- (if(autoExportOnModify && optDiff.isDefined  && !rule.isSystem) {
+                             for {
+                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                               archive  <- gitCrArchiver.archiveRule(rule, Some((modId, commiter, reason)))
+                             } yield {
+                               archive
+                             }
+                           } else UIO.unit)
+      } yield {
+        optDiff
+      }
+    ))
   }
 
   def update(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[ModifyRuleDiff]] = {
@@ -275,8 +281,7 @@ class WoLDAPRuleRepository(
     val ou = rudderDit.ARCHIVES.ruleModel(id)
     //filter systemCr if they are not included, so that merge does not have to deal with that.
 
-    repo.synchronized {
-
+    semaphore.flatMap(_.withPermit(
       for {
         existingCrs <- getAll(true)
         con         <- ldap
@@ -309,17 +314,17 @@ class WoLDAPRuleRepository(
       } yield {
         id
       }
-    }
+    ))
   }
 
   def deleteSavedRuleArchiveId(archiveId:RuleArchiveId) : IOResult[Unit] = {
-    repo.synchronized {
+    semaphore.flatMap(_.withPermit(
       for {
         con     <- ldap
         deleted <- con.delete(rudderDit.ARCHIVES.ruleModel(archiveId).dn)
       } yield {
-        {}
+        ()
       }
-    }
+    ))
   }
 }

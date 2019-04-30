@@ -184,12 +184,18 @@ final class WoLDAPApiAccountRepository(
   , personIdentService : PersonIdentService
 ) extends WoApiAccountRepository {
   repo =>
+  /*
+   * We want to make all API account modification purely exclusive.
+   * The action is rare, so there is no contention/scalling problem here.
+   */
+  val semaphore = Semaphore.make(1)
 
   override def save(
       principal : ApiAccount
     , modId     : ModificationId
-    , actor     : EventActor) : IOResult[ApiAccount] = {
-    repo.synchronized {
+    , actor     : EventActor
+  ) : IOResult[ApiAccount] = {
+    semaphore.flatMap( _.withPermit(
       for {
         ldap     <- ldapConnexion
         existing <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, principal.token.value)) map {
@@ -238,7 +244,7 @@ final class WoLDAPApiAccountRepository(
       } yield {
         principal
       }
-    }
+    ))
   }
 
   override def delete(

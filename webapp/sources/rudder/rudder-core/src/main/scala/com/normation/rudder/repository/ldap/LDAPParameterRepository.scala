@@ -116,6 +116,8 @@ class WoLDAPParameterRepository(
 
   import roLDAPParameterRepository._
 
+  val semaphore = Semaphore.make(1)
+
   override def loggerName: String = this.getClass.getName
 
   def saveParameter(
@@ -123,7 +125,7 @@ class WoLDAPParameterRepository(
     , modId     : ModificationId
     , actor     :EventActor
     , reason    :Option[String]) : IOResult[AddGlobalParameterDiff] = {
-    repo.synchronized {
+    semaphore.flatMap(_.withPermit(
       for {
         con             <- ldap
         doesntExists    <- roLDAPParameterRepository.getGlobalParameter(parameter.name).flatMap {
@@ -147,7 +149,7 @@ class WoLDAPParameterRepository(
       } yield {
         diff
       }
-    }
+    ))
   }
 
   def updateParameter(
@@ -156,7 +158,7 @@ class WoLDAPParameterRepository(
     , actor     : EventActor
     , reason    : Option[String]
    ) : IOResult[Option[ModifyGlobalParameterDiff]] = {
-    repo.synchronized {
+    semaphore.flatMap(_.withPermit(
       for {
         con             <- ldap
         oldParamEntry   <- roLDAPParameterRepository.getGlobalParameter(parameter.name).notOptional(s"Cannot update Global Parameter '${parameter.name}': there is no parameter with that name")
@@ -185,7 +187,7 @@ class WoLDAPParameterRepository(
       } yield {
         optDiff
       }
-    }
+    ))
   }
 
   def delete(parameterName:ParameterName, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[DeleteGlobalParameterDiff] = {
@@ -275,13 +277,13 @@ class WoLDAPParameterRepository(
   }
 
   def deleteSavedParametersArchiveId(archiveId:ParameterArchiveId) : IOResult[Unit] = {
-    repo.synchronized {
+    semaphore.flatMap(_.withPermit(
       for {
         con     <- ldap
         deleted <- con.delete(rudderDit.ARCHIVES.parameterModel(archiveId).dn)
       } yield {
-        {}
+        ()
       }
-    }
+    ))
   }
 }

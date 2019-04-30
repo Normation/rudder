@@ -332,6 +332,12 @@ final object MergePolicyService {
       set.toList.sorted(onlyBundleOrder.toOrdering).head
     }
 
+    val displayDraft  = (x: BoundPolicyDraft) => s"'${x.ruleOrder.value}/${x.directiveOrder.value}'"
+    val displayPolicy = (x: Policy          ) => s"'${x.ruleOrder.value}/${x.directiveOrder.value}'"
+
+    PolicyLogger.trace(s"'${nodeInfo.id.value}': directive for unique techniques: ${keptUniqueDraft.map(displayDraft).mkString(" | ")}")
+    PolicyLogger.trace(s"'${nodeInfo.id.value}': indep multi-directives: ${deduplicatedMultiDirective.map(displayDraft).mkString(" | ")}")
+    PolicyLogger.trace(s"'${nodeInfo.id.value}': to merge multi-directives: [${groupedDrafts.toMerge.map{ case (k, v) => s"$k: ${v.map(displayDraft).mkString(" | ")}"}.mkString("] [")}]")
 
     // now proceed the policies that need to be merged
     for {
@@ -347,15 +353,20 @@ final object MergePolicyService {
                   (keptUniqueDraft ++ deduplicatedMultiDirective).toList.traverse( _.toPolicy(agent.agentType) )
                 }
     } yield {
+
       // we are sorting several things in that method, and I'm not sure we want to sort them in the same way (and so
       // factorize out sorting core) or not. We sort:
       // - policies based on non-multi-instance technique, by priority and then rule/directive order, to choose the correct one
       // - in a multi-instance, mono-policy case, we sort directives in the same fashion (but does priority make sense here?)
       // - and finally, here we sort all drafts (in that case, only by bundle order)
 
-      (merged++others).sortWith { case (d1, d2) =>
+      val policies = (merged++others).sortWith { case (d1, d2) =>
         BundleOrder.compareList(List(d1.ruleOrder, d1.directiveOrder), List(d2.ruleOrder, d2.directiveOrder)) <= 0
       }.toList
+
+      PolicyLogger.debug(s"Resolved policies for '${nodeInfo.id.value}': ${policies.map(displayPolicy).mkString(" | ")}")
+
+      policies
     }
   }
 

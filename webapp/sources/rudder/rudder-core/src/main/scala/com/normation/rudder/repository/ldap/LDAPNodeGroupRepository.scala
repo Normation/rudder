@@ -512,6 +512,8 @@ class WoLDAPNodeGroupRepository(
 
   import roGroupRepo._
 
+  val semaphore = Semaphore.make(1)
+
   /**
    * Check if a group category exist with the given name
    */
@@ -603,65 +605,69 @@ class WoLDAPNodeGroupRepository(
    * Update an existing group category
    */
   override def saveGroupCategory(category: NodeGroupCategory, modId : ModificationId, actor:EventActor, reason: Option[String]): IOResult[NodeGroupCategory] = {
-    repo.synchronized { for {
-      con              <- ldap
-      oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1").notOptional("Entry with ID '%s' was not found".format(category.id))
-      categoryEntry    =  mapper.nodeGroupCategory2ldap(category,oldCategoryEntry.dn.getParent)
-      exists           <- categoryExists(con, category.name, oldCategoryEntry.dn.getParent, category.id)
-      canAddByName     <- if (exists)
-                            "Cannot update the Node Group Category with name %s : a category with the same name exists at the same level".format(category.name).fail
-                          else UIO.unit
-      result           <- groupLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
-      updated          <- getGroupCategory(category.id)
-      // Maybe we have to check if the parents are system or not too
-      autoArchive      <- (if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem) {
-                             for {
-                              parents  <- getParents_NodeGroupCategory(category.id)
-                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                              archive  <- gitArchiver.archiveNodeGroupCategory(updated,parents.map( _.id), Some((modId, commiter, reason)))
-                            } yield archive
-                          } else UIO.unit)
-    } yield {
-      updated
-    } }
+    semaphore.flatMap(_.withPermit(
+      for {
+        con              <- ldap
+        oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1").notOptional("Entry with ID '%s' was not found".format(category.id))
+        categoryEntry    =  mapper.nodeGroupCategory2ldap(category,oldCategoryEntry.dn.getParent)
+        exists           <- categoryExists(con, category.name, oldCategoryEntry.dn.getParent, category.id)
+        canAddByName     <- if (exists)
+                              "Cannot update the Node Group Category with name %s : a category with the same name exists at the same level".format(category.name).fail
+                            else UIO.unit
+        result           <- groupLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
+        updated          <- getGroupCategory(category.id)
+        // Maybe we have to check if the parents are system or not too
+        autoArchive      <- (if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem) {
+                               for {
+                                parents  <- getParents_NodeGroupCategory(category.id)
+                                commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                archive  <- gitArchiver.archiveNodeGroupCategory(updated,parents.map( _.id), Some((modId, commiter, reason)))
+                              } yield archive
+                            } else UIO.unit)
+      } yield {
+        updated
+      }
+    ))
   }
 
    /**
    * Update/move an existing group category
    */
   override def saveGroupCategory(category: NodeGroupCategory, containerId : NodeGroupCategoryId, modId : ModificationId, actor:EventActor, reason: Option[String]): IOResult[NodeGroupCategory] = {
-    repo.synchronized { for {
-      con              <- ldap
-      oldParents       <- if(autoExportOnModify) {
-                            getParents_NodeGroupCategory(category.id)
-                          } else Nil.succeed
-      oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1").notOptional("Entry with ID '%s' was not found".format(category.id))
-      newParent        <- getCategoryEntry(con, containerId, "1.1").notOptional("Parent entry with ID '%s' was not found".format(containerId))
-      exists           <- categoryExists(con, category.name, newParent.dn, category.id)
-      canAddByName     <- if (exists)
-                            "Cannot update the Node Group Category with name %s : a category with the same name exists at the same level".format(category.name).fail
-                          else UIO.unit
-      categoryEntry    =  mapper.nodeGroupCategory2ldap(category,newParent.dn)
-      moved            <- if (newParent.dn == oldCategoryEntry.dn.getParent) {
-                            LDIFNoopChangeRecord(oldCategoryEntry.dn).succeed
-                          } else { groupLibMutex.writeLock { con.move(oldCategoryEntry.dn, newParent.dn) } }
-      result           <- groupLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
-      updated          <- getGroupCategory(category.id)
-      autoArchive      <- (moved, result) match {
-                            case (_:LDIFNoopChangeRecord, _:LDIFNoopChangeRecord) => "OK, nothing to archive".succeed
-                            case _ if(autoExportOnModify && !updated.isSystem) =>
-                              (for {
-                                parents  <- getParents_NodeGroupCategory(updated.id)
-                                commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                moved    <- gitArchiver.moveNodeGroupCategory(updated, oldParents.map( _.id), parents.map( _.id), Some((modId, commiter, reason)))
-                              } yield {
-                                moved
-                              }).chainError("Error when trying to archive automatically the category move")
-                            case _ => UIO.unit
-                          }
-    } yield {
-      updated
-    } }
+    semaphore.flatMap(_.withPermit(
+      for {
+        con              <- ldap
+        oldParents       <- if(autoExportOnModify) {
+                              getParents_NodeGroupCategory(category.id)
+                            } else Nil.succeed
+        oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1").notOptional("Entry with ID '%s' was not found".format(category.id))
+        newParent        <- getCategoryEntry(con, containerId, "1.1").notOptional("Parent entry with ID '%s' was not found".format(containerId))
+        exists           <- categoryExists(con, category.name, newParent.dn, category.id)
+        canAddByName     <- if (exists)
+                              "Cannot update the Node Group Category with name %s : a category with the same name exists at the same level".format(category.name).fail
+                            else UIO.unit
+        categoryEntry    =  mapper.nodeGroupCategory2ldap(category,newParent.dn)
+        moved            <- if (newParent.dn == oldCategoryEntry.dn.getParent) {
+                              LDIFNoopChangeRecord(oldCategoryEntry.dn).succeed
+                            } else { groupLibMutex.writeLock { con.move(oldCategoryEntry.dn, newParent.dn) } }
+        result           <- groupLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
+        updated          <- getGroupCategory(category.id)
+        autoArchive      <- (moved, result) match {
+                              case (_:LDIFNoopChangeRecord, _:LDIFNoopChangeRecord) => "OK, nothing to archive".succeed
+                              case _ if(autoExportOnModify && !updated.isSystem) =>
+                                (for {
+                                  parents  <- getParents_NodeGroupCategory(updated.id)
+                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                  moved    <- gitArchiver.moveNodeGroupCategory(updated, oldParents.map( _.id), parents.map( _.id), Some((modId, commiter, reason)))
+                                } yield {
+                                  moved
+                                }).chainError("Error when trying to archive automatically the category move")
+                              case _ => UIO.unit
+                            }
+      } yield {
+        updated
+      }
+    ))
   }
 
   /**
@@ -742,60 +748,62 @@ class WoLDAPNodeGroupRepository(
     }
   }
 
-  private[this] def internalUpdate(nodeGroup:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String], systemCall:Boolean, onlyUpdateNodes: Boolean): IOResult[Option[ModifyNodeGroupDiff]] = this.synchronized {
-    for {
-      con          <- ldap
-      existing     <- getSGEntry(con, nodeGroup.id).notOptional("Error when trying to check for existence of group with id %s. Can not update".format(nodeGroup.id))
-      oldGroup     <- mapper.entry2NodeGroup(existing).toIO.chainError("Error when trying to check for the group %s".format(nodeGroup.id.value))
-      systemCheck  <- if(onlyUpdateNodes) {
-                        oldGroup.succeed
-                      } else (oldGroup.isSystem, systemCall) match {
-                        case (true, false) => "System group '%s' (%s) can not be modified".format(oldGroup.name, oldGroup.id.value).fail
-                        case (false, true) => "You can not modify a non system group (%s) with that method".format(oldGroup.name).fail
-                        case _ => oldGroup.succeed
-                      }
-      name         <- checkNameAlreadyInUse(con, nodeGroup.name, nodeGroup.id)
-      exists       <- if (name && !onlyUpdateNodes) {
-                        s"Cannot change the group name to ${nodeGroup.name} : there is already a group with the same name".fail
-                      } else UIO.unit
-      onlyNodes    <- if(!onlyUpdateNodes) {
-                        UIO.unit
-                      } else { //check that nothing but the node list changed
-                        if(nodeGroup.copy(serverList = oldGroup.serverList) == oldGroup) {
-                          UIO.unit
-                        } else {
-                          "The group configuration changed compared to the reference group you want to change the node list for. Aborting to preserve consistency".fail
-                        }
-                      }
-      entry        =  rudderDit.GROUP.groupModel(
-                          nodeGroup.id.value
-                        , existing.dn.getParent
-                        , nodeGroup.name
-                        , nodeGroup.description
-                        , nodeGroup.query
-                        , nodeGroup.isDynamic
-                        , nodeGroup.serverList
-                        , nodeGroup.isEnabled
-                        , nodeGroup.isSystem
-                      )
-      result       <- groupLibMutex.writeLock { con.save(entry, true).chainError(s"Error when saving entry: ${entry}") }
-      optDiff      <- diffMapper.modChangeRecords2NodeGroupDiff(existing, result).toIO.chainError(s"Error when mapping change record to a diff object: ${result}")
-      loggedAction <- optDiff match {
-                        case None => UIO.unit
-                        case Some(diff) =>
-                          actionlogEffect.saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = reason).chainError("Error when logging modification as an event")
-                      }
-      autoArchive  <- (if(autoExportOnModify && optDiff.isDefined && !nodeGroup.isSystem) { //only persists if modification are present
-                        for {
-                          parent   <- getParentGroupCategory(nodeGroup.id)
-                          parents  <- getParents_NodeGroupCategory(parent.id)
-                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                          archived <- gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map( _.id), Some((modId, commiter, reason)))
-                        } yield archived
-                      } else Full("ok")).succeed
-    } yield {
-      optDiff
-    }
+  private[this] def internalUpdate(nodeGroup:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String], systemCall:Boolean, onlyUpdateNodes: Boolean): IOResult[Option[ModifyNodeGroupDiff]] = {
+    semaphore.flatMap(_.withPermit(
+      for {
+        con          <- ldap
+        existing     <- getSGEntry(con, nodeGroup.id).notOptional("Error when trying to check for existence of group with id %s. Can not update".format(nodeGroup.id))
+        oldGroup     <- mapper.entry2NodeGroup(existing).toIO.chainError("Error when trying to check for the group %s".format(nodeGroup.id.value))
+        systemCheck  <- if(onlyUpdateNodes) {
+          oldGroup.succeed
+        } else (oldGroup.isSystem, systemCall) match {
+          case (true, false) => "System group '%s' (%s) can not be modified".format(oldGroup.name, oldGroup.id.value).fail
+          case (false, true) => "You can not modify a non system group (%s) with that method".format(oldGroup.name).fail
+          case _ => oldGroup.succeed
+        }
+        name         <- checkNameAlreadyInUse(con, nodeGroup.name, nodeGroup.id)
+        exists       <- if (name && !onlyUpdateNodes) {
+          s"Cannot change the group name to ${nodeGroup.name} : there is already a group with the same name".fail
+        } else UIO.unit
+        onlyNodes    <- if(!onlyUpdateNodes) {
+          UIO.unit
+        } else { //check that nothing but the node list changed
+          if(nodeGroup.copy(serverList = oldGroup.serverList) == oldGroup) {
+            UIO.unit
+          } else {
+            "The group configuration changed compared to the reference group you want to change the node list for. Aborting to preserve consistency".fail
+          }
+        }
+        entry        =  rudderDit.GROUP.groupModel(
+          nodeGroup.id.value
+          , existing.dn.getParent
+          , nodeGroup.name
+          , nodeGroup.description
+          , nodeGroup.query
+          , nodeGroup.isDynamic
+          , nodeGroup.serverList
+          , nodeGroup.isEnabled
+          , nodeGroup.isSystem
+        )
+        result       <- groupLibMutex.writeLock { con.save(entry, true).chainError(s"Error when saving entry: ${entry}") }
+        optDiff      <- diffMapper.modChangeRecords2NodeGroupDiff(existing, result).toIO.chainError(s"Error when mapping change record to a diff object: ${result}")
+        loggedAction <- optDiff match {
+          case None => UIO.unit
+          case Some(diff) =>
+            actionlogEffect.saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = reason).chainError("Error when logging modification as an event")
+        }
+        autoArchive  <- (if(autoExportOnModify && optDiff.isDefined && !nodeGroup.isSystem) { //only persists if modification are present
+          for {
+            parent   <- getParentGroupCategory(nodeGroup.id)
+            parents  <- getParents_NodeGroupCategory(parent.id)
+            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+            archived <- gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map( _.id), Some((modId, commiter, reason)))
+          } yield archived
+        } else Full("ok")).succeed
+      } yield {
+        optDiff
+      }
+    ))
   }
 
   override def updateDynGroupNodes(group:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[ModifyNodeGroupDiff]] = {

@@ -163,6 +163,8 @@ class WoLDAPRuleCategoryRepository(
 
   override def loggerName: String = this.getClass.getName
 
+  val semaphore = Semaphore.make(1)
+
   /**
    * Check if a category exist with the given name
    */
@@ -260,42 +262,44 @@ class WoLDAPRuleCategoryRepository(
     , actor       : EventActor
     , reason      : Option[String]
   ) : IOResult[RuleCategory] = {
-    repo.synchronized { for {
-      con              <- ldap
-      oldParents       <- if(autoExportOnModify) {
-                            getParents(category.id)
-                          } else Nil.succeed
-      oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1").notOptional(s"Entry with ID '${category.id.value}' was not found")
-      newParent        <- getCategoryEntry(con, containerId, "1.1").notOptional(s"Parent entry with ID '${containerId.value}' was not found")
-      exists           <- categoryExists(con, category.name, newParent.dn, category.id)
-      canAddByName     <- if (exists) {
-                            Inconsistancy(s"Cannot update the Node Group Category with name ${category.name} : a category with the same name exists at the same level").fail
-                          } else {
-                            UIO.unit
-                          }
-      categoryEntry    =  mapper.ruleCategory2ldap(category,newParent.dn)
-      moved            <- if (newParent.dn == oldCategoryEntry.dn.getParent) {
-                            LDIFNoopChangeRecord(oldCategoryEntry.dn).succeed
-                          } else {
-                            categoryMutex.writeLock { con.move(oldCategoryEntry.dn, newParent.dn) }
-                          }
-      result           <- categoryMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
-      updated          <- get(category.id)
-      autoArchive      <- (moved, result) match {
-                            case (_:LDIFNoopChangeRecord, _:LDIFNoopChangeRecord) => "OK, nothing to archive".succeed
-                            case _ if(autoExportOnModify && !updated.isSystem) =>
-                              (for {
-                                parents  <- getParents(updated.id)
-                                commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                moved    <- gitArchiver.moveRuleCategory(updated, oldParents.map( _.id), parents.map( _.id), Some((modId, commiter, reason)))
-                              } yield {
-                                moved
-                              }).chainError("Error when trying to  automaticallyarchive the category move or update")
-                            case _ => "ok".succeed
-                          }
-    } yield {
-      updated
-    } }
+    semaphore.flatMap(_.withPermit(
+      for {
+        con              <- ldap
+        oldParents       <- if(autoExportOnModify) {
+                              getParents(category.id)
+                            } else Nil.succeed
+        oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1").notOptional(s"Entry with ID '${category.id.value}' was not found")
+        newParent        <- getCategoryEntry(con, containerId, "1.1").notOptional(s"Parent entry with ID '${containerId.value}' was not found")
+        exists           <- categoryExists(con, category.name, newParent.dn, category.id)
+        canAddByName     <- if (exists) {
+                              Inconsistancy(s"Cannot update the Node Group Category with name ${category.name} : a category with the same name exists at the same level").fail
+                            } else {
+                              UIO.unit
+                            }
+        categoryEntry    =  mapper.ruleCategory2ldap(category,newParent.dn)
+        moved            <- if (newParent.dn == oldCategoryEntry.dn.getParent) {
+                              LDIFNoopChangeRecord(oldCategoryEntry.dn).succeed
+                            } else {
+                              categoryMutex.writeLock { con.move(oldCategoryEntry.dn, newParent.dn) }
+                            }
+        result           <- categoryMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
+        updated          <- get(category.id)
+        autoArchive      <- (moved, result) match {
+                              case (_:LDIFNoopChangeRecord, _:LDIFNoopChangeRecord) => UIO.unit
+                              case _ if(autoExportOnModify && !updated.isSystem) =>
+                                (for {
+                                  parents  <- getParents(updated.id)
+                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                  moved    <- gitArchiver.moveRuleCategory(updated, oldParents.map( _.id), parents.map( _.id), Some((modId, commiter, reason)))
+                                } yield {
+                                  moved
+                                }).chainError("Error when trying to  automaticallyarchive the category move or update")
+                              case _ => UIO.unit
+                            }
+      } yield {
+        updated
+      }
+    ))
   }
 
 

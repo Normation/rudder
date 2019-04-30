@@ -219,6 +219,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
   def ldapMapper     : LDAPEntityMapper
   def inventoryMapper: InventoryMapper
 
+  val semaphore = Semaphore.make(1)
 
   /*
    * Compare if cache is up to date (based on internal state of the cache)
@@ -258,7 +259,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
   /**
    * That's the method that do all the logic
    */
-  private[this] def withUpToDateCache[T](label: String)(useCache: Map[NodeId, (LDAPNodeInfo, NodeInfo)] => IOResult[T]): IOResult[T] = this.synchronized {
+  private[this] def withUpToDateCache[T](label: String)(useCache: Map[NodeId, (LDAPNodeInfo, NodeInfo)] => IOResult[T]): IOResult[T] = {
     /*
      * Get all relevant info from backend along with the
      * date of the last modification
@@ -372,38 +373,39 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
       }
     }
 
-    //actual logic that check what to do (invalidate cache or not)
-
-    for {
-      t0      <- UIO(System.currentTimeMillis)
-      notInit <- IOResult.effect(nodeCache.isEmpty)
-      clean   <- isUpToDate()
-      info    <- if(notInit || !clean) {
-                   for {
-                     lastUpdate <- IOResult.effect(nodeCache.map(_.lastModTime).getOrElse(new DateTime(0)))
-                     updated    <- getDataFromBackend(lastUpdate).foldM(
-                                     err      =>
-                                       IOResult.effect({nodeCache = None; ()}) *> Chained("Could not get node information from database", err).fail
-                                   , newCache =>
-                                       logPure.debug(s"NodeInfo cache is not up to date, last modification time: '${newCache.lastModTime}', last cache update:"+
-                                         s" '${lastUpdate}' => reseting cache with ${newCache.nodeInfos.size} entries") *>
-                                       logPure.trace(s"NodeInfo cache updated entries: [${newCache.nodeInfos.keySet.map{ _.value }.mkString(", ")}]") *>
-                                       IOResult.effect({nodeCache = Some(newCache); () }) *>
-                                       newCache.nodeInfos.succeed
-                                   )
-                   } yield {
-                     updated
-                   }
-                } else {
-                  logPure.debug(s"NodeInfo cache is up to date, ${nodeCache.map(c => s"last modification time: '${c.lastModTime}' for: '${c.lastModEntryCSN.mkString("','")}'").getOrElse("")}") *>
-                  nodeCache.get.nodeInfos.succeed //get is ok because in a synchronized block with a test on isEmpty
-                }
-      res    <- useCache(info)
-      t1     <- UIO(System.currentTimeMillis)
-      _      <- IOResult.effect(TimingDebugLogger.debug(s"Get node info (${label}): ${t1-t0}ms"))
-    } yield {
-      res
-    }
+    //actual logic that check what to do (invalidate cache or not). We want it to be fully synchronized.
+    semaphore.flatMap(_.withPermit(
+      for {
+        t0      <- UIO(System.currentTimeMillis)
+        notInit <- IOResult.effect(nodeCache.isEmpty)
+        clean   <- isUpToDate()
+        info    <- if(notInit || !clean) {
+                     for {
+                       lastUpdate <- IOResult.effect(nodeCache.map(_.lastModTime).getOrElse(new DateTime(0)))
+                       updated    <- getDataFromBackend(lastUpdate).foldM(
+                                       err      =>
+                                         IOResult.effect({nodeCache = None; ()}) *> Chained("Could not get node information from database", err).fail
+                                     , newCache =>
+                                         logPure.debug(s"NodeInfo cache is not up to date, last modification time: '${newCache.lastModTime}', last cache update:"+
+                                           s" '${lastUpdate}' => reseting cache with ${newCache.nodeInfos.size} entries") *>
+                                         logPure.trace(s"NodeInfo cache updated entries: [${newCache.nodeInfos.keySet.map{ _.value }.mkString(", ")}]") *>
+                                         IOResult.effect({nodeCache = Some(newCache); () }) *>
+                                         newCache.nodeInfos.succeed
+                                     )
+                     } yield {
+                       updated
+                     }
+                  } else {
+                    logPure.debug(s"NodeInfo cache is up to date, ${nodeCache.map(c => s"last modification time: '${c.lastModTime}' for: '${c.lastModEntryCSN.mkString("','")}'").getOrElse("")}") *>
+                    nodeCache.get.nodeInfos.succeed //get is ok because in a synchronized block with a test on isEmpty
+                  }
+        res    <- useCache(info)
+        t1     <- UIO(System.currentTimeMillis)
+        _      <- IOResult.effect(TimingDebugLogger.debug(s"Get node info (${label}): ${t1-t0}ms"))
+      } yield {
+        res
+      }
+    ))
   }
 
   /**
