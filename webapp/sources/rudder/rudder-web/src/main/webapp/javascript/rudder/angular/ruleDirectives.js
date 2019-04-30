@@ -143,6 +143,10 @@ ruleDirectives.controller('DirectiveCtrl', ['$scope', '$timeout', function($scop
         var desc  = directive.desc != "" ? "<div>"+directive.desc+"</div>" : "<div><i class='empty'>This directive has no description.</i><div>";
         return title + tech + desc;
     }
+
+    $scope.getListLength = function(list){
+      return Object.keys(list).length;
+    };
   } ] ) ;
 
 // Add directive to create popup from angular, the directive should shared to future angular component
