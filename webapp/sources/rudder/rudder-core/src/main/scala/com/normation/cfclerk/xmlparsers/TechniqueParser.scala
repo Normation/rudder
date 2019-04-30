@@ -106,7 +106,16 @@ class TechniqueParser(
 
               parseAgentConfig(id, forCompatibilityAgent)
             }
-          )
+          // we need to filter back for totally empty agent (most likely default one added for nothing)
+          ).filter(a => !List(a.templates, a.files, a.bundlesequence, a.runHooks).forall(_.isEmpty))
+
+          // all agent config types must be different
+          val duplicated = agentConfigs.map(_.agentType.id).groupBy(identity).collect { case (id, seq) if(seq.size > 1) => id }
+          if(duplicated.nonEmpty) {
+            throw new ParsingException(s"Error when parsing technique with ID '${id.toString}': these agent configurations are declared " +
+                                       s"several times: '${duplicated.mkString("','")}' (note that <TMLS>, <BUNDLES> and <FILES> " +
+                                       s"sections under root <TECHNIQUE> tag build a 'cfengine-community' agent configuration)")
+          }
 
           // System technique should not have run hooks, this is not supported:
           if(isSystem && agentConfigs.exists( a => a.runHooks.nonEmpty ) ) {

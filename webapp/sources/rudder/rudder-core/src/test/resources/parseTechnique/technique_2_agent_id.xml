@@ -1,0 +1,58 @@
+<TECHNIQUE name="Test technique">
+  <DESCRIPTION>Error: two agent section with same type</DESCRIPTION>
+
+  <MULTIINSTANCE>false</MULTIINSTANCE>
+
+  <AGENT type="cfengine-community">
+    <BUNDLES>
+      <NAME>fileTemplate_RudderUniqueID</NAME>
+    </BUNDLES>
+    <!-- also test for the correct replacement of RudderUniqueId in TML and RESOURCES files -->
+    <TMLS>
+      <TML name="fileTemplate"/>
+      <TML name="tmlWithIdOnPath">
+        <INCLUDED>false</INCLUDED>
+        <OUTPATH>fileTemplate/RudderUniqueID/tmlWithIdOnPath</OUTPATH>
+      </TML>
+    </TMLS>
+    <FILES>
+      <FILE name="fileWithIdOnPath.txt">
+        <INCLUDED>false</INCLUDED>
+        <OUTPATH>fileTemplate/RudderUniqueID/fileWithIdOnPath.txt</OUTPATH>
+      </FILE>
+    </FILES>
+  </AGENT>
+
+  <AGENT type="cfengine-community">
+    <BUNDLES>
+      <NAME>fileTemplate_RudderUniqueID</NAME>
+    </BUNDLES>
+    <!-- also test for the correct replacement of RudderUniqueId in TML and RESOURCES files -->
+    <TMLS>
+      <TML name="fileTemplate"/>
+      <TML name="tmlWithIdOnPath">
+        <INCLUDED>false</INCLUDED>
+        <OUTPATH>fileTemplate/RudderUniqueID/tmlWithIdOnPath</OUTPATH>
+      </TML>
+    </TMLS>
+    <FILES>
+      <FILE name="fileWithIdOnPath.txt">
+        <INCLUDED>false</INCLUDED>
+        <OUTPATH>fileTemplate/RudderUniqueID/fileWithIdOnPath.txt</OUTPATH>
+      </FILE>
+    </FILES>
+  </AGENT>
+
+  <TRACKINGVARIABLE>
+    <SAMESIZEAS>A</SAMESIZEAS>
+  </TRACKINGVARIABLE>
+
+  <SECTIONS>
+    <SECTION name="common">
+      <INPUT>
+        <NAME>A</NAME>
+        <DESCRIPTION>...</DESCRIPTION>
+      </INPUT>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>
