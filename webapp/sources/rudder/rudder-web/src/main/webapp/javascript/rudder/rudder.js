@@ -713,3 +713,80 @@ function graphTooltip (tooltip, displayColor) {
 function checkIPaddress(address) {
   return (/^((((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\/([1-9]|(0|([1-2][0-9]))|(3[0-2])))?)|(([0-9a-f]|:){1,4}(:([0-9a-f]{0,4})*){1,7}(\/([0-9]{1,2}|1[01][0-9]|12[0-8]))?)|(0.0.0.0))$/i).test(address);
 }
+
+function callRemoteRun(nodeId, refreshCompliance) {
+  var $textAction = $( "#triggerBtn" ).find("span").first();
+  var $iconButton = $( "#triggerBtn" ).find("i");
+  var $panelContent = $("#report").find("pre");
+  var spinner = '<img class="svg-loading" src="'+resourcesPath+'/images/ajax-loader-white.svg"/>';
+
+  function showOrHideBtn() {
+    $(".collapse").on('show.bs.collapse', function(){
+      $("#visibilityOutput").html($("#visibilityOutput").html().replace("Show", "Hide"));
+    }).on('hide.bs.collapse', function(){
+      $("#visibilityOutput").html($("#visibilityOutput").html().replace("Hide", "Show"));
+    });
+  }
+
+  function showTriggerBtn() {
+    $iconButton.children().remove(".svg-loading");
+    $iconButton.addClass("fa fa-play");
+    $( "#triggerBtn" ).prop('disabled', null).blur();
+    $textAction.html("Trigger Agent")
+  }
+
+  $iconButton.removeClass("fa fa-play").append(spinner)
+  $( "#triggerBtn" ).attr('disabled', 'disabled')
+  $textAction.html("Loading")
+  $("#report").removeClass("in");
+  $("#visibilityOutput").removeClass("btn-success");
+  $("#visibilityOutput").removeClass("btn-danger");
+  $("#visibilityOutput").hide();
+  $("#report").removeClass("border-success");
+  $("#report").removeClass("border-fail");
+  $("pre").remove();
+  $(".alert-danger").remove();
+  $("#countDown").find("span").empty();
+
+  $.ajax({
+    type: "POST",
+    url: contextPath + "/secure/api/nodes/" + nodeId + "/applyPolicy" ,
+    contentType: "application/json; charset=utf-8",
+    success: function (response, status, jqXHR) {
+        $("#visibilityOutput").addClass("btn-default").html("Show output").append('&nbsp;<i class="fa fa-check fa-lg fa-check-custom"></i>');
+        $("#report").html('<pre>' + response + '</pre>');
+        $("#report").addClass("border-success");
+        $("#visibilityOutput").show();
+        showOrHideBtn();
+        var counter = 5;
+        var interval = setInterval(function() {
+          $('#countDown').find("span").show()
+          counter--;
+          $("#countDown").find("span").html("Refresh table in " + counter);
+          if (counter == 0) {
+            $("#countDown").find("span").html("Table of compliance has been refreshed");
+            refreshCompliance();
+            clearInterval(interval);
+            setTimeout(function() {
+              $('#countDown').find("span").fadeOut();
+              showTriggerBtn();
+            }, 3000);
+              }
+        }, 1000);
+    },
+    error: function (jqXHR, textStatus, errorThrown) {
+        $iconButton.children().remove(".svg-loading");
+        $iconButton.addClass("fa fa-play");
+        $( "#triggerBtn" ).prop('disabled', null).blur();
+        $textAction.html("Trigger Agent");
+        $("#visibilityOutput").addClass("btn-default").html("Show error").append('&nbsp;<i class="fa fa-times fa-lg fa-times-custom"></i>');
+        $("#report").remove("pre").html('<div class="alert alert-danger error-trigger" role="alert">' + '<b>' +jqXHR.status + ' - ' + errorThrown +'</b>' +'<br>' + jqXHR.responseText  + '</div>');
+        $("#report").addClass("border-fail");
+        $("#visibilityOutput").show();
+        showOrHideBtn();
+        showTriggerBtn();
+    }
+  });
+}
+
+

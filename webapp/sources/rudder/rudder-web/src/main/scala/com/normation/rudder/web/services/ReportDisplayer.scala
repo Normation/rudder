@@ -37,31 +37,27 @@
 
 package com.normation.rudder.web.services
 
-import scala.xml.NodeSeq
-import scala.xml.NodeSeq.seqToNodeSeq
-import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.reports._
-import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.services.reports.ReportingService
 import bootstrap.liftweb.RudderConfig
+import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.appconfig.ReadConfigService
+import com.normation.rudder.domain.nodes.{NodeInfo, NodeState}
+import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.reports._
+import com.normation.rudder.repository.{FullActiveTechniqueCategory, RoDirectiveRepository, RoRuleRepository}
+import com.normation.rudder.services.reports.{ReportingService, _}
+import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.web.model.JsNodeId
 import net.liftweb.common._
-import net.liftweb.http.S
-import net.liftweb.http.SHtml
+import net.liftweb.http.{S, SHtml}
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.util.Helpers._
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.repository.FullActiveTechniqueCategory
-import com.normation.rudder.web.model.JsNodeId
-import com.normation.rudder.services.reports._
 import org.joda.time.format.DateTimeFormat
-import com.normation.rudder.appconfig.ReadConfigService
-import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.web.ChooseTemplate
-import com.normation.rudder.domain.nodes.NodeState
+
+import scala.xml.NodeSeq
+import scala.xml.NodeSeq.seqToNodeSeq
 
 /**
  * Display the last reports of a server
@@ -297,74 +293,95 @@ class ReportDisplayer(
   }
 
   private[this] def displayReports(node : NodeInfo) : NodeSeq = {
-    val boxXml = (
-      if(node.state == NodeState.Ignored) {
-        Full(<div><div class="col-sm-3"><p class="center bg-info" style="padding: 25px; margin:5px;">This node is disabled.</p></div></div>)
-      } else {
-      for {
-        report       <- reportingService.findNodeStatusReport(node.id)
-        directiveLib <- directiveRepository.getFullDirectiveLibrary
-      } yield {
+    val boxXml = if(node.state == NodeState.Ignored) {
+      Full(<div><div class="col-sm-3"><p class="center bg-info" style="padding: 25px; margin:5px;">This node is disabled.</p></div></div>)
+    } else {
+    for {
+      report       <- reportingService.findNodeStatusReport(node.id)
+      directiveLib <- directiveRepository.getFullDirectiveLibrary
+    } yield {
 
-        val intro = displayIntro(report)
+      val intro = displayIntro(report)
 
-        /*
-         * Now, on some case, we don't want to display 50% missing / 50% unexpected
-         * because the node config id is not correct (or related cases), we want to display
-         * what is expected config, but without the compliance part.
-         *
-         * And if don't even have expected configuration, don't display anything.
-         */
-
-        report.runInfo match {
-          case NoRunNoExpectedReport | _:NoExpectedReport =>
-            (
-                "lastreportgrid-intro"      #> intro
-              & "lastreportgrid-grid"       #> NodeSeq.Empty
-              & "lastreportgrid-missing"    #> NodeSeq.Empty
-              & "lastreportgrid-unexpected" #> NodeSeq.Empty
-            )(reportByNodeTemplate)
-
-          case _:UnexpectedVersion | _:UnexpectedNoVersion |
-               _:UnexpectedUnknowVersion | _:NoReportInInterval |
-               _:ReportsDisabledInInterval =>
-
-            /*
-             * In these case, filter out "unexpected" reports to only
-             * keep missing ones, and do not show the "compliance" row.
-             */
-            val filtered = NodeStatusReport(report.nodeId, report.runInfo, report.statusInfo, report.overrides, report.report.reports.flatMap { x =>
-              x.withFilteredElements(
-                  _ => true   //keep all (non empty) directives
-                , _ => true   //keep all (non empty) component values
-                , { value =>  //filter values based on the message type - we don't want Unexpected values
-                    value.messages.forall { m => m.reportType != ReportType.Unexpected }
-                  }
-              )
-            } )
-
-            (
-                "lastreportgrid-intro"      #> intro
-              & "lastreportgrid-grid"       #> showReportDetail(filtered, node, withCompliance = false)
-              & "lastreportgrid-missing"    #> NodeSeq.Empty
-              & "lastreportgrid-unexpected" #> NodeSeq.Empty
-            )(reportByNodeTemplate)
-
-          case  _:Pending | _:ComputeCompliance =>
-
-            val missing    = getComponents(ReportType.Missing   , report, directiveLib).toSet
-            val unexpected = getComponents(ReportType.Unexpected, report, directiveLib).toSet
-
-            (
-                "lastreportgrid-intro"      #> intro
-              & "lastreportgrid-grid"       #> showReportDetail(report, node, withCompliance = true)
-              & "lastreportgrid-missing"    #> showMissingReports(missing)
-              & "lastreportgrid-unexpected" #> showUnexpectedReports(unexpected)
-            )(reportByNodeTemplate)
-        }
+      def triggerAgent(node: NodeInfo) : NodeSeq = {
+        <div id="triggerAgent">
+          <button id="triggerBtn" class="btn btn-primary btn-trigger"  onClick={s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node).toJsCmd});"}>
+            <span>Trigger Agent</span>
+            &nbsp;
+            <i class="fa fa-play"></i>
+          </button>
+          &nbsp;
+          <button id="visibilityOutput" class="btn btn-content btn-state" type="button" data-toggle="collapse" data-target="#report" aria-expanded="false" aria-controls="report" style="display: none;" >
+          </button>
+          &emsp;
+          <div id="countDown" style="display:inline-block;">
+            <span style="color:#999;"></span>
+          </div>
+          <div id="report" style="margin-top:10px;" class="collapse">
+            <pre></pre>
+          </div>
+        </div>
       }
+
+      /*
+       * Now, on some case, we don't want to display 50% missing / 50% unexpected
+       * because the node config id is not correct (or related cases), we want to display
+       * what is expected config, but without the compliance part.
+       *
+       * And if don't even have expected configuration, don't display anything.
+       */
+
+      report.runInfo match {
+        case NoRunNoExpectedReport | _:NoExpectedReport =>
+          (
+              "lastreportgrid-intro"      #> intro
+            & "runagent"                  #> triggerAgent(node)
+            & "lastreportgrid-grid"       #> NodeSeq.Empty
+            & "lastreportgrid-missing"    #> NodeSeq.Empty
+            & "lastreportgrid-unexpected" #> NodeSeq.Empty
+          )(reportByNodeTemplate)
+
+        case _:UnexpectedVersion | _:UnexpectedNoVersion |
+             _:UnexpectedUnknowVersion | _:NoReportInInterval |
+             _:ReportsDisabledInInterval =>
+
+          /*
+           * In these case, filter out "unexpected" reports to only
+           * keep missing ones, and do not show the "compliance" row.
+           */
+          val filtered = NodeStatusReport(report.nodeId, report.runInfo, report.statusInfo, report.overrides, report.report.reports.flatMap { x =>
+            x.withFilteredElements(
+                _ => true   //keep all (non empty) directives
+              , _ => true   //keep all (non empty) component values
+              , { value =>  //filter values based on the message type - we don't want Unexpected values
+                  value.messages.forall { m => m.reportType != ReportType.Unexpected }
+                }
+            )
+          } )
+
+          (
+              "lastreportgrid-intro"      #> intro
+            & "runagent"                  #> triggerAgent(node)
+            & "lastreportgrid-grid"       #> showReportDetail(filtered, node, withCompliance = false)
+            & "lastreportgrid-missing"    #> NodeSeq.Empty
+            & "lastreportgrid-unexpected" #> NodeSeq.Empty
+          )(reportByNodeTemplate)
+
+        case  _:Pending | _:ComputeCompliance =>
+
+          val missing    = getComponents(ReportType.Missing   , report, directiveLib).toSet
+          val unexpected = getComponents(ReportType.Unexpected, report, directiveLib).toSet
+
+          (
+              "lastreportgrid-intro"      #> intro
+            & "runagent"                  #> triggerAgent(node)
+            & "lastreportgrid-grid"       #> showReportDetail(report, node, withCompliance = true)
+            & "lastreportgrid-missing"    #> showMissingReports(missing)
+            & "lastreportgrid-unexpected" #> showUnexpectedReports(unexpected)
+          )(reportByNodeTemplate)
       }
-    )
+    }
+    }
 
     boxXml match {
       case e:EmptyBox =>
