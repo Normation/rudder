@@ -76,7 +76,7 @@ class TestPreUnmarshaller extends Specification {
       } { is =>
        IOResult.effectRunUnit(is.close)
       } {
-        is => fromXml("check", is).flatMap(pre.apply)
+        is => fromXml("check", is).flatMap[Any, RudderError, NodeSeq](pre.apply)
       }).either.runNow
     }
   }

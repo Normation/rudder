@@ -120,6 +120,7 @@ class InventoryProcessor(
 ) {
 
   val logger = InventoryProcessingLogger
+  val semaphore = Semaphore.make(1)
 
   // current queue size
   lazy val queueSize = AtomicInt(0)
@@ -254,23 +255,27 @@ class InventoryProcessor(
     }
 
     checkLdapAlive(ldap).flatMap { _ =>
-      val canDo = synchronized {
-        if(queueSize.incrementAndGet(1) <= maxQueueSize) {
-          // the decrement will be done by the report processor
-          true
-        } else {
-          // clean the not used increment
-          queueSize.decrement(1)
-          false
-        }
-      }
-
-      if(canDo) {
-        //queue the inventory processing
-        reportProcess.onNext(report)
-        InventoryProcessStatus.Accepted(report).succeed
-      } else {
-        InventoryProcessStatus.QueueFull(report).succeed
+      for {
+        sem   <- semaphore
+        canDo <- sem.withPermit { IOResult.effect {
+                   if(queueSize.incrementAndGet(1) <= maxQueueSize) {
+                     // the decrement will be done by the report processor
+                     true
+                   } else {
+                     // clean the not used increment
+                     queueSize.decrement(1)
+                     false
+                   }
+                 }}
+        res   <- if(canDo) {
+                    //queue the inventory processing
+                    IOResult.effect(reportProcess.onNext(report)) *>
+                    InventoryProcessStatus.Accepted(report).succeed
+                  } else {
+                    InventoryProcessStatus.QueueFull(report).succeed
+                  }
+      } yield {
+        res
       }
     }.catchAll { err =>
       val e = Chained(s"There is an error with the LDAP backend preventing acceptation of inventory '${report.name}'", err)
