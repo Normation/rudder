@@ -100,7 +100,7 @@ class TestQueryProcessor extends Loggable {
   val nodeDit = new NodeDit(new DN("cn=rudder-configuration"))
   val rudderDit = new RudderDit(new DN("ou=Rudder, cn=rudder-configuration"))
 
-  val ditQueryData = new DitQueryData(DIT, nodeDit, rudderDit, () => Unconsistancy("For test, no subgroup").fail)
+  val ditQueryData = new DitQueryData(DIT, nodeDit, rudderDit, () => Inconsistancy("For test, no subgroup").fail)
 
   val inventoryMapper = new InventoryMapper(ditService, pendingDIT, DIT, removedDIT)
   val ldapMapper = new LDAPEntityMapper(rudderDit, nodeDit, DIT, null, inventoryMapper)

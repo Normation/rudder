@@ -62,7 +62,7 @@ class NodeInventoryDNFinderService(actions: Seq[NamedNodeInventoryDNFinderAction
           case None          => InventoryLogger.trace(s"Node id '${entity.main.id.value}' not found with findder '${next.name}'") *> None.succeed
       }
     }.flatMap {
-      case None => InventoryLogger.debug(s"'Node id '${entity.main.id.value}' not found in base") *> None.succeed
+      case None => InventoryLogger.debug(s"Node id '${entity.main.id.value}' not found in base") *> None.succeed
       case x    => x.succeed
     }
   }
@@ -83,10 +83,10 @@ class MachineDNFinderService(actions:Seq[NamedMachineDNFinderAction]) extends Ma
         InventoryLogger.debug(s"Processing machine id finder '${next.name}'") *>
         next.action.tryWith(entity).flatMap {
           case Some((id, s)) => InventoryLogger.debug(s"Machine Id '${id.value}' found in DIT '${s.name}' with id finder '${next.name}'") *> Some((id, s)).succeed
-          case None          => InventoryLogger.trace(s"'Machine id '${entity.id.value}' not found with findder '${next.name}'") *> None.succeed
+          case None          => InventoryLogger.trace(s"Machine id '${entity.id.value}' not found with findder '${next.name}'") *> None.succeed
       }
     }.flatMap {
-      case None => InventoryLogger.debug(s"'Machoine id '${entity.id.value}' not found in base") *> None.succeed
+      case None => InventoryLogger.debug(s"Machine id '${entity.id.value}' not found in base") *> None.succeed
       case x    => x.succeed
     }
   }

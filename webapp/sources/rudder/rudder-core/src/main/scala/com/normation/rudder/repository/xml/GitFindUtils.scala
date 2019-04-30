@@ -117,11 +117,11 @@ object GitFindUtils extends NamedZioLogger {
         }
         ids match {
           case Nil =>
-            Unconsistancy(s"No file were found at path '${filePath}}'").fail
+            Inconsistancy(s"No file were found at path '${filePath}}'").fail
           case h :: Nil =>
             ZIO.bracket(IOResult.effect(db.open(h).openStream()))(s => IOResult.effectRunUnit(s.close()))(useIt)
           case _ =>
-            Unconsistancy(s"More than exactly one matching file were found in the git tree for path '${filePath}', I can not know which one to choose. IDs: ${ids}}").fail
+            Inconsistancy(s"More than exactly one matching file were found in the git tree for path '${filePath}', I can not know which one to choose. IDs: ${ids}}").fail
       }
     }
   }
@@ -134,7 +134,7 @@ object GitFindUtils extends NamedZioLogger {
     IOResult.effectM {
       val tree = db.resolve(revString)
       if (null == tree) {
-        Unconsistancy(s"The reference branch '${revString}' is not found in the Active Techniques Library's git repository").fail
+        Inconsistancy(s"The reference branch '${revString}' is not found in the Active Techniques Library's git repository").fail
       } else {
         val rw = new RevWalk(db)
         val id = rw.parseTree(tree).getId

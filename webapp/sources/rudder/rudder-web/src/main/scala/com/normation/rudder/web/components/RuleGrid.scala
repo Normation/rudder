@@ -539,7 +539,7 @@ class RuleGrid(
                }
              } ).toBox match {
                case eb: EmptyBox =>
-                 val e = eb ?~! s"Error when to trying to disable the rule '${rule.name}' (ID: '${rule.id.value}') because it's data are unconsistant."
+                 val e = eb ?~! s"Error when to trying to disable the rule '${rule.name}' (ID: '${rule.id.value}') because it's data are inconsistant."
                  logger.warn(e.messageChain)
                  e.rootExceptionCause.foreach { ex =>
                    logger.warn("Exception was: ", ex)

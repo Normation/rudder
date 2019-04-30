@@ -66,9 +66,9 @@ class GitRepositoryProviderImpl(techniqueDirectoryPath: String) extends GitRepos
    */
   private def checkPackageDirectory(dir: File): IOResult[Unit] = {
     if (!dir.exists) {
-      Unconsistancy("Directory %s does not exist, how do you want that I read policy package in it?".format(dir)).fail
+      Inconsistancy("Directory %s does not exist, how do you want that I read policy package in it?".format(dir)).fail
     } else if (!dir.canRead) {
-      Unconsistancy("Directory %s is not readable, how do you want that I read policy package in it?".format(dir)).fail
+      Inconsistancy("Directory %s is not readable, how do you want that I read policy package in it?".format(dir)).fail
     } else UIO.unit
   }
 

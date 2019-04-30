@@ -143,7 +143,7 @@ class CheckDIT(
       ok  <- ZIO.foreach(dns) { dn =>
                for {
                  exists <- con.exists(dn)
-                 res    <- if(exists) UIO.unit else Unconsistancy(s"Missing required entry '${dn}'. This is most likelly because Rudder was not initialized. Please run /opt/rudder/bin/rudder-init to set it up.").fail
+                 res    <- if(exists) UIO.unit else Inconsistancy(s"Missing required entry '${dn}'. This is most likelly because Rudder was not initialized. Please run /opt/rudder/bin/rudder-init to set it up.").fail
                } yield {
                  res
                }

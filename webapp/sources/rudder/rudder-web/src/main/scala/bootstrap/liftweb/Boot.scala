@@ -184,7 +184,7 @@ object FatalException {
         // use println to minimize the number of component that can fail
         if(e.isInstanceOf[java.lang.Error] || fatalException.contains(e.getClass.getName)) {
           System.err.println(s"[${format.print(System.currentTimeMillis())}] ERROR FATAL Rudder JVM caught an unhandled fatal exception. Rudder will now stop to " +
-                  "prevent further unconsistant behavior. This is likely a bug, please " +
+                  "prevent further inconsistant behavior. This is likely a bug, please " +
                   "contact Rudder developers. You can configure the list of fatal exception " +
                   "in /opt/rudder/etc/rudder-web.properties -> rudder.jvm.fatal.exceptions"
           )

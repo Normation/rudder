@@ -344,8 +344,8 @@ class GitParseActiveTechniqueLibrary(
 
       (paths.contains(category), paths.contains(template)) match {
         //herrr... skip that one
-        case (false, false) => Unconsistancy(s"The directory '${directoryPath}' does not contain '${category}' or '${template}' and should not have been considered").fail
-        case (true, true) => Unconsistancy(s"The directory '${directoryPath}' contains both '${uptcFileName}' and '${uptFileName}' descriptor file. Only one of them is authorized").fail
+        case (false, false) => Inconsistancy(s"The directory '${directoryPath}' does not contain '${category}' or '${template}' and should not have been considered").fail
+        case (true, true) => Inconsistancy(s"The directory '${directoryPath}' contains both '${uptcFileName}' and '${uptFileName}' descriptor file. Only one of them is authorized").fail
         case (true, false) =>
           // that's the directory of an ActiveTechniqueCategory.
           // ignore files other than uptcFileName (parsed as an ActiveTechniqueCategory), recurse on sub-directories
@@ -435,7 +435,7 @@ class GitParseActiveTechniqueLibrary(
     } yield {
       res
     }).flatMap {
-      case Left(x)  => Unconsistancy(s"We found an Active Technique where we were expected the root of active techniques library, and so a category. Path: '${root.root}'; found: '${x.activeTechnique}'").fail
+      case Left(x)  => Inconsistancy(s"We found an Active Technique where we were expected the root of active techniques library, and so a category. Path: '${root.root}'; found: '${x.activeTechnique}'").fail
       case Right(x) => x.succeed
     }
   }

@@ -52,7 +52,7 @@ object ZipUtils {
           }
         }
       }
-    } else Unconsistancy(s"Directory '${intoDir.getPath}' is not a valid directory to unzip file: please, check permission and existence").fail
+    } else Inconsistancy(s"Directory '${intoDir.getPath}' is not a valid directory to unzip file: please, check permission and existence").fail
   }
 
 

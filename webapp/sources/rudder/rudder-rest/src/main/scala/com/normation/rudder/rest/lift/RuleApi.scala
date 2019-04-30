@@ -532,7 +532,7 @@ class RuleApiService6 (
       ok                <- if (category.canBeDeleted(rules.toList)) {
                              UIO.unit
                            } else {
-                             Unconsistancy(s"Cannot delete category '${category.name}' since that category is not empty").fail
+                             Inconsistancy(s"Cannot delete category '${category.name}' since that category is not empty").fail
                            }
       _                <- writeRuleCategory.delete(id, modId, actor, reason)
       category         <- getCategoryInformations(category,parent,MinimalDetails).toIO

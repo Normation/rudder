@@ -127,7 +127,7 @@ class WoLDAPParameterRepository(
       for {
         con             <- ldap
         doesntExists    <- roLDAPParameterRepository.getGlobalParameter(parameter.name).flatMap {
-                              case Some(entry) => Unconsistancy(s"Cannot create a global parameter with name ${parameter.name.value} : there is already a parameter with the same name").fail
+                              case Some(entry) => Inconsistancy(s"Cannot create a global parameter with name ${parameter.name.value} : there is already a parameter with the same name").fail
                               case None => UIO.unit
                            }
         paramEntry      =  mapper.parameter2Entry(parameter)

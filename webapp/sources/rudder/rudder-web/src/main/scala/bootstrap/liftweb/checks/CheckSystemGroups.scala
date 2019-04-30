@@ -103,7 +103,7 @@ class CheckSystemGroups(
     val regexp ="hasPolicyServer-([\\w-]+)".r
     regexp.findFirstMatchIn(groupId.value) match {
       case Some(matching) => matching.group(1).succeed
-      case None => Unconsistancy(s"could not extract policy server ID from group '${groupId.value}'").fail
+      case None => Inconsistancy(s"could not extract policy server ID from group '${groupId.value}'").fail
     }
   }
 

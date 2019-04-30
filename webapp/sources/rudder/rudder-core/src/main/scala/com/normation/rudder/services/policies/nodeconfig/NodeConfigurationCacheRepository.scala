@@ -343,7 +343,7 @@ class LdapNodeConfigurationHashRepository(
           typeOk <- if(e.isA(OC_NODES_CONFIG)) {
                       UIO.unit
                     } else {
-                      Unconsistancy(s"Entry ${e.dn} is not a '${OC_NODES_CONFIG}', can not find node configuration caches. Entry details: ${e}").fail
+                      Inconsistancy(s"Entry ${e.dn} is not a '${OC_NODES_CONFIG}', can not find node configuration caches. Entry details: ${e}").fail
                     }
         } yield {
           e.valuesFor(A_NODE_CONFIG).flatMap { json =>

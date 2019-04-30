@@ -758,7 +758,7 @@ class EventListDisplayer(
               { reasonHtml }
               { xmlParameters(event.id) }
             </div>
-          case Full(_) => errorMessage(Failure("Unconsistant policy update status"))
+          case Full(_) => errorMessage(Failure("Inconsistant policy update status"))
           case e:EmptyBox => errorMessage(e)
         }
         xml }
@@ -778,7 +778,7 @@ class EventListDisplayer(
              { reasonHtml }
               { xmlParameters(event.id) }
             </div>
-          case Full(_) => errorMessage(Failure("Unconsistant policy update status"))
+          case Full(_) => errorMessage(Failure("Inconsistant policy update status"))
           case e:EmptyBox => errorMessage(e)
         }
         xml }

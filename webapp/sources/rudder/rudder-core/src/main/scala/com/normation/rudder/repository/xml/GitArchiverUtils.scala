@@ -93,12 +93,12 @@ trait GitArchiverUtils extends NamedZioLogger {
         if(directory.isDirectory) {
           if(directory.canWrite) {
             directory.succeed
-          } else Unconsistancy(s"The directory '${directory.getPath}' has no write permission, please use another directory").fail
-        } else Unconsistancy("File at '%s' is not a directory, please change configuration".format(directory.getPath)).fail
+          } else Inconsistancy(s"The directory '${directory.getPath}' has no write permission, please use another directory").fail
+        } else Inconsistancy("File at '%s' is not a directory, please change configuration".format(directory.getPath)).fail
       } else if(directory.mkdirs) {
         logPure.debug(s"Creating missing directory '${directory.getPath}'") *>
         directory.succeed
-      } else Unconsistancy(s"Directory '${directory.getPath}' does not exists and can not be created, please use another directory").fail
+      } else Inconsistancy(s"Directory '${directory.getPath}' does not exists and can not be created, please use another directory").fail
     }
   }
 

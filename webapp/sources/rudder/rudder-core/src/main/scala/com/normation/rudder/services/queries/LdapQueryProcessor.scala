@@ -523,11 +523,11 @@ class InternalLDAPQueryProcessor(
                            (filterToApply, currentAttributes ++ getAdditionnalAttributes(Set(r))).succeed
 
                          case (_, sf) =>
-                           Unconsistancy("Unknow special filter, can not build a request with it: " + sf).fail
+                           Inconsistancy("Unknow special filter, can not build a request with it: " + sf).fail
 
                        }
         finalFilter <- params._1 match {
-                        case None    => Unconsistancy("No filter (neither standard nor special) for request, can not process!").fail
+                        case None    => Inconsistancy("No filter (neither standard nor special) for request, can not process!").fail
                         case Some(x) => AND(objectFilter.value, x).succeed
                       }
       } yield {
@@ -656,7 +656,7 @@ class InternalLDAPQueryProcessor(
     filters.foldLeft(start) {
       case (  Right((ldapFilters, specials)), LDAPFilter(f)        ) => Right((ldapFilters + f, specials))
       case (  Right((ldapFilters, specials)), r:GeneralRegexFilter ) => Right((ldapFilters, specials + r))
-      case (  x                             , f                    ) => Left(Unconsistancy(s"Can not handle filter type: '${f}', abort"))
+      case (  x                             , f                    ) => Left(Inconsistancy(s"Can not handle filter type: '${f}', abort"))
     }
   }
 
@@ -741,7 +741,7 @@ class InternalLDAPQueryProcessor(
         case SimpleNotRegexFilter(attr, regexText) =>
           regexNotMatch(attr, regexText, entries, x => Some(x))
 
-        case x => Unconsistancy(s"Don't know how to post process query results for filter '${x}'").fail
+        case x => Inconsistancy(s"Don't know how to post process query results for filter '${x}'").fail
       }
     }
 
@@ -856,7 +856,7 @@ class InternalLDAPQueryProcessor(
             res
           }
         } else {
-          Left(Unconsistancy(s"The object type '${objectType}' is not know in criteria ${crit}"))
+          Left(Inconsistancy(s"The object type '${objectType}' is not know in criteria ${crit}"))
         }
       }
     }
@@ -864,7 +864,7 @@ class InternalLDAPQueryProcessor(
     for {
       // Validate that we know the requested object type
       okQueryType      <- if (objectTypes.isDefinedAt(query.returnType.value)) Right("ok")
-                          else Left(Unconsistancy(s"The requested type '${query.returnType}' is not known. This is likely a bug. Please report it"))
+                          else Left(Inconsistancy(s"The requested type '${query.returnType}' is not known. This is likely a bug. Please report it"))
       buildFilters     <- checkAndSplitFilterType(query)
       ldapFilters      =  buildFilters.collect { case x:QueryFilter.Ldap     => x }
       nodeInfoFilters  =  buildFilters.collect { case x:QueryFilter.NodeInfo => x }

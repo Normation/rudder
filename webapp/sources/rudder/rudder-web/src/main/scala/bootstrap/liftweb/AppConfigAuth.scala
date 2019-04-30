@@ -546,7 +546,7 @@ class RestAuthenticationFilter(
               ))
               chain.doFilter(request, response)
             } else {
-              failsAuthentication(httpRequest, httpResponse, Unconsistancy(s"Missing or empty HTTP header '${apiTokenHeaderName}'"))
+              failsAuthentication(httpRequest, httpResponse, Inconsistancy(s"Missing or empty HTTP header '${apiTokenHeaderName}'"))
             }
 
           case token =>
@@ -567,18 +567,18 @@ class RestAuthenticationFilter(
                   failsAuthentication(httpRequest, httpResponse, err)
 
                 case Right(None) =>
-                  failsAuthentication(httpRequest, httpResponse, Unconsistancy(s"No registered token '${token}'"))
+                  failsAuthentication(httpRequest, httpResponse, Inconsistancy(s"No registered token '${token}'"))
 
                 case Right(Some(principal)) =>
 
                   if(principal.isEnabled) {
                     principal.kind match {
                       case ApiAccountKind.System => // we don't want to allow system account kind from DB
-                        failsAuthentication(httpRequest, httpResponse, Unconsistancy(s"A saved API account can not have the kind 'System': '${principal.name}'"))
+                        failsAuthentication(httpRequest, httpResponse, Inconsistancy(s"A saved API account can not have the kind 'System': '${principal.name}'"))
                       case ApiAccountKind.PublicApi(authz, expirationDate) =>
                         expirationDate match {
                           case Some(date) if(DateTime.now().isAfter(date)) =>
-                            failsAuthentication(httpRequest, httpResponse, Unconsistancy(s"Account with ID ${principal.id.value} is disabled"))
+                            failsAuthentication(httpRequest, httpResponse, Inconsistancy(s"Account with ID ${principal.id.value} is disabled"))
                           case _ => // no expiration date or expiration date not reached
 
                             val user = RudderUserDetail(
@@ -607,11 +607,11 @@ class RestAuthenticationFilter(
                             chain.doFilter(request, response)
 
                           case Left(er) =>
-                            failsAuthentication(httpRequest, httpResponse, Unconsistancy(er))
+                            failsAuthentication(httpRequest, httpResponse, Inconsistancy(er))
                         }
                     }
                   } else {
-                    failsAuthentication(httpRequest, httpResponse, Unconsistancy(s"Account with ID ${principal.id.value} is disabled"))
+                    failsAuthentication(httpRequest, httpResponse, Inconsistancy(s"Account with ID ${principal.id.value} is disabled"))
                   }
               }
             }

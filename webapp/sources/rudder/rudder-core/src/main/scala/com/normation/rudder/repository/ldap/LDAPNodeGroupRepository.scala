@@ -130,7 +130,7 @@ class RoLDAPNodeGroupRepository(
       srvEntries.size match {
         case 0 => None.succeed
         case 1 => Some(srvEntries(0)).succeed
-        case _ => Unconsistancy(s"Error, the directory contains multiple occurrence of the server group with ID '${id.value}'. DNs involved: ${srvEntries.map( _.dn).mkString("; ")}").fail
+        case _ => Inconsistancy(s"Error, the directory contains multiple occurrence of the server group with ID '${id.value}'. DNs involved: ${srvEntries.map( _.dn).mkString("; ")}").fail
       }
     }
   }
@@ -145,7 +145,7 @@ class RoLDAPNodeGroupRepository(
     }.flatMap { categoryEntries => categoryEntries.size match {
       case 0 => None.succeed
       case 1 => Some(categoryEntries(0)).succeed
-      case _ => Unconsistancy(s"Error, the directory contains multiple occurrence of group category with id '${id.value}}'. DN: ${categoryEntries.map( _.dn).mkString("; ")}").fail
+      case _ => Inconsistancy(s"Error, the directory contains multiple occurrence of group category with id '${id.value}}'. DN: ${categoryEntries.map( _.dn).mkString("; ")}").fail
     } }
   }
 
@@ -558,10 +558,10 @@ class WoLDAPNodeGroupRepository(
 
   private[this] def getContainerDn(con : RoLDAPConnection, id: NodeGroupCategoryId) : IOResult[DN] = {
     groupLibMutex.readLock { con.searchSub(rudderDit.GROUP.dn, AND(IS(OC_GROUP_CATEGORY), EQ(A_GROUP_CATEGORY_UUID, id.value)), A_GROUP_CATEGORY_UUID).flatMap(_.toList match {
-      case Nil         => Unconsistancy(s"Impossible to find parent group category for category '${id.value}'").fail
+      case Nil         => Inconsistancy(s"Impossible to find parent group category for category '${id.value}'").fail
       case head :: Nil => head.dn.succeed
       case _           => logPure.error(s"Too many NodeGroupCategory found with this id '${id.value}'") *>
-                          Unconsistancy(s"Too many NodeGroupCategory found with this id ${id.value}").fail
+                          Inconsistancy(s"Too many NodeGroupCategory found with this id ${id.value}").fail
     }) }
   }
 
