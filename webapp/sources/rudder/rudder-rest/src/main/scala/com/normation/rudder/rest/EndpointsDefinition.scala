@@ -60,6 +60,7 @@ import sourcecode.Line
 // safe rewriting sealerate
 trait SortIndex {
   protected[rest] def z: Int
+  protected[rest] def zz = implicitly[Line].value
 }
 
 sealed trait ComplianceApi extends EndpointSchema with GeneralApi with SortIndex
