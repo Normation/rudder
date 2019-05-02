@@ -1,3 +1,3 @@
-def test_crond_stopped(host):
-    crond = host.service("crond")
-    assert not crond.is_running
+def test_cron_stopped(host):
+    cron = host.service("cron")
+    assert not cron.is_running
