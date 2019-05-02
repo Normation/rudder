@@ -50,7 +50,7 @@ bundle agent test
     "ph1" usebundle => service_enabled("${init.service_name}");
     "ph2" usebundle => service_enabled("${init.unknown_service_name}");
 
-    "serverspec" usebundle => execute_serverspec("${init.service_name}_enabled.rb", "service_still_enabled", "0");
+    "testinfra" usebundle => execute_testinfra("${init.service_name}_enabled.py", "service_still_enabled", "0");
 }
 
 #######################################################

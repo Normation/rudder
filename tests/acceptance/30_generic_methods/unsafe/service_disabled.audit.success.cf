@@ -52,7 +52,7 @@ bundle agent test
       "ph2"     usebundle => service_disabled("${init.unknown_service_name}");
       "disable" usebundle => set_dry_run_mode("false");
 
-      "serverspec" usebundle => execute_serverspec("${init.service_name}_disabled.rb", "service_still_disabled", "0");
+      "testinfra" usebundle => execute_testinfra("${init.service_name}_disabled.py", "service_still_disabled", "0");
 }
 
 #######################################################

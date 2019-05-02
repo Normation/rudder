@@ -56,30 +56,11 @@ bundle agent define_expected_classes(class_prefix, status, id)
       "unexpected_classes_${id}" slist => maplist("${class_prefix}_${this}", difference(complete_suffix, "@{${status}_suffix}"));
 }
 
-bundle agent execute_serverspec(test_name, class_name, comment)
+bundle agent execute_testinfra(test_name, class_name, comment)
 {
-  vars:
-      "fanion"        string => "\n#####################################\n";
-    pass2::
-      "result" string => "SUCCESS",
-          ifvarclass => "${class_name}";
-      "result" string => "FAILURE",
-          ifvarclass => "!${class_name}";
-      "report_string" string => "${fanion}Executing: ruby -S rspec ${ncf_configuration.ncf_configuration_basedir}/spec/localhost/${test_name} --format documentation #${comment}\n==>${result}${fanion}";
-
   classes:
-      "pass3" expression => "pass2";
-      "pass2" expression => "pass1";
-      "pass1" expression => "any";
-
-    pass1::
-      "${class_name}" expression => returnszero("ruby -S rspec ${ncf_configuration.ncf_configuration_basedir}/spec/localhost/${test_name} --format documentation #${comment}", "useshell"),
+      "${class_name}" expression => returnszero("py.test ${ncf_configuration.ncf_configuration_basedir}/spec/localhost/${test_name} #${comment}", "useshell"),
           scope => "namespace";
-
-  reports:
-    pass3::
-      "${report_string}";
-
 }
 
 # This bundle should be call when testing a generic method.
