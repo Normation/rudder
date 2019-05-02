@@ -32,7 +32,7 @@ bundle agent init
       "unknown_service_name" string => "unknown_service_name";
 
   methods:
-      "serverspec" usebundle => execute_serverspec("${init.service_name}_started.rb", "service_already_started", "0");
+      "testinfra" usebundle => execute_testinfra("${init.service_name}_started.py", "service_already_started", "0");
     service_already_started::
       "any" usebundle => define_expected_classes("service_started_${service_name}", "success", "1");
     !service_already_started::
@@ -51,7 +51,7 @@ bundle agent test
       "ph2"        usebundle => service_started("${init.unknown_service_name}");
       "disable"    usebundle => set_dry_run_mode("false");
 
-      "serverspec" usebundle => execute_serverspec("${init.service_name}_started.rb", "service_started", "1");
+      "testinfra" usebundle => execute_testinfra("${init.service_name}_started.py", "service_started", "1");
 }
 
 #######################################################

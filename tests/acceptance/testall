@@ -199,9 +199,9 @@ runtest() {
   elif [ "x$NETWORK_TESTS" = "x0" ] && echo "$TEST" | grep -q -e '/network/'; then
     SKIP=1
     SKIPREASON="Network-dependent tests are disabled"
-  elif grep -q "serverspec" $TEST && ! gem list -i serverspec > /dev/null; then
+  elif grep -q "testinfra" $TEST && ! python -c "import testinfra" > /dev/null; then
       SKIP=1
-      SKIPREASON="Serverspec required but not found"
+      SKIPREASON="Testinfra python module required but not found"
   else
     SKIP=
     SKIPREASON=
