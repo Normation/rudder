@@ -69,11 +69,8 @@ class RudderDatasourceProvider(
   config.setMaximumPoolSize(if(maxPoolSize < 1) 1 else maxPoolSize)
   config.setAutoCommit(false)
 
-  //set parameters to test for dead connection
-  //not sure we need that, since we use JDBC4 driver, see:
-  //https://github.com/brettwooldridge/HikariCP => in page, text "connectionTestQuery"
-  config.setConnectionTestQuery("SELECT 1")
-
+  // since we use JDBC4 driver, we MUST NOT set `setConnectionTestQuery("SELECT 1")`
+  // more over, it causes problems, see: https://issues.rudder.io/issues/14789
 
   lazy val datasource: DataSource with Closeable = try {
 
