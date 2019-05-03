@@ -104,7 +104,7 @@
 #
 #
 # @parameter path       Path of the file or directory.
-# @parameter recursive  Recursive Should ACLs cleanup be recursive, "true" or "false" (defaults to "false")
+# @parameter recursive  Recursive Should ACLs cleanup be recursive, "true" or "false" (defaults to "false").
 # @parameter user       Username of the Linux account.
 # @parameter ace        ACE to enforce for the given user.
 # 
