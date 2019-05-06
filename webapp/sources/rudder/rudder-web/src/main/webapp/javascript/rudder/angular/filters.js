@@ -39,8 +39,6 @@
 var app = angular.module('filters', ["angucomplete-alt"]);
 
 app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $rootScope) {
-
-  
   $scope.searchStr = "";
   $scope.showFilters = false;
   $scope.only = {"key":false , "value":false};
@@ -49,18 +47,25 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
   $scope.tagScopes = []
   
   $scope.contextPath = contextPath
-  var directiveTreeId = "#activeTechniquesTree";
-  var tableId = "#grid_rules_grid_zone";
-  
+  $scope.directiveTreeId = "#activeTechniquesTree";
+  $scope.tableId  = "#grid_rules_grid_zone";
+  $scope.fullPage = true;
   // Should be changed using ng-init
   var directiveFilter = true;
+
+  $scope.init = function(treeId, fullPage){
+    $scope.directiveTreeId = treeId ? treeId : $scope.directiveTreeId;
+    $scope.fullPage = fullPage != undefined ? fullPage : $scope.fullPage;
+  }
   
   $scope.search = function () {
     if (directiveFilter) {
-      $scope.searchTree(directiveTreeId);
-      $timeout(function() {
-      adjustHeight(directiveTreeId);
-      },0);
+      $scope.searchTree($scope.directiveTreeId);
+      if($scope.fullPage){
+        $timeout(function() {
+        adjustHeight($scope.directiveTreeId);
+        },0);
+      }
     } else {
       var table = $(tableId).DataTable();
       table.draw();
@@ -75,7 +80,7 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
   $scope.clearSearch = function(){
     $scope.searchStr = "";
     if (directiveFilter) {
-      clearSearchFieldTree('#activeTechniquesTree');
+      clearSearchFieldTree($scope.directiveTreeId);
       $scope.search();
     } else {
       $scope.filterGlobal('');
@@ -168,7 +173,9 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
     if($scope.showFilters){
       $('.input-key').focus();
     }
-    adjustHeight('#activeTechniquesTree');
+    if($scope.fullPage){
+      adjustHeight($scope.directiveTreeId);
+    }
   }
   
   $scope.onlyKey = function(elem){
@@ -288,8 +295,9 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
       }
     );
   }
-  
-  adjustHeight('#activeTechniquesTree');
+  if($scope.fullPage){
+    adjustHeight($scope.directiveTreeId);
+  }
 });
 
 app.config(function($locationProvider) {

@@ -381,11 +381,14 @@ object DisplayDirectiveTree extends Loggable {
               <span>Used in <b>${isAssignedTo}</b> rule${if(isAssignedTo!=1){"s"}else{""}}</span>
               ${agentCompat.directiveText}
               ${disableMessage}
+              <span class="hidden"> ${activeTechnique.techniqueName} </span>
             </div>
+
           """
           <span id={"badge-apm-"+tooltipId}>[BADGE]</span> ++
           <span class="treeDirective bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>
             <span class="techversion">
+
               {directive.techniqueVersion.toString}
               {deprecatedIcon}
             </span>

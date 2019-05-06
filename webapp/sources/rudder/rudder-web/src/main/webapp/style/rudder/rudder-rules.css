@@ -309,6 +309,19 @@ ul.applied-list > .add-target > .fa{
   content: "\f00d";
 }
 
+/* --- MODAL --- */
+#selectDirectives .modal-body{
+  padding-top: 0;
+}
+#directiveFilters{
+  padding: 15px 15px 10px 15px;
+  margin: 0 -15px;
+  border-bottom: 1px solid #e5e5e5;
+  background-color: #F7F8F7;
+}
+#directiveFilters .search-addon > .input-group-btn:first-child .btn{
+  border-right: none !important;
+}
 .modal .jstree ul > li a.jstree-anchor{
   margin-top: 1px;
   border: 1px solid transparent;

@@ -319,7 +319,17 @@ class RuleEditForm(
               , keepTechnique    = technique => technique.directives.nonEmpty
             )
           }</ul>
-        }</div> } &
+        }</div>
+        <div id={htmlId_activeTechniquesTree ++ "_alert"} style="display:none">
+          <div class="row">
+            <div class="alert alert-warning">
+              <i class="fa fa-exclamation-triangle"></i>
+              No directives match your filter.
+            </div>
+          </div>
+        </div>
+
+      } &
       "#selectGroupField" #> {
         <div id={htmlId_groupTree}>
           <ul>{DisplayNodeGroupTree.displayTree(
@@ -333,7 +343,8 @@ class RuleEditForm(
             , includedTarget
             , excludedTarget
           )}</ul>
-        </div> } &
+        </div>
+        } &
       "#notifications" #>  updateAndDisplayNotifications
     )(crForm) ++ Script(
       OnLoad(

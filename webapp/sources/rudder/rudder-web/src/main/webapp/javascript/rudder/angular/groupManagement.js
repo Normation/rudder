@@ -152,7 +152,7 @@ groupManagement.controller('GroupCtrl', ['$scope', function($scope) {
     }
 
     $scope.getListLength = function(list){
-      return Object.keys(list).length;
+      return list == undefined ? 0 : Object.keys(list).length;
     };
 
   } ] ) ;
