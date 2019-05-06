@@ -1,0 +1,55 @@
+<TECHNIQUE name="Test technique">
+  <DESCRIPTION>Error: both a "cfengine-community" agent section and root bundles/tmls</DESCRIPTION>
+
+  <SYSTEM>true</SYSTEM>
+
+  <MULTIINSTANCE>false</MULTIINSTANCE>
+
+  <BUNDLES>
+    <NAME>bundle1</NAME>
+    <NAME>bundle2</NAME>
+  </BUNDLES>
+
+  <TMLS>
+    <TML name="tml1"/>
+    <TML name="tml2">
+      <OUTPATH>tml2.bar</OUTPATH>
+    </TML>
+    <TML name="tml3">
+      <INCLUDED>false</INCLUDED>
+    </TML>
+  </TMLS>
+
+  <AGENT type="cfengine-community">
+    <BUNDLES>
+      <NAME>fileTemplate_RudderUniqueID</NAME>
+    </BUNDLES>
+    <!-- also test for the correct replacement of RudderUniqueId in TML and RESOURCES files -->
+    <TMLS>
+      <TML name="fileTemplate"/>
+      <TML name="tmlWithIdOnPath">
+        <INCLUDED>false</INCLUDED>
+        <OUTPATH>fileTemplate/RudderUniqueID/tmlWithIdOnPath</OUTPATH>
+      </TML>
+    </TMLS>
+    <FILES>
+      <FILE name="fileWithIdOnPath.txt">
+        <INCLUDED>false</INCLUDED>
+        <OUTPATH>fileTemplate/RudderUniqueID/fileWithIdOnPath.txt</OUTPATH>
+      </FILE>
+    </FILES>
+  </AGENT>
+
+  <TRACKINGVARIABLE>
+    <SAMESIZEAS>A</SAMESIZEAS>
+  </TRACKINGVARIABLE>
+
+  <SECTIONS>
+    <SECTION name="common">
+      <INPUT>
+        <NAME>A</NAME>
+        <DESCRIPTION>...</DESCRIPTION>
+      </INPUT>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>
