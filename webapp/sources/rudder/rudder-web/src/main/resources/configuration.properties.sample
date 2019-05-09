@@ -141,6 +141,10 @@ rudder.jdbc.maxPoolSize=25
 # If the archive TTL is greater than the delete TTL then archiving will be disabled
 # as there will be no reports to archive (they would be deleted first).
 #
+# Reports need between 500 and 900 kB per Directive per Node per Day, while
+# archived reports need 150 kB per Directive per Node per Day (but archived data
+# are not available in the web interface, they are just here for auditability)
+#
 # Defaults: archive after 4 days, delete after 15 days.
 #
 
@@ -152,9 +156,9 @@ rudder.batch.reportscleaner.delete.TTL=15
 # This allows you to define the periode of time during which
 # compliance level data for nodes, by run, up to directive
 # granularity are kept.
-# The table grows at ~60kB / node / directive / day
+# The tables grow at ~150kB / node / directive / day
 # (ie, for 100 nodes, with 15 rules having each of them 10 directives,
-# you need ~25GB for a month back of data).
+# you need ~65GB for a month back of data).
 # There is no archive state for compliance levels.
 #
 rudder.batch.reportscleaner.compliancelevels.delete.TTL=15
