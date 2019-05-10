@@ -226,7 +226,7 @@ objectClass: directive
 objectClass: top
 directiveId: inventory-all
 techniqueVersion: 0:1.0
-cn: Inventory
+cn: System inventory
 description: inventory - Technical
 isEnabled: TRUE
 isSystem: TRUE
@@ -267,8 +267,8 @@ objectClass: top
 ruleId: inventory-all
 ruleTarget: group:all-nodes-with-cfengine-agent
 directiveId: inventory-all
-cn: Rudder system policy: daily inventory
-description: Inventory
+cn: Rudder system policy: System daily inventory
+description: System Inventory
 isEnabled: TRUE
 isSystem: TRUE
 longDescription: This rule makes all nodes do daily self inventories
