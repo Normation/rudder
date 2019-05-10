@@ -163,7 +163,7 @@ objectClass: top
 ruleId: root-DP
 ruleTarget: policyServer:root
 directiveId: root-distributePolicy
-cn: distributePolicy
+cn: Rudder system policy: Distribute Policy
 description: Distribute Policy - Technical
 isEnabled: TRUE
 isSystem: TRUE
