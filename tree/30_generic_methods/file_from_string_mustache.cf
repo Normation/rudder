@@ -18,7 +18,6 @@
 
 # @name File from a mustache string
 # @description Build a file from a mustache string
-# @agent_version >=3.7
 #
 # @parameter template        String containing a template to be expanded
 # @parameter destination     Destination file (absolute path on the target node)

@@ -33,7 +33,6 @@
 # During each run right after o'clock and half-hour, this method will define the condition schedule_simple_job_schedule_id_repaired, that you can use as a condition for a generic method `command_execution`
 #
 #
-# @agent_version >=3.6
 #
 # @parameter job_id                A string to identify this job
 # @parameter agent_periodicity     Agent run interval (in minutes)

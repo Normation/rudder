@@ -28,7 +28,6 @@
 # @parameter first_variable  The first variable, which content will be overriden in the resulting variable if necessary (written in the form variable_prefix.variable_name)
 # @parameter second_variable The second variable, which content will override the first in the resulting variable if necessary (written in the form variable_prefix.variable_name)
 #
-# @agent_version >=3.6
 # 
 # @class_prefix variable_dict_merge_tolerant
 # @class_parameter variable_name

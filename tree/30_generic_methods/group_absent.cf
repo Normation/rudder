@@ -18,7 +18,6 @@
 
 # @name Group absent
 # @description Make sure a group is absent
-# @agent_version >=3.6
 #
 # @parameter group Group name
 

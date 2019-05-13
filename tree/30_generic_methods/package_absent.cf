@@ -17,7 +17,6 @@
 #####################################################################################
 
 # @name Package absent
-# @agent_version >=3.7
 # @description Enforce the absence of a package
 # @documentation See [package_state](#package_state) for documentation.
 # @parameter            name Name of the package

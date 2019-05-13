@@ -17,7 +17,6 @@
 #####################################################################################
 
 # @name Package state with options
-# @agent_version >=3.7
 # @description Enforce the state of a package with options
 # @documentation See [package_state](#package_state) for documentation.
 # 

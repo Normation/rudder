@@ -33,7 +33,6 @@
 # @parameter value           The variable content
 # @parameter separator       Regular expression that is used to split the value into items ( usually: , )
 # 
-# @agent_version >=3.6
 #
 # @class_prefix variable_iterator
 # @class_parameter variable_name

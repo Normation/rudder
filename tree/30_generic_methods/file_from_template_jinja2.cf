@@ -18,7 +18,6 @@
 
 # @name File from a jinja2 template
 # @description Build a file from a jinja2 template
-# @agent_version >= 3.9
 # @documentation See [file_from_template_type](#file_from_template_type) for general documentation about
 # templates usage.
 #

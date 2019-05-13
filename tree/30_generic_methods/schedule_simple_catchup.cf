@@ -25,7 +25,6 @@
 #  If the agent run is skipped during the period, method tries to catchup the run on next agent run.
 #  If the agent run is skipped twice,, only one run is catched up.
 #  If the agent is run twice (for example from a manual run), the job is run only once.
-# @agent_version >=3.6
 #
 # @parameter job_id                A string to identify this job
 # @parameter agent_periodicity     Agent run interval (in minutes)

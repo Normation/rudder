@@ -656,7 +656,6 @@ bundle agent startExecution
       "second_pass" expression => "any";
 
   reports:
-    cfengine_3::
       # Send the report and define a persistent class to store the last "heartbeat" time
       "@@Common@@control@@rudder@@run@@0@@start@@${g.rudder_node_config_id}@@${g.execRun}##${g.uuid}@#Start execution"
         classes => rudder_always_classes_persist("heartbeat_sent", "${g.heartbeat_interval}");

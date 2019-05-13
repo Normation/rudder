@@ -24,7 +24,6 @@
 #  * _not_ok and _reached have their usual meaning
 #  No effort is done to check if a run has already been done for this period or not.
 #  If the agent is run twice, the job will be run twice, and if the agent is not run, the job will no be run.
-# @agent_version >=3.6
 #
 # @parameter job_id                A string to identify this job
 # @parameter agent_periodicity     Agent run interval (in minutes)

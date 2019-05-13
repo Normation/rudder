@@ -17,7 +17,6 @@
 #####################################################################################
 
 # @name Package state
-# @agent_version >=3.7
 # @description Enforce the state of a package
 # @documentation These methods manage packages using a package manager on the system.
 #

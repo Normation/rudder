@@ -95,7 +95,6 @@
 # server my.hostname.example
 # ```
 #
-# @agent_version >=3.6
 #
 # @parameter source_template Source file containing a template to be expanded (absolute path on the target node)
 # @parameter destination     Destination file (absolute path on the target node)

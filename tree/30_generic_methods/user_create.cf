@@ -22,7 +22,6 @@
 # [user_present](#user_present) [user_fullname](#user_fullname) [user_home](#user_home)
 # [user_primary_group](#user_primary_group) [user_shell](#user_shell) and [user_locked](#user_locked)
 # @documentation This method does not create the user's home directory.
-# @agent_version >=3.6
 #
 # @parameter login       User login
 # @parameter description User description

@@ -19,7 +19,6 @@
 # @name User absent
 # @description Remove a user
 # @documentation This method ensures that a user does not exist on the system.
-# @agent_version >=3.6
 #
 # @parameter login User login
 # 
