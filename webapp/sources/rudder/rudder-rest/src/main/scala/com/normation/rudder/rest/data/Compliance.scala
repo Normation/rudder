@@ -199,6 +199,7 @@ object JsonCompliance {
 
     def toJson(level: Int) = (
         ("id" -> rule.id.value)
+      ~ ("name" -> rule.name)
       ~ ("compliance" -> rule.compliance.complianceWithoutPending)
       ~ ("mode" -> rule.mode.name)
       ~ ("complianceDetails" -> percents(rule.compliance))
