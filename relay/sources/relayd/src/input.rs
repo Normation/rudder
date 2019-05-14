@@ -79,7 +79,7 @@ pub fn signature(input: &[u8], certs: &Stack<X509>) -> Result<String, Error> {
     // Only verify that the provided cert has signed the message
     flags.set(Pkcs7Flags::NOVERIFY, true);
     // No chaining so no need for a CA store
-    let store = X509StoreBuilder::new().expect("could not build x509 store").build();
+    let store = X509StoreBuilder::new()?.build();
 
     signature.verify(
         certs,
