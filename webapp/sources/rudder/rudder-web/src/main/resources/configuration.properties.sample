@@ -145,11 +145,11 @@ rudder.jdbc.maxPoolSize=25
 # archived reports need 150 kB per Directive per Node per Day (but archived data
 # are not available in the web interface, they are just here for auditability)
 #
-# Defaults: archive after 4 days, delete after 15 days.
+# Defaults: archive disabled, delete after 4 days.
 #
 
 rudder.batch.reportscleaner.archive.TTL=4
-rudder.batch.reportscleaner.delete.TTL=15
+rudder.batch.reportscleaner.delete.TTL=4
 
 #
 # Automatic compliance levels cleaning.
