@@ -1,0 +1,128 @@
+= How to contribute to Rudder
+
+Rudder is open to all kinds of contribution:
+
+* Bug reports and fixes
+* Documentation
+* Features ideas
+* New features
+
+If you want to contribute, the best way to start is to come and chat with us
+on https://chat.rudder.io[chat.rudder.io]. You can also communicate by email
+using the  https://www.rudder-project.org/mailman/listinfo/rudder-dev[rudder-dev]
+mailing list.
+
+NOTE: Large contributions on Rudder may require a https://www.rudder.io/en/expand/contribute/#panel-2422-8-0-1[CLA/CCLA].
+
+== Documentation contribution
+
+Just click on the "Edit page" button, and open a pull request directly from Github's interface!
+
+== Development workflow
+
+We maintain several Rudder major versions in separate branches.
+
+* `branches/rudder/5.0` is Rudder 5.0, from which 5.0 minor release will be tagged
+* `master` is the next Rudder version, not branched yet
+
+NOTE: Some tooling repositories only have a `master` branch.
+
+All bug fixes should be done in the oldest relevant branch (i.e.
+affected and still maintained).
+Version status is visible on https://docs.rudder.io/version.
+Don't hesitate to ask us on the https://chat.rudder.io[chat room] if you are unsure about which
+branch you should work on.
+
+We have an internal CI tooling, that we are intend to integrate to Github pull
+requests status.
+
+=== Issue tracker
+
+We do not use Github's issue tracking but an external issue tracker hosted on
+https://issues.rudder.io.
+
+Every change in one of the Rudder repositories must be linked to an issue in this
+tool, except for documentation fixes that can be contributed directly on
+Github.
+
+=== Development tooling (rudder-dev)
+
+==== Installation
+
+To ease the use of a separate issue tracker and maintenance of several
+branches of Rudder, we have developed a dedicated tooling.
+
+To download rudder-dev:
+
+```
+wget https://repository.rudder.io/tools/rudder-dev
+```
+
+It is a shell script you can put somewhere is your PATH. You can then update it with
+
+```
+rudder-dev update
+```
+
+(it will remind you to do so regularly).
+
+=== Setup
+
+At its first start, `rudder-dev` will create its configuration script in `~/.rudder-dev`.
+You need to edit it to provide your Gtihub and redmine token:
+
+```
+[default]
+## Uncomment and set your own values
+## To manage your tokens, click here https://github.com/settings/tokens
+github_token = 
+## Redmine personal access token, (create one here http://www.rudder-project.org/redmine/my/account)
+redmine_token = 
+```
+
+=== Usage
+
+```
+rudder-dev --help
+```
+
+For more information.
+
+== Development environments
+
+=== Rudder test framework (rtf)
+
+The `rtf` tool allows automated setup of multi-node environment using vagrant.
+Follow the docs in https://github.com/Normation/rudder-tests/[the rudder-tests repo]
+to install and configure it.
+
+It is also used for continuous integration and release testing.
+
+=== Scala
+
+Rudder Scala developers are mostly using IntelliJ, with the Scala plugin.
+
+=== Rust
+
+We can rely on recent Rust compilers as we control the version
+installed on our package builders. The easiest way to install and manage
+Rust toolchains is to use https://rustup.rs.
+
+Good IDEs for Rust development include https://github.com/rust-lang/rls-vscode#quick-start[VS Code] or IntelliJ.
+
+Other useful tools:
+
+```bash
+rustup component add rustfmt # to format code, use with "cargo fmt"
+rustup component add clippy  # various linters, use with "cargo clippy"
+cargo install cargo-audit    # to list known vulnerabilities in dependencies
+cargo install cargo-outdated # to list outdated dependencies
+cargo install cargo-update   # to update cargo-installed tools
+cargo install cargo-tree     # to see the tree of dependencies
+cargo install cargo-benchcmp # to compare benchmarks results
+```
+
+=== Shell
+
+Install and use `shellcheck`, it is used in our test script to lint shell scripts,
+and gives good advice during development.
