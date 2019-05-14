@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 """
 Rudder package manager
@@ -42,7 +42,6 @@ Commands:
 #   rudder-pkg install package   # from std dir / from repo
 #   rudder-pkg upgrade package   # from std dir / from repo
 
-from __future__ import print_function
 import sys
 sys.path.insert(0,"/opt/rudder/share/python")
 
