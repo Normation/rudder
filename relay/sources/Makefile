@@ -20,8 +20,8 @@
 
 RUDDER_VERSION_TO_PACKAGE =
 RUDDER_MAJOR_VERSION := $(shell echo ${RUDDER_VERSION_TO_PACKAGE} | cut -d'.' -f 1-2)
-VIRTUALENV_RELEASE = 16.0.0
-VIRTUALENV_SHA256 = ca07b4c0b54e14a91af9f34d0919790b016923d157afda5efdde55c96718f752
+VIRTUALENV_RELEASE = 16.5.0
+VIRTUALENV_SHA256 = 15ee248d13e4001a691d9583948ad3947bcb8a289775102e4c4aa98a8b7a6d73
 
 PROXY_ENV = $(if $(PROXY), http_proxy=$(PROXY))
 # Usage: $(GET) <destination_file> <url> <hash>
@@ -57,11 +57,11 @@ target/man/rudder-relayd.1.gz:
 
 build: man relay-api/virtualenv/virtualenv.py
 	# Build virtualenv
-	cd relay-api && python virtualenv/virtualenv.py flask
+	cd relay-api && python3 virtualenv/virtualenv.py flask
 	# Get all requirements via pip
 	cd relay-api && flask/bin/pip install -r requirements.txt
 	# Clean up unwanted binaries
-	cd relay-api && for i in easy_install python pip; do rm -f flask/bin/$${i}*; done
+	cd relay-api && for i in easy_install python python3 pip; do rm -f flask/bin/$${i}*; done
 	# Build relayd
 	cd relayd && cargo build --release --bin rudder-relayd
 
