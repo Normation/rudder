@@ -30,12 +30,12 @@
 
 use crate::configuration::LogComponent;
 use futures::{stream::Stream, sync::mpsc, Future};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use slog::slog_trace;
 use slog_scope::trace;
 use std::sync::{Arc, RwLock};
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct Stats {
     pub report_received: u64,
     pub report_refused: u64,

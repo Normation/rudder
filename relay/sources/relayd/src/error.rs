@@ -48,6 +48,7 @@ pub enum Error {
     InvalidRunInfo,
     InconsistentRunlog,
     EmptyRunlog,
+    MissingIdInCertificate,
     Unspecified(String),
     Database(diesel::result::Error),
     DatabaseConnection(diesel::ConnectionError),
@@ -58,6 +59,7 @@ pub enum Error {
     JsonParsing(serde_json::Error),
     IntegerParsing(num::ParseIntError),
     Utf8(std::string::FromUtf8Error),
+    Ssl(openssl::error::ErrorStack),
 }
 
 impl Display for Error {
@@ -67,6 +69,7 @@ impl Display for Error {
             InvalidRunInfo => write!(f, "invalid run info"),
             InconsistentRunlog => write!(f, "inconsistent run log"),
             EmptyRunlog => write!(f, "agent run log is empty"),
+            MissingIdInCertificate => write!(f, "certificate is missing a Rudder id"),
             Unspecified(ref err) => write!(f, "internal error: {}", err),
             Database(ref err) => write!(f, "database error: {}", err),
             DatabaseConnection(ref err) => write!(f, "database connection error: {}", err),
@@ -77,6 +80,7 @@ impl Display for Error {
             JsonParsing(ref err) => write!(f, "json parsing error: {}", err),
             IntegerParsing(ref err) => write!(f, "integer parsing error: {}", err),
             Utf8(ref err) => write!(f, "UTF-8 decoding error: {}", err),
+            Ssl(ref err) => write!(f, "Ssl error: {}", err),
         }
     }
 }
@@ -93,6 +97,7 @@ impl StdError for Error {
             JsonParsing(ref err) => Some(err),
             IntegerParsing(ref err) => Some(err),
             Utf8(ref err) => Some(err),
+            Ssl(ref err) => Some(err),
             _ => None,
         }
     }
@@ -154,5 +159,11 @@ impl From<num::ParseIntError> for Error {
 impl From<std::string::FromUtf8Error> for Error {
     fn from(err: std::string::FromUtf8Error) -> Self {
         Error::Utf8(err)
+    }
+}
+
+impl From<openssl::error::ErrorStack> for Error {
+    fn from(err: openssl::error::ErrorStack) -> Self {
+        Error::Ssl(err)
     }
 }

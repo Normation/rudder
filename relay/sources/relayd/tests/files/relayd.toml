@@ -1,5 +1,6 @@
 [general]
 nodes_list_file = "tests/files/nodeslist.json"
+nodes_certs_file = "tests/keys/nodescerts.pem"
 node_id = "root"
 listen = "127.0.0.1:3030"
 
@@ -25,6 +26,8 @@ max_pool_size = 5
 
 [output.upstream]
 url = "https://127.0.0.1:8080"
+user = "rudder"
+password = "password"
 
 [logging.general]
 level = "info"

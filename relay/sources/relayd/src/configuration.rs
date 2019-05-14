@@ -46,11 +46,25 @@ use toml;
 pub type BaseDirectory = PathBuf;
 pub type WatchedDirectory = PathBuf;
 pub type NodesListFile = PathBuf;
+pub type NodesCertsFile = PathBuf;
 
-#[derive(Debug)]
+#[derive(StructOpt, Debug)]
 #[allow(clippy::module_name_repetitions)]
+#[structopt(name = "rudder-relayd")]
+// version and description are taken from Cargo.toml
+// struct fields comments are used as option description in help
 pub struct CliConfiguration {
+    /// Sets a custom config file
+    #[structopt(
+        short = "c",
+        long = "config",
+        default_value = "/opt/rudder/etc/rudder-relayd.conf",
+        parse(from_os_str)
+    )]
     pub configuration_file: PathBuf,
+
+    /// Checks the syntax of the configuration file
+    #[structopt(short = "k", long = "check")]
     pub check_configuration: bool,
 }
 
@@ -89,6 +103,7 @@ impl FromStr for Configuration {
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct GeneralConfig {
     pub nodes_list_file: NodesListFile,
+    pub nodes_certs_file: NodesCertsFile,
     pub node_id: node::Id,
     pub listen: SocketAddr,
 }
@@ -134,6 +149,22 @@ pub enum ReportingOutputSelect {
     Disabled,
 }
 
+pub trait OutputSelect {
+    fn is_enabled(&self) -> bool;
+}
+
+impl OutputSelect for ReportingOutputSelect {
+    fn is_enabled(&self) -> bool {
+        *self != ReportingOutputSelect::Disabled
+    }
+}
+
+impl OutputSelect for InventoryOutputSelect {
+    fn is_enabled(&self) -> bool {
+        *self != InventoryOutputSelect::Disabled
+    }
+}
+
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct OutputConfig {
     pub database: DatabaseConfig,
@@ -148,7 +179,10 @@ pub struct DatabaseConfig {
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct UpstreamConfig {
+    // TODO better URL type
     pub url: String,
+    pub user: String,
+    pub password: String,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -236,6 +270,7 @@ mod tests {
         let reference = Configuration {
             general: GeneralConfig {
                 nodes_list_file: PathBuf::from("tests/files/nodeslist.json"),
+                nodes_certs_file: PathBuf::from("tests/keys/nodescerts.pem"),
                 node_id: "root".to_string(),
                 listen: "127.0.0.1:3030".parse().unwrap(),
             },
@@ -260,6 +295,8 @@ mod tests {
             output: OutputConfig {
                 upstream: UpstreamConfig {
                     url: "https://127.0.0.1:8080".to_string(),
+                    user: "rudder".to_string(),
+                    password: "password".to_string(),
                 },
                 database: DatabaseConfig {
                     url: "postgres://rudderreports:PASSWORD@127.0.0.1/rudder".to_string(),

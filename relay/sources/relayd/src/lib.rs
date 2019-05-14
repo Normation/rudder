@@ -30,6 +30,8 @@
 
 #[macro_use]
 extern crate diesel;
+#[macro_use]
+extern crate structopt;
 
 pub mod api;
 pub mod configuration;
@@ -39,19 +41,20 @@ pub mod input;
 pub mod output;
 pub mod processing;
 pub mod stats;
+pub mod status;
 
 use crate::{
     api::api,
     configuration::{
-        CliConfiguration, Configuration, InventoryOutputSelect, LogConfig, ReportingOutputSelect,
+        CliConfiguration, Configuration, InventoryOutputSelect, LogConfig, OutputSelect,
+        ReportingOutputSelect,
     },
-    data::node,
+    data::node::NodesList,
     error::Error,
     output::database::{pg_pool, PgPool},
     processing::{serve_inventories, serve_reports},
     stats::Stats,
 };
-use clap::crate_version;
 use futures::{
     future::{lazy, Future},
     stream::Stream,
@@ -69,12 +72,12 @@ use std::string::ToString;
 use std::{
     collections::{HashMap, HashSet},
     fs::create_dir_all,
-    path::Path,
     sync::{Arc, RwLock},
 };
+use structopt::clap::crate_version;
 use tokio_signal::unix::{Signal, SIGHUP, SIGINT, SIGTERM};
 
-pub fn init(cli_cfg: &CliConfiguration) -> Result<(), Error> {
+pub fn init(cli_cfg: CliConfiguration) -> Result<(), Error> {
     // ---- Load configuration ----
 
     let cfg = Configuration::new(&cli_cfg.configuration_file)?;
@@ -99,8 +102,9 @@ pub fn init(cli_cfg: &CliConfiguration) -> Result<(), Error> {
 
     // ---- Setup data structures ----
 
+    let cfg_file = cli_cfg.configuration_file.clone();
     let stats = Arc::new(RwLock::new(Stats::default()));
-    let job_config = JobConfig::new(&cli_cfg.configuration_file)?;
+    let job_config = JobConfig::new(cli_cfg)?;
 
     // ---- Setup signal handlers ----
 
@@ -118,8 +122,8 @@ pub fn init(cli_cfg: &CliConfiguration) -> Result<(), Error> {
         .map_err(|e| error!("signal error {}", e.0));
 
     // SIGHUP: reload logging configuration + nodes list
-    let cfg_file = cli_cfg.configuration_file.clone();
     let job_config_reload = job_config.clone();
+
     let reload = Signal::new(SIGHUP)
         .flatten_stream()
         .for_each(move |_signal| {
@@ -141,21 +145,31 @@ pub fn init(cli_cfg: &CliConfiguration) -> Result<(), Error> {
 
     // ---- Start server ----
 
+    info!("Starting server");
+
     tokio::run(lazy(move || {
         let (tx_stats, rx_stats) = mpsc::channel(1_024);
 
         tokio::spawn(Stats::receiver(stats.clone(), rx_stats));
-        tokio::spawn(api(cfg.general.listen, shutdown, stats.clone()));
+        tokio::spawn(api(
+            cfg.general.listen,
+            shutdown,
+            job_config.clone(),
+            stats.clone(),
+        ));
 
         //tokio::spawn(shutdown);
         tokio::spawn(reload);
 
-        if job_config.cfg.processing.reporting.output != ReportingOutputSelect::Disabled {
+        if job_config.cfg.processing.reporting.output.is_enabled() {
+            info!("Skipping reporting as it is disabled");
             serve_reports(&job_config, &tx_stats);
         }
-        if job_config.cfg.processing.inventory.output != InventoryOutputSelect::Disabled {
+        if job_config.cfg.processing.inventory.output.is_enabled() {
+            info!("Skipping inventory as it is disabled");
             serve_inventories(&job_config, &tx_stats);
         }
+
         Ok(())
     }));
 
@@ -233,14 +247,15 @@ impl LoggerCtrl {
 }
 
 pub struct JobConfig {
+    pub cli_cfg: CliConfiguration,
     pub cfg: Configuration,
-    pub nodes: RwLock<node::List>,
+    pub nodes: RwLock<NodesList>,
     pub pool: Option<PgPool>,
 }
 
 impl JobConfig {
-    pub fn new(configuration_file: &Path) -> Result<Arc<Self>, Error> {
-        let cfg = Configuration::new(configuration_file)?;
+    pub fn new(cli_cfg: CliConfiguration) -> Result<Arc<Self>, Error> {
+        let cfg = Configuration::new(cli_cfg.configuration_file.clone())?;
 
         // Create dirs
         if cfg.processing.inventory.output != InventoryOutputSelect::Disabled {
@@ -263,14 +278,25 @@ impl JobConfig {
         } else {
             None
         };
-        let nodes = RwLock::new(node::List::new(&cfg.general.nodes_list_file)?);
+        let nodes = RwLock::new(NodesList::new(
+            &cfg.general.nodes_list_file,
+            Some(&cfg.general.nodes_certs_file),
+        )?);
 
-        Ok(Arc::new(Self { cfg, nodes, pool }))
+        Ok(Arc::new(Self {
+            cli_cfg,
+            cfg,
+            nodes,
+            pool,
+        }))
     }
 
     pub fn reload_nodeslist(&self) -> Result<(), Error> {
         let mut nodes = self.nodes.write().expect("could not write nodes list");
-        *nodes = node::List::new(&self.cfg.general.nodes_list_file)?;
+        *nodes = NodesList::new(
+            &self.cfg.general.nodes_list_file,
+            Some(&self.cfg.general.nodes_certs_file),
+        )?;
         Ok(())
     }
 }

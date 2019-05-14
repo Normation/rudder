@@ -1,0 +1,26 @@
+# mandatory for some openssl commands
+[ req ]
+distinguished_name = req_distinguished_name
+
+[ req_distinguished_name ]
+
+
+# DOC: https://superuser.com/questions/738612/openssl-ca-keyusage-extension/1248085#1248085
+# There is no real check on those features by openssl except basicConstraints
+# We don't use critical not pathlen to avoid incompatibilities with future checks
+
+# keyCertSign: certificate signature
+# cRLSign: crl signature
+# digitalSignature: file signature (not used for crl, may be used for DHE)
+# dataEncipherment: file encryption (usualy no used, we cipher a temporary key instead)
+# keyEncipherment: key exchange (for tls with RSA)
+# keyAgreement: key exchange (for tls with DHE)
+
+[ agent_cert ]
+# subject = /CN=hostname/UID=uuid
+basicConstraints        = CA:FALSE
+subjectKeyIdentifier    = hash
+authorityKeyIdentifier  = keyid:always, issuer:always
+keyUsage                = digitalSignature, dataEncipherment, keyEncipherment, keyAgreement 
+#extendedKeyUsage        = clientAuth
+

@@ -28,7 +28,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{configuration::LogComponent, stats::Stats};
+use crate::{configuration::LogComponent, stats::Stats, status::Status, JobConfig};
 use futures::Future;
 use slog::slog_info;
 use slog_scope::info;
@@ -41,12 +41,16 @@ use warp::Filter;
 pub fn api(
     listen: SocketAddr,
     shutdown: impl Future<Item = ()> + Send + 'static,
+    job_config: Arc<JobConfig>,
     stats: Arc<RwLock<Stats>>,
 ) -> impl Future<Item = (), Error = ()> {
     // TODO remove unwrap
     let stats_simple =
         warp::path("stats").map(move || warp::reply::json(&(*stats.clone().read().unwrap())));
-    let routes = warp::get2().and(stats_simple);
+    let status =
+        warp::path("status").map(move || warp::reply::json(&Status::poll(job_config.clone())));
+
+    let routes = warp::get2().and(stats_simple).or(status);
     let (addr, server) = warp::serve(routes).bind_with_graceful_shutdown(listen, shutdown);
     info!("Started stats API on {}", addr; "component" => LogComponent::Statistics);
     server

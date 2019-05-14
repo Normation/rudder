@@ -19,10 +19,10 @@
 # Dev tools, for build see ../Makefile
 
 yum-dependencies:
-	yum install pkgconfig postgresql-devel openssl-devel zlib-devel xz-devel asciidoc
+	yum install pkgconfig postgresql-devel openssl-devel zlib-devel asciidoc
 
 apt-dependencies:
-	apt install pkg-config libpq-dev libssl-dev zlib1g-dev lzma-dev asciidoc
+	apt install pkg-config libpq-dev libssl-dev zlib1g-dev asciidoc
 
 build-env:
 	curl https://sh.rustup.rs -sSf | sh

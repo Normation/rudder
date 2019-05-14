@@ -32,7 +32,7 @@ use crate::{
     configuration::LogComponent, data::report::report, data::report::RawReport, data::Report,
     data::RunInfo, error::Error,
 };
-use nom::{types::CompleteStr, *};
+use nom::*;
 use serde::{Deserialize, Serialize};
 use slog::{slog_debug, slog_error, slog_warn};
 use slog_scope::{debug, error, warn};
@@ -42,9 +42,9 @@ use std::{
     str::FromStr,
 };
 
-named!(parse_runlog<CompleteStr, Vec<RawReport>>,
+named!(parse_runlog<&str, Vec<RawReport>>,
     many1!(
-        report
+        complete!(report)
     )
 );
 
@@ -68,13 +68,13 @@ impl FromStr for RunLog {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match parse_runlog(CompleteStr::from(s)) {
+        match parse_runlog(s) {
             Ok(raw_runlog) => {
                 debug!("Parsed runlog {:#?}", raw_runlog.1; "component" => LogComponent::Parser);
                 TryFrom::try_from(raw_runlog.1)
             }
             Err(e) => {
-                warn!("{}: could not parse '{}'", e, s);
+                warn!("{:?}: could not parse '{}'", e, s);
                 Err(Error::InvalidRunLog)
             }
         }
@@ -118,21 +118,7 @@ impl TryFrom<Vec<RawReport>> for RunLog {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::prelude::*;
     use std::fs::{read_dir, read_to_string};
-
-    #[test]
-    fn test_parse_runinfo() {
-        let runlog_file = "2018-08-24T15:55:01+00:00@root.log";
-        let runinfo = RunInfo::from_str(runlog_file).unwrap();
-        assert_eq!(
-            runinfo,
-            RunInfo {
-                timestamp: DateTime::parse_from_str("2018-08-24T15:55:01+00:00", "%+").unwrap(),
-                node_id: "root".into(),
-            }
-        );
-    }
 
     #[test]
     fn test_parse_runlog() {

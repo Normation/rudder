@@ -2,26 +2,45 @@ use diesel::{self, prelude::*, PgConnection};
 use filetime::{set_file_times, FileTime};
 use relayd::{
     configuration::CliConfiguration, data::report::QueryableReport, init,
-    output::database::schema::ruddersysevents::dsl::*,
+    output::database::schema::ruddersysevents::dsl::*, stats::Stats,
 };
+use reqwest;
+use serde_json;
 use std::{
-    fs::{copy, create_dir_all, remove_dir_all, File},
+    fs::{copy, create_dir_all, remove_dir_all},
+    path::Path,
     thread, time,
 };
 
-pub fn db_connection() -> PgConnection {
+fn db_connection() -> PgConnection {
     PgConnection::establish("postgres://rudderreports:PASSWORD@127.0.0.1/rudder").unwrap()
+}
+
+// Checks number of start execution reports
+// (so number of runlogs if everything goes well)
+fn start_number(db: &PgConnection, expected: usize) -> Result<(), ()> {
+    let mut retry = 10;
+    while retry > 0 {
+        thread::sleep(time::Duration::from_millis(200));
+        retry -= 1;
+        let results = ruddersysevents
+            .filter(component.eq("start"))
+            .limit(10)
+            .load::<QueryableReport>(db)
+            .unwrap();
+        if results.len() == expected {
+            return Ok(());
+        }
+    }
+    Err(())
 }
 
 #[test]
 fn it_reads_and_inserts_a_runlog() {
     let db = db_connection();
     diesel::delete(ruddersysevents).execute(&db).unwrap();
-    let results = ruddersysevents
-        .limit(1)
-        .load::<QueryableReport>(&db)
-        .unwrap();
-    assert_eq!(results.len(), 0);
+
+    assert!(start_number(&db, 0).is_ok());
 
     let _ = remove_dir_all("target/tmp/test_simple");
     create_dir_all("target/tmp/test_simple/incoming").unwrap();
@@ -37,34 +56,36 @@ fn it_reads_and_inserts_a_runlog() {
     set_file_times(file_old, FileTime::zero(), FileTime::zero()).unwrap();
 
     thread::spawn(move || {
-        init(&cli_cfg).unwrap();
+        init(cli_cfg).unwrap();
     });
-    thread::sleep(time::Duration::from_millis(200));
 
-    let results = ruddersysevents
-        .filter(component.eq("start"))
-        .limit(3)
-        .load::<QueryableReport>(&db)
-        .unwrap();
-    assert_eq!(results.len(), 1);
+    assert!(start_number(&db, 1).is_ok());
 
     copy("tests/runlogs/normal.log", file_new).unwrap();
     copy("tests/files/relayd.toml", file_broken).unwrap();
-    thread::sleep(time::Duration::from_millis(200));
 
-    let results = ruddersysevents
-        .filter(component.eq("start"))
-        .limit(3)
-        .load::<QueryableReport>(&db)
-        .unwrap();
-    assert_eq!(results.len(), 2);
+    assert!(start_number(&db, 2).is_ok());
 
     // Test files have been removed
-    assert!(File::open(file_old).is_err());
-    assert!(File::open(file_new).is_err());
+    assert!(!Path::new(file_old).exists());
+    assert!(!Path::new(file_new).exists());
     // Test broken file has been moved
-    assert!(File::open(file_broken).is_err());
-    assert!(File::open(file_failed).is_ok());
+    assert!(!Path::new(file_broken).exists());
+    assert!(Path::new(file_failed).exists());
 
-    // TODO check stats api
+    let body = reqwest::get("http://localhost:3030/stats")
+        .unwrap()
+        .text()
+        .unwrap();
+    let answer = serde_json::from_str(&body).unwrap();
+    let reference = Stats {
+        report_received: 3,
+        report_refused: 1,
+        report_sent: 0,
+        report_inserted: 2,
+        inventory_received: 0,
+        inventory_refused: 0,
+        inventory_sent: 0,
+    };
+    assert_eq!(reference, answer);
 }

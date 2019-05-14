@@ -30,7 +30,7 @@
 
 use crate::{configuration::LogComponent, data::node, error::Error};
 use chrono::prelude::*;
-use nom::{types::CompleteStr, *};
+use nom::*;
 use serde::{Deserialize, Serialize};
 use slog::slog_debug;
 use slog_scope::debug;
@@ -51,19 +51,23 @@ impl Display for RunInfo {
     }
 }
 
-fn parse_iso_date(input: CompleteStr) -> Result<DateTime<FixedOffset>, chrono::format::ParseError> {
-    DateTime::parse_from_str(input.as_ref(), "%+")
+pub fn parse_iso_date(input: &str) -> Result<DateTime<FixedOffset>, chrono::format::ParseError> {
+    DateTime::parse_from_str(input, "%+")
 }
 
-named!(parse_runinfo<CompleteStr, RunInfo>,
+named!(parse_runinfo<&str, RunInfo>,
     do_parse!(
-        timestamp: map_res!(take_until_and_consume_s!("@"), parse_iso_date) >>
-        node_id: take_until_and_consume_s!(".") >>
-        tag_s!("log") >>
-        opt!(tag_s!(".gz")) >>
+        timestamp: map_res!(complete!(take_until!("@")), parse_iso_date) >>
+        tag!("@") >>
+        node_id: take_until!(".") >>
+        tag!(".log") >>
+        opt!(complete!(tag!(".gz"))) >>
+        eof!() >>
         (
             RunInfo {
-                // FIXME same timestamp format as in the reports?
+                // Note this format is not exactly the same as the reports
+                // Here we are parsing ISO8601 dates, report dates replace the T by a space
+                // Kept for compatibility reasons, but we should strive to use ISO everywhere
                 timestamp,
                 node_id: node_id.to_string(),
             }
@@ -75,12 +79,36 @@ impl FromStr for RunInfo {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match parse_runinfo(CompleteStr::from(s)) {
+        match parse_runinfo(s) {
             Ok(raw_runinfo) => {
                 debug!("Parsed run info {:#?}", raw_runinfo.1; "component" => LogComponent::Parser);
                 Ok(raw_runinfo.1)
             }
-            Err(_) => Err(Error::InvalidRunInfo),
+            Err(e) => {
+                std::dbg!(e);
+                Err(Error::InvalidRunInfo)
+            }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_runinfo() {
+        let reference = RunInfo {
+            timestamp: DateTime::parse_from_str("2018-08-24T15:55:01+00:00", "%+").unwrap(),
+            node_id: "root".into(),
+        };
+        assert_eq!(
+            RunInfo::from_str("2018-08-24T15:55:01+00:00@root.log").unwrap(),
+            reference
+        );
+        assert_eq!(
+            RunInfo::from_str("2018-08-24T15:55:01+00:00@root.log.gz").unwrap(),
+            reference
+        );
     }
 }

@@ -146,21 +146,15 @@ fn watch_files<P: AsRef<Path>>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{
-        fs::{create_dir_all, remove_file, File},
-        path::PathBuf,
-        str::FromStr,
-    };
+    use std::{fs::File, path::PathBuf, str::FromStr};
+    use tempfile::tempdir;
 
     #[test]
     fn it_watches_files() {
-        // TODO improve tmp dir handling
-        create_dir_all("target/tmp/test_watch").unwrap();
-        // just in case
-        let _ = remove_file("target/tmp/test_watch/2019-01-24T15:55:01+00:00@root.log");
+        let dir = tempdir().unwrap();
 
-        let watch = watch_stream("target/tmp/test_watch");
-        File::create("target/tmp/test_watch/2019-01-24T15:55:01+00:00@root.log").unwrap();
+        let watch = watch_stream(dir.path());
+        File::create(dir.path().join("2019-01-24T15:55:01+00:00@root.log")).unwrap();
         let events = watch.take(1).wait().collect::<Vec<_>>();
 
         assert_eq!(events.len(), 1);

@@ -1,0 +1,1 @@
+openssl smime -sign -signer ../keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert -in normal.log -out normal.signed -inkey ../keys/e745a140-40bc-4b86-b6dc-084488fc906b.priv -passin "pass:Cfengine passphrase" -nocerts

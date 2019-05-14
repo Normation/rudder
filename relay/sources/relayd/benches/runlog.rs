@@ -13,7 +13,6 @@ use std::{
     io::Read,
     str::FromStr,
 };
-use xz2::read::XzDecoder;
 
 fn bench_parse_runlog(c: &mut Criterion) {
     let runlog = read_to_string("tests/test_gz/normal.log").unwrap();
@@ -31,16 +30,6 @@ fn bench_uncompress_runlog(c: &mut Criterion) {
             let mut gz = GzDecoder::new(data.as_slice());
             let mut s = String::new();
             gz.read_to_string(&mut s).unwrap();
-            black_box(s);
-        })
-    });
-
-    let data = read("tests/test_gz/normal.log.xz").unwrap();
-    c.bench_function("uncompress xz runlog", move |b| {
-        b.iter(|| {
-            let mut xz = XzDecoder::new(data.as_slice());
-            let mut s = String::new();
-            xz.read_to_string(&mut s).unwrap();
             black_box(s);
         })
     });

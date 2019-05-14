@@ -68,7 +68,7 @@ pub mod schema {
 pub type PgPool = Pool<ConnectionManager<PgConnection>>;
 
 pub fn pg_pool(configuration: &DatabaseConfig) -> Result<PgPool, Error> {
-    let manager = ConnectionManager::<PgConnection>::new(configuration.url.as_ref());
+    let manager = ConnectionManager::<PgConnection>::new(&configuration.url[..]);
     Ok(Pool::builder()
         .max_size(configuration.max_pool_size)
         .build(manager)?)
@@ -84,6 +84,16 @@ pub enum RunlogInsertion {
 pub enum InsertionBehavior {
     SkipDuplicate,
     AllowDuplicate,
+}
+
+pub fn ping(pool: &PgPool) -> Result<(), Error> {
+    use self::schema::ruddersysevents::dsl::*;
+    let connection = &*pool.get()?;
+
+    let _ = ruddersysevents
+        .limit(1)
+        .load::<QueryableReport>(connection)?;
+    Ok(())
 }
 
 // TODO return if it inserted the runlog or not

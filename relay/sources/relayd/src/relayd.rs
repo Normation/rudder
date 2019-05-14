@@ -28,48 +28,18 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use clap::{crate_version, App, Arg};
-use relayd::{configuration::CliConfiguration, init};
+use relayd::{configuration::CliConfiguration, error::Error, init};
 use std::process::exit;
-
-const DEFAULT_CONFIGURATION_FILE: &str = "/opt/rudder/etc/rudder-relayd.conf";
-
-fn parse() -> CliConfiguration {
-    let matches = App::new("rudder-relayd")
-        .version(crate_version!())
-        .author("Rudder team <dev@rudder.io>")
-        .about("Rudder relay server")
-        .arg(
-            Arg::with_name("config")
-                .short("c")
-                .long("config")
-                .default_value(DEFAULT_CONFIGURATION_FILE)
-                .value_name("FILE")
-                .help("Sets a custom config file")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("check")
-                .short("k")
-                .long("check")
-                .help("Checks configuration file syntax"),
-        )
-        .get_matches();
-
-    CliConfiguration {
-        configuration_file: matches
-            .value_of("config")
-            .expect("No configuration file specified")
-            .into(),
-        check_configuration: matches.is_present("check"),
-    }
-}
+use structopt::StructOpt;
 
 fn main() {
-    let cli_cfg = parse();
+    let cli_cfg = CliConfiguration::from_args();
     // Everything in a lib to allow extensive testing
-    if let Err(e) = init(&cli_cfg) {
+    if let Err(e) = init(cli_cfg) {
         eprintln!("{}", e);
-        exit(1);
+        exit(match e {
+            Error::ConfigurationParsing(_) => 2,
+            _ => 1,
+        });
     }
 }

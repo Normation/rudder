@@ -27,3 +27,15 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+use crate::configuration::UpstreamConfig;
+use reqwest::Client;
+
+pub fn forward_file(cfg: UpstreamConfig) {
+    let client = Client::new();
+    let resp = client
+        .put("http://httpbin.org/")
+        .basic_auth("rudder", Some("rudder"))
+        .send()
+        .unwrap();
+}
