@@ -15,7 +15,7 @@ use std::{
 };
 
 fn bench_parse_runlog(c: &mut Criterion) {
-    let runlog = read_to_string("tests/test_gz/normal.log").unwrap();
+    let runlog = read_to_string("tests/runlogs/normal.log").unwrap();
     c.bench_function("parse runlog", move |b| {
         b.iter(|| black_box(RunLog::from_str(&runlog).unwrap()))
     });
