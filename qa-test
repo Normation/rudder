@@ -4,5 +4,5 @@ make test-common
 
 find .  -path ./api -prune -o  -name '*.py' -exec echo "Running pylint on {}" \; -exec pylint -E --disable=C,R --persistent=n {} \;
 mv ncf test.ncf
-pylint -E --disable=C,R --persistent=n --init-hook="sys.path[0:0] = ['./tools']" test.ncf
+pylint3 -E --disable=C,R --persistent=n --init-hook="sys.path[0:0] = ['./tools']" test.ncf
 mv test.ncf ncf
