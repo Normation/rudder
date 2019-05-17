@@ -1,3 +1,8 @@
+# Needed to have a path reference for the tests execution
+bundle common ncf_configuration {
+  vars:
+      "ncf_configuration_basedir" string => dirname("${this.promise_filename}");
+}
 # Create the list of all the base file to load to test
 # It requires the NCF_TREE environment variable to be defined
 bundle common ncf_inputs
