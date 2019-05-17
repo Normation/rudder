@@ -167,7 +167,11 @@ def list_updates(online):
         if result != 0:
             return result
 
-    process = subprocess_Popen([apt_get_cmd] + apt_get_options + ["-s", "upgrade"], stdout=subprocess.PIPE)
+   # We ignore held packages (--ignore-hold) so that all package updates
+   # available are listed. This makes package update listing compatible with
+   # debian 8 and highers `apt list --upgradeable`
+
+    process = subprocess_Popen([apt_get_cmd] + apt_get_options + ["--simulate", "--ignore-hold", "upgrade"], stdout=subprocess.PIPE)
     for line in process.stdout:
         if PY3:
             line = line.decode("utf-8")

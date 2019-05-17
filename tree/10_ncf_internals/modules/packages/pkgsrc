@@ -102,7 +102,7 @@ get_package_data () {
         # or version, return nothing.
         # There's possibly a bug here because we're already emitting that the
         # PackageType is repo.
-        parse_pkg_data "$(pkgin -pP avail | grep "^${File}-" | grep "$Version;" | sort -n | tail -1)" | grep Name
+        parse_pkg_data "$(pkgin -pP avail | grep "^${File}-[0-9]" | grep "$Version;" | sort -n | tail -1)" | grep Name
     fi
 }
 

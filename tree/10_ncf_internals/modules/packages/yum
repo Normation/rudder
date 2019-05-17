@@ -110,33 +110,44 @@ def list_installed():
 
 
 def list_updates(online):
+    global yum_options
     for line in sys.stdin:
         line = line.strip()
         if line.startswith("options="):
             option = line[len("options="):]
-            if option.startswith("enablerepo=") or option.startswith("disablerepo="):
-                global yum_options
-                yum_options += ["--" + option]
+            if option.startswith("-"):
+                yum_options.append(option)
+            elif option.startswith("enablerepo=") or option.startswith("disablerepo="):
+                yum_options.append("--" + option)
 
     online_flag = []
     if not online:
         online_flag = ["-C"]
 
     process = subprocess_Popen([yum_cmd] + yum_options + online_flag + ["check-update"], stdout=subprocess.PIPE)
+    (stdoutdata, _) = process.communicate()
+    # analyze return code from `yum check-update`:
+    # 0 means no updates
+    # 1 means there was an error
+    # 100 means that there are available updates
+    if process.returncode != 100:
+        # either there were no updates or error happened
+        # Nothing to do for us here anyway
+        return process.returncode
     lastline = ""
-    for line in process.stdout:
+    for line in stdoutdata.splitlines():
         # Combine multiline entries into one line. A line without at least three
         # space separated fields gets combined with the next line, if that line
         # starts with a space.
-        if lastline and not line[0].isspace():
+        if lastline and (len(line) == 0 or not line[0].isspace()):
             # Line does not start with a space. No combination.
             lastline = ""
 
         line = lastline + line
         match = re.match("^\S+\s+\S+\s+\S+", line)
         if match is None:
-            # Keep line but strip trailing newline.
-            lastline = line[:-1]
+            # Keep line
+            lastline = line
             continue
 
         lastline = ""
@@ -213,9 +224,10 @@ def package_arguments_builder(is_yum_install):
         line = line.strip()
         if line.startswith("options="):
             option = line[len("options="):]
-            if option.startswith("enablerepo=") or option.startswith("disablerepo="):
-                global yum_options
-                yum_options += ["--" + option]
+            if option.startswith("-"):
+                yum_options.append(option)
+            elif option.startswith("enablerepo=") or option.startswith("disablerepo="):
+                yum_options.append("--" + option)
         if line.startswith("Name="):
             if name:
                 # Each new "Name=" triggers a new entry.
