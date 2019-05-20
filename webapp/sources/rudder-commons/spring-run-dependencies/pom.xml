@@ -22,7 +22,7 @@ limitations under the License.
   <parent>
     <groupId>com.normation</groupId>
     <artifactId>parent-pom</artifactId>
-    <version>4.1.23-SNAPSHOT</version>
+    <version>4.1.23</version>
   </parent>
 
   <description>
