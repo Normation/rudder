@@ -93,11 +93,14 @@ class DynGroupUpdaterServiceImpl(
 
   override def computeDynGroup (group : NodeGroup): Box[NodeGroup] = {
     for {
-      _          <- if(group.isDynamic) Full("OK") else Failure("Can not update a not dynamic group")
-      query      <- Box(group.query) ?~! s"No query defined for group '${group.name}' (${group.id.value})"
-      newMembers <- queryProcessor.process(query) ?~! s"Error when processing request for updating dynamic group '${group.name}' (${group.id.value})"
+      _              <- if(group.isDynamic) Full("OK") else Failure("Can not update a not dynamic group")
+      timePreCompute =  System.currentTimeMillis
+      query          <- Box(group.query) ?~! s"No query defined for group '${group.name}' (${group.id.value})"
+      newMembers     <- queryProcessor.process(query) ?~! s"Error when processing request for updating dynamic group '${group.name}' (${group.id.value})"
       //save
       newMemberIdsSet = newMembers.map(_.id).toSet
+      timeGroupCompute=  (System.currentTimeMillis - timePreCompute)
+      _               =  logger.debug(s"Dynamic group ${group.id.value} with name ${group.name} computed in ${timeGroupCompute} ms")
     } yield {
       group.copy(serverList = newMemberIdsSet)
     }
@@ -122,11 +125,13 @@ class DynGroupUpdaterServiceImpl(
   }
 
   override def update(dynGroupId:NodeGroupId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DynGroupDiff] = {
-
+    val timePreUpdate =  System.currentTimeMillis
     for {
-      (group,_)  <- roNodeGroupRepository.getNodeGroup(dynGroupId)
-      newGroup   <- computeDynGroup(group)
-      savedGroup <- woNodeGroupRepository.updateDynGroupNodes(newGroup, modId, actor, reason) ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.value})"
+      (group,_)        <- roNodeGroupRepository.getNodeGroup(dynGroupId)
+      newGroup         <- computeDynGroup(group)
+      savedGroup       <- woNodeGroupRepository.updateDynGroupNodes(newGroup, modId, actor, reason) ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.value})"
+      timeGroupUpdate  =  (System.currentTimeMillis - timePreUpdate)
+      _                =  logger.debug(s"Dynamic group ${group.id.value} with name ${group.name} updated in ${timeGroupUpdate} ms")
     } yield {
       DynGroupDiff(newGroup, group)
     }

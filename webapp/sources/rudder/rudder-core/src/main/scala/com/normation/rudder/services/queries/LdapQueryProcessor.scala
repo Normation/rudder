@@ -162,10 +162,15 @@ class AcceptedNodesLDAPQueryProcessor(
   ) : Box[Seq[QueryResult]] = {
 
     val debugId = if(logger.isDebugEnabled) Helpers.nextNum else 0L
+    val timePreCompute =  System.currentTimeMillis
 
     for {
-      res         <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId)
-      ldapEntries <- nodeInfoService.getLDAPNodeInfo(res.entries.flatMap(x => x(A_NODE_UUID).map(NodeId(_))).toSet, res.nodeFilters, query.composition)
+      res            <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId)
+      timeres        =  (System.currentTimeMillis - timePreCompute)
+      _              =  logger.debug(s"Result obtained in ${timeres}ms for query ${query.toString}")
+      ldapEntries    <- nodeInfoService.getLDAPNodeInfo(res.entries.flatMap(x => x(A_NODE_UUID).map(NodeId(_))).toSet, res.nodeFilters, query.composition)
+      ldapEntryTime  =  (System.currentTimeMillis - timePreCompute - timeres)
+      _              =  logger.trace(s"Result of query converted in LDAP Entry in ${ldapEntryTime} ms")
     } yield {
 
       val inNodes = ldapEntries.map { case LDAPNodeInfo(nodeEntry, nodeInv, machineInv) =>
