@@ -533,24 +533,15 @@ class PromiseGenerationServiceImpl (
       // wait for it to finish. We unfortunately cannot do much more than waiting
       // we do need a timeout though
       // Leave some time for actor to kick in
-      Thread.sleep(100)
-    }
-
-
-    val TIMEOUT_FOR_GROUP_UPDATE = 10
-    val endWaitTime = System.currentTimeMillis + TIMEOUT_FOR_GROUP_UPDATE * 1000
-
-    while (System.currentTimeMillis() < endWaitTime && !updateDynamicGroups.isIdle()) {
       Thread.sleep(50)
     }
 
-    if (System.currentTimeMillis() > endWaitTime) {
-      val msg = s"Dynamic group update time-outed (waited for ${TIMEOUT_FOR_GROUP_UPDATE} secondes to finish)"
-      logger.error(msg)
-      Failure(msg)
-    } else {
-      Full(Unit)
+    // wait for dyn group update to finish
+    while (!updateDynamicGroups.isIdle()) {
+      Thread.sleep(50)
     }
+
+    Full(Unit)
   }
 }
 
