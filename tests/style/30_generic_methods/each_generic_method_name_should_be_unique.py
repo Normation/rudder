@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 # Check that each generic_methods bundle's '@name' property is unique
 

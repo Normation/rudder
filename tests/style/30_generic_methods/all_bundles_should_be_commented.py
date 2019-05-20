@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 # Check that all generic_methods bundles are preceded with the mandatory comments
 

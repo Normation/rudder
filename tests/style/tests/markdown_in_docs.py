@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 # Test if the documentation fields contain unescaped dollar characters that would break pdflatex
