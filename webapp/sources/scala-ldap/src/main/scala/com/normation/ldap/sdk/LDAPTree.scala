@@ -25,9 +25,13 @@ import com.normation.ldap.ldif.ToLDIFString
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFRecord
-import net.liftweb.common._
+
 import scala.collection.mutable.Buffer
 import scala.collection.mutable.HashMap
+import scalaz.zio.syntax._
+import com.normation.ldap.sdk.LDAPIOResult._
+import com.normation.ldap.sdk.LDAPRudderError.Consistancy
+import cats.implicits._
 
 /*
  * An LDAP tree of entries.
@@ -137,13 +141,13 @@ object LDAPTree {
    * All entries in the list safe one (the one that will become the root of the tree)
    * must have a direct parent in other entries.
    */
-  def apply(entries:Iterable[LDAPEntry]) : Box[LDAPTree] = {
-    if(null == entries || entries.isEmpty) Empty
+  def apply(entries:Iterable[LDAPEntry]) : LDAPIOResult[LDAPTree] = {
+    if(null == entries || entries.isEmpty) LDAPRudderError.Consistancy(s"You can't create a Tree from an empty list of entries").fail
     //verify that there is no duplicates
     else if(entries.map(_.dn).toSet.size != entries.size) {
       val s = entries.map(_.dn).toSet
       val res = entries.map(_.dn).filter(x => ! s.contains(x))
-      Failure(s"Some entries have the same dn, what is forbiden: ${res}")
+      LDAPRudderError.Consistancy(s"Some entries have the same dn, what is forbiden: ${res}").fail
     } else {
       val used = Buffer[DN]()
       /*
@@ -166,8 +170,8 @@ object LDAPTree {
 
       if(used.size < entries.size-1) {
         val s = entries.map(_.dn).filter(x => !used.contains(x))
-        Failure(s"Some entries have no parents: ${s}")
-      } else Full(root)
+        LDAPRudderError.Consistancy(s"Some entries have no parents: ${s}").fail
+      } else root.succeed
     }
   }
   /*
@@ -177,35 +181,35 @@ object LDAPTree {
    * The comparison is strict, so that:
    * - if
    */
-  def diff(source:LDAPTree, target:LDAPTree, removeMissing:Boolean) :  Option[Tree[TreeModification]] = {
+  def diff(source:LDAPTree, target:LDAPTree, removeMissing:Boolean) :  Either[Consistancy, List[TreeModification]] = {
     if(source.root.dn != target.root.dn) {
-      logger.debug(s"DN of the two LDAP tree's root are different: ${source.root.dn} <> ${target.root.dn}")
-      None
+      Left(Consistancy(s"DN of the two LDAP tree's root are different: ${source.root.dn} <> ${target.root.dn}"))
     } else {
       //modification on root
       val rootDiff = LDAPEntry.merge(source.root, target.root, removeMissing = removeMissing)
 
-      val mods:Tree[TreeModification] = if(rootDiff.isEmpty) Tree(NoMod) else Tree(Replace((source.root.dn,rootDiff)))
+      val rootMod = if(rootDiff.isEmpty) NoMod else Replace((source.root.dn,rootDiff))
 
       val intersection = source.children.keySet intersect(target.children.keySet)
 
       //remove entries present in source but not in target
-      for(k <- source.children.keySet -- intersection) {
-        mods.addChild(k, Tree(Delete(source.children(k).map(_.dn))))
+      val removed = (source.children.keySet -- intersection).map { k =>
+        Delete(source.children(k).map(_.dn))
       }
 
       //add entries present in target but not in source
-      for(k <- target.children.keySet -- intersection) {
-        mods.addChild(k, Tree(Add(target.children(k))))
+      val added = (target.children.keySet -- intersection).map { k =>
+        Add(target.children(k))
       }
 
       //diff all entries both in source and target
-      for(k <- intersection) {
-        diff(source.children(k), target.children(k), removeMissing) foreach { d =>
-          mods.addChild(k, d)
-        }
+      for {
+        diffed <- intersection.toList.traverse { k =>
+                    diff(source.children(k), target.children(k), removeMissing)
+                  }
+      } yield {
+        List(rootMod) ++ removed ++ added ++ diffed.flatten
       }
-      Some(mods)
     }
   }
 }

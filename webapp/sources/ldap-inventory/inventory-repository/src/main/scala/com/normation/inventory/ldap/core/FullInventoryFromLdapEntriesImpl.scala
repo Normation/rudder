@@ -37,25 +37,28 @@
 
 package com.normation.inventory.ldap.core
 
-import scala.collection.mutable.Buffer
-import net.liftweb.common._
-import com.normation.ldap.sdk.{LDAPTree, LDAPEntry}
 import com.normation.inventory.domain.FullInventory
+import com.normation.errors._
+import com.normation.ldap.sdk.LDAPEntry
+import com.normation.ldap.sdk.LDAPTree
+import scalaz.zio.syntax._
+
+import scala.collection.mutable.Buffer
 
 class FullInventoryFromLdapEntriesImpl(
-    inventoryDitService:InventoryDitService,
-    mapper:InventoryMapper
-) extends FullInventoryFromLdapEntries with Loggable {
+    inventoryDitService: InventoryDitService
+  , mapper             : InventoryMapper
+) extends FullInventoryFromLdapEntries {
 
 
   //a dit without base dn
-  override def fromLdapEntries(entries:Seq[LDAPEntry]) : Box[FullInventory] = {
+  override def fromLdapEntries(entries:Seq[LDAPEntry]) : IOResult[FullInventory] = {
     val serverElts = Buffer[LDAPEntry]()
     val machineElts = Buffer[LDAPEntry]()
 
     for {
       entry <- entries
-      dit <- inventoryDitService.getDit(entry.dn)
+      dit   <- inventoryDitService.getDit(entry.dn)
     } {
       if(entry.dn.getRDNs.contains(dit.NODES.rdn)) {
         serverElts += entry
@@ -65,18 +68,13 @@ class FullInventoryFromLdapEntriesImpl(
     }
 
     for {
-      nodeTree <- LDAPTree(serverElts) ?~! "Error when building the tree of entries for the node"
-      node <- mapper.nodeFromTree(nodeTree)
-      optMachine <- LDAPTree(machineElts) match { //can be empty
-        case f:Failure => f
-        case Empty => Full(None)
-        case Full(t) => mapper.machineFromTree(t).map(m => Some(m) )
-      }
+      nodeTree   <- LDAPTree(serverElts)
+      node       <- mapper.nodeFromTree(nodeTree)
+      optMachine <- if(machineElts.isEmpty) None.succeed
+                    else LDAPTree(machineElts).flatMap(t => mapper.machineFromTree(t).map(m => Some(m) ))
     } yield {
       FullInventory(node, optMachine)
     }
-
-
   }
 }
 

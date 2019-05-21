@@ -110,11 +110,11 @@ class TestPendingNodePolicies extends Specification {
   //the node that we will try to accept
   val node = NodeId("node")
 
-  def orQuery     (g: NodeGroup) = Query(null, Or , Seq(cl, sub(g), cl))
-  def andQuery    (g: NodeGroup) = Query(null, And, Seq(cl, sub(g), cl))
-  def onlySubQuery(g: NodeGroup) = Query(null, And, Seq(sub(g)))
-  val dummyQuery0 = Query(null, And, Seq(cl)) // will return 0 node
-  val dummyQuery1 = Query(null, Or , Seq(cl)) // will return 1 node
+  def orQuery     (g: NodeGroup) = Query(null, Or , List(cl, sub(g), cl))
+  def andQuery    (g: NodeGroup) = Query(null, And, List(cl, sub(g), cl))
+  def onlySubQuery(g: NodeGroup) = Query(null, And, List(sub(g)))
+  val dummyQuery0 = Query(null, And, List(cl)) // will return 0 node
+  val dummyQuery1 = Query(null, Or , List(cl)) // will return 1 node
 
   def ng(id: String, q: Query, dyn: Boolean = true) =
     NodeGroup(NodeGroupId(id), id, id, Some(q), dyn, Set(), true, false)
@@ -145,7 +145,7 @@ class TestPendingNodePolicies extends Specification {
 
   // a fake dyn group service
   val getDynGroups = new DynGroupService {
-    override def getAllDynGroups(): Box[Seq[NodeGroup]] = Full(Seq(
+    override def getAllDynGroups(): Box[Seq[NodeGroup]] = Full(List(
       a, b, c, d, e, /*f, static */ g, h, i, j, k, l, m, n, o, pp
     ))
   }

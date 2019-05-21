@@ -61,8 +61,8 @@ class TestStringQueryParser {
   val c2 = Criterion("id", BareComparator(Equals))
   val c3 = Criterion("name", BareComparator(Exists,Greater))
 
-  val oc1 = ObjectCriterion("node", Seq(c1,c2))
-  val oc2 = ObjectCriterion("machine", Seq(c3))
+  val oc1 = ObjectCriterion("node", List(c1,c2))
+  val oc2 = ObjectCriterion("machine", List(c3))
 
   val criteria = Map(
     "node" -> oc1,
@@ -74,28 +74,28 @@ class TestStringQueryParser {
   }
 
 
-  val valid1_0 = StringQuery(NodeReturnType, Some("and"), Seq(
+  val valid1_0 = StringQuery(NodeReturnType, Some("and"), List(
       StringCriterionLine("node","name","exists"),
       StringCriterionLine("machine","name","gt",Some("plop")),
       StringCriterionLine("node","id","eq",Some("foo"))
   ))
 
-  val valid1_1 = StringQuery(NodeReturnType, Some("and"), Seq())
-  val valid1_2 = StringQuery(NodeReturnType, Some("or"), Seq())
-  val valid1_3 = StringQuery(NodeReturnType, None, Seq()) //default to and
+  val valid1_1 = StringQuery(NodeReturnType, Some("and"), List())
+  val valid1_2 = StringQuery(NodeReturnType, Some("or"), List())
+  val valid1_3 = StringQuery(NodeReturnType, None, List()) //default to and
 
 
-  val unvalidComp = StringQuery(NodeReturnType, Some("foo"), Seq())
-  val unknowObjectType = StringQuery(NodeReturnType, None, Seq(
+  val unvalidComp = StringQuery(NodeReturnType, Some("foo"), List())
+  val unknowObjectType = StringQuery(NodeReturnType, None, List(
       StringCriterionLine("unknown","name","exists")
   ))
-  val unknowAttribute = StringQuery(NodeReturnType, None, Seq(
+  val unknowAttribute = StringQuery(NodeReturnType, None, List(
       StringCriterionLine("node","unknown","exists")
   ))
-  val unknowComparator = StringQuery(NodeReturnType, None, Seq(
+  val unknowComparator = StringQuery(NodeReturnType, None, List(
       StringCriterionLine("node","name","unknown")
   ))
-  val missingRequiredValue = StringQuery(NodeReturnType, None, Seq(
+  val missingRequiredValue = StringQuery(NodeReturnType, None, List(
       StringCriterionLine("node","name","eq")
   ))
 
@@ -104,7 +104,7 @@ class TestStringQueryParser {
   def basicParsing(): Unit = {
 
     assertEquals(
-      Full(Query(NodeReturnType, And, Seq(
+      Full(Query(NodeReturnType, And, List(
           CriterionLine(oc1,c1,Exists),
           CriterionLine(oc2,c3,Greater,"plop"),
           CriterionLine(oc1,c2,Equals,"foo")
@@ -113,15 +113,15 @@ class TestStringQueryParser {
     )
 
     assertEquals(
-      Full(Query(NodeReturnType, And, Seq())),
+      Full(Query(NodeReturnType, And, List())),
       parser.parse(valid1_1)
     )
     assertEquals(
-      Full(Query(NodeReturnType, Or, Seq())),
+      Full(Query(NodeReturnType, Or, List())),
       parser.parse(valid1_2)
     )
     assertEquals(
-      Full(Query(NodeReturnType, And, Seq())),
+      Full(Query(NodeReturnType, And, List())),
       parser.parse(valid1_3)
     )
 

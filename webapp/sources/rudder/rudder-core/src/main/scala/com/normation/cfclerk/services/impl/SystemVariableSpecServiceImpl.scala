@@ -37,12 +37,14 @@
 
 package com.normation.cfclerk.services.impl
 
-import com.normation.cfclerk.domain.{SystemVariableSpec,Constraint}
-import com.normation.cfclerk.services.SystemVariableSpecService
-import com.normation.cfclerk.domain.IntegerVType
-import com.normation.cfclerk.domain.BooleanVType
 import com.normation.cfclerk.domain.BasicStringVType
+import com.normation.cfclerk.domain.BooleanVType
+import com.normation.cfclerk.domain.IntegerVType
 import com.normation.cfclerk.domain.RegexConstraint
+import com.normation.cfclerk.domain.Constraint
+import com.normation.cfclerk.domain.SystemVariableSpec
+import com.normation.cfclerk.services.MissingSystemVariable
+import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.rudder.reports.ComplianceModeName
 
 class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
@@ -309,6 +311,6 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
 
   private[this] val varSpecsMap = varSpecs.map(x => (x.name -> x)).toMap
 
-  override def get(varName : String) : SystemVariableSpec = varSpecsMap(varName)
+  override def get(varName : String): Either[MissingSystemVariable, SystemVariableSpec] = varSpecsMap.get(varName).toRight(MissingSystemVariable(varName))
   override def getAll() : Seq[SystemVariableSpec] = varSpecs
 }

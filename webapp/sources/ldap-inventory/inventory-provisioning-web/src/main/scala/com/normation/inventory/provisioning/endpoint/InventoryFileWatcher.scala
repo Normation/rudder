@@ -37,21 +37,24 @@
 
 package com.normation.inventory.provisioning.endpoint
 
+import java.io.InputStream
 import java.nio.file.ClosedWatchServiceException
+import java.nio.file.NoSuchFileException
+import java.util.concurrent.TimeUnit
 
 import better.files._
-import monix.eval.Task
-import monix.execution.Scheduler
-import monix.execution.Scheduler._
-import monix.execution.cancelables.SerialCancelable
-import net.liftweb.common.Full
+import com.normation.errors.IOResult
+import com.normation.errors.RudderError
+import com.normation.zio.ZioRuntime
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.blocking
-import scala.concurrent.duration.FiniteDuration
-import scala.language.postfixOps
 import scala.util.control.NonFatal
+import scalaz.zio._
+import scalaz.zio.syntax._
+import scalaz.zio.duration._
 
+import scala.tools.nsc.interpreter.InputStream
 
 final class Watchers(incoming: FileMonitor, updates: FileMonitor) {
   def start()(implicit executionContext: ExecutionContext): Either[Throwable, Unit] = {
@@ -97,7 +100,7 @@ object Watchers {
           if( ext == "gz" || ext == "xml" || ext == "ocs" || ext == "sign") {
             checkProcess(file)
           } else {
-            InventoryLogger.debug(s"watcher ignored file ${file.name} (unrecognized extension: '${ext}')")
+            InventoryProcessingLogger.logEffect.debug(s"watcher ignored file ${file.name} (unrecognized extension: '${ext}')")
           }
         }
 
@@ -112,7 +115,7 @@ object Watchers {
                 blocking { Iterator.continually(service.take()).foreach(process) }
               } catch {
                 case ex: ClosedWatchServiceException if(stopRequired) => //ignored
-                  InventoryLogger.debug(s"Exception ClosedWatchServiceException ignored because watcher is stopping")
+                  InventoryProcessingLogger.logEffect.debug(s"Exception ClosedWatchServiceException ignored because watcher is stopping")
               }
             }
           })
@@ -137,15 +140,15 @@ class InventoryFileWatcher(
   , updatedInventoryPath : String
   , receivedInventoryPath: String
   , failedInventoryPath  : String
-  , waitForSig           : FiniteDuration
+  , waitForSig           : Duration
   , sigExtension         : String // signature file extension, most likely ".sign"
 ) {
 
   def logDirPerm(dir: File, name: String) = {
     if(dir.isDirectory && dir.isWriteable) {
-      InventoryLogger.debug(s"${name} inventories directory [ok]: ${dir.pathAsString}")
+      InventoryProcessingLogger.logEffect.debug(s"${name} inventories directory [ok]: ${dir.pathAsString}")
     } else {
-      InventoryLogger.error(s"${name} inventories directory: ${dir.pathAsString} is not writable. Please check existense and file permission.")
+      InventoryProcessingLogger.logEffect.error(s"${name} inventories directory: ${dir.pathAsString} is not writable. Please check existense and file permission.")
     }
   }
 
@@ -159,29 +162,29 @@ class InventoryFileWatcher(
   val failed   = File(failedInventoryPath)
   logDirPerm(failed, "Failed")
 
-  implicit val scheduler = monix.execution.Scheduler.io("inventory-wait-sig")
-  val fileProcessor = new ProcessFile(inventoryProcessor, received, failed, waitForSig, sigExtension)
+  implicit val scheduler = ZioRuntime.unsafeRun(ZioRuntime.Environment.blocking.blockingExecutor).asEC
+  val fileProcessor = new ProcessFile(inventoryProcessor.saveInventory, received, failed, waitForSig, sigExtension)
 
   var watcher = Option.empty[Watchers]
 
   def startWatcher(): Either[Throwable, Unit] = this.synchronized {
     watcher match {
       case Some(w) => // does nothing
-        InventoryLogger.info(s"Starting incoming inventory watcher ignored (already started).")
+        InventoryProcessingLogger.logEffect.info(s"Starting incoming inventory watcher ignored (already started).")
         Right(())
 
       case None    =>
         val w = Watchers(incoming, updated, fileProcessor.addFile)
         w.start() match {
           case Right(()) =>
-            InventoryLogger.info(s"Incoming inventory watcher started - process existing inventories")
+            InventoryProcessingLogger.logEffect.info(s"Incoming inventory watcher started - process existing inventories")
             // a touch on all files should trigger a "onModify"
             incoming.collectChildren(_.isRegularFile).toList.map(_.touch())
             updated.collectChildren(_.isRegularFile).toList.map(_.touch())
             watcher = Some(w)
             Right(())
           case Left(ex) =>
-            InventoryLogger.error(s"Error when trying to start incoming inventories file watcher. Reported exception was: ${ex.getMessage()}")
+            InventoryProcessingLogger.logEffect.error(s"Error when trying to start incoming inventories file watcher. Reported exception was: ${ex.getMessage()}")
             Left(ex)
         }
     }
@@ -190,16 +193,16 @@ class InventoryFileWatcher(
   def stopWatcher(): Either[Throwable, Unit] = this.synchronized {
     watcher match {
       case None    => //ok
-        InventoryLogger.info(s"Stoping incoming inventory watcher ignored (already stoped).")
+        InventoryProcessingLogger.logEffect.info(s"Stoping incoming inventory watcher ignored (already stoped).")
         Right(())
       case Some(w) =>
         w.stop() match {
           case Right(()) =>
-            InventoryLogger.info(s"Incoming inventory watcher stoped")
+            InventoryProcessingLogger.logEffect.info(s"Incoming inventory watcher stoped")
             watcher = None
             Right(())
           case Left(ex) =>
-            InventoryLogger.error(s"Error when trying to stop incoming inventories file watcher. Reported exception was: ${ex.getMessage()}.")
+            InventoryProcessingLogger.logEffect.error(s"Error when trying to stop incoming inventories file watcher. Reported exception was: ${ex.getMessage()}.")
             // in all case, remove the previous watcher, it's most likely in a dead state
             watcher = None
             Left(ex)
@@ -211,44 +214,106 @@ class InventoryFileWatcher(
 }
 
 
-class ProcessFile(
-    inventoryProcessor: InventoryProcessor
-  , received          : File
-  , failed            : File
-  , waitForSig        : FiniteDuration
-  , sigExtension      : String // signature file extension, most likely ".sign"
-)(implicit scheduler: Scheduler) {
-  import scala.concurrent.duration._
+sealed trait WatchEvent
+object WatchEvent {
+  // file is written and so can be removed from Map
+  final case class End(file: File) extends WatchEvent
+  // file is currently modified, avoid processing
+  final case class Mod(file: File) extends WatchEvent
+}
 
+
+final case class SaveInventoryInfo(
+    fileName          : String
+  , inventoryStream   : () => InputStream
+  , optSignatureStream: Option[() => InputStream]
+)
+
+/*
+ * Process file: interpret the stream of file modification events to decide when a
+ * file is completely written, and if so, should it be sent to the backend processor.
+ * For that, it needs signature and inventory file.
+ */
+class ProcessFile(
+    saveInventory: SaveInventoryInfo => IOResult[InventoryProcessStatus]
+  , received     : File
+  , failed       : File
+  , waitForSig   : Duration
+  , sigExtension : String // signature file extension, most likely ".sign"
+) {
   val sign = if(sigExtension.charAt(0) == '.') sigExtension else "."+sigExtension
+
+  // time after the last mod event after which we consider that a file is written
+  val fileWrittenThreshold = Duration(500, TimeUnit.MILLISECONDS)
+
+  /*
+   * We need to track file that are currently processed by the backend, which can be quite long,
+   * so that if we receive an second inventory for the same node, we wait before processing it.
+   */
+  val locks = ZioRuntime.unsafeRun(scalaz.zio.Ref.make(Set[String]()))
 
   /*
    * This is the map of be processed file based on received events.
    * Each time we receive a new event, we cancel the previous one and replace by the new (for the same file).
    * The task is configured to be processed after some delay.
-   *
-   * That's a var, must be accessed synchroniously: only change it through `remove` and `addFile`
+   * We only modify that map as a result of a dequeue event.
    */
-  private var toBeProcessed = Map.empty[File, SerialCancelable]
+  val toBeProcessed = ZioRuntime.unsafeRun(scalaz.zio.RefM.make(Map.empty[File, Fiber[RudderError, Unit]]))
 
-  private def remove(file: File): Unit = synchronized {
-    toBeProcessed = (toBeProcessed - file)
+  /*
+   * We need a queue of add file / file written even to delimitate when a file should be
+   * processed.
+   * We are going to receive a streem of "write file xxx" event, and updating the map accordingly
+   * (reseting the task). Once the task is started, we want to free space in the map, and so enqueue
+   * a "file written" event.
+   */
+  type WatchQueue = ZQueue[Any, Nothing, Any, Nothing, WatchEvent, WatchEvent]
+  val queue = ZioRuntime.unsafeRun(Queue.bounded[WatchEvent](10000))
+
+  // processing message is a loop, so UIO[Nothing]
+  def loop: UIO[Nothing] = processMessage().flatMap(_ => loop)
+  def processMessage(): UIO[Unit] = {
+    queue.take.flatMap {
+      case WatchEvent.End(file) => // simple case: remove file from map
+        toBeProcessed.update[Any](s =>
+          (s - file).succeed
+        ).unit
+
+      case WatchEvent.Mod(file) =>
+        // look if the file is already here. If so, interrupt. In all case, create a new task.
+        (toBeProcessed.update { s =>
+          val newMap = {
+            // the new task must :
+            // - wait for 500 ms for interruption
+            // - then execute on different IO scheduler
+            // - if the map wasn't interrupted in the first 500 ms, it is not interruptible anymore
+
+            val effect = ZioRuntime.Environment.blocking.blockingExecutor.flatMap(executor =>
+              (
+                   UIO.unit.delay(fileWrittenThreshold).provide(ZioRuntime.Environment)
+                *> queue.offer(WatchEvent.End(file))
+                *> processFile(file, locks).uninterruptible
+              ).fork.lock(executor)
+            )
+
+            effect.map(e => s + (file -> e))
+          }
+
+          s.get(file) match {
+            case None =>
+              newMap
+            case Some(existing) =>
+              existing.interrupt.unit *> newMap
+          }
+        }).unit
+    }
   }
 
-  val newTask = (f:File) => Task (processFile(f) ).delayExecution(500 millis).doOnFinish (_ => Task (remove(f)))
+  //start the process
+  ZioRuntime.unsafeRunSync(loop.fork)
 
-  def addFile(file: File): Unit =  synchronized {
-    toBeProcessed.get(file) match {
-      case None =>
-          // the delay here is to let some time pass to let the file be fully written
-          // the timeout is the max time allowed for file to be full written. Not that
-          // these files will be proccessed by agent run latter.
-          toBeProcessed = (toBeProcessed + (file -> SerialCancelable(newTask(file).runAsync)))
-
-        case Some(ref) =>
-          ref := newTask(file).runAsync
-
-      }
+  def addFile(file: File): Unit = {
+    ZioRuntime.unsafeRunSync(queue.offer(WatchEvent.Mod(file)))
   }
 
 
@@ -260,65 +325,106 @@ class ProcessFile(
    * - if its a signature, look for the corresponding inventory. If available, remove possible action
    *   timeout and process, else do nothing.
    */
-  def processFile(file: File): Unit = {
+  def processFile(file: File, locks: scalaz.zio.Ref[Set[String]]): ZIO[Any, RudderError, Unit] = {
     // the part that deals with sending to processor and then deplacing files
     // where they belong
-    def sendToProcessor(inventory: File, signature: Option[File]): Unit = {
+    import scalaz.zio.{Task => ZioTask}
+
+    def sendToProcessor(inventory: File, signature: Option[File]): IOResult[Unit] = {
       // we don't manage race condition very well, so we have cases where
       // we can have two things trying to move
-      def safeMove[T](chunk: =>T): Unit = {
-        try {
-          chunk
-        } catch {
-          case ex: NoSuchElementException => // ignore
-            InventoryLogger.debug(s"Ignored exception '${ex.getClass.getSimpleName} ${ex.getMessage}'. The was already deleted.")
+      def safeMove[T](chunk: =>T): IOResult[Unit] = {
+        ZioTask.effect{chunk ; ()}.catchAll {
+          case ex: NoSuchFileException => // ignore
+            InventoryProcessingLogger.debug(s"Ignored exception '${ex.getClass.getSimpleName} ${ex.getMessage}'. The was file was correctly handled.")
+          case ex                      =>
+            InventoryProcessingLogger.error(s"Exception caught when processing inventory file '${file.pathAsString}': ${ex.getClass.getSimpleName} ${ex.getMessage}")
         }
       }
-      inventoryProcessor.saveInventory(() => inventory.newInputStream, inventory.name, signature.map(s => () => s.newInputStream)) match {
-        case Full(InventoryProcessStatus.Accepted(report)) =>
-          //move to received dir
-          safeMove(signature.map(s => s.moveTo(received / s.name, overwrite = true)))
-          safeMove(inventory.moveTo(received / inventory.name, overwrite = true))
-        case _ => // error (no need to log: already done in the processor)
-          safeMove(signature.map(s => s.moveTo(failed / s.name, overwrite = true)))
-          safeMove(inventory.moveTo(failed / inventory.name, overwrite = true))
+
+      for {
+        processed <- saveInventory(SaveInventoryInfo(inventory.name, () => inventory.newInputStream, signature.map(s => () => s.newInputStream))).either
+        move      <- processed match {
+                       case Right(InventoryProcessStatus.Accepted(_)) =>
+                         //move to received dir
+                         safeMove(signature.map(s => s.moveTo(received / s.name, overwrite = true))) *>
+                         safeMove(inventory.moveTo(received / inventory.name, overwrite = true))
+                       case Right(x) =>
+                         InventoryProcessingLogger.error(s"Error when processing inventory '${inventory.name}', status: ${x.getClass.getSimpleName}") *>
+                         safeMove(signature.map(s => s.moveTo(failed / s.name, overwrite = true))) *>
+                         safeMove(inventory.moveTo(failed / inventory.name, overwrite = true))
+                       case Left(x) =>
+                         InventoryProcessingLogger.error(x.fullMsg) *>
+                         safeMove(signature.map(s => s.moveTo(failed / s.name, overwrite = true))) *>
+                         safeMove(inventory.moveTo(failed / inventory.name, overwrite = true))
+                     }
+      } yield {
+        ()
       }
     }
 
-    InventoryLogger.trace(s"Processing new file: ${file.pathAsString}")
-    // We need to only try to do things on fully-written file.
-    // The canocic way seems to be to try to get a write lock on the file and see if
-    // it works. We assume that once we successfully get the lock, it means that
-    // the file is written (so we can immediately release it).
-    if(file.name.endsWith(".gz")) {
-      val dest = File(file.parent, file.nameWithoutExtension(includeAll = false))
-      file.unGzipTo(dest)
-      file.delete()
-    } else if(file.name.endsWith(sign)) { // a signature
-      file.pathAsString
-      val inventory = File(file.parent, file.nameWithoutExtension(includeAll = false))
-      if(inventory.exists) {
-        // process !
-        InventoryLogger.info(s"Watch new inventory file '${inventory.name}' with signature available: process.")
-        sendToProcessor(inventory, Some(file))
-      } else {
-        InventoryLogger.debug(s"Watch incoming signature file '${file.pathAsString}' but no corresponding inventory available: waiting")
-      }
-    } else { // an inventory
-      val signature = File(file.pathAsString+sign)
-      if(signature.exists) {
-        // process !
-        InventoryLogger.info(s"Watch new inventory file '${file.name}' with signature available: process.")
-        sendToProcessor(file, Some(signature))
-      } else { // wait for expiration time and exec without signature
-        InventoryLogger.debug(s"Watch new inventory file '${file.name}' without signature available: wait for it ${waitForSig.toSeconds}s before processing.")
-        scheduler.scheduleOnce(waitForSig) {
-          //check that the inventory file is still there and that the signature didn't come while waiting
-          if(!signature.exists && file.exists) {
-            sendToProcessor(file, None)
-          }
-        }
-      }
+    // the ZIO program
+    val prog = for {
+        _ <- InventoryProcessingLogger.trace(s"Processing new file: ${file.pathAsString}")
+      // We need to only try to do things on fully-written file.
+      // The canocic way seems to be to try to get a write lock on the file and see if
+      // it works. We assume that once we successfully get the lock, it means that
+      // the file is written (so we can immediately release it).
+      done <- if(file.name.endsWith(".gz")) {
+                val dest = File(file.parent, file.nameWithoutExtension(includeAll = false))
+                IOResult.effect {
+                  file.unGzipTo(dest)
+                  file.delete()
+                }
+              } else if(file.name.endsWith(sign)) { // a signature
+                val inventory = File(file.parent, file.nameWithoutExtension(includeAll = false))
+
+                if(inventory.exists) {
+                  // process !
+                  InventoryProcessingLogger.info(s"Watch new inventory file '${inventory.name}' with signature available: process.") *>
+                  sendToProcessor(inventory, Some(file))
+                } else {
+                  InventoryProcessingLogger.debug(s"Watch incoming signature file '${file.pathAsString}' but no corresponding inventory available: waiting")
+                }
+              } else { // an inventory
+                val signature = File(file.pathAsString+sign)
+                if(signature.exists) {
+                  // process !
+                  InventoryProcessingLogger.info(s"Watch new inventory file '${file.name}' with signature available: process.") *>
+                  sendToProcessor(file, Some(signature))
+                } else { // wait for expiration time and exec without signature
+                  InventoryProcessingLogger.debug(s"Watch new inventory file '${file.name}' without signature available: wait for it ${waitForSig.asJava.getSeconds}s before processing.") *>
+                  //check that the inventory file is still there and that the signature didn't come while waiting
+                  sendToProcessor(file, None).when(!signature.exists && file.exists).delay(waitForSig)
+                }
+              }
+    } yield {
+      done
     }
+
+    final case class Todo(canProcess: Boolean, lockName: String)
+
+    val lockName = if(file.name.endsWith(".gz") | file.name.endsWith(sign)) {
+      file.nameWithoutExtension(includeAll = false)
+    } else {
+      file.name
+    }
+
+    // limit one parallel exec of the program for a given inventory
+    val lockProg = for {
+      td <-  locks.modify( current => (current.contains(lockName), current + lockName) ).map(b => Todo(!b, lockName))
+
+      res <- if(td.canProcess) {
+               prog *>
+               locks.update(current => current - lockName)
+             } else {
+               InventoryProcessingLogger.debug(s"Not starting process of '${file.name}': already processing.")
+             }
+    } yield {
+      ()
+    }
+
+    // run program for that input file.
+    lockProg.provide(ZioRuntime.Environment)
   }
 }

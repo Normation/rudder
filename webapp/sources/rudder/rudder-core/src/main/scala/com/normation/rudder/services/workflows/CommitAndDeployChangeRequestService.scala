@@ -37,34 +37,35 @@
 
 package com.normation.rudder.services.workflows
 
+import java.io.ByteArrayInputStream
+
+import com.normation.box._
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.xmlparsers.SectionSpecParser
+import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.workflows._
-import com.normation.rudder.services.policies.DependencyAndDeletionService
-import com.normation.utils.Control._
-import com.normation.utils.StringUuidGenerator
-import net.liftweb.common._
-import com.normation.rudder.repository._
-import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
+import com.normation.rudder.domain.logger.ChangeRequestLogger
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
+import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.parameters._
-
-import scala.xml._
+import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.workflows._
+import com.normation.rudder.repository._
 import com.normation.rudder.services.marshalling.XmlSerializer
 import com.normation.rudder.services.marshalling.XmlUnserializer
-import com.normation.cfclerk.xmlparsers.SectionSpecParser
-import java.io.ByteArrayInputStream
-
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.logger.ChangeRequestLogger
+import com.normation.rudder.services.policies.DependencyAndDeletionService
 import com.normation.rudder.services.queries.DynGroupUpdaterService
+import com.normation.utils.Control._
+import com.normation.utils.StringUuidGenerator
+import net.liftweb.common._
+
+import scala.xml._
 
 /**
  * A service responsible to actually commit a change request,
@@ -109,7 +110,7 @@ class CommitAndDeployChangeRequestServiceImpl(
   , woParameterRepository : WoParameterRepository
   , asyncDeploymentAgent  : AsyncDeploymentActor
   , dependencyService     : DependencyAndDeletionService
-  , workflowEnabled       : () => Box[Boolean]
+  , workflowEnabled       : () => IOResult[Boolean]
   , xmlSerializer         : XmlSerializer
   , xmlUnserializer       : XmlUnserializer
   , sectionSpecParser     : SectionSpecParser
@@ -119,7 +120,7 @@ class CommitAndDeployChangeRequestServiceImpl(
   val logger = ChangeRequestLogger
 
   def save(changeRequest: ChangeRequest, actor:EventActor, reason: Option[String]) : Box[ChangeRequest] = {
-    workflowEnabled().foreach { if (_) {
+    workflowEnabled().toBox.foreach { if (_) {
       logger.info(s"Saving and deploying change request ${changeRequest.id.value}")
     } }
     for {
@@ -208,7 +209,7 @@ class CommitAndDeployChangeRequestServiceImpl(
 
     case object CheckRule extends CheckChanges[Rule]  {
       def failureMessage(rule : Rule)  = s"Rule ${rule.name} (id: ${rule.id.value})"
-      def getCurrentValue(rule : Rule) = roRuleRepository.get(rule.id)
+      def getCurrentValue(rule : Rule) = roRuleRepository.get(rule.id).toBox
       def compareMethod(initial:Rule, current:Rule) = compareRules(initial,current)
       def xmlSerialize(rule : Rule) = Full(xmlSerializer.rule.serialise(rule))
       def xmlUnserialize(xml:Node)  = xmlUnserializer.rule.unserialise(xml)
@@ -227,7 +228,10 @@ class CommitAndDeployChangeRequestServiceImpl(
         }
       }
       def failureMessage(directive : Directive)  = s"Rule ${directive.name} (id: ${directive.id.value})"
-      def getCurrentValue(directive : Directive) = roDirectiveRepo.getDirective(directive.id)
+      def getCurrentValue(directive : Directive) = roDirectiveRepo.getDirective(directive.id).toBox.flatMap {
+        case None => Empty
+        case Some(dir) => Full(dir)
+      }
       def compareMethod(initial:Directive, current:Directive) = compareDirectives(initial,current)
       def xmlSerialize(directive : Directive) = {
         directiveContext.map{
@@ -239,7 +243,7 @@ class CommitAndDeployChangeRequestServiceImpl(
 
     case object CheckGroup extends CheckChanges[NodeGroup]  {
       def failureMessage(group : NodeGroup)  = s"Group ${group.name} (id: ${group.id.value})"
-      def getCurrentValue(group : NodeGroup) = roNodeGroupRepo.getNodeGroup(group.id).map(_._1)
+      def getCurrentValue(group : NodeGroup) = roNodeGroupRepo.getNodeGroup(group.id).map(_._1).toBox
       def compareMethod(initial:NodeGroup, current:NodeGroup) = compareGroups(initial,current)
       def xmlSerialize(group : NodeGroup) = Full(xmlSerializer.group.serialise(group))
       def xmlUnserialize(xml : Node)      = xmlUnserializer.group.unserialise(xml)
@@ -247,7 +251,7 @@ class CommitAndDeployChangeRequestServiceImpl(
 
     case object CheckGlobalParameter extends CheckChanges[GlobalParameter]  {
       def failureMessage(param : GlobalParameter)  = s"Parameter ${param.name}"
-      def getCurrentValue(param : GlobalParameter) = roParameterRepository.getGlobalParameter(param.name)
+      def getCurrentValue(param : GlobalParameter) = roParameterRepository.getGlobalParameter(param.name).notOptional(s"Parameter '${param.name}' was not found").toBox
       def compareMethod(initial:GlobalParameter, current:GlobalParameter) = compareGlobalParameter(initial,current)
       def xmlSerialize(param : GlobalParameter) = Full(xmlSerializer.globalParam.serialise(param))
       def xmlUnserialize(xml : Node) = xmlUnserializer.globalParam.unserialise(xml)
@@ -499,7 +503,7 @@ class CommitAndDeployChangeRequestServiceImpl(
     else
       //If workflow are disabled, a change is always mergeable.
       true
-    }) match {
+    }).toBox match {
       case Full(mergeable) => mergeable
       case eb : EmptyBox =>
         val fail = eb ?~ "An error occurred while checking the change request acceptance"
@@ -517,12 +521,12 @@ class CommitAndDeployChangeRequestServiceImpl(
     def doDirectiveChange(directiveChanges:DirectiveChanges, modId: ModificationId) : Box[TriggerDeploymentDiff] = {
       def save(tn:TechniqueName, d:Directive, change: DirectiveChangeItem) : Box[Option[DirectiveSaveDiff]] = {
         for {
-          activeTechnique <- roDirectiveRepo.getActiveTechnique(tn).flatMap(Box(_) ?~! s"Missing active technique with name ${tn}")
+          activeTechnique <- roDirectiveRepo.getActiveTechnique(tn).notOptional(s"Missing active technique with name ${tn}")
           saved           <- woDirectiveRepo.saveDirective(activeTechnique.id, d, modId, change.actor, change.reason)
         } yield {
           saved
         }
-      }
+      }.toBox
 
       for {
         change <- directiveChanges.changes.change
@@ -556,7 +560,7 @@ class CommitAndDeployChangeRequestServiceImpl(
                       // If we could get a nodeList, then we apply the change, else we bubble up the error
                       group.flatMap { resultingGroup =>
                         // if the update returns None, then we return the original modification object
-                        woNodeGroupRepo.update(resultingGroup, modId, change.actor, change.reason).map(_.getOrElse(ModifyToNodeGroupDiff(n)))
+                        woNodeGroupRepo.update(resultingGroup, modId, change.actor, change.reason).map(_.getOrElse(ModifyToNodeGroupDiff(n))).toBox
                       }
 
 
@@ -570,7 +574,7 @@ class CommitAndDeployChangeRequestServiceImpl(
     def doRuleChange(change:RuleChanges, modId: ModificationId) : Box[TriggerDeploymentDiff] = {
       for {
         change <- change.changes.change
-        diff   <- change.diff match {
+        diff   <- (change.diff match {
                     case DeleteRuleDiff(r) =>
                       woRuleRepository.delete(r.id, modId, change.actor, change.reason)
                     case AddRuleDiff(r) =>
@@ -578,7 +582,7 @@ class CommitAndDeployChangeRequestServiceImpl(
                     case ModifyToRuleDiff(r) =>
                       // if the update returns None, then we return the original modification object
                       woRuleRepository.update(r, modId, change.actor, change.reason).map(_.getOrElse(ModifyToRuleDiff(r)))
-                  }
+                  }).toBox
       } yield {
         diff
       }
@@ -587,7 +591,7 @@ class CommitAndDeployChangeRequestServiceImpl(
     def doParamChange(change:GlobalParameterChanges, modId: ModificationId) : Box[TriggerDeploymentDiff] = {
       for {
         change <- change.changes.change
-        diff   <- change.diff match {
+        diff   <- (change.diff match {
                     case DeleteGlobalParameterDiff(param) =>
                       woParameterRepository.delete(param.name, modId, change.actor, change.reason)
                     case AddGlobalParameterDiff(param) =>
@@ -595,7 +599,7 @@ class CommitAndDeployChangeRequestServiceImpl(
                     case ModifyToGlobalParameterDiff(param) =>
                       // if the update returns None, then we return the original modification object
                       woParameterRepository.updateParameter(param, modId, change.actor, change.reason).map(_.getOrElse(ModifyToGlobalParameterDiff(param)))
-                  }
+                  }).toBox
       } yield {
         diff
       }

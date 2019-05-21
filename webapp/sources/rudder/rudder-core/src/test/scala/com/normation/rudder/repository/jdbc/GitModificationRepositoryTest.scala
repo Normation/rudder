@@ -42,15 +42,14 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.db.DB
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.repository.GitCommitId
-
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-
 import net.liftweb.common.Box
-
 import doobie.implicits._
 import cats.implicits._
 
+import com.normation.errors._
+import com.normation.zio._
 
 /**
  *
@@ -68,7 +67,7 @@ class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
   sequential
 
   type GET = Box[Option[GitCommitId]]
-  type ADD = Box[DB.GitCommitJoin]
+  type ADD = PureResult[DB.GitCommitJoin]
 
   "Git modification repo" should {
 
@@ -86,23 +85,23 @@ class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
           //this one has two commit id for the same modid
         , repos.addCommit("g41", "m4")
         , repos.addCommit("g42", "m4")
-      )
+      ).map(x => x.either.runNow)
 
-      (res must contain((y:ADD) => y.mustFull).foreach) and
+      (res must contain((y:ADD) => y must beRight[DB.GitCommitJoin]).foreach) and
       (transacRun(xa => sql"select count(*) from gitcommit".query[Long].unique.transact(xa)) === 5)
 
     }
 
     "find back a commit by" in {
-      repos.getCommits("m3") mustFullEq(Some(GitCommitId("g3")) )
+      repos.getCommits("m3").either.runNow must beRight( Some(GitCommitId("g3")) )
     }
 
     "not find back a non existing commit" in {
-      repos.getCommits("badId") mustFullEq(None)
+      repos.getCommits("badId").either.runNow must beRight(None)
     }
 
     "produce an error when several commits were added" in {
-      repos.getCommits("m4") mustFails
+      repos.getCommits("m4").either.runNow must beLeft[RudderError]
     }
 
   }

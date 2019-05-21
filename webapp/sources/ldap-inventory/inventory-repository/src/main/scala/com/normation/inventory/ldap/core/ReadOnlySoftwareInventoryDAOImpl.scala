@@ -37,14 +37,16 @@
 
 package com.normation.inventory.ldap.core
 
-import com.normation.ldap.sdk._
-import BuildFilter.{EQ,OR}
+import com.normation.errors._
 import com.normation.inventory.domain._
+import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
-import LDAPConstants._
-import net.liftweb.common._
-import Box._
-import com.normation.utils.Control.sequence
+import com.normation.ldap.sdk.BuildFilter.EQ
+import com.normation.ldap.sdk.BuildFilter.OR
+import com.normation.ldap.sdk._
+import com.unboundid.ldap.sdk.DN
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 class ReadOnlySoftwareDAOImpl(
   inventoryDitService:InventoryDitService,
@@ -52,42 +54,54 @@ class ReadOnlySoftwareDAOImpl(
   mapper:InventoryMapper
 ) extends ReadOnlySoftwareDAO {
 
-  private[this] def search(con: RoLDAPConnection, ids: Seq[SoftwareUuid]) = {
-    sequence(con.searchOne(inventoryDitService.getSoftwareBaseDN, OR(ids map {x:SoftwareUuid => EQ(A_SOFTWARE_UUID,x.value) }:_*))) { entry =>
-      mapper.softwareFromEntry(entry) ?~! s"Error when mapping LDAP entry '${entry.dn}' to a software. Entry details: ${entry}"
+  private[this] def search(con: RoLDAPConnection, ids: Seq[SoftwareUuid]): IOResult[List[Software]] = {
+    for {
+      entries <- con.searchOne(inventoryDitService.getSoftwareBaseDN, OR(ids map {x:SoftwareUuid => EQ(A_SOFTWARE_UUID,x.value) }:_*)).map(_.toVector)
+      soft    <- ZIO.foreach(entries) { entry =>
+                   ZIO.fromEither(mapper.softwareFromEntry(entry)).chainError(s"Error when mapping LDAP entry '${entry.dn}' to a software. Entry details: ${entry}")
+                 }
+    } yield {
+      soft
     }
   }
 
-  override def getSoftware(ids:Seq[SoftwareUuid]) : Box[Seq[Software]] = {
-    if(ids.isEmpty) Full(Seq())
-    else for {
+  override def getSoftware(ids:Seq[SoftwareUuid]) : IOResult[Seq[Software]] = {
+    if(ids.isEmpty) Seq().succeed
+    else (for {
       con   <- ldap
       softs <- search(con, ids)
     } yield {
       softs
-    }
+    })
   }
 
 
   /**
    * softwares
    */
-  override def getSoftwareByNode(nodeIds: Set[NodeId], status: InventoryStatus): Box[Map[NodeId, Seq[Software]]] = {
+  override def getSoftwareByNode(nodeIds: Set[NodeId], status: InventoryStatus): IOResult[Map[NodeId, Seq[Software]]] = {
 
     val dit = inventoryDitService.getDit(status)
 
-    for {
+    (for {
       con            <- ldap
-      nodeEntries    =  con.searchOne(dit.NODES.dn, BuildFilter.ALL, Seq(A_NODE_UUID, A_SOFTWARE_DN):_*)
-      softwareByNode =  (nodeEntries.flatMap { e =>
-                          e(A_NODE_UUID).map { id =>
-                            (NodeId(id), e.valuesFor(A_SOFTWARE_DN).flatMap(dn => inventoryDitService.getDit(AcceptedInventory).SOFTWARE.SOFT.idFromDN(dn)))
-                          }
+      nodeEntries    <- con.searchOne(dit.NODES.dn, BuildFilter.ALL, Seq(A_NODE_UUID, A_SOFTWARE_DN):_*)
+      softwareByNode =  (for {
+                          e  <- nodeEntries
+                          id <- e(A_NODE_UUID)
+                          vs = for {
+                                 dn <- e.valuesFor(A_SOFTWARE_DN)
+                                 s  <- inventoryDitService.getDit(AcceptedInventory).SOFTWARE.SOFT.idFromDN(new DN(dn)).toOption
+                               } yield {
+                                 s
+                               }
+                        } yield {
+                          (NodeId(id), vs)
                         }).toMap
       softwareIds    =  softwareByNode.values.flatten.toSeq
       software       <- search(con, softwareIds)
     } yield {
       softwareByNode.mapValues { ids => software.filter(s => ids.contains(s.id)) }
-    }
+    })
   }
 }

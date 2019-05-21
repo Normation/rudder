@@ -62,6 +62,8 @@ import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
 import scala.collection.mutable.{Map => MutMap}
 import com.normation.rudder.web.ChooseTemplate
 
+import com.normation.box._
+
 /**
  * The Search Nodes component
  * It is used in the standard search server page, and in the group page (and probably elsewhere)
@@ -138,7 +140,7 @@ class SearchNodeComponent(
 
   def buildQuery : NodeSeq = {
 
-    if(None == query) query = Some(Query(NodeReturnType,And,Seq(defaultLine)))
+    if(None == query) query = Some(Query(NodeReturnType,And,List(defaultLine)))
     val lines = ArrayBuffer[CriterionLine]()
     var composition = query.get.composition
     var rType = query.get.returnType //for now, don't move
@@ -151,7 +153,7 @@ class SearchNodeComponent(
         //defaults values
         lines.insert(i+1, defaultLine)
       }
-      query = Some(Query(rType, composition, lines.to[Seq]))
+      query = Some(Query(rType, composition, lines.to[List]))
       initUpdate = false
       ajaxCriteriaRefresh
     }
@@ -167,7 +169,7 @@ class SearchNodeComponent(
           errors remove line
         }
 
-        query = Some(Query(rType, composition, lines.to[Seq]))
+        query = Some(Query(rType, composition, lines.to[List]))
       }
       initUpdate = false
       ajaxCriteriaRefresh
@@ -177,12 +179,12 @@ class SearchNodeComponent(
       //filter on non validate values
       errors.clear()
       lines.zipWithIndex.foreach { case (cl@CriterionLine(_,a,c,v),i) =>
-        a.cType.validate(v,c.id) match {
+        a.cType.validate(v,c.id).toBox match {
           case Failure(m,_,_) => errors put (cl,m)
           case _ =>
         }
       }
-      val newQuery = Query(rType, composition, lines.to[Seq])
+      val newQuery = Query(rType, composition, lines.to[List])
       query = Some(newQuery)
       if(errors.size == 0) {
         // ********* EXECUTE QUERY ***********
@@ -490,7 +492,7 @@ object SearchNodeComponent {
   val otOptions : List[(String,String)] = {
     val opts = Buffer[(String,String)]()
     def add(s:String, pre:String="") = opts += ((s,pre + S.?("ldap.object."+s)))
-    
+
     add(OC_NODE)
     add("group",         " ├─ ")
     add(OC_NET_IF,       " ├─ ")

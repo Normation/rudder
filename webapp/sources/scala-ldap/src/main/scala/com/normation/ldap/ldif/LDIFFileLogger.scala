@@ -21,7 +21,7 @@
 package com.normation.ldap.ldif
 
 import com.unboundid.ldif._
-import com.unboundid.ldap.sdk.{DN,Entry}
+import com.unboundid.ldap.sdk.{DN, Entry}
 import com.normation.ldap.sdk.LDAPTree
 import org.slf4j.LoggerFactory
 import java.io.File

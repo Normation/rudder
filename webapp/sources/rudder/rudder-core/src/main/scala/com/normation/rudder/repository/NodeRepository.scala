@@ -40,7 +40,7 @@ package com.normation.rudder.repository
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.nodes._
-import net.liftweb.common._
+import com.normation.errors._
 
 /**
  * Node Repository
@@ -50,5 +50,5 @@ trait WoNodeRepository {
   /**
    * Complete update of the Node object
    */
-  def updateNode(node: Node, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Node]
+  def updateNode(node: Node, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Node]
 }

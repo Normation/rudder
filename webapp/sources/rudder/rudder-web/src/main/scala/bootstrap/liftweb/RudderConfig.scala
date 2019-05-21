@@ -41,6 +41,8 @@ import java.io.File
 import java.nio.charset.StandardCharsets
 
 import bootstrap.liftweb.checks._
+import com.normation.appconfig._
+import com.normation.box._
 import com.normation.cfclerk.services._
 import com.normation.cfclerk.services.impl._
 import com.normation.cfclerk.xmlparsers._
@@ -54,7 +56,6 @@ import com.normation.plugins.SnippetExtensionRegister
 import com.normation.plugins.SnippetExtensionRegisterImpl
 import com.normation.rudder.UserService
 import com.normation.rudder.api._
-import com.normation.rudder.appconfig._
 import com.normation.rudder.batch._
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain._
@@ -112,14 +113,17 @@ import com.normation.rudder.web.services._
 import com.normation.templates.FillTemplatesService
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.StringUuidGeneratorImpl
+import com.normation.zio._
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigFactory
+import com.unboundid.ldap.sdk.DN
 import net.liftweb.common.Loggable
 import net.liftweb.common._
 import org.apache.commons.io.FileUtils
+import scalaz.zio.syntax._
 
-import scala.concurrent.duration._
+import scalaz.zio.duration._
 import scala.util.Try
 
 /**
@@ -783,11 +787,11 @@ object RudderConfig extends Loggable {
   )
 
   private[this] lazy val ruleApplicationStatusImpl: RuleApplicationStatusService = new RuleApplicationStatusServiceImpl()
-  private[this] lazy val acceptedNodesDitImpl: InventoryDit = new InventoryDit(LDAP_INVENTORIES_ACCEPTED_BASEDN, LDAP_INVENTORIES_SOFTWARE_BASEDN, "Accepted inventories")
-  private[this] lazy val pendingNodesDitImpl: InventoryDit = new InventoryDit(LDAP_INVENTORIES_PENDING_BASEDN, LDAP_INVENTORIES_SOFTWARE_BASEDN, "Pending inventories")
-  private[this] lazy val removedNodesDitImpl = new InventoryDit(LDAP_INVENTORIES_REMOVED_BASEDN,LDAP_INVENTORIES_SOFTWARE_BASEDN,"Removed Servers")
-  private[this] lazy val rudderDitImpl: RudderDit = new RudderDit(LDAP_RUDDER_BASE)
-  private[this] lazy val nodeDitImpl: NodeDit = new NodeDit(LDAP_NODE_BASE)
+  private[this] lazy val acceptedNodesDitImpl: InventoryDit = new InventoryDit(new DN(LDAP_INVENTORIES_ACCEPTED_BASEDN), new DN(LDAP_INVENTORIES_SOFTWARE_BASEDN), "Accepted inventories")
+  private[this] lazy val pendingNodesDitImpl: InventoryDit = new InventoryDit(new DN(LDAP_INVENTORIES_PENDING_BASEDN), new DN(LDAP_INVENTORIES_SOFTWARE_BASEDN), "Pending inventories")
+  private[this] lazy val removedNodesDitImpl = new InventoryDit(new DN(LDAP_INVENTORIES_REMOVED_BASEDN), new DN(LDAP_INVENTORIES_SOFTWARE_BASEDN),"Removed Servers")
+  private[this] lazy val rudderDitImpl: RudderDit = new RudderDit(new DN(LDAP_RUDDER_BASE))
+  private[this] lazy val nodeDitImpl: NodeDit = new NodeDit(new DN(LDAP_NODE_BASE))
   private[this] lazy val inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl,removedNodesDitImpl)
   private[this] lazy val uuidGen: StringUuidGenerator = new StringUuidGeneratorImpl
   private[this] lazy val systemVariableSpecService = new SystemVariableSpecServiceImpl()
@@ -887,7 +891,7 @@ object RudderConfig extends Loggable {
   )
 
   //////////////////////////////////////////////////////////
-  //  non pure services that could perhaps be
+  //  non success services that could perhaps be
   //////////////////////////////////////////////////////////
 
   // => rwLdap is only used to repair an error, that could be repaired elsewhere.
@@ -908,7 +912,7 @@ object RudderConfig extends Loggable {
   )
 
   ////////////////////////////////////
-  //  non pure services
+  //  non success services
   ////////////////////////////////////
 
   ///// end /////
@@ -971,18 +975,22 @@ object RudderConfig extends Loggable {
 
   private[this] lazy val roLdap =
     new ROPooledSimpleAuthConnectionProvider(
-      host = LDAP_HOST,
-      port = LDAP_PORT,
-      authDn = LDAP_AUTHDN,
-      authPw = LDAP_AUTHPW,
-      poolSize = 2)
+        host = LDAP_HOST
+      , port = LDAP_PORT
+      , authDn = LDAP_AUTHDN
+      , authPw = LDAP_AUTHPW
+      , poolSize = 2
+      , blockingModule = ZioRuntime.Environment
+    )
   lazy val rwLdap =
     new RWPooledSimpleAuthConnectionProvider(
-      host = LDAP_HOST,
-      port = LDAP_PORT,
-      authDn = LDAP_AUTHDN,
-      authPw = LDAP_AUTHPW,
-      poolSize = 2)
+        host = LDAP_HOST
+      , port = LDAP_PORT
+      , authDn = LDAP_AUTHDN
+      , authPw = LDAP_AUTHPW
+      , poolSize = 2
+      , blockingModule = ZioRuntime.Environment
+    )
 
   //query processor for accepted nodes
   private[this] lazy val queryProcessor = new AcceptedNodesLDAPQueryProcessor(
@@ -999,7 +1007,7 @@ object RudderConfig extends Loggable {
       , pendingNodesDitImpl
       , nodeDit
         // here, we don't want to look for subgroups to show them in the form => always return an empty list
-      , new DitQueryData(pendingNodesDitImpl, nodeDit, rudderDit, () => Full(Nil))
+      , new DitQueryData(pendingNodesDitImpl, nodeDit, rudderDit, () => Nil.succeed)
       , ldapEntityMapper
     )
   )
@@ -1022,8 +1030,8 @@ object RudderConfig extends Loggable {
     , rwLdap
     , ldapEntityMapper
     , PendingInventory
-    , configService.rudder_node_onaccept_default_policy_mode _
-    , configService.rudder_node_onaccept_default_state _
+    , () => configService.rudder_node_onaccept_default_policy_mode().toBox
+    , () => configService.rudder_node_onaccept_default_state().toBox
   )
 
   private[this] lazy val acceptHostnameAndIp: UnitAcceptInventory = new AcceptHostnameAndIp(
@@ -1127,10 +1135,10 @@ object RudderConfig extends Loggable {
   )
   ////////////// MUTEX FOR rwLdap REPOS //////////////
 
-  private[this] lazy val uptLibReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
-  private[this] lazy val groupLibReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
-  private[this] lazy val nodeReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
-  private[this] lazy val parameterReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
+  private[this] lazy val uptLibReadWriteMutex = ScalaLock.java2ScalaRWLock("directive-lock", new java.util.concurrent.locks.ReentrantReadWriteLock(true))
+  private[this] lazy val groupLibReadWriteMutex = ScalaLock.java2ScalaRWLock("group-lock", new java.util.concurrent.locks.ReentrantReadWriteLock(true))
+  private[this] lazy val nodeReadWriteMutex = ScalaLock.java2ScalaRWLock("node-lock", new java.util.concurrent.locks.ReentrantReadWriteLock(true))
+  private[this] lazy val parameterReadWriteMutex = ScalaLock.java2ScalaRWLock("parameter-lock", new java.util.concurrent.locks.ReentrantReadWriteLock(true))
 
   private[this] lazy val roLdapDirectiveRepository = new RoLDAPDirectiveRepository(
         rudderDitImpl, roLdap, ldapEntityMapper, techniqueRepositoryImpl, uptLibReadWriteMutex)
@@ -1257,17 +1265,17 @@ object RudderConfig extends Loggable {
 
   private[this] lazy val globalComplianceModeService : ComplianceModeService =
     new ComplianceModeServiceImpl(
-        configService.rudder_compliance_mode_name _
-      , configService.rudder_compliance_heartbeatPeriod _
+      () => configService.rudder_compliance_mode_name().toBox
+      , () => configService.rudder_compliance_heartbeatPeriod().toBox
     )
   private[this] lazy val globalAgentRunService : AgentRunIntervalService =
     new AgentRunIntervalServiceImpl(
         nodeInfoServiceImpl
-      , configService.agent_run_interval _
-      , configService.agent_run_start_hour _
-      , configService.agent_run_start_minute _
-      , configService.agent_run_splaytime _
-      , configService.rudder_compliance_heartbeatPeriod _
+      , () => configService.agent_run_interval().toBox
+      , () => configService.agent_run_start_hour().toBox
+      , () => configService.agent_run_start_minute().toBox
+      , () => configService.agent_run_splaytime().toBox
+      , () => configService.rudder_compliance_heartbeatPeriod().toBox
     )
 
   private[this] lazy val systemVariableService: SystemVariableService = new SystemVariableServiceImpl(
@@ -1284,15 +1292,15 @@ object RudderConfig extends Loggable {
     , RUDDER_SYSLOG_PORT
     , RUDDER_DIR_GITROOT
     , RUDDER_SERVER_ROLES
-    , configService.cfengine_server_denybadclocks _
-    , configService.relay_server_sync_method _
-    , configService.relay_server_syncpromises _
-    , configService.relay_server_syncsharedfiles _
-    , configService.cfengine_modified_files_ttl _
-    , configService.cfengine_outputs_ttl _
-    , configService.rudder_store_all_centralized_logs_in_file _
-    , configService.send_server_metrics _
-    , configService.rudder_syslog_protocol _
+    , () => configService.cfengine_server_denybadclocks().toBox
+    , () => configService.relay_server_sync_method().toBox
+    , () => configService.relay_server_syncpromises().toBox
+    , () => configService.relay_server_syncsharedfiles().toBox
+    , () => configService.cfengine_modified_files_ttl().toBox
+    , () => configService.cfengine_outputs_ttl().toBox
+    , () => configService.rudder_store_all_centralized_logs_in_file().toBox
+    , () => configService.send_server_metrics().toBox
+    , () => configService.rudder_syslog_protocol().toBox
   )
   private[this] lazy val rudderCf3PromisesFileWriterService = new PolicyWriterServiceImpl(
       techniqueRepositoryImpl
@@ -1351,12 +1359,12 @@ object RudderConfig extends Loggable {
       , globalAgentRunService
       , reportingServiceImpl
       , rudderCf3PromisesFileWriterService
-      , configService.agent_run_interval _
-      , configService.agent_run_splaytime _
-      , configService.agent_run_start_hour _
-      , configService.agent_run_start_minute _
-      , configService.rudder_featureSwitch_directiveScriptEngine _
-      , configService.rudder_global_policy_mode _
+      , () => configService.agent_run_interval().toBox
+      , () => configService.agent_run_splaytime().toBox
+      , () => configService.agent_run_start_hour().toBox
+      , () => configService.agent_run_start_minute().toBox
+      , () => configService.rudder_featureSwitch_directiveScriptEngine().toBox
+      , () => configService.rudder_global_policy_mode().toBox
       , HOOKS_D
       , HOOKS_IGNORE_SUFFIXES
   )}
@@ -1420,7 +1428,7 @@ object RudderConfig extends Loggable {
         , roDirectiveRepository
         , globalComplianceModeService.getGlobalComplianceMode _
         , configService.rudder_global_policy_mode _
-        , configService.rudder_compliance_unexpected_report_interpretation _
+        , () => configService.rudder_compliance_unexpected_report_interpretation().toBox
       )
     , nodeInfoServiceImpl
   )
@@ -1592,7 +1600,6 @@ object RudderConfig extends Loggable {
     , new CheckMigrationXmlFileFormat5_6(controlXmlFileFormatMigration_5_6)
     , new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, uuidGen)
     , new CheckRootRuleCategoryExport (itemArchiveManager, ruleCategoriesDirectory,  personIdentServiceImpl, uuidGen)
-    , new CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen)
     // Check technique library reload needs to be achieved after modification in configuration (like migration of CFEngine variables)
     , new CheckTechniqueLibraryReload(
           techniqueRepositoryImpl
@@ -1639,7 +1646,7 @@ object RudderConfig extends Loggable {
         case selectOne: SelectOneVariableSpec => new SelectOneField(id, selectOne.valueslabels)
         case select: SelectVariableSpec => new SelectField(id, select.valueslabels)
         case input: InputVariableSpec => v.constraint.typeName match {
-          case str: SizeVType => new InputSizeField(id, configService.rudder_featureSwitch_directiveScriptEngine _, str.name.substring(prefixSize.size))
+          case str: SizeVType => new InputSizeField(id, () => configService.rudder_featureSwitch_directiveScriptEngine().toBox, str.name.substring(prefixSize.size))
           case UploadedFileVType => new UploadedFileField(UPLOAD_ROOT_DIRECTORY)(id)
           case SharedFileVType => new FileField(id)
           case DestinationPathVType => default(id)
@@ -1647,10 +1654,10 @@ object RudderConfig extends Loggable {
           case TimeVType(r) => new TimeField(frenchTimeFormatter)(id)
           case PermVType => new FilePermsField(id)
           case BooleanVType => new CheckboxField(id)
-          case TextareaVType(r) => new TextareaField(id,configService.rudder_featureSwitch_directiveScriptEngine _)
+          case TextareaVType(r) => new TextareaField(id, () => configService.rudder_featureSwitch_directiveScriptEngine().toBox)
           // Same field type for password and MasterPassword, difference is that master will have slave/used derived passwords, and password will not have any slave/used field
-          case PasswordVType(algos) => new PasswordField(id, algos, input.constraint.mayBeEmpty , configService.rudder_featureSwitch_directiveScriptEngine _)
-          case MasterPasswordVType(algos) => new PasswordField(id, algos, input.constraint.mayBeEmpty, configService.rudder_featureSwitch_directiveScriptEngine _)
+          case PasswordVType(algos) => new PasswordField(id, algos, input.constraint.mayBeEmpty, () => configService.rudder_featureSwitch_directiveScriptEngine().toBox)
+          case MasterPasswordVType(algos) => new PasswordField(id, algos, input.constraint.mayBeEmpty, () => configService.rudder_featureSwitch_directiveScriptEngine().toBox)
           case AixDerivedPasswordVType => new DerivedPasswordField(id, HashAlgoConstraint.DerivedPasswordType.AIX)
           case LinuxDerivedPasswordVType => new DerivedPasswordField(id, HashAlgoConstraint.DerivedPasswordType.Linux)
           case _ => default(id)
@@ -1663,7 +1670,7 @@ object RudderConfig extends Loggable {
       }
     }
 
-    override def default(id: String) = new TextField(id,configService.rudder_featureSwitch_directiveScriptEngine _)
+    override def default(id: String) = new TextField(id, () => configService.rudder_featureSwitch_directiveScriptEngine().toBox)
   }
 
   private[this] lazy val section2FieldService: Section2FieldService = {

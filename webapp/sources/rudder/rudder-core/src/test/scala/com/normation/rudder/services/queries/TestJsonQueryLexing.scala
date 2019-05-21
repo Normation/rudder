@@ -167,7 +167,7 @@ class TestJsonQueryLexing {
 
   @Test
   def basicLexing(): Unit = {
-    val where = Seq(
+    val where = List(
         StringCriterionLine("processor", "speed", "gteq", Some("2000")),
         StringCriterionLine("node", "ram", "exists")
       )
@@ -177,14 +177,14 @@ class TestJsonQueryLexing {
     assertEquals(Full(query), lexer.lex(valid1_0))
     assertEquals(Full(query), lexer.lex(valid1_1))
 
-    assertEquals(Full(StringQuery(NodeReturnType,Some("or"), Seq())), lexer.lex(valid2_0) )
-    assertEquals(Full(StringQuery(NodeReturnType,Some("or"), Seq())), lexer.lex(valid2_1) )
+    assertEquals(Full(StringQuery(NodeReturnType,Some("or"), Nil)), lexer.lex(valid2_0) )
+    assertEquals(Full(StringQuery(NodeReturnType,Some("or"), Nil)), lexer.lex(valid2_1) )
 
     assertEquals(Full(StringQuery(NodeReturnType,None, where)), lexer.lex(valid3_0) )
     assertEquals(Full(StringQuery(NodeReturnType,None, where)), lexer.lex(valid3_1) )
 
-    assertEquals(Full(StringQuery(NodeReturnType,None, Seq())), lexer.lex(valid4_0) )
-    assertEquals(Full(StringQuery(NodeReturnType,None, Seq())), lexer.lex(valid4_1) )
+    assertEquals(Full(StringQuery(NodeReturnType,None, Nil)), lexer.lex(valid4_0) )
+    assertEquals(Full(StringQuery(NodeReturnType,None, Nil)), lexer.lex(valid4_1) )
 
     assertFalse(lexer.lex(errorMissing1).isDefined)
     assertFalse(lexer.lex(errorMissing2_0).isDefined)

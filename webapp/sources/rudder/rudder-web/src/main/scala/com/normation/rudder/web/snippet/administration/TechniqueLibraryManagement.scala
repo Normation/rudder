@@ -67,6 +67,8 @@ import scala.xml.NodeSeq.seqToNodeSeq
 import com.normation.rudder.web.components._
 import com.normation.rudder.web.services.AgentCompat
 
+import com.normation.box._
+
 /**
  * Snippet for managing the System and User Technique libraries.
  *
@@ -111,7 +113,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   //current states for the page - they will be kept only for the duration
   //of one request and its followng Ajax requests
 
-  private[this] val rootCategoryId = roActiveTechniqueRepository.getActiveTechniqueLibrary.map( _.id )
+  private[this] val rootCategoryId = roActiveTechniqueRepository.getActiveTechniqueLibrary.map( _.id ).toBox
 
   private[this] val currentTechniqueDetails = new LocalSnippet[TechniqueEditForm]
   private[this] var currentTechniqueCategoryDetails = new LocalSnippet[TechniqueCategoryEditForm]
@@ -220,7 +222,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   def userLibrary() : NodeSeq = {
     <div id={htmlId_activeTechniquesTree} class="row">{
       val xml = {
-        roActiveTechniqueRepository.getActiveTechniqueLibrary match {
+        roActiveTechniqueRepository.getActiveTechniqueLibrary.toBox match {
           case eb:EmptyBox =>
             val f = eb ?~! "Error when trying to get the root category of Active Techniques"
             logger.error(f.messageChain)
@@ -392,8 +394,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
        }) match {
         case (sourceactiveTechniqueId, destCatId) :: Nil =>
           (for {
-            activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(TechniqueName(sourceactiveTechniqueId)).flatMap(Box(_)) ?~! "Error while trying to find Active Technique with requested id %s".format(sourceactiveTechniqueId)
-            result <- rwActiveTechniqueRepository.move(activeTechnique.id, ActiveTechniqueCategoryId(destCatId), ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("User moved active technique from UI"))?~! "Error while trying to move Active Technique with requested id '%s' to category id '%s'".format(sourceactiveTechniqueId,destCatId)
+            activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(TechniqueName(sourceactiveTechniqueId)).toBox.flatMap(Box(_)) ?~! "Error while trying to find Active Technique with requested id %s".format(sourceactiveTechniqueId)
+            result <- rwActiveTechniqueRepository.move(activeTechnique.id, ActiveTechniqueCategoryId(destCatId), ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("User moved active technique from UI")).toBox ?~! "Error while trying to move Active Technique with requested id '%s' to category id '%s'".format(sourceactiveTechniqueId,destCatId)
           } yield {
             result
           }) match {
@@ -426,7 +428,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                         , ActiveTechniqueCategoryId(destCatId)
                         , ModificationId(uuidGen.newUuid)
                         , CurrentUser.actor
-                        , Some("User moved Active Technique Category from UI")) ?~! "Error while trying to move category with requested id %s into new parent: %s".format(sourceCatId,destCatId)
+                        , Some("User moved Active Technique Category from UI")).toBox ?~! "Error while trying to move category with requested id %s into new parent: %s".format(sourceCatId,destCatId)
           } yield {
             result
           }) match {
@@ -471,7 +473,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                           ModificationId(uuidGen.newUuid),
                           CurrentUser.actor,
                           Some("Active Technique added by user from UI")
-                       )
+                       ).toBox
                       ?~! errorMess.format(sourceactiveTechniqueId,destCatId)
                    )
                 } yield {
@@ -523,7 +525,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
   private[this] def refreshBottomPanel(id:ActiveTechniqueId) : JsCmd = {
     for {
-      activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(id).flatMap { Box(_) }
+      activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(id).toBox.flatMap { Box(_) }
       technique <- techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName)
     } { //TODO : check errors
       updateCurrentTechniqueDetails(Some(technique), Some(activeTechnique))
@@ -659,6 +661,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                 ${if(!activeTechnique.isEnabled){<div>This Technique is currently <b>disabled</b>.</div>}else{NodeSeq.Empty}}
               </div>
             """
+
               val tooltipid1 = Helpers.nextFuncName
               val numberDirectives = s"${activeTechnique.directives.size} directive(s) are based on that Technique"
               SHtml.a(
@@ -688,7 +691,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
               , false, ModificationId(uuidGen.newUuid)
               , RudderEventActor
               , Some(msg)
-            ) match {
+            ).toBox match {
               case eb: EmptyBox =>
                 val e = eb ?~! s"Error when trying to disable active technique '${activeTechnique.id.value}'"
                 logger.debug(e.messageChain)

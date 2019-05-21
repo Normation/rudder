@@ -49,6 +49,8 @@ import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.repository.EventLogRepository
 
+import com.normation.box._
+
 class DeployOnTechniqueCallback(
     override val name   : String
   , override val order  : Int
@@ -76,12 +78,8 @@ class LogEventOnTechniqueReloadCallback(
         modificationId = None
       , principal      = actor
       , details        = ReloadTechniqueLibrary.buildDetails(gitRev, techniqueMods)
-      , reason         = reason
-    ))) match {
-      case eb:EmptyBox =>
-        eb ?~! "Error when saving event log for techniques library reload"
-      case Full(x) => Full({})
-    }
+      , reason = reason
+    ))).chainError("Error when saving event log for techniques library reload").unit.toBox
   }
 }
 

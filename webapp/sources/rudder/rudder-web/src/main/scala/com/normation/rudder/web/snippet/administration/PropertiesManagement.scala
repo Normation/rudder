@@ -51,7 +51,7 @@ import scala.xml.NodeSeq
 import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import net.liftweb.http.SHtml._
-import com.normation.rudder.appconfig._
+import com.normation.appconfig._
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.components.AgentScheduleEditForm
@@ -67,6 +67,8 @@ import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.services.servers.RelaySynchronizationMethod._
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
+
+import com.normation.box._
 
 import scala.xml.Text
 /**
@@ -120,25 +122,25 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   def changeMessageConfiguration = { xml : NodeSeq =>
 
     // initial values
-    var initEnabled = configService.rudder_ui_changeMessage_enabled
-    var initMandatory = configService.rudder_ui_changeMessage_mandatory
-    var initExplanation = configService.rudder_ui_changeMessage_explanation
+    var initEnabled = configService.rudder_ui_changeMessage_enabled.toBox
+    var initMandatory = configService.rudder_ui_changeMessage_mandatory.toBox
+    var initExplanation = configService.rudder_ui_changeMessage_explanation.toBox
 
     // mutable, default values won't be used (if error in property => edit form is not displayed)
     var enabled = initEnabled.getOrElse(false)
-    var mandatory = configService.rudder_ui_changeMessage_mandatory.getOrElse(false)
-    var explanation = configService.rudder_ui_changeMessage_explanation.getOrElse("Please enter a reason explaining this change.")
+    var mandatory = configService.rudder_ui_changeMessage_mandatory.toBox.getOrElse(false)
+    var explanation = configService.rudder_ui_changeMessage_explanation.toBox.getOrElse("Please enter a reason explaining this change.")
 
     def submit = {
 
       // Save new value
-      configService.set_rudder_ui_changeMessage_enabled(enabled).
+      configService.set_rudder_ui_changeMessage_enabled(enabled).toBox.
         // If update is sucessful update the initial value used by the form
         foreach(updateOk => initEnabled = Full(enabled))
 
-      configService.set_rudder_ui_changeMessage_mandatory(mandatory).foreach(updateOk => initMandatory = Full(mandatory))
+      configService.set_rudder_ui_changeMessage_mandatory(mandatory).toBox.foreach(updateOk => initMandatory = Full(mandatory))
 
-      configService.set_rudder_ui_changeMessage_explanation(explanation).foreach(updateOk => initExplanation = Full(explanation))
+      configService.set_rudder_ui_changeMessage_explanation(explanation).toBox.foreach(updateOk => initExplanation = Full(explanation))
       check() & JsRaw("""createSuccessNotification("Change audit logs configuration correctly updated")""")
     }
 
@@ -276,13 +278,13 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   def cfserverNetworkConfiguration = { xml : NodeSeq =>
 
     //  initial values, updated on successfull submit
-    var initDenyBadClocks = configService.cfengine_server_denybadclocks
+    var initDenyBadClocks = configService.cfengine_server_denybadclocks.toBox
 
     // form values
     var denyBadClocks = initDenyBadClocks.getOrElse(false)
 
     def submit = {
-      configService.set_cfengine_server_denybadclocks(denyBadClocks).foreach(updateOk => initDenyBadClocks = Full(denyBadClocks))
+      configService.set_cfengine_server_denybadclocks(denyBadClocks).toBox.foreach(updateOk => initDenyBadClocks = Full(denyBadClocks))
 
       // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
       startNewPolicyGeneration
@@ -337,10 +339,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
   def relaySynchronizationMethodManagement = { xml : NodeSeq =>
     //  initial values, updated on successfull submit
-    var initRelaySyncMethod = configService.relay_server_sync_method
+    var initRelaySyncMethod = configService.relay_server_sync_method.toBox
     // Be careful, we store negative value
-    var initRelaySyncPromises = configService.relay_server_syncpromises
-    var initRelaySyncSharedFiles = configService.relay_server_syncsharedfiles
+    var initRelaySyncPromises = configService.relay_server_syncpromises.toBox
+    var initRelaySyncSharedFiles = configService.relay_server_syncsharedfiles.toBox
 
     // form values
     var relaySyncMethod = initRelaySyncMethod.getOrElse(Classic)
@@ -358,9 +360,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }
 
     def submit = {
-      configService.set_relay_server_sync_method(relaySyncMethod).foreach(updateOk => initRelaySyncMethod = Full(relaySyncMethod))
-      configService.set_relay_server_syncpromises(relaySyncPromises).foreach(updateOk => initRelaySyncPromises = Full(relaySyncPromises))
-      configService.set_relay_server_syncsharedfiles(relaySyncSharedFiles).foreach(updateOk => initRelaySyncSharedFiles = Full(relaySyncSharedFiles))
+      configService.set_relay_server_sync_method(relaySyncMethod).toBox.foreach(updateOk => initRelaySyncMethod = Full(relaySyncMethod))
+      configService.set_relay_server_syncpromises(relaySyncPromises).toBox.foreach(updateOk => initRelaySyncPromises = Full(relaySyncPromises))
+      configService.set_relay_server_syncsharedfiles(relaySyncSharedFiles).toBox.foreach(updateOk => initRelaySyncSharedFiles = Full(relaySyncSharedFiles))
 
       // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
       startNewPolicyGeneration
@@ -493,7 +495,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
       def submit = {
         val actor = CurrentUser.actor
-        configService.set_rudder_syslog_protocol(reportProtocol,actor,None) match {
+        configService.set_rudder_syslog_protocol(reportProtocol,actor,None).toBox match {
           case Full(_) =>
             // Update the initial value of the form
             initReportsProtocol = reportProtocol
@@ -523,7 +525,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
     }
 
-    configService.rudder_syslog_protocol match {
+    configService.rudder_syslog_protocol.toBox match {
       case Full(value) =>
         networkForm(value)
       case eb: EmptyBox =>
@@ -542,11 +544,11 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   )
 
   val complianceModeEditForm = {
-    val globalMode = configService.rudder_compliance_mode()
+    val globalMode = configService.rudder_compliance_mode().toBox
     new ComplianceModeEditForm[GlobalComplianceMode](
         globalMode
       , (complianceMode) => {
-          configService.set_rudder_compliance_mode(complianceMode,CurrentUser.actor,genericReasonMessage)
+          configService.set_rudder_compliance_mode(complianceMode,CurrentUser.actor,genericReasonMessage).toBox
         }
       , () => startNewPolicyGeneration
       , globalMode
@@ -570,7 +572,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           , splaytime
         )
     }
-  }
+  }.toBox
 
   def saveSchedule(schedule: AgentRunInterval) : Box[Unit] = {
 
@@ -583,7 +585,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     } yield {
       logger.info(s"Agent schedule updated to run interval: ${schedule.interval} min, start time: ${schedule.startHour} h ${schedule.startMinute} min, splaytime: ${schedule.splaytime} min")
     }
-  }
+  }.toBox
 
   def cfagentScheduleConfiguration = agentScheduleEditForm.cfagentScheduleConfiguration
   def agentPolicyModeConfiguration = agentPolicyModeEditForm.cfagentPolicyModeConfiguration
@@ -592,7 +594,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   def cfengineGlobalProps = { xml : NodeSeq =>
 
     //  initial values, updated on successful submit
-    var initModifiedFilesTtl = configService.cfengine_modified_files_ttl
+    var initModifiedFilesTtl = configService.cfengine_modified_files_ttl.toBox
     // form values
     var modifiedFilesTtl = initModifiedFilesTtl.getOrElse(30).toString
 
@@ -600,7 +602,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       // first, check if the content are effectively Int
       try {
         val intModifiedFilesTtl = Integer.parseInt(modifiedFilesTtl)
-        configService.set_cfengine_modified_files_ttl(intModifiedFilesTtl).foreach(updateOk => initModifiedFilesTtl = Full(intModifiedFilesTtl))
+        configService.set_cfengine_modified_files_ttl(intModifiedFilesTtl).toBox.foreach(updateOk => initModifiedFilesTtl = Full(intModifiedFilesTtl))
         // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
         startNewPolicyGeneration
         check() & JsRaw("""createSuccessNotification("File retention settings correctly updated")""")
@@ -642,8 +644,8 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   def loggingConfiguration = { xml : NodeSeq =>
 
     //  initial values, updated on successfull submit
-    var initStoreAllCentralizedLogsInFile = configService.rudder_store_all_centralized_logs_in_file
-    var initCfengineOutputsTtl = configService.cfengine_outputs_ttl
+    var initStoreAllCentralizedLogsInFile = configService.rudder_store_all_centralized_logs_in_file.toBox
+    var initCfengineOutputsTtl = configService.cfengine_outputs_ttl.toBox
     // form values
     var storeAllCentralizedLogsInFile  = initStoreAllCentralizedLogsInFile.getOrElse(false)
     var cfengineOutputsTtl = initCfengineOutputsTtl.getOrElse(7).toString
@@ -651,13 +653,13 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     def submit = {
       try{
         val intCfengineOutputsTtl = Integer.parseInt(cfengineOutputsTtl)
-        configService.set_cfengine_outputs_ttl(intCfengineOutputsTtl).foreach(updateOk => initCfengineOutputsTtl = Full(intCfengineOutputsTtl))
+        configService.set_cfengine_outputs_ttl(intCfengineOutputsTtl).toBox.foreach(updateOk => initCfengineOutputsTtl = Full(intCfengineOutputsTtl))
 
       } catch{
         case ex:NumberFormatException =>
           Noop & JsRaw(s"""createErrorNotification("Invalid value ${ex.getMessage().replaceFirst("F", "f")})""")
       }
-      configService.set_rudder_store_all_centralized_logs_in_file(storeAllCentralizedLogsInFile).foreach(updateOk => initStoreAllCentralizedLogsInFile = Full(storeAllCentralizedLogsInFile))
+      configService.set_rudder_store_all_centralized_logs_in_file(storeAllCentralizedLogsInFile).toBox.foreach(updateOk => initStoreAllCentralizedLogsInFile = Full(storeAllCentralizedLogsInFile))
 
       // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
       startNewPolicyGeneration
@@ -959,7 +961,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   }
 
   def sendMetricsConfiguration = { xml : NodeSeq =>
-    ( configService.send_server_metrics match {
+    ( configService.send_server_metrics.toBox match {
       case Full(value) =>
         var initSendMetrics = value
         var currentSendMetrics = value
@@ -968,7 +970,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           Run(s"""$$("#sendMetricsSubmit").attr("disabled", ${noModif()});""")
         }
         def submit() = {
-          val save = configService.set_send_server_metrics(currentSendMetrics,CurrentUser.actor,genericReasonMessage)
+          val save = configService.set_send_server_metrics(currentSendMetrics,CurrentUser.actor,genericReasonMessage).toBox
           val createNotification = save match {
             case Full(_)  =>
               initSendMetrics = currentSendMetrics
@@ -1006,7 +1008,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
   def displayGraphsConfiguration = { xml : NodeSeq =>
 
-    ( configService.display_changes_graph() match {
+    ( configService.display_changes_graph().toBox match {
       case Full(value) =>
         var initDisplayGraphs = value
         var currentdisplayGraphs = value
@@ -1016,7 +1018,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         }
 
         def submit() = {
-          val save = configService.set_display_changes_graph(currentdisplayGraphs)
+          val save = configService.set_display_changes_graph(currentdisplayGraphs).toBox
           val createNotification = save match {
             case Full(_)  =>
               initDisplayGraphs = currentdisplayGraphs
@@ -1052,7 +1054,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
   def displayRuleColumnConfiguration = { xml : NodeSeq =>
 
-    ( configService.rudder_ui_display_ruleComplianceColumns() match {
+    ( configService.rudder_ui_display_ruleComplianceColumns().toBox match {
       case Full(value) =>
         var initDisplayColumns = value
         var currentDisplayColumns = value
@@ -1062,7 +1064,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         }
 
         def submit() = {
-          val save = configService.set_rudder_ui_display_ruleComplianceColumns(currentDisplayColumns)
+          val save = configService.set_rudder_ui_display_ruleComplianceColumns(currentDisplayColumns).toBox
           val createNotifcation = save match {
             case Full(_)  =>
               initDisplayColumns  = currentDisplayColumns
@@ -1099,7 +1101,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   def directiveScriptEngineConfiguration = { xml : NodeSeq =>
     import com.normation.rudder.domain.appconfig.FeatureSwitch._
 
-    ( configService.rudder_featureSwitch_directiveScriptEngine() match {
+    ( configService.rudder_featureSwitch_directiveScriptEngine().toBox match {
       case Full(initialValue) =>
 
         var initSavedValued = initialValue
@@ -1110,7 +1112,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         }
 
         def submit() = {
-          val save = configService.set_rudder_featureSwitch_directiveScriptEngine(x)
+          val save = configService.set_rudder_featureSwitch_directiveScriptEngine(x).toBox
           val createNotification = save match {
             case Full(_)  =>
               initSavedValued = x
@@ -1160,8 +1162,8 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }
 
     val process = (for {
-      initialPolicyMode <- configService.rudder_node_onaccept_default_policy_mode()
-      initialNodeState  <- configService.rudder_node_onaccept_default_state()
+      initialPolicyMode <- configService.rudder_node_onaccept_default_policy_mode().toBox
+      initialNodeState  <- configService.rudder_node_onaccept_default_state().toBox
     } yield {
 
       // initialise values for the form (last time it was saved and current user input)
@@ -1179,8 +1181,8 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       def submit() = {
         val save =
           for {
-            _ <- configService.set_rudder_node_onaccept_default_state(state)
-            _ <- configService.set_rudder_node_onaccept_default_policy_mode(policyMode)
+            _ <- configService.set_rudder_node_onaccept_default_state(state).toBox
+            _ <- configService.set_rudder_node_onaccept_default_policy_mode(policyMode).toBox
           } yield {
             ()
           }
@@ -1224,7 +1226,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   def unexpectedReportInterpretation = { xml : NodeSeq =>
     import com.normation.rudder.services.reports.UnexpectedReportBehavior._
 
-    ( configService.rudder_compliance_unexpected_report_interpretation() match {
+    ( configService.rudder_compliance_unexpected_report_interpretation().toBox match {
       case Full(initialValue) =>
 
         var initSavedValued = initialValue
@@ -1235,7 +1237,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         }
 
         def submit() = {
-          val save = configService.set_rudder_compliance_unexpected_report_interpretation(x)
+          val save = configService.set_rudder_compliance_unexpected_report_interpretation(x).toBox
            val createNotification = save match {
             case Full(_)  =>
               initSavedValued = x

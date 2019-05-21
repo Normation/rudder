@@ -62,6 +62,8 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
 import scala.xml._
 
+import com.normation.box._
+
 /**
  * Check for server in the pending repository and propose to
  * accept or refuse them.
@@ -129,7 +131,7 @@ class AcceptNode extends Loggable {
    * Retrieve the last inventory for the selected server
    */
   def retrieveLastVersions(uuid : NodeId) : Option[DateTime] = {
-    diffRepos.versions(uuid) match {
+    diffRepos.versions(uuid).toBox match {
       case Full(list) if (list.size > 0) => Some(list.head)
       case _ => None
     }
@@ -176,7 +178,7 @@ class AcceptNode extends Loggable {
                       )
                   )
 
-                  logRepository.saveEventLog(modId, entry) match {
+                  logRepository.saveEventLog(modId, entry).toBox match {
                       case Full(_) => logger.debug("Successfully added node '%s'".format(id.value.toString))
                       case _ => logger.warn("Node '%s'added, but the action couldn't be logged".format(id.value.toString))
                   }
@@ -216,7 +218,7 @@ class AcceptNode extends Loggable {
 
             )
 
-            logRepository.saveEventLog(modId, entry) match {
+            logRepository.saveEventLog(modId, entry).toBox match {
               case Full(_) => logger.debug("Successfully refused node '%s'".format(id.value.toString))
               case _ => logger.warn("Node '%refused, but the action couldn't be logged".format(id.value.toString))
             }

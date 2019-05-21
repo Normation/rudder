@@ -40,19 +40,21 @@ package checks
 
 import net.liftweb.common._
 import java.io.File
+
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.ncf.TechniqueWriter
 import scalaj.http.Http
-import monix.execution.Scheduler.{ global => scheduler }
-import scala.concurrent.duration._
+
 import com.normation.eventlog.EventActor
 import com.normation.rudder.api.ApiAccount
-import com.normation.rudder.ncf.ResultHelper._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JArray
-import bootstrap.liftweb.BootstrapChecks
+import com.normation.box._
+import scalaz.zio._
+import scalaz.zio.duration._
+import com.normation.zio._
 
 sealed trait NcfTechniqueUpgradeError {
   def msg : String
@@ -157,7 +159,7 @@ class CheckNcfTechniqueUpdate(
 
         // Actually write techniques
         techniqueUpdated   <- (sequence(techniques)(
-                                techniqueWrite.writeAll(_, methods, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value))
+                                techniqueWrite.writeAll(_, methods, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value)).toBox
                               )) match {
                                 case Full(m) => Right(m)
                                 case eb : EmptyBox =>
@@ -173,27 +175,27 @@ class CheckNcfTechniqueUpdate(
 
       } ) match {
         case Right(_) =>
-          logger.info("All ncf techniques were updated")
+          BootraspLogger.logEffect.info("All ncf techniques were updated")
         case Left(NcfApiAuthFailed(msg,e)) =>
-          logger.warn(s"Could not authenticate in ncf API, maybe it was not initialized yet, retrying in 5 seconds")
-          scheduler.scheduleOnce(5.seconds)(updateNcfTechniques)
+          BootraspLogger.logEffect.warn(s"Could not authenticate in ncf API, maybe it was not initialized yet, retrying in 5 seconds")
+          ZioRuntime.unsafeRun(Task.effect(updateNcfTechniques).delay(5.seconds))
         case Left(FlagFileError(_,_)) =>
-          logger.warn(s"All ncf techniques were updated, but we could not delete flag file ${ncfTechniqueUpdateFlag}, please delete it manually")
+          BootraspLogger.logEffect.warn(s"All ncf techniques were updated, but we could not delete flag file ${ncfTechniqueUpdateFlag}, please delete it manually")
         case Left(e : NcfTechniqueUpgradeError) =>
-          logger.error(s"An error occured while updating ncf techniques: ${e.msg}")
+          BootraspLogger.logEffect.error(s"An error occured while updating ncf techniques: ${e.msg}")
       }
     }
 
     try {
       if (file.exists) {
-        scheduler.scheduleOnce(10.seconds)(updateNcfTechniques)
+        ZioRuntime.unsafeRun(Task.effect(updateNcfTechniques).delay(10.seconds))
       } else {
-        logger.info(s"Flag file '${ncfTechniqueUpdateFlag}' does not exist, do not regenerate ncf Techniques")
+        BootraspLogger.logEffect.info(s"Flag file '${ncfTechniqueUpdateFlag}' does not exist, do not regenerate ncf Techniques")
       }
     } catch {
       // Exception while checking the flag existence
       case e : Exception =>
-        logger.error(s"An error occurred while accessing flag file '${ncfTechniqueUpdateFlag}', cause is: ${e.getMessage}")
+        BootraspLogger.logEffect.error(s"An error occurred while accessing flag file '${ncfTechniqueUpdateFlag}', cause is: ${e.getMessage}")
     }
 
   }

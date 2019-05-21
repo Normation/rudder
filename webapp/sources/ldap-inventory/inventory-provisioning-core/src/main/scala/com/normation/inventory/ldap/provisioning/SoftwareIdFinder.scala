@@ -37,15 +37,15 @@
 
 package com.normation.inventory.ldap.provisioning
 
-import com.normation.inventory.services.provisioning._
-
-import com.normation.ldap.sdk._
-import BuildFilter._
-import com.normation.inventory.ldap.core._
-import LDAPConstants._
+import com.normation.errors._
 import com.normation.inventory.domain._
-import net.liftweb.common.Box
+import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.inventory.ldap.core._
+import com.normation.inventory.services.provisioning._
+import com.normation.ldap.sdk.BuildFilter._
+import com.normation.ldap.sdk._
 import org.slf4j.LoggerFactory
+import scalaz.zio._
 
 object NameAndVersionIdFinder {
   val logger = LoggerFactory.getLogger(classOf[NameAndVersionIdFinder])
@@ -63,7 +63,7 @@ class NameAndVersionIdFinder(
 ) extends SoftwareDNFinderAction {
 
   //the onlyTypes is an AND filter
-  override def tryWith(entities:Set[Software]) : Box[MergedSoftware] = {
+  override def tryWith(entities:Set[Software]) : IOResult[MergedSoftware] = {
 
 
     val filter = OR(entities.map { entity =>
@@ -81,12 +81,13 @@ class NameAndVersionIdFinder(
       AND(nameFilter, versionFilter)
     }.toSeq:_*)
 
-
-    ldapConnectionProvider.map { con =>
-      //get potential entries, and only get the one with a A_SOFTWARE_UUID
-      //return the list of A_SOFTWARE_UUID sorted
-      val merged = con.searchOne(dit.SOFTWARE.dn, filter, A_SOFTWARE_UUID, A_NAME, A_SOFT_VERSION).flatMap(e => mapper.softwareFromEntry(e) )
-
+    //get potential entries, and only get the one with a A_SOFTWARE_UUID
+    //return the list of A_SOFTWARE_UUID sorted
+    for {
+      con     <- ldapConnectionProvider
+      entries <- con.searchOne(dit.SOFTWARE.dn, filter, A_SOFTWARE_UUID, A_NAME, A_SOFT_VERSION)
+      merged  <- ZIO.foreach(entries) { e => ZIO.fromEither(mapper.softwareFromEntry(e)) }
+    } yield {
       //now merge back
       (MergedSoftware(Set(),Set())/: entities) { case(ms, s) =>
         merged.find { x => x.name == s.name && x.version == s.version } match {

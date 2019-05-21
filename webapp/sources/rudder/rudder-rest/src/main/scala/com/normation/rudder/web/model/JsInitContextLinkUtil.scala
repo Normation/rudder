@@ -44,7 +44,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import net.liftweb.http.S
 import net.liftweb.common.Full
-import net.liftweb.common.EmptyBox
 import net.liftweb.common.Loggable
 import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.policies.RuleTarget
@@ -54,6 +53,8 @@ import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.services.nodes.NodeInfoService
+
+import com.normation.zio._
 
 /**
  * That class helps user to create valide JS initialisation context
@@ -133,28 +134,30 @@ class LinkUtil (
      RedirectTo(baseChangeRequestLink(id))
 
   def createRuleLink(id:RuleId) = {
-    roRuleRepository.get(id) match {
-      case Full(rule) => <span> <a href={baseRuleLink(id)}>{rule.name}</a> (Rudder ID: {id.value})</span>
-      case eb:EmptyBox => val fail = eb ?~! s"Could not find Rule with Id ${id.value}"
-        logger.error(fail.msg)
+    roRuleRepository.get(id).either.runNow match {
+      case Right(rule) => <span> <a href={baseRuleLink(id)}>{rule.name}</a> (Rudder ID: {id.value})</span>
+      case Left(err)   =>
+        logger.error(s"Could not find Rule with Id ${id.value}. Error was: ${err.fullMsg}")
         <span> {id.value} </span>
     }
   }
 
   def createGroupLink(id:NodeGroupId) = {
-    roGroupRepository.getNodeGroup(id) match {
-      case Full((group,_)) => <span> <a href={baseGroupLink(id)}>{group.name}</a> (Rudder ID: {id.value})</span>
-      case eb:EmptyBox => val fail = eb ?~! s"Could not find NodeGroup with Id ${id.value}"
-        logger.error(fail.msg)
+    roGroupRepository.getNodeGroup(id).either.runNow match {
+      case Right((group,_)) => <span> <a href={baseGroupLink(id)}>{group.name}</a> (Rudder ID: {id.value})</span>
+      case Left(err)        =>
+        logger.error(s"Could not find NodeGroup with Id ${id.value}. Error was: ${err.fullMsg}")
         <span> {id.value} </span>
     }
   }
 
   def createDirectiveLink(id:DirectiveId) = {
-    roDirectiveRepository.getDirective(id) match {
-      case Full(directive) => <span> <a href={baseDirectiveLink(id)}>{directive.name}</a> (Rudder ID: {id.value})</span>
-      case eb:EmptyBox => val fail = eb ?~! s"Could not find Directive with Id ${id.value}"
-        logger.error(fail.msg)
+    roDirectiveRepository.getDirective(id).either.runNow match {
+      case Right(Some(directive)) => <span> <a href={baseDirectiveLink(id)}>{directive.name}</a> (Rudder ID: {id.value})</span>
+      case Right(None)            =>
+        <span> {id.value} </span>
+      case Left(err)              =>
+        logger.error(s"Could not find Directive with Id ${id.value}. Error was: ${err.fullMsg}")
         <span> {id.value} </span>
     }
   }

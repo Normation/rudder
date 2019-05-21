@@ -42,7 +42,6 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.Rule
 import net.liftweb.common._
 import com.normation.cfclerk.domain._
-import com.normation.cfclerk.exceptions._
 import com.normation.utils.Control.bestEffort
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import org.joda.time.DateTime
@@ -71,15 +70,9 @@ class RuleValServiceImpl(
         context.get(spec.name) match {
           case None => (spec.name, spec.toVariable())
           case Some(seqValues) =>
-            try {
-                val newVar = spec.toVariable(seqValues)
-                assert(seqValues.toSet == newVar.values.toSet)
-                (spec.name -> newVar)
-            } catch {
-              case ex: VariableException =>
-                logger.error("Error when trying to set values for variable '%s', use a default value for that variable. Erroneous values was: %s".format(spec.name, seqValues.mkString("[", " ; ", "]")))
-                (spec.name, spec.toVariable())
-            }
+            val newVar = spec.toVariable(seqValues)
+            assert(seqValues.toSet == newVar.values.toSet)
+            (spec.name -> newVar)
         }
       }.toMap
     )

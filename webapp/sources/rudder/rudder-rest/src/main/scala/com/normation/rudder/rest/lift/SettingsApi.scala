@@ -39,8 +39,8 @@ package com.normation.rudder.rest.lift
 
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.appconfig.ReadConfigService
-import com.normation.rudder.appconfig.UpdateConfigService
+import com.normation.appconfig.ReadConfigService
+import com.normation.appconfig.UpdateConfigService
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.appconfig.FeatureSwitch
@@ -72,7 +72,10 @@ import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
-
+import com.normation.box._
+import com.normation.errors._
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 class SettingsApi(
     val restExtractorService: RestExtractorService
@@ -214,7 +217,7 @@ class SettingsApi(
 
   sealed trait RestSetting[T] {
     def key : String
-    def get : Box[T]
+    def get : IOResult[T]
     def toJson(value : T) : JValue
     def getJson : Box[JValue] = {
       for {
@@ -222,8 +225,8 @@ class SettingsApi(
       } yield {
         toJson(value)
       }
-    }
-    def set : ( T, EventActor, Option[String]) => Box[Unit]
+    }.toBox
+    def set : ( T, EventActor, Option[String]) => IOResult[Unit]
     def parseJson(json : JValue) : Box[T]
     def parseParam(param : String) : Box[T]
     type t = T
@@ -260,7 +263,7 @@ class SettingsApi(
     def setFromRequest(req: Req, actor: EventActor) = {
       for {
         value   <- extractData(req)
-        result  <- set(value, actor, None)
+        result  <- set(value, actor, None).toBox
       } yield {
         if (startPolicyGeneration) startNewPolicyGeneration(actor)
         toJson(value)
@@ -274,7 +277,7 @@ class SettingsApi(
           optValue match {
             case Some(value) =>
               for {
-                result  <- set(value, actor, None)
+                result  <- set(value, actor, None).toBox
               } yield {
                 Some(toJson(value))
               }
@@ -294,13 +297,13 @@ class SettingsApi(
     def toJson(value : PolicyMode) : JValue = value.name
     def parseJson(json: JValue) = {
       json match {
-        case JString(value) => PolicyMode.parse(value)
+        case JString(value) => PolicyMode.parse(value).toBox
         case x => Failure("Invalid value "+x)
       }
     }
     def parseParam(param : String) = {
       PolicyMode.parse(param)
-    }
+    }.toBox
   }
 
   trait RestBooleanSetting extends RestSetting[Boolean] {
@@ -398,7 +401,7 @@ class SettingsApi(
     val startPolicyGeneration = true
     def get = for {
       name <- configService.rudder_compliance_mode_name()
-      mode <- ComplianceModeName.parse(name)
+      mode <- ComplianceModeName.parse(name).toIO
     } yield {
       mode
     }
@@ -471,8 +474,8 @@ class SettingsApi(
   case object RestUseReverseDNS extends RestBooleanSetting {
     val key = "use_reverse_dns"
     val startPolicyGeneration = true
-    def get = Full(false)
-    def set = (value : Boolean, _, _) => Full(Unit)
+    def get = false.succeed
+    def set = (value : Boolean, _, _) => UIO.unit
   }
   case object RestRelaySyncMethod extends RestSetting[RelaySynchronizationMethod] {
     val key = "relay_server_synchronization_method"

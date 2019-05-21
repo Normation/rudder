@@ -230,7 +230,7 @@ final object ApiAuthorization {
 
 /**
  * We have several kind of API accounts:
- * - the "system" account is a pure in-memory one, whose token is genererated at each start.
+ * - the "system" account is a success in-memory one, whose token is genererated at each start.
  *   It has super authz.
  * - User API accounts are linked to a given user. They get the same rights has their user.
  *   They are only available when a spcecific plugin enable them.

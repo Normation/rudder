@@ -60,6 +60,8 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
 import com.normation.rudder.web.ChooseTemplate
 
+import com.normation.box._
+
 /**
  * Create a group or a category
  * This is a popup that allows for the creation of a group or a category, or
@@ -247,7 +249,7 @@ class CreateCategoryOrGroupPopup(
           , ModificationId(uuidGen.newUuid)
           , CurrentUser.actor
           , piReasons.map(_.get)
-        ) match {
+        ).toBox match {
           case Full(x) => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)
           case Empty =>
             logger.error("An error occurred while saving the category")
@@ -265,7 +267,7 @@ class CreateCategoryOrGroupPopup(
             , comparator = ditQueryData.criteriaMap(OC_NODE).criteria(0).cType.comparators(0)
             , value      = "Linux"
             )
-        val query = Some(groupGenerator.flatMap(_.query).getOrElse(Query(NodeReturnType,And,Seq(defaultLine))))
+        val query = Some(groupGenerator.flatMap(_.query).getOrElse(Query(NodeReturnType,And,List(defaultLine))))
         val isDynamic = piStatic.get match { case "dynamic" => true ; case _ => false }
         val srvList =  groupGenerator.map(_.serverList).getOrElse(Set[NodeId]())
         val nodeId = NodeGroupId(uuidGen.newUuid)
@@ -276,7 +278,7 @@ class CreateCategoryOrGroupPopup(
           , ModificationId(uuidGen.newUuid)
           , CurrentUser.actor
           , piReasons.map(_.get)
-        ) match {
+        ).toBox match {
           case Full(x) =>
             closePopup() &
             onSuccessCallback(x.group.id.value) & onSuccessGroup(Right(x.group), NodeGroupCategoryId(piContainer.get))

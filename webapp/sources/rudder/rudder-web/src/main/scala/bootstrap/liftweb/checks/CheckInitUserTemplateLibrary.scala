@@ -50,11 +50,12 @@ import com.normation.utils.Control._
 import org.joda.time.DateTime
 import com.normation.inventory.ldap.core.LDAPConstants.A_OC
 import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
+
+import com.normation.box._
 
 /**
  * That class add all the available reference template in
@@ -74,40 +75,45 @@ class CheckInitUserTemplateLibrary(
   override val description = "Check initialization of User Technique Library"
 
   override def checks() : Unit = {
-    ldap.foreach { con =>
-
-        con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, A_INIT_DATETIME, A_OC) match {
-          case e:EmptyBox => ApplicationLogger.error("The root entry of the user template library was not found")
-          case Full(root) => root.getAsGTime(A_INIT_DATETIME) match {
-            case Some(date) => ApplicationLogger.debug("The root user template library was initialized on %s".format(date.dateTime.toString("YYYY/MM/dd HH:mm")))
-            case None =>
-              ApplicationLogger.info("The Active Technique library is not marked as being initialized: adding all policies from reference library...")
-              copyReferenceLib() match {
-                case Full(x) =>
-                  asyncDeploymentAgent ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor)
-                  ApplicationLogger.info("...done")
-                case eb:EmptyBox =>
-                  val e = eb ?~! "Some error where encountered during the initialization of the user library"
-                  val msg = e.messageChain.split("<-").mkString("\n ->")
-                  ApplicationLogger.warn(msg)
-                  logger.debug(e.exceptionChain)
-                  // Even if complete reload failed, we need to trigger a policy deployment, as otherwise it will never be done
-                  asyncDeploymentAgent ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor)
+    (for {
+      con <- ldap
+      res <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, A_INIT_DATETIME, A_OC)
+    } yield {
+      res
+    }).toBox match {
+      case eb:EmptyBox =>
+        val e = eb ?~! s"Error when trying to check for root entry of the user template library"
+        BootraspLogger.logEffect.error(e.messageChain)
+      case Full(None) => BootraspLogger.logEffect.error("The root entry of the user template library was not found")
+      case Full(Some(root)) => root.getAsGTime(A_INIT_DATETIME) match {
+        case Some(date) => BootraspLogger.logEffect.debug("The root user template library was initialized on %s".format(date.dateTime.toString("YYYY/MM/dd HH:mm")))
+        case None =>
+          BootraspLogger.logEffect.info("The Active Technique library is not marked as being initialized: adding all policies from reference library...")
+          copyReferenceLib() match {
+            case Full(x) =>
+              asyncDeploymentAgent ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor)
+              BootraspLogger.logEffect.info("...done")
+            case eb:EmptyBox =>
+              val e = eb ?~! "Some error where encountered during the initialization of the user library"
+              val msg = e.messageChain.split("<-").mkString("\n ->")
+              BootraspLogger.logEffect.warn(msg)
+              BootraspLogger.logEffect.debug(e.exceptionChain)
+              // Even if complete reload failed, we need to trigger a policy deployment, as otherwise it will never be done
+              asyncDeploymentAgent ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor)
+          }
+          root += (A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
+          root +=! (A_INIT_DATETIME, GeneralizedTime(DateTime.now()).toString)
+          ldap.flatMap(_.save(root)).toBox match {
+            case eb:EmptyBox =>
+              val e = eb ?~! "Error when updating information about the LDAP root entry of technique library."
+              BootraspLogger.logEffect.error(e.messageChain)
+              e.rootExceptionCause.foreach { ex =>
+                BootraspLogger.logEffect.error("Root exception was: ", ex)
               }
-              root += (A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
-              root +=! (A_INIT_DATETIME, GeneralizedTime(DateTime.now()).toString)
-              con.save(root) match {
-                case eb:EmptyBox =>
-                  val e = eb ?~! "Error when updating information about the LDAP root entry of technique library."
-                  logger.error(e.messageChain)
-                  e.rootExceptionCause.foreach { ex =>
-                    logger.error("Root exception was: ", ex)
-                  }
-                case _ => // nothing to do
-              }
-        }
-      }
-    } ; () //foreach should return Unit, see #2770
+            case _ => // nothing to do
+          }
+    }
+  }
   }
 
   /**
@@ -117,7 +123,7 @@ class CheckInitUserTemplateLibrary(
     def recCopyRef(fromCatId:TechniqueCategoryId, toParentCat:ActiveTechniqueCategory) : Box[ActiveTechniqueCategory] = {
 
       for {
-        fromCat <- refTemplateService.getTechniqueCategory(fromCatId)
+        fromCat <- refTemplateService.getTechniqueCategory(fromCatId).toBox
         newUserPTCat = ActiveTechniqueCategory(
             id = genUserCatId(fromCat)
           , name = fromCat.name
@@ -134,7 +140,7 @@ class CheckInitUserTemplateLibrary(
                                     , toParentCat.id
                                     , ModificationId(uuidGen.newUuid)
                                     , RudderEventActor
-                                    , reason = Some("Initialize active templates library")) ?~!
+                                    , reason = Some("Initialize active templates library")).toBox ?~!
                 "Error when adding category '%s' to user library parent category '%s'".format(newUserPTCat.id.value, toParentCat.id.value)
                 //now, add items and subcategories, in a "try to do the max you can" way
                 fullRes <- boxSequence(
@@ -146,7 +152,7 @@ class CheckInitUserTemplateLibrary(
                         , name
                         , ids.map( _.version).toSeq
                         , ModificationId(uuidGen.newUuid)
-                        , RudderEventActor, reason = Some("Initialize active templates library")) ?~!
+                        , RudderEventActor, reason = Some("Initialize active templates library")).toBox ?~!
                         "Error when adding Technique '%s' into user library category '%s'".format(name.value, newUserPTCat.id.value)
                     } yield {
                       activeTechnique
@@ -166,7 +172,7 @@ class CheckInitUserTemplateLibrary(
     }
 
     //apply with root cat children ids
-    roDirectiveRepos.getActiveTechniqueLibrary.flatMap { root =>
+    roDirectiveRepos.getActiveTechniqueLibrary.toBox.flatMap { root =>
       bestEffort(refTemplateService.getTechniqueLibrary.subCategoryIds.toSeq) { id =>
         recCopyRef(id, root)
       }

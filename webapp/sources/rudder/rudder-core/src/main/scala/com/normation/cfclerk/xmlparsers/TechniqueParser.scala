@@ -37,15 +37,15 @@
 
 package com.normation.cfclerk.xmlparsers
 
-import CfclerkXmlConstants._
+import cats.implicits._
+import com.normation.NamedZioLogger
 import com.normation.cfclerk.domain._
+import com.normation.cfclerk.domain.implicits._
 import com.normation.cfclerk.services.SystemVariableSpecService
-import com.normation.cfclerk.exceptions.ParsingException
-
-import scala.xml._
-import net.liftweb.common._
+import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
 import com.normation.inventory.domain.AgentType
 
+import scala.xml._
 
 
 /**
@@ -56,9 +56,11 @@ class TechniqueParser(
     variableSpecParser           : VariableSpecParser
   , sectionSpecParser            : SectionSpecParser
   , systemVariableSpecService    : SystemVariableSpecService
-) extends Loggable {
+) extends NamedZioLogger {
 
-  def parseXml(xml: Node, id: TechniqueId): Technique = {
+  val loggerName = "technique-parser"
+
+  def parseXml(xml: Node, id: TechniqueId): Either[LoadTechniqueError, Technique] = {
     def nonEmpty(s: String) = if(null == s || s == "") None else Some(s)
 
     //check that xml is <TECHNIQUE> and has a name attribute
@@ -67,102 +69,109 @@ class TechniqueParser(
         case Some(nameAttr) if (TechniqueParser.isValidId(id.name.value) && nameAttr.text != null && nameAttr.text != "") =>
 
           val name = nameAttr.text
-          val compatible = try Some(parseCompatibleTag((xml \ COMPAT_TAG).head)) catch { case _:Exception => None }
+          for {
+            compatible <- (xml \ COMPAT_TAG).headOption match {
+                            case None       => Right(None)
+                            case Some(elem) => parseCompatibleTag(elem).map(x => Some(x))
+                          }
+            rootSection <- sectionSpecParser.parseSectionsInPolicy(xml, id, name)
 
-          val rootSection = sectionSpecParser.parseSectionsInPolicy(xml, id, name)
+            description = nonEmpty((xml \ TECHNIQUE_DESCRIPTION).text).getOrElse(name)
 
-          val description = nonEmpty((xml \ TECHNIQUE_DESCRIPTION).text).getOrElse(name)
+            trackerVariableSpec <- parseTrackerVariableSpec(xml)
 
-          val trackerVariableSpec = parseTrackerVariableSpec(xml)
+            systemVariableSpecs <- parseSysvarSpecs(xml,id)
 
-          val systemVariableSpecs = parseSysvarSpecs(xml,id)
+            isMultiInstance = ((xml \ TECHNIQUE_IS_MULTIINSTANCE).text.equalsIgnoreCase("true") )
 
-          val isMultiInstance = ((xml \ TECHNIQUE_IS_MULTIINSTANCE).text.equalsIgnoreCase("true") )
+            longDescription = nonEmpty((xml \ TECHNIQUE_LONG_DESCRIPTION).text).getOrElse("")
 
-          val longDescription = nonEmpty((xml \ TECHNIQUE_LONG_DESCRIPTION).text).getOrElse("")
+            isSystem = ((xml \ TECHNIQUE_IS_SYSTEM).text.equalsIgnoreCase("true"))
 
-          val isSystem = ((xml \ TECHNIQUE_IS_SYSTEM).text.equalsIgnoreCase("true"))
-
-          // This parameter defines if the technique reporting is made by generic methods called by the technique
-          // or if the technique should compute the reporting by itself
-          // By default Techniques will not use reporting based on methods, since almost all core techniques have custom reporting
-          // ncf/technique editor Techniques will define that parameter to true, since they rely on method reporting
-          val useMethodReporting = nonEmpty((xml \ TECHNIQUE_USE_METHOD_REPORTING).text).map(_.equalsIgnoreCase("true")).getOrElse(false)
+            // This parameter defines if the technique reporting is made by generic methods called by the technique
+            // or if the technique should compute the reporting by itself
+            // By default Techniques will not use reporting based on methods, since almost all core techniques have custom reporting
+            // ncf/technique editor Techniques will define that parameter to true, since they rely on method reporting
+            useMethodReporting = nonEmpty((xml \ TECHNIQUE_USE_METHOD_REPORTING).text).map(_.equalsIgnoreCase("true")).getOrElse(false)
 
 
-          val deprecationInfo = parseDeprecrationInfo(xml)
+            deprecationInfo <- parseDeprecrationInfo(xml)
 
-          val agentConfigs = (
-            (xml \ "AGENT" ).toList.map(agent => parseAgentConfig(id, agent)).flatten ++
-            {
-              //for compability reason, we cheat and make the template/file/bundlesequence under root
-              //and not in an <AGENT> sub-element be considered as being in <AGENT type="cfengine-community,cfengine-enterprise">
-              val forCompatibilityAgent = <AGENT type={s"${AgentType.CfeCommunity.toString},${AgentType.CfeEnterprise.toString}"}>
-                {(xml \ PROMISE_TEMPLATES_ROOT)}
-                {(xml \ FILES)}
-                {(xml \ BUNDLES_ROOT)}
-                {(xml \ RUN_HOOKS)}
-              </AGENT>
+            //for compability reason, we cheat and make the template/file/bundlesequence under root
+            //and not in an <AGENT> sub-element be considered as being in <AGENT type="cfengine-community,cfengine-enterprise">
+            compatibilityAgent <- {
+                                    val forCompatibilityAgent = <AGENT type={s"${AgentType.CfeCommunity.toString},${AgentType.CfeEnterprise.toString}"}>
+                                      {(xml \ PROMISE_TEMPLATES_ROOT)}
+                                      {(xml \ FILES)}
+                                      {(xml \ BUNDLES_ROOT)}
+                                      {(xml \ RUN_HOOKS)}
+                                    </AGENT>
 
-              parseAgentConfig(id, forCompatibilityAgent)
+                                    parseAgentConfig(id, forCompatibilityAgent)
+                                  }
+            otherAgents  <- (xml \ "AGENT" ).toList.traverse(agent => parseAgentConfig(id, agent)).map(_.flatten)
+            agentConfigs = (compatibilityAgent ++ otherAgents
+                            // we need to filter back for totally empty agent (most likely default one added for nothing)
+                            ).filter(a => !List(a.templates, a.files, a.bundlesequence, a.runHooks).forall(_.isEmpty))
+            _            <- { // all agent config types must be different
+                              val duplicated = agentConfigs.map(_.agentType.id).groupBy(identity).collect { case (id, seq) if(seq.size > 1) => id }
+                              if(duplicated.nonEmpty) {
+                                Left(LoadTechniqueError.Parsing(s"Error when parsing technique with ID '${id.toString}': these agent configurations are declared " +
+                                                                s"several times: '${duplicated.mkString("','")}' (note that <TMLS>, <BUNDLES> and <FILES> " +
+                                                                s"sections under root <TECHNIQUE> tag build a 'cfengine-community' agent configuration)"
+                                ))
+                              } else {
+                                Right(())
+                              }
+                            }
+
+            // System technique should not have run hooks, this is not supported:
+            _ = if(isSystem && agentConfigs.exists( a => a.runHooks.nonEmpty ) ) {
+              logEffect.warn(s"System Technique with ID '${id.toString()}' has agent run hooks defined. This is not supported on system technique.")
             }
-          // we need to filter back for totally empty agent (most likely default one added for nothing)
-          ).filter(a => !List(a.templates, a.files, a.bundlesequence, a.runHooks).forall(_.isEmpty))
 
-          // all agent config types must be different
-          val duplicated = agentConfigs.map(_.agentType.id).groupBy(identity).collect { case (id, seq) if(seq.size > 1) => id }
-          if(duplicated.nonEmpty) {
-            throw new ParsingException(s"Error when parsing technique with ID '${id.toString}': these agent configurations are declared " +
-                                       s"several times: '${duplicated.mkString("','")}' (note that <TMLS>, <BUNDLES> and <FILES> " +
-                                       s"sections under root <TECHNIQUE> tag build a 'cfengine-community' agent configuration)")
+            // 4.3: does the technique support generation without directive merge (i.e mutli directive)
+            generationMode = nonEmpty((xml \ TECHNIQUE_GENERATION_MODE).text).flatMap(TechniqueGenerationMode.parse).getOrElse(TechniqueGenerationMode.MergeDirectives)
+
+            technique = Technique(
+                id
+              , name
+              , description
+              , agentConfigs
+              , trackerVariableSpec
+              , rootSection
+              , deprecationInfo
+              , systemVariableSpecs
+              , compatible
+              , isMultiInstance
+              , longDescription
+              , isSystem
+              , generationMode
+              , useMethodReporting
+            )
+
+            /*
+             * Check that if the policy info variable spec has a bounding variable, that
+             * variable actually exists
+             */
+            _ <- technique.trackerVariableSpec.boundingVariable.toList.traverse { bound =>
+                   if(
+                       technique.rootSection.getAllVariables.exists { v => v.name == bound } ||
+                       systemVariableSpecService.getAll.exists { v => v.name == bound }
+                   ) {
+                     Right("ok")
+                   } else {
+                     Left(LoadTechniqueError.Parsing("The bounding variable '%s' for policy info variable does not exist".format(bound)))
+                   }
+                 }
+          } yield {
+            technique
           }
 
-          // System technique should not have run hooks, this is not supported:
-          if(isSystem && agentConfigs.exists( a => a.runHooks.nonEmpty ) ) {
-            logger.warn(s"System Technique with ID '${id.toString()}' has agent run hooks defined. This is not supported.")
-          }
-
-          // 4.3: does the technique support generation without directive merge (i.e mutli directive)
-          val generationMode = nonEmpty((xml \ TECHNIQUE_GENERATION_MODE).text).flatMap(TechniqueGenerationMode.parse).getOrElse(TechniqueGenerationMode.MergeDirectives)
-
-          val technique = Technique(
-              id
-            , name
-            , description
-            , agentConfigs
-            , trackerVariableSpec
-            , rootSection
-            , deprecationInfo
-            , systemVariableSpecs
-            , compatible
-            , isMultiInstance
-            , longDescription
-            , isSystem
-            , generationMode
-            , useMethodReporting
-          )
-
-          /*
-           * Check that if the policy info variable spec has a bounding variable, that
-           * variable actually exists
-           */
-          technique.trackerVariableSpec.boundingVariable.foreach { bound =>
-            if(
-                technique.rootSection.getAllVariables.exists { v => v.name == bound } ||
-                systemVariableSpecService.getAll.exists { v => v.name == bound }
-            ) {
-              //ok
-            } else {
-              throw new ParsingException("The bounding variable '%s' for policy info variable does not exist".format(bound))
-            }
-          }
-
-          technique
-
-        case _ => throw new ParsingException("Not a policy xml, missing 'name' attribute: %s".format(xml))
+        case _ => Left(LoadTechniqueError.Parsing("Not a policy xml, missing 'name' attribute: %s".format(xml)))
       }
     } else {
-      throw new ParsingException("Not a policy xml, bad xml name. Was expecting <%s>, got: %s".format(TECHNIQUE_ROOT,xml))
+      Left(LoadTechniqueError.Parsing("Not a policy xml, bad xml name. Was expecting <%s>, got: %s".format(TECHNIQUE_ROOT,xml)))
     }
   }
 
@@ -172,61 +181,60 @@ class TechniqueParser(
    *
    * id is for reporting
    */
-  private[this] def parseAgentConfig(id: TechniqueId, xml: Node): List[AgentConfig] = {
+  private[this] def parseAgentConfig(id: TechniqueId, xml: Node): Either[LoadTechniqueError, List[AgentConfig]] = {
     //start to parse agent types for that config. It's a comma separated list
     import scala.language.postfixOps
 
     if(xml.label != "AGENT") {
-      Nil
+      Right(Nil)
     } else {
 
+      // we want to ignore without failing unknow agent.
       val agentTypes = (xml \ "@type" text).split(",").map { name =>
         AgentType.fromValue(name) match {
-          case Full(agentType) => Some(agentType)
-          case eb: EmptyBox    =>
-            val msg = s"Error when parsing technique with id '${id.toString}', agent type='${name}' is not known and the corresponding config will be ignored"
-            val e = eb ?~! msg
-            logger.warn(e.messageChain)
+          case Right(agentType) => Some(agentType)
+          case Left(err)        =>
+            val msg = s"Error when parsing technique with id '${id.toString}', agent type='${name}' is not known and the corresponding config will be ignored: ${err.fullMsg}"
+            logEffect.warn(msg)
             None
         }
       }.flatten.toList
 
-      // create a map of template per agent type
-      val templatesPerAgent = agentTypes.map(agentType => (agentType, (xml \ PROMISE_TEMPLATES_ROOT \\ PROMISE_TEMPLATE).map(xml => parseTemplate(id, xml, agentType) ).toList ) ).toMap
 
-      val files = (xml \ FILES \\ FILE).map(xml => parseFile(id, xml) )
-      val bundlesequence = (xml \ BUNDLES_ROOT \\ BUNDLE_NAME).map(xml => BundleName(xml.text) )
-
-      val hooks = (xml \ RUN_HOOKS).flatMap(parseRunHooks(id, _))
-
-      agentTypes.map( agentType => AgentConfig(agentType, templatesPerAgent.getOrElse(agentType, Nil), files.toList, bundlesequence.toList, hooks.toList))
+      for {
+        // create a map of template per agent type
+        templatesPerAgent <- agentTypes.traverse { agentType =>
+                               for {
+                                 templates <- (xml \ PROMISE_TEMPLATES_ROOT \\ PROMISE_TEMPLATE).toList.traverse { xml2 => parseTemplate(id, xml2, agentType) }
+                               } yield {
+                                 (agentType, templates)
+                               }
+                             }
+        files          <- (xml \ FILES \\ FILE).toList.traverse(xml => parseFile(id, xml) )
+        bundlesequence =  (xml \ BUNDLES_ROOT \\ BUNDLE_NAME).map(xml2 => BundleName(xml2.text) )
+        hooks          <- (xml \ RUN_HOOKS).toList.traverse(parseRunHooks(id, _)).map( _.flatten )
+      } yield {
+        val templatesMap = templatesPerAgent.toMap
+        agentTypes.map( agentType => AgentConfig(agentType, templatesMap.getOrElse(agentType, Nil), files.toList, bundlesequence.toList, hooks.toList))
+      }
     }
   }
 
-  private[this] def parseTrackerVariableSpec(xml: Node): TrackerVariableSpec = {
+  private[this] def parseTrackerVariableSpec(xml: Node): Either[LoadTechniqueError, TrackerVariableSpec] = {
     val trackerVariableSpecs = (xml \ TRACKINGVAR)
     if(trackerVariableSpecs.size == 0) { //default trackerVariable variable spec for that package
-      TrackerVariableSpec()
+      Right(TrackerVariableSpec())
     } else if(trackerVariableSpecs.size == 1) {
-      variableSpecParser.parseTrackerVariableSpec(trackerVariableSpecs.head) match {
-        case Full(p) => p
-        case e:EmptyBox =>
-          throw new ParsingException( (e ?~! "Error when parsing <%s> tag".format(TRACKINGVAR)).messageChain )
-      }
-    } else throw new ParsingException("Only one <%s> tag is allowed the the document, but found %s".format(TRACKINGVAR,trackerVariableSpecs.size))
+        variableSpecParser.parseTrackerVariableSpec(trackerVariableSpecs.head).chain(s"Error when parsing <${TRACKINGVAR}> tag")
+    } else Left(LoadTechniqueError.Parsing(s"Only one <${TRACKINGVAR}> tag is allowed the the document, but found '${trackerVariableSpecs.size}'"))
   }
 
-  private[this] def parseDeprecrationInfo(xml: Node): Option[TechniqueDeprecationInfo] = {
-    for {
-      deprecationInfo <- (xml \ TECHNIQUE_DEPRECATION_INFO).headOption
-    } yield {
-      val message = deprecationInfo.text
-      if (message.size == 0) {
-          val errorMsg = s"Error when parsing <${TECHNIQUE_DEPRECATION_INFO}> tag, text is empty and is mandatory"
-          throw new ParsingException( errorMsg )
-      } else {
-        TechniqueDeprecationInfo(message)
-      }
+  private[this] def parseDeprecrationInfo(xml: Node): Either[LoadTechniqueError, Option[TechniqueDeprecationInfo]] = {
+    (xml \ TECHNIQUE_DEPRECATION_INFO).headOption match {
+      case Some(deprecationInfo) if(deprecationInfo.text.size == 0) =>
+        Left(LoadTechniqueError.Parsing(s"Error when parsing <${TECHNIQUE_DEPRECATION_INFO}> tag, text is empty and is mandatory"))
+      case x =>
+        Right(x.map(n => TechniqueDeprecationInfo(n.text)))
     }
   }
 
@@ -234,15 +242,12 @@ class TechniqueParser(
    * Parse the list of system vars used by that policy package.
    *
    */
-  private[this] def parseSysvarSpecs(xml: Node, id:TechniqueId) : Set[SystemVariableSpec] = {
-    (xml \ SYSTEMVARS_ROOT \ SYSTEMVAR_NAME).map{ x =>
-      try {
-        systemVariableSpecService.get(x.text)
-      } catch {
-        case ex:NoSuchElementException =>
-          throw new ParsingException(s"The system variable ${x.text} is not defined: perhaps the metadata.xml for technique '${id.toString}' is not up to date")
-      }
-    }.toSet
+  private[this] def parseSysvarSpecs(xml: Node, id:TechniqueId) : Either[LoadTechniqueError, Set[SystemVariableSpec]] = {
+    (xml \ SYSTEMVARS_ROOT \ SYSTEMVAR_NAME).toList.traverse { x =>
+      systemVariableSpecService.get(x.text).leftMap(_ =>
+        LoadTechniqueError.Parsing(s"The system variable ${x.text} is not defined: perhaps the metadata.xml for technique '${id.toString}' is not up to date")
+      ).toValidatedNel
+    }.fold(errs => Left(LoadTechniqueError.Accumulated(errs)), x => Right(x.toSet))
   }
 
   /**
@@ -263,7 +268,7 @@ class TechniqueParser(
    * to root of configuration repository in place of relative to the technique.
    * TODO: pass the AgentType here
    */
-  private[this] def parseResource(techniqueId: TechniqueId, xml: Node, isTemplate:Boolean, agentType:Option[AgentType]): (TechniqueResourceId, String) = {
+  private[this] def parseResource(techniqueId: TechniqueId, xml: Node, isTemplate:Boolean, agentType:Option[AgentType]): Either[LoadTechniqueError, (TechniqueResourceId, String)] = {
 
     def fileToList(f: java.io.File): List[String] = {
       if(f == null) {
@@ -282,52 +287,63 @@ class TechniqueParser(
       case path => Some(path)
     }
 
-    val id = xml.attribute(PROMISE_TEMPLATE_NAME) match {
-      case Some(attr) if (attr.size == 1) =>
-        // some checking on name
-        val n = attr.text.trim
-        if(n.startsWith("/") || n.endsWith("/")) {
-          throw new ParsingException(s"Error when parsing xml ${xml}. Resource name must not start nor end with '/'")
-        } else {
-
-          if(n.startsWith(RUDDER_CONFIGURATION_REPOSITORY+"/")) {
-
-            val path = new java.io.File(n.substring(RUDDER_CONFIGURATION_REPOSITORY.length + 1))
-            val name = path.getName
-            //here, getName can't be empty since n does not end by "/"
-            TechniqueResourceIdByPath(fileToList(path.getParentFile), name)
+    for {
+      id <- xml.attribute(PROMISE_TEMPLATE_NAME) match {
+        case Some(attr) if (attr.size == 1) =>
+          // some checking on name
+          val n = attr.text.trim
+          if(n.startsWith("/") || n.endsWith("/")) {
+            Left(LoadTechniqueError.Parsing(s"Error when parsing xml ${xml}. Resource name must not start nor end with '/'"))
           } else {
-            if(n.startsWith(RUDDER_CONFIGURATION_REPOSITORY)) { //most likely an user error, issue a warning
-              logger.warn(s"Resource named '${n}' for technique '${techniqueId}' starts with ${RUDDER_CONFIGURATION_REPOSITORY} which is not followed by a '/'. " +
-                  "If you meant to use a relative path from configuration-repository directory for the resource, it is an error.")
-            }
-            TechniqueResourceIdByName(techniqueId, n)
-          }
-        }
+            if(n.startsWith(RUDDER_CONFIGURATION_REPOSITORY+"/")) {
 
-      case _ => throw new ParsingException(s"Error when parsing xml ${xml}. Resource name is not defined")
+              val path = new java.io.File(n.substring(RUDDER_CONFIGURATION_REPOSITORY.length + 1))
+              val name = path.getName
+              //here, getName can't be empty since n does not end by "/"
+              Right(TechniqueResourceIdByPath(fileToList(path.getParentFile), name))
+            } else {
+              if(n.startsWith(RUDDER_CONFIGURATION_REPOSITORY)) { //most likely an user error, issue a warning
+                logEffect.warn(s"Resource named '${n}' for technique '${techniqueId}' starts with ${RUDDER_CONFIGURATION_REPOSITORY} which is not followed by a '/'. " +
+                    "If you meant to use a relative path from configuration-repository directory for the resource, it is an error.")
+              }
+              Right(TechniqueResourceIdByName(techniqueId, n))
+            }
+          }
+
+        case _ => Left(LoadTechniqueError.Parsing(s"Error when parsing xml ${xml}. Resource name is not defined"))
+      }
+    } yield {
+      (id, outPath.getOrElse(defaultOutPath(id.name)))
     }
-    (id, outPath.getOrElse(defaultOutPath(id.name)))
   }
 
   /**
    * A file is almost exactly like a Template, safe the include that we don't care of.
    */
-  def parseFile(techniqueId: TechniqueId, xml: Node): TechniqueFile = {
-    if(xml.label != FILE) throw new ParsingException(s"Error: try to parse a <${FILE}> xml, but actually got: ${xml}")
-    // Default value for FILE is false, so we should only check if the value is true and if it is empty it
-    val included = (xml \ PROMISE_TEMPLATE_INCLUDED).text == "true"
-    val (id, out) = parseResource(techniqueId, xml, false, None)
-    TechniqueFile(id, out, included)
+  def parseFile(techniqueId: TechniqueId, xml: Node): Either[LoadTechniqueError, TechniqueFile] = {
+    if(xml.label != FILE) Left(LoadTechniqueError.Parsing(s"Error: try to parse a <${FILE}> xml, but actually got: ${xml}"))
+    else {
+      // Default value for FILE is false, so we should only check if the value is true and if it is empty it
+      val included = (xml \ PROMISE_TEMPLATE_INCLUDED).text == "true"
+      for {
+        parsed <- parseResource(techniqueId, xml, false, None)
+      } yield {
+        TechniqueFile(parsed._1, parsed._2, included)
+      }
+    }
   }
 
-  def parseTemplate(techniqueId: TechniqueId, xml: Node, agentType: AgentType): TechniqueTemplate = {
-    if(xml.label != PROMISE_TEMPLATE) throw new ParsingException(s"Error: try to parse a <${PROMISE_TEMPLATE}> xml, but actually got: ${xml}")
-    val included = !((xml \ PROMISE_TEMPLATE_INCLUDED).text == "false")
-    val (id, out) = parseResource(techniqueId, xml, true, Some(agentType))
-    TechniqueTemplate(id, out, included)
+  def parseTemplate(techniqueId: TechniqueId, xml: Node, agentType: AgentType): Either[LoadTechniqueError, TechniqueTemplate] = {
+    if(xml.label != PROMISE_TEMPLATE) Left(LoadTechniqueError.Parsing(s"Error: try to parse a <${PROMISE_TEMPLATE}> xml, but actually got: ${xml}"))
+    else {
+      val included = !((xml \ PROMISE_TEMPLATE_INCLUDED).text == "false")
+      for {
+        parsed <- parseResource(techniqueId, xml, true, Some(agentType))
+      } yield {
+        TechniqueTemplate(parsed._1, parsed._2, included)
+      }
+    }
   }
-
   /**
    * Parse a <compatible> marker
    * @param xml example :
@@ -338,13 +354,15 @@ class TechniqueParser(
    * </COMPATIBLE>
    * @return A compatible variable corresponding to the entry xml
    */
-  def parseCompatibleTag(xml: Node): Compatible = {
-    if(xml.label != COMPAT_TAG) throw new ParsingException("CompatibleParser was expecting a <%s> xml and got:\n%s".format(COMPAT_TAG, xml))
-    val os = xml \ COMPAT_OS map (n =>
-      OperatingSystem(n.text, (n \ "@version").text))
-    val agents = xml \ COMPAT_AGENT map (n =>
-      Agent(n.text, (n \ "@version").text))
-    Compatible(os, agents)
+  def parseCompatibleTag(xml: Node): Either[LoadTechniqueError, Compatible] = {
+    if(xml.label != COMPAT_TAG) Left(LoadTechniqueError.Parsing("CompatibleParser was expecting a <%s> xml and got:\n%s".format(COMPAT_TAG, xml)))
+    else {
+      val os = xml \ COMPAT_OS map (n =>
+        OperatingSystem(n.text, (n \ "@version").text))
+      val agents = xml \ COMPAT_AGENT map (n =>
+        Agent(n.text, (n \ "@version").text))
+      Right(Compatible(os, agents))
+    }
   }
 
   /* parse RUNHOOKS xml node, which look like that:
@@ -362,22 +380,19 @@ class TechniqueParser(
       </POST>
     </RUNHOOKS>
   */
-  def parseRunHooks(id: TechniqueId, xml: Node): List[RunHook] = {
-    def parseHookException(msg: String) = {
-      throw new ParsingException(s"Error: in technique '${id.toString()}', tried to parse a <${RUN_HOOKS}> xml, but "+ msg)
-    }
-    def parseOneHook(xml: Node, kind: RunHook.Kind): RunHook = {
+  def parseRunHooks(id: TechniqueId, xml: Node): Either[LoadTechniqueError, List[RunHook]] = {
+    def parseOneHook(xml: Node, kind: RunHook.Kind): Either[LoadTechniqueError, RunHook] = {
       def opt(s: String) = if(s == null || s == "") None else Some(s)
 
       (for {
-        bundle <- Box(opt((xml \ "@bundle").text)) ?~! s"attribute 'bundle' is missing in: ${xml}"
-        report <- Box((xml \\ "REPORT").toList.flatMap(r =>
+        bundle <- Either.fromOption(opt((xml \ "@bundle").text), LoadTechniqueError.Parsing(s"attribute 'bundle' is missing in: ${xml}"))
+        report <- Either.fromOption((xml \\ "REPORT").toList.flatMap(r =>
                     for {
                       rname <- opt((r \ "@name").text)
                     } yield {
                       RunHook.Report(rname, opt((r \ "@value").text))
                     }
-                  ).headOption) ?~! s"child node 'REPORT' is missing in: ${xml}"
+                  ).headOption, LoadTechniqueError.Parsing(s"child node 'REPORT' is missing in: ${xml}"))
       } yield {
         RunHook(bundle, kind, report, (xml \\ "PARAMETER").toList.flatMap(p =>
           for {
@@ -388,22 +403,20 @@ class TechniqueParser(
             RunHook.Parameter(pname, pvalue)
           }
          ))
-      }) match {
-        case Full(x)     => x
-        case eb:EmptyBox =>
-          val msg = (eb ?~! "XML is invalid: ").messageChain
-          parseHookException(msg)
-      }
+      }).leftMap(err => LoadTechniqueError.Parsing(s"Error: in technique '${id.toString()}', tried to parse a <${RUN_HOOKS}> xml, but XML is invalid: "+ err.fullMsg))
     }
 
-    if(xml.label != RUN_HOOKS) parseHookException(s"actually got: ${xml}")
+    if(xml.label != RUN_HOOKS) {
+      Left(LoadTechniqueError.Parsing(s"Error in techni in technique '${id.toString()}', this is not a valid <${RUN_HOOKS}>: ${xml}"))
+    } else {
 
-    // parse each direct children, but only proceed with PRE and POST. And the are parsed the same
-    xml.child.toList.flatMap( c => c.label match {
-      case "PRE"  => Some(parseOneHook(c, RunHook.Kind.Pre))
-      case "POST" => Some(parseOneHook(c, RunHook.Kind.Post))
-      case _      => None
-    } )
+      // parse each direct children, but only proceed with PRE and POST.
+      xml.child.toList.traverse( c => c.label match {
+        case "PRE"  => parseOneHook(c, RunHook.Kind.Pre).map(x => Some(x))
+        case "POST" => parseOneHook(c, RunHook.Kind.Post).map(x => Some(x))
+        case _      => Right(None)
+      } ).map( _.flatten )
+    }
   }
 
 }

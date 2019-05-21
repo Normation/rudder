@@ -37,8 +37,14 @@
 
 package com.normation.inventory.provisioning.endpoint
 
+import com.normation.NamedZioLogger
+import com.normation.errors.Chained
+import com.normation.errors.IOResult
+import com.normation.errors.SystemError
 import com.normation.inventory.domain.CertifiedKey
+import com.normation.inventory.domain.InventoryLogger
 import com.normation.inventory.domain.InventoryReport
+import com.normation.errors._
 import com.normation.inventory.domain.UndefinedKey
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.provisioning.endpoint.FusionReportEndpoint._
@@ -48,30 +54,20 @@ import com.normation.inventory.services.provisioning.ReportSaver
 import com.normation.inventory.services.provisioning.ReportUnmarshaller
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
+import com.normation.zio.ZioRuntime
 import com.unboundid.ldif.LDIFChangeRecord
-import monix.execution.Ack
-import monix.execution.Ack.Continue
-import monix.execution.Scheduler
-import monix.execution.atomic.AtomicInt
-import monix.reactive.Observer
-import monix.reactive.OverflowStrategy.Unbounded
-import monix.reactive.observers.BufferedSubscriber
-import monix.reactive.observers.Subscriber
-import net.liftweb.common.Logger
-import net.liftweb.common._
 import org.joda.time.Duration
-import org.slf4j.LoggerFactory
+import scalaz.zio._
+import scalaz.zio.syntax._
 
 import scala.tools.nsc.interpreter.InputStream
-import scala.util.control.NonFatal
 
-
-object InventoryLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("inventory-processing")
+object InventoryProcessingLogger extends NamedZioLogger {
+  override def loggerName: String = "inventory-processing"
 }
 
 sealed trait InventoryProcessStatus { def report: InventoryReport }
-final object InventoryProcessStatus {
+object InventoryProcessStatus {
   final case class Accepted        (report: InventoryReport) extends InventoryProcessStatus
   final case class QueueFull       (report: InventoryReport) extends InventoryProcessStatus
   final case class SignatureInvalid(report: InventoryReport) extends InventoryProcessStatus
@@ -114,110 +110,111 @@ class InventoryProcessor(
   , nodeInventoryDit: InventoryDit
 ) {
 
-  val logger = InventoryLogger
+  val logger = InventoryProcessingLogger
 
-  // current queue size
-  lazy val queueSize = AtomicInt(0)
+  /*
+   * We manage inventories buffering with a bounded queue.
+   * In case of overflow, we reject new inventories.
+   */
+  val queue = ZioRuntime.unsafeRun(Queue.dropping[InventoryReport](maxQueueSize))
 
-  // the asynchrone, bufferised processor
-  lazy val reportProcess = {
-    // the synchronize report processor
-    // we use the i/o scheduler given the kind of task for report processor
-    val syncReportProcess = Subscriber(new ProcessInventoryObserver(queueSize), Scheduler.io())
+  def currentQueueSize: Int = ZioRuntime.unsafeRun(queue.size)
 
-    // and we async/buf it. The "overflow" strategy is unbound, because we
-    // will manage it by hand with the queuesize
-    BufferedSubscriber[InventoryReport](syncReportProcess, Unbounded)
+  /*
+   * Saving reports is a loop which consume items from queue
+   */
+  def loop(): UIO[Nothing] = {
+    queue.take.flatMap(saveReport).flatMap(_ => loop())
   }
+
+  // start the inventory processing
+  ZioRuntime.unsafeRun(loop().fork)
 
   // we need something that can produce the stream several time because we are reading the file several time - not very
   // optimized :/
-  def saveInventory(newInventoryStream: () => InputStream, inventoryFileName: String, optNewSignatureStream : Option[() => InputStream]): Box[InventoryProcessStatus] = {
+  def saveInventory(info: SaveInventoryInfo): IOResult[InventoryProcessStatus] = {
 
-    def saveWithSignature(report: InventoryReport, newSignature: () => InputStream): Box[InventoryProcessStatus] = {
-      val signatureStream = newSignature()
-      val inventoryStream = newInventoryStream()
-      val response = for {
-        digest  <- digestService.parse(signatureStream)
-        (key,_) <- digestService.getKey(report)
-        checked <- digestService.check(key, digest, inventoryStream)
-        saved   <- if (checked) {
-                     // Signature is valid, send it to save engine
-                     // Set the keyStatus to Certified
-                     // For now we set the status to certified since we want pending inventories to have their inventory signed
-                     // When we will have a 'pending' status for keys we should set that value instead of certified
-                     val certifiedReport = report.copy(node = report.node.copyWithMain(main => main.copy(keyStatus = CertifiedKey)))
-                     checkQueueAndSave(certifiedReport)
-                   } else {
-                     // Signature is not valid, reject inventory
-                     Full(InventoryProcessStatus.SignatureInvalid(report))
-                   }
-       } yield {
-        saved
+    def saveWithSignature(report: InventoryReport, newInventoryStream: () => InputStream, newSignature: () => InputStream): IOResult[InventoryProcessStatus] = {
+      ZIO.bracket(Task.effect(newInventoryStream()).mapError(SystemError(s"Error when reading inventory file '${report.name}'", _)))(is => Task.effect(is.close()).run) { inventoryStream =>
+        ZIO.bracket(Task.effect(newSignature()).mapError(SystemError(s"Error when reading signature for inventory file '${report.name}'", _)))(is => Task.effect(is.close()).run) { signatureStream =>
+          for {
+            digest  <- digestService.parse(signatureStream)
+            key     <- digestService.getKey(report)
+            checked <- digestService.check(key._1, digest, inventoryStream)
+            saved   <- if (checked) {
+                         // Signature is valid, send it to save engine
+                         // Set the keyStatus to Certified
+                         // For now we set the status to certified since we want pending inventories to have their inventory signed
+                         // When we will have a 'pending' status for keys we should set that value instead of certified
+                         val certifiedReport = report.copy(node = report.node.copyWithMain(main => main.copy(keyStatus = CertifiedKey)))
+                         checkQueueAndSave(certifiedReport)
+                       } else {
+                         // Signature is not valid, reject inventory
+                         InventoryProcessStatus.SignatureInvalid(report).succeed
+                       }
+           } yield {
+            saved
+          }
+        }
       }
-      signatureStream.close()
-      inventoryStream.close()
-      response
     }
 
-    def saveNoSignature(report: InventoryReport): Box[InventoryProcessStatus] = {
+    def saveNoSignature(report: InventoryReport): IOResult[InventoryProcessStatus] = {
       // Check if we need a signature or not
-      digestService.getKey(report) match {
+      digestService.getKey(report).flatMap {
         // Status is undefined => We accept unsigned inventory
-        case Full((_,UndefinedKey)) => {
+        case (_,UndefinedKey) => {
           checkQueueAndSave(report)
         }
         // We are in certified state, refuse inventory with no signature
-        case Full((_,CertifiedKey))  =>
-          Full(InventoryProcessStatus.MissingSignature(report))
+        case (_,CertifiedKey)  =>
+          InventoryProcessStatus.MissingSignature(report).succeed
+      }.chainError(
         // An error occurred while checking inventory key status
-        case eb: EmptyBox =>
-          eb ?~! s"Error when trying to check inventory key status for Node '${report.node.main.id.value}'"
-      }
-
+        s"Error when trying to check inventory key status for Node '${report.node.main.id.value}'"
+      )
     }
 
-    def parseSafe(newInventoryStream: () => InputStream, inventoryFileName: String) = {
-      try {
+    def parseSafe(newInventoryStream: () => InputStream, inventoryFileName: String): IOResult[InventoryReport] = {
+      ZIO.bracket(Task.effect(newInventoryStream()).mapError(SystemError(s"Error when trying to read inventory file '${inventoryFileName}'", _)) )(
+        is => Task.effect(is.close()).run
+      ){ is =>
         for {
-          r <- unmarshaller.fromXml(inventoryFileName, newInventoryStream())
+          r <- unmarshaller.fromXml(inventoryFileName, is)
         } yield {
           // use the provided file name as report name, else it's a generic one setted by fusion (like "report")
           r.copy(name = inventoryFileName)
         }
-      } catch {
-        case NonFatal(ex) =>
-        val msg = s"Error when trying to parse inventory '${inventoryFileName}': ${ex.getMessage}"
-        Failure(msg, Full(ex), Empty)        }
+      }
     }
 
 
     // actuall report processing logic
 
-    logger.debug(s"Start parsing inventory '${inventoryFileName}'")
+
     val start = System.currentTimeMillis()
 
     val res = for {
-      report       <- parseSafe(newInventoryStream, inventoryFileName) ?~! "Can't parse the input inventory, aborting"
+      _            <- logger.debug(s"Start parsing inventory '${info.fileName}'")
+      report       <- parseSafe(info.inventoryStream, info.fileName).chainError("Can't parse the input inventory, aborting")
       afterParsing =  System.currentTimeMillis()
       _            =  logger.debug(s"Inventory '${report.name}' parsed in ${printer.print(new Duration(afterParsing, System.currentTimeMillis).toPeriod)} ms, now saving")
-      saved        <- optNewSignatureStream match { // Do we have a signature ?
+      saved        <- info.optSignatureStream match { // Do we have a signature ?
                         // Signature here, check it
                         case Some(sig) =>
-                          saveWithSignature(report, sig) ?~! "Error when trying to check inventory signature"
+                          saveWithSignature(report, info.inventoryStream, sig).chainError("Error when trying to check inventory signature")
 
                         // There is no Signature
                         case None =>
-                          saveNoSignature(report)  ?~! s"Error when trying to check inventory key status for Node '${report.node.main.id.value}'"
+                          saveNoSignature(report).chainError(s"Error when trying to check inventory key status for Node '${report.node.main.id.value}'")
                       }
+      _            <- logger.debug(s"Inventory '${report.name}' for node '${report.node.main.id.value}' pre-processed in ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
     } yield {
-      logger.debug(s"Inventory '${report.name}' for node '${report.node.main.id.value}' pre-processed in ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
       saved
     }
 
 
-    res match {
-      case Full(status) =>
+    res map { status =>
         import com.normation.inventory.provisioning.endpoint.StatusLog.LogMessage
         status match {
           case InventoryProcessStatus.MissingSignature(_) => logger.error(status.msg)
@@ -225,12 +222,10 @@ class InventoryProcessor(
           case InventoryProcessStatus.QueueFull(_)        => logger.warn(status.msg)
           case InventoryProcessStatus.Accepted(_)         => logger.trace(status.msg)
         }
-      case eb: EmptyBox =>
-        val fail = eb ?~! s"Error when trying to process inventory '${inventoryFileName}'"
-        logger.error(fail.messageChain)
-        fail.rootExceptionCause.foreach { exp => logger.error(s"Exception was: ${exp}") }
+    } catchAll { err =>
+        val fail = Chained(s"Error when trying to process inventory '${info.fileName}'", err)
+        InventoryLogger.error(fail.fullMsg) *> err.fail
     }
-
     res
   }
 
@@ -239,12 +234,12 @@ class InventoryProcessor(
    * avoid the case where we are telling the use "everything is fine"
    * but just fail after.
    */
-  def checkQueueAndSave(report: InventoryReport): Box[InventoryProcessStatus] = {
+  def checkQueueAndSave(report: InventoryReport): IOResult[InventoryProcessStatus] = {
     /*
      * A method that check LDAP health status.
      * It must be quick and simple.
      */
-    def checkLdapAlive(ldap: LDAPConnectionProvider[RwLDAPConnection]): Box[String] = {
+    def checkLdapAlive(ldap: LDAPConnectionProvider[RwLDAPConnection]): IOResult[String] = {
       for {
         con <- ldap
         res <- con.get(nodeInventoryDit.NODES.dn, "1.1")
@@ -253,32 +248,19 @@ class InventoryProcessor(
       }
     }
 
-    checkLdapAlive(ldap) match {
-      case Full(ok) =>
-
-        val canDo = synchronized {
-          if(queueSize.incrementAndGet(1) <= maxQueueSize) {
-            // the decrement will be done by the report processor
-            true
-          } else {
-            // clean the not used increment
-            queueSize.decrement(1)
-            false
-          }
-        }
-
-        if(canDo) {
-          //queue the inventory processing
-          reportProcess.onNext(report)
-          Full(InventoryProcessStatus.Accepted(report))
-        } else {
-          Full(InventoryProcessStatus.QueueFull(report))
-        }
-
-      case eb: EmptyBox =>
-        val e = (eb ?~! s"There is an error with the LDAP backend preventing acceptation of inventory '${report.name}'")
-        logger.error(e.messageChain)
-        e
+    (for {
+      _     <- checkLdapAlive(ldap)
+      canDo <- queue.offer(report)
+      res   <- if(canDo) {
+                 InventoryProcessStatus.Accepted(report).succeed
+               } else {
+                 InventoryProcessStatus.QueueFull(report).succeed
+               }
+    } yield {
+      res
+    }).catchAll { err =>
+      val e = Chained(s"There is an error with the LDAP backend preventing acceptation of inventory '${report.name}'", err)
+      InventoryLogger.error(err.fullMsg) *> e.fail
     }
   }
 
@@ -287,67 +269,26 @@ class InventoryProcessor(
   /**
    * Encapsulate the logic to process new incoming inventories.
    *
-   * The processing is purelly synchrone and monotheaded,
+   * The processing is successlly synchrone and monothreaded,
    * asynchronicity and multithreading are managed in the caller.
    *
    * It is not the consumer that manage the queue size, it only
    * decrease it when it terminates a processing.
    *
    */
-  protected class ProcessInventoryObserver(queueSize: AtomicInt) extends Observer.Sync[InventoryReport] {
-
-    /*
-     * The only caller. It is not allowed to throw (non fatal) exceptions
-     */
-    def onNext(report: InventoryReport): Ack = {
-
-      try {
-        saveReport(report)
-      } catch {
-        case NonFatal(ex) =>
-          logger.error(s"Error when processing inventory report '${report.name}': ${ex.getMessage}", ex)
-      }
-      // always tell the feeder that the report is processed
-      queueSize.decrement(1)
-      // this is the contract of observer
-      Continue
-    }
-
-    /*
-     * That one should not be called. Log the error.
-     */
-    def onError(ex: Throwable): Unit =  {
-      logger.error(s"The async inventory proccessor got an 'error' message with the following exception: ${ex.getMessage}", ex)
-    }
-
-    /*
-     * That one should not happens, as the normal usage is to wait
-     * for the closure of web server
-     */
-    def onComplete(): Unit = {
-      logger.error(s"The async inventory proccessor got an 'termination' message.")
-    }
-
-  }
-
-
-  private def saveReport(report:InventoryReport) : Unit = {
-    logger.trace(s"Start post processing of inventory '${report.name}' for node '${report.node.main.id.value}'")
-    try {
-      val start = System.currentTimeMillis
-      (reportSaver.save(report) ?~! "Can't merge inventory report in LDAP directory, aborting") match {
-        case Empty => logger.error("The report is empty, not saving anything")
-        case f:Failure =>
-          logger.error("Error when trying to process report: %s".format(f.messageChain),f)
-        case Full(report) =>
-          logger.debug("Report saved.")
-      }
-      logger.info(s"Report '${report.name}' for node '${report.node.main.hostname}' [${report.node.main.id.value}] (signature:${report.node.main.keyStatus.value}) "+
-                  s"processed in ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
-    } catch {
-      case e:Exception =>
-        logger.error(s"Exception when processing inventory '${report.name}' for node '${report.node.main.id.value}'")
-        logger.error("Reported exception is: ", e)
-    }
+  def saveReport(report:InventoryReport): UIO[Unit] = {
+    for {
+      _     <- logger.trace(s"Start post processing of inventory '${report.name}' for node '${report.node.main.id.value}'")
+      start <- UIO(System.currentTimeMillis)
+      saved <- reportSaver.save(report).chainError("Can't merge inventory report in LDAP directory, aborting").either
+      _     <- saved match {
+                 case Left(err) =>
+                   logger.error(s"Error when trying to process report: ${err.fullMsg}")
+                 case Right(report) =>
+                   logger.debug("Report saved.")
+               }
+      _      <- logger.info(s"Report '${report.name}' for node '${report.node.main.hostname}' [${report.node.main.id.value}] (signature:${report.node.main.keyStatus.value}) "+
+                s"processed in ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
+    } yield ()
   }
 }

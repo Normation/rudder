@@ -47,6 +47,8 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.logger.PolicyLogger
 import com.normation.utils.Control.sequence
 
+import com.normation.box._
+
 /*
  * This file contains all the logic that allows to build a List of policies, for a node,
  * given the list of all applicable "BoundPolicyDraft" to that node.
@@ -161,7 +163,7 @@ final object MergePolicyService {
             samePolicyMode    <- drafts.map( _.policyMode ).distinct match {
                                    case Nil         => Full(None) //should not happen
                                    case mode :: Nil => Full(mode) //either None or Some(mode), that's ok
-                                   case modes       => PolicyMode.computeMode(globalPolicyMode, nodeInfo.node.policyMode, modes).map(Some(_)) ?~! (s"Node ${nodeInfo.hostname} "+
+                                   case modes       => PolicyMode.computeMode(globalPolicyMode, nodeInfo.node.policyMode, modes).map(Some(_)).toBox ?~! (s"Node ${nodeInfo.hostname} "+
                                                           s"'${nodeInfo.id.value}' get directives with incompatible different policy mode but technique " +
                                                           s"'${sameTechniqueName}/${sameVersion}' does not support multi-policy generation. Problematic rules/directives: " +
                                                           drafts.map(d => d.id.ruleId.value + " / " + d.id.directiveId.value).mkString(" ; "))
@@ -259,7 +261,13 @@ final object MergePolicyService {
         val size = if (d.technique.isMultiInstance) { trackedVariable.values.size } else { 1 }
         Seq.fill(size)(d.id.getReportId)
       }
-      d.copy(trackerVariable = trackingKeyVariable.copyWithSavedValues(values))
+      val newTrackingKey = trackingKeyVariable.copyWithSavedValues(values) match {
+        case Left(err) =>
+          PolicyLogger.error(s"Error when updating tracking key variable for '${d.id.value}'. Using initial values. Error was: ${err.fullMsg}")
+          trackingKeyVariable
+        case Right(key) => key
+      }
+      d.copy(trackerVariable = newTrackingKey)
     }
 
     // group directives by non-multi-instance, multi-instance non-multi-policy, multi-instance-multi-policy
@@ -324,6 +332,12 @@ final object MergePolicyService {
       set.toList.sorted(onlyBundleOrder.toOrdering).head
     }
 
+    val displayDraft  = (x: BoundPolicyDraft) => s"'${x.ruleOrder.value}/${x.directiveOrder.value}'"
+    val displayPolicy = (x: Policy          ) => s"'${x.ruleOrder.value}/${x.directiveOrder.value}'"
+
+    PolicyLogger.trace(s"'${nodeInfo.id.value}': directive for unique techniques: ${keptUniqueDraft.map(displayDraft).mkString(" | ")}")
+    PolicyLogger.trace(s"'${nodeInfo.id.value}': indep multi-directives: ${deduplicatedMultiDirective.map(displayDraft).mkString(" | ")}")
+    PolicyLogger.trace(s"'${nodeInfo.id.value}': to merge multi-directives: [${groupedDrafts.toMerge.map{ case (k, v) => s"$k: ${v.map(displayDraft).mkString(" | ")}"}.mkString("] [")}]")
 
     // now proceed the policies that need to be merged
     for {
@@ -339,15 +353,20 @@ final object MergePolicyService {
                   (keptUniqueDraft ++ deduplicatedMultiDirective).toList.traverse( _.toPolicy(agent.agentType) )
                 }
     } yield {
+
       // we are sorting several things in that method, and I'm not sure we want to sort them in the same way (and so
       // factorize out sorting core) or not. We sort:
       // - policies based on non-multi-instance technique, by priority and then rule/directive order, to choose the correct one
       // - in a multi-instance, mono-policy case, we sort directives in the same fashion (but does priority make sense here?)
       // - and finally, here we sort all drafts (in that case, only by bundle order)
 
-      (merged++others).sortWith { case (d1, d2) =>
+      val policies = (merged++others).sortWith { case (d1, d2) =>
         BundleOrder.compareList(List(d1.ruleOrder, d1.directiveOrder), List(d2.ruleOrder, d2.directiveOrder)) <= 0
       }.toList
+
+      PolicyLogger.debug(s"Resolved policies for '${nodeInfo.id.value}': ${policies.map(displayPolicy).mkString(" | ")}")
+
+      policies
     }
   }
 

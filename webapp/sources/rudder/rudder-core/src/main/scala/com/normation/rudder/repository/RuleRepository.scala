@@ -41,8 +41,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.archives.RuleArchiveId
 import com.normation.rudder.domain.policies._
 
-import net.liftweb.common._
-
+import com.normation.errors._
 
 
 /**
@@ -60,20 +59,20 @@ trait RoRuleRepository {
    * Full((parent,directive)) : found the directive (directive.id == directiveId) in given parent
    * Failure => an error happened.
    */
-  def get(ruleId:RuleId) : Box[Rule]
+  def get(ruleId:RuleId) : IOResult[Rule]
 
   /**
    * Return all rules.
    * To get only applied one, you can post-filter the seq
    * with the method RuleTargetService#isApplied
    */
-  def getAll(includeSytem:Boolean = false) : Box[Seq[Rule]]
+  def getAll(includeSytem:Boolean = false) : IOResult[Seq[Rule]]
 
   /**
    * Return all rules ids.
    * Optionnaly include system rules
    */
-  def getIds(includeSytem:Boolean = false) : Box[Set[RuleId]]
+  def getIds(includeSytem:Boolean = false) : IOResult[Set[RuleId]]
 
 }
 
@@ -94,7 +93,7 @@ trait WoRuleRepository {
    * with the provided resulting rule.
    *
    */
-  def create(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[AddRuleDiff]
+  def create(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[AddRuleDiff]
 
   /**
    * Update the rule with the given ID with the given
@@ -103,14 +102,14 @@ trait WoRuleRepository {
    * If the rule is not in the repos, the method fails.
    * If the rule is a system one, the methods fails.
    */
-  def update(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]]
+  def update(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[ModifyRuleDiff]]
 
 
   /**
    * Update the system configuration rule with the given ID with the given
    * parameters.
    */
-  def updateSystem(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]]
+  def updateSystem(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[ModifyRuleDiff]]
 
   /**
    * Delete the rule with the given ID.
@@ -119,7 +118,7 @@ trait WoRuleRepository {
    * and error or not).
    * A system rule can not be deleted.
    */
-  def delete(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DeleteRuleDiff]
+  def delete(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[DeleteRuleDiff]
 
   /**
    * A (dangerous) method that replace all existing rules
@@ -138,10 +137,10 @@ trait WoRuleRepository {
    *   serial ID MUST be updated (+1)
    * - for all other imported CR, the serial MUST be set to 0
    */
-  def swapRules(newRules:Seq[Rule]) : Box[RuleArchiveId]
+  def swapRules(newRules:Seq[Rule]) : IOResult[RuleArchiveId]
 
   /**
    * Delete a set of saved rules.
    */
-  def deleteSavedRuleArchiveId(saveId:RuleArchiveId) : Box[Unit]
+  def deleteSavedRuleArchiveId(saveId:RuleArchiveId) : IOResult[Unit]
 }

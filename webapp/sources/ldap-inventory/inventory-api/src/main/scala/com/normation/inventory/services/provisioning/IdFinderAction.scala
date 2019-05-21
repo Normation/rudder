@@ -37,8 +37,9 @@
 
 package com.normation.inventory.services.provisioning
 
+import com.normation.errors._
+import com.normation.errors._
 import com.normation.inventory.domain._
-import net.liftweb.common.Box
 
 /**
  * Generic interface to the service that try
@@ -50,14 +51,14 @@ trait NodeInventoryDNFinderAction {
 
   //black list / white list ?
 
-  def tryWith(entity:NodeInventory) : Box[(NodeId, InventoryStatus)]
+  def tryWith(entity:NodeInventory) : IOResult[Option[(NodeId, InventoryStatus)]]
 }
 
 trait MachineDNFinderAction {
 
   //black list / white list ?
 
-  def tryWith(entity:MachineInventory) : Box[(MachineUuid, InventoryStatus)]
+  def tryWith(entity:MachineInventory) : IOResult[Option[(MachineUuid, InventoryStatus)]]
 }
 
 
@@ -76,6 +77,6 @@ trait SoftwareDNFinderAction {
 
   //black list / white list ?
 
-  def tryWith(entities: Set[Software]) : Box[MergedSoftware]
+  def tryWith(entities: Set[Software]) : IOResult[MergedSoftware]
 }
 

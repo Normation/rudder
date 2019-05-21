@@ -19,6 +19,8 @@ import com.normation.rudder.domain.policies.NonGroupRuleTarget
 import com.normation.rudder.web.ChooseTemplate
 import net.liftweb.http.S
 
+import com.normation.box._
+
 class CreateCloneGroupPopup(
   nodeGroup : Option[NodeGroup],
   groupGenerator : Option[NodeGroup] = None,
@@ -35,7 +37,7 @@ class CreateCloneGroupPopup(
 
   private[this] val categories = roNodeGroupRepository.getAllNonSystemCategories
   // Fetch the parent category, if any
-  private[this] val parentCategoryId = nodeGroup.flatMap(x => roNodeGroupRepository.getParentGroupCategory(x.id)).map(_.id.value).getOrElse("")
+  private[this] val parentCategoryId = nodeGroup.flatMap(x => roNodeGroupRepository.getParentGroupCategory(x.id).toBox).map(_.id.value).getOrElse("")
 
   var createContainer = false
 
@@ -101,7 +103,7 @@ class CreateCloneGroupPopup(
           , ModificationId(uuidGen.newUuid)
           , CurrentUser.actor
           , Some("Node Group category created by user from UI")
-        ) match {
+        ).toBox match {
           case Full(x) => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)
           case Empty =>
             logger.error("An error occurred while saving the category")
@@ -127,7 +129,7 @@ class CreateCloneGroupPopup(
           , ModificationId(uuidGen.newUuid)
           , CurrentUser.actor
           , groupReasons.map(_.get)
-        ) match {
+        ).toBox match {
           case Full(x) =>
             closePopup() &
             onSuccessCallback(x.group.id.value) &
@@ -223,7 +225,7 @@ class CreateCloneGroupPopup(
   }
 
   private[this] val groupContainer = new WBSelectField("Parent category",
-      (categories.getOrElse(Seq()).map(x => (x.id.value -> x.name))),
+      (categories.toBox.getOrElse(Seq()).map(x => (x.id.value -> x.name))),
       parentCategoryId) {
     override def inputField = super.inputField %("onkeydown" -> "return processKey(event , 'createCOGSaveButton')") % ("tabindex" -> "2")
     override def className = "col-lg-12 col-sm-12 col-xs-12  form-control"

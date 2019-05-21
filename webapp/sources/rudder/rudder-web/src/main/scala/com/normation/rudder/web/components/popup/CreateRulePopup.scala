@@ -57,6 +57,8 @@ import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.web.ChooseTemplate
 
+import com.normation.box._
+
 class CreateOrCloneRulePopup(
     rootRuleCategory  : RuleCategory
   , clonedRule        : Option[Rule]
@@ -204,7 +206,7 @@ class CreateOrCloneRulePopup(
           , isEnabledStatus = !clonedRule.isDefined
       )
 
-      val createRule = woRuleRepository.create(rule, ModificationId(uuidGen.newUuid),CurrentUser.actor, reason.map( _.get )) match {
+      val createRule = woRuleRepository.create(rule, ModificationId(uuidGen.newUuid),CurrentUser.actor, reason.map( _.get )).toBox match {
           case Full(x) =>
             onSuccessCallback(rule) & closePopup()
           case Empty =>

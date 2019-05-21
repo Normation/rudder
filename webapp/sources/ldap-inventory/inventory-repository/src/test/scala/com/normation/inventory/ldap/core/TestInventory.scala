@@ -37,21 +37,23 @@
 
 package com.normation.inventory.ldap.core
 
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
-import com.normation.ldap.listener.InMemoryDsConnectionProvider
-import com.unboundid.ldap.sdk.DN
+import com.normation.errors.RudderError
 import com.normation.inventory.domain._
+import com.normation.ldap.listener.InMemoryDsConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
-import net.liftweb.common.Empty
-import net.liftweb.common.Full
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Box
+import com.normation.zio.ZioRuntime
+import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
+import org.junit.runner._
 import org.specs2.matcher.MatchResult
+import org.specs2.mutable._
+import org.specs2.runner._
+import scalaz.zio._
 
+final case class SystemError(cause: Throwable) extends RudderError {
+  def msg = "Error in test"
+}
 
 /**
  * A simple test class to check that the demo data file is up to date
@@ -61,6 +63,15 @@ import org.specs2.matcher.MatchResult
  */
 @RunWith(classOf[JUnitRunner])
 class TestInventory extends Specification {
+
+  implicit class RunThing[E,T](thing: ZIO[Any,E,T]) {
+    def testRun = ZioRuntime.unsafeRun(thing.either)
+  }
+
+  implicit class TestIsOK[E,T](thing: ZIO[Any,E,T]) {
+    def isOK = thing.testRun must beRight
+  }
+
   //needed because the in memory LDAP server is not used with connection pool
   sequential
 
@@ -119,16 +130,6 @@ class TestInventory extends Specification {
 
 
   val allStatus = Seq(RemovedInventory, PendingInventory, AcceptedInventory)
-
-
-  case class BoxedResult[T](b: Box[T]) {
-    def isOK: org.specs2.execute.Result = b match {
-      case Full(x) => success
-      case eb: EmptyBox => failure((eb ?~! "Error").messageChain)
-    }
-  }
-
-  implicit def box2matcher[T](b:Box[T]): BoxedResult[T] = BoxedResult(b)
 
 
   //shortcut to create a machine with the name has ID in the given status
@@ -201,14 +202,14 @@ class TestInventory extends Specification {
       forall(allStatus) { status =>
 
         val m = machine("machine in " + status.name, status)
-        repo.save(m)
+        repo.save(m).testRun
 
-        val found = repo.get(m.id)
+        val found = repo.get(m.id).testRun
 
-        (m === found.openOrThrowException("For test")) and {
-          repo.delete(m.id)
-          val x = repo.get(m.id)
-          x must beEqualTo(Empty)
+        (Right(Some(m)) === found) and {
+          repo.delete(m.id).testRun
+          val x = repo.get(m.id).testRun
+          x must beEqualTo(Right(None))
           ok
         }
       }
@@ -217,27 +218,27 @@ class TestInventory extends Specification {
 
     "correctly find the machine of top priority when on several branches" in {
       allStatus.foreach { status =>
-        repo.save(machine("m1", status))
+        repo.save(machine("m1", status)).testRun
       }
 
       val toFound = machine("m1", AcceptedInventory)
-      val found = repo.get(toFound.id)
+      val found = repo.get(toFound.id).testRun
 
-      toFound === found.openOrThrowException("For test")
+      Right(Some(toFound)) === found
 
     }
 
     "correctly moved the machine from pending to accepted, then to removed" in {
       val m = machine("movingMachine", PendingInventory)
 
-      repo.save(m)
+      repo.save(m).testRun
 
 
       (
         repo.move(m.id, AcceptedInventory).isOK
-        and m.copy(status = AcceptedInventory) === repo.get(m.id).openOrThrowException("For test")
+        and (repo.get(m.id).testRun must beRight(Some(m.copy(status = AcceptedInventory))))
         and repo.move(m.id, RemovedInventory).isOK
-        and m.copy(status = RemovedInventory) === repo.get(m.id).openOrThrowException("For test")
+        and (repo.get(m.id).testRun must beRight(Some(m.copy(status = RemovedInventory))))
       )
     }
 
@@ -246,12 +247,12 @@ class TestInventory extends Specification {
       val m2 = m1.copy(status = RemovedInventory, name = Some("modified"))
 
       (
-        repo.save(m1).isOK
-        and repo.save(m2).isOK
-        and repo.move(m1.id, RemovedInventory).isOK
+        (repo.save(m1).testRun must beRight)
+        and (repo.save(m2).testRun must beRight)
+        and (repo.move(m1.id, RemovedInventory).testRun must beRight)
         and {
           val dn = inventoryDitService.getDit(AcceptedInventory).MACHINES.MACHINE.dn(m1.id)
-          m2 === repo.get(m1.id).openOrThrowException("For test") and ldap.server.entryExists(dn.toString) === false
+          Right(Some(m2)) === repo.get(m1.id).testRun and ldap.server.entryExists(dn.toString) === false
         }
       )
     }
@@ -275,10 +276,13 @@ class TestInventory extends Specification {
         and repo.save(FullInventory(n2, None)).isOK
         and repo.save(FullInventory(n3, None)).isOK
         and {
-          val res = ldap.map { con =>
-            repo.getNodesForMachine(con, mid).map { case (k,v) => (k, v.map( _.dn)) }
-          }
-          res.openOrThrowException("in test") must havePairs ( AcceptedInventory -> Set(toDN(n1)), PendingInventory -> Set(toDN(n2)), RemovedInventory -> Set(toDN(n3)))
+          val res = (for {
+             con   <- ldap
+             nodes <- repo.getNodesForMachine(con, mid)
+          } yield {
+            nodes.map { case (k,v) => (k, v.map( _.dn)) }
+          })
+          res.testRun.getOrElse(throw new Exception("in Test")) must havePairs ( AcceptedInventory -> Set(toDN(n1)), PendingInventory -> Set(toDN(n2)), RemovedInventory -> Set(toDN(n3)))
         }
       )
     }
@@ -291,7 +295,7 @@ class TestInventory extends Specification {
         repo.save(full(n, m)).isOK
         and repo.move(n.main.id, PendingInventory, AcceptedInventory).isOK
         and {
-          val FullInventory(node, machine) = repo.get(n.main.id, AcceptedInventory).openOrThrowException("in Test")
+          val Some(FullInventory(node, machine)) = repo.get(n.main.id, AcceptedInventory).testRun.getOrElse(throw new Exception("in Test"))
 
           (
             machine === Some(m.copy(status = AcceptedInventory)) and
@@ -307,7 +311,7 @@ class TestInventory extends Specification {
       (
         repo.save(full(n, m)).isOK
         and {
-          val FullInventory(node, machine) = repo.get(n.main.id, PendingInventory).openOrThrowException("in Test")
+          val Some(FullInventory(node, machine)) = repo.get(n.main.id, PendingInventory).testRun.getOrElse(throw new Exception("in Test"))
 
           (
             node === n
@@ -323,7 +327,7 @@ class TestInventory extends Specification {
       (
         repo.save(full(n, m)).isOK
         and {
-          val FullInventory(node, machine) = repo.get(n.main.id, PendingInventory).openOrThrowException("in Test")
+          val Some(FullInventory(node, machine)) = repo.get(n.main.id, PendingInventory).testRun.getOrElse(throw new Exception("in Test"))
 
           (
             node === n
@@ -345,10 +349,10 @@ class TestInventory extends Specification {
         repo.save(FullInventory(n2,None)).isOK and repo.save(FullInventory(n3,None)).isOK
         and repo.move(n0.main.id, PendingInventory, AcceptedInventory).isOK
         and {
-          val FullInventory(node0, m0) = repo.get(n0.main.id, AcceptedInventory).openOrThrowException("in Test")
-          val FullInventory(node1, m1) = repo.get(n1.main.id, PendingInventory).openOrThrowException("in Test")
-          val FullInventory(node2, m2) = repo.get(n2.main.id, AcceptedInventory).openOrThrowException("in Test")
-          val FullInventory(node3, m3) = repo.get(n3.main.id, RemovedInventory).openOrThrowException("in Test")
+          val Some(FullInventory(node0, m0)) = repo.get(n0.main.id, AcceptedInventory).testRun.getOrElse(throw new Exception("in Test"))
+          val Some(FullInventory(node1, m1)) = repo.get(n1.main.id, PendingInventory).testRun.getOrElse(throw new Exception("in Test"))
+          val Some(FullInventory(node2, m2)) = repo.get(n2.main.id, AcceptedInventory).testRun.getOrElse(throw new Exception("in Test"))
+          val Some(FullInventory(node3, m3)) = repo.get(n3.main.id, RemovedInventory).testRun.getOrElse(throw new Exception("in Test"))
 
           //expected machine value
           val machine = m.copy(status = AcceptedInventory)
@@ -392,7 +396,7 @@ class TestInventory extends Specification {
       )
 
       repo.save(FullInventory(node, None)).isOK and {
-        val FullInventory(n, m) = repo.get(NodeId("windows 2012"), AcceptedInventory).openOrThrowException("in Test")
+        val Some(FullInventory(n, m)) = repo.get(NodeId("windows 2012"), AcceptedInventory).testRun.getOrElse(throw new Exception("in Test"))
         n === node
       }
 

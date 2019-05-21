@@ -36,9 +36,8 @@
 */
 package com.normation.rudder.services.user
 
-import net.liftweb.common.Box
 import org.eclipse.jgit.lib.PersonIdent
-import net.liftweb.common.Full
+import com.normation.errors.IOResult
 
 /**
  * A service that allows to find git user information
@@ -51,12 +50,12 @@ trait PersonIdentService {
    * The contract for that service is to return an
    * 'unknown' person ident if the user is not found.
    */
-  def getPersonIdentOrDefault(username:String) : Box[PersonIdent]
+  def getPersonIdentOrDefault(username:String) : IOResult[PersonIdent]
 
 }
 
 class TrivialPersonIdentService extends PersonIdentService {
-  override def getPersonIdentOrDefault(username:String) : Box[PersonIdent] = {
-    Full(new PersonIdent(username, "email not set"))
+  override def getPersonIdentOrDefault(username:String) : IOResult[PersonIdent] = {
+    scalaz.zio.UIO(new PersonIdent(username, "email not set"))
   }
 }

@@ -53,6 +53,7 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import net.liftweb.actor._
 import net.liftweb.common._
 import com.normation.rudder.domain.logger.ScheduledJobLogger
+import com.normation.box._
 
 /**
  * This object will be used as message for the non compliant reports logger
@@ -66,7 +67,7 @@ object StartAutomaticReporting
  * Informations of logs a are taken from different repository
  */
 class AutomaticReportLogger(
-    propertyRepository    : RudderPropertiesRepository
+    propertyRepository  : RudderPropertiesRepository
   , reportsRepository   : ReportsRepository
   , ruleRepository      : RoRuleRepository
   , directiveRepository : RoDirectiveRepository
@@ -112,8 +113,8 @@ class AutomaticReportLogger(
             val isSuccess = for {
               hundredReports <- reportsRepository.getLastHundredErrorReports(reportsKind)
               nodes          <- nodeInfoService.getAll
-              rules          <- ruleRepository.getAll(true)
-              directives     <- directiveRepository.getFullDirectiveLibrary()
+              rules          <- ruleRepository.getAll(true).toBox
+              directives     <- directiveRepository.getFullDirectiveLibrary().toBox
             } yield {
               val id = hundredReports.headOption match {
                 // None means this is a new rudder without any reports, don't log anything, current id is 0
@@ -216,8 +217,8 @@ class AutomaticReportLogger(
       logger.debug(s"Writting non-compliant-report logs beetween ids ${startAt} and ${maxId} (both incuded)")
       (for {
         nodes      <- nodeInfoService.getAll
-        rules      <- ruleRepository.getAll(true)
-        directives <- directiveRepository.getFullDirectiveLibrary()
+        rules      <- ruleRepository.getAll(true).toBox
+        directives <- directiveRepository.getFullDirectiveLibrary().toBox
       } yield {
         logRec(startAt, maxId, 10000, nodes, rules.map(r => (r.id, r)).toMap, directives)
       }) match {

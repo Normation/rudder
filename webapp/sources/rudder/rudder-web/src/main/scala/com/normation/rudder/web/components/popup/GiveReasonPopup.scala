@@ -55,6 +55,8 @@ import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.ChooseTemplate
 
+import com.normation.box._
+
 class GiveReasonPopup(
     onSuccessCallback : (ActiveTechniqueId) => JsCmd = { (ActiveTechniqueId) => Noop }
   , onFailureCallback : (String, String) => JsCmd = { (String1, String2) => Noop }
@@ -151,7 +153,7 @@ class GiveReasonPopup(
                       ModificationId(uuidGen.newUuid),
                       CurrentUser.actor,
                       crReasons.map (_.get)
-                   )
+                   ).toBox
                    ?~! errorMess.format(sourceActiveTechniqueId.value, destCatId.value)
                )
           } yield {

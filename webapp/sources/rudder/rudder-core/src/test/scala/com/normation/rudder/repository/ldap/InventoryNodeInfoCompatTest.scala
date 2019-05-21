@@ -59,6 +59,7 @@ import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
 
+import com.normation.zio._
 
 /**
  * A test to check that an node inventory entry
@@ -203,7 +204,7 @@ class InventoryNodeInfoCompatTest extends Specification {
 
   def node(ldif: String): NodeInfo = {
     val nodeEntry = new LDAPEntry(new Entry(ldif.split("\n").toSeq:_*))
-    mapper.convertEntriesToSpecialNodeInfos(nodeEntry, None).openOrThrowException("Error when getting node")
+    mapper.convertEntriesToSpecialNodeInfos(nodeEntry, None).runNow
   }
 
   "Agent type " should {

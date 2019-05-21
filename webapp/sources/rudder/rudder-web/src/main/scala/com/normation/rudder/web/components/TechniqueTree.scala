@@ -49,6 +49,8 @@ import JE._
 import com.normation.rudder.services.policies._
 import bootstrap.liftweb.RudderConfig
 
+import com.normation.box._
+
 /**
  * A component to display a tree based on a
  * Technique.
@@ -77,14 +79,14 @@ class TechniqueTree(
   def tree() : NodeSeq = {
 
     (for {
-      parents <- activeTechniqueRepository.activeTechniqueBreadCrump(techniqueId)
+      parents <- activeTechniqueRepository.activeTechniqueBreadCrump(techniqueId).toBox
       (rootCat,subCats) <- parents.reverse match {
         case h::tail => Full((h, tail))
         case _ => Failure("No parent category found for template %s, abort".format(techniqueId))
       }
-      activeTechnique <- activeTechniqueRepository.getActiveTechnique(techniqueId).flatMap { Box(_) }
+      activeTechnique <- activeTechniqueRepository.getActiveTechnique(techniqueId).toBox.flatMap { Box(_) }
       technique <- techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName)
-      dep <- dependencyService.techniqueDependencies(techniqueId,getGrouLib(),switchStatusFilter)
+      dep <- dependencyService.techniqueDependencies(techniqueId,getGrouLib().toBox,switchStatusFilter)
     } yield {
       categoryNode(rootCat,subCats, dep, technique, activeTechnique)
     }) match {
@@ -133,7 +135,7 @@ class TechniqueTree(
   }
 
   private[this] def ruleNode(id:RuleId) : JsTreeNode = {
-    ruleRepository.get(id) match {
+    ruleRepository.get(id).toBox match {
       case Full(rule) => new JsTreeNode {
         override val attrs = ("data-jstree" -> """{ "type" : "rule" }""")  :: Nil ::: (if(!rule.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
         override def body = { <a href="#"><span class="treeRuleName tooltipable" tooltipid={id.value} title={rule.shortDescription}>{rule.name}</span></a><div class="tooltipContent" id={id.value}><h3>{rule.name}</h3><div>{rule.shortDescription}</div></div> }

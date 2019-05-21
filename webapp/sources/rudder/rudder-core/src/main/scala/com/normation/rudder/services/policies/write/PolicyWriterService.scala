@@ -60,10 +60,6 @@ import com.normation.utils.Control._
 import java.io.File
 import java.io.IOException
 
-import monix.eval.Task
-import monix.eval.TaskSemaphore
-import monix.execution.ExecutionModel
-import monix.execution.Scheduler
 import net.liftweb.common._
 import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonAST.JValue
@@ -73,7 +69,6 @@ import org.apache.commons.io.FilenameUtils
 import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
 
-import scala.concurrent.Await
 import scala.util.{Failure => FailTry}
 import scala.util.Success
 import scala.util.Try
@@ -84,10 +79,19 @@ import com.normation.rudder.services.policies.ParameterEntry
 import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.policies.Policy
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.TimeUnit
 
 import cats.data.NonEmptyList
 import com.normation.rudder.domain.logger.PolicyLogger
 import com.normation.rudder.hooks.HookReturnCode
+import scalaz.zio._
+import scalaz.zio.syntax._
+import com.normation.errors._
+import com.normation.box._
+import com.normation.zio._
+import scalaz.zio.blocking.Blocking
+import scalaz.zio.duration.Duration
+
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -194,86 +198,56 @@ class PolicyWriterServiceImpl(
    * here, f must not throws execption.
    *
    */
-  def parrallelSequence[U,T](seq: Seq[U])(f:U => Box[T])(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Seq[T]] = {
-    def boxToEither(f: U => Box[T])(u:U): Either[String, T] = f(u) match {
-      case Full(t)    => Right(t)
-      case Empty      => Left("Error (no message available)")
-      case f: Failure => Left(f.messageChain)
-    }
-    def recover(u:U, ex: Throwable): Either[String, T] = Left(ex.getMessage)
-
-    parrallelSequenceGen(seq)(boxToEither(f) _, recover) match {
-      case Left(nel) => Failure(nel.toList.mkString(";"))
-      case Right(x)  => Full(x)
-    }
+  def parrallelSequence[U,T](seq: Seq[U])(f:U => Box[T])(implicit timeout: Duration, maxParallelism: Long): Box[Seq[T]] = {
+    ZIO.accessM[Blocking]{ b =>
+      seq.accumulateParN(maxParallelism)(a => b.blocking.blocking(f(a).toIO))
+    }.timeout(timeout).foldM(
+      err => err.fail
+    , suc => suc match {
+        case None      => //timeout
+          Accumulated(NonEmptyList.one(Unexpected(s"Execution of computation timed out after '${timeout.asJava.toString}'"))).fail
+        case Some(seq) =>
+          seq.succeed
+      }
+    ).provide(ZioRuntime.Environment).toBox
   }
 
   // a version for Hook with a nicer message accumulation
-  def parrallelSequenceNodeHook(seq: Seq[AgentNodeConfiguration])(f: AgentNodeConfiguration => HookReturnCode)(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Unit] = {
+  def parrallelSequenceNodeHook(seq: Seq[AgentNodeConfiguration])(f: AgentNodeConfiguration => HookReturnCode)(implicit timeout: Duration, maxParallelism: Long): Box[Unit] = {
 
-    type RES = Either[(NodeId, HookReturnCode.Error), HookReturnCode.Success]
-
-    def codeToEither(f: AgentNodeConfiguration => HookReturnCode)(u:AgentNodeConfiguration): RES = f(u) match {
-      case s:HookReturnCode.Success => Right(s)
-      case e:HookReturnCode.Error   => Left((u.config.nodeInfo.id, e))
-    }
-
-    def recover(u: AgentNodeConfiguration, ex: Throwable): RES = Left((u.config.nodeInfo.id, HookReturnCode.SystemError(ex.getMessage)))
-
-    def limitOut(s: String) = {
-      val max = 300
-      if(s.size <= max) s else s.substring(0, max-3) + "..."
-    }
-
-    parrallelSequenceGen(seq)(codeToEither(f) _, recover) match {
-      case Right(x)  => Full(())
-      case Left(nel) =>
-        // in that case, it is extremely likely that most messages are the same. We group them together
-        val nodeErrors = nel.toList.map{ case (nodeid, err) => err match {
+    final case class HookError(nodeId: NodeId, errorCode: HookReturnCode.Error) extends RudderError {
+      def limitOut(s: String) = {
+        val max = 300
+        if(s.size <= max) s else s.substring(0, max-3) + "..."
+      }
+      val msg = errorCode match {
           // we need to limit sdtout/sdterr lenght
-          case HookReturnCode.ScriptError(code, stdout, stderr, msg) => (nodeid, s"${msg} [stdout:${limitOut(stdout)}][stderr:${limitOut(stderr)}]")
-          case x                                                     => (nodeid, x.msg)
-        }}
+          case HookReturnCode.ScriptError(code, stdout, stderr, msg) => s"${msg} [stdout:${limitOut(stdout)}][stderr:${limitOut(stderr)}]"
+          case x                                                     => x.msg
+      }
+    }
+
+    val prog = seq.accumulateParNELN(maxParallelism){ a =>
+      scalaz.zio.Task.effect(f(a)).foldM(
+        ex   => HookError(a.config.nodeInfo.id, HookReturnCode.SystemError(ex.getMessage)).fail
+      , code => code match {
+          case s:HookReturnCode.Success => s.succeed
+          case e:HookReturnCode.Error   => HookError(a.config.nodeInfo.id, e).fail
+        }
+      )
+    }
+
+    ZIO.accessM[Blocking](b => b.blocking.blocking(prog.either)).timeout(timeout).provide(ZioRuntime.Environment).runNow match {
+      case None            => Failure(s"Hook execution timed out after '${timeout.asJava.toString}'")
+      case Some(Right(x))  => Full(())
+      case Some(Left(nel)) =>
+        // in that case, it is extremely likely that most messages are the same. We group them together
+        val nodeErrors = nel.toList.map{ err => (err.nodeId, err.msg) }
         val message = nodeErrors.groupBy( _._2 ).foldLeft("Error when executing hooks:") { case (s, (msg, list)) =>
           s + s"\n ${msg} (for node(s) ${list.map(_._1.value).mkString(";")})"
         }
         Failure(message)
     }
-  }
-
-  // the generic version of parrallelSeq
-  def parrallelSequenceGen[U, T, E](seq: Seq[U])(f:U => Either[E, T], recover:(U, Throwable) => Either[E, T])(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Either[NonEmptyList[E], Seq[T]] = {
-    import scala.concurrent.duration._
-
-    //transform the sequence in tasks, gather results unordered
-    val tasks = Task.gather(seq.map { action =>
-      semaphore.greenLight(Task(
-        try {
-          f(action)
-        } catch {
-          case ex: Throwable => recover(action, ex)
-        }
-      ))
-    })
-
-    // give a timeout for the whole tasks sufficiently large.
-    // Hint: CF-promise taking 2s by node, for 10 000 nodes, on
-    // 4 cores => ~85 minutes...
-    // It is here mostly as a safeguard for generation which went wrong -
-    // we will already have timeout at the thread level for stalling threads.
-    val timeout = 2.hours
-
-    //exec
-    val updated = Await.result(tasks.runAsync, timeout)
-    // gather results
-    val gatherErrors = updated.foldLeft[Either[NonEmptyList[E], Seq[T]]](Right(Nil)) {
-      case (Left(nel) , Left(err)) => Left(err :: nel)
-      case (Left(nel) , _        ) => Left(nel)
-      case (Right(_)  , Left(err)) => Left(NonEmptyList.of(err))
-      case (Right(seq), Right(x) ) => Right(seq :+ x)
-    }
-
-   gatherErrors
   }
 
   /**
@@ -327,18 +301,24 @@ class PolicyWriterServiceImpl(
     import scala.collection.JavaConverters._
     val systemEnv = HookEnvPairs.build(System.getenv.asScala.toSeq:_*)
 
-    implicit val semaphore = TaskSemaphore(maxParallelism = {
+    // give a timeout for the whole tasks sufficiently large.
+    // Hint: CF-promise taking 2s by node, for 10 000 nodes, on
+    // 4 cores => ~85 minutes...
+    // It is here mostly as a safeguard for generation which went wrong -
+    // we will already have timeout at the thread level for stalling threads.
+    implicit val timeout = Duration(2, TimeUnit.HOURS)
+    // Max number of thread used in the I/O thread pool for blocking tasks.
+    implicit val maxParallelism = {
       //the same logic than the one used for scala pool size is used to keep some consistency
       //by default, use the number of core, or the configured number.
       //see https://github.com/scala/scala/blob/2.12.x/src/library/scala/concurrent/impl/ExecutionContextImpl.scala#L92
       (try System.getProperty("scala.concurrent.context.maxThreads", "x1") catch {
         case e: SecurityException => "x1"
       }) match {
-        case s if s.charAt(0) == 'x' => (Runtime.getRuntime.availableProcessors * s.substring(1).toDouble).ceil.toInt
-        case other => other.toInt
+        case s if s.charAt(0) == 'x' => (java.lang.Runtime.getRuntime.availableProcessors * s.substring(1).toDouble).ceil.toLong
+        case other => other.toLong
       }
-    })
-    implicit val scheduler = Scheduler.io(executionModel = ExecutionModel.AlwaysAsyncExecution)
+    }
 
     //interpret HookReturnCode as a Box
 
@@ -529,7 +509,7 @@ class PolicyWriterServiceImpl(
    */
   private[this] def readTemplateFromFileSystem(
       techniqueIds: Set[TechniqueId]
-  )(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]] = {
+  )(implicit timeout: Duration, maxParallelism: Long): Box[Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]] = {
 
     //list of (template id, template out path)
     val templatesToRead = for {
@@ -598,7 +578,7 @@ class PolicyWriterServiceImpl(
    */
   private[this] def readResourcesFromFileSystem(
      techniqueIds: Set[TechniqueId]
-  )(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Map[TechniqueResourceId, TechniqueResourceCopyInfo]] = {
+  )(implicit timeout: Duration, maxParallelism: Long): Box[Map[TechniqueResourceId, TechniqueResourceCopyInfo]] = {
 
     val staticResourceToRead = for {
       technique      <- techniqueRepository.getByIds(techniqueIds.toSeq)

@@ -53,6 +53,8 @@ import net.liftweb.json._
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.web.model.CurrentUser
 
+import com.normation.box._
+
 /**
  * A component to display a tree based on a
  * Technique.
@@ -128,7 +130,7 @@ class RuleCategoryTree(
   // Perform category selection, filter in the dataTable and display the name of the category
   def selectCategory() = {
     (for {
-      rootCategory <- roRuleCategoryRepository.getRootCategory
+      rootCategory <- roRuleCategoryRepository.getRootCategory.toBox
       fqdn         <- ruleCategoryService.bothFqdn(rootCategory, selectedCategoryId, true)
     } yield {
       fqdn
@@ -159,19 +161,18 @@ class RuleCategoryTree(
        }) match {
         case (sourceCatId, destCatId) :: Nil =>
           (for {
-            category <- roRuleCategoryRepository.get(sourceCatId)//Box(lib.allCategories.get(NodeGroupCategoryId(sourceCatId))) ?~! "Error while trying to find category with requested id %s".format(sourceCatId)
-
+            category <- roRuleCategoryRepository.get(sourceCatId)
             result <- woRuleCategoryRepository.updateAndMove(
                           category
                         , destCatId
                         , ModificationId(uuidGen.newUuid)
                         , CurrentUser.actor
                         , reason = None
-                      ) ?~! s"Error while trying to move category with requested id '${sourceCatId}' to category id '${destCatId}'"
+                      ).chainError(s"Error while trying to move category with requested id '${sourceCatId}' to category id '${destCatId}'")
             newRoot <- roRuleCategoryRepository.getRootCategory
           } yield {
             (category.id.value, newRoot)
-          }) match {
+          }).toBox match {
             case Full((id,newRoot)) =>
               refreshTree(Full(newRoot)) & updateComponent() & selectCategory()
             case f:Failure => Alert(f.messageChain + "\nPlease reload the page")

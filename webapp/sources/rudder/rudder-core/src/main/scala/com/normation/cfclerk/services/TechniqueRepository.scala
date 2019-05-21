@@ -39,9 +39,9 @@ package com.normation.cfclerk.services
 
 import com.normation.cfclerk.domain._
 import java.io.InputStream
-import net.liftweb.common._
-import com.normation.utils.Control.sequence
 import scala.collection.SortedSet
+
+import com.normation.errors._
 
 /**
  * A service that provides information about the policy packages
@@ -82,7 +82,7 @@ trait TechniqueRepository {
 
   /**
    * Return a policy by its
-   * @param policyName
+   * @param techniqueId
    * @return
    */
   def get(techniqueId: TechniqueId): Option[Technique]
@@ -96,7 +96,7 @@ trait TechniqueRepository {
 
   /**
    * Retrieve a the list of policies corresponding to the names
-   * @param policiesName : the names of the policies
+   * @param techniqueIds : the names of the policies
    * @return : the list of policy objects
    */
   def getByIds(techniqueIds: Seq[TechniqueId]): Seq[Technique]
@@ -118,15 +118,15 @@ trait TechniqueRepository {
 
   def getTechniqueLibrary: RootTechniqueCategory
 
-  def getTechniqueCategory(id: TechniqueCategoryId): Box[TechniqueCategory]
+  def getTechniqueCategory(id: TechniqueCategoryId): IOResult[TechniqueCategory]
 
-  def getParentTechniqueCategory_forTechnique(id: TechniqueId): Box[TechniqueCategory]
+  def getParentTechniqueCategory_forTechnique(id: TechniqueId): IOResult[TechniqueCategory]
 
-  final def getTechniqueCategoriesBreadCrump(id: TechniqueId): Box[Seq[TechniqueCategory]] = {
+  final def getTechniqueCategoriesBreadCrump(id: TechniqueId): IOResult[Seq[TechniqueCategory]] = {
     for {
-      cat <- getParentTechniqueCategory_forTechnique(id)
-      path <- sequence(cat.id.getIdPathFromRoot) { currentCatId =>
-        getTechniqueCategory(currentCatId) ?~! "'%s' category was not found but should be a parent of '%s'".format(currentCatId, cat.id)
+      cat  <- getParentTechniqueCategory_forTechnique(id)
+      path <- scalaz.zio.ZIO.foreach(cat.id.getIdPathFromRoot) { currentCatId =>
+        getTechniqueCategory(currentCatId).chainError(s"'${currentCatId.name}' category was not found but should be a parent of '${cat.id.name}'. This is likely an error, please report it.")
       }
     } yield {
       path

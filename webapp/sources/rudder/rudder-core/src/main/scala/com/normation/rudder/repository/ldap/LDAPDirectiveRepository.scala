@@ -35,39 +35,49 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.repository
-package ldap
+package com.normation.rudder.repository.ldap
 
-import com.normation.rudder.domain.policies._
-import com.normation.inventory.ldap.core.LDAPConstants.{A_OC, A_NAME}
-import com.unboundid.ldap.sdk.{DN,Filter}
-import com.normation.ldap.sdk._
-import BuildFilter._
-import com.normation.rudder.domain.{RudderDit,RudderLDAPConstants}
-import RudderLDAPConstants._
-import net.liftweb.common._
-import com.normation.utils.Control.sequence
-import com.normation.eventlog.EventActor
-import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.cfclerk.domain.TechniqueId
-import com.normation.rudder.services.user.PersonIdentService
+import cats.implicits._
+import com.normation.NamedZioLogger
+import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.Technique
-import com.normation.eventlog.ModificationId
-import com.normation.utils.Control._
-import com.normation.ldap.ldif.LDIFNoopChangeRecord
-import com.unboundid.ldap.sdk.LDAPException
-import com.unboundid.ldap.sdk.ResultCode
+import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
-import scala.collection.immutable.SortedMap
 import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.errors._
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
+import com.normation.inventory.ldap.core.LDAPConstants.A_NAME
+import com.normation.inventory.ldap.core.LDAPConstants.A_OC
+import com.normation.ldap.ldif.LDIFNoopChangeRecord
+import com.normation.ldap.sdk.BuildFilter._
+import com.normation.ldap.sdk.LDAPIOResult._
+import com.normation.ldap.sdk._
+import com.normation.rudder.domain.RudderDit
+import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.rudder.domain.policies._
+import com.normation.rudder.repository.ActiveTechniqueCategoryOrdering
+import com.normation.rudder.repository.CategoryWithActiveTechniques
+import com.normation.rudder.repository.EventLogRepository
+import com.normation.rudder.repository.FullActiveTechnique
+import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.repository.GitActiveTechniqueArchiver
+import com.normation.rudder.repository.GitActiveTechniqueCategoryArchiver
+import com.normation.rudder.repository.GitDirectiveArchiver
+import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.repository.WoDirectiveRepository
+import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
+import com.unboundid.ldap.sdk.DN
+import com.unboundid.ldap.sdk.Filter
 import net.liftweb.json.JsonAST
 import org.joda.time.DateTime
-import com.normation.cfclerk.domain.TechniqueId
-import com.normation.cfclerk.domain.TechniqueName
-import com.normation.rudder.repository.EventLogRepository
-import com.normation.cfclerk.domain.SectionSpec
+import scalaz.zio._
+import scalaz.zio.syntax._
+import com.normation.ldap.sdk.syntax._
 
+import scala.collection.immutable.SortedMap
 
 class RoLDAPDirectiveRepository(
     val rudderDit                     : RudderDit
@@ -75,18 +85,21 @@ class RoLDAPDirectiveRepository(
   , val mapper                        : LDAPEntityMapper
   , val techniqueRepository           : TechniqueRepository
   , val userLibMutex                  : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
-) extends RoDirectiveRepository with Loggable {
+) extends RoDirectiveRepository with NamedZioLogger {
+
+  override def loggerName: String = this.getClass.getName
 
   /**
    * Retrieve the directive entry for the given ID, with the given connection
    */
-  def getDirectiveEntry(con:RoLDAPConnection, id:DirectiveId, attributes:String*) : Box[LDAPEntry] = {
-    val piEntries = con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn,  EQ(A_DIRECTIVE_UUID, id.value), attributes:_*)
-    piEntries.size match {
-      case 0 => Empty
-      case 1 => Full(piEntries(0))
-      case _ => Failure("Error, the directory contains multiple occurrence of directive with id %s. DN: %s".format(id, piEntries.map( _.dn).mkString("; ")))
-    }
+  def getDirectiveEntry(con:RoLDAPConnection, id:DirectiveId, attributes:String*) : LDAPIOResult[Option[LDAPEntry]] = {
+    con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn,  EQ(A_DIRECTIVE_UUID, id.value), attributes:_*).flatMap(piEntries =>
+      piEntries.size match {
+        case 0 => None.succeed
+        case 1 => Some(piEntries(0)).succeed
+        case _ => LDAPRudderError.Consistancy(s"Error, the directory contains multiple occurrence of directive with id '${id.value}'. DN: ${piEntries.map( _.dn).mkString("; ")}").fail
+      }
+    )
   }
 
   private[this] def policyFilter(includeSystem: Boolean) = if(includeSystem) IS(OC_DIRECTIVE) else AND(IS(OC_DIRECTIVE), EQ(A_IS_SYSTEM,false.toLDAPString))
@@ -95,39 +108,51 @@ class RoLDAPDirectiveRepository(
    * Try to find the directive with the given ID.
    * Empty: no directive with such ID
    * Full((parent,directive)) : found the directive (directive.id == directiveId) in given parent
-   * Failure => an error happened.
+   *.fail => an error happened.
    */
-  override def getDirective(id:DirectiveId) : Box[Directive] = {
-    for {
-      locked    <- userLibMutex.readLock
+  override def getDirective(id:DirectiveId) : IOResult[Option[Directive]] = {
+    userLibMutex.readLock(for {
       con       <- ldap
-      piEntry   <- getDirectiveEntry(con, id) ?~! "Can not find directive with id %s".format(id)
-      directive <- mapper.entry2Directive(piEntry) ?~! "Error when transforming LDAP entry into a directive for id %s. Entry: %s".format(id, piEntry)
+      optEntry  <- getDirectiveEntry(con, id)
+      directive <- optEntry match {
+                     case Some(entry) => mapper.entry2Directive(entry).map(e => Some(e)).chainError("Error when transforming LDAP entry into a directive for id %s. Entry: %s".format(id, entry)).toIO
+                     case None => None.succeed
+                   }
     } yield {
       directive
+    })
+  }
+
+  override def getDirectiveWithContext(directiveId:DirectiveId) : IOResult[Option[(Technique, ActiveTechnique, Directive)]] = {
+    this.getActiveTechniqueAndDirective(directiveId).chainError(s"Error when retrieving directive with ID ${directiveId.value}''").flatMap {
+      case None    => None.succeed
+      case Some((activeTechnique, directive)) =>
+        val activeTechniqueId = TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)
+        for {
+          technique <- techniqueRepository.get(activeTechniqueId).notOptional(s"No Technique with ID='${activeTechniqueId.toString()}' found in reference library.")
+        } yield {
+          Some((technique, activeTechnique, directive))
+        }
     }
   }
 
-  override def getDirectiveWithContext(directiveId:DirectiveId) : Box[(Technique, ActiveTechnique, Directive)] = {
-    for {
-      (activeTechnique
-           , directive     ) <- this.getActiveTechniqueAndDirective(directiveId) ?~! s"Error when retrieving directive with ID ${directiveId.value}''"
-      activeTechniqueId = TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)
-      technique         <- Box(techniqueRepository.get(activeTechniqueId)) ?~! "No Technique with ID=%s found in reference library.".format(activeTechniqueId)
-    } yield {
-      (technique, activeTechnique, directive)
-    }
-  }
-
-  def getActiveTechniqueAndDirectiveEntries(id:DirectiveId): Box[(LDAPEntry, LDAPEntry)] = {
-    for {
-      locked   <- userLibMutex.readLock
+  /*
+   * For that method, we can optionnaly get a directive entry. But if we get one, not having a corresponding
+   * technique is an error
+   */
+  def getActiveTechniqueAndDirectiveEntries(id:DirectiveId): IOResult[Option[(LDAPEntry, LDAPEntry)]] = {
+    userLibMutex.readLock(for {
       con      <- ldap
-      piEntry  <- getDirectiveEntry(con, id) ?~! "Can not find directive with id %s".format(id)
-      uptEntry <- getUPTEntry(con, mapper.dn2ActiveTechniqueId(piEntry.dn.getParent), { id:ActiveTechniqueId => EQ(A_ACTIVE_TECHNIQUE_UUID, id.value) }) ?~! "Can not find Active Technique entry in LDAP"
+      optEntry <- getDirectiveEntry(con, id)
+      pair     <- optEntry match {
+                    case None    => None.succeed
+                    case Some(dir) =>
+                      val atId = mapper.dn2ActiveTechniqueId(dir.dn.getParent)
+                      getUPTEntry(con, atId, { id:ActiveTechniqueId => EQ(A_ACTIVE_TECHNIQUE_UUID, id.value)}).notOptional(s"Can not find Active Technique entry '${atId.value}' in LDAP but directive with DN '${dir.dn}' exists: this is likely a bug, please report it.").map(at => Some((at, dir)))
+                  }
     } yield {
-      (uptEntry, piEntry)
-    }
+      pair
+    })
   }
 
   /**
@@ -136,63 +161,67 @@ class RoLDAPDirectiveRepository(
    * Return empty if no such directive is known,
    * fails if no active technique match the directive.
    */
-  override def getActiveTechniqueAndDirective(id:DirectiveId) : Box[(ActiveTechnique, Directive)] = {
-    for {
-      (uptEntry, piEntry) <- getActiveTechniqueAndDirectiveEntries(id) ?~! "Can not find Active Technique entry in LDAP"
-      activeTechnique     <- mapper.entry2ActiveTechnique(uptEntry) ?~! "Error when mapping active technique entry to its entity. Entry: %s".format(uptEntry)
-      directive           <- mapper.entry2Directive(piEntry) ?~! "Error when transforming LDAP entry into a directive for id %s. Entry: %s".format(id, piEntry)
-    } yield {
-      (activeTechnique, directive)
+  override def getActiveTechniqueAndDirective(id:DirectiveId) : IOResult[Option[(ActiveTechnique, Directive)]] = {
+    getActiveTechniqueAndDirectiveEntries(id).chainError("Can not find Active Technique entry in LDAP").flatMap {
+      case None => None.succeed
+      case Some((uptEntry, piEntry)) =>
+        for {
+          activeTechnique     <- mapper.entry2ActiveTechnique(uptEntry).toIO.chainError("Error when mapping active technique entry to its entity. Entry: %s".format(uptEntry))
+          directive           <- mapper.entry2Directive(piEntry).toIO.chainError("Error when transforming LDAP entry into a directive for id %s. Entry: %s".format(id, piEntry))
+        } yield {
+          Some((activeTechnique, directive))
+        }
     }
   }
+
   /**
    * Get directives for given technique.
-   * A not known technique id is a failure.
+   * A not known technique id is a.fail.
    */
-  override def getDirectives(activeTechniqueId:ActiveTechniqueId, includeSystem:Boolean = false) : Box[Seq[Directive]] = {
-    for {
-      locked     <- userLibMutex.readLock
+  override def getDirectives(activeTechniqueId:ActiveTechniqueId, includeSystem:Boolean = false) : IOResult[Seq[Directive]] = {
+    userLibMutex.readLock(for {
       con        <- ldap
-      ptEntry    <- getUPTEntry(con, activeTechniqueId, "1.1")
-      directives <- sequence(con.searchOne(ptEntry.dn, policyFilter(includeSystem))) { piEntry =>
-                      mapper.entry2Directive(piEntry) ?~! "Error when transforming LDAP entry into a directive. Entry: %s".format(piEntry)
+      entries    <- getUPTEntry(con, activeTechniqueId, "1.1").flatMap {
+                      case None    => Seq().succeed
+                      case Some(e) => con.searchOne(e.dn, policyFilter(includeSystem))
+                    }
+      directives <- ZIO.foreach(entries) { piEntry =>
+                      mapper.entry2Directive(piEntry).toIO.chainError(s"Error when transforming LDAP entry into a directive. Entry: ${piEntry}")
                     }
     } yield {
       directives
-    }
+    })
   }
 
   /**
    * Return true if at least one directive exists in this category (or a sub category
    * of this category)
    */
-  def containsDirective(id: ActiveTechniqueCategoryId) : Boolean = {
-    (for {
-      con               <- ldap
-      locked            <- userLibMutex.readLock
-      category          <- getCategoryEntry(con, id) ?~! "Entry with ID '%s' was not found".format(id)
+  def containsDirective(id: ActiveTechniqueCategoryId) : UIO[Boolean] = {
+    userLibMutex.readLock(for {
+      con      <- ldap
+      category <- getCategoryEntry(con, id).notOptional(s"Entry with ID '${id}' was not found")
+      entries  <- con.searchSub(category.dn, IS(OC_DIRECTIVE), Seq[String]():_*)
+      results  <- ZIO.foreach(entries)(x => mapper.entry2Directive(x).toIO)
     } yield {
-      val results = con.searchSub(category.dn, IS(OC_DIRECTIVE), Seq[String]():_*)
-      results.map( x => mapper.entry2Directive(x) ).flatten.size > 0
-    }) match {
-      case Full(x) => x
-      case _ => false
-    }
+      results.size > 0
+    }).fold(_ => false, identity)
   }
 
   /**
    * Root user categories
    */
-  def getActiveTechniqueLibrary : Box[ActiveTechniqueCategory] = {
-    for {
+  def getActiveTechniqueLibrary : IOResult[ActiveTechniqueCategory] = {
+    userLibMutex.readLock(for {
       con               <- ldap
-      locked            <- userLibMutex.readLock
-      rootCategoryEntry <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn) ?~! "The root category of the user library of techniques seems to be missing in LDAP directory. Please check its content"
+      rootCategoryEntry <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn).notOptional("The root category of the user library of techniques seems " +
+                                                                        "to be missing in LDAP directory. Please check its content")
       // look for sub category and technique
-      rootCategory      <- mapper.entry2ActiveTechniqueCategory(rootCategoryEntry) ?~! "Error when mapping from an LDAP entry to an active technique Category: %s".format(rootCategoryEntry)
+      rootCategory      <- mapper.entry2ActiveTechniqueCategory(rootCategoryEntry).toIO.chainError("Error when mapping from an LDAP entry to an active technique Category: %s".format(rootCategoryEntry))
+      added             <- addSubEntries(rootCategory,rootCategoryEntry.dn, con)
     } yield {
-      addSubEntries(rootCategory,rootCategoryEntry.dn, con)
-    }
+      added
+    })
   }
 
 
@@ -200,15 +229,16 @@ class RoLDAPDirectiveRepository(
    * Return all categories (lightweight version, with no children)
    * @return
    */
-  def getAllActiveTechniqueCategories(includeSystem:Boolean = false) : Box[Seq[ActiveTechniqueCategory]] = {
-    (for {
+  def getAllActiveTechniqueCategories(includeSystem:Boolean = false) : IOResult[Seq[ActiveTechniqueCategory]] = {
+    userLibMutex.readLock(for {
       con               <- ldap
-      locked            <- userLibMutex.readLock
-      rootCategoryEntry <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn) ?~! "The root category of the user library of techniques seems to be missing in LDAP directory. Please check its content"
+      rootCategoryEntry <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn).notOptional(
+                             "The root category of the user library of techniques seems to be missing in LDAP directory. Please check its content"
+                           )
       filter            =  if(includeSystem) IS(OC_TECHNIQUE_CATEGORY) else AND(NOT(EQ(A_IS_SYSTEM, true.toLDAPString)),IS(OC_TECHNIQUE_CATEGORY))
-      entries           =  con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter) //double negation is mandatory, as false may not be present
+      entries           <- con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter) //double negation is mandatory, as false may not be present
       allEntries        =  entries :+ rootCategoryEntry
-      categories        <- boxSequence(allEntries.map(entry => mapper.entry2ActiveTechniqueCategory(entry) ?~! "Error when transforming LDAP entry %s into an active technique category".format(entry) ))
+      categories        <- allEntries.toList.traverse(entry => (mapper.entry2ActiveTechniqueCategory(entry).chainError(s"Error when transforming LDAP entry '${entry}' into an active technique category"))).toIO
     } yield {
       categories
     })
@@ -216,15 +246,15 @@ class RoLDAPDirectiveRepository(
   /**
    * Get an active technique by its ID
    */
-  def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : Box[ActiveTechniqueCategory] = {
-    for {
+  def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : IOResult[ActiveTechniqueCategory] = {
+    userLibMutex.readLock(for {
       con           <- ldap
-      locked        <- userLibMutex.readLock
-      categoryEntry <- getCategoryEntry(con, id) ?~! "Entry with ID '%s' was not found".format(id)
-      category      <- mapper.entry2ActiveTechniqueCategory(categoryEntry) ?~! "Error when transforming LDAP entry %s into an active technique category".format(categoryEntry)
+      categoryEntry <- getCategoryEntry(con, id).notOptional(s"Entry with ID '${id.value}' was not found")
+      category      <- (mapper.entry2ActiveTechniqueCategory(categoryEntry).chainError("Error when transforming LDAP entry %s into an active technique category".format(categoryEntry))).toIO
+      added         <- addSubEntries(category,categoryEntry.dn, con)
     } yield {
-      addSubEntries(category,categoryEntry.dn, con)
-    }
+      added
+    })
   }
 
   /**
@@ -232,11 +262,18 @@ class RoLDAPDirectiveRepository(
    * the given category which MUST be mapped to an entry with the given
    * DN in the LDAP backend, accessible with the given connection.
    */
-  def addSubEntries(category:ActiveTechniqueCategory, dn:DN, con:RoLDAPConnection) : ActiveTechniqueCategory = {
-    val subEntries = con.searchOne(dn, OR(EQ(A_OC, OC_TECHNIQUE_CATEGORY),EQ(A_OC, OC_ACTIVE_TECHNIQUE)), "objectClass").partition(e => e.isA(OC_TECHNIQUE_CATEGORY))
-    category.copy(
-      children = subEntries._1.map(e => mapper.dn2ActiveTechniqueCategoryId(e.dn)).toList,
-      items = subEntries._2.map(e => mapper.dn2ActiveTechniqueId(e.dn)).toList
+  def addSubEntries(category:ActiveTechniqueCategory, dn:DN, con:RoLDAPConnection) : IOResult[ActiveTechniqueCategory] = {
+    (for {
+      subEntries <- con.searchOne(dn, OR(EQ(A_OC, OC_TECHNIQUE_CATEGORY),EQ(A_OC, OC_ACTIVE_TECHNIQUE)), "objectClass")
+    } yield {
+      subEntries.partition(e => e.isA(OC_TECHNIQUE_CATEGORY))
+    }).fold(err => (Seq(),Seq()) // ignore errors
+      , x => x
+    ).map(subEntries =>
+        category.copy(
+          children = subEntries._1.map(e => mapper.dn2ActiveTechniqueCategoryId(e.dn)).toList,
+          items = subEntries._2.map(e => mapper.dn2ActiveTechniqueId(e.dn)).toList
+        )
     )
   }
 
@@ -245,15 +282,17 @@ class RoLDAPDirectiveRepository(
   /**
    * Retrieve the category entry for the given ID, with the given connection
    */
-  def getCategoryEntry(con:RoLDAPConnection, id:ActiveTechniqueCategoryId, attributes:String*) : Box[LDAPEntry] = {
-    userLibMutex.readLock {
-      val categoryEntries = con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn,  EQ(A_TECHNIQUE_CATEGORY_UUID, id.value), attributes:_*)
-      categoryEntries.size match {
-        case 0 => Empty
-        case 1 => Full(categoryEntries(0))
-        case _ => Failure("Error, the directory contains multiple occurrence of category with id %s. DN: %s".format(id, categoryEntries.map( _.dn).mkString("; ")))
-      }
-    }
+  def getCategoryEntry(con:RoLDAPConnection, id:ActiveTechniqueCategoryId, attributes:String*) : IOResult[Option[LDAPEntry]] = {
+   userLibMutex.readLock(for {
+      categoryEntries <- con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn,  EQ(A_TECHNIQUE_CATEGORY_UUID, id.value), attributes:_*)
+      entry           <- categoryEntries.size match {
+                           case 0 => None.succeed
+                           case 1 => Some(categoryEntries(0)).succeed
+                           case _ => s"Error, the directory contains multiple occurrence of category with id '${id.value}}'. DN: ${categoryEntries.map( _.dn).mkString("; ")}".fail
+                         }
+    } yield {
+      entry
+    })
   }
 
   /**
@@ -261,63 +300,61 @@ class RoLDAPDirectiveRepository(
    * Return empty for root of the hierarchy, fails if the category
    * is not in the repository
    */
-  def getParentActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : Box[ActiveTechniqueCategory] = {
-    for {
+  def getParentActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : IOResult[ActiveTechniqueCategory] = {
+    userLibMutex.readLock(for {
       con                 <- ldap
-      locked              <- userLibMutex.readLock
-      categoryEntry       <- getCategoryEntry(con, id, "1.1") ?~! "Entry with ID '%s' was not found".format(id)
-      parentCategoryEntry <- con.get(categoryEntry.dn.getParent)
-      parentCategory      <- mapper.entry2ActiveTechniqueCategory(parentCategoryEntry) ?~! "Error when transforming LDAP entry %s into an active technique category".format(parentCategoryEntry)
+      categoryEntry       <- getCategoryEntry(con, id, "1.1").notOptional(s"Entry with ID '${id.value}' was not found")
+      parentCategoryEntry <- con.get(categoryEntry.dn.getParent).notOptional(s"Entry with DN '${categoryEntry.dn.getParent}' was not found")
+      parentCategory      <- mapper.entry2ActiveTechniqueCategory(parentCategoryEntry).toIO.chainError(s"Error when transforming LDAP entry '${parentCategoryEntry}' into an active technique category")
+      added               <- addSubEntries(parentCategory, parentCategoryEntry.dn, con)
     } yield {
-      addSubEntries(parentCategory, parentCategoryEntry.dn, con)
-    }
+      added
+    })
   }
 
   /**
    * Return the list of parents for that category, the nearest parent
    * first, until the root of the library.
-   * The the last parent is not the root of the library, return a Failure.
-   * Also return a failure if the path to top is broken in any way.
+   * The the last parent is not the root of the library, return a.fail.
+   * Also return a.fail if the path to top is broken in any way.
    */
-  def getParentsForActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : Box[List[ActiveTechniqueCategory]] = {
-    userLibMutex.readLock {
+  def getParentsForActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : IOResult[List[ActiveTechniqueCategory]] = {
+    userLibMutex.readLock(
       //TODO : LDAPify that, we can have the list of all DN from id to root at the begining (just dn.getParent until rudderDit.ACTIVE_TECHNIQUES_LIB.dn)
       getActiveTechniqueLibrary.flatMap { root =>
-        if(id == root.id) Full(Nil)
-        else getParentActiveTechniqueCategory(id) match {
-          case Full(parent) => getParentsForActiveTechniqueCategory(parent.id).map(parents => parent :: parents)
-          case e:EmptyBox => e
-        }
+        if(id == root.id) Nil.succeed
+        else getParentActiveTechniqueCategory(id).flatMap(parent =>
+          getParentsForActiveTechniqueCategory(parent.id).map(parents => parent :: parents)
+        )
       }
-    }
+    )
   }
 
-  def getParentsForActiveTechnique(id:ActiveTechniqueId) : Box[ActiveTechniqueCategory] = {
-    userLibMutex.readLock { for {
+  def getParentsForActiveTechnique(id:ActiveTechniqueId) : IOResult[ActiveTechniqueCategory] = {
+    userLibMutex.readLock(for {
       con <- ldap
-      uptEntries = con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, EQ(A_ACTIVE_TECHNIQUE_UUID, id.value))
+      uptEntries <- con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, EQ(A_ACTIVE_TECHNIQUE_UUID, id.value))
       uptEntry <- uptEntries.size match {
-        case 0 => Failure("Can not find active technique with id '%s'".format(id))
-        case 1 => Full(uptEntries(0))
-        case _ => Failure("Found more than one active technique with id '%s' : %s".format(id, uptEntries.map(_.dn).mkString("; ")))
+        case 0 => s"Can not find active technique with id '${id.value}}'".fail
+        case 1 => uptEntries(0).succeed
+        case _ => s"Found more than one active technique with id '${id.value}' : ${uptEntries.map(_.dn).mkString("; ")}".fail
       }
       category <- getActiveTechniqueCategory(mapper.dn2ActiveTechniqueCategoryId(uptEntry.dn.getParent))
     } yield {
       category
-    } }
+    })
   }
 
 
 
-  def getActiveTechniqueByCategory(includeSystem:Boolean = false) : Box[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = {
-    for {
-      locked       <- userLibMutex.readLock
+  def getActiveTechniqueByCategory(includeSystem:Boolean = false) : IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = {
+    userLibMutex.readLock(for {
       allCats      <- getAllActiveTechniqueCategories(includeSystem)
-      catsWithUPs  <- sequence(allCats) { ligthCat =>
+      catsWithUPs  <- ZIO.foreach(allCats) { ligthCat =>
                         for {
                           category <- getActiveTechniqueCategory(ligthCat.id)
                           parents  <- getParentsForActiveTechniqueCategory(category.id)
-                          upts     <- sequence(category.items) { uactiveTechniqueId => getActiveTechnique(uactiveTechniqueId).flatMap { Box(_) } }
+                          upts     <- ZIO.foreach(category.items) { uactiveTechniqueId => getActiveTechnique(uactiveTechniqueId).notOptional(s"Missing active technique ${uactiveTechniqueId.value}") }
                         } yield {
                           ( (category.id :: parents.map(_.id)).reverse, CategoryWithActiveTechniques(category, upts.toSet))
                         }
@@ -325,16 +362,16 @@ class RoLDAPDirectiveRepository(
     } yield {
       implicit val ordering = ActiveTechniqueCategoryOrdering
       SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]() ++ catsWithUPs
-    }
+    })
   }
 
-  def getActiveTechnique(id: ActiveTechniqueId): Box[Option[ActiveTechnique]] = {
+  def getActiveTechnique(id: ActiveTechniqueId): IOResult[Option[ActiveTechnique]] = {
     userLibMutex.readLock {
       getActiveTechnique[ActiveTechniqueId](id, { id => EQ(A_ACTIVE_TECHNIQUE_UUID, id.value) } )
     }
   }
 
-  def getActiveTechnique(name: TechniqueName): Box[Option[ActiveTechnique]] = {
+  def getActiveTechnique(name: TechniqueName): IOResult[Option[ActiveTechnique]] = {
     userLibMutex.readLock {
       this.getActiveTechnique[TechniqueName](name, { name => EQ(A_TECHNIQUE_UUID, name.value) } )
     }
@@ -344,33 +381,37 @@ class RoLDAPDirectiveRepository(
    * Add directives ids for the given active technique which must
    * be mapped to the given dn in LDAP directory accessible by con
    */
-  private[this] def addDirectives(activeTechnique:ActiveTechnique, dn:DN, con:RoLDAPConnection) : ActiveTechnique = {
-    val piEntries = con.searchOne(dn, EQ(A_OC, OC_DIRECTIVE), "objectClass")
-    activeTechnique.copy(
-      directives = piEntries.map(e => mapper.dn2LDAPRuleID(e.dn)).toList
-    )
-  }
-
-  private[this] def getActiveTechnique[ID](id: ID, filter: ID => Filter): Box[Option[ActiveTechnique]] = {
+  private[this] def addDirectives(activeTechnique:ActiveTechnique, dn:DN, con:RoLDAPConnection) : IOResult[ActiveTechnique] = {
     for {
-      con        <- ldap
-      uptEntries =  con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter(id))
-      res        <- uptEntries.size match {
-                      case 0 => Full(None)
-                      case 1 =>
-                        for {
-                          activeTechnique <- mapper.entry2ActiveTechnique(uptEntries(0)) ?~! "Error when mapping active technique entry to its entity. Entry: %s".format(uptEntries(0))
-                        } yield {
-                          Some(addDirectives(activeTechnique,uptEntries(0).dn,con))
-                        }
-                      case _ => Failure("Error, the directory contains multiple occurrence of active technique with ID %s. DNs involved: %s".format(id, uptEntries.map( _.dn).mkString("; ")))
-                    }
+      piEntries <- con.searchOne(dn, EQ(A_OC, OC_DIRECTIVE), "objectClass").fold(_ => Seq(), x => x)
     } yield {
-      res
+      activeTechnique.copy(
+        directives = piEntries.map(e => mapper.dn2LDAPRuleID(e.dn)).toList
+      )
     }
   }
 
-  def getUPTEntry(con:RoLDAPConnection, id:ActiveTechniqueId, attributes:String*) : Box[LDAPEntry] = {
+  private[this] def getActiveTechnique[ID](id: ID, filter: ID => Filter): IOResult[Option[ActiveTechnique]] = {
+    (for {
+      con        <- ldap
+      uptEntries <- con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter(id))
+      res        <- uptEntries.size match {
+                      case 0 => None.succeed
+                      case 1 =>
+                        for {
+                          activeTechnique <- mapper.entry2ActiveTechnique(uptEntries(0)).chainError("Error when mapping active technique entry to its entity. Entry: %s".format(uptEntries(0))).toIO
+                          added           <- addDirectives(activeTechnique,uptEntries(0).dn,con)
+                        } yield {
+                          Some(added)
+                        }
+                      case _ => s"Error, the directory contains multiple occurrence of active technique with ID '${id}'. DNs involved: ${uptEntries.map( _.dn).mkString("; ")}".fail
+                    }
+    } yield {
+      res
+    })
+  }
+
+  def getUPTEntry(con:RoLDAPConnection, id:ActiveTechniqueId, attributes:String*) : IOResult[Option[LDAPEntry]] = {
     userLibMutex.readLock {
       getUPTEntry[ActiveTechniqueId](con, id, { id => EQ(A_ACTIVE_TECHNIQUE_UUID, id.value) }, attributes:_*)
     }
@@ -379,22 +420,28 @@ class RoLDAPDirectiveRepository(
   /**
    * Look in the subtree with root=active technique library
    * for and entry with the given id.
-   * We expect at most one result, more is a Failure
+   * We expect at most one result, more is a.fail
    */
   def getUPTEntry[ID](
       con:RoLDAPConnection,
       id:ID,
       filter: ID => Filter,
-      attributes:String*) : Box[LDAPEntry] = {
-    val uptEntries = con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter(id), attributes:_*)
-    uptEntries.size match {
-      case 0 => Empty
-      case 1 => Full(uptEntries(0))
-      case _ => Failure("Error, the directory contains multiple occurrence of active technique with ID %s. DNs involved: %s".format(id, uptEntries.map( _.dn).mkString("; ")))
+      attributes:String*
+  ) : LDAPIOResult[Option[LDAPEntry]] = {
+    for {
+      uptEntries <- con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter(id), attributes:_*)
+      entry      <- uptEntries.size match {
+                      case 0 => None.succeed
+                      case 1 => Some(uptEntries(0)).succeed
+                      case _ => LDAPRudderError.Consistancy(s"Error, the directory contains multiple occurrence of active " +
+                                                            s"technique with ID '${id}'. DNs involved: ${uptEntries.map( _.dn).mkString("; ")}").fail
+                    }
+    } yield {
+      entry
     }
   }
 
-  def activeTechniqueBreadCrump(id: ActiveTechniqueId): Box[List[ActiveTechniqueCategory]] = {
+  def activeTechniqueBreadCrump(id: ActiveTechniqueId): IOResult[List[ActiveTechniqueCategory]] = {
     //find the active technique entry for that id, and from that, build the parent bread crump
     userLibMutex.readLock { for {
       cat  <- getParentsForActiveTechnique(id)
@@ -407,7 +454,7 @@ class RoLDAPDirectiveRepository(
 
 
 
-  def getFullDirectiveLibrary() : Box[FullActiveTechniqueCategory] = {
+  def getFullDirectiveLibrary() : IOResult[FullActiveTechniqueCategory] = {
     //data structure to holds all relation between objects
     case class AllMaps(
         categories: Map[ActiveTechniqueCategoryId, ActiveTechniqueCategory]
@@ -459,20 +506,21 @@ class RoLDAPDirectiveRepository(
     val emptyAll = AllMaps(Map(), Map(), Map(), Map(), Map())
     import rudderDit.ACTIVE_TECHNIQUES_LIB._
 
-    def mappingError(current:AllMaps, e:LDAPEntry, eb:EmptyBox) : AllMaps = {
-      val error = eb ?~! s"Error when mapping entry with DN '${e.dn.toString}' from directive library"
-      logger.warn(error.messageChain)
+    def mappingError(current: AllMaps, e: LDAPEntry, err: RudderError) : AllMaps = {
+      val error = Chained(s"Error when mapping entry with DN '${e.dn.toString}' from directive library", err)
+
+      logEffect.warn(error.fullMsg)
       current
     }
 
-    for {
+    (for {
       con     <- ldap
-      entries <- userLibMutex.readLock( con.getTree(rudderDit.ACTIVE_TECHNIQUES_LIB.dn) ) ?~! "The root category of the user library of techniques seems to be missing in LDAP directory. Please check its content"
+      entries <- userLibMutex.readLock( con.getTree(rudderDit.ACTIVE_TECHNIQUES_LIB.dn).notOptional("The root category of the user library of techniques seems to be missing in LDAP directory. Please check its content") )
     } yield {
       val allMaps =  (emptyAll /: entries.toSeq) { case (current, e) =>
          if(isACategory(e)) {
            mapper.entry2ActiveTechniqueCategory(e) match {
-             case Full(category) =>
+             case Right(category) =>
                //for categories other than root, add it in the list
                //of its parent subcategories
                val updatedSubCats = if(e.dn == rudderDit.ACTIVE_TECHNIQUES_LIB.dn) {
@@ -486,32 +534,32 @@ class RoLDAPDirectiveRepository(
                    categories = current.categories + (category.id -> category)
                  , categoriesByCategory =  updatedSubCats
                )
-             case eb:EmptyBox => mappingError(current, e, eb)
+             case Left(err) => mappingError(current, e, err)
            }
          } else if(isAnActiveTechnique(e)) {
            mapper.entry2ActiveTechnique(e) match {
-             case Full(at) =>
+             case Right(at) =>
                val catId = mapper.dn2ActiveTechniqueCategoryId(e.dn.getParent)
                val atsForCatId = at.id :: current.activeTechniquesByCategory.getOrElse(catId, Nil)
                current.copy(
                    activeTechiques = current.activeTechiques + (at.id -> at)
                  , activeTechniquesByCategory = current.activeTechniquesByCategory + (catId -> atsForCatId)
                )
-             case eb:EmptyBox => mappingError(current, e, eb)
+             case Left(err) => mappingError(current, e, err)
            }
          } else if(isADirective(e)) {
            mapper.entry2Directive(e) match {
-             case Full(dir) =>
+             case Right(dir) =>
                val atId = mapper.dn2ActiveTechniqueId(e.dn.getParent)
                val dirsForAt = dir :: current.directivesByActiveTechnique.getOrElse(atId, Nil)
                current.copy(
                    directivesByActiveTechnique = current.directivesByActiveTechnique + (atId -> dirsForAt)
                )
-             case eb:EmptyBox => mappingError(current, e, eb)
+             case Left(err) => mappingError(current, e, err)
            }
          } else {
            //log error, continue
-           logger.warn(s"Entry with DN '${e.dn}' was ignored because it is of an unknow type. Known types are categories, active techniques, directives")
+           logEffect.warn(s"Entry with DN '${e.dn}' was ignored because it is of an unknow type. Known types are categories, active techniques, directives")
            current
          }
       }
@@ -519,7 +567,7 @@ class RoLDAPDirectiveRepository(
       val fullActiveTechniques = allMaps.activeTechiques.map{ case (id,at) => (id -> fromActiveTechnique(at, allMaps)) }.toMap
 
       fromCategory(ActiveTechniqueCategoryId(rudderDit.ACTIVE_TECHNIQUES_LIB.rdnValue._1), allMaps, fullActiveTechniques.toMap)
-    }
+    })
   }
 
 
@@ -536,11 +584,12 @@ class WoLDAPDirectiveRepository(
   , gitCatArchiver                : GitActiveTechniqueCategoryArchiver
   , personIdentService            : PersonIdentService
   , autoExportOnModify            : Boolean
-) extends WoDirectiveRepository with Loggable {
+) extends WoDirectiveRepository with NamedZioLogger {
 
 
   import roDirectiveRepos._
 
+  override def loggerName: String = this.getClass.getName
 
 
   /**
@@ -550,63 +599,54 @@ class WoLDAPDirectiveRepository(
    * If the directive is already in the given technique,
    * update the directive.
    * If the directive is not in the system, add it.
-   *
-   * Returned the saved WBUserDirective
+   * If the directive is exactly the same, returns None diff.
+   * Returned the saved Directive
    */
-  private[this] def internalSaveDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, modId: ModificationId, actor:EventActor, reason:Option[String], systemCall:Boolean) : Box[Option[DirectiveSaveDiff]] = {
+  private[this] def internalSaveDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, modId: ModificationId, actor:EventActor, reason:Option[String], systemCall:Boolean) : IOResult[Option[DirectiveSaveDiff]] = {
     for {
       con         <- ldap
-      uptEntry    <- getUPTEntry(con, inActiveTechniqueId, "1.1") ?~! "Can not find the User Policy Entry with id %s to add directive %s".format(inActiveTechniqueId, directive.id)
-      canAdd      <- { //check if the directive already exists elsewhere
-                        getDirectiveEntry(con, directive.id) match {
-                          case f:Failure => f
-                          case Empty => Full(None)
-                          case Full(otherPi) =>
-                            if(otherPi.dn.getParent == uptEntry.dn) Full(Some(otherPi))
-                            if(otherPi.dn.getParent == uptEntry.dn) {
-                              mapper.entry2Directive(otherPi).flatMap { x =>
-                                (x.isSystem, systemCall) match {
-                                  case (true, false) => Failure("System directive '%s' (%s) can't be updated".format(x.name, x.id.value))
-                                  case (false, true) => Failure("Non-system directive can not be updated with that method")
-                                  case _ => Full(Some(otherPi))
-                                }
-                              }
-                            }
-
-                            else Failure("An other directive with the id %s exists in an other category that the one with id %s : %s".format(directive.id, inActiveTechniqueId, otherPi.dn))
-                        }
+      uptEntry    <- getUPTEntry(con, inActiveTechniqueId, "1.1").notOptional(s"Can not find the User Policy Entry with id '${inActiveTechniqueId.value}' to add directive '${directive.id.value}'")
+      canAdd      <- getDirectiveEntry(con, directive.id).flatMap { //check if the directive already exists elsewhere
+                       case None          => None.succeed
+                       case Some(otherPi) =>
+                         if(otherPi.dn.getParent == uptEntry.dn) {
+                           mapper.entry2Directive(otherPi).toIO.flatMap { x =>
+                             (x.isSystem, systemCall) match {
+                               case (true, false) => Unexpected(s"System directive '${x.name}' (${x.id.value}) can't be updated").fail
+                               case (false, true) => Inconsistancy("Non-system directive can not be updated with that method").fail
+                               case _ => Some(otherPi).succeed
+                             }
+                           }
+                         } else Inconsistancy(s"An other directive with the id '${directive.id.value}' exists in an other category that the one with id '${inActiveTechniqueId.value}}': ${otherPi.dn}}").fail
                      }
       // We have to keep the old rootSection to generate the event log
-      oldRootSection     =  {
-        getActiveTechniqueAndDirective(directive.id) match {
-          case Full((oldActiveTechnique, oldDirective)) =>
-              val oldTechniqueId =  TechniqueId(oldActiveTechnique.techniqueName, oldDirective.techniqueVersion)
-              techniqueRepository.get(oldTechniqueId).map(_.rootSection)
-          case eb:EmptyBox =>
-            // Directory did not exist before, this is a Rule addition.
-            None
-        }
-      }
-      nameIsAvailable    <- if (directiveNameExists(con, directive.name, directive.id))
-                              Failure("Cannot set directive with name \"%s\" : this name is already in use.".format(directive.name))
-                            else
-                              Full(Unit)
-      piEntry            =  mapper.userDirective2Entry(directive, uptEntry.dn)
-      result             <- userLibMutex.writeLock { con.save(piEntry, true) }
+      oldRootSection <- getActiveTechniqueAndDirective(directive.id).map {
+                          // Directory did not exist before, this is a Rule addition.
+                          case None => None
+                          case Some((oldActiveTechnique, oldDirective)) =>
+                            val oldTechniqueId =  TechniqueId(oldActiveTechnique.techniqueName, oldDirective.techniqueVersion)
+                            techniqueRepository.get(oldTechniqueId).map(_.rootSection)
+                        }
+      exists            <- directiveNameExists(con, directive.name, directive.id)
+      nameIsAvailable   <- ZIO.when(exists) {
+                             Inconsistancy(s"Cannot set directive with name '${directive.name}}' : this name is already in use.").fail
+                           }
+      piEntry           =  mapper.userDirective2Entry(directive, uptEntry.dn)
+      result            <- userLibMutex.writeLock { con.save(piEntry, true) }
       //for log event - perhaps put that elsewhere ?
-      activeTechnique    <- getActiveTechnique(inActiveTechniqueId).flatMap(Box(_)) ?~! "Can not find the User Policy Entry with id %s to add directive %s".format(inActiveTechniqueId, directive.id)
-      activeTechniqueId  =  TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion)
-      technique          <- Box(techniqueRepository.get(activeTechniqueId)) ?~! "Can not find the technique with ID '%s'".format(activeTechniqueId.toString)
-      optDiff            <- diffMapper.modChangeRecords2DirectiveSaveDiff(
-                                   technique.id.name
-                                 , technique.rootSection
-                                 , piEntry.dn
-                                 , canAdd
-                                 , result
-                                 , oldRootSection
-                               ) ?~! "Error when processing saved modification to log them"
-      eventLogged <- optDiff match {
-                       case None => Full("OK")
+      activeTechnique   <- getActiveTechnique(inActiveTechniqueId).notOptional(s"Can not find the User Policy Entry with id '${inActiveTechniqueId.value}' to add directive '${directive.id.value}'")
+      activeTechniqueId =  TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion)
+      technique         <- techniqueRepository.get(activeTechniqueId).succeed.notOptional(s"Can not find the technique with ID '${activeTechniqueId.toString}'")
+      optDiff           <- (diffMapper.modChangeRecords2DirectiveSaveDiff(
+                               technique.id.name
+                             , technique.rootSection
+                             , piEntry.dn
+                             , canAdd
+                             , result
+                             , oldRootSection
+                           ).toIO.chainError("Error when processing saved modification to log them"))
+      eventLogged <- (optDiff match {
+                       case None => UIO.unit
                        case Some(diff:AddDirectiveDiff) =>
                          actionLogger.saveAddDirective(
                              modId
@@ -622,35 +662,35 @@ class WoLDAPDirectiveRepository(
                            , modifyDiff = diff
                            , reason = reason
                          )
-                     }
-      autoArchive <- if(autoExportOnModify && optDiff.isDefined && !directive.isSystem) {
+                     })
+      autoArchive <- ZIO.when(autoExportOnModify && optDiff.isDefined && !directive.isSystem) {
                        for {
                          parents  <- activeTechniqueBreadCrump(activeTechnique.id)
                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                          archived <- gitPiArchiver.archiveDirective(directive, technique.id.name, parents.map( _.id), technique.rootSection, Some((modId, commiter, reason)))
                        } yield archived
-                     } else Full("ok")
+                     }
     } yield {
       optDiff
     }
   }
 
-  override def saveDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[DirectiveSaveDiff]] = {
+  override def saveDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[DirectiveSaveDiff]] = {
     internalSaveDirective(inActiveTechniqueId, directive, modId, actor, reason, false)
   }
 
-  override def saveSystemDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[DirectiveSaveDiff]] = {
+  override def saveSystemDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[DirectiveSaveDiff]] = {
     internalSaveDirective(inActiveTechniqueId, directive, modId, actor, reason, true)
   }
 
 
-  private[this] def directiveNameExists(con:RoLDAPConnection, name : String, id:DirectiveId) : Boolean = {
+  private[this] def directiveNameExists(con:RoLDAPConnection, name : String, id:DirectiveId) : IOResult[Boolean] = {
     val filter = AND(AND(IS(OC_DIRECTIVE), EQ(A_NAME,name), NOT(EQ(A_DIRECTIVE_UUID, id.value))))
-    con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter).size match {
-      case 0 => false
-      case 1 => true
-      case _ => logger.error("More than one directive has %s name".format(name)); true
-    }
+    con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter).flatMap( _.size match {
+      case 0 => false.succeed
+      case 1 => true.succeed
+      case _ => logPure.error("More than one directive has %s name".format(name)) *> true.succeed
+    })
   }
 
 
@@ -660,48 +700,49 @@ class WoLDAPDirectiveRepository(
    * delete dependent rule (or other items) by
    * hand if you want.
    */
-  override def delete(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DeleteDirectiveDiff] = {
-    for {
-      con             <- ldap
-      //for logging, before deletion
-      (uptEntry
-      , entry  )      <- getActiveTechniqueAndDirectiveEntries(id)
-      activeTechnique <- mapper.entry2ActiveTechnique(uptEntry) ?~! "Error when mapping active technique entry to its entity. Entry: %s".format(uptEntry)
-      directive       <- mapper.entry2Directive(entry) ?~! "Error when transforming LDAP entry into a directive for id %s. Entry: %s".format(id, entry)
-      okNotSystem     <- if(directive.isSystem) {
-                           Failure(s"Error: system directive (like '${directive.name} [id: ${directive.id.value}])' can't be deleted")
-                         } else {
-                           Full("ok")
-                         }
-      technique       <- Full(techniqueRepository.get(TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion)))
-      //delete
-      deleted         <- userLibMutex.writeLock { con.delete(entry.dn) }
-      diff            =  DeleteDirectiveDiff(activeTechnique.techniqueName, directive)
-      loggedAction    <- { //we can have a missing technique if the technique was deleted but not its directive. In that case, make a fake root section
-                           val rootSection = technique.map( _.rootSection).getOrElse(SectionSpec("Missing technique information"))
-                           actionLogger.saveDeleteDirective(
-                             modId, principal = actor, deleteDiff = diff, varsRootSectionSpec = rootSection, reason = reason
-                           )
-                         }
-      autoArchive     <- if (autoExportOnModify && deleted.size > 0 && !directive.isSystem) {
-                           for {
-                             parents  <- activeTechniqueBreadCrump(activeTechnique.id)
-                             commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                             archived <- gitPiArchiver.deleteDirective(directive.id, activeTechnique.techniqueName, parents.map( _.id), Some((modId, commiter, reason)))
-                           } yield archived
-                         } else Full("ok")
-    } yield {
-      diff
-    }
+  override def delete(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[DeleteDirectiveDiff]] = {
+    getActiveTechniqueAndDirectiveEntries(id).flatMap {
+      case None => // directive already deleted, do nothing
+        None.succeed
+      case Some((uptEntry, entry)) =>
+        for {
+          con             <- ldap
+          //for logging, before deletion
+          activeTechnique <- mapper.entry2ActiveTechnique(uptEntry).chainError(s"Error when mapping active technique entry to its entity. Entry: ${uptEntry}").toIO
+          directive       <- mapper.entry2Directive(entry).chainError(s"Error when transforming LDAP entry into a directive for id '${id.value}'. Entry: ${entry}").toIO
+          okNotSystem     <- ZIO.when(directive.isSystem) {
+                               s"Error: system directive (like '${directive.name} [id: ${directive.id.value}])' can't be deleted".fail
+                             }
+          technique       <- techniqueRepository.get(TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion)).succeed
+          //delete
+          deleted         <- userLibMutex.writeLock { con.delete(entry.dn) }
+          diff            =  DeleteDirectiveDiff(activeTechnique.techniqueName, directive)
+          loggedAction    <- { //we can have a missing technique if the technique was deleted but not its directive. In that case, make a fake root section
+                               val rootSection = technique.map( _.rootSection).getOrElse(SectionSpec("Missing technique information"))
+                               actionLogger.saveDeleteDirective(
+                                 modId, principal = actor, deleteDiff = diff, varsRootSectionSpec = rootSection, reason = reason
+                               )
+                             }
+          autoArchive     <- ZIO.when(autoExportOnModify && deleted.size > 0 && !directive.isSystem) {
+                               for {
+                                 parents  <- activeTechniqueBreadCrump(activeTechnique.id)
+                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                 archived <- gitPiArchiver.deleteDirective(directive.id, activeTechnique.techniqueName, parents.map( _.id), Some((modId, commiter, reason)))
+                               } yield archived
+                             }
+        } yield {
+          Some(diff)
+        }
+      }
   }
 
   /**
    * Check if the given parent category has a child with the given name (exact) and
    * an id different from given id
    */
-  private[this] def existsByName(con:RwLDAPConnection, parentDN:DN, subCategoryName:String, notId:String) : Boolean = {
+  private[this] def existsByName(con:RwLDAPConnection, parentDN:DN, subCategoryName:String, notId:String) : IOResult[Boolean] = {
     userLibMutex.readLock {
-      con.searchOne(parentDN, AND(EQ(A_NAME,subCategoryName),NOT(EQ(A_TECHNIQUE_CATEGORY_UUID,notId))), "1.1" ).nonEmpty
+      con.searchOne(parentDN, AND(EQ(A_NAME,subCategoryName),NOT(EQ(A_TECHNIQUE_CATEGORY_UUID,notId))), "1.1" ).map( _.nonEmpty)
     }
   }
 
@@ -720,54 +761,56 @@ class WoLDAPDirectiveRepository(
     , modId : ModificationId
     , actor: EventActor
     , reason: Option[String]
-  ) : Box[ActiveTechniqueCategory] = {
-    for {
+  ) : IOResult[ActiveTechniqueCategory] = {
+    (for {
       con                 <- ldap
-      parentCategoryEntry <- getCategoryEntry(con, into, "1.1") ?~! "The parent category '%s' was not found, can not add".format(into)
+      parentCategoryEntry <- getCategoryEntry(con, into, "1.1").notOptional(s"The parent category '${into.value}' was not found, can not add")
       categoryEntry       =  mapper.activeTechniqueCategory2ldap(that,parentCategoryEntry.dn)
-      canAddByName        <- if(existsByName(con,parentCategoryEntry.dn, that.name, that.id.value)) {
-                               Failure("A category with that name already exists in that category: category names must be unique for a given level")
+      exists              <- existsByName(con,parentCategoryEntry.dn, that.name, that.id.value)
+      canAddByName        <- if(exists) {
+                               "A category with that name already exists in that category: category names must be unique for a given level".fail
                              } else {
-                               Full("Can add, no sub categorie with that name")
+                               "Can add, no sub categorie with that name".succeed
                              }
       result              <- userLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
-      autoArchive         <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !that.isSystem) {
+      autoArchive         <- ZIO.when(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !that.isSystem) {
                                for {
                                  parents  <- getParentsForActiveTechniqueCategory(that.id)
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                                  archive  <- gitCatArchiver.archiveActiveTechniqueCategory(that,parents.map( _.id), Some((modId, commiter, reason)))
                                } yield archive
-                             } else Full("ok")
-      parentEntry         <- getCategoryEntry(con, into) ?~! "Entry with ID '%s' was not found".format(into)
-      updatedParent       <- mapper.entry2ActiveTechniqueCategory(categoryEntry) ?~! "Error when transforming LDAP entry %s into an active technique category".format(categoryEntry)
+                             }
+      parentEntry         <- getCategoryEntry(con, into).chainError("Entry with ID '%s' was not found".format(into))
+      updatedParent       <- mapper.entry2ActiveTechniqueCategory(categoryEntry).chainError(s"Error when transforming LDAP entry '${categoryEntry}' into an active technique category").toIO
     } yield {
       updatedParent
-    }
+    })
   }
 
   /**
    * Update an existing technique category
    * Return the updated policy category
    */
-  def saveActiveTechniqueCategory(category:ActiveTechniqueCategory, modId : ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategory] = {
+  def saveActiveTechniqueCategory(category:ActiveTechniqueCategory, modId : ModificationId, actor: EventActor, reason: Option[String]) : IOResult[ActiveTechniqueCategory] = {
     for {
       con              <- ldap
-      oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1") ?~! "Entry with ID '%s' was not found".format(category.id)
+      oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1").notOptional(s"Entry with ID '${category.id.value}' was not found")
       categoryEntry    =  mapper.activeTechniqueCategory2ldap(category,oldCategoryEntry.dn.getParent)
-      canAddByName     <- if(categoryEntry.dn != rudderDit.ACTIVE_TECHNIQUES_LIB.dn && existsByName(con,categoryEntry.dn.getParent, category.name, category.id.value)) {
-                            Failure("A category with that name already exists in that category: category names must be unique for a given level")
+      exists           <- existsByName(con,categoryEntry.dn.getParent, category.name, category.id.value)
+      canAddByName     <- if(categoryEntry.dn != rudderDit.ACTIVE_TECHNIQUES_LIB.dn && exists) {
+                            "A category with that name already exists in that category: category names must be unique for a given level".fail
                           } else {
-                            Full("Can add, no sub categorie with that name")
+                            "Can add, no sub categorie with that name".succeed
                           }
       result           <- userLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
       updated          <- getActiveTechniqueCategory(category.id)
-      autoArchive      <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem) {
+      autoArchive      <- ZIO.when(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem) {
                             for {
                               parents  <- getParentsForActiveTechniqueCategory(category.id)
                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                               archive  <- gitCatArchiver.archiveActiveTechniqueCategory(updated,parents.map( _.id), Some((modId, commiter, reason)))
                             } yield archive
-                          } else Full("ok")
+                          }
     } yield {
       updated
     }
@@ -775,37 +818,30 @@ class WoLDAPDirectiveRepository(
 
 
 
-  def delete(id:ActiveTechniqueCategoryId, modId : ModificationId, actor:EventActor, reason: Option[String], checkEmpty:Boolean = true) : Box[ActiveTechniqueCategoryId] = {
+  def delete(id:ActiveTechniqueCategoryId, modId : ModificationId, actor:EventActor, reason: Option[String], checkEmpty:Boolean = true) : IOResult[ActiveTechniqueCategoryId] = {
     for {
-      con <-ldap
-      deleted <- {
-        getCategoryEntry(con, id) match {
-          case Full(entry) =>
+      con     <-ldap
+      deleted <- getCategoryEntry(con, id).flatMap {
+          case Some(entry) =>
             for {
-              category    <- mapper.entry2ActiveTechniqueCategory(entry)
+              category    <- mapper.entry2ActiveTechniqueCategory(entry).toIO
               parents     <- if(autoExportOnModify) {
                                getParentsForActiveTechniqueCategory(id)
-                             } else Full(Nil)
-              ok          <- try {
-                               userLibMutex.writeLock { con.delete(entry.dn, recurse = !checkEmpty) ?~! "Error when trying to delete category with ID '%s'".format(id) }
-                             } catch {
-                               case e:LDAPException if(e.getResultCode == ResultCode.NOT_ALLOWED_ON_NONLEAF) => Failure("Can not delete a non empty category")
-                               case e:Exception => Failure("Exception when trying to delete category with ID '%s'".format(id), Full(e), Empty)
-                             }
-              autoArchive <- (if(autoExportOnModify && ok.size > 0 && !category.isSystem) {
+                             } else Nil.succeed
+              ok          <- userLibMutex.writeLock { con.delete(entry.dn, recurse = !checkEmpty).chainError(s"Error when trying to delete category with ID '${id.value}'") }
+              autoArchive <- ZIO.when(autoExportOnModify && ok.size > 0 && !category.isSystem) {
                                for {
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                                  archive  <- gitCatArchiver.deleteActiveTechniqueCategory(id,parents.map( _.id), Some((modId, commiter, reason)))
                                } yield {
                                  archive
                                }
-                             } else Full("ok") )  ?~! "Error when trying to archive automatically the category deletion"
+                             }.chainError("Error when trying to archive automatically the category deletion")
             } yield {
               id
             }
-          case Empty => Full(id)
-          case f:Failure => f
-        }
+
+          case None => id.succeed
       }
     } yield {
       deleted
@@ -814,44 +850,46 @@ class WoLDAPDirectiveRepository(
 
   /**
    * Move an existing category into a new one.
-   * Both category to move and destination have to exists, else it is a failure.
+   * Both category to move and destination have to exists, else it is a.fail.
    * The destination category can not be a child of the category to move.
    */
-  def move(categoryId:ActiveTechniqueCategoryId, intoParent:ActiveTechniqueCategoryId, modId : ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategoryId] = {
-      for {
-        con            <- ldap
-        oldParents     <- if(autoExportOnModify) {
-                            getParentsForActiveTechniqueCategory(categoryId)
-                          } else Full(Nil)
-        categoryEntry  <- getCategoryEntry(con, categoryId, A_NAME)
-        newParentEntry <- getCategoryEntry(con, intoParent, "1.1")
-        moveAuthorised <- if(newParentEntry.dn.isDescendantOf(categoryEntry.dn, true)) {
-                            Failure("Can not move a category to itself or one of its children")
-                          } else Full("Succes")
-        canAddByName   <- (categoryEntry(A_TECHNIQUE_CATEGORY_UUID) , categoryEntry(A_NAME)) match {
-                            case (Some(id),Some(name)) =>
-                              if(existsByName(con, newParentEntry.dn, name, id)) {
-                                Failure("A category with that name already exists in that category: category names must be unique for a given level")
+  def move(categoryId:ActiveTechniqueCategoryId, intoParent:ActiveTechniqueCategoryId, modId : ModificationId, actor: EventActor, reason: Option[String]) : IOResult[ActiveTechniqueCategoryId] = {
+    for {
+      con            <- ldap
+      oldParents     <- if(autoExportOnModify) {
+                          getParentsForActiveTechniqueCategory(categoryId)
+                        } else Nil.succeed
+      categoryEntry  <- getCategoryEntry(con, categoryId, A_NAME).notOptional(s"Category was not found")
+      newParentEntry <- getCategoryEntry(con, intoParent, "1.1").notOptional(s"New destination category '${intoParent.value}' was not found")
+      moveAuthorised <- if(newParentEntry.dn.isDescendantOf(categoryEntry.dn, true)) {
+                          "Can not move a category to itself or one of its children".fail
+                        } else "Succes".succeed
+      canAddByName   <- (categoryEntry(A_TECHNIQUE_CATEGORY_UUID) , categoryEntry(A_NAME)) match {
+                          case (Some(id),Some(name)) =>
+                            existsByName(con, newParentEntry.dn, name, id).flatMap { exists =>
+                              if(exists) {
+                                "A category with that name already exists in that category: category names must be unique for a given level".fail
                               } else {
-                                Full("Can add, no sub categorie with that name")
+                                "Can add, no sub categorie with that name".succeed
                               }
-                            case _ => Failure("Can not find the category entry name for category with ID %s. Name is needed to check unicity of categories by level")
-                          }
-        result         <- userLibMutex.writeLock { con.move(categoryEntry.dn, newParentEntry.dn) }
-        category       <- getActiveTechniqueCategory(categoryId)
-        autoArchive    <- (if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem ) {
-                            for {
-                              newCat   <- getActiveTechniqueCategory(categoryId)
-                              parents  <- getParentsForActiveTechniqueCategory(categoryId)
-                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                              moved    <- gitCatArchiver.moveActiveTechniqueCategory(newCat, oldParents.map( _.id), parents.map( _.id), Some((modId, commiter, reason)))
-                            } yield {
-                              moved
                             }
-                          } else Full("ok") ) ?~! "Error when trying to archive automatically the category move"
-      } yield {
-        categoryId
-      }
+                          case _ => "Can not find the category entry name for category with ID %s. Name is needed to check unicity of categories by level".fail
+                        }
+      result         <- userLibMutex.writeLock { con.move(categoryEntry.dn, newParentEntry.dn) }
+      category       <- getActiveTechniqueCategory(categoryId)
+      autoArchive    <- ZIO.when(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem ) {
+                          for {
+                            newCat   <- getActiveTechniqueCategory(categoryId)
+                            parents  <- getParentsForActiveTechniqueCategory(categoryId)
+                            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                            moved    <- gitCatArchiver.moveActiveTechniqueCategory(newCat, oldParents.map( _.id), parents.map( _.id), Some((modId, commiter, reason)))
+                          } yield {
+                            moved
+                          }
+                        }.chainError("Error when trying to archive automatically the category move")
+    } yield {
+      categoryId
+    }
   }
 
 
@@ -863,7 +901,7 @@ class WoLDAPDirectiveRepository(
     , modId        : ModificationId
     , actor        : EventActor
     , reason: Option[String]
-  ): Box[ActiveTechnique] = {
+  ): IOResult[ActiveTechnique] = {
     //check if the technique is already in user lib, and if the category exists
     for {
       con                <- ldap
@@ -871,25 +909,24 @@ class WoLDAPDirectiveRepository(
                               getUPTEntry[TechniqueName](
                                 con, techniqueName,
                                 { name => EQ(A_TECHNIQUE_UUID, name.value) },
-                                "1.1") match {
-                                  case Empty => Full("ok")
-                                  case Full(uptEntry) => Failure("Can not add a technique with id %s in user library. active technique %s is already defined with such a reference technique.".format(techniqueName,uptEntry.dn))
-                                  case f:Failure => f
+                                "1.1") flatMap {
+                                  case None => UIO.unit
+                                  case Some(uptEntry) => s"Can not add a technique with id '${techniqueName.toString}' in user library. active technique '${uptEntry.dn}}' is already defined with such a reference technique.".fail
                               }
                             }
-      categoryEntry      <- getCategoryEntry(con, categoryId, "1.1") ?~! "Category entry with ID '%s' was not found".format(categoryId)
+      categoryEntry      <- getCategoryEntry(con, categoryId, "1.1").notOptional(s"Category entry with ID '${categoryId.value}' was not found")
       newActiveTechnique =  ActiveTechnique(ActiveTechniqueId(uuidGen.newUuid),techniqueName, versions.map(x => x -> DateTime.now()).toMap)
       uptEntry           =  mapper.activeTechnique2Entry(newActiveTechnique,categoryEntry.dn)
       result             <- userLibMutex.writeLock { con.save(uptEntry, true) }
       // a new active technique is never system, see constructor call, using defvault value,
       // maybe we should check in its caller is the technique is system or not
-      autoArchive        <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
+      autoArchive        <- ZIO.when(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
                               for {
                                 parents  <- activeTechniqueBreadCrump(newActiveTechnique.id)
                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                                 archive  <- gitATArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some((modId, commiter, reason)))
                               } yield archive
-                            } else Full("ok")
+                            }
     } yield {
       newActiveTechnique
     }
@@ -898,21 +935,21 @@ class WoLDAPDirectiveRepository(
 
   /**
    * Move a technique to a new category.
-   * Failure if the given technique or category
+   *.fail if the given technique or category
    * does not exist.
    *
    */
-  def move(uactiveTechniqueId:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
-     for {
+  def move(uactiveTechniqueId:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, modId: ModificationId, actor: EventActor, reason: Option[String]) : IOResult[ActiveTechniqueId] = {
+    for {
       con                  <- ldap
       oldParents           <- if(autoExportOnModify) {
                                 activeTechniqueBreadCrump(uactiveTechniqueId)
-                              } else Full(Nil)
-      activeTechnique      <- getUPTEntry(con, uactiveTechniqueId, "1.1") ?~! "Can not move non existing template in use library with ID %s".format(uactiveTechniqueId)
-      newCategory          <- getCategoryEntry(con, newCategoryId, "1.1") ?~! "Can not move template with ID %s into non existing category of user library %s".format(uactiveTechniqueId, newCategoryId)
-      moved                <- userLibMutex.writeLock { con.move(activeTechnique.dn, newCategory.dn) ?~! "Error when moving technique %s to category %s".format(uactiveTechniqueId, newCategoryId) }
-      movedActiveTechnique <- getActiveTechnique(uactiveTechniqueId).flatMap { Box(_)  }
-      autoArchive          <- ( if(autoExportOnModify && !moved.isInstanceOf[LDIFNoopChangeRecord] && !movedActiveTechnique.isSystem) {
+                              } else Nil.succeed
+      activeTechnique      <- getUPTEntry(con, uactiveTechniqueId, "1.1").notOptional(s"Can not move non existing template in use library with ID '${uactiveTechniqueId.value}")
+      newCategory          <- getCategoryEntry(con, newCategoryId, "1.1").notOptional(s"Can not move template with ID '${uactiveTechniqueId.value}' into non existing category of user library ${newCategoryId.value}")
+      moved                <- userLibMutex.writeLock { con.move(activeTechnique.dn, newCategory.dn).chainError(s"Error when moving technique '${uactiveTechniqueId.value}' to category ${newCategoryId.value}")}
+      movedActiveTechnique <- getActiveTechnique(uactiveTechniqueId).notOptional(s"The technique was not found in new category")
+      autoArchive          <- ZIO.when(autoExportOnModify && !moved.isInstanceOf[LDIFNoopChangeRecord] && !movedActiveTechnique.isSystem) {
                                 for {
                                   parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
                                   commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
@@ -920,7 +957,7 @@ class WoLDAPDirectiveRepository(
                                 } yield {
                                   moved
                                 }
-                              } else Full("ok") ) ?~! "Error when trying to archive automatically the technique move"
+                              }.chainError("Error when trying to archive automatically the technique move")
     } yield {
       uactiveTechniqueId
     }
@@ -929,53 +966,53 @@ class WoLDAPDirectiveRepository(
   /**
    * Set the status of the technique to the new value
    */
-  def changeStatus(uactiveTechniqueId:ActiveTechniqueId, status:Boolean, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
+  def changeStatus(uactiveTechniqueId:ActiveTechniqueId, status:Boolean, modId: ModificationId, actor: EventActor, reason: Option[String]) : IOResult[ActiveTechniqueId] = {
     for {
       con             <- ldap
-      oldTechnique    <- getUPTEntry(con, uactiveTechniqueId)
-      activeTechnique <- getUPTEntry(con, uactiveTechniqueId)
+      oldTechnique    <- getUPTEntry(con, uactiveTechniqueId).notOptional(s"Technique with id '${uactiveTechniqueId.value}' was not found")
+      activeTechnique =  LDAPEntry(oldTechnique.backed)
       saved           <- {
                            activeTechnique +=! (A_IS_ENABLED, status.toLDAPString)
                            userLibMutex.writeLock { con.save(activeTechnique) }
                          }
-      optDiff         <- diffMapper.modChangeRecords2TechniqueDiff(oldTechnique, saved) ?~!
-                           "Error when mapping technique '%s' update to an diff: %s".
-                             format(uactiveTechniqueId.value, saved)
+      optDiff         <- diffMapper.modChangeRecords2TechniqueDiff(oldTechnique, saved).toIO.chainError(
+                          s"Error when mapping technique '${uactiveTechniqueId.value}' update to an diff: ${saved}"
+                         )
       loggedAction    <- optDiff match {
-                           case None => Full("OK")
+                           case None       => UIO.unit
                            case Some(diff) => actionLogger.saveModifyTechnique(modId, principal = actor, modifyDiff = diff, reason = reason)
                          }
-      newactiveTechnique <- getActiveTechnique(uactiveTechniqueId).flatMap { Box(_) }
-      autoArchive     <- if(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord] && ! newactiveTechnique.isSystem) {
-                           for {
-                             parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
-                             commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                             archive  <- gitATArchiver.archiveActiveTechnique(newactiveTechnique, parents.map( _.id), Some((modId, commiter, reason)))
-                           } yield archive
-                         } else Full("ok")
+      newactiveTechnique <- getActiveTechnique(uactiveTechniqueId).notOptional(s"Technique with id '${uactiveTechniqueId.value}' can't be find back after status change")
+      autoArchive        <- ZIO.when(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord] && ! newactiveTechnique.isSystem) {
+                              for {
+                                parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
+                                commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                archive  <- gitATArchiver.archiveActiveTechnique(newactiveTechnique, parents.map( _.id), Some((modId, commiter, reason)))
+                              } yield archive
+                            }
     } yield {
       uactiveTechniqueId
     }
   }
 
-  def setAcceptationDatetimes(uactiveTechniqueId:ActiveTechniqueId, datetimes: Map[TechniqueVersion,DateTime], modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
+  def setAcceptationDatetimes(uactiveTechniqueId:ActiveTechniqueId, datetimes: Map[TechniqueVersion,DateTime], modId: ModificationId, actor: EventActor, reason: Option[String]) : IOResult[ActiveTechniqueId] = {
     for {
       con             <- ldap
-      activeTechnique <- getUPTEntry(con, uactiveTechniqueId, A_ACCEPTATION_DATETIME)
+      activeTechnique <- getUPTEntry(con, uactiveTechniqueId, A_ACCEPTATION_DATETIME).notOptional(s"Active technique with id '${uactiveTechniqueId.value}' was not found")
       saved           <- {
                            val oldAcceptations = mapper.unserializeAcceptations(activeTechnique(A_ACCEPTATION_DATETIME).getOrElse(""))
                            val json = JsonAST.compactRender(mapper.serializeAcceptations(oldAcceptations ++ datetimes))
                            activeTechnique.+=!(A_ACCEPTATION_DATETIME, json)
                            userLibMutex.writeLock { con.save(activeTechnique) }
                          }
-      newActiveTechnique  <- getActiveTechnique(uactiveTechniqueId).flatMap { Box(_) }
-      autoArchive         <- if(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord] && !newActiveTechnique.isSystem) {
+      newActiveTechnique  <- getActiveTechnique(uactiveTechniqueId).notOptional(s"Active technique with id '${uactiveTechniqueId.value}' was not found after acceptation datetime update")
+      autoArchive         <- ZIO.when(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord] && !newActiveTechnique.isSystem) {
                                for {
                                  parents <- activeTechniqueBreadCrump(uactiveTechniqueId)
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                                  archive <- gitATArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some((modId, commiter, reason)))
                                } yield archive
-                             } else Full("ok")
+                             }
     } yield {
       uactiveTechniqueId
     }
@@ -984,27 +1021,37 @@ class WoLDAPDirectiveRepository(
 
   /**
    * Delete the technique in user library.
-   * If no such element exists, it is a success.
+   * If no such element exists, it is a.succeed.
    */
-  def delete(uactiveTechniqueId:ActiveTechniqueId, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
-     for {
+  def delete(uactiveTechniqueId:ActiveTechniqueId, modId: ModificationId, actor: EventActor, reason: Option[String]) : IOResult[ActiveTechniqueId] = {
+    for {
       con                <- ldap
       oldParents         <- if(autoExportOnModify) {
                               activeTechniqueBreadCrump(uactiveTechniqueId)
-                            } else Full(Nil)
-      activeTechnique    <- getUPTEntry(con, uactiveTechniqueId, A_TECHNIQUE_UUID)
-      ldapEntryTechnique <- getUPTEntry(con, uactiveTechniqueId)
-      oldTechnique       <- mapper.entry2ActiveTechnique(ldapEntryTechnique)
-      deleted            <- userLibMutex.writeLock { con.delete(activeTechnique.dn, false) }
-      diff               =  DeleteTechniqueDiff(oldTechnique)
-      loggedAction       <- actionLogger.saveDeleteTechnique(modId, principal = actor, deleteDiff = diff, reason = reason)
-      autoArchive        <- (if(autoExportOnModify && deleted.size > 0 && !oldTechnique.isSystem) {
-                               for {
-                                 ptName   <- Box(activeTechnique(A_TECHNIQUE_UUID)) ?~! "Missing required reference technique name"
-                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                 res      <- gitATArchiver.deleteActiveTechnique(TechniqueName(ptName),oldParents.map( _.id), Some((modId, commiter, reason)))
-                               } yield res
-                              } else Full("ok") )  ?~! "Error when trying to archive automatically the category deletion"
+                            } else Nil.succeed
+      done               <- getUPTEntry(con, uactiveTechniqueId).flatMap {
+        case None => "done".succeed
+        case Some(activeTechnique) =>
+          val ldapEntryTechnique = LDAPEntry(activeTechnique.backed)
+          for {
+            oldTechnique       <- mapper.entry2ActiveTechnique(ldapEntryTechnique).toIO
+            deleted            <- userLibMutex.writeLock { con.delete(activeTechnique.dn, false) }
+            diff               =  DeleteTechniqueDiff(oldTechnique)
+            loggedAction       <- actionLogger.saveDeleteTechnique(modId, principal = actor, deleteDiff = diff, reason = reason)
+            autoArchive        <- ZIO.when(autoExportOnModify && deleted.size > 0 && !oldTechnique.isSystem) {
+                                     for {
+                                       ptName   <- activeTechnique(A_TECHNIQUE_UUID) match {
+                                         case None    =>  Inconsistancy("Missing required reference technique name").fail
+                                         case Some(x) => x.succeed
+                                       }
+                                       commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                       res      <- gitATArchiver.deleteActiveTechnique(TechniqueName(ptName),oldParents.map( _.id), Some((modId, commiter, reason)))
+                                     } yield res
+                                  }.chainError("Error when trying to archive automatically the category deletion")
+          } yield {
+            "done"
+          }
+      }
     } yield {
       uactiveTechniqueId
     }
