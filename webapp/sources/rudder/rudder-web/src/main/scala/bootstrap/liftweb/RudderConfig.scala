@@ -124,7 +124,6 @@ import org.apache.commons.io.FileUtils
 import scalaz.zio.syntax._
 
 import scalaz.zio.duration._
-import scala.util.Try
 
 /**
  * Define a resource for configuration.
@@ -293,9 +292,6 @@ object RudderConfig extends Loggable {
   val ruleCategoriesDirectoryName = "ruleCategories"
   val parametersDirectoryName = "parameters"
 
-  //deprecated
-  val BASE_URL = Try(config.getString("base.url")).getOrElse("")
-
   // properties from version.properties file,
   val (
       rudderMajorVersion
@@ -343,7 +339,6 @@ object RudderConfig extends Loggable {
   val debugScript : DebugInfoService = scriptLauncher
   val stringUuidGenerator: StringUuidGenerator = uuidGen
   val cmdbQueryParser: CmdbQueryParser = queryParser
-  val getBaseUrlService: GetBaseUrlService = baseUrlService
   val fileManager: FileManager = fileManagerImpl
   val inventoryHistoryLogRepository: InventoryHistoryLogRepository = diffRepos
   val inventoryEventLogService: InventoryEventLogService = inventoryLogEventServiceImpl
@@ -845,7 +840,6 @@ object RudderConfig extends Loggable {
     , Constants.CFENGINE_COMMUNITY_PROMISES_PATH
     , Constants.CFENGINE_NOVA_PROMISES_PATH
   )
-  private[this] lazy val baseUrlService: GetBaseUrlService = new DefaultBaseUrlService(BASE_URL)
 
   /*
    * For now, we don't want to query server other
