@@ -38,19 +38,23 @@
 package com.normation.inventory.ldap.core
 
 import com.normation.ldap.sdk._
-import BuildFilter.{EQ,OR}
+import BuildFilter.{EQ, IS, OR}
 import com.normation.inventory.domain._
-import com.normation.inventory.services.core.ReadOnlySoftwareDAO
+import com.normation.inventory.services.core._
 import LDAPConstants._
 import net.liftweb.common._
 import Box._
-import com.normation.utils.Control.sequence
+import com.normation.utils.Control.{bestEffort, sequence}
+import com.unboundid.ldap.sdk.{DN, Filter}
+
+import scala.collection.GenTraversableOnce
+
 
 class ReadOnlySoftwareDAOImpl(
   inventoryDitService:InventoryDitService,
   ldap:LDAPConnectionProvider[RoLDAPConnection],
   mapper:InventoryMapper
-) extends ReadOnlySoftwareDAO {
+) extends ReadOnlySoftwareDAO with Loggable {
 
   private[this] def search(con: RoLDAPConnection, ids: Seq[SoftwareUuid]) = {
     sequence(con.searchOne(inventoryDitService.getSoftwareBaseDN, OR(ids map {x:SoftwareUuid => EQ(A_SOFTWARE_UUID,x.value) }:_*))) { entry =>
@@ -76,9 +80,11 @@ class ReadOnlySoftwareDAOImpl(
 
     val dit = inventoryDitService.getDit(status)
 
+    val orFilter = BuildFilter.OR(nodeIds.toSeq.map(x => EQ(A_NODE_UUID,x.value)):_*)
+
     for {
       con            <- ldap
-      nodeEntries    =  con.searchOne(dit.NODES.dn, BuildFilter.ALL, Seq(A_NODE_UUID, A_SOFTWARE_DN):_*)
+      nodeEntries    =  con.searchOne(dit.NODES.dn, orFilter, Seq(A_NODE_UUID, A_SOFTWARE_DN):_*)
       softwareByNode =  (nodeEntries.flatMap { e =>
                           e(A_NODE_UUID).map { id =>
                             (NodeId(id), e.valuesFor(A_SOFTWARE_DN).flatMap(dn => inventoryDitService.getDit(AcceptedInventory).SOFTWARE.SOFT.idFromDN(dn)))
@@ -88,6 +94,97 @@ class ReadOnlySoftwareDAOImpl(
       software       <- search(con, softwareIds)
     } yield {
       softwareByNode.mapValues { ids => software.filter(s => ids.contains(s.id)) }
+    }
+  }
+
+  def getAllSoftwareIds() : Box[Set[SoftwareUuid]] = {
+    for {
+      con     <- ldap
+      softwareEntry = con.searchOne(inventoryDitService.getSoftwareBaseDN, IS(OC_SOFTWARE), A_SOFTWARE_UUID)
+      ids     <- sequence(softwareEntry) { entry =>
+        entry(A_SOFTWARE_UUID) match {
+          case Some(value) => Full(value)
+          case _ => Failure(s"Missing attribute ${A_SOFTWARE_UUID} for entry ${entry.dn} ${entry.toString()}")
+        }
+      }
+      softIds       =  ids.map(id => SoftwareUuid(id)).toSet
+    } yield {
+      softIds
+    }
+  }
+
+  def getSoftwaresForAllNodes() : Box[Set[SoftwareUuid]] = {
+    // fetch all softwares, for all nodes, in all 3 dits
+    val acceptedDit = inventoryDitService.getDit(AcceptedInventory)
+
+    var mutSetSoftwares: Box[scala.collection.mutable.Set[SoftwareUuid]] = Full(scala.collection.mutable.Set[SoftwareUuid]())
+
+    val t1 = System.currentTimeMillis
+    for {
+      con           <- ldap
+      // fetch all nodes
+      nodes         = con.searchSub(acceptedDit.NODES.dn.getParent, IS(OC_NODE), A_NODE_UUID)
+
+      batchedNodes = nodes.grouped(50)
+
+      _ = batchedNodes.foreach { nodeEntries: Seq[LDAPEntry] =>
+                             val nodeIds = nodeEntries.flatMap(_(A_NODE_UUID)).map(NodeId(_))
+
+                             val orFilter: Filter = BuildFilter.OR(nodeIds.map(x => EQ(A_NODE_UUID, x.value)): _*)
+                             val softwareEntry: Seq[LDAPEntry] =  con.searchSub(acceptedDit.NODES.dn.getParent, orFilter, A_SOFTWARE_DN)
+                             val ids: Seq[String] = softwareEntry.flatMap(entry => entry.valuesFor(A_SOFTWARE_DN).toSet )
+                             val results = sequence(ids) { id => acceptedDit.SOFTWARE.SOFT.idFromDN(new DN(id)) }
+
+                             results match {
+                               case Full(softIds) =>
+                                 mutSetSoftwares = mutSetSoftwares.map(t => t ++ softIds)
+                                 Full(Unit)
+                               case Failure(msg, exception, chain) => mutSetSoftwares = Failure(msg, exception, chain) // otherwise the time is wrong
+                             }
+                           }
+
+
+      } yield {
+        mutSetSoftwares
+      }
+    mutSetSoftwares.map(x => x.toSet)
+
+    /*
+    // TODO: This needs pagination, with 1000 nodes, it uses about 1,5 GB
+    softwareEntry =  dits.flatMap { dit => con.searchOne(dit.NODES.dn, IS(OC_NODE), A_SOFTWARE_DN) } // it's really a dn that is stored in software attribute
+    t2            = System.currentTimeMillis()
+    _             = logger.debug(s"All Software DNs from all nodes ${softwareEntry.size} fetched in ${t2-t1}ms")
+
+    // This could be more efficient, as it takes 3 secodes to process
+    ids           = softwareEntry.flatMap( entry => entry.valuesFor(A_SOFTWARE_DN).toSet )
+    t3            = System.currentTimeMillis()
+     _            = logger.debug(s"All software DNs deduplicated, resulting in ${ids.size} software entries, in ${t3-t2}ms")
+
+    softIds       <- sequence(ids.toSeq) { id => acceptedDit.SOFTWARE.SOFT.idFromDN(new DN(id)) }
+    t4            = System.currentTimeMillis()
+    _             = logger.trace(s"All software DNs to software ids in ${t4-t3}ms")
+  } yield {
+    softIds.toSet
+  }*/
+  }
+
+}
+
+class WriteOnlySoftwareDAOImpl(
+     inventoryDit  :InventoryDit
+   , ldap          :LDAPConnectionProvider[RwLDAPConnection]
+) extends WriteOnlySoftwareDAO {
+
+
+  def deleteSoftwares(softwareIds: Seq[SoftwareUuid]): Box[Seq[String]] = {
+    for {
+      con <- ldap
+      dns = softwareIds.map(inventoryDit.SOFTWARE.SOFT.dn(_))
+      res <- bestEffort(dns) { dn =>
+        con.delete(dn)
+      }
+    } yield {
+      res.flatten.map( entry => entry.getDN)
     }
   }
 }
