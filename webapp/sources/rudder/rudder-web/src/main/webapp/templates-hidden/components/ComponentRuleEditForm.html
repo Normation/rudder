@@ -176,48 +176,6 @@
           </div>
         </div>
 
-        <div id="selectDirectives" class="modal fade">
-          <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-              <div class="modal-header">
-                <div data-dismiss="modal" class="close">
-                  <span>×</span>
-                </div>
-                <h4 class="modal-title">
-                  Select Directives to be applied
-                </h4>
-              </div>
-              <div class="modal-body">
-                <div id="directiveTree_actions_zone" class="row" >
-                  <div class="col-xs-12 tree">
-                    <div class="filter-tree">
-                      <div class="input-group">
-                        <div class="input-group-btn">
-                          <button type="button" class="btn btn-default" aria-label="Bold" onclick="toggleTree('#directiveTree', this);">
-                            <span class="fa fa-folder fa-folder-open"></span>
-                          </button>
-                        </div>
-                        <input class="form-control" placeholder="Filter" id="treeSearch" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch', '#directiveTree');">
-                        <div class="input-group-btn">
-                          <button type="button" class="btn btn-default" aria-label="Bold" onclick="clearSearchFieldTree('#treeSearch', '#directiveTree');" >
-                            <span class="fa fa-times"></span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div id="selectPiField"  class="col-xs-12" ng-non-bindable>
-                  Here comes the Directive selection field
-                </div>
-              </div>
-              <div class="modal-footer">
-                <button data-dismiss="modal" class="btn btn-default" type="button">Close</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <div class="row" id="directives-section">
           <div class="col-xs-12 col-lg-6">
             <h4 class="list-title">
@@ -269,6 +227,98 @@
           </div>
         </div>
 
+      </div>
+    </div>
+    <div id="selectDirectives" class="modal fade">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div data-dismiss="modal" class="close">
+              <span>×</span>
+            </div>
+            <h4 class="modal-title">
+              Select Directives to be applied
+            </h4>
+          </div>
+          <div class="modal-body">
+            <div id="directiveFilters" ng-controller="filterTagCtrl" ng-init="directiveTreeId = '#directiveTree'; fullPage = false">
+              <div class="tree">
+                <div class="filter-tree">
+                  <div class="input-group search-addon">
+                    <div class="input-group-btn">
+                      <button type="button" class="btn btn-sm btn-default" aria-label="Bold" onclick="toggleTree('#directiveTree', this);">
+                        <span class="fa fa-folder fa-folder-open"></span>
+                      </button>
+                    </div>
+                    <input class="form-control input-sm" placeholder="Filter" id="treeSearch" ng-model="searchStr" ng-keydown="refuseEnter($event)" ng-keyup="searchTree('#directiveTree')">
+                    <div class="input-group-btn">
+                      <button type="button" class="btn btn-default btn-sm" aria-label="Bold" ng-click="clearSearchFieldTree('#directiveTree');" >
+                        <span class="fa fa-times"></span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="clearfix "></div>
+              <div id="showFiltersDirective" class="filters">
+                <div class="filters-container">
+                  <form class="filterTag">
+                    <div id="form-tag" class="row">
+                      <div class="form-group col-lg-8 col-xs-12">
+                        <label>Tags</label>
+                        <div class="input-group">
+                          <div id="directiveFilterKeyInput" angucomplete-alt="" placeholder="key" minlength="1" maxlength="100"
+                               pause="500" selected-object="selectTag" remote-url="{{contextPath}}/secure/api/completion/tags/directive/key/"
+                               remote-url-data-field="data" title-field="value" input-class="form-control input-sm input-key"
+                               match-class="highlight" input-changed="updateTag" override-suggestions="true">
+                          </div>
+                          <span class="input-group-addon addon-json">=</span>
+                          <div id="directiveFilterValueInput" angucomplete-alt="" placeholder="value" minlength="1" maxlength="100"
+                               pause="500" selected-object="selectValue" remote-url="{{contextPath}}/secure/api/completion/tags/directive/value/{{newTag.key}}/"
+                               remote-url-data-field="data" title-field="value" input-class="form-control input-sm input-value" match-class="highlight"
+                               input-changed="updateValue" override-suggestions="true">
+                          </div>
+                          <span class="input-group-btn">
+                            <button type="button" class="btn btn-success btn-sm" ng-disabled="isEmptyOrBlank(newTag.key) && isEmptyOrBlank(newTag.value)" ng-click="addTag(newTag)"><span class="fa fa-plus"></span></button>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="tags-container" ng-show="tags.length>0">
+                      <button class="btn btn-default btn-xs" ng-click="clearAllTags()" ng-hide="tags.length==0">
+                        Clear all tags
+                        <i class="fa fa-trash" aria-hidden="true"></i>
+                      </button>
+                      <div class="btn-group btn-group-xs" role="group"  ng-repeat="tag in tags track by $index">
+                        <button class="btn btn-default tag" ng-class="{'onlyKey':only.key, 'onlyValue':only.value, 'already-exist':tag.alreadyExist}" ng-click="modifyTag(tag, 'directiveFilterKeyInput', 'directiveFilterValueInput')" >
+                          <span class="tag-key">
+                            <span ng-show="tag.key!=''">{{tag.key}}</span>
+                            <i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.key==''"></i>
+                          </span>
+                          <span class="tag-separator">=</span>
+                          <span class="tag-value">
+                            <span ng-show="tag.value!=''">{{tag.value}}</span>
+                            <i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.value==''"></i>
+                          </span>
+                        </button>
+                        <button type="button" class="btn btn-default" ng-click="removeTag($index)">
+                          <span class="fa fa-times"></span>
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <div id="selectPiField"  class="col-xs-12" ng-non-bindable>
+              Here comes the Directive selection field
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button data-dismiss="modal" class="btn btn-default" type="button">Close</button>
+          </div>
+        </div>
       </div>
     </div>
 
