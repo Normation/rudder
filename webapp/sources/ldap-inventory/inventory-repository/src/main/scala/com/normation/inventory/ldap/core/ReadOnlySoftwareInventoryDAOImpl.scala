@@ -122,19 +122,22 @@ class ReadOnlySoftwareDAOImpl(
     val t1 = System.currentTimeMillis
     for {
       con           <- ldap
+
       // fetch all nodes
       nodes         = con.searchSub(acceptedDit.NODES.dn.getParent, IS(OC_NODE), A_NODE_UUID)
 
       batchedNodes = nodes.grouped(50)
 
       _ = batchedNodes.foreach { nodeEntries: Seq[LDAPEntry] =>
-                             val nodeIds = nodeEntries.flatMap(_(A_NODE_UUID)).map(NodeId(_))
+                             val nodeIds      = nodeEntries.flatMap(_(A_NODE_UUID)).map(NodeId(_))
 
-                             val orFilter: Filter = BuildFilter.OR(nodeIds.map(x => EQ(A_NODE_UUID, x.value)): _*)
-                             val softwareEntry: Seq[LDAPEntry] =  con.searchSub(acceptedDit.NODES.dn.getParent, orFilter, A_SOFTWARE_DN)
-                             val ids: Seq[String] = softwareEntry.flatMap(entry => entry.valuesFor(A_SOFTWARE_DN).toSet )
-                             val results = sequence(ids) { id => acceptedDit.SOFTWARE.SOFT.idFromDN(new DN(id)) }
-
+                             val t2           = System.currentTimeMillis
+                             val orFilter     = BuildFilter.OR(nodeIds.map(x => EQ(A_NODE_UUID, x.value)): _*)
+                             val softwareEntry=  con.searchSub(acceptedDit.NODES.dn.getParent, orFilter, A_SOFTWARE_DN)
+                             val ids          = softwareEntry.flatMap(entry => entry.valuesFor(A_SOFTWARE_DN).toSet )
+                             val results      = sequence(ids) { id => acceptedDit.SOFTWARE.SOFT.idFromDN(new DN(id)) }
+                             val t3           = System.currentTimeMillis()
+                             logger.debug(s"Software DNs from 50 nodes fetched in ${t3-t2}ms")
                              results match {
                                case Full(softIds) =>
                                  mutSetSoftwares = mutSetSoftwares.map(t => t ++ softIds)
@@ -149,9 +152,9 @@ class ReadOnlySoftwareDAOImpl(
       }
     mutSetSoftwares.map(x => x.toSet)
 
-    /*
+/*
     // TODO: This needs pagination, with 1000 nodes, it uses about 1,5 GB
-    softwareEntry =  dits.flatMap { dit => con.searchOne(dit.NODES.dn, IS(OC_NODE), A_SOFTWARE_DN) } // it's really a dn that is stored in software attribute
+    softwareEntry =  con.searchSub(acceptedDit.NODES.dn, IS(OC_NODE), A_SOFTWARE_DN) // it's really a dn that is stored in software attribute
     t2            = System.currentTimeMillis()
     _             = logger.debug(s"All Software DNs from all nodes ${softwareEntry.size} fetched in ${t2-t1}ms")
 

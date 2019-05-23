@@ -8,12 +8,12 @@ import net.liftweb.common._
 
 trait SoftwareService {
   def deleteUnreferencedSoftware() : Box[Seq[String]]
-
 }
+
 class SoftwareServiceImpl(
-                           readOnlySoftware: ReadOnlySoftwareDAO
-                           , writeOnlySoftwareDAO: WriteOnlySoftwareDAO)
-  extends SoftwareService with Loggable {
+    readOnlySoftware    : ReadOnlySoftwareDAO
+  , writeOnlySoftware   : WriteOnlySoftwareDAO)
+extends SoftwareService with Loggable {
 
   /** Delete all unreferenced softwares
     * First search in software, and then in nodes, so that if a node arrives in between (new inventory)
@@ -34,7 +34,7 @@ class SoftwareServiceImpl(
       extraSoftware     = allSoftwares -- allNodesSoftwares
       _                 = logger.debug(s"Found ${extraSoftware.size} unreferenced software in ou=software, going to delete them")
 
-      deletedSoftware   <- writeOnlySoftwareDAO.deleteSoftwares(extraSoftware.toSeq)
+      deletedSoftware   <- writeOnlySoftware.deleteSoftwares(extraSoftware.toSeq)
       t4                = System.currentTimeMillis()
       _                 = logger.debug(s"Deleted ${deletedSoftware.size} software in ${t4-t3}ms")
 

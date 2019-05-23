@@ -61,7 +61,7 @@ class PurgeUnreferencedSoftwares(
     logger.info(s"Disable automatic purge of unreferenced softwares (update interval cannot be less than 1 hour)")
   } else {
     logger.debug(s"***** starting batch that purge unreferenced softwares, every ${updateInterval.toString()} *****")
-    scheduler.scheduleWithFixedDelay(updateInterval, updateInterval) {
+    scheduler.scheduleWithFixedDelay(12.second, updateInterval) {
       softwareService.deleteUnreferencedSoftware() match {
         case Full(softwares) =>
           logger.info(s"Purged ${softwares.length} unreferenced softwares")

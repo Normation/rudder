@@ -146,7 +146,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     are doing.
   -->
 
-  <root level="debug">
+  <root level="info">
     <appender-ref ref="STDOUT" />
   </root>
 
@@ -360,7 +360,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     ================
     This logger is in charge of all scheduled jobs and batches
   -->
-  <logger name="scheduledJob" level="debug" additivity="false">
+  <logger name="scheduledJob" level="info" additivity="false">
     <appender-ref ref="OPSLOG" />
     <appender-ref ref="STDOUT" />
   </logger>
