@@ -88,6 +88,18 @@ ruleDirectives.controller('DirectiveCtrl', ['$scope', '$timeout', function($scop
         $('#selectGroups, #selectDirectives').on('hidden.bs.modal', function (e) {
           $('.icon-info').bsTooltip();
         });
+        //Init the Directive fitlers app
+        var scopeElmnt = '#directiveFilters';
+        if(!angular.element(scopeElmnt).scope()){
+          angular.bootstrap(scopeElmnt, ['filters']);
+        }
+        $("#directiveTree").on("searchtag.jstree",function(e, data){
+          data.res.length>0 ? $('#directiveTree_alert').hide() : $('#directiveTree_alert').show();
+        });
+        $("#directiveTree").on("clear_search.jstree",function(e, data){
+          $('#directiveTree_alert').hide();
+          $(this).jstree(true).show_all();
+        });
       }, 200);
     };
 
@@ -145,7 +157,7 @@ ruleDirectives.controller('DirectiveCtrl', ['$scope', '$timeout', function($scop
     }
 
     $scope.getListLength = function(list){
-      return Object.keys(list).length;
+      return list == undefined ? 0 : Object.keys(list).length;
     };
   } ] ) ;
 
