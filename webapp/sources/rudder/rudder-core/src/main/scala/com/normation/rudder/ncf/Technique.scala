@@ -37,6 +37,8 @@
 
 package com.normation.rudder.ncf
 
+import com.normation.errors.PureResult
+import com.normation.errors.Unexpected
 import com.normation.inventory.domain.Version
 import com.normation.inventory.domain.AgentType
 
@@ -52,6 +54,31 @@ final case class ParameterId (value : String) extends NcfId  {
   val validDscName : String = value.split("_").map(_.capitalize).mkString("")
 }
 
+sealed trait ResourceFileState {
+  def value : String
+}
+object  ResourceFileState {
+  case object New       extends ResourceFileState { val value ="new" }
+  case object Deleted   extends ResourceFileState { val value ="deleted" }
+  case object Modified  extends ResourceFileState { val value ="modified" }
+  case object Untouched extends ResourceFileState { val value ="untouched" }
+
+  val allValues = New :: Deleted :: Modified :: Untouched :: Nil
+
+  def parse : String => PureResult[ResourceFileState] = {
+    value =>
+      allValues.find(_.value == value) match {
+        case None => Left(Unexpected(s"$value is not valid resource state value"))
+        case Some(state) => Right(state)
+      }
+  }
+}
+
+case class ResourceFile(
+    path  : String
+  , state : ResourceFileState
+)
+
 final case class Technique(
     bundleName  : BundleName
   , name        : String
@@ -59,6 +86,7 @@ final case class Technique(
   , version     : Version
   , description : String
   , parameters  : Seq[TechniqueParameter]
+  , ressources  : Seq[ResourceFile]
 )
 
 final case class MethodCall(

@@ -37,6 +37,7 @@
 
 package com.normation.rudder.rest.lift
 
+import better.files.File
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.ncf.TechniqueWriter
@@ -48,23 +49,28 @@ import com.normation.rudder.rest.{NcfApi => API}
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
 import net.liftweb.common.Full
+import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JsonAST.JValue
-
+import org.eclipse.jgit.api.Git
 import com.normation.box._
+import com.normation.errors.IOResult
+import com.normation.rudder.ncf.ResourceFile
+import com.normation.rudder.ncf.ResourceFileState
+import net.liftweb.json.JsonAST.JArray
 
 class NcfApi(
     techniqueWriter     : TechniqueWriter
   , restExtractorService: RestExtractorService
   , uuidGen             : StringUuidGenerator
-) extends LiftApiModuleProvider[API] {
+) extends LiftApiModuleProvider[API] with Loggable{
   val kind = "ncf"
 
   import com.normation.rudder.rest.RestUtils._
   val dataName = "techniques"
 
-  def resp ( function : Box[JValue], req : Req, errorMessage : String)(implicit action : String) : LiftResponse = {
+  def resp ( function : Box[JValue], req : Req, errorMessage : String)( action : String)(implicit dataName : String) : LiftResponse = {
     response(restExtractorService, dataName,None)(function, req, errorMessage)
   }
 
@@ -78,9 +84,78 @@ class NcfApi(
     API.endpoints.map(e => e match {
         case API.UpdateTechnique => UpdateTechnique
         case API.CreateTechnique => CreateTechnique
+        case API.GetResources    => GetResources
     }).toList
   }
 
+  object GetResources extends LiftApiModule {
+    val schema = API.GetResources
+    val restExtractor = restExtractorService
+    implicit val dataName = "resources"
+    def process(version: ApiVersion, path: ApiPath, techniqueInfo: (String,String), req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+
+      val resourcesPath = s"techniques/ncf_techniques/${techniqueInfo._1}/${techniqueInfo._2}/resources"
+
+      val resourceDir = File(s"/var/rudder/configuration-repository/${resourcesPath}")
+
+      def getAllFiles (file : File):List[String]  = {
+        if (file.exists) {
+          if (file.isRegularFile) {
+            file.relativize(resourceDir).toString :: Nil
+          } else {
+            file.children.toList.flatMap(getAllFiles)
+          }
+        } else {
+          Nil
+        }
+      }
+
+      import scala.collection.JavaConverters._
+      import net.liftweb.json.JsonDSL._
+      import ResourceFileState._
+
+
+      def toResource(fullPath : String, state : ResourceFileState) = {
+        ResourceFile(fullPath.stripPrefix(s"${resourcesPath}/"), state)
+      }
+      def serializeResourceWithState( resource : ResourceFile) = {
+          (("name" -> resource.path) ~ ("state" -> resource.state.value))
+      }
+      def getRessourcesStatus = {
+
+        for {
+
+          git      <- IOResult.effect("Error when opening configuration-repository") {
+                        Git.open(File(s"/var/rudder/configuration-repository").toJava)
+                      }
+          status   <- IOResult.effect(s"Error when getting status of resource files of technique ${techniqueInfo._1}/${techniqueInfo._2}") {
+                        git.status().addPath(resourcesPath).call()
+                      }
+          allFiles <- IOResult.effect(s"Error when getting all resource files of technique ${techniqueInfo._1}/${techniqueInfo._2} ") {
+                        getAllFiles(resourceDir)
+                      }
+        } yield {
+
+          // New files not added
+          val added = status.getUntracked.asScala.toList.map(toResource(_,New))
+          // Files modified and not added
+          val modified = status.getModified.asScala.toList.map(toResource(_,Modified))
+          // Files deleted but not removed from git
+          val removed = status.getMissing.asScala.toList.map(toResource(_,Deleted))
+
+          val filesNotCommitted = modified ::: added ::: removed
+
+          // We want to get all files from the resource directory and remove all added/modified/deleted files so we can have the list of all files not modified
+          val untouched = allFiles.filterNot(f => filesNotCommitted.exists(_.path == f)).map(ResourceFile(_, Untouched))
+
+          // Create a new list with all a
+          JArray((filesNotCommitted ::: untouched).map(serializeResourceWithState))
+        }
+      }
+
+      resp(getRessourcesStatus.toBox, req, "Could not get resource state of technique")("techniqueResources")
+    }
+  }
   object UpdateTechnique extends LiftApiModule0 {
     val schema = API.UpdateTechnique
     val restExtractor = restExtractorService

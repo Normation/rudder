@@ -37,24 +37,25 @@
 
 package com.normation.rudder.ncf
 
-import java.io.File
-import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-import java.nio.file.Paths
 
 import cats.implicits._
-import com.normation.cfclerk.services.GitRepositoryProvider
-import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
+import java.nio.charset.StandardCharsets
+
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.repository.xml.GitArchiverUtils
+import com.normation.cfclerk.services.GitRepositoryProvider
+import java.io.{File => JFile}
+import java.nio.file.Files
+import java.nio.file.Paths
+
+import better.files.File
+import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
-import com.normation.rudder.services.policies.InterpolatedValueCompiler
 import com.normation.rudder.services.user.PersonIdentService
-import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import zio._
@@ -62,6 +63,11 @@ import zio.syntax._
 
 import scala.xml.NodeSeq
 import scala.xml.{Node => XmlNode}
+import com.normation.rudder.services.policies.InterpolatedValueCompiler
+import net.liftweb.common.EmptyBox
+import org.eclipse.jgit.api.Git
+
+//import scala.language.implicitConversions
 
 trait NcfError extends RudderError {
   def message : String
@@ -173,6 +179,7 @@ class TechniqueWriter (
     for {
       agentFiles <- writeAgentFiles(technique, methods, modId, committer)
       metadata   <- writeMetadata(technique, methods, modId, committer)
+      commit     <- archiver.commitTechnique(technique,metadata +: agentFiles, modId, committer, s"Committing technique ${technique.name}")
       libUpdate  <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")).
                       toIO.chainError(s"An error occured during technique update after files were created for ncf Technique ${technique.name}")
     } yield {
@@ -184,7 +191,6 @@ class TechniqueWriter (
     for {
       // Create/update agent files, filter None by flattenning to list
       files  <- ZIO.foreach(agentSpecific)(_.writeAgentFile(technique, methods)).map(_.flatten)
-      commit <- ZIO.foreach(files)(archiver.commitFile(technique, _, modId, commiter , s"Commiting Technique '${technique.bundleName.value}' file for agent " ))
     } yield {
       files
     }
@@ -197,20 +203,17 @@ class TechniqueWriter (
     val path = s"${basePath}/${metadataPath}"
     for {
       content <- techniqueMetadataContent(technique, methods).map(n => xmlPrettyPrinter.format(n)).toIO
-      file    <- IOResult.effect(s"An error occured while creating metadata file for Technique '${technique.name}'") {
-                   val filePath = Paths.get(path)
-                   if (!Files.exists(filePath)) {
-                     Files.createDirectories(filePath.getParent)
-                     Files.createFile(filePath)
-                   }
-                   Files.write(filePath, content.getBytes(StandardCharsets.UTF_8))
+      _       <- IOResult.effect(s"An error occured while creating metadata file for Technique '${technique.name}'") {
+                   implicit val charSet = StandardCharsets.UTF_8
+                   val file = File (path).createFileIfNotExists (true)
+                   file.write (content)
                  }
-     commit   <- archiver.commitFile(technique, metadataPath, modId, commiter , s"Commiting Technique '${technique.bundleName.value}' metadata")
-
     } yield {
       metadataPath
     }
   }
+
+
 }
 
 trait AgentSpecificTechniqueWriter {
@@ -245,6 +248,15 @@ class ClassicTechniqueWriter extends AgentSpecificTechniqueWriter {
           <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/rudder_reporting.cf"}>
             <INCLUDED>true</INCLUDED>
           </FILE>
+        }
+        { for {
+            resource <- technique.ressources
+            if resource.state != ResourceFileState.Deleted
+          } yield {
+            <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/resources/${resource.path}"}>
+              <INCLUDED>true</INCLUDED>
+            </FILE>
+          }
         }
       </FILES>
     </AGENT>
@@ -404,12 +416,12 @@ class DSCTechniqueWriter(
 }
 
 trait TechniqueArchiver {
-  def commitFile(technique : Technique, gitPath : String, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
+  def commitTechnique(technique : Technique, filesToAdd : Seq[String], modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
 }
 
 class TechniqueArchiverImpl (
     override val gitRepo                   : GitRepositoryProvider
-  , override val gitRootDirectory          : File
+  , override val gitRootDirectory          : JFile
   , override val xmlPrettyPrinter          : RudderPrettyPrinter
   , override val relativePath              : String
   , override val gitModificationRepository : GitModificationRepository
@@ -417,13 +429,27 @@ class TechniqueArchiverImpl (
 ) extends GitArchiverUtils with TechniqueArchiver{
 
   override def loggerName: String = this.getClass.getName
+  import ResourceFileState._
 
   override val encoding : String = "UTF-8"
 
-  def commitFile(technique : Technique, gitPath : String, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
+  def commitTechnique(technique : Technique, gitPath : Seq[String], modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
+
+    val filesToAdd = gitPath ++ (technique.ressources.filter(f => f.state == New || f.state == Modified)).map(f => s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/resources/${f.path}")
+    val filesToDelete = technique.ressources.filter(f => f.state == Deleted ).map(f => s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/resources/${f.path}")
     (for {
+
+
+      git <- IOResult.effect(Git.open(File(s"/var/rudder/configuration-repository").toJava))
       ident  <- personIdentservice.getPersonIdentOrDefault(commiter.name)
-      commit <- commitAddFile(modId,ident, gitPath, msg)
+      _  =  ZIO.foreach(filesToAdd) { f =>
+                  IOResult.effect (git.add.addFilepattern(f).call)
+                }
+
+      _  =  ZIO.foreach(filesToDelete) { f =>
+        IOResult.effect(git.rm.addFilepattern(f).call)
+        }
+      _ <- IOResult.effect(git.commit.setCommitter(ident).setMessage(msg).call)
     } yield {
       gitPath
     }).chainError(s"error when commiting file ${gitPath} for Technique '${technique.name}").unit
