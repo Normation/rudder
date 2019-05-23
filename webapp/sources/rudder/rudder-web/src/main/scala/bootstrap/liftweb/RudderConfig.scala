@@ -982,14 +982,14 @@ object RudderConfig extends Loggable {
       port = LDAP_PORT,
       authDn = LDAP_AUTHDN,
       authPw = LDAP_AUTHPW,
-      poolSize = 2)
+      poolSize = 5)
   lazy val rwLdap =
     new RWPooledSimpleAuthConnectionProvider(
       host = LDAP_HOST,
       port = LDAP_PORT,
       authDn = LDAP_AUTHDN,
       authPw = LDAP_AUTHPW,
-      poolSize = 2)
+      poolSize = 5)
 
   //query processor for accepted nodes
   private[this] lazy val queryProcessor = new AcceptedNodesLDAPQueryProcessor(
@@ -1301,12 +1301,13 @@ object RudderConfig extends Loggable {
     , configService.send_server_metrics _
     , configService.rudder_syslog_protocol _
   )
+  private[this] lazy val fillTemplatesService = new FillTemplatesService()
   private[this] lazy val rudderCf3PromisesFileWriterService = new PolicyWriterServiceImpl(
       techniqueRepositoryImpl
     , pathComputer
     , new NodeConfigurationLoggerImpl(RUDDER_DEBUG_NODE_CONFIGURATION_PATH)
     , new PrepareTemplateVariablesImpl(techniqueRepositoryImpl, systemVariableSpecService, new BuildBundleSequence(systemVariableSpecService, writeAllAgentSpecificFiles), agentRegister)
-    , new FillTemplatesService()
+    , fillTemplatesService
     , writeAllAgentSpecificFiles
     , HOOKS_D
     , HOOKS_IGNORE_SUFFIXES
@@ -1358,6 +1359,7 @@ object RudderConfig extends Loggable {
       , globalAgentRunService
       , reportingServiceImpl
       , rudderCf3PromisesFileWriterService
+      , fillTemplatesService
       , configService.agent_run_interval _
       , configService.agent_run_splaytime _
       , configService.agent_run_start_hour _

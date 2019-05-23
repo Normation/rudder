@@ -37,6 +37,8 @@
 
 package com.normation.rudder.services.policies
 
+import java.util.concurrent.TimeUnit
+
 import scala.Option.option2Iterable
 import org.joda.time.DateTime
 import com.normation.inventory.domain.NodeId
@@ -88,6 +90,15 @@ import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.logger.PolicyLogger
 import cats.data.NonEmptyList
 import com.normation.rudder.domain.reports.OverridenPolicy
+import com.normation.templates.FillTemplatesService
+import monix.eval.Task
+import monix.eval.TaskSemaphore
+import monix.execution.ExecutionModel
+import monix.execution.Scheduler
+import monix.execution.atomic.AtomicInt
+
+import scala.concurrent.Await
+import scala.concurrent.duration.FiniteDuration
 
 
 /**
@@ -102,6 +113,104 @@ trait PromiseGenerationHooks {
    * So
    */
   def beforeDeploymentSync(generationTime: DateTime): Box[Unit]
+}
+
+
+object ParallelSequence {
+  private[this] def boxToEither[U,T](f: U => Box[T])(u:U): Either[String, T] = f(u) match {
+    case Full(t)    => Right(t)
+    case Empty      => Left("Error (no message available)")
+    case f: Failure => Left(f.messageChain)
+  }
+  private[this] def recover[U,T](u:U, ex: Throwable): Either[String, T] = Left(ex.getMessage)
+
+  def traverse[U,T](seq: Seq[U])(f:U => Box[T])(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Seq[T]] = {
+    parrallelSequenceGen(seq)(boxToEither(f) _, recover) match {
+      case Left(nel) => Failure(nel.toList.mkString(";"))
+      case Right(x)  => Full(x)
+    }
+  }
+
+  // here, we keep either because it's more precise than box (no empty) and a pass will be needed in all case before composition with other method.
+  // That pass can map(either => left to failure, right to full)
+  def applicative[U,T](seq: Seq[U])(f: U => Box[T])(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Seq[Either[String, T]] = {
+    parrallelApplicativeGen(seq)(boxToEither(f) _, recover)
+  }
+
+  /*
+   * For all the writing part, we want to limit the number of concurrent workers on two aspects:
+   * - we want an I/O threadpool, which knows what to do when a thread is blocked for a long time,
+   *   and risks thread exaustion
+   *   (it can happens, since we have a number of files to write, some maybe big)
+   * - we want to limit the total number of concurrent execution to avoid blowming up the number
+   *   of open files, concurrent hooks, etc. This is not directly linked to the number of CPU,
+   *   but clearly there is no point having a pool of 4 threads for 1000 nodes which will
+   *   fork 1000 times for hooks - even if there is 4 threads used for that.
+   *
+   * That means that we want something looking like a sequencePar interface, but with:
+   * - a common thread pool, i/o oriented
+   * - a common max numbers of concurrent tasks.
+   *   I believe it should be common to all steps because it's mostly on the same machine - but
+   *   for now, that doesn't really matter, since each step is bloking (ie wait before next).
+   *   A parallelism around the thread pool sizing (by default, number of CPU) seems ok.
+   *
+   * here, f must not throws execption.
+   *
+   */
+  def parrallelSequence[U,T](seq: Seq[U])(f:U => Box[T])(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Seq[T]] = {
+    def boxToEither(f: U => Box[T])(u:U): Either[String, T] = f(u) match {
+      case Full(t)    => Right(t)
+      case Empty      => Left("Error (no message available)")
+      case f: Failure => Left(f.messageChain)
+    }
+    def recover(u:U, ex: Throwable): Either[String, T] = Left(ex.getMessage)
+
+    parrallelSequenceGen(seq)(boxToEither(f) _, recover) match {
+      case Left(nel) => Failure(nel.toList.mkString(";"))
+      case Right(x)  => Full(x)
+    }
+  }
+
+  def parrallelApplicativeGen[U, T, E](seq: Seq[U])(f:U => Either[E, T], recover:(U, Throwable) => Either[E, T])(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Seq[Either[E, T]] = {
+    import scala.concurrent.duration._
+
+    //transform the sequence in tasks, gather results unordered
+    val tasks = Task.gather(seq.map { action =>
+      semaphore.greenLight(Task(
+        try {
+          f(action)
+        } catch {
+          case ex: Throwable => recover(action, ex)
+        }
+      ))
+    })
+
+    // give a timeout for the whole tasks sufficiently large.
+    // Hint: CF-promise taking 2s by node, for 10 000 nodes, on
+    // 4 cores => ~85 minutes...
+    // It is here mostly as a safeguard for generation which went wrong -
+    // we will already have timeout at the thread level for stalling threads.
+    val timeout = 2.hours
+
+    //exec
+    Await.result(tasks.runAsync, timeout)
+  }
+
+  def parrallelSequenceGen[U, T, E](seq: Seq[U])(f:U => Either[E, T], recover:(U, Throwable) => Either[E, T])(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Either[NonEmptyList[E], Seq[T]] = {
+
+    val updated = parrallelApplicativeGen(seq)(f, recover)
+
+    // gather results
+    val gatherErrors = updated.foldLeft[Either[NonEmptyList[E], Seq[T]]](Right(Nil)) {
+      case (Left(nel) , Left(err)) => Left(err :: nel)
+      case (Left(nel) , _        ) => Left(nel)
+      case (Right(_)  , Left(err)) => Left(NonEmptyList.of(err))
+      case (Right(seq), Right(x) ) => Right(seq :+ x)
+    }
+
+   gatherErrors
+  }
+
 }
 
 /**
@@ -131,6 +240,62 @@ trait PromiseGenerationService extends Loggable {
     val systemEnv = HookEnvPairs.build(System.getenv.asScala.toSeq:_*)
 
     import HooksImplicits._
+
+
+    def buildFullyOneNode(
+        nodeId          : NodeId
+      , nodeConfigId    : NodeConfigId
+      , rootNodeId      : NodeId
+      , nodeConfigs     : Map[NodeId, NodeConfiguration]
+      , allLicenses     : Map[NodeId, CfeEnterpriseLicense]
+      , globalPolicyMode: GlobalPolicyMode
+      , generationTime  : DateTime
+      , expectedReports : NodeExpectedReports
+      , remainingNodes  : AtomicInt
+    ): Box[NodeExpectedReports] = {
+      val writeTime           =  System.currentTimeMillis
+      for {
+        writtenNodeConfigs    <- writeNodeConfigurations(rootNodeId, Map(nodeId -> nodeConfigId), nodeConfigs, allLicenses, globalPolicyMode, generationTime) ?~!"Cannot write nodes configuration for node '${nodeId.value}'"
+        timeWriteNodeConfig   =  (System.currentTimeMillis - writeTime)
+        _                     =  logger.debug(s"Node configuration for node '${nodeId.value}' written in ${timeWriteNodeConfig} ms, start to update expected reports.")
+
+        saveExpectedTime      =  System.currentTimeMillis
+        savedExpectedReports  <- saveOneExpectedReports(expectedReports) ?~! "Error when saving expected reports for node '${nodeId.value}'"
+        endTime               =  System.currentTimeMillis
+        timeSaveExpected      =  endTime - saveExpectedTime
+        _                     =  logger.debug(s"Node expected reports for node '${nodeId.value}' saved in base in ${timeSaveExpected} ms.")
+        r                     =  remainingNodes.decrementAndGet()
+        _                     =  logger.info(s"Configuration for node ${nodeId.value} updated in ${endTime - writeTime} ms (remains ${r} nodes to update)")
+      } yield {
+        savedExpectedReports
+      }
+    }
+
+    val maxParallelism = {
+      // we want to limit the number of parallel execution and threads to the number of core/2 (minimum 1)
+      (try System.getProperty("rudder.generation.maxParallelism", "x1") catch {
+        case e: SecurityException => "x1"
+      }) match {
+        case s if s.charAt(0) == 'x' => Math.max(1, (Runtime.getRuntime.availableProcessors * s.substring(1).toDouble / 2).ceil.toInt)
+        case other => other.toInt
+      }
+    }
+    val jsTimeout = {
+      // by default 5s but can be overrided
+      val t = (try System.getProperty("rudder.generation.jsTimeout", "5") catch {
+        case e: SecurityException => "5"
+      })
+      FiniteDuration(try {
+        Math.max(1, t.toLong) // must be a positive number
+      } catch {
+        case ex: NumberFormatException =>
+          logger.error(s"Impossible to user property '' for js engine timeout: not a number")
+          5 // default
+      }, TimeUnit.SECONDS)
+    }
+    implicit val semaphore = TaskSemaphore(maxParallelism = maxParallelism)
+    implicit val ioscheduler = Scheduler.io(executionModel = ExecutionModel.AlwaysAsyncExecution)
+
 
     val result = for {
       // trigger a dynamic group update
@@ -214,8 +379,9 @@ trait PromiseGenerationService extends Loggable {
 
       buildConfigTime       =  System.currentTimeMillis
       /// here, we still have directive by directive info
-      configs               <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode) ?~! "Cannot build target configuration node"
-      nodeConfigs           =  configs.map(c => (c.nodeInfo.id, c)).toMap
+      allNodeConfigs        <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, maxParallelism, jsTimeout) ?~! "Cannot build target configuration node"
+      /// only keep successfull node config. We will keep the failed one to fail the whole process in the end if needed
+      nodeConfigs           =  allNodeConfigs.ok.map(c => (c.nodeInfo.id, c)).toMap
       timeBuildConfig       =  (System.currentTimeMillis - buildConfigTime)
       _                     =  logger.debug(s"Node's target configuration built in ${timeBuildConfig} ms, start to update rule values.")
 
@@ -229,62 +395,88 @@ trait PromiseGenerationService extends Loggable {
 
       ///// so now we have everything for each updated nodes, we can start writing node policies and then expected reports
 
-      // WHY DO WE NEED TO FORGET OTHER NODES CACHE INFO HERE ?
-      _                     <- forgetOtherNodeConfigurationState(nodeConfigs.keySet) ?~! "Cannot clean the configuration cache"
+      // we want to remove cache for nodes for which we didn't successfully get a config (redo next time)
+      // and also remove all non active nodes (deleted, etc) => only keep the one for which we have a node configuration
+      _                     <- forgetOtherNodeConfigurationState(allNodeConfigs.ok.map(_.nodeInfo.id).toSet) ?~! "Cannot clean the configuration cache"
 
+      // clear cache of string template - both before and after writing them
+      _                     =  clearCacheOfTemplate()
+
+
+      //////  write new configurations
       writeTime             =  System.currentTimeMillis
-      writtenNodeConfigs    <- writeNodeConfigurations(rootNodeId, updatedNodeConfigIds, nodeConfigs, allLicenses, globalPolicyMode, generationTime) ?~!"Cannot write nodes configuration"
-      timeWriteNodeConfig   =  (System.currentTimeMillis - writeTime)
-      _                     =  logger.debug(s"Node configuration written in ${timeWriteNodeConfig} ms, start to update expected reports.")
+      remainingNodes        =  AtomicInt(updatedNodeConfigIds.size)
+      allTrySavedReports    =  ParallelSequence.applicative(updatedNodeConfigIds.toSeq) { case (nodeId, nodeConfigId) =>
+                                 for {
+                                   expectedReport <- expectedReports.find(_.nodeId == nodeId).map(Full(_)).getOrElse(Failure(s"Can not find expected report for node '${nodeId.value}'"))
+                                   built          <- buildFullyOneNode(nodeId, nodeConfigId, rootNodeId, nodeConfigs, allLicenses, globalPolicyMode, generationTime, expectedReport, remainingNodes)
+                                 } yield {
+                                   built
+                                 }
+                               }
+      savedExpectedReports  = allTrySavedReports.collect { case Right(x) => x }
+      timeWriteNodeConfig   = (System.currentTimeMillis - writeTime)
+      _                     =  clearCacheOfTemplate()
 
-      saveExpectedTime      =  System.currentTimeMillis
-      savedExpectedReports  <- saveExpectedReports(expectedReports) ?~! "Error when saving expected reports"
-      timeSaveExpected      =  (System.currentTimeMillis - saveExpectedTime)
-      _                     =  logger.debug(s"Node expected reports saved in base in ${timeSaveExpected} ms.")
 
       // finally, run post-generation hooks. They can lead to an error message for build, but node policies are updated
       postHooksTime         =  System.currentTimeMillis
       postHooks             <- RunHooks.getHooks(HOOKS_D + "/policy-generation-finished", HOOKS_IGNORE_SUFFIXES)
+
       // we want to sort node with root first, then relay, then other nodes for hooks
-      updatedNodeIds        =  updatedNodeConfigs.toList.map { case (k, v) =>
+      updatedNodeIds        =  savedExpectedReports.map { r =>
+                               val id = r.nodeId
+                               val v = updatedNodeConfigs(id).nodeInfo
                                (
-                                 k.value
-                               , if(k.value == "root") 0 else if(v.nodeInfo.isPolicyServer) { if(v.nodeInfo.policyServerId.value == "root") 1 else 2 } else 3)
+                                 id
+                               , if(id.value == "root") 0 else if(v.isPolicyServer) { if(v.policyServerId.value == "root") 1 else 2 } else 3)
                                }.sortBy( _._2 ).map( _._1 )
+
+      stringIds             =  updatedNodeIds.map(_.value)
       _                     <- RunHooks.syncRun(
                                    postHooks
                                  , HookEnvPairs.build(
                                                          ("RUDDER_GENERATION_DATETIME", generationTime.toString())
                                                        , ("RUDDER_END_GENERATION_DATETIME", new DateTime(postHooksTime).toString) //what is the most alike a end time
-                                                       , ("RUDDER_NODE_IDS", updatedNodeIds.mkString(" "))
-                                                       , ("RUDDER_NUMBER_NODES_UPDATED", updatedNodeIds.size.toString)
-                                                       , ("RUDDER_ROOT_POLICY_SERVER_UPDATED", if(updatedNodeIds.contains("root")) "0" else "1" )
+                                                       , ("RUDDER_NODE_IDS", stringIds.mkString(" "))
+                                                       , ("RUDDER_NUMBER_NODES_UPDATED", stringIds.size.toString)
+                                                       , ("RUDDER_ROOT_POLICY_SERVER_UPDATED", if(stringIds.contains("root")) "0" else "1" )
                                                          //for compat in 4.1. Remove in 4.2 or up.
-                                                       , ("RUDDER_NODEIDS", updatedNodeIds.mkString(" "))
+                                                       , ("RUDDER_NODEIDS", stringIds.mkString(" "))
                                                      )
                                  , systemEnv
                                )
       timeRunPostGenHooks   =  (System.currentTimeMillis - postHooksTime)
       _                     =  logger.debug(s"Post-policy-generation hooks ran in ${timeRunPostGenHooks} ms")
 
-    } yield {
+      /// now, if there was failed config or failed write, time to show them
       //invalidate compliance may be very very long - make it async
-      import scala.concurrent.ExecutionContext.Implicits.global
-      Future { invalidateComplianceCache(updatedNodeConfigs.keySet) }
-
-      PolicyLogger.info("Timing summary:")
-      PolicyLogger.info("Run pre-gen scripts hooks     : %10s ms".format(timeRunPreGenHooks))
-      PolicyLogger.info("Run pre-gen modules hooks     : %10s ms".format(timeCodePreGenHooks))
-      PolicyLogger.info("Fetch all information         : %10s ms".format(timeFetchAll))
-      PolicyLogger.info("Historize names               : %10s ms".format(timeHistorize))
-      PolicyLogger.info("Build current rule values     : %10s ms".format(timeRuleVal))
-      PolicyLogger.info("Build target configuration    : %10s ms".format(timeBuildConfig))
-      PolicyLogger.info("Write node configurations     : %10s ms".format(timeWriteNodeConfig))
-      PolicyLogger.info("Save expected reports         : %10s ms".format(timeSetExpectedReport))
-      PolicyLogger.info("Run post generation hooks     : %10s ms".format(timeRunPostGenHooks))
-      PolicyLogger.info("Number of nodes updated       : %10s   ".format(updatedNodeIds.size))
-
-      writtenNodeConfigs.map( _.nodeInfo.id )
+      updatedNodes          = updatedNodeIds.toSet
+      errorNodes            = activeNodeIds -- updatedNodes
+      _                     =  Future { invalidateComplianceCache(updatedNodeConfigs.keySet) }
+      _                     = {
+                                PolicyLogger.info("Timing summary:")
+                                PolicyLogger.info("Run pre-gen scripts hooks     : %10s ms".format(timeRunPreGenHooks))
+                                PolicyLogger.info("Run pre-gen modules hooks     : %10s ms".format(timeCodePreGenHooks))
+                                PolicyLogger.info("Fetch all information         : %10s ms".format(timeFetchAll))
+                                PolicyLogger.info("Historize names               : %10s ms".format(timeHistorize))
+                                PolicyLogger.info("Build current rule values     : %10s ms".format(timeRuleVal))
+                                PolicyLogger.info("Build target configuration    : %10s ms".format(timeBuildConfig))
+                                PolicyLogger.info("Write all node configurations : %10s ms".format(timeWriteNodeConfig))
+                                PolicyLogger.info("Run post generation hooks     : %10s ms".format(timeRunPostGenHooks))
+                                PolicyLogger.info("Number of nodes updated       : %10s   ".format(updatedNodeIds.size))
+                                if(errorNodes.nonEmpty) {
+                                  PolicyLogger.warn(s"Nodes in errors (${errorNodes.size}): '${errorNodes.map(_.value).mkString("','")}'")
+                                }
+      }
+      allErrors             =  allNodeConfigs.errors.map(_.failure.messageChain) ++ allTrySavedReports.collect { case Left(x) => x }
+      result                <- if (allErrors.isEmpty) {
+                                 Full(updatedNodes)
+                               } else {
+                                 Failure(s"Generation ended but some nodes were in errors: ${allErrors.mkString(" ; ")}")
+                               }
+    } yield {
+      result
     }
     PolicyLogger.info("Policy generation completed in: %10s ms".format((System.currentTimeMillis - initialTime)))
     result
@@ -342,6 +534,11 @@ trait PromiseGenerationService extends Loggable {
     }.toMap
   }
 
+  /*
+   * That method clear the cache of parsed StringTemplate
+   */
+  def clearCacheOfTemplate(): Unit
+
   def getAppliedRuleIds(rules:Seq[Rule], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allNodeInfos: Map[NodeId, NodeInfo]): Set[RuleId]
 
   /**
@@ -395,7 +592,9 @@ trait PromiseGenerationService extends Loggable {
     , allNodeModes       : Map[NodeId, NodeModeConfig]
     , scriptEngineEnabled: FeatureSwitch
     , globalPolicyMode   : GlobalPolicyMode
-  ) : Box[(Seq[NodeConfiguration])]
+    , maxParallelism     : Int
+    , jsTimeout          : FiniteDuration
+  ) : Box[NodeConfigurations]
 
   /**
    * Forget all other node configuration state.
@@ -448,6 +647,16 @@ trait PromiseGenerationService extends Loggable {
       expectedReports  : List[NodeExpectedReports]
   ) : Box[Seq[NodeExpectedReports]]
 
+  def saveOneExpectedReports(expectedReports: NodeExpectedReports): Box[NodeExpectedReports] = {
+    saveExpectedReports(List(expectedReports)).flatMap {
+      case Nil => Failure(s"Error when saving expected repot in base for node '${expectedReports.nodeId.value}' (no error info)")
+      case x::Nil => Full(x)
+      case x::y =>
+        logger.warn(s"More than on reports returned when saving expected reports for node '${expectedReports.nodeId.value}'")
+        Full(x)
+    }
+  }
+
   /**
    * After updates of everything, notify compliace cache
    * that it should forbid what it knows about the updated nodes
@@ -491,6 +700,7 @@ class PromiseGenerationServiceImpl (
   , override val agentRunService : AgentRunIntervalService
   , override val complianceCache  : CachedFindRuleNodeStatusReports
   , override val promisesFileWriterService: PolicyWriterService
+  , override val fillTemplateService: FillTemplatesService
   , override val getAgentRunInterval: () => Box[Int]
   , override val getAgentRunSplaytime: () => Box[Int]
   , override val getAgentRunStartHour: () => Box[Int]
@@ -707,9 +917,17 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
     , allNodeModes       : Map[NodeId, NodeModeConfig]
     , scriptEngineEnabled: FeatureSwitch
     , globalPolicyMode   : GlobalPolicyMode
-  ) : Box[Seq[NodeConfiguration]] = BuildNodeConfiguration.buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode)
+    , maxParallelism     : Int
+    , jsTimeout          : FiniteDuration
+  ) : Box[NodeConfigurations] = BuildNodeConfiguration.buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, maxParallelism, jsTimeout)
 
 }
+
+final case class NodeConfigurationError(failure: Failure)
+final case class NodeConfigurations(
+    ok    : List[NodeConfiguration]
+  , errors: List[NodeConfigurationError]
+)
 
 object BuildNodeConfiguration extends Loggable {
 
@@ -737,6 +955,12 @@ object BuildNodeConfiguration extends Loggable {
    * with the actual Policy they will have.
    * Replace all ${rudder.node.varName} vars, returns the nodes ready to be configured, and expanded RuleVal
    * allNodeInfos *must* contains the nodes info of every nodes
+   *
+   * Building configuration may fail for some nodes. In that case, the whole process is not in error but only
+   * the given node error fails.
+   *
+   * That process should be mostly a computing one (but for JS part). We use a bounded thread pool of the size
+   * of maxParallelism, and the JsEngine will also use such a pool.
    */
   def buildNodeConfigurations(
       activeNodeIds      : Set[NodeId]
@@ -745,7 +969,9 @@ object BuildNodeConfiguration extends Loggable {
     , allNodeModes       : Map[NodeId, NodeModeConfig]
     , scriptEngineEnabled: FeatureSwitch
     , globalPolicyMode   : GlobalPolicyMode
-  ) : Box[Seq[NodeConfiguration]] = {
+    , maxParallelism     : Int
+    , jsTimeout          : FiniteDuration
+  ) : Box[NodeConfigurations] = {
 
     //step 1: from RuleVals to expanded rules vals
 
@@ -762,11 +988,16 @@ object BuildNodeConfiguration extends Loggable {
       byNodeDrafts.toMap
     }
 
+
+    implicit val semaphore = TaskSemaphore(maxParallelism = maxParallelism)
+    implicit val scheduler = Scheduler.fixedPool("rudder-pg-node-config", maxParallelism)
+
     // 1.3: build node config, binding ${rudder./node.properties} parameters
     // open a scope for the JsEngine, because its init is long.
-    JsEngineProvider.withNewEngine(scriptEngineEnabled) { jsEngine =>
+    // Hardcoded 4 thread for test case.
+    JsEngineProvider.withNewEngine(scriptEngineEnabled, maxParallelism, jsTimeout) { jsEngine =>
 
-      val nodeConfigs = bestEffort(nodeContexts.toSeq) { case (nodeId, context) =>
+      val nodeConfigs = ParallelSequence.applicative(nodeContexts.toSeq) { case (nodeId, context) =>
 
           (for {
             parsedDrafts  <- Box(policyDraftByNode.get(nodeId)) ?~! "Promise generation algorithm error: cannot find back the configuration information for a node"
@@ -840,7 +1071,10 @@ object BuildNodeConfiguration extends Loggable {
               , _.replaceAll("on node .*", "")
             )
       }
-    nodeConfigs
+      Full(nodeConfigs.foldLeft(NodeConfigurations(Nil,Nil)) {
+        case (cfgs, Right(x)) => cfgs.copy(ok = x :: cfgs.ok)
+        case (cfgs, Left(x))  => cfgs.copy(errors = NodeConfigurationError(Failure(x)) :: cfgs.errors)
+      })
     }
   }
 }
@@ -852,6 +1086,9 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
   def nodeConfigurationService : NodeConfigurationHashRepository
   def woRuleRepo: WoRuleRepository
   def promisesFileWriterService: PolicyWriterService
+  def fillTemplateService: FillTemplatesService
+
+  override def clearCacheOfTemplate(): Unit = fillTemplateService.clearCache()
 
   /**
    * That methode remove node configurations for nodes not in allNodes.
@@ -896,7 +1133,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
       Set()
     } else {
       val nodeToKeep = updatedConfig.map( _.id ).toSet
-      PolicyLogger.info(s"Configuration of following nodes were updated, their promises are going to be written: [${updatedConfig.map(_.id.value).mkString(", ")}]")
+      PolicyLogger.info(s"Configuration of following ${updatedConfig.size} nodes were updated, their promises are going to be written: [${updatedConfig.map(_.id.value).mkString(", ")}]")
       nodeConfigurations.keySet.intersect(nodeToKeep)
     }
   }
