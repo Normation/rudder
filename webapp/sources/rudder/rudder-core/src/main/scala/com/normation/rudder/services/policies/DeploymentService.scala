@@ -88,6 +88,12 @@ import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.logger.PolicyLogger
 import cats.data.NonEmptyList
 import com.normation.rudder.domain.reports.OverridenPolicy
+import monix.eval.Task
+import monix.eval.TaskSemaphore
+import monix.execution.ExecutionModel
+import monix.execution.Scheduler
+
+import scala.concurrent.Await
 
 
 /**
@@ -762,11 +768,61 @@ object BuildNodeConfiguration extends Loggable {
       byNodeDrafts.toMap
     }
 
+   def parrallelSequence[U,T](seq: Seq[U])(f:U => Box[T])(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Seq[T]] = {
+    def boxToEither(f: U => Box[T])(u:U): Either[String, T] = f(u) match {
+      case Full(t)    => Right(t)
+      case Empty      => Left("Error (no message available)")
+      case f: Failure => Left(f.messageChain)
+    }
+    def recover(u:U, ex: Throwable): Either[String, T] = Left(ex.getMessage)
+
+    parrallelSequenceGen(seq)(boxToEither(f) _, recover) match {
+      case Left(nel) => Failure(nel.toList.mkString(";"))
+      case Right(x)  => Full(x)
+    }
+  }
+  def parrallelSequenceGen[U, T, E](seq: Seq[U])(f:U => Either[E, T], recover:(U, Throwable) => Either[E, T])(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Either[NonEmptyList[E], Seq[T]] = {
+    import scala.concurrent.duration._
+
+    //transform the sequence in tasks, gather results unordered
+    val tasks = Task.gather(seq.map { action =>
+      semaphore.greenLight(Task(
+        try {
+          f(action)
+        } catch {
+          case ex: Throwable => recover(action, ex)
+        }
+      ))
+    })
+
+    // give a timeout for the whole tasks sufficiently large.
+    // Hint: CF-promise taking 2s by node, for 10 000 nodes, on
+    // 4 cores => ~85 minutes...
+    // It is here mostly as a safeguard for generation which went wrong -
+    // we will already have timeout at the thread level for stalling threads.
+    val timeout = 2.hours
+
+    //exec
+    val updated = Await.result(tasks.runAsync, timeout)
+    // gather results
+    val gatherErrors = updated.foldLeft[Either[NonEmptyList[E], Seq[T]]](Right(Nil)) {
+      case (Left(nel) , Left(err)) => Left(err :: nel)
+      case (Left(nel) , _        ) => Left(nel)
+      case (Right(_)  , Left(err)) => Left(NonEmptyList.of(err))
+      case (Right(seq), Right(x) ) => Right(seq :+ x)
+    }
+
+   gatherErrors
+  }
+    implicit val semaphore = TaskSemaphore(maxParallelism = 4)
+    implicit val scheduler = Scheduler.io(executionModel = ExecutionModel.AlwaysAsyncExecution)
+
     // 1.3: build node config, binding ${rudder./node.properties} parameters
     // open a scope for the JsEngine, because its init is long.
-    JsEngineProvider.withNewEngine(scriptEngineEnabled) { jsEngine =>
+    // Hardcoded 4 thread for test case.
+    JsEngineProvider.withNewEngine(scriptEngineEnabled, 4) { jsEngine =>
 
-      val nodeConfigs = bestEffort(nodeContexts.toSeq) { case (nodeId, context) =>
+      val nodeConfigs = parrallelSequence(nodeContexts.toSeq) { case (nodeId, context) =>
 
           (for {
             parsedDrafts  <- Box(policyDraftByNode.get(nodeId)) ?~! "Promise generation algorithm error: cannot find back the configuration information for a node"

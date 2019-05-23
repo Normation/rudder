@@ -331,7 +331,7 @@ final object JsEngineProvider {
    * Security policy are taken from `rudder-js.policy` file in the classpath
    * unlessthe file `/opt/rudder/etc/rudder-js.policy` is defined.
    */
-  def withNewEngine[T](feature: FeatureSwitch)(script: JsEngine => Box[T]): Box[T] = {
+  def withNewEngine[T](feature: FeatureSwitch, maxThread: Int = 1)(script: JsEngine => Box[T]): Box[T] = {
     feature match {
       case FeatureSwitch.Enabled  =>
         val defaultPath = this.getClass.getClassLoader.getResource("rudder-js.policy")
@@ -342,7 +342,7 @@ final object JsEngineProvider {
           defaultPath
         }
 
-        val res = SandboxedJsEngine.sandboxed(url) { engine => script(engine) }
+        val res = SandboxedJsEngine.sandboxed(url, maxThread) { engine => script(engine) }
 
         //we may want to debug hard to debug case here, especially when we had a stackoverflow below
         (JsDirectiveParamLogger.isDebugEnabled, res) match {
@@ -445,17 +445,17 @@ final object JsEngine {
      * Note: maybe make that a parameter so that we can put an even higher value here,
      * but only put 1s in tests so that they end quickly
      */
-    val MAX_EVAL_DURATION = (5, TimeUnit.SECONDS)
+    val MAX_EVAL_DURATION = (10, TimeUnit.MINUTES)
 
     /**
      * Get a new JS Engine.
      * This is expensive, several seconds on a 8-core i7 @ 3.5Ghz.
      * So you should minimize the number of time it is done.
      */
-    def sandboxed[T](policyFileUrl: URL)(script: SandboxedJsEngine => Box[T]): Box[T] = {
+    def sandboxed[T](policyFileUrl: URL, maxThread: Int = 1)(script: SandboxedJsEngine => Box[T]): Box[T] = {
       var sandbox = new SandboxSecurityManager(policyFileUrl)
       var threadFactory = new RudderJsEngineThreadFactory(sandbox)
-      var pool = Executors.newSingleThreadExecutor(threadFactory)
+      var pool = Executors.newFixedThreadPool(maxThread, threadFactory)
       System.setSecurityManager(sandbox)
 
       getJsEngine().flatMap { jsEngine =>
@@ -621,7 +621,7 @@ final object JsEngine {
         case ex: TimeoutException =>
           //try to interrupt the thread
           try {
-            // try to gently terminate the thread
+            // try to gently terminate the pool /// ARE WE SURE THERE IS NO OTHER THREAD WAITING ON THAT POOL ?
             pool.shutdownNow()
             Thread.sleep(200)
             if(pool.isTerminated()) {

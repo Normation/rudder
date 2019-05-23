@@ -982,14 +982,14 @@ object RudderConfig extends Loggable {
       port = LDAP_PORT,
       authDn = LDAP_AUTHDN,
       authPw = LDAP_AUTHPW,
-      poolSize = 2)
+      poolSize = 5)
   lazy val rwLdap =
     new RWPooledSimpleAuthConnectionProvider(
       host = LDAP_HOST,
       port = LDAP_PORT,
       authDn = LDAP_AUTHDN,
       authPw = LDAP_AUTHPW,
-      poolSize = 2)
+      poolSize = 5)
 
   //query processor for accepted nodes
   private[this] lazy val queryProcessor = new AcceptedNodesLDAPQueryProcessor(
