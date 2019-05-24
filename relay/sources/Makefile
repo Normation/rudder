@@ -117,8 +117,11 @@ install: build
 	install -m 755 relay-api/cleanup.sh $(DESTDIR)/opt/rudder/share/relay-api/
 	
 	# rudder packaging
-	install -m 755 rudder-pkg $(DESTDIR)/opt/rudder/bin/
-	install -m 644 docopt.py $(DESTDIR)/opt/rudder/share/python/
+	install -m 755 rudder-pkg/rudder-pkg $(DESTDIR)/opt/rudder/bin/
+	install -m 755 rudder-pkg/makeIndex.sh $(DESTDIR)/opt/rudder/bin/
+	install -m 755 rudder-pkg/rudder-pkg.conf $(DESTDIR)/ $(DESTDIR)/var/rudder/tmp/
+	install -m 755 rudder-pkg/rudder_apt_key.pub $(DESTDIR)/var/rudder/
+	install -m 644 rudder-pkg/lib $(DESTDIR)/opt/rudder/share/python/
 	
 	# Apache
 	install -m 644 apache/rudder-vhost.conf $(DESTDIR)/etc/$(APACHE_VHOSTDIR)/rudder.conf
