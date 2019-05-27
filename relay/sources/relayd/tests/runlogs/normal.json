@@ -1,6 +1,6 @@
 {
   "info": {
-    "node_id": "root",
+    "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
     "timestamp": "2018-08-24T15:55:01+00:00"
   },
   "reports": [
@@ -13,7 +13,7 @@
       "event_type": "control",
       "msg": "Start execution",
       "policy": "Common",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T12:58:13+00:00",
       "serial": 0
     },
@@ -26,7 +26,7 @@
       "event_type": "result_success",
       "msg": "Configuration library initialization\nwas correct",
       "policy": "Common",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T13:58:13+00:00",
       "serial": 0
     },
@@ -39,7 +39,7 @@
       "event_type": "result_success",
       "msg": "The internal environment security is acceptable",
       "policy": "Common",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T15:58:13+00:00",
       "serial": 0
     },
@@ -52,7 +52,7 @@
       "event_type": "result_na",
       "msg": "Rudder agent proccesses check is done by the rudder-agent cron job",
       "policy": "Common",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T16:58:13+00:00",
       "serial": 0
     },
@@ -65,7 +65,7 @@
       "event_type": "log_repaired",
       "msg": "Run action restart on service cron was repaired",
       "policy": "Common",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T17:58:13+00:00",
       "serial": 0
     },
@@ -78,7 +78,7 @@
       "event_type": "log_repaired",
       "msg": "Restart service cron if 'any' condition defined was repaired",
       "policy": "Common",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T18:58:13+00:00",
       "serial": 0
     },
@@ -91,7 +91,7 @@
       "event_type": "log_repaired",
       "msg": "Restart service ${canonified_service_name} was repaired",
       "policy": "Common",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T19:58:13+00:00",
       "serial": 0
     },
@@ -104,7 +104,7 @@
       "event_type": "result_repaired",
       "msg": "Cron daemon status was repaired",
       "policy": "Common",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T20:58:13+00:00",
       "serial": 0
     },
@@ -117,7 +117,7 @@
       "event_type": "log_info",
       "msg": "message report",
       "policy": "Common",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T21:58:13+00:00",
       "serial": 0
     },
@@ -130,7 +130,7 @@
       "event_type": "log_info",
       "msg": "Detected running syslog as rsyslog",
       "policy": "Common",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T22:58:13+00:00",
       "serial": 0
     },
@@ -143,7 +143,7 @@
       "event_type": "result_success",
       "msg": "Logging system for report centralization is already correctly configured",
       "policy": "Common",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T23:58:13+00:00",
       "serial": 0
     },
@@ -156,7 +156,7 @@
       "event_type": "log_info",
       "msg": "Remove file /var/rudder/tmp/rudder_monitoring.csv was correct",
       "policy": "Common",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T00:58:13+00:00",
       "serial": 0
     },
@@ -169,7 +169,7 @@
       "event_type": "result_success",
       "msg": "The agent binaries in /var/rudder/cfengine-community/bin are up to date",
       "policy": "Common",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T01:58:13+00:00",
       "serial": 0
     },
@@ -182,7 +182,7 @@
       "event_type": "result_success",
       "msg": "Configure configuration library was correct",
       "policy": "DistributePolicy",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T02:58:13+00:00",
       "serial": 0
     },
@@ -195,7 +195,7 @@
       "event_type": "result_success",
       "msg": "All resources have been updated",
       "policy": "DistributePolicy",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T03:58:13+00:00",
       "serial": 0
     },
@@ -208,7 +208,7 @@
       "event_type": "result_na",
       "msg": "Rudder server does not need to synchronize its policies",
       "policy": "DistributePolicy",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T04:58:13+00:00",
       "serial": 0
     },
@@ -221,7 +221,7 @@
       "event_type": "result_na",
       "msg": "Rudder server does not need to synchronize its shared files",
       "policy": "DistributePolicy",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T05:58:13+00:00",
       "serial": 0
     },
@@ -234,7 +234,7 @@
       "event_type": "result_success",
       "msg": "No inventory to send",
       "policy": "DistributePolicy",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T06:58:13+00:00",
       "serial": 0
     },
@@ -247,7 +247,7 @@
       "event_type": "result_success",
       "msg": "Apache ACLs are correct",
       "policy": "DistributePolicy",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T07:58:13+00:00",
       "serial": 0
     },
@@ -260,7 +260,7 @@
       "event_type": "result_success",
       "msg": "Next inventory scheduled between 00:00 and 06:00",
       "policy": "Inventory",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T08:58:13+00:00",
       "serial": 0
     },
@@ -273,7 +273,7 @@
       "event_type": "result_success",
       "msg": "The logrotate configuration is correct",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T09:58:13+00:00",
       "serial": 0
     },
@@ -286,7 +286,7 @@
       "event_type": "result_success",
       "msg": "Web interface configuration files are correct (checked LDAP password)",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T10:58:13+00:00",
       "serial": 0
     },
@@ -299,7 +299,7 @@
       "event_type": "result_success",
       "msg": "OpenLDAP configuration file is correct (checked rootdn password)",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T11:58:13+00:00",
       "serial": 0
     },
@@ -312,7 +312,7 @@
       "event_type": "result_success",
       "msg": "Rudder passwords file is present and secure",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T12:58:13+00:00",
       "serial": 0
     },
@@ -325,7 +325,7 @@
       "event_type": "result_success",
       "msg": "Web interface configuration files are OK (checked SQL password)",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T13:58:13+00:00",
       "serial": 0
     },
@@ -338,7 +338,7 @@
       "event_type": "result_success",
       "msg": "PostgreSQL user account's password is correct and works",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T14:58:13+00:00",
       "serial": 0
     },
@@ -351,7 +351,7 @@
       "event_type": "result_success",
       "msg": "Allowed networks configuration is correct",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T15:58:13+00:00",
       "serial": 0
     },
@@ -364,7 +364,7 @@
       "event_type": "result_success",
       "msg": "Apache WebDAV user and password are OK",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T16:58:13+00:00",
       "serial": 0
     },
@@ -377,7 +377,7 @@
       "event_type": "log_info",
       "msg": "Check if the service apache2 is started using ps was correct",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T17:58:13+00:00",
       "serial": 0
     },
@@ -390,7 +390,7 @@
       "event_type": "log_info",
       "msg": "Ensure that service apache2 is running was correct",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T18:58:13+00:00",
       "serial": 0
     },
@@ -403,7 +403,7 @@
       "event_type": "result_success",
       "msg": "Check apache process running was correct",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T19:58:13+00:00",
       "serial": 0
     },
@@ -416,7 +416,7 @@
       "event_type": "log_info",
       "msg": "Check if service apache2 is started at boot was correct",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T20:58:13+00:00",
       "serial": 0
     },
@@ -429,7 +429,7 @@
       "event_type": "log_info",
       "msg": "Ensure service apache2 is started at boot was correct",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T21:58:13+00:00",
       "serial": 0
     },
@@ -442,7 +442,7 @@
       "event_type": "result_success",
       "msg": "Check apache boot starting parameters was correct",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T22:58:13+00:00",
       "serial": 0
     },
@@ -455,7 +455,7 @@
       "event_type": "log_info",
       "msg": "Check if the service .*java.*/opt/rudder/jetty/start.jar is started using ps was correct",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T23:58:13+00:00",
       "serial": 0
     },
@@ -468,7 +468,7 @@
       "event_type": "log_info",
       "msg": "Ensure that service rudder-jetty is running was correct",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T00:58:13+00:00",
       "serial": 0
     },
@@ -481,7 +481,7 @@
       "event_type": "result_success",
       "msg": "Check jetty process running was correct",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T01:58:13+00:00",
       "serial": 0
     },
@@ -494,7 +494,7 @@
       "event_type": "result_success",
       "msg": "The /var/rudder/configuration-repository directory is present",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T02:58:13+00:00",
       "serial": 0
     },
@@ -507,7 +507,7 @@
       "event_type": "result_success",
       "msg": "The /var/rudder/configuration-repository git lock file is not present or not older than 5 minutes",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T03:58:13+00:00",
       "serial": 0
     },
@@ -520,7 +520,7 @@
       "event_type": "result_success",
       "msg": "The http://localhost:8080/rudder/api/status web interface is running",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T04:58:13+00:00",
       "serial": 0
     },
@@ -533,7 +533,7 @@
       "event_type": "result_success",
       "msg": "The http://localhost:8080/endpoint/api/status web interface is running",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T05:58:13+00:00",
       "serial": 0
     },
@@ -546,7 +546,7 @@
       "event_type": "log_info",
       "msg": "Check if the service /opt/rudder/libexec/slapd is started using ps was correct",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T06:58:13+00:00",
       "serial": 0
     },
@@ -559,7 +559,7 @@
       "event_type": "log_info",
       "msg": "Ensure that service rudder-slapd is running was correct",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T07:58:13+00:00",
       "serial": 0
     },
@@ -572,7 +572,7 @@
       "event_type": "result_success",
       "msg": "Check slapd process running was correct",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T08:58:13+00:00",
       "serial": 0
     },
@@ -585,7 +585,7 @@
       "event_type": "result_success",
       "msg": "There is no need of specific PostgreSQL configuration on this system",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T09:58:13+00:00",
       "serial": 0
     },
@@ -598,7 +598,7 @@
       "event_type": "log_info",
       "msg": "Check if the service postgres:.* writer process is started using ps was correct",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T10:58:13+00:00",
       "serial": 0
     },
@@ -611,7 +611,7 @@
       "event_type": "log_info",
       "msg": "Ensure that service postgresql is running was correct",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T11:58:13+00:00",
       "serial": 0
     },
@@ -624,7 +624,7 @@
       "event_type": "result_success",
       "msg": "Check postgresql process running was correct",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T12:58:13+00:00",
       "serial": 0
     },
@@ -637,7 +637,7 @@
       "event_type": "log_info",
       "msg": "Check if service postgresql is started at boot was correct",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T13:58:13+00:00",
       "serial": 0
     },
@@ -650,7 +650,7 @@
       "event_type": "log_info",
       "msg": "Ensure service postgresql is started at boot was correct",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T14:58:13+00:00",
       "serial": 0
     },
@@ -663,7 +663,7 @@
       "event_type": "result_success",
       "msg": "Check postgresql boot starting parameters was correct",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T15:58:13+00:00",
       "serial": 0
     },
@@ -676,7 +676,7 @@
       "event_type": "result_na",
       "msg": "Sending metrics to rudder-project.org is not enabled. Skipping.",
       "policy": "server-roles",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T16:58:13+00:00",
       "serial": 0
     },
@@ -689,7 +689,7 @@
       "event_type": "log_warn",
       "msg": "Check if /tmp is a symlink could not be repaired",
       "policy": "copyGitFile",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T17:58:13+00:00",
       "serial": 0
     },
@@ -702,7 +702,7 @@
       "event_type": "result_success",
       "msg": "The content of the file(s) (copied from toto) is valid",
       "policy": "copyFile",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T18:58:13+00:00",
       "serial": 0
     },
@@ -715,7 +715,7 @@
       "event_type": "result_na",
       "msg": "No post-hook command for copy of toto to /tmp/toto/ was defined, not executing",
       "policy": "copyFile",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T19:58:13+00:00",
       "serial": 0
     },
@@ -728,7 +728,7 @@
       "event_type": "log_warn",
       "msg": "Need to create user 'demo'.",
       "policy": "Rudder_demo_user",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T20:58:13+00:00",
       "serial": 0
     },
@@ -741,7 +741,7 @@
       "event_type": "audit_noncompliant",
       "msg": "User demo present was not correct",
       "policy": "Rudder_demo_user",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T21:58:13+00:00",
       "serial": 0
     },
@@ -754,7 +754,7 @@
       "event_type": "log_warn",
       "msg": "Method 'user_present' failed in some repairs",
       "policy": "Rudder_demo_user",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T22:58:13+00:00",
       "serial": 0
     },
@@ -767,7 +767,7 @@
       "event_type": "audit_noncompliant",
       "msg": "User demo does not exist. Setting user demo fullname set to User  (with for the Rudder demo was not correct",
       "policy": "Rudder_demo_user",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T23:58:13+00:00",
       "serial": 0
     },
@@ -780,7 +780,7 @@
       "event_type": "log_warn",
       "msg": "Method 'Rudder_demo_user' failed in some repairs",
       "policy": "OpenSSH server",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T00:58:13+00:00",
       "serial": 0
     },
@@ -793,7 +793,7 @@
       "event_type": "result_success",
       "msg": "The OpenSSH server package installation was correct",
       "policy": "OpenSSH server",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T01:58:13+00:00",
       "serial": 0
     },
@@ -806,7 +806,7 @@
       "event_type": "log_info",
       "msg": "Check if service ssh is started at boot was correct",
       "policy": "sshConfiguration",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T02:58:13+00:00",
       "serial": 0
     },
@@ -819,7 +819,7 @@
       "event_type": "log_info",
       "msg": "Ensure service ssh is started at boot was correct",
       "policy": "sshConfiguration",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T03:58:13+00:00",
       "serial": 0
     },
@@ -832,7 +832,7 @@
       "event_type": "result_success",
       "msg": "The OpenSSH server service is running",
       "policy": "OpenSSH server",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T04:58:13+00:00",
       "serial": 0
     },
@@ -845,7 +845,7 @@
       "event_type": "result_success",
       "msg": "OpenSSH is starting on boot as required",
       "policy": "OpenSSH server",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T05:58:13+00:00",
       "serial": 0
     },
@@ -858,7 +858,7 @@
       "event_type": "result_success",
       "msg": "The OpenSSH server port configuration is not set to be edited",
       "policy": "OpenSSH server",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T06:58:13+00:00",
       "serial": 0
     },
@@ -871,7 +871,7 @@
       "event_type": "result_success",
       "msg": "The OpenSSH server listening addresses configuration is not set to be edited",
       "policy": "OpenSSH server",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T07:58:13+00:00",
       "serial": 0
     },
@@ -884,7 +884,7 @@
       "event_type": "result_success",
       "msg": "The OpenSSH server configuration was correct",
       "policy": "OpenSSH server",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T08:58:13+00:00",
       "serial": 0
     },
@@ -897,7 +897,7 @@
       "event_type": "log_info",
       "msg": "Check if the service rsyslog is started was correct",
       "policy": "Common",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T09:58:13+00:00",
       "serial": 0
     },
@@ -910,7 +910,7 @@
       "event_type": "log_info",
       "msg": "Ensure that service rsyslog is running was correct",
       "policy": "Common",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T10:58:13+00:00",
       "serial": 0
     },
@@ -923,7 +923,7 @@
       "event_type": "result_na",
       "msg": "No Rudder monitoring information to share with the server",
       "policy": "Common",
-      "node_id": "root",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T11:58:13+00:00",
       "serial": 0
     }

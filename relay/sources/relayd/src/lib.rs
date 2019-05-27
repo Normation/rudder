@@ -52,7 +52,7 @@ use crate::{
     data::node::NodesList,
     error::Error,
     output::database::{pg_pool, PgPool},
-    processing::{serve_inventories, serve_reports},
+    processing::serve_reports,
     stats::Stats,
 };
 use futures::{
@@ -66,12 +66,12 @@ use slog_atomic::{AtomicSwitch, AtomicSwitchCtrl};
 use slog_kvfilter::KVFilter;
 use slog_scope::{debug, error, info, GlobalLoggerGuard};
 use slog_term::{CompactFormat, TermDecorator};
-use std::iter::FromIterator;
-use std::process::exit;
-use std::string::ToString;
 use std::{
     collections::{HashMap, HashSet},
     fs::create_dir_all,
+    iter::FromIterator,
+    process::exit,
+    string::ToString,
     sync::{Arc, RwLock},
 };
 use structopt::clap::crate_version;
@@ -165,10 +165,12 @@ pub fn init(cli_cfg: CliConfiguration) -> Result<(), Error> {
             info!("Skipping reporting as it is disabled");
             serve_reports(&job_config, &tx_stats);
         }
+        /*
         if job_config.cfg.processing.inventory.output.is_enabled() {
             info!("Skipping inventory as it is disabled");
             serve_inventories(&job_config, &tx_stats);
         }
+        */
 
         Ok(())
     }));
@@ -278,6 +280,7 @@ impl JobConfig {
         } else {
             None
         };
+
         let nodes = RwLock::new(NodesList::new(
             &cfg.general.nodes_list_file,
             Some(&cfg.general.nodes_certs_file),

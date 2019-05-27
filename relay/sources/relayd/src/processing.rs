@@ -28,14 +28,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::configuration::LogComponent;
-use crate::input::read_file_content;
-use crate::input::watch::*;
 use crate::{
-    configuration::{InventoryOutputSelect, ReportingOutputSelect},
-    data::RunInfo,
-    data::RunLog,
+    configuration::{LogComponent, ReportingOutputSelect},
+    data::{RunInfo, RunLog},
     error::Error,
+    input::{read_compressed_file, signature, watch::*},
     output::database::{insert_runlog, InsertionBehavior},
     stats::Event,
     JobConfig,
@@ -46,12 +43,13 @@ use futures::{
     sync::mpsc,
     Stream,
 };
-use slog::{slog_debug, slog_error};
-use slog_scope::{debug, error};
-use std::{path::PathBuf, sync::Arc};
-use tokio::fs::remove_file;
-use tokio::fs::rename;
-use tokio::prelude::*;
+use slog::{slog_debug, slog_error, slog_warn};
+use slog_scope::{debug, error, warn};
+use std::{convert::TryFrom, path::PathBuf, sync::Arc};
+use tokio::{
+    fs::{remove_file, rename},
+    prelude::*,
+};
 use tokio_threadpool::blocking;
 
 pub type ReceivedFile = PathBuf;
@@ -76,35 +74,6 @@ pub fn serve_reports(job_config: &Arc<JobConfig>, stats: &mpsc::Sender<Event>) {
     );
 }
 
-pub fn serve_inventories(job_config: &Arc<JobConfig>, stats: &mpsc::Sender<Event>) {
-    let (inventory_tx, inventory_rx) = mpsc::channel(1_024);
-    tokio::spawn(treat_inventories(
-        job_config.clone(),
-        inventory_rx,
-        stats.clone(),
-    ));
-    watch(
-        &job_config
-            .cfg
-            .processing
-            .inventory
-            .directory
-            .join("incoming"),
-        &job_config,
-        &inventory_tx,
-    );
-    watch(
-        &job_config
-            .cfg
-            .processing
-            .inventory
-            .directory
-            .join("accepted-nodes-updates"),
-        &job_config,
-        &inventory_tx,
-    );
-}
-
 fn treat_reports(
     job_config: Arc<JobConfig>,
     rx: mpsc::Receiver<ReceivedFile>,
@@ -119,16 +88,16 @@ fn treat_reports(
         // FIXME: no need for a spawn
         tokio::spawn(lazy(|| stat_event));
 
-        // Check uuid
-        // FIXME unwrap
-        let info = file.file_name().expect("Should be a file").to_str().unwrap().parse::<RunInfo>().unwrap();
-        // TODO log run info
+        // Check run info
+        let info = RunInfo::try_from(file.as_ref())
+            .map_err(|e| warn!("received: {}", e; "component" => LogComponent::Watcher))?;
+
         if ! job_config.nodes.read().expect("Cannot read nodes list").is_subnode(&info.node_id) {
             let fail = fail(file, job_config
-            .cfg
-            .processing
-            .reporting
-            .directory.clone(), Event::ReportRefused, stats.clone());
+                .cfg
+                .processing
+                .reporting
+                .directory.clone(), Event::ReportRefused, stats.clone());
 
             // FIXME: no need for a spawn
             tokio::spawn(lazy(|| fail));
@@ -144,7 +113,7 @@ fn treat_reports(
         let job_config_clone = job_config.clone();
         let treat_file = match job_config.cfg.processing.reporting.output {
             ReportingOutputSelect::Database => {
-                output_report_database(file.clone(), job_config.clone())
+                output_report_database(file.clone(), info, job_config.clone())
                     .and_then(|_| {
                         success(file, Event::ReportInserted, stats_ok)
                     })
@@ -165,55 +134,6 @@ fn treat_reports(
         Ok(())
     })
 }
-
-fn treat_inventories(
-    job_config: Arc<JobConfig>,
-    rx: mpsc::Receiver<ReceivedFile>,
-    stats: mpsc::Sender<Event>,
-) -> impl Future<Item = (), Error = ()> {
-    rx.for_each(move |file| {
-        let stat_event = stats
-            .clone()
-            .send(Event::InventoryReceived)
-            .map_err(|e| error!("receive error: {}", e; "component" => LogComponent::Watcher))
-            .map(|_| ());
-        // FIXME: no need for a spawn
-        tokio::spawn(lazy(|| stat_event));
-
-        debug!("received: {:?}", file; "component" => LogComponent::Watcher);
-        let treat_file = match job_config.cfg.processing.inventory.output {
-            InventoryOutputSelect::Upstream => output_report_database(file, job_config.clone()),
-            // The job should not be started in this case
-            InventoryOutputSelect::Disabled => unreachable!("Inventory server should be disabled"),
-        };
-
-        tokio::spawn(lazy(|| treat_file));
-        Ok(())
-    })
-}
-/*
-fn is_report_valid(file: ReceivedFile,
-    job_config: Arc<JobConfig>,
-        stats: mpsc::Sender<Event>
-
-) -> impl Future<Item = (), Error = ()> {
-        // FIXME unwrap
-        let info = file.file_name().expect("Should be a file").to_str().unwrap().parse::<RunInfo>().unwrap();
-        // TODO log run info
-        if ! job_config.nodes.read().expect("Cannot read nodes list").is_subnode(&info.node_id) {
-            let fail = fail(file, job_config
-            .cfg
-            .processing
-            .reporting
-            .directory.clone(), Event::ReportRefused, stats.clone());
-
-            // FIXME: no need for a spawn
-            tokio::spawn(lazy(|| fail));
-            error!("refused: report from {:?}, unknown id", &info.node_id; "component" => LogComponent::Watcher);
-            return Err(());
-        }
-        Ok(())
-}*/
 
 fn success(
     file: ReceivedFile,
@@ -261,6 +181,7 @@ fn fail(
 
 fn output_report_database(
     path: ReceivedFile,
+    run_info: RunInfo,
     job_config: Arc<JobConfig>,
 ) -> impl Future<Item = (), Error = ()> {
     // Everything here is blocking: reading on disk or inserting into database
@@ -269,7 +190,7 @@ fn output_report_database(
     // We can switch to it once we also have stream (i.e. not on disk) input.
     poll_fn(move || {
         blocking(|| {
-            output_report_database_inner(&path, &job_config)
+            output_report_database_inner(&path, &run_info, &job_config)
                 .map_err(|e| error!("output error: {}", e; "component" => LogComponent::Database))
         })
         .map_err(|_| panic!("the thread pool shut down"))
@@ -279,18 +200,30 @@ fn output_report_database(
 
 fn output_report_database_inner(
     path: &ReceivedFile,
+    run_info: &RunInfo,
     job_config: &Arc<JobConfig>,
 ) -> Result<(), Error> {
-    // blocking by essence
     debug!("Starting insertion of {:#?}", path);
-    let runlog = read_file_content(&path)?.parse::<RunLog>()?;
+
+    let signed_runlog = signature(
+        &read_compressed_file(&path)?,
+        job_config
+            .clone()
+            .nodes
+            .read()
+            .expect("read nodes")
+            .certs(&run_info.node_id)
+            .ok_or_else(|| Error::MissingCertificateForNode(run_info.node_id.clone()))?,
+    )?;
+
+    let parsed_runlog = signed_runlog.parse::<RunLog>()?;
 
     let _inserted = insert_runlog(
         &job_config
             .pool
             .clone()
             .expect("output uses database but no config provided"),
-        &runlog,
+        &parsed_runlog,
         InsertionBehavior::SkipDuplicate,
     )?;
     Ok(())

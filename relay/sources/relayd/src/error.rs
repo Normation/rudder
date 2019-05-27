@@ -30,6 +30,7 @@
 
 #![allow(clippy::enum_glob_use)]
 use self::Error::*;
+use crate::data::node::NodeId;
 use chrono;
 use diesel;
 use serde_json;
@@ -37,6 +38,7 @@ use std::{
     error::Error as StdError,
     fmt::{self, Display, Formatter},
     io, num,
+    path::PathBuf,
 };
 use toml;
 
@@ -45,10 +47,14 @@ pub enum Error {
     /// Unspecified parsing errors
     /// TODO add details
     InvalidRunLog,
-    InvalidRunInfo,
+    InvalidRunInfo(String),
+    InvalidFileName,
+    InvalidFile(PathBuf),
     InconsistentRunlog,
     EmptyRunlog,
     MissingIdInCertificate,
+    CertificateForUnknownNode(NodeId),
+    MissingCertificateForNode(NodeId),
     Unspecified(String),
     Database(diesel::result::Error),
     DatabaseConnection(diesel::ConnectionError),
@@ -66,10 +72,18 @@ impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         match *self {
             InvalidRunLog => write!(f, "invalid run log"),
-            InvalidRunInfo => write!(f, "invalid run info"),
+            InvalidRunInfo(ref s) => write!(f, "invalid run info {}", s),
             InconsistentRunlog => write!(f, "inconsistent run log"),
+            InvalidFileName => write!(f, "file name should be valid unicode"),
+            InvalidFile(ref path) => write!(f, "received path {:#?} is not a file", path),
             EmptyRunlog => write!(f, "agent run log is empty"),
             MissingIdInCertificate => write!(f, "certificate is missing a Rudder id"),
+            MissingCertificateForNode(ref node) => {
+                write!(f, "no certificate known for {} node", node)
+            }
+            CertificateForUnknownNode(ref node) => {
+                write!(f, "certificate for unknown {} node", node)
+            }
             Unspecified(ref err) => write!(f, "internal error: {}", err),
             Database(ref err) => write!(f, "database error: {}", err),
             DatabaseConnection(ref err) => write!(f, "database connection error: {}", err),

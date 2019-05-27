@@ -28,10 +28,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{data::node, data::runinfo::parse_iso_date, output::database::schema::ruddersysevents};
+use crate::{
+    data::{node::NodeId, runinfo::parse_iso_date},
+    output::database::schema::ruddersysevents,
+};
 use chrono::prelude::*;
 use nom::*;
-//use nom::character::complete::space0;
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
 
@@ -242,7 +244,7 @@ pub struct QueryableReport {
     #[column_name = "policy"]
     pub policy: Option<String>,
     #[column_name = "nodeid"]
-    pub node_id: node::Id,
+    pub node_id: NodeId,
     #[column_name = "executiontimestamp"]
     pub execution_datetime: Option<DateTime<Utc>>,
     pub serial: i32,
@@ -268,7 +270,7 @@ pub struct Report {
     #[column_name = "policy"]
     pub policy: String,
     #[column_name = "nodeid"]
-    pub node_id: node::Id,
+    pub node_id: NodeId,
     #[column_name = "executiontimestamp"]
     pub execution_datetime: DateTime<FixedOffset>,
     pub serial: i32,
@@ -298,7 +300,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_display_report() {
+    fn it_formats_report() {
         let report = "@@Common@@result_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@None@@2018-08-24 15:55:01 +00:00##root@#Cron daemon status was repaired";
         assert_eq!(
             report,
@@ -330,12 +332,12 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_log_level() {
+    fn it_parses_log_level() {
         assert_eq!(agent_log_level("CRITICAL: toto").unwrap().1, "log_warn")
     }
 
     #[test]
-    fn test_parse_simpleline() {
+    fn it_parses_simpleline() {
         assert_eq!(simpleline("Thething\n").unwrap().1, "Thething".to_string());
         assert_eq!(
             simpleline("The thing\n").unwrap().1,
@@ -366,7 +368,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_multilines() {
+    fn it_parses_multilines() {
         assert_eq!(multilines("Thething\n").unwrap().1, "Thething".to_string());
         assert_eq!(
             multilines("The thing\n").unwrap().1,
@@ -399,7 +401,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_log_entry() {
+    fn it_parses_log_entry() {
         assert_eq!(
             log_entry("2019-05-09T13:36:46+00:00 CRITICAL: toto\n")
                 .unwrap()
@@ -441,7 +443,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_log_entries() {
+    fn it_parses_log_entries() {
         assert_eq!(
             log_entries("2019-05-09T13:36:46+00:00 CRITICAL: toto\n2018-05-09T13:36:46+00:00 suite\nend\n2017-05-09T13:36:46+00:00 CRITICAL: tutu\n")
                 .unwrap()

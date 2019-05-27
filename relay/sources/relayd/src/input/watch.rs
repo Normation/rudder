@@ -28,10 +28,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::configuration::LogComponent;
-use crate::processing::ReceivedFile;
 use crate::{
-    configuration::{CatchupConfig, WatchedDirectory},
+    configuration::{CatchupConfig, LogComponent, WatchedDirectory},
+    processing::ReceivedFile,
     JobConfig,
 };
 use futures::{

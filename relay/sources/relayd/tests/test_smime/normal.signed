@@ -1,84 +1,85 @@
 MIME-Version: 1.0
-Content-Type: multipart/signed; protocol="application/x-pkcs7-signature"; micalg="sha-256"; boundary="----F8538AB7A9923C1EC124DD9D5755FEAE"
+Content-Type: multipart/signed; protocol="application/x-pkcs7-signature"; micalg="sha-256"; boundary="----D65AA2C0627CCE6A40492C61A37ABCB7"
 
 This is an S/MIME signed message
 
-------F8538AB7A9923C1EC124DD9D5755FEAE
-R: @@Common@@control@@rudder@@run@@0@@start@@20180824-130007-3ad37587@@2018-08-24 15:55:01+00:00##root@#Start execution
-R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@ncf Initialization@@None@@2018-08-24 15:55:01+00:00##root@#Configuration library initialization
-was correct
-R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@Security parameters@@None@@2018-08-24 15:55:01+00:00##root@#The internal environment security is acceptable
-R: @@Common@@result_na@@hasPolicyServer-root@@common-root@@0@@Process checking@@None@@2018-08-24 15:55:01+00:00##root@#Rudder agent proccesses check is done by the rudder-agent cron job
-R: @@Common@@log_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@cron@@2018-08-24 15:55:01+00:00##root@#Run action restart on service cron was repaired
-R: @@Common@@log_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@cron@@2018-08-24 15:55:01+00:00##root@#Restart service cron if 'any' condition defined was repaired
-R: @@Common@@log_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@cron@@2018-08-24 15:55:01+00:00##root@#Restart service ${canonified_service_name} was repaired
-R: @@Common@@result_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@None@@2018-08-24 15:55:01+00:00##root@#Cron daemon status was repaired
-R: message report
-R: @@Common@@log_info@@hasPolicyServer-root@@common-root@@0@@Log system for reports@@None@@2018-08-24 15:55:01+00:00##root@#Detected running syslog as rsyslog
-R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@Log system for reports@@None@@2018-08-24 15:55:01+00:00##root@#Logging system for report centralization is already correctly configured
-R: @@Common@@log_info@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@/var/rudder/tmp/rudder_monitoring.csv@@2018-08-24 15:55:01+00:00##root@#Remove file /var/rudder/tmp/rudder_monitoring.csv was correct
-R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@Binaries update@@None@@2018-08-24 15:55:01+00:00##root@#The agent binaries in /var/rudder/cfengine-community/bin are up to date
-R: @@DistributePolicy@@result_success@@root-DP@@root-distributePolicy@@0@@Configure ncf@@None@@2018-08-24 15:55:01+00:00##root@#Configure configuration library was correct
-R: @@DistributePolicy@@result_success@@root-DP@@root-distributePolicy@@0@@Synchronize resources@@None@@2018-08-24 15:55:01+00:00##root@#All resources have been updated
-R: @@DistributePolicy@@result_na@@root-DP@@root-distributePolicy@@0@@Synchronize policies@@None@@2018-08-24 15:55:01+00:00##root@#Rudder server does not need to synchronize its policies
-R: @@DistributePolicy@@result_na@@root-DP@@root-distributePolicy@@0@@Synchronize files@@None@@2018-08-24 15:55:01+00:00##root@#Rudder server does not need to synchronize its shared files
-R: @@DistributePolicy@@result_success@@root-DP@@root-distributePolicy@@0@@Send inventories to Rudder server@@None@@2018-08-24 15:55:01+00:00##root@#No inventory to send
-R: @@DistributePolicy@@result_success@@root-DP@@root-distributePolicy@@0@@Configure apache ACL@@None@@2018-08-24 15:55:01+00:00##root@#Apache ACLs are correct
-R: @@Inventory@@result_success@@inventory-all@@inventory-all@@0@@inventory@@None@@2018-08-24 15:55:01+00:00##root@#Next inventory scheduled between 00:00 and 06:00
-R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check logrotate configuration@@None@@2018-08-24 15:55:01+00:00##root@#The logrotate configuration is correct
-R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check LDAP in rudder-webapp.properties@@None@@2018-08-24 15:55:01+00:00##root@#Web interface configuration files are correct (checked LDAP password)
-R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check LDAP credentials@@None@@2018-08-24 15:55:01+00:00##root@#OpenLDAP configuration file is correct (checked rootdn password)
-R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check rudder-passwords.conf and pgpass files@@None@@2018-08-24 15:55:01+00:00##root@#Rudder passwords file is present and secure
-R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check SQL in rudder-webapp.properties@@None@@2018-08-24 15:55:01+00:00##root@#Web interface configuration files are OK (checked SQL password)
-R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check SQL credentials@@None@@2018-08-24 15:55:01+00:00##root@#PostgreSQL user account's password is correct and works
-R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check allowed networks configuration@@None@@2018-08-24 15:55:01+00:00##root@#Allowed networks configuration is correct
-R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check WebDAV credentials@@None@@2018-08-24 15:55:01+00:00##root@#Apache WebDAV user and password are OK
-R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check apache process@@apache2@@2018-08-24 15:55:01+00:00##root@#Check if the service apache2 is started using ps was correct
-R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check apache process@@apache2@@2018-08-24 15:55:01+00:00##root@#Ensure that service apache2 is running was correct
-R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check apache process@@None@@2018-08-24 15:55:01+00:00##root@#Check apache process running was correct
-R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check apache boot script@@apache2@@2018-08-24 15:55:01+00:00##root@#Check if service apache2 is started at boot was correct
-R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check apache boot script@@apache2@@2018-08-24 15:55:01+00:00##root@#Ensure service apache2 is started at boot was correct
-R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check apache boot script@@None@@2018-08-24 15:55:01+00:00##root@#Check apache boot starting parameters was correct
-R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check jetty process@@.*java.*/opt/rudder/jetty/start.jar@@2018-08-24 15:55:01+00:00##root@#Check if the service .*java.*/opt/rudder/jetty/start.jar is started using ps was correct
-R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check jetty process@@rudder-jetty@@2018-08-24 15:55:01+00:00##root@#Ensure that service rudder-jetty is running was correct
-R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check jetty process@@None@@2018-08-24 15:55:01+00:00##root@#Check jetty process running was correct
-R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check configuration-repository folder@@None@@2018-08-24 15:55:01+00:00##root@#The /var/rudder/configuration-repository directory is present
-R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check configuration-repository GIT lock@@None@@2018-08-24 15:55:01+00:00##root@#The /var/rudder/configuration-repository git lock file is not present or not older than 5 minutes
-R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check rudder status@@None@@2018-08-24 15:55:01+00:00##root@#The http://localhost:8080/rudder/api/status web interface is running
-R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check endpoint status@@None@@2018-08-24 15:55:01+00:00##root@#The http://localhost:8080/endpoint/api/status web interface is running
-R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check slapd process@@/opt/rudder/libexec/slapd@@2018-08-24 15:55:01+00:00##root@#Check if the service /opt/rudder/libexec/slapd is started using ps was correct
-R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check slapd process@@rudder-slapd@@2018-08-24 15:55:01+00:00##root@#Ensure that service rudder-slapd is running was correct
-R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check slapd process@@None@@2018-08-24 15:55:01+00:00##root@#Check slapd process running was correct
-R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check PostgreSQL configuration@@None@@2018-08-24 15:55:01+00:00##root@#There is no need of specific PostgreSQL configuration on this system
-R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check postgresql process@@postgres:.* writer process@@2018-08-24 15:55:01+00:00##root@#Check if the service postgres:.* writer process is started using ps was correct
-R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check postgresql process@@postgresql@@2018-08-24 15:55:01+00:00##root@#Ensure that service postgresql is running was correct
-R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check postgresql process@@None@@2018-08-24 15:55:01+00:00##root@#Check postgresql process running was correct
-R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check postgresql boot script@@postgresql@@2018-08-24 15:55:01+00:00##root@#Check if service postgresql is started at boot was correct
-R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check postgresql boot script@@postgresql@@2018-08-24 15:55:01+00:00##root@#Ensure service postgresql is started at boot was correct
-R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check postgresql boot script@@None@@2018-08-24 15:55:01+00:00##root@#Check postgresql boot starting parameters was correct
-R: @@server-roles@@result_na@@server-roles@@server-roles-directive@@0@@Send metrics to rudder-project@@None@@2018-08-24 15:55:01+00:00##root@#Sending metrics to rudder-project.org is not enabled. Skipping.
-R: @@copyGitFile@@log_warn@@32377fd7-02fd-43d0-aab7-28460a91347b@@928d47b9-0486-4abc-8b2c-242276251975@@0@@None@@/tmp@@2018-08-24 15:55:01+00:00##root@#Check if /tmp is a symlink could not be repaired
-R: @@copyFile@@result_success@@32377fd7-02fd-43d0-aab7-28460a91347b@@928d47b9-0486-4abc-8b2c-242276251975@@0@@Copy file@@/tmp/toto/@@2018-08-24 15:55:01+00:00##root@#The content of the file(s) (copied from toto) is valid
-R: @@copyFile@@result_na@@32377fd7-02fd-43d0-aab7-28460a91347b@@928d47b9-0486-4abc-8b2c-242276251975@@0@@Post-modification hook@@/tmp/toto/@@2018-08-24 15:55:01+00:00##root@#No post-hook command for copy of toto to /tmp/toto/ was defined, not executing
- warning: Need to create user 'demo'.
-R: @@Rudder_demo_user@@audit_noncompliant@@32377fd7-02fd-43d0-aab7-28460a91347b@@08749733-d97e-4c20-b2df-3ae742bf0130@@0@@User present@@demo@@2018-08-24 15:55:01+00:00##root@#User demo present was not correct
-   error: Method 'user_present' failed in some repairs
-R: @@Rudder_demo_user@@audit_noncompliant@@32377fd7-02fd-43d0-aab7-28460a91347b@@08749733-d97e-4c20-b2df-3ae742bf0130@@0@@User fullname@@demo@@2018-08-24 15:55:01+00:00##root@#User demo does not exist. Setting user demo fullname set to User  (with for the Rudder demo was not correct
-   error: Method 'Rudder_demo_user' failed in some repairs
-R: @@OpenSSH server@@result_success@@32377fd7-02fd-43d0-aab7-28460a91347b@@c844d80c-8f5d-4b93-83d6-a3a65ae8a6eb@@0@@SSH installation@@None@@2018-08-24 15:55:01+00:00##root@#The OpenSSH server package installation was correct
-R: @@sshConfiguration@@log_info@@32377fd7-02fd-43d0-aab7-28460a91347b@@c844d80c-8f5d-4b93-83d6-a3a65ae8a6eb@@0@@None@@ssh@@2018-08-24 15:55:01+00:00##root@#Check if service ssh is started at boot was correct
-R: @@sshConfiguration@@log_info@@32377fd7-02fd-43d0-aab7-28460a91347b@@c844d80c-8f5d-4b93-83d6-a3a65ae8a6eb@@0@@None@@ssh@@2018-08-24 15:55:01+00:00##root@#Ensure service ssh is started at boot was correct
-R: @@OpenSSH server@@result_success@@32377fd7-02fd-43d0-aab7-28460a91347b@@c844d80c-8f5d-4b93-83d6-a3a65ae8a6eb@@0@@SSH process@@None@@2018-08-24 15:55:01+00:00##root@#The OpenSSH server service is running
-R: @@OpenSSH server@@result_success@@32377fd7-02fd-43d0-aab7-28460a91347b@@c844d80c-8f5d-4b93-83d6-a3a65ae8a6eb@@0@@SSH start at boot@@None@@2018-08-24 15:55:01+00:00##root@#OpenSSH is starting on boot as required
-R: @@OpenSSH server@@result_success@@32377fd7-02fd-43d0-aab7-28460a91347b@@c844d80c-8f5d-4b93-83d6-a3a65ae8a6eb@@0@@SSH port configuration@@None@@2018-08-24 15:55:01+00:00##root@#The OpenSSH server port configuration is not set to be edited
-R: @@OpenSSH server@@result_success@@32377fd7-02fd-43d0-aab7-28460a91347b@@c844d80c-8f5d-4b93-83d6-a3a65ae8a6eb@@0@@SSH listening addresses configuration@@None@@2018-08-24 15:55:01+00:00##root@#The OpenSSH server listening addresses configuration is not set to be edited
-R: @@OpenSSH server@@result_success@@32377fd7-02fd-43d0-aab7-28460a91347b@@c844d80c-8f5d-4b93-83d6-a3a65ae8a6eb@@0@@SSH configuration@@None@@2018-08-24 15:55:01+00:00##root@#The OpenSSH server configuration was correct
-R: @@Common@@log_info@@hasPolicyServer-root@@common-root@@0@@Make sure syslog service runs@@rsyslog@@2018-08-24 15:55:01+00:00##root@#Check if the service rsyslog is started was correct
-R: @@Common@@log_info@@hasPolicyServer-root@@common-root@@0@@Make sure syslog service runs@@rsyslog@@2018-08-24 15:55:01+00:00##root@#Ensure that service rsyslog is running was correct
-R: @@Common@@result_na@@hasPolicyServer-root@@common-root@@0@@Monitoring@@None@@2018-08-24 15:55:01+00:00##root@#No Rudder monitoring information to share with the server
-R: @@Common@@control@@rudder@@run@@0@@end@@20180824-130007-3ad37587@@2018-08-24 15:55:01+00:00##root@#End execution
+------D65AA2C0627CCE6A40492C61A37ABCB7
+Content-Type: text/plain
 
-------F8538AB7A9923C1EC124DD9D5755FEAE
+2019-05-11T12:58:13+00:00 R: @@Common@@control@@rudder@@run@@0@@start@@20180824-130007-3ad37587@@2018-08-24 15:55:01+00:00##root@#Start execution
+2019-05-11T13:58:13+00:00 R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@ncf Initialization@@None@@2018-08-24 15:55:01+00:00##root@#Configuration library initialization
+2019-05-11T14:58:13+00:00 was correct
+2019-05-11T15:58:13+00:00 R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@Security parameters@@None@@2018-08-24 15:55:01+00:00##root@#The internal environment security is acceptable
+2019-05-11T16:58:13+00:00 R: @@Common@@result_na@@hasPolicyServer-root@@common-root@@0@@Process checking@@None@@2018-08-24 15:55:01+00:00##root@#Rudder agent proccesses check is done by the rudder-agent cron job
+2019-05-11T17:58:13+00:00 R: @@Common@@log_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@cron@@2018-08-24 15:55:01+00:00##root@#Run action restart on service cron was repaired
+2019-05-11T18:58:13+00:00 R: @@Common@@log_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@cron@@2018-08-24 15:55:01+00:00##root@#Restart service cron if 'any' condition defined was repaired
+2019-05-11T19:58:13+00:00 R: @@Common@@log_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@cron@@2018-08-24 15:55:01+00:00##root@#Restart service ${canonified_service_name} was repaired
+2019-05-11T20:58:13+00:00 R: @@Common@@result_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@None@@2018-08-24 15:55:01+00:00##root@#Cron daemon status was repaired
+2019-05-11T21:58:13+00:00 R: message report
+2019-05-11T22:58:13+00:00 R: @@Common@@log_info@@hasPolicyServer-root@@common-root@@0@@Log system for reports@@None@@2018-08-24 15:55:01+00:00##root@#Detected running syslog as rsyslog
+2019-05-11T23:58:13+00:00 R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@Log system for reports@@None@@2018-08-24 15:55:01+00:00##root@#Logging system for report centralization is already correctly configured
+2019-05-12T00:58:13+00:00 R: @@Common@@log_info@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@/var/rudder/tmp/rudder_monitoring.csv@@2018-08-24 15:55:01+00:00##root@#Remove file /var/rudder/tmp/rudder_monitoring.csv was correct
+2019-05-12T01:58:13+00:00 R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@Binaries update@@None@@2018-08-24 15:55:01+00:00##root@#The agent binaries in /var/rudder/cfengine-community/bin are up to date
+2019-05-12T02:58:13+00:00 R: @@DistributePolicy@@result_success@@root-DP@@root-distributePolicy@@0@@Configure ncf@@None@@2018-08-24 15:55:01+00:00##root@#Configure configuration library was correct
+2019-05-12T03:58:13+00:00 R: @@DistributePolicy@@result_success@@root-DP@@root-distributePolicy@@0@@Synchronize resources@@None@@2018-08-24 15:55:01+00:00##root@#All resources have been updated
+2019-05-12T04:58:13+00:00 R: @@DistributePolicy@@result_na@@root-DP@@root-distributePolicy@@0@@Synchronize policies@@None@@2018-08-24 15:55:01+00:00##root@#Rudder server does not need to synchronize its policies
+2019-05-12T05:58:13+00:00 R: @@DistributePolicy@@result_na@@root-DP@@root-distributePolicy@@0@@Synchronize files@@None@@2018-08-24 15:55:01+00:00##root@#Rudder server does not need to synchronize its shared files
+2019-05-12T06:58:13+00:00 R: @@DistributePolicy@@result_success@@root-DP@@root-distributePolicy@@0@@Send inventories to Rudder server@@None@@2018-08-24 15:55:01+00:00##root@#No inventory to send
+2019-05-12T07:58:13+00:00 R: @@DistributePolicy@@result_success@@root-DP@@root-distributePolicy@@0@@Configure apache ACL@@None@@2018-08-24 15:55:01+00:00##root@#Apache ACLs are correct
+2019-05-12T08:58:13+00:00 R: @@Inventory@@result_success@@inventory-all@@inventory-all@@0@@inventory@@None@@2018-08-24 15:55:01+00:00##root@#Next inventory scheduled between 00:00 and 06:00
+2019-05-12T09:58:13+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check logrotate configuration@@None@@2018-08-24 15:55:01+00:00##root@#The logrotate configuration is correct
+2019-05-12T10:58:13+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check LDAP in rudder-webapp.properties@@None@@2018-08-24 15:55:01+00:00##root@#Web interface configuration files are correct (checked LDAP password)
+2019-05-12T11:58:13+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check LDAP credentials@@None@@2018-08-24 15:55:01+00:00##root@#OpenLDAP configuration file is correct (checked rootdn password)
+2019-05-12T12:58:13+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check rudder-passwords.conf and pgpass files@@None@@2018-08-24 15:55:01+00:00##root@#Rudder passwords file is present and secure
+2019-05-12T13:58:13+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check SQL in rudder-webapp.properties@@None@@2018-08-24 15:55:01+00:00##root@#Web interface configuration files are OK (checked SQL password)
+2019-05-12T14:58:13+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check SQL credentials@@None@@2018-08-24 15:55:01+00:00##root@#PostgreSQL user account's password is correct and works
+2019-05-12T15:58:13+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check allowed networks configuration@@None@@2018-08-24 15:55:01+00:00##root@#Allowed networks configuration is correct
+2019-05-12T16:58:13+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check WebDAV credentials@@None@@2018-08-24 15:55:01+00:00##root@#Apache WebDAV user and password are OK
+2019-05-12T17:58:13+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check apache process@@apache2@@2018-08-24 15:55:01+00:00##root@#Check if the service apache2 is started using ps was correct
+2019-05-12T18:58:13+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check apache process@@apache2@@2018-08-24 15:55:01+00:00##root@#Ensure that service apache2 is running was correct
+2019-05-12T19:58:13+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check apache process@@None@@2018-08-24 15:55:01+00:00##root@#Check apache process running was correct
+2019-05-12T20:58:13+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check apache boot script@@apache2@@2018-08-24 15:55:01+00:00##root@#Check if service apache2 is started at boot was correct
+2019-05-12T21:58:13+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check apache boot script@@apache2@@2018-08-24 15:55:01+00:00##root@#Ensure service apache2 is started at boot was correct
+2019-05-12T22:58:13+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check apache boot script@@None@@2018-08-24 15:55:01+00:00##root@#Check apache boot starting parameters was correct
+2019-05-12T23:58:13+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check jetty process@@.*java.*/opt/rudder/jetty/start.jar@@2018-08-24 15:55:01+00:00##root@#Check if the service .*java.*/opt/rudder/jetty/start.jar is started using ps was correct
+2019-05-13T00:58:13+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check jetty process@@rudder-jetty@@2018-08-24 15:55:01+00:00##root@#Ensure that service rudder-jetty is running was correct
+2019-05-13T01:58:13+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check jetty process@@None@@2018-08-24 15:55:01+00:00##root@#Check jetty process running was correct
+2019-05-13T02:58:13+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check configuration-repository folder@@None@@2018-08-24 15:55:01+00:00##root@#The /var/rudder/configuration-repository directory is present
+2019-05-13T03:58:13+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check configuration-repository GIT lock@@None@@2018-08-24 15:55:01+00:00##root@#The /var/rudder/configuration-repository git lock file is not present or not older than 5 minutes
+2019-05-13T04:58:13+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check rudder status@@None@@2018-08-24 15:55:01+00:00##root@#The http://localhost:8080/rudder/api/status web interface is running
+2019-05-13T05:58:13+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check endpoint status@@None@@2018-08-24 15:55:01+00:00##root@#The http://localhost:8080/endpoint/api/status web interface is running
+2019-05-13T06:58:13+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check slapd process@@/opt/rudder/libexec/slapd@@2018-08-24 15:55:01+00:00##root@#Check if the service /opt/rudder/libexec/slapd is started using ps was correct
+2019-05-13T07:58:13+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check slapd process@@rudder-slapd@@2018-08-24 15:55:01+00:00##root@#Ensure that service rudder-slapd is running was correct
+2019-05-13T08:58:13+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check slapd process@@None@@2018-08-24 15:55:01+00:00##root@#Check slapd process running was correct
+2019-05-13T09:58:13+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check PostgreSQL configuration@@None@@2018-08-24 15:55:01+00:00##root@#There is no need of specific PostgreSQL configuration on this system
+2019-05-13T10:58:13+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check postgresql process@@postgres:.* writer process@@2018-08-24 15:55:01+00:00##root@#Check if the service postgres:.* writer process is started using ps was correct
+2019-05-13T11:58:13+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check postgresql process@@postgresql@@2018-08-24 15:55:01+00:00##root@#Ensure that service postgresql is running was correct
+2019-05-13T12:58:13+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check postgresql process@@None@@2018-08-24 15:55:01+00:00##root@#Check postgresql process running was correct
+2019-05-13T13:58:13+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check postgresql boot script@@postgresql@@2018-08-24 15:55:01+00:00##root@#Check if service postgresql is started at boot was correct
+2019-05-13T14:58:13+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check postgresql boot script@@postgresql@@2018-08-24 15:55:01+00:00##root@#Ensure service postgresql is started at boot was correct
+2019-05-13T15:58:13+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check postgresql boot script@@None@@2018-08-24 15:55:01+00:00##root@#Check postgresql boot starting parameters was correct
+2019-05-13T16:58:13+00:00 R: @@server-roles@@result_na@@server-roles@@server-roles-directive@@0@@Send metrics to rudder-project@@None@@2018-08-24 15:55:01+00:00##root@#Sending metrics to rudder-project.org is not enabled. Skipping.
+2019-05-13T17:58:13+00:00 R: @@copyGitFile@@log_warn@@32377fd7-02fd-43d0-aab7-28460a91347b@@928d47b9-0486-4abc-8b2c-242276251975@@0@@None@@/tmp@@2018-08-24 15:55:01+00:00##root@#Check if /tmp is a symlink could not be repaired
+2019-05-13T18:58:13+00:00 R: @@copyFile@@result_success@@32377fd7-02fd-43d0-aab7-28460a91347b@@928d47b9-0486-4abc-8b2c-242276251975@@0@@Copy file@@/tmp/toto/@@2018-08-24 15:55:01+00:00##root@#The content of the file(s) (copied from toto) is valid
+2019-05-13T19:58:13+00:00 R: @@copyFile@@result_na@@32377fd7-02fd-43d0-aab7-28460a91347b@@928d47b9-0486-4abc-8b2c-242276251975@@0@@Post-modification hook@@/tmp/toto/@@2018-08-24 15:55:01+00:00##root@#No post-hook command for copy of toto to /tmp/toto/ was defined, not executing
+2019-05-13T20:58:13+00:00  warning: Need to create user 'demo'.
+2019-05-13T21:58:13+00:00 R: @@Rudder_demo_user@@audit_noncompliant@@32377fd7-02fd-43d0-aab7-28460a91347b@@08749733-d97e-4c20-b2df-3ae742bf0130@@0@@User present@@demo@@2018-08-24 15:55:01+00:00##root@#User demo present was not correct
+2019-05-13T22:58:13+00:00    error: Method 'user_present' failed in some repairs
+2019-05-13T23:58:13+00:00 R: @@Rudder_demo_user@@audit_noncompliant@@32377fd7-02fd-43d0-aab7-28460a91347b@@08749733-d97e-4c20-b2df-3ae742bf0130@@0@@User fullname@@demo@@2018-08-24 15:55:01+00:00##root@#User demo does not exist. Setting user demo fullname set to User  (with for the Rudder demo was not correct
+2019-05-14T00:58:13+00:00    error: Method 'Rudder_demo_user' failed in some repairs
+2019-05-14T01:58:13+00:00 R: @@OpenSSH server@@result_success@@32377fd7-02fd-43d0-aab7-28460a91347b@@c844d80c-8f5d-4b93-83d6-a3a65ae8a6eb@@0@@SSH installation@@None@@2018-08-24 15:55:01+00:00##root@#The OpenSSH server package installation was correct
+2019-05-14T02:58:13+00:00 R: @@sshConfiguration@@log_info@@32377fd7-02fd-43d0-aab7-28460a91347b@@c844d80c-8f5d-4b93-83d6-a3a65ae8a6eb@@0@@None@@ssh@@2018-08-24 15:55:01+00:00##root@#Check if service ssh is started at boot was correct
+2019-05-14T03:58:13+00:00 R: @@sshConfiguration@@log_info@@32377fd7-02fd-43d0-aab7-28460a91347b@@c844d80c-8f5d-4b93-83d6-a3a65ae8a6eb@@0@@None@@ssh@@2018-08-24 15:55:01+00:00##root@#Ensure service ssh is started at boot was correct
+2019-05-14T04:58:13+00:00 R: @@OpenSSH server@@result_success@@32377fd7-02fd-43d0-aab7-28460a91347b@@c844d80c-8f5d-4b93-83d6-a3a65ae8a6eb@@0@@SSH process@@None@@2018-08-24 15:55:01+00:00##root@#The OpenSSH server service is running
+2019-05-14T05:58:13+00:00 R: @@OpenSSH server@@result_success@@32377fd7-02fd-43d0-aab7-28460a91347b@@c844d80c-8f5d-4b93-83d6-a3a65ae8a6eb@@0@@SSH start at boot@@None@@2018-08-24 15:55:01+00:00##root@#OpenSSH is starting on boot as required
+2019-05-14T06:58:13+00:00 R: @@OpenSSH server@@result_success@@32377fd7-02fd-43d0-aab7-28460a91347b@@c844d80c-8f5d-4b93-83d6-a3a65ae8a6eb@@0@@SSH port configuration@@None@@2018-08-24 15:55:01+00:00##root@#The OpenSSH server port configuration is not set to be edited
+2019-05-14T07:58:13+00:00 R: @@OpenSSH server@@result_success@@32377fd7-02fd-43d0-aab7-28460a91347b@@c844d80c-8f5d-4b93-83d6-a3a65ae8a6eb@@0@@SSH listening addresses configuration@@None@@2018-08-24 15:55:01+00:00##root@#The OpenSSH server listening addresses configuration is not set to be edited
+2019-05-14T08:58:13+00:00 R: @@OpenSSH server@@result_success@@32377fd7-02fd-43d0-aab7-28460a91347b@@c844d80c-8f5d-4b93-83d6-a3a65ae8a6eb@@0@@SSH configuration@@None@@2018-08-24 15:55:01+00:00##root@#The OpenSSH server configuration was correct
+2019-05-14T09:58:13+00:00 R: @@Common@@log_info@@hasPolicyServer-root@@common-root@@0@@Make sure syslog service runs@@rsyslog@@2018-08-24 15:55:01+00:00##root@#Check if the service rsyslog is started was correct
+2019-05-14T10:58:13+00:00 R: @@Common@@log_info@@hasPolicyServer-root@@common-root@@0@@Make sure syslog service runs@@rsyslog@@2018-08-24 15:55:01+00:00##root@#Ensure that service rsyslog is running was correct
+2019-05-14T11:58:13+00:00 R: @@Common@@result_na@@hasPolicyServer-root@@common-root@@0@@Monitoring@@None@@2018-08-24 15:55:01+00:00##root@#No Rudder monitoring information to share with the server
+
+------D65AA2C0627CCE6A40492C61A37ABCB7
 Content-Type: application/x-pkcs7-signature; name="smime.p7s"
 Content-Transfer-Encoding: base64
 Content-Disposition: attachment; filename="smime.p7s"
@@ -87,22 +88,22 @@ MIIDmAYJKoZIhvcNAQcCoIIDiTCCA4UCAQExDzANBglghkgBZQMEAgEFADALBgkq
 hkiG9w0BBwExggNgMIIDXAIBATBOMDYxNDAyBgoJkiaJk/IsZAEBDCRlNzQ1YTE0
 MC00MGJjLTRiODYtYjZkYy0wODQ0ODhmYzkwNmICFAcBdt1r/3bO08VPAKL7kMem
 Xe5AMA0GCWCGSAFlAwQCAQUAoIHkMBgGCSqGSIb3DQEJAzELBgkqhkiG9w0BBwEw
-HAYJKoZIhvcNAQkFMQ8XDTE5MDUxMTE3MDE1OVowLwYJKoZIhvcNAQkEMSIEIEst
-bcRLGIrg1Fjo2Fp0IYVnE76MT8bDBkUL9JRSlaioMHkGCSqGSIb3DQEJDzFsMGow
+HAYJKoZIhvcNAQkFMQ8XDTE5MDUyNTE3MzE1N1owLwYJKoZIhvcNAQkEMSIEIFLC
+PnYcj99UAzKo6xLcYAOEENgO59+mIHOljZxhjPX9MHkGCSqGSIb3DQEJDzFsMGow
 CwYJYIZIAWUDBAEqMAsGCWCGSAFlAwQBFjALBglghkgBZQMEAQIwCgYIKoZIhvcN
 AwcwDgYIKoZIhvcNAwICAgCAMA0GCCqGSIb3DQMCAgFAMAcGBSsOAwIHMA0GCCqG
-SIb3DQMCAgEoMA0GCSqGSIb3DQEBAQUABIICAAlDbdiDVpmffl1EdrrNtNKQj4cS
-WXtJwRdOqgNwbJ91z9zUjnvYiTZXLSA8KP5QTtiXTn6WXgOUK5C2ijmYOiggItjV
-/WicUPeKQwjaRDFlIv7yljGYSdwm2pKlAmQYkqpR+ZFmcipjSOU0lza3c6tpOW+R
-jndnQr1tFkm+vNWp47hr8RmkAAPjF5R8qSv+hhjRx9LUw7xMpWjZC9JEtHznDk0c
-cruDjOQt9HinKGVSFcn1PJvwqtvbVDn7L05gKmlBd7bRUoHfK2OrR7t6exmewKYc
-BldJ7jycasHt9zaCSHR1R10b5gb54jVVuIO5rbRzLiwKkgf3mE/lAPgUGRS2s2Su
-cLOYyTYj3Ed5iTQaqWprbbfr4t0kdIOkGoubAK48HGck42eJxEcDTHf22DL3ZxMa
-taMLXGt3qtVCICGZVi990ERUyJ6gJa+vIyFylymy3tUIvvOBZCnEE4zJtvhsWJlJ
-sDprdvvWDJjJqsUA5nmfdz/U8H/13GJ81lJXVaTII3pQHtyusESaJisgnhfyzIb6
-+qy7hjPS5irR0PUZnDX7JfHB8AiLOsF7DvKylHjAAs186GGWcQmFFhr12bCz9odz
-GSr/1u+lWsckVbCRJcPdGuktR0d+MXTcrR29IMiMzaCZL+bcPWowzzMgo7ygIag/
-8rUEhg5AmVmn6SXw
+SIb3DQMCAgEoMA0GCSqGSIb3DQEBAQUABIICAEOarDsBGkjog6M4Sze9ygFJ42Sl
+dX4Voa5VrIbdJF8HOFmoyqdkni79pY/0bpoBdimpS3P0b2y0SaegvvoAsr/eUIr2
+oZvM/pZWS/KhppjJGhN/Y3DlMuRCQ7ncRvdbJWytgNk4//wIE4NSciAErEo55nCO
+AEU2hOjXL/i1GBDVkXmJ2lyM+SDO3PJPGWLpq3iQRwwrFnxxC42sn3yr5V2AD8rs
+uQdKq4vOVz90BKSIMkYk5OiTBIdIK/F+JnX0lzvs491hP6qMOalsC6A24L0EYvwt
+8MZsVTz6GolYjAWCn5nf1V3qq2eu7PjvZY4Zw3qi4PsQ053fNITLUmprLwM8WWg+
+/LJ5O8j06ryq1xCkpqXvuCOCNGyIpTqqLQ6B3/LoSXtVCW20yPQO7pBP8bv8W504
+YJho+YK/pZL9ml0D6JPonGfL80n6q7+6yFKTbPS9FD/98cMdKTqvE2CtIkTNZz6H
+l4U7Vh29GghzZ9Xn/TklFCFaiHQ5SpUKb7whd40VBSQByr7ToBQiEPCfyuFGR4e9
+FAluLT21Nqec8+moY00/c4gFV9FJ2/1WO6Hbbu+qkIMyEsPHBuxcMQqfd9eh/3DI
+q0eKHmQ44trV2fCd7gSXXtv0yErQE3aSD+1meEp7VcBgleAzn5sWmMgknt5obdYI
+imMIfp5KvVf+gjx1
 
-------F8538AB7A9923C1EC124DD9D5755FEAE--
+------D65AA2C0627CCE6A40492C61A37ABCB7--
 

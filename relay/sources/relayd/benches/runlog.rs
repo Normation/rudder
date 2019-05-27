@@ -1,12 +1,12 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use diesel;
-use diesel::prelude::*;
+use diesel::{self, prelude::*};
 use flate2::read::GzDecoder;
+use openssl::{stack::Stack, x509::X509};
 use relayd::{
     configuration::DatabaseConfig,
     data::{report::QueryableReport, RunLog},
-    output::database::schema::ruddersysevents::dsl::*,
-    output::database::*,
+    input::signature,
+    output::database::{schema::ruddersysevents::dsl::*, *},
 };
 use std::{
     fs::{read, read_to_string},
@@ -21,11 +21,30 @@ fn bench_parse_runlog(c: &mut Criterion) {
     });
 }
 
+fn bench_signature_runlog(c: &mut Criterion) {
+    let data = read("tests/test_smime/normal.signed").unwrap();
+
+    let x509 = X509::from_pem(
+        read_to_string("tests/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert")
+            .unwrap()
+            .as_bytes(),
+    )
+    .unwrap();
+    let mut certs = Stack::new().unwrap();
+    certs.push(x509).unwrap();
+
+    c.bench_function("verify runlog signature", move |b| {
+        b.iter(|| {
+            black_box(signature(&data, &certs).unwrap());
+        })
+    });
+}
+
 // Allows comparing gzip implementations
 fn bench_uncompress_runlog(c: &mut Criterion) {
     // same as in input.rs
     let data = read("tests/test_gz/normal.log.gz").unwrap();
-    c.bench_function("uncompress gzip runlog", move |b| {
+    c.bench_function("uncompress runlog", move |b| {
         b.iter(|| {
             let mut gz = GzDecoder::new(data.as_slice());
             let mut s = String::new();
@@ -76,8 +95,9 @@ fn bench_insert_runlog(c: &mut Criterion) {
 
 criterion_group!(
     benches,
-    bench_parse_runlog,
     bench_uncompress_runlog,
+    bench_signature_runlog,
+    bench_parse_runlog,
     bench_insert_runlog
 );
 criterion_main!(benches);

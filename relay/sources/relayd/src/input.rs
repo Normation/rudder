@@ -30,9 +30,7 @@
 
 pub mod watch;
 
-use crate::configuration::LogComponent;
-use crate::error::Error;
-use crate::processing::ReceivedFile;
+use crate::{configuration::LogComponent, error::Error};
 use flate2::read::GzDecoder;
 use openssl::{
     pkcs7::{Pkcs7, Pkcs7Flags},
@@ -41,37 +39,54 @@ use openssl::{
 };
 use slog::slog_debug;
 use slog_scope::debug;
-use std::ffi::OsStr;
-use std::io::Read;
+use std::{ffi::OsStr, fs::read, io::Read, path::Path};
 
-pub fn read_file_content(path: &ReceivedFile) -> Result<String, Error> {
+pub fn read_compressed_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, Error> {
+    let path = path.as_ref();
+
     debug!("Reading {:#?} content", path);
-    let data = std::fs::read(path)?;
+    let data = read(path)?;
 
     Ok(match path.extension().map(OsStr::to_str) {
         Some(Some("gz")) => {
             debug!("{:?} has .gz extension, extracting", path; "component" => LogComponent::Watcher);
             let mut gz = GzDecoder::new(data.as_slice());
-            let mut s = String::new();
-            gz.read_to_string(&mut s)?;
-            s
+            let mut uncompressed_data = vec![];
+            gz.read_to_end(&mut uncompressed_data)?;
+            uncompressed_data
         }
-        // Let's assume everything else in this directory is a text file
+        // Let's assume everything else is a text file
         _ => {
             debug!("{:?} has no gz/xz extension, no extraction needed", path; "component" => LogComponent::Watcher);
-            String::from_utf8(data)?
+            data
         }
     })
 }
 
-/// `input` is the signed content we want to check
-/// `certs` are the known valid certs for the node we are checking signed content from
+/// Parses an S/MIME message as an UTF-8 string and validates the signature with the given
+/// certificates.
+/// * `input` is the signed content we want to check
+/// * `certs` are the known valid certs for the node we are checking signed content from
+///
+/// Signatures use the following openssl options
+/// * `-text` to add a text mime header, as it is not part of agent output
+///   It also replaces all line endings by CRLF. It is necessary for the runlog
+///   to be correctly read by this function.
+///   Note: `-binary` is not valid S/MIME and default is missing the header.
+/// * `-md sha256` to force sha256 hash.
+///   FIXME: refuse weaker hashes in signature verification.
+/// * `-nocerts` to avoid including certs in the signature, as we use the known
+///   certificate on the server to validate signature and embedded certs are ignored.
 pub fn signature(input: &[u8], certs: &Stack<X509>) -> Result<String, Error> {
     let (signature, content) = Pkcs7::from_smime(input)?;
 
+    // An empty content is possible in S/MIME, but is it an
+    // error in the Rudder context.
     let content = content.ok_or(Error::EmptyRunlog)?;
 
     let mut flags = Pkcs7Flags::empty();
+    // To remove text header
+    flags.set(Pkcs7Flags::TEXT, true);
     // Ignore certificates contained in the message, we only rely on the one we know
     // Our messages should not contain certs anyway
     flags.set(Pkcs7Flags::NOINTERN, true);
@@ -81,90 +96,69 @@ pub fn signature(input: &[u8], certs: &Stack<X509>) -> Result<String, Error> {
     // No chaining so no need for a CA store
     let store = X509StoreBuilder::new()?.build();
 
-    signature.verify(
-        certs,
-        &store,
-        Some(&content.clone()),
-        // Using an out buffer would also clone data
-        None,
-        flags,
-    )?;
+    let mut message = vec![];
+    signature.verify(certs, &store, Some(&content), Some(&mut message), flags)?;
 
-    Ok(String::from_utf8(content)?)
+    // We have validated the presence of a plain text MIME type, let's parse
+    // content as a string.
+    Ok(String::from_utf8(message)?)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
-    use std::{fs::read_to_string, str::FromStr};
+    use std::fs::read_to_string;
 
     #[test]
     fn it_reads_gzipped_files() {
-        let reference = read_to_string("tests/test_gz/normal.log").unwrap();
+        let reference = read("tests/test_gz/normal.log").unwrap();
         assert_eq!(
-            read_file_content(&PathBuf::from_str("tests/test_gz/normal.log.gz").unwrap()).unwrap(),
+            read_compressed_file("tests/test_gz/normal.log.gz").unwrap(),
             reference
         );
     }
 
     #[test]
     fn it_reads_plain_files() {
-        let reference = read_to_string("tests/test_gz/normal.log").unwrap();
+        let reference = read("tests/test_gz/normal.log").unwrap();
         assert_eq!(
-            read_file_content(&PathBuf::from_str("tests/test_gz/normal.log").unwrap()).unwrap(),
+            read_compressed_file("tests/test_gz/normal.log").unwrap(),
             reference
         );
     }
 
     #[test]
     fn it_reads_signed_content() {
+        // unix2dos normal.log
         let reference = read_to_string("tests/test_smime/normal.log").unwrap();
 
-        let x509 = X509::from_pem(
-            read_file_content(
-                &PathBuf::from_str("tests/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert").unwrap(),
-            )
-            .unwrap()
-            .as_bytes(),
-        )
-        .unwrap();
+        let x509 =
+            X509::from_pem(&read("tests/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert").unwrap())
+                .unwrap();
 
         // Certs
         let mut certs = Stack::new().unwrap();
         certs.push(x509).unwrap();
 
         assert_eq!(
-            // openssl smime -sign -signer ../keys/localhost.cert -in normal.log
-            //         -out normal.signed -nocerts -inkey ../keys/localhost.priv -passin "pass:Cfengine passphrase"
-            signature(
-                read_file_content(&PathBuf::from_str("tests/test_smime/normal.signed").unwrap())
-                    .unwrap()
-                    .as_bytes(),
-                &certs,
-            )
-            .unwrap(),
+            // openssl smime -sign -signer ../keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert
+            //         -in normal.log -out normal.signed -inkey ../keys/e745a140-40bc-4b86-b6dc-084488fc906b.priv
+            //         -passin "pass:Cfengine passphrase" -text -nocerts -md sha256
+            signature(&read("tests/test_smime/normal.signed").unwrap(), &certs,).unwrap(),
             reference
         );
     }
 
     #[test]
     fn it_detects_wrong_content() {
-        let x509 = X509::from_pem(
-            read_file_content(
-                &PathBuf::from_str("tests/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert").unwrap(),
-            )
-            .unwrap()
-            .as_bytes(),
-        )
-        .unwrap();
+        let x509 =
+            X509::from_pem(&read("tests/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert").unwrap())
+                .unwrap();
         let mut certs = Stack::new().unwrap();
         certs.push(x509).unwrap();
 
         assert!(signature(
-            read_file_content(&PathBuf::from_str("tests/test_smime/normal-diff.signed").unwrap())
-                .unwrap()
-                .as_bytes(),
+            &read("tests/test_smime/normal-diff.signed").unwrap(),
             &certs,
         )
         .is_err());
@@ -173,23 +167,12 @@ mod tests {
     #[test]
     fn it_detects_wrong_certificates() {
         let x509bis = X509::from_pem(
-            read_file_content(
-                &PathBuf::from_str("tests/keys/e745a140-40bc-4b86-b6dc-084488fc906b-other.cert")
-                    .unwrap(),
-            )
-            .unwrap()
-            .as_bytes(),
+            &read("tests/keys/e745a140-40bc-4b86-b6dc-084488fc906b-other.cert").unwrap(),
         )
         .unwrap();
         let mut certs = Stack::new().unwrap();
         certs.push(x509bis).unwrap();
 
-        assert!(signature(
-            read_file_content(&PathBuf::from_str("tests/test_smime/normal.signed").unwrap())
-                .unwrap()
-                .as_bytes(),
-            &certs,
-        )
-        .is_err());
+        assert!(signature(&read("tests/test_smime/normal.signed").unwrap(), &certs,).is_err());
     }
 }

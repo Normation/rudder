@@ -29,15 +29,19 @@
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    configuration::LogComponent, data::report::report, data::report::RawReport, data::Report,
-    data::RunInfo, error::Error,
+    configuration::LogComponent,
+    data::{
+        report::{report, RawReport},
+        Report, RunInfo,
+    },
+    error::Error,
 };
 use nom::*;
 use serde::{Deserialize, Serialize};
 use slog::{slog_debug, slog_error, slog_warn};
 use slog_scope::{debug, error, warn};
-use std::convert::TryFrom;
 use std::{
+    convert::TryFrom,
     fmt::{self, Display},
     str::FromStr,
 };
@@ -71,7 +75,7 @@ impl FromStr for RunLog {
         match parse_runlog(s) {
             Ok(raw_runlog) => {
                 debug!("Parsed runlog {:#?}", raw_runlog.1; "component" => LogComponent::Parser);
-                TryFrom::try_from(raw_runlog.1)
+                RunLog::try_from(raw_runlog.1)
             }
             Err(e) => {
                 warn!("{:?}: could not parse '{}'", e, s);
@@ -121,7 +125,7 @@ mod tests {
     use std::fs::{read_dir, read_to_string};
 
     #[test]
-    fn test_parse_runlog() {
+    fn it_parses_runlog() {
         // For each .json file, compare it with the matching .log
         let mut test_done = 0;
         for entry in read_dir("tests/runlogs/").unwrap() {

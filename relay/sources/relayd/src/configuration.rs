@@ -28,18 +28,17 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{data::node, error::Error};
+use crate::{data::node::NodeId, error::Error};
 use serde::Deserialize;
 use slog;
 use slog::{Key, Level, Record, Serializer, Value};
-use std::fmt;
-use std::fmt::Display;
-use std::fs::read_to_string;
-use std::str::FromStr;
 use std::{
     collections::HashSet,
+    fmt::{self, Display},
+    fs::read_to_string,
     net::SocketAddr,
     path::{Path, PathBuf},
+    str::FromStr,
 };
 use toml;
 
@@ -104,7 +103,7 @@ impl FromStr for Configuration {
 pub struct GeneralConfig {
     pub nodes_list_file: NodesListFile,
     pub nodes_certs_file: NodesCertsFile,
-    pub node_id: node::Id,
+    pub node_id: NodeId,
     pub listen: SocketAddr,
 }
 
@@ -240,7 +239,7 @@ pub struct LogFilterConfig {
     #[serde(with = "LogLevel")]
     pub level: Level,
     pub components: HashSet<LogComponent>,
-    pub nodes: HashSet<node::Id>,
+    pub nodes: HashSet<NodeId>,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -255,14 +254,14 @@ mod tests {
     use std::iter::FromIterator;
 
     #[test]
-    fn test_empty_configuration() {
+    fn it_fails_with_configuration() {
         let empty = "";
         let config = empty.parse::<Configuration>();
         assert!(config.is_err());
     }
 
     #[test]
-    fn test_configuration() {
+    fn it_parses_configuration() {
         let config = Configuration::new("tests/files/relayd.toml");
 
         let mut root_set = HashSet::new();

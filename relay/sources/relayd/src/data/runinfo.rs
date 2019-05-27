@@ -28,20 +28,22 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{configuration::LogComponent, data::node, error::Error};
+use crate::{configuration::LogComponent, data::node::NodeId, error::Error};
 use chrono::prelude::*;
 use nom::*;
 use serde::{Deserialize, Serialize};
 use slog::slog_debug;
 use slog_scope::debug;
 use std::{
+    convert::TryFrom,
     fmt::{self, Display},
+    path::Path,
     str::FromStr,
 };
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RunInfo {
-    pub node_id: node::Id,
+    pub node_id: NodeId,
     pub timestamp: DateTime<FixedOffset>,
 }
 
@@ -86,9 +88,20 @@ impl FromStr for RunInfo {
             }
             Err(e) => {
                 std::dbg!(e);
-                Err(Error::InvalidRunInfo)
+                Err(Error::InvalidRunInfo(s.to_string()))
             }
         }
+    }
+}
+
+impl TryFrom<&Path> for RunInfo {
+    type Error = Error;
+
+    fn try_from(path: &Path) -> Result<Self, Self::Error> {
+        path.file_name()
+            .ok_or_else(|| Error::InvalidFile(path.to_path_buf()))
+            .and_then(|file| file.to_str().ok_or(Error::InvalidFileName))
+            .and_then(|file| file.parse::<RunInfo>())
     }
 }
 
@@ -97,7 +110,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_runinfo() {
+    fn it_parses_root_runinfo() {
         let reference = RunInfo {
             timestamp: DateTime::parse_from_str("2018-08-24T15:55:01+00:00", "%+").unwrap(),
             node_id: "root".into(),
@@ -108,6 +121,42 @@ mod tests {
         );
         assert_eq!(
             RunInfo::from_str("2018-08-24T15:55:01+00:00@root.log.gz").unwrap(),
+            reference
+        );
+    }
+
+    #[test]
+    fn it_parses_node_runinfo() {
+        let reference = RunInfo {
+            timestamp: DateTime::parse_from_str("2018-08-24T15:55:01+00:00", "%+").unwrap(),
+            node_id: "e745a140-40bc-4b86-b6dc-084488fc906b".into(),
+        };
+        assert_eq!(
+            RunInfo::from_str("2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log")
+                .unwrap(),
+            reference
+        );
+        assert_eq!(
+            RunInfo::from_str(
+                "2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log.gz"
+            )
+            .unwrap(),
+            reference
+        );
+    }
+
+    #[test]
+    fn it_parses_runinfo_from_path() {
+        let reference = RunInfo {
+            timestamp: DateTime::parse_from_str("2018-08-24T15:55:01+00:00", "%+").unwrap(),
+            node_id: "root".into(),
+        };
+        assert_eq!(
+            RunInfo::try_from(Path::new("2018-08-24T15:55:01+00:00@root.log")).unwrap(),
+            reference
+        );
+        assert_eq!(
+            RunInfo::try_from(Path::new("2018-08-24T15:55:01+00:00@root.log.gz")).unwrap(),
             reference
         );
     }

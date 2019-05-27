@@ -30,97 +30,95 @@
 
 use crate::error::Error;
 use openssl::{stack::Stack, x509::X509};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json;
 use slog::{slog_info, slog_trace, slog_warn};
 use slog_scope::{info, trace, warn};
-use std::collections::HashMap;
-use std::fs::read_to_string;
-use std::path::Path;
-use std::str::FromStr;
+use std::{
+    collections::HashMap,
+    fs::{read, read_to_string},
+    path::Path,
+    str::FromStr,
+};
 
-pub type Id = String;
+pub type NodeId = String;
 pub type Host = String;
-pub type Cert = X509;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Info {
-    pub hostname: String,
+// We ignore the key-hash field as we directly deal with proper certificates
+#[derive(Deserialize, Default)]
+struct Info {
+    // hostname and policy_server be used for remote-run
+    // TODO: remove annotation once it's done
+    #[allow(dead_code)]
+    hostname: Host,
     #[serde(rename = "policy-server")]
-    pub policy_server: Host,
-    #[serde(rename = "key-hash")]
-    pub key_hash: String,
+    #[allow(dead_code)]
+    policy_server: NodeId,
+    #[serde(skip)]
+    // Can be empty when not on a root server or no known certificates for
+    // a node
+    certificates: Option<Stack<X509>>,
 }
 
+impl Info {
+    fn add_certificate(&mut self, cert: X509) -> Result<(), Error> {
+        match self.certificates {
+            Some(ref mut certs) => certs.push(cert)?,
+            None => {
+                let mut certs = Stack::new()?;
+                certs.push(cert)?;
+                self.certificates = Some(certs);
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(transparent)]
 pub struct NodesList {
-    pub info: NodesInfo,
-    // No certs on simple relays
-    pub certs: Option<Certificates>,
+    data: HashMap<NodeId, Info>,
 }
 
 impl NodesList {
+    // Load nodes list from the nodeslist.json file
     pub fn new<P: AsRef<Path>>(nodes_file: P, certificates_file: Option<P>) -> Result<Self, Error> {
-        let certs = match certificates_file {
-            Some(path) => Some(Certificates::new(path)?),
-            None => None,
-        };
-        Ok(Self {
-            info: NodesInfo::new(nodes_file)?,
-            certs,
-        })
-    }
+        info!("Parsing nodes list from {:#?}", nodes_file.as_ref());
+        let mut nodes = read_to_string(nodes_file)?.parse::<Self>()?;
 
-    pub fn is_subnode(&self, id: &str) -> bool {
-        self.info.data.get(id).is_some()
-    }
-
-    pub fn certs(&self, id: &str) -> Option<&Stack<Cert>> {
-        match &self.certs {
-            Some(certs) => certs.data.get(id),
-            None => {
-                panic!("No certificates loaded");
+        if let Some(certificates_file) = certificates_file {
+            for cert in X509::stack_from_pem(&read(certificates_file.as_ref())?)? {
+                Self::id_from_cert(&cert)
+                    .and_then(|id| nodes.add_certificate(&id, cert))
+                    .map_err(|e| warn!("{}", e))
+                    // Skip node and continue
+                    .unwrap_or(())
             }
         }
-    }
-}
-
-#[derive(Deserialize, Debug, PartialEq, Eq)]
-#[serde(transparent)]
-pub struct NodesInfo {
-    pub data: HashMap<Id, Info>,
-}
-
-impl NodesInfo {
-    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
-        info!("Parsing nodes list from {:#?}", path.as_ref());
-        let nodes = read_to_string(path)?.parse::<Self>()?;
-        trace!("Parsed nodes list:\n{:#?}", nodes);
         Ok(nodes)
     }
-}
 
-impl FromStr for NodesInfo {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(serde_json::from_str(s)?)
-    }
-}
-
-// Certificates are stored independently as they are read from a different source
-#[derive(Default)]
-pub struct Certificates {
-    pub data: HashMap<Id, Stack<Cert>>,
-}
-
-impl Certificates {
-    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
-        info!("Parsing certs list from {:#?}", path.as_ref());
-        let certs = read_to_string(path)?.parse::<Self>()?;
-        Ok(certs)
+    fn add_certificate(&mut self, id: &str, cert: X509) -> Result<(), Error> {
+        trace!("Adding certificate for node {}", id);
+        self.data
+            .get_mut(id)
+            .ok_or_else(|| Error::CertificateForUnknownNode(id.to_string()))
+            .and_then(|node| node.add_certificate(cert))
     }
 
-    fn id_from_cert(cert: &Cert) -> Result<Id, Error> {
+    /// Nodes list file only contains sub-nodes, so we only have to check for
+    /// node presence.
+    pub fn is_subnode(&self, id: &str) -> bool {
+        self.data.get(id).is_some()
+    }
+
+    pub fn certs(&self, id: &str) -> Option<&Stack<X509>> {
+        self.data
+            .get(id)
+            .and_then(|node| node.certificates.as_ref())
+    }
+
+    fn id_from_cert(cert: &X509) -> Result<NodeId, Error> {
         Ok(cert
             .subject_name()
             .entries()
@@ -133,33 +131,11 @@ impl Certificates {
     }
 }
 
-// Read concatenated pem certs
-impl FromStr for Certificates {
+impl FromStr for NodesList {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut res = Certificates::default();
-        for cert in X509::stack_from_pem(s.as_bytes())? {
-            match Self::id_from_cert(&cert) {
-                Ok(id) => {
-                    trace!("Read certificate for node {}", id);
-                    match res.data.get_mut(&id) {
-                        Some(certs) => certs.push(cert)?,
-                        None => {
-                            let mut certs = Stack::new()?;
-                            certs.push(cert)?;
-                            res.data.insert(id, certs);
-                        }
-                    }
-                }
-                Err(e) => {
-                    // warn and skip on certificate error
-                    warn!("{}", e);
-                    continue;
-                }
-            }
-        }
-        Ok(res)
+        Ok(serde_json::from_str(s)?)
     }
 }
 
@@ -168,16 +144,38 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_nodeslist() {
-        let nodeslist = NodesInfo::new("tests/files/nodeslist.json").unwrap();
-        assert_eq!(nodeslist.data["root"].hostname, "server.rudder.local");
+    fn it_parses_nodeslist() {
+        let nodeslist = NodesList::new("tests/files/nodeslist.json", None).unwrap();
+        assert_eq!(
+            nodeslist.data["e745a140-40bc-4b86-b6dc-084488fc906b"].hostname,
+            "node1.rudder.local"
+        );
+        assert_eq!(nodeslist.data.len(), 3);
     }
 
     #[test]
-    fn test_parse_certs() {
-        let list = Certificates::new("tests/keys/nodescerts.pem").unwrap();
-        assert_eq!(list.data.len(), 2);
-        assert_eq!(list.data["37817c4d-fbf7-4850-a985-50021f4e8f41"].len(), 1);
-        assert_eq!(list.data["e745a140-40bc-4b86-b6dc-084488fc906b"].len(), 2);
+    fn it_parses_certificates() {
+        let nodeslist = NodesList::new(
+            "tests/files/nodeslist.json",
+            Some("tests/keys/nodescerts.pem"),
+        )
+        .unwrap();
+        assert_eq!(nodeslist.data.len(), 3);
+        assert_eq!(
+            nodeslist.data["37817c4d-fbf7-4850-a985-50021f4e8f41"]
+                .certificates
+                .as_ref()
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            nodeslist.data["e745a140-40bc-4b86-b6dc-084488fc906b"]
+                .certificates
+                .as_ref()
+                .unwrap()
+                .len(),
+            2
+        );
     }
 }
