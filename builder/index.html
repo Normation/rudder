@@ -326,7 +326,15 @@
                           <i class="glyphicon" ng-class="{'glyphicon-chevron-down': parameter_open, 'glyphicon-chevron-right': !parameter_open}"></i>
                           Resources
                         </uib-accordion-heading>
-                        <button class="btn" ng-click="openEditor = !openEditor">open the bidule</button> {{openEditor}}
+
+                        <div class="form-group col-sm-12 no-padding-right" ng-repeat="resource in selectedTechnique.resources track by $index">
+                          <div class="input-group col-sm-12">
+                            <input  type="text" class="form-control" readonly ng-model="resource.name" >
+                            <span class="input-group-addon">Use with:</span>
+                            <input readonly class="form-control" ng-model="'${resources_dir}/'+ resource.name + ' - ' + resource.state " placeHolder="Value in methods">
+                          </div>
+                        </div>
+                        <button class="btn" ng-click="openEditor = !openEditor">open file editor</button>
                         <div ng-if="openEditor">
                         <angular-filemanager></angular-filemanager>
                         </div>

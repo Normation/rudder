@@ -182,10 +182,8 @@ app.directive('popover', function() {
 });
 
 // Declare controller ncf-builder
-app.controller('ncf-builder', function ($scope, $uibModal, $http, $log, $location, $anchorScroll, ngToast, $timeout, focus, fileManagerConfig, apiMiddleware, fileNavigator) {
+app.controller('ncf-builder', function ($scope, $uibModal, $http, $q, $location, $anchorScroll, ngToast, $timeout, focus, fileManagerConfig, apiMiddleware, apiHandler, $window) {
   initScroll();
-  console.log($scope.$$childHead);
-  console.log($scope);
 
   // Variable we use in the whole application
   // Give access to the "General information" form
@@ -321,16 +319,128 @@ function defineMethodClassContext (method_call) {
     }
   }
 }
+function updateResources() {
+  var resourceUrl = '/rudder/secure/api/ncf/' + $scope.selectedTechnique.bundle_name +"/" + $scope.selectedTechnique.version +"/resources"
 
+  $http.get(resourceUrl).then(
+    function(response) {
+      $scope.selectedTechnique.resources = response.data.data.resources
+    }
+  , function(response) {
+      // manage error 
+    }
+  )
+}
 function updateFileManagerConf () {
 
-  console.log("Hello!!" + $scope.selectedTechnique.name )
+  var newUrl =  "/rudder/secure/api/resourceExplorer/"+ $scope.selectedTechnique.bundle_name +"/" + $scope.selectedTechnique.version
+
+  updateResources()
+
+  apiHandler.prototype.deferredHandler = function(data, deferred, code, defaultMsg) {
+    updateResources()
+
+    if (!data || typeof data !== 'object') {
+        this.error = 'Error %s - Bridge response error, please check the API docs or this ajax response.'.replace('%s', code);
+    }
+    if (code == 404) {
+        this.error = 'Error 404 - Backend bridge is not working, please check the ajax response.';
+    }
+    if (data.result && data.result.error) {
+        this.error = data.result.error;
+    }
+    if (!this.error && data.error) {
+        this.error = data.error.message;
+    }
+    if (!this.error && defaultMsg) {
+        this.error = defaultMsg;
+    }
+    if (this.error) {
+        return deferred.reject(data);
+    }
+    return deferred.resolve(data);
+};
   apiMiddleware.prototype.list = function(path, customDeferredHandler) {
-    console.log("Hello!!" + $scope.selectedTechnique.name )
-    return this.apiHandler.list(fileManagerConfig.listUrl + $scope.selectedTechnique.bundle_name +"/" + $scope.selectedTechnique.version +"/resources" , this.getPath(path), customDeferredHandler);
+    return this.apiHandler.list(newUrl, this.getPath(path), customDeferredHandler);
+  };
+
+  apiMiddleware.prototype.upload = function(files, path) {
+      if (! $window.FormData) {
+          throw new Error('Unsupported browser version');
+      }
+
+      var destination = this.getPath(path);
+
+      return this.apiHandler.upload(newUrl, destination, files);
+  };
+
+
+  apiMiddleware.prototype.createFolder = function(item) {
+    var path = item.tempModel.fullPath();
+    return this.apiHandler.createFolder(newUrl, path);
+  };
+  apiMiddleware.prototype.getContent = function(item) {
+    var itemPath = this.getFilePath(item);
+    return this.apiHandler.getContent(newUrl, itemPath);
+  };
+
+  apiMiddleware.prototype.rename = function(item) {
+    var itemPath = this.getFilePath(item);
+    var newPath = item.tempModel.fullPath();
+
+    return this.apiHandler.rename(newUrl, itemPath, newPath);
+  };
+
+  apiMiddleware.prototype.remove = function(files) {
+    var items = this.getFileList(files);
+    return this.apiHandler.remove(newUrl, items);
+  };
+  apiMiddleware.prototype.edit = function(item) {
+    var itemPath = this.getFilePath(item);
+    return this.apiHandler.edit(newUrl, itemPath, item.tempModel.content);
+  };
+
+
+  apiMiddleware.prototype.copy = function(files, path) {
+    var items = this.getFileList(files);
+    var singleFilename = items.length === 1 ? files[0].tempModel.name : undefined;
+    return this.apiHandler.copy(newUrl, items, this.getPath(path), singleFilename);
+  };
+
+  apiMiddleware.prototype.changePermissions = function(files, dataItem) {
+    var items = this.getFileList(files);
+    var code = dataItem.tempModel.perms.toCode();
+    var octal = dataItem.tempModel.perms.toOctal();
+    var recursive = !!dataItem.tempModel.recursive;
+
+    return this.apiHandler.changePermissions(newUrl, items, code, octal, recursive);
+  };
+
+
+  apiMiddleware.prototype.move = function(files, path) {
+    var items = this.getFileList(files);
+    return this.apiHandler.move(newUrl, items, this.getPath(path));
+  };
+
+
+  apiMiddleware.prototype.download = function(item, forceNewWindow) {
+    //TODO: add spinner to indicate file is downloading
+    var itemPath = this.getFilePath(item);
+    var toFilename = item.model.name;
+
+    if (item.isFolder()) {
+        return;
+    }
+
+    return this.apiHandler.download(
+        newUrl,
+        itemPath,
+        toFilename,
+        fileManagerConfig.downloadFilesByAjax,
+        forceNewWindow
+    );
   };
 }
-
 // Transform a ncf technique into a valid UI technique
 // Add original_index to the method call, so we can track their modification on index
 // Handle classes so we split them into OS classes (the first one only) and advanced classes
@@ -419,6 +529,7 @@ $scope.getSessionStorage = function(){
             $scope.originalTechnique = existingTechnique;
             if (doSave) {
               $scope.selectedTechnique = angular.copy($scope.originalTechnique);
+              updateFileManagerConf();
               $scope.resetFlags();
             }else{
               $scope.keepChanges();
@@ -1204,6 +1315,8 @@ $scope.onImportFileChange = function (fileEl) {
           // We will lose the link between the selected method and the technique, to prevent unintended behavior, close the edit method panel
           $scope.selectedMethod = undefined;
         }
+
+        updateResources();
         $scope.resetFlags();
       }
 
@@ -1399,16 +1512,13 @@ app.config(function($httpProvider,$locationProvider) {
     //Allows the browser to indicate to the cache to retrieve the GET request content from the original server rather than sending one he must keep.
     $httpProvider.defaults.headers.get['Pragma'] = 'no-cache';
 });
-console.log("ca m'énerve!")
-
-
 
 app.config(['fileManagerConfigProvider', function (config) {
   var apiPath = '/rudder/secure/api/ncf/';
   var defaults = config.$get();
 
   	config.set({
-    appName : 'ncf',
+    appName : 'resources',
     listUrl             : apiPath,
     uploadUrl           : apiPath,
     renameUrl           : apiPath,
@@ -1423,10 +1533,13 @@ app.config(['fileManagerConfigProvider', function (config) {
     compressUrl         : apiPath,
     extractUrl          : apiPath,
     permissionsUrl      : apiPath,
+    isEditableFilePattern : /.*/,
     //tplPath             : baseUrl + '/templates/angular/filemanager',
     allowedActions: angular.extend(defaults.allowedActions, {
       compress: false,
       compressChooseName: false,
+      preview : true,
+      edit: true,
       extract: false
     })
   });

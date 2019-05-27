@@ -548,6 +548,8 @@ def generate_technique_content(technique, methods):
   content.append('{')
 
   
+  content.append('  vars:')
+  content.append('    "resources_dir" string => "${this.promise_dir}/resources";')
   content.append('  methods:')
 
   # Handle method calls
