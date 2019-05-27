@@ -28,15 +28,25 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::error::Error;
 use crate::{configuration::LogComponent, stats::Stats, status::Status, JobConfig};
 use futures::Future;
+use regex::Regex;
 use slog::slog_info;
 use slog_scope::info;
+use std::collections::HashMap;
+use std::fmt::{self, Display};
+use std::io;
+use std::process::{Command, Stdio};
+use std::str::FromStr;
 use std::{
     net::SocketAddr,
     sync::{Arc, RwLock},
 };
-use warp::Filter;
+use warp::http::StatusCode;
+use warp::{Filter, Rejection, Reply};
+
+use crate::remote_run::{Agent, nodes_handle};
 
 pub fn api(
     listen: SocketAddr,
@@ -44,13 +54,63 @@ pub fn api(
     job_config: Arc<JobConfig>,
     stats: Arc<RwLock<Stats>>,
 ) -> impl Future<Item = (), Error = ()> {
-    // TODO remove unwrap
-    let stats_simple =
-        warp::path("stats").map(move || warp::reply::json(&(*stats.clone().read().unwrap())));
-    let status =
-        warp::path("status").map(move || warp::reply::json(&Status::poll(job_config.clone())));
+    let stats_simple = warp::path("stats").map(move || {
+        info!("/stats queried"; "component" => LogComponent::Statistics);
+        warp::reply::json(&(*stats.clone().read().unwrap()))
+    });
 
-    let routes = warp::get2().and(stats_simple).or(status);
+    let status = warp::path("status").map(move || {
+        info!("/status queried"; "component" => LogComponent::Statistics);
+        warp::reply::json(&Status::poll(job_config.clone()))
+    });
+
+    let nodes = warp::path("nodes").and(warp::body::form()).and_then(
+        |simple_map: HashMap<String, String>| {
+            let my_agent = nodes_handle(&simple_map);
+
+            match my_agent {
+                Err(my_agent) => Err(warp::reject::custom(Error::InvalidCondition(
+                    my_agent.to_string(),
+                ))),
+                Ok(my_agent) => {
+                    info!("conditions OK"; "component" => LogComponent::Statistics);
+                    Ok(warp::reply())
+                }
+            }
+        },
+    );
+
+    let nodes2 = warp::path("nodes");
+
+    let node_id = warp::path::param::<String>().map(|node| {
+        info!("remote run triggered on node {}", node; "component" => LogComponent::Statistics);
+        warp::reply()
+    });
+
+    let all = warp::path("all").map(move || {
+        info!("remote-run triggered on all the nodes"; "component" => LogComponent::Statistics);
+        warp::reply()
+    });
+
+    let shared_files = warp::path("shared-files").map(move || {
+        info!("PUT received"; "component" => LogComponent::Statistics);
+        warp::reply()
+    });
+
+    let rudder = warp::path("rudder");
+    let relay_api = warp::path("relay-api");
+    let remote_run = warp::path("remote-run");
+
+    let routes = warp::get2()
+        .and(status.or(stats_simple))
+        .or(warp::post2()
+            .and(rudder)
+            .and(relay_api)
+            .and(remote_run)
+            .and(nodes.or(all).or(nodes2.and(node_id))))
+        .or(warp::put2().and(shared_files))
+        .or(warp::head().and(shared_files));
+
     let (addr, server) = warp::serve(routes).bind_with_graceful_shutdown(listen, shutdown);
     info!("Started stats API on {}", addr; "component" => LogComponent::Statistics);
     server

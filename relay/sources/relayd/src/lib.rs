@@ -42,6 +42,7 @@ pub mod output;
 pub mod processing;
 pub mod stats;
 pub mod status;
+pub mod remote_run;
 
 use crate::{
     api::api,

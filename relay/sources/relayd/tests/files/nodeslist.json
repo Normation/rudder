@@ -1,4 +1,19 @@
 {
+    "c745a140-40bc-4b86-b6dc-084488fc906b": {
+        "hostname": "node5.rudder.local",
+        "key-hash": "sha256:906191ee22666c1602aa43391000bc4ee0a94775f68f4c19edc83bfb1b28755c",
+        "policy-server": "37817c4d-fbf7-4850-a985-50021f4e8f41"
+    },
+    "b745a140-40bc-4b86-b6dc-084488fc906b": {
+        "hostname": "node4.rudder.local",
+        "key-hash": "sha256:906191ee22666c1602aa43391000bc4ee0a94775f68f4c19edc83bfb1b28755c",
+        "policy-server": "a745a140-40bc-4b86-b6dc-084488fc906b"
+    },
+    "a745a140-40bc-4b86-b6dc-084488fc906b": {
+        "hostname": "node3.rudder.local",
+        "key-hash": "sha256:906191ee22666c1602aa43391000bc4ee0a94775f68f4c19edc83bfb1b28755c",
+        "policy-server": "e745a140-40bc-4b86-b6dc-084488fc906b"
+    },
     "37817c4d-fbf7-4850-a985-50021f4e8f41": {
         "hostname": "node2.rudder.local",
         "key-hash": "sha256:a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f",

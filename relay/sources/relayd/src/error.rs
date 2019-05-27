@@ -66,6 +66,8 @@ pub enum Error {
     IntegerParsing(num::ParseIntError),
     Utf8(std::string::FromUtf8Error),
     Ssl(openssl::error::ErrorStack),
+    InvalidCondition(String),
+    ParseBoolean(std::str::ParseBoolError),
 }
 
 impl Display for Error {
@@ -95,6 +97,8 @@ impl Display for Error {
             IntegerParsing(ref err) => write!(f, "integer parsing error: {}", err),
             Utf8(ref err) => write!(f, "UTF-8 decoding error: {}", err),
             Ssl(ref err) => write!(f, "Ssl error: {}", err),
+            InvalidCondition(ref condition) => write!(f, "Bad agent Condition : {}", condition),
+            ParseBoolean(ref err) => write!(f, "Error occurred while parsing the boolean: {}", err),
         }
     }
 }
@@ -112,6 +116,7 @@ impl StdError for Error {
             IntegerParsing(ref err) => Some(err),
             Utf8(ref err) => Some(err),
             Ssl(ref err) => Some(err),
+            ParseBoolean(ref err) => Some(err),
             _ => None,
         }
     }
@@ -120,6 +125,12 @@ impl StdError for Error {
 impl From<diesel::result::Error> for Error {
     fn from(err: diesel::result::Error) -> Self {
         Error::Database(err)
+    }
+}
+
+impl From<std::str::ParseBoolError> for Error {
+    fn from(err: std::str::ParseBoolError) -> Self {
+        Error::ParseBoolean(err)
     }
 }
 
