@@ -26,6 +26,8 @@ NEXTHOP = None
 REMOTE_RUN_COMMAND = "sudo /opt/rudder/bin/rudder remote run"
 LOCAL_RUN_COMMAND = "sudo /opt/rudder/bin/rudder agent run > /dev/null 2>&1"
 
+CLASSES_REGEX = "^[a-zA-Z0-9_,]*$"
+
 def get_next_hop(nodes, my_uuid):
   """ Build a dict of node_id => nexthop_id """
   global NEXTHOP
@@ -158,7 +160,10 @@ def remote_run_generic(local_nodes, my_uuid, nodes, all_nodes, form):
   asynchronous = False
 
   if "classes" in form:
-    classes = form['classes']
+    if re.match(CLASSES_REGEX, form['classes']) is not None:
+      classes = form['classes']
+    else:
+      raise ValueError("Malformed classes parameter: " + form['classes'])
 
   if "keep_output" in form:
     keep_output = form['keep_output'].lower() == "true"
