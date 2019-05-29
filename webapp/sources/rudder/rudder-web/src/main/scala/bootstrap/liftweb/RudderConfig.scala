@@ -201,6 +201,8 @@ object RudderConfig extends Loggable {
 
   //the LDAP password used for authentication is not used here, but should not appear nonetheless
   filteredPasswords += "rudder.auth.ldap.connection.bind.password"
+  // filter the fallback admin password
+  filteredPasswords += "rudder.auth.admin.password"
 
   //other values
 
