@@ -41,6 +41,10 @@ import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
+import com.normation.ldap.sdk.RoLDAPConnection
+import com.normation.ldap.sdk.RwLDAPConnection
+import com.unboundid.ldap.sdk.DN
+import net.liftweb.common.Failure
 
 
 /**
@@ -65,31 +69,49 @@ class LoadDemoDataTest extends Specification {
   }
 
   val baseDN = "cn=rudder-configuration"
+  val bootstrapLDIFs = ("ldap/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>
+    this.getClass.getClassLoader.getResource(name).getPath
+  }
+
+
+  val numEntries = (0 /: bootstrapLDIFs) { case (x,path) =>
+    val reader = new com.unboundid.ldif.LDIFReader(path)
+    var i = 0
+    while(reader.readEntry != null) i += 1
+    i + x
+  }
+
+  val ldap = InMemoryDsConnectionProvider[RwLDAPConnection with RoLDAPConnection](
+      baseDNs = baseDN :: Nil
+    , schemaLDIFPaths = schemaLDIFs
+    , bootstrapLDIFPaths = bootstrapLDIFs
+  )
 
 
   "The in memory LDAP directory" should {
 
     "correctly load and read back test-entries" in {
-      val bootstrapLDIFs = ("ldap/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>
-        this.getClass.getClassLoader.getResource(name).getPath
-      }
-
-
-      val numEntries = (0 /: bootstrapLDIFs) { case (x,path) =>
-        val reader = new com.unboundid.ldif.LDIFReader(path)
-        var i = 0
-        while(reader.readEntry != null) i += 1
-        i + x
-      }
-
-      val ldap = InMemoryDsConnectionProvider(
-          baseDNs = baseDN :: Nil
-        , schemaLDIFPaths = schemaLDIFs
-        , bootstrapLDIFPaths = bootstrapLDIFs
-      )
 
       ldap.server.countEntries === numEntries
     }
 
+    "correctly error on a bad move" in {
+
+      val dn = new DN("biosName=bios1,machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
+      val newParent = new DN("machineId=machine-does-not-exists,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
+
+      val res = ldap.newConnection.move(dn, newParent)
+      /*
+       * Failure message is:
+       * Can not move 'biosName=bios1,machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration' to new parent
+       * 'machineId=machine-does-not-exists,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration': Unable to modify the DN of entry
+       * 'biosName=bios1,machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration' because the parent for the new DN
+       * 'biosName=bios1,machineId=machine-does-not-exists,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration' does not exist.
+       */
+      res must beAnInstanceOf[Failure] and (
+        ldap.newConnection.exists(dn) must beTrue
+      )
+
+    }
   }
 }
