@@ -27,13 +27,10 @@ all: install
 depend: localdepends
 localdepends: 
 
-build: doc doc/ncf.1
-
 # Install ncf in DESTDIR
-install: build
+install:
 	mkdir -p $(DESTDIR)
 	mkdir -p $(DESTDIR)/share/doc/ncf
-	$(CP_A) doc $(DESTDIR)/share/doc/ncf/
 	$(CP_A) examples $(DESTDIR)/share/doc/ncf/
 	$(INSTALL) -m 644 README.md $(DESTDIR)/share/doc/ncf/
 	mkdir -p $(DESTDIR)/share/ncf
@@ -106,4 +103,4 @@ clean:
 
 distclean: clean
 
-.PHONY: all test doc clean distclean depend localdepend build install
+.PHONY: all test doc clean distclean depend localdepend install
