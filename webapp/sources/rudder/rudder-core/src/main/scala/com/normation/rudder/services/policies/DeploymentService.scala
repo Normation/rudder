@@ -222,6 +222,17 @@ object ParallelSequence {
 trait PromiseGenerationService {
 
   /**
+   * Define how a node should be sorted in the list of nodes.
+   * We want root first, then relay with node just above, then relay, then nodes
+   */
+  def nodePriority(nodeInfo: NodeInfo): Int = {
+    if(nodeInfo.id.value == "root") 0
+    else if(nodeInfo.isPolicyServer) {
+      if(nodeInfo.policyServerId.value == "root") 1 else 2
+    } else 3
+  }
+
+  /**
    * All mighy method that take all modified rules, find their
    * dependencies, proccess ${vars}, build the list of node to update,
    * update nodes.
@@ -420,10 +431,17 @@ trait PromiseGenerationService {
       //////  write new configurations
       writeTime             =  System.currentTimeMillis
       remainingNodes        =  AtomicInt(updatedNodeConfigIds.size)
-      allTrySavedReports    =  ParallelSequence.applicative(updatedNodeConfigIds.toSeq) { case (nodeId, nodeConfigId) =>
+      /// we need to start with policy servers ///
+      sortedNodeIds         =  updatedNodeConfigs.toSeq.map { case (id, v) =>
+                                 (
+                                   id
+                                 , nodePriority(v.nodeInfo)
+                                 )
+                               }.sortBy( _._2 ).map( _._1 )
+      allTrySavedReports    =  ParallelSequence.applicative(sortedNodeIds) { nodeId =>
                                  for {
                                    expectedReport <- expectedReports.find(_.nodeId == nodeId).map(Full(_)).getOrElse(Failure(s"Can not find expected report for node '${nodeId.value}'"))
-                                   built          <- buildFullyOneNode(nodeId, nodeConfigId, rootNodeId, nodeConfigs, allLicenses, techniqueResources, globalPolicyMode, generationTime, expectedReport, remainingNodes)
+                                   built          <- buildFullyOneNode(nodeId, updatedNodeConfigIds(nodeId), rootNodeId, nodeConfigs, allLicenses, techniqueResources, globalPolicyMode, generationTime, expectedReport, remainingNodes)
                                  } yield {
                                    built
                                  }
@@ -440,10 +458,10 @@ trait PromiseGenerationService {
       // we want to sort node with root first, then relay, then other nodes for hooks
       updatedNodeIds        =  savedExpectedReports.map { r =>
                                val id = r.nodeId
-                               val v = updatedNodeConfigs(id).nodeInfo
-                               (
-                                 id
-                               , if(id.value == "root") 0 else if(v.isPolicyServer) { if(v.policyServerId.value == "root") 1 else 2 } else 3)
+                                 (
+                                   id
+                                 , nodePriority(updatedNodeConfigs(id).nodeInfo)
+                                 )
                                }.sortBy( _._2 ).map( _._1 )
 
       stringIds             =  updatedNodeIds.map(_.value)
