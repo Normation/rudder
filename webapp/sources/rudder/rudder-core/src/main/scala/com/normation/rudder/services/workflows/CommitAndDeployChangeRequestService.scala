@@ -62,7 +62,6 @@ import com.normation.rudder.services.marshalling.XmlUnserializer
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import java.io.ByteArrayInputStream
 
-import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ChangeRequestLogger
 import com.normation.rudder.services.queries.DynGroupUpdaterService
 

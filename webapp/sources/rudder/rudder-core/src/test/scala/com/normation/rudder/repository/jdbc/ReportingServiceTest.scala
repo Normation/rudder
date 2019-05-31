@@ -46,16 +46,13 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.db.DBCommon
-import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.execution._
-import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.services.reports.ReportingServiceImpl
 import com.normation.rudder.reports.AgentRunIntervalService
 import org.joda.time.Duration
 import com.normation.rudder.reports.ResolvedAgentRunInterval
 import com.normation.rudder.reports.AgentRunInterval
 import net.liftweb.common.Box
-import com.normation.rudder.domain.logger.ComplianceDebugLogger
 import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
 import net.liftweb.common.Empty
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
@@ -65,7 +62,6 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.services.reports.NodeChangesServiceImpl
 import doobie.implicits._
-import cats.implicits._
 import com.normation.BoxSpecMatcher
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.nodes.LDAPNodeInfo
@@ -97,7 +93,6 @@ import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   self =>
 
-  import ReportType._
   import doobie._
 
   //clean data base

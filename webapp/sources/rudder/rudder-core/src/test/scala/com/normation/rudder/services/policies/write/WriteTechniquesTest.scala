@@ -55,6 +55,7 @@ import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationLoggerImpl
 import com.normation.templates.FillTemplatesService
 import java.io.File
+
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
@@ -67,8 +68,12 @@ import org.specs2.text.LinesContent
 import com.normation.rudder.services.policies.ParameterForConfiguration
 import com.normation.rudder.services.policies.Policy
 import java.nio.charset.StandardCharsets
+
 import com.normation.rudder.services.policies.MergePolicyService
 import com.normation.rudder.services.policies.BoundPolicyDraft
+import monix.eval.TaskSemaphore
+import monix.execution.ExecutionModel
+import monix.execution.Scheduler
 
 
 /**
@@ -250,6 +255,8 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
 class WriteSystemTechniquesTest extends TechniquesTest{
   import TestSystemData._
   import data._
+  implicit val semaphore = TaskSemaphore(maxParallelism = 1)
+  implicit val ioscheduler = Scheduler.io(executionModel = ExecutionModel.AlwaysAsyncExecution)
 
   sequential
 
@@ -269,7 +276,13 @@ class WriteSystemTechniquesTest extends TechniquesTest{
      )
 
       // Actually write the promise files for the root node
-      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now)
+      val allConfig = Map(root.id -> rnc)
+      for {
+        resources <- promiseWritter.getTechniquesResources(allConfig.keySet, allConfig)
+        written   <- promiseWritter.writeTemplate(root.id, allConfig.keySet, allConfig, Map(root.id -> NodeConfigId("root-cfg-id")), Map(), resources, globalPolicyMode, DateTime.now)
+      } yield {
+        written
+      }
     }
 
     "correctly write the expected promises files with defauls installation" in {
@@ -320,15 +333,22 @@ class WriteSystemTechniquesTest extends TechniquesTest{
       val (rootPath, writter) = getPromiseWritter("group-1")
 
       // Actually write the promise files for the root node
-      writter.writeTemplate(
-          root.id
-        , Set(root.id)
-        , Map(root.id -> getRootNodeConfig(emptyGroupLib))
-        , Map(root.id -> NodeConfigId("root-cfg-id"))
-        , Map()
-        , globalPolicyMode
-        , DateTime.now
-      ).openOrThrowException("Can not write template!")
+      val configs = Map(root.id -> getRootNodeConfig(emptyGroupLib))
+      (for {
+        resources <- writter.getTechniquesResources(configs.keySet, configs)
+        res       <- writter.writeTemplate(
+                        root.id
+                      , configs.keySet
+                      , configs
+                      , Map(root.id -> NodeConfigId("root-cfg-id"))
+                      , Map()
+                      , resources
+                      , globalPolicyMode
+                      , DateTime.now
+                    )
+      } yield {
+        res
+      }).openOrThrowException("Can not write template!")
 
       rootPath/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/no-group.cf")
     }
@@ -343,7 +363,13 @@ class WriteSystemTechniquesTest extends TechniquesTest{
       // Actually write the promise files for the root node
       val (rootPath, writter) = getPromiseWritter("group-2")
 
-      writter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now).openOrThrowException("Can not write template!")
+      val configs = Map(root.id -> rnc)
+      (for {
+        resources <- writter.getTechniquesResources(configs.keySet, configs)
+        res       <- writter.writeTemplate(root.id, configs.keySet, configs, Map(root.id -> NodeConfigId("root-cfg-id")), Map(), resources, globalPolicyMode, DateTime.now)
+      } yield {
+        res
+      }).openOrThrowException("Can not write template!")
 
       rootPath/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/some-groups.cf")
     }
@@ -368,13 +394,22 @@ class WriteSystemTechniquesTest extends TechniquesTest{
     "correctly get the expected policy files" in {
       val (rootPath, writter) = getPromiseWritter("cfe-node")
       // Actually write the promise files for the root node
-      val written = writter.writeTemplate(
-            root.id
-          , Set(root.id, cfeNode.id)
-          , Map(root.id -> rnc, cfeNode.id -> cfeNC)
-          , Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id"))
-          , Map(), globalPolicyMode, DateTime.now
-      )
+      val configs = Map(root.id -> rnc, cfeNode.id -> cfeNC)
+      val written = for {
+        resources <- writter.getTechniquesResources(configs.keySet, configs)
+        res       <- writter.writeTemplate(
+                         root.id
+                       , configs.keySet
+                       , configs
+                       , Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id"))
+                       , Map()
+                       , resources
+                       , globalPolicyMode
+                       , DateTime.now
+                     )
+      } yield {
+        res
+      }
 
       (written mustFull) and
       compareWith(rootPath.getParentFile/cfeNode.id.value, "node-cfe-with-two-directives",
@@ -402,13 +437,19 @@ class WriteSystemTechniquesTest extends TechniquesTest{
     "correctly get the expected policy files" in {
       val (rootPath, writter) = getPromiseWritter("cfe-node-gen-var-def")
       // Actually write the promise files for the root node
-      val writen = writter.writeTemplate(
-            root.id
-          , Set(root.id, cfeNode.id)
-          , Map(root.id -> rnc, cfeNode.id -> cfeNC)
-          , Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id"))
-          , Map(), globalPolicyMode, DateTime.now
-      )
+      val configs = Map(root.id -> rnc, cfeNode.id -> cfeNC)
+      val writen = for {
+        resources <- writter.getTechniquesResources(configs.keySet, configs)
+        res       <- writter.writeTemplate(
+                        root.id
+                      , configs.keySet
+                      , configs
+                      , Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id"))
+                      , Map(), resources, globalPolicyMode, DateTime.now
+                  )
+      } yield {
+        res
+      }
 
       (writen mustFull) and
       compareWith(rootPath.getParentFile/cfeNode.id.value, "node-gen-var-def-override", Nil)
@@ -441,13 +482,19 @@ class WriteSystemTechniquesTest extends TechniquesTest{
     "correctly get the expected policy files" in {
       val (rootPath, writter) = getPromiseWritter("cfe-node-500")
       // Actually write the promise files for the root node
-      val writen = writter.writeTemplate(
-        root.id
-        , Set(root.id, cfeNode.id)
-        , Map(root.id -> rnc, cfeNode.id -> cfeNC)
-        , Map(root.id -> NodeConfigId("root-cfg-id-500"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id-500"))
-        , Map(), globalPolicyMode, DateTime.now
-      )
+      val configs = Map(root.id -> rnc, cfeNode.id -> cfeNC)
+      val writen = for {
+        resources <- writter.getTechniquesResources(configs.keySet, configs)
+        res       <- writter.writeTemplate(
+                        root.id
+                        , Set(root.id, cfeNode.id)
+                        , Map(root.id -> rnc, cfeNode.id -> cfeNC)
+                        , Map(root.id -> NodeConfigId("root-cfg-id-500"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id-500"))
+                        , Map(), resources, globalPolicyMode, DateTime.now
+                      )
+      } yield {
+        res
+      }
 
       (writen mustFull) and
         compareWith(rootPath.getParentFile/cfeNode.id.value, "node-cfe-with-500-directives", Nil)

@@ -38,7 +38,6 @@
 package com.normation.rudder.services.policies.write
 
 import com.normation.cfclerk.domain.TechniqueFile
-import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueResourceId
 import com.normation.cfclerk.domain.TechniqueTemplate
 import com.normation.cfclerk.services.TechniqueRepository
@@ -82,9 +81,16 @@ import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.policies.Policy
 import java.nio.charset.StandardCharsets
 
+import com.normation.cfclerk.domain.Technique
 import com.normation.rudder.domain.logger.PolicyLogger
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.services.policies.ParallelSequence
+
+
+final case class TechniqueResources(
+    templates: Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]
+  , resources: Map[(TechniqueResourceId, AgentType), TechniqueResourceCopyInfo]
+)
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -92,18 +98,28 @@ import com.normation.rudder.services.policies.ParallelSequence
  */
 trait PolicyWriterService {
 
+
+  /*
+   * Get techniques files (ie templates and resources)
+   */
+  def getTechniquesResources(
+      nodesToWrite    : Set[NodeId]
+    , allNodeConfigs  : Map[NodeId, NodeConfiguration]
+  )(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[TechniqueResources]
+
   /**
    * Write templates for node configuration that changed since the last write.
    *
    */
   def writeTemplate(
-      rootNodeId    : NodeId
-    , nodesToWrite  : Set[NodeId]
-    , allNodeConfigs: Map[NodeId, NodeConfiguration]
-    , versions      : Map[NodeId, NodeConfigId]
-    , allLicenses   : Map[NodeId, CfeEnterpriseLicense]
-    , globalPolicyMode: GlobalPolicyMode
-    , generationTime  : DateTime
+      rootNodeId        : NodeId
+    , nodesToWrite      : Set[NodeId]
+    , allNodeConfigs    : Map[NodeId, NodeConfiguration]
+    , versions          : Map[NodeId, NodeConfigId]
+    , allLicenses       : Map[NodeId, CfeEnterpriseLicense]
+    , techniqueResources: TechniqueResources
+    , globalPolicyMode  : GlobalPolicyMode
+    , generationTime    : DateTime
   ) : Box[Seq[NodeConfiguration]]
 }
 
@@ -205,24 +221,135 @@ class PolicyWriterServiceImpl(
     }
   }
 
+  override def getTechniquesResources(
+      nodesToWrite    : Set[NodeId]
+    , allNodeConfigs  : Map[NodeId, NodeConfiguration]
+  )(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[TechniqueResources]  = {
+    /*
+     * We are returning a map where keys are (TechniqueResourceId, AgentType) because
+     * for a given resource IDs, you can have different out path for different agent.
+     */
+    def readTemplateFromFileSystem(
+       techniques: Seq[Technique]
+    )(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]] = {
+
+      //list of (template id, template out path)
+      val templatesToRead = for {
+        technique <- techniques
+        template  <- technique.agentConfigs.flatMap(cfg => cfg.templates.map(t => (t.id, cfg.agentType, t.outPath)))
+      } yield {
+        template
+      }
+
+      val now = System.currentTimeMillis()
+
+      /*
+       * NOTE : this is inefficient and store in a lot of multiple time the same content
+       * if only the outpath change for two differents agent type.
+       */
+     val res = (ParallelSequence.traverse(templatesToRead) { case (templateId, agentType, templateOutPath) =>
+        for {
+          copyInfo <- techniqueRepository.getTemplateContent(templateId) { optInputStream =>
+            optInputStream match {
+              case None =>
+                Failure(s"Error when trying to open template '${templateId.toString}'. Check that the file exists with a ${TechniqueTemplate.templateExtension} extension and is correctly commited in Git, or that the metadata for the technique are corrects.")
+              case Some(inputStream) =>
+                logger.trace(s"Loading template: ${templateId}")
+                //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
+                val content = IOUtils.toString(inputStream, StandardCharsets.UTF_8)
+                Full(TechniqueTemplateCopyInfo(templateId, templateOutPath, content))
+            }
+          }
+        } yield {
+          ((copyInfo.id, agentType), copyInfo)
+        }
+      }).map( _.toMap)
+
+      logger.debug(s"${templatesToRead.size} promises templates read in ${System.currentTimeMillis-now} ms")
+      res
+    }
+
+    /*
+     * We are returning a map where keys are (TechniqueResourceId, AgentType) because
+     * for a given resource IDs, you can have different out path for different agent.
+     */
+    def readResourcesFromFileSystem(
+       techniques: Seq[Technique]
+    )(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Map[(TechniqueResourceId, AgentType), TechniqueResourceCopyInfo]] = {
+
+      val staticResourceToRead = for {
+        technique      <- techniques
+        staticResource <- technique.agentConfigs.flatMap(cfg => cfg.files.map(t => (t.id, cfg.agentType, t.outPath)))
+      } yield {
+        staticResource
+      }
+
+      val now = System.currentTimeMillis()
+
+      val res = (ParallelSequence.traverse(staticResourceToRead) { case (templateId, agentType, templateOutPath) =>
+        for {
+          copyInfo <- techniqueRepository.getFileContent(templateId) { optInputStream =>
+            optInputStream match {
+              case None =>
+                Failure(s"Error when trying to open template '${templateId.toString}'. Check that the file exists with a ${TechniqueTemplate.templateExtension} extension and is correctly commited in Git, or that the metadata for the technique are corrects.")
+              case Some(inputStream) =>
+                logger.trace(s"Loading template: ${templateId}")
+                //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
+                val content = IOUtils.toString(inputStream, StandardCharsets.UTF_8)
+                Full(TechniqueResourceCopyInfo(templateId, templateOutPath, content))
+            }
+          }
+        } yield {
+          ((copyInfo.id, agentType), copyInfo)
+        }
+      }).map( _.toMap)
+
+      logger.debug(s"${staticResourceToRead.size} techniques resources read in ${System.currentTimeMillis-now} ms")
+      res
+    }
+
+    val nodeConfigsToWrite     = allNodeConfigs.filterKeys(nodesToWrite.contains(_))
+    val interestingNodeConfigs = allNodeConfigs.filterKeys(k => nodeConfigsToWrite.exists{ case(x, _) => x == k }).values.toSeq
+    val techniqueIds           = interestingNodeConfigs.flatMap( _.getTechniqueIds ).toSet
+    val readTemplateTime1      = DateTime.now.getMillis
+    val techniques             = techniqueRepository.getByIds(techniqueIds.toSeq)
+
+    for {
+      templates        <- readTemplateFromFileSystem(techniques)
+      resources        <- readResourcesFromFileSystem(techniques)
+      readTemplateTime2 = DateTime.now.getMillis
+      readTemplateDur   = readTemplateTime2 - readTemplateTime1
+      _                 = policyLogger.debug(s"Technique templates and resources read in ${readTemplateDur} ms")
+    } yield {
+      TechniqueResources(templates, resources)
+    }
+  }
+
+
 
   /**
    * Write templates for node configuration that changed since the last write.
    *
    */
   override def writeTemplate(
-      rootNodeId      : NodeId
-    , nodesToWrite    : Set[NodeId]
-    , allNodeConfigs  : Map[NodeId, NodeConfiguration]
-    , versions        : Map[NodeId, NodeConfigId]
-    , allLicenses     : Map[NodeId, CfeEnterpriseLicense]
-    , globalPolicyMode: GlobalPolicyMode
-    , generationTime  : DateTime
+      rootNodeId         : NodeId
+    , nodesToWrite       : Set[NodeId]
+    , allNodeConfigs     : Map[NodeId, NodeConfiguration]
+    , versions           : Map[NodeId, NodeConfigId]
+    , allLicenses        : Map[NodeId, CfeEnterpriseLicense]
+    , techniquesResources: TechniqueResources
+    , globalPolicyMode   : GlobalPolicyMode
+    , generationTime     : DateTime
   ) : Box[Seq[NodeConfiguration]] = {
+
+    val traceId = {
+      val id = if(nodesToWrite.size == 1) nodesToWrite.head.value
+               else nodesToWrite.hashCode().toString
+      "[" + id + "]"
+    }
 
     val nodeConfigsToWrite     = allNodeConfigs.filterKeys(nodesToWrite.contains(_))
     val interestingNodeConfigs = allNodeConfigs.filterKeys(k => nodeConfigsToWrite.exists{ case(x, _) => x == k }).values.toSeq
-    val techniqueIds           = interestingNodeConfigs.flatMap( _.getTechniqueIds ).toSet
 
     //debug - but don't fails for debugging !
     logNodeConfig.log(nodeConfigsToWrite.values.toSeq) match {
@@ -266,11 +393,9 @@ class PolicyWriterServiceImpl(
     for {
       configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeConfigs, newPostfix, backupPostfix)
       pathsInfo        =  configAndPaths.map { _.paths }
-      templates        <- readTemplateFromFileSystem(techniqueIds)
-      resources        <- readResourcesFromFileSystem(techniqueIds)
       readTemplateTime2 = DateTime.now.getMillis
       readTemplateDur   = readTemplateTime2 - readTemplateTime1
-      _                 = policyLogger.debug(s"Paths computed and templates read in ${readTemplateDur} ms")
+      _                 = policyLogger.trace(s"${traceId} Paths computed in ${readTemplateDur} ms")
 
       //////////
       // nothing agent specific before that
@@ -278,16 +403,16 @@ class PolicyWriterServiceImpl(
 
       preparedPromises <- ParallelSequence.traverse(configAndPaths) { case agentNodeConfig =>
                             val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
-                            prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, Policy.TAG_OF_RUDDER_ID, globalPolicyMode, generationTime) ?~!
+                            prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, techniquesResources.templates, allNodeConfigs, Policy.TAG_OF_RUDDER_ID, globalPolicyMode, generationTime) ?~!
                             s"Error when calculating configuration for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})"
                          }
       preparedPromisesTime = DateTime.now.getMillis
       preparedPromisesDur  = preparedPromisesTime - readTemplateTime2
-      _                    = policyLogger.debug(s"Promises prepared in ${preparedPromisesDur} ms")
+      _                    = policyLogger.trace(s"${traceId} Promises prepared in ${preparedPromisesDur} ms")
 
       promiseWritten   <- ParallelSequence.traverse(preparedPromises) { prepared =>
                             (for {
-                              _ <- writePromises(prepared.paths, prepared.preparedTechniques, resources)
+                              _ <- writePromises(prepared.paths, prepared.agentNodeProps.agentType, prepared.preparedTechniques, techniquesResources.resources)
                               _ <- writeAllAgentSpecificFiles.write(prepared) ?~! s"Error with node '${prepared.paths.nodeId.value}'"
                               _ <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
                             } yield {
@@ -296,7 +421,7 @@ class PolicyWriterServiceImpl(
                           }
       promiseWrittenTime = DateTime.now.getMillis
       promiseWrittenDur  = promiseWrittenTime - preparedPromisesTime
-      _                  = policyLogger.debug(s"Promises written in ${promiseWrittenDur} ms")
+      _                  = policyLogger.trace(s"${traceId} Promises written in ${promiseWrittenDur} ms")
 
 
       //////////
@@ -310,7 +435,7 @@ class PolicyWriterServiceImpl(
 
       propertiesWrittenTime = DateTime.now.getMillis
       propertiesWrittenDur  = propertiesWrittenTime - promiseWrittenTime
-      _                     = policyLogger.debug(s"Properties written in ${propertiesWrittenDur} ms")
+      _                     = policyLogger.trace(s"${traceId} Properties written in ${propertiesWrittenDur} ms")
 
       parametersWritten <- ParallelSequence.traverse(configAndPaths) { case agentNodeConfig =>
                              writeRudderParameterFile(agentNodeConfig) ?~!
@@ -319,13 +444,13 @@ class PolicyWriterServiceImpl(
 
       parametersWrittenTime = DateTime.now.getMillis
       parametersWrittenDur  = parametersWrittenTime - propertiesWrittenTime
-      _                     = policyLogger.debug(s"Parameters written in ${parametersWrittenDur} ms")
+      _                     = policyLogger.trace(s"${traceId} Parameters written in ${parametersWrittenDur} ms")
 
       licensesCopied   <- copyLicenses(configAndPaths, allLicenses)
 
       licensesCopiedTime = DateTime.now.getMillis
       licensesCopiedDur  = licensesCopiedTime - parametersWrittenTime
-      _                  = policyLogger.debug(s"Licenses copied in ${licensesCopiedDur} ms")
+      _                  = policyLogger.trace(s"${traceId} Licenses copied in ${licensesCopiedDur} ms")
       /// perhaps that should be a post-hook somehow ?
       // and perhaps we should have an AgentSpecific global pre/post write
 
@@ -350,7 +475,7 @@ class PolicyWriterServiceImpl(
                                                              )
                                         , systemEnv
                             )
-                            HooksLogger.trace(s"Run post-generation pre-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
+                            HooksLogger.trace(s"${traceId} Run post-generation pre-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
                             res
                           }
 
@@ -360,7 +485,7 @@ class PolicyWriterServiceImpl(
 
       movedPromisesTime2 = DateTime.now.getMillis
       movedPromisesDur   = movedPromisesTime2 - movedPromisesTime1
-      _                  = policyLogger.debug(s"Policies moved to their final position in ${movedPromisesDur} ms")
+      _                  = policyLogger.trace(s"${traceId} Policies moved to their final position in ${movedPromisesDur} ms")
 
       nodePostMvHooks  <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-finished", HOOKS_IGNORE_SUFFIXES)
       postMvHooks      <- parrallelSequenceNodeHook(configAndPaths) { agentNodeConfig =>
@@ -383,7 +508,7 @@ class PolicyWriterServiceImpl(
                                                            )
                                         , systemEnv
                             )
-                            HooksLogger.trace(s"Run post-generation post-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
+                            HooksLogger.trace(s"${traceId} Run post-generation post-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
                             res
                           }
     } yield {
@@ -439,55 +564,13 @@ class PolicyWriterServiceImpl(
     }
   }
 
-  /*
-   * We are returning a map where keys are (TechniqueResourceId, AgentType) because
-   * for a given resource IDs, you can have different out path for different agent.
-   */
-  private[this] def readTemplateFromFileSystem(
-      techniqueIds: Set[TechniqueId]
-  )(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]] = {
-
-    //list of (template id, template out path)
-    val templatesToRead = for {
-      technique <- techniqueRepository.getByIds(techniqueIds.toSeq)
-      template  <- technique.agentConfigs.flatMap(cfg => cfg.templates.map(t => (t.id, cfg.agentType, t.outPath)))
-    } yield {
-      template
-    }
-
-    val now = System.currentTimeMillis()
-
-    /*
-     * NOTE : this is inefficient and store in a lot of multiple time the same content
-     * if only the outpath change for two differents agent type.
-     */
-   val res = (ParallelSequence.traverse(templatesToRead) { case (templateId, agentType, templateOutPath) =>
-      for {
-        copyInfo <- techniqueRepository.getTemplateContent(templateId) { optInputStream =>
-          optInputStream match {
-            case None =>
-              Failure(s"Error when trying to open template '${templateId.toString}'. Check that the file exists with a ${TechniqueTemplate.templateExtension} extension and is correctly commited in Git, or that the metadata for the technique are corrects.")
-            case Some(inputStream) =>
-              logger.trace(s"Loading template: ${templateId}")
-              //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
-              val content = IOUtils.toString(inputStream, StandardCharsets.UTF_8)
-              Full(TechniqueTemplateCopyInfo(templateId, templateOutPath, content))
-          }
-        }
-      } yield {
-        ((copyInfo.id, agentType), copyInfo)
-      }
-    }).map( _.toMap)
-
-    logger.debug(s"${templatesToRead.size} promises templates read in ${System.currentTimeMillis-now} ms")
-    res
-  }
 
 
   private[this] def writePromises(
       paths             : NodePromisesPaths
+    , agentType         : AgentType
     , preparedTechniques: Seq[PreparedTechnique]
-    , resources         : Map[TechniqueResourceId, TechniqueResourceCopyInfo]
+    , resources         : Map[(TechniqueResourceId, AgentType), TechniqueResourceCopyInfo]
   ) : Box[NodePromisesPaths] = {
     // write the promises of the current machine and set correct permission
     for {
@@ -497,7 +580,7 @@ class PolicyWriterServiceImpl(
                                writePromisesFiles(template, preparedTechnique.environmentVariables, paths.newFolder, preparedTechnique.reportIdToReplace)
                              }
                files     <- sequence(preparedTechnique.filesToCopy.toSeq) { file =>
-                              copyResourceFile(file, paths.newFolder, preparedTechnique.reportIdToReplace, resources)
+                              copyResourceFile(file, agentType, paths.newFolder, preparedTechnique.reportIdToReplace, resources)
                             }
              } yield {
                "OK"
@@ -508,44 +591,6 @@ class PolicyWriterServiceImpl(
     }
   }
 
-  /*
-   * We are returning a map where keys are (TechniqueResourceId, AgentType) because
-   * for a given resource IDs, you can have different out path for different agent.
-   */
-  private[this] def readResourcesFromFileSystem(
-     techniqueIds: Set[TechniqueId]
-  )(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Map[TechniqueResourceId, TechniqueResourceCopyInfo]] = {
-
-    val staticResourceToRead = for {
-      technique      <- techniqueRepository.getByIds(techniqueIds.toSeq)
-      staticResource <- technique.agentConfigs.flatMap(cfg => cfg.files.map(t => (t.id, t.outPath)))
-    } yield {
-      staticResource
-    }
-
-    val now = System.currentTimeMillis()
-
-    val res = (ParallelSequence.traverse(staticResourceToRead) { case (templateId, templateOutPath) =>
-      for {
-        copyInfo <- techniqueRepository.getFileContent(templateId) { optInputStream =>
-          optInputStream match {
-            case None =>
-              Failure(s"Error when trying to open template '${templateId.toString}'. Check that the file exists with a ${TechniqueTemplate.templateExtension} extension and is correctly commited in Git, or that the metadata for the technique are corrects.")
-            case Some(inputStream) =>
-              logger.trace(s"Loading template: ${templateId}")
-              //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
-              val content = IOUtils.toString(inputStream, StandardCharsets.UTF_8)
-              Full(TechniqueResourceCopyInfo(templateId, templateOutPath, content))
-          }
-        }
-      } yield {
-        (copyInfo.id, copyInfo)
-      }
-    }).map( _.toMap)
-
-    logger.debug(s"${staticResourceToRead.size} techniques resources read in ${System.currentTimeMillis-now} ms")
-    res
-  }
 
   // just write an empty file for now
   private[this] def writeSystemVarJson(paths: NodePromisesPaths, variables: Map[String, Variable]) =  {
@@ -688,9 +733,10 @@ class PolicyWriterServiceImpl(
    */
   private[this] def copyResourceFile(
       file             : TechniqueFile
+    , agentType        : AgentType
     , rulePath         : String
     , reportIdToReplace: Option[PolicyId]
-    , resources        : Map[TechniqueResourceId, TechniqueResourceCopyInfo]
+    , resources        : Map[(TechniqueResourceId, AgentType), TechniqueResourceCopyInfo]
   ): Box[String] = {
     val destination = {
       val out = reportIdToReplace match {
@@ -700,7 +746,7 @@ class PolicyWriterServiceImpl(
       new File(rulePath+"/"+out)
     }
 
-    resources.get(file.id) match {
+    resources.get((file.id, agentType)) match {
       case None    => Failure(s"Can not open the technique resource file ${file.id} for reading")
       case Some(s) =>
         try {

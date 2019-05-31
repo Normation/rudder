@@ -90,6 +90,7 @@ import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.logger.PolicyLogger
 import cats.data.NonEmptyList
 import com.normation.rudder.domain.reports.OverridenPolicy
+import com.normation.rudder.services.policies.write.TechniqueResources
 import com.normation.templates.FillTemplatesService
 import monix.eval.Task
 import monix.eval.TaskSemaphore
@@ -217,7 +218,7 @@ object ParallelSequence {
  * The main service which deploy modified rules and
  * their dependencies.
  */
-trait PromiseGenerationService extends Loggable {
+trait PromiseGenerationService {
 
   /**
    * All mighy method that take all modified rules, find their
@@ -228,7 +229,7 @@ trait PromiseGenerationService extends Loggable {
    *
    */
   def deploy() : Box[Set[NodeId]] = {
-    logger.info("Start policy generation, checking updated rules")
+    PolicyLogger.info("Start policy generation, checking updated rules")
 
     val initialTime = System.currentTimeMillis
 
@@ -243,29 +244,33 @@ trait PromiseGenerationService extends Loggable {
 
 
     def buildFullyOneNode(
-        nodeId          : NodeId
-      , nodeConfigId    : NodeConfigId
-      , rootNodeId      : NodeId
-      , nodeConfigs     : Map[NodeId, NodeConfiguration]
-      , allLicenses     : Map[NodeId, CfeEnterpriseLicense]
-      , globalPolicyMode: GlobalPolicyMode
-      , generationTime  : DateTime
-      , expectedReports : NodeExpectedReports
-      , remainingNodes  : AtomicInt
+        nodeId            : NodeId
+      , nodeConfigId      : NodeConfigId
+      , rootNodeId        : NodeId
+      , nodeConfigs       : Map[NodeId, NodeConfiguration]
+      , allLicenses       : Map[NodeId, CfeEnterpriseLicense]
+      , techniqueResources: TechniqueResources
+      , globalPolicyMode  : GlobalPolicyMode
+      , generationTime    : DateTime
+      , expectedReports   : NodeExpectedReports
+      , remainingNodes    : AtomicInt
     ): Box[NodeExpectedReports] = {
+
+    val traceId = "[" + nodeId.value + "]"
+
       val writeTime           =  System.currentTimeMillis
       for {
-        writtenNodeConfigs    <- writeNodeConfigurations(rootNodeId, Map(nodeId -> nodeConfigId), nodeConfigs, allLicenses, globalPolicyMode, generationTime) ?~!"Cannot write nodes configuration for node '${nodeId.value}'"
+        writtenNodeConfigs    <- writeNodeConfigurations(rootNodeId, Map(nodeId -> nodeConfigId), nodeConfigs, allLicenses, techniqueResources, globalPolicyMode, generationTime) ?~!"Cannot write nodes configuration for node '${nodeId.value}'"
         timeWriteNodeConfig   =  (System.currentTimeMillis - writeTime)
-        _                     =  logger.debug(s"Node configuration for node '${nodeId.value}' written in ${timeWriteNodeConfig} ms, start to update expected reports.")
+        _                     =  PolicyLogger.debug(s"${traceId} Node configuration for node '${nodeId.value}' written in ${timeWriteNodeConfig} ms.")
 
         saveExpectedTime      =  System.currentTimeMillis
         savedExpectedReports  <- saveOneExpectedReports(expectedReports) ?~! "Error when saving expected reports for node '${nodeId.value}'"
         endTime               =  System.currentTimeMillis
         timeSaveExpected      =  endTime - saveExpectedTime
-        _                     =  logger.debug(s"Node expected reports for node '${nodeId.value}' saved in base in ${timeSaveExpected} ms.")
+        _                     =  PolicyLogger.debug(s"${traceId} Node expected reports for node '${nodeId.value}' saved in base in ${timeSaveExpected} ms.")
         r                     =  remainingNodes.decrementAndGet()
-        _                     =  logger.info(s"Configuration for node ${nodeId.value} updated in ${endTime - writeTime} ms (remains ${r} nodes to update)")
+        _                     =  PolicyLogger.info(s"Configuration for node ${nodeId.value} updated in ${endTime - writeTime} ms (remains ${r} nodes to update)")
       } yield {
         savedExpectedReports
       }
@@ -289,8 +294,8 @@ trait PromiseGenerationService extends Loggable {
         Math.max(1, t.toLong) // must be a positive number
       } catch {
         case ex: NumberFormatException =>
-          logger.error(s"Impossible to user property '' for js engine timeout: not a number")
-          5 // default
+          PolicyLogger.error(s"Impossible to user property '' for js engine timeout: not a number")
+          5L // default
       }, TimeUnit.SECONDS)
     }
     implicit val semaphore = TaskSemaphore(maxParallelism = maxParallelism)
@@ -301,44 +306,44 @@ trait PromiseGenerationService extends Loggable {
       // trigger a dynamic group update
       computeGroups        <- triggerNodeGroupUpdate()
       timeComputeGroups    =  (System.currentTimeMillis - initialTime)
-      _                    =  logger.debug(s"Computing dynamic groups finished in ${timeComputeGroups} ms")
+      _                    =  PolicyLogger.debug(s"Computing dynamic groups finished in ${timeComputeGroups} ms")
       preGenHooksTime      =  System.currentTimeMillis
 
       //fetch all
       preHooks             <- RunHooks.getHooks(HOOKS_D + "/policy-generation-started", HOOKS_IGNORE_SUFFIXES)
       _                    <- RunHooks.syncRun(preHooks, HookEnvPairs.build( ("RUDDER_GENERATION_DATETIME", generationTime.toString) ), systemEnv)
       timeRunPreGenHooks   =  (System.currentTimeMillis - preGenHooksTime)
-      _                    =  logger.debug(s"Pre-policy-generation scripts hooks ran in ${timeRunPreGenHooks} ms")
+      _                    =  PolicyLogger.debug(s"Pre-policy-generation scripts hooks ran in ${timeRunPreGenHooks} ms")
 
       codePreGenHooksTime  =  System.currentTimeMillis
       _                    <- beforeDeploymentSync(generationTime)
       timeCodePreGenHooks  =  (System.currentTimeMillis - codePreGenHooksTime)
-      _                    =  logger.debug(s"Pre-policy-generation modules hooks in ${timeCodePreGenHooks} ms, start getting all generation related data.")
+      _                    =  PolicyLogger.debug(s"Pre-policy-generation modules hooks in ${timeCodePreGenHooks} ms, start getting all generation related data.")
 
       fetch0Time           =  System.currentTimeMillis
       allRules             <- findDependantRules() ?~! "Could not find dependant rules"
       fetch1Time           =  System.currentTimeMillis
-      _                    =  logger.trace(s"Fetched rules in ${fetch1Time-fetch0Time} ms")
+      _                    =  PolicyLogger.trace(s"Fetched rules in ${fetch1Time-fetch0Time} ms")
       allNodeInfos         <- getAllNodeInfos.map( _.filter { case(_,n) =>
                                 if(n.state == NodeState.Ignored) {
-                                  logger.debug(s"Skipping node '${n.id.value}' because the node is in state '${n.state.name}'")
+                                  PolicyLogger.debug(s"Skipping node '${n.id.value}' because the node is in state '${n.state.name}'")
                                   false
                                 } else true
                               })  ?~! "Could not get Node Infos" //disabled node don't get new policies
       fetch2Time           =  System.currentTimeMillis
-      _                    =  logger.trace(s"Fetched node infos in ${fetch2Time-fetch1Time} ms")
+      _                    =  PolicyLogger.trace(s"Fetched node infos in ${fetch2Time-fetch1Time} ms")
       directiveLib         <- getDirectiveLibrary() ?~! "Could not get the directive library"
       fetch3Time           =  System.currentTimeMillis
-      _                    =  logger.trace(s"Fetched directives in ${fetch3Time-fetch2Time} ms")
+      _                    =  PolicyLogger.trace(s"Fetched directives in ${fetch3Time-fetch2Time} ms")
       groupLib             <- getGroupLibrary() ?~! "Could not get the group library"
       fetch4Time           =  System.currentTimeMillis
-      _                    =  logger.trace(s"Fetched groups in ${fetch4Time-fetch3Time} ms")
+      _                    =  PolicyLogger.trace(s"Fetched groups in ${fetch4Time-fetch3Time} ms")
       allParameters        <- getAllGlobalParameters ?~! "Could not get global parameters"
       fetch5Time           =  System.currentTimeMillis
-      _                    =  logger.trace(s"Fetched global parameters in ${fetch5Time-fetch4Time} ms")
+      _                    =  PolicyLogger.trace(s"Fetched global parameters in ${fetch5Time-fetch4Time} ms")
       globalAgentRun       <- getGlobalAgentRun
       fetch6Time           =  System.currentTimeMillis
-      _                    =  logger.trace(s"Fetched run infos in ${fetch6Time-fetch5Time} ms")
+      _                    =  PolicyLogger.trace(s"Fetched run infos in ${fetch6Time-fetch5Time} ms")
       scriptEngineEnabled  <- getScriptEngineEnabled() ?~! "Could not get if we should use the script engine to evaluate directive parameters"
       globalComplianceMode <- getGlobalComplianceMode
       globalPolicyMode     <- getGlobalPolicyMode() ?~! "Cannot get the Global Policy Mode (Enforce or Verify)"
@@ -346,7 +351,7 @@ trait PromiseGenerationService extends Loggable {
       allLicenses          <- getAllLicenses() ?~! "Cannont get licenses information"
       allNodeModes         =  buildNodeModes(allNodeInfos, globalComplianceMode, globalAgentRun, globalPolicyMode)
       timeFetchAll         =  (System.currentTimeMillis - fetch0Time)
-      _                    =  logger.debug(s"All relevant information fetched in ${timeFetchAll} ms, start names historization.")
+      _                    =  PolicyLogger.debug(s"All relevant information fetched in ${timeFetchAll} ms, start names historization.")
 
       /////
       ///// end of inputs, all information gathered for promise generation.
@@ -357,7 +362,7 @@ trait PromiseGenerationService extends Loggable {
       historizeTime =  System.currentTimeMillis
       historize     <- historizeData(allRules, directiveLib, groupLib, allNodeInfos, globalAgentRun)
       timeHistorize =  (System.currentTimeMillis - historizeTime)
-      _             =  logger.debug(s"Historization of names done in ${timeHistorize} ms, start to build rule values.")
+      _             =  PolicyLogger.debug(s"Historization of names done in ${timeHistorize} ms, start to build rule values.")
       ///// end ignoring
 
       ///// parse rule for directive parameters and build node context that will be used for them
@@ -369,13 +374,13 @@ trait PromiseGenerationService extends Loggable {
       activeRuleIds         =  getAppliedRuleIds(allRules, groupLib, directiveLib, allNodeInfos)
       ruleVals              <- buildRuleVals(activeRuleIds, allRules, directiveLib, groupLib, allNodeInfos) ?~! "Cannot build Rule vals"
       timeRuleVal           =  (System.currentTimeMillis - ruleValTime)
-      _                     =  logger.debug(s"RuleVals built in ${timeRuleVal} ms, start to expand their values.")
+      _                     =  PolicyLogger.debug(s"RuleVals built in ${timeRuleVal} ms, start to expand their values.")
 
       nodeContextsTime      =  System.currentTimeMillis
       activeNodeIds         =  (Set[NodeId]()/:ruleVals){case(s,r) => s ++ r.nodeIds}
       nodeContexts          <- getNodeContexts(activeNodeIds, allNodeInfos, groupLib, allLicenses, allParameters, globalAgentRun, globalComplianceMode, globalPolicyMode) ?~! "Could not get node interpolation context"
       timeNodeContexts      =  (System.currentTimeMillis - nodeContextsTime)
-      _                     =  logger.debug(s"Node contexts built in ${timeNodeContexts} ms, start to build new node configurations.")
+      _                     =  PolicyLogger.debug(s"Node contexts built in ${timeNodeContexts} ms, start to build new node configurations.")
 
       buildConfigTime       =  System.currentTimeMillis
       /// here, we still have directive by directive info
@@ -383,7 +388,7 @@ trait PromiseGenerationService extends Loggable {
       /// only keep successfull node config. We will keep the failed one to fail the whole process in the end if needed
       nodeConfigs           =  allNodeConfigs.ok.map(c => (c.nodeInfo.id, c)).toMap
       timeBuildConfig       =  (System.currentTimeMillis - buildConfigTime)
-      _                     =  logger.debug(s"Node's target configuration built in ${timeBuildConfig} ms, start to update rule values.")
+      _                     =  PolicyLogger.debug(s"Node's target configuration built in ${timeBuildConfig} ms, start to update rule values.")
 
       updatedNodeConfigIds  =  getNodesConfigVersion(nodeConfigs, nodeConfigCaches, generationTime)
       updatedNodeConfigs    =  nodeConfigs.filterKeys(id => updatedNodeConfigIds.keySet.contains(id))
@@ -391,7 +396,7 @@ trait PromiseGenerationService extends Loggable {
       reportTime            =  System.currentTimeMillis
       expectedReports       =  computeExpectedReports(ruleVals, updatedNodeConfigs.values.toSeq, updatedNodeConfigIds, generationTime, allNodeModes)
       timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
-      _                     =  logger.debug(s"Reports updated in ${timeSetExpectedReport} ms")
+      _                     =  PolicyLogger.debug(s"Reports updated in ${timeSetExpectedReport} ms")
 
       ///// so now we have everything for each updated nodes, we can start writing node policies and then expected reports
 
@@ -400,6 +405,7 @@ trait PromiseGenerationService extends Loggable {
       _                     <- forgetOtherNodeConfigurationState(allNodeConfigs.ok.map(_.nodeInfo.id).toSet) ?~! "Cannot clean the configuration cache"
 
       // clear cache of string template - both before and after writing them
+      techniqueResources    <- getTechniquesResources(updatedNodeConfigIds.keySet, nodeConfigs)
       _                     =  clearCacheOfTemplate()
 
 
@@ -409,7 +415,7 @@ trait PromiseGenerationService extends Loggable {
       allTrySavedReports    =  ParallelSequence.applicative(updatedNodeConfigIds.toSeq) { case (nodeId, nodeConfigId) =>
                                  for {
                                    expectedReport <- expectedReports.find(_.nodeId == nodeId).map(Full(_)).getOrElse(Failure(s"Can not find expected report for node '${nodeId.value}'"))
-                                   built          <- buildFullyOneNode(nodeId, nodeConfigId, rootNodeId, nodeConfigs, allLicenses, globalPolicyMode, generationTime, expectedReport, remainingNodes)
+                                   built          <- buildFullyOneNode(nodeId, nodeConfigId, rootNodeId, nodeConfigs, allLicenses, techniqueResources, globalPolicyMode, generationTime, expectedReport, remainingNodes)
                                  } yield {
                                    built
                                  }
@@ -447,7 +453,7 @@ trait PromiseGenerationService extends Loggable {
                                  , systemEnv
                                )
       timeRunPostGenHooks   =  (System.currentTimeMillis - postHooksTime)
-      _                     =  logger.debug(s"Post-policy-generation hooks ran in ${timeRunPostGenHooks} ms")
+      _                     =  PolicyLogger.debug(s"Post-policy-generation hooks ran in ${timeRunPostGenHooks} ms")
 
       /// now, if there was failed config or failed write, time to show them
       //invalidate compliance may be very very long - make it async
@@ -613,6 +619,12 @@ trait PromiseGenerationService extends Loggable {
    */
   def getNodesConfigVersion(allNodeConfigs: Map[NodeId, NodeConfiguration], hashes: Map[NodeId, NodeConfigurationHash], generationTime: DateTime): Map[NodeId, NodeConfigId]
 
+
+  def getTechniquesResources(
+      nodesToWrite    : Set[NodeId]
+    , allNodeConfigs  : Map[NodeId, NodeConfiguration]
+  )(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[TechniqueResources]
+
   /**
    * Actually  write the new configuration for the list of given node.
    * If the node target configuration is the same as the actual, nothing is done.
@@ -620,12 +632,13 @@ trait PromiseGenerationService extends Loggable {
    * Return the list of configuration successfully written.
    */
   def writeNodeConfigurations(
-      rootNodeId      : NodeId
-    , updated         : Map[NodeId, NodeConfigId]
-    , allNodeConfig   : Map[NodeId, NodeConfiguration]
-    , allLicenses     : Map[NodeId, CfeEnterpriseLicense]
-    , globalPolicyMode: GlobalPolicyMode
-    , generationTime  : DateTime
+      rootNodeId        : NodeId
+    , updated           : Map[NodeId, NodeConfigId]
+    , allNodeConfig     : Map[NodeId, NodeConfiguration]
+    , allLicenses       : Map[NodeId, CfeEnterpriseLicense]
+    , techniqueResources: TechniqueResources
+    , globalPolicyMode  : GlobalPolicyMode
+    , generationTime    : DateTime
   ) : Box[Set[NodeConfiguration]]
 
   /**
@@ -652,7 +665,7 @@ trait PromiseGenerationService extends Loggable {
       case Nil => Failure(s"Error when saving expected repot in base for node '${expectedReports.nodeId.value}' (no error info)")
       case x::Nil => Full(x)
       case x::y =>
-        logger.warn(s"More than on reports returned when saving expected reports for node '${expectedReports.nodeId.value}'")
+        PolicyLogger.warn(s"More than on reports returned when saving expected reports for node '${expectedReports.nodeId.value}'")
         Full(x)
     }
   }
@@ -874,7 +887,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
         }) match {
           case eb:EmptyBox =>
             val e = eb ?~! s"Error while building target configuration node for node '${nodeId.value}' which is one of the target of rules. Ignoring it for the rest of the process"
-            logger.error(e.messageChain)
+            PolicyLogger.error(e.messageChain)
             None
 
           case x => x
@@ -1125,7 +1138,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
     }
 
     if(notUpdatedConfig.size > 0) {
-      logger.debug(s"Not updating non-modified node configuration: [${notUpdatedConfig.map( _.id.value).mkString(", ")}]")
+      PolicyLogger.debug(s"Not updating non-modified node configuration: [${notUpdatedConfig.map( _.id.value).mkString(", ")}]")
     }
 
     if(updatedConfig.size == 0) {
@@ -1186,6 +1199,14 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
     nodeConfigIds
   }
 
+
+  def getTechniquesResources(
+      nodesToWrite    : Set[NodeId]
+    , allNodeConfigs  : Map[NodeId, NodeConfiguration]
+  )(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[TechniqueResources] = {
+    promisesFileWriterService.getTechniquesResources(nodesToWrite, allNodeConfigs)
+  }
+
   /**
    * Actually  write the new configuration for the list of given node.
    * If the node target configuration is the same as the actual, nothing is done.
@@ -1193,21 +1214,27 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
    * Return the list of configuration successfully written.
    */
   def writeNodeConfigurations(
-      rootNodeId      : NodeId
-    , updated         : Map[NodeId, NodeConfigId]
-    , allNodeConfigs  : Map[NodeId, NodeConfiguration]
-    , allLicenses     : Map[NodeId, CfeEnterpriseLicense]
-    , globalPolicyMode: GlobalPolicyMode
-    , generationTime  : DateTime
+      rootNodeId        : NodeId
+    , updated           : Map[NodeId, NodeConfigId]
+    , allNodeConfigs    : Map[NodeId, NodeConfiguration]
+    , allLicenses       : Map[NodeId, CfeEnterpriseLicense]
+    , techniqueResources: TechniqueResources
+    , globalPolicyMode  : GlobalPolicyMode
+    , generationTime    : DateTime
   ) : Box[Set[NodeConfiguration]] = {
 
+    val traceId = {
+      val id = if(updated.size == 1) updated.head._1.value
+               else updated.keySet.hashCode().toString
+      "[" + id + "]"
+    }
     val fsWrite0   =  System.currentTimeMillis
 
     for {
-      written    <- promisesFileWriterService.writeTemplate(rootNodeId, updated.keySet, allNodeConfigs, updated, allLicenses, globalPolicyMode, generationTime)
+      written    <- promisesFileWriterService.writeTemplate(rootNodeId, updated.keySet, allNodeConfigs, updated, allLicenses, techniqueResources, globalPolicyMode, generationTime)
       ldapWrite0 =  DateTime.now.getMillis
       fsWrite1   =  (ldapWrite0 - fsWrite0)
-      _          =  logger.debug(s"Node configuration written on filesystem in ${fsWrite1} ms")
+      _          =  PolicyLogger.trace(s"${traceId} Node configuration written on filesystem in ${fsWrite1} ms")
       //update the hash for the updated node configuration for that generation
 
       // #10625 : that should be one logic-level up (in the main generation for loop)
@@ -1215,7 +1242,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
       toCache    =  allNodeConfigs.filterKeys(updated.contains(_)).values.toSet
       cached     <- nodeConfigurationService.save(toCache.map(x => NodeConfigurationHash(x, generationTime)))
       ldapWrite1 =  (DateTime.now.getMillis - ldapWrite0)
-      _          =  logger.debug(s"Node configuration cached in LDAP in ${ldapWrite1} ms")
+      _          =  PolicyLogger.trace(s"${traceId} Node configuration cached in LDAP in ${ldapWrite1} ms")
     } yield {
       written.toSet
     }
@@ -1319,19 +1346,19 @@ object RuleExpectedReportBuilder extends Loggable {
       // now the cardinality is the length of the boundingVariable
       (vars.expandedVars.get(boundingVar), vars.originalVars.get(boundingVar)) match {
         case (None, None) =>
-          logger.debug("Could not find the bounded variable %s for %s in ParsedPolicyDraft %s".format(
+          PolicyLogger.debug("Could not find the bounded variable %s for %s in ParsedPolicyDraft %s".format(
               boundingVar, vars.trackerVariable.spec.name, directiveId.value))
           (Seq(DEFAULT_COMPONENT_KEY),Seq()) // this is an autobounding policy
         case (Some(variable), Some(originalVariables)) if (variable.values.size==originalVariables.values.size) =>
           (variable.values, originalVariables.values)
         case (Some(variable), Some(originalVariables)) =>
-          logger.warn("Expanded and unexpanded values for bounded variable %s for %s in ParsedPolicyDraft %s have not the same size : %s and %s".format(
+          PolicyLogger.warn("Expanded and unexpanded values for bounded variable %s for %s in ParsedPolicyDraft %s have not the same size : %s and %s".format(
               boundingVar, vars.trackerVariable.spec.name, directiveId.value,variable.values, originalVariables.values ))
           (variable.values, originalVariables.values)
         case (None, Some(originalVariables)) =>
           (Seq(DEFAULT_COMPONENT_KEY),originalVariables.values) // this is an autobounding policy
         case (Some(variable), None) =>
-          logger.warn("Somewhere in the expansion of variables, the bounded variable %s for %s in ParsedPolicyDraft %s appeared, but was not originally there".format(
+          PolicyLogger.warn("Somewhere in the expansion of variables, the bounded variable %s for %s in ParsedPolicyDraft %s appeared, but was not originally there".format(
               boundingVar, vars.trackerVariable.spec.name, directiveId.value))
           (variable.values,Seq()) // this is an autobounding policy
 
@@ -1353,7 +1380,7 @@ object RuleExpectedReportBuilder extends Loggable {
             val values           = vars.expandedVars.get(varName).map( _.values.toList).getOrElse(Nil)
             val unexpandedValues = vars.originalVars.get(varName).map( _.values.toList).getOrElse(Nil)
             if (values.size != unexpandedValues.size)
-              logger.warn("Caution, the size of unexpanded and expanded variables for autobounding variable in section %s for directive %s are not the same : %s and %s".format(
+              PolicyLogger.warn("Caution, the size of unexpanded and expanded variables for autobounding variable in section %s for directive %s are not the same : %s and %s".format(
                   section.componentKey, directiveId.value, values, unexpandedValues ))
             Some(ComponentExpectedReport(section.name, values, unexpandedValues))
         }
@@ -1365,7 +1392,7 @@ object RuleExpectedReportBuilder extends Loggable {
     if(allComponents.size < 1) {
       //that log is outputed one time for each directive for each node using a technique, it's far too
       //verbose on debug.
-      logger.trace("Technique '%s' does not define any components, assigning default component with expected report = 1 for Directive %s".format(
+      PolicyLogger.trace("Technique '%s' does not define any components, assigning default component with expected report = 1 for Directive %s".format(
         technique.id, directiveId))
 
       val trackingVarCard = getTrackingVariableCardinality
