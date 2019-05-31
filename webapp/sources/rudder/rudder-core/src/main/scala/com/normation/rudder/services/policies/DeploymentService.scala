@@ -97,6 +97,7 @@ import monix.eval.TaskSemaphore
 import monix.execution.ExecutionModel
 import monix.execution.Scheduler
 import monix.execution.atomic.AtomicInt
+import org.joda.time.Period
 
 import scala.concurrent.Await
 import scala.concurrent.duration.FiniteDuration
@@ -276,28 +277,35 @@ trait PromiseGenerationService {
       }
     }
 
+    val maxParallelismEnv = "rudder.generation.maxParallelism"
     val maxParallelism = {
-      // we want to limit the number of parallel execution and threads to the number of core/2 (minimum 1)
-      (try System.getProperty("rudder.generation.maxParallelism", "x1") catch {
+      // We want to limit the number of parallel execution and threads to the number of core/2 (minimum 1) by default.
+      // This is taken from the system environment variable because we really want to be able to change it at runtime.
+      (try System.getenv().getOrDefault(maxParallelismEnv, "x1") catch {
         case e: SecurityException => "x1"
       }) match {
         case s if s.charAt(0) == 'x' => Math.max(1, (Runtime.getRuntime.availableProcessors * s.substring(1).toDouble / 2).ceil.toInt)
         case other => other.toInt
       }
     }
+    val jsTimeoutEnv = "rudder.generation.jsTimeout"
     val jsTimeout = {
       // by default 5s but can be overrided
-      val t = (try System.getProperty("rudder.generation.jsTimeout", "5") catch {
+      val t = (try System.getenv().getOrDefault(jsTimeoutEnv, "5") catch {
         case e: SecurityException => "5"
       })
       FiniteDuration(try {
         Math.max(1, t.toLong) // must be a positive number
       } catch {
         case ex: NumberFormatException =>
-          PolicyLogger.error(s"Impossible to user property '' for js engine timeout: not a number")
+          PolicyLogger.error(s"Impossible to user property '${t}' for js engine timeout: not a number")
           5L // default
       }, TimeUnit.SECONDS)
     }
+
+    PolicyLogger.debug(s"Policy generation parrallelism set to: ${maxParallelism} (change with environment variable '${maxParallelismEnv}')")
+    PolicyLogger.debug(s"Policy generation JS eveluation of directive parameter timeout: ${jsTimeout} s (change with environment variable '${jsTimeoutEnv}')")
+
     implicit val semaphore = TaskSemaphore(maxParallelism = maxParallelism)
     implicit val ioscheduler = Scheduler.io(executionModel = ExecutionModel.AlwaysAsyncExecution)
 
@@ -484,7 +492,7 @@ trait PromiseGenerationService {
     } yield {
       result
     }
-    PolicyLogger.info("Policy generation completed in: %10s ms".format((System.currentTimeMillis - initialTime)))
+    PolicyLogger.info("Policy generation completed in: %10s".format(new Period(System.currentTimeMillis - initialTime).toString()))
     result
   }
 
