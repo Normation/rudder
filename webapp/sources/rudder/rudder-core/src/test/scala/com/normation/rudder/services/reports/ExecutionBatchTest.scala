@@ -565,13 +565,41 @@ class ExecutionBatchTest extends Specification {
     )
 
     /*
+     * Test for ticket https://issues.rudder.io/issues/15007
+     */
+    test( "string size should not matter"
+      , patterns =
+           ("${nagios_knowledge.nrpe_conf_file}"                   , Seq(Repaired))
+        :: ("/tmp/usr/local/nagios/libexec/security/check_clean.pl", Seq(Error   ))
+        :: ("/tmp/usr/local/nagios/libexec/security/check_clean"   , Seq(Success ))
+        :: Nil
+      , reports  =
+           ("/tmp/usr/local/etc/nrpe.cfg"                          , Repaired)
+        :: ("/tmp/usr/local/nagios/libexec/security/check_clean.pl", Error   )
+        :: ("/tmp/usr/local/nagios/libexec/security/check_clean"   , Success )
+        :: Nil
+    )
+    test( "string size should not matter (2)"
+      , patterns =
+           ("${nagios_knowledge.nrpe_conf_file}"                   , Seq(Repaired))
+        :: ("/tmp/usr/local/nagios/libexec/security/check_clean.pl", Seq(Error   ))
+        :: ("/tmp/usr/local/nagios/libexec/security/check_clean"   , Seq(Success ))
+        :: Nil
+      , reports  =
+           ("/tmp/usr/local/etc/nrpe.cfg_but_here_we_now_have_a_long_string", Repaired)
+        :: ("/tmp/usr/local/nagios/libexec/security/check_clean.pl"         , Error   )
+        :: ("/tmp/usr/local/nagios/libexec/security/check_clean"            , Success )
+        :: Nil
+    )
+
+    /*
      * A test with a lots of variables and reports, to see if the execution time remains OK
      */
     test("lots of reports"
       , patterns =
              ("/var/cfengine", Seq(Success))
-          :: ("${sys.bla}", Seq(Repaired))
-          :: ("${sys.foo}", Seq(Success))
+          :: ("${sys.foo}", Seq(Success))   // we actually haven't any way to distinguish between that one ( <- )
+          :: ("${sys.bla}", Seq(Repaired))  // and that one ( <- ). Correct solution is to use different report components.
           :: ("/etc/foo.old.${sys.bla}", Seq(Success))
           :: ("/etc/foo.${sys.bla}", Seq(Repaired))
           :: ("a${foo}b${bar}", Seq(Success))

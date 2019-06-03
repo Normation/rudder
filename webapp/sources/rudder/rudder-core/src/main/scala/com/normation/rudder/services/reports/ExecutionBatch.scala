@@ -1052,14 +1052,16 @@ object ExecutionBatch extends Loggable {
       //   what we want for duplicated reports. We need to log the report erasure as it won't be displayed in UI (by
       //   design). The log level should be "info" and not more because it was chosen by configuration to ignore them.
       // - in some case, we want to accept more reports than originally expected. Then, we must update cardinality to
-      //   trace that decision. It's typically what we want to do for
+      //   trace that decision. It's typically what we want to do for expected reports matching a runtime computed seq of
+      //   values (or if not runtime, at least a sequence obtained through a variable).
+      // Be careful: the list of values must be kept sorted in the same order as paramater!
       def findMatchingValue(
           report              : ResultReports
         , values              : List[Value]
         , dropDuplicated      : (Value, ResultReports) => Boolean
         , incrementCardinality: (Value, ResultReports) => Boolean
       ): (List[Value], Option[Value]) = {
-        values.foldLeft(((Nil:List[Value]), Option.empty[Value])) { case ((stack, found), value) =>
+        val (stack, found) = values.foldLeft(((Nil: List[Value]), Option.empty[Value])) { case ((stack, found), value) =>
           found match {
             case Some(x) => (value :: stack, Some(x))
             case None    =>
@@ -1091,6 +1093,7 @@ object ExecutionBatch extends Loggable {
               }
           }
         }
+        (stack.reverse, found)
       }
 
       reports match {
