@@ -255,6 +255,27 @@ object RudderConfig extends Loggable {
 
   val RUDDER_DEBUG_NODE_CONFIGURATION_PATH = config.getString("rudder.debug.nodeconfiguration.path")
 
+  val RUDDER_BATCH_PURGE_DELETED_INVENTORIES = {
+    try {
+      config.getInt("rudder.batch.purge.inventories.delete.TTL")
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.info("Property 'rudder.batch.purge.inventories.delete.TTL' is missing or empty in rudder.configFile. Default to 7 days.")
+        7
+    }
+  }
+  val RUDDER_BATCH_PURGE_DELETED_INVENTORIES_INTERVAL = {
+    try {
+      config.getInt("rudder.batch.purge.inventories.delete.interval")
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.info("Property 'rudder.batch.purge.inventories.delete.interval' is missing or empty in rudder.configFile. Default to 24 hours.")
+        24
+    }
+  }
+
+
+
   // Roles definitions
   val RUDDER_SERVER_ROLES = Seq(
       //each time, it's (role name, key in the config file)
@@ -360,6 +381,7 @@ object RudderConfig extends Loggable {
   //val updateDynamicGroupsService : DynGroupUpdaterService = dynGroupUpdaterService
   val updateDynamicGroups: UpdateDynamicGroups = dyngroupUpdaterBatch
   val checkInventoryUpdate = new CheckInventoryUpdate(nodeInfoServiceImpl, asyncDeploymentAgent, stringUuidGenerator, 15.seconds)
+  val purgeDeletedInventories = new PurgeDeletedInventories(removeNodeServiceImpl, RUDDER_BATCH_PURGE_DELETED_INVENTORIES_INTERVAL.hours, RUDDER_BATCH_PURGE_DELETED_INVENTORIES)
   val databaseManager: DatabaseManager = databaseManagerImpl
   val automaticReportsCleaning: AutomaticReportsCleaning = dbCleaner
   val checkTechniqueLibrary: CheckTechniqueLibrary = techniqueLibraryUpdater

@@ -192,6 +192,28 @@ rudder.batch.databasecleaner.runtime.hour=0
 # Default : sunday
 rudder.batch.databasecleaner.runtime.day=sunday
 
+###########################
+# Automatic inventories cleaning ###########################################################
+###########################
+
+#
+# Automatic inventories cleaning
+# This allows you to schedule the purge of deleted inventoried
+#
+#
+# TTL defines for how long an inventory stays in "Deleted Inventories" once deleted
+# before it is purged (in days). There is no functional value of keeping these deleted inventories
+# A negative value disable the automatic purging of deleted inventories.
+#
+# Check is made every interval hours
+#
+# Defaults: purge after being deleted for 7 days, check runs every 24 hours.
+#
+
+# TTL in days
+rudder.batch.purge.inventories.delete.TTL=7
+# Interval in hours
+rudder.batch.purge.inventories.delete.interval=24
 
 #####################
 # Webdav properties #################################################################
