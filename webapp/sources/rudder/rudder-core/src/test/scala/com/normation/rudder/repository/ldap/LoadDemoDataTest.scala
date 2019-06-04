@@ -41,12 +41,10 @@ import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
-import com.normation.ldap.sdk.RoLDAPConnection
-import com.normation.ldap.sdk.RwLDAPConnection
+import com.normation.ldap.sdk.{LDAPRudderError, RoLDAPConnection, RwLDAPConnection}
 import com.unboundid.ldap.sdk.DN
-import net.liftweb.common.Failure
-
-
+import net.liftweb.common.{Failure, Full}
+import com.normation.zio._
 /**
  * A simple test class to check that the demo data file is up to date
  * with the schema (there may still be a desynchronization if both
@@ -100,7 +98,7 @@ class LoadDemoDataTest extends Specification {
       val dn = new DN("biosName=bios1,machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
       val newParent = new DN("machineId=machine-does-not-exists,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
 
-      val res = ldap.newConnection.move(dn, newParent)
+      val res = ldap.newConnection.move(dn, newParent).either.runNow
       /*
        * Failure message is:
        * Can not move 'biosName=bios1,machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration' to new parent
@@ -108,8 +106,8 @@ class LoadDemoDataTest extends Specification {
        * 'biosName=bios1,machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration' because the parent for the new DN
        * 'biosName=bios1,machineId=machine-does-not-exists,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration' does not exist.
        */
-      res must beAnInstanceOf[Failure] and (
-        ldap.newConnection.exists(dn) must beTrue
+      res must beAnInstanceOf[Left[LDAPRudderError, _]] and (
+        ldap.newConnection.exists(dn).runNow must beTrue
       )
 
     }

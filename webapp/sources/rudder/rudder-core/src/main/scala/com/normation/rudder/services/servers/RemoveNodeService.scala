@@ -54,9 +54,10 @@ import com.normation.inventory.domain.RemovedInventory
 import com.normation.inventory.domain.UndefinedKey
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.LDAPConstants
+import com.normation.inventory.ldap.core.LDAPConstants.OC_NODE
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
-import com.normation.ldap.sdk.LDAPConnectionProvider
-import com.normation.ldap.sdk.RwLDAPConnection
+import com.normation.ldap.sdk.BuildFilter.{AND, LTEQ, IS}
+import com.normation.ldap.sdk.{GeneralizedTime, LDAPConnectionProvider, One, RwLDAPConnection}
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
@@ -75,6 +76,7 @@ import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.repository.ldap.ScalaReadWriteLock
 import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.services.nodes.NodeInfoService.A_MOD_TIMESTAMP
 import com.normation.rudder.services.policies.write.NodePromisesPaths
 import com.normation.rudder.services.policies.write.PathComputer
 import com.unboundid.ldap.sdk.Modification
@@ -85,6 +87,7 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import scalaz.zio._
+import org.joda.time.DateTime
 
 sealed trait DeletionResult
 object DeletionResult {
@@ -97,14 +100,20 @@ object DeletionResult {
 trait RemoveNodeService {
 
   /**
-   * Remove a node from the Rudder
-   * For the moment, it really deletes it, later it would be useful to actually move it
+   * Remove a pending or accepted node by moving it to the "removed" btranch
+   * It is not really deleted from directoctory
    * What it does :
    * - clean the ou=Nodes
    * - clean the groups
+   * - move the node
    */
 
   def removeNode(nodeId : NodeId, modId: ModificationId, actor:EventActor) : Box[DeletionResult]
+
+  /**
+    * Purge from the removed inventories ldap tree all nodes modified before date
+    */
+  def purgeDeletedNodesPreviousDate(date: DateTime): IOResult[Seq[NodeId]]
 }
 
 class RemoveNodeServiceImpl(
@@ -259,6 +268,29 @@ class RemoveNodeServiceImpl(
       }
     }
   }
+
+  def purgeDeletedNodesPreviousDate(date: DateTime): IOResult[Seq[NodeId]] = {
+    for {
+      con  <- ldap
+      deletedEntries <- con.search(
+        deletedDit.NODES.dn
+        , One
+        , AND(IS(OC_NODE), LTEQ(A_MOD_TIMESTAMP, GeneralizedTime(date).toString))
+      )
+      _    <- logPure.trace(s"Found ${deletedEntries.length} older than ${date}")
+
+      ids  <- ZIO.foreach(deletedEntries) {
+                e => deletedDit.NODES.NODE.idFromDN(e.dn).toIO
+              }
+
+      _    <- ZIO.foreach(ids) {
+                id => fullNodeRepo.delete(id, RemovedInventory)
+              }
+    } yield {
+      ids
+    }
+  }
+
 
   private[this] def atomicDelete(nodeId : NodeId, modId: ModificationId, actor:EventActor) : IOResult[Seq[LDIFChangeRecord]] = {
     for {
