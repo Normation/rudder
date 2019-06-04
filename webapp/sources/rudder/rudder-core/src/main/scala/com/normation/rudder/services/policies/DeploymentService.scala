@@ -301,15 +301,21 @@ trait PromiseGenerationService {
       // We want to limit the number of parallel execution and threads to the number of core/2 (minimum 1) by default.
       // This is taken from the system environment variable because we really want to be able to change it at runtime.
       def threadForProc(mult: Int): Int = {
-        Math.max(1, (Runtime.getRuntime.availableProcessors * mult / 2).ceil.toInt)
+        Math.max(1, (Runtime.getRuntime.availableProcessors * mult / 2).toDouble.ceil.toInt)
       }
-      try {
+      val t = try {
         getMaxParallelism().getOrElse("x1") match {
           case s if s.charAt(0) == 'x' => threadForProc(s.substring(1).toInt)
           case other => other.toInt
         }
       } catch {
         case ex: IllegalArgumentException => threadForProc(1)
+      }
+      if(t < 1) {
+        PolicyLogger.warn(s"You can't set 'rudder_generation_max_parallelism' so that there is less than 1 thread for generation")
+        1
+      } else {
+        t
       }
     }
     val jsTimeout = {
