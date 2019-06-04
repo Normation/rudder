@@ -725,7 +725,7 @@ object RudderConfig extends Loggable {
     )
   }
 
-  lazy val recentChangesService = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepository))
+  lazy val recentChangesService = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepository), configService.rudder_compute_changes _)
 
   //////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////
@@ -1366,6 +1366,9 @@ object RudderConfig extends Loggable {
       , configService.agent_run_start_minute _
       , configService.rudder_featureSwitch_directiveScriptEngine _
       , configService.rudder_global_policy_mode _
+      , configService.rudder_compute_changes _
+      , configService.rudder_generation_max_parrallelism _
+      , configService.rudder_generation_js_timeout _
       , HOOKS_D
       , HOOKS_IGNORE_SUFFIXES
   )}
@@ -1741,6 +1744,7 @@ object RudderConfig extends Loggable {
     , reportingServiceImpl
     , complianceRepositoryImpl
     , max
+    , configService.rudder_compute_changes _
     )
   }
 

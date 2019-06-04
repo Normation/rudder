@@ -61,7 +61,7 @@ import sourcecode.Line
 trait SortIndex {
   protected[rest] def z: Int
   // kept for binary compatibility. Remove in 5.1
-  @deprecated("use `implicitly[Line].value` for for `z`")
+  @deprecated("use `implicitly[Line].value` for for `z`", "Rudder 5.0")
   protected[rest] def zz = 0
 }
 
