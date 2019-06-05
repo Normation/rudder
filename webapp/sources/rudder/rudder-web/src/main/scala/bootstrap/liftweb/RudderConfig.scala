@@ -122,8 +122,9 @@ import net.liftweb.common.Loggable
 import net.liftweb.common._
 import org.apache.commons.io.FileUtils
 import scalaz.zio.syntax._
-
 import scalaz.zio.duration._
+
+import scala.concurrent.duration.FiniteDuration
 
 /**
  * Define a resource for configuration.
@@ -378,7 +379,7 @@ object RudderConfig extends Loggable {
   //val updateDynamicGroupsService : DynGroupUpdaterService = dynGroupUpdaterService
   val updateDynamicGroups: UpdateDynamicGroups = dyngroupUpdaterBatch
   val checkInventoryUpdate = new CheckInventoryUpdate(nodeInfoServiceImpl, asyncDeploymentAgent, stringUuidGenerator, 15.seconds)
-  val purgeDeletedInventories = new PurgeDeletedInventories(removeNodeServiceImpl, RUDDER_BATCH_PURGE_DELETED_INVENTORIES_INTERVAL.hours, RUDDER_BATCH_PURGE_DELETED_INVENTORIES)
+  val purgeDeletedInventories = new PurgeDeletedInventories(removeNodeServiceImpl, FiniteDuration(RUDDER_BATCH_PURGE_DELETED_INVENTORIES_INTERVAL.toLong, "hours"), RUDDER_BATCH_PURGE_DELETED_INVENTORIES)
   val databaseManager: DatabaseManager = databaseManagerImpl
   val automaticReportsCleaning: AutomaticReportsCleaning = dbCleaner
   val checkTechniqueLibrary: CheckTechniqueLibrary = techniqueLibraryUpdater
@@ -746,7 +747,10 @@ object RudderConfig extends Loggable {
     )
   }
 
-  lazy val recentChangesService = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepository))
+  lazy val recentChangesService = new CachedNodeChangesServiceImpl(
+      new NodeChangesServiceImpl(reportsRepository)
+    , () => configService.rudder_compute_changes().toBox
+  )
 
   //////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////
@@ -909,7 +913,7 @@ object RudderConfig extends Loggable {
   )
 
   //////////////////////////////////////////////////////////
-  //  non success services that could perhaps be
+  //  non pure services that could perhaps be
   //////////////////////////////////////////////////////////
 
   // => rwLdap is only used to repair an error, that could be repaired elsewhere.
@@ -930,7 +934,7 @@ object RudderConfig extends Loggable {
   )
 
   ////////////////////////////////////
-  //  non success services
+  //  non pure services
   ////////////////////////////////////
 
   ///// end /////
@@ -1320,12 +1324,13 @@ object RudderConfig extends Loggable {
     , () => configService.send_server_metrics().toBox
     , () => configService.rudder_syslog_protocol().toBox
   )
+  private[this] lazy val fillTemplatesService = new FillTemplatesService()
   private[this] lazy val rudderCf3PromisesFileWriterService = new PolicyWriterServiceImpl(
       techniqueRepositoryImpl
     , pathComputer
     , new NodeConfigurationLoggerImpl(RUDDER_DEBUG_NODE_CONFIGURATION_PATH)
     , new PrepareTemplateVariablesImpl(techniqueRepositoryImpl, systemVariableSpecService, new BuildBundleSequence(systemVariableSpecService, writeAllAgentSpecificFiles), agentRegister)
-    , new FillTemplatesService()
+    , fillTemplatesService
     , writeAllAgentSpecificFiles
     , HOOKS_D
     , HOOKS_IGNORE_SUFFIXES
@@ -1377,12 +1382,16 @@ object RudderConfig extends Loggable {
       , globalAgentRunService
       , reportingServiceImpl
       , rudderCf3PromisesFileWriterService
+      , fillTemplatesService
       , () => configService.agent_run_interval().toBox
       , () => configService.agent_run_splaytime().toBox
       , () => configService.agent_run_start_hour().toBox
       , () => configService.agent_run_start_minute().toBox
       , () => configService.rudder_featureSwitch_directiveScriptEngine().toBox
       , () => configService.rudder_global_policy_mode().toBox
+      , () => configService.rudder_compute_changes().toBox
+      , () => configService.rudder_generation_max_parrallelism().toBox
+      , () => configService.rudder_generation_js_timeout().toBox
       , HOOKS_D
       , HOOKS_IGNORE_SUFFIXES
   )}
@@ -1757,6 +1766,7 @@ object RudderConfig extends Loggable {
     , reportingServiceImpl
     , complianceRepositoryImpl
     , max
+    , () => configService.rudder_compute_changes().toBox
     )
   }
 

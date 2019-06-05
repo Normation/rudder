@@ -203,6 +203,15 @@ trait ReadConfigService {
    * What is the behavior to adopt regarding unexpected reports ?
    */
   def rudder_compliance_unexpected_report_interpretation(): IOResult[UnexpectedReportInterpretation]
+
+
+  /**
+   * For debugging / disabling some part of Rudder. Should not be exposed in UI
+   */
+  def rudder_compute_changes(): IOResult[Boolean]
+  def rudder_generation_compute_dyngroups(): IOResult[Boolean]
+  def rudder_generation_max_parrallelism(): IOResult[String]
+  def rudder_generation_js_timeout(): IOResult[Int]
 }
 
 /**
@@ -322,7 +331,14 @@ trait UpdateConfigService {
    */
   def set_rudder_node_onaccept_default_policy_mode(policyMode: Option[PolicyMode]): IOResult[Unit]
   def set_rudder_node_onaccept_default_state(nodeState: NodeState): IOResult[Unit]
-  def set_rudder_compliance_unexpected_report_interpretation(mode: UnexpectedReportInterpretation) : IOResult[Unit]
+  def set_rudder_compliance_unexpected_report_interpretation(mode: UnexpectedReportInterpretation): IOResult[Unit]
+
+
+  def set_rudder_compute_changes(value: Boolean): IOResult[Unit]
+  def set_rudder_generation_compute_dyngroups(value: Boolean): IOResult[Unit]
+
+  def set_rudder_generation_max_parrallelism(value: String): IOResult[Unit]
+  def set_rudder_generation_js_timeout(value: Int): IOResult[Unit]
 }
 
 class LDAPBasedConfigService(
@@ -370,6 +386,10 @@ class LDAPBasedConfigService(
        rudder.node.onaccept.default.policyMode=default
        rudder.compliance.unexpectedReportAllowsDuplicate=true
        rudder.compliance.unexpectedReportUnboundedVarValues=true
+       rudder.compute.changes=true
+       rudder.generation.compute.dyngroups=true
+       rudder.generation.max.parrallelism=1x
+       rudder.generation.js.timeout=5
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -644,4 +664,15 @@ class LDAPBasedConfigService(
       _ <- save("rudder_compliance_unexpectedReportUnboundedVarValues", mode.isSet(UnexpectedReportBehavior.UnboundVarValues))
     } yield ()
   }
+
+
+  ///// debug / perf /////
+  def rudder_compute_changes(): IOResult[Boolean] = get("rudder_compute_changes")
+  def rudder_generation_compute_dyngroups(): IOResult[Boolean] = get("rudder_generation_compute_dyngroups")
+  def set_rudder_compute_changes(value: Boolean): IOResult[Unit] = save("rudder_compute_changes", value)
+  def set_rudder_generation_compute_dyngroups(value: Boolean): IOResult[Unit] = save("rudder_generation_compute_dyngroups", value)
+  def rudder_generation_max_parrallelism(): IOResult[String] = get("rudder_generation_max_parrallelism")
+  def set_rudder_generation_max_parrallelism(value: String): IOResult[Unit] = save("rudder_generation_max_parrallelism", value)
+  def rudder_generation_js_timeout(): IOResult[Int] = get("rudder_generation_js_timeout")
+  def set_rudder_generation_js_timeout(value: Int): IOResult[Unit] = save("rudder_generation_js_timeout", value)
 }

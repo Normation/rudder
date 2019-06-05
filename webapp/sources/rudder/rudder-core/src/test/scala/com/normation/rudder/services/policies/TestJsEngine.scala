@@ -48,6 +48,7 @@ import org.specs2.matcher.Matcher
 
 import scala.util.matching.Regex
 import com.normation.cfclerk.domain.Variable
+import scala.concurrent.duration._
 
 /*
  * This class test the JsEngine.
@@ -135,7 +136,7 @@ class TestJsEngine extends Specification {
 
   "When feature is disabled, one " should {
 
-    def context[T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Disabled) _
+    def context[T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Disabled, 1, 1.second) _
 
     "have an identical results without eval" in {
       context(engine => Full(true)) must beEqualTo(Full(true))
@@ -214,7 +215,7 @@ class TestJsEngine extends Specification {
 
   "When feature is enabled, one " should {
 
-    def context[T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Enabled) _
+    def context[T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Enabled, 1, 1.second) _
 
     "have an identical results without eval" in {
       context(engine => Full(true)) must beEqualTo(Full(true))
@@ -250,7 +251,7 @@ class TestJsEngine extends Specification {
 
     val md5VariableAIX = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}rudder.password.aixMd5('secret')"))
 
-    def context[T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Enabled) _
+    def context[T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Enabled, 1, 1.second) _
 
     "get the correct hashed value for Linux sha256" in {
       context { engine =>
@@ -290,7 +291,7 @@ class TestJsEngine extends Specification {
     val md5VariableAIX = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}rudder.password.aix('MD5', 'secret')"))
     val invalidAlgo = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}rudder.password.auto('foo', 'secret')"))
 
-    def context[T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Enabled) _
+    def context[T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Enabled, 1, 1.second) _
 
     "get the correct hashed value for Linux sha256" in {
       context { engine =>

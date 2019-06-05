@@ -43,7 +43,6 @@ import org.specs2.runner._
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
 import com.normation.ldap.sdk.{LDAPRudderError, RoLDAPConnection, RwLDAPConnection}
 import com.unboundid.ldap.sdk.DN
-import net.liftweb.common.{Failure, Full}
 import com.normation.zio._
 /**
  * A simple test class to check that the demo data file is up to date

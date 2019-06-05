@@ -68,6 +68,7 @@ class ReportsExecutionService (
   , cachedCompliance       : CachedFindRuleNodeStatusReports
   , complianceRepos        : ComplianceRepository
   , maxDays                : Int // in days
+  , computeChangeEnabled   : () => Box[Boolean]
 ) {
 
   val logger = ReportLogger
@@ -191,24 +192,27 @@ class ReportsExecutionService (
   private[this] def hook(lowestId: Long, highestId: Long, updatedNodeIds: Set[NodeId]) : Unit = {
     val startHooks = System.currentTimeMillis
 
-
-    Future {
-      //update changes by rules
-      (for {
-        changes <- reportsRepository.getChangeReportsOnInterval(lowestId, highestId)
-        updated <- cachedChanges.update(changes)
-      } yield {
-        updated
-      }) match {
-        case eb: EmptyBox =>
-          val e = eb ?~! "An error occured when trying to update the cache of last changes"
-          logger.error(e.messageChain)
-          e.rootExceptionCause.foreach { ex =>
-            logger.error("Root exception was: ", ex)
-          }
-        case Full(x) => //youhou
-          logger.trace("Cache for changes by rule updates after new run received")
+    if(computeChangeEnabled().getOrElse(true)) {
+      Future {
+        //update changes by rules
+        (for {
+          changes <- reportsRepository.getChangeReportsOnInterval(lowestId, highestId)
+          updated <- cachedChanges.update(changes)
+        } yield {
+          updated
+        }) match {
+          case eb: EmptyBox =>
+            val e = eb ?~! "An error occured when trying to update the cache of last changes"
+            logger.error(e.messageChain)
+            e.rootExceptionCause.foreach { ex =>
+              logger.error("Root exception was: ", ex)
+            }
+          case Full(x) => //youhou
+            logger.trace("Cache for changes by rule updates after new run received")
+        }
       }
+    } else {
+      logger.warn(s"Not updating changes by rule - disabled by settings 'rudder_compute_changes'")
     }
 
     Future {

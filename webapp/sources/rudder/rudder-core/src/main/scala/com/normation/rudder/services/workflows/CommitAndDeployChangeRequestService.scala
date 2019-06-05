@@ -66,6 +66,13 @@ import com.normation.utils.StringUuidGenerator
 import net.liftweb.common._
 
 import scala.xml._
+import com.normation.rudder.services.marshalling.XmlSerializer
+import com.normation.rudder.services.marshalling.XmlUnserializer
+import com.normation.cfclerk.xmlparsers.SectionSpecParser
+import java.io.ByteArrayInputStream
+
+import com.normation.rudder.domain.logger.ChangeRequestLogger
+import com.normation.rudder.services.queries.DynGroupUpdaterService
 
 /**
  * A service responsible to actually commit a change request,

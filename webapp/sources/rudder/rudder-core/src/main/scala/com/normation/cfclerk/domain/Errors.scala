@@ -50,7 +50,9 @@ object LoadTechniqueError {
   final case class Variable(msg: String)    extends LoadTechniqueError
   final case class Chained(hint: String, cause: LoadTechniqueError) extends LoadTechniqueError with BaseChainError[LoadTechniqueError]
   final case class Accumulated(causes: NonEmptyList[LoadTechniqueError]) extends LoadTechniqueError {
-    val msg = causes.map( _.fullMsg ).toList.mkString("; ")
+    // by default, message deduplicate errors
+    val msg = causes.map( _.fullMsg ).toList.distinct.mkString("; ")
+    val allMsg = causes.map( _.fullMsg ).toList.mkString("; ")
   }
 }
 
