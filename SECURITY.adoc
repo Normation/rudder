@@ -1,0 +1,16 @@
+= Security Policy
+
+== Supported Versions
+
+The list of currently supported versions receiving security updates is available
+https://docs.rudder.io/versions[in the documentation].
+
+== Reporting a Vulnerability
+
+You can report any security vulnerability affecting Rudder sources, packages, or infrastructure (repositories, websites, etc.) you have found by contacting the Rudder security team at: mailto:security@rudder.io[security@rudder.io]
+
+You can encrypt your messages using our https://www.rudder.io/files/rudder-security.asc[key] (fingerprint : 340C 9645 2F9A 816C 330A 99B7 C854 668E 3617 3DB3).
+
+To know more about vulnerability announcements and reporting, read
+https://www.rudder.io/en/expand/new-releases-security/#pgc-2418-2-0[our website].
+
