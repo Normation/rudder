@@ -37,8 +37,6 @@
 
 package com.normation.rudder.batch
 
-import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.rudder.services.servers.RemoveNodeService
 import monix.execution.Scheduler.{global => scheduler}

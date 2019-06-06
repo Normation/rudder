@@ -103,18 +103,17 @@ final case class PublicKey(value : String) extends SecurityToken with HashcodeCa
   }
   def publicKey : IOResult[java.security.PublicKey] = {
     IO.effect {
-      new PEMParser(new StringReader(key))
+      (new PEMParser(new StringReader(key))).readObject()
     }.mapError { ex =>
       InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a public key", ex)
-    }.flatMap { reader =>
-      reader.readObject() match {
+    }.flatMap { obj =>
+      obj match {
         case a : SubjectPublicKeyInfo =>
           (new JcaPEMKeyConverter().getPublicKey(a)).succeed
         case _ => InventoryError.Crypto(s"Key '${key}' cannot be parsed as a public key").fail
       }
     }
   }
-
 }
 
 final case class Certificate(value : String) extends SecurityToken with HashcodeCaching { assert(!isEmpty(value))
