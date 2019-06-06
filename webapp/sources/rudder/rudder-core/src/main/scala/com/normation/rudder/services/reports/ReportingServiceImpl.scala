@@ -43,8 +43,7 @@ import org.joda.time._
 import com.normation.rudder.domain.policies.{GlobalPolicyMode, RuleId}
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.repository._
-import com.normation.rudder.reports.execution.RoReportsExecutionRepository
-import com.normation.rudder.reports.execution.AgentRunId
+import com.normation.rudder.reports.execution.{AgentRunId, AgentRunWithNodeConfig, RoReportsExecutionRepository}
 import com.normation.rudder.domain.reports.RuleStatusReport
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.reports.AgentRunIntervalService
@@ -386,14 +385,31 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
                              case ReportsDisabled => Full(nodeIds.map(id => (id, None)).toMap)
                              case _ => agentRunRepository.getNodesLastRun(nodeIds)
                            }
-      currentConfigs    <- confExpectedRepo.getCurrentExpectedsReports(nodeIds)
+      // here, we should extract the currents configs already fetched in runs
+      // they are those whose AgentRunWithNodeConfigId exists, and contains a NodeConfigVersions, with a NodeExpextedReports with an empty endDate
+      // already fetched config
+      fetchedNodesConfigs = for {
+        (nodeId, agentRun)             <- runs
+        agentRunWithNodeConfig         <- agentRun
+        (_, optionNodeExpectedReports) <- agentRunWithNodeConfig.nodeConfigVersion
+        nodeExpectedReports            <- optionNodeExpectedReports
+        if (!nodeExpectedReports.endDate.isDefined)
+      } yield {
+        (nodeId, optionNodeExpectedReports)
+      }
+
+
+
+      nodesToGetCurrentConfig = nodeIds -- fetchedNodesConfigs.keySet
+
+      currentConfigs    <- confExpectedRepo.getCurrentExpectedsReports(nodesToGetCurrentConfig)
       t1                =  System.currentTimeMillis
       _                 =  TimingDebugLogger.trace(s"Compliance: get current expected reports: ${t1-t0}ms")
       nodeConfigIdInfos <- confExpectedRepo.getNodeConfigIdInfos(nodeIds)
       t2                =  System.currentTimeMillis
       _                 =  TimingDebugLogger.trace(s"Compliance: get Node Config Id Infos: ${t2-t1}ms")
     } yield {
-      ExecutionBatch.computeNodesRunInfo(runs, currentConfigs, nodeConfigIdInfos)
+      ExecutionBatch.computeNodesRunInfo(runs, currentConfigs ++ fetchedNodesConfigs, nodeConfigIdInfos)
     }
   }
 
