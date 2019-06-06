@@ -59,8 +59,6 @@ import com.normation.utils.Control._
 import java.io.File
 import java.io.IOException
 
-import monix.eval.TaskSemaphore
-import monix.execution.Scheduler
 import net.liftweb.common._
 import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonAST.JValue
@@ -432,7 +430,6 @@ class PolicyWriterServiceImpl(
 
     //interpret HookReturnCode as a Box
 
-    val readTemplateTime1 = DateTime.now.getMillis
     for {
       //debug - but don't fails for debugging !
       _                 <- logNodeConfig.log(nodeConfigsToWrite.values.toSeq).toIO.
@@ -584,11 +581,6 @@ class PolicyWriterServiceImpl(
     , newsFileExtension  : String
     , backupFileExtension: String
   ): IOResult[Seq[AgentNodeConfiguration]] = {
-
-    val agentConfig = configs.flatMap { config =>
-      config.nodeInfo.agentsName.map {agentType => (agentType, config) }
-    }
-
     ZIO.foreach( configs )  { config =>
       if(config.nodeInfo.agentsName.size == 0) {
         PolicyLoggerPure.info(s"Node '${config.nodeInfo.hostname}' (${config.nodeInfo.id.value}) has no agent type configured and so no promises will be generated") *>
