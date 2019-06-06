@@ -78,6 +78,7 @@ class TestJsEngine extends Specification {
     major >= 8 // else rhino, because we don't support java 1.5 and before in all case
   }
 
+
   val policyFile = this.getClass.getClassLoader.getResource("rudder-js.policy")
 
   /**
@@ -86,7 +87,7 @@ class TestJsEngine extends Specification {
   def beFailure[T](regex: Regex): Matcher[Box[T]] = { b: Box[T] =>
     (
       b match {
-        case Failure(m, _, _) if( regex.pattern.matcher(m).matches() ) => true
+        case f:Failure if(regex.pattern.matcher(f.messageChain).matches() ) => true
         case _ => false
       }
     , s"${b} is not a Failure whose message matches ${regex.toString}"
@@ -208,7 +209,7 @@ class TestJsEngine extends Specification {
     "not be able to loop for ever with JS" in {
       JsEngine.SandboxedJsEngine.sandboxed(policyFile) { box =>
         box.singleEval("""while(true){}""", JsRudderLibBinding.Crypt.bindings)
-      } must beFailure(".*force to kill.*".r)
+      } must beFailure(".*took more than.*, aborting.*".r)
     }
 
   }
@@ -228,7 +229,7 @@ class TestJsEngine extends Specification {
     "not be able to loop for ever with JS" in {
       context(engine =>
         engine.eval(infiniteloopVariable, JsRudderLibBinding.Crypt)
-      ) must beFailure(".*force to kill.*".r)
+      ) must beFailure(".*took more than.*, aborting.*".r)
     }
 
     "not be able to access the content of a previously setted var" in {
