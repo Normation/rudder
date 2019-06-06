@@ -50,8 +50,15 @@ object PolicyLogger extends Logger {
     override protected def _logger = LoggerFactory.getLogger("policy.generation.expected_reports")
   }
 
+  object Timing extends Logger {
+    override protected def _logger = LoggerFactory.getLogger("policy.generation.time")
+  }
 }
 
 object PolicyLoggerPure extends NamedZioLogger {
   val loggerName = "policy.generation"
+
+  object Timing extends NamedZioLogger {
+    val loggerName = "policy.generation.time"
+  }
 }

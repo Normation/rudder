@@ -177,13 +177,13 @@ trait PromiseGenerationService {
         writeTime             <- IOResult.effect(System.currentTimeMillis)
         writtenNodeConfigs    <- writeOneNodeConfigurations(rootNodeId, nodeId, nodeConfigId, nodeConfigs, existingHash, allLicenses, techniqueResources, globalPolicyMode, generationTime).chainError(s"Cannot write nodes configuration for node '${nodeId.value}'")
         timeWriteNodeConfig   <- IOResult.effect(System.currentTimeMillis - writeTime)
-        _                     <- PolicyLoggerPure.debug(s"${traceId} Node configuration for node '${nodeId.value}' written in ${timeWriteNodeConfig} ms.")
+        _                     <- PolicyLoggerPure.Timing.debug(s"${traceId} Node configuration for node '${nodeId.value}' written in ${timeWriteNodeConfig} ms.")
 
         saveExpectedTime      <- IOResult.effect(System.currentTimeMillis)
         savedExpectedReports  <- saveOneExpectedReports(expectedReports).toIO.chainError("Error when saving expected reports for node '${nodeId.value}'")
         endTime               <- IOResult.effect(System.currentTimeMillis)
         timeSaveExpected      <- IOResult.effect(endTime - saveExpectedTime)
-        _                     <- PolicyLoggerPure.debug(s"${traceId} Node expected reports for node '${nodeId.value}' saved in base in ${timeSaveExpected} ms.")
+        _                     <- PolicyLoggerPure.Timing.debug(s"${traceId} Node expected reports for node '${nodeId.value}' saved in base in ${timeSaveExpected} ms.")
         r                     <- remainingNodes.update(_ - 1)
         _                     <- PolicyLoggerPure.info(s"Configuration for node ${nodeId.value} updated in ${endTime - writeTime} ms (remains ${r} nodes to update)")
       } yield {
@@ -274,7 +274,7 @@ trait PromiseGenerationService {
     }
 
     PolicyLogger.debug(s"Policy generation parrallelism set to: ${maxParallelism} (change with REST API settings parameter 'rudder_generation_max_parallelism')")
-    PolicyLogger.debug(s"Policy generation JS eveluation of directive parameter timeout: ${jsTimeout} s (change with REST API settings parameter 'rudder_generation_jsTimeout')")
+    PolicyLogger.debug(s"Policy generation JS eveluation of directive parameter timeout: ${jsTimeout} (change with REST API settings parameter 'rudder_generation_jsTimeout')")
 
     implicit val ioscheduler = Scheduler.io(executionModel = ExecutionModel.AlwaysAsyncExecution)
 
@@ -287,24 +287,24 @@ trait PromiseGenerationService {
                                 Full(())
                               }
       timeComputeGroups    =  (System.currentTimeMillis - initialTime)
-      _                    =  PolicyLogger.debug(s"Computing dynamic groups finished in ${timeComputeGroups} ms")
+      _                    =  PolicyLogger.Timing.debug(s"Computing dynamic groups finished in ${timeComputeGroups} ms")
       preGenHooksTime      =  System.currentTimeMillis
 
       //fetch all
       preHooks             <- RunHooks.getHooks(HOOKS_D + "/policy-generation-started", HOOKS_IGNORE_SUFFIXES)
       _                    <- RunHooks.syncRun(preHooks, HookEnvPairs.build( ("RUDDER_GENERATION_DATETIME", generationTime.toString) ), systemEnv)
       timeRunPreGenHooks   =  (System.currentTimeMillis - preGenHooksTime)
-      _                    =  PolicyLogger.debug(s"Pre-policy-generation scripts hooks ran in ${timeRunPreGenHooks} ms")
+      _                    =  PolicyLogger.Timing.debug(s"Pre-policy-generation scripts hooks ran in ${timeRunPreGenHooks} ms")
 
       codePreGenHooksTime  =  System.currentTimeMillis
       _                    <- beforeDeploymentSync(generationTime)
       timeCodePreGenHooks  =  (System.currentTimeMillis - codePreGenHooksTime)
-      _                    =  PolicyLogger.debug(s"Pre-policy-generation modules hooks in ${timeCodePreGenHooks} ms, start getting all generation related data.")
+      _                    =  PolicyLogger.Timing.debug(s"Pre-policy-generation modules hooks in ${timeCodePreGenHooks} ms, start getting all generation related data.")
 
       fetch0Time           =  System.currentTimeMillis
       allRules             <- findDependantRules() ?~! "Could not find dependant rules"
       fetch1Time           =  System.currentTimeMillis
-      _                    =  PolicyLogger.trace(s"Fetched rules in ${fetch1Time-fetch0Time} ms")
+      _                    =  PolicyLogger.Timing.trace(s"Fetched rules in ${fetch1Time-fetch0Time} ms")
       allNodeInfos         <- getAllNodeInfos.map( _.filter { case(_,n) =>
                                 if(n.state == NodeState.Ignored) {
                                   PolicyLogger.debug(s"Skipping node '${n.id.value}' because the node is in state '${n.state.name}'")
@@ -312,19 +312,19 @@ trait PromiseGenerationService {
                                 } else true
                               })  ?~! "Could not get Node Infos" //disabled node don't get new policies
       fetch2Time           =  System.currentTimeMillis
-      _                    =  PolicyLogger.trace(s"Fetched node infos in ${fetch2Time-fetch1Time} ms")
+      _                    =  PolicyLogger.Timing.trace(s"Fetched node infos in ${fetch2Time-fetch1Time} ms")
       directiveLib         <- getDirectiveLibrary() ?~! "Could not get the directive library"
       fetch3Time           =  System.currentTimeMillis
-      _                    =  PolicyLogger.trace(s"Fetched directives in ${fetch3Time-fetch2Time} ms")
+      _                    =  PolicyLogger.Timing.trace(s"Fetched directives in ${fetch3Time-fetch2Time} ms")
       groupLib             <- getGroupLibrary() ?~! "Could not get the group library"
       fetch4Time           =  System.currentTimeMillis
-      _                    =  PolicyLogger.trace(s"Fetched groups in ${fetch4Time-fetch3Time} ms")
+      _                    =  PolicyLogger.Timing.trace(s"Fetched groups in ${fetch4Time-fetch3Time} ms")
       allParameters        <- getAllGlobalParameters ?~! "Could not get global parameters"
       fetch5Time           =  System.currentTimeMillis
-      _                    =  PolicyLogger.trace(s"Fetched global parameters in ${fetch5Time-fetch4Time} ms")
+      _                    =  PolicyLogger.Timing.trace(s"Fetched global parameters in ${fetch5Time-fetch4Time} ms")
       globalAgentRun       <- getGlobalAgentRun
       fetch6Time           =  System.currentTimeMillis
-      _                    =  PolicyLogger.trace(s"Fetched run infos in ${fetch6Time-fetch5Time} ms")
+      _                    =  PolicyLogger.Timing.trace(s"Fetched run infos in ${fetch6Time-fetch5Time} ms")
       scriptEngineEnabled  <- getScriptEngineEnabled() ?~! "Could not get if we should use the script engine to evaluate directive parameters"
       globalComplianceMode <- getGlobalComplianceMode
       globalPolicyMode     <- getGlobalPolicyMode() ?~! "Cannot get the Global Policy Mode (Enforce or Verify)"
@@ -332,7 +332,7 @@ trait PromiseGenerationService {
       allLicenses          <- getAllLicenses() ?~! "Cannont get licenses information"
       allNodeModes         =  buildNodeModes(allNodeInfos, globalComplianceMode, globalAgentRun, globalPolicyMode)
       timeFetchAll         =  (System.currentTimeMillis - fetch0Time)
-      _                    =  PolicyLogger.debug(s"All relevant information fetched in ${timeFetchAll} ms, start names historization.")
+      _                    =  PolicyLogger.Timing.debug(s"All relevant information fetched in ${timeFetchAll} ms, start names historization.")
 
       /////
       ///// end of inputs, all information gathered for promise generation.
@@ -343,7 +343,7 @@ trait PromiseGenerationService {
       historizeTime =  System.currentTimeMillis
       historize     <- historizeData(allRules, directiveLib, groupLib, allNodeInfos, globalAgentRun)
       timeHistorize =  (System.currentTimeMillis - historizeTime)
-      _             =  PolicyLogger.debug(s"Historization of names done in ${timeHistorize} ms, start to build rule values.")
+      _             =  PolicyLogger.Timing.debug(s"Historization of names done in ${timeHistorize} ms, start to build rule values.")
       ///// end ignoring
 
       ///// parse rule for directive parameters and build node context that will be used for them
@@ -355,13 +355,13 @@ trait PromiseGenerationService {
       activeRuleIds         =  getAppliedRuleIds(allRules, groupLib, directiveLib, allNodeInfos)
       ruleVals              <- buildRuleVals(activeRuleIds, allRules, directiveLib, groupLib, allNodeInfos) ?~! "Cannot build Rule vals"
       timeRuleVal           =  (System.currentTimeMillis - ruleValTime)
-      _                     =  PolicyLogger.debug(s"RuleVals built in ${timeRuleVal} ms, start to expand their values.")
+      _                     =  PolicyLogger.Timing.debug(s"RuleVals built in ${timeRuleVal} ms, start to expand their values.")
 
       nodeContextsTime      =  System.currentTimeMillis
       activeNodeIds         =  (Set[NodeId]()/:ruleVals){case(s,r) => s ++ r.nodeIds}
       nodeContexts          <- getNodeContexts(activeNodeIds, allNodeInfos, groupLib, allLicenses, allParameters, globalAgentRun, globalComplianceMode, globalPolicyMode) ?~! "Could not get node interpolation context"
       timeNodeContexts      =  (System.currentTimeMillis - nodeContextsTime)
-      _                     =  PolicyLogger.debug(s"Node contexts built in ${timeNodeContexts} ms, start to build new node configurations.")
+      _                     =  PolicyLogger.Timing.debug(s"Node contexts built in ${timeNodeContexts} ms, start to build new node configurations.")
 
       buildConfigTime       =  System.currentTimeMillis
       /// here, we still have directive by directive info
@@ -369,7 +369,7 @@ trait PromiseGenerationService {
       /// only keep successfull node config. We will keep the failed one to fail the whole process in the end if needed
       nodeConfigs           =  allNodeConfigs.ok.map(c => (c.nodeInfo.id, c)).toMap
       timeBuildConfig       =  (System.currentTimeMillis - buildConfigTime)
-      _                     =  PolicyLogger.debug(s"Node's target configuration built in ${timeBuildConfig} ms, start to update rule values.")
+      _                     =  PolicyLogger.Timing.debug(s"Node target configurations built in ${timeBuildConfig} ms, start to update rule values.")
 
       updatedNodeConfigIds  =  getNodesConfigVersion(nodeConfigs, nodeConfigCaches, generationTime)
       updatedNodeConfigs    =  nodeConfigs.filterKeys(id => updatedNodeConfigIds.keySet.contains(id))
@@ -377,7 +377,7 @@ trait PromiseGenerationService {
       reportTime            =  System.currentTimeMillis
       expectedReports       =  computeExpectedReports(ruleVals, updatedNodeConfigs.values.toSeq, updatedNodeConfigIds, generationTime, allNodeModes)
       timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
-      _                     =  PolicyLogger.debug(s"Reports updated in ${timeSetExpectedReport} ms")
+      _                     =  PolicyLogger.Timing.debug(s"Expected reports updated in ${timeSetExpectedReport} ms")
 
       ///// so now we have everything for each updated nodes, we can start writing node policies and then expected reports
 
@@ -427,7 +427,7 @@ trait PromiseGenerationService {
                                  , systemEnv
                                )
       timeRunPostGenHooks   =  (System.currentTimeMillis - postHooksTime)
-      _                     =  PolicyLogger.debug(s"Post-policy-generation hooks ran in ${timeRunPostGenHooks} ms")
+      _                     =  PolicyLogger.Timing.debug(s"Post-policy-generation hooks ran in ${timeRunPostGenHooks} ms")
 
       /// now, if there was failed config or failed write, time to show them
       //invalidate compliance may be very very long - make it async
@@ -1006,6 +1006,7 @@ object BuildNodeConfiguration extends Loggable {
       val nodeConfigs = ZIO.foreachParN(maxParallelism.toLong)(nodeContexts.toSeq) { case (nodeId, context) =>
 
           (for {
+            startTime     <- IOResult.effect(System.currentTimeMillis)
             parsedDrafts  <- policyDraftByNode.get(nodeId).succeed.notOptional("Promise generation algorithm error: cannot find back the configuration information for a node")
             // if a node is in state "emtpy policies", we only keep system policies + log
             filteredDrafts<- if(context.nodeInfo.state == NodeState.EmptyPolicies) {
@@ -1058,20 +1059,21 @@ object BuildNodeConfiguration extends Loggable {
                                 }
             // from policy draft, check and build the ordered seq of policy
             policies      <- MergePolicyService.buildPolicy(context.nodeInfo, globalPolicyMode, boundedDrafts).toIO
+            endTime       <- IOResult.effect(System.currentTimeMillis)
+            nodeModes     =  allNodeModes(context.nodeInfo.id)
+            config        =  NodeConfiguration(
+                                 nodeInfo     = context.nodeInfo
+                               , modesConfig  = nodeModes
+                                 //system technique should not have hooks, and at least it is not supported.
+                               , runHooks     = MergePolicyService.mergeRunHooks(policies.filter( ! _.technique.isSystem), nodeModes.nodePolicyMode, nodeModes.globalPolicyMode)
+                               , policies     = policies
+                               , nodeContext  = context.nodeContext
+                               , parameters   = parameters.map { case (k,v) => ParameterForConfiguration(k, v) }.toSet
+                               , isRootServer = context.nodeInfo.id == context.policyServerInfo.id
+                             )
+            _             <- PolicyLoggerPure.Timing.trace(s"Node configuration for '${nodeId.value}' built in ${endTime - startTime} ms")
           } yield {
-            // we have the node mode
-            val nodeModes = allNodeModes(context.nodeInfo.id)
-
-            NodeConfiguration(
-                nodeInfo     = context.nodeInfo
-              , modesConfig  = nodeModes
-                //system technique should not have hooks, and at least it is not supported.
-              , runHooks     = MergePolicyService.mergeRunHooks(policies.filter( ! _.technique.isSystem), nodeModes.nodePolicyMode, nodeModes.globalPolicyMode)
-              , policies     = policies
-              , nodeContext  = context.nodeContext
-              , parameters   = parameters.map { case (k,v) => ParameterForConfiguration(k, v) }.toSet
-              , isRootServer = context.nodeInfo.id == context.policyServerInfo.id
-            )
+            config
           }).chainError(s"Error with parameters expansion for node '${context.nodeInfo.hostname}' (${context.nodeInfo.id.value})").either
       }.runNow
 
@@ -1259,9 +1261,8 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
 
     val traceId = "[" + updatedNodeId.value + "]"
 
-    val fsWrite0   =  System.currentTimeMillis
-
     for {
+      fsWrite0   <- UIO.effectTotal(System.currentTimeMillis)
       toCache    <- allNodeConfigs.get(updatedNodeId).succeed.notOptional(s"Node configuration was not found in all computed configuration - this is likely a bug")
       written    <- promisesFileWriterService.writeTemplate(
                         rootNodeId
@@ -1274,16 +1275,16 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
                       , generationTime
                       , 1
                     )
-      ldapWrite0 =  DateTime.now.getMillis
+      ldapWrite0 <- UIO.effectTotal(System.currentTimeMillis)
       fsWrite1   =  (ldapWrite0 - fsWrite0)
-      _          =  PolicyLogger.trace(s"${traceId} Node configuration written on filesystem in ${fsWrite1} ms")
+      _          <- PolicyLoggerPure.Timing.trace(s"${traceId} Node configuration written on filesystem in ${fsWrite1} ms")
       //update the hash for the updated node configuration for that generation
 
       // #10625 : that should be one logic-level up (in the main generation for loop)
 
       cached     <- nodeConfigurationService.saveOne(NodeConfigurationHash(toCache, generationTime), existingHash)
-      ldapWrite1 =  (DateTime.now.getMillis - ldapWrite0)
-      _          =  PolicyLogger.trace(s"${traceId} Node configuration cached in LDAP in ${ldapWrite1} ms")
+      ldapWrite1 <- UIO.effectTotal(System.currentTimeMillis)
+      _          <- PolicyLoggerPure.Timing.trace(s"${traceId} Node configuration cached in LDAP in ${ldapWrite1 - ldapWrite0} ms")
     } yield {
       written.toSet
     }

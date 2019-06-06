@@ -306,7 +306,7 @@ class PolicyWriterServiceImpl(
                     ((copyInfo.id, agentType), copyInfo)
                   }
               }.map( _.toMap)
-        _  <- PolicyLoggerPure.debug(s"${templatesToRead.size} promises templates read in ${System.currentTimeMillis-now} ms")
+        _  <- PolicyLoggerPure.Timing.trace(s"${templatesToRead.size} promises templates read in ${System.currentTimeMillis-now} ms")
       } yield {
         res
       }
@@ -348,7 +348,7 @@ class PolicyWriterServiceImpl(
                   ((copyInfo.id, agentType), copyInfo)
                 }
               }.map( _.toMap)
-        _ <- PolicyLoggerPure.debug(s"${staticResourceToRead.size} techniques resources read in ${System.currentTimeMillis-now} ms")
+        _ <- PolicyLoggerPure.Timing.trace(s"${staticResourceToRead.size} techniques resources read in ${System.currentTimeMillis-now} ms")
       } yield {
         res
       }
@@ -357,7 +357,7 @@ class PolicyWriterServiceImpl(
     val nodeConfigsToWrite     = allNodeConfigs.filterKeys(nodesToWrite.contains(_))
     val interestingNodeConfigs = allNodeConfigs.filterKeys(k => nodeConfigsToWrite.exists{ case(x, _) => x == k }).values.toSeq
     val techniqueIds           = interestingNodeConfigs.flatMap( _.getTechniqueIds ).toSet
-    val readTemplateTime1      = DateTime.now.getMillis
+    val readTemplateTime1      = System.currentTimeMillis()
     val techniques             = techniqueRepository.getByIds(techniqueIds.toSeq)
 
     for {
@@ -365,7 +365,7 @@ class PolicyWriterServiceImpl(
       resources         <- readResourcesFromFileSystem(techniques, maxParallelism)
       readTemplateTime2 <- IOResult.effect(DateTime.now.getMillis)
       readTemplateDur   =  readTemplateTime2 - readTemplateTime1
-      _                 <- PolicyLoggerPure.debug(s"Technique templates and resources read in ${readTemplateDur} ms")
+      _                 <- PolicyLoggerPure.Timing.debug(s"Technique templates and resources read in ${readTemplateDur} ms")
     } yield {
       TechniqueResources(templates, resources)
     }
@@ -443,7 +443,7 @@ class PolicyWriterServiceImpl(
       pathsInfo         =  configAndPaths.map { _.paths }
       readTemplateTime2 <- UIO.effectTotal(System.currentTimeMillis)
       readTemplateDur   =  readTemplateTime2 - readTemplateTime1
-      _                 <- PolicyLoggerPure.trace(s"${traceId} Paths computed in ${readTemplateDur} ms")
+      _                 <- PolicyLoggerPure.Timing.trace(s"${traceId} Paths computed in ${readTemplateDur} ms")
 
       //////////
       // nothing agent specific before that
@@ -456,7 +456,7 @@ class PolicyWriterServiceImpl(
                          }
       preparedPromisesTime <- UIO.effectTotal(System.currentTimeMillis)
       preparedPromisesDur  = preparedPromisesTime - readTemplateTime2
-      _                    <- PolicyLoggerPure.trace(s"${traceId} Promises prepared in ${preparedPromisesDur} ms")
+      _                    <- PolicyLoggerPure.Timing.trace(s"${traceId} Promises prepared in ${preparedPromisesDur} ms")
 
       promiseWritten   <- ZIO.foreachParN(maxParallelism)(preparedPromises) { prepared =>
                             (for {
@@ -469,7 +469,7 @@ class PolicyWriterServiceImpl(
                           }
       promiseWrittenTime <- UIO.effectTotal(System.currentTimeMillis)
       promiseWrittenDur  =  promiseWrittenTime - preparedPromisesTime
-      _                  <- PolicyLoggerPure.trace(s"${traceId} Promises written in ${promiseWrittenDur} ms")
+      _                  <- PolicyLoggerPure.Timing.trace(s"${traceId} Promises written in ${promiseWrittenDur} ms")
 
 
       //////////
@@ -483,7 +483,7 @@ class PolicyWriterServiceImpl(
 
       propertiesWrittenTime <- UIO.effectTotal(System.currentTimeMillis)
       propertiesWrittenDur  = propertiesWrittenTime - promiseWrittenTime
-      _                     <- PolicyLoggerPure.trace(s"${traceId} Properties written in ${propertiesWrittenDur} ms")
+      _                     <- PolicyLoggerPure.Timing.trace(s"${traceId} Properties written in ${propertiesWrittenDur} ms")
 
       parametersWritten     <- ZIO.foreachParN(maxParallelism)(configAndPaths) { case agentNodeConfig =>
                                  writeRudderParameterFile(agentNodeConfig).chainError(
@@ -492,13 +492,13 @@ class PolicyWriterServiceImpl(
 
       parametersWrittenTime <- UIO.effectTotal(System.currentTimeMillis)
       parametersWrittenDur  =  parametersWrittenTime - propertiesWrittenTime
-      _                     <- PolicyLoggerPure.trace(s"${traceId} Parameters written in ${parametersWrittenDur} ms")
+      _                     <- PolicyLoggerPure.Timing.trace(s"${traceId} Parameters written in ${parametersWrittenDur} ms")
 
       licensesCopied        <- ZIO.foreachParN(maxParallelism)(configAndPaths) { case agentNodeConfig => copyLicenses(agentNodeConfig, allLicenses) }
 
       licensesCopiedTime <- UIO.effectTotal(System.currentTimeMillis)
       licensesCopiedDur  =  licensesCopiedTime - parametersWrittenTime
-      _                  <- PolicyLoggerPure.trace(s"${traceId} Licenses copied in ${licensesCopiedDur} ms")
+      _                  <- PolicyLoggerPure.Timing.trace(s"${traceId} Licenses copied in ${licensesCopiedDur} ms")
       /// perhaps that should be a post-hook somehow ?
       // and perhaps we should have an AgentSpecific global pre/post write
 
@@ -523,7 +523,7 @@ class PolicyWriterServiceImpl(
                                                              )
                                         , systemEnv
                             )
-                            HooksLogger.trace(s"${traceId} Run post-generation pre-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
+                            PolicyLogger.Timing.trace(s"${traceId} Run post-generation pre-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
                             res
                           }
 
@@ -533,7 +533,7 @@ class PolicyWriterServiceImpl(
 
       movedPromisesTime2 <- UIO.effectTotal(System.currentTimeMillis)
       movedPromisesDur   =  movedPromisesTime2 - movedPromisesTime1
-      _                  <- PolicyLoggerPure.trace(s"${traceId} Policies moved to their final position in ${movedPromisesDur} ms")
+      _                  <- PolicyLoggerPure.Timing.trace(s"${traceId} Policies moved to their final position in ${movedPromisesDur} ms")
 
       nodePostMvHooks  <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-finished", HOOKS_IGNORE_SUFFIXES).toIO
       postMvHooks      <- parrallelSequenceNodeHook(timeout, maxParallelism)(configAndPaths) { agentNodeConfig =>
@@ -695,7 +695,7 @@ class PolicyWriterServiceImpl(
     agentType match {
       case CfeEnterprise =>
         IOResult.effectM {
-          PolicyLogger.debug("Writing licence for nodeConfiguration  " + config.nodeInfo.id);
+          PolicyLogger.trace("Writing licence for nodeConfiguration  " + config.nodeInfo.id);
           val sourceLicenceNodeId = if(config.nodeInfo.isPolicyServer) {
             config.nodeInfo.id
           } else {
@@ -705,7 +705,7 @@ class PolicyWriterServiceImpl(
           licenses.get(sourceLicenceNodeId) match {
             case None =>
               // we are in the "free case", just log-debug it (as we already informed the user that there is no license)
-              PolicyLogger.debug(s"Not copying missing license file into '${paths.newFolder}' for node '${config.nodeInfo.hostname}' (${config.nodeInfo.id.value}).")
+              PolicyLogger.trace(s"Not copying missing license file into '${paths.newFolder}' for node '${config.nodeInfo.hostname}' (${config.nodeInfo.id.value}).")
               agentNodeConfiguration.succeed
 
             case Some(license) =>
