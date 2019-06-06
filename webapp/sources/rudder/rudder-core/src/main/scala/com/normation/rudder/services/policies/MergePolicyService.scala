@@ -299,7 +299,10 @@ final object MergePolicyService {
       val keep = samePriority.head
 
       //only one log for all discard draft
-      if(samePriority.size > 1) {
+      //we don't want to warn when the directive is the same but applied to two rules. In that case,
+      //it's actually stable, it's just that we want to make appear the override in rules
+      val differentDirectives = samePriority.groupBy(_.id.directiveId)
+      if(differentDirectives.size > 1) {
         PolicyLogger.warn(s"Unicity check: NON STABLE POLICY ON NODE '${nodeInfo.hostname}' for mono-instance (unique) technique "+
             s"'${keep.technique.id}'. Several directives with same priority '${keep.priority}' are applied. "+
             s"Keeping (ruleId@@directiveId) '${keep.id.ruleId.value}@@${keep.id.directiveId.value}' (order: ${keep.ruleOrder.value}/"+
