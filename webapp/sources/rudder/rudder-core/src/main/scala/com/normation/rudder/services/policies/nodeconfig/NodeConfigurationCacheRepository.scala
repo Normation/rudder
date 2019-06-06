@@ -44,16 +44,16 @@ import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_CONFIG
 import com.normation.rudder.domain.RudderLDAPConstants.OC_NODES_CONFIG
-import net.liftweb.common.Box
-import net.liftweb.common.Failure
-import net.liftweb.common.Full
-import net.liftweb.common.Loggable
+import net.liftweb.common._
 import org.joda.time.DateTime
 import com.normation.cfclerk.domain.Variable
 import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.NodeConfiguration
+import com.unboundid.ldap.sdk.Modification
+import com.unboundid.ldap.sdk.ModificationType
 
+import scala.util.control.NonFatal
 
 case class PolicyHash(
     draftId   : PolicyId
@@ -69,7 +69,7 @@ case class PolicyHash(
  * Keep in mind that anything that is changing the related resources
  * of policies that are written for the node during policy generation
  * must be taken into account in the hash.
- * Typically, the technique non-template resources, like pure CFEngine
+ * Typically, the technique non-template resources, like succeed CFEngine
  * file or other configuration files, must be looked for change
  * (for them, this is done with the technique "acceptation" (i.e commit)
  * date.
@@ -130,8 +130,8 @@ object NodeConfigurationHash {
      * be handle directly at the directive level) or a system variable
      * (which is already in nodeContext)
      *
-     * - all ${rudder.node} params (because can be used in pure CFEngine)
-     * - node properties (because can be used in pure CFEngine)
+     * - all ${rudder.node} params (because can be used in succeed CFEngine)
+     * - node properties (because can be used in succeed CFEngine)
      * - isPolicyServer (for nodes becoming relay)
      * - serverRoles (because not the same set of directives - but
      *   perhaps it is already handle in the directives)
@@ -237,7 +237,8 @@ object NodeConfigurationHash {
 trait NodeConfigurationHashRepository {
 
   /**
-   * Delete node config by its id
+   * Delete node config by its id.
+   * Returned deleted ids.
    */
   def deleteNodeConfigurations(nodeIds:Set[NodeId]) : Box[Set[NodeId]]
 
@@ -249,8 +250,9 @@ trait NodeConfigurationHashRepository {
   /**
    * Inverse of delete: delete all node configuration not
    * given in the argument.
+   * Return kept nodeId with their previous hash string (if existed)
    */
-  def onlyKeepNodeConfiguration(nodeIds:Set[NodeId]) : Box[Set[NodeId]]
+  def onlyKeepNodeConfiguration(nodeIds:Set[NodeId]) : Box[Map[NodeId, Option[String]]]
 
   /**
    * Return all known NodeConfigurationHash
@@ -262,7 +264,9 @@ trait NodeConfigurationHashRepository {
    * No existing NodeConfigurationHash is deleted.
    * Return newly cache node configuration.
    */
-  def save(NodeConfigurationHash: Set[NodeConfigurationHash]): Box[Set[NodeId]]
+  def save(nodeConfigurationHash: Set[NodeConfigurationHash]): Box[Set[NodeId]]
+
+  def saveOne(nodeConfigurationHash: NodeConfigurationHash, existing: Option[String]): Box[NodeId]
 }
 
 
@@ -292,10 +296,11 @@ class InMemoryNodeConfigurationHashRepository extends NodeConfigurationHashRepos
    * Inverse of delete: delete all node configuration not
    * given in the argument.
    */
-  def onlyKeepNodeConfiguration(nodeIds:Set[NodeId]) : Box[Set[NodeId]] = {
+  def onlyKeepNodeConfiguration(nodeIds:Set[NodeId]) : Box[Map[NodeId, Option[String]]] = {
+    val existing = nodeIds.map(id => (id, repository.get(id).map(_.hashCode().toString) )).toMap
     val remove = repository.keySet -- nodeIds
     repository --= remove
-    Full(nodeIds)
+    Full(existing)
   }
 
   def getAll() : Box[Map[NodeId, NodeConfigurationHash]] = Full(repository.toMap)
@@ -304,6 +309,10 @@ class InMemoryNodeConfigurationHashRepository extends NodeConfigurationHashRepos
     val toAdd = NodeConfigurationHash.map(c => (c.id, c)).toMap
     repository ++= toAdd
     Full(toAdd.keySet)
+  }
+
+  def saveOne(nodeConfigurationHash: NodeConfigurationHash, existing: Option[String]): Box[NodeId] = {
+    save(Set(nodeConfigurationHash)).map(_ => nodeConfigurationHash.id)
   }
 }
 
@@ -332,7 +341,7 @@ class LdapNodeConfigurationHashRepository(
    * "best effort" way. Bad config are logged as error.
    * We fail if the entry is not of the expected type
    */
-  private[this] def fromLdap(e:LDAPEntry): Box[Set[NodeConfigurationHash]] = {
+  private[this] def fromLdap(e:LDAPEntry): Box[Map[NodeId, (NodeConfigurationHash, String)]] = {
      for {
        typeOk <- if(e.isA(OC_NODES_CONFIG)) {
                    Full("ok")
@@ -340,9 +349,10 @@ class LdapNodeConfigurationHashRepository(
                    Failure(s"Entry ${e.dn} is not a '${OC_NODES_CONFIG}', can not find node configuration caches. Entry details: ${e}")
                  }
      } yield {
-       e.valuesFor(A_NODE_CONFIG).flatMap { json =>
+       (e.valuesFor(A_NODE_CONFIG).flatMap { json =>
          try {
-           Some(read[NodeConfigurationHash](json))
+              val hash = read[NodeConfigurationHash](json)
+              Some((hash.id, (hash, json)))
          } catch {
            case e: Exception =>
              //try to get the nodeid from what should be some json
@@ -361,7 +371,7 @@ class LdapNodeConfigurationHashRepository(
 
              None
          }
-       }
+       }).toMap
      }
   }
 
@@ -376,17 +386,18 @@ class LdapNodeConfigurationHashRepository(
   /*
    * Delete node config matching predicate.
    * Return the list of remaining ids.
+   * Return the map of hashes that exited before deletion.
    */
-  private[this] def deleteCacheMatching( shouldDeleteConfig: NodeConfigurationHash => Boolean): Box[Set[NodeId]] = {
+  private[this] def deleteCacheMatching( shouldDeleteConfig: ((NodeId, (NodeConfigurationHash, String))) => Boolean): Box[Map[NodeId, (NodeConfigurationHash, String)]] = {
      for {
        ldap         <- ldapCon
        currentEntry <- ldap.get(rudderDit.NODE_CONFIGS.dn)
-       nodeConfigs  <- fromLdap(currentEntry)
-       remaining    =  nodeConfigs.filterNot(shouldDeleteConfig)
+       current      <- fromLdap(currentEntry)
+       remaining    =  current.filterNot(shouldDeleteConfig).map(_._2._1).toSet
        newEntry     =  toLdap(remaining)
        saved        <- ldap.save(newEntry)
      } yield {
-       remaining.map( _.id )
+       current
      }
    }
 
@@ -395,7 +406,7 @@ class LdapNodeConfigurationHashRepository(
    */
   def deleteNodeConfigurations(nodeIds:Set[NodeId]) :  Box[Set[NodeId]] = {
      for {
-       _ <- deleteCacheMatching(nodeConfig => nodeIds.contains(nodeConfig.id))
+       _ <- deleteCacheMatching(nodeConfig => nodeIds.contains(nodeConfig._1))
      } yield {
        nodeIds
      }
@@ -405,13 +416,30 @@ class LdapNodeConfigurationHashRepository(
    * Inverse of delete: delete all node configuration not
    * given in the argument.
    */
-  def onlyKeepNodeConfiguration(nodeIds:Set[NodeId]) : Box[Set[NodeId]] = {
+  def onlyKeepNodeConfiguration(nodeIds:Set[NodeId]) : Box[Map[NodeId, Option[String]]] = {
      for {
-       _ <- deleteCacheMatching(nodeConfig => !nodeIds.contains(nodeConfig.id))
+       old <- deleteCacheMatching(nodeConfig => !nodeIds.contains(nodeConfig._1))
      } yield {
-       nodeIds
+       nodeIds.map(id => (id, old.get(id).map(_._2)))
      }
-   }
+   }.map(_.toMap)
+
+  def saveOne(nodeConfigurationHash: NodeConfigurationHash, existing: Option[String]): Box[NodeId] = {
+     for {
+       ldap <- ldapCon
+       hash <- try {
+                 Full(write(nodeConfigurationHash))
+               } catch {
+                  case NonFatal(ex) => new Failure(s"Error when serializing node configuration hash for node '${nodeConfigurationHash.id.value}'", Full(ex), Empty)
+               }
+       mods =  (Some(new Modification(ModificationType.ADD, A_NODE_CONFIG, hash)) ::
+                existing.map(e => new Modification(ModificationType.DELETE, A_NODE_CONFIG, e)) ::
+                Nil).flatten
+       res  <- ldap.modify(rudderDit.NODE_CONFIGS.dn, mods:_*)
+     } yield {
+       nodeConfigurationHash.id
+     }
+  }
 
 
   /**
@@ -434,7 +462,7 @@ class LdapNodeConfigurationHashRepository(
       entry   <- ldap.get(rudderDit.NODE_CONFIGS.dn)
       nodeConfigs <- fromLdap(entry)
     } yield {
-      nodeConfigs.map(x => (x.id, x)).toMap
+      nodeConfigs.mapValues(_._1)
     }
   }
 
@@ -445,8 +473,8 @@ class LdapNodeConfigurationHashRepository(
       existingEntry <- ldap.get(rudderDit.NODE_CONFIGS.dn)
       existingCache <- fromLdap(existingEntry)
       //only update and add, keep existing config cache not updated
-      keptConfigs   =  existingCache.map(x => (x.id, x)).toMap.filterKeys( k => !updatedIds.contains(k) )
-      entry         =  toLdap(caches ++ keptConfigs.values)
+      keptConfigs   =  existingCache.filterKeys( k => !updatedIds.contains(k) )
+      entry         =  toLdap(caches ++ keptConfigs.map(_._2._1))
       saved         <- ldap.save(entry)
     } yield {
       updatedIds

@@ -97,6 +97,8 @@ import monix.eval.TaskSemaphore
 import monix.execution.ExecutionModel
 import monix.execution.Scheduler
 import monix.execution.atomic.AtomicInt
+import monix.execution.atomic.AtomicInt
+import monix.execution.atomic.AtomicInt
 import org.joda.time.Period
 
 import scala.concurrent.Await
@@ -259,6 +261,7 @@ trait PromiseGenerationService {
       , nodeConfigId      : NodeConfigId
       , rootNodeId        : NodeId
       , nodeConfigs       : Map[NodeId, NodeConfiguration]
+      , existingHash      : Option[String]
       , allLicenses       : Map[NodeId, CfeEnterpriseLicense]
       , techniqueResources: TechniqueResources
       , globalPolicyMode  : GlobalPolicyMode
@@ -285,6 +288,42 @@ trait PromiseGenerationService {
       } yield {
         savedExpectedReports
       }
+    }
+
+    /*
+     * Write nodes is the methods that write all nodes and convert to the list of success, never fails
+     */
+    def writeConfigs(
+        rootNodeId        : NodeId
+      , nodeConfigs       : Map[NodeId, NodeConfiguration]
+      , nodeConfigIds     : Map[NodeId, NodeConfigId]
+      , existingHashed    : Map[NodeId, Option[String]]
+      , allLicenses       : Map[NodeId, CfeEnterpriseLicense]
+      , techniqueResources: TechniqueResources
+      , globalPolicyMode  : GlobalPolicyMode
+      , generationTime    : DateTime
+      , expectedReports   : List[NodeExpectedReports]
+      , maxParallelism    : Int
+    )(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Seq[Either[String, NodeExpectedReports]] = {
+
+      val remainingNodes = AtomicInt(nodeConfigIds.size)
+      /// we need to start with policy servers ///
+      val sortedNodeIds = nodeConfigs.toSeq.map { case (id, v) =>
+                                 (
+                                   id
+                                 , nodePriority(v.nodeInfo)
+                                 )
+                               }.sortBy( _._2 ).map( _._1 )
+      val allTrySavedReports =  ParallelSequence.applicative(sortedNodeIds) { nodeId =>
+                                 for {
+                                   expectedReport <- expectedReports.find(_.nodeId == nodeId).map(Full(_)).getOrElse(Failure(s"Can not find expected report for node '${nodeId.value}'"))
+                                   built          <- buildFullyOneNode(nodeId, nodeConfigIds(nodeId), rootNodeId, nodeConfigs, existingHashed(nodeId), allLicenses, techniqueResources, globalPolicyMode, generationTime, expectedReport, remainingNodes)
+                                 } yield {
+                                   built
+                                 }
+                               }
+
+      allTrySavedReports
     }
 
     /*
@@ -442,7 +481,7 @@ trait PromiseGenerationService {
 
       // we want to remove cache for nodes for which we didn't successfully get a config (redo next time)
       // and also remove all non active nodes (deleted, etc) => only keep the one for which we have a node configuration
-      _                     <- forgetOtherNodeConfigurationState(allNodeConfigs.ok.map(_.nodeInfo.id).toSet) ?~! "Cannot clean the configuration cache"
+      existingHashes        <- forgetOtherNodeConfigurationState(allNodeConfigs.ok.map(_.nodeInfo.id).toSet) ?~! "Cannot clean the configuration cache"
 
       // clear cache of string template - both before and after writing them
       techniqueResources    <- getTechniquesResources(updatedNodeConfigIds.keySet, nodeConfigs)
@@ -451,24 +490,10 @@ trait PromiseGenerationService {
 
       //////  write new configurations
       writeTime             =  System.currentTimeMillis
-      remainingNodes        =  AtomicInt(updatedNodeConfigIds.size)
-      /// we need to start with policy servers ///
-      sortedNodeIds         =  updatedNodeConfigs.toSeq.map { case (id, v) =>
-                                 (
-                                   id
-                                 , nodePriority(v.nodeInfo)
-                                 )
-                               }.sortBy( _._2 ).map( _._1 )
-      allTrySavedReports    =  ParallelSequence.applicative(sortedNodeIds) { nodeId =>
-                                 for {
-                                   expectedReport <- expectedReports.find(_.nodeId == nodeId).map(Full(_)).getOrElse(Failure(s"Can not find expected report for node '${nodeId.value}'"))
-                                   built          <- buildFullyOneNode(nodeId, updatedNodeConfigIds(nodeId), rootNodeId, nodeConfigs, allLicenses, techniqueResources, globalPolicyMode, generationTime, expectedReport, remainingNodes)
-                                 } yield {
-                                   built
-                                 }
-                               }
-      savedExpectedReports  = allTrySavedReports.collect { case Right(x) => x }
-      timeWriteNodeConfig   = (System.currentTimeMillis - writeTime)
+      allTrySavedReports    =  writeConfigs(rootNodeId, nodeConfigs, updatedNodeConfigIds, existingHashes, allLicenses, techniqueResources, globalPolicyMode, generationTime, expectedReports, maxParallelism)
+      savedExpectedReports  =  allTrySavedReports.collect { case Right(x) => x }
+
+      timeWriteNodeConfig   =  (System.currentTimeMillis - writeTime)
       _                     =  clearCacheOfTemplate()
 
 
@@ -655,8 +680,10 @@ trait PromiseGenerationService {
   /**
    * Forget all other node configuration state.
    * If passed with an empty set, actually forget all node configuration.
+   * Return the map of existing serialized hashes.
+   * Invariant: keep == returnedMap.keySet
    */
-  def forgetOtherNodeConfigurationState(keep: Set[NodeId]) : Box[Set[NodeId]]
+  def forgetOtherNodeConfigurationState(keep: Set[NodeId]) : Box[Map[NodeId, Option[String]]]
 
   /**
    * Get the actual cached values for NodeConfiguration
@@ -685,6 +712,18 @@ trait PromiseGenerationService {
       rootNodeId        : NodeId
     , updated           : Map[NodeId, NodeConfigId]
     , allNodeConfig     : Map[NodeId, NodeConfiguration]
+    , allLicenses       : Map[NodeId, CfeEnterpriseLicense]
+    , techniqueResources: TechniqueResources
+    , globalPolicyMode  : GlobalPolicyMode
+    , generationTime    : DateTime
+  ) : Box[Set[NodeConfiguration]]
+
+  def writeOneNodeConfigurations(
+      rootNodeId        : NodeId
+    , updatedNodeId     : NodeId
+    , updatedConfigId   : NodeConfigId
+    , allNodeConfig     : Map[NodeId, NodeConfiguration]
+    , existingHash      : Option[String]
     , allLicenses       : Map[NodeId, CfeEnterpriseLicense]
     , techniqueResources: TechniqueResources
     , globalPolicyMode  : GlobalPolicyMode
@@ -1170,7 +1209,11 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
     }
   }
 
-  def forgetOtherNodeConfigurationState(keep: Set[NodeId]) : Box[Set[NodeId]] = {
+  /**
+   * Delete cache that are node in the list.
+   * Returns the list of optionnal existing cache hash serialized string.
+   */
+  def forgetOtherNodeConfigurationState(keep: Set[NodeId]) : Box[Map[NodeId, Option[String]]] = {
     nodeConfigurationService.onlyKeepNodeConfiguration(keep)
   }
 
@@ -1300,6 +1343,50 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
       written.toSet
     }
   }
+
+  def writeOneNodeConfigurations(
+      rootNodeId        : NodeId
+    , updatedNodeId     : NodeId
+    , updatedConfigId   : NodeConfigId
+    , allNodeConfigs    : Map[NodeId, NodeConfiguration]
+    , existingHash      : Option[String]
+    , allLicenses       : Map[NodeId, CfeEnterpriseLicense]
+    , techniqueResources: TechniqueResources
+    , globalPolicyMode  : GlobalPolicyMode
+    , generationTime    : DateTime
+  ) : Box[Set[NodeConfiguration]] = {
+
+    val traceId = "[" + updatedNodeId.value + "]"
+
+    val fsWrite0   =  System.currentTimeMillis
+
+    for {
+      toCache    <- Box(allNodeConfigs.get(updatedNodeId)) ?~! s"Node configuration was not found in all computed configuration - this is likely a bug"
+      written    <- promisesFileWriterService.writeTemplate(
+                        rootNodeId
+                      , Set(updatedNodeId)
+                      , allNodeConfigs
+                      , Map(updatedNodeId -> updatedConfigId)
+                      , allLicenses
+                      , techniqueResources
+                      , globalPolicyMode
+                      , generationTime
+                    )
+      ldapWrite0 =  DateTime.now.getMillis
+      fsWrite1   =  (ldapWrite0 - fsWrite0)
+      _          =  PolicyLogger.trace(s"${traceId} Node configuration written on filesystem in ${fsWrite1} ms")
+      //update the hash for the updated node configuration for that generation
+
+      // #10625 : that should be one logic-level up (in the main generation for loop)
+
+      cached     <- nodeConfigurationService.saveOne(NodeConfigurationHash(toCache, generationTime), existingHash)
+      ldapWrite1 =  (DateTime.now.getMillis - ldapWrite0)
+      _          =  PolicyLogger.trace(s"${traceId} Node configuration cached in LDAP in ${ldapWrite1} ms")
+    } yield {
+      written.toSet
+    }
+  }
+
 
 }
 
