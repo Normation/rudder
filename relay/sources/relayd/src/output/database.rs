@@ -96,7 +96,6 @@ pub fn ping(pool: &PgPool) -> Result<(), Error> {
     Ok(())
 }
 
-// TODO return if it inserted the runlog or not
 pub fn insert_runlog(
     pool: &PgPool,
     runlog: &RunLog,
@@ -104,9 +103,6 @@ pub fn insert_runlog(
 ) -> Result<RunlogInsertion, Error> {
     use self::schema::ruddersysevents::dsl::*;
     let connection = &*pool.get()?;
-
-    // Non perfect as there could be race-conditions
-    // but should avoid most duplicates
 
     let first_report = runlog
         .reports
@@ -131,18 +127,14 @@ pub fn insert_runlog(
                     .and(directiveid.eq(&first_report.directive_id)),
             )
             .limit(1)
-            .load::<QueryableReport>(connection)
-            // FIXME: soft fail?
-            .expect("Error loading reports")
+            .load::<QueryableReport>(connection)?
             .is_empty();
 
         if behavior == InsertionBehavior::AllowDuplicate || new_runlog {
             trace!("Inserting runlog {:#?}", runlog; "component" => LogComponent::Database, "node" => &first_report.node_id);
-                for report in &runlog.reports {
-                    insert_into(ruddersysevents)
-                        .values(report)
-                        .execute(connection)?;
-                }
+                insert_into(ruddersysevents)
+                    .values(&runlog.reports)
+                    .execute(connection)?;
                 Ok(RunlogInsertion::Inserted)
         } else {
             error!("The {} runlog was already there, skipping insertion", runlog.info; "component" => LogComponent::Database, "node" => &first_report.node_id);

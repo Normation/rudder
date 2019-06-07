@@ -37,6 +37,8 @@ use nom::*;
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
 
+type AgentLogLevel = &'static str;
+
 // A detail log entry
 #[derive(Debug, PartialEq, Eq)]
 struct LogEntry {
@@ -44,8 +46,6 @@ struct LogEntry {
     msg: String,
     datetime: DateTime<FixedOffset>,
 }
-
-type AgentLogLevel = &'static str;
 
 named!(agent_log_level<&str, AgentLogLevel>,
     complete!(alt!(
@@ -103,7 +103,7 @@ named!(line_timestamp<&str, DateTime<FixedOffset>>,
     )
 );
 
-named!(simpleline<&str, String>,
+named!(simpleline<&str, &str>,
     do_parse!(
         opt!(
             complete!(line_timestamp)
@@ -115,18 +115,17 @@ named!(simpleline<&str, String>,
         complete!(
             tag!("\n")
         ) >>
-        (res.to_string())
+        (res)
     )
 );
 
-named!(multilines<&str, String>,
+named!(multilines<&str, Vec<&str>>,
     do_parse!(
         // at least one
         res: many1!(
             complete!(simpleline)
         ) >>
-        // TODO perf: avoid reallocating everything twice and use the source slice
-        (res.join("\n"))
+        (res)
     )
 );
 
@@ -139,7 +138,7 @@ named!(log_entry<&str, LogEntry>,
      >> (
             LogEntry {
                 event_type,
-                msg,
+                msg: msg.join("\n"),
                 datetime,
             }
         )
@@ -196,13 +195,14 @@ named!(pub report<&str, RawReport>, do_parse!(
             key_value: key_value.to_string(),
             start_datetime,
             event_type: event_type.to_string(),
-            msg: msg.to_string(),
+            msg: msg.join("\n"),
             policy: policy.to_string(),
         },
             logs
         })
 ));
 
+// We could make RawReport insertable to avoid copying context to simple logs
 #[derive(Debug, PartialEq, Eq)]
 pub struct RawReport {
     report: Report,
@@ -369,15 +369,19 @@ mod tests {
 
     #[test]
     fn it_parses_multilines() {
-        assert_eq!(multilines("Thething\n").unwrap().1, "Thething".to_string());
         assert_eq!(
-            multilines("The thing\n").unwrap().1,
+            multilines("Thething\n").unwrap().1.join("\n"),
+            "Thething".to_string()
+        );
+        assert_eq!(
+            multilines("The thing\n").unwrap().1.join("\n"),
             "The thing".to_string()
         );
         assert_eq!(
             multilines("2019-05-09T13:36:46+00:00 The thing\n")
                 .unwrap()
-                .1,
+                .1
+                .join("\n"),
             "The thing".to_string()
         );
         assert_eq!(
@@ -385,17 +389,20 @@ mod tests {
                 "2019-05-09T13:36:46+00:00 The thing\n2019-05-09T13:36:46+00:00 The other thing\n"
             )
             .unwrap()
-            .1,
+            .1
+            .join("\n"),
             "The thing\nThe other thing".to_string()
         );
         assert_eq!(
-            multilines("2019-05-09T13:36:46+00:00 The thing\n\n2019-05-09T13:36:46+00:00 The other thing\n").unwrap().1,
+            multilines("2019-05-09T13:36:46+00:00 The thing\n\n2019-05-09T13:36:46+00:00 The other thing\n")
+            .unwrap().1.join("\n"),
             "The thing\n\nThe other thing".to_string()
         );
         assert_eq!(
             multilines("Thething\n2019-05-09T13:36:46+00:00 Theotherthing\n")
                 .unwrap()
-                .1,
+                .1
+                .join("\n"),
             "Thething\nTheotherthing".to_string()
         );
     }
