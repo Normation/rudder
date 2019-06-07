@@ -215,14 +215,14 @@ trait PromiseGenerationService {
                                    , nodePriority(v.nodeInfo)
                                    )
                                  }.sortBy( _._2 ).map( _._1 )
-        allTrySavedReports    <- ZIO.collectAllParN(maxParallelism.toLong)(sortedNodeIds.map { nodeId =>
+        allTrySavedReports    <- ZIO.foreachParN(maxParallelism.toLong)(sortedNodeIds) { nodeId =>
                                    (for {
                                      expectedReport <- expectedReports.find(_.nodeId == nodeId).succeed.notOptional(s"Can not find expected report for node '${nodeId.value}'")
                                      built          <- buildFullyOneNode(nodeId, nodeConfigIds(nodeId), rootNodeId, nodeConfigs, existingHashed(nodeId), allLicenses, techniqueResources, globalPolicyMode, generationTime, expectedReport, remainingNodes)
                                    } yield {
                                      built
                                    }).either
-                                 })
+                                 }
       } yield {
         allTrySavedReports
       }

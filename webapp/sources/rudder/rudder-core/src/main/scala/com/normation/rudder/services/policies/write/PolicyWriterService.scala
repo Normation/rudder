@@ -449,7 +449,7 @@ class PolicyWriterServiceImpl(
       // nothing agent specific before that
       //////////
 
-      preparedPromises <- ZIO.foreachParN(maxParallelism)(configAndPaths) { case agentNodeConfig =>
+      preparedPromises <- ZIO.foreachParN(maxParallelism)(configAndPaths) { agentNodeConfig =>
                             val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
                             prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, techniquesResources.templates, allNodeConfigs, Policy.TAG_OF_RUDDER_ID, globalPolicyMode, generationTime).toIO.chainError(
                             s"Error when calculating configuration for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})")

@@ -460,3 +460,33 @@ object TestThrowError {
 
 }
 
+object TestError {
+
+  def main(args: Array[String]): Unit = {
+
+    def error(nodeId: Int, remaining: Ref[Int]): ZIO[Blocking, RudderError, String] = {
+      remaining.update(_ - 1) *>
+      Chained("some error", Unexpected("parent")).fail
+    }
+
+    val nodeConfigs = List(1, 2, 3)
+
+      val allTrySavedReports = for {
+        remainingNodes        <- Ref.make[Int](nodeConfigs.size)
+        allTrySavedReports    <- ZIO.collectAllParN(2.toLong)(nodeConfigs.map { nodeId =>
+                                   (for {
+                                     built          <- error(nodeId, remainingNodes)
+                                   } yield {
+                                     built
+                                   }).either
+                                 })
+      } yield {
+        allTrySavedReports
+      }
+
+
+    println(allTrySavedReports.provide(ZioRuntime.Environment).runNow)
+
+  }
+
+}
