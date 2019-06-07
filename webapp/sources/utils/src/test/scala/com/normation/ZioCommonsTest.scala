@@ -76,6 +76,15 @@ class ZioCommonsTest extends Specification {
         |""".stripMargin)
   }
 
+  "When we use toIO, we should ensure that a failure translate to chained" >> {
+    def produceBox(): Box[Int] = {
+      Failure("Last error", Empty, Full(Failure("First error")))
+    }
+
+
+    produceBox().toIO.either.runNow must beLeft[RudderError].like { case e => e == Chained("Last error", Unexpected("First error"))}
+  }
+
 
 }
 
