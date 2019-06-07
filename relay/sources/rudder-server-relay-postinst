@@ -47,10 +47,10 @@ chown rudder: /var/rudder/shared-files
 chmod 770 /var/rudder/shared-files
 chmod 755 /var/rudder/inventories
 
-for inventorydir in /var/rudder/inventories/incoming /var/rudder/inventories/accepted-nodes-updates
+for dir in /var/rudder/inventories/incoming /var/rudder/inventories/accepted-nodes-updates /var/rudder/reports/incoming
 do
-  chmod 770 ${inventorydir}
-  chown rudder:${APACHE_GROUP} ${inventorydir}
+  chmod 770 ${dir}
+  chown rudder:${APACHE_GROUP} ${dir}
 done
 
 # Setup password files for inventory reception WebDAV access
