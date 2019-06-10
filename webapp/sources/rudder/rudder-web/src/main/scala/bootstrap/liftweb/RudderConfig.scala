@@ -77,7 +77,7 @@ import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest._
 import com.normation.rudder.rest.internal._
 import com.normation.rudder.rest.lift._
-import com.normation.rudder.rest.v1.{RestDeploy, RestDyngroupReload, RestGetGitCommitAsZip, RestTechniqueReload, RestStatus}
+import com.normation.rudder.rest.v1.{RestDeploy, RestDyngroupReload, RestGetGitCommitAsZip, RestTechniqueReload}
 import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
 import com.normation.rudder.rule.category._
 import com.normation.rudder.services._

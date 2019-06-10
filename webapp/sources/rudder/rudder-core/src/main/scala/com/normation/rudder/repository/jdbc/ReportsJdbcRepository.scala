@@ -464,11 +464,11 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     }, intervalMeta)._1 //tricking scalac for false positive unused warning on intervalMeta.
   }
 
-  override def getChangeReportsOnInterval(lowestId: Long, highestId: Long): Box[Seq[ResultRepairedReport]] = {
-    query[ResultRepairedReport](s"""
-      ${typedQuery} and eventtype='${Reports.RESULT_REPAIRED}' and id >= ${lowestId} and id <= ${highestId}
-      order by executionTimeStamp asc
-    """).to[Vector].transact(xa).attempt.unsafeRunSync
+  override def getChangeReportsOnInterval(lowestId: Long, highestId: Long): Box[Seq[ChangeForCache]] = {
+    query[ChangeForCache](
+      s"""select ruleid, executiontimestamp from ruddersysevents where
+          eventtype='${Reports.RESULT_REPAIRED}' and id >= ${lowestId} and id <= ${highestId}
+       """).to[Vector].transact(xa).attempt.unsafeRunSync
   }
 
   override def getChangeReportsByRuleOnInterval(ruleId: RuleId, interval: Interval, limit: Option[Int]): Box[Seq[ResultRepairedReport]] = {
