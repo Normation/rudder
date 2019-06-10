@@ -683,11 +683,10 @@ class InternalLDAPQueryProcessor(
     , debugId: Long
   ) : IOResult[Seq[LDAPEntry]] = {
     def applyFilter(specialFilter:SpecialFilter, entries:Seq[LDAPEntry]) : IOResult[Seq[LDAPEntry]] = {
-      import java.util.regex.PatternSyntaxException
       def getRegex(regexText: String): IOResult[Pattern] = {
-        IOResult.effect(Pattern.compile(regexText)).catchAll {
-          case ex: PatternSyntaxException => SystemError(s"The regular expression '${regexText}' is not valid. Expected regex syntax is the java one, documented here: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html", ex).fail
-        }
+        IOResult.effect(s"The regular expression '${regexText}' is not valid. Expected regex syntax is the java " +
+                         s"one, documented here: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html"
+                       )(Pattern.compile(regexText))
       }
 
       /*

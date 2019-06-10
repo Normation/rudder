@@ -30,10 +30,11 @@ import scalaz.zio.syntax._
 import net.liftweb.common._
 import cats.data._
 import cats.implicits._
+import com.normation.errors.Chained
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
+import com.normation.errors.SystemError
 import scalaz.zio._
-import scalaz.zio.internal.PlatformLive.ExecutorUtil
 
 import scala.util.control.NonFatal
 
@@ -240,29 +241,6 @@ object zio {
    * Default ZIO Runtime used everywhere.
    */
   object ZioRuntime extends DefaultRuntime {
-    import java.util.{ WeakHashMap, Map => JMap }
-    import scalaz.zio.internal._
-    import scalaz.zio.Exit._
-    import scalaz.zio.Exit.Cause._
-    /*
-     * We need to overide the plateform to define "reportFailure" and get
-     * somthing usefull when an uncaught error happens.
-     */
-    override val Platform: Platform = new Platform {
-      val executor: Executor                   = ExecutorUtil.makeDefault()
-      def fatal(t: Throwable): Boolean         = t.isInstanceOf[VirtualMachineError]
-      def reportFailure(cause: Cause[_]): Unit = {
-        cause match {
-          case Interrupt   => () // nothgin to print
-          case f @ Fail(_) => println(f)
-          case Die(ex)     => ex.printStackTrace()
-          case Both(l, r)  => reportFailure(l); reportFailure(r)
-          case Then(l, r)  => reportFailure(l); reportFailure(r)
-        }
-      }
-      def newWeakHashMap[A, B](): JMap[A, B]   = new WeakHashMap[A, B]()
-    }
-
     def runNow[A](io: IOResult[A]): A = {
       this.unsafeRunSync(io).fold(cause => throw cause.squashWith(err => new RuntimeException(err.fullMsg)), a => a)
     }
@@ -290,10 +268,16 @@ object box {
    * Opposite to "toIO"
    */
   implicit class IOToBox[A](io: IOResult[A]) {
-    def toBox: Box[A] = try {
-      Full(ZioRuntime.runNow(io))
-    } catch {
-      case NonFatal(ex) => new Failure(ex.getMessage, Full(ex), Empty)
+    def errToFailure(err: RudderError): Failure = {
+      err match {
+        case Chained(msg, cause ) => new Failure(msg, Empty, Full(errToFailure(cause)))
+        case SystemError(msg, ex) => new Failure(msg, Full(ex), Empty)
+        case other                => new Failure(other.fullMsg, Empty, Empty)
+      }
+    }
+    def toBox: Box[A] = ZioRuntime.runNow(io.either) match {
+      case Right(x)  => Full(x)
+      case Left(err) => errToFailure(err)
     }
   }
 

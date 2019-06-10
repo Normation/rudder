@@ -857,6 +857,7 @@ class TestQueryProcessor extends Loggable {
       ] }
       """ :: Nil
 
+
     val results = failingRegexRequests.map(q => (q, queryProcessor.process(forceParse(q))))
     results.foreach { r =>
       assertTrue(s"Regex Query with wrong data for node properties should fail: ${r._1}", r._2.isInstanceOf[Failure])

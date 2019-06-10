@@ -275,7 +275,7 @@ class ProcessFile(
   def processMessage(): UIO[Unit] = {
     queue.take.flatMap {
       case WatchEvent.End(file) => // simple case: remove file from map
-        toBeProcessed.update[Any](s =>
+        toBeProcessed.update[Any, Nothing](s =>
           (s - file).succeed
         ).unit
 

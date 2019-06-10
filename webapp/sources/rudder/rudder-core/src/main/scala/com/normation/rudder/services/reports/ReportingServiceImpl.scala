@@ -43,7 +43,7 @@ import org.joda.time._
 import com.normation.rudder.domain.policies.{GlobalPolicyMode, RuleId}
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.repository._
-import com.normation.rudder.reports.execution.{AgentRunId, AgentRunWithNodeConfig, RoReportsExecutionRepository}
+import com.normation.rudder.reports.execution.{AgentRunId, RoReportsExecutionRepository}
 import com.normation.rudder.domain.reports.RuleStatusReport
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.reports.AgentRunIntervalService

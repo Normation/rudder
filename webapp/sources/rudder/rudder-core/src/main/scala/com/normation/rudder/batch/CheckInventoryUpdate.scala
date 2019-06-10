@@ -66,7 +66,8 @@ class CheckInventoryUpdate(
     logger.logEffect.trace(s"***** starting check of node main inventories information update to trigger policy generation, every ${updateInterval.toString()} *****")
   }
 
-  val prog = Task.effect {
+  // type annotation is necessary to avoid a "Any was infered, perhaps an error"
+  val prog: UIO[Unit] = Task.effect {
     if(!nodeInfoCacheImpl.isUpToDate().runNow) {
       logger.logEffect.info("Update in node inventories main information detected: triggering a policy generation")
       asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor, "Main inventory information of at least one node were updated")

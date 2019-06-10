@@ -381,7 +381,7 @@ limitations under the License.
     <http4s-version>0.19.0</http4s-version>
     <shapeless-version>2.3.3</shapeless-version>
     <cats-effect-version>1.0.0</cats-effect-version>
-    <scalaz-zio-version>1.0-RC4</scalaz-zio-version>
+    <scalaz-zio-version>1.0-RC5</scalaz-zio-version>
     <!--
       Hack to make scalac jvm parameters like RAM configurable.
       With that, one can override Xmx or add jvm parameters either

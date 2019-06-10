@@ -94,6 +94,7 @@ import scalaj.http.HttpOptions
 import scalaz.zio._
 import com.normation.box._
 import com.normation.zio.ZioRuntime
+import scalaj.http.HttpResponse
 
 /*
  * NodeApi implementation.
@@ -677,7 +678,8 @@ class NodeApiService8 (
 
     val in = new PipedInputStream(pipeSize)
 
-    val response = Task.bracket(Task.effect(new PipedOutputStream(in)))(out => Task.effect(out.close()).run.unit) { out =>
+    // type annotation necessary to avoid "Any was infered, perhaps an error ?"
+    val response: Task[HttpResponse[Unit]]  = Task.bracket(Task.effect(new PipedOutputStream(in)))(out => Task.effect(out.close()).run.unit) { out =>
       Task.effect( request.exec{ case (status,headers,is) =>
         if (status >= 200 && status < 300) {
           runResponse(is)(out)
