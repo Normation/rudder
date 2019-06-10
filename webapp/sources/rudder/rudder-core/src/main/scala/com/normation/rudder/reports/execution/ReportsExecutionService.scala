@@ -40,7 +40,6 @@ package com.normation.rudder.reports.execution
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.batch.FindNewReportsExecution
 import com.normation.rudder.domain.logger.ReportLogger
@@ -48,12 +47,11 @@ import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
 import com.normation.utils.Control
-
 import org.joda.time.DateTime
 import org.joda.time.format.PeriodFormat
-
 import net.liftweb.common._
 import com.normation.rudder.db.DB
+import com.normation.rudder.domain.reports.ChangeForCache
 import com.normation.rudder.repository.ComplianceRepository
 
 /**
@@ -195,18 +193,19 @@ class ReportsExecutionService (
     Future {
       //update changes by rules
       (for {
-        changes <- reportsRepository.getChangeReportsOnInterval(lowestId, highestId)
-        updated <- cachedChanges.update(changes)
+        changes         <- reportsRepository.getChangeReportsOnInterval(lowestId, highestId)
+        changesForCache = changes.map(x => ChangeForCache(x.ruleId, x.executionTimestamp))
+        updated         <- cachedChanges.update(changesForCache)
       } yield {
         updated
       }) match {
         case eb: EmptyBox =>
-          val e = eb ?~! "An error occured when trying to update the cache of last changes"
+          val e = eb ?~! "An error occurred when trying to update the cache of last changes"
           logger.error(e.messageChain)
           e.rootExceptionCause.foreach { ex =>
             logger.error("Root exception was: ", ex)
           }
-        case Full(x) => //youhou
+        case Full(x) =>
           logger.trace("Cache for changes by rule updates after new run received")
       }
     }

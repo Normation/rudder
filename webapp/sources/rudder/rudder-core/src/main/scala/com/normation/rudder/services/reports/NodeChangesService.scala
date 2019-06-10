@@ -42,7 +42,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
 import org.joda.time.Interval
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports.ResultRepairedReport
+import com.normation.rudder.domain.reports.{ChangeForCache, ResultRepairedReport}
 import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.repository.ReportsRepository
 import net.liftweb.common._
@@ -250,7 +250,7 @@ class CachedNodeChangesServiceImpl(
    * background processes where throughout is more
    * important than responsiveness.
    */
-  def update(changes: Seq[ResultRepairedReport]): Box[Unit] = this.synchronized {
+  def update(changes: Seq[ChangeForCache]): Box[Unit] = this.synchronized {
     logger.debug(s"NodeChanges cache updating with ${changes.size} new changes...")
     if(changes.isEmpty) {
       Full(())
