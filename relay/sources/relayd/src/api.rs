@@ -38,9 +38,9 @@ use std::{
     net::SocketAddr,
     sync::{Arc, RwLock},
 };
-use warp::{Filter};
+use warp::Filter;
 
-use crate::remote_run::{nodes_handle};
+use crate::remote_run::{nodes_handle, AgentParameters, RemoteRun, RemoteRunTarget};
 
 pub fn api(
     listen: SocketAddr,
@@ -48,6 +48,8 @@ pub fn api(
     job_config: Arc<JobConfig>,
     stats: Arc<RwLock<Stats>>,
 ) -> impl Future<Item = (), Error = ()> {
+    let job_config2 = job_config.clone();
+    let job_config3 = job_config.clone();
     let stats_simple = warp::path("stats").map(move || {
         info!("/stats queried"; "component" => LogComponent::Statistics);
         warp::reply::json(&(*stats.clone().read().unwrap()))
@@ -59,20 +61,54 @@ pub fn api(
     });
 
     let nodes = warp::path("nodes").and(warp::body::form()).and_then(
-        |simple_map: HashMap<String, String>| {
-            let my_agent = nodes_handle(&simple_map);
+        move |simple_map: HashMap<String, String>| {
+            let remote_run = nodes_handle(&simple_map, "nodes".to_string());
 
-            match my_agent {
-                Err(my_agent) => Err(warp::reject::custom(Error::InvalidCondition(
-                    my_agent.to_string(),
+            match &remote_run {
+                Err(remote_run) => Err(warp::reject::custom(Error::InvalidCondition(
+                    remote_run.to_string(),
                 ))),
-                Ok(_) => {
+                Ok(remote_run2) => {
                     info!("conditions OK"; "component" => LogComponent::Statistics);
-                    Ok(warp::reply())
+                    info!("Remote run launched on nodes: {:?}", remote_run2.target; "component" => LogComponent::Statistics);
+                    Ok(warp::reply())}
                 }
             }
-        },
     );
+
+    pub fn node_handle2(
+        remote_run: &RemoteRun,
+        case: String,
+    ) -> Box<Result<warp::reply::Reply, warp::reject::Rejection>> {
+        // let my_warp_reply = Box<warp::reply::Reply>;
+        // let my_warp_reject = Box<warp::reject::Rejection>;
+
+        match &remote_run {
+            Err(remote_run) => Box<Err(warp::reject::custom(Error::InvalidCondition(
+                remote_run.to_string()>,
+            ))),
+            Ok(remote_run2) => {
+                if case == "nodes" {
+                    info!("conditions OK"; "component" => LogComponent::Statistics);
+                    info!("Remote run launched on nodes: {:?}", remote_run2.target; "component" => LogComponent::Statistics);
+                    Box<Ok(warp::reply())>
+                } else {
+                    info!("conditions OK"; "component" => LogComponent::Statistics);
+                    info!("remote-run triggered on all the nodes"; "component" => LogComponent::Statistics);
+
+                    for node in job_config3
+                        .nodes
+                        .read()
+                        .expect("Cannot read nodes list")
+                        .get_neighbours_from_target(RemoteRunTarget::All)
+                    {
+                        info!("command executed : {} \n on node {}", remote_run2.agent_parameters.execute_agent().unwrap().to_string(), node ; "component" => LogComponent::Statistics);
+                    }
+                    Box<Ok(warp::reply())>
+                }
+            }
+        }
+    }
 
     let nodes2 = warp::path("nodes");
 
@@ -81,22 +117,37 @@ pub fn api(
         warp::reply()
     });
 
-    let all = warp::path("all").map(move || {
-        info!("remote-run triggered on all the nodes"; "component" => LogComponent::Statistics);
-        warp::reply()
-    });
+    let all = warp::path("all").and(warp::body::form()).and_then(
+        move |simple_map: HashMap<String, String>| {
+            let remote_run = nodes_handle(&simple_map, "all".to_string());
+
+            match &remote_run {
+                Err(remote_run) => Err(warp::reject::custom(Error::InvalidCondition(
+                    remote_run.to_string(),
+                ))),
+                Ok(remote_run2) => {
+                    info!("conditions OK"; "component" => LogComponent::Statistics);
+                    info!("remote-run triggered on all the nodes"; "component" => LogComponent::Statistics);
+
+                        for node in job_config3.nodes.read().expect("Cannot read nodes list").get_neighbours_from_target(RemoteRunTarget::All)
+                        {
+                            info!("command executed : {} \n on node {}", remote_run2.agent_parameters.execute_agent().unwrap().to_string(), node ; "component" => LogComponent::Statistics);
+
+                        }
+                            Ok(warp::reply())}
+                }
+            }
+    );
 
     let rudder = warp::path("rudder");
     let relay_api = warp::path("relay-api");
     let remote_run = warp::path("remote-run");
 
-    let routes = warp::get2()
-        .and(status.or(stats_simple))
-        .or(warp::post2()
-            .and(rudder)
-            .and(relay_api)
-            .and(remote_run)
-            .and(nodes.or(all).or(nodes2.and(node_id))));
+    let routes = warp::get2().and(status.or(stats_simple)).or(warp::post2()
+        .and(rudder)
+        .and(relay_api)
+        .and(remote_run)
+        .and(nodes.or(all).or(nodes2.and(node_id))));
 
     let (addr, server) = warp::serve(routes).bind_with_graceful_shutdown(listen, shutdown);
     info!("Started stats API on {}", addr; "component" => LogComponent::Statistics);

@@ -31,15 +31,26 @@
 use crate::error::Error;
 use regex::Regex;
 use std::collections::HashMap;
-use std::process::{Command};
+use std::process::Command;
 use std::str::FromStr;
 
 #[derive(Debug)]
-pub struct Agent {
+pub struct AgentParameters {
     asynchronous: bool,
     keep_output: bool,
     condition: Vec<Condition>,
-    nodes: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+pub enum RemoteRunTarget {
+    All,
+    Nodes(Vec<String>),
+}
+
+#[derive(Debug)]
+pub struct RemoteRun {
+    pub target: RemoteRunTarget,
+    pub agent_parameters: AgentParameters,
 }
 
 #[derive(Debug)]
@@ -53,9 +64,8 @@ impl FromStr for Condition {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let re = Regex::new(r"^[a-zA-Z0-9][a-zA-Z0-9_]*$").unwrap();
 
-        if !re.is_match(s) {
-            let mystring = format!("Wrong condition: {} Your condition should match this regex : ^[a-zA-Z0-9][a-zA-Z0-9_]*$", s);
-            Err(Error::InvalidCondition(mystring.to_string()))
+        if !re.is_match(s) && s.len() > 0 {
+            Err(Error::InvalidCondition("Wrong condition: {} Your condition should match this regex : ^[a-zA-Z0-9][a-zA-Z0-9_]*$".to_string()))
         } else {
             Ok(Condition {
                 data: s.to_string(),
@@ -64,22 +74,26 @@ impl FromStr for Condition {
     }
 }
 
-impl Agent {
+impl AgentParameters {
     pub fn execute_agent(&self) -> Result<String, Error> {
-        let output = Command::new("sh")
-            .args(self.command_line().iter())
+        let output = Command::new("echo")
+            .args(self.command_line())
+            // .arg("-c")
+            // .arg("echo hello")
             .output()?;
         Ok(String::from_utf8(output.stdout)?)
     }
 
     pub fn command_line(&self) -> Vec<String> {
-        let mut remote_run_command = vec![
-            "-c".to_string(),
-            "sudo".to_string(),
-            "/opt/rudder/bin/rudder".to_string(),
-            "remote".to_string(),
-            "run".to_string(),
-        ];
+        let mut remote_run_command = vec!["hello".to_string(), "my friend".to_string()];
+
+        //vec![
+        //     "-c".to_string(),
+        //     "sudo".to_string(),
+        //     "/opt/rudder/bin/rudder".to_string(),
+        //     "remote".to_string(),
+        //     "run".to_string(),
+        // ];
         // let LOCAL_RUN_COMMAND =
         //     "sudo /opt/rudder/bin/rudder agent run > /dev/null 2>&1".to_string(); // les mettre dans un vec<str>
 
@@ -95,12 +109,10 @@ impl Agent {
     }
 }
 
-pub fn nodes_handle(simple_map: &HashMap<String, String>) -> Result<Agent, Error> {
-    let nodes_vector: Vec<String> = simple_map
-        .get("nodes")
-        .map(|s| s.split(',').map(|s| s.to_string()).collect())
-        .unwrap_or_else(|| vec![]);
-
+pub fn nodes_handle(
+    simple_map: &HashMap<String, String>,
+    path: String,
+) -> Result<RemoteRun, Error> {
     let conditions_vector: Result<Vec<Condition>, Error> = simple_map
         .get("conditions")
         .unwrap_or(&"".to_string())
@@ -120,14 +132,34 @@ pub fn nodes_handle(simple_map: &HashMap<String, String>) -> Result<Agent, Error
         .unwrap_or(&"false".to_string())
         .parse::<bool>()?;
 
-    let my_agent = Agent {
+    let my_agent = AgentParameters {
         asynchronous: asynchronous_bool,
         keep_output: keep_output_bool,
         condition: conditions_vector,
-        nodes: nodes_vector,
     };
 
-    Ok(my_agent)
+    if path == "all" {
+        let my_remote_run_target = RemoteRunTarget::All;
+        let my_remote_run = RemoteRun {
+            target: my_remote_run_target,
+            agent_parameters: my_agent,
+        };
+
+        Ok(my_remote_run)
+    } else {
+        let nodes_vector: Vec<String> = simple_map
+            .get("nodes")
+            .map(|s| s.split(',').map(|s| s.to_string()).collect())
+            .unwrap_or_else(|| vec![]);
+
+        let my_remote_run_target = RemoteRunTarget::Nodes(nodes_vector);
+        let my_remote_run = RemoteRun {
+            target: my_remote_run_target,
+            agent_parameters: my_agent,
+        };
+
+        Ok(my_remote_run)
+    }
 }
 
 #[cfg(test)]
@@ -136,25 +168,6 @@ mod tests {
 
     #[test]
     fn it_handles_command_injection() {
-        let condition1 = Condition::from_str("class1").unwrap();
-
-        let condition2 = Condition::from_str("class2").unwrap();
-
-        let condition3 = Condition::from_str("class3").unwrap();
-
         assert!(Condition::from_str("cl&$$y").is_err());
-
-        let condition_vector: Vec<Condition> = vec![condition1, condition2, condition3];
-
-        let my_agent = Agent {
-            asynchronous: true,
-            keep_output: false,
-            condition: condition_vector,
-            nodes: vec![
-                "node7_uuid".to_string(),
-                "node97".to_string(),
-                "node5".to_string(),
-            ],
-        };
     }
 }

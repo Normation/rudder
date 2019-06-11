@@ -283,6 +283,7 @@ impl JobConfig {
         };
 
         let nodes = RwLock::new(NodesList::new(
+            cfg.general.node_id.to_string(),
             &cfg.general.nodes_list_file,
             Some(&cfg.general.nodes_certs_file),
         )?);
@@ -298,6 +299,7 @@ impl JobConfig {
     pub fn reload_nodeslist(&self) -> Result<(), Error> {
         let mut nodes = self.nodes.write().expect("could not write nodes list");
         *nodes = NodesList::new(
+            self.cfg.general.node_id.to_string(),
             &self.cfg.general.nodes_list_file,
             Some(&self.cfg.general.nodes_certs_file),
         )?;
