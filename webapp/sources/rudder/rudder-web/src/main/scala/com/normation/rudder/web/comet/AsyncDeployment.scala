@@ -124,46 +124,47 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     }
     deploymentStatus.processing match {
       case IdleDeployer =>
-    deploymentStatus.current match {
-      case NoStatus => <li class="dropdown-header">Policy update status unavailable</li>
-      case SuccessStatus(id,start,end,configurationNodes) =>
-        commonStatement(start, end, "Update took", "Policies updated","text-success fa fa-check","text-success")
-      case ErrorStatus(id,start,end,failure) =>
-        val popupContent =
-            failure.messageChain match {
-            case  deployementErrorMessage(chain, error) =>
-              <div class="alert alert-danger" role="alert">
-                {chain.split("<-").map(x =>  {<b>⇨&nbsp;</b>} ++ Text(x) ++  {<br/>})}
-              </div>
-              <br/>
-              <div class="panel-group" role="tablist">
-                <div class="panel panel-default">
-                <a class="" id="showTechnicalErrorDetails" role="button" data-toggle="collapse" href="#collapseListGroup1" aria-expanded="true" aria-controls="collapseListGroup1" onclick="reverseErrorDetails()">
-                    <div class="panel-heading" role="tab" id="collapseListGroupHeading1">
-                        <h4 class="panel-title">
-                                Show technical details
-                                <span id="showhidetechnicalerrors" class="glyphicon glyphicon-chevron-up up"></span>
-                        </h4>
-                    </div>
-                </a>
-                    <div id="collapseListGroup1" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="collapseListGroupHeading1" aria-expanded="true">
-                        <ul id="deploymentErrorMsg" class="list-group">
-                            {error.split("<-").map(x => <li class="list-group-item">{"⇨ " + x}</li>)}
-                        </ul>
-                    </div>
+        deploymentStatus.current match {
+          case NoStatus => <li class="dropdown-header">Policy update status unavailable</li>
+          case SuccessStatus(id,start,end,configurationNodes) =>
+            commonStatement(start, end, "Update took", "Policies updated","text-success fa fa-check","text-success")
+          case ErrorStatus(id,start,end,failure) =>
+            val popupContent =
+              failure.messageChain match {
+              case  deployementErrorMessage(chain, error) =>
+                <div class="alert alert-danger" role="alert">
+                  {chain.split("<-").map(x =>  {<b>⇨&nbsp;</b>} ++ Text(x) ++  {<br/>})}
                 </div>
-            </div>
+                <br/>
+                <div class="panel-group" role="tablist">
+                  <div class="panel panel-default">
+                    <a class="" id="showTechnicalErrorDetails" role="button" data-toggle="collapse" href="#collapseListGroup1" aria-expanded="true" aria-controls="collapseListGroup1" onclick="reverseErrorDetails()">
+                      <div class="panel-heading" role="tab" id="collapseListGroupHeading1">
+                        <h4 class="panel-title">
+                          Show technical details
+                          <span id="showhidetechnicalerrors" class="glyphicon glyphicon-chevron-up up"></span>
+                        </h4>
+                      </div>
+                    </a>
+                    <div id="collapseListGroup1" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="collapseListGroupHeading1" aria-expanded="true">
+                      <ul id="deploymentErrorMsg" class="list-group">
+                        {error.split("<-").map(x => <li class="list-group-item">{"⇨ " + x}</li>)}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
 
+              case _ => <div class="pre">{failure.messageChain.split("<-").map(x => Text("⇨ " + x) ++ {<br/>})}</div>
+            }
 
-            case _ => <div class="pre">{failure.messageChain.split("<-").map(x => Text("⇨ " + x) ++ {<br/>})}</div>
+            val callback = JsRaw("$('#errorDetailsDialog').bsModal('show');") & SetHtml("errorDetailsMessage" , popupContent)
+
+            commonStatement(start, end, "Error occured in", "Error during policy update","text-danger fa fa-times","text-danger") ++
+            <li class="footer">{ SHtml.a(Text("Details"), callback, ("href","#") , ("style","color:#a94442 !important;"))}</li>
         }
-
-        val callback = JsRaw("$('#errorDetailsDialog').bsModal('show');") & SetHtml("errorDetailsMessage" , popupContent)
-
-        commonStatement(start, end, "Error occured in", "Error during policy update","text-danger fa fa-times","text-danger") ++
-        <li class="footer">{ SHtml.a(Text("Details"), callback, ("href","#") , ("style","color:#a94442 !important;"))}</li>
-    }
-    case _ => loadingStatement(DateTime.now())
+      case Processing(id, start) => loadingStatement(start)
+      case ProcessingAndPendingAuto(asked, current, a, e)      => loadingStatement(current.started)
+      case ProcessingAndPendingManual(asked, current, a, e, r) => loadingStatement(current.started)
     }
   }
 
