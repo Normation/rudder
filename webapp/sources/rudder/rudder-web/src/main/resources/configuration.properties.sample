@@ -93,6 +93,7 @@ rudder.syslog.port=514
 ldap.host=localhost
 ldap.port=389
 ldap.authdn=cn=manager,cn=rudder-configuration
+ldap.maxPoolSize=2
 #
 # Password used to connect to the OpenLDAP server.
 # On a standard Rudder installation, the password is managed in
