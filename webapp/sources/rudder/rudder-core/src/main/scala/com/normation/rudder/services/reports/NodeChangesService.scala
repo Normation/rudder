@@ -144,11 +144,15 @@ class NodeChangesServiceImpl(
    * regroup them by rule, and by interval of 6 hours.
    */
   override def countChangesByRuleByInterval(): Box[ChangesByRule] = {
-    val start = getCurrentValidIntervals(None).map(_.getStart).minBy(_.getMillis)
+    logger.debug(s"Get all changes on all rules")
+    val beginTime = System.currentTimeMillis()
+    val intervals = getCurrentValidIntervals(None)
     // Regroup changes by interval
     for {
-      changes <- reportsRepository.countChangeReports(start, 6)
+      changes <- reportsRepository.countChangeReportsByBatch(intervals)
     } yield {
+      val endTime = System.currentTimeMillis()
+      logger.debug(s"Fetched all changes for all rules in ${(endTime - beginTime)} ms")
       changes
     }
   }

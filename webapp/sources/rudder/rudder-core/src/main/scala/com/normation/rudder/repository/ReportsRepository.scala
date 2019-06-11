@@ -109,6 +109,7 @@ trait ReportsRepository {
   //return the reports between the two ids, limited to limit number of reports, in asc order of id.
   def getReportsByKindBeetween(lower: Long, upper: Long, limit: Int, kinds: List[String]) : Box[Seq[(Long, Reports)]]
 
+  def countChangeReportsByBatch(intervals : List[Interval]) : Box[Map[RuleId, Map[Interval, Int]]]
 
   //nodechangesServices
   /*

@@ -388,6 +388,31 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     }).transact(xa)) ?~! s"Could not fetch the last completed runs from database."
   }
 
+  /**
+    * returns the changes between startTime and now, using intervalInHour interval size
+    */
+
+  override def countChangeReportsByBatch(intervals : List[Interval]) : Box[Map[RuleId, Map[Interval, Int]]] = {
+    import com.normation.utils.Control.sequence
+    logger.debug(s"Fetching all changes for intervals ${intervals.mkString(",")}")
+    val beginTime = System.currentTimeMillis()
+    val rules: Box[Seq[Vector[(RuleId, Interval, Int)]]] = sequence(intervals) { interval =>
+      (transactRunBox(xa => query[(RuleId, Int)](
+        s"""select ruleid, count(*) as number
+          from ruddersysevents
+          where eventtype = 'result_repaired' and executionTimeStamp > '${new Timestamp(interval.getStartMillis)}' and executionTimeStamp <= '${new Timestamp(interval.getEndMillis)}'
+          group by ruleid;
+      """
+      ).to[Vector].transact(xa)) ?~! s"Error when trying to retrieve change reports on interval ${interval.toString}").map { res =>
+
+        res.map { case (ruleid, count) => (ruleid, interval, count) }
+      }
+    }
+    val  endQuery = System.currentTimeMillis()
+    logger.debug(s"Fetched all changes in intervals in ${(endQuery - beginTime)} ms")
+    rules.map(x => x.flatten.groupBy(_._1).mapValues( _.groupBy(_._2).mapValues(_.map ( _._3).head)))  //head non empty due to groupBy, and seq == 1 by query
+  }
+
   override def countChangeReports(startTime: DateTime, intervalInHour: Int): Box[Map[RuleId, Map[Interval, Int]]] = {
     //special mapper to retrieve correct interval. It is dependant of starttime / intervalInHour
     implicit val intervalMeta: Get[Interval] = Get[Int].tmap(
