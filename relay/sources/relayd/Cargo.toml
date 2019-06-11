@@ -46,6 +46,8 @@ futures = "0.1"
 warp = "0.1"
 reqwest = "0.9"
 chrono = { version = "0.4", features = ["serde"] }
+regex = "1.1"
+itertools = "0.8"
 
 [dev-dependencies]
 criterion = "0.2"

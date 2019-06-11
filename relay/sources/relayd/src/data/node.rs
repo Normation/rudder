@@ -41,6 +41,8 @@ use std::{
     str::FromStr,
 };
 
+use itertools::Itertools;
+
 pub type NodeId = String;
 pub type Host = String;
 
@@ -129,6 +131,31 @@ impl NodesList {
             .as_utf8()?
             .to_string())
     }
+
+    fn get_neighbours(&self, relay_id: &str) -> Vec<String> {
+        self.data
+            .values()
+            .map(|k| k.policy_server.clone())
+            .filter(|k| k == relay_id)
+            .collect()
+    }
+
+    fn get_relays(&self) -> Vec<String> {
+        self.data
+            .values()
+            .map(|v| v.policy_server.clone())
+            .unique()
+            .collect()
+    }
+
+    fn get_neighbours_which_are_relay(&self, relay_id: &str) -> Vec<String> {
+        self.data
+            .values()
+            .map(|v| v.policy_server.clone())
+            .unique()
+            .filter(|k| k == relay_id)
+            .collect()
+    }
 }
 
 impl FromStr for NodesList {
@@ -150,7 +177,7 @@ mod tests {
             nodeslist.data["e745a140-40bc-4b86-b6dc-084488fc906b"].hostname,
             "node1.rudder.local"
         );
-        assert_eq!(nodeslist.data.len(), 3);
+        assert_eq!(nodeslist.data.len(), 6);
     }
 
     #[test]
@@ -160,7 +187,7 @@ mod tests {
             Some("tests/keys/nodescerts.pem"),
         )
         .unwrap();
-        assert_eq!(nodeslist.data.len(), 3);
+        assert_eq!(nodeslist.data.len(), 6);
         assert_eq!(
             nodeslist.data["37817c4d-fbf7-4850-a985-50021f4e8f41"]
                 .certificates
@@ -176,6 +203,49 @@ mod tests {
                 .unwrap()
                 .len(),
             2
+        );
+    }
+
+    #[test]
+    fn its_getting_the_neighbours() {
+        let mut my_string_vec = [
+            "e745a140-40bc-4b86-b6dc-084488fc906b",
+            "root",
+            "37817c4d-fbf7-4850-a985-50021f4e8f41",
+        ];
+
+        let file_nodelist = NodesList::new("tests/files/nodeslist.json", None).unwrap();
+
+        assert_eq!(file_nodelist.get_neighbours().sort(), my_string_vec.sort());
+    }
+
+    #[test]
+    fn its_getting_the_relays() {
+        let mut my_string_vec = [
+            "e745a140-40bc-4b86-b6dc-084488fc906b",
+            "root",
+            "37817c4d-fbf7-4850-a985-50021f4e8f41",
+            "a",
+        ];
+
+        let file_nodelist = NodesList::new("tests/files/nodeslist.json", None).unwrap();
+
+        assert_eq!(file_nodelist.get_neighbours().sort(), my_string_vec.sort());
+    }
+
+    #[test]
+    fn its_getting_the_neighbours_which_are_relay() {
+        let mut my_string_vec = [
+            "e745a140-40bc-4b86-b6dc-084488fc906b",
+            "root",
+            "37817c4d-fbf7-4850-a985-50021f4e8f41",
+        ];
+
+        let file_nodelist = NodesList::new("tests/files/nodeslist.json", None).unwrap();
+
+        assert_eq!(
+            file_nodelist.get_neighbours_which_are_relay().sort(),
+            my_string_vec.sort()
         );
     }
 }
