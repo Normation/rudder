@@ -40,9 +40,9 @@ pub mod error;
 pub mod input;
 pub mod output;
 pub mod processing;
+pub mod remote_run;
 pub mod stats;
 pub mod status;
-pub mod remote_run;
 
 use crate::{
     api::api,

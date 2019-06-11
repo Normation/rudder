@@ -97,7 +97,7 @@ impl Display for Error {
             IntegerParsing(ref err) => write!(f, "integer parsing error: {}", err),
             Utf8(ref err) => write!(f, "UTF-8 decoding error: {}", err),
             Ssl(ref err) => write!(f, "Ssl error: {}", err),
-            InvalidCondition(ref condition) => write!(f, "Bad agent Condition : {}", condition),
+            InvalidCondition(ref condition) => write!(f, "Invalid agent Condition : {}", condition),
             ParseBoolean(ref err) => write!(f, "Error occurred while parsing the boolean: {}", err),
         }
     }

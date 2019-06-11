@@ -132,7 +132,7 @@ impl NodesList {
             .to_string())
     }
 
-    fn get_neighbours(&self, relay_id : &str) -> Vec<String> {
+    fn get_neighbours(&self, relay_id: &str) -> Vec<String> {
         self.data
             .values()
             .map(|k| k.policy_server.clone())
@@ -148,7 +148,7 @@ impl NodesList {
             .collect()
     }
 
-    fn get_neighbours_which_are_relay(&self, relay_id : &str) -> Vec<String> {
+    fn get_neighbours_which_are_relay(&self, relay_id: &str) -> Vec<String> {
         self.data
             .values()
             .map(|v| v.policy_server.clone())
@@ -216,7 +216,7 @@ mod tests {
 
         let file_nodelist = NodesList::new("tests/files/nodeslist.json", None).unwrap();
 
-        assert_eq!(file_nodelist.get_neighbours().sort(), my_string_vec.sort()); 
+        assert_eq!(file_nodelist.get_neighbours().sort(), my_string_vec.sort());
     }
 
     #[test]

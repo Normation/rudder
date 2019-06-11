@@ -31,22 +31,16 @@
 use crate::error::Error;
 use crate::{configuration::LogComponent, stats::Stats, status::Status, JobConfig};
 use futures::Future;
-use regex::Regex;
 use slog::slog_info;
 use slog_scope::info;
 use std::collections::HashMap;
-use std::fmt::{self, Display};
-use std::io;
-use std::process::{Command, Stdio};
-use std::str::FromStr;
 use std::{
     net::SocketAddr,
     sync::{Arc, RwLock},
 };
-use warp::http::StatusCode;
-use warp::{Filter, Rejection, Reply};
+use warp::{Filter};
 
-use crate::remote_run::{Agent, nodes_handle};
+use crate::remote_run::{nodes_handle};
 
 pub fn api(
     listen: SocketAddr,
@@ -72,7 +66,7 @@ pub fn api(
                 Err(my_agent) => Err(warp::reject::custom(Error::InvalidCondition(
                     my_agent.to_string(),
                 ))),
-                Ok(my_agent) => {
+                Ok(_) => {
                     info!("conditions OK"; "component" => LogComponent::Statistics);
                     Ok(warp::reply())
                 }
@@ -92,11 +86,6 @@ pub fn api(
         warp::reply()
     });
 
-    let shared_files = warp::path("shared-files").map(move || {
-        info!("PUT received"; "component" => LogComponent::Statistics);
-        warp::reply()
-    });
-
     let rudder = warp::path("rudder");
     let relay_api = warp::path("relay-api");
     let remote_run = warp::path("remote-run");
@@ -107,9 +96,7 @@ pub fn api(
             .and(rudder)
             .and(relay_api)
             .and(remote_run)
-            .and(nodes.or(all).or(nodes2.and(node_id))))
-        .or(warp::put2().and(shared_files))
-        .or(warp::head().and(shared_files));
+            .and(nodes.or(all).or(nodes2.and(node_id))));
 
     let (addr, server) = warp::serve(routes).bind_with_graceful_shutdown(listen, shutdown);
     info!("Started stats API on {}", addr; "component" => LogComponent::Statistics);
