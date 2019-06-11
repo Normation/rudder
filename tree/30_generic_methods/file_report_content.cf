@@ -77,7 +77,7 @@ bundle agent file_report_content(target, regex, context)
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
     pass1.file_exists::
-      "content" string => readfile("${target}"),
+      "content" string => readfile("${target}", "0"),
                     if => "full_file";
       "content" string => execresult("${paths.path[grep]} -E \"${regex}\" -C${context} \"${target}\"", "useshell"),
                     if => "!full_file";
