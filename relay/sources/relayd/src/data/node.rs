@@ -216,7 +216,7 @@ mod tests {
 
         let file_nodelist = NodesList::new("tests/files/nodeslist.json", None).unwrap();
 
-        assert_eq!(file_nodelist.get_neighbours(&"root".to_string()).sort(), my_string_vec.sort());
+        assert_eq!(file_nodelist.get_neighbours("root").sort(), my_string_vec.sort());
     }
 
     #[test]
@@ -244,7 +244,7 @@ mod tests {
         let file_nodelist = NodesList::new("tests/files/nodeslist.json", None).unwrap();
 
         assert_eq!(
-            file_nodelist.get_neighbours_which_are_relay(&"root".to_string()).sort(),
+            file_nodelist.get_neighbours_which_are_relay("root").sort(),
             my_string_vec.sort()
         );
     }
