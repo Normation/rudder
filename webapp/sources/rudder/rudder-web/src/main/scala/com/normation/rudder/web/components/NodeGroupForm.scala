@@ -489,7 +489,7 @@ class NodeGroupForm(
     }
     //update UI
     onSuccessCallback(Left((group, parentCategoryId)))&
-    JsRaw(s"""this.window.location.hash = "#" + JSON.stringify({${js})""")
+    JsRaw(s"""this.window.location.hash = "#" + JSON.stringify({${js}})""")
   }
 
   private[this] def updateAndDisplayNotifications() : NodeSeq = {
