@@ -117,18 +117,18 @@ class ReadOnlySoftwareDAOImpl(
     // fetch all softwares, for all nodes, in all 3 dits
     val acceptedDit = inventoryDitService.getDit(AcceptedInventory)
 
-    var mutSetSoftwares: Box[scala.collection.mutable.Set[SoftwareUuid]] = Full(scala.collection.mutable.Set[SoftwareUuid]())
+    var mutSetSoftwares: scala.collection.mutable.Set[SoftwareUuid] = scala.collection.mutable.Set[SoftwareUuid]()
 
     val t1 = System.currentTimeMillis
-    for {
+    (for {
       con           <- ldap
 
       // fetch all nodes
       nodes         = con.searchSub(acceptedDit.NODES.dn.getParent, IS(OC_NODE), A_NODE_UUID)
 
-      batchedNodes = nodes.grouped(50)
+      batchedNodes = nodes.grouped(50).toSeq
 
-      _ = batchedNodes.foreach { nodeEntries: Seq[LDAPEntry] =>
+      _ <- sequence(batchedNodes) { nodeEntries: Seq[LDAPEntry] =>
                              val nodeIds      = nodeEntries.flatMap(_(A_NODE_UUID)).map(NodeId(_))
 
                              val t2           = System.currentTimeMillis
@@ -138,19 +138,18 @@ class ReadOnlySoftwareDAOImpl(
                              val results      = sequence(ids) { id => acceptedDit.SOFTWARE.SOFT.idFromDN(new DN(id)) }
                              val t3           = System.currentTimeMillis()
                              logger.debug(s"Software DNs from 50 nodes fetched in ${t3-t2}ms")
-                             results match {
+                             results match { // we don't want to return "results" because we need on-site dedup.
                                case Full(softIds) =>
-                                 mutSetSoftwares = mutSetSoftwares.map(t => t ++ softIds)
+                                 mutSetSoftwares = mutSetSoftwares ++ softIds
                                  Full(Unit)
-                               case Failure(msg, exception, chain) => mutSetSoftwares = Failure(msg, exception, chain) // otherwise the time is wrong
+                               case Failure(msg, exception, chain) =>
+                                 Failure(msg, exception, chain) // otherwise the time is wrong
                              }
                            }
-
-
-      } yield {
-        mutSetSoftwares
-      }
-    mutSetSoftwares.map(x => x.toSet)
+    } yield {
+      ()
+    }).map(_ => mutSetSoftwares.toSet)
+  }
 
 /*
     // TODO: This needs pagination, with 1000 nodes, it uses about 1,5 GB
