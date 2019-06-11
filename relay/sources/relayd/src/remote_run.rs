@@ -142,8 +142,6 @@ mod tests {
 
         let condition3 = Condition::from_str("class3").unwrap();
 
-        let condition4 = Condition::from_str("class4").unwrap();
-
         assert!(Condition::from_str("cl&$$y").is_err());
 
         let condition_vector: Vec<Condition> = vec![condition1, condition2, condition3];
