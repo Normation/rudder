@@ -60,10 +60,6 @@ import com.normation.utils.Control._
 import java.io.File
 import java.io.IOException
 
-import monix.eval.Task
-import monix.eval.TaskSemaphore
-import monix.execution.ExecutionModel
-import monix.execution.Scheduler
 import net.liftweb.common._
 import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonAST.JValue
@@ -73,7 +69,6 @@ import org.apache.commons.io.FilenameUtils
 import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
 
-import scala.concurrent.Await
 import scala.util.{Failure => FailTry}
 import scala.util.Success
 import scala.util.Try
@@ -85,9 +80,10 @@ import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.policies.Policy
 import java.nio.charset.StandardCharsets
 
-import cats.data.NonEmptyList
 import com.normation.rudder.domain.logger.PolicyLogger
 import com.normation.rudder.hooks.HookReturnCode
+import com.normation.rudder.services.policies.ParallelSequence
+import com.normation.rudder.services.policies.Parallelism
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -107,6 +103,7 @@ trait PolicyWriterService {
     , allLicenses   : Map[NodeId, CfeEnterpriseLicense]
     , globalPolicyMode: GlobalPolicyMode
     , generationTime  : DateTime
+    , parallelism     : Parallelism
   ) : Box[Seq[NodeConfiguration]]
 }
 
@@ -174,42 +171,8 @@ class PolicyWriterServiceImpl(
     }
   }
 
-  /*
-   * For all the writing part, we want to limit the number of concurrent workers on two aspects:
-   * - we want an I/O threadpool, which knows what to do when a thread is blocked for a long time,
-   *   and risks thread exaustion
-   *   (it can happens, since we have a number of files to write, some maybe big)
-   * - we want to limit the total number of concurrent execution to avoid blowming up the number
-   *   of open files, concurrent hooks, etc. This is not directly linked to the number of CPU,
-   *   but clearly there is no point having a pool of 4 threads for 1000 nodes which will
-   *   fork 1000 times for hooks - even if there is 4 threads used for that.
-   *
-   * That means that we want something looking like a sequencePar interface, but with:
-   * - a common thread pool, i/o oriented
-   * - a common max numbers of concurrent tasks.
-   *   I believe it should be common to all steps because it's mostly on the same machine - but
-   *   for now, that doesn't really matter, since each step is bloking (ie wait before next).
-   *   A parallelism around the thread pool sizing (by default, number of CPU) seems ok.
-   *
-   * here, f must not throws execption.
-   *
-   */
-  def parrallelSequence[U,T](seq: Seq[U])(f:U => Box[T])(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Seq[T]] = {
-    def boxToEither(f: U => Box[T])(u:U): Either[String, T] = f(u) match {
-      case Full(t)    => Right(t)
-      case Empty      => Left("Error (no message available)")
-      case f: Failure => Left(f.messageChain)
-    }
-    def recover(u:U, ex: Throwable): Either[String, T] = Left(ex.getMessage)
-
-    parrallelSequenceGen(seq)(boxToEither(f) _, recover) match {
-      case Left(nel) => Failure(nel.toList.mkString(";"))
-      case Right(x)  => Full(x)
-    }
-  }
-
   // a version for Hook with a nicer message accumulation
-  def parrallelSequenceNodeHook(seq: Seq[AgentNodeConfiguration])(f: AgentNodeConfiguration => HookReturnCode)(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Unit] = {
+  def parallelSequenceNodeHook(seq: Seq[AgentNodeConfiguration])(f: AgentNodeConfiguration => HookReturnCode)(implicit parallelism: Parallelism): Box[Unit] = {
 
     type RES = Either[(NodeId, HookReturnCode.Error), HookReturnCode.Success]
 
@@ -225,7 +188,7 @@ class PolicyWriterServiceImpl(
       if(s.size <= max) s else s.substring(0, max-3) + "..."
     }
 
-    parrallelSequenceGen(seq)(codeToEither(f) _, recover) match {
+    ParallelSequence.parallelSequenceGen (seq) (codeToEither(f) _, recover) match {
       case Right(x)  => Full(())
       case Left(nel) =>
         // in that case, it is extremely likely that most messages are the same. We group them together
@@ -241,41 +204,6 @@ class PolicyWriterServiceImpl(
     }
   }
 
-  // the generic version of parrallelSeq
-  def parrallelSequenceGen[U, T, E](seq: Seq[U])(f:U => Either[E, T], recover:(U, Throwable) => Either[E, T])(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Either[NonEmptyList[E], Seq[T]] = {
-    import scala.concurrent.duration._
-
-    //transform the sequence in tasks, gather results unordered
-    val tasks = Task.gather(seq.map { action =>
-      semaphore.greenLight(Task(
-        try {
-          f(action)
-        } catch {
-          case ex: Throwable => recover(action, ex)
-        }
-      ))
-    })
-
-    // give a timeout for the whole tasks sufficiently large.
-    // Hint: CF-promise taking 2s by node, for 10 000 nodes, on
-    // 4 cores => ~85 minutes...
-    // It is here mostly as a safeguard for generation which went wrong -
-    // we will already have timeout at the thread level for stalling threads.
-    val timeout = 2.hours
-
-    //exec
-    val updated = Await.result(tasks.runAsync, timeout)
-    // gather results
-    val gatherErrors = updated.foldLeft[Either[NonEmptyList[E], Seq[T]]](Right(Nil)) {
-      case (Left(nel) , Left(err)) => Left(err :: nel)
-      case (Left(nel) , _        ) => Left(nel)
-      case (Right(_)  , Left(err)) => Left(NonEmptyList.of(err))
-      case (Right(seq), Right(x) ) => Right(seq :+ x)
-    }
-
-   gatherErrors
-  }
-
   /**
    * Write templates for node configuration that changed since the last write.
    *
@@ -288,6 +216,7 @@ class PolicyWriterServiceImpl(
     , allLicenses     : Map[NodeId, CfeEnterpriseLicense]
     , globalPolicyMode: GlobalPolicyMode
     , generationTime  : DateTime
+    , parallelism     : Parallelism
   ) : Box[Seq[NodeConfiguration]] = {
 
     val nodeConfigsToWrite     = allNodeConfigs.filterKeys(nodesToWrite.contains(_))
@@ -327,18 +256,7 @@ class PolicyWriterServiceImpl(
     import scala.collection.JavaConverters._
     val systemEnv = HookEnvPairs.build(System.getenv.asScala.toSeq:_*)
 
-    implicit val semaphore = TaskSemaphore(maxParallelism = {
-      //the same logic than the one used for scala pool size is used to keep some consistency
-      //by default, use the number of core, or the configured number.
-      //see https://github.com/scala/scala/blob/2.12.x/src/library/scala/concurrent/impl/ExecutionContextImpl.scala#L92
-      (try System.getProperty("scala.concurrent.context.maxThreads", "x1") catch {
-        case e: SecurityException => "x1"
-      }) match {
-        case s if s.charAt(0) == 'x' => (Runtime.getRuntime.availableProcessors * s.substring(1).toDouble).ceil.toInt
-        case other => other.toInt
-      }
-    })
-    implicit val scheduler = Scheduler.io(executionModel = ExecutionModel.AlwaysAsyncExecution)
+    implicit val p = parallelism
 
     //interpret HookReturnCode as a Box
 
@@ -358,7 +276,7 @@ class PolicyWriterServiceImpl(
       // nothing agent specific before that
       //////////
 
-      preparedPromises <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
+      preparedPromises <- ParallelSequence.traverse(configAndPaths) { case agentNodeConfig =>
                             val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
                             prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, Policy.TAG_OF_RUDDER_ID, globalPolicyMode, generationTime) ?~!
                             s"Error when calculating configuration for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})"
@@ -367,9 +285,9 @@ class PolicyWriterServiceImpl(
       preparedPromisesDur  = preparedPromisesTime - readTemplateTime2
       _                    = policyLogger.debug(s"Promises prepared in ${preparedPromisesDur} ms")
 
-      promiseWritten   <- parrallelSequence(preparedPromises) { prepared =>
+      promiseWritten   <- ParallelSequence.traverse(preparedPromises) { prepared =>
                             (for {
-                              _ <- writePromises(prepared.paths, prepared.preparedTechniques, resources)
+                              _ <- writePromises(prepared.paths, prepared.agentNodeProps.agentType, prepared.preparedTechniques, resources)
                               _ <- writeAllAgentSpecificFiles.write(prepared) ?~! s"Error with node '${prepared.paths.nodeId.value}'"
                               _ <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
                             } yield {
@@ -385,7 +303,7 @@ class PolicyWriterServiceImpl(
       // nothing agent specific after that
       //////////
 
-      propertiesWritten <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
+      propertiesWritten <- ParallelSequence.traverse(configAndPaths) { case agentNodeConfig =>
                              writeNodePropertiesFile(agentNodeConfig) ?~!
                                s"An error occured while writing property file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                            }
@@ -394,7 +312,7 @@ class PolicyWriterServiceImpl(
       propertiesWrittenDur  = propertiesWrittenTime - promiseWrittenTime
       _                     = policyLogger.debug(s"Properties written in ${propertiesWrittenDur} ms")
 
-      parametersWritten <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
+      parametersWritten <- ParallelSequence.traverse(configAndPaths) { case agentNodeConfig =>
                              writeRudderParameterFile(agentNodeConfig) ?~!
                                s"An error occured while writing parameter file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                           }
@@ -414,7 +332,7 @@ class PolicyWriterServiceImpl(
       // and perhaps we should have an AgentSpecific global pre/post write
 
       nodePreMvHooks   <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-ready", HOOKS_IGNORE_SUFFIXES)
-      preMvHooks       <- parrallelSequenceNodeHook(configAndPaths) { agentNodeConfig =>
+      preMvHooks       <- parallelSequenceNodeHook(configAndPaths) { agentNodeConfig =>
                             val timeHooks = System.currentTimeMillis
                             val nodeId = agentNodeConfig.config.nodeInfo.node.id.value
                             val hostname = agentNodeConfig.config.nodeInfo.hostname
@@ -447,7 +365,7 @@ class PolicyWriterServiceImpl(
       _                  = policyLogger.debug(s"Policies moved to their final position in ${movedPromisesDur} ms")
 
       nodePostMvHooks  <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-finished", HOOKS_IGNORE_SUFFIXES)
-      postMvHooks      <- parrallelSequenceNodeHook(configAndPaths) { agentNodeConfig =>
+      postMvHooks      <- parallelSequenceNodeHook(configAndPaths) { agentNodeConfig =>
                             val timeHooks = System.currentTimeMillis
                             val nodeId = agentNodeConfig.config.nodeInfo.node.id.value
                             val hostname = agentNodeConfig.config.nodeInfo.hostname
@@ -529,7 +447,7 @@ class PolicyWriterServiceImpl(
    */
   private[this] def readTemplateFromFileSystem(
       techniqueIds: Set[TechniqueId]
-  )(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]] = {
+  )(implicit parallelism: Parallelism): Box[Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]] = {
 
     //list of (template id, template out path)
     val templatesToRead = for {
@@ -545,7 +463,7 @@ class PolicyWriterServiceImpl(
      * NOTE : this is inefficient and store in a lot of multiple time the same content
      * if only the outpath change for two differents agent type.
      */
-   val res = (parrallelSequence(templatesToRead) { case (templateId, agentType, templateOutPath) =>
+   val res = (ParallelSequence.traverse(templatesToRead) { case (templateId, agentType, templateOutPath) =>
       for {
         copyInfo <- techniqueRepository.getTemplateContent(templateId) { optInputStream =>
           optInputStream match {
@@ -570,8 +488,9 @@ class PolicyWriterServiceImpl(
 
   private[this] def writePromises(
       paths             : NodePromisesPaths
+    , agentType         : AgentType
     , preparedTechniques: Seq[PreparedTechnique]
-    , resources         : Map[TechniqueResourceId, TechniqueResourceCopyInfo]
+    , resources         : Map[(TechniqueResourceId, AgentType), TechniqueResourceCopyInfo]
   ) : Box[NodePromisesPaths] = {
     // write the promises of the current machine and set correct permission
     for {
@@ -581,7 +500,7 @@ class PolicyWriterServiceImpl(
                                writePromisesFiles(template, preparedTechnique.environmentVariables, paths.newFolder, preparedTechnique.reportIdToReplace)
                              }
                files     <- sequence(preparedTechnique.filesToCopy.toSeq) { file =>
-                              copyResourceFile(file, paths.newFolder, preparedTechnique.reportIdToReplace, resources)
+                              copyResourceFile(file, agentType, paths.newFolder, preparedTechnique.reportIdToReplace, resources)
                             }
              } yield {
                "OK"
@@ -598,18 +517,18 @@ class PolicyWriterServiceImpl(
    */
   private[this] def readResourcesFromFileSystem(
      techniqueIds: Set[TechniqueId]
-  )(implicit scheduler: Scheduler, semaphore: TaskSemaphore): Box[Map[TechniqueResourceId, TechniqueResourceCopyInfo]] = {
+  )(implicit parallelism: Parallelism): Box[Map[(TechniqueResourceId, AgentType), TechniqueResourceCopyInfo]] = {
 
     val staticResourceToRead = for {
       technique      <- techniqueRepository.getByIds(techniqueIds.toSeq)
-      staticResource <- technique.agentConfigs.flatMap(cfg => cfg.files.map(t => (t.id, t.outPath)))
+      staticResource <- technique.agentConfigs.flatMap(cfg => cfg.files.map(t => (t.id, cfg.agentType, t.outPath)))
     } yield {
       staticResource
     }
 
     val now = System.currentTimeMillis()
 
-    val res = (parrallelSequence(staticResourceToRead) { case (templateId, templateOutPath) =>
+    val res = (ParallelSequence.traverse(staticResourceToRead) { case (templateId, agentType, templateOutPath) =>
       for {
         copyInfo <- techniqueRepository.getFileContent(templateId) { optInputStream =>
           optInputStream match {
@@ -623,7 +542,7 @@ class PolicyWriterServiceImpl(
           }
         }
       } yield {
-        (copyInfo.id, copyInfo)
+        ((copyInfo.id, agentType), copyInfo)
       }
     }).map( _.toMap)
 
@@ -772,9 +691,10 @@ class PolicyWriterServiceImpl(
    */
   private[this] def copyResourceFile(
       file             : TechniqueFile
+    , agentType        : AgentType
     , rulePath         : String
     , reportIdToReplace: Option[PolicyId]
-    , resources        : Map[TechniqueResourceId, TechniqueResourceCopyInfo]
+    , resources        : Map[(TechniqueResourceId, AgentType), TechniqueResourceCopyInfo]
   ): Box[String] = {
     val destination = {
       val out = reportIdToReplace match {
@@ -784,7 +704,7 @@ class PolicyWriterServiceImpl(
       new File(rulePath+"/"+out)
     }
 
-    resources.get(file.id) match {
+    resources.get((file.id, agentType)) match {
       case None    => Failure(s"Can not open the technique resource file ${file.id} for reading")
       case Some(s) =>
         try {

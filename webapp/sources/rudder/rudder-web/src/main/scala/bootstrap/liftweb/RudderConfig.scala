@@ -1429,6 +1429,8 @@ object RudderConfig extends Loggable {
       , configService.agent_run_start_minute _
       , configService.rudder_featureSwitch_directiveScriptEngine _
       , configService.rudder_global_policy_mode _
+      , configService.rudder_generation_max_parallelism _
+      , configService.rudder_generation_js_timeout _
       , HOOKS_D
       , HOOKS_IGNORE_SUFFIXES
   )}

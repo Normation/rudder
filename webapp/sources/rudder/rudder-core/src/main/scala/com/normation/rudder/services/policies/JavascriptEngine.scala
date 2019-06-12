@@ -80,9 +80,11 @@ import sun.security.provider.PolicyFile
 import com.github.ghik.silencer.silent
 import com.normation.rudder.domain.logger.JsDirectiveParamLogger
 
+import scala.concurrent.duration.FiniteDuration
+
 sealed trait HashOsType
 
-final object HashOsType {
+object HashOsType {
   final case object AixHash   extends HashOsType
   final case object CryptHash extends HashOsType //linux, bsd,...
 
@@ -331,7 +333,7 @@ final object JsEngineProvider {
    * Security policy are taken from `rudder-js.policy` file in the classpath
    * unlessthe file `/opt/rudder/etc/rudder-js.policy` is defined.
    */
-  def withNewEngine[T](feature: FeatureSwitch)(script: JsEngine => Box[T]): Box[T] = {
+  def withNewEngine[T](feature: FeatureSwitch, maxThread: Int = 1, timeout: FiniteDuration)(script: JsEngine => Box[T]): Box[T] = {
     feature match {
       case FeatureSwitch.Enabled  =>
         val defaultPath = this.getClass.getClassLoader.getResource("rudder-js.policy")
@@ -342,7 +344,7 @@ final object JsEngineProvider {
           defaultPath
         }
 
-        val res = SandboxedJsEngine.sandboxed(url) { engine => script(engine) }
+        val res = SandboxedJsEngine.sandboxed(url, maxThread, timeout) { engine => script(engine) }
 
         //we may want to debug hard to debug case here, especially when we had a stackoverflow below
         (JsDirectiveParamLogger.isDebugEnabled, res) match {
@@ -381,7 +383,7 @@ sealed trait JsEngine {
 /*
  * Our JsEngine.
  */
-final object JsEngine {
+object JsEngine {
   // Several evals: one default and one JS (in the future, we may have several language)
   final val DEFAULT_EVAL = "eval:"
   final val EVALJS       = "evaljs:"
@@ -445,21 +447,21 @@ final object JsEngine {
      * Note: maybe make that a parameter so that we can put an even higher value here,
      * but only put 1s in tests so that they end quickly
      */
-    val MAX_EVAL_DURATION = (5, TimeUnit.SECONDS)
+    val DEFAULT_MAX_EVAL_DURATION = FiniteDuration(5, TimeUnit.SECONDS)
 
     /**
      * Get a new JS Engine.
      * This is expensive, several seconds on a 8-core i7 @ 3.5Ghz.
      * So you should minimize the number of time it is done.
      */
-    def sandboxed[T](policyFileUrl: URL)(script: SandboxedJsEngine => Box[T]): Box[T] = {
+    def sandboxed[T](policyFileUrl: URL, maxThread: Int = 1, timeout: FiniteDuration = DEFAULT_MAX_EVAL_DURATION)(script: SandboxedJsEngine => Box[T]): Box[T] = {
       var sandbox = new SandboxSecurityManager(policyFileUrl)
       var threadFactory = new RudderJsEngineThreadFactory(sandbox)
-      var pool = Executors.newSingleThreadExecutor(threadFactory)
+      var pool = Executors.newFixedThreadPool(maxThread, threadFactory)
       System.setSecurityManager(sandbox)
 
       getJsEngine().flatMap { jsEngine =>
-        val engine = new SandboxedJsEngine(jsEngine, sandbox, pool, MAX_EVAL_DURATION)
+        val engine = new SandboxedJsEngine(jsEngine, sandbox, pool, timeout)
 
         try {
           script(engine)
@@ -468,6 +470,7 @@ final object JsEngine {
             Failure(message, Full(cause), Empty)
         } finally {
           //clear everything
+          pool.shutdownNow()
           pool = null
           threadFactory = null
           sandbox = null
@@ -504,7 +507,7 @@ final object JsEngine {
    * So generally, you want to manage that in a contained scope.
    */
 
-  final class SandboxedJsEngine private (jsEngine: ScriptEngine, sm: SecurityManager, pool: ExecutorService, maxTime: (Int, TimeUnit)) extends JsEngine {
+  final class SandboxedJsEngine private (jsEngine: ScriptEngine, sm: SecurityManager, pool: ExecutorService, maxTime: FiniteDuration) extends JsEngine {
 
     // we need to preload Permission to avoid loops - see #13014
     val preload1 = new FilePermission("not a real path", "read")
@@ -612,8 +615,10 @@ final object JsEngine {
       }
 
       try {
-        // submit to the pool and synchroniously retrieve the value with a timeout
-        pool.submit(scriptCallable).get(maxTime._1.toLong, maxTime._2)
+        val task = pool.submit(scriptCallable)
+        try {
+          // submit to the pool and synchroniously retrieve the value with a timeout
+          task.get(maxTime.toMillis, TimeUnit.MILLISECONDS)
       } catch {
         case ex: ExecutionException => //this can happen when rhino get security exception... Yeah...
           throw RudderFatalScriptException(s"Evaluating script '${name}' was forced interrupted due to ${ex.getMessage}, aborting.", ex)
@@ -621,25 +626,30 @@ final object JsEngine {
         case ex: TimeoutException =>
           //try to interrupt the thread
           try {
-            // try to gently terminate the thread
-            pool.shutdownNow()
-            Thread.sleep(200)
-            if(pool.isTerminated()) {
-              Failure(s"Evaluating script '${name}' took more than ${maxTime._1}s, aborting")
+              // try to gently terminate the task
+              if(!task.isDone) {
+               task.cancel(true)
+              }
+              if(task.isCancelled || task.isDone) {
+                Failure(s"Evaluating script '${name}' took more than ${maxTime.toString()}, aborting")
             } else {
               //not interrupted - force kill
               scriptCallable.abortWithConsequences() //that throws TreadDead, the following is never reached
-              Failure(s"Evaluating script '${name}' took more than ${maxTime._1}s, and " +
+                Failure(s"Evaluating script '${name}' took more than ${maxTime.toString()}, and " +
                     "we were force to kill the thread. Check for infinite loop or uninterruptible system calls")
             }
           } catch {
             case ex: ThreadDeath =>
-              throw RudderFatalScriptException(s"Evaluating script '${name}' took more than ${maxTime._1}s, and " +
+                throw RudderFatalScriptException(s"Evaluating script '${name}' took more than ${maxTime.toString()}, and " +
                     "we were force to kill the thread. Check for infinite loop or uninterruptible system calls", ex)
 
             case ex: InterruptedException =>
               throw RudderFatalScriptException(s"Evaluating script '${name}' was forced interrupted, aborting.", ex)
           }
+      }
+      } catch {
+        case ex: RejectedExecutionException =>
+          throw RudderFatalScriptException(s"Evaluating script '${name}' lead to a '${ex.getClass.getName}'. Perhaps the thread pool was stopped?", ex)
       }
     }
   }

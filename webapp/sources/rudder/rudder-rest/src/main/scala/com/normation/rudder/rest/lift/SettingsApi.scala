@@ -111,6 +111,8 @@ class SettingsApi(
       RestOnAcceptPolicyMode ::
       RestChangeRequestUnexpectedAllowsDuplicate ::
       RestChangeRequestUnexpectedUnboundVarValues ::
+      RestGenerationMaxParallelism ::
+      RestGenerationJsTimeout ::
       Nil
 
   val allSettings_v8 = RestUseReverseDNS :: allSettings_v10
@@ -644,7 +646,19 @@ class SettingsApi(
     RestUtils.response(restExtractorService, kind, id)(function, req, errorMessage)
   }
 
+  case object RestGenerationMaxParallelism extends RestStringSetting {
+    val startPolicyGeneration = false
+    val key = "rudder_generation_max_parallelism"
+    def get = configService.rudder_generation_max_parallelism()
+    def set = (value : String, _, _) => configService.set_rudder_generation_max_parallelism(value)
+  }
 
+  case object RestGenerationJsTimeout extends RestIntSetting {
+    val startPolicyGeneration = false
+    val key = "rudder_generation_js_timeout"
+    def get = configService.rudder_generation_js_timeout()
+    def set = (value : Int, _, _) => configService.set_rudder_generation_js_timeout(value)
+  }
 }
 
 
