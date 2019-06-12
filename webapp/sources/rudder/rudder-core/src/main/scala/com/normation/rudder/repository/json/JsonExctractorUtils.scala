@@ -50,12 +50,12 @@ trait JsonExctractorUtils[A[_]] {
 
   def getOrElse[T](value : A[T], default : T) : T
   def boxedIdentity[T] : T => Box[T] = Full(_)
-  def emptyValue[T] : Box[A[T]]
+  def emptyValue[T](id : String) : Box[A[T]]
   protected[this] def extractJson[T, U ] (json:JValue, key:String, convertTo : U => Box[T], validJson : PartialFunction[JValue, U]) : Box[A[T]] = {
     json \ key match {
       case value if validJson.isDefinedAt(value) =>
         convertTo(validJson(value)).map(monad.pure(_))
-      case JNothing => emptyValue ?~! s"parameter ${key} cannot be empty"
+      case JNothing => emptyValue(key) ?~! s"parameter ${key} cannot be empty"
       case invalidJson => Failure(s"Not a good value for parameter ${key}: ${compactRender(invalidJson)}")
     }
   }
@@ -92,20 +92,22 @@ trait JsonExctractorUtils[A[_]] {
         } yield {
           converted
         }).map(monad.pure(_))
-      case JNothing   => convertTo(Nil).map(monad.pure(_))
+      case JNothing   =>   emptyValue(key) ?~! s"Array of string is empty"
       case _              => Failure(s"Not a good value for parameter ${key}")
     }
   }
 
-  def extractJsonArray[T] (json: JValue)( convertTo: JValue => Box[A[T]] ): Box[A[List[T]]] = {
-    json  match {
+  def extractJsonArray[T] (json: JValue, key : String)( convertTo: JValue => Box[T] ): Box[A[List[T]]] = {
+    val trueJson =
+      if (key.isEmpty) json else json \ key
+    trueJson  match {
       case JArray(values) =>
         for {
           converted <- sequence(values) { convertTo(_) }
         } yield {
-          Traverse[List].sequence(converted.toList)
+          monad.point(converted.toList)
         }
-      case JNothing   => emptyValue ?~! s"Array is empty when extracting array"
+      case JNothing   => emptyValue(key) ?~! s"Array is empty when extracting array"
       case _          => Failure(s"Invalid json to extract a json array, current value is: ${compactRender(json)}")
     }
   }
@@ -116,7 +118,7 @@ object DataExtractor {
 
   object OptionnalJson extends DataExtractor[Option] {
     def monad = implicitly
-    def emptyValue[T] = Full(None)
+    def emptyValue[T](id : String) = Full(None)
     def getOrElse[T](value : Option[T], default : T) = value.getOrElse(default)
   }
 
@@ -124,7 +126,7 @@ object DataExtractor {
 
   object CompleteJson extends DataExtractor[Id] {
     def monad = implicitly
-    def emptyValue[T] = Failure(s"parameter cannot be empty")
+    def emptyValue[T](id : String) = Failure(s"parameter '${id}' cannot be empty")
     def getOrElse[T](value : T, default : T) = value
   }
 }

@@ -9,7 +9,7 @@
       <NAME>technique_by_Rudder_rudder_reporting</NAME>
     </BUNDLES>
     <FILES>
-      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/ncf/50_techniques/technique_by_Rudder/technique_by_Rudder.cf">
+      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/technique_by_Rudder/1.0/technique.cf">
         <INCLUDED>true</INCLUDED>
       </FILE>
       <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/technique_by_Rudder/1.0/rudder_reporting.cf">
@@ -31,7 +31,7 @@
     <SECTION component="true" multivalued="true" name="Command execution">
       <REPORTKEYS>
         <VALUE>Write-Host &quot;testing special characters ` è &amp;é 'à é &quot;</VALUE>
-        <VALUE>/bin/echo &quot;testing special characters ` è &amp;é 'à é &quot;</VALUE>
+        <VALUE>/bin/echo &quot;testing special characters ` è &amp;é 'à é &quot;\</VALUE>
       </REPORTKEYS>
     </SECTION>
     <SECTION component="true" multivalued="true" name="Customized component">

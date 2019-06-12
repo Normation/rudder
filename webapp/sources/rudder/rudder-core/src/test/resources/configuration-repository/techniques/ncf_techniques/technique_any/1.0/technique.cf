@@ -1,0 +1,15 @@
+# @name Test Technique created through Rudder API
+# @description This Technique exists only to see if Rudder creates Technique correctly.
+# @version 1.0
+# @parameter { "name": "version", "id": "package_version" }
+
+bundle agent technique_any(version)
+{
+  vars:
+    "resources_dir" string => "${this.promise_dir}/resources";
+  methods:
+    "Test component$&é)à\'\"_0" usebundle => _method_reporting_context("Test component$&é)à\'\"", "${node.properties[apache_package_name]}"),
+                                       if => concat("any");
+    "Test component$&é)à\'\"_0" usebundle => package_install_version("${node.properties[apache_package_name]}", "2.2.11"),
+                                       if => concat("any");
+}

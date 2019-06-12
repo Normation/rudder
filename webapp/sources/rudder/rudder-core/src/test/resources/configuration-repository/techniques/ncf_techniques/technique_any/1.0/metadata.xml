@@ -8,7 +8,7 @@
       <NAME>technique_any</NAME>
     </BUNDLES>
     <FILES>
-      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/ncf/50_techniques/technique_any/technique_any.cf">
+      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/technique_any/1.0/technique.cf">
         <INCLUDED>true</INCLUDED>
       </FILE>
     </FILES>

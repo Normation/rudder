@@ -54,20 +54,16 @@ import java.nio.file.Paths
 
 import better.files.File
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
+import com.normation.errors.IOResult
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.services.user.PersonIdentService
 import net.liftweb.common.Full
-import net.liftweb.common.Loggable
 import zio._
-import zio.syntax._
 
 import scala.xml.NodeSeq
 import scala.xml.{Node => XmlNode}
 import com.normation.rudder.services.policies.InterpolatedValueCompiler
 import net.liftweb.common.EmptyBox
-import org.eclipse.jgit.api.Git
-
-//import scala.language.implicitConversions
 
 trait NcfError extends RudderError {
   def message : String
@@ -85,9 +81,9 @@ class TechniqueWriter (
   , translater       : InterpolatedValueCompiler
   , xmlPrettyPrinter : RudderPrettyPrinter
   , basePath         : String
-) extends Loggable {
+) {
 
-  private[this] var agentSpecific = new ClassicTechniqueWriter :: new DSCTechniqueWriter(basePath, translater) :: Nil
+  private[this] var agentSpecific = new ClassicTechniqueWriter(basePath) :: new DSCTechniqueWriter(basePath, translater) :: Nil
 
   def techniqueMetadataContent(technique : Technique, methods: Map[BundleName, GenericMethod]) : PureResult[XmlNode] = {
 
@@ -189,8 +185,8 @@ class TechniqueWriter (
 
   def writeAgentFiles(technique : Technique, methods: Map[BundleName, GenericMethod], modId : ModificationId, commiter : EventActor) : IOResult[Seq[String]] = {
     for {
-      // Create/update agent files, filter None by flattenning to list
-      files  <- ZIO.foreach(agentSpecific)(_.writeAgentFile(technique, methods)).map(_.flatten)
+      // Create/update agent files, filter None by flattening to list
+      files  <- ZIO.foreach(agentSpecific)(_.writeAgentFiles(technique, methods)).map(_.flatten)
     } yield {
       files
     }
@@ -203,7 +199,7 @@ class TechniqueWriter (
     val path = s"${basePath}/${metadataPath}"
     for {
       content <- techniqueMetadataContent(technique, methods).map(n => xmlPrettyPrinter.format(n)).toIO
-      _       <- IOResult.effect(s"An error occured while creating metadata file for Technique '${technique.name}'") {
+      _       <- IOResult.effect(s"An error occurred while creating metadata file for Technique '${technique.name}'") {
                    implicit val charSet = StandardCharsets.UTF_8
                    val file = File (path).createFileIfNotExists (true)
                    file.write (content)
@@ -218,14 +214,150 @@ class TechniqueWriter (
 
 trait AgentSpecificTechniqueWriter {
 
-  def writeAgentFile( technique : Technique, methods : Map[BundleName, GenericMethod] ) : IOResult[Option[String]]
+  def writeAgentFiles( technique : Technique, methods : Map[BundleName, GenericMethod] ) : IOResult[Seq[String]]
 
   def agentMetadata ( technique : Technique, methods : Map[BundleName, GenericMethod] ) : PureResult[NodeSeq]
 }
 
-class ClassicTechniqueWriter extends AgentSpecificTechniqueWriter {
+class ClassicTechniqueWriter(basePath : String) extends AgentSpecificTechniqueWriter {
 
-  def writeAgentFile( technique : Technique, methods : Map[BundleName, GenericMethod] )  : IOResult[Option[String]] = None.succeed
+  // We need to add a reporting bundle for this method to generate a na report for any method with a condition != any/cfengine (which ~= true
+  def methodNeedReporting(method : MethodCall) =  method.condition != "any" && method.condition != "cfengine-community"
+  def needReportingBundle(technique : Technique) = technique.methodCalls.exists(methodNeedReporting)
+
+  def canonifyCondition(methodCall: MethodCall) = {
+    methodCall.condition.replaceAll("""(\$\{[^\}]*})""","""",canonify("$1"),"""")
+  }
+
+  // regex to match double quote characters not preceded by a backslash, and backslash not preceded by backslash or not followed by a backslash or a quote (simple or double)
+  def escapeCFEngineString(value : String ) = value.replaceAll("""(?<!\\)"""", """\\"""").replaceAll("""(?<!\\)\\(?!(\\|"|'))""","""\\\\""")
+  def reportingContext(methodCall: MethodCall, classParameterValue: String ) = {
+    val component  = escapeCFEngineString(methodCall.component)
+    val value = escapeCFEngineString(classParameterValue)
+    s"""_method_reporting_context("${component}", "${value}")"""
+  }
+
+
+
+  def writeAgentFiles( technique : Technique, methods : Map[BundleName, GenericMethod] )  : IOResult[Seq[String]] = {
+
+    val bundleParams = if (technique.parameters.nonEmpty) technique.parameters.map(_.name.canonify).mkString("(",",",")") else ""
+
+    val methodCalls =
+      ( for {
+        (method,index) <- technique.methodCalls.zipWithIndex
+        method_info <- methods.get(method.methodId)
+        classParameterValue <- method.parameters.get(method_info.classParameter)
+
+      } yield {
+        val condition = canonifyCondition(method)
+        val promiser = s"${escapeCFEngineString(method.component)}_${index}"
+        // Check constraint and missing value
+        val args = method_info.parameters.map(p => escapeCFEngineString(method.parameters(p.id))).mkString("\"","\", \"","\"")
+
+        s"""    "${promiser}" usebundle => ${reportingContext(method, classParameterValue)},
+           |     ${promiser.map(_ => ' ')}         if => concat("${condition}");
+           |    "${promiser}" usebundle => ${method.methodId.value}(${args}),
+           |     ${promiser.map(_ => ' ')}         if => concat("${condition}");""".stripMargin('|')
+
+      }).mkString("\n")
+
+    val content =
+      s"""# @name ${technique.name}
+         |# @description ${technique.description}
+         |# @version ${technique.version.value}
+         |${technique.parameters.map(p =>s"""# @parameter { "name": "${p.name.value}", "id": "${p.id.value}" }""" ).mkString("\n")}
+         |
+         |bundle agent ${technique.bundleName.value}${bundleParams}
+         |{
+         |  vars:
+         |    "resources_dir" string => "$${this.promise_dir}/resources";
+         |  methods:
+         |${methodCalls}
+         |}""".stripMargin('|')
+
+    implicit val charset = StandardCharsets.UTF_8
+    val techFile = File(basePath) / "techniques"/ "ncf_techniques" / technique.bundleName.value / technique.version.value / "technique.cf"
+    val t = IOResult.effect(s"Could not write na reporting Technique file '${technique.name}' in path ${techFile.path.toString}") {
+      techFile.createFileIfNotExists(true).write(content.stripMargin('|'))
+      File(basePath).relativize(techFile.path).toString
+    }
+
+
+
+    val t2 = if ( ! needReportingBundle(technique)) {
+      ZIO.succeed(Nil)
+    } else {
+
+      val bundleParams = if (technique.parameters.nonEmpty) technique.parameters.map(_.name.canonify).mkString("(",",",")") else ""
+      val args = technique.parameters.map(p => s"$${${p.name.canonify}}").mkString(", ")
+
+      val methodsReporting =
+        ( for {
+          (method,index) <- technique.methodCalls.zipWithIndex
+          // Skip that method if name starts with _
+          if ! method.methodId.value.startsWith("_")
+          method_info <- methods.get(method.methodId)
+          classParameterValue <- method.parameters.get(method_info.classParameter)
+
+          classPrefix = s"$${class_prefix}_${method_info.classPrefix}_${classParameterValue}"
+          escapedClassParameterValue = escapeCFEngineString(classParameterValue)
+          promiser = s"dummy_report_${index}"
+        } yield {
+          def naReport(condition : String, message : String) = {
+            s"""    "${promiser}" usebundle => _classes_noop(canonify("${classPrefix}"))
+               |     ${promiser.map(_ => ' ')}     unless => ${condition};
+               |    "${promiser}" usebundle => ${reportingContext(method, classParameterValue)}
+               |     ${promiser.map(_ => ' ')}     unless => ${condition};
+               |    "${promiser}" usebundle => log_rudder("${message}", "${escapedClassParameterValue}", canonify("${classPrefix}"), canonify("${classPrefix}"), @{args})
+               |     ${promiser.map(_ => ' ')}     unless => ${condition};""".stripMargin('|')
+          }
+
+
+          // Write report if the method does not support CFEngine ...
+          ( if (! method_info.agentSupport.contains(AgentType.CfeCommunity)) {
+            val message = s"""'${method_info.name}' method is not available on classic Rudder agent, skip"""
+            val condition = "false"
+            Some((condition,message))
+         } else {
+           // ... or if the condition needs rudder_reporting
+           if (methodNeedReporting(method)) {
+             val message =  s"""Skipping method '${method_info.name}' with key parameter '${escapedClassParameterValue}' since condition '${method.condition}' is not reached"""
+             val condition = s"""concat("${canonifyCondition(method)}")""""
+             Some((condition,message))
+           } else {
+             None
+           }
+         }).map((naReport _).tupled)
+       }).flatten
+
+       val content =
+        s"""bundle agent ${technique.bundleName.value}_rudder_reporting${bundleParams}
+           |{
+           |  vars:
+           |    "args"               slist => { ${args} };
+           |    "report_param"      string => join("_", args);
+           |    "full_class_prefix" string => canonify("${technique.bundleName.value}_rudder_reporting_$${report_param}");
+           |    "class_prefix"      string => string_head("$${full_class_prefix}", "1000");
+           |
+           |  methods:
+           |${methodsReporting.mkString("\n")}
+           |}"""
+
+      val reportingFile = File(basePath) / "techniques"/ "ncf_techniques" / technique.bundleName.value / technique.version.value / "rudder_reporting.cf"
+      IOResult.effect(s"Could not write na reporting Technique file '${technique.name}' in path ${reportingFile.path.toString}") {
+        reportingFile.createFileIfNotExists(true).write(content.stripMargin('|'))
+        Seq(File(basePath).relativize(reportingFile.path).toString)
+      }
+    }
+
+    for {
+      tech <- t
+      repo <- t2
+    } yield {
+      tech +: repo
+    }
+  }
   def agentMetadata ( technique : Technique, methods : Map[BundleName, GenericMethod] )  : PureResult[NodeSeq] = {
     // We need to add reporting bundle if there is a method call that does not support cfengine (agent support does not contains both cfe agent)
     val noAgentSupportReporting = technique.methodCalls.exists(  m =>
@@ -233,18 +365,17 @@ class ClassicTechniqueWriter extends AgentSpecificTechniqueWriter {
                            ! (gm.agentSupport.contains(AgentType.CfeEnterprise) || (gm.agentSupport.contains(AgentType.CfeCommunity)))
                          )
                        )
-    // We need to add a reporting bundle for this method to generate a na report for any method with a condition != any/cfengine (which ~= true
-    val needReportingBundle = technique.methodCalls.exists(m => m.condition != "any" && m.condition != "cfengine-community" )
+    val needReporting = needReportingBundle(technique)
     val xml = <AGENT type="cfengine-community,cfengine-nova">
       <BUNDLES>
         <NAME>{technique.bundleName.value}</NAME>
-        {if (noAgentSupportReporting || needReportingBundle) <NAME>{technique.bundleName.value}_rudder_reporting</NAME>}
+        {if (noAgentSupportReporting || needReporting) <NAME>{technique.bundleName.value}_rudder_reporting</NAME>}
       </BUNDLES>
       <FILES>
-        <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/ncf/50_techniques/${technique.bundleName.value}/${technique.bundleName.value}.cf"}>
+        <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/technique.cf"}>
           <INCLUDED>true</INCLUDED>
         </FILE>
-        { if (noAgentSupportReporting || needReportingBundle)
+        { if (noAgentSupportReporting || needReporting)
           <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/rudder_reporting.cf"}>
             <INCLUDED>true</INCLUDED>
           </FILE>
@@ -276,7 +407,8 @@ class DSCTechniqueWriter(
   def computeTechniqueFilePath(technique : Technique) =
     s"dsc/ncf/50_techniques/${technique.bundleName.value}/${technique.version.value}/${technique.bundleName.value}.ps1"
 
-  def writeAgentFile(technique : Technique, methods : Map[BundleName, GenericMethod] ): IOResult[Option[String]] = {
+
+  def writeAgentFiles(technique : Technique, methods : Map[BundleName, GenericMethod] ): IOResult[Seq[String]] = {
 
     def toDscFormat(call : MethodCall) : PureResult[String]= {
 
@@ -395,7 +527,7 @@ class DSCTechniqueWriter(
                   Files.write(path, contentWithBom.toArray)
                 }
     } yield {
-      Some(techniquePath)
+      techniquePath :: Nil
     }
   }
 
@@ -426,7 +558,7 @@ class TechniqueArchiverImpl (
   , override val relativePath              : String
   , override val gitModificationRepository : GitModificationRepository
   , personIdentservice : PersonIdentService
-) extends GitArchiverUtils with TechniqueArchiver{
+) extends GitArchiverUtils with TechniqueArchiver {
 
   override def loggerName: String = this.getClass.getName
   import ResourceFileState._
@@ -435,20 +567,22 @@ class TechniqueArchiverImpl (
 
   def commitTechnique(technique : Technique, gitPath : Seq[String], modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
 
-    val filesToAdd = gitPath ++ (technique.ressources.filter(f => f.state == New || f.state == Modified)).map(f => s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/resources/${f.path}")
-    val filesToDelete = technique.ressources.filter(f => f.state == Deleted ).map(f => s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/resources/${f.path}")
+    val filesToAdd =
+      gitPath ++
+        (technique.ressources.filter(f => f.state == New || f.state == Modified)).map(f => s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/resources/${f.path}")
+    val filesToDelete =
+      s"ncf/50_techniques/${technique.bundleName.value}" +:
+        technique.ressources.filter(f => f.state == Deleted ).map(f => s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/resources/${f.path}")
     (for {
-
-
-      git     <- IOResult.effect(Git.open(File(s"/var/rudder/configuration-repository").toJava))
+      git     <- gitRepo.git
       ident   <- personIdentservice.getPersonIdentOrDefault(commiter.name)
       added   <- ZIO.foreach(filesToAdd) { f =>
-                   IOResult.effect (git.add.addFilepattern(f).call)
+                   IOResult.effect (git.add.addFilepattern(f).call())
                  }
       removed <- ZIO.foreach(filesToDelete) { f =>
-                   IOResult.effect(git.rm.addFilepattern(f).call)
+                   IOResult.effect(git.rm.addFilepattern(f).call())
                  }
-      commit  <- IOResult.effect(git.commit.setCommitter(ident).setMessage(msg).call)
+      commit  <- IOResult.effect(git.commit.setCommitter(ident).setMessage(msg).call())
     } yield {
       gitPath
     }).chainError(s"error when committing Technique '${technique.name}/${technique.version}").unit

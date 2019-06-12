@@ -80,11 +80,13 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   val valueCompiler = new InterpolatedValueCompilerImpl
   val writer = new TechniqueWriter(TestTechniqueArchiver,TestLibUpdater,valueCompiler, new RudderPrettyPrinter(Int.MaxValue, 2), basePath)
   val dscWriter = new DSCTechniqueWriter(basePath, valueCompiler)
+  val classicWriter = new ClassicTechniqueWriter(basePath)
 
+  val defaultConstraint = Constraint.NonEmpty :: Constraint.NoWhiteSpace :: Constraint.MaxLength(16384) :: Nil
   val methods = ( GenericMethod(
       BundleName("package_install_version")
     , "Package install version"
-    , MethodParameter(ParameterId("package_name"),"") :: MethodParameter(ParameterId("package_version"),"") :: Nil
+    , MethodParameter(ParameterId("package_name"),"", defaultConstraint) :: MethodParameter(ParameterId("package_version"),"", defaultConstraint) :: Nil
     , ParameterId("package_name")
     , "package_install_version"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: AgentType.Dsc :: Nil
@@ -93,7 +95,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   GenericMethod(
       BundleName("service_start")
     , "Service start"
-    , MethodParameter(ParameterId("service_name"),"") :: Nil
+    , MethodParameter(ParameterId("service_name"),"", defaultConstraint) :: Nil
     , ParameterId("service_name")
     , "service_start"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: AgentType.Dsc :: Nil
@@ -102,7 +104,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   GenericMethod(
       BundleName("package_install")
     , "Package install"
-    , MethodParameter(ParameterId("package_name"),"") :: Nil
+    , MethodParameter(ParameterId("package_name"),"", defaultConstraint) :: Nil
     , ParameterId("package_name")
     , "package_install"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil
@@ -111,7 +113,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   GenericMethod(
       BundleName("command_execution")
     , "Command execution"
-    , MethodParameter(ParameterId("command"),"") :: Nil
+    , MethodParameter(ParameterId("command"),"", defaultConstraint) :: Nil
     , ParameterId("command")
     , "command_execution"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: AgentType.Dsc :: Nil
@@ -120,7 +122,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   GenericMethod(
       BundleName("_logger")
     , "_logger"
-    , MethodParameter(ParameterId("message"),"") :: MethodParameter(ParameterId("old_class_prefix"),"") :: Nil
+    , MethodParameter(ParameterId("message"),"", defaultConstraint) :: MethodParameter(ParameterId("old_class_prefix"),"", defaultConstraint) :: Nil
     , ParameterId("message")
     , "_logger"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil
@@ -158,7 +160,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
         ) ::
         MethodCall(
             BundleName("command_execution")
-          , Map((ParameterId("command"),"/bin/echo \"testing special characters ` è &é 'à é \""))
+          , Map((ParameterId("command"),"/bin/echo \"testing special characters ` è &é 'à é \"\\"))
           , "cfengine-community"
           , "Command execution"
         ) ::
@@ -176,6 +178,8 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
 
   val expectedMetadataPath = s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/metadata.xml"
   val dscTechniquePath     = s"dsc/ncf/50_techniques/${technique.bundleName.value}/${technique.version.value}/${technique.bundleName.value}.ps1"
+  val techniquePath = s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/technique.cf"
+  val reportingPath = s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/rudder_reporting.cf"
 
   s"Preparing files for technique ${technique.name}" should {
 
@@ -190,13 +194,29 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     }
 
     "Should write dsc technique file without problem" in {
-      dscWriter.writeAgentFile(technique, methods).either.runNow must beRight( beSome (dscTechniquePath ))
+      dscWriter.writeAgentFiles(technique, methods).either.runNow must beRight(Seq(dscTechniquePath)   )
     }
 
     "Should generate expected dsc technique content for our technique" in {
       val expectedDscFile = new File(s"${expectedPath}/${dscTechniquePath}")
       val resultDscFile = new File(s"${basePath}/${dscTechniquePath}")
       resultDscFile must haveSameLinesAs (expectedDscFile)
+    }
+
+    "Should write classic technique files without problem" in {
+      classicWriter.writeAgentFiles(technique, methods).either.runNow must beRight(Seq(techniquePath, reportingPath)   )
+    }
+
+    "Should generate expected classic technique content for our technique" in {
+      val expectedFile = new File(s"${expectedPath}/${techniquePath}")
+      val resultFile = new File(s"${basePath}/${techniquePath}")
+      resultFile must haveSameLinesAs (expectedFile)
+    }
+
+    "Should generate expected additional rudder reporting content for our technique" in {
+      val expectedFile = new File(s"${expectedPath}/${reportingPath}")
+      val resultFile = new File(s"${basePath}/${reportingPath}")
+      resultFile must haveSameLinesAs (expectedFile)
     }
 
   }
@@ -219,6 +239,8 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
 
   val expectedMetadataPath_any = s"techniques/ncf_techniques/${technique_any.bundleName.value}/${technique_any.version.value}/metadata.xml"
   val dscTechniquePath_any     = s"dsc/ncf/50_techniques/${technique_any.bundleName.value}/${technique_any.version.value}/${technique_any.bundleName.value}.ps1"
+  val techniquePath_any = s"techniques/ncf_techniques/${technique_any.bundleName.value}/${technique_any.version.value}/technique.cf"
+  val reportingPath_any = s"techniques/ncf_techniques/${technique_any.bundleName.value}/${technique_any.version.value}/rudder_reporting.cf"
 
   s"Preparing files for technique ${technique.bundleName.value}" should {
 
@@ -233,7 +255,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     }
 
     "Should write dsc technique file without problem" in {
-      dscWriter.writeAgentFile(technique_any, methods).either.runNow must beRight( beSome (dscTechniquePath_any ))
+      dscWriter.writeAgentFiles(technique_any, methods).either.runNow must beRight(Seq(dscTechniquePath_any))
     }
 
     "Should generate expected dsc technique content for our technique" in {
@@ -242,6 +264,20 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
       resultDscFile must haveSameLinesAs (expectedDscFile)
     }
 
+    "Should write classic technique files without problem" in {
+      classicWriter.writeAgentFiles(technique_any, methods).either.runNow must beRight(Seq(techniquePath_any)   )
+    }
+
+    "Should generate expected classic technique content for our technique" in {
+      val expectedFile = new File(s"${expectedPath}/${techniquePath_any}")
+      val resultFile = new File(s"${basePath}/${techniquePath_any}")
+      resultFile must haveSameLinesAs (expectedFile)
+    }
+
+    "Should not generate expected additional rudder reporting content for our technique" in {
+      val resultFile = new File(s"${basePath}/${reportingPath_any}")
+      resultFile must not exist
+    }
   }
 
 }

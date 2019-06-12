@@ -59,6 +59,7 @@ import com.normation.errors.IOResult
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
 import net.liftweb.json.JsonAST.JArray
+import com.normation.rudder.ncf.CheckConstraint
 
 class NcfApi(
     techniqueWriter     : TechniqueWriter
@@ -85,7 +86,8 @@ class NcfApi(
         case API.UpdateTechnique => UpdateTechnique
         case API.CreateTechnique => CreateTechnique
         case API.GetResources    => GetResources
-    }).toList
+        case API.ParameterCheck  => ParameterCheck
+    })
   }
 
   object GetResources extends LiftApiModule {
@@ -166,7 +168,7 @@ class NcfApi(
           json      <- req.json ?~! "No JSON data sent"
           methods   <- restExtractor.extractGenericMethod(json \ "methods")
           methodMap =  methods.map(m => (m.id,m)).toMap
-          technique <- restExtractor.extractNcfTechnique(json \ "technique", methodMap)
+          technique <- restExtractor.extractNcfTechnique(json \ "technique", methodMap, false)
           allDone   <- techniqueWriter.writeAll(technique, methodMap, modId, authzToken.actor ).toBox
         } yield {
           json
@@ -178,6 +180,30 @@ class NcfApi(
     }
   }
 
+  object ParameterCheck extends LiftApiModule0 {
+    val schema = API.ParameterCheck
+    val restExtractor = restExtractorService
+    implicit val dataName = "parameterCheck"
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+
+      import com.normation.rudder.ncf.Constraint._
+      import net.liftweb.json.JsonDSL._
+      val response =
+        for {
+          json                  <- req.json ?~! "No JSON data sent"
+          (value,constraints)   <- restExtractor.extractParameterCheck(json)
+          check                 =  CheckConstraint.check(constraints,value)
+        } yield {
+          check match {
+            case NOK(cause) => ("result" -> false) ~ ("errors" -> cause.toList)
+            case OK         => ("result" -> true) ~ ("errors" -> Nil)
+          }
+        }
+      resp(response, req, "Could not check parameter constraint")("checkParameter")
+    }
+  }
+
+
   object CreateTechnique extends LiftApiModule0 {
     val schema = API.CreateTechnique
     val restExtractor = restExtractorService
@@ -188,7 +214,7 @@ class NcfApi(
           json      <- req.json ?~! "No JSON data sent"
           methods   <- restExtractor.extractGenericMethod(json \ "methods")
           methodMap = methods.map(m => (m.id,m)).toMap
-          technique <- restExtractor.extractNcfTechnique(json \ "technique", methodMap)
+          technique <- restExtractor.extractNcfTechnique(json \ "technique", methodMap, true)
           allDone   <- techniqueWriter.writeAll(technique, methodMap, modId, authzToken.actor).toBox
         } yield {
           json

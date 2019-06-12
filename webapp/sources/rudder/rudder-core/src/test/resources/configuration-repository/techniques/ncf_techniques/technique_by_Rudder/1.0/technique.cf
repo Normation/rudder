@@ -1,0 +1,35 @@
+# @name Test Technique created through Rudder API
+# @description This Technique exists only to see if Rudder creates Technique correctly.
+# @version 1.0
+# @parameter { "name": "technique_parameter", "id": "1aaacd71-c2d5-482c-bcff-5eee6f8da9c2" }
+
+bundle agent technique_by_Rudder(technique_parameter)
+{
+  vars:
+    "resources_dir" string => "${this.promise_dir}/resources";
+  methods:
+    "Customized component_0" usebundle => _method_reporting_context("Customized component", "${node.properties[apache_package_name]}"),
+                                    if => concat("any");
+    "Customized component_0" usebundle => package_install_version("${node.properties[apache_package_name]}", "2.2.11"),
+                                    if => concat("any");
+    "Command execution_1" usebundle => _method_reporting_context("Command execution", "Write-Host \"testing special characters ` è &é 'à é \""),
+                                 if => concat("windows");
+    "Command execution_1" usebundle => command_execution("Write-Host \"testing special characters ` è &é 'à é \""),
+                                 if => concat("windows");
+    "Customized component_2" usebundle => _method_reporting_context("Customized component", "${node.properties[apache_package_name]}"),
+                                    if => concat("package_install_version_",canonify("${node.properties[apache_package_name]}"),"_repaired");
+    "Customized component_2" usebundle => service_start("${node.properties[apache_package_name]}"),
+                                    if => concat("package_install_version_",canonify("${node.properties[apache_package_name]}"),"_repaired");
+    "Package install_3" usebundle => _method_reporting_context("Package install", "openssh-server"),
+                               if => concat("redhat");
+    "Package install_3" usebundle => package_install("openssh-server"),
+                               if => concat("redhat");
+    "Command execution_4" usebundle => _method_reporting_context("Command execution", "/bin/echo \"testing special characters ` è &é 'à é \"\\"),
+                                 if => concat("cfengine-community");
+    "Command execution_4" usebundle => command_execution("/bin/echo \"testing special characters ` è &é 'à é \"\\"),
+                                 if => concat("cfengine-community");
+    "Not sure we should test it ..._5" usebundle => _method_reporting_context("Not sure we should test it ...", "NA"),
+                                              if => concat("any");
+    "Not sure we should test it ..._5" usebundle => _logger("NA", "NA"),
+                                              if => concat("any");
+}

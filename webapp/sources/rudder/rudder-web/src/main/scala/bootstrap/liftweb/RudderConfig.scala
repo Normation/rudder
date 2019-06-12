@@ -600,6 +600,7 @@ object RudderConfig extends Loggable {
       , queryParser
       , userPropertyService
       , workflowLevelService
+      , stringUuidGenerator
     )
 
   val tokenGenerator = new TokenGeneratorImpl(32)

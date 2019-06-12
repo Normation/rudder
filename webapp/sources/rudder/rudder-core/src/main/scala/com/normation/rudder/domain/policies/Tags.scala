@@ -36,8 +36,10 @@
 */
 package com.normation.rudder.domain.policies
 
+import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import net.liftweb.common._
 import com.normation.rudder.repository.json.JsonExctractorUtils
+
 import scala.language.implicitConversions
 import scala.language.higherKinds
 
@@ -95,16 +97,16 @@ trait JsonTagExtractor[M[_]] extends JsonExctractorUtils[M] {
   }
 
 
-  def convertToTag(jsonTag : JValue): Box[M[Tag]] = {
+  def convertToTag(jsonTag : JValue): Box[Tag] = {
     for {
-      tagName <- extractJsonString(jsonTag, "key", s => Full(TagName(s)))
-      tagValue <- extractJsonString(jsonTag, "value", s => Full(TagValue(s)))
+      tagName <- CompleteJson.extractJsonString(jsonTag, "key", s => Full(TagName(s)))
+      tagValue <- CompleteJson.extractJsonString(jsonTag, "value", s => Full(TagValue(s)))
     } yield {
-      monad.map2(tagName, tagValue)( (k,v) => Tag(k,v))
+      Tag(tagName, tagValue)
     }
   }
 
   def extractTags(value:JValue): Box[M[Tags]] = {
-    extractJsonArray(value)(convertToTag).map(monad.map(_)(tags => Tags(tags.toSet))) ?~! s"Invalid JSON serialization for Tags ${value}"
+    extractJsonArray(value, "")(convertToTag).map(k => monad.map(k)(tags => Tags(tags.toSet))) ?~! s"Invalid JSON serialization for Tags ${value}"
   }
 }

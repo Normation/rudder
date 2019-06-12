@@ -37,7 +37,6 @@
 
 package com.normation.rudder.rest
 
-import com.normation.cfclerk.domain._
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.{AclPath, ApiAccountId, ApiAccountName, ApiAclElement, HttpAction, ApiAuthorization => ApiAuthz}
@@ -84,6 +83,13 @@ import com.normation.rudder.web.components.DateFormaterService
 import com.normation.utils.Control
 import com.normation.box._
 import com.normation.rudder.ncf.ResourceFileState
+import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.rudder.ncf.Constraint._
+import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
+import com.normation.utils.StringUuidGenerator
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -93,6 +99,7 @@ case class RestExtractorService (
   , queryParser          : CmdbQueryParser with JsonQueryLexer
   , userPropertyService  : UserPropertyService
   , workflowLevelService : WorkflowLevelService
+  , uuidGenerator        : StringUuidGenerator
 ) extends Loggable {
 
   import com.normation.rudder.repository.json.DataExtractor.OptionnalJson._
@@ -856,11 +863,7 @@ case class RestExtractorService (
       expirationValue  <- extractJsonString(json, "expirationDate", DateFormaterService.parseDate)
       authType    <- extractJsonString(json, "authorizationType", ApiAuthorizationKind.parse)
 
-      acl     <- extractJsonArray(json \ "acl")(
-                       // I need an option here, but this function does not need to return an option
-                       // AndThern it to wrap the result in a option, then unwrap it with a getOrElse after it ran
-                       (extractApiACLFromJSON _ ).andThen(_.map(Some(_)))
-                     ).map(_.getOrElse(Nil))
+      acl     <- extractJsonArray(json , "acl")((extractApiACLFromJSON _ )).map(_.getOrElse(Nil))
     } yield {
 
       val auth = authType match {
@@ -1065,15 +1068,15 @@ case class RestExtractorService (
 
   def extractId[T] (req : Req)(fun : String => Full[T])  = extractString("id")(req)(fun)
 
-  def extractNcfTechnique (json : JValue, methods: Map[BundleName, GenericMethod]) : Box[NcfTechnique] = {
+  def extractNcfTechnique (json : JValue, methods: Map[BundleName, GenericMethod], creation : Boolean) : Box[NcfTechnique] = {
     for {
       bundleName  <- CompleteJson.extractJsonString(json, "bundle_name", s => Full(BundleName(s)))
       version     <- CompleteJson.extractJsonString(json, "version")
       description <- CompleteJson.extractJsonString(json, "description")
       name        <- CompleteJson.extractJsonString(json, "name")
-      calls       <- CompleteJson.extractJsonArray(json \ "method_calls")(extractMethodCall(_, methods))
-      parameters  <- CompleteJson.extractJsonArray(json \ "parameter")(extractTechniqueParameter)
-      files       <- CompleteJson.extractJsonArray(json \ "resources")(extractResourceFile)
+      calls       <- CompleteJson.extractJsonArray(json , "method_calls")(extractMethodCall(_, methods))
+      parameters  <- CompleteJson.extractJsonArray(json , "parameter")(extractTechniqueParameter(creation))
+      files       <- OptionnalJson.extractJsonArray(json , "resources")(extractResourceFile).map(_.getOrElse(Nil))
     } yield {
       NcfTechnique(bundleName, name, calls, new Version(version), description, parameters, files)
     }
@@ -1085,7 +1088,7 @@ case class RestExtractorService (
       methodId        <- CompleteJson.extractJsonString(json, "method_name", s => Full(BundleName(s)))
       condition       <- CompleteJson.extractJsonString(json, "class_context")
       component       <- CompleteJson.extractJsonString(json, "component")
-      parameterValues <- CompleteJson.extractJsonArray(json \ "args"){
+      parameterValues <- CompleteJson.extractJsonArray(json , "args"){
                            case JString(value) => Full(value)
                            case s => Failure(s"Invalid format of method call when extracting from json, expecting and array but got : ${s}")
                          }
@@ -1107,18 +1110,55 @@ case class RestExtractorService (
     }
   }
 
+  def extractMethodConstraint(json : JValue) : Box[List[Constraint]] = {
+    for {
+      allowEmpty <- CompleteJson.extractJsonBoolean(json, "allow_empty_string")
+      allowWS    <- CompleteJson.extractJsonBoolean(json, "allow_whitespace_string")
+      maxLength  <- CompleteJson.extractJsonInt(json, "max_length")
+      minLength  <- OptionnalJson.extractJsonInt(json, "min_length")
+      regex      <- OptionnalJson.extractJsonString(json, "regex")
+      notRegex   <- OptionnalJson.extractJsonString(json, "not_regex")
+      select     <- OptionnalJson.extractJsonListString(json, "select")
+
+    } yield {
+      ( if (allowEmpty) Nil else NonEmpty :: Nil) :::
+      ( if (allowWS) Nil else NoWhiteSpace :: Nil) :::
+      ( MaxLength(maxLength) ::
+        minLength.map(MinLength).toList :::
+        regex.map(MatchRegex).toList :::
+        notRegex.map(NotMatchRegex).toList :::
+        select.map(FromList).toList
+      )
+
+    }
+  }
+
   def extractMethodParameter(json : JValue) : Box[MethodParameter] = {
     for {
       id          <- CompleteJson.extractJsonString(json, "name", a => Full(ParameterId(a)))
       description <- CompleteJson.extractJsonString(json, "description")
+      constraint  <- extractMethodConstraint(json \ "constraints")
     } yield {
-      MethodParameter(id, description)
+      MethodParameter(id, description, constraint)
     }
   }
 
-  def extractTechniqueParameter(json : JValue) : Box[TechniqueParameter] = {
+  def extractParameterCheck(json : JValue) : Box[(String,List[Constraint])] = {
+    logger.info(json)
     for {
-      id   <- CompleteJson.extractJsonString(json, "id", a => Full(ParameterId(a)))
+      value      <- CompleteJson.extractJsonString(json, "value")
+      constraint <- extractMethodConstraint(json \ "constraints")
+    } yield {
+      (value, constraint)
+    }
+  }
+  def extractTechniqueParameter(techniqueCreation : Boolean) (json : JValue) : Box[TechniqueParameter] = {
+    for {
+      id   <- if (techniqueCreation) {
+                OptionnalJson.extractJsonString(json, "id", a => Full(ParameterId(a))).map(_.getOrElse(ParameterId(uuidGenerator.newUuid)))
+              } else {
+                CompleteJson.extractJsonString(json, "id", a => Full(ParameterId(a)))
+              }
       name <- CompleteJson.extractJsonString(json, "name", a => Full(ParameterId(a)))
     } yield {
       TechniqueParameter(id, name)
@@ -1126,7 +1166,7 @@ case class RestExtractorService (
   }
 
   def extractGenericMethod (json : JValue) : Box[List[GenericMethod]] = {
-    CompleteJson.extractJsonArray(json) { json =>
+    CompleteJson.extractJsonArray(json,"") { json =>
       for {
         bundleName     <- CompleteJson.extractJsonString(json, "bundle_name", s => Full(BundleName(s)))
         description    <- CompleteJson.extractJsonString(json, "description")
@@ -1138,7 +1178,7 @@ case class RestExtractorService (
                              case "cfengine-community" => Full(AgentType.CfeCommunity :: AgentType.CfeEnterprise ::Nil)
                              case _ => Failure("invalid agent")
                           })).map(_.flatten)
-        parameters     <- CompleteJson.extractJsonArray(json \ "parameter")(extractMethodParameter)
+        parameters     <- CompleteJson.extractJsonArray(json , "parameter")(extractMethodParameter)
       } yield {
         GenericMethod(bundleName, name, parameters, classParameter, classPrefix, agentSupport, description)
       }
