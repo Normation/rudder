@@ -280,6 +280,26 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     }
   }
 
+  def getReportsWithLowestIdFromDate(from:DateTime) : Box[Option[(Long, Reports)]] = {
+    val q = query[(Long, Reports)](s"${idQuery} and executionTimeStamp >= '${new Timestamp(from.getMillis)}' order by id asc limit 1")
+    q.option.transact(xa).attempt.unsafeRunSync match {
+      case Left(e)    =>
+        Failure(e.getMessage, Full(e), Empty)
+      case Right(option) => Full(option)
+
+    }
+  }
+
+  /**
+    *  utilitary methods
+    */
+
+  // Get max ID before a datetime
+  def getMaxIdBeforeDateTime(fromId: Long, before: DateTime): Box[Long] = {
+    (query[Long](s"select max(id) as id from RudderSysEvents where where id > ${fromId} and executionTimeStamp <  '${new Timestamp(before.getMillis)}''").
+      option.transact(xa).attempt.unsafeRunSync ?~! s"Could not fetch the highest id before date ${before.toString} in the database").map(_.getOrElse(fromId))
+  }
+
   /**
    * From an id and an end date, return a list of AgentRun, and the max ID that has been considered
    */

@@ -40,7 +40,6 @@ package com.normation.rudder.reports.execution
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.batch.FindNewReportsExecution
 import com.normation.rudder.domain.logger.ReportLogger
@@ -48,13 +47,14 @@ import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
 import com.normation.utils.Control
-
 import org.joda.time.DateTime
 import org.joda.time.format.PeriodFormat
-
 import net.liftweb.common._
 import com.normation.rudder.db.DB
+import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.repository.ComplianceRepository
+
+import scala.concurrent.duration.FiniteDuration
 
 /**
  * That service contains most of the logic to merge
@@ -67,16 +67,43 @@ class ReportsExecutionService (
   , cachedChanges          : CachedNodeChangesServiceImpl
   , cachedCompliance       : CachedFindRuleNodeStatusReports
   , complianceRepos        : ComplianceRepository
-  , maxDays                : Int // in days
+  , catchupFromDuration    : FiniteDuration
+  , catchupInterval        : FiniteDuration
 ) {
 
   val logger = ReportLogger
   var idForCheck: Long = 0
+
+  private[this] def computeCatchupEndTime(catchupFromDateTime: DateTime) : DateTime= {
+    // Get reports of the last id and before last report date plus the maxCatchup interval
+    if (catchupFromDateTime.plus(catchupInterval.toMillis).isAfter(DateTime.now)) {
+      DateTime.now
+    } else {
+      catchupFromDateTime.plus(catchupInterval.toMillis)
+    }
+  }
+
+  private[this] def computeFromToReport(lastReportId: Long, lastReportDate: DateTime) : (DateTime, Long, DateTime) = {
+    val (catchupFromDateTime: DateTime, fromReportId: Long) =
+      (if (lastReportDate.isBefore(DateTime.now.minus(catchupFromDuration.toMillis))) {
+        // we are trying to catchup on too long, truncating
+        val fromDate = DateTime.now.minus(catchupFromDuration.toMillis)
+
+        reportsRepository.getMaxIdBeforeDateTime(lastReportId, fromDate) match {
+          case Full(id) => (fromDate, id)
+          case eb:EmptyBox => logger.error(s"Could not correctly retrieve from were to retrieve report processing, fallbacking to default value, error is is ${eb}")
+            (fromDate, lastReportId)
+        }
+      } else {
+        (lastReportDate, lastReportId)
+      })
+    (catchupFromDateTime, fromReportId, computeCatchupEndTime(catchupFromDateTime))
+  }
+
   def findAndSaveExecutions(processId : Long): Box[Option[DB.StatusUpdate]] = {
 
     val startTime = DateTime.now().getMillis()
     // Get execution status
-
 
     statusUpdateRepository.getExecutionStatus match {
       // Find it, start looking for new executions
@@ -84,22 +111,19 @@ class ReportsExecutionService (
         //a test to let the user that there is some inconsistencies in the run
         //we are tracking, and that it may have serious problem.
         if(idForCheck != 0 && lastReportId != idForCheck) {
-          logger.error(s"There is an inconsistency in the processed agent runs: last process report id shoudl be ${idForCheck} " +
+          logger.error(s"There is an inconsistency in the processed agent runs: last process report id should be ${idForCheck} " +
               s"but the value ${lastReportId} was retrieve from base. Check that you don't have several Rudder application " +
               s"using the same database, or report that message to you support")
         }
 
-        // Get reports of the last id and before last report date plus maxDays
-        val endBatchDate = if (lastReportDate.plusDays(maxDays).isAfter(DateTime.now)) {
-                              DateTime.now
-                            } else {
-                              lastReportDate.plusDays(maxDays)
-                            }
+        // compute the interval we'll catch up report on
+        // we cannot catchup more than catchupInterval at once, and we start from catchupFromDuration
+        val (catchupFromDateTime, fromReportId, endBatchDate) = computeFromToReport(lastReportId, lastReportDate)
 
-        logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME} #${processId}] checking agent runs from SQL ID ${lastReportId} " +
+        logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME} #${processId}] checking agent runs from SQL ID ${fromReportId} " +
             s"[${lastReportDate.toString()} - ${endBatchDate.toString()}]")
 
-        reportsRepository.getReportsfromId(lastReportId, endBatchDate) match {
+        reportsRepository.getReportsfromId(fromReportId, endBatchDate) match {
           case Full((reportExec, maxReportId)) =>
             if (reportExec.size > 0) {
 
@@ -124,8 +148,8 @@ class ReportsExecutionService (
                   statusUpdateRepository.setExecutionStatus(maxReportId, maxDate)
 
                 case eb:EmptyBox => val fail = eb ?~! "could not save nodes executions"
-                  logger.error(s"Could not save execution of Nodes from report ID ${lastReportId} - date ${lastReportDate} to " +
-                      s"${(lastReportDate plusDays(maxDays)).toString()}, cause is : ${fail.messageChain}")
+                  logger.error(s"Could not save execution of Nodes from report ID ${fromReportId} - date ${catchupFromDateTime} to " +
+                      s"${endBatchDate.toString()}, cause is : ${fail.messageChain}")
                   eb
               }
 

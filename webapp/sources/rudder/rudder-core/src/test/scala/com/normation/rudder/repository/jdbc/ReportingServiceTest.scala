@@ -37,7 +37,7 @@
 
 package com.normation.rudder.repository.jdbc
 
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, Duration, Interval}
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import net.liftweb.common.Full
@@ -51,7 +51,6 @@ import com.normation.rudder.reports.execution._
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.services.reports.ReportingServiceImpl
 import com.normation.rudder.reports.AgentRunIntervalService
-import org.joda.time.Duration
 import com.normation.rudder.reports.ResolvedAgentRunInterval
 import com.normation.rudder.reports.AgentRunInterval
 import net.liftweb.common.Box
@@ -87,6 +86,7 @@ import scala.collection.SortedMap
 import com.normation.rudder.repository.ComplianceRepository
 import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 
+import scala.concurrent.duration._
 
 /**
  *
@@ -200,7 +200,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       , dummyChangesCache
       , dummyComplianceCache
       , dummyComplianceRepos
-      , 1
+      , 1.hour
+      , 1.hour
     )
   }
 
