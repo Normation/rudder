@@ -36,8 +36,6 @@ import com.normation.errors.RudderError
 import com.normation.errors.SystemError
 import scalaz.zio._
 
-import scala.util.control.NonFatal
-
 /**
  * This is our based error for Rudder. Any method that can
  * error should return that RudderError type to allow

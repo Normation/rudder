@@ -19,6 +19,14 @@ cn: Software 2
 softwareVersion: 2.0-rc
 description: Second software
 
+dn: softwareId=soft2,ou=Software,ou=Inventories,cn=rudder-configuration
+softwareId: soft2
+objectClass: software
+objectClass: top
+cn: Software 3
+softwareVersion: 3.0-rc
+description: Third software, unreferenced
+
 ###################################################################################################
 # Nodes #
 ###################################################################################################

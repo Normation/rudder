@@ -41,8 +41,10 @@ import com.normation.errors._
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
+import com.normation.inventory.services.core.WriteOnlySoftwareDAO
 import com.normation.ldap.sdk.BuildFilter.EQ
 import com.normation.ldap.sdk.BuildFilter.OR
+import com.normation.ldap.sdk.BuildFilter.IS
 import com.normation.ldap.sdk._
 import com.unboundid.ldap.sdk.DN
 import scalaz.zio._
@@ -83,9 +85,11 @@ class ReadOnlySoftwareDAOImpl(
 
     val dit = inventoryDitService.getDit(status)
 
+    val orFilter = BuildFilter.OR(nodeIds.toSeq.map(x => EQ(A_NODE_UUID,x.value)):_*)
+
     (for {
       con            <- ldap
-      nodeEntries    <- con.searchOne(dit.NODES.dn, BuildFilter.ALL, Seq(A_NODE_UUID, A_SOFTWARE_DN):_*)
+      nodeEntries    <- con.searchOne(dit.NODES.dn, orFilter, Seq(A_NODE_UUID, A_SOFTWARE_DN):_*)
       softwareByNode =  (for {
                           e  <- nodeEntries
                           id <- e(A_NODE_UUID)
@@ -103,5 +107,75 @@ class ReadOnlySoftwareDAOImpl(
     } yield {
       softwareByNode.mapValues { ids => software.filter(s => ids.contains(s.id)) }
     })
+  }
+
+  def getAllSoftwareIds() : IOResult[Set[SoftwareUuid]] = {
+    for {
+      con           <- ldap
+      softwareEntry <- con.searchOne(inventoryDitService.getSoftwareBaseDN, IS(OC_SOFTWARE), A_SOFTWARE_UUID)
+      ids           <- ZIO.foreach(softwareEntry) { entry =>
+                         entry(A_SOFTWARE_UUID) match {
+                           case Some(value) => value.succeed
+                           case _ => Inconsistancy(s"Missing attribute ${A_SOFTWARE_UUID} for entry ${entry.dn} ${entry.toString()}").fail
+                         }
+                       }
+      softIds       =  ids.map(id => SoftwareUuid(id)).toSet
+    } yield {
+      softIds
+    }
+  }
+
+  def getSoftwaresForAllNodes() : IOResult[Set[SoftwareUuid]] = {
+    // fetch all softwares, for all nodes, in all 3 dits
+    val acceptedDit = inventoryDitService.getDit(AcceptedInventory)
+
+    for {
+      con            <- ldap
+      t1             <- UIO.effectTotal(System.currentTimeMillis)
+      // fetch all nodes
+      nodes           <- con.searchSub(acceptedDit.NODES.dn.getParent, IS(OC_NODE), A_NODE_UUID)
+      mutSetSoftwares <- Ref.make[scala.collection.mutable.Set[SoftwareUuid]](scala.collection.mutable.Set())
+      _               <- ZIO.foreach(nodes.grouped(50).toIterable) { nodeEntries => // batch by 50 nodes to avoid destroying ram/ldap con
+                           for {
+                             nodeIds       <- ZIO.foreach(nodeEntries) { e => IOResult.effect(e(A_NODE_UUID).map(NodeId(_))).notOptional(s"Missing mandatory attribute '${A_NODE_UUID}'") }
+                             t2            <- UIO.effectTotal(System.currentTimeMillis)
+                             orFilter      =  BuildFilter.OR(nodeIds.map(x => EQ(A_NODE_UUID, x.value)): _*)
+                             softwareEntry <- con.searchSub(acceptedDit.NODES.dn.getParent, orFilter, A_SOFTWARE_DN)
+                             ids           =  softwareEntry.flatMap(entry => entry.valuesFor(A_SOFTWARE_DN).toSet )
+                             results       <- ZIO.foreach(ids) { id => acceptedDit.SOFTWARE.SOFT.idFromDN(new DN(id)).toIO }.either
+                             t3            <- UIO.effectTotal(System.currentTimeMillis)
+                             _             <- InventoryLogger.debug(s"Software DNs from 50 nodes fetched in ${t3-t2} ms")
+                             _             <- results match { // we don't want to return "results" because we need on-site dedup.
+                                                case Right(softIds) =>
+                                                   mutSetSoftwares.update(_ ++ softIds)
+                                                 case Left(err) =>
+                                                   err.fail // otherwise the time is wrong
+                                               }
+                           } yield {
+                             ()
+                           }
+                         }
+       softwares      <- mutSetSoftwares.get
+    } yield {
+      softwares.toSet
+    }
+  }
+
+}
+
+class WriteOnlySoftwareDAOImpl(
+     inventoryDit  :InventoryDit
+   , ldap          :LDAPConnectionProvider[RwLDAPConnection]
+) extends WriteOnlySoftwareDAO {
+
+
+  def deleteSoftwares(softwareIds: Seq[SoftwareUuid]): IOResult[Seq[String]] = {
+    for {
+      con <- ldap
+      dns =  softwareIds.map(inventoryDit.SOFTWARE.SOFT.dn(_))
+      res <- dns.accumulate(con.delete(_))
+    } yield {
+      res.flatten.map( entry => entry.getDN)
+    }
   }
 }

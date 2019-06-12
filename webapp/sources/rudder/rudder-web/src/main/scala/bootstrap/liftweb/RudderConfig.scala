@@ -267,6 +267,7 @@ object RudderConfig extends Loggable {
         7
     }
   }
+
   val RUDDER_BATCH_PURGE_DELETED_INVENTORIES_INTERVAL = {
     try {
       config.getInt("rudder.batch.purge.inventories.delete.interval")
@@ -277,7 +278,15 @@ object RudderConfig extends Loggable {
     }
   }
 
-
+  val RUDDER_BATCH_DELETE_SOFTWARE_INTERVAL = {
+    try {
+      config.getInt("rudder.batch.delete.software.interval")
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.info("Property 'rudder.batch.delete.software.interval' is missing or empty in rudder.configFile. Default to 24 hours.")
+        24
+    }
+  }
 
   // Roles definitions
   val RUDDER_SERVER_ROLES = Seq(
@@ -380,6 +389,7 @@ object RudderConfig extends Loggable {
   val updateDynamicGroups: UpdateDynamicGroups = dyngroupUpdaterBatch
   val checkInventoryUpdate = new CheckInventoryUpdate(nodeInfoServiceImpl, asyncDeploymentAgent, stringUuidGenerator, 15.seconds)
   val purgeDeletedInventories = new PurgeDeletedInventories(removeNodeServiceImpl, FiniteDuration(RUDDER_BATCH_PURGE_DELETED_INVENTORIES_INTERVAL.toLong, "hours"), RUDDER_BATCH_PURGE_DELETED_INVENTORIES)
+  val purgeUnreferencedSoftwares = new PurgeUnreferencedSoftwares(softwareService, FiniteDuration(RUDDER_BATCH_DELETE_SOFTWARE_INTERVAL, "hours"))
   val databaseManager: DatabaseManager = databaseManagerImpl
   val automaticReportsCleaning: AutomaticReportsCleaning = dbCleaner
   val checkTechniqueLibrary: CheckTechniqueLibrary = techniqueLibraryUpdater
@@ -1084,6 +1094,9 @@ object RudderConfig extends Loggable {
   private[this] lazy val fileManagerImpl = new FileManager(UPLOAD_ROOT_DIRECTORY)
   private[this] lazy val databaseManagerImpl = new DatabaseManagerImpl(reportsRepositoryImpl, updateExpectedRepo)
   private[this] lazy val softwareInventoryDAO: ReadOnlySoftwareDAO = new ReadOnlySoftwareDAOImpl(inventoryDitService, roLdap, inventoryMapper)
+  private[this] lazy val softwareInventoryRWDAO: WriteOnlySoftwareDAO = new WriteOnlySoftwareDAOImpl(acceptedNodesDitImpl, rwLdap)
+  private[this] lazy val softwareService: SoftwareService = new SoftwareServiceImpl(softwareInventoryDAO, softwareInventoryRWDAO)
+
   private[this] lazy val nodeSummaryServiceImpl = new NodeSummaryServiceImpl(inventoryDitService, inventoryMapper, roLdap)
   private[this] lazy val diffRepos: InventoryHistoryLogRepository =
     new InventoryHistoryLogRepository(HISTORY_INVENTORIES_ROOTDIR, new FullInventoryFileMarshalling(fullInventoryFromLdapEntries, inventoryMapper))

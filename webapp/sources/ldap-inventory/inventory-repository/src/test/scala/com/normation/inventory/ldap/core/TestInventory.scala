@@ -40,6 +40,7 @@ package com.normation.inventory.ldap.core
 import com.normation.errors.RudderError
 import com.normation.inventory.domain._
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
+import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.zio.ZioRuntime
 import com.unboundid.ldap.sdk.DN
@@ -50,6 +51,7 @@ import org.specs2.matcher.MatchResult
 import org.specs2.mutable._
 import org.specs2.runner._
 import scalaz.zio._
+import com.normation.zio._
 
 final case class SystemError(cause: Throwable) extends RudderError {
   def msg = "Error in test"
@@ -104,6 +106,11 @@ class TestInventory extends Specification {
     , bootstrapLDIFPaths = bootstrapLDIFs
   )
 
+  val roLdap = InMemoryDsConnectionProvider[RoLDAPConnection](
+    baseDNs = baseDN :: Nil
+    , schemaLDIFPaths = schemaLDIFs
+    , bootstrapLDIFPaths = bootstrapLDIFs
+  )
 
   val softwareDN = new DN("ou=Inventories, cn=rudder-configuration")
 
@@ -128,6 +135,12 @@ class TestInventory extends Specification {
 
   val repo = new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, ldap)
 
+  val readOnlySoftware = new ReadOnlySoftwareDAOImpl(inventoryDitService, roLdap, inventoryMapper)
+
+  val writeOnlySoftware = new WriteOnlySoftwareDAOImpl(acceptedNodesDitImpl, ldap)
+
+
+  val softwareService = new SoftwareServiceImpl(readOnlySoftware, writeOnlySoftware)
 
   val allStatus = Seq(RemovedInventory, PendingInventory, AcceptedInventory)
 
@@ -404,6 +417,22 @@ class TestInventory extends Specification {
 
   }
 
+  "Softwares" should {
+    "Find 2 software referenced by nodes with the repository" in {
+      val softwares = readOnlySoftware.getSoftwaresForAllNodes().either.runNow
+      softwares.map(_.size) === Right(2)
+    }
+
+    "Find 3 software in ou=software with the repository" in {
+      val softwares = readOnlySoftware.getAllSoftwareIds().either.runNow
+      softwares.map(_.size) === Right(3)
+    }
+
+    "Purge one unreferenced software with the SoftwareService" in {
+      val purgedSoftwares = softwareService.deleteUnreferencedSoftware().either.runNow
+      purgedSoftwares.map(_.size) === Right(1)
+    }
+  }
 
   step {
     ldap.close
