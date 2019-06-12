@@ -71,7 +71,11 @@ object RunCompliance {
   }
 }
 
-class ComplianceJdbcRepository(doobie: Doobie) extends ComplianceRepository {
+class ComplianceJdbcRepository(
+    doobie                  : Doobie
+  , getSaveComplianceDetails: () => Box[Boolean]
+  , getSaveComplianceLevels : () => Box[Boolean]
+) extends ComplianceRepository {
   import doobie._
 
   val logger = ReportLogger
@@ -143,14 +147,26 @@ class ComplianceJdbcRepository(doobie: Doobie) extends ComplianceRepository {
         }
       }
     }
-    val queryCompliance = """insert into nodecompliance (nodeid, runtimestamp, endoflife, runanalysis, summary, details)
-                           | values (?, ?, ?, ?, ?, ?)""".stripMargin
-    val queryComplianceLevel = s"""insert into nodecompliancelevels (${nodeComplianceLevelcolumns.mkString(",")})
-                                 | values ( ${nodeComplianceLevelcolumns.map(_ => "?").mkString(",")} )""".stripMargin
+
+    val saveComplianceDetails = if(getSaveComplianceDetails().getOrElse(false)) {
+      val queryCompliance = """insert into nodecompliance (nodeid, runtimestamp, endoflife, runanalysis, summary, details)
+                             | values (?, ?, ?, ?, ?, ?)""".stripMargin
+      Update[RunCompliance](queryCompliance).updateMany(runCompliances)
+    } else {
+      logger.debug(s"Not persisting compliance details in table 'nodecompliance' because settings 'rudder_save_db_compliance_details' is undefined or false").pure[ConnectionIO]
+    }
+
+    val saveComplianceLevels = if(getSaveComplianceLevels().getOrElse(true)) {
+      val queryComplianceLevel = s"""insert into nodecompliancelevels (${nodeComplianceLevelcolumns.mkString(",")})
+                                   | values ( ${nodeComplianceLevelcolumns.map(_ => "?").mkString(",")} )""".stripMargin
+      Update[LEVELS](queryComplianceLevel).updateMany(nodeComplianceLevels)
+    } else {
+      logger.debug(s"Not persisting compliance levels in table 'nodecompliancelevels' because settings 'rudder_save_db_compliance_level' is false").pure[ConnectionIO]
+    }
 
     val res = (for {
-      updated  <- Update[RunCompliance](queryCompliance).updateMany(runCompliances)
-      levels   <- Update[LEVELS](queryComplianceLevel).updateMany(nodeComplianceLevels)
+      updated  <- saveComplianceDetails
+      levels   <- saveComplianceLevels
     } yield {
       val saved = runCompliances.map(_.nodeId)
       reports.filter(r => saved.contains(r.nodeId))

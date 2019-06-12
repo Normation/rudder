@@ -111,6 +111,10 @@ class SettingsApi(
       RestOnAcceptPolicyMode ::
       RestChangeRequestUnexpectedAllowsDuplicate ::
       RestChangeRequestUnexpectedUnboundVarValues ::
+      RestComputeChanges ::
+      RestGenerationComputeDynGroups ::
+      RestPersistComplianceLevels ::
+      RestPersistComplianceDetails ::
       RestGenerationMaxParallelism ::
       RestGenerationJsTimeout ::
       Nil
@@ -646,6 +650,33 @@ class SettingsApi(
     RestUtils.response(restExtractorService, kind, id)(function, req, errorMessage)
   }
 
+  case object RestComputeChanges extends RestBooleanSetting {
+    val startPolicyGeneration = false
+    val key = "rudder_compute_changes"
+    def get = configService.rudder_compute_changes()
+    def set = (value : Boolean, _, _) => configService.set_rudder_compute_changes(value)
+  }
+
+  case object RestGenerationComputeDynGroups extends RestBooleanSetting {
+    val startPolicyGeneration = false
+    val key = "rudder_generation_compute_dyngroups"
+    def get = configService.rudder_generation_compute_dyngroups()
+    def set = (value : Boolean, _, _) => configService.set_rudder_generation_compute_dyngroups(value)
+  }
+
+  case object RestPersistComplianceLevels extends RestBooleanSetting {
+    val startPolicyGeneration = false
+    val key = "rudder_save_db_compliance_levels"
+    def get = configService.rudder_save_db_compliance_levels()
+    def set = (value : Boolean, _, _) => configService.set_rudder_save_db_compliance_levels(value)
+  }
+
+  case object RestPersistComplianceDetails extends RestBooleanSetting {
+    val startPolicyGeneration = false
+    val key = "rudder_save_db_compliance_details"
+    def get = configService.rudder_save_db_compliance_details()
+    def set = (value : Boolean, _, _) => configService.set_rudder_save_db_compliance_details(value)
+  }
   case object RestGenerationMaxParallelism extends RestStringSetting {
     val startPolicyGeneration = false
     val key = "rudder_generation_max_parallelism"

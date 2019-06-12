@@ -216,6 +216,20 @@ object RudderConfig extends Loggable {
         2
     }
   }
+  val LDAP_CACHE_NODE_INFO_MIN_INTERVAL = {
+    val x = try {
+      config.getInt("ldap.nodeinfo.cache.min.interval")
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.debug("Property 'ldap.nodeinfo.cache.min.interval' is missing or empty in rudder.configFile. Default to 100 ms.")
+        100
+    }
+    if(x < 0) { // 0 is ok, it means "always check"
+      100.millis
+    } else {
+      x.millis
+    }
+  }
   val LDAP_INVENTORIES_ACCEPTED_BASEDN = config.getString("ldap.inventories.accepted.basedn")
   val LDAP_INVENTORIES_PENDING_BASEDN = config.getString("ldap.inventories.pending.basedn")
   val LDAP_INVENTORIES_REMOVED_BASEDN = config.getString("ldap.inventories.removed.basedn")
@@ -787,7 +801,7 @@ object RudderConfig extends Loggable {
     )
   }
 
-  lazy val recentChangesService = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepository))
+  lazy val recentChangesService = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepository), configService.rudder_compute_changes _)
 
   //////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////
@@ -1429,6 +1443,7 @@ object RudderConfig extends Loggable {
       , configService.agent_run_start_minute _
       , configService.rudder_featureSwitch_directiveScriptEngine _
       , configService.rudder_global_policy_mode _
+      , configService.rudder_generation_compute_dyngroups _
       , configService.rudder_generation_max_parallelism _
       , configService.rudder_generation_js_timeout _
       , HOOKS_D
@@ -1503,7 +1518,11 @@ object RudderConfig extends Loggable {
   private[this] lazy val findExpectedRepo = new FindExpectedReportsJdbcRepository(doobie, pgIn)
   private[this] lazy val updateExpectedRepo = new UpdateExpectedReportsJdbcRepository(doobie, pgIn)
   private[this] lazy val reportsRepositoryImpl = new ReportsJdbcRepository(doobie)
-  private[this] lazy val complianceRepositoryImpl = new ComplianceJdbcRepository(doobie)
+  private[this] lazy val complianceRepositoryImpl = new ComplianceJdbcRepository(
+      doobie
+    , configService.rudder_save_db_compliance_details _
+    , configService.rudder_save_db_compliance_levels _
+  )
   private[this] lazy val dataSourceProvider = new RudderDatasourceProvider(RUDDER_JDBC_DRIVER, RUDDER_JDBC_URL, RUDDER_JDBC_USERNAME, RUDDER_JDBC_PASSWORD, RUDDER_JDBC_MAX_POOL_SIZE)
   lazy val doobie = new Doobie(dataSourceProvider.datasource)
 
@@ -1567,6 +1586,7 @@ object RudderConfig extends Loggable {
     , pendingNodesDitImpl
     , ldapEntityMapper
     , inventoryMapper
+    , LDAP_CACHE_NODE_INFO_MIN_INTERVAL
   )
   private[this] lazy val dependencyAndDeletionServiceImpl: DependencyAndDeletionService = new DependencyAndDeletionServiceImpl(
         roLdap
@@ -1812,6 +1832,7 @@ object RudderConfig extends Loggable {
     , complianceRepositoryImpl
     , maxCatchupTime
     , maxCatchupBatch
+    , configService.rudder_compute_changes _
     )
   }
 
