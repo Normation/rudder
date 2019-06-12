@@ -228,9 +228,10 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
   // Add a grace period before effectively do the search
   var rto;
   $scope.filterGlobal = function(str) {
+    $scope.searchStr = str;
     if (rto !== undefined) { clearTimeout(rto); }
     rto = setTimeout(function() {
-      $(tableId).DataTable().search(str).draw();
+      $($scope.tableId).DataTable().search($scope.searchStr).draw();
     }, 200);
   }
 
