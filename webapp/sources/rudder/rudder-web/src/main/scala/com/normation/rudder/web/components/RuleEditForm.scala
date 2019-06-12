@@ -605,14 +605,26 @@ class RuleEditForm(
 
   private[this] def workflowCallBack(workflowEnabled: Boolean, action: RuleModAction)(returns : Either[Rule,ChangeRequestId]) : JsCmd = {
     if ((!workflowEnabled) & (action == RuleModAction.Delete)) {
-      JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onSuccessCallback(rule) & SetHtml("editRuleZone",
-          <div id={htmlId_rule}> Rule '{rule.name}' successfully deleted</div>
+      JsRaw("""
+         $('#confirmUpdateActionDialog').bsModal('hide');
+         var scope = angular.element($("#showFiltersRules")).scope();
+         scope.$apply(function(){
+           scope.filterGlobal(scope.searchStr);
+         });
+        """.stripMargin) & onSuccessCallback(rule) & SetHtml("editRuleZone",
+        <div id={htmlId_rule}> Rule '{rule.name}' successfully deleted</div>
       )
     } else {
       returns match {
         case Left(rule) => // ok, we've received a rule, do as before
           this.rule = rule
-          JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") &  onSuccess
+          JsRaw("""
+         $('#confirmUpdateActionDialog').bsModal('hide');
+         var scope = angular.element($("#showFiltersRules")).scope();
+         scope.$apply(function(){
+           scope.filterGlobal(scope.searchStr);
+         });
+        """.stripMargin) &  onSuccess
         case Right(changeRequestId) => // oh, we have a change request, go to it
           linkUtil.redirectToChangeRequestLink(changeRequestId)
       }
@@ -645,7 +657,13 @@ class RuleEditForm(
         case (_)           => JsRaw("")
       }
 
-    JsRaw("""createSuccessNotification()""") & warningNotification
+    JsRaw("""
+      createSuccessNotification();
+      var scope = angular.element($("#showFiltersRules")).scope();
+      scope.$apply(function(){
+        scope.filterGlobal(scope.searchStr);
+      });
+    """.stripMargin) & warningNotification
   }
 
 }
