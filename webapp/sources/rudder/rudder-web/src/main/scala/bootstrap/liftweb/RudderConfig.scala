@@ -211,6 +211,15 @@ object RudderConfig extends Loggable {
   val LDAP_PORT = config.getInt("ldap.port")
   val LDAP_AUTHDN = config.getString("ldap.authdn")
   val LDAP_AUTHPW = config.getString("ldap.authpw") ; filteredPasswords += "ldap.authpw"
+  val LDAP_MAX_POOL_SIZE = {
+    try {
+      config.getInt("ldap.maxPoolSize")
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.info("Property 'ldap.maxPoolSize' is missing or empty in rudder.configFile. Default to 2 connections.")
+        2
+    }
+  }
   val LDAP_INVENTORIES_ACCEPTED_BASEDN = config.getString("ldap.inventories.accepted.basedn")
   val LDAP_INVENTORIES_PENDING_BASEDN = config.getString("ldap.inventories.pending.basedn")
   val LDAP_INVENTORIES_REMOVED_BASEDN = config.getString("ldap.inventories.removed.basedn")
@@ -1008,7 +1017,7 @@ object RudderConfig extends Loggable {
       , port = LDAP_PORT
       , authDn = LDAP_AUTHDN
       , authPw = LDAP_AUTHPW
-      , poolSize = 2
+      , poolSize = LDAP_MAX_POOL_SIZE
       , blockingModule = ZioRuntime.Environment
     )
   lazy val rwLdap =
@@ -1017,7 +1026,7 @@ object RudderConfig extends Loggable {
       , port = LDAP_PORT
       , authDn = LDAP_AUTHDN
       , authPw = LDAP_AUTHPW
-      , poolSize = 2
+      , poolSize = LDAP_MAX_POOL_SIZE
       , blockingModule = ZioRuntime.Environment
     )
 
