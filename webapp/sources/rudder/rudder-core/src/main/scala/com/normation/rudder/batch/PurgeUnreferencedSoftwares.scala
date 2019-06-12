@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2017 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -35,35 +35,46 @@
 *************************************************************************************
 */
 
-package com.normation.inventory.services.core
+package com.normation.rudder.batch
 
-import com.normation.inventory.domain.{InventoryStatus, NodeId, Software, SoftwareUuid}
-import net.liftweb.common.Box
 
-trait ReadOnlySoftwareDAO {
-  def getSoftware(ids:Seq[SoftwareUuid]) : Box[Seq[Software]]
+import com.normation.rudder.domain.logger.ScheduledJobLogger
+import com.normation.inventory.ldap.core.SoftwareService
+import monix.execution.Scheduler.{global => scheduler}
+import net.liftweb.common._
 
-  /**
-   * Return softwares for the node id, as efficiently
-   * as possible
-   */
-  def getSoftwareByNode(nodeIds: Set[NodeId], status: InventoryStatus): Box[Map[NodeId, Seq[Software]]]
+import scala.concurrent.duration._
 
-  /**
-    * Returns all software ids in ou=Software,ou=Inventories
-    */
-  def getAllSoftwareIds() : Box[Set[SoftwareUuid]]
 
-  /**
-    * Returns all software ids pointed by at least a node (in any of the 3 DIT)
-    */
-  def getSoftwaresForAllNodes() : Box[Set[SoftwareUuid]]
+/**
+ * A naive scheduler which checks every updateInterval if software needs to be deleted
+ */
+class PurgeUnreferencedSoftwares(
+     softwareService : SoftwareService
+   , updateInterval  : FiniteDuration
+) {
+
+  val logger = ScheduledJobLogger
+
+
+  if (updateInterval < 1.hour) {
+    logger.info(s"Disable automatic purge of unreferenced softwares (update interval cannot be less than 1 hour)")
+  } else {
+    logger.debug(s"***** starting batch that purge unreferenced softwares, every ${updateInterval.toString()} *****")
+    scheduler.scheduleWithFixedDelay(1.hour, updateInterval) {
+      softwareService.deleteUnreferencedSoftware() match {
+        case Full(softwares) =>
+          logger.info(s"Purged ${softwares.length} unreferenced softwares")
+          if (logger.isDebugEnabled && softwares.length > 0)
+            logger.debug(s"Purged following software: ${softwares.mkString(",")}")
+        case e: EmptyBox =>
+          val error = (e ?~! s"Error when deleting unreferenced softwares")
+          logger.error(error.messageChain)
+          error.rootExceptionCause.foreach(ex =>
+            logger.error("Exception was:", ex)
+          )
+      }
+    }
+  }
 }
 
-trait WriteOnlySoftwareDAO {
-
-  /**
-    * Delete softwares in ou=Software,ou=Inventories
-    */
-  def deleteSoftwares(softwares: Seq[SoftwareUuid]): Box[Seq[String]]
-}

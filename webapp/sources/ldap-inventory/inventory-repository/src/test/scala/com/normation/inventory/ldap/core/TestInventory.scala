@@ -43,7 +43,7 @@ import org.specs2.runner._
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
 import com.unboundid.ldap.sdk.DN
 import com.normation.inventory.domain._
-import com.normation.ldap.sdk.RwLDAPConnection
+import com.normation.ldap.sdk.{RoLDAPConnection, RwLDAPConnection}
 import net.liftweb.common.Empty
 import net.liftweb.common.Full
 import net.liftweb.common.EmptyBox
@@ -93,6 +93,11 @@ class TestInventory extends Specification {
     , bootstrapLDIFPaths = bootstrapLDIFs
   )
 
+  val roLdap = InMemoryDsConnectionProvider[RoLDAPConnection](
+    baseDNs = baseDN :: Nil
+    , schemaLDIFPaths = schemaLDIFs
+    , bootstrapLDIFPaths = bootstrapLDIFs
+  )
 
   val softwareDN = new DN("ou=Inventories, cn=rudder-configuration")
 
@@ -117,6 +122,12 @@ class TestInventory extends Specification {
 
   val repo = new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, ldap)
 
+  val readOnlySoftware = new ReadOnlySoftwareDAOImpl(inventoryDitService, roLdap, inventoryMapper)
+
+  val writeOnlySoftware = new WriteOnlySoftwareDAOImpl(acceptedNodesDitImpl, ldap)
+
+
+  val softwareService = new SoftwareServiceImpl(readOnlySoftware, writeOnlySoftware)
 
   val allStatus = Seq(RemovedInventory, PendingInventory, AcceptedInventory)
 
@@ -400,6 +411,22 @@ class TestInventory extends Specification {
 
   }
 
+  "Softwares" should {
+    "Find 2 software referenced by nodes with the repository" in {
+      val softwares = readOnlySoftware.getSoftwaresForAllNodes()
+      softwares.isOK and softwares.map(_.size) == Full(2)
+    }
+
+    "Find 3 software in ou=software with the repository" in {
+      val softwares = readOnlySoftware.getAllSoftwareIds()
+      softwares.isOK and softwares.map(_.size) == Full(3)
+    }
+
+    "Purge one unreferenced software with the SoftwareService" in {
+      val purgedSoftwares = softwareService.deleteUnreferencedSoftware()
+      purgedSoftwares.isOK and purgedSoftwares.map(_.size) == Full(1)
+    }
+  }
 
   step {
     ldap.close
