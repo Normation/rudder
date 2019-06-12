@@ -71,18 +71,27 @@ html {
 
 #chartjs-tooltip {
   opacity: 1;
-  position: absolute !important;
+  position: fixed !important;
   background: rgba(0, 0, 0, .7);
   color: white;
   border-radius: 3px;
   -webkit-transition: all .1s ease;
   transition: all .1s ease;
   pointer-events: none;
-  -webkit-transform: translate(-50%, 0);
-  transform: translate(-50%, 0);
-  z-index:500
+  -webkit-transform: translate(-50%, 10px);
+  transform: translate(-50%, 10px);
+  z-index: 500;
+  max-width: unset;
+  padding: 10px !important;
 }
-
+#chartjs-tooltip ul {
+  margin-bottom: 0;
+}
+#chartjs-tooltip h4 {
+  font-size: 16px;
+  white-space: pre;
+  margin-top: 0;
+}
 .chartjs-tooltip-key {
   display: inline-block;
   width: 10px;
