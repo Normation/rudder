@@ -37,6 +37,11 @@
 
 package com.normation.rudder.repository.jdbc
 
+import org.joda.time.DateTime
+import org.joda.time.Duration
+import org.junit.runner.RunWith
+import org.specs2.runner.JUnitRunner
+import net.liftweb.common.Full
 import com.normation.BoxSpecMatcher
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueName
@@ -56,8 +61,8 @@ import com.normation.rudder.domain.queries.NodeInfoMatcher
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.AgentRunIntervalService
-import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ResolvedAgentRunInterval
+import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.execution._
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.ComplianceRepository
@@ -84,6 +89,10 @@ import scalaz.zio._
 import scalaz.zio.syntax._
 
 import scala.collection.SortedMap
+import com.normation.rudder.repository.ComplianceRepository
+import com.normation.rudder.services.reports.UnexpectedReportInterpretation
+
+import scala.concurrent.duration._
 
 /**
  *
@@ -194,7 +203,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       , dummyChangesCache
       , dummyComplianceCache
       , dummyComplianceRepos
-      , 1
+      , 1.hour
+      , 1.hour
     )
   }
 
