@@ -390,11 +390,8 @@ object RudderConfig extends Loggable {
   //val updateDynamicGroupsService : DynGroupUpdaterService = dynGroupUpdaterService
   val updateDynamicGroups: UpdateDynamicGroups = dyngroupUpdaterBatch
   val checkInventoryUpdate = new CheckInventoryUpdate(nodeInfoServiceImpl, asyncDeploymentAgent, stringUuidGenerator, 15.seconds)
-<<<<<<< HEAD
   val purgeDeletedInventories = new PurgeDeletedInventories(removeNodeServiceImpl, RUDDER_BATCH_PURGE_DELETED_INVENTORIES_INTERVAL.hours, RUDDER_BATCH_PURGE_DELETED_INVENTORIES)
-=======
   val purgeUnreferencedSoftwares = new PurgeUnreferencedSoftwares(softwareService, RUDDER_BATCH_DELETE_SOFTWARE_INTERVAL.hours)
->>>>>>> bug_14924/cleanup_unreferenced_software_pr
   val databaseManager: DatabaseManager = databaseManagerImpl
   val automaticReportsCleaning: AutomaticReportsCleaning = dbCleaner
   val checkTechniqueLibrary: CheckTechniqueLibrary = techniqueLibraryUpdater

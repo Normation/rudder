@@ -45,10 +45,7 @@ import LDAPConstants._
 import net.liftweb.common._
 import Box._
 import com.normation.utils.Control.{bestEffort, sequence}
-import com.unboundid.ldap.sdk.{DN, Filter}
-
-import scala.collection.GenTraversableOnce
-
+import com.unboundid.ldap.sdk.DN
 
 class ReadOnlySoftwareDAOImpl(
   inventoryDitService:InventoryDitService,
@@ -119,7 +116,6 @@ class ReadOnlySoftwareDAOImpl(
 
     var mutSetSoftwares: scala.collection.mutable.Set[SoftwareUuid] = scala.collection.mutable.Set[SoftwareUuid]()
 
-    val t1 = System.currentTimeMillis
     (for {
       con           <- ldap
 
@@ -142,8 +138,8 @@ class ReadOnlySoftwareDAOImpl(
                                case Full(softIds) =>
                                  mutSetSoftwares = mutSetSoftwares ++ softIds
                                  Full(Unit)
-                               case Failure(msg, exception, chain) =>
-                                 Failure(msg, exception, chain) // otherwise the time is wrong
+                               case failure =>
+                                 failure // otherwise the time is wrong
                              }
                            }
     } yield {
