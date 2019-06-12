@@ -429,15 +429,24 @@ rudder.batch.reports.logInterval=1
 # Store Agent Run Times #############################################################
 #########################
 
-# Maximum Days of reports handled (default : 5)
+# Maximum catchup on reports at start (default : 30 minutes)
 #
 # To avoid handling too much reports at one time, the "Store Agent Run Times" process
-# will only take reports after X days from the last one processed.
+# will only take reports from catchup time from now
 # This is mainly used on the first Run, when the process has to catch on old reports,
 # and build execution history.
-# This value is expressed in days.
+# Set by two fields, maxDays in days, and maxMinutes in minuts
 
-rudder.batch.storeAgentRunTimes.maxDays=5
+rudder.batch.storeAgentRunTimes.maxDays=0
+rudder.batch.storeAgentRunTimes.maxMinutes=30
+
+# Maximum batch size of report handled (default: 5 minutes)
+#
+# To avoid handling too much reports at one time, the "Store Agent Run Times" process
+# will work on chunk of maxBatchSize minutes.
+# This is mainly used to avoid using too much memory at once, and ease database
+
+rudder.batch.storeAgentRunTimes.maxBatchSize=5
 
 # Delay before to launch of the reports executions actor (default : 5)
 #

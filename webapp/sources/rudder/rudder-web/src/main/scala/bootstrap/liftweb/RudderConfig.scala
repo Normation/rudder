@@ -77,7 +77,7 @@ import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest._
 import com.normation.rudder.rest.internal._
 import com.normation.rudder.rest.lift._
-import com.normation.rudder.rest.v1._
+import com.normation.rudder.rest.v1.{RestDeploy, RestDyngroupReload, RestGetGitCommitAsZip, RestTechniqueReload, RestStatus}
 import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
 import com.normation.rudder.rule.category._
 import com.normation.rudder.services._
@@ -252,7 +252,26 @@ object RudderConfig extends Loggable {
   val RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH = config.getString("rudder.techniqueLibrary.git.refs.path")
   val RUDDER_AUTOARCHIVEITEMS = config.getBoolean("rudder.autoArchiveItems") //true
   val RUDDER_SYSLOG_PORT = config.getInt("rudder.syslog.port") //514
-  val RUDDER_REPORTS_EXECUTION_MAX_DAYS = config.getInt("rudder.batch.storeAgentRunTimes.maxDays") // In days : 5
+  val RUDDER_REPORTS_EXECUTION_MAX_DAYS = config.getInt("rudder.batch.storeAgentRunTimes.maxDays") // In days : 0
+  val RUDDER_REPORTS_EXECUTION_MAX_MINUTES = { // Tis is handled at the object creation, days and minutes = 0 => 30 minutes
+    try {
+      config.getInt("rudder.batch.storeAgentRunTimes.maxMinutes")
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.info("Property 'rudder.batch.storeAgentRunTimes.maxMinutes' is missing or empty in rudder.configFile. Default to 0 minutes.")
+        0
+    }
+  }
+  val RUDDER_REPORTS_EXECUTION_MAX_SIZE = { // In minutes: 5
+    try {
+      config.getInt("rudder.batch.storeAgentRunTimes.maxBatchSize")
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.info("Property 'rudder.batch.storeAgentRunTimes.maxBatchSize' is missing or empty in rudder.configFile. Default to 5 minutes.")
+        5
+    }
+  }
+
   val RUDDER_REPORTS_EXECUTION_INTERVAL = config.getInt("rudder.batch.storeAgentRunTimes.updateInterval") // In seconds : 5
 
   val BIN_EMERGENCY_STOP = config.getString("bin.emergency.stop")
@@ -1770,12 +1789,17 @@ object RudderConfig extends Loggable {
   val updatesEntryJdbcRepository = new LastProcessedReportRepositoryImpl(doobie)
 
   val executionService = {
-    val max   = if (RUDDER_REPORTS_EXECUTION_MAX_DAYS > 0) {
-                  RUDDER_REPORTS_EXECUTION_MAX_DAYS
-                } else {
-                  logger.error("'rudder.aggregateReports.maxDays' property is not correctly set using 5 as default value, please check /opt/rudder/etc/rudder-web.properties")
-                  5
-                }
+    val maxCatchupTime = {
+      val temp = RUDDER_REPORTS_EXECUTION_MAX_DAYS.day + RUDDER_REPORTS_EXECUTION_MAX_MINUTES.minutes
+        if (temp.toMillis == 0) {
+          logger.error("'rudder.aggregateReports.maxDays' and 'rudder.aggregateReports.maxMinutes' properties are both 0 or empty. Set using 30 minutes as default value, please check /opt/rudder/etc/rudder-web.properties")
+          30.minutes
+        } else {
+          temp
+        }
+    }
+    val maxCatchupBatch = RUDDER_REPORTS_EXECUTION_MAX_SIZE.minutes
+
 
     new ReportsExecutionService(
       reportsRepository
@@ -1784,7 +1808,8 @@ object RudderConfig extends Loggable {
     , recentChangesService
     , reportingServiceImpl
     , complianceRepositoryImpl
-    , max
+    , maxCatchupTime
+    , maxCatchupBatch
     )
   }
 
