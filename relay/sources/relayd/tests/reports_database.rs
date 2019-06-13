@@ -44,7 +44,7 @@ fn it_reads_and_inserts_a_runlog() {
 
     let _ = remove_dir_all("target/tmp/test_simple");
     create_dir_all("target/tmp/test_simple/incoming").unwrap();
-    let cli_cfg = CliConfiguration::new("tests/test_simple/relayd.conf", false);
+    let cli_cfg = CliConfiguration::new("tests/test_simple/config/", false);
 
     let file_old = "target/tmp/test_simple/incoming/2017-01-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log";
     let file_new = "target/tmp/test_simple/incoming/2018-01-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log";
@@ -62,7 +62,7 @@ fn it_reads_and_inserts_a_runlog() {
     assert!(start_number(&db, 1).is_ok());
 
     copy("tests/runlogs/normal.signed", file_new).unwrap();
-    copy("tests/files/relayd.toml", file_broken).unwrap();
+    copy("tests/files/config/main.conf", file_broken).unwrap();
 
     assert!(start_number(&db, 2).is_ok());
 

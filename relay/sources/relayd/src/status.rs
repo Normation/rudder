@@ -28,7 +28,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{configuration::Configuration, output::database::ping, JobConfig};
+use crate::{
+    configuration::{Configuration, LogConfig},
+    output::database::ping,
+    JobConfig,
+};
 use serde::Serialize;
 use std::sync::Arc;
 
@@ -48,7 +52,8 @@ impl Status {
                 .pool
                 .clone()
                 .map(|p| ping(&p).map_err(|e| e.to_string())),
-            configuration: Configuration::new(job_config.cli_cfg.configuration_file.clone())
+            configuration: Configuration::new(job_config.cli_cfg.configuration_dir.clone())
+                .and_then(|_| LogConfig::new(job_config.cli_cfg.configuration_dir.clone()))
                 .map(|_| ())
                 .map_err(|e| e.to_string()),
         }

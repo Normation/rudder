@@ -38,9 +38,9 @@ use std::{
     net::SocketAddr,
     sync::{Arc, RwLock},
 };
-use warp::{Filter};
+use warp::Filter;
 
-use crate::remote_run::{nodes_handle};
+use crate::remote_run::nodes_handle;
 
 pub fn api(
     listen: SocketAddr,
@@ -90,13 +90,11 @@ pub fn api(
     let relay_api = warp::path("relay-api");
     let remote_run = warp::path("remote-run");
 
-    let routes = warp::get2()
-        .and(status.or(stats_simple))
-        .or(warp::post2()
-            .and(rudder)
-            .and(relay_api)
-            .and(remote_run)
-            .and(nodes.or(all).or(nodes2.and(node_id))));
+    let routes = warp::get2().and(status.or(stats_simple)).or(warp::post2()
+        .and(rudder)
+        .and(relay_api)
+        .and(remote_run)
+        .and(nodes.or(all).or(nodes2.and(node_id))));
 
     let (addr, server) = warp::serve(routes).bind_with_graceful_shutdown(listen, shutdown);
     info!("Started stats API on {}", addr; "component" => LogComponent::Statistics);

@@ -216,7 +216,10 @@ mod tests {
 
         let file_nodelist = NodesList::new("tests/files/nodeslist.json", None).unwrap();
 
-        assert_eq!(file_nodelist.get_neighbours("root").sort(), my_string_vec.sort());
+        assert_eq!(
+            file_nodelist.get_neighbours("root").sort(),
+            my_string_vec.sort()
+        );
     }
 
     #[test]

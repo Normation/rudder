@@ -81,7 +81,8 @@ use tokio_signal::unix::{Signal, SIGHUP, SIGINT, SIGTERM};
 pub fn init(cli_cfg: CliConfiguration) -> Result<(), Error> {
     // ---- Load configuration ----
 
-    let cfg = Configuration::new(&cli_cfg.configuration_file)?;
+    let cfg = Configuration::new(&cli_cfg.configuration_dir)?;
+    let log_cfg = LogConfig::new(&cli_cfg.configuration_dir)?;
 
     if cli_cfg.check_configuration {
         println!("Syntax: OK");
@@ -91,19 +92,20 @@ pub fn init(cli_cfg: CliConfiguration) -> Result<(), Error> {
     // ---- Setup loggers ----
 
     let log_ctrl = LoggerCtrl::new();
-    log_ctrl.load(&cfg.logging);
+    log_ctrl.load(&log_cfg);
 
     // ---- Start execution ----
 
     info!("Starting rudder-relayd {}", crate_version!());
 
     debug!("Parsed cli configuration:\n{:#?}", &cli_cfg);
-    info!("Read configuration from {:#?}", &cli_cfg.configuration_file);
-    debug!("Parsed configuration:\n{:#?}", &cfg);
+    info!("Read configuration from {:#?}", &cli_cfg.configuration_dir);
+    debug!("Parsed main configuration:\n{:#?}", &cfg);
+    debug!("Parsed logging configuration:\n{:#?}", &log_cfg);
 
     // ---- Setup data structures ----
 
-    let cfg_file = cli_cfg.configuration_file.clone();
+    let cfg_dir = cli_cfg.configuration_dir.clone();
     let stats = Arc::new(RwLock::new(Stats::default()));
     let job_config = JobConfig::new(cli_cfg)?;
 
@@ -129,10 +131,10 @@ pub fn init(cli_cfg: CliConfiguration) -> Result<(), Error> {
         .flatten_stream()
         .for_each(move |_signal| {
             info!("Signal received: reload requested");
-            match Configuration::new(&cfg_file) {
-                Ok(cfg) => {
-                    debug!("Parsed configuration:\n{:#?}", &cfg);
-                    log_ctrl.load(&cfg.logging);
+            match LogConfig::new(&cfg_dir) {
+                Ok(log_cfg) => {
+                    debug!("Parsed configuration:\n{:#?}", &log_cfg);
+                    log_ctrl.load(&log_cfg);
                     match job_config_reload.reload_nodeslist() {
                         Ok(_) => (),
                         Err(e) => error!("nodes list reload error {}", e),
@@ -258,7 +260,7 @@ pub struct JobConfig {
 
 impl JobConfig {
     pub fn new(cli_cfg: CliConfiguration) -> Result<Arc<Self>, Error> {
-        let cfg = Configuration::new(cli_cfg.configuration_file.clone())?;
+        let cfg = Configuration::new(cli_cfg.configuration_dir.clone())?;
 
         // Create dirs
         if cfg.processing.inventory.output != InventoryOutputSelect::Disabled {

@@ -53,14 +53,14 @@ pub type NodesCertsFile = PathBuf;
 // version and description are taken from Cargo.toml
 // struct fields comments are used as option description in help
 pub struct CliConfiguration {
-    /// Sets a custom config file
+    /// Sets a custom config directory
     #[structopt(
         short = "c",
         long = "config",
-        default_value = "/opt/rudder/etc/rudder-relayd.conf",
+        default_value = "/opt/rudder/etc/relayd/",
         parse(from_os_str)
     )]
-    pub configuration_file: PathBuf,
+    pub configuration_dir: PathBuf,
 
     /// Checks the syntax of the configuration file
     #[structopt(short = "k", long = "check")]
@@ -70,7 +70,7 @@ pub struct CliConfiguration {
 impl CliConfiguration {
     pub fn new<P: AsRef<Path>>(path: P, check_configuration: bool) -> Self {
         Self {
-            configuration_file: path.as_ref().to_path_buf(),
+            configuration_dir: path.as_ref().to_path_buf(),
             check_configuration,
         }
     }
@@ -82,12 +82,11 @@ pub struct Configuration {
     pub general: GeneralConfig,
     pub processing: ProcessingConfig,
     pub output: OutputConfig,
-    pub logging: LogConfig,
 }
 
 impl Configuration {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
-        read_to_string(path)?.parse::<Self>()
+        read_to_string(path.as_ref().join("main.conf"))?.parse::<Self>()
     }
 }
 
@@ -190,6 +189,20 @@ pub struct LogConfig {
     pub filter: LogFilterConfig,
 }
 
+impl LogConfig {
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
+        read_to_string(path.as_ref().join("logging.conf"))?.parse::<Self>()
+    }
+}
+
+impl FromStr for LogConfig {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(toml::from_str(s)?)
+    }
+}
+
 #[serde(remote = "Level")]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -261,8 +274,22 @@ mod tests {
     }
 
     #[test]
-    fn it_parses_configuration() {
-        let config = Configuration::new("tests/files/relayd.toml");
+    fn it_parses_logging_configuration() {
+        let log_config = LogConfig::new("tests/files/config/");
+        let log_reference = LogConfig {
+            general: LoggerConfig { level: Level::Info },
+            filter: LogFilterConfig {
+                level: Level::Debug,
+                nodes: HashSet::from_iter(vec!["root".to_string()].iter().cloned()),
+                components: HashSet::from_iter(vec![LogComponent::Database].iter().cloned()),
+            },
+        };
+        assert_eq!(log_config.unwrap(), log_reference);
+    }
+
+    #[test]
+    fn it_parses_main_configuration() {
+        let config = Configuration::new("tests/files/config/");
 
         let mut root_set = HashSet::new();
         root_set.insert("root".to_string());
@@ -300,14 +327,6 @@ mod tests {
                 database: DatabaseConfig {
                     url: "postgres://rudderreports:PASSWORD@127.0.0.1/rudder".to_string(),
                     max_pool_size: 5,
-                },
-            },
-            logging: LogConfig {
-                general: LoggerConfig { level: Level::Info },
-                filter: LogFilterConfig {
-                    level: Level::Debug,
-                    nodes: HashSet::from_iter(vec!["root".to_string()].iter().cloned()),
-                    components: HashSet::from_iter(vec![LogComponent::Database].iter().cloned()),
                 },
             },
         };
