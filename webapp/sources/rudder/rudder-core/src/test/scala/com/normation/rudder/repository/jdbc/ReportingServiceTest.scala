@@ -37,7 +37,7 @@
 
 package com.normation.rudder.repository.jdbc
 
-import org.joda.time.{DateTime, Duration, Interval}
+import org.joda.time.{DateTime, Duration}
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import net.liftweb.common.Full
@@ -175,7 +175,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   lazy val woAgentRun = new WoReportsExecutionRepositoryImpl(doobie, roAgentRun)
 
 
-  lazy val dummyChangesCache = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepo)) {
+  lazy val dummyChangesCache = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepo), () => Full(true)) {
     override def update(changes: Seq[ResultRepairedReport]): Box[Unit] = Full(())
     override def countChangesByRuleByInterval() = Empty
   }
@@ -196,6 +196,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       , dummyComplianceRepos
       , 1.hour
       , 1.hour
+      , () => Full(true)
     )
   }
 

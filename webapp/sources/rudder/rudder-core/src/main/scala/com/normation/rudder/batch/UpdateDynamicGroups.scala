@@ -204,7 +204,7 @@ class UpdateDynamicGroups(
 
         //log some information
         val format = "yyyy/MM/dd HH:mm:ss"
-        logger.debug(s"Dynamic group update started at ${start.toString(format)}, ended at ${end.toString(format)}")
+        logger.debug(s"Dynamic group update in ${new Duration(end.getMillis - start.getMillis).toPeriod().toString} (started at ${start.toString(format)}, ended at ${end.toString(format)})")
 
         for {
           (id,boxRes) <- results

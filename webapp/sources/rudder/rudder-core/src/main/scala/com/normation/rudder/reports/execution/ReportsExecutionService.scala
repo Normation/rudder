@@ -51,7 +51,6 @@ import org.joda.time.DateTime
 import org.joda.time.format.PeriodFormat
 import net.liftweb.common._
 import com.normation.rudder.db.DB
-import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.repository.ComplianceRepository
 
 import scala.concurrent.duration.FiniteDuration
@@ -69,6 +68,7 @@ class ReportsExecutionService (
   , complianceRepos        : ComplianceRepository
   , catchupFromDuration    : FiniteDuration
   , catchupInterval        : FiniteDuration
+  , computeChangeEnabled   : () => Box[Boolean]
 ) {
 
   val logger = ReportLogger
@@ -215,7 +215,7 @@ class ReportsExecutionService (
   private[this] def hook(lowestId: Long, highestId: Long, updatedNodeIds: Set[NodeId]) : Unit = {
     val startHooks = System.currentTimeMillis
 
-
+    if(computeChangeEnabled().getOrElse(true)) {
     Future {
       //update changes by rules
       (for {
@@ -233,6 +233,9 @@ class ReportsExecutionService (
         case Full(x) => //youhou
           logger.trace("Cache for changes by rule updates after new run received")
       }
+    }
+    } else {
+      logger.warn(s"Not updating changes by rule - disabled by settings 'rudder_compute_changes'")
     }
 
     Future {

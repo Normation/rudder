@@ -255,6 +255,16 @@ trait PromiseGenerationService {
 
     import HooksImplicits._
 
+    /*
+     * The computation of dynamic group is a workaround inconsistencies after importing definition
+     * from LDAP, see: https://issues.rudder.io/issues/14758
+     * But that computation may lead to a huge delay in generation (tens of minutes). We want to be
+     * able to unset their computation in some case through an environement variable.
+     *
+     * To disable it, set environment variable "rudder.generation.computeDynGroup" to "disabled"
+     */
+    val computeDynGroupsEnabled = getComputeDynGroups().getOrElse(true)
+
     val maxParallelism = {
       // We want to limit the number of parallel execution and threads to the number of core/2 (minimum 1) by default.
       // This is taken from the system environment variable because we really want to be able to change it at runtime.
@@ -295,7 +305,12 @@ trait PromiseGenerationService {
 
     val result = for {
       // trigger a dynamic group update
-      computeGroups        <- triggerNodeGroupUpdate()
+      _                    <- if(computeDynGroupsEnabled) {
+                                triggerNodeGroupUpdate()
+                              } else {
+                                PolicyLogger.warn(s"Computing dynamic groups disable by REST API settings 'rudder_generation_compute_dyngroups'")
+                                Full(())
+                              }
       timeComputeGroups    =  (System.currentTimeMillis - initialTime)
       _                    =  PolicyLogger.debug(s"Computing dynamic groups finished in ${timeComputeGroups} ms")
       preGenHooksTime      =  System.currentTimeMillis
@@ -486,6 +501,7 @@ trait PromiseGenerationService {
   def getAgentRunStartMinute : () => Box[Int]
   def getScriptEngineEnabled : () => Box[FeatureSwitch]
   def getGlobalPolicyMode    : () => Box[GlobalPolicyMode]
+  def getComputeDynGroups    : () => Box[Boolean]
   def getMaxParallelism      : () => Box[String]
   def getJsTimeout           : () => Box[Int]
 
@@ -677,6 +693,7 @@ class PromiseGenerationServiceImpl (
   , override val getAgentRunStartMinute: () => Box[Int]
   , override val getScriptEngineEnabled: () => Box[FeatureSwitch]
   , override val getGlobalPolicyMode: () => Box[GlobalPolicyMode]
+  , override val getComputeDynGroups: () => Box[Boolean]
   , override val getMaxParallelism  : () => Box[String]
   , override val getJsTimeout       : () => Box[Int]
   , override val HOOKS_D: String

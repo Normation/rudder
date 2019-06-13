@@ -208,6 +208,11 @@ trait ReadConfigService {
   /**
    * For debugging / disabling some part of Rudder. Should not be exposed in UI
    */
+  def rudder_compute_changes(): Box[Boolean]
+  def rudder_generation_compute_dyngroups(): Box[Boolean]
+  def rudder_save_db_compliance_levels(): Box[Boolean]
+  def rudder_save_db_compliance_details(): Box[Boolean]
+
   def rudder_generation_max_parallelism(): Box[String]
   def rudder_generation_js_timeout(): Box[Int]
 }
@@ -331,6 +336,11 @@ trait UpdateConfigService {
   def set_rudder_node_onaccept_default_state(nodeState: NodeState): Box[Unit]
   def set_rudder_compliance_unexpected_report_interpretation(mode: UnexpectedReportInterpretation) : Box[Unit]
 
+  def set_rudder_compute_changes(value: Boolean): Box[Unit]
+  def set_rudder_generation_compute_dyngroups(value: Boolean): Box[Unit]
+  def set_rudder_save_db_compliance_levels(value: Boolean): Box[Unit]
+  def set_rudder_save_db_compliance_details(value: Boolean): Box[Unit]
+
   def set_rudder_generation_max_parallelism(value: String): Box[Unit]
   def set_rudder_generation_js_timeout(value: Int): Box[Unit]
 }
@@ -378,6 +388,10 @@ class LDAPBasedConfigService(
        rudder.node.onaccept.default.policyMode=default
        rudder.compliance.unexpectedReportAllowsDuplicate=true
        rudder.compliance.unexpectedReportUnboundedVarValues=true
+       rudder.compute.changes=true
+       rudder.generation.compute.dyngroups=true
+       rudder.save.db.compliance.levels=true
+       rudder.save.db.compliance.details=false
        rudder.generation.max.parallelism=x0.5
        rudder.generation.js.timeout=5
     """
@@ -657,6 +671,16 @@ class LDAPBasedConfigService(
 
 
   ///// debug / perf /////
+  def rudder_compute_changes(): Box[Boolean] = get("rudder_compute_changes")
+  def set_rudder_compute_changes(value: Boolean): Box[Unit] = save("rudder_compute_changes", value)
+  def rudder_generation_compute_dyngroups(): Box[Boolean] = get("rudder_generation_compute_dyngroups")
+  def set_rudder_generation_compute_dyngroups(value: Boolean): Box[Unit] = save("rudder_generation_compute_dyngroups", value)
+  def rudder_save_db_compliance_levels(): Box[Boolean] = get("rudder_save_db_compliance_levels")
+  def set_rudder_save_db_compliance_levels(value: Boolean): Box[Unit] = save("rudder_save_db_compliance_levels", value)
+  def rudder_save_db_compliance_details(): Box[Boolean] = get("rudder_save_db_compliance_details")
+  def set_rudder_save_db_compliance_details(value: Boolean): Box[Unit] = save("rudder_save_db_compliance_details", value)
+
+  /// generation: js timeout, parallelism
   def rudder_generation_max_parallelism(): Box[String] = get("rudder_generation_max_parallelism")
   def set_rudder_generation_max_parallelism(value: String): Box[Unit] = save("rudder_generation_max_parallelism", value)
   def rudder_generation_js_timeout(): Box[Int] = get("rudder_generation_js_timeout")

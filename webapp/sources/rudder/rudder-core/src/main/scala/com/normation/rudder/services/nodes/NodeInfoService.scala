@@ -61,6 +61,8 @@ import com.normation.rudder.domain.queries.CriterionComposition
 import com.normation.rudder.domain.queries.NodeInfoMatcher
 import com.normation.rudder.domain.queries.Or
 
+import scala.concurrent.duration.FiniteDuration
+
 /*
  * General logic for the cache implementation of NodeInfo.
  * The general idea is to limit at maximum:
@@ -570,8 +572,10 @@ class NodeInfoServiceCachedImpl(
   , override val pendingDit     : InventoryDit
   , override val ldapMapper     : LDAPEntityMapper
   , override val inventoryMapper: InventoryMapper
+  , minimumCacheValidity        : FiniteDuration
 ) extends NodeInfoServiceCached {
   import NodeInfoService._
+  val minimumCacheValidityMillis = minimumCacheValidity.toMillis
 
  /*
    * Check if node related infos are up to date.
@@ -613,45 +617,52 @@ class NodeInfoServiceCachedImpl(
    */
   override def checkUpToDate(lastKnowModification: DateTime, lastModEntryCSN: Seq[String]): Boolean = {
     val n0 = System.currentTimeMillis
-    val searchRequest = new SearchRequest(nodeDit.BASE_DN.toString, Sub, DereferencePolicy.NEVER, 1, 0, false
-        , AND(
-             OR(
-                  // ou=Removed Inventories,ou=Inventories,cn=rudder-configuration
-                  AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${removedDit.NODES.dn.toString}"))
-                  // ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
-                , AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.NODES.dn.toString}"))
-                , AND(IS(OC_MACHINE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.MACHINES.dn.toString}"))
-                  // ou=Nodes,cn=rudder-configuration - the objectClass is used only here
-                , AND(IS(OC_RUDDER_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${nodeDit.NODES.dn.toString}"))
-              )
-            , GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(lastKnowModification).toString)
-            , NOT(OR(lastModEntryCSN.map(csn => EQ("entryCSN", csn)):_*))
-          )
-        , "1.1"
-      )
 
-    val res = ldap.map { con =>
-      //here, I have to rely on low-level LDAP connection, because I need to proceed size-limit exceeded as OK
-      try {
-        con.backed.search(searchRequest).getSearchEntries
-      } catch {
-        case e:LDAPSearchException if(e.getResultCode == ResultCode.SIZE_LIMIT_EXCEEDED) =>
-          e.getSearchEntries()
+    //if last check is less than 100 ms ago, consider cache ok
+    if(n0 - lastKnowModification.getMillis < minimumCacheValidityMillis) {
+      true
+    } else {
+
+      val searchRequest = new SearchRequest(nodeDit.BASE_DN.toString, Sub, DereferencePolicy.NEVER, 1, 0, false
+          , AND(
+               OR(
+                    // ou=Removed Inventories,ou=Inventories,cn=rudder-configuration
+                    AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${removedDit.NODES.dn.toString}"))
+                    // ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+                  , AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.NODES.dn.toString}"))
+                  , AND(IS(OC_MACHINE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.MACHINES.dn.toString}"))
+                    // ou=Nodes,cn=rudder-configuration - the objectClass is used only here
+                  , AND(IS(OC_RUDDER_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${nodeDit.NODES.dn.toString}"))
+                )
+              , GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(lastKnowModification).toString)
+              , NOT(OR(lastModEntryCSN.map(csn => EQ("entryCSN", csn)):_*))
+            )
+          , "1.1"
+        )
+
+      val res = ldap.map { con =>
+        //here, I have to rely on low-level LDAP connection, because I need to proceed size-limit exceeded as OK
+        try {
+          con.backed.search(searchRequest).getSearchEntries
+        } catch {
+          case e:LDAPSearchException if(e.getResultCode == ResultCode.SIZE_LIMIT_EXCEEDED) =>
+            e.getSearchEntries()
+        }
+      } match {
+        case Full(seq) =>
+          //we only have interesting entries in the result, so it's up to date if we have exactly 0 entries
+          val res = seq.size <= 0
+          logger.trace(s"Cache check for node info gave '${res}' (${seq.size} entry returned)")
+          res
+        case eb: EmptyBox =>
+          val e = eb ?~! "Error when checking for cache expiration: invalidating it"
+          logger.debug(e.messageChain)
+          false
       }
-    } match {
-      case Full(seq) =>
-        //we only have interesting entries in the result, so it's up to date if we have exactly 0 entries
-        val res = seq.size <= 0
-        logger.trace(s"Cache check for node info gave '${res}' (${seq.size} entry returned)")
-        res
-      case eb: EmptyBox =>
-        val e = eb ?~! "Error when checking for cache expiration: invalidating it"
-        logger.debug(e.messageChain)
-        false
+      val n1 = System.currentTimeMillis
+      TimingDebugLogger.debug(s"Cache for nodes info expire ?: ${n1-n0}ms")
+      res
     }
-    val n1 = System.currentTimeMillis
-    TimingDebugLogger.debug(s"Cache for nodes info expire ?: ${n1-n0}ms")
-    res
   }
 
   /**
