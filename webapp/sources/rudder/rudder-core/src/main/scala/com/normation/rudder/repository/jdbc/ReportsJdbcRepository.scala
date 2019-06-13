@@ -296,7 +296,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
 
   // Get max ID before a datetime
   def getMaxIdBeforeDateTime(fromId: Long, before: DateTime): Box[Long] = {
-    (transactRunBox(xa => (query[Long](s"select max(id) as id from RudderSysEvents where where id > ${fromId} and executionTimeStamp <  '${new Timestamp(before.getMillis)}''").
+    (transactRunBox(xa => (query[Long](s"select max(id) as id from RudderSysEvents where where id > ${fromId} and executionTimeStamp <  '${new Timestamp(before.getMillis)}'").
       option.transact(xa))) ?~! s"Could not fetch the highest id before date ${before.toString} in the database").map(_.getOrElse(fromId))
   }
 
