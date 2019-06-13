@@ -90,6 +90,7 @@ import monix.eval.TaskSemaphore
 import monix.execution.ExecutionModel
 import monix.execution.Scheduler
 import org.joda.time.Period
+import org.joda.time.format.PeriodFormatterBuilder
 
 import scala.concurrent.Await
 import scala.concurrent.duration.FiniteDuration
@@ -476,10 +477,24 @@ trait PromiseGenerationService {
     } yield {
       result
     }
-    PolicyLogger.info("Policy generation completed in: %10s".format(new Period(System.currentTimeMillis - initialTime).toString()))
+    PolicyLogger.info("Policy generation completed in: %10s".format(periodFormatter.print(new Period(System.currentTimeMillis - initialTime))))
     result
   }
-
+  private[this] val periodFormatter = {
+    new PeriodFormatterBuilder().
+      appendDays().
+      appendSuffix(" day", " days").
+      appendSeparator(" ").
+      appendHours().
+      appendSuffix(" hour", " hours").
+      appendSeparator(" ").
+      appendMinutes().
+      appendSuffix(" min", " min").
+      appendSeparator(" ").
+      appendSeconds().
+      appendSuffix(" s", " s")
+      .toFormatter()
+  }
   /**
    * Snapshot all information needed:
    * - node infos
