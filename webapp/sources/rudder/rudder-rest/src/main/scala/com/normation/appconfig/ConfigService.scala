@@ -203,6 +203,13 @@ trait ReadConfigService {
    * What is the behavior to adopt regarding unexpected reports ?
    */
   def rudder_compliance_unexpected_report_interpretation(): Box[UnexpectedReportInterpretation]
+
+
+  /**
+   * For debugging / disabling some part of Rudder. Should not be exposed in UI
+   */
+  def rudder_generation_max_parallelism(): Box[String]
+  def rudder_generation_js_timeout(): Box[Int]
 }
 
 /**
@@ -323,6 +330,9 @@ trait UpdateConfigService {
   def set_rudder_node_onaccept_default_policy_mode(policyMode: Option[PolicyMode]): Box[Unit]
   def set_rudder_node_onaccept_default_state(nodeState: NodeState): Box[Unit]
   def set_rudder_compliance_unexpected_report_interpretation(mode: UnexpectedReportInterpretation) : Box[Unit]
+
+  def set_rudder_generation_max_parallelism(value: String): Box[Unit]
+  def set_rudder_generation_js_timeout(value: Int): Box[Unit]
 }
 
 class LDAPBasedConfigService(
@@ -368,6 +378,8 @@ class LDAPBasedConfigService(
        rudder.node.onaccept.default.policyMode=default
        rudder.compliance.unexpectedReportAllowsDuplicate=true
        rudder.compliance.unexpectedReportUnboundedVarValues=true
+       rudder.generation.max.parallelism=x0.5
+       rudder.generation.js.timeout=5
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -642,4 +654,11 @@ class LDAPBasedConfigService(
       _ <- save("rudder_compliance_unexpectedReportUnboundedVarValues", mode.isSet(UnexpectedReportBehavior.UnboundVarValues))
     } yield ()
   }
+
+
+  ///// debug / perf /////
+  def rudder_generation_max_parallelism(): Box[String] = get("rudder_generation_max_parallelism")
+  def set_rudder_generation_max_parallelism(value: String): Box[Unit] = save("rudder_generation_max_parallelism", value)
+  def rudder_generation_js_timeout(): Box[Int] = get("rudder_generation_js_timeout")
+  def set_rudder_generation_js_timeout(value: Int): Box[Unit] = save("rudder_generation_js_timeout", value)
 }

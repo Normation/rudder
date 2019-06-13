@@ -85,19 +85,10 @@ class CalculateComplianceTest extends Specification {
   }
 
 
-  /*
-   * here, you could add some js code to importe.
-   */
-  val imports = """function test() { return "plop";}""" /* ++ scala.io.Source.fromInputStream(
-    //  Currently, it's hard because there is jQuery everywere.
-    this.getClass.getClassLoader.getResourceAsStream("rudder-js/rudder-datatable.js")
-  )(StandardCharsets.UTF_8).getLines().mkString("\n") */
-
   val emptyJsBindings = new SimpleBindings()
   def js(js: String): Box[String] = {
     JsEngine.SandboxedJsEngine.sandboxed(this.getClass.getClassLoader.getResource("rudder-js.policy")) { box =>
       for {
-        _ <- box.singleEval(imports, emptyJsBindings)
         x <- box.singleEval(js, emptyJsBindings)
       } yield x
     }
