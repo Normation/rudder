@@ -120,6 +120,7 @@ class SettingsApi(
       RestPersistComplianceDetails ::
       RestGenerationMaxParallelism ::
       RestGenerationJsTimeout ::
+      RestContinueGenerationOnError ::
       Nil
 
   val allSettings_v8 = RestUseReverseDNS :: allSettings_v10
@@ -692,6 +693,13 @@ class SettingsApi(
     val key = "rudder_generation_js_timeout"
     def get = configService.rudder_generation_js_timeout()
     def set = (value : Int, _, _) => configService.set_rudder_generation_js_timeout(value)
+  }
+
+  case object RestContinueGenerationOnError extends RestBooleanSetting {
+    val startPolicyGeneration = false
+    val key = "rudder_generation_continue_on_error"
+    def get = configService.rudder_generation_continue_on_error()
+    def set = (value : Boolean, _, _) => configService.set_rudder_generation_continue_on_error(value)
   }
 }
 
