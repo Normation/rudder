@@ -119,11 +119,11 @@ case class Parallelism(
   , semaphore: TaskSemaphore
 )
 
-object ParallelSequence {
+object ParallelSequence extends Loggable {
   private[this] def boxToEither[U,T](f: U => Box[T])(u:U): Either[String, T] = f(u) match {
     case Full(t)    => Right(t)
-    case Empty      => Left("Error (no message available)")
-    case f: Failure => Left(f.messageChain)
+    case Empty      => logger.error("Empty boxToEither: no result") ; Left("Error (no message available)")
+    case f: Failure => logger.error(s"Failure in boxToEither: ${f.messageChain}"); Left(f.messageChain)
   }
   private[this] def recover[U,T](u:U, ex: Throwable): Either[String, T] = Left(ex.getMessage)
 
@@ -298,8 +298,11 @@ trait PromiseGenerationService {
       }, TimeUnit.SECONDS)
     }
 
+    val generationContinueOnError = getGenerationContinueOnError().getOrElse(false)
+
     PolicyLogger.debug(s"Policy generation parallelism set to: ${maxParallelism} (change with REST API settings parameter 'rudder_generation_max_parallelism')")
-    PolicyLogger.debug(s"Policy generation JS eveluation of directive parameter timeout: ${jsTimeout} s (change with REST API settings parameter 'rudder_generation_jsTimeout')")
+    PolicyLogger.debug(s"Policy generation JS evaluation of directive parameter timeout: ${jsTimeout} s (change with REST API settings parameter 'rudder_generation_jsTimeout')")
+    PolicyLogger.debug(s"Policy generation continues on NodeConfigurations evaluation: ${generationContinueOnError} (change with REST API settings parameter 'rudder_generation_continue_on_error')")
 
     implicit val parallelism = Parallelism(maxParallelism, Scheduler.io(executionModel = ExecutionModel.AlwaysAsyncExecution), TaskSemaphore(maxParallelism = maxParallelism))
 
@@ -390,7 +393,7 @@ trait PromiseGenerationService {
 
       buildConfigTime       =  System.currentTimeMillis
       /// here, we still have directive by directive info
-      configsAndErrors      <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, parallelism, jsTimeout) ?~! "Cannot build target configuration node"
+      configsAndErrors      <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, parallelism, jsTimeout, generationContinueOnError) ?~! "Cannot build target configuration node"
       /// only keep successfull node config. We will keep the failed one to fail the whole process in the end if needed
       nodeConfigs           =  configsAndErrors.ok.map(c => (c.nodeInfo.id, c)).toMap
       timeBuildConfig       =  (System.currentTimeMillis - buildConfigTime)
@@ -504,6 +507,7 @@ trait PromiseGenerationService {
   def getComputeDynGroups    : () => Box[Boolean]
   def getMaxParallelism      : () => Box[String]
   def getJsTimeout           : () => Box[Int]
+  def getGenerationContinueOnError :() => Box[Boolean]
 
   // Trigger dynamic group update
   def triggerNodeGroupUpdate(): Box[Unit]
@@ -590,6 +594,7 @@ trait PromiseGenerationService {
     , globalPolicyMode   : GlobalPolicyMode
     , parallelism        : Parallelism
     , jsTimeout          : FiniteDuration
+    , generationContinueOnError: Boolean
   ) : Box[NodeConfigurations]
 
   /**
@@ -687,15 +692,16 @@ class PromiseGenerationServiceImpl (
   , override val agentRunService : AgentRunIntervalService
   , override val complianceCache  : CachedFindRuleNodeStatusReports
   , override val promisesFileWriterService: PolicyWriterService
-  , override val getAgentRunInterval: () => Box[Int]
-  , override val getAgentRunSplaytime: () => Box[Int]
-  , override val getAgentRunStartHour: () => Box[Int]
-  , override val getAgentRunStartMinute: () => Box[Int]
-  , override val getScriptEngineEnabled: () => Box[FeatureSwitch]
-  , override val getGlobalPolicyMode: () => Box[GlobalPolicyMode]
-  , override val getComputeDynGroups: () => Box[Boolean]
-  , override val getMaxParallelism  : () => Box[String]
-  , override val getJsTimeout       : () => Box[Int]
+  , override val getAgentRunInterval         : () => Box[Int]
+  , override val getAgentRunSplaytime        : () => Box[Int]
+  , override val getAgentRunStartHour        : () => Box[Int]
+  , override val getAgentRunStartMinute      : () => Box[Int]
+  , override val getScriptEngineEnabled      : () => Box[FeatureSwitch]
+  , override val getGlobalPolicyMode         : () => Box[GlobalPolicyMode]
+  , override val getComputeDynGroups         : () => Box[Boolean]
+  , override val getMaxParallelism           : () => Box[String]
+  , override val getJsTimeout                : () => Box[Int]
+  , override val getGenerationContinueOnError: () => Box[Boolean]
   , override val HOOKS_D: String
   , override val HOOKS_IGNORE_SUFFIXES: List[String]
 ) extends PromiseGenerationService with
@@ -900,15 +906,16 @@ trait PromiseGeneration_buildRuleVals extends PromiseGenerationService {
 
 trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService {
   override def buildNodeConfigurations(
-      activeNodeIds      : Set[NodeId]
-    , ruleVals           : Seq[RuleVal]
-    , nodeContexts       : Map[NodeId, InterpolationContext]
-    , allNodeModes       : Map[NodeId, NodeModeConfig]
-    , scriptEngineEnabled: FeatureSwitch
-    , globalPolicyMode   : GlobalPolicyMode
-    , parallelism        : Parallelism
-    , jsTimeout          : FiniteDuration
-  ) : Box[NodeConfigurations] = BuildNodeConfiguration.buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, parallelism, jsTimeout)
+      activeNodeIds            : Set[NodeId]
+    , ruleVals                 : Seq[RuleVal]
+    , nodeContexts             : Map[NodeId, InterpolationContext]
+    , allNodeModes             : Map[NodeId, NodeModeConfig]
+    , scriptEngineEnabled      : FeatureSwitch
+    , globalPolicyMode         : GlobalPolicyMode
+    , parallelism              : Parallelism
+    , jsTimeout                : FiniteDuration
+    , generationContinueOnError: Boolean
+  ) : Box[NodeConfigurations] = BuildNodeConfiguration.buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, parallelism, jsTimeout, generationContinueOnError)
 
 }
 
@@ -951,14 +958,15 @@ object BuildNodeConfiguration extends Loggable {
    * of maxParallelism, and the JsEngine will also use such a pool.
    */
   def buildNodeConfigurations(
-      activeNodeIds      : Set[NodeId]
-    , ruleVals           : Seq[RuleVal]
-    , nodeContexts       : Map[NodeId, InterpolationContext]
-    , allNodeModes       : Map[NodeId, NodeModeConfig]
-    , scriptEngineEnabled: FeatureSwitch
-    , globalPolicyMode   : GlobalPolicyMode
-    , parallelism        : Parallelism
-    , jsTimeout          : FiniteDuration
+      activeNodeIds            : Set[NodeId]
+    , ruleVals                 : Seq[RuleVal]
+    , nodeContexts             : Map[NodeId, InterpolationContext]
+    , allNodeModes             : Map[NodeId, NodeModeConfig]
+    , scriptEngineEnabled      : FeatureSwitch
+    , globalPolicyMode         : GlobalPolicyMode
+    , parallelism              : Parallelism
+    , jsTimeout                : FiniteDuration
+    , generationContinueOnError: Boolean
   ) : Box[NodeConfigurations] = {
 
     //step 1: from RuleVals to expanded rules vals
@@ -1058,10 +1066,22 @@ object BuildNodeConfiguration extends Loggable {
               , _.replaceAll("on node .*", "")
             )
       }
+
       val success = nodeConfigs.collect { case Right(c) => c }.toList
       val failures = nodeConfigs.collect { case Left(f) => f }.toSet
       val failedIds = nodeContexts.keySet -- success.map( _.nodeInfo.id )
-      Full(recFailNodes(failedIds, success, failures))
+
+      val result = recFailNodes(failedIds, success, failures)
+      failures.size match {
+        case 0    => Full(result)
+        case _ if generationContinueOnError
+                  =>  logger.error(s"Error while computing Node Configuration for nodes")
+          logger.error(s"Cause is ${failures.mkString(",")}")
+                     Full(result)
+        case _    => val allErrors = result.errors.map(_.messageChain)
+                     logger.error(s"Error while computing Node Configuration for nodes: ${allErrors.mkString(" ; ")}")
+                     Failure(s"Error while computing Node Configuration for nodes: ${allErrors.mkString(" ; ")}")
+      }
     }
   }
 

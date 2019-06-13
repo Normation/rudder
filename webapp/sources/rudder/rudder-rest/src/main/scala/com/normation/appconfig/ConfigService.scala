@@ -215,6 +215,8 @@ trait ReadConfigService {
 
   def rudder_generation_max_parallelism(): Box[String]
   def rudder_generation_js_timeout(): Box[Int]
+
+  def rudder_generation_continue_on_error(): Box[Boolean]
 }
 
 /**
@@ -343,6 +345,8 @@ trait UpdateConfigService {
 
   def set_rudder_generation_max_parallelism(value: String): Box[Unit]
   def set_rudder_generation_js_timeout(value: Int): Box[Unit]
+
+  def set_rudder_generation_continue_on_error(value: Boolean): Box[Unit]
 }
 
 class LDAPBasedConfigService(
@@ -393,7 +397,8 @@ class LDAPBasedConfigService(
        rudder.save.db.compliance.levels=true
        rudder.save.db.compliance.details=false
        rudder.generation.max.parallelism=x0.5
-       rudder.generation.js.timeout=5
+       rudder.generation.js.timeout=30
+       rudder.generation.continue.on.error=false
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -685,4 +690,7 @@ class LDAPBasedConfigService(
   def set_rudder_generation_max_parallelism(value: String): Box[Unit] = save("rudder_generation_max_parallelism", value)
   def rudder_generation_js_timeout(): Box[Int] = get("rudder_generation_js_timeout")
   def set_rudder_generation_js_timeout(value: Int): Box[Unit] = save("rudder_generation_js_timeout", value)
+
+  def rudder_generation_continue_on_error(): Box[Boolean] = get("rudder_generation_continue_on_error")
+  def set_rudder_generation_continue_on_error(value: Boolean): Box[Unit] = save("rudder_generation_continue_on_error", value)
 }
