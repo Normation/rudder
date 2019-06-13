@@ -55,6 +55,7 @@ import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationLoggerImpl
 import com.normation.templates.FillTemplatesService
 import java.io.File
+
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
@@ -67,6 +68,7 @@ import org.specs2.text.LinesContent
 import com.normation.rudder.services.policies.ParameterForConfiguration
 import com.normation.rudder.services.policies.Policy
 import java.nio.charset.StandardCharsets
+
 import com.normation.rudder.services.policies.MergePolicyService
 import com.normation.rudder.services.policies.BoundPolicyDraft
 
@@ -251,6 +253,8 @@ class WriteSystemTechniquesTest extends TechniquesTest{
   import TestSystemData._
   import data._
 
+  val parallelism = 1
+
   sequential
 
   "The test configuration-repository" should {
@@ -269,7 +273,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
      )
 
       // Actually write the promise files for the root node
-      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now)
+      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now, parallelism)
     }
 
     "correctly write the expected promises files with defauls installation" in {
@@ -327,7 +331,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
         , Map(root.id -> NodeConfigId("root-cfg-id"))
         , Map()
         , globalPolicyMode
-        , DateTime.now
+        , DateTime.now, parallelism
       ).openOrThrowException("Can not write template!")
 
       rootPath/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/no-group.cf")
@@ -343,7 +347,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
       // Actually write the promise files for the root node
       val (rootPath, writter) = getPromiseWritter("group-2")
 
-      writter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now).openOrThrowException("Can not write template!")
+      writter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now, parallelism).openOrThrowException("Can not write template!")
 
       rootPath/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/some-groups.cf")
     }
@@ -373,7 +377,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
           , Set(root.id, cfeNode.id)
           , Map(root.id -> rnc, cfeNode.id -> cfeNC)
           , Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id"))
-          , Map(), globalPolicyMode, DateTime.now
+          , Map(), globalPolicyMode, DateTime.now, parallelism
       )
 
       (written mustFull) and
@@ -407,7 +411,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
           , Set(root.id, cfeNode.id)
           , Map(root.id -> rnc, cfeNode.id -> cfeNC)
           , Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id"))
-          , Map(), globalPolicyMode, DateTime.now
+          , Map(), globalPolicyMode, DateTime.now, parallelism
       )
 
       (writen mustFull) and
@@ -446,7 +450,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
         , Set(root.id, cfeNode.id)
         , Map(root.id -> rnc, cfeNode.id -> cfeNC)
         , Map(root.id -> NodeConfigId("root-cfg-id-500"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id-500"))
-        , Map(), globalPolicyMode, DateTime.now
+        , Map(), globalPolicyMode, DateTime.now, parallelism
       )
 
       (writen mustFull) and

@@ -450,3 +450,29 @@ object TestThrowError {
   }
 }
 
+object TestAsyncRun {
+/*
+start prog
+after async prog, wait
+start long process...
+... end
+last line of main
+
+Process finished with exit code 0
+ */
+  def main(args: Array[String]): Unit = {
+
+    println("start prog")
+    ZioRuntime.runNow(scalaz.zio.blocking.blocking {
+      IOResult.effect {
+        println("start long process...")
+        Thread.sleep(2000)
+        println("... end")
+      }
+    }.run.unit.fork.provide(ZioRuntime.Environment))
+    println("after async prog, wait")
+
+    Thread.sleep(3000)
+    println("last line of main")
+  }
+}

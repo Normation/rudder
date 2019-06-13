@@ -67,6 +67,8 @@ import com.normation.errors._
 import com.normation.box._
 import com.normation.ldap.sdk.syntax._
 
+import scala.concurrent.duration.FiniteDuration
+
 /*
  * General logic for the cache implementation of NodeInfo.
  * The general idea is to limit at maximum:
@@ -591,8 +593,10 @@ class NodeInfoServiceCachedImpl(
   , override val pendingDit     : InventoryDit
   , override val ldapMapper     : LDAPEntityMapper
   , override val inventoryMapper: InventoryMapper
+  , minimumCacheValidity        : FiniteDuration
 ) extends NodeInfoServiceCached {
   import NodeInfoService._
+  val minimumCacheValidityMillis = minimumCacheValidity.toMillis
 
   override def loggerName: String = this.getClass.getName
 
@@ -635,44 +639,52 @@ class NodeInfoServiceCachedImpl(
    *   back ~10ms on a dev machine.
    */
   override def checkUpToDate(lastKnowModification: DateTime, lastModEntryCSN: Seq[String]): IOResult[Boolean] = {
-    val searchRequest = new SearchRequest(nodeDit.BASE_DN.toString, Sub.toUnboundid, DereferencePolicy.NEVER, 1, 0, false
-      , AND(
-            OR(
-                // ou=Removed Inventories,ou=Inventories,cn=rudder-configuration
-                AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${removedDit.NODES.dn.toString}"))
-                // ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
-              , AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.NODES.dn.toString}"))
-              , AND(IS(OC_MACHINE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.MACHINES.dn.toString}"))
-                // ou=Nodes,cn=rudder-configuration - the objectClass is used only here
-              , AND(IS(OC_RUDDER_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${nodeDit.NODES.dn.toString}"))
-            )
-          , GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(lastKnowModification).toString)
-          , NOT(OR(lastModEntryCSN.map(csn => EQ("entryCSN", csn)):_*))
-        )
-      , "1.1"
-    )
+    UIO(System.currentTimeMillis).flatMap { n0 =>
 
-    for {
-      n0      <- UIO(System.currentTimeMillis)
-      con     <- ldap
-      entries <- //here, I have to rely on low-level LDAP connection, because I need to proceed size-limit exceeded as OK
-                 (Task.effect(con.backed.search(searchRequest).getSearchEntries) catchAll {
-                   case e:LDAPSearchException if(e.getResultCode == ResultCode.SIZE_LIMIT_EXCEEDED) =>
-                     e.getSearchEntries().succeed
-                   case e:LDAPException =>
-                     SystemError("Error when searching node information", e).fail
-                 }).foldM(
-                   err =>
-                     logPure.debug(s"Error when checking for cache expiration: invalidating it. Error was: ${err.fullMsg}") *> false.succeed
-                 , seq => {
-                     val res = seq.size <= 0
-                     logPure.trace(s"Cache check for node info gave '${res}' (${seq.size} entry returned)") *> res.succeed
-                   }
-                 )
-      n1       <- UIO(System.currentTimeMillis)
-      _        <- IOResult.effect(TimingDebugLogger.debug(s"Cache for nodes info expire ?: ${n1-n0}ms"))
-    } yield {
-      entries
+      //if last check is less than 100 ms ago, consider cache ok
+      if(n0 - lastKnowModification.getMillis < minimumCacheValidityMillis) {
+        true.succeed
+      } else {
+        val searchRequest = new SearchRequest(nodeDit.BASE_DN.toString, Sub.toUnboundid, DereferencePolicy.NEVER, 1, 0, false
+          , AND(
+                OR(
+                    // ou=Removed Inventories,ou=Inventories,cn=rudder-configuration
+                    AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${removedDit.NODES.dn.toString}"))
+                    // ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+                  , AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.NODES.dn.toString}"))
+                  , AND(IS(OC_MACHINE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.MACHINES.dn.toString}"))
+                    // ou=Nodes,cn=rudder-configuration - the objectClass is used only here
+                  , AND(IS(OC_RUDDER_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${nodeDit.NODES.dn.toString}"))
+                )
+              , GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(lastKnowModification).toString)
+              , NOT(OR(lastModEntryCSN.map(csn => EQ("entryCSN", csn)):_*))
+            )
+          , "1.1"
+        )
+
+        for {
+          con     <- ldap
+          entries <- //here, I have to rely on low-level LDAP connection, because I need to proceed size-limit exceeded as OK
+                     (Task.effect(con.backed.search(searchRequest).getSearchEntries) catchAll {
+                       case e:LDAPSearchException if(e.getResultCode == ResultCode.SIZE_LIMIT_EXCEEDED) =>
+                         e.getSearchEntries().succeed
+                       case e:LDAPException =>
+                         SystemError("Error when searching node information", e).fail
+                     }).foldM(
+                       err =>
+                         logPure.debug(s"Error when checking for cache expiration: invalidating it. Error was: ${err.fullMsg}") *> false.succeed
+                     , seq => {
+                         //we only have interesting entries in the result, so it's up to date if we have exactly 0 entries
+                         val res = seq.size <= 0
+                         logPure.trace(s"Cache check for node info gave '${res}' (${seq.size} entry returned)") *> res.succeed
+                       }
+                     )
+          n1       <- UIO(System.currentTimeMillis)
+          _        <- IOResult.effect(TimingDebugLogger.debug(s"Cache for nodes info expire ?: ${n1-n0}ms"))
+        } yield {
+          entries
+        }
+      }
     }
   }
 

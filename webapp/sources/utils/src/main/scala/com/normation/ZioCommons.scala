@@ -30,6 +30,7 @@ import scalaz.zio.syntax._
 import net.liftweb.common._
 import cats.data._
 import cats.implicits._
+import cats.kernel.Order
 import com.normation.errors.Chained
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
@@ -108,7 +109,14 @@ object errors {
   }
 
   final case class Accumulated[E <: RudderError](all: NonEmptyList[E]) extends RudderError {
+    implicit val ord = new Order[E]() {
+      override def compare(x: E, y: E): Int = String.CASE_INSENSITIVE_ORDER.compare(x.fullMsg, y.fullMsg)
+    }
     def msg = all.map(_.fullMsg).toList.mkString(" ; ")
+    // only uniq error
+    def deduplicate = {
+      Accumulated(all.distinct)
+    }
   }
 
   /*
@@ -199,7 +207,7 @@ object errors {
     def fold[E <: RudderError, A, F[_]: cats.Monad](error: RudderError => F[A], success: A => F[A])(box: Box[A]): F[A] = {
       def toFail(f: Failure): RudderError = {
         (f.chain, f.exception) match {
-          case (Full(parent), _) => Chained(f.msg, toFail(f))
+          case (Full(parent), _) => Chained(f.msg, toFail(parent))
           case (_, Full(ex))     => SystemError(f.messageChain, ex)
           case _                 => Unexpected(f.messageChain)
         }

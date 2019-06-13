@@ -48,6 +48,7 @@ import org.specs2.matcher.Matcher
 
 import scala.util.matching.Regex
 import com.normation.cfclerk.domain.Variable
+import scala.concurrent.duration._
 
 /*
  * This class test the JsEngine.
@@ -85,7 +86,7 @@ class TestJsEngine extends Specification {
   def beFailure[T](regex: Regex): Matcher[Box[T]] = { b: Box[T] =>
     (
       b match {
-        case Failure(m, _, _) if( regex.pattern.matcher(m).matches() ) => true
+        case f:Failure if(regex.pattern.matcher(f.messageChain).matches() ) => true
         case _ => false
       }
     , s"${b} is not a Failure whose message matches ${regex.toString}"
@@ -135,7 +136,7 @@ class TestJsEngine extends Specification {
 
   "When feature is disabled, one " should {
 
-    def context[T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Disabled) _
+    def context[T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Disabled, 1, 1.second) _
 
     "have an identical results without eval" in {
       context(engine => Full(true)) must beEqualTo(Full(true))
@@ -207,14 +208,14 @@ class TestJsEngine extends Specification {
     "not be able to loop for ever with JS" in {
       JsEngine.SandboxedJsEngine.sandboxed(policyFile) { box =>
         box.singleEval("""while(true){}""", JsRudderLibBinding.Crypt.bindings)
-      } must beFailure(".*force to kill.*".r)
+      } must beFailure(".*took more than.*, aborting.*".r)
     }
 
   }
 
   "When feature is enabled, one " should {
 
-    def context[T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Enabled) _
+    def context[T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Enabled, 1, 1.second) _
 
     "have an identical results without eval" in {
       context(engine => Full(true)) must beEqualTo(Full(true))
@@ -227,7 +228,7 @@ class TestJsEngine extends Specification {
     "not be able to loop for ever with JS" in {
       context(engine =>
         engine.eval(infiniteloopVariable, JsRudderLibBinding.Crypt)
-      ) must beFailure(".*force to kill.*".r)
+      ) must beFailure(".*took more than.*, aborting.*".r)
     }
 
     "not be able to access the content of a previously setted var" in {
@@ -250,7 +251,7 @@ class TestJsEngine extends Specification {
 
     val md5VariableAIX = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}rudder.password.aixMd5('secret')"))
 
-    def context[T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Enabled) _
+    def context[T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Enabled, 1, 1.second) _
 
     "get the correct hashed value for Linux sha256" in {
       context { engine =>
@@ -290,7 +291,7 @@ class TestJsEngine extends Specification {
     val md5VariableAIX = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}rudder.password.aix('MD5', 'secret')"))
     val invalidAlgo = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}rudder.password.auto('foo', 'secret')"))
 
-    def context[T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Enabled) _
+    def context[T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Enabled, 1, 1.second) _
 
     "get the correct hashed value for Linux sha256" in {
       context { engine =>

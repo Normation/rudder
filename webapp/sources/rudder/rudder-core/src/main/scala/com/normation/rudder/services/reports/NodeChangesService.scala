@@ -173,6 +173,7 @@ class NodeChangesServiceImpl(
  */
 class CachedNodeChangesServiceImpl(
     changeService: NodeChangesService
+  , computeChangeEnabled: () => Box[Boolean]
 ) extends NodeChangesService with CachedRepository with Loggable {
 
   override val changesMaxAge = changeService.changesMaxAge
@@ -193,31 +194,39 @@ class CachedNodeChangesServiceImpl(
    * The only method authorised to directly look at
    * the content of cache (other method can update the cache).
    */
-  private[this] def initCache() : Box[ChangesByRule] = this.synchronized {
-    logger.debug("NodeChanges cache initialization...")
-    cache match {
-      case None =>
-        try {
-          for {
-            changes <- changeService.countChangesByRuleByInterval()
-          } yield {
-            cache = Some(changes)
-            logger.debug("NodeChanges cache initialized")
+  private[this] def initCache() : Box[ChangesByRule] = {
+    val enabled = computeChangeEnabled().getOrElse(true) // always true by default
+    if(enabled) {
+      this.synchronized {
+        logger.debug("NodeChanges cache initialization...")
+        cache match {
+          case None =>
+            try {
+              for {
+                changes <- changeService.countChangesByRuleByInterval()
+              } yield {
+                cache = Some(changes)
+                logger.debug("NodeChanges cache initialized")
+                logger.trace("NodeChanges cache content: " + cacheToLog(changes))
+                changes
+              }
+            } catch {
+              case ex: OutOfMemoryError =>
+                val msg = "NodeChanges cache can not be updated du to OutOfMemory error. That mean that either your installation is missing " +
+                  "RAM (see: https://docs.rudder.io/reference/current/administration/performance.html#_java_out_of_memory_error) or that the number of recent changes is " +
+                  "overwhelming, and you hit: http://www.rudder-project.org/redmine/issues/7735. Look here for workaround"
+                logger.error(msg)
+                Failure(msg)
+            }
+          case Some(changes) =>
+            logger.debug("NodeChanges cache hit")
             logger.trace("NodeChanges cache content: " + cacheToLog(changes))
-            changes
-          }
-        } catch {
-          case ex: OutOfMemoryError =>
-            val msg = "NodeChanges cache can not be updated du to OutOfMemory error. That mean that either your installation is missing " +
-              "RAM (see: https://docs.rudder.io/reference/current/administration/performance.html#_java_out_of_memory_error) or that the number of recent changes is " +
-              "overwhelming, and you hit: http://www.rudder-project.org/redmine/issues/7735. Look here for workaround"
-            logger.error(msg)
-            Failure(msg)
+            Full(changes)
         }
-      case Some(changes) =>
-        logger.debug("NodeChanges cache hit")
-        logger.trace("NodeChanges cache content: " + cacheToLog(changes))
-        Full(changes)
+      }
+    } else {
+      logger.warn(s"Not updating changes by rule - disabled by configuration setting 'rudder_compute_changes' (set by REST API)")
+      Full(Map.empty[RuleId, Map[Interval, Int]])
     }
   }
 
@@ -254,27 +263,35 @@ class CachedNodeChangesServiceImpl(
    * background processes where throughout is more
    * important than responsiveness.
    */
-  def update(changes: Seq[ResultRepairedReport]): Box[Unit] = this.synchronized {
-    logger.debug(s"NodeChanges cache updating with ${changes.size} new changes...")
-    if(changes.isEmpty) {
-      Full(())
-    } else {
-      for {
-        existing <- initCache()
-      } yield {
-        val intervals = changeService.getCurrentValidIntervals(None)
-        val newChanges = changes.groupBy(_.ruleId).mapValues { ch =>
-          ( for {
-             interval <- intervals
+  def update(changes: Seq[ResultRepairedReport]): Box[Unit] = {
+    val enabled = computeChangeEnabled().getOrElse(true) // always true by default
+    if(enabled) {
+      this.synchronized {
+        logger.debug(s"NodeChanges cache updating with ${changes.size} new changes...")
+        if(changes.isEmpty) {
+          Full(())
+        } else {
+          for {
+            existing <- initCache()
           } yield {
-            (interval, ch.filter(interval contains _.executionTimestamp).size )
-          } ).toMap
+            val intervals = changeService.getCurrentValidIntervals(None)
+            val newChanges = changes.groupBy(_.ruleId).mapValues { ch =>
+              ( for {
+                 interval <- intervals
+              } yield {
+                (interval, ch.filter(interval contains _.executionTimestamp).size )
+              } ).toMap
+            }
+            logger.debug("NodeChanges cache updated")
+            cache = Some(merge(intervals, existing, newChanges))
+            logger.trace("NodeChanges cache content: " + cacheToLog(cache.get))
+            ()
+          }
         }
-        logger.debug("NodeChanges cache updated")
-        cache = Some(merge(intervals, existing, newChanges))
-        logger.trace("NodeChanges cache content: " + cacheToLog(cache.get))
-        ()
       }
+    } else {
+      logger.warn(s"Not updating changes by rule - disabled by configuration setting 'rudder_compute_changes' (set by REST API)")
+      Full(())
     }
   }
 

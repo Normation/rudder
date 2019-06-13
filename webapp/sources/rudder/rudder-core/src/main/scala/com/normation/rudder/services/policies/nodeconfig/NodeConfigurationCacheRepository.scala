@@ -240,7 +240,8 @@ object NodeConfigurationHash {
 trait NodeConfigurationHashRepository {
 
   /**
-   * Delete node config by its id
+   * Delete node config by its id.
+   * Returned deleted ids.
    */
   def deleteNodeConfigurations(nodeIds:Set[NodeId]) : Box[Set[NodeId]]
 
