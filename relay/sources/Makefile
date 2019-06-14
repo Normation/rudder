@@ -79,7 +79,7 @@ install: build
 	# Directories
 	mkdir -p $(DESTDIR)/etc/$(APACHE_VHOSTDIR)/
 	mkdir -p $(DESTDIR)/opt/rudder/bin/
-	mkdir -p $(DESTDIR)/opt/rudder/etc/
+	mkdir -p $(DESTDIR)/opt/rudder/etc/relayd/
 	mkdir -p $(DESTDIR)/opt/rudder/etc/ssl/
 	mkdir -p $(DESTDIR)/opt/rudder/share/selinux/
 	mkdir -p $(DESTDIR)/opt/rudder/share/relay-api/
