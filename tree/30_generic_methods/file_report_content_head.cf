@@ -23,6 +23,8 @@
 # This method does nothing on the system, but only reports a partial content
 # from a given file. This allows centralizing this information on the searver, and avoid
 # having to connect on each node to get this information.
+#
+# NOTE: This method only works in "Full Compliance" reporting mode.
 # 
 # #### Parameters
 #
