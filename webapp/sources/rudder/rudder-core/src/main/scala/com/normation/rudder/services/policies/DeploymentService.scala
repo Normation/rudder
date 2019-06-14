@@ -435,7 +435,8 @@ trait PromiseGenerationService {
                                  )
                                }.sortBy( _._2 ).map( _._1 )
       updatedNodes          =  updatedNodeIds.toSet
-      errorNodes            =  activeNodeIds -- updatedNodes
+      errorNodes            =  activeNodeIds -- nodeConfigs.keySet
+
       _                     <- RunHooks.syncRun(
                                    postHooks
                                  , HookEnvPairs.build(
