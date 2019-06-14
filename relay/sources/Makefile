@@ -100,7 +100,8 @@ install: build
 	# Install binary
 	install -m 755 relayd/target/release/rudder-relayd $(DESTDIR)/opt/rudder/bin/rudder-relayd
 	# Install default configuration file
-	install -m 644 relayd/tools/rudder-relayd.conf $(DESTDIR)/opt/rudder/etc/rudder-relayd.conf
+	install -m 644 relayd/tools/config/main.conf $(DESTDIR)/opt/rudder/etc/relayd/main.conf
+	install -m 644 relayd/tools/config/logging.conf $(DESTDIR)/opt/rudder/etc/relayd/logging.conf
 	# Install service
 	install -m 644 systemd/rudder-relayd.service $(DESTDIR)/usr/lib/systemd/system/rudder-relayd.service
 	# Install man pages
