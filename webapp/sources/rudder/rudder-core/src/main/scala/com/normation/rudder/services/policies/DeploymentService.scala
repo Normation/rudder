@@ -85,6 +85,7 @@ import com.normation.rudder.domain.logger.PolicyLogger
 import cats.data.NonEmptyList
 import com.normation.rudder.domain.reports.OverridenPolicy
 import org.joda.time.Period
+import org.joda.time.format.PeriodFormatterBuilder
 
 import scala.concurrent.duration.FiniteDuration
 import com.normation.box._
@@ -367,10 +368,24 @@ trait PromiseGenerationService {
     } yield {
       result
     }
-    PolicyLogger.info("Policy generation completed in: %10s".format(new Period(System.currentTimeMillis - initialTime).toString()))
+    PolicyLogger.info("Policy generation completed in: %10s".format(periodFormatter.print(new Period(System.currentTimeMillis - initialTime))))
     result
   }
-
+  private[this] val periodFormatter = {
+    new PeriodFormatterBuilder().
+      appendDays().
+      appendSuffix(" day", " days").
+      appendSeparator(" ").
+      appendHours().
+      appendSuffix(" hour", " hours").
+      appendSeparator(" ").
+      appendMinutes().
+      appendSuffix(" min", " min").
+      appendSeparator(" ").
+      appendSeconds().
+      appendSuffix(" s", " s")
+      .toFormatter()
+  }
   /**
    * Snapshot all information needed:
    * - node infos
