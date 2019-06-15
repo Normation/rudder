@@ -85,6 +85,8 @@ import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.services.policies.ParallelSequence
 import com.normation.rudder.services.policies.Parallelism
 
+import scala.concurrent.duration.Duration
+
 /**
  * Write promises for the set of nodes, with the given configs.
  * Requires access to external templates files.
@@ -117,6 +119,8 @@ class PolicyWriterServiceImpl(
   , HOOKS_D                   : String
   , HOOKS_IGNORE_SUFFIXES     : List[String]
 ) extends PolicyWriterService with Loggable {
+
+  val hookWarnDurationMillis = 60*1000
 
   val newPostfix = ".new"
   val backupPostfix = ".bkp"
@@ -260,7 +264,7 @@ class PolicyWriterServiceImpl(
 
     //interpret HookReturnCode as a Box
 
-    val readTemplateTime1 = DateTime.now.getMillis
+    val readTemplateTime1 = System.currentTimeMillis
     for {
       configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeConfigs, newPostfix, backupPostfix)
       pathsInfo        =  configAndPaths.map { _.paths }
@@ -268,7 +272,7 @@ class PolicyWriterServiceImpl(
       resources        <- readResourcesFromFileSystem(techniqueIds)
       // Clearing cache
       _                 = fillTemplates.clearCache
-      readTemplateTime2 = DateTime.now.getMillis
+      readTemplateTime2 = System.currentTimeMillis
       readTemplateDur   = readTemplateTime2 - readTemplateTime1
       _                 = policyLogger.debug(s"Paths computed and templates read in ${readTemplateDur} ms")
 
@@ -281,7 +285,7 @@ class PolicyWriterServiceImpl(
                             prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, Policy.TAG_OF_RUDDER_ID, globalPolicyMode, generationTime) ?~!
                             s"Error when calculating configuration for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})"
                          }
-      preparedPromisesTime = DateTime.now.getMillis
+      preparedPromisesTime = System.currentTimeMillis
       preparedPromisesDur  = preparedPromisesTime - readTemplateTime2
       _                    = policyLogger.debug(s"Promises prepared in ${preparedPromisesDur} ms")
 
@@ -294,7 +298,7 @@ class PolicyWriterServiceImpl(
                               "OK"
                             }) ?~! s"Error when writing configuration for node '${prepared.paths.nodeId.value}'"
                           }
-      promiseWrittenTime = DateTime.now.getMillis
+      promiseWrittenTime = System.currentTimeMillis
       promiseWrittenDur  = promiseWrittenTime - preparedPromisesTime
       _                  = policyLogger.debug(s"Promises written in ${promiseWrittenDur} ms")
 
@@ -308,7 +312,7 @@ class PolicyWriterServiceImpl(
                                s"An error occured while writing property file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                            }
 
-      propertiesWrittenTime = DateTime.now.getMillis
+      propertiesWrittenTime = System.currentTimeMillis
       propertiesWrittenDur  = propertiesWrittenTime - promiseWrittenTime
       _                     = policyLogger.debug(s"Properties written in ${propertiesWrittenDur} ms")
 
@@ -317,13 +321,13 @@ class PolicyWriterServiceImpl(
                                s"An error occured while writing parameter file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                           }
 
-      parametersWrittenTime = DateTime.now.getMillis
+      parametersWrittenTime = System.currentTimeMillis
       parametersWrittenDur  = parametersWrittenTime - propertiesWrittenTime
       _                     = policyLogger.debug(s"Parameters written in ${parametersWrittenDur} ms")
 
       licensesCopied   <- copyLicenses(configAndPaths, allLicenses)
 
-      licensesCopiedTime = DateTime.now.getMillis
+      licensesCopiedTime = System.currentTimeMillis
       licensesCopiedDur  = licensesCopiedTime - parametersWrittenTime
       _                  = policyLogger.debug(s"Licenses copied in ${licensesCopiedDur} ms")
 
@@ -351,16 +355,18 @@ class PolicyWriterServiceImpl(
                                                                , ("RUDDER_NEXT_POLICIES_DIRECTORY", agentNodeConfig.paths.newFolder)
                                                              )
                                         , systemEnv
+                                        , hookWarnDurationMillis // warn if a hook took more than a minute
                             )
                             HooksLogger.trace(s"Run post-generation pre-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
                             res
                           }
 
-      movedPromisesTime1 = DateTime.now.getMillis
+      movedPromisesTime1 = System.currentTimeMillis
+      _                  = policyLogger.debug(s"Hooks for policy-generation-node-ready executed in ${movedPromisesTime1-licensesCopiedTime} ms")
 
       movedPromises    <- tryo { movePromisesToFinalPosition(pathsInfo) }
 
-      movedPromisesTime2 = DateTime.now.getMillis
+      movedPromisesTime2 = System.currentTimeMillis
       movedPromisesDur   = movedPromisesTime2 - movedPromisesTime1
       _                  = policyLogger.debug(s"Policies moved to their final position in ${movedPromisesDur} ms")
 
@@ -384,10 +390,13 @@ class PolicyWriterServiceImpl(
                                                              , ("RUDDER_POLICIES_DIRECTORY", agentNodeConfig.paths.baseFolder)
                                                            )
                                         , systemEnv
+                                        , hookWarnDurationMillis // warn if a hook took more than a minute
                             )
                             HooksLogger.trace(s"Run post-generation post-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
                             res
                           }
+      postMvHooksTime2   = System.currentTimeMillis
+      _                  = policyLogger.debug(s"Hooks for policy-generation-node-ready executed in ${postMvHooksTime2 - movedPromisesTime2} ms")
     } yield {
       val ids = movedPromises.map { _.nodeId }.toSet
       allNodeConfigs.filterKeys { id => ids.contains(id) }.values.toSeq
