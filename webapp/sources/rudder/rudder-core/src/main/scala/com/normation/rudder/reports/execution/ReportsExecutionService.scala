@@ -38,6 +38,8 @@
 package com.normation.rudder.reports.execution
 
 
+import java.util.concurrent.ScheduledThreadPoolExecutor
+
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.normation.inventory.domain.NodeId
@@ -52,6 +54,7 @@ import org.joda.time.format.PeriodFormat
 import net.liftweb.common._
 import com.normation.rudder.db.DB
 import com.normation.rudder.repository.ComplianceRepository
+import monix.execution.schedulers.ExecutorScheduler
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -70,6 +73,10 @@ class ReportsExecutionService (
   , catchupInterval        : FiniteDuration
   , computeChangeEnabled   : () => Box[Boolean]
 ) {
+
+  //use that threadpool for changes. It's single threaded because everything is blocking
+  //below, so it's better to add task in a queue that thread everywhere
+  val changesThreadPool = monix.execution.Scheduler.singleThread("rudder-changes-hook").asInstanceOf[ExecutorScheduler]
 
   val logger = ReportLogger
   var idForCheck: Long = 0
@@ -216,6 +223,7 @@ class ReportsExecutionService (
     val startHooks = System.currentTimeMillis
 
     if(computeChangeEnabled().getOrElse(true)) {
+    logger.debug(s"New task in 'update changes cache' queue; Waiting tasks: ${changesThreadPool.executor.asInstanceOf[ScheduledThreadPoolExecutor].getQueue.size()}")
     Future {
       //update changes by rules
       (for {
@@ -233,7 +241,7 @@ class ReportsExecutionService (
         case Full(x) => //youhou
           logger.trace("Cache for changes by rule updates after new run received")
       }
-    }
+    }(changesThreadPool) // exec on their own threadpool the change computation
     } else {
       logger.warn(s"Not updating changes by rule - disabled by settings 'rudder_compute_changes'")
     }
