@@ -93,8 +93,6 @@ import scalaz.zio.duration.Duration
 import cats.data._
 import cats.implicits._
 
-import scala.concurrent.duration.Duration
-
 /**
  * Write promises for the set of nodes, with the given configs.
  * Requires access to external templates files.
