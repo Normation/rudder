@@ -39,16 +39,15 @@ package com.normation.rudder.hooks
 
 import java.io.File
 
+import monix.execution.ExecutionModel
+
 import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
-
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
-
 import org.slf4j.LoggerFactory
 import net.liftweb.common.Logger
 import net.liftweb.util.Helpers.tryo
@@ -107,6 +106,10 @@ object HookEnvPairs {
  */
 object HooksLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("hooks")
+
+  object LongExecLogger extends Logger {
+    override protected def _logger = LoggerFactory.getLogger("hooks.longexecution")
+  }
 }
 
 sealed trait HookReturnCode {
@@ -150,6 +153,8 @@ object HooksImplicits {
 }
 
 object RunHooks {
+  // hook own threadpool
+  implicit val executor = monix.execution.Scheduler.io("rudder-hooks-exec", executionModel = ExecutionModel.AlwaysAsyncExecution)
 
   /**
    * Runs a list of hooks. Each hook is run sequencially (so that
@@ -168,6 +173,7 @@ object RunHooks {
    *
    */
   def asyncRun(hooks: Hooks, hookParameters: HookEnvPairs, envVariables: HookEnvPairs): Future[HookReturnCode] = {
+
     /*
      * We can not use Future.fold, because it execute all scripts
      * in parallel and then combine their results. Our semantic
@@ -231,17 +237,21 @@ object RunHooks {
    * 30-third.hook
    * etc
    *
-   *
+   * You can get a warning if the hook took more than a given duration (in millis)
    */
-  def syncRun(hooks: Hooks, hookParameters: HookEnvPairs, envVariables: HookEnvPairs): HookReturnCode = {
+  def syncRun(hooks: Hooks, hookParameters: HookEnvPairs, envVariables: HookEnvPairs, warnAfterMillis: Long = Long.MaxValue, killAfter: Duration = Duration.Inf): HookReturnCode = {
     try {
       //cmdInfo is just for comments/log. We use "*" to synthetize
       val cmdInfo = s"'${hooks.basePath}' with environment parameters: ${hookParameters.show}"
       HooksLogger.debug(s"Run hooks: ${cmdInfo}")
       HooksLogger.trace(s"Hook environment variables: ${envVariables.show}")
       val time_0 = System.currentTimeMillis
-      val res = Await.result(asyncRun(hooks, hookParameters, envVariables), Duration.Inf)
-      HooksLogger.debug(s"Done in ${System.currentTimeMillis - time_0} ms: ${cmdInfo}")
+      val res = Await.result(asyncRun(hooks, hookParameters, envVariables), killAfter)
+      val duration = System.currentTimeMillis - time_0
+      if(duration > warnAfterMillis) {
+        HooksLogger.LongExecLogger.warn(s"Hook '${cmdInfo}' took more than configured expected max duration: ${duration} ms")
+      }
+      HooksLogger.debug(s"Done in ${duration} ms: ${cmdInfo}") // keep that one in all cases if people want to do stats
       res
     } catch {
       case NonFatal(ex) => HookReturnCode.SystemError(s"Error when executing hooks in directory '${hooks.basePath}'. Error message is: ${ex.getMessage}")
