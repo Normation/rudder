@@ -57,8 +57,8 @@ import com.normation.rudder.services.marshalling.RuleCategoryUnserialisation
 import com.normation.rudder.services.marshalling.RuleUnserialisation
 import com.normation.utils.UuidRegex
 import org.eclipse.jgit.lib.ObjectId
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 
 final case class GitRootCategory(

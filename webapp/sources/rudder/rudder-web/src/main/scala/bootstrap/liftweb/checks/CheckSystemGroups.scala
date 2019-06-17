@@ -59,8 +59,8 @@ import net.liftweb.common.Failure
 import net.liftweb.common.Logger
 import net.liftweb.common._
 import org.slf4j.LoggerFactory
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 /**
  * The goal is to check that system groups (name are "hasPolicyServer-")

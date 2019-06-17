@@ -4,7 +4,7 @@ package com.normation.inventory.ldap.core
 import com.normation.inventory.domain.InventoryLogger
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.inventory.services.core.WriteOnlySoftwareDAO
-import scalaz.zio._
+import zio._
 import com.normation.errors._
 
 trait SoftwareService {

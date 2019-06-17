@@ -53,8 +53,8 @@ import com.softwaremill.quicklens._
 import com.unboundid.ldap.sdk.{Version => _, _}
 import net.liftweb.json._
 import org.joda.time.DateTime
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 
 sealed trait InventoryMappingRudderError extends RudderError

@@ -28,7 +28,7 @@ import com.unboundid.ldif.LDIFRecord
 
 import scala.collection.mutable.Buffer
 import scala.collection.mutable.HashMap
-import scalaz.zio.syntax._
+import zio.syntax._
 import com.normation.ldap.sdk.LDAPIOResult._
 import com.normation.ldap.sdk.LDAPRudderError.Consistancy
 import cats.implicits._

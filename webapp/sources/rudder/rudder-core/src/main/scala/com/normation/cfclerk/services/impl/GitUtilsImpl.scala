@@ -51,8 +51,8 @@ import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.treewalk.TreeWalk
 import org.eclipse.jgit.treewalk.filter.TreeFilter
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 import com.normation.zio._
 
 /**

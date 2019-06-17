@@ -53,7 +53,7 @@ import com.normation.rudder.db.Doobie._
 import com.normation.rudder.db.Doobie
 
 import com.normation.errors._
-import scalaz.zio.syntax._
+import zio.syntax._
 
 /**
  * The EventLog repository

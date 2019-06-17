@@ -74,8 +74,8 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
 import org.joda.time.DateTime
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 import scala.language.implicitConversions
 import com.normation.ldap.sdk.syntax._

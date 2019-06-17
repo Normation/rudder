@@ -47,8 +47,8 @@ import com.unboundid.ldif.LDIFChangeRecord
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.inventory.ldap.core._
 import com.normation.ldap.sdk.RwLDAPConnection
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 import com.normation.ldap.sdk.LDAPRudderError
 
 /**

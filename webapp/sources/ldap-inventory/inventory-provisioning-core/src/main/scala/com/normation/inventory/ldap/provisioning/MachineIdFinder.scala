@@ -47,8 +47,8 @@ import LDAPConstants._
 import com.normation.errors._
 import net.liftweb.common._
 import com.normation.ldap.sdk.LDAPIOResult._
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 
 /////

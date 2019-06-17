@@ -91,7 +91,7 @@ import scala.concurrent.duration.FiniteDuration
 import com.normation.box._
 import com.normation.zio._
 import com.normation.errors._
-import scalaz.zio._
+import zio._
 
 /**
  * A deployment hook is a class that accept callbacks.
@@ -343,7 +343,7 @@ trait PromiseGenerationService {
 
       /// now, if there was failed config or failed write, time to show them
       //invalidate compliance may be very very long - make it async
-      _                     =  ZioRuntime.runNow(scalaz.zio.blocking.blocking { IOResult.effect(invalidateComplianceCache (updatedNodeConfigs.keySet)) }.run.unit.fork.provide(ZioRuntime.Environment))
+      _                     =  ZioRuntime.runNow(zio.blocking.blocking { IOResult.effect(invalidateComplianceCache (updatedNodeConfigs.keySet)) }.run.unit.fork.provide(ZioRuntime.Environment))
       _                     =  {
                                  PolicyLogger.info("Timing summary:")
                                  PolicyLogger.info("Run pre-gen scripts hooks     : %10s ms".format(timeRunPreGenHooks))

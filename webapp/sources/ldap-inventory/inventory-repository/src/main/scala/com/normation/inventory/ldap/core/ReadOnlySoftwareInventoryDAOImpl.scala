@@ -47,8 +47,8 @@ import com.normation.ldap.sdk.BuildFilter.OR
 import com.normation.ldap.sdk.BuildFilter.IS
 import com.normation.ldap.sdk._
 import com.unboundid.ldap.sdk.DN
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 class ReadOnlySoftwareDAOImpl(
   inventoryDitService:InventoryDitService,

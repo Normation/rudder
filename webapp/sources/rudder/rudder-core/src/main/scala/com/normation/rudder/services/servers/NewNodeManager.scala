@@ -90,8 +90,8 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import org.joda.time.DateTime
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 /**
  * A newNodeManager hook is a class that accept callbacks.

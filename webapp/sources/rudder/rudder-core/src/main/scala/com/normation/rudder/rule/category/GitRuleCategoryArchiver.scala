@@ -52,8 +52,8 @@ import org.joda.time.DateTime
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
 import com.normation.errors._
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 trait GitRuleCategoryArchiver {
 

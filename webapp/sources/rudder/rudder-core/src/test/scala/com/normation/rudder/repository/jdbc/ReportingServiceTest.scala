@@ -85,8 +85,8 @@ import org.joda.time.DateTime
 import org.joda.time.Duration
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 import scala.collection.SortedMap
 import com.normation.rudder.repository.ComplianceRepository

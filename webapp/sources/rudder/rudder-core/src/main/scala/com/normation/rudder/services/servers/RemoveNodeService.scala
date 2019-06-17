@@ -86,7 +86,7 @@ import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
-import scalaz.zio._
+import zio._
 import org.joda.time.DateTime
 
 sealed trait DeletionResult

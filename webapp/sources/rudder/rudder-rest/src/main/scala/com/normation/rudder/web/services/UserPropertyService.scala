@@ -37,7 +37,7 @@
 package com.normation.rudder.web.services
 import com.normation.box._
 import com.normation.errors._
-import scalaz.zio.syntax._
+import zio.syntax._
 
 object ReasonBehavior extends Enumeration {
   type ReasonBehavior = Value

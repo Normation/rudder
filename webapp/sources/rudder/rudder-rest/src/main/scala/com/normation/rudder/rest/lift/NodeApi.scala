@@ -91,7 +91,7 @@ import net.liftweb.json.JsonDSL.string2jvalue
 import scalaj.http.Http
 import scalaj.http.HttpConstants
 import scalaj.http.HttpOptions
-import scalaz.zio._
+import zio._
 import com.normation.box._
 import com.normation.zio.ZioRuntime
 import scalaj.http.HttpResponse

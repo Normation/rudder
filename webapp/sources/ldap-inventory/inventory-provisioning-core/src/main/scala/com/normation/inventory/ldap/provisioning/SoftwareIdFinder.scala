@@ -45,7 +45,7 @@ import com.normation.inventory.services.provisioning._
 import com.normation.ldap.sdk.BuildFilter._
 import com.normation.ldap.sdk._
 import org.slf4j.LoggerFactory
-import scalaz.zio._
+import zio._
 
 object NameAndVersionIdFinder {
   val logger = LoggerFactory.getLogger(classOf[NameAndVersionIdFinder])

@@ -122,8 +122,8 @@ import com.unboundid.ldap.sdk.DN
 import net.liftweb.common.Loggable
 import net.liftweb.common._
 import org.apache.commons.io.FileUtils
-import scalaz.zio.syntax._
-import scalaz.zio.duration._
+import zio.syntax._
+import zio.duration._
 
 import scala.concurrent.duration.FiniteDuration
 

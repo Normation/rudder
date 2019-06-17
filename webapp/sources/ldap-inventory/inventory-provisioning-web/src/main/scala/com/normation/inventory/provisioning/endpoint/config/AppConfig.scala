@@ -286,7 +286,7 @@ class AppConfig {
       , INVENTORY_ROOT_DIR + "/accepted-nodes-updates"
       , INVENTORY_ROOT_DIR + "/received"
       , INVENTORY_ROOT_DIR + "/failed"
-      , scalaz.zio.duration.Duration(WATCHER_WAIT_FOR_SIG.toLong, TimeUnit.SECONDS)
+      , zio.duration.Duration(WATCHER_WAIT_FOR_SIG.toLong, TimeUnit.SECONDS)
       , ".sign"
     )
     WATCHER_ENABLE.trim.toLowerCase match {

@@ -39,9 +39,9 @@ import com.unboundid.ldap.sdk.ReadOnlyLDAPRequest
 import com.unboundid.ldap.sdk.ResultCode
 import com.unboundid.ldap.sdk.SearchRequest
 import com.unboundid.ldif.LDIFChangeRecord
-import scalaz.zio.blocking.Blocking
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio.blocking.Blocking
+import zio._
+import zio.syntax._
 
 import scala.collection.JavaConverters._
 import com.normation.ldap.sdk.syntax._

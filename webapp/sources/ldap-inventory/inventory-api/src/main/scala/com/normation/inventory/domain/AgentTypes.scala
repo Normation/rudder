@@ -38,8 +38,8 @@
 package com.normation.inventory.domain
 
 import com.normation.errors._
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 /**
  * The enumeration holding the values for the agent

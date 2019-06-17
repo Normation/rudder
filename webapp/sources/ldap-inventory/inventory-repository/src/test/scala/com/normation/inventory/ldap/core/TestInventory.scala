@@ -50,7 +50,7 @@ import org.junit.runner._
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable._
 import org.specs2.runner._
-import scalaz.zio._
+import zio._
 import com.normation.zio._
 
 final case class SystemError(cause: Throwable) extends RudderError {

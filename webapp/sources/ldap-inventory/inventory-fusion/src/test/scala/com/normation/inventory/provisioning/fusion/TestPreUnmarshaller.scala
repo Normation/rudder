@@ -46,7 +46,7 @@ import com.normation.zio._
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-import scalaz.zio._
+import zio._
 
 import scala.xml.NodeSeq
 import scala.xml.XML

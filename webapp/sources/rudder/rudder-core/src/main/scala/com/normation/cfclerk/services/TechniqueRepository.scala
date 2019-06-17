@@ -125,7 +125,7 @@ trait TechniqueRepository {
   final def getTechniqueCategoriesBreadCrump(id: TechniqueId): IOResult[Seq[TechniqueCategory]] = {
     for {
       cat  <- getParentTechniqueCategory_forTechnique(id)
-      path <- scalaz.zio.ZIO.foreach(cat.id.getIdPathFromRoot) { currentCatId =>
+      path <- zio.ZIO.foreach(cat.id.getIdPathFromRoot) { currentCatId =>
         getTechniqueCategory(currentCatId).chainError(s"'${currentCatId.name}' category was not found but should be a parent of '${cat.id.name}'. This is likely an error, please report it.")
       }
     } yield {

@@ -59,7 +59,7 @@ import org.junit.runner.RunWith
 import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
-import scalaz.zio._
+import zio._
 
 @RunWith(classOf[JUnitRunner])
 class TestTechniqueWriter extends Specification with ContentMatchers with Loggable {

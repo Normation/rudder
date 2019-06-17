@@ -52,8 +52,8 @@ import com.normation.rudder.api.ApiAccount
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JArray
 import com.normation.box._
-import scalaz.zio._
-import scalaz.zio.duration._
+import zio._
+import zio.duration._
 import com.normation.zio._
 
 sealed trait NcfTechniqueUpgradeError {

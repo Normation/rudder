@@ -59,8 +59,8 @@ import java.io.FileInputStream
 import bootstrap.liftweb.BootraspLogger
 
 import com.normation.errors._
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 import com.normation.box._
 
 /**

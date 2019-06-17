@@ -50,8 +50,8 @@ import com.normation.errors._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 import com.normation.errors._
 
 import scala.xml._

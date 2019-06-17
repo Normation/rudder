@@ -22,10 +22,10 @@ package com.normation.ldap.sdk
 
 import com.normation.ldap.ldif.{DefaultLDIFFileLogger, LDIFFileLogger}
 import com.unboundid.ldap.sdk.{LDAPConnectionOptions, LDAPConnectionPool}
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 import com.normation.ldap.sdk.LDAPIOResult._
-import scalaz.zio.blocking.Blocking
+import zio.blocking.Blocking
 import com.normation.errors._
 import com.normation.ldap.sdk.syntax._
 

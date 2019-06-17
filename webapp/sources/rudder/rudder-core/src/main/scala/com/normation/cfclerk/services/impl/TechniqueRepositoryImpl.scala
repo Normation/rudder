@@ -48,7 +48,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.utils.Control
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common._
-import scalaz.zio.syntax._
+import zio.syntax._
 
 import scala.collection.SortedSet
 

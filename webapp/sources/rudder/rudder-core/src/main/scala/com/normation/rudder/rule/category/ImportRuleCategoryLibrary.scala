@@ -47,7 +47,7 @@ import com.normation.rudder.domain.archives.RuleCategoryArchiveId
 import com.normation.rudder.repository.ldap._
 import cats.implicits._
 
-import scalaz.zio._
+import zio._
 import com.normation.errors._
 
 trait ImportRuleCategoryLibrary {

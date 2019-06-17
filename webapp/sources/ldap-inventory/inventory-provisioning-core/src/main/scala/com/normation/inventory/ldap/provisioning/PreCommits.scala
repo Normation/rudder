@@ -42,7 +42,7 @@ import com.normation.errors._
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.inventory.services.provisioning._
-import scalaz.zio.syntax._
+import zio.syntax._
 
 /**
  * Check OS Type.

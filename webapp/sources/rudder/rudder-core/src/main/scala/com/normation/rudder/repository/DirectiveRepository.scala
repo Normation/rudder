@@ -260,7 +260,7 @@ trait RoDirectiveRepository {
    * Return true if at least one directive exists in this category (or a sub category
    * of this category)
    */
-  def containsDirective(id: ActiveTechniqueCategoryId) : scalaz.zio.UIO[Boolean]
+  def containsDirective(id: ActiveTechniqueCategoryId) : zio.UIO[Boolean]
 }
 
 trait WoDirectiveRepository {

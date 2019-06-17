@@ -73,8 +73,8 @@ import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Filter
 import net.liftweb.json.JsonAST
 import org.joda.time.DateTime
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 import com.normation.ldap.sdk.syntax._
 
 import scala.collection.immutable.SortedMap

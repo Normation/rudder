@@ -48,8 +48,8 @@ import com.normation.rudder.domain.nodes._
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.WoNodeRepository
 import com.normation.errors._
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 class WoLDAPNodeRepository(
     nodeDit             : NodeDit

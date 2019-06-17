@@ -54,8 +54,8 @@ import org.joda.time.DateTime
 import com.normation.utils.StringUuidGenerator
 import com.normation.ldap.sdk.LDAPRudderError
 import com.normation.rudder.domain.logger.ApplicationLogger
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 import com.normation.errors._
 
 /**

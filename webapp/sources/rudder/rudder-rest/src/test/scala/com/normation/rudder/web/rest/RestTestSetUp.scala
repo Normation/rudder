@@ -77,7 +77,7 @@ import net.liftweb.util.NamedPF
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.specs2.matcher.MatchResult
-import scalaz.zio._
+import zio._
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.

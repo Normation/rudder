@@ -46,8 +46,8 @@ import scala.xml.NodeSeq
 import com.normation.inventory.services.provisioning._
 
 import scala.xml.Elem
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 class PreUnmarshallCheckConsistency extends PreUnmarshall {
   override val name = "post_process_inventory:check_consistency"

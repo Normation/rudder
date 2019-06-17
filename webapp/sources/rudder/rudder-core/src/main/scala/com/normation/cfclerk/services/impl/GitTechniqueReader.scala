@@ -64,8 +64,8 @@ import java.io.IOException
 
 import com.normation.errors._
 import com.normation.zio._
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 /**
  *

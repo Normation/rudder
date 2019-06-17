@@ -26,7 +26,6 @@
 package com.normation
 
 
-import scalaz.zio.syntax._
 import net.liftweb.common._
 import cats.data._
 import cats.implicits._
@@ -35,7 +34,8 @@ import com.normation.errors.Chained
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
 import com.normation.errors.SystemError
-import scalaz.zio._
+import _root_.zio._
+import _root_.zio.syntax._
 
 /**
  * This is our based error for Rudder. Any method that can
@@ -233,7 +233,7 @@ object errors {
   }
 
   implicit class BoxToIO[E <: RudderError, A](res: => Box[A]) {
-    import scalaz.zio.interop.catz._
+    import _root_.zio.interop.catz._
     def toIO: IOResult[A] = IOResult.effect(res).flatMap(x => BoxUtil.fold[E, A, IOResult](
       err => err.fail
     , suc => suc.succeed

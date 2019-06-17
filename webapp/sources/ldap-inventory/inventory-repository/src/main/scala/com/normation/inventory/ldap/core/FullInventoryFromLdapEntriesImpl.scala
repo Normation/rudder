@@ -41,7 +41,7 @@ import com.normation.inventory.domain.FullInventory
 import com.normation.errors._
 import com.normation.ldap.sdk.LDAPEntry
 import com.normation.ldap.sdk.LDAPTree
-import scalaz.zio.syntax._
+import zio.syntax._
 
 import scala.collection.mutable.Buffer
 

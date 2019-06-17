@@ -45,8 +45,8 @@ import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
 import com.normation.inventory.domain.{PublicKey => AgentKey, _}
 import org.apache.commons.io.IOUtils
 import org.bouncycastle.util.encoders.Hex
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 /**
  * We are using a simple date structure that handle the digest file

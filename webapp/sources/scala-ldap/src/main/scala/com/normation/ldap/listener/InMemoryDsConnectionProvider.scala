@@ -24,7 +24,7 @@ import com.unboundid.ldap.listener.{InMemoryDirectoryServer, InMemoryDirectorySe
 import com.unboundid.ldap.sdk.schema.Schema
 import com.normation.ldap.ldif._
 import com.normation.ldap.sdk._
-import scalaz.zio.blocking.Blocking
+import zio.blocking.Blocking
 import com.normation.zio._
 
 /**

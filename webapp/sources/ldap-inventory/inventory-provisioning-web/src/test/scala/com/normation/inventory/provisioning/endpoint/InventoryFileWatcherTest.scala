@@ -42,9 +42,9 @@ import com.normation.errors.IOResult
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
-import scalaz.zio.duration._
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio.duration._
+import zio._
+import zio.syntax._
 import com.normation.zio._
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime

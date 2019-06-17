@@ -31,7 +31,7 @@ import org.junit.Assert._
 import org.junit._
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
-import scalaz.zio._
+import zio._
 
 final case class SystemError(cause: Throwable) extends RudderError {
   def msg = "Error in test"

@@ -45,7 +45,7 @@ import net.liftweb.common._
 import com.normation.rudder.domain.servers.Srv
 import com.normation.box._
 import com.normation.errors.IOResult
-import scalaz.zio._
+import zio._
 
 trait NodeSummaryService {
 

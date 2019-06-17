@@ -57,8 +57,8 @@ import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Utils
 import com.unboundid.ldap.sdk.DN
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 /**
  * Here is the ordering for a List[RuleCategoryId]

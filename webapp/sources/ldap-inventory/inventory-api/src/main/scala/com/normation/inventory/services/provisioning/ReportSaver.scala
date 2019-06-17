@@ -41,7 +41,7 @@ import com.normation.inventory.domain.InventoryLogger
 import com.normation.inventory.domain.InventoryReport
 import com.normation.errors._
 import net.liftweb.common.Loggable
-import scalaz.zio._
+import zio._
 
 /**
  *

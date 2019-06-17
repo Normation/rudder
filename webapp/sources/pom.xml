@@ -381,7 +381,7 @@ limitations under the License.
     <http4s-version>0.19.0</http4s-version>
     <shapeless-version>2.3.3</shapeless-version>
     <cats-effect-version>1.0.0</cats-effect-version>
-    <scalaz-zio-version>1.0-RC5</scalaz-zio-version>
+    <dev-zio-version>1.0.0-RC8-6</dev-zio-version>
     <!--
       Hack to make scalac jvm parameters like RAM configurable.
       With that, one can override Xmx or add jvm parameters either
@@ -659,20 +659,20 @@ limitations under the License.
     </dependency>
     <!-- zio to manage effects -->
     <dependency>
-      <groupId>org.scalaz</groupId>
-      <artifactId>scalaz-zio_${scala-binary-version}</artifactId>
-      <version>${scalaz-zio-version}</version>
+      <groupId>dev.zio</groupId>
+      <artifactId>zio_${scala-binary-version}</artifactId>
+      <version>${dev-zio-version}</version>
     </dependency>
     <!-- zio/cats compat -->
     <dependency>
-      <groupId>org.scalaz</groupId>
-      <artifactId>scalaz-zio-interop-cats_${scala-binary-version}</artifactId>
-      <version>${scalaz-zio-version}</version>
+      <groupId>dev.zio</groupId>
+      <artifactId>zio-interop-cats_${scala-binary-version}</artifactId>
+      <version>${dev-zio-version}</version>
     </dependency>
     <dependency>
-      <groupId>org.scalaz</groupId>
-      <artifactId>scalaz-zio-interop-shared_${scala-binary-version}</artifactId>
-      <version>${scalaz-zio-version}</version>
+      <groupId>dev.zio</groupId>
+      <artifactId>zio-interop-shared_${scala-binary-version}</artifactId>
+      <version>${dev-zio-version}</version>
     </dependency>
     <dependency>
       <groupId>org.typelevel</groupId>

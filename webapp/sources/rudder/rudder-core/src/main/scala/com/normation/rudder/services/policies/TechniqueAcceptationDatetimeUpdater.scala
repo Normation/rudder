@@ -53,7 +53,7 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.zio._
 import net.liftweb.common.Box
 import org.joda.time.DateTime
-import scalaz.zio._
+import zio._
 
 /**
  * This handler is in charge to maintain a correct state

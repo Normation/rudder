@@ -50,8 +50,8 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.EventActor
 
 import com.normation.errors._
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 /**
  * A basic config repository, NOT typesafe.

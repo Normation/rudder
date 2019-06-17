@@ -42,7 +42,7 @@ import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType.REPLACE
 import com.unboundid.ldif._
 import org.joda.time.DateTime
-import scalaz.zio._
+import zio._
 /*
  * Log given LDIF record in a file
  * with given name (a timestamp will be added)

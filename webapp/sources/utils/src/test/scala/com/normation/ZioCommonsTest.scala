@@ -36,11 +36,11 @@ import net.liftweb.common._
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
-import scalaz.zio._
-import scalaz.zio.blocking.Blocking
-import scalaz.zio.clock.Clock
-import scalaz.zio.duration.Duration
-import scalaz.zio.syntax._
+import _root_.zio._
+import _root_.zio.blocking.Blocking
+import _root_.zio.clock.Clock
+import _root_.zio.duration.Duration
+import _root_.zio.syntax._
 
 @RunWith(classOf[JUnitRunner])
 class ZioCommonsTest extends Specification {
@@ -81,8 +81,8 @@ class ZioCommonsTest extends Specification {
 
 
 object TestImplicits {
-  import scalaz.zio._
-  import scalaz.zio.syntax._
+  import _root_.zio._
+  import _root_.zio.syntax._
 
   object module1 {
     import com.normation.errors._
@@ -258,7 +258,7 @@ object TestJavaLockWithZio {
 
     def apply[T](block: => IOResult[T]): IOResult[T] = {
       println(s"***** calling lock '${name}'")
-      scalaz.zio.blocking.blockingExecutor.flatMap(executor =>
+      _root_.zio.blocking.blockingExecutor.flatMap(executor =>
       ZIO.bracket(
         log(s"Get lock '${name}'") *>
 //        log(Thread.currentThread().getStackTrace.mkString("\n")) *>
@@ -463,7 +463,7 @@ Process finished with exit code 0
   def main(args: Array[String]): Unit = {
 
     println("start prog")
-    ZioRuntime.runNow(scalaz.zio.blocking.blocking {
+    ZioRuntime.runNow(_root_.zio.blocking.blocking {
       IOResult.effect {
         println("start long process...")
         Thread.sleep(2000)

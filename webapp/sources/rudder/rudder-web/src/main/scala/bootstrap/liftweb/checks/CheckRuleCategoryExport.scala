@@ -48,7 +48,7 @@ import com.normation.rudder.repository.ItemArchiveManager
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common._
-import scalaz.zio._
+import zio._
 
 /**
  *

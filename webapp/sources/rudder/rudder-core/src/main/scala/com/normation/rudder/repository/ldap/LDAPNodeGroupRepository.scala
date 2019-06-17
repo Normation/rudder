@@ -85,8 +85,8 @@ import com.normation.utils.StringUuidGenerator
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Filter
 import net.liftweb.common._
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 import scala.Option.option2Iterable
 import scala.collection.immutable.SortedMap

@@ -47,7 +47,7 @@ import com.normation.ldap.sdk.LDAPEntry
 import com.normation.rudder.api.ApiAccountType
 import com.normation.rudder.api.ApiAuthorizationKind
 
-import scalaz.zio._
+import zio._
 import com.normation.zio._
 
 /**

@@ -41,8 +41,8 @@ import com.normation.errors._
 import com.normation.inventory.domain._
 import net.liftweb.common._
 import com.normation.utils.HashcodeCaching
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 /*
  * Implementation of IdFinderAction that is pipelinable

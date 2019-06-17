@@ -56,8 +56,8 @@ import com.normation.rudder.repository.ImportTechniqueLibrary
 import com.unboundid.ldap.sdk.DN
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 class ImportTechniqueLibraryImpl(
     rudderDit   : RudderDit

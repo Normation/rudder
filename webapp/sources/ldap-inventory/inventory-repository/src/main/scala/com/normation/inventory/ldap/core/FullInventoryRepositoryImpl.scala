@@ -52,8 +52,8 @@ import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
 import com.unboundid.ldif.LDIFChangeRecord
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 trait LDAPFullInventoryRepository extends FullInventoryRepository[Seq[LDIFChangeRecord]]
 

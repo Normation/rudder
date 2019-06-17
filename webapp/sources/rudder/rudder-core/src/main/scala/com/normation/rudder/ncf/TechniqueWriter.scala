@@ -57,8 +57,8 @@ import com.normation.rudder.services.user.PersonIdentService
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 import scala.xml.NodeSeq
 import scala.xml.{Node => XmlNode}

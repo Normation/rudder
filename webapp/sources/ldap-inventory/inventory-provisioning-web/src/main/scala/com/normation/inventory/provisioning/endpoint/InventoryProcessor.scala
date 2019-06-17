@@ -57,8 +57,8 @@ import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.zio.ZioRuntime
 import com.unboundid.ldif.LDIFChangeRecord
 import org.joda.time.Duration
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 import scala.tools.nsc.interpreter.InputStream
 

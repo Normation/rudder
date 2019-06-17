@@ -46,7 +46,7 @@ import com.normation.inventory.domain._
 import com.normation.ldap.sdk.LDAPEntry
 import com.unboundid.ldap.sdk.Entry
 import com.unboundid.ldif._
-import scalaz.zio._
+import zio._
 
 /**
  * A service that write and read ServerAndMachine inventory data to/from file.

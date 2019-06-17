@@ -46,7 +46,7 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 
 import com.normation.box._
-import scalaz.zio._
+import zio._
 
 /**
  *

@@ -49,8 +49,8 @@ import com.normation.rudder.domain.RudderLDAPConstants.A_TECHNIQUE_LIB_VERSION
 import com.normation.rudder.domain.RudderLDAPConstants.OC_ACTIVE_TECHNIQUE_LIB_VERSION
 import com.normation.rudder.repository.xml.GitFindUtils
 import org.eclipse.jgit.lib.ObjectId
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 /**
  *

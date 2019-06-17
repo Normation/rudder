@@ -55,7 +55,7 @@ import org.junit.Assert._
 import org.junit._
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
-import scalaz.zio.syntax._
+import zio.syntax._
 
 /*
  * Test query parsing.

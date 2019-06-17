@@ -47,8 +47,8 @@ import com.normation.errors._
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import org.bouncycastle.cert.X509CertificateHolder
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 /**
  * A file that contains all the simple data types, like Version,

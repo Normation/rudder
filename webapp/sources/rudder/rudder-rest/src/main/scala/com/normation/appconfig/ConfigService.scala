@@ -73,8 +73,8 @@ import com.normation.rudder.services.servers.RelaySynchronizationMethod._
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.errors._
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 /**
  * A service that Read mutable (runtime) configuration properties

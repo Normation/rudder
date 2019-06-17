@@ -42,8 +42,8 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.services.nodes.NodeInfoServiceCachedImpl
 import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
-import scalaz.zio._
-import scalaz.zio.duration._
+import zio._
+import zio.duration._
 import com.normation.zio._
 
 /**

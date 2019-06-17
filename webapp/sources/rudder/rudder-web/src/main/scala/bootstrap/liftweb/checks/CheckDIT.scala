@@ -46,8 +46,8 @@ import javax.servlet.UnavailableException
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.unboundid.ldap.sdk.DN
 
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 import com.normation.errors._
 import com.normation.box._
 import com.normation.zio._

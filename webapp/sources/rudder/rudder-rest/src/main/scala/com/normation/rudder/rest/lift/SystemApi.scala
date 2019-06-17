@@ -80,7 +80,7 @@ import org.eclipse.jgit.revwalk.RevWalk
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatterBuilder
-import scalaz.zio._
+import zio._
 
 class SystemApi(
     restExtractorService : RestExtractorService

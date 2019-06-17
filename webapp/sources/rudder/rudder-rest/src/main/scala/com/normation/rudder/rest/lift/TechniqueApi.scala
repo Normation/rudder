@@ -59,8 +59,8 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JsonAST.JArray
 import net.liftweb.json.JsonAST.JValue
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 import scala.collection.SortedMap
 import scala.util.Success

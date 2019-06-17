@@ -52,8 +52,8 @@ import java.io.ByteArrayOutputStream
 import com.normation.NamedZioLogger
 import com.normation.rudder.repository.xml.ZipUtils.Zippable
 
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 import com.normation.errors._
 
 /**

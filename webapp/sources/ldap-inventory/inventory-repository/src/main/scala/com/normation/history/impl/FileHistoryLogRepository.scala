@@ -28,8 +28,8 @@ import com.normation.inventory.domain.InventoryError
 import com.normation.errors._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 /**
  * A trait that allows to write and read datas of type T

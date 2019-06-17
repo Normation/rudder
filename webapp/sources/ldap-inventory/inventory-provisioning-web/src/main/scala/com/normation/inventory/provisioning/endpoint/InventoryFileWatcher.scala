@@ -50,9 +50,9 @@ import com.normation.zio.ZioRuntime
 import scala.concurrent.ExecutionContext
 import scala.concurrent.blocking
 import scala.util.control.NonFatal
-import scalaz.zio._
-import scalaz.zio.syntax._
-import scalaz.zio.duration._
+import zio._
+import zio.syntax._
+import zio.duration._
 
 import scala.tools.nsc.interpreter.InputStream
 
@@ -250,7 +250,7 @@ class ProcessFile(
    * We need to track file that are currently processed by the backend, which can be quite long,
    * so that if we receive an second inventory for the same node, we wait before processing it.
    */
-  val locks = ZioRuntime.unsafeRun(scalaz.zio.Ref.make(Set[String]()))
+  val locks = ZioRuntime.unsafeRun(zio.Ref.make(Set[String]()))
 
   /*
    * This is the map of be processed file based on received events.
@@ -258,7 +258,7 @@ class ProcessFile(
    * The task is configured to be processed after some delay.
    * We only modify that map as a result of a dequeue event.
    */
-  val toBeProcessed = ZioRuntime.unsafeRun(scalaz.zio.RefM.make(Map.empty[File, Fiber[RudderError, Unit]]))
+  val toBeProcessed = ZioRuntime.unsafeRun(zio.RefM.make(Map.empty[File, Fiber[RudderError, Unit]]))
 
   /*
    * We need a queue of add file / file written even to delimitate when a file should be
@@ -325,10 +325,10 @@ class ProcessFile(
    * - if its a signature, look for the corresponding inventory. If available, remove possible action
    *   timeout and process, else do nothing.
    */
-  def processFile(file: File, locks: scalaz.zio.Ref[Set[String]]): ZIO[Any, RudderError, Unit] = {
+  def processFile(file: File, locks: zio.Ref[Set[String]]): ZIO[Any, RudderError, Unit] = {
     // the part that deals with sending to processor and then deplacing files
     // where they belong
-    import scalaz.zio.{Task => ZioTask}
+    import zio.{Task => ZioTask}
 
     def sendToProcessor(inventory: File, signature: Option[File]): IOResult[Unit] = {
       // we don't manage race condition very well, so we have cases where

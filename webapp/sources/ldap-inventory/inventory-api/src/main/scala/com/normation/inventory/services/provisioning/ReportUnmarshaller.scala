@@ -42,8 +42,8 @@ import java.io.InputStream
 
 import com.normation.inventory.domain.InventoryError
 import com.normation.errors._
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 import scala.xml._
 

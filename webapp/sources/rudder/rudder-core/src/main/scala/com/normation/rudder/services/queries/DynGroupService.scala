@@ -53,7 +53,7 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import net.liftweb.common._
-import scalaz.zio._
+import zio._
 import com.normation.ldap.sdk.syntax._
 
 /**

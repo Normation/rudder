@@ -59,8 +59,8 @@ import cats.effect._
 import cats.implicits._
 import doobie._
 
-import scalaz.zio.Task
-import scalaz.zio.interop.catz._
+import zio.Task
+import zio.interop.catz._
 import com.normation.errors._
 
 /**

@@ -53,8 +53,8 @@ import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.NodeConfiguration
 
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 import com.normation.errors._
 import com.normation.box._
 

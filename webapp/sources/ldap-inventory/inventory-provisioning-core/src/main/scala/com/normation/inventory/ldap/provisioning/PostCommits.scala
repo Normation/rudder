@@ -46,7 +46,7 @@ import com.normation.inventory.services.core._
 import com.normation.inventory.services.provisioning._
 import com.unboundid.ldif.LDIFChangeRecord
 import net.liftweb.common._
-import scalaz.zio.syntax._
+import zio.syntax._
 
 /*
  * This file contains post commit action to

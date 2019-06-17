@@ -83,13 +83,13 @@ import java.util.concurrent.TimeUnit
 
 import com.normation.rudder.domain.logger.PolicyLogger
 import com.normation.rudder.hooks.HookReturnCode
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 import com.normation.errors._
 import com.normation.box._
 import com.normation.zio._
-import scalaz.zio.blocking.Blocking
-import scalaz.zio.duration.Duration
+import zio.blocking.Blocking
+import zio.duration.Duration
 import cats.data._
 import cats.implicits._
 
@@ -231,7 +231,7 @@ class PolicyWriterServiceImpl(
     }
 
     val prog = seq.accumulateParNELN(maxParallelism){ a =>
-      scalaz.zio.Task.effect(f(a)).foldM(
+      zio.Task.effect(f(a)).foldM(
         ex   => HookError(a.config.nodeInfo.id, HookReturnCode.SystemError(ex.getMessage)).fail
       , code => code match {
           case s:HookReturnCode.Success => s.succeed
@@ -408,7 +408,7 @@ class PolicyWriterServiceImpl(
                                                                , ("RUDDER_NEXT_POLICIES_DIRECTORY", agentNodeConfig.paths.newFolder)
                                                              )
                                         , systemEnv
-                                        , hookWarnDurationMillis // warn if a hook took more than a minute
+                                        , hookWarnDurationMillis.toLong // warn if a hook took more than a minute
                             )
                             HooksLogger.trace(s"Run post-generation pre-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
                             res
@@ -443,7 +443,7 @@ class PolicyWriterServiceImpl(
                                                              , ("RUDDER_POLICIES_DIRECTORY", agentNodeConfig.paths.baseFolder)
                                                            )
                                         , systemEnv
-                                        , hookWarnDurationMillis // warn if a hook took more than a minute
+                                        , hookWarnDurationMillis.toLong // warn if a hook took more than a minute
                             )
                             HooksLogger.trace(s"Run post-generation post-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
                             res

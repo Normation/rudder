@@ -32,8 +32,8 @@ import java.io.FileInputStream
 import java.io.OutputStream
 import scala.collection.Seq
 import com.normation.errors._
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 object ZipUtils {
 

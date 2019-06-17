@@ -46,8 +46,8 @@ import com.normation.inventory.ldap.core._
 import com.normation.inventory.services.provisioning._
 import com.normation.utils.StringUuidGenerator
 import org.slf4j.LoggerFactory
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 object UuidMergerPreCommit {
   val logger = LoggerFactory.getLogger(classOf[UuidMergerPreCommit])

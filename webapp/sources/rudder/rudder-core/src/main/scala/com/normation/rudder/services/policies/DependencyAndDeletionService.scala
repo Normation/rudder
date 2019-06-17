@@ -60,8 +60,8 @@ import com.normation.rudder.repository._
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.utils.HashcodeCaching
 import net.liftweb.common._
-import scalaz.zio._
-import scalaz.zio.syntax._
+import zio._
+import zio.syntax._
 
 /**
  * A container for items which depend on directives
