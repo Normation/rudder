@@ -28,11 +28,23 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
+extern crate futures;
+extern crate tokio;
+extern crate tokio_process;
+//extern crate tokio_io;
 use crate::error::Error;
+use crate::{configuration::LogComponent, stats::Stats, status::Status, JobConfig};
+use futures::{Async, Future, Poll, Stream};
+use hyper::Chunk;
 use regex::Regex;
+use slog::slog_info;
+use slog_scope::info;
 use std::collections::HashMap;
-use std::process::Command;
+use std::io::BufReader;
+use std::process::{Command, Stdio};
 use std::str::FromStr;
+use std::sync::Arc;
+use tokio_process::{Child, ChildStdout, CommandExt};
 
 #[derive(Debug)]
 pub struct AgentParameters {
@@ -41,7 +53,7 @@ pub struct AgentParameters {
     condition: Vec<Condition>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RemoteRunTarget {
     All,
     Nodes(Vec<String>),
@@ -74,16 +86,70 @@ impl FromStr for Condition {
     }
 }
 
-impl AgentParameters {
-    pub fn execute_agent(&self) -> Result<String, Error> {
-        let output = Command::new("echo")
-            .args(self.command_line())
-            // .arg("-c")
-            // .arg("echo hello")
-            .output()?;
-        Ok(String::from_utf8(output.stdout)?)
-    }
+fn lines_stream(
+    child: &mut Child,
+) -> impl Stream<Item = hyper::Chunk, Error = Error> + Send + 'static {
+    let stdout = child
+        .stdout()
+        .take()
+        .expect("child did not have a handle to stdout");
 
+    tokio_io::io::lines(BufReader::new(stdout))
+        .map_err(|e| Error::from(e))
+        .inspect(|line| println!("Line: {}", line))
+        .map(|s| Chunk::from(s))
+}
+
+impl AgentParameters {
+    pub fn execute_agent(
+        &self,
+    ) -> impl Stream<Item = hyper::Chunk, Error = Error> + Send + 'static {
+        let mut cmd = Command::new("echo");
+
+        cmd.arg("lolilol");
+
+        cmd.stdout(Stdio::piped());
+
+        let mut child = cmd.spawn_async().expect("failed to spawn command");
+
+        let lines = lines_stream(&mut child);
+
+        let child_future = child
+            .map(|status| info!("conditions OK"; "component" => LogComponent::Statistics))
+            .map_err(|e| panic!("error while running child: {}", e));
+
+        tokio::spawn(child_future);
+
+        lines
+    }
+}
+
+impl AgentParameters {
+    pub fn new(simple_map: &HashMap<String, String>) -> Result<AgentParameters, Error> {
+        let conditions_vector: Result<Vec<Condition>, Error> = simple_map
+            .get("conditions")
+            .unwrap_or(&"".to_string())
+            .split(',')
+            .map(|s| Condition::from_str(s))
+            .collect();
+
+        let my_agent = AgentParameters {
+            asynchronous: simple_map
+                .get("asynchronous")
+                .unwrap_or(&"false".to_string())
+                .parse::<bool>()?,
+            keep_output: simple_map
+                .get("keep_output")
+                .unwrap_or(&"false".to_string())
+                .parse::<bool>()?,
+            condition: conditions_vector?,
+        };
+
+        Ok(my_agent)
+    }
+}
+
+impl AgentParameters {
     pub fn command_line(&self) -> Vec<String> {
         let mut remote_run_command = vec!["hello".to_string(), "my friend".to_string()];
 
@@ -109,40 +175,44 @@ impl AgentParameters {
     }
 }
 
+pub fn nodes_handle2(
+    remote_run: &RemoteRun,
+    job_config: Arc<JobConfig>,
+) -> Result<impl warp::reply::Reply, warp::reject::Rejection> {
+    if remote_run.target == RemoteRunTarget::All {
+        info!("conditions OK"; "component" => LogComponent::Statistics);
+        info!("remote-run triggered on all the nodes"; "component" => LogComponent::Statistics);
+
+        for node in job_config
+            .nodes
+            .read()
+            .expect("Cannot read nodes list")
+            .get_neighbours_from_target(RemoteRunTarget::All)
+        {
+            info!("command executed :  \n on node {}", node ; "component" => LogComponent::Statistics);
+        }
+        Ok(warp::reply::html(hyper::Body::wrap_stream(
+            remote_run.agent_parameters.execute_agent(),
+        )))
+    } else {
+        info!("conditions OK"; "component" => LogComponent::Statistics);
+        info!("Remote run launched on nodes: {:?}", remote_run.target; "component" => LogComponent::Statistics);
+
+        Ok(warp::reply::html(hyper::Body::wrap_stream(
+            remote_run.agent_parameters.execute_agent(),
+        )))
+    }
+}
+
 pub fn nodes_handle(
     simple_map: &HashMap<String, String>,
     path: String,
 ) -> Result<RemoteRun, Error> {
-    let conditions_vector: Result<Vec<Condition>, Error> = simple_map
-        .get("conditions")
-        .unwrap_or(&"".to_string())
-        .split(',')
-        .map(|s| Condition::from_str(s))
-        .collect();
-
-    let conditions_vector = conditions_vector?;
-
-    let asynchronous_bool = simple_map
-        .get("asynchronous")
-        .unwrap_or(&"false".to_string())
-        .parse::<bool>()?;
-
-    let keep_output_bool = simple_map
-        .get("keep_output")
-        .unwrap_or(&"false".to_string())
-        .parse::<bool>()?;
-
-    let my_agent = AgentParameters {
-        asynchronous: asynchronous_bool,
-        keep_output: keep_output_bool,
-        condition: conditions_vector,
-    };
-
     if path == "all" {
         let my_remote_run_target = RemoteRunTarget::All;
         let my_remote_run = RemoteRun {
             target: my_remote_run_target,
-            agent_parameters: my_agent,
+            agent_parameters: AgentParameters::new(simple_map)?,
         };
 
         Ok(my_remote_run)
@@ -155,7 +225,7 @@ pub fn nodes_handle(
         let my_remote_run_target = RemoteRunTarget::Nodes(nodes_vector);
         let my_remote_run = RemoteRun {
             target: my_remote_run_target,
-            agent_parameters: my_agent,
+            agent_parameters: AgentParameters::new(simple_map)?,
         };
 
         Ok(my_remote_run)

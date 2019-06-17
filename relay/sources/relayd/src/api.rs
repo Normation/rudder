@@ -28,19 +28,38 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
+extern crate data_encoding;
 use crate::error::Error;
+use crate::remote_run::{nodes_handle, nodes_handle2, AgentParameters, RemoteRun, RemoteRunTarget};
+use crate::shared_files::{
+    metadata_hash_checker,
+    metadata_writer,
+    parse_hash_from_raw,
+    parse_path_from_peek,
+    parse_ttl,
+    Metadata, // Digest, Sha1, Sha256, Sha512
+};
 use crate::{configuration::LogComponent, stats::Stats, status::Status, JobConfig};
 use futures::Future;
 use slog::slog_info;
 use slog_scope::info;
 use std::collections::HashMap;
+use std::str::FromStr;
+use std::{fs, io};
 use std::{
     net::SocketAddr,
     sync::{Arc, RwLock},
 };
 use warp::Filter;
+pub extern crate sha1;
 
-use crate::remote_run::{nodes_handle, AgentParameters, RemoteRun, RemoteRunTarget};
+use sha1::Sha1;
+use std::env;
+extern crate sha2;
+
+use sha2::{Digest, Sha256, Sha512};
+use std::fs::File;
+use std::io::{BufReader, Read, Write};
 
 pub fn api(
     listen: SocketAddr,
@@ -60,94 +79,86 @@ pub fn api(
         warp::reply::json(&Status::poll(job_config.clone()))
     });
 
-    let nodes = warp::path("nodes").and(warp::body::form()).and_then(
-        move |simple_map: HashMap<String, String>| {
-            let remote_run = nodes_handle(&simple_map, "nodes".to_string());
+    let nodes = warp::path("nodes").and(warp::path::end().and(warp::body::form()).and_then(
+        move |simple_map: HashMap<String, String>| match nodes_handle(
+            &simple_map,
+            "nodes".to_string(),
+        ) {
+            Ok(handle) => nodes_handle2(&handle, job_config2.clone()),
+            Err(e) => Err(warp::reject::custom(Error::InvalidCondition(e.to_string()))),
+        },
+    ));
 
-            match &remote_run {
-                Err(remote_run) => Err(warp::reject::custom(Error::InvalidCondition(
-                    remote_run.to_string(),
-                ))),
-                Ok(remote_run2) => {
-                    info!("conditions OK"; "component" => LogComponent::Statistics);
-                    info!("Remote run launched on nodes: {:?}", remote_run2.target; "component" => LogComponent::Statistics);
-                    Ok(warp::reply())}
-                }
-            }
-    );
-
-    pub fn node_handle2(
-        remote_run: &RemoteRun,
-        case: String,
-    ) -> Box<Result<warp::reply::Reply, warp::reject::Rejection>> {
-        // let my_warp_reply = Box<warp::reply::Reply>;
-        // let my_warp_reject = Box<warp::reject::Rejection>;
-
-        match &remote_run {
-            Err(remote_run) => Box<Err(warp::reject::custom(Error::InvalidCondition(
-                remote_run.to_string()>,
-            ))),
-            Ok(remote_run2) => {
-                if case == "nodes" {
-                    info!("conditions OK"; "component" => LogComponent::Statistics);
-                    info!("Remote run launched on nodes: {:?}", remote_run2.target; "component" => LogComponent::Statistics);
-                    Box<Ok(warp::reply())>
-                } else {
-                    info!("conditions OK"; "component" => LogComponent::Statistics);
-                    info!("remote-run triggered on all the nodes"; "component" => LogComponent::Statistics);
-
-                    for node in job_config3
-                        .nodes
-                        .read()
-                        .expect("Cannot read nodes list")
-                        .get_neighbours_from_target(RemoteRunTarget::All)
-                    {
-                        info!("command executed : {} \n on node {}", remote_run2.agent_parameters.execute_agent().unwrap().to_string(), node ; "component" => LogComponent::Statistics);
-                    }
-                    Box<Ok(warp::reply())>
-                }
-            }
-        }
-    }
-
-    let nodes2 = warp::path("nodes");
-
-    let node_id = warp::path::param::<String>().map(|node| {
+    let node_id = warp::path("nodes").and(warp::path::param::<String>().map(|node| {
         info!("remote run triggered on node {}", node; "component" => LogComponent::Statistics);
         warp::reply()
-    });
+    }));
 
     let all = warp::path("all").and(warp::body::form()).and_then(
-        move |simple_map: HashMap<String, String>| {
-            let remote_run = nodes_handle(&simple_map, "all".to_string());
-
-            match &remote_run {
-                Err(remote_run) => Err(warp::reject::custom(Error::InvalidCondition(
-                    remote_run.to_string(),
-                ))),
-                Ok(remote_run2) => {
-                    info!("conditions OK"; "component" => LogComponent::Statistics);
-                    info!("remote-run triggered on all the nodes"; "component" => LogComponent::Statistics);
-
-                        for node in job_config3.nodes.read().expect("Cannot read nodes list").get_neighbours_from_target(RemoteRunTarget::All)
-                        {
-                            info!("command executed : {} \n on node {}", remote_run2.agent_parameters.execute_agent().unwrap().to_string(), node ; "component" => LogComponent::Statistics);
-
-                        }
-                            Ok(warp::reply())}
-                }
-            }
+        move |simple_map: HashMap<String, String>| match nodes_handle(
+            &simple_map,
+            "all".to_string(),
+        ) {
+            Ok(handle) => nodes_handle2(&handle, job_config3.clone()),
+            Err(e) => Err(warp::reject::custom(Error::InvalidCondition(e.to_string()))),
+        },
     );
 
     let rudder = warp::path("rudder");
     let relay_api = warp::path("relay-api");
     let remote_run = warp::path("remote-run");
 
-    let routes = warp::get2().and(status.or(stats_simple)).or(warp::post2()
-        .and(rudder)
-        .and(relay_api)
-        .and(remote_run)
-        .and(nodes.or(all).or(nodes2.and(node_id))));
+    let shared_files = warp::path("shared-files")
+        .and(warp::path::peek())
+        .and(warp::body::form()) // recuperation du body
+        .map(
+            |peek: warp::filters::path::Peek, simple_map: HashMap<String, String>| {
+                // info!("SHARED FILES {:?}", peek; "component" => LogComponent::Statistics);
+
+                // info!("{:?}", &simple_map; "component" => LogComponent::Statistics);
+
+                info!("METADATA : {}", metadata_writer(simple_map, peek); "component" => LogComponent::Statistics);
+
+                //info!("{:?}", parse_ttl(simple_map.get("ttl").unwrap()); "component" => LogComponent::Statistics);
+            warp::reply()
+
+            },
+        );
+
+    let shared_files_head = warp::path("shared-files") // recuperation du path OK
+        .and(warp::path::peek()) // recuperation de <target-uuid> / <source-uuid> / <file-id>
+        .and(warp::filters::query::raw()) // recuperation du parametre ?hash=file-hash
+        .map(|peek: warp::filters::path::Peek, raw: String| {
+            let path = parse_path_from_peek(peek);
+
+            // let mut file = fs::File::open("./lalal/lolo/lili").unwrap();
+            // let mut hasher = Sha256::new();
+            // let n = io::copy(&mut file, &mut hasher);
+            // let hash = hasher.result();
+            // info!("{:x}", hash; "component" => LogComponent::Statistics);
+
+            let contents = fs::read_to_string("./metadata_test.txt")
+                .expect("Something went wrong reading the file");
+
+            let mymeta = Metadata::from_str(&contents);
+
+            info!("{:?}", mymeta; "component" => LogComponent::Statistics);
+
+            warp::reply::with_status(
+                "".to_string(),
+                metadata_hash_checker("./metadata_test.txt".to_string(), parse_hash_from_raw(raw)),
+            )
+        });
+
+    let routes = warp::get2()
+        .and(status.or(stats_simple))
+        .or(warp::post2()
+            .and(rudder)
+            .and(relay_api)
+            .and(remote_run)
+            .and(nodes.or(all).or(node_id)))
+        .or(warp::put2().and(shared_files))
+        .or(warp::head().and(shared_files_head));
 
     let (addr, server) = warp::serve(routes).bind_with_graceful_shutdown(listen, shutdown);
     info!("Started stats API on {}", addr; "component" => LogComponent::Statistics);

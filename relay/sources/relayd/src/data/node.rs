@@ -46,6 +46,7 @@ use itertools::Itertools;
 
 pub type NodeId = String;
 pub type Host = String;
+pub type KeyHash = String;
 
 // We ignore the key-hash field as we directly deal with proper certificates
 #[derive(Deserialize, Default)]
@@ -57,6 +58,9 @@ struct Info {
     #[serde(rename = "policy-server")]
     #[allow(dead_code)]
     policy_server: NodeId,
+    #[serde(rename = "key-hash")]
+    #[allow(dead_code)]
+    key_hash: KeyHash,
     #[serde(skip)]
     // Can be empty when not on a root server or no known certificates for
     // a node
@@ -79,7 +83,7 @@ impl Info {
 
 #[derive(Deserialize)]
 #[serde(transparent)]
-struct RawNodesList {
+pub struct RawNodesList {
     data: HashMap<NodeId, Info>,
 }
 
@@ -126,6 +130,10 @@ impl NodesList {
         self.list.data.get(id).is_some()
     }
 
+    pub fn get_keyhash_from_uuid(&self, source_uuid: &str) -> Option<String> {
+        self.list.data.get(source_uuid).map(|s| s.key_hash.clone())
+    }
+
     pub fn certs(&self, id: &str) -> Option<&Stack<X509>> {
         self.list
             .data
@@ -170,8 +178,7 @@ impl NodesList {
 
     pub fn get_neighbours_from_target(&self, target_nodes: RemoteRunTarget) -> Vec<String> {
         match target_nodes {
-            All => self.get_neighbours(),
-
+            RemoteRunTarget::All => self.get_neighbours(),
             RemoteRunTarget::Nodes(nodes) => self
                 .list
                 .data

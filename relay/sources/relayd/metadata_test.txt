@@ -1,0 +1,9 @@
+header=rudder-signature-v1
+algorithm=sha256
+digest=the_digest
+hash_value=1201874583fb4a77e1d6bd4cd51592c4afb8571c7d5a532e6fc08d648fbb1406
+short_pubkey=myshortpubkey
+hostname=ubuntu-18-04-64
+keydate=2018-10-3118:21:43.653257143
+keyid=B29D02BB
+expires=1562230426

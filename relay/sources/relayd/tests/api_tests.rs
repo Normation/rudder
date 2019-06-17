@@ -33,17 +33,13 @@ mod tests {
     fn it_handles_errors() {
         let cli_cfg = CliConfiguration::new("tests/test_simple/relayd.conf", false);
 
-        assert!(start_api().is_ok());
-
         thread::spawn(move || {
             init(cli_cfg).unwrap();
         });
 
-        thread::sleep(time::Duration::from_millis(500));
+        assert!(start_api().is_ok());
 
         let client = reqwest::Client::new();
-
-        thread::sleep(time::Duration::from_millis(500));
 
         // // curl -X POST http://127.0.0.1:3030/rudder/relay-api/remote-run/nodes -d "asynchronous=false&keep_output=true&conditions=class1,class2,class3&nodes=node2.rudder.local,server.rudder.local"
 
