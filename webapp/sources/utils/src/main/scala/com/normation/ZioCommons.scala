@@ -243,6 +243,8 @@ object errors {
 
 object zio {
 
+  val currentTimeMillis = UIO.effectTotal(System.currentTimeMillis())
+
   /*
    * Default ZIO Runtime used everywhere.
    */
@@ -251,8 +253,6 @@ object zio {
       this.unsafeRunSync(io).fold(cause => throw cause.squashWith(err => new RuntimeException(err.fullMsg)), a => a)
     }
   }
-
-
 
   /*
    * When porting a class is too hard

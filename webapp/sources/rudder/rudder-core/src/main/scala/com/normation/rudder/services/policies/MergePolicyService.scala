@@ -367,7 +367,7 @@ final object MergePolicyService {
         BundleOrder.compareList(List(d1.ruleOrder, d1.directiveOrder), List(d2.ruleOrder, d2.directiveOrder)) <= 0
       }.toList
 
-      PolicyLogger.debug(s"Resolved policies for '${nodeInfo.id.value}': ${policies.map(displayPolicy).mkString(" | ")}")
+      PolicyLogger.trace(s"Resolved policies for '${nodeInfo.id.value}': ${policies.map(displayPolicy).mkString(" | ")}")
 
       policies
     }

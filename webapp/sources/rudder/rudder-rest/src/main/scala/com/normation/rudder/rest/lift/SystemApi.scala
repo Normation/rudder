@@ -81,6 +81,7 @@ import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatterBuilder
 import zio._
+import com.normation.zio._
 
 class SystemApi(
     restExtractorService : RestExtractorService
@@ -614,16 +615,16 @@ class SystemApiService11(
     implicit val action = "getDebugInfo"
     implicit val prettify = params.prettify
 
-    debugScriptService.launch() match {
-      case Full(DebugInfoScriptResult(fileName,bytes)) =>
+    debugScriptService.launch().either.runNow match {
+      case Right(DebugInfoScriptResult(fileName, bytes)) =>
         InMemoryResponse(bytes
           , "content-Type" -> "application/gzip" ::
             "Content-Disposition" -> s"attachment;filename=${fileName}" :: Nil
           , Nil
           , 200)
-      case eb: EmptyBox =>
-        val fail = eb ?~! "Error has occured while getting debug script result"
-        toJsonError(None, "debug script" -> s"An Error has occured : ${fail.messageChain}" )
+      case Left(error) =>
+        val fail = Chained("Error has occured while getting debug script result", error)
+        toJsonError(None, "debug script" -> s"An Error occurred: ${fail.fullMsg}" )
     }
   }
 

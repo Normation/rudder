@@ -40,17 +40,21 @@ package com.normation.rudder.hooks
 import java.nio.CharBuffer
 import java.nio.charset.CoderResult
 import java.nio.charset.StandardCharsets
-import java.util.concurrent.TimeUnit
+import java.nio.file.Path
+import java.util
 
-import scala.concurrent.Future
-import scala.concurrent.Promise
-import scala.concurrent.duration.Duration
-
+import com.normation.NamedZioLogger
+import com.normation.errors._
+import com.normation.zio._
+import com.zaxxer.nuprocess.NuProcess
 import com.zaxxer.nuprocess.NuProcessBuilder
 import com.zaxxer.nuprocess.codec.NuAbstractCharsetHandler
+import com.zaxxer.nuprocess.internal.BasePosixProcess
+import zio._
+import zio.duration.Duration.Infinity
+import zio.duration._
+import zio.syntax._
 
-import net.liftweb.common.Loggable
-import scala.util.control.NonFatal
 
 /*
  * The goal of that file is to give a simple abstraction to run hooks in
@@ -78,16 +82,40 @@ import scala.util.control.NonFatal
 final case class Cmd(cmdPath: String, parameters: List[String], environment: Map[String, String])
 final case class CmdResult(code: Int, stdout: String, stderr: String)
 
-object RunNuCommand extends Loggable {
+object RunNuCommand {
+
+  val logger = NamedZioLogger("command-runner")
+
+  // we don't want NuCommand to log with its format which is totally broken along our, so we redefined it.
+  object SilentLogger extends BasePosixProcess(null) {
+    import java.util.logging._
+    override def start(command: util.List[String], environment: Array[String], cwd: Path): NuProcess = {null}
+    def silent() = {
+      BasePosixProcess.LOGGER.setLevel(java.util.logging.Level.WARNING)
+      BasePosixProcess.LOGGER.setUseParentHandlers(false)
+      val h = new ConsoleHandler()
+      h.setFormatter(new SimpleFormatter() {
+        private val format = "%1$tFT%1$tT%1$tz %2$-7s %3$s: %4$s"
+        override def format(lr: LogRecord): String = {
+          val msg = if(lr.getMessage == "Failed to start process") {
+            "Failed to execute shell command from Rudder"
+          } else lr.getMessage
+          String.format(format, new java.util.Date(lr.getMillis), lr.getLevel.getName, msg, lr.getThrown.getMessage)
+        }
+      })
+      BasePosixProcess.LOGGER.addHandler(h)
+    }
+  }
+  SilentLogger.silent()
 
   /*
-   * An helper class that create a promise to handle the async termination of the NuProcess
-   * and signal it to its derived future.
+   * An helper class that creates a promise to handle the async termination of the NuProcess
+   * command and signal the completion to the caller.
    * Exit code, stdout and stderr content are accumulated in CmdResult data structure.
    */
-  private[this] class CmdProcessHandler extends NuAbstractCharsetHandler(StandardCharsets.UTF_8) {
-    val promise = Promise[CmdResult]()
-    val stderr, stdout = new StringBuilder()
+  private[this] class CmdProcessHandler(promise: Promise[Nothing, CmdResult]) extends NuAbstractCharsetHandler(StandardCharsets.UTF_8) {
+    val stderr = new StringBuilder()
+    val stdout = new StringBuilder()
 
     override def onStderrChars(buffer: CharBuffer, closed: Boolean, coderResult: CoderResult): Unit = {
       while(buffer.hasRemaining) { stderr + buffer.get() }
@@ -97,19 +125,24 @@ object RunNuCommand extends Loggable {
     }
 
     override def onExit(exitCode: Int): Unit = {
-      promise.success(CmdResult(exitCode, stdout.toString, stderr.toString))
+      promise.succeed(CmdResult(exitCode, stdout.toString, stderr.toString)).runNow
     }
 
-    def run = promise.future
+    def run = promise
   }
 
   /**
    * Run a hook asynchronously.
-   * The time limit should NEVER be set to 0, because it would cause process
+   * The time limit should NEVER be set to 0 or Infinity, because it would cause process
    * to NEVER terminate if something not exepected happen, like if the process
    * is waiting for stdin input.
+   *
+   * All that run method is non blocking (but still I/O, there's a linux process
+   * creation under the hood).
+   * Waiting on the promise completion can be long, of course, depending of the
+   * command executed.
    */
-  def run(cmd: Cmd, limit: Duration = Duration(30, TimeUnit.MINUTES)): Future[CmdResult] = {
+  def run(cmd: Cmd, limit: Duration = 30.minute): IOResult[Promise[Nothing, CmdResult]] = {
     /*
      * Some information about NuProcess command line: what NuProcess call "commands" is
      * actually the command (first item in the array) and its parameters (following items).
@@ -134,34 +167,42 @@ object RunNuCommand extends Loggable {
      *
      *
      */
-    try {
-      if(limit.length <= 0) {
-        logger.warn(s"No duration limit set for command '${cmd.cmdPath} ${cmd.parameters.mkString(" ")}'. " +
-            "That can create a pill of zombies if termination of the command is not correct")
-      }
-      import scala.collection.JavaConverters._
-      val handler = new CmdProcessHandler()
-      val processBuilder = new NuProcessBuilder((cmd.cmdPath::cmd.parameters).asJava, cmd.environment.asJava)
-      processBuilder.setProcessListener(handler)
+    import scala.collection.JavaConverters._
+    val cmdInfo =  s"'${cmd.cmdPath} ${cmd.parameters.mkString(" ")}'"
+    def effect[A](effect: => A) = IOResult.effect(s"Error when executing command ${cmdInfo}")(effect)
+
+
+    for {
+      _              <- ZIO.when(limit == Infinity|| limit.toMillis <= 0) {
+                          logger.warn(s"No duration limit set for command '${cmd.cmdPath} ${cmd.parameters.mkString(" ")}'. " +
+                              "That can create a pill of zombies if termination of the command is not correct")
+                        }
+      promise        <- Promise.make[Nothing, CmdResult]
+      handler        <- effect(new CmdProcessHandler(promise))
+      processBuilder <- effect(new NuProcessBuilder((cmd.cmdPath::cmd.parameters).asJava, cmd.environment.asJava))
+      _              <- effect(processBuilder.setProcessListener(handler))
 
       /*
        * The start process is nasty:
        * - it can return null if something goes wrong,
        * - even if everything goes OK, it can write stacktrace in our logs,
        *   see: https://github.com/brettwooldridge/NuProcess/issues/63
+       * In the meantime, we silent the logger, and we check for return code of min value with
+       * commons use cases:
        */
-      val process = processBuilder.start()
-      if(process == null) {
-        Future.failed(new RuntimeException(s"Error: unable to start native command '${cmd.cmdPath} ${cmd.parameters.mkString(" ")}'"))
-      } else {
-        //that class#method does not accept interactive mode
-        process.closeStdin(true)
-        process.waitFor(limit.length, limit.unit)
-
-        handler.run
-      }
-    } catch {
-      case NonFatal(ex) => Future.failed(ex)
+      process        <- effect(processBuilder.start())
+      res            <- if(process == null) {
+                          Unexpected(s"Error: unable to start native command ${cmdInfo}").fail
+                        } else {
+                          //that class#method does not accept interactive mode
+                          effect {
+                            process.closeStdin(true)
+                            process.waitFor(limit.toMillis, java.util.concurrent.TimeUnit.MILLISECONDS)
+                            handler.run
+                          }
+                        }
+    } yield {
+      res
     }
   }
 

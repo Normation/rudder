@@ -84,12 +84,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>spring-webmvc</artifactId>
       <version>${spring-version}</version>
     </dependency>
-    <!-- better file for file watching -->
-    <dependency>
-      <groupId>com.github.pathikrit</groupId>
-      <artifactId>better-files_${scala-binary-version}</artifactId>
-      <version>3.7.0</version>
-    </dependency>
 
     <!-- Container-provided dependencies-->
     <dependency>

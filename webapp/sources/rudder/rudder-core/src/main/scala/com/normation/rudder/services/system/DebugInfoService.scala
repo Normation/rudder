@@ -41,14 +41,16 @@ package com.normation.rudder.services
 import java.nio.file.{Files, Paths}
 import java.util.concurrent.TimeUnit
 
+import com.normation.NamedZioLogger
 import com.normation.rudder.hooks._
-import net.liftweb.common.{Box, Failure, Full, Loggable}
 import org.joda.time.DateTime
 
 import scala.collection.JavaConverters._
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
-import scala.util.{Success, Try, Failure => TryFailure}
+import com.normation.errors._
+import zio._
+import zio.duration._
+import zio.syntax._
+import com.normation.zio._
 
 final case class DebugInfoScriptResult (
     serverName : String
@@ -57,64 +59,55 @@ final case class DebugInfoScriptResult (
 
 
 trait DebugInfoService {
-  def launch() : Box[DebugInfoScriptResult]
+  def launch() : IOResult[DebugInfoScriptResult]
 }
 
-class DebugInfoServiceImpl extends DebugInfoService with Loggable {
+class DebugInfoServiceImpl extends DebugInfoService {
 
-  private[this] def execScript() : Box[CmdResult] = {
+  val logger = NamedZioLogger(this.getClass.getName)
+
+  private[this] def execScript() : IOResult[Promise[Nothing, CmdResult]] = {
     val environment = System.getenv.asScala.toMap
     val timeOut     = Duration(30, TimeUnit.SECONDS)
     val scriptPath  = "/opt/rudder/bin/rudder-debug-info"
     val cmd         = Cmd(scriptPath, Nil, environment)
     // Since the API is blocking, we want to wait for the result.
-    logger.debug(s"Launching debug-info script (${scriptPath})")
-    try {
-      Full(Await.result(RunNuCommand.run(cmd, timeOut), timeOut))
-    } catch {
-      case e: Throwable => Failure(s"An Error has occured when launching debug-info script: ${e.getMessage}")
-    }
+    logger.debug(s"Launching debug-info script (${scriptPath})") *>
+    RunNuCommand.run(cmd, timeOut)
   }
 
   // The debug script generates an archive in the /tmp folder.
   // We want to get its binary representation into an Array of byte
   // In order for the API to build an InMemoryResponse
 
-  private[this] def getScriptResult() : Box[DebugInfoScriptResult] = {
-
-    Try {
-
+  private[this] def getScriptResult() : IOResult[DebugInfoScriptResult] = {
+    IOResult.effect(s"Could not get file debug info result file") {
       val resultPath = s"/var/rudder/debug/info/debug-info-latest.tar.gz"
       val result = Paths.get(resultPath).toRealPath()
       DebugInfoScriptResult(result.getFileName.toString, Files.readAllBytes(result))
 
-    } match {
-      case Success(debugInfo) => Full(debugInfo)
-      case TryFailure(exception) => Failure(s"Could not get file debug info result file: cause is ${exception.getMessage}")
     }
-
   }
 
-  override def launch() : Box[DebugInfoScriptResult] = {
+  override def launch() : IOResult[DebugInfoScriptResult] = {
 
     val start = DateTime.now.getMillis
     for {
-      cmdResult <- execScript()
-
-      end       = DateTime.now.getMillis
-      duration  = end - start
-      _         = logger.debug(s"debug-info script run finished in ${duration} ms")
+      start     <- currentTimeMillis
+      cmdResult <- execScript().flatMap(_.await) // await execution end
+      end       <- currentTimeMillis
+      duration  =  end - start
+      _         <- logger.debug(s"debug-info script run finished in ${duration} ms")
 
       zip       <- if (cmdResult.code == 0 || cmdResult.code == 1) {
-                     logger.trace(s"stdout: ${cmdResult.stdout}")
+                     logger.trace(s"stdout: ${cmdResult.stdout}") *>
                      getScriptResult()
                    } else {
                      val msg = s"debug-info script exited with an error (code ${cmdResult.code}))."
-                     logger.error(s"${msg} Error details below")
-                     logger.error(s"stderr: ${cmdResult.stderr}")
-                     logger.error(s"stdout: ${cmdResult.stdout}")
-                     Failure(msg)
-
+                     logger.error(s"${msg} Error details below") *>
+                     logger.error(s"stderr: ${cmdResult.stderr}") *>
+                     logger.error(s"stdout: ${cmdResult.stdout}") *>
+                     Unexpected(msg).fail
                    }
     } yield {
       zip

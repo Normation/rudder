@@ -622,7 +622,6 @@ limitations under the License.
         <artifactId>logback-classic</artifactId>
         <version>${logback-version}</version>
       </dependency>
-      <!-- better file for file watching -->
       <dependency>
         <groupId>com.github.pathikrit</groupId>
         <artifactId>better-files_${scala-binary-version}</artifactId>
@@ -633,6 +632,10 @@ limitations under the License.
 
   <dependencies>
     <!-- almost used in all projects -->
+    <dependency>
+      <groupId>com.github.pathikrit</groupId>
+      <artifactId>better-files_${scala-binary-version}</artifactId>
+    </dependency>
     <dependency>
       <groupId>com.github.ghik</groupId>
       <artifactId>silencer-lib_${scala-binary-version}</artifactId>

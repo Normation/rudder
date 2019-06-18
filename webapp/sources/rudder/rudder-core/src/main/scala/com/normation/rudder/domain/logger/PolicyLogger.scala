@@ -48,5 +48,12 @@ object PolicyLogger extends Logger {
   object expectedReports extends Logger {
     override protected def _logger = LoggerFactory.getLogger("policy.generation.expected_reports")
   }
+}
 
+object PolicyLoggerPure extends Logger {
+  override protected def _logger = LoggerFactory.getLogger("policy.generation")
+
+  object expectedReports extends Logger {
+    override protected def _logger = LoggerFactory.getLogger("policy.generation.expected_reports")
+  }
 }

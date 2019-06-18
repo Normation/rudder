@@ -39,18 +39,20 @@ package com.normation.rudder.hooks
 
 import java.io.File
 
+import com.normation.NamedZioLogger
 import monix.execution.ExecutionModel
-
-import scala.concurrent.Await
-import scala.concurrent.Future
-import scala.concurrent.duration.Duration
-import scala.util.control.NonFatal
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
-import org.slf4j.LoggerFactory
 import net.liftweb.common.Logger
 import net.liftweb.util.Helpers.tryo
+import org.slf4j.LoggerFactory
+import zio._
+import zio.syntax._
+import zio.duration._
+import com.normation.errors._
+import com.normation.zio._
+import com.normation.zio.ZioRuntime
 
 /*
  * The goal of that file is to give a simple abstraction to run hooks in
@@ -112,23 +114,37 @@ object HooksLogger extends Logger {
   }
 }
 
+object PureHooksLogger extends NamedZioLogger {
+  override def loggerName: String = "hooks"
+
+  object LongExecLogger extends NamedZioLogger {
+   override def loggerName = "hooks.longexecution"
+  }
+}
+
 sealed trait HookReturnCode {
+  def code   : Int
   def stdout : String
   def stderr : String
+  def msg    : String
 }
+
 object HookReturnCode {
   sealed trait Success extends HookReturnCode
-  sealed trait Error   extends HookReturnCode {
-    def msg : String
-  }
+  sealed trait Error   extends HookReturnCode
+
 
   //special return code
-  final case class  Ok (stdout: String, stderr: String) extends Success
+  final case class  Ok (stdout: String, stderr: String) extends Success {
+    val code = 0
+    val msg = ""
+  }
   final case class  Warning(code: Int, stdout: String, stderr: String, msg: String) extends Success
   final case class  ScriptError(code: Int, stdout: String, stderr: String, msg: String) extends Error
   final case class  SystemError(msg: String) extends Error {
     val stderr = ""
     val stdout = ""
+    val code = Int.MaxValue // special value out of bound 0-255, far in the "reserved" way
   }
 
   //special return code 100: it is a stop state, but in some case can lead to
@@ -165,14 +181,55 @@ object RunHooks {
    * The semantic of return codes is:
    * - < 0: success (we should never have a negative returned code, but java int are signed)
    * - 0: success
-   * - 1-31: errors. These code stop the hooks pipeline, and the generation is on error
+   * - 1-31: errors. These codes stop the hooks pipeline, and the generation is on error
    * - 32-63: warnings. These code log a warning message, but DON'T STOP the next hook processing
    * - 64-255: reserved. For now, they will be treat as "error", but that behaviour can change any-time
    *            without notice.
    * - > 255: should not happen, but treated as reserved.
    *
    */
-  def asyncRun(hooks: Hooks, hookParameters: HookEnvPairs, envVariables: HookEnvPairs): Future[HookReturnCode] = {
+  def asyncRun(hooks: Hooks, hookParameters: HookEnvPairs, envVariables: HookEnvPairs, warnAfterMillis: Duration = 5.minutes, killAfter: Duration = 1.hour): IOResult[HookReturnCode] = {
+
+    import HookReturnCode._
+
+    def logReturnCode(result: HookReturnCode): IOResult[Unit] = {
+      for {
+        _ <- PureHooksLogger.trace(s"  -> results: ${result.msg}")
+        _ <- PureHooksLogger.trace(s"  -> stdout : ${result.stdout}")
+        _ <- PureHooksLogger.trace(s"  -> stderr : ${result.stderr}")
+        _ <- ZIO.when(result.code >= 32 && result.code <= 64) { // warning
+               for {
+                 _ <- PureHooksLogger.warn(result.msg)
+                 _ <- ZIO.when(result.stdout.size > 0) { PureHooksLogger.warn(s"  -> stdout : ${result.stdout}") }
+                 _ <- ZIO.when(result.stderr.size > 0) { PureHooksLogger.warn(s"  -> stderr : ${result.stderr}") }
+               } yield ()
+             }
+      } yield ()
+    }
+
+    def translateReturnCode(path: String, result: CmdResult): HookReturnCode = {
+      lazy val msg = {
+        val specialCode = if(result.code == Int.MinValue) { // this is most commonly file not found or bad rights
+          " (check that file exists and is executable)"
+        } else ""
+        s"Exit code=${result.code}${specialCode} for hook: '${path}'."
+      }
+      if(       result.code == 0 ) {
+        Ok(result.stdout, result.stderr)
+      } else if(result.code <  0 ) { // this should not happen, and/or is likely a system error (bad !#, etc)
+        //using script error because we do have an error code and it can help in some case
+
+        ScriptError(result.code, result.stdout, result.stderr, msg)
+      } else if(result.code >= 1  && result.code <= 31 ) { // error
+        ScriptError(result.code, result.stdout, result.stderr, msg)
+      } else if(result.code >= 32 && result.code <= 64) { // warning
+          Warning(result.code, result.stdout, result.stderr, msg)
+      } else if(result.code == Interrupt.code) {
+        Interrupt(msg, result.stdout, result.stderr)
+      } else { //reserved - like error for now
+        ScriptError(result.code, result.stdout, result.stderr, msg)
+      }
+    }
 
     /*
      * We can not use Future.fold, because it execute all scripts
@@ -181,45 +238,40 @@ object RunHooks {
      * step.
      * But we still want the whole operation to be non-bloking.
      */
-    import HookReturnCode._
-    ( Future(Ok("",""):HookReturnCode) /: hooks.hooksFile) { case (previousFuture, nextHookName) =>
-      val path = hooks.basePath + File.separator + nextHookName
-      previousFuture.flatMap {
-        case x: Success =>
-          HooksLogger.debug(s"Run hook: '${path}' with environment parameters: ${hookParameters.show}")
-          HooksLogger.trace(s"System environment variables: ${envVariables.show}")
+    val runAllSeq = ZIO.foldLeft(hooks.hooksFile)(Ok("",""):HookReturnCode) { case (previousCode, nextHookName) =>
+      previousCode match {
+        case x: Error   => x.succeed
+        case x: Success => // run the next hook
+          val path = hooks.basePath + File.separator + nextHookName
           val env = envVariables.add(hookParameters)
-          RunNuCommand.run(Cmd(path, Nil, env.toMap)).map { result =>
-            lazy val msg = s"Exit code=${result.code} for hook: '${path}'."
-
-            HooksLogger.trace(s"  -> results: ${msg}")
-            HooksLogger.trace(s"  -> stdout : ${result.stdout}")
-            HooksLogger.trace(s"  -> stderr : ${result.stderr}")
-            if(       result.code == 0 ) {
-              Ok(result.stdout, result.stderr)
-            } else if(result.code < 0 ) { // this should not happen, and/or is likely a system error (bad !#, etc)
-              //using script error because we do have an error code and it can help in some case
-              ScriptError(result.code, result.stdout, result.stderr, msg)
-            } else if(result.code >= 1  && result.code <= 31 ) { // error
-              ScriptError(result.code, result.stdout, result.stderr, msg)
-            } else if(result.code >= 32 && result.code <= 64) { // warning
-              HooksLogger.warn(msg)
-              if (result.stdout.size > 0)
-                HooksLogger.warn(s"  -> stdout : ${result.stdout}")
-              if (result.stderr.size > 0)
-                HooksLogger.warn(s"  -> stderr : ${result.stderr}")
-              Warning(result.code, result.stdout, result.stderr, msg)
-            } else if(result.code == Interrupt.code) {
-              Interrupt(msg, result.stdout, result.stderr)
-            } else { //reserved - like error for now
-              ScriptError(result.code, result.stdout, result.stderr, msg)
-            }
-          } recover {
-            case ex: Exception => HookReturnCode.SystemError(s"Exception when executing '${path}' with environment variables: ${env.show}: ${ex.getMessage}")
+          for {
+            _ <- PureHooksLogger.debug(s"Run hook: '${path}' with environment parameters: ${hookParameters.show}")
+            _ <- PureHooksLogger.trace(s"System environment variables: ${envVariables.show}")
+            p <- RunNuCommand.run(Cmd(path, Nil, env.toMap))
+            r <- p.await
+            c =  translateReturnCode(path, r)
+            _ <- logReturnCode(c)
+          } yield {
+            c
           }
-        case x: Error => Future(x)
       }
     }
+
+    val cmdInfo = s"'${hooks.basePath}' with environment parameters: [${hookParameters.show}]"
+    (for {
+      //cmdInfo is just for comments/log. We use "*" to synthetize
+      _        <- PureHooksLogger.debug(s"Run hooks: ${cmdInfo}")
+      _        <- PureHooksLogger.trace(s"Hook environment variables: ${envVariables.show}")
+      time_0   <- UIO(System.currentTimeMillis)
+      res      <- blocking.blocking(runAllSeq).timeout(killAfter).notOptional(s"Hook '${cmdInfo}' timed out after ${killAfter.asJava.toString}").provide(ZioRuntime.Environment)
+      duration <- UIO(System.currentTimeMillis - time_0)
+      _        <- ZIO.when(duration > warnAfterMillis.toMillis) {
+                    PureHooksLogger.LongExecLogger.warn(s"Hooks in directory '${cmdInfo}' took more than configured expected max duration (${warnAfterMillis.toMillis}): ${duration} ms")
+                  }
+      _        <- PureHooksLogger.debug(s"Done in ${duration} ms: ${cmdInfo}") // keep that one in all cases if people want to do stats
+    } yield {
+      res
+    }).chainError(s"Error when executing hooks in directory '${hooks.basePath}'.")
   }
 
   /*
@@ -239,22 +291,10 @@ object RunHooks {
    *
    * You can get a warning if the hook took more than a given duration (in millis)
    */
-  def syncRun(hooks: Hooks, hookParameters: HookEnvPairs, envVariables: HookEnvPairs, warnAfterMillis: Long = Long.MaxValue, killAfter: Duration = Duration.Inf): HookReturnCode = {
-    try {
-      //cmdInfo is just for comments/log. We use "*" to synthetize
-      val cmdInfo = s"'${hooks.basePath}' with environment parameters: ${hookParameters.show}"
-      HooksLogger.debug(s"Run hooks: ${cmdInfo}")
-      HooksLogger.trace(s"Hook environment variables: ${envVariables.show}")
-      val time_0 = System.currentTimeMillis
-      val res = Await.result(asyncRun(hooks, hookParameters, envVariables), killAfter)
-      val duration = System.currentTimeMillis - time_0
-      if(duration > warnAfterMillis) {
-        HooksLogger.LongExecLogger.warn(s"Hook '${cmdInfo}' took more than configured expected max duration: ${duration} ms")
-      }
-      HooksLogger.debug(s"Done in ${duration} ms: ${cmdInfo}") // keep that one in all cases if people want to do stats
-      res
-    } catch {
-      case NonFatal(ex) => HookReturnCode.SystemError(s"Error when executing hooks in directory '${hooks.basePath}'. Error message is: ${ex.getMessage}")
+  def syncRun(hooks: Hooks, hookParameters: HookEnvPairs, envVariables: HookEnvPairs, warnAfterMillis: Duration = 5.minutes, killAfter: Duration = 1.hour): HookReturnCode = {
+    asyncRun(hooks, hookParameters, envVariables, warnAfterMillis, killAfter).either.runNow match {
+      case Right(x)  => x
+      case Left(err) => HookReturnCode.SystemError(s"Error when executing hooks in directory '${hooks.basePath}'. Error message is: ${err.fullMsg}")
     }
   }
 
@@ -278,20 +318,20 @@ object RunHooks {
                  //compare ignore case (that's why it's a regienMatches) extension and name
                  ignoreSuffixes.find(suffix => name.regionMatches(true, name.length - suffix.length, suffix, 0, suffix.length)) match {
                    case Some(suffix) =>
-                     HooksLogger.debug(s"Ignoring hook '${f.getAbsolutePath}' because suffix '${suffix}' is in the ignore list")
+                     PureHooksLogger.debug(s"Ignoring hook '${f.getAbsolutePath}' because suffix '${suffix}' is in the ignore list")
                      None
                    case None      =>
                      Some(f.getName)
                  }
                } else {
-                 HooksLogger.debug(s"Ignoring hook '${f.getAbsolutePath}' because it is not executable. Check permission if not expected behavior.")
+                 PureHooksLogger.debug(s"Ignoring hook '${f.getAbsolutePath}' because it is not executable. Check permission if not expected behavior.")
                  None
                }
            }
          }.sorted // sort them alphanumericaly
          Hooks(basePath, files)
        } else {
-         HooksLogger.debug(s"Ignoring hook directory '${dir.getAbsolutePath}' because path does not exists")
+         PureHooksLogger.debug(s"Ignoring hook directory '${dir.getAbsolutePath}' because path does not exists")
          // return an empty Hook
          Hooks(basePath, List[String]())
        }

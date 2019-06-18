@@ -85,6 +85,7 @@ import com.normation.rudder.domain.logger.PolicyLogger
 import com.normation.rudder.hooks.HookReturnCode
 import zio._
 import zio.syntax._
+import zio.duration._
 import com.normation.errors._
 import com.normation.box._
 import com.normation.zio._
@@ -126,7 +127,7 @@ class PolicyWriterServiceImpl(
   , HOOKS_IGNORE_SUFFIXES     : List[String]
 ) extends PolicyWriterService with Loggable {
 
-  val hookWarnDurationMillis = 60*1000
+  val hookWarnDurationMillis = (60*1000).millis
 
   val newPostfix = ".new"
   val backupPostfix = ".bkp"
@@ -408,7 +409,7 @@ class PolicyWriterServiceImpl(
                                                                , ("RUDDER_NEXT_POLICIES_DIRECTORY", agentNodeConfig.paths.newFolder)
                                                              )
                                         , systemEnv
-                                        , hookWarnDurationMillis.toLong // warn if a hook took more than a minute
+                                        , hookWarnDurationMillis // warn if a hook took more than a minute
                             )
                             HooksLogger.trace(s"Run post-generation pre-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
                             res
@@ -443,7 +444,7 @@ class PolicyWriterServiceImpl(
                                                              , ("RUDDER_POLICIES_DIRECTORY", agentNodeConfig.paths.baseFolder)
                                                            )
                                         , systemEnv
-                                        , hookWarnDurationMillis.toLong // warn if a hook took more than a minute
+                                        , hookWarnDurationMillis // warn if a hook took more than a minute
                             )
                             HooksLogger.trace(s"Run post-generation post-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
                             res

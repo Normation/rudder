@@ -78,6 +78,7 @@ import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.specs2.matcher.MatchResult
 import zio._
+import zio.syntax._
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.
@@ -212,7 +213,7 @@ object RestTestSetUp {
  val testNodeConfiguration = new TestNodeConfiguration()
  val fakeRepo = testNodeConfiguration.repo
  val fakeScriptLauncher = new DebugInfoService {
-   override def launch() = Full(DebugInfoScriptResult("test", new Array[Byte](42)))
+   override def launch() = DebugInfoScriptResult("test", new Array[Byte](42)).succeed
  }
 
   val apiService11 = new SystemApiService11(

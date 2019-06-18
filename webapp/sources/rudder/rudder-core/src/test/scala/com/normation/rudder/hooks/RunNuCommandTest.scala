@@ -37,41 +37,78 @@
 
 package com.normation.rudder.hooks
 
+import java.io.File
+
 import org.junit.runner.RunWith
-import org.specs2.concurrent.ExecutionEnv
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
-import scala.concurrent.duration._
 import scala.collection.JavaConverters._
+import zio._
+import zio.syntax._
+import zio.duration._
+import com.normation.zio._
+import com.normation.errors._
+import org.joda.time.DateTime
+import org.joda.time.format.ISODateTimeFormat
+
 /**
  * Test properties about NuProcess command, especially about
  * the process context (environment variable, file descriptors..)
  */
 
 @RunWith(classOf[JUnitRunner])
-case class RunNuCommandTest()(implicit ee: ExecutionEnv) extends Specification {
+class RunNuCommandTest() extends Specification {
 
   "A command" should {
-
 
     val PATH = System.getenv().asScala.getOrElse("PATH", throw new RuntimeException(s"PATH environment variable must be defined to run process tests."))
 
     "has only the environment variable explicitly defined" in {
-      RunNuCommand.run(Cmd("env", Nil, Map("PATH" -> PATH, "foo" -> "bar"))).map( c =>
-        s"return code=${c.code}\n"++
-        c.stdout ++
-        c.stderr
-      ) must beMatching("return code=0\nPATH=.*\nfoo=bar\n".r).awaitFor(100.millis)
+      val prog =
+        for {
+          p <- RunNuCommand.run(Cmd("env", Nil, Map("PATH" -> PATH, "foo" -> "bar")))
+          c <- p.await.timeout(100.millis).notOptional("oups, timed out")
+        } yield {
+          s"return code=${c.code}\n"++
+          c.stdout ++
+          c.stderr
+        }
+
+      prog.provide(ZioRuntime.Environment).runNow must beMatching("return code=0\nPATH=.*\nfoo=bar\n".r)
     }
 
     "has only the 3 stdin, stdout, stderr file descriptors" in {
       //we only keep the return code and the number of lines in the ls output
       //(we have one more line because last line ends with a "\n"
-      val res = RunNuCommand.run(Cmd("ls", "-1" :: "/proc/self/fd" :: Nil, Map("PATH" -> PATH))).map { cmd =>
-        (cmd.code, cmd.stdout.split("\n").size)
-      }
-      res must beEqualTo((0, 4)).awaitFor(100.millis)
+      val prog =
+        for {
+          p <- RunNuCommand.run(Cmd("ls", "-1" :: "/proc/self/fd" :: Nil, Map("PATH" -> PATH)))
+          c <- p.await.timeout(100.millis).notOptional("oups, timed out")
+        } yield {
+          (c.code, c.stdout.split("\n").size)
+        }
+
+      prog.provide(ZioRuntime.Environment).runNow must beEqualTo((0, 4))
+    }
+
+    "can actually modify the file system" in {
+      val date = DateTime.now().toString(ISODateTimeFormat.dateTime())
+      val file = new File(s"/tmp/rudder-test/test-nucmd-$date")
+      file.getParentFile.deleteOnExit()
+      file.deleteOnExit()
+
+      val prog =
+        for {
+          p <- RunNuCommand.run(Cmd("mkdir", "-p" :: file.getPath :: Nil, Map("PATH" -> PATH)))
+          c <- p.await.timeout(100.millis).notOptional("oups, timed out")
+        } yield {
+          c.code
+        }
+
+      (file.exists() must beFalse) and
+      (prog.provide(ZioRuntime.Environment).runNow must beEqualTo(0)) and
+      (file.exists() must beTrue)
     }
   }
 }
