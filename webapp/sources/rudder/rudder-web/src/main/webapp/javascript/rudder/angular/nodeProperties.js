@@ -50,7 +50,7 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, DTOptionsBuilder, 
   $scope.errorDeleting    = false;
   $scope.checkJson        = false;
   $scope.isValid          = true ;
-
+  $scope.editedProperties = {};
   $scope.resetNewProperty = function(){
     $scope.newProperty = {'name':"", 'value':""};
   }
@@ -166,6 +166,79 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, DTOptionsBuilder, 
       return response.status==200;
     });
   }
+
+  $scope.editProperty = function(property){
+    if (property.provider === undefined){
+      var newProp = angular.copy(property)
+      newProp.checkJson = $scope.getFormat(newProp.value)=="JSON";
+      newProp.value = newProp.checkJson ? JSON.stringify(property.value, null, 4) : property.value;
+      newProp.isValid = true;
+      $scope.editedProperties[property.name] = angular.copy(property);
+      $scope.editedProperties[property.name].new = newProp;
+    }
+  }
+  $scope.changeFormat = function(prop, checkJson){
+    $scope.editedProperties[prop].new.checkJson = checkJson;
+    $scope.editedProperties[prop].new.isValid = true;
+  }
+  $scope.isEdited = function(prop){
+    return $scope.editedProperties.hasOwnProperty(prop);
+  }
+  $scope.saveEdit = function(prop, index){
+    function checkNameUnicity(property, index, array) {
+      return ( ($scope.editedProperties[prop].new.name != $scope.editedProperties[prop].name) && (property.name == $scope.editedProperties[prop].new.name));
+    }
+    //Check if the modified property's name is already used or not.
+    $scope.editedProperties[prop].new.alreadyUsed = $scope.properties.some(checkNameUnicity);
+    var newName  = $scope.editedProperties[prop].new.name
+    var newValue = $scope.editedProperties[prop].new.value;
+    if($scope.editedProperties[prop].new.checkJson){
+      try {
+        newValue = JSON.parse(newValue);
+        $scope.editedProperties[prop].new.isValid = true;
+      } catch(e) {
+        $scope.editedProperties[prop].new.isValid = false;
+      }
+    }
+    if($scope.editedProperties[prop].new.isValid && !$scope.editedProperties[prop].new.alreadyUsed){
+      var propertyToSave =
+      { "name"  : newName
+      , "value" : newValue
+      }
+      var propertiesToSave = [propertyToSave];
+      var keyInfoMessage   = "";
+      //If key has been modified
+      if(newName != $scope.editedProperties[prop].name){
+        var oldProperty =
+        { "name"  : $scope.editedProperties[prop].name
+        , "value" : ""
+        }
+        propertiesToSave.push(oldProperty);
+        keyInfoMessage   = "(now '"+newName+"') ";
+      }
+      var data =
+      { "properties" : propertiesToSave
+      , "reason"     : "Edit property '"+$scope.editedProperties[prop].name+"' "+keyInfoMessage+"from Node '"+currentNodeId+"'"
+      };
+      $http.post($scope.urlAPI, data).then(function successCallback(response) {
+        $scope.properties[index] = propertyToSave;
+        delete $scope.editedProperties[prop];
+      }, function errorCallback(response) {
+        return response.status==200;
+      });
+    }
+  }
+  $scope.cancelEdit = function(prop){
+    delete $scope.editedProperties[prop];
+  }
+
+  $scope.isTooLong = function(property){
+    var value = $scope.formatContent(property);
+    var res   = (value.match(/\n/g) || []).length
+    return res >= 3;
+  }
+
+
   $('.rudder-label').bsTooltip();
 });
 
