@@ -371,6 +371,14 @@ pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
 /* ----- </QUICK SEARCH>  ----- */
 
 /* MENU */
+
+.skin-yellow .treeview-menu>li>a{
+  white-space: normal;
+  display: flex;
+}
+.skin-yellow .treeview-menu>li>a>span:nth-child(2){
+  flex: 1;
+}
 .skin-yellow .treeview-menu>li>a.active {
   color: #fff !important;
 }
