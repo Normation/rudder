@@ -323,7 +323,7 @@
                         <li
                         ng-repeat="method_call in selectedTechnique.method_calls"
                         class="panel-margin-top method"
-                        ng-class="{'active': isSelectedMethod(method_call), 'missingParameters': checkMissingParameters(method_call.parameters), 'errorParameters': checkErrorParameters(method_call.parameters)}"
+                        ng-class="{'active': isSelectedMethod(method_call), 'missingParameters': checkMissingParameters(method_call.parameters), 'errorParameters': checkErrorParameters(method_call.parameters), 'is-edited' : canResetMethod(method_call)}"
                         dnd-draggable="method_call"
                         dnd-effect-allowed="move"
                         dnd-moved="selectedTechnique.method_calls.splice($index,1)">
@@ -389,12 +389,11 @@
                                   </ng-messages>
                                 </div>
                                 <div class="requiredParameters">
-                                  <span class="glyphicon glyphicon-exclamation-sign"></span>
                                   Required parameters missing
                                 </div>
                               </div>
                           </div>
-                          <div class="edit-method" ng-click="selectMethod(method_call)" dnd-nodrag>
+                          <div class="edit-method" ng-click="selectMethod(method_call)" dnd-nodrag uib-tooltip="{{getStatusTooltipMessage(method_call)}}" tooltip-placement="left" tooltip-trigger="mouseenter" popup-open-delay="300">
                             <div>
                               <i class="fas fa-pen"></i>
                             </div>
@@ -431,7 +430,7 @@
                         </span>
                         <i class="{{getIconClassByAgentType(selectedMethod.method_name)}}"></i>
                         <button class="btn btn-default pull-right top-margin" ng-click="selectMethod(selectedMethod)">Close <i class="fas fa-times"></i></button>
-                        <button ng-disabled="! canResetMethod()" class="btn btn-primary btn-outline pull-right top-margin  right-margin" ng-click="resetMethod()">Reset <i class="fas fa-undo-alt"></i></button>
+                        <button ng-disabled="! canResetMethod(selectedMethod)" class="btn btn-primary btn-outline pull-right top-margin  right-margin" ng-click="resetMethod()">Reset <i class="fas fa-undo-alt"></i></button>
                     </h3>
                     <button ng-if="getMethodDocumentation(selectedMethod) !== undefined" class="btn btn-primary" ng-class="{ 'btn-outline' : !selectedMethod.showDoc}" ng-click="$event.stopPropagation(); selectedMethod.showDoc = !selectedMethod.showDoc">{{selectedMethod.showDoc ? "Hide" : "Show"}} docs <i class="fa fa-book"></i></button>
                     <div class="markdown" ng-if="getMethodDocumentation(selectedMethod) !== undefined && selectedMethod.showDoc" ng-bind-html="getMethodDocumentation(selectedMethod)"></div>
