@@ -10,36 +10,66 @@
            <table datatable="ng" dt-options="options"  dt-column-defs="columns" class="table-striped table-hover table-bordered table" id="nodePropertiesTab">
              <thead>
                <tr class="head tablewidth">
-                 <th >Name</th>
-                 <th >Format</th>
-                 <th >Value</th>
-                 <th ></th>
+                 <th> Name    </th>
+                 <th> Format  </th>
+                 <th> Value   </th>
+                 <th> Actions </th>
                </tr>
              </thead>
              <tbody>
+
                <tr ng-repeat="property in properties track by $index">
-                 <td >
-                   <div>
+                 <td ng-class="{'is-edited':isEdited(property.name)}">
+                   <div ng-if="!isEdited(property.name)">
                      {{ property.name }}
                      <span ng-if="property.provider !== undefined" class='rudder-label label-provider label-sm' data-toggle='tooltip' data-placement='top' data-html='true' title="This node property is managed by its provider <b>‘{{ property.provider }}</b>’, and can not be modified manually. Check Rudder’s settings to adjust this provider’s configuration.">
                        {{ property.provider }}
                      </span>
                    </div>
+                   <div ng-if="isEdited(property.name)">
+                     <input type="text" class="form-control input-sm" ng-model="editedProperties[property.name].new.name">
+                     <small class="text-danger" ng-if="editedProperties[property.name].new.alreadyUsed">This name is already used by another property</small>
+                   </div>
                  </td>
-                 <td >
-                   {{getFormat(property.value)}}
+                 <td ng-class="{'is-edited':isEdited(property.name)}">
+                   <div ng-if="!isEdited(property.name)">
+                     {{getFormat(property.value)}}
+                   </div>
+                   <div ng-if="isEdited(property.name)" class="format-container">
+                     <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown">{{editedProperties[property.name].new.checkJson ? "JSON" : "String"}} <span class="caret"></span></button>
+                     <ul class="dropdown-menu">
+                       <li><a ng-click="changeFormat(property.name, false)" > String </a></li>
+                       <li><a ng-click="changeFormat(property.name, true)"  > JSON   </a></li>
+                     </ul>
+                   </div>
                  </td>
-                 <td class="property-value">
-                   <pre class='json-beautify' onclick="$(this).toggleClass('toggle')">{{formatContent(property)}}</pre>
-                   <button class="btn btn-xs btn-default btn-clipboard" data-clipboard-text="{{formatContent(property)}}" data-toggle='tooltip' data-placement='left' data-container="html" title="Copy to clipboard"><i class="ion ion-clipboard"></i></button>
+                 <td ng-class="{'property-value':!isEdited(property.name), 'is-edited':isEdited(property.name)}">
+                   <div ng-if="!isEdited(property.name)">
+                     <div class="{{'value-container container-' + $index}}" onclick="$(this).toggleClass('toggle')" ng-class="{'show-more':isTooLong(property)}">
+                       <pre class="json-beautify">{{formatContent(property)}}</pre>
+                     </div>
+                     <span class="toggle-icon"></span>
+                     <button class="btn btn-xs btn-default btn-clipboard" data-clipboard-text="{{formatContent(property)}}" data-toggle='tooltip' data-placement='left' data-container="html" title="Copy to clipboard"><i class="ion ion-clipboard"></i></button>
+                   </div>
+                   <div ng-if="isEdited(property.name)">
+                     <textarea placeholder="Value" msd-elastic rows="1" class="form-control input-sm input-value" ng-model="editedProperties[property.name].new.value"></textarea>
+                     <small class="text-danger" ng-if="!editedProperties[property.name].new.isValid">JSON check is enabled, but the value format is invalid</small>
+                   </div>
                  </td>
-                 <td class="text-center delete-action">
-                   <span ng-if="property.rights !== 'read-only'" class="fa fa-times text-danger" ng-click="popupDeletion(property.name, $index)"></span>
+                 <td class="text-center" ng-class="{'default-actions':!isEdited(property.name), 'edit-actions is-edited':isEdited(property.name)}">
+                   <div ng-if="!isEdited(property.name) && property.rights !== 'read-only'">
+                     <span class="action-icon fa fa-pencil" ng-click="editProperty(property)" title="Edit"></span>
+                     <span class="action-icon fa fa-times text-danger" ng-click="popupDeletion(property.name, $index)" title="Delete"></span>
+                   </div>
+                   <div ng-if="isEdited(property.name) && property.rights !== 'read-only'">
+                     <span class="action-icon glyphicon glyphicon-share-alt cancel-icon" ng-click="cancelEdit(property.name)" title="Cancel"></span>
+                     <span class="action-icon fa fa-check text-success" ng-click="saveEdit(property.name, $index)" title="Save"></span>
+                   </div>
                  </td>
                </tr>
+
              </tbody>
            </table>
-           <!-- <table datatables="overrideOptions" ao-column-defs="columnDefs" aa-data="properties" id="nodePropertiesTab"></table> -->
            <div class="accountGrid_pagination, paginatescala" >
              <div id="accountGrid_paginate_area"></div>
            </div>
