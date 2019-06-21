@@ -3,7 +3,6 @@
 
 import unittest
 import ncf
-import ncf_constraints
 import os.path
 import subprocess
 import shutil
@@ -91,7 +90,7 @@ class TestNcf(unittest.TestCase):
     self.assertEqual(metadata['bundle_args'], ["package_name", "package_version"])
     self.assertEqual(metadata['name'], "Package install")
     self.assertEqual(metadata['description'], "Install a package by name from the default system package manager")
-    self.assertEqual(metadata['parameter'], [ { 'constraints': ncf_constraints.default_constraint, 'name': 'package_name', 'description': 'Name of the package to install'},{ 'constraints': ncf_constraints.default_constraint, 'name': 'package_version', 'description': 'Version of the package to install'}])
+    self.assertEqual(metadata['parameter'], [ { 'constraints': { "allow_empty_string": False, "allow_whitespace_string": False, "max_length" : 16384 }, 'name': 'package_name', 'description': 'Name of the package to install'},{ 'constraints': { "allow_empty_string": False, "allow_whitespace_string": False, "max_length" : 16384 }, 'name': 'package_version', 'description': 'Version of the package to install'}])
     self.assertEqual(metadata['class_prefix'], "package_install")
     self.assertEqual(metadata['class_parameter'], "package_name")
     self.assertEqual(metadata['class_parameter_id'], 1)
@@ -142,27 +141,8 @@ class TestNcf(unittest.TestCase):
     list_methods_files = []
     ## Get recursivly each promises in the basic path and the alternative one
     list_methods_files += [os.path.join(full_path,filename) for full_path, dirname, files in os.walk(base_dir) for filename in files if not filename.startswith('_') and filename.endswith('.cf')]
-    list_methods_files += [os.path.join(full_path,filename) for full_path, dirname, files in os.walk(alternative_path+"/30_generic_methods") for filename in files if not filename.startswith('_') and filename.endswith('.cf')]
 
-    filenames = ncf.get_all_generic_methods_filenames(alternative_path)
-
-    filenames.sort()
-    list_methods_files.sort()
-
-    self.assertEqual(filenames, list_methods_files)
-
-  def test_get_all_techniques_filenames(self):
-    """test_get_all_techniques_filenames should return a list of all techniques files"""
-    base_dir = ncf.get_root_dir() + "/tree/50_techniques"
-    alternative_path = os.path.dirname(os.path.realpath(__file__)) + "/test_methods"
-
-    # Get list of techniques without prefix "_" on the filesystem
-    list_methods_files = []
-    ## Get recursivly each promises in the basic path and the alternative one
-    list_methods_files += [os.path.join(full_path,filename) for full_path, dirname, files in os.walk(base_dir) for filename in files if not filename.startswith('_') and filename.endswith('.cf')]
-    list_methods_files += [os.path.join(full_path,filename) for full_path, dirname, files in os.walk(alternative_path+"/50_techniques") for filename in files if not filename.startswith('_') and filename.endswith('.cf')]
-
-    filenames = ncf.get_all_techniques_filenames(alternative_path)
+    filenames = ncf.get_all_generic_methods_filenames()
 
     filenames.sort()
     list_methods_files.sort()
@@ -178,10 +158,9 @@ class TestNcf(unittest.TestCase):
 
   def test_get_all_generic_methods_metadata_with_arg(self):
     """get_all_generic_methods_metadata should return a list of all generic_methods with all defined metadata tags"""
-    alternative_path = os.path.dirname(os.path.realpath(__file__)) + "/test_methods"
-    metadata = ncf.get_all_generic_methods_metadata(alternative_path)["data"]["generic_methods"]
+    metadata = ncf.get_all_generic_methods_metadata()["data"]["generic_methods"]
 
-    number_generic_methods = len(ncf.get_all_generic_methods_filenames(alternative_path))
+    number_generic_methods = len(ncf.get_all_generic_methods_filenames())
     self.assertEqual(number_generic_methods, len(metadata))
 
   def test_get_all_techniques_metadata(self):
@@ -192,96 +171,8 @@ class TestNcf(unittest.TestCase):
     all_metadata = len(data) + len(errors)
 
     all_files = len(ncf.get_all_techniques_filenames())
- 
+
     self.assertEqual(all_files, all_metadata)
-
-  def test_get_all_techniques_metadata_with_args(self):
-    """get_all_techniques_metadata should return a list of all techniques with all defined metadata tags and methods_called"""
-    alternative_path = os.path.dirname(os.path.realpath(__file__)) + "/test_methods"
-    metadata = ncf.get_all_techniques_metadata(alt_path=alternative_path)
-    data = metadata["data"]["techniques"]
-    errors = metadata["errors"]
-    all_metadata = len(data) + len(errors)
-
-    all_files = len(ncf.get_all_techniques_filenames(alternative_path))
- 
-    self.assertEqual(all_files, all_metadata)
-    
-  #####################################
-  # Tests for writing/delete Techniques all metadata info
-  #####################################
-    
-  def test_check_mandatory_keys_technique_metadata(self):
-    """Test if a broken metadata raise a correct NcfError exception"""
-
-    broken_metadata = { "description": "test", "version" : "test" }
-
-    self.assertRaises(ncf.NcfError, ncf.check_technique_metadata, broken_metadata)
-
-  def test_check_nonempty_keys_technique_metadata(self):
-    """Test if a broken metadata raise a correct NcfError exception"""
-
-    broken_metadata = { "name": "", "bundle_name" : "", "method_calls" : [] }
-
-    self.assertRaises(ncf.NcfError, ncf.check_technique_metadata, broken_metadata)
-
-
-  def test_add_default_values_technique_metadata(self):
-    """Test if a missing data in technique metadata are correctly replaced with default values"""
-
-    default_metadata = { "name": "test", "bundle_name" : "test", "method_calls" : [ { "method_name" : "test"}] }
-    technique = ncf.add_default_values_technique_metadata(default_metadata)
-
-    result = technique['description'] == "" and technique['version'] == "1.0"
-
-    self.assertTrue(result)
-
-  def test_check_mandatory_keys_method_call(self):
-    """Test if a broken metadata raise a correct NcfError exception"""
-
-    broken_method_call = { "class_context": "test" }
-
-    self.assertRaises(ncf.NcfError, ncf.check_technique_method_call, "test_bundle",  broken_method_call)
-
-  def test_check_nonempty_keys_method_call(self):
-    """Test if a broken metadata raise a correct NcfError exception"""
-
-    broken_method_call = { "method_name": "" }
-
-    self.assertRaises(ncf.NcfError, ncf.check_technique_method_call, "test_bundle", broken_method_call)
-
-
-  def test_add_default_values_method_call(self):
-    """Test if a missing data in technique metadata are correctly replaced with default values"""
-
-    default_method_call = { "class_context": ""}
-    technique = ncf.add_default_values_technique_method_call(default_method_call)
-
-    result = technique['class_context'] == "any"
-
-    self.assertTrue(result)
-
-  def test_write_technique(self):
-    """Check if a technique file is written in the correct path from its metadata"""
-    ncf.write_technique(self.technique_metadata, os.path.realpath("write_test"))
-    result = os.path.exists(os.path.realpath(os.path.join("write_test", "50_techniques", self.technique_metadata['bundle_name'], self.technique_metadata['bundle_name']+".cf")))
-    # Clean
-    shutil.rmtree(os.path.realpath(os.path.join("write_test", "50_techniques")))
-    self.assertTrue(result)
-    
-  def test_delete_technique(self):
-    """Check if a technique file is correctly deleted"""
-    ncf.write_technique(self.technique_metadata, os.path.realpath("write_test"))
-    ncf.delete_technique(self.technique_metadata['bundle_name'], os.path.realpath("write_test"))
-    result = not os.path.exists(os.path.realpath(os.path.join("write_test", "50_techniques", self.technique_metadata['bundle_name'])))
-    # Clean
-    shutil.rmtree(os.path.realpath(os.path.join("write_test", "50_techniques")))
-    self.assertTrue(result)
-
-  def test_generate_technique_content(self):
-    """Check that generate_technique_content works correctly - including escaping " in arguments"""
-    content = ncf.generate_technique_content(self.technique_metadata_test, self.all_methods).split("\n")
-    self.assertEqual(self.technique_test_expected_content, content)
 
   def test_parse_technique_methods_unescape_double_quotes(self):
     test_parse_technique_methods_unescape_double_quotes_calls = ncf.parse_technique_methods(self.technique_metadata_test_content, self.all_methods)
@@ -291,7 +182,7 @@ class TestNcf(unittest.TestCase):
                       ]
     self.assertEqual(expected_result, test_parse_technique_methods_unescape_double_quotes_calls)
 
-    
+
   #####################################
   # Tests for detecting hooks
   #####################################

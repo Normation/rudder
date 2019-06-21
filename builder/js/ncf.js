@@ -126,11 +126,11 @@ app.directive('constraint', function($http, $q, $timeout) {
       var timeoutStatus = false;
       var timeout = $q.defer();
 
-      var request = $http.post("/ncf/api/check/parameter",data, { 'timeout' : timeout.promise }).then(
+      var request = $http.post("/rudder/secure/api/ncf/parameter/check",data, { 'timeout' : timeout.promise }).then(
           function(successResult) {
             scope.parameter.$errors= [];
-            if (! successResult.data.result) {
-              scope.parameter.$errors = successResult.data.errors;
+            if (! successResult.data.data.parameterCheck.result) {
+              scope.parameter.$errors = successResult.data.data.parameterCheck.errors;
               return $q.reject('Constraint is not valid');
             }
             return $q.when(modelValue);
@@ -599,8 +599,7 @@ $scope.updateItemSessionStorage = function(item, oldTechnique, newTechnique){
 $scope.getTechniques = function () {
 
   $scope.techniques = [];
-  var data = {params: {path: $scope.path}}
-  $http.get('/ncf/api/techniques',data).
+  $http.get('/ncf/api/techniques').
     success(function(response, status, headers, config) {
 
       if (response.data !== undefined && response.data.techniques !== undefined) {
@@ -1209,8 +1208,7 @@ $scope.onImportFileChange = function (fileEl) {
 
   // Delete a technique
   $scope.deleteTechnique = function() {
-    var data = {params: {path: $scope.path}};
-    $http.delete("/ncf/api/techniques/"+$scope.selectedTechnique.bundle_name, data).
+    $http.delete("/ncf/api/techniques/"+$scope.selectedTechnique.bundle_name).
       success(function(data, status, headers, config) {
 
         ngToast.create({ content: "<b>Success!</b> Technique '" + $scope.originalTechnique.name + "' deleted!"});
@@ -1269,88 +1267,88 @@ $scope.onImportFileChange = function (fileEl) {
     var origin_technique = angular.copy($scope.originalTechnique);
     // transform technique so it is valid to send to API:
     var ncfTechnique = toTechNcf(technique);
-    var data = { "path" :  $scope.path, "technique" : ncfTechnique }
+
+    // Get methods used for our technique so we can send only those methods to Rudder api instead of sending all methods like we used to do...
+    var usedMethodsSet = new Set();
+    ncfTechnique.method_calls.forEach(
+      function(m) {
+        usedMethodsSet.add($scope.generic_methods[m.method_name]);
+      }
+    );
+    var usedMethods = Array.from(usedMethodsSet);
+
+    var reason = "Updating Technique " + technique.name + " using the Technique editor";
+
+    var data = { "technique": ncfTechnique, "methods":usedMethods, "reason":reason }
+
     // Function to use after save is done
     // Update selected technique if it's still the same technique
     // update technique from the tree
     var saveSuccess = function(data, status, headers, config) {
+
       // Technique may have been modified by ncf API
+      // Not good anymore, but maybe
       ncfTechnique = data.data.technique;
 
-      // Get methods used for our technique so we can send only those methods to Rudder api instead of sending all methods like we used to do...
-      var usedMethodsSet = new Set();
+      // Transform back ncfTechnique to UITechnique, that will make it ok
+      //
+      var savedTechnique = toTechUI(ncfTechnique);
+
+      var invalidParametersArray = [];
+      // Iterate over each parameters to ensure their validity
       ncfTechnique.method_calls.forEach(
         function(m) {
-          usedMethodsSet.add($scope.generic_methods[m.method_name]);
+          m.parameters.forEach(
+            function(parameter) {
+              var value = parameter.value;
+              if (detectIfVariableIsInvalid(value)) {
+                invalidContent.push("<div>In generic method: <b>" +m.component + "</b>,  parameter: " + parameter.name + " has incorrect value " + value+"</div>");
+              }
+            }
+          )
         }
       );
-      var usedMethods = Array.from(usedMethodsSet);
 
-      var reason = "Updating Technique " + technique.name + " using the Technique editor";
+      if (invalidParametersArray.length > 0) {
+        ngToast.create({ content: "<b>Caution! </b> Some variables might be invalid (containing $() without . nor /):<br/>" + invalidParametersArray.join("<br/>"), className: 'warning'});
+      }
+      ngToast.create({ content: "<b>Success! </b> Technique '" + technique.name + "' saved!"});
 
-      var rudderApiSuccess = function(data) {
-        // Transform back ncfTechnique to UITechnique, that will make it ok
-        var savedTechnique = toTechUI(ncfTechnique);
 
-        var invalidParametersArray = [];
-        // Iterate over each parameters to ensure their validity
-        ncfTechnique.method_calls.forEach(
-          function(m) {
-            m.parameters.forEach(
-              function(parameter) {
-                var value = parameter.value;
-                if (detectIfVariableIsInvalid(value)) {
-                  invalidContent.push("<div>In generic method: <b>" +m.component + "</b>,  parameter: " + parameter.name + " has incorrect value " + value+"</div>");
-                }
-              }
-            )
-          }
-        );
 
-        if (invalidParametersArray.length > 0) {
-          ngToast.create({ content: "<b>Caution! </b> Some variables might be invalid (containing $() without . nor /):<br/>" + invalidParametersArray.join("<br/>"), className: 'warning'});
-        }
-        ngToast.create({ content: "<b>Success! </b> Technique '" + technique.name + "' saved!"});
-
-        // Find index of the technique in the actual tree of technique (look for original technique)
-        var index = findIndex($scope.techniques,origin_technique);
-        if ( index === -1) {
-         // Add a new techniuqe
-         $scope.techniques.push(savedTechnique);
-        } else {
-         // modify techique in array
-         $scope.techniques[index] = savedTechnique;
-        }
-
-        // Update technique if still selected
-        if (angular.equals($scope.originalTechnique, origin_technique)) {
-          // If we were cloning a technique, remove its 'clone' state
-          savedTechnique.isClone = false;
-          $scope.originalTechnique=angular.copy(savedTechnique);
-          $scope.selectedTechnique=angular.copy(savedTechnique);
-          // We will lose the link between the selected method and the technique, to prevent unintended behavior, close the edit method panel
-          $scope.selectedMethod = undefined;
-        }
-
-        updateResources();
-        $scope.resetFlags();
+      // Find index of the technique in the actual tree of technique (look for original technique)
+      var index = findIndex($scope.techniques,origin_technique);
+      if ( index === -1) {
+       // Add a new techniuqe
+       $scope.techniques.push(savedTechnique);
+      } else {
+       // modify techique in array
+       $scope.techniques[index] = savedTechnique;
       }
 
-      var errorRudder = handle_error("while updating Technique \""+ ncfTechnique.name + "\" through Rudder API")
-      $http.post("/rudder/secure/api/ncf", { "technique": ncfTechnique, "methods":usedMethods, "reason":reason }).
-        success(rudderApiSuccess).
-        error(errorRudder);
+      // Update technique if still selected
+      if (angular.equals($scope.originalTechnique, origin_technique)) {
+        // If we were cloning a technique, remove its 'clone' state
+        savedTechnique.isClone = false;
+        $scope.originalTechnique=angular.copy(savedTechnique);
+        $scope.selectedTechnique=angular.copy(savedTechnique);
+        // We will lose the link between the selected method and the technique, to prevent unintended behavior, close the edit method panel
+        $scope.selectedMethod = undefined;
+      }
 
+      updateResources();
+      $scope.resetFlags();
     }
+
     var saveError = function(action, data) {
       return handle_error("while "+action+" Technique '"+ data.technique.name+"'")
     }
 
     // Actually save the technique through API
     if ($scope.originalTechnique.bundle_name === undefined) {
-      $http.post("/ncf/api/techniques", data).success(saveSuccess).error(saveError("creating", data)).finally(function(){$scope.$broadcast('endSaving');});
+      $http.post("/rudder/secure/api/ncf", data).success(saveSuccess).error(saveError("creating", data)).finally(function(){$scope.$broadcast('endSaving');});
     } else {
-      $http.put("/ncf/api/techniques", data).success(saveSuccess).error(saveError("saving", data)).finally(function(){$scope.$broadcast('endSaving');});
+      $http.put("/rudder/secure/api/ncf", data).success(saveSuccess).error(saveError("saving", data)).finally(function(){$scope.$broadcast('endSaving');});
     }
   };
   // Popup definitions
