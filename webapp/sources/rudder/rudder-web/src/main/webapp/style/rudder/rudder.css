@@ -974,16 +974,6 @@ i.jstree-icon.jstree-themeicon.fa.fa-file-text.jstree-themeicon-custom {
   color: #555;
 }
 
-tr.disabledRule > td .rudder-labNodeel ~ a:after{
-  color: #999;
-  content:"- Disabled";
-  margin-left: 5px;
-}
-tr.unappliedRule > td .rudder-label ~ a:after{
-  color: #999;
-  content:"- Unapplied";
-  margin-left: 5px;
-}
 ins.jstree-icon {
   float: left;
 }
