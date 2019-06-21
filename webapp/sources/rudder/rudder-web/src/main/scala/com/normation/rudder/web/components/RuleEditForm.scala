@@ -56,6 +56,7 @@ import com.normation.rudder.web.model.WBTextField
 import com.normation.rudder.web.services.DisplayDirectiveTree
 import com.normation.rudder.web.services.DisplayNodeGroupTree
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.domain.nodes.NodeGroupId
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
@@ -255,9 +256,15 @@ class RuleEditForm(
       val map = (for {
         (gt,fg) <- groupLib.allTargets
       } yield {
+        val checkLinkType =
+          if(gt.target.startsWith("group:")){
+            linkUtil.groupLink(NodeGroupId(gt.target.replaceFirst("group:", "")))
+          }else{
+            linkUtil.targetLink(gt)
+          }
         (gt.target, JsGroup(
             gt.target
-          , linkUtil.targetLink(gt)
+          , checkLinkType
           , fg.name
           , fg.description
         ))
