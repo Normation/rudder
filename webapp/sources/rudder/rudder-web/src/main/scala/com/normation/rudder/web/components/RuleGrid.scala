@@ -372,7 +372,7 @@ class RuleGrid(
         for {
           changes <- recentChanges.countChangesByRuleByInterval()
         } yield {
-          val nodeChanges = rules.map(rule => (rule.id, changes.getOrElse(rule.id, default)))
+          val nodeChanges = rules.map(rule => (rule.id, changes._2.getOrElse(rule.id, default)))
           val after       = System.currentTimeMillis
           TimingDebugLogger.debug(s"computing recent changes in Future took ${after - start}ms" )
           nodeChanges.toMap

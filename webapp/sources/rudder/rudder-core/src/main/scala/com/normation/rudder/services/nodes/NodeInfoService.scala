@@ -65,6 +65,7 @@ import zio._
 import zio.syntax._
 import com.normation.errors._
 import com.normation.box._
+import com.normation.zio._
 import com.normation.ldap.sdk.syntax._
 
 import scala.concurrent.duration.FiniteDuration
@@ -391,7 +392,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
     //actual logic that check what to do (invalidate cache or not). We want it to be fully synchronized.
     semaphore.flatMap(_.withPermit(
       for {
-        t0      <- UIO(System.currentTimeMillis)
+        t0      <- currentTimeMillis
         notInit <- IOResult.effect(nodeCache.isEmpty)
         clean   <- isUpToDate()
         info    <- if(notInit || !clean) {
@@ -415,7 +416,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
                     nodeCache.get.nodeInfos.succeed //get is ok because in a synchronized block with a test on isEmpty
                   }
         res    <- useCache(info)
-        t1     <- UIO(System.currentTimeMillis)
+        t1     <- currentTimeMillis
         _      <- IOResult.effect(TimingDebugLogger.debug(s"Get node info (${label}): ${t1-t0}ms"))
       } yield {
         res

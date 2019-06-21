@@ -4,8 +4,8 @@ package com.normation.inventory.ldap.core
 import com.normation.inventory.domain.InventoryLogger
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.inventory.services.core.WriteOnlySoftwareDAO
-import zio._
 import com.normation.errors._
+import com.normation.zio._
 
 trait SoftwareService {
   def deleteUnreferencedSoftware() : IOResult[Seq[String]]
@@ -24,11 +24,11 @@ extends SoftwareService {
     val t1 = System.currentTimeMillis
     for {
       allSoftwares      <- readOnlySoftware.getAllSoftwareIds()
-      t2                <- UIO.effectTotal(System.currentTimeMillis)
+      t2                <- currentTimeMillis
       _                 <- InventoryLogger.debug(s"All softwares id in ou=software fetched: ${allSoftwares.size} softwares id in ${t2 - t1}ms")
 
       allNodesSoftwares <- readOnlySoftware.getSoftwaresForAllNodes()
-      t3                <- UIO.effectTotal(System.currentTimeMillis)
+      t3                <- currentTimeMillis
       _                 <- InventoryLogger.debug(s"All softwares id in nodes fetched: ${allNodesSoftwares.size} softwares id in ${t3 - t2}ms")
 
 
@@ -36,7 +36,7 @@ extends SoftwareService {
       _                 <- InventoryLogger.debug(s"Found ${extraSoftware.size} unreferenced software in ou=software, going to delete them")
 
       deletedSoftware   <- writeOnlySoftware.deleteSoftwares(extraSoftware.toSeq)
-      t4                <- UIO.effectTotal(System.currentTimeMillis)
+      t4                <- currentTimeMillis
       _                 <- InventoryLogger.debug(s"Deleted ${deletedSoftware.size} software in ${t4 - t3}ms")
     } yield {
       deletedSoftware.map(x => x.toString).toSeq

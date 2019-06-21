@@ -158,7 +158,7 @@ class RuleCompliance (
   def refreshGraphChanges() : JsCmd = {
     try {
     ( for {
-      changesOnRule <- recentChangesService.countChangesByRuleByInterval().map( _.getOrElse(rule.id, Map()))
+      changesOnRule <- recentChangesService.countChangesByRuleByInterval().map( _._2.getOrElse(rule.id, Map()))
     } yield {
       JsRaw(s"""
         var recentChanges = ${NodeChanges.json(changesOnRule, recentChangesService.getCurrentValidIntervals(None)).toJsCmd};
@@ -213,6 +213,7 @@ class RuleCompliance (
     try {
     ( for {
       currentInterval <- int
+      // here, we don't use the cache because we need to have the details for each change, the cache only provides aggregation
       changesOnRule   <- recentChangesService.getChangesForInterval(rule.id, currentInterval, Some(10000))
       directiveLib    <- getFullDirectiveLib().toBox
       allNodeInfos    <- getAllNodeInfos()
