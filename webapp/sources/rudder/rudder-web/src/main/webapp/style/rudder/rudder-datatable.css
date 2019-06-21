@@ -327,22 +327,37 @@ td.listclose:after {
 }
 
 /* NODES PAGE */
-#nodePropertiesTab > tbody > tr > td.delete-action{
+#nodePropertiesTab > tbody > tr > td.default-actions,
+#nodePropertiesTab > tbody > tr > td.edit-actions{
   position: relative;
 }
-#nodePropertiesTab > tbody > tr > td.delete-action > .fa{
-  opacity:0;
+#nodePropertiesTab .action-icon{
   cursor:pointer;
   font-size:18px;
-  position: absolute;
-  top: calc(50% - 9px);
-  left: calc(50% - 7px);
-  transition-property: opacity;
-  transition-duration: .1s;
+  margin: 0 6px;
+  position: relative;
+  top: 2px;
 }
-#nodePropertiesTab > tbody > tr:hover > td.delete-action > .fa{
+#nodePropertiesTab .is-edited .action-icon{
+  top: 6px;
+}
+#nodePropertiesTab .action-icon.glyphicon{
+  font-size: 17px;
+  padding-bottom: 2px;
+}
+#nodePropertiesTab .action-icon.text-success{
+  color: #8fba2b;
+}
+#nodePropertiesTab .action-icon.text-danger {
+  color: #de4b39;
+}
+#nodePropertiesTab > tbody > tr > td.default-actions > div > span{
+  opacity:0;
+}
+#nodePropertiesTab > tbody > tr:hover > td.default-actions > div > span{
   opacity: 1;
 }
+
 #nodePropertiesTab th:first-child{
   width: 20% !important;
 }
@@ -353,17 +368,93 @@ td.listclose:after {
   width: calc(80% - 125px) !important;
 }
 #nodePropertiesTab th:last-child{
-  width: 30px !important;
+  width: 85px !important;
+}
+#nodePropertiesTab > tbody > tr > td{
+  padding: 8px 4px;
 }
 #nodePropertiesTab > tbody > tr > td.property-value{
-  cursor: pointer;
   position: relative;
-  padding: 0 !important;
+  padding: 3px 0px!important;
 }
-#nodePropertiesTab > tbody > tr > td.property-value > button{
+#nodePropertiesTab > tbody > tr > td.property-value pre.json-beautify{
+  cursor: initial;
+  padding-right: 0;
+}
+#nodePropertiesTab > tbody > tr > td.property-value .show-more pre.json-beautify{
+  cursor: pointer;
+}
+#nodePropertiesTab .show-more-info{
+  display: none;
+}
+#nodePropertiesTab .show-more + .show-more-info{
+  display: inline-block;
+  position: absolute;
+  top: 5px;
+  right: 40px;
+}
+#nodePropertiesTab > tbody > tr > td.is-edited{
+  padding: 3px;
+}
+#nodePropertiesTab > tbody > tr > td.property-value .btn{
   font-size: 1.2em;
   position: absolute;
-  right: 35px;
-  top: 2px;
+  right: 20px;
+  top: 4px;
   max-height: 27px;
+  z-index: 10;
+}
+#nodePropertiesTab .value-container{
+  overflow: hidden;
+  padding-right: 65px;
+  position: relative;
+  z-index: 2;
+}
+#nodePropertiesTab .value-container.show-more{
+  cursor: pointer;
+  max-height: 66px;
+}
+#nodePropertiesTab .value-container.show-more.toggle{
+  overflow: auto;
+  max-height: 300px;
+}
+#nodePropertiesTab pre.json-beautify{
+  max-height: unset;
+}
+#nodePropertiesTab pre.json-beautify:after {
+  content: initial;
+}
+#nodePropertiesTab .value-container.show-more + span.toggle-icon{
+  position: absolute;
+  right: 52px;
+  top: 7px;
+  display: inline-block;
+  z-index: 0;
+}
+#nodePropertiesTab .value-container.show-more + span.toggle-icon:after {
+  color: #333;
+  content: "\f054";
+  display: inline-block;
+  font: normal normal normal 14px/1 FontAwesome;
+  font-size: inherit;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+}
+#nodePropertiesTab .value-container.show-more.toggle + span.toggle-icon:after {
+  transform: rotate(90deg);
+}
+#nodePropertiesTab .format-container{
+  position: relative;
+}
+#nodePropertiesTab .cancel-icon{
+  transform: scaleX(-1) scaleY(-1);
+}
+#nodePropertiesTab > tbody > tr > td textarea{
+  max-height: 290px;
+  overflow: auto !important;
+  min-height: 30px;
+}
+#nodePropertiesTab .format-container .btn{
+  width: 100%;
+  text-align: left;
 }
