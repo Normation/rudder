@@ -576,35 +576,40 @@ class RuleGrid(
     // reasons are the the reasons why a Rule is disabled
     val (status,reasons) : (String,Option[String]) =
       line match {
-        case line : OKLine =>
+        case line: OKLine =>
           line.applicationStatus match {
             case FullyApplied => ("In application",None)
             case PartiallyApplied(seq) =>
               val why = seq.map { case (at, d) => "Directive " + d.name + " disabled" }.mkString(", ")
               ("Partially applied", Some(why))
-            case x:NotAppliedStatus =>
+            case x: NotAppliedStatus =>
+
+              val(status, disabledMessage) =
+                if ((!line.rule.isEnabled)&&(!line.rule.isEnabledStatus)) {
+                  ("Disabled", Some("This rule is disabled. "))
+                } else {
+                  ("Not applied", None)
+                }
               val isAllTargetsEnabled = line.targets.filter(t => !t.isEnabled).isEmpty
 
               val conditions = {
-                Seq( ( !line.rule.isEnabledStatus, "Rule disabled" )
-                   , ( line.rule.isEnabledStatus && !line.rule.isEnabled , "Rule unapplied" )
-                   , ( line.trackerVariables.size <= 0 , "No policy defined")
-                   , ( !isAllTargetsEnabled            , "Group disabled")
-                   , ( nodes.size<=0                   , "Empty groups")
+                Seq((line.rule.isEnabledStatus && !line.rule.isEnabled, "Rule unapplied")
+                  , (line.trackerVariables.size <= 0, "No policy defined")
+                  , (!isAllTargetsEnabled, "Group disabled")
+                  , (nodes.size <= 0, "Empty groups")
                 ) ++
-                line.trackerVariables.flatMap {
-                  case (directive, activeTechnique,_) =>
-                    Seq( ( directive.isEnabled , "Directive " + directive.name + " disabled")
-                       , ( activeTechnique.isEnabled, "Technique for '" + directive.name + "' disabled")
-                    )
-                }
+                  line.trackerVariables.flatMap {
+                    case (directive, activeTechnique, _) =>
+                      Seq((!directive.isEnabled, "Directive " + directive.name + " disabled")
+                        , (!activeTechnique.isEnabled, "Technique for '" + directive.name + "' disabled")
+                      )
+                  }
               }
-              val why =  conditions.collect { case (ok, label) if(ok) => label }.mkString(", ")
-              ("Not applied", Some(why))
+              val why = (disabledMessage ++ (conditions.collect { case (ok, label) if (ok) => label })).mkString(", ")
+              (status, Some(why))
           }
-        case _ : ErrorLine => ("N/A",None)
+        case _: ErrorLine => ("N/A", None)
       }
-
     val t1 = System.currentTimeMillis
     TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: line status: ${t1-t0}ms")
 
@@ -635,20 +640,11 @@ class RuleGrid(
     TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: checkbox callback: ${t2-t1}ms")
     // Css to add to the whole line
     val cssClass = {
-      val disabled = if (line.rule.isEnabled) {
-        ""
-      } else if(line.rule.isEnabledStatus){
-        "unappliedRule"
-      }else{
-        "disabledRule"
-      }
-
       val error = line match {
         case _:ErrorLine => " error"
         case _ => ""
       }
-
-      s"tooltipabletr ${disabled} ${error}"
+      s"tooltipabletr ${error}"
     }
 
     val t3 = System.currentTimeMillis
