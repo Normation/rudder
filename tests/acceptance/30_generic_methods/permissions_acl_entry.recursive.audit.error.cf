@@ -50,12 +50,12 @@ bundle agent init
       "other[4]" string => "";
 
       "files[5]" string => "file5";
-      "user[5]"  string => "bin:-r, games:rx";
+      "user[5]"  string => "bin:-r, root:rx";
       "group[5]" string => "*:";
       "other[5]" string => "";
 
       "files[6]" string => "file6";
-      "user[6]"  string => "bin:-r, games:rx";
+      "user[6]"  string => "bin:-r, root:rx";
       "group[6]" string => "*:";
       "other[6]" string => "-r, =rx";
 
