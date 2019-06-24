@@ -23,6 +23,7 @@ pub struct CodeIndex<'src> {
     pub parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<PValue<'src>>>>,
                       // child    parent
     pub parents: Vec<(Token<'src>, Token<'src>)>,
+    pub aliases: Vec<PAliasDef<'src>>,
 }
 
 impl<'src> CodeIndex<'src> {
@@ -34,6 +35,7 @@ impl<'src> CodeIndex<'src> {
             variable_declarations: Vec::new(),
             parameter_defaults: HashMap::new(),
             parents: Vec::new(),
+            aliases: Vec::new(),
         }
     }
 
@@ -200,6 +202,11 @@ impl<'src> CodeIndex<'src> {
                 // and stored as a global declaration for code generation.
                 PDeclaration::GlobalVar(variable, value) => {
                     self.variable_declarations.push((variable, value));
+                }
+
+                // Aliases are sored for later processing
+                PDeclaration::Alias(alias) => {
+                    self.aliases.push(alias);
                 }
             };
             Ok(())

@@ -598,6 +598,39 @@ pnamed!(
     ))
 );
 
+#[derive(Debug, PartialEq)]
+pub struct PAliasDef<'src> {
+    resource_alias: Token<'src>,
+    resource_alias_parameters: Vec<Token<'src>>,
+    state_alias: Token<'src>,
+    state_alias_parameters: Vec<Token<'src>>,
+    resource: Token<'src>,
+    resource_parameters: Vec<Token<'src>>,
+    state: Token<'src>,
+    state_parameters: Vec<Token<'src>>,
+}
+pnamed!(
+    palias_def<PAliasDef>,
+    sp!(do_parse!(
+        tag!("alias")
+        >> resource_alias: pidentifier
+        >> resource_alias_parameters: delimited!(tag!("("),separated_list!(tag!(","),pidentifier),tag!(")"))
+        >> tag!(".")
+        >> state_alias: pidentifier
+        >> state_alias_parameters: delimited!(tag!("("),separated_list!(tag!(","),pidentifier),tag!(")"))
+        >> tag!("=")
+        >> resource: pidentifier
+        >> resource_parameters: delimited!(tag!("("),separated_list!(tag!(","),pidentifier),tag!(")"))
+        >> tag!(".")
+        >> state: pidentifier
+        >> state_parameters: delimited!(tag!("("),separated_list!(tag!(","),pidentifier),tag!(")"))
+        >> (PAliasDef {resource_alias, resource_alias_parameters,
+                       state_alias, state_alias_parameters,
+                       resource, resource_parameters,
+                       state, state_parameters })
+    ))
+);
+
 /// A declaration is one of the a top level elements that can be found anywhere in the file.
 #[derive(Debug, PartialEq)]
 pub enum PDeclaration<'src> {
@@ -608,6 +641,7 @@ pub enum PDeclaration<'src> {
     Enum(PEnum<'src>),
     Mapping(PEnumMapping<'src>),
     GlobalVar(Token<'src>, PValue<'src>),
+    Alias(PAliasDef<'src>),
 }
 pnamed!(
     pdeclaration<PDeclaration>,
@@ -619,6 +653,7 @@ pnamed!(
       | penum                => { |x| PDeclaration::Enum(x) }
       | penum_mapping        => { |x| PDeclaration::Mapping(x) }
       | pvariable_definition => { |(variable,value)| PDeclaration::GlobalVar(variable,value)}
+      | palias_def           => { |x| PDeclaration::Alias(x) }
     ))
 );
 
@@ -1277,6 +1312,26 @@ mod tests {
                     parameters: vec![],
                     parameter_defaults: vec![],
                     statements: vec![]
+                }
+            ))
+        );
+    }
+
+    #[test]
+    fn test_palias_def() {
+        assert_eq!(
+            mapok(palias_def(pinput("", "alias File(path).keyvalue(key,value) = FileContentKey(path).xml_keyvalue(key,value)"))),
+            Ok((
+                "",
+                PAliasDef {
+                    resource_alias: "File".into(),
+                    resource_alias_parameters: vec!["path".into()],
+                    state_alias: "keyvalue".into(),
+                    state_alias_parameters: vec!["key".into(),"value".into()],
+                    resource: "FileContentKey".into(),
+                    resource_parameters: vec!["path".into()],
+                    state: "xml_keyvalue".into(),
+                    state_parameters: vec!["key".into(),"value".into()],
                 }
             ))
         );

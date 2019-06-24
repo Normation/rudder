@@ -125,6 +125,15 @@ impl<'src> AST<'src> {
         }))
     }
 
+    /// Create Aliases from parsed aliases
+    fn create_aliases(aliases: Vec<PAliasDef<'src>>) 
+        -> Result<HashMap<Token<'src>,(Vec<Token<'src>>,HashMap<Token<'src>,Vec<Token<'src>>>)>> {
+        // find sub resource
+        // find sub state
+        // 
+        unimplemented!()
+    }
+
     /// Produce the statically declared list of children for each resource.
     /// This will be extended with the dynamically generated one from state declarations.
     fn create_children_list(parents: Vec<(Token<'src>, Token<'src>)>,
@@ -152,6 +161,7 @@ impl<'src> AST<'src> {
             variable_declarations,
             parameter_defaults,
             parents,
+            aliases,
         } = code_index;
         let mut var_context = VarContext::new();
         // first create enums since they have no dependencies
@@ -172,6 +182,7 @@ impl<'src> AST<'src> {
         let parameter_defaults =
             AST::create_default_values(&global_context, parameter_defaults)?;
         global_context.parameter_defaults = parameter_defaults;
+        //let aliases = AST::create_aliases(aliases)?;
         // prepare children list for each resource
         let mut children_list = AST::create_children_list(parents, &resources)?;
         // resources depend on everything else

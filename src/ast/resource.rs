@@ -105,6 +105,7 @@ pub struct StateDef<'src> {
     pub parameters: Vec<Parameter<'src>>,
     pub statements: Vec<Statement<'src>>,
     pub context: VarContext<'src>,
+    //pub is_alias: bool,
 }
 
 impl<'src> StateDef<'src> {

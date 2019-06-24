@@ -18,10 +18,9 @@ use std::fs;
 // - a qui s'applique vraiment les namespace ? variables, resources, enums, fonctions ? quels sont les default intelligents ?
 // - a quoi ressemblent les iterators ?
 // - arguments non ordonnés pour les resources et les states ?
-//
+// - usage des alias: pour les children, pour les (in)compatibilités, pour le générateur?
 
 // TODO next step:
-// - parent resource
 
 
 fn add_file<'a>(code_index: &mut CodeIndex<'a>, source_list: &'a SourceList, filename: &'a str) {
