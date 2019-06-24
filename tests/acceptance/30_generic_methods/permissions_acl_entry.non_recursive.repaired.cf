@@ -52,16 +52,16 @@ bundle agent init
       "lines[4]"  slist => { "user:bin:--x", "user::rwx", "group::---", "group:bin:r--", "other::---", "mask::r.x" };
 
       "files[5]" string => "file5";
-      "user[5]"  string => "bin:-r, games:rx";
+      "user[5]"  string => "bin:-r, root:rx";
       "group[5]" string => "*:";
       "other[5]" string => "";
-      "lines[5]"  slist => { "user:bin:---", "user:games:r-x", "group::---", "user::rwx", "group::---", "group:bin:r--", "other::---", "mask::r.x" };
+      "lines[5]"  slist => { "user:bin:---", "user:root:r-x", "group::---", "user::rwx", "group::---", "group:bin:r--", "other::---", "mask::r.x" };
 
       "files[6]" string => "file6";
-      "user[6]"  string => "bin:-r, games:rx";
+      "user[6]"  string => "bin:-r, root:rx";
       "group[6]" string => "*:";
       "other[6]" string => "-r, =rx";
-      "lines[6]"  slist => {  "user:bin:---", "user:games:r-x", "group::---", "user::rwx", "group::---", "group:bin:r--", "mask::r.x", "other::r-x" };
+      "lines[6]"  slist => {  "user:bin:---", "user:root:r-x", "group::---", "user::rwx", "group::---", "group:bin:r--", "mask::r.x", "other::r-x" };
 
       # To test the non recursivity
       "files[7]" string => "file7/.";
@@ -78,13 +78,13 @@ bundle agent init
 
       # To test regex
       "files[9]" string => "rfile1";
-      "lines[9]"  slist => {  "user:bin:---", "user:games:r-x", "group::---", "user::rwx", "group::---", "group:bin:r--", "mask::r.x", "other::r-x" };
+      "lines[9]"  slist => {  "user:bin:---", "user:root:r-x", "group::---", "user::rwx", "group::---", "group:bin:r--", "mask::r.x", "other::r-x" };
 
       "files[10]" string => "rfile2";
-      "lines[10]"  slist => {  "user:bin:---", "user:games:r-x", "group::---", "user::rwx", "group::---", "group:bin:r--", "mask::r.x", "other::r-x" };
+      "lines[10]"  slist => {  "user:bin:---", "user:root:r-x", "group::---", "user::rwx", "group::---", "group:bin:r--", "mask::r.x", "other::r-x" };
 
       "files[11]" string => "rfile*";
-      "user[11]"  string => "bin:-r, games:rx";
+      "user[11]"  string => "bin:-r, root:rx";
       "group[11]" string => "*:";
       "other[11]" string => "-r, =rx";
 
