@@ -90,7 +90,7 @@
 #
 # @parameter path       Path of the file or directory
 # @parameter recursive  Recursive Should ACLs cleanup be recursive, "true" or "false" (defaults to "false")
-# @parameter group       Username of the Linux account.
+# @parameter group      Group name
 # 
 # @parameter_constraint recursive "select" : [ "", "true", "false" ]
 # @parameter_constraint recursive "allow_empty_string" : true
@@ -108,7 +108,7 @@ bundle agent permissions_group_acl_absent(path, recursive, group)
       "class_prefix"                            string => string_head("${full_class_prefix}", "1000");
 
       "group_trimmed"                            string => regex_replace("${group}", " ", "", "g");
-      "group_ace"                                string => regex_replace("group:${group}", " ", "", "g");
+      "group_ace"                                string => "group:${group_trimmed}";
 
       "file_list"                               slist  => findfiles("${path}");
       "file_list_length"                        int    => length("file_list");
