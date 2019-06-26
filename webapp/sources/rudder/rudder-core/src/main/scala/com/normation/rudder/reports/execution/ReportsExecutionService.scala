@@ -233,7 +233,7 @@ class ReportsExecutionService (
         updated
       }) match {
         case eb: EmptyBox =>
-          val e = eb ?~! "An error occurred when trying to update the cache of last changes"
+          val e = eb ?~! "An error occured when trying to update the cache of last changes"
           logger.error(e.messageChain)
           e.rootExceptionCause.foreach { ex =>
             logger.error("Root exception was: ", ex)
@@ -250,12 +250,12 @@ class ReportsExecutionService (
       // update compliance cache
       cachedCompliance.invalidate(updatedNodeIds) match {
         case eb: EmptyBox =>
-          val e = eb ?~! "An error occured when trying to update the cache for compliance"
+          val e = eb ?~! "An error occurred when trying to update the cache for compliance"
           logger.error(e.messageChain)
           e.rootExceptionCause.foreach { ex =>
             logger.error("Root exception was: ", ex)
           }
-        case Full(x) => //youhou
+        case Full(x) =>
           //save compliance in DB
           complianceRepos.saveRunCompliance(x.values.toList)
           logger.trace("Cache for compliance updates after new run received")

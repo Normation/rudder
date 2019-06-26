@@ -85,8 +85,6 @@ import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.services.policies.ParallelSequence
 import com.normation.rudder.services.policies.Parallelism
 
-import scala.concurrent.duration.Duration
-
 /**
  * Write promises for the set of nodes, with the given configs.
  * Requires access to external templates files.
@@ -355,7 +353,7 @@ class PolicyWriterServiceImpl(
                                                                , ("RUDDER_NEXT_POLICIES_DIRECTORY", agentNodeConfig.paths.newFolder)
                                                              )
                                         , systemEnv
-                                        , hookWarnDurationMillis // warn if a hook took more than a minute
+                                        , hookWarnDurationMillis.toLong // warn if a hook took more than a minute
                             )
                             HooksLogger.trace(s"Run post-generation pre-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
                             res
@@ -390,7 +388,7 @@ class PolicyWriterServiceImpl(
                                                              , ("RUDDER_POLICIES_DIRECTORY", agentNodeConfig.paths.baseFolder)
                                                            )
                                         , systemEnv
-                                        , hookWarnDurationMillis // warn if a hook took more than a minute
+                                        , hookWarnDurationMillis.toLong // warn if a hook took more than a minute
                             )
                             HooksLogger.trace(s"Run post-generation post-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
                             res
