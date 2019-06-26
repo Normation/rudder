@@ -117,6 +117,12 @@ final case class ResultRepairedReport(
   val severity = Reports.RESULT_REPAIRED
 }
 
+// lightweight object to store in cache the repairs
+final case class ChangeForCache(
+    ruleId             : RuleId
+  , executionTimestamp : DateTime
+)
+
 final case class ResultErrorReport(
     executionDate      : DateTime
   , ruleId             : RuleId

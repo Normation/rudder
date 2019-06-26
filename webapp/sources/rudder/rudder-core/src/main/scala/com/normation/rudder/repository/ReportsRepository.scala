@@ -117,7 +117,7 @@ trait ReportsRepository {
    *  StartTime should be a 00:00:00 time.
    */
   def countChangeReports(startTime: DateTime, intervalSizeHour: Int): Box[Map[RuleId, Map[Interval, Int]]]
-  def getChangeReportsOnInterval(lowestId: Long, highestId: Long): Box[Seq[ResultRepairedReport]]
+  def getChangeReportsOnInterval(lowestId: Long, highestId: Long): Box[Seq[ChangeForCache]]
   def getChangeReportsByRuleOnInterval(ruleId: RuleId, interval: Interval, limit: Option[Int]): Box[Seq[ResultRepairedReport]]
 
   //reportExecution only

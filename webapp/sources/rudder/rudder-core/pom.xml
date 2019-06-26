@@ -159,6 +159,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <scope>test</scope>
     </dependency>
 
+    <dependency>
+      <groupId>org.scalaz</groupId>
+      <artifactId>scalaz-zio_2.12</artifactId>
+      <version>1.0-RC5</version>
+    </dependency>
+
     <!-- Doing HTTP requests -->
     <dependency>
       <groupId>org.scalaj</groupId>

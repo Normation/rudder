@@ -233,12 +233,12 @@ class ReportsExecutionService (
         updated
       }) match {
         case eb: EmptyBox =>
-          val e = eb ?~! "An error occured when trying to update the cache of last changes"
+          val e = eb ?~! "An error occurred when trying to update the cache of last changes"
           logger.error(e.messageChain)
           e.rootExceptionCause.foreach { ex =>
             logger.error("Root exception was: ", ex)
           }
-        case Full(x) => //youhou
+        case Full(x) =>
           logger.trace("Cache for changes by rule updates after new run received")
       }
     }(changesThreadPool) // exec on their own threadpool the change computation

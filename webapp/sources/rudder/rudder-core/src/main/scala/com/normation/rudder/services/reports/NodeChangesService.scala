@@ -37,12 +37,14 @@
 
 package com.normation.rudder.services.reports
 
+import com.github.ghik.silencer.silent
+
 import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
 import org.joda.time.Interval
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports.ResultRepairedReport
+import com.normation.rudder.domain.reports.{ChangeForCache, ResultRepairedReport}
 import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.repository.ReportsRepository
 import net.liftweb.common._
@@ -175,6 +177,7 @@ class CachedNodeChangesServiceImpl(
     changeService: NodeChangesService
   , computeChangeEnabled: () => Box[Boolean]
 ) extends NodeChangesService with CachedRepository with Loggable {
+  self =>
 
   override val changesMaxAge = changeService.changesMaxAge
   private[this] var cache = Option.empty[ChangesByRule]
@@ -251,6 +254,33 @@ class CachedNodeChangesServiceImpl(
     }.toMap
   }
 
+
+  object QueuedChanges {
+    import scalaz.zio._
+    val rt = new DefaultRuntime {}
+
+    val queue = rt.unsafeRun(ZQueue.sliding[Seq[ChangeForCache]](1000)) //really, with 1000 change computation late, you can slide.
+
+    def logEx(ex: Throwable): UIO[Unit] = {
+      Task.effect(self.logger.error(s"Error when updating changes cache: ${ex.getClass.getName}: ${ex.getMessage}")).run.unit
+    }
+
+    @silent // warn: deadcode
+    val consumeLoop: UIO[Nothing] = {
+      for {
+        all  <- queue.takeAll
+        // update the cache, log and never fail
+        _    <- Task.effect(syncUpdate(all.flatten)).catchAll(logEx)
+        loop <- consumeLoop
+      } yield {
+        loop
+      }
+    }
+
+    rt.unsafeRun(consumeLoop): @silent // warn: deadcode
+
+  }
+
   /**
    * Update the cache with the list interval
    * The method may fail because in case the cache wasn't
@@ -263,37 +293,44 @@ class CachedNodeChangesServiceImpl(
    * background processes where throughout is more
    * important than responsiveness.
    */
-  def update(changes: Seq[ResultRepairedReport]): Box[Unit] = {
+  def update(changes: Seq[ChangeForCache]): Box[Unit] = {
     val enabled = computeChangeEnabled().getOrElse(true) // always true by default
     if(enabled) {
-      this.synchronized {
-        logger.debug(s"NodeChanges cache updating with ${changes.size} new changes...")
-        if(changes.isEmpty) {
-          Full(())
-        } else {
-          for {
-            existing <- initCache()
-          } yield {
-            val intervals = changeService.getCurrentValidIntervals(None)
-            val newChanges = changes.groupBy(_.ruleId).mapValues { ch =>
-              ( for {
-                 interval <- intervals
-              } yield {
-                (interval, ch.filter(interval contains _.executionTimestamp).size )
-              } ).toMap
-            }
-            logger.debug("NodeChanges cache updated")
-            cache = Some(merge(intervals, existing, newChanges))
-            logger.trace("NodeChanges cache content: " + cacheToLog(cache.get))
-            ()
-          }
-        }
-      }
+      QueuedChanges.queue.offer(changes)
+      Full(())
     } else {
       logger.warn(s"Not updating changes by rule - disabled by configuration setting 'rudder_compute_changes' (set by REST API)")
       Full(())
     }
   }
+
+  // the old methods "update"
+  protected def syncUpdate(changes: Seq[ChangeForCache]): Box[Unit] = {
+    this.synchronized {
+      logger.debug(s"NodeChanges cache updating with ${changes.size} new changes...")
+      if(changes.isEmpty) {
+        Full(())
+      } else {
+        for {
+          existing <- initCache()
+        } yield {
+          val intervals = changeService.getCurrentValidIntervals(None)
+          val newChanges = changes.groupBy(_.ruleId).mapValues { ch =>
+            ( for {
+              interval <- intervals
+            } yield {
+              (interval, ch.filter(interval contains _.executionTimestamp).size )
+            } ).toMap
+          }
+          logger.debug("NodeChanges cache updated")
+          cache = Some(merge(intervals, existing, newChanges))
+          logger.trace("NodeChanges cache content: " + cacheToLog(cache.get))
+          ()
+        }
+      }
+    }
+  }
+
 
   /**
    * Clear cache. Try a reload asynchronously, disregarding
