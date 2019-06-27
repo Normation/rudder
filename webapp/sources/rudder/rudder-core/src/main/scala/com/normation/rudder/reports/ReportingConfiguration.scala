@@ -58,6 +58,7 @@ import com.normation.rudder.domain.Constants
 final case class ReportingConfiguration(
     agentRunInterval      : Option[AgentRunInterval]
   , heartbeatConfiguration: Option[HeartbeatConfiguration]
+  , agentReportingProtocol: Option[AgentReportingProtocol]
 ) extends HashcodeCaching
 
 final case class HeartbeatConfiguration(
@@ -165,4 +166,39 @@ object SyslogTCP extends SyslogProtocol {
 
 object SyslogUDP extends SyslogProtocol {
   val value = "UDP"
+}
+
+import ca.mrvisser.sealerate.values
+import com.normation.errors._
+
+sealed trait AgentReportingProtocol {
+  def value : String
+}
+
+final case object AgentReportingHTTPS extends AgentReportingProtocol {
+  val value = "HTTPS"
+}
+
+final case  object AgentReportingSyslog extends AgentReportingProtocol {
+  val value = "SYSLOG"
+}
+
+object AgentReportingProtocol {
+  def apply(value: String): Box[AgentReportingProtocol] = {
+    value match {
+      case AgentReportingHTTPS.value  => Full(AgentReportingHTTPS)
+      case AgentReportingSyslog.value => Full(AgentReportingSyslog)
+      case _                          => Failure(s"Invalid Reporting Protocol: *{value}")
+    }
+  }
+
+  def allProtocols: Set[AgentReportingProtocol] = values[AgentReportingProtocol]
+  def parse(value: String) : Either[RudderError, AgentReportingProtocol] = {
+    allProtocols.find { _.value == value.toUpperCase() } match {
+      case None =>
+        Left(Unexpected(s"Unable to parse Reporting Protocol mame '${value}'. was expecting ${allProtocols.map(_.value).mkString("'", "' or '", "'")}."))
+      case Some(protocol) =>
+        Right(protocol)
+    }
+  }
 }

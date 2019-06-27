@@ -46,10 +46,7 @@ import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.reports.ComplianceModeName
-import com.normation.rudder.reports.SyslogProtocol
-import com.normation.rudder.reports.SyslogTCP
-import com.normation.rudder.reports.SyslogUDP
+import com.normation.rudder.reports._
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.AuthzToken
@@ -98,6 +95,8 @@ class SettingsApi(
       RestRelaySynchronizePolicies ::
       RestRelaySynchronizeSharedFiles ::
       RestReportingProtocol ::
+      RestReportProtocolDefault ::
+      RestSyslogProtocolDisabled ::
       RestReportingMode ::
       RestHeartbeat ::
       RestLogAllReports ::
@@ -537,6 +536,34 @@ class SettingsApi(
         }
     }
   }
+  case object RestSyslogProtocolDisabled extends RestBooleanSetting {
+    val key = "syslog_protocol_disabled"
+    val startPolicyGeneration = true
+    def get = configService.rudder_syslog_protocol_disabled()
+    def set = (value : Boolean, actor : EventActor, reason : Option[String])  => configService.set_rudder_syslog_protocol_disabled(value, actor, reason)
+  }
+
+  case object RestReportProtocolDefault extends RestSetting[AgentReportingProtocol] {
+    var key = "rudder.report.protocol.default"
+    val startPolicyGeneration = false
+    def get = configService.rudder_report_protocol_default()
+    def set = (value : AgentReportingProtocol, _, _)  => configService.set_rudder_report_protocol_default(value)
+    def toJson(value : AgentReportingProtocol) : JValue = value.value
+    def parseJson(json: JValue) = {
+      json match {
+        case JString(value) => parseParam(value.toUpperCase())
+        case x => Failure("Invalid value "+x)
+      }
+    }
+    def parseParam(param : String) = {
+      param.toUpperCase() match {
+        case AgentReportingHTTPS.value  => Full(AgentReportingHTTPS)
+        case AgentReportingSyslog.value => Full(AgentReportingSyslog)
+        case _ => Failure(s"Invalid value '${param}' for default reporting method")
+      }
+    }
+  }
+
   case object RestChangesGraphs extends RestBooleanSetting {
     val startPolicyGeneration = false
     val key = "display_recent_changes_graphs"

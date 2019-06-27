@@ -16,6 +16,7 @@
   "RELAY_SYNC_METHOD":"classic",
   "RELAY_SYNC_PROMISES":"false",
   "RELAY_SYNC_SHAREDFILES":"false",
+  "REPORTING_PROTOCOL":"SYSLOG",
   "RUDDER_DIRECTIVES_INPUTS":[
     ""
   ],
@@ -36,5 +37,6 @@
   "SKIPIDENTIFY":"false",
   "STORE_ALL_CENTRALIZED_LOGS_IN_FILE":"true",
   "SYSLOGPORT":"514",
+  "SYSLOG_PROTOCOL_DISABLED":"false",
   "TOOLS_FOLDER":"tools_folder"
 }

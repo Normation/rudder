@@ -97,7 +97,6 @@ final case class NodeInfo(
   val nodeReportingConfiguration = node.nodeReportingConfiguration
   val properties                 = node.properties
   val policyMode                 = node.policyMode
-
   /**
    * Get a digest of the key in the proprietary CFEngine digest format. It is
    * formated as expected by CFEngine authentication module, i.e with the

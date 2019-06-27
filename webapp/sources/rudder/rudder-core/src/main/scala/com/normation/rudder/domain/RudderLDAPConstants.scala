@@ -89,6 +89,7 @@ object RudderLDAPConstants extends Loggable {
 
   val A_SERIALIZED_AGENT_RUN_INTERVAL = "serializedAgentRunInterval"
   val A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION = "serializedHeartbeatRunConfiguration"
+  val A_AGENT_REPORTING_PROTOCOL = "agentReportingProtocol"
 
   val A_POLICY_MODE = "policyMode"
 

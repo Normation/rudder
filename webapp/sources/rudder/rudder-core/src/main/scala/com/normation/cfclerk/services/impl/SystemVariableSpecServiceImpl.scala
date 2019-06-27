@@ -273,10 +273,6 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                            , multivalued = false
                         )
     , SystemVariableSpec(
-                  "RUDDER_SYSLOG_PROTOCOL" , "Which protocol should syslog use"
-                                           , multivalued = false
-                        )
-    , SystemVariableSpec(
        "RUDDER_SYSTEM_DIRECTIVES_SEQUENCE" , "The sequence of bundle to use as method call in bundle rudder_system_directives, in a formatted string"
                                            , multivalued = false
                         )
@@ -307,6 +303,20 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                               "AGENT_TYPE" , "The normalised name of the agent type (cfengine-community, dsc, etc)"
                                            , multivalued = false
                         )
+      // Configure node protocol, SYLOG or HTTPS
+    , SystemVariableSpec(
+                      "REPORTING_PROTOCOL" , "Protocol used by agent to send reports (HTTPS or SYSLOG)"
+                                           , multivalued = false
+    )
+    , SystemVariableSpec(
+                  "RUDDER_SYSLOG_PROTOCOL" , "Protocol ued by syslog (TCP or UDP)"
+                                           , multivalued = false
+    )
+    , SystemVariableSpec(
+                "SYSLOG_PROTOCOL_DISABLED" , "Syslog protocol totally disabled"
+                                           , multivalued = false
+                                           , constraint = Constraint(typeName = BooleanVType, default=Some("false"))
+    )
   )
 
   private[this] val varSpecsMap = varSpecs.map(x => (x.name -> x)).toMap

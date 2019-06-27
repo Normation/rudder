@@ -16,6 +16,7 @@
   "RELAY_SYNC_METHOD":"classic",
   "RELAY_SYNC_PROMISES":"false",
   "RELAY_SYNC_SHAREDFILES":"false",
+  "REPORTING_PROTOCOL":"SYSLOG",
   "RUDDER_DIRECTIVES_INPUTS":[
     "\"fileTemplate/1_0_e9a1a909_2490_4fc9_95c3_9d0aa01717c9/fileTemplate.cf\",\n\"fileTemplate/1_0_99f4ef91_537b_4e03_97bc_e65b447514cc/fileTemplate.cf\","
   ],
@@ -36,5 +37,6 @@
   "SKIPIDENTIFY":"false",
   "STORE_ALL_CENTRALIZED_LOGS_IN_FILE":"true",
   "SYSLOGPORT":"514",
+  "SYSLOG_PROTOCOL_DISABLED":"false",
   "TOOLS_FOLDER":"tools_folder"
 }
