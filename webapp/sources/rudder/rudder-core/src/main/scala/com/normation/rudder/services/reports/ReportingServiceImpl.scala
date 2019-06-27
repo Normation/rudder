@@ -385,31 +385,14 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
                              case ReportsDisabled => Full(nodeIds.map(id => (id, None)).toMap)
                              case _ => agentRunRepository.getNodesLastRun(nodeIds)
                            }
-      // here, we should extract the currents configs already fetched in runs
-      // they are those whose AgentRunWithNodeConfigId exists, and contains a NodeConfigVersions, with a NodeExpextedReports with an empty endDate
-      // already fetched config
-      fetchedNodesConfigs = for {
-        (nodeId, agentRun)             <- runs
-        agentRunWithNodeConfig         <- agentRun
-        (_, optionNodeExpectedReports) <- agentRunWithNodeConfig.nodeConfigVersion
-        nodeExpectedReports            <- optionNodeExpectedReports
-        if (!nodeExpectedReports.endDate.isDefined)
-      } yield {
-        (nodeId, optionNodeExpectedReports)
-      }
-
-
-
-      nodesToGetCurrentConfig = nodeIds -- fetchedNodesConfigs.keySet
-
-      currentConfigs    <- confExpectedRepo.getCurrentExpectedsReports(nodesToGetCurrentConfig)
+      currentConfigs    <- confExpectedRepo.getCurrentExpectedsReports(nodeIds)
       t1                =  System.currentTimeMillis
       _                 =  TimingDebugLogger.trace(s"Compliance: get current expected reports: ${t1-t0}ms")
       nodeConfigIdInfos <- confExpectedRepo.getNodeConfigIdInfos(nodeIds)
       t2                =  System.currentTimeMillis
       _                 =  TimingDebugLogger.trace(s"Compliance: get Node Config Id Infos: ${t2-t1}ms")
     } yield {
-      ExecutionBatch.computeNodesRunInfo(runs, currentConfigs ++ fetchedNodesConfigs, nodeConfigIdInfos)
+      ExecutionBatch.computeNodesRunInfo(runs, currentConfigs, nodeConfigIdInfos)
     }
   }
 
