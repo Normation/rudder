@@ -688,22 +688,29 @@ span.text-fit {
 .generic-methods .panel-title{
   position: relative;
 }
-#filterTitle{
+
+.panel-group > .panel > .panel-heading{
   padding: 0;
 }
-#filterTitle > h4 > a{
-  padding: 5px 8px;
+.panel-group > .panel > .panel-heading > h4 > a{
+  padding: 6px 8px;
   display: block;
   text-decoration: none !important;
 }
-#filterTitle > h4 > a > .glyphicon{
+.panel-group > .panel > .panel-heading > h4 > a .glyphicon{
   font-size: 12px;
   position: relative;
   top: 3px;
   transition-duration: .4s;
 }
-#filterTitle > h4 > a.collapsed > .glyphicon{
+.panel-group > .panel > .panel-heading > h4 > a.collapsed .glyphicon{
   transform: rotate(-90deg);
+}
+.panel-group > .panel .form-group{
+  margin: 10px 0;
+}
+.panel-group > .panel .btn-outline{
+  margin: 5px 0 15px 0;
 }
 #collapseFilters > .panel-body{
   padding: 0 15px;
@@ -1077,6 +1084,246 @@ ul.list-unstyled > li.active .edit-method:after{
 .techniques-list > ul > li + .empty,
 .techniques-list > ul > li + .empty + .empty{
   display: none;
+}
+
+/* FILEMANAGER */
+.filemanager-container{
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 99999;
+  background: rgba(85, 95, 110, 0.4);
+}
+.filemanager-container > angular-filemanager > div{
+  height: auto;
+  max-width: 1280px;
+  margin: auto;
+  margin-top: 40px;
+  background-color: #fff;
+  overflow: hidden;
+  border-radius: 4px;
+}
+.filemanager-container nav.navbar.navbar-inverse {
+  border: none !important;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  margin: 0;
+}
+.filemanager-container .breadcrumb{
+  background-color: transparent;
+}
+.filemanager-container .breadcrumb > li > span,
+  .filemanager-container .breadcrumb > li > a:hover{
+  color: rgba(255,255,255, 1) !important;
+}
+.filemanager-container .breadcrumb > li > a{
+  color: rgba(255,255,255, .7) !important;
+}
+.filemanager-container .navbar .navbar-form.navbar-right{
+  margin: 16px 0;
+}
+.filemanager-container .navbar-inverse .navbar-form input[type=text] {
+  margin: 10px;
+}
+.filemanager-container .sidebar{
+  margin: 0;
+}
+.filemanager-container > angular-filemanager > div > .container-fluid > .row > div{
+  min-height: 250px;
+  padding: 0;
+}
+.filemanager-container .nav > li > a {
+  padding: 6px 10px;
+}
+.filemanager-container nav.navbar .btn.btn-flat{
+  opacity: .7;
+  color: #fff !important;
+}
+.filemanager-container nav.navbar .btn.btn-flat:hover {
+  opacity: 1;
+}
+.filemanager-container .sortorder.ng-hide{
+  display: inline-block !important;
+  visibility: hidden !important;
+}
+.filemanager-container .dropdown-menu > li > a{
+  padding: 10px 20px;
+  font-size: 12px;
+}
+.filemanager-container textarea.form-control{
+  resize: vertical;
+  min-height: 150px;
+  max-height: 350px;
+  background-image: none;
+}
+.filemanager-container table > tbody > tr.item-list:nth-child(odd) {
+  background-color: #f2f8ff;
+}
+.filemanager-container table > tbody > tr.item-list:hover,
+.filemanager-container table.table-files .selected {
+  background-color: #e2f2ff !important;
+}
+.filemanager-container .table-files .selected td,
+.filemanager-container .table-files .selected td a{
+  color: #0b4d87;
+}
+#context-menu ul > li.divider + li > a {
+  color: #de4b39;
+}
+.filemanager-container .nav-sidebar>li.active>a {
+  color: #3379b7;
+}
+.filemanager-container .toolbar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 10px;
+  text-align: right;
+  border-top: 1px solid #eeeeef;
+}
+/* FILES LIST */
+ul.files-list{
+  float: left;
+  width: 100%;
+}
+ul.files-list > li {
+  border: 1px solid #e5e5e5;
+  padding: 10px;
+  padding-left: 14px;
+  display: block;
+  float: left;
+  width: 100%;
+  position: relative;
+  background-color: #fff;
+  padding-right: 50px;
+  transition-duration: .2s;
+  margin-bottom: 4px;
+  border-left-width: 0px;
+  box-shadow: 0px 5px 4px -3px rgba(0,0,0,.1);
+}
+
+ul.files-list > li > .border{
+  background-color: #ccc;
+  opacity: .6;
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  left: 0;
+  width: 4px;
+  transition-duration: .2s;
+}
+ul.files-list > li.state-new > .border{
+  background-color: #9bc832;
+}
+ul.files-list > li.state-modified > .border{
+  background-color: #3379bc;
+}
+ul.files-list > li.state-deleted > .border{
+  background-color: #dd4b39;
+}
+ul.files-list > li.state-new:before,
+ul.files-list > li.state-modified:before,
+ul.files-list > li.state-deleted:before{
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  font-size: 9px;
+}
+ul.files-list > li.state-new:before{
+  content:"NEW";
+  color: #9bc832;
+}
+ul.files-list > li.state-modified:before{
+  content:"MODIFIED";
+  color: #3379bc;
+}
+ul.files-list > li.state-deleted:before{
+  content:"DELETED";
+  color: #dd4b39;
+}
+ul.files-list > li:hover > .border{
+  opacity: 1;
+}
+ul.files-list > li > .target-remove:hover + .border{
+  background-color: #da534f !important;
+}
+
+.files-list > li.empty {
+  border-left: 4px solid #3379b7;
+  color: #777;
+  font-style: italic;
+}
+
+.files-list > li.empty + li {
+  border-top-right-radius: 4px;
+}
+ul.files-list > li:last-of-type {
+  border-bottom-right-radius: 4px;
+}
+ul.files-list > li .glyphicon{
+  color: #aaa;
+  margin-right: 6px;
+}
+ul.files-list > li .icon-info{
+  color: #ccc;
+  transition-duration: .2s;
+}
+ul.files-list > li:hover .icon-info{
+  color: #337ab7;
+}
+ul.files-list > li > span.target-remove,
+ul.files-list > li > span.warning-sign{
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 40px;
+  transition: .2s;
+  background-color: #fff;
+  color: #999;
+  border-left: 1px solid #e5e5e5;
+  opacity: .6;
+  cursor: pointer;
+}
+ul.files-list > li > span.warning-sign{
+  color: #fff;
+  background-color: #3379b7;
+  opacity: 1;
+  cursor: default;
+}
+ul.files-list > li > span.target-remove:hover{
+  background-color: #da534f;
+  color: #fff;
+}
+
+ul.files-list > li:hover > span.target-remove{
+  opacity: 1;
+}
+
+ul.files-list > li > span.target-remove > i,
+ul.files-list > li > span.warning-sign  > i {
+ position: absolute;
+ top: calc( 50% - 7px);
+ right: calc( 50% - 5.5px);
+}
+
+ul.files-list > li .use-with{
+  font-size: .9em;
+  margin-top: 4px;
+  color: #888;
+}
+ul.files-list > li .use-with:before {
+  content: "Use with:";
+  margin-right: 6px;
+  display: inline-block;
+}
+ul.files-list > li .use-with > span{
+  font-family: monospace, Menlo, Monaco, Consolas, "Courier New";
+  font-weight: bold;
+  word-break: break-word;
 }
 
 @-webkit-keyframes saving {

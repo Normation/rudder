@@ -184,7 +184,6 @@ app.directive('popover', function() {
 // Declare controller ncf-builder
 app.controller('ncf-builder', function ($scope, $uibModal, $http, $q, $location, $anchorScroll, ngToast, $timeout, focus, fileManagerConfig, apiMiddleware, apiHandler, $window) {
   initScroll();
-
   // Variable we use in the whole application
   // Give access to the "General information" form
   $scope.editForm;
@@ -196,6 +195,17 @@ app.controller('ncf-builder', function ($scope, $uibModal, $http, $q, $location,
   $scope.methodsByCategory;
   // ncf technique container
   $scope.techniques;
+
+  $scope.fileManagerState = {
+    open : false
+  };
+
+  $scope.closeWindow = function(event, enforce){
+    if((enforce)||(event.currentTarget == event.target)){
+      $scope.fileManagerState.open = false;
+      hideFileManager();
+    }
+  }
 
   // Selected technique, undefined when there is no selected technique
   $scope.parameters;
@@ -321,7 +331,6 @@ function defineMethodClassContext (method_call) {
 }
 function updateResources() {
   var resourceUrl = '/rudder/secure/api/ncf/' + $scope.selectedTechnique.bundle_name +"/" + $scope.selectedTechnique.version +"/resources"
-
   $http.get(resourceUrl).then(
     function(response) {
       $scope.selectedTechnique.resources = response.data.data.resources
@@ -424,7 +433,7 @@ function updateFileManagerConf () {
 
 
   apiMiddleware.prototype.download = function(item, forceNewWindow) {
-    //TODO: add spinner to indicate file is downloading
+
     var itemPath = this.getFilePath(item);
     var toFilename = item.model.name;
 
@@ -441,6 +450,7 @@ function updateFileManagerConf () {
     );
   };
 }
+
 // Transform a ncf technique into a valid UI technique
 // Add original_index to the method call, so we can track their modification on index
 // Handle classes so we split them into OS classes (the first one only) and advanced classes
@@ -725,11 +735,10 @@ $scope.onImportFileChange = function (fileEl) {
     focus('focusTechniqueName');
   };
 
-  $scope.openEditor = false;
   // Click on a Technique
   // Select it if it was not selected, unselect it otherwise
   $scope.selectTechnique = function(technique) {
-    $scope.openEditor = false;
+    $scope.fileManagerState.open   = false;
     $scope.restoreFlag  = false;
     $scope.suppressFlag = false;
     $scope.conflictFlag = false;
@@ -1578,3 +1587,7 @@ app.config(['fileManagerConfigProvider', function (config) {
     })
   });
 }]);
+
+function hideFileManager(){
+  $("angular-filemanager").remove();
+}

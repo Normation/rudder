@@ -3,11 +3,11 @@
     <head>
         <link type="image/x-icon" rel="icon" href="ncf-builder/css/favicon.ico"/>
 
+        <link href="css/angular-filemanager-1.5.1.min.css?version=dev" rel="stylesheet">
         <link href="css/bootstrap-3.3.7.min.css?version=dev" rel="stylesheet">
         <link rel="stylesheet" href="css/font-awesome-5.6.1.min.css?version=dev">
         <link href="css/ngToast.min.css?version=dev" rel="stylesheet">
         <link href="css/custom.css?version=dev" rel="stylesheet">
-        <link href="css/angular-filemanager-1.5.1.min.css?version=dev" rel="stylesheet">
         <!-- Needed polyfill for ie11, works in all other browsers -->
         <script src="js/polyfill.js?version=dev"></script>
         <script src="js/angular-1.3.20.min.js?version=dev"></script>
@@ -232,7 +232,7 @@
                     <uib-accordion>
                         <uib-accordion-group ng-init="isopen = true" is-open="isopen">
                             <uib-accordion-heading>
-                                <i class="glyphicon" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
+                                <i class="glyphicon pull-right" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
                                 General information
                             </uib-accordion-heading>
                             <div class="col-xs-12">
@@ -289,58 +289,77 @@
                             </div>
                         </uib-accordion-group>
                     </uib-accordion>
-                    <uib-accordion>
 
-                        <uib-accordion-group ng-init="parameter_open = true" is-open="parameter_open">
-                          <uib-accordion-heading>
-                            <i class="glyphicon" ng-class="{'glyphicon-chevron-down': parameter_open, 'glyphicon-chevron-right': !parameter_open}"></i>
-                            Parameters
-                          </uib-accordion-heading>
-                          <div class="col-sm-12 no-padding-right">
-                            <div class="form-group col-sm-12 no-padding-right" ng-repeat="param in selectedTechnique.parameter track by $index">
-                              <div class="input-group col-sm-12">
-                                <input  type="text" class="form-control" ng-model="param.name" placeholder="Parameter name" required>
-                                <span class="input-group-addon">Use with:</span>
-                                <input readonly class="form-control" ng-model="'${'+getBundleName(param.name)+'}'" placeHolder="Value in methods">
-                                <span class="input-group-btn">
-                                  <button ng-click="selectedTechnique.parameter.splice($index,1)" class="btn btn-danger" >
-                                    <i class="fas fa-times-circle"></i>
-                                  </button>
-                                </span>
-                              </div>
-                            </div>
-                            <div class="form-group col-sm-12 text-center no-padding-right">
-                              <div ng-click="addParameter()" class="btn btn-success btn-outline" >
-                                Add parameter <i class="fas fa-plus-circle"></i>
-                              </div>
+                    <uib-accordion>
+                      <uib-accordion-group ng-init="parameter_open = true" is-open="parameter_open">
+                        <uib-accordion-heading>
+                          <i class="glyphicon pull-right" ng-class="{'glyphicon-chevron-down': parameter_open, 'glyphicon-chevron-right': !parameter_open}"></i>
+                          Parameters
+                        </uib-accordion-heading>
+                        <div class="col-xs-12">
+                          <div class="form-group" ng-repeat="param in selectedTechnique.parameter track by $index">
+                            <div class="input-group">
+                              <input  type="text" class="form-control" ng-model="param.name" placeholder="Parameter name" required>
+                              <span class="input-group-addon">Use with:</span>
+                              <input readonly class="form-control" ng-value="'${'+getBundleName(param.name)+'}'" placeHolder="Value in methods">
+                              <span class="input-group-btn">
+                                <button ng-click="selectedTechnique.parameter.splice($index,1)" class="btn btn-danger" >
+                                  <i class="fas fa-times-circle"></i>
+                                </button>
+                              </span>
                             </div>
                           </div>
-                        </uib-accordion-group>
-
+                          <div class="text-center">
+                            <div ng-click="addParameter()" class="btn btn-success btn-outline" >
+                              Add parameter <i class="fas fa-plus-circle"></i>
+                            </div>
+                          </div>
+                        </div>
+                      </uib-accordion-group>
                     </uib-accordion>
 
                     <uib-accordion>
-
                       <uib-accordion-group ng-init="parameter_open = false" is-open="parameter_open">
                         <uib-accordion-heading>
-                          <i class="glyphicon" ng-class="{'glyphicon-chevron-down': parameter_open, 'glyphicon-chevron-right': !parameter_open}"></i>
+                          <i class="glyphicon pull-right" ng-class="{'glyphicon-chevron-down': parameter_open, 'glyphicon-chevron-right': !parameter_open}"></i>
                           Resources
                         </uib-accordion-heading>
+                        <div class="col-xs-12">
 
-                        <div class="form-group col-sm-12 no-padding-right" ng-repeat="resource in selectedTechnique.resources track by $index">
-                          <div class="input-group col-sm-12">
-                            <input  type="text" class="form-control" readonly ng-model="resource.name" >
-                            <span class="input-group-addon">Use with:</span>
-                            <input readonly class="form-control" ng-model="'${resources_dir}/'+ resource.name + ' - ' + resource.state " placeHolder="Value in methods">
+                          <ul class="files-list">
+                            <li class="empty" ng-show="selectedTechnique.resources.length === 0">
+                              <span>There is no resource files.</span>
+                              <span class="warning-sign">
+                                  <i class="fa fa-info-circle"></i>
+                                </span>
+                            </li>
+                            <li ng-repeat="resource in selectedTechnique.resources track by $index" class="{{'state-'+resource.state}}">
+                              <span class="glyphicon glyphicon-file"></span>
+                              <span class="target-name">
+                                {{resource.name}}
+                              </span>
+                              <!--
+                              <span class="target-remove">
+                                  <i class="fa fa-times"></i>
+                              </span>
+                              -->
+                              <span class="border"></span>
+                              <div class="use-with"><span>{{"${resources_dir}/"+ resource.name}}</span></div>
+                            </li>
+                          </ul>
+
+
+                          <div class="text-center">
+                            <div ng-click="fileManagerState.open = true" class="btn btn-success btn-outline" >
+                              Open file editor <i class="fas fa-folder"></i>
+                            </div>
                           </div>
                         </div>
-                        <button class="btn" ng-click="openEditor = !openEditor">open file editor</button>
-                        <div ng-if="openEditor">
-                        <angular-filemanager></angular-filemanager>
+                        <div ng-if="fileManagerState.open" class="filemanager-container">
+                          <angular-filemanager></angular-filemanager>
                         </div>
                       </uib-accordion-group>
-
-                  </uib-accordion>
+                    </uib-accordion>
 
                     <div style="position: relative"><div ng-if="selectedTechnique.method_calls.length === 0" class="btn btn-block btn-default text-center" id="no-methods" >
                       <div class="panel-heading" style="overflow:hidden">
