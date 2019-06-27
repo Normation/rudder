@@ -253,11 +253,8 @@ trait PromiseGenerationService extends Loggable {
                                  , HookEnvPairs.build(
                                                          ("RUDDER_GENERATION_DATETIME", generationTime.toString())
                                                        , ("RUDDER_END_GENERATION_DATETIME", new DateTime(postHooksTime).toString) //what is the most alike a end time
-                                                       , ("RUDDER_NODE_IDS", updatedNodeIds.mkString(" "))
                                                        , ("RUDDER_NUMBER_NODES_UPDATED", updatedNodeIds.size.toString)
                                                        , ("RUDDER_ROOT_POLICY_SERVER_UPDATED", if(updatedNodeIds.contains("root")) "0" else "1" )
-                                                         //for compat in 4.1. Remove in 4.2 or up.
-                                                       , ("RUDDER_NODEIDS", updatedNodeIds.mkString(" "))
                                                      )
                                  , systemEnv
                                )
