@@ -37,8 +37,10 @@
 
 package com.normation.rudder.services.policies
 
+import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 
+import better.files.File
 import org.joda.time.DateTime
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeInfo
@@ -85,15 +87,20 @@ import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.logger.PolicyLogger
 import cats.data.NonEmptyList
 import com.normation.rudder.domain.reports.OverridenPolicy
+import com.normation.rudder.hooks.HookEnvPair
+import com.normation.rudder.hooks.Hooks
+import com.normation.rudder.hooks.HooksLogger
 import monix.eval.Task
 import monix.eval.TaskSemaphore
 import monix.execution.ExecutionModel
 import monix.execution.Scheduler
 import org.joda.time.Period
+import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.format.PeriodFormatterBuilder
 
 import scala.concurrent.Await
 import scala.concurrent.duration.FiniteDuration
+import scala.util.control.NonFatal
 
 
 /**
@@ -218,21 +225,23 @@ object ParallelSequence extends Loggable {
 }
 
 /**
- * The main service which deploy modified rules and
- * their dependencies.
+ * Define how a node should be sorted in the list of nodes.
+ * We want root first, then relay with node just above, then relay, then nodes
  */
-trait PromiseGenerationService {
-
-  /**
-   * Define how a node should be sorted in the list of nodes.
-   * We want root first, then relay with node just above, then relay, then nodes
-   */
-  def nodePriority(nodeInfo: NodeInfo): Int = {
+object NodePriority {
+  def apply(nodeInfo: NodeInfo): Int = {
     if(nodeInfo.id.value == "root") 0
     else if(nodeInfo.isPolicyServer) {
       if(nodeInfo.policyServerId.value == "root") 1 else 2
     } else 3
   }
+}
+
+/**
+ * The main service which deploy modified rules and
+ * their dependencies.
+ */
+trait PromiseGenerationService {
 
   /**
    * All mighy method that take all modified rules, find their
@@ -254,7 +263,6 @@ trait PromiseGenerationService {
     import scala.collection.JavaConverters._
     val systemEnv = HookEnvPairs.build(System.getenv.asScala.toSeq:_*)
 
-    import HooksImplicits._
 
     /*
      * The computation of dynamic group is a workaround inconsistencies after importing definition
@@ -318,10 +326,7 @@ trait PromiseGenerationService {
       timeComputeGroups    =  (System.currentTimeMillis - initialTime)
       _                    =  PolicyLogger.debug(s"Computing dynamic groups finished in ${timeComputeGroups} ms")
       preGenHooksTime      =  System.currentTimeMillis
-
-      //fetch all
-      preHooks             <- RunHooks.getHooks(HOOKS_D + "/policy-generation-started", HOOKS_IGNORE_SUFFIXES)
-      _                    <- RunHooks.syncRun(preHooks, HookEnvPairs.build( ("RUDDER_GENERATION_DATETIME", generationTime.toString) ), systemEnv)
+      _                    <- runPreHooks(generationTime, systemEnv)
       timeRunPreGenHooks   =  (System.currentTimeMillis - preGenHooksTime)
       _                    =  PolicyLogger.debug(s"Pre-policy-generation scripts hooks ran in ${timeRunPreGenHooks} ms")
 
@@ -425,31 +430,9 @@ trait PromiseGenerationService {
 
       // finally, run post-generation hooks. They can lead to an error message for build, but node policies are updated
       postHooksTime         =  System.currentTimeMillis
-      postHooks             <- RunHooks.getHooks(HOOKS_D + "/policy-generation-finished", HOOKS_IGNORE_SUFFIXES)
-      // we want to sort node with root first, then relay, then other nodes for hooks
-      updatedNodeIds        =  updatedNodeConfigs.toList.map { case (k, v) =>
-                                 val id = v.nodeInfo.id
-                                 (
-                                   id
-                                 , nodePriority(updatedNodeConfigs(id).nodeInfo)
-                                 )
-                               }.sortBy( _._2 ).map( _._1 )
-      updatedNodes          =  updatedNodeIds.toSet
+      updatedNodes          =  updatedNodeConfigs.keySet
       errorNodes            =  activeNodeIds -- nodeConfigs.keySet
-
-      _                     <- RunHooks.syncRun(
-                                   postHooks
-                                 , HookEnvPairs.build(
-                                                         ("RUDDER_GENERATION_DATETIME", generationTime.toString())
-                                                       , ("RUDDER_END_GENERATION_DATETIME", new DateTime(postHooksTime).toString) //what is the most alike a end time
-                                                       , ("RUDDER_NODE_IDS", updatedNodeIds.mkString(" "))
-                                                       , ("RUDDER_NUMBER_NODES_UPDATED", updatedNodeIds.size.toString)
-                                                       , ("RUDDER_ROOT_POLICY_SERVER_UPDATED", if(updatedNodeIds.contains("root")) "0" else "1" )
-                                                         //for compat in 4.1. Remove in 4.2 or up.
-                                                       , ("RUDDER_NODEIDS", updatedNodeIds.mkString(" "))
-                                                     )
-                                 , systemEnv
-                               )
+      _                     <- runPostHooks(generationTime, new DateTime(postHooksTime), updatedNodeConfigs, systemEnv, UPDATED_NODE_IDS_PATH)
       timeRunPostGenHooks   =  (System.currentTimeMillis - postHooksTime)
       _                     =  PolicyLogger.debug(s"Post-policy-generation hooks ran in ${timeRunPostGenHooks} ms")
 
@@ -467,7 +450,7 @@ trait PromiseGenerationService {
                                  PolicyLogger.info("Write node configurations     : %10s ms".format(timeWriteNodeConfig))
                                  PolicyLogger.info("Save expected reports         : %10s ms".format(timeSetExpectedReport))
                                  PolicyLogger.info("Run post generation hooks     : %10s ms".format(timeRunPostGenHooks))
-                                 PolicyLogger.info("Number of nodes updated       : %10s   ".format(updatedNodeIds.size))
+                                 PolicyLogger.info("Number of nodes updated       : %10s   ".format(updatedNodes.size))
                                  if(errorNodes.nonEmpty) {
                                    PolicyLogger.warn(s"Nodes in errors (${errorNodes.size}): '${errorNodes.map(_.value).mkString("','")}'")
                                  }
@@ -535,6 +518,7 @@ trait PromiseGenerationService {
   // file, it's just a constant.
   def HOOKS_D                : String
   def HOOKS_IGNORE_SUFFIXES  : List[String]
+  def UPDATED_NODE_IDS_PATH  : String
 
   /*
    * From global configuration and node modes, build node modes
@@ -682,6 +666,16 @@ trait PromiseGenerationService {
     , globalAgentRun   : AgentRunInterval
   ) : Box[Unit]
 
+  /**
+   * Run pre generation hooks
+   */
+  def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit]
+
+  /**
+   * Run post generation hooks
+   */
+  def runPostHooks(generationTime: DateTime, endTime: DateTime, idToConfiguration: Map[NodeId, NodeConfiguration], systemEnv: HookEnvPairs, nodeIdsPath: String): Box[Unit]
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -720,6 +714,8 @@ class PromiseGenerationServiceImpl (
   , override val getGenerationContinueOnError: () => Box[Boolean]
   , override val HOOKS_D: String
   , override val HOOKS_IGNORE_SUFFIXES: List[String]
+  , override val UPDATED_NODE_IDS_PATH: String
+  , override val postGenerationHookCompabilityMode: Option[Boolean]
 ) extends PromiseGenerationService with
   PromiseGeneration_performeIO with
   PromiseGeneration_buildRuleVals with
@@ -727,19 +723,9 @@ class PromiseGenerationServiceImpl (
   PromiseGeneration_updateAndWriteRule with
   PromiseGeneration_setExpectedReports with
   PromiseGeneration_historization with
-  PromiseGenerationHooks {
-
-  private[this] val codeHooks = collection.mutable.Buffer[PromiseGenerationHooks]()
+  PromiseGeneration_Hooks {
 
   private[this] var dynamicsGroupsUpdate : Option[UpdateDynamicGroups] = None
-
-  override def beforeDeploymentSync(generationTime: DateTime): Box[Unit] = {
-    sequence(codeHooks) { _.beforeDeploymentSync(generationTime) }.map( _ => () )
-  }
-
-  def appendPreGenCodeHook(hook: PromiseGenerationHooks): Unit = {
-    this.codeHooks.append(hook)
-  }
 
   // We need to register the update dynamic group after instantiation of the class
   // as the deployment service, the async deployment and the dynamic group update have cyclic dependencies
@@ -1436,6 +1422,202 @@ trait PromiseGeneration_historization extends PromiseGenerationService {
     } yield {
       () // unit is expected
     }
+  }
+
+}
+
+// utility case class where we store the sorted list of node ids to be passed to hooks
+final case class SortedNodeIds(servers: Seq[String], nodes: Seq[String])
+
+trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGenerationHooks {
+  import HooksImplicits._
+
+  def postGenerationHookCompabilityMode: Option[Boolean]
+
+  /*
+   * Plugin hooks
+   */
+  private[this] val codeHooks = collection.mutable.Buffer[PromiseGenerationHooks]()
+
+  def appendPreGenCodeHook(hook: PromiseGenerationHooks): Unit = {
+    this.codeHooks.append(hook)
+  }
+
+  /*
+   * plugins hooks
+   */
+  override def beforeDeploymentSync(generationTime: DateTime): Box[Unit] = {
+    sequence(codeHooks) { _.beforeDeploymentSync(generationTime) }.map( _ => () )
+  }
+
+  /*
+   * Pre generation hooks
+   */
+  override def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit] = {
+    for {
+      //fetch all
+      preHooks <- RunHooks.getHooks(HOOKS_D + "/policy-generation-started", HOOKS_IGNORE_SUFFIXES)
+      _        <- RunHooks.syncRun(preHooks, HookEnvPairs.build( ("RUDDER_GENERATION_DATETIME", generationTime.toString) ), systemEnv)
+    } yield ()
+  }
+
+
+  /**
+   * Mitigation for ticket https://issues.rudder.io/issues/15011
+   * If we have too many nodes (~3500, see ticket for details), we hit the Linux/JVM
+   * plateform MAX_ARG limit. This will fail the generation with a return code of
+   * Int.MIN_VALUE.
+   * So, the correct solution is to always write node IDS in a file, and give hooks
+   * the path to the file.
+   * But we don't want to break user hooks because most likely, they don't have
+   * enough nodes to be impacted.
+   * So, we continue to set the RUDDER_NODE_IDS parameter if:
+   * - there is user hooks for post policy generation,
+   * - there is less than 3000 updated nodes,
+   * - the rudder configuration parameter for compability mode is not set (default).
+   *
+   * If the configuration parameter is set to false, we never write it (to take care of
+   * cases where the limit whould be lower for unknown reasons).
+   * if the configuration parameter is set to true, we always write it (to take care of
+   * cases where the user knows what he is doingà).
+   */
+  def getNodeIdsEnv(setNodeIdsParameter: Option[Boolean], hooks: Hooks, sortedNodeIds: SortedNodeIds): Option[(String, String)] = {
+    def formatEnvPair(sortedNodeIds: SortedNodeIds): (String, String) = {
+      ("RUDDER_NODE_IDS", (sortedNodeIds.servers ++ sortedNodeIds.nodes).mkString(" "))
+    }
+    setNodeIdsParameter match {
+      case Some(true)  =>
+        HooksLogger.trace("'rudder.hooks.policy-generation-finished.nodeids.compability' set to 'true': set 'RUDDER_NODE_IDS' parameter")
+        Some(formatEnvPair(sortedNodeIds))
+      case Some(false) =>
+        HooksLogger.trace("'rudder.hooks.policy-generation-finished.nodeids.compability' set to 'false': unset 'RUDDER_NODE_IDS' parameter")
+        None
+      case None =>
+        // user node exists ?
+        if((hooks.hooksFile.toSet -- Set("50-reload-policy-file-server", "60-trigger-node-update")).isEmpty) {
+          // only system hooks, do not set parameter
+          HooksLogger.trace("'rudder.hooks.policy-generation-finished.nodeids.compability' not set and no user hooks: unset 'RUDDER_NODE_IDS' parameter")
+          None
+        } else {
+          if(sortedNodeIds.servers.size+sortedNodeIds.nodes.size > 3000) {
+            // do not set parameter to avoid error described in ticket
+            HooksLogger.trace("'rudder.hooks.policy-generation-finished.nodeids.compability' not set, user hooks present but more than 3000 nodes updated: " +
+                              "unset 'RUDDER_NODE_IDS' parameter")
+            HooksLogger.warn(s"More than 3000 nodes where updated and 'policy-generation-finished' user hooks are present. The parameter 'RUDDER_NODE_IDS'" +
+                             s" will be unset due to https://issues.rudder.io/issues/15011. Update your hooks accordinbly to the ticket workaround, then set rudder" +
+                             s" configuration parameter 'rudder.hooks.policy-generation-finished.nodeids.compability' to false and restart Rudder.")
+            None
+          } else {
+            // compability mode
+            HooksLogger.trace("'rudder.hooks.policy-generation-finished.nodeids.compability' not set, user hooks present and less than 3000 nodes " +
+                              "updated: set 'RUDDER_NODE_IDS' parameter for compatibility")
+            Some(formatEnvPair(sortedNodeIds))
+          }
+        }
+    }
+  }
+
+  def getSortedNodeIds(updatedNodeConfigs: Map[NodeId, NodeConfiguration]): SortedNodeIds = {
+    val (policyServers, simpleNodes) = {
+      val (a, b) = updatedNodeConfigs.values.toSeq.partition(_.nodeInfo.isPolicyServer)
+      (
+        // policy servers are sorted by their promiximity with root, root first
+        a.sortBy(x => NodePriority(x.nodeInfo)).map(_.nodeInfo.id.value)
+        // simple nodes are sorted alphanum
+      , b.map(_.nodeInfo.id.value).sorted
+      )
+    }
+    SortedNodeIds(policyServers, simpleNodes)
+  }
+
+  /*
+   * Write a sourcable file with the sorted list of updated NodeIds in RUDDER_NODE_IDS variable.
+   * This file contains:
+   * - comments with the generation time
+   * - updated policy server / relay
+   * - updated normal nodes
+   * - all update nodes
+   *
+   * We keep one generation back in a "${path}.old"
+   */
+  def writeNodeIdsForHook(path: String, sortedNodeIds: SortedNodeIds, start: DateTime, end: DateTime): Box[Unit] = {
+    // format of date in the file
+    def date(d: DateTime) = d.toString(ISODateTimeFormat.basicDateTime())
+    // how to format a list of ids in the file
+    def formatIds(ids: Seq[String]) = '(' + ids.mkString("\n", "\n","\n") + ')'
+
+    def effect(x: => Unit)(msg: String) = {
+      try {
+        Full(x)
+      } catch {
+        case NonFatal(ex) => Failure(s"${msg}. Exception was: ${ex.getClass.getSimpleName}: ${ex.getMessage}")
+      }
+    }
+
+    implicit val openOptions = File.OpenOptions.append
+    implicit val charset = StandardCharsets.UTF_8
+
+    val file = File(path)
+    val savedOld = File(path+".old")
+
+    for {
+      _ <- effect {
+             file.parent.createDirectoryIfNotExists(true)
+             if(file.exists) {
+               file.moveTo(savedOld, true)
+             }
+           }(s"Can not move previous updated node IDs file to '${savedOld.pathAsString}'")
+      _ <- effect {
+            // header
+            file.writeText(s"# This file contains IDs of nodes updated by policy generation started at '${date(start)}' ended at '${date(end)}'\n\n")
+            // policy servers
+            file.writeText(s"\nRUDDER_UPDATED_POLICY_SERVER_IDS=${formatIds(sortedNodeIds.servers)}\n")
+            file.writeText(s"\nRUDDER_UPDATED_NODE_IDS=${formatIds(sortedNodeIds.nodes)}\n")
+            file.writeText(s"\nRUDDER_NODE_IDS=${formatIds(sortedNodeIds.servers ++ sortedNodeIds.nodes)}\n")
+           }(s"Can not write updated node IDs file '${file.pathAsString}'")
+    } yield ()
+  }
+
+
+  /*
+   * Post generation hooks
+   */
+  override def runPostHooks(
+      generationTime    : DateTime
+    , endTime           : DateTime
+    , updatedNodeConfigs: Map[NodeId, NodeConfiguration]
+    , systemEnv         : HookEnvPairs
+    , nodeIdsPath       : String
+  ): Box[Unit] = {
+    val sortedNodeIds = getSortedNodeIds(updatedNodeConfigs)
+    for {
+      written               <- writeNodeIdsForHook(nodeIdsPath, sortedNodeIds, generationTime, endTime)
+      postHooks             <- RunHooks.getHooks(HOOKS_D + "/policy-generation-finished", HOOKS_IGNORE_SUFFIXES)
+      // we want to sort node with root first, then relay, then other nodes for hooks
+      updatedNodeIds        =  updatedNodeConfigs.toList.map { case (k, v) =>
+                                 val id = v.nodeInfo.id
+                                 (
+                                   id
+                                 , NodePriority(updatedNodeConfigs(id).nodeInfo)
+                                 )
+                               }.sortBy( _._2 ).map( _._1 )
+      defaultEnvParams      =  (  ("RUDDER_GENERATION_DATETIME", generationTime.toString())
+                               :: ("RUDDER_END_GENERATION_DATETIME", endTime.toString) //what is the most alike a end time
+                               :: ("RUDDER_NODE_IDS_PATH", UPDATED_NODE_IDS_PATH)
+                               :: ("RUDDER_NUMBER_NODES_UPDATED", updatedNodeIds.size.toString)
+                               :: ("RUDDER_ROOT_POLICY_SERVER_UPDATED", if(updatedNodeIds.contains("root")) "0" else "1" )
+                               :: Nil )
+      envParams             =  getNodeIdsEnv(postGenerationHookCompabilityMode, postHooks, sortedNodeIds) match {
+                                 case None    => defaultEnvParams
+                                 case Some(p) => p :: defaultEnvParams
+                               }
+      _                     <- RunHooks.syncRun(
+                                   postHooks
+                                 , HookEnvPairs.build(envParams:_*)
+                                 , systemEnv
+                               )
+
+    } yield ()
   }
 
 }

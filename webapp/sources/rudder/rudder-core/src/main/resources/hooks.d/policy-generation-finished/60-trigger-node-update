@@ -4,8 +4,8 @@
 #
 # - RUDDER_GENERATION_DATETIME       : generation datetime: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time that identify that policy generation.
 # - RUDDER_END_GENERATION_DATETIME   : generation end time: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time when the generation ended (minus these hooks)
-# - RUDDER_NODE_IDS                  : space separated list of node id updated during the process, or the empty string
-#                                      if no nodes were updated.
+# - RUDDER_NODE_IDS_PATH             : path to a sourcable file with variable RUDDER_NODE_IDS containing a bash array of node id updated
+#                                      during the process, or the empty array if no nodes were updated.
 # - RUDDER_NUMBER_NODES_UPDATED      : integer >= 0; number of nodes updated (could be found by counting $RUDDER_NODE_IDS)
 # - RUDDER_ROOT_POLICY_SERVER_UPDATED: 0 if root was updated, anything else if not
 
@@ -22,6 +22,8 @@
 
 # if ${TEST} is defined, property file is not read and curl command not executed
 set -e
+
+source ${RUDDER_NODE_IDS_PATH}
 
 if [ -z "${TEST}" ]; then
   source /opt/rudder/etc/hooks.d/policy-generation-finished/$(basename $0).properties
@@ -54,12 +56,11 @@ if (( ${TO_UPDATE} > ${MAX_NODES} )); then
 fi
 
 # Signal to cf-serverd that it shall look-up the new promises
-if [ -n "${RUDDER_NODE_IDS}" ] && (( ${TO_UPDATE} > 0 )) ; then
+if [ -n "${RUDDER_NODE_IDS[0]}" ] && (( ${TO_UPDATE} > 0 )) ; then
 
-  # split nodes in an array
-  read -ra NODES_ARRAY <<<"${RUDDER_NODE_IDS}"
   # takes only the TO_UPDATE first nodes - nodes id are expected to be sorted as wanted
-  NODES=$(IFS=, eval 'echo "${NODES_ARRAY[*]:0:${TO_UPDATE}}"')
+  NODES_LIST="${RUDDER_NODE_IDS[*]:0:${TO_UPDATE}}"
+  NODES="${NODES_LIST// /,}"
 
   # avoid creating command line too long
   if [ -n "${TEST}" ]; then
