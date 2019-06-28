@@ -186,11 +186,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <groupId>org.slf4j</groupId>
       <artifactId>jcl-over-slf4j</artifactId>
     </dependency>
-    <!-- better file for file watching -->
-    <dependency>
-      <groupId>com.github.pathikrit</groupId>
-      <artifactId>better-files_${scala-binary-version}</artifactId>
-    </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-expression</artifactId>
