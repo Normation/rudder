@@ -118,6 +118,51 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
           </excludes>
         </configuration>
       </plugin>
+      <!-- For elm parts: copy resources and build elm app -->
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.0.2</version>
+        <executions>
+          <execution>
+            <id>copy-elm-toserve</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>target/classes/toserve/${destDirectory}</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>src/main/elm/*/generated</directory>
+                  <includes>
+                    <include>*.css</include>
+                    <include>*.js</include>
+                  </includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>1.6.0</version>
+        <executions>
+          <execution>
+            <id>compile-elm-application</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>bash</executable>
+              <commandlineArgs>src/main/elm/build-app.sh</commandlineArgs>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
     </plugins>
   </build>
 

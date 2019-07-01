@@ -9,6 +9,7 @@ import Toasty.Defaults
 import Http exposing (Error)
 import Http exposing (..)
 import Json.Encode as E
+import Browser
 
 
 port successNotification : (String -> msg) -> Sub msg
@@ -36,9 +37,9 @@ init flags =
   let
     initModel = Model flags.contextPath Nothing Toasty.initialState
   in
-    initModel ! []
+    (initModel, Cmd.none)
 
-main = programWithFlags
+main = Browser.element
   { init = init
   , view = view
   , update = update
@@ -70,20 +71,20 @@ type Msg
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    ToastyMsg subMsg ->
-      Toasty.update defaultConfig ToastyMsg subMsg model
+    ToastyMsg m ->
+      Toasty.update defaultConfig ToastyMsg m model
 
-    CreateSuccessNotification msg ->
+    CreateSuccessNotification m ->
       (model, Cmd.none)
-        |> (createSuccessNotification msg)
+        |> (createSuccessNotification m)
 
-    CreateErrorNotification msg ->
+    CreateErrorNotification m ->
       (model, Cmd.none)
-        |> (createErrorNotification msg)
+        |> (createErrorNotification m)
 
-    CreateWarningNotification msg ->
+    CreateWarningNotification m ->
       (model, Cmd.none)
-        |> (createWarningNotification msg)
+        |> (createWarningNotification m)
 ------------------------------
 -- VIEW --
 ------------------------------
