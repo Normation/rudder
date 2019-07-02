@@ -7,8 +7,11 @@ mod technique;
 use crate::ast::generators::*;
 use crate::ast::{CodeIndex, AST};
 use crate::parser::parse_file;
+use crate::technique::translate_file;
 use std::cell::UnsafeCell;
 use std::fs;
+use std::path::{Path,PathBuf};
+use structopt::StructOpt;
 
 // MAIN
 
@@ -24,8 +27,26 @@ use std::fs;
 // TODO next step:
 
 
-fn add_file<'a>(code_index: &mut CodeIndex<'a>, source_list: &'a SourceList, filename: &'a str) {
-    let content = fs::read_to_string(filename)
+/// Rust langage compiler
+#[derive(Debug, StructOpt)]
+#[structopt(rename_all = "kebab-case")]
+struct Opt {
+    /// Output file or directory
+    #[structopt(long,short)]
+    output: PathBuf,
+    /// Input file or directory
+    #[structopt(long,short)]
+    input: PathBuf,
+    /// Set to use technique translation mode
+    #[structopt(long,short)]
+    translate: bool,
+    /// Output format to use
+    #[structopt(long,short="f")]
+    output_format: Option<String>,
+}
+
+fn add_file<'a>(code_index: &mut CodeIndex<'a>, source_list: &'a SourceList, path: &Path, filename: &'a str) {
+    let content = fs::read_to_string(path)
         .unwrap_or_else(|_| panic!("Something went wrong reading the file {}", filename));
     let content_str = source_list.append(content);
     let file = match parse_file(filename, content_str) {
@@ -63,23 +84,30 @@ impl SourceList {
 }
 
 fn main() {
-    // TODO argparse:
-    // --input=file : main
-    // --output=file : main
-    // --output-format=<cfengine|dsc|...|ncf-technique|json-technique>
-    // *-technique: just parse and translate into a technique editor object
-    // --input-format=<agent|ncf-technique|json-technique>
-    // technique: read and compile a single file, automatically include GMlib, output only one file
-    // agent: read and compile a whole agent with a universe object, output all files, not yet supported
+    // easy optin parsing
+    let opt = Opt::from_args();
+    //println!("{:?}", opt);
 
+    if opt.translate {
+        match translate_file(&opt.input, &opt.output) {
+            Err(e) => panic!("Error: {}", e),
+            Ok(_) => println!("Done"),
+        }
+    } else {
+        // TODO pass parameters
+        compile(&opt.input)
+    }
+}
+
+fn compile(source: &Path) {
     let mut code_index = CodeIndex::new();
     let sources = SourceList::new();
 
     // read and add files
-    let stdlib = "stdlib.ncf";
-    add_file(&mut code_index, &sources, stdlib);
-    let filename = "test.ncf";
-    add_file(&mut code_index, &sources, filename);
+    let stdlib = Path::new("stdlib.ncf");
+    let filename = source.to_string_lossy();
+    add_file(&mut code_index, &sources, stdlib, "stdlib.ncf");
+    add_file(&mut code_index, &sources, source, &filename);
 
     // finish parsing into AST
     let ast = match AST::from_code_index(code_index) {
