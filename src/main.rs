@@ -2,6 +2,7 @@
 mod error;
 mod ast;
 mod parser;
+mod technique;
 
 use crate::ast::generators::*;
 use crate::ast::{CodeIndex, AST};
@@ -63,13 +64,13 @@ impl SourceList {
 
 fn main() {
     // TODO argparse:
-    // technique: read and compile a single file, automatically insert GMlib, output only one file
-    // agent: read and compile a whole agent with a universe object, output a all files
-    // --output-format=<cfengine|dsc|...>
-    // --input-format=<agent|technique|...>
     // --input=file : main
-    // --parse : output-format is json
-    // --unparse : input-format is json, output format is a technique
+    // --output=file : main
+    // --output-format=<cfengine|dsc|...|ncf-technique|json-technique>
+    // *-technique: just parse and translate into a technique editor object
+    // --input-format=<agent|ncf-technique|json-technique>
+    // technique: read and compile a single file, automatically include GMlib, output only one file
+    // agent: read and compile a whole agent with a universe object, output all files, not yet supported
 
     let mut code_index = CodeIndex::new();
     let sources = SourceList::new();

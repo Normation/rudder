@@ -15,6 +15,8 @@ use std::hash::Hash;
 
 #[derive(Debug, PartialEq)]
 pub enum Error {
+    //   message
+    User(String),
     //          message file    line  column
     Compilation(String, String, u32, usize),
     //      message file    line  column
@@ -89,6 +91,7 @@ where
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Error::User(msg) => write!(f, "Error:  {}", msg),
             Error::Compilation(msg, _, _, _) => write!(f, "Compilation error: {}", msg),
             Error::Parsing(msg, _, _, _) => write!(f, "Parsing error: {}", msg),
             Error::List(v) => write!(
