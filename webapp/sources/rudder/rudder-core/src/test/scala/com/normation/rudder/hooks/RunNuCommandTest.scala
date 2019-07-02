@@ -44,8 +44,6 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 import scala.collection.JavaConverters._
-import zio._
-import zio.syntax._
 import zio.duration._
 import com.normation.zio._
 import com.normation.errors._

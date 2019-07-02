@@ -16,8 +16,7 @@ Hooks parameters are passed by environment variable:
 
 - RUDDER_GENERATION_DATETIME       : ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ
 date/time that identifies that policy generation.
-- RUDDER_NODE_IDS                  : space separated list of node id
-updated during the process, or the empty string if no nodes were updated.
+- RUDDER_NODE_IDS_PATH             : path to a sourcable file with variable RUDDER_NODE_IDS containing a bash array of node id updated during the process, or the empty array if no nodes were updated.
 - RUDDER_END_GENERATION_DATETIME   : ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ
 date/time when the generation ended (minus these hooks)
 - RUDDER_NUMBER_NODES_UPDATED      : integer >= 0; number of nodes updated

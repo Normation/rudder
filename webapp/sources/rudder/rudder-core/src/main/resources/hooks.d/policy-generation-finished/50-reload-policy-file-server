@@ -1,14 +1,13 @@
 #!/bin/sh
 
-# Hooks parameter are passed by environment variable: 
+# Hooks parameter are passed by environment variable:
 #
-# - RUDDER_GENERATION_DATETIME       : generation datetime: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time that identify that policy generation. 
+# - RUDDER_GENERATION_DATETIME       : generation datetime: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time that identify that policy generation.
 # - RUDDER_END_GENERATION_DATETIME   : generation end time: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time when the generation ended (minus these hooks)
-# - RUDDER_NODE_IDS                  : space separated list of node id updated during the process, or the empty string
-#                                      if no nodes were updated. 
+# - RUDDER_NODE_IDS_PATH             : path to a sourcable file with variable RUDDER_NODE_IDS containing a bash array of node id updated
+#                                      during the process, or the empty array if no nodes were updated.
 # - RUDDER_NUMBER_NODES_UPDATED      : integer >= 0; number of nodes updated (could be found by counting $RUDDER_NODE_IDS)
 # - RUDDER_ROOT_POLICY_SERVER_UPDATED: 0 if root was updated, anything else if not
-
 
 # Signal to cf-serverd that it shall look-up the new promises
 

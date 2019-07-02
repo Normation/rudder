@@ -37,7 +37,15 @@ function test { #expected, command result
 
 export TEST="test"
 export RUDDER_NUMBER_NODES_UPDATED="5"
-export RUDDER_NODE_IDS="root node-1 node-2 node-3 node-4"
+export RUDDER_NODE_IDS_PATH=/tmp/rudder-test-hooks
+echo "RUDDER_NODE_IDS=(
+root
+node-1
+node-2
+node-3
+node-4
+)" > ${RUDDER_NODE_IDS_PATH}
+
 export MAX_NODES="100"
 export NODE_PERCENT="100"
 
