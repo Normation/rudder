@@ -803,6 +803,11 @@ $scope.onImportFileChange = function (fileEl) {
     if ($scope.selectedTechnique) {
       var call = toMethodCall(bundle);
       $scope.selectedTechnique.method_calls.push(call);
+      $(function() {
+        var gmList = $('form.editForm');
+        var height = gmList[0].scrollHeight;
+        gmList.stop().animate( {scrollTop:height} , 400);
+      });
     }
   };
 
