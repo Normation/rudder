@@ -440,19 +440,18 @@ class TechniqueArchiverImpl (
     (for {
 
 
-      git <- IOResult.effect(Git.open(File(s"/var/rudder/configuration-repository").toJava))
-      ident  <- personIdentservice.getPersonIdentOrDefault(commiter.name)
-      _  =  ZIO.foreach(filesToAdd) { f =>
-                  IOResult.effect (git.add.addFilepattern(f).call)
-                }
-
-      _  =  ZIO.foreach(filesToDelete) { f =>
-        IOResult.effect(git.rm.addFilepattern(f).call)
-        }
-      _ <- IOResult.effect(git.commit.setCommitter(ident).setMessage(msg).call)
+      git     <- IOResult.effect(Git.open(File(s"/var/rudder/configuration-repository").toJava))
+      ident   <- personIdentservice.getPersonIdentOrDefault(commiter.name)
+      added   <- ZIO.foreach(filesToAdd) { f =>
+                   IOResult.effect (git.add.addFilepattern(f).call)
+                 }
+      removed <- ZIO.foreach(filesToDelete) { f =>
+                   IOResult.effect(git.rm.addFilepattern(f).call)
+                 }
+      commit  <- IOResult.effect(git.commit.setCommitter(ident).setMessage(msg).call)
     } yield {
       gitPath
-    }).chainError(s"error when commiting file ${gitPath} for Technique '${technique.name}").unit
+    }).chainError(s"error when committing Technique '${technique.name}/${technique.version}").unit
   }
 
 }

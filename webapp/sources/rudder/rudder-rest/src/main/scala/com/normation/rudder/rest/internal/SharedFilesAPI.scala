@@ -39,13 +39,11 @@ package com.normation.rudder.rest.internal
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
-import java.nio.file.attribute.PosixFilePermission
 import java.nio.file.attribute.PosixFilePermissions
 
 import better.files._
 import com.normation.rudder.rest.RestExtractorService
 import net.liftweb.common.Box
-import net.liftweb.common.Empty
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
@@ -63,10 +61,11 @@ import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonAST.JValue
 import org.joda.time.DateTime
 import org.joda.time.Instant
-
-import scala.util.Success
-import scala.util.Try
-import scala.util.{Failure => Catch}
+import com.normation.errors._
+import com.normation.box._
+import com.normation.errors.IOResult
+import zio.ZIO
+import zio.syntax._
 
 import scala.collection.JavaConverters._
 
@@ -75,24 +74,19 @@ class SharedFilesAPI(
   , sharedFolderPath : String
 ) extends RestHelper with Loggable {
 
-  def checkPathAndContinue(path : String, baseFolder : File)(fun : File => Box[LiftResponse]) : Box[LiftResponse] = {
-    import net.liftweb.util.Helpers._
-    (tryo {
+  def checkPathAndContinue(path : String, baseFolder : File)(fun : File => IOResult[LiftResponse]) : IOResult[LiftResponse] = {
+    IOResult.effectM {
       val filePath = baseFolder /  path.dropWhile(_.equals('/'))
       if (baseFolder.contains(filePath, false)) {
-        Try( fun(filePath)) match {
-          case Success(value) => value
-          case Catch(e) => Failure(s"Error while managing file '${filePath.name}'", Full(e), Empty)
-        }
+        fun(filePath)
       } else {
-        Failure(s"Unauthorized access to file ${filePath.name}")
+        Unexpected(s"Unauthorized access to file ${filePath.name}").fail
       }
-    }).flatMap { identity }
+    }
   }
-  def serialize(file:File) : Box[JValue] = {
+  def serialize(file:File) : IOResult[JValue] = {
     import net.liftweb.json.JsonDSL._
-    import net.liftweb.util.Helpers._
-    tryo{
+    IOResult.effect(s"Error when serializing file ${file.name}") {
       val date = new DateTime(Instant.ofEpochMilli(Files.getLastModifiedTime(file.path, File.LinkOptions.default:_*).toMillis))
       ( ("name"  -> file.name)
       ~ ("size"  -> file.size)
@@ -118,109 +112,139 @@ class SharedFilesAPI(
       )
     JsonResponse(content,Nil,Nil, 200)
   }
-  def downloadFile(file : File) : Box[LiftResponse] = {
-    if (file.exists) {
-      if (file.isRegularFile) {
-        val fileSize = file.size
-        val headers =
-         ("Content-type" -> "application/octet-stream") ::
-         ("Content-length" -> fileSize.toString) ::
-         ("Content-disposition" -> s"attachment; filename=${file.name}") ::
-         Nil
-        Full(StreamingResponse(file.newInputStream,() => {}, fileSize, headers, Nil, 200))
-      } else {
-        Failure(s"File '${file.name}' is not a regular file")
-      }
-    } else {
-      Failure(s"File '${file.name}' does not exist")
-    }
-  }
-  def directoryContent(directory : File) : Box[LiftResponse] = {
-    if (directory.exists) {
-      if (directory.isDirectory()) {
-        val jsonFiles =  com.normation.utils.Control.sequence(directory.children.toSeq)(serialize)
-        jsonFiles.map{files =>
-          val result = JObject(List(JField("result",JArray(files.toList))))
-          JsonResponse(result,List(),List(), 200)
+  def downloadFile(file : File) : IOResult[LiftResponse] = {
+    IOResult.effectM {
+      if (file.exists) {
+        if (file.isRegularFile) {
+          val fileSize = file.size
+          val headers =
+            ("Content-type" -> "application/octet-stream") ::
+              ("Content-length" -> fileSize.toString) ::
+              ("Content-disposition" -> s"attachment; filename=${file.name}") ::
+              Nil
+          StreamingResponse(file.newInputStream, () => {}, fileSize, headers, Nil, 200).succeed
+        } else {
+          Unexpected(s"File '${file.name}' is not a regular file").fail
         }
       } else {
-        Failure(s"File '${directory.name}' is not a directory")
+        Unexpected(s"File '${file.name}' does not exist").fail
       }
-    } else {
-      Failure(s"File '${directory.name}' does not exist")
     }
   }
-  def fileContent(file : File) : Box[LiftResponse] = {
-    if (file.exists) {
-      if (file.isRegularFile) {
-        import net.liftweb.json.JsonDSL._
-        val fileContent: Seq[String] = file.lines(StandardCharsets.UTF_8).toSeq
-        val result = JObject(List(JField("result", fileContent.mkString("\n"))))
-        Full(JsonResponse(result, List(), List(), 200))
+  def directoryContent(directory : File) : IOResult[LiftResponse] = {
+
+    IOResult.effectM {
+      if (directory.exists) {
+        if (directory.isDirectory()) {
+          val jsonFiles: IOResult[List[JValue]] = directory.children.toSeq.accumulate(serialize)
+          jsonFiles.map { files =>
+            val result = JObject(List(JField("result", JArray(files))))
+            JsonResponse(result, List(), List(), 200)
+          }
+        } else {
+          Unexpected(s"File '${directory.name}' is not a directory").fail
+        }
       } else {
-        Failure(s"File '${file.name}' is not a regular file")
+        Unexpected(s"File '${directory.name}' does not exist").fail
       }
-    } else {
-      Failure(s"File '${file.name}' does not exist")
     }
   }
-  def editFile(content:String)(file : File) : Box[LiftResponse] = {
-    if (file.exists) {
-      if (file.isRegularFile) {
-        file.write(content)
-        Full(basicSuccessResponse)
+  def fileContent(file : File) : IOResult[LiftResponse] = {
+    IOResult.effectM {
+      if (file.exists) {
+        if (file.isRegularFile) {
+          import net.liftweb.json.JsonDSL._
+          val fileContent: Seq[String] = file.lines(StandardCharsets.UTF_8).toSeq
+          val result = JObject(List(JField("result", fileContent.mkString("\n"))))
+          JsonResponse(result, List(), List(), 200).succeed
+        } else {
+          Unexpected(s"File '${file.name}' is not a regular file").fail
+        }
       } else {
-        Failure(s"File '${file.name}' is not a regular file")
+        Unexpected(s"File '${file.name}' does not exist").fail
       }
-    } else {
-      Failure(s"File '${file.name}' does not exist")
     }
-  }
-  def setPerms(perms: Set[PosixFilePermission])(file : File) : Box[LiftResponse] = {
-    file.setPermissions(perms)
-    Full(basicSuccessResponse)
-  }
-  def removeFile(file : File) : Box[LiftResponse] = {
-    file.delete(true)
-    Full(basicSuccessResponse)
-  }
-  def moveToDirectory(oldFile: File)( dir : File) : Box[LiftResponse] = {
-    if (oldFile.exists) {
-      oldFile.moveToDirectory(dir)
-      Full(basicSuccessResponse)
-    } else {
-      Failure(s"File '${oldFile.name}' does not exist")
-    }
-  }
-  def copyToDirectory(oldFile: File)( dir : File) : Box[LiftResponse] = {
-    if (oldFile.exists) {
-      oldFile.copyToDirectory(dir)
-      Full(basicSuccessResponse)
-    } else {
-      Failure(s"File '${oldFile.name}' does not exist")
-    }
-  }
-  def renameFile(oldFile: File)( newFile : File) : Box[LiftResponse] = {
-    if (oldFile.exists) {
-      oldFile.moveTo(newFile)
-      Full(basicSuccessResponse)
-    } else {
-      Failure(s"File '${oldFile.name}' does not exist")
-    }
-  }
-  def createFolder(newdirectory : File) : Box[LiftResponse] = {
-    newdirectory.createDirectoryIfNotExists(false)
-    Full(basicSuccessResponse)
   }
 
+  def editFile(content:String)(file : File) : IOResult[LiftResponse] = {
+    IOResult.effectM {
+      if (file.exists) {
+        if (file.isRegularFile) {
+          file.write(content)
+          basicSuccessResponse.succeed
+        } else {
+          Unexpected(s"File '${file.name}' is not a regular file").fail
+        }
+      } else {
+        Unexpected(s"File '${file.name}' does not exist").fail
+      }
+    }
+  }
+  def setPerms(rawPerms: String)(file : File) : IOResult[LiftResponse] = {
+    IOResult.effect {
+      val perms = PosixFilePermissions.fromString(rawPerms).asScala.toSet
+      file.setPermissions(perms)
+      basicSuccessResponse
+    }
+  }
+  def removeFile(file : File) : IOResult[LiftResponse] = {
+    IOResult.effect {
+      file.delete(true)
+      basicSuccessResponse
+    }
+  }
+  def moveToDirectory(oldFile: File)( dir : File) : IOResult[LiftResponse] = {
+    IOResult.effectM {
+      if (oldFile.exists) {
+        oldFile.moveToDirectory(dir)
+        basicSuccessResponse.succeed
+      } else {
+        Unexpected(s"File '${oldFile.name}' does not exist").fail
+      }
+    }
+  }
+  def copyToDirectory(oldFile: File)( dir : File) : IOResult[LiftResponse] = {
+    IOResult.effectM {
+      if (oldFile.exists) {
+        oldFile.copyToDirectory(dir)
+        basicSuccessResponse.succeed
+      } else {
+        Unexpected(s"File '${oldFile.name}' does not exist").fail
+      }
+    }
+  }
+  def renameFile(oldFile: File)( newFile : File) : IOResult[LiftResponse] = {
+
+    IOResult.effectM {
+      if (oldFile.exists) {
+        oldFile.moveTo(newFile)
+        basicSuccessResponse.succeed
+      } else {
+        Unexpected(s"File '${oldFile.name}' does not exist").fail
+      }
+    }
+  }
+  def createFolder(newdirectory : File) : IOResult[LiftResponse] = {
+    IOResult.effect {
+      newdirectory.createDirectoryIfNotExists(false)
+      basicSuccessResponse
+    }
+  }
+
+
+
+
+
   def requestDispatch(basePath : File) : PartialFunction[Req, () => Box[LiftResponse]] = {
+
+
     case Get(Nil, req) => {
       (req.params.get("action") match {
         case None => Failure("'action' is not defined in request")
         case Some("download" :: Nil) =>
           req.params.get("path") match {
             case Some(path :: Nil) =>
-              checkPathAndContinue(path, basePath)(downloadFile)
+              checkPathAndContinue(path, basePath)(downloadFile).toBox
             case None =>
               Failure("Path of file to download is not defined")
             case Some(values) =>
@@ -256,109 +280,83 @@ class SharedFilesAPI(
         case _ =>
           (req.json match {
             case Full (json) =>
+              def simpleAction( actionName : String, itemName : String, action : File => IOResult[LiftResponse]) = {
+                json \ itemName match {
+                  case JString(path) =>
+                    checkPathAndContinue(path, basePath) (f =>
+                      ( IOResult.effectM(s"An error occured while running action '${actionName}' ") {
+                        action(f)
+                      } )
+                    ).toBox
+                  case _ => Failure(s"'${itemName}' is not correctly defined for '${actionName}' action")
+                }
+              }
+
+
+              def actionWithParam( actionName : String, itemName : String, paramName : String, action : String => File => IOResult[LiftResponse]) = {
+                json \ itemName match {
+                  case JString (item) =>
+                    json \ paramName match {
+                      case JString (param) =>
+                        checkPathAndContinue (item, basePath) (action(param)).toBox
+                      case _ => Failure (s"'${paramName}' is not correctly defined for '${actionName}' action")
+                    }
+                  case _ => Failure (s"'${itemName}' is not correctly defined for '${actionName}' action")
+                }
+              }
+
+              def actionList( actionName : String, itemName : String, paramName : String, action : String => File => IOResult[LiftResponse]) = {
+                json \ itemName match {
+                  case JArray(items) =>
+                    ZIO.foreach(items) {
+                      case JString(item) =>
+                        json \ paramName match {
+                          case JString(param) =>
+                            checkPathAndContinue(item, basePath)(action(param))
+                          case _ => Unexpected(s"'${paramName}' is not correctly defined for '${action}' action").fail
+                        }
+                      case item => Unexpected(s"a value from array '${itemName}', for action '${action}' is not valid, should be a string but is: ${net.liftweb.json.compactRender(item)}").fail
+                    }.map(_ => basicSuccessResponse).toBox
+                  case _ => Failure(s"'${itemName}' is not correctly defined for '${action}' action")
+                }
+              }
 
               json \ "action" match {
 
                 case JString ("list") =>
-                  json \ "path" match {
-                    case JString (path) =>
-                      checkPathAndContinue (path, basePath) (directoryContent)
-                    case _ => Failure ("'path' is not correctly defined for 'list' action")
-                  }
+                  simpleAction("list", "path", directoryContent)
 
                 case JString ("getContent") =>
-                  json \ "item" match {
-                    case JString (item) =>
-                      checkPathAndContinue (item, basePath) (fileContent)
-                    case _ => Failure ("'item' is not correctly defined for 'getContent' action")
-                  }
+                  simpleAction("getContent", "item", fileContent)
+
+                case JString ("createFolder") =>
+                  simpleAction("createFolder", "newPath", createFolder)
 
                 case JString ("edit") =>
-                  json \ "content" match {
-                    case JString (content) =>
-                      json \ "item" match {
-                        case JString (item) =>
-                          checkPathAndContinue (item, basePath) (editFile(content))
-                        case _ => Failure ("'item' is not correctly defined for 'edit' action")
-                      }
-                    case _ => Failure ("'content' is not correctly defined for 'edit' action")
-                  }
-                case JString ("createFolder") =>
-                  json \ "newPath" match {
-                    case JString (item) =>
-                      checkPathAndContinue (item, basePath) (createFolder)
-                    case _ => Failure ("'item' is not correctly defined for 'getContent' action")
-                  }
+                  actionWithParam("edit", "item", "content", editFile)
+
+                case JString ("rename") =>
+                  actionWithParam("renmae", "item", "newItemPath", (newItem => oldFile => checkPathAndContinue(newItem, basePath)(renameFile(oldFile))))
+
                 case JString ("remove") =>
                   json \ "items" match {
                     case JArray(items) =>
-                      (com.normation.utils.Control.sequence(items) {
+                      ZIO.foreach(items) {
                         case JString(item) =>
                               checkPathAndContinue(item, basePath)(removeFile)
-                        case _ => Failure("not a string")
-                      }).map(_ => basicSuccessResponse)
+                        case item => Unexpected(s"a value from array 'items', for action 'remove' is not valid, should be a string but is: ${net.liftweb.json.compactRender(item)}").fail
+                      }.map(_ => basicSuccessResponse).toBox
                     case _ => Failure("'item' is not correctly defined for 'getContent' action")
                   }
 
                 case JString ("changePermissions") =>
-                  json \ "items" match {
-                    case JArray(items) =>
-                      (com.normation.utils.Control.sequence(items) {
-                        case JString(item) =>
-                          json \ "perms" match {
-                            case JString(rawPerms) =>
-                              Try(PosixFilePermissions.fromString(rawPerms)) match {
-                                case Success(perms) =>
-                                  checkPathAndContinue(item, basePath)(setPerms(perms.asScala.toSet))
-                                case Catch(e) => Failure(s"Permissions ${rawPerms} are note valid permissions", Full(e), Empty)
-                              }
-                            case _ => Failure("'newItemPath' is not correctly defined for 'getContent' action")
-                          }
-                        case _ => Failure("not a string")
-                      }).map(_ => basicSuccessResponse)
-                    case _ => Failure("'item' is not correctly defined for 'getContent' action")
-                  }
+                  actionList("changePermissions", "items", "perms", setPerms)
 
                 case JString ("move") =>
-                  json \ "items" match {
-                    case JArray(items) =>
-                      (com.normation.utils.Control.sequence(items) {
-                        case JString(item) =>
-                          json \ "newPath" match {
-                            case JString(newItem) =>
-                              checkPathAndContinue(item, basePath)(oldFile => checkPathAndContinue(newItem, basePath)(moveToDirectory(oldFile)))
-                            case _ => Failure("'newItemPath' is not correctly defined for 'getContent' action")
-                          }
-                        case _ => Failure("not a string")
-                      }).map(_ => basicSuccessResponse)
-                    case _ => Failure("'item' is not correctly defined for 'getContent' action")
-                  }
+                  actionList("move", "items", "newPath", (newItem => oldFile => checkPathAndContinue(newItem, basePath)(moveToDirectory(oldFile))))
 
                 case JString ("copy") =>
-                  json \ "items" match {
-                    case JArray(items) =>
-                      (com.normation.utils.Control.sequence(items) {
-                        case JString(item) =>
-                          json \ "newPath" match {
-                            case JString(newItem) =>
-                              checkPathAndContinue(item, basePath)(oldFile => checkPathAndContinue(newItem, basePath)(copyToDirectory(oldFile)))
-                            case _ => Failure("'newItemPath' is not correctly defined for 'getContent' action")
-                          }
-                        case _ => Failure("not a string")
-                      }).map(_ => basicSuccessResponse)
-                    case _ => Failure("'item' is not correctly defined for 'getContent' action")
-                  }
-
-                case JString ("rename") =>
-                  json \ "item" match {
-                    case JString (item) =>
-                      json \ "newItemPath" match {
-                        case JString(newItem) =>
-                          checkPathAndContinue(item, basePath)(oldFile => checkPathAndContinue(newItem, basePath)(renameFile(oldFile)))
-                        case _ => Failure("'newItemPath' is not correctly defined for 'getContent' action")
-                      }
-                    case _ => Failure ("'item' is not correctly defined for 'getContent' action")
-                  }
+                  actionList("copy", "items", "newPath", (newItem => oldFile => checkPathAndContinue(newItem, basePath)(copyToDirectory(oldFile))))
 
               case _ => Failure ("Action not supported")
             }
