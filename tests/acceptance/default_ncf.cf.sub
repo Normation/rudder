@@ -14,6 +14,12 @@ bundle common ncf_inputs
       "default_files_relative" slist => splitstring("${generic_framework}", "\n", 10000);
       "default_files"         slist => maplist("${ncf_tree}/${this}", default_files_relative);
 
+  classes:
+    # OS classes for compatibility
+      "SUSE" expression => "sles";
+      "SuSE" expression => "sles";
+      "suse" expression => "sles";
+
 }
 
 # Load a custom ncf.conf for tests
