@@ -1,0 +1,17 @@
+# @name variable
+# @description 
+# @version 1.0
+
+bundle agent variable
+{
+  methods:
+    "Variable string_context_0" usebundle => _method_reporting_context("Variable string", "bar");
+    "Variable string" usebundle => variable_string("foo", "bar", "vim"),
+      ifvarclass => concat("any");
+    "Package state_context_1" usebundle => _method_reporting_context("Package state", "${foo.bar}");
+    "Package state" usebundle => package_state("${foo.bar}", "", "", "", "present"),
+      ifvarclass => concat("any");
+    "Command execution_context_2" usebundle => _method_reporting_context("Command execution", "/bin/false");
+    "Command execution" usebundle => command_execution("/bin/false"),
+      ifvarclass => concat("hpux");
+}
