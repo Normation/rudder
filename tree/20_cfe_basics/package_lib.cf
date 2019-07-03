@@ -53,17 +53,15 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
       "version_description" string => "in version ${version}";
     
     # Log message
-    pass3::
+    pass3.!(!state_present.version_latest)::
       "message" string => "If you tried to install a virtual package, please use in place the concrete package you want to install.${const.endl}${state_description} of package ${name}${architecture_description}${version_description}",
         ifvarclass => "${old_class_prefix}_not_ok|${class_prefix}_not_ok";
 
-    pass3.!(!state_present.version_latest)::
       "message" string => "${state_description} of package ${name}${architecture_description}${version_description}",
         ifvarclass => "!(${old_class_prefix}_not_ok|${class_prefix}_not_ok)";
 
-    pass3.!state_present.version_latest::
-      "message" string => "${state_description} of package ${name}${architecture_description}${version_description} is not supported and",
-        ifvarclass => "!(${old_class_prefix}_not_ok|${class_prefix}_not_ok)";
+    !state_present.version_latest::
+      "message" string => "${state_description} of package ${name}${architecture_description}${version_description} is not supported and";
 
   defaults:
       "version"      string => "any", if_match_regex => "";
