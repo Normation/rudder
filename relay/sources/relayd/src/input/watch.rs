@@ -39,21 +39,20 @@ use futures::{
     Stream,
 };
 use inotify::{Inotify, WatchMask};
-use slog::{slog_debug, slog_info, slog_warn};
-use slog_scope::{debug, info, warn};
 use std::{
     path::Path,
     sync::Arc,
     time::{Duration, Instant, SystemTime},
 };
 use tokio::{fs::read_dir, prelude::*, timer::Interval};
+use tracing::{debug, info, warn};
 
 pub fn watch(
     path: &WatchedDirectory,
     job_config: &Arc<JobConfig>,
     tx: &mpsc::Sender<ReceivedFile>,
 ) {
-    info!("Starting file watcher on {:#?}", &path; "component" => LogComponent::Watcher);
+    info!("Starting file watcher on {:#?}", &path);
     tokio::spawn(list_files(
         path.clone(),
         job_config.cfg.processing.reporting.catchup,
@@ -68,9 +67,9 @@ fn list_files(
     tx: mpsc::Sender<ReceivedFile>,
 ) -> impl Future<Item = (), Error = ()> {
     Interval::new(Instant::now(), Duration::from_secs(cfg.frequency))
-        .map_err(|e| warn!("interval error: {}", e; "component" => LogComponent::Watcher))
+        .map_err(|e| warn!("interval error: {}", e))
         .for_each(move |_instant| {
-            debug!("listing {:?}", path; "component" => LogComponent::Watcher);
+            debug!("listing {:?}", path);
 
             let tx = tx.clone();
             let sys_time = SystemTime::now();
@@ -78,7 +77,7 @@ fn list_files(
             read_dir(path.clone())
                 .flatten_stream()
                 .take(cfg.limit)
-                .map_err(|e| warn!("list error: {}", e; "component" => LogComponent::Watcher))
+                .map_err(|e| warn!("list error: {}", e))
                 .filter(move |entry| {
                     poll_fn(move || entry.poll_metadata())
                         // If metadata can't be fetched, skip it for now
@@ -90,17 +89,17 @@ fn list_files(
                                 .unwrap_or_else(|_| Duration::new(0, 0))
                         })
                         .map(|duration| duration > Duration::from_secs(30))
-                        .map_err(|e| warn!("list filter error: {}", e; "component" => LogComponent::Watcher))
+                        .map_err(|e| warn!("list filter error: {}", e))
                         // TODO async filter (https://github.com/rust-lang-nursery/futures-rs/pull/728)
                         .wait()
                         .unwrap_or(false)
                 })
                 .for_each(move |entry| {
                     let path = entry.path();
-                    debug!("list: {:?}", path; "component" => LogComponent::Watcher);
+                    debug!("list: {:?}", path);
                     tx.clone()
                         .send(path)
-                        .map_err(|e| warn!("list error: {}", e; "component" => LogComponent::Watcher))
+                        .map_err(|e| warn!("list error: {}", e))
                         .map(|_| ())
                 })
         })
@@ -122,7 +121,7 @@ fn watch_files<P: AsRef<Path>>(
     let path_prefix = path.as_ref().to_path_buf();
     watch_stream(&path)
         .map_err(|e| {
-            warn!("watch error: {}", e; "component" => LogComponent::Watcher);
+            warn!("watch error: {}", e);
         })
         .map(|entry| entry.name)
         // If it is None, it means it is not an event on a file in the directory, skipping
@@ -131,13 +130,13 @@ fn watch_files<P: AsRef<Path>>(
         // inotify gives the filename, add the entire path
         .map(move |p| {
             let full_path = path_prefix.join(p);
-            debug!("inotify: {:?}", path.as_ref(); "component" => LogComponent::Watcher);
+            debug!("inotify: {:?}", path.as_ref());
             full_path
         })
         .for_each(move |entry| {
             tx.clone()
                 .send(entry)
-                .map_err(|e| warn!("watch send error: {}", e; "component" => LogComponent::Watcher))
+                .map_err(|e| warn!("watch send error: {}", e))
                 .map(|_| ())
         })
 }

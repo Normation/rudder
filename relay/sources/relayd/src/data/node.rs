@@ -32,14 +32,13 @@ use crate::error::Error;
 use openssl::{stack::Stack, x509::X509};
 use serde::Deserialize;
 use serde_json;
-use slog::{slog_info, slog_trace, slog_warn};
-use slog_scope::{info, trace, warn};
 use std::{
     collections::HashMap,
     fs::{read, read_to_string},
     path::Path,
     str::FromStr,
 };
+use tracing::{info, trace, warn};
 
 use itertools::Itertools;
 

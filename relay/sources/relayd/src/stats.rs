@@ -31,9 +31,8 @@
 use crate::configuration::LogComponent;
 use futures::{stream::Stream, sync::mpsc, Future};
 use serde::{Deserialize, Serialize};
-use slog::slog_trace;
-use slog_scope::trace;
 use std::sync::{Arc, RwLock};
+use tracing::trace;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct Stats {
@@ -79,7 +78,7 @@ impl Stats {
                 .write()
                 .expect("could not write lock stats")
                 .event(event);
-            trace!("Received stat event: {:?}", event; "component" => LogComponent::Statistics);
+            trace!("Received stat event: {:?}", event);
             Ok(())
         })
     }

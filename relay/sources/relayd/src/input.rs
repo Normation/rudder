@@ -37,9 +37,8 @@ use openssl::{
     stack::Stack,
     x509::{store::X509StoreBuilder, X509},
 };
-use slog::slog_debug;
-use slog_scope::debug;
 use std::{ffi::OsStr, fs::read, io::Read, path::Path};
+use tracing::debug;
 
 pub fn read_compressed_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, Error> {
     let path = path.as_ref();
@@ -49,7 +48,7 @@ pub fn read_compressed_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, Error> {
 
     Ok(match path.extension().map(OsStr::to_str) {
         Some(Some("gz")) => {
-            debug!("{:?} has .gz extension, extracting", path; "component" => LogComponent::Watcher);
+            debug!("{:?} has .gz extension, extracting", path);
             let mut gz = GzDecoder::new(data.as_slice());
             let mut uncompressed_data = vec![];
             gz.read_to_end(&mut uncompressed_data)?;
@@ -57,7 +56,7 @@ pub fn read_compressed_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, Error> {
         }
         // Let's assume everything else is a text file
         _ => {
-            debug!("{:?} has no gz/xz extension, no extraction needed", path; "component" => LogComponent::Watcher);
+            debug!("{:?} has no gz/xz extension, no extraction needed", path);
             data
         }
     })

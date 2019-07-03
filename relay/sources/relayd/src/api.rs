@@ -31,13 +31,12 @@
 use crate::error::Error;
 use crate::{configuration::LogComponent, stats::Stats, status::Status, JobConfig};
 use futures::Future;
-use slog::slog_info;
-use slog_scope::info;
 use std::collections::HashMap;
 use std::{
     net::SocketAddr,
     sync::{Arc, RwLock},
 };
+use tracing::info;
 use warp::Filter;
 
 use crate::remote_run::nodes_handle;
@@ -49,12 +48,12 @@ pub fn api(
     stats: Arc<RwLock<Stats>>,
 ) -> impl Future<Item = (), Error = ()> {
     let stats_simple = warp::path("stats").map(move || {
-        info!("/stats queried"; "component" => LogComponent::Statistics);
+        info!("/stats queried");
         warp::reply::json(&(*stats.clone().read().unwrap()))
     });
 
     let status = warp::path("status").map(move || {
-        info!("/status queried"; "component" => LogComponent::Statistics);
+        info!("/status queried");
         warp::reply::json(&Status::poll(job_config.clone()))
     });
 
@@ -67,7 +66,7 @@ pub fn api(
                     my_agent.to_string(),
                 ))),
                 Ok(_) => {
-                    info!("conditions OK"; "component" => LogComponent::Statistics);
+                    info!("conditions OK");
                     Ok(warp::reply())
                 }
             }
@@ -77,12 +76,12 @@ pub fn api(
     let nodes2 = warp::path("nodes");
 
     let node_id = warp::path::param::<String>().map(|node| {
-        info!("remote run triggered on node {}", node; "component" => LogComponent::Statistics);
+        info!("remote run triggered on node {}", node);
         warp::reply()
     });
 
     let all = warp::path("all").map(move || {
-        info!("remote-run triggered on all the nodes"; "component" => LogComponent::Statistics);
+        info!("remote-run triggered on all the nodes");
         warp::reply()
     });
 
@@ -97,6 +96,6 @@ pub fn api(
         .and(nodes.or(all).or(nodes2.and(node_id))));
 
     let (addr, server) = warp::serve(routes).bind_with_graceful_shutdown(listen, shutdown);
-    info!("Started stats API on {}", addr; "component" => LogComponent::Statistics);
+    info!("Started stats API on {}", addr);
     server
 }

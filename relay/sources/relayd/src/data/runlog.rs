@@ -31,26 +31,19 @@
 use crate::{
     configuration::LogComponent,
     data::{
-        report::{report, RawReport},
+        report::{runlog, RawReport},
         Report, RunInfo,
     },
     error::Error,
 };
-use nom::*;
+use nom::{multi::many1, IResult};
 use serde::{Deserialize, Serialize};
-use slog::{slog_debug, slog_error, slog_warn};
-use slog_scope::{debug, error, warn};
 use std::{
     convert::TryFrom,
     fmt::{self, Display},
     str::FromStr,
 };
-
-named!(parse_runlog<&str, Vec<RawReport>>,
-    many1!(
-        complete!(report)
-    )
-);
+use tracing::{debug, error, warn};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RunLog {
@@ -72,9 +65,9 @@ impl FromStr for RunLog {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match parse_runlog(s) {
+        match runlog(s) {
             Ok(raw_runlog) => {
-                debug!("Parsed runlog {:#?}", raw_runlog.1; "component" => LogComponent::Parser);
+                debug!("Parsed runlog {:#?}", raw_runlog.1);
                 RunLog::try_from(raw_runlog.1)
             }
             Err(e) => {
@@ -104,13 +97,16 @@ impl TryFrom<Vec<RawReport>> for RunLog {
 
         for report in &reports {
             if info.node_id != report.node_id {
-                error!("Wrong node id in report {:#?}, got {} but should be {}", report, report.node_id, info.node_id; "component" => LogComponent::Parser);
+                error!(
+                    "Wrong node id in report {:#?}, got {} but should be {}",
+                    report, report.node_id, info.node_id
+                );
                 return Err(Error::InconsistentRunlog);
             }
             if info.timestamp != report.start_datetime {
                 error!(
                     "Wrong execution timestamp in report {:#?}, got {} but should be {}",
-                    report, report.start_datetime, info.timestamp; "component" => "parser"
+                    report, report.start_datetime, info.timestamp
                 );
                 return Err(Error::InconsistentRunlog);
             }

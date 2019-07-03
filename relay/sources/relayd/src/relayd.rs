@@ -30,13 +30,12 @@
 
 use relayd::{configuration::CliConfiguration, error::Error, init};
 use std::process::exit;
-use structopt::StructOpt;
 
-fn main() {
-    let cli_cfg = CliConfiguration::from_args();
+#[paw::main]
+fn main(cli_cfg: CliConfiguration) {
     // Everything in a lib to allow extensive testing
     if let Err(e) = init(cli_cfg) {
-        eprintln!("{}", e);
+        println!("{}", e);
         exit(match e {
             Error::ConfigurationParsing(_) => 2,
             _ => 1,

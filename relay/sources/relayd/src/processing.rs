@@ -43,19 +43,23 @@ use futures::{
     sync::mpsc,
     Stream,
 };
-use slog::{slog_debug, slog_error, slog_warn};
-use slog_scope::{debug, error, warn};
+use md5::{Digest, Md5};
+use std::os::unix::ffi::OsStrExt;
 use std::{convert::TryFrom, path::PathBuf, sync::Arc};
 use tokio::{
     fs::{remove_file, rename},
     prelude::*,
 };
 use tokio_threadpool::blocking;
+use tracing::{debug, error, span, warn, Level};
 
 pub type ReceivedFile = PathBuf;
 pub type RootDirectory = PathBuf;
 
 pub fn serve_reports(job_config: &Arc<JobConfig>, stats: &mpsc::Sender<Event>) {
+    let report_span = span!(Level::TRACE, "reporting");
+    let _report_enter = report_span.enter();
+
     let (reporting_tx, reporting_rx) = mpsc::channel(1_024);
     tokio::spawn(treat_reports(
         job_config.clone(),
@@ -80,32 +84,59 @@ fn treat_reports(
     stats: mpsc::Sender<Event>,
 ) -> impl Future<Item = (), Error = ()> {
     rx.for_each(move |file| {
+        let queue_id = format!(
+            "{:X}",
+            Md5::digest(
+                file.file_name()
+                    .unwrap_or_else(|| file.as_os_str())
+                    .as_bytes()
+            )
+        );
+        let report_span = span!(
+            Level::INFO,
+            "report",
+            queue_id = %queue_id,
+        );
+        let _report_enter = report_span.enter();
+
         let stat_event = stats
             .clone()
             .send(Event::ReportReceived)
-            .map_err(|e| error!("receive error: {}", e; "component" => LogComponent::Watcher))
+            .map_err(|e| error!("receive error: {}", e))
             .map(|_| ());
         // FIXME: no need for a spawn
         tokio::spawn(lazy(|| stat_event));
 
         // Check run info
-        let info = RunInfo::try_from(file.as_ref())
-            .map_err(|e| warn!("received: {}", e; "component" => LogComponent::Watcher))?;
+        let info = RunInfo::try_from(file.as_ref()).map_err(|e| warn!("received: {}", e))?;
 
-        if ! job_config.nodes.read().expect("Cannot read nodes list").is_subnode(&info.node_id) {
-            let fail = fail(file, job_config
-                .cfg
-                .processing
-                .reporting
-                .directory.clone(), Event::ReportRefused, stats.clone());
+        let node_span = span!(
+            Level::INFO,
+            "node",
+            node_id = %info.node_id,
+        );
+        let _node_enter = node_span.enter();
+
+        if !job_config
+            .nodes
+            .read()
+            .expect("Cannot read nodes list")
+            .is_subnode(&info.node_id)
+        {
+            let fail = fail(
+                file,
+                job_config.cfg.processing.reporting.directory.clone(),
+                Event::ReportRefused,
+                stats.clone(),
+            );
 
             // FIXME: no need for a spawn
             tokio::spawn(lazy(|| fail));
-            error!("refused: report from {:?}, unknown id", &info.node_id; "component" => LogComponent::Watcher);
+            error!("refused: report from {:?}, unknown id", &info.node_id);
             return Err(());
         }
 
-        debug!("received: {:?}", file; "component" => LogComponent::Watcher);
+        debug!("received: {:?}", file);
 
         let stats_ok = stats.clone();
         let stats_err = stats.clone();
@@ -114,15 +145,14 @@ fn treat_reports(
         let treat_file = match job_config.cfg.processing.reporting.output {
             ReportingOutputSelect::Database => {
                 output_report_database(file.clone(), info, job_config.clone())
-                    .and_then(|_| {
-                        success(file, Event::ReportInserted, stats_ok)
-                    })
+                    .and_then(|_| success(file, Event::ReportInserted, stats_ok))
                     .or_else(move |_| {
-                        fail(file_move, job_config_clone
-                            .cfg
-                            .processing
-                            .reporting
-                            .directory.clone(), Event::ReportRefused, stats_err)
+                        fail(
+                            file_move,
+                            job_config_clone.cfg.processing.reporting.directory.clone(),
+                            Event::ReportRefused,
+                            stats_err,
+                        )
                     })
             }
             ReportingOutputSelect::Upstream => unimplemented!(),
@@ -142,11 +172,11 @@ fn success(
 ) -> impl Future<Item = (), Error = ()> {
     stats
         .send(event)
-        .map_err(|e| error!("send error: {}", e; "component" => LogComponent::Parser))
+        .map_err(|e| error!("send error: {}", e))
         .then(|_| {
             remove_file(file.clone())
                 .map(move |_| debug!("deleted: {:#?}", file))
-                .map_err(|e| error!("error: {}", e; "component" => LogComponent::Parser))
+                .map_err(|e| error!("error: {}", e))
         })
 }
 
@@ -158,7 +188,7 @@ fn fail(
 ) -> impl Future<Item = (), Error = ()> {
     stats
         .send(event)
-        .map_err(|e| error!("send error: {}", e; "component" => LogComponent::Parser))
+        .map_err(|e| error!("send error: {}", e))
         .then(move |_| {
             rename(
                 file.clone(),
@@ -175,7 +205,7 @@ fn fail(
                         .join(file.file_name().expect("not a file"))
                 )
             })
-            .map_err(|e| error!("error: {}", e; "component" => LogComponent::Parser))
+            .map_err(|e| error!("error: {}", e))
         })
 }
 
@@ -191,7 +221,7 @@ fn output_report_database(
     poll_fn(move || {
         blocking(|| {
             output_report_database_inner(&path, &run_info, &job_config)
-                .map_err(|e| error!("output error: {}", e; "component" => LogComponent::Database))
+                .map_err(|e| error!("output error: {}", e))
         })
         .map_err(|_| panic!("the thread pool shut down"))
     })

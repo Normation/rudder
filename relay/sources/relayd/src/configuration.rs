@@ -29,18 +29,18 @@
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{data::node::NodeId, error::Error};
+use itertools::Itertools;
 use serde::Deserialize;
-use slog;
-use slog::{Key, Level, Record, Serializer, Value};
 use std::{
     collections::HashSet,
-    fmt::{self, Display},
+    fmt,
     fs::read_to_string,
     net::SocketAddr,
     path::{Path, PathBuf},
     str::FromStr,
 };
 use toml;
+use tracing::debug;
 
 pub type BaseDirectory = PathBuf;
 pub type WatchedDirectory = PathBuf;
@@ -76,7 +76,7 @@ impl CliConfiguration {
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 // Default can be implemented in serde using the Default trait
 pub struct Configuration {
     pub general: GeneralConfig,
@@ -86,7 +86,11 @@ pub struct Configuration {
 
 impl Configuration {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
-        read_to_string(path.as_ref().join("main.conf"))?.parse::<Self>()
+        let res = read_to_string(path.as_ref().join("main.conf"))?.parse::<Self>();
+        if let Ok(ref cfg) = res {
+            debug!("Parsed main configuration:\n{:#?}", &cfg);
+        }
+        res
     }
 }
 
@@ -98,7 +102,7 @@ impl FromStr for Configuration {
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct GeneralConfig {
     pub nodes_list_file: NodesListFile,
     pub nodes_certs_file: NodesCertsFile,
@@ -112,34 +116,34 @@ pub struct CatchupConfig {
     pub limit: u64,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct ProcessingConfig {
     pub inventory: InventoryConfig,
     pub reporting: ReportingConfig,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct InventoryConfig {
     pub directory: BaseDirectory,
     pub output: InventoryOutputSelect,
     pub catchup: CatchupConfig,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum InventoryOutputSelect {
     Upstream,
     Disabled,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct ReportingConfig {
     pub directory: BaseDirectory,
     pub output: ReportingOutputSelect,
     pub catchup: CatchupConfig,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum ReportingOutputSelect {
     Database,
@@ -163,19 +167,19 @@ impl OutputSelect for InventoryOutputSelect {
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct OutputConfig {
     pub database: DatabaseConfig,
     pub upstream: UpstreamConfig,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct DatabaseConfig {
     pub url: String,
     pub max_pool_size: u32,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct UpstreamConfig {
     // TODO better URL type
     pub url: String,
@@ -183,16 +187,10 @@ pub struct UpstreamConfig {
     pub password: String,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct LogConfig {
     pub general: LoggerConfig,
     pub filter: LogFilterConfig,
-}
-
-impl LogConfig {
-    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
-        read_to_string(path.as_ref().join("logging.conf"))?.parse::<Self>()
-    }
 }
 
 impl FromStr for LogConfig {
@@ -203,19 +201,49 @@ impl FromStr for LogConfig {
     }
 }
 
-#[serde(remote = "Level")]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Deserialize)]
+impl LogConfig {
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
+        let res = read_to_string(path.as_ref().join("logging.conf"))?.parse::<Self>();
+        if let Ok(ref cfg) = res {
+            debug!("Parsed logging configuration:\n{:#?}", &cfg);
+        }
+        res
+    }
+}
+
+impl fmt::Display for LogConfig {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}{}", self.general, self.filter)
+    }
+}
+
+#[derive(Copy, Debug, Eq, PartialEq, Deserialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum LogLevel {
-    Critical,
     Error,
-    Warning,
+    Warn,
     Info,
     Debug,
     Trace,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Deserialize, Hash)]
+impl fmt::Display for LogLevel {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                LogLevel::Error => "error",
+                LogLevel::Warn => "warn",
+                LogLevel::Info => "info",
+                LogLevel::Debug => "debug",
+                LogLevel::Trace => "trace",
+            }
+        )
+    }
+}
+
+#[derive(Copy, Debug, Eq, PartialEq, Deserialize, Hash, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum LogComponent {
     Database,
@@ -224,47 +252,136 @@ pub enum LogComponent {
     Statistics,
 }
 
-impl LogComponent {
-    pub fn tag(self) -> &'static str {
-        match self {
-            LogComponent::Database => "database",
-            LogComponent::Parser => "parser",
-            LogComponent::Watcher => "watcher",
-            LogComponent::Statistics => "statistics",
-        }
-    }
-}
-
-impl Display for LogComponent {
+impl fmt::Display for LogComponent {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.tag())
+        write!(
+            f,
+            "{}",
+            match self {
+                LogComponent::Database => "database",
+                LogComponent::Parser => "parser",
+                LogComponent::Watcher => "watcher",
+                LogComponent::Statistics => "statistics",
+            }
+        )
     }
 }
 
-impl Value for LogComponent {
-    fn serialize(&self, _record: &Record, key: Key, serializer: &mut Serializer) -> slog::Result {
-        serializer.emit_str(key, self.tag())
-    }
-}
-
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct LogFilterConfig {
-    #[serde(with = "LogLevel")]
-    pub level: Level,
+    pub level: LogLevel,
     pub components: HashSet<LogComponent>,
     pub nodes: HashSet<NodeId>,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+impl fmt::Display for LogFilterConfig {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match (self.nodes.is_empty(), self.components.is_empty()) {
+                (true, false) => self
+                    .components
+                    .iter()
+                    .map(|c| format!(",[{}]={}", c, self.level))
+                    .collect::<Vec<String>>()
+                    .join(","),
+                (false, true) => self
+                    .nodes
+                    .iter()
+                    .map(|n| format!(",[{{node_id=\"{}\"}}]={}", n, self.level))
+                    .collect::<Vec<String>>()
+                    .join(","),
+                // [span1{foo=1}]=error,[span2{bar=2 baz=false}],crate2[{quux=\"quuux\"}]=debug
+                (false, false) => self
+                    .nodes
+                    .iter()
+                    .flat_map(|n| self
+                        .components
+                        .iter()
+                        .map(|c| format!(",[{}{{node_id=\"{}\"}}]={}", c, n, self.level))
+                        .collect::<Vec<String>>())
+                    .join(","),
+                // Empty filter i.e. no filter
+                (true, true) => "".to_string(),
+            }
+        )
+    }
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct LoggerConfig {
     #[serde(with = "LogLevel")]
-    pub level: Level,
+    pub level: LogLevel,
+}
+
+impl fmt::Display for LoggerConfig {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.level)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::iter::FromIterator;
+
+    #[test]
+    fn it_generates_log_configuration() {
+        let log_reference = LogConfig {
+            general: LoggerConfig {
+                level: LogLevel::Info,
+            },
+            filter: LogFilterConfig {
+                level: LogLevel::Debug,
+                nodes: HashSet::from_iter(vec!["root".to_string()].iter().cloned()),
+                components: HashSet::from_iter(vec![LogComponent::Database].iter().cloned()),
+            },
+        };
+        assert_eq!(
+            &log_reference.to_string(),
+            "info,[database{node_id=\"root\"}]=debug"
+        );
+
+        let log_reference = LogConfig {
+            general: LoggerConfig {
+                level: LogLevel::Info,
+            },
+            filter: LogFilterConfig {
+                level: LogLevel::Debug,
+                nodes: HashSet::new(),
+                components: HashSet::new(),
+            },
+        };
+        assert_eq!(&log_reference.to_string(), "info");
+
+        let log_reference = LogConfig {
+            general: LoggerConfig {
+                level: LogLevel::Info,
+            },
+            filter: LogFilterConfig {
+                level: LogLevel::Debug,
+                nodes: HashSet::new(),
+                components: HashSet::from_iter(vec![LogComponent::Database].iter().cloned()),
+            },
+        };
+        assert_eq!(&log_reference.to_string(), "info,[database]=debug");
+
+        let log_reference = LogConfig {
+            general: LoggerConfig {
+                level: LogLevel::Error,
+            },
+            filter: LogFilterConfig {
+                level: LogLevel::Debug,
+                nodes: HashSet::from_iter(vec!["root".to_string()].iter().cloned()),
+                components: HashSet::new(),
+            },
+        };
+        assert_eq!(
+            &log_reference.to_string(),
+            "error,[{node_id=\"root\"}]=debug"
+        );
+    }
 
     #[test]
     fn it_fails_with_configuration() {
@@ -277,9 +394,11 @@ mod tests {
     fn it_parses_logging_configuration() {
         let log_config = LogConfig::new("tests/files/config/");
         let log_reference = LogConfig {
-            general: LoggerConfig { level: Level::Info },
+            general: LoggerConfig {
+                level: LogLevel::Info,
+            },
             filter: LogFilterConfig {
-                level: Level::Debug,
+                level: LogLevel::Debug,
                 nodes: HashSet::from_iter(vec!["root".to_string()].iter().cloned()),
                 components: HashSet::from_iter(vec![LogComponent::Database].iter().cloned()),
             },

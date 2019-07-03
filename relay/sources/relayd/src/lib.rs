@@ -61,53 +61,61 @@ use futures::{
     stream::Stream,
     sync::mpsc,
 };
-use slog::{o, slog_debug, slog_error, slog_info, Drain, Level, Logger};
-use slog_async::Async;
-use slog_atomic::{AtomicSwitch, AtomicSwitchCtrl};
-use slog_kvfilter::KVFilter;
-use slog_scope::{debug, error, info, GlobalLoggerGuard};
-use slog_term::{CompactFormat, TermDecorator};
+use lazy_static::lazy_static;
 use std::{
-    collections::{HashMap, HashSet},
     fs::create_dir_all,
-    iter::FromIterator,
     process::exit,
     string::ToString,
     sync::{Arc, RwLock},
 };
 use structopt::clap::crate_version;
 use tokio_signal::unix::{Signal, SIGHUP, SIGINT, SIGTERM};
+use tracing::{debug, error, info};
+use tracing_fmt::FmtSubscriber;
+use tracing_log::LogTracer;
 
 pub fn init(cli_cfg: CliConfiguration) -> Result<(), Error> {
-    // ---- Load configuration ----
-
-    let cfg = Configuration::new(&cli_cfg.configuration_dir)?;
-    let log_cfg = LogConfig::new(&cli_cfg.configuration_dir)?;
-
     if cli_cfg.check_configuration {
+        Configuration::new(&cli_cfg.configuration_dir)?;
+        LogConfig::new(&cli_cfg.configuration_dir)?;
         println!("Syntax: OK");
-        return Ok(());
+        Ok(())
+    } else {
+        start(cli_cfg)
     }
+}
 
-    // ---- Setup loggers ----
+#[allow(clippy::cognitive_complexity)]
+pub fn start(cli_cfg: CliConfiguration) -> Result<(), Error> {
+    let subscriber = FmtSubscriber::builder().with_filter_reloading().finish();
+    let reload_handle = subscriber.reload_handle();
+    reload_handle.reload("error")?;
+    tracing::subscriber::set_global_default(subscriber)?;
+    // Load a default configuration that only logs errors
+    // before loading an actual configuration
+    let log_cfg = LogConfig::new(&cli_cfg.configuration_dir)?;
+    reload_handle.reload(log_cfg.to_string())?;
 
-    let log_ctrl = LoggerCtrl::new();
-    log_ctrl.load(&log_cfg);
+    // Set logger for dependencies using log
+    lazy_static! {
+        static ref LOGGER: LogTracer = LogTracer::default();
+    }
+    // TODO LevelFilter
+    log::set_logger(&*LOGGER)?;
+    log::error!("plop");
 
-    // ---- Start execution ----
-
+    // Log previously computed information now we have a logging config
     info!("Starting rudder-relayd {}", crate_version!());
-
     debug!("Parsed cli configuration:\n{:#?}", &cli_cfg);
     info!("Read configuration from {:#?}", &cli_cfg.configuration_dir);
-    debug!("Parsed main configuration:\n{:#?}", &cfg);
     debug!("Parsed logging configuration:\n{:#?}", &log_cfg);
 
     // ---- Setup data structures ----
 
+    let cfg = Configuration::new(cli_cfg.configuration_dir.clone())?;
     let cfg_dir = cli_cfg.configuration_dir.clone();
     let stats = Arc::new(RwLock::new(Stats::default()));
-    let job_config = JobConfig::new(cli_cfg)?;
+    let job_config = JobConfig::new(cli_cfg, cfg)?;
 
     // ---- Setup signal handlers ----
 
@@ -129,20 +137,21 @@ pub fn init(cli_cfg: CliConfiguration) -> Result<(), Error> {
 
     let reload = Signal::new(SIGHUP)
         .flatten_stream()
+        .map_err(|e| e.into())
         .for_each(move |_signal| {
             info!("Signal received: reload requested");
-            match LogConfig::new(&cfg_dir) {
-                Ok(log_cfg) => {
-                    debug!("Parsed configuration:\n{:#?}", &log_cfg);
-                    log_ctrl.load(&log_cfg);
-                    match job_config_reload.reload_nodeslist() {
-                        Ok(_) => (),
-                        Err(e) => error!("nodes list reload error {}", e),
-                    }
-                }
-                Err(e) => error!("config reload error {}", e),
-            };
-            Ok(())
+
+            LogConfig::new(&cfg_dir)
+                .and_then(|log_cfg| {
+                    reload_handle
+                        .reload(log_cfg.to_string())
+                        .map_err(|e| e.into())
+                })
+                .and_then(|_| job_config_reload.reload_nodeslist())
+                .map_err(|e| {
+                    error!("reload error {}", e);
+                    e
+                })
         })
         .map_err(|e| error!("signal error {}", e));
 
@@ -155,7 +164,7 @@ pub fn init(cli_cfg: CliConfiguration) -> Result<(), Error> {
 
         tokio::spawn(Stats::receiver(stats.clone(), rx_stats));
         tokio::spawn(api(
-            cfg.general.listen,
+            job_config.cfg.general.listen,
             shutdown,
             job_config.clone(),
             stats.clone(),
@@ -165,90 +174,15 @@ pub fn init(cli_cfg: CliConfiguration) -> Result<(), Error> {
         tokio::spawn(reload);
 
         if job_config.cfg.processing.reporting.output.is_enabled() {
-            info!("Skipping reporting as it is disabled");
             serve_reports(&job_config, &tx_stats);
+        } else {
+            info!("Skipping reporting as it is disabled");
         }
-        /*
-        if job_config.cfg.processing.inventory.output.is_enabled() {
-            info!("Skipping inventory as it is disabled");
-            serve_inventories(&job_config, &tx_stats);
-        }
-        */
 
         Ok(())
     }));
 
     unreachable!("Server halted unexpectedly");
-}
-
-pub struct LoggerCtrl {
-    ctrl: AtomicSwitchCtrl,
-    #[allow(clippy::used_underscore_binding)]
-    _guard: GlobalLoggerGuard,
-}
-
-impl LoggerCtrl {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
-        let drain = AtomicSwitch::new(Self::logger_drain());
-        let ctrl = drain.ctrl();
-        let log = Logger::root(drain.fuse(), o!());
-        // Make sure to save the guard
-        let _guard = slog_scope::set_global_logger(log);
-        // Integrate libs using standard log crate
-        slog_stdlog::init().expect("Could not initialize standard logging");
-
-        #[allow(clippy::used_underscore_binding)]
-        Self { ctrl, _guard }
-    }
-
-    fn logger_drain() -> slog::Fuse<slog_async::Async> {
-        let decorator = TermDecorator::new().stdout().build();
-        let drain = CompactFormat::new(decorator).build().fuse();
-        Async::new(drain)
-            .thread_name("relayd-logger".to_string())
-            .chan_size(2048)
-            .build()
-            .fuse()
-    }
-
-    pub fn load(&self, cfg: &LogConfig) {
-        if cfg.general.level == Level::Trace {
-            // No filter at all if general level is trace.
-            // This needs to be handled separately as KVFilter cannot skip
-            // its filters completely.
-            self.ctrl.set(Self::logger_drain());
-        } else {
-            let mut node_filter = HashMap::new();
-            node_filter.insert("node".to_string(), cfg.filter.nodes.clone());
-            node_filter.insert(
-                "component".to_string(),
-                HashSet::from_iter(
-                    cfg.filter
-                        .components
-                        .clone()
-                        .iter()
-                        .map(ToString::to_string),
-                ),
-            );
-            let drain = KVFilter::new(
-                slog::LevelFilter::new(Self::logger_drain(), cfg.filter.level),
-                // decrement because the user provides the log level they want to see
-                // while this displays logs unconditionally above the given level included.
-                match cfg.general.level {
-                    Level::Critical => Level::Error,
-                    Level::Error => Level::Warning,
-                    Level::Warning => Level::Info,
-                    Level::Info => Level::Debug,
-                    Level::Debug => Level::Trace,
-                    Level::Trace => unreachable!("Global trace log level is handled separately"),
-                },
-            )
-            .only_pass_any_on_all_keys(Some(node_filter.clone()));
-            self.ctrl.set(drain.map(slog::Fuse));
-            debug!("Log filters are {:#?}", node_filter);
-        }
-    }
 }
 
 pub struct JobConfig {
@@ -259,9 +193,7 @@ pub struct JobConfig {
 }
 
 impl JobConfig {
-    pub fn new(cli_cfg: CliConfiguration) -> Result<Arc<Self>, Error> {
-        let cfg = Configuration::new(cli_cfg.configuration_dir.clone())?;
-
+    pub fn new(cli_cfg: CliConfiguration, cfg: Configuration) -> Result<Arc<Self>, Error> {
         // Create dirs
         if cfg.processing.inventory.output != InventoryOutputSelect::Disabled {
             create_dir_all(cfg.processing.inventory.directory.join("incoming"))?;

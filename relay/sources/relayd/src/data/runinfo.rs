@@ -30,16 +30,19 @@
 
 use crate::{configuration::LogComponent, data::node::NodeId, error::Error};
 use chrono::prelude::*;
-use nom::*;
+use nom::{
+    bytes::complete::{tag, take_until},
+    combinator::{map_res, opt},
+    IResult,
+};
 use serde::{Deserialize, Serialize};
-use slog::slog_debug;
-use slog_scope::debug;
 use std::{
     convert::TryFrom,
     fmt::{self, Display},
     path::Path,
     str::FromStr,
 };
+use tracing::debug;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RunInfo {
@@ -53,29 +56,21 @@ impl Display for RunInfo {
     }
 }
 
-pub fn parse_iso_date(input: &str) -> Result<DateTime<FixedOffset>, chrono::format::ParseError> {
-    DateTime::parse_from_str(input, "%+")
-}
+fn parse_runinfo(i: &str) -> IResult<&str, RunInfo> {
+    let (i, timestamp) = map_res(take_until("@"), |d| DateTime::parse_from_str(d, "%+"))(i)?;
+    let (i, _) = tag("@")(i)?;
+    let (i, node_id) = take_until(".")(i)?;
+    let (i, _) = tag(".log")(i)?;
+    let (i, _) = opt(tag(".gz"))(i)?;
 
-named!(parse_runinfo<&str, RunInfo>,
-    do_parse!(
-        timestamp: map_res!(complete!(take_until!("@")), parse_iso_date) >>
-        tag!("@") >>
-        node_id: take_until!(".") >>
-        tag!(".log") >>
-        opt!(complete!(tag!(".gz"))) >>
-        eof!() >>
-        (
-            RunInfo {
-                // Note this format is not exactly the same as the reports
-                // Here we are parsing ISO8601 dates, report dates replace the T by a space
-                // Kept for compatibility reasons, but we should strive to use ISO everywhere
-                timestamp,
-                node_id: node_id.to_string(),
-            }
-        )
-    )
-);
+    Ok((
+        i,
+        RunInfo {
+            timestamp,
+            node_id: node_id.to_string(),
+        },
+    ))
+}
 
 impl FromStr for RunInfo {
     type Err = Error;
@@ -83,7 +78,7 @@ impl FromStr for RunInfo {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match parse_runinfo(s) {
             Ok(raw_runinfo) => {
-                debug!("Parsed run info {:#?}", raw_runinfo.1; "component" => LogComponent::Parser);
+                debug!("Parsed run info {:#?}", raw_runinfo.1);
                 Ok(raw_runinfo.1)
             }
             Err(e) => {

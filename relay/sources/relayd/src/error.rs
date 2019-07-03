@@ -68,6 +68,9 @@ pub enum Error {
     Ssl(openssl::error::ErrorStack),
     InvalidCondition(String),
     ParseBoolean(std::str::ParseBoolError),
+    LogFormat(tracing_fmt::filter::reload::Error),
+    GlobalLogger(tracing::dispatcher::SetGlobalDefaultError),
+    SetLogLogger(log::SetLoggerError),
 }
 
 impl Display for Error {
@@ -99,6 +102,9 @@ impl Display for Error {
             Ssl(ref err) => write!(f, "Ssl error: {}", err),
             InvalidCondition(ref condition) => write!(f, "Invalid agent Condition : {}", condition),
             ParseBoolean(ref err) => write!(f, "Error occurred while parsing the boolean: {}", err),
+            LogFormat(ref err) => write!(f, "Logging error: {}", err),
+            GlobalLogger(ref err) => write!(f, "Global logger setting error: {}", err),
+            SetLogLogger(ref err) => write!(f, "Global logger setting error: {}", err),
         }
     }
 }
@@ -117,6 +123,7 @@ impl StdError for Error {
             Utf8(ref err) => Some(err),
             Ssl(ref err) => Some(err),
             ParseBoolean(ref err) => Some(err),
+            LogFormat(ref err) => Some(err),
             _ => None,
         }
     }
@@ -190,5 +197,23 @@ impl From<std::string::FromUtf8Error> for Error {
 impl From<openssl::error::ErrorStack> for Error {
     fn from(err: openssl::error::ErrorStack) -> Self {
         Error::Ssl(err)
+    }
+}
+
+impl From<tracing_fmt::filter::reload::Error> for Error {
+    fn from(err: tracing_fmt::filter::reload::Error) -> Self {
+        Error::LogFormat(err)
+    }
+}
+
+impl From<tracing::dispatcher::SetGlobalDefaultError> for Error {
+    fn from(err: tracing::dispatcher::SetGlobalDefaultError) -> Self {
+        Error::GlobalLogger(err)
+    }
+}
+
+impl From<log::SetLoggerError> for Error {
+    fn from(err: log::SetLoggerError) -> Self {
+        Error::SetLogLogger(err)
     }
 }

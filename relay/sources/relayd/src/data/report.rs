@@ -28,12 +28,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
-    data::{node::NodeId, runinfo::parse_iso_date},
-    output::database::schema::ruddersysevents,
-};
+use crate::{data::node::NodeId, output::database::schema::ruddersysevents};
 use chrono::prelude::*;
-use nom::*;
+use nom::{
+    branch::alt,
+    bytes::complete::{tag, take_until},
+    combinator::{map, map_res, not, opt},
+    multi::{many0, many1},
+    IResult,
+};
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
 
@@ -47,160 +50,139 @@ struct LogEntry {
     datetime: DateTime<FixedOffset>,
 }
 
-named!(agent_log_level<&str, AgentLogLevel>,
-    complete!(alt!(
+fn agent_log_level(i: &str) -> IResult<&str, AgentLogLevel> {
+    alt((
         // CFEngine logs
-        tag!("CRITICAL:")   => { |_| "log_warn" }  |
-        tag!("   error:")   => { |_| "log_warn" }  |
-        tag!(" warning:")   => { |_| "log_warn" }  |
-        tag!("  notice:")   => { |_| "log_info" }  |
-        tag!("    info:")   => { |_| "log_info" }  |
-        tag!(" verbose:")   => { |_| "log_debug" } |
-        tag!("   debug:")   => { |_| "log_debug" } |
+        map(tag("CRITICAL:"), |_| "log_warn"),
+        map(tag("   error:"), |_| "log_warn"),
+        map(tag(" warning:"), |_| "log_warn"),
+        map(tag("  notice:"), |_| "log_info"),
+        map(tag("    info:"), |_| "log_info"),
+        map(tag(" verbose:"), |_| "log_debug"),
+        map(tag("   debug:"), |_| "log_debug"),
         // ncf logs
-        tag!("R: [FATAL]")  => { |_| "log_warn" }  |
-        tag!("R: [ERROR]")  => { |_| "log_warn" }  |
-        tag!("R: [INFO]")   => { |_| "log_info" }  |
-        tag!("R: [DEBUG]")  => { |_| "log_debug" } |
+        map(tag("R: [FATAL]"), |_| "log_warn"),
+        map(tag("R: [ERROR]"), |_| "log_warn"),
+        map(tag("R: [INFO]"), |_| "log_info"),
+        map(tag("R: [DEBUG]"), |_| "log_debug"),
         // ncf non-standard log
-        tag!("R: WARNING")  => { |_| "log_warn" }  |
+        map(tag("R: WARNING"), |_| "log_warn"),
         // CFEngine stdlib log
-        tag!("R: DEBUG")    => { |_| "log_debug" } |
+        map(tag("R: DEBUG"), |_| "log_warn"),
+        map(tag("R: [INFO]"), |_| "log_debug"),
         // Untagged non-Rudder reports report, assume info
-        non_rudder_report_begin
+        non_rudder_report_begin,
+    ))(i)
+}
+
+fn non_rudder_report_begin(i: &str) -> IResult<&str, AgentLogLevel> {
+    // FIXME add space here?
+    let (i, _) = tag("R:")(i)?;
+    let (i, _) = not(tag(" @@"))(i)?;
+    Ok((i, "log_info"))
+}
+
+fn rudder_report_begin(i: &str) -> IResult<&str, &str> {
+    let (i, _) = tag("R: @@")(i)?;
+    // replace "" by ()?
+    Ok((i, ""))
+}
+
+// TODO make a cheap version that does not parse the date?
+fn line_timestamp(i: &str) -> IResult<&str, DateTime<FixedOffset>> {
+    let (i, datetime) = map_res(take_until(" "), |d| DateTime::parse_from_str(d, "%+"))(i)?;
+    let (i, _) = tag(" ")(i)?;
+    Ok((i, datetime))
+}
+
+fn simpleline(i: &str) -> IResult<&str, &str> {
+    let (i, _) = opt(line_timestamp)(i)?;
+    let (i, _) = not(alt((agent_log_level, map(tag("R: @@"), |_| ""))))(i)?;
+    let (i, res) = take_until("\n")(i)?;
+    let (i, _) = tag("\n")(i)?;
+    Ok((i, res))
+}
+
+fn multilines(i: &str) -> IResult<&str, Vec<&str>> {
+    let (i, res) = many1(simpleline)(i)?;
+    Ok((i, res))
+}
+
+fn log_entry(i: &str) -> IResult<&str, LogEntry> {
+    let (i, datetime) = line_timestamp(i)?;
+    let (i, event_type) = agent_log_level(i)?;
+    let (i, _) = tag(" ")(i)?;
+    let (i, msg) = multilines(i)?;
+    Ok((
+        i,
+        LogEntry {
+            event_type,
+            msg: msg.join("\n"),
+            datetime,
+        },
     ))
-);
-
-named!(non_rudder_report_begin<&str, AgentLogLevel>,
-    do_parse!(
-        complete!(
-            tag!("R:")
-        ) >>
-        not!(
-            complete!(
-                tag!(" @@")
-            )
-        ) >>
-        ("log_info")
-    )
-);
-
-named!(rudder_report_begin<&str, &str>,
-    do_parse!(
-        complete!(
-            tag!("R: @@")
-        ) >>
-        ("")
-    )
-);
-
-// TODO make a cheap version that does not parse the date
-named!(line_timestamp<&str, DateTime<FixedOffset>>,
-    do_parse!(
-        datetime: map_res!(take_until!(" "), parse_iso_date) >>
-        tag!(" ") >>
-        (datetime)
-    )
-);
-
-named!(simpleline<&str, &str>,
-    do_parse!(
-        opt!(
-            complete!(line_timestamp)
-        ) >>
-        not!(
-            alt!(rudder_report_begin | agent_log_level)
-        ) >>
-        res: take_until!("\n") >>
-        complete!(
-            tag!("\n")
-        ) >>
-        (res)
-    )
-);
-
-named!(multilines<&str, Vec<&str>>,
-    do_parse!(
-        // at least one
-        res: many1!(
-            complete!(simpleline)
-        ) >>
-        (res)
-    )
-);
-
-named!(log_entry<&str, LogEntry>,
-    do_parse!(
-        datetime: line_timestamp
-     >> event_type: agent_log_level
-     >> tag!(" ")
-     >> msg: multilines
-     >> (
-            LogEntry {
-                event_type,
-                msg: msg.join("\n"),
-                datetime,
-            }
-        )
-    )
-);
-
-named!(log_entries<&str, Vec<LogEntry>>, many0!(complete!(log_entry)));
-
-fn parse_date(input: &str) -> Result<DateTime<FixedOffset>, chrono::format::ParseError> {
-    DateTime::parse_from_str(input, "%Y-%m-%d %H:%M:%S%z")
 }
 
-fn parse_i32(input: &str) -> IResult<&str, i32> {
-    parse_to!(input, i32)
+fn log_entries(i: &str) -> IResult<&str, Vec<LogEntry>> {
+    many0(log_entry)(i)
 }
 
-named!(pub report<&str, RawReport>, do_parse!(
+pub fn report(i: &str) -> IResult<&str, RawReport> {
     // FIXME
     // no line break inside a field (except message)
     // handle partial reports without breaking following ones
-    logs: log_entries >>
-    execution_datetime: map_res!(take_until!(" "), parse_iso_date) >>
-    tag!(" ") >>
-    rudder_report_begin >>
-    policy: take_until!("@@") >>
-    tag!("@@") >>
-    event_type: take_until!("@@") >>
-    tag!("@@") >>
-    rule_id: take_until!("@@") >>
-    tag!("@@") >>
-    directive_id: take_until!("@@") >>
-    tag!("@@") >>
-    serial: map_res!(take_until!("@@"), parse_i32) >>
-    tag!("@@") >>
-    component: take_until!("@@") >>
-    tag!("@@") >>
-    key_value: take_until!("@@") >>
-    tag!("@@") >>
-    start_datetime: map_res!(take_until!("##"), parse_date) >>
-    tag!("##") >>
-    node_id: take_until!("@#") >>
-    tag!("@#") >>
-    msg: multilines >>
-        (RawReport {
+    let (i, logs) = log_entries(i)?;
+    let (i, execution_datetime) =
+        map_res(take_until(" "), |d| DateTime::parse_from_str(d, "%+"))(i)?;
+    let (i, _) = tag(" ")(i)?;
+    let (i, _) = rudder_report_begin(i)?;
+    let (i, policy) = take_until("@@")(i)?;
+    let (i, _) = tag("@@")(i)?;
+    let (i, event_type) = take_until("@@")(i)?;
+    let (i, _) = tag("@@")(i)?;
+    let (i, rule_id) = take_until("@@")(i)?;
+    let (i, _) = tag("@@")(i)?;
+    let (i, directive_id) = take_until("@@")(i)?;
+    let (i, _) = tag("@@")(i)?;
+    let (i, serial) = map_res(take_until("@@"), |i: &str| i.parse::<i32>())(i)?;
+    let (i, _) = tag("@@")(i)?;
+    let (i, component) = take_until("@@")(i)?;
+    let (i, _) = tag("@@")(i)?;
+    let (i, key_value) = take_until("@@")(i)?;
+    let (i, _) = tag("@@")(i)?;
+    let (i, start_datetime) = map_res(take_until("##"), |d| {
+        DateTime::parse_from_str(d, "%Y-%m-%d %H:%M:%S%z")
+    })(i)?;
+    let (i, _) = tag("##")(i)?;
+    let (i, node_id) = take_until("@#")(i)?;
+    let (i, _) = tag("@#")(i)?;
+    let (i, msg) = multilines(i)?;
+    Ok((
+        i,
+        RawReport {
             report: Report {
-           // We could skip parsing it but it would prevent consistency check that cannot
-           // be done once inserted.
-            execution_datetime,
-            node_id: node_id.to_string(),
-            rule_id: rule_id.to_string(),
-            directive_id: directive_id.to_string(),
-            serial: serial.1,
-            component: component.to_string(),
-            key_value: key_value.to_string(),
-            start_datetime,
-            event_type: event_type.to_string(),
-            msg: msg.join("\n"),
-            policy: policy.to_string(),
+                // We could skip parsing it but it would prevent consistency check that cannot
+                // be done once inserted.
+                execution_datetime,
+                node_id: node_id.to_string(),
+                rule_id: rule_id.to_string(),
+                directive_id: directive_id.to_string(),
+                serial: serial,
+                component: component.to_string(),
+                key_value: key_value.to_string(),
+                start_datetime,
+                event_type: event_type.to_string(),
+                msg: msg.join("\n"),
+                policy: policy.to_string(),
+            },
+            logs,
         },
-            logs
-        })
-));
+    ))
+}
+
+pub fn runlog(i: &str) -> IResult<&str, Vec<RawReport>> {
+    many1(report)(i)
+}
 
 // We could make RawReport insertable to avoid copying context to simple logs
 #[derive(Debug, PartialEq, Eq)]
