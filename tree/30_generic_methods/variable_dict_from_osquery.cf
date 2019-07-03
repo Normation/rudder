@@ -1,0 +1,108 @@
+#####################################################################################
+# Copyright 2019 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Variable dict from osquery
+# @description Define a variable that contains key,value pairs (a dictionnary) from an osquery query
+# @documentation To use the generated variable, you must use the form `${variable_prefix.variable_name[key]}` with each name replaced with the parameters of this method.
+# 
+# Be careful that using a global variable can lead to unpredictable content in case of multiple definition, which is implicitly the case when a technique has more than one instance (directive). 
+# Please note that only global variables are available within templates.
+#
+# This method will define a dict variable from the output os an osquery query.
+# The query will be executed at evera agent run, and its result will be usable as a standard
+# dict variable.
+#
+# #### Setup
+#
+# This method requires the presence of [osquery](https://osquery.io/) on the target nodes.
+#
+# #### Building queries
+#
+# To learn about the possible queries, read the [osquery schema](https://osquery.io/schema/) for your
+# osquery version.
+#
+# You can test the queries before using them with the `osqueryi` command, see the example below.
+#
+# #### Examples
+# 
+# ```
+# # To get the number of cpus on the machine
+# variable_dict_from_osquery("prefix", "var1", "select cpu_logical_cores from system_info;");
+# ```
+#
+# It will produce the dict from the output of:
+#
+# ```
+# osqueryi --json "select cpu_logical_cores from system_info;"
+# ```
+#
+# Hence something like:
+#
+# ```json
+# [
+#  {"cpu_logical_cores":"8"}
+# ]
+# ```
+# 
+# To access this value, use the `${prefix.var1[0][cpu_logical_cores]}` syntax.
+#
+# @parameter variable_prefix The prefix of the variable name
+# @parameter variable_name   The variable to define, the full name will be variable_prefix.variable_name
+# @parameter query           The query to execute (ending with a semicolon)
+# 
+# @class_prefix variable_dict_from_osquery
+# @class_parameter variable_name
+
+bundle agent variable_dict_from_osquery(variable_prefix, variable_name, query)
+{
+  vars:
+      "old_class_prefix"  string => canonify("variable_dict_from_osquery_${variable_name}");
+      "args"               slist => { "${variable_prefix}", "${variable_name}", "${file_name}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("variable_dict_from_osquery_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+    pass2::
+      "${variable_prefix}.${variable_name}" data => parsejson("${variable_dict_from_osquery_tmp.${variable_name}}"),
+                                              if => "variable_string_from_command_${variable_name}_ok";
+
+  classes:
+    pass2::
+      "variable_defined" expression => isvariable("${variable_prefix}.${variable_name}");
+
+    any::
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+      # store string output in temp variable
+      "query" usebundle => variable_string_from_command("variable_dict_from_osquery_tmp", "${variable_name}", "osqueryi --json \"${query}\" 2>/dev/null");
+
+    pass3.!variable_defined::
+      "error" usebundle => _classes_failure("${old_class_prefix}");
+      "error" usebundle => _classes_failure("${class_prefix}");
+
+    pass3.variable_defined::
+      "ok"    usebundle => _classes_success("${old_class_prefix}");
+      "ok"    usebundle => _classes_success("${class_prefix}");
+
+    pass3::
+      "report"
+        usebundle  => _log_v3("Set the dict ${variable_prefix}.${variable_name} to the result of the '${query}' query", "${variable_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+}
