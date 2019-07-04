@@ -18,7 +18,7 @@ bundle agent condition_from_variable_match(condition_prefix, variable_name, expe
 {
   vars:
       "old_class_prefix"  string => canonify("condition_from_variable_match_${condition_prefix}");
-      "args"               slist => { "${condition_prefix}", "${variable_name}" };
+      "args"               slist => { "${condition_prefix}", "${variable_name}", "${expected_match}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("condition_from_variable_match_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
@@ -39,6 +39,8 @@ bundle agent condition_from_variable_match(condition_prefix, variable_name, expe
 
   methods:
     pass3::
+      "failure" usebundle => _classes_failure("${old_class_prefix}"),
+        ifvarclass => "!var_exists";
       "failure" usebundle => _classes_failure("${class_prefix}"),
         ifvarclass => "!var_exists";
 
