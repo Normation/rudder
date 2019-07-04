@@ -66,7 +66,7 @@ class HooksTest() extends Specification with AfterAll {
 
   List("error10.sh", "success.sh", "warning50.sh", "echoCODE.sh").foreach {i =>
     val f = File(tmp, i)
-    f.writeBytes(this.getClass.getClassLoader.getResourceAsStream(s"hooks.d/test/$i").readAllBytes().iterator)
+    f.write(Resource.getAsString(s"hooks.d/test/$i"))
     f.setPermissions(PosixFilePermissions.fromString("rwxr--r--").asScala.toSet)
   }
 

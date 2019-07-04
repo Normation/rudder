@@ -59,7 +59,8 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <!-- fill-in rule templates -->
   </modules>
 
-  <dependencies/>
+  <dependencies>
+  </dependencies>
 
   <repositories>
     <repository>

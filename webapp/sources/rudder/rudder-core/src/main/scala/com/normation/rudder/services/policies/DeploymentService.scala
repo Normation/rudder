@@ -86,7 +86,6 @@ import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.logger.PolicyLogger
 import cats.data.NonEmptyList
 import com.normation.rudder.domain.reports.OverridenPolicy
-import com.normation.rudder.hooks.HookEnvPair
 import com.normation.rudder.hooks.Hooks
 import com.normation.rudder.hooks.HooksLogger
 

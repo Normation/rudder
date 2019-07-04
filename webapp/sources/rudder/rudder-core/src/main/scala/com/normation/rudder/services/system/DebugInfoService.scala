@@ -43,7 +43,6 @@ import java.util.concurrent.TimeUnit
 
 import com.normation.NamedZioLogger
 import com.normation.rudder.hooks._
-import org.joda.time.DateTime
 
 import scala.collection.JavaConverters._
 import com.normation.errors._
@@ -91,7 +90,6 @@ class DebugInfoServiceImpl extends DebugInfoService {
 
   override def launch() : IOResult[DebugInfoScriptResult] = {
 
-    val start = DateTime.now.getMillis
     for {
       start     <- currentTimeMillis
       cmdResult <- execScript().flatMap(_.await) // await execution end
