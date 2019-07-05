@@ -37,7 +37,7 @@ bundle agent file_copy_from_local_source_with_check(source, destination, check_c
   vars:
       "old_class_prefix" string => canonify("file_copy_from_local_source_with_check_${destination}");
 
-      "args"              slist => { "${source}", "${destination}", "${check_command}" };
+      "args"              slist => { "${source}", "${destination}", "${check_command}", "${rc_ok}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_copy_from_local_source_with_check_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
