@@ -24,3 +24,4 @@ NCF_TREE=`cd "${OUR_DIR}" && pwd`/../../tree
 export PYTHONPATH=${NCF_TREE}/../tools/:$PYTHONPATH
 python test_ncf.py
 python test_ncf_rudder.py
+python3 test_class_prefix.py
