@@ -35,7 +35,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <parent>
     <groupId>com.normation.inventory</groupId>
     <artifactId>inventory-parent</artifactId>
-    <version>4.1.24</version>
+    <version>4.1.25-SNAPSHOT</version>
   </parent>
 
   <artifactId>inventory-provisioning-core</artifactId>
