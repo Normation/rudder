@@ -1,8 +1,8 @@
 use diesel::{self, prelude::*, PgConnection};
 use filetime::{set_file_times, FileTime};
 use relayd::{
-    configuration::CliConfiguration, data::report::QueryableReport, init,
-    output::database::schema::ruddersysevents::dsl::*, stats::Stats,
+    configuration::CliConfiguration, data::report::QueryableReport, init_logger,
+    output::database::schema::ruddersysevents::dsl::*, start, stats::Stats,
 };
 use reqwest;
 use serde_json;
@@ -56,7 +56,7 @@ fn it_reads_and_inserts_a_runlog() {
     set_file_times(file_old, FileTime::zero(), FileTime::zero()).unwrap();
 
     thread::spawn(move || {
-        init(cli_cfg).unwrap();
+        start(cli_cfg, init_logger().unwrap()).unwrap();
     });
 
     assert!(start_number(&db, 1).is_ok());

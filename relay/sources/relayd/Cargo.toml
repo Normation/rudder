@@ -41,7 +41,6 @@ log = "0.4"
 tracing = { git = "https://github.com/tokio-rs/tracing", features = ["max_level_trace", "release_max_level_trace"] }
 tracing-fmt = { git = "https://github.com/tokio-rs/tracing" }
 tracing-log = { git = "https://github.com/tokio-rs/tracing" }
-#tokio-trace-fmt = { path = "/home/amousset/projects/tracing/tracing-fmt" }
 futures = "0.1"
 warp = "0.1"
 reqwest = "0.9"

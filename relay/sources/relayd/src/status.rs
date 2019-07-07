@@ -29,6 +29,7 @@
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
+    check_configuration,
     configuration::{Configuration, LogConfig},
     output::database::ping,
     JobConfig,
@@ -52,9 +53,7 @@ impl Status {
                 .pool
                 .clone()
                 .map(|p| ping(&p).map_err(|e| e.to_string())),
-            configuration: Configuration::new(job_config.cli_cfg.configuration_dir.clone())
-                .and_then(|_| LogConfig::new(job_config.cli_cfg.configuration_dir.clone()))
-                .map(|_| ())
+            configuration: check_configuration(&job_config.cli_cfg.configuration_dir)
                 .map_err(|e| e.to_string()),
         }
     }

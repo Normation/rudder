@@ -28,17 +28,41 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use relayd::{configuration::CliConfiguration, error::Error, init};
+use relayd::{
+    check_configuration, configuration::CliConfiguration, error::Error, init_logger, start,
+};
 use std::process::exit;
+use tracing::error;
+
+/// Sets exit code based on error type
+fn error_code(e: Error) -> i32 {
+    match e {
+        Error::ConfigurationParsing(_) => 2,
+        _ => 1,
+    }
+}
 
 #[paw::main]
+/// Everything in a lib to allow extensive testing
 fn main(cli_cfg: CliConfiguration) {
-    // Everything in a lib to allow extensive testing
-    if let Err(e) = init(cli_cfg) {
-        println!("{}", e);
-        exit(match e {
-            Error::ConfigurationParsing(_) => 2,
-            _ => 1,
-        });
+    if cli_cfg.check_configuration {
+        if let Err(e) = check_configuration(&cli_cfg.configuration_dir) {
+            println!("{}", e);
+            exit(error_code(e));
+        }
+        println!("Syntax: OK");
+    } else {
+        let reload_handle = match init_logger() {
+            Ok(handle) => handle,
+            Err(e) => {
+                println!("{}", e);
+                exit(error_code(e));
+            }
+        };
+
+        if let Err(e) = start(cli_cfg, reload_handle) {
+            error!("{}", e);
+            exit(error_code(e));
+        }
     }
 }

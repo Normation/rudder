@@ -36,7 +36,6 @@ use crate::{
     },
     error::Error,
 };
-use nom::{multi::many1, IResult};
 use serde::{Deserialize, Serialize};
 use std::{
     convert::TryFrom,

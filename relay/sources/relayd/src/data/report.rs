@@ -167,7 +167,7 @@ pub fn report(i: &str) -> IResult<&str, RawReport> {
                 node_id: node_id.to_string(),
                 rule_id: rule_id.to_string(),
                 directive_id: directive_id.to_string(),
-                serial: serial,
+                serial,
                 component: component.to_string(),
                 key_value: key_value.to_string(),
                 start_datetime,

@@ -64,6 +64,7 @@ use futures::{
 use lazy_static::lazy_static;
 use std::{
     fs::create_dir_all,
+    path::Path,
     process::exit,
     string::ToString,
     sync::{Arc, RwLock},
@@ -71,40 +72,46 @@ use std::{
 use structopt::clap::crate_version;
 use tokio_signal::unix::{Signal, SIGHUP, SIGINT, SIGTERM};
 use tracing::{debug, error, info};
-use tracing_fmt::FmtSubscriber;
+use tracing_fmt::{
+    default::NewRecorder,
+    filter::{env::EnvFilter, reload::Handle},
+    FmtSubscriber,
+};
 use tracing_log::LogTracer;
 
-pub fn init(cli_cfg: CliConfiguration) -> Result<(), Error> {
-    if cli_cfg.check_configuration {
-        Configuration::new(&cli_cfg.configuration_dir)?;
-        LogConfig::new(&cli_cfg.configuration_dir)?;
-        println!("Syntax: OK");
-        Ok(())
-    } else {
-        start(cli_cfg)
-    }
-}
-
-#[allow(clippy::cognitive_complexity)]
-pub fn start(cli_cfg: CliConfiguration) -> Result<(), Error> {
+pub fn init_logger() -> Result<Handle<EnvFilter, NewRecorder>, Error> {
     let subscriber = FmtSubscriber::builder().with_filter_reloading().finish();
     let reload_handle = subscriber.reload_handle();
-    reload_handle.reload("error")?;
+    // Set logger for global context
     tracing::subscriber::set_global_default(subscriber)?;
-    // Load a default configuration that only logs errors
-    // before loading an actual configuration
-    let log_cfg = LogConfig::new(&cli_cfg.configuration_dir)?;
-    reload_handle.reload(log_cfg.to_string())?;
 
     // Set logger for dependencies using log
     lazy_static! {
-        static ref LOGGER: LogTracer = LogTracer::default();
+        static ref LOGGER: LogTracer = LogTracer::with_filter(log::LevelFilter::Trace);
     }
-    // TODO LevelFilter
     log::set_logger(&*LOGGER)?;
-    log::error!("plop");
+    log::set_max_level(log::LevelFilter::Trace);
 
-    // Log previously computed information now we have a logging config
+    // Until actual config load
+    reload_handle.reload("error")?;
+    Ok(reload_handle)
+}
+
+pub fn check_configuration(cfg_dir: &Path) -> Result<(), Error> {
+    Configuration::new(&cfg_dir)?;
+    LogConfig::new(&cfg_dir)?;
+    Ok(())
+}
+
+#[allow(clippy::cognitive_complexity)]
+pub fn start(
+    cli_cfg: CliConfiguration,
+    reload_handle: Handle<EnvFilter, NewRecorder>,
+) -> Result<(), Error> {
+    // Start by setting log config
+    let log_cfg = LogConfig::new(&cli_cfg.configuration_dir)?;
+    reload_handle.reload(log_cfg.to_string())?;
+
     info!("Starting rudder-relayd {}", crate_version!());
     debug!("Parsed cli configuration:\n{:#?}", &cli_cfg);
     info!("Read configuration from {:#?}", &cli_cfg.configuration_dir);
