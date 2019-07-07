@@ -7,8 +7,9 @@ edition = "2018"
 [dependencies]
 nom = "5.*"
 serde_json = "1.0"
+enum_primitive = "*"
 
 [dependencies.nom_locate]
 version = "^0.3"
-path = "../nom_locate"
+path = "../../../Projects/nom_locate"
 
