@@ -22,16 +22,48 @@ body common control
 bundle agent init
 {
   vars:
-    "command_name"            string => "/bin/date | egrep '[0-9]'";
-    "canonified_command_name" string => canonify("${command_name}");
+      "tmp"        string => getenv("TEMP", 1024);
+
+      "command[1]" string => "/bin/date | egrep '[0-9]'";
+      "result[1]"  string => "repaired";
+
+      "command[2]" string => "/bin/false";
+      "result[2]"  string => "error";
+
+      "command[3]" string => "unknown command";
+      "result[3]"  string => "error";
+
+      "command[4]" string => "/bin/touch ${const.dollar}(pwd)/tmp/1";
+      "result[4]"  string => "repaired";
+
+      # Audit mode
+      "command[5]" string => "unknown audit command";
+      "result[5]"  string => "error";
+
+      "command[6]" string => "/bin/touch ${tmp}/my_file";
+      "result[6]"  string => "error";
+
+
+      "indices"    slist => getindices("command");
 }
 
 #######################################################
 
 bundle agent test
 {
+  vars:
+      "args${init.indices}" slist => { "${init.command[${init.indices}]}" };
+
   methods:
-    "ph1" usebundle => command_execution("${init.command_name}");
+      # Enforce
+      "ph1" usebundle  => apply_gm("command_execution", @{args1}, "${init.result[1]}", "ph1", "enforce" );
+      "ph2" usebundle  => apply_gm("command_execution", @{args2}, "${init.result[2]}", "ph2", "enforce" );
+      "ph3" usebundle  => apply_gm("command_execution", @{args3}, "${init.result[3]}", "ph3", "enforce" );
+      "ph4" usebundle  => apply_gm("command_execution", @{args4}, "${init.result[4]}", "ph4", "enforce" );
+
+      # Audit
+      "ph5" usebundle  => apply_gm("command_execution", @{args5}, "${init.result[5]}", "ph5", "audit" );
+      "ph6" usebundle  => apply_gm("command_execution", @{args6}, "${init.result[6]}", "ph6", "audit" );
 }
 
 #######################################################
@@ -39,9 +71,17 @@ bundle agent test
 bundle agent check
 {
   classes:
-    "ok" expression => "command_execution_${init.canonified_command_name}_ok.!command_execution_${init.canonified_command_name}_error";
+    "file_1" expression => fileexists("${init.tmp}/1");
+    "file_2"        not => fileexists("${init.tmp}/my_file");
+    "classes_ok" expression => "ph1_ok.ph2_ok.ph3_ok.ph4_ok.ph5_ok.ph6_ok";
+
+    "ok" expression => "classes_ok.file_1.file_2";
 
   reports:
+    file_exists::
+      "The file ${init.tmp}/my_file exists";
+    !file_exists::
+      "The file ${init.tmp}/my_file does not exist";
     ok::
       "$(this.promise_filename) Pass";
     !ok::
