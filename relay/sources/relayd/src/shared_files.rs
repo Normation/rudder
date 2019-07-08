@@ -28,24 +28,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::collections::HashMap;
+use crate::data::node::NodesList;
 use crate::error::Error;
-use std::fmt::Display;
-use regex::Regex;
-use std::fs;
-use chrono::prelude::*;
-use std::fmt;
-use std::path::Path;
 use chrono::prelude::DateTime;
 use chrono::{Duration, Utc};
 use hyper::StatusCode;
-use std::fs::File;
-use std::io::{BufReader, Read, Write};
+use regex::Regex;
+use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
 use std::str::FromStr;
-use sha1::Sha1;
-use std::env;
-use sha2::{Digest, Sha256, Sha512};
-use crate::data::node::NodesList;
 
 #[derive(Debug)]
 pub struct Metadata {
@@ -98,68 +90,44 @@ pub fn same_hash_than_in_nodeslist(hash_value: &str, source_uuid: String) -> boo
     hash_value == keyhash.to_string()
 }
 
-enum TimeMarker {
-    Seconds,
-    Minutes,
-    Hours,
-    Days,
-}
-
-impl Display for TimeMarker {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", match self {
-            TimeMarker::Seconds => "seconds",
-            TimeMarker::Minutes => "minutes",
-            TimeMarker::Hours => "hours",
-            TimeMarker::Days => "days",
-        })
-    }
-}
-
-impl TimeMarker {
-    fn to_duration(&self, n: i64) -> Duration {
-        match self {
-            TimeMarker::Seconds => Duration::seconds(n),
-            TimeMarker::Minutes => Duration::minutes(n),
-            TimeMarker::Hours => Duration::hours(n),
-            TimeMarker::Days => Duration::days(n),
-        }
-    }
-}
-
-pub fn parse_ttl(ttl: String) -> Result<String, ()> {
+pub fn parse_ttl(ttl: String) -> Result<i64, Error> {
     let regex_numbers = Regex::new(r"^(?:(?P<days>\d+)(?:d|days))?\s*(?:(?P<hours>\d+)(?:h|hours))?\s*(?:(?P<minutes>\d+)(?:m|minutes))?\s*(?:(?P<seconds>\d+)(?:s|seconds))").unwrap();
 
-    let markers = vec![TimeMarker::Seconds, TimeMarker::Minutes, TimeMarker::Hours, TimeMarker::Days];
-    let mut expiration: DateTime<Utc> = Utc::now();
-
-    match regex_numbers.captures(&ttl) {
-        Some(cap) => {
-            for marker in markers {
-                match cap.name(&elt.to_string()) {
-                    Some(x) => {
-                        expiration = expiration + marker.to_duration(x.as_str().parse::<i64>().unwrap())
-                    }
-                    _ => (),
-                }
-            }
-        },
-        None => return Err(())
+    fn parse_time<'t>(cap: &regex::Captures<'t>, n: &str) -> Result<i64, Error> {
+        Ok(match cap.name(n) {
+            Some(s) => s.as_str().parse::<i64>()?,
+            None => 0,
+        })
     }
 
-    Ok(expiration
-        .timestamp()
-        .to_string())
+    if let Some(cap) = regex_numbers.captures(&ttl) {
+        let s = parse_time(&cap, "seconds")?;
+        let m = parse_time(&cap, "minutes")?;
+        let h = parse_time(&cap, "hours")?;
+        let d = parse_time(&cap, "days")?;
+
+        let expiration: DateTime<Utc> = Utc::now()
+            + Duration::seconds(s)
+            + Duration::seconds(m)
+            + Duration::seconds(h)
+            + Duration::seconds(d);
+
+        Ok(expiration.timestamp())
+    } else {
+        Err(Error::InvalidTtl(ttl))
+    }
 }
 
-pub fn metadata_writer(hashmap: HashMap<String, String>, peek: warp::filters::path::Peek) -> String {
+pub fn metadata_writer(
+    hashmap: HashMap<String, String>,
+    peek: warp::filters::path::Peek,
+) -> String {
     let myvec: Vec<String> = peek.as_str().split('/').map(|s| s.to_string()).collect();
     let (target_uuid, source_uuid, file_id) = (&myvec[0], &myvec[1], &myvec[2]);
 
     let mut mystring = String::new();
 
-    if !same_hash_than_in_nodeslist(hashmap.get("hash_value").unwrap(), source_uuid.to_string())
-    {
+    if !same_hash_than_in_nodeslist(hashmap.get("hash_value").unwrap(), source_uuid.to_string()) {
         return "wrong hash".to_string();
     }
 
@@ -186,7 +154,7 @@ pub fn metadata_writer(hashmap: HashMap<String, String>, peek: warp::filters::pa
         }
     }
     fs::create_dir_all(format!("./{}/{}/", target_uuid, source_uuid)); // on cree les folders s'ils existent pas
-    //fs::create_dir_all(format!("/var/rudder/configuration-repository/shared-files/{}/{}/", target_uuid, source_uuid)); // real path
+                                                                       //fs::create_dir_all(format!("/var/rudder/configuration-repository/shared-files/{}/{}/", target_uuid, source_uuid)); // real path
     fs::write(format!("./{}", peek.as_str()), mystring).expect("Unable to write file");
 
     "perfect".to_string()

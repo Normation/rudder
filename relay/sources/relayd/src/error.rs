@@ -71,6 +71,8 @@ pub enum Error {
     LogFormat(tracing_fmt::filter::reload::Error),
     GlobalLogger(tracing::dispatcher::SetGlobalDefaultError),
     SetLogLogger(log::SetLoggerError),
+    InvalidTtl(String),
+    MissingTargetNodes,
 }
 
 impl Display for Error {
@@ -105,6 +107,8 @@ impl Display for Error {
             LogFormat(ref err) => write!(f, "Logging error: {}", err),
             GlobalLogger(ref err) => write!(f, "Global logger setting error: {}", err),
             SetLogLogger(ref err) => write!(f, "Global logger setting error: {}", err),
+            InvalidTtl(ref s) => write!(f, "invalid ttl {}", s),
+            MissingTargetNodes => write!(f, "missing nodes list"),
         }
     }
 }

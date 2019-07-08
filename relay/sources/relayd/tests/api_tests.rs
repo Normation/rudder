@@ -1,6 +1,6 @@
 use relayd::{
-    configuration::CliConfiguration, data::report::QueryableReport, start, init_logger,
-    output::database::schema::ruddersysevents::dsl::*, stats::Stats,
+    configuration::CliConfiguration, data::report::QueryableReport, init_logger,
+    output::database::schema::ruddersysevents::dsl::*, start, stats::Stats,
 };
 use std::{
     fs::{copy, create_dir_all, remove_dir_all},
