@@ -47,7 +47,7 @@ function detectIfVariableIsInvalid(parameter) {
 
 
 // define ncf app, using ui-bootstrap and its default templates
-var app = angular.module('ncf', ['ui.bootstrap', 'ui.bootstrap.tpls', 'monospaced.elastic', 'ngToast', 'dndLists', 'ngMessages'])
+var app = angular.module('ncf', ['ui.bootstrap', 'ui.bootstrap.tpls', 'monospaced.elastic', 'ngToast', 'dndLists', 'ngMessages', 'FileManagerApp'])
 
 // A directive to add a filter on the technique name controller
 // It should prevent having techniques with same name (case insensitive)
@@ -182,8 +182,9 @@ app.directive('popover', function() {
 });
 
 // Declare controller ncf-builder
-app.controller('ncf-builder', function ($scope, $uibModal, $http, $log, $location, $anchorScroll, ngToast, $timeout, focus, $sce) {
+app.controller('ncf-builder', function ($scope, $uibModal, $http, $q, $location, $anchorScroll, ngToast, $timeout, focus, fileManagerConfig, apiMiddleware, apiHandler, $window) {
   initScroll();
+
   // Variable we use in the whole application
   // Give access to the "General information" form
   $scope.editForm;
@@ -203,7 +204,7 @@ app.controller('ncf-builder', function ($scope, $uibModal, $http, $log, $locatio
   // Information about the selected method in a technique
   $scope.selectedMethod;
   // Are we authenticated on the interface
-  $scope.authenticated = undefined;
+  $scope.authenticated = false;
   // Open/Close by default the Conditions box
   $scope.conditionIsOpen = false;
 
@@ -318,7 +319,128 @@ function defineMethodClassContext (method_call) {
     }
   }
 }
+function updateResources() {
+  var resourceUrl = '/rudder/secure/api/ncf/' + $scope.selectedTechnique.bundle_name +"/" + $scope.selectedTechnique.version +"/resources"
 
+  $http.get(resourceUrl).then(
+    function(response) {
+      $scope.selectedTechnique.resources = response.data.data.resources
+    }
+  , function(response) {
+      // manage error 
+    }
+  )
+}
+function updateFileManagerConf () {
+
+  var newUrl =  "/rudder/secure/api/resourceExplorer/"+ $scope.selectedTechnique.bundle_name +"/" + $scope.selectedTechnique.version
+
+  updateResources()
+
+  apiHandler.prototype.deferredHandler = function(data, deferred, code, defaultMsg) {
+    updateResources()
+
+    if (!data || typeof data !== 'object') {
+        this.error = 'Error %s - Bridge response error, please check the API docs or this ajax response.'.replace('%s', code);
+    }
+    if (code == 404) {
+        this.error = 'Error 404 - Backend bridge is not working, please check the ajax response.';
+    }
+    if (data.result && data.result.error) {
+        this.error = data.result.error;
+    }
+    if (!this.error && data.error) {
+        this.error = data.error.message;
+    }
+    if (!this.error && defaultMsg) {
+        this.error = defaultMsg;
+    }
+    if (this.error) {
+        return deferred.reject(data);
+    }
+    return deferred.resolve(data);
+};
+  apiMiddleware.prototype.list = function(path, customDeferredHandler) {
+    return this.apiHandler.list(newUrl, this.getPath(path), customDeferredHandler);
+  };
+
+  apiMiddleware.prototype.upload = function(files, path) {
+      if (! $window.FormData) {
+          throw new Error('Unsupported browser version');
+      }
+
+      var destination = this.getPath(path);
+
+      return this.apiHandler.upload(newUrl, destination, files);
+  };
+
+
+  apiMiddleware.prototype.createFolder = function(item) {
+    var path = item.tempModel.fullPath();
+    return this.apiHandler.createFolder(newUrl, path);
+  };
+  apiMiddleware.prototype.getContent = function(item) {
+    var itemPath = this.getFilePath(item);
+    return this.apiHandler.getContent(newUrl, itemPath);
+  };
+
+  apiMiddleware.prototype.rename = function(item) {
+    var itemPath = this.getFilePath(item);
+    var newPath = item.tempModel.fullPath();
+
+    return this.apiHandler.rename(newUrl, itemPath, newPath);
+  };
+
+  apiMiddleware.prototype.remove = function(files) {
+    var items = this.getFileList(files);
+    return this.apiHandler.remove(newUrl, items);
+  };
+  apiMiddleware.prototype.edit = function(item) {
+    var itemPath = this.getFilePath(item);
+    return this.apiHandler.edit(newUrl, itemPath, item.tempModel.content);
+  };
+
+
+  apiMiddleware.prototype.copy = function(files, path) {
+    var items = this.getFileList(files);
+    var singleFilename = items.length === 1 ? files[0].tempModel.name : undefined;
+    return this.apiHandler.copy(newUrl, items, this.getPath(path), singleFilename);
+  };
+
+  apiMiddleware.prototype.changePermissions = function(files, dataItem) {
+    var items = this.getFileList(files);
+    var code = dataItem.tempModel.perms.toCode();
+    var octal = dataItem.tempModel.perms.toOctal();
+    var recursive = !!dataItem.tempModel.recursive;
+
+    return this.apiHandler.changePermissions(newUrl, items, code, octal, recursive);
+  };
+
+
+  apiMiddleware.prototype.move = function(files, path) {
+    var items = this.getFileList(files);
+    return this.apiHandler.move(newUrl, items, this.getPath(path));
+  };
+
+
+  apiMiddleware.prototype.download = function(item, forceNewWindow) {
+    //TODO: add spinner to indicate file is downloading
+    var itemPath = this.getFilePath(item);
+    var toFilename = item.model.name;
+
+    if (item.isFolder()) {
+        return;
+    }
+
+    return this.apiHandler.download(
+        newUrl,
+        itemPath,
+        toFilename,
+        fileManagerConfig.downloadFilesByAjax,
+        forceNewWindow
+    );
+  };
+}
 // Transform a ncf technique into a valid UI technique
 // Add original_index to the method call, so we can track their modification on index
 // Handle classes so we split them into OS classes (the first one only) and advanced classes
@@ -373,6 +495,8 @@ $scope.getSessionStorage = function(){
   if(t1 !== null){
     $scope.restoreFlag  = true;
     $scope.selectedTechnique = angular.copy(t1);
+
+    updateFileManagerConf()
     if(t2.bundle_name !== undefined){
       //Not a new technique
       var existingTechnique = $scope.techniques.find(function(technique){return technique.bundle_name === t2.bundle_name })
@@ -405,6 +529,7 @@ $scope.getSessionStorage = function(){
             $scope.originalTechnique = existingTechnique;
             if (doSave) {
               $scope.selectedTechnique = angular.copy($scope.originalTechnique);
+              updateFileManagerConf();
               $scope.resetFlags();
             }else{
               $scope.keepChanges();
@@ -600,9 +725,11 @@ $scope.onImportFileChange = function (fileEl) {
     focus('focusTechniqueName');
   };
 
+  $scope.openEditor = false;
   // Click on a Technique
   // Select it if it was not selected, unselect it otherwise
   $scope.selectTechnique = function(technique) {
+    $scope.openEditor = false;
     $scope.restoreFlag  = false;
     $scope.suppressFlag = false;
     $scope.conflictFlag = false;
@@ -619,6 +746,7 @@ $scope.onImportFileChange = function (fileEl) {
       $scope.originalTechnique=angular.copy($scope.selectedTechnique);
       $scope.$broadcast('endSaving');
     }
+    updateFileManagerConf()
   };
 
   ////////// OS Class ////////
@@ -764,7 +892,7 @@ $scope.onImportFileChange = function (fileEl) {
   // Select a method in a technique
   $scope.selectMethod = function(method_call) {
     $scope.conditionIsOpen = method_call.class_context != "any";
-    if($scope.isSelectedMethod(method_call) ) {
+    if(angular.equals($scope.selectedMethod,method_call) ) {
       $scope.selectedMethod = undefined;
       // Scroll to the previously selected method category
       // We need a timeout so model change can be taken into account and element to scroll is displayed
@@ -1140,7 +1268,7 @@ $scope.onImportFileChange = function (fileEl) {
       // Technique may have been modified by ncf API
       ncfTechnique = data.data.technique;
 
-      // Get methods used for that technique
+      // Get methods used for our technique so we can send only those methods to Rudder api instead of sending all methods like we used to do...
       var usedMethodsSet = new Set();
       ncfTechnique.method_calls.forEach(
         function(m) {
@@ -1163,7 +1291,7 @@ $scope.onImportFileChange = function (fileEl) {
               function(parameter) {
                 var value = parameter.value;
                 if (detectIfVariableIsInvalid(value)) {
-                  invalidParametersArray.push("<div>In generic method: <b>" +m.component + "</b>,  parameter: " + parameter.name + " has incorrect value " + value+"</div>");
+                  invalidContent.push("<div>In generic method: <b>" +m.component + "</b>,  parameter: " + parameter.name + " has incorrect value " + value+"</div>");
                 }
               }
             )
@@ -1194,6 +1322,8 @@ $scope.onImportFileChange = function (fileEl) {
           // We will lose the link between the selected method and the technique, to prevent unintended behavior, close the edit method panel
           $scope.selectedMethod = undefined;
         }
+
+        updateResources();
         $scope.resetFlags();
       }
 
@@ -1201,8 +1331,8 @@ $scope.onImportFileChange = function (fileEl) {
       $http.post("/rudder/secure/api/ncf", { "technique": ncfTechnique, "methods":usedMethods, "reason":reason }).
         success(rudderApiSuccess).
         error(errorRudder);
-    }
 
+    }
     var saveError = function(action, data) {
       return handle_error("while "+action+" Technique '"+ data.technique.name+"'")
     }
@@ -1294,16 +1424,6 @@ $scope.onImportFileChange = function (fileEl) {
     return result;
   }
 
-  $scope.checkErrorParameters = function(parameters){
-    var result = false;
-    for(var i=0; i<parameters.length; i++) {
-      if(parameters[i].$errors && parameters[i].$errors.length > 0){
-        result = true;
-      }
-    }
-    return result;
-  }
-
   $scope.isUsed = function(method){
     var i,j = 0;
     if(method.deprecated){
@@ -1374,6 +1494,7 @@ var confirmModalCtrl = function ($scope, $uibModalInstance, actionName, kind, na
 var cloneModalCtrl = function ($scope, $uibModalInstance, technique, techniques) {
 
   technique.bundle_name = undefined;
+
   $scope.techniques = techniques;
   $scope.technique = technique;
   $scope.oldTechniqueName = technique.name;
@@ -1425,3 +1546,35 @@ app.config(function($httpProvider,$locationProvider) {
     //Allows the browser to indicate to the cache to retrieve the GET request content from the original server rather than sending one he must keep.
     $httpProvider.defaults.headers.get['Pragma'] = 'no-cache';
 });
+
+app.config(['fileManagerConfigProvider', function (config) {
+  var apiPath = '/rudder/secure/api/ncf/';
+  var defaults = config.$get();
+
+  	config.set({
+    appName : 'resources',
+    listUrl             : apiPath,
+    uploadUrl           : apiPath,
+    renameUrl           : apiPath,
+    copyUrl             : apiPath,
+    moveUrl             : apiPath,
+    removeUrl           : apiPath,
+    editUrl             : apiPath,
+    getContentUrl       : apiPath,
+    createFolderUrl     : apiPath,
+    downloadFileUrl     : apiPath,
+    downloadMultipleUrl : apiPath,
+    compressUrl         : apiPath,
+    extractUrl          : apiPath,
+    permissionsUrl      : apiPath,
+    isEditableFilePattern : /.*/,
+    //tplPath             : baseUrl + '/templates/angular/filemanager',
+    allowedActions: angular.extend(defaults.allowedActions, {
+      compress: false,
+      compressChooseName: false,
+      preview : true,
+      edit: true,
+      extract: false
+    })
+  });
+}]);

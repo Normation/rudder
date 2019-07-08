@@ -4,6 +4,8 @@
 
 bundle agent content_escaping_test
 {
+  vars:
+    "resources_dir" string => "${this.promise_dir}/resources";
   methods:
     "Install a package with correct version_context_0" usebundle => _method_reporting_context("Install a package with correct version", "apache2");
     "Install a package with correct version" usebundle => package_install_version("apache2", "2.2.11"),
