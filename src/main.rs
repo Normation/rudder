@@ -5,4 +5,6 @@ fn main() {
     //let (i, o) = pheader(h).unwrap();
     //println!("Header version={:?}, rest={:?}", o, i);
     println!("Header");
+
+    println!("x={}", { let g=|x| { x*2 }; g } (2));
 }

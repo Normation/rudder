@@ -1,8 +1,13 @@
 use super::*;
+use nom::Err;
+use super::token::pinput;
 
 //    type Result<'src, O> = std::Result< (PInput<'src>,O), Err<PError<PInput<'src>>> >;
 
-// Adapter to simplify running test
+// Adapter to simplify running test (remove indirections and replace tokens with strings)
+// - create input from string
+// - convert output to string
+// - convert errors to ErrorKing with string parameter
 fn map_res<'src, F, O>(f: F, i: &'src str) -> std::result::Result<(&'src str, O), (&'src str, PErrorKind<&'src str>)>
 where
     F: Fn(PInput<'src>) -> Result<'src, O>,
@@ -15,15 +20,16 @@ where
     }
 }
 
-// Adapter to simplify error testing
+// Adapter to simplify error testing (convert all inputs to string)
 fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
     let kind = match err.kind {
         PErrorKind::Nom(e) => PErrorKind::NomTest(format!("{:?}", e)),
         PErrorKind::NomTest(e) => PErrorKind::NomTest(e),
         PErrorKind::InvalidFormat => PErrorKind::InvalidFormat,
-        PErrorKind::InvalidName(i1) => PErrorKind::InvalidName(i1.fragment),
-        PErrorKind::UnexpectedToken(i1) => PErrorKind::UnexpectedToken(i1),
-        PErrorKind::UnterminatedDelimiter(i1) => PErrorKind::UnterminatedDelimiter(i1.fragment),
+        PErrorKind::InvalidName(i) => PErrorKind::InvalidName(i.fragment),
+        PErrorKind::UnexpectedToken(i) => PErrorKind::UnexpectedToken(i),
+        PErrorKind::UnterminatedDelimiter(i) => PErrorKind::UnterminatedDelimiter(i.fragment),
+        PErrorKind::UnexpectedExpressionData => PErrorKind::UnexpectedExpressionData,
     };
     (err.context.fragment, kind)
 }
@@ -69,30 +75,41 @@ fn test_sp() {
         ),
         Ok(("", ("hello".into(), "world3".into())))
     );
-}
-
-fn sequence(i: PInput) -> Result<(Token,Token)> {
-    sequence!(
-        (i,o) -> {
-           id1: pidentifier;
-           id2: pidentifier;
-           _x: pidentifier;
-        }
+    assert_eq!(
+        map_res(
+            sp!(tuple((pidentifier, pidentifier))),
+            "hello world"
+        ),
+        Ok(("", ("hello".into(), "world".into())))
     );
-    Ok((o, (id1, id2)))
 }
 
 #[test]
 fn test_sequence() {
     assert_eq!(
-        map_res(sequence, "hello  world end"),
+        map_res(sequence!( {
+                        id1: pidentifier;
+                        id2: pidentifier;
+                        _x: pidentifier;
+                    } => (id1,id2)
+                ), "hello  world end"),
         Ok(("", ("hello".into(), "world".into())))
     );
     assert_eq!(
-        map_res(sequence, "hello world #end\nend"),
+        map_res(sequence!( { 
+                        id1: pidentifier;
+                        id2: pidentifier;
+                        _x: pidentifier;
+                    } => (id1,id2)
+               ), "hello world #end\nend"),
         Ok(("", ("hello".into(), "world".into())))
     );
-    assert!(map_res(sequence, "hello world").is_err());
+    assert!(map_res(sequence!( {
+                        id1: pidentifier;
+                        id2: pidentifier;
+                        _x: pidentifier;
+                    } => (id1,id2)
+              ), "hello world").is_err());
 }
 
 #[test]
@@ -265,6 +282,74 @@ fn test_penum_mapping() {
                     ("error".into(), "error".into()),
                 ]
             }
+        ))
+    );
+}
+
+#[test]
+fn test_penum_expression() {
+    assert_eq!(
+        map_res(penum_expression,"a=~b:c"),
+        Ok((
+            "",
+            PEnumExpression::Compare(Some("a".into()), Some("b".into()), "c".into())
+        ))
+    );
+    assert_eq!(
+        map_res(penum_expression, "a=~bc"),
+        Ok((
+            "",
+            PEnumExpression::Compare(Some("a".into()), None, "bc".into())
+        ))
+    );
+    assert_eq!(
+        map_res(penum_expression, "bc"),
+        Ok(("", PEnumExpression::Compare(None, None, "bc".into())))
+    );
+    assert_eq!(
+        map_res(penum_expression, "(a =~ b:hello)"),
+        Ok((
+            "",
+            PEnumExpression::Compare(Some("a".into()), Some("b".into()), "hello".into())
+        ))
+    );
+    assert_eq!(
+        map_res(penum_expression, "(a !~ b:hello)"),
+        Ok((
+            "",
+            PEnumExpression::Not(Box::new(PEnumExpression::Compare(
+                Some("a".into()),
+                Some("b".into()),
+                "hello".into()
+            )))
+        ))
+    );
+    assert_eq!(
+        map_res(penum_expression, "bc&&(a||b=~hello:g)"),
+        Ok((
+            "",
+            PEnumExpression::And(
+                Box::new(PEnumExpression::Compare(None, None, "bc".into())),
+                Box::new(PEnumExpression::Or(
+                    Box::new(PEnumExpression::Compare(None, None, "a".into())),
+                    Box::new(PEnumExpression::Compare(
+                        Some("b".into()),
+                        Some("hello".into()),
+                        "g".into()
+                    ))
+                )),
+            )
+        ))
+    );
+    assert_eq!(
+        map_res(penum_expression, "! a =~ hello"),
+        Ok((
+            "",
+            PEnumExpression::Not(Box::new(PEnumExpression::Compare(
+                Some("a".into()),
+                None,
+                "hello".into()
+            )))
         ))
     );
 }

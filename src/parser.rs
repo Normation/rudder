@@ -1,17 +1,18 @@
 mod error;
 mod token;
 
-use error::*;
 use nom::branch::*;
 use nom::bytes::complete::*;
 use nom::character::complete::*;
 use nom::combinator::*;
 use nom::multi::*;
 use nom::sequence::*;
-use nom::*;
+use nom::IResult;
 
+use error::{PError,PErrorKind,or_fail};
+use token::PInput;
 // reexport tokens
-pub use token::*;
+pub use token::Token;
 
 /// Result for all parser
 type Result<'src, O> = IResult<PInput<'src>, O, PError<PInput<'src>>>;
@@ -38,7 +39,11 @@ fn strip_spaces_and_comment(i: PInput) -> Result<()> {
 /// Macro to automatically call strip_spaces_and_comment for each parameter of a method call
 /// This avoids having to call it manually each time
 macro_rules! sp {
-    // version for combinator call
+    // version for combinator call with tuple parameter
+    ($i:ident ((  $($arg1:expr),* )) ) => {
+            $i (( $(terminated( $arg1, strip_spaces_and_comment ),)* ))
+    };
+    // version for normal combinator call
     ($i:ident ( $($arg1:expr),* ) ) => {
             $i ( $(terminated( $arg1, strip_spaces_and_comment ),)* )
     };
@@ -47,26 +52,31 @@ macro_rules! sp {
 /// A bit like do_parse! 
 ///
 /// Transforms:
-///    (input, output) -> { 
+///     { 
 ///         variable: combinator(parser);
 ///         ...
-///     }
+///     } => Object { variable, ... }
 /// Into a series of sequential calls like this:
-///     let i = input;
+///     |i| 
 ///     let(i,variable) = combinator(parser)(i)?;
 ///     let (i,_) = strip_spaces_and_comment(i)?
 ///     ...
-///     let output = i
+///     Ok((i,Object { variable, ... }))
 ///
+/// The result is a closure parser that can be used in place of any other parser
 /// As you can see, we automatically insert space parsing between each call
+///
+/// We don't use a list or a tuple for sequence parsing because we want to 
+/// use some intermediary result at some steps (for example for error management).
 macro_rules! sequence {
-    ( ($i:expr, $o:ident) -> { $($f:ident : $parser:expr;)* } ) => {
-        let i = $i;
-        $(
-            let (i,$f) = $parser (i)?;
-            let (i,_) = strip_spaces_and_comment(i)?;
-        )*
-        let $o = i;
+    ( { $($f:ident : $parser:expr;)* } => $output:expr ) => {
+        |i| {
+            $(
+                let (i,$f) = $parser (i)?;
+                let (i,_) = strip_spaces_and_comment(i)?;
+            )*
+            Ok((i, $output))
+        }
     };
 }
 
@@ -129,7 +139,7 @@ pub struct PEnum<'src> {
 }
 fn penum(i: PInput) -> Result<PEnum> {
     sequence!(
-        (i, o) -> {
+        {
             global: opt(tag("global"));
             e:      tag("enum");
             name:   or_fail(pidentifier, PErrorKind::InvalidName(e));
@@ -137,16 +147,12 @@ fn penum(i: PInput) -> Result<PEnum> {
             items:  sp!(separated_nonempty_list(tag(","), pidentifier));
             _x:     opt(tag(","));
             _x:     or_fail(tag("}"), PErrorKind::UnterminatedDelimiter(b));
+        } => PEnum {
+                global: global.is_some(),
+                name,
+                items,
         }
-    );
-    Ok((
-        o,
-        PEnum {
-            global: global.is_some(),
-            name,
-            items,
-        },
-    ))
+    )(i)
 }
 
 /// An enum mapping maps an enum to another one creating the second one in the process.
@@ -162,7 +168,7 @@ pub struct PEnumMapping<'src> {
 }
 fn penum_mapping(i: PInput) -> Result<PEnumMapping> {
     sequence!(
-        (i, o) -> {
+        {
             e:    tag("enum");
             from: or_fail(pidentifier,PErrorKind::InvalidName(e));
             _x:   or_fail(tag("~>"),PErrorKind::UnexpectedToken("~>"));
@@ -191,11 +197,112 @@ fn penum_mapping(i: PInput) -> Result<PEnumMapping> {
                 ));
             _x: opt(tag(","));
             _x: or_fail(tag("}"),PErrorKind::UnterminatedDelimiter(b));
-        }
-    );
-    Ok((o, PEnumMapping {from, to, mapping} ))
+        } => PEnumMapping {from, to, mapping}
+    )(i)
 }
     
+/// An enum expression is used as a condition in a case expression.
+/// This is a boolean expression based on enum comparison.
+/// A comparison check if the variable is of the right type and contains
+/// the provided item as a value, or an ancestor item if this is a mapped enum.
+/// 'default' is a value that is equivalent of 'true'.
+#[derive(Debug, PartialEq)]
+pub enum PEnumExpression<'src> {
+    //             variable                 enum              value/item
+    Compare(Option<Token<'src>>, Option<Token<'src>>, Token<'src>),
+    And(Box<PEnumExpression<'src>>, Box<PEnumExpression<'src>>),
+    Or(Box<PEnumExpression<'src>>, Box<PEnumExpression<'src>>),
+    Not(Box<PEnumExpression<'src>>),
+    Default(Token<'src>),
+}
+impl<'src> PEnumExpression<'src> {
+    // extract the first token of the expression
+    pub fn token(&self) -> Token<'src> {
+        match self {
+            PEnumExpression::Compare(_,_,v) => *v,
+            PEnumExpression::And(a,_) => a.token(),
+            PEnumExpression::Or(a,_) => a.token(),
+            PEnumExpression::Not(a) => a.token(),
+            PEnumExpression::Default(t) => *t,
+        }
+    }
+}
+
+pub fn penum_expression(i: PInput) -> Result<PEnumExpression> {
+    // an expression must consume the full string as this parser can be used in isolation
+    or_fail(
+        all_consuming(terminated(sub_enum_expression,strip_spaces_and_comment)),
+        PErrorKind::UnexpectedExpressionData
+    )(i)
+}
+fn sub_enum_expression(i: PInput) -> Result<PEnumExpression> {
+    alt((
+        enum_or_expression,
+        enum_and_expression,
+        enum_not_expression,
+        map(tag("default"), |t| PEnumExpression::Default(Token::from(t))), // default looks like an atom so it must come first
+        enum_atom
+    ))(i)
+}
+fn enum_atom(i: PInput) -> Result<PEnumExpression> {
+    alt((
+        sp!(delimited(
+            tag("("),
+            sub_enum_expression,
+            or_fail(tag(")"), PErrorKind::InvalidFormat)
+        )),
+        map(sp!(tuple((
+                pidentifier,
+                tag("=~"),
+                opt(sp!(terminated(pidentifier, tag(":")))),
+                pidentifier
+            ))),
+            |(var,_,penum,value)| PEnumExpression::Compare(Some(var), penum, value)
+        ),
+        map(sp!(tuple((
+                pidentifier,
+                tag("!~"),
+                opt(sp!(terminated(pidentifier, tag(":")))),
+                pidentifier
+            ))),
+            |(var,_x,penum,value)| PEnumExpression::Not(Box::new(PEnumExpression::Compare(
+                        Some(var), penum, value)))
+        ),
+        map(sp!(pair(
+                opt(sp!(terminated(pidentifier, tag(":")))),
+                pidentifier
+            )),
+            |(penum,value)| PEnumExpression::Compare(None, penum, value)
+        )
+    ))(i)
+}
+fn enum_or_expression(i: PInput) -> Result<PEnumExpression> {
+    map(sp!(tuple((
+            alt((enum_and_expression, enum_not_expression, enum_atom)),
+            tag("||"),
+            alt((enum_or_expression, enum_and_expression, enum_not_expression, enum_atom))
+        ))),
+        |(left,_,right)| PEnumExpression::Or(Box::new(left), Box::new(right))
+    )(i)
+}
+fn enum_and_expression(i: PInput) -> Result<PEnumExpression> {
+    map(sp!(tuple((
+            alt((enum_not_expression, enum_atom)),
+            tag("&&"),
+            alt((enum_and_expression, enum_not_expression, enum_atom))
+        ))),
+        |(left,_,right)| PEnumExpression::And(Box::new(left), Box::new(right))
+    )(i)
+}
+fn enum_not_expression(i: PInput) -> Result<PEnumExpression> {
+    map(sp!(preceded(
+            tag("!"),
+            enum_atom
+        )),
+        |right| PEnumExpression::Not(Box::new(right))
+    )(i)
+}
+
 
 // tests must be at the end to be able to test macros
 #[cfg(test)]

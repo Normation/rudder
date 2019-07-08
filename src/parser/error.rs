@@ -1,4 +1,4 @@
-use nom::error::*;
+use nom::error::{ParseError,ErrorKind,VerboseError};
 use nom::{IResult, Err};
 
 /// This is the only error type that should be returned by the main parser.
@@ -10,10 +10,11 @@ use nom::{IResult, Err};
 pub enum PErrorKind<I> {
     Nom(VerboseError<I>),
     NomTest(String),               // should not be use outside of tests
-    InvalidFormat,
-    InvalidName(I),                // name of, at
-    UnexpectedToken(&'static str), // expected, at
-    UnterminatedDelimiter(I),      // first delimiter, expected place
+    InvalidFormat,                 // in header
+    InvalidName(I),                // in identifier expressions (type of expression)
+    UnexpectedToken(&'static str), // anywhere (expected token)
+    UnterminatedDelimiter(I),      // after an opening delimiter (first delimiter)
+    UnexpectedExpressionData,      // in enum expression
 }
 
 #[derive(Debug, PartialEq,Clone)]
