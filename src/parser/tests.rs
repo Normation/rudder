@@ -50,40 +50,49 @@ fn test_spaces_and_comment() {
 }
 
 #[test]
-fn test_spa() {
+fn test_sp() {
     assert_eq!(
-        map_res(spa!(pidentifier), "hello world  "),
-        Ok(("world  ", "hello".into()))
-    );
-    assert_eq!(
-        map_res(
-            spa!(pidentifier),
-            "hello  #comment\n"
-        ),
-        Ok(("", "hello".into()))
-    );
-}
-
-#[test]
-fn test_spi() {
-    assert_eq!(
-        map_res(spi!(pair(pidentifier, pidentifier)), "hello world"),
+        map_res(sp!(pair(pidentifier, pidentifier)), "hello world"),
         Ok(("", ("hello".into(), "world".into())))
     );
     assert_eq!(
         map_res(
-            spi!(pair(pidentifier, pidentifier)),
+            sp!(pair(pidentifier, pidentifier)),
             "hello \n#pouet\n world2"
         ),
         Ok(("", ("hello".into(), "world2".into())))
     );
     assert_eq!(
         map_res(
-            spi!(pair(pidentifier, pidentifier)),
+            sp!(pair(pidentifier, pidentifier)),
             "hello  world3 #comment\n"
         ),
         Ok(("", ("hello".into(), "world3".into())))
     );
+}
+
+fn sequence(i: PInput) -> Result<(Token,Token)> {
+    sequence!(
+        (i,o) -> {
+           id1: pidentifier;
+           id2: pidentifier;
+           _x: pidentifier;
+        }
+    );
+    Ok((o, (id1, id2)))
+}
+
+#[test]
+fn test_sequence() {
+    assert_eq!(
+        map_res(sequence, "hello  world end"),
+        Ok(("", ("hello".into(), "world".into())))
+    );
+    assert_eq!(
+        map_res(sequence, "hello world #end\nend"),
+        Ok(("", ("hello".into(), "world".into())))
+    );
+    assert!(map_res(sequence, "hello world").is_err());
 }
 
 #[test]
@@ -178,34 +187,34 @@ fn test_pidentifier() {
 #[test]
 fn test_penum() {
     assert_eq!(
-        map_res(penum, "enum abc { a, b, c }"),
+        map_res(penum, "enum abc1 { a, b, c }"),
         Ok((
             "",
             PEnum {
                 global: false,
-                name: "abc".into(),
+                name: "abc1".into(),
                 items: vec!["a".into(), "b".into(), "c".into()]
             }
         ))
     );
     assert_eq!(
-        map_res(penum, "global enum abc { a, b, c }"),
+        map_res(penum, "global enum abc2 { a, b, c }"),
         Ok((
             "",
             PEnum {
                 global: true,
-                name: "abc".into(),
+                name: "abc2".into(),
                 items: vec!["a".into(), "b".into(), "c".into()]
             }
         ))
     );
     assert_eq!(
-        map_res(penum, "enum abc { a, b, }"),
+        map_res(penum, "enum abc3 { a, b, }"),
         Ok((
             "",
             PEnum {
                 global: false,
-                name: "abc".into(),
+                name: "abc3".into(),
                 items: vec!["a".into(), "b".into()]
             }
         ))
@@ -223,36 +232,39 @@ fn test_penum() {
         Err(("", PErrorKind::UnterminatedDelimiter("{")))
     );
 }
-//    assert_eq!(
-//        map_res(penum_mapping,"enum abc ~> def { a -> d, b -> e, * -> f}"),
-//        Ok((
-//            "",
-//            PEnumMapping {
-//                from: "abc".into(),
-//                to: "def".into(),
-//                mapping: vec![
-//                    ("a".into(), "d".into()),
-//                    ("b".into(), "e".into()),
-//                    ("*".into(), "f".into()),
-//                ]
-//            }
-//        ))
-//    );
-//    assert_eq!(
-//        map_res(penum_mapping,
-//            "enum outcome ~> okerr { kept->ok, repaired->ok, error->error }"
-//        ),
-//        Ok((
-//            "",
-//            PEnumMapping {
-//                from: "outcome".into(),
-//                to: "okerr".into(),
-//                mapping: vec![
-//                    ("kept".into(), "ok".into()),
-//                    ("repaired".into(), "ok".into()),
-//                    ("error".into(), "error".into()),
-//                ]
-//            }
-//        ))
-//    );
-//}
+
+#[test]
+fn test_penum_mapping() {
+    assert_eq!(
+        map_res(penum_mapping,"enum abc ~> def { a -> d, b -> e, * -> f}"),
+        Ok((
+            "",
+            PEnumMapping {
+                from: "abc".into(),
+                to: "def".into(),
+                mapping: vec![
+                    ("a".into(), "d".into()),
+                    ("b".into(), "e".into()),
+                    ("*".into(), "f".into()),
+                ]
+            }
+        ))
+    );
+    assert_eq!(
+        map_res(penum_mapping,
+            "enum outcome ~> okerr { kept->ok, repaired->ok, error->error }"
+        ),
+        Ok((
+            "",
+            PEnumMapping {
+                from: "outcome".into(),
+                to: "okerr".into(),
+                mapping: vec![
+                    ("kept".into(), "ok".into()),
+                    ("repaired".into(), "ok".into()),
+                    ("error".into(), "error".into()),
+                ]
+            }
+        ))
+    );
+}

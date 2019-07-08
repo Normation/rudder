@@ -35,20 +35,38 @@ fn strip_spaces_and_comment(i: PInput) -> Result<()> {
     Ok((i, ()))
 }
 
-/// Macro to automatically append strip_spaces_and_comment to a parser (a=append)
-/// This one could be a combinator, but we keep it a macro for coherency with spi!
-macro_rules! spa {
-    ($i:expr ) => {
-        terminated( $i, strip_spaces_and_comment )
-    };
-}
 /// Macro to automatically call strip_spaces_and_comment for each parameter of a method call
-/// This avoids having to call it manually each time (i=insert)
-/// On almost all combinators, this is also does an spa!
-macro_rules! spi {
+/// This avoids having to call it manually each time
+macro_rules! sp {
     // version for combinator call
     ($i:ident ( $($arg1:expr),* ) ) => {
             $i ( $(terminated( $arg1, strip_spaces_and_comment ),)* )
+    };
+}
+
+/// A bit like do_parse! 
+///
+/// Transforms:
+///    (input, output) -> { 
+///         variable: combinator(parser);
+///         ...
+///     }
+/// Into a series of sequential calls like this:
+///     let i = input;
+///     let(i,variable) = combinator(parser)(i)?;
+///     let (i,_) = strip_spaces_and_comment(i)?
+///     ...
+///     let output = i
+///
+/// As you can see, we automatically insert space parsing between each call
+macro_rules! sequence {
+    ( ($i:expr, $o:ident) -> { $($f:ident : $parser:expr;)* } ) => {
+        let i = $i;
+        $(
+            let (i,$f) = $parser (i)?;
+            let (i,_) = strip_spaces_and_comment(i)?;
+        )*
+        let $o = i;
     };
 }
 
@@ -59,6 +77,7 @@ pub struct PHeader {
     pub version: u32,
 }
 fn pheader(i: PInput) -> Result<PHeader> {
+    // cannot use sequence because we don't want space parsing
     let (i, _) = opt(tuple((tag("#!/"), take_until("\n"), newline)))(i)?;
     let (i, _) = or_fail(tag("@format="), PErrorKind::InvalidFormat)(i)?;
     let (i, version) = or_fail(
@@ -109,15 +128,19 @@ pub struct PEnum<'src> {
     pub items: Vec<Token<'src>>,
 }
 fn penum(i: PInput) -> Result<PEnum> {
-    let (i, global) = spa!(opt(tag("global")))(i)?;
-    let (i, e) = spa!(tag("enum"))(i)?;
-    let (i, name) = spa!(or_fail(pidentifier, PErrorKind::InvalidName(e)))(i)?;
-    let (i, b) = spa!(or_fail(tag("{"), PErrorKind::UnexpectedToken("{")))(i)?;
-    let (i, items) = spi!(separated_nonempty_list(tag(","), pidentifier))(i)?;
-    let (i, _) = spa!(opt(tag(",")))(i)?;
-    let (i, _) = spa!(or_fail(tag("}"), PErrorKind::UnterminatedDelimiter(b)))(i)?;
+    sequence!(
+        (i, o) -> {
+            global: opt(tag("global"));
+            e:      tag("enum");
+            name:   or_fail(pidentifier, PErrorKind::InvalidName(e));
+            b:      or_fail(tag("{"), PErrorKind::UnexpectedToken("{"));
+            items:  sp!(separated_nonempty_list(tag(","), pidentifier));
+            _x:     opt(tag(","));
+            _x:     or_fail(tag("}"), PErrorKind::UnterminatedDelimiter(b));
+        }
+    );
     Ok((
-        i,
+        o,
         PEnum {
             global: global.is_some(),
             name,
@@ -138,64 +161,41 @@ pub struct PEnumMapping<'src> {
     pub mapping: Vec<(Token<'src>, Token<'src>)>,
 }
 fn penum_mapping(i: PInput) -> Result<PEnumMapping> {
-    let (i, e) = tag("enum")(i)?;
-    let (i, _) = strip_spaces_and_comment(i)?;
-    let (i,from) = or_fail(pidentifier,PErrorKind::InvalidName(e))(i)?;
-    let (i, _) = strip_spaces_and_comment(i)?;
-    let (i, _) = or_fail(tag("~>"),PErrorKind::UnexpectedToken("~>"))(i)?;
-    let (i, _) = strip_spaces_and_comment(i)?;
-    let (i,to) = or_fail(pidentifier,PErrorKind::InvalidName(e))(i)?;
-    let (i, _) = strip_spaces_and_comment(i)?;
-    let (i, b) = or_fail(tag("{"),PErrorKind::UnexpectedToken("{"))(i)?;
-    let (i, _) = strip_spaces_and_comment(i)?;
-    let (i, mapping) = 
-        spi!(separated_nonempty_list(
-            tag(","),
-            separated_pair(
-                or_fail(
-                    alt((
-                        pidentifier,
-                        map(tag("*"),|x: PInput| x.into())
-                    )),
-                    PErrorKind::InvalidName(to.into())),
-                or_fail(
-                    tag("->"),
-                    PErrorKind::UnexpectedToken("->")),
-                or_fail(
-                    alt((
-                        pidentifier,
-                        map(tag("*"),|x: PInput| x.into())
-                    )),
-                    PErrorKind::InvalidName(to.into()))
-            )
-        ))(i)?;
-    let (i, _) = strip_spaces_and_comment(i)?;
-    let (i, _) = opt(tag(","))(i)?;
-    let (i, _) = strip_spaces_and_comment(i)?;
-    let (i, _) = or_fail(tag("}"),PErrorKind::UnterminatedDelimiter(b))(i)?;
-    Ok((i, PEnumMapping {from, to, mapping} ))
+    sequence!(
+        (i, o) -> {
+            e:    tag("enum");
+            from: or_fail(pidentifier,PErrorKind::InvalidName(e));
+            _x:   or_fail(tag("~>"),PErrorKind::UnexpectedToken("~>"));
+            to:   or_fail(pidentifier,PErrorKind::InvalidName(e));
+            b:    or_fail(tag("{"),PErrorKind::UnexpectedToken("{"));
+            mapping: 
+                sp!(separated_nonempty_list(
+                    tag(","),
+                    sp!(separated_pair(
+                        or_fail(
+                            alt((
+                                pidentifier,
+                                map(tag("*"),|x: PInput| x.into())
+                            )),
+                            PErrorKind::InvalidName(to.into())),
+                        or_fail(
+                            tag("->"),
+                            PErrorKind::UnexpectedToken("->")),
+                        or_fail(
+                            alt((
+                                pidentifier,
+                                map(tag("*"),|x: PInput| x.into())
+                            )),
+                            PErrorKind::InvalidName(to.into()))
+                    ))
+                ));
+            _x: opt(tag(","));
+            _x: or_fail(tag("}"),PErrorKind::UnterminatedDelimiter(b));
+        }
+    );
+    Ok((o, PEnumMapping {from, to, mapping} ))
 }
     
-//pnamed!(pub penum_mapping<PEnumMapping>,
-//    sp!(do_parse!(
-//        tag!("enum") >>
-//        from: or_fail!(pidentifier,PErrorKind::InvalidName) >>
-//        or_fail!(tag!("~>"),PErrorKind::InvalidSeparator) >>
-//        to: or_fail!(pidentifier,PErrorKind::InvalidName) >>
-//        or_fail!(tag!("{"),PErrorKind::InvalidSeparator) >>
-//        mapping: sp!(separated_list!(
-//                tag!(","),
-//                separated_pair!(
-//                    or_fail!(alt!(pidentifier|map!(tag!("*"),|x| x.into())),PErrorKind::InvalidName),
-//                    or_fail!(tag!("->"),PErrorKind::InvalidSeparator),
-//                    or_fail!(alt!(pidentifier|map!(tag!("*"),|x| x.into())),PErrorKind::InvalidName))
-//            )) >>
-//        opt!(tag!(",")) >>
-//        or_fail!(tag!("}"),PErrorKind::UnterminatedDelimiter) >>
-//        (PEnumMapping {from, to, mapping})
-//    ))
-//);
-
 
 // tests must be at the end to be able to test macros
 #[cfg(test)]
