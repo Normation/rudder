@@ -152,7 +152,7 @@ impl NodesList {
             .to_string())
     }
 
-    fn get_neighbours(&self) -> Vec<String> {
+    fn get_neighbors(&self) -> Vec<String> {
         self.list
             .data
             .values()
@@ -175,9 +175,9 @@ impl NodesList {
         self.list.data.keys().map(|v| v.clone()).collect()
     }
 
-    pub fn get_neighbours_from_target(&self, target_nodes: RemoteRunTarget) -> Vec<String> {
+    pub fn get_neighbors_from_target(&self, target_nodes: RemoteRunTarget) -> Vec<String> {
         match target_nodes {
-            RemoteRunTarget::All => self.get_neighbours(),
+            RemoteRunTarget::All => self.get_neighbors(),
             RemoteRunTarget::Nodes(nodes) => self
                 .list
                 .data
@@ -188,7 +188,7 @@ impl NodesList {
         }
     }
 
-    fn get_neighbours_which_are_relay(&self, relay_id: &str) -> Vec<String> {
+    fn get_neighbors_which_are_relay(&self, relay_id: &str) -> Vec<String> {
         self.list
             .data
             .values()
@@ -282,15 +282,13 @@ mod tests {
 
         assert_eq!(
             file_nodelist
-                .get_neighbours_from_target(has_to_be_filtered)
+                .get_neighbors_from_target(has_to_be_filtered)
                 .sort(),
             has_been_filtered.sort()
         );
 
         assert_eq!(
-            file_nodelist
-                .get_neighbours_from_target(all_my_nodes)
-                .sort(),
+            file_nodelist.get_neighbors_from_target(all_my_nodes).sort(),
             all_my_nodes_for_real.sort()
         );
     }
@@ -316,7 +314,7 @@ mod tests {
     }
 
     #[test]
-    fn its_getting_the_neighbours() {
+    fn its_getting_the_neighbors() {
         let mut my_string_vec = [
             "e745a140-40bc-4b86-b6dc-084488fc906b",
             "root",
@@ -326,7 +324,7 @@ mod tests {
         let file_nodelist =
             NodesList::new("root".to_string(), "tests/files/nodeslist.json", None).unwrap();
 
-        assert_eq!(file_nodelist.get_neighbours().sort(), my_string_vec.sort());
+        assert_eq!(file_nodelist.get_neighbors().sort(), my_string_vec.sort());
     }
 
     #[test]
@@ -345,7 +343,7 @@ mod tests {
     }
 
     #[test]
-    fn its_getting_the_neighbours_which_are_relay() {
+    fn its_getting_the_neighbors_which_are_relay() {
         let mut my_string_vec = [
             "e745a140-40bc-4b86-b6dc-084488fc906b",
             "root",
@@ -356,7 +354,7 @@ mod tests {
             NodesList::new("root".to_string(), "tests/files/nodeslist.json", None).unwrap();
 
         assert_eq!(
-            file_nodelist.get_neighbours_which_are_relay("root").sort(),
+            file_nodelist.get_neighbors_which_are_relay("root").sort(),
             my_string_vec.sort()
         );
     }

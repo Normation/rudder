@@ -28,24 +28,17 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::collections::HashMap;
-use crate::error::Error;
-use std::fmt::Display;
-use regex::Regex;
-use std::fs;
-use chrono::prelude::*;
-use std::fmt;
-use std::path::Path;
+use crate::data::node::NodesList;
+use crate::{error::Error, JobConfig};
 use chrono::prelude::DateTime;
 use chrono::{Duration, Utc};
 use hyper::StatusCode;
-use std::fs::File;
-use std::io::{BufReader, Read, Write};
-use std::str::FromStr;
-use sha1::Sha1;
-use std::env;
-use sha2::{Digest, Sha256, Sha512};
-use crate::data::node::NodesList;
+use regex::Regex;
+use std::collections::HashMap;
+use std::fmt;
+use std::fs;
+use std::path::Path;
+use std::{str::FromStr, sync::Arc};
 
 #[derive(Debug)]
 pub struct Metadata {
@@ -64,29 +57,77 @@ impl FromStr for Metadata {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // FIXME: parse based on keys and not on order
-        let metadata: Vec<&str> = s.splitn(18, |c| c == '=' || c == '\n').collect();
-
         Ok(Metadata {
-            header: metadata[1].to_string(),
-            algorithm: metadata[3].to_string(),
-            digest: metadata[5].to_string(),
-            hash_value: metadata[7].to_string(),
-            short_pubkey: metadata[9].to_string(),
-            hostname: metadata[11].to_string(),
-            keydate: metadata[13].to_string(),
-            keyid: metadata[15].to_string(),
-            expires: metadata[17].to_string(),
+            header: parse_value("header", s).unwrap(),
+            algorithm: parse_value("algorithm", s).unwrap(),
+            digest: parse_value("digest", s).unwrap(),
+            hash_value: parse_value("hash_value", s).unwrap(),
+            short_pubkey: parse_value("short_pubkey", s).unwrap(),
+            hostname: parse_value("hostname", s).unwrap(),
+            keydate: parse_value("keydate", s).unwrap(),
+            keyid: parse_value("keyid", s).unwrap(),
+            expires: parse_value("expires", s).unwrap(),
         })
     }
 }
 
-pub fn same_hash_than_in_nodeslist(hash_value: &str, source_uuid: String) -> bool {
-    // FIXME: reuse nodes list from job_config
-    let nodeslist = NodesList::new("root".to_string(), "tests/files/nodeslist.json", None);
+impl Metadata {
+    pub fn new(hashmap: HashMap<String, String>) -> Result<Self, Error> {
+        Ok(Metadata {
+            header: hashmap.get("header").unwrap().to_string(),
+            algorithm: hashmap.get("algorithm").unwrap().to_string(),
+            digest: hashmap.get("digest").unwrap().to_string(),
+            hash_value: hashmap.get("hash_value").unwrap().to_string(),
+            short_pubkey: hashmap.get("short_pubkey").unwrap().to_string(),
+            hostname: hashmap.get("hostname").unwrap().to_string(),
+            keydate: hashmap.get("keydate").unwrap().to_string(),
+            keyid: hashmap.get("keyid").unwrap().to_string(),
+            expires: hashmap.get("expires").unwrap().to_string(),
+        })
+    }
+}
 
-    let myvec2: Vec<String> = nodeslist
-        .unwrap()
+impl fmt::Display for Metadata {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut mystring = String::new();
+
+        mystring.push_str(&format!("header={}\n", &self.header));
+        mystring.push_str(&format!("algorithm={}\n", &self.algorithm));
+        mystring.push_str(&format!("digest={}\n", &self.digest));
+        mystring.push_str(&format!("hash_value={}\n", &self.hash_value));
+        mystring.push_str(&format!("short_pubkey={}\n", &self.short_pubkey));
+        mystring.push_str(&format!("hostname={}\n", &self.hostname));
+        mystring.push_str(&format!("keydate={}\n", &self.keydate));
+        mystring.push_str(&format!("keyid={}\n", &self.keyid));
+        mystring.push_str(&format!(
+            "expires={}\n",
+            parse_ttl(self.expires.clone().to_string()).unwrap()
+        ));
+        write!(f, "{}", mystring)
+    }
+}
+
+pub fn parse_value(key: &str, file: &str) -> Result<String, ()> {
+    let regex_key = Regex::new(&format!(r"{}=(?P<key>[^\n]+)\n", key)).unwrap();
+
+    match regex_key.captures(&file) {
+        Some(y) => match y.name("key") {
+            Some(x) => Ok(x.as_str().parse::<String>().unwrap()),
+            _ => Err(()),
+        },
+        None => Err(()),
+    }
+}
+
+pub fn same_hash_than_in_nodeslist(
+    hash_value: &str,
+    source_uuid: String,
+    job_config: Arc<JobConfig>,
+) -> bool {
+    let myvec2: Vec<String> = job_config
+        .nodes
+        .read()
+        .expect("Cannot read nodes list")
         .get_keyhash_from_uuid(&source_uuid)
         .unwrap()
         .split(':')
@@ -98,98 +139,40 @@ pub fn same_hash_than_in_nodeslist(hash_value: &str, source_uuid: String) -> boo
     hash_value == keyhash.to_string()
 }
 
-enum TimeMarker {
-    Seconds,
-    Minutes,
-    Hours,
-    Days,
-}
+pub fn parse_ttl(ttl: String) -> Result<i64, Error> {
+    let regex_numbers = Regex::new(r"^(?:(?P<days>\d+)(?:d|days))?\s*(?:(?P<hours>\d+)(?:h|hours))?\s*(?:(?P<minutes>\d+)(?:m|minutes))?\s*(?:(?P<seconds>\d+)(?:s|seconds))?").unwrap();
 
-impl Display for TimeMarker {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", match self {
-            TimeMarker::Seconds => "seconds",
-            TimeMarker::Minutes => "minutes",
-            TimeMarker::Hours => "hours",
-            TimeMarker::Days => "days",
+    fn parse_time<'t>(cap: &regex::Captures<'t>, n: &str) -> Result<i64, Error> {
+        Ok(match cap.name(n) {
+            Some(s) => s.as_str().parse::<i64>()?,
+            None => 0,
         })
     }
-}
 
-impl TimeMarker {
-    fn to_duration(&self, n: i64) -> Duration {
-        match self {
-            TimeMarker::Seconds => Duration::seconds(n),
-            TimeMarker::Minutes => Duration::minutes(n),
-            TimeMarker::Hours => Duration::hours(n),
-            TimeMarker::Days => Duration::days(n),
-        }
+    if let Some(cap) = regex_numbers.captures(&ttl) {
+        let s = parse_time(&cap, "seconds")?;
+        let m = parse_time(&cap, "minutes")?;
+        let h = parse_time(&cap, "hours")?;
+        let d = parse_time(&cap, "days")?;
+
+        let expiration: DateTime<Utc> = Utc::now()
+            + Duration::seconds(s)
+            + Duration::seconds(m)
+            + Duration::seconds(h)
+            + Duration::seconds(d);
+
+        Ok(expiration.timestamp())
+    } else {
+        Err(Error::InvalidTtl(ttl))
     }
 }
 
-pub fn parse_ttl(ttl: String) -> Result<String, ()> {
-    let regex_numbers = Regex::new(r"^(?:(?P<days>\d+)(?:d|days))?\s*(?:(?P<hours>\d+)(?:h|hours))?\s*(?:(?P<minutes>\d+)(?:m|minutes))?\s*(?:(?P<seconds>\d+)(?:s|seconds))").unwrap();
-
-    let markers = vec![TimeMarker::Seconds, TimeMarker::Minutes, TimeMarker::Hours, TimeMarker::Days];
-    let mut expiration: DateTime<Utc> = Utc::now();
-
-    match regex_numbers.captures(&ttl) {
-        Some(cap) => {
-            for marker in markers {
-                match cap.name(&elt.to_string()) {
-                    Some(x) => {
-                        expiration = expiration + marker.to_duration(x.as_str().parse::<i64>().unwrap())
-                    }
-                    _ => (),
-                }
-            }
-        },
-        None => return Err(())
-    }
-
-    Ok(expiration
-        .timestamp()
-        .to_string())
-}
-
-pub fn metadata_writer(hashmap: HashMap<String, String>, peek: warp::filters::path::Peek) -> String {
-    let myvec: Vec<String> = peek.as_str().split('/').map(|s| s.to_string()).collect();
+pub fn metadata_writer(metadata_string: String, peek: &str) {
+    let myvec: Vec<String> = peek.split('/').map(|s| s.to_string()).collect();
     let (target_uuid, source_uuid, file_id) = (&myvec[0], &myvec[1], &myvec[2]);
-
-    let mut mystring = String::new();
-
-    if !same_hash_than_in_nodeslist(hashmap.get("hash_value").unwrap(), source_uuid.to_string())
-    {
-        return "wrong hash".to_string();
-    }
-
-    let iter_vec = vec![
-        "header",
-        "algorithm",
-        "digest",
-        "hash_value",
-        "short_pubkey",
-        "hostname",
-        "keydate",
-        "keyid",
-        "ttl",
-    ];
-
-    for elt in iter_vec {
-        if elt == "ttl" {
-            mystring.push_str(&format!(
-                "expires={}\n",
-                parse_ttl(hashmap.get("ttl").unwrap().to_string()).unwrap()
-            ));
-        } else {
-            mystring.push_str(&format!("{}={}\n", elt, hashmap.get(elt).unwrap()));
-        }
-    }
     fs::create_dir_all(format!("./{}/{}/", target_uuid, source_uuid)); // on cree les folders s'ils existent pas
-    //fs::create_dir_all(format!("/var/rudder/configuration-repository/shared-files/{}/{}/", target_uuid, source_uuid)); // real path
-    fs::write(format!("./{}", peek.as_str()), mystring).expect("Unable to write file");
-
-    "perfect".to_string()
+                                                                       //fs::create_dir_all(format!("/var/rudder/configuration-repository/shared-files/{}/{}/", target_uuid, source_uuid)); // real path
+    fs::write(format!("./{}", peek), metadata_string).expect("Unable to write file");
 }
 
 pub fn metadata_hash_checker(filename: String, hash: String) -> hyper::StatusCode {
@@ -232,22 +215,20 @@ pub fn get_pubkey(metadata: Metadata) -> String {
     )
 }
 
-// # Validate that a given public key matches the provided hash
-// # The public key is a key object and the hash is of the form 'algorithm:kex_value'
-// def validate_key(pubkey, keyhash):
-//   try:
-//     (keyhash_type, keyhash_value) = keyhash.split(":",1)
-//   except:
-//     raise ValueError("ERROR invalid key hash, it should be 'type:value': " + keyhash)
-//   pubkey_bin = pubkey.exportKey(format="DER")
-//   h = get_hash(keyhash_type, pubkey_bin)
-//   return h.hexdigest() == keyhash_value
+#[test]
 
-// # Validate that a message has been properly signed by the given key
-// # The public key is a key object, algorithm is the hash algorithm and digest the hex signature
-// # The key algorithm will always be RSA because is is loaded as such
-// # Returns a booleas for the validity and the message hash to avoid computing it twice
-// def validate_message(message, pubkey, algorithm, digest):
-//   h = get_hash(algorithm, message)
-//   cipher = PKCS1_v1_5.new(pubkey)
-//   return (cipher.verify(h, toBin(digest)), h.hexdigest())
+pub fn it_writes_the_metadata() {
+    let metadata = Metadata {
+        header: "rudder-signature-v1".to_string(),
+        algorithm: "sha256".to_string(),
+        digest: "8ca9efc5752e133e2e80e2661c176fa50f".to_string(),
+        hash_value: "a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f".to_string(),
+        short_pubkey: "shortpubkey".to_string(),
+        hostname: "ubuntu-18-04-64".to_string(),
+        keydate: "2018-10-3118:21:43.653257143".to_string(),
+        keyid: "B29D02BB".to_string(),
+        expires: "1d 1h".to_string(),
+    };
+
+    assert_eq!(format!("{}", metadata), format!("header=rudder-signature-v1\nalgorithm=sha256\ndigest=8ca9efc5752e133e2e80e2661c176fa50f\nhash_value=a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f\nshort_pubkey=shortpubkey\nhostname=ubuntu-18-04-64\nkeydate=2018-10-3118:21:43.653257143\nkeyid=B29D02BB\nexpires={}\n", parse_ttl("1d 1h".to_string()).unwrap()));
+}

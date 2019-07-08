@@ -1,7 +1,8 @@
 use relayd::{
-    configuration::CliConfiguration, data::report::QueryableReport, start, init_logger,
-    output::database::schema::ruddersysevents::dsl::*, stats::Stats,
+    configuration::CliConfiguration, data::report::QueryableReport, init_logger,
+    output::database::schema::ruddersysevents::dsl::*, start, stats::Stats,
 };
+
 use std::{
     fs::{copy, create_dir_all, remove_dir_all},
     path::Path,
@@ -41,12 +42,10 @@ mod tests {
 
         let client = reqwest::Client::new();
 
-        // // curl -X POST http://127.0.0.1:3030/rudder/relay-api/remote-run/nodes -d "asynchronous=false&keep_output=true&conditions=class1,class2,class3&nodes=node2.rudder.local,server.rudder.local"
-
         let params = [
             ("asynchronous", "false"),
             ("keep_output", "true"),
-            ("conditions", "clas~1,class2,class3"),
+            ("classes", "clas~1,class2,class3"),
             ("nodes", "node2.rudder.local,server.rudder.local"),
         ];
 
@@ -55,6 +54,6 @@ mod tests {
             .form(&params)
             .send();
 
-        assert_eq!(res.unwrap().text().unwrap(), "Unhandled rejection: Invalid agent Condition : Invalid agent Condition : Wrong condition: {} Your condition should match this regex : ^[a-zA-Z0-9][a-zA-Z0-9_]*$".to_string());
+        assert_eq!(res.unwrap().text().unwrap(), "Unhandled rejection: Invalid agent Condition : Invalid agent Condition : Wrong condition: \'clas~1\', it should match ^[a-zA-Z0-9][a-zA-Z0-9_]*$".to_string());
     }
 }
