@@ -10,14 +10,11 @@ use nom::error::*;
 #[derive(Debug, PartialEq)]
 pub enum PError<I> {
     Nom(VerboseError<I>),
+    NomTest(String), // should not be use outside of tests
     InvalidFormat,
-    UnterminatedString,
-    InvalidEscape,
-    UnterminatedDelimiter,
-    InvalidName,
-    EnumExpression,
-    InvalidSeparator,
-    InvalidVariableDefinition,
+    InvalidName(I, I),                // name of, at
+    UnexpectedToken(&'static str, I), // expected, at
+    UnterminatedDelimiter(I, I),      // first delimiter, expected place
 }
 
 impl<I> ParseError<I> for PError<I> {
@@ -44,4 +41,3 @@ macro_rules! or_fail (
         }
     )
 );
-
