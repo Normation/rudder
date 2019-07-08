@@ -3,7 +3,7 @@ use super::*;
 //    type Result<'src, O> = std::Result< (PInput<'src>,O), Err<PError<PInput<'src>>> >;
 
 // Adapter to simplify running test
-fn map_res<'src, F, O>(f: F, i: &'src str) -> std::result::Result<(&'src str, O), PError<&'src str>>
+fn map_res<'src, F, O>(f: F, i: &'src str) -> std::result::Result<(&'src str, O), (&'src str, PErrorKind<&'src str>)>
 where
     F: Fn(PInput<'src>) -> Result<'src, O>,
 {
@@ -16,17 +16,16 @@ where
 }
 
 // Adapter to simplify error testing
-fn map_err(err: PError<PInput>) -> PError<&str> {
-    match err {
-        PError::Nom(e) => PError::NomTest(format!("{:?}", e)),
-        PError::NomTest(e) => PError::NomTest(e),
-        PError::InvalidFormat => PError::InvalidFormat,
-        PError::InvalidName(i1, i2) => PError::InvalidName(i1.fragment, i2.fragment),
-        PError::UnexpectedToken(i1, i2) => PError::UnexpectedToken(i1, i2.fragment),
-        PError::UnterminatedDelimiter(i1, i2) => {
-            PError::UnterminatedDelimiter(i1.fragment, i2.fragment)
-        }
-    }
+fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
+    let kind = match err.kind {
+        PErrorKind::Nom(e) => PErrorKind::NomTest(format!("{:?}", e)),
+        PErrorKind::NomTest(e) => PErrorKind::NomTest(e),
+        PErrorKind::InvalidFormat => PErrorKind::InvalidFormat,
+        PErrorKind::InvalidName(i1) => PErrorKind::InvalidName(i1.fragment),
+        PErrorKind::UnexpectedToken(i1) => PErrorKind::UnexpectedToken(i1),
+        PErrorKind::UnterminatedDelimiter(i1) => PErrorKind::UnterminatedDelimiter(i1.fragment),
+    };
+    (err.context.fragment, kind)
 }
 
 #[test]
@@ -51,21 +50,36 @@ fn test_spaces_and_comment() {
 }
 
 #[test]
-fn test_sp() {
+fn test_spa() {
     assert_eq!(
-        map_res(sp!(pair(pidentifier, pidentifier)), "hello world"),
+        map_res(spa!(pidentifier), "hello world  "),
+        Ok(("world  ", "hello".into()))
+    );
+    assert_eq!(
+        map_res(
+            spa!(pidentifier),
+            "hello  #comment\n"
+        ),
+        Ok(("", "hello".into()))
+    );
+}
+
+#[test]
+fn test_spi() {
+    assert_eq!(
+        map_res(spi!(pair(pidentifier, pidentifier)), "hello world"),
         Ok(("", ("hello".into(), "world".into())))
     );
     assert_eq!(
         map_res(
-            sp!(pair(pidentifier, pidentifier)),
+            spi!(pair(pidentifier, pidentifier)),
             "hello \n#pouet\n world2"
         ),
         Ok(("", ("hello".into(), "world2".into())))
     );
     assert_eq!(
         map_res(
-            sp!(pair(pidentifier, pidentifier)),
+            spi!(pair(pidentifier, pidentifier)),
             "hello  world3 #comment\n"
         ),
         Ok(("", ("hello".into(), "world3".into())))
@@ -84,7 +98,7 @@ fn test_pheader() {
     );
     assert_eq!(
         map_res(pheader, "@format=21.5\n"),
-        Err(PError::InvalidFormat)
+        Err(("21.5\n",PErrorKind::InvalidFormat))
     );
 }
 
@@ -198,15 +212,15 @@ fn test_penum() {
     );
     assert_eq!(
         map_res(penum, "enum .abc { a, b, }"),
-        Err(PError::InvalidName("enum", ".abc { a, b, }"))
+        Err((".abc { a, b, }", PErrorKind::InvalidName("enum")))
     );
     assert_eq!(
         map_res(penum, "enum abc a, b, }"),
-        Err(PError::UnexpectedToken("{", "a, b, }"))
+        Err(("a, b, }", PErrorKind::UnexpectedToken("{")))
     );
     assert_eq!(
         map_res(penum, "enum abc { a, b, "),
-        Err(PError::UnterminatedDelimiter("{", ""))
+        Err(("", PErrorKind::UnterminatedDelimiter("{")))
     );
 }
 //    assert_eq!(

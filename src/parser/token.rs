@@ -76,6 +76,13 @@ impl<'src> From<PInput<'src>> for Token<'src> {
     }
 }
 
+/// Convert to PInput (used by error management)
+impl<'src> From<Token<'src>> for PInput<'src> {
+    fn from(t: Token<'src>) -> Self {
+        t.val
+    }
+}
+
 /// Token comparision only compares the string value, not the position
 /// PartialEq used by tests and by Token users
 impl<'src> PartialEq for Token<'src> {
