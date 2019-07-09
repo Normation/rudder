@@ -1,5 +1,5 @@
 #####################################################################################
-# Copyright 2015 Normation SAS
+# Copyright 2019 Normation SAS
 #####################################################################################
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,34 +16,57 @@
 #
 #####################################################################################
 
-# @name Variable dict from JSON file
-# @description Define a variable that contains key,value pairs (a dictionnary) from a JSON file
+# @name Variable dict from file type
+# @description Define a variable that contains key,value pairs (a dictionnary) from a JSON, CSV or YAML file
 # @documentation To use the generated variable, you must use the form `${variable_prefix.variable_name[key]}` with each name replaced with the parameters of this method.
 # 
 # Be careful that using a global variable can lead to unpredictable content in case of multiple definition, which is implicitly the case when a technique has more than one instance (directive). 
-# Please note that only global variables are available within templates.
 #
-# See [variable_dict_from_file_type](#variable_dict_from_file_type) for complete documentation.
+# This method will load data from various file formats (yaml, json, csv). 
+# 
+# #### Examples
+# 
+# ```
+# # To read a json file with format autodetection 
+# variable_dict_from_file_type("prefix", "var", "/tmp/file.json", "");
+# # To force yaml reading on a non file without yaml extension
+# variable_dict_from_file_type("prefix", "var", "/tmp/file", "YAML");
+# ```
+#
+# If `/tmp/file.json` contains:
+#
+# ```json
+# {
+#   "key1": "value1"
+# }
+# ```
+#
+# You will be able to access the `value1` value with `${prefix.var[key1]}`.
+# 
 # @parameter variable_prefix The prefix of the variable name
 # @parameter variable_name   The variable to define, the full name will be variable_prefix.variable_name
-# @parameter file_name       The absolute local file name with JSON content
-#
-# @agent_version >=3.6
+# @parameter file_name       The file name with to load data from
+# @parameter file_type       The file type, can be "JSON", "CSV", "YAML" or "auto" for autodection based on file extension, with a fallback to JSON (default is "auto")
+# @parameter_constraint file_type "allow_empty_string" : true
+# @parameter_constraint file_type "select" : [ "", "auto", "JSON", "YAML", "CSV" ]
 # 
-# @class_prefix variable_dict_from_file
+# @class_prefix variable_dict_from_file_type
 # @class_parameter variable_name
 
-bundle agent variable_dict_from_file(variable_prefix, variable_name, file_name)
+bundle agent variable_dict_from_file_type(variable_prefix, variable_name, file_name, file_type)
 {
   vars:
-      "old_class_prefix"  string => canonify("variable_dict_from_file_${variable_name}");
-      "args"               slist => { "${variable_prefix}", "${variable_name}", "${file_name}" };
+      "old_class_prefix"  string => canonify("variable_dict_from_file_type_${variable_name}");
+      "args"               slist => { "${variable_prefix}", "${variable_name}", "${file_name}", "${file_type}" };
       "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("variable_dict_from_file_${report_param}");
+      "full_class_prefix" string => canonify("variable_dict_from_file_type_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
       # define the variable within the variable_prefix namespace
-      "${variable_prefix}.${variable_name}"  data => readjson("${file_name}", "100000000");
+      "${variable_prefix}.${variable_name}"  data => readdata("${file_name}", "${file_type}");
+
+  defaults:
+      "file_type"         string => "auto", if_match_regex => "";
 
   classes:
      "variable_defined" expression => isvariable("${variable_prefix}.${variable_name}");
@@ -59,5 +82,5 @@ bundle agent variable_dict_from_file(variable_prefix, variable_name, file_name)
 
     any::
       "report"
-        usebundle  => _log_v3("Set the dict ${variable_prefix}.${variable_name} to the content of ${file_name}", "${variable_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Set the dict ${variable_prefix}.${variable_name} to the content of ${file_name} (format ${file_type})", "${variable_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
