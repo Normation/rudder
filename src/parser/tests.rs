@@ -29,7 +29,7 @@ fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
         PErrorKind::InvalidName(i) => PErrorKind::InvalidName(i.fragment),
         PErrorKind::UnexpectedToken(i) => PErrorKind::UnexpectedToken(i),
         PErrorKind::UnterminatedDelimiter(i) => PErrorKind::UnterminatedDelimiter(i.fragment),
-        PErrorKind::UnexpectedExpressionData => PErrorKind::UnexpectedExpressionData,
+        PErrorKind::InvalidEnumExpression => PErrorKind::InvalidEnumExpression,
     };
     (err.context.fragment, kind)
 }
@@ -58,26 +58,26 @@ fn test_spaces_and_comment() {
 #[test]
 fn test_sp() {
     assert_eq!(
-        map_res(sp!(pair(pidentifier, pidentifier)), "hello world"),
+        map_res(pair(sp(pidentifier), pidentifier), "hello world"),
         Ok(("", ("hello".into(), "world".into())))
     );
     assert_eq!(
         map_res(
-            sp!(pair(pidentifier, pidentifier)),
+            pair(pidentifier, sp(pidentifier)),
             "hello \n#pouet\n world2"
         ),
         Ok(("", ("hello".into(), "world2".into())))
     );
     assert_eq!(
         map_res(
-            sp!(pair(pidentifier, pidentifier)),
+            pair(pidentifier, sp(pidentifier)),
             "hello  world3 #comment\n"
         ),
         Ok(("", ("hello".into(), "world3".into())))
     );
     assert_eq!(
         map_res(
-            sp!(tuple((pidentifier, pidentifier))),
+            tuple((sp(pidentifier), pidentifier)),
             "hello world"
         ),
         Ok(("", ("hello".into(), "world".into())))
@@ -314,7 +314,7 @@ fn test_penum_expression() {
         ))
     );
     assert_eq!(
-        map_res(penum_expression, "(a !~ b:hello)"),
+        map_res(penum_expression, "( a !~ b : hello) "),
         Ok((
             "",
             PEnumExpression::Not(Box::new(PEnumExpression::Compare(
@@ -352,4 +352,17 @@ fn test_penum_expression() {
             )))
         ))
     );
+    assert_eq!(
+        map_res(penum_expression, "a=~b:"),
+        Err(("a=~b:", PErrorKind::InvalidEnumExpression))
+    );
+    assert_eq!(
+        map_res(penum_expression, "a=~"),
+        Err(("a=~", PErrorKind::InvalidEnumExpression))
+    );
+    assert_eq!(
+        map_res(penum_expression, "a=~b||(c=~d"),
+        Err(("", PErrorKind::UnterminatedDelimiter("(")))
+    );
 }
+

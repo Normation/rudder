@@ -14,7 +14,7 @@ pub enum PErrorKind<I> {
     InvalidName(I),                // in identifier expressions (type of expression)
     UnexpectedToken(&'static str), // anywhere (expected token)
     UnterminatedDelimiter(I),      // after an opening delimiter (first delimiter)
-    UnexpectedExpressionData,      // in enum expression
+    InvalidEnumExpression,         // in enum expression
 }
 
 #[derive(Debug, PartialEq,Clone)]
@@ -94,8 +94,13 @@ pub fn or_fail<I, O, F>(f: F, e: PErrorKind<I>)
     move |input: I| {
         let x = f(input.clone());
         match x {
+            // a non nom error cannot be superseded
+            Err(Err::Failure(err)) => match err.kind {
+                PErrorKind::Nom(_) => Err(Err::Failure(PError { context: input, kind: e.clone()})),
+                _ => Err(Err::Failure(err)),
+            },
             Err(_) => Err(Err::Failure(PError { context: input, kind: e.clone()})),
-            Ok(x) => Ok(x),
+            Ok(y) => Ok(y),
         }
     }
 }

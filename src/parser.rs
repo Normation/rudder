@@ -36,17 +36,18 @@ fn strip_spaces_and_comment(i: PInput) -> Result<()> {
     Ok((i, ()))
 }
 
-/// Macro to automatically call strip_spaces_and_comment for each parameter of a method call
-/// This avoids having to call it manually each time
-macro_rules! sp {
-    // version for combinator call with tuple parameter
-    ($i:ident ((  $($arg1:expr),* )) ) => {
-            $i (( $(terminated( $arg1, strip_spaces_and_comment ),)* ))
-    };
-    // version for normal combinator call
-    ($i:ident ( $($arg1:expr),* ) ) => {
-            $i ( $(terminated( $arg1, strip_spaces_and_comment ),)* )
-    };
+/// Combinator automatically call strip_spaces_and_comment before and after a parser
+/// This avoids having to call it manually many times
+fn sp<'src, O, F>(f: F) -> impl Fn(PInput<'src>) -> Result<O> 
+    where F: Fn(PInput<'src>) -> Result<O>,
+          O: 'src,
+{
+    move |i: PInput| {
+        let (i,_) = strip_spaces_and_comment(i)?;
+        let (i,r) = f(i)?;
+        let (i,_) = strip_spaces_and_comment(i)?;
+        Ok((i,r))
+    }
 }
 
 /// A bit like do_parse! 
@@ -144,7 +145,7 @@ fn penum(i: PInput) -> Result<PEnum> {
             e:      tag("enum");
             name:   or_fail(pidentifier, PErrorKind::InvalidName(e));
             b:      or_fail(tag("{"), PErrorKind::UnexpectedToken("{"));
-            items:  sp!(separated_nonempty_list(tag(","), pidentifier));
+            items:  separated_nonempty_list(sp(tag(",")), pidentifier);
             _x:     opt(tag(","));
             _x:     or_fail(tag("}"), PErrorKind::UnterminatedDelimiter(b));
         } => PEnum {
@@ -175,9 +176,9 @@ fn penum_mapping(i: PInput) -> Result<PEnumMapping> {
             to:   or_fail(pidentifier,PErrorKind::InvalidName(e));
             b:    or_fail(tag("{"),PErrorKind::UnexpectedToken("{"));
             mapping: 
-                sp!(separated_nonempty_list(
-                    tag(","),
-                    sp!(separated_pair(
+                separated_nonempty_list(
+                    sp(tag(",")),
+                    separated_pair(
                         or_fail(
                             alt((
                                 pidentifier,
@@ -185,7 +186,7 @@ fn penum_mapping(i: PInput) -> Result<PEnumMapping> {
                             )),
                             PErrorKind::InvalidName(to.into())),
                         or_fail(
-                            tag("->"),
+                            sp(tag("->")),
                             PErrorKind::UnexpectedToken("->")),
                         or_fail(
                             alt((
@@ -193,8 +194,8 @@ fn penum_mapping(i: PInput) -> Result<PEnumMapping> {
                                 map(tag("*"),|x: PInput| x.into())
                             )),
                             PErrorKind::InvalidName(to.into()))
-                    ))
-                ));
+                    )
+                );
             _x: opt(tag(","));
             _x: or_fail(tag("}"),PErrorKind::UnterminatedDelimiter(b));
         } => PEnumMapping {from, to, mapping}
@@ -232,7 +233,7 @@ pub fn penum_expression(i: PInput) -> Result<PEnumExpression> {
     // an expression must consume the full string as this parser can be used in isolation
     or_fail(
         all_consuming(terminated(sub_enum_expression,strip_spaces_and_comment)),
-        PErrorKind::UnexpectedExpressionData
+        PErrorKind::InvalidEnumExpression
     )(i)
 }
 fn sub_enum_expression(i: PInput) -> Result<PEnumExpression> {
@@ -244,63 +245,83 @@ fn sub_enum_expression(i: PInput) -> Result<PEnumExpression> {
         enum_atom
     ))(i)
 }
+// TODO it is highly probable that we can add better errors here
 fn enum_atom(i: PInput) -> Result<PEnumExpression> {
     alt((
-        sp!(delimited(
-            tag("("),
-            sub_enum_expression,
-            or_fail(tag(")"), PErrorKind::InvalidFormat)
-        )),
-        map(sp!(tuple((
-                pidentifier,
-                tag("=~"),
-                opt(sp!(terminated(pidentifier, tag(":")))),
-                pidentifier
-            ))),
-            |(var,_,penum,value)| PEnumExpression::Compare(Some(var), penum, value)
+        sequence!(
+            {
+                t: tag("(");
+                e: sub_enum_expression;
+                _x: or_fail(tag(")"), PErrorKind::UnterminatedDelimiter(t));
+            } => e
         ),
-        map(sp!(tuple((
-                pidentifier,
-                tag("!~"),
-                opt(sp!(terminated(pidentifier, tag(":")))),
-                pidentifier
-            ))),
-            |(var,_x,penum,value)| PEnumExpression::Not(Box::new(PEnumExpression::Compare(
-                        Some(var), penum, value)))
+        sequence!(
+            {
+                var: pidentifier;
+                _x: tag("=~");
+                penum: opt(terminated(pidentifier, sp(tag(":"))));
+                value: pidentifier;
+            } => PEnumExpression::Compare(Some(var), penum, value)
         ),
-        map(sp!(pair(
-                opt(sp!(terminated(pidentifier, tag(":")))),
-                pidentifier
-            )),
-            |(penum,value)| PEnumExpression::Compare(None, penum, value)
+        sequence!(
+            {
+                var: pidentifier;
+                _x: tag("!~");
+                penum: opt(terminated(pidentifier, sp(tag(":"))));
+                value: pidentifier;
+            } => PEnumExpression::Not(Box::new(PEnumExpression::Compare(Some(var), penum, value)))
+        ),
+        sequence!(
+            {
+                penum: opt(terminated(pidentifier, sp(tag(":"))));
+                value: pidentifier;
+            } => PEnumExpression::Compare(None, penum, value)
         )
     ))(i)
 }
 fn enum_or_expression(i: PInput) -> Result<PEnumExpression> {
-    map(sp!(tuple((
-            alt((enum_and_expression, enum_not_expression, enum_atom)),
-            tag("||"),
-            alt((enum_or_expression, enum_and_expression, enum_not_expression, enum_atom))
-        ))),
-        |(left,_,right)| PEnumExpression::Or(Box::new(left), Box::new(right))
+    sequence!(
+        {
+            left: alt((enum_and_expression, enum_not_expression, enum_atom));
+            _x: tag("||");
+            right: alt((enum_or_expression, enum_and_expression, enum_not_expression, enum_atom));
+        } => PEnumExpression::Or(Box::new(left), Box::new(right))
     )(i)
 }
 fn enum_and_expression(i: PInput) -> Result<PEnumExpression> {
-    map(sp!(tuple((
-            alt((enum_not_expression, enum_atom)),
-            tag("&&"),
-            alt((enum_and_expression, enum_not_expression, enum_atom))
-        ))),
-        |(left,_,right)| PEnumExpression::And(Box::new(left), Box::new(right))
+    sequence!(
+        {
+            left: alt((enum_not_expression, enum_atom));
+            _x: tag("&&");
+            right: alt((enum_and_expression, enum_not_expression, enum_atom));
+        } => PEnumExpression::And(Box::new(left), Box::new(right))
     )(i)
 }
 fn enum_not_expression(i: PInput) -> Result<PEnumExpression> {
-    map(sp!(preceded(
-            tag("!"),
-            enum_atom
-        )),
-        |right| PEnumExpression::Not(Box::new(right))
+    sequence!(
+        {
+            _x: tag("!");
+            value: enum_atom;
+        } => PEnumExpression::Not(Box::new(value))
     )(i)
+}
+
+/// A PType is the type a variable or a parameter can take.
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum PType {
+    TString,
+    TBoolean,
+    TInteger,
+    TStruct,
+    TList,
+}
+fn ptype(i: PInput) -> Result<PType> {
+    alt((
+        value(PType::TString, tag("string")),
+        value(PType::TInteger, tag("int")),
+        value(PType::TStruct, tag("struct")),
+        value(PType::TList, tag("struct")),
+    ))(i)
 }
 
 
