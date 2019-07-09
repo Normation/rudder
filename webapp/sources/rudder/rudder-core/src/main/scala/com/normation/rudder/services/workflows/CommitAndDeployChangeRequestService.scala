@@ -332,7 +332,7 @@ class CommitAndDeployChangeRequestServiceImpl(
           name             = current.name.trim
         , shortDescription = current.shortDescription.trim
         , longDescription  = current.longDescription.trim
-        , parameters       = initial.parameters.mapValues(_.map(_.trim))
+        , parameters       = current.parameters.mapValues(_.map(_.trim))
       )
 
 
