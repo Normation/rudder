@@ -138,6 +138,10 @@ mod tests {
             .unwrap(),
             reference
         );
+        assert!(RunInfo::from_str(
+            "2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.lg.gz"
+        )
+        .is_err())
     }
 
     #[test]

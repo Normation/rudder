@@ -127,7 +127,7 @@ fn log_entries(i: &str) -> IResult<&str, Vec<LogEntry>> {
     many0(log_entry)(i)
 }
 
-pub fn report(i: &str) -> IResult<&str, RawReport> {
+pub fn report(i: &str) -> IResult<&str, ParsedReport> {
     // FIXME
     // no line break inside a field (except message)
     // handle partial reports without breaking following ones
@@ -159,7 +159,7 @@ pub fn report(i: &str) -> IResult<&str, RawReport> {
     let (i, msg) = multilines(i)?;
     Ok((
         i,
-        RawReport {
+        Ok(RawReport {
             report: Report {
                 // We could skip parsing it but it would prevent consistency check that cannot
                 // be done once inserted.
@@ -176,13 +176,35 @@ pub fn report(i: &str) -> IResult<&str, RawReport> {
                 policy: policy.to_string(),
             },
             logs,
-        },
+        }),
     ))
 }
 
-pub fn runlog(i: &str) -> IResult<&str, Vec<RawReport>> {
-    many1(report)(i)
+// Handle errors
+fn until_next(i: &str) -> IResult<&str, ParsedReport> {
+    // The line looking like a report
+    let (i, first) = take_until("R: @@")(i)?;
+    let (i, tag) = tag("R: @@")(i)?;
+    // The end of the broken report
+    let (i, multi) = multilines(i)?;
+    // FIXME better
+    let mut lines = first.to_string();
+    lines.push_str(tag);
+    for line in multi {
+        lines.push_str(line);
+    }
+    Ok((i, Err(lines)))
 }
+
+fn maybe_report(i: &str) -> IResult<&str, ParsedReport> {
+    alt((report, until_next))(i)
+}
+
+pub fn runlog(i: &str) -> IResult<&str, Vec<ParsedReport>> {
+    many1(maybe_report)(i)
+}
+
+pub type ParsedReport = Result<RawReport, String>;
 
 // We could make RawReport insertable to avoid copying context to simple logs
 #[derive(Debug, PartialEq, Eq)]
@@ -451,4 +473,51 @@ mod tests {
             ]
         )
     }
+
+    #[test]
+    fn it_parses_report() {
+        let report = "2018-08-24T15:55:01+00:00 R: @@Common@@result_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@None@@2018-08-24 15:55:01 +00:00##root@#Cron daemon status was repaired\n";
+        assert_eq!(
+            maybe_report(report).unwrap().1.unwrap(),
+            RawReport {
+                report: Report {
+                    start_datetime: DateTime::parse_from_str(
+                        "2018-08-24 15:55:01+00:00",
+                        "%Y-%m-%d %H:%M:%S%z"
+                    )
+                    .unwrap(),
+                    rule_id: "hasPolicyServer-root".into(),
+                    directive_id: "common-root".into(),
+                    component: "CRON Daemon".into(),
+                    key_value: "None".into(),
+                    event_type: "result_repaired".into(),
+                    msg: "Cron daemon status was repaired".into(),
+                    policy: "Common".into(),
+                    node_id: "root".into(),
+                    serial: 0,
+                    execution_datetime: DateTime::parse_from_str(
+                        "2018-08-24 15:55:01+00:00",
+                        "%Y-%m-%d %H:%M:%S%z"
+                    )
+                    .unwrap(),
+                },
+                logs: vec![],
+            }
+        );
+        let report = "2018-08-24T15:55:01+00:00 R: @@Common@@broken\n";
+        assert_eq!(
+            maybe_report(report).unwrap().1,
+            Err("2018-08-24T15:55:01+00:00 R: @@Common@@broken".to_string())
+        );
+    }
+
+    #[test]
+    fn it_parses_until_next() {
+        let report = "test\n2018-08-24T15:55:01+00:00 R: @@Common@@broken\n";
+        assert_eq!(
+            until_next(report).unwrap().1,
+            Err("test\n2018-08-24T15:55:01+00:00 R: @@Common@@broken".to_string())
+        );
+    }
+
 }

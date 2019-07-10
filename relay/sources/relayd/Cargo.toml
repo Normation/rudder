@@ -33,7 +33,7 @@ toml = "0.5"
 inotify = "0.7"
 openssl = "0.10"
 # Disable uneeded features (udp, unix socket, etc.)
-tokio = { version = "0.1", default-features = false, features = ["fs", "io", "reactor", "rt-full"] }
+tokio = { version = "0.1", default-features = false, features = ["fs", "io", "reactor", "rt-full", "experimental-tracing"] }
 tokio-signal = "0.2"
 tokio-threadpool = "0.1"
 tokio-process = "0.2"

@@ -1,6 +1,7 @@
 2019-05-11T12:58:13+00:00 R: @@Common@@control@@rudder@@run@@0@@start@@20180824-130007-3ad37587@@2018-08-24 15:55:01+00:00##e745a140-40bc-4b86-b6dc-084488fc906b@#Start execution
 2019-05-11T13:58:13+00:00 R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@ncf Initialization@@None@@2018-08-24 15:55:01+00:00##e745a140-40bc-4b86-b6dc-084488fc906b@#Configuration library initialization
 2019-05-11T14:58:13+00:00 was correct
+2019-05-11T13:58:13+00:00 R: @@Common@@
 2019-05-11T15:58:13+00:00 R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@Security parameters@@None@@2018-08-24 15:55:01+00:00##e745a140-40bc-4b86-b6dc-084488fc906b@#The internal environment security is acceptable
 2019-05-11T16:58:13+00:00 R: @@Common@@result_na@@hasPolicyServer-root@@common-root@@0@@Process checking@@None@@2018-08-24 15:55:01+00:00##e745a140-40bc-4b86-b6dc-084488fc906b@#Rudder agent proccesses check is done by the rudder-agent cron job
 2019-05-11T17:58:13+00:00 R: @@Common@@log_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@cron@@2018-08-24 15:55:01+00:00##e745a140-40bc-4b86-b6dc-084488fc906b@#Run action restart on service cron was repaired

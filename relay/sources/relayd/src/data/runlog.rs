@@ -66,7 +66,14 @@ impl FromStr for RunLog {
         match runlog(s) {
             Ok(raw_runlog) => {
                 debug!("Parsed runlog {:#?}", raw_runlog.1);
-                RunLog::try_from(raw_runlog.1)
+                let (reports, failed): (Vec<_>, Vec<_>) =
+                    raw_runlog.1.into_iter().partition(Result::is_ok);
+                for invalid_report in failed.into_iter().map(Result::unwrap_err) {
+                    warn!("Invalid report: {}", invalid_report);
+                }
+                // TODO: avoid collecting?
+                let reports: Vec<RawReport> = reports.into_iter().map(Result::unwrap).collect();
+                RunLog::try_from(reports)
             }
             Err(e) => {
                 warn!("{:?}: could not parse '{}'", e, s);
