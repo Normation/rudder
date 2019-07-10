@@ -208,7 +208,7 @@ impl RunParameters {
         let mut child = cmd.spawn_async().expect("failed to spawn command");
         let lines = lines_stream(&mut child);
         let child_future = child
-            .map(|status| info!("conditions OK"))
+            .map(|_status| info!("conditions OK"))
             .map_err(|e| panic!("error while running child: {}", e));
 
         tokio::spawn(child_future);

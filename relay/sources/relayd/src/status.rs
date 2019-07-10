@@ -28,12 +28,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
-    check_configuration,
-    configuration::{Configuration, LogConfig},
-    output::database::ping,
-    JobConfig,
-};
+use crate::{check_configuration, output::database::ping, JobConfig};
 use serde::Serialize;
 use std::sync::Arc;
 

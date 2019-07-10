@@ -1,15 +1,6 @@
-use relayd::{
-    configuration::CliConfiguration, data::report::QueryableReport, init_logger,
-    output::database::schema::ruddersysevents::dsl::*, start, stats::Stats,
-};
-
-use std::{
-    fs::{copy, create_dir_all, remove_dir_all},
-    path::Path,
-    thread, time,
-};
-
+use relayd::{configuration::CliConfiguration, init_logger, start};
 use reqwest;
+use std::{thread, time};
 
 fn start_api() -> Result<(), ()> {
     let mut retry = 10;

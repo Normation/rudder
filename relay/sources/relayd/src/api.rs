@@ -31,7 +31,7 @@
 use crate::{
     error::Error,
     remote_run::{RemoteRun, RemoteRunTarget},
-    shared_files::{metadata_hash_checker, parse_hash_from_raw, parse_path_from_peek, Metadata},
+    shared_files::{metadata_hash_checker, parse_hash_from_raw, Metadata},
     {stats::Stats, status::Status, JobConfig},
 };
 use futures::Future;
@@ -107,9 +107,9 @@ pub fn api(
         },
     );
 
-    let job_config5 = job_config.clone();
+    //let job_config5 = job_config.clone();
     let shared_files_put = warp::path::peek().and(warp::body::form()).map(
-        move |peek: warp::filters::path::Peek, simple_map: HashMap<String, String>| {
+        move |_peek: warp::filters::path::Peek, simple_map: HashMap<String, String>| {
             let metadata = Metadata::new(simple_map);
             info!("METADATA : {:?}", metadata.unwrap());
 
@@ -120,8 +120,8 @@ pub fn api(
 
     let shared_files_head = warp::path::peek()
         .and(warp::filters::query::raw()) // recuperation du parametre ?hash=file-hash
-        .map(|peek: warp::filters::path::Peek, raw: String| {
-            let path = parse_path_from_peek(peek);
+        .map(|_peek: warp::filters::path::Peek, raw: String| {
+            //let path = parse_path_from_peek(peek);
 
             let contents = fs::read_to_string("tests/files/metadata.txt")
                 .expect("Something went wrong reading the file");

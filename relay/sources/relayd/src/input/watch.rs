@@ -29,7 +29,7 @@
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    configuration::{CatchupConfig, LogComponent, WatchedDirectory},
+    configuration::{CatchupConfig, WatchedDirectory},
     processing::ReceivedFile,
     JobConfig,
 };

@@ -161,7 +161,7 @@ impl NodesList {
             .collect()
     }
 
-    fn get_relays(&self) -> Vec<String> {
+    pub fn get_relays(&self) -> Vec<String> {
         self.list
             .data
             .values()
@@ -170,9 +170,9 @@ impl NodesList {
             .collect()
     }
 
-    fn get_all_subnodes(&self) -> Vec<String> {
+    pub fn get_all_subnodes(&self) -> Vec<String> {
         // retrieve all the nodes under a relay
-        self.list.data.keys().map(|v| v.clone()).collect()
+        self.list.data.keys().cloned().collect()
     }
 
     pub fn get_neighbors_from_target(&self, target_nodes: RemoteRunTarget) -> Vec<String> {
@@ -188,7 +188,7 @@ impl NodesList {
         }
     }
 
-    fn get_neighbors_which_are_relay(&self, relay_id: &str) -> Vec<String> {
+    pub fn get_neighbors_which_are_relay(&self, relay_id: &str) -> Vec<String> {
         self.list
             .data
             .values()

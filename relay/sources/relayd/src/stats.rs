@@ -28,7 +28,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::configuration::LogComponent;
 use futures::{stream::Stream, sync::mpsc, Future};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};

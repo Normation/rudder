@@ -28,7 +28,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::data::node::NodesList;
 use crate::{error::Error, JobConfig};
 use chrono::prelude::DateTime;
 use chrono::{Duration, Utc};
@@ -134,9 +133,9 @@ pub fn same_hash_than_in_nodeslist(
         .map(|s| s.to_string())
         .collect();
 
-    let (algorithm, keyhash) = (&myvec2[0], &myvec2[1]);
+    let (_algorithm, keyhash) = (&myvec2[0], &myvec2[1]);
 
-    hash_value == keyhash.to_string()
+    hash_value == keyhash
 }
 
 pub fn parse_ttl(ttl: String) -> Result<i64, Error> {
@@ -169,9 +168,9 @@ pub fn parse_ttl(ttl: String) -> Result<i64, Error> {
 
 pub fn metadata_writer(metadata_string: String, peek: &str) {
     let myvec: Vec<String> = peek.split('/').map(|s| s.to_string()).collect();
-    let (target_uuid, source_uuid, file_id) = (&myvec[0], &myvec[1], &myvec[2]);
-    fs::create_dir_all(format!("./{}/{}/", target_uuid, source_uuid)); // on cree les folders s'ils existent pas
-                                                                       //fs::create_dir_all(format!("/var/rudder/configuration-repository/shared-files/{}/{}/", target_uuid, source_uuid)); // real path
+    let (target_uuid, source_uuid, _file_id) = (&myvec[0], &myvec[1], &myvec[2]);
+    let _ = fs::create_dir_all(format!("./{}/{}/", target_uuid, source_uuid)); // on cree les folders s'ils existent pas
+                                                                               //fs::create_dir_all(format!("/var/rudder/configuration-repository/shared-files/{}/{}/", target_uuid, source_uuid)); // real path
     fs::write(format!("./{}", peek), metadata_string).expect("Unable to write file");
 }
 

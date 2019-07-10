@@ -29,7 +29,6 @@
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    configuration::LogComponent,
     data::{
         report::{runlog, RawReport},
         Report, RunInfo,

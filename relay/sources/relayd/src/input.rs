@@ -30,7 +30,7 @@
 
 pub mod watch;
 
-use crate::{configuration::LogComponent, error::Error};
+use crate::error::Error;
 use flate2::read::GzDecoder;
 use openssl::{
     pkcs7::{Pkcs7, Pkcs7Flags},

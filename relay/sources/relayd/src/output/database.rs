@@ -29,10 +29,7 @@
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    configuration::{DatabaseConfig, LogComponent},
-    data::report::QueryableReport,
-    data::RunLog,
-    error::Error,
+    configuration::DatabaseConfig, data::report::QueryableReport, data::RunLog, error::Error,
 };
 use diesel::{
     insert_into,
