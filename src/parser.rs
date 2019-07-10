@@ -9,6 +9,8 @@ use nom::multi::*;
 use nom::sequence::*;
 use nom::IResult;
 
+use std::collections::HashMap;
+
 use error::{PError,PErrorKind,or_fail};
 use token::PInput;
 // reexport tokens
@@ -42,7 +44,7 @@ fn sp<'src, O, F>(f: F) -> impl Fn(PInput<'src>) -> Result<O>
     where F: Fn(PInput<'src>) -> Result<O>,
           O: 'src,
 {
-    move |i: PInput| {
+    move |i| {
         let (i,_) = strip_spaces_and_comment(i)?;
         let (i,r) = f(i)?;
         let (i,_) = strip_spaces_and_comment(i)?;
@@ -65,13 +67,23 @@ fn sp<'src, O, F>(f: F) -> impl Fn(PInput<'src>) -> Result<O>
 ///     Ok((i,Object { variable, ... }))
 ///
 /// The result is a closure parser that can be used in place of any other parser
-/// As you can see, we automatically insert space parsing between each call
 ///
 /// We don't use a list or a tuple for sequence parsing because we want to 
 /// use some intermediary result at some steps (for example for error management).
 macro_rules! sequence {
     ( { $($f:ident : $parser:expr;)* } => $output:expr ) => {
-        |i| {
+        move |i| {
+            $(
+                let (i,$f) = $parser (i)?;
+            )*
+            Ok((i, $output))
+        }
+    };
+}
+/// wsequence is the same a sequence, but we automatically insert space parsing between each call
+macro_rules! wsequence {
+    ( { $($f:ident : $parser:expr;)* } => $output:expr ) => {
+        move |i| {
             $(
                 let (i,$f) = $parser (i)?;
                 let (i,_) = strip_spaces_and_comment(i)?;
@@ -88,15 +100,17 @@ pub struct PHeader {
     pub version: u32,
 }
 fn pheader(i: PInput) -> Result<PHeader> {
-    // cannot use sequence because we don't want space parsing
-    let (i, _) = opt(tuple((tag("#!/"), take_until("\n"), newline)))(i)?;
-    let (i, _) = or_fail(tag("@format="), PErrorKind::InvalidFormat)(i)?;
-    let (i, version) = or_fail(
-        map_res(take_until("\n"), |s: PInput| s.fragment.parse::<u32>()),
-        PErrorKind::InvalidFormat
-    )(i)?;
-    let (i, _) = tag("\n")(i)?;
-    Ok((i, PHeader { version }))
+    sequence!(
+        {
+            _x: opt(tuple((tag("#!/"), take_until("\n"), newline)));
+            _x: or_fail(tag("@format="), PErrorKind::InvalidFormat);
+            version: or_fail(
+                map_res(take_until("\n"), |s: PInput| s.fragment.parse::<u32>()),
+                PErrorKind::InvalidFormat
+                );
+            _x: tag("\n");
+        } => PHeader { version }
+    )(i)
 }
 
 /// A parsed comment block starts with a ## and ends with the end of line.
@@ -139,7 +153,7 @@ pub struct PEnum<'src> {
     pub items: Vec<Token<'src>>,
 }
 fn penum(i: PInput) -> Result<PEnum> {
-    sequence!(
+    wsequence!(
         {
             global: opt(tag("global"));
             e:      tag("enum");
@@ -168,7 +182,7 @@ pub struct PEnumMapping<'src> {
     pub mapping: Vec<(Token<'src>, Token<'src>)>,
 }
 fn penum_mapping(i: PInput) -> Result<PEnumMapping> {
-    sequence!(
+    wsequence!(
         {
             e:    tag("enum");
             from: or_fail(pidentifier,PErrorKind::InvalidName(e));
@@ -229,14 +243,14 @@ impl<'src> PEnumExpression<'src> {
     }
 }
 
-pub fn penum_expression(i: PInput) -> Result<PEnumExpression> {
+pub fn penum_expression_full(i: PInput) -> Result<PEnumExpression> {
     // an expression must consume the full string as this parser can be used in isolation
     or_fail(
-        all_consuming(terminated(sub_enum_expression,strip_spaces_and_comment)),
+        all_consuming(terminated(penum_expression,strip_spaces_and_comment)),
         PErrorKind::InvalidEnumExpression
     )(i)
 }
-fn sub_enum_expression(i: PInput) -> Result<PEnumExpression> {
+fn penum_expression(i: PInput) -> Result<PEnumExpression> {
     alt((
         enum_or_expression,
         enum_and_expression,
@@ -248,30 +262,30 @@ fn sub_enum_expression(i: PInput) -> Result<PEnumExpression> {
 // TODO it is highly probable that we can add better errors here
 fn enum_atom(i: PInput) -> Result<PEnumExpression> {
     alt((
-        sequence!(
+        wsequence!(
             {
                 t: tag("(");
-                e: sub_enum_expression;
+                e: penum_expression;
                 _x: or_fail(tag(")"), PErrorKind::UnterminatedDelimiter(t));
             } => e
         ),
-        sequence!(
+        wsequence!(
             {
                 var: pidentifier;
                 _x: tag("=~");
                 penum: opt(terminated(pidentifier, sp(tag(":"))));
-                value: pidentifier;
+                value: or_fail(pidentifier, PErrorKind::InvalidEnumExpression);
             } => PEnumExpression::Compare(Some(var), penum, value)
         ),
-        sequence!(
+        wsequence!(
             {
                 var: pidentifier;
                 _x: tag("!~");
                 penum: opt(terminated(pidentifier, sp(tag(":"))));
-                value: pidentifier;
+                value: or_fail(pidentifier, PErrorKind::InvalidEnumExpression);
             } => PEnumExpression::Not(Box::new(PEnumExpression::Compare(Some(var), penum, value)))
         ),
-        sequence!(
+        wsequence!(
             {
                 penum: opt(terminated(pidentifier, sp(tag(":"))));
                 value: pidentifier;
@@ -280,50 +294,164 @@ fn enum_atom(i: PInput) -> Result<PEnumExpression> {
     ))(i)
 }
 fn enum_or_expression(i: PInput) -> Result<PEnumExpression> {
-    sequence!(
+    wsequence!(
         {
             left: alt((enum_and_expression, enum_not_expression, enum_atom));
             _x: tag("||");
-            right: alt((enum_or_expression, enum_and_expression, enum_not_expression, enum_atom));
+            right: or_fail(
+                       alt((enum_or_expression, enum_and_expression, enum_not_expression, enum_atom)),
+                       PErrorKind::InvalidEnumExpression);
         } => PEnumExpression::Or(Box::new(left), Box::new(right))
     )(i)
 }
 fn enum_and_expression(i: PInput) -> Result<PEnumExpression> {
-    sequence!(
+    wsequence!(
         {
             left: alt((enum_not_expression, enum_atom));
             _x: tag("&&");
-            right: alt((enum_and_expression, enum_not_expression, enum_atom));
+            right: or_fail(
+                       alt((enum_and_expression, enum_not_expression, enum_atom)),
+                       PErrorKind::InvalidEnumExpression);
         } => PEnumExpression::And(Box::new(left), Box::new(right))
     )(i)
 }
 fn enum_not_expression(i: PInput) -> Result<PEnumExpression> {
-    sequence!(
+    wsequence!(
         {
             _x: tag("!");
-            value: enum_atom;
+            value: or_fail(enum_atom, PErrorKind::InvalidEnumExpression);
         } => PEnumExpression::Not(Box::new(value))
     )(i)
+}
+
+/// An escaped string is a string delimited by '"' and that support backslash escapes.
+/// The token is here to keep position
+fn pescaped_string(i: PInput) -> Result<(Token, String)> {
+    // Add type annotation to help the type solver
+    let f: fn(PInput) -> Result<(Token, String)> = sequence!(
+        {
+            prefix: tag("\"");
+            content: alt((
+                        // empty lines are not properly handled by escaped_transform
+                        // so we detect them here beforehand
+                        peek(value("".into(), tag("\""))),
+                        or_fail(
+                            escaped_transform(
+                                take_till1(|c: char| (c == '\\')||(c == '"')),
+                                '\\',
+                                alt((
+                                   value("\\", tag("\\")),
+                                   value("\"", tag("\"")),
+                                   value("\n", tag("n")),
+                                   value("\r", tag("r")),
+                                   value("\t", tag("t")),
+                                ))
+                            ),
+                            PErrorKind::InvalidEscapeSequence
+                        )
+                    ));
+            _x: or_fail(tag("\""), PErrorKind::UnterminatedDelimiter(prefix));
+        } => (prefix.into(), content)
+    );
+    f(i)
+}
+
+/// An unescaped string is a literal string delimited by '"""'.
+/// The token is here to keep position
+fn punescaped_string(i: PInput) -> Result<(Token, String)> {
+    sequence!(
+        {
+            prefix: tag("\"\"\"");
+            content: map(
+                         or_fail(take_until("\"\"\""), PErrorKind::UnterminatedDelimiter(prefix)),
+                         |x: PInput| x.to_string()
+                    );
+            _x: or_fail(tag("\"\"\""), PErrorKind::UnterminatedDelimiter(prefix));
+        } => (prefix.into(), content)
+    )(i)
+}
+
+/// All strings should be interpolated
+#[derive(Debug, PartialEq, Clone)]
+pub enum PInterpolatedElement {
+    Static(String),   // static content
+    Variable(String), // variable name
+}
+fn pinterpolated_string(i: PInput) -> Result<Vec<PInterpolatedElement>> {
+    // There is a rest inside so this just serve as a guard
+    all_consuming(
+        many1(alt((
+            value(PInterpolatedElement::Static("$".into()), tag("$$")),
+            sequence!(
+                {
+                    s: tag("${");
+                    variable: or_fail(pidentifier, PErrorKind::InvalidVariableReference);
+                    _x: or_fail(tag("}"), PErrorKind::UnterminatedDelimiter(s));
+                } => PInterpolatedElement::Variable(variable.fragment().into())
+            ),
+            sequence!(
+                {
+                    _s: tag("$"); // $SomethingElse is an error
+                    _x: or_fail(tag("$"), PErrorKind::InvalidVariableReference); // $$ is already processed so this is an error
+                } => PInterpolatedElement::Static("".into()) // this is mandatory but cannot happen
+            ),
+            map(take_until("$"), |s: PInput| PInterpolatedElement::Static(s.fragment.into())),
+            map(preceded(
+                    peek(anychar), // do no take rest if we are already at the end
+                    rest),
+                |s: PInput| PInterpolatedElement::Static(s.fragment.into())),
+        )))
+   )(i)
 }
 
 /// A PType is the type a variable or a parameter can take.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PType {
-    TString,
-    TBoolean,
-    TInteger,
-    TStruct,
-    TList,
+    String,
+    Integer,
+    Boolean,
+    Struct,
+    List,
 }
 fn ptype(i: PInput) -> Result<PType> {
     alt((
-        value(PType::TString, tag("string")),
-        value(PType::TInteger, tag("int")),
-        value(PType::TStruct, tag("struct")),
-        value(PType::TList, tag("struct")),
+        value(PType::String,  tag("string")),
+        value(PType::Integer, tag("int")),
+        value(PType::Boolean, tag("boolean")),
+        value(PType::Struct,  tag("struct")),
+        value(PType::List,    tag("list")),
     ))(i)
 }
 
+/// PValue is a typed value of the content of a variable or a parameter.
+/// Must be cloneable because it is copied during default values expansion
+#[derive(Debug, PartialEq)]
+pub enum PValue<'src> {
+    String(Token<'src>, String),
+    Integer(Token<'src>, i64),
+    EnumExpression(PEnumExpression<'src>),
+    List(Vec<PValue<'src>>),
+    Struct(HashMap<Token<'src>,PValue<'src>>),
+}
+impl<'src> PValue<'src> {
+    pub fn get_type(&self) -> PType {
+        match self {
+            PValue::String(_,_)       => PType::String,
+            PValue::Integer(_,_)      => PType::Integer,
+            PValue::EnumExpression(_) => PType::Boolean,
+            PValue::Struct(_)         => PType::Struct,
+            PValue::List(_)           => PType::List,
+        }
+    }
+}
+fn pvalue(i: PInput) -> Result<PValue> {
+    alt((
+        // Be careful of ordering here
+        map(punescaped_string, |(x,y)| PValue::String(x,y)),
+        map(pescaped_string,   |(x,y)| PValue::String(x,y)),
+        map(penum_expression,  |x|     PValue::EnumExpression(x)),
+    ))(i)
+}
 
 // tests must be at the end to be able to test macros
 #[cfg(test)]

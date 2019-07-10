@@ -15,6 +15,8 @@ pub enum PErrorKind<I> {
     UnexpectedToken(&'static str), // anywhere (expected token)
     UnterminatedDelimiter(I),      // after an opening delimiter (first delimiter)
     InvalidEnumExpression,         // in enum expression
+    InvalidEscapeSequence,         // in string definition
+    InvalidVariableReference,      // during string interpolation
 }
 
 #[derive(Debug, PartialEq,Clone)]
@@ -72,9 +74,8 @@ impl<I: Clone> ParseError<I> for PError<I> {
     /// This is used mainly in the [context] combinator, to add user friendly information
     /// to errors when backtracking through a parse tree
     fn add_context(input: I, ctx: &'static str, mut other: Self) -> Self {
-        match other.kind {
-            PErrorKind::Nom(e) => other.kind = PErrorKind::Nom(VerboseError::add_context(input, ctx, e)),
-            _ => {}
+        if let PErrorKind::Nom(e) = other.kind {
+            other.kind = PErrorKind::Nom(VerboseError::add_context(input, ctx, e));
         }
         other
     }
@@ -95,12 +96,15 @@ pub fn or_fail<I, O, F>(f: F, e: PErrorKind<I>)
         let x = f(input.clone());
         match x {
             // a non nom error cannot be superseded
+            // keep original context when possible
             Err(Err::Failure(err)) => match err.kind {
-                PErrorKind::Nom(_) => Err(Err::Failure(PError { context: input, kind: e.clone()})),
+                PErrorKind::Nom(_) => Err(Err::Failure(PError { context: err.context, kind: e.clone()})),
                 _ => Err(Err::Failure(err)),
             },
-            Err(_) => Err(Err::Failure(PError { context: input, kind: e.clone()})),
+            Err(Err::Error(err)) => Err(Err::Failure(PError { context: err.context, kind: e.clone()})),
+            Err(Err::Incomplete(_)) => Err(Err::Failure(PError { context: input, kind: e.clone()})),
             Ok(y) => Ok(y),
         }
     }
 }
+

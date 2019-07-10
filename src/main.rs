@@ -6,5 +6,5 @@ fn main() {
     //println!("Header version={:?}, rest={:?}", o, i);
     println!("Header");
 
-    println!("x={}", { let g=|x| { x*2 }; g } (2));
+    println!("x={}", (|x: i32| { x*2 }) (2));
 }
