@@ -83,6 +83,7 @@ impl SourceList {
     }
 }
 
+// TODO use termination
 fn main() {
     // easy optin parsing
     let opt = Opt::from_args();

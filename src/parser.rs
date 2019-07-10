@@ -18,9 +18,7 @@ use nom::*;
 // TODO more like var = f(x)
 // TODO iterators
 // TODO include
-// TODO boolean var = expression
 // TODO stateCall error management
-// TODO variable typing
 // TODO resource parent
 // TODO state alias
 // TODO read json: read_untypedjson->json_obj and jsonobj.get(..)->result(value)

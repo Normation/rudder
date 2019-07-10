@@ -257,7 +257,7 @@ impl<'src> Statement<'src> {
                                     .map(|param| {
                                         match param {
                                             Some(p) => res_parameters.push(p.clone()),
-                                            None => fail!(res, "Resources instance of {} is missing parameters and there is no default values for them", res),
+                                            None => fail!(res, "Resources instance of {} is missing parameters and there is no default values for them", res),
                                         };
                                         Ok(())
                                     })
