@@ -28,18 +28,72 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::error::Error;
+use crate::{error::Error, JobConfig};
+use futures::{Future, Stream};
+use hyper::Chunk;
 use regex::Regex;
-use std::collections::HashMap;
-use std::process::Command;
-use std::str::FromStr;
+use std::{
+    collections::HashMap,
+    io::BufReader,
+    process::{Command, Stdio},
+    str::FromStr,
+    sync::Arc,
+};
+use tokio_process::{Child, CommandExt};
+use tracing::info;
 
 #[derive(Debug)]
-pub struct Agent {
-    asynchronous: bool,
-    keep_output: bool,
-    condition: Vec<Condition>,
-    nodes: Vec<String>,
+pub struct RemoteRun {
+    pub target: RemoteRunTarget,
+    pub run_parameters: RunParameters,
+}
+
+impl RemoteRun {
+    pub fn new(target: RemoteRunTarget, options: &HashMap<String, String>) -> Result<Self, Error> {
+        Ok(RemoteRun {
+            target,
+            run_parameters: RunParameters::new(
+                options.get("asynchronous"),
+                options.get("keep_output"),
+                options.get("classes"),
+            )?,
+        })
+    }
+
+    pub fn run(
+        &self,
+        job_config: Arc<JobConfig>,
+    ) -> Result<impl warp::reply::Reply, warp::reject::Rejection> {
+        if self.target == RemoteRunTarget::All {
+            info!("conditions OK");
+            info!("remote-run triggered on all the nodes");
+
+            for node in job_config
+                .nodes
+                .read()
+                .expect("Cannot read nodes list")
+                .get_neighbors_from_target(RemoteRunTarget::All)
+            {
+                info!("command executed :  \n on node {}", node);
+            }
+            Ok(warp::reply::html(hyper::Body::wrap_stream(
+                self.run_parameters.execute_agent(),
+            )))
+        } else {
+            info!("conditions OK");
+            info!("Remote run launched on nodes: {:?}", self.target);
+
+            Ok(warp::reply::html(hyper::Body::wrap_stream(
+                self.run_parameters.execute_agent(),
+            )))
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RemoteRunTarget {
+    All,
+    Nodes(Vec<String>),
 }
 
 #[derive(Debug)]
@@ -51,11 +105,15 @@ impl FromStr for Condition {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let re = Regex::new(r"^[a-zA-Z0-9][a-zA-Z0-9_]*$").unwrap();
+        let condition_regex = r"^[a-zA-Z0-9][a-zA-Z0-9_]*$";
+        let re = Regex::new(condition_regex).unwrap();
 
         if !re.is_match(s) {
-            let mystring = format!("Wrong condition: {} Your condition should match this regex : ^[a-zA-Z0-9][a-zA-Z0-9_]*$", s);
-            Err(Error::InvalidCondition(mystring.to_string()))
+            Err(Error::InvalidCondition(format!(
+                "Wrong condition: '{}', it should match {}",
+                s.to_string(),
+                condition_regex
+            )))
         } else {
             Ok(Condition {
                 data: s.to_string(),
@@ -64,70 +122,98 @@ impl FromStr for Condition {
     }
 }
 
-impl Agent {
-    pub fn execute_agent(&self) -> Result<String, Error> {
-        let output = Command::new("sh")
-            .args(self.command_line().iter())
-            .output()?;
-        Ok(String::from_utf8(output.stdout)?)
-    }
+fn lines_stream(
+    child: &mut Child,
+) -> impl Stream<Item = hyper::Chunk, Error = Error> + Send + 'static {
+    let stdout = child
+        .stdout()
+        .take()
+        .expect("child did not have a handle to stdout");
 
-    pub fn command_line(&self) -> Vec<String> {
-        let mut remote_run_command = vec![
-            "-c".to_string(),
-            "sudo".to_string(),
-            "/opt/rudder/bin/rudder".to_string(),
-            "remote".to_string(),
-            "run".to_string(),
-        ];
-        // let LOCAL_RUN_COMMAND =
-        //     "sudo /opt/rudder/bin/rudder agent run > /dev/null 2>&1".to_string(); // les mettre dans un vec<str>
-
-        if !&self.condition.is_empty() {
-            remote_run_command.push("-D".to_string());
-            let conditions: Vec<String> = self.condition.iter().map(|s| s.data.clone()).collect();
-            let myconditions = conditions.join(",");
-            remote_run_command.push(myconditions.to_string());
-            remote_run_command
-        } else {
-            remote_run_command
-        }
-    }
+    tokio_io::io::lines(BufReader::new(stdout))
+        .map_err(Error::from)
+        .inspect(|line| println!("Line: {}", line))
+        .map(Chunk::from)
 }
 
-pub fn nodes_handle(simple_map: &HashMap<String, String>) -> Result<Agent, Error> {
-    let nodes_vector: Vec<String> = simple_map
-        .get("nodes")
-        .map(|s| s.split(',').map(|s| s.to_string()).collect())
-        .unwrap_or_else(|| vec![]);
+#[derive(Debug)]
+pub struct RunParameters {
+    asynchronous: bool,
+    keep_output: bool,
+    conditions: Vec<Condition>,
+}
 
-    let conditions_vector: Result<Vec<Condition>, Error> = simple_map
-        .get("conditions")
-        .unwrap_or(&"".to_string())
-        .split(',')
-        .map(|s| Condition::from_str(s))
-        .collect();
+impl RunParameters {
+    pub fn new(
+        raw_asynchronous: Option<&String>,
+        raw_keep_output: Option<&String>,
+        raw_conditions: Option<&String>,
+    ) -> Result<Self, Error> {
+        let conditions: Vec<_> = match raw_conditions {
+            Some(conditions) => {
+                let split_conditions: Result<Vec<_>, _> = conditions
+                    .split(',')
+                    .map(|s| Condition::from_str(s))
+                    .collect();
+                split_conditions?
+            }
+            None => vec![],
+        };
+        let asynchronous = match raw_asynchronous {
+            Some(asynchronous) => asynchronous.parse::<bool>()?,
+            None => false,
+        };
+        let keep_output = match raw_keep_output {
+            Some(keep_output) => keep_output.parse::<bool>()?,
+            None => false,
+        };
 
-    let conditions_vector = conditions_vector?;
+        Ok(RunParameters {
+            asynchronous,
+            keep_output,
+            conditions,
+        })
+    }
 
-    let asynchronous_bool = simple_map
-        .get("asynchronous")
-        .unwrap_or(&"false".to_string())
-        .parse::<bool>()?;
+    pub fn command(&self, is_root: bool, test_mode: bool) -> (String, Vec<String>) {
+        let program = if test_mode {
+            "echo"
+        } else {
+            // FIXME make it configurable
+            "/opt/rudder/bin/rudder"
+        }
+        .to_string();
 
-    let keep_output_bool = simple_map
-        .get("keep_output")
-        .unwrap_or(&"false".to_string())
-        .parse::<bool>()?;
+        let mut args = vec![];
+        args.push(if is_root { "agent" } else { "remote" }.to_string());
+        args.push("run".to_string());
+        if !&self.conditions.is_empty() {
+            args.push("-D".to_string());
+            let conditions_argument: Vec<String> =
+                self.conditions.iter().map(|c| c.data.clone()).collect();
+            args.push(conditions_argument.join(","));
+        }
 
-    let my_agent = Agent {
-        asynchronous: asynchronous_bool,
-        keep_output: keep_output_bool,
-        condition: conditions_vector,
-        nodes: nodes_vector,
-    };
+        (program, args)
+    }
 
-    Ok(my_agent)
+    pub fn execute_agent(
+        &self,
+    ) -> impl Stream<Item = hyper::Chunk, Error = Error> + Send + 'static {
+        let (program, args) = self.command(false, true);
+        let mut cmd = Command::new(program);
+        cmd.args(args);
+
+        cmd.stdout(Stdio::piped());
+        let mut child = cmd.spawn_async().expect("failed to spawn command");
+        let lines = lines_stream(&mut child);
+        let child_future = child
+            .map(|status| info!("conditions OK"))
+            .map_err(|e| panic!("error while running child: {}", e));
+
+        tokio::spawn(child_future);
+        lines
+    }
 }
 
 #[cfg(test)]
@@ -136,25 +222,7 @@ mod tests {
 
     #[test]
     fn it_handles_command_injection() {
-        let condition1 = Condition::from_str("class1").unwrap();
-
-        let condition2 = Condition::from_str("class2").unwrap();
-
-        let condition3 = Condition::from_str("class3").unwrap();
-
         assert!(Condition::from_str("cl&$$y").is_err());
-
-        let condition_vector: Vec<Condition> = vec![condition1, condition2, condition3];
-
-        let my_agent = Agent {
-            asynchronous: true,
-            keep_output: false,
-            condition: condition_vector,
-            nodes: vec![
-                "node7_uuid".to_string(),
-                "node97".to_string(),
-                "node5".to_string(),
-            ],
-        };
+        assert!(Condition::from_str("cl~#~").is_err());
     }
 }

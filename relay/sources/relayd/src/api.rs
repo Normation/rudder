@@ -28,18 +28,22 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::error::Error;
-use crate::{configuration::LogComponent, stats::Stats, status::Status, JobConfig};
+use crate::{
+    error::Error,
+    remote_run::{RemoteRun, RemoteRunTarget},
+    shared_files::{metadata_hash_checker, parse_hash_from_raw, parse_path_from_peek, Metadata},
+    {stats::Stats, status::Status, JobConfig},
+};
 use futures::Future;
-use std::collections::HashMap;
 use std::{
+    collections::HashMap,
+    fs,
     net::SocketAddr,
+    str::FromStr,
     sync::{Arc, RwLock},
 };
 use tracing::info;
 use warp::Filter;
-
-use crate::remote_run::nodes_handle;
 
 pub fn api(
     listen: SocketAddr,
@@ -47,53 +51,99 @@ pub fn api(
     job_config: Arc<JobConfig>,
     stats: Arc<RwLock<Stats>>,
 ) -> impl Future<Item = (), Error = ()> {
+    // TODO put these endpoints into relay-api?
     let stats_simple = warp::path("stats").map(move || {
         info!("/stats queried");
         warp::reply::json(&(*stats.clone().read().unwrap()))
     });
 
+    let job_config1 = job_config.clone();
     let status = warp::path("status").map(move || {
         info!("/status queried");
-        warp::reply::json(&Status::poll(job_config.clone()))
+        warp::reply::json(&Status::poll(job_config1.clone()))
     });
 
-    let nodes = warp::path("nodes").and(warp::body::form()).and_then(
-        |simple_map: HashMap<String, String>| {
-            let my_agent = nodes_handle(&simple_map);
+    let relay_api = warp::path("rudder").and(warp::path("relay-api"));
+    let remote_run = relay_api.and(warp::path("remote-run"));
+    let shared_files = relay_api.and(warp::path("shared-files"));
 
-            match my_agent {
-                Err(my_agent) => Err(warp::reject::custom(Error::InvalidCondition(
-                    my_agent.to_string(),
-                ))),
-                Ok(_) => {
-                    info!("conditions OK");
-                    Ok(warp::reply())
+    let job_config2 = job_config.clone();
+    let node_id = warp::path("nodes").and(
+        warp::path::param::<String>()
+            .and(warp::body::form())
+            .and_then(move |node_id, simple_map: HashMap<String, String>| {
+                match RemoteRun::new(RemoteRunTarget::Nodes(vec![node_id]), &simple_map) {
+                    Ok(handle) => handle.run(job_config2.clone()),
+                    Err(e) => Err(warp::reject::custom(Error::InvalidCondition(e.to_string()))),
                 }
-            }
+            }),
+    );
+
+    let job_config3 = job_config.clone();
+    let nodes = warp::path("nodes").and(warp::path::end().and(warp::body::form()).and_then(
+        move |simple_map: HashMap<String, String>| match simple_map.get("nodes") {
+            Some(x) => match RemoteRun::new(
+                RemoteRunTarget::Nodes(
+                    x.split(',').map(|s| s.to_string()).collect::<Vec<String>>(),
+                ),
+                &simple_map,
+            ) {
+                Ok(x) => x.run(job_config3.clone()),
+                Err(x) => Err(warp::reject::custom(Error::InvalidCondition(x.to_string()))),
+            },
+
+            None => Err(warp::reject::custom(Error::MissingTargetNodes)),
+        },
+    ));
+
+    let job_config4 = job_config.clone();
+    let all = warp::path("all").and(warp::body::form()).and_then(
+        move |simple_map: HashMap<String, String>| match RemoteRun::new(
+            RemoteRunTarget::All,
+            &simple_map,
+        ) {
+            Ok(handle) => handle.run(job_config4.clone()),
+            Err(e) => Err(warp::reject::custom(Error::InvalidCondition(e.to_string()))),
         },
     );
 
-    let nodes2 = warp::path("nodes");
+    let job_config5 = job_config.clone();
+    let shared_files_put = warp::path::peek().and(warp::body::form()).map(
+        move |peek: warp::filters::path::Peek, simple_map: HashMap<String, String>| {
+            let metadata = Metadata::new(simple_map);
+            info!("METADATA : {:?}", metadata.unwrap());
 
-    let node_id = warp::path::param::<String>().map(|node| {
-        info!("remote run triggered on node {}", node);
-        warp::reply()
-    });
+            //metadata_writer(metadata.unwrap(), peek.as_str(), job_config5.clone());
+            warp::reply()
+        },
+    );
 
-    let all = warp::path("all").map(move || {
-        info!("remote-run triggered on all the nodes");
-        warp::reply()
-    });
+    let shared_files_head = warp::path::peek()
+        .and(warp::filters::query::raw()) // recuperation du parametre ?hash=file-hash
+        .map(|peek: warp::filters::path::Peek, raw: String| {
+            let path = parse_path_from_peek(peek);
 
-    let rudder = warp::path("rudder");
-    let relay_api = warp::path("relay-api");
-    let remote_run = warp::path("remote-run");
+            let contents = fs::read_to_string("tests/files/metadata.txt")
+                .expect("Something went wrong reading the file");
 
-    let routes = warp::get2().and(status.or(stats_simple)).or(warp::post2()
-        .and(rudder)
-        .and(relay_api)
-        .and(remote_run)
-        .and(nodes.or(all).or(nodes2.and(node_id))));
+            let mymeta = Metadata::from_str(&contents);
+
+            info!("{:?}", mymeta);
+
+            warp::reply::with_status(
+                "".to_string(),
+                metadata_hash_checker(
+                    "tests/files/metadata.txt".to_string(),
+                    parse_hash_from_raw(raw),
+                ),
+            )
+        });
+
+    let routes = warp::get2()
+        .and(status.or(stats_simple))
+        .or(warp::post2().and(remote_run).and(nodes.or(all).or(node_id)))
+        .or(warp::put2().and(shared_files).and(shared_files_put))
+        .or(warp::head().and(shared_files).and(shared_files_head));
 
     let (addr, server) = warp::serve(routes).bind_with_graceful_shutdown(listen, shutdown);
     info!("Started stats API on {}", addr);
