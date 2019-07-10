@@ -95,37 +95,37 @@ bundle agent init
     # Audit
     "prefix[9]"     string => "class9";
     "command[9]"    string => "exit 0";
-    "status[9]"     string => "error";
-    "expected[9]"   string => "any";
-    "unexpected[9]" string => "${prefix[9]}_true|${prefix[9]}_false";
+    "status[9]"     string => "success";
+    "expected[9]"   string => "${prefix[9]}_true";
+    "unexpected[9]" string => "${prefix[9]}_false";
     "mode[9]"       string => "audit";
 
     "prefix[10]"     string => "class10";
     "command[10]"    string => "exit 1";
-    "status[10]"     string => "error";
-    "expected[10]"   string => "any";
-    "unexpected[10]" string => "${prefix[10]}_true|${prefix[10]}_false";
+    "status[10]"     string => "success";
+    "expected[10]"   string => "${prefix[10]}_true";
+    "unexpected[10]" string => "${prefix[10]}_false";
     "mode[10]"       string => "audit";
 
     "prefix[11]"     string => "class11";
     "command[11]"    string => "exit 2";
-    "status[11]"     string => "error";
-    "expected[11]"   string => "any";
-    "unexpected[11]" string => "${prefix[11]}_true|${prefix[11]}_false";
+    "status[11]"     string => "success";
+    "expected[11]"   string => "${prefix[11]}_true";
+    "unexpected[11]" string => "${prefix[11]}_false";
     "mode[11]"       string => "audit";
 
     "prefix[12]"     string => "class12";
     "command[12]"    string => "exit 3";
-    "status[12]"     string => "error";
-    "expected[12]"   string => "any";
-    "unexpected[12]" string => "${prefix[12]}_false|${prefix[12]}_true";
+    "status[12]"     string => "success";
+    "expected[12]"   string => "${prefix[12]}_false";
+    "unexpected[12]" string => "${prefix[12]}_true";
     "mode[12]"       string => "audit";
 
     "prefix[13]"     string => "class13";
     "command[13]"    string => "exit 4";
-    "status[13]"     string => "error";
-    "expected[13]"   string => "any";
-    "unexpected[13]" string => "${prefix[13]}_false|${prefix[13]}_true";
+    "status[13]"     string => "success";
+    "expected[13]"   string => "${prefix[13]}_false";
+    "unexpected[13]" string => "${prefix[13]}_true";
     "mode[13]"       string => "audit";
 
     "prefix[14]"     string => "class14";
@@ -144,9 +144,9 @@ bundle agent init
 
     "prefix[16]"     string => "class16";
     "command[16]"    string => "/bin/touch ${tmp}/audit";
-    "status[16]"     string => "error";
-    "expected[16]"   string => "any";
-    "unexpected[16]" string => "${prefix[16]}_true|${prefix[16]}_false";
+    "status[16]"     string => "success";
+    "expected[16]"   string => "${prefix[16]}_true";
+    "unexpected[16]" string => "${prefix[16]}_false";
     "mode[16]"       string => "audit";
 
     "indices" slist => getindices("prefix");
@@ -191,11 +191,12 @@ bundle agent check
   classes:
     "enforce_created"   expression => fileexists("${init.tmp}/enforce");
     "audit_created"     expression => fileexists("${init.tmp}/audit");
+
     "expected_not_ok"   expression => "!${init.expected[${init.indices}]}";
     "unexpected_not_ok" expression => "${init.unexpected[${init.indices}]}";
     "classes_ok"        expression => "ph0_ok.ph1_ok.ph2_ok.ph3_ok.ph4_ok.ph5_ok.ph6_ok.ph7_ok.ph8_ok.ph9_ok.ph10_ok.ph11_ok.ph12_ok.ph13_ok.ph14_ok.ph15_ok.ph16_ok";
 
-    "ok"                expression => "classes_ok.!expected_not_ok.!unexpected_not_ok.enforce_created.!audit_created";
+    "ok"  expression => "classes_ok.!expected_not_ok.!unexpected_not_ok.enforce_created.audit_created";
 
   reports:
     ok::
@@ -204,7 +205,7 @@ bundle agent check
       "Expected ${init.tmp}/enforce not found"
         ifvarclass => "!enforce_created";
       "Unexpected file ${init.tmp}/audit found"
-        ifvarclass => "audit_created";
+        ifvarclass => "!audit_created";
       "${init.unexpected[${init.indices}]} not expected"
         ifvarclass => "${init.unexpected[${init.indices}]}";
       "${init.expected[${init.indices}]} not found"

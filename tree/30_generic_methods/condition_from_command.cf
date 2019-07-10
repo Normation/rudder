@@ -23,6 +23,7 @@
 # * If the exit code is in the `true_codes` list, this will produce a kept outcome class and a `${condition_prefix}_true` condition
 # * If the exit code is in the `false_codes` list, this will produce a repaired outcome class and a `${condition_prefix}_false` condition
 # * If the exit code is not in the list, or if the command is not present, this will produce an error outcome class and no classes with `${condition_prefix}`
+# * In audit mode, this method will still execute the command passed in parameter. Which means that you should only pass non system-impacting commands to this method.
 #
 # The created condition is global to the agent.
 #
@@ -64,12 +65,22 @@ bundle agent condition_from_command(condition_prefix, command, true_codes, false
       "true_list"     slist => splitstring("${true_codes}", "\s*,\s*", "256");
       "false_list"    slist => splitstring("${false_codes}", "\s*,\s*", "256");
 
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
   methods:
+    pass1.!pass2::
+      "remove_dry_run_${class_prefix}"  usebundle => push_dry_run_mode("false");
+    pass2.!pass3::
+      "restore_dry_run_${class_prefix}" usebundle => pop_dry_run_mode();
+    pass3::
       "report"
-        usebundle  => _log_v3("Execute the test command ${command} to create ${condition_prefix}_{true,false}", "${condition_prefix}", "${old_class_prefix}", "${class_prefix}", @{args}),
-        ifvarclass => "${class_prefix}_reached";
+        usebundle  => _log_v3("Execute the test command ${command} to create ${condition_prefix}_{true,false}", "${condition_prefix}", "${old_class_prefix}", "${class_prefix}", @{args});
 
   commands:
+    pass1.!pass2::
       "${command}"
         contain      => in_shell,
         classes      => classes_generic_return_boolean_list_two("${old_class_prefix}", "${class_prefix}", "${condition_prefix}", @{true_list}, @{false_list});
