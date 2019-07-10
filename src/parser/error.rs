@@ -17,6 +17,7 @@ pub enum PErrorKind<I> {
     InvalidEnumExpression,         // in enum expression
     InvalidEscapeSequence,         // in string definition
     InvalidVariableReference,      // during string interpolation
+    ExpectedKeyword(&'static str), // anywhere (keyword type)
 }
 
 #[derive(Debug, PartialEq,Clone)]

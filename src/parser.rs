@@ -6,6 +6,7 @@ use nom::bytes::complete::*;
 use nom::character::complete::*;
 use nom::combinator::*;
 use nom::multi::*;
+use nom::number::complete::*;
 use nom::sequence::*;
 use nom::IResult;
 
@@ -242,14 +243,6 @@ impl<'src> PEnumExpression<'src> {
         }
     }
 }
-
-pub fn penum_expression_full(i: PInput) -> Result<PEnumExpression> {
-    // an expression must consume the full string as this parser can be used in isolation
-    or_fail(
-        all_consuming(terminated(penum_expression,strip_spaces_and_comment)),
-        PErrorKind::InvalidEnumExpression
-    )(i)
-}
 fn penum_expression(i: PInput) -> Result<PEnumExpression> {
     alt((
         enum_or_expression,
@@ -259,7 +252,6 @@ fn penum_expression(i: PInput) -> Result<PEnumExpression> {
         enum_atom
     ))(i)
 }
-// TODO it is highly probable that we can add better errors here
 fn enum_atom(i: PInput) -> Result<PEnumExpression> {
     alt((
         wsequence!(
@@ -408,7 +400,7 @@ fn pinterpolated_string(i: PInput) -> Result<Vec<PInterpolatedElement>> {
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PType {
     String,
-    Integer,
+    Number,
     Boolean,
     Struct,
     List,
@@ -416,11 +408,46 @@ pub enum PType {
 fn ptype(i: PInput) -> Result<PType> {
     alt((
         value(PType::String,  tag("string")),
-        value(PType::Integer, tag("int")),
+        value(PType::Number,  tag("int")),
         value(PType::Boolean, tag("boolean")),
         value(PType::Struct,  tag("struct")),
         value(PType::List,    tag("list")),
     ))(i)
+}
+
+/// A number is currently represented by a float64
+fn pnumber(i: PInput) -> Result<(Token, f64)> {
+    let (i,val) = recognize_float(i)?;
+    match double::<&[u8],(&[u8],nom::error::ErrorKind)>(val.fragment.as_bytes()) {
+        Err(_) => panic!(format!("A parsed number canot be reparsed : {:?}", val)),
+        Ok((_, n)) => Ok(( i, (val.into(),n) )),
+    }
+}
+
+/// A list is stored in a Vec
+fn plist(i: PInput) -> Result<Vec<PValue>> {
+    wsequence!(
+        {
+            s: tag("[");
+            values: separated_list(sp(tag(",")),pvalue);
+            _x: or_fail(tag("]"),PErrorKind::UnterminatedDelimiter(s));
+        } => values
+    )(i)
+}
+
+/// A struct is stored in a HashMap
+fn pstruct(i: PInput) -> Result<HashMap<String,PValue>> {
+    wsequence!(
+        {
+            s: tag("{");
+            values: separated_list(
+                        sp(tag(",")),
+                        separated_pair(pescaped_string, sp(tag(":")), pvalue)
+                    );
+            _x: or_fail(tag("}"),PErrorKind::UnterminatedDelimiter(s));
+        } => values.into_iter().map(|(k,v)| (k.1,v)).collect()
+
+    )(i)
 }
 
 /// PValue is a typed value of the content of a variable or a parameter.
@@ -428,16 +455,16 @@ fn ptype(i: PInput) -> Result<PType> {
 #[derive(Debug, PartialEq)]
 pub enum PValue<'src> {
     String(Token<'src>, String),
-    Integer(Token<'src>, i64),
+    Number(Token<'src>, f64),
     EnumExpression(PEnumExpression<'src>),
     List(Vec<PValue<'src>>),
-    Struct(HashMap<Token<'src>,PValue<'src>>),
+    Struct(HashMap<String,PValue<'src>>),
 }
 impl<'src> PValue<'src> {
     pub fn get_type(&self) -> PType {
         match self {
             PValue::String(_,_)       => PType::String,
-            PValue::Integer(_,_)      => PType::Integer,
+            PValue::Number(_,_)       => PType::Number,
             PValue::EnumExpression(_) => PType::Boolean,
             PValue::Struct(_)         => PType::Struct,
             PValue::List(_)           => PType::List,
@@ -449,7 +476,325 @@ fn pvalue(i: PInput) -> Result<PValue> {
         // Be careful of ordering here
         map(punescaped_string, |(x,y)| PValue::String(x,y)),
         map(pescaped_string,   |(x,y)| PValue::String(x,y)),
+        map(pnumber,           |(x,y)| PValue::Number(x,y)),
         map(penum_expression,  |x|     PValue::EnumExpression(x)),
+        map(plist,             |x|     PValue::List(x)),
+        map(pstruct,           |x|     PValue::Struct(x)),
+    ))(i)
+}
+
+/// A metadata is a key/value pair that gives properties to the statement that follows.
+/// Currently metadata is not used by the compiler, just parsed, but that may change.
+#[derive(Debug, PartialEq)]
+pub struct PMetadata<'src> {
+    pub key: Token<'src>,
+    pub value: PValue<'src>,
+}
+fn pmetadata(i: PInput) -> Result<PMetadata> {
+    wsequence!(
+        {
+            key: preceded(tag("@"), pidentifier);
+            _x: or_fail(tag("="), PErrorKind::UnexpectedToken("="));
+            value: pvalue;
+        } => PMetadata { key, value }
+    )(i)
+}
+
+/// A parameters defines how a parameter can be passed.
+/// Its is of the form name:type=default where type and default are optional.
+/// Type can be guessed from default.
+#[derive(Debug, PartialEq)]
+pub struct PParameter<'src> {
+    pub name: Token<'src>,
+    pub ptype: Option<PType>,
+}
+// return a pair because we will store the default value separately
+fn pparameter(i: PInput) -> Result<(PParameter, Option<PValue>)> {
+    wsequence!(
+        {
+            name: pidentifier;
+            ptype: opt(
+                    wsequence!(
+                        {
+                            _t: tag(":");
+                            ty: or_fail(ptype,PErrorKind::ExpectedKeyword("type"));
+                        } => ty)
+                    );
+            default: opt(
+                    wsequence!(
+                        {
+                            _t: tag("=");
+                            val: or_fail(pvalue,PErrorKind::ExpectedKeyword("value"));
+                        } => val)
+                    );
+        } => (PParameter { ptype, name }, default)
+    )(i)
+}
+
+/// A resource definition defines how a resource is uniquely identified.
+#[derive(Debug, PartialEq)]
+pub struct PResourceDef<'src> {
+    pub name: Token<'src>,
+    pub parameters: Vec<PParameter<'src>>,
+    pub parameter_defaults: Vec<Option<PValue<'src>>>,
+    pub parent: Option<Token<'src>>,
+}
+fn presource_def(i: PInput) -> Result<PResourceDef> {
+    wsequence!(
+        {
+            _x: tag("resource");
+            name: pidentifier;
+            s: tag("(");
+            parameter_list: separated_list(sp(tag(",")), pparameter);
+            _x: or_fail(tag(")"), PErrorKind::UnterminatedDelimiter(s));
+            parent: opt(preceded(sp(tag(":")),pidentifier));
+        } => { 
+            let (parameters, parameter_defaults) = parameter_list.into_iter().unzip();
+            PResourceDef {
+                      name,
+                      parameters,
+                      parameter_defaults,
+                      parent,
+            }
+        }
+    )(i)
+}
+
+/// A resource reference identifies a unique resource.
+fn presource_ref(i: PInput) -> Result<(Token, Vec<PValue>)> {
+    wsequence!(
+        {
+            name: pidentifier;
+            params: opt(wsequence!(
+                        {
+                            t: tag("(");
+                            parameters: separated_list(sp(tag(",")), pvalue);
+                            _x: or_fail(tag(")"), PErrorKind::UnterminatedDelimiter(t));
+                        } => parameters
+                    ));
+        } => (name, params.unwrap_or_else(Vec::new))
+    )(i)
+}
+
+/// A variable definition is a var=value
+fn pvariable_definition(i: PInput) -> Result<(Token, PValue)> {
+    wsequence!(
+        {
+            variable: pidentifier;
+            _t: tag("=");
+            value: or_fail(pvalue, PErrorKind::ExpectedKeyword("value"));
+        } => (variable, value)
+    )(i)
+}
+
+/// A call mode tell how a state must be applied
+#[derive(Debug, PartialEq, Clone)]
+pub enum PCallMode {
+    Enforce,
+    Condition,
+    Audit,
+}
+fn pcall_mode(i: PInput) -> Result<PCallMode> {
+    alt((
+        value(PCallMode::Condition, tag("?")),
+        value(PCallMode::Audit,     tag("!")),
+        value(PCallMode::Enforce,   peek(anychar)),
+    ))(i)
+}
+
+/// A statement is the atomic element of a state definition.
+#[derive(Debug, PartialEq)]
+pub enum PStatement<'src> {
+    Comment(PComment<'src>),
+    VariableDefinition(Token<'src>, PValue<'src>),
+    StateCall(
+        PCallMode,           // mode
+        Token<'src>,         // resource
+        Vec<PValue<'src>>,   // resource parameters
+        Token<'src>,         // state name
+        Vec<PValue<'src>>,   // parameters
+        Option<Token<'src>>, // outcome
+    ),
+    //   case keyword, list (condition   ,       then)
+    Case(Token<'src>, Vec<(PEnumExpression<'src>, Vec<PStatement<'src>>)>), // keep the pinput since it will be reparsed later
+    // Stop engine with a final message
+    Fail(PValue<'src>),
+    // Inform the user of something
+    Log(PValue<'src>),
+    // Return a specific outcome
+    Return(Token<'src>),
+    // Do nothing
+    Noop,
+}
+fn pstatement(i: PInput) -> Result<PStatement> {
+    alt((
+        // One state
+        wsequence!(
+            {
+                mode: pcall_mode;
+                resource: presource_ref;
+                _t: tag(".");
+                state: pidentifier;
+                s: tag("(");
+                parameters: separated_list( sp(tag(",")), pvalue );
+                _x: or_fail(tag(")"), PErrorKind::UnterminatedDelimiter(s));
+                outcome: opt(preceded(sp(tag("as")),pidentifier));
+            } => PStatement::StateCall(mode,resource.0,resource.1,state,parameters,outcome)
+        ),
+        // Variable definition
+        map(pvariable_definition, |(variable,value)| PStatement::VariableDefinition(variable,value)),
+        // Comments
+        map(pcomment, |x| PStatement::Comment(x)),
+        // case
+        wsequence!(
+            {
+                case: tag("case");
+                s: tag("{");
+                cases: separated_list(sp(tag(",")),
+                        wsequence!(
+                            {
+                                expr: or_fail(penum_expression, PErrorKind::ExpectedKeyword("enum expression"));
+                                _x: or_fail(tag("=>"), PErrorKind::UnexpectedToken("=>"));
+                                stmt: or_fail(alt((
+                                    map(pstatement, |x| vec![x]),
+                                    wsequence!(
+                                        {
+                                            s: tag("{");
+                                            vec: many0(pstatement);
+                                            _x: or_fail(tag("}"),PErrorKind::UnterminatedDelimiter(s));
+                                        } => vec
+                                    ),
+                                )), PErrorKind::ExpectedKeyword("statement"));
+                            } => (expr,stmt)
+                        ));
+                _x: opt(tag(","));
+                _x: or_fail(tag("}"),PErrorKind::UnterminatedDelimiter(s));
+            } => PStatement::Case(case.into(), cases)
+        ),
+        // if 
+        wsequence!(
+            {
+                case: tag("if");
+                expr: or_fail(penum_expression, PErrorKind::ExpectedKeyword("enum expression"));
+                _x: or_fail(tag("=>"), PErrorKind::UnexpectedToken("=>"));
+                stmt: or_fail(pstatement, PErrorKind::ExpectedKeyword("statement"));
+            } => PStatement::Case(case.into(), vec![(expr,vec![stmt]), (PEnumExpression::Default("default".into()),vec![PStatement::Noop])] )
+        ),
+        // Flow statements
+        map(preceded(sp(tag("return")),pidentifier), |x| PStatement::Return(x)),
+        map(preceded(sp(tag("fail")),pvalue),        |x| PStatement::Fail(x)),
+        map(preceded(sp(tag("log")),pvalue),         |x| PStatement::Log(x)),
+        map(tag("noop"),                             |_| PStatement::Noop),
+    ))(i)
+}
+
+/// A state definition defines a state of a resource.
+/// It is composed of one or more statements.
+#[derive(Debug, PartialEq)]
+pub struct PStateDef<'src> {
+    pub name: Token<'src>,
+    pub resource_name: Token<'src>,
+    pub parameters: Vec<PParameter<'src>>,
+    pub parameter_defaults: Vec<Option<PValue<'src>>>,
+    pub statements: Vec<PStatement<'src>>,
+}
+fn pstate_def(i: PInput) -> Result<PStateDef> {
+    wsequence!(
+        {
+            resource_name: pidentifier;
+            _st: tag("state");
+            name: pidentifier;
+            s: or_fail(tag("("), PErrorKind::UnexpectedToken("("));
+            parameter_list: separated_list(sp(tag(",")), pparameter);
+            _x: or_fail(tag(")"), PErrorKind::UnterminatedDelimiter(s));
+            sb: or_fail(tag("{"), PErrorKind::UnexpectedToken("{"));
+            statements: many0(pstatement);
+            _x: or_fail(tag("}"), PErrorKind::UnterminatedDelimiter(sb));
+        } => {
+            let (parameters, parameter_defaults) = parameter_list.into_iter().unzip();
+            PStateDef {
+                name,
+                resource_name,
+                parameters,
+                parameter_defaults,
+                statements,
+            }
+        }
+    )(i)
+}
+
+#[derive(Debug, PartialEq)]
+pub struct PAliasDef<'src> {
+    resource_alias: Token<'src>,
+    resource_alias_parameters: Vec<Token<'src>>,
+    state_alias: Token<'src>,
+    state_alias_parameters: Vec<Token<'src>>,
+    resource: Token<'src>,
+    resource_parameters: Vec<Token<'src>>,
+    state: Token<'src>,
+    state_parameters: Vec<Token<'src>>,
+}
+fn palias_def(i: PInput) -> Result<PAliasDef> {
+    wsequence!(
+        {
+            _x: tag("alias");
+            resource_alias: pidentifier;
+            resource_alias_parameters: delimited(sp(tag("(")),separated_list(sp(tag(",")),pidentifier),sp(tag(")")));
+            _x: tag(".");
+            state_alias: pidentifier;
+            state_alias_parameters: delimited(sp(tag("(")),separated_list(sp(tag(",")),pidentifier),sp(tag(")")));
+            _x: tag("=");
+            resource: pidentifier;
+            resource_parameters: delimited(sp(tag("(")),separated_list(sp(tag(",")),pidentifier),sp(tag(")")));
+            _x: tag(".");
+            state: pidentifier;
+            state_parameters: delimited(sp(tag("(")),separated_list(sp(tag(",")),pidentifier),sp(tag(")")));
+        } => PAliasDef {resource_alias, resource_alias_parameters,
+                        state_alias, state_alias_parameters,
+                        resource, resource_parameters,
+                        state, state_parameters }
+    )(i)
+}
+
+/// A declaration is one of the a top level elements that can be found anywhere in the file.
+#[derive(Debug, PartialEq)]
+pub enum PDeclaration<'src> {
+    Comment(PComment<'src>),
+    Metadata(PMetadata<'src>),
+    Resource(PResourceDef<'src>),
+    State(PStateDef<'src>),
+    Enum(PEnum<'src>),
+    Mapping(PEnumMapping<'src>),
+    GlobalVar(Token<'src>, PValue<'src>),
+    Alias(PAliasDef<'src>),
+}
+fn pdeclaration(i: PInput) -> Result<PDeclaration> {
+    alt((
+        map(presource_def, |x| PDeclaration::Resource(x)),
+        map(pmetadata, |x| PDeclaration::Metadata(x)),
+        map(pstate_def, |x| PDeclaration::State(x)),
+        map(pcomment, |x| PDeclaration::Comment(x)),
+        map(penum, |x| PDeclaration::Enum(x)),
+        map(penum_mapping, |x| PDeclaration::Mapping(x)),
+        map(pvariable_definition, |(variable,value)| PDeclaration::GlobalVar(variable,value)),
+        map(palias_def, |x| PDeclaration::Alias(x)),
+    ))(i)
+}
+
+/// A PFile is the result of a single file parsing
+/// It contains a valid header and top level declarations.
+#[derive(Debug, PartialEq)]
+pub struct PFile<'src> {
+    pub header: PHeader,
+    pub code: Vec<PDeclaration<'src>>,
+}
+fn pfile(i: PInput) -> Result<PFile> {
+    all_consuming(sequence!(
+        {
+            header: pheader;
+            code: many0(pdeclaration);
+            _x: not(peek(anychar));
+        } => PFile {header, code}
     ))(i)
 }
 

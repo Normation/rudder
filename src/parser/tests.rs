@@ -1,6 +1,7 @@
 use super::*;
 use nom::Err;
 use super::token::pinput;
+use maplit::hashmap;
 
 //    type Result<'src, O> = std::Result< (PInput<'src>,O), Err<PError<PInput<'src>>> >;
 
@@ -32,6 +33,7 @@ fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
         PErrorKind::InvalidEnumExpression => PErrorKind::InvalidEnumExpression,
         PErrorKind::InvalidEscapeSequence => PErrorKind::InvalidEscapeSequence,
         PErrorKind::InvalidVariableReference => PErrorKind::InvalidVariableReference,
+        PErrorKind::ExpectedKeyword(i) => PErrorKind::ExpectedKeyword(i),
     };
     (err.context.fragment, kind)
 }
@@ -370,14 +372,6 @@ fn test_penum_expression() {
 }
 
 #[test]
-fn test_penum_expression_full() {
-    assert_eq!(
-        map_res(penum_expression_full, "! a =~ hello var = x"),
-        Err(("var = x", PErrorKind::InvalidEnumExpression))
-    );
-}
-
-#[test]
 fn test_pescaped_strings() {
     assert_eq!(
         map_res(pescaped_string, "\"\""),
@@ -497,4 +491,413 @@ fn test_pvalue() {
         map_res(pvalue, "\"hello\\"),
         Err(("\\", PErrorKind::InvalidEscapeSequence))
     );
+    assert_eq!(
+        map_res(pvalue, "12.5"),
+        Ok(("", PValue::Number("12.5".into(), 12.5)))
+    );
+    assert_eq!(
+        map_res(pvalue, r#"[ "hello", 12 ]"#),
+        Ok(("", PValue::List(vec![
+                                PValue::String("\"".into(), "hello".into()),
+                                PValue::Number("12".into(), 12.0),
+                                 ])))
+    );
+    assert_eq!(
+        map_res(pvalue, r#"[ "hello", 12"#),
+        Err(("", PErrorKind::UnterminatedDelimiter("[")))
+    );
+    assert_eq!(
+        map_res(pvalue, r#"{"key":"value"}"#),
+        Ok(("", PValue::Struct(hashmap! {
+            "key".into() => PValue::String("\"".into(), "value".into()),
+        })))
+    );
+    assert_eq!(
+        map_res(pvalue, r#"{ "key": "value", "number": 12, "list": [ 12 ] }"#),
+        Ok(("", PValue::Struct(hashmap! {
+            "key".into() => PValue::String("\"".into(), "value".into()),
+            "number".into() => PValue::Number("12".into(), 12.0),
+            "list".into() => PValue::List(vec![PValue::Number("12".into(), 12.0)]),
+        })))
+    );
+    assert_eq!(
+        map_res(pvalue, r#"{"key":"value""#),
+        Err(("", PErrorKind::UnterminatedDelimiter("{")))
+    );
 }
+
+#[test]
+fn test_pmetadata() {
+    assert_eq!(
+        map_res(pmetadata, r#"@key="value""#),
+        Ok((
+            "",
+            PMetadata {
+                key: "key".into(),
+                value: PValue::String("\"".into(), "value".to_string())
+            }
+        ))
+    );
+    assert_eq!(
+        map_res(pmetadata, r#"@key = "value""#),
+        Ok((
+            "",
+            PMetadata {
+                key: "key".into(),
+                value: PValue::String("\"".into(), "value".to_string())
+            }
+        ))
+    );
+    assert_eq!(
+        map_res(pmetadata, r#"@key = {"key":"value"}"#),
+        Ok(("",
+            PMetadata {
+                key: "key".into(),
+                value: PValue::Struct(hashmap! {
+                     "key".into() => PValue::String("\"".into(), "value".into())})
+            }
+        ))
+    );
+    assert_eq!(
+        map_res(pmetadata, "@key value"),
+        Err(("value", PErrorKind::UnexpectedToken("=")))
+    );
+}
+
+
+#[test]
+fn test_pparameter() {
+    assert_eq!(
+        map_res(pparameter, "hello "),
+        Ok((
+            "",
+            (
+                PParameter {
+                    name: "hello".into(),
+                    ptype: None,
+                },
+                None
+            )
+        ))
+    );
+    assert_eq!(
+        map_res(pparameter, "hello:string "),
+        Ok((
+            "",
+            (
+                PParameter {
+                    name: "hello".into(),
+                    ptype: Some(PType::String)
+                },
+                None
+            )
+        ))
+    );
+    assert_eq!(
+        map_res(pparameter, "hello:"),
+        Err(("", PErrorKind::ExpectedKeyword("type")))
+    );
+    assert_eq!(
+        map_res(pparameter, "hello : string "),
+        Ok((
+            "",
+            (
+                PParameter {
+                    name: "hello".into(),
+                    ptype: Some(PType::String),
+                },
+                None
+            )
+        ))
+    );
+    assert_eq!(
+        map_res(pparameter, r#"hello : string="default""#),
+        Ok((
+            "",
+            (
+                PParameter {
+                    name: "hello".into(),
+                    ptype: Some(PType::String),
+                },
+                Some(PValue::String("\"".into(), "default".to_string()))
+            )
+        ))
+    );
+    assert_eq!(
+        map_res(pparameter, "hello="),
+        Err(("", PErrorKind::ExpectedKeyword("value")))
+    );
+}
+
+#[test]
+fn test_presource_def() {
+    assert_eq!(
+        map_res(presource_def, "resource hello()"),
+        Ok((
+            "",
+            PResourceDef {
+                name: "hello".into(),
+                parameters: vec![],
+                parameter_defaults: vec![],
+                parent: None,
+            }
+        ))
+    );
+    assert_eq!(
+        map_res(presource_def, "resource  hello2 ( )"),
+        Ok((
+            "",
+            PResourceDef {
+                name: "hello2".into(),
+                parameters: vec![],
+                parameter_defaults: vec![],
+                parent: None,
+            }
+        ))
+    );
+    assert_eq!(
+        map_res(presource_def, "resource  hello2 ( ): hello3"),
+        Ok((
+            "",
+            PResourceDef {
+                name: "hello2".into(),
+                parameters: vec![],
+                parameter_defaults: vec![],
+                parent: Some("hello3".into()),
+            }
+        ))
+    );
+    assert_eq!(
+        map_res(presource_def, "resource hello (p1: string, p2)"),
+        Ok((
+            "",
+            PResourceDef {
+                name: "hello".into(),
+                parameters: vec![
+                    PParameter {
+                        name: "p1".into(),
+                        ptype: Some(PType::String),
+                    },
+                    PParameter {
+                        name: "p2".into(),
+                        ptype: None,
+                    }
+                ],
+                parameter_defaults: vec![None, None],
+                parent: None,
+            }
+        ))
+    );
+}
+
+#[test]
+fn test_presource_ref() {
+    assert_eq!(
+        map_res(presource_ref, "hello()"),
+        Ok(("", ("hello".into(), vec![])))
+    );
+    assert_eq!(
+        map_res(presource_ref, "hello3 "),
+        Ok(("", ("hello3".into(), vec![])))
+    );
+    assert_eq!(
+        map_res(presource_ref, "hello ( \"p1\", \"p2\" )"),
+        Ok((
+            "",
+            (
+                "hello".into(),
+                vec![
+                    PValue::String("\"".into(), "p1".to_string()),
+                    PValue::String("\"".into(), "p2".to_string())
+                ]
+            )
+        ))
+    );
+    assert_eq!(
+        map_res(presource_ref, "hello2 ( )"),
+        Ok(("", ("hello2".into(), vec![])))
+    );
+}
+
+#[test]
+fn test_variable_definition() {
+    assert_eq!(
+        map_res(pvariable_definition, r#"var="value""#),
+        Ok((
+            "",
+            (
+                "var".into(),
+                PValue::String("\"".into(), "value".to_string())
+            )
+        ))
+    );
+    assert_eq!(
+        map_res(pvariable_definition, r#"var = "value" "#),
+        Ok((
+            "",
+            (
+                "var".into(),
+                PValue::String("\"".into(), "value".to_string())
+            )
+        ))
+    );
+    assert_eq!(
+        map_res(pvariable_definition, "var=\"val\nue\"\n"),
+        Ok((
+            "",
+            (
+                "var".into(),
+                PValue::String("\"".into(), "val\nue".to_string())
+            )
+        ))
+    );
+    assert_eq!(
+        map_res(pvariable_definition, "var = :\n"),
+        Err((":\n", PErrorKind::ExpectedKeyword("value")))
+    );
+}
+
+#[test]
+fn test_pstatement() {
+    assert_eq!(
+        map_res(pstatement, "resource().state()"),
+        Ok((
+            "",
+            PStatement::StateCall(
+                PCallMode::Enforce,
+                "resource".into(),
+                vec![],
+                "state".into(),
+                Vec::new(),
+                None,
+            )
+        ))
+    );
+    assert_eq!(
+        map_res(pstatement, r#"resource().state( "p1", "p2")"#),
+        Ok((
+            "",
+            PStatement::StateCall(
+                PCallMode::Enforce,
+                "resource".into(),
+                vec![],
+                "state".into(),
+                vec![
+                    PValue::String("\"".into(), "p1".to_string()),
+                    PValue::String("\"".into(), "p2".to_string())
+                ],
+                None,
+            )
+        ))
+    );
+    assert_eq!(
+        map_res(pstatement, "##hello Herman\n"),
+        Ok(("", PStatement::Comment(
+                    map_res(pcomment, "##hello Herman\n").unwrap().1)))
+    );
+    assert_eq!(
+        map_res(pstatement, "var=\"string\"\n"),
+        Ok((
+            "",
+            PStatement::VariableDefinition(
+                "var".into(),
+                PValue::String("\"".into(), "string".into())
+            )
+        ))
+    );
+
+    assert_eq!(
+        map_res(pstatement, "var= a=~bc\n"),
+        Ok((
+            "",
+            PStatement::VariableDefinition(
+                "var".into(),
+                PValue::EnumExpression(
+                    map_res(penum_expression, "a=~bc").unwrap().1
+                )
+            )
+        ))
+    );
+    let st = "case { ubuntu => f().g(), debian => a().b() }";
+    assert_eq!(
+        map_res(pstatement, st),
+        Ok((
+            "",
+            PStatement::Case(
+                "case".into(),
+                vec![
+                    (
+                        map_res(penum_expression, "ubuntu").unwrap().1,
+                        vec![map_res(pstatement, "f().g()").unwrap().1]
+                    ),
+                    (
+                        map_res(penum_expression, "debian").unwrap().1,
+                        vec![map_res(pstatement, "a().b()").unwrap().1]
+                    ),
+                ]
+            )
+        ))
+    );
+}
+
+#[test]
+fn test_pstate_def() {
+    assert_eq!(
+        map_res(pstate_def, "resource state configuration() {}"),
+        Ok((
+            "",
+            PStateDef {
+                name: "configuration".into(),
+                resource_name: "resource".into(),
+                parameters: vec![],
+                parameter_defaults: vec![],
+                statements: vec![]
+            }
+        ))
+    );
+}
+
+#[test]
+fn test_palias_def() {
+    assert_eq!(
+        map_res(palias_def, "alias File(path).keyvalue(key,value) = FileContentKey(path).xml_keyvalue(key,value)"),
+        Ok((
+            "",
+            PAliasDef {
+                resource_alias: "File".into(),
+                resource_alias_parameters: vec!["path".into()],
+                state_alias: "keyvalue".into(),
+                state_alias_parameters: vec!["key".into(),"value".into()],
+                resource: "FileContentKey".into(),
+                resource_parameters: vec!["path".into()],
+                state: "xml_keyvalue".into(),
+                state_parameters: vec!["key".into(),"value".into()],
+            }
+        ))
+    );
+}
+
+#[test]
+fn test_pdeclaration() {
+    assert_eq!(
+        map_res(pdeclaration,"ntp state configuration ()\n{\n  file(\"/tmp\").permissions(\"root\", \"root\", \"g+w\")\n}\n"),
+        Ok(("",
+            PDeclaration::State(PStateDef {
+                name: "configuration".into(),
+                resource_name: "ntp".into(),
+                parameters: vec![],
+                parameter_defaults: vec![],
+                statements: vec![
+                    PStatement::StateCall(
+                        PCallMode::Enforce,
+                        "file".into(),
+                        vec![PValue::String("\"".into(), "/tmp".to_string())],
+                        "permissions".into(),
+                        vec![PValue::String("\"".into(), "root".to_string()), PValue::String("\"".into(), "root".to_string()), PValue::String("\"".into(), "g+w".to_string())],
+                        None,
+                    )
+                ]
+            })
+        )));
+}
+
