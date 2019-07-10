@@ -74,75 +74,75 @@ resource {name}({parameters})
     Ok(out)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_json() {
-        let data = r#"
-{
-  "name": "variable",
-  "description": "",
-  "version": "1.0",
-  "bundle_name": "variable",
-  "parameter": [
-    {
-      "constraints": {
-        "allow_whitespace_string": false,
-        "allow_empty_string": false,
-        "max_length": 16384
-      },
-      "name": "iname",
-      "id": "53042794-4d2a-41c7-a690-b0d760a78a51"
-    },
-    {
-      "constraints": {
-        "allow_whitespace_string": false,
-        "allow_empty_string": false,
-        "max_length": 16384
-      },
-      "name": "ip",
-      "id": "aa74f824-6085-46b4-94b4-42803760fd61"
-    }
-  ],
-  "bundle_args": [
-    "iname",
-    "ip"
-  ],
-  "method_calls": [
-    {
-      "method_name": "variable_string",
-      "class_context": "any",
-      "args": [
-        "foo",
-        "bar",
-        "vim"
-      ],
-      "component": "Variable string"
-    },
-    {
-      "method_name": "package_state",
-      "class_context": "any",
-      "args": [
-        "${foo.bar}",
-        "",
-        "",
-        "",
-        "present"
-      ],
-      "component": "Package state"
-    }
-  ]
-}
-"#;
-        let p: Result<Technique> = serde_json::from_str(data);
-        assert!(p.is_ok());
-        //assert_eq!(p.unwrap().name, "variable".to_string()); 
-        let s = translate(&p.unwrap());
-        assert!(s.is_ok());
-        print!("{}",s.unwrap());
-    }
-}
+//#[cfg(test)]
+//mod tests {
+//    use super::*;
+//
+//    #[test]
+//    fn test_json() {
+//        let data = r#"
+//{
+//  "name": "variable",
+//  "description": "",
+//  "version": "1.0",
+//  "bundle_name": "variable",
+//  "parameter": [
+//    {
+//      "constraints": {
+//        "allow_whitespace_string": false,
+//        "allow_empty_string": false,
+//        "max_length": 16384
+//      },
+//      "name": "iname",
+//      "id": "53042794-4d2a-41c7-a690-b0d760a78a51"
+//    },
+//    {
+//      "constraints": {
+//        "allow_whitespace_string": false,
+//        "allow_empty_string": false,
+//        "max_length": 16384
+//      },
+//      "name": "ip",
+//      "id": "aa74f824-6085-46b4-94b4-42803760fd61"
+//    }
+//  ],
+//  "bundle_args": [
+//    "iname",
+//    "ip"
+//  ],
+//  "method_calls": [
+//    {
+//      "method_name": "variable_string",
+//      "class_context": "any",
+//      "args": [
+//        "foo",
+//        "bar",
+//        "vim"
+//      ],
+//      "component": "Variable string"
+//    },
+//    {
+//      "method_name": "package_state",
+//      "class_context": "any",
+//      "args": [
+//        "${foo.bar}",
+//        "",
+//        "",
+//        "",
+//        "present"
+//      ],
+//      "component": "Package state"
+//    }
+//  ]
+//}
+//"#;
+//        let p: Result<Technique> = serde_json::from_str(data);
+//        assert!(p.is_ok());
+//        //assert_eq!(p.unwrap().name, "variable".to_string()); 
+//        let s = translate(&p.unwrap());
+//        assert!(s.is_ok());
+//        print!("{}",s.unwrap());
+//    }
+//}
 
 

@@ -1,7 +1,8 @@
-use super::*;
+// pub for use by other tests
+pub use super::*;
 use nom::Err;
-use super::token::pinput;
 use maplit::hashmap;
+
 
 //    type Result<'src, O> = std::Result< (PInput<'src>,O), Err<PError<PInput<'src>>> >;
 
@@ -13,7 +14,7 @@ fn map_res<'src, F, O>(f: F, i: &'src str) -> std::result::Result<(&'src str, O)
 where
     F: Fn(PInput<'src>) -> Result<'src, O>,
 {
-    match f(pinput(i, "")) {
+    match f(PInput::new_extra(i, "")) {
         Ok((x, y)) => Ok((x.fragment, y)),
         Err(Err::Failure(e)) => Err(map_err(e)),
         Err(Err::Error(e)) => Err(map_err(e)),

@@ -1,7 +1,7 @@
 use crate::error::*;
 use crate::parser::*;
 use super::context::VarContext;
-use super::enums::{EnumList,EnumExpression};
+use super::enums::EnumExpression;
 use crate::ast::context::GlobalContext;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -30,7 +30,13 @@ impl<'src> StringObject<'src> {
             .join("")
     }
     pub fn is_empty(&self) -> bool {
-        self.data.is_empty()
+        self.data.iter()
+            .filter(
+                |x| match x {
+                    PInterpolatedElement::Static(_) => false,
+                    PInterpolatedElement::Variable(_) => true,
+                })
+            .count() == 0
     }
 }
 

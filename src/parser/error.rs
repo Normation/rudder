@@ -94,14 +94,18 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
             PErrorKind::NomTest(msg) => format!("Testing only error message, this should never happen {}.\nPlease fill a BUG with context on when this happened!", msg),
             PErrorKind::InvalidFormat => "Invalid header format, it must contain a single line '@format=x' where x is an integer. Shebang accepted.".to_string(),
             PErrorKind::InvalidName(i) => format!("The identifier is invalid in a {}.",i.fragment),
-            PErrorKind::UnexpectedToken(s) => format!("Unexpected token, ecpecting '{}' instead", s),
+            PErrorKind::UnexpectedToken(s) => format!("Unexpected token, expecting '{}' instead", s),
             PErrorKind::UnterminatedDelimiter(i) => format!("Missing end of {}", i.fragment),
             PErrorKind::InvalidEnumExpression => "This enum expression is invalid".to_string(),
             PErrorKind::InvalidEscapeSequence => "This escape cannot be used in a string".to_string(),
             PErrorKind::InvalidVariableReference => "This variable reference is invalid".to_string(),
             PErrorKind::ExpectedKeyword(s) => format!("Token not found, expecting a '{}'",s),
         };
-        f.write_str(&format!("{} near '{}' at {} in {}",message,self.context.fragment,Token::from(self.context).position_str(),self.context.extra))
+        f.write_str(&format!("{} near '{}' at {} in {}",
+                             message,
+                             self.context.fragment,
+                             Token::from(self.context).position_str(),
+                             self.context.extra))
     }
 }
 

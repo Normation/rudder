@@ -138,7 +138,7 @@ mod tests {
 
     // test utilities
     fn ident(string: &str) -> Token {
-        pidentifier(pinput("", string)).unwrap().1
+        pidentifier(PInput::new_extra(string,"")).unwrap().1
     }
 
     #[test]

@@ -13,14 +13,22 @@ use nom::IResult;
 use std::collections::HashMap;
 
 use error::*;
-use token::PInput;
 // reexport tokens
 pub use token::Token;
-
+#[allow(unused_imports)]
+use token::*;
+// reexport PInput for tests
+#[cfg(test)]
+pub use token::PInput;
 
 /// All structures are public to be read directly by other modules.
 /// Parsing errors must be avoided if possible since they are fatal.
 /// Keep the structure and handle the error in later analyser if possible.
+///
+/// All parsers should manage whitespace inside them.
+/// All parser assume whitespaces at the beginning of the input have been removed.
+///
+/// Some functions are made public just for being used to create test structures
 
 // TODO add more types
 // TODO more like var = f(x)
@@ -39,12 +47,12 @@ pub fn parse_file<'src>(
     filename: &'src str,
     content: &'src str,
 ) -> crate::error::Result<PFile<'src>> {
-    fix_error_type(pfile(PInput::new_extra(filename, content)))
+    fix_error_type(pfile(PInput::new_extra(content, filename)))
 }
 
 /// Parse a string for interpolation
 pub fn parse_string(content: &str) -> crate::error::Result<Vec<PInterpolatedElement>> {
-    fix_error_type(pinterpolated_string(PInput::new_extra("", content)))
+    fix_error_type(pinterpolated_string(PInput::new_extra(content, ""))) // TODO extra could be the content
 }
 
 // ===== Parsers =====
@@ -179,7 +187,7 @@ fn pcomment(i: PInput) -> Result<PComment> {
 
 /// An identifier is a word that contains alphanumeric chars.
 /// Be liberal here, they are checked again later
-fn pidentifier(i: PInput) -> Result<Token> {
+pub fn pidentifier(i: PInput) -> Result<Token> {
     map(
         take_while1(|c: char| c.is_alphanumeric() || (c == '_')),
         |x: PInput| x.into(),
@@ -195,13 +203,13 @@ pub struct PEnum<'src> {
     pub name: Token<'src>,
     pub items: Vec<Token<'src>>,
 }
-fn penum(i: PInput) -> Result<PEnum> {
+pub fn penum(i: PInput) -> Result<PEnum> {
     wsequence!(
         {
             global: opt(tag("global"));
             e:      tag("enum");
             name:   or_fail(pidentifier, PErrorKind::InvalidName(e));
-            b:      or_fail(tag("{"), PErrorKind::UnexpectedToken("{"));
+            b:      tag("{"); // do not fail here, it could still be a mapping
             items:  separated_nonempty_list(sp(tag(",")), pidentifier);
             _x:     opt(tag(","));
             _x:     or_fail(tag("}"), PErrorKind::UnterminatedDelimiter(b));
@@ -224,7 +232,7 @@ pub struct PEnumMapping<'src> {
     pub to: Token<'src>,
     pub mapping: Vec<(Token<'src>, Token<'src>)>,
 }
-fn penum_mapping(i: PInput) -> Result<PEnumMapping> {
+pub fn penum_mapping(i: PInput) -> Result<PEnumMapping> {
     wsequence!(
         {
             e:    tag("enum");
@@ -285,7 +293,7 @@ impl<'src> PEnumExpression<'src> {
         }
     }
 }
-fn penum_expression(i: PInput) -> Result<PEnumExpression> {
+pub fn penum_expression(i: PInput) -> Result<PEnumExpression> {
     alt((
         enum_or_expression,
         enum_and_expression,
@@ -834,12 +842,12 @@ fn pfile(i: PInput) -> Result<PFile> {
     all_consuming(sequence!(
         {
             header: pheader;
+            _x: strip_spaces_and_comment;
             code: many0(pdeclaration);
-            _x: not(peek(anychar));
         } => PFile {header, code}
     ))(i)
 }
 
 // tests must be at the end to be able to test macros
 #[cfg(test)]
-mod tests;
+pub mod tests; // pub for use by other tests only

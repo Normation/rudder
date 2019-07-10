@@ -646,19 +646,19 @@ mod tests {
 
     // test utilities
     fn add_penum<'src>(e: &mut EnumList<'src>, string: &'src str) -> Result<()> {
-        e.add_enum(penum(pinput("", string)).unwrap().1)
+        e.add_enum(penum(PInput::new_extra(string, "")).unwrap().1)
     }
 
     fn add_enum_mapping<'src>(e: &mut EnumList<'src>, string: &'src str) -> Result<()> {
-        e.add_mapping(penum_mapping(pinput("", string)).unwrap().1)
+        e.add_mapping(penum_mapping(PInput::new_extra(string, "")).unwrap().1)
     }
 
     fn parse_enum_expression(string: &str) -> PEnumExpression {
-        penum_expression(pinput("", string)).unwrap().1
+        penum_expression(PInput::new_extra(string, "")).unwrap().1
     }
 
     fn ident(string: &str) -> Token {
-        pidentifier(pinput("", string)).unwrap().1
+        pidentifier(PInput::new_extra(string, "")).unwrap().1
     }
 
     #[test]
