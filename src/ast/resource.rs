@@ -162,7 +162,7 @@ impl<'src> Parameter<'src> {
                     val.get_type()
                 } else {
                     // Nothing -> String
-                    PType::TString
+                    PType::String
                 }
             }
         };
@@ -175,7 +175,7 @@ impl<'src> Parameter<'src> {
     /// returns an error if the value has an incompatible type
     pub fn value_match(&self, param_ref: &Value) -> Result<()> {
         match (&self.ptype, param_ref) {
-            (PType::TString, Value::String(_)) => Ok(()),
+            (PType::String, Value::String(_)) => Ok(()),
             (t, _v) => fail!(
                 self.name,
                 "Parameter {} is not of the type {:?}",
@@ -226,7 +226,7 @@ impl<'src> Statement<'src> {
             PStatement::VariableDefinition(var, val) => {
                 let value = Value::from_pvalue(gc, Some(&context), val)?;
                 match value.get_type() {
-                    PType::TBoolean => context.new_enum_variable(Some(&gc.var_context), var, Token::new("stdlib", "boolean"), None)?,
+                    PType::Boolean => context.new_enum_variable(Some(&gc.var_context), var, Token::new("stdlib", "boolean"), None)?,
                     _ => {
                         // check that definition use existing variables
                         value.context_check(gc, Some(context))?;
@@ -342,8 +342,7 @@ impl<'src> Statement<'src> {
             PStatement::Noop => Statement::Noop,
             PStatement::Case(case, v) => Statement::Case(
                 case,
-                fix_vec_results(v.into_iter().map(|(exp_str, sts)| {
-                    let exp = parse_enum_expression(exp_str)?;
+                fix_vec_results(v.into_iter().map(|(exp, sts)| {
                     Ok((
                         gc.enum_list.canonify_expression(
                             gc,

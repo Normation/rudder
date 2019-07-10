@@ -7,13 +7,12 @@ use crate::ast::context::GlobalContext;
 #[derive(Debug, PartialEq, Clone)]
 pub struct StringObject<'src> {
     pos: Token<'src>,
-    strs: Vec<String>,
-    vars: Vec<String>,
+    data: Vec<PInterpolatedElement>,
 }
 impl<'src> StringObject<'src> {
     pub fn from_pstring(pos: Token<'src>, s: String) -> Result<StringObject> {
-        let (strs, vars) = parse_string(&s[..])?;
-        Ok(StringObject { pos, strs, vars })
+        let data = parse_string(&s[..])?;
+        Ok(StringObject { pos, data })
     }
     pub fn format<SF, VF>(&self, str_formatter: SF, var_formatter: VF) -> String
     // string, is_a_suffix, is_a_prefix
@@ -21,18 +20,17 @@ impl<'src> StringObject<'src> {
         SF: Fn(&str) -> String,
         VF: Fn(&str) -> String,
     {
-        let mut output = String::new();
-        let (last, elts) = self.strs.split_last().unwrap(); // strs cannot be empty
-        let it = elts.iter().zip(self.vars.iter());
-        for (s, v) in it {
-            output.push_str(&str_formatter(s));
-            output.push_str(&var_formatter(v));
-        }
-        output.push_str(&str_formatter(last));
-        output
+        self.data.iter()
+            .map(
+                |x| match x {
+                    PInterpolatedElement::Static(s) => str_formatter(s),
+                    PInterpolatedElement::Variable(v) => var_formatter(v),
+                }
+            ).collect::<Vec<String>>()
+            .join("")
     }
     pub fn is_empty(&self) -> bool {
-        self.vars.is_empty()
+        self.data.is_empty()
     }
 }
 
@@ -46,16 +44,22 @@ impl<'src> Value<'src> {
     pub fn from_pvalue(gc: &GlobalContext<'src>, lc: Option<&VarContext<'src>>, pvalue: PValue<'src>) -> Result<Value<'src>> {
         match pvalue {
             PValue::String(pos, s) => Ok(Value::String(StringObject::from_pstring(pos, s)?)),
+            PValue::Number(pos, n) => unimplemented!(),
             PValue::EnumExpression(e) => Ok(Value::EnumExpression(
                 gc.enum_list.canonify_expression(gc,lc,e)?
             )),
+            PValue::Struct(s) => unimplemented!(),
+            PValue::List(l) => unimplemented!(),
         }
     }
 
     pub fn from_static_pvalue(pvalue: PValue<'src>) -> Result<Value<'src>> {
         match pvalue {
             PValue::String(pos, s) => Ok(Value::String(StringObject::from_pstring(pos, s)?)),
+            PValue::Number(pos, n) => unimplemented!(),
             PValue::EnumExpression(e) => fail!(e.token(), "Enum expression are not allowed in static context"),
+            PValue::Struct(s) => unimplemented!(),
+            PValue::List(l) => unimplemented!(),
         }
     }
 
@@ -67,10 +71,14 @@ impl<'src> Value<'src> {
     ) -> Result<()> {
         match self {
             Value::String(s) => {
-                fix_results(s.vars.iter().map(
-                    |v| match gc.get_variable(lc, Token::new("", v)) {
-                        None => fail!(s.pos, "Variable {} does not exist at {}", v, s.pos),
-                        _ => Ok(()),
+                fix_results(s.data.iter().map(
+                    |e| match e {
+                        PInterpolatedElement::Static(_) => Ok(()),
+                        PInterpolatedElement::Variable(v) => 
+                            match gc.get_variable(lc, Token::new("", v)) {
+                                None => fail!(s.pos, "Variable {} does not exist at {}", v, s.pos),
+                                _ => Ok(()),
+                            },
                     },
                 ))
             },
@@ -81,8 +89,8 @@ impl<'src> Value<'src> {
     // TODO is it still useful given that it exists for PValue
     pub fn get_type(&self) -> PType {
         match self {
-            Value::String(_) => PType::TString,
-            Value::EnumExpression(_) => PType::TBoolean,
+            Value::String(_) => PType::String,
+            Value::EnumExpression(_) => PType::Boolean,
         }
     }
 }

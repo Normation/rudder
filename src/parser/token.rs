@@ -1,19 +1,13 @@
-use nom::types::CompleteStr;
-use nom_locate::LocatedSpan;
+use nom_locate::LocatedSpanEx;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::Add;
 use std::ops::Deref;
 
 /// All parsers take PInput objects
-/// All input are Located Complete str
+/// All input are Located str
 /// Use the pinput function to create one
-pub type PInput<'src> = LocatedSpan<CompleteStr<'src>, &'src str>;
-
-/// Convenient PInput creator (alias type cannot have a constructor)
-pub fn pinput<'src>(name: &'src str, input: &'src str) -> PInput<'src> {
-    LocatedSpan::new(CompleteStr(input), name)
-}
+pub type PInput<'src> = LocatedSpanEx<&'src str, &'src str>;
 
 /// All parser output are token based.
 /// A token contains a string pointer but also the original input position
@@ -22,7 +16,7 @@ pub fn pinput<'src>(name: &'src str, input: &'src str) -> PInput<'src> {
 /// It has copy for convenient use.
 #[derive(Debug, Copy, Clone)]
 pub struct Token<'src> {
-    val: LocatedSpan<CompleteStr<'src>, &'src str>,
+    val: LocatedSpanEx<&'src str, &'src str>,
 }
 
 impl<'src> Token<'src> {
@@ -30,7 +24,7 @@ impl<'src> Token<'src> {
     /// It won't have a position
     pub fn new(name: &'src str, input: &'src str) -> Self {
         Token {
-            val: LocatedSpan::new(CompleteStr(input), name),
+            val: LocatedSpanEx::new_extra(input, name),
         }
     }
 
@@ -64,7 +58,7 @@ impl<'src> Token<'src> {
 impl<'src> From<&'src str> for Token<'src> {
     fn from(input: &'src str) -> Self {
         Token {
-            val: LocatedSpan::new(CompleteStr(input), ""),
+            val: LocatedSpanEx::new_extra(input, ""),
         }
     }
 }
@@ -73,6 +67,13 @@ impl<'src> From<&'src str> for Token<'src> {
 impl<'src> From<PInput<'src>> for Token<'src> {
     fn from(val: PInput<'src>) -> Self {
         Token { val }
+    }
+}
+
+/// Convert to PInput (used by error management)
+impl<'src> From<Token<'src>> for PInput<'src> {
+    fn from(t: Token<'src>) -> Self {
+        t.val
     }
 }
 
@@ -105,7 +106,7 @@ impl<'src> fmt::Display for Token<'src> {
 impl<'src> Add<Token<'src>> for String {
     type Output = String;
     fn add(self, other: Token) -> String {
-        self + *other.val.fragment
+        self + other.val.fragment
     }
 }
 

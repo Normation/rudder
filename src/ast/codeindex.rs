@@ -58,13 +58,13 @@ impl<'src> CodeIndex<'src> {
                             .and_modify(|e| {
                                 *e = match e {
                                     PValue::String(tag, st) => {
-                                        PValue::String(*tag, st.to_string() + c)
+                                        PValue::String(*tag, format!("{}\n{}", st.to_string(), c.to_string()))
                                     }
                                     _ => panic!("Non string comment has been created"),
                                 }
                             });
                     } else {
-                        current_metadata.insert("comment".into(), PValue::String(c, c.to_string()));
+                        current_metadata.insert("comment".into(), PValue::String(c.position(), c.to_string()));
                     }
                 }
 
