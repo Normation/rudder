@@ -22,6 +22,48 @@ body common control
 bundle agent init
 {
   vars:
+    "class[1]" string => "class1";
+    "variable[1]" string => "my_prefix.my_variable";
+    "match[1]" string => "Some.*";
+
+    "class[2]" string => "class2";
+    "variable[2]" string => "my_prefix.my_empty_variable";
+    "match[2]" string => ".*";
+
+    "class[3]" string => "class3";
+    "variable[3]" string => "my_prefix.my_multiline_variable";
+    "match[3]" string => ".*on\s*multi.*";
+
+    "class[4]" string => "class4";
+    "variable[4]" string => "my_prefix.my_variable";
+    "match[4]" string => "nonmatching.*regex";
+
+    "class[5]" string => "class5";
+    "variable[5]" string => "my_prefix.my_undefined_variable";
+    "match[5]" string => "nonmatching.*regex";
+
+    "class[6]" string => "class6";
+    "variable[6]" string => "my_audit_prefix.my_variable";
+    "match[6]" string => "Some.*";
+
+    "class[7]" string => "class7";
+    "variable[7]" string => "my_audit_prefix.my_empty_variable";
+    "match[7]" string => ".*";
+
+    "class[8]" string => "class8";
+    "variable[8]" string => "my_audit_prefix.my_multiline_variable";
+    "match[8]" string => ".*on\s*multi.*";
+
+    "class[9]" string => "class9";
+    "variable[9]" string => "my_audit_prefix.my_variable";
+    "match[9]" string => "nonmatching.*regex";
+
+    "class[10]" string => "class10";
+    "variable[10]" string => "my_audit_prefix.my_undefined_variable";
+    "match[10]" string => "nonmatching.*regex";
+
+    "indices" slist => getindices("class");
+
   methods:
     "method_call" usebundle => variable_string("my_prefix", "my_variable", "Some text");
     "method_call" usebundle => variable_string("my_prefix", "my_empty_variable", "");
@@ -29,18 +71,36 @@ bundle agent init
     text
     on
     multiline");
+
+    "method_call" usebundle => variable_string("my_audit_prefix", "my_variable", "Some text");
+    "method_call" usebundle => variable_string("my_audit_prefix", "my_empty_variable", "");
+    "method_call" usebundle => variable_string("my_audit_prefix", "my_multiline_variable", "some
+    text
+    on
+    multiline");
+
+
 }
 
 #######################################################
 
 bundle agent test
 {
+  vars:
+    "args${init.indices}" slist => { "${init.class[${init.indices}]}", "${init.variable[${init.indices}]}", "${init.match[${init.indices}]}"};
+
   methods:
-    "ph1"         usebundle => condition_from_variable_match("class1", "my_prefix.my_variable", "Some.*");
-    "ph2"         usebundle => condition_from_variable_match("class2", "my_prefix.my_empty_variable", ".*");
-    "ph3"         usebundle => condition_from_variable_match("class3", "my_prefix.my_multiline_variable", ".*on\s*multi.*");
-    "ph4"         usebundle => condition_from_variable_match("class4", "my_prefix.my_variable", "nonmatching.*regex");
-    "ph5"         usebundle => condition_from_variable_match("class5", "my_prefix.my_undefined_variable", "nonmatching.*regex");
+    "ph1"  usebundle  => apply_gm("condition_from_variable_match", @{args1},  "success", "ph1",  "enforce" );
+    "ph2"  usebundle  => apply_gm("condition_from_variable_match", @{args2},  "success", "ph2",  "enforce" );
+    "ph3"  usebundle  => apply_gm("condition_from_variable_match", @{args3},  "success", "ph3",  "enforce" );
+    "ph4"  usebundle  => apply_gm("condition_from_variable_match", @{args4},  "success", "ph4",  "enforce" );
+    "ph5"  usebundle  => apply_gm("condition_from_variable_match", @{args5},  "error",   "ph5",  "enforce" );
+
+    "ph6"  usebundle  => apply_gm("condition_from_variable_match", @{args6},  "success", "ph6",  "audit" );
+    "ph7"  usebundle  => apply_gm("condition_from_variable_match", @{args7},  "success", "ph7",  "audit" );
+    "ph8"  usebundle  => apply_gm("condition_from_variable_match", @{args8},  "success", "ph8",  "audit" );
+    "ph9"  usebundle  => apply_gm("condition_from_variable_match", @{args9},  "success", "ph9",  "audit" );
+    "ph10" usebundle  => apply_gm("condition_from_variable_match", @{args10}, "error",   "ph10", "audit" );
 
 }
 
@@ -49,37 +109,26 @@ bundle agent test
 bundle agent check
 {
   classes:
-      "ok_class1"  expression => "condition_from_variable_match_class1_my_prefix_my_variable_ok.class1_true";
-      "ok_class2"  expression => "condition_from_variable_match_class2_my_prefix_my_empty_variable_ok.class2_true";
-      "ok_class3"  expression => "condition_from_variable_match_class3_my_prefix_my_multiline_variable_ok.class3_true";
-      "ok_class4"  expression => "condition_from_variable_match_class4_my_prefix_my_variable_ok.class4_false";
-      "ok_class5"  expression => "condition_from_variable_match_class5_my_prefix_my_undefined_variable_error.class5_false";
+      "ok_class1"  expression => "ph1_ok.class1_true";
+      "ok_class2"  expression => "ph2_ok.class2_true";
+      "ok_class3"  expression => "ph3_ok.class3_true";
+      "ok_class4"  expression => "ph4_ok.class4_false";
+      "ok_class5"  expression => "ph5_ok.class5_false";
 
-      "ok"         expression => "ok_class1.ok_class2.ok_class3.ok_class4.ok_class5";
+      "ok_class6"  expression => "ph6_ok.class6_true";
+      "ok_class7"  expression => "ph7_ok.class7_true";
+      "ok_class8"  expression => "ph8_ok.class8_true";
+      "ok_class9"  expression => "ph9_ok.class9_false";
+      "ok_class10" expression => "ph10_ok.class10_false";
+
+      "enforce_ok" expression => "ok_class1.ok_class2.ok_class3.ok_class4.ok_class5";
+      "audit_ok"   expression => "ok_class6.ok_class7.ok_class8.ok_class9.ok_class10";
+      "ok"         expression => "enforce_ok.audit_ok";
 
   reports:
-    ok_class1::
-     "Test 1 succeed";
-    ok_class2::
-     "Test 2 succeed";
-    ok_class3::
-     "Test 3 succeed";
-    ok_class4::
-     "Test 4 succeed";
-    ok_class5::
-      "Test 5 succeed";
-    !ok_class1::
-      "Test 1 failed";
-    !ok_class2::
-      "Test 2 failed";
-    !ok_class3::
-      "Test 3 failed";
-    !ok_class4::
-      "Test 4 failed";
-    !ok_class5::
-      "Test 5 failed";
     ok::
       "$(this.promise_filename) Pass";
     !ok::
       "$(this.promise_filename) FAIL";
 }
+
