@@ -59,7 +59,10 @@ impl CFEngine {
                     .as_str()
                     + "\""
             }
+            Value::Number(_,_) => unimplemented!(),
             Value::EnumExpression(e) => "".into(), // TODO
+            Value::List(_) => unimplemented!(),
+            Value::Struct(_) => unimplemented!(),
         }
     }
 

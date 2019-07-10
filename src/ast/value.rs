@@ -3,6 +3,7 @@ use crate::parser::*;
 use super::context::VarContext;
 use super::enums::EnumExpression;
 use crate::ast::context::GlobalContext;
+use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct StringObject<'src> {
@@ -44,28 +45,35 @@ impl<'src> StringObject<'src> {
 pub enum Value<'src> {
     //     position   format  variables
     String(StringObject<'src>),
+    Number(Token<'src>, f64),
     EnumExpression(EnumExpression<'src>),
+    List(Vec<Value<'src>>),
+    Struct(HashMap<String,Value<'src>>),
 }
 impl<'src> Value<'src> {
     pub fn from_pvalue(gc: &GlobalContext<'src>, lc: Option<&VarContext<'src>>, pvalue: PValue<'src>) -> Result<Value<'src>> {
         match pvalue {
             PValue::String(pos, s) => Ok(Value::String(StringObject::from_pstring(pos, s)?)),
-            PValue::Number(pos, n) => unimplemented!(),
+            PValue::Number(pos, n) => Ok(Value::Number(pos, n)),
             PValue::EnumExpression(e) => Ok(Value::EnumExpression(
                 gc.enum_list.canonify_expression(gc,lc,e)?
             )),
-            PValue::Struct(s) => unimplemented!(),
-            PValue::List(l) => unimplemented!(),
+            PValue::List(l) => Ok(Value::List(fix_vec_results(l.into_iter().map(|x| Value::from_pvalue(gc,lc,x)))?)),
+            PValue::Struct(s) => Ok(Value::Struct(
+                    fix_map_results(s.into_iter().map( |(k,v)| Ok((k,Value::from_pvalue(gc,lc,v)?)) ))?
+            )),
         }
     }
 
     pub fn from_static_pvalue(pvalue: PValue<'src>) -> Result<Value<'src>> {
         match pvalue {
             PValue::String(pos, s) => Ok(Value::String(StringObject::from_pstring(pos, s)?)),
-            PValue::Number(pos, n) => unimplemented!(),
+            PValue::Number(pos, n) => Ok(Value::Number(pos, n)),
             PValue::EnumExpression(e) => fail!(e.token(), "Enum expression are not allowed in static context"),
-            PValue::Struct(s) => unimplemented!(),
-            PValue::List(l) => unimplemented!(),
+            PValue::List(l) => Ok(Value::List(fix_vec_results(l.into_iter().map(|x| Value::from_static_pvalue(x)))?)),
+            PValue::Struct(s) => Ok(Value::Struct(
+                    fix_map_results(s.into_iter().map( |(k,v)| Ok((k,Value::from_static_pvalue(v)?)) ))?
+            )),
         }
     }
 
@@ -88,7 +96,11 @@ impl<'src> Value<'src> {
                     },
                 ))
             },
+            Value::Number(_,_) => unimplemented!(),
             Value::EnumExpression(_) => Ok(()), // check already done at enum creation
+            Value::List(_) => unimplemented!(),
+            Value::Struct(_) => unimplemented!(),
+
         }
     }
 
@@ -96,7 +108,11 @@ impl<'src> Value<'src> {
     pub fn get_type(&self) -> PType {
         match self {
             Value::String(_) => PType::String,
+            Value::Number(_,_) => unimplemented!(),
             Value::EnumExpression(_) => PType::Boolean,
+            Value::List(_) => unimplemented!(),
+            Value::Struct(_) => unimplemented!(),
+
         }
     }
 }

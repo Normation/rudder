@@ -422,27 +422,30 @@ pub enum PInterpolatedElement {
 fn pinterpolated_string(i: PInput) -> Result<Vec<PInterpolatedElement>> {
     // There is a rest inside so this just serve as a guard
     all_consuming(
-        many1(alt((
-            value(PInterpolatedElement::Static("$".into()), tag("$$")),
-            sequence!(
-                {
-                    s: tag("${");
-                    variable: or_fail(pidentifier, PErrorKind::InvalidVariableReference);
-                    _x: or_fail(tag("}"), PErrorKind::UnterminatedDelimiter(s));
-                } => PInterpolatedElement::Variable(variable.fragment().into())
-            ),
-            sequence!(
-                {
-                    _s: tag("$"); // $SomethingElse is an error
-                    _x: or_fail(tag("$"), PErrorKind::InvalidVariableReference); // $$ is already processed so this is an error
-                } => PInterpolatedElement::Static("".into()) // this is mandatory but cannot happen
-            ),
-            map(take_until("$"), |s: PInput| PInterpolatedElement::Static(s.fragment.into())),
-            map(preceded(
-                    peek(anychar), // do no take rest if we are already at the end
-                    rest),
-                |s: PInput| PInterpolatedElement::Static(s.fragment.into())),
-        )))
+        alt((
+            many1(alt((
+                value(PInterpolatedElement::Static("$".into()), tag("$$")),
+                sequence!(
+                    {
+                        s: tag("${");
+                        variable: or_fail(pidentifier, PErrorKind::InvalidVariableReference);
+                        _x: or_fail(tag("}"), PErrorKind::UnterminatedDelimiter(s));
+                    } => PInterpolatedElement::Variable(variable.fragment().into())
+                ),
+                sequence!(
+                    {
+                        _s: tag("$"); // $SomethingElse is an error
+                        _x: or_fail(tag("$"), PErrorKind::InvalidVariableReference); // $$ is already processed so this is an error
+                    } => PInterpolatedElement::Static("".into()) // this is mandatory but cannot happen
+                ),
+                map(take_until("$"), |s: PInput| PInterpolatedElement::Static(s.fragment.into())),
+                map(preceded(
+                        peek(anychar), // do no take rest if we are already at the end
+                        rest),
+                    |s: PInput| PInterpolatedElement::Static(s.fragment.into())),
+            ))),
+            value(vec![PInterpolatedElement::Static("".into())], not(anychar)),
+        ))
    )(i)
 }
 
@@ -844,6 +847,7 @@ fn pfile(i: PInput) -> Result<PFile> {
             header: pheader;
             _x: strip_spaces_and_comment;
             code: many0(pdeclaration);
+            _x: strip_spaces_and_comment;
         } => PFile {header, code}
     ))(i)
 }

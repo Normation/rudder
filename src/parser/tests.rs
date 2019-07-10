@@ -247,10 +247,6 @@ fn test_penum() {
         Err((".abc { a, b, }", PErrorKind::InvalidName("enum")))
     );
     assert_eq!(
-        map_res(penum, "enum abc a, b, }"),
-        Err(("a, b, }", PErrorKind::UnexpectedToken("{")))
-    );
-    assert_eq!(
         map_res(penum, "enum abc { a, b, "),
         Err(("", PErrorKind::UnterminatedDelimiter("{")))
     );
@@ -422,6 +418,10 @@ fn test_punescaped_strings() {
 
 #[test]
 fn test_pinterpolated_string() {
+    assert_eq!(
+        map_res(pinterpolated_string, ""),
+        Ok(("", vec![PInterpolatedElement::Static("".into())]))
+    );
     assert_eq!(
         map_res(pinterpolated_string, "hello herman"),
         Ok(("", vec![PInterpolatedElement::Static("hello herman".into())]))

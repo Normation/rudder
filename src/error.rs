@@ -43,7 +43,7 @@ macro_rules! fail {
 }
 
 /// Transforms an iterator of error result into a result of list error.
-/// This is useful to aggregate and give the proper output type to rRsults given by map.
+/// This is useful to aggregate and give the proper output type to results given by map.
 /// Only support Result<()>, because it throws out Ok cases
 pub fn fix_results<I>(res: I) -> Result<()>
 where

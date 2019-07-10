@@ -310,7 +310,10 @@ impl<'src> AST<'src> {
                         );
                     }
                 },
-                Value::EnumExpression(e) => unimplemented!() // TODO e.token
+                Value::Number(_,_) => unimplemented!(), // TODO e.token
+                Value::EnumExpression(e) => unimplemented!(), // TODO e.token
+                Value::List(_) => unimplemented!(), // TODO e.token
+                Value::Struct(_) => unimplemented!(), // TODO e.token
             }
             Ok(())
         }))

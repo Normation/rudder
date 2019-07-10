@@ -961,7 +961,7 @@ mod tests {
         exprs.push((gc.enum_list.canonify_expression(&gc, None, ex).unwrap(), Vec::new()));
         assert_eq!(gc.enum_list.evaluate(&gc, None, &exprs, case), Ok(()));
 
-        let ex = parse_enum_expression(" family:redhat");
+        let ex = parse_enum_expression("family:redhat");
         exprs.push((gc.enum_list.canonify_expression(&gc, None, ex).unwrap(), Vec::new()));
         let result = gc.enum_list.evaluate(&gc, None, &exprs, case);
         assert!(result.is_err());
