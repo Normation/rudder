@@ -1,0 +1,104 @@
+Desing decision and their reason
+================================
+
+* "as outvar" for status variables
+
+The important thing in the langage is the state definition.
+State definition is done by calling a specific state on a specific resource.
+Everything else (such as variable definition) is unimportant.
+We want to deemphasise the variable defnition aspect of state definition by removing the '=' 
+at the beginning of the statement. The '=' sign is very visible and signifies an affectation.
+We are not doing an affectation we are defining a state which sometimes has the side effect of defining a variable.
+
+* subresources and alias
+
+A sub resource is a part of resources. It means that changing a subresource implies changing the parent resource.
+However changing the resource does not necessarily means changing the sub resource.
+For robustness of the state checker, different states of the same resource are incompatible.
+This means that a resource must be split into sub resource to make different sub states compatible.
+(ex: FileContent and FilePermission are sub resources of file and are compatible).
+This means that thing that may be perceived as states are in fact subresources.
+
+That's why to make life easier for the user we want to also define aliases. Alases don't have the same constraint.
+There can be as many aliases as wanted for a single resource, an alias of a subresource can be interpreted by the user
+as a suplementary state of the parent resource.
+
+TODO since the compatibility is not the same for aliases and state, shouldn't we indicate the difference somehow.
+
+
+* json read method
+
+* iterators
+
+* metadata
+We want to be able to extend the language and the generation process without changing the language.
+Moreover we want to give the user the ability to store structured data with resources.
+Hence metadata that can be anything available in the language
+
+* subtyping
+
+* log/return/fail
+
+* ordre local, ordre global
+Les données locales (variables) doivent être définies avant d'etre utilisée car c'est une bonne pratique
+qui permet de détcter des erreurs logiques.
+Les données globales n'ont pas a etre définies dans l'ordre car il peut être difficile de maitriser
+l'ordre de chargement des fichier et les définition globales car elles peuvent être écrites ar plusieurs personnes.
+
+* définition de variable sur une ligne
+Il n'y a pas de déparateur de définition de variable explicite.
+Cela pose problème en cas d'erreur de la part de l'utilisateur, on ne peut pas localiser précisément l'erreur.
+Cela rend les message du parseur cryptiques ou non pertinents.
+Demander a terminer une définition de variable par un retour à la ligne permet de localiser l'erreur mais
+empeche la définition de variables multilignes.
+
+* unsafecell dans le stockage de code
+Les données parsées sont des références sur les fichier parsés (avec leur position et le nom de fichier).
+En tant que référence, rust vérifie de toujours pouvoir y accéder depuis leur origine, le texte du fichier
+doit donc être stocké de facon permanente sous un binding fixe.
+De plus la liste des fichiers lus doit pouvoir être étendue suite à des includes ontenus après parsing.
+Il n'y a pas de structure rust permettant ceci, c'est pourquoi j'ai créé une liste chainée dont seule
+la fin est modifiable pour l'étendre.
+
+* incompatibilité entre states d'une meme resource
+
+* lifetime 'src
+Presque tout le code contient des référence sur le code parsé.
+La lifetime associée s'appelle donc 'src et est facilement repérable.
+Cela rend d'autant plus facilement repérables les autres lifetime qui ne sont pas des références directes du code.
+
+* comment = medatata
+Pour permettre une interraction simple avec le format json de technique, on ne crée pas de cas spécifique pour les commentaire.
+
+* utf8
+parce que nous avons des utilisateurs finaux et pas nécessairement des développeurs
+
+* minimum de checks pendant le parsing et l'indexation
+Une erreur de parsing est fatale et arrete le parseur complètement.
+Retarder le détection d'erreur permet de lui donner un meilleur contexte et d'en retourner plusieurs en même temps si possible.
+
+* interpolation
+En gestion de configuration on génère souvent des chaines à partir de données.
+ceci se fait très fréquemment sous forme de template.
+L'interpolation permet de le faire sous un forme simple sans appeler de fonction et en posant les variables au bon endroit.
+C'est donc le cas par défaut.
+
+* pas de récursivité
+evitons les imprevus et la possibilité de tourner indéfiniment
+
+* noms uniques à travers les types : enums, variables, resource, states
+evitons les confusions, on pourra toujours en réautoriser a posteriori
+
+* paramètre par défaut
+nécessaire dans les resources et les states car nous définissons des configurations.
+Les utilisateurs s'attendent à ce qu'on leur fournisse des valeurs par défaut correspondant au cas le plus courant lorsque c'est possible.
+
+* @format=x
+Avoir une ligne strictement parsée présente en début de fichier permet de détecter de l'extérieur la version actuelle du format du code.
+A l'avenir cela permettra de détecter si on dispose du bon compilateur ou si une conversion est nécessaire.
+Pratique pour les upgrade de rudder.
+
+* =~ pour les enums
+On compare des variables avec des enums de type différent car il y a un mécanisme d'héritage d'enum.
+On évite donc le = a connotation plus stricte
+
