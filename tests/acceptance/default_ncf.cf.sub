@@ -122,8 +122,10 @@ bundle agent apply_gm(name, args, status, result_class, mode)
       "expected_classes" usebundle => define_expected_classes("${class_prefix}", "${status}", "class_prefix_${result_class}");
       "expected_classes" usebundle => define_expected_classes("${old_class_prefix}", "${status}", "old_class_prefix_${result_class}");
 
-    audit::
-      "enable_${class_prefix}" usebundle => set_dry_run_mode("true");
+    audit.pass1.!pass2::
+      "enable_${result_class}" usebundle => push_dry_run_mode("true");
+    !audit.pass1.!pass2::
+      "enable_${result_class}" usebundle => push_dry_run_mode("false");
 
     1_arg::
       "execute_gm" usebundle => ${name}("${arg0}");
@@ -142,8 +144,8 @@ bundle agent apply_gm(name, args, status, result_class, mode)
     8_arg::
       "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}", "${arg5}", "${arg6}", "${arg7}");
 
-    pass3.audit::
-      "disable_${class_prefix}" usebundle => set_dry_run_mode("false");
+    pass3::
+      "disable_${result_class}" usebundle => pop_dry_run_mode();
 
     pass3::
       "cancel_classes" usebundle => _classes_cancel("${class_prefix}");
