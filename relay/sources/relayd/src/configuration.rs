@@ -170,9 +170,8 @@ impl OutputSelect for InventoryOutputSelect {
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 
-pub struct RemoteRun
-{
-    pub command : PathBuf,
+pub struct RemoteRun {
+    pub command: PathBuf,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -457,7 +456,7 @@ mod tests {
                 },
             },
             remote_run: RemoteRun {
-                    command: PathBuf::from("/opt/rudder/bin/rudder"),
+                command: PathBuf::from("/opt/rudder/bin/rudder"),
             },
         };
         assert_eq!(config.unwrap(), reference);

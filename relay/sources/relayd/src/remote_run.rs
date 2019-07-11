@@ -35,10 +35,10 @@ use regex::Regex;
 use std::{
     collections::HashMap,
     io::BufReader,
+    path::{PathBuf},
     process::{Command, Stdio},
     str::FromStr,
     sync::Arc,
-    path::{Path, PathBuf},
 };
 use tokio_process::{Child, CommandExt};
 use tracing::info;
@@ -176,12 +176,16 @@ impl RunParameters {
         })
     }
 
-    pub fn command(&self, is_root: bool, test_mode: bool, job_config: Arc<JobConfig>) -> (PathBuf, Vec<String>) {
+    pub fn command(
+        &self,
+        is_root: bool,
+        test_mode: bool,
+        job_config: Arc<JobConfig>,
+    ) -> (PathBuf, Vec<String>) {
         let program = if test_mode {
             PathBuf::from("echo")
         } else {
-            let jobconfig2 = &job_config.clone();
-            PathBuf::from(jobconfig2.clone().cfg.remote_run.command.to_str().unwrap())
+            job_config.cfg.remote_run.command.clone()
         };
 
         let mut args = vec![];
