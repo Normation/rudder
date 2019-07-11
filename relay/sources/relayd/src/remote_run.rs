@@ -56,7 +56,7 @@ impl RemoteRun {
             run_parameters: RunParameters::new(
                 options.get("asynchronous"),
                 options.get("keep_output"),
-                options.get("classes"),
+                if options.contains_key("conditions") {options.get("conditions")} else {options.get("classes")},
             )?,
         })
     }
