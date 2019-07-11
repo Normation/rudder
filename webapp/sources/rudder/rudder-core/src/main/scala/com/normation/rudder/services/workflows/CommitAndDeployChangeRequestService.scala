@@ -61,6 +61,7 @@ import com.normation.rudder.services.marshalling.XmlSerializer
 import com.normation.rudder.services.marshalling.XmlUnserializer
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import java.io.ByteArrayInputStream
+import java.nio.charset.StandardCharsets
 
 import com.normation.rudder.domain.logger.ChangeRequestLogger
 import com.normation.rudder.services.queries.DynGroupUpdaterService
@@ -156,6 +157,10 @@ class CommitAndDeployChangeRequestServiceImpl(
    */
   private[this] def isMergeableConfigurationChangeRequest(changeRequest:ConfigurationChangeRequest) : Boolean = {
 
+    // replace all line feed by \n, to support both unix & windows style
+    def normalizeString(text: String) : String = {
+      text.lines.mkString("\n").trim
+    }
 
     trait CheckChanges[T] {
       // Logging function
@@ -173,7 +178,7 @@ class CommitAndDeployChangeRequestServiceImpl(
         try {
           for {
             entry <- xmlSerialize(elem)
-            is    =  new ByteArrayInputStream(entry.toString.getBytes)
+            is    =  new ByteArrayInputStream(entry.toString.getBytes(StandardCharsets.UTF_8))
             xml   = XML.load(is)
             elem  <- xmlUnserialize(xml)
           } yield {
@@ -279,15 +284,15 @@ class CommitAndDeployChangeRequestServiceImpl(
       } else {
         // Write debug logs to understand what cause the conflict
         debugLog("Attempt to merge Change Request (CR) failed because initial state could not be rebased on current state.")
-        if ( initialFixed.name != currentFixed.name) {
+        if ( normalizeString(initialFixed.name) != normalizeString(currentFixed.name)) {
           debugLog(s"Rule ID ${initialFixed.id.value} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}")
         }
 
-        if ( initialFixed.shortDescription != currentFixed.shortDescription) {
+        if ( normalizeString(initialFixed.shortDescription) != normalizeString(currentFixed.shortDescription)) {
           debugLog(s"Rule ID ${initialFixed.id.value} short description has changed: original state from CR: ${initialFixed.shortDescription}, current value: ${currentFixed.shortDescription}")
         }
 
-        if ( initialFixed.longDescription != currentFixed.longDescription) {
+        if ( normalizeString(initialFixed.longDescription) != normalizeString(currentFixed.longDescription)) {
           debugLog(s"Rule ID ${initialFixed.id.value} long description has changed: original state from CR: ${initialFixed.longDescription}, current value: ${currentFixed.longDescription}")
         }
 
@@ -338,15 +343,15 @@ class CommitAndDeployChangeRequestServiceImpl(
         // Write debug logs to understand what cause the conflict
         debugLog("Attempt to merge Change Request (CR) failed because initial state could not be rebased on current state.")
 
-        if ( initialFixed.name != currentFixed.name) {
+        if ( normalizeString(initialFixed.name) != normalizeString(currentFixed.name)) {
           debugLog(s"Directive ID ${initialFixed.id.value} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}")
         }
 
-        if ( initialFixed.shortDescription != currentFixed.shortDescription) {
+        if ( normalizeString(initialFixed.shortDescription) != normalizeString(currentFixed.shortDescription)) {
           debugLog(s"Directive ID ${initialFixed.id.value} short description has changed: original state from CR: ${initialFixed.shortDescription}, current value: ${currentFixed.shortDescription}")
         }
 
-        if ( initialFixed.longDescription != currentFixed.longDescription) {
+        if ( normalizeString(initialFixed.longDescription) != normalizeString(currentFixed.longDescription)) {
           debugLog(s"Directive ID ${initialFixed.id.value} long description has changed: original state from CR: ${initialFixed.longDescription}, current value: ${currentFixed.longDescription}")
         }
 
@@ -403,11 +408,11 @@ class CommitAndDeployChangeRequestServiceImpl(
         // Write debug logs to understand what cause the conflict
         debugLog("Attempt to merge Change Request (CR) failed because initial state could not be rebased on current state.")
 
-        if ( initialFixed.name != currentFixed.name) {
+        if ( normalizeString(initialFixed.name) != normalizeString(currentFixed.name)) {
           debugLog(s"Group ID ${initialFixed.id.value} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}")
         }
 
-        if ( initialFixed.description != currentFixed.description) {
+        if ( normalizeString(initialFixed.description) != normalizeString(currentFixed.description)) {
           debugLog(s"Group ID ${initialFixed.id.value} description has changed: original state from CR: ${initialFixed.description}, current value: ${currentFixed.description}")
         }
 
@@ -445,7 +450,7 @@ class CommitAndDeployChangeRequestServiceImpl(
           debugLog(s"Global Parameter name has changed: original state from CR: ${initial.name}, current value: ${current.name}")
         }
 
-        if ( initial.description != current.description) {
+        if ( normalizeString(initial.description) != normalizeString(current.description)) {
           debugLog(s"Global Parameter '${initial.name}' description has changed: original state from CR: ${initial.description}, current value: ${current.description}")
         }
 
