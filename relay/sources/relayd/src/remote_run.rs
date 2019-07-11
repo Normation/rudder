@@ -69,28 +69,49 @@ impl RemoteRun {
         &self,
         job_config: Arc<JobConfig>,
     ) -> Result<impl warp::reply::Reply, warp::reject::Rejection> {
+        if self.run_parameters.keep_output && self.run_parameters.asynchronous {
+            return Err(warp::reject::custom(
+                "keep_output and asynchronous cannot be true simultaneously",
+            ));
+        }
         if self.target == RemoteRunTarget::All {
-            info!("conditions OK");
             info!("remote-run triggered on all the nodes");
 
-            for node in job_config
-                .nodes
-                .read()
-                .expect("Cannot read nodes list")
-                .get_neighbors_from_target(RemoteRunTarget::All)
+            if self.run_parameters.keep_output
+                && self.target.get_connected_nodes(job_config.clone()).len() == 1
             {
-                info!("command executed :  \n on node {}", node);
+                Ok(warp::reply::html(hyper::Body::wrap_stream(
+                    self.run_parameters.execute_agent_output(
+                        job_config.clone(),
+                        self.target.get_connected_nodes(job_config.clone()),
+                    ),
+                )))
+            } else {
+                self.run_parameters.execute_agent_no_output(
+                    job_config.clone(),
+                    self.target.get_connected_nodes(job_config.clone()),
+                );
+                Ok(warp::reply::html(hyper::Body::empty()))
             }
-            Ok(warp::reply::html(hyper::Body::wrap_stream(
-                self.run_parameters.execute_agent(job_config),
-            )))
         } else {
-            info!("conditions OK");
             info!("Remote run launched on nodes: {:?}", self.target);
 
-            Ok(warp::reply::html(hyper::Body::wrap_stream(
-                self.run_parameters.execute_agent(job_config),
-            )))
+            if self.run_parameters.keep_output
+                && self.target.get_connected_nodes(job_config.clone()).len() == 1
+            {
+                Ok(warp::reply::html(hyper::Body::wrap_stream(
+                    self.run_parameters.execute_agent_output(
+                        job_config.clone(),
+                        self.target.get_connected_nodes(job_config.clone()),
+                    ),
+                )))
+            } else {
+                self.run_parameters.execute_agent_no_output(
+                    job_config.clone(),
+                    self.target.get_connected_nodes(job_config.clone()),
+                );
+                Ok(warp::reply::html(hyper::Body::empty()))
+            }
         }
     }
 }
@@ -99,6 +120,19 @@ impl RemoteRun {
 pub enum RemoteRunTarget {
     All,
     Nodes(Vec<String>),
+}
+
+impl RemoteRunTarget {
+    pub fn get_connected_nodes(&self, job_config: Arc<JobConfig>) -> Vec<String> {
+        match &self {
+            RemoteRunTarget::All => job_config
+                .nodes
+                .read()
+                .expect("Cannot read nodes list")
+                .get_neighbors_from_target(RemoteRunTarget::All),
+            RemoteRunTarget::Nodes(nodeslist) => nodeslist.clone(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -180,17 +214,8 @@ impl RunParameters {
         })
     }
 
-    pub fn command(
-        &self,
-        is_root: bool,
-        test_mode: bool,
-        job_config: Arc<JobConfig>,
-    ) -> (PathBuf, Vec<String>) {
-        let program = if test_mode {
-            PathBuf::from("echo")
-        } else {
-            job_config.cfg.remote_run.command.clone()
-        };
+    pub fn command(&self, is_root: bool, job_config: Arc<JobConfig>) -> (PathBuf, Vec<String>) {
+        let program = job_config.cfg.remote_run.command.clone();
 
         let mut args = vec![];
         args.push(if is_root { "agent" } else { "remote" }.to_string());
@@ -201,18 +226,20 @@ impl RunParameters {
                 self.conditions.iter().map(|c| c.data.clone()).collect();
             args.push(conditions_argument.join(","));
         }
-
         (program, args)
     }
 
-    pub fn execute_agent(
+    pub fn execute_agent_output(
         &self,
         job_config: Arc<JobConfig>,
+        nodeslist: Vec<String>,
     ) -> impl Stream<Item = hyper::Chunk, Error = Error> + Send + 'static {
-        let (program, args) = self.command(false, true, job_config);
-        let mut cmd = Command::new(program);
-        cmd.args(args);
+        let (program, args) = self.command(false, job_config);
 
+        let mut cmd = Command::new(&program);
+        cmd.args(&args);
+        cmd.arg("-H".to_string());
+        cmd.arg(&nodeslist[0]);
         cmd.stdout(Stdio::piped());
         let mut child = cmd.spawn_async().expect("failed to spawn command");
         let lines = lines_stream(&mut child);
@@ -222,6 +249,29 @@ impl RunParameters {
 
         tokio::spawn(child_future);
         lines
+    }
+
+    pub fn execute_agent_no_output(
+        &self,
+        job_config: Arc<JobConfig>,
+        nodeslist: Vec<String>,
+    ) -> impl Stream<Item = hyper::Chunk, Error = Error> + Send + 'static {
+        let (program, args) = self.command(false, job_config);
+
+        for node in nodeslist {
+            let mut cmd = Command::new(&program);
+            cmd.args(&args);
+            cmd.arg("-H".to_string());
+            cmd.arg(node);
+            cmd.stdout(Stdio::piped());
+            let child = cmd.spawn_async().expect("failed to spawn command");
+            let child_future = child
+                .map(|_status| info!(""))
+                .map_err(|e| panic!("error while running child: {}", e));
+
+            tokio::spawn(child_future);
+        }
+        futures::stream::empty()
     }
 }
 

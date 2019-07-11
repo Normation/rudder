@@ -460,7 +460,7 @@ mod tests {
                 },
             },
             remote_run: RemoteRun {
-                command: PathBuf::from("/opt/rudder/bin/rudder"),
+                command: PathBuf::from("tests/fake_agent.sh"),
             },
         };
         assert_eq!(config.unwrap(), reference);
