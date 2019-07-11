@@ -109,6 +109,9 @@ pub struct GeneralConfig {
     pub nodes_certs_file: NodesCertsFile,
     pub node_id: NodeId,
     pub listen: SocketAddr,
+    /// None means using the number of available CPUs
+    pub core_threads: Option<usize>,
+    pub blocking_threads: usize,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Copy, Clone)]
@@ -169,7 +172,6 @@ impl OutputSelect for InventoryOutputSelect {
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
-
 pub struct RemoteRun {
     pub command: PathBuf,
 }
@@ -425,6 +427,8 @@ mod tests {
                 nodes_certs_file: PathBuf::from("tests/keys/nodescerts.pem"),
                 node_id: "root".to_string(),
                 listen: "127.0.0.1:3030".parse().unwrap(),
+                core_threads: None,
+                blocking_threads: 100,
             },
             processing: ProcessingConfig {
                 inventory: InventoryConfig {

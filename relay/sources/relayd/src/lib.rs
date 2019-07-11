@@ -167,7 +167,15 @@ pub fn start(
 
     info!("Starting server");
 
-    tokio::run(lazy(move || {
+    let mut builder = tokio::runtime::Builder::new();
+    if let Some(threads) = job_config.cfg.general.core_threads {
+        builder.core_threads(threads);
+    }
+    let mut runtime = builder
+        .blocking_threads(job_config.cfg.general.blocking_threads)
+        .build()?;
+
+    runtime.spawn(lazy(move || {
         let (tx_stats, rx_stats) = mpsc::channel(1_024);
 
         tokio::spawn(Stats::receiver(stats.clone(), rx_stats));
@@ -189,6 +197,10 @@ pub fn start(
 
         Ok(())
     }));
+    runtime
+        .shutdown_on_idle()
+        .wait()
+        .expect("Server shutdown failed");
 
     unreachable!("Server halted unexpectedly");
 }
