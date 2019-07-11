@@ -35,7 +35,7 @@ use regex::Regex;
 use std::{
     collections::HashMap,
     io::BufReader,
-    path::{PathBuf},
+    path::PathBuf,
     process::{Command, Stdio},
     str::FromStr,
     sync::Arc,
@@ -56,7 +56,11 @@ impl RemoteRun {
             run_parameters: RunParameters::new(
                 options.get("asynchronous"),
                 options.get("keep_output"),
-                if options.contains_key("conditions") {options.get("conditions")} else {options.get("classes")},
+                if options.contains_key("conditions") {
+                    options.get("conditions")
+                } else {
+                    options.get("classes")
+                },
             )?,
         })
     }
