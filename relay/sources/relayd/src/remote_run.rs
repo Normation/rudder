@@ -35,6 +35,7 @@ use regex::Regex;
 use std::{
     collections::HashMap,
     io::BufReader,
+    path::{PathBuf},
     process::{Command, Stdio},
     str::FromStr,
     sync::Arc,
@@ -77,14 +78,14 @@ impl RemoteRun {
                 info!("command executed :  \n on node {}", node);
             }
             Ok(warp::reply::html(hyper::Body::wrap_stream(
-                self.run_parameters.execute_agent(),
+                self.run_parameters.execute_agent(job_config),
             )))
         } else {
             info!("conditions OK");
             info!("Remote run launched on nodes: {:?}", self.target);
 
             Ok(warp::reply::html(hyper::Body::wrap_stream(
-                self.run_parameters.execute_agent(),
+                self.run_parameters.execute_agent(job_config),
             )))
         }
     }
@@ -175,14 +176,17 @@ impl RunParameters {
         })
     }
 
-    pub fn command(&self, is_root: bool, test_mode: bool) -> (String, Vec<String>) {
+    pub fn command(
+        &self,
+        is_root: bool,
+        test_mode: bool,
+        job_config: Arc<JobConfig>,
+    ) -> (PathBuf, Vec<String>) {
         let program = if test_mode {
-            "echo"
+            PathBuf::from("echo")
         } else {
-            // FIXME make it configurable
-            "/opt/rudder/bin/rudder"
-        }
-        .to_string();
+            job_config.cfg.remote_run.command.clone()
+        };
 
         let mut args = vec![];
         args.push(if is_root { "agent" } else { "remote" }.to_string());
@@ -199,8 +203,9 @@ impl RunParameters {
 
     pub fn execute_agent(
         &self,
+        job_config: Arc<JobConfig>,
     ) -> impl Stream<Item = hyper::Chunk, Error = Error> + Send + 'static {
-        let (program, args) = self.command(false, true);
+        let (program, args) = self.command(false, true, job_config);
         let mut cmd = Command::new(program);
         cmd.args(args);
 
