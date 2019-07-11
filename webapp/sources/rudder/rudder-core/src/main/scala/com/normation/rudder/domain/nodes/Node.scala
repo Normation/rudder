@@ -89,7 +89,7 @@ case object Node {
       , false
       , false
       , inventory.node.inventoryDate.getOrElse(new DateTime(0))
-      , ReportingConfiguration(None,None)
+      , ReportingConfiguration(None,None, None)
       , Seq()
       , None
     )

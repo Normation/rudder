@@ -177,6 +177,16 @@ trait ReadConfigService {
   def rudder_syslog_protocol(): IOResult[SyslogProtocol]
 
   /**
+    * Report protocol
+    */
+  def rudder_syslog_protocol_disabled(): IOResult[Boolean]
+
+  /**
+    * default reporting protocol
+    */
+  def rudder_report_protocol_default(): IOResult[AgentReportingProtocol]
+
+  /**
    * Should we display recent changes graphs  ?
    */
   def display_changes_graph(): IOResult[Boolean]
@@ -297,6 +307,10 @@ trait UpdateConfigService {
    */
   def set_rudder_syslog_protocol(value : SyslogProtocol, actor : EventActor, reason: Option[String]): IOResult[Unit]
 
+  def set_rudder_syslog_protocol_disabled(value : Boolean, actor : EventActor, reason: Option[String]): IOResult[Unit]
+
+  def set_rudder_report_protocol_default(value : AgentReportingProtocol): IOResult[Unit]
+
   /**
    * Should we display recent changes graphs  ?
    */
@@ -385,6 +399,8 @@ class LDAPBasedConfigService(
        rudder.compliance.mode=${FullCompliance.name}
        rudder.compliance.heartbeatPeriod=1
        rudder.syslog.protocol=UDP
+       rudder.syslog.protocol.disabled=false
+       rudder.report.protocol.default=SYSLOG
        display.changes.graph=true
        rudder.ui.display.ruleComplianceColumns=false
        rudder.policy.mode.name=${Enforce.name}
@@ -452,6 +468,12 @@ class LDAPBasedConfigService(
     case SyslogTCP.value => // value is TCP
       SyslogTCP
     case _ => SyslogUDP
+  }
+
+  private[this] implicit def toReportProtocol(p: RudderWebProperty): AgentReportingProtocol = p.value match {
+    case AgentReportingHTTPS.value => // value is TCP
+      AgentReportingHTTPS
+    case _ => AgentReportingSyslog
   }
 
   private[this] implicit def toOptionPolicyMode(p: RudderWebProperty): Option[PolicyMode] = {
@@ -626,6 +648,14 @@ class LDAPBasedConfigService(
     save("rudder_syslog_protocol", protocol.value, Some(info))
   }
 
+  def rudder_syslog_protocol_disabled(): IOResult[Boolean] = get("rudder_syslog_protocol_disabled")
+  def set_rudder_syslog_protocol_disabled(disabled : Boolean, actor : EventActor, reason: Option[String]): IOResult[Unit] =  {
+    val info = ModifyGlobalPropertyInfo(ModifyRudderSyslogProtocolEventType,actor,reason)
+    save("rudder_syslog_protocol_disabled", disabled, Some(info))
+  }
+
+  def rudder_report_protocol_default() : IOResult[AgentReportingProtocol] = get("rudder.report.protocol.default")
+  def set_rudder_report_protocol_default(value: AgentReportingProtocol): IOResult[Unit] = save("rudder.report.protocol.default", value.value)
   /**
    * Should we display recent changes graphs  ?
    */

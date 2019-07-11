@@ -80,10 +80,7 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.NodeModeConfig
-import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.reports.FullCompliance
-import com.normation.rudder.reports.GlobalComplianceMode
-import com.normation.rudder.reports.ReportingConfiguration
+import com.normation.rudder.reports._
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.rule.category.RuleCategoryId
@@ -114,7 +111,6 @@ import com.normation.rudder.domain.policies.FullOtherTarget
 import com.normation.rudder.domain.policies.PolicyServerTarget
 import com.normation.rudder.domain.policies.AllTargetExceptPolicyServers
 import com.normation.rudder.domain.policies.AllTarget
-import com.normation.rudder.reports.SyslogUDP
 import com.normation.eventlog.EventActor
 import net.liftweb.common.Full
 import net.liftweb.common.Box
@@ -143,7 +139,7 @@ hMQjrt9gW2qJpxZyFoPuMsWFIaX4wrN7Y8ZiN37U2q1G11tv2oQlJTQeiYaUnTX4
 z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
 -----END RSA PUBLIC KEY-----"""
 
-  val emptyNodeReportingConfiguration = ReportingConfiguration(None,None)
+  val emptyNodeReportingConfiguration = ReportingConfiguration(None,None, None)
 
   val id1 = NodeId("node1")
   val hostname1 = "node1.localhost"
@@ -370,7 +366,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     NodeId(s"${i}")
   }).toSet
 
-  def newNode(id : NodeId) = Node(id,"" ,"", NodeState.Enabled, false, false, DateTime.now, ReportingConfiguration(None,None), Seq(), None)
+  def newNode(id : NodeId) = Node(id,"" ,"", NodeState.Enabled, false, false, DateTime.now, ReportingConfiguration(None,None, None), Seq(), None)
 
   val nodes = (Set(root, node1, node2) ++ nodeIds.map {
     id =>
@@ -547,6 +543,8 @@ class TestNodeConfiguration() {
     , getStoreAllCentralizedLogsInFile= () => Full(true)
     , getSendMetrics                  = () => Full(None)
     , getSyslogProtocol               = () => Full(SyslogUDP)
+    , getSyslogProtocolDisabled       = () => Full(false)
+    , getReportProtocolDefault        = () => Full(AgentReportingSyslog)
   )
 
   //a test node - CFEngine

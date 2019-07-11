@@ -126,6 +126,11 @@ class LDAPEntityMapper(
       case _ =>
     }
 
+    node.nodeReportingConfiguration.agentReportingProtocol match {
+      case Some(protocol) => entry +=! (A_AGENT_REPORTING_PROTOCOL, protocol.value)
+      case _ =>
+    }
+
     // for node properties, we ALWAYS filter-out properties coming from inventory,
     // because we don't want to store them there.
     entry +=! (A_NODE_PROPERTY, node.properties.collect { case p if(p.provider != Some(NodeProperty.customPropertyProvider)) => compactRender(p.toJson)}:_* )
@@ -178,6 +183,10 @@ class LDAPEntityMapper(
         date <- e.requiredAs[GeneralizedTime]( _.getAsGTime, A_OBJECT_CREATION_DATE)
         agentRunInterval = e(A_SERIALIZED_AGENT_RUN_INTERVAL).map(unserializeAgentRunInterval(_))
         heartbeatConf = e(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION).map(unserializeNodeHeartbeatConfiguration(_))
+        agentReportingProtocol <- e(A_AGENT_REPORTING_PROTOCOL) match {
+                                     case None => Right(None)
+                                     case Some(value) => AgentReportingProtocol.parse(value).map {Some(_)}
+                                  }
         policyMode <- e(A_POLICY_MODE) match {
                         case None => Right(None)
                         case Some(value) => PolicyMode.parse(value).map {Some(_) }
@@ -205,6 +214,7 @@ class LDAPEntityMapper(
           , ReportingConfiguration(
                 agentRunInterval
               , heartbeatConf
+              , agentReportingProtocol
             )
           , properties
           , policyMode
@@ -251,7 +261,7 @@ class LDAPEntityMapper(
                 , inventoryEntry.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
                 , false //we don't know anymore if it was a policy server
                 , new DateTime(0) // we don't know anymore the acceptation date
-                , ReportingConfiguration(None, None) //we don't know anymore agent run frequency
+                , ReportingConfiguration(None, None, None) //we don't know anymore agent run frequency
                 , Seq() //we forgot node properties
                 , None
               )

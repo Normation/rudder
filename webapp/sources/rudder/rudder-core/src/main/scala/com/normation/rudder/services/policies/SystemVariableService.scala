@@ -52,10 +52,7 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.RuleTarget
-import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.reports.ChangesOnly
-import com.normation.rudder.reports.ComplianceMode
-import com.normation.rudder.reports.SyslogProtocol
+import com.normation.rudder.reports._
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
@@ -132,6 +129,8 @@ class SystemVariableServiceImpl(
   , getStoreAllCentralizedLogsInFile: () => Box[Boolean]
   , getSendMetrics                  : () => Box[Option[Boolean]]
   , getSyslogProtocol               : () => Box[SyslogProtocol]
+  , getSyslogProtocolDisabled       : () => Box[Boolean]
+  , getReportProtocolDefault        : () => Box[AgentReportingProtocol]
 ) extends SystemVariableService with Loggable {
 
   import SystemVariableService._
@@ -182,6 +181,8 @@ class SystemVariableServiceImpl(
     val relaySyncPromises    = getProp("RELAY_SYNC_PROMISES"   , getSyncPromises)
     val relaySyncSharedFiles = getProp("RELAY_SYNC_SHAREDFILES", getSyncSharedFiles)
 
+    val syslogProtocolDisabled = getProp("SYSLOG_PROTOCOL_DISABLED", getSyslogProtocolDisabled)
+
     val sendMetricsValue = if (getSendMetrics().getOrElse(None).getOrElse(false)) {
       "yes"
     } else {
@@ -219,6 +220,7 @@ class SystemVariableServiceImpl(
         cfengineOutputsTtl ::
         storeAllCentralizedLogsInFile ::
         varSendMetrics ::
+        syslogProtocolDisabled ::
         reportProtocol ::
         Nil
       vars.map(v => (v.spec.name,v)).toMap
@@ -440,7 +442,6 @@ class SystemVariableServiceImpl(
 
       val varManagedNodesCertUUID = systemVariableSpecService.get("MANAGED_NODES_CERT_UUID").toVariable(nodesWithCertificate.map(_._1.id.value))
 
-
       //Reports DB (postgres) DB name and DB user
       val varReportsDBname = systemVariableSpecService.get("RUDDER_REPORTS_DB_NAME").toVariable(Seq(reportsDbName))
       val varReportsDBuser = systemVariableSpecService.get("RUDDER_REPORTS_DB_USER").toVariable(Seq(reportsDbUser))
@@ -523,6 +524,17 @@ class SystemVariableServiceImpl(
     val varNodeGroups = systemVariableSpecService.get("RUDDER_NODE_GROUPS_VARS").toVariable(Seq(stringNodeGroupsVars))
     val varNodeGroupsClasses = systemVariableSpecService.get("RUDDER_NODE_GROUPS_CLASSES").toVariable(Seq(stringNodeGroupsClasses))
 
+    // If Syslog is disabled, we force HTTPS
+    val varNodeReportingProtocol = getSyslogProtocolDisabled() match {
+      case Full(true)  => systemVariableSpecService.get("REPORTING_PROTOCOL").toVariable(Seq(AgentReportingHTTPS.value))
+      case Full(false) => nodeInfo.nodeReportingConfiguration.agentReportingProtocol match {
+                            case Some(protocol) => systemVariableSpecService.get("REPORTING_PROTOCOL").toVariable(Seq(protocol.value))
+                            case _              => getProp("REPORTING_PROTOCOL", () =>  getReportProtocolDefault().map(_.value))
+                          }
+      case f: Failure  => logger.error (s"Failed to get information on syslog protocol global status, fallbacking to default value. Cause is ${f.messageChain}")
+                          getProp("REPORTING_PROTOCOL", () => getReportProtocolDefault().map(_.value))
+    }
+
     val baseVariables = {
       Seq(
           varNodeRole
@@ -531,6 +543,7 @@ class SystemVariableServiceImpl(
         , varNodeConfigVersion
         , varNodeGroups
         , varNodeGroupsClasses
+        , varNodeReportingProtocol
       ) map (x => (x.spec.name, x))
     }
 

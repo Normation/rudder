@@ -783,7 +783,7 @@ class AcceptFullInventoryInNodeOu(
       , false
       , isPolicyServer
       , DateTime.now // won't be used on save - dummy value
-      , ReportingConfiguration(None,None) // use global schedule
+      , ReportingConfiguration(None,None, None) // use global schedule, and default configuration for reporting
       , Seq() //no user properties for now
       , defaultPolicyMode().openOr(None)
     )
