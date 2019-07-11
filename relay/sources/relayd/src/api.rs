@@ -31,7 +31,7 @@
 use crate::{
     error::Error,
     remote_run::{RemoteRun, RemoteRunTarget},
-    shared_files::{metadata_hash_checker, parse_hash_from_raw, Metadata},
+    shared_files::{metadata_hash_checker, metadata_writer, parse_hash_from_raw, Metadata},
     {stats::Stats, status::Status, JobConfig},
 };
 use futures::Future;
@@ -52,16 +52,12 @@ pub fn api(
     stats: Arc<RwLock<Stats>>,
 ) -> impl Future<Item = (), Error = ()> {
     // TODO put these endpoints into relay-api?
-    let stats_simple = warp::path("stats").map(move || {
-        info!("/stats queried");
-        warp::reply::json(&(*stats.clone().read().unwrap()))
-    });
+    let stats_simple =
+        warp::path("stats").map(move || warp::reply::json(&(*stats.clone().read().unwrap())));
 
     let job_config1 = job_config.clone();
-    let status = warp::path("status").map(move || {
-        info!("/status queried");
-        warp::reply::json(&Status::poll(job_config1.clone()))
-    });
+    let status =
+        warp::path("status").map(move || warp::reply::json(&Status::poll(job_config1.clone())));
 
     let relay_api = warp::path("rudder").and(warp::path("relay-api"));
     let remote_run = relay_api.and(warp::path("remote-run"));
@@ -107,35 +103,20 @@ pub fn api(
         },
     );
 
-    //let job_config5 = job_config.clone();
     let shared_files_put = warp::path::peek().and(warp::body::form()).map(
-        move |_peek: warp::filters::path::Peek, simple_map: HashMap<String, String>| {
+        move |peek: warp::filters::path::Peek, simple_map: HashMap<String, String>| {
             let metadata = Metadata::new(simple_map);
-            info!("METADATA : {:?}", metadata.unwrap());
-
-            //metadata_writer(metadata.unwrap(), peek.as_str(), job_config5.clone());
+            metadata_writer(format!("{}", metadata.unwrap()), peek.as_str());
             warp::reply()
         },
     );
 
     let shared_files_head = warp::path::peek()
         .and(warp::filters::query::raw()) // recuperation du parametre ?hash=file-hash
-        .map(|_peek: warp::filters::path::Peek, raw: String| {
-            //let path = parse_path_from_peek(peek);
-
-            let contents = fs::read_to_string("tests/files/metadata.txt")
-                .expect("Something went wrong reading the file");
-
-            let mymeta = Metadata::from_str(&contents);
-
-            info!("{:?}", mymeta);
-
+        .map(|peek: warp::filters::path::Peek, raw: String| {
             warp::reply::with_status(
                 "".to_string(),
-                metadata_hash_checker(
-                    "tests/files/metadata.txt".to_string(),
-                    parse_hash_from_raw(raw),
-                ),
+                metadata_hash_checker(format!("./{}", peek.as_str()), parse_hash_from_raw(raw)),
             )
         });
 
@@ -143,9 +124,10 @@ pub fn api(
         .and(status.or(stats_simple))
         .or(warp::post2().and(remote_run).and(nodes.or(all).or(node_id)))
         .or(warp::put2().and(shared_files).and(shared_files_put))
-        .or(warp::head().and(shared_files).and(shared_files_head));
+        .or(warp::head().and(shared_files).and(shared_files_head))
+        .with(warp::log("relayd::relay-api"));
 
     let (addr, server) = warp::serve(routes).bind_with_graceful_shutdown(listen, shutdown);
-    info!("Started stats API on {}", addr);
+    info!("Started API on {}", addr);
     server
 }

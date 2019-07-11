@@ -203,10 +203,6 @@ pub fn parse_hash_from_raw(raw: String) -> String {
         .collect::<String>()
 }
 
-pub fn parse_path_from_peek(peek: warp::filters::path::Peek) -> String {
-    peek.as_str().split('/').map(|s| s.to_string()).collect()
-}
-
 pub fn get_pubkey(metadata: Metadata) -> String {
     format!(
         "-----BEGIN RSA PRIVATE KEY-----\n{}\n-----END RSA PRIVATE KEY-----\n",
