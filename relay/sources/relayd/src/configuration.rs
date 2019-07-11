@@ -82,6 +82,7 @@ pub struct Configuration {
     pub general: GeneralConfig,
     pub processing: ProcessingConfig,
     pub output: OutputConfig,
+    pub remote_run: RemoteRun,
 }
 
 impl Configuration {
@@ -165,6 +166,13 @@ impl OutputSelect for InventoryOutputSelect {
     fn is_enabled(&self) -> bool {
         *self != InventoryOutputSelect::Disabled
     }
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+
+pub struct RemoteRun
+{
+    pub command : PathBuf,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -447,6 +455,9 @@ mod tests {
                     url: "postgres://rudderreports:PASSWORD@127.0.0.1/rudder".to_string(),
                     max_pool_size: 5,
                 },
+            },
+            remote_run: RemoteRun {
+                    command: PathBuf::from("/opt/rudder/bin/rudder"),
             },
         };
         assert_eq!(config.unwrap(), reference);
