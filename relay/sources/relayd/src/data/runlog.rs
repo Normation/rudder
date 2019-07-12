@@ -39,6 +39,8 @@ use serde::{Deserialize, Serialize};
 use std::{
     convert::TryFrom,
     fmt::{self, Display},
+    fs::read_to_string,
+    path::Path,
     str::FromStr,
 };
 use tracing::{debug, error, warn};
@@ -59,11 +61,26 @@ impl Display for RunLog {
     }
 }
 
-impl FromStr for RunLog {
-    type Err = Error;
+impl RunLog {
+    /// Mainly used for testing
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
+        let info = RunInfo::from_str(
+            path.as_ref()
+                .file_name()
+                .and_then(|r| r.to_str())
+                .ok_or_else(|| {
+                    Error::InvalidRunInfo(path.as_ref().to_str().unwrap_or("").to_string())
+                })?,
+        )?;
+        RunLog::try_from((info, read_to_string(path)?.as_ref()))
+    }
+}
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match runlog(s) {
+impl TryFrom<(RunInfo, &str)> for RunLog {
+    type Error = Error;
+
+    fn try_from(raw_reports: (RunInfo, &str)) -> Result<Self, Self::Error> {
+        match runlog(raw_reports.1) {
             Ok(raw_runlog) => {
                 debug!("Parsed runlog {:#?}", raw_runlog.1);
                 let (reports, failed): (Vec<_>, Vec<_>) =
@@ -71,34 +88,28 @@ impl FromStr for RunLog {
                 for invalid_report in failed.into_iter().map(Result::unwrap_err) {
                     warn!("Invalid report: {}", invalid_report);
                 }
-                // TODO: avoid collecting?
+
                 let reports: Vec<RawReport> = reports.into_iter().map(Result::unwrap).collect();
-                RunLog::try_from(reports)
+                RunLog::try_from((raw_reports.0, reports))
             }
             Err(e) => {
-                warn!("{:?}: could not parse '{}'", e, s);
+                warn!("{:?}: could not parse '{}'", e, raw_reports.0);
                 Err(Error::InvalidRunLog)
             }
         }
     }
 }
 
-impl TryFrom<Vec<RawReport>> for RunLog {
+impl TryFrom<(RunInfo, Vec<RawReport>)> for RunLog {
     type Error = Error;
 
-    fn try_from(raw_reports: Vec<RawReport>) -> Result<Self, Self::Error> {
+    fn try_from(raw_reports: (RunInfo, Vec<RawReport>)) -> Result<Self, Self::Error> {
         let reports: Vec<Report> = raw_reports
+            .1
             .into_iter()
             .flat_map(RawReport::into_reports)
             .collect();
-
-        let info = match reports.first() {
-            None => return Err(Error::EmptyRunlog),
-            Some(report) => RunInfo {
-                node_id: report.node_id.clone(),
-                timestamp: report.start_datetime,
-            },
-        };
+        let info = raw_reports.0;
 
         for report in &reports {
             if info.node_id != report.node_id {
@@ -123,7 +134,7 @@ impl TryFrom<Vec<RawReport>> for RunLog {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::{read_dir, read_to_string};
+    use std::fs::read_dir;
 
     #[test]
     fn it_parses_runlog() {
@@ -132,8 +143,7 @@ mod tests {
         for entry in read_dir("tests/runlogs/").unwrap() {
             let path = entry.unwrap().path();
             if path.extension().unwrap() == "json" {
-                let runlog =
-                    RunLog::from_str(&read_to_string(path.with_extension("log")).unwrap()).unwrap();
+                let runlog = RunLog::new(&path.with_extension("log")).unwrap();
                 //println!("{}", serde_json::to_string_pretty(&runlog).unwrap());
                 let reference: RunLog =
                     serde_json::from_str(&read_to_string(path).unwrap()).unwrap();
@@ -143,5 +153,13 @@ mod tests {
         }
         // check we did at least one test
         assert!(test_done > 0);
+    }
+
+    #[test]
+    fn it_detect_invalid_node_in_runlog() {
+        assert!(
+            RunLog::new("2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906c.log")
+                .is_err()
+        );
     }
 }

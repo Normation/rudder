@@ -154,8 +154,6 @@ mod tests {
     use super::*;
     use crate::{data::report::QueryableReport, output::database::schema::ruddersysevents::dsl::*};
     use diesel;
-    use std::fs::read_to_string;
-    use std::str::FromStr;
 
     pub fn db() -> PgPool {
         let db_config = DatabaseConfig {
@@ -177,8 +175,10 @@ mod tests {
             .unwrap();
         assert_eq!(results.len(), 0);
 
-        let runlog =
-            RunLog::from_str(&read_to_string("tests/runlogs/normal.log").unwrap()).unwrap();
+        let runlog = RunLog::new(
+            "tests/runlogs/2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log",
+        )
+        .unwrap();
 
         // Test inserting the runlog
 

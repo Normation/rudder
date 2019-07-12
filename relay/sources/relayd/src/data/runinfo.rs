@@ -44,7 +44,7 @@ use std::{
 };
 use tracing::debug;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct RunInfo {
     pub node_id: NodeId,
     pub timestamp: DateTime<FixedOffset>,

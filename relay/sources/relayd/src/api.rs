@@ -37,9 +37,7 @@ use crate::{
 use futures::Future;
 use std::{
     collections::HashMap,
-    fs,
     net::SocketAddr,
-    str::FromStr,
     sync::{Arc, RwLock},
 };
 use tracing::info;

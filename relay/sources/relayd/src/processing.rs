@@ -246,7 +246,7 @@ fn output_report_database_inner(
             .ok_or_else(|| Error::MissingCertificateForNode(run_info.node_id.clone()))?,
     )?;
 
-    let parsed_runlog = signed_runlog.parse::<RunLog>()?;
+    let parsed_runlog = RunLog::try_from((run_info.clone(), signed_runlog.as_ref()))?;
 
     let _inserted = insert_runlog(
         &job_config
