@@ -297,25 +297,28 @@ impl<'src> AST<'src> {
         }
     }
 
+    fn metadata_sub_check(k: &Token<'src>, v: &Value<'src>) -> Result<()> {
+        match v {
+            Value::String(s) => {
+                if !s.is_empty() {
+                    // we don't what else we can do so fail to keep a better behaviour for later
+                    fail!(
+                        k,
+                        "Metadata {} has a value that contains variables, this is not allowed",
+                        k
+                    );
+                }
+                Ok(())
+            },
+            Value::Number(_,_) => Ok(()),
+            Value::EnumExpression(e) => fail!(k, "Metadata {} contains an enum expression, this is not allowed", k),
+            Value::List(l) => fix_results(l.iter().map(|v| AST::metadata_sub_check(k,v))),
+            Value::Struct(s) => fix_results(s.iter().map(|(_,v)| AST::metadata_sub_check(k,v))),
+        }
+    }
     fn metadata_check(&self, metadata: &HashMap<Token<'src>, Value<'src>>) -> Result<()> {
         fix_results(metadata.iter().map(|(k, v)| {
-            match v {
-                Value::String(s) => {
-                    if !s.is_empty() {
-                        // we don't what else we can do so fail to keep a better behaviour for later
-                        fail!(
-                            k,
-                            "Metadata {} has a value that contains variables, this is not allowed",
-                            k
-                        );
-                    }
-                },
-                Value::Number(_,_) => unimplemented!(), // TODO e.token
-                Value::EnumExpression(e) => unimplemented!(), // TODO e.token
-                Value::List(_) => unimplemented!(), // TODO e.token
-                Value::Struct(_) => unimplemented!(), // TODO e.token
-            }
-            Ok(())
+            AST::metadata_sub_check(k,v)
         }))
     }
 
@@ -359,7 +362,8 @@ impl<'src> AST<'src> {
     // - a reserved keyword for future language: format comment dict json enforce condition audit let
     fn invalid_identifier_check(&self, name: Token<'src>) -> Result<()> {
         if vec![
-            "string",
+            // TODO
+            //"string",
             "int",
             "struct",
             "list",
@@ -369,7 +373,7 @@ impl<'src> AST<'src> {
             "global",
             "default",
             "resource",
-            "state",
+            //"state",
             "fail",
             "log",
             "return",

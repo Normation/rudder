@@ -12,7 +12,8 @@ use std::fmt;
 #[derive(Debug, PartialEq,Clone)]
 pub enum PErrorKind<I> {
     Nom(VerboseError<I>),
-    NomTest(String),               // should not be use outside of tests
+    #[cfg(test)]
+    NomTest(String),               // cannot be use outside of tests
     InvalidFormat,                 // in header
     InvalidName(I),                // in identifier expressions (type of expression)
     UnexpectedToken(&'static str), // anywhere (expected token)
@@ -91,6 +92,7 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
         // TODO proper PInput formating with position
         let message = match &self.kind {
             PErrorKind::Nom(e) => format!("Unprocessed parsing error: {:?}.\nPlease fill a BUG with context on when this happened!", e),
+            #[cfg(test)]
             PErrorKind::NomTest(msg) => format!("Testing only error message, this should never happen {}.\nPlease fill a BUG with context on when this happened!", msg),
             PErrorKind::InvalidFormat => "Invalid header format, it must contain a single line '@format=x' where x is an integer. Shebang accepted.".to_string(),
             PErrorKind::InvalidName(i) => format!("The identifier is invalid in a {}.",i.fragment),

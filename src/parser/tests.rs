@@ -1,5 +1,4 @@
-// pub for use by other tests
-pub use super::*;
+use super::*;
 use nom::Err;
 use maplit::hashmap;
 
@@ -208,6 +207,11 @@ fn test_pidentifier() {
 }
 
 #[test]
+fn test_pvariable_identifier() {
+    assert_eq!(map_res(pvariable_identifier, "simple.value "), Ok((" ", "simple.value".into())));
+}
+
+ #[test]
 fn test_penum() {
     assert_eq!(
         map_res(penum, "enum abc1 { a, b, c }"),

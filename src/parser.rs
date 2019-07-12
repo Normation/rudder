@@ -194,6 +194,14 @@ pub fn pidentifier(i: PInput) -> Result<Token> {
     )(i)
 }
 
+/// A variable identifier is a list of dot separated identifiers
+pub fn pvariable_identifier(i: PInput) -> Result<Token> {
+    map(
+        take_while1(|c: char| c.is_alphanumeric() || (c == '_') || (c == '.')),
+        |x: PInput| x.into(),
+    )(i)
+}
+
 /// An enum is a list of values, like a C enum.
 /// An enum can be global, which means its values are globally unique and can be guessed without specifying type.
 /// A global enum also has a matching global variable with the same name as its type.
@@ -313,7 +321,7 @@ fn enum_atom(i: PInput) -> Result<PEnumExpression> {
         ),
         wsequence!(
             {
-                var: pidentifier;
+                var: pvariable_identifier;
                 _x: tag("=~");
                 penum: opt(terminated(pidentifier, sp(tag(":"))));
                 value: or_fail(pidentifier, PErrorKind::InvalidEnumExpression);
@@ -321,7 +329,7 @@ fn enum_atom(i: PInput) -> Result<PEnumExpression> {
         ),
         wsequence!(
             {
-                var: pidentifier;
+                var: pvariable_identifier;
                 _x: tag("!~");
                 penum: opt(terminated(pidentifier, sp(tag(":"))));
                 value: or_fail(pidentifier, PErrorKind::InvalidEnumExpression);
@@ -424,26 +432,32 @@ fn pinterpolated_string(i: PInput) -> Result<Vec<PInterpolatedElement>> {
     all_consuming(
         alt((
             many1(alt((
+                // $ constant
                 value(PInterpolatedElement::Static("$".into()), tag("$$")),
+                // variable
                 sequence!(
                     {
                         s: tag("${");
-                        variable: or_fail(pidentifier, PErrorKind::InvalidVariableReference);
+                        variable: or_fail(pvariable_identifier, PErrorKind::InvalidVariableReference);
                         _x: or_fail(tag("}"), PErrorKind::UnterminatedDelimiter(s));
                     } => PInterpolatedElement::Variable(variable.fragment().into())
                 ),
+                // invalid $
                 sequence!(
                     {
                         _s: tag("$"); // $SomethingElse is an error
                         _x: or_fail(tag("$"), PErrorKind::InvalidVariableReference); // $$ is already processed so this is an error
                     } => PInterpolatedElement::Static("".into()) // this is mandatory but cannot happen
                 ),
+                // static data
                 map(take_until("$"), |s: PInput| PInterpolatedElement::Static(s.fragment.into())),
+                // end of string
                 map(preceded(
                         peek(anychar), // do no take rest if we are already at the end
                         rest),
                     |s: PInput| PInterpolatedElement::Static(s.fragment.into())),
             ))),
+            // empty string
             value(vec![PInterpolatedElement::Static("".into())], not(anychar)),
         ))
    )(i)
@@ -734,7 +748,7 @@ fn pstatement(i: PInput) -> Result<PStatement> {
             } => PStatement::Case(case.into(), vec![(expr,vec![stmt]), (PEnumExpression::Default("default".into()),vec![PStatement::Noop])] )
         ),
         // Flow statements
-        map(preceded(sp(tag("return")),pidentifier), |x| PStatement::Return(x)),
+        map(preceded(sp(tag("return")),pvariable_identifier), |x| PStatement::Return(x)),
         map(preceded(sp(tag("fail")),pvalue),        |x| PStatement::Fail(x)),
         map(preceded(sp(tag("log")),pvalue),         |x| PStatement::Log(x)),
         map(tag("noop"),                             |_| PStatement::Noop),

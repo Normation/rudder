@@ -248,7 +248,8 @@ impl<'src> Statement<'src> {
                 children.insert(res);
                 let mut res_parameters =
                     fix_vec_results(res_params.into_iter().map(|v| Value::from_pvalue(gc,Some(&context),v)))?;
-                let res_defaults = &gc.parameter_defaults[&(res, None)];
+                let emptyvec = Vec::new();
+                let res_defaults = &gc.parameter_defaults.get(&(res, None)).unwrap_or(&emptyvec);
                 let res_missing = res_defaults.len() as i32 - res_parameters.len() as i32;
                 if res_missing > 0 {
                     fix_results(
@@ -265,7 +266,7 @@ impl<'src> Statement<'src> {
                 } else if res_missing < 0 {
                     fail!(
                         res,
-                        "Resources instance of {} has too many parameters, expecting {}, got {}",
+                        "Resources instance of {} has too many parameters, expecting {}, got {}",
                         res,
                         res_defaults.len(),
                         res_parameters.len()
@@ -273,7 +274,7 @@ impl<'src> Statement<'src> {
                 }
                 let mut st_parameters =
                     fix_vec_results(params.into_iter().map(|v| Value::from_pvalue(gc,Some(&context),v)))?;
-                let st_defaults = &gc.parameter_defaults[&(res, Some(st))];
+                let st_defaults = &gc.parameter_defaults.get(&(res, Some(st))).unwrap_or(&emptyvec);
                 let st_missing = st_defaults.len() as i32 - st_parameters.len() as i32;
                 if st_missing > 0 {
                     fix_results(
@@ -282,7 +283,7 @@ impl<'src> Statement<'src> {
                                    .map(|param| {
                                        match param {
                                            Some(p) => st_parameters.push(p.clone()),
-                                           None => fail!(st, "Resources state instance of {} is missing parameters and there is no default values for them", st),
+                                           None => fail!(st, "Resources state instance of {} is missing parameters and there is no default values for them", st),
                                        };
                                        Ok(())
                                    })
