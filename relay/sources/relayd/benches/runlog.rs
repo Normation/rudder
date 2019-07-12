@@ -4,20 +4,27 @@ use flate2::read::GzDecoder;
 use openssl::{stack::Stack, x509::X509};
 use relayd::{
     configuration::DatabaseConfig,
-    data::{report::QueryableReport, RunLog},
+    data::{report::QueryableReport, RunInfo, RunLog},
     input::signature,
     output::database::{schema::ruddersysevents::dsl::*, *},
 };
 use std::{
+    convert::TryFrom,
     fs::{read, read_to_string},
     io::Read,
     str::FromStr,
 };
 
 fn bench_parse_runlog(c: &mut Criterion) {
-    let runlog = read_to_string("tests/runlogs/normal.log").unwrap();
+    let runlog = read_to_string(
+        "tests/runlogs/2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log",
+    )
+    .unwrap();
+    let info =
+        RunInfo::from_str("2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log")
+            .unwrap();
     c.bench_function("parse runlog", move |b| {
-        b.iter(|| black_box(RunLog::from_str(&runlog).unwrap()))
+        b.iter(|| black_box(RunLog::try_from((info.clone(), runlog.as_ref())).unwrap()))
     });
 }
 
@@ -73,7 +80,7 @@ fn bench_insert_runlog(c: &mut Criterion) {
         .unwrap();
     assert_eq!(results.len(), 0);
 
-    let runlog = RunLog::from_str(&read_to_string("tests/runlogs/normal.log").unwrap()).unwrap();
+    let runlog = RunLog::new("tests/runlogs/normal.log").unwrap();
 
     // Test inserting the runlog
 
