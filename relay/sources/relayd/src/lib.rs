@@ -121,9 +121,8 @@ pub fn start(
     // ---- Setup data structures ----
 
     let cfg = Configuration::new(cli_cfg.configuration_dir.clone())?;
-    let cfg_dir = cli_cfg.configuration_dir.clone();
     let stats = Arc::new(RwLock::new(Stats::default()));
-    let job_config = JobConfig::new(cli_cfg, cfg)?;
+    let job_config = JobConfig::new(cli_cfg, cfg, reload_handle)?;
 
     // ---- Setup signal handlers ----
 
@@ -146,21 +145,7 @@ pub fn start(
     let reload = Signal::new(SIGHUP)
         .flatten_stream()
         .map_err(|e| e.into())
-        .for_each(move |_signal| {
-            info!("Signal received: reload requested");
-
-            LogConfig::new(&cfg_dir)
-                .and_then(|log_cfg| {
-                    reload_handle
-                        .reload(log_cfg.to_string())
-                        .map_err(|e| e.into())
-                })
-                .and_then(|_| job_config_reload.reload_nodeslist())
-                .map_err(|e| {
-                    error!("reload error {}", e);
-                    e
-                })
-        })
+        .for_each(move |_signal| job_config_reload.reload())
         .map_err(|e| error!("signal error {}", e));
 
     // ---- Start server ----
@@ -210,10 +195,15 @@ pub struct JobConfig {
     pub cfg: Configuration,
     pub nodes: RwLock<NodesList>,
     pub pool: Option<PgPool>,
+    handle: Handle<EnvFilter, NewRecorder>,
 }
 
 impl JobConfig {
-    pub fn new(cli_cfg: CliConfiguration, cfg: Configuration) -> Result<Arc<Self>, Error> {
+    pub fn new(
+        cli_cfg: CliConfiguration,
+        cfg: Configuration,
+        handle: Handle<EnvFilter, NewRecorder>,
+    ) -> Result<Arc<Self>, Error> {
         // Create dirs
         if cfg.processing.inventory.output != InventoryOutputSelect::Disabled {
             create_dir_all(cfg.processing.inventory.directory.join("incoming"))?;
@@ -247,10 +237,11 @@ impl JobConfig {
             cfg,
             nodes,
             pool,
+            handle,
         }))
     }
 
-    pub fn reload_nodeslist(&self) -> Result<(), Error> {
+    fn reload_nodeslist(&self) -> Result<(), Error> {
         let mut nodes = self.nodes.write().expect("could not write nodes list");
         *nodes = NodesList::new(
             self.cfg.general.node_id.to_string(),
@@ -258,5 +249,23 @@ impl JobConfig {
             Some(&self.cfg.general.nodes_certs_file),
         )?;
         Ok(())
+    }
+
+    fn reload_logging(&self) -> Result<(), Error> {
+        LogConfig::new(&self.cli_cfg.configuration_dir).and_then(|log_cfg| {
+            self.handle
+                .reload(log_cfg.to_string())
+                .map_err(|e| e.into())
+        })
+    }
+
+    pub fn reload(&self) -> Result<(), Error> {
+        info!("Configuration reload requested");
+        self.reload_logging()
+            .and_then(|_| self.reload_nodeslist())
+            .map_err(|e| {
+                error!("reload error {}", e);
+                e
+            })
     }
 }

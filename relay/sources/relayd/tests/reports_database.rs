@@ -81,7 +81,7 @@ fn it_reads_and_inserts_a_runlog() {
     assert!(!Path::new(file_broken).exists());
     assert!(Path::new(file_failed).exists());
 
-    let body = reqwest::get("http://localhost:3030/stats")
+    let body = reqwest::get("http://localhost:3030/rudder/relay-ctl/stats")
         .unwrap()
         .text()
         .unwrap();
