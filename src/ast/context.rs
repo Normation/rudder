@@ -5,7 +5,7 @@ use crate::parser::{PType, Token};
 use super::enums::EnumList;
 use super::value::Value;
 
-/// Variable ar categorized in kinds.
+/// Variable are categorized by kinds.
 /// This allows segregating variables that can only be used in some places.
 #[derive(Debug, PartialEq, Clone)]
 pub enum VarKind<'src> {

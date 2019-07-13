@@ -1,11 +1,13 @@
 #[macro_use]
 mod error;
 mod ast;
+mod codeindex;
 mod parser;
 mod technique;
 
 use crate::ast::generators::*;
-use crate::ast::{CodeIndex, AST};
+use crate::ast::AST;
+use crate::codeindex::CodeIndex;
 use crate::parser::parse_file;
 use crate::technique::translate_file;
 use std::cell::UnsafeCell;

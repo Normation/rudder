@@ -107,13 +107,13 @@ fn translate_call(config: &toml::Value, call: &MethodCall) -> Result<String> {
 
     // call formating
     let call_str = format!("{}({}).{}({})", resource, res_args, state, st_args);
-    let out = if call.class_context == "any" {
+    let out_state = if call.class_context == "any" {
         format!("  {}", call_str)
     } else {
         let condition = translate_condition(config, &call.class_context)?;
         format!("  if {} => {}", condition, call_str)
     };
-    Ok(out)
+    Ok(format!("  @component = \"{}\"\n{}", &call.component, out_state))
 }
 
 #[derive(Clone)]
@@ -151,7 +151,7 @@ impl CFStringElt {
                         }).into(),
                         "sys" => return Err(Error::User(format!("Not implemented variable namespace sys '{}.{}'", ns, v.name))),
                         "this" => return Err(Error::User(format!("Unsupported variable namespace this '{}.{}'", ns, v.name))),
-                        ns => format!("{}.{}",ns,v.name),
+                        ns => format!("${{{}.{}}}",ns,v.name),
                     },
                 }
                 // TODO

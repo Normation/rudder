@@ -34,6 +34,7 @@ fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
         PErrorKind::InvalidEscapeSequence => PErrorKind::InvalidEscapeSequence,
         PErrorKind::InvalidVariableReference => PErrorKind::InvalidVariableReference,
         PErrorKind::ExpectedKeyword(i) => PErrorKind::ExpectedKeyword(i),
+        PErrorKind::UnsupportedMetadata => PErrorKind::UnsupportedMetadata,
     };
     (err.context.fragment, kind)
 }
@@ -569,6 +570,29 @@ fn test_pmetadata() {
     );
 }
 
+#[test]
+fn test_pmetadata_list() {
+    assert_eq!(
+        map_res(pmetadata_list, "@key=\"value\"\n##hello\n##Herman\n@key=123"),
+        Ok((
+            "",
+            vec![
+                PMetadata {
+                    key: "key".into(),
+                    value: PValue::String("\"".into(), "value".to_string())
+                },
+                PMetadata {
+                    key: "comment".into(),
+                    value: PValue::String("hello".into(), "hello\nHerman".to_string())
+                },
+                PMetadata {
+                    key: "key".into(),
+                    value: PValue::Number("123".into(), 123.0)
+                },
+            ]
+        ))
+    );
+}
 
 #[test]
 fn test_pparameter() {
@@ -641,6 +665,7 @@ fn test_presource_def() {
         Ok((
             "",
             PResourceDef {
+                metadata: Vec::new(),
                 name: "hello".into(),
                 parameters: vec![],
                 parameter_defaults: vec![],
@@ -653,6 +678,7 @@ fn test_presource_def() {
         Ok((
             "",
             PResourceDef {
+                metadata: Vec::new(),
                 name: "hello2".into(),
                 parameters: vec![],
                 parameter_defaults: vec![],
@@ -665,6 +691,7 @@ fn test_presource_def() {
         Ok((
             "",
             PResourceDef {
+                metadata: Vec::new(),
                 name: "hello2".into(),
                 parameters: vec![],
                 parameter_defaults: vec![],
@@ -677,6 +704,7 @@ fn test_presource_def() {
         Ok((
             "",
             PResourceDef {
+                metadata: Vec::new(),
                 name: "hello".into(),
                 parameters: vec![
                     PParameter {
@@ -769,6 +797,7 @@ fn test_pstatement() {
         Ok((
             "",
             PStatement::StateCall(
+                Vec::new(),
                 PCallMode::Enforce,
                 "resource".into(),
                 vec![],
@@ -783,6 +812,7 @@ fn test_pstatement() {
         Ok((
             "",
             PStatement::StateCall(
+                Vec::new(),
                 PCallMode::Enforce,
                 "resource".into(),
                 vec![],
@@ -796,15 +826,11 @@ fn test_pstatement() {
         ))
     );
     assert_eq!(
-        map_res(pstatement, "##hello Herman\n"),
-        Ok(("", PStatement::Comment(
-                    map_res(pcomment, "##hello Herman\n").unwrap().1)))
-    );
-    assert_eq!(
         map_res(pstatement, "var=\"string\"\n"),
         Ok((
             "",
             PStatement::VariableDefinition(
+                Vec::new(),
                 "var".into(),
                 PValue::String("\"".into(), "string".into())
             )
@@ -816,6 +842,7 @@ fn test_pstatement() {
         Ok((
             "",
             PStatement::VariableDefinition(
+                Vec::new(),
                 "var".into(),
                 PValue::EnumExpression(
                     map_res(penum_expression, "a=~bc").unwrap().1
@@ -852,6 +879,7 @@ fn test_pstate_def() {
         Ok((
             "",
             PStateDef {
+                metadata: Vec::new(),
                 name: "configuration".into(),
                 resource_name: "resource".into(),
                 parameters: vec![],
@@ -869,6 +897,7 @@ fn test_palias_def() {
         Ok((
             "",
             PAliasDef {
+                metadata: Vec::new(),
                 resource_alias: "File".into(),
                 resource_alias_parameters: vec!["path".into()],
                 state_alias: "keyvalue".into(),
@@ -888,12 +917,14 @@ fn test_pdeclaration() {
         map_res(pdeclaration,"ntp state configuration ()\n{\n  file(\"/tmp\").permissions(\"root\", \"root\", \"g+w\")\n}\n"),
         Ok(("",
             PDeclaration::State(PStateDef {
+                metadata: Vec::new(),
                 name: "configuration".into(),
                 resource_name: "ntp".into(),
                 parameters: vec![],
                 parameter_defaults: vec![],
                 statements: vec![
                     PStatement::StateCall(
+                        Vec::new(),
                         PCallMode::Enforce,
                         "file".into(),
                         vec![PValue::String("\"".into(), "/tmp".to_string())],

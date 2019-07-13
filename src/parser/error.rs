@@ -22,6 +22,7 @@ pub enum PErrorKind<I> {
     InvalidEscapeSequence,         // in string definition
     InvalidVariableReference,      // during string interpolation
     ExpectedKeyword(&'static str), // anywhere (keyword type)
+    UnsupportedMetadata,           // metadata or comments are not supported everywhere
 }
 
 #[derive(Debug, PartialEq,Clone)]
@@ -102,6 +103,7 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
             PErrorKind::InvalidEscapeSequence => "This escape cannot be used in a string".to_string(),
             PErrorKind::InvalidVariableReference => "This variable reference is invalid".to_string(),
             PErrorKind::ExpectedKeyword(s) => format!("Token not found, expecting a '{}'",s),
+            PErrorKind::UnsupportedMetadata => "Parsed comment or metadata not supported at this place".to_string(),
         };
         f.write_str(&format!("{} near '{}' at {} in {}",
                              message,

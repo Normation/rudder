@@ -142,7 +142,7 @@ impl CFEngine {
     // TODO comments and metadata
     fn format_statement(&mut self, gc: &AST, st: &Statement) -> String {
         match st {
-            Statement::StateCall(_mode, res, res_parameters, call, params, out) => {
+            Statement::StateCall(_metadata, _mode, res, res_parameters, call, params, out) => {
                 if let Some(var) = out {
                     self.new_var(var);
                 }

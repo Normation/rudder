@@ -1,4 +1,3 @@
-mod codeindex;
 mod context;
 mod enums;
 pub mod generators;
@@ -12,7 +11,8 @@ mod value;
 /// The generator submodule contains a generator trait used to generate code.
 /// It is then split into one module per agent.
 ///
-pub use self::codeindex::{CodeIndex,ResourceDeclaration};
+// TODO why pub here ?
+pub use crate::codeindex::{CodeIndex,TmpResourceDef};
 use self::context::VarContext;
 use self::enums::{EnumExpression, EnumList};
 use self::resource::*;
@@ -137,7 +137,7 @@ impl<'src> AST<'src> {
     /// Produce the statically declared list of children for each resource.
     /// This will be extended with the dynamically generated one from state declarations.
     fn create_children_list(parents: Vec<(Token<'src>, Token<'src>)>,
-                        resources: &HashMap<Token<'src>, ResourceDeclaration<'src>>) -> Result<HashMap<Token<'src>,HashSet<Token<'src>>>> {
+                        resources: &HashMap<Token<'src>, TmpResourceDef<'src>>) -> Result<HashMap<Token<'src>,HashSet<Token<'src>>>> {
         let mut children_list = HashMap::new();
         for (child,parent) in parents {
             if !resources.contains_key(&parent) {
@@ -205,7 +205,7 @@ impl<'src> AST<'src> {
 
     fn binding_check(&self, statement: &Statement) -> Result<()> {
         match statement {
-            Statement::StateCall(_mode, res, res_params, name, params, _out) => {
+            Statement::StateCall(_, _mode, res, res_params, name, params, _out) => {
                 match self.resources.get(res) {
                     None => fail!(res, "Resource type {} does not exist", res),
                     Some(resource) => {
@@ -265,7 +265,7 @@ impl<'src> AST<'src> {
                     ); // just because it is hard to generate
                 }
             }
-            Statement::VariableDefinition(v, _) => {
+            Statement::VariableDefinition(_, v, _) => {
                 if !first_level {
                     fail!(
                         v,
@@ -443,7 +443,7 @@ impl<'src> AST<'src> {
     // same a above but for the variable definition statement
     fn invalid_variable_statement_check(&self, st: &Statement<'src>) -> Result<()> {
         match st {
-            Statement::VariableDefinition(name, _) => self.invalid_variable_check(*name, false),
+            Statement::VariableDefinition(_, name, _) => self.invalid_variable_check(*name, false),
             _ => Ok(()),
         }
     }

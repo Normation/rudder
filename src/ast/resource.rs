@@ -1,8 +1,8 @@
-use super::codeindex::ResourceDeclaration;
 use super::context::{GlobalContext, VarContext};
 use super::enums::*;
 use super::value::Value;
 use crate::error::*;
+use crate::codeindex::TmpResourceDef;
 use crate::parser::*;
 use std::collections::{HashMap, HashSet};
 
@@ -10,12 +10,13 @@ use std::collections::{HashMap, HashSet};
 
 /// Create final metadata from parsed metadata
 fn create_metadata<'src>(
-    pmetadata: HashMap<Token<'src>, PValue<'src>>,
+    pmetadata: Vec<PMetadata<'src>>,
 ) -> Result<HashMap<Token<'src>, Value<'src>>> {
+    // TODO check for uniqueness and concat comments
     fix_map_results(
         pmetadata
             .into_iter()
-            .map(|(k, v)| Ok((k, Value::from_static_pvalue(v)?))),
+            .map(|meta| Ok((meta.key, Value::from_static_pvalue(meta.value)?))),
     )
 }
 
@@ -58,11 +59,11 @@ pub struct ResourceDef<'src> {
 impl<'src> ResourceDef<'src> {
     pub fn from_resource_declaration(
         name: Token<'src>,
-        resource_declaration: ResourceDeclaration<'src>,
+        resource_declaration: TmpResourceDef<'src>,
         mut children: HashSet<Token<'src>>,
         global_context: &GlobalContext<'src>,
     ) -> Result<ResourceDef<'src>> {
-        let ResourceDeclaration {
+        let TmpResourceDef {
             metadata: pmetadata,
             parameters: pparameters,
             states: pstates,
@@ -75,11 +76,10 @@ impl<'src> ResourceDef<'src> {
             &global_context.parameter_defaults[&(name, None)],
         )?;
         // create final version of states
-        let states = fix_map_results(pstates.into_iter().map(|(sn, (pmetadata, st))| {
+        let states = fix_map_results(pstates.into_iter().map(|(sn, st)| {
             Ok((
                 sn,
                 StateDef::from_pstate_def(
-                    pmetadata,
                     st,
                     name,
                     &parameters,
@@ -110,7 +110,6 @@ pub struct StateDef<'src> {
 
 impl<'src> StateDef<'src> {
     pub fn from_pstate_def(
-        pmetadata: HashMap<Token<'src>, PValue<'src>>,
         pstate: PStateDef<'src>,
         resource_name: Token<'src>,
         resource_parameters: &Vec<Parameter<'src>>,
@@ -118,7 +117,7 @@ impl<'src> StateDef<'src> {
         global_context: &GlobalContext<'src>,
     ) -> Result<StateDef<'src>> {
         // create final version of metadata and parameters
-        let metadata = create_metadata(pmetadata)?;
+        let metadata = create_metadata(pstate.metadata)?;
         let parameters = create_parameters(
             pstate.parameters,
             &global_context.var_context,
@@ -186,13 +185,14 @@ impl<'src> Parameter<'src> {
     }
 }
 
-/// A signle statement withing a state definition
+/// A single statement withing a state definition
 #[derive(Debug)]
 pub enum Statement<'src> {
     Comment(PComment<'src>),
     // TODO should we split variable definition and enum definition ? this would probably help generators
-    VariableDefinition(Token<'src>, Value<'src>),
+    VariableDefinition(HashMap<Token<'src>, Value<'src>>, Token<'src>, Value<'src>),
     StateCall(
+        HashMap<Token<'src>, Value<'src>>,// Metadata
         PCallMode,           // mode
         Token<'src>,         // resource
         Vec<Value<'src>>,    // resource parameters
@@ -222,8 +222,7 @@ impl<'src> Statement<'src> {
         st: PStatement<'src>,
     ) -> Result<Statement<'src>> {
         Ok(match st {
-            PStatement::Comment(c) => Statement::Comment(c),
-            PStatement::VariableDefinition(var, val) => {
+            PStatement::VariableDefinition(pmetadata, var, val) => {
                 let value = Value::from_pvalue(gc, Some(&context), val)?;
                 match value.get_type() {
                     PType::Boolean => context.new_enum_variable(Some(&gc.var_context), var, Token::new("stdlib", "boolean"), None)?,
@@ -233,9 +232,10 @@ impl<'src> Statement<'src> {
                         context.new_variable(Some(&gc.var_context), var, value.get_type())?;
                     },
                 }
-                Statement::VariableDefinition(var, value)
+                let metadata = create_metadata(pmetadata)?;
+                Statement::VariableDefinition(metadata, var, value)
             }
-            PStatement::StateCall(mode, res, res_params, st, params, out) => {
+            PStatement::StateCall(pmetadata, mode, res, res_params, st, params, out) => {
                 if let Some(out_var) = out {
                     // outcome must be defined, token comes from internal compilation, no value known a compile time
                     context.new_enum_variable(
@@ -302,7 +302,8 @@ impl<'src> Statement<'src> {
                         .iter()
                         .map(|p| p.context_check(gc, Some(context))),
                 )?;
-                Statement::StateCall(mode, res, res_parameters, st, st_parameters, out)
+                let metadata = create_metadata(pmetadata)?;
+                Statement::StateCall(metadata, mode, res, res_parameters, st, st_parameters, out)
             }
             PStatement::Fail(f) => {
                 let value = Value::from_pvalue(gc,Some(&context),f)?;

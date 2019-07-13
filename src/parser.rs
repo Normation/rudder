@@ -214,8 +214,10 @@ pub struct PEnum<'src> {
 pub fn penum(i: PInput) -> Result<PEnum> {
     wsequence!(
         {
+            metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
             global: opt(tag("global"));
             e:      tag("enum");
+            _fail: or_fail(verify(peek(anychar), |_| metadata.len() == 0), PErrorKind::UnsupportedMetadata);
             name:   or_fail(pidentifier, PErrorKind::InvalidName(e));
             b:      tag("{"); // do not fail here, it could still be a mapping
             items:  separated_nonempty_list(sp(tag(",")), pidentifier);
@@ -243,7 +245,9 @@ pub struct PEnumMapping<'src> {
 pub fn penum_mapping(i: PInput) -> Result<PEnumMapping> {
     wsequence!(
         {
+            metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
             e:    tag("enum");
+            _fail: or_fail(verify(peek(anychar), |_| metadata.len() == 0), PErrorKind::UnsupportedMetadata);
             from: or_fail(pidentifier,PErrorKind::InvalidName(e));
             _x:   or_fail(tag("~>"),PErrorKind::UnexpectedToken("~>"));
             to:   or_fail(pidentifier,PErrorKind::InvalidName(e));
@@ -567,6 +571,25 @@ fn pmetadata(i: PInput) -> Result<PMetadata> {
     )(i)
 }
 
+/// A metadata list is an optional list of metadata entries
+/// Comments are considered to be metadata
+fn pmetadata_list(i: PInput) -> Result<Vec<PMetadata>> {
+    many0(
+        alt((
+            pmetadata,
+            map(pcomment, |c|
+                PMetadata { 
+                    key: "comment".into(),
+                    // there is always at least one comment parsed by pcomment
+                    value: PValue::String(
+                        c.lines[0],
+                        c.lines.iter().map(|x| x.fragment().to_string()).collect::<Vec<String>>().join("\n"))
+                }
+            )
+        ))
+    )(i)
+}
+
 /// A parameters defines how a parameter can be passed.
 /// Its is of the form name:type=default where type and default are optional.
 /// Type can be guessed from default.
@@ -601,6 +624,7 @@ fn pparameter(i: PInput) -> Result<(PParameter, Option<PValue>)> {
 /// A resource definition defines how a resource is uniquely identified.
 #[derive(Debug, PartialEq)]
 pub struct PResourceDef<'src> {
+    pub metadata: Vec<PMetadata<'src>>,
     pub name: Token<'src>,
     pub parameters: Vec<PParameter<'src>>,
     pub parameter_defaults: Vec<Option<PValue<'src>>>,
@@ -609,6 +633,7 @@ pub struct PResourceDef<'src> {
 fn presource_def(i: PInput) -> Result<PResourceDef> {
     wsequence!(
         {
+            metadata: pmetadata_list;
             _x: tag("resource");
             name: pidentifier;
             s: tag("(");
@@ -618,6 +643,7 @@ fn presource_def(i: PInput) -> Result<PResourceDef> {
         } => { 
             let (parameters, parameter_defaults) = parameter_list.into_iter().unzip();
             PResourceDef {
+                      metadata,
                       name,
                       parameters,
                       parameter_defaults,
@@ -672,9 +698,9 @@ fn pcall_mode(i: PInput) -> Result<PCallMode> {
 /// A statement is the atomic element of a state definition.
 #[derive(Debug, PartialEq)]
 pub enum PStatement<'src> {
-    Comment(PComment<'src>),
-    VariableDefinition(Token<'src>, PValue<'src>),
+    VariableDefinition(Vec<PMetadata<'src>>, Token<'src>, PValue<'src>),
     StateCall(
+        Vec<PMetadata<'src>>,//metadata
         PCallMode,           // mode
         Token<'src>,         // resource
         Vec<PValue<'src>>,   // resource parameters
@@ -698,6 +724,7 @@ fn pstatement(i: PInput) -> Result<PStatement> {
         // One state
         wsequence!(
             {
+                metadata: pmetadata_list;
                 mode: pcall_mode;
                 resource: presource_ref;
                 _t: tag(".");
@@ -706,16 +733,16 @@ fn pstatement(i: PInput) -> Result<PStatement> {
                 parameters: separated_list( sp(tag(",")), pvalue );
                 _x: or_fail(tag(")"), PErrorKind::UnterminatedDelimiter(s));
                 outcome: opt(preceded(sp(tag("as")),pidentifier));
-            } => PStatement::StateCall(mode,resource.0,resource.1,state,parameters,outcome)
+            } => PStatement::StateCall(metadata,mode,resource.0,resource.1,state,parameters,outcome)
         ),
         // Variable definition
-        map(pvariable_definition, |(variable,value)| PStatement::VariableDefinition(variable,value)),
-        // Comments
-        map(pcomment, |x| PStatement::Comment(x)),
+        map(pair(pmetadata_list,pvariable_definition), |(metadata,(variable,value))| PStatement::VariableDefinition(metadata,variable,value)),
         // case
         wsequence!(
             {
+                metadata: pmetadata_list; // metadata is invalid here, check it after the 'case' tag below
                 case: tag("case");
+                _fail: or_fail(verify(peek(anychar), |_| metadata.len() == 0), PErrorKind::UnsupportedMetadata);
                 s: tag("{");
                 cases: separated_list(sp(tag(",")),
                         wsequence!(
@@ -741,7 +768,9 @@ fn pstatement(i: PInput) -> Result<PStatement> {
         // if 
         wsequence!(
             {
+                metadata: pmetadata_list; // metadata is invalid here, check it after the 'if' tag below
                 case: tag("if");
+                _fail: or_fail(verify(peek(anychar), |_| metadata.len() == 0), PErrorKind::UnsupportedMetadata);
                 expr: or_fail(penum_expression, PErrorKind::ExpectedKeyword("enum expression"));
                 _x: or_fail(tag("=>"), PErrorKind::UnexpectedToken("=>"));
                 stmt: or_fail(pstatement, PErrorKind::ExpectedKeyword("statement"));
@@ -759,6 +788,7 @@ fn pstatement(i: PInput) -> Result<PStatement> {
 /// It is composed of one or more statements.
 #[derive(Debug, PartialEq)]
 pub struct PStateDef<'src> {
+    pub metadata: Vec<PMetadata<'src>>,
     pub name: Token<'src>,
     pub resource_name: Token<'src>,
     pub parameters: Vec<PParameter<'src>>,
@@ -768,6 +798,7 @@ pub struct PStateDef<'src> {
 fn pstate_def(i: PInput) -> Result<PStateDef> {
     wsequence!(
         {
+            metadata: pmetadata_list;
             resource_name: pidentifier;
             _st: tag("state");
             name: pidentifier;
@@ -780,6 +811,7 @@ fn pstate_def(i: PInput) -> Result<PStateDef> {
         } => {
             let (parameters, parameter_defaults) = parameter_list.into_iter().unzip();
             PStateDef {
+                metadata,
                 name,
                 resource_name,
                 parameters,
@@ -792,6 +824,7 @@ fn pstate_def(i: PInput) -> Result<PStateDef> {
 
 #[derive(Debug, PartialEq)]
 pub struct PAliasDef<'src> {
+    metadata: Vec<PMetadata<'src>>,
     resource_alias: Token<'src>,
     resource_alias_parameters: Vec<Token<'src>>,
     state_alias: Token<'src>,
@@ -804,6 +837,7 @@ pub struct PAliasDef<'src> {
 fn palias_def(i: PInput) -> Result<PAliasDef> {
     wsequence!(
         {
+            metadata: pmetadata_list;
             _x: tag("alias");
             resource_alias: pidentifier;
             resource_alias_parameters: delimited(sp(tag("(")),separated_list(sp(tag(",")),pidentifier),sp(tag(")")));
@@ -816,7 +850,7 @@ fn palias_def(i: PInput) -> Result<PAliasDef> {
             _x: tag(".");
             state: pidentifier;
             state_parameters: delimited(sp(tag("(")),separated_list(sp(tag(",")),pidentifier),sp(tag(")")));
-        } => PAliasDef {resource_alias, resource_alias_parameters,
+        } => PAliasDef {metadata, resource_alias, resource_alias_parameters,
                         state_alias, state_alias_parameters,
                         resource, resource_parameters,
                         state, state_parameters }
@@ -826,8 +860,6 @@ fn palias_def(i: PInput) -> Result<PAliasDef> {
 /// A declaration is one of the a top level elements that can be found anywhere in the file.
 #[derive(Debug, PartialEq)]
 pub enum PDeclaration<'src> {
-    Comment(PComment<'src>),
-    Metadata(PMetadata<'src>),
     Resource(PResourceDef<'src>),
     State(PStateDef<'src>),
     Enum(PEnum<'src>),
@@ -838,9 +870,7 @@ pub enum PDeclaration<'src> {
 fn pdeclaration(i: PInput) -> Result<PDeclaration> {
     alt((
         map(presource_def, |x| PDeclaration::Resource(x)),
-        map(pmetadata, |x| PDeclaration::Metadata(x)),
         map(pstate_def, |x| PDeclaration::State(x)),
-        map(pcomment, |x| PDeclaration::Comment(x)),
         map(penum, |x| PDeclaration::Enum(x)),
         map(penum_mapping, |x| PDeclaration::Mapping(x)),
         map(pvariable_definition, |(variable,value)| PDeclaration::GlobalVar(variable,value)),

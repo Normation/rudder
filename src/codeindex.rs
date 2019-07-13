@@ -2,28 +2,28 @@ use crate::error::*;
 use crate::parser::*;
 use std::collections::HashMap;
 
-/// ResourceDeclaration is a temporary Resource structure for CodeIndex.
-/// If will be transformed into a ResourceDef in AST.
-#[derive(Debug)]
-pub struct ResourceDeclaration<'src> {
-    pub metadata: HashMap<Token<'src>, PValue<'src>>,
-    pub parameters: Vec<PParameter<'src>>,
-    //                   name,          metadata                           state
-    pub states: HashMap<Token<'src>, (HashMap<Token<'src>, PValue<'src>>, PStateDef<'src>)>,
-}
-
 /// CodeIndex is a global structure that stores all parsed data.
-/// We need a global view and some indexes before creating the AST.
+/// We need a global reference with direct acces to structures
+/// and some indexes/hashmaps before creating the AST.
 #[derive(Debug)]
 pub struct CodeIndex<'src> {
     pub enums: Vec<PEnum<'src>>,
     pub enum_mappings: Vec<PEnumMapping<'src>>,
-    pub resources: HashMap<Token<'src>, ResourceDeclaration<'src>>,
+    pub resources: HashMap<Token<'src>, TmpResourceDef<'src>>,
     pub variable_declarations: Vec<(Token<'src>, PValue<'src>)>,
     pub parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<PValue<'src>>>>,
                       // child    parent
     pub parents: Vec<(Token<'src>, Token<'src>)>,
     pub aliases: Vec<PAliasDef<'src>>,
+}
+
+/// TmpResourceDef is a temporary Resource structure for CodeIndex.
+/// It will be transformed into a ResourceDef in final AST.
+#[derive(Debug)]
+pub struct TmpResourceDef<'src> {
+    pub metadata: Vec<PMetadata<'src>>,
+    pub parameters: Vec<PParameter<'src>>,
+    pub states: HashMap<Token<'src>, PStateDef<'src>>,
 }
 
 impl<'src> CodeIndex<'src> {
@@ -41,55 +41,21 @@ impl<'src> CodeIndex<'src> {
 
     /// Add a file parsed with the top level parser.
     /// Call this once for each file before creating the AST.
-    /// Uniqueness checks are done here.
+    /// Most uniqueness checks are done here.
     pub fn add_parsed_file(&mut self, filename: &'src str, file: PFile<'src>) -> Result<()> {
         if file.header.version != 0 {
             panic!("Multiple format not supported yet");
         }
-        let mut current_metadata: HashMap<Token<'src>, PValue<'src>> = HashMap::new();
         // iterate over all parsed declarations
         fix_results(file.code.into_iter().map(|declaration| {
             match declaration {
-                // comments are concatenated and are considered metadata.
-                PDeclaration::Comment(c) => {
-                    if current_metadata.contains_key(&Token::new("comment", filename)) {
-                        current_metadata
-                            .entry(Token::new("comment", filename))
-                            .and_modify(|e| {
-                                *e = match e {
-                                    PValue::String(tag, st) => {
-                                        PValue::String(*tag, format!("{}\n{}", st.to_string(), c.to_string()))
-                                    }
-                                    _ => panic!("Non string comment has been created"),
-                                }
-                            });
-                    } else {
-                        current_metadata.insert("comment".into(), PValue::String(c.position(), c.to_string()));
-                    }
-                }
 
-                // Metadata are stored into a HashMap for later use.
-                PDeclaration::Metadata(m) => {
-                    // metadata must not be called "comment"
-                    if m.key == Token::from("comment") {
-                        fail!(m.key, "Metadata name '{}' is forbidden", m.key);
-                    }
-                    if current_metadata.contains_key(&m.key) {
-                        fail!(
-                            m.key,
-                            "Metadata name '{}' is already defined at {}",
-                            m.key,
-                            current_metadata.entry(m.key).key()
-                        );
-                    }
-                    current_metadata.insert(m.key, m.value);
-                }
-
-                // Resource declaration are stored in a temporary format (ResourceDeclaration) with their metadata.
+                // Resource declaration are stored in a temporary format (TmpResourceDef) with their metadata.
                 // Uniqueness is checked.
                 // Parameter defaults are stored separately because they are needed globally during AST creation.
                 PDeclaration::Resource(rd) => {
                     let PResourceDef {
+                        metadata,
                         name,
                         parameters,
                         parameter_defaults,
@@ -103,10 +69,7 @@ impl<'src> CodeIndex<'src> {
                             self.resources.entry(name).key()
                         );
                     }
-                    let metadata = current_metadata
-                        .drain() // Move the content without moving the structure
-                        .collect();
-                    let resource = ResourceDeclaration {
+                    let resource = TmpResourceDef {
                         metadata,
                         parameters,
                         states: HashMap::new(),
@@ -120,8 +83,6 @@ impl<'src> CodeIndex<'src> {
                     // default values are stored in a separate structure
                     self.parameter_defaults
                         .insert((name, None), parameter_defaults);
-                    // Reset metadata
-                    current_metadata = HashMap::new();
                 }
 
                 // State declaration are stored within resource declarations.
@@ -129,6 +90,7 @@ impl<'src> CodeIndex<'src> {
                 // Parameter defaults are stored separately because they are needed globally during AST creation.
                 PDeclaration::State(st) => {
                     let PStateDef {
+                        metadata,
                         name,
                         resource_name,
                         parameters,
@@ -153,10 +115,8 @@ impl<'src> CodeIndex<'src> {
                             rd.states.entry(name).key()
                         );
                     }
-                    let metadata = current_metadata
-                        .drain() // Move the content without moving the structure
-                        .collect();
                     let state = PStateDef {
+                        metadata,
                         name,
                         resource_name,
                         parameters,
@@ -164,37 +124,19 @@ impl<'src> CodeIndex<'src> {
                         statements,
                     };
                     // store state declaration
-                    rd.states.insert(name, (metadata, state));
+                    rd.states.insert(name, state);
                     // default values are stored in a separate structure
                     self.parameter_defaults
                         .insert((resource_name, Some(name)), parameter_defaults);
-                    // reset metadata
-                    current_metadata = HashMap::new();
                 }
 
                 // Enums are stored in a vec
                 PDeclaration::Enum(e) => {
-                    // Metadata not supported on enums
-                    if !current_metadata.is_empty() {
-                        fail!(
-                            e.name,
-                            "Metadata and documentation comment not supported on enums yet (in {})",
-                            e.name
-                        )
-                    }
                     self.enums.push(e);
                 }
 
                 // Enum mappings are stored in a vec
                 PDeclaration::Mapping(em) => {
-                    // Metadata not supported on enums
-                    if !current_metadata.is_empty() {
-                        fail!(
-                            &em.to,
-                            "Metadata and documentation comment not supported on enums yet (in {})",
-                            &em.to
-                        )
-                    }
                     self.enum_mappings.push(em);
                 }
 
@@ -232,23 +174,10 @@ mod tests {
         assert!(parse_string(
             "@format=0
 @test=\"ok\"
+resource x()
         "
         )
         .is_ok());
-        assert!(parse_string(
-            "@format=0
-@test=\"ok\"
-@test=\"ko\"
-        "
-        )
-        .is_err());
-        assert!(parse_string(
-            "@format=0
-@comment=\"ok\"
-## ko
-        "
-        )
-        .is_err());
     }
 
     #[test]
@@ -259,13 +188,6 @@ enum abc { a, b, c }
         "
         )
         .is_ok());
-        assert!(parse_string(
-            "@format=0
-## enum comment
-enum abc { a, b, c }
-        "
-        )
-        .is_err());
     }
 
     #[test]
