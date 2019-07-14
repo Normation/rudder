@@ -51,7 +51,7 @@ import com.normation.inventory.domain.SecurityToken
 @RunWith(classOf[JUnitRunner])
 class TestSignatureService extends Specification with Loggable {
 
-  Security.addProvider(new BouncyCastleProvider());
+  Security.addProvider(new BouncyCastleProvider())
 
   private[this] def getInputStream (path : String) = {
     val url = this.getClass.getClassLoader.getResource(path)
@@ -125,7 +125,8 @@ class TestSignatureService extends Specification with Loggable {
         signature <- boxedSignature
         (pubKey,_) <- TestInventoryDigestServiceV1.getKey(signed_report)
         inventoryStream = getInputStream("fusion-report/signed_inventory.ocs")
-        check <- TestInventoryDigestServiceV1.check(pubKey, signature, inventoryStream)
+        parsed <- TestInventoryDigestServiceV1.parseSecurityToken(pubKey)
+        check <- TestInventoryDigestServiceV1.check(parsed.publicKey, signature, inventoryStream)
       } yield {
         check
       }) match {
@@ -143,7 +144,8 @@ class TestSignatureService extends Specification with Loggable {
         signature <- boxedSignature
         (pubKey,_) <- TestInventoryDigestServiceV1.getKey(unsigned_report)
         inventoryStream = getInputStream("fusion-report/node-with-server-role-attribute.ocs")
-        check <- TestInventoryDigestServiceV1.check(pubKey, signature, inventoryStream)
+        parsed <- TestInventoryDigestServiceV1.parseSecurityToken(pubKey)
+        check <- TestInventoryDigestServiceV1.check(parsed.publicKey, signature, inventoryStream)
       } yield {
         check
       }) match {

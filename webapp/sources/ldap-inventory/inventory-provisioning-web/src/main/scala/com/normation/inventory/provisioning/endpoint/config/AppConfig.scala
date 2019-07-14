@@ -54,6 +54,7 @@ import org.slf4j.LoggerFactory
 import com.normation.inventory.ldap.provisioning.PendingNodeIfNodeWasRemoved
 import java.security.Security
 
+import net.liftweb.common.Box
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 
 import scala.concurrent.duration._
@@ -264,6 +265,20 @@ class AppConfig {
     c
   }
 
+  /*
+   * A method that check LDAP health status.
+   * It must be quick and simple.
+   */
+  val checkLdapAlive: () => Box[Unit] = {
+    () =>
+    for {
+      con <- rwLdapConnectionProvider
+      res <- con.get(pendingNodesDit.NODES.dn, "1.1")
+    } yield {
+      ()
+    }
+  }
+
   @Bean
   def inventoryProcessor() = new InventoryProcessor(
       pipelinedReportUnmarshaller
@@ -271,7 +286,7 @@ class AppConfig {
     , WAITING_QUEUE_SIZE
     , fullInventoryRepository
     , new InventoryDigestServiceV1(fullInventoryRepository)
-    , rwLdapConnectionProvider
+    , checkLdapAlive
     , pendingNodesDit
   )
 

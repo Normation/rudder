@@ -37,6 +37,7 @@
 package com.normation.inventory.services.provisioning
 
 import java.io.InputStream
+import java.security.PublicKey
 
 import net.liftweb.common._
 import java.util.Properties
@@ -45,7 +46,10 @@ import java.security.Signature
 import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
 import com.normation.inventory.domain.{PublicKey => AgentKey, _}
 import org.apache.commons.io.IOUtils
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
 import org.bouncycastle.util.encoders.Hex
+
+import scala.util.control.NonFatal
 
 /**
  * We are using a simple date structure that handle the digest file
@@ -111,34 +115,43 @@ trait CheckInventoryDigest {
    * Here, we want to calculate the digest. The good library for that is most likely
    * bouncy castle: https://www.bouncycastle.org/
    */
-  def check(securityToken: SecurityToken, digest: InventoryDigest, inventoryStream: InputStream): Box[Boolean] = {
-    securityToken match {
-      case rudderKey : com.normation.inventory.domain.PublicKey =>
-        rudderKey.publicKey match {
-          case Full(pubKey) =>
-            try {
-              val signature = Signature.getInstance("SHA512withRSA", "BC");
-              signature.initVerify(pubKey);
-              val data = IOUtils.toByteArray(inventoryStream)
-              signature.update(data);
-              digest match {
-                case InventoryDigestV1(_,digest) =>
-                  val sig = Hex.decode(digest)
-                  Full(signature.verify(sig))
-              }
-            } catch {
-              case e : Exception =>
-                Failure(e.getMessage())
-            }
-          case eb : EmptyBox =>
-            eb
-        }
-
-      // We don't sign with certificate for now
-      case _ : Certificate => Full(true)
+  def check(publicKey: PublicKey, digest: InventoryDigest, inventoryStream: InputStream): Box[Boolean] = {
+    try {
+      val signature = Signature.getInstance("SHA512withRSA", "BC");
+      signature.initVerify(publicKey);
+      val data = IOUtils.toByteArray(inventoryStream)
+      signature.update(data);
+      digest match {
+        case InventoryDigestV1(_,digest) =>
+          val sig = Hex.decode(digest)
+          Full(signature.verify(sig))
+      }
+    } catch {
+      case e : Exception =>
+        Failure(e.getMessage())
     }
   }
 
+}
+
+
+/*
+ * A data class to store parsed information about a Rudder SecurityToken
+ * (either just a public key and optionnaly a subject, if coming from a certificate)
+ *
+ * In suject, the first element of the pair is an OID, and the second the value.
+ * We only use (for now):
+ * - 0.9.2342.19200300.100.1.1 : userid (UID) for the node ID
+ * - 2.5.4.3: commonName for the hostname
+ */
+final case class ParsedSecurityToken(
+    publicKey: PublicKey
+  , subject  : Option[List[(String, String)]]
+)
+
+object ParsedSecurityToken {
+  val nodeidOID   = "0.9.2342.19200300.100.1.1"
+  val hostnameOID = "2.5.4.3"
 }
 
 /**
@@ -148,6 +161,21 @@ trait GetKey {
 
   def getKey (receivedInventory  : InventoryReport) : Box[(SecurityToken, KeyStatus)]
 
+   def parseSecurityToken(token: SecurityToken): Box[ParsedSecurityToken] = {
+      token match {
+        case x:AgentKey    => x.publicKey.map(pk => ParsedSecurityToken(pk, None))
+        case x:Certificate =>
+          x.cert.flatMap { ch =>
+            try {
+              val c = new JcaX509CertificateConverter().getCertificate( ch )
+              val dn = ch.getSubject.getRDNs.flatMap(_.getTypesAndValues.flatMap(tv => (tv.getType.toString, tv.getValue.toString) :: Nil)).toList
+              Full(ParsedSecurityToken(c.getPublicKey, Some(dn)))
+            } catch {
+              case NonFatal(ex) => Failure(s"Error when trying to parse agent certificate information: ${ex.getMessage}")
+            }
+          }
+      }
+    }
 }
 
 class InventoryDigestServiceV1(
@@ -198,9 +226,10 @@ class InventoryDigestServiceV1(
         }
 
         extractKey(inventory).map((_,status))
-      case _ =>
+      case Empty =>
         val status = receivedInventory.node.main.keyStatus
         extractKey(receivedInventory.node).map((_,status))
+      case f: Failure => f
     }
   }
 }
