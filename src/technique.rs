@@ -34,7 +34,7 @@ struct MethodCall {
 }
 
 pub fn translate_file(json_file: &Path, rl_file: &Path) -> Result<()> {
-    let config_data = fs::read_to_string("config.toml").expect("Cannot read config.toml file");
+    let config_data = fs::read_to_string("data/config.toml").expect("Cannot read config.toml file");
     let config: toml::Value = toml::from_str(&config_data).expect("Invalig config.toml file");
 
     // we use if let for error conversion

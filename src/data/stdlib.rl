@@ -1,0 +1,171 @@
+@format=0
+resource command(command)
+resource condition(condition)
+resource directory(directory_name)
+resource environment(name)
+resource file(file)
+resource group(group)
+resource http(method)
+resource monitoring(key)
+resource package(name)
+resource permissions(path)
+resource schedule(job_id)
+resource service(service_name)
+resource sharedfile(source_uuid)
+resource user(login)
+resource variable(variable_prefix,variable_name)
+command state execution(){}
+command state execution_once(ok_codes,until,unique_id){}
+command state execution_result(kept_codes,repaired_codes){}
+condition state from_command(command,true_codes,false_codes){}
+condition state from_expression(condition_expression){}
+condition state from_expression_persistent(condition_expression,duration){}
+condition state from_variable_existence(variable_name){}
+condition state from_variable_match(variable_name,expected_match){}
+condition state once(){}
+directory state absent(recursive){}
+directory state check_exists(){}
+directory state create(){}
+directory state present(){}
+environment state variable(value){}
+file state absent(){}
+file state block_present(){}
+file state block_present_in_section(section_start,section_end,block){}
+file state check_block_device(){}
+file state check_character_device(){}
+file state check_exists(){}
+file state check_FIFO_pipe(){}
+file state check_hardlink(file_name_2){}
+file state check_regular(){}
+file state check_socket(){}
+file state check_symlink(){}
+file state check_symlinkto(target){}
+file state content(lines,enforce){}
+file state copy_from_local_source(destination){}
+file state copy_from_local_source_recursion(destination,recursion){}
+file state copy_from_local_source_with_check(destination,check_command,rc_ok){}
+file state copy_from_remote_source(destination){}
+file state copy_from_remote_source_recursion(destination,recursion){}
+file state create(){}
+file state create_symlink(){}
+file state create_symlink_enforce(destination,enforce){}
+file state create_symlink_force(){}
+file state download(){}
+file state enforce_content(lines,enforce){}
+file state ensure_block_in_section(section_start,section_end,block){}
+file state ensure_block_present(){}
+file state ensure_keys_values(keys,separator){}
+file state ensure_key_value(key,value,separator){}
+file state ensure_key_value_option(key,value,option,separator){}
+file state ensure_key_value_parameter_in_list(key,key_value_separator,parameter,parameter_separator,leading_char_separator,closing_char_separator){}
+file state ensure_key_value_parameter_not_in_list(key,key_value_separator,parameter_regex,parameter_separator,leading_char_separator,closing_char_separator){}
+file state ensure_key_value_present_in_ini_section(section,name,value){}
+file state ensure_line_present_in_ini_section(section,line){}
+file state ensure_line_present_in_xml_tag(tag,line){}
+file state ensure_lines_absent(){}
+file state ensure_lines_present(){}
+file state from_http_server(){}
+file state from_local_source(destination){}
+file state from_local_source_recursion(destination,recursion){}
+file state from_local_source_with_check(destination,check_command,rc_ok){}
+file state from_remote_source(destination){}
+file state from_remote_source_recursion(destination,recursion){}
+file state from_shared_folder(destination,hash_type){}
+file state from_string_mustache(destination){}
+file state from_template(destination){}
+file state from_template_jinja2(destination){}
+file state from_template_mustache(){}
+file state from_template_type(destination,template_type){}
+file state keys_values_present(keys,separator){}
+file state key_value_parameter_absent_in_list(key,key_value_separator,parameter_regex,parameter_separator,leading_char_separator,closing_char_separator){}
+file state key_value_parameter_present_in_list(key,key_value_separator,parameter,parameter_separator,leading_char_separator,closing_char_separator){}
+file state key_value_present_in_ini_section(section,name,value){}
+file state key_value_present(key,value,separator){}
+file state key_value_present_option(key,value,separator,option){}
+file state line_present_in_ini_section(section,line){}
+file state line_present_in_xml_tag(tag,line){}
+file state lines_absent(){}
+file state lines_present(){}
+file state present(){}
+file state remove(){}
+file state replace_lines(line,replacement){}
+file state report_content_head(limit){}
+file state report_content(regex,context){}
+file state report_content_tail(limit){}
+file state symlink_present(){}
+file state symlink_present_force(){}
+file state symlink_present_option(destination,enforce){}
+file state template_expand(target_file,mode,owner,group){}
+group state absent(){}
+group state present(){}
+http state request_check_status_headers(url,expected_status,headers){}
+http state request_content_headers(url,content,headers){}
+monitoring state parameter(value){}
+monitoring state template(){}
+package state absent(){}
+package state check_installed(){}
+package state install(){}
+package state install_version_cmp_update(version_comparator,package_version,action,update_policy){}
+package state install_version_cmp(version_comparator,package_version,action){}
+package state install_version(package_version){}
+package state present(){}
+package state remove(){}
+package state state_options(version,architecture,provider,state,options){}
+package state state(version,architecture,provider,state){}
+package state verify(){}
+package state verify_version(package_version){}
+permissions state acl_entry(recursive,user,group,other){}
+permissions state dirs(mode,owner,group){}
+permissions state dirs_recurse(mode,owner,group){}
+permissions state dirs_recursive(mode,owner,group){}
+permissions state posix_acls_absent(recursive){}
+permissions state recurse(mode,owner,group){}
+permissions state recursive(mode,owner,group){}
+permissions state type_recursion(mode,owner,group,type,recursion){}
+schedule state simple(agent_periodicity,max_execution_delay_minutes,max_execution_delay_hours,start_on_minutes,start_on_hours,start_on_day_of_week,periodicity_minutes,periodicity_hours,periodicity_days,mode){}
+schedule state simple_catchup(agent_periodicity,max_execution_delay_minutes,max_execution_delay_hours,start_on_minutes,start_on_hours,start_on_day_of_week,periodicity_minutes,periodicity_hours,periodicity_days){}
+schedule state simple_nodups(agent_periodicity,max_execution_delay_minutes,max_execution_delay_hours,start_on_minutes,start_on_hours,start_on_day_of_week,periodicity_minutes,periodicity_hours,periodicity_days){}
+schedule state simple_stateless(agent_periodicity,max_execution_delay_minutes,max_execution_delay_hours,start_on_minutes,start_on_hours,start_on_day_of_week,periodicity_minutes,periodicity_hours,periodicity_days){}
+service state action(action){}
+service state check_disabled_at_boot(){}
+service state check_running(){}
+service state check_running_ps(){}
+service state check_started_at_boot(){}
+service state disabled(){}
+service state enabled(){}
+service state ensure_disabled_at_boot(){}
+service state ensure_running(){}
+service state ensure_running_path(service_path){}
+service state ensure_started_at_boot(){}
+service state ensure_stopped(){}
+service state reload(){}
+service state restart(){}
+service state restart_if(trigger_class){}
+service state start(){}
+service state started(){}
+service state started_path(service_path){}
+service state stop(){}
+service state stopped(){}
+sharedfile state from_node(file_id,file_path){}
+sharedfile state to_node(file_id,file_path,ttl){}
+user state absent(){}
+user state create(description,home,group,shell,locked){}
+user state fullname(fullname){}
+user state home(home){}
+user state locked(){}
+user state password_hash(password){}
+user state present(){}
+user state primary_group(primary_group){}
+user state shell(shell){}
+user state uid(uid){}
+variable state dict_from_file(file_name){}
+variable state dict_merge(first_variable,second_variable){}
+variable state dict_merge_tolerant(first_variable,second_variable){}
+variable state dict(value){}
+variable state iterator_from_file(file_name,separator_regex,comments_regex){}
+variable state iterator(value,separator){}
+variable state string_default(source_variable,default_value){}
+variable state string_from_command(command){}
+variable state string_from_file(file_name){}
+variable state string_from_math_expression(expression,format){}
+variable state string(value){}

@@ -47,6 +47,7 @@ struct Opt {
     output_format: Option<String>,
 }
 
+/// Read file, parse it and store it in the global codeindex
 fn add_file<'a>(code_index: &mut CodeIndex<'a>, source_list: &'a SourceList, path: &Path, filename: &'a str) {
     let content = fs::read_to_string(path)
         .unwrap_or_else(|_| panic!("Something went wrong reading the file {}", filename));
@@ -55,7 +56,7 @@ fn add_file<'a>(code_index: &mut CodeIndex<'a>, source_list: &'a SourceList, pat
         Err(e) => panic!("There was an error during parsing:\n{}", e),
         Ok(o) => o,
     };
-    match code_index.add_parsed_file(filename, file) {
+    match code_index.add_parsed_file(file) {
         Err(e) => panic!("There was an error during code insertion:\n{}", e),
         Ok(()) => {}
     };
@@ -107,9 +108,11 @@ fn compile(source: &Path) {
     let sources = SourceList::new();
 
     // read and add files
-    let stdlib = Path::new("stdlib.ncf");
+    let corelib = Path::new("data/corelib.rl");
+    let stdlib = Path::new("data/stdlib.rl");
     let filename = source.to_string_lossy();
-    add_file(&mut code_index, &sources, stdlib, "stdlib.ncf");
+    add_file(&mut code_index, &sources, corelib, "corelib.rl");
+    add_file(&mut code_index, &sources, stdlib, "stdlib.rl");
     add_file(&mut code_index, &sources, source, &filename);
 
     // finish parsing into AST

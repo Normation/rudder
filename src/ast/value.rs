@@ -69,7 +69,9 @@ impl<'src> Value<'src> {
         match pvalue {
             PValue::String(pos, s) => Ok(Value::String(StringObject::from_pstring(pos, s)?)),
             PValue::Number(pos, n) => Ok(Value::Number(pos, n)),
-            PValue::EnumExpression(e) => fail!(e.token(), "Enum expression are not allowed in static context"),
+            // TODO replace with real thing
+            PValue::EnumExpression(e) => Ok(Value::Number("".into(), 1.)),
+            //PValue::EnumExpression(e) => fail!(e.token(), "Enum expression are not allowed in static context"),
             PValue::List(l) => Ok(Value::List(fix_vec_results(l.into_iter().map(|x| Value::from_static_pvalue(x)))?)),
             PValue::Struct(s) => Ok(Value::Struct(
                     fix_map_results(s.into_iter().map( |(k,v)| Ok((k,Value::from_static_pvalue(v)?)) ))?

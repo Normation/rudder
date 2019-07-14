@@ -160,11 +160,6 @@ fn pheader(i: PInput) -> Result<PHeader> {
 pub struct PComment<'src> {
     lines: Vec<Token<'src>>,
 }
-impl<'src> PComment<'src> {
-    pub fn position(&self) -> Token<'src> {
-        self.lines[0]
-    }
-}
 impl<'src> ToString for PComment<'src> {
     fn to_string(&self) -> String {
         self.lines.iter().map(|x| x.to_string()).collect::<Vec<String>>().join("\n")

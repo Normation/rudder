@@ -1,0 +1,40 @@
+#!/bin/bash
+
+echo "@format=0"
+for gm in ~/Rudder/ncf/tree/30_generic_methods/*
+do
+  [[ "${gm}" =~ /_ ]] && continue
+  [[ "${gm}" =~ /README ]] && continue
+  blocks=1
+  params=1
+  [[ "${gm}" =~ /variable_ ]] && params=2
+  [[ "${gm}" =~ /permissions.cf ]] && continue
+  # TODO files
+  # TODO permissions
+  perl -ne 'BEGIN{
+  $i=0;
+  $file="'${gm}'";
+  $resource_blocks='$blocks';
+  $resource_identfiers='$params';
+  $file =~ /.*\/((?:[a-zA-Z0-9]+_){$resource_blocks})(\w+)\.cf/;
+  $resource = $1;
+  chop $resource;
+  $state = $2;
+  @resource_params=();
+  @state_params=();
+}
+{
+  if (/^# \@parameter (\w+) .*$/) {
+    if ($i < $resource_identfiers) {
+      push @resource_params, $1;
+    } else {
+      push @state_params, $1;
+    }
+    $i++;
+  }
+}
+END {
+print("resource $resource(".join(",",@resource_params).")\n");
+print("$resource state $state(".join(",",@state_params)."){}\n");
+}' "${gm}"
+done

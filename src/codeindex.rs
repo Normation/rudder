@@ -5,6 +5,8 @@ use std::collections::HashMap;
 /// CodeIndex is a global structure that stores all parsed data.
 /// We need a global reference with direct acces to structures
 /// and some indexes/hashmaps before creating the AST.
+/// 
+/// It is used to insert parsed files one by one.
 #[derive(Debug)]
 pub struct CodeIndex<'src> {
     pub enums: Vec<PEnum<'src>>,
@@ -42,7 +44,7 @@ impl<'src> CodeIndex<'src> {
     /// Add a file parsed with the top level parser.
     /// Call this once for each file before creating the AST.
     /// Most uniqueness checks are done here.
-    pub fn add_parsed_file(&mut self, filename: &'src str, file: PFile<'src>) -> Result<()> {
+    pub fn add_parsed_file(&mut self, file: PFile<'src>) -> Result<()> {
         if file.header.version != 0 {
             panic!("Multiple format not supported yet");
         }
@@ -163,15 +165,15 @@ impl<'src> CodeIndex<'src> {
 mod tests {
     use super::*;
 
-    fn parse_string(input: &str) -> Result<()> {
+    fn parse_code(input: &str) -> Result<()> {
         let mut code_index = CodeIndex::new();
         let content = parse_file("test_string", input).unwrap();
-        code_index.add_parsed_file("test_string", content)
+        code_index.add_parsed_file(content)
     }
 
     #[test]
     fn test_metadata() {
-        assert!(parse_string(
+        assert!(parse_code(
             "@format=0
 @test=\"ok\"
 resource x()
@@ -182,7 +184,7 @@ resource x()
 
     #[test]
     fn test_enum() {
-        assert!(parse_string(
+        assert!(parse_code(
             "@format=0
 enum abc { a, b, c }
         "
@@ -192,14 +194,14 @@ enum abc { a, b, c }
 
     #[test]
     fn test_resource() {
-        assert!(parse_string(
+        assert!(parse_code(
             "@format=0
 ## resource comment
 resource File(name)
         "
         )
         .is_ok());
-        assert!(parse_string(
+        assert!(parse_code(
             "@format=0
 ## resource comment
 resource File(name)
@@ -207,21 +209,21 @@ resource File(name2)
         "
         )
         .is_err());
-        assert!(parse_string(
+        assert!(parse_code(
             "@format=0
 resource File(name)
 File state content() { }
         "
         )
         .is_ok());
-        assert!(parse_string(
+        assert!(parse_code(
             "@format=0
 resource File(name)
 File2 state content() { }
         "
         )
         .is_err());
-        assert!(parse_string(
+        assert!(parse_code(
             "@format=0
 resource File(name)
 File state content() { }
@@ -233,19 +235,19 @@ File state content() { }
 
     #[test]
     fn test_defaults() {
-        assert!(parse_string(
+        assert!(parse_code(
             "@format=0
 resource File(name=\"default\")
         "
         )
         .is_ok());
-        assert!(parse_string(
+        assert!(parse_code(
             "@format=0
 resource File(name=\"default\",path)
         "
         )
         .is_ok()); // no default order check here
-        assert!(parse_string(
+        assert!(parse_code(
             "@format=0
 resource File(name=\"defaul${\")
         "

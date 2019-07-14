@@ -11,8 +11,7 @@ mod value;
 /// The generator submodule contains a generator trait used to generate code.
 /// It is then split into one module per agent.
 ///
-// TODO why pub here ?
-pub use crate::codeindex::{CodeIndex,TmpResourceDef};
+use crate::codeindex::{CodeIndex,TmpResourceDef};
 use self::context::VarContext;
 use self::enums::{EnumExpression, EnumList};
 use self::resource::*;
@@ -37,6 +36,58 @@ pub struct AST<'src> {
 // TODO compatibility metadata
 
 impl<'src> AST<'src> {
+    /// Produce the final AST data structure.
+    /// Call this when all files have been added.
+    pub fn from_code_index(code_index: CodeIndex) -> Result<AST> {
+        let CodeIndex {
+            enums,
+            enum_mappings,
+            resources,
+            variable_declarations,
+            parameter_defaults,
+            parents,
+            aliases,
+        } = code_index;
+        let mut var_context = VarContext::new();
+        // first create enums since they have no dependencies
+        let enum_list = AST::create_enums(&mut var_context, enums, enum_mappings)?;
+        // global context depends on enums
+        fix_results(variable_declarations.iter().map(|(variable, value)|
+            var_context.new_variable(None, *variable, value.get_type())
+        ))?;
+        let mut global_context = GlobalContext {
+            var_context,
+            enum_list,
+            parameter_defaults: HashMap::new(),
+        };
+        // variable declaration depends on global context and enums
+        let variable_declarations =
+            AST::create_declarations(&global_context, variable_declarations)?;
+        // default parameters depend on globals
+        let parameter_defaults =
+            AST::create_default_values(&global_context, parameter_defaults)?;
+        global_context.parameter_defaults = parameter_defaults;
+        //let aliases = AST::create_aliases(aliases)?;
+        // prepare children list for each resource
+        let mut children_list = AST::create_children_list(parents, &resources)?;
+        // resources depend on everything else
+        let resources = fix_map_results(resources.into_iter().map(|(rn, rd)| {
+            let children = match children_list.remove(&rn) {
+                None => HashSet::new(),
+                Some(ch) => ch,
+            };
+            Ok((
+                rn,
+                ResourceDef::from_resource_declaration(rn, rd, children, &global_context)?,
+            ))
+        }))?;
+        Ok(AST {
+            global_context,
+            resources,
+            variable_declarations,
+        })
+    }
+
     /// Create global enum list structure from all source code enum and enum mapping declarations.
     /// Fill up the context with a single global variable per ancestor global enum.
     fn create_enums(
@@ -149,58 +200,6 @@ impl<'src> AST<'src> {
             children_list.get_mut(&parent).unwrap().insert(child);
         }
         Ok(children_list)
-    }
-
-    /// Produce the final AST data structure.
-    /// Call this when all files have been added.
-    pub fn from_code_index(code_index: CodeIndex) -> Result<AST> {
-        let CodeIndex {
-            enums,
-            enum_mappings,
-            resources,
-            variable_declarations,
-            parameter_defaults,
-            parents,
-            aliases,
-        } = code_index;
-        let mut var_context = VarContext::new();
-        // first create enums since they have no dependencies
-        let enum_list = AST::create_enums(&mut var_context, enums, enum_mappings)?;
-        // global context depends on enums
-        fix_results(variable_declarations.iter().map(|(variable, value)|
-            var_context.new_variable(None, *variable, value.get_type())
-        ))?;
-        let mut global_context = GlobalContext {
-            var_context,
-            enum_list,
-            parameter_defaults: HashMap::new(),
-        };
-        // variable declaration depends on global context and enums
-        let variable_declarations =
-            AST::create_declarations(&global_context, variable_declarations)?;
-        // default parameters depend on globals
-        let parameter_defaults =
-            AST::create_default_values(&global_context, parameter_defaults)?;
-        global_context.parameter_defaults = parameter_defaults;
-        //let aliases = AST::create_aliases(aliases)?;
-        // prepare children list for each resource
-        let mut children_list = AST::create_children_list(parents, &resources)?;
-        // resources depend on everything else
-        let resources = fix_map_results(resources.into_iter().map(|(rn, rd)| {
-            let children = match children_list.remove(&rn) {
-                None => HashSet::new(),
-                Some(ch) => ch,
-            };
-            Ok((
-                rn,
-                ResourceDef::from_resource_declaration(rn, rd, children, &global_context)?,
-            ))
-        }))?;
-        Ok(AST {
-            global_context,
-            resources,
-            variable_declarations,
-        })
     }
 
     fn binding_check(&self, statement: &Statement) -> Result<()> {

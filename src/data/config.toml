@@ -1,0 +1,15 @@
+
+[methods]
+variable = 2
+package =  1
+command =  1
+# ex: object = resource_arg_count
+#file = 1
+
+[classes]
+command_execution = "(command_execution)_(.*)"
+
+[variables]
+
+[conditions]
+
