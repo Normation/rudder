@@ -37,6 +37,8 @@
 
 package com.normation.inventory.provisioning.endpoint
 
+import java.security.{PublicKey => JavaSecPubKey}
+
 import com.normation.NamedZioLogger
 import com.normation.errors.Chained
 import com.normation.errors.IOResult
@@ -45,15 +47,16 @@ import com.normation.inventory.domain.CertifiedKey
 import com.normation.inventory.domain.InventoryLogger
 import com.normation.inventory.domain.InventoryReport
 import com.normation.errors._
+import com.normation.inventory.domain.InventoryError
+import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.UndefinedKey
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.provisioning.endpoint.FusionReportEndpoint._
 import com.normation.inventory.services.core.FullInventoryRepository
 import com.normation.inventory.services.provisioning.InventoryDigestServiceV1
+import com.normation.inventory.services.provisioning.ParsedSecurityToken
 import com.normation.inventory.services.provisioning.ReportSaver
 import com.normation.inventory.services.provisioning.ReportUnmarshaller
-import com.normation.ldap.sdk.LDAPConnectionProvider
-import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.zio.ZioRuntime
 import com.unboundid.ldif.LDIFChangeRecord
 import org.joda.time.Duration
@@ -100,13 +103,15 @@ object StatusLog {
   }
 }
 
+
+
 class InventoryProcessor(
     unmarshaller    : ReportUnmarshaller
   , reportSaver     : ReportSaver[Seq[LDIFChangeRecord]]
   , val maxQueueSize: Int
   , repo            : FullInventoryRepository[Seq[LDIFChangeRecord]]
   , digestService   : InventoryDigestServiceV1
-  , ldap            : LDAPConnectionProvider[RwLDAPConnection]
+  , checkAliveLdap  : () => IOResult[Unit]
   , nodeInventoryDit: InventoryDit
 ) {
 
@@ -134,13 +139,13 @@ class InventoryProcessor(
   // optimized :/
   def saveInventory(info: SaveInventoryInfo): IOResult[InventoryProcessStatus] = {
 
-    def saveWithSignature(report: InventoryReport, newInventoryStream: () => InputStream, newSignature: () => InputStream): IOResult[InventoryProcessStatus] = {
+    def saveWithSignature(report: InventoryReport, publicKey: JavaSecPubKey, newInventoryStream: () => InputStream, newSignature: () => InputStream): IOResult[InventoryProcessStatus] = {
       ZIO.bracket(Task.effect(newInventoryStream()).mapError(SystemError(s"Error when reading inventory file '${report.name}'", _)))(is => Task.effect(is.close()).run) { inventoryStream =>
         ZIO.bracket(Task.effect(newSignature()).mapError(SystemError(s"Error when reading signature for inventory file '${report.name}'", _)))(is => Task.effect(is.close()).run) { signatureStream =>
+
           for {
             digest  <- digestService.parse(signatureStream)
-            key     <- digestService.getKey(report)
-            checked <- digestService.check(key._1, digest, inventoryStream)
+            checked <- digestService.check(publicKey, digest, inventoryStream)
             saved   <- if (checked) {
                          // Signature is valid, send it to save engine
                          // Set the keyStatus to Certified
@@ -153,23 +158,20 @@ class InventoryProcessor(
                          InventoryProcessStatus.SignatureInvalid(report).succeed
                        }
            } yield {
-            saved
-          }
+             saved
+           }
         }
       }
     }
 
-    def saveNoSignature(report: InventoryReport): IOResult[InventoryProcessStatus] = {
+    def saveNoSignature(report: InventoryReport, keyStatus: KeyStatus): IOResult[InventoryProcessStatus] = {
       // Check if we need a signature or not
-      digestService.getKey(report).flatMap {
+      (keyStatus match {
         // Status is undefined => We accept unsigned inventory
-        case (_,UndefinedKey) => {
-          checkQueueAndSave(report)
-        }
+        case UndefinedKey => checkQueueAndSave(report)
         // We are in certified state, refuse inventory with no signature
-        case (_,CertifiedKey)  =>
-          InventoryProcessStatus.MissingSignature(report).succeed
-      }.chainError(
+        case CertifiedKey => InventoryProcessStatus.MissingSignature(report).succeed
+      }).chainError(
         // An error occurred while checking inventory key status
         s"Error when trying to check inventory key status for Node '${report.node.main.id.value}'"
       )
@@ -188,6 +190,28 @@ class InventoryProcessor(
       }
     }
 
+    def checkCertificateSubject(inventoryReport: InventoryReport, optSubject: Option[List[(String, String)]]): IO[InventoryError, Unit] = {
+      //format subject
+      def formatSubject(list: List[(String, String)]) = list.map(kv => s"${kv._1}=${kv._2}").mkString(",")
+
+      optSubject match {
+        case None => // OK
+          UIO.unit
+        case Some(list) =>
+          // in rudder, we ensure that at list one (k,v) pair is "UID = the node id". If missing, it's an error
+
+          list.find { case (k,v) => k == ParsedSecurityToken.nodeidOID } match {
+            case None        => InventoryError.SecurityToken(s"Certificate subject doesn't contain node ID in 'UID' attribute: ${formatSubject(list)}").fail
+            case Some((k,v)) =>
+              if(v.trim.toLowerCase == inventoryReport.node.main.id.value.toLowerCase) {
+                UIO.unit
+              } else {
+                InventoryError.SecurityToken(s"Certificate subject doesn't contain same node ID in 'UID' attribute as inventory node ID: ${formatSubject(list)}").fail
+              }
+          }
+      }
+    }
+
 
     // actuall report processing logic
 
@@ -197,16 +221,19 @@ class InventoryProcessor(
     val res = for {
       _            <- logger.debug(s"Start parsing inventory '${info.fileName}'")
       report       <- parseSafe(info.inventoryStream, info.fileName).chainError("Can't parse the input inventory, aborting")
+      secPair      <- digestService.getKey(report).chainError(s"Error when trying to check inventory key for Node '${report.node.main.id.value}'")
+      parsed       <- digestService.parseSecurityToken(secPair._1)
+      _            <- checkCertificateSubject(report, parsed.subject)
       afterParsing =  System.currentTimeMillis()
       _            =  logger.debug(s"Inventory '${report.name}' parsed in ${printer.print(new Duration(afterParsing, System.currentTimeMillis).toPeriod)} ms, now saving")
       saved        <- info.optSignatureStream match { // Do we have a signature ?
                         // Signature here, check it
                         case Some(sig) =>
-                          saveWithSignature(report, info.inventoryStream, sig).chainError("Error when trying to check inventory signature")
+                          saveWithSignature(report, parsed.publicKey, info.inventoryStream, sig).chainError("Error when trying to check inventory signature")
 
                         // There is no Signature
                         case None =>
-                          saveNoSignature(report).chainError(s"Error when trying to check inventory key status for Node '${report.node.main.id.value}'")
+                          saveNoSignature(report, secPair._2).chainError(s"Error when trying to check inventory key status for Node '${report.node.main.id.value}'")
                       }
       _            <- logger.debug(s"Inventory '${report.name}' for node '${report.node.main.id.value}' pre-processed in ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
     } yield {
@@ -235,21 +262,9 @@ class InventoryProcessor(
    * but just fail after.
    */
   def checkQueueAndSave(report: InventoryReport): IOResult[InventoryProcessStatus] = {
-    /*
-     * A method that check LDAP health status.
-     * It must be quick and simple.
-     */
-    def checkLdapAlive(ldap: LDAPConnectionProvider[RwLDAPConnection]): IOResult[String] = {
-      for {
-        con <- ldap
-        res <- con.get(nodeInventoryDit.NODES.dn, "1.1")
-      } yield {
-        "ok"
-      }
-    }
 
     (for {
-      _     <- checkLdapAlive(ldap)
+      _     <- checkAliveLdap()
       canDo <- queue.offer(report)
       res   <- if(canDo) {
                  InventoryProcessStatus.Accepted(report).succeed

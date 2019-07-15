@@ -59,7 +59,7 @@ import scala.tools.nsc.interpreter.InputStream
 @RunWith(classOf[JUnitRunner])
 class TestSignatureService extends Specification with Loggable {
 
-  Security.addProvider(new BouncyCastleProvider());
+  Security.addProvider(new BouncyCastleProvider())
 
   private[this] def getInputStream (path : String) : IOResult[InputStream] = {
     Task.effect {
@@ -120,8 +120,12 @@ class TestSignatureService extends Specification with Loggable {
       ZioRuntime.unsafeRun(for {
         signature     <- boxedSignature
         signed_report <- parser.parse("fusion-report/signed_inventory.ocs")
-        pubKey        <- TestInventoryDigestServiceV1.getKey(signed_report)
-        check         <- ZIO.bracket(getInputStream("fusion-report/signed_inventory.ocs"))(is => Task.effect(is.close).run)(TestInventoryDigestServiceV1.check(pubKey._1, signature, _))
+        token         <- TestInventoryDigestServiceV1.getKey(signed_report)
+        check         <- ZIO.bracket(getInputStream("fusion-report/signed_inventory.ocs"))(is => Task.effect(is.close).run)(is =>
+          for {
+            parsed <- TestInventoryDigestServiceV1.parseSecurityToken(token._1)
+            check  <- TestInventoryDigestServiceV1.check(parsed.publicKey, signature, is)
+          } yield check)
       } yield {
         check
       }) === true
@@ -131,8 +135,12 @@ class TestSignatureService extends Specification with Loggable {
       ZioRuntime.unsafeRun(for {
         signature       <- boxedSignature
         unsigned_report <- parser.parse("fusion-report/node-with-server-role-attribute.ocs")
-        pubKey          <- TestInventoryDigestServiceV1.getKey(unsigned_report)
-        check           <- ZIO.bracket(getInputStream("fusion-report/node-with-server-role-attribute.ocs"))(is => Task.effect(is.close).run)(TestInventoryDigestServiceV1.check(pubKey._1, signature, _))
+        token           <- TestInventoryDigestServiceV1.getKey(unsigned_report)
+        check           <- ZIO.bracket(getInputStream("fusion-report/node-with-server-role-attribute.ocs"))(is => Task.effect(is.close).run)(is =>
+          for {
+            parsed <- TestInventoryDigestServiceV1.parseSecurityToken(token._1)
+            check  <- TestInventoryDigestServiceV1.check(parsed.publicKey, signature, is)
+          } yield check)
       } yield {
         check
       }) === false

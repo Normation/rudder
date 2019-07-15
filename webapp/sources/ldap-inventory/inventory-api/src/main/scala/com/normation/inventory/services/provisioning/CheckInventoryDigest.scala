@@ -37,13 +37,16 @@
 package com.normation.inventory.services.provisioning
 
 import java.io.InputStream
+import java.security.PublicKey
 import java.util.Properties
 import java.security.Signature
 
 import com.normation.errors._
+import com.normation.inventory.domain.InventoryError.CryptoEx
 import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
 import com.normation.inventory.domain.{PublicKey => AgentKey, _}
 import org.apache.commons.io.IOUtils
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
 import org.bouncycastle.util.encoders.Hex
 import zio._
 import zio.syntax._
@@ -109,30 +112,42 @@ trait CheckInventoryDigest {
    * Here, we want to calculate the digest. The good library for that is most likely
    * bouncy castle: https://www.bouncycastle.org/
    */
-  def check(securityToken: SecurityToken, digest: InventoryDigest, inventoryStream: InputStream): IOResult[Boolean] = {
-    securityToken match {
-      case rudderKey : com.normation.inventory.domain.PublicKey =>
-        rudderKey.publicKey.flatMap { pubKey =>
-          Task.effect {
-            val signature = Signature.getInstance("SHA512withRSA", "BC");
-            signature.initVerify(pubKey);
-            val data = IOUtils.toByteArray(inventoryStream)
-            signature.update(data);
-            digest match {
-              case InventoryDigestV1(_,digest) =>
-                val sig = Hex.decode(digest)
-                signature.verify(sig)
-            }
-          } mapError { e =>
-                InventoryError.CryptoEx("Error when trying to check crypto-signature of security token", e)
-            }
-        }
-
-      // We don't sign with certificate for now
-      case _ : Certificate => true.succeed
+  def check(publicKey: PublicKey, digest: InventoryDigest, inventoryStream: InputStream): IOResult[Boolean] = {
+    Task.effect {
+      val signature = Signature.getInstance("SHA512withRSA", "BC");
+      signature.initVerify(publicKey);
+      val data = IOUtils.toByteArray(inventoryStream)
+      signature.update(data);
+      digest match {
+        case InventoryDigestV1(_,digest) =>
+          val sig = Hex.decode(digest)
+          signature.verify(sig)
+      }
+    } mapError { e =>
+        InventoryError.CryptoEx("Error when trying to check crypto-signature of security token", e)
     }
   }
 
+}
+
+
+/*
+ * A data class to store parsed information about a Rudder SecurityToken
+ * (either just a public key and optionnaly a subject, if coming from a certificate)
+ *
+ * In suject, the first element of the pair is an OID, and the second the value.
+ * We only use (for now):
+ * - 0.9.2342.19200300.100.1.1 : userid (UID) for the node ID
+ * - 2.5.4.3: commonName for the hostname
+ */
+final case class ParsedSecurityToken(
+    publicKey: PublicKey
+  , subject  : Option[List[(String, String)]]
+)
+
+object ParsedSecurityToken {
+  val nodeidOID   = "0.9.2342.19200300.100.1.1"
+  val hostnameOID = "2.5.4.3"
 }
 
 /**
@@ -142,6 +157,21 @@ trait GetKey {
 
   def getKey (receivedInventory  : InventoryReport) : IOResult[(SecurityToken, KeyStatus)]
 
+   def parseSecurityToken(token: SecurityToken): IOResult[ParsedSecurityToken] = {
+      token match {
+        case x:AgentKey    => x.publicKey.map(pk => ParsedSecurityToken(pk, None))
+        case x:Certificate =>
+          x.cert.flatMap { ch =>
+            IO.effect {
+              val c = new JcaX509CertificateConverter().getCertificate( ch )
+              val dn = ch.getSubject.getRDNs.flatMap(_.getTypesAndValues.flatMap(tv => (tv.getType.toString, tv.getValue.toString) :: Nil)).toList
+              (ParsedSecurityToken(c.getPublicKey, Some(dn)))
+            }.mapError { ex =>
+              CryptoEx(s"Error when trying to parse agent certificate information", ex)
+            }
+          }
+      }
+    }
 }
 
 class InventoryDigestServiceV1(

@@ -531,8 +531,10 @@ class SystemVariableServiceImpl(
                             case Some(protocol) => systemVariableSpecService.get("REPORTING_PROTOCOL").toVariable(Seq(protocol.value))
                             case _              => getProp("REPORTING_PROTOCOL", () =>  getReportProtocolDefault().map(_.value))
                           }
-      case f: Failure  => logger.error (s"Failed to get information on syslog protocol global status, fallbacking to default value. Cause is ${f.messageChain}")
-                          getProp("REPORTING_PROTOCOL", () => getReportProtocolDefault().map(_.value))
+      case eb:EmptyBox =>
+        val e = eb ?~! s"Failed to get information on syslog protocol global status, fallbacking to default value."
+        logger.error( e.messageChain )
+        getProp("REPORTING_PROTOCOL", () => getReportProtocolDefault().map(_.value))
     }
 
     val baseVariables = {
