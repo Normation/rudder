@@ -248,10 +248,26 @@ object zio {
   /*
    * Default ZIO Runtime used everywhere.
    */
-  object ZioRuntime extends DefaultRuntime {
+  object ZioRuntime {
+    /*
+     * Internal runtime. You should not access it within rudder.
+     * If you need to use it for "unsageRun", you should alway pin the
+     * IO into an async thread pool to avoid deadlock in case of
+     * a hierarchy of calls.
+     */
+    val internal = new DefaultRuntime(){}
+
     def runNow[A](io: IOResult[A]): A = {
-      this.unsafeRunSync(io).fold(cause => throw cause.squashWith(err => new RuntimeException(err.fullMsg)), a => a)
+      internal.unsafeRunSync(blocking.blocking(io)).fold(cause => throw cause.squashWith(err => new RuntimeException(err.fullMsg)), a => a)
     }
+
+    /*
+     * An unsafe run that is always started on a growing threadpool and its
+     * effect marked as blocking.
+     */
+    def unsafeRun[E, A](zio: => ZIO[Any, E, A]): A = internal.unsafeRun(blocking.blocking(zio).provide(internal.Environment))
+
+    def Environment = internal.Environment
   }
 
   /*

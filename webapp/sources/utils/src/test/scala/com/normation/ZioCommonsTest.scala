@@ -158,7 +158,7 @@ object TestImplicits {
 
   import testModule.service.prog
   def main(args: Array[String]): Unit = {
-    println(ZioRuntime.unsafeRun(prog))
+    println(ZioRuntime.runNow(prog))
   }
 }
 

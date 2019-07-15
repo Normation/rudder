@@ -111,10 +111,10 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll {
   }
   val git = new Git(db)
   git.add.addFilepattern(".").call
-  val id = ZioRuntime.unsafeRun(GitFindUtils.findRevTreeFromRevString(db, git.commit.setMessage("initial commit").call.name))
+  val id = ZioRuntime.runNow(GitFindUtils.findRevTreeFromRevString(db, git.commit.setMessage("initial commit").call.name))
 
   def list(rootDirectories:List[String], endPaths: List[String]) =
-    ZioRuntime.unsafeRun(GitFindUtils.listFiles(db, id, rootDirectories, endPaths))
+    ZioRuntime.runNow(GitFindUtils.listFiles(db, id, rootDirectories, endPaths))
 
   ////////// actual tests //////////
 

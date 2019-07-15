@@ -76,6 +76,6 @@ class CheckInventoryUpdate(
     }
   }.catchAll(ex => logger.error(s"Error when trying to update node inventories information. Error is: ${ex.getClass.getName}: ${ex.getMessage}"))
 
-  ZioRuntime.unsafeRun(ZioRuntime.Environment.blocking.blocking(prog.delay(30.seconds).repeat(Schedule.spaced(updateInterval))).fork)
+  ZioRuntime.unsafeRun(prog.delay(30.seconds).repeat(Schedule.spaced(updateInterval)).provide(ZioRuntime.Environment).fork)
 }
 

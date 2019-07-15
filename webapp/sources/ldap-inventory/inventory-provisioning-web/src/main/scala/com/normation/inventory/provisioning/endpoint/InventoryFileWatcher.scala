@@ -310,10 +310,10 @@ class ProcessFile(
   }
 
   //start the process
-  ZioRuntime.unsafeRunSync(loop.fork)
+  ZioRuntime.internal.unsafeRunSync(loop.fork)
 
   def addFile(file: File): Unit = {
-    ZioRuntime.unsafeRunSync(queue.offer(WatchEvent.Mod(file)))
+    ZioRuntime.internal.unsafeRunSync(queue.offer(WatchEvent.Mod(file)))
   }
 
 

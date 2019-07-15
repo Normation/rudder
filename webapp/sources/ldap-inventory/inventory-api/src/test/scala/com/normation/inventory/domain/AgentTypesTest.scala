@@ -89,14 +89,14 @@ class AgentTypesTest extends Specification {
   "Parsing agent type" should {
 
     "works for 4_3 format" in {
-      val res = ZioRuntime.unsafeRun(AgentInfoSerialisation.parseJson(json43, None))
+      val res = ZioRuntime.runNow(AgentInfoSerialisation.parseJson(json43, None))
       res must beEqualTo(
         AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.3.2")), PublicKey(key))
       )
     }
 
     "be able to read 4_1 serialized info" in {
-      val res = ZioRuntime.unsafeRun(AgentInfoSerialisation.parseJson(json41, Some(key)))
+      val res = ZioRuntime.runNow(AgentInfoSerialisation.parseJson(json41, Some(key)))
       res must beEqualTo(
         AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.1.13")), PublicKey(key))
       )

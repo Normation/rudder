@@ -121,7 +121,7 @@ class FusionReportEndpoint(
 
     def parseInventory(inventoryFile : MultipartFile, signatureFile : Option[MultipartFile]): ResponseEntity[String]= {
       // here, we are at the end of our world. Evaluate ZIO and see what happen.
-      ZioRuntime.unsafeRun(inventoryProcessor.saveInventory(SaveInventoryInfo(inventoryFile.getOriginalFilename, () => inventoryFile.getInputStream, signatureFile.map(f => () => f.getInputStream))).map {
+      ZioRuntime.runNow(inventoryProcessor.saveInventory(SaveInventoryInfo(inventoryFile.getOriginalFilename, () => inventoryFile.getInputStream, signatureFile.map(f => () => f.getInputStream))).map {
         status =>
           import com.normation.inventory.provisioning.endpoint.StatusLog.LogMessage
           status match {

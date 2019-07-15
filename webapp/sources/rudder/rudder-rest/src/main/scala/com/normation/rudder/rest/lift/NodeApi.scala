@@ -93,7 +93,7 @@ import scalaj.http.HttpConstants
 import scalaj.http.HttpOptions
 import zio._
 import com.normation.box._
-import com.normation.zio.ZioRuntime
+import com.normation.zio._
 import scalaj.http.HttpResponse
 
 /*
