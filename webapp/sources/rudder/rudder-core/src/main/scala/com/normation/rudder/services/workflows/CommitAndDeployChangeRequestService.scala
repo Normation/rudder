@@ -66,6 +66,14 @@ import com.normation.utils.StringUuidGenerator
 import net.liftweb.common._
 
 import scala.xml._
+import com.normation.rudder.services.marshalling.XmlSerializer
+import com.normation.rudder.services.marshalling.XmlUnserializer
+import com.normation.cfclerk.xmlparsers.SectionSpecParser
+import java.io.ByteArrayInputStream
+import java.nio.charset.StandardCharsets
+
+import com.normation.rudder.domain.logger.ChangeRequestLogger
+import com.normation.rudder.services.queries.DynGroupUpdaterService
 
 /**
  * A service responsible to actually commit a change request,
@@ -158,6 +166,15 @@ class CommitAndDeployChangeRequestServiceImpl(
    */
   private[this] def isMergeableConfigurationChangeRequest(changeRequest:ConfigurationChangeRequest) : Boolean = {
 
+      /*
+       * In a string, we don't want to take care of a difference in the number of spaces
+       * in names / description.
+       * We also remove space in the end.
+       * Do not use it in a place where space may be significative, like a template.
+       */
+    def normalizeString(text: String) : String = {
+      text.replaceAll("""\s+""", " ").trim
+    }
 
     trait CheckChanges[T] {
       // Logging function
@@ -175,7 +192,7 @@ class CommitAndDeployChangeRequestServiceImpl(
         try {
           for {
             entry <- xmlSerialize(elem)
-            is    =  new ByteArrayInputStream(entry.toString.getBytes)
+            is    =  new ByteArrayInputStream(entry.toString.getBytes(StandardCharsets.UTF_8))
             xml   = XML.load(is)
             elem  <- xmlUnserialize(xml)
           } yield {
@@ -267,15 +284,15 @@ class CommitAndDeployChangeRequestServiceImpl(
 
     def compareRules(initial:Rule, current:Rule) : Boolean = {
       val initialFixed = initial.copy(
-          name = initial.name.trim
-        , shortDescription = initial.shortDescription.trim
-        , longDescription = initial.longDescription.trim
+          name             = normalizeString(initial.name)
+        , shortDescription = normalizeString(initial.shortDescription)
+        , longDescription  = normalizeString(initial.longDescription)
       )
 
       val currentFixed = current.copy(
-          name = current.name.trim
-        , shortDescription = current.shortDescription.trim
-        , longDescription = current.longDescription.trim
+          name             = normalizeString(current.name)
+        , shortDescription = normalizeString(current.shortDescription)
+        , longDescription  = normalizeString(current.longDescription)
       )
 
       if (initialFixed == currentFixed) {
@@ -322,16 +339,16 @@ class CommitAndDeployChangeRequestServiceImpl(
 
     def compareDirectives(initial:Directive, current:Directive) : Boolean = {
       val initialFixed = initial.copy(
-          name             = initial.name.trim
-        , shortDescription = initial.shortDescription.trim
-        , longDescription  = initial.longDescription.trim
+          name             = normalizeString(initial.name)
+        , shortDescription = normalizeString(initial.shortDescription)
+        , longDescription  = normalizeString(initial.longDescription)
         , parameters       = initial.parameters.mapValues(_.map(_.trim))
       )
 
       val currentFixed = current.copy(
-          name             = current.name.trim
-        , shortDescription = current.shortDescription.trim
-        , longDescription  = current.longDescription.trim
+          name             = normalizeString(current.name)
+        , shortDescription = normalizeString(current.shortDescription)
+        , longDescription  = normalizeString(current.longDescription)
         , parameters       = current.parameters.mapValues(_.map(_.trim))
       )
 
@@ -385,13 +402,13 @@ class CommitAndDeployChangeRequestServiceImpl(
     def compareGroups(initial:NodeGroup, current:NodeGroup) : Boolean = {
 
       val initialFixed = initial.copy(
-          name = initial.name.trim
-        , description = initial.description.trim
+          name        = normalizeString(initial.name)
+        , description = normalizeString(initial.description)
       )
 
       val currentFixed = current.copy(
-          name = current.name.trim
-        , description = current.description.trim
+          name        = normalizeString(current.name)
+        , description = normalizeString(current.description)
         /*
         * We need to remove nodes from dynamic groups, it has no sense to compare them.
         * In a static group, the node list is important and can be very different,
@@ -438,28 +455,35 @@ class CommitAndDeployChangeRequestServiceImpl(
     }
 
     def compareGlobalParameter(initial:GlobalParameter, current:GlobalParameter) : Boolean = {
+      val initialFixed = initial.copy(
+          description = normalizeString(initial.description)
+      )
 
-      if (initial == current) {
+      val currentFixed = current.copy(
+          description = normalizeString(current.description)
+      )
+
+      if (initialFixed == currentFixed) {
         // No conflict return
         true
       } else {
         // Write debug logs to understand what cause the conflict
         debugLog("Attempt to merge Change Request (CR) failed because initial state could not be rebased on current state.")
 
-        if ( initial.name != current.name) {
-          debugLog(s"Global Parameter name has changed: original state from CR: ${initial.name}, current value: ${current.name}")
+        if ( initialFixed.name != currentFixed.name) {
+          debugLog(s"Global Parameter name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}")
         }
 
-        if ( initial.description != current.description) {
-          debugLog(s"Global Parameter '${initial.name}' description has changed: original state from CR: ${initial.description}, current value: ${current.description}")
+        if ( initialFixed.description != currentFixed.description) {
+          debugLog(s"Global Parameter '${initialFixed.name}' description has changed: original state from CR: ${initialFixed.description}, current value: ${currentFixed.description}")
         }
 
-        if ( initial.value != current.value) {
-          debugLog(s"Global Parameter '${initial.name}' value has changed: original state from CR: ${initial.value}, current value: ${current.value}")
+        if ( initialFixed.value != currentFixed.value) {
+          debugLog(s"Global Parameter '${initialFixed.name}' value has changed: original state from CR: ${initialFixed.value}, current value: ${currentFixed.value}")
         }
 
-        if ( initial.overridable != current.overridable) {
-          debugLog(s"Global Parameter '${initial.name}' overridable status has changed: original state from CR: ${initial.overridable}, current value: ${current.overridable}")
+        if ( initialFixed.overridable != currentFixed.overridable) {
+          debugLog(s"Global Parameter '${initialFixed.name}' overridable status has changed: original state from CR: ${initialFixed.overridable}, current value: ${currentFixed.overridable}")
         }
 
         //return
