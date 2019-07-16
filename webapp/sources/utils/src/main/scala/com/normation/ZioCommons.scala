@@ -251,7 +251,7 @@ object zio {
   object ZioRuntime {
     /*
      * Internal runtime. You should not access it within rudder.
-     * If you need to use it for "unsageRun", you should alway pin the
+     * If you need to use it for "unsafeRun", you should alway pin the
      * IO into an async thread pool to avoid deadlock in case of
      * a hierarchy of calls.
      */
