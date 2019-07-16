@@ -98,6 +98,18 @@ bundle agent set_dry_run_mode(mode)
       "${configuration.debug} Enabling dry-run mode";
 }
 
+bundle agent set_dry_run_mode_true 
+{
+  methods:
+    "set dry run mode true" usebundle => set_dry_run_mode("true");
+}
+
+bundle agent set_dry_run_mode_false
+{
+  methods:
+    "set dry run mode false" usebundle => set_dry_run_mode("false");
+}
+
 # Storage bundle for push/pop is named `dry_run_unique`
 #
 # It must never be called directly as it would trigger an error or reset
