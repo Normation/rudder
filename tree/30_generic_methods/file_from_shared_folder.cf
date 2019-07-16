@@ -34,7 +34,7 @@ bundle agent file_from_shared_folder(source, destination, hash_type)
 
       "old_class_prefix"        string => "file_from_shared_folder_${canonified_destination}";
 
-      "args"                     slist => { "/var/rudder/configuration-repository/shared-files/${source}", "${destination}" };
+      "args"                     slist => { "/var/rudder/configuration-repository/shared-files/${source}", "${destination}", "${hash_type}" };
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("file_from_shared_folder_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");

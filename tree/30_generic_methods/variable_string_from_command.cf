@@ -34,7 +34,7 @@ bundle agent variable_string_from_command(variable_prefix, variable_name, comman
 {
   vars:
       "old_class_prefix"  string => canonify("variable_string_from_command_${variable_name}");
-      "args"               slist => { "${variable_prefix}", "${variable_name}", "${file_name}" };
+      "args"               slist => { "${variable_prefix}", "${variable_name}", "${command}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("variable_string_from_command_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");

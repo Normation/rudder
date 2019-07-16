@@ -35,7 +35,7 @@ bundle agent variable_string_default(variable_prefix, variable_name, source_vari
 {
   vars:
       "old_class_prefix"  string => canonify("variable_string_default_${variable_name}");
-      "args"               slist => { "${variable_prefix}", "${variable_name}", "${source_variable,}", "${default_value}" };
+      "args"               slist => { "${variable_prefix}", "${variable_name}", "${source_variable}", "${default_value}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("variable_string_default_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
