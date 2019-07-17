@@ -28,7 +28,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-this is another bug
+this is yet another bug
 
 use crate::{data::node::NodeId, error::Error};
 use itertools::Itertools;
