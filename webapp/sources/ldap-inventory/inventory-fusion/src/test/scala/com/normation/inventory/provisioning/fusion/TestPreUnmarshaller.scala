@@ -74,7 +74,7 @@ class TestPreUnmarshaller extends Specification {
           url.openStream()
         }
       } { is =>
-       IOResult.effectRunUnit(is.close)
+       IOResult.effectUioUnit(is.close)
       } {
         is => fromXml("check", is).flatMap[Any, RudderError, NodeSeq](pre.apply)
       }).either.runNow

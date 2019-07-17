@@ -59,7 +59,7 @@ trait ScalaLock {
         .mapError(ex => SystemError(s"Error when trying to get LDAP lock", ex))
     )(_ =>
       LdapLockLogger.logPure.error("Release lock") *>
-      IOResult.effectRunUnit(this.unlock())
+      IOResult.effectUioUnit(this.unlock())
     )(_ =>
       LdapLockLogger.logPure.error("Do things in lock") *>
       block

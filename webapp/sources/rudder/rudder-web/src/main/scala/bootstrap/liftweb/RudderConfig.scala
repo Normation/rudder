@@ -344,6 +344,15 @@ object RudderConfig extends Loggable {
   )
   val RUDDER_RELAY_API = config.getString("rudder.server.relay.api")
 
+  val RUDDER_RELAY_RELOAD = {
+    try {
+      config.getString("rudder.relay.reload")
+    } catch {
+      // by default, if property is missing
+      case ex:ConfigException => "/bin/rudder relay reload"
+    }
+  }
+
   // The base directory for hooks. I'm not sure it needs to be configurable
   // as we only use it in generation.
   val HOOKS_D = "/opt/rudder/etc/hooks.d"
@@ -359,6 +368,7 @@ object RudderConfig extends Loggable {
       case ex:ConfigException => None
     }
   }
+
 
   val HOOKS_IGNORE_SUFFIXES = splitProperty(config.getString("rudder.hooks.ignore-suffixes"))
 
@@ -1451,6 +1461,7 @@ object RudderConfig extends Loggable {
       , globalAgentRunService
       , reportingServiceImpl
       , rudderCf3PromisesFileWriterService
+      , new WriteNodeCertificatesPemImpl(Some(RUDDER_RELAY_RELOAD))
       , () => configService.agent_run_interval().toBox
       , () => configService.agent_run_splaytime().toBox
       , () => configService.agent_run_start_hour().toBox
@@ -1465,6 +1476,7 @@ object RudderConfig extends Loggable {
       , HOOKS_IGNORE_SUFFIXES
       , UPDATED_NODE_IDS_PATH
       , UPDATED_NODE_IDS_COMPABILITY
+      , allNodeCertificatesPemFile = better.files.File("/var/rudder/lib/ssl/allnodecerts.pem")
   )}
 
   private[this] lazy val asyncDeploymentAgentImpl: AsyncDeploymentActor = {

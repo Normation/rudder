@@ -100,7 +100,7 @@ class TestSignatureService extends Specification with Loggable {
   val parser = new FusionReportUnmarshaller(new StringUuidGeneratorImpl)
 
   def parseSignature(path: String): IOResult[InventoryDigest] = {
-     IO.bracket(getInputStream(path))(is => IOResult.effectRunUnit(is.close))(TestInventoryDigestServiceV1.parse)
+     IO.bracket(getInputStream(path))(is => IOResult.effectUioUnit(is.close))(TestInventoryDigestServiceV1.parse)
   }
 
   val boxedSignature = parseSignature("fusion-report/signed_inventory.ocs.sign")

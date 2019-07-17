@@ -67,10 +67,10 @@ object errors {
       effectM("An error occured")(ioeffect)
     }
 
-    def effectRunUnit[A](effect: => A): UIO[Unit] = {
+    def effectUioUnit[A](effect: => A): UIO[Unit] = {
       def printError(t: Throwable): UIO[Unit] = {
         val print = (s:String) => IO.effect(System.err.println(s))
-        //here, we must run.void, because if it fails we can't do much more (and the app is certainly totally broken)
+        //here, we must run.unit, because if it fails we can't do much more (and the app is certainly totally broken)
         (print(s"${t.getClass.getName}:${t.getMessage}") *> IO.foreach(t.getStackTrace)(st => print(st.toString))).run.unit
       }
       IO.effect(effect).unit.catchAll(printError)
@@ -362,15 +362,19 @@ trait ZioLogger {
 // it will respect slf4j namespacing with ".".
 trait NamedZioLogger extends ZioLogger {
   import org.slf4j.LoggerFactory
-  import net.liftweb.common.Logger
 
   def loggerName: String
 
-  lazy val logEffect = new Logger() {
+  lazy val logEffect = new LogEffect() {
     override protected def _logger = LoggerFactory.getLogger(loggerName)
   }
+
   // for compatibility with current Lift convention, use logger = this
   def logPure = this
+}
+
+trait LogEffect extends Logger {
+  def _internal = _logger
 }
 
 object NamedZioLogger {

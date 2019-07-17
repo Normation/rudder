@@ -42,9 +42,9 @@
 ##
 
 
-###########################
+##########################
 # Application information ###########################################################
-###########################
+##########################
 
 #
 # Directory used to store locks about
@@ -73,9 +73,9 @@ rudder.server.relay.api=https://localhost/rudder/relay-api
 #
 rudder.syslog.port=514
 
-###################
+##################
 # LDAP properties ###################################################################
-###################
+##################
 
 #
 # LDAP directory connection information
@@ -94,7 +94,7 @@ ldap.authpw=secret
 
 
 ###########################
-# SQL database properties ###########################################################
+# SQL database properties  ##########################################################
 ###########################
 
 #
@@ -114,9 +114,9 @@ rudder.jdbc.password=Normation
 rudder.jdbc.maxPoolSize=25
 
 
-###########################
+#############################
 # Automatic reports cleaning ###########################################################
-###########################
+#############################
 
 #
 # Automatic reports cleaning
@@ -183,9 +183,9 @@ rudder.batch.databasecleaner.runtime.hour=0
 # Default : sunday
 rudder.batch.databasecleaner.runtime.day=sunday
 
-###########################
+#################################
 # Automatic inventories cleaning ###########################################################
-###########################
+#################################
 
 #
 # Automatic inventories cleaning
@@ -206,9 +206,9 @@ rudder.batch.purge.inventories.delete.TTL=7
 # Interval in hours
 rudder.batch.purge.inventories.delete.interval=24
 
-#####################
+####################
 # Webdav properties #################################################################
-#####################
+####################
 
 #
 # Authentication information for the webdav server used to
@@ -217,9 +217,9 @@ rudder.batch.purge.inventories.delete.interval=24
 rudder.webdav.user=rudder
 rudder.webdav.password=rudder
 
-####################################
+###################################
 # CFEngine and promises properties ##################################################
-####################################
+###################################
 
 #
 # Port used by the community edition of CFEngine agent to
@@ -272,7 +272,7 @@ rudder.dir.shared.files.folder=/var/rudder/configuration-repository/shared-files
 rudder.debug.nodeconfiguration.path=/var/log/rudder/nodeConfigurations
 
 ############################################
-# Technique library and its Git properties ##########################################
+# Technique library and its Git properties  #########################################
 ############################################
 
 #
@@ -336,7 +336,7 @@ rudder.dir.gitRoot=/var/rudder/configuration-repository
 rudder.autoArchiveItems=true
 
 ###############################
-# Dynamic group configuration #######################################################
+# Dynamic group configuration  ######################################################
 ###############################
 
 #
@@ -348,7 +348,7 @@ rudder.batch.dyngroup.updateInterval=5
 
 
 ##########################
-# REST API configuration ############################################################
+# REST API configuration  ###########################################################
 ##########################
 
 #
@@ -416,7 +416,7 @@ history.inventories.rootdir=/var/rudder/inventories/historical
 rudder.batch.reports.logInterval=1
 
 #########################
-# Store Agent Run Times #############################################################
+# Store Agent Run Times  ############################################################
 #########################
 
 # Maximum catchup on reports at start (default : 30 minutes)
@@ -448,9 +448,9 @@ rudder.batch.storeAgentRunTimes.maxBatchSize=5
 
 rudder.batch.storeAgentRunTimes.updateInterval=5
 
-###########################
-# Rudder Authentication    #############################################################
-###########################
+#########################
+# Rudder Authentication  ###############################################################
+#########################
 
 #
 # Rudder has a root admin account, with full rights on the
@@ -526,6 +526,17 @@ rudder.hooks.ignore-suffixes= .swp, ~, .bak, \
  .ucf-old , .ucf-dist , .ucf-new ,\
  .rpmnew  , .rpmsave  , .rpmorig
 
+########################
+# Relayd reload command ########################################################
+########################
+
+# We have to way to identify nodes: by key of by certificated. When certificates,
+# we update a file used by relayd at: /var/rudder/lib/ssl/allnodecerts.pem
+# After change, we need to notify relayd to reload that file. This is the relad
+# command.
+#
+rudder.relayd.reload=/bin/rudder relay reload
+
 ###################
 # Fatal exceptions #############################################################
 ###################
@@ -539,9 +550,9 @@ rudder.hooks.ignore-suffixes= .swp, ~, .bak, \
 #
 rudder.jvm.fatal.exceptions=
 
-#########################
+########################
 # DEPRECATED properties #############################################################
-#########################
+########################
 
 
 #

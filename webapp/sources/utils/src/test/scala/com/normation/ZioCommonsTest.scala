@@ -136,7 +136,7 @@ object TestImplicits {
      */
     object service {
 
-      def trace(msg: => AnyRef): UIO[Unit] = IOResult.effectRunUnit(println(msg))
+      def trace(msg: => AnyRef): UIO[Unit] = IOResult.effectUioUnit(println(msg))
 
       def test0(a: String): IOResult[String] = service1.doStuff(a)
 

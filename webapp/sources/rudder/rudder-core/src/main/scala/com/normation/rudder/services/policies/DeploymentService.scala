@@ -269,6 +269,12 @@ trait PromiseGenerationService {
       _             =  PolicyLogger.debug(s"Historization of names done in ${timeHistorize} ms, start to build rule values.")
       ///// end ignoring
 
+      /////
+      ///// Generate the root file with all certificate. This could be done in the node lifecycle management.
+      ///// For now, it's just a trigger: the generation is async and doesn't fail policy generation.
+      ///// File is: /var/rudder/lib/ssl/allnodecerts.pem
+      _                     =  writeCertificatesPem(allNodeInfos)
+
       ///// parse rule for directive parameters and build node context that will be used for them
       ///// also restrict generation to only active rules & nodes:
       ///// - number of nodes: only node somehow targetted by a rule have to be considered.
@@ -396,6 +402,7 @@ trait PromiseGenerationService {
   def getMaxParallelism      : () => Box[String]
   def getJsTimeout           : () => Box[Int]
   def getGenerationContinueOnError :() => Box[Boolean]
+  def writeCertificatesPem(allNodeInfos: Map[NodeId, NodeInfo]): Unit
 
   // Trigger dynamic group update
   def triggerNodeGroupUpdate(): Box[Unit]
@@ -591,6 +598,7 @@ class PromiseGenerationServiceImpl (
   , override val agentRunService : AgentRunIntervalService
   , override val complianceCache  : CachedFindRuleNodeStatusReports
   , override val promisesFileWriterService: PolicyWriterService
+  , override val writeNodeCertificatesPem: WriteNodeCertificatesPem
   , override val getAgentRunInterval         : () => Box[Int]
   , override val getAgentRunSplaytime        : () => Box[Int]
   , override val getAgentRunStartHour        : () => Box[Int]
@@ -605,8 +613,10 @@ class PromiseGenerationServiceImpl (
   , override val HOOKS_IGNORE_SUFFIXES: List[String]
   , override val UPDATED_NODE_IDS_PATH: String
   , override val postGenerationHookCompabilityMode: Option[Boolean]
+  , override val allNodeCertificatesPemFile: File
 ) extends PromiseGenerationService with
   PromiseGeneration_performeIO with
+  PromiseGeneration_NodeCertificates with
   PromiseGeneration_buildRuleVals with
   PromiseGeneration_buildNodeConfigurations with
   PromiseGeneration_updateAndWriteRule with
@@ -1505,4 +1515,15 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
     } yield ()
   }
 
+}
+
+
+trait PromiseGeneration_NodeCertificates extends PromiseGenerationService {
+
+  def allNodeCertificatesPemFile: File
+  def writeNodeCertificatesPem: WriteNodeCertificatesPem
+
+  override def writeCertificatesPem(allNodeInfos: Map[NodeId, NodeInfo]): Unit = {
+    writeNodeCertificatesPem.writeCerticatesAsync(allNodeCertificatesPemFile, allNodeInfos)
+  }
 }
