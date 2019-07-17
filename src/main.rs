@@ -4,8 +4,10 @@ mod ast;
 mod codeindex;
 mod parser;
 mod technique;
+mod generators;
 
-use crate::ast::generators::*;
+
+use crate::generators::*;
 use crate::ast::AST;
 use crate::codeindex::CodeIndex;
 use crate::parser::parse_file;

@@ -1,8 +1,7 @@
-mod context;
-mod enums;
-pub mod generators;
-mod resource;
-mod value;
+pub mod context;
+pub mod enums;
+pub mod resource;
+pub mod value;
 
 ///
 /// AST is a big chunk.
@@ -13,7 +12,7 @@ mod value;
 ///
 use crate::codeindex::{CodeIndex,TmpResourceDef};
 use self::context::VarContext;
-use self::enums::{EnumExpression, EnumList};
+use self::enums::EnumList;
 use self::resource::*;
 use self::value::Value;
 use crate::ast::context::GlobalContext;
@@ -23,9 +22,9 @@ use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
 pub struct AST<'src> {
-    global_context: GlobalContext<'src>,
-    resources: HashMap<Token<'src>, ResourceDef<'src>>,
-    variable_declarations: HashMap<Token<'src>, Value<'src>>,
+    pub global_context: GlobalContext<'src>,
+    pub resources: HashMap<Token<'src>, ResourceDef<'src>>,
+    pub variable_declarations: HashMap<Token<'src>, Value<'src>>,
 }
 
 // TODO type inference

@@ -229,7 +229,7 @@ fn parse_cfstring(i: &str) -> IResult<&str,Vec<CFStringElt>> {
 fn translate_arg(config: &toml::Value, arg: &str) -> Result<String> {
     let var = match parse_cfstring(arg) {
         Err(_) => return Err(Error::User(format!("Invalid variable syntax in '{}'", arg))),
-        Ok((i,o)) => o
+        Ok((_,o)) => o
     };
 
     let vars = fix_vec_results(var.iter().map(|x| Ok(format!("\"{}\"",x.to_string()?))))?;

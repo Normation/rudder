@@ -1,4 +1,8 @@
-use super::super::*;
+use crate::ast::*;
+use crate::ast::enums::*;
+use crate::ast::resource::*;
+use crate::ast::value::*;
+use crate::parser::*;
 use super::Generator;
 
 use std::collections::HashMap;

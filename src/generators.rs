@@ -1,7 +1,7 @@
 mod cfengine;
 
 pub use self::cfengine::CFEngine;
-use super::AST;
+use crate::ast::AST;
 use crate::error::*;
 
 /// A generator is something that can generate final code for a given language from an AST
