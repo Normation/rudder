@@ -226,10 +226,14 @@ class InventoryDigestServiceV1(
         }
 
         extractKey(inventory).map((_,status))
-      case Empty =>
-        val status = receivedInventory.node.main.keyStatus
-        extractKey(receivedInventory.node).map((_,status))
-      case f: Failure => f
+      case eb:EmptyBox =>
+        repo.exists(receivedInventory.node.main.id) match {
+          case Full(false) =>
+            val status = receivedInventory.node.main.keyStatus
+            extractKey(receivedInventory.node).map((_,status))
+          case _ =>
+            eb ?~! s"Error when trying to check for node '${receivedInventory.node.main.id.value}' existence"
+        }
     }
   }
 }

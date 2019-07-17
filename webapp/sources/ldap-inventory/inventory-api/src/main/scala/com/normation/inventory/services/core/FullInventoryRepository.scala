@@ -103,6 +103,9 @@ trait ReadOnlyFullInventoryRepository {
    */
   def get(id:NodeId, inventoryStatus : InventoryStatus) : Box[FullInventory]
   def get(id:NodeId) : Box[FullInventory]
+  // return true is node is pending or accepted - remove in 5.1
+  def exists(id:NodeId): Box[Boolean]
+
   def getMachineId(id:NodeId, inventoryStatus : InventoryStatus) : Box[(MachineUuid, InventoryStatus)]
 
   def getAllInventories(inventoryStatus : InventoryStatus): Box[Map[NodeId, FullInventory]]

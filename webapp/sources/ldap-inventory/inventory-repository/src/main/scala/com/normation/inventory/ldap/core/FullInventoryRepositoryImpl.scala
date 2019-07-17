@@ -277,6 +277,14 @@ class FullInventoryRepositoryImpl(
     }
   }
 
+  override def exists(id: NodeId): Box[Boolean] = {
+    for {
+      con <- ldap
+    } yield {
+      findDnForNode(con,id).isDefined
+    }
+  }
+
 
   override def get(id:NodeId, inventoryStatus : InventoryStatus) : Box[FullInventory] = {
     for {
