@@ -72,6 +72,10 @@ if [ ! -f /opt/rudder/etc/ssl/ca.cert ]; then
   cp /opt/rudder/etc/ssl/rudder.crt /opt/rudder/etc/ssl/ca.cert
 fi
 
+if [ ! -f /var/rudder/ssl/nodescerts.pem ]; then
+  touch /var/rudder/ssl/nodescerts.pem
+fi
+
 if [ -z "${FIRST_INSTALL}" ]; then
   echo -n "INFO: Setting rudder-relayd as a boot service..."
   systemctl daemon-reload
