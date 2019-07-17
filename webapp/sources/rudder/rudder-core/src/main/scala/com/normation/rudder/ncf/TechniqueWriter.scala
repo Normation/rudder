@@ -405,8 +405,7 @@ class DSCTechniqueWriter(
     "-reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly"
 
   def computeTechniqueFilePath(technique : Technique) =
-    s"dsc/ncf/50_techniques/${technique.bundleName.value}/${technique.version.value}/${technique.bundleName.value}.ps1"
-
+    s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/technique.ps1"
 
   def writeAgentFiles(technique : Technique, methods : Map[BundleName, GenericMethod] ): IOResult[Seq[String]] = {
 
@@ -572,6 +571,7 @@ class TechniqueArchiverImpl (
         (technique.ressources.filter(f => f.state == New || f.state == Modified)).map(f => s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/resources/${f.path}")
     val filesToDelete =
       s"ncf/50_techniques/${technique.bundleName.value}" +:
+        s"dsc/ncf/50_techniques/${technique.bundleName.value}" +:
         technique.ressources.filter(f => f.state == Deleted ).map(f => s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/resources/${f.path}")
     (for {
       git     <- gitRepo.git

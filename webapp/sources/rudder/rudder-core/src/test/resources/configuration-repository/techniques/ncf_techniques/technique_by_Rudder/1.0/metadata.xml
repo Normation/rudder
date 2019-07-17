@@ -22,7 +22,7 @@
       <NAME>Technique-By-Rudder</NAME>
     </BUNDLES>
     <FILES>
-      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/dsc/ncf/50_techniques/technique_by_Rudder/1.0/technique_by_Rudder.ps1">
+      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/technique_by_Rudder/1.0/technique.ps1">
         <INCLUDED>true</INCLUDED>
       </FILE>
     </FILES>

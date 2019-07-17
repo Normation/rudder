@@ -177,7 +177,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     )
 
   val expectedMetadataPath = s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/metadata.xml"
-  val dscTechniquePath     = s"dsc/ncf/50_techniques/${technique.bundleName.value}/${technique.version.value}/${technique.bundleName.value}.ps1"
+  val dscTechniquePath     = s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/technique.ps1"
   val techniquePath = s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/technique.cf"
   val reportingPath = s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/rudder_reporting.cf"
 
@@ -238,7 +238,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     )
 
   val expectedMetadataPath_any = s"techniques/ncf_techniques/${technique_any.bundleName.value}/${technique_any.version.value}/metadata.xml"
-  val dscTechniquePath_any     = s"dsc/ncf/50_techniques/${technique_any.bundleName.value}/${technique_any.version.value}/${technique_any.bundleName.value}.ps1"
+  val dscTechniquePath_any     = s"techniques/ncf_techniques/${technique_any.bundleName.value}/${technique_any.version.value}/technique.ps1"
   val techniquePath_any = s"techniques/ncf_techniques/${technique_any.bundleName.value}/${technique_any.version.value}/technique.cf"
   val reportingPath_any = s"techniques/ncf_techniques/${technique_any.bundleName.value}/${technique_any.version.value}/rudder_reporting.cf"
 
