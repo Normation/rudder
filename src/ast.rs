@@ -379,10 +379,10 @@ impl<'src> AST<'src> {
             "noop",
             "format",
             "comment",
-            "dict",
+            //"dict",
             "json",
             "enforce",
-            "condition",
+            //"condition",
             "audit let",
         ]
         .contains(&name.fragment())

@@ -1,10 +1,5 @@
-
-[methods]
-variable = 2
-package =  1
-command =  1
-# ex: object = resource_arg_count
-#file = 1
+[resources]
+variable = { parameter_count=2 }
 
 [classes]
 command_execution = "(command_execution)_(.*)"
@@ -13,3 +8,167 @@ command_execution = "(command_execution)_(.*)"
 
 [conditions]
 
+[methods]
+
+command_execution = { class_prefix="command_execution", class_parameter_id = 0 }
+command_execution_once = { class_prefix="command_execution_once", class_parameter_id = 0 }
+command_execution_result = { class_prefix="command_execution_result", class_parameter_id = 0 }
+condition_from_command = { class_prefix="condition_from_command", class_parameter_id = 0 }
+condition_from_expression = { class_prefix="condition_from_expression", class_parameter_id = 0 }
+condition_from_expression_persistent = { class_prefix="condition_from_expression_persistent", class_parameter_id = 0 }
+condition_from_variable_existence = { class_prefix="condition_from_variable_existence", class_parameter_id = 0 }
+condition_from_variable_match = { class_prefix="condition_from_variable_match", class_parameter_id = 0 }
+condition_once = { class_prefix="condition_once", class_parameter_id = 0 }
+directory_absent = { class_prefix="directory_absent", class_parameter_id = 0 }
+directory_check_exists = { class_prefix="directory_check_exists", class_parameter_id = 0 }
+directory_create = { class_prefix="directory_create", class_parameter_id = 0 }
+directory_present = { class_prefix="directory_present", class_parameter_id = 0 }
+environment_variable_present = { class_prefix="environment_variable_present", class_parameter_id = 0 }
+file_absent = { class_prefix="file_absent", class_parameter_id = 0 }
+file_block_present = { class_prefix="file_block_present", class_parameter_id = 0 }
+file_block_present_in_section = { class_prefix="file_block_present_in_section", class_parameter_id = 0 }
+file_check_block_device = { class_prefix="file_check_block_device", class_parameter_id = 0 }
+file_check_character_device = { class_prefix="file_check_character_device", class_parameter_id = 0 }
+file_check_exists = { class_prefix="file_check_exists", class_parameter_id = 0 }
+file_check_FIFO_pipe = { class_prefix="file_check_FIFO_pipe", class_parameter_id = 0 }
+file_check_hardlink = { class_prefix="file_check_hardlink", class_parameter_id = 0 }
+file_check_regular = { class_prefix="file_check_regular", class_parameter_id = 0 }
+file_check_socket = { class_prefix="file_check_socket", class_parameter_id = 0 }
+file_check_symlink = { class_prefix="file_check_symlink", class_parameter_id = 0 }
+file_check_symlinkto = { class_prefix="file_check_symlinkto", class_parameter_id = 0 }
+file_content = { class_prefix="file_lines_present", class_parameter_id = 0 }
+file_copy_from_local_source = { class_prefix="file_copy_from_local_source", class_parameter_id = 1 }
+file_copy_from_local_source_recursion = { class_prefix="file_copy_from_local_source", class_parameter_id = 1 }
+file_copy_from_local_source_with_check = { class_prefix="file_copy_from_local_source_with_check", class_parameter_id = 1 }
+file_copy_from_remote_source = { class_prefix="file_copy_from_remote_source", class_parameter_id = 1 }
+file_copy_from_remote_source_recursion = { class_prefix="file_copy_from_remote_source", class_parameter_id = 1 }
+file_create = { class_prefix="file_create", class_parameter_id = 0 }
+file_create_symlink = { class_prefix="file_create_symlink", class_parameter_id = 1 }
+file_create_symlink_enforce = { class_prefix="file_create_symlink", class_parameter_id = 1 }
+file_create_symlink_force = { class_prefix="file_create_symlink", class_parameter_id = 1 }
+file_download = { class_prefix="file_download", class_parameter_id = 1 }
+file_enforce_content = { class_prefix="file_ensure_lines_present", class_parameter_id = 0 }
+file_ensure_block_in_section = { class_prefix="file_ensure_block_in_section", class_parameter_id = 0 }
+file_ensure_block_present = { class_prefix="file_ensure_block_present", class_parameter_id = 0 }
+file_ensure_key_value = { class_prefix="file_ensure_key_value", class_parameter_id = 0 }
+file_ensure_key_value_option = { class_prefix="file_ensure_key_value", class_parameter_id = 0 }
+file_ensure_key_value_parameter_in_list = { class_prefix="file_ensure_key_value_parameter_in_list", class_parameter_id = 0 }
+file_ensure_key_value_parameter_not_in_list = { class_prefix="file_ensure_key_value_parameter_not_in_list", class_parameter_id = 0 }
+file_ensure_key_value_present_in_ini_section = { class_prefix="file_ensure_key_value_present_in_ini_section", class_parameter_id = 0 }
+file_ensure_keys_values = { class_prefix="file_ensure_keys_values", class_parameter_id = 0 }
+file_ensure_line_present_in_ini_section = { class_prefix="file_ensure_line_present_in_ini_section", class_parameter_id = 0 }
+file_ensure_line_present_in_xml_tag = { class_prefix="file_ensure_line_present_in_xml_tag", class_parameter_id = 0 }
+file_ensure_lines_absent = { class_prefix="file_ensure_lines_absent", class_parameter_id = 0 }
+file_ensure_lines_present = { class_prefix="file_ensure_lines_present", class_parameter_id = 0 }
+file_from_http_server = { class_prefix="file_from_http_server", class_parameter_id = 1 }
+file_from_local_source = { class_prefix="file_from_local_source", class_parameter_id = 1 }
+file_from_local_source_recursion = { class_prefix="file_from_local_source", class_parameter_id = 1 }
+file_from_local_source_with_check = { class_prefix="file_from_local_source_with_check", class_parameter_id = 1 }
+file_from_remote_source = { class_prefix="file_from_remote_source", class_parameter_id = 1 }
+file_from_remote_source_recursion = { class_prefix="file_from_remote_source", class_parameter_id = 1 }
+file_from_shared_folder = { class_prefix="file_from_shared_folder", class_parameter_id = 1 }
+file_from_string_mustache = { class_prefix="file_from_string_mustache", class_parameter_id = 1 }
+file_from_template = { class_prefix="file_from_template", class_parameter_id = 1 }
+file_from_template_jinja2 = { class_prefix="file_from_template", class_parameter_id = 1 }
+file_from_template_mustache = { class_prefix="file_from_template", class_parameter_id = 1 }
+file_from_template_type = { class_prefix="file_from_template", class_parameter_id = 1 }
+file_key_value_parameter_absent_in_list = { class_prefix="file_key_value_parameter_absent_in_list", class_parameter_id = 0 }
+file_key_value_parameter_present_in_list = { class_prefix="file_key_value_parameter_present_in_list", class_parameter_id = 0 }
+file_key_value_present = { class_prefix="file_key_value_present", class_parameter_id = 0 }
+file_key_value_present_in_ini_section = { class_prefix="file_key_value_present_in_ini_section", class_parameter_id = 0 }
+file_key_value_present_option = { class_prefix="file_key_value_present", class_parameter_id = 0 }
+file_keys_values_present = { class_prefix="file_keys_values_present", class_parameter_id = 0 }
+file_line_present_in_ini_section = { class_prefix="file_line_present_in_ini_section", class_parameter_id = 0 }
+file_line_present_in_xml_tag = { class_prefix="file_line_present_in_xml_tag", class_parameter_id = 0 }
+file_lines_absent = { class_prefix="file_lines_absent", class_parameter_id = 0 }
+file_lines_present = { class_prefix="file_lines_present", class_parameter_id = 0 }
+file_present = { class_prefix="file_present", class_parameter_id = 0 }
+file_remove = { class_prefix="file_remove", class_parameter_id = 0 }
+file_replace_lines = { class_prefix="file_replace_lines", class_parameter_id = 0 }
+file_report_content = { class_prefix="file_report_content", class_parameter_id = 0 }
+file_report_content_head = { class_prefix="file_report_content_head", class_parameter_id = 0 }
+file_report_content_tail = { class_prefix="file_report_content_tail", class_parameter_id = 0 }
+file_symlink_present = { class_prefix="file_symlink_present", class_parameter_id = 1 }
+file_symlink_present_force = { class_prefix="file_symlink_present", class_parameter_id = 1 }
+file_symlink_present_option = { class_prefix="file_symlink_present", class_parameter_id = 1 }
+file_template_expand = { class_prefix="file_template_expand", class_parameter_id = 1 }
+group_absent = { class_prefix="group_absent", class_parameter_id = 0 }
+group_present = { class_prefix="group_present", class_parameter_id = 0 }
+http_request_check_status_headers = { class_prefix="http_request_check_status_headers", class_parameter_id = 1 }
+http_request_content_headers = { class_prefix="http_request_content_headers", class_parameter_id = 1 }
+monitoring_parameter = { class_prefix="monitoring_parameter", class_parameter_id = 1 }
+monitoring_template = { class_prefix="monitoring_template", class_parameter_id = 0 }
+package_absent = { class_prefix="package_absent", class_parameter_id = 0 }
+package_check_installed = { class_prefix="package_check_installed", class_parameter_id = 0 }
+package_install = { class_prefix="package_install", class_parameter_id = 0 }
+package_install_version = { class_prefix="package_install", class_parameter_id = 0 }
+package_install_version_cmp = { class_prefix="package_install", class_parameter_id = 0 }
+package_install_version_cmp_update = { class_prefix="package_install", class_parameter_id = 0 }
+package_present = { class_prefix="package_present", class_parameter_id = 0 }
+package_remove = { class_prefix="package_remove", class_parameter_id = 0 }
+package_state = { class_prefix="package_state", class_parameter_id = 0 }
+package_state_options = { class_prefix="package_state_options", class_parameter_id = 0 }
+package_verify = { class_prefix="package_install", class_parameter_id = 0 }
+package_verify_version = { class_prefix="package_install", class_parameter_id = 0 }
+permissions_acl_entry = { class_prefix="permissions_acl_entry", class_parameter_id = 0 }
+permissions_dirs = { class_prefix="permissions", class_parameter_id = 0 }
+permissions_dirs_recurse = { class_prefix="permissions", class_parameter_id = 0 }
+permissions_dirs_recursive = { class_prefix="permissions", class_parameter_id = 0 }
+permissions_group_acl_absent = { class_prefix="permissions_group_acl_absent", class_parameter_id = 0 }
+permissions_group_acl_present = { class_prefix="permissions_group_acl_present", class_parameter_id = 0 }
+permissions_other_acl_present = { class_prefix="permissions_other_acl_present", class_parameter_id = 0 }
+permissions_posix_acls_absent = { class_prefix="permissions_posix_acls_absent", class_parameter_id = 0 }
+permissions_recurse = { class_prefix="permissions", class_parameter_id = 0 }
+permissions_recursive = { class_prefix="permissions", class_parameter_id = 0 }
+permissions_type_recursion = { class_prefix="permissions", class_parameter_id = 0 }
+permissions_user_acl_absent = { class_prefix="permissions_user_acl_absent", class_parameter_id = 0 }
+permissions_user_acl_present = { class_prefix="permissions_user_acl_present", class_parameter_id = 0 }
+schedule_simple = { class_prefix="schedule_simple", class_parameter_id = 0 }
+schedule_simple_catchup = { class_prefix="schedule_simple", class_parameter_id = 0 }
+schedule_simple_nodups = { class_prefix="schedule_simple", class_parameter_id = 0 }
+schedule_simple_stateless = { class_prefix="schedule_simple", class_parameter_id = 0 }
+service_action = { class_prefix="service_action", class_parameter_id = 0 }
+service_check_disabled_at_boot = { class_prefix="service_check_disabled_at_boot", class_parameter_id = 0 }
+service_check_running = { class_prefix="service_check_running", class_parameter_id = 0 }
+service_check_running_ps = { class_prefix="service_check_running", class_parameter_id = 0 }
+service_check_started_at_boot = { class_prefix="service_check_started_at_boot", class_parameter_id = 0 }
+service_disabled = { class_prefix="service_disabled", class_parameter_id = 0 }
+service_enabled = { class_prefix="service_enabled", class_parameter_id = 0 }
+service_ensure_disabled_at_boot = { class_prefix="service_ensure_disabled_at_boot", class_parameter_id = 0 }
+service_ensure_running = { class_prefix="service_ensure_running", class_parameter_id = 0 }
+service_ensure_running_path = { class_prefix="service_ensure_running", class_parameter_id = 0 }
+service_ensure_started_at_boot = { class_prefix="service_ensure_started_at_boot", class_parameter_id = 0 }
+service_ensure_stopped = { class_prefix="service_ensure_stopped", class_parameter_id = 0 }
+service_reload = { class_prefix="service_reload", class_parameter_id = 0 }
+service_restart = { class_prefix="service_restart", class_parameter_id = 0 }
+service_restart_if = { class_prefix="service_restart", class_parameter_id = 0 }
+service_start = { class_prefix="service_start", class_parameter_id = 0 }
+service_started = { class_prefix="service_started", class_parameter_id = 0 }
+service_started_path = { class_prefix="service_started", class_parameter_id = 0 }
+service_stop = { class_prefix="service_stop", class_parameter_id = 0 }
+service_stopped = { class_prefix="service_stopped", class_parameter_id = 0 }
+sharedfile_from_node = { class_prefix="sharedfile_from_node", class_parameter_id = 1 }
+sharedfile_to_node = { class_prefix="sharedfile_to_node", class_parameter_id = 1 }
+user_absent = { class_prefix="user_absent", class_parameter_id = 0 }
+user_create = { class_prefix="user_create", class_parameter_id = 0 }
+user_fullname = { class_prefix="user_fullname", class_parameter_id = 0 }
+user_home = { class_prefix="user_home", class_parameter_id = 0 }
+user_locked = { class_prefix="user_locked", class_parameter_id = 0 }
+user_password_hash = { class_prefix="user_password_hash", class_parameter_id = 0 }
+user_present = { class_prefix="user_present", class_parameter_id = 0 }
+user_primary_group = { class_prefix="user_primary_group", class_parameter_id = 0 }
+user_shell = { class_prefix="user_shell", class_parameter_id = 0 }
+user_uid = { class_prefix="user_uid", class_parameter_id = 0 }
+variable_dict = { class_prefix="variable_dict", class_parameter_id = 1 }
+variable_dict_from_file = { class_prefix="variable_dict_from_file", class_parameter_id = 1 }
+variable_dict_from_file_type = { class_prefix="variable_dict_from_file_type", class_parameter_id = 1 }
+variable_dict_from_osquery = { class_prefix="variable_dict_from_osquery", class_parameter_id = 1 }
+variable_dict_merge = { class_prefix="variable_dict_merge", class_parameter_id = 1 }
+variable_dict_merge_tolerant = { class_prefix="variable_dict_merge_tolerant", class_parameter_id = 1 }
+variable_iterator = { class_prefix="variable_iterator", class_parameter_id = 1 }
+variable_iterator_from_file = { class_prefix="variable_iterator_from_file", class_parameter_id = 1 }
+variable_string = { class_prefix="variable_string", class_parameter_id = 1 }
+variable_string_default = { class_prefix="variable_string_default", class_parameter_id = 1 }
+variable_string_from_command = { class_prefix="variable_string_from_command", class_parameter_id = 1 }
+variable_string_from_file = { class_prefix="variable_string_from_file", class_parameter_id = 1 }
+variable_string_from_math_expression = { class_prefix="variable_string_from_math_expression", class_parameter_id = 1 }

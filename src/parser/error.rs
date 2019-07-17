@@ -22,7 +22,7 @@ pub enum PErrorKind<I> {
     InvalidEscapeSequence,         // in string definition
     InvalidVariableReference,      // during string interpolation
     ExpectedKeyword(&'static str), // anywhere (keyword type)
-    UnsupportedMetadata,           // metadata or comments are not supported everywhere
+    UnsupportedMetadata(I),        // metadata or comments are not supported everywhere (metadata key)
 }
 
 #[derive(Debug, PartialEq,Clone)]
@@ -103,13 +103,12 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
             PErrorKind::InvalidEscapeSequence => "This escape cannot be used in a string".to_string(),
             PErrorKind::InvalidVariableReference => "This variable reference is invalid".to_string(),
             PErrorKind::ExpectedKeyword(s) => format!("Token not found, expecting a '{}'",s),
-            PErrorKind::UnsupportedMetadata => "Parsed comment or metadata not supported at this place".to_string(),
+            PErrorKind::UnsupportedMetadata(i) => format!("Parsed comment or metadata not supported at this place: '{}' fount at {}", i.fragment, Token::from(*i).position_str()),
         };
-        f.write_str(&format!("{} near '{}' at {} in {}",
+        f.write_str(&format!("{} near '{}' {}",
                              message,
                              self.context.fragment,
-                             Token::from(self.context).position_str(),
-                             self.context.extra))
+                             Token::from(self.context).position_str()))
     }
 }
 
@@ -118,11 +117,13 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
 /// combinators.
 // Here input function result could be ParseError<I> but this way we force the type inference for 
 // all sub parsers to return PError<I>, which we won't have to specify during call.
-pub fn or_fail<I, O, F>(f: F, e: PErrorKind<I>) 
+// Pass a closure instead of a PErrorKind to allow lazy evaluation of its parameters
+pub fn or_fail<I, O, F, E>(f: F, e: E) 
     -> impl Fn(I) -> IResult<I, O, PError<I>>
     where 
         I: Clone,
         F: Fn(I) -> IResult<I, O, PError<I>>,
+        E: Fn() -> PErrorKind<I>,
 {
     move |input: I| {
         let x = f(input.clone());
@@ -130,11 +131,11 @@ pub fn or_fail<I, O, F>(f: F, e: PErrorKind<I>)
             // a non nom error cannot be superseded
             // keep original context when possible
             Err(Err::Failure(err)) => match err.kind {
-                PErrorKind::Nom(_) => Err(Err::Failure(PError { context: err.context, kind: e.clone()})),
+                PErrorKind::Nom(_) => Err(Err::Failure(PError { context: err.context, kind: e()})),
                 _ => Err(Err::Failure(err)),
             },
-            Err(Err::Error(err)) => Err(Err::Failure(PError { context: err.context, kind: e.clone()})),
-            Err(Err::Incomplete(_)) => Err(Err::Failure(PError { context: input, kind: e.clone()})),
+            Err(Err::Error(err)) => Err(Err::Failure(PError { context: err.context, kind: e()})),
+            Err(Err::Incomplete(_)) => Err(Err::Failure(PError { context: input, kind: e()})),
             Ok(y) => Ok(y),
         }
     }

@@ -13,6 +13,7 @@ use nom::character::complete::*;
 use nom::branch::alt;
 use nom::multi::many1;
 use nom::IResult;
+use std::str;
 
 #[derive(Serialize, Deserialize)]
 struct Technique {
@@ -59,18 +60,20 @@ fn translate(config: &toml::Value, technique: &Technique) -> Result<String> {
     let out = format!(r#"@format=0
 # This file has been generated with rltranslate 
 
+@name="{name}"
 @description="{description}"
 @version="{version}"
 @parameters={parameters_meta}
 
-resource {name}({parameters})
+resource {bundle_name}({parameters})
 
-{name} state technique() {{
+{bundle_name} state technique() {{
 {calls}
 }}
 "#, description=technique.description,
     version=technique.version,
     name=technique.name,
+    bundle_name=technique.bundle_name,
     parameters_meta=parameters_meta.unwrap(),
     parameters=parameters,
     calls=calls);
@@ -89,16 +92,16 @@ fn translate_call(config: &toml::Value, call: &MethodCall) -> Result<String> {
     };
 
     // split argument list
-    let methods = match config.get("methods") {
-        None => return Err(Error::User("No methods section in config.toml".into())),
+    let rconf = match config.get("resources") {
+        None => return Err(Error::User("No resources section in config.toml".into())),
         Some(m) => m,
     };
-    let res_arg_v = match methods.get(resource) {
-        None => return Err(Error::User(format!("Unknown method prefix '{}' in config.toml, please add its class_parameter count",resource))),
-        Some(r) => r,
+    let res_arg_v = match rconf.get(resource) {
+        None => toml::value::Value::Integer(1),
+        Some(r) => r.clone(),
     };
     let res_arg_count: usize = match res_arg_v.as_integer() {
-        None => return Err(Error::User(format!("Method prefix '{}' must have a number as its class_parameter count",resource))),
+        None => return Err(Error::User(format!("Resource prefix '{}' must have a number as its parameter count",resource))),
         Some(v) => v as usize,
     };
     let it = &mut call.args.iter();
@@ -113,7 +116,42 @@ fn translate_call(config: &toml::Value, call: &MethodCall) -> Result<String> {
         let condition = translate_condition(config, &call.class_context)?;
         format!("  if {} => {}", condition, call_str)
     };
-    Ok(format!("  @component = \"{}\"\n{}", &call.component, out_state))
+
+    // outcome detection and formating
+    let mconf = match config.get("methods") {
+        None => return Err(Error::User("No methods section in config.toml".into())),
+        Some(m) => m,
+    };
+    let method = match mconf.get(&call.method_name) {
+        None => return Err(Error::User(format!("Unknown generic method call: {}",&call.method_name))),
+        Some(m) => m,
+    };
+    let class_prefix = match method.get("class_prefix") {
+        None => return Err(Error::User(format!("Undefined class_prefix for {}",&call.method_name))),
+        Some(m) => m.as_str().unwrap(),
+    };
+    let class_parameter_id = match method.get("class_parameter_id") {
+        None => return Err(Error::User(format!("Undefined class_parameter_id for {}",&call.method_name))),
+        Some(m) => m.as_integer().unwrap(),
+    };
+    let class_parameter_value = &call.args[class_parameter_id as usize];
+    let canonic_parameter = canonify(class_parameter_value);
+    let outcome = format!(" as {}_{}",class_prefix,canonic_parameter);
+    // TODO remove outcome if there is no usage
+    Ok(format!("  @component = \"{}\"\n{}{}", &call.component, out_state, outcome))
+}
+
+fn canonify(input: &str) -> String {
+    let s = input.as_bytes().iter()
+        .map(|x| 
+            if x.is_ascii_alphanumeric() || *x == '_' as u8 {
+                *x
+            } else {
+                '_' as u8
+            }
+        )
+        .collect::<Vec<u8>>();
+    str::from_utf8(&s).expect(&format!("Canonify failed on {}",input)).to_owned()
 }
 
 #[derive(Clone)]

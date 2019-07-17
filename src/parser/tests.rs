@@ -34,7 +34,7 @@ fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
         PErrorKind::InvalidEscapeSequence => PErrorKind::InvalidEscapeSequence,
         PErrorKind::InvalidVariableReference => PErrorKind::InvalidVariableReference,
         PErrorKind::ExpectedKeyword(i) => PErrorKind::ExpectedKeyword(i),
-        PErrorKind::UnsupportedMetadata => PErrorKind::UnsupportedMetadata,
+        PErrorKind::UnsupportedMetadata(i) => PErrorKind::UnsupportedMetadata(i),
     };
     (err.context.fragment, kind)
 }
@@ -808,7 +808,7 @@ fn test_pstatement() {
         ))
     );
     assert_eq!(
-        map_res(pstatement, r#"resource().state( "p1", "p2")"#),
+        map_res(pstatement, r#"resource().state( "p1", "p2") as resource_state"#),
         Ok((
             "",
             PStatement::StateCall(
@@ -821,7 +821,7 @@ fn test_pstatement() {
                     PValue::String("\"".into(), "p1".to_string()),
                     PValue::String("\"".into(), "p2".to_string())
                 ],
-                None,
+                Some("resource_state".into()),
             )
         ))
     );
