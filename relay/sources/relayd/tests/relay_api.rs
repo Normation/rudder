@@ -72,6 +72,7 @@ mod tests {
             .form(&params)
             .send().unwrap();
 
+        thread::sleep(time::Duration::from_millis(500));
         let data = read_to_string("target/tmp/api_test.txt").expect("Unable to read file");
 
         assert_eq!(

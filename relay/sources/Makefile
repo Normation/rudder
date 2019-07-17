@@ -144,7 +144,8 @@ endif
 # Quality
 
 lint:
-	cd relayd && RUSTFLAGS="-D warnings" cargo clippy --all-targets --examples --tests -- -D clippy::all
+	cd relayd && RUSTFLAGS="-D warnings" cargo check --all-targets --examples --tests
+	cd relayd && cargo clippy --all-targets --examples --tests
 
 check: lint
 	cd relayd && cargo test
