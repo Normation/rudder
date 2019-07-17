@@ -28,16 +28,20 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{error::Error, JobConfig};
+use crate::error::Error;
 use chrono::prelude::DateTime;
 use chrono::{Duration, Utc};
 use hyper::StatusCode;
+use openssl::pkey::PKey;
+use openssl::rsa::Rsa;
 use regex::Regex;
+use sha1::{Digest, Sha1};
+use sha2::{Sha256, Sha512};
 use std::collections::HashMap;
 use std::fmt;
 use std::fs;
 use std::path::Path;
-use std::{str::FromStr, sync::Arc};
+use std::str::FromStr;
 
 #[derive(Debug)]
 pub struct Metadata {
@@ -119,23 +123,39 @@ pub fn parse_value(key: &str, file: &str) -> Result<String, ()> {
 }
 
 pub fn same_hash_than_in_nodeslist(
-    hash_value: &str,
-    source_uuid: String,
-    job_config: Arc<JobConfig>,
-) -> bool {
-    let myvec2: Vec<String> = job_config
-        .nodes
-        .read()
-        .expect("Cannot read nodes list")
-        .get_keyhash_from_uuid(&source_uuid)
-        .unwrap()
-        .split(':')
-        .map(|s| s.to_string())
-        .collect();
+    pubkey: String,
+    hash_type: String,
+    keyhash: String,
+) -> Result<bool, Error> {
+    let pubkey_pem = get_pubkey(pubkey);
 
-    let (_algorithm, keyhash) = (&myvec2[0], &myvec2[1]);
+    let rsa_key_from_pem = Rsa::public_key_from_pem_pkcs1(pubkey_pem.as_bytes()).unwrap();
 
-    hash_value == keyhash
+    let public_key_from_pem = PKey::from_rsa(rsa_key_from_pem)?;
+
+    let public_key_der = public_key_from_pem.public_key_to_der()?;
+
+    let bytes2: &[u8] = &public_key_der;
+
+    if hash_type == "sha1" {
+        let mut hasher = Sha1::new();
+        hasher.input(bytes2);
+        return Ok(format!("{:x}", hasher.result()) == keyhash);
+    }
+
+    if hash_type == "sha256" {
+        let mut hasher = Sha256::new();
+        hasher.input(bytes2);
+        return Ok(format!("{:x}", hasher.result()) == keyhash);
+    }
+
+    if hash_type == "sha512" {
+        let mut hasher = Sha512::new();
+        hasher.input(bytes2);
+        Ok(format!("{:x}", hasher.result()) == keyhash)
+    } else {
+        Err(Error::InvalidHashType)
+    }
 }
 
 pub fn parse_ttl(ttl: String) -> Result<i64, Error> {
@@ -203,10 +223,10 @@ pub fn parse_hash_from_raw(raw: String) -> String {
         .collect::<String>()
 }
 
-pub fn get_pubkey(metadata: Metadata) -> String {
+pub fn get_pubkey(pubkey: String) -> String {
     format!(
-        "-----BEGIN RSA PRIVATE KEY-----\n{}\n-----END RSA PRIVATE KEY-----\n",
-        metadata.short_pubkey
+        "-----BEGIN RSA PUBLIC KEY-----\n{}\n-----END RSA PUBLIC KEY-----\n",
+        pubkey
     )
 }
 
@@ -226,4 +246,18 @@ pub fn it_writes_the_metadata() {
     };
 
     assert_eq!(format!("{}", metadata), format!("header=rudder-signature-v1\nalgorithm=sha256\ndigest=8ca9efc5752e133e2e80e2661c176fa50f\nhash_value=a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f\nshort_pubkey=shortpubkey\nhostname=ubuntu-18-04-64\nkeydate=2018-10-3118:21:43.653257143\nkeyid=B29D02BB\nexpires={}\n", parse_ttl("1d 1h".to_string()).unwrap()));
+}
+
+#[test]
+pub fn it_validates_keyhashes() {
+    assert_eq!(same_hash_than_in_nodeslist(
+        "MIIBCAKCAQEAlntroa72gD50MehPoyp6mRS5fzZpsZEHu42vq9KKxbqSsjfUmxnT
+Rsi8CDvBt7DApIc7W1g0eJ6AsOfV7CEh3ooiyL/fC9SGATyDg5TjYPJZn3MPUktg
+YBzTd1MMyZL6zcLmIpQBH6XHkH7Do/RxFRtaSyicLxiO3H3wapH20TnkUvEpV5Qh
+zUkNM8vHZuu3m1FgLrK5NCN7BtoGWgeyVJvBMbWww5hS15IkCRuBkAOK/+h8xe2f
+hMQjrt9gW2qJpxZyFoPuMsWFIaX4wrN7Y8ZiN37U2q1G11tv2oQlJTQeiYaUnTX4
+z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==".to_string(),
+        "sha512".to_string(),
+        "3c4641f2e99ade126b9923ffdfc432d486043e11ce7bd5528cc50ed372fc4c224dba7f2a2a3a24f114c06e42af5f45f5c248abd7ae300eeefc27bcf0687d7040".to_string()
+    ).unwrap(), true);
 }

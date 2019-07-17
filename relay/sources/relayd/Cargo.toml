@@ -31,7 +31,7 @@ structopt = { version = "0.2", features = [ "paw" ] }
 paw = "1.0"
 toml = "0.5"
 inotify = "0.7"
-openssl = "0.10"
+openssl = "0.10.23"
 # Disable uneeded features (udp, unix socket, etc.)
 tokio = { version = "0.1", default-features = false, features = ["fs", "io", "reactor", "rt-full", "experimental-tracing"] }
 tokio-signal = "0.2"
@@ -51,6 +51,9 @@ regex = "1.1"
 itertools = "0.8"
 md-5 = "0.8"
 hyper = "0.12"
+base64 = "0.10.1"
+sha2 = "0.8"
+sha-1 = "0.8"
 
 [dev-dependencies]
 criterion = "0.2"
