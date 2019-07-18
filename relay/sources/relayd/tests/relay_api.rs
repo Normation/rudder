@@ -70,7 +70,8 @@ mod tests {
         client
             .post("http://localhost:3030/rudder/relay-api/remote-run/nodes")
             .form(&params)
-            .send().unwrap();
+            .send()
+            .unwrap();
 
         thread::sleep(time::Duration::from_millis(500));
         let data = read_to_string("target/tmp/api_test.txt").expect("Unable to read file");

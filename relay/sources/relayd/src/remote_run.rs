@@ -146,14 +146,19 @@ impl FromStr for Condition {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let condition_regex = r"^[a-zA-Z0-9][a-zA-Z0-9_]*$";
         let re = Regex::new(condition_regex).unwrap();
-
+        if s.len() > 1024 {
+            return Err(Error::InvalidCondition(
+                "Wrong condition: A condition cannot be longer than 1024 characters".to_string(),
+            ));
+        }
         if !re.is_match(s) {
             Err(Error::InvalidCondition(format!(
                 "Wrong condition: '{}', it should match {}",
                 s.to_string(),
                 condition_regex
             )))
-        } else {
+        }
+         else {
             Ok(Condition {
                 data: s.to_string(),
             })
@@ -283,5 +288,11 @@ mod tests {
     fn it_handles_command_injection() {
         assert!(Condition::from_str("cl&$$y").is_err());
         assert!(Condition::from_str("cl~#~").is_err());
+    }
+
+    #[test]
+    fn it_handles_too_long_conditions()
+    {
+        assert!(Condition::from_str("Qr6U6s161z8umvzZTMSPtsZpe3s2sAjwUeCD5pbzvwtT9jg8AsqaW1hbgJhDvOQ34J6GdUS0bEJLKz4zfWHO70rYdq70jrKip5gYwdbVyB7APyK3RRAGHGS7EZ8bUNEXUlHp1QsYOQeqPyPKCCJUYhAzWsD8b1lC4gOkmzATyabEBhaoAb5TLELtBra5dS1YzG1TxgHEthd8z7Qf7PHeltK1X628rfwPqVY2FHkgBGvNMAFTYUdnyabV0j7PHal4f31nNRCqZPdUv6iIlHHQo0oUQlwZ7ATUNYt2cznLYu5v8RhBL0uqOxMD9xHAnRxYRo57BDQxkunNyb7oTjruainGIqbXoDPjcKCQRrf3IrVvAQ6mwAgIdEzJkxBaZUkAGeNQFZEh5b3zJSryfgML2kc87ohLMmsIh5OvNnrPUipSnkpGruJV2uCRX1EYNH6skC9QY1oji6D3SYNeH0lZFIe8goO0Sa1geORlB5UpDwrGeWKgo6k7xBORpPdiVFjR1fAsO7po2CPrR2OwBv6IP0VcU4pPY3eIXgSWSecRE4UXDR2dyaSqSyo4E2l4KAIwy7LieKechiA3yROPrkk0MBC6JfUeOXrCvFBDpQ29Q0TE1J8LK0Xt8DexBZdTUI2ni3Gs1Clli4cvXwfyvTGWFpnTsgS7S7zOyYaIGVqI8UmmszQM8Y4IZBt5nmUsMcrsNBvp4ZqseHoaR0WHTp93c6l83dw3EuuQyFvbqmwQAeDNOrSW2YYAL6Ab5ru5XoRfxCB0LitHWeocyUCo6ukE7YnS8ZmqBIWjLizUD7OnaCSWajdalXINhHDmUQgBehAbPOOiFSlLEyUQeBfZEmWvV5CJ4NN2gBgpDGJywm9mKxr8KcN1TPtp4rGpVYWgDK4N3RjUcQiH7rkSN2zd3vb1MkvtvQsMSX45CpmVng6UQf2LPeRIBNBEaiiNeQAvhfTm86EWNkOwnhHr8QHd7yzLQ6kd4D7Q05oNkRrDDNn5zhS6rvJCujTVFqp5eMa2jbiUa").is_err());
     }
 }
