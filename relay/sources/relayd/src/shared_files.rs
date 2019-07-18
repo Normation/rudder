@@ -158,36 +158,23 @@ pub fn parse_value(key: &str, file: &str) -> Result<String, ()> {
 }
 
 pub fn same_hash_than_in_nodeslist(
-    pubkey: String,
-    hash_type: String,
-    keyhash: String,
+    pubkey: PKey<Public>,
+    hash_type: HashType,
+    keyhash: &str,
 ) -> Result<bool, Error> {
-    let pubkey_pem = get_pubkey(pubkey)?;
+    let public_key_der: &[u8] = &pubkey.public_key_to_der()?;
 
-    let public_key_der = pubkey_pem.public_key_to_der()?;
-
-    let bytes2: &[u8] = &public_key_der;
-
-    match HashType::from_str(&hash_type) {
-        Ok(HashType::Sha256) => Ok(HashType::Sha256.hash(bytes2) == keyhash),
-        Ok(HashType::Sha512) => Ok(HashType::Sha512.hash(bytes2) == keyhash),
-        Err(err) => Err(err),
-    }
+    Ok(hash_type.hash(public_key_der) == keyhash)
 }
 
-pub fn get_pubkey(
-    pubkey: String,
-) -> Result<openssl::pkey::PKey<Public>, openssl::error::ErrorStack> {
-    PKey::from_rsa(
-        Rsa::public_key_from_pem_pkcs1(
-            format!(
-                "-----BEGIN RSA PUBLIC KEY-----\n{}\n-----END RSA PUBLIC KEY-----\n",
-                pubkey
-            )
-            .as_bytes(),
+pub fn get_pubkey(pubkey: String) -> Result<PKey<Public>, ErrorStack> {
+    PKey::from_rsa(Rsa::public_key_from_pem_pkcs1(
+        format!(
+            "-----BEGIN RSA PUBLIC KEY-----\n{}\n-----END RSA PUBLIC KEY-----\n",
+            pubkey
         )
-        .unwrap(),
-    )
+        .as_bytes(),
+    )?)
 }
 
 pub fn parse_ttl(ttl: String) -> Result<i64, Error> {
@@ -276,13 +263,13 @@ pub fn it_writes_the_metadata() {
 #[test]
 pub fn it_validates_keyhashes() {
     assert_eq!(same_hash_than_in_nodeslist(
-        "MIIBCAKCAQEAlntroa72gD50MehPoyp6mRS5fzZpsZEHu42vq9KKxbqSsjfUmxnT
+        get_pubkey("MIIBCAKCAQEAlntroa72gD50MehPoyp6mRS5fzZpsZEHu42vq9KKxbqSsjfUmxnT
 Rsi8CDvBt7DApIc7W1g0eJ6AsOfV7CEh3ooiyL/fC9SGATyDg5TjYPJZn3MPUktg
 YBzTd1MMyZL6zcLmIpQBH6XHkH7Do/RxFRtaSyicLxiO3H3wapH20TnkUvEpV5Qh
 zUkNM8vHZuu3m1FgLrK5NCN7BtoGWgeyVJvBMbWww5hS15IkCRuBkAOK/+h8xe2f
 hMQjrt9gW2qJpxZyFoPuMsWFIaX4wrN7Y8ZiN37U2q1G11tv2oQlJTQeiYaUnTX4
-z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==".to_string(),
-        "sha512".to_string(),
-        "3c4641f2e99ade126b9923ffdfc432d486043e11ce7bd5528cc50ed372fc4c224dba7f2a2a3a24f114c06e42af5f45f5c248abd7ae300eeefc27bcf0687d7040".to_string()
+z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==".to_string()).unwrap(),
+        HashType::Sha512,
+        "3c4641f2e99ade126b9923ffdfc432d486043e11ce7bd5528cc50ed372fc4c224dba7f2a2a3a24f114c06e42af5f45f5c248abd7ae300eeefc27bcf0687d7040"
     ).unwrap(), true);
 }
