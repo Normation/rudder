@@ -531,6 +531,7 @@ class TestNodeConfiguration() {
                                    , RudderServerRole("rudder-relay-promises-only"    , "rudder.server-roles.relay-promises-only")
                                    , RudderServerRole("rudder-cfengine-mission-portal", "rudder.server-roles.cfengine-mission-portal")
                                  )
+    , serverVersion            = "5.1.0"
 
     //denybadclocks is runtime properties
     , getDenyBadClocks         = () => Full(true)

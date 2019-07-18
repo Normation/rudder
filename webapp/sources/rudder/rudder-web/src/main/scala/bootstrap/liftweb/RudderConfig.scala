@@ -1381,6 +1381,7 @@ object RudderConfig extends Loggable {
     , RUDDER_SYSLOG_PORT
     , RUDDER_DIR_GITROOT
     , RUDDER_SERVER_ROLES
+    , rudderFullVersion
     , () => configService.cfengine_server_denybadclocks().toBox
     , () => configService.relay_server_sync_method().toBox
     , () => configService.relay_server_syncpromises().toBox

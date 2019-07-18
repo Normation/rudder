@@ -117,6 +117,7 @@ class SystemVariableServiceImpl(
   , syslogPort               : Int
   , configurationRepository  : String
   , serverRoles              : Seq[RudderServerRole]
+  , serverVersion            : String
   //denybadclocks is runtime property
   , getDenyBadClocks: () => Box[Boolean]
   // relay synchronisation method
@@ -183,6 +184,8 @@ class SystemVariableServiceImpl(
 
     val syslogProtocolDisabled = getProp("SYSLOG_PROTOCOL_DISABLED", getSyslogProtocolDisabled)
 
+    val varServerVersion = systemVariableSpecService.get("SERVER_VERSION").toVariable(Seq(serverVersion))
+
     val sendMetricsValue = if (getSendMetrics().getOrElse(None).getOrElse(false)) {
       "yes"
     } else {
@@ -222,6 +225,7 @@ class SystemVariableServiceImpl(
         varSendMetrics ::
         syslogProtocolDisabled ::
         reportProtocol ::
+        varServerVersion ::
         Nil
       vars.map(v => (v.spec.name,v)).toMap
     }
