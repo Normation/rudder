@@ -17,6 +17,17 @@ use std::fs;
 use std::path::{Path,PathBuf};
 use structopt::StructOpt;
 
+///!  Principle:
+///!  1-  rl -> parser() -> PXxx 
+///!         -> CodeIndex::add_file() -> CodeIndex 
+///!         -> AST::from_codeindex -> AST 
+///!         -> generate() -> cfengine/json/...
+///! 
+///!  2- json technique -> translate() -> rl
+///! 
+///!  3- ncf library -> generate-lib() -> stdlib.rl + translate-config
+///!
+
 // MAIN
 
 // Questions :
@@ -27,8 +38,6 @@ use structopt::StructOpt;
 // - a quoi ressemblent les iterators ?
 // - arguments non ordonnés pour les resources et les states ?
 // - usage des alias: pour les children, pour les (in)compatibilités, pour le générateur?
-
-// TODO next step:
 
 
 /// Rust langage compiler
@@ -42,19 +51,22 @@ struct Opt {
     #[structopt(long,short)]
     input: PathBuf,
     /// Set to use technique translation mode
-    #[structopt(long,short)]
+    #[structopt(long)]
     translate: bool,
+    /// Set to compile a single technique
+    #[structopt(long)]
+    technique: bool,
     /// Output format to use
     #[structopt(long,short="f")]
     output_format: Option<String>,
 }
 
 /// Read file, parse it and store it in the global codeindex
-fn add_file<'a>(code_index: &mut CodeIndex<'a>, source_list: &'a SourceList, path: &Path, filename: &'a str) {
+fn add_file<'a>(code_index: &mut CodeIndex<'a>, source_list: &'a SourceList, path: &'a Path, filename: &'a str) {
     let content = fs::read_to_string(path)
         .unwrap_or_else(|_| panic!("Something went wrong reading the file {}", filename));
     let content_str = source_list.append(content);
-    let file = match parse_file(filename, content_str) {
+    let file = match parse_file(&filename, content_str) {
         Err(e) => panic!("There was an error during parsing:\n{}", e),
         Ok(o) => o,
     };
@@ -100,12 +112,11 @@ fn main() {
             Ok(_) => println!("Done"),
         }
     } else {
-        // TODO pass parameters
-        compile(&opt.input)
+        compile(&opt.input, &opt.output, opt.technique)
     }
 }
 
-fn compile(source: &Path) {
+fn compile(source: &Path, dest: &Path, technique: bool) {
     let mut code_index = CodeIndex::new();
     let sources = SourceList::new();
 
@@ -131,7 +142,12 @@ fn compile(source: &Path) {
 
     // generate final output
     let mut cfe = CFEngine::new();
-    match cfe.generate(&ast, None) {
+    let file = if technique {
+        Some(dest)
+    } else {
+        None
+    };
+    match cfe.generate(&ast, file, technique) {
         Err(e) => panic!("There was an error during code generation:\n{}", e),
         Ok(()) => {}
     };

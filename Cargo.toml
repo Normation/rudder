@@ -13,10 +13,7 @@ nom = "^5.0"
 toml = "^0.5"
 regex = "^1.1"
 lazy_static = "^1.3"
-
-[dependencies.nom_locate]
-version = "^0.3"
-path = "/home/bpeccatte/Projects/nom_locate"
+nom_locate = { version = "^0.3", path = "/home/bpeccatte/Projects/nom_locate" }
 
 [dev-dependencies]
 proptest = "0.9.1"

@@ -30,16 +30,9 @@ pub use token::PInput;
 ///
 /// Some functions are made public just for being used to create test structures
 
-// TODO add more types
-// TODO more like var = f(x)
-// TODO iterators
-// TODO include
-// TODO stateCall error management
-// TODO resource parent
-// TODO state alias
-// TODO read json: read_untypedjson->json_obj and jsonobj.get(..)->result(value)
+// TODO v2: measures, actions, functions, iterators, include
+// TODO resource parent && state alias
 // TODO proptest
-
 // ===== Public interfaces ===== 
 
 /// The parse function that should be called when parsing a file

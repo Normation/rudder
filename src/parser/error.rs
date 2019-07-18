@@ -90,7 +90,6 @@ impl<I: Clone> ParseError<I> for PError<I> {
 /// Proper printing of errors.
 impl<'src> fmt::Display for PError<PInput<'src>> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // TODO proper PInput formating with position
         let message = match &self.kind {
             PErrorKind::Nom(e) => format!("Unprocessed parsing error: {:?}.\nPlease fill a BUG with context on when this happened!", e),
             #[cfg(test)]

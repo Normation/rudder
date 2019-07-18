@@ -27,12 +27,12 @@ pub struct AST<'src> {
     pub variable_declarations: HashMap<Token<'src>, Value<'src>>,
 }
 
-// TODO type inference
+// TODO v2: type inference
 // TODO check that parameter type match parameter default
-// TODO check state call compatibility
+// TODO check state call compatibility (no contradictory state)
 // TODO if a parameter has a default, next ones must have one too
 // TODO more tests
-// TODO compatibility metadata
+// TODO compatibility metadata (?)
 
 impl<'src> AST<'src> {
     /// Produce the final AST data structure.

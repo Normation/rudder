@@ -8,7 +8,7 @@ use std::collections::HashMap;
 #[derive(Debug, PartialEq, Clone)]
 pub struct StringObject<'src> {
     pos: Token<'src>,
-    data: Vec<PInterpolatedElement>,
+    pub data: Vec<PInterpolatedElement>,
 }
 impl<'src> StringObject<'src> {
     pub fn from_pstring(pos: Token<'src>, s: String) -> Result<StringObject> {
@@ -39,6 +39,11 @@ impl<'src> StringObject<'src> {
                 })
             .count() == 0
     }
+    // TODO
+   // pub fn static_to_string(&self) -> Result<String> {
+   //     self.data.iter()
+   //         .map(|x| if let PInterpolatedElement::Static(s) = x { s } else 
+   // }
 }
 
 #[derive(Debug, PartialEq, Clone)]

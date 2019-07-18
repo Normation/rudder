@@ -8,6 +8,7 @@ use super::Generator;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
+use std::path::Path;
 
 use crate::error::*;
 
@@ -39,6 +40,7 @@ impl CFEngine {
         self.var_prefixes.insert(prefix.to_string(), var);
     }
     fn reset_cases(&mut self) {
+        // TODO this make case in case fail
         self.current_cases = Vec::new();
     }
     fn reset_context(&mut self) {
@@ -46,8 +48,8 @@ impl CFEngine {
         self.return_condition = None;
     }
 
-    fn parameter_to_cfengine(&mut self, param: &Value) -> String {
-        match param {
+    fn parameter_to_cfengine(&mut self, param: &Value) -> Result<String> {
+        Ok(match param {
             Value::String(s) =>
             // TODO variable reinterpret (rudlang systemvar to cfengine systemvar)
             {
@@ -67,35 +69,30 @@ impl CFEngine {
             Value::EnumExpression(e) => "".into(), // TODO
             Value::List(_) => unimplemented!(),
             Value::Struct(_) => unimplemented!(),
-        }
+        })
     }
 
-    fn format_class(&mut self, class: &str) -> String {
-        let result = match &self.return_condition {
-            None => format!("    {}::\n", class),
-            Some(c) => format!("    ({}).({})::\n", c, class),
-        };
-        self.current_cases.push(class.into());
-        result
+    fn format_class(&mut self, class: String) -> Result<String> {
+        self.current_cases.push(class.clone());
+        Ok(match &self.return_condition {
+            None => class,
+            Some(c) => format!("({}).({})", c, class),
+        })
     }
-    fn format_case(&mut self, gc: &AST, case: &EnumExpression) -> String {
-        let expr = self.format_case_expr(gc, case);
-        self.format_class(&expr)
-    }
-    fn format_case_expr(&mut self, gc: &AST, case: &EnumExpression) -> String {
-        match case {
+    fn format_case_expr(&mut self, gc: &AST, case: &EnumExpression) -> Result<String> {
+        Ok(match case {
             EnumExpression::And(e1, e2) => format!(
                 "({}).({})",
-                self.format_case_expr(gc, e1),
-                self.format_case_expr(gc, e2)
+                self.format_case_expr(gc, e1)?,
+                self.format_case_expr(gc, e2)?
             ),
             EnumExpression::Or(e1, e2) => format!(
                 "({})|({})",
-                self.format_case_expr(gc, e1),
-                self.format_case_expr(gc, e2)
+                self.format_case_expr(gc, e1)?,
+                self.format_case_expr(gc, e2)?
             ),
             // TODO what about classes that have not yet been set ? can it happen ?
-            EnumExpression::Not(e1) => format!("!({})", self.format_case_expr(gc, e1)),
+            EnumExpression::Not(e1) => format!("!({})", self.format_case_expr(gc, e1)?),
             EnumExpression::Compare(var, e, item) => {
                 if gc.global_context.enum_list.is_global(*e) {
                     let final_enum = gc.global_context.enum_list.find_descendant_enum(*e, *item);
@@ -136,7 +133,7 @@ impl CFEngine {
                     format!("!({})", self.current_cases.join("|"))
                 }
             }
-        }
+        })
     }
 
     // TODO simplify expression and remove useless conditions for more readable cfengine
@@ -144,51 +141,58 @@ impl CFEngine {
     // TODO how does cfengine use utf8
     // TODO variables
     // TODO comments and metadata
-    fn format_statement(&mut self, gc: &AST, st: &Statement) -> String {
-        match st {
-            Statement::StateCall(_metadata, _mode, res, res_parameters, call, params, out) => {
+    // TODO use in_class everywhere
+    fn format_statement(&mut self, gc: &AST, st: &Statement, in_class: String) -> Result<String> {
+        Ok(match st {
+            Statement::StateCall(metadata, _mode, res, res_parameters, call, params, out) => {
                 if let Some(var) = out {
                     self.new_var(var);
                 }
+                let component = match metadata.get(&"component".into()) {
+                    // TODO use static_to_string
+                    Some(Value::String(s)) => match &s.data[0] {
+                        PInterpolatedElement::Static(st) => st.clone(),
+                        _ => "any".to_string(),
+                    },
+                    _ => "any".to_string(),
+                };
                 // TODO setup mode and output var by calling ... bundle
-                let param_str = res_parameters
+                let param_str = fix_vec_results(res_parameters
                     .iter()
                     .chain(params.iter())
                     .map(|x| self.parameter_to_cfengine(x))
-                    .collect::<Vec<String>>()
-                    .join(",");
+                )?.join(",");
                 format!(
-                    "      \"method_call\" usebundle => {}_{}({});\n",
+                    "      \"{}\" usebundle => {}_{}({}), if=>{};\n",
+                    component,
                     res.fragment(),
                     call.fragment(),
-                    param_str
+                    param_str,
+                    self.format_class(in_class)?
                 )
             }
             Statement::Case(_case, vec) => {
                 self.reset_cases();
-                let mut lines = vec
+                fix_vec_results(vec
                     .iter()
                     .map(|(case, vst)| {
-                        format!(
-                            "{}{}",
-                            self.format_case(gc, case),
+                        // TODO case in case
+                        let case_exp = self.format_case_expr(gc, case)?;
+                        Ok(fix_vec_results(
                             vst.iter()
-                                .map(|st| self.format_statement(gc, st))
-                                .collect::<Vec<String>>()
-                                .join("")
-                        )
+                                .map(|st| self.format_statement(gc, st, case_exp.clone()))
+                        )?.join(""))
                     })
-                    .collect::<Vec<String>>();
-                lines.push(self.format_class("any"));
-                lines.join("")
+
+                )?.join("")
             }
             Statement::Fail(msg) => format!(
                 "      \"method_call\" usebundle => ncf_fail({});\n",
-                self.parameter_to_cfengine(msg)
+                self.parameter_to_cfengine(msg)?
             ),
             Statement::Log(msg) => format!(
                 "      \"method_call\" usebundle => ncf_log({});\n",
-                self.parameter_to_cfengine(msg)
+                self.parameter_to_cfengine(msg)?
             ),
             Statement::Return(outcome) => {
                 // handle end of bundle
@@ -207,25 +211,60 @@ impl CFEngine {
             Statement::Noop => String::new(),
             // TODO Statement::VariableDefinition()
             _ => String::new(),
-        }
+        })
+    }
+
+    fn value_to_string(&mut self, value: &Value) -> Result<String> {
+        Ok(match value {
+            Value::String(s) => format!("\"{}\"", s.data.iter().map(|t| 
+                match t {
+                    PInterpolatedElement::Static(s) => {
+                        // replace ${const.xx}
+                        s.replace("$","${consr.dollar}")
+                         .replace("\\n","${const.n}")
+                         .replace("\\r","${const.r}")
+                         .replace("\\t","${const.t}")
+                    }
+                    PInterpolatedElement::Variable(v) => {
+                        // translate variable name
+                        format!("${{{}}}",v)
+                    }
+                }).collect::<Vec<String>>().join("")),
+            Value::Number(_, n) => format!("{}",n),
+            Value::EnumExpression(e) => unimplemented!(),
+            Value::List(l) => format!("[ {} ]", fix_vec_results(l.iter().map(|x| self.value_to_string(x)))?.join(",")),
+            Value::Struct(s) => format!("{{ {} }}", fix_vec_results(s.iter().map(|(x,y)| Ok(format!("\"{}\":{}",x,self.value_to_string(y)?))))?.join(",")),
+        })
+    }
+
+    fn generate_ncf_metadata(&mut self, name: &Token, resource: &ResourceDef) -> Result<String> {
+        Ok(fix_vec_results(resource.metadata.iter()
+            .map(|(n,v)|
+                 Ok(format!("# @{} {}", n.fragment(), self.value_to_string(v)?)))
+        )?.join("\n"))
     }
 }
 
 impl Generator for CFEngine {
-    fn generate(&mut self, gc: &AST, file: Option<&str>) -> Result<()> {
+    // TODO methods differ if this is a technique generation or not
+    fn generate(&mut self, gc: &AST, file: Option<&Path>, technique_metadata: bool) -> Result<()> {
         let mut files: HashMap<&str, String> = HashMap::new();
         // TODO add global variable definitions
         for (rn, res) in gc.resources.iter() {
             for (sn, state) in res.states.iter() {
                 if let Some(file_name) = file {
-                    if file_name != sn.file() {
+                    if file_name.to_string_lossy() != sn.file() {
                         continue;
                     }
                 }
                 self.reset_context();
                 let mut content = match files.get(sn.file()) {
                     Some(s) => s.to_string(),
-                    None => String::new(),
+                    None => if technique_metadata {
+                        self.generate_ncf_metadata(rn,res)?
+                    } else {
+                        String::new()
+                    },
                 };
                 let params = res
                     .parameters
@@ -242,7 +281,7 @@ impl Generator for CFEngine {
                 ));
                 content.push_str("{\n  methods:\n");
                 for st in state.statements.iter() {
-                    content.push_str(&self.format_statement(gc, st));
+                    content.push_str(&self.format_statement(gc, st, "any".to_string())?);
                 }
                 content.push_str("}\n");
                 files.insert(sn.file(), content);

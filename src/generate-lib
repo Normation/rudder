@@ -16,7 +16,6 @@ foreach my $file (glob "/home/bpeccatte/Rudder/ncf/tree/30_generic_methods/*") {
 
   open(my $fd, "<$file") or die "cannot read $file";
 
-  # TODO read this from config
   my $resource_blocks=1;
   my $resource_identfiers=1;
   if ($file =~ /\/variable_/) { $resource_identfiers=2; }
