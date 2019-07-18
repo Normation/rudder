@@ -32,16 +32,51 @@ use crate::error::Error;
 use chrono::prelude::DateTime;
 use chrono::{Duration, Utc};
 use hyper::StatusCode;
+use openssl::error::ErrorStack;
 use openssl::pkey::PKey;
+use openssl::pkey::Public;
 use openssl::rsa::Rsa;
 use regex::Regex;
-use sha1::{Digest, Sha1};
-use sha2::{Sha256, Sha512};
+use sha2::{Digest, Sha256, Sha512};
 use std::collections::HashMap;
 use std::fmt;
 use std::fs;
 use std::path::Path;
 use std::str::FromStr;
+
+pub enum HashType {
+    Sha256,
+    Sha512,
+}
+
+impl FromStr for HashType {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "sha256" => Ok(HashType::Sha256),
+            "sha512" => Ok(HashType::Sha512),
+            _ => Err(Error::InvalidHashType),
+        }
+    }
+}
+
+impl HashType {
+    fn hash(&self, bytes: &[u8]) -> String {
+        match &self {
+            HashType::Sha256 => {
+                let mut hasher = Sha256::new();
+                hasher.input(bytes);
+                format!("{:x}", hasher.result())
+            }
+            HashType::Sha512 => {
+                let mut hasher = Sha512::new();
+                hasher.input(bytes);
+                format!("{:x}", hasher.result())
+            }
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct Metadata {
@@ -127,35 +162,32 @@ pub fn same_hash_than_in_nodeslist(
     hash_type: String,
     keyhash: String,
 ) -> Result<bool, Error> {
-    let pubkey_pem = get_pubkey(pubkey);
+    let pubkey_pem = get_pubkey(pubkey)?;
 
-    let rsa_key_from_pem = Rsa::public_key_from_pem_pkcs1(pubkey_pem.as_bytes()).unwrap();
-
-    let public_key_from_pem = PKey::from_rsa(rsa_key_from_pem)?;
-
-    let public_key_der = public_key_from_pem.public_key_to_der()?;
+    let public_key_der = pubkey_pem.public_key_to_der()?;
 
     let bytes2: &[u8] = &public_key_der;
 
-    if hash_type == "sha1" {
-        let mut hasher = Sha1::new();
-        hasher.input(bytes2);
-        return Ok(format!("{:x}", hasher.result()) == keyhash);
+    match HashType::from_str(&hash_type) {
+        Ok(HashType::Sha256) => Ok(HashType::Sha256.hash(bytes2) == keyhash),
+        Ok(HashType::Sha512) => Ok(HashType::Sha512.hash(bytes2) == keyhash),
+        Err(err) => Err(err),
     }
+}
 
-    if hash_type == "sha256" {
-        let mut hasher = Sha256::new();
-        hasher.input(bytes2);
-        return Ok(format!("{:x}", hasher.result()) == keyhash);
-    }
-
-    if hash_type == "sha512" {
-        let mut hasher = Sha512::new();
-        hasher.input(bytes2);
-        Ok(format!("{:x}", hasher.result()) == keyhash)
-    } else {
-        Err(Error::InvalidHashType)
-    }
+pub fn get_pubkey(
+    pubkey: String,
+) -> Result<openssl::pkey::PKey<Public>, openssl::error::ErrorStack> {
+    PKey::from_rsa(
+        Rsa::public_key_from_pem_pkcs1(
+            format!(
+                "-----BEGIN RSA PUBLIC KEY-----\n{}\n-----END RSA PUBLIC KEY-----\n",
+                pubkey
+            )
+            .as_bytes(),
+        )
+        .unwrap(),
+    )
 }
 
 pub fn parse_ttl(ttl: String) -> Result<i64, Error> {
@@ -221,13 +253,6 @@ pub fn parse_hash_from_raw(raw: String) -> String {
         .map(|s| s.to_string())
         .filter(|s| s != "hash")
         .collect::<String>()
-}
-
-pub fn get_pubkey(pubkey: String) -> String {
-    format!(
-        "-----BEGIN RSA PUBLIC KEY-----\n{}\n-----END RSA PUBLIC KEY-----\n",
-        pubkey
-    )
 }
 
 #[test]

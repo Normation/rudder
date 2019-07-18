@@ -112,7 +112,7 @@ impl Display for Error {
             MissingTargetNodes => write!(f, "missing nodes list"),
             InvalidHashType => write!(
                 f,
-                "Invalid hash type provided, available hash types : sha1, sha256, sha512"
+                "Invalid hash type provided, available hash types : sha256, sha512"
             ),
         }
     }
