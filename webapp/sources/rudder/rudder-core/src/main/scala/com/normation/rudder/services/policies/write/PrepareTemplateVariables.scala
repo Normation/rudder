@@ -160,6 +160,7 @@ class PrepareTemplateVariablesImpl(
         , agentNodeConfig.paths
         , preparedTemplate
         , allSystemVars
+        , allNodeConfigs.get(nodeId).map(_.policies).getOrElse(Nil)
       )
     }
   }

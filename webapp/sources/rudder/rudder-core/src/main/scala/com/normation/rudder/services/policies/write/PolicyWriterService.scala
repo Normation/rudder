@@ -347,6 +347,7 @@ class PolicyWriterServiceImpl(
                             (for {
                               _ <- writePromises(prepared.paths, prepared.agentNodeProps.agentType, prepared.preparedTechniques, resources)
                               _ <- writeAllAgentSpecificFiles.write(prepared) ?~! s"Error with node '${prepared.paths.nodeId.value}'"
+                              _ <- writeDirectiveCsv(prepared.paths, prepared.policies, globalPolicyMode)
                               _ <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
                             } yield {
                               "OK"
@@ -613,7 +614,23 @@ class PolicyWriterServiceImpl(
     res
   }
 
-  // just write an empty file for now
+
+  private[this] def writeDirectiveCsv(paths: NodePromisesPaths, policies: Seq[Policy], policyMode : GlobalPolicyMode) =  {
+    val path = new File(paths.newFolder, "rudder-directives.csv")
+
+    val csvContent = for {
+      policy <- policies
+    } yield {
+      s"""${policy.id.directiveId.value};${policy.policyMode.getOrElse(policyMode.mode).name};${policy.technique.generationMode.name};${policy.technique.agentConfig.runHooks.nonEmpty};${policy.technique.id.name};${policy.technique.id.version};"${policy.directiveOrder.value}""""
+    }
+    for {
+      _ <- tryo { FileUtils.writeStringToFile(path, csvContent.mkString("\n") + "\n", StandardCharsets.UTF_8) } ?~!
+        s"Can not write rudder-directives.csv file at path '${path.getAbsolutePath}'"
+    } yield {
+      AgentSpecificFile(path.getAbsolutePath) :: Nil
+    }
+  }
+
   private[this] def writeSystemVarJson(paths: NodePromisesPaths, variables: Map[String, Variable]) =  {
     val path = new File(paths.newFolder, "rudder.json")
     for {
