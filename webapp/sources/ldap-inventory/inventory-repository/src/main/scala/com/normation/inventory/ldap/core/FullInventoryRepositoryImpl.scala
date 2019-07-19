@@ -310,7 +310,6 @@ class FullInventoryRepositoryImpl(
     }
   }.chainError(s"Error when getting all node inventories for status '${inventoryStatus.name}'")
 
-
   override def get(id:NodeId, inventoryStatus : InventoryStatus) : IOResult[Option[FullInventory]] = {
     for {
       con    <- ldap

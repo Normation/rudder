@@ -109,10 +109,46 @@ class TestCertificate extends Specification {
 
   sequential
 
-  val nodeId = NodeId("b73ea451-c42a-420d-a540-47b445e58313")
 
-  "when a node is not in reposiroty, it is ok to not have a signature" in {
-    repository.remove(nodeId)
+  val windows = NodeId("b73ea451-c42a-420d-a540-47b445e58313")
+  val linux = NodeId("baded9c8-902e-4404-96c1-278acca64e3a")
+
+  // LINUX
+  "when a node is not in repository, it is ok to not have a signature with cfkey" in {
+    repository.remove(linux)
+
+    val res = processor.saveInventory(SaveInventoryInfo(
+        "linux-cfe-sign"
+      , () => Resource.getAsStream("linux-cfe-sign.ocs")
+      , None
+    ))
+
+    (res.runNow must beAnInstanceOf[InventoryProcessStatus.Accepted]) and
+    (repository.get(linux) must beSome) and
+    (repository(linux).node.agents.head.securityToken.key === Cert.CFE) and
+    (repository(linux).node.main.keyStatus === UndefinedKey)
+  }
+
+  "when a node is not in repository, it is ok to have a signature with cfe-key" in {
+    repository.remove(linux)
+
+    val res = processor.saveInventory(SaveInventoryInfo(
+        "linux-cfe-sign"
+      , () => Resource.getAsStream("linux-cfe-sign.ocs")
+      , Some(() => Resource.getAsStream("linux-cfe-sign.ocs.sign"))
+    ))
+
+    (res.runNow must beAnInstanceOf[InventoryProcessStatus.Accepted]) and
+    (repository.get(linux) must beSome) and
+    (repository(linux).node.agents.head.securityToken.key === Cert.CFE) and
+    (repository(linux).node.main.keyStatus == CertifiedKey)
+
+  }
+
+  // WINDOWS
+
+  "when a node is not in repository, it is ok to not have a signature with certificate" in {
+    repository.remove(windows)
 
     val res = processor.saveInventory(SaveInventoryInfo(
         "windows-same-certificate"
@@ -121,13 +157,14 @@ class TestCertificate extends Specification {
     ))
 
     (res.runNow must beAnInstanceOf[InventoryProcessStatus.Accepted]) and
-    (repository(nodeId).node.agents.head.securityToken.key === Cert.OK) and
-    (repository(nodeId).node.main.keyStatus === UndefinedKey)
+    (repository.get(windows) must beSome) and
+    (repository(windows).node.agents.head.securityToken.key === Cert.OK) and
+    (repository(windows).node.main.keyStatus === UndefinedKey)
 
   }
 
-  "when a node is not in reposiroty, it is ok to have a signature" in {
-    repository.remove(nodeId)
+  "when a node is not in repository, it is ok to have a signature with certificate" in {
+    repository.remove(windows)
 
     val res = processor.saveInventory(SaveInventoryInfo(
         "windows-same-certificate"
@@ -136,13 +173,14 @@ class TestCertificate extends Specification {
     ))
 
     (res.runNow must beAnInstanceOf[InventoryProcessStatus.Accepted]) and
-    (repository(nodeId).node.agents.head.securityToken.key === Cert.OK) and
-    (repository(nodeId).node.main.keyStatus == CertifiedKey)
+    (repository.get(windows) must beSome) and
+    (repository(windows).node.agents.head.securityToken.key === Cert.OK) and
+    (repository(windows).node.main.keyStatus == CertifiedKey)
 
   }
 
   "when a node is in repository with a registered key, it is ok to add it again with a signature" in {
-    val start = repository(nodeId).node.agents.head.securityToken.key === Cert.OK
+    val start = repository(windows).node.agents.head.securityToken.key === Cert.OK
 
     val res = processor.saveInventory(SaveInventoryInfo(
         "windows-same-certificate"
@@ -151,12 +189,13 @@ class TestCertificate extends Specification {
     ))
 
     (res.runNow must beAnInstanceOf[InventoryProcessStatus.Accepted]) and
+    (repository.get(windows) must beSome) and
     (start) and
-    (repository(nodeId).node.main.keyStatus == CertifiedKey)
+    (repository(windows).node.main.keyStatus == CertifiedKey)
   }
 
   "when a node is in repository with a registered key, it is NOK to miss signature" in {
-    val start = repository(nodeId).node.agents.head.securityToken.key === Cert.OK
+    val start = repository(windows).node.agents.head.securityToken.key === Cert.OK
 
     val res = processor.saveInventory(SaveInventoryInfo(
         "windows-same-certificate"
@@ -164,14 +203,15 @@ class TestCertificate extends Specification {
       , None
     ))
 
+    (repository.get(windows) must beSome) and
     (start) and
-    (repository(nodeId).node.main.keyStatus == CertifiedKey) and
+    (repository(windows).node.main.keyStatus == CertifiedKey) and
     (res.runNow must beAnInstanceOf[InventoryProcessStatus.MissingSignature])
   }
 
   // this one will be used to update certificate: sign new inventory with old key
   "when a node is in repository with a registered key; signature must match existing certificate, not the one in inventory" in {
-    val start = repository(nodeId).node.agents.head.securityToken.key === Cert.OK
+    val start = repository(windows).node.agents.head.securityToken.key === Cert.OK
 
     val res = processor.saveInventory(SaveInventoryInfo(
         "windows-new-certificate"
@@ -180,13 +220,14 @@ class TestCertificate extends Specification {
     ))
 
     (res.runNow must beAnInstanceOf[InventoryProcessStatus.Accepted]) and
+    (repository.get(windows) must beSome) and
     (start) and
-    (repository(nodeId).node.main.keyStatus == CertifiedKey) and
-    (repository(nodeId).node.agents.head.securityToken.key === Cert.NEW)
+    (repository(windows).node.main.keyStatus == CertifiedKey) and
+    (repository(windows).node.agents.head.securityToken.key === Cert.NEW)
   }
 
   "when certificate 'subject' doesn't match node ID, we got an error" in {
-    repository.remove(nodeId)
+    repository.remove(windows)
     val res = processor.saveInventory(SaveInventoryInfo(
         "windows-bad-certificate"
       , () => Resource.getAsStream("windows-bad-certificate.ocs")
@@ -201,6 +242,20 @@ class TestCertificate extends Specification {
 }
 
 object Cert {
+
+  val CFE = """-----BEGIN RSA PUBLIC KEY-----
+              |MIICCgKCAgEAtG20P906HK1MV0nSA2eWKqC+29tX8/TnHd0YGAVgg5+ODr+tbXXj
+              |WgtEr0XaLxN12/Usu+DSQWcEAMAn6O3iUmxsIYLWRAU1mqqK0q2rxov3+jg/7sK9
+              |sYo9dg9OGOjbFeoJVg66P1zlZt4YWczBP+zM+tLvh+Zn65IcLAc6ASm6imWjStNf
+              |9rmpfupsd85y29qpdxbS7acb3WOzelz2EVVU5NBhQ3VB94n3O5+9UjpHSSOkR3bA
+              |oB9UsrnbXpDLV0NfEBUtiQsgcARO94QjRaaN2kgvGAIryZJxgDOmNGNzJTNV7p1W
+              |geN5L2Bal98C4vbR6dnln2RTOnE8uQb0gd36gHZF/Zyh45Odlx/XZc1P5UtV/BUU
+              |PxUhYYxth5P6u2C2YHtyb6ws7lKtT/W9ECiK4i/gyEIVDxu7stR17HvRR0BL1D2u
+              |wHl/TkpkTHRIHl7G6zt79s7ujFFWn+GRXPXLFfUy45e0HkGeUVJUoW62NZTp1bFI
+              |BaErpPMRwXmvD6v3ox3XGI46wSjfIG0c8W3nYHM1q9JrwE9+0jLBb8bumsgS7KpO
+              |0VKjPXX7rzH+2l8AweQR3JzGifUyl/DsHiPSaOc3nAWJy0k7yizhHkebw6rcM/SD
+              |lz4F5ONicuBwYgjvmgjA7o2COh7s+dIoYXp01xMb60OUfjKeG8BUKucCAwEAAQ==
+              |-----END RSA PUBLIC KEY-----""".stripMargin
 
   val OK = """-----BEGIN CERTIFICATE-----
              |MIIFgTCCA2mgAwIBAgIUXpY2lv7l+hkx4mVP324d9O1qJh0wDQYJKoZIhvcNAQEL
