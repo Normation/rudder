@@ -37,54 +37,38 @@
 
 package com.normation.rudder.repository.xml
 
-import java.io.FileNotFoundException
+import java.io.InputStream
 
-import com.normation.NamedZioLogger
 import com.normation.errors._
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
-import com.normation.rudder.exceptions.ParsingException
-import com.normation.rudder.repository.LicenseRepository
 import org.xml.sax.SAXParseException
+import zio._
+import zio.syntax._
 
 import scala.xml.Elem
 import scala.xml.XML
 
-class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository with NamedZioLogger {
-
-  override def loggerName: String = this.getClass.getName
-
-  override def getAllLicense(): IOResult[Map[NodeId, CfeEnterpriseLicense]] = {
-    logEffect.debug(s"Loading document ${licenseFile}")
-    IOResult.effect(s"Failed to load licenses from file: ${licenseFile}") {
-      val doc = loadLicenseFile()
-
-      val licenses = (for {
-        elt <- (doc \\"licenses" \ "license")
-      } yield {
-        CfeEnterpriseLicense.parseXml(elt)
-      })
-      licenses.map(x => (x.uuid, x)).toMap
-    }
-  }
+object ParseXml {
 
   /**
-   * Load the license file
-   * @return The xml element representation of the file
+   * Parse the file denoted by input stream (filePath is only
+   * for explicit error messages)
    */
-  private[this] def loadLicenseFile() : Elem = {
-    try {
-      XML.loadFile(licenseFile)
-    } catch {
-      case e : SAXParseException =>
-        logEffect.error("Cannot parse license file")
-        throw new ParsingException("Unexpected issue (unvalid xml?) with the config file " )
-      case e : java.net.MalformedURLException =>
-        logEffect.error(s"Cannot read license file ${licenseFile}")
-        throw new FileNotFoundException("License file not found : " + licenseFile )
-      case e : java.io.FileNotFoundException =>
-        logEffect.debug(s"License file ${licenseFile} not found, this may be a problem if using the Windows Plugin")
-        <licenses/>
+  def apply(is: InputStream, filePath : Option[String] = None) : IOResult[Elem] = {
+    val name = filePath.getOrElse("[unknown]")
+    for {
+      doc <- Task(XML.load(is)).catchAll {
+               case e: SAXParseException =>
+                 SystemError(s"Unexpected issue with the XML file ${name}: ${e.getMessage}", e).fail
+               case e: java.net.MalformedURLException =>
+                 SystemError("XML file not found: " + name, e).fail
+               case e =>
+                SystemError(s"Error during parsing of XML file '${name}'", e).fail
+             }
+      _   <- ZIO.when(doc.isEmpty) {
+               Unexpected(s"Error when parsing XML file: '${name}': the parsed document is empty").fail
+             }
+    } yield {
+      doc
     }
   }
 }

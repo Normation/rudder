@@ -118,7 +118,7 @@ class GitParseRules(
                }
       xmls  <- ZIO.foreach(paths) { crPath =>
                  GitFindUtils.getFileContent(db, revTreeId, crPath){ inputStream =>
-                   ParseXml(inputStream, Some(crPath)).toIO
+                   ParseXml(inputStream, Some(crPath))
                  }
                }
       rules <- ZIO.foreach(xmls) { xml =>
@@ -158,7 +158,7 @@ class GitParseGlobalParameters(
                  }
       xmls   <- ZIO.foreach(paths.toSeq) { paramPath =>
                   GitFindUtils.getFileContent(db, revTreeId, paramPath){ inputStream =>
-                    ParseXml(inputStream, Some(paramPath)).toIO
+                    ParseXml(inputStream, Some(paramPath))
                   }
                 }
       params <- ZIO.foreach(xmls) { xml =>
@@ -194,7 +194,7 @@ class GitParseRuleCategories(
       for {
         db           <- repo.db
         xml          <- GitFindUtils.getFileContent(db, revTreeId, categoryPath){ inputStream =>
-                          ParseXml(inputStream, Some(categoryPath)).toIO.chainError(s"Error when parsing file '${categoryPath}' as a category")
+                          ParseXml(inputStream, Some(categoryPath)).chainError(s"Error when parsing file '${categoryPath}' as a category")
                         }
         categoryXml  <- xmlMigration.getUpToDateXml(xml).toIO
         category     <- unserialiser.unserialise(categoryXml).toIO.chainError(s"Error when unserializing category for file '${categoryPath}'")
@@ -252,7 +252,7 @@ class GitParseGroupLibrary(
       for {
         db           <- repo.db
         xml          <- GitFindUtils.getFileContent(db, revTreeId, categoryPath){ inputStream =>
-                          ParseXml(inputStream, Some(categoryPath)).toIO.chainError(s"Error when parsing file '${categoryPath}' as a category")
+                          ParseXml(inputStream, Some(categoryPath)).chainError(s"Error when parsing file '${categoryPath}' as a category")
                         }
         categoryXml  <- xmlMigration.getUpToDateXml(xml).toIO
         category     <- categoryUnserialiser.unserialise(categoryXml).toIO.chainError(s"Error when unserializing category for file '${categoryPath}'")
@@ -267,7 +267,7 @@ class GitParseGroupLibrary(
         groups       <- ZIO.foreach(groupFiles.toSeq) { groupPath =>
                           for {
                             xml2     <- GitFindUtils.getFileContent(db, revTreeId, groupPath){ inputStream =>
-                              ParseXml(inputStream, Some(groupPath)).toIO.chainError(s"Error when parsing file '${groupPath}' as a directive")
+                              ParseXml(inputStream, Some(groupPath)).chainError(s"Error when parsing file '${groupPath}' as a directive")
                             }
                             groupXml <- xmlMigration.getUpToDateXml(xml2).toIO
                             group    <- groupUnserialiser.unserialise(groupXml).toIO.chainError(s"Error when unserializing group for file '${groupPath}'")
@@ -353,7 +353,7 @@ class GitParseActiveTechniqueLibrary(
           for {
             db       <- repo.db
             xml      <- GitFindUtils.getFileContent(db, revTreeId, category){ inputStream =>
-                          ParseXml(inputStream, Some(category)).toIO.chainError(s"Error when parsing file '${category}' as a category")
+                          ParseXml(inputStream, Some(category)).chainError(s"Error when parsing file '${category}' as a category")
                         }
             //here, we have to migrate XML fileformat, if not up to date
             uptcXml  <- xmlMigration.getUpToDateXml(xml).toIO
@@ -391,7 +391,7 @@ class GitParseActiveTechniqueLibrary(
           for {
             db     <- repo.db
             xml    <- GitFindUtils.getFileContent(db, revTreeId, template){ inputStream =>
-                         ParseXml(inputStream, Some(template)).toIO.chainError(s"Error when parsing file '${template}' as a category")
+                         ParseXml(inputStream, Some(template)).chainError(s"Error when parsing file '${template}' as a category")
                        }
             uptXml  <- xmlMigration.getUpToDateXml(xml).toIO
             activeTechnique <- uptUnserialiser.unserialise(uptXml).toIO.chainError(s"Error when unserializing template for file '${template}'")
@@ -406,7 +406,7 @@ class GitParseActiveTechniqueLibrary(
             directives <- ZIO.foreach(piFiles.toSeq) { piFile =>
                          for {
                            xml2  <- GitFindUtils.getFileContent(db, revTreeId, piFile){ inputStream =>
-                                      ParseXml(inputStream, Some(piFile)).toIO.chainError(s"Error when parsing file '${piFile}' as a directive")
+                                      ParseXml(inputStream, Some(piFile)).chainError(s"Error when parsing file '${piFile}' as a directive")
                                     }
                            piXml <- xmlMigration.getUpToDateXml(xml2).toIO
                            res   <- piUnserialiser.unserialise(piXml).toIO.chainError(s"Error when unserializing pdirective for file '${piFile}'")

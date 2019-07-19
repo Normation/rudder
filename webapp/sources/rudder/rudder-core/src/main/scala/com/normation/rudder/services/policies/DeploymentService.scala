@@ -67,7 +67,6 @@ import com.normation.rudder.domain.logger.ComplianceDebugLogger
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.rudder.services.policies.write.PolicyWriterService
 import com.normation.rudder.reports.GlobalComplianceMode
-import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.inventory.domain.AixOS
 import com.normation.rudder.batch.UpdateDynamicGroups
@@ -252,7 +251,6 @@ trait PromiseGenerationService {
       globalComplianceMode <- getGlobalComplianceMode
       globalPolicyMode     <- getGlobalPolicyMode() ?~! "Cannot get the Global Policy Mode (Enforce or Verify)"
       nodeConfigCaches     <- getNodeConfigurationHash() ?~! "Cannot get the Configuration Cache"
-      allLicenses          <- getAllLicenses() ?~! "Cannont get licenses information"
       allNodeModes         =  buildNodeModes(allNodeInfos, globalComplianceMode, globalAgentRun, globalPolicyMode)
       timeFetchAll         =  (System.currentTimeMillis - fetch0Time)
       _                    =  PolicyLogger.debug(s"All relevant information fetched in ${timeFetchAll} ms, start names historization.")
@@ -288,7 +286,7 @@ trait PromiseGenerationService {
 
       nodeContextsTime      =  System.currentTimeMillis
       activeNodeIds         =  (Set[NodeId]()/:ruleVals){case(s,r) => s ++ r.nodeIds}
-      nodeContexts          <- getNodeContexts(activeNodeIds, allNodeInfos, groupLib, allLicenses, allParameters, globalAgentRun, globalComplianceMode, globalPolicyMode) ?~! "Could not get node interpolation context"
+      nodeContexts          <- getNodeContexts(activeNodeIds, allNodeInfos, groupLib, allParameters, globalAgentRun, globalComplianceMode, globalPolicyMode) ?~! "Could not get node interpolation context"
       timeNodeContexts      =  (System.currentTimeMillis - nodeContextsTime)
       _                     =  PolicyLogger.debug(s"Node contexts built in ${timeNodeContexts} ms, start to build new node configurations.")
 
@@ -314,7 +312,7 @@ trait PromiseGenerationService {
       _                     <- forgetOtherNodeConfigurationState(nodeConfigs.keySet) ?~! "Cannot clean the configuration cache"
 
       writeTime             =  System.currentTimeMillis
-      writtenNodeConfigs    <- writeNodeConfigurations(rootNodeId, updatedNodeConfigIds, nodeConfigs, allLicenses, globalPolicyMode, generationTime, maxParallelism) ?~!"Cannot write nodes configuration"
+      writtenNodeConfigs    <- writeNodeConfigurations(rootNodeId, updatedNodeConfigIds, nodeConfigs, globalPolicyMode, generationTime, maxParallelism) ?~!"Cannot write nodes configuration"
       timeWriteNodeConfig   =  (System.currentTimeMillis - writeTime)
       _                     =  PolicyLogger.debug(s"Node configuration written in ${timeWriteNodeConfig} ms, start to update expected reports.")
 
@@ -391,7 +389,6 @@ trait PromiseGenerationService {
   def getAllInventories(): Box[Map[NodeId, NodeInventory]]
   def getGlobalComplianceMode(): Box[GlobalComplianceMode]
   def getGlobalAgentRun() : Box[AgentRunInterval]
-  def getAllLicenses(): Box[Map[NodeId, CfeEnterpriseLicense]]
   def getAgentRunInterval    : () => Box[Int]
   def getAgentRunSplaytime   : () => Box[Int]
   def getAgentRunStartHour   : () => Box[Int]
@@ -469,7 +466,6 @@ trait PromiseGenerationService {
       nodeIds               : Set[NodeId]
     , allNodeInfos          : Map[NodeId, NodeInfo]
     , allGroups             : FullNodeGroupCategory
-    , allLicenses           : Map[NodeId, CfeEnterpriseLicense]
     , globalParameters      : Seq[GlobalParameter]
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode
@@ -520,7 +516,6 @@ trait PromiseGenerationService {
       rootNodeId      : NodeId
     , updated         : Map[NodeId, NodeConfigId]
     , allNodeConfig   : Map[NodeId, NodeConfiguration]
-    , allLicenses     : Map[NodeId, CfeEnterpriseLicense]
     , globalPolicyMode: GlobalPolicyMode
     , generationTime  : DateTime
     , maxParallelism  : Int
@@ -585,7 +580,6 @@ class PromiseGenerationServiceImpl (
   , override val systemVarService: SystemVariableService
   , override val nodeConfigurationService : NodeConfigurationHashRepository
   , override val nodeInfoService : NodeInfoService
-  , override val licenseRepository: LicenseRepository
   , override val confExpectedRepo : UpdateExpectedReportsRepository
   , override val historizationService : HistorizationService
   , override val roNodeGroupRepository: RoNodeGroupRepository
@@ -684,8 +678,6 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   def systemVarService: SystemVariableService
   def ruleApplicationStatusService: RuleApplicationStatusService
 
-  def licenseRepository: LicenseRepository
-
   def getGlobalPolicyMode: () => Box[GlobalPolicyMode]
 
   override def findDependantRules() : Box[Seq[Rule]] = roRuleRepo.getAll(true).toBox
@@ -696,7 +688,6 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   override def getAllInventories(): Box[Map[NodeId, NodeInventory]] = roInventoryRepository.getAllNodeInventories(AcceptedInventory).toBox
   override def getGlobalComplianceMode(): Box[GlobalComplianceMode] = complianceModeService.getGlobalComplianceMode
   override def getGlobalAgentRun(): Box[AgentRunInterval] = agentRunService.getGlobalAgentRun()
-  override def getAllLicenses(): Box[Map[NodeId, CfeEnterpriseLicense]] = licenseRepository.getAllLicense().toBox
   override def getAppliedRuleIds(rules:Seq[Rule], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allNodeInfos: Map[NodeId, NodeInfo]): Set[RuleId] = {
      rules.filter(r => ruleApplicationStatusService.isApplied(r, groupLib, directiveLib, allNodeInfos) match {
       case _:AppliedStatus => true
@@ -719,7 +710,6 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
       nodeIds               : Set[NodeId]
     , allNodeInfos          : Map[NodeId, NodeInfo]
     , allGroups             : FullNodeGroupCategory
-    , allLicenses           : Map[NodeId, CfeEnterpriseLicense]
     , globalParameters      : Seq[GlobalParameter]
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode
@@ -757,7 +747,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
           nodeInfo     <- Box(allNodeInfos.get(nodeId)) ?~! s"Node with ID ${nodeId.value} was not found"
           policyServer <- Box(allNodeInfos.get(nodeInfo.policyServerId)) ?~! s"Node with ID ${nodeId.value} was not found"
 
-          nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, allGroups, allLicenses, globalSystemVariables, globalAgentRun, globalComplianceMode  : ComplianceMode)
+          nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, allGroups, globalSystemVariables, globalAgentRun, globalComplianceMode  : ComplianceMode)
         } yield {
           (nodeId, InterpolationContext(
                         nodeInfo
@@ -1115,7 +1105,6 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
       rootNodeId      : NodeId
     , updated         : Map[NodeId, NodeConfigId]
     , allNodeConfigs  : Map[NodeId, NodeConfiguration]
-    , allLicenses     : Map[NodeId, CfeEnterpriseLicense]
     , globalPolicyMode: GlobalPolicyMode
     , generationTime  : DateTime
     , maxParallelism  : Int
@@ -1124,7 +1113,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
     val fsWrite0   =  System.currentTimeMillis
 
     for {
-      written    <- promisesFileWriterService.writeTemplate(rootNodeId, updated.keySet, allNodeConfigs, updated, allLicenses, globalPolicyMode, generationTime, maxParallelism)
+      written    <- promisesFileWriterService.writeTemplate(rootNodeId, updated.keySet, allNodeConfigs, updated, globalPolicyMode, generationTime, maxParallelism)
       ldapWrite0 =  DateTime.now.getMillis
       fsWrite1   =  (ldapWrite0 - fsWrite0)
       _          =  PolicyLogger.debug(s"Node configuration written on filesystem in ${fsWrite1} ms")

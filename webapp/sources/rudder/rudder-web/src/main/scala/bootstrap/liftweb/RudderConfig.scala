@@ -1023,7 +1023,6 @@ object RudderConfig extends Loggable {
     eventLogRepo
   }
   private[this] lazy val inventoryLogEventServiceImpl = new InventoryEventLogServiceImpl(logRepository)
-  private[this] lazy val licenseRepository = new LicenseRepositoryXML(RUDDER_DIR_LICENSESFOLDER + "/" + licensesConfiguration)
   private[this] lazy val gitRepo = new GitRepositoryProviderImpl(RUDDER_DIR_GITROOT)
   private[this] lazy val gitRevisionProviderImpl = new LDAPGitRevisionProvider(rwLdap, rudderDitImpl, gitRepo, RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH)
   private[this] lazy val techniqueReader: TechniqueReader = {
@@ -1448,7 +1447,6 @@ object RudderConfig extends Loggable {
       , systemVariableService
       , nodeConfigurationHashRepo
       , nodeInfoServiceImpl
-      , licenseRepository
       , updateExpectedRepo
       , historizationService
       , roNodeGroupRepository

@@ -94,7 +94,6 @@ import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Certificate
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.cfclerk.domain.TrackerVariable
-import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
 import com.normation.cfclerk.services.impl.GitTechniqueReader
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
@@ -613,8 +612,6 @@ class TestNodeConfiguration() {
   val globalComplianceMode = GlobalComplianceMode(FullCompliance, 15)
 
   val globalSystemVariables = systemVariableService.getGlobalSystemVariables(globalAgentRun).openOrThrowException("I should get global system variable in test!")
-
-  val noLicense = Map.empty[NodeId, CfeEnterpriseLicense]
 
   //
   //root has 4 system directive, let give them some variables

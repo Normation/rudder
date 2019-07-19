@@ -47,7 +47,6 @@ import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PublicKey
 import com.normation.inventory.domain.ServerRole
-import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.GroupTarget
@@ -71,7 +70,6 @@ trait SystemVariableService {
       nodeInfo              : NodeInfo
     , allNodeInfos          : Map[NodeId, NodeInfo]
     , allGroups             : FullNodeGroupCategory
-    , allLicences           : Map[NodeId, CfeEnterpriseLicense]
     , globalSystemVariables : Map[String, Variable]
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode  ) : Box[Map[String, Variable]]
@@ -241,7 +239,6 @@ class SystemVariableServiceImpl(
         nodeInfo              : NodeInfo
       , allNodeInfos          : Map[NodeId, NodeInfo]
       , allGroups             : FullNodeGroupCategory
-      , allLicenses           : Map[NodeId, CfeEnterpriseLicense]
       , globalSystemVariables : Map[String, Variable]
       , globalAgentRun        : AgentRunInterval
       , globalComplianceMode  : ComplianceMode
