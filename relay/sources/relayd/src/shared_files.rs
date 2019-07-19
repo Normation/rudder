@@ -33,9 +33,11 @@ use chrono::prelude::DateTime;
 use chrono::{Duration, Utc};
 use hyper::StatusCode;
 use openssl::error::ErrorStack;
+use openssl::hash::MessageDigest;
 use openssl::pkey::PKey;
 use openssl::pkey::Public;
 use openssl::rsa::Rsa;
+use openssl::sign::{Signer, Verifier};
 use regex::Regex;
 use sha2::{Digest, Sha256, Sha512};
 use std::collections::HashMap;
@@ -74,6 +76,13 @@ impl HashType {
                 hasher.input(bytes);
                 format!("{:x}", hasher.result())
             }
+        }
+    }
+
+    fn to_openssl_hash(&self) -> MessageDigest {
+        match &self {
+            HashType::Sha256 => MessageDigest::sha256(),
+            HashType::Sha512 => MessageDigest::sha512(),
         }
     }
 }
@@ -177,6 +186,17 @@ pub fn get_pubkey(pubkey: String) -> Result<PKey<Public>, ErrorStack> {
     )?)
 }
 
+pub fn validate_signature(
+    file: &[u8],
+    pubkey: PKey<Public>,
+    hash_type: HashType,
+    digest: &[u8],
+) -> Result<bool, ErrorStack> {
+    let mut verifier = Verifier::new(hash_type.to_openssl_hash(), &pubkey).unwrap();
+    verifier.update(file).unwrap();
+    verifier.verify(digest)
+}
+
 pub fn parse_ttl(ttl: String) -> Result<i64, Error> {
     let regex_numbers = Regex::new(r"^(?:(?P<days>\d+)(?:d|days))?\s*(?:(?P<hours>\d+)(?:h|hours))?\s*(?:(?P<minutes>\d+)(?:m|minutes))?\s*(?:(?P<seconds>\d+)(?:s|seconds))?").unwrap();
 
@@ -272,4 +292,25 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==".to_string()).unwrap(),
         HashType::Sha512,
         "3c4641f2e99ade126b9923ffdfc432d486043e11ce7bd5528cc50ed372fc4c224dba7f2a2a3a24f114c06e42af5f45f5c248abd7ae300eeefc27bcf0687d7040"
     ).unwrap(), true);
+}
+
+#[test]
+pub fn it_validates_signatures() {
+    // Generate a keypair
+    let k0 = Rsa::generate(2048).unwrap();
+    let k0pkey = k0.public_key_to_pem().unwrap();
+    let k1 = Rsa::public_key_from_pem(&k0pkey).unwrap();
+
+    let keypriv = PKey::from_rsa(k0).unwrap();
+    let keypub = PKey::from_rsa(k1).unwrap();
+
+    let data = b"hello, world!";
+
+    // Sign the data
+    let mut signer = Signer::new(HashType::Sha512.to_openssl_hash(), &keypriv).unwrap();
+    signer.update(data).unwrap();
+
+    let signature = signer.sign_to_vec().unwrap();
+
+    assert!(validate_signature(data, keypub, HashType::Sha512, &signature).unwrap());
 }
