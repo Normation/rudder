@@ -2,14 +2,25 @@
 
 set -ex
 
+##################
+### Slow tests ###
+##################
+if [ "$1" = "--rust" ]; then
+  cd relay/sources && make check
+  exit 0
+elif [ "$1" = "--scala" ]; then
+  cd webapp/sources && mvn clean install -Dmaven.test.postgres=false
+  exit 0
+fi
+
+###################
+### Quick tests ###
+###################
+webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh
+
+# Python linter
 find . ! -name 'convertOpenLDAPSchema.py' -name '*.py' | xargs pylint -E --persistent=n --disable=C,R,import-error,no-member,no-name-in-module
 pylint -E --persistent=n --disable=C,R relay/sources/rudder-pkg
-
-# hooks tests
-./webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh
-
-# relayd check
-cd relay/sources && make lint && cd -
 
 # Shellcheck
 find . -path ./.git -prune -o -type f -exec grep -Eq '^#!(.*/|.*env +)(sh|bash|ksh)' {} \; -print |
