@@ -81,10 +81,10 @@ impl FromStr for RunInfo {
                 debug!("Parsed run info {:#?}", raw_runinfo.1);
                 Ok(raw_runinfo.1)
             }
-            Err(e) => {
-                std::dbg!(e);
-                Err(Error::InvalidRunInfo(s.to_string()))
-            }
+            Err(e) => Err(Error::InvalidRunInfo(format!(
+                "invalid runinfo '{}' with {:?}",
+                s, e
+            ))),
         }
     }
 }
