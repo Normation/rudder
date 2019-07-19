@@ -51,6 +51,8 @@ itertools = "0.8"
 md-5 = "0.8"
 hyper = "0.12"
 sha2 = "0.8"
+bytebuffer = "0.2.1"
+bytes = "0.4.12"
 
 [dev-dependencies]
 criterion = "0.2"

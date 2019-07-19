@@ -39,12 +39,15 @@ use openssl::pkey::Public;
 use openssl::rsa::Rsa;
 use openssl::sign::Verifier;
 use regex::Regex;
+use reqwest;
 use sha2::{Digest, Sha256, Sha512};
-use std::collections::HashMap;
 use std::fmt;
 use std::fs;
+use std::io::BufRead;
+use std::io::Read;
 use std::path::Path;
 use std::str::FromStr;
+use warp::Buf;
 
 pub enum HashType {
     Sha256,
@@ -89,49 +92,15 @@ impl HashType {
 
 #[derive(Debug)]
 pub struct Metadata {
-    header: String,
-    algorithm: String,
-    digest: String,
-    hash_value: String,
-    short_pubkey: String,
-    hostname: String,
-    keydate: String,
-    keyid: String,
-    expires: String,
-}
-
-impl FromStr for Metadata {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Metadata {
-            header: parse_value("header", s).unwrap(),
-            algorithm: parse_value("algorithm", s).unwrap(),
-            digest: parse_value("digest", s).unwrap(),
-            hash_value: parse_value("hash_value", s).unwrap(),
-            short_pubkey: parse_value("short_pubkey", s).unwrap(),
-            hostname: parse_value("hostname", s).unwrap(),
-            keydate: parse_value("keydate", s).unwrap(),
-            keyid: parse_value("keyid", s).unwrap(),
-            expires: parse_value("expires", s).unwrap(),
-        })
-    }
-}
-
-impl Metadata {
-    pub fn new(hashmap: HashMap<String, String>) -> Result<Self, Error> {
-        Ok(Metadata {
-            header: hashmap.get("header").unwrap().to_string(),
-            algorithm: hashmap.get("algorithm").unwrap().to_string(),
-            digest: hashmap.get("digest").unwrap().to_string(),
-            hash_value: hashmap.get("hash_value").unwrap().to_string(),
-            short_pubkey: hashmap.get("short_pubkey").unwrap().to_string(),
-            hostname: hashmap.get("hostname").unwrap().to_string(),
-            keydate: hashmap.get("keydate").unwrap().to_string(),
-            keyid: hashmap.get("keyid").unwrap().to_string(),
-            expires: hashmap.get("expires").unwrap().to_string(),
-        })
-    }
+    pub header: String,
+    pub algorithm: String,
+    pub digest: String,
+    pub hash_value: String,
+    pub short_pubkey: String,
+    pub hostname: String,
+    pub keydate: String,
+    pub keyid: String,
+    pub expires: String,
 }
 
 impl fmt::Display for Metadata {
@@ -151,6 +120,27 @@ impl fmt::Display for Metadata {
             parse_ttl(self.expires.clone().to_string()).unwrap()
         ));
         write!(f, "{}", mystring)
+    }
+}
+
+impl FromStr for Metadata {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if parse_value("header", s).unwrap() != "rudder-signature-v1" {
+            return Err(Error::InvalidHeader);
+        }
+        Ok(Metadata {
+            header: "rudder-signature-v1".to_string(),
+            algorithm: parse_value("algorithm", s).unwrap(),
+            digest: parse_value("digest", s).unwrap(),
+            hash_value: parse_value("hash_value", s).unwrap(),
+            short_pubkey: parse_value("short_pubkey", s).unwrap(),
+            hostname: parse_value("hostname", s).unwrap(),
+            keydate: parse_value("keydate", s).unwrap(),
+            keyid: parse_value("keyid", s).unwrap(),
+            expires: parse_value("expires", s).unwrap(),
+        })
     }
 }
 
@@ -198,7 +188,7 @@ pub fn validate_signature(
 }
 
 pub fn parse_ttl(ttl: String) -> Result<i64, Error> {
-    let regex_numbers = Regex::new(r"^(?:(?P<days>\d+)(?:d|days))?\s*(?:(?P<hours>\d+)(?:h|hours))?\s*(?:(?P<minutes>\d+)(?:m|minutes))?\s*(?:(?P<seconds>\d+)(?:s|seconds))?").unwrap();
+    let regex_numbers = Regex::new(r"^(?:(?P<days>\d+)(?:d|days|day))?\s*(?:(?P<hours>\d+)(?:h|hours|hour))?\s*(?:(?P<minutes>\d+)(?:m|minutes|minute))?\s*(?:(?P<seconds>\d+)(?:s|seconds|second))?").unwrap();
 
     fn parse_time<'t>(cap: &regex::Captures<'t>, n: &str) -> Result<i64, Error> {
         Ok(match cap.name(n) {
@@ -225,12 +215,38 @@ pub fn parse_ttl(ttl: String) -> Result<i64, Error> {
     }
 }
 
+pub fn metadata_parser(buf: &mut warp::body::FullBody) -> Vec<String> {
+    let mut metadata = Vec::new();
+
+    let reader = buf.reader();
+
+    for line in reader.lines() {
+        let mytmpstr = line.unwrap();
+        if mytmpstr != "" {
+            metadata.push(mytmpstr);
+        } else {
+            break;
+        }
+    }
+    metadata
+}
+
+pub fn file_writer(buf: &mut warp::body::FullBody, path: &str) {
+    let mut myvec: Vec<u8> = vec![];
+
+    buf.by_ref().reader().consume(1); // skip the line feed
+    buf.reader().read_to_end(&mut myvec).unwrap();
+
+    fs::write(format!("shared-files/{}", path), myvec).expect("Unable to write file");
+}
+
 pub fn metadata_writer(metadata_string: String, peek: &str) {
     let myvec: Vec<String> = peek.split('/').map(|s| s.to_string()).collect();
     let (target_uuid, source_uuid, _file_id) = (&myvec[0], &myvec[1], &myvec[2]);
-    let _ = fs::create_dir_all(format!("./{}/{}/", target_uuid, source_uuid)); // on cree les folders s'ils existent pas
-                                                                               //fs::create_dir_all(format!("/var/rudder/configuration-repository/shared-files/{}/{}/", target_uuid, source_uuid)); // real path
-    fs::write(format!("./{}", peek), metadata_string).expect("Unable to write file");
+    let _ = fs::create_dir_all(format!("shared-files/{}/{}/", target_uuid, source_uuid)); // on cree les folders s'ils existent pas
+                                                                                          //fs::create_dir_all(format!("/var/rudder/configuration-repository/shared-files/{}/{}/", target_uuid, source_uuid)); // real path
+    fs::write(format!("shared-files/{}.metadata", peek), metadata_string)
+        .expect("Unable to write file");
 }
 
 pub fn metadata_hash_checker(filename: String, hash: String) -> hyper::StatusCode {
@@ -255,11 +271,46 @@ pub fn metadata_hash_checker(filename: String, hash: String) -> hyper::StatusCod
     StatusCode::from_u16(404).unwrap()
 }
 
-pub fn parse_hash_from_raw(raw: String) -> String {
+pub fn parse_parameter_from_raw(raw: String) -> String {
     raw.split('=')
         .map(|s| s.to_string())
-        .filter(|s| s != "hash")
+        .filter(|s| s != "hash" || s != "ttl")
         .collect::<String>()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use openssl::sign::Signer;
+
+    #[test]
+    pub fn it_writes_the_metadata() {
+        let metadata = Metadata {
+            header: "rudder-signature-v1".to_string(),
+            algorithm: "sha256".to_string(),
+            digest: "8ca9efc5752e133e2e80e2661c176fa50f".to_string(),
+            hash_value: "a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f"
+                .to_string(),
+            short_pubkey: "shortpubkey".to_string(),
+            hostname: "ubuntu-18-04-64".to_string(),
+            keydate: "2018-10-3118:21:43.653257143".to_string(),
+            keyid: "B29D02BB".to_string(),
+            expires: "1d 1h".to_string(),
+        };
+
+        assert_eq!(format!("{}", metadata), format!("header=rudder-signature-v1\nalgorithm=sha256\ndigest=8ca9efc5752e133e2e80e2661c176fa50f\nhash_value=a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f\nshort_pubkey=shortpubkey\nhostname=ubuntu-18-04-64\nkeydate=2018-10-3118:21:43.653257143\nkeyid=B29D02BB\nexpires={}\n", parse_ttl("1d 1h".to_string()).unwrap()));
+    }
+
+pub fn send_file(file_id: String, source_uuid: String, target_uuid: String) {
+    let file_test = fs::File::open("target/tmp/test_send_file.txt").unwrap();
+    let client = reqwest::Client::new();
+    let _res = client
+        .put(&format!(
+            "https://relay/rudder/relay-api/shared-files/{}/{}/{}",
+            target_uuid, source_uuid, file_id
+        ))
+        .body(file_test)
+        .send();
 }
 
 #[cfg(test)]
@@ -319,4 +370,26 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==".to_string()).unwrap(),
 
         assert!(validate_signature(data, keypub, HashType::Sha512, &signature).unwrap());
     }
+
+    #[test]
+    pub fn it_validates_signatures() {
+        // Generate a keypair
+        let k0 = Rsa::generate(2048).unwrap();
+        let k0pkey = k0.public_key_to_pem().unwrap();
+        let k1 = Rsa::public_key_from_pem(&k0pkey).unwrap();
+
+        let keypriv = PKey::from_rsa(k0).unwrap();
+        let keypub = PKey::from_rsa(k1).unwrap();
+
+        let data = b"hello, world!";
+
+        // Sign the data
+        let mut signer = Signer::new(HashType::Sha512.to_openssl_hash(), &keypriv).unwrap();
+        signer.update(data).unwrap();
+
+        let signature = signer.sign_to_vec().unwrap();
+
+        assert!(validate_signature(data, keypub, HashType::Sha512, &signature).unwrap());
+    }
+
 }

@@ -75,6 +75,7 @@ pub enum Error {
     MissingTargetNodes,
     InvalidHashType,
     InvalidLogFilter(tracing_fmt::filter::env::ParseError),
+    InvalidHeader,
 }
 
 impl Display for Error {
@@ -116,6 +117,7 @@ impl Display for Error {
                 "Invalid hash type provided, available hash types : sha256, sha512"
             ),
             InvalidLogFilter(ref err) => write!(f, "Log filter is invalid: {}", err),
+            InvalidHeader => write!(f, "Invalid header"),
         }
     }
 }

@@ -31,9 +31,13 @@
 use crate::{
     error::Error,
     remote_run::{RemoteRun, RemoteRunTarget},
-    shared_files::{metadata_hash_checker, metadata_writer, parse_hash_from_raw, Metadata},
+    shared_files::{
+        file_writer, metadata_hash_checker, metadata_parser, metadata_writer,
+        parse_parameter_from_raw, parse_ttl,
+    },
     {stats::Stats, status::Status, JobConfig},
 };
+
 use futures::Future;
 use std::{
     collections::HashMap,
@@ -41,7 +45,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 use tracing::info;
-use warp::{body, filters, filters::method::v2::*, path, reject::custom, reply, Filter};
+use warp::{body, filters, filters::method::v2::*, path, reject::custom, reply, Buf, Filter};
 
 pub fn api(
     listen: SocketAddr,
@@ -111,13 +115,25 @@ pub fn api(
         },
     );
 
-    let shared_files_put = put().and(path::peek()).and(body::form()).map(
-        move |peek: filters::path::Peek, simple_map: HashMap<String, String>| {
-            let metadata = Metadata::new(simple_map);
-            metadata_writer(format!("{}", metadata.unwrap()), peek.as_str());
-            reply()
-        },
-    );
+    let shared_files_put = put()
+        .and(filters::query::raw())
+        .and(path::peek())
+        .and(warp::body::concat())
+        .map(
+            move |ttl: String, peek: filters::path::Peek, mut buf: warp::body::FullBody| {
+                metadata_writer(
+                    format!(
+                        "{}\nexpires={}",
+                        metadata_parser(buf.by_ref()).join("\n"),
+                        parse_ttl(parse_parameter_from_raw(ttl)).unwrap()
+                    ),
+                    peek.as_str(),
+                );
+
+                file_writer(buf.by_ref(), peek.as_str());
+                reply()
+            },
+        );
 
     let shared_files_head = head()
         .and(path::peek())
@@ -125,7 +141,10 @@ pub fn api(
         .map(|peek: filters::path::Peek, raw: String| {
             reply::with_status(
                 "".to_string(),
-                metadata_hash_checker(format!("./{}", peek.as_str()), parse_hash_from_raw(raw)),
+                metadata_hash_checker(
+                    format!("./{}", peek.as_str()),
+                    parse_parameter_from_raw(raw),
+                ),
             )
         });
 
