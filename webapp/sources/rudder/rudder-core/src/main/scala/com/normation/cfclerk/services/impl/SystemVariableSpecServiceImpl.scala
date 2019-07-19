@@ -317,6 +317,10 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                            , multivalued = false
                                            , constraint = Constraint(typeName = BooleanVType, default=Some("false"))
     )
+    , SystemVariableSpec(
+                          "SERVER_VERSION" , "Version of rudder server webapp, as displayed in the UI (not the package version)"
+                                           , multivalued = false
+    )
   )
 
   private[this] val varSpecsMap = varSpecs.map(x => (x.name -> x)).toMap
