@@ -145,6 +145,7 @@ pub struct ReportingConfig {
     pub directory: BaseDirectory,
     pub output: ReportingOutputSelect,
     pub catchup: CatchupConfig,
+    pub skip_logs: bool,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -446,6 +447,7 @@ mod tests {
                         frequency: 10,
                         limit: 50,
                     },
+                    skip_logs: false,
                 },
             },
             output: OutputConfig {

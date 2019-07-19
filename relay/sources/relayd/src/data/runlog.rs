@@ -74,6 +74,19 @@ impl RunLog {
         )?;
         RunLog::try_from((info, read_to_string(path)?.as_ref()))
     }
+
+    pub fn whithout_logs(&self) -> Self {
+        Self {
+            info: self.info.clone(),
+            reports: self
+                .reports
+                .as_slice()
+                .iter()
+                .filter(|r| !r.is_log())
+                .cloned()
+                .collect(),
+        }
+    }
 }
 
 impl TryFrom<(RunInfo, &str)> for RunLog {
@@ -134,6 +147,7 @@ impl TryFrom<(RunInfo, Vec<RawReport>)> for RunLog {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::DateTime;
     use std::fs::read_dir;
 
     #[test]
@@ -160,6 +174,90 @@ mod tests {
         assert!(
             RunLog::new("2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906c.log")
                 .is_err()
+        );
+    }
+
+    #[test]
+    fn it_removes_logs_in_runlog() {
+        assert_eq!(
+            RunLog {
+                info: RunInfo::from_str(
+                    "2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log"
+                )
+                .unwrap(),
+                reports: vec![
+                    Report {
+                        start_datetime: DateTime::parse_from_str(
+                            "2018-08-24 15:55:01+00:00",
+                            "%Y-%m-%d %H:%M:%S%z"
+                        )
+                        .unwrap(),
+                        rule_id: "hasPolicyServer-root".into(),
+                        directive_id: "common-root".into(),
+                        component: "CRON Daemon".into(),
+                        key_value: "None".into(),
+                        event_type: "result_repaired".into(),
+                        msg: "Cron daemon status was repaired".into(),
+                        policy: "Common".into(),
+                        node_id: "root".into(),
+                        serial: 0,
+                        execution_datetime: DateTime::parse_from_str(
+                            "2018-08-24 15:55:01+00:00",
+                            "%Y-%m-%d %H:%M:%S%z"
+                        )
+                        .unwrap(),
+                    },
+                    Report {
+                        start_datetime: DateTime::parse_from_str(
+                            "2018-08-24 15:55:01+00:00",
+                            "%Y-%m-%d %H:%M:%S%z"
+                        )
+                        .unwrap(),
+                        rule_id: "hasPolicyServer-root".into(),
+                        directive_id: "common-root".into(),
+                        component: "CRON Daemon".into(),
+                        key_value: "None".into(),
+                        event_type: "log_info".into(),
+                        msg: "Cron daemon status was repaired".into(),
+                        policy: "Common".into(),
+                        node_id: "root".into(),
+                        serial: 0,
+                        execution_datetime: DateTime::parse_from_str(
+                            "2018-08-24 15:55:01+00:00",
+                            "%Y-%m-%d %H:%M:%S%z"
+                        )
+                        .unwrap(),
+                    }
+                ]
+            }
+            .whithout_logs(),
+            RunLog {
+                info: RunInfo::from_str(
+                    "2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log"
+                )
+                .unwrap(),
+                reports: vec![Report {
+                    start_datetime: DateTime::parse_from_str(
+                        "2018-08-24 15:55:01+00:00",
+                        "%Y-%m-%d %H:%M:%S%z"
+                    )
+                    .unwrap(),
+                    rule_id: "hasPolicyServer-root".into(),
+                    directive_id: "common-root".into(),
+                    component: "CRON Daemon".into(),
+                    key_value: "None".into(),
+                    event_type: "result_repaired".into(),
+                    msg: "Cron daemon status was repaired".into(),
+                    policy: "Common".into(),
+                    node_id: "root".into(),
+                    serial: 0,
+                    execution_datetime: DateTime::parse_from_str(
+                        "2018-08-24 15:55:01+00:00",
+                        "%Y-%m-%d %H:%M:%S%z"
+                    )
+                    .unwrap(),
+                }]
+            }
         );
     }
 }

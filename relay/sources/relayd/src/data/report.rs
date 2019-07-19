@@ -280,6 +280,12 @@ pub struct Report {
     pub serial: i32,
 }
 
+impl Report {
+    pub fn is_log(&self) -> bool {
+        self.event_type.starts_with("log_")
+    }
+}
+
 impl Display for Report {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(

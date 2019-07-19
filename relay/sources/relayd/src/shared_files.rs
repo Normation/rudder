@@ -37,7 +37,7 @@ use openssl::hash::MessageDigest;
 use openssl::pkey::PKey;
 use openssl::pkey::Public;
 use openssl::rsa::Rsa;
-use openssl::sign::{Signer, Verifier};
+use openssl::sign::Verifier;
 use regex::Regex;
 use sha2::{Digest, Sha256, Sha512};
 use std::collections::HashMap;
@@ -262,27 +262,32 @@ pub fn parse_hash_from_raw(raw: String) -> String {
         .collect::<String>()
 }
 
-#[test]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use openssl::sign::Signer;
 
-pub fn it_writes_the_metadata() {
-    let metadata = Metadata {
-        header: "rudder-signature-v1".to_string(),
-        algorithm: "sha256".to_string(),
-        digest: "8ca9efc5752e133e2e80e2661c176fa50f".to_string(),
-        hash_value: "a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f".to_string(),
-        short_pubkey: "shortpubkey".to_string(),
-        hostname: "ubuntu-18-04-64".to_string(),
-        keydate: "2018-10-3118:21:43.653257143".to_string(),
-        keyid: "B29D02BB".to_string(),
-        expires: "1d 1h".to_string(),
-    };
+    #[test]
+    pub fn it_writes_the_metadata() {
+        let metadata = Metadata {
+            header: "rudder-signature-v1".to_string(),
+            algorithm: "sha256".to_string(),
+            digest: "8ca9efc5752e133e2e80e2661c176fa50f".to_string(),
+            hash_value: "a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f"
+                .to_string(),
+            short_pubkey: "shortpubkey".to_string(),
+            hostname: "ubuntu-18-04-64".to_string(),
+            keydate: "2018-10-3118:21:43.653257143".to_string(),
+            keyid: "B29D02BB".to_string(),
+            expires: "1d 1h".to_string(),
+        };
 
-    assert_eq!(format!("{}", metadata), format!("header=rudder-signature-v1\nalgorithm=sha256\ndigest=8ca9efc5752e133e2e80e2661c176fa50f\nhash_value=a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f\nshort_pubkey=shortpubkey\nhostname=ubuntu-18-04-64\nkeydate=2018-10-3118:21:43.653257143\nkeyid=B29D02BB\nexpires={}\n", parse_ttl("1d 1h".to_string()).unwrap()));
-}
+        assert_eq!(format!("{}", metadata), format!("header=rudder-signature-v1\nalgorithm=sha256\ndigest=8ca9efc5752e133e2e80e2661c176fa50f\nhash_value=a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f\nshort_pubkey=shortpubkey\nhostname=ubuntu-18-04-64\nkeydate=2018-10-3118:21:43.653257143\nkeyid=B29D02BB\nexpires={}\n", parse_ttl("1d 1h".to_string()).unwrap()));
+    }
 
-#[test]
-pub fn it_validates_keyhashes() {
-    assert_eq!(same_hash_than_in_nodeslist(
+    #[test]
+    pub fn it_validates_keyhashes() {
+        assert_eq!(same_hash_than_in_nodeslist(
         get_pubkey("MIIBCAKCAQEAlntroa72gD50MehPoyp6mRS5fzZpsZEHu42vq9KKxbqSsjfUmxnT
 Rsi8CDvBt7DApIc7W1g0eJ6AsOfV7CEh3ooiyL/fC9SGATyDg5TjYPJZn3MPUktg
 YBzTd1MMyZL6zcLmIpQBH6XHkH7Do/RxFRtaSyicLxiO3H3wapH20TnkUvEpV5Qh
@@ -292,25 +297,26 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==".to_string()).unwrap(),
         HashType::Sha512,
         "3c4641f2e99ade126b9923ffdfc432d486043e11ce7bd5528cc50ed372fc4c224dba7f2a2a3a24f114c06e42af5f45f5c248abd7ae300eeefc27bcf0687d7040"
     ).unwrap(), true);
-}
+    }
 
-#[test]
-pub fn it_validates_signatures() {
-    // Generate a keypair
-    let k0 = Rsa::generate(2048).unwrap();
-    let k0pkey = k0.public_key_to_pem().unwrap();
-    let k1 = Rsa::public_key_from_pem(&k0pkey).unwrap();
+    #[test]
+    pub fn it_validates_signatures() {
+        // Generate a keypair
+        let k0 = Rsa::generate(2048).unwrap();
+        let k0pkey = k0.public_key_to_pem().unwrap();
+        let k1 = Rsa::public_key_from_pem(&k0pkey).unwrap();
 
-    let keypriv = PKey::from_rsa(k0).unwrap();
-    let keypub = PKey::from_rsa(k1).unwrap();
+        let keypriv = PKey::from_rsa(k0).unwrap();
+        let keypub = PKey::from_rsa(k1).unwrap();
 
-    let data = b"hello, world!";
+        let data = b"hello, world!";
 
-    // Sign the data
-    let mut signer = Signer::new(HashType::Sha512.to_openssl_hash(), &keypriv).unwrap();
-    signer.update(data).unwrap();
+        // Sign the data
+        let mut signer = Signer::new(HashType::Sha512.to_openssl_hash(), &keypriv).unwrap();
+        signer.update(data).unwrap();
 
-    let signature = signer.sign_to_vec().unwrap();
+        let signature = signer.sign_to_vec().unwrap();
 
-    assert!(validate_signature(data, keypub, HashType::Sha512, &signature).unwrap());
+        assert!(validate_signature(data, keypub, HashType::Sha512, &signature).unwrap());
+    }
 }
