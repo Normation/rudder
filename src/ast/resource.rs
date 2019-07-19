@@ -13,10 +13,10 @@ fn create_metadata<'src>(
     pmetadata: Vec<PMetadata<'src>>,
 ) -> Result<HashMap<Token<'src>, Value<'src>>> {
     // TODO check for uniqueness and concat comments
-    fix_map_results(
+    map_hashmap_results(
         pmetadata
-            .into_iter()
-            .map(|meta| Ok((meta.key, Value::from_static_pvalue(meta.value)?))),
+            .into_iter(),
+            |meta| Ok((meta.key, Value::from_static_pvalue(meta.value)?)),
     )
 }
 
@@ -24,21 +24,21 @@ fn create_metadata<'src>(
 fn create_parameters<'src>(
     pparameters: Vec<PParameter<'src>>,
     var_context: &VarContext<'src>,
-    parameter_defaults: &Vec<Option<Value<'src>>>,
+    parameter_defaults: &[Option<Value<'src>>],
 ) -> Result<Vec<Parameter<'src>>> {
-    fix_vec_results(
+    map_vec_results(
         pparameters
             .into_iter()
-            .zip(parameter_defaults.iter())
-            .map(|(p, d)| Parameter::from_pparameter(p, d)),
+            .zip(parameter_defaults.iter()),
+        |(p, d)| Parameter::from_pparameter(p, d)
     )
 }
 
 /// Create a local context from a list of parameters
 fn create_default_context<'src>(
     global_context: &VarContext<'src>,
-    resource_parameters: &Vec<Parameter<'src>>,
-    parameters: &Vec<Parameter<'src>>,
+    resource_parameters: &[Parameter<'src>],
+    parameters: &[Parameter<'src>],
 ) -> Result<VarContext<'src>> {
     let mut context = VarContext::new();
     for p in resource_parameters.iter().chain(parameters.iter()) {
@@ -76,7 +76,7 @@ impl<'src> ResourceDef<'src> {
             &global_context.parameter_defaults[&(name, None)],
         )?;
         // create final version of states
-        let states = fix_map_results(pstates.into_iter().map(|(sn, st)| {
+        let states = map_hashmap_results(pstates.into_iter(), |(sn, st)| {
             Ok((
                 sn,
                 StateDef::from_pstate_def(
@@ -87,7 +87,7 @@ impl<'src> ResourceDef<'src> {
                     global_context,
                 )?,
             ))
-        }))?;
+        })?;
         // fill up children from parents declaration
         Ok(ResourceDef {
             metadata,
@@ -112,7 +112,7 @@ impl<'src> StateDef<'src> {
     pub fn from_pstate_def(
         pstate: PStateDef<'src>,
         resource_name: Token<'src>,
-        resource_parameters: &Vec<Parameter<'src>>,
+        resource_parameters: &[Parameter<'src>],
         children: &mut HashSet<Token<'src>>,
         global_context: &GlobalContext<'src>,
     ) -> Result<StateDef<'src>> {
@@ -130,9 +130,9 @@ impl<'src> StateDef<'src> {
         )?;
         // create final version of statements
         let statements =
-            fix_vec_results(pstate.statements.into_iter().map(|st0| {
-                Statement::fom_pstatement(global_context, &mut context, children, st0)
-            }))?;
+            map_vec_results(pstate.statements.into_iter(), 
+                |st0| { Statement::fom_pstatement(global_context, &mut context, children, st0) }
+            )?;
         Ok(StateDef {
             metadata,
             parameters,
@@ -247,21 +247,21 @@ impl<'src> Statement<'src> {
                 }
                 children.insert(res);
                 let mut res_parameters =
-                    fix_vec_results(res_params.into_iter().map(|v| Value::from_pvalue(gc,Some(&context),v)))?;
+                    map_vec_results(res_params.into_iter(), |v| Value::from_pvalue(gc,Some(&context),v))?;
                 let emptyvec = Vec::new();
                 let res_defaults = &gc.parameter_defaults.get(&(res, None)).unwrap_or(&emptyvec);
                 let res_missing = res_defaults.len() as i32 - res_parameters.len() as i32;
                 if res_missing > 0 {
-                    fix_results(
+                    map_results(
                         res_defaults.iter()
-                                    .skip(res_parameters.len())
-                                    .map(|param| {
+                                    .skip(res_parameters.len()),
+                                    |param| {
                                         match param {
                                             Some(p) => res_parameters.push(p.clone()),
                                             None => fail!(res, "Resources instance of {} is missing parameters and there is no default values for them", res),
                                         };
                                         Ok(())
-                                    })
+                                    }
                     )?;
                 } else if res_missing < 0 {
                     fail!(
@@ -273,34 +273,34 @@ impl<'src> Statement<'src> {
                     );
                 }
                 let mut st_parameters =
-                    fix_vec_results(params.into_iter().map(|v| Value::from_pvalue(gc,Some(&context),v)))?;
+                    map_vec_results(params.into_iter(), |v| Value::from_pvalue(gc,Some(&context),v))?;
                 let st_defaults = &gc.parameter_defaults.get(&(res, Some(st))).unwrap_or(&emptyvec);
                 let st_missing = st_defaults.len() as i32 - st_parameters.len() as i32;
                 if st_missing > 0 {
-                    fix_results(
+                    map_results(
                         st_defaults.iter()
-                                   .skip(st_parameters.len())
-                                   .map(|param| {
+                                   .skip(st_parameters.len()),
+                                   |param| {
                                        match param {
                                            Some(p) => st_parameters.push(p.clone()),
                                            None => fail!(st, "Resources state instance of {} is missing parameters and there is no default values for them", st),
                                        };
                                        Ok(())
-                                   })
+                                   }
                     )?;
                 } else if st_missing < 0 {
                     fail!(st, "Resources state instance of {} has too many parameters, expecting {}, got {}", st, st_defaults.len(), st_parameters.len());
                 }
                 // check that parameters use existing variables
-                fix_results(
+                map_results(
                     res_parameters
-                        .iter()
-                        .map(|p| p.context_check(gc, Some(context))),
+                        .iter(),
+                        |p| p.context_check(gc, Some(context)),
                 )?;
-                fix_results(
+                map_results(
                     st_parameters
-                        .iter()
-                        .map(|p| p.context_check(gc, Some(context))),
+                        .iter(),
+                        |p| p.context_check(gc, Some(context)),
                 )?;
                 let metadata = create_metadata(pmetadata)?;
                 Statement::StateCall(metadata, mode, res, res_parameters, st, st_parameters, out)
@@ -344,18 +344,18 @@ impl<'src> Statement<'src> {
             PStatement::Noop => Statement::Noop,
             PStatement::Case(case, v) => Statement::Case(
                 case,
-                fix_vec_results(v.into_iter().map(|(exp, sts)| {
+                map_vec_results(v.into_iter(), |(exp, sts)| {
                     Ok((
                         gc.enum_list.canonify_expression(
                             gc,
                             Some(context),
                             exp,
                         )?,
-                        fix_vec_results(sts.into_iter().map(|st| {
+                        map_vec_results(sts.into_iter(), |st| {
                             Statement::fom_pstatement(gc, context, children, st)
-                        }))?,
+                        })?,
                     ))
-                }))?,
+                })?,
             ),
         })
     }

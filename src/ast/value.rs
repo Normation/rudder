@@ -8,15 +8,34 @@ use std::collections::HashMap;
 #[derive(Debug, PartialEq, Clone)]
 pub struct StringObject<'src> {
     pos: Token<'src>,
+    // static means no dynamic content (no variable)
     pub data: Vec<PInterpolatedElement>,
 }
 impl<'src> StringObject<'src> {
+
     pub fn from_pstring(pos: Token<'src>, s: String) -> Result<StringObject> {
         let data = parse_string(&s[..])?;
         Ok(StringObject { pos, data })
     }
+
+    pub fn from_static_pstring(pos: Token<'src>, s: String) -> Result<StringObject> {
+        let obj = StringObject::from_pstring(pos,s.clone())?;
+        if obj.is_static() {
+            Ok(obj)
+        } else {
+            fail!(pos, "Dynamic data (eg: variables) is forbidden in '{}'",s)
+        }
+    }
+
+    pub fn is_static(&self) -> bool {
+        self.data.iter()
+            .fold(true, |b, pie| match pie {
+                PInterpolatedElement::Static(_) => b,
+                PInterpolatedElement::Variable(_) => false,
+            })
+    }
+
     pub fn format<SF, VF>(&self, str_formatter: SF, var_formatter: VF) -> String
-    // string, is_a_suffix, is_a_prefix
     where
         SF: Fn(&str) -> String,
         VF: Fn(&str) -> String,
@@ -30,20 +49,6 @@ impl<'src> StringObject<'src> {
             ).collect::<Vec<String>>()
             .join("")
     }
-    pub fn is_empty(&self) -> bool {
-        self.data.iter()
-            .filter(
-                |x| match x {
-                    PInterpolatedElement::Static(_) => false,
-                    PInterpolatedElement::Variable(_) => true,
-                })
-            .count() == 0
-    }
-    // TODO
-   // pub fn static_to_string(&self) -> Result<String> {
-   //     self.data.iter()
-   //         .map(|x| if let PInterpolatedElement::Static(s) = x { s } else 
-   // }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -63,23 +68,23 @@ impl<'src> Value<'src> {
             PValue::EnumExpression(e) => Ok(Value::EnumExpression(
                 gc.enum_list.canonify_expression(gc,lc,e)?
             )),
-            PValue::List(l) => Ok(Value::List(fix_vec_results(l.into_iter().map(|x| Value::from_pvalue(gc,lc,x)))?)),
+            PValue::List(l) => Ok(Value::List(map_vec_results(l.into_iter(),|x| Value::from_pvalue(gc,lc,x))?)),
             PValue::Struct(s) => Ok(Value::Struct(
-                    fix_map_results(s.into_iter().map( |(k,v)| Ok((k,Value::from_pvalue(gc,lc,v)?)) ))?
+                    map_hashmap_results(s.into_iter(), |(k,v)| Ok((k,Value::from_pvalue(gc,lc,v)?)) )?
             )),
         }
     }
 
     pub fn from_static_pvalue(pvalue: PValue<'src>) -> Result<Value<'src>> {
         match pvalue {
-            PValue::String(pos, s) => Ok(Value::String(StringObject::from_pstring(pos, s)?)),
+            PValue::String(pos, s) => Ok(Value::String(StringObject::from_static_pstring(pos, s)?)),
             PValue::Number(pos, n) => Ok(Value::Number(pos, n)),
-            // TODO replace with real thing
+            // TODO replace with real thing / the only accepted expression is true or false
             PValue::EnumExpression(e) => Ok(Value::Number("".into(), 1.)),
             //PValue::EnumExpression(e) => fail!(e.token(), "Enum expression are not allowed in static context"),
-            PValue::List(l) => Ok(Value::List(fix_vec_results(l.into_iter().map(|x| Value::from_static_pvalue(x)))?)),
+            PValue::List(l) => Ok(Value::List(map_vec_results(l.into_iter(),Value::from_static_pvalue)?)),
             PValue::Struct(s) => Ok(Value::Struct(
-                    fix_map_results(s.into_iter().map( |(k,v)| Ok((k,Value::from_static_pvalue(v)?)) ))?
+                    map_hashmap_results(s.into_iter(), |(k,v)| Ok((k,Value::from_static_pvalue(v)?)) )?
             )),
         }
     }
@@ -92,7 +97,7 @@ impl<'src> Value<'src> {
     ) -> Result<()> {
         match self {
             Value::String(s) => {
-                fix_results(s.data.iter().map(
+                map_results(s.data.iter(),
                     |e| match e {
                         PInterpolatedElement::Static(_) => Ok(()),
                         PInterpolatedElement::Variable(v) => 
@@ -101,7 +106,7 @@ impl<'src> Value<'src> {
                                 _ => Ok(()),
                             },
                     },
-                ))
+                )
             },
             Value::Number(_,_) => unimplemented!(),
             Value::EnumExpression(_) => Ok(()), // check already done at enum creation

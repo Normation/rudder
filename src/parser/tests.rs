@@ -34,7 +34,7 @@ fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
         PErrorKind::InvalidEscapeSequence => PErrorKind::InvalidEscapeSequence,
         PErrorKind::InvalidVariableReference => PErrorKind::InvalidVariableReference,
         PErrorKind::ExpectedKeyword(i) => PErrorKind::ExpectedKeyword(i),
-        PErrorKind::UnsupportedMetadata(i) => PErrorKind::UnsupportedMetadata(i),
+        PErrorKind::UnsupportedMetadata(i) => PErrorKind::UnsupportedMetadata(i.fragment),
     };
     (err.context.fragment, kind)
 }
@@ -935,5 +935,30 @@ fn test_pdeclaration() {
                 ]
             })
         )));
+}
+
+
+// ===== Functions used by other modules tests =====
+
+fn test_t<'a, F, X>(f: F, input: &'a str) -> X
+    where F: Fn(PInput<'a>) -> Result<X>, X :'a {
+    let (i,out) = f(PInput::new_extra(input, "")).expect(&format!("Syntax error in {}",input));
+    if i.fragment.len() != 0 { panic!("Input not terminated in {}",input) }
+    out
+}
+pub fn penum_t<'a>(input: &'a str) -> PEnum<'a> {
+    test_t(penum, input)
+}
+
+pub fn penum_mapping_t(input: &str) -> PEnumMapping {
+    test_t(penum_mapping, input)
+}
+
+pub fn penum_expression_t(input: &str) -> PEnumExpression {
+    test_t(penum_expression, input)
+}
+
+pub fn pidentifier_t(input: &str) -> Token {
+    test_t(pidentifier, input)
 }
 

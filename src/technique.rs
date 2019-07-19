@@ -41,22 +41,21 @@ pub fn translate_file(json_file: &Path, rl_file: &Path) -> Result<()> {
     // we use if let for error conversion
     // we don't use match for better linear reading
     let json_data = fs::read_to_string(&json_file);
-    if let Err(_) = json_data { return Err(Error::User(format!("Cannot read file {}", json_file.to_string_lossy()))) }
+    if json_data.is_err() { return Err(Error::User(format!("Cannot read file {}", json_file.to_string_lossy()))) }
     let technique = serde_json::from_str::<Technique>(&json_data.unwrap());
-    if let Err(_) = technique { return Err(Error::User(format!("Invalid technique in file {}", json_file.to_string_lossy()))) } 
+    if technique.is_err() { return Err(Error::User(format!("Invalid technique in file {}", json_file.to_string_lossy()))) } 
     let rl_technique = translate(&config, &technique.unwrap())?;
-    if let Err(_) = fs::write(&rl_file, rl_technique) { return Err(Error::User(format!("Cannot write file {}", rl_file.to_string_lossy()))) }
+    if fs::write(&rl_file, rl_technique).is_err() { return Err(Error::User(format!("Cannot write file {}", rl_file.to_string_lossy()))) }
     Ok(())
 }
 
 fn translate(config: &toml::Value, technique: &Technique) -> Result<String> {
     let parameters_meta = serde_json::to_string(&technique.parameter);
-    if let Err(_) = parameters_meta { return Err(Error::User("Unable to parse technique file".to_string())) }
+    if parameters_meta.is_err() { return Err(Error::User("Unable to parse technique file".to_string())) }
     let parameters = technique.bundle_args.join(",");
-    let call_list = fix_vec_results(
-        technique.method_calls.iter().map(|c| translate_call(config, c))
+    let calls = map_strings_results(
+        technique.method_calls.iter(), |c| translate_call(config, c), "\n"
     )?;
-    let calls = call_list.join("\n");
     let out = format!(r#"@format=0
 # This file has been generated with rltranslate 
 
@@ -105,8 +104,8 @@ fn translate_call(config: &toml::Value, call: &MethodCall) -> Result<String> {
         Some(v) => v as usize,
     };
     let it = &mut call.args.iter();
-    let res_args = fix_vec_results(it.take(res_arg_count).map(|x| translate_arg(config,x)))?.join(",");
-    let st_args = fix_vec_results(it.map(|x| translate_arg(config,x)))?.join(",");
+    let res_args = map_strings_results(it.take(res_arg_count), |x| translate_arg(config,x), ",")?;
+    let st_args = map_strings_results(it, |x| translate_arg(config,x), ",")?;
 
     // call formating
     let call_str = format!("{}({}).{}({})", resource, res_args, state, st_args);
@@ -144,10 +143,10 @@ fn translate_call(config: &toml::Value, call: &MethodCall) -> Result<String> {
 fn canonify(input: &str) -> String {
     let s = input.as_bytes().iter()
         .map(|x| 
-            if x.is_ascii_alphanumeric() || *x == '_' as u8 {
+            if x.is_ascii_alphanumeric() || *x == b'_' {
                 *x
             } else {
-                '_' as u8
+                b'_'
             }
         )
         .collect::<Vec<u8>>();
@@ -207,11 +206,11 @@ fn parse_cfstring(i: &str) -> IResult<&str,Vec<CFStringElt>> {
                 // variable ${}
                 map(
                     delimited(tag("${"), parse_cfvariable, tag("}")),
-                    |x| CFStringElt::Variable(x)),
+                    CFStringElt::Variable),
                 // variable $()
                 map(
                     delimited(tag("$("), parse_cfvariable, tag(")")),
-                    |x| CFStringElt::Variable(x)),
+                    CFStringElt::Variable),
                 // constant
                 map(take_until("$"), |s: &str| CFStringElt::Static(s.into())),
                 // end of string
@@ -232,8 +231,7 @@ fn translate_arg(config: &toml::Value, arg: &str) -> Result<String> {
         Ok((_,o)) => o
     };
 
-    let vars = fix_vec_results(var.iter().map(|x| Ok(format!("\"{}\"",x.to_string()?))))?;
-    Ok(vars.join(","))
+    map_strings_results(var.iter(), |x| Ok(format!("\"{}\"",x.to_string()?)), ",")
 }
 
 fn translate_condition(config: &toml::Value, cond: &str) -> Result<String> {

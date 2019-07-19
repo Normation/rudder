@@ -143,7 +143,7 @@ impl CFEngine {
     // TODO comments and metadata
     // TODO use in_class everywhere
     fn format_statement(&mut self, gc: &AST, st: &Statement, in_class: String) -> Result<String> {
-        Ok(match st {
+        match st {
             Statement::StateCall(metadata, _mode, res, res_parameters, call, params, out) => {
                 if let Some(var) = out {
                     self.new_var(var);
@@ -157,61 +157,63 @@ impl CFEngine {
                     _ => "any".to_string(),
                 };
                 // TODO setup mode and output var by calling ... bundle
-                let param_str = fix_vec_results(res_parameters
+                let param_str = map_strings_results(res_parameters
                     .iter()
-                    .chain(params.iter())
-                    .map(|x| self.parameter_to_cfengine(x))
-                )?.join(",");
-                format!(
+                    .chain(params.iter()),
+                    |x| self.parameter_to_cfengine(x),
+                    ","
+                )?;
+                Ok(format!(
                     "      \"{}\" usebundle => {}_{}({}), if=>{};\n",
                     component,
                     res.fragment(),
                     call.fragment(),
                     param_str,
                     self.format_class(in_class)?
-                )
+                ))
             }
             Statement::Case(_case, vec) => {
                 self.reset_cases();
-                fix_vec_results(vec
-                    .iter()
-                    .map(|(case, vst)| {
+                map_strings_results(vec
+                    .iter(),
+                    |(case, vst)| {
                         // TODO case in case
                         let case_exp = self.format_case_expr(gc, case)?;
-                        Ok(fix_vec_results(
-                            vst.iter()
-                                .map(|st| self.format_statement(gc, st, case_exp.clone()))
-                        )?.join(""))
-                    })
-
-                )?.join("")
+                        map_strings_results(
+                            vst.iter(),
+                            |st| self.format_statement(gc, st, case_exp.clone()),
+                            ""
+                        )
+                    },
+                    ""
+                )
             }
-            Statement::Fail(msg) => format!(
+            Statement::Fail(msg) => Ok(format!(
                 "      \"method_call\" usebundle => ncf_fail({});\n",
                 self.parameter_to_cfengine(msg)?
-            ),
-            Statement::Log(msg) => format!(
+            )),
+            Statement::Log(msg) => Ok(format!(
                 "      \"method_call\" usebundle => ncf_log({});\n",
                 self.parameter_to_cfengine(msg)?
-            ),
+            )),
             Statement::Return(outcome) => {
                 // handle end of bundle
                 self.return_condition = Some(match self.current_cases.last() {
                     None => "!any".into(),
                     Some(c) => format!("!({})", c),
                 });
-                if *outcome == Token::new("", "kept") {
+                Ok(if *outcome == Token::new("", "kept") {
                     "      \"method_call\" usebundle => success();\n".into()
                 } else if *outcome == Token::new("", "repaired") {
                     "      \"method_call\" usebundle => repaired();\n".into()
                 } else {
                     "      \"method_call\" usebundle => error();\n".into()
-                }
+                })
             }
-            Statement::Noop => String::new(),
+            Statement::Noop => Ok(String::new()),
             // TODO Statement::VariableDefinition()
-            _ => String::new(),
-        })
+            _ => Ok(String::new()),
+        }
     }
 
     fn value_to_string(&mut self, value: &Value) -> Result<String> {
@@ -232,16 +234,16 @@ impl CFEngine {
                 }).collect::<Vec<String>>().join("")),
             Value::Number(_, n) => format!("{}",n),
             Value::EnumExpression(e) => unimplemented!(),
-            Value::List(l) => format!("[ {} ]", fix_vec_results(l.iter().map(|x| self.value_to_string(x)))?.join(",")),
-            Value::Struct(s) => format!("{{ {} }}", fix_vec_results(s.iter().map(|(x,y)| Ok(format!("\"{}\":{}",x,self.value_to_string(y)?))))?.join(",")),
+            Value::List(l) => format!("[ {} ]", map_strings_results(l.iter(), |x| self.value_to_string(x), ",")?),
+            Value::Struct(s) => format!("{{ {} }}", map_strings_results(s.iter(), |(x,y)| Ok(format!("\"{}\":{}",x,self.value_to_string(y)?)), ",")?),
         })
     }
 
     fn generate_ncf_metadata(&mut self, name: &Token, resource: &ResourceDef) -> Result<String> {
-        Ok(fix_vec_results(resource.metadata.iter()
-            .map(|(n,v)|
-                 Ok(format!("# @{} {}", n.fragment(), self.value_to_string(v)?)))
-        )?.join("\n"))
+        map_strings_results(resource.metadata.iter(),
+            |(n,v)| Ok(format!("# @{} {}", n.fragment(), self.value_to_string(v)?)),
+            "\n"
+        )
     }
 }
 

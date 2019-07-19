@@ -134,48 +134,43 @@ impl<'src> VarContext<'src> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::*;
-
-    // test utilities
-    fn ident(string: &str) -> Token {
-        pidentifier(PInput::new_extra(string,"")).unwrap().1
-    }
+    use crate::parser::tests::*;
 
     #[test]
     fn test_context() {
         let mut context = VarContext::new();
         assert!(context
-            .new_enum_variable(None, ident("var1"), ident("enum1"), None)
+            .new_enum_variable(None, pidentifier_t("var1"), pidentifier_t("enum1"), None)
             .is_ok());
         assert!(context
-            .new_enum_variable(None, ident("var2"), ident("enum1"), Some(ident("debian")))
+            .new_enum_variable(None, pidentifier_t("var2"), pidentifier_t("enum1"), Some(pidentifier_t("debian")))
             .is_ok());
         let mut c = VarContext::new();
         assert!(c
-            .new_enum_variable(Some(&context), ident("var3"), ident("enum2"), None)
+            .new_enum_variable(Some(&context), pidentifier_t("var3"), pidentifier_t("enum2"), None)
             .is_ok());
         assert!(c
             .new_enum_variable(
                 Some(&context),
-                ident("var4"),
-                ident("enum1"),
-                Some(ident("ubuntu"))
+                pidentifier_t("var4"),
+                pidentifier_t("enum1"),
+                Some(pidentifier_t("ubuntu"))
             )
             .is_ok());
         let gc = GlobalContext { enum_list: EnumList::new(), var_context: context, parameter_defaults: HashMap::new() };
 
         assert_eq!(
-            gc.get_variable(Some(&c), ident("var3")),
-            Some(&VarKind::Enum(ident("enum2"), None))
+            gc.get_variable(Some(&c), pidentifier_t("var3")),
+            Some(&VarKind::Enum(pidentifier_t("enum2"), None))
         );
         assert_eq!(
-            gc.get_variable(Some(&c), ident("var2")),
-            Some(&VarKind::Enum(ident("enum1"), Some(ident("debian"))))
+            gc.get_variable(Some(&c), pidentifier_t("var2")),
+            Some(&VarKind::Enum(pidentifier_t("enum1"), Some(pidentifier_t("debian"))))
         );
         assert_eq!(
-            gc.get_variable(None, ident("var1")),
-            Some(&VarKind::Enum(ident("enum1"), None))
+            gc.get_variable(None, pidentifier_t("var1")),
+            Some(&VarKind::Enum(pidentifier_t("enum1"), None))
         );
-        assert_eq!(gc.get_variable(None, ident("var4")), None);
+        assert_eq!(gc.get_variable(None, pidentifier_t("var4")), None);
     }
 }

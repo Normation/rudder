@@ -45,23 +45,32 @@ macro_rules! fail {
 /// Transforms an iterator of error result into a result of list error.
 /// This is useful to aggregate and give the proper output type to results given by map.
 /// Only support Result<()>, because it throws out Ok cases
-pub fn fix_results<I>(res: I) -> Result<()>
+pub fn fix_results<I>(it: I) -> Result<()>
 where
     I: Iterator<Item = Result<()>>,
 {
-    let err_list = res.filter_map(|r| r.err()).collect::<Vec<Error>>();
+    let err_list = it.filter_map(|r| r.err()).collect::<Vec<Error>>();
     if err_list.is_empty() {
         Ok(())
     } else {
         Err(Error::List(err_list))
     }
 }
-/// Same a fix_results but knows how to extract a vector of values from the result list
-pub fn fix_vec_results<I, T>(res: I) -> Result<Vec<T>>
+/// map an iterator content with a Fn then fix the result.
+pub fn map_results<I, F, X>(it: I, f: F) -> Result<()>
 where
-    I: Iterator<Item = Result<T>>,
+    I: Iterator<Item = X>,
+    F: FnMut(X) -> Result<()> // also accepts Fn
 {
-    let (vals, errs): (Vec<Result<T>>, Vec<Result<T>>) = res.partition(|r| r.is_ok());
+    fix_results(it.map(f))
+}
+/// Same a map_results but knows how to extract a vector of values from the result list
+pub fn map_vec_results<I, F, X, Y>(it: I, f: F) -> Result<Vec<Y>>
+where
+    I: Iterator<Item = X>,
+    F: FnMut(X) -> Result<Y> // also accepts Fn
+{
+    let (vals, errs): (Vec<Result<Y>>, Vec<Result<Y>>) = it.map(f).partition(|r| r.is_ok());
     if errs.is_empty() {
         Ok(vals.into_iter().map(|r| r.unwrap()).collect())
     } else {
@@ -70,14 +79,23 @@ where
         ))
     }
 }
-/// Same a fix_vec_results but for hashmap
-pub fn fix_map_results<I, T, U>(res: I) -> Result<HashMap<T, U>>
+/// Same a map_vec_results but joins the output into a string
+pub fn map_strings_results<I, F, X>(it: I, f: F, sep: &'static str) -> Result<String>
 where
-    I: Iterator<Item = Result<(T, U)>>,
-    T: Eq + Hash,
+    I: Iterator<Item = X>,
+    F: FnMut(X) -> Result<String> // also accepts Fn
+{
+    Ok(map_vec_results(it, f)?.join(sep))
+}
+/// Same a map_vec_results but for hashmap
+pub fn map_hashmap_results<I, F, X, Y , Z>(it: I, f: F) -> Result<HashMap<Y,Z>>
+where
+    I: Iterator<Item = X>,
+    F: FnMut(X) -> Result<(Y,Z)>,
+    Y: Eq + Hash,
 {
     #[allow(clippy::type_complexity)]
-    let (vals, errs): (Vec<Result<(T, U)>>, Vec<Result<(T, U)>>) = res.partition(|r| r.is_ok());
+    let (vals, errs): (Vec<Result<(Y, Z)>>, Vec<Result<(Y, Z)>>) = it.map(f).partition(|r| r.is_ok());
     if errs.is_empty() {
         Ok(vals.into_iter().map(|r| r.unwrap()).collect())
     } else {

@@ -49,7 +49,7 @@ impl<'src> CodeIndex<'src> {
             panic!("Multiple format not supported yet");
         }
         // iterate over all parsed declarations
-        fix_results(file.code.into_iter().map(|declaration| {
+        map_results(file.code.into_iter(), |declaration| {
             match declaration {
 
                 // Resource declaration are stored in a temporary format (TmpResourceDef) with their metadata.
@@ -154,7 +154,7 @@ impl<'src> CodeIndex<'src> {
                 }
             };
             Ok(())
-        }))
+        })
     }
 }
 

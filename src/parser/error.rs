@@ -141,7 +141,7 @@ pub fn or_fail<I, O, F, E>(f: F, e: E)
 }
 
 /// Transform an ErrorKind from nom into the project's global error type.
-fn format_error<'src>(err: PError<PInput<'src>>) -> error::Error {
+fn format_error(err: PError<PInput>) -> error::Error {
     let (file, line, col) = Token::from(err.context).position();
     error::Error::Parsing(format!("{}", err), file,line,col)
 }

@@ -175,7 +175,7 @@ fn pcomment(i: PInput) -> Result<PComment> {
 
 /// An identifier is a word that contains alphanumeric chars.
 /// Be liberal here, they are checked again later
-pub fn pidentifier(i: PInput) -> Result<Token> {
+fn pidentifier(i: PInput) -> Result<Token> {
     map(
         take_while1(|c: char| c.is_alphanumeric() || (c == '_')),
         |x: PInput| x.into(),
@@ -183,7 +183,7 @@ pub fn pidentifier(i: PInput) -> Result<Token> {
 }
 
 /// A variable identifier is a list of dot separated identifiers
-pub fn pvariable_identifier(i: PInput) -> Result<Token> {
+fn pvariable_identifier(i: PInput) -> Result<Token> {
     map(
         take_while1(|c: char| c.is_alphanumeric() || (c == '_') || (c == '.')),
         |x: PInput| x.into(),
@@ -199,13 +199,13 @@ pub struct PEnum<'src> {
     pub name: Token<'src>,
     pub items: Vec<Token<'src>>,
 }
-pub fn penum(i: PInput) -> Result<PEnum> {
+fn penum(i: PInput) -> Result<PEnum> {
     wsequence!(
         {
             metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
             global: opt(tag("global"));
             e:      tag("enum");
-            _fail: or_fail(verify(peek(anychar), |_| metadata.len() == 0), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
+            _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
             name:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
             b:      tag("{"); // do not fail here, it could still be a mapping
             items:  separated_nonempty_list(sp(tag(",")), pidentifier);
@@ -230,12 +230,12 @@ pub struct PEnumMapping<'src> {
     pub to: Token<'src>,
     pub mapping: Vec<(Token<'src>, Token<'src>)>,
 }
-pub fn penum_mapping(i: PInput) -> Result<PEnumMapping> {
+fn penum_mapping(i: PInput) -> Result<PEnumMapping> {
     wsequence!(
         {
             metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
             e:    tag("enum");
-            _fail: or_fail(verify(peek(anychar), |_| metadata.len() == 0), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
+            _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
             from: or_fail(pidentifier,|| PErrorKind::InvalidName(e));
             _x:   or_fail(tag("~>"),|| PErrorKind::UnexpectedToken("~>"));
             to:   or_fail(pidentifier,|| PErrorKind::InvalidName(e));
@@ -293,7 +293,7 @@ impl<'src> PEnumExpression<'src> {
         }
     }
 }
-pub fn penum_expression(i: PInput) -> Result<PEnumExpression> {
+fn penum_expression(i: PInput) -> Result<PEnumExpression> {
     alt((
         enum_or_expression,
         enum_and_expression,
@@ -536,9 +536,9 @@ fn pvalue(i: PInput) -> Result<PValue> {
         map(punescaped_string, |(x,y)| PValue::String(x,y)),
         map(pescaped_string,   |(x,y)| PValue::String(x,y)),
         map(pnumber,           |(x,y)| PValue::Number(x,y)),
-        map(penum_expression,  |x|     PValue::EnumExpression(x)),
-        map(plist,             |x|     PValue::List(x)),
-        map(pstruct,           |x|     PValue::Struct(x)),
+        map(penum_expression,          PValue::EnumExpression),
+        map(plist,                     PValue::List),
+        map(pstruct,                   PValue::Struct),
     ))(i)
 }
 
@@ -730,7 +730,7 @@ fn pstatement(i: PInput) -> Result<PStatement> {
             {
                 metadata: pmetadata_list; // metadata is invalid here, check it after the 'case' tag below
                 case: tag("case");
-                _fail: or_fail(verify(peek(anychar), |_| metadata.len() == 0), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
+                _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
                 s: tag("{");
                 cases: separated_list(sp(tag(",")),
                         wsequence!(
@@ -774,9 +774,9 @@ fn pstatement(i: PInput) -> Result<PStatement> {
             }
         ),
         // Flow statements
-        map(preceded(sp(tag("return")),pvariable_identifier), |x| PStatement::Return(x)),
-        map(preceded(sp(tag("fail")),pvalue),        |x| PStatement::Fail(x)),
-        map(preceded(sp(tag("log")),pvalue),         |x| PStatement::Log(x)),
+        map(preceded(sp(tag("return")),pvariable_identifier), PStatement::Return),
+        map(preceded(sp(tag("fail")),pvalue),        PStatement::Fail),
+        map(preceded(sp(tag("log")),pvalue),         PStatement::Log),
         map(tag("noop"),                             |_| PStatement::Noop),
     ))(i)
 }
@@ -866,12 +866,12 @@ pub enum PDeclaration<'src> {
 }
 fn pdeclaration(i: PInput) -> Result<PDeclaration> {
     alt((
-        map(presource_def, |x| PDeclaration::Resource(x)),
-        map(pstate_def, |x| PDeclaration::State(x)),
-        map(penum, |x| PDeclaration::Enum(x)),
-        map(penum_mapping, |x| PDeclaration::Mapping(x)),
-        map(pvariable_definition, |(variable,value)| PDeclaration::GlobalVar(variable,value)),
-        map(palias_def, |x| PDeclaration::Alias(x)),
+        map(presource_def,        PDeclaration::Resource),
+        map(pstate_def,           PDeclaration::State),
+        map(penum,                PDeclaration::Enum),
+        map(penum_mapping,        PDeclaration::Mapping),
+        map(pvariable_definition, |(x,y)| PDeclaration::GlobalVar(x,y)),
+        map(palias_def,           PDeclaration::Alias),
     ))(i)
 }
 

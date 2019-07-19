@@ -51,9 +51,9 @@ impl<'src> AST<'src> {
         // first create enums since they have no dependencies
         let enum_list = AST::create_enums(&mut var_context, enums, enum_mappings)?;
         // global context depends on enums
-        fix_results(variable_declarations.iter().map(|(variable, value)|
+        map_results(variable_declarations.iter(), |(variable, value)|
             var_context.new_variable(None, *variable, value.get_type())
-        ))?;
+        )?;
         let mut global_context = GlobalContext {
             var_context,
             enum_list,
@@ -70,7 +70,7 @@ impl<'src> AST<'src> {
         // prepare children list for each resource
         let mut children_list = AST::create_children_list(parents, &resources)?;
         // resources depend on everything else
-        let resources = fix_map_results(resources.into_iter().map(|(rn, rd)| {
+        let resources = map_hashmap_results(resources.into_iter(), |(rn, rd)| {
             let children = match children_list.remove(&rn) {
                 None => HashSet::new(),
                 Some(ch) => ch,
@@ -79,7 +79,7 @@ impl<'src> AST<'src> {
                 rn,
                 ResourceDef::from_resource_declaration(rn, rd, children, &global_context)?,
             ))
-        }))?;
+        })?;
         Ok(AST {
             global_context,
             resources,
@@ -96,40 +96,40 @@ impl<'src> AST<'src> {
     ) -> Result<EnumList<'src>> {
         let mut enum_list = EnumList::new();
         // First insert all simple enums
-        fix_results(enums.into_iter().map(|e| {
+        map_results(enums.into_iter(), |e| {
             if e.global {
                 context.new_enum_variable(None, e.name, e.name, None)?;
             }
             enum_list.add_enum(e)?;
             Ok(())
-        }))?;
+        });
         // Then iteratively insert mappings
         let mut map_count = enum_mappings.len();
         let mut mappings = enum_mappings;
         loop {
             // Try inserting every mapping that have an existing ancestor until there is no more
             let mut new_mappings = Vec::new();
-            fix_results(mappings.into_iter().map(|em| {
+            map_results(mappings.into_iter(), |em| {
                 if enum_list.enum_exists(em.from) {
                     enum_list.add_mapping(em)?;
                 } else {
                     new_mappings.push(em);
                 }
                 Ok(())
-            }))?;
+            })?;
             if new_mappings.is_empty() {
                 // Yay, finished !
                 break;
             } else if map_count == new_mappings.len() {
                 // Nothing changed since last loop, we failed !
-                fix_results(new_mappings.iter().map(|em| {
+                map_results(new_mappings.iter(), |em| {
                     fail!(
                         em.to,
                         "Enum {} doesn't exist when trying to define mapping {}",
                         em.from,
                         em.to
                     )
-                }))?;
+                })?;
             }
             mappings = new_mappings;
             map_count = mappings.len();
@@ -146,14 +146,14 @@ impl<'src> AST<'src> {
         variable_declarations: Vec<(Token<'src>, PValue<'src>)>,
     ) -> Result<HashMap<Token<'src>, Value<'src>>> {
         let mut declarations = HashMap::new();
-        fix_results(variable_declarations.into_iter().map(|(variable, value)| {
+        map_results(variable_declarations.into_iter(), |(variable, value)| {
             if declarations.contains_key(&variable) {
                 fail!(variable, "Variable {} already declared in {}", variable, declarations.entry(variable).key());
             }
             let val = Value::from_pvalue(gc, None, value)?;
             declarations.insert(variable,val);
             Ok(())
-        }))?;
+        })?;
         Ok(declarations)
     }
 
@@ -162,17 +162,17 @@ impl<'src> AST<'src> {
         gc: &GlobalContext<'src>,
         parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<PValue<'src>>>>,
     ) -> Result<HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>> {
-        fix_map_results(parameter_defaults.into_iter().map(|(id, defaults)| {
+        map_hashmap_results(parameter_defaults.into_iter(), |(id, defaults)| {
             Ok((
                 id,
-                fix_vec_results(defaults.into_iter().map(|def| {
+                map_vec_results(defaults.into_iter(), |def| {
                     Ok(match def {
                         Some(pvalue) => Some(Value::from_pvalue(gc, None, pvalue)?),
                         None => None,
                     })
-                }))?,
+                })?,
             ))
-        }))
+        })
     }
 
     /// Create Aliases from parsed aliases
@@ -193,9 +193,7 @@ impl<'src> AST<'src> {
             if !resources.contains_key(&parent) {
                 fail!(child, "Resource {} declares {} as a parent, but it doesn't exist", child, parent);
             }
-            if !children_list.contains_key(&parent) {
-                children_list.insert(parent,HashSet::new());
-            }
+            children_list.entry(parent).or_insert(HashSet::new());
             children_list.get_mut(&parent).unwrap().insert(child);
         }
         Ok(children_list)
@@ -221,10 +219,9 @@ impl<'src> AST<'src> {
                     }
                 }
             }
-            Statement::Case(_name, cases) => fix_results(
-                cases
-                    .iter()
-                    .map(|(_c, sts)| fix_results(sts.iter().map(|st| self.binding_check(st)))),
+            Statement::Case(_name, cases) => map_results(
+                cases.iter(),
+                |(_c, sts)| map_results(sts.iter(),|st| self.binding_check(st))
             ),
             _ => Ok(()),
         }
@@ -252,7 +249,7 @@ impl<'src> AST<'src> {
                             }
                         }
                     }
-                    fix_results(cases.iter().flat_map(|(_cond, sts)| {
+                    fix_results(cases.iter().flat_map( |(_cond, sts)| {
                         sts.iter().map(|st| self.cases_check(variables, st, false))
                     }))?;
                 } else {
@@ -287,8 +284,7 @@ impl<'src> AST<'src> {
                     *case,
                 )?;
                 fix_results(cases.iter().flat_map(|(_cond, sts)| {
-                    sts.iter()
-                        .map(|st| self.enum_expression_check(variables, st))
+                    sts.iter().map(|st| self.enum_expression_check(variables, st))
                 }))
             }
             _ => Ok(()),
@@ -298,7 +294,7 @@ impl<'src> AST<'src> {
     fn metadata_sub_check(k: &Token<'src>, v: &Value<'src>) -> Result<()> {
         match v {
             Value::String(s) => {
-                if !s.is_empty() {
+                if !s.is_static() {
                     // we don't what else we can do so fail to keep a better behaviour for later
                     fail!(
                         k,
@@ -310,14 +306,14 @@ impl<'src> AST<'src> {
             },
             Value::Number(_,_) => Ok(()),
             Value::EnumExpression(e) => fail!(k, "Metadata {} contains an enum expression, this is not allowed", k),
-            Value::List(l) => fix_results(l.iter().map(|v| AST::metadata_sub_check(k,v))),
-            Value::Struct(s) => fix_results(s.iter().map(|(_,v)| AST::metadata_sub_check(k,v))),
+            Value::List(l) => map_results(l.iter(),|v| AST::metadata_sub_check(k,v)),
+            Value::Struct(s) => map_results(s.iter(),|(_,v)| AST::metadata_sub_check(k,v)),
         }
     }
     fn metadata_check(&self, metadata: &HashMap<Token<'src>, Value<'src>>) -> Result<()> {
-        fix_results(metadata.iter().map(|(k, v)| {
+        map_results(metadata.iter(),|(k, v)| {
             AST::metadata_sub_check(k,v)
-        }))
+        })
     }
 
     fn children_check(
