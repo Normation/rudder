@@ -43,6 +43,8 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
+import com.normation.zio._
+
 @RunWith(classOf[JUnitRunner])
 class JsonVariablesTest extends Specification {
 
@@ -73,7 +75,7 @@ class JsonVariablesTest extends Specification {
         , STVariable("key8", true,  Seq(), false)
       )
 
-      ParseVariables.fromString(json).openOrThrowException("Failed test!") must containTheSameElementsAs(variables)
+      ParseVariables.fromString(json).runNow must containTheSameElementsAs(variables)
     }
   }
 }

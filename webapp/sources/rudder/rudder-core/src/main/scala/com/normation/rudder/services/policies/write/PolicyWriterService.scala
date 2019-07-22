@@ -798,7 +798,7 @@ class PolicyWriterServiceImpl(
     logger.trace(s"Create promises file ${outPath} ${templateInfo.destination}")
 
     for {
-      filled           <- fillTemplates.fill(templateInfo.destination, templateInfo.content, variableSet)
+      filled           <- fillTemplates.fill(templateInfo.destination, templateInfo.content, variableSet).toBox
       // if the technique is multipolicy, replace rudderTag by reportId
       (replaced, dest) =  reportIdToReplace match {
                             case None => (filled, templateInfo.destination)
