@@ -57,7 +57,6 @@ import com.normation.templates.FillTemplatesService
 import java.io.File
 
 import net.liftweb.common.Loggable
-import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
 import org.specs2.io.FileLinesContent
@@ -216,7 +215,7 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
   override def afterAll(): Unit = {
     if(System.getProperty("tests.clean.tmp") != "false") {
       logger.info("Deleting directory " + data.abstractRoot.getAbsolutePath)
-      FileUtils.deleteDirectory(abstractRoot)
+      //FileUtils.deleteDirectory(abstractRoot)
     }
   }
 
@@ -422,7 +421,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
 
   "A CFEngine node, with 500 directives based on the same technique" should {
 
-    val techniqueList: Seq[BoundPolicyDraft] = (1 to 500).map(copyGirFileDirectives(_)).toList
+    val techniqueList: Seq[BoundPolicyDraft] = (1 to 500).map(copyGitFileDirectives(_)).toList
 
     // create the 500 directives files
     createCopyGitFileDirectories("node-cfe-with-500-directives",  (1 to 500))

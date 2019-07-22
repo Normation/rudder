@@ -946,7 +946,7 @@ class TestNodeConfiguration() {
     ).map(v => (v.spec.name, v)).toMap
   }
 
-  def copyGirFileDirectives(i:Int) = {
+  def copyGitFileDirectives(i:Int) = {
     val id = PolicyId(RuleId("rulecopyGitFile"), DirectiveId(DIRECTIVE_NAME_COPY_GIT_FILE+i), TechniqueVersion("2.3"))
     draft(
       id

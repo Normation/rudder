@@ -1,3 +1,3 @@
-directive2;enforce;merged;false;genericVariableDefinition;2.0;"00. Generic Variable Def #2"
-common-root;audit;merged;false;common;1.0;"Common"
-inventory-all;audit;merged;false;inventory;1.0;"Inventory"
+"directive2","enforce","merged","false","genericVariableDefinition","2.0","00. Generic Variable Def #2"
+"common-root","audit","merged","false","common","1.0","Common"
+"inventory-all","audit","merged","false","inventory","1.0","Inventory"

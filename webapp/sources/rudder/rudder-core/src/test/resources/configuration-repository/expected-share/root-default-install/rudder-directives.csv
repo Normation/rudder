@@ -1,4 +1,4 @@
-root-distributePolicy;audit;merged;false;distributePolicy;1.0;"Distribute Policy"
-common-root;audit;merged;false;common;1.0;"Common"
-inventory-all;audit;merged;false;inventory;1.0;"Inventory"
-server-roles-directive;audit;merged;false;server-roles;1.0;"Server Roles"
+"root-distributePolicy","audit","merged","false","distributePolicy","1.0","Distribute Policy"
+"common-root","audit","merged","false","common","1.0","Common"
+"inventory-all","audit","merged","false","inventory","1.0","Inventory"
+"server-roles-directive","audit","merged","false","server-roles","1.0","Server Roles"
