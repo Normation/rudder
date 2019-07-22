@@ -47,7 +47,6 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.repository.xml.LicenseRepositoryXML
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.policies.NodeConfigData.root
 import com.normation.rudder.services.policies.NodeConfigData.rootNodeConfig
@@ -92,7 +91,6 @@ object TestSystemData {
   val data = new TestNodeConfiguration()
   import data._
 
-  val licenseRepo = new LicenseRepositoryXML("we_don_t_have_license")
   val logNodeConfig = new NodeConfigurationLoggerImpl(abstractRoot + "/lognodes")
 
   lazy val agentRegister = new AgentRegister()
@@ -164,7 +162,7 @@ object TestSystemData {
 
   def getSystemVars(nodeInfo: NodeInfo, allNodeInfos: Map[NodeId, NodeInfo], allGroups: FullNodeGroupCategory) = {
     systemVariableService.getSystemVariables(
-                         nodeInfo, allNodeInfos, allGroups, noLicense
+                         nodeInfo, allNodeInfos, allGroups
                        , globalSystemVariables, globalAgentRun, globalComplianceMode
                      ).openOrThrowException("I should get system variable in tests")
   }
@@ -273,7 +271,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
      )
 
       // Actually write the promise files for the root node
-      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now, parallelism)
+      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), globalPolicyMode, DateTime.now, parallelism)
     }
 
     "correctly write the expected promises files with defauls installation" in {
@@ -308,7 +306,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
     def getRootNodeConfig(groupLib: FullNodeGroupCategory) = {
       // system variables for root
       val systemVariables = systemVariableService.getSystemVariables(
-          root, allNodesInfo_rootOnly, groupLib, noLicense
+          root, allNodesInfo_rootOnly, groupLib
         , globalSystemVariables, globalAgentRun, globalComplianceMode
       ).openOrThrowException("I should get system variable in tests")
 
@@ -329,7 +327,6 @@ class WriteSystemTechniquesTest extends TechniquesTest{
         , Set(root.id)
         , Map(root.id -> getRootNodeConfig(emptyGroupLib))
         , Map(root.id -> NodeConfigId("root-cfg-id"))
-        , Map()
         , globalPolicyMode
         , DateTime.now, parallelism
       ).openOrThrowException("Can not write template!")
@@ -347,7 +344,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
       // Actually write the promise files for the root node
       val (rootPath, writter) = getPromiseWritter("group-2")
 
-      writter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now, parallelism).openOrThrowException("Can not write template!")
+      writter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), globalPolicyMode, DateTime.now, parallelism).openOrThrowException("Can not write template!")
 
       rootPath/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/some-groups.cf")
     }
@@ -377,7 +374,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
           , Set(root.id, cfeNode.id)
           , Map(root.id -> rnc, cfeNode.id -> cfeNC)
           , Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id"))
-          , Map(), globalPolicyMode, DateTime.now, parallelism
+          , globalPolicyMode, DateTime.now, parallelism
       )
 
       (written mustFull) and
@@ -411,7 +408,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
           , Set(root.id, cfeNode.id)
           , Map(root.id -> rnc, cfeNode.id -> cfeNC)
           , Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id"))
-          , Map(), globalPolicyMode, DateTime.now, parallelism
+          , globalPolicyMode, DateTime.now, parallelism
       )
 
       (writen mustFull) and
@@ -450,7 +447,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
         , Set(root.id, cfeNode.id)
         , Map(root.id -> rnc, cfeNode.id -> cfeNC)
         , Map(root.id -> NodeConfigId("root-cfg-id-500"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id-500"))
-        , Map(), globalPolicyMode, DateTime.now, parallelism
+        , globalPolicyMode, DateTime.now, parallelism
       )
 
       (writen mustFull) and

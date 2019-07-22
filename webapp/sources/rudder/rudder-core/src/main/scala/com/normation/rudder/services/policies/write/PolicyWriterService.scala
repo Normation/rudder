@@ -43,10 +43,8 @@ import com.normation.cfclerk.domain.TechniqueResourceId
 import com.normation.cfclerk.domain.TechniqueTemplate
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.AgentType
-import com.normation.inventory.domain.AgentType.CfeEnterprise
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
-import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.reports.NodeConfigId
@@ -65,7 +63,6 @@ import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.io.FileUtils
-import org.apache.commons.io.FilenameUtils
 import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
 
@@ -109,7 +106,6 @@ trait PolicyWriterService {
     , nodesToWrite  : Set[NodeId]
     , allNodeConfigs: Map[NodeId, NodeConfiguration]
     , versions      : Map[NodeId, NodeConfigId]
-    , allLicenses   : Map[NodeId, CfeEnterpriseLicense]
     , globalPolicyMode: GlobalPolicyMode
     , generationTime  : DateTime
     , parallelism     : Int
@@ -263,7 +259,6 @@ class PolicyWriterServiceImpl(
     , nodesToWrite    : Set[NodeId]
     , allNodeConfigs  : Map[NodeId, NodeConfiguration]
     , versions        : Map[NodeId, NodeConfigId]
-    , allLicenses     : Map[NodeId, CfeEnterpriseLicense]
     , globalPolicyMode: GlobalPolicyMode
     , generationTime  : DateTime
     , parallelism     : Int
@@ -379,11 +374,6 @@ class PolicyWriterServiceImpl(
       parametersWrittenDur  = parametersWrittenTime - propertiesWrittenTime
       _                     = policyLogger.debug(s"Parameters written in ${parametersWrittenDur} ms")
 
-      licensesCopied   <- copyLicenses(configAndPaths, allLicenses)
-
-      licensesCopiedTime = System.currentTimeMillis
-      licensesCopiedDur  = licensesCopiedTime - parametersWrittenTime
-      _                  = policyLogger.debug(s"Licenses copied in ${licensesCopiedDur} ms")
 
       _                 = fillTemplates.clearCache
       /// perhaps that should be a post-hook somehow ?
@@ -416,7 +406,7 @@ class PolicyWriterServiceImpl(
                           }
 
       movedPromisesTime1 = System.currentTimeMillis
-      _                  = policyLogger.debug(s"Hooks for policy-generation-node-ready executed in ${movedPromisesTime1-licensesCopiedTime} ms")
+      _                  = policyLogger.debug(s"Hooks for policy-generation-node-ready executed in ${movedPromisesTime1-parametersWrittenTime} ms")
 
       movedPromises    <- tryo { movePromisesToFinalPosition(pathsInfo) }
 
@@ -659,45 +649,6 @@ class PolicyWriterServiceImpl(
     }
 
     prettyRender(JObject(systemVars))
-  }
-
-
-  /**
-   * For agent needing it, copy licences to the correct path
-   */
-  private[this] def copyLicenses(agentNodeConfigurations: Seq[AgentNodeConfiguration], licenses: Map[NodeId, CfeEnterpriseLicense]): Box[Seq[AgentNodeConfiguration]] = {
-
-    sequence(agentNodeConfigurations) { case x @ AgentNodeConfiguration(config, agentType, paths) =>
-
-      agentType match {
-        case CfeEnterprise =>
-          logger.debug("Writing licence for nodeConfiguration  " + config.nodeInfo.id);
-          val sourceLicenceNodeId = if(config.nodeInfo.isPolicyServer) {
-            config.nodeInfo.id
-          } else {
-            config.nodeInfo.policyServerId
-          }
-
-          licenses.get(sourceLicenceNodeId) match {
-            case None =>
-              // we are in the "free case", just log-debug it (as we already informed the user that there is no license)
-              logger.debug(s"Not copying missing license file into '${paths.newFolder}' for node '${config.nodeInfo.hostname}' (${config.nodeInfo.id.value}).")
-              Full(x)
-
-            case Some(license) =>
-              val licenseFile = new File(license.file)
-              if (licenseFile.exists) {
-                val destFile = FilenameUtils.normalize(paths.newFolder + "/license.dat")
-                  tryo { FileUtils.copyFile(licenseFile, new File(destFile) ) }.map( _ => x)
-              } else {
-                logger.error(s"Could not find the license file ${licenseFile.getAbsolutePath} for server ${sourceLicenceNodeId.value}")
-                throw new Exception("Could not find license file " +license.file)
-              }
-          }
-
-        case _ => Full(x)
-      }
-    }
   }
 
   /**
