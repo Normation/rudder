@@ -62,7 +62,6 @@ use futures::{
     stream::Stream,
     sync::mpsc,
 };
-use lazy_static::lazy_static;
 use std::{
     fs::create_dir_all,
     path::Path,
@@ -87,11 +86,7 @@ pub fn init_logger() -> Result<Handle<EnvFilter, NewRecorder>, Error> {
     tracing::subscriber::set_global_default(subscriber)?;
 
     // Set logger for dependencies using log
-    lazy_static! {
-        static ref LOGGER: LogTracer = LogTracer::with_filter(log::LevelFilter::Trace);
-    }
-    log::set_logger(&*LOGGER)?;
-    log::set_max_level(log::LevelFilter::Trace);
+    LogTracer::init()?;
 
     // Until actual config load
     reload_handle.reload("error")?;
