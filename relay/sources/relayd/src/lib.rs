@@ -48,8 +48,9 @@ pub mod status;
 use crate::{
     api::api,
     configuration::{
-        CliConfiguration, Configuration, InventoryOutputSelect, LogConfig, OutputSelect,
-        ReportingOutputSelect,
+        cli::CliConfiguration,
+        logging::LogConfig,
+        main::{Configuration, InventoryOutputSelect, OutputSelect, ReportingOutputSelect},
     },
     data::node::NodesList,
     error::Error,

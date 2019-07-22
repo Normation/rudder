@@ -29,7 +29,7 @@
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    configuration::ReportingOutputSelect,
+    configuration::main::ReportingOutputSelect,
     data::{RunInfo, RunLog},
     error::Error,
     input::{read_compressed_file, signature, watch::*},

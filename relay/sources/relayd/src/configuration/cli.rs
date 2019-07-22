@@ -28,41 +28,33 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use relayd::{
-    check_configuration, configuration::cli::CliConfiguration, error::Error, init_logger, start,
-};
-use std::process::exit;
-use tracing::error;
+use std::path::{Path, PathBuf};
 
-/// Sets exit code based on error type
-fn error_code(e: Error) -> i32 {
-    match e {
-        Error::ConfigurationParsing(_) => 2,
-        _ => 1,
-    }
+#[derive(StructOpt, Debug)]
+#[allow(clippy::module_name_repetitions)]
+#[structopt(name = "rudder-relayd")]
+// version and description are taken from Cargo.toml
+// struct fields comments are used as option description in help
+pub struct CliConfiguration {
+    /// Sets a custom config directory
+    #[structopt(
+        short = "c",
+        long = "config",
+        default_value = "/opt/rudder/etc/relayd/",
+        parse(from_os_str)
+    )]
+    pub configuration_dir: PathBuf,
+
+    /// Checks the syntax of the configuration file
+    #[structopt(short = "k", long = "check")]
+    pub check_configuration: bool,
 }
 
-#[paw::main]
-/// Everything in a lib to allow extensive testing
-fn main(cli_cfg: CliConfiguration) {
-    if cli_cfg.check_configuration {
-        if let Err(e) = check_configuration(&cli_cfg.configuration_dir) {
-            println!("{}", e);
-            exit(error_code(e));
-        }
-        println!("Syntax: OK");
-    } else {
-        let reload_handle = match init_logger() {
-            Ok(handle) => handle,
-            Err(e) => {
-                println!("{}", e);
-                exit(error_code(e));
-            }
-        };
-
-        if let Err(e) = start(cli_cfg, reload_handle) {
-            error!("{}", e);
-            exit(error_code(e));
+impl CliConfiguration {
+    pub fn new<P: AsRef<Path>>(path: P, check_configuration: bool) -> Self {
+        Self {
+            configuration_dir: path.as_ref().to_path_buf(),
+            check_configuration,
         }
     }
 }

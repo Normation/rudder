@@ -1,7 +1,7 @@
 use diesel::{self, prelude::*, PgConnection};
 use filetime::{set_file_times, FileTime};
 use relayd::{
-    configuration::CliConfiguration, data::report::QueryableReport, init_logger,
+    configuration::cli::CliConfiguration, data::report::QueryableReport, init_logger,
     output::database::schema::ruddersysevents::dsl::*, start, stats::Stats,
 };
 use reqwest;
