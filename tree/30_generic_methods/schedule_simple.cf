@@ -60,7 +60,7 @@ bundle agent schedule_simple(job_id, agent_periodicity,
       "canonified_job_id" string => canonify("${job_id}");
       "old_class_prefix"  string => "schedule_simple_${canonified_job_id}";
 
-      "args"               slist => { "${canonified_job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}",
+      "args"               slist => { "${job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}",
                                       "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}",
                                       "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}", "${mode}" };
 

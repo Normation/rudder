@@ -72,7 +72,7 @@ bundle agent variable_dict_from_osquery(variable_prefix, variable_name, query)
 {
   vars:
       "old_class_prefix"  string => canonify("variable_dict_from_osquery_${variable_name}");
-      "args"               slist => { "${variable_prefix}", "${variable_name}", "${file_name}" };
+      "args"               slist => { "${variable_prefix}", "${variable_name}", "${query}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("variable_dict_from_osquery_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
