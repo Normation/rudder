@@ -51,36 +51,11 @@ def init(args):
 
   print("INFO: Success")
 
-def write_techniques(root_path, opt_bundle_name):
-  alt_path = root_path
-  if alt_path is None:
-    alt_path = ""
-  techniques = ncf.get_all_techniques_metadata(alt_path=alt_path)['data']['techniques']
-  if opt_bundle_name is not None:
-    if techniques[opt_bundle_name] is not None:
-      techniques = { opt_bundle_name : techniques[opt_bundle_name] }
-    else:
-      sys.stderr.write("Error: Unable to write Technique files related to Technique '"+opt_bundle_name+"', skipping... (Technique '"+opt_bundle_name+"' does not exist)\n")
-      exit(1)
-
-  ret = 0
-  for technique, metadata in techniques.items():
-    try:
-      ncf.write_technique(metadata, alt_path)
-    except Exception as e:
-      sys.stderr.write("Error: Unable to write Technique files related to Technique "+technique+", skipping... (" + str(e) + ")\n")
-      sys.stderr.write(traceback.format_exc())
-      ret = 1
-      continue
-  exit(ret)
-
 def usage():
   sys.stderr.write("Can't parse parameters\n")
   print("Usage: ncf <command> [arguments]")
   print("Available commands:")
   print(" - init <ncf_path>")
-  print(" - write_technique <ncf_path> <bundle_name>")
-  print(" - write_all_techniques <ncf_path>")
 
 
 if __name__ == '__main__':
@@ -91,10 +66,6 @@ if __name__ == '__main__':
 
   if sys.argv[1] == "init":
     init(sys.argv[2:])
-  elif sys.argv[1] == "write_all_techniques":
-    write_techniques(sys.argv[2], None)
-  elif sys.argv[1] == "write_technique":
-    write_techniques(sys.argv[2],sys.argv[3])
   else:
     usage()
     exit(1)
