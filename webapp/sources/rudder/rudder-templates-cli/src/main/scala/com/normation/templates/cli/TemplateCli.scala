@@ -41,7 +41,6 @@ import java.io.File
 
 import com.normation.templates.FillTemplatesService
 import com.normation.templates.STVariable
-import com.normation.utils.Control._
 import net.liftweb.common._
 import net.liftweb.json._
 import scopt.OptionParser
@@ -49,6 +48,11 @@ import java.nio.charset.StandardCharsets
 
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
+
+import zio._
+import zio.syntax._
+import com.normation.errors._
+import com.normation.zio._
 
 /**
  * The configuration object for our CLI.
@@ -137,22 +141,12 @@ object TemplateCli {
         Config()
     }
 
-    process(config) match {
-      case eb: EmptyBox =>
-        val e = eb match {
-          case Empty => eb ?~! "Error when processing templates"
-          case f:Failure => f
-        }
-        System.err.println(e.messageChain)
-        if(config.showStackTrace) {
-          e.rootExceptionCause.foreach { ex =>
-            System.err.println (ex.getMessage)
-            ex.printStackTrace()
-          }
-        }
+    process(config).either.runNow match {
+      case Left(err) =>
+        System.err.println(err.fullMsg)
         System.exit(1)
 
-      case Full(res) =>
+      case Right(()) =>
         //ok
         //here, we can't call System.exit(0), because maven.
         //seriously: http://maven.apache.org/surefire/maven-surefire-plugin/faq.html#vm-termination
@@ -166,17 +160,17 @@ object TemplateCli {
    * because you know, maven doesn't allow to have exit(1)
    * anywhere, so I'm going to be able to test on Full/Failure
    */
-  def process(config: Config) = {
+  def process(config: Config): IOResult[Unit] = {
     for {
       variables <- ParseVariables.fromFile(config.variables)
-      allDone   <- if(config.templates.nonEmpty) {
+      _         <- if(config.templates.nonEmpty) {
                      val filler = //if we are writing to stdout, use a different filler and ignore outputExtension
                                 if(config.outputToStdout) {
                                   fillToStdout(variables.toSeq, config.inputExtension) _
                                 } else {
                                   fill(variables.toSeq, config.outdir, config.inputExtension, config.outputExtension) _
                                 }
-                     bestEffort(config.templates) { filler }
+                     config.templates.accumulate { filler }
                    } else {
                      /*
                       * If no templates are given, try to read from stdin.
@@ -189,20 +183,18 @@ object TemplateCli {
                        ok
                      }
                    }
-    } yield {
-      allDone
-    }
+    } yield ()
   }
 
-  def readStdin(): Box[String] = {
+  def readStdin(): IOResult[String] = {
     for {
-      in      <- Tryor(new java.io.InputStreamReader(System.in), "Error when trying to access stdin")
-      ready   <- if(in.ready) Full("ok") else Failure("Can not get template content from stdin and no template file given")
-      content <- Tryor(IOUtils.toString(System.in, "UTF-8"), "Error when trying to read content from stdin")
+      in      <- IOResult.effect("Error when trying to access stdin")(new java.io.InputStreamReader(System.in))
+      ready   <- if(in.ready) UIO.unit else Inconsistancy("Can not get template content from stdin and no template file given").fail
+      content <- IOResult.effect("Error when trying to read content from stdin")(IOUtils.toString(System.in, "UTF-8"))
       ok      <- if(content.length > 0) {
-                   Full(content)
+                   content.succeed
                  } else {
-                   Failure("Can not get template content from stdin and no template file given")
+                   Inconsistancy("Can not get template content from stdin and no template file given").fail
                  }
     } yield {
       ok
@@ -217,14 +209,14 @@ object TemplateCli {
    * Only file with inputExtension are processed.
    * inputExtension is replaced by outputExtension.
    */
-  def fill(variables: Seq[STVariable], outDir: File, inputExtension: String, outputExtension: String)(template: File): Box[String] = {
+  def fill(variables: Seq[STVariable], outDir: File, inputExtension: String, outputExtension: String)(template: File): IOResult[String] = {
     for {
-      ok      <- if(template.getName.endsWith(inputExtension)) { Full("ok") } else { Failure(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'") }
-      content <- Tryor(FileUtils.readFileToString(template, StandardCharsets.UTF_8), s"Error when reading variables from ${template.getAbsolutePath}")
+      ok      <- if(template.getName.endsWith(inputExtension)) { UIO.unit } else { Inconsistancy(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'").fail }
+      content <- IOResult.effect(s"Error when reading variables from ${template.getAbsolutePath}")(FileUtils.readFileToString(template, StandardCharsets.UTF_8))
       filled  <- fillerService.fill(template.getAbsolutePath, content, variables)
       name     = template.getName
       out      = new File(outDir, name.substring(0, name.size-inputExtension.size)+outputExtension)
-      writed  <- Tryor(FileUtils.writeStringToFile(out, filled, StandardCharsets.UTF_8), s"Error when writting filled template into ${out.getAbsolutePath}")
+      writed  <- IOResult.effect( s"Error when writting filled template into ${out.getAbsolutePath}")(FileUtils.writeStringToFile(out, filled, StandardCharsets.UTF_8))
     } yield {
       out.getAbsolutePath
     }
@@ -233,10 +225,10 @@ object TemplateCli {
   /**
    * Same as fill, but print everything to stdout
    */
-  def fillToStdout(variables: Seq[STVariable], inputExtension: String)(template: File): Box[String] = {
+  def fillToStdout(variables: Seq[STVariable], inputExtension: String)(template: File): IOResult[String] = {
     for {
-      ok      <- if(template.getName.endsWith(inputExtension)) { Full("ok") } else { Failure(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'") }
-      content <- Tryor(FileUtils.readFileToString(template, StandardCharsets.UTF_8), s"Error when reading variables from ${template.getAbsolutePath}")
+      ok      <- if(template.getName.endsWith(inputExtension)) { UIO.unit } else { Inconsistancy(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'").fail }
+      content <- IOResult.effect(s"Error when reading variables from ${template.getAbsolutePath}")(FileUtils.readFileToString(template, StandardCharsets.UTF_8))
       writed  <- filledAndWriteToStdout(variables, content, template.getName)
     } yield {
       writed
@@ -246,7 +238,7 @@ object TemplateCli {
   def filledAndWriteToStdout(variables: Seq[STVariable], content: String, templateName: String) = {
     for {
       filled  <- fillerService.fill(templateName, content, variables)
-      writed  <- Tryor(IOUtils.write(filled, System.out, "UTF-8"), s"Error when writting filled template to stdout")
+      writed  <- IOResult.effect(s"Error when writting filled template to stdout")(IOUtils.write(filled, System.out, "UTF-8"))
     } yield {
       templateName
     }
@@ -276,16 +268,16 @@ object TemplateCli {
  */
 object ParseVariables extends Loggable {
 
-  def fromFile(file: File):  Box[Set[STVariable]] = {
+  def fromFile(file: File):  IOResult[Set[STVariable]] = {
     for {
-      jsonString <- Tryor(FileUtils.readFileToString(file, "UTF-8"), s"Error when trying to read file ${file.getAbsoluteFile}")
+      jsonString <- IOResult.effect(s"Error when trying to read file ${file.getAbsoluteFile}")(FileUtils.readFileToString(file, "UTF-8"))
       vars       <- fromString(jsonString)
     } yield {
       vars
     }
   }
 
-  def fromString(jsonString: String): Box[Set[STVariable]] = {
+  def fromString(jsonString: String): IOResult[Set[STVariable]] = {
 
     def parseAsValue(v: JValue): List[Any] = {
       v match {
@@ -303,7 +295,7 @@ object ParseVariables extends Loggable {
 
     //the whole logic
     for {
-      json       <- Tryor(JsonParser.parse(jsonString), s"Error when parsing the variable file")
+      json       <- IOResult.effect(s"Error when parsing the variable file")(JsonParser.parse(jsonString))
     } yield {
       json match {
         case JObject(fields) => fields.flatMap { x =>

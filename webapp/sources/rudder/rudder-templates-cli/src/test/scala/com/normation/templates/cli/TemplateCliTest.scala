@@ -45,11 +45,9 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import java.io.PrintStream
-import net.liftweb.common.Failure
-import net.liftweb.common.Full
-import net.liftweb.common.Empty
 import java.io.FileInputStream
 import org.joda.time.DateTime
+import com.normation.zio._
 
 @RunWith(classOf[JUnitRunner])
 class TemplateCliTest extends Specification with ContentMatchers with AfterAll {
@@ -105,10 +103,10 @@ class TemplateCliTest extends Specification with ContentMatchers with AfterAll {
 
     "failed when there is not input at all" in {
 
-      val res = TemplateCli.process(Config(variables = new File(testDir, "variables.json") ))
+      val res = TemplateCli.process(Config(variables = new File(testDir, "variables.json") )).either.runNow
       res match {
-        case Full(_)|Empty => ko(s"It should be a failure but we get: ${res}")
-        case f:Failure => f.msg === "Can not get template content from stdin and no template file given"
+        case Right(_)  => ko(s"It should be a failure but we get: ${res}")
+        case Left(err) => err.fullMsg === "Inconsistancy: Can not get template content from stdin and no template file given"
       }
     }
 
