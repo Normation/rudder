@@ -82,10 +82,11 @@ class NcfApi(
   def schemas = API
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {
-        case API.UpdateTechnique => UpdateTechnique
-        case API.CreateTechnique => CreateTechnique
-        case API.GetResources    => GetResources
-        case API.ParameterCheck  => ParameterCheck
+        case API.UpdateTechnique  => UpdateTechnique
+        case API.CreateTechnique  => CreateTechnique
+        case API.GetResources     => GetResources
+        case API.ParameterCheck   => ParameterCheck
+        case API.DeleteTechnique  => DeleteTechnique
     })
   }
 
@@ -156,6 +157,33 @@ class NcfApi(
       }
 
       resp(getRessourcesStatus.toBox, req, "Could not get resource state of technique")("techniqueResources")
+    }
+  }
+
+
+  object DeleteTechnique extends LiftApiModule {
+    val schema = API.DeleteTechnique
+    val restExtractor = restExtractorService
+    implicit val dataName = "techniques"
+
+    def process(version: ApiVersion, path: ApiPath, techniqueInfo: (String, String), req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+
+      val modId = ModificationId(uuidGen.newUuid)
+
+
+      val content =
+        for {
+          force <- restExtractorService.extractBoolean("force")(req)(identity)map(_.getOrElse(false))
+          _ <- techniqueWriter.deleteTechnique(techniqueInfo._1, techniqueInfo._2, force, modId, authzToken.actor).toBox
+        } yield {
+          import net.liftweb.json.JsonDSL._
+          ( ("id" -> techniqueInfo._1 )
+          ~ ("version"  -> techniqueInfo._2 )
+          )
+        }
+
+      resp(content,req,"delete technique")("deleteTechnique")
+
     }
   }
   object UpdateTechnique extends LiftApiModule0 {

@@ -776,7 +776,7 @@ object RudderConfig extends Loggable {
       )
 
   val techniqueArchiver = new TechniqueArchiverImpl(gitRepo,   new File(RUDDER_DIR_GITROOT) , prettyPrinter, "/", gitModificationRepository, personIdentService)
-  val ncfTechniqueWriter = new TechniqueWriter(techniqueArchiver, updateTechniqueLibrary, interpolationCompiler, prettyPrinter, RUDDER_DIR_GITROOT)
+  val ncfTechniqueWriter = new TechniqueWriter(techniqueArchiver, updateTechniqueLibrary, interpolationCompiler, roDirectiveRepository, techniqueRepository, workflowLevelService, prettyPrinter, RUDDER_DIR_GITROOT)
 
   val ApiVersions =
     ApiVersion(8  , true) ::

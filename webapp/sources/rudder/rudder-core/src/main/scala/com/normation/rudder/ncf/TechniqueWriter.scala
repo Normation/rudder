@@ -53,16 +53,28 @@ import java.nio.file.Files
 import java.nio.file.Paths
 
 import better.files.File
+import com.normation.cfclerk.domain.SectionSpec
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.IOResult
+import com.normation.rudder.domain.policies.DeleteDirectiveDiff
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
+import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.services.user.PersonIdentService
 import net.liftweb.common.Full
 import zio._
+import zio.syntax._
 
 import scala.xml.NodeSeq
 import scala.xml.{Node => XmlNode}
 import com.normation.rudder.services.policies.InterpolatedValueCompiler
+import com.normation.rudder.services.workflows.ChangeRequestService
+import com.normation.rudder.services.workflows.WorkflowLevelService
 import net.liftweb.common.EmptyBox
 
 trait NcfError extends RudderError {
@@ -79,11 +91,64 @@ class TechniqueWriter (
     archiver         : TechniqueArchiver
   , techLibUpdate    : UpdateTechniqueLibrary
   , translater       : InterpolatedValueCompiler
+  , readDirectives   : RoDirectiveRepository
+  , techniqueRepository : TechniqueRepository
+  , workflowLevelService: WorkflowLevelService
   , xmlPrettyPrinter : RudderPrettyPrinter
   , basePath         : String
 ) {
 
-  private[this] var agentSpecific = new ClassicTechniqueWriter(basePath) :: new DSCTechniqueWriter(basePath, translater) :: Nil
+  private[this] val agentSpecific = new ClassicTechniqueWriter(basePath) :: new DSCTechniqueWriter(basePath, translater) :: Nil
+
+  def deleteTechnique(techniqueName : String, techniqueVersion : String, deleteDirective : Boolean, modId : ModificationId, committer : EventActor) : IOResult[Unit] ={
+    val techniqueId = TechniqueId(TechniqueName(techniqueName), TechniqueVersion(techniqueVersion))
+
+    def createCr(directive : Directive, rootSection : SectionSpec ) ={
+        val diff = DeleteDirectiveDiff(techniqueId.name, directive)
+        ChangeRequestService.createChangeRequestFromDirective(
+          s"Deleting technique ${techniqueName}/${techniqueVersion}"
+          , ""
+          , techniqueId.name
+          , rootSection
+          , directive.id
+          , Some(directive)
+          , diff
+          , committer
+          , None
+        )
+    }
+
+    def mergeCrs(cr1 : ConfigurationChangeRequest, cr2 : ConfigurationChangeRequest) = {
+      cr1.copy(directives = cr1.directives ++ cr2.directives)
+    }
+
+    for {
+      directives <- readDirectives.getFullDirectiveLibrary().map(_.allActiveTechniques.values.filter(_.techniqueName.value == techniqueId.name).flatMap(_.directives).filter(_.techniqueVersion == techniqueId.version))
+
+      technique <- techniqueRepository.get(techniqueId).notOptional(s"No Technique with ID '${techniqueId.toString()}' found in reference library.")
+
+      // Check if we have directives, and either, make an error, if we don't force deletion, or delete them all, creating a change request
+      _ <- directives match {
+             case Nil => UIO.unit
+             case _ =>
+               if (deleteDirective) {
+                 val wf = workflowLevelService.getWorkflowService()
+                 for {
+                   cr <- directives.map(createCr(_,technique.rootSection)).reduceOption(mergeCrs).notOptional(s"Could not create a change request to delete ${techniqueName}/${techniqueVersion} directives")
+                   _ <- wf.startWorkflow(cr, committer, Some(s"Deleting technique ${techniqueName}/${techniqueVersion}")).succeed
+                  } yield {
+                   ()
+                  }
+               } else
+                 Unexpected(s"${directives.size} directives are defined for ${techniqueName}/${techniqueVersion} please delete them, or force deletion").fail
+           }
+      _ <- archiver.deleteTechnique(techniqueName,techniqueVersion,modId,committer, s"Deleting technique ${techniqueName}/${techniqueVersion}")
+
+      _  <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of Technique ${techniqueName}")).succeed.chainError(s"An error occurred during technique update after deletion of Technique ${techniqueName}")
+    } yield {
+      ()
+    }
+  }
 
   def techniqueMetadataContent(technique : Technique, methods: Map[BundleName, GenericMethod]) : PureResult[XmlNode] = {
 
@@ -547,6 +612,7 @@ class DSCTechniqueWriter(
 }
 
 trait TechniqueArchiver {
+  def deleteTechnique(techniqueName : String, techniqueVersion : String, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
   def commitTechnique(technique : Technique, filesToAdd : Seq[String], modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
 }
 
@@ -563,6 +629,18 @@ class TechniqueArchiverImpl (
   import ResourceFileState._
 
   override val encoding : String = "UTF-8"
+
+  def deleteTechnique(techniqueName : String, techniqueVersion : String, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
+    (for {
+      git     <- gitRepo.git
+      ident   <- personIdentservice.getPersonIdentOrDefault(commiter.name)
+      rm      <- IOResult.effect(git.rm.addFilepattern(s"techniques/ncf_techniques/${techniqueName}/${techniqueVersion}").call())
+
+      commit  <- IOResult.effect(git.commit.setCommitter(ident).setMessage(msg).call())
+    } yield {
+      s"techniques/ncf_techniques/${techniqueName}/${techniqueVersion}"
+    }).chainError(s"error when deleting and committing Technique '${techniqueName}/${techniqueVersion}").unit
+  }
 
   def commitTechnique(technique : Technique, gitPath : Seq[String], modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
 

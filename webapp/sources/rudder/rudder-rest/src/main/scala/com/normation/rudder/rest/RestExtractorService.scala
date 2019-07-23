@@ -1012,7 +1012,7 @@ case class RestExtractorService (
     }
   }
 
-  def extractBoolean[T](key : String) (req : Req)(fun : Boolean => T) : Box[Option[T]]  = {
+  def extractBoolean[T](key : String) (req : Req)(fun : Boolean => T ) : Box[Option[T]]  = {
     req.json match {
       case Full(json) => json \ key match {
         case JBool(value) => Full(Some(fun(value)))

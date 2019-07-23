@@ -38,8 +38,18 @@
 package com.normation.rudder.ncf
 
 import java.io.File
+import java.io.InputStream
 
+import com.normation.cfclerk.domain
+import com.normation.cfclerk.domain.RootTechniqueCategory
+import com.normation.cfclerk.domain.TechniqueCategory
+import com.normation.cfclerk.domain.TechniqueCategoryId
+import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueResourceId
+import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.cfclerk.services.TechniquesInfo
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
@@ -48,8 +58,26 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Version
+import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.policies.ActiveTechnique
+import com.normation.rudder.domain.policies.ActiveTechniqueCategory
+import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.rudder.domain.policies.ActiveTechniqueId
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.workflows.ChangeRequest
+import com.normation.rudder.repository.CategoryWithActiveTechniques
+import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.services.policies.InterpolatedValueCompilerImpl
+import com.normation.rudder.services.workflows.DirectiveChangeRequest
+import com.normation.rudder.services.workflows.GlobalParamChangeRequest
+import com.normation.rudder.services.workflows.NodeGroupChangeRequest
+import com.normation.rudder.services.workflows.RuleChangeRequest
+import com.normation.rudder.services.workflows.WorkflowLevelService
+import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.zio._
 import net.liftweb.common.Box
 import net.liftweb.common.Full
@@ -60,6 +88,9 @@ import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import zio._
+
+import scala.collection.SortedMap
+import scala.collection.SortedSet
 
 @RunWith(classOf[JUnitRunner])
 class TestTechniqueWriter extends Specification with ContentMatchers with Loggable {
@@ -72,7 +103,8 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
 
   val expectedPath = "src/test/resources/configuration-repository"
   object TestTechniqueArchiver extends TechniqueArchiver {
-    def commitTechnique(technique : Technique, gitPath : Seq[String], modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] =  UIO.unit
+    def commitTechnique(technique : Technique, gitPath : Seq[String], modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = UIO.unit
+    def deleteTechnique(techniqueName: String, techniqueVersion: String, modId: ModificationId, commiter: EventActor, msg: String): IOResult[Unit] = UIO.unit
   }
 
   object TestLibUpdater extends UpdateTechniqueLibrary {
@@ -80,8 +112,91 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     def registerCallback(callback:TechniquesLibraryUpdateNotification) : Unit = ()
   }
 
+  // Not used in test for now
+  def readDirectives : RoDirectiveRepository = new RoDirectiveRepository {
+
+    def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] = ???
+
+    def getDirective(directiveId: DirectiveId): IOResult[Option[Directive]] = ???
+
+
+    def getDirectiveWithContext(directiveId: DirectiveId): IOResult[Option[(domain.Technique, ActiveTechnique, Directive)]] = ???
+
+    def getActiveTechniqueAndDirective(id: DirectiveId): IOResult[Option[(ActiveTechnique, Directive)]] = ???
+
+    def getDirectives(activeTechniqueId: ActiveTechniqueId, includeSystem: Boolean): IOResult[Seq[Directive]] = ???
+
+    def getActiveTechniqueByCategory(includeSystem: Boolean): IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
+
+    def getActiveTechnique(id: ActiveTechniqueId): IOResult[Option[ActiveTechnique]] = ???
+
+    def getActiveTechnique(techniqueName: TechniqueName): IOResult[Option[ActiveTechnique]] = ???
+
+    def activeTechniqueBreadCrump(id: ActiveTechniqueId): IOResult[List[ActiveTechniqueCategory]] = ???
+
+    def getActiveTechniqueLibrary: IOResult[ActiveTechniqueCategory] = ???
+
+    def getAllActiveTechniqueCategories(includeSystem: Boolean): IOResult[Seq[ActiveTechniqueCategory]] = ???
+
+    def getActiveTechniqueCategory(id: ActiveTechniqueCategoryId): IOResult[ActiveTechniqueCategory] = ???
+
+    def getParentActiveTechniqueCategory(id: ActiveTechniqueCategoryId): IOResult[ActiveTechniqueCategory] = ???
+
+    def getParentsForActiveTechniqueCategory(id: ActiveTechniqueCategoryId): IOResult[List[ActiveTechniqueCategory]] = ???
+
+    def getParentsForActiveTechnique(id: ActiveTechniqueId): IOResult[ActiveTechniqueCategory] = ???
+
+    def containsDirective(id: ActiveTechniqueCategoryId): UIO[Boolean] = ???
+  }
+  def workflowLevelService: WorkflowLevelService = new WorkflowLevelService {
+    def workflowLevelAllowsEnable: Boolean = ???
+
+    def workflowEnabled: Boolean = ???
+
+    def name: String = ???
+
+    def getWorkflowService(): WorkflowService = ???
+
+    def getForRule(actor: EventActor, change: RuleChangeRequest): Box[WorkflowService] = ???
+
+    def getForDirective(actor: EventActor, change: DirectiveChangeRequest): Box[WorkflowService] = ???
+
+    def getForNodeGroup(actor: EventActor, change: NodeGroupChangeRequest): Box[WorkflowService] = ???
+
+    def getForGlobalParam(actor: EventActor, change: GlobalParamChangeRequest): Box[WorkflowService] = ???
+
+    def getByDirective(id: DirectiveId, onlyPending: Boolean): Box[Vector[ChangeRequest]] = ???
+
+    def getByNodeGroup(id: NodeGroupId, onlyPending: Boolean): Box[Vector[ChangeRequest]] = ???
+
+    def getByRule(id: RuleId, onlyPending: Boolean): Box[Vector[ChangeRequest]] = ???
+  }
+
+  def techRepo : TechniqueRepository = new TechniqueRepository {
+
+    def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T = ???
+    def getTemplateContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => T): T = ???
+    def getFileContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => T): T = ???
+    def getTechniquesInfo(): TechniquesInfo = ???
+    def getAll(): Map[TechniqueId, domain.Technique] = ???
+
+    def get(techniqueId: TechniqueId): Option[domain.Technique] = ???
+
+    def getLastTechniqueByName(techniqueName: TechniqueName): Option[domain.Technique] = ???
+
+    def getByIds(techniqueIds: Seq[TechniqueId]): Seq[domain.Technique] = ???
+    def getTechniqueVersions(name: TechniqueName): SortedSet[TechniqueVersion] = ???
+    def getByName(name: TechniqueName): Map[TechniqueVersion, domain.Technique] = ???
+
+    def getTechniqueLibrary: RootTechniqueCategory = ???
+
+    def getTechniqueCategory(id: TechniqueCategoryId): IOResult[TechniqueCategory] = ???
+
+    def getParentTechniqueCategory_forTechnique(id: TechniqueId): IOResult[TechniqueCategory] = ???
+  }
+
   val valueCompiler = new InterpolatedValueCompilerImpl
-  val writer = new TechniqueWriter(TestTechniqueArchiver,TestLibUpdater,valueCompiler, new RudderPrettyPrinter(Int.MaxValue, 2), basePath)
+  val writer = new TechniqueWriter(TestTechniqueArchiver,TestLibUpdater,valueCompiler, readDirectives, techRepo, workflowLevelService, new RudderPrettyPrinter(Int.MaxValue, 2), basePath)
   val dscWriter = new DSCTechniqueWriter(basePath, valueCompiler)
   val classicWriter = new ClassicTechniqueWriter(basePath)
 

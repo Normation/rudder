@@ -73,7 +73,7 @@ object ChangeRequestService {
     , diff             : ChangeRequestDirectiveDiff
     , actor            : EventActor
     , reason           : Option[String]
-  ) : ChangeRequest = {
+  ) : ConfigurationChangeRequest = {
 
     val initialState = originalDirective match {
       case None =>  None

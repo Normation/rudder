@@ -184,6 +184,10 @@ object NcfApi extends ApiModuleProvider[NcfApi] {
     val description = "Create a new technique in Rudder from a technique in the technique editor"
     val (action, path)  = PUT / "techniques"
   }
+  final case object DeleteTechnique extends NcfApi with TwoParam with StartsAtVersion9 with SortIndex { val z = implicitly[Line].value
+    val description = "Delete a technique from technique editor"
+    val (action, path)  = DELETE / "techniques" / "{techniqueId}" / "{techniqueVersion}"
+  }
   final case object GetResources extends NcfApi with TwoParam with StartsAtVersion15 with SortIndex { val z = implicitly[Line].value
     val description = "Get currently deployed resources of a technique"
     val (action, path)  = GET / "techniques" / "{techniqueId}" / "{techniqueVersion}" / "resources"
