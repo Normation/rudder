@@ -126,7 +126,7 @@ app.directive('constraint', function($http, $q, $timeout) {
       var timeoutStatus = false;
       var timeout = $q.defer();
 
-      var request = $http.post("/rudder/secure/api/ncf/parameter/check",data, { 'timeout' : timeout.promise }).then(
+      var request = $http.post("/rudder/secure/api/techniques/parameter/check",data, { 'timeout' : timeout.promise }).then(
           function(successResult) {
             scope.parameter.$errors= [];
             if (! successResult.data.data.parameterCheck.result) {
@@ -330,13 +330,13 @@ function defineMethodClassContext (method_call) {
   }
 }
 function updateResources() {
-  var resourceUrl = '/rudder/secure/api/ncf/' + $scope.selectedTechnique.bundle_name +"/" + $scope.selectedTechnique.version +"/resources"
+  var resourceUrl = '/rudder/secure/api/techniques/' + $scope.selectedTechnique.bundle_name +"/" + $scope.selectedTechnique.version +"/resources"
   $http.get(resourceUrl).then(
     function(response) {
       $scope.selectedTechnique.resources = response.data.data.resources
     }
   , function(response) {
-      // manage error 
+      // manage error
     }
   )
 }
@@ -1346,9 +1346,9 @@ $scope.onImportFileChange = function (fileEl) {
 
     // Actually save the technique through API
     if ($scope.originalTechnique.bundle_name === undefined) {
-      $http.post("/rudder/secure/api/ncf", data).success(saveSuccess).error(saveError("creating", data)).finally(function(){$scope.$broadcast('endSaving');});
+      $http.post("/rudder/secure/api/techniques", data).success(saveSuccess).error(saveError("creating", data)).finally(function(){$scope.$broadcast('endSaving');});
     } else {
-      $http.put("/rudder/secure/api/ncf", data).success(saveSuccess).error(saveError("saving", data)).finally(function(){$scope.$broadcast('endSaving');});
+      $http.put("/rudder/secure/api/techniques", data).success(saveSuccess).error(saveError("saving", data)).finally(function(){$scope.$broadcast('endSaving');});
     }
   };
   // Popup definitions
@@ -1555,7 +1555,7 @@ app.config(function($httpProvider,$locationProvider) {
 });
 
 app.config(['fileManagerConfigProvider', function (config) {
-  var apiPath = '/rudder/secure/api/ncf/';
+  var apiPath = '/rudder/secure/api/techniques/';
   var defaults = config.$get();
 
   	config.set({
