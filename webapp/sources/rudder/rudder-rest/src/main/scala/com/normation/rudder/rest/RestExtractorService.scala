@@ -1144,7 +1144,6 @@ case class RestExtractorService (
   }
 
   def extractParameterCheck(json : JValue) : Box[(String,List[Constraint])] = {
-    logger.info(json)
     for {
       value      <- CompleteJson.extractJsonString(json, "value")
       constraint <- extractMethodConstraint(json \ "constraints")
