@@ -74,6 +74,7 @@ pub enum Error {
     InvalidTtl(String),
     MissingTargetNodes,
     InvalidHashType,
+    InvalidLogFilter(tracing_fmt::filter::env::ParseError),
 }
 
 impl Display for Error {
@@ -114,6 +115,7 @@ impl Display for Error {
                 f,
                 "Invalid hash type provided, available hash types : sha256, sha512"
             ),
+            InvalidLogFilter(ref err) => write!(f, "Log filter is invalid: {}", err),
         }
     }
 }
@@ -224,5 +226,11 @@ impl From<tracing::dispatcher::SetGlobalDefaultError> for Error {
 impl From<log::SetLoggerError> for Error {
     fn from(err: log::SetLoggerError) -> Self {
         Error::SetLogLogger(err)
+    }
+}
+
+impl From<tracing_fmt::filter::env::ParseError> for Error {
+    fn from(err: tracing_fmt::filter::env::ParseError) -> Self {
+        Error::InvalidLogFilter(err)
     }
 }

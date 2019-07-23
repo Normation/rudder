@@ -250,7 +250,7 @@ impl JobConfig {
     fn reload_logging(&self) -> Result<(), Error> {
         LogConfig::new(&self.cli_cfg.configuration_dir).and_then(|log_cfg| {
             self.handle
-                .reload(log_cfg.to_string())
+                .reload(EnvFilter::try_new(log_cfg.to_string())?)
                 .map_err(|e| e.into())
         })
     }
