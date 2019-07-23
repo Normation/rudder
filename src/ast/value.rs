@@ -1,14 +1,13 @@
 use crate::error::*;
 use crate::parser::*;
-use super::context::VarContext;
-use super::enums::EnumExpression;
-use crate::ast::context::GlobalContext;
+use super::context::VarKind;
+use super::enums::{EnumList,EnumExpression};
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct StringObject<'src> {
     pos: Token<'src>,
-    // static means no dynamic content (no variable)
+    // static means no evaluated content (no variable)
     pub data: Vec<PInterpolatedElement>,
 }
 impl<'src> StringObject<'src> {
@@ -61,16 +60,17 @@ pub enum Value<'src> {
     Struct(HashMap<String,Value<'src>>),
 }
 impl<'src> Value<'src> {
-    pub fn from_pvalue(gc: &GlobalContext<'src>, lc: Option<&VarContext<'src>>, pvalue: PValue<'src>) -> Result<Value<'src>> {
+    pub fn from_pvalue<VG>(enum_list: &EnumList<'src>, getter: &VG, pvalue: PValue<'src>) -> Result<Value<'src>> 
+    where VG: Fn(Token<'src>) -> Option<VarKind<'src>> {
         match pvalue {
             PValue::String(pos, s) => Ok(Value::String(StringObject::from_pstring(pos, s)?)),
             PValue::Number(pos, n) => Ok(Value::Number(pos, n)),
             PValue::EnumExpression(e) => Ok(Value::EnumExpression(
-                gc.enum_list.canonify_expression(gc,lc,e)?
+                enum_list.canonify_expression(getter,e)?
             )),
-            PValue::List(l) => Ok(Value::List(map_vec_results(l.into_iter(),|x| Value::from_pvalue(gc,lc,x))?)),
+            PValue::List(l) => Ok(Value::List(map_vec_results(l.into_iter(),|x| Value::from_pvalue(enum_list, getter,x))?)),
             PValue::Struct(s) => Ok(Value::Struct(
-                    map_hashmap_results(s.into_iter(), |(k,v)| Ok((k,Value::from_pvalue(gc,lc,v)?)) )?
+                    map_hashmap_results(s.into_iter(), |(k,v)| Ok((k,Value::from_pvalue(enum_list, getter,v)?)) )?
             )),
         }
     }
@@ -90,18 +90,19 @@ impl<'src> Value<'src> {
     }
 
     // TODO check where it is called
-    pub fn context_check(
+    pub fn context_check<VG>(
         &self,
-        gc: &GlobalContext<'src>,
-        lc: Option<&VarContext<'src>>,
-    ) -> Result<()> {
+        getter: &VG,
+    ) -> Result<()> 
+        where VG: Fn(Token) -> Option<VarKind>,
+    {
         match self {
             Value::String(s) => {
                 map_results(s.data.iter(),
                     |e| match e {
                         PInterpolatedElement::Static(_) => Ok(()),
                         PInterpolatedElement::Variable(v) => 
-                            match gc.get_variable(lc, Token::new("", v)) {
+                            match getter(Token::new("", v)) {
                                 None => fail!(s.pos, "Variable {} does not exist at {}", v, s.pos),
                                 _ => Ok(()),
                             },

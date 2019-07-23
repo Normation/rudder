@@ -21,27 +21,81 @@ use token::*;
 #[cfg(test)]
 pub use token::PInput;
 
-/// All structures are public to be read directly by other modules.
-/// Parsing errors must be avoided if possible since they are fatal.
-/// Keep the structure and handle the error in later analyser if possible.
-///
-/// All parsers should manage whitespace inside them.
-/// All parser assume whitespaces at the beginning of the input have been removed.
-///
-/// Some functions are made public just for being used to create test structures
+///! All structures are public to be read directly by other modules.
+///! Parsing errors must be avoided if possible since they are fatal.
+///! Keep the structure and handle the error in later analyser if possible.
+///!
+///! All parsers should manage whitespace inside them.
+///! All parser assume whitespaces at the beginning of the input have been removed.
 
+
+// TODO rename Error to PError Result to PResult
+// TODO Create a struct for statecall
 // TODO v2: measures, actions, functions, iterators, include
 // TODO resource parent && state alias
 // TODO proptest
 // ===== Public interfaces ===== 
 
-/// The parse function that should be called when parsing a file
-pub fn parse_file<'src>(
-    filename: &'src str,
-    content: &'src str,
-) -> crate::error::Result<PFile<'src>> {
-    fix_error_type(pfile(PInput::new_extra(content, filename)))
+/// PAST is just a global structure parsed data sequentially.
+#[derive(Debug)]
+pub struct PAST<'src> {
+    pub enums: Vec<PEnum<'src>>,
+    pub enum_mappings: Vec<PEnumMapping<'src>>,
+    pub resources: Vec<PResourceDef<'src>>,
+    pub states: Vec<PStateDef<'src>>,
+    pub variable_declarations: Vec<(Token<'src>, PValue<'src>)>,
+    pub parameter_defaults: Vec<(Token<'src>, Option<Token<'src>>, Vec<Option<PValue<'src>>>)>, // separate parameter defaults since they will be processed first
+    pub parents: Vec<(Token<'src>, Token<'src>)>,
+    pub aliases: Vec<PAliasDef<'src>>,
 }
+
+impl<'src> PAST<'src> {
+    pub fn new() -> PAST<'static> {
+        PAST {
+            enums: Vec::new(),
+            enum_mappings: Vec::new(),
+            resources: Vec::new(),
+            states: Vec::new(),
+            variable_declarations: Vec::new(),
+            parameter_defaults: Vec::new(),
+            parents: Vec::new(),
+            aliases: Vec::new(),
+        }
+    }
+
+    pub fn add_file(&mut self, filename: &'src str, content: &'src str) -> crate::error::Result<()> {
+        let pfile = fix_error_type(pfile(PInput::new_extra(content, filename)))?;
+        if pfile.header.version != 0 {
+            return Err(crate::error::Error::User(format!("Format not supported yet: {}", pfile.header.version)));
+        }
+        pfile.code.into_iter().for_each(|declaration| {
+            match declaration {
+                PDeclaration::Enum(e) => self.enums.push(e),
+                PDeclaration::Mapping(e) => self.enum_mappings.push(e),
+                PDeclaration::Resource((r,d,p)) => {
+                    self.parameter_defaults.push((r.name.clone(),None,d));
+                    if let Some(parent) = p { self.parents.push((r.name.clone(),parent)) };
+                    self.resources.push(r);
+                },
+                PDeclaration::State((s,d)) => { 
+                    self.parameter_defaults.push((s.resource_name.clone(),Some(s.name.clone()),d));
+                    self.states.push(s);
+                },
+                PDeclaration::GlobalVar(kv) => self.variable_declarations.push(kv),
+                PDeclaration::Alias(a) => self.aliases.push(a),
+            }
+        });
+        Ok(())
+    }
+}
+
+/// The parse function that should be called when parsing a file
+//pub fn parse_file<'src>(
+//    filename: &'src str,
+//    content: &'src str,
+//) -> crate::error::Result<PFile<'src>> {
+//    fix_error_type(pfile(PInput::new_extra(content, filename)))
+//}
 
 /// Parse a string for interpolation
 pub fn parse_string(content: &str) -> crate::error::Result<Vec<PInterpolatedElement>> {
@@ -615,10 +669,9 @@ pub struct PResourceDef<'src> {
     pub metadata: Vec<PMetadata<'src>>,
     pub name: Token<'src>,
     pub parameters: Vec<PParameter<'src>>,
-    pub parameter_defaults: Vec<Option<PValue<'src>>>,
-    pub parent: Option<Token<'src>>,
 }
-fn presource_def(i: PInput) -> Result<PResourceDef> {
+// separate default parameters and parents because they are stored separately
+fn presource_def(i: PInput) -> Result<(PResourceDef,Vec<Option<PValue>>,Option<Token>)> {
     wsequence!(
         {
             metadata: pmetadata_list;
@@ -630,13 +683,13 @@ fn presource_def(i: PInput) -> Result<PResourceDef> {
             parent: opt(preceded(sp(tag(":")),pidentifier));
         } => { 
             let (parameters, parameter_defaults) = parameter_list.into_iter().unzip();
-            PResourceDef {
+            (PResourceDef {
                       metadata,
                       name,
                       parameters,
-                      parameter_defaults,
-                      parent,
-            }
+            },
+            parameter_defaults,
+            parent)
         }
     )(i)
 }
@@ -789,10 +842,10 @@ pub struct PStateDef<'src> {
     pub name: Token<'src>,
     pub resource_name: Token<'src>,
     pub parameters: Vec<PParameter<'src>>,
-    pub parameter_defaults: Vec<Option<PValue<'src>>>,
     pub statements: Vec<PStatement<'src>>,
 }
-fn pstate_def(i: PInput) -> Result<PStateDef> {
+// separate parameter defaults since they will be stored separately
+fn pstate_def(i: PInput) -> Result<(PStateDef,Vec<Option<PValue>>)> {
     wsequence!(
         {
             metadata: pmetadata_list;
@@ -807,14 +860,14 @@ fn pstate_def(i: PInput) -> Result<PStateDef> {
             _x: or_fail(tag("}"), || PErrorKind::UnterminatedDelimiter(sb));
         } => {
             let (parameters, parameter_defaults) = parameter_list.into_iter().unzip();
-            PStateDef {
+            (PStateDef {
                 metadata,
                 name,
                 resource_name,
                 parameters,
-                parameter_defaults,
                 statements,
-            }
+            },
+            parameter_defaults)
         }
     )(i)
 }
@@ -857,20 +910,20 @@ fn palias_def(i: PInput) -> Result<PAliasDef> {
 /// A declaration is one of the a top level elements that can be found anywhere in the file.
 #[derive(Debug, PartialEq)]
 pub enum PDeclaration<'src> {
-    Resource(PResourceDef<'src>),
-    State(PStateDef<'src>),
     Enum(PEnum<'src>),
     Mapping(PEnumMapping<'src>),
-    GlobalVar(Token<'src>, PValue<'src>),
+    Resource((PResourceDef<'src>,Vec<Option<PValue<'src>>>,Option<Token<'src>>)),
+    State((PStateDef<'src>,Vec<Option<PValue<'src>>>)),
+    GlobalVar((Token<'src>, PValue<'src>)),
     Alias(PAliasDef<'src>),
 }
 fn pdeclaration(i: PInput) -> Result<PDeclaration> {
     alt((
-        map(presource_def,        PDeclaration::Resource),
-        map(pstate_def,           PDeclaration::State),
         map(penum,                PDeclaration::Enum),
         map(penum_mapping,        PDeclaration::Mapping),
-        map(pvariable_definition, |(x,y)| PDeclaration::GlobalVar(x,y)),
+        map(presource_def,        PDeclaration::Resource),
+        map(pstate_def,           PDeclaration::State),
+        map(pvariable_definition, PDeclaration::GlobalVar),
         map(palias_def,           PDeclaration::Alias),
     ))(i)
 }

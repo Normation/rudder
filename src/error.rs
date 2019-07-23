@@ -13,7 +13,9 @@ use std::collections::HashMap;
 use std::fmt;
 use std::hash::Hash;
 
-#[derive(Debug, PartialEq)]
+// TODO simplify errors into a single type and add from_* methods
+//
+#[derive(Debug, PartialEq, Clone)]
 pub enum Error {
     //   message
     User(String),
@@ -27,6 +29,22 @@ pub enum Error {
 
 /// Redefine our own result type with fixed error type for readability.
 pub type Result<T> = std::result::Result<T, Error>;
+
+
+
+/// This macro returns from current function/closure with an error.
+/// When writing an iteration, use this within a map so we can continue on
+/// next iteration and aggregate errors.
+macro_rules! err {
+    ($origin:expr, $ ( $ arg : tt ) *) => ({
+        let (file,line,col) = $origin.position();
+        Error::Compilation(std::fmt::format( format_args!( $ ( $ arg ) * ) ),
+                                       file,
+                                       line,
+                                       col
+                                      )
+    });
+}
 
 /// This macro returns from current function/closure with an error.
 /// When writing an iteration, use this within a map so we can continue on

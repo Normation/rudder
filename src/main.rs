@@ -1,17 +1,19 @@
 #[macro_use]
 mod error;
 mod ast;
-mod codeindex;
+//mod codeindex;
 mod parser;
 mod technique;
-mod generators;
+//mod generators;
 
 
-use crate::generators::*;
-use crate::ast::AST;
-use crate::codeindex::CodeIndex;
-use crate::parser::parse_file;
+//use crate::generators::*;
+//use crate::ast::AST;
+//use crate::codeindex::CodeIndex;
+//use crate::parser::parse_file;
 use crate::technique::translate_file;
+use crate::parser::PAST;
+use crate::ast::AST;
 use std::cell::UnsafeCell;
 use std::fs;
 use std::path::{Path,PathBuf};
@@ -62,16 +64,12 @@ struct Opt {
 }
 
 /// Read file, parse it and store it in the global codeindex
-fn add_file<'a>(code_index: &mut CodeIndex<'a>, source_list: &'a SourceList, path: &'a Path, filename: &'a str) {
+fn add_file<'a>(past: &mut PAST<'a>, source_list: &'a SourceList, path: &'a Path, filename: &'a str) {
     let content = fs::read_to_string(path)
         .unwrap_or_else(|_| panic!("Something went wrong reading the file {}", filename));
     let content_str = source_list.append(content);
-    let file = match parse_file(&filename, content_str) {
+    match past.add_file(filename, &content_str) {
         Err(e) => panic!("There was an error during parsing:\n{}", e),
-        Ok(o) => o,
-    };
-    match code_index.add_parsed_file(file) {
-        Err(e) => panic!("There was an error during code insertion:\n{}", e),
         Ok(()) => {}
     };
 }
@@ -117,40 +115,45 @@ fn main() {
 }
 
 fn compile(source: &Path, dest: &Path, technique: bool) {
-    let mut code_index = CodeIndex::new();
+//    let mut code_index = CodeIndex::new();
     let sources = SourceList::new();
 
     // read and add files
     let corelib = Path::new("data/corelib.rl");
     let stdlib = Path::new("data/stdlib.rl");
     let filename = source.to_string_lossy();
-    add_file(&mut code_index, &sources, corelib, "corelib.rl");
-    add_file(&mut code_index, &sources, stdlib, "stdlib.rl");
-    add_file(&mut code_index, &sources, source, &filename);
 
-    // finish parsing into AST
-    let ast = match AST::from_code_index(code_index) {
-        Err(e) => panic!("There was an error during code structure check:\n{}", e),
-        Ok(a) => a,
-    };
+    // data
+    let mut past = PAST::new();
+    add_file(&mut past, &sources, corelib, "corelib.rl");
+    add_file(&mut past, &sources, stdlib, "stdlib.rl");
+    add_file(&mut past, &sources, source, &filename);
 
-    // check that everything is OK
-    match ast.analyze() {
-        Err(e) => panic!("There was an error during code analyse:\n{}", e),
-        Ok(()) => {}
-    };
-
-    // generate final output
-    let mut cfe = CFEngine::new();
-    let file = if technique {
-        Some(dest)
-    } else {
-        None
-    };
-    match cfe.generate(&ast, file, technique) {
-        Err(e) => panic!("There was an error during code generation:\n{}", e),
-        Ok(()) => {}
-    };
+    let ast = AST::from_past(past);
+//
+//    // finish parsing into AST
+//    let ast = match AST::from_code_index(code_index) {
+//        Err(e) => panic!("There was an error during code structure check:\n{}", e),
+//        Ok(a) => a,
+//    };
+//
+//    // check that everything is OK
+//    match ast.analyze() {
+//        Err(e) => panic!("There was an error during code analyse:\n{}", e),
+//        Ok(()) => {}
+//    };
+//
+//    // generate final output
+//    let mut cfe = CFEngine::new();
+//    let file = if technique {
+//        Some(dest)
+//    } else {
+//        None
+//    };
+//    match cfe.generate(&ast, file, technique) {
+//        Err(e) => panic!("There was an error during code generation:\n{}", e),
+//        Ok(()) => {}
+//    };
 }
 
 // Phase 2

@@ -1,5 +1,5 @@
-use super::context::{VarContext, VarKind, GlobalContext};
-use super::resource::Statement;
+use super::context::VarKind;
+//use super::resource::Statement;
 use crate::error::*;
 use crate::parser::{PEnum, PEnumExpression, PEnumMapping, Token};
 use std::collections::hash_map;
@@ -156,7 +156,7 @@ impl<'src> EnumList<'src> {
     #[allow(clippy::map_entry)]
     pub fn add_mapping(&mut self, e: PEnumMapping<'src>) -> Result<()> {
         // From must exist
-        match self.enums.get(&e.from) {
+        let penum = match self.enums.get(&e.from) {
             Some((global, values)) => {
                 // transform mapping into temporary hashmap
                 let mut pmapping = HashMap::new();
@@ -210,11 +210,11 @@ impl<'src> EnumList<'src> {
                     self.direct_mapping_path.insert(e.from, vec![e.to]);
                 }
                 self.mappings.insert((e.from, e.to), mapping);
-                self.add_enum(PEnum {
+                PEnum {
                     global: *global,
                     name: e.to,
                     items,
-                })
+                }
             }
             None => fail!(
                 e.to,
@@ -222,8 +222,8 @@ impl<'src> EnumList<'src> {
                 e.from,
                 e.to
             ),
-            //None => err( format!("Enum {} missing when trying to define {}", e.from, e.to) ),
-        }
+        };
+        self.add_enum(penum)
     }
 
     /// Return an iterator over an enum content
@@ -278,24 +278,25 @@ impl<'src> EnumList<'src> {
 
     /// Transforms a parsed enum expression into its final form using all enum definitions
     /// It needs a variable context (local and global) to check for proper variable existence
-    pub fn canonify_expression<'b>(
-        &'b self,
-        gc: &'b GlobalContext<'src>,
-        lc: Option<&'b VarContext<'src>>,
+    pub fn canonify_expression<VG>(
+        &self,
+        getter: &VG,
         expr: PEnumExpression<'src>,
-    ) -> Result<EnumExpression<'src>> {
+    ) -> Result<EnumExpression<'src>> 
+        where VG: Fn(Token<'src>) -> Option<VarKind<'src>>
+    {
         match expr {
             PEnumExpression::Default(t) => Ok(EnumExpression::Default(t)),
             PEnumExpression::Not(e) => Ok(EnumExpression::Not(Box::new(
-                self.canonify_expression(gc, lc, *e)?,
+                self.canonify_expression(getter, *e)?,
             ))),
             PEnumExpression::Or(e1, e2) => Ok(EnumExpression::Or(
-                Box::new(self.canonify_expression(gc, lc, *e1)?),
-                Box::new(self.canonify_expression(gc, lc, *e2)?),
+                Box::new(self.canonify_expression(getter, *e1)?),
+                Box::new(self.canonify_expression(getter, *e2)?),
             )),
             PEnumExpression::And(e1, e2) => Ok(EnumExpression::And(
-                Box::new(self.canonify_expression(gc, lc, *e1)?),
-                Box::new(self.canonify_expression(gc, lc, *e2)?),
+                Box::new(self.canonify_expression(getter, *e1)?),
+                Box::new(self.canonify_expression(getter, *e2)?),
             )),
             PEnumExpression::Compare(var, enum1, value) => {
                 // get enum1 real type
@@ -308,18 +309,18 @@ impl<'src> EnumList<'src> {
                         None => match var {
                             // None -> this may be a boolean
                             // when using a boolean, value is a variable name since the parser doesn't know how to tell the difference between both syntax
-                            None => match gc.get_variable(lc, value) {
+                            None => match getter(value) {
                                 Some(VarKind::Enum(t, _)) => {
-                                    if *t == Token::new("", "boolean") {
-                                        *t
+                                    if t == Token::new("", "boolean") {
+                                        t
                                     } else {
                                         fail!(value, "Variable {} must be compared with some enum in expression", value)
                                     }
                                 }
                                 _ => fail!(value, "Global enum value {} does not exist", value),
                             },
-                            Some(var1) => match gc.get_variable(lc, var1) {
-                                Some(VarKind::Enum(t, _)) => *t,
+                            Some(var1) => match getter(var1) {
+                                Some(VarKind::Enum(t, _)) => t,
                                 _ => fail!(
                                     var1,
                                     "Variable {} doesn't exist or doesn't have an enum type",
@@ -365,12 +366,12 @@ impl<'src> EnumList<'src> {
                     }
                 }
                 // check that var exists
-                match gc.get_variable(lc, var1) {
+                match getter(var1) {
                     None => fail!(var1, "Variable {} does not exist", var1),
                     // wrong enum type
                     Some(VarKind::Enum(t, _)) => {
                         // check variable enum type
-                        if self.find_path(*t, e1).is_none() {
+                        if self.find_path(t, e1).is_none() {
                             fail!(
                                 var1,
                                 "Variable {} is {} but expected to be {} or an ancestor",
@@ -473,18 +474,20 @@ impl<'src> EnumList<'src> {
 
     /// Evaluates a set of expressions possible outcome to check for missing cases and redundancy
     /// Variable context is here to guess variable type and to properly evaluate variables that are constant
-    pub fn evaluate<'b>(
+    pub fn evaluate<VG>(
         &self,
-        gc: &'b GlobalContext<'src>,
-        lc: Option<&'b VarContext<'src>>,
-        cases: &[(EnumExpression<'src>, Vec<Statement<'src>>)],
+        getter: &VG,
+        cases: &[(EnumExpression<'src>, String)],
+//        cases: &[(EnumExpression<'src>, Vec<Statement<'src>>)],
         case_name: Token<'src>,
-    ) -> Result<()> {
+    ) -> Result<()>
+        where VG: Fn(Token<'src>) -> Option<VarKind<'src>>
+    {
         let mut variables = HashSet::new();
         cases
             .iter()
             .for_each(|(e, _)| self.list_variable_enum(&mut variables, &e));
-        let it = ContextIterator::new(gc, lc, variables.into_iter().collect());
+        let it = ContextIterator::new(self, getter, variables.into_iter().collect());
         let mut default_used = false;
         map_results(it, |values| {
             let mut matched_exp = cases.iter().filter(|(e,_)| self.eval(&values, e));
@@ -536,50 +539,51 @@ impl<'src> EnumList<'src> {
 
 /// Type to store either a constant value or an iterable value
 /// only used by ContextIterator
-// lifetime should be 'src,'b but as long as it works it's easier like this
-enum AltVal<'src> {
+#[derive(Clone)]
+enum AltVal<'b,'src> {
     Constant(Token<'src>),
-    Iterator(Iter<'src, Token<'src>>),
+    Iterator(Iter<'b, Token<'src>>),
 }
 /// Iterator that can iterate over all possible value set that a variable set can take
 /// Ex: if var1 and var2 are variables of an enum type with 3 item
 ///     it will produce 9 possible value combinations
-// lifetime should be 'src,'b but as long as it works it's easier like this
-struct ContextIterator<'src> {
+struct ContextIterator<'b, 'src> {
     // enum reference
-    enum_list: &'src EnumList<'src>,
-    // variables to vary
+    enum_list: &'b EnumList<'src>,
+    // variables to vary on
     var_list: Vec<Token<'src>>,
     //                 name        value or iterator
-    iterators: HashMap<Token<'src>, AltVal<'src>>,
+    iterators: HashMap<Token<'src>, AltVal<'b,'src>>,
     // current iteration         enum       value
     current: HashMap<Token<'src>, (Token<'src>, Token<'src>)>,
     // true before first iteration
     first: bool,
 }
 
-impl<'src> ContextIterator<'src> {
+impl<'b, 'src> ContextIterator<'b, 'src> {
     /// Create the iterator from the global enum_list
     /// a variable context (for type and constants) and the list of variables to take
     /// (since the context may contain variables that are not used in the expression)
-    fn new(
-        gc: &'src GlobalContext<'src>,
-        lc: Option<&VarContext<'src>>,
+    fn new<VG>(
+        enum_list: &'b EnumList<'src>,
+        getter: &VG,
         var_list: Vec<Token<'src>>,
-    ) -> ContextIterator<'src> {
+    ) -> ContextIterator<'b,'src>
+        where VG: Fn(Token<'src>) -> Option<VarKind<'src>>
+    {
         let mut iterators = HashMap::new();
         let mut current = HashMap::new();
         for v in &var_list {
-            match gc.get_variable(lc, *v) {
+            match getter(*v) {
                 // known value
                 Some(VarKind::Enum(e, Some(val))) => {
-                    current.insert(*v, (*e, *val));
-                    iterators.insert(*v, AltVal::Constant(*val));
+                    current.insert(*v, (e, val));
+                    iterators.insert(*v, AltVal::Constant(val));
                 }
                 // iterable value
                 Some(VarKind::Enum(e, None)) => {
-                    let mut it = gc.enum_list.enum_iter(*e);
-                    current.insert(*v, (*e, *(it.next().unwrap()))); // enums must always have at least one value
+                    let mut it = enum_list.enum_iter(e);
+                    current.insert(*v, (e, *(it.next().unwrap()))); // enums must always have at least one value
                     iterators.insert(*v, AltVal::Iterator(it));
                 }
                 // impossible values
@@ -588,7 +592,7 @@ impl<'src> ContextIterator<'src> {
             };
         }
         ContextIterator {
-            enum_list: &gc.enum_list,
+            enum_list: enum_list,
             var_list,
             iterators,
             current,
@@ -597,7 +601,7 @@ impl<'src> ContextIterator<'src> {
     }
 }
 
-impl<'src> Iterator for ContextIterator<'src> {
+impl<'b,'src> Iterator for ContextIterator<'b,'src> {
     type Item = HashMap<Token<'src>, (Token<'src>, Token<'src>)>;
     /// Iterate: we store an iterator for each variables
     /// - we increment the first iterator
@@ -624,12 +628,11 @@ impl<'src> Iterator for ContextIterator<'src> {
                 _ => panic!("BUG some value disappeared"),
             };
             if reset {
-                if let Some((e, _)) = self.current.get(v) {
-                    // restart iterator and update current
-                    let mut it = self.enum_list.enum_iter(*e);
-                    self.current.insert(*v, (*e, *(it.next().unwrap())));
-                    self.iterators.insert(*v, AltVal::Iterator(it));
-                } // no else, it has been checked many times
+                let ce = self.current.get(v).unwrap().0;
+                // restart iterator and update current
+                let mut it = self.enum_list.enum_iter(ce);
+                self.current.insert(*v, (ce, *(it.next().unwrap())));
+                self.iterators.insert(*v, AltVal::Iterator(it));
             }
         }
         // no change or all iterator restarted -> the end

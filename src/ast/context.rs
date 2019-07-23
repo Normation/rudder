@@ -2,8 +2,8 @@ use std::collections::hash_map;
 use std::collections::HashMap;
 use crate::error::*;
 use crate::parser::{PType, Token};
-use super::enums::EnumList;
-use super::value::Value;
+//use super::enums::EnumList;
+//use super::value::Value;
 
 /// Variable are categorized by kinds.
 /// This allows segregating variables that can only be used in some places.
@@ -17,25 +17,25 @@ pub enum VarKind<'src> {
 
 // TODO forbid variables names like global enum items (or enum type)
 
-#[derive(Debug)]
-pub struct GlobalContext<'src> {
-    pub var_context: VarContext<'src>,
-    pub enum_list: EnumList<'src>,
-    pub parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>,
-}
+//#[derive(Debug)]
+//pub struct GlobalContext<'src> {
+//    pub var_context: VarContext<'src>,
+//    pub enum_list: EnumList<'src>,
+//    pub parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>,
+//}
 
-impl<'src> GlobalContext<'src> {
-    /// Get a variable from this context.
-    pub fn get_variable<'b>(
-        &'b self,
-        local_context: Option<&'b VarContext<'src>>,
-        name: Token<'src>,
-    ) -> Option<&'b VarKind<'src>> {
-        local_context
-            .and_then(|lc| lc.variables.get(&name))
-            .or_else(|| self.var_context.variables.get(&name))
-    }
-}
+//impl<'src> GlobalContext<'src> {
+//    /// Get a variable from this context.
+//    pub fn get_variable<'b>(
+//        &'b self,
+//        local_context: Option<&'b VarContext<'src>>,
+//        name: Token<'src>,
+//    ) -> Option<&'b VarKind<'src>> {
+//        local_context
+//            .and_then(|lc| lc.variables.get(&name))
+//            .or_else(|| self.var_context.variables.get(&name))
+//    }
+//}
 
 /// A context is a list of variables name with their type (and value if they are constant).
 /// A context doesn't point to a child or parent context because it would mean holding
