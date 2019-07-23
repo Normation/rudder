@@ -66,7 +66,6 @@ class NcfApi(
   , restExtractorService: RestExtractorService
   , uuidGen             : StringUuidGenerator
 ) extends LiftApiModuleProvider[API] with Loggable{
-  val kind = "ncf"
 
   import com.normation.rudder.rest.RestUtils._
   val dataName = "techniques"
@@ -103,7 +102,8 @@ class NcfApi(
       def getAllFiles (file : File):List[String]  = {
         if (file.exists) {
           if (file.isRegularFile) {
-            file.relativize(resourceDir).toString :: Nil
+            logger.info(file.name)
+            resourceDir.relativize(file).toString :: Nil
           } else {
             file.children.toList.flatMap(getAllFiles)
           }
