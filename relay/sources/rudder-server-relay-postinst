@@ -72,8 +72,8 @@ if [ ! -f /opt/rudder/etc/ssl/ca.cert ]; then
   cp /opt/rudder/etc/ssl/rudder.crt /opt/rudder/etc/ssl/ca.cert
 fi
 
-if [ ! -f /var/rudder/ssl/nodescerts.pem ]; then
-  touch /var/rudder/ssl/nodescerts.pem
+if [ ! -f /var/rudder/lib/ssl/nodescerts.pem ]; then
+  touch /var/rudder/lib/ssl/nodescerts.pem
 fi
 
 if [ -z "${FIRST_INSTALL}" ]; then
