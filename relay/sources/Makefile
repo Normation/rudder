@@ -88,7 +88,7 @@ install: build
 	mkdir -p $(DESTDIR)/opt/rudder/share/man/man1/
 	mkdir -p $(DESTDIR)/var/rudder/inventories/incoming
 	mkdir -p $(DESTDIR)/var/rudder/inventories/accepted-nodes-updates
-	mkdir -p $(DESTDIR)var/rudder/lib/ssl
+	mkdir -p $(DESTDIR)/var/rudder/lib/ssl
 	mkdir -p $(DESTDIR)/var/rudder/reports/incoming
 	mkdir -p $(DESTDIR)/var/rudder/shared-files
 	mkdir -p $(DESTDIR)/var/rudder/share
@@ -98,7 +98,7 @@ install: build
 	mkdir -p $(DESTDIR)/etc/sudoers.d/
 	mkdir -p $(DESTDIR)/usr/lib/systemd/system/
 
-	touch $(DESTDIR)var/rudder/lib/ssl/.placeholder
+	touch $(DESTDIR)/var/rudder/lib/ssl/.placeholder
 
 	# Install binary
 	install -m 755 relayd/target/release/rudder-relayd $(DESTDIR)/opt/rudder/bin/rudder-relayd
