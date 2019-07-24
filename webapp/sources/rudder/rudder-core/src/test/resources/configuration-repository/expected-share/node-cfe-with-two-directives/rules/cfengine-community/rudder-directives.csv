@@ -1,4 +1,4 @@
-"16d86a56-93ef-49aa-86b7-0d10102e4ea9","enforce","separated-with-parameters","true","Create_file","1.0","Create a file"
-"16617aa8-1f02-4e4a-87b6-d0bcdfb4019f","enforce","merged","false","packageManagement","1.0","Package management."
-"common-root","audit","merged","false","common","1.0","Common"
-"inventory-all","audit","merged","false","inventory","1.0","Inventory"
+"common-root","audit","merged","false","common","1.0","true","Common"
+"16d86a56-93ef-49aa-86b7-0d10102e4ea9","enforce","separated-with-parameters","true","Create_file","1.0","false","Create a file"
+"inventory-all","audit","merged","false","inventory","1.0","true","Inventory"
+"16617aa8-1f02-4e4a-87b6-d0bcdfb4019f","enforce","merged","false","packageManagement","1.0","false","Package management."
