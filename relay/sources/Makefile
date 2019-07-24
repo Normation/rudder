@@ -98,6 +98,8 @@ install: build
 	mkdir -p $(DESTDIR)/etc/sudoers.d/
 	mkdir -p $(DESTDIR)/usr/lib/systemd/system/
 
+	touch $(DESTDIR)var/rudder/lib/ssl/.placeholder
+
 	# Install binary
 	install -m 755 relayd/target/release/rudder-relayd $(DESTDIR)/opt/rudder/bin/rudder-relayd
 	# Install default configuration file
