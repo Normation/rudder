@@ -619,16 +619,18 @@ class PolicyWriterServiceImpl(
     val path = new File(paths.newFolder, "rudder-directives.csv")
 
     val csvContent = for {
-      policy <- policies
+      policy <- policies.sortBy(_.directiveOrder)
     } yield {
       ( policy.id.directiveId.value ::
-      policy.policyMode.getOrElse(policyMode.mode).name ::
-      policy.technique.generationMode.name ::
-      policy.technique.agentConfig.runHooks.nonEmpty ::
-      policy.technique.id.name ::
-      policy.technique.id.version ::
-      policy.directiveOrder.value ::
-      Nil ).mkString("\"","\",\"","\"")
+        policy.policyMode.getOrElse(policyMode.mode).name ::
+        policy.technique.generationMode.name ::
+        policy.technique.agentConfig.runHooks.nonEmpty ::
+        policy.technique.id.name ::
+        policy.technique.id.version ::
+        policy.technique.isSystem ::
+        policy.directiveOrder.value ::
+        Nil
+      ).mkString("\"","\",\"","\"")
 
     }
     for {
