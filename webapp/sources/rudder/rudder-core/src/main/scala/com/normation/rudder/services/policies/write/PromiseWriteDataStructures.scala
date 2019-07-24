@@ -47,6 +47,7 @@ import com.normation.templates.STVariable
 import com.normation.cfclerk.domain.Variable
 import com.normation.inventory.domain.OsDetails
 import com.normation.inventory.domain.ServerRole
+import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.PolicyId
 
 /**
@@ -95,6 +96,7 @@ final case class AgentNodeWritableConfiguration(
   , paths             : NodePromisesPaths
   , preparedTechniques: Seq[PreparedTechnique]
   , systemVariables   : Map[String, Variable]
+  , policies          : List[Policy]
 )
 
 /**

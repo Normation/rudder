@@ -1,0 +1,6 @@
+"directive1","enforce","merged","false","clockConfiguration","3.0","false","10. Clock Configuration"
+"directive2","audit","merged","false","rpmPackageInstallation","7.0","false","20. Install PLOP STACK main rpm"
+"common-root","audit","merged","false","common","1.0","true","Common"
+"root-distributePolicy","audit","merged","false","distributePolicy","1.0","true","Distribute Policy"
+"inventory-all","audit","merged","false","inventory","1.0","true","Inventory"
+"server-roles-directive","audit","merged","false","server-roles","1.0","true","Server Roles"
