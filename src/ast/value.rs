@@ -94,18 +94,19 @@ impl<'src> Value<'src> {
         &self,
         getter: &VG,
     ) -> Result<()> 
-        where VG: Fn(Token) -> Option<VarKind>,
+        where VG: Fn(Token<'src>) -> Option<VarKind<'src>>,
     {
         match self {
             Value::String(s) => {
                 map_results(s.data.iter(),
                     |e| match e {
                         PInterpolatedElement::Static(_) => Ok(()),
-                        PInterpolatedElement::Variable(v) => 
-                            match getter(Token::new("", v)) {
-                                None => fail!(s.pos, "Variable {} does not exist at {}", v, s.pos),
-                                _ => Ok(()),
-                            },
+                        PInterpolatedElement::Variable(v) => Ok(()),
+// TODO
+//                            match getter(Token::new("", v)) {
+//                                None => fail!(s.pos, "Variable {} does not exist at {}", v, s.pos),
+//                                _ => Ok(()),
+//                            },
                     },
                 )
             },

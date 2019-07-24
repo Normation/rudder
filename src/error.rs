@@ -14,7 +14,7 @@ use std::fmt;
 use std::hash::Hash;
 
 // TODO simplify errors into a single type and add from_* methods
-//
+// TODO replace result types with a Vec<Error>
 #[derive(Debug, PartialEq, Clone)]
 pub enum Error {
     //   message

@@ -1,6 +1,7 @@
 mod context;
 mod enums;
 mod value;
+mod resource;
 
 use crate::error::*;
 use crate::parser::*;
@@ -9,6 +10,7 @@ use std::collections::{HashMap,HashSet};
 use self::context::VarContext;
 use self::enums::EnumList;
 use self::value::Value;
+use self::resource::ResourceDef;
 
 #[derive(Debug)]
 pub struct AST<'src> {
@@ -20,6 +22,7 @@ pub struct AST<'src> {
     resource_list: HashSet<Token<'src>>,
     children: HashMap<Token<'src>,HashSet<Token<'src>>>, // TODO maybe we don't need both
     parents: HashMap<Token<'src>,Token<'src>>,
+    resources: HashMap<Token<'src>, ResourceDef<'src>>,
 //    pub global_context: GlobalContext<'src>,
 //    pub resources: HashMap<Token<'src>, ResourceDef<'src>>,
 //    pub variable_declarations: HashMap<Token<'src>, Value<'src>>,
@@ -58,8 +61,8 @@ impl<'src> AST<'src> {
         ast.add_default_values(parameter_defaults);
         ast.add_resource_list(&resources);
         ast.add_parent_list(parents);
-        //ast.add_resources(resources, states);
-        //ast.add_aliases(parents, aliases);
+        ast.add_resources(resources, states);
+        //ast.add_aliases(aliases);
         // TODO codeindex checks
         if ast.errors.is_empty() {
             Ok(ast)
@@ -77,6 +80,7 @@ impl<'src> AST<'src> {
             resource_list: HashSet::new(),
             children: HashMap::new(),
             parents: HashMap::new(),
+            resources: HashMap::new(),
         }
     }
     
@@ -88,6 +92,9 @@ impl<'src> AST<'src> {
                 if let Err(e) = context.new_enum_variable(None, en.name, en.name, None) {
                     self.errors.push(e);
                 }
+            }
+            if let Err(e) = self.enum_list.add_enum(en) {
+                self.errors.push(e);
             }
         }
     }
@@ -205,4 +212,28 @@ impl<'src> AST<'src> {
         }
     }
 
+    /// Create and store resource objects
+    fn add_resources(&mut self, resources: Vec<PResourceDef<'src>>, states: Vec<PStateDef<'src>>) {
+        // first separate states by resource
+        let mut state_list = self.resource_list.iter()
+            .map(|k| (*k,Vec::new()))
+            .collect::<HashMap<Token<'src>,Vec<PStateDef<'src>>>>();
+        for st in states {
+            match state_list.get_mut(&st.resource_name) {
+                None => self.errors.push(err!(st.name, "Resource {} has not been defined for state {}", st.resource_name, st.name)),
+                Some(v) => v.push(st),
+            }
+        }
+        // now create resources
+        for res in resources {
+            let name = res.name.clone();
+            // or else because we have not stopped on duplicate resources
+            let states = state_list.remove(&name).unwrap_or_else(|| Vec::new());
+            match ResourceDef::from_presourcedef(res, states, &self.context, &self.parameter_defaults, &self.enum_list) {
+                Err(e) => self.errors.push(e),
+                Ok(r)  => { self.resources.insert(name, r); } ,
+            }
+        }
+        
+    }
 }    

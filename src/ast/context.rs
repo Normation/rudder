@@ -43,7 +43,7 @@ pub enum VarKind<'src> {
 /// So this reference is asked by methods when they are needed.
 #[derive(Debug, Clone)]
 pub struct VarContext<'src> {
-    variables: HashMap<Token<'src>, VarKind<'src>>,
+    pub variables: HashMap<Token<'src>, VarKind<'src>>,
 }
 
 impl<'src> VarContext<'src> {

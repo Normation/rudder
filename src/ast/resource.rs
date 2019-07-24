@@ -1,8 +1,9 @@
-use super::context::{GlobalContext, VarContext};
+//use super::context::{GlobalContext, VarContext};
+use super::context::{VarContext,VarKind};
 use super::enums::*;
 use super::value::Value;
 use crate::error::*;
-use crate::codeindex::TmpResourceDef;
+//use crate::codeindex::TmpResourceDef;
 use crate::parser::*;
 use std::collections::{HashMap, HashSet};
 
@@ -23,7 +24,6 @@ fn create_metadata<'src>(
 /// Create function/resource/state parameter definition from parsed parameters.
 fn create_parameters<'src>(
     pparameters: Vec<PParameter<'src>>,
-    var_context: &VarContext<'src>,
     parameter_defaults: &[Option<Value<'src>>],
 ) -> Result<Vec<Parameter<'src>>> {
     map_vec_results(
@@ -53,47 +53,51 @@ pub struct ResourceDef<'src> {
     pub metadata: HashMap<Token<'src>, Value<'src>>,
     pub parameters: Vec<Parameter<'src>>,
     pub states: HashMap<Token<'src>, StateDef<'src>>,
-    pub children: HashSet<Token<'src>>,
+//    pub children: HashSet<Token<'src>>,
 }
 
 impl<'src> ResourceDef<'src> {
-    pub fn from_resource_declaration(
-        name: Token<'src>,
-        resource_declaration: TmpResourceDef<'src>,
-        mut children: HashSet<Token<'src>>,
-        global_context: &GlobalContext<'src>,
+    pub fn from_presourcedef(
+        resource_declaration: PResourceDef<'src>,
+        pstates: Vec<PStateDef<'src>>,
+        context: &VarContext<'src>,
+        parameter_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>,
+        enum_list: &EnumList<'src>,
     ) -> Result<ResourceDef<'src>> {
-        let TmpResourceDef {
+        let PResourceDef {
+            name,
             metadata: pmetadata,
             parameters: pparameters,
-            states: pstates,
+            //states: pstates,
         } = resource_declaration;
         // create final version of metadata and parameters
         let metadata = create_metadata(pmetadata)?;
         let parameters = create_parameters(
             pparameters,
-            &global_context.var_context,
-            &global_context.parameter_defaults[&(name, None)],
+            &parameter_defaults[&(name, None)],
         )?;
         // create final version of states
-        let states = map_hashmap_results(pstates.into_iter(), |(sn, st)| {
+        let states = map_hashmap_results(pstates.into_iter(), |st| {
+
             Ok((
-                sn,
+                st.name.clone(),
                 StateDef::from_pstate_def(
                     st,
                     name,
                     &parameters,
-                    &mut children,
-                    global_context,
+                    context,
+                    parameter_defaults,
+                    enum_list,
                 )?,
             ))
         })?;
+        let states = HashMap::new();
         // fill up children from parents declaration
         Ok(ResourceDef {
             metadata,
             parameters,
             states,
-            children,
+//            children,
         })
     }
 }
@@ -113,26 +117,28 @@ impl<'src> StateDef<'src> {
         pstate: PStateDef<'src>,
         resource_name: Token<'src>,
         resource_parameters: &[Parameter<'src>],
-        children: &mut HashSet<Token<'src>>,
-        global_context: &GlobalContext<'src>,
+//        children: &mut HashSet<Token<'src>>,
+        global_context: &VarContext<'src>,
+        parameter_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>,
+        enum_list: &EnumList<'src>,
     ) -> Result<StateDef<'src>> {
         // create final version of metadata and parameters
         let metadata = create_metadata(pstate.metadata)?;
         let parameters = create_parameters(
             pstate.parameters,
-            &global_context.var_context,
-            &global_context.parameter_defaults[&(resource_name, Some(pstate.name))],
+            &parameter_defaults[&(resource_name, Some(pstate.name))],
         )?;
         let mut context = create_default_context(
-            &global_context.var_context,
+            global_context,
             &resource_parameters,
             &parameters,
         )?;
         // create final version of statements
-        let statements =
-            map_vec_results(pstate.statements.into_iter(), 
-                |st0| { Statement::fom_pstatement(global_context, &mut context, children, st0) }
-            )?;
+        let mut statements = Vec::new();
+        for st0 in pstate.statements {
+            statements.push(Statement::fom_pstatement(&mut context, st0, global_context, parameter_defaults, enum_list)?);
+            //statements.push(Statement::fom_pstatement(&mut context, children, st0, global_context, parameter_defaults, enum_list)?);
+        }
         Ok(StateDef {
             metadata,
             parameters,
@@ -185,7 +191,7 @@ impl<'src> Parameter<'src> {
     }
 }
 
-/// A single statement withing a state definition
+/// A single statement within a state definition
 #[derive(Debug)]
 pub enum Statement<'src> {
     Comment(PComment<'src>),
@@ -216,20 +222,24 @@ pub enum Statement<'src> {
 }
 impl<'src> Statement<'src> {
     pub fn fom_pstatement<'b>(
-        gc: &'b GlobalContext<'src>,
         context: &'b mut VarContext<'src>,
-        children: &'b mut HashSet<Token<'src>>,
+//        children: &'b mut HashSet<Token<'src>>,
         st: PStatement<'src>,
+        global_context: &'b VarContext<'src>,
+        parameter_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>,
+        enum_list: &EnumList<'src>,
     ) -> Result<Statement<'src>> {
+        //let getter: fn(Token<'src>) -> Option<VarKind<'src>> = |k| context.variables.get(&k).or_else(|| global_context.variables.get(&k)).map(VarKind::clone);
         Ok(match st {
             PStatement::VariableDefinition(pmetadata, var, val) => {
-                let value = Value::from_pvalue(gc, Some(&context), val)?;
+                let getter = |k| context.variables.get(&k).or_else(|| global_context.variables.get(&k)).map(VarKind::clone);
+                let value = Value::from_pvalue(enum_list, &getter, val)?;
                 match value.get_type() {
-                    PType::Boolean => context.new_enum_variable(Some(&gc.var_context), var, Token::new("stdlib", "boolean"), None)?,
+                    PType::Boolean => context.new_enum_variable(Some(global_context), var, Token::new("stdlib", "boolean"), None)?,
                     _ => {
                         // check that definition use existing variables
-                        value.context_check(gc, Some(context))?;
-                        context.new_variable(Some(&gc.var_context), var, value.get_type())?;
+                        value.context_check(&getter)?;
+                        context.new_variable(Some(global_context), var, value.get_type())?;
                     },
                 }
                 let metadata = create_metadata(pmetadata)?;
@@ -239,17 +249,18 @@ impl<'src> Statement<'src> {
                 if let Some(out_var) = out {
                     // outcome must be defined, token comes from internal compilation, no value known a compile time
                     context.new_enum_variable(
-                        Some(&gc.var_context),
+                        Some(global_context),
                         out_var,
                         Token::new("internal", "outcome"),
                         None,
                     )?;
                 }
-                children.insert(res);
+                //children.insert(res);
+                let getter = |k| context.variables.get(&k).or_else(|| global_context.variables.get(&k)).map(VarKind::clone);
                 let mut res_parameters =
-                    map_vec_results(res_params.into_iter(), |v| Value::from_pvalue(gc,Some(&context),v))?;
+                    map_vec_results(res_params.into_iter(), |v| Value::from_pvalue(enum_list, &getter, v))?;
                 let emptyvec = Vec::new();
-                let res_defaults = &gc.parameter_defaults.get(&(res, None)).unwrap_or(&emptyvec);
+                let res_defaults = &parameter_defaults.get(&(res, None)).unwrap_or(&emptyvec);
                 let res_missing = res_defaults.len() as i32 - res_parameters.len() as i32;
                 if res_missing > 0 {
                     map_results(
@@ -273,8 +284,8 @@ impl<'src> Statement<'src> {
                     );
                 }
                 let mut st_parameters =
-                    map_vec_results(params.into_iter(), |v| Value::from_pvalue(gc,Some(&context),v))?;
-                let st_defaults = &gc.parameter_defaults.get(&(res, Some(st))).unwrap_or(&emptyvec);
+                    map_vec_results(params.into_iter(), |v| Value::from_pvalue(enum_list, &getter, v))?;
+                let st_defaults = &parameter_defaults.get(&(res, Some(st))).unwrap_or(&emptyvec);
                 let st_missing = st_defaults.len() as i32 - st_parameters.len() as i32;
                 if st_missing > 0 {
                     map_results(
@@ -295,20 +306,21 @@ impl<'src> Statement<'src> {
                 map_results(
                     res_parameters
                         .iter(),
-                        |p| p.context_check(gc, Some(context)),
+                        |p| p.context_check(&getter),
                 )?;
                 map_results(
                     st_parameters
                         .iter(),
-                        |p| p.context_check(gc, Some(context)),
+                        |p| p.context_check(&getter),
                 )?;
                 let metadata = create_metadata(pmetadata)?;
                 Statement::StateCall(metadata, mode, res, res_parameters, st, st_parameters, out)
             }
             PStatement::Fail(f) => {
-                let value = Value::from_pvalue(gc,Some(&context),f)?;
+                let getter = |k| context.variables.get(&k).or_else(|| global_context.variables.get(&k)).map(VarKind::clone);
+                let value = Value::from_pvalue(enum_list, &getter, f)?;
                 // check that definition use existing variables
-                value.context_check(gc, Some(context))?;
+                value.context_check(&getter)?;
                 // we must fail with a string
                 match &value {
                     Value::String(_) => (),
@@ -317,9 +329,10 @@ impl<'src> Statement<'src> {
                 Statement::Fail(value)
             }
             PStatement::Log(l) => {
-                let value = Value::from_pvalue(gc,Some(&context),l)?;
+                let getter = |k| context.variables.get(&k).or_else(|| global_context.variables.get(&k)).map(VarKind::clone);
+                let value = Value::from_pvalue(enum_list, &getter, l)?;
                 // check that definition use existing variables
-                value.context_check(gc, Some(context))?;
+                value.context_check(&getter)?;
                 // we must fail with a string
                 match &value {
                     Value::String(_) => (),
@@ -342,21 +355,22 @@ impl<'src> Statement<'src> {
                 }
             }
             PStatement::Noop => Statement::Noop,
-            PStatement::Case(case, v) => Statement::Case(
-                case,
-                map_vec_results(v.into_iter(), |(exp, sts)| {
-                    Ok((
-                        gc.enum_list.canonify_expression(
-                            gc,
-                            Some(context),
-                            exp,
-                        )?,
-                        map_vec_results(sts.into_iter(), |st| {
-                            Statement::fom_pstatement(gc, context, children, st)
-                        })?,
-                    ))
-                })?,
-            ),
+            PStatement::Case(case, v) => {
+                Statement::Case(
+                    case,
+                    map_vec_results(v.into_iter(), |(exp, sts)| {
+                        let getter = |k| context.variables.get(&k).or_else(|| global_context.variables.get(&k)).map(VarKind::clone);
+                        let expr = enum_list.canonify_expression(&getter, exp)?;
+                        Ok((
+                            expr,
+                            map_vec_results(sts.into_iter(), |st| {
+                                Statement::fom_pstatement(context, st, global_context, parameter_defaults, enum_list)
+                                //Statement::fom_pstatement(context, children, st, global_context, parameter_defaults, enum_list)
+                            })?,
+                        ))
+                    })?,
+                )
+            }
         })
     }
 }
