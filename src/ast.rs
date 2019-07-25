@@ -67,7 +67,7 @@ impl<'src> AST<'src> {
         if ast.errors.is_empty() {
             Ok(ast)
         } else {
-            Err(Error::List(ast.errors))
+            Err(Error::from_vec(ast.errors))
         }
     }
     fn new() -> AST<'src> {

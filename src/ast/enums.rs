@@ -48,7 +48,7 @@ impl<'src> EnumExpression<'src> {
         format!("{}:{}:{}", file, line, col)
     }
     /// extract the position triplet
-    pub fn position(&self) -> (String, u32, usize) {
+    fn position(&self) -> (String, u32, usize) {
         match self {
             EnumExpression::Compare(_, _, v) => v.position(),
             EnumExpression::And(a, _) => a.position(),
@@ -290,14 +290,26 @@ impl<'src> EnumList<'src> {
             PEnumExpression::Not(e) => Ok(EnumExpression::Not(Box::new(
                 self.canonify_expression(getter, *e)?,
             ))),
-            PEnumExpression::Or(e1, e2) => Ok(EnumExpression::Or(
-                Box::new(self.canonify_expression(getter, *e1)?),
-                Box::new(self.canonify_expression(getter, *e2)?),
-            )),
-            PEnumExpression::And(e1, e2) => Ok(EnumExpression::And(
-                Box::new(self.canonify_expression(getter, *e1)?),
-                Box::new(self.canonify_expression(getter, *e2)?),
-            )),
+            PEnumExpression::Or(e1, e2) => {
+                let r1 = self.canonify_expression(getter, *e1);
+                let r2 = self.canonify_expression(getter, *e2);
+                match (r1,r2) {
+                    (Err(er),   Ok(_))   => Err(er),
+                    (Ok(_),    Err(er))  => Err(er),
+                    (Err(er1), Err(er2)) => Err(er1.append(er2)),
+                    (Ok(ex1),  Ok(ex2))  => Ok(EnumExpression::Or(Box::new(ex1), Box::new(ex2))),
+                }
+            },
+            PEnumExpression::And(e1, e2) => {
+                let r1 = self.canonify_expression(getter, *e1);
+                let r2 = self.canonify_expression(getter, *e2);
+                match (r1,r2) {
+                    (Err(er),   Ok(_))   => Err(er),
+                    (Ok(_),    Err(er))  => Err(er),
+                    (Err(er1), Err(er2)) => Err(er1.append(er2)),
+                    (Ok(ex1),  Ok(ex2))  => Ok(EnumExpression::And(Box::new(ex1), Box::new(ex2))),
+                }
+            },
             PEnumExpression::Compare(var, enum1, value) => {
                 // get enum1 real type
                 let e1 = match enum1 {
@@ -480,7 +492,7 @@ impl<'src> EnumList<'src> {
         cases: &[(EnumExpression<'src>, String)],
 //        cases: &[(EnumExpression<'src>, Vec<Statement<'src>>)],
         case_name: Token<'src>,
-    ) -> Result<()>
+    ) -> Vec<Error>
         where VG: Fn(Token<'src>) -> Option<VarKind<'src>>
     {
         let mut variables = HashSet::new();
@@ -489,32 +501,31 @@ impl<'src> EnumList<'src> {
             .for_each(|(e, _)| self.list_variable_enum(&mut variables, &e));
         let it = ContextIterator::new(self, getter, variables.into_iter().collect());
         let mut default_used = false;
-        map_results(it, |values| {
+        let mut errors = Vec::new();
+        for values in it {
             let mut matched_exp = cases.iter().filter(|(e,_)| self.eval(&values, e));
             match matched_exp.next() {
                 // Missing case
-                None => fail!(case_name, "Missing case in {}, '{}' is never processed", case_name, self.describe(&values)),
-                Some((e1,_)) => match matched_exp.next() {
-                    // Single matching case
-                    None => Ok(()),
-                    // Overlapping cases
-                    Some((e2,_)) => if !e1.is_default() && !e2.is_default() {
-                        fail!(case_name,"Duplicate case at {} and {}, '{}' is processed twice, result may be unexpected",e1.position_str(),e2.position_str(),self.describe(&values))
-                    } else {
-                        default_used = true;
-                        Ok(())
+                None => errors.push(err!(case_name, "Missing case in {}, '{}' is never processed", case_name, self.describe(&values))),
+                Some((e1,_)) => 
+                    if let Some((e2,_)) = matched_exp.next() {
+                        if !e1.is_default() && !e2.is_default() {
+                            errors.push(err!(case_name,"Duplicate case at {} and {}, '{}' is processed twice, result may be unexpected",e1.position_str(),e2.position_str(),self.describe(&values)));
+                        } else {
+                            default_used = true;
+                        }
                     },
-                },
             }
-        })?;
-        if !default_used && cases.iter().any(|(e, _)| e.is_default()) {
-            fail!(case_name, "Default never matches in {}", case_name);
         }
-        Ok(())
+        if !default_used && cases.iter().any(|(e, _)| e.is_default()) {
+            errors.push(err!(case_name, "Default never matches in {}", case_name));
+        }
+        errors
     }
 
     /// There can be only one mapping per item that defines an identical descendant
-    pub fn mapping_check(&self) -> Result<()> {
+    pub fn mapping_check(&self) -> Vec<Error> {
+        let mut errors = Vec::new();
         for (from, tos) in self.direct_mapping_path.iter() {
             for item in self.enums[from].1.iter() {
                 if tos
@@ -524,16 +535,16 @@ impl<'src> EnumList<'src> {
                     .count()
                     > 1
                 {
-                    fail!(
+                    errors.push(err!(
                         item,
                         "There is more than one mapping that maps {}:{} to itself",
                         from,
                         item
-                    );
+                    ));
                 }
             }
         }
-        Ok(())
+        errors
     }
 }
 

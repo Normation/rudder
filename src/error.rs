@@ -13,36 +13,61 @@ use std::collections::HashMap;
 use std::fmt;
 use std::hash::Hash;
 
-// TODO simplify errors into a single type and add from_* methods
 // TODO replace result types with a Vec<Error>
 #[derive(Debug, PartialEq, Clone)]
 pub enum Error {
     //   message
     User(String),
     //          message file    line  column
-    Compilation(String, String, u32, usize),
+    //Compilation(String, String, u32, usize),
     //      message file    line  column
-    Parsing(String, String, u32, usize),
+    //Parsing(String, String, u32, usize),
     //   Error list
-    List(Vec<Error>),
+    List(Vec<String>),
 }
 
 /// Redefine our own result type with fixed error type for readability.
 pub type Result<T> = std::result::Result<T, Error>;
 
+impl Error {
+    pub fn append(self, e2: Error) -> Error {
+        match (self, e2) {
+            (Error::User(s1), Error::User(s2))    => Error::List(vec![s1, s2]),
+            (Error::List(mut l), Error::User(s))   => { l.push(s); Error::List(l) },
+            (Error::User(s), Error::List(mut l))   => { l.push(s); Error::List(l) },
+            (Error::List(mut l1), Error::List(l2)) => { l1.extend(l2); Error::List(l1) },
+        }
+    }
 
+    pub fn from_vec(vec: Vec<Error>) -> Error {
+        if vec.is_empty() { panic!("BUG do not call from_vec on empty vectors"); }
+        let mut it = vec.into_iter();
+        let first = it.next().unwrap();
+        it.fold(first, |e0, e| e0.append(e))
+    }
+
+    // results must only contain errors
+    pub fn from_vec_result<X>(vec: Vec<Result<X>>) -> Error
+        where X: fmt::Debug,
+    {
+        if vec.is_empty() { panic!("BUG do not call from_vec_result on empty vectors"); }
+        let mut it = vec.into_iter().map(Result::unwrap_err);
+        let first = it.next().unwrap();
+        it.fold(first, |e0, e| e0.append(e))
+    }
+}
 
 /// This macro returns from current function/closure with an error.
 /// When writing an iteration, use this within a map so we can continue on
 /// next iteration and aggregate errors.
 macro_rules! err {
     ($origin:expr, $ ( $ arg : tt ) *) => ({
-        let (file,line,col) = $origin.position();
-        Error::Compilation(std::fmt::format( format_args!( $ ( $ arg ) * ) ),
-                                       file,
-                                       line,
-                                       col
-                                      )
+        use crate::error::Error;
+        Error::User(format!(
+                "'{}': {}", 
+                $origin.position_str(),
+                format!( $ ( $ arg ) * )
+        ))
     });
 }
 
@@ -51,19 +76,14 @@ macro_rules! err {
 /// next iteration and aggregate errors.
 macro_rules! fail {
     ($origin:expr, $ ( $ arg : tt ) *) => ({
-        let (file,line,col) = $origin.position();
-        return Err(Error::Compilation(std::fmt::format( format_args!( $ ( $ arg ) * ) ),
-                                       file,
-                                       line,
-                                       col
-                                      ))
+        return Err(err!($origin, $ ( $ arg ) *))
     });
 }
 
 /// Transforms an iterator of error result into a result of list error.
 /// This is useful to aggregate and give the proper output type to results given by map.
 /// Only support Result<()>, because it throws out Ok cases
-pub fn fix_results<I>(it: I) -> Result<()>
+fn fix_results<I>(it: I) -> Result<()>
 where
     I: Iterator<Item = Result<()>>,
 {
@@ -71,7 +91,7 @@ where
     if err_list.is_empty() {
         Ok(())
     } else {
-        Err(Error::List(err_list))
+        Err(Error::from_vec(err_list))
     }
 }
 /// map an iterator content with a Fn then fix the result.
@@ -92,8 +112,8 @@ where
     if errs.is_empty() {
         Ok(vals.into_iter().map(|r| r.unwrap()).collect())
     } else {
-        Err(Error::List(
-            errs.into_iter().map(|r| r.err().unwrap()).collect(),
+        Err(Error::from_vec(
+            errs.into_iter().map(|r| r.err().unwrap()).collect()
         ))
     }
 }
@@ -117,8 +137,8 @@ where
     if errs.is_empty() {
         Ok(vals.into_iter().map(|r| r.unwrap()).collect())
     } else {
-        Err(Error::List(
-            errs.into_iter().map(|r| r.err().unwrap()).collect(),
+        Err(Error::from_vec(
+            errs.into_iter().map(|r| r.err().unwrap()).collect()
         ))
     }
 }
@@ -128,8 +148,8 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::User(msg) => write!(f, "Error:  {}", msg),
-            Error::Compilation(msg, _, _, _) => write!(f, "Compilation error: {}", msg),
-            Error::Parsing(msg, _, _, _) => write!(f, "Parsing error: {}", msg),
+            //Error::Compilation(msg, _, _, _) => write!(f, "Compilation error: {}", msg),
+            //Error::Parsing(msg, _, _, _) => write!(f, "Parsing error: {}", msg),
             Error::List(v) => write!(
                 f,
                 "{}",
