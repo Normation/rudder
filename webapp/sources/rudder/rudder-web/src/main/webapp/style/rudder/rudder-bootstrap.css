@@ -693,9 +693,15 @@ body{
   margin-left: -15px;
   height:calc(100vh - 95px);
 }
+#headerBar ~ .content-wrapper #editor-iframe{
+  height:calc(100vh - 125px);
+}
 @media (max-width:768px) {
   #editor-iframe{
     height:calc(100vh - 145px);
+  }
+  #headerBar ~ .content-wrapper #editor-iframe{
+    height:calc(100vh - 175px);
   }
 }
 
