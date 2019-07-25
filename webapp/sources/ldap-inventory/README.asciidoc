@@ -1,35 +1,12 @@
-LDAP inventory: store Fusion Inventory report into LDAP directory
------------------------------------------------------------------
+# LDAP inventory: store Fusion Inventory report into LDAP directory
 
-This project is part of Rudder - configuration management made easy.
+This project is part of Rudder - IT infrastructure Automation and Compliance.
+See: http://rudder.io for more information.
 
-See: http://rudder-project.org for more information.
+See repository main README for information about licensing, contribution, and
+other general information.
 
-[horizontal]
-Bug report:: http://www.rudder-project.org/redmine/projects/ldap-inventory/issues
-Mailing list, irc:: http://www.rudder-project.org/foswiki/Community/
-
-=== Authors
-
-Normation http://normation.com
-
-- Francois "fanf" Armand francois.armand@normation.com
-- Nicolas "ncharles" Charles nicolas.charles@normation.com
-- Jonathan "jooooooon" Clarke jonathan.clarke@normation.com
-
-=== License
-
-This project is licensed under GPLv3 license,
-see the provided "LICENSE" file or
-http://www.gnu.org/licenses/gpl-3.0.txt
-
-=== Contributing
-
-Thank you for your interest in our project!
-The contribution process is detailed here:
-http://www.rudder-project.org/HowToContribute
-
-=== Synopsis
+== Synopsis
 
 The main goal of this project is to get Fusion Inventory
 (http://fusioninventory.org) inventory report, parse
@@ -54,11 +31,10 @@ inventory-provisioning-web:: that last module is a web application that expose a
          REST service on which inventory can be post. The implementation is rather
          short, as most of the code is just here to weave services and implementations.
 
-
-=== Usage
+== Usage
 
 The easiest way to test and use LDAP-inventory web application is to install it with Rudder
-from the provided Linux packages, see: http://www.rudder-project.org/foswiki/Main/Installation
+from the provided Linux packages, see https://docs.rudder.io/reference/current/installation/index.html
 
 .For a more 'developer oriented' usage.
 

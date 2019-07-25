@@ -74,6 +74,8 @@ Source:: https://github.com/Normation/rudder
 
 Thank you for your interest in our project! We welcome pull requests on any of the Rudder repositories.
 
+The contribution process is detailed here: https://www.rudder.io/en/expand/contribute/
+
 Rudder is composed of https://www.rudder.io/en/expand/contribute/#panel-2422-6-0-0[several sub-projects]. The contribution process is detailed https://www.rudder.io/en/expand/contribute/[on our website].
 
 == Rudder components and projects overview

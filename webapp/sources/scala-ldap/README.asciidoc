@@ -1,15 +1,12 @@
-Scala-LDAP: an LDAP client library for Scala
---------------------------------------------
+# Scala-LDAP: an LDAP client library for Scala
 
-This project is part of Rudder - configuration management made easy.
+This project is part of Rudder - IT infrastructure Automation and Compliance.
+See: http://rudder.io for more information.
 
-See: http://rudder-project.org for more information.
+See repository main README for information about licensing, contribution, and
+other general information.
 
-[horizontal]
-Bug report:: http://www.rudder-project.org/redmine/projects/scala-ldap/issues
-Mailing list, irc:: http://www.rudder-project.org/foswiki/Community/
-
-=== Important notice to users looking for a generic scala-ldap solution
+== Important notice to users looking for a generic scala-ldap solution
 
 Rudder uses LDAP as its main storage for configuraiton policies. So we developped Scala-LDAP
  to interact more naturally with that back-end.
@@ -24,26 +21,7 @@ today.
 Finally, we don't have a maven repository with the Scala-LDAP dependencies available, so you
 are going to need to build them in order to use Scala-LDAP (see the build chapter below)
 
-
-=== Authors
-
-Normation http://normation.com
-
-- Francois "fanf" Armand francois.armand@normation.com
-
-=== License
-
-This project is licensed under ASF 2.0 license,
-see the provided "LICENSE" file  or
-http://www.apache.org/licenses/LICENSE-2.0.html
-
-=== Contributing
-
-Thank you for your interest in your our project!
-The contribution process is detailed here:
-http://www.rudder-project.org/HowToContribute
-
-=== Synopsis
+== Synopsis
 
 This package is a Scala wrapper around http://www.unboundid.com/products/ldapsdk/[UnboundID LDAP SDK].
 Its goal is to provide an efficient and idiomatic Scala library to deal with LDAP directories.
@@ -64,7 +42,7 @@ Today, it seems that for the coming years, the only stable, autonomous and effic
 remain UnboundID's one. The OpenDS/ApacheDS project is still young, and there are no other known
 alternatives. So, we choose to not try too hard to hide UnboundID, but still provide nice import scheme.
 
-=== Build
+== Build
 
 How to build Scala-LDAP ?
 
@@ -91,7 +69,7 @@ mvn install
 
 Now, you should have a scala-ldap jar in your repository and start using it.
 
-=== Usage
+== Usage
 
 The logical use of scala-ldap is in a for / yield loop, like:
 
@@ -140,7 +118,7 @@ For the bind part, we didn't have that on the wrapper (our use of LDAP is quite 
     }
 
 
-==== Example from Rudder
+=== Example from Rudder
 
 Here is an example of a standard pattern of interacting with that library:
 https://github.com/Normation/rudder/blob/2.9.2/rudder-core/src/main/scala/com/normation/rudder/repository/ldap/LDAPRuleRepository.scala#L76
@@ -168,4 +146,3 @@ def get(id:RuleId) : Box[Rule] = {
   }
 }
 --------------------------------------
-
