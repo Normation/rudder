@@ -137,20 +137,5 @@ mod tests {
                 Some(pidentifier_t("ubuntu"))
             )
             .is_ok());
-        let gc = GlobalContext { enum_list: EnumList::new(), var_context: context, parameter_defaults: HashMap::new() };
-
-        assert_eq!(
-            gc.get_variable(Some(&c), pidentifier_t("var3")),
-            Some(&VarKind::Enum(pidentifier_t("enum2"), None))
-        );
-        assert_eq!(
-            gc.get_variable(Some(&c), pidentifier_t("var2")),
-            Some(&VarKind::Enum(pidentifier_t("enum1"), Some(pidentifier_t("debian"))))
-        );
-        assert_eq!(
-            gc.get_variable(None, pidentifier_t("var1")),
-            Some(&VarKind::Enum(pidentifier_t("enum1"), None))
-        );
-        assert_eq!(gc.get_variable(None, pidentifier_t("var4")), None);
     }
 }

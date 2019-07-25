@@ -6,7 +6,7 @@ mod technique;
 mod generators;
 
 
-//use crate::generators::*;
+use crate::generators::*;
 use crate::error::*;
 use crate::technique::translate_file;
 use crate::parser::PAST;
@@ -129,24 +129,17 @@ fn compile(source: &Path, dest: &Path, technique: bool) -> Result<()> {
     // finish parsing into AST
     let ast = AST::from_past(past)?;
 
-//    // check that everything is OK
-//    match ast.analyze() {
-//        Err(e) => panic!("There was an error during code analyse:\n{}", e),
-//        Ok(()) => {}
-//    };
-//
-//    // generate final output
-//    let mut cfe = CFEngine::new();
-//    let file = if technique {
-//        Some(dest)
-//    } else {
-//        None
-//    };
-//    match cfe.generate(&ast, file, technique) {
-//        Err(e) => panic!("There was an error during code generation:\n{}", e),
-//        Ok(()) => {}
-//    };
-    Ok(())
+    // check that everything is OK
+    ast.analyze()?;
+
+    // generate final output
+    let mut cfe = CFEngine::new();
+    let file = if technique {
+        Some(dest)
+    } else {
+        None
+    };
+    cfe.generate(&ast, file, technique)
 }
 
 // Phase 2

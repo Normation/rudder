@@ -664,46 +664,40 @@ fn test_presource_def() {
         map_res(presource_def, "resource hello()"),
         Ok((
             "",
-            PResourceDef {
+            (PResourceDef {
                 metadata: Vec::new(),
                 name: "hello".into(),
                 parameters: vec![],
-                parameter_defaults: vec![],
-                parent: None,
-            }
+            },vec![],None)
         ))
     );
     assert_eq!(
         map_res(presource_def, "resource  hello2 ( )"),
         Ok((
             "",
-            PResourceDef {
+            (PResourceDef {
                 metadata: Vec::new(),
                 name: "hello2".into(),
                 parameters: vec![],
-                parameter_defaults: vec![],
-                parent: None,
-            }
+            },vec![],None)
         ))
     );
     assert_eq!(
         map_res(presource_def, "resource  hello2 ( ): hello3"),
         Ok((
             "",
-            PResourceDef {
+            (PResourceDef {
                 metadata: Vec::new(),
                 name: "hello2".into(),
                 parameters: vec![],
-                parameter_defaults: vec![],
-                parent: Some("hello3".into()),
-            }
+            },vec![],Some("hello3".into()))
         ))
     );
     assert_eq!(
         map_res(presource_def, "resource hello (p1: string, p2)"),
         Ok((
             "",
-            PResourceDef {
+            (PResourceDef {
                 metadata: Vec::new(),
                 name: "hello".into(),
                 parameters: vec![
@@ -716,9 +710,7 @@ fn test_presource_def() {
                         ptype: None,
                     }
                 ],
-                parameter_defaults: vec![None, None],
-                parent: None,
-            }
+            },vec![None, None],None)
         ))
     );
 }
@@ -878,14 +870,13 @@ fn test_pstate_def() {
         map_res(pstate_def, "resource state configuration() {}"),
         Ok((
             "",
-            PStateDef {
+            (PStateDef {
                 metadata: Vec::new(),
                 name: "configuration".into(),
                 resource_name: "resource".into(),
                 parameters: vec![],
-                parameter_defaults: vec![],
                 statements: vec![]
-            }
+            },vec![])
         ))
     );
 }
@@ -916,12 +907,11 @@ fn test_pdeclaration() {
     assert_eq!(
         map_res(pdeclaration,"ntp state configuration ()\n{\n  file(\"/tmp\").permissions(\"root\", \"root\", \"g+w\")\n}\n"),
         Ok(("",
-            PDeclaration::State(PStateDef {
+            PDeclaration::State((PStateDef {
                 metadata: Vec::new(),
                 name: "configuration".into(),
                 resource_name: "ntp".into(),
                 parameters: vec![],
-                parameter_defaults: vec![],
                 statements: vec![
                     PStatement::StateCall(
                         Vec::new(),
@@ -933,7 +923,7 @@ fn test_pdeclaration() {
                         None,
                     )
                 ]
-            })
+            },vec![]))
         )));
 }
 
