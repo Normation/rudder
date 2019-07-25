@@ -52,11 +52,7 @@ body classes classes_generic_return_codes(x, kept_return_code, repaired_return_c
     repaired_returncodes => { "${repaired_return_code}" };
     failed_returncodes =>  { "${failed_return_code}" };
 
-    promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached" };
-    repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error" };
-    repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error"  };
-    repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error"  };
-    promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached" };
+    inherit_from => classes_generic("${x}");
 }
 
 # Define x prefixes/suffixed with promises outcome, based on return codes
@@ -66,16 +62,7 @@ body classes classes_generic_return_single_code_two(x, y, kept_return_code, repa
     repaired_returncodes => { "${repaired_return_code}" };
     failed_returncodes =>  { "${failed_return_code}" };
 
-    promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached",
-                          "promise_repaired_$(y)", "$(y)_repaired", "$(y)_ok", "$(y)_reached" };
-    repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
-                       "repair_failed_$(y)", "$(y)_failed", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached" };
-    repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
-                       "repair_denied_$(y)", "$(y)_denied", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached" };
-    repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
-                        "repair_timeout_$(y)", "$(y)_timeout", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached" };
-    promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached",
-                      "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached" };
+    inherit_from => classes_generic_two("${x}", "${y}");
 }
 
 # Define x prefixes/suffixed with promises outcome, based on return codes
@@ -84,16 +71,7 @@ body classes classes_generic_return_code_list_two(x, y, kept_return_codes, repai
     kept_returncodes => { @{kept_return_codes} };
     repaired_returncodes => { @{repaired_return_codes} };
 
-    promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached",
-                          "promise_repaired_$(y)", "$(y)_repaired", "$(y)_ok", "$(y)_reached" };
-    repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error",
-                       "repair_failed_$(y)", "$(y)_failed", "$(y)_not_ok", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached", "${y}_error" };
-    repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error",
-                       "repair_denied_$(y)", "$(y)_denied", "$(y)_not_ok", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached", "${y}_error"};
-    repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error",
-                        "repair_timeout_$(y)", "$(y)_timeout", "$(y)_not_ok", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached", "${y}_error" };
-    promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached",
-                      "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached" };
+    inherit_from => classes_generic_two("${x}", "${y}");
 }
 
 # Define x prefixes/suffixed with true/false outcome, based on return codes
@@ -103,31 +81,37 @@ body classes classes_generic_return_boolean_list_two(x, y, boolean_prefix, true_
     kept_returncodes => { @{true_return_codes} };
     repaired_returncodes => { @{false_return_codes} };
 
+    inherit_from => classes_generic_two("${x}", "${y}");
+
+    # Cfengine does not allow body attribute merging, so we nned to override
+    # the repaired and kept cases in order to define the ${boolean_prefix}_false and ${boolean_prefix}_true
+
     promise_repaired => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached",
-                          "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached", "${boolean_prefix}_false" };
-    repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error",
-                       "repair_failed_$(y)", "$(y)_failed", "$(y)_not_ok", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached", "${y}_error" };
-    repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error",
-                       "repair_denied_$(y)", "$(y)_denied", "$(y)_not_ok", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached", "${y}_error" };
-    repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error",
-                        "repair_timeout_$(y)", "$(y)_timeout", "$(y)_not_ok", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached", "${y}_error" };
-    promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached",
-                      "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached", "${boolean_prefix}_true" };
+                          "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached", "${boolean_prefix}_false"
+                        };
+    promise_kept     => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached",
+                          "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached", "${boolean_prefix}_true"
+                        };
 }
 
 # Define x and y prefixed/suffixed with promise outcome
 body classes classes_generic_two(x,y)
 {
-    promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached",
-                          "promise_repaired_$(y)", "$(y)_repaired", "$(y)_ok", "$(y)_reached" };
-    repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
-                       "repair_failed_$(y)", "$(y)_failed", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached" };
-    repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
-                       "repair_denied_$(y)", "$(y)_denied", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached" };
-    repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
-                        "repair_timeout_$(y)", "$(y)_timeout", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached" };
-    promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached",
-                      "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached" };
+    promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached", "$(x)_not_kept",
+                          "promise_repaired_$(y)", "$(y)_repaired", "$(y)_ok", "$(y)_reached", "$(y)_not_kept"
+                        };
+    repair_failed    => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
+                          "repair_failed_$(y)", "$(y)_failed", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached"
+                        };
+    repair_denied    => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
+                          "repair_denied_$(y)", "$(y)_denied", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached"
+                        };
+    repair_timeout   => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
+                          "repair_timeout_$(y)", "$(y)_timeout", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached"
+                        };
+    promise_kept     => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached",
+                          "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached"
+                        };
 }
 
 body classes common_classes_exclusive_persist_codes(prefix, persist, keptcodes, repairedcodes, errorcodes)
