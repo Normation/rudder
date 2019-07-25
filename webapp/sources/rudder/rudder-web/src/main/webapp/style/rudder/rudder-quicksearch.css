@@ -50,6 +50,11 @@
   left:0;
   top:50px;
 }
+#headerBar ~ .wrapper #background-fade-quicksearch{
+  height:calc(100vh - 80px);
+  top:80px;
+}
+
 @media (max-width: 767px){
   #background-fade-quicksearch{
     top:100px;
@@ -212,6 +217,10 @@
   padding-top:0;
   max-width: calc(100% - 285px);
 }
+#headerBar ~ .wrapper .dropdown-menu.dropdown-search{
+  top: 80px;
+}
+
 .sidebar-collapse .wrapper .dropdown-menu.dropdown-search{
   left:100px;
   max-width: calc(100% - 105px);
