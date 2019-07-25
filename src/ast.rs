@@ -60,7 +60,6 @@ impl<'src> AST<'src> {
         ast.add_parent_list(parents);
         ast.add_resources(resources, states);
         //ast.add_aliases(aliases);
-        // TODO codeindex checks
         if ast.errors.is_empty() {
             Ok(ast)
         } else {
@@ -242,19 +241,19 @@ impl<'src> AST<'src> {
 
     fn binding_check(&self, statement: &Statement) -> Result<()> {
         match statement {
-            Statement::StateCall(_, _mode, res, res_params, name, params, _out) => {
-                match self.resources.get(res) {
-                    None => fail!(res, "Resource type {} does not exist", res),
-                    Some(resource) => {
+            Statement::StateDeclaration(sd) => {
+                match self.resources.get(&sd.resource) {
+                    None => fail!(sd.resource, "Resource type {} does not exist", sd.resource),
+                    Some(res) => {
                         // Assume default parameter replacement and type inference if any has already be done
-                        match_parameters(&resource.parameters, res_params, *res)?;
-                        match resource.states.get(&name) {
+                        match_parameters(&res.parameters, &sd.resource_params, sd.resource)?;
+                        match res.states.get(&sd.state) {
                             None => {
-                                fail!(name, "State {} does not exist for resource {}", name, res)
+                                fail!(sd.state, "State {} does not exist for resource {}", sd.state, sd.resource)
                             }
-                            Some(state) => {
+                            Some(st) => {
                                 // Assume default parameter replacement and type inference if any has already be done
-                                match_parameters(&state.parameters, &params, *name)
+                                match_parameters(&st.parameters, &sd.state_params, sd.state)
                             }
                         }
                     }

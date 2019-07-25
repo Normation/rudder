@@ -8,11 +8,11 @@ use nom::combinator::*;
 use nom::multi::*;
 use nom::number::complete::*;
 use nom::sequence::*;
-use nom::IResult;
 
 use std::collections::HashMap;
 
 use error::*;
+use crate::error::*;
 // reexport tokens
 pub use token::Token;
 #[allow(unused_imports)]
@@ -29,8 +29,6 @@ pub use token::PInput;
 ///! All parser assume whitespaces at the beginning of the input have been removed.
 
 
-// TODO rename Error to PError Result to PResult
-// TODO Create a struct for statecall
 // TODO v2: measures, actions, functions, iterators, include
 // TODO resource parent && state alias
 // TODO proptest
@@ -63,10 +61,10 @@ impl<'src> PAST<'src> {
         }
     }
 
-    pub fn add_file(&mut self, filename: &'src str, content: &'src str) -> crate::error::Result<()> {
+    pub fn add_file(&mut self, filename: &'src str, content: &'src str) -> Result<()> {
         let pfile = fix_error_type(pfile(PInput::new_extra(content, filename)))?;
         if pfile.header.version != 0 {
-            return Err(crate::error::Error::User(format!("Format not supported yet: {}", pfile.header.version)));
+            return Err(Error::User(format!("Format not supported yet: {}", pfile.header.version)));
         }
         pfile.code.into_iter().for_each(|declaration| {
             match declaration {
@@ -98,18 +96,15 @@ impl<'src> PAST<'src> {
 //}
 
 /// Parse a string for interpolation
-pub fn parse_string(content: &str) -> crate::error::Result<Vec<PInterpolatedElement>> {
+pub fn parse_string(content: &str) -> Result<Vec<PInterpolatedElement>> {
     fix_error_type(pinterpolated_string(PInput::new_extra(content, ""))) // TODO extra could be the content
 }
 
 // ===== Parsers =====
 
-/// Result for all parser
-type Result<'src, O> = IResult<PInput<'src>, O, PError<PInput<'src>>>;
-
 /// Eat everything that can be ignored between tokens
 /// ie white spaces, newlines and simple comments (with a single #)
-fn strip_spaces_and_comment(i: PInput) -> Result<()> {
+fn strip_spaces_and_comment(i: PInput) -> PResult<()> {
     let (i, _) = many0(alt((
         // spaces
         multispace1,
@@ -128,8 +123,8 @@ fn strip_spaces_and_comment(i: PInput) -> Result<()> {
 
 /// Combinator automatically call strip_spaces_and_comment before and after a parser
 /// This avoids having to call it manually many times
-fn sp<'src, O, F>(f: F) -> impl Fn(PInput<'src>) -> Result<O> 
-    where F: Fn(PInput<'src>) -> Result<O>,
+fn sp<'src, O, F>(f: F) -> impl Fn(PInput<'src>) -> PResult<O> 
+    where F: Fn(PInput<'src>) -> PResult<O>,
           O: 'src,
 {
     move |i| {
@@ -187,7 +182,7 @@ macro_rules! wsequence {
 pub struct PHeader {
     pub version: u32,
 }
-fn pheader(i: PInput) -> Result<PHeader> {
+fn pheader(i: PInput) -> PResult<PHeader> {
     sequence!(
         {
             _x: opt(tuple((tag("#!/"), take_until("\n"), newline)));
@@ -212,7 +207,7 @@ impl<'src> ToString for PComment<'src> {
         self.lines.iter().map(|x| x.to_string()).collect::<Vec<String>>().join("\n")
     }
 }
-fn pcomment(i: PInput) -> Result<PComment> {
+fn pcomment(i: PInput) -> PResult<PComment> {
     let (i, lines) = many1(map(
         preceded(
             tag("##"),
@@ -229,7 +224,7 @@ fn pcomment(i: PInput) -> Result<PComment> {
 
 /// An identifier is a word that contains alphanumeric chars.
 /// Be liberal here, they are checked again later
-fn pidentifier(i: PInput) -> Result<Token> {
+fn pidentifier(i: PInput) -> PResult<Token> {
     map(
         take_while1(|c: char| c.is_alphanumeric() || (c == '_')),
         |x: PInput| x.into(),
@@ -237,7 +232,7 @@ fn pidentifier(i: PInput) -> Result<Token> {
 }
 
 /// A variable identifier is a list of dot separated identifiers
-fn pvariable_identifier(i: PInput) -> Result<Token> {
+fn pvariable_identifier(i: PInput) -> PResult<Token> {
     map(
         take_while1(|c: char| c.is_alphanumeric() || (c == '_') || (c == '.')),
         |x: PInput| x.into(),
@@ -253,7 +248,7 @@ pub struct PEnum<'src> {
     pub name: Token<'src>,
     pub items: Vec<Token<'src>>,
 }
-fn penum(i: PInput) -> Result<PEnum> {
+fn penum(i: PInput) -> PResult<PEnum> {
     wsequence!(
         {
             metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
@@ -284,7 +279,7 @@ pub struct PEnumMapping<'src> {
     pub to: Token<'src>,
     pub mapping: Vec<(Token<'src>, Token<'src>)>,
 }
-fn penum_mapping(i: PInput) -> Result<PEnumMapping> {
+fn penum_mapping(i: PInput) -> PResult<PEnumMapping> {
     wsequence!(
         {
             metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
@@ -347,7 +342,7 @@ impl<'src> PEnumExpression<'src> {
         }
     }
 }
-fn penum_expression(i: PInput) -> Result<PEnumExpression> {
+fn penum_expression(i: PInput) -> PResult<PEnumExpression> {
     alt((
         enum_or_expression,
         enum_and_expression,
@@ -356,7 +351,7 @@ fn penum_expression(i: PInput) -> Result<PEnumExpression> {
         enum_atom
     ))(i)
 }
-fn enum_atom(i: PInput) -> Result<PEnumExpression> {
+fn enum_atom(i: PInput) -> PResult<PEnumExpression> {
     alt((
         wsequence!(
             {
@@ -389,7 +384,7 @@ fn enum_atom(i: PInput) -> Result<PEnumExpression> {
         )
     ))(i)
 }
-fn enum_or_expression(i: PInput) -> Result<PEnumExpression> {
+fn enum_or_expression(i: PInput) -> PResult<PEnumExpression> {
     wsequence!(
         {
             left: alt((enum_and_expression, enum_not_expression, enum_atom));
@@ -400,7 +395,7 @@ fn enum_or_expression(i: PInput) -> Result<PEnumExpression> {
         } => PEnumExpression::Or(Box::new(left), Box::new(right))
     )(i)
 }
-fn enum_and_expression(i: PInput) -> Result<PEnumExpression> {
+fn enum_and_expression(i: PInput) -> PResult<PEnumExpression> {
     wsequence!(
         {
             left: alt((enum_not_expression, enum_atom));
@@ -411,7 +406,7 @@ fn enum_and_expression(i: PInput) -> Result<PEnumExpression> {
         } => PEnumExpression::And(Box::new(left), Box::new(right))
     )(i)
 }
-fn enum_not_expression(i: PInput) -> Result<PEnumExpression> {
+fn enum_not_expression(i: PInput) -> PResult<PEnumExpression> {
     wsequence!(
         {
             _x: tag("!");
@@ -422,9 +417,9 @@ fn enum_not_expression(i: PInput) -> Result<PEnumExpression> {
 
 /// An escaped string is a string delimited by '"' and that support backslash escapes.
 /// The token is here to keep position
-fn pescaped_string(i: PInput) -> Result<(Token, String)> {
+fn pescaped_string(i: PInput) -> PResult<(Token, String)> {
     // Add type annotation to help the type solver
-    let f: fn(PInput) -> Result<(Token, String)> = sequence!(
+    let f: fn(PInput) -> PResult<(Token, String)> = sequence!(
         {
             prefix: tag("\"");
             content: alt((
@@ -454,7 +449,7 @@ fn pescaped_string(i: PInput) -> Result<(Token, String)> {
 
 /// An unescaped string is a literal string delimited by '"""'.
 /// The token is here to keep position
-fn punescaped_string(i: PInput) -> Result<(Token, String)> {
+fn punescaped_string(i: PInput) -> PResult<(Token, String)> {
     sequence!(
         {
             prefix: tag("\"\"\"");
@@ -473,7 +468,7 @@ pub enum PInterpolatedElement {
     Static(String),   // static content
     Variable(String), // variable name
 }
-fn pinterpolated_string(i: PInput) -> Result<Vec<PInterpolatedElement>> {
+fn pinterpolated_string(i: PInput) -> PResult<Vec<PInterpolatedElement>> {
     // There is a rest inside so this just serve as a guard
     all_consuming(
         alt((
@@ -518,7 +513,7 @@ pub enum PType {
     Struct,
     List,
 }
-fn ptype(i: PInput) -> Result<PType> {
+fn ptype(i: PInput) -> PResult<PType> {
     alt((
         value(PType::String,  tag("string")),
         value(PType::Number,  tag("int")),
@@ -529,7 +524,7 @@ fn ptype(i: PInput) -> Result<PType> {
 }
 
 /// A number is currently represented by a float64
-fn pnumber(i: PInput) -> Result<(Token, f64)> {
+fn pnumber(i: PInput) -> PResult<(Token, f64)> {
     let (i,val) = recognize_float(i)?;
     match double::<&[u8],(&[u8],nom::error::ErrorKind)>(val.fragment.as_bytes()) {
         Err(_) => panic!(format!("A parsed number canot be reparsed : {:?}", val)),
@@ -538,7 +533,7 @@ fn pnumber(i: PInput) -> Result<(Token, f64)> {
 }
 
 /// A list is stored in a Vec
-fn plist(i: PInput) -> Result<Vec<PValue>> {
+fn plist(i: PInput) -> PResult<Vec<PValue>> {
     wsequence!(
         {
             s: tag("[");
@@ -549,7 +544,7 @@ fn plist(i: PInput) -> Result<Vec<PValue>> {
 }
 
 /// A struct is stored in a HashMap
-fn pstruct(i: PInput) -> Result<HashMap<String,PValue>> {
+fn pstruct(i: PInput) -> PResult<HashMap<String,PValue>> {
     wsequence!(
         {
             s: tag("{");
@@ -584,7 +579,7 @@ impl<'src> PValue<'src> {
         }
     }
 }
-fn pvalue(i: PInput) -> Result<PValue> {
+fn pvalue(i: PInput) -> PResult<PValue> {
     alt((
         // Be careful of ordering here
         map(punescaped_string, |(x,y)| PValue::String(x,y)),
@@ -603,7 +598,7 @@ pub struct PMetadata<'src> {
     pub key: Token<'src>,
     pub value: PValue<'src>,
 }
-fn pmetadata(i: PInput) -> Result<PMetadata> {
+fn pmetadata(i: PInput) -> PResult<PMetadata> {
     wsequence!(
         {
             key: preceded(tag("@"), pidentifier);
@@ -615,7 +610,7 @@ fn pmetadata(i: PInput) -> Result<PMetadata> {
 
 /// A metadata list is an optional list of metadata entries
 /// Comments are considered to be metadata
-fn pmetadata_list(i: PInput) -> Result<Vec<PMetadata>> {
+fn pmetadata_list(i: PInput) -> PResult<Vec<PMetadata>> {
     many0(
         alt((
             pmetadata,
@@ -641,7 +636,7 @@ pub struct PParameter<'src> {
     pub ptype: Option<PType>,
 }
 // return a pair because we will store the default value separately
-fn pparameter(i: PInput) -> Result<(PParameter, Option<PValue>)> {
+fn pparameter(i: PInput) -> PResult<(PParameter, Option<PValue>)> {
     wsequence!(
         {
             name: pidentifier;
@@ -671,7 +666,7 @@ pub struct PResourceDef<'src> {
     pub parameters: Vec<PParameter<'src>>,
 }
 // separate default parameters and parents because they are stored separately
-fn presource_def(i: PInput) -> Result<(PResourceDef,Vec<Option<PValue>>,Option<Token>)> {
+fn presource_def(i: PInput) -> PResult<(PResourceDef,Vec<Option<PValue>>,Option<Token>)> {
     wsequence!(
         {
             metadata: pmetadata_list;
@@ -695,7 +690,7 @@ fn presource_def(i: PInput) -> Result<(PResourceDef,Vec<Option<PValue>>,Option<T
 }
 
 /// A resource reference identifies a unique resource.
-fn presource_ref(i: PInput) -> Result<(Token, Vec<PValue>)> {
+fn presource_ref(i: PInput) -> PResult<(Token, Vec<PValue>)> {
     wsequence!(
         {
             name: pidentifier;
@@ -711,7 +706,7 @@ fn presource_ref(i: PInput) -> Result<(Token, Vec<PValue>)> {
 }
 
 /// A variable definition is a var=value
-fn pvariable_definition(i: PInput) -> Result<(Token, PValue)> {
+fn pvariable_definition(i: PInput) -> PResult<(Token, PValue)> {
     wsequence!(
         {
             variable: pidentifier;
@@ -728,7 +723,7 @@ pub enum PCallMode {
     Condition,
     Audit,
 }
-fn pcall_mode(i: PInput) -> Result<PCallMode> {
+fn pcall_mode(i: PInput) -> PResult<PCallMode> {
     alt((
         value(PCallMode::Condition, tag("?")),
         value(PCallMode::Audit,     tag("!")),
@@ -736,19 +731,46 @@ fn pcall_mode(i: PInput) -> Result<PCallMode> {
     ))(i)
 }
 
+/// A State Declaration is a given required state on a given resource
+#[derive(Debug, PartialEq)]
+pub struct PStateDeclaration<'src> {
+    pub metadata: Vec<PMetadata<'src>>,
+    pub mode: PCallMode,
+    pub resource: Token<'src>,
+    pub resource_params: Vec<PValue<'src>>,
+    pub state: Token<'src>,
+    pub state_params: Vec<PValue<'src>>,
+    pub outcome: Option<Token<'src>>,
+}
+fn pstate_declaration(i: PInput) -> PResult<PStateDeclaration> {
+    wsequence!(
+        {
+            metadata: pmetadata_list;
+            mode: pcall_mode;
+            resource: presource_ref;
+            _t: tag(".");
+            state: pidentifier;
+            s: tag("(");
+            state_params: separated_list( sp(tag(",")), pvalue );
+            _x: or_fail(tag(")"), || PErrorKind::UnterminatedDelimiter(s));
+            outcome: opt(preceded(sp(tag("as")),pidentifier));
+        } => PStateDeclaration {
+                metadata,
+                mode,
+                resource: resource.0,
+                resource_params: resource.1,
+                state,
+                state_params,
+                outcome
+        }
+    )(i)
+}
+
 /// A statement is the atomic element of a state definition.
 #[derive(Debug, PartialEq)]
 pub enum PStatement<'src> {
     VariableDefinition(Vec<PMetadata<'src>>, Token<'src>, PValue<'src>),
-    StateCall(
-        Vec<PMetadata<'src>>,// metadata
-        PCallMode,           // mode
-        Token<'src>,         // resource
-        Vec<PValue<'src>>,   // resource parameters
-        Token<'src>,         // state name
-        Vec<PValue<'src>>,   // parameters
-        Option<Token<'src>>, // outcome
-    ),
+    StateDeclaration(PStateDeclaration<'src>),
     //   case keyword, list (condition   ,       then)
     Case(Token<'src>, Vec<(PEnumExpression<'src>, Vec<PStatement<'src>>)>), // keep the pinput since it will be reparsed later
     // Stop engine with a final message
@@ -760,22 +782,10 @@ pub enum PStatement<'src> {
     // Do nothing
     Noop,
 }
-fn pstatement(i: PInput) -> Result<PStatement> {
+fn pstatement(i: PInput) -> PResult<PStatement> {
     alt((
         // One state
-        wsequence!(
-            {
-                metadata: pmetadata_list;
-                mode: pcall_mode;
-                resource: presource_ref;
-                _t: tag(".");
-                state: pidentifier;
-                s: tag("(");
-                parameters: separated_list( sp(tag(",")), pvalue );
-                _x: or_fail(tag(")"), || PErrorKind::UnterminatedDelimiter(s));
-                outcome: opt(preceded(sp(tag("as")),pidentifier));
-            } => PStatement::StateCall(metadata,mode,resource.0,resource.1,state,parameters,outcome)
-        ),
+        map(pstate_declaration, |s| PStatement::StateDeclaration(s)),
         // Variable definition
         map(pair(pmetadata_list,pvariable_definition), |(metadata,(variable,value))| PStatement::VariableDefinition(metadata,variable,value)),
         // case
@@ -817,9 +827,9 @@ fn pstatement(i: PInput) -> Result<PStatement> {
             } => {
                 // Propagate metadata to the single statement
                 let statement = match stmt {
-                    PStatement::StateCall(mut p1,p2,p3,p4,p5,p6,p7) => {
-                        p1.extend(metadata);
-                        PStatement::StateCall(p1,p2,p3,p4,p5,p6,p7)
+                    PStatement::StateDeclaration(mut sd) => {
+                        sd.metadata.extend(metadata);
+                        PStatement::StateDeclaration(sd)
                     },
                     x => x,
                 };
@@ -845,7 +855,7 @@ pub struct PStateDef<'src> {
     pub statements: Vec<PStatement<'src>>,
 }
 // separate parameter defaults since they will be stored separately
-fn pstate_def(i: PInput) -> Result<(PStateDef,Vec<Option<PValue>>)> {
+fn pstate_def(i: PInput) -> PResult<(PStateDef,Vec<Option<PValue>>)> {
     wsequence!(
         {
             metadata: pmetadata_list;
@@ -884,7 +894,7 @@ pub struct PAliasDef<'src> {
     state: Token<'src>,
     state_parameters: Vec<Token<'src>>,
 }
-fn palias_def(i: PInput) -> Result<PAliasDef> {
+fn palias_def(i: PInput) -> PResult<PAliasDef> {
     wsequence!(
         {
             metadata: pmetadata_list;
@@ -917,7 +927,7 @@ pub enum PDeclaration<'src> {
     GlobalVar((Token<'src>, PValue<'src>)),
     Alias(PAliasDef<'src>),
 }
-fn pdeclaration(i: PInput) -> Result<PDeclaration> {
+fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
     alt((
         map(penum,                PDeclaration::Enum),
         map(penum_mapping,        PDeclaration::Mapping),
@@ -935,7 +945,7 @@ pub struct PFile<'src> {
     pub header: PHeader,
     pub code: Vec<PDeclaration<'src>>,
 }
-fn pfile(i: PInput) -> Result<PFile> {
+fn pfile(i: PInput) -> PResult<PFile> {
     all_consuming(sequence!(
         {
             header: pheader;

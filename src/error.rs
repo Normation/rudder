@@ -13,7 +13,6 @@ use std::collections::HashMap;
 use std::fmt;
 use std::hash::Hash;
 
-// TODO replace result types with a Vec<Error>
 #[derive(Debug, PartialEq, Clone)]
 pub enum Error {
     //   message

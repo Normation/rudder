@@ -142,11 +142,11 @@ impl CFEngine {
     // TODO use in_class everywhere
     fn format_statement(&mut self, gc: &AST, st: &Statement, in_class: String) -> Result<String> {
         match st {
-            Statement::StateCall(metadata, _mode, res, res_parameters, call, params, out) => {
-                if let Some(var) = out {
-                    self.new_var(var);
+            Statement::StateDeclaration(sd) => {
+                if let Some(var) = sd.outcome {
+                    self.new_var(&var);
                 }
-                let component = match metadata.get(&"component".into()) {
+                let component = match sd.metadata.get(&"component".into()) {
                     // TODO use static_to_string
                     Some(Value::String(s)) => match &s.data[0] {
                         PInterpolatedElement::Static(st) => st.clone(),
@@ -155,17 +155,17 @@ impl CFEngine {
                     _ => "any".to_string(),
                 };
                 // TODO setup mode and output var by calling ... bundle
-                let param_str = map_strings_results(res_parameters
+                let param_str = map_strings_results(sd.resource_params
                     .iter()
-                    .chain(params.iter()),
+                    .chain(sd.state_params.iter()),
                     |x| self.parameter_to_cfengine(x),
                     ","
                 )?;
                 Ok(format!(
                     "      \"{}\" usebundle => {}_{}({}), if=>{};\n",
                     component,
-                    res.fragment(),
-                    call.fragment(),
+                    sd.resource.fragment(),
+                    sd.state.fragment(),
                     param_str,
                     self.format_class(in_class)?
                 ))

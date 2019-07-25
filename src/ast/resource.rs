@@ -189,21 +189,27 @@ impl<'src> Parameter<'src> {
     }
 }
 
+/// A State Declaration is a given required state on a given resource
+#[derive(Debug, PartialEq)]
+pub struct StateDeclaration<'src> {
+    pub metadata: HashMap<Token<'src>, Value<'src>>,
+    pub mode: PCallMode,
+    pub resource: Token<'src>,
+    pub resource_params: Vec<Value<'src>>,
+    pub state: Token<'src>,
+    pub state_params: Vec<Value<'src>>,
+    pub outcome: Option<Token<'src>>,
+}
+
+
 /// A single statement within a state definition
 #[derive(Debug)]
 pub enum Statement<'src> {
     Comment(PComment<'src>),
     // TODO should we split variable definition and enum definition ? this would probably help generators
     VariableDefinition(HashMap<Token<'src>, Value<'src>>, Token<'src>, Value<'src>),
-    StateCall(
-        HashMap<Token<'src>, Value<'src>>,// Metadata
-        PCallMode,           // mode
-        Token<'src>,         // resource
-        Vec<Value<'src>>,    // resource parameters
-        Token<'src>,         // state name
-        Vec<Value<'src>>,    // parameters
-        Option<Token<'src>>, // outcome
-    ),
+    // one state
+    StateDeclaration(StateDeclaration<'src>),
     //   keyword    list of condition          then
     Case(
         Token<'src>,
@@ -243,8 +249,8 @@ impl<'src> Statement<'src> {
                 let metadata = create_metadata(pmetadata)?;
                 Statement::VariableDefinition(metadata, var, value)
             }
-            PStatement::StateCall(pmetadata, mode, res, res_params, st, params, out) => {
-                if let Some(out_var) = out {
+            PStatement::StateDeclaration(PStateDeclaration { metadata, mode, resource, resource_params, state, state_params, outcome }) => {
+                if let Some(out_var) = outcome {
                     // outcome must be defined, token comes from internal compilation, no value known a compile time
                     context.new_enum_variable(
                         Some(global_context),
@@ -253,66 +259,66 @@ impl<'src> Statement<'src> {
                         None,
                     )?;
                 }
-                //children.insert(res);
+                //children.insert(resource);
                 let getter = |k| context.variables.get(&k).or_else(|| global_context.variables.get(&k)).map(VarKind::clone);
-                let mut res_parameters =
-                    map_vec_results(res_params.into_iter(), |v| Value::from_pvalue(enum_list, &getter, v))?;
+                let mut resource_params =
+                    map_vec_results(resource_params.into_iter(), |v| Value::from_pvalue(enum_list, &getter, v))?;
                 let emptyvec = Vec::new();
-                let res_defaults = &parameter_defaults.get(&(res, None)).unwrap_or(&emptyvec);
-                let res_missing = res_defaults.len() as i32 - res_parameters.len() as i32;
+                let res_defaults = &parameter_defaults.get(&(resource, None)).unwrap_or(&emptyvec);
+                let res_missing = res_defaults.len() as i32 - resource_params.len() as i32;
                 if res_missing > 0 {
                     map_results(
                         res_defaults.iter()
-                                    .skip(res_parameters.len()),
+                                    .skip(resource_params.len()),
                                     |param| {
                                         match param {
-                                            Some(p) => res_parameters.push(p.clone()),
-                                            None => fail!(res, "Resources instance of {} is missing parameters and there is no default values for them", res),
+                                            Some(p) => resource_params.push(p.clone()),
+                                            None => fail!(resource, "Resources instance of {} is missing parameters and there is no default values for them", resource),
                                         };
                                         Ok(())
                                     }
                     )?;
                 } else if res_missing < 0 {
                     fail!(
-                        res,
+                        resource,
                         "Resources instance of {} has too many parameters, expecting {}, got {}",
-                        res,
+                        resource,
                         res_defaults.len(),
-                        res_parameters.len()
+                        resource_params.len()
                     );
                 }
-                let mut st_parameters =
-                    map_vec_results(params.into_iter(), |v| Value::from_pvalue(enum_list, &getter, v))?;
-                let st_defaults = &parameter_defaults.get(&(res, Some(st))).unwrap_or(&emptyvec);
-                let st_missing = st_defaults.len() as i32 - st_parameters.len() as i32;
+                let mut state_params =
+                    map_vec_results(state_params.into_iter(), |v| Value::from_pvalue(enum_list, &getter, v))?;
+                let st_defaults = &parameter_defaults.get(&(resource, Some(state))).unwrap_or(&emptyvec);
+                let st_missing = st_defaults.len() as i32 - state_params.len() as i32;
                 if st_missing > 0 {
                     map_results(
                         st_defaults.iter()
-                                   .skip(st_parameters.len()),
+                                   .skip(state_params.len()),
                                    |param| {
                                        match param {
-                                           Some(p) => st_parameters.push(p.clone()),
-                                           None => fail!(st, "Resources state instance of {} is missing parameters and there is no default values for them", st),
+                                           Some(p) => state_params.push(p.clone()),
+                                           None => fail!(state, "Resources state instance of {} is missing parameters and there is no default values for them", state),
                                        };
                                        Ok(())
                                    }
                     )?;
                 } else if st_missing < 0 {
-                    fail!(st, "Resources state instance of {} has too many parameters, expecting {}, got {}", st, st_defaults.len(), st_parameters.len());
+                    fail!(state, "Resources state instance of {} has too many parameters, expecting {}, got {}", state, st_defaults.len(), state_params.len());
                 }
                 // check that parameters use existing variables
                 map_results(
-                    res_parameters
+                    resource_params
                         .iter(),
                         |p| p.context_check(&getter),
                 )?;
                 map_results(
-                    st_parameters
+                    state_params
                         .iter(),
                         |p| p.context_check(&getter),
                 )?;
-                let metadata = create_metadata(pmetadata)?;
-                Statement::StateCall(metadata, mode, res, res_parameters, st, st_parameters, out)
+                let metadata = create_metadata(metadata)?;
+                Statement::StateDeclaration(StateDeclaration { metadata, mode, resource, resource_params, state, state_params, outcome })
             }
             PStatement::Fail(f) => {
                 let getter = |k| context.variables.get(&k).or_else(|| global_context.variables.get(&k)).map(VarKind::clone);

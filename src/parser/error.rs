@@ -1,8 +1,11 @@
 use crate::error;
-use super::{Result,PInput,Token};
+use super::{PInput,Token};
 use nom::error::{ParseError,ErrorKind,VerboseError};
 use nom::{IResult, Err};
 use std::fmt;
+
+/// Result for all parser
+pub type PResult<'src, O> = IResult<PInput<'src>, O, PError<PInput<'src>>>;
 
 /// This is the only error type that should be returned by the main parser.
 /// It is an error that is suitable to give to the user as opposed to nom error that are suitable
@@ -114,17 +117,16 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
 /// Combinator to force the error output to be a specific PError.
 /// Having a combinator instead of a macro is much better since it can be used from within other
 /// combinators.
-// Here input function result could be ParseError<I> but this way we force the type inference for 
+// Here closures could use ParseError<I> but this way we force the type inference for 
 // all sub parsers to return PError<I>, which we won't have to specify during call.
 // Pass a closure instead of a PErrorKind to allow lazy evaluation of its parameters
-pub fn or_fail<I, O, F, E>(f: F, e: E) 
-    -> impl Fn(I) -> IResult<I, O, PError<I>>
+pub fn or_fail<'src, O, F, E>(f: F, e: E) 
+    -> impl Fn(PInput<'src>) -> PResult<'src, O>
     where 
-        I: Clone,
-        F: Fn(I) -> IResult<I, O, PError<I>>,
-        E: Fn() -> PErrorKind<I>,
+        F: Fn(PInput<'src>) -> PResult<'src, O>,
+        E: Fn() -> PErrorKind<PInput<'src>>,
 {
-    move |input: I| {
+    move |input| {
         let x = f(input.clone());
         match x {
             // a non nom error cannot be superseded
@@ -147,7 +149,7 @@ fn format_error(err: PError<PInput>) -> error::Error {
 
 /// Extract error from a parsing result and transforms it to the project's global error type.
 // type conversion can be hard to follow
-pub fn fix_error_type<T>(res: Result<T>) -> error::Result<T> {
+pub fn fix_error_type<T>(res: PResult<T>) -> error::Result<T> {
     match res {
         Ok((_, t)) => Ok(t),
         Err(Err::Failure(e)) => Err(format_error(e)),

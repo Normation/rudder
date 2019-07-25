@@ -11,7 +11,7 @@ use maplit::hashmap;
 // - convert errors to ErrorKing with string parameter
 fn map_res<'src, F, O>(f: F, i: &'src str) -> std::result::Result<(&'src str, O), (&'src str, PErrorKind<&'src str>)>
 where
-    F: Fn(PInput<'src>) -> Result<'src, O>,
+    F: Fn(PInput<'src>) -> PResult<'src, O>,
 {
     match f(PInput::new_extra(i, "")) {
         Ok((x, y)) => Ok((x.fragment, y)),
@@ -788,33 +788,33 @@ fn test_pstatement() {
         map_res(pstatement, "resource().state()"),
         Ok((
             "",
-            PStatement::StateCall(
-                Vec::new(),
-                PCallMode::Enforce,
-                "resource".into(),
-                vec![],
-                "state".into(),
-                Vec::new(),
-                None,
-            )
+            PStatement::StateDeclaration(PStateDeclaration {
+                metadata: Vec::new(),
+                mode: PCallMode::Enforce,
+                resource: "resource".into(),
+                resource_params: vec![],
+                state: "state".into(),
+                state_params: Vec::new(),
+                outcome: None,
+            })
         ))
     );
     assert_eq!(
         map_res(pstatement, r#"resource().state( "p1", "p2") as resource_state"#),
         Ok((
             "",
-            PStatement::StateCall(
-                Vec::new(),
-                PCallMode::Enforce,
-                "resource".into(),
-                vec![],
-                "state".into(),
-                vec![
+            PStatement::StateDeclaration(PStateDeclaration {
+                metadata: Vec::new(),
+                mode: PCallMode::Enforce,
+                resource: "resource".into(),
+                resource_params: vec![],
+                state: "state".into(),
+                state_params: vec![
                     PValue::String("\"".into(), "p1".to_string()),
                     PValue::String("\"".into(), "p2".to_string())
                 ],
-                Some("resource_state".into()),
-            )
+                outcome: Some("resource_state".into()),
+            })
         ))
     );
     assert_eq!(
@@ -913,15 +913,15 @@ fn test_pdeclaration() {
                 resource_name: "ntp".into(),
                 parameters: vec![],
                 statements: vec![
-                    PStatement::StateCall(
-                        Vec::new(),
-                        PCallMode::Enforce,
-                        "file".into(),
-                        vec![PValue::String("\"".into(), "/tmp".to_string())],
-                        "permissions".into(),
-                        vec![PValue::String("\"".into(), "root".to_string()), PValue::String("\"".into(), "root".to_string()), PValue::String("\"".into(), "g+w".to_string())],
-                        None,
-                    )
+                    PStatement::StateDeclaration(PStateDeclaration{
+                        metadata: Vec::new(),
+                        mode: PCallMode::Enforce,
+                        resource: "file".into(),
+                        resource_params: vec![PValue::String("\"".into(), "/tmp".to_string())],
+                        state: "permissions".into(),
+                        state_params: vec![PValue::String("\"".into(), "root".to_string()), PValue::String("\"".into(), "root".to_string()), PValue::String("\"".into(), "g+w".to_string())],
+                        outcome: None,
+                    })
                 ]
             },vec![]))
         )));
@@ -931,7 +931,7 @@ fn test_pdeclaration() {
 // ===== Functions used by other modules tests =====
 
 fn test_t<'a, F, X>(f: F, input: &'a str) -> X
-    where F: Fn(PInput<'a>) -> Result<X>, X :'a {
+    where F: Fn(PInput<'a>) -> PResult<X>, X :'a {
     let (i,out) = f(PInput::new_extra(input, "")).expect(&format!("Syntax error in {}",input));
     if i.fragment.len() != 0 { panic!("Input not terminated in {}",input) }
     out

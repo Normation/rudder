@@ -17,9 +17,8 @@ use std::path::{Path,PathBuf};
 use structopt::StructOpt;
 
 ///!  Principle:
-///!  1-  rl -> parser() -> PXxx 
-///!         -> CodeIndex::add_file() -> CodeIndex 
-///!         -> AST::from_codeindex -> AST 
+///!  1-  rl -> PAST::add_file() -> PAST 
+///!         -> AST::from_past -> AST 
 ///!         -> generate() -> cfengine/json/...
 ///! 
 ///!  2- json technique -> translate() -> rl
@@ -60,7 +59,7 @@ struct Opt {
     output_format: Option<String>,
 }
 
-/// Read file, parse it and store it in the global codeindex
+/// Read file, parse it and store it
 fn add_file<'a>(past: &mut PAST<'a>, source_list: &'a SourceList, path: &'a Path, filename: &'a str) -> Result<()> {
     let content = fs::read_to_string(path)
         .unwrap_or_else(|_| panic!("Something went wrong reading the file {}", filename));
@@ -112,7 +111,6 @@ fn main() {
 }
 
 fn compile(source: &Path, dest: &Path, technique: bool) -> Result<()> {
-//    let mut code_index = CodeIndex::new();
     let sources = SourceList::new();
 
     // read and add files
