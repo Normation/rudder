@@ -1,33 +1,12 @@
-Maven parent pom for Rudder projects
-------------------------------------
+# Maven parent pom for Rudder projects
 
-This project is part of Rudder - configuration management for the masses.
+This project is part of Rudder - IT infrastructure Automation and Compliance.
+See: http://rudder.io for more information.
 
-See: http://rudder-project.org for more information.
+See repository main README for information about licensing, contribution, and
+other general information.
 
-[horizontal]
-Bug report:: http://www.rudder-project.org/redmine/projects/parent-pom/issues
-Mailing list, irc:: http://www.rudder-project.org/foswiki/Community/
-
-=== Authors
-
-Normation http://normation.com
-
-- Francois "fanf" Armand francois.armand@normation.com
-
-=== License
-
-This project is licensed under ASF 2.0 license,
-see the provided "LICENSE" file  or
-http://www.apache.org/licenses/LICENSE-2.0.html
-
-=== Contributing
-
-Thank you for your interest in your our project!
-The contribution process is detailed here:
-http://www.rudder-project.org/HowToContribute
-
-=== Synopsis
+== Synopsis
 
 This project contains the maven parent POM file used in other projects.
 It declares commons dependendies and version of libraries, the main one being:
@@ -38,7 +17,7 @@ It declares commons dependendies and version of libraries, the main one being:
 * SLF4J - http://www.slf4j.org/
 * Specs2 - http://etorreborre.github.com/specs2/
 
-=== Usage
+== Usage
 
 This project is managed thanks to Maven software project management (http://maven.apache.org/).
 You will have to have a working Maven (version 2.2.x or 3.0.x) installation.

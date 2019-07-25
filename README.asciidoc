@@ -26,8 +26,10 @@ image::readme-resources/dashboard.png[Rudder Dashboard]
 
 === Feature overview
 
+Key features are detailed https://docs.rudder.io/reference/5.0/key_features.html[here], but
+some of them are: 
+
 * Web interface to manage nodes and define policies
-  ** https://www.rudder-project.org/site/documentation/screenshots/
 * Continuously assesses drift compared to defined policies (with or without auto-healing)
 * Optionally, continuously enforces configuration over time (configuring once is good,
   ensuring configuration is always valid and automatically fixing it is better)
@@ -39,8 +41,7 @@ image::readme-resources/dashboard.png[Rudder Dashboard]
 
 
 TIP: Rudder is open source – we welcome ideas, comments, criticism, patches and
-any other contributions! So get chatting with our community
-https://www.rudder-project.org/site/support/chat-mailing-lists/[on IRC]!
+any other contributions! So get https://chat.rudder.io/[chatting with our community]
 
 === Documentation and community
 
@@ -123,7 +124,7 @@ Thank you for your interest in our project!
 We welcome pull requests on any of the Rudder repositories.
 
 The contribution process is detailed here:
-http://www.rudder-project.org/HowToContribute
+https://www.rudder.io/en/expand/contribute/
 
 === Rudder components and projects overview
 
