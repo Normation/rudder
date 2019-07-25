@@ -33,7 +33,7 @@ bundle agent init
       "command[3]" string => "unknown command";
       "result[3]"  string => "error";
 
-      "command[4]" string => "/bin/touch ${const.dollar}(pwd)/tmp/1";
+      "command[4]" string => "cd ${tmp} && /bin/touch ${const.dollar}(pwd)/1";
       "result[4]"  string => "repaired";
 
       # Audit mode
@@ -78,10 +78,10 @@ bundle agent check
     "ok" expression => "classes_ok.file_1.file_2";
 
   reports:
-    file_exists::
+    !file_1::
+      "The file ${init.tmp}/1 does not exists";
+    !file_2::
       "The file ${init.tmp}/my_file exists";
-    !file_exists::
-      "The file ${init.tmp}/my_file does not exist";
     ok::
       "$(this.promise_filename) Pass";
     !ok::
