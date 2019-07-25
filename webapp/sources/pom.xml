@@ -366,7 +366,7 @@ limitations under the License.
     <cglib-version>3.2.7</cglib-version>
     <asm-version>5.2</asm-version>
     <bcpkix-jdk15on-version>1.60</bcpkix-jdk15on-version>
-    <silencer-lib-version>1.2</silencer-lib-version>
+    <silencer-lib-version>1.4.1</silencer-lib-version>
     <better-files-version>3.7.0</better-files-version>
     <!--
       These one must be updated to work together

@@ -40,6 +40,7 @@ package com.normation.rudder.services.policies
 import java.nio.charset.StandardCharsets
 
 import better.files.File
+import com.github.ghik.silencer.silent
 import com.normation.NamedZioLogger
 import com.normation.errors._
 import com.normation.inventory.domain.Certificate
@@ -79,6 +80,7 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
   val logger = NamedZioLogger(this.getClass.getName)
 
 
+  @silent("a type was inferred to be `Any`")
   override def writeCerticatesAsync(file: File, allNodeInfos: Map[NodeId, NodeInfo]): Unit = {
     ZioRuntime.runNow(writeCertificates(file, allNodeInfos).catchAll(e => logger.error(e.fullMsg)).fork)
   }
