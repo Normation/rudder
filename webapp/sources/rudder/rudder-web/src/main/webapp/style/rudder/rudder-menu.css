@@ -335,7 +335,7 @@ pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
   .skin-yellow.sidebar-collapse div.topQuickSearchResults.ac_results,.skin-yellow div.topQuickSearchResults.ac_results, .skin-yellow.sidebar-open	 div.topQuickSearchResults.ac_results {
     width: 120px !important;
   }
-}</div>
+}
 .content-wrapper #searchInput::-webkit-input-placeholder {
  color: #964;
  -webkit-transition-duration:.3s;
@@ -371,7 +371,19 @@ pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
 /* ----- </QUICK SEARCH>  ----- */
 
 /* MENU */
-
+.skin-yellow .sidebar ul.sidebar-menu > li.treeview:nth-child(2) > ul.treeview-menu ,
+.skin-yellow .sidebar ul.sidebar-menu > li.treeview:nth-child(3) > ul.treeview-menu {
+  display: block !important;
+  height: 100% !important;
+}
+.skin-yellow .sidebar ul.sidebar-menu > li.treeview:nth-child(2) > a,
+.skin-yellow .sidebar ul.sidebar-menu > li.treeview:nth-child(3) > a{
+  cursor: default !important;
+}
+.skin-yellow .sidebar ul.sidebar-menu > li.treeview:nth-child(2) > a > span + i.fa,
+.skin-yellow .sidebar ul.sidebar-menu > li.treeview:nth-child(3) > a > span + i.fa{
+  display: none !important;
+}
 .skin-yellow .treeview-menu>li>a{
   white-space: normal;
   display: flex;
