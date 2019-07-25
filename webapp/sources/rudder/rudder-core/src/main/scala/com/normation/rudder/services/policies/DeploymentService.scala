@@ -357,7 +357,8 @@ trait PromiseGenerationService {
     } yield {
       result
     }
-    PolicyLogger.info("Policy generation completed in: %10s".format(periodFormatter.print(new Period(System.currentTimeMillis - initialTime))))
+    val completion = if(result.isDefined) "succeeded in" else "failed after"
+    PolicyLogger.info(s"Policy generation ${completion}: %10s".format(periodFormatter.print(new Period(System.currentTimeMillis - initialTime))))
     result
   }
   private[this] val periodFormatter = {
