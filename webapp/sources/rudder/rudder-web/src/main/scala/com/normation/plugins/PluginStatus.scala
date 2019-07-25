@@ -63,6 +63,8 @@ final case class PluginLicenseInfo(
   , maxVersion: String
   , startDate : DateTime
   , endDate   : DateTime
+  , maxNodes  : Option[Int]
+  , others    : Map[String, String]
 )
 
 trait PluginStatus {

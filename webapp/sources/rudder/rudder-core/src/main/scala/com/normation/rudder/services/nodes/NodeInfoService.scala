@@ -123,6 +123,14 @@ trait NodeInfoService {
   def getNodeInfo(nodeId: NodeId) : Box[Option[NodeInfo]]
 
   /**
+   * Return the number of managed (ie non policy server, no rudder role )nodes.
+   * Implementation of that method must as efficient as possible.
+   * It can't fails (implementation must use a sane default if backend is not accessible,
+   * or cache the information)
+   */
+  def getNumberOfManagedNodes: Int
+
+  /**
    * Get all node infos.
    * That method try to return the maximum
    * of information, and will not totally fail if some information are
@@ -208,6 +216,7 @@ final case class LocalNodeInfoCache(
     nodeInfos       : Map[NodeId, (LDAPNodeInfo, NodeInfo)]
   , lastModTime     : DateTime
   , lastModEntryCSN : Seq[String]
+  , managedNodes    : Int
 )
 
 
@@ -251,9 +260,12 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
    */
   def getNodeInfoEntries(con: RoLDAPConnection, attributes: Seq[String], status: InventoryStatus): LDAPIOResult[Seq[LDAPEntry]]
 
+
+  override def getNumberOfManagedNodes: Int = nodeCache.map(_.managedNodes).getOrElse(0)
+
   /*
-   * Our cache
-   */
+     * Our cache
+     */
   private[this] var nodeCache = Option.empty[LocalNodeInfoCache]
 
   // we need modifyTimestamp to search for update and entryCSN to remove already processed entries
@@ -361,7 +373,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
                           "from the root server and check /var/log/rudder/webapp/ logs for additionnal information."
                 logPure.error(msg) *> msg.fail
               } else {
-                LocalNodeInfoCache(map, lastModif, entriesCSN).succeed
+                LocalNodeInfoCache(map, lastModif, entriesCSN, map.filter{case(_, (_, n)) => !n.isPolicyServer && n.serverRoles.isEmpty}.size).succeed
               }
         } yield {
           ok

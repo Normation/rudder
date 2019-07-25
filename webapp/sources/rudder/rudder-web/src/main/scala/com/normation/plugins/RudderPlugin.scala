@@ -182,6 +182,16 @@ trait RudderPluginDef {
         <dt>Licensee</dt> <dd>{i.licensee}</dd>
         <dt>Supported version</dt> <dd>from {i.minVersion} to {i.maxVersion}</dd>
         <dt>Validity period</dt> <dd>from {i.startDate.toString("YYYY-MM-dd")} to {i.endDate.toString("YYYY-MM-dd")}</dd>
+        <dt>Maximum number of nodes allowed</dt> <dd>{i.maxNodes.map(_.toString).getOrElse("Unlimited")}</dd>
+        {
+          if(i.others.isEmpty) {
+            NodeSeq.Empty
+          } else {
+            <dt>Other properties for that license:</dt><ul>
+              {i.others.toList.sortBy(_._1).map { case (k,v) => <li>{s"${k}: ${v}"}</li>}}
+            </ul>
+          }
+        }
       </dl>
     }
 
