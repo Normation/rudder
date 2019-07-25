@@ -1,5 +1,5 @@
 use super::context::VarKind;
-//use super::resource::Statement;
+use super::resource::Statement;
 use crate::error::*;
 use crate::parser::{PEnum, PEnumExpression, PEnumMapping, Token};
 use std::collections::hash_map;
@@ -489,8 +489,7 @@ impl<'src> EnumList<'src> {
     pub fn evaluate<VG>(
         &self,
         getter: &VG,
-        cases: &[(EnumExpression<'src>, String)],
-//        cases: &[(EnumExpression<'src>, Vec<Statement<'src>>)],
+        cases: &[(EnumExpression<'src>, Vec<Statement<'src>>)],
         case_name: Token<'src>,
     ) -> Vec<Error>
         where VG: Fn(Token<'src>) -> Option<VarKind<'src>>

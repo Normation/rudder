@@ -1,11 +1,9 @@
-//use super::context::{GlobalContext, VarContext};
 use super::context::{VarContext,VarKind};
 use super::enums::*;
 use super::value::Value;
 use crate::error::*;
-//use crate::codeindex::TmpResourceDef;
 use crate::parser::*;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 /// Utility functions
 

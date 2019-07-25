@@ -18,10 +18,6 @@ use std::hash::Hash;
 pub enum Error {
     //   message
     User(String),
-    //          message file    line  column
-    //Compilation(String, String, u32, usize),
-    //      message file    line  column
-    //Parsing(String, String, u32, usize),
     //   Error list
     List(Vec<String>),
 }
@@ -83,7 +79,7 @@ macro_rules! fail {
 /// Transforms an iterator of error result into a result of list error.
 /// This is useful to aggregate and give the proper output type to results given by map.
 /// Only support Result<()>, because it throws out Ok cases
-fn fix_results<I>(it: I) -> Result<()>
+pub fn fix_results<I>(it: I) -> Result<()>
 where
     I: Iterator<Item = Result<()>>,
 {
@@ -100,7 +96,12 @@ where
     I: Iterator<Item = X>,
     F: FnMut(X) -> Result<()> // also accepts Fn
 {
-    fix_results(it.map(f))
+    let err_list = it.map(f).filter_map(|r| r.err()).collect::<Vec<Error>>();
+    if err_list.is_empty() {
+        Ok(())
+    } else {
+        Err(Error::from_vec(err_list))
+    }
 }
 /// Same a map_results but knows how to extract a vector of values from the result list
 pub fn map_vec_results<I, F, X, Y>(it: I, f: F) -> Result<Vec<Y>>
@@ -147,9 +148,7 @@ where
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::User(msg) => write!(f, "Error:  {}", msg),
-            //Error::Compilation(msg, _, _, _) => write!(f, "Compilation error: {}", msg),
-            //Error::Parsing(msg, _, _, _) => write!(f, "Parsing error: {}", msg),
+            Error::User(msg) => write!(f, "Error {}", msg),
             Error::List(v) => write!(
                 f,
                 "{}",

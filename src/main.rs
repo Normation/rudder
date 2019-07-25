@@ -1,16 +1,13 @@
 #[macro_use]
 mod error;
-mod ast;
-//mod codeindex;
 mod parser;
+mod ast;
 mod technique;
-//mod generators;
+mod generators;
 
 
 //use crate::generators::*;
-//use crate::ast::AST;
-//use crate::codeindex::CodeIndex;
-//use crate::parser::parse_file;
+use crate::error::*;
 use crate::technique::translate_file;
 use crate::parser::PAST;
 use crate::ast::AST;
@@ -64,14 +61,11 @@ struct Opt {
 }
 
 /// Read file, parse it and store it in the global codeindex
-fn add_file<'a>(past: &mut PAST<'a>, source_list: &'a SourceList, path: &'a Path, filename: &'a str) {
+fn add_file<'a>(past: &mut PAST<'a>, source_list: &'a SourceList, path: &'a Path, filename: &'a str) -> Result<()> {
     let content = fs::read_to_string(path)
         .unwrap_or_else(|_| panic!("Something went wrong reading the file {}", filename));
     let content_str = source_list.append(content);
-    match past.add_file(filename, &content_str) {
-        Err(e) => panic!("There was an error during parsing:\n{}", e),
-        Ok(()) => {}
-    };
+    past.add_file(filename, &content_str)
 }
 
 /// Implementation of a linked list containing immutable data
@@ -110,11 +104,14 @@ fn main() {
             Ok(_) => println!("Done"),
         }
     } else {
-        compile(&opt.input, &opt.output, opt.technique)
+        match compile(&opt.input, &opt.output, opt.technique) {
+            Err(e) => panic!("Error: {}", e),
+            Ok(_) => println!("Done"),
+        }
     }
 }
 
-fn compile(source: &Path, dest: &Path, technique: bool) {
+fn compile(source: &Path, dest: &Path, technique: bool) -> Result<()> {
 //    let mut code_index = CodeIndex::new();
     let sources = SourceList::new();
 
@@ -125,18 +122,13 @@ fn compile(source: &Path, dest: &Path, technique: bool) {
 
     // data
     let mut past = PAST::new();
-    add_file(&mut past, &sources, corelib, "corelib.rl");
-    add_file(&mut past, &sources, stdlib, "stdlib.rl");
-    add_file(&mut past, &sources, source, &filename);
+    add_file(&mut past, &sources, corelib, "corelib.rl")?;
+    add_file(&mut past, &sources, stdlib, "stdlib.rl")?;
+    add_file(&mut past, &sources, source, &filename)?;
 
-    let ast = AST::from_past(past);
-//
-//    // finish parsing into AST
-//    let ast = match AST::from_code_index(code_index) {
-//        Err(e) => panic!("There was an error during code structure check:\n{}", e),
-//        Ok(a) => a,
-//    };
-//
+    // finish parsing into AST
+    let ast = AST::from_past(past)?;
+
 //    // check that everything is OK
 //    match ast.analyze() {
 //        Err(e) => panic!("There was an error during code analyse:\n{}", e),
@@ -154,6 +146,7 @@ fn compile(source: &Path, dest: &Path, technique: bool) {
 //        Err(e) => panic!("There was an error during code generation:\n{}", e),
 //        Ok(()) => {}
 //    };
+    Ok(())
 }
 
 // Phase 2
