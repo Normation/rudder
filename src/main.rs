@@ -38,9 +38,7 @@ use structopt::StructOpt;
 // - usage des alias: pour les children, pour les (in)compatibilités, pour le générateur?
 
 // Next steps:
-// - children
-// - metadata & comment unicity
-// - rework context
+//
 
 /// Rust langage compiler
 #[derive(Debug, StructOpt)]

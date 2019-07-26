@@ -227,10 +227,9 @@ impl<'src> AST<'src> {
             // or else because we have not stopped on duplicate resources
             let states = state_list.remove(&name).unwrap_or_else(|| Vec::new());
             let res_children = children.remove(&name).unwrap_or_else(|| HashSet::new());
-            match ResourceDef::from_presourcedef(res, states, res_children, &self.context, &self.parameter_defaults, &self.enum_list) {
-                Err(e) => self.errors.push(e),
-                Ok(r)  => { self.resources.insert(name, r); } ,
-            }
+            let (errs,resource) = ResourceDef::from_presourcedef(res, states, res_children, &self.context, &self.parameter_defaults, &self.enum_list);
+            self.errors.extend(errs);
+            if let Some(r) = resource { self.resources.insert(name, r); }
         }
     }
 
@@ -354,15 +353,13 @@ impl<'src> AST<'src> {
         })
     }
 
-    // TODO resource type cannot loop 
-    // TODO resource type can have 2 parents
     fn children_check(
         &self,
         name: Token<'src>,
         children: &HashSet<Token<'src>>,
         depth: u32,
     ) -> Result<()> {
-        // This can be costly but since there is no guarantee the graph is connected solution is not obvious
+        // This can be costly but since there is no guarantee the graph is connected, better solution is not obvious
         for child in children {
             if *child == name {
                 fail!(
@@ -378,7 +375,7 @@ impl<'src> AST<'src> {
                     return Ok(());
                 }
                 // TODO stored in AST now
-                //self.children_check(name, &self.resources[child].children, depth + 1)?;
+                self.children_check(name, &self.resources[child].children, depth + 1)?;
             }
         }
         Ok(())

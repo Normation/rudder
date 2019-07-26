@@ -34,6 +34,10 @@ impl<'src> StringObject<'src> {
             })
     }
 
+    pub fn append(&mut self, other: StringObject<'src>) {
+        self.data.extend(other.data);
+    }
+
     pub fn format<SF, VF>(&self, str_formatter: SF, var_formatter: VF) -> String
     where
         SF: Fn(&str) -> String,

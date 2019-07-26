@@ -5,18 +5,39 @@ use crate::error::*;
 use crate::parser::*;
 use std::collections::{HashMap,HashSet};
 
-/// Utility functions
+///! There are 2 kinds of functions return
+///! - Result: could not return data, fatal to the caller
+///! - Error vec: data partialy created, you may continue
 
 /// Create final metadata from parsed metadata
 fn create_metadata<'src>(
     pmetadata: Vec<PMetadata<'src>>,
-) -> Result<HashMap<Token<'src>, Value<'src>>> {
-    // TODO check for uniqueness and concat comments
-    map_hashmap_results(
-        pmetadata
-            .into_iter(),
-            |meta| Ok((meta.key, Value::from_static_pvalue(meta.value)?)),
-    )
+) -> (Vec<Error>,HashMap<Token<'src>, Value<'src>>) {
+    let mut errors = Vec::new();
+    let mut metadata = HashMap::new();
+    for meta in pmetadata {
+        let value = match Value::from_static_pvalue(meta.value) {
+            Err(e) => { errors.push(e); continue },
+            Ok(v) => v,
+        };
+        // Check for uniqueness and concat comments
+        if metadata.contains_key(&meta.key) {
+            if meta.key.fragment() == "comment" {
+                match metadata.get_mut(&meta.key).unwrap() {
+                    Value::String(o1) => match value {
+                        Value::String(o2) => o1.append(o2),
+                        _ => errors.push(err!(meta.key, "Comment metadata must be of type string")),
+                    },
+                    _ => errors.push(err!(meta.key, "Existing comment metadata must be of type string")),
+                }
+            } else {
+                errors.push(err!(meta.key, "metadata {} already defined at {}", &meta.key, metadata.entry(meta.key).key()));
+            }
+        } else {
+            metadata.insert(meta.key, value);
+        }
+    }
+    (errors,metadata)
 }
 
 /// Create function/resource/state parameter definition from parsed parameters.
@@ -24,6 +45,9 @@ fn create_parameters<'src>(
     pparameters: Vec<PParameter<'src>>,
     parameter_defaults: &[Option<Value<'src>>],
 ) -> Result<Vec<Parameter<'src>>> {
+    if pparameters.len() != parameter_defaults.len() {
+        panic!("BUG: parameter count should not differ from default count");
+    }
     map_vec_results(
         pparameters
             .into_iter()
@@ -33,16 +57,20 @@ fn create_parameters<'src>(
 }
 
 /// Create a local context from a list of parameters
+// TODO return vec
 fn create_default_context<'src>(
     global_context: &VarContext<'src>,
     resource_parameters: &[Parameter<'src>],
     parameters: &[Parameter<'src>],
-) -> Result<VarContext<'src>> {
+) -> (Vec<Error>,VarContext<'src>) {
     let mut context = VarContext::new();
+    let mut errors = Vec::new();
     for p in resource_parameters.iter().chain(parameters.iter()) {
-        context.new_variable(Some(global_context), p.name, p.ptype)?;
+        if let Err(e) = context.new_variable(Some(global_context), p.name, p.ptype) {
+            errors.push(e);
+        }
     }
-    Ok(context)
+    (errors,context)
 }
 
 /// Resource definition with associated metadata and states.
@@ -62,41 +90,44 @@ impl<'src> ResourceDef<'src> {
         context: &VarContext<'src>,
         parameter_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>,
         enum_list: &EnumList<'src>,
-    ) -> Result<ResourceDef<'src>> {
+    ) -> (Vec<Error>,Option<ResourceDef<'src>>) {
         let PResourceDef {
             name,
             metadata: pmetadata,
             parameters: pparameters,
-            //states: pstates,
         } = resource_declaration;
-        // create final version of metadata and parameters
-        let metadata = create_metadata(pmetadata)?;
-        let parameters = create_parameters(
+        // create final version of parameters
+        let parameters = match create_parameters(
             pparameters,
             &parameter_defaults[&(name, None)],
-        )?;
+        ) {
+            Ok(p) => p,
+            Err(e) => return (vec![e],None),
+        };
+        // create metadata and start error vector
+        let (mut errors, metadata) = create_metadata(pmetadata);
         // create final version of states
-        let states = map_hashmap_results(pstates.into_iter(), |st| {
-            Ok((
-                st.name.clone(),
-                StateDef::from_pstate_def(
-                    st,
-                    name,
-                    &mut children,
-                    &parameters,
-                    context,
-                    parameter_defaults,
-                    enum_list,
-                )?,
-            ))
-        })?;
-        // fill up children from parents declaration
-        Ok(ResourceDef {
+        let mut states = HashMap::new();
+        for st in pstates {
+            let (err, state) = StateDef::from_pstate_def(
+                st,
+                name.clone(),
+                &mut children,
+                &parameters,
+                context,
+                parameter_defaults,
+                enum_list,
+            );
+            errors.extend(err);
+            if let Some(st) = state { states.insert(name,st); }
+        }
+        (errors,
+         Some(ResourceDef {
             metadata,
             parameters,
             states,
             children,
-        })
+        }))
     }
 }
 
@@ -119,29 +150,37 @@ impl<'src> StateDef<'src> {
         global_context: &VarContext<'src>,
         parameter_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>,
         enum_list: &EnumList<'src>,
-    ) -> Result<StateDef<'src>> {
+    ) -> (Vec<Error>,Option<StateDef<'src>>) {
         // create final version of metadata and parameters
-        let metadata = create_metadata(pstate.metadata)?;
-        let parameters = create_parameters(
+        let parameters = match create_parameters(
             pstate.parameters,
             &parameter_defaults[&(resource_name, Some(pstate.name))],
-        )?;
-        let mut context = create_default_context(
+        ) {
+            Ok(p) => p,
+            Err(e) => return (vec![e],None),
+        };
+        let (mut errors, metadata) = create_metadata(pstate.metadata);
+        let (errs, mut context) = create_default_context(
             global_context,
             &resource_parameters,
             &parameters,
-        )?;
+        );
+        errors.extend(errs);
         // create final version of statements
         let mut statements = Vec::new();
         for st0 in pstate.statements {
-            statements.push(Statement::fom_pstatement(&mut context, children, st0, global_context, parameter_defaults, enum_list)?);
+            match Statement::fom_pstatement(&mut context, children, st0, global_context, parameter_defaults, enum_list) {
+                Err(e) => errors.push(e),
+                Ok(st) => statements.push(st),
+            }
         }
-        Ok(StateDef {
+        (errors,
+         Some(StateDef {
             metadata,
             parameters,
             statements,
             context,
-        })
+        }))
     }
 }
 
@@ -244,7 +283,7 @@ impl<'src> Statement<'src> {
                         context.new_variable(Some(global_context), var, value.get_type())?;
                     },
                 }
-                let metadata = create_metadata(pmetadata)?;
+                let (mut errors, metadata) = create_metadata(pmetadata);
                 Statement::VariableDefinition(metadata, var, value)
             }
             PStatement::StateDeclaration(PStateDeclaration { metadata, mode, resource, resource_params, state, state_params, outcome }) => {
@@ -315,7 +354,7 @@ impl<'src> Statement<'src> {
                         .iter(),
                         |p| p.context_check(&getter),
                 )?;
-                let metadata = create_metadata(metadata)?;
+                let (mut errors, metadata) = create_metadata(metadata);
                 Statement::StateDeclaration(StateDeclaration { metadata, mode, resource, resource_params, state, state_params, outcome })
             }
             PStatement::Fail(f) => {
