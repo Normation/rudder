@@ -1208,7 +1208,7 @@ $scope.onImportFileChange = function (fileEl) {
 
   // Delete a technique
   $scope.deleteTechnique = function() {
-    $http.delete("/ncf/api/techniques/"+$scope.selectedTechnique.bundle_name).
+    $http.delete("/rudder/secure/api/techniques/"+$scope.selectedTechnique.bundle_name+"/"+$scope.selectedTechnique.version, {params : {force : false}}).
       success(function(data, status, headers, config) {
 
         ngToast.create({ content: "<b>Success!</b> Technique '" + $scope.originalTechnique.name + "' deleted!"});
