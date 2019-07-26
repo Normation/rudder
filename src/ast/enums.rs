@@ -42,21 +42,17 @@ pub enum EnumExpression<'src> {
 }
 
 impl<'src> EnumExpression<'src> {
-    /// print the expression position in source code for user output
+    /// Extract the expression position in source code for user output
     pub fn position_str(&self) -> String {
-        let (file, line, col) = self.position();
-        format!("{}:{}:{}", file, line, col)
-    }
-    /// extract the position triplet
-    fn position(&self) -> (String, u32, usize) {
         match self {
-            EnumExpression::Compare(_, _, v) => v.position(),
-            EnumExpression::And(a, _) => a.position(),
-            EnumExpression::Or(a, _) => a.position(),
-            EnumExpression::Not(a) => a.position(),
-            EnumExpression::Default(a) => a.position(),
+            EnumExpression::Compare(_, _, v) => v.position_str(),
+            EnumExpression::And(a, _) => a.position_str(),
+            EnumExpression::Or(a, _) => a.position_str(),
+            EnumExpression::Not(a) => a.position_str(),
+            EnumExpression::Default(a) => a.position_str(),
         }
     }
+
     /// return true if this is just the expression 'default'
     pub fn is_default(&self) -> bool {
         match self {
@@ -951,7 +947,6 @@ mod tests {
         let ex = penum_expression_t("family:redhat");
         exprs.push((enum_list.canonify_expression(&getter, ex).unwrap(), Vec::new()));
         let result = enum_list.evaluate(&getter, &exprs, case);
-        println!("{:?}",result);
         assert_eq!(result.len(), 2);
     }
 

@@ -17,12 +17,12 @@ use std::path::{Path,PathBuf};
 use structopt::StructOpt;
 
 ///!  Principle:
-///!  1-  rl -> PAST::add_file() -> PAST 
-///!         -> AST::from_past -> AST 
+///!  1-  rl -> PAST::add_file() -> PAST
+///!         -> AST::from_past -> AST
 ///!         -> generate() -> cfengine/json/...
-///! 
+///!
 ///!  2- json technique -> translate() -> rl
-///! 
+///!
 ///!  3- ncf library -> generate-lib() -> stdlib.rl + translate-config
 ///!
 
@@ -37,6 +37,10 @@ use structopt::StructOpt;
 // - arguments non ordonnés pour les resources et les states ?
 // - usage des alias: pour les children, pour les (in)compatibilités, pour le générateur?
 
+// Next steps:
+// - children
+// - metadata & comment unicity
+// - rework context
 
 /// Rust langage compiler
 #[derive(Debug, StructOpt)]
@@ -93,9 +97,8 @@ impl SourceList {
 
 // TODO use termination
 fn main() {
-    // easy optin parsing
+    // easy option parsing
     let opt = Opt::from_args();
-    //println!("{:?}", opt);
 
     if opt.translate {
         match translate_file(&opt.input, &opt.output) {

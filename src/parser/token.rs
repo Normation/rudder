@@ -1,7 +1,6 @@
 use nom_locate::LocatedSpanEx;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::ops::Add;
 use std::ops::Deref;
 
 /// All parsers take PInput objects
@@ -30,17 +29,11 @@ impl<'src> Token<'src> {
 
     /// Format a token position for compiler output (file name and position included)
     pub fn position_str(&self) -> String {
-        let (file, line, col) = self.position();
-        format!("{}:{}:{}", file, line, col)
-    }
-
-    /// Retrieve the position of the token : file name, line number, column number
-    pub fn position(&self) -> (String, u32, usize) {
-        (
-            self.val.extra.to_string(),
-            self.val.line,
-            self.val.get_utf8_column(),
-        )
+        format!("{}:{}:{}",
+                self.val.extra.to_string(),
+                self.val.line,
+                self.val.get_utf8_column(),
+                )
     }
 
     /// Extract the string part of the token
@@ -99,14 +92,6 @@ impl<'src> Hash for Token<'src> {
 impl<'src> fmt::Display for Token<'src> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "'{}' at {}", self.val.fragment, self.position_str())
-    }
-}
-
-/// Easy concatenating of tokens
-impl<'src> Add<Token<'src>> for String {
-    type Output = String;
-    fn add(self, other: Token) -> String {
-        self + other.val.fragment
     }
 }
 

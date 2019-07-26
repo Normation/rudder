@@ -12,26 +12,22 @@ use self::enums::EnumList;
 use self::value::Value;
 use self::resource::*;
 
+// TODO v2: type inference, compatibility metadata
+// TODO aliases
+// TODO check that parameter type match parameter default
+// TODO check state call compatibility
+
 #[derive(Debug)]
 pub struct AST<'src> {
     errors: Vec<Error>,
     pub context: VarContext<'src>,
     pub enum_list: EnumList<'src>,
     pub variable_declarations: HashMap<Token<'src>, Value<'src>>,
-    pub parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>,
+    pub parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>, // also used as parameter list since that's all we have
     pub resource_list: HashSet<Token<'src>>,
-    pub children: HashMap<Token<'src>,HashSet<Token<'src>>>, // TODO maybe we don't need both
-    pub parents: HashMap<Token<'src>,Token<'src>>,
     pub resources: HashMap<Token<'src>, ResourceDef<'src>>,
 }
 
-//pub fn collect_results<I,F,X>(it: I, f: F, errors: &mut Vec<Error>)
-//where
-//    I: Iterator<Item = X>,
-//    F: FnMut(X) -> Result<()>,
-//{
-//    errors.extend(it.map(f).filter(Result::is_err).map(Result::unwrap_err))
-//}
 pub fn vec_collect_results<I,F,X,Y>(it: I, f: F, errors: &mut Vec<Error>) -> Vec<Y>
 where
     I: Iterator<Item = X>,
@@ -46,7 +42,7 @@ impl<'src> AST<'src> {
     /// Produce the final AST data structure.
     /// Call this when all files have been parsed.
     pub fn from_past(past: PAST) -> Result<AST> {
-        let PAST { 
+        let PAST {
             enums, enum_mappings, resources, states,
             variable_declarations, parameter_defaults,
             parents, aliases,
@@ -57,8 +53,8 @@ impl<'src> AST<'src> {
         ast.add_variables(variable_declarations);
         ast.add_default_values(parameter_defaults);
         ast.add_resource_list(&resources);
-        ast.add_parent_list(parents);
-        ast.add_resources(resources, states);
+        let children = ast.create_children_list(parents);
+        ast.add_resources(resources, states, children);
         //ast.add_aliases(aliases);
         if ast.errors.is_empty() {
             Ok(ast)
@@ -74,12 +70,10 @@ impl<'src> AST<'src> {
             variable_declarations: HashMap::new(),
             parameter_defaults: HashMap::new(),
             resource_list: HashSet::new(),
-            children: HashMap::new(),
-            parents: HashMap::new(),
             resources: HashMap::new(),
         }
     }
-    
+
     /// Insert all initial enums
     fn add_enums(&mut self, enums: Vec<PEnum<'src>>) {
         let context = &mut self.context; // borrow checking out of the closure
@@ -152,7 +146,6 @@ impl<'src> AST<'src> {
         &mut self,
         parameter_defaults: Vec<(Token<'src>, Option<Token<'src>>, Vec<Option<PValue<'src>>>)>,
     ) {
-                    
         for (resource,state,defaults) in parameter_defaults {
             // parameters with default values must be the last ones
             if let Err(e) = defaults.iter()
@@ -176,7 +169,9 @@ impl<'src> AST<'src> {
             self.parameter_defaults.insert(
                 (resource,state),
                 vec_collect_results(
-                    defaults.into_iter().filter(Option::is_some),
+                    // we could keep only 'Some' parameter if this was not aso used for parameter
+                    // counting
+                    defaults.into_iter(),//.filter(Option::is_some),
                     |def| {
                         Ok(match def {
                             Some(pvalue) => Some(Value::from_static_pvalue(pvalue)?),
@@ -201,21 +196,21 @@ impl<'src> AST<'src> {
     }
 
     /// Compute manually declared parent/child relationships
-    fn add_parent_list(&mut self, parents: Vec<(Token<'src>, Token<'src>)>) {
-        // TODO complete with autodetected relationships
+    fn create_children_list(&mut self, parents: Vec<(Token<'src>, Token<'src>)>) -> HashMap<Token<'src>,HashSet<Token<'src>>> {
+        let mut children = HashMap::new();
         for (child,parent) in parents {
             if !self.resource_list.contains(&parent) {
                 self.errors.push(err!(&child, "Resource {} declares {} as a parent, but it doesn't exist", child, parent));
             } else {
-                self.parents.insert(child,parent);
-                self.children.entry(parent).or_insert(HashSet::new());
-                self.children.get_mut(&parent).unwrap().insert(child);
+                children.entry(parent).or_insert(HashSet::new());
+                children.get_mut(&parent).unwrap().insert(child);
             }
         }
+        children
     }
 
     /// Create and store resource objects
-    fn add_resources(&mut self, resources: Vec<PResourceDef<'src>>, states: Vec<PStateDef<'src>>) {
+    fn add_resources(&mut self, resources: Vec<PResourceDef<'src>>, states: Vec<PStateDef<'src>>, mut children: HashMap<Token<'src>,HashSet<Token<'src>>>) {
         // first separate states by resource
         let mut state_list = self.resource_list.iter()
             .map(|k| (*k,Vec::new()))
@@ -231,12 +226,12 @@ impl<'src> AST<'src> {
             let name = res.name.clone();
             // or else because we have not stopped on duplicate resources
             let states = state_list.remove(&name).unwrap_or_else(|| Vec::new());
-            match ResourceDef::from_presourcedef(res, states, &self.context, &self.parameter_defaults, &self.enum_list) {
+            let res_children = children.remove(&name).unwrap_or_else(|| HashSet::new());
+            match ResourceDef::from_presourcedef(res, states, res_children, &self.context, &self.parameter_defaults, &self.enum_list) {
                 Err(e) => self.errors.push(e),
                 Ok(r)  => { self.resources.insert(name, r); } ,
             }
         }
-        
     }
 
     fn binding_check(&self, statement: &Statement) -> Result<()> {
@@ -359,6 +354,8 @@ impl<'src> AST<'src> {
         })
     }
 
+    // TODO resource type cannot loop 
+    // TODO resource type can have 2 parents
     fn children_check(
         &self,
         name: Token<'src>,
@@ -402,7 +399,6 @@ impl<'src> AST<'src> {
         if vec![
             // TODO
             //"string",
-            "int",
             "struct",
             "list",
             "if",
@@ -422,7 +418,7 @@ impl<'src> AST<'src> {
             "json",
             "enforce",
             //"condition",
-            "audit let",
+            "audit",
         ]
         .contains(&name.fragment())
         {

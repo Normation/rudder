@@ -161,14 +161,25 @@ impl CFEngine {
                     |x| self.parameter_to_cfengine(x),
                     ","
                 )?;
-                Ok(format!(
-                    "      \"{}\" usebundle => {}_{}({}), if=>{};\n",
-                    component,
-                    sd.resource.fragment(),
-                    sd.state.fragment(),
-                    param_str,
-                    self.format_class(in_class)?
-                ))
+                let class = self.format_class(in_class)?;
+                if class == "any" {
+                    Ok(format!(
+                        "      \"{}\" usebundle => {}_{}({});\n",
+                        component,
+                        sd.resource.fragment(),
+                        sd.state.fragment(),
+                        param_str,
+                    ))
+                } else {
+                    Ok(format!(
+                        "      \"{}\" usebundle => {}_{}({}), if => \"{}\";\n",
+                        component,
+                        sd.resource.fragment(),
+                        sd.state.fragment(),
+                        param_str,
+                        class,
+                    ))
+                }
             }
             Statement::Case(_case, vec) => {
                 self.reset_cases();

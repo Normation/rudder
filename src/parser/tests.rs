@@ -140,8 +140,9 @@ fn test_pcomment() {
         map_res(pcomment, "##hello Herman1\n"),
         Ok((
             "",
-            PComment {
-                lines: vec!["hello Herman1".into()]
+            PMetadata {
+                key: "comment".into(),
+                value: PValue::String("##".into(), "hello Herman1".into()),
             }
         ))
     );
@@ -149,8 +150,9 @@ fn test_pcomment() {
         map_res(pcomment, "##hello Herman2\nHola"),
         Ok((
             "Hola",
-            PComment {
-                lines: vec!["hello Herman2".into()]
+            PMetadata {
+                key: "comment".into(),
+                value: PValue::String("##".into(), "hello Herman2".into()),
             }
         ))
     );
@@ -158,8 +160,9 @@ fn test_pcomment() {
         map_res(pcomment, "##hello Herman3!"),
         Ok((
             "",
-            PComment {
-                lines: vec!["hello Herman3!".into()]
+            PMetadata {
+                key: "comment".into(),
+                value: PValue::String("##".into(), "hello Herman3!".into()),
             }
         ))
     );
@@ -167,8 +170,9 @@ fn test_pcomment() {
         map_res(pcomment, "##hello1\nHerman\n"),
         Ok((
             "Herman\n",
-            PComment {
-                lines: vec!["hello1".into()]
+            PMetadata {
+                key: "comment".into(),
+                value: PValue::String("##".into(), "hello1".into()),
             }
         ))
     );
@@ -176,8 +180,9 @@ fn test_pcomment() {
         map_res(pcomment, "##hello2\nHerman\n## 2nd line"),
         Ok((
             "Herman\n## 2nd line",
-            PComment {
-                lines: vec!["hello2".into()]
+            PMetadata {
+                key: "comment".into(),
+                value: PValue::String("##".into(), "hello2".into()),
             }
         ))
     );
@@ -185,8 +190,9 @@ fn test_pcomment() {
         map_res(pcomment, "##hello\n##Herman\n"),
         Ok((
             "",
-            PComment {
-                lines: vec!["hello".into(), "Herman".into()]
+            PMetadata {
+                key: "comment".into(),
+                value: PValue::String("##".into(), "hello\nHerman".into()),
             }
         ))
     );
@@ -583,7 +589,7 @@ fn test_pmetadata_list() {
                 },
                 PMetadata {
                     key: "comment".into(),
-                    value: PValue::String("hello".into(), "hello\nHerman".to_string())
+                    value: PValue::String("##".into(), "hello\nHerman".to_string())
                 },
                 PMetadata {
                     key: "key".into(),

@@ -1,4 +1,4 @@
-use crate::error;
+use crate::error::*;
 use super::{PInput,Token};
 use nom::error::{ParseError,ErrorKind,VerboseError};
 use nom::{IResult, Err};
@@ -53,7 +53,7 @@ impl<I: Clone> ParseError<I> for PError<I> {
     /// through a parse tree, accumulating error context on the way
     fn append(input: I, kind: ErrorKind, other: Self) -> Self {
         match other.kind {
-            PErrorKind::Nom(e) => 
+            PErrorKind::Nom(e) =>
                 PError {
                     context: input.clone(),
                     kind: PErrorKind::Nom(VerboseError::append(input, kind, e)),
@@ -114,15 +114,22 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
     }
 }
 
+/// Convert into a project error
+impl Into<Error> for PError<PInput<'_>> {
+    fn into(self) -> Error {
+        Error::User(format!("{}", self))
+    }
+}
+
 /// Combinator to force the error output to be a specific PError.
 /// Having a combinator instead of a macro is much better since it can be used from within other
 /// combinators.
-// Here closures could use ParseError<I> but this way we force the type inference for 
+// Here closures could use ParseError<I> but this way we force the type inference for
 // all sub parsers to return PError<I>, which we won't have to specify during call.
 // Pass a closure instead of a PErrorKind to allow lazy evaluation of its parameters
-pub fn or_fail<'src, O, F, E>(f: F, e: E) 
+pub fn or_fail<'src, O, F, E>(f: F, e: E)
     -> impl Fn(PInput<'src>) -> PResult<'src, O>
-    where 
+    where
         F: Fn(PInput<'src>) -> PResult<'src, O>,
         E: Fn() -> PErrorKind<PInput<'src>>,
 {
@@ -142,18 +149,13 @@ pub fn or_fail<'src, O, F, E>(f: F, e: E)
     }
 }
 
-/// Transform an ErrorKind from nom into the project's global error type.
-fn format_error(err: PError<PInput>) -> error::Error {
-    err!(Token::from(err.context), "{}", err)
-}
-
 /// Extract error from a parsing result and transforms it to the project's global error type.
-// type conversion can be hard to follow
-pub fn fix_error_type<T>(res: PResult<T>) -> error::Result<T> {
+pub fn fix_error_type<T>(res: PResult<T>) -> Result<T> {
     match res {
         Ok((_, t)) => Ok(t),
-        Err(Err::Failure(e)) => Err(format_error(e)),
-        Err(Err::Error(e)) => Err(format_error(e)),
+        Err(Err::Failure(e)) => Err(e.into()),
+        Err(Err::Error(e)) => Err(e.into()),
         Err(Err::Incomplete(_)) => panic!("Incomplete should never happen"),
     }
 }
+

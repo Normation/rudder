@@ -30,9 +30,8 @@ pub use token::PInput;
 
 
 // TODO v2: measures, actions, functions, iterators, include
-// TODO resource parent && state alias
 // TODO proptest
-// ===== Public interfaces ===== 
+// ===== Public interfaces =====
 
 /// PAST is just a global structure parsed data sequentially.
 #[derive(Debug)]
@@ -61,6 +60,7 @@ impl<'src> PAST<'src> {
         }
     }
 
+    /// The parse function that should be called to parse a file
     pub fn add_file(&mut self, filename: &'src str, content: &'src str) -> Result<()> {
         let pfile = fix_error_type(pfile(PInput::new_extra(content, filename)))?;
         if pfile.header.version != 0 {
@@ -75,7 +75,7 @@ impl<'src> PAST<'src> {
                     if let Some(parent) = p { self.parents.push((r.name.clone(),parent)) };
                     self.resources.push(r);
                 },
-                PDeclaration::State((s,d)) => { 
+                PDeclaration::State((s,d)) => {
                     self.parameter_defaults.push((s.resource_name.clone(),Some(s.name.clone()),d));
                     self.states.push(s);
                 },
@@ -87,17 +87,9 @@ impl<'src> PAST<'src> {
     }
 }
 
-/// The parse function that should be called when parsing a file
-//pub fn parse_file<'src>(
-//    filename: &'src str,
-//    content: &'src str,
-//) -> crate::error::Result<PFile<'src>> {
-//    fix_error_type(pfile(PInput::new_extra(content, filename)))
-//}
-
 /// Parse a string for interpolation
 pub fn parse_string(content: &str) -> Result<Vec<PInterpolatedElement>> {
-    fix_error_type(pinterpolated_string(PInput::new_extra(content, ""))) // TODO extra could be the content
+    fix_error_type(pinterpolated_string(PInput::new_extra(content, "")))
 }
 
 // ===== Parsers =====
@@ -123,7 +115,7 @@ fn strip_spaces_and_comment(i: PInput) -> PResult<()> {
 
 /// Combinator automatically call strip_spaces_and_comment before and after a parser
 /// This avoids having to call it manually many times
-fn sp<'src, O, F>(f: F) -> impl Fn(PInput<'src>) -> PResult<O> 
+fn sp<'src, O, F>(f: F) -> impl Fn(PInput<'src>) -> PResult<O>
     where F: Fn(PInput<'src>) -> PResult<O>,
           O: 'src,
 {
@@ -135,15 +127,15 @@ fn sp<'src, O, F>(f: F) -> impl Fn(PInput<'src>) -> PResult<O>
     }
 }
 
-/// A bit like do_parse! 
+/// A bit like do_parse!
 ///
 /// Transforms:
-///     { 
+///     {
 ///         variable: combinator(parser);
 ///         ...
 ///     } => Object { variable, ... }
 /// Into a series of sequential calls like this:
-///     |i| 
+///     |i|
 ///     let(i,variable) = combinator(parser)(i)?;
 ///     let (i,_) = strip_spaces_and_comment(i)?
 ///     ...
@@ -151,7 +143,7 @@ fn sp<'src, O, F>(f: F) -> impl Fn(PInput<'src>) -> PResult<O>
 ///
 /// The result is a closure parser that can be used in place of any other parser
 ///
-/// We don't use a list or a tuple for sequence parsing because we want to 
+/// We don't use a list or a tuple for sequence parsing because we want to
 /// use some intermediary result at some steps (for example for error management).
 macro_rules! sequence {
     ( { $($f:ident : $parser:expr;)* } => $output:expr ) => {
@@ -194,32 +186,6 @@ fn pheader(i: PInput) -> PResult<PHeader> {
             _x: tag("\n");
         } => PHeader { version }
     )(i)
-}
-
-/// A parsed comment block starts with a ## and ends with the end of line.
-/// Such comment is parsed and kept contrarily to comments starting with '#'.
-#[derive(Debug, PartialEq)]
-pub struct PComment<'src> {
-    lines: Vec<Token<'src>>,
-}
-impl<'src> ToString for PComment<'src> {
-    fn to_string(&self) -> String {
-        self.lines.iter().map(|x| x.to_string()).collect::<Vec<String>>().join("\n")
-    }
-}
-fn pcomment(i: PInput) -> PResult<PComment> {
-    let (i, lines) = many1(map(
-        preceded(
-            tag("##"),
-            alt((
-                terminated(take_until("\n"), newline),
-                // comment is the last line
-                rest,
-            )),
-        ),
-        |x: PInput| x.into(),
-    ))(i)?;
-    Ok((i, PComment { lines }))
 }
 
 /// An identifier is a word that contains alphanumeric chars.
@@ -289,7 +255,7 @@ fn penum_mapping(i: PInput) -> PResult<PEnumMapping> {
             _x:   or_fail(tag("~>"),|| PErrorKind::UnexpectedToken("~>"));
             to:   or_fail(pidentifier,|| PErrorKind::InvalidName(e));
             b:    or_fail(tag("{"),|| PErrorKind::UnexpectedToken("{"));
-            mapping: 
+            mapping:
                 separated_nonempty_list(
                     sp(tag(",")),
                     separated_pair(
@@ -315,7 +281,7 @@ fn penum_mapping(i: PInput) -> PResult<PEnumMapping> {
         } => PEnumMapping {from, to, mapping}
     )(i)
 }
-    
+
 /// An enum expression is used as a condition in a case expression.
 /// This is a boolean expression based on enum comparison.
 /// A comparison check if the variable is of the right type and contains
@@ -516,7 +482,7 @@ pub enum PType {
 fn ptype(i: PInput) -> PResult<PType> {
     alt((
         value(PType::String,  tag("string")),
-        value(PType::Number,  tag("int")),
+        value(PType::Number,  tag("num")),
         value(PType::Boolean, tag("boolean")),
         value(PType::Struct,  tag("struct")),
         value(PType::List,    tag("list")),
@@ -608,21 +574,36 @@ fn pmetadata(i: PInput) -> PResult<PMetadata> {
     )(i)
 }
 
+/// A parsed comment block starts with a ## and ends with the end of line.
+/// Such comment is parsed and kept contrarily to comments starting with '#'.
+fn pcomment(i: PInput) -> PResult<PMetadata> {
+    let (i, start) = peek(tag("##"))(i)?;
+    let (i, lines) = 
+        many1(map(
+            preceded(
+                tag("##"),
+                alt((
+                    terminated(take_until("\n"), newline),
+                    // comment is the last line
+                    rest,
+                )),
+            ),
+            |x: PInput| x.to_string()
+        ))(i)?;
+    Ok((i, PMetadata {
+        key: "comment".into(),
+        value: PValue::String(start.into(), lines.join("\n")),
+    }))
+}
+
+
 /// A metadata list is an optional list of metadata entries
 /// Comments are considered to be metadata
 fn pmetadata_list(i: PInput) -> PResult<Vec<PMetadata>> {
     many0(
         alt((
             pmetadata,
-            map(pcomment, |c|
-                PMetadata { 
-                    key: "comment".into(),
-                    // there is always at least one comment parsed by pcomment
-                    value: PValue::String(
-                        c.lines[0],
-                        c.lines.iter().map(|x| x.fragment().to_string()).collect::<Vec<String>>().join("\n"))
-                }
-            )
+            pcomment,
         ))
     )(i)
 }
@@ -676,7 +657,7 @@ fn presource_def(i: PInput) -> PResult<(PResourceDef,Vec<Option<PValue>>,Option<
             parameter_list: separated_list(sp(tag(",")), pparameter);
             _x: or_fail(tag(")"), || PErrorKind::UnterminatedDelimiter(s));
             parent: opt(preceded(sp(tag(":")),pidentifier));
-        } => { 
+        } => {
             let (parameters, parameter_defaults) = parameter_list.into_iter().unzip();
             (PResourceDef {
                       metadata,
@@ -816,7 +797,7 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
                 _x: or_fail(tag("}"),|| PErrorKind::UnterminatedDelimiter(s));
             } => PStatement::Case(case.into(), cases)
         ),
-        // if 
+        // if
         wsequence!(
             {
                 metadata: pmetadata_list; // metadata is invalid here, check it after the 'if' tag below
