@@ -371,6 +371,7 @@ pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
 /* ----- </QUICK SEARCH>  ----- */
 
 /* MENU */
+
 .skin-yellow .sidebar ul.sidebar-menu > li.treeview:nth-child(2) > ul.treeview-menu ,
 .skin-yellow .sidebar ul.sidebar-menu > li.treeview:nth-child(3) > ul.treeview-menu {
   display: block !important;
@@ -384,6 +385,21 @@ pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
 .skin-yellow .sidebar ul.sidebar-menu > li.treeview:nth-child(3) > a > span + i.fa{
   display: none !important;
 }
+.skin-yellow.sidebar-collapse .sidebar ul.sidebar-menu > li.treeview:nth-child(2) > ul.treeview-menu ,
+.skin-yellow.sidebar-collapse .sidebar ul.sidebar-menu > li.treeview:nth-child(3) > ul.treeview-menu {
+  display: none !important;
+  height: auto !important;
+}
+.skin-yellow.sidebar-mini.sidebar-collapse .sidebar ul.sidebar-menu > li.treeview:nth-child(2):hover > ul.treeview-menu,
+.skin-yellow.sidebar-mini.sidebar-collapse .sidebar ul.sidebar-menu > li.treeview:nth-child(3):hover > ul.treeview-menu{
+  display: block !important;
+
+}
+.skin-yellow.sidebar-collapse .sidebar ul.sidebar-menu > li.treeview:nth-child(2) > a,
+.skin-yellow.sidebar-collapse .sidebar ul.sidebar-menu > li.treeview:nth-child(3) > a{
+  cursor: initial !important;
+}
+
 .skin-yellow .treeview-menu>li>a{
   white-space: normal;
   display: flex;
