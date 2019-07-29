@@ -58,7 +58,7 @@ class TechniqueParser(
   , systemVariableSpecService    : SystemVariableSpecService
 ) extends NamedZioLogger {
 
-  val loggerName = "technique-parser"
+  def loggerName = "technique-parser"
 
   def parseXml(xml: Node, id: TechniqueId): Either[LoadTechniqueError, Technique] = {
     def nonEmpty(s: String) = if(null == s || s == "") None else Some(s)

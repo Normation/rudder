@@ -63,7 +63,7 @@ trait LDIFFileLogger {
 }
 
 class DummyLDIFFileLogger extends LDIFFileLogger {
-  val loggerName = "dummy logger - no output"
+  def loggerName = "dummy logger - no output"
   val ldifTraceRootDir = "no a real ldifTraceRootDir"
   def tree(tree:LDAPTree): Unit = {}
   def record(LDIFRecord: => LDIFRecord,comment:Option[String] = None): Unit = {}

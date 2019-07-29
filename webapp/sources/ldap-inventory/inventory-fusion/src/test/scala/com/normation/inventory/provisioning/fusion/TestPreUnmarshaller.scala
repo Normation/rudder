@@ -38,9 +38,7 @@ package com.normation.inventory.provisioning.fusion
 
 import java.io.InputStream
 
-import com.normation.errors.IOResult
-import com.normation.errors.RudderError
-import com.normation.errors.SystemError
+import com.normation.errors._
 import com.normation.inventory.services.provisioning.PreUnmarshall
 import com.normation.zio._
 import org.junit.runner._
@@ -74,7 +72,7 @@ class TestPreUnmarshaller extends Specification {
           url.openStream()
         }
       } { is =>
-       IOResult.effectUioUnit(is.close)
+       effectUioUnit(is.close)
       } {
         is => fromXml("check", is).flatMap[Any, RudderError, NodeSeq](pre.apply)
       }).either.runNow

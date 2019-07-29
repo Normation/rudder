@@ -49,7 +49,7 @@ import com.normation.ldap.sdk.syntax._
 /*
  * Logger for LDAP connection related information.
  */
-object LDAPConnectionLogger extends NamedZioLogger(){val loggerName = "ldap-connection"}
+object LDAPConnectionLogger extends NamedZioLogger(){def loggerName = "ldap-connection"}
 
 trait ReadOnlyEntryLDAPConnection {
 
@@ -500,7 +500,7 @@ class RwLDAPConnection(
   private def applyMods[MOD <: ReadOnlyLDAPRequest](modName: String, toLDIFChangeRecord:MOD => LDIFChangeRecord, backendAction: MOD => LDAPResult, onlyReportThat: ResultCode => Boolean)(reqs: List[MOD]) : LDAPIOResult[Seq[LDIFChangeRecord]] = {
     if(reqs.size < 1) IO.succeed(Seq())
     else {
-      ldifFileLogger.records(reqs map ( toLDIFChangeRecord (_) ))
+      UIO.effectTotal(ldifFileLogger.records(reqs map (toLDIFChangeRecord (_)))) *>
       IO.foreach(reqs) { req =>
         applyMod(modName, toLDIFChangeRecord, backendAction, onlyReportThat)(req)
       }

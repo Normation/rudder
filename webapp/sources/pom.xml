@@ -138,6 +138,7 @@ limitations under the License.
         </executions>
         <configuration>
           <scalaCompatVersion>${scala-binary-version}</scalaCompatVersion>
+<!--          <recompileMode>incremental</recompileMode>-->
           <compilerPlugins>
             <compilerPlugin>
               <groupId>com.github.ghik</groupId>
@@ -349,7 +350,7 @@ limitations under the License.
     <rudder-major-version>5.1</rudder-major-version>
     <rudder-version>5.1.0~alpha1-SNAPSHOT</rudder-version>
 
-    <scala-version>2.12.7</scala-version>
+    <scala-version>2.12.8</scala-version>
     <scala-binary-version>2.12</scala-binary-version>
     <lift-version>3.3.0</lift-version>
     <slf4j-version>1.7.25</slf4j-version>

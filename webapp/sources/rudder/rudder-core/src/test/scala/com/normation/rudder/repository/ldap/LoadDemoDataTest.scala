@@ -97,7 +97,7 @@ class LoadDemoDataTest extends Specification {
       val dn = new DN("biosName=bios1,machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
       val newParent = new DN("machineId=machine-does-not-exists,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
 
-      val res = ldap.newConnection.move(dn, newParent).either.runNow
+      val res = ldap.newConnection.flatMap(_.move(dn, newParent)).either.runNow
       /*
        * Failure message is:
        * Can not move 'biosName=bios1,machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration' to new parent
@@ -106,7 +106,7 @@ class LoadDemoDataTest extends Specification {
        * 'biosName=bios1,machineId=machine-does-not-exists,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration' does not exist.
        */
       res must beAnInstanceOf[Left[LDAPRudderError, _]] and (
-        ldap.newConnection.exists(dn).runNow must beTrue
+        ldap.newConnection.flatMap(_.exists(dn)).runNow must beTrue
       )
 
     }

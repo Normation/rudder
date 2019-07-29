@@ -84,7 +84,7 @@ class CheckInitXmlExport(
     }).toBox match {
       case eb:EmptyBox =>
         val fail = eb ?~! "Error when trying to initialise to configuration-repository sub-system with a first full archive"
-        BootraspLogger.logEffect.error(fail)
+        BootraspLogger.logEffect.error(fail.messageChain)
         fail.rootExceptionCause.foreach { t =>
           BootraspLogger.logEffect.error("Root exception was:", t)
         }

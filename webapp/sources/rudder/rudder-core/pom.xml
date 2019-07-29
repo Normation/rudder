@@ -173,13 +173,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>2.3.0</version>
     </dependency>
 
-    <!-- Task: monix -->
-    <dependency>
-      <groupId>io.monix</groupId>
-      <artifactId>monix-eval_${scala-binary-version}</artifactId>
-      <version>${monix-version}</version>
-    </dependency>
-
     <!-- cache used in compliance logger -->
     <dependency>
       <groupId>com.github.ben-manes.caffeine</groupId>

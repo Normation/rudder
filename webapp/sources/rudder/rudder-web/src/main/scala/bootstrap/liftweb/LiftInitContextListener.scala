@@ -41,8 +41,9 @@ import net.liftweb.common._
 import javax.servlet.ServletContextEvent
 import org.springframework.web.context.ContextLoaderListener
 import org.springframework.web.context.support.WebApplicationContextUtils
-import org.springframework.core.io.{ClassPathResource => CPResource,FileSystemResource => FSResource}
+import org.springframework.core.io.{ClassPathResource => CPResource, FileSystemResource => FSResource}
 import java.io.File
+
 import com.normation.rudder.domain.logger.ApplicationLogger
 
 /**
@@ -82,6 +83,10 @@ class LiftInitContextListener extends ContextLoaderListener {
   override def contextInitialized(sce:ServletContextEvent) : Unit = {
 
     Logger.setup = Full(() => Logback.withFile(logbackFile)())
+
+    val pid = new File("/proc/self").getCanonicalFile().getName()
+    ApplicationLogger.info(s"Rudder starts with PID ${pid} on ${java.lang.Runtime.getRuntime().availableProcessors()} cores")
+
     /// init all our non-spring services ///
 
     /*

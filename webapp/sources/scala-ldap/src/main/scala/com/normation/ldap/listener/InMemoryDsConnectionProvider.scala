@@ -23,9 +23,12 @@ package com.normation.ldap.listener
 import com.unboundid.ldap.listener.{InMemoryDirectoryServer, InMemoryDirectoryServerConfig}
 import com.unboundid.ldap.sdk.schema.Schema
 import com.normation.ldap.ldif._
+import com.normation.ldap.sdk.LDAPIOResult.LDAPIOResult
 import com.normation.ldap.sdk._
+import com.normation.ldap.sdk.syntax.UnboundidLDAPConnection
 import zio.blocking.Blocking
 import com.normation.zio._
+import zio._
 
 /**
  * A class that provides a connection provider which use an
@@ -40,7 +43,7 @@ class InMemoryDsConnectionProvider[CON <: RoLDAPConnection](
   , bootstrapLDIFPaths : Seq[String] = Seq()
   , val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger()
   , val blockingModule: Blocking
-) extends LDAPConnectionProvider[CON] {
+) extends LDAPConnectionProvider[CON] with OneConnectionProvider[CON] with UnboundidConnectionProvider {
 
   /**
    * The actual In Memory server on which the connection
@@ -52,26 +55,17 @@ class InMemoryDsConnectionProvider[CON <: RoLDAPConnection](
   bootstrapLDIFPaths foreach { path => server.importFromLDIF(false, path) }
   server.startListening
 
-  def newConnection : CON = (new RwLDAPConnection(server.getConnection,ldifFileLogger,blockingModule)).asInstanceOf[CON]
+  override def toConnectionString: String = "in-memory-ldap-connection"
+  override def semaphore = ZioRuntime.unsafeRun(Semaphore.make(1))
+  override val connection = ZioRuntime.unsafeRun(Ref.make(Option.empty[CON]))
 
-  //////// implementation of LDAPConnectionProvider ////////
-  private[this] var connection : Option[CON] = None
-  protected def getInternalConnection() : CON = {
-    def reset : CON = {
-      val con = newConnection
-      connection = Some(con)
-      con
-    }
-    connection match {
-      case None => reset
-      case Some(con) => if(con.backed.isConnected) con else reset
-    }
+  override def newUnboundidConnection: LDAPIOResult[UnboundidLDAPConnection] = LDAPIOResult.effect(server.getConnection)
+
+  def newConnection = {
+    newUnboundidConnection.map(con =>
+      new RwLDAPConnection(con,ldifFileLogger,blockingModule=blockingModule).asInstanceOf[CON]
+    )
   }
-
-  protected def releaseInternalConnection(con:CON) : Unit = {}
-  protected def releaseDefuncInternalConnection(con:CON) : Unit = {}
-  override def close : Unit = connection.foreach  { con => con.close() }
-
 }
 
 object InMemoryDsConnectionProvider {

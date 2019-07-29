@@ -586,7 +586,7 @@ class SystemApiService11(
   private[this] val allFiles = "groups" :: ruleFiles ::: directiveFiles
 
   private[this] def getZip(commitId:String, paths:List[String], archiveType: String) : Either[String, (Array[Byte], List[(String, String)])] = {
-    (ZIO.bracket(repo.db.map(db => new RevWalk(db)))(rw => IOResult.effectUioUnit(rw.dispose)) { rw =>
+    (ZIO.bracket(repo.db.map(db => new RevWalk(db)))(rw => effectUioUnit(rw.dispose)) { rw =>
       for {
         db        <- repo.db
         revCommit <- IOResult.effect(s"Error when retrieving commit revision for '${commitId}'") {

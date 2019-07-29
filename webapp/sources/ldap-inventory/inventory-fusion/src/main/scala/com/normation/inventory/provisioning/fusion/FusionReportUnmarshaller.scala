@@ -818,7 +818,7 @@ class FusionReportUnmarshaller(
     letter.orElse(mount_point).orElse(volume) match {
       case None =>
         InventoryLogger.logEffect.debug("Ignoring FileSystem entry because missing tag TYPE and LETTER")
-        InventoryLogger.logEffect.debug(d)
+        InventoryLogger.logEffect.debug(d.toString())
         None
       case Some(mountPoint) =>
         Some(FileSystem(
@@ -850,7 +850,7 @@ class FusionReportUnmarshaller(
     optText(n\"DESCRIPTION").orElse(optText(n\"TYPE")) match {
       case None =>
         InventoryLogger.logEffect.debug("Ignoring entry Network because tag DESCRIPTION is empty")
-        InventoryLogger.logEffect.debug(n)
+        InventoryLogger.logEffect.debug(n.toString())
         None
       case Some(desc) =>
         // in a single NETWORK element, we can have both IPV4 and IPV6
@@ -912,7 +912,7 @@ class FusionReportUnmarshaller(
     val bios = optText(b\"SMODEL") match {
       case None =>
         InventoryLogger.logEffect.debug("Ignoring entry Bios because SMODEL is empty")
-        InventoryLogger.logEffect.debug(b)
+        InventoryLogger.logEffect.debug(b.toString())
         None
       case Some(model) =>
         val date = try {
@@ -938,7 +938,7 @@ class FusionReportUnmarshaller(
     optText(c\"NAME") match {
       case None =>
         InventoryLogger.logEffect.debug("Ignoring entry Controller because tag NAME is empty")
-        InventoryLogger.logEffect.debug(c)
+        InventoryLogger.logEffect.debug(c.toString())
         None
       case Some(name) =>
         Some(Controller(
@@ -962,7 +962,7 @@ class FusionReportUnmarshaller(
     val slot = optText(m\"NUMSLOTS") match {
       case None =>
         InventoryLogger.logEffect.debug("Memory is missing tag NUMSLOTS, assigning a negative value for num slot")
-        InventoryLogger.logEffect.debug(m)
+        InventoryLogger.logEffect.debug(m.toString())
         DUMMY_MEM_SLOT_NUMBER
       case Some(slot) =>  slot
     }
@@ -987,7 +987,7 @@ class FusionReportUnmarshaller(
     optText(p\"NAME") match {
       case None =>
         InventoryLogger.logEffect.debug("Ignoring entry Port because tag NAME is empty")
-        InventoryLogger.logEffect.debug(p)
+        InventoryLogger.logEffect.debug(p.toString())
         None
       case Some(name) =>
         /*It seems that CAPTION and DESCRIPTION
@@ -1040,7 +1040,7 @@ class FusionReportUnmarshaller(
     name match {
       case None =>
         InventoryLogger.logEffect.debug("Ignoring entry Slot because tags NAME and DESIGNATION are empty")
-        InventoryLogger.logEffect.debug(s)
+        InventoryLogger.logEffect.debug(s.toString())
         None
       case Some(sl) =>
         Some( Slot (
@@ -1065,7 +1065,7 @@ class FusionReportUnmarshaller(
     name match {
       case None =>
         InventoryLogger.logEffect.debug("Ignoring entry Sound because tags NAME and MANUFACTURER are empty")
-        InventoryLogger.logEffect.debug(s)
+        InventoryLogger.logEffect.debug(s.toString())
         None
       case Some(so) =>
         Some( Sound (
@@ -1084,7 +1084,7 @@ class FusionReportUnmarshaller(
     optText(s\"NAME") match {
       case None =>
         InventoryLogger.logEffect.debug("Ignoring entry Storage because tag NAME is empty")
-        InventoryLogger.logEffect.debug(s)
+        InventoryLogger.logEffect.debug(s.toString())
         None
       case Some(name) =>
         Some( Storage(
@@ -1110,7 +1110,7 @@ class FusionReportUnmarshaller(
     optText(v\"NAME").orElse(optText(v\"RESOLUTION")) match {
       case None =>
         InventoryLogger.logEffect.debug("Ignoring entry Video because tag NAME is empty")
-        InventoryLogger.logEffect.debug(v)
+        InventoryLogger.logEffect.debug(v.toString())
         None
       case Some(name) => Some( Video(
           name        = name
@@ -1126,7 +1126,7 @@ class FusionReportUnmarshaller(
     optText(c\"NAME") match{
       case None =>
         InventoryLogger.logEffect.debug("Ignoring entry CPU because tag MANIFACTURER and ARCH are empty")
-        InventoryLogger.logEffect.debug(c)
+        InventoryLogger.logEffect.debug(c.toString())
         None
       case Some(name) =>
         Some (
@@ -1151,7 +1151,7 @@ class FusionReportUnmarshaller(
     optText(ev\"KEY")  match {
     case None =>
       InventoryLogger.logEffect.debug("Ignoring entry Envs because tag KEY is empty")
-      InventoryLogger.logEffect.debug(ev)
+      InventoryLogger.logEffect.debug(ev.toString())
       None
     case Some(key) =>
       Some (
@@ -1166,7 +1166,7 @@ class FusionReportUnmarshaller(
     optText(vm\"UUID") match {
     case None =>
       InventoryLogger.logEffect.debug("Ignoring entry VirtualMachine because tag UUID is empty")
-      InventoryLogger.logEffect.debug(vm)
+      InventoryLogger.logEffect.debug(vm.toString())
       None
     case Some(uuid) =>
         Some(
@@ -1187,7 +1187,7 @@ class FusionReportUnmarshaller(
      optInt(proc, "PID") match {
     case None =>
       InventoryLogger.logEffect.debug("Ignoring entry Process because tag PID is invalid")
-      InventoryLogger.logEffect.debug(proc)
+      InventoryLogger.logEffect.debug(proc.toString())
       None
     case Some(pid) =>
       Some (

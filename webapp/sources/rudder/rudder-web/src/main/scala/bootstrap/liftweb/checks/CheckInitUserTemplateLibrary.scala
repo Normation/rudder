@@ -97,7 +97,7 @@ class CheckInitUserTemplateLibrary(
               val e = eb ?~! "Some error where encountered during the initialization of the user library"
               val msg = e.messageChain.split("<-").mkString("\n ->")
               BootraspLogger.logEffect.warn(msg)
-              BootraspLogger.logEffect.debug(e.exceptionChain)
+              e.rootExceptionCause.foreach(ex => BootraspLogger.logEffect.debug("cause was:", ex))
               // Even if complete reload failed, we need to trigger a policy deployment, as otherwise it will never be done
               asyncDeploymentAgent ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor)
           }

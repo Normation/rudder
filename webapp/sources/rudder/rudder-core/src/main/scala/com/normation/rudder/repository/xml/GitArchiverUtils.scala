@@ -43,6 +43,7 @@ import com.normation.NamedZioLogger
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.errors._
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.logger.GitArchiveLogger
 import com.normation.rudder.repository._
 import com.normation.zio.ZioRuntime
 import org.apache.commons.io.FileUtils
@@ -59,7 +60,7 @@ import scala.xml.Elem
 /**
  * Utility trait that factor out file commits.
  */
-trait GitArchiverUtils extends NamedZioLogger {
+trait GitArchiverUtils {
 
   object GET {
     def apply(reason:Option[String]) = reason match {
@@ -96,7 +97,7 @@ trait GitArchiverUtils extends NamedZioLogger {
           } else Inconsistancy(s"The directory '${directory.getPath}' has no write permission, please use another directory").fail
         } else Inconsistancy("File at '%s' is not a directory, please change configuration".format(directory.getPath)).fail
       } else if(directory.mkdirs) {
-        logPure.debug(s"Creating missing directory '${directory.getPath}'") *>
+        GitArchiveLogger.debug(s"Creating missing directory '${directory.getPath}'") *>
         directory.succeed
       } else Inconsistancy(s"Directory '${directory.getPath}' does not exists and can not be created, please use another directory").fail
     }
@@ -108,7 +109,7 @@ trait GitArchiverUtils extends NamedZioLogger {
       case Right(dir) => dir
       case Left(err) =>
         val msg = s"Error when checking required directories '${file.getPath}' to archive in git: ${err.fullMsg}"
-        logEffect.error(msg)
+        GitArchiveLogger.logEffect.error(msg)
         throw new IllegalArgumentException(msg)
     }
   }
@@ -121,17 +122,17 @@ trait GitArchiverUtils extends NamedZioLogger {
     semaphoreAdd.flatMap(lock =>
       ZIO.bracket(lock.acquire)(_ => lock.release) { _ =>
         for {
-          _      <- logPure.debug(s"Add file '${gitPath}' from configuration repository")
+          _      <- GitArchiveLogger.debug(s"Add file '${gitPath}' from configuration repository")
           git    <- gitRepo.git
           add    <- IOResult.effect(git.add.addFilepattern(gitPath).call)
           status <- IOResult.effect(git.status.call)
          //for debugging
           _      <- if(!(status.getAdded.contains(gitPath) || status.getChanged.contains(gitPath))) {
-                      logPure.warn(s"Auto-archive git failure: not found in git added files: '${gitPath}'. You can safely ignore that warning if the file was already existing in Git and was not modified by that archive.")
+                      GitArchiveLogger.warn(s"Auto-archive git failure: not found in git added files: '${gitPath}'. You can safely ignore that warning if the file was already existing in Git and was not modified by that archive.")
                     } else UIO.unit
           rev    <- IOResult.effect(git.commit.setCommitter(commiter).setMessage(commitMessage).call)
           commit <- IOResult.effect(GitCommitId(rev.getName))
-          _      <- logPure.debug(s"file '${gitPath}' was added in commit '${commit.value}'")
+          _      <- GitArchiveLogger.debug(s"file '${gitPath}' was added in commit '${commit.value}'")
           mod    <- gitModificationRepository.addCommit(commit, modId)
         } yield {
           commit
@@ -147,16 +148,16 @@ trait GitArchiverUtils extends NamedZioLogger {
     semaphoreDelete.flatMap(lock =>
       ZIO.bracket(lock.acquire)(_ => lock.release) { _ =>
         for {
-          _      <- logPure.debug(s"remove file '${gitPath}' from configuration repository")
+          _      <- GitArchiveLogger.debug(s"remove file '${gitPath}' from configuration repository")
           git    <- gitRepo.git
           rm     <- IOResult.effect(git.rm.addFilepattern(gitPath).call)
           status <- IOResult.effect(git.status.call)
           _      <- if(!status.getRemoved.contains(gitPath)) {
-                      logPure.warn(s"Auto-archive git failure: not found in git removed files: '${gitPath}'. You can safely ignore that warning if the file was already existing in Git and was not modified by that archive.")
+                      GitArchiveLogger.warn(s"Auto-archive git failure: not found in git removed files: '${gitPath}'. You can safely ignore that warning if the file was already existing in Git and was not modified by that archive.")
                     } else UIO.unit
           rev    <- IOResult.effect(git.commit.setCommitter(commiter).setMessage(commitMessage).call)
           commit <- IOResult.effect(GitCommitId(rev.getName))
-          _      <- logPure.debug(s"file '${gitPath}' was removed in commit '${commit.value}'")
+          _      <- GitArchiveLogger.debug(s"file '${gitPath}' was removed in commit '${commit.value}'")
           mod    <- gitModificationRepository.addCommit(commit, modId)
         } yield {
           commit
@@ -175,7 +176,7 @@ trait GitArchiverUtils extends NamedZioLogger {
     semaphoreMove.flatMap(lock =>
       ZIO.bracket(lock.acquire)(_ => lock.release) { _ =>
         for {
-          _      <- logPure.debug(s"move file '${oldGitPath}' from configuration repository to '${newGitPath}'")
+          _      <- GitArchiveLogger.debug(s"move file '${oldGitPath}' from configuration repository to '${newGitPath}'")
           git    <- gitRepo.git
           update <- IOResult.effect {
                       git.rm.addFilepattern(oldGitPath).call
@@ -184,11 +185,11 @@ trait GitArchiverUtils extends NamedZioLogger {
                     }
           status <- IOResult.effect(git.status.call)
           _      <- if(!status.getAdded.asScala.exists( path => path.startsWith(newGitPath) ) ) {
-                      logPure.warn(s"Auto-archive git failure when moving directory (not found in added file): '${newGitPath}'. You can safely ignore that warning if the file was already existing in Git and was not modified by that archive.")
+                      GitArchiveLogger.warn(s"Auto-archive git failure when moving directory (not found in added file): '${newGitPath}'. You can safely ignore that warning if the file was already existing in Git and was not modified by that archive.")
                     } else UIO.unit
           rev    <- IOResult.effect(git.commit.setCommitter(commiter).setMessage(commitMessage).call)
           commit <- IOResult.effect(GitCommitId(rev.getName))
-          _      <- logPure.debug(s"file '${oldGitPath}' was moved to '${newGitPath}' in commit '${commit.value}'")
+          _      <- GitArchiveLogger.debug(s"file '${oldGitPath}' was moved to '${newGitPath}' in commit '${commit.value}'")
           mod    <- gitModificationRepository.addCommit(commit, modId)
         } yield {
           commit
@@ -204,7 +205,7 @@ trait GitArchiverUtils extends NamedZioLogger {
   def writeXml(fileName:File, elem:Elem, logMessage:String) : IOResult[File] = {
     IOResult.effect {
       FileUtils.writeStringToFile(fileName, xmlPrettyPrinter.format(elem), encoding)
-      logEffect.debug(logMessage)
+      GitArchiveLogger.logEffect.debug(logMessage)
       fileName
     }
   }
@@ -271,7 +272,7 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
           // Store the commit the modification repository
           gitModificationRepository.addCommit(newCommitId, modId)
 
-          logPure.debug("Restored commit %s at HEAD (commit %s)".format(commit.value,newCommitId.value))
+          GitArchiveLogger.debug("Restored commit %s at HEAD (commit %s)".format(commit.value,newCommitId.value))
           newCommitId
         }
       }
@@ -328,7 +329,7 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
     import scala.collection.mutable.ArrayBuffer
 
     gitRepo.db.flatMap(db =>
-      ZIO.bracket(IOResult.effect(new RevWalk(db)))(db => IOResult.effectUioUnit(db.close)){ revWalk =>
+      ZIO.bracket(IOResult.effect(new RevWalk(db)))(db => effectUioUnit(db.close)){ revWalk =>
         IOResult.effect {
           val tags = ArrayBuffer[RevTag]()
           val refList = db.getRefDatabase().getRefsByPrefix(Constants.R_TAGS).asScala
@@ -338,8 +339,7 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
               tags.append(tag)
             } catch {
               case e:IncorrectObjectTypeException =>
-                logEffect.debug("Ignoring object due to JGit bug: " + ref.getName)
-                logEffect.debug(e)
+                GitArchiveLogger.logEffect.debug("Ignoring object due to JGit bug: " + ref.getName, e)
             }
           }
           tags.sortWith( (o1, o2) => o1.getTagName().compareTo(o2.getTagName()) <= 0 )

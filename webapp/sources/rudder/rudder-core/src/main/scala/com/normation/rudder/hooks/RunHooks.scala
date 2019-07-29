@@ -40,7 +40,6 @@ package com.normation.rudder.hooks
 import java.io.File
 
 import com.normation.NamedZioLogger
-import monix.execution.ExecutionModel
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
@@ -169,8 +168,6 @@ object HooksImplicits {
 }
 
 object RunHooks {
-  // hook own threadpool
-  implicit val executor = monix.execution.Scheduler.io("rudder-hooks-exec", executionModel = ExecutionModel.AlwaysAsyncExecution)
 
   /**
    * Runs a list of hooks. Each hook is run sequencially (so that
@@ -263,7 +260,7 @@ object RunHooks {
       _        <- PureHooksLogger.debug(s"Run hooks: ${cmdInfo}")
       _        <- PureHooksLogger.trace(s"Hook environment variables: ${envVariables.show}")
       time_0   <- UIO(System.currentTimeMillis)
-      res      <- blocking.blocking(runAllSeq).timeout(killAfter).notOptional(s"Hook '${cmdInfo}' timed out after ${killAfter.asJava.toString}").provide(ZioRuntime.Environment)
+      res      <- ZioRuntime.blocking(runAllSeq).timeout(killAfter).notOptional(s"Hook '${cmdInfo}' timed out after ${killAfter.asJava.toString}").provide(ZioRuntime.Environment)
       duration <- UIO(System.currentTimeMillis - time_0)
       _        <- ZIO.when(duration > warnAfterMillis.toMillis) {
                     PureHooksLogger.LongExecLogger.warn(s"Hooks in directory '${cmdInfo}' took more than configured expected max duration (${warnAfterMillis.toMillis}): ${duration} ms")

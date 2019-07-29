@@ -78,10 +78,6 @@ class RudderPropertiesRepositoryImpl(
    */
   def updateReportLoggerLastId(newId: Long) : Box[Long] = {
 
-    val insert = sql"""
-      insert into rudderproperties(name, value)
-      values (${PROP_REPORT_LAST_ID}, ${newId})
-    """.update
     val update = sql"""
       update rudderproperties
       set value=${newId.toString}
@@ -92,8 +88,8 @@ class RudderPropertiesRepositoryImpl(
       rowsAffected <- update.run
       result       <- rowsAffected match {
                         case 0 =>
-                          logger.warn("last id not present in database, create it with value %d".format(newId))
-                          insert.run
+                          logger.warn(s"last id not present in database, create it with value '${newId}'")
+                          sql"""insert into rudderproperties(name, value) values (${PROP_REPORT_LAST_ID}, ${newId})""".update.run
                         case 1 => 1.pure[ConnectionIO]
                         case n => throw new RuntimeException(s"Expected 0 or 1 change, not ${n} for ${PROP_REPORT_LAST_ID}")
                       }
@@ -101,9 +97,8 @@ class RudderPropertiesRepositoryImpl(
       result
     }
 
-
     transactRun(xa => sql.transact(xa).attempt) match {
-      case Right(x)  => Full(newId)
+      case Right(x) => Full(newId)
       case Left(ex) => Failure(s"could not update lastId from database, cause is: ${ex.getMessage}", Full(ex), Empty)
     }
   }

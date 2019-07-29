@@ -63,7 +63,7 @@ object ScheduledJobLogger extends Logger {
 }
 
 object ScheduledJobLoggerPure extends NamedZioLogger {
-  val loggerName = "scheduledJob"
+  def loggerName = "scheduledJob"
 }
 
 /**

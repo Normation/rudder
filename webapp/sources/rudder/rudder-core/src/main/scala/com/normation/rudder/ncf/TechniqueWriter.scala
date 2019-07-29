@@ -625,7 +625,6 @@ class TechniqueArchiverImpl (
   , personIdentservice : PersonIdentService
 ) extends GitArchiverUtils with TechniqueArchiver {
 
-  override def loggerName: String = this.getClass.getName
   import ResourceFileState._
 
   override val encoding : String = "UTF-8"

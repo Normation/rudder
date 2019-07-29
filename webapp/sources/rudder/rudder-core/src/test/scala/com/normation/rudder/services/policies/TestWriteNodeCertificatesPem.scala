@@ -153,7 +153,7 @@ class TestWriteNodeCertificatesPem extends Specification {
 
     import scala.collection.JavaConverters._
 
-    val log = writer.logger.logEffect._internal.asInstanceOf[ch.qos.logback.classic.Logger]
+    val log = writer.logger.logEffect.asInstanceOf[ch.qos.logback.classic.Logger]
 
     val ctx = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
     import ch.qos.logback.classic.encoder.PatternLayoutEncoder

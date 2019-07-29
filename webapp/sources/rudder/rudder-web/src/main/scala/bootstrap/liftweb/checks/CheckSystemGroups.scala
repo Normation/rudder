@@ -152,10 +152,9 @@ class CheckSystemGroups(
 
         }
       }
-      case eb =>
-        val message = "Could not migrate system groups"
-        val fail = eb ?~ message
-        BootraspLogger.logEffect.error(fail)
+      case eb: EmptyBox =>
+        val fail = eb ?~! "Could not migrate system groups"
+        BootraspLogger.logEffect.error(fail.messageChain)
     }
   }
 }

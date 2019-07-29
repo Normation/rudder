@@ -67,6 +67,7 @@ class RudderDatasourceProvider(
   config.setUsername(username)
   config.setPassword(password)
   config.setMaximumPoolSize(if(maxPoolSize < 1) 1 else maxPoolSize)
+  config.setMinimumIdle(Math.max(java.lang.Runtime.getRuntime.availableProcessors()/2, 1))
   config.setAutoCommit(false)
 
   // since we use JDBC4 driver, we MUST NOT set `setConnectionTestQuery("SELECT 1")`

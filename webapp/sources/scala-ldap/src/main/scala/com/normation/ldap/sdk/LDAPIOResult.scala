@@ -21,6 +21,7 @@
 package com.normation.ldap.sdk
 
 import cats.data.NonEmptyList
+import com.normation.errors.IOResult
 import com.normation.errors.RudderError
 import zio._
 import zio.syntax._
@@ -45,6 +46,13 @@ object LDAPRudderError {
 
 object LDAPIOResult{
   type LDAPIOResult[T] = IO[LDAPRudderError, T]
+
+
+  def effect[A](effect: => A): IO[LDAPRudderError.BackendException, A] = {
+    IOResult.effect(effect).mapError(err =>
+      LDAPRudderError.BackendException(err.msg, err.cause)
+    )
+  }
 
   // transform an Option[T] into an error
   implicit class StrictOption[T](opt: LDAPIOResult[Option[T]]) {

@@ -434,13 +434,17 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     for {
       all <- box.map(_.flatten)
     } yield {
-      val highest = all.iterator.map(_._4).max
-      val byRules = all.groupBy(_._1).map { case (id, seq) =>
-        (id, seq.groupBy(_._2).map { case (int, seq2) =>
-          (int, seq.map(_._3).head) // seq == 1 by query
-        })
+      if(all.isEmpty) {
+        (0, Map())
+      } else {
+        val highest = all.iterator.map(_._4).max
+        val byRules = all.groupBy(_._1).map { case (id, seq) =>
+          (id, seq.groupBy(_._2).map { case (int, seq2) =>
+            (int, seq.map(_._3).head) // seq == 1 by query
+          })
+        }
+        (highest, byRules)
       }
-      (highest, byRules)
     }
   }
 

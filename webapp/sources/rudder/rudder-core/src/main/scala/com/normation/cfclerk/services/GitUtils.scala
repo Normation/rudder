@@ -56,7 +56,7 @@ trait GitRepositoryProvider {
   def db: IOResult[Repository]
 }
 
-object GitRepositoryLogger extends NamedZioLogger() { val loggerName = "git-repository" }
+object GitRepositoryLogger extends NamedZioLogger() { def loggerName = "git-repository" }
 
 /**
  * A service that allows to know what is the

@@ -48,6 +48,7 @@ import com.normation.cfclerk.services.impl._
 import com.normation.cfclerk.xmlparsers._
 import com.normation.cfclerk.xmlwriters.SectionSpecWriter
 import com.normation.cfclerk.xmlwriters.SectionSpecWriterImpl
+import com.normation.errors.IOResult
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core._
 import com.normation.inventory.services.core._
@@ -839,25 +840,29 @@ object RudderConfig extends Loggable {
    * of its (public) methods.
    */
   def init() : Unit = {
-    import scala.collection.JavaConverters._
-    val config = RudderProperties.config
-    if(ApplicationLogger.isInfoEnabled) {
-      //sort properties by key name
-      val properties = config.entrySet.asScala.toSeq.sortBy( _.getKey ).map{ x =>
-        //the log line: registered property: property_name=property_value
-        s"registered property: ${x.getKey}=${if(filteredPasswords.contains(x.getKey)) "**********" else x.getValue.render}"
-      }
-      ApplicationLogger.info("List of registered properties:")
-      properties.foreach { p =>
-        ApplicationLogger.info(p)
-      }
-    }
 
-    ////////// bootstraps checks //////////
-    // they must be out of Lift boot() because that method
-    // is encapsulated in a try/catch ( see net.liftweb.http.provider.HTTPProvider.bootLift )
-    val checks = RudderConfig.allBootstrapChecks
-    checks.checks()
+    // this one must be in a fork thread pool
+    ZioRuntime.internal.unsafeRunAsync(IOResult.effect {
+      import scala.collection.JavaConverters._
+      val config = RudderProperties.config
+      if(ApplicationLogger.isInfoEnabled) {
+        //sort properties by key name
+        val properties = config.entrySet.asScala.toSeq.sortBy( _.getKey ).map{ x =>
+          //the log line: registered property: property_name=property_value
+          s"registered property: ${x.getKey}=${if(filteredPasswords.contains(x.getKey)) "**********" else x.getValue.render}"
+        }
+        ApplicationLogger.info("List of registered properties:")
+        properties.foreach { p =>
+          ApplicationLogger.info(p)
+        }
+      }
+
+      ////////// bootstraps checks //////////
+      // they must be out of Lift boot() because that method
+      // is encapsulated in a try/catch ( see net.liftweb.http.provider.HTTPProvider.bootLift )
+      val checks = RudderConfig.allBootstrapChecks
+      checks.checks()
+    })(exit => exit.fold(cause => throw cause.squashWith(err => new Error(err.fullMsg)), a => a))
   }
 
   //

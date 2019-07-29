@@ -331,7 +331,7 @@ trait PromiseGenerationService {
 
       /// now, if there was failed config or failed write, time to show them
       //invalidate compliance may be very very long - make it async
-      _                     =  ZioRuntime.runNow(zio.blocking.blocking { IOResult.effect(invalidateComplianceCache (updatedNodeConfigs.keySet)) }.run.unit.fork.provide(ZioRuntime.Environment))
+      _                     =  ZioRuntime.runNow(IOResult.effect(invalidateComplianceCache (updatedNodeConfigs.keySet)).run.unit.fork)
       _                     =  {
                                  PolicyLogger.info("Timing summary:")
                                  PolicyLogger.info("Run pre-gen scripts hooks     : %10s ms".format(timeRunPreGenHooks))

@@ -52,7 +52,6 @@ import org.joda.time.format.PeriodFormat
 import net.liftweb.common._
 import com.normation.rudder.db.DB
 import com.normation.rudder.repository.ComplianceRepository
-import monix.execution.schedulers.ExecutorScheduler
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -70,10 +69,6 @@ class ReportsExecutionService (
   , catchupFromDuration    : FiniteDuration
   , catchupInterval        : FiniteDuration
 ) {
-
-  //use that threadpool for changes. It's single threaded because everything is blocking
-  //below, so it's better to add task in a queue that thread everywhere
-  val changesThreadPool = monix.execution.Scheduler.singleThread("rudder-changes-hook").asInstanceOf[ExecutorScheduler]
 
   val logger = ReportLogger
   var idForCheck: Long = 0

@@ -39,10 +39,12 @@ package com.normation.rudder.batch
 
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.rudder.services.servers.RemoveNodeService
-import monix.execution.Scheduler.{global => scheduler}
 import org.joda.time.DateTime
-import net.liftweb.common._
-import com.normation.box._
+import com.normation.errors.Chained
+import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
+import com.normation.zio.ZioRuntime
+import zio.Schedule
+import zio._
 
 import scala.concurrent.duration._
 
@@ -59,7 +61,6 @@ class PurgeDeletedInventories(
 
   val logger = ScheduledJobLogger
 
-
   if (TTL<0) {
     logger.info(s"Disable automatic purge for delete nodes inventories (TTL cannot be negative: ${TTL})")
   } else {
@@ -67,20 +68,18 @@ class PurgeDeletedInventories(
       logger.info(s"Disable automatic purge for delete nodes inventories (update interval cannot be less than 1 hour)")
     } else {
       logger.debug(s"***** starting batch that purge deleted inventories older than ${TTL} days, every ${updateInterval.toString()} *****")
-      scheduler.scheduleWithFixedDelay(10.minute, updateInterval) {
-        removeNodeService.purgeDeletedNodesPreviousDate(DateTime.now().withTimeAtStartOfDay().minusDays(TTL)).toBox match {
-          case Full(nodes) =>
-            logger.info(s"Purged ${nodes.length} inventories from the removed inventory tree")
-            if (logger.isDebugEnabled && nodes.length > 0)
-              logger.debug(s"Purged following inventories from the removed inventory tree: ${nodes.map(x => x.value).mkString(",")}")
-          case e: EmptyBox =>
-            val error = (e ?~! s"Error when purging deleted nodes inventories older than ${TTL} days")
-            logger.error(error.messageChain)
-            error.rootExceptionCause.foreach(ex =>
-              logger.error("Exception was:", ex)
-            )
-        }
-      }
+      val prog = removeNodeService.purgeDeletedNodesPreviousDate(DateTime.now().withTimeAtStartOfDay().minusDays(TTL)).either.flatMap( _ match {
+        case Right(nodes) =>
+          ScheduledJobLoggerPure.info(s"Purged ${nodes.length} inventories from the removed inventory tree") *>
+          ZIO.when(nodes.length > 0) {
+            ScheduledJobLoggerPure.ifDebugEnabled(ScheduledJobLoggerPure.debug(s"Purged following inventories from the removed inventory tree: ${nodes.map(x => x.value).mkString(",")}"))
+          }
+        case Left(err) =>
+          val error = Chained(s"Error when purging deleted nodes inventories older than ${TTL} days", err)
+          ScheduledJobLoggerPure.error(error.fullMsg)
+      })
+      import zio.duration.Duration.{fromScala => zduration}
+      ZioRuntime.unsafeRun(prog.delay(zduration(10.minutes)).repeat(Schedule.spaced(zduration(updateInterval))).provide(ZioRuntime.Environment))
     }
   }
 }

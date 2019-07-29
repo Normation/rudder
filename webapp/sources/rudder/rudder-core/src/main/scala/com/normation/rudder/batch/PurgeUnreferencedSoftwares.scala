@@ -40,11 +40,12 @@ package com.normation.rudder.batch
 
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.inventory.ldap.core.SoftwareService
-import monix.execution.Scheduler.{global => scheduler}
 
 import scala.concurrent.duration._
 import com.normation.zio._
 import com.normation.errors._
+import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
+import zio._
 
 /**
  * A naive scheduler which checks every updateInterval if software needs to be deleted
@@ -56,21 +57,22 @@ class PurgeUnreferencedSoftwares(
 
   val logger = ScheduledJobLogger
 
-
   if (updateInterval < 1.hour) {
     logger.info(s"Disable automatic purge of unreferenced softwares (update interval cannot be less than 1 hour)")
   } else {
     logger.debug(s"***** starting batch that purge unreferenced softwares, every ${updateInterval.toString()} *****")
-    scheduler.scheduleWithFixedDelay(1.hour, updateInterval) {
-      softwareService.deleteUnreferencedSoftware().either.runNow match {
-        case Right(softwares) =>
-          logger.info(s"Purged ${softwares.length} unreferenced softwares")
-          if (logger.isDebugEnabled && softwares.length > 0)
-            logger.debug(s"Purged following software: ${softwares.mkString(",")}")
-        case Left(err) =>
-          logger.error(Chained(s"Error when deleting unreferenced softwares", err))
-      }
-    }
+    val prog = softwareService.deleteUnreferencedSoftware().either.flatMap { _ match {
+      case Right(softwares) =>
+        ScheduledJobLoggerPure.info(s"Purged ${softwares.length} unreferenced softwares") *>
+        ZIO.when(softwares.length > 0)  {
+          ScheduledJobLoggerPure.ifDebugEnabled(ScheduledJobLoggerPure.debug(s"Purged following software: ${softwares.mkString(",")}"))
+        }
+      case Left(err) =>
+        ScheduledJobLoggerPure.error(Chained(s"Error when deleting unreferenced softwares", err).fullMsg)
+    }}
+
+    import zio.duration.Duration.{fromScala => zduration}
+    ZioRuntime.unsafeRun(prog.delay(zduration(1.hour)).repeat(Schedule.spaced(zduration(updateInterval))).provide(ZioRuntime.Environment))
   }
 }
 

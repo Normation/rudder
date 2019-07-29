@@ -36,6 +36,7 @@
 */
 package com.normation.rudder.domain.logger
 
+import com.normation.NamedZioLogger
 import org.slf4j.LoggerFactory
 import net.liftweb.common.Logger
 
@@ -50,10 +51,15 @@ object PolicyLogger extends Logger {
   }
 }
 
-object PolicyLoggerPure extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("policy.generation")
+object PolicyLoggerPure extends NamedZioLogger {
+  override def loggerName  = "policy.generation"
 
-  object expectedReports extends Logger {
-    override protected def _logger = LoggerFactory.getLogger("policy.generation.expected_reports")
+  object expectedReports extends NamedZioLogger {
+    override def loggerName = "policy.generation.expected_reports"
   }
+}
+
+
+object GitArchiveLogger extends NamedZioLogger {
+  override def loggerName: String = "git-policy-archive"
 }
