@@ -112,6 +112,7 @@ class TestCertificate extends Specification {
 
   val windows = NodeId("b73ea451-c42a-420d-a540-47b445e58313")
   val linux = NodeId("baded9c8-902e-4404-96c1-278acca64e3a")
+  val linuxWithCert = NodeId("b73ea451-c42a-420d-a540-47b445e58313")
 
   // LINUX
   "when a node is not in repository, it is ok to not have a signature with cfkey" in {
@@ -142,6 +143,22 @@ class TestCertificate extends Specification {
     (repository.get(linux) must beSome) and
     (repository(linux).node.agents.head.securityToken.key === Cert.CFE) and
     (repository(linux).node.main.keyStatus == CertifiedKey)
+
+  }
+
+  "when a node is not in repository, it is ok to have a signature with certificate" in {
+    repository.remove(linuxWithCert)
+
+    val res = processor.saveInventory(SaveInventoryInfo(
+        "linux-cert-sign"
+      , () => Resource.getAsStream("linux-cert-sign.ocs")
+      , Some(() => Resource.getAsStream("linux-cert-sign.ocs.sign"))
+    ))
+
+    (res.runNow must beAnInstanceOf[InventoryProcessStatus.Accepted]) and
+    (repository.get(linuxWithCert) must beSome) and
+    (repository(linuxWithCert).node.agents.head.securityToken.key === Cert.OK) and
+    (repository(linuxWithCert).node.main.keyStatus == CertifiedKey)
 
   }
 

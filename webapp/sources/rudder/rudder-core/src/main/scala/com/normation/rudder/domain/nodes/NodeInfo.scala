@@ -45,15 +45,15 @@ import java.security.spec.X509EncodedKeySpec
 
 import com.normation.inventory.domain._
 import com.normation.utils.HashcodeCaching
-
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import org.bouncycastle.openssl.PEMParser
 import org.bouncycastle.util.encoders.Hex
 import org.joda.time.DateTime
-
 import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
+import org.bouncycastle.cert.X509CertificateHolder
+import com.normation.box._
 
 final case class MachineInfo(
     id          : MachineUuid
@@ -103,25 +103,34 @@ final case class NodeInfo(
    * "MD5=" prefix for community agent (resp. "SHA=") prefix for enterprise agent).
    */
   lazy val securityTokenHash: String = {
+
+    def formatDigest(digest: Box[String], algo: String, tokenType: SecurityToken): String = {
+      digest match {
+        case Full(hash) => s"${algo}=${hash}"
+        case eb:EmptyBox =>
+          val msgForToken = tokenType match {
+            case _: PublicKey   => "of CFEngine public key for"
+            case _: Certificate => "for certificate of"
+          }
+          val e = eb ?~! s"Error when trying to get the CFEngine-${algo} digest ${msgForToken} node '${hostname}' (${id.value})"
+          logger.error(e.messageChain)
+          ""
+      }
+    }
+
     agentsName.headOption.map(a => (a.agentType, a.securityToken)) match {
 
       case Some((AgentType.CfeCommunity, key:PublicKey)) =>
-        CFEngineKey.getCfengineMD5Digest(key) match {
-          case Full(hash)  => "MD5="+hash
-          case eb:EmptyBox =>
-            val e = eb ?~! s"Error when trying to get the CFEngine-MD5 digest of CFEngine public key for node '${hostname}' (${id.value})"
-            logger.error(e.messageChain)
-            ""
-        }
+        formatDigest(CFEngineKey.getCfengineMD5Digest(key), "MD5", key)
 
       case Some((AgentType.CfeEnterprise, key:PublicKey)) =>
-        CFEngineKey.getCfengineSHA256Digest(key) match {
-          case Full(hash) => "SHA="+hash
-          case eb:EmptyBox =>
-            val e = eb ?~! s"Error when trying to get the CFEngine-SHA256 digest of CFEngine public key for node '${hostname}' (${id.value})"
-            logger.error(e.messageChain)
-            ""
-        }
+        formatDigest(CFEngineKey.getCfengineSHA256Digest(key), "SHA", key)
+
+      case Some((AgentType.CfeCommunity, cert:Certificate)) =>
+        formatDigest(CFEngineKey.getCfengineMD5CertDigest(cert), "MD5", cert)
+
+      case Some((AgentType.CfeEnterprise, cert:Certificate)) =>
+        formatDigest(CFEngineKey.getCfengineSHA256CertDigest(cert), "SHA", cert)
 
       case Some((AgentType.Dsc, _)) =>
         logger.info(s"Node '${hostname}' (${id.value}) is a DSC node and a we do not know how to generate a hash yet")
@@ -216,26 +225,57 @@ object CFEngineKey {
    * Caution: to use the complete key, with header and footer, you need to use key.key
    */
   def getCfengineMD5Digest(key: PublicKey): Box[String] = {
-    getCfengineDigest(key, "MD5")
+    getCfengineDigestFromCfeKey(key, "MD5")
   }
 
   def getCfengineSHA256Digest(key: PublicKey): Box[String] = {
-    getCfengineDigest(key, "SHA-256")
+    getCfengineDigestFromCfeKey(key, "SHA-256")
   }
 
   /*
-   * The actual implementation that can use either
-   * "MD5" or "SHA-256" digest.
+   * A version of the digest that works on a certificate
    */
-  protected def getCfengineDigest(key: PublicKey, algo: String) = {
+  def getCfengineMD5CertDigest(cert: Certificate): Box[String] = {
+    for {
+      c      <- cert.cert.toBox
+      digest <- getCfengineDigest(c.getSubjectPublicKeyInfo, "MD5")
+    } yield {
+      digest
+    }
+  }
+
+  /*
+   * A version of the digest that works on a certificate
+   */
+  def getCfengineSHA256CertDigest(cert: Certificate): Box[String] = {
+    for {
+      c      <- cert.cert.toBox
+      digest <- getCfengineDigest(c.getSubjectPublicKeyInfo, "SHA-256")
+    } yield {
+      digest
+    }
+  }
+
+  protected def getCfengineDigestFromCfeKey(key: PublicKey, algo: String): Box[String] = {
     for {
                     // the parser able to read PEM files
                     // Parser may be null is the key is invalid
       parser     <- Box(Option(new PEMParser(new StringReader(key.key))))
                     // read the PEM b64 pubkey string
       pubkeyInfo <- tryo { parser.readObject.asInstanceOf[SubjectPublicKeyInfo] }
-                    // check that the pubkey info is the one of an RSA key,
-                    // retrieve corresponding Key factory.
+      digest     <- getCfengineDigest(pubkeyInfo, algo)
+    } yield {
+      digest
+    }
+  }
+
+
+  /*
+   * The actual implementation that can use either
+   * "MD5" or "SHA-256" digest.
+   */
+  protected def getCfengineDigest(pubkeyInfo: SubjectPublicKeyInfo, algo: String): Box[String] = {
+    for {
       keyFactory <- pubkeyInfo.getAlgorithm.getAlgorithm match {
                       case PKCSObjectIdentifiers.rsaEncryption =>
                         Full(KeyFactory.getInstance("RSA"))
