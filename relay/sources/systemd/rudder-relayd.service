@@ -4,6 +4,7 @@ After=network-online.target
 
 [Service]
 ExecStart=/opt/rudder/bin/rudder-relayd
+ExecReload=/opt/rudder/bin/rudder relay reload
 User=rudder
 Group=rudder
 
