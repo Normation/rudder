@@ -183,20 +183,6 @@ class TestNcf(unittest.TestCase):
     self.assertEqual(expected_result, test_parse_technique_methods_unescape_double_quotes_calls)
 
 
-  #####################################
-  # Tests for detecting hooks
-  #####################################
-
-  def test_pre_hooks(self):
-    pre_hooks = ncf.get_hooks("pre", "delete_technique", os.path.realpath("test_hooks/hooks.d"))
-    expect = [ "pre.delete_technique.commit.rpmsave.sh", "pre.delete_technique.commit.sh" ]
-    assert pre_hooks == expect
-
-  def test_post_hooks(self):
-    post_hooks = ncf.get_hooks("post",  "(write|create)_technique", "test_hooks/hooks.d")
-    expect = [ "post.create_technique.commit.exe", "post.write_technique.commit.sh" ]
-    assert post_hooks == expect
-
   #########################
   # Utility methods tests
   #########################

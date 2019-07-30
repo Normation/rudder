@@ -128,14 +128,5 @@ def get_generic_methods():
   except Exception as e:
     return format_error(e, "generic methods fetching", 500)
 
-@app.route('/api/techniques/<string:bundle_name>', methods = ['DELETE'])
-@check_auth
-def delete_technique(bundle_name):
-  try:
-    ncf.delete_technique(bundle_name)
-    return jsonify({ "data": { "bundle_name" : bundle_name } })
-  except Exception as e:
-    return format_error(e, "technique deletion", 500)
-
 if __name__ == '__main__':
   app.run(debug = True)
