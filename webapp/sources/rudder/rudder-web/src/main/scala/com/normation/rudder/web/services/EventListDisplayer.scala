@@ -80,7 +80,6 @@ import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import org.joda.time.format.DateTimeFormat
 import com.normation.rudder.web.model.LinkUtil
 import org.joda.time.format.ISODateTimeFormat
-
 import com.normation.box._
 
 /**
@@ -1120,6 +1119,12 @@ class EventListDisplayer(
                     case Some(mode) => <span>{mode.name}</span>
                   }
                 }
+              }
+              {
+                mapComplexDiff(modDiff.modKeyValue) { keyValue => <span>{keyValue.key}</span> }
+              }
+              {
+                mapComplexDiff(modDiff.modKeyStatus) { keyStatus => <span>{keyStatus.value}</span> }
               }
               { reasonHtml }
               { xmlParameters(event.id) }

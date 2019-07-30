@@ -48,11 +48,18 @@ import com.normation.rudder.domain.nodes._
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.WoNodeRepository
 import com.normation.errors._
+import com.normation.inventory.domain.AgentInfo
+import com.normation.inventory.domain.Certificate
+import com.normation.inventory.domain.KeyStatus
+import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.SecurityToken
+import com.normation.inventory.ldap.core.InventoryDit
 import zio._
 import zio.syntax._
 
 class WoLDAPNodeRepository(
     nodeDit             : NodeDit
+  , acceptedDit         : InventoryDit
   , mapper              : LDAPEntityMapper
   , ldap                : LDAPConnectionProvider[RwLDAPConnection]
   , actionLogger        : EventLogRepository
@@ -85,6 +92,54 @@ class WoLDAPNodeRepository(
         node
       }
     ))
+  }
+
+  def updateNodeKeyInfo(nodeId: NodeId, agentKey: Option[SecurityToken], agentKeyStatus: Option[KeyStatus], modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Unit] = {
+    def updateInfo(oldInfo: (List[AgentInfo], KeyStatus), agentKey: Option[SecurityToken], agentKeyStatus: Option[KeyStatus]): (List[AgentInfo], KeyStatus) = {
+      val agents = agentKey match {
+        case None    => oldInfo._1
+        case Some(k) => oldInfo._1.map { _.copy(securityToken = k) }
+      }
+      val status = agentKeyStatus.getOrElse(oldInfo._2)
+
+      (agents, status)
+    }
+    import com.normation.inventory.ldap.core.LDAPConstants.{A_KEY_STATUS, A_AGENTS_NAME}
+    if(agentKey.isEmpty && agentKeyStatus.isEmpty) UIO.unit
+    else {
+      for {
+        // check that in the case of a certificate, we are using a certificate for the node
+        _             <- agentKey match {
+                           case Some(Certificate(value)) => SecurityToken.checkCertificateForNode(nodeId, Certificate(value))
+                           case _                        => UIO.unit
+                         }
+        con           <- ldap
+        existingEntry <- con.get(acceptedDit.NODES.NODE.dn(nodeId.value), A_KEY_STATUS :: A_AGENTS_NAME :: Nil:_*).notOptional(
+                    s"Cannot update node with id ${nodeId.value}: there is no node with that id"
+                         )
+        agentsInfo    <- mapper.parseAgentInfo(nodeId, existingEntry).chainError(
+                           s"Error when getting agent key information from LDAP entry for node with id ${nodeId.value} . Entry: ${existingEntry}"
+                         )
+        newInfo       =  updateInfo(agentsInfo, agentKey, agentKeyStatus)
+        dn            =  acceptedDit.NODES.NODE.dn(nodeId.value)
+        result        <- if(agentsInfo == newInfo) LDIFNoopChangeRecord(dn).succeed
+                         else {
+                           import com.normation.inventory.domain.AgentInfoSerialisation._
+                           val e = LDAPEntry(dn)
+                           e += (A_AGENTS_NAME, newInfo._1.map(_.toJsonString):_*)
+                           e += (A_KEY_STATUS, newInfo._2.value)
+
+                           con.save(e).chainError(s"Error when saving node entry in repository: ${e}")
+                         }
+        // only record an event log if there is an actual change
+        _             <- result match {
+                           case LDIFNoopChangeRecord(_) => UIO.unit
+                           case _                       =>
+                             val diff = ModifyNodeDiff.keyInfo(nodeId, agentsInfo._1.map(_.securityToken), agentsInfo._2, agentKey, agentKeyStatus)
+                             actionLogger.saveModifyNode(modId, actor, diff, reason)
+                         }
+      } yield ()
+    }
   }
 
   /**

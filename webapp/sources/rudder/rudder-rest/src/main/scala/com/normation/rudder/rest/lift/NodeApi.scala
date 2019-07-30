@@ -93,6 +93,7 @@ import scalaj.http.HttpConstants
 import scalaj.http.HttpOptions
 import zio._
 import com.normation.box._
+import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.zio._
 import scalaj.http.HttpResponse
 
@@ -624,14 +625,42 @@ class NodeApiService8 (
 
     val modId = ModificationId(uuidGen.newUuid)
 
+    def getKeyInfo(restNode: RestNode): (Option[SecurityToken], Option[KeyStatus]) = {
+
+      // if agentKeyValue is present, we set both it and key status.
+      // if only agentKey status is present, don't change value.
+
+      (restNode.agentKey, restNode.agentKeyStatus) match {
+        case (None, None)       => (None, None)
+        case (Some(k), None)    => (Some(k), Some(CertifiedKey))
+        case (None, Some(s))    => (None, Some(s))
+        case (Some(k), Some(s)) => (Some(k), Some(s))
+      }
+    }
+
+    def updateNode(node: Node, restNode: RestNode, newProperties: Seq[NodeProperty]): Node = {
+      import com.softwaremill.quicklens._
+
+      (node
+        .modify(_.properties).setTo(newProperties)
+        .modify(_.policyMode).using(current => restNode.policyMode.getOrElse(current))
+        .modify(_.state).using(current => restNode.state.getOrElse(current))
+      )
+    }
+
     for {
       node           <- nodeInfoService.getNodeInfo(nodeId).flatMap( _.map( _.node ))
       newProperties  <- CompareProperties.updateProperties(node.properties, restNode.properties)
-      updated        =  node.copy(properties = newProperties, policyMode = restNode.policyMode.getOrElse(node.policyMode), state=restNode.state.getOrElse(node.state))
+      updated        =  updateNode(node, restNode, newProperties)
+      keyInfo        =  getKeyInfo(restNode)
       saved          <- if(updated == node) Full(node)
                         else nodeRepository.updateNode(updated, modId, actor, reason).toBox
+      keyChanged     =  keyInfo._1.isDefined || keyInfo._2.isDefined
+      keys           <- if(keyChanged) {
+                           nodeRepository.updateNodeKeyInfo(node.id, keyInfo._1, keyInfo._2, modId, actor, reason).toBox
+                        } else Full(())
     } yield {
-      if(node != updated) {
+      if(node != updated || keyChanged) {
         asyncRegenerate ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor)
       }
       saved

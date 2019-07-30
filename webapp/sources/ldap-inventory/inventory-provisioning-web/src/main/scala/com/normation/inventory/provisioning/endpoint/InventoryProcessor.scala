@@ -47,14 +47,13 @@ import com.normation.inventory.domain.CertifiedKey
 import com.normation.inventory.domain.InventoryLogger
 import com.normation.inventory.domain.InventoryReport
 import com.normation.errors._
-import com.normation.inventory.domain.InventoryError
 import com.normation.inventory.domain.KeyStatus
+import com.normation.inventory.domain.SecurityToken
 import com.normation.inventory.domain.UndefinedKey
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.provisioning.endpoint.FusionReportEndpoint._
 import com.normation.inventory.services.core.FullInventoryRepository
 import com.normation.inventory.services.provisioning.InventoryDigestServiceV1
-import com.normation.inventory.services.provisioning.ParsedSecurityToken
 import com.normation.inventory.services.provisioning.ReportSaver
 import com.normation.inventory.services.provisioning.ReportUnmarshaller
 import com.normation.zio.ZioRuntime
@@ -190,27 +189,7 @@ class InventoryProcessor(
       }
     }
 
-    def checkCertificateSubject(inventoryReport: InventoryReport, optSubject: Option[List[(String, String)]]): IO[InventoryError, Unit] = {
-      //format subject
-      def formatSubject(list: List[(String, String)]) = list.map(kv => s"${kv._1}=${kv._2}").mkString(",")
 
-      optSubject match {
-        case None => // OK
-          UIO.unit
-        case Some(list) =>
-          // in rudder, we ensure that at list one (k,v) pair is "UID = the node id". If missing, it's an error
-
-          list.find { case (k,v) => k == ParsedSecurityToken.nodeidOID } match {
-            case None        => InventoryError.SecurityToken(s"Certificate subject doesn't contain node ID in 'UID' attribute: ${formatSubject(list)}").fail
-            case Some((k,v)) =>
-              if(v.trim.toLowerCase == inventoryReport.node.main.id.value.toLowerCase) {
-                UIO.unit
-              } else {
-                InventoryError.SecurityToken(s"Certificate subject doesn't contain same node ID in 'UID' attribute as inventory node ID: ${formatSubject(list)}").fail
-              }
-          }
-      }
-    }
 
 
     // actuall report processing logic
@@ -223,7 +202,10 @@ class InventoryProcessor(
       report       <- parseSafe(info.inventoryStream, info.fileName).chainError("Can't parse the input inventory, aborting")
       secPair      <- digestService.getKey(report).chainError(s"Error when trying to check inventory key for Node '${report.node.main.id.value}'")
       parsed       <- digestService.parseSecurityToken(secPair._1)
-      _            <- checkCertificateSubject(report, parsed.subject)
+      _            <- parsed.subject match {
+                        case None       => UIO.unit
+                        case Some(list) => SecurityToken.checkCertificateSubject(report.node.main.id, list)
+                      }
       afterParsing =  System.currentTimeMillis()
       _            =  logger.debug(s"Inventory '${report.name}' parsed in ${printer.print(new Duration(afterParsing, System.currentTimeMillis).toPeriod)} ms, now saving")
       saved        <- info.optSignatureStream match { // Do we have a signature ?

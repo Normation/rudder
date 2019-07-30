@@ -271,6 +271,23 @@ class LDAPEntityMapper(
     }
   }
 
+  def parseAgentInfo(nodeId: NodeId, inventoryEntry: LDAPEntry): IOResult[(List[AgentInfo], KeyStatus)] = {
+    val keys =  inventoryEntry.valuesFor(A_PKEYS).map(Some(_))
+    for {
+      agentsName     <- {
+                         val agents = inventoryEntry.valuesFor(A_AGENTS_NAME).toSeq.map(Some(_))
+                         ZIO.foreach(agents.zipAll(keys,None,None)) {
+                           case (Some(agent),key) => AgentInfoSerialisation.parseCompatNonJson(agent,key)
+                           case (None,key)        => (Err.MissingMandatory(s"There was a public key defined for Node ${nodeId.value},"+
+                                                             " without a related agent defined, it should not happen")).fail
+                         }
+                       }
+      keyStatus     <- inventoryEntry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Right(UndefinedKey)).toIO
+    } yield {
+      (agentsName, keyStatus)
+    }
+  }
+
   private[this] def inventoryEntriesToNodeInfos(node: Node, inventoryEntry: LDAPEntry, machineEntry: Option[LDAPEntry]) : IOResult[NodeInfo] = {
     //why not using InventoryMapper ? Some required things for node are not
     // wanted here ?
@@ -281,18 +298,7 @@ class LDAPEntityMapper(
                           case x :: Nil => x.succeed
                           case _ => Unexpected(s"Too many policy servers for a Node '${node.id.value}'. Entry details: ${inventoryEntry}").fail
                         }
-      keys           =  inventoryEntry.valuesFor(A_PKEYS).map(Some(_))
-
-      agentsName     <- {
-                         val agents = inventoryEntry.valuesFor(A_AGENTS_NAME).toSeq.map(Some(_))
-                         ZIO.foreach(agents.zipAll(keys,None,None)) {
-                           case (Some(agent),key) => AgentInfoSerialisation.parseCompatNonJson(agent,key)
-                           case (None,key)        => (Err.MissingMandatory(s"There was a public key defined for Node ${node.id.value},"+
-                                                             " without a releated agent defined, it should not happen")).fail
-                         }
-                       }
       osDetails     <- inventoryMapper.mapOsDetailsFromEntry(inventoryEntry).toIO
-      keyStatus     <- inventoryEntry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Right(UndefinedKey)).toIO
       serverRoles   =  inventoryEntry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
       timezone      =  (inventoryEntry(A_TIMEZONE_NAME), inventoryEntry(A_TIMEZONE_OFFSET)) match {
                          case (Some(name), Some(offset)) => Some(NodeTimezone(name, offset))
@@ -309,6 +315,7 @@ class LDAPEntityMapper(
                              Some(NodeProperty(cs.name, cs.value, Some(NodeProperty.customPropertyProvider))).succeed
                          )
                        }
+      agentsInfo    <- parseAgentInfo(node.id, inventoryEntry)
     } yield {
       val machineInfo = machineEntry.flatMap { e =>
         for {
@@ -334,8 +341,8 @@ class LDAPEntityMapper(
         , osDetails
         , inventoryEntry.valuesFor(A_LIST_OF_IP).toList
         , dateTime
-        , keyStatus
-        , scala.collection.mutable.Seq() ++ agentsName
+        , agentsInfo._2
+        , agentsInfo._1
         , NodeId(policyServerId)
         , inventoryEntry(A_ROOT_USER).getOrElse("")
         , serverRoles

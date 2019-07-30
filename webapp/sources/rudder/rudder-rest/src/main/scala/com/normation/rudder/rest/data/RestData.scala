@@ -44,6 +44,8 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.Technique
+import com.normation.inventory.domain.KeyStatus
+import com.normation.inventory.domain.SecurityToken
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.domain.policies.Directive
@@ -246,10 +248,17 @@ case class RestNodeProperties(
     properties : Option[Seq[NodeProperty]]
 )
 
+
+
+
+
+
 case class RestNode (
-    properties : Option[Seq[NodeProperty]]
-  , policyMode : Option[Option[PolicyMode]]
-  , state      : Option[NodeState]
+    properties    : Option[Seq[NodeProperty]]
+  , policyMode    : Option[Option[PolicyMode]]
+  , state         : Option[NodeState]
+  , agentKey      : Option[SecurityToken]
+  , agentKeyStatus: Option[KeyStatus]
 )
 
 sealed trait NodeStatusAction

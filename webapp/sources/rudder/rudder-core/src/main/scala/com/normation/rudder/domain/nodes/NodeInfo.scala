@@ -52,7 +52,6 @@ import org.bouncycastle.util.encoders.Hex
 import org.joda.time.DateTime
 import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
-import org.bouncycastle.cert.X509CertificateHolder
 import com.normation.box._
 
 final case class MachineInfo(

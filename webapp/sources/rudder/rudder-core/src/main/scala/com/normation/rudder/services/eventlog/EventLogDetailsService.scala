@@ -70,8 +70,11 @@ import com.normation.rudder.services.marshalling._
 import com.normation.rudder.services.marshalling.TestFileFormat
 import net.liftweb.json.JsonAST.JString
 import org.joda.time.DateTime
-
 import com.normation.box._
+import com.normation.inventory.domain.Certificate
+import com.normation.inventory.domain.KeyStatus
+import com.normation.inventory.domain.PublicKey
+import com.normation.inventory.domain.SecurityToken
 
 /**
  * A service that helps mapping event log details to there structured data model.
@@ -963,6 +966,8 @@ class EventLogDetailsServiceImpl(
       agentRun     <- getFromTo[Option[AgentRunInterval]](  (node \ "agentRun").headOption ,{ x => extractAgentRun(xml)(x) })
       heartbeat    <- getFromTo[Option[HeartbeatConfiguration]]((node \ "heartbeat").headOption ,{ x => extractHeartbeatConfiguration(xml)(x) })
       properties   <- getFromTo[Seq[NodeProperty]]( (node \ "properties").headOption ,{ x => extractNodeProperties(xml)(x) })
+      agentKey     <- getFromTo[SecurityToken]( (node \ "agentKey").headOption ,{ x => val s = x.text; if(s.contains("BEGIN CERTIFICATE")) Full(Certificate(s)) else Full(PublicKey(s)) })
+      keyStatus    <- getFromTo[KeyStatus]( (node \ "keyStatus").headOption , {x => KeyStatus.apply(x.text).map(Full(_)).getOrElse(Failure(s"Unrecognized agent key status '${x.text}'"))} )
     } yield {
       ModifyNodeDiff(
           id
@@ -970,6 +975,8 @@ class EventLogDetailsServiceImpl(
         , agentRun
         , properties
         , policyMode
+        , agentKey
+        , keyStatus
       )
     }
   }

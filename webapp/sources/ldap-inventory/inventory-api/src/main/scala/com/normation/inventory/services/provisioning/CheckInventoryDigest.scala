@@ -42,11 +42,9 @@ import java.util.Properties
 import java.security.Signature
 
 import com.normation.errors._
-import com.normation.inventory.domain.InventoryError.CryptoEx
 import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
 import com.normation.inventory.domain.{PublicKey => AgentKey, _}
 import org.apache.commons.io.IOUtils
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
 import org.bouncycastle.util.encoders.Hex
 import zio._
 import zio.syntax._
@@ -161,15 +159,7 @@ trait GetKey {
       token match {
         case x:AgentKey    => x.publicKey.map(pk => ParsedSecurityToken(pk, None))
         case x:Certificate =>
-          x.cert.flatMap { ch =>
-            IO.effect {
-              val c = new JcaX509CertificateConverter().getCertificate( ch )
-              val dn = ch.getSubject.getRDNs.flatMap(_.getTypesAndValues.flatMap(tv => (tv.getType.toString, tv.getValue.toString) :: Nil)).toList
-              (ParsedSecurityToken(c.getPublicKey, Some(dn)))
-            }.mapError { ex =>
-              CryptoEx(s"Error when trying to parse agent certificate information", ex)
-            }
-          }
+          SecurityToken.parseCertificate(x).map { case (p, s) => ParsedSecurityToken(p, Some(s)) }
       }
     }
 }

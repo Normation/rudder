@@ -37,9 +37,7 @@
 
 package com.normation.rudder.domain.nodes
 
-import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.HeartbeatConfiguration
@@ -50,6 +48,9 @@ import com.normation.rudder.services.policies.ParameterEntry
 import org.joda.time.DateTime
 import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.inventory.domain.FullInventory
+import com.normation.inventory.domain.KeyStatus
+import com.normation.inventory.domain.PublicKey
+import com.normation.inventory.domain.SecurityToken
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonParser.ParseException
@@ -270,21 +271,21 @@ sealed trait NodeDiff
  * Denote a change on the heartbeat frequency.
  */
 object ModifyNodeHeartbeatDiff{
-  def apply(id: NodeId,  modHeartbeat: Option[SimpleDiff[Option[HeartbeatConfiguration]]]) = ModifyNodeDiff(id,modHeartbeat, None, None, None)
+  def apply(id: NodeId,  modHeartbeat: Option[SimpleDiff[Option[HeartbeatConfiguration]]]) = ModifyNodeDiff(id,modHeartbeat, None, None, None, None, None)
 }
 
 /**
  * Diff on a change on agent run period
  */
 object ModifyNodeAgentRunDiff{
-  def apply(id: NodeId, modAgentRun: Option[SimpleDiff[Option[AgentRunInterval]]]) = ModifyNodeDiff(id,None,modAgentRun, None, None)
+  def apply(id: NodeId, modAgentRun: Option[SimpleDiff[Option[AgentRunInterval]]]) = ModifyNodeDiff(id,None,modAgentRun, None, None, None, None)
 }
 
 /**
  * Diff on the list of properties
  */
 object ModifyNodePropertiesDiff{
-  def apply(id: NodeId, modProperties: Option[SimpleDiff[Seq[NodeProperty]]]) = ModifyNodeDiff(id,None,None, modProperties, None)
+  def apply(id: NodeId, modProperties: Option[SimpleDiff[Seq[NodeProperty]]]) = ModifyNodeDiff(id,None,None, modProperties, None, None, None)
 }
 
 /**
@@ -296,6 +297,8 @@ final case class ModifyNodeDiff(
   , modAgentRun  : Option[SimpleDiff[Option[AgentRunInterval]]]
   , modProperties: Option[SimpleDiff[Seq[NodeProperty]]]
   , modPolicyMode: Option[SimpleDiff[Option[PolicyMode]]]
+  , modKeyValue  : Option[SimpleDiff[SecurityToken]]
+  , modKeyStatus : Option[SimpleDiff[KeyStatus]]
 )
 
 object ModifyNodeDiff {
@@ -305,7 +308,24 @@ object ModifyNodeDiff {
     val agentRun   = if (oldNode.nodeReportingConfiguration.agentRunInterval == newNode.nodeReportingConfiguration.agentRunInterval) None else Some(SimpleDiff(oldNode.nodeReportingConfiguration.agentRunInterval,newNode.nodeReportingConfiguration.agentRunInterval))
     val heartbeat  = if (oldNode.nodeReportingConfiguration.heartbeatConfiguration == newNode.nodeReportingConfiguration.heartbeatConfiguration) None else Some(SimpleDiff(oldNode.nodeReportingConfiguration.heartbeatConfiguration,newNode.nodeReportingConfiguration.heartbeatConfiguration))
 
-    ModifyNodeDiff(newNode.id,heartbeat,agentRun,properties,policy)
+    ModifyNodeDiff(newNode.id, heartbeat, agentRun, properties, policy, None, None)
+  }
+
+  def keyInfo(nodeId: NodeId, oldKeys: List[SecurityToken], oldStatus: KeyStatus, key: Option[SecurityToken], status: Option[KeyStatus]): ModifyNodeDiff = {
+    val keyInfo = key match {
+      case None    => None
+      case Some(k) =>
+        oldKeys match {
+          case Nil    => Some(SimpleDiff(PublicKey(""), k))
+          case x :: _ => if(k == x) None else Some(SimpleDiff(x, k))
+        }
+    }
+    val keyStatus = status match {
+      case None    => None
+      case Some(s) => if(s == oldStatus) None else Some(SimpleDiff(oldStatus, s))
+    }
+
+    ModifyNodeDiff(nodeId, None, None, None, None, keyInfo, keyStatus)
   }
 }
 

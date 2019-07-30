@@ -80,6 +80,8 @@ class NodeEventLogFormatV6Test extends Specification {
           , modAgentRun   = None
           , modProperties = None
           , modPolicyMode = None
+          , modKeyValue   = None
+          , modKeyStatus  = None
         )
 
   val event_32_NodePropertiesModified = <entry><node changeType="modify" fileFormat="6">
@@ -108,6 +110,8 @@ class NodeEventLogFormatV6Test extends Specification {
                               )
                             ))
           , modPolicyMode = None
+          , modKeyValue   = None
+          , modKeyStatus  = None
         )
 
 
@@ -127,6 +131,8 @@ class NodeEventLogFormatV6Test extends Specification {
                             ))
           , modProperties = None
           , modPolicyMode = None
+          , modKeyValue   = None
+          , modKeyStatus  = None
         )
 
 

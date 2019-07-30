@@ -945,6 +945,16 @@ class EventLogFactoryImpl(
               case Some(mode) => Text(mode.name)
             } }
           }
+        } {
+          modifyDiff.modKeyValue match {
+            case None    => NodeSeq.Empty
+            case Some(x) => SimpleDiff.toXml(<agentKey/>, x) { x => Text(x.key) }
+          }
+        } {
+          modifyDiff.modKeyStatus match {
+            case None => NodeSeq.Empty
+            case Some(x) => SimpleDiff.toXml(<keyStatus/>, x) { x => Text(x.value) }
+          }
         }
       </node>)
     }

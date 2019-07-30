@@ -784,6 +784,7 @@ object RudderConfig extends Loggable {
     ApiVersion(9  , false) ::
     ApiVersion(10 , false) ::
     ApiVersion(11 , false) ::
+    ApiVersion(12 , false) ::
     Nil
 
   lazy val apiDispatcher = new RudderEndpointDispatcher(LiftApiProcessingLogger)
@@ -1280,6 +1281,7 @@ object RudderConfig extends Loggable {
 
   private[this] lazy val woLdapNodeRepository: WoNodeRepository = new WoLDAPNodeRepository(
       nodeDitImpl
+    , acceptedNodesDit
     , ldapEntityMapper
     , rwLdap
     , logRepository

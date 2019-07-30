@@ -37,6 +37,8 @@
 
 package com.normation.rudder.rest
 
+import java.io.StringReader
+
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.{AclPath, ApiAccountId, ApiAccountName, ApiAclElement, HttpAction, ApiAuthorization => ApiAuthz}
@@ -87,9 +89,20 @@ import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.inventory.domain.InventoryError
+import com.normation.inventory.domain.SecurityToken
 import com.normation.rudder.ncf.Constraint._
 import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.utils.StringUuidGenerator
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
+import org.bouncycastle.openssl.PEMParser
+import com.normation.errors._
+import com.normation.inventory.domain.Certificate
+import com.normation.inventory.domain.KeyStatus
+import com.normation.inventory.domain.PublicKey
+import org.bouncycastle.cert.X509CertificateHolder
+import zio._
+import zio.syntax._
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -605,13 +618,34 @@ case class RestExtractorService (
     }
   }
 
+
+  // for the key, we don't have type / agent here. We are just looking if the string is a valid PEM
+  // and choose between certificate / public key
+  def parseAgentKey(key: String): Box[SecurityToken] = {
+    IO.effect {
+      (new PEMParser(new StringReader(key))).readObject()
+    }.mapError { ex =>
+      InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a public key", ex)
+    }.flatMap { obj =>
+      obj match {
+        case _: SubjectPublicKeyInfo  => PublicKey(key).succeed
+        case _: X509CertificateHolder => Certificate(key).succeed
+        case _ => InventoryError.Crypto(s"Provided agent key is in an unknown format. Please use a certificate or public key in PEM format").fail
+      }
+    }.toBox
+  }
+
   def extractNode (params : Map[String, List[String]]) : Box[RestNode] = {
+
+
     for {
       properties <- extractNodeProperties(params)
       mode       <- extractOneValue(params, "policyMode")(PolicyMode.parseDefault(_).toBox)
       state      <- extractOneValue(params, "state")(x => NodeStateEncoder.dec(x).toOption)
+      keyValue   <- extractOneValue(params, "agentKey.value") (x => parseAgentKey(x))
+      keyStatus  <- extractOneValue(params, "agentKey.status") (x => KeyStatus(x).toBox)
     } yield {
-      RestNode(properties, mode, state)
+      RestNode(properties, mode, state, keyValue, keyStatus)
     }
   }
 
@@ -666,8 +700,11 @@ case class RestExtractorService (
       properties <- extractNodePropertiesFromJSON(json)
       mode       <- extractJsonString(json, "policyMode", PolicyMode.parseDefault(_).toBox)
       state      <- extractJsonString(json, "state", x => NodeStateEncoder.dec(x).toOption)
+      agentKey   =  json \ "agentKey"
+      keyValue   <- extractJsonString(agentKey, "value", x => parseAgentKey(x))
+      keyStatus  <- extractJsonString(agentKey, "status", x => KeyStatus(x).toBox)
     } yield {
-      RestNode(properties, mode, state)
+      RestNode(properties, mode, state, keyValue, keyStatus)
     }
   }
 

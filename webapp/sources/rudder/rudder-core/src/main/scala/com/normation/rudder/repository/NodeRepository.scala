@@ -41,6 +41,9 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.nodes._
 import com.normation.errors._
+import com.normation.inventory.domain.KeyStatus
+import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.SecurityToken
 
 /**
  * Node Repository
@@ -48,7 +51,16 @@ import com.normation.errors._
  */
 trait WoNodeRepository {
   /**
-   * Complete update of the Node object
+   * Complete update of the Node object.
    */
   def updateNode(node: Node, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Node]
+
+  /**
+   * We have a special case for agentKey and agentKey status because even if they are from inventory,
+   * we want to be able to directly manage them via API to:
+   * - reset or enforce the key status,
+   * - enforce a new certificate different from the one previously in inventory.
+   */
+  def updateNodeKeyInfo(nodeId: NodeId, agentKey: Option[SecurityToken], agentKeyStatus: Option[KeyStatus], modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Unit]
+
 }

@@ -44,9 +44,12 @@ import java.io.StringReader
 
 import com.normation.NamedZioLogger
 import com.normation.errors._
+import com.normation.inventory.domain.InventoryError.CryptoEx
+import com.normation.inventory.services.provisioning.ParsedSecurityToken
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import org.bouncycastle.cert.X509CertificateHolder
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
 import zio._
 import zio.syntax._
 
@@ -70,7 +73,7 @@ sealed trait SecurityToken {
   def key : String
 }
 
-case object SecurityToken {
+object SecurityToken {
   def kind(token : SecurityToken) = {
     token match {
       case _: PublicKey   => PublicKey.kind
@@ -78,6 +81,40 @@ case object SecurityToken {
     }
   }
 
+  def parseCertificate(cert: Certificate): IO[InventoryError, (java.security.PublicKey, List[(String, String)])] = {
+    cert.cert.flatMap { ch =>
+      IO.effect {
+        val c = new JcaX509CertificateConverter().getCertificate( ch )
+        val dn = ch.getSubject.getRDNs.flatMap(_.getTypesAndValues.flatMap(tv => (tv.getType.toString, tv.getValue.toString) :: Nil)).toList
+        (c.getPublicKey, dn)
+      }.mapError { ex =>
+        CryptoEx(s"Error when trying to parse agent certificate information", ex)
+      }
+    }
+  }
+
+  def checkCertificateSubject(nodeId: NodeId, subject: List[(String, String)]): IO[InventoryError, Unit] = {
+    //format subject
+    def formatSubject(list: List[(String, String)]) = list.map(kv => s"${kv._1}=${kv._2}").mkString(",")
+
+    // in rudder, we ensure that at list one (k,v) pair is "UID = the node id". If missing, it's an error
+    subject.find { case (k,v) => k == ParsedSecurityToken.nodeidOID } match {
+      case None        => InventoryError.SecurityToken(s"Certificate subject doesn't contain node ID in 'UID' attribute: ${formatSubject(subject)}").fail
+      case Some((k,v)) =>
+        if(v.trim.toLowerCase == nodeId.value.toLowerCase) {
+          UIO.unit
+        } else {
+          InventoryError.SecurityToken(s"Certificate subject doesn't contain same node ID in 'UID' attribute as inventory node ID: ${formatSubject(subject)}").fail
+        }
+    }
+  }
+
+  def checkCertificateForNode(nodeId: NodeId, certificate: Certificate): IO[InventoryError, Unit] = {
+    for {
+      parsed <- parseCertificate(certificate)
+      _      <- checkCertificateSubject(nodeId, parsed._2)
+    } yield ()
+  }
 }
 
 object PublicKey {
@@ -147,7 +184,6 @@ final case class Certificate(value : String) extends SecurityToken with Hashcode
       res
     }
   }
-
 }
 
 /**
