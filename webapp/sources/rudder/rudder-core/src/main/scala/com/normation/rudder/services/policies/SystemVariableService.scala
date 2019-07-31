@@ -43,9 +43,9 @@ import com.normation.cfclerk.domain.SystemVariableSpec
 import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.services.MissingSystemVariable
 import com.normation.cfclerk.services.SystemVariableSpecService
+import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.PublicKey
 import com.normation.inventory.domain.ServerRole
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.NodeInfo
@@ -367,14 +367,18 @@ class SystemVariableServiceImpl(
       // Sort these children by agent
       // Each node may have several agent type, so we need to "unfold" agents per children
       val childerNodesList = children.map(node => (node.agentsName.map(agent => agent -> node))).flatten
-      val (nodesAgentWithCFEKey, nodesAgentWithCertificate) = childerNodesList.partition(x => x._1.securityToken match {
-                                                        case key : PublicKey => true
-                                                        case _ => false
-                                                      }
-                                                    )
+
+      // we need to split nodes based on the way they get their policies. If they use cf-serverd,
+      // we need to set some system variable to managed authentication.
+      // The distribution is chosen based on agent type.
+      val (nodesAgentWithCfserverDistrib, nodesAgentWithHttpDistrib) = childerNodesList.partition(x => x._1.agentType match {
+          case AgentType.CfeCommunity | AgentType.CfeEnterprise => true
+          case _                                                => false
+        }
+      )
 
       //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
-      val nodesWithCFEKey = nodesAgentWithCFEKey.map(_._2).sortBy( _.id.value )
+      val nodesWithCFEKey = nodesAgentWithCfserverDistrib.map(_._2).sortBy( _.id.value )
 
       val varManagedNodes      = systemVariableSpecService.get("MANAGED_NODES_NAME" ).toVariable(nodesWithCFEKey.map(_.hostname))
       val varManagedNodesId    = systemVariableSpecService.get("MANAGED_NODES_ID"   ).toVariable(nodesWithCFEKey.map(_.id.value))
@@ -417,7 +421,7 @@ class SystemVariableServiceImpl(
 
 
       // Construct the system variables for nodes with certificates
-      val nodesWithCertificate = nodesAgentWithCertificate.flatMap {case (agent, node) =>
+      val nodesWithCertificate = nodesAgentWithHttpDistrib.flatMap {case (agent, node) =>
         agent.securityToken match {
           // A certificat, we return it
           case cert:Certificate =>
