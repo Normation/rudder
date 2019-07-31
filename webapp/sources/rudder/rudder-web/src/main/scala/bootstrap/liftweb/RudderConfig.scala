@@ -1859,7 +1859,6 @@ object RudderConfig extends Loggable {
     , complianceRepositoryImpl
     , maxCatchupTime
     , maxCatchupBatch
-    , () => configService.rudder_compute_changes().toBox
     )
   }
 

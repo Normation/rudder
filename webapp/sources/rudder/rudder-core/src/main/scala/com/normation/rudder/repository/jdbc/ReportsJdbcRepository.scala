@@ -39,7 +39,6 @@ package com.normation.rudder.repository.jdbc
 
 import java.sql.Timestamp
 
-
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
@@ -49,8 +48,10 @@ import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.repository.ReportsRepository
 import org.joda.time._
 import net.liftweb.common._
-import doobie._, doobie.implicits._
+import doobie._
+import doobie.implicits._
 import cats.implicits._
+import com.normation.errors.IOResult
 import com.normation.rudder.db.Doobie._
 import com.normation.rudder.db.Doobie
 
@@ -412,25 +413,35 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     * returns the changes between startTime and now, using intervalInHour interval size
     */
 
-  override def countChangeReportsByBatch(intervals : List[Interval]) : Box[Map[RuleId, Map[Interval, Int]]] = {
+  override def countChangeReportsByBatch(intervals : List[Interval]) : Box[(Long, Map[RuleId, Map[Interval, Int]])] = {
     import com.normation.utils.Control.sequence
     logger.debug(s"Fetching all changes for intervals ${intervals.mkString(",")}")
     val beginTime = System.currentTimeMillis()
-    val rules: Box[Seq[Vector[(RuleId, Interval, Int)]]] = sequence(intervals) { interval =>
-      (transactRunBox(xa => query[(RuleId, Int)](
-        s"""select ruleid, count(*) as number
+    val box: Box[Seq[Vector[(RuleId, Interval, Int, Long)]]] = sequence(intervals) { interval =>
+      (transactRunBox(xa => query[(RuleId, Int, Long)](
+        s"""select ruleid, count(*) as number, max(id)
           from ruddersysevents
           where eventtype = 'result_repaired' and executionTimeStamp > '${new Timestamp(interval.getStartMillis)}' and executionTimeStamp <= '${new Timestamp(interval.getEndMillis)}'
           group by ruleid;
       """
       ).to[Vector].transact(xa)) ?~! s"Error when trying to retrieve change reports on interval ${interval.toString}").map { res =>
-
-        res.map { case (ruleid, count) => (ruleid, interval, count) }
+        res.map { case (ruleid, count, highestId) => (ruleid, interval, count, highestId) }
       }
     }
     val  endQuery = System.currentTimeMillis()
     logger.debug(s"Fetched all changes in intervals in ${(endQuery - beginTime)} ms")
-    rules.map(x => x.flatten.groupBy(_._1).mapValues( _.groupBy(_._2).mapValues(_.map ( _._3).head)))  //head non empty due to groupBy, and seq == 1 by query
+
+    for {
+      all <- box.map(_.flatten)
+    } yield {
+      val highest = all.iterator.map(_._4).max
+      val byRules = all.groupBy(_._1).map { case (id, seq) =>
+        (id, seq.groupBy(_._2).map { case (int, seq2) =>
+          (int, seq.map(_._3).head) // seq == 1 by query
+        })
+      }
+      (highest, byRules)
+    }
   }
 
   override def countChangeReports(startTime: DateTime, intervalInHour: Int): Box[Map[RuleId, Map[Interval, Int]]] = {
@@ -457,8 +468,8 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     }, intervalMeta)._1 //tricking scalac for false positive unused warning on intervalMeta.
   }
 
-  override def getChangeReportsOnInterval(lowestId: Long, highestId: Long): Box[Seq[ChangeForCache]] = {
-    transactRunBox(xa => query[ChangeForCache](
+  override def getChangeReportsOnInterval(lowestId: Long, highestId: Long): IOResult[Seq[ChangeForCache]] = {
+    transactIOResult(s"Error we getting change reports on [${lowestId}, ${highestId}]")(xa => query[ChangeForCache](
       s"""select ruleid, executiontimestamp from ruddersysevents where
           eventtype='${Reports.RESULT_REPAIRED}' and id >= ${lowestId} and id <= ${highestId}
        """).to[Vector].transact(xa))

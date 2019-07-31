@@ -37,14 +37,13 @@
 
 package com.normation.rudder.repository
 
+import com.normation.errors.IOResult
 import org.joda.time._
-
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.reports.execution.AgentRunId
-
 import net.liftweb.common.Box
 
 /**
@@ -109,7 +108,10 @@ trait ReportsRepository {
   //return the reports between the two ids, limited to limit number of reports, in asc order of id.
   def getReportsByKindBeetween(lower: Long, upper: Long, limit: Int, kinds: List[String]) : Box[Seq[(Long, Reports)]]
 
-  def countChangeReportsByBatch(intervals : List[Interval]) : Box[Map[RuleId, Map[Interval, Int]]]
+  /*
+   * Count number of changes by rule by interval. Also return the id of the highest result_repair.
+   */
+  def countChangeReportsByBatch(intervals : List[Interval]) : Box[(Long, Map[RuleId, Map[Interval, Int]])]
 
   //nodechangesServices
   /*
@@ -117,7 +119,7 @@ trait ReportsRepository {
    *  StartTime should be a 00:00:00 time.
    */
   def countChangeReports(startTime: DateTime, intervalSizeHour: Int): Box[Map[RuleId, Map[Interval, Int]]]
-  def getChangeReportsOnInterval(lowestId: Long, highestId: Long): Box[Seq[ChangeForCache]]
+  def getChangeReportsOnInterval(lowestId: Long, highestId: Long): IOResult[Seq[ChangeForCache]]
   def getChangeReportsByRuleOnInterval(ruleId: RuleId, interval: Interval, limit: Option[Int]): Box[Seq[ResultRepairedReport]]
 
   //reportExecution only

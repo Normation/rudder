@@ -37,6 +37,7 @@
 
 package com.normation.rudder.domain.logger
 
+import com.normation.NamedZioLogger
 import com.normation.rudder.domain.reports._
 import net.liftweb.common.Logger
 import org.slf4j.LoggerFactory
@@ -45,6 +46,13 @@ object ReportLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("report")
 }
 
+object PureReportLogger extends NamedZioLogger {
+  override def loggerName: String = "report"
+
+  object Changes extends NamedZioLogger {
+    override def loggerName: String = "report.changes"
+  }
+}
 
 object AllReportLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("non-compliant-reports")

@@ -49,6 +49,7 @@ import com.normation.ldap.sdk._
 import com.unboundid.ldap.sdk.DN
 import zio._
 import zio.syntax._
+import com.normation.zio._
 
 class ReadOnlySoftwareDAOImpl(
   inventoryDitService:InventoryDitService,
@@ -131,19 +132,19 @@ class ReadOnlySoftwareDAOImpl(
 
     for {
       con            <- ldap
-      t1             <- UIO.effectTotal(System.currentTimeMillis)
+      t1             <- currentTimeMillis
       // fetch all nodes
       nodes           <- con.searchSub(acceptedDit.NODES.dn.getParent, IS(OC_NODE), A_NODE_UUID)
       mutSetSoftwares <- Ref.make[scala.collection.mutable.Set[SoftwareUuid]](scala.collection.mutable.Set())
       _               <- ZIO.foreach(nodes.grouped(50).toIterable) { nodeEntries => // batch by 50 nodes to avoid destroying ram/ldap con
                            for {
                              nodeIds       <- ZIO.foreach(nodeEntries) { e => IOResult.effect(e(A_NODE_UUID).map(NodeId(_))).notOptional(s"Missing mandatory attribute '${A_NODE_UUID}'") }
-                             t2            <- UIO.effectTotal(System.currentTimeMillis)
+                             t2            <- currentTimeMillis
                              orFilter      =  BuildFilter.OR(nodeIds.map(x => EQ(A_NODE_UUID, x.value)): _*)
                              softwareEntry <- con.searchSub(acceptedDit.NODES.dn.getParent, orFilter, A_SOFTWARE_DN)
                              ids           =  softwareEntry.flatMap(entry => entry.valuesFor(A_SOFTWARE_DN).toSet )
                              results       <- ZIO.foreach(ids) { id => acceptedDit.SOFTWARE.SOFT.idFromDN(new DN(id)).toIO }.either
-                             t3            <- UIO.effectTotal(System.currentTimeMillis)
+                             t3            <- currentTimeMillis
                              _             <- InventoryLogger.debug(s"Software DNs from 50 nodes fetched in ${t3-t2} ms")
                              _             <- results match { // we don't want to return "results" because we need on-site dedup.
                                                 case Right(softIds) =>

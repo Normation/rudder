@@ -50,6 +50,16 @@ object errors {
   type PureResult[A] = Either[RudderError, A]
   type IOResult[A] = ZIO[Any, RudderError, A]
 
+
+  def runUnit[R, A](effect: ZIO[R, Throwable, A]): ZIO[R, Nothing, Unit] = {
+    def printError(t: Throwable): UIO[Unit] = {
+      val print = (s:String) => IO.effect(System.err.println(s))
+      //here, we must run.void, because if it fails we can't do much more (and the app is certainly totally broken)
+      (print(s"${t.getClass.getName}:${t.getMessage}") *> IO.foreach(t.getStackTrace)(st => print(st.toString))).run.unit
+    }
+    effect.unit.catchAll(printError)
+  }
+
   object IOResult {
     def effect[A](error: String)(effect: => A): IOResult[A] = {
       IO.effect(effect).mapError(ex => SystemError(error, ex))
@@ -68,12 +78,7 @@ object errors {
     }
 
     def effectUioUnit[A](effect: => A): UIO[Unit] = {
-      def printError(t: Throwable): UIO[Unit] = {
-        val print = (s:String) => IO.effect(System.err.println(s))
-        //here, we must run.unit, because if it fails we can't do much more (and the app is certainly totally broken)
-        (print(s"${t.getClass.getName}:${t.getMessage}") *> IO.foreach(t.getStackTrace)(st => print(st.toString))).run.unit
-      }
-      IO.effect(effect).unit.catchAll(printError)
+      runUnit(IO.effect(effect))
     }
   }
 
@@ -331,12 +336,7 @@ trait ZioLogger {
    * that something went badly. Obviously, we won't use the logger for that.
    */
   final def logAndForgetResult[T](log: Logger => T): UIO[Unit] = {
-    def printError(t: Throwable): UIO[Unit] = {
-      val print = (s:String) => IO.effect(System.err.println(s))
-      //here, we must run.void, because if it fails we can't do much more (and the app is certainly totally broken)
-      (print(s"${t.getClass.getName}:${t.getMessage}") *> UIO.foreach(t.getStackTrace)(st => print(st.toString).run.unit)).run.unit
-    }
-    IO.effect(log(logEffect)).unit.catchAll(printError)
+    com.normation.errors.runUnit(IO.effect(log(logEffect)))
   }
 
   final def trace(msg: => AnyRef): UIO[Unit] = logAndForgetResult(_.trace(msg))
