@@ -65,7 +65,10 @@ import zio._
 class TestTechniqueWriter extends Specification with ContentMatchers with Loggable {
   sequential
   val basePath = "/tmp/test-technique-writer" + DateTime.now.toString()
-  new File(basePath).mkdirs()
+
+  val dir = new File(basePath)
+  dir.deleteOnExit()
+  dir.mkdirs()
 
   val expectedPath = "src/test/resources/configuration-repository"
   object TestTechniqueArchiver extends TechniqueArchiver {

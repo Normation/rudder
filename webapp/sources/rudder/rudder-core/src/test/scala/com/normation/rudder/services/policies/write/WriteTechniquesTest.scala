@@ -69,6 +69,7 @@ import java.nio.charset.StandardCharsets
 
 import com.normation.rudder.services.policies.MergePolicyService
 import com.normation.rudder.services.policies.BoundPolicyDraft
+import org.apache.commons.io.FileUtils
 
 
 /**
@@ -213,7 +214,7 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
   override def afterAll(): Unit = {
     if(System.getProperty("tests.clean.tmp") != "false") {
       logger.info("Deleting directory " + data.abstractRoot.getAbsolutePath)
-      //FileUtils.deleteDirectory(abstractRoot)
+      FileUtils.deleteDirectory(abstractRoot)
     }
   }
 
