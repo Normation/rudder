@@ -779,10 +779,9 @@ object RudderConfig extends Loggable {
   val ncfTechniqueWriter = new TechniqueWriter(techniqueArchiver, updateTechniqueLibrary, interpolationCompiler, prettyPrinter, RUDDER_DIR_GITROOT)
 
   val ApiVersions =
-    ApiVersion(7  , true ) ::
-    ApiVersion(8  , false) ::
-    ApiVersion(9  , false) ::
-    ApiVersion(10 , false) ::
+    ApiVersion(8  , true) ::
+    ApiVersion(9  , true) ::
+    ApiVersion(10 , true) ::
     ApiVersion(11 , false) ::
     ApiVersion(12 , false) ::
     Nil
