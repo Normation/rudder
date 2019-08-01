@@ -7,6 +7,27 @@ APACHE="$2"
 APACHE_USER="$3"
 APACHE_GROUP="$4"
 
+# Create groups ans users before managing the services
+if ! getent group rudder > /dev/null; then
+  echo -n "INFO: Creating group rudder..."
+  groupadd --system rudder
+  echo " Done"
+fi
+
+if ! getent group rudder-policy-reader > /dev/null; then
+  echo -n "INFO: Creating group rudder-policy-reader..."
+  groupadd --system rudder-policy-reader
+  usermod -a -G rudder-policy-reader "${APACHE_USER}"
+  echo " Done"
+fi
+
+if ! getent passwd rudder >/dev/null; then
+  echo -n "INFO: Creating the rudder user..."
+  useradd --system --shell /bin/false --gid rudder --home-dir /var/rudder --comment "Rudder,,," rudder >/dev/null
+  echo " Done"
+fi
+
+# Reload systemd before managine the services
 if [ -z "${FIRST_INSTALL}" ]; then
   echo -n "INFO: Setting rudder-relayd as a boot service..."
   systemctl daemon-reload
@@ -22,32 +43,10 @@ echo -n "INFO: Stopping rudder-relayd..."
 systemctl stop rudder-relayd >/dev/null || true
 echo " Done"
 
-# Create the rudder group if it does not exist
-if ! getent group rudder > /dev/null; then
-  echo -n "INFO: Creating group rudder..."
-  groupadd --system rudder
-  echo " Done"
-fi
-
-# Create the rudder-policy-reader group if it does not exist
-if ! getent group rudder-policy-reader > /dev/null; then
-  echo -n "INFO: Creating group rudder-policy-reader..."
-  groupadd --system rudder-policy-reader
-  usermod -a -G rudder-policy-reader "${APACHE_USER}"
-  echo " Done"
-fi
-
 # share directory with rudder-policy-reader
 chgrp -R rudder-policy-reader /var/rudder/share
 chmod 750 /var/rudder/share
 find /var/rudder/share -type d | xargs chmod g+s-w
-
-# Create the rudder user
-if ! getent passwd rudder >/dev/null; then
-  echo -n "INFO: Creating the rudder user..."
-  useradd -r -m -s /bin/false -g rudder -d /var/rudder -c "Rudder,,," rudder >/dev/null
-  echo " Done"
-fi
 
 # change some directory to rudder owner
 chown rudder: /var/rudder/shared-files
