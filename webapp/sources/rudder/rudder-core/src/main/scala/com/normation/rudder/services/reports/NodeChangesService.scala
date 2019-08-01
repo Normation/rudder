@@ -262,7 +262,7 @@ class CachedNodeChangesServiceImpl(
      *
      * The queue need to be unsafeRun so that the `offer` is available.
      */
-    val queue = ZioRuntime.runNow(ZQueue.sliding[ChangesUpdate](1024))
+    val queue = ZioRuntime.runNow(Queue.sliding[ChangesUpdate](1024))
 
     // start infinite loop
     ZioRuntime.runNow(

@@ -63,7 +63,7 @@ import org.eclipse.jgit.diff.DiffEntry.ChangeType
 import java.io.IOException
 
 import com.normation.errors._
-import com.normation.zio._
+import com.normation.zio.ZioRuntime
 import zio._
 import zio.syntax._
 
@@ -129,8 +129,19 @@ class GitTechniqueReader(
   val relativePathToGitRepos : Option[String],
   val directiveDefaultName   : String //full (with extension) name of the file containing default name for directive (default-directive-names.conf)
 ) extends TechniqueReader with Loggable {
-
   reader =>
+
+  /*
+   * That class is not yet ported to ZIO.
+   * So we accept that any error in a IOResult[A] will lead to an exception, which will
+   * need to be taken care for.
+   */
+  implicit class RunOrThrow[A](effect: IOResult[A]) {
+    def runNow: A = ZioRuntime.runNow(effect.either) match {
+      case Right(x)  => x
+      case Left(err) => throw new RuntimeException(err.fullMsg)
+    }
+  }
 
   //denotes a path for a technique, so it starts by a "/"
   //and is not prefixed by relativePathToGitRepos
@@ -554,6 +565,7 @@ class GitTechniqueReader(
   /**
    * We remove each category for which parent category is not defined.
    */
+  @scala.annotation.tailrec
   private[this] def recToRemove(
       catId:SubTechniqueCategoryId
     , toRemove:collection.mutable.HashSet[SubTechniqueCategoryId]

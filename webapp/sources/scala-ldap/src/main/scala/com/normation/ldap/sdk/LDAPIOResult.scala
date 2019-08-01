@@ -59,6 +59,11 @@ object LDAPIOResult{
       LDAPRudderError.BackendException(err.msg, err.cause)
     )
   }
+  def effectNonBlocking[A](effect: => A): IO[LDAPRudderError.BackendException, A] = {
+    IOResult.effectNonBlocking(effect).mapError(err =>
+      LDAPRudderError.BackendException(err.msg, err.cause)
+    )
+  }
 
   // transform an Option[T] into an error
   implicit class StrictOption[T](opt: LDAPIOResult[Option[T]]) {

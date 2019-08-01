@@ -59,12 +59,10 @@ class InMemoryDsConnectionProvider[CON <: RoLDAPConnection](
   override def semaphore = ZioRuntime.unsafeRun(Semaphore.make(1))
   override val connection = ZioRuntime.unsafeRun(Ref.make(Option.empty[CON]))
 
-  override def newUnboundidConnection: LDAPIOResult[UnboundidLDAPConnection] = LDAPIOResult.effect(server.getConnection)
+  override def newUnboundidConnection: UnboundidLDAPConnection = server.getConnection
 
   def newConnection = {
-    newUnboundidConnection.map(con =>
-      new RwLDAPConnection(con,ldifFileLogger,blockingModule=blockingModule).asInstanceOf[CON]
-    )
+    LDAPIOResult.effectNonBlocking(new RwLDAPConnection(newUnboundidConnection,ldifFileLogger,blockingModule=blockingModule).asInstanceOf[CON])
   }
 }
 

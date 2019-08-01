@@ -29,6 +29,7 @@ import zio.blocking.Blocking
 import com.normation.errors._
 import com.normation.ldap.sdk.syntax._
 import com.normation.zio.ZioRuntime
+import com.unboundid.ldap.sdk.LDAPException
 
 /**
  * A LDAP connection manager.
@@ -128,7 +129,8 @@ trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] {
  *
  */
 trait UnboundidConnectionProvider {
-  def newUnboundidConnection : LDAPIOResult[UnboundidLDAPConnection]
+  // for performance reason, this can't be wrapped in ZIO
+  def newUnboundidConnection : UnboundidLDAPConnection
   def toConnectionString : String
 }
 
@@ -154,7 +156,7 @@ trait AnonymousConnection extends UnboundidConnectionProvider {
   def useSchemaInfos : Boolean
 
   override def newUnboundidConnection = {
-    LDAPIOResult.effect(new UnboundidLDAPConnection(RudderLDAPConnectionOptions(useSchemaInfos),host,port))
+    new UnboundidLDAPConnection(RudderLDAPConnectionOptions(useSchemaInfos),host,port)
   }
 
   override def toConnectionString = s"anonymous@ldap://${host}:${port}"
@@ -172,7 +174,7 @@ trait SimpleAuthConnection extends UnboundidConnectionProvider {
   def useSchemaInfos : Boolean
 
   override def newUnboundidConnection = {
-    LDAPIOResult.effect(new UnboundidLDAPConnection(RudderLDAPConnectionOptions(useSchemaInfos),host,port,authDn,authPw))
+    new UnboundidLDAPConnection(RudderLDAPConnectionOptions(useSchemaInfos),host,port,authDn,authPw)
   }
 
   override def toConnectionString = s"$authDn:*****@ldap://${host}:${port}"
@@ -232,19 +234,22 @@ trait PooledConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionP
   def poolSize : Int
   def ldifFileLogger:LDIFFileLogger
 
-  protected val pool = {
-    //it's really strange that the pool need a connection. Well.
-    new LDAPConnectionPool(ZioRuntime.unsafeRun(self.newUnboundidConnection), poolSize)
+  // for performance reason, operation on pool can't be wrapped into ZIO
+  protected lazy val pool = try {
+    new LDAPConnectionPool(self.newUnboundidConnection, poolSize)
+  } catch {
+    case ex: LDAPException =>
+      LDAPConnectionLogger.error(s"Error during LDAP connection pool initialisation. Exception: ${ex.getDiagnosticMessage}")
+      throw new Error(ex.getDiagnosticMessage)
   }
 
-  override def close : UIO[Unit] = effectUioUnit(pool.close)
-
+  override def close : UIO[Unit] = UIO.effectTotal(pool.close)
   protected def getInternalConnection() = newConnection
   protected def releaseInternalConnection(con:LDAP) : UIO[Unit] = {
-    effectUioUnit(pool.releaseConnection(con.backed))
+    UIO.effectTotal(pool.releaseConnection(con.backed))
   }
   protected def releaseDefuncInternalConnection(con:LDAP) : UIO[Unit] = {
-    effectUioUnit(pool.releaseDefunctConnection(con.backed))
+    UIO.effectTotal(pool.releaseDefunctConnection(con.backed))
   }
 
 }
@@ -265,9 +270,7 @@ class ROAnonymousConnectionProvider(
   override val connection = ZioRuntime.unsafeRun(Ref.make(Option.empty[RoLDAPConnection]))
 
   def newConnection = {
-    newUnboundidConnection.map(con =>
-      new RoLDAPConnection(con,ldifFileLogger,blockingModule=blockingModule)
-    )
+    LDAPIOResult.effectNonBlocking(new RoLDAPConnection(newUnboundidConnection,ldifFileLogger,blockingModule=blockingModule))
   }
 }
 
@@ -286,9 +289,7 @@ class RWAnonymousConnectionProvider(
   override val connection = ZioRuntime.unsafeRun(Ref.make(Option.empty[RwLDAPConnection]))
 
   def newConnection = {
-    newUnboundidConnection.map(con =>
-      new RwLDAPConnection(con,ldifFileLogger,blockingModule=blockingModule)
-    )
+    LDAPIOResult.effectNonBlocking(new RwLDAPConnection(newUnboundidConnection,ldifFileLogger,blockingModule=blockingModule))
   }
 }
 
@@ -307,7 +308,7 @@ class ROPooledAnonymousConnectionProvider(
 ) extends AnonymousConnection with PooledConnectionProvider[RoLDAPConnection] {
 
   def newConnection = {
-    LDAPIOResult.effect(new RwLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule))
+    LDAPIOResult.effectNonBlocking(new RoLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule))
   }
 }
 
@@ -324,7 +325,7 @@ class RWPooledAnonymousConnectionProvider(
   val blockingModule: Blocking
 ) extends AnonymousConnection with PooledConnectionProvider[RwLDAPConnection] {
   def newConnection = {
-    LDAPIOResult.effect(new RwLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule))
+    LDAPIOResult.effectNonBlocking(new RwLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule))
   }
 }
 
@@ -346,7 +347,7 @@ class ROSimpleAuthConnectionProvider(
   override val connection = ZioRuntime.unsafeRun(Ref.make(Option.empty[RoLDAPConnection]))
 
   def newConnection = {
-    newUnboundidConnection.map(con => new RoLDAPConnection(con,ldifFileLogger,blockingModule=blockingModule))
+    LDAPIOResult.effectNonBlocking(new RoLDAPConnection(newUnboundidConnection,ldifFileLogger,blockingModule=blockingModule))
   }
 }
 
@@ -368,7 +369,7 @@ class RWSimpleAuthConnectionProvider(
   override val connection = ZioRuntime.unsafeRun(Ref.make(Option.empty[RwLDAPConnection]))
 
   def newConnection = {
-    newUnboundidConnection.map(con => new RwLDAPConnection(con,ldifFileLogger,blockingModule=blockingModule))
+    LDAPIOResult.effectNonBlocking(new RwLDAPConnection(newUnboundidConnection,ldifFileLogger,blockingModule=blockingModule))
   }
 }
 
@@ -387,7 +388,7 @@ class ROPooledSimpleAuthConnectionProvider(
   val blockingModule: Blocking
 ) extends SimpleAuthConnection with PooledConnectionProvider[RoLDAPConnection] {
   def newConnection = {
-    LDAPIOResult.effect(new RoLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule))
+    LDAPIOResult.effectNonBlocking(new RoLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule))
   }
 }
 
@@ -406,6 +407,6 @@ class RWPooledSimpleAuthConnectionProvider(
   val blockingModule: Blocking
 ) extends SimpleAuthConnection with PooledConnectionProvider[RwLDAPConnection]{
   def newConnection = {
-    LDAPIOResult.effect(new RwLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule))
+    LDAPIOResult.effectNonBlocking(new RwLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule))
   }
 }

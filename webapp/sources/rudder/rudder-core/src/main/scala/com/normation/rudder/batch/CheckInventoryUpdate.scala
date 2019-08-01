@@ -37,6 +37,7 @@
 
 package com.normation.rudder.batch
 
+import com.normation.errors.IOResult
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.services.nodes.NodeInfoServiceCachedImpl
@@ -67,14 +68,13 @@ class CheckInventoryUpdate(
   }
 
   // type annotation is necessary to avoid a "Any was infered, perhaps an error"
-  val prog: UIO[Unit] = Task.effect {
-    if(!nodeInfoCacheImpl.isUpToDate().runNow) {
-      logger.logEffect.info("Update in node inventories main information detected: triggering a policy generation")
-      asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor, "Main inventory information of at least one node were updated")
-    } else {
-      logger.logEffect.trace("No update in node inventories main information detected")
-    }
-  }.catchAll(ex => logger.error(s"Error when trying to update node inventories information. Error is: ${ex.getClass.getName}: ${ex.getMessage}"))
+  val prog: UIO[Unit] = nodeInfoCacheImpl.isUpToDate().flatMap {
+    case true  =>
+      logger.trace("No update in node inventories main information detected")
+    case false =>
+      logger.info("Update in node inventories main information detected: triggering a policy generation") *>
+      IOResult.effectNonBlocking(asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor, "Main inventory information of at least one node were updated"))
+  }.catchAll(err => logger.error(s"Error when trying to update node inventories information. Error is: ${err.fullMsg}"))
 
   ZioRuntime.unsafeRun(prog.delay(30.seconds).repeat(Schedule.spaced(updateInterval)).provide(ZioRuntime.Environment).fork)
 }
