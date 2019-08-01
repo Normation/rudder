@@ -27,13 +27,13 @@ if ! getent passwd rudder >/dev/null; then
   echo " Done"
 fi
 
-# Reload systemd before managine the services
-if [ -z "${FIRST_INSTALL}" ]; then
-  echo -n "INFO: Setting rudder-relayd as a boot service..."
-  systemctl daemon-reload
+# Always reload systemd (in case we changed the unit file)
+echo -n "INFO: Setting rudder-relayd as a boot service..."
+systemctl daemon-reload
+if [ "${FIRST_INSTALL}" -eq 1 ]; then
   systemctl enable rudder-relayd
-  echo " Done"
 fi
+echo " Done"
 
 echo -n "INFO: Stopping Apache HTTPd..."
 systemctl stop "${APACHE}" >dev/null
@@ -93,7 +93,7 @@ echo " Done"
 
 echo "INFO: rudder-server-relay setup complete."
 # Only output this notice during initial installation
-if [ -z "${FIRST_INSTALL}" ]; then
+if [ "${FIRST_INSTALL}" -eq 1 ]; then
   uuid_file="/opt/rudder/etc/uuid.hive"
   if [ -f "${uuid_file}" ]; then
     uuid=$(cat ${uuid_file})
