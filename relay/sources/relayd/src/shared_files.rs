@@ -99,7 +99,6 @@ pub struct Metadata {
     pub hostname: String,
     pub keydate: String,
     pub keyid: String,
-    pub expires: String,
 }
 
 impl fmt::Display for Metadata {
@@ -114,10 +113,6 @@ impl fmt::Display for Metadata {
         mystring.push_str(&format!("hostname={}\n", &self.hostname));
         mystring.push_str(&format!("keydate={}\n", &self.keydate));
         mystring.push_str(&format!("keyid={}\n", &self.keyid));
-        mystring.push_str(&format!(
-            "expires={}\n",
-            parse_ttl(self.expires.clone().to_string()).unwrap()
-        ));
         write!(f, "{}", mystring)
     }
 }
@@ -130,7 +125,7 @@ impl FromStr for Metadata {
             return Err(Error::InvalidHeader);
         }
         Ok(Metadata {
-            header: "rudder-signature-v1".to_string(),
+            header: parse_value("header", s).unwrap(),
             algorithm: parse_value("algorithm", s).unwrap(),
             digest: parse_value("digest", s).unwrap(),
             hash_value: parse_value("hash_value", s).unwrap(),
@@ -138,7 +133,6 @@ impl FromStr for Metadata {
             hostname: parse_value("hostname", s).unwrap(),
             keydate: parse_value("keydate", s).unwrap(),
             keyid: parse_value("keyid", s).unwrap(),
-            expires: parse_value("expires", s).unwrap(),
         })
     }
 }
@@ -214,20 +208,22 @@ pub fn parse_ttl(ttl: String) -> Result<i64, Error> {
     }
 }
 
-pub fn metadata_parser(buf: &mut warp::body::FullBody) -> Vec<String> {
-    let mut metadata = Vec::new();
+pub fn metadata_parser(buf: &mut warp::body::FullBody) -> Result<Metadata, Error> {
+    let mut metadata = String::new();
 
     let reader = buf.reader();
 
     for line in reader.lines() {
         let mytmpstr = line.unwrap();
         if mytmpstr != "" {
-            metadata.push(mytmpstr);
+            metadata.push_str(&format!("{}\n", mytmpstr));
         } else {
+            metadata.push_str("\n");
             break;
         }
     }
-    metadata
+
+    Metadata::from_str(&metadata)
 }
 
 pub fn file_writer(buf: &mut warp::body::FullBody, path: &str) {
@@ -248,32 +244,56 @@ pub fn metadata_writer(metadata_string: String, peek: &str) {
         .expect("Unable to write file");
 }
 
-pub fn metadata_hash_checker(filename: String, hash: String) -> hyper::StatusCode {
-    if !Path::new(&filename).exists() {
+pub fn metadata_hash_checker(path: String, hash: String) -> hyper::StatusCode {
+    if !Path::new(&format!("shared-files/{}.metadata", path)).exists() {
         return StatusCode::from_u16(404).unwrap();
     }
 
-    let contents = fs::read_to_string(&filename).expect("Something went wrong reading the file");
+    let contents = fs::read_to_string(&format!("shared-files/{}.metadata", path))
+        .expect("Something went wrong while reading the file");
 
-    let re = Regex::new(r"hash_value=([a-f0-9]+)\n").expect("unable to parse hash regex");
-
-    if re
-        .captures_iter(&contents)
-        .next()
-        .and_then(|s| s.get(1))
-        .map(|s| s.as_str())
-        == Some(&hash)
-    {
+    if parse_value("hash_value", &contents).unwrap() == hash {
         return StatusCode::from_u16(200).unwrap();
     }
 
     StatusCode::from_u16(404).unwrap()
 }
 
+pub fn shared_folder_head(
+    path: String,
+    raw: String, // example of raw: hash_type=sha256?hash=181210f8f9c779c26da1d9b2075bde0127302ee0e3fca38c9a83f5b1dd8e5d3b
+) -> Result<hyper::StatusCode, Error> {
+    if !Path::new(&format!("shared-folder/{}", path)).exists() {
+        return Ok(StatusCode::from_u16(404).unwrap());
+    }
+
+    let it: Vec<String> = raw
+        .split('?')
+        .map(|s| parse_parameter_from_raw(s.to_string()))
+        .collect();
+
+    let hash_type = &it[0];
+    let hash = &it[1];
+
+    if hash == "" {
+        return Ok(StatusCode::from_u16(200).unwrap());
+    }
+
+    let hash_type = HashType::from_str(&hash_type)?;
+    let f = fs::read(format!("shared-folder/{}", path))?;
+    let hash_file = hash_type.hash(&f);
+
+    if hash == &hash_file {
+        return Ok(StatusCode::from_u16(304).unwrap());
+    }
+
+    Ok(StatusCode::from_u16(200).unwrap())
+}
+
 pub fn parse_parameter_from_raw(raw: String) -> String {
     raw.split('=')
         .map(|s| s.to_string())
-        .filter(|s| s != "hash" || s != "ttl")
+        .filter(|s| s != "hash" && s != "ttl" && s != "hash_type")
         .collect::<String>()
 }
 
@@ -294,10 +314,9 @@ mod tests {
             hostname: "ubuntu-18-04-64".to_string(),
             keydate: "2018-10-3118:21:43.653257143".to_string(),
             keyid: "B29D02BB".to_string(),
-            expires: "1d 1h".to_string(),
         };
 
-        assert_eq!(format!("{}", metadata), format!("header=rudder-signature-v1\nalgorithm=sha256\ndigest=8ca9efc5752e133e2e80e2661c176fa50f\nhash_value=a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f\nshort_pubkey=shortpubkey\nhostname=ubuntu-18-04-64\nkeydate=2018-10-3118:21:43.653257143\nkeyid=B29D02BB\nexpires={}\n", parse_ttl("1d 1h".to_string()).unwrap()));
+        assert_eq!(format!("{}", metadata), "header=rudder-signature-v1\nalgorithm=sha256\ndigest=8ca9efc5752e133e2e80e2661c176fa50f\nhash_value=a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f\nshort_pubkey=shortpubkey\nhostname=ubuntu-18-04-64\nkeydate=2018-10-3118:21:43.653257143\nkeyid=B29D02BB\n");
     }
 
     #[test]
