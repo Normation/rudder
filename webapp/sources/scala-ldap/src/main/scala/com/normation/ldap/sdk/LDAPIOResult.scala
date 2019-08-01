@@ -33,14 +33,20 @@ sealed trait LDAPRudderError extends RudderError {
 
 object LDAPRudderError {
   // errors due to some LDAPException
-  final case class BackendException(msg: String, cause: Throwable)  extends LDAPRudderError
+  final case class BackendException(msg: String, cause: Throwable)  extends LDAPRudderError {
+    override def fullMsg: String = super.fullMsg + s"; cause was: ${RudderError.formatException(cause)}"
+  }
+
   // errors where there is a result, but result is not SUCCESS
-  final case class FailureResult(msg: String, result: LDAPResult)   extends LDAPRudderError
+  final case class FailureResult(msg: String, result: LDAPResult)   extends LDAPRudderError {
+    override def fullMsg: String = s"${msg}; LDAP result was: ${result.getResultString}"
+  }
 
   final case class Consistancy(msg: String)                         extends LDAPRudderError
+
   // accumulated errors from multiple independent action
   final case class Accumulated(errors: NonEmptyList[RudderError])   extends LDAPRudderError {
-    def msg = s"Several errors encountered: ${errors.toList.map(_.msg).mkString("; ")}"
+    def msg = s"Several errors encountered: ${errors.toList.map(_.fullMsg).mkString("; ")}"
   }
 }
 

@@ -109,6 +109,21 @@ object errors {
     }
   }
 
+  object RudderError {
+
+    /*
+     * Display information about an exception of interest for the developpers without being
+     * too nasty for users.
+     */
+    def formatException(cause: Throwable): String = {
+      // display at max 3 stack trace from 'com.normation'. That should give plenty information for
+      // dev, which are relevant to understand where the problem is, and without destroying logs
+      val stack = cause.getStackTrace.filter(_.getClassName.startsWith("com.normation")).take(3).map(_.toString).mkString("\n -> ", "\n -> ", "")
+      s"${cause.getClass.getName}: ${cause.getMessage} ${stack}"
+    }
+
+
+  }
 
   trait RudderError {
     // All error have a message which explains what cause the error.
@@ -122,8 +137,7 @@ object errors {
   // a common error for system error not specificaly bound to
   // a domain context.
   final case class SystemError(msg: String, cause: Throwable) extends RudderError {
-    override def fullMsg: String = super.fullMsg + s"; cause was: ${cause.getClass.getName}: ${cause.getMessage} " +
-                                   s"(${cause.getStackTrace.find(_.getClassName.startsWith("com.normation")).map(_.toString).getOrElse("no stack trace available")})"
+    override def fullMsg: String = super.fullMsg + s"; cause was: ${RudderError.formatException(cause)}"
   }
 
   // a generic error to tell "I wasn't expecting that value"
