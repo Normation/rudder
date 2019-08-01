@@ -350,7 +350,7 @@ object RudderConfig extends Loggable {
       config.getString("rudder.relay.reload")
     } catch {
       // by default, if property is missing
-      case ex:ConfigException => "/bin/rudder relay reload"
+      case ex:ConfigException => "/opt/rudder/bin/rudder relay reload"
     }
   }
 

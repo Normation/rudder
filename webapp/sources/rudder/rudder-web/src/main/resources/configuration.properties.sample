@@ -535,7 +535,7 @@ rudder.hooks.ignore-suffixes= .swp, ~, .bak, \
 # After change, we need to notify relayd to reload that file. This is the relad
 # command.
 #
-rudder.relayd.reload=/bin/rudder relay reload
+rudder.relayd.reload=/opt/rudder/bin/rudder relay reload
 
 ###################
 # Fatal exceptions #############################################################
