@@ -72,7 +72,7 @@ class PurgeUnreferencedSoftwares(
     }}
 
     import zio.duration.Duration.{fromScala => zduration}
-    ZioRuntime.unsafeRun(prog.delay(zduration(1.hour)).repeat(Schedule.spaced(zduration(updateInterval))).provide(ZioRuntime.Environment))
+    ZioRuntime.unsafeRun(prog.delay(zduration(1.hour)).repeat(Schedule.spaced(zduration(updateInterval))).provide(ZioRuntime.Environment).fork)
   }
 }
 
