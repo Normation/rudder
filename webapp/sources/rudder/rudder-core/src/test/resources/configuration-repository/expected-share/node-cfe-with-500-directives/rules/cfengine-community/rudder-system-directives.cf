@@ -52,6 +52,11 @@ body file control {
 bundle agent rudder_system_directives {
   # fully generated in bundle common va for iinitial promises
   methods:
+      "Rudder system policy: daily inventory/Inventory" usebundle => set_dry_run_mode("true");
+      "Rudder system policy: daily inventory/Inventory" usebundle => run_inventory_all;
+}
+bundle agent run_inventory_all
+{
       "Rudder system policy: daily inventory/Inventory" usebundle => rudder_reporting_context("inventory-all","inventory-all","inventory");
       "Rudder system policy: daily inventory/Inventory" usebundle => disable_reporting;
       "Rudder system policy: daily inventory/Inventory" usebundle => fetchFusionTools;

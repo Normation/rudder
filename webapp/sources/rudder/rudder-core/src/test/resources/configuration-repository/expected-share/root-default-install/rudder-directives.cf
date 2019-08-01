@@ -32,9 +32,6 @@ body file control {
 bundle agent rudder_directives {
 
   methods:
-      "remove_dry_run_mode_for_system" usebundle => disable_reporting;
-      "remove_dry_run_mode_for_system" usebundle => set_dry_run_mode("false");
-      "remove_dry_run_mode_for_system" usebundle => clean_reporting_context;
 
 }
 
