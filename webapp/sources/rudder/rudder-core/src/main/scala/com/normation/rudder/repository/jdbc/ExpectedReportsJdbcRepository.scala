@@ -362,7 +362,9 @@ class UpdateExpectedReportsJdbcRepository(
         val msg ="Could not archive NodeConfigurations in the database, cause is " + ex.getMessage()
         logger.error(msg)
         Failure(msg, Full(ex), Empty)
-      case Right(i)  => Full(i.sum)
+      case Right(i)  =>
+        logger.debug(s"Successfully archived ${i.sum} nodeconfigurations before ${dateAt_0000}")
+        Full(i.sum)
      }
   }
 
@@ -390,7 +392,9 @@ class UpdateExpectedReportsJdbcRepository(
         val msg ="Could not delete NodeConfigurations in the database, cause is " + ex.getMessage()
         logger.error(msg)
         Failure(msg, Full(ex), Empty)
-      case Right(i)  => Full(i.sum)
+      case Right(i)  =>
+        logger.debug(s"Successfully deleted ${i.sum} nodeconfigurations before ${dateAt_0000}")
+        Full(i.sum)
     }
   }
 
@@ -426,7 +430,9 @@ class UpdateExpectedReportsJdbcRepository(
         val msg ="Could not archive NodeCompliance in the database, cause is " + ex.getMessage()
         logger.error(msg)
         Failure(msg, Full(ex), Empty)
-      case Right(i)  => Full(i.sum)
+      case Right(i)  =>
+        logger.debug(s"Successfully archived ${i.sum} Node Compliances before ${dateAt_0000}")
+        Full(i.sum)
      }
   }
 
@@ -454,7 +460,9 @@ class UpdateExpectedReportsJdbcRepository(
         val msg ="Could not delete NodeCompliance in the database, cause is " + ex.getMessage()
         logger.error(msg)
         Failure(msg, Full(ex), Empty)
-      case Right(i)  => Full(i.sum)
+      case Right(i)  =>
+        logger.debug(s"Successfully deleted ${i.sum} Node Compliances before ${dateAt_0000}")
+        Full(i.sum)
     }
   }
 
@@ -479,7 +487,9 @@ class UpdateExpectedReportsJdbcRepository(
         val msg ="Could not delete NodeCompliance in the database, cause is " + ex.getMessage()
         logger.error(msg)
         Failure(msg, Full(ex), Empty)
-      case Right(i) => Full(i)
+      case Right(i) =>
+        logger.debug(s"Successfully deleted ${i} Node Compliances levels before ${dateAt_0000}")
+        Full(i)
     }
   }
 
