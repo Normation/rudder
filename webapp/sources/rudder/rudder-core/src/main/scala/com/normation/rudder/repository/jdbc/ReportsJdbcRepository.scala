@@ -187,6 +187,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
             _ = logger.debug("Archiving and deleting done, starting to vacuum reports table")
             // Vacuum cannot be run in a transaction block, it has to be in an autoCommit block
             _ <- (FC.setAutoCommit(true) *> Update0(vacuum, None).run <* FC.setAutoCommit(false)).transact(xa).attempt.unsafeRunSync
+            _ = logger.debug(s"Successfully vacuumed table ${reports}")
           } yield {
             i
           }) match {
@@ -194,7 +195,8 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
               val msg ="Could not archive entries in the database, cause is " + ex.getMessage()
               logger.error(msg)
               Failure(msg, Full(ex), Empty)
-            case Right(i)  => Full(i.sum)
+            case Right(i)  =>
+              Full(i.sum)
           }
       }
     }) match {
