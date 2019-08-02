@@ -34,22 +34,25 @@ body file control {
 bundle agent rudder_directives {
 
   methods:
-      "60-rule-technique-std-lib/10-File template 1" usebundle => rudder_reporting_context("e9a1a909-2490-4fc9-95c3-9d0aa01717c9","ff44fb97-b65e-43c4-b8c2-0df8d5e8549f","fileTemplate");
       "60-rule-technique-std-lib/10-File template 1" usebundle => set_dry_run_mode("false");
+      "60-rule-technique-std-lib/10-File template 1" usebundle => run_e9a1a909_2490_4fc9_95c3_9d0aa01717c9;
+      "60-rule-technique-std-lib/20-File template 2" usebundle => set_dry_run_mode("false");
+      "60-rule-technique-std-lib/20-File template 2" usebundle => run_99f4ef91_537b_4e03_97bc_e65b447514cc;
+      "clean_mode"                                   usebundle => set_dry_run_mode("false");
+}
+bundle agent run_e9a1a909_2490_4fc9_95c3_9d0aa01717c9
+{
+      "60-rule-technique-std-lib/10-File template 1" usebundle => rudder_reporting_context("e9a1a909-2490-4fc9-95c3-9d0aa01717c9","ff44fb97-b65e-43c4-b8c2-0df8d5e8549f","fileTemplate");
       "60-rule-technique-std-lib/10-File template 1" usebundle => disable_reporting;
       "60-rule-technique-std-lib/10-File template 1" usebundle => fileTemplate_1_0_e9a1a909_2490_4fc9_95c3_9d0aa01717c9;
       "60-rule-technique-std-lib/10-File template 1" usebundle => clean_reporting_context;
+}
+bundle agent run_99f4ef91_537b_4e03_97bc_e65b447514cc
+{
       "60-rule-technique-std-lib/20-File template 2" usebundle => rudder_reporting_context("99f4ef91-537b-4e03-97bc-e65b447514cc","ff44fb97-b65e-43c4-b8c2-0df8d5e8549f","fileTemplate");
-      "60-rule-technique-std-lib/20-File template 2" usebundle => set_dry_run_mode("false");
       "60-rule-technique-std-lib/20-File template 2" usebundle => disable_reporting;
       "60-rule-technique-std-lib/20-File template 2" usebundle => fileTemplate_1_0_99f4ef91_537b_4e03_97bc_e65b447514cc;
       "60-rule-technique-std-lib/20-File template 2" usebundle => clean_reporting_context;
-      "remove_dry_run_mode"                          usebundle => disable_reporting;
-      "remove_dry_run_mode"                          usebundle => set_dry_run_mode("false");
-      "remove_dry_run_mode"                          usebundle => clean_reporting_context;
-      "remove_dry_run_mode_for_system"               usebundle => disable_reporting;
-      "remove_dry_run_mode_for_system"               usebundle => set_dry_run_mode("false");
-      "remove_dry_run_mode_for_system"               usebundle => clean_reporting_context;
 
 }
 

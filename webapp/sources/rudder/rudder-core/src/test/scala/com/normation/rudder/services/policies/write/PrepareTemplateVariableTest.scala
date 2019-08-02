@@ -55,15 +55,17 @@ import com.normation.templates.FillTemplatesService
 @RunWith(classOf[JUnitRunner])
 class PrepareTemplateVariableTest extends Specification {
 
+
   def TID(s: String) = TechniqueId(TechniqueName(s), TechniqueVersion("1.0"))
 
+
   val bundles = List(
-      ("Global configuration for all nodes/20. Install jdk version 1.0"                   , Bundle(None, BundleName("Install_jdk_rudder_reporting"), Nil))
-    , ("Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)", Bundle(None, BundleName("check_zmd_settings"), Nil))
-    , ("""Nodes only/Name resolution version "3.0" and counting"""                        , Bundle(None, BundleName("check_dns_configuration"), Nil))
-    , (raw"""Nodes only/Package \"management\" for Debian"""                              , Bundle(None, BundleName("check_apt_package_installation"), Nil))
-    , (raw"""Nodes only/Package \\"management\\" for Debian - again"""                    , Bundle(None, BundleName("check_apt_package_installation2"), Nil))
-  ).map { case(x,y) => TechniqueBundles(Directive(x), TID("not-used-here"), Nil, y::Nil, Nil, false, PolicyMode.Enforce, false) }
+      ("Global configuration for all nodes/20. Install jdk version 1.0"                   , "directive1", Bundle(None, BundleName("Install_jdk_rudder_reporting"), Nil))
+    , ("Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)", "directive2", Bundle(None, BundleName("check_zmd_settings"), Nil))
+    , ("""Nodes only/Name resolution version "3.0" and counting"""                        , "directive3", Bundle(None, BundleName("check_dns_configuration"), Nil))
+    , (raw"""Nodes only/Package \"management\" for Debian"""                              , "directive4", Bundle(None, BundleName("check_apt_package_installation"), Nil))
+    , (raw"""Nodes only/Package \\"management\\" for Debian - again"""                    , "directive5", Bundle(None, BundleName("check_apt_package_installation2"), Nil))
+  ).map { case(x,directiveId,y) => TechniqueBundles(Promiser(x), DirectiveId(directiveId), TID("not-used-here"), Nil, y::Nil, Nil, false, PolicyMode.Enforce, false) }
 
 val fillTemplate = new FillTemplatesService()
 
@@ -72,27 +74,53 @@ val fillTemplate = new FillTemplatesService()
   "Preparing the string for writting usebundle of directives" should {
 
     "correctly write nothing at all when the list of bundle is emtpy" in {
-      CfengineBundleVariables.formatMethodsUsebundle(CFEngineAgentSpecificGeneration.escape, Nil, Nil, Nil) === List("")
+      CfengineBundleVariables.formatMethodsUsebundle(CFEngineAgentSpecificGeneration.escape, Nil, Nil, false) === List("")
     }
 
     "write exactly - including escaped quotes" in {
 
-      CfengineBundleVariables.formatMethodsUsebundle(CFEngineAgentSpecificGeneration.escape, bundles, Nil, Nil) ===
-List(raw"""      "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => disable_reporting;
-      "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => Install_jdk_rudder_reporting;
-      "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => clean_reporting_context;
+      CfengineBundleVariables.formatMethodsUsebundle(CFEngineAgentSpecificGeneration.escape, bundles, Nil, false) ===
+List(raw"""      "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => set_dry_run_mode("false");
+      "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => run_directive1;
+      "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => set_dry_run_mode("false");
+      "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => run_directive2;
+      "Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => set_dry_run_mode("false");
+      "Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => run_directive3;
+      "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => set_dry_run_mode("false");
+      "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => run_directive4;
+      "Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => set_dry_run_mode("false");
+      "Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => run_directive5;
+
+}
+bundle agent run_directive1
+{
+      "Global configuration for all nodes/20. Install jdk version 1.0" usebundle => disable_reporting;
+      "Global configuration for all nodes/20. Install jdk version 1.0" usebundle => Install_jdk_rudder_reporting;
+      "Global configuration for all nodes/20. Install jdk version 1.0" usebundle => clean_reporting_context;
+}
+bundle agent run_directive2
+{
       "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => disable_reporting;
       "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => check_zmd_settings;
       "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => clean_reporting_context;
-      "Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => disable_reporting;
-      "Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => check_dns_configuration;
-      "Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => clean_reporting_context;
-      "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => disable_reporting;
-      "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => check_apt_package_installation;
-      "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => clean_reporting_context;
-      "Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => disable_reporting;
-      "Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => check_apt_package_installation2;
-      "Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => clean_reporting_context;""")
+}
+bundle agent run_directive3
+{
+      "Nodes only/Name resolution version "3.0" and counting" usebundle => disable_reporting;
+      "Nodes only/Name resolution version "3.0" and counting" usebundle => check_dns_configuration;
+      "Nodes only/Name resolution version "3.0" and counting" usebundle => clean_reporting_context;
+}
+bundle agent run_directive4
+{
+      "Nodes only/Package \"management\" for Debian" usebundle => disable_reporting;
+      "Nodes only/Package \"management\" for Debian" usebundle => check_apt_package_installation;
+      "Nodes only/Package \"management\" for Debian" usebundle => clean_reporting_context;
+}
+bundle agent run_directive5
+{
+      "Nodes only/Package \\"management\\" for Debian - again" usebundle => disable_reporting;
+      "Nodes only/Package \\"management\\" for Debian - again" usebundle => check_apt_package_installation2;
+      "Nodes only/Package \\"management\\" for Debian - again" usebundle => clean_reporting_context;""")
     }
 
     "write exactly - including escaped quotes and hooks" in {
@@ -114,24 +142,50 @@ List(raw"""      "Global configuration for all nodes/20. Install jdk version 1.0
 
       //spaces inserted at the begining of promises in rudder_directives.cf are due to string template, not the formated string - strange
 
-      CfengineBundleVariables.formatMethodsUsebundle(CFEngineAgentSpecificGeneration.escape, bundles, hooks, Nil) ===
+      CfengineBundleVariables.formatMethodsUsebundle(CFEngineAgentSpecificGeneration.escape, bundles, hooks, false) ===
 List(raw"""      "pre-run-hook"                                                                      usebundle => package-install('{"parameters":{"package":"vim","action":"update-only"},"reports":[{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt1","value":"val1"},{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt1","value":"val1"}]}');
-      "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => disable_reporting;
-      "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => Install_jdk_rudder_reporting;
-      "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => clean_reporting_context;
+      "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => set_dry_run_mode("false");
+      "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => run_directive1;
+      "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => set_dry_run_mode("false");
+      "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => run_directive2;
+      "Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => set_dry_run_mode("false");
+      "Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => run_directive3;
+      "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => set_dry_run_mode("false");
+      "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => run_directive4;
+      "Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => set_dry_run_mode("false");
+      "Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => run_directive5;
+      "post-run-hook"                                                                     usebundle => service-restart('{"parameters":{"service":"syslog"},"reports":[{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt2","value":"None"},{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt2","value":"None"}]}');
+
+}
+bundle agent run_directive1
+{
+      "Global configuration for all nodes/20. Install jdk version 1.0" usebundle => disable_reporting;
+      "Global configuration for all nodes/20. Install jdk version 1.0" usebundle => Install_jdk_rudder_reporting;
+      "Global configuration for all nodes/20. Install jdk version 1.0" usebundle => clean_reporting_context;
+}
+bundle agent run_directive2
+{
       "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => disable_reporting;
       "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => check_zmd_settings;
       "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => clean_reporting_context;
-      "Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => disable_reporting;
-      "Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => check_dns_configuration;
-      "Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => clean_reporting_context;
-      "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => disable_reporting;
-      "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => check_apt_package_installation;
-      "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => clean_reporting_context;
-      "Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => disable_reporting;
-      "Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => check_apt_package_installation2;
-      "Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => clean_reporting_context;
-      "post-run-hook"                                                                     usebundle => service-restart('{"parameters":{"service":"syslog"},"reports":[{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt2","value":"None"},{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt2","value":"None"}]}');""")
+}
+bundle agent run_directive3
+{
+      "Nodes only/Name resolution version "3.0" and counting" usebundle => disable_reporting;
+      "Nodes only/Name resolution version "3.0" and counting" usebundle => check_dns_configuration;
+      "Nodes only/Name resolution version "3.0" and counting" usebundle => clean_reporting_context;
+}
+bundle agent run_directive4
+{
+      "Nodes only/Package \"management\" for Debian" usebundle => disable_reporting;
+      "Nodes only/Package \"management\" for Debian" usebundle => check_apt_package_installation;
+      "Nodes only/Package \"management\" for Debian" usebundle => clean_reporting_context;
+}
+bundle agent run_directive5
+{
+      "Nodes only/Package \\"management\\" for Debian - again" usebundle => disable_reporting;
+      "Nodes only/Package \\"management\\" for Debian - again" usebundle => check_apt_package_installation2;
+      "Nodes only/Package \\"management\\" for Debian - again" usebundle => clean_reporting_context;""")
     }
   }
 }

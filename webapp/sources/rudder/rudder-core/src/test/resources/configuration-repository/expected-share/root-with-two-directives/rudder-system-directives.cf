@@ -67,18 +67,33 @@ body file control {
 bundle agent rudder_system_directives {
   # fully generated in bundle common va for iinitial promises
   methods:
-      "distributePolicy/Distribute Policy"              usebundle => rudder_reporting_context("root-distributePolicy","root-DP","distributePolicy");
-      "distributePolicy/Distribute Policy"              usebundle => disable_reporting;
-      "distributePolicy/Distribute Policy"              usebundle => install_rsyslogd;
-      "distributePolicy/Distribute Policy"              usebundle => propagatePromises;
-      "distributePolicy/Distribute Policy"              usebundle => sendInventoryToCmdb;
-      "distributePolicy/Distribute Policy"              usebundle => clean_reporting_context;
+      "distributePolicy/Distribute Policy"              usebundle => set_dry_run_mode("false");
+      "distributePolicy/Distribute Policy"              usebundle => run_root_distributePolicy;
+      "Rudder system policy: daily inventory/Inventory" usebundle => set_dry_run_mode("false");
+      "Rudder system policy: daily inventory/Inventory" usebundle => run_inventory_all;
+      "Rudder system policy: Server roles/Server Roles" usebundle => set_dry_run_mode("false");
+      "Rudder system policy: Server roles/Server Roles" usebundle => run_server_roles_directive;
+}
+bundle agent run_root_distributePolicy
+{
+      "distributePolicy/Distribute Policy" usebundle => rudder_reporting_context("root-distributePolicy","root-DP","distributePolicy");
+      "distributePolicy/Distribute Policy" usebundle => disable_reporting;
+      "distributePolicy/Distribute Policy" usebundle => install_rsyslogd;
+      "distributePolicy/Distribute Policy" usebundle => propagatePromises;
+      "distributePolicy/Distribute Policy" usebundle => sendInventoryToCmdb;
+      "distributePolicy/Distribute Policy" usebundle => clean_reporting_context;
+}
+bundle agent run_inventory_all
+{
       "Rudder system policy: daily inventory/Inventory" usebundle => rudder_reporting_context("inventory-all","inventory-all","inventory");
       "Rudder system policy: daily inventory/Inventory" usebundle => disable_reporting;
       "Rudder system policy: daily inventory/Inventory" usebundle => fetchFusionTools;
       "Rudder system policy: daily inventory/Inventory" usebundle => virtualMachines;
       "Rudder system policy: daily inventory/Inventory" usebundle => doInventory;
       "Rudder system policy: daily inventory/Inventory" usebundle => clean_reporting_context;
+}
+bundle agent run_server_roles_directive
+{
       "Rudder system policy: Server roles/Server Roles" usebundle => rudder_reporting_context("server-roles-directive","server-roles","server-roles");
       "Rudder system policy: Server roles/Server Roles" usebundle => disable_reporting;
       "Rudder system policy: Server roles/Server Roles" usebundle => root_component_check;
