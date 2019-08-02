@@ -101,6 +101,7 @@ class TestCertificate extends Specification {
     parser
   , reportSaver
   , 1000
+  , 2
   , fullInventoryRepo
   , new InventoryDigestServiceV1(fullInventoryRepo)
   , () => UIO.unit

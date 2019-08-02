@@ -98,6 +98,14 @@ class AppConfig {
   @Value("${waiting.inventory.queue.size}")
   var WAITING_QUEUE_SIZE = 50
 
+  // the number of inventories parsed in parallel.
+  // It also limits the number of inventories proccessed in
+  // parallel, because obviously you need to parse the inventory before saving it.
+  // Minimum 1, 1x mean "0.5x number of cores"
+  @Value("${inventory.parse.parallelization:0.5x}")
+  var MAX_PARSE_PARALLEL = "0.5x"
+
+
   @Value("${inventories.root.directory}")
   var INVENTORY_ROOT_DIR = ""
 
@@ -283,15 +291,34 @@ class AppConfig {
   }
 
   @Bean
-  def inventoryProcessor() = new InventoryProcessor(
+  def inventoryProcessor() = {
+    val maxParallel = try {
+      val user = if(MAX_PARSE_PARALLEL.endsWith("x")) {
+        val xx = MAX_PARSE_PARALLEL.substring(0, MAX_PARSE_PARALLEL.size-1)
+        java.lang.Double.parseDouble(xx) * Runtime.getRuntime.availableProcessors()
+      } else {
+        java.lang.Double.parseDouble(MAX_PARSE_PARALLEL)
+      }
+      Math.max(1, user).toLong
+    } catch {
+      case ex: Exception =>
+        // logs are not available here
+        println(s"ERROR Error when parsing configuration properties for the parallelisation of inventory processing. " +
+                s"Expecting a positive integer or number of time the avaiblable processors. Default to '0.5x': " +
+                s"inventory.parse.parallelization=${MAX_PARSE_PARALLEL}")
+        Math.max(1, Math.ceil(Runtime.getRuntime.availableProcessors().toDouble/2).toLong)
+    }
+    new InventoryProcessor(
       pipelinedReportUnmarshaller
-    , reportSaver
-    , WAITING_QUEUE_SIZE
-    , fullInventoryRepository
-    , new InventoryDigestServiceV1(fullInventoryRepository)
-    , checkLdapAlive
-    , pendingNodesDit
-  )
+      , reportSaver
+      , WAITING_QUEUE_SIZE
+      , maxParallel
+      , fullInventoryRepository
+      , new InventoryDigestServiceV1(fullInventoryRepository)
+      , checkLdapAlive
+      , pendingNodesDit
+    )
+  }
 
   @Bean
   def inventoryWatcher() = {
