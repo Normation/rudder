@@ -174,8 +174,7 @@ object FatalException {
    * Termination should be () => System.exit(1) safe in tests.
    */
   def init(exceptions: Set[String]) = {
-    this.fatalException = exceptions
-
+    this.fatalException = exceptions + "java.lang.Error"
 
     Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
       override def uncaughtException(t: Thread, e: Throwable): Unit = {
@@ -197,6 +196,7 @@ object FatalException {
         }
       }
     })
+    ApplicationLogger.info(s"Global exception handler configured to stop Rudder on: ${fatalException.toList.sorted.mkString(", ")}")
   }
 }
 
@@ -289,12 +289,6 @@ class Boot extends Loggable {
     }
     RudderConfig.rudderApi.addModules(infoApi.getLiftEndpoints)
     LiftRules.statelessDispatch.append(RudderConfig.rudderApi.getLiftRestApi())
-
-
-
-    // here, happen in net.liftweb.http.LiftFilter.bootLift(LiftServlet.scala:1063)
-    // throw new Exception("Where am I?")
-    FatalException.init(RudderConfig.RUDDER_FATAL_EXCEPTIONS)
 
     // URL rewrites
     LiftRules.statefulRewrite.append {

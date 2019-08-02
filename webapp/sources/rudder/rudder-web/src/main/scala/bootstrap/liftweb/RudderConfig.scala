@@ -175,6 +175,16 @@ object RudderProperties {
       case FileSystemResource(file) => ConfigFactory.load(ConfigFactory.parseFile(file))
     }).withFallback(ConfigFactory.parseString(migrationConfig))
   }
+
+  def splitProperty(s: String): List[String] = {
+    s.split(",").toList.flatMap { s =>
+      s.trim match {
+        case "" => None
+        case x  => Some(x)
+      }
+    }
+  }
+
 }
 
 /**
@@ -192,14 +202,6 @@ object RudderConfig extends Loggable {
   // Here, we define static nouns for all theses properties
   //
 
-  private[this] def splitProperty(s: String): List[String] = {
-    s.split(",").toList.flatMap { s =>
-      s.trim match {
-        case "" => None
-        case x  => Some(x)
-      }
-    }
-  }
   private[this] val filteredPasswords = scala.collection.mutable.Buffer[String]()
 
   //the LDAP password used for authentication is not used here, but should not appear nonetheless
@@ -370,18 +372,7 @@ object RudderConfig extends Loggable {
     }
   }
 
-
-  val HOOKS_IGNORE_SUFFIXES = splitProperty(config.getString("rudder.hooks.ignore-suffixes"))
-
-  val RUDDER_FATAL_EXCEPTIONS = {
-    try {
-      splitProperty(config.getString("rudder.jvm.fatal.exceptions")).toSet
-    } catch {
-      case ex:ConfigException =>
-        ApplicationLogger.info("Property 'rudder.jvm.fatal.exceptions' is missing or empty in rudder.configFile. Only java.lang.Error will be fatal.")
-        Set[String]()
-    }
-  }
+  val HOOKS_IGNORE_SUFFIXES = RudderProperties.splitProperty(config.getString("rudder.hooks.ignore-suffixes"))
 
   val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"

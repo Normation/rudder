@@ -44,7 +44,9 @@ import org.springframework.web.context.support.WebApplicationContextUtils
 import org.springframework.core.io.{ClassPathResource => CPResource, FileSystemResource => FSResource}
 import java.io.File
 
+import bootstrap.liftweb.RudderProperties.config
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.typesafe.config.ConfigException
 
 /**
  * A context loader listener for initializing Spring webapp context
@@ -89,6 +91,17 @@ class LiftInitContextListener extends ContextLoaderListener {
 
     /// init all our non-spring services ///
 
+    val RUDDER_FATAL_EXCEPTIONS = {
+      try {
+        RudderProperties.splitProperty(config.getString("rudder.jvm.fatal.exceptions")).toSet
+      } catch {
+        case ex:ConfigException =>
+          ApplicationLogger.info("Property 'rudder.jvm.fatal.exceptions' is missing or empty in rudder.configFile. Only java.lang.Error will be fatal.")
+          Set[String]()
+      }
+    }
+    FatalException.init(RUDDER_FATAL_EXCEPTIONS)
+
     /*
      *
      * If any excpetion reach that point in init, we want to stop
@@ -114,9 +127,10 @@ class LiftInitContextListener extends ContextLoaderListener {
       RudderConfig.init
     } catch {
       case ex: Throwable =>
-        ApplicationLogger.error("Fatal error during boot, Rudder will stop now", ex)
-        //make the JVM throw the exception
-        ThrowIllegalAccessException.referenceMe
+        System.err.println(s"[${org.joda.time.format.ISODateTimeFormat.dateTime().print(System.currentTimeMillis())}] " +
+                           s"ERROR FATAL An error happen during Rudder boot. Rudder will stop now.")
+        ex.printStackTrace()
+        System.exit(1)
     }
 
     //init Spring
