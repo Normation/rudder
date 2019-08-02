@@ -185,6 +185,12 @@ app.directive('popover', function() {
 app.controller('ncf-builder', function ($scope, $uibModal, $http, $q, $location, $anchorScroll, ngToast, $timeout, focus, fileManagerConfig, apiMiddleware, apiHandler, $window) {
   initScroll();
   // Variable we use in the whole application
+  
+  //UI state
+  $scope.ui = {
+    showTechniques : true,
+    activeTab : 'general'
+  }
   // Give access to the "General information" form
   $scope.editForm;
   // Path of ncf files, defined as a url parameter
@@ -1430,6 +1436,15 @@ $scope.onImportFileChange = function (fileEl) {
     }
     return result;
   }
+  $scope.checkErrorParameters = function(parameters){
+    var result = false;
+    for(var i=0; i<parameters.length; i++) {
+      if(parameters[i].$errors && parameters[i].$errors.length > 0){
+        result = true;
+      }
+    }
+    return result;
+  }
 
   $scope.isUsed = function(method){
     var i,j = 0;
@@ -1469,6 +1484,10 @@ $scope.onImportFileChange = function (fileEl) {
       msg = ""
     }
     return msg;
+  }
+
+  $scope.toggleDisplay = function(showTechniques){
+    $scope.ui.showTechniques = showTechniques;
   }
 
   $scope.reloadData();
