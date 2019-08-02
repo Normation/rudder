@@ -7,40 +7,36 @@ APACHE="$2"
 APACHE_USER="$3"
 APACHE_GROUP="$4"
 
+LOG_FILE="/var/log/rudder/install/rudder-server-relay-$(date +%Y%m%d%H%M%S).log"
+
+echo "$(date) - Starting rudder-server-relay post installation script" >> ${LOG_FILE}
+
 # Create groups ans users before managing the services
+echo -n "INFO: Creating users ..."
 if ! getent group rudder > /dev/null; then
-  echo -n "INFO: Creating group rudder..."
-  groupadd --system rudder
-  echo " Done"
+  groupadd --system rudder >> ${LOG_FILE}
 fi
 
 if ! getent group rudder-policy-reader > /dev/null; then
-  echo -n "INFO: Creating group rudder-policy-reader..."
-  groupadd --system rudder-policy-reader
-  usermod -a -G rudder-policy-reader "${APACHE_USER}"
-  echo " Done"
+  groupadd --system rudder-policy-reader >> ${LOG_FILE}
+  usermod -a -G rudder-policy-reader "${APACHE_USER}" >> ${LOG_FILE}
 fi
 
 if ! getent passwd rudder >/dev/null; then
-  echo -n "INFO: Creating the rudder user..."
-  useradd --system --shell /bin/false --gid rudder --home-dir /var/rudder --comment "Rudder,,," rudder >/dev/null
-  echo " Done"
+  useradd --system --shell /bin/false --gid rudder --home-dir /var/rudder --comment "Rudder,,," rudder >> ${LOG_FILE}
 fi
+echo " Done"
 
 # Always reload systemd (in case we changed the unit file)
-echo -n "INFO: Setting rudder-relayd as a boot service..."
-systemctl daemon-reload
+echo -n "INFO: Configuring systemd services..."
+systemctl daemon-reload >> ${LOG_FILE}
 if [ "${FIRST_INSTALL}" -eq 1 ]; then
-  systemctl enable rudder-relayd
+  systemctl enable rudder-relayd >> ${LOG_FILE}
 fi
-echo " Done"
 
-echo -n "INFO: Stopping Apache HTTPd..."
-systemctl stop "${APACHE}" >dev/null
-echo " Done"
+systemctl stop "${APACHE}" >> ${LOG_FILE}
 
-echo -n "INFO: Stopping rudder-relayd..."
-systemctl stop rudder-relayd >/dev/null || true
+systemctl stop rudder-relayd >> ${LOG_FILE} || true
 echo " Done"
 
 # share directory with rudder-policy-reader
@@ -62,7 +58,7 @@ done
 # Setup password files for inventory reception WebDAV access
 for passwdfile in /opt/rudder/etc/htpasswd-webdav-initial /opt/rudder/etc/htpasswd-webdav
 do
-  htpasswd -bc ${passwdfile} rudder rudder >/dev/null
+  htpasswd -bc ${passwdfile} rudder rudder >> ${LOG_FILE}
 done
 
 # Generate certificates if needed
@@ -83,12 +79,9 @@ if [ ! -f /var/rudder/lib/ssl/nodescerts.pem ]; then
   touch /var/rudder/lib/ssl/allnodescerts.pem
 fi
 
-echo -n "INFO: Starting rudder-relayd..."
-systemctl start rudder-relayd >/dev/null
-echo " Done"
-
-echo -n "INFO: Starting Apache HTTPd..."
-systemctl start "${APACHE}" >/dev/null
+echo -n "INFO: Starting services..."
+systemctl start rudder-relayd >> ${LOG_FILE}
+systemctl start "${APACHE}" >> ${LOG_FILE}
 echo " Done"
 
 echo "INFO: rudder-server-relay setup complete."
@@ -116,4 +109,6 @@ if [ "${FIRST_INSTALL}" -eq 1 ]; then
     echo "*****************************************************************************************"
   fi
 fi
+
+echo "$(date) - Ending rudder-server-relay post installation script" >> ${LOG_FILE}
 
