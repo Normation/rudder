@@ -4,8 +4,9 @@
         <link type="image/x-icon" rel="icon" href="ncf-builder/css/favicon.ico"/>
 
         <link href="css/angular-filemanager-1.5.1.min.css?version=dev" rel="stylesheet">
-        <link href="css/bootstrap-3.3.7.min.css?version=dev" rel="stylesheet">
+        <link href="css/bootstrap-4.0.0.min.css?version=dev" rel="stylesheet">
         <link rel="stylesheet" href="css/font-awesome-5.6.1.min.css?version=dev">
+        <link rel="stylesheet" href="webfonts/ionicons-2.0.1/css/ionicons.min.css?version=dev">
         <link href="css/ngToast.min.css?version=dev" rel="stylesheet">
         <link href="css/custom.css?version=dev" rel="stylesheet">
         <!-- Needed polyfill for ie11, works in all other browsers -->
@@ -18,10 +19,11 @@
         <script src="js/ng-file-upload.min.js"></script>
         <script src="js/ngToast-1.4.0.min.js?version=dev"></script>
         <script src="js/angular-drag-and-drop-lists.min.js?version=dev"></script>
-        <script src="js/jquery-3.3.1.min.js?version=dev"></script>
+        <script src="js/jquery-3.4.1.min.js?version=dev"></script>
         <script src="js/angular-filemanager-1.5.1.min.js?version=dev"></script>
         <script src="js/elastic.min.js?version=dev"></script>
-        <script src="js/bootstrap-3.3.7.min.js?version=dev"></script>
+        <script src="js/popper.min.js?version=dev"></script>
+        <script src="js/bootstrap-4.0.0.min.js?version=dev"></script>
         <script src="js/cfengine_classes.js?version=dev"></script>
         <script src="js/class_utils.js?version=dev"></script>
         <script src="js/ui-bootstrap-tpls-0.14.3.min.js?version=dev"></script>
@@ -133,46 +135,51 @@
          <base href="/ncf-builder" />
     </head>
     <body ng-controller="ncf-builder">
-        <toast></toast>
-        <div class="loading" ng-show="authenticated==undefined">
-          <h1 class="text-center">
-            <span class="loading-text">
-              The Technique Editor is loading
-              <img class="ajaxloader svg-loader" src="ncf-builder/css/ajax-loader.svg"/>
-            </span>
-          </h1>
+      <toast></toast>
+      <div class="loading" ng-show="authenticated==undefined">
+        <h1 class="text-center">
+          <span class="loading-text">
+            The Technique Editor is loading
+            <img class="ajaxloader svg-loader" src="ncf-builder/css/ajax-loader.svg"/>
+          </span>
+        </h1>
+      </div>
+      <div  class="container Override row fill" ng-show="authenticated===false">
+        <div class="col-md-12 ncf_col text-center">
+          <h1>You are not authenticated in ncf-builder</h1>
+          <div>Please try again by clicking <a href="" ng-click="reloadPage()">here</a></div>
         </div>
-        <div  class="container Override row fill" ng-show="authenticated===false">
-            <div class="col-md-12 ncf_col text-center">
-                <h1>You are not authenticated in ncf-builder</h1>
-                <div>Please try again by clicking <a href="" ng-click="reloadPage()">here</a></div>
-            </div>
-        </div>
-
-        <div  class="container Override row fill" ng-show="authenticated">
-          <div class="col-lg-2 col-md-2 col-sm-4 col-xs-12 ncf_col techniques_col">
-                <div class="title">Library</div>
-                <h3 >Techniques</h3>
-
-                <div class="techniques-list">
-
-                  <div class="btn-actions">
-                    <button ng-click="newTechnique()" class="btn btn-success">Create <i class="fas fa-plus-circle"></i></button>
-                    <label class="btn btn-primary btn-outline pull-right" for="btn-import">
+      </div>
+      <div  class="container-fluid" ng-show="authenticated">
+        <div class="row no-gutters" ng-class="{'show-techniques':ui.showTechniques, 'show-methods':!ui.showTechniques}">
+          <div class="col-xl-4 col-5 col-techniques" ng-click="toggleDisplay(true)">
+            <div class="row flex-column">
+              <div class="col-auto">
+                <div class="row">
+                  <div class="col">
+                    <h3 class="title">Techniques</h3>
+                  </div>
+                  <div class="col-auto align-self-center">
+                    <label class="btn btn-sm btn-outline-primary" for="btn-import">
                       Import <i class="fas fa-file-import"></i>
                       <input id="btn-import" type="file" onchange="angular.element(this).scope().onImportFileChange(this)" class="hidden">
                     </label>
+                    <button class="btn btn-sm btn-success">Create <i class="fas fa-plus-circle"></i></button>
                   </div>
-
-                  <div class="input-group input-group-sm">
-                    <span class="input-group-addon" style="padding: 0 6px;"><span class="glyphicon glyphicon-search"></span></span>
-                    <input type="text" class="form-control" placeholder="Filter" ng-model="searchText.name" style="padding:2px">
+                  <div class="w-100"></div>
+                  <div class="col input-group input-group-sm">
+                    <input class="form-control" type="text" placeholder="Filter" ng-model="searchText.name">
                   </div>
-                  <ul >
-                    <li
-                    ng-repeat="technique in listTechniques = ( techniques | orderBy:'name':false | filter:searchText ) track by $index "
-                    ng-click="checkSelect(technique,selectTechnique)"
-                    ng-class="{'active': isSelected(technique)}">
+                </div>
+              </div>
+              <div class="w-100"></div>
+              <div class="col techniques-list-container">
+                <ul>
+                  <li
+                  class="row no-gutters"
+                  ng-repeat="technique in listTechniques = ( techniques | orderBy:'name':false | filter:searchText ) track by $index "
+                  ng-class="{'active': isSelected(technique)}">
+                    <div class="col" ng-click="checkSelect(technique,selectTechnique)">
                       <span>{{technique.name}}</span>
                       <span
                       class="cursor-help"
@@ -186,116 +193,128 @@
                       >
                         <i class="glyphicon glyphicon-info-sign deprecated-icon"></i>
                       </span>
-                    </li>
-                    <div class="empty" ng-if="techniques.length<=0">
-                      The techniques list is empty.
                     </div>
-                    <div class="empty" ng-if="listTechniques.length<=0 && techniques.length>0">
-                      No technique matches the search filter.
+                    <div class="col-auto align-self-center" ng-click="checkSelect(technique,selectTechnique);toggleDisplay(false); $event.stopPropagation();">
+                      <i class="fas fa-pen"></i>
                     </div>
-                  </ul>
-
-                </div>
+                  </li>
+                  <div class="empty" ng-if="techniques.length<=0">
+                    The techniques list is empty.
+                  </div>
+                  <div class="empty" ng-if="listTechniques.length<=0 && techniques.length>0">
+                    No technique matches the search filter.
+                  </div>
+                </ul>
+              </div>
             </div>
-            <form class="form-horizontal editForm col-lg-5 col-md-5 col-sm-8 col-xs-12 ncf_col" name="editForm" novalidate >
-            <div class="jumbotron" ng-if="selectedTechnique === undefined" >
-                <h1>Technique editor</h1>
-                <p>Create a new technique or edit one  from the list on the left.</p>
-                <p>Define target configuration using the generic methods from the list on the right as building blocks.</p>
-                <p>
-                  <a class="btn btn-success btn-lg" ng-click="newTechnique()" role="button">Create Technique  <i class="fas fa-plus-circle"></i></a>
-                </p>
-             </div>
-            <div ng-if="selectedTechnique" >
-              <div id="editform-container">
-                    <div class="title">Technique</div>
-                    <h3 id="technique-name">{{originalTechnique.name}} <span ng-hide="originalTechnique.name">New Technique</span>
-                      <div class="btn-technique">
-                        <div class="btn-group">
-                          <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            Actions <i class="caret"></i>
-                          </button>
-                          <ul class="dropdown-menu">
-                            <li>
-                              <a ng-disabled="isNotSaved()" class="action-success" ng-click="checkSelect(selectedTechnique,clonePopup )">Clone <i class="fas fa-clone"></i></a>
-                            </li>
-                            <li>
-                              <a ng-disabled="isNotSaved()" class="action-primary" ng-click="exportTechnique(selectedTechnique)">Export <i class="fas fa-file-export"></i></a>
-                            </li>
-                            <li>
-                              <a ng-disabled="isNotSaved()" class="action-danger" ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)">Delete <i class="fas fa-times-circle"></i></a>
-                            </li>
-                          </ul>
+          </div>
+          <div class="col no-technique" ng-if="!selectedTechnique" >
+            <h1>Technique editor</h1>
+            <p>Create a new technique or edit one  from the list on the left.</p>
+            <p>Define target configuration using the generic methods from the list on the right as building blocks.</p>
+            <button class="btn btn-success btn-lg" ng-click="newTechnique()" role="button">Create Technique  <i class="fas fa-plus-circle"></i></button>
+          </div>
+
+          <div class="col col-technique" ng-if="selectedTechnique">
+            <div class="row flex-column no-gutters">
+              <div class="col-auto main-header">
+                <div class="row no-margin">
+                  <div class="col">
+                    <h3><span>{{originalTechnique.version}} </span> {{originalTechnique.name}}</h3>
+                  </div>
+                  <div class="col-auto align-self-center btn-technique">
+                    <div class="btn-group">
+                      <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Actions <i class="caret"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li>
+                          <a ng-disabled="isNotSaved()" class="action-success" ng-click="checkSelect(selectedTechnique,clonePopup )">Clone <i class="fas fa-clone"></i></a>
+                        </li>
+                        <li>
+                          <a ng-disabled="isNotSaved()" class="action-primary" ng-click="exportTechnique(selectedTechnique)">Export <i class="fas fa-file-export"></i></a>
+                        </li>
+                        <li>
+                          <a ng-disabled="isNotSaved()" class="action-danger" ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)">Delete <i class="fas fa-times-circle"></i></a>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div class="w-100"></div>
+                  <div class="col description">
+                    {{originalTechnique.description == "" ? "This technique has no description" : originalTechnique.description}}
+                  </div>
+                  <div class="w-100"></div>
+                  <ul class="col tabs-list">
+                    <li ng-click="ui.activeTab = 'general'"    ng-class="{'active': ui.activeTab == 'general'   }" >
+                      General information
+                    </li>
+                    <li ng-click="ui.activeTab = 'parameters'" ng-class="{'active': ui.activeTab == 'parameters'}" >
+                      Parameters
+                      <span class="badge badge-secondary" ng-class="{'empty' : selectedTechnique.parameter.length <= 0}">{{selectedTechnique.parameter.length}}</span>
+                    </li>
+                    <li ng-click="ui.activeTab = 'resources'"  ng-class="{'active': ui.activeTab == 'resources' }" >
+                      Resources
+                      <span class="badge badge-secondary" ng-class="{'empty' : selectedTechnique.resources.length <= 0}">{{selectedTechnique.resources.length}}</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              <div class="col main">
+                <form class="editForm" name="editForm" novalidate >
+                <div class="row flex-column no-gutters">
+                  <div class="col-auto">
+                    <div class="col-xs-12">
+                      <div class="alert alert-info" ng-if="restoreFlag && !conflictFlag">
+                        Technique restored from current session.
+                        <br/>
+                        <div ng-if="suppressFlag">
+                        This Technique has been deleted while you were away. Saving it will recreate it.
                         </div>
                       </div>
-                    </h3>
-                    <uib-accordion>
-                        <uib-accordion-group ng-init="isopen = true" is-open="isopen">
-                            <uib-accordion-heading>
-                                <i class="glyphicon pull-right" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
-                                General information
-                            </uib-accordion-heading>
-                            <div class="col-xs-12">
-                              <div class="alert alert-info" ng-if="restoreFlag && !conflictFlag">
-                                Technique restored from current session.
-                                <br/>
-                                <div ng-if="suppressFlag">
-                                This Technique has been deleted while you were away. Saving it will recreate it.
+                    </div>
+                    <div class="tab tab-general" ng-if="ui.activeTab == 'general'">
+                          <div class="col-xs-12">
+                              <div class="alert alert-warning" ng-if="conflictFlag">
+                                Your changes have been kept. If you save this Technique, your version will replace the current one.
+                                You can still reset it or click on the following button to update it.
+                                <div class="btn-group-alert">
+                                  <button class="btn btn-sm btn-default" ng-click="resetTechnique()">Update</button>
                                 </div>
                               </div>
-                            </div>
-                            <div class="col-xs-12">
-                                <div class="alert alert-warning" ng-if="conflictFlag">
-                                  Your changes have been kept. If you save this Technique, your version will replace the current one.
-                                  You can still reset it or click on the following button to update it.
-                                  <div class="btn-group-alert">
-                                    <button class="btn btn-sm btn-default" ng-click="resetTechnique()">Update</button>
-                                  </div>
-                                </div>
-                            </div>
-                            <div class="form-group" ng-class="{'has-error':editForm.name.$dirty && (editForm.name.$error.required || editForm.name.$error.techniqueName)}">
-                                <label for="techniqueName" class="col-sm-3 control-label">Name:</label>
-                                <div class="col-sm-8">
-                                  <input  type="text" id="techniqueName" name="name" class="form-control" techniquename ng-model="selectedTechnique.name" placeholder="Technique Name" required ng-change="updateBundleName()" focus-on="focusTechniqueName">
-                                </div>
-                                <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.name.$error.techniqueName">Technique name must be unique</span>
-                                <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.name.$error.required && editForm.name.$dirty">Technique name is required</span>
-                            </div>
-                            <div class="form-group">
-                                <label for="techniqueDescription" class="col-sm-3 control-label"><span class="text-fit">Description:</span></label>
-                                <div class="col-sm-8">
-                                    <textarea name="description" class="form-control" id="techniqueDescription" msd-elastic rows="1" ng-model="selectedTechnique.description" placeholder="Technique Description"></textarea>
-                                </div>
-                            </div>
-                            <div class="form-group" show-errors>
-                                <label for="bundleName" class="col-sm-3 control-label">Technique ID:</label>
-                                <div class="col-sm-8">
-                                    <input readonly id="bundleName" bundlename name="bundle_name" class="form-control" ng-model="selectedTechnique.bundle_name" ng-maxlength="252" ng-pattern="/^[^_].*$/">
-                                </div>
-                                <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.maxlength">
-                                  Technique IDs longer than 255 characters won't work on most filesystems.
-                                </span>
-                                <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.bundleName">
-                                  Technique ID must be unique.
-                                </span>
-                                <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.pattern">Technique ID should start with an alphanumeric character.</span>
-                                <span class="rudder-text-warning col-sm-8 col-sm-offset-3" ng-show="selectedTechnique.bundle_name.length > 100 && selectedTechnique.bundle_name.length < 253">
-                                  <b><span class="glyphicon glyphicon-exclamation-sign"></span></b> Technique IDs longer than 100 characters may not work on some filesystems (Windows, in particular).
-                                </span>
-                            </div>
-                            <div class="form-group">
-                                <strong class="col-sm-3 text-right">Version:</strong>
-                                <div class="col-sm-8">{{selectedTechnique.version}}</div>
-                            </div>
-                        </uib-accordion-group>
-                    </uib-accordion>
-
-                    <uib-accordion>
-                      <uib-accordion-group ng-init="parameter_open = true" is-open="parameter_open">
-                        <uib-accordion-heading>
-                          <i class="glyphicon pull-right" ng-class="{'glyphicon-chevron-down': parameter_open, 'glyphicon-chevron-right': !parameter_open}"></i>
-                          Parameters
-                        </uib-accordion-heading>
+                          </div>
+                          <div class="form-group" ng-class="{'has-error':editForm.name.$dirty && (editForm.name.$error.required || editForm.name.$error.techniqueName)}">
+                              <label for="techniqueName" class="col-sm-3 control-label">Name</label>
+                              <div class="col-sm-8">
+                                <input  type="text" id="techniqueName" name="name" class="form-control" techniquename ng-model="selectedTechnique.name" placeholder="Technique Name" required ng-change="updateBundleName()" focus-on="focusTechniqueName">
+                              </div>
+                              <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.name.$error.techniqueName">Technique name must be unique</span>
+                              <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.name.$error.required && editForm.name.$dirty">Technique name is required</span>
+                          </div>
+                          <div class="form-group">
+                              <label for="techniqueDescription" class="col-sm-3 control-label"><span class="text-fit">Description</span></label>
+                              <div class="col-sm-8">
+                                  <textarea name="description" class="form-control" id="techniqueDescription" msd-elastic rows="1" ng-model="selectedTechnique.description" placeholder="Technique Description"></textarea>
+                              </div>
+                          </div>
+                          <div class="form-group" show-errors>
+                              <label for="bundleName" class="col-sm-3 control-label">Technique ID</label>
+                              <div class="col-sm-8">
+                                  <input readonly id="bundleName" bundlename name="bundle_name" class="form-control" ng-model="selectedTechnique.bundle_name" ng-maxlength="252" ng-pattern="/^[^_].*$/">
+                              </div>
+                              <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.maxlength">
+                                Technique IDs longer than 255 characters won't work on most filesystems.
+                              </span>
+                              <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.bundleName">
+                                Technique ID must be unique.
+                              </span>
+                              <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.pattern">Technique ID should start with an alphanumeric character.</span>
+                              <span class="rudder-text-warning col-sm-8 col-sm-offset-3" ng-show="selectedTechnique.bundle_name.length > 100 && selectedTechnique.bundle_name.length < 253">
+                                <b><span class="glyphicon glyphicon-exclamation-sign"></span></b> Technique IDs longer than 100 characters may not work on some filesystems (Windows, in particular).
+                              </span>
+                          </div>
+                    </div>
+                    <div class="tab tab-parameters" ng-if="ui.activeTab == 'parameters'">
                         <div class="col-xs-12">
                           <div class="form-group" ng-repeat="param in selectedTechnique.parameter track by $index">
                             <div class="input-group">
@@ -315,40 +334,26 @@
                             </div>
                           </div>
                         </div>
-                      </uib-accordion-group>
-                    </uib-accordion>
-
-                    <uib-accordion>
-                      <uib-accordion-group ng-init="parameter_open = false" is-open="parameter_open">
-                        <uib-accordion-heading>
-                          <i class="glyphicon pull-right" ng-class="{'glyphicon-chevron-down': parameter_open, 'glyphicon-chevron-right': !parameter_open}"></i>
-                          Resources
-                        </uib-accordion-heading>
-                        <div class="col-xs-12">
+                    </div>
+                    <div class="tab tab-resources" ng-if="ui.activeTab == 'resources'">
+                      <div class="col-xs-12">
 
                           <ul class="files-list">
                             <li class="empty" ng-show="selectedTechnique.resources.length === 0">
                               <span>There is no resource files.</span>
                               <span class="warning-sign">
-                                  <i class="fa fa-info-circle"></i>
-                                </span>
+                                <i class="fa fa-info-circle"></i>
+                              </span>
                             </li>
                             <li ng-repeat="resource in selectedTechnique.resources track by $index" class="{{'state-'+resource.state}}">
-                              <span class="glyphicon glyphicon-file"></span>
+                              <span class="fa fa-file"></span>
                               <span class="target-name">
                                 {{resource.name}}
                               </span>
-                              <!--
-                              <span class="target-remove">
-                                  <i class="fa fa-times"></i>
-                              </span>
-                              -->
                               <span class="border"></span>
                               <div class="use-with"><span>{{"${resources_dir}/"+ resource.name}}</span></div>
                             </li>
                           </ul>
-
-
                           <div class="text-center">
                             <div ng-click="fileManagerState.open = true" class="btn btn-success btn-outline" >
                               Open file editor <i class="fas fa-folder"></i>
@@ -358,26 +363,18 @@
                         <div ng-if="fileManagerState.open" class="filemanager-container">
                           <angular-filemanager></angular-filemanager>
                         </div>
-                      </uib-accordion-group>
-                    </uib-accordion>
-
-                    <div style="position: relative"><div ng-if="selectedTechnique.method_calls.length === 0" class="btn btn-block btn-default text-center" id="no-methods" >
-                      <div class="panel-heading" style="overflow:hidden">
-                        Drag and drop generic methods here from the list on the right to build target configuration for this technique. </div>
-                      </div>
+                    </div>
+                    <h5>Generic Methods <span class="badge badge-secondary">{{selectedTechnique.method_calls.length}}</span></h5>
+                  </div>
+                  <div class="col">
+                    <div ng-if="selectedTechnique.method_calls.length === 0" class="btn btn-block btn-default text-center" id="no-methods" >
+                        Drag and drop generic methods here from the list on the right to build target configuration for this technique.
                     </div>
                     <ul id="methods" class="list-unstyled" dnd-list="selectedTechnique.method_calls" dnd-drop="dropCallback(item, index, type);" >
-                        <li
-                        ng-repeat="method_call in selectedTechnique.method_calls"
-                        class="panel-margin-top method"
-                        ng-class="{'active': isSelectedMethod(method_call), 'missingParameters': checkMissingParameters(method_call.parameters), 'errorParameters': checkErrorParameters(method_call.parameters), 'is-edited' : canResetMethod(method_call)}"
-                        dnd-draggable="method_call"
-                        dnd-effect-allowed="move"
-                        dnd-moved="selectedTechnique.method_calls.splice($index,1)">
 
-                          <div class="input-group">
-                            <span class="input-group-addon cursorMove"><b>:::</b></span>
-                            <div class="panel-heading form-horizontal" style="overflow:hidden" dnd-nodrag>
+
+
+                      <!--
 
                               <div class="input-group col-xs-12 text-info"  ng-if="method_call.class_context !== 'any'">
                                 <label class="input-xs text-light input-group-addon">Condition:</label>
@@ -423,260 +420,163 @@
                                     </button>
                                   </span>
                                 </h4>
-                                <div class="input-group col-xs-12 text-grey"  ng-if="getClassParameter(method_call).value">
-                                  <label class="input-xs text-light  input-group-addon text-grey">{{getClassParameter(method_call).name}}:</label>
-                                  <input ng-click="$event.stopPropagation();" class="input-xs form-control parameter" ng-readonly="true" ng-model="getClassParameter(method_call).value" />
-                                </div>
-                                <div ng-form="arg_method" ng-repeat="parameter in method_call.parameters  track by $index">
-                                  <input ng-hide="true" type="text" name="param" ng-model="parameter.value" constraint parameter="parameter">
-                                  <ng-messages ng-if="parameter.$errors.length > 0" for="arg_method.param.$error" multiple>
-                                    <div class="text-danger" ng-message="constraint">
-                                      Invalid constraint for parameter: '{{parameter.name}}'
-                                    </div>
-                                  </ng-messages>
-                                </div>
-                                <div class="requiredParameters">
-                                  Required parameters missing
-                                </div>
+                                
                               </div>
-                          </div>
-                          <div class="edit-method" ng-click="selectMethod(method_call)" dnd-nodrag uib-tooltip="{{getStatusTooltipMessage(method_call)}}" tooltip-placement="left" tooltip-trigger="mouseenter" popup-open-delay="300">
-                            <div>
-                              <i class="fas fa-pen"></i>
-                            </div>
                           </div>
                         </div>
                       </li>
-                  </ul>
-              </div>
-            </div>
-            </form>
-            <div ng-if="selectedTechnique" class="col-md-5 col-md-offset-2 col-xs-12 col-xs-offset-0 fixed-footer">
-                <button ng-click="openMethods()" class="btn btn-success btn-outline pull-left">
-                    Add methods <i class="fas fa-plus-circle"></i>
-                </button>
-                <button ng-disabled="editForm.$pending || editForm.$invalid || CForm.form.$invalid || checkSelectedTechnique() || saving" class="btn btn-success pull-right btn-save" ng-class="{saving : saving}" ng-click="saveTechnique()">
-                  <span class="glyphicon glyphicon-cog saving"></span>
-                  Save <i class="fas fa-download"></i>
-                </button>
-                <button ng-disabled="isUnchanged(selectedTechnique)" class="btn btn-primary btn-outline pull-right right-margin" ng-click="resetTechnique()">Reset <i class="fas fa-undo-alt"></i></button>
-            </div>
-            <div class="col-md-5 ncf_col" id="methodBlock" ng-if="selectedMethod !== undefined">
-                <div>
-                    <div class="title">Method</div>
-                    <h3 >{{getMethodName(selectedMethod)}}
-                        <span
-                        class="cursor-help"
-                        popover-title="{{getMethodName(selectedMethod)}}"
-                        uib-popover-template="'deprecatedMethod.html'"
-                        popover-placement="bottom"
-                        popover-trigger="mouseenter"
-                        popover-append-to-body="true"
-                        >
-                          <i class="glyphicon glyphicon-info-sign tooltip-icon" ng-class="{'deprecated-icon':(selectedMethod.deprecated || isDeprecated(selectedMethod.method_name))}"></i>
-                        </span>
-                        <i class="{{getIconClassByAgentType(selectedMethod.method_name)}}"></i>
-                        <button class="btn btn-default pull-right top-margin" ng-click="selectMethod(selectedMethod)">Close <i class="fas fa-times"></i></button>
-                        <button ng-disabled="! canResetMethod(selectedMethod)" class="btn btn-primary btn-outline pull-right top-margin  right-margin" ng-click="resetMethod()">Reset <i class="fas fa-undo-alt"></i></button>
-                    </h3>
-                    <button ng-if="getMethodDocumentation(selectedMethod) !== undefined" class="btn btn-primary" ng-class="{ 'btn-outline' : !selectedMethod.showDoc}" ng-click="$event.stopPropagation(); selectedMethod.showDoc = !selectedMethod.showDoc">{{selectedMethod.showDoc ? "Hide" : "Show"}} docs <i class="fa fa-book"></i></button>
-                    <div class="markdown" ng-if="getMethodDocumentation(selectedMethod) !== undefined && selectedMethod.showDoc" ng-bind-html="getMethodDocumentation(selectedMethod)"></div>
-                    <div class="form-group">
-                      <label for="component">Report component:</label>
-                      <input type="text" name="component" class="form-control" ng-model="selectedMethod.component"/>
-                    </div>
-                    <uib-accordion>
-                        <uib-accordion-group is-open="conditionIsOpen">
-                            <uib-accordion-heading>
-                                <i class="glyphicon" ng-class="{'glyphicon-chevron-down': conditionIsOpen, 'glyphicon-chevron-right': !conditionIsOpen}"></i>
-                                Conditions
-                            </uib-accordion-heading>
-                            <div class="form-group condition-form" id="os-form">
-                              <label for="os_class">Operating system:</label>
-                              <form class="form-inline" role="form">
-                                <div class="form-group">
-                                  <label for="os_class">Type:</label>
-                                  <select class="form-control" ng-change="updateOSType()" ng-model="selectedMethod.OS_class.type" ng-options="type for type in type_classes" ></select>
-                                </div>
-                                <div class="form-group" ng-show="os_classes_by_type[selectedMethod.OS_class.type].length > 0" >
-                                  <label for="os_class">Name:</label>
-                                  <select class="form-control" ng-change="updateOSName()" ng-model="selectedMethod.OS_class.name" ng-options="os for os in os_classes_by_type[selectedMethod.OS_class.type]"></select>
-                                </div>
-                              </form>
-                              <form class="form-inline sm-space-top" name="CForm.versionForm" role="form">
-                                <div class="form-group" ng-show="checkMajorVersion()">
-                                  <label for="os_class">Version (Major):</label>
-                                  <input type="text" ng-pattern="versionRegex" style="width:50px" class="form-control" ng-change="updateClassContext()" ng-model="selectedMethod.OS_class.majorVersion" name="versionMaj" placeholder="">
-                                </div>
-                                <div class="form-group" ng-show="checkMinorVersion()">
-                                  <label for="os_class">Version (Minor):</label>
-                                  <input type="text"  style="width:50px" ng-pattern="versionRegex" class="form-control" ng-change="updateClassContext()" ng-disabled="selectedMethod.OS_class.majorVersion === undefined || selectedMethod.OS_class.majorVersion === '' " ng-model="selectedMethod.OS_class.minorVersion"  placeholder="" name="versionMin">
-                                </div>
-                                <div ng-messages="CForm.versionForm.versionMaj.$error" class="sm-space-top" role="alert">
-                                  <div ng-message="pattern" class="text-danger">Invalid major version's number</div>
-                                </div>
-                                <div ng-messages="CForm.versionForm.versionMin.$error" role="alert">
-                                  <div ng-message="pattern" class="text-danger">Invalid minor version's number</div>
-                                </div>
-                              </form>
-                            </div>
-                            <form name="CForm.form">
-                                <div class="form-group condition-form">
-                                  <label class="control-label" for="advanced">Other conditions:</label>
-                                  <textarea msd-elastic name="cfClasses" class="form-control" rows="1" id="advanced" ng-pattern="/^\S+$/" ng-model="selectedMethod.advanced_class" ng-change="updateClassContext()"></textarea>
-                                  <div ng-messages="CForm.form.cfClasses.$error" role="alert">
-                                    <div ng-message="pattern" class="text-danger">This field cannot contain whitespace</div>
-                                  </div>
-                                </div>
-                                <div class="form-group condition-form">
-                                  <label for="class_context">Applied condition expression:</label>
-                                  <textarea style="cursor:text" msd-elastic name="cfClassContext" class="form-control" rows="1" id="advanced" ng-maxlength="2048" ng-model="selectedMethod.class_context" ng-readonly="true"></textarea>
-                                  <span class="text-danger" ng-show="CForm.form.cfClassContext.$error.maxlength">
-                                    Classes over 2048 characters are currently not supported.
-                                  </span>
-                                </div>
-                            </form>
-                        </uib-accordion-group>
-                    </uib-accordion>
-                    <uib-accordion >
-                        <uib-accordion-group ng-init="isopen = true" is-open="isopen">
-                            <uib-accordion-heading>
-                                <i class="glyphicon" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
-                                Parameters
-                            </uib-accordion-heading>
-                            <div class="form-group method-parameter" show-errors ng-form="subForm" style="margin: 15px 10px" ng-repeat="parameter in selectedMethod.parameters track by $index" ng-model-options="{ updateOn: 'default blur', debounce: { default: 250, blur: 0 } }" >
-                              <ng-form name="paramForm" role="form">
-                                <label for="param-{{$index}}">
-                                  <h5 class="control-label method-param" >{{parameter.name}}:
-                                    <br style="clear:both"/>
-                                    <small class="pull-left method-margin" >
-                                      {{parameter.description}}
-                                    </small>
-                                  </h5>
-                                </label>
-                                <br style="clear:both"/>
-                                <textarea msd-elastic name="param" class="form-control" rows="1" id="param-{{$index}}" ng-trim="{{trimParameter(parameter)}}" ng-model="parameter.value"></textarea>
-                                <ul class="list-unstyled" >
-                                   <li class="text-danger" ng-repeat="error in parameter.$errors">{{error}}</li>
-                                </ul>
-                              </ng-form>
-                            </div>
-                        </uib-accordion-group>
-                    </uib-accordion>
-                </div>
-                <div class="col-md-5 fixed-footer" style="padding-top: 0; border-right:0; padding-bottom: 0;">
-                    <h4 style="text-align:left; margin-top:0px;" class="panel-title">
-                      Result conditions defined by this method
-                    </h4>
-                    <form class="form-horizontal editForm" name="editForm">
-                        <div class="form-group"  style="margin-bottom:3px;margin-top:3px">
-                            <label class="col-md-2 col-sm-1 col-xs-12 text-left control-label" style="padding-top:0; font-size:13px;">Success:</label>
-                            <div class="col-md-10 col-sm-11 col-xs-12">
-                                <input ng-readonly="true" type="text" id="techniqueName" class="form-control input-xs" value="{{getClassKind(selectedMethod,'kept')}}" style="cursor:text">
-                            </div>
+                    -->
+
+                    <li
+                      ng-repeat="method_call in selectedTechnique.method_calls"
+                      ng-show="checkFilterMethod(method)"
+                      ng-class="{'active': isSelectedMethod(method_call), 'missingParameters': checkMissingParameters(method_call.parameters), 'errorParameters': checkErrorParameters(method_call.parameters), 'is-edited' : canResetMethod(method_call)}"
+                      >
+                      <div
+                        dnd-draggable="method_call"
+                        dnd-effect-allowed="move"
+                        dnd-moved="selectedTechnique.method_calls.splice($index,1)"
+                        class="method">
+                        <div class="cursorMove col-auto">
+                          <b>:::</b>
                         </div>
-                        <div class="form-group"  style="margin-bottom:3px">
-                            <label class="col-md-2 col-sm-1 col-xs-12 text-left control-label" style="padding-top:0; font-size:13px;">Repaired:</label>
-                            <div class="col-md-10 col-sm-11 col-xs-12">
-                                <input ng-readonly="true" type="text" id="techniqueName" class="form-control input-xs" value="{{getClassKind(selectedMethod,'repaired')}}" style="cursor:text">
-                            </div>
-                        </div>
-                        <div class="form-group" style="margin-bottom:3px">
-                            <label for="error" class="col-md-2 col-sm-1 col-xs-12 text-left control-label" style="padding-top:0; font-size:13px;">Error:</label>
-                            <div class="col-md-10 col-sm-11 col-xs-12">
-                                <input ng-readonly="true" type="text" id="techniqueName" class="form-control input-xs" value="{{getClassKind(selectedMethod,'error')}}" style="cursor:text">
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            <div class="col-lg-4 col-md-4 col-sm-10 col-xs-8 generic-methods ncf_col" ng-if="selectedMethod === undefined">
-              <div class="generic-methods-container">
-                <div class="generic-methods-header">
-                  <div class="title">Library</div>
-                  <h3 >Generic methods</h3>
-                  <div class="panel-group" id="filters" role="tablist" aria-multiselectable="true">
-                    <div class="panel panel-default">
-                      <div class="panel-heading" role="tab" id="filterTitle">
-                        <h4 class="panel-title">
-                          <a role="button" data-toggle="collapse" data-parent="#filters" href="#collapseFilters" aria-expanded="true" aria-controls="collapseFilters">
-                            Filters
-                            <i class="glyphicon glyphicon-chevron-down pull-right"></i>
-                          </a>
-                        </h4>
-                      </div>
-                      <div id="collapseFilters" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="filterTitle">
-                        <div class="panel-body">
-                          <div class=form-group>
-                            <label>Agent type: </label>
-                            <div class="btn-group">
-                              <button class="btn btn-default" ng-class="{active:filter.compatibility == 'all'}" ng-click="filter.compatibility='all'">
-                                All
-                              </button>
-                              <button class="btn btn-default classic-filter" ng-class="{active:filter.compatibility == 'classic'}" ng-click="filter.compatibility='classic'">
-                                Classic <i class="glyphicon glyphicon-cog classic-icon"></i>
-                              </button>
-                              <button class="btn btn-default dsc-filter" ng-class="{active:filter.compatibility == 'dsc'}" ng-click="filter.compatibility='dsc'">
-                                DSC <img ng-src="{{filter.compatibility == 'dsc' ? 'ncf-builder/css/dsc-icon-white.svg' : 'ncf-builder/css/dsc-icon.svg'}}" class="dsc-icon"/>
-                              </button>
-                            </div>
+                        <div class="method-name col" ng-click="addMethod(method)">
+                          {{method_call.component}}<!--{{method.description}}-->
+                          <span
+                            class="cursor-help"
+                            uib-popover-template="'deprecatedMethod.html'"
+                            popover-title="{{getMethodName(method_call)}}"
+                            popover-trigger="mouseenter"
+                            popover-append-to-body="true">
+                            <i class="glyphicon glyphicon-info-sign tooltip-icon" ng-class="{'deprecated-icon':(method_call.deprecated || isDeprecated(method_call.method_name))}"></i>
+                          </span>
+
+                          <div class="input-group col-xs-12 text-grey"  ng-if="getClassParameter(method_call).value">
+                            <label class="input-xs text-light  input-group-addon text-grey">{{getClassParameter(method_call).name}}:</label>
+                            <input ng-click="$event.stopPropagation();" class="input-xs form-control parameter" ng-readonly="true" ng-model="getClassParameter(method_call).value" />
                           </div>
-                          <div class="input-group input-group-sm form-group">
-                            <div for="showDeprecated" class="input-group-addon" id="labelShowDeprecated">
-                              <input id="showDeprecated" type="checkbox" class="form-control" ng-model="filter.showDeprecated"/>
-                            </div>
-                            <label for="showDeprecated" class="form-control">
-                              Show deprecated generic methods <i class="glyphicon glyphicon-info-sign deprecated-icon"></i>
-                              <i class="glyphicon glyphicon-ok pull-right" ng-if="filter.showDeprecated"></i>
-                            </label>
+                          <div ng-form="arg_method" ng-repeat="parameter in method_call.parameters  track by $index">
+                            <input ng-hide="true" type="text" name="param" ng-model="parameter.value" constraint parameter="parameter">
+                            <ng-messages ng-if="parameter.$errors.length > 0" for="arg_method.param.$error" multiple>
+                              <div class="text-danger" ng-message="constraint">
+                                Invalid constraint for parameter: '{{parameter.name}}'
+                              </div>
+                            </ng-messages>
                           </div>
-                          <div class="input-group input-group-sm form-group">
-                            <label for="filterMethods" class="input-group-addon" >
-                              <i class="fas fa-search"></i>
-                            </label>
-                            <input id="filterMethods" placeholder="Filter generic methods" type="text" ng-model="filter.text" class="form-control" />
+                          <div class="requiredParameters">
+                            Required parameters missing
                           </div>
+
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="generic-methods-list">
-                  <ul class="list-unstyled" ng-repeat="(kind,methods) in methodsByCategory" ng-if="checkFilterCategory(methods)">
-                    <h4 id={{kind}}>{{capitaliseFirstLetter(kind)}}</h4>
-                    <li ng-click="addMethod(method)" ng-repeat="method in methods | filter:filter.text" class="panel-margin-top btn btn-block btn-default btn-method" dnd-draggable="method" dnd-effect-allowed="move" dnd-type="'bundle'" ng-show="checkFilterMethod(method)" ng-class="{'used':isUsed(method)}">
-                      <div class="input-group">
-                        <span class="input-group-addon cursorMove"><b>:::</b></span>
-                        <div class="panel-heading" style="overflow:hidden">
-                            <h4 class="panel-title">
-                                <span class="pull-left"> {{method.name}}
-                                  <span class="cursor-help" ng-if="method.deprecated"
-                                        popover-title="{{method.name}}" uib-popover-template="'deprecatedMethod.html'"
-                                        popover-placement="bottom" popover-trigger="mouseenter" popover-append-to-body="true">
-                                    <i class="glyphicon glyphicon-info-sign tooltip-icon deprecated-icon"></i>
-                                  </span>
-                                </span>
-                                <img src="ncf-builder/css/dsc-icon.svg" class="dsc-icon" ng-if="checkAgentSupport(method,'dsc')">
-                                <i class="glyphicon glyphicon-cog classic-icon" ng-if="checkAgentSupport(method,'cfengine-community')"></i>
-                                <br style="clear:both"/>
-                                <small class="pull-left method-margin" >
-                                    {{method.description}}
-                                    <br ng-if="method.documentation !== undefined"/>
-                                    <button ng-if="method.documentation !== undefined" class="btn btn-primary btn-xs btn-outline" ng-click="$event.stopPropagation(); method.showDoc = !method.showDoc">{{method.showDoc ? "Hide" : "Show"}} <i class="fa fa-book"></i></button>
-                                    <div class="markdown" ng-if="method.documentation !== undefined && method.showDoc" ng-bind-html="method.documentation"></div>
-                                </small>
-                            </h4>
+                        <div class="edit-method" ng-click="selectMethod(method_call)" dnd-nodrag uib-tooltip="{{getStatusTooltipMessage(method_call)}}" tooltip-placement="left" tooltip-trigger="mouseenter" popup-open-delay="300">
+                          <i class="fas fa-pen"></i>
                         </div>
                       </div>
                     </li>
                   </ul>
+
+
+                  </div>
+                </div>
+              </form>
+              </div>
+              <div class="col-auto main-footer">
+                <button ng-disabled="editForm.$pending || editForm.$invalid || CForm.form.$invalid || checkSelectedTechnique() || saving" class="btn btn-success btn-save" ng-class="{saving : saving}" ng-click="saveTechnique()">
+                  <span class="glyphicon glyphicon-cog saving"></span>
+                  Save <i class="fas fa-download"></i>
+                </button>
+                <button ng-disabled="isUnchanged(selectedTechnique)" class="btn btn-outline-primary" ng-click="resetTechnique()">Reset <i class="fas fa-undo-alt"></i></button>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-4 col-5 col-methods" ng-click="toggleDisplay(false)" ng-if="selectedTechnique">
+          <div class="row flex-column">
+            <div class="col-auto">
+              <div class="row">
+                <div class="col">
+                  <h3 class="title">Generic Methods</h3>
+                </div>
+                <!--
+                <div class="col-auto align-self-center">
+                  <label class="btn btn-outline-secondary">
+                    <i class="fas fa-bars"></i>
+                  </label>
+                </div>
+              -->
+                <div class="w-100"></div>
+                <div class="col input-group input-group-sm">
+                  <input id="filterMethods" placeholder="Filter generic methods" type="text" ng-model="filter.text" class="form-control" />
+                  <button type="button" class="btn btn-outline-secondary btn-toggle-filters"><i class="ion ion-android-options"></i></button>
                 </div>
               </div>
             </div>
-            <div class="col-lg-1 col-md-1 col-sm-2 col-xs-4 ncf_col no-padding" class="bs-sidebar navbar" ng-if="selectedMethod === undefined">
-                <ul class="nav bs-sidenav" id="categories-list">
-                  <h4 id="categories">Categories</h4>
-                    <li ng-repeat="(kind,methods) in methodsByCategory" class="active" ng-if="checkFilterCategory(methods)" ng-class="{'deprecatedCategory':!checkDeprecatedFilter(methods)}">
+
+            <div class="w-100"></div>
+            
+            <div class="col-auto">
+              <div class=form-group>
+                <label>Agent type: </label>
+                <div class="btn-group">
+                  <button class="btn btn-default" ng-class="{active:filter.compatibility == 'all'}" ng-click="filter.compatibility='all'">
+                    All
+                  </button>
+                  <button class="btn btn-default classic-filter" ng-class="{active:filter.compatibility == 'classic'}" ng-click="filter.compatibility='classic'">
+                    Classic
+                  </button>
+                  <button class="btn btn-default dsc-filter" ng-class="{active:filter.compatibility == 'dsc'}" ng-click="filter.compatibility='dsc'">
+                    DSC <img ng-src="{{filter.compatibility == 'dsc' ? 'ncf-builder/css/dsc-icon-white.svg' : 'ncf-builder/css/dsc-icon.svg'}}" class="dsc-icon"/>
+                  </button>
+                </div>
+              </div>
+              <div class="input-group input-group-sm form-group">
+                <div for="showDeprecated" class="input-group-addon" id="labelShowDeprecated">
+                  <input id="showDeprecated" type="checkbox" class="form-control" ng-model="filter.showDeprecated"/>
+                </div>
+                <label for="showDeprecated" class="form-control">
+                  Show deprecated generic methods <i class="glyphicon glyphicon-info-sign deprecated-icon"></i>
+                  <i class="glyphicon glyphicon-ok pull-right" ng-if="filter.showDeprecated"></i>
+                </label>
+              </div>
+            </div>
+
+            <div class="col generic-methods-container">
+              <div class="row">
+                <div class="col">
+                  <ul class="list-unstyled" ng-repeat="(kind,methods) in methodsByCategory" ng-if="checkFilterCategory(methods)">
+                    <h5 id={{kind}}>{{capitaliseFirstLetter(kind)}}</h5>
+                    <li ng-repeat="method in methods | filter:filter.text" ng-show="checkFilterMethod(method)">
+                      <div
+                        ng-class="{'used':isUsed(method), 'doc-opened':method.showDoc}"
+                        dnd-draggable="method"
+                        dnd-effect-allowed="move"
+                        dnd-type="'bundle'"
+                        class="method">
+                        <div class="cursorMove col-auto">
+                          <b>:::</b>
+                        </div>
+                        <div class="method-name col" ng-click="addMethod(method)">
+                          {{method.name}}<!--{{method.description}}-->
+                          <span 
+                            class="cursor-help" 
+                            ng-if="method.deprecated"
+                            popover-title="{{method.name}}" uib-popover-template="'deprecatedMethod.html'"
+                            popover-placement="bottom" popover-trigger="mouseenter" popover-append-to-body="true">
+                            <i class="glyphicon glyphicon-info-sign tooltip-icon deprecated-icon"></i>
+                          </span>
+                          <img src="ncf-builder/css/dsc-icon.svg" class="dsc-icon" ng-if="checkAgentSupport(method,'dsc')">
+                        </div>
+                        <div ng-if="method.documentation !== undefined" class="show-doc col-auto" ng-click="$event.stopPropagation(); method.showDoc = !method.showDoc">
+                          <i class="fa fa-book"></i>
+                        </div>
+                      </div>
+                      <div class="markdown" ng-if="method.documentation !== undefined && method.showDoc" ng-bind-html="method.documentation"></div>
+                    </li>
+                  </ul>
+                </div>
+                <div class="col-auto">
+                  <ul id="categories-list">
+                    <h4 id="categories">Categories</h4>
+                      <li ng-repeat="(kind,methods) in methodsByCategory" class="active" ng-if="checkFilterCategory(methods)" ng-class="{'deprecatedCategory':!checkDeprecatedFilter(methods)}">
                         <a href="" ng-click="scroll(kind)">
                           {{capitaliseFirstLetter(kind)}}
                           <span
@@ -687,14 +587,18 @@
                           popover-placement="bottom"
                           popover-trigger="hover"
                           popover-append-to-body="true"
-                          >
-                            <i class="glyphicon glyphicon-info-sign deprecated-icon"></i>
+                          > <i class="glyphicon glyphicon-info-sign deprecated-icon"></i>
                           </span>
                         </a>
-                    </li>
-                </ul>
+                      </li>
+                  </ul>
+                </div>
+              </div>
             </div>
+          </div>
         </div>
-    </body>
+      </div>
+    </div>
+  </body>
 </html>
 
