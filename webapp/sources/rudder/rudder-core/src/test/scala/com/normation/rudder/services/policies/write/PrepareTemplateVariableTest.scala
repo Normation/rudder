@@ -78,8 +78,8 @@ val fillTemplate = new FillTemplatesService()
     }
 
     "write exactly - including escaped quotes" in {
-
-      CfengineBundleVariables.formatMethodsUsebundle(CFEngineAgentSpecificGeneration.escape, bundles, Nil, false) ===
+      val actual = CfengineBundleVariables.formatMethodsUsebundle(CFEngineAgentSpecificGeneration.escape, bundles, Nil, false)
+      val expected =
 List(raw"""      "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => set_dry_run_mode("false");
       "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => run_directive1;
       "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => set_dry_run_mode("false");
@@ -89,8 +89,11 @@ List(raw"""      "Global configuration for all nodes/20. Install jdk version 1.0
       "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => set_dry_run_mode("false");
       "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => run_directive4;
       "Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => set_dry_run_mode("false");
-      "Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => run_directive5;
+      "Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => run_directive5;"""
 
+  , // HERE WE HAVE A SECOND ELEMENT
+
+raw"""
 }
 bundle agent run_directive1
 {
@@ -121,6 +124,8 @@ bundle agent run_directive5
       "Nodes only/Package \\"management\\" for Debian - again" usebundle => disable_reporting;
       "Nodes only/Package \\"management\\" for Debian - again" usebundle => check_apt_package_installation2;
       "Nodes only/Package \\"management\\" for Debian - again" usebundle => clean_reporting_context;""")
+
+      actual must containTheSameElementsAs(expected)
     }
 
     "write exactly - including escaped quotes and hooks" in {
@@ -142,7 +147,8 @@ bundle agent run_directive5
 
       //spaces inserted at the begining of promises in rudder_directives.cf are due to string template, not the formated string - strange
 
-      CfengineBundleVariables.formatMethodsUsebundle(CFEngineAgentSpecificGeneration.escape, bundles, hooks, false) ===
+      val actual = CfengineBundleVariables.formatMethodsUsebundle(CFEngineAgentSpecificGeneration.escape, bundles, hooks, false)
+      val expected =
 List(raw"""      "pre-run-hook"                                                                      usebundle => package-install('{"parameters":{"package":"vim","action":"update-only"},"reports":[{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt1","value":"val1"},{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt1","value":"val1"}]}');
       "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => set_dry_run_mode("false");
       "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => run_directive1;
@@ -154,8 +160,10 @@ List(raw"""      "pre-run-hook"                                                 
       "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => run_directive4;
       "Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => set_dry_run_mode("false");
       "Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => run_directive5;
-      "post-run-hook"                                                                     usebundle => service-restart('{"parameters":{"service":"syslog"},"reports":[{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt2","value":"None"},{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt2","value":"None"}]}');
+      "post-run-hook"                                                                     usebundle => service-restart('{"parameters":{"service":"syslog"},"reports":[{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt2","value":"None"},{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt2","value":"None"}]}');"""
 
+  , // HERE WE HAVE A SECOND ELEMENT
+raw"""
 }
 bundle agent run_directive1
 {
@@ -186,6 +194,9 @@ bundle agent run_directive5
       "Nodes only/Package \\"management\\" for Debian - again" usebundle => disable_reporting;
       "Nodes only/Package \\"management\\" for Debian - again" usebundle => check_apt_package_installation2;
       "Nodes only/Package \\"management\\" for Debian - again" usebundle => clean_reporting_context;""")
+
+      actual must containTheSameElementsAs(expected)
     }
+
   }
 }
