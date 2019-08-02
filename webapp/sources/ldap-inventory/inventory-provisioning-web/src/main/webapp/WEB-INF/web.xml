@@ -16,18 +16,18 @@
     <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
     <load-on-startup>1</load-on-startup>
 
-	  <!-- Configure DispatcherServlet to use JavaConfigWebApplicationContext
-	       instead of the default XmlWebApplicationContext -->
-	  <init-param>
-	    <param-name>contextClass</param-name>
-	    <param-value>org.springframework.web.context.support.AnnotationConfigWebApplicationContext</param-value>
-	  </init-param>
-
 	  <!-- Again, config locations must consist of one or more comma- or space-delimited
 	       and fully-qualified @Configuration classes -->
 	  <init-param>
 	    <param-name>contextConfigLocation</param-name>
 	    <param-value>com.normation.inventory.provisioning.endpoint.config.AppConfig</param-value>
+	  </init-param>
+
+	  <!-- Configure DispatcherServlet to use JavaConfigWebApplicationContext
+	       instead of the default XmlWebApplicationContext -->
+	  <init-param>
+	    <param-name>contextClass</param-name>
+	    <param-value>org.springframework.web.context.support.AnnotationConfigWebApplicationContext</param-value>
 	  </init-param>
   </servlet>
 

@@ -108,19 +108,24 @@ class InventoryProcessor(
     unmarshaller    : ReportUnmarshaller
   , reportSaver     : ReportSaver[Seq[LDIFChangeRecord]]
   , val maxQueueSize: Int
+  , val maxParallel : Long
   , repo            : FullInventoryRepository[Seq[LDIFChangeRecord]]
   , digestService   : InventoryDigestServiceV1
   , checkAliveLdap  : () => IOResult[Unit]
   , nodeInventoryDit: InventoryDit
 ) {
 
-  val logger = InventoryProcessingLogger
+  // logs are not available here, need "print"
+  println(s"INFO Configure inventory processing with parallelism of '${maxParallel}' and queue size of '${maxQueueSize}'")
+
+  // we want to limit the number of reports concurrently parsed
+  lazy val xmlParsingSemaphore = ZioRuntime.unsafeRun(Semaphore.make(maxParallel))
 
   /*
    * We manage inventories buffering with a bounded queue.
    * In case of overflow, we reject new inventories.
    */
-  val queue = ZioRuntime.unsafeRun(Queue.dropping[InventoryReport](maxQueueSize))
+  lazy val queue = ZioRuntime.unsafeRun(Queue.dropping[InventoryReport](maxQueueSize))
 
   def currentQueueSize: Int = ZioRuntime.unsafeRun(queue.size)
 
@@ -198,8 +203,11 @@ class InventoryProcessor(
     val start = System.currentTimeMillis()
 
     val res = for {
-      _            <- logger.debug(s"Start parsing inventory '${info.fileName}'")
-      report       <- parseSafe(info.inventoryStream, info.fileName).chainError("Can't parse the input inventory, aborting")
+      report       <- xmlParsingSemaphore.withPermit(
+                        InventoryProcessingLogger.debug(s"Start parsing inventory '${info.fileName}'") *>
+                        parseSafe(info.inventoryStream, info.fileName).chainError("Can't parse the input inventory, aborting") <*
+                        InventoryProcessingLogger.trace(s"Parsing done for inventory '${info.fileName}'")
+                      )
       secPair      <- digestService.getKey(report).chainError(s"Error when trying to check inventory key for Node '${report.node.main.id.value}'")
       parsed       <- digestService.parseSecurityToken(secPair._1)
       _            <- parsed.subject match {
@@ -207,7 +215,7 @@ class InventoryProcessor(
                         case Some(list) => SecurityToken.checkCertificateSubject(report.node.main.id, list)
                       }
       afterParsing =  System.currentTimeMillis()
-      _            =  logger.debug(s"Inventory '${report.name}' parsed in ${printer.print(new Duration(afterParsing, System.currentTimeMillis).toPeriod)} ms, now saving")
+      _            =  InventoryProcessingLogger.debug(s"Inventory '${report.name}' parsed in ${printer.print(new Duration(afterParsing, System.currentTimeMillis).toPeriod)} ms, now saving")
       saved        <- info.optSignatureStream match { // Do we have a signature ?
                         // Signature here, check it
                         case Some(sig) =>
@@ -217,7 +225,7 @@ class InventoryProcessor(
                         case None =>
                           saveNoSignature(report, secPair._2).chainError(s"Error when trying to check inventory key status for Node '${report.node.main.id.value}'")
                       }
-      _            <- logger.debug(s"Inventory '${report.name}' for node '${report.node.main.id.value}' pre-processed in ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
+      _            <- InventoryProcessingLogger.debug(s"Inventory '${report.name}' for node '${report.node.main.id.value}' pre-processed in ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
     } yield {
       saved
     }
@@ -226,10 +234,10 @@ class InventoryProcessor(
     res map { status =>
         import com.normation.inventory.provisioning.endpoint.StatusLog.LogMessage
         status match {
-          case InventoryProcessStatus.MissingSignature(_) => logger.error(status.msg)
-          case InventoryProcessStatus.SignatureInvalid(_) => logger.error(status.msg)
-          case InventoryProcessStatus.QueueFull(_)        => logger.warn(status.msg)
-          case InventoryProcessStatus.Accepted(_)         => logger.trace(status.msg)
+          case InventoryProcessStatus.MissingSignature(_) => InventoryProcessingLogger.error(status.msg)
+          case InventoryProcessStatus.SignatureInvalid(_) => InventoryProcessingLogger.error(status.msg)
+          case InventoryProcessStatus.QueueFull(_)        => InventoryProcessingLogger.warn(status.msg)
+          case InventoryProcessStatus.Accepted(_)         => InventoryProcessingLogger.trace(status.msg)
         }
     } catchAll { err =>
         val fail = Chained(s"Error when trying to process inventory '${info.fileName}'", err)
@@ -275,16 +283,16 @@ class InventoryProcessor(
    */
   def saveReport(report:InventoryReport): UIO[Unit] = {
     for {
-      _     <- logger.trace(s"Start post processing of inventory '${report.name}' for node '${report.node.main.id.value}'")
+      _     <- InventoryProcessingLogger.trace(s"Start post processing of inventory '${report.name}' for node '${report.node.main.id.value}'")
       start <- UIO(System.currentTimeMillis)
       saved <- reportSaver.save(report).chainError("Can't merge inventory report in LDAP directory, aborting").either
       _     <- saved match {
                  case Left(err) =>
-                   logger.error(s"Error when trying to process report: ${err.fullMsg}")
+                   InventoryProcessingLogger.error(s"Error when trying to process report: ${err.fullMsg}")
                  case Right(report) =>
-                   logger.debug("Report saved.")
+                   InventoryProcessingLogger.debug("Report saved.")
                }
-      _      <- logger.info(s"Report '${report.name}' for node '${report.node.main.hostname}' [${report.node.main.id.value}] (signature:${report.node.main.keyStatus.value}) "+
+      _      <- InventoryProcessingLogger.info(s"Report '${report.name}' for node '${report.node.main.hostname}' [${report.node.main.id.value}] (signature:${report.node.main.keyStatus.value}) "+
                 s"processed in ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
     } yield ()
   }

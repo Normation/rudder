@@ -34,6 +34,15 @@ ldif.tracelog.rootdir=/var/rudder/inventories/debug
 waiting.inventory.queue.size=50
 
 #
+# You may want to limit the number of inventory file parsed in parallele.
+# The goal is to avoid parsing hundreds of XML in parallel when we prefer
+# to totally parse some (and then the others) and send them to backend.
+# You can specify a positive integer or a string formated "Nx" where
+# "N" is a double and x means "number of available core".
+# A safe default is "0.5x"
+inventory.parse.parallelization=0.5x
+
+#
 # Rudder 5.0.5 introduce a file watcher which react to new
 # inventories put in ${inventories.root.directory}/incoming.
 # You can (should) use the watcher by setting the property

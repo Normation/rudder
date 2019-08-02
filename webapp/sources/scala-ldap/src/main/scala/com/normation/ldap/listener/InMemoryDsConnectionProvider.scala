@@ -23,7 +23,6 @@ package com.normation.ldap.listener
 import com.unboundid.ldap.listener.{InMemoryDirectoryServer, InMemoryDirectoryServerConfig}
 import com.unboundid.ldap.sdk.schema.Schema
 import com.normation.ldap.ldif._
-import com.normation.ldap.sdk.LDAPIOResult.LDAPIOResult
 import com.normation.ldap.sdk._
 import com.normation.ldap.sdk.syntax.UnboundidLDAPConnection
 import zio.blocking.Blocking
