@@ -158,9 +158,15 @@ case object BSDJail extends VmType("bsdjail") with HashcodeCaching
  * - virtual machines ;
  * - physical machines.
  */
-sealed abstract class MachineType
-case class VirtualMachineType(vm:VmType) extends MachineType with HashcodeCaching
-case object PhysicalMachineType extends MachineType with HashcodeCaching
+sealed abstract class MachineType {
+  def toString : String
+}
+case class VirtualMachineType(vm:VmType) extends MachineType with HashcodeCaching {
+  override def toString() = vm.name
+}
+case object PhysicalMachineType extends MachineType with HashcodeCaching {
+  override def toString() = "physicalMachine"
+}
 
 
 case class MachineInventory(

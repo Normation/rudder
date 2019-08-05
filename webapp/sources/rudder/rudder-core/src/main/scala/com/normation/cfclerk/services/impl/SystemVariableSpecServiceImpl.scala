@@ -305,6 +305,10 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                               "AGENT_TYPE" , "The normalised name of the agent type (cfengine-community, dsc, etc)"
                                            , multivalued = false
                         )
+    , SystemVariableSpec(
+                   "RUDDER_INVENTORY_VARS" , "Rudder inventory variables"
+                                           , multivalued = false
+    )
   )
 
   private[this] val varSpecsMap = varSpecs.map(x => (x.name -> x)).toMap

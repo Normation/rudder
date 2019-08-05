@@ -557,7 +557,6 @@ class PolicyWriterServiceImpl(
     res
   }
 
-  // just write an empty file for now
   private[this] def writeSystemVarJson(paths: NodePromisesPaths, variables: Map[String, Variable]) =  {
     val path = new File(paths.newFolder, "rudder.json")
     for {
@@ -588,6 +587,7 @@ class PolicyWriterServiceImpl(
       , "MANAGED_NODES_KEY"
       , "MANAGED_NODES_NAME"
       , "COMMUNITY", "NOVA"
+      , "RUDDER_INVENTORY_VARS"
       , "BUNDLELIST", "INPUTLIST"
     )
 
