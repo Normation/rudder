@@ -1471,7 +1471,7 @@ object RudderConfig extends Loggable {
       , HOOKS_IGNORE_SUFFIXES
       , UPDATED_NODE_IDS_PATH
       , UPDATED_NODE_IDS_COMPABILITY
-      , allNodeCertificatesPemFile = better.files.File("/var/rudder/lib/ssl/allnodecerts.pem")
+      , allNodeCertificatesPemFile = better.files.File("/var/rudder/lib/ssl/allnodescerts.pem")
   )}
 
   private[this] lazy val asyncDeploymentAgentImpl: AsyncDeploymentActor = {

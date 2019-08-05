@@ -72,7 +72,7 @@ trait WriteNodeCertificatesPem {
 }
 
 /*
- * In a default Rudder app, the file path is: /var/rudder/lib/ssl/allnodecerts.pem
+ * In a default Rudder app, the file path is: /var/rudder/lib/ssl/allnodescerts.pem
  * After file is written, a reload hook can be executed if `reloadScriptPath` is not empty
  */
 class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends WriteNodeCertificatesPem {

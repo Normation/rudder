@@ -131,7 +131,7 @@ class TestWriteNodeCertificatesPem extends Specification {
 
   val nodes = (NodeConfigData.root :: node1 :: node2 :: Nil).map(x => (x.id, x)).toMap
 
-  val dest = File("/tmp/rudder-test-allnodecerts.pem")
+  val dest = File("/tmp/rudder-test-allnodescerts.pem")
 
   dest.deleteOnExit()
 

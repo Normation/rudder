@@ -531,7 +531,7 @@ rudder.hooks.ignore-suffixes= .swp, ~, .bak, \
 ########################
 
 # We have to way to identify nodes: by key of by certificated. When certificates,
-# we update a file used by relayd at: /var/rudder/lib/ssl/allnodecerts.pem
+# we update a file used by relayd at: /var/rudder/lib/ssl/allnodescerts.pem
 # After change, we need to notify relayd to reload that file. This is the relad
 # command.
 #

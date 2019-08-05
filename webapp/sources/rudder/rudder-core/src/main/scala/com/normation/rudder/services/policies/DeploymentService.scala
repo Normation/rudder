@@ -270,7 +270,7 @@ trait PromiseGenerationService {
       /////
       ///// Generate the root file with all certificate. This could be done in the node lifecycle management.
       ///// For now, it's just a trigger: the generation is async and doesn't fail policy generation.
-      ///// File is: /var/rudder/lib/ssl/allnodecerts.pem
+      ///// File is: /var/rudder/lib/ssl/allnodescerts.pem
       _                     =  writeCertificatesPem(allNodeInfos)
 
       ///// parse rule for directive parameters and build node context that will be used for them
