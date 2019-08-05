@@ -133,6 +133,10 @@ impl NodesList {
         self.list.data.get(source_uuid).map(|s| s.key_hash.clone())
     }
 
+    pub fn get_hostname(&self, uuid: &str) -> Option<String> {
+        self.list.data.get(uuid).map(|s| s.hostname.clone())
+    }
+
     pub fn certs(&self, id: &str) -> Option<&Stack<X509>> {
         self.list
             .data
@@ -178,12 +182,18 @@ impl NodesList {
     pub fn get_neighbors_from_target(&self, target_nodes: RemoteRunTarget) -> Vec<String> {
         match target_nodes {
             RemoteRunTarget::All => self.get_neighbors(),
-            RemoteRunTarget::Nodes(nodes) => self
-                .list
-                .data
-                .values()
-                .map(|k| k.hostname.clone())
-                .filter(|k| nodes.contains(&k.to_string()))
+            RemoteRunTarget::Nodes(nodes) => nodes
+                .into_iter()
+                .filter(|n| {
+                    self.list.data.get::<str>(&n).map(|n| &n.policy_server) == Some(&self.my_id)
+                })
+                .map(|n| {
+                    self.list
+                        .data
+                        .get::<str>(&n)
+                        .map(|n| n.hostname.clone())
+                        .unwrap()
+                })
                 .collect(),
         }
     }
@@ -251,45 +261,41 @@ mod tests {
 
     #[test]
     fn its_filtering_nodes_requests() {
-        let has_to_be_filtered: RemoteRunTarget = RemoteRunTarget::Nodes(vec![
-            "37817c4d-fbf7-4850-a985-50021f4e8f41".to_string(),
-            "b745a140-40bc-4b86-b6dc-084488fc906b".to_string(),
-            "a745a140-40bc-4b86-b6dc-084488fc906b".to_string(),
-            "j745a140-40bc-4b86-b6dc-084488fc906b".to_string(),
-            "root".to_string(),
-        ]); // j doit etre filtré
-
-        let mut has_been_filtered = [
-            "37817c4d-fbf7-4850-a985-50021f4e8f41",
-            "b745a140-40bc-4b86-b6dc-084488fc906b",
-            "a745a140-40bc-4b86-b6dc-084488fc906b",
-            "root",
-        ];
-
-        let all_my_nodes: RemoteRunTarget = RemoteRunTarget::All;
-
-        let mut all_my_nodes_for_real = [
-            "37817c4d-fbf7-4850-a985-50021f4e8f41",
-            "b745a140-40bc-4b86-b6dc-084488fc906b",
-            "c745a140-40bc-4b86-b6dc-084488fc906b",
-            "e745a140-40bc-4b86-b6dc-084488fc906b",
-            "a745a140-40bc-4b86-b6dc-084488fc906b",
-            "root",
-        ];
-
         let file_nodelist =
             NodesList::new("root".to_string(), "tests/files/nodeslist.json", None).unwrap();
 
         assert_eq!(
-            file_nodelist
-                .get_neighbors_from_target(has_to_be_filtered)
-                .sort(),
-            has_been_filtered.sort()
+            file_nodelist.get_neighbors_from_target(RemoteRunTarget::Nodes(vec![
+                "b745a140-40bc-4b86-b6dc-084488fc906b".to_string(),
+                "a745a140-40bc-4b86-b6dc-084488fc906b".to_string(),
+                "root".to_string(),
+                "37817c4d-fbf7-4850-a985-50021f4e8f41".to_string(),
+                "e745a140-40bc-4b86-b6dc-084488fc906b".to_string(),
+            ])),
+            [
+                "server.rudder.local".to_string(),
+                "node2.rudder.local".to_string(),
+                "node1.rudder.local".to_string()
+            ]
         );
 
         assert_eq!(
-            file_nodelist.get_neighbors_from_target(all_my_nodes).sort(),
-            all_my_nodes_for_real.sort()
+            file_nodelist
+                .get_neighbors_from_target(RemoteRunTarget::All)
+                .sort(),
+            [
+                "server.rudder.local".to_string(),
+                "node2.rudder.local".to_string(),
+                "node1.rudder.local".to_string(),
+            ]
+            .sort()
+        );
+
+        assert_eq!(
+            file_nodelist
+                .get_neighbors_from_target(RemoteRunTarget::All)
+                .len(),
+            3
         );
     }
 

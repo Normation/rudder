@@ -64,7 +64,7 @@ mod tests {
             ("asynchronous", "false"),
             ("keep_output", "true"),
             ("classes", "class2,class3"),
-            ("nodes", "server.rudder.local"),
+            ("nodes", "root"),
         ];
 
         client

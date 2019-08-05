@@ -143,6 +143,7 @@ impl OutputSelect for InventoryOutputSelect {
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct RemoteRun {
     pub command: PathBuf,
+    pub use_sudo: bool,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -221,6 +222,7 @@ mod tests {
             },
             remote_run: RemoteRun {
                 command: PathBuf::from("tests/fake_agent.sh"),
+                use_sudo: false,
             },
         };
         assert_eq!(config.unwrap(), reference);

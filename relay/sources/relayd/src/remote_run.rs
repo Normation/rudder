@@ -124,13 +124,17 @@ pub enum RemoteRunTarget {
 
 impl RemoteRunTarget {
     pub fn get_connected_nodes(&self, job_config: Arc<JobConfig>) -> Vec<String> {
-        match &self {
+        match self {
             RemoteRunTarget::All => job_config
                 .nodes
                 .read()
                 .expect("Cannot read nodes list")
                 .get_neighbors_from_target(RemoteRunTarget::All),
-            RemoteRunTarget::Nodes(nodeslist) => nodeslist.clone(),
+            RemoteRunTarget::Nodes(nodeslist) => job_config
+                .nodes
+                .read()
+                .expect("Cannot read nodes list")
+                .get_neighbors_from_target(RemoteRunTarget::Nodes(nodeslist.clone())),
         }
     }
 }
@@ -238,9 +242,16 @@ impl RunParameters {
         job_config: Arc<JobConfig>,
         nodeslist: Vec<String>,
     ) -> impl Stream<Item = hyper::Chunk, Error = Error> + Send + 'static {
-        let (program, args) = self.command(false, job_config);
+        let (program, args) = self.command(false, job_config.clone());
 
-        let mut cmd = Command::new(&program);
+        let mut cmd = if job_config.cfg.remote_run.use_sudo {
+            let mut tmp = Command::new("sudo");
+            tmp.arg(&program);
+            tmp
+        } else {
+            Command::new(&program)
+        };
+
         cmd.args(&args);
         cmd.arg("-H".to_string());
         cmd.arg(&nodeslist[0]);
@@ -260,20 +271,35 @@ impl RunParameters {
         job_config: Arc<JobConfig>,
         nodeslist: Vec<String>,
     ) -> impl Stream<Item = hyper::Chunk, Error = Error> + Send + 'static {
-        let (program, args) = self.command(false, job_config);
+        let (program, args) = self.command(false, job_config.clone());
 
         for node in nodeslist {
-            let mut cmd = Command::new(&program);
-            cmd.args(&args);
-            cmd.arg("-H".to_string());
-            cmd.arg(node);
-            cmd.stdout(Stdio::piped());
-            let child = cmd.spawn_async().expect("failed to spawn command");
-            let child_future = child
-                .map(|_status| info!(""))
-                .map_err(|e| panic!("error while running child: {}", e));
+            if job_config.cfg.remote_run.use_sudo {
+                let mut cmd = Command::new("sudo");
+                cmd.arg(&program);
+                cmd.args(&args);
+                cmd.arg("-H".to_string());
+                cmd.arg(node);
+                cmd.stdout(Stdio::piped());
+                let child = cmd.spawn_async().expect("failed to spawn command");
+                let child_future = child
+                    .map(|_status| info!("conditions OK"))
+                    .map_err(|e| panic!("error while running child: {}", e));
 
-            tokio::spawn(child_future);
+                tokio::spawn(child_future);
+            } else {
+                let mut cmd = Command::new(&program);
+                cmd.args(&args);
+                cmd.arg("-H".to_string());
+                cmd.arg(node);
+                cmd.stdout(Stdio::piped());
+                let child = cmd.spawn_async().expect("failed to spawn command");
+                let child_future = child
+                    .map(|_status| info!("conditions OK"))
+                    .map_err(|e| panic!("error while running child: {}", e));
+
+                tokio::spawn(child_future);
+            }
         }
         futures::stream::empty()
     }
@@ -285,7 +311,7 @@ mod tests {
 
     #[test]
     fn it_handles_command_injection() {
-        assert!(Condition::from_str("cl&$$y").is_err());
+        assert!(Condition::from_str("cl$$y").is_err());
         assert!(Condition::from_str("cl~#~").is_err());
     }
 
