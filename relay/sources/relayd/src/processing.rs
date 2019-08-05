@@ -78,12 +78,27 @@ pub fn serve_reports(job_config: &Arc<JobConfig>, stats: &mpsc::Sender<Event>) {
     );
 }
 
+static REPORT_EXTENSIONS: &[&str] = &["gz", "log"];
+
 fn treat_reports(
     job_config: Arc<JobConfig>,
     rx: mpsc::Receiver<ReceivedFile>,
     stats: mpsc::Sender<Event>,
 ) -> impl Future<Item = (), Error = ()> {
     rx.for_each(move |file| {
+        // allows skipping temporary .dav files
+        if !file
+            .extension()
+            .map(|f| REPORT_EXTENSIONS.contains(&f.to_string_lossy().as_ref()))
+            .unwrap_or(false)
+        {
+            debug!(
+                "skipping {:#?} as it does not have a known report extension",
+                file
+            );
+            return Ok(());
+        }
+
         let queue_id = format!(
             "{:X}",
             Md5::digest(
