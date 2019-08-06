@@ -87,9 +87,6 @@ CREATE INDEX ruleId_idx                   ON RudderSysEvents (ruleId);
 CREATE INDEX endRun_control_idx ON RudderSysEvents (id) WHERE eventType = 'control' and component = 'end';
 CREATE INDEX changes_executionTimeStamp_idx ON RudderSysEvents (executionTimeStamp) WHERE eventType = 'result_repaired';
 
-ALTER TABLE ruddersysevents set (autovacuum_vacuum_scale_factor = 0.005);
-
-
 /*
  * The table used to store archived agent execution reports.
  */
