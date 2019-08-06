@@ -319,6 +319,9 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
     )
     , SystemVariableSpec(
                           "SERVER_VERSION" , "Version of rudder server webapp, as displayed in the UI (not the package version)"
+    )
+    , SystemVariableSpec(
+                   "RUDDER_INVENTORY_VARS" , "Rudder inventory variables"
                                            , multivalued = false
     )
   )

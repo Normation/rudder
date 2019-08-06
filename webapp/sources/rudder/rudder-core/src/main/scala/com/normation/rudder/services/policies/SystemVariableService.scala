@@ -542,6 +542,29 @@ class SystemVariableServiceImpl(
         getProp("REPORTING_PROTOCOL", () => getReportProtocolDefault().map(_.value))
     }
 
+    import  net.liftweb.json.{prettyRender,JObject,JString,JField}
+    // Utilitaty method to convert NodeInfo to JSON
+    def nodeInfoToJson(nodeInfo: NodeInfo) : List[JField] = {
+      JField("hostname", JString(nodeInfo.hostname)) ::
+      JField("policyServerId", JString(nodeInfo.policyServerId.value)) ::
+      JField("localAdministratorAccountName", JString(nodeInfo.localAdministratorAccountName)) ::
+      JField("archDescription", JString(nodeInfo.archDescription.getOrElse(""))) ::
+      JField("ram", JString(nodeInfo.ram.map(_.size).getOrElse(0L).toString)) ::
+      JField("timezone", JString(nodeInfo.timezone.map(_.name).getOrElse(""))) ::
+      JField("os", JObject(
+                     JField("name", JString(nodeInfo.osDetails.os.name)) ::
+                     JField("fullName", JString(nodeInfo.osDetails.fullName)) ::
+                     JField("version", JString(nodeInfo.osDetails.version.value)) ::
+                     JField("kernelVersion", JString(nodeInfo.osDetails.kernelVersion.value)) ::
+                     JField("servicePack", JString(nodeInfo.osDetails.servicePack.getOrElse(""))) ::
+                     Nil))  ::
+      JField("machine", JObject(
+                     JField("machineType", JString(nodeInfo.machine.map(_.machineType.toString).getOrElse(""))) ::
+                     JField("manufacturer", JString(nodeInfo.machine.flatMap(_.manufacturer.map(_.name)).getOrElse(""))) ::
+                     Nil))  :: Nil
+    }
+    val varRudderInventoryVariables = systemVariableSpecService.get("RUDDER_INVENTORY_VARS").toVariable(Seq(prettyRender(JObject(nodeInfoToJson(nodeInfo)))))
+
     val baseVariables = {
       Seq(
           varNodeRole
@@ -551,6 +574,7 @@ class SystemVariableServiceImpl(
         , varNodeGroups
         , varNodeGroupsClasses
         , varNodeReportingProtocol
+        , varRudderInventoryVariables
       ) map (x => (x.spec.name, x))
     }
 
