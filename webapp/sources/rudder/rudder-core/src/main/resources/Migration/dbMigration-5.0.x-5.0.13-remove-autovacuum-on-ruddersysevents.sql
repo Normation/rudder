@@ -35,24 +35,8 @@
 *************************************************************************************
 */
 
+ALTER TABLE ruddersysevents reset ( autovacuum_vacuum_scale_factor );
 
-ALTER TABLE archivedruddersysevents set (autovacuum_vacuum_scale_factor = 0.005);
-ALTER TABLE reportsexecution set (autovacuum_vacuum_scale_factor = 0.05);
-ALTER TABLE nodes_info set (autovacuum_vacuum_threshold = 0);
-
-ALTER TABLE nodeconfigurations set (autovacuum_vacuum_threshold = 0);
-ALTER TABLE archivednodeconfigurations set (autovacuum_vacuum_threshold = 0);
-ALTER TABLE nodecompliance set (autovacuum_vacuum_threshold = 0);
-ALTER TABLE nodecompliance set (autovacuum_vacuum_scale_factor = 0.1);
-ALTER TABLE archivednodecompliance set (autovacuum_vacuum_threshold = 0);
-ALTER TABLE archivednodecompliance set (autovacuum_vacuum_scale_factor = 0.1);
-ALTER TABLE nodecompliancelevels set (autovacuum_vacuum_scale_factor = 0.05);
-ALTER TABLE rudderproperties set (autovacuum_vacuum_threshold = 0);
-ALTER TABLE statusupdate set (autovacuum_vacuum_threshold = 0);
-ALTER TABLE groups set (autovacuum_vacuum_scale_factor = 0.05);
-ALTER TABLE directives set (autovacuum_vacuum_scale_factor = 0.05);
-ALTER TABLE rules set (autovacuum_vacuum_scale_factor = 0.05);
-ALTER TABLE nodes set (autovacuum_vacuum_scale_factor = 0.05);
 
 
 
