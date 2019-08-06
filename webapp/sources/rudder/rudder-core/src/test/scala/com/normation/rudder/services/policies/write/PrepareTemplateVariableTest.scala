@@ -97,30 +97,35 @@ raw"""
 }
 bundle agent run_directive1
 {
+  methods:
       "Global configuration for all nodes/20. Install jdk version 1.0" usebundle => disable_reporting;
       "Global configuration for all nodes/20. Install jdk version 1.0" usebundle => Install_jdk_rudder_reporting;
       "Global configuration for all nodes/20. Install jdk version 1.0" usebundle => clean_reporting_context;
 }
 bundle agent run_directive2
 {
+  methods:
       "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => disable_reporting;
       "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => check_zmd_settings;
       "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => clean_reporting_context;
 }
 bundle agent run_directive3
 {
+  methods:
       "Nodes only/Name resolution version "3.0" and counting" usebundle => disable_reporting;
       "Nodes only/Name resolution version "3.0" and counting" usebundle => check_dns_configuration;
       "Nodes only/Name resolution version "3.0" and counting" usebundle => clean_reporting_context;
 }
 bundle agent run_directive4
 {
+  methods:
       "Nodes only/Package \"management\" for Debian" usebundle => disable_reporting;
       "Nodes only/Package \"management\" for Debian" usebundle => check_apt_package_installation;
       "Nodes only/Package \"management\" for Debian" usebundle => clean_reporting_context;
 }
 bundle agent run_directive5
 {
+  methods:
       "Nodes only/Package \\"management\\" for Debian - again" usebundle => disable_reporting;
       "Nodes only/Package \\"management\\" for Debian - again" usebundle => check_apt_package_installation2;
       "Nodes only/Package \\"management\\" for Debian - again" usebundle => clean_reporting_context;""")
@@ -167,30 +172,35 @@ raw"""
 }
 bundle agent run_directive1
 {
+  methods:
       "Global configuration for all nodes/20. Install jdk version 1.0" usebundle => disable_reporting;
       "Global configuration for all nodes/20. Install jdk version 1.0" usebundle => Install_jdk_rudder_reporting;
       "Global configuration for all nodes/20. Install jdk version 1.0" usebundle => clean_reporting_context;
 }
 bundle agent run_directive2
 {
+  methods:
       "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => disable_reporting;
       "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => check_zmd_settings;
       "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => clean_reporting_context;
 }
 bundle agent run_directive3
 {
+  methods:
       "Nodes only/Name resolution version "3.0" and counting" usebundle => disable_reporting;
       "Nodes only/Name resolution version "3.0" and counting" usebundle => check_dns_configuration;
       "Nodes only/Name resolution version "3.0" and counting" usebundle => clean_reporting_context;
 }
 bundle agent run_directive4
 {
+  methods:
       "Nodes only/Package \"management\" for Debian" usebundle => disable_reporting;
       "Nodes only/Package \"management\" for Debian" usebundle => check_apt_package_installation;
       "Nodes only/Package \"management\" for Debian" usebundle => clean_reporting_context;
 }
 bundle agent run_directive5
 {
+  methods:
       "Nodes only/Package \\"management\\" for Debian - again" usebundle => disable_reporting;
       "Nodes only/Package \\"management\\" for Debian - again" usebundle => check_apt_package_installation2;
       "Nodes only/Package \\"management\\" for Debian - again" usebundle => clean_reporting_context;""")

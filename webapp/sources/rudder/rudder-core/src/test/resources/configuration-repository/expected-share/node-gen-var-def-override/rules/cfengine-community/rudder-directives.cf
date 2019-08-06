@@ -39,6 +39,7 @@ bundle agent rudder_directives {
 }
 bundle agent run_directive2
 {
+  methods:
       "10. Global configuration for all nodes/00. Generic Variable Def #2" usebundle => rudder_reporting_context("directive2","rule1","genericVariableDefinition");
       "10. Global configuration for all nodes/00. Generic Variable Def #2" usebundle => disable_reporting;
       "10. Global configuration for all nodes/00. Generic Variable Def #2" usebundle => generic_variable_def_report;

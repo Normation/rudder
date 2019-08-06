@@ -495,6 +495,7 @@ object CfengineBundleVariables {
             val subBundles = bundle.bundleSequence.map { b => s"""      "${bundle.promiser.value}" usebundle => ${b.callBundle(escape)};"""}
             s"""bundle agent ${bundle.runBundle.name.value}
                |{
+               |  methods:
                |${subBundles.mkString("\n")}""".stripMargin
         }.mkString("\n}\n", "\n}\n", "")
       } else ""

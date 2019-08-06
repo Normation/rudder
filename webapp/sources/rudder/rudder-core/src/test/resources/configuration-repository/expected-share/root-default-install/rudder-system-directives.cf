@@ -76,6 +76,7 @@ bundle agent rudder_system_directives {
 }
 bundle agent run_root_distributePolicy
 {
+  methods:
       "distributePolicy/Distribute Policy" usebundle => rudder_reporting_context("root-distributePolicy","root-DP","distributePolicy");
       "distributePolicy/Distribute Policy" usebundle => disable_reporting;
       "distributePolicy/Distribute Policy" usebundle => install_rsyslogd;
@@ -85,6 +86,7 @@ bundle agent run_root_distributePolicy
 }
 bundle agent run_inventory_all
 {
+  methods:
       "Rudder system policy: daily inventory/Inventory" usebundle => rudder_reporting_context("inventory-all","inventory-all","inventory");
       "Rudder system policy: daily inventory/Inventory" usebundle => disable_reporting;
       "Rudder system policy: daily inventory/Inventory" usebundle => fetchFusionTools;
@@ -94,6 +96,7 @@ bundle agent run_inventory_all
 }
 bundle agent run_server_roles_directive
 {
+  methods:
       "Rudder system policy: Server roles/Server Roles" usebundle => rudder_reporting_context("server-roles-directive","server-roles","server-roles");
       "Rudder system policy: Server roles/Server Roles" usebundle => disable_reporting;
       "Rudder system policy: Server roles/Server Roles" usebundle => root_component_check;

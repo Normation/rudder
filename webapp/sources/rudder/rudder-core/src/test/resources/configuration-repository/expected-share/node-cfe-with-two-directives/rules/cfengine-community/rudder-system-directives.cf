@@ -57,6 +57,7 @@ bundle agent rudder_system_directives {
 }
 bundle agent run_inventory_all
 {
+  methods:
       "Rudder system policy: daily inventory/Inventory" usebundle => rudder_reporting_context("inventory-all","inventory-all","inventory");
       "Rudder system policy: daily inventory/Inventory" usebundle => disable_reporting;
       "Rudder system policy: daily inventory/Inventory" usebundle => fetchFusionTools;

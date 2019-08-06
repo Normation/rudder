@@ -42,6 +42,7 @@ bundle agent rudder_directives {
 }
 bundle agent run_e9a1a909_2490_4fc9_95c3_9d0aa01717c9
 {
+  methods:
       "60-rule-technique-std-lib/10-File template 1" usebundle => rudder_reporting_context("e9a1a909-2490-4fc9-95c3-9d0aa01717c9","ff44fb97-b65e-43c4-b8c2-0df8d5e8549f","fileTemplate");
       "60-rule-technique-std-lib/10-File template 1" usebundle => disable_reporting;
       "60-rule-technique-std-lib/10-File template 1" usebundle => fileTemplate_1_0_e9a1a909_2490_4fc9_95c3_9d0aa01717c9;
@@ -49,6 +50,7 @@ bundle agent run_e9a1a909_2490_4fc9_95c3_9d0aa01717c9
 }
 bundle agent run_99f4ef91_537b_4e03_97bc_e65b447514cc
 {
+  methods:
       "60-rule-technique-std-lib/20-File template 2" usebundle => rudder_reporting_context("99f4ef91-537b-4e03-97bc-e65b447514cc","ff44fb97-b65e-43c4-b8c2-0df8d5e8549f","fileTemplate");
       "60-rule-technique-std-lib/20-File template 2" usebundle => disable_reporting;
       "60-rule-technique-std-lib/20-File template 2" usebundle => fileTemplate_1_0_99f4ef91_537b_4e03_97bc_e65b447514cc;
