@@ -264,7 +264,7 @@ fn output_report_database_inner(
     let parsed_runlog = RunLog::try_from((run_info.clone(), signed_runlog.as_ref()))?;
 
     let filtered_runlog = if job_config.cfg.processing.reporting.skip_logs {
-        parsed_runlog.whithout_logs()
+        parsed_runlog.without_logs()
     } else {
         parsed_runlog
     };
