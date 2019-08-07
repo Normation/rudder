@@ -75,7 +75,7 @@ impl RunLog {
         RunLog::try_from((info, read_to_string(path)?.as_ref()))
     }
 
-    pub fn whithout_logs(&self) -> Self {
+    pub fn without_logs(&self) -> Self {
         Self {
             info: self.info.clone(),
             reports: self
@@ -233,7 +233,7 @@ mod tests {
                     }
                 ]
             }
-            .whithout_logs(),
+            .without_logs(),
             RunLog {
                 info: RunInfo::from_str(
                     "2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log"

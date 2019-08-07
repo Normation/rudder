@@ -108,8 +108,16 @@ fn list_files(
 fn watch_stream<P: AsRef<Path>>(path: P) -> inotify::EventStream<Vec<u8>> {
     // https://github.com/linkerd/linkerd2-proxy/blob/c54377fe097208071a88d7b27501faa54ca212b0/lib/fs-watch/src/lib.rs#L189
     let mut inotify = Inotify::init().expect("Could not initialize inotify");
+    // Event sequence on RHEL7:
+    //
+    // incoming/ CREATE .davfs.tmp199da1
+    // incoming/ OPEN .davfs.tmp199da1
+    // incoming/ MODIFY .davfs.tmp199da1
+    // incoming/ CLOSE_WRITE,CLOSE .davfs.tmp199da1
+    // incoming/ MOVED_FROM .davfs.tmp199da1
+    // incoming/ MOVED_TO 2019-08-07T13:05:46+00:00@root.log.gz
     inotify
-        .add_watch(path.as_ref(), WatchMask::CLOSE_WRITE)
+        .add_watch(path.as_ref(), WatchMask::CLOSE_WRITE | WatchMask::MOVED_TO)
         .expect("Could not watch with inotify");
     inotify.event_stream(Vec::from(&[0; 2048][..]))
 }

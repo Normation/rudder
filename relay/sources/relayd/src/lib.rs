@@ -74,14 +74,17 @@ use structopt::clap::crate_version;
 use tokio_signal::unix::{Signal, SIGHUP, SIGINT, SIGTERM};
 use tracing::{debug, error, info};
 use tracing_fmt::{
-    default::NewRecorder,
     filter::{env::EnvFilter, reload::Handle},
+    format::NewRecorder,
     FmtSubscriber,
 };
 use tracing_log::LogTracer;
 
 pub fn init_logger() -> Result<Handle<EnvFilter, NewRecorder>, Error> {
-    let subscriber = FmtSubscriber::builder().with_filter_reloading().finish();
+    let subscriber = FmtSubscriber::builder()
+        .with_filter_reloading()
+        .without_time()
+        .finish();
     let reload_handle = subscriber.reload_handle();
     // Set logger for global context
     tracing::subscriber::set_global_default(subscriber)?;
