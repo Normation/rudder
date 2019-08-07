@@ -123,6 +123,10 @@ impl TryFrom<(RunInfo, Vec<RawReport>)> for RunLog {
             .flat_map(RawReport::into_reports)
             .collect();
         let info = raw_reports.0;
+        let timestamp = reports
+            .first()
+            .ok_or(Error::InconsistentRunlog)?
+            .start_datetime;
 
         for report in &reports {
             if info.node_id != report.node_id {
@@ -132,12 +136,11 @@ impl TryFrom<(RunInfo, Vec<RawReport>)> for RunLog {
                 );
                 return Err(Error::InconsistentRunlog);
             }
-            if info.timestamp != report.start_datetime {
-                error!(
+            if timestamp != report.start_datetime {
+                warn!(
                     "Wrong execution timestamp in report {:#?}, got {} but should be {}",
-                    report, report.start_datetime, info.timestamp
+                    report, report.start_datetime, timestamp
                 );
-                return Err(Error::InconsistentRunlog);
             }
         }
         Ok(Self { info, reports })
