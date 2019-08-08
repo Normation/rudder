@@ -87,6 +87,10 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
 
   override def writeCertificates(file: File, allNodeInfos: Map[NodeId, NodeInfo]): IOResult[Unit] = {
     val allCertsNew = File(file.pathAsString + ".new")
+    import java.nio.file.Files
+    import java.nio.file.LinkOption
+    import java.nio.file.attribute.PosixFileAttributeView
+    import java.nio.file.FileSystems
 
     for {
       _      <- checkParentDirOK(file)
@@ -96,14 +100,18 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
                 })}
       writen <- writeCertificatesToNew(allCertsNew, certs)
       moved  <- IOResult.effect(allCertsNew.moveTo(file, overwrite = true))
+      //perm   <- IOResult.effect(file.setGroup("rudder")) -> fails with SystemError: An error occured; cause was: java.io.IOException: 'owner' parameter can't be a group
+      perm   <- IOResult.effect({
+          val group = FileSystems.getDefault.getUserPrincipalLookupService.lookupPrincipalByGroupName("rudder")
+          Files.getFileAttributeView(file.path, classOf[PosixFileAttributeView], LinkOption.NOFOLLOW_LINKS).setGroup(group)
+      })
       hook   <- execHook(reloadScriptPath)
     } yield ()
   }
 
   /*
    * write certificates in allCertsFile.new (if exists, delete)
-   * once written, move (overwrite allCertsFiles.new to
-   *
+   * once written
    */
   def writeCertificatesToNew(file: File, certs: Iterable[String]): IOResult[Unit] = {
     implicit val charset = StandardCharsets.UTF_8
