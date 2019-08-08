@@ -40,7 +40,7 @@ bundle agent init
     "packages_list" slist => {"zip", "dummy", "rudder_test_repo", "rudder-tests"};
   commands:
     "/usr/bin/createrepo ${repo_path}";
-    "/usr/bin/zypper ar ${repo_path} local";
+    "/usr/bin/zypper ar --no-gpgcheck ${repo_path} local";
     "/usr/bin/zypper ref local";
 
     "/usr/bin/zypper --non-interactive in -t pattern rudder_test_remove";
