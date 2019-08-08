@@ -33,12 +33,13 @@ use crate::{
     remote_run::{RemoteRun, RemoteRunTarget},
     shared_files::{
         file_writer, metadata_hash_checker, metadata_parser, metadata_writer,
-        parse_parameter_from_raw, parse_ttl,
+        parse_parameter_from_raw, parse_ttl, shared_folder_head,
     },
     {stats::Stats, status::Status, JobConfig},
 };
 
 use futures::Future;
+use hyper::StatusCode;
 use std::{
     collections::HashMap,
     net::SocketAddr,
@@ -123,8 +124,8 @@ pub fn api(
             move |ttl: String, peek: filters::path::Peek, mut buf: warp::body::FullBody| {
                 metadata_writer(
                     format!(
-                        "{}\nexpires={}",
-                        metadata_parser(buf.by_ref()).join("\n"),
+                        "{}expires={}\n",
+                        metadata_parser(buf.by_ref()).unwrap(),
                         parse_ttl(parse_parameter_from_raw(ttl)).unwrap()
                     ),
                     peek.as_str(),
@@ -141,12 +142,19 @@ pub fn api(
         .map(|peek: filters::path::Peek, raw: String| {
             reply::with_status(
                 "".to_string(),
-                metadata_hash_checker(
-                    format!("./{}", peek.as_str()),
-                    parse_parameter_from_raw(raw),
-                ),
+                metadata_hash_checker(peek.as_str().to_string(), parse_parameter_from_raw(raw)),
             )
         });
+
+    let shared_folder_head = head().and(path::peek()).and(filters::query::raw()).map(
+        |peek: filters::path::Peek, raw: String| match shared_folder_head(
+            peek.as_str().to_string(),
+            raw,
+        ) {
+            Ok(status) => reply::with_status("".to_string(), status),
+            Err(_e) => reply::with_status("".to_string(), StatusCode::from_u16(500).unwrap()),
+        },
+    );
 
     // Routing
 
@@ -156,7 +164,8 @@ pub fn api(
     // /rudder/relay-api/
     let remote_run = path("remote-run").and(nodes.or(all).or(node_id));
     let shared_files = path("shared-files").and((shared_files_put).or(shared_files_head));
-    let relay_api = path("relay-api").and(remote_run.or(shared_files));
+    let shared_folder = path("shared-folder").and(shared_folder_head);
+    let relay_api = path("relay-api").and(remote_run.or(shared_files).or(shared_folder));
 
     // global route
     let routes = path("rudder")
