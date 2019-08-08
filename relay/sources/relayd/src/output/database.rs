@@ -37,7 +37,7 @@ use diesel::{
     prelude::*,
     r2d2::{ConnectionManager, Pool},
 };
-use tracing::{debug, error, trace};
+use tracing::{debug, error, span, trace, Level};
 
 pub mod schema {
     table! {
@@ -98,6 +98,9 @@ pub fn insert_runlog(
     behavior: InsertionBehavior,
 ) -> Result<RunlogInsertion, Error> {
     use self::schema::ruddersysevents::dsl::*;
+    let report_span = span!(Level::TRACE, "database");
+    let _report_enter = report_span.enter();
+
     let connection = &*pool.get()?;
 
     let first_report = runlog

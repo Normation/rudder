@@ -45,7 +45,7 @@ use std::{
     time::{Duration, Instant, SystemTime},
 };
 use tokio::{fs::read_dir, prelude::*, timer::Interval};
-use tracing::{debug, info, warn};
+use tracing::{debug, info, span, warn, Level};
 
 pub fn watch(
     path: &WatchedDirectory,
@@ -53,6 +53,8 @@ pub fn watch(
     tx: &mpsc::Sender<ReceivedFile>,
 ) {
     info!("Starting file watcher on {:#?}", &path);
+    let report_span = span!(Level::TRACE, "watcher");
+    let _report_enter = report_span.enter();
     tokio::spawn(list_files(
         path.clone(),
         job_config.cfg.processing.reporting.catchup,

@@ -28,14 +28,45 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::configuration::UpstreamConfig;
-use reqwest::Client;
+use crate::Error;
+use crate::JobConfig;
+use futures::Future;
+use std::path::PathBuf;
+use std::sync::Arc;
+use tracing::{debug, span, Level};
 
-pub fn forward_file(cfg: UpstreamConfig) {
-    let client = Client::new();
-    let resp = client
-        .put("http://httpbin.org/")
-        .basic_auth("rudder", Some("rudder"))
-        .send()
-        .unwrap();
+pub fn send_report(
+    job_config: Arc<JobConfig>,
+    path: PathBuf,
+) -> Box<dyn Future<Item = (), Error = Error> + Send> {
+    let report_span = span!(Level::TRACE, "upstream");
+    let _report_enter = report_span.enter();
+    Box::new(forward_file(job_config, "report", path))
+}
+
+fn forward_file(
+    job_config: Arc<JobConfig>,
+    endpoint: &str,
+    path: PathBuf,
+) -> impl Future<Item = (), Error = Error> + '_ {
+    tokio::fs::read(path)
+        .map_err(|e| e.into())
+        .and_then(move |d| {
+            job_config
+                .client
+                .clone()
+                .expect("HTTP client should be initialized")
+                .put(&format!(
+                    "{}/{}/",
+                    job_config.cfg.output.upstream.url, endpoint
+                ))
+                .basic_auth(
+                    &job_config.cfg.output.upstream.user,
+                    Some(&job_config.cfg.output.upstream.password),
+                )
+                .body(d)
+                .send()
+                .map(|r| debug!("Server response: {:#?}", r))
+                .map_err(|e| e.into())
+        })
 }

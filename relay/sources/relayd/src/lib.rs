@@ -55,7 +55,7 @@ use crate::{
     data::node::NodesList,
     error::Error,
     output::database::{pg_pool, PgPool},
-    processing::serve_reports,
+    processing::reporting,
     stats::Stats,
 };
 use futures::{
@@ -63,6 +63,7 @@ use futures::{
     stream::Stream,
     sync::mpsc,
 };
+use reqwest::r#async::Client;
 use std::{
     fs::create_dir_all,
     path::Path,
@@ -174,7 +175,7 @@ pub fn start(
         tokio::spawn(reload);
 
         if job_config.cfg.processing.reporting.output.is_enabled() {
-            serve_reports(&job_config, &tx_stats);
+            reporting::start(&job_config, &tx_stats);
         } else {
             info!("Skipping reporting as it is disabled");
         }
@@ -194,6 +195,7 @@ pub struct JobConfig {
     pub cfg: Configuration,
     pub nodes: RwLock<NodesList>,
     pub pool: Option<PgPool>,
+    pub client: Option<Client>,
     handle: Handle<EnvFilter, NewRecorder>,
 }
 
@@ -225,6 +227,18 @@ impl JobConfig {
             None
         };
 
+        let client = if cfg.processing.reporting.output == ReportingOutputSelect::Upstream
+            || cfg.processing.inventory.output == InventoryOutputSelect::Upstream
+        {
+            Some(
+                Client::builder()
+                    .danger_accept_invalid_certs(!cfg.output.upstream.verify_certificates)
+                    .build()?,
+            )
+        } else {
+            None
+        };
+
         let nodes = RwLock::new(NodesList::new(
             cfg.general.node_id.to_string(),
             &cfg.general.nodes_list_file,
@@ -237,6 +251,7 @@ impl JobConfig {
             nodes,
             pool,
             handle,
+            client,
         }))
     }
 

@@ -76,6 +76,7 @@ pub enum Error {
     InvalidHashType,
     InvalidLogFilter(tracing_fmt::filter::env::ParseError),
     InvalidHeader,
+    HttpClient(reqwest::Error),
 }
 
 impl Display for Error {
@@ -118,6 +119,7 @@ impl Display for Error {
             ),
             InvalidLogFilter(ref err) => write!(f, "Log filter is invalid: {}", err),
             InvalidHeader => write!(f, "Invalid header"),
+            HttpClient(ref err) => write!(f, "HTTP error: {}", err),
         }
     }
 }
@@ -137,6 +139,7 @@ impl StdError for Error {
             Ssl(ref err) => Some(err),
             ParseBoolean(ref err) => Some(err),
             LogFormat(ref err) => Some(err),
+            HttpClient(ref err) => Some(err),
             _ => None,
         }
     }
@@ -234,5 +237,11 @@ impl From<log::SetLoggerError> for Error {
 impl From<tracing_fmt::filter::env::ParseError> for Error {
     fn from(err: tracing_fmt::filter::env::ParseError) -> Self {
         Error::InvalidLogFilter(err)
+    }
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(err: reqwest::Error) -> Self {
+        Error::HttpClient(err)
     }
 }

@@ -66,6 +66,7 @@ impl fmt::Display for LogConfig {
 #[derive(Copy, Debug, Eq, PartialEq, Deserialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum LogLevel {
+    Off,
     Error,
     Warn,
     Info,
@@ -79,6 +80,7 @@ impl fmt::Display for LogLevel {
             f,
             "{}",
             match self {
+                LogLevel::Off => "off",
                 LogLevel::Error => "error",
                 LogLevel::Warn => "warn",
                 LogLevel::Info => "info",
@@ -137,7 +139,7 @@ mod tests {
         let log_config = LogConfig::new("tests/files/config/");
         let log_reference = LogConfig {
             general: LoggerConfig {
-                level: LogLevel::Info,
+                level: LogLevel::Off,
                 filter: "".to_string(),
             },
         };

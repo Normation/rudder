@@ -164,6 +164,8 @@ pub struct UpstreamConfig {
     pub url: String,
     pub user: String,
     pub password: String,
+    pub verify_certificates: bool,
+    // TODO timeout?
 }
 
 #[cfg(test)]
@@ -214,6 +216,7 @@ mod tests {
                     url: "https://127.0.0.1:8080".to_string(),
                     user: "rudder".to_string(),
                     password: "password".to_string(),
+                    verify_certificates: false,
                 },
                 database: DatabaseConfig {
                     url: "postgres://rudderreports:PASSWORD@127.0.0.1/rudder".to_string(),

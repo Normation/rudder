@@ -232,7 +232,7 @@ impl RawReport {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Queryable)]
 pub struct QueryableReport {
     pub id: i64,
-    #[column_name = "executiondate"]
+    #[column_name = "executiontimestamp"]
     pub start_datetime: DateTime<Utc>,
     #[column_name = "ruleid"]
     pub rule_id: String,
@@ -249,7 +249,7 @@ pub struct QueryableReport {
     pub policy: Option<String>,
     #[column_name = "nodeid"]
     pub node_id: NodeId,
-    #[column_name = "executiontimestamp"]
+    #[column_name = "executiondate"]
     pub execution_datetime: Option<DateTime<Utc>>,
     pub serial: i32,
 }
