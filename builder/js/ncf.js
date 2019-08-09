@@ -11,27 +11,13 @@ function swapTwoArrayItems(array, index1, index2) {
     return array;
 };
 
-function initScroll(){
-  var categories, categoriesPosition;
-  window.addEventListener('scroll', function() {
-    if(!categories){
-      categories = $('#categories-list').get(0);
-      categoriesPosition = categories.getBoundingClientRect().top;
-    }
-    if (window.pageYOffset >= categoriesPosition) {
-      $(categories).addClass('fixed');
-    } else {
-      $(categories).removeClass('fixed');
-    }
-  });
-}
 // Find index of an element in an array
 function findIndex(array, elem) {
     for (var index in array) {
-        var item = array[index];
-        if (angular.equals(item, elem)) {
-          return array.indexOf(item);
-        }
+      var item = array[index];
+      if (angular.equals(item, elem)) {
+        return array.indexOf(item);
+      }
     }
     return -1;
 };
@@ -182,14 +168,15 @@ app.directive('popover', function() {
 });
 
 // Declare controller ncf-builder
-app.controller('ncf-builder', function ($scope, $uibModal, $http, $q, $location, $anchorScroll, ngToast, $timeout, focus, fileManagerConfig, apiMiddleware, apiHandler, $window) {
-  initScroll();
+app.controller('ncf-builder', function ($scope, $uibModal, $http, $q, $location, $anchorScroll, ngToast, $timeout, focus, $sce, fileManagerConfig, apiMiddleware, apiHandler, $window) {
   // Variable we use in the whole application
   
   //UI state
   $scope.ui = {
-    showTechniques : true,
-    activeTab : 'general'
+    showTechniques    : true,
+    activeTab         : 'general',
+    showMethodsFilter : true,
+    methodTabs        : {}
   }
   // Give access to the "General information" form
   $scope.editForm;
@@ -339,7 +326,8 @@ function updateResources() {
   var resourceUrl = '/rudder/secure/api/techniques/' + $scope.selectedTechnique.bundle_name +"/" + $scope.selectedTechnique.version +"/resources"
   $http.get(resourceUrl).then(
     function(response) {
-      $scope.selectedTechnique.resources = response.data.data.resources
+      $scope.selectedTechnique.resources = response.data.data.resources;
+      $scope.originalTechnique.resources = $scope.originalTechnique.resources === undefined ? response.data.data.resources : $scope.originalTechnique.resources;
     }
   , function(response) {
       // manage error
@@ -528,7 +516,11 @@ $scope.getSessionStorage = function(){
             t2.method_calls[i].promiser = existingTechnique.method_calls[i].promiser;
           }
         }
-        if(!angular.equals(t2, existingTechnique)){
+        var checkTechnique1 = angular.copy(existingTechnique);
+        var checkTechnique2 = angular.copy(t2);
+        if(checkTechnique1 && checkTechnique1.resources !== undefined) delete checkTechnique1.resources;
+        if(checkTechnique2 && checkTechnique2.resources !== undefined) delete checkTechnique2.resources;
+        if(!angular.equals(checkTechnique1, checkTechnique2)){
           $scope.conflictFlag = true;
           var modalInstance = $uibModal.open({
             templateUrl: 'RestoreWarningModal.html',
@@ -566,6 +558,9 @@ $scope.getSessionStorage = function(){
       }
     }
   }// else : Empty session storage
+  (function() {
+    new ClipboardJS('.clipboard');
+  })();
 }
 
 $scope.$watch('selectedTechnique', function(newValue, oldValue) {
@@ -748,9 +743,13 @@ $scope.onImportFileChange = function (fileEl) {
     $scope.suppressFlag = false;
     $scope.conflictFlag = false;
     // Always clean Selected methods and display methods list
-     $scope.selectedMethod = undefined;
+    $scope.selectedMethod = undefined;
     // Check if that technique is the same as the original selected one
-    if(angular.equals($scope.originalTechnique,technique) ) {
+    var test1 = angular.copy($scope.originalTechnique)
+    var test2 = angular.copy(technique)
+    if(test1 && test1.resources !== undefined) delete test1.resources;
+    if(test2 && test2.resources !== undefined) delete test2.resources;
+    if(angular.equals(test1,test2) ) {
       // It's the same, unselect the technique
       $scope.selectedTechnique = undefined;
       $scope.originalTechnique = undefined;
@@ -1001,7 +1000,7 @@ $scope.onImportFileChange = function (fileEl) {
   };
 
   $scope.newTechnique = function() {
-    $scope.editForm.$setPristine();
+    //$scope.editForm.$setPristine();
     $scope.checkSelect(newTech, $scope.selectTechnique);
   };
 
@@ -1294,7 +1293,7 @@ $scope.onImportFileChange = function (fileEl) {
 
       // Technique may have been modified by ncf API
       // Not good anymore, but maybe
-      ncfTechnique = data.data.technique;
+      ncfTechnique = data.data.techniques.technique;
 
       // Transform back ncfTechnique to UITechnique, that will make it ok
       //
@@ -1320,10 +1319,12 @@ $scope.onImportFileChange = function (fileEl) {
       }
       ngToast.create({ content: "<b>Success! </b> Technique '" + technique.name + "' saved!"});
 
-
-
       // Find index of the technique in the actual tree of technique (look for original technique)
-      var index = findIndex($scope.techniques,origin_technique);
+
+      var checkTechnique = angular.copy(origin_technique)
+      if(checkTechnique && checkTechnique.resources !== undefined) delete checkTechnique.resources;
+
+      var index = findIndex($scope.techniques,checkTechnique);
       if ( index === -1) {
        // Add a new techniuqe
        $scope.techniques.push(savedTechnique);
@@ -1358,7 +1359,6 @@ $scope.onImportFileChange = function (fileEl) {
     }
   };
   // Popup definitions
-
   // Popup to know if there is some changes to save before switching of selected technique
   // paramters:
   // - Next technique you want to switch too
@@ -1374,7 +1374,6 @@ $scope.onImportFileChange = function (fileEl) {
         , editForm  : function() { return  $scope.editForm }
       }
     });
-
     modalInstance.result.then(function (doSave) {
       if (doSave) {
         $scope.saveTechnique();
@@ -1385,7 +1384,6 @@ $scope.onImportFileChange = function (fileEl) {
   };
 
   $scope.clonePopup = function() {
-
     var modalInstance = $uibModal.open({
       templateUrl: 'template/cloneModal.html',
       controller: cloneModalCtrl,
@@ -1396,7 +1394,6 @@ $scope.onImportFileChange = function (fileEl) {
         , techniques : function() { return $scope.techniques}
       }
     });
-
     modalInstance.result.then(function (technique) {
       technique.isClone = true
       $scope.selectTechnique(technique);
@@ -1413,7 +1410,6 @@ $scope.onImportFileChange = function (fileEl) {
       , name : function() { return name; }
       }
     });
-
     modalInstance.result.then(function () {
         action(elem)
     });
@@ -1520,7 +1516,6 @@ var confirmModalCtrl = function ($scope, $uibModalInstance, actionName, kind, na
 var cloneModalCtrl = function ($scope, $uibModalInstance, technique, techniques) {
 
   technique.bundle_name = undefined;
-
   $scope.techniques = techniques;
   $scope.technique = technique;
   $scope.oldTechniqueName = technique.name;
