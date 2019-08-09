@@ -34,7 +34,7 @@ if [ "${FIRST_INSTALL}" -eq 1 ]; then
   systemctl enable rudder-relayd >> ${LOG_FILE}
 fi
 
-systemctl stop "${APACHE}" >> ${LOG_FILE}
+systemctl stop "${APACHE}" >> ${LOG_FILE} || true
 
 systemctl stop rudder-relayd >> ${LOG_FILE} || true
 echo " Done"
