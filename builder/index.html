@@ -11,7 +11,7 @@
         <link href="css/custom.css?version=dev" rel="stylesheet">
         <!-- Needed polyfill for ie11, works in all other browsers -->
         <script src="js/polyfill.js?version=dev"></script>
-        
+        <script src="js/clipboard.min.js?version=dev"></script>
         <script src="js/angular-1.3.20.min.js?version=dev"></script>
         <script src="js/angular-messages-1.3.20.min.js?version=dev"></script>
         <script src="js/angular-animate-1.3.20.min.js?version=dev"></script>
@@ -151,8 +151,8 @@
           <div>Please try again by clicking <a href="" ng-click="reloadPage()">here</a></div>
         </div>
       </div>
-      <div  class="container-fluid" ng-show="authenticated">
-        <div class="row no-gutters" ng-class="{'show-techniques':ui.showTechniques, 'show-methods':!ui.showTechniques}">
+      <div class="container-fluid" ng-show="authenticated">
+        <div class="row no-gutters" ng-class="{'show-techniques':ui.showTechniques, 'show-methods':!ui.showTechniques, 'selected-technique' : selectedTechnique, 'no-technique' : !selectedTechnique}">
           <div class="col-xl-4 col-5 col-techniques" ng-click="toggleDisplay(true)">
             <div class="row flex-column">
               <div class="col-auto">
@@ -210,14 +210,14 @@
               </div>
             </div>
           </div>
-          <div class="col no-technique" ng-if="!selectedTechnique" >
+          <div class="col no-technique">
             <h1>Technique editor</h1>
             <p>Create a new technique or edit one  from the list on the left.</p>
             <p>Define target configuration using the generic methods from the list on the right as building blocks.</p>
             <button class="btn btn-success btn-lg" ng-click="newTechnique()" role="button">Create Technique  <i class="fas fa-plus-circle"></i></button>
           </div>
 
-          <div class="col col-technique" ng-if="selectedTechnique">
+          <div class="col col-technique">
             <div class="row flex-column no-gutters">
               <div class="col-auto main-header">
                 <div class="row no-margin">
@@ -318,21 +318,7 @@
                           </div>
                     </div>
                     <div class="tab tab-parameters" ng-if="ui.activeTab == 'parameters'">
-                      <!--
-                        <div class="form-group" ng-repeat="param in selectedTechnique.parameter track by $index">
-                          <div class="input-group">
-                            <input  type="text" class="form-control" ng-model="param.name" placeholder="Parameter name" required>
-                            <span class="input-group-addon">Use with:</span>
-                            <input readonly class="form-control" ng-value="'${'+getBundleName(param.name)+'}'" placeHolder="Value in methods">
-                            <span class="input-group-btn">
-                              <button ng-click="selectedTechnique.parameter.splice($index,1)" class="btn btn-danger" >
-                                <i class="fas fa-times-circle"></i>
-                              </button>
-                            </span>
-                          </div>
-                        </div>
-<-->
-                      <ul class="files-list">
+                      <ul class="files-list parameters">
                         <li class="empty" ng-show="selectedTechnique.parameter.length === 0">
                           <span>There is no parameter defined.</span>
                           <span class="warning-sign">
@@ -340,12 +326,18 @@
                           </span>
                         </li>
                         <li ng-repeat="param in selectedTechnique.parameter track by $index">
-                          <input  type="text" class="form-control" ng-model="param.name" placeholder="Parameter name" required>
+                          <div class="input-group mb-1">
+                            <input  type="text" class="form-control" ng-model="param.name" placeholder="Parameter name" required/>
+                            <div class="input-group-append">
+                              <button class="btn btn-outline-secondary clipboard" type="button" data-clipboard-text="{{'${'+getBundleName(param.name)+'}'}}" title="Copy to clipboard">
+                                <i class="ion ion-clipboard"></i>
+                              </button>
+                            </div>
+                          </div>
                           <span class="border"></span>
                           <div class="use-with"><span>{{'${'+getBundleName(param.name)+'}'}}</span></div>
                         </li>
                       </ul>
-
                       <div class="text-center">
                         <div ng-click="addParameter()" class="btn btn-success btn-outline" >
                           Add parameter <i class="fas fa-plus-circle"></i>
@@ -354,32 +346,31 @@
                     </div>
                     <div class="tab tab-resources" ng-if="ui.activeTab == 'resources'">
                       <div class="col-xs-12">
-
-                          <ul class="files-list">
-                            <li class="empty" ng-show="selectedTechnique.resources.length === 0">
-                              <span>There is no resource files.</span>
-                              <span class="warning-sign">
-                                <i class="fa fa-info-circle"></i>
-                              </span>
-                            </li>
-                            <li ng-repeat="resource in selectedTechnique.resources track by $index" class="{{'state-'+resource.state}}">
-                              <span class="fa fa-file"></span>
-                              <span class="target-name">
-                                {{resource.name}}
-                              </span>
-                              <span class="border"></span>
-                              <div class="use-with"><span>{{"${resources_dir}/"+ resource.name}}</span></div>
-                            </li>
-                          </ul>
-                          <div class="text-center">
-                            <div ng-click="fileManagerState.open = true" class="btn btn-success btn-outline" >
-                              Open file editor <i class="fas fa-folder"></i>
-                            </div>
+                        <ul class="files-list">
+                          <li class="empty" ng-show="selectedTechnique.resources.length === 0">
+                            <span>There is no resource files.</span>
+                            <span class="warning-sign">
+                              <i class="fa fa-info-circle"></i>
+                            </span>
+                          </li>
+                          <li ng-repeat="resource in selectedTechnique.resources track by $index" class="{{'state-'+resource.state}}">
+                            <span class="fa fa-file"></span>
+                            <span class="target-name">
+                              {{resource.name}}
+                            </span>
+                            <span class="border"></span>
+                            <div class="use-with"><span>{{"${resources_dir}/"+ resource.name}}</span></div>
+                          </li>
+                        </ul>
+                        <div class="text-center">
+                          <div ng-click="fileManagerState.open = true" class="btn btn-success btn-outline" >
+                            Open file editor <i class="fas fa-folder"></i>
                           </div>
                         </div>
-                        <div ng-if="fileManagerState.open" class="filemanager-container">
-                          <angular-filemanager></angular-filemanager>
-                        </div>
+                      </div>
+                      <div ng-if="fileManagerState.open" class="filemanager-container">
+                        <angular-filemanager></angular-filemanager>
+                      </div>
                     </div>
                     <h5>
                       Generic Methods
@@ -387,6 +378,7 @@
                       <button class="btn-sm btn btn-success" ng-click="toggleDisplay(false)">Add  <i class="fas fa-plus-circle"></i></button>
                     </h5>
                   </div>
+
                   <div class="col">
                     <div ng-if="selectedTechnique.method_calls.length === 0" class="btn btn-block btn-default text-center" id="no-methods" >
                         Drag and drop generic methods here from the list on the right to build target configuration for this technique.
@@ -555,7 +547,9 @@
                                   </div>
                                   <input ng-readonly="true" type="text" id="techniqueName" class="form-control" value="{{getClassKind(selectedMethod,'kept')}}">
                                   <div class="input-group-append">
-                                    <span class="input-group-text clipboard" title="Copy to clipboard" data-clipboard-text="Just because you can doesn't mean you should — clipboard.js"><i class="ion ion-clipboard"></i></span>
+                                    <button class="btn btn-outline-secondary clipboard" type="button" data-clipboard-text="{{getClassKind(selectedMethod,'kept')}}" title="Copy to clipboard">
+                                      <i class="ion ion-clipboard"></i>
+                                    </button>
                                   </div>
                                 </div>
                                 <div class="input-group input-group-sm mb-2">
@@ -564,7 +558,9 @@
                                   </div>
                                   <input ng-readonly="true" type="text" id="techniqueName" class="form-control" value="{{getClassKind(selectedMethod,'repaired')}}">
                                   <div class="input-group-append">
-                                    <span class="input-group-text"><i class="ion ion-clipboard"></i></span>
+                                    <button class="btn btn-outline-secondary clipboard" type="button" data-clipboard-text="{{getClassKind(selectedMethod,'repaired')}}" title="Copy to clipboard">
+                                      <i class="ion ion-clipboard"></i>
+                                    </button>
                                   </div>
                                 </div>
                                 <div class="input-group input-group-sm mb-2">
@@ -573,7 +569,9 @@
                                   </div>
                                   <input ng-readonly="true" type="text" id="techniqueName" class="form-control" value="{{getClassKind(selectedMethod,'error')}}">
                                   <div class="input-group-append">
-                                    <span class="input-group-text"><i class="ion ion-clipboard"></i></span>
+                                    <button class="btn btn-outline-secondary clipboard" type="button" data-clipboard-text="{{getClassKind(selectedMethod,'error')}}" title="Copy to clipboard">
+                                      <i class="ion ion-clipboard"></i>
+                                    </button>
                                   </div>
                                 </div>
                               </form>
@@ -597,6 +595,7 @@
                       </li>
                     </ul>
                   </div>
+
                 </div>
               </form>
               </div>
@@ -606,10 +605,10 @@
                   Save <i class="fas fa-download"></i>
                 </button>
                 <button ng-disabled="isUnchanged(selectedTechnique)" class="btn btn-outline-primary" ng-click="resetTechnique()">Reset <i class="fas fa-undo-alt"></i></button>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="col-xl-4 col-5 col-methods" ng-click="toggleDisplay(false)" ng-if="selectedTechnique">
+        <div class="col-xl-4 col-5 col-methods" ng-click="toggleDisplay(false)">
           <div class="row flex-column">
             <div class="col-auto">
               <div class="row">
@@ -684,21 +683,21 @@
                 <div class="col-auto">
                   <ul id="categories-list">
                     <h4 id="categories">Categories</h4>
-                      <li ng-repeat="(kind,methods) in methodsByCategory" class="active" ng-if="checkFilterCategory(methods)" ng-class="{'deprecatedCategory':!checkDeprecatedFilter(methods)}">
-                        <a href="" ng-click="scroll(kind)">
-                          {{capitaliseFirstLetter(kind)}}
-                          <span
-                          class="cursor-help"
-                          ng-if="!checkDeprecatedFilter(methods)"
-                          popover-title="{{capitaliseFirstLetter(kind)}}"
-                          uib-popover-template="'deprecatedCategory.html'"
-                          popover-placement="bottom"
-                          popover-trigger="hover"
-                          popover-append-to-body="true"
-                          > <i class="glyphicon glyphicon-info-sign deprecated-icon"></i>
-                          </span>
-                        </a>
-                      </li>
+                    <li ng-repeat="(kind,methods) in methodsByCategory" class="active" ng-if="checkFilterCategory(methods)" ng-class="{'deprecatedCategory':!checkDeprecatedFilter(methods)}">
+                      <a href="" ng-click="scroll(kind)">
+                        {{capitaliseFirstLetter(kind)}}
+                        <span
+                        class="cursor-help"
+                        ng-if="!checkDeprecatedFilter(methods)"
+                        popover-title="{{capitaliseFirstLetter(kind)}}"
+                        uib-popover-template="'deprecatedCategory.html'"
+                        popover-placement="bottom"
+                        popover-trigger="hover"
+                        popover-append-to-body="true"
+                        > <i class="glyphicon glyphicon-info-sign deprecated-icon"></i>
+                        </span>
+                      </a>
+                    </li>
                   </ul>
                 </div>
               </div>

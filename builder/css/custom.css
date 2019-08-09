@@ -105,6 +105,13 @@ body > .container-fluid > .row > div {
   color: #222D42;
   cursor: pointer;
 }
+
+.no-technique .col-technique,
+.no-technique .col-methods,
+.selected-technique .no-technique{
+  display: none;
+}
+
 /* ===== TECHNIQUES & METHODS ===== */
 .col-techniques,
 .col-methods{
@@ -503,7 +510,9 @@ ul.files-list > li {
   border-left-width: 0px;
   box-shadow: 0px 5px 4px -3px rgba(0,0,0,.1);
 }
-
+ul.files-list.parameters > li{
+  padding-right: 10px;
+}
 ul.files-list > li > .border{
   background-color: #ccc;
   opacity: .6;
