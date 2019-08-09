@@ -4,7 +4,10 @@ $(document).ready(function(){
   const flags = { contextPath: contextPath};
   // --- NOTIFICATIONS ---
   appNode  = document.querySelector("rudder-notifications");
-  appNotif = Elm.RudderNotifications.embed(appNode, flags);
+  appNotif = Elm.RudderNotifications.init({
+      node  : appNode,
+      flags : flags
+    });
   createSuccessNotification = function (msg){
     var message = msg ? msg : "Your changes have been saved";
     appNotif.ports.successNotification.send(message);
