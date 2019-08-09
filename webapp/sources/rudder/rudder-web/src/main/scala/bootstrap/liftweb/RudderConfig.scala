@@ -349,10 +349,10 @@ object RudderConfig extends Loggable {
 
   val RUDDER_RELAY_RELOAD = {
     try {
-      config.getString("rudder.relay.reload")
+      config.getString("rudder.relayd.reload")
     } catch {
       // by default, if property is missing
-      case ex:ConfigException => "/opt/rudder/bin/rudder relay reload"
+      case ex:ConfigException => "/opt/rudder/bin/rudder relay reload -p"
     }
   }
 

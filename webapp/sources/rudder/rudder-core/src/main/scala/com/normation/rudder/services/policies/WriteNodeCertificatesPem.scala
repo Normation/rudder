@@ -100,11 +100,6 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
                 })}
       writen <- writeCertificatesToNew(allCertsNew, certs)
       moved  <- IOResult.effect(allCertsNew.moveTo(file, overwrite = true))
-      //perm   <- IOResult.effect(file.setGroup("rudder")) -> fails with SystemError: An error occured; cause was: java.io.IOException: 'owner' parameter can't be a group
-      perm   <- IOResult.effect({
-          val group = FileSystems.getDefault.getUserPrincipalLookupService.lookupPrincipalByGroupName("rudder")
-          Files.getFileAttributeView(file.path, classOf[PosixFileAttributeView], LinkOption.NOFOLLOW_LINKS).setGroup(group)
-      })
       hook   <- execHook(reloadScriptPath)
     } yield ()
   }
