@@ -3,6 +3,12 @@ body, html{
 	background-color: #ecf1f5;
 	overflow: hidden;
 }
+.fade.modal-backdrop.in {
+  opacity: .3;
+}
+.modal.fade .modal-dialog{
+  transform: initial !important;
+}
 .btn.btn-success{
   background-color: #9bc832;
   border-color: #8fb92a;
@@ -37,7 +43,7 @@ body, html{
   background-color: #fff ;
   transition-property: background-color, color;
   transition-duration: .2s;
-}col
+}
 .btn.btn-outline-success:hover {
   color: #fff !important;
   transition-property: background-color, color;

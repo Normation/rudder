@@ -210,14 +210,14 @@
               </div>
             </div>
           </div>
-          <div class="col no-technique">
+          <div class="col no-technique" ng-if="!selectedTechnique">
             <h1>Technique editor</h1>
             <p>Create a new technique or edit one  from the list on the left.</p>
             <p>Define target configuration using the generic methods from the list on the right as building blocks.</p>
             <button class="btn btn-success btn-lg" ng-click="newTechnique()" role="button">Create Technique  <i class="fas fa-plus-circle"></i></button>
           </div>
 
-          <div class="col col-technique">
+          <div class="col col-technique" ng-if="selectedTechnique">
             <div class="row flex-column no-gutters">
               <div class="col-auto main-header">
                 <div class="row no-margin">
@@ -608,7 +608,7 @@
               </div>
             </div>
           </div>
-        <div class="col-xl-4 col-5 col-methods" ng-click="toggleDisplay(false)">
+        <div class="col-xl-4 col-5 col-methods" ng-click="toggleDisplay(false)" ng-if="selectedTechnique">
           <div class="row flex-column">
             <div class="col-auto">
               <div class="row">
