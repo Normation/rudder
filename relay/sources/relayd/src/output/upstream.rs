@@ -41,7 +41,7 @@ pub fn send_report(
 ) -> Box<dyn Future<Item = (), Error = Error> + Send> {
     let report_span = span!(Level::TRACE, "upstream");
     let _report_enter = report_span.enter();
-    Box::new(forward_file(job_config, "report", path))
+    Box::new(forward_file(job_config, "reports", path))
 }
 
 fn forward_file(
