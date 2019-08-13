@@ -39,7 +39,11 @@ bundle agent init
     "modules_path" string => "${ncf_inputs.ncf_tree}/10_ncf_internals/modules";
     "packages_list" slist => {"zip", "dummy", "rudder_test_repo", "rudder-tests"};
   commands:
+    # Since newer zypper version does not support by default local unsigned rpm install
+    # we have to import a one time use key that signed the pattern rpm
+    "/usr/bin/rpm --import ${pwd}/Rudder-tests-key";
     "/usr/bin/createrepo ${repo_path}";
+    "/usr/bin/zypper rr local";
     "/usr/bin/zypper ar --no-gpgcheck ${repo_path} local";
     "/usr/bin/zypper ref local";
 
@@ -51,7 +55,7 @@ bundle agent init
 
 ###############################################################################
 #                                 SCENARIO
-#________ Basic Tests ________ 
+#________ Basic Tests ________
 # -Test get-package-data on a dummy rpm on the repo => repo based return
 # -Test get-package-data on a dummy rpm without pattern => error return
 # -Test get-package-data on a rpm containing a pattern => ok and return pattenr name
@@ -65,7 +69,7 @@ bundle agent init
 # -Test remove with the pattern rudder_test_remove, which provides
 #   the package dummy_to_not_remove which should not be removed after pattern
 #   removal.
-#________ Other Tests ________ 
+#________ Other Tests ________
 ###############################################################################
 bundle agent test
 {
@@ -175,7 +179,8 @@ EOF";
       scope => "namespace";
     "print" expression => "get_package_data_${module_name}_${test_id}_ok";
   reports:
-    "${output}";
+    "${output}"
+      ifvarclass => "!get_package_data_${module_name}_${test_id}_ok";
 }
 
 
@@ -186,16 +191,16 @@ bundle agent test_package_module_list_installed(module_name)
   # TODO make non rpm based tests
 
   vars:
-    # Parse the output of the module to get 3 array, use them to build a unique regex per pattern to match the raw output of 
+    # Parse the output of the module to get 3 array, use them to build a unique regex per pattern to match the raw output of
     # the packet manager
 
-    "command" string => "${init.modules_path}/packages/${module_name} list-installed < /dev/null";
+    "command" string => "${init.modules_path}/packages/${module_name} list-installed < /dev/null #test list-installed";
     "module_output" string => execresult("${command}", "useshell");
 
     # Ugly way but most likely the only way to "easily" build 3 arrays from the module output, by parsing 3 long strings
     "package_name_raw" string => execresult("/usr/bin/echo \"${module_output}\" | /usr/bin/sed -n '1~3p' | /usr/bin/sed s/Name=//g", "useshell");
     "package_version_raw" string => execresult("/usr/bin/echo \"${module_output}\" | /usr/bin/sed -n '2~3p' | /usr/bin/sed s/Version=//g", "useshell");
-    "package_architecture_raw" string => execresult("/usr/bin/echo \"${module_output}\" | /usr/bin/sed -n '3~3p' | /usr/bin/sed s/Name=//g", "useshell");
+    "package_architecture_raw" string => execresult("/usr/bin/echo \"${module_output}\" | /usr/bin/sed -n '3~3p' | /usr/bin/sed s/Architecture=//g", "useshell");
 
     # Get a list containing the name of each package
     "packages_name" slist => splitstring("${package_name_raw}","\n","99999999999");
@@ -211,14 +216,20 @@ bundle agent test_package_module_list_installed(module_name)
 
 
     # Get the packages list from the package manager directly, rpm distro only
-    "packages" string => execresult("/bin/rpm -qa", "noshell");
+    "packages" string => execresult("/bin/rpm -qa #${module_name}", "useshell");
     "package_regex_${indices}" string => ".*${packages_names_${indices}}-${packages_version_${indices}}.*${packages_architecture_${indices}}";
+    "packages_list" slist => splitstring("${packages}", "${const.n}", "99999999999");
 
   classes:
     # Compare rpm and module outputs
-    "packages_match_${indices}" expression => regcmp("${package_regex_${indices}}", "${packages}");
-    "test_package_module_list_installed_${module_name}_ok" expression => "packages_match_${indices}",
+    "packages_match_${indices}" expression => regcmp("${package_regex_${indices}}", "${packages_list}");
+    "invalid" not => "packages_match_${indices}";
+    "test_package_module_list_installed_${module_name}_ok" not => "invalid",
       scope => "namespace";
+
+  reports:
+    "Expected line pattern ${package_regex_${indices}} could not be found in the output of \"rpm -qa\""
+      ifvarclass => "!packages_match_${indices}";
 }
 
 
@@ -279,10 +290,10 @@ bundle agent test_package_module_install(module_name, source, input, test_id, ex
 ${input}
 EOF";
     # Get info from the rpm file and from the input, the name is mandatory, version and arch are not
-    file::
+    pass1.file::
       "package_path" string  => regex_replace("${input}", "(^(?!File=).*|\n|File=)", "", "gms");
       "package_name" string => execresult("rpm --qf \"%{NAME}\\n\" -qp ${package_path}", "useshell");
-    repo::
+    pass1.repo::
       "package_path" string  => regex_replace("${input}", "(^(?!Name=).*|\n|Name=)", "", "gms");
       "package_name" string => "${package_path}";
     any::
@@ -291,47 +302,56 @@ EOF";
       "package_arch" string  => regex_replace("${input}", "(^(?!Architecture=).*|\n|Architecture=)", "", "gm");
       "package_version" string  => regex_replace("${input}", "(^(?!Version=).*|\n|Version=)", "", "gm");
 
-      "outnull" string => execresult("${command}","useshell"),
-        ifvarclass => "ncf_package_absent_${package_name_canonify}_ok";
-
     zypper_pattern::
       "zypper_name" string => "${expected_name}",
         ifvarclass => "file";
       "zypper_name" string => "${package_path}",
         ifvarclass => "repo";
 
-      # Use zypper to check if the installation is correct
-      "install_check" string => execresult("/usr/bin/zypper info -t pattern ${zypper_name} | grep Installed: | sed 's%Installed: %%g'","useshell"),
+    pass1::
+      "outnull" string => execresult("${command}","useshell"),
+        ifvarclass => "ncf_package_absent_${package_name_canonify}_ok";
+
+      # Use zypper to check_${package_name_canonify} if the installation is correct
+      "install_check_${package_name_canonify}" string => execresult("/usr/bin/zypper info -t pattern ${zypper_name} | grep Installed | sed 's%Installed\s*:\s*%%g'","useshell"),
         ifvarclass => "ncf_package_absent_${package_name_canonify}_ok";
       # Zypper info provides only the latest version available and not the current installed one....
-      "version_check" string => execresult("/usr/bin/zypper patterns --installed-only | grep \"${zypper_name}\" | awk '{print $5}'", "useshell"),
+      "version_check_${package_name_canonify}" string => execresult("/usr/bin/zypper patterns --installed-only | grep \"${zypper_name}\" | awk '{print $5}'", "useshell"),
         ifvarclass => "ncf_package_absent_${package_name_canonify}_ok";
-      "arch_check" string => execresult("/usr/bin/zypper info -t pattern ${zypper_name} | grep Arch: | sed 's%Arch: %%g'","useshell"),
+      "arch_check_${package_name_canonify}" string => execresult("/usr/bin/zypper info -t pattern ${zypper_name} | grep Arch | sed 's%Arch\s*:\s*%%g'","useshell"),
         ifvarclass => "ncf_package_absent_${package_name_canonify}_ok";
 
 
   classes:
-    "pass3" expression => "pass2";
-    "pass2" expression => "pass1";
-    "pass1" expression => "any";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
-    "repo" expression => strcmp("${source}", "repo");
-    "file" expression => strcmp("${source}", "file");
+      "repo" expression => strcmp("${source}", "repo");
+      "file" expression => strcmp("${source}", "file");
 
-    "zypper_pattern" expression => strcmp("${module_name}", "zypper_pattern");
+      "zypper_pattern" expression => strcmp("${module_name}", "zypper_pattern");
 
-    "is_installed" expression => strcmp("${install_check}", "Yes");
-    "is_version_correct" expression => or(strcmp("${version_check}", "${package_version}"), strcmp("${package_version}", ""));
-    "is_arch_correct" expression => or(strcmp("${arch_check}", "${package_arch}"), strcmp("${package_arch}", ""));
+    pass3::
+      "is_installed" expression => regcmp("Yes.*", "${install_check_${package_name_canonify}}");
+      "is_version_correct" expression => or(strcmp("${version_check_${package_name_canonify}}", "${package_version}"), strcmp("${package_version}", ""));
+      "is_arch_correct" expression => or(strcmp("${arch_check_${package_name_canonify}}", "${package_arch}"), strcmp("${package_arch}", ""));
 
-    "test_package_module_${source}_install_${module_name}_${test_id}_ok" expression => "is_installed.is_version_correct.is_arch_correct.ncf_package_absent_${package_name_canonify}_ok",
-      scope => "namespace";
+      "test_package_module_${source}_install_${module_name}_${test_id}_ok" expression => "is_installed.is_version_correct.is_arch_correct.ncf_package_absent_${package_name_canonify}_ok",
+        scope => "namespace";
 
 
   methods:
-    zypper_pattern::
+    zypper_pattern.pass1.!pass2::
       "package_absent" usebundle => ncf_package("${package_name}", "${package_version}", "${package_arch}", "zypper", "absent", "");
 
+  reports:
+   pass3.!is_installed::
+     "Package ${package_name} not found installed, found \"${install_check_${package_name_canonify}}\" instead of \"Yes\"";
+   pass3.!is_version_correct.is_installed::
+     "Package ${package_name} version found incorrect: ${version_check_${package_name_canonify}}";
+   pas3.!is_arch_correct.is_installed::
+     "Package ${package_name} arch found incorrect: ${arch_check_${package_name_canonify}}";
 }
 
 # Call the "${module_name}" method "remove" with the input "${input}" and define a class if the input is not found in the installed packages.
@@ -348,7 +368,7 @@ EOF # ${test_id}";
       "package_name" string  => regex_replace("${input}", "(^(?!Name=).*|\n|Name=)", "", "gms");
 
     pass1.zypper_pattern::
-      "is_installed" string => execresult("/usr/bin/zypper patterns --installed-only | grep -c ${package_name} #${test_id}", "useshell"); 
+      "is_installed" string => execresult("/usr/bin/zypper patterns --installed-only | grep -c ${package_name} #${test_id}", "useshell");
 
   classes:
     "pass1" expression => "any";
