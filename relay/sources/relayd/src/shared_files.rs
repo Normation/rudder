@@ -28,7 +28,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::error::Error;
+use crate::{error::Error, JobConfig};
 use chrono::prelude::DateTime;
 use chrono::{Duration, Utc};
 use hyper::StatusCode;
@@ -46,6 +46,7 @@ use std::io::BufRead;
 use std::io::Read;
 use std::path::Path;
 use std::str::FromStr;
+use std::sync::Arc;
 use warp::Buf;
 
 pub enum HashType {
@@ -181,7 +182,13 @@ pub fn validate_signature(
 }
 
 pub fn parse_ttl(ttl: String) -> Result<i64, Error> {
-    let regex_numbers = Regex::new(r"^(?:(?P<days>\d+)(?:d|days|day))?\s*(?:(?P<hours>\d+)(?:h|hours|hour))?\s*(?:(?P<minutes>\d+)(?:m|minutes|minute))?\s*(?:(?P<seconds>\d+)(?:s|seconds|second))?").unwrap();
+    let regex_timestamp = Regex::new(r"^([0-9]+)$").unwrap();
+
+    if regex_timestamp.is_match(&ttl) {
+        return Ok(ttl.parse::<i64>().unwrap());
+    };
+
+    let regex_numbers = Regex::new(r"^(?:(?P<days>\d+)(?:d|days|day))?\s*(?:(?P<hours>\d+)(?:h|hours|hour))?\s*(?:(?P<minutes>\d+)(?:m|minutes|minute))?\s*(?:(?P<seconds>\d+)(?:s|seconds|second))?$").unwrap();
 
     fn parse_time<'t>(cap: &regex::Captures<'t>, n: &str) -> Result<i64, Error> {
         Ok(match cap.name(n) {
@@ -235,13 +242,39 @@ pub fn file_writer(buf: &mut warp::body::FullBody, path: &str) {
     fs::write(format!("shared-files/{}", path), myvec).expect("Unable to write file");
 }
 
-pub fn metadata_writer(metadata_string: String, peek: &str) {
+pub fn put_handler(
+    metadata_string: String,
+    peek: &str,
+    ttl: String,
+    job_config: Arc<JobConfig>,
+    mut buf: warp::body::FullBody,
+) -> hyper::StatusCode {
+    let timestamp = match parse_ttl(ttl) {
+        Ok(ttl) => ttl,
+        Err(_x) => return StatusCode::from_u16(500).unwrap(),
+    };
+
     let myvec: Vec<String> = peek.split('/').map(|s| s.to_string()).collect();
     let (target_uuid, source_uuid, _file_id) = (&myvec[0], &myvec[1], &myvec[2]);
+
+    if !job_config
+        .nodes
+        .read()
+        .expect("Cannot read nodes list")
+        .is_subnode(source_uuid)
+    {
+        return StatusCode::from_u16(404).unwrap();
+    }
+
     let _ = fs::create_dir_all(format!("shared-files/{}/{}/", target_uuid, source_uuid)); // on cree les folders s'ils existent pas
                                                                                           //fs::create_dir_all(format!("/var/rudder/configuration-repository/shared-files/{}/{}/", target_uuid, source_uuid)); // real path
-    fs::write(format!("shared-files/{}.metadata", peek), metadata_string)
-        .expect("Unable to write file");
+    fs::write(
+        format!("shared-files/{}.metadata", peek),
+        format!("{}expires={}\n", metadata_string, timestamp),
+    )
+    .expect("Unable to write file");
+    file_writer(buf.by_ref(), peek);
+    StatusCode::from_u16(200).unwrap()
 }
 
 pub fn metadata_hash_checker(path: String, hash: String) -> hyper::StatusCode {
@@ -352,6 +385,23 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==".to_string()).unwrap(),
         let signature = signer.sign_to_vec().unwrap();
 
         assert!(validate_signature(data, keypub, HashType::Sha512, &signature).unwrap());
+    }
+
+    #[test]
+    pub fn it_parses_ttl() {
+        assert!(parse_ttl("1h 7s".to_string()).is_ok());
+
+        assert!(parse_ttl("1hour 2minutes".to_string()).is_ok());
+
+        assert!(parse_ttl("1d 7seconds".to_string()).is_ok());
+
+        assert_eq!(parse_ttl("9136".to_string()).unwrap(), 9136);
+
+        assert!(parse_ttl("913j".to_string()).is_err());
+
+        assert!(parse_ttl("913b83".to_string()).is_err());
+
+        assert!(parse_ttl("913h 89j".to_string()).is_err());
     }
 
 }

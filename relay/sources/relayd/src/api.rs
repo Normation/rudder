@@ -32,8 +32,8 @@ use crate::{
     error::Error,
     remote_run::{RemoteRun, RemoteRunTarget},
     shared_files::{
-        file_writer, metadata_hash_checker, metadata_parser, metadata_writer,
-        parse_parameter_from_raw, parse_ttl, shared_folder_head,
+        metadata_hash_checker, metadata_parser, parse_parameter_from_raw, put_handler,
+        shared_folder_head,
     },
     {stats::Stats, status::Status, JobConfig},
 };
@@ -122,17 +122,16 @@ pub fn api(
         .and(warp::body::concat())
         .map(
             move |ttl: String, peek: filters::path::Peek, mut buf: warp::body::FullBody| {
-                metadata_writer(
-                    format!(
-                        "{}expires={}\n",
-                        metadata_parser(buf.by_ref()).unwrap(),
-                        parse_ttl(parse_parameter_from_raw(ttl)).unwrap()
+                reply::with_status(
+                    "".to_string(),
+                    put_handler(
+                        format!("{}", metadata_parser(buf.by_ref()).unwrap()),
+                        peek.as_str(),
+                        parse_parameter_from_raw(ttl),
+                        job_config.clone(),
+                        buf,
                     ),
-                    peek.as_str(),
-                );
-
-                file_writer(buf.by_ref(), peek.as_str());
-                reply()
+                )
             },
         );
 
