@@ -151,13 +151,14 @@ def list_installed():
         sys.stdout.write("")
     else:
       patterns_array = patterns.split(' ')
-      command = [zypper_cmd] + zypper_options + ["info", "-t", "pattern"] + patterns_array
+      # We can not put the options there since the quiet one truncate the output here
+      command = [zypper_cmd] + ["-n", "info", "-t", "pattern"] + patterns_array
 
       process =  subprocess_Popen(command , stdout=subprocess.PIPE, stderr=NULLFILE)
       for line in process.stdout:
-          name = re.match("Name: (?P<name>\S+)", line)
+          name = re.match("Name\s+: (?P<name>\S+)", line)
           version = None
-          arch = re.match("Arch: (?P<arch>\S+)", line)
+          arch = re.match("Arch\s+: (?P<arch>\S+)", line)
           if name is not None:
             sys.stdout.write("Name=" + name.group("name").rstrip("\n") + "\n")
 
@@ -184,13 +185,13 @@ def list_installed_patterns():
 # Zypper's output looks like:
 # S | Name    | Version | Repository | Dependency
 # --+---------+---------+------------+-----------
-# i | 32bit   | 12-64.3 | @System    |           
+# i | 32bit   | 12-64.3 | @System    |
 #
     command = [zypper_cmd] +  zypper_options + ["-t", "patterns", "--installed-only"]
     process =  subprocess_Popen(command, stdout=subprocess.PIPE)
     patterns = ""
     for line in process.stdout:
-        match = re.match("i\s+\|\s+(?P<name>\S+)\s+\|.*$", line)
+        match = re.match("i\+?\s+\|\s+(?P<name>\S+)\s+\|.*$", line)
         if match is not None:
             patterns +=  match.group("name") + " "
     process.stdout.close()
