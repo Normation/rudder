@@ -20,21 +20,16 @@ bundle agent root_postgres_check
 {
 
   vars:
-
     SuSE::
-
       "configuration_statements" slist => { "host    all             rudder             ::1/128              md5", "host    all             rudder          127.0.0.1/32            md5" };
 
   classes:
-    any::
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
   files:
-
     SuSE::
-
       "/var/lib/pgsql/data/pg_hba.conf"
         edit_line => prepend("${configuration_statements}"),
         edit_defaults => noempty_backup,
@@ -42,28 +37,30 @@ bundle agent root_postgres_check
         comment => "Edit the SuSE postgresql configuration to enable account-less logins";
 
   methods:
-
     pass2.SuSE.psql_conf_updated::
+      "restart_postgresql" usebundle => disable_reporting;
+      "restart_postgresql" usebundle => _method_reporting_context("Check PostgreSQL configuration", "None");
       "restart_postgresql" usebundle => service_restart("postgresql");
+      "restart_postgresql" usebundle => enable_reporting;
 
     # Report about the configuration file editing
     pass3.SuSE.psql_conf_ok.!psql_conf_updated.!psql_conf_update_error::
-      "any" usebundle => rudder_common_report("server-roles", "result_success", "server-roles@@server-roles-directive@@0", "Check PostgreSQL configuration", "None", "The SuSE specific PostgreSQL configuration is present");
+      "any" usebundle => rudder_common_report("server-roles", "result_success", "${server_roles_common.directiveId}", "Check PostgreSQL configuration", "None", "The SuSE specific PostgreSQL configuration is present");
 
     pass3.SuSE.psql_conf_updated.!psql_conf_update_error::
-      "any" usebundle => rudder_common_report("server-roles", "result_repaired", "server-roles@@server-roles-directive@@0", "Check PostgreSQL configuration", "None", "The SuSE specific PostgreSQL configuration has been added");
+      "any" usebundle => rudder_common_report("server-roles", "result_repaired", "${server_roles_common.directiveId}", "Check PostgreSQL configuration", "None", "The SuSE specific PostgreSQL configuration has been added");
 
     pass3.SuSE.psql_conf_update_error::
-      "any" usebundle => rudder_common_report("server-roles", "result_error", "server-roles@@server-roles-directive@@0", "Check PostgreSQL configuration", "None", "The SuSE specific PostgreSQL configuration could not be added");
+      "any" usebundle => rudder_common_report("server-roles", "result_error", "${server_roles_common.directiveId}", "Check PostgreSQL configuration", "None", "The SuSE specific PostgreSQL configuration could not be added");
 
     # Reports about Postgres restart status
     pass3.SuSE.service_restart_postgresql_repaired::
-      "any" usebundle => rudder_common_report("server-roles", "log_info", "server-roles@@server-roles-directive@@0", "Check PostgreSQL configuration", "None", "PostgreSQL has been restarted");
+      "any" usebundle => rudder_common_report("server-roles", "log_info", "${server_roles_common.directiveId}", "Check PostgreSQL configuration", "None", "PostgreSQL has been restarted");
 
     pass3.SuSE.service_restart_postgresql_not_ok::
-      "any" usebundle => rudder_common_report("server-roles", "result_error", "server-roles@@server-roles-directive@@0", "Check PostgreSQL configuration", "None", "PostgreSQL restart has failed! Rudder is most certainly broken...");
+      "any" usebundle => rudder_common_report("server-roles", "result_error", "${server_roles_common.directiveId}", "Check PostgreSQL configuration", "None", "PostgreSQL restart has failed! Rudder is most certainly broken...");
 
     pass3.!SuSE::
-      "any" usebundle => rudder_common_report("server-roles", "result_success", "server-roles@@server-roles-directive@@0", "Check PostgreSQL configuration", "None", "There is no need of specific PostgreSQL configuration on this system");
+      "any" usebundle => rudder_common_report("server-roles", "result_success", "${server_roles_common.directiveId}", "Check PostgreSQL configuration", "None", "There is no need of specific PostgreSQL configuration on this system");
 
 }

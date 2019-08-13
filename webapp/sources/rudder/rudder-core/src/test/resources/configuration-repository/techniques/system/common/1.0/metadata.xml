@@ -19,14 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   <SYSTEM>true</SYSTEM>
 
   <TMLS>
-    <TML name="cf-served"/>
-    <TML name="rudder-lib" />
-    <TML name="rudder-stdlib-core" />
-    <TML name="internal-security" />
-    <TML name="nxlog-activation"/>
-    <TML name="cron-setup" />
-    <TML name="site"/>
-    <TML name="update"/>
+    <TML name="common"/>
+    <TML name="cf-serverd"/>
     <TML name="failsafe">
       <OUTPATH>failsafe.cf</OUTPATH>
       <INCLUDED>false</INCLUDED>
@@ -54,15 +48,33 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
       <OUTPATH>run_interval</OUTPATH>
       <INCLUDED>false</INCLUDED>
     </TML>
-    <TML name="restart-services"/>
     <TML name="rudder-groups"/>
+    <TML name="rudder-vars">
+      <OUTPATH>rudder-vars.json</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
   </TMLS>
 
   <FILES>
-    <FILE name="rudder-stdlib.cf">
+    <FILE name="hooks.cf">
       <INCLUDED>true</INCLUDED>
     </FILE>
-    <FILE name="check-zypper.cf">
+    <FILE name="cron-setup.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="site.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="update.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="monitoring.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="restart-services.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="internal-security.cf">
       <INCLUDED>true</INCLUDED>
     </FILE>
     <FILE name="environment-variables.cf">
@@ -71,16 +83,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <FILE name="properties.cf">
       <INCLUDED>true</INCLUDED>
     </FILE>
+    <FILE name="reporting-http.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
     <FILE name="rudder-agent-community-cron">
       <OUTPATH>common/cron/rudder-agent-community-cron</OUTPATH>
       <INCLUDED>false</INCLUDED>
     </FILE>
-    <FILE name="rudder-agent-nova-cron">
-      <OUTPATH>common/cron/rudder-agent-nova-cron</OUTPATH>
-      <INCLUDED>false</INCLUDED>
-    </FILE>
-    <FILE name="minicurl">
-      <OUTPATH>common/utilities/minicurl</OUTPATH>
+    <FILE name="check-rsyslog-version">
       <INCLUDED>false</INCLUDED>
     </FILE>
   </FILES>
@@ -106,7 +116,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <NAME>MANAGED_NODES_KEY</NAME>
     <NAME>MANAGED_NODES_ADMIN</NAME> 
     <NAME>DENYBADCLOCKS</NAME>
-    <NAME>SKIPIDENTIFY</NAME>
     <NAME>AGENT_RUN_INTERVAL</NAME>
     <NAME>AGENT_RUN_SPLAYTIME</NAME>
     <NAME>AGENT_RUN_SCHEDULE</NAME>
@@ -119,19 +128,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <NAME>RUDDER_SYSLOG_PROTOCOL</NAME>
     <NAME>RUDDER_NODE_GROUPS_VARS</NAME>
     <NAME>RUDDER_NODE_GROUPS_CLASSES</NAME>
+    <NAME>REPORTING_PROTOCOL</NAME>
+    <NAME>SYSLOG_PROTOCOL_DISABLED</NAME>
+    <NAME>RUDDER_INVENTORY_VARS</NAME>
+    <NAME>RUDDER_COMPLIANCE_MODE</NAME>
   </SYSTEMVARS>
 
   <SECTIONS>
 
     <!-- The following sections are for reporting only, variable are defined in the main section below -->
-    <SECTION name="Red Button" component="true" />
     <SECTION name="Update" component="true" />
     <SECTION name="ncf Initialization" component="true" />
     <SECTION name="Security parameters" component="true" />
     <SECTION name="Log system for reports" component="true" />
     <SECTION name="CRON Daemon" component="true" />
-    <SECTION name="Binaries update" component="true" />
-    <SECTION name="Process checking" component="true" />
+    <SECTION name="Monitoring" component="true" />
 
     <SECTION name="common">
       <INPUT>
@@ -141,7 +152,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
       <INPUT>
         <NAME>OWNER</NAME>
         <DESCRIPTION>User launching cfe (usually root)</DESCRIPTION>
-        <UNIQUEVARIABLE>true</UNIQUEVARIABLE>
       </INPUT>
       <INPUT>
         <NAME>UUID</NAME>
@@ -159,7 +169,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
       <INPUT>
         <NAME>ALLOWEDNETWORK</NAME>
         <DESCRIPTION>The network(s) allowed to connect to the server (can use the / parameter)</DESCRIPTION>
-        <UNIQUEVARIABLE>true</UNIQUEVARIABLE>
         <CONSTRAINT>
           <MAYBEEMPTY>true</MAYBEEMPTY>
         </CONSTRAINT>

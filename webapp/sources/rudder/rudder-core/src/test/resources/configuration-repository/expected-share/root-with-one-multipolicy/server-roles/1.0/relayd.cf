@@ -1,0 +1,37 @@
+#####################################################################################
+# Copyright 2019 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+bundle agent rudder_relayd_configuration {
+  vars:
+      "config_file"       string => "/opt/rudder/etc/relayd/main.conf";
+      "service"           string => "rudder-relayd";
+      "component"         string => "Relayd service configuration";
+      "file_class_prefix" string => canonify("file_from_template_${config_file}");
+
+  methods:
+      "any" usebundle => disable_reporting;
+      "any" usebundle => _method_reporting_context("${component}", "None");
+      "any" usebundle => file_from_template_mustache("${this.promise_dirname}/relayd.conf.tpl", "${config_file}");
+      "any" usebundle => service_restart("rudder-relayd"),
+                   if => "${file_class_prefix}_repaired";
+      "any" usebundle => enable_reporting;
+
+      "any" usebundle => rudder_common_reports_generic("server-roles", "${file_class_prefix}", "${server_roles_common.directiveId}", "${component}", "None", "rudder-relayd configration");
+      "any" usebundle => rudder_common_report("server-roles", "log_repaired", "${server_roles_common.directiveId}", "${component}", "None", "rudder-relayd service has been restarted"),
+                   if => "service_restart_rudder_relayd_repaired";
+}

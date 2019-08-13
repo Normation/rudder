@@ -34,7 +34,7 @@ $EscapeControlCharactersOnReceive off
 
 &if(STORE_ALL_CENTRALIZED_LOGS_IN_FILE)&
 # Log everything
-*.*	/var/log/rudder/reports/all.log
+local6.* /var/log/rudder/reports/all.log
 &endif&
 
 
@@ -44,13 +44,21 @@ $ActionQueueSaveOnShutdown on
 
 # Filtering by content
 # Process :
+
+# If report protocol is HTTPS, we drop the local rsyslog message
+{{#classes.rudder_reporting_https}}
+if $fromhost-ip == "127.0.0.1" then {
+    :programname, isequal, "rudder" ~
+}
+{{/classes.rudder_reporting_https}}
+
 # We first forward the data to the root server, then we drop it to prevent
 # it from reaching local storage in .log files.
 # The report format is @@Policy@@State@@RuleId@@DirectiveId@@VersionId@@Component@@Key@@ExecutionTimeStamp##NodeId@#HumanReadableMessage
 #
 
 # 1 - Send every matching report to the root server
-:msg, ereregex, "R: @@[ a-zA-Z0-9_\-]+?@@[a-zA-Z0-9_\-]{1,64}?@@[a-zA-Z0-9\-]+@@[a-zA-Z0-9\-]+?@@[0-9]+?@@.*?@@.*?@@[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{1,2}:[0-9]{2}##[a-zA-Z0-9\-]+?@#.*" ${check_log_system.rsyslog_rule_prefix}${server_info.cfserved}:&SYSLOGPORT&
+:msg, ereregex, "(R: )?@@[ a-zA-Z0-9_\-]+?@@[a-zA-Z0-9_\-]{1,64}?@@[a-zA-Z0-9\-]+@@[a-zA-Z0-9\-]+?@@[0-9]+?@@.*?@@.*?@@[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{1,2}:[0-9]{2}##[a-zA-Z0-9\-]+?@#.*" {{vars.check_log_system.rsyslog_rule_prefix}}{{vars.server_info.policy_server}}:&SYSLOGPORT&
 
 # 2 - Drop the remaining rudder logs to prevent local storage cluttering
 

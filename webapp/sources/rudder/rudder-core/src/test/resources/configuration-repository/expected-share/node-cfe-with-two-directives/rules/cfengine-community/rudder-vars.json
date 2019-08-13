@@ -1,0 +1,20 @@
+{
+  "hostname":"node1.localhost",
+  "policyServerId":"root",
+  "localAdministratorAccountName":"root",
+  "archDescription":"",
+  "ram":"1460132",
+  "timezone":"",
+  "os":{
+    "name":"Debian",
+    "fullName":"Jessie",
+    "version":"7.0",
+    "kernelVersion":"3.2",
+    "servicePack":""
+  },
+  "machine":{
+    "machineType":"vbox",
+    "manufacturer":""
+  }
+}
+

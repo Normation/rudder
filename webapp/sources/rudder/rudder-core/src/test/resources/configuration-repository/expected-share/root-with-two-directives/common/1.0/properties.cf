@@ -19,8 +19,10 @@
 # Read node properties and put them into the node namespace
 #
 # Properties are available using the node.namespace container that contains the values
-# Those values are read from /var/rudder/cfengine-community/properties/*.json
-# All files are taken in order and overrides the previous one, the last one wins.
+# Those values are read from /var/rudder/cfengine-community/inputs/properties.d/*.json and from
+# /var/rudder/local/properties.d/*.json
+# All files are taken in order and overrides the previous one, the last one wins, with the local
+# defined properties overriding the one in /var/rudder/cfengine-community/inputs/properties/
 # 
 # Each file must contain at least a 2 levels JSON content, the first level is the namespace level
 # and the second level is the key level.
@@ -45,10 +47,18 @@ bundle agent properties
     # The files to read
     "properties_files" slist => findfiles("${this.promise_dirname}/../../properties.d/*.json");
 
+    # Local properties files
+    "local_properties_files" slist => findfiles("/var/rudder/local/properties.d/*.json");
+
     # The sorted file list
     "_sorted_files" slist => sort("properties_files", "lex");
+
+    # The sorted local file list
+    "_sorted_local_files" slist => sort("local_properties_files", "lex");
+
     # cfengine iterates over lists in promises in the reverse order, so we need the inverted list
-    "sorted_files" slist => reverse("_sorted_files");
+    "sorted_files" slist => { @{_sorted_files}, @{_sorted_local_files} },
+                  policy => "ifdefined";
 
     # Canonified sorted file list
     "file_id[${sorted_files}]" string => canonify("${sorted_files}");
@@ -68,4 +78,10 @@ bundle agent properties
                                                            "property_${file_id[${sorted_files}]}[${namespace[${sorted_files}]}]");
 
     # That's all, now we have a node.namespace data that contains the overriden values
+}
+
+# Read the inventories variables from Rudder
+bundle agent rudder_node_inventory {
+  vars:
+    "node.inventory" data => readjson("${this.promise_dirname}/../../rudder-vars.json");
 }

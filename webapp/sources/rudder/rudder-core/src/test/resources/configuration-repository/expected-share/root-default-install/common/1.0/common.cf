@@ -1,0 +1,17 @@
+# Common variable for common system technique
+bundle common system_common {
+  vars:
+    "directiveId"           string => "hasPolicyServer-root@@common-root@@0";
+    "sharedfiles_folder"    string => "/var/rudder/configuration-repository/shared-files";
+    "community_port"        string => "5309";
+    "uuid"                  string => "root";
+    "davuser"               string => "rudder";
+    "davpw"                 string => "rudder";
+    "rudder_configuration_repository"
+                            string => "/tmp/test-rudder-config-repo-2019-08-13T15:28:05.293+02:00/configuration-repository";
+    "heartbeat_interval"    string => "4";
+    "rudder_node_config_id" string => "root-cfg-id";
+    "agent_run_interval"    string => "5";
+
+  classes:
+}

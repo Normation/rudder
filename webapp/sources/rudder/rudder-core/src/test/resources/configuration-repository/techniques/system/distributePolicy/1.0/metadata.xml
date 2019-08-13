@@ -23,12 +23,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <NAME>install_rsyslogd</NAME>
     <NAME>propagatePromises</NAME>
     <NAME>sendInventoryToCmdb</NAME>
+    <NAME>apache_acl</NAME>
   </BUNDLES>
 
   <TMLS>
     <!-- Note that the policy server is set via the common.xml -->
-    <TML name="propagatePromises"/>
-    <TML name="rsyslogConf"/>
+    <TML name="common"/>
+    <TML name="nodescerts.pem">
+      <INCLUDED>false</INCLUDED>
+      <OUTPATH>distributePolicy/1.0/nodescerts.pem</OUTPATH>
+    </TML>
     <TML name="clientlist">
       <OUTPATH>clientlist/clientlist.cf</OUTPATH>
       <INCLUDED>false</INCLUDED>
@@ -42,14 +46,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
       <INCLUDED>false</INCLUDED>
     </TML>
     <TML name="nodeslist.json">
-      <OUTPATH>distributePolicy/1.0/nodeslist.json</OUTPATH>
       <INCLUDED>false</INCLUDED>
+      <OUTPATH>distributePolicy/1.0/nodeslist.json</OUTPATH>
     </TML>
   </TMLS>
 
   <FILES>
-    <FILE name="rudder-ncf-conf">
-      <OUTPATH>distributePolicy/ncf/ncf.conf</OUTPATH>
+    <FILE name="rsyslogConf.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="propagatePromises.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="apache-acl.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="send-clean.sh">
       <INCLUDED>false</INCLUDED>
     </FILE>
   </FILES>
@@ -61,6 +73,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <NAME>SHARED_FILES_FOLDER</NAME>
     <NAME>STORE_ALL_CENTRALIZED_LOGS_IN_FILE</NAME>
     <NAME>MANAGED_NODES_IP</NAME>
+    <NAME>MANAGED_NODES_CERT_UUID</NAME>
+    <NAME>MANAGED_NODES_CERT_CN</NAME>
+    <NAME>MANAGED_NODES_CERT_PEM</NAME>
     <NAME>AUTHORIZED_NETWORKS</NAME>
     <NAME>NOVA</NAME>
     <NAME>RUDDER_REPORTS_DB_NAME</NAME>
@@ -69,12 +84,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <NAME>SUB_NODES_ID</NAME>
     <NAME>SUB_NODES_KEYHASH</NAME>
     <NAME>SUB_NODES_SERVER</NAME>
+    <NAME>RELAY_SYNC_METHOD</NAME>
+    <NAME>RELAY_SYNC_PROMISES</NAME>
+    <NAME>RELAY_SYNC_SHAREDFILES</NAME>
   </SYSTEMVARS>
 
   <SECTIONS>
     <!-- The following sections are for reporting only -->
-    <SECTION name="Propagate promises" component="true"/>
-    <SECTION name="Send inventories to CMDB" component="true"/>
-    <SECTION name="Configure ncf" component="true"/>
+    <SECTION name="Synchronize policies" component="true"/>
+    <SECTION name="Synchronize files" component="true"/>
+    <SECTION name="Synchronize resources" component="true"/>
+    <SECTION name="Send inventories to Rudder server" component="true"/>
+    <SECTION name="Configure apache ACL" component="true"/>
   </SECTIONS>
 </TECHNIQUE>

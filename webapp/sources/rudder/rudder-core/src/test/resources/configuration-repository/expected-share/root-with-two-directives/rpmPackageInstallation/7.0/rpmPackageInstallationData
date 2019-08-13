@@ -19,6 +19,8 @@
 # List of packages to manage
 # Format of the file
 # action:version_definition:version_comparaison:trackingkey
-add:default:==:rule2@@directive2@@2
+add:default:==:rule2@@directive2@@0
+add:default:==:rule2@@directive2@@0
+add:default:==:rule2@@directive2@@0
 
 

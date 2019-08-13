@@ -19,23 +19,44 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   <SYSTEM>true</SYSTEM>
 
   <TMLS>
-    <TML name="component-check"/>
-    <TML name="alive-check"/>
-    <TML name="service-check"/>
-    <TML name="integrity-check"/>
-    <TML name="network-check"/>
-    <TML name="password-check"/>
-    <TML name="postgres-check"/>
-    <TML name="logrotate-check"/>
-    <TML name="technique-reload"/>
+    <TML name="common"/>
     <TML name="rudder-server-roles">
       <OUTPATH>rudder-server-roles.conf</OUTPATH>
       <INCLUDED>false</INCLUDED>
     </TML>
-    <TML name="metrics-reporting"/>
   </TMLS>
 
   <FILES>
+    <FILE name="metrics-reporting.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="component-check.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="alive-check.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="service-check.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="integrity-check.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="network-check.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="password-check.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="postgres-check.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="logrotate-check.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="technique-reload.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
     <FILE name="compress-webapp-log.cf">
       <INCLUDED>true</INCLUDED>
     </FILE>
@@ -44,6 +65,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     </FILE>
     <FILE name="servers-by-role.cf">
       <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="relayd.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="relayd.conf.tpl">
+      <OUTPATH>server-roles/1.0/relayd.conf.tpl</OUTPATH>
+      <INCLUDED>false</INCLUDED>
     </FILE>
     <FILE name="rudder-logrotate">
       <OUTPATH>server-roles/logrotate.conf/rudder</OUTPATH>
@@ -66,8 +94,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <SECTION name="Check jetty process" component="true"/>
     <SECTION name="Check slapd process" component="true"/>
     <SECTION name="Check apache process" component="true"/>
+    <SECTION name="Check relayd process" component="true"/>
     <SECTION name="Check postgresql boot script" component="true"/>
+    <SECTION name="Check jetty boot script" component="true"/>
+    <SECTION name="Check slapd boot script" component="true"/>
     <SECTION name="Check apache boot script" component="true"/>
+    <SECTION name="Check relayd boot script" component="true"/>
     <SECTION name="Check PostgreSQL configuration" component="true"/>
     <SECTION name="Check logrotate configuration" component="true"/>
     <SECTION name="Check configuration-repository folder" component="true"/>
@@ -81,6 +113,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <SECTION name="Check SQL credentials" component="true"/>
     <SECTION name="Check SQL in rudder-webapp.properties" component="true"/>
     <SECTION name="Check WebDAV credentials" component="true"/>
+    <SECTION name="Relayd service configuration" component="true"/>
     <SECTION name="Send metrics to rudder-project" component="true"/>
   </SECTIONS>
 

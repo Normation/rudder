@@ -32,6 +32,7 @@ body file control {
 
 bundle agent rudder_system_directives {
   # fully generated in bundle common va for iinitial promises
+  # The directive sequence will be correctly indented by the generated variable so we can support multiline variable
   methods:
 &RUDDER_SYSTEM_DIRECTIVES_SEQUENCE&
 

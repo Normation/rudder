@@ -16,10 +16,10 @@
 #
 #####################################################################################
 
-# This file is the main entry points for the bundle sequence for
+# This file is the main entry points for the bundle sequence for 
 # Rudder user directives. It is actually a list of method calls, and not
-# a bundle sequence, which allows to add the technique or directives
-# names as promiser.
+# a bundle sequence, which allows to add the technique or directives 
+# names as promiser. 
 
 body file control {
 
@@ -33,7 +33,7 @@ body file control {
 
 
 bundle agent rudder_directives {
-
+  # The directive sequence will be correctly indented by the generated variable so we can support multiline variable
   methods:
       "pre-run-hook"                                  usebundle => runhook_package('{"parameters":{"package":"vim"},"reports":[{"id":"208716db-2675-43b9-ab57-bfbab84346aa@@16d86a56-93ef-49aa-86b7-0d10102e4ea9@@0","mode":"enforce","technique":"Create_file","name":"vim_installed","value":"None"}]}');
       "50-rule-technique-ncf/Create a file"           usebundle => set_dry_run_mode("false");

@@ -27,14 +27,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   </SYSTEMVARS>
 
   <BUNDLES>
-    <NAME>fetchFusionTools</NAME>
-    <NAME>virtualMachines</NAME>
     <NAME>doInventory</NAME>
   </BUNDLES>
 
   <TMLS>
-    <TML name="fetchFusionTools"/>
-    <TML name="virtualMachines"/>
     <TML name="fusionAgent"/>
     <TML name="test-inventory.pl">
       <OUTPATH>inventory/1.0/test-inventory.pl</OUTPATH>

@@ -7,7 +7,7 @@
   "CFENGINE_OUTPUTS_TTL":"7",
   "CMDBENDPOINT":"http://localhost:8080/endpoint/upload/",
   "COMMUNITYPORT":"5309",
-  "CONFIGURATION_REPOSITORY_FOLDER":"/tmp/test-rudder-config-repo-2019-08-02T16:34:07.279+02:00/configuration-repository",
+  "CONFIGURATION_REPOSITORY_FOLDER":"/tmp/test-rudder-config-repo-2019-08-13T15:43:57.745+02:00/configuration-repository",
   "DAVPASSWORD":"rudder",
   "DAVUSER":"rudder",
   "DENYBADCLOCKS":"true",
@@ -17,6 +17,7 @@
   "RELAY_SYNC_PROMISES":"false",
   "RELAY_SYNC_SHAREDFILES":"false",
   "REPORTING_PROTOCOL":"SYSLOG",
+  "RUDDER_COMPLIANCE_MODE":"audit",
   "RUDDER_DIRECTIVES_INPUTS":[
     "\"genericVariableDefinition/2.0/genericVariableDefinition.cf\","
   ],
@@ -28,7 +29,7 @@
   "RUDDER_REPORT_MODE":"full-compliance",
   "RUDDER_SERVER_ROLES":"",
   "RUDDER_SYSLOG_PROTOCOL":"UDP",
-  "RUDDER_SYSTEM_DIRECTIVES_INPUTS":"\"common/1.0/cf-served.cf\",\n\"common/1.0/rudder-lib.cf\",\n\"common/1.0/rudder-stdlib-core.cf\",\n\"common/1.0/internal-security.cf\",\n\"common/1.0/nxlog-activation.cf\",\n\"common/1.0/cron-setup.cf\",\n\"common/1.0/site.cf\",\n\"common/1.0/update.cf\",\n\"rudder-directives.cf\",\n\"rudder-system-directives.cf\",\n\"common/1.0/rudder-parameters.cf\",\n\"common/1.0/restart-services.cf\",\n\"common/1.0/rudder-groups.cf\",\n\"common/1.0/rudder-stdlib.cf\",\n\"common/1.0/check-zypper.cf\",\n\"common/1.0/environment-variables.cf\",\n\"common/1.0/properties.cf\",\n\"inventory/1.0/fetchFusionTools.cf\",\n\"inventory/1.0/virtualMachines.cf\",\n\"inventory/1.0/fusionAgent.cf\",",
+  "RUDDER_SYSTEM_DIRECTIVES_INPUTS":"\"common/1.0/common.cf\",\n\"common/1.0/cf-serverd.cf\",\n\"rudder-directives.cf\",\n\"rudder-system-directives.cf\",\n\"common/1.0/rudder-parameters.cf\",\n\"common/1.0/rudder-groups.cf\",\n\"common/1.0/hooks.cf\",\n\"common/1.0/cron-setup.cf\",\n\"common/1.0/site.cf\",\n\"common/1.0/update.cf\",\n\"common/1.0/monitoring.cf\",\n\"common/1.0/restart-services.cf\",\n\"common/1.0/internal-security.cf\",\n\"common/1.0/environment-variables.cf\",\n\"common/1.0/properties.cf\",\n\"common/1.0/reporting-http.cf\",\n\"inventory/1.0/fusionAgent.cf\",",
   "RUDDER_SYSTEM_DIRECTIVES_SEQUENCE":"      \"Rudder system policy: daily inventory/Inventory\" usebundle => set_dry_run_mode(\"true\");\n      \"Rudder system policy: daily inventory/Inventory\" usebundle => run_inventory_all;",
   "SEND_METRICS":"no",
   "SERVER_VERSION":"5.1.0",

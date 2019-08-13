@@ -16,29 +16,29 @@
 #
 #####################################################################################
 
-bundle agent generic_process_check_process(binary, initscript, name) {
-
+# ensure service is enabled and started
+bundle agent rudder_generic_service(name, service_name) {
   vars:
-
-      "c_initscript" string => canonify("${initscript}");
+      "c_service_name" string => canonify("${service_name}");
 
   methods:
+      "${name}" usebundle => disable_reporting;
+      "${name}" usebundle => _method_reporting_context("Check ${name} process", "None");
 
-      "start_process" usebundle => service_ensure_running_path("${initscript}", "${binary}");
+      "${name}" usebundle => service_started("${service_name}");
+      "${name}" usebundle => service_enabled("${service_name}");
 
-      "any"           usebundle => rudder_common_reports_generic("server-roles", "service_ensure_running_${c_initscript}", "server-roles@@server-roles-directive@@0", "Check ${name} process", "None", "Check ${name} process running");
-
+      "${name}" usebundle => enable_reporting;
+      "${name}" usebundle => rudder_common_reports_generic("server-roles", "service_started_${c_service_name}", "${server_roles_common.directiveId}", "Check ${name} process", "None", "${name} service running");
+      "${name}" usebundle => rudder_common_reports_generic("server-roles", "service_enabled_${c_service_name}", "${server_roles_common.directiveId}", "Check ${name} boot script", "None", "${name} service enabled");
 }
 
-bundle agent generic_process_check_bootstart(binary, initscript, name) {
-
-  vars:
-
-      "c_initscript" string => canonify("${initscript}");
-
-  methods:
-
-      "bootstart_service" usebundle => service_ensure_started_at_boot("${initscript}");
-      "any" usebundle => rudder_common_reports_generic("server-roles", "service_ensure_started_at_boot_${c_initscript}", "server-roles@@server-roles-directive@@0", "Check ${name} boot script", "None", "Check ${name} boot starting parameters");
-
+bundle agent rudder_generic_service_na(name) {
+    methods:
+      "any" usebundle => rudder_common_report("server-roles", "result_na", "${server_roles_common.directiveId}",
+          "Check ${name} process", "None", "Checking ${name} process state is unnecessary on this machine, skipping."
+        );
+      "any" usebundle => rudder_common_report("server-roles", "result_na", "${server_roles_common.directiveId}",
+          "Check ${name} boot script", "None", "Checking ${name} boot settings is unnecessary on this machine, skipping."
+        );
 }

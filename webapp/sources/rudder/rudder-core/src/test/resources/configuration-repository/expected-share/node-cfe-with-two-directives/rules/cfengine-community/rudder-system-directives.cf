@@ -24,25 +24,22 @@
 body file control {
 
   inputs => {
-    "common/1.0/cf-served.cf",
-    "common/1.0/rudder-lib.cf",
-    "common/1.0/rudder-stdlib-core.cf",
-    "common/1.0/internal-security.cf",
-    "common/1.0/nxlog-activation.cf",
-    "common/1.0/cron-setup.cf",
-    "common/1.0/site.cf",
-    "common/1.0/update.cf",
+    "common/1.0/common.cf",
+    "common/1.0/cf-serverd.cf",
     "rudder-directives.cf",
     "rudder-system-directives.cf",
     "common/1.0/rudder-parameters.cf",
-    "common/1.0/restart-services.cf",
     "common/1.0/rudder-groups.cf",
-    "common/1.0/rudder-stdlib.cf",
-    "common/1.0/check-zypper.cf",
+    "common/1.0/hooks.cf",
+    "common/1.0/cron-setup.cf",
+    "common/1.0/site.cf",
+    "common/1.0/update.cf",
+    "common/1.0/monitoring.cf",
+    "common/1.0/restart-services.cf",
+    "common/1.0/internal-security.cf",
     "common/1.0/environment-variables.cf",
     "common/1.0/properties.cf",
-    "inventory/1.0/fetchFusionTools.cf",
-    "inventory/1.0/virtualMachines.cf",
+    "common/1.0/reporting-http.cf",
     "inventory/1.0/fusionAgent.cf",
   };
 
@@ -51,6 +48,7 @@ body file control {
 
 bundle agent rudder_system_directives {
   # fully generated in bundle common va for iinitial promises
+  # The directive sequence will be correctly indented by the generated variable so we can support multiline variable
   methods:
       "Rudder system policy: daily inventory/Inventory" usebundle => set_dry_run_mode("true");
       "Rudder system policy: daily inventory/Inventory" usebundle => run_inventory_all;
@@ -60,8 +58,6 @@ bundle agent run_inventory_all
   methods:
       "Rudder system policy: daily inventory/Inventory" usebundle => rudder_reporting_context("inventory-all","inventory-all","inventory");
       "Rudder system policy: daily inventory/Inventory" usebundle => disable_reporting;
-      "Rudder system policy: daily inventory/Inventory" usebundle => fetchFusionTools;
-      "Rudder system policy: daily inventory/Inventory" usebundle => virtualMachines;
       "Rudder system policy: daily inventory/Inventory" usebundle => doInventory;
       "Rudder system policy: daily inventory/Inventory" usebundle => clean_reporting_context;
 
