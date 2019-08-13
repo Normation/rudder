@@ -49,7 +49,8 @@ import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyMode.Enforce
+import com.normation.rudder.domain.policies.{GlobalPolicyMode, PolicyMode}
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.ParameterEntry
@@ -114,11 +115,18 @@ class PrepareTemplateVariablesImpl(
     val nodeId = agentNodeConfig.config.nodeInfo.id
     logger.debug(s"Writting promises for node '${agentNodeConfig.config.nodeInfo.hostname}' (${nodeId.value})")
 
+    // Computing policy mode of the node
+    val agentPolicyMode = PolicyMode.computeMode(globalPolicyMode, agentNodeConfig.config.nodeInfo.policyMode, Seq()) match {
+      case Left(r) => logger.error(s"Failed to compute policy mode for node ${agentNodeConfig.config.nodeInfo.node.id.value}, cause is ${r} - defaulting to enforce"); Enforce
+      case Right(value) => value
+    }
+
     val systemVariables = agentNodeConfig.config.nodeContext ++ List(
         systemVariableSpecService.get("NOVA"     ).toVariable(if(agentNodeConfig.agentType == AgentType.CfeEnterprise) Seq("true") else Seq())
       , systemVariableSpecService.get("COMMUNITY").toVariable(if(agentNodeConfig.agentType == AgentType.CfeCommunity ) Seq("true") else Seq())
       , systemVariableSpecService.get("AGENT_TYPE").toVariable(Seq(agentNodeConfig.agentType.toString))
       , systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq(nodeConfigVersion.value))
+      , systemVariableSpecService.get("RUDDER_COMPLIANCE_MODE").toVariable(Seq(agentPolicyMode.name))
 
     ).map(x => (x.spec.name, x)).toMap
 

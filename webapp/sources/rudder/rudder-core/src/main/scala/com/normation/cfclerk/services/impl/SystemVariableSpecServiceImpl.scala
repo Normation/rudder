@@ -324,6 +324,10 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                    "RUDDER_INVENTORY_VARS" , "Rudder inventory variables"
                                            , multivalued = false
     )
+    , SystemVariableSpec(
+                  "RUDDER_COMPLIANCE_MODE" , "Rudder compliance mode (enforce or audit)"
+                                           , multivalued = false
+    )
   )
 
   private[this] val varSpecsMap = varSpecs.map(x => (x.name -> x)).toMap
