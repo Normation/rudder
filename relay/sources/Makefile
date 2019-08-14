@@ -125,7 +125,7 @@ install: build
 	install -m 755 rudder-pkg/rudder-pkg $(DESTDIR)/opt/rudder/bin/
 	install -m 755 rudder-pkg/rudder-pkg.conf $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder-pkg.conf
 	install -m 755 rudder-pkg/rudder_plugins_key.pub $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.pub
-	install -m 644 rudder-pkg/lib $(DESTDIR)/opt/rudder/share/python/
+	cp -r rudder-pkg/lib $(DESTDIR)/opt/rudder/share/python/
 	
 	# Apache
 	install -m 644 apache/rudder-vhost.conf $(DESTDIR)/etc/$(APACHE_VHOSTDIR)/rudder.conf
