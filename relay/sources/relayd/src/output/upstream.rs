@@ -49,7 +49,7 @@ fn forward_file(
     endpoint: &str,
     path: PathBuf,
 ) -> impl Future<Item = (), Error = Error> + '_ {
-    tokio::fs::read(path)
+    tokio::fs::read(path.clone())
         .map_err(|e| e.into())
         .and_then(move |d| {
             job_config
@@ -57,8 +57,10 @@ fn forward_file(
                 .clone()
                 .expect("HTTP client should be initialized")
                 .put(&format!(
-                    "{}/{}/",
-                    job_config.cfg.output.upstream.url, endpoint
+                    "{}/{}/{}",
+                    job_config.cfg.output.upstream.url,
+                    endpoint,
+                    path.file_name().expect("not a file").to_string_lossy()
                 ))
                 .basic_auth(
                     &job_config.cfg.output.upstream.user,
