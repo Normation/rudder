@@ -56,7 +56,7 @@ def package_list_installed():
     for p in utils.DB["plugins"].keys():
         pluginName.append(p)
         currentVersion = rpkg.PluginVersion(utils.DB["plugins"][p]["version"])
-        version.append(currentVersion)
+        version.append(currentVersion.pluginLongVersion)
         extra = ""
         if printLatest:
             pkgs = plugin.Plugin(p)

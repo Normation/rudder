@@ -1,9 +1,13 @@
-import os, logging, sys, re, hashlib, configparser, requests, json
+import os, logging, sys, re, hashlib, requests, json
 import distutils.spawn
 from pprint import pprint
 from pkg_resources import parse_version
 from subprocess import Popen, PIPE
-import fcntl, termios, struct
+import fcntl, termios, struct, traceback
+try:
+    import ConfigParser as configparser
+except Exception:
+    import configparser
 
 # See global variables at the end of the file
 """ Get Terminal width """
@@ -77,6 +81,7 @@ def shell(command, comment=None, keep_output=False, fail_exit=True, keep_error=F
   return (retcode, output, error)
 
 def fail(message, code=1):
+    traceback.print_exc(file=sys.stdout)
     logging.error(message)
     exit(code)
 
@@ -385,17 +390,17 @@ def readConf():
     global REPO, URL, USERNAME, PASSWORD
     logging.debug('Reading conf file %s'%(CONFIG_PATH))
     try:
-        config = configparser.ConfigParser()
+        config = configparser.RawConfigParser()
         config.read(CONFIG_PATH)
         REPO = config.sections()[0]
-        URL = config[REPO]['url']
-        USERNAME = config[REPO]['username']
-        PASSWORD = config[REPO]['password']
+        URL = config.get(REPO, 'url')
+        USERNAME = config.get(REPO, 'username')
+        PASSWORD = config.get(REPO, 'password')
         createPath(FOLDER_PATH)
         createPath(GPG_HOME)
     except Exception as e:
         print("Could not read the conf file %s"%(CONFIG_PATH))
-        exit(1)
+        fail(e)
 
 def list_plugin_name():
     global INDEX_PATH
