@@ -122,8 +122,8 @@ pub fn insert_runlog(
                     .and(eventtype.eq(&first_report.event_type))
                     .and(msg.eq(&first_report.msg))
                     .and(policy.eq(&first_report.policy))
-                    .and(executiontimestamp.eq(&first_report.execution_datetime))
-                    .and(executiondate.eq(&first_report.start_datetime))
+                    .and(executiontimestamp.eq(&first_report.start_datetime))
+                    .and(executiondate.eq(&first_report.execution_datetime))
                     .and(serial.eq(&first_report.serial))
                     .and(ruleid.eq(&first_report.rule_id))
                     .and(directiveid.eq(&first_report.directive_id)),

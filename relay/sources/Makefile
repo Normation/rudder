@@ -155,7 +155,7 @@ lint:
 
 check: lint
 	cd relayd && cargo test
-	cd relayd && cargo audit --ignore RUSTSEC-2019-0011 #https://github.com/crossbeam-rs/crossbeam/issues/401
+	cd relayd && cargo audit
 
 # Clean
 

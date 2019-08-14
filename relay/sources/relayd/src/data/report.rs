@@ -32,7 +32,7 @@ use crate::{data::node::NodeId, output::database::schema::ruddersysevents};
 use chrono::prelude::*;
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_until},
+    bytes::complete::{tag, take_till, take_until},
     combinator::{map, map_res, not, opt},
     multi::{many0, many1},
     IResult,
@@ -98,7 +98,10 @@ fn line_timestamp(i: &str) -> IResult<&str, DateTime<FixedOffset>> {
 fn simpleline(i: &str) -> IResult<&str, &str> {
     let (i, _) = opt(line_timestamp)(i)?;
     let (i, _) = not(alt((agent_log_level, map(tag("R: @@"), |_| ""))))(i)?;
-    let (i, res) = take_until("\n")(i)?;
+    // All reports should end with \r\n but keeping compatibility with simple
+    // \n for easier testing.
+    let (i, res) = take_till(|c| c == '\n' || c == '\r')(i)?;
+    let (i, _) = opt(tag("\r"))(i)?;
     let (i, _) = tag("\n")(i)?;
     Ok((i, res))
 }
@@ -257,7 +260,7 @@ pub struct QueryableReport {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Insertable)]
 #[table_name = "ruddersysevents"]
 pub struct Report {
-    #[column_name = "executiondate"]
+    #[column_name = "executiontimestamp"]
     pub start_datetime: DateTime<FixedOffset>,
     #[column_name = "ruleid"]
     pub rule_id: String,
@@ -275,7 +278,7 @@ pub struct Report {
     pub policy: String,
     #[column_name = "nodeid"]
     pub node_id: NodeId,
-    #[column_name = "executiontimestamp"]
+    #[column_name = "executiondate"]
     pub execution_datetime: DateTime<FixedOffset>,
     pub serial: i32,
 }
@@ -349,6 +352,10 @@ mod tests {
     #[test]
     fn it_parses_simpleline() {
         assert_eq!(simpleline("Thething\n").unwrap().1, "Thething".to_string());
+        assert_eq!(
+            simpleline("Thething\r\n").unwrap().1,
+            "Thething".to_string()
+        );
         assert_eq!(
             simpleline("The thing\n").unwrap().1,
             "The thing".to_string()
@@ -482,7 +489,7 @@ mod tests {
 
     #[test]
     fn it_parses_report() {
-        let report = "2018-08-24T15:55:01+00:00 R: @@Common@@result_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@None@@2018-08-24 15:55:01 +00:00##root@#Cron daemon status was repaired\n";
+        let report = "2018-08-24T15:55:01+00:00 R: @@Common@@result_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@None@@2018-08-24 15:55:01 +00:00##root@#Cron daemon status was repaired\r\n";
         assert_eq!(
             maybe_report(report).unwrap().1.unwrap(),
             RawReport {
