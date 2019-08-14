@@ -1,0 +1,140 @@
+#!/usr/bin/python
+
+"""
+Rudder package manager
+
+Usage:
+    rudder-pkg [--debug] install-file <package.rpkg>...
+    rudder-pkg [--debug] install <package> [--version=<version>] [--nightly]
+    rudder-pkg [--debug] show <package> [--version=<version>] [--nightly]
+    rudder-pkg [--debug] remove <package>...
+    rudder-pkg [--debug] search <package>...
+    rudder-pkg [--debug] list [--all]
+    rudder-pkg [--debug] update
+    rudder-pkg [--debug] licenses
+    rudder-pkg [--debug] rudder-postupgrade
+    rudder-pkg [--debug] check-compatibility
+    rudder-pkg [--debug] plugin save-status
+    rudder-pkg [--debug] plugin restore-status
+    rudder-pkg [--debug] plugin enable <plugin>...
+    rudder-pkg [--debug] plugin enable-all
+    rudder-pkg [--debug] plugin disable <plugin>...
+    rudder-pkg [--debug] plugin disable-all
+
+Options:
+    --debug    Set logging level to debug
+    --version <version>  Provide specific version
+    --nightly  Force the command to execute on the nightlies instead of the released plugins
+    --all      List all plugin name available
+
+Commands:
+    install-file
+        install a single package file into Rudder
+
+    install
+        download and install the latest released version of the plugin
+
+    show
+        show detailed informations on a given plugin
+
+    remove
+        remove the given package from Rudder
+
+    search
+        list available package versions
+
+    list
+        list installed packages
+
+    update
+        update the repository index
+
+    licenses
+        download all the licenses found on the given repo
+    
+    rudder-postupgrade
+        execute plugins post install scripts (needed after a Rudder upgrade) 
+    
+    check-compatibility
+        disable plugins that are not compatible with current Rudder version
+
+    plugin
+        commands on plugin status
+"""
+
+# nice to have
+#   rudder-pkg install package   # from std dir / from repo
+#   rudder-pkg upgrade package   # from std dir / from repo
+
+import sys, logging
+sys.path.insert(0,"/opt/rudder/share/python")
+sys.path.insert(0,"/opt/rudder/share/python/rudder-pkg")
+
+import docopt
+import rudderPkg
+import rudderPkgUtils as utils
+
+## MAIN
+if __name__ == "__main__":
+    args = docopt.docopt(__doc__)
+    if args['--debug']:
+        utils.startLogger('DEBUG')
+    else:
+        utils.startLogger('INFO')
+    utils.db_load()
+  
+    if args['install-file']:
+        rudderPkg.install_file(args['<package.rpkg>'])
+    if args['show']:
+        version = ""
+        mode = "release"
+        if args['--nightly']:
+            mode = "nightly"
+        if args['--version']:
+            version = args['--version']
+        rudderPkg.package_show(args['<package>'], version, mode)
+    elif args['list']:
+        if args['--all']:
+            rudderPkg.package_list_name()
+        else:
+            rudderPkg.package_list_installed()
+    elif args['update']:
+        rudderPkg.update()
+    elif args['licenses']:
+        rudderPkg.update_licenses()
+    elif args['search']:
+        rudderPkg.package_search(args['<package>'])
+    elif args['install']:
+        if args['--version']:
+            if args['--nightly']:
+                rudderPkg.package_install_specific_version(args['<package>'], args['--version'], "nightly")
+            else:
+                rudderPkg.package_install_specific_version(args['<package>'], args['--version'], "release")
+        else:
+            if args['--nightly']:
+                rudderPkg.package_install_latest(args['<package>'], "nightly")
+            else:
+                rudderPkg.package_install_latest(args['<package>'])
+    elif args['remove']:
+        rudderPkg.remove(args['<package>'])
+    elif args['rudder-postupgrade']:
+        rudderPkg.rudder_postupgrade()
+    elif args['check-compatibility']:
+        rudderPkg.check_compatibility()
+    elif args['plugin']:
+        if args['save-status']:
+            rudderPkg.plugin_save_status()
+        elif args['restore-status']:
+            rudderPkg.plugin_restore_status()
+        elif args['enable']:
+            rudderPkg.plugin_status(args['<plugin>'], True)
+        elif args['enable-all']:
+            rudderPkg.plugin_enable_all()
+        elif args['disable']:
+            rudderPkg.plugin_status(args['<plugin>'], False)
+        elif args['disable-all']:
+            rudderPkg.plugin_disable_all()
+
+    if utils.jetty_needs_restart:
+        utils.shell("service rudder-jetty restart", "Restarting jetty")
+        logging.info("done")
