@@ -177,6 +177,6 @@ class Rpkg:
         print(json.dumps(self.metadata, indent=4, sort_keys=True))
 
     def toTabulate(self):
-        return [self.longName, self.version.mode, self.version.pluginLongVersion, self.isCompatible()]
+        return [self.longName, self.version.mode, self.version.pluginLongVersion, str(self.isCompatible())]
 
 
