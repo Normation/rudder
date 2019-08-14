@@ -22,6 +22,7 @@ RUDDER_VERSION_TO_PACKAGE =
 RUDDER_MAJOR_VERSION := $(shell echo ${RUDDER_VERSION_TO_PACKAGE} | cut -d'.' -f 1-2)
 VIRTUALENV_RELEASE = 16.5.0
 VIRTUALENV_SHA256 = 15ee248d13e4001a691d9583948ad3947bcb8a289775102e4c4aa98a8b7a6d73
+RUDDER_PLUGINS_KEY_SHA256 = 1f0268d3a33191a0cd440d055243ecc4660442ea39586c81011e1ce23b18143c
 PYTHON = python3
 
 PROXY_ENV = $(if $(PROXY), http_proxy=$(PROXY))
@@ -43,6 +44,9 @@ relay-api/virtualenv/virtualenv.py: relay-api/virtualenv.tgz
 	cd relay-api && tar -xzf ./virtualenv.tgz
 	cd relay-api && mv ./virtualenv-$(VIRTUALENV_RELEASE)/ virtualenv/
 
+rudder-pkg/rudder_plugins_key.pub:
+	$(GET) rudder-pkg/rudder_plugins_key.pub https://repository.rudder.io/apt/rudder_apt_key.pub $(RUDDER_PLUGINS_KEY_SHA256)
+
 man-source: target/man-source/rudder-relayd.1;
 
 target/man-source/%: man/%.adoc
@@ -56,7 +60,7 @@ target/man/rudder-relayd.1.gz:
 	$(GET) target/man/rudder-relayd.1 https://docs.rudder.io/man/${RUDDER_MAJOR_VERSION}/rudder-relayd.1 ""
 	gzip -f target/man/rudder-relayd.1
 
-build: man relay-api/virtualenv/virtualenv.py
+build: man relay-api/virtualenv/virtualenv.py rudder-pkg/rudder_plugins_key.pub
 	# Build virtualenv
 	cd relay-api && $(PYTHON) virtualenv/virtualenv.py flask
 	# Get all requirements via pip
@@ -81,6 +85,7 @@ install: build
 	mkdir -p $(DESTDIR)/opt/rudder/bin/
 	mkdir -p $(DESTDIR)/opt/rudder/etc/relayd/
 	mkdir -p $(DESTDIR)/opt/rudder/etc/ssl/
+	mkdir -p $(DESTDIR)/opt/rudder/etc/rudder-pkg/
 	mkdir -p $(DESTDIR)/opt/rudder/share/selinux/
 	mkdir -p $(DESTDIR)/opt/rudder/share/relay-api/
 	mkdir -p $(DESTDIR)/opt/rudder/share/python/
@@ -118,9 +123,8 @@ install: build
 	
 	# rudder packaging
 	install -m 755 rudder-pkg/rudder-pkg $(DESTDIR)/opt/rudder/bin/
-	install -m 755 rudder-pkg/makeIndex.sh $(DESTDIR)/opt/rudder/bin/
-	install -m 755 rudder-pkg/rudder-pkg.conf $(DESTDIR)/ $(DESTDIR)/var/rudder/tmp/
-	install -m 755 rudder-pkg/rudder_apt_key.pub $(DESTDIR)/var/rudder/
+	install -m 755 rudder-pkg/rudder-pkg.conf $(DESTDIR)/ $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder-pkg.conf
+	install -m 755 rudder-pkg/rudder_plugins_key.pub $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.pub
 	install -m 644 rudder-pkg/lib $(DESTDIR)/opt/rudder/share/python/
 	
 	# Apache

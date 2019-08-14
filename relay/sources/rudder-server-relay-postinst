@@ -79,13 +79,6 @@ if [ ! -f /var/rudder/lib/ssl/nodescerts.pem ]; then
   touch /var/rudder/lib/ssl/allnodescerts.pem
 fi
 
-# Put the rudder-pkg conf file if it doesn't exist
-if [ ! -f /opt/rudder/etc/rudder-pkg.conf ]; then
-  mv /var/rudder/tmp/rudder-pkg.conf /opt/rudder/etc/rudder-pkg.conf
-else
-  rm -f /var/rudder/tmp/rudder-pkg.conf
-fi
-
 echo -n "INFO: Starting services..."
 systemctl start rudder-relayd >> ${LOG_FILE}
 systemctl start "${APACHE}" >> ${LOG_FILE}
