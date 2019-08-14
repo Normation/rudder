@@ -552,7 +552,7 @@ class SettingsApi(
   }
 
   case object RestReportProtocolDefault extends RestSetting[AgentReportingProtocol] {
-    var key = "rudder.report.protocol.default"
+    var key = "rudder_report_protocol_default"
     val startPolicyGeneration = false
     def get = configService.rudder_report_protocol_default()
     def set = (value : AgentReportingProtocol, _, _)  => configService.set_rudder_report_protocol_default(value)
