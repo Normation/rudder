@@ -123,7 +123,7 @@ install: build
 	
 	# rudder packaging
 	install -m 755 rudder-pkg/rudder-pkg $(DESTDIR)/opt/rudder/bin/
-	install -m 755 rudder-pkg/rudder-pkg.conf $(DESTDIR)/ $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder-pkg.conf
+	install -m 755 rudder-pkg/rudder-pkg.conf $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder-pkg.conf
 	install -m 755 rudder-pkg/rudder_plugins_key.pub $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.pub
 	install -m 644 rudder-pkg/lib $(DESTDIR)/opt/rudder/share/python/
 	
