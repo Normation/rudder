@@ -3,8 +3,16 @@ import distutils.spawn
 from pprint import pprint
 from pkg_resources import parse_version
 from subprocess import Popen, PIPE
+import fcntl, termios, struct
 
 # See global variables at the end of the file
+""" Get Terminal width """
+def terminal_size():
+    h, w, hp, wp = struct.unpack('HHHH',
+        fcntl.ioctl(0, termios.TIOCGWINSZ,
+        struct.pack('HHHH', 0, 0, 0, 0)))
+    return w, h
+
 
 """
     Start two different loggers:
@@ -85,6 +93,42 @@ def createPath(path):
     except OSError:
         if not os.path.isdir(path):
             fail("Could not create dir %s"%(path))
+"""
+   Print dict list in a fancy manner
+   Assume the dict is following the format:
+   { "strkey1" : [ "str", "str2", ... ],
+     "strkey2" : [ "str", "str2", ... ],
+   }
+"""
+def dictToAsciiTable(data):
+    # Get maximum text length to print
+    lengths = [ len(max(data.get(k) + [k], key=len)) for k in data.keys() ]
+    lenstr = "| " + " | ".join("{:<%s}" % m for m in lengths) + " |"
+    lenstr += "\n"
+
+    # Define sep bar for header
+    sepBar = ""
+    for iSep in lengths:
+       sepBar += "+" + "-" * (int(iSep) + 2)
+    sepBar += "+\n"
+
+    outmsg = sepBar + lenstr.format(*data.keys()) + sepBar
+
+    # Write rows, at least an empty one if everything is empty
+    printedRows = 0
+    maxRows = max([len(data.get(k)) + 1 for k in data.keys()])
+    while True:
+       row = []
+       for k in data.keys():
+           if len(data.get(k)) > printedRows:
+               row.append(data.get(k)[printedRows])
+           else:
+               row.append("")
+       outmsg += lenstr.format(*row)
+       printedRows = printedRows + 1
+       if printedRows >= maxRows - 1:
+           break
+    return outmsg
 
 """
    From a complete url, try to download a file. The destination path will be determined by the complete url
@@ -101,7 +145,7 @@ def download(completeUrl, dst=""):
     fileDir = os.path.dirname(fileDst)
     createPath(fileDir)
     r = requests.get(completeUrl, auth=(USERNAME, PASSWORD), stream=True)
-    columns, rows = os.get_terminal_size(0)
+    columns = terminal_size()[1]
     with open(fileDst, 'wb') as f:
        bar_length = int(r.headers.get('content-length'))
        if r.status_code == 200:

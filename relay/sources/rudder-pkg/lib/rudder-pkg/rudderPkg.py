@@ -8,11 +8,11 @@ import re
 import shutil
 import requests as requests
 import logging
-from tabulate import tabulate
 import plugin
 import rpkg
 import rudderPkgUtils as utils
 from lxml import html
+import traceback
 
 
 """
@@ -49,8 +49,14 @@ def package_list_installed():
     toPrint = []
     printLatest = os.path.isfile(utils.INDEX_PATH)
 
+    pluginName = []
+    version = []
+    latestRelease = []
+
     for p in utils.DB["plugins"].keys():
+        pluginName.append(p)
         currentVersion = rpkg.PluginVersion(utils.DB["plugins"][p]["version"])
+        version.append(currentVersion)
         extra = ""
         if printLatest:
             pkgs = plugin.Plugin(p)
@@ -58,24 +64,34 @@ def package_list_installed():
             latestVersion = pkgs.getLatestCompatibleRelease().version
             if currentVersion < latestVersion:
                 extra = "version %s is available"%(latestVersion.pluginLongVersion)
-            toPrint.append([p, currentVersion.pluginLongVersion, latestVersion.pluginLongVersion + " " + extra])
+            latestRelease.append(latestVersion.pluginLongVersion + " " + extra)
         else:
-            toPrint.append([p, currentVersion.pluginLongVersion])
+            latestRelease.append("")
 
+    table = { "Plugin Name"    : pluginName,
+              "Version"        : version,
+            }
     if printLatest:
-        print(tabulate(toPrint, headers=['Plugin Name', 'Version', 'Latest release'], tablefmt='orgtbl'))
-    else:
-        print(tabulate(toPrint, headers=['Plugin Name', 'Version'], tablefmt='orgtbl'))
+        table["Latest release"] = latestRelease
+    print(utils.dictToAsciiTable(table))
 
 """
     List available plugin names.
 """
 def package_list_name():
     pluginDict = utils.list_plugin_name()
-    toPrint = []
+    pluginName = []
+    shortName = []
+    description = []
     for p in pluginDict.keys():
-        toPrint.append([p, pluginDict[p][0], pluginDict[p][1]])
-    print(tabulate(toPrint, headers=['Plugin Name', 'Plugin Short Name', 'Description'], tablefmt='orgtbl'))
+        pluginName.append(str(p))
+        shortName.append(str(pluginDict[p][0]))
+        description.append(str(pluginDict[p][1]))
+    table = { "Plugin Name"       : pluginName,
+              "Plugin Short Name" : shortName,
+              "Description"       : description,
+            }
+    print(utils.dictToAsciiTable(table))
 
 """
     Given a name, a version, and a mode, print associated plugin metadata.
@@ -105,10 +121,24 @@ def package_search(name):
     utils.readConf()
     pkgs = plugin.Plugin(name[0])
     pkgs.getAvailablePackages()
-    toPrint = []
+    pluginName = []
+    releaseMode = []
+    version = []
+    compatible = []
+
     for iRpkg in sorted(pkgs.packagesInfo):
-        toPrint.append(iRpkg.toTabulate())
-    print(tabulate(toPrint, headers=['Name', 'release mode', 'Version', 'Compatible'], tablefmt='orgtbl'))
+        data = iRpkg.toTabulate()
+        pluginName.append(data[0])
+        releaseMode.append(data[1])
+        version.append(data[2])
+        compatible.append(data[3])
+
+    table = { "Plugin Name"  : pluginName,
+              "Release Mode" : releaseMode,
+              "Version"      : version,
+              "Compatible"   : compatible,
+            }
+    print(utils.dictToAsciiTable(table))
 
 """
     Install the package for a given plugin in a specific version.
@@ -250,6 +280,7 @@ def update():
     try:
         utils.download(utils.URL + "/" + "rpkg.index")
     except Exception as e:
+        traceback.print_exc(file=sys.stdout)
         if os.path.isfile(utils.INDEX_PATH + ".bkp"):
             logging.debug("restoring %s from %s"%(utils.INDEX_PATH, utils.INDEX_PATH + ".bkp"))
             os.rename(utils.INDEX_PATH + ".bkp", utils.INDEX_PATH)
