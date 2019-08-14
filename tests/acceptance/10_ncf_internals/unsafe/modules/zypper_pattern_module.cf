@@ -41,7 +41,7 @@ bundle agent init
   commands:
     # Since newer zypper version does not support by default local unsigned rpm install
     # we have to import a one time use key that signed the pattern rpm
-    "/usr/bin/rpm --import ${pwd}/Rudder-tests-key";
+    "${paths.rpm} --import ${pwd}/Rudder-tests-key";
     "/usr/bin/createrepo ${repo_path}";
     "/usr/bin/zypper rr local";
     "/usr/bin/zypper ar --no-gpgcheck ${repo_path} local";
@@ -216,7 +216,7 @@ bundle agent test_package_module_list_installed(module_name)
 
 
     # Get the packages list from the package manager directly, rpm distro only
-    "packages" string => execresult("/bin/rpm -qa #${module_name}", "useshell");
+    "packages" string => execresult("${paths.rpm} -qa #${module_name}", "useshell");
     "package_regex_${indices}" string => ".*${packages_names_${indices}}-${packages_version_${indices}}.*${packages_architecture_${indices}}";
     "packages_list" slist => splitstring("${packages}", "${const.n}", "99999999999");
 
@@ -292,7 +292,7 @@ EOF";
     # Get info from the rpm file and from the input, the name is mandatory, version and arch are not
     pass1.file::
       "package_path" string  => regex_replace("${input}", "(^(?!File=).*|\n|File=)", "", "gms");
-      "package_name" string => execresult("rpm --qf \"%{NAME}\\n\" -qp ${package_path}", "useshell");
+      "package_name" string => execresult("${paths.rpm} --qf \"%{NAME}\\n\" -qp ${package_path}", "useshell");
     pass1.repo::
       "package_path" string  => regex_replace("${input}", "(^(?!Name=).*|\n|Name=)", "", "gms");
       "package_name" string => "${package_path}";
