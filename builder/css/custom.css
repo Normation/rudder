@@ -35,9 +35,15 @@ body, html{
   background-color: #85b711;
   border-color: #79a90a;
 }
-.dropdown-menu.show {
+ul.dropdown-menu {
+  padding: 0;
+}
+ul.dropdown-menu.show {
   right: -4px !important;
   left: auto !important;
+}
+ul.dropdown-menu > li > a{
+  display: block;
 }
 .btn.btn-outline-success{
   background-color: #fff ;
@@ -396,6 +402,15 @@ ul.tabs-list > li > .badge.empty{
 .main #methods{
   padding: 0 15px;
 }
+#no-methods{
+  margin: auto 15px;
+  padding: 15px;
+  border: 2px dashed #e5e5e5;
+  border-radius: 4px;
+  color: #0519258c;
+  background-color: #f3f8ff;
+  cursor: pointer;
+}
 /* FILEMANAGER */
 .filemanager-container{
   position: fixed;
@@ -511,7 +526,6 @@ ul.files-list > li {
   position: relative;
   background-color: #fff;
   padding-right: 50px;
-  transition-duration: .2s;
   margin-bottom: 4px;
   border-left-width: 0px;
   box-shadow: 0px 5px 4px -3px rgba(0,0,0,.1);

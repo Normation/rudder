@@ -70,12 +70,12 @@
           <div class="modal-body">
             Some changes made on Technique '{{technique.name}}' were not saved.<br/>
             If you switch before saving, all your changes will be lost.<br/>
-            <span class="text-danger" ng-if="editForm.$invalid">Technique cannot be saved because it has some errors</span>
+            <span class="text-danger" ng-if="ui.editForm.$invalid">Technique cannot be saved because it has some errors</span>
           </div>
           <div class="modal-footer">
             <button class="btn btn-primary btn-outline pull-left" ng-click="cancel()">Cancel <i class="fas fa-arrow-left"></i></button>
             <button class="btn btn-primary" ng-click="discard()">Discard Changes <i class="fas fa-times-circle"></i></button>
-            <button class="btn btn-success" ng-disabled="editForm.$invalid" ng-click="save()">Save Changes <i class="fas fa-download"></i></button>
+            <button class="btn btn-success" ng-disabled="ui.editForm.$invalid" ng-click="save()">Save Changes <i class="fas fa-download"></i></button>
           </div>
         </script>
         <script type="text/ng-template" id="RestoreWarningModal.html">
@@ -264,7 +264,7 @@
                 </div>
               </div>
               <div class="col main">
-                <form class="editForm" name="editForm" novalidate >
+                <form class="editForm" name="ui.editForm" novalidate >
                 <div class="row flex-column no-gutters">
                   <div class="col-auto">
                     <div class="col-xs-12">
@@ -286,13 +286,13 @@
                                 </div>
                               </div>
                           </div>
-                          <div class="form-group" ng-class="{'has-error':editForm.name.$dirty && (editForm.name.$error.required || editForm.name.$error.techniqueName)}">
+                          <div class="form-group" ng-class="{'has-error':ui.editForm.name.$dirty && (ui.editForm.name.$error.required || ui.editForm.name.$error.techniqueName)}">
                               <label for="techniqueName" class="col-sm-3 control-label">Name</label>
                               <div class="col-sm-8">
                                 <input  type="text" id="techniqueName" name="name" class="form-control" techniquename ng-model="selectedTechnique.name" placeholder="Technique Name" required ng-change="updateBundleName()" focus-on="focusTechniqueName">
                               </div>
-                              <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.name.$error.techniqueName">Technique name must be unique</span>
-                              <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.name.$error.required && editForm.name.$dirty">Technique name is required</span>
+                              <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="ui.editForm.name.$error.techniqueName">Technique name must be unique</span>
+                              <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="ui.editForm.name.$error.required && ui.editForm.name.$dirty">Technique name is required</span>
                           </div>
                           <div class="form-group">
                               <label for="techniqueDescription" class="col-sm-3 control-label"><span class="text-fit">Description</span></label>
@@ -305,13 +305,13 @@
                               <div class="col-sm-8">
                                   <input readonly id="bundleName" bundlename name="bundle_name" class="form-control" ng-model="selectedTechnique.bundle_name" ng-maxlength="252" ng-pattern="/^[^_].*$/">
                               </div>
-                              <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.maxlength">
+                              <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="ui.editForm.bundle_name.$error.maxlength">
                                 Technique IDs longer than 255 characters won't work on most filesystems.
                               </span>
-                              <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.bundleName">
+                              <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="ui.editForm.bundle_name.$error.bundleName">
                                 Technique ID must be unique.
                               </span>
-                              <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.pattern">Technique ID should start with an alphanumeric character.</span>
+                              <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="ui.editForm.bundle_name.$error.pattern">Technique ID should start with an alphanumeric character.</span>
                               <span class="rudder-text-warning col-sm-8 col-sm-offset-3" ng-show="selectedTechnique.bundle_name.length > 100 && selectedTechnique.bundle_name.length < 253">
                                 <b><span class="glyphicon glyphicon-exclamation-sign"></span></b> Technique IDs longer than 100 characters may not work on some filesystems (Windows, in particular).
                               </span>
@@ -380,24 +380,24 @@
                   </div>
 
                   <div class="col">
-                    <div ng-if="selectedTechnique.method_calls.length === 0" class="btn btn-block btn-default text-center" id="no-methods" >
+                    <div id="no-methods" ng-if="selectedTechnique.method_calls.length === 0" ng-click="toggleDisplay(false)">
                         Drag and drop generic methods here from the list on the right to build target configuration for this technique.
                     </div>
                     <ul id="methods" class="list-unstyled" dnd-list="selectedTechnique.method_calls" dnd-drop="dropCallback(item, index, type);" >
                     <li
                       ng-repeat="method_call in selectedTechnique.method_calls"
                       ng-show="checkFilterMethod(method_call)"
-                      ng-class="{'active': isSelectedMethod(method_call), 'missingParameters': checkMissingParameters(method_call.parameters), 'errorParameters': checkErrorParameters(method_call.parameters), 'is-edited' : canResetMethod(method_call)}"
+                      ng-class="{'active': methodIsSelected(method_call), 'missingParameters': checkMissingParameters(method_call.parameters), 'errorParameters': checkErrorParameters(method_call.parameters), 'is-edited' : canResetMethod(method_call)}"
                       >
-                      <div class="method row no-gutters">
-                        <div
-                          class="cursorMove col-auto"
-                          dnd-draggable="method_call"
-                          dnd-effect-allowed="move"
-                          dnd-moved="selectedTechnique.method_calls.splice($index,1)">
+                      <div
+                        class="method row no-gutters"
+                        dnd-draggable="method_call"
+                        dnd-effect-allowed="move"
+                        dnd-moved="selectedTechnique.method_calls.splice($index,1)">
+                        <div class="cursorMove col-auto">
                           <b>:::</b>
                         </div>
-                        <div class="col method-info">
+                        <div class="col method-info" dnd-nodrag>
                           <div class="btn-holder">
                             <button type="button" uib-tooltip="Clone this method" tooltip-append-to-body="true" popup-trigger="click" popup-open-delay="500" ng-click="cloneMethod($index);$event.stopPropagation();" class="text-success method-action">
                               <i class="fas fa-clone"></i>
@@ -420,7 +420,7 @@
                                 ng-model="method_call.class_context"/>
                             </div>
 
-                            <div class="method-name col-auto" ng-click="addMethod(method)">
+                            <div class="method-name col-auto">
                               {{method_call.component}}
                               <span
                                 class="cursor-help"
@@ -453,11 +453,12 @@
                           <i class="fas fa-pen"></i>
                         </div>
                       </div>
-                      <div class="col-auto method-details" ng-if="selectedMethod !== undefined && isSelectedMethod(method_call)">
+
+                      <div class="col-auto method-details" ng-if="methodIsSelected(method_call)">
                         <div>
                           <div class="form-group">
                             <label for="component">Report component:</label>
-                            <input type="text" name="component" class="form-control" ng-model="selectedMethod.component"/>
+                            <input type="text" name="component" class="form-control" ng-model="method_call.component"/>
                           </div>
                           <div class="row">
                             <ul class="tabs-list">
@@ -474,7 +475,7 @@
                           </div>
                           <div class="tabs">
                             <div class="tab-parameters" ng-if="ui.methodTabs[method_call['$$hashKey']]=='parameters' || ui.methodTabs[method_call['$$hashKey']]===undefined">
-                              <div class="form-group method-parameter" show-errors ng-form="subForm" ng-repeat="parameter in selectedMethod.parameters track by $index">
+                              <div class="form-group method-parameter" show-errors ng-form="subForm" ng-repeat="parameter in method_call.parameters track by $index">
                                 <ng-form name="paramForm" role="form">
                                   <label for="param-{{$index}}">
                                     <span>{{parameter.name}}:</span>
@@ -495,21 +496,21 @@
                                 <form class="form-inline" role="form">
                                   <div class="form-group">
                                     <label for="os_class">Type:</label>
-                                    <select class="form-control" ng-change="updateOSType()" ng-model="selectedMethod.OS_class.type" ng-options="type for type in type_classes" ></select>
+                                    <select class="form-control" ng-change="updateOSType(method_call)" ng-model="method_call.OS_class.type" ng-options="type for type in type_classes" ></select>
                                   </div>
-                                  <div class="form-group" ng-show="os_classes_by_type[selectedMethod.OS_class.type].length > 0" >
+                                  <div class="form-group" ng-show="os_classes_by_type[method_call.OS_class.type].length > 0" >
                                     <label for="os_class">Name:</label>
-                                    <select class="form-control" ng-change="updateOSName()" ng-model="selectedMethod.OS_class.name" ng-options="os for os in os_classes_by_type[selectedMethod.OS_class.type]"></select>
+                                    <select class="form-control" ng-change="updateOSName(method_call)" ng-model="method_call.OS_class.name" ng-options="os for os in os_classes_by_type[method_call.OS_class.type]"></select>
                                   </div>
                                 </form>
                                 <form class="form-inline sm-space-top" name="CForm.versionForm" role="form">
-                                  <div class="form-group" ng-show="checkMajorVersion()">
+                                  <div class="form-group" ng-show="checkMajorVersion(method_call)">
                                     <label for="os_class">Version (Major):</label>
-                                    <input type="text" ng-pattern="versionRegex" class="form-control" ng-change="updateClassContext()" ng-model="selectedMethod.OS_class.majorVersion" name="versionMaj" placeholder="">
+                                    <input type="text" ng-pattern="versionRegex" class="form-control" ng-change="updateClassContext(method_call)" ng-model="method_call.OS_class.majorVersion" name="versionMaj" placeholder="">
                                   </div>
-                                  <div class="form-group" ng-show="checkMinorVersion()">
+                                  <div class="form-group" ng-show="checkMinorVersion(method_call)">
                                     <label for="os_class">Version (Minor):</label>
-                                    <input type="text"  ng-pattern="versionRegex" class="form-control" ng-change="updateClassContext()" ng-disabled="selectedMethod.OS_class.majorVersion === undefined || selectedMethod.OS_class.majorVersion === '' " ng-model="selectedMethod.OS_class.minorVersion"  placeholder="" name="versionMin">
+                                    <input type="text"  ng-pattern="versionRegex" class="form-control" ng-change="updateClassContext(method_call)" ng-disabled="method_call.OS_class.majorVersion === undefined || method_call.OS_class.majorVersion === '' " ng-model="method_call.OS_class.minorVersion"  placeholder="" name="versionMin">
                                   </div>
                                   <div ng-messages="CForm.versionForm.versionMaj.$error" class="sm-space-top" role="alert">
                                     <div ng-message="pattern" class="text-danger">Invalid major version's number</div>
@@ -522,14 +523,14 @@
                               <form name="CForm.form">
                                 <div class="form-group condition-form">
                                   <label class="control-label" for="advanced">Other conditions:</label>
-                                  <textarea msd-elastic name="cfClasses" class="form-control" rows="1" id="advanced" ng-pattern="/^\S+$/" ng-model="selectedMethod.advanced_class" ng-change="updateClassContext()"></textarea>
+                                  <textarea msd-elastic name="cfClasses" class="form-control" rows="1" id="advanced" ng-pattern="/^\S+$/" ng-model="method_call.advanced_class" ng-change="updateClassContext(method_call)"></textarea>
                                   <div ng-messages="CForm.form.cfClasses.$error" role="alert">
                                     <div ng-message="pattern" class="text-danger">This field cannot contain whitespace</div>
                                   </div>
                                 </div>
                                 <div class="form-group condition-form">
                                   <label for="class_context">Applied condition expression:</label>
-                                  <textarea msd-elastic name="cfClassContext" class="form-control" rows="1" id="advanced" ng-maxlength="2048" ng-model="selectedMethod.class_context" ng-readonly="true"></textarea>
+                                  <textarea msd-elastic name="cfClassContext" class="form-control" rows="1" id="advanced" ng-maxlength="2048" ng-model="method_call.class_context" ng-readonly="true"></textarea>
                                   <span class="text-danger" ng-show="CForm.form.cfClassContext.$error.maxlength">
                                     Classes over 2048 characters are currently not supported.
                                   </span>
@@ -540,14 +541,14 @@
                               <label>
                                 <small>Result conditions defined by this method</small>
                               </label>
-                              <form class="form-horizontal editForm" name="editForm">
+                              <form class="form-horizontal editForm">
                                 <div class="input-group input-group-sm mb-2">
                                   <div class="input-group-prepend">
                                     <span class="input-group-text">Success</span>
                                   </div>
-                                  <input ng-readonly="true" type="text" id="techniqueName" class="form-control" value="{{getClassKind(selectedMethod,'kept')}}">
+                                  <input ng-readonly="true" type="text" id="techniqueName" class="form-control" value="{{getClassKind(method_call,'kept')}}">
                                   <div class="input-group-append">
-                                    <button class="btn btn-outline-secondary clipboard" type="button" data-clipboard-text="{{getClassKind(selectedMethod,'kept')}}" title="Copy to clipboard">
+                                    <button class="btn btn-outline-secondary clipboard" type="button" data-clipboard-text="{{getClassKind(method_call,'kept')}}" title="Copy to clipboard">
                                       <i class="ion ion-clipboard"></i>
                                     </button>
                                   </div>
@@ -556,9 +557,9 @@
                                   <div class="input-group-prepend">
                                     <span class="input-group-text">Repaired</span>
                                   </div>
-                                  <input ng-readonly="true" type="text" id="techniqueName" class="form-control" value="{{getClassKind(selectedMethod,'repaired')}}">
+                                  <input ng-readonly="true" type="text" id="techniqueName" class="form-control" value="{{getClassKind(method_call,'repaired')}}">
                                   <div class="input-group-append">
-                                    <button class="btn btn-outline-secondary clipboard" type="button" data-clipboard-text="{{getClassKind(selectedMethod,'repaired')}}" title="Copy to clipboard">
+                                    <button class="btn btn-outline-secondary clipboard" type="button" data-clipboard-text="{{getClassKind(method_call,'repaired')}}" title="Copy to clipboard">
                                       <i class="ion ion-clipboard"></i>
                                     </button>
                                   </div>
@@ -567,9 +568,9 @@
                                   <div class="input-group-prepend">
                                     <span class="input-group-text">Error</span>
                                   </div>
-                                  <input ng-readonly="true" type="text" id="techniqueName" class="form-control" value="{{getClassKind(selectedMethod,'error')}}">
+                                  <input ng-readonly="true" type="text" id="techniqueName" class="form-control" value="{{getClassKind(method_call,'error')}}">
                                   <div class="input-group-append">
-                                    <button class="btn btn-outline-secondary clipboard" type="button" data-clipboard-text="{{getClassKind(selectedMethod,'error')}}" title="Copy to clipboard">
+                                    <button class="btn btn-outline-secondary clipboard" type="button" data-clipboard-text="{{getClassKind(method_call,'error')}}" title="Copy to clipboard">
                                       <i class="ion ion-clipboard"></i>
                                     </button>
                                   </div>
@@ -578,16 +579,16 @@
                             </div>
                           </div>
                           <div class="method-details-footer">
-                            <button class="btn btn-outline-secondary btn-sm" ng-disabled="!canResetMethod(selectedMethod)" ng-click="resetMethod()">
+                            <button class="btn btn-outline-secondary btn-sm" ng-disabled="!canResetMethod(method_call)" ng-click="resetMethod(method_call)">
                               Reset
                               <i class="fas fa-undo-alt"></i>
                             </button>
                             <button 
                               class="btn btn-sm btn-primary"
-                              ng-if="getMethodDocumentation(selectedMethod) !== undefined"
-                              ng-class="{ 'btn-outline' : !selectedMethod.showDoc}"
-                              ng-click="$event.stopPropagation(); selectedMethod.showDoc = !selectedMethod.showDoc">
-                              {{selectedMethod.showDoc ? "Hide" : "Show"}} docs 
+                              ng-if="getMethodDocumentation(method_call) !== undefined"
+                              ng-class="{ 'btn-outline' : !method_call.showDoc}"
+                              ng-click="$event.stopPropagation(); method_call.showDoc = !method_call.showDoc">
+                              {{method_call.showDoc ? "Hide" : "Show"}} docs
                               <i class="fa fa-book"></i>
                             </button>
                           </div>
@@ -600,7 +601,7 @@
               </form>
               </div>
               <div class="col-auto main-footer">
-                <button ng-disabled="editForm.$pending || editForm.$invalid || CForm.form.$invalid || checkSelectedTechnique() || saving" class="btn btn-success btn-save" ng-class="{saving : saving}" ng-click="saveTechnique()">
+                <button ng-disabled="ui.editForm.$pending || ui.editForm.$invalid || CForm.form.$invalid || checkSelectedTechnique() || saving" class="btn btn-success btn-save" ng-class="{saving : saving}" ng-click="saveTechnique()">
                   <span class="glyphicon glyphicon-cog saving"></span>
                   Save <i class="fas fa-download"></i>
                 </button>
@@ -614,6 +615,9 @@
               <div class="row">
                 <div class="col">
                   <h3 class="title">Generic Methods</h3>
+                </div>
+                <div class="col-auto">
+                  <button class="btn btn-sm btn-outline-secondary">Close</button>
                 </div>
                 <div class="w-100"></div>
                 <div class="col input-group input-group-sm">

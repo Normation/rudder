@@ -11,16 +11,6 @@ function swapTwoArrayItems(array, index1, index2) {
     return array;
 };
 
-// Find index of an element in an array
-function findIndex(array, elem) {
-    for (var index in array) {
-      var item = array[index];
-      if (angular.equals(item, elem)) {
-        return array.indexOf(item);
-      }
-    }
-    return -1;
-};
 // check if the parameter used contains $(somecontent), where somecontent is neither
 // a valid variable name (key.value), nor does contain /
 // If the content is invalid, returns true, else false
@@ -176,10 +166,10 @@ app.controller('ncf-builder', function ($scope, $uibModal, $http, $q, $location,
     showTechniques    : true,
     activeTab         : 'general',
     showMethodsFilter : true,
-    methodTabs        : {}
+    methodTabs        : {},
+    selectedMethods   : [],
+    editForm          : {}
   }
-  // Give access to the "General information" form
-  $scope.editForm;
   // Path of ncf files, defined as a url parameter
   $scope.path;
   // generic methods container
@@ -204,12 +194,8 @@ app.controller('ncf-builder', function ($scope, $uibModal, $http, $q, $location,
   $scope.parameters;
   $scope.selectedTechnique;
   $scope.originalTechnique;
-  // Information about the selected method in a technique
-  $scope.selectedMethod;
   // Are we authenticated on the interface
   $scope.authenticated = false;
-  // Open/Close by default the Conditions box
-  $scope.conditionIsOpen = false;
 
   //Generic methods filters
   $scope.filter = {
@@ -235,19 +221,17 @@ app.controller('ncf-builder', function ($scope, $uibModal, $http, $q, $location,
   // Callback when an element is dropped on the list of method calls
   // return the element that will be added, if false do not add anything
   $scope.dropCallback = function(elem, nextIndex, type){
-
     // Add element
     // if type is a bundle, then transform it to a method call and add it
     if (type === "bundle") {
       return toMethodCall(elem);
     }
-
-    // If selected method is the same than the one moving, we need to update selectedMethod
-    if (angular.equals($scope.selectedMethod, elem)) {
-      $scope.selectedMethod = elem;
+    var selectedMethodIndex = $scope.ui.selectedMethods.findIndex(function(m){return angular.equals(elem, m)});
+    // Keep the method opened if it was
+    if (selectedMethodIndex>=0) {
+      $scope.ui.selectedMethods[selectedMethodIndex] = elem;
     }
-
-    return elem
+    return elem;
   }
 
 // Define path by getting url params now
@@ -478,15 +462,19 @@ function toTechNcf (baseTechnique) {
 
 // Check if a technique is selected
 $scope.isSelected = function(technique) {
-  return angular.equals($scope.originalTechnique,technique);
+  if($scope.originalTechnique==undefined || technique==undefined) return false;
+  return $scope.originalTechnique.bundle_name == technique.bundle_name;
 };
 
+$scope.getSelectedMethodIndex = function(method) {
+  var result = $scope.ui.selectedMethods.findIndex(function(m) {
+    return method["$$hashKey"] === m["$$hashKey"];
+  });
+  return result;
+};
 // Check if a method is selected
-$scope.isSelectedMethod = function(method) {
-  if ($scope.selectedMethod === undefined) {
-    return false
-  }
-  return method["$$hashKey"] === $scope.selectedMethod["$$hashKey"];
+$scope.methodIsSelected = function(method) {
+  return $scope.getSelectedMethodIndex(method) >= 0;
 };
 $scope.getSessionStorage = function(){
   $scope.resetFlags();
@@ -530,7 +518,7 @@ $scope.getSessionStorage = function(){
               technique: function () {
                 return $scope.selectedTechnique;
               }
-              , editForm  : function() { return  $scope.editForm }
+              , editForm  : function() { return  $scope.ui.editForm }
             }
           });
           modalInstance.result.then(function (doSave) {
@@ -706,7 +694,7 @@ $scope.onImportFileChange = function (fileEl) {
         if(importedTechnique['type'] == 'ncf_technique' && importedTechnique['version'] == 1.0) {
           var technique = toTechUI(importedTechnique['data']);
           $scope.checkSelect(technique, $scope.selectTechnique);
-          $scope.editForm.$setDirty();
+          $scope.ui.editForm.$setDirty();
           $scope.suppressFlag = true;
         } else {
           alert("Unsupported file type ! This version of Rudder only support import of ncf techniques files in format 1.0");
@@ -743,7 +731,7 @@ $scope.onImportFileChange = function (fileEl) {
     $scope.suppressFlag = false;
     $scope.conflictFlag = false;
     // Always clean Selected methods and display methods list
-    $scope.selectedMethod = undefined;
+    $scope.ui.selectedMethods = [];
     // Check if that technique is the same as the original selected one
     var test1 = angular.copy($scope.originalTechnique)
     var test2 = angular.copy(technique)
@@ -753,13 +741,14 @@ $scope.onImportFileChange = function (fileEl) {
       // It's the same, unselect the technique
       $scope.selectedTechnique = undefined;
       $scope.originalTechnique = undefined;
+      $scope.ui.activeTab      = 'general';
     } else {
       // Select the technique, by using angular.copy to have different objects
       $scope.selectedTechnique=angular.copy(technique);
       $scope.originalTechnique=angular.copy($scope.selectedTechnique);
       $scope.$broadcast('endSaving');
+      updateFileManagerConf()
     }
-    updateFileManagerConf()
   };
 
   ////////// OS Class ////////
@@ -789,20 +778,19 @@ $scope.onImportFileChange = function (fileEl) {
   $scope.minor_OS = $.map(cfengine_OS_classes, function(v,i) { return $.map($.grep(v.childs,function(os,i2) { return os.minor}), function(os,i2) {return os.name});});
 
   // Functiopn to check if the os selected need major/minor versionning
-  function checkVersion (os_list) {
-    if ($scope.selectedMethod.OS_class === undefined ) {
+  function checkVersion (os_list, method) {
+    if (method.OS_class === undefined ) {
       return false;
-    } else {
-      return $.inArray($scope.selectedMethod.OS_class.name,os_list) >= 0;
     }
+    return $.inArray(method.OS_class.name,os_list) >= 0;
   }
 
-  $scope.checkMajorVersion= function( ) {
-      return checkVersion($scope.major_OS);
+  $scope.checkMajorVersion= function(method) {
+    return checkVersion($scope.major_OS, method);
   }
 
-  $scope.checkMinorVersion= function( ) {
-      return checkVersion($scope.minor_OS);
+  $scope.checkMinorVersion= function(method) {
+    return checkVersion($scope.minor_OS, method);
   }
   $scope.checkDeprecatedFilter = function(methods){
     return methods.some(function(method){return method.deprecated === undefined });
@@ -861,64 +849,59 @@ $scope.onImportFileChange = function (fileEl) {
   }
 
   // Function used when changing os type
-  $scope.updateOSType = function() {
+  $scope.updateOSType = function(method) {
     // Reset selected OS
-    $scope.selectedMethod.OS_class.name = "Any";
+    method.OS_class.name = "Any";
     // Do other update cleaning
-    $scope.updateOSName();
+    $scope.updateOSName(method);
   }
   // Function used when changing selected os
-  $scope.updateOSName = function() {
+  $scope.updateOSName = function(method) {
     // Reset versions inputs
-    $scope.selectedMethod.OS_class.majorVersion = undefined;
-    $scope.selectedMethod.OS_class.minorVersion = undefined;
+    method.OS_class.majorVersion = undefined;
+    method.OS_class.minorVersion = undefined;
     // Update class context
-    $scope.updateClassContext();
+    $scope.updateClassContext(method);
   }
 
   // Update class context, after a change was made on classes
-  $scope.updateClassContext = function() {
+  $scope.updateClassContext = function(method) {
 
     // Define os class from selected inputs
     var os = undefined;
 
     // do not define os if nothing was selected
-    if ( !($scope.selectedMethod.OS_class === undefined) ) {
+    if ( !(method.OS_class === undefined) ) {
       // Get class from os type and selected os
-      os = getClass($scope.selectedMethod.OS_class);
+      os = getClass(method.OS_class);
     }
 
     if (os === undefined) {
       // No OS selected, only use advanced OS
-      $scope.selectedMethod.class_context = $scope.selectedMethod.advanced_class;
+      method.class_context = method.advanced_class;
     } else {
-      if ($scope.selectedMethod.advanced_class === undefined || $scope.selectedMethod.advanced_class === "") {
+      if (method.advanced_class === undefined || method.advanced_class === "") {
         // No adanced class, use only OS
-        $scope.selectedMethod.class_context = os;
+        method.class_context = os;
       } else {
         // Both OS and advanced. Use class_context os.advanced
-        $scope.selectedMethod.class_context = os+".("+$scope.selectedMethod.advanced_class+")";
+        method.class_context = os+".("+method.advanced_class+")";
       }
     }
   }
 
   // Select a method in a technique
   $scope.selectMethod = function(method_call) {
-    $scope.conditionIsOpen = method_call.class_context != "any";
-    if(angular.equals($scope.selectedMethod,method_call) ) {
-      $scope.selectedMethod = undefined;
+    if($scope.methodIsSelected(method_call)){
+      var methodIndex = $scope.getSelectedMethodIndex(method_call);
+      $scope.ui.selectedMethods.splice(methodIndex, 1);
       // Scroll to the previously selected method category
       // We need a timeout so model change can be taken into account and element to scroll is displayed
       $timeout( function() {$anchorScroll();}, 0 , false)
     } else {
-      $scope.selectedMethod = method_call;
-      $scope.updateClassContext();
+      $scope.updateClassContext(method_call);
+      $scope.ui.selectedMethods.push(method_call);
     }
-  };
-
-  // Open generic methods menu to add them to the technique
-  $scope.openMethods = function() {
-    $scope.selectedMethod = undefined;
   };
 
   function toMethodCall(bundle) {
@@ -959,7 +942,8 @@ $scope.onImportFileChange = function (fileEl) {
 
   // Check if a method has not been changed, and if we can use reset function
   $scope.canResetMethod = function(method) {
-    var canReset = true;
+    var canReset = method ? true : false;
+    if (!canReset) return false;
     if (method.original_index === undefined) {
       var current_method_name = method.method_name;
       var oldValue = toMethodCall($scope.generic_methods[current_method_name]);
@@ -976,16 +960,16 @@ $scope.onImportFileChange = function (fileEl) {
   };
 
   // Reset a method to the current value in the technique
-  $scope.resetMethod = function() {
+  $scope.resetMethod = function(method) {
     var oldValue = undefined;
-    if ($scope.selectedMethod.original_index === undefined) {
-      var current_method_name = $scope.selectedMethod.method_name;
+    if (method.original_index === undefined) {
+      var current_method_name = method.method_name;
       oldValue = toMethodCall($scope.generic_methods[current_method_name]);
     }else{
-      oldValue = $scope.originalTechnique.method_calls[$scope.selectedMethod.original_index];
+      oldValue = $scope.originalTechnique.method_calls[method.original_index];
     }
-    $scope.selectedMethod.class_context = oldValue.class_context;
-    $scope.selectedMethod.parameters = oldValue.parameters;
+    method.class_context = oldValue.class_context;
+    method.parameters = oldValue.parameters;
   };
 
   // Create a new technique stub
@@ -1000,7 +984,7 @@ $scope.onImportFileChange = function (fileEl) {
   };
 
   $scope.newTechnique = function() {
-    //$scope.editForm.$setPristine();
+    //$scope.ui.editForm.$setPristine();
     $scope.checkSelect(newTech, $scope.selectTechnique);
   };
 
@@ -1008,45 +992,40 @@ $scope.onImportFileChange = function (fileEl) {
   // Utilitary methods on Method call
 
   $scope.getMethodName = function(method_call) {
-    if (method_call.method_name in $scope.generic_methods ) {
+    if (method_call && method_call.method_name in $scope.generic_methods ) {
       return $scope.generic_methods[method_call.method_name].name;
-    } else {
-      return method_call.method_name;
     }
+    return method_call.method_name;
   };
 
   $scope.getMethodBundleName = function(method_call) {
-    if (method_call.method_name in $scope.generic_methods ) {
+    if (method_call && method_call.method_name in $scope.generic_methods ) {
       return $scope.generic_methods[method_call.method_name].bundle_name;
-    } else {
-      return method_call.method_name;
     }
+    return method_call.method_name;
   };
 
   // Get the desciption of a method call in definition of the generic method
   $scope.getMethodDescription = function(method_call) {
-    if (method_call.method_name in $scope.generic_methods ) {
+    if (method_call && method_call.method_name in $scope.generic_methods ) {
       return $scope.generic_methods[method_call.method_name].description;
-    } else {
-      return "";
     }
+    return "";
   };
 
   $scope.getMethodDocumentation = function(method_call) {
-    if (method_call.method_name in $scope.generic_methods ) {
+    if (method_call && method_call.method_name in $scope.generic_methods ) {
       return $scope.generic_methods[method_call.method_name].documentation;
-    } else {
-      return "";
     }
+    return "";
   };
 
   $scope.methodUrl = function(method) {
     var name = method.bundle_name !== undefined ? method.bundle_name : $scope.getMethodBundleName(method);
     if (usingRudder) {
       return "/rudder-doc/reference/current/reference/generic_methods.html#"+name
-    } else {
-      return "http://www.ncf.io/pages/reference.html#"+name;
     }
+    return "http://www.ncf.io/pages/reference.html#"+name;
   }
 
   // Get parameters information relative to a method_call
@@ -1133,29 +1112,25 @@ $scope.onImportFileChange = function (fileEl) {
       var res = $scope.selectedTechnique.method_calls.length === 0;
       if ($scope.selectedTechnique.isClone) {
         return res
-      } else {
-        return res ||  $scope.isUnchanged($scope.selectedTechnique)
       }
-    } else {
-      return false;
+      return res ||  $scope.isUnchanged($scope.selectedTechnique)
     }
+    return false;
   }
 
   // Technique actions
-
-
-
   // clone method of specified index and add it right after index
   $scope.cloneMethod= function(index) {
     var newMethod = angular.copy($scope.selectedTechnique.method_calls[index]);
     delete newMethod.original_index;
     $scope.selectedTechnique.method_calls.splice(index+1, 0, newMethod);
-    $scope.selectedMethod = newMethod;
+    $scope.ui.selectedMethods.push(newMethod);
   }
 
   // Remove method on specified index
   $scope.removeMethod= function(index) {
-    $scope.selectedMethod = undefined;
+    var methodIndex = $scope.getSelectedMethodIndex($scope.selectedTechnique.method_calls[index]);
+    $scope.ui.selectedMethods.splice(methodIndex, 1);
     $scope.selectedTechnique.method_calls.splice(index, 1);
   }
 
@@ -1194,21 +1169,10 @@ $scope.onImportFileChange = function (fileEl) {
 
   // Resets a Technique to its original state
   $scope.resetTechnique = function() {
-    $scope.editForm.$setPristine();
+    $scope.ui.editForm.$setPristine();
     $scope.selectedTechnique=angular.copy($scope.originalTechnique);
     $scope.resetFlags();
     $scope.$broadcast('endSaving');
-    // Reset selected method too
-    if ($scope.selectedMethod !== undefined) {
-      // if original_index did not exists, close the edit method tab
-      if ($scope.selectedMethod.original_index === undefined) {
-        $scope.selectedMethod = undefined;
-      } else {
-        // Synchronize the selected method with the one existing in the updated selected technique
-        var method = $scope.selectedTechnique.method_calls[$scope.selectedMethod.original_index]
-        $scope.selectedMethod = method;
-      }
-    }
   };
 
   // Delete a technique
@@ -1218,11 +1182,11 @@ $scope.onImportFileChange = function (fileEl) {
 
         ngToast.create({ content: "<b>Success!</b> Technique '" + $scope.originalTechnique.name + "' deleted!"});
 
-        var index = findIndex($scope.techniques,$scope.originalTechnique);
+        var index = $scope.techniques.findIndex(function(t){return t.bundle_name === $scope.originalTechnique.bundle_name});
         $scope.techniques.splice(index,1);
-        $scope.selectedMethod = undefined;
-        $scope.selectedTechnique = undefined;
-        $scope.originalTechnique = undefined;
+        $scope.ui.selectedMethods = [];
+        $scope.selectedTechnique  = undefined;
+        $scope.originalTechnique  = undefined;
       } ).
       error(handle_error("while deleting Technique '"+$scope.selectedTechnique.name+"'"));
   };
@@ -1320,11 +1284,7 @@ $scope.onImportFileChange = function (fileEl) {
       ngToast.create({ content: "<b>Success! </b> Technique '" + technique.name + "' saved!"});
 
       // Find index of the technique in the actual tree of technique (look for original technique)
-
-      var checkTechnique = angular.copy(origin_technique)
-      if(checkTechnique && checkTechnique.resources !== undefined) delete checkTechnique.resources;
-
-      var index = findIndex($scope.techniques,checkTechnique);
+      var index = $scope.techniques.findIndex(function(t){return t.bundle_name == origin_technique.bundle_name});
       if ( index === -1) {
        // Add a new techniuqe
        $scope.techniques.push(savedTechnique);
@@ -1336,11 +1296,11 @@ $scope.onImportFileChange = function (fileEl) {
       // Update technique if still selected
       if (angular.equals($scope.originalTechnique, origin_technique)) {
         // If we were cloning a technique, remove its 'clone' state
-        savedTechnique.isClone = false;
-        $scope.originalTechnique=angular.copy(savedTechnique);
-        $scope.selectedTechnique=angular.copy(savedTechnique);
+        savedTechnique.isClone    = false;
+        $scope.originalTechnique  = angular.copy(savedTechnique);
+        $scope.selectedTechnique  = angular.copy(savedTechnique);
         // We will lose the link between the selected method and the technique, to prevent unintended behavior, close the edit method panel
-        $scope.selectedMethod = undefined;
+        $scope.ui.selectedMethods = [];
       }
 
       updateResources();
@@ -1371,7 +1331,7 @@ $scope.onImportFileChange = function (fileEl) {
           technique: function () {
             return $scope.originalTechnique;
           }
-        , editForm  : function() { return  $scope.editForm }
+        , editForm  : function() { return  $scope.ui.editForm }
       }
     });
     modalInstance.result.then(function (doSave) {
@@ -1530,7 +1490,6 @@ var cloneModalCtrl = function ($scope, $uibModalInstance, technique, techniques)
 };
 
 var SaveChangesModalCtrl = function ($scope, $uibModalInstance, technique, editForm) {
-  $scope.editForm = editForm;
   $scope.technique = technique;
   $scope.save = function() {
     $uibModalInstance.close(true);
