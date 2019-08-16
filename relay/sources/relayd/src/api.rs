@@ -124,13 +124,18 @@ pub fn api(
             move |ttl: String, peek: filters::path::Peek, mut buf: warp::body::FullBody| {
                 reply::with_status(
                     "".to_string(),
-                    put_handler(
+                    match put_handler(
                         format!("{}", metadata_parser(buf.by_ref()).unwrap()),
                         peek.as_str(),
                         parse_parameter_from_raw(ttl),
                         job_config.clone(),
                         buf,
-                    ),
+                    )
+                    {
+                        Ok(x) => x,
+                        Err(_x) => StatusCode::from_u16(500).unwrap(),
+                    }
+                    ,
                 )
             },
         );

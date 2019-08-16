@@ -53,6 +53,7 @@ hyper = "0.12"
 sha2 = "0.8"
 bytebuffer = "0.2.1"
 bytes = "0.4.12"
+hex = "0.3.2"
 
 [dev-dependencies]
 criterion = "0.2"
