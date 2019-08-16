@@ -31,6 +31,7 @@
 use crate::{error::Error, JobConfig};
 use chrono::prelude::DateTime;
 use chrono::{Duration, Utc};
+use hex;
 use hyper::StatusCode;
 use openssl::error::ErrorStack;
 use openssl::hash::MessageDigest;
@@ -248,14 +249,41 @@ pub fn put_handler(
     ttl: String,
     job_config: Arc<JobConfig>,
     mut buf: warp::body::FullBody,
-) -> hyper::StatusCode {
+) -> Result<hyper::StatusCode, Error> {
     let timestamp = match parse_ttl(ttl) {
         Ok(ttl) => ttl,
-        Err(_x) => return StatusCode::from_u16(500).unwrap(),
+        Err(_x) => return Ok(StatusCode::from_u16(500).unwrap()),
     };
 
     let myvec: Vec<String> = peek.split('/').map(|s| s.to_string()).collect();
     let (target_uuid, source_uuid, _file_id) = (&myvec[0], &myvec[1], &myvec[2]);
+
+    let meta = Metadata::from_str(&metadata_string).unwrap();
+    let (file, meta_pubkey, hash_type, digest) = (
+        buf.by_ref(),
+        &meta.short_pubkey,
+        &meta.algorithm,
+        &meta.digest,
+    );
+
+    if !same_hash_than_in_nodeslist(
+        get_pubkey(meta_pubkey.to_string()).unwrap(),
+        HashType::from_str(hash_type).unwrap(),
+        &meta.digest,
+    )?    
+    {
+        return Ok(StatusCode::from_u16(404).unwrap());
+    }
+
+    if validate_signature(
+        file.bytes(),
+        get_pubkey(meta_pubkey.to_string()).unwrap(),
+        HashType::from_str(hash_type).unwrap(),
+        &hex::decode(digest).unwrap(),
+    )?
+    {
+        return Ok(StatusCode::from_u16(500).unwrap());
+    }
 
     if !job_config
         .nodes
@@ -263,7 +291,7 @@ pub fn put_handler(
         .expect("Cannot read nodes list")
         .is_subnode(source_uuid)
     {
-        return StatusCode::from_u16(404).unwrap();
+        return Ok(StatusCode::from_u16(404).unwrap());
     }
 
     let _ = fs::create_dir_all(format!("shared-files/{}/{}/", target_uuid, source_uuid)); // on cree les folders s'ils existent pas
@@ -274,7 +302,7 @@ pub fn put_handler(
     )
     .expect("Unable to write file");
     file_writer(buf.by_ref(), peek);
-    StatusCode::from_u16(200).unwrap()
+    Ok(StatusCode::from_u16(200).unwrap())
 }
 
 pub fn metadata_hash_checker(path: String, hash: String) -> hyper::StatusCode {
