@@ -166,6 +166,13 @@ check: lint
 clean:
 	rm -rf target relayd/target build install
 	rm -rf selinux/rudder-relay.pp
+	rm -rf relay-api/virtualenv/
+	rm -rf relay-api/virtualenv.tgz
+	rm -rf relay-api/flask
+	rm -rf rudder-pkg/lib/rudder-pkg/__pycache__/
+	rm -rf rudder-pkg/lib/rudder-pkg/*.pyc
+	rm -rf rudder-pkg/lib/rudder-pkg/tests/.hypothesis/
+	rm -rf rudder-pkg/rudder_plugins_key.pub
 	cd relayd && cargo clean
 
 veryclean: clean
