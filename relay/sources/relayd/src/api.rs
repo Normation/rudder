@@ -130,12 +130,10 @@ pub fn api(
                         parse_parameter_from_raw(ttl),
                         job_config.clone(),
                         buf,
-                    )
-                    {
+                    ) {
                         Ok(x) => x,
                         Err(_x) => StatusCode::from_u16(500).unwrap(),
-                    }
-                    ,
+                    },
                 )
             },
         );

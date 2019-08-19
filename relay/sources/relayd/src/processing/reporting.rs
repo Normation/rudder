@@ -48,8 +48,7 @@ use futures::{
     Stream,
 };
 use md5::{Digest, Md5};
-use std::os::unix::ffi::OsStrExt;
-use std::{convert::TryFrom, sync::Arc};
+use std::{convert::TryFrom, os::unix::ffi::OsStrExt, sync::Arc};
 use tokio::prelude::*;
 use tokio_threadpool::blocking;
 use tracing::{debug, error, info, span, warn, Level};
@@ -57,8 +56,8 @@ use tracing::{debug, error, info, span, warn, Level};
 static REPORT_EXTENSIONS: &[&str] = &["gz", "log"];
 
 pub fn start(job_config: &Arc<JobConfig>, stats: &mpsc::Sender<Event>) {
-    let report_span = span!(Level::TRACE, "reporting");
-    let _report_enter = report_span.enter();
+    let span = span!(Level::TRACE, "reporting");
+    let _enter = span.enter();
 
     let (sender, receiver) = mpsc::channel(1_024);
     tokio::spawn(serve(job_config.clone(), receiver, stats.clone()));
@@ -101,12 +100,12 @@ fn serve(
                     .as_bytes()
             )
         );
-        let report_span = span!(
+        let span = span!(
             Level::INFO,
             "report",
             queue_id = %queue_id,
         );
-        let _report_enter = report_span.enter();
+        let _enter = span.enter();
 
         let stat_event = stats
             .clone()
@@ -250,7 +249,7 @@ fn output_report_upstream(
                     Box::new(futures::future::err::<(), ()>(()))
                 }
             })
-            .and_then(move |_| success(path.clone(), Event::ReportInserted, stats_clone.clone())),
+            .and_then(move |_| success(path.clone(), Event::ReportSent, stats_clone.clone())),
     )
 }
 

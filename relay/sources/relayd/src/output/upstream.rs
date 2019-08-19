@@ -28,11 +28,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::Error;
-use crate::JobConfig;
+use crate::{processing::inventory::InventoryType, Error, JobConfig};
 use futures::Future;
-use std::path::PathBuf;
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 use tracing::{debug, span, Level};
 
 pub fn send_report(
@@ -42,6 +40,23 @@ pub fn send_report(
     let report_span = span!(Level::TRACE, "upstream");
     let _report_enter = report_span.enter();
     Box::new(forward_file(job_config, "reports", path))
+}
+
+pub fn send_inventory(
+    job_config: Arc<JobConfig>,
+    path: PathBuf,
+    inventory_type: InventoryType,
+) -> Box<dyn Future<Item = (), Error = Error> + Send> {
+    let report_span = span!(Level::TRACE, "upstream");
+    let _report_enter = report_span.enter();
+    Box::new(forward_file(
+        job_config,
+        match inventory_type {
+            InventoryType::New => "inventories",
+            InventoryType::Update => "inventory-updates",
+        },
+        path,
+    ))
 }
 
 fn forward_file(

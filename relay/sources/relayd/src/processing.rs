@@ -37,13 +37,13 @@ use tokio::{
 };
 use tracing::{debug, error};
 
-//pub mod inventory;
+pub mod inventory;
 pub mod reporting;
 
 pub type ReceivedFile = PathBuf;
 pub type RootDirectory = PathBuf;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 enum OutputError {
     Transient,
     Permanent,

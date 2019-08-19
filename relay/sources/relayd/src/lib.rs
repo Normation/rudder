@@ -55,7 +55,7 @@ use crate::{
     data::node::NodesList,
     error::Error,
     output::database::{pg_pool, PgPool},
-    processing::reporting,
+    processing::{inventory, reporting},
     stats::Stats,
 };
 use futures::{
@@ -178,6 +178,12 @@ pub fn start(
             reporting::start(&job_config, &tx_stats);
         } else {
             info!("Skipping reporting as it is disabled");
+        }
+
+        if job_config.cfg.processing.inventory.output.is_enabled() {
+            inventory::start(&job_config, &tx_stats);
+        } else {
+            info!("Skipping inventory as it is disabled");
         }
 
         Ok(())

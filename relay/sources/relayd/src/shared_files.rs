@@ -270,8 +270,7 @@ pub fn put_handler(
         get_pubkey(meta_pubkey.to_string()).unwrap(),
         HashType::from_str(hash_type).unwrap(),
         &meta.digest,
-    )?    
-    {
+    )? {
         return Ok(StatusCode::from_u16(404).unwrap());
     }
 
@@ -280,8 +279,7 @@ pub fn put_handler(
         get_pubkey(meta_pubkey.to_string()).unwrap(),
         HashType::from_str(hash_type).unwrap(),
         &hex::decode(digest).unwrap(),
-    )?
-    {
+    )? {
         return Ok(StatusCode::from_u16(500).unwrap());
     }
 
