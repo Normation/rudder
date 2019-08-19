@@ -142,10 +142,11 @@ object BuildBundleSequence {
   }
 
   object Bundle {
-    def modeBundle(policyMode: PolicyMode) = {
-      policyMode match {
-        case PolicyMode.Audit => audit
-        case PolicyMode.Enforce => enforce
+    def modeBundle(policyMode: PolicyMode, isSystem: Boolean) = {
+      (isSystem, policyMode) match {
+        case (true, _)                   => enforce
+        case (false, PolicyMode.Audit)   => audit
+        case (false, PolicyMode.Enforce) => enforce
       }
     }
     val audit   = Bundle.apply(None, BundleName("""set_dry_run_mode"""), BundleParam.DoubleQuote("true","mode")  :: Nil)
@@ -195,7 +196,7 @@ object BuildBundleSequence {
       Bundle(None,BundleName(s"run_${directiveId.value.replace("-","_")}"), Nil)
     }
 
-    def runBundles : List[Bundle] = Bundle.modeBundle(policyMode) :: runBundle :: Nil
+    def runBundles : List[Bundle] = Bundle.modeBundle(policyMode, isSystem) :: runBundle :: Nil
     def bundleSequence : List[Bundle] = contextBundle ::: pre ::: methodReportingState ::: main ::: post ::: (cleanReportingBundle  :: Nil)
   }
 
@@ -388,7 +389,7 @@ object CfengineBundleVariables {
   def getBundleVariables(
       escape      : String => String
     , systemInputs: List[InputFile]
-    , sytemBundles: List[TechniqueBundles]
+    , systemBundles: List[TechniqueBundles]
     , userInputs  : List[InputFile]
     , userBundles : List[TechniqueBundles]
     , runHooks    : List[NodeRunHook]
@@ -396,7 +397,7 @@ object CfengineBundleVariables {
 
     BundleSequenceVariables(
         formatBundleFileInputFiles(systemInputs.map(_.path))
-      , formatMethodsUsebundle(escape, sytemBundles, Nil, false)
+      , formatMethodsUsebundle(escape, systemBundles, Nil, false)
       , formatBundleFileInputFiles(userInputs.map(_.path))
         //only user bundle may be set on PolicyMode = Verify
       , formatMethodsUsebundle(escape, userBundles, runHooks, true)

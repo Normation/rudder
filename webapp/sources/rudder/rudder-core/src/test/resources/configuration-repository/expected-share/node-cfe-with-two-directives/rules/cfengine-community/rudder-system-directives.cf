@@ -50,7 +50,7 @@ bundle agent rudder_system_directives {
   # fully generated in bundle common va for iinitial promises
   # The directive sequence will be correctly indented by the generated variable so we can support multiline variable
   methods:
-      "Rudder system policy: daily inventory/Inventory" usebundle => set_dry_run_mode("true");
+      "Rudder system policy: daily inventory/Inventory" usebundle => set_dry_run_mode("false");
       "Rudder system policy: daily inventory/Inventory" usebundle => run_inventory_all;
 }
 bundle agent run_inventory_all
