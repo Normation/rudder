@@ -4,22 +4,22 @@
 Rudder package manager
 
 Usage:
-    rudder-pkg [--debug] install-file <package.rpkg>...
-    rudder-pkg [--debug] install <package> [--version=<version>] [--nightly]
-    rudder-pkg [--debug] show <package> [--version=<version>] [--nightly]
-    rudder-pkg [--debug] remove <package>...
-    rudder-pkg [--debug] search <package>...
-    rudder-pkg [--debug] list [--all]
-    rudder-pkg [--debug] update
-    rudder-pkg [--debug] licenses
-    rudder-pkg [--debug] rudder-postupgrade
-    rudder-pkg [--debug] check-compatibility
-    rudder-pkg [--debug] plugin save-status
-    rudder-pkg [--debug] plugin restore-status
-    rudder-pkg [--debug] plugin enable <plugin>...
-    rudder-pkg [--debug] plugin enable-all
-    rudder-pkg [--debug] plugin disable <plugin>...
-    rudder-pkg [--debug] plugin disable-all
+    rudder package [--debug] install-file <package.rpkg>...
+    rudder package [--debug] install <package> [--version=<version>] [--nightly]
+    rudder package [--debug] show <package> [--version=<version>] [--nightly]
+    rudder package [--debug] remove <package>...
+    rudder package [--debug] search <package>...
+    rudder package [--debug] list [--all]
+    rudder package [--debug] update
+    rudder package [--debug] licenses
+    rudder package [--debug] rudder-postupgrade
+    rudder package [--debug] check-compatibility
+    rudder package [--debug] plugin save-status
+    rudder package [--debug] plugin restore-status
+    rudder package [--debug] plugin enable <plugin>...
+    rudder package [--debug] plugin enable-all
+    rudder package [--debug] plugin disable <plugin>...
+    rudder package [--debug] plugin disable-all
 
 Options:
     --debug    Set logging level to debug
@@ -51,10 +51,10 @@ Commands:
 
     licenses
         download all the licenses found on the given repo
-    
+
     rudder-postupgrade
-        execute plugins post install scripts (needed after a Rudder upgrade) 
-    
+        execute plugins post install scripts (needed after a Rudder upgrade)
+
     check-compatibility
         disable plugins that are not compatible with current Rudder version
 
@@ -76,13 +76,16 @@ import rudderPkgUtils as utils
 
 ## MAIN
 if __name__ == "__main__":
-    args = docopt.docopt(__doc__)
+    # hackish way to make docopt compatible with the rudder command syntax
+    # docopt parse the complete list given in argv BUT, if nothing is passed,
+    # it will parse sys.argv[1:]
+    args = docopt.docopt(__doc__, argv=["package"]  + sys.argv[1:])
     if args['--debug']:
         utils.startLogger('DEBUG')
     else:
         utils.startLogger('INFO')
     utils.db_load()
-  
+
     if args['install-file']:
         rudderPkg.install_file(args['<package.rpkg>'])
     if args['show']:

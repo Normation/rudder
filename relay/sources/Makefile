@@ -53,6 +53,10 @@ target/man-source/%: man/%.adoc
 	mkdir -p target/man-source
 	asciidoctor -D target/man-source -b manpage $<
 
+autocomplete/rudder-pkg.sh:
+	mkdir -p autocomplete
+	PYTHONPATH=$(CURDIR)/rudder-pkg/lib/rudder-pkg:$$PYTHONPATH; cd autocomplete && docopt-completion $(CURDIR)/rudder-pkg/rudder-pkg --manual-bash && cd -
+
 man: target/man/rudder-relayd.1.gz;
 
 target/man/rudder-relayd.1.gz:
@@ -60,7 +64,8 @@ target/man/rudder-relayd.1.gz:
 	$(GET) target/man/rudder-relayd.1 https://docs.rudder.io/man/${RUDDER_MAJOR_VERSION}/rudder-relayd.1 ""
 	gzip -f target/man/rudder-relayd.1
 
-build: man relay-api/virtualenv/virtualenv.py rudder-pkg/rudder_plugins_key.pub
+
+build: man relay-api/virtualenv/virtualenv.py rudder-pkg/rudder_plugins_key.pub autocomplete/rudder-pkg.sh
 	# Build virtualenv
 	cd relay-api && $(PYTHON) virtualenv/virtualenv.py flask
 	# Get all requirements via pip
@@ -122,9 +127,10 @@ install: build
 	install -m 755 relay-api/cleanup.sh $(DESTDIR)/opt/rudder/share/relay-api/
 	
 	# rudder packaging
-	install -m 755 rudder-pkg/rudder-pkg $(DESTDIR)/opt/rudder/bin/
+	install -m 755 rudder-pkg/rudder-pkg $(DESTDIR)/opt/rudder/share/commands/package
 	install -m 755 rudder-pkg/rudder-pkg.conf $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder-pkg.conf
 	install -m 755 rudder-pkg/rudder_plugins_key.pub $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.pub
+	install -m 644 autocomplete/rudder-pkg.sh $(DESTDIR)/etc/bash_completion.d/
 	cp -r rudder-pkg/lib/* $(DESTDIR)/opt/rudder/share/python/
 	
 	# Apache
@@ -173,6 +179,7 @@ clean:
 	rm -rf rudder-pkg/lib/rudder-pkg/*.pyc
 	rm -rf rudder-pkg/lib/rudder-pkg/tests/.hypothesis/
 	rm -rf rudder-pkg/rudder_plugins_key.pub
+	rm -rf autocomplete
 	cd relayd && cargo clean
 
 veryclean: clean

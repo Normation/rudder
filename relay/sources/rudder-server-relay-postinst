@@ -39,6 +39,9 @@ systemctl stop "${APACHE}" >> ${LOG_FILE} || true
 systemctl stop rudder-relayd >> ${LOG_FILE} || true
 echo " Done"
 
+# link rudder package to its old path
+ln -s /opt/rudder/share/commands/package /opt/rudder/bin/rudder-pkg
+
 # share directory with rudder-policy-reader
 chgrp -R rudder-policy-reader /var/rudder/share
 chmod 750 /var/rudder/share
@@ -68,7 +71,7 @@ if [ ! -f /opt/rudder/etc/ssl/rudder.crt ] || [ ! -f /opt/rudder/etc/ssl/rudder.
   chgrp ${APACHE_GROUP} /opt/rudder/etc/ssl/rudder.key && chmod 640 /opt/rudder/etc/ssl/rudder.key
   echo " Done"
 fi
-  
+
 # put this certificate in ca.cert if it doesn't exist (we need at least on certificate there)
 if [ ! -f /opt/rudder/etc/ssl/ca.cert ]; then
   cp /opt/rudder/etc/ssl/rudder.crt /opt/rudder/etc/ssl/ca.cert
