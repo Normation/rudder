@@ -35,7 +35,7 @@ mod tests {
         let data = read_to_string("target/tmp/api_test.txt").expect("Unable to read file");
 
         assert_eq!(
-            "remote run -D class2,class3 -H server.rudder.local".to_string(),
+            "remote run -D class2,class3 server.rudder.local".to_string(),
             data
         );
     }

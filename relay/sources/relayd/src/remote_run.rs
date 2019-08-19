@@ -253,7 +253,6 @@ impl RunParameters {
         };
 
         cmd.args(&args);
-        cmd.arg("-H".to_string());
         cmd.arg(&nodeslist[0]);
         cmd.stdout(Stdio::piped());
         let mut child = cmd.spawn_async().expect("failed to spawn command");
@@ -278,7 +277,6 @@ impl RunParameters {
                 let mut cmd = Command::new("sudo");
                 cmd.arg(&program);
                 cmd.args(&args);
-                cmd.arg("-H".to_string());
                 cmd.arg(node);
                 cmd.stdout(Stdio::piped());
                 let child = cmd.spawn_async().expect("failed to spawn command");
@@ -290,7 +288,6 @@ impl RunParameters {
             } else {
                 let mut cmd = Command::new(&program);
                 cmd.args(&args);
-                cmd.arg("-H".to_string());
                 cmd.arg(node);
                 cmd.stdout(Stdio::piped());
                 let child = cmd.spawn_async().expect("failed to spawn command");
