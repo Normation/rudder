@@ -19,9 +19,6 @@ import codecs
 import uuid
 from pprint import pprint
 
-# Additionnal path to look for cf-promises
-additional_path = ["/opt/rudder/bin","/usr/sbin","/usr/local"]
-
 # Verbose output
 VERBOSE = 0
 
@@ -77,12 +74,7 @@ def check_output(command, env = {}):
   command_env = dict(env)
   if VERBOSE == 1:
     sys.stderr.write("VERBOSE: About to run command '" + " ".join(command) + "'\n")
-  if len(additional_path) == 0:
-    env_path = os.environ['PATH']
-  else:
-    cfpromises_path = ":".join(additional_path)
-    env_path = cfpromises_path + ":" + os.environ['PATH']
-    command_env["PATH"] = env_path
+  command_env["PATH"] = os.environ['PATH']
   process = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, env=command_env)
   output, error = process.communicate()
   retcode = process.poll()
@@ -91,7 +83,7 @@ def check_output(command, env = {}):
   else:
     if VERBOSE == 1:
       sys.stderr.write("VERBOSE: Exception triggered, Command returned error code " + str(retcode) + "\n")
-    raise NcfError("Error while running post-hook command " + " ".join(command), error)
+    raise NcfError("Error while running '" + " ".join(command) +"' command.", error)
 
   if VERBOSE == 1:
     sys.stderr.write("VERBOSE: Command output: '" + output + "'" + "\n")
@@ -306,7 +298,7 @@ def parse_technique_methods(technique_file, gen_methods):
 
   env = os.environ.copy()
   env['RES_OPTIONS'] = 'attempts:0'
-  out = check_output(["cf-promises", "-pjson", "-f", technique_file], env=env)
+  out = check_output(["/opt/rudder/bin/cf-promises", "-pjson", "-f", technique_file], env=env)
   try:
     promises = json.loads(out)
   except Exception as e:
@@ -338,7 +330,9 @@ def parse_technique_methods(technique_file, gen_methods):
       args = None
       promise_class_context = class_context
       ifvarclass_context = None
-      promiser = method['promiser']
+      # Promiser is used as report component, but in 5.1 we added a digit to make it more unique
+      # (because if promiser are unique and params too, method is not run, cfengine way of life)
+      promiser = re.sub("_\d+$", "", method['promiser'])
 
       for attribute in method['attributes']:
         if attribute['lval'] == 'usebundle':
