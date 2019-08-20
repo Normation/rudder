@@ -391,26 +391,7 @@ def parse_technique_methods(technique_file, gen_methods):
   return res
 
 
-def get_hooks(prefix, action, path):
-  """Find all hooks file in directory that use the prefix and sort them"""
-  # Do not match the following extension, but all other and those that extends (ie exe)
-  filtered_extensions = "(?!ex$|example$|disable$|disabled$|rpmsave$|rpmnew$)[^\.]+$"
 
-  # Full regexp is prefix + action + hooks_name + filteredExtension
-  regexp = prefix+"\."+action+"\..*\."+filtered_extensions
-
-  files = [f for f in os.listdir(path) if re.match(regexp, f, flags=re.UNICODE)]
-
-  return sorted(files)
-
-
-def execute_hooks(prefix, action, path, bundle_name):
-  """Execute all hooks prefixed by prefix.action from path, all hooks take path and bundle_name as parameter"""
-  hooks_path = os.path.join(path, "ncf-hooks.d")
-  hooks = get_hooks(prefix, action, hooks_path)
-  for hook in hooks:
-    hookfile = os.path.join(hooks_path,hook)
-    check_output([hookfile,path,bundle_name])
 
 # FUNCTIONS called directly by the API code
 ###########################################
@@ -481,18 +462,4 @@ def get_all_generic_methods_metadata():
 
 
 
-def delete_technique(technique_name):
-  """Delete a technique directory contained in a path"""
-  path = os.path.join("/var/rudder/configuration-repository/techniques/ncf_techniques", technique_name)
-  try:
-    # Execute pre hooks
-    execute_hooks("pre", "delete_technique", path, technique_name)
-    # Delete technique file
-    filename = os.path.realpath()
-    shutil.rmtree(filename)
-    # Execute post hooks
-    execute_hooks("post", "delete_technique", path, technique_name)
-  except NcfError as e:
-    message = "Could not write technique "+technique_name+" from path "+path+", cause is: "+ e.message
-    raise NcfError(message, e.details)
 
