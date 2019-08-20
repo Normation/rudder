@@ -328,6 +328,10 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                   "RUDDER_COMPLIANCE_MODE" , "Rudder compliance mode (enforce or audit)"
                                            , multivalued = false
     )
+    , SystemVariableSpec(
+              "RUDDER_VERIFY_CERTIFICATES" , "Enforce certificate validation in all HTTPS calls"
+                                           , multivalued = false
+    )
   )
 
   private[this] val varSpecsMap = varSpecs.map(x => (x.name -> x)).toMap

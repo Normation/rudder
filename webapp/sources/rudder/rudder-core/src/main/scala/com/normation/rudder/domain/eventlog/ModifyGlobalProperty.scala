@@ -29,6 +29,7 @@ object ModifyGlobalPropertyEventLogsFilter {
     ModifyAgentRunStartMinuteEventType ::
     ModifyRudderSyslogProtocolEventType ::
     ModifyPolicyModeEventType ::
+    ModifyRudderVerifyCertificates ::
     Nil
 
   final val eventList : List[EventLogFilter] =

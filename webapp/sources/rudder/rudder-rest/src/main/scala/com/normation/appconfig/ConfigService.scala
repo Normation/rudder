@@ -49,16 +49,9 @@ import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.eventlog.ModifySendServerMetricsEventType
-import com.normation.rudder.domain.eventlog.ModifyComplianceModeEventType
-import com.normation.rudder.domain.eventlog.ModifyHeartbeatPeriodEventType
+import com.normation.rudder.domain.eventlog.{ModifyAgentRunIntervalEventType, ModifyAgentRunSplaytimeEventType, ModifyAgentRunStartHourEventType, ModifyAgentRunStartMinuteEventType, ModifyComplianceModeEventType, ModifyHeartbeatPeriodEventType, ModifyRudderSyslogProtocolEventType, ModifyRudderVerifyCertificates, ModifySendServerMetricsEventType}
 import net.liftweb.common.EmptyBox
-import com.normation.rudder.domain.eventlog.ModifyAgentRunIntervalEventType
-import com.normation.rudder.domain.eventlog.ModifyAgentRunStartHourEventType
-import com.normation.rudder.domain.eventlog.ModifyAgentRunStartMinuteEventType
-import com.normation.rudder.domain.eventlog.ModifyAgentRunSplaytimeEventType
 import com.normation.rudder.reports._
-import com.normation.rudder.domain.eventlog.ModifyRudderSyslogProtocolEventType
 
 import scala.language.implicitConversions
 import com.normation.rudder.domain.appconfig.FeatureSwitch
@@ -214,6 +207,10 @@ trait ReadConfigService {
    */
   def rudder_compliance_unexpected_report_interpretation(): IOResult[UnexpectedReportInterpretation]
 
+  /**
+   * Make Rudder verify all certificates in HTTPS exchange
+   */
+  def rudder_verify_certificates() : IOResult[Boolean]
 
   /**
    * For debugging / disabling some part of Rudder. Should not be exposed in UI
@@ -352,6 +349,11 @@ trait UpdateConfigService {
   def set_rudder_node_onaccept_default_state(nodeState: NodeState): IOResult[Unit]
   def set_rudder_compliance_unexpected_report_interpretation(mode: UnexpectedReportInterpretation) : IOResult[Unit]
 
+  /**
+   * Make Rudder verify all certificates in HTTPS exchange
+   */
+  def set_rudder_verify_certificates(verify: Boolean, actor: EventActor, reason: Option[String]) : IOResult[Unit]
+
   def set_rudder_compute_changes(value: Boolean): IOResult[Unit]
   def set_rudder_generation_compute_dyngroups(value: Boolean): IOResult[Unit]
   def set_rudder_save_db_compliance_levels(value: Boolean): IOResult[Unit]
@@ -410,6 +412,7 @@ class LDAPBasedConfigService(
        rudder.node.onaccept.default.policyMode=default
        rudder.compliance.unexpectedReportAllowsDuplicate=true
        rudder.compliance.unexpectedReportUnboundedVarValues=true
+       rudder.verify.certificates=false
        rudder.compute.changes=true
        rudder.generation.compute.dyngroups=true
        rudder.save.db.compliance.levels=true
@@ -704,6 +707,12 @@ class LDAPBasedConfigService(
       _ <- save("rudder_compliance_unexpectedReportAllowsDuplicate", mode.isSet(UnexpectedReportBehavior.AllowsDuplicate))
       _ <- save("rudder_compliance_unexpectedReportUnboundedVarValues", mode.isSet(UnexpectedReportBehavior.UnboundVarValues))
     } yield ()
+  }
+
+  def rudder_verify_certificates() : IOResult[Boolean] = get("rudder_verify_certificates")
+  def set_rudder_verify_certificates(verify: Boolean, actor: EventActor, reason: Option[String]) : IOResult[Unit] = {
+    val info = ModifyGlobalPropertyInfo(ModifyRudderVerifyCertificates,actor,reason)
+    save("rudder_verify_certificates", verify, Some(info))
   }
 
 

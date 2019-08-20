@@ -130,6 +130,7 @@ class SystemVariableServiceImpl(
   , getSyslogProtocol               : () => Box[SyslogProtocol]
   , getSyslogProtocolDisabled       : () => Box[Boolean]
   , getReportProtocolDefault        : () => Box[AgentReportingProtocol]
+  , getRudderVerifyCertificates     : () => Box[Boolean]
 ) extends SystemVariableService with Loggable {
 
   import SystemVariableService._
@@ -182,6 +183,8 @@ class SystemVariableServiceImpl(
 
     val syslogProtocolDisabled = getProp("SYSLOG_PROTOCOL_DISABLED", getSyslogProtocolDisabled)
 
+    val rudderVerifyCertificates = getProp("RUDDER_VERIFY_CERTIFICATES", getRudderVerifyCertificates)
+
     val varServerVersion = systemVariableSpecService.get("SERVER_VERSION").toVariable(Seq(serverVersion))
 
     val sendMetricsValue = if (getSendMetrics().getOrElse(None).getOrElse(false)) {
@@ -223,6 +226,7 @@ class SystemVariableServiceImpl(
         varSendMetrics ::
         syslogProtocolDisabled ::
         reportProtocol ::
+        rudderVerifyCertificates ::
         varServerVersion ::
         Nil
       vars.map(v => (v.spec.name,v)).toMap

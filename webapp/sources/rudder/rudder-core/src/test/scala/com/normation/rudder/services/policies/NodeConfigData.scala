@@ -545,6 +545,7 @@ class TestNodeConfiguration() {
     , getSyslogProtocol               = () => Full(SyslogUDP)
     , getSyslogProtocolDisabled       = () => Full(false)
     , getReportProtocolDefault        = () => Full(AgentReportingSyslog)
+    , getRudderVerifyCertificates     = () => Full(false)
   )
 
   //a test node - CFEngine

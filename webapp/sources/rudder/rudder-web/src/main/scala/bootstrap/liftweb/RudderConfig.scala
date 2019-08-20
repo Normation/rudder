@@ -1399,6 +1399,7 @@ object RudderConfig extends Loggable {
     , () => configService.rudder_syslog_protocol().toBox
     , () => configService.rudder_syslog_protocol_disabled().toBox
     , () => configService.rudder_report_protocol_default().toBox
+    , () => configService.rudder_verify_certificates().toBox
   )
   private[this] lazy val rudderCf3PromisesFileWriterService = new PolicyWriterServiceImpl(
       techniqueRepositoryImpl

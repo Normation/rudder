@@ -680,6 +680,13 @@ class SettingsApi(
     val prop = UnexpectedReportBehavior.UnboundVarValues
   }
 
+  case object RestRudderVerifyCertificates extends RestBooleanSetting {
+    val key = "rudder_verify_certificates"
+    val startPolicyGeneration = true
+    def get = configService.rudder_verify_certificates()
+    def set = (value : Boolean, actor : EventActor, reason : Option[String])  => configService.set_rudder_verify_certificates(value, actor, reason)
+  }
+
   def startNewPolicyGeneration(actor : EventActor) = {
     val modId = ModificationId(uuidGen.newUuid)
     asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)

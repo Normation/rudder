@@ -292,6 +292,10 @@ final case object ModifyPolicyModeEventType extends ModifyGlobalPropertyEventTyp
   val propertyName = "Global policy mode"
 }
 
+final case object ModifyRudderVerifyCertificates extends ModifyGlobalPropertyEventType {
+  def serialize = "RudderVerifyCertificates"
+  val propertyName = "Verification of HTTPS certificates"
+}
 /**
  * List of event generating a modification of promises
  */
