@@ -174,42 +174,32 @@
         </form>
       </div>
     </div>
-    <div class="inner-portlet">
-      <h3 class="page-title">Protocol</h3>
-      <div class="lift:administration.PropertiesManagement.networkProtocolSection" id="networkProtocolForm">
-        <form class="lift:form.ajax">
+  <div class="inner-portlet">
+    <h3 class="page-title">Reporting protocol</h3>
+        <div class="col-lg-12 callout-fade callout-warning">
+          <div class="marker">
+            <span class="glyphicon glyphicon-info-sign"></span>
+          </div>
+          Choose reporting protocol used by nodes to send compliance back to Rudder server:
           <ul>
-            <li class="rudder-form">
-              <div class="input-group">
-                <label class="input-group-addon" for="reportProtocol">
-                  <input id="reportProtocol" type="checkbox">
-                  <label for="reportProtocol" class="label-radio">
-                    <span class="ion ion-checkmark-round"></span>
-                  </label>
-                  <span class="ion ion-checkmark-round check-icon"></span>
-                </label>
-                <label class="form-control" for="reportProtocol">
-                  Use UDP (default) in place of TCP for syslog communication between node and servers
-                  <span class="tooltipable" tooltipid="reportProtocolTooltip" title="">
-                    <span class="glyphicon glyphicon-info-sign info"></span>
-                  </span>
-                  <div class="tooltipContent" id="reportProtocolTooltip">
-                    Rudder uses syslog to transfer report messages from nodes to relay and servers.
-                    <ul>
-                      <li><b>UDP (default):</b> the syslog never stalls an a non responsive connection, which could also stale other services on the node which use the same syslog, but packets could be lost.</li>
-                      <li><b>TCP:</b> Reports and the resulting compliance errors wil be never lost.</li>
-                    </ul>
-                    This settings is ignored on clients that don't support TCP (AIX, sysklogd, ...)
-                  </div>
-                </label>
-              </div>
+            <li><b>HTTPS (default):</b> Secure, fast and optimised reporting protocol, you should switch as soon as possible to it</li>
+            <li><b>Syslog:</b> Rudder legacy reporting protocol, It will be removed in a future version (possibly 5.2), it is set on upgrade from 5.0 to keep your reporting working as before
+              <ul>
+                <li><b>UDP (default):</b> the syslog never stalls an a non responsive connection, which could also stale other services on the node which use the same syslog, but packets could be lost.</li>
+                <li><b>TCP:</b> Reports and the resulting compliance errors wil be never lost.</li>
+              </ul>
             </li>
           </ul>
+        </div>
+        <div class="lift:administration.PropertiesManagement.reportProtocolSection" id="reportProtocolForm">
+        <form class="lift:form.ajax">
+          <div id="reportProtocol"></div>
+          <div id="syslogProtocol"></div>
           <lift:authz role="administration_write">
-            <input type="submit" value="[save]" id="networkProtocolSubmit"/>
+            <input type="submit" value="[save]" id="reportProtocolSubmit"/>
           </lift:authz>
         </form>
-      </div>
+    </div>
     </div>
 
     <div id="agentPolicyMode" class="lift:administration.PropertiesManagement.agentPolicyMode"></div>
@@ -230,9 +220,9 @@
             These options will take effects when the next reports are received from a node or if you "clear caches" below.
           </div>
           <div class="col-lg-12 callout-fade callout-warning">
-            <div class="marker">
-              <span class="glyphicon glyphicon-info-sign"></span>
-            </div>
+              <div class="marker">
+                <span class="glyphicon glyphicon-info-sign"></span>
+              </div>
             <p><b>Duplicated reports</b></p>
             <p>
               Due to the underlying protocol used to send compliance reports back to the policy server (syslog),

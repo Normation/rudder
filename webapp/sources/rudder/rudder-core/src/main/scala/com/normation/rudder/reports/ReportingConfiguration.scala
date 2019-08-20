@@ -37,6 +37,9 @@
 
 package com.normation.rudder.reports
 
+import ca.mrvisser.sealerate.values
+import com.normation.errors.RudderError
+import com.normation.errors.Unexpected
 import com.normation.utils.HashcodeCaching
 import net.liftweb.common._
 import org.joda.time.Duration
@@ -156,20 +159,43 @@ class AgentRunIntervalServiceImpl (
 
 }
 
+import ca.mrvisser.sealerate.values
+
 sealed trait SyslogProtocol {
   def value : String
 }
 
-object SyslogTCP extends SyslogProtocol {
+object SyslogProtocol {
+  def apply(value: String): Box[SyslogProtocol] = {
+    value match {
+      case SyslogTCP.value => Full(SyslogTCP)
+      case SyslogUDP.value => Full(SyslogUDP)
+      case _ => Failure(s"Invalid syslog protocol: *{value}")
+    }
+  }
+
+  def allProtocols: Set[SyslogProtocol] = values[SyslogProtocol]
+
+  def parse(value: String): Either[RudderError, SyslogProtocol] = {
+    allProtocols.find {
+      _.value == value.toUpperCase()
+    } match {
+      case None =>
+        Left(Unexpected(s"Unable to parse syslog protocol mame '${value}'. was expecting ${allProtocols.map(_.value).mkString("'", "' or '", "'")}."))
+      case Some(protocol) =>
+        Right(protocol)
+    }
+  }
+
+}
+
+final case object SyslogTCP extends SyslogProtocol {
   val value = "TCP"
 }
 
-object SyslogUDP extends SyslogProtocol {
+final case object SyslogUDP extends SyslogProtocol {
   val value = "UDP"
 }
-
-import ca.mrvisser.sealerate.values
-import com.normation.errors._
 
 sealed trait AgentReportingProtocol {
   def value : String
@@ -188,7 +214,7 @@ object AgentReportingProtocol {
     value match {
       case AgentReportingHTTPS.value  => Full(AgentReportingHTTPS)
       case AgentReportingSyslog.value => Full(AgentReportingSyslog)
-      case _                          => Failure(s"Invalid Reporting Protocol: *{value}")
+      case _                          => Failure(s"Invalid reporting protocol: *{value}")
     }
   }
 
@@ -196,7 +222,7 @@ object AgentReportingProtocol {
   def parse(value: String) : Either[RudderError, AgentReportingProtocol] = {
     allProtocols.find { _.value == value.toUpperCase() } match {
       case None =>
-        Left(Unexpected(s"Unable to parse Reporting Protocol mame '${value}'. was expecting ${allProtocols.map(_.value).mkString("'", "' or '", "'")}."))
+        Left(Unexpected(s"Unable to parse reporting protocol mame '${value}'. was expecting ${allProtocols.map(_.value).mkString("'", "' or '", "'")}."))
       case Some(protocol) =>
         Right(protocol)
     }
