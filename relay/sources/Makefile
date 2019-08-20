@@ -118,6 +118,9 @@ install: build
 	install -m 644 relayd/tools/config/logging.conf $(DESTDIR)/opt/rudder/etc/relayd/logging.conf
 	# Install service
 	install -m 644 systemd/rudder-relayd.service $(DESTDIR)/usr/lib/systemd/system/rudder-relayd.service
+	# Sandboxing if compatible
+	[ $(systemctl --version | head -1 | cut -d' ' -f2) -gt 232 ] && sed '/\[Service\]/ r systemd/rudder-relayd-hardening' $(DESTDIR)/usr/lib/systemd/system/rudder-relayd.service
+
 	# Install man pages
 	install -m 644 target/man/rudder-relayd.1.gz $(DESTDIR)/opt/rudder/share/man/man1/
 	
