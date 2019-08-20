@@ -149,29 +149,31 @@ def list_installed():
     if patterns == "":
         sys.stdout.write("")
     else:
-      patterns_array = patterns.split(' ')
+      patterns_array = list(set(patterns.split(' ')))
       # We can not put the options there since the quiet one truncate the output here
       command = [zypper_cmd] + ["-n", "info", "-t", "pattern"] + patterns_array
 
       process =  subprocess_Popen(command , stdout=subprocess.PIPE, stderr=NULLFILE)
       for line in process.stdout:
-          name = re.match("Name\s+: (?P<name>\S+)", line)
+          name = re.match("Name\s*: (?P<name>\S+)", line)
           version = None
-          arch = re.match("Arch\s+: (?P<arch>\S+)", line)
+          arch = re.match("Arch\s*: (?P<arch>\S+)", line)
           if name is not None:
             sys.stdout.write("Name=" + name.group("name").rstrip("\n") + "\n")
 
             # The version showed in zypper info is the latest available version
             zypperProcess = subprocess_Popen([zypper_cmd] + ["patterns", "--installed-only"], stdout=subprocess.PIPE, stderr=NULLFILE)
             grepProcess = subprocess.Popen(["grep", name.group("name")], stdin=zypperProcess.stdout, stdout=subprocess.PIPE)
-            cutProcess = subprocess.check_output(["awk", "{print $5}"], stdin=grepProcess.stdout,  universal_newlines=True)
+            cutProcess = subprocess.Popen(["awk", "{print $5}"], stdin=grepProcess.stdout, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True)
 
             zypperProcess.wait()
             grepProcess.wait()
             zypperProcess.stdout.close()
             grepProcess.stdout.close()
+            cutProcess.wait()
 
-            version = cutProcess
+            version = cutProcess.stdout.readline()
+            cutProcess.stdout.close()
             if version is not None:
               sys.stdout.write("Version=" + version.rstrip("\n") + "\n")
           elif arch is not None:
