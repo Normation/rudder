@@ -72,7 +72,7 @@ def redirection_is_broken():
 
 def subprocess_Popen(cmd, stdout=None, stderr=None):
     if not redirection_is_broken() or (stdout is None and stderr is None) or stdout == subprocess.PIPE or stderr == subprocess.PIPE:
-        return subprocess.Popen(cmd, stdout=stdout, stderr=stderr)
+        return subprocess.Popen(cmd, stdout=stdout, stderr=stderr, universal_newlines=True)
 
     old_stdout_fd = -1
     old_stderr_fd = -1
@@ -85,7 +85,7 @@ def subprocess_Popen(cmd, stdout=None, stderr=None):
         old_stderr_fd = os.dup(2)
         os.dup2(stderr.fileno(), 2)
 
-    result = subprocess.Popen(cmd)
+    result = subprocess.Popen(cmd, universal_newlines=True)
 
     if old_stdout_fd >= 0:
         os.dup2(old_stdout_fd, 1)
@@ -122,15 +122,14 @@ def get_package_data():
         sys.stdout.flush()
 
         rpmProcess = subprocess_Popen([rpm_cmd, "-qp", "--provides", pkg_string], stdout=subprocess.PIPE, stderr=NULLFILE)
-        (rawOutput, junk) = rpmProcess.communicate()
-        name = re.match("pattern\(\) =+ (?P<name>\S+)\s[\s\S]+", rawOutput)
-        if name is not None:
-          sys.stdout.write("Name=" + name.group("name").rstrip("\n") + "\n")
-          sys.stdout.flush()
-          return subprocess_call([rpm_cmd, "--qf", rpm_output_format, "-qp", pkg_string], stderr=NULLFILE)
-        else:
-          sys.stdout.write(line + "ErrorMessage: Package pattern name not found\n")
-          return 1
+        for line in rpmProcess.stdout:
+            name = re.match("pattern\(\)\s+=+\s+(?P<name>[\S]+)[\s\S]+", line)
+            if name is not None:
+                sys.stdout.write("Name=" + name.group("name").rstrip("\n") + "\n")
+                sys.stdout.flush()
+                return subprocess_call([rpm_cmd, "--qf", rpm_output_format, "-qp", pkg_string], stderr=NULLFILE)
+        sys.stdout.write("File=" + pkg_string + "\nErrorMessage: Package pattern name not found\n")
+        return 1
 
     elif re.search("[:,]", pkg_string):
         # Contains an illegal symbol.
@@ -165,7 +164,7 @@ def list_installed():
             # The version showed in zypper info is the latest available version
             zypperProcess = subprocess_Popen([zypper_cmd] + ["patterns", "--installed-only"], stdout=subprocess.PIPE, stderr=NULLFILE)
             grepProcess = subprocess.Popen(["grep", name.group("name")], stdin=zypperProcess.stdout, stdout=subprocess.PIPE)
-            cutProcess = subprocess.check_output(["awk", "{print $5}"], stdin=grepProcess.stdout)
+            cutProcess = subprocess.check_output(["awk", "{print $5}"], stdin=grepProcess.stdout,  universal_newlines=True)
 
             zypperProcess.wait()
             grepProcess.wait()
