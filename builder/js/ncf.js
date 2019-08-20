@@ -1313,9 +1313,9 @@ $scope.onImportFileChange = function (fileEl) {
 
     // Actually save the technique through API
     if ($scope.originalTechnique.bundle_name === undefined) {
-      $http.post("/rudder/secure/api/techniques", data).success(saveSuccess).error(saveError("creating", data)).finally(function(){$scope.$broadcast('endSaving');});
+      $http.put("/rudder/secure/api/techniques", data).success(saveSuccess).error(saveError("creating", data)).finally(function(){$scope.$broadcast('endSaving');});
     } else {
-      $http.put("/rudder/secure/api/techniques", data).success(saveSuccess).error(saveError("saving", data)).finally(function(){$scope.$broadcast('endSaving');});
+      $http.post("/rudder/secure/api/techniques", data).success(saveSuccess).error(saveError("updating", data)).finally(function(){$scope.$broadcast('endSaving');});
     }
   };
   // Popup definitions
