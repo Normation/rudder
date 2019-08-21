@@ -1,0 +1,78 @@
+#######################################################################################
+# Copyright 2019 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Kernel module enabled at boot
+# @description Ensure that a given kernel module will be loaded at system boot
+# @documentation Ensure that a given kernel module is enabled at boot on the system.
+#  Rudder will look for a line matching the module name in a given section in the file:
+#
+#  * `/etc/modules-load.d/enabled_by_rudder.conf` on systemd systems
+#  * `/etc/modprobe.d/enabled_by_rudder.conf` on non-systemd systems
+#
+#  If the module is already enabled by a different option file than used by Rudder, it will add
+#  an entry in the file managed by Rudder listed above, and leave intact the already present one.
+#  The modifications are persistent and made line per line, meaning that
+#  this Generic Method will never remove lines in the configuration file but only add it if needed.
+#
+#  Please note that this method will not load the module nor configure it, it will only enable its loading at system boot.
+#  If you want to force the module to be loaded, use instead the method `kernel_module_loaded`.
+#  If you want to configure the module, use instead the method `kernel_module_configuration`.
+#
+# @parameter module_name Complete name of the kernel module, as seen by lsmod or listed in /proc/modules
+#
+# @class_prefix kernel_module_enabled_at_boot
+# @class_parameter module_name
+
+
+bundle agent kernel_module_enabled_at_boot(module_name)
+{
+  vars:
+    systemd::
+      "module_dir"              string => "/etc/modprobe.d";
+    !systemd::
+      "canonified_module_name"  string => canonify("${module_name}");
+    any::
+      "old_class_prefix"        string => canonify("kernel_module_enabled_at_boot_${module_name}");
+      "args"                     slist => { "${module_name}" };
+      "report_param"            string => join("_", args);
+      "full_class_prefix"       string => canonify("kernel_module_enabled_at_boot_${report_param}");
+      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
+
+      "inner_args"               slist => { "${module_dir}/enabled_by_rudder.conf", "${module_name}" };
+      "report_inner_param"      string => join("_", inner_args);
+      "inner_class_prefix"      string => string_head(canonify("file_ensure_lines_present_${report_inner_param}"), "1000");
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+      "should_report" expression => "${report_data.should_report}";
+
+  methods:
+    pass1.!pass2::
+      "disable_reporting_${class_prefix}"    usebundle => disable_reporting;
+      "edit_modprobe_config_${class_prefix}" usebundle => file_ensure_lines_present("${module_dir}/enabled_by_rudder.conf", "${module_name}");
+      "reenable_reporting_${class_prefix}"   usebundle => enable_reporting,
+        ifvarclass => "should_report";
+
+    pass3::
+      "result_classes"     usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+      "old_result_classes" usebundle => _classes_copy("${inner_class_prefix}", "${old_class_prefix}");
+      "report"             usebundle => _log_v3("Ensure that kernel module ${module_name} is enabled on the system", "${module_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+}
