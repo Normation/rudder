@@ -20,10 +20,7 @@
 
 RUDDER_VERSION_TO_PACKAGE =
 RUDDER_MAJOR_VERSION := $(shell echo ${RUDDER_VERSION_TO_PACKAGE} | cut -d'.' -f 1-2)
-VIRTUALENV_RELEASE = 16.5.0
-VIRTUALENV_SHA256 = 15ee248d13e4001a691d9583948ad3947bcb8a289775102e4c4aa98a8b7a6d73
 RUDDER_PLUGINS_KEY_SHA256 = 1f0268d3a33191a0cd440d055243ecc4660442ea39586c81011e1ce23b18143c
-PYTHON = python3
 
 PROXY_ENV = $(if $(PROXY), http_proxy=$(PROXY))
 # Usage: $(GET) <destination_file> <url> <hash>
@@ -35,14 +32,6 @@ GET=get() { $(PROXY_ENV) curl -s -L -o "$$1.part" "$$2" && { openssl dgst -sha25
 
 DESTDIR = $(CURDIR)/target
 APACHE_VHOSTDIR = apache2/sites-available
-
-relay-api/virtualenv.tgz:
-	# Original URL: https://pypi.python.org/packages/source/v/virtualenv/virtualenv-12.0.7.tar.gz
-	$(GET) relay-api/virtualenv.tgz https://repository.rudder.io/build-dependencies/virtualenv/virtualenv-$(VIRTUALENV_RELEASE).tar.gz $(VIRTUALENV_SHA256)
-
-relay-api/virtualenv/virtualenv.py: relay-api/virtualenv.tgz
-	cd relay-api && tar -xzf ./virtualenv.tgz
-	cd relay-api && mv ./virtualenv-$(VIRTUALENV_RELEASE)/ virtualenv/
 
 rudder-pkg/rudder_plugins_key.pub:
 	$(GET) rudder-pkg/rudder_plugins_key.pub https://repository.rudder.io/apt/rudder_apt_key.pub $(RUDDER_PLUGINS_KEY_SHA256)
@@ -66,13 +55,7 @@ target/man/rudder-relayd.1.gz:
 	gzip -f target/man/rudder-relayd.1
 
 
-build: man relay-api/virtualenv/virtualenv.py rudder-pkg/rudder_plugins_key.pub autocomplete/rudder-pkg.sh
-	# Build virtualenv
-	cd relay-api && $(PYTHON) virtualenv/virtualenv.py flask
-	# Get all requirements via pip
-	cd relay-api && flask/bin/pip install -r requirements.txt
-	# Clean up unwanted binaries
-	cd relay-api && for i in easy_install python python3 pip; do rm -f flask/bin/$${i}*; done
+build: man rudder-pkg/rudder_plugins_key.pub autocomplete/rudder-pkg.sh
 	# Build relayd
 	cd relayd && cargo build --release --bin rudder-relayd
 
@@ -94,7 +77,6 @@ install: build
 	mkdir -p $(DESTDIR)/opt/rudder/etc/ssl/
 	mkdir -p $(DESTDIR)/opt/rudder/etc/rudder-pkg/
 	mkdir -p $(DESTDIR)/opt/rudder/share/selinux/
-	mkdir -p $(DESTDIR)/opt/rudder/share/relay-api/
 	mkdir -p $(DESTDIR)/opt/rudder/share/python/
 	mkdir -p $(DESTDIR)/opt/rudder/share/package-scripts/
 	mkdir -p $(DESTDIR)/opt/rudder/share/man/man1/
@@ -125,12 +107,6 @@ install: build
 
 	# Install man pages
 	install -m 644 target/man/rudder-relayd.1.gz $(DESTDIR)/opt/rudder/share/man/man1/
-	
-	# relay api
-	cp -r relay-api/flask $(DESTDIR)/opt/rudder/share/relay-api/
-	cp -r relay-api/relay_api $(DESTDIR)/opt/rudder/share/relay-api/
-	install -m 644 relay-api/apache/relay-api.wsgi $(DESTDIR)/opt/rudder/share/relay-api/
-	install -m 755 relay-api/cleanup.sh $(DESTDIR)/opt/rudder/share/relay-api/
 	
 	# rudder packaging
 	install -m 755 rudder-pkg/rudder-pkg $(DESTDIR)/opt/rudder/share/commands/package
@@ -180,9 +156,6 @@ check: lint
 clean:
 	rm -rf target relayd/target build install
 	rm -rf selinux/rudder-relay.pp
-	rm -rf relay-api/virtualenv/
-	rm -rf relay-api/virtualenv.tgz
-	rm -rf relay-api/flask
 	rm -rf rudder-pkg/lib/rudder-pkg/__pycache__/
 	rm -rf rudder-pkg/lib/rudder-pkg/*.pyc
 	rm -rf rudder-pkg/lib/rudder-pkg/tests/.hypothesis/
