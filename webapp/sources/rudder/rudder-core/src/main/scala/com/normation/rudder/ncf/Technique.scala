@@ -141,7 +141,7 @@ object Constraint {
 
   case object NoWhiteSpace extends  Constraint {
     def check(value: String): CheckResult = {
-      if (value.matches("""^\S.*\S$""")) {
+      if (value.matches("""^(^[\S])[\s\S]*([\S]$)$""")) {
         OK
       } else {
         NOK(one("Must not have leading or trailing whitespaces "))
