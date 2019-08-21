@@ -160,13 +160,13 @@ bundle agent sharedfile_to_node(target_uuid, file_id, file_path, ttl)
         ifvarclass => "!${canonified_path}_signed";
 
     _ncf_path_exists_curl.pass2::
-      "code=`${ncf_paths.path[curl]} ${url}?hash=${hash} --insecure --tlsv1 --location --head --output /dev/null --silent --fail --write-out %{http_code}` || if [ $code -eq 404 ]; then exit 22; elif [ $code -eq 200 ]; then exit 0; else exit 254; fi"
+      "code=`${ncf_paths.path[curl]} ${url}?hash=${hash} ${g.rudder_verify_certs_option} --tlsv1 --location --head --output /dev/null --silent --fail --write-out %{http_code}` || if [ $code -eq 404 ]; then exit 22; elif [ $code -eq 200 ]; then exit 0; else exit 254; fi"
         contain => in_shell,
         classes => classes_generic_return_single_code_two("${old_class_prefix}_exist", "${class_prefix}_exist", "0", "22", "254"), # 254 = http 400 or above, 22 = http 404
         ifvarclass => "${canonified_path}_signed";
 
       "echo | cat ${file_path}.sign - ${file_path} | ${ncf_paths.path[curl]}"
-        args => "${url}?ttl=${url_ttl} --insecure --tlsv1 --location --request PUT --output /dev/null --silent --fail --header 'Content-Type: application/octet-stream' --data-binary @-",
+        args => "${url}?ttl=${url_ttl} ${g.rudder_verify_certs_option} --tlsv1 --location --request PUT --output /dev/null --silent --fail --header 'Content-Type: application/octet-stream' --data-binary @-",
         contain => in_shell,
         classes => classes_generic_return_single_code_two("${old_class_prefix}_uploaded", "${class_prefix}_uploaded", "0", "999", "22"), # 22 = http 400 or above
         ifvarclass => "${canonified_path}_signed.(${old_class_prefix}_exist_repaired|${class_prefix}_exist_repaired)";
