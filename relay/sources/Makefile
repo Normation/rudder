@@ -56,7 +56,7 @@ target/man-source/%: man/%.adoc
 autocomplete/rudder-pkg.sh:
 	if type pip3 >/dev/null 2>&1; then pip3 install infi.docopt-completion; else easy_install infi.docopt-completion; fi
 	mkdir -p autocomplete
-	PYTHONPATH=$(CURDIR)/rudder-pkg/lib/rudder-pkg:$$PYTHONPATH; cd autocomplete && docopt-completion $(CURDIR)/rudder-pkg/rudder-pkg --manual-bash && cd -
+	export PYTHONPATH=$(CURDIR)/rudder-pkg/lib/rudder-pkg:$$PYTHONPATH; cd autocomplete && docopt-completion $(CURDIR)/rudder-pkg/rudder-pkg --manual-bash && cd -
 
 man: target/man/rudder-relayd.1.gz;
 
