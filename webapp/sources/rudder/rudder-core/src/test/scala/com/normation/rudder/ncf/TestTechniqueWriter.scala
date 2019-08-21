@@ -67,6 +67,7 @@ import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.workflows.ChangeRequest
+import com.normation.rudder.ncf.Constraint.{NOK, OK}
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -395,6 +396,40 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     "Should not generate expected additional rudder reporting content for our technique" in {
       val resultFile = new File(s"${basePath}/${reportingPath_any}")
       resultFile must not exist
+    }
+  }
+
+  "Constraints should" should {
+    "Correctly accept non whitespace text" in {
+      val value1 = "Some text"
+      val value2 =
+        """Some
+          |text""".stripMargin
+      val value3 = "S"
+      val value4 = "ééé ```"
+      val value5 = "sdfsqdfsqfsdf sfhdskjhdfs jkhsdkfjhksqdhf"
+
+      Constraint.NoWhiteSpace.check(value1) must equalTo(Constraint.OK)
+      Constraint.NoWhiteSpace.check(value2) must equalTo(Constraint.OK)
+      Constraint.NoWhiteSpace.check(value3) must equalTo(Constraint.OK)
+      Constraint.NoWhiteSpace.check(value4) must equalTo(Constraint.OK)
+      Constraint.NoWhiteSpace.check(value5) must equalTo(Constraint.OK)
+    }
+
+    "Correctly refuse text starting or ending with withspace" in {
+      val value1 = " Some text"
+      val value2 =
+        """ Some
+          |text""".stripMargin
+      val value3 = " "
+      val value4 = ""
+      val value5 = "sdfsqdfsqfsdf sfhdskjhdfs jkhsdkfjhksqdhf "
+
+      Constraint.NoWhiteSpace.check(value1) must haveClass[Constraint.NOK]
+      Constraint.NoWhiteSpace.check(value2) must haveClass[Constraint.NOK]
+      Constraint.NoWhiteSpace.check(value3) must haveClass[Constraint.NOK]
+      Constraint.NoWhiteSpace.check(value4) must haveClass[Constraint.NOK]
+      Constraint.NoWhiteSpace.check(value5) must haveClass[Constraint.NOK]
     }
   }
 
