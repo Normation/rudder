@@ -88,6 +88,7 @@ endif
 install: build
 	# Directories
 	mkdir -p $(DESTDIR)/etc/$(APACHE_VHOSTDIR)/
+	mkdir -p $(DESTDIR)/etc/bash_completion.d/
 	mkdir -p $(DESTDIR)/opt/rudder/bin/
 	mkdir -p $(DESTDIR)/opt/rudder/etc/relayd/
 	mkdir -p $(DESTDIR)/opt/rudder/etc/ssl/
