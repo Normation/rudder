@@ -321,6 +321,15 @@ object zio {
     }
 
     /*
+     * Run now, discard result, log error if any
+     */
+    def runNowLogError[A](logger: RudderError => Unit)(io: IOResult[A]): Unit = {
+      runNow(io.unit.either).swap.foreach(err =>
+        logger(err)
+      )
+    }
+
+    /*
      * An unsafe run that is always started on a growing threadpool and its
      * effect marked as blocking.
      */
@@ -334,6 +343,7 @@ object zio {
    */
   implicit class UnsafeRun[A](io: IOResult[A]) {
     def runNow: A = ZioRuntime.runNow(io)
+    def runNowLogError(logger: RudderError => Unit): Unit = ZioRuntime.runNowLogError(logger)(io)
   }
 
 }

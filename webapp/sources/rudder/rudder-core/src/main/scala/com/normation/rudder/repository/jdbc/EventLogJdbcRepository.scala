@@ -80,7 +80,6 @@ class EventLogJdbcRepository(
     //we only know how to store Elem, not NodeSeq
     eventLog.details match {
       case elt: Elem =>
-
         val boxId: IOResult[Int] = transactIOResult(s"Error when persisting event log ${eventLog.eventType.serialize}")(xa => sql"""
           insert into eventlog (creationdate, modificationid, principal, eventtype, severity, data, reason, causeid)
           values(${eventLog.creationDate}, ${modId.value}, ${eventLog.principal.name}, ${eventLog.eventType.serialize},
@@ -95,6 +94,7 @@ class EventLogJdbcRepository(
         } yield {
           saved
         }
+
       case _ => Inconsistancy(s"Eventlog with type '${eventLog.eventType} has invalid XML for details (it must be a well formed document with only one root): ${eventLog.details}'").fail
     }
   }
