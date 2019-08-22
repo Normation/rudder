@@ -57,8 +57,11 @@ import org.joda.time.DateTime
 import com.normation.rudder.web.snippet.WithCachedResource
 import java.net.URLConnection
 
+import com.normation.plugins.AlwaysEnabledPluginStatus
 import com.normation.plugins.RudderPluginModule
 import com.normation.plugins.PluginName
+import com.normation.plugins.PluginStatus
+import com.normation.plugins.PluginVersion
 import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.EndpointSchema
@@ -69,6 +72,8 @@ import net.liftweb.sitemap.Loc.LocGroup
 import net.liftweb.sitemap.Loc.TestAccess
 import org.reflections.Reflections
 import com.normation.zio._
+
+import scala.xml.NodeSeq
 
 /*
  * Utilities about rights
@@ -517,7 +522,35 @@ class Boot extends Loggable {
     val reflections = new Reflections("bootstrap.rudder.plugin")
     val modules = reflections.getSubTypesOf(classOf[RudderPluginModule]).asScala.map(c => c.getField("MODULE$").get(null).asInstanceOf[RudderPluginModule])
 
-    val pluginDefs = modules.toList.map(_.pluginDef)
+    val scalaPlugins = modules.toList.map(_.pluginDef).map(p => (p.name.value, p)).toMap
+
+    val nonScala = RudderConfig.jsonPluginDefinition.getInfo().either.runNow match {
+      case Left(err) =>
+        PluginLogger.error(s"Error when trying to read plugins index file '${RudderConfig.jsonPluginDefinition.index.pathAsString}': ${err.fullMsg}")
+        Nil
+      case Right(plugins) =>
+        val scalaKeys = scalaPlugins.keySet
+        // log parsing errors
+        plugins.collect { case Left(e) => e }.foreach { e =>
+          PluginLogger.error(s"Error when parsing plugin information from index file '${RudderConfig.jsonPluginDefinition.index.pathAsString}': ${e.fullMsg}")
+        }
+        plugins.collect { case Right(p) if(!scalaKeys.contains(p.name) && p.jars.isEmpty) => p }.map { p =>
+          val sn = p.name.replace("rudder-plugin-", "")
+          new RudderPluginDef {
+            override def displayName = sn.capitalize
+            override val name = PluginName(p.name)
+            override val shortName: String = sn
+            override val description: NodeSeq = <p>{p.name}</p>
+            override val version: PluginVersion = p.version
+            override val status: PluginStatus = AlwaysEnabledPluginStatus
+            override val init = ()
+            override val basePackage: String = p.name
+            override val configFiles: Seq[ConfigResource] = Nil
+          }
+        }
+    }
+
+    val pluginDefs = scalaPlugins.values.toList ++ nonScala
 
     pluginDefs.foreach { plugin =>
       PluginLogger.info(s"Initializing plugin '${plugin.name.value}': ${plugin.version}")
