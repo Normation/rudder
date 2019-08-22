@@ -1,0 +1,101 @@
+#####################################################################################
+# Copyright 2019 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Kernel module configuration
+# @description Ensure that the modprobe configuration of a given kernel module is correct
+# @documentation Ensure that the modprobe configuration of a given kernel module is correct.
+#  Rudder will search for the module configuration in a per-module dedicated section in /etc/modprobe.d/managed\_by\_rudder.conf.
+#
+#  * If the module configuration is not found or incorrect, Rudder will (re-)create its configuration.
+#  * If the module is configured but with a different option file than used by Rudder, it will add the
+#  expected one in /etc/modprobe.d/managed\_by\_rudder.conf but will leave intact the already present one.
+#
+#  The configuration syntax must respect the one used by /etc/modprobe.d defined in the modprobe.d manual page.
+#  ```
+#    # To pass a parameter to a module:
+#    options module_name parameter_name=parameter_value
+#    # To blacklist a module
+#    blacklist modulename
+#    # etc...
+#  ```
+#
+# #### Notes:
+#  If you want to force the module to be loaded at boot, use instead the method `kernel_module_enabled_at_boot` which
+#  uses other Rudder dedicated files.
+#
+# #### Example:
+#
+#  To pass options to a broadcom module
+#  * `module_name` = b43
+#  * `configuration` = options b43 nohwcrypt=1 qos=0
+#
+#  Will produce the resulting block in /etc/modprobe.d/managed\_by\_rudder.conf:
+#  ```
+#  ### b43 start section
+#  options b43 nohwcrypt=1 qos=0
+#  ### b43 end section
+#  ```
+#
+# @parameter module_name Complete name of the kernel module, as seen by lsmod or listed in /proc/modules
+# @parameter configuration Complete configuration block to put in /etc/modprobe.d/
+#
+# @parameter_constraint configuration "regex" : "^(alias|blacklist|install|options|remove|softdeps) +.*$"
+#
+# @class_prefix kernel_module_configuration
+# @class_parameter module_name
+
+bundle agent kernel_module_configuration(module_name, configuration)
+{
+  vars:
+      "modprobe_dir"            string => "/etc/modprobe.d";
+      "canonified_module_name"  string => canonify("${module_name}");
+
+      "old_class_prefix"        string => canonify("kernel_module_configuration_${module_name}");
+      "args"                     slist => { "${module_name}", "${configuration}" };
+      "report_param"            string => join("_", args);
+      "full_class_prefix"       string => canonify("kernel_module_configuration_${report_param}");
+      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
+
+      "conf_file"               string => "${modprobe_dir}/managed_by_rudder.conf";
+      "start_section"           string => "### ${module_name} start section";
+      "end_section"             string => "### ${module_name} end section";
+      "inner_args"               slist => { "${conf_file}", "${start_section}", "${end_section}", "${configuration}" };
+      "report_inner_param"      string => join("_", inner_args);
+      "inner_class_prefix"      string => string_head(canonify("file_block_present_in_section_${report_inner_param}"), "1000");
+
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+      "should_report" expression => "${report_data.should_report}";
+
+  methods:
+    pass1.!pass2::
+      "disable_reporting_${class_prefix}"    usebundle => disable_reporting;
+      "edit_modprobe_config_${class_prefix}" usebundle => file_block_present_in_section("${conf_file}", "${start_section}", "${end_section}", "${configuration}");
+      "reenable_reporting_${class_prefix}"   usebundle => enable_reporting,
+        ifvarclass => "should_report";
+
+    pass3::
+      "result_classes"     usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+      "old_result_classes" usebundle => _classes_copy("${inner_class_prefix}", "${old_class_prefix}");
+      "report"             usebundle => _log_v3("Check that the kernel module ${module_name} configuration is correct", "${module_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+}
+
