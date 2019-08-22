@@ -97,6 +97,7 @@ install: build
 	mkdir -p $(DESTDIR)/opt/rudder/share/python/
 	mkdir -p $(DESTDIR)/opt/rudder/share/package-scripts/
 	mkdir -p $(DESTDIR)/opt/rudder/share/man/man1/
+	mkdir -p $(DESTDIR)/opt/rudder/share/commands/
 	mkdir -p $(DESTDIR)/var/rudder/inventories/incoming
 	mkdir -p $(DESTDIR)/var/rudder/inventories/accepted-nodes-updates
 	mkdir -p $(DESTDIR)/var/rudder/lib/ssl
@@ -119,7 +120,7 @@ install: build
 	# Install service
 	install -m 644 systemd/rudder-relayd.service $(DESTDIR)/usr/lib/systemd/system/rudder-relayd.service
 	# Sandboxing if compatible
-	[ $$(systemctl --version | head -1 | cut -d' ' -f2) -gt 232 ] && sed '/\[Service\]/ r systemd/rudder-relayd-hardening' $(DESTDIR)/usr/lib/systemd/system/rudder-relayd.service
+	[ $$(systemctl --version | head -1 | cut -d' ' -f2) -gt 232 ] && sed -i '/\[Service\]/ r systemd/rudder-relayd-hardening' $(DESTDIR)/usr/lib/systemd/system/rudder-relayd.service || true
 
 	# Install man pages
 	install -m 644 target/man/rudder-relayd.1.gz $(DESTDIR)/opt/rudder/share/man/man1/
