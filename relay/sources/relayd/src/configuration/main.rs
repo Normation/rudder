@@ -51,6 +51,7 @@ pub struct Configuration {
     pub processing: ProcessingConfig,
     pub output: OutputConfig,
     pub remote_run: RemoteRun,
+    pub shared_files: SharedFiles,
 }
 
 impl Configuration {
@@ -147,6 +148,11 @@ pub struct RemoteRun {
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+pub struct SharedFiles {
+    pub path: PathBuf,
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct OutputConfig {
     pub database: DatabaseConfig,
     pub upstream: UpstreamConfig,
@@ -226,6 +232,9 @@ mod tests {
             remote_run: RemoteRun {
                 command: PathBuf::from("tests/fake_agent.sh"),
                 use_sudo: false,
+            },
+            shared_files: SharedFiles {
+                path: PathBuf::from("tests/"),
             },
         };
         assert_eq!(config.unwrap(), reference);

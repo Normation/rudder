@@ -116,6 +116,7 @@ pub fn api(
         },
     );
 
+    let job_config5 = job_config.clone();
     let shared_files_put = put()
         .and(filters::query::raw())
         .and(path::peek())
@@ -128,7 +129,7 @@ pub fn api(
                         format!("{}", metadata_parser(buf.by_ref()).unwrap()),
                         peek.as_str(),
                         parse_parameter_from_raw(ttl),
-                        job_config.clone(),
+                        job_config5.clone(),
                         buf,
                     ) {
                         Ok(x) => x,
@@ -138,20 +139,27 @@ pub fn api(
             },
         );
 
+    let job_config6 = job_config.clone();
     let shared_files_head = head()
         .and(path::peek())
         .and(filters::query::raw()) // recuperation du parametre ?hash=file-hash
-        .map(|peek: filters::path::Peek, raw: String| {
+        .map(move |peek: filters::path::Peek, raw: String| {
             reply::with_status(
                 "".to_string(),
-                metadata_hash_checker(peek.as_str().to_string(), parse_parameter_from_raw(raw)),
+                metadata_hash_checker(
+                    peek.as_str().to_string(),
+                    parse_parameter_from_raw(raw),
+                    job_config6.clone(),
+                ),
             )
         });
 
+    let job_config7 = job_config.clone();
     let shared_folder_head = head().and(path::peek()).and(filters::query::raw()).map(
-        |peek: filters::path::Peek, raw: String| match shared_folder_head(
+        move |peek: filters::path::Peek, raw: String| match shared_folder_head(
             peek.as_str().to_string(),
             raw,
+            job_config7.clone(),
         ) {
             Ok(status) => reply::with_status("".to_string(), status),
             Err(_e) => reply::with_status("".to_string(), StatusCode::from_u16(500).unwrap()),
