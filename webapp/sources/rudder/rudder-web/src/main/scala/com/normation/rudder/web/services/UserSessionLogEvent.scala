@@ -51,6 +51,7 @@ import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLog
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
+import com.normation.zio._
 
 /**
  * A class used to log user session creation/destruction events.
@@ -78,7 +79,7 @@ class UserSessionLogEvent(
                       , reason = None
                     )
                 )
-            )
+            ).runNowLogError(err => logger.error(s"Error when saving user login event log: ${err.fullMsg}"))
           case x =>
             logger.warn("The application received an Authentication 'success' event with a parameter that is neither a principal nor some user details. I don't know how to log that event in database. Event parameter was: " +x)
         }
@@ -96,7 +97,7 @@ class UserSessionLogEvent(
                       , reason = None
                     )
                 )
-            )
+            ).runNowLogError(err => logger.error(s"Error when saving user login event log: ${err.fullMsg}"))
           case x =>
             logger.warn("The application received an Authentication 'bad credential' event with a parameter that is not the principal login. I don't know how to log that event in database. Event parameter was: " +x)
         }

@@ -167,7 +167,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
                                  modificationId = None
                                , principal = CurrentUser.actor
                                , details = modifications
-                               , reason = None))).toBox ?~! "Unable to save the user event log for modification on authorized networks for policy server ${policyServerId.value}"
+                               , reason = None))).toBox ?~! s"Unable to save the user event log for modification on authorized networks for policy server ${policyServerId.value}"
         } yield {
         }) match {
           case Full(_) =>

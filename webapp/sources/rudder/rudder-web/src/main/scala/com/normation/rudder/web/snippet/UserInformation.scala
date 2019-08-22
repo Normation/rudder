@@ -54,6 +54,7 @@ import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.zio._
 
 import scala.xml.NodeSeq
 
@@ -98,7 +99,8 @@ class UserInformation extends DispatchSnippet with DefaultExtendableSnippet[User
                           , reason = None
                         )
                     )
-                )
+                ).runNowLogError(err => ApplicationLogger.error( s"Error when saving user loggin event log result: ${err.fullMsg}"))
+
               case x => //impossible to know who is login out
                 ApplicationLogger.debug("Logout called with unexpected UserDetails, can not log user logout. Details: " + x)
             }

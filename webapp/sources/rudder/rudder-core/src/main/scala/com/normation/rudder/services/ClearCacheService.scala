@@ -17,6 +17,7 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import net.liftweb.http.S
+import com.normation.zio._
 
 trait ClearCacheService {
 
@@ -62,13 +63,7 @@ class ClearCacheServiceImpl(
                 , reason = Some("Node configuration cache deleted on user request")
               )
             )
-          ).toBox match {
-            case eb: EmptyBox =>
-              val e = eb ?~! "Error when logging the cache event"
-              logger.error(e.messageChain)
-              logger.debug(e.exceptionChain)
-            case _ => //ok
-          }
+          ).runNowLogError(err => logger.error(s"Error when logging cache event: ${err.fullMsg}"))
           logger.debug("Deleting node configurations on user clear cache request")
           asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
         }
