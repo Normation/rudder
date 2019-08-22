@@ -165,8 +165,13 @@ final case class NodeInfo(
           ""
         }
       case Some(cert : Certificate) =>
-        logger.info(s"Node '${hostname}' (${id.value}) is a Dsc node and a we do not know how to generate a hash yet")
-        ""
+        CFEngineKey.getSha256Digest(cert) match {
+          case Full(hash) => hash
+          case eb:EmptyBox =>
+            val e = eb ?~! s"Error when trying to get the sha-256 digest of Certificate for node '${hostname}' (${id.value})"
+            logger.error(e.messageChain)
+            ""
+        }
       case None =>
         logger.info(s"Node '${hostname}' (${id.value}) doesn't have a registered public key")
         ""
@@ -321,6 +326,16 @@ object CFEngineKey {
                     // read the PEM b64 pubkey string
       pubkeyInfo <- tryo { parser.readObject.asInstanceOf[SubjectPublicKeyInfo] }
       sha256     <- tryo { MessageDigest.getInstance("SHA-256") }
+    } yield {
+      sha256.update(pubkeyInfo.getEncoded)
+      Hex.toHexString(sha256.digest)
+    }
+  }
+
+  def getSha256Digest(cert: Certificate): Box[String] = {
+    for {
+      (pubkeyInfo,_) <- SecurityToken.parseCertificate(cert).toBox
+      sha256         <- tryo { MessageDigest.getInstance("SHA-256") }
     } yield {
       sha256.update(pubkeyInfo.getEncoded)
       Hex.toHexString(sha256.digest)
