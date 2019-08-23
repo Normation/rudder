@@ -182,7 +182,7 @@ trait RudderPluginDef {
         <dt>Licensee</dt> <dd>{i.licensee}</dd>
         <dt>Supported version</dt> <dd>from {i.minVersion} to {i.maxVersion}</dd>
         <dt>Validity period</dt> <dd>from {i.startDate.toString("YYYY-MM-dd")} to {i.endDate.toString("YYYY-MM-dd")}</dd>
-        <dt>Maximum number of nodes allowed</dt> <dd>{i.maxNodes.map(_.toString).getOrElse("Unlimited")}</dd>
+        <dt>Allowed number of nodes</dt> <dd>{i.maxNodes.map(_.toString).getOrElse("Unlimited")}</dd>
         {
           if(i.others.isEmpty) {
             NodeSeq.Empty
@@ -213,9 +213,15 @@ trait RudderPluginDef {
         )(info)
 
       case PluginStatusInfo.EnabledWithLicense(i) =>
-        ("#license-information [class+]" #> "bs-callout-info" andThen
+        val (callout, background) = if(i.endDate.minusMonths(1).isBeforeNow) {
+          ("bs-callout-danger", "bg-warning")
+        } else {
+          ("bs-callout-info", "bg-info")
+        }
+
+        ("#license-information [class+]" #> callout andThen
          "#license-information-details"  #> (
-           <div class="bg-info">{details(i)}</div>
+           <div class={background}>{details(i)}</div>
          )
         )(info)
     }
