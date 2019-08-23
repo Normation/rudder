@@ -81,7 +81,8 @@ class TechniqueAcceptationUpdater(
 
   override def updatedTechniques(gitRev: String, techniqueMods: Map[TechniqueName, TechniquesLibraryUpdateType], modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[Unit] = {
 
-    final case class CategoryInfo(name: String, description: String)
+    // id is the directory name, name is the display name in xml
+    final case class CategoryInfo(id: String, name: String, description: String)
 
     /*
      * return the category id in which we want to create the technique
@@ -89,12 +90,12 @@ class TechniqueAcceptationUpdater(
     def findCategory(sourcesCatNames: List[CategoryInfo], existings: FullActiveTechniqueCategory): (ActiveTechniqueCategoryId, String) = {
       if(sourcesCatNames.isEmpty ) (existings.id, existings.name)
       else {
-        val catName = sourcesCatNames.head.name.trim
+        val catId = sourcesCatNames.head.id.trim
 
-        existings.subCategories.find { cat => cat.name.trim == catName} match {
+        existings.subCategories.find { cat => cat.id.value == catId} match {
           case None =>
             //create and go deeper
-            createCategories(sourcesCatNames.map(x => CategoryInfo(x.name, x.description)), (existings.id, existings.name))
+            createCategories(sourcesCatNames.map(x => CategoryInfo(x.id, x.name, x.description)), (existings.id, existings.name))
           case Some(cat) =>
             // continue !
             findCategory(sourcesCatNames.tail, cat)
@@ -113,7 +114,8 @@ class TechniqueAcceptationUpdater(
         case Nil => parentCategory
         case head::tail =>
           val info = names.head
-          val cat = ActiveTechniqueCategory(ActiveTechniqueCategoryId(uuidGen.newUuid), info.name, info.description, List(), List())
+          //to maintain sync, active techniques categories have the same ID than the corresponding technique category
+          val cat = ActiveTechniqueCategory(ActiveTechniqueCategoryId(info.id), info.name, info.description, List(), List())
 
           rwActiveTechniqueRepo.addActiveTechniqueCategory(cat, parentCategory._1, modId, actor, reason) match {
             case eb: EmptyBox =>
@@ -193,7 +195,7 @@ class TechniqueAcceptationUpdater(
 
                                             //now, for each category in reference library, look if it exists in target library, and recurse on children
                                             //tail of cats, because if root, we want an empty list to return immediatly in findCategory
-                                            val parentCat = findCategory(referenceCats.tail.map(x => CategoryInfo(x.name, x.description)), techLib)
+                                            val parentCat = findCategory(referenceCats.tail.map(x => CategoryInfo(x.id.name.value, x.name, x.description)), techLib)
 
                                             logger.info(s"Automatically adding technique '${name}' in category '${parentCat._2} (${parentCat._1.value})' of active techniques library")
                                             rwActiveTechniqueRepo.addTechniqueInUserLibrary(parentCat._1, name, mods.keys.toSeq, modId, actor, reason) match {
