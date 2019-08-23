@@ -47,6 +47,7 @@ import net.liftweb.common._
 import com.normation.eventlog.ModificationId
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.services.TechniqueCategoryModType
 import com.normation.rudder.repository.EventLogRepository
 
 class DeployOnTechniqueCallback(
@@ -55,7 +56,7 @@ class DeployOnTechniqueCallback(
   , asyncDeploymentAgent: AsyncDeploymentActor
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
-  override def updatedTechniques(gitRev: String, techniqueIds:Map[TechniqueName, TechniquesLibraryUpdateType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
+  override def updatedTechniques(gitRev: String, techniqueIds:Map[TechniqueName, TechniquesLibraryUpdateType], updatedCategories: Set[TechniqueCategoryModType], modId: ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
     reason.foreach( msg => logger.info(msg) )
     if(techniqueIds.nonEmpty) {
       logger.debug(s"Ask for a policy update since technique library was reloaded (git revision tree: ${gitRev}")
@@ -71,7 +72,7 @@ class LogEventOnTechniqueReloadCallback(
   , eventLogRepos     : EventLogRepository
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
-  override def updatedTechniques(gitRev: String, techniqueMods: Map[TechniqueName, TechniquesLibraryUpdateType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
+  override def updatedTechniques(gitRev: String, techniqueMods: Map[TechniqueName, TechniquesLibraryUpdateType], updatedCategories: Set[TechniqueCategoryModType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
     eventLogRepos.saveEventLog(modId, ReloadTechniqueLibrary(EventLogDetails(
         modificationId = None
       , principal      = actor

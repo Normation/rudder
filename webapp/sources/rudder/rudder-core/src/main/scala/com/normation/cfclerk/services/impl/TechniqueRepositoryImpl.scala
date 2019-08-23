@@ -109,11 +109,57 @@ class TechniqueRepositoryImpl(
             "found modified technique(s): " + details.mkString(", ")
           }
         })
+        val oldInfo = techniqueInfosCache
         techniqueInfosCache = techniqueReader.readTechniques
+
+        // check for changes in categories
+        val updatedCategories: Set[TechniqueCategoryModType] = {
+          val updates = techniqueInfosCache.allCategories.flatMap { case (id, cat) =>
+            // we only works on parents looking for their children for move/add/delete since id are not stable on move
+            oldInfo.allCategories.get(id) match {
+              case None      => // added or move (since id depends on parent), but it will be processed below, ignore
+                Nil
+              case Some(old) =>
+                val m1 = if(old.name != cat.name || old.description != cat.description) {
+                  TechniqueCategoryModType.Updated(cat) :: Nil
+                } else Nil
+
+                val m2 = if(old.subCategoryIds != cat.subCategoryIds) {
+                  // some categories moved or were added or deleted
+                  val notInBoth = (old.subCategoryIds -- cat.subCategoryIds) ++ (cat.subCategoryIds -- old.subCategoryIds)
+                  notInBoth.toList.flatMap { changedId =>
+                    // hypothesis: directory names for category are unique in technique lib
+                    (oldInfo.allCategories.find(_._2.subCategoryIds.exists(_.name == changedId.name)), techniqueInfosCache.allCategories.find(_._2.subCategoryIds.exists(_.name == changedId.name))) match {
+                      case (Some((oldId, _)), Some((newId, _))) =>
+                        if(oldId != newId) TechniqueCategoryModType.Moved(changedId.name, oldId, newId) :: Nil
+                        else Nil
+
+                      case (None, Some((newId, _))) =>
+                        //new cat should be in new info
+                        techniqueInfosCache.allCategories.get(changedId).map(c =>
+                          TechniqueCategoryModType.Added(c, newId)
+                        ).toList
+                      case (Some(_), None) =>
+                        // old cat should be in old info
+                        oldInfo.allCategories.get(changedId).map(c =>
+                          TechniqueCategoryModType.Deleted(c)
+                        ).toList
+                      case (None, None) =>
+                        Nil
+                    }
+                  }
+                } else Nil
+                m1 ::: m2
+            }
+          }
+
+          // we may have counted moved categories two time => Set
+          updates.toSet
+        }
 
         val res = Control.bestEffort(callbacks) { callback =>
           try {
-            callback.updatedTechniques(techniqueInfosCache.gitRevId, modifiedPackages, modId, actor, reason)
+            callback.updatedTechniques(techniqueInfosCache.gitRevId, modifiedPackages, updatedCategories, modId, actor, reason)
           } catch {
             case e: Exception =>
               Failure(s"Error when executing callback '${callback.name}' for updated techniques: '${modifiedPackages.mkString(", ")}'", Full(e), Empty)
