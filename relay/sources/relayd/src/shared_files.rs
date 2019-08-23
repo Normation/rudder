@@ -234,13 +234,21 @@ pub fn metadata_parser(buf: &mut warp::body::FullBody) -> Result<Metadata, Error
     Metadata::from_str(&metadata)
 }
 
-pub fn file_writer(buf: &mut warp::body::FullBody, path: &str) {
+pub fn file_writer(buf: &mut warp::body::FullBody, path: &str, job_config: Arc<JobConfig>) {
     let mut myvec: Vec<u8> = vec![];
 
     buf.by_ref().reader().consume(1); // skip the line feed
     buf.reader().read_to_end(&mut myvec).unwrap();
 
-    fs::write(format!("shared-files/{}", path), myvec).expect("Unable to write file");
+    fs::write(
+        format!(
+            "{}shared-files/{}",
+            job_config.cfg.shared_files.path.to_str().unwrap(),
+            path
+        ),
+        myvec,
+    )
+    .expect("Unable to write file");
 }
 
 pub fn put_handler(
@@ -292,24 +300,44 @@ pub fn put_handler(
         return Ok(StatusCode::from_u16(404).unwrap());
     }
 
-    let _ = fs::create_dir_all(format!("shared-files/{}/{}/", target_uuid, source_uuid)); // on cree les folders s'ils existent pas
-                                                                                          //fs::create_dir_all(format!("/var/rudder/configuration-repository/shared-files/{}/{}/", target_uuid, source_uuid)); // real path
+    let _ = fs::create_dir_all(format!(
+        "{}shared-files/{}/{}/",
+        job_config.cfg.shared_files.path.to_str().unwrap(),
+        target_uuid,
+        source_uuid
+    )); // create folders if they don't exist
     fs::write(
-        format!("shared-files/{}.metadata", peek),
+        format!(
+            "{}shared-files/{}.metadata",
+            job_config.cfg.shared_files.path.to_str().unwrap(),
+            peek
+        ),
         format!("{}expires={}\n", metadata_string, timestamp),
     )
     .expect("Unable to write file");
-    file_writer(buf.by_ref(), peek);
+    file_writer(buf.by_ref(), peek, job_config.clone());
     Ok(StatusCode::from_u16(200).unwrap())
 }
 
-pub fn metadata_hash_checker(path: String, hash: String) -> hyper::StatusCode {
-    if !Path::new(&format!("shared-files/{}.metadata", path)).exists() {
+pub fn metadata_hash_checker(
+    path: String,
+    hash: String,
+    job_config: Arc<JobConfig>,
+) -> hyper::StatusCode {
+    if !Path::new(job_config.cfg.shared_files.path.to_str().unwrap())
+        .join("shared-files/")
+        .join(format!("{}.metadata", path))
+        .exists()
+    {
         return StatusCode::from_u16(404).unwrap();
     }
 
-    let contents = fs::read_to_string(&format!("shared-files/{}.metadata", path))
-        .expect("Something went wrong while reading the file");
+    let contents = fs::read_to_string(&format!(
+        "{}shared-files/{}.metadata",
+        job_config.cfg.shared_files.path.to_str().unwrap(),
+        path
+    ))
+    .expect("Something went wrong while reading the file");
 
     if parse_value("hash_value", &contents).unwrap() == hash {
         return StatusCode::from_u16(200).unwrap();
@@ -321,8 +349,15 @@ pub fn metadata_hash_checker(path: String, hash: String) -> hyper::StatusCode {
 pub fn shared_folder_head(
     path: String,
     raw: String, // example of raw: hash_type=sha256?hash=181210f8f9c779c26da1d9b2075bde0127302ee0e3fca38c9a83f5b1dd8e5d3b
+    job_config: Arc<JobConfig>,
 ) -> Result<hyper::StatusCode, Error> {
-    if !Path::new(&format!("shared-folder/{}", path)).exists() {
+    if !Path::new(&format!(
+        "{}shared-folder/{}",
+        job_config.cfg.shared_files.path.to_str().unwrap(),
+        path
+    ))
+    .exists()
+    {
         return Ok(StatusCode::from_u16(404).unwrap());
     }
 
@@ -339,7 +374,11 @@ pub fn shared_folder_head(
     }
 
     let hash_type = HashType::from_str(&hash_type)?;
-    let f = fs::read(format!("shared-folder/{}", path))?;
+    let f = fs::read(format!(
+        "{}shared-folder/{}",
+        job_config.cfg.shared_files.path.to_str().unwrap(),
+        path
+    ))?;
     let hash_file = hash_type.hash(&f);
 
     if hash == &hash_file {
