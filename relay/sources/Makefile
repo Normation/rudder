@@ -157,6 +157,7 @@ install: build
 	install -m 644 apache/rudder-networks-policy-server-24.conf $(DESTDIR)/opt/rudder/etc/
 	
 	install -m 755 rudder-server-relay-postinst $(DESTDIR)/opt/rudder/share/package-scripts/
+	install -m 755 rudder-server-relay-prerm $(DESTDIR)/opt/rudder/share/package-scripts/
 	
 ifeq ($(SELINUX),true)
 	# Install SELinux policy
