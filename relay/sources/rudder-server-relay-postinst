@@ -45,9 +45,6 @@ systemctl stop "${APACHE}" >> ${LOG_FILE} || true
 systemctl stop rudder-relayd >> ${LOG_FILE} || true
 echo " Done"
 
-# link rudder package to its old path
-ln -s /opt/rudder/share/commands/package /opt/rudder/bin/rudder-pkg
-
 # share directory with rudder-policy-reader
 chgrp -R rudder-policy-reader /var/rudder/share
 chmod 750 /var/rudder/share

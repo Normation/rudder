@@ -134,6 +134,7 @@ install: build
 	
 	# rudder packaging
 	install -m 755 rudder-pkg/rudder-pkg $(DESTDIR)/opt/rudder/share/commands/package
+	ln -ns ../../share/commands/package $(DESTDIR)/opt/rudder/bin/rudder-pkg
 	install -m 755 rudder-pkg/rudder-pkg.conf $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder-pkg.conf
 	install -m 755 rudder-pkg/rudder_plugins_key.pub $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.pub
 	install -m 644 autocomplete/rudder-pkg.sh $(DESTDIR)/etc/bash_completion.d/
