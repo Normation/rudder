@@ -87,10 +87,6 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
 
   override def writeCertificates(file: File, allNodeInfos: Map[NodeId, NodeInfo]): IOResult[Unit] = {
     val allCertsNew = File(file.pathAsString + ".new")
-    import java.nio.file.Files
-    import java.nio.file.LinkOption
-    import java.nio.file.attribute.PosixFileAttributeView
-    import java.nio.file.FileSystems
 
     for {
       _      <- checkParentDirOK(file)
