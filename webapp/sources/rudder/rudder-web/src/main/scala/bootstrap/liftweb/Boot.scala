@@ -68,7 +68,6 @@ import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import net.liftweb.sitemap.Loc.LocGroup
 import net.liftweb.sitemap.Loc.TestAccess
 import org.reflections.Reflections
-
 import com.normation.zio._
 
 /*
