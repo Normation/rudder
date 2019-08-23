@@ -582,7 +582,7 @@ def generate_technique_content(technique, methods):
       promiser = regex.sub(r'\\"', method_name)
 
     # Set bundle context, first escape paramters
-    content.append('    "'+promiser+'_context_' + str(report_unique_id) + '" usebundle => '+ generate_reporting_context(method_info, method_call) + ";")
+    content.append('    "'+promiser+'_context_${report_data.directive_id}_' + str(report_unique_id) + '" usebundle => '+ generate_reporting_context(method_info, method_call) + ";")
     report_unique_id += 1
 
     # Append method call
