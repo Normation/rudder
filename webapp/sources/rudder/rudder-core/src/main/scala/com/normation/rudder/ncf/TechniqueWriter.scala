@@ -316,7 +316,7 @@ class ClassicTechniqueWriter(basePath : String) extends AgentSpecificTechniqueWr
 
       } yield {
         val condition = canonifyCondition(method)
-        val promiser = s"${escapeCFEngineString(method.component)}_${index}"
+        val promiser = s"${escapeCFEngineString(method.component)}_$${report_data.directive_id}_${index}"
         // Check constraint and missing value
         val args = method_info.parameters.map(p => escapeCFEngineString(method.parameters(p.id))).mkString("\"","\", \"","\"")
 
