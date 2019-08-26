@@ -330,9 +330,10 @@ def parse_technique_methods(technique_file, gen_methods):
       args = None
       promise_class_context = class_context
       ifvarclass_context = None
-      # Promiser is used as report component, but in 5.1 we added a digit to make it more unique
+      # Promiser is used as report component, but in 5.1 we added an unique identifier to identify each generic method to make it more unique
       # (because if promiser are unique and params too, method is not run, cfengine way of life)
-      promiser = re.sub("_\d+$", "", method['promiser'])
+      # Format of the identifier is _directiveId_methodIndex, first is given by the variable from report_data, other one is just and int
+      promiser = re.sub("_\${report_data\.directive_id}_\d+$", "", method['promiser'])
 
       for attribute in method['attributes']:
         if attribute['lval'] == 'usebundle':
