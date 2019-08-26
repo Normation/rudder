@@ -67,8 +67,10 @@ import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.services.servers.RelaySynchronizationMethod._
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
-
 import com.normation.box._
+import com.normation.rudder.reports.AgentReportingHTTPS
+import com.normation.rudder.reports.AgentReportingProtocol
+import com.normation.rudder.reports.AgentReportingSyslog
 
 import scala.xml.Text
 /**
@@ -108,7 +110,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "cfengineGlobalProps" => cfengineGlobalProps
     case "loggingConfiguration" => loggingConfiguration
     case "sendMetricsConfiguration" => sendMetricsConfiguration
-    case "networkProtocolSection" => networkProtocolSection
+    case "reportProtocolSection" => reportProtocolSection
     case "displayGraphsConfiguration" => displayGraphsConfiguration
     case "displayRuleColumnConfiguration" => displayRuleColumnConfiguration
     case "directiveScriptEngineConfiguration" => directiveScriptEngineConfiguration
@@ -483,58 +485,185 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     ) apply (xml ++ Script(check()))
   }
 
-  def networkProtocolSection = { xml : NodeSeq =>
-    //  initial values, updated on successfull submit
-    def networkForm(initValue : SyslogProtocol) = {
-      var initReportsProtocol = initValue
-      var reportProtocol = initValue
-      def check = {
-        val noChange = initReportsProtocol == reportProtocol
-        Run(s"""$$("#networkProtocolSubmit").attr("disabled",${noChange});""")
-      }
 
-      def submit = {
-        val actor = CurrentUser.actor
-        configService.set_rudder_syslog_protocol(reportProtocol,actor,None).toBox match {
-          case Full(_) =>
-            // Update the initial value of the form
-            initReportsProtocol = reportProtocol
-            startNewPolicyGeneration
-            check & JsRaw("""createSuccessNotification("Network protocol options correctly updated")""")
-          case eb:EmptyBox =>
-            Noop & JsRaw("""createErrorNotification("Error when saving network protocol options")""")
+  def reportProtocolSection = { xml: NodeSeq =>
+    //  initial values, updated on successful submit
+    var initSyslogProtocol = configService.rudder_syslog_protocol.toBox
+    var initReportProtocol = configService.rudder_report_protocol_default.toBox
+    var initDisabledSyslog  = configService.rudder_syslog_protocol_disabled.toBox
+
+    // form values
+    var syslogProtocol = initSyslogProtocol.getOrElse(SyslogUDP)
+    var reportProtocol = initReportProtocol.getOrElse(AgentReportingHTTPS)
+    var disabledSyslog = initDisabledSyslog.getOrElse(true)
+
+    def noModif = (
+      for {
+        initSyslog   <- initSyslogProtocol
+        initProtocol <- initReportProtocol
+        initDisabled <- initDisabledSyslog
+      } yield {
+        initSyslog   == syslogProtocol &&
+        initProtocol == reportProtocol &&
+        initDisabled == disabledSyslog
+      }
+    ).getOrElse(false)
+
+    def check() = {
+      Run( s""" $$("#reportProtocolSubmit").prop('disabled', ${noModif});""".stripMargin)
+    }
+
+    def submit = {
+      val actor = CurrentUser.actor
+      configService.set_rudder_report_protocol_default(reportProtocol).toBox.foreach(updateOk => initReportProtocol = Full(reportProtocol))
+      configService.set_rudder_syslog_protocol(syslogProtocol, actor, None).toBox.foreach(updateOk => initSyslogProtocol = Full(syslogProtocol))
+      configService.set_rudder_syslog_protocol_disabled(disabledSyslog, actor, None).toBox.foreach(updateOk => initDisabledSyslog = Full(disabledSyslog))
+
+      // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
+      startNewPolicyGeneration
+      check() & JsRaw("""createSuccessNotification("Reporting protocol correctly updated")""")
+    }
+
+
+    val httpsLegacySupport = "HttpsWithLegacy"
+
+    def checkSyslogProtocol(input : String) : JsCmd = {
+      SyslogProtocol.parse(input).toBox match {
+        case Full(newValue) =>
+          syslogProtocol = newValue
+          Noop
+        case eb: EmptyBox =>
+          Noop
+      }
+    }
+
+    def displayDisableSyslogSectionJS(input: String): JsCmd = {
+      if (input == httpsLegacySupport) {
+        reportProtocol = AgentReportingHTTPS
+        disabledSyslog = false
+        JsRaw(""" $('#syslogProtocol').show(); """)
+      } else {
+        AgentReportingProtocol.parse(input).toBox match {
+          case Full(protocol) =>
+            reportProtocol = protocol
+            protocol match {
+              case AgentReportingHTTPS =>
+                disabledSyslog = true
+                JsRaw(""" $('#syslogProtocol').hide(); """)
+              case AgentReportingSyslog =>
+                disabledSyslog = false
+                JsRaw(""" $('#syslogProtocol').show(); """)
+            }
+          case eb: EmptyBox =>
+            Noop
         }
       }
+    }
 
-      val checkboxInitValue = initReportsProtocol == SyslogUDP
+    val reportRadioInitialState : Box[(AgentReportingProtocol,Boolean)] = (initReportProtocol,initDisabledSyslog) match {
+      case (Full(a),Full(b)) => Full((a,b))
+      case (eb1 : EmptyBox, eb2: EmptyBox) =>
+        val fail1 = eb1 ?~! "Error when getting reporting protocol"
+        val fail2 = eb2 ?~! "Error when getting disabled syslog protocol"
+        Failure(s"Error when fetch reporting protocol options: ${fail1.messageChain} - ${fail2.messageChain}")
+      case (eb1 : EmptyBox, _) =>
+        eb1 ?~! "Error when getting reporting protocol"
+      case (_, eb2 : EmptyBox) =>
+        eb2 ?~! "Error when getting disabled syslog protocol"
+    }
 
-     ( "#reportProtocol" #> {
-          SHtml.ajaxCheckbox(
-              checkboxInitValue
-            , (newValue : Boolean) => {
-                reportProtocol = if (newValue) SyslogUDP else SyslogTCP
-                check
+
+    def labelAndValue(protocol : AgentReportingProtocol, disabledSyslog : Boolean) =
+      protocol match {
+        case AgentReportingHTTPS if ! disabledSyslog =>
+          ( protocol.value +" with syslog support for migration purpose (old agent or legacy systems)",  httpsLegacySupport)
+        case _ => ( protocol.value + " only",  protocol.value)
+      }
+
+      (
+        "#reportProtocol" #> {
+          reportRadioInitialState match {
+            case Full((initReport, initDisabled)) =>
+              val (_,initValue) = labelAndValue(initReport,initDisabled)
+              def radioHtml(protocol : AgentReportingProtocol, disabledSyslog : Boolean): NodeSeq = {
+                val (label,value) = labelAndValue(protocol,disabledSyslog)
+                val inputId = value + "-id"
+                val ajaxCall = SHtml.ajaxCall(Str(""), _ => displayDisableSyslogSectionJS(value) & check)._2.toJsCmd
+                val inputCheck = if (initReport == protocol && initDisabled == disabledSyslog) {
+                    <input id={inputId} type="radio" name="reportProtocol" onclick={ajaxCall} checked=""/>
+                } else {
+                    <input id={inputId} type="radio" name="reportProtocol" onclick={ajaxCall}/>
+                }
+                <li class="rudder-form">
+                  <div class="input-group">
+                    <label class="input-group-addon" for={inputId}>
+                      {inputCheck}<label for={inputId} class="label-radio">
+                      <span class="ion ion-record"></span>
+                    </label>
+                      <span class="ion ion-checkmark-round check-icon"></span>
+                    </label>
+                    <label class="form-control" for={inputId}>
+                      {label}
+                    </label>
+                  </div>
+                </li>
               }
-            , ("id","reportProtocol")
-          )
-       } &
-       "#networkProtocolSubmit " #> {
-         SHtml.ajaxSubmit("Save changes", submit _ ,("class","btn btn-default"))
-       }
-      )(xml ++ Script(check))
 
-    }
+              <ul id="reportProtocol">
+                {((AgentReportingHTTPS, true) :: (AgentReportingHTTPS, false) :: (AgentReportingSyslog, false) :: Nil).map((radioHtml _).tupled)}
+              </ul> ++ Script(OnLoad(displayDisableSyslogSectionJS(initValue) & check()))
+            case eb: EmptyBox =>
+              val fail = eb ?~ "there was an error while fetching value of reporting protocol' "
+              <div class="error">
+                {fail.msg}
+              </div>
+          }
 
-    configService.rudder_syslog_protocol.toBox match {
-      case Full(value) =>
-        networkForm(value)
-      case eb: EmptyBox =>
-        // We could not read current protocol, try repairing by setting protocol to UDP and warn user
-        val actor = CurrentUser.actor
-        configService.set_rudder_syslog_protocol(SyslogUDP,actor,Some("Property automatically reset to 'UDP' due to an error"))
-        JsRaw("""createErrorNotification("Error when fetching 'Syslog protocol' property, Setting it to UDP")""")
-        networkForm(SyslogUDP)
-    }
+        }&
+          "#reportProtocolSubmit " #> {
+            SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-default"))
+          }
+          &
+          "#syslogProtocol" #> {
+            initSyslogProtocol match {
+              case Full(initSyslog) =>
+                def radioHtml(syslogProtocol: SyslogProtocol): NodeSeq = {
+                  val value = syslogProtocol.value
+                  val inputId = value + "-id"
+                  val ajaxCall = SHtml.ajaxCall(Str(""), _ => checkSyslogProtocol(value) & check)._2.toJsCmd
+                  val inputCheck = if (initSyslog == syslogProtocol) {
+                      <input id={inputId} type="radio" name="syslogProtocol" onclick={ajaxCall} checked=""/>
+                  } else {
+                      <input id={inputId} type="radio" name="syslogProtocol" onclick={ajaxCall}/>
+                  }
+                  <li class="rudder-form">
+                    <div class="input-group">
+                      <label class="input-group-addon" for={inputId}>
+                        {inputCheck}<label for={inputId} class="label-radio">
+                        <span class="ion ion-record"></span>
+                      </label>
+                        <span class="ion ion-checkmark-round check-icon"></span>
+                      </label>
+                      <label class="form-control" for={inputId}>
+                        {value}
+                      </label>
+                    </div>
+                  </li>
+                }
+
+                <ul id="syslogProtocol">
+                  {(SyslogUDP :: SyslogTCP :: Nil).map(radioHtml)}
+                </ul>
+              case eb: EmptyBox =>
+                val fail = eb ?~ "there was an error while fetching value of reporting protocol' "
+                <div class="error">
+                  {fail.msg}
+                </div>
+            }
+
+          }
+        ).apply (xml)
+
   }
 
   val agentScheduleEditForm = new AgentScheduleEditForm(
