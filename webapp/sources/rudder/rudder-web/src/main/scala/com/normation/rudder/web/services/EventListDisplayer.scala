@@ -103,12 +103,18 @@ class EventListDisplayer(
   private[this] val gridName = "eventLogsGrid"
 
   def display(refreshEvents:() => Box[Seq[EventLog]]) : NodeSeq  = {
+    val limit: Int = 500
     //common part between last events and interval
     def displayEvents(events: Box[Seq[EventLog]]) :JsCmd = {
       events match {
         case Full(events) =>
-          val lines = JsTableData(events.map(EventLogLine(_)).toList)
-            JsRaw(s"refreshTable('${gridName}',${lines.json.toJsCmd})")
+          val lines = {
+            val el = events.map(EventLogLine(_)).toList.sortWith(_.event.creationDate.getMillis > _.event.creationDate.getMillis)
+            if(el.size > limit) JsTableData(el.take(limit)) else JsTableData(el)
+          }
+          val limitMsg = if(events.size > limit) <div> {limit} results taken over {events.size} results</div> else <div></div>
+          val call = JsRaw(s"refreshTable('${gridName}',${lines.json.toJsCmd})") & SetHtml("limitEventDisplayer", limitMsg)
+          call
         case eb : EmptyBox =>
           val fail = eb ?~! "Could not get latest event logs"
           logger.error(fail.messageChain)
@@ -121,6 +127,7 @@ class EventListDisplayer(
       displayEvents(refreshEvents())
     }
 
+
     def getEventsInterval(jsonInterval: String): JsCmd = {
       import java.sql.Timestamp
       val format = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss")
@@ -128,15 +135,34 @@ class EventListDisplayer(
       displayEvents(for {
         parsed   <- tryo(parse(jsonInterval)) ?~! s"Error when trying to parse '${jsonInterval}' as a JSON datastructure with fields 'start' and 'end'"
         startStr <- parsed \ "start" match {
-                      case JString(startStr) => tryo(new Timestamp(DateTime.parse(startStr, format).getMillis)) ?~! s"Bad format for start date, was execpting '${format.toString}' and got '${startStr}'"
-                      case x => Failure("Error: missing start date and time")
+                      case JString(startStr) if startStr.nonEmpty =>
+                        val date = tryo(DateTime.parse(startStr, format)) ?~! s"Error when trying to parse start date '${startStr}"
+                        date match {
+                          case Full(d) => Full(Some(new Timestamp(d.getMillis)))
+                          case eb: EmptyBox =>
+                            eb ?~! s"Invalid start date"
+                        }
+                      case _ => Full(None)
                     }
         endStr   <- parsed \ "end" match {
-                      case JString(endStr) => tryo(new Timestamp(DateTime.parse(endStr, format).getMillis)) ?~! s"Bad format for end date, was execpting '${format.toString}' and got '${endStr}'"
-                      case x => Failure("Error: missing end date and time")
+                      case JString(endStr) if endStr.nonEmpty =>
+                        val date = tryo(DateTime.parse(endStr, format)) ?~! s"Error when trying to parse end date '${endStr}"
+                        date match {
+                          case Full(d) => Full(Some(new Timestamp(d.getMillis)))
+                          case eb: EmptyBox =>
+                             eb ?~! s"Invalid end date"
+                        }
+                      case _ => Full(None)
                     }
-        (start, end) = if(startStr.before(endStr)) (startStr, endStr) else (endStr, startStr)
-        logs     <- repos.getEventLogByCriteria(Some(s"creationdate >= '${start}' and creationdate < '${end}'"), None, Some("id DESC")).toBox
+        whereStatement = (startStr, endStr) match {
+          case (None, None) => None
+          case (Some(start), None) => Some(s" creationdate > '$start'")
+          case (None, Some(end)) => Some(s" creationdate < '$end'")
+          case (Some(start), Some(end)) =>
+            val orderedDate = if(start.after(end)) (end, start) else (start, end)
+            Some(s" creationdate > '${orderedDate._1}' and creationdate < '${orderedDate._2}'")
+        }
+        logs     <- repos.getEventLogByCriteria(whereStatement, None, Some("id DESC")).toBox
       } yield {
         logs
       })
@@ -152,6 +178,7 @@ class EventListDisplayer(
      createEventLogTable('${gridName}',[], '${S.contextPath}', refreshEventLogs, pickEventLogsInInterval)
      refreshEventLogs();
     """)))
+
   }
 
   /*
