@@ -392,8 +392,6 @@ def parse_technique_methods(technique_file, gen_methods):
   return res
 
 
-
-
 # FUNCTIONS called directly by the API code
 ###########################################
 

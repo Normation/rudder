@@ -668,6 +668,20 @@ ul.files-list > li .use-with > span{
   display: block !important;
 }
 
+.method.missingParameters:after{
+  content: "";
+  display: block;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  transition-duration: .2s;
+  transition-property: box-shadow;
+  z-index: -1;
+  animation: pulse 1s forwards;
+}
+
 /* METHOD DETAILS */
 .method-details{
   border: 1px solid #a7d0f1;
@@ -980,4 +994,29 @@ ul.list-unstyled > li{
 }
 .col.no-technique {
   padding: 50px;
+}
+@keyframes pulse {
+  0% {
+    -moz-box-shadow: 0 0 0 0 rgba(199, 218, 252, .9);
+    box-shadow: 0 0 0 0 rgba(199, 218, 252, .9);
+  }
+  70% {
+      -moz-box-shadow: 0 0 4px 6px rgba(199, 218, 252, 0);
+      box-shadow: 0 0 4px 6px rgba(199, 218, 252, 0);
+  }
+  100% {
+      -moz-box-shadow: 0 0 0 0 rgba(199, 218, 252, 0);
+      box-shadow: 0 0 0 0 rgba(199, 218, 252, 0);
+  }
+}
+@-webkit-keyframes pulse {
+  0% {
+    -webkit-box-shadow: 0 0 0 0 rgba(199, 218, 252, .9);
+  }
+  70% {
+      -webkit-box-shadow: 0 0 4px 6px rgba(199, 218, 252, 0);
+  }
+  100% {
+      -webkit-box-shadow: 0 0 0 0 rgba(199, 218, 252, 0);
+  }
 }
