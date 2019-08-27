@@ -66,7 +66,8 @@ class JsTreeUtilService(
     def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId,logger:Logger) : Option[ActiveTechniqueCategory] = {
       directiveRepository.getActiveTechniqueCategory(id).toBox match {
         //remove sytem category
-        case Full(cat) => if(cat.isSystem) None else Some(cat)
+        case Full(Some(cat)) => if(cat.isSystem) None else Some(cat)
+        case Full(None) => None
         case e:EmptyBox =>
           logger.error("Error when displaying category", e ?~! "Error while fetching Active Technique category %s".format(id))
           None

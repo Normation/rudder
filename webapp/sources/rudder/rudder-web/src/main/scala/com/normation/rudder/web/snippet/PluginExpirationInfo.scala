@@ -39,27 +39,25 @@ package com.normation.rudder.web.snippet
 
 import bootstrap.liftweb.PluginsInfo
 import com.normation.plugins.PluginStatusInfo
-import com.normation.rudder.services.quicksearch.QSMapping
-import com.normation.rudder.services.quicksearch.QSObject
 import com.softwaremill.quicklens._
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
-import net.liftweb.http.S
-import net.liftweb.util.Helpers._
 import org.joda.time.DateTime
 
 import scala.xml.NodeSeq
+
+protected final case class Warning(
+    licenseError: List[String]
+  , licenseExpired: Map[String, DateTime]
+  , licenseNearExpiration: Map[String, DateTime]
+)
+
 /**
  * This snippet allow to display a warning if a plugin is near
  * expiration date.
  */
 class PluginExpirationInfo extends DispatchSnippet with Loggable {
 
-  final case class Warning(
-      licenseError: List[String]
-    , licenseExpired: Map[String, DateTime]
-    , licenseNearExpiration: Map[String, DateTime]
-  )
 
   def dispatch = {
     case "render" => pluginInfo

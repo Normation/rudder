@@ -37,6 +37,8 @@
 
 package com.normation.rudder.services.policies
 
+import com.normation.cfclerk.domain.RootTechniqueCategoryId
+import com.normation.cfclerk.domain.SubTechniqueCategoryId
 import com.normation.NamedZioLogger
 import com.normation.box._
 import com.normation.cfclerk.domain.TechniqueName
@@ -80,13 +82,14 @@ class TechniqueAcceptationUpdater(
 
   override def loggerName: String = this.getClass.getName
 
-  override def updatedTechniques(gitRev: String, techniqueMods: Map[TechniqueName, TechniquesLibraryUpdateType], modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[Unit] = {
+  override def updatedTechniques(gitRev: String, techniqueMods: Map[TechniqueName, TechniquesLibraryUpdateType], updatedCategories: Set[TechniqueCategoryModType], modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[Unit] = {
 
     final case class CategoryInfo(name: String, description: String)
 
     /*
      * return the category id in which we want to create the technique
      */
+    @scala.annotation.tailrec
     def findCategory(sourcesCatNames: List[CategoryInfo], existings: FullActiveTechniqueCategory): (ActiveTechniqueCategoryId, String) = {
       if(sourcesCatNames.isEmpty ) (existings.id, existings.name)
       else {
@@ -109,6 +112,7 @@ class TechniqueAcceptationUpdater(
      * That method never fails: even if we can't create categories,
      * we at least return an id of an existing one.
      */
+    @scala.annotation.tailrec
     def createCategories(names: List[CategoryInfo], parentCategory: (ActiveTechniqueCategoryId, String)): (ActiveTechniqueCategoryId, String) = {
       names match {
         case Nil => parentCategory
@@ -128,9 +132,73 @@ class TechniqueAcceptationUpdater(
       }
     }
 
+    def handleCategoriesUpdate(mods: Set[TechniqueCategoryModType]): IOResult[Seq[Unit]] = {
+      // we need to sort change: first delete, then add, then move, then update
+      val sorted = mods.toList.sortWith { (a, b) => (a, b) match {
+        case (TechniqueCategoryModType.Deleted(_), _) => true
+        case (_, TechniqueCategoryModType.Deleted(_)) => false
+        case (TechniqueCategoryModType.Added(x, parentX), TechniqueCategoryModType.Added(y, parentY)) =>
+          parentY == x.id || ! (parentX == y.id)
+        case (_:TechniqueCategoryModType.Added, _) => true
+        case (_, _:TechniqueCategoryModType.Added) => false
+        case (_:TechniqueCategoryModType.Moved, _) => true
+        case (_, _:TechniqueCategoryModType.Moved) => false
+        case _ => true
+      }}
+
+      sorted.accumulate { mod => mod match {
+        case TechniqueCategoryModType.Deleted(cat) =>
+          logPure.debug(s"Category '${cat.id.name.value}' deleted") *> (
+          if(cat.subCategoryIds.isEmpty && cat.techniqueIds.isEmpty) {
+            rwActiveTechniqueRepo.delete(ActiveTechniqueCategoryId(cat.id.name.value), modId, actor, reason).map(_ => ())
+          } else {
+            logPure.info(s"Not deleting non empty category: '${cat.id.toString}'") *>
+            UIO.unit
+          }) // do nothing
+        case TechniqueCategoryModType.Added(cat, parentId) =>
+          logPure.debug(s"Category '${cat.id.name.value}' added into '${parentId.toString}'") *>
+          rwActiveTechniqueRepo.addActiveTechniqueCategory(
+            ActiveTechniqueCategory(
+                ActiveTechniqueCategoryId(cat.id.name.value)
+              , cat.name
+              , cat.description
+              , Nil
+              , Nil
+              , cat.isSystem
+            ), ActiveTechniqueCategoryId(parentId.name.value), modId, actor, reason
+          ).unit
+        case TechniqueCategoryModType.Moved(name, from, to) =>
+          logPure.debug(s"Category '${name.value}' moved from '${from.toString}' to '${to.name.toString}'") *>
+          rwActiveTechniqueRepo.move(ActiveTechniqueCategoryId(name.value), ActiveTechniqueCategoryId(to.name.value), modId, actor, reason).unit
+        case TechniqueCategoryModType.Updated(cat) =>
+          logPure.debug(s"Category '${cat.id.toString}' updated") *>
+          roActiveTechniqueRepo.getActiveTechniqueCategory(ActiveTechniqueCategoryId(cat.id.name.value)).flatMap { opt => opt match {
+            case None          =>
+              cat.id match {
+                case _:RootTechniqueCategoryId.type => UIO.unit
+                case i:SubTechniqueCategoryId =>
+                  rwActiveTechniqueRepo.addActiveTechniqueCategory(
+                    ActiveTechniqueCategory(
+                        ActiveTechniqueCategoryId(cat.id.name.value)
+                      , cat.name
+                      , cat.description
+                      , Nil
+                      , Nil
+                      , cat.isSystem
+                    ), ActiveTechniqueCategoryId(i.parentId.name.value), modId, actor, reason
+                  ).unit
+                }
+            case Some(existing) =>
+              val updated =  existing.copy(name = cat.name, description = cat.description)
+              rwActiveTechniqueRepo.saveActiveTechniqueCategory(updated, modId, actor, reason).unit
+          }}
+      }}
+    }
+
     val acceptationDatetime = DateTime.now()
 
     (for {
+      _                <- handleCategoriesUpdate(updatedCategories)
       techLib          <- roActiveTechniqueRepo.getFullDirectiveLibrary
       activeTechniques =  techLib.allActiveTechniques.map { case (_, at) => (at.techniqueName, at) }
       accepted         <- ZIO.foreach(techniqueMods) { case (name, mod) =>

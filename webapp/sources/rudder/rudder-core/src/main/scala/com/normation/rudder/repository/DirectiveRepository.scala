@@ -237,7 +237,7 @@ trait RoDirectiveRepository {
   /**
    * Get an active technique by its ID
    */
-  def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : IOResult[ActiveTechniqueCategory]
+  def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : IOResult[Option[ActiveTechniqueCategory]]
 
   /**
    * Get the direct parent of the given category.

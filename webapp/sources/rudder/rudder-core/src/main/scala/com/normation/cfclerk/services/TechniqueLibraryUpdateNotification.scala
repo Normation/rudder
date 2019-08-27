@@ -37,12 +37,22 @@
 
 package com.normation.cfclerk.services
 
+import com.normation.cfclerk.domain.TechniqueCategory
+import com.normation.cfclerk.domain.TechniqueCategoryId
+import com.normation.cfclerk.domain.TechniqueCategoryName
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import net.liftweb.common.Box
 
+sealed trait TechniqueCategoryModType
+object TechniqueCategoryModType {
+  case class Updated(id: TechniqueCategory) extends TechniqueCategoryModType // change in name, description
+  case class Added(cat: TechniqueCategory, parentId: TechniqueCategoryId) extends TechniqueCategoryModType
+  case class Deleted(cat: TechniqueCategory) extends TechniqueCategoryModType
+  case class Moved(id: TechniqueCategoryName, oldParentId: TechniqueCategoryId, newParentId: TechniqueCategoryId) extends TechniqueCategoryModType
+}
 
 sealed trait TechniqueVersionModType
 case object VersionDeleted extends TechniqueVersionModType
@@ -97,6 +107,6 @@ trait TechniquesLibraryUpdateNotification {
    * Description is a log description to explain why techniques should be updated
    * (user action, commit, etc).
    */
-  def updatedTechniques(gitRev: String, techniqueIds: Map[TechniqueName, TechniquesLibraryUpdateType], modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[Unit]
+  def updatedTechniques(gitRev: String, techniqueIds: Map[TechniqueName, TechniquesLibraryUpdateType], updatedCategories: Set[TechniqueCategoryModType], modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[Unit]
 
 }

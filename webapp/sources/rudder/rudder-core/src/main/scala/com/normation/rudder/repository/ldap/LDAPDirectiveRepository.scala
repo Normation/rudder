@@ -246,14 +246,22 @@ class RoLDAPDirectiveRepository(
   /**
    * Get an active technique by its ID
    */
-  def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : IOResult[ActiveTechniqueCategory] = {
+  def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : IOResult[Option[ActiveTechniqueCategory]] = {
     userLibMutex.readLock(for {
-      con           <- ldap
-      categoryEntry <- getCategoryEntry(con, id).notOptional(s"Entry with ID '${id.value}' was not found")
-      category      <- (mapper.entry2ActiveTechniqueCategory(categoryEntry).chainError("Error when transforming LDAP entry %s into an active technique category".format(categoryEntry))).toIO
-      added         <- addSubEntries(category,categoryEntry.dn, con)
+      con      <- ldap
+      optEntry <- getCategoryEntry(con, id)
+      category <- optEntry match {
+                    case None => None.succeed
+                    case Some(categoryEntry) =>
+                      for {
+                        category <- (mapper.entry2ActiveTechniqueCategory(categoryEntry).chainError("Error when transforming LDAP entry %s into an active technique category".format(categoryEntry))).toIO
+                        added    <- addSubEntries(category,categoryEntry.dn, con)
+                      } yield {
+                        Some(added)
+                      }
+                  }
     } yield {
-      added
+      category
     })
   }
 
@@ -339,7 +347,9 @@ class RoLDAPDirectiveRepository(
         case 1 => uptEntries(0).succeed
         case _ => s"Found more than one active technique with id '${id.value}' : ${uptEntries.map(_.dn).mkString("; ")}".fail
       }
-      category <- getActiveTechniqueCategory(mapper.dn2ActiveTechniqueCategoryId(uptEntry.dn.getParent))
+      category <- getActiveTechniqueCategory(mapper.dn2ActiveTechniqueCategoryId(uptEntry.dn.getParent)).notOptional(
+                    s"Category '${id.toString}' but we can't find its parent. If it wasn't deleted, please report the problem to Rudder project."
+                  )
     } yield {
       category
     })
@@ -350,9 +360,9 @@ class RoLDAPDirectiveRepository(
   def getActiveTechniqueByCategory(includeSystem:Boolean = false) : IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = {
     userLibMutex.readLock(for {
       allCats      <- getAllActiveTechniqueCategories(includeSystem)
-      catsWithUPs  <- ZIO.foreach(allCats) { ligthCat =>
+      catsWithUPs  <- ZIO.foreach(allCats) { lightCat =>
                         for {
-                          category <- getActiveTechniqueCategory(ligthCat.id)
+                          category <- getActiveTechniqueCategory(lightCat.id).notOptional(s"Impossible to retrieve category '${lightCat.id.toString}' which was previously listed")
                           parents  <- getParentsForActiveTechniqueCategory(category.id)
                           upts     <- ZIO.foreach(category.items) { uactiveTechniqueId => getActiveTechnique(uactiveTechniqueId).notOptional(s"Missing active technique ${uactiveTechniqueId.value}") }
                         } yield {
@@ -803,7 +813,7 @@ class WoLDAPDirectiveRepository(
                             "Can add, no sub categorie with that name".succeed
                           }
       result           <- userLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
-      updated          <- getActiveTechniqueCategory(category.id)
+      updated          <- getActiveTechniqueCategory(category.id).notOptional(s"Error: can not find back just saved category '${category.id.toString}'")
       autoArchive      <- ZIO.when(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem) {
                             for {
                               parents  <- getParentsForActiveTechniqueCategory(category.id)
@@ -876,13 +886,12 @@ class WoLDAPDirectiveRepository(
                           case _ => "Can not find the category entry name for category with ID %s. Name is needed to check unicity of categories by level".fail
                         }
       result         <- userLibMutex.writeLock { con.move(categoryEntry.dn, newParentEntry.dn) }
-      category       <- getActiveTechniqueCategory(categoryId)
+      category       <- getActiveTechniqueCategory(categoryId).notOptional(s"Error: can not find back just move category '${categoryId.toString}'")
       autoArchive    <- ZIO.when(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem ) {
                           for {
-                            newCat   <- getActiveTechniqueCategory(categoryId)
                             parents  <- getParentsForActiveTechniqueCategory(categoryId)
                             commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                            moved    <- gitCatArchiver.moveActiveTechniqueCategory(newCat, oldParents.map( _.id), parents.map( _.id), Some((modId, commiter, reason)))
+                            moved    <- gitCatArchiver.moveActiveTechniqueCategory(category, oldParents.map( _.id), parents.map( _.id), Some((modId, commiter, reason)))
                           } yield {
                             moved
                           }

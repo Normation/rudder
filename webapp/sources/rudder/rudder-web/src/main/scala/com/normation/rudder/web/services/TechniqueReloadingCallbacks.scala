@@ -39,6 +39,7 @@ package com.normation.rudder.web.services
 
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.services.TechniqueCategoryModType
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.eventlog.EventActor
@@ -69,7 +70,7 @@ class SaveDirectivesOnTechniqueCallback(
   , woDirectiveRepo       : WoDirectiveRepository
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
-  override def updatedTechniques(gitRevId: String, techniqueIds: Map[TechniqueName, TechniquesLibraryUpdateType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
+  override def updatedTechniques(gitRevId: String, techniqueIds: Map[TechniqueName, TechniquesLibraryUpdateType], updatedCategories: Set[TechniqueCategoryModType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
 
     for {
       techLib  <- roDirectiveRepo.getFullDirectiveLibrary().toBox

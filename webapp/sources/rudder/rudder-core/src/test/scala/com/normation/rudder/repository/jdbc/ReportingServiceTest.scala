@@ -150,7 +150,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     def activeTechniqueBreadCrump(id:ActiveTechniqueId) : IOResult[List[ActiveTechniqueCategory]] = ???
     def getActiveTechniqueLibrary : IOResult[ActiveTechniqueCategory] = ???
     def getAllActiveTechniqueCategories(includeSystem:Boolean = false) : IOResult[Seq[ActiveTechniqueCategory]] = ???
-    def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : IOResult[ActiveTechniqueCategory] = ???
+    def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : IOResult[Option[ActiveTechniqueCategory]] = ???
     def getParentActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : IOResult[ActiveTechniqueCategory] = ???
     def getParentsForActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : IOResult[List[ActiveTechniqueCategory]] = ???
     def getParentsForActiveTechnique(id:ActiveTechniqueId) : IOResult[ActiveTechniqueCategory] = ???
