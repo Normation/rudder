@@ -53,6 +53,7 @@ import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core._
 import com.normation.inventory.services.core._
 import com.normation.ldap.sdk._
+import com.normation.plugins.ReadPluginPackageInfo
 import com.normation.plugins.SnippetExtensionRegister
 import com.normation.plugins.SnippetExtensionRegisterImpl
 import com.normation.rudder.UserService
@@ -777,6 +778,8 @@ object RudderConfig extends Loggable {
     ApiVersion(11 , false) ::
     ApiVersion(12 , false) ::
     Nil
+
+  val jsonPluginDefinition = new ReadPluginPackageInfo("/var/rudder/packages/index.json")
 
   lazy val apiDispatcher = new RudderEndpointDispatcher(LiftApiProcessingLogger)
   lazy val rudderApi = {
