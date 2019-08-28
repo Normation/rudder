@@ -121,9 +121,9 @@ $.jstree.plugins.searchtag = function (options, parent) {
               containsTags = false;
               for(var k in directiveTags){
                 if(
-                  ((!filteringTagsOptions.key && !filteringTagsOptions.value)&&(((tags[j].key == k)||(tags[j].key==""))&&((tags[j].value == directiveTags[k])||(tags[j].value==""))))||
-                  (filteringTagsOptions.key && ((tags[j].key == k)||(tags[j].key=="")))||
-                  (filteringTagsOptions.value && ((tags[j].value == directiveTags[k])||(tags[j].value=="")))
+                  ((!filteringTagsOptions.key && !filteringTagsOptions.value)&&(((tags[j].key == directiveTags[k].key)||(tags[j].key==""))&&((tags[j].value == directiveTags[k].value)||(tags[j].value==""))))||
+                  (filteringTagsOptions.key && ((tags[j].key == directiveTags[k].key)||(tags[j].key=="")))||
+                  (filteringTagsOptions.value && ((tags[j].value == directiveTags[k].value)||(tags[j].value=="")))
                 ){
                   containsTags = true;
                 }

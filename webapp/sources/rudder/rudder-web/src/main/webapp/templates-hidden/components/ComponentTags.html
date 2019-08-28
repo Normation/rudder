@@ -5,11 +5,11 @@
     <div  id="tagsController" ng-controller="tagsController" ng-cloak="" >
       <label for="newTagKey" class="col-xs-12 row"><span class="text-fit">Tags</span></label>
       <div class="tags-container form-group row col-xs-12" ng-class="{'noTags':tags.length==0}">
-        <div class="btn-group btn-group-xs" role="group"  ng-repeat="tag in tags track by $index"  ng-mouseenter="showDelete[$index] = true" ng-mouseleave="showDelete[$index] = false"  ng-class="{'match': keyTagMatch(tag)||valTagMatch(tag)}">
+        <div class="btn-group btn-group-xs" role="group"  ng-repeat="tag in tags track by $index"  ng-mouseenter="showDelete[$index] = true" ng-mouseleave="showDelete[$index] = false"  ng-class="{'match': tagMatch(tag)}">
           <button type="button" class="btn btn-default tag" ng-click="toggleTag(tag)">
-            <span class="tag-key" ng-class="{'match': keyTagMatch(tag)}" >{{tag.key}}</span>
+            <span class="tag-key">{{tag.key}}</span>
             <span class="tag-separator">=</span>
-            <span class="tag-value" ng-class="{'match': valTagMatch(tag)}">{{tag.value}}</span>
+            <span class="tag-value">{{tag.value}}</span>
             <span class="fa fa-search"></span>
           </button>
           <button ng-if="isEditForm && showDelete[$index]" type="button" class="btn btn-default" ng-click="removeTag($index)"><span class="fa fa-times text-danger"></span></button>

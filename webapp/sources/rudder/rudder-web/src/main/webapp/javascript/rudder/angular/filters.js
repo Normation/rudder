@@ -67,7 +67,7 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
         },0);
       }
     } else {
-      var table = $(tableId).DataTable();
+      var table = $($scope.tableId).DataTable();
       table.draw();
     }
     $scope.updateFilter();
