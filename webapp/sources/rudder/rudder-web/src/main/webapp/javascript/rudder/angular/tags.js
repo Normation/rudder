@@ -92,7 +92,9 @@ app.controller('tagsController', function ($scope, $http, $location, $timeout, $
   
   $scope.addTag = function(){
     $scope.tags.push($scope.newTag);
-    $scope.newTag = {};
+    $scope.newTag = { "key" : "" , "value" : "" };
+    $scope.$broadcast('angucomplete-alt:clearInput', 'newTagKey');
+    $scope.$broadcast('angucomplete-alt:clearInput', 'newTagValue');
   }
   
   $scope.removeTag = function(index){
