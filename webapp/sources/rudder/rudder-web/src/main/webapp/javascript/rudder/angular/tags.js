@@ -44,8 +44,7 @@ app.controller('tagsController', function ($scope, $http, $location, $timeout, $
   $scope.tags = [];
   $scope.isEditForm = false
   $scope.showDelete = [];
-  $scope.filterKeys = [];
-  $scope.filterValues = [];
+  $scope.filterTags = [];
 
   $scope.contextPath = contextPath
   $scope.kind = "directive"
@@ -66,11 +65,14 @@ app.controller('tagsController', function ($scope, $http, $location, $timeout, $
     }    
   }
   
-  $scope.keyTagMatch = function(tag){
-    return $.inArray(tag.key , $scope.filterKeys) > -1
-  }
-  $scope.valTagMatch = function(tag){
-    return $.inArray(tag.value, $scope.filterValues) > -1 // tag.match.value && $scope.scopeFilter.tags.length>0;
+  $scope.tagMatch = function(tag){
+    if($scope.filterTags.length<=0)return false;
+    for(var i=0 ; i<$scope.filterTags.length ; i++){
+      if(($scope.filterTags[i].key == tag.key || $scope.filterTags[i].key == "") && ($scope.filterTags[i].value == "" || $scope.filterTags[i].value == tag.value)){
+        return true;
+      }
+    }
+    return false;
   }
 
   $scope.$watch('tags', updateResult, true)
@@ -80,12 +82,7 @@ app.controller('tagsController', function ($scope, $http, $location, $timeout, $
   })
     
   $rootScope.$on("updateFilter", function(event,filters) {
-    $scope.filterKeys = [];
-    $scope.filterValues = [];
-    angular.forEach(filters.tags, function(filter) {
-      $scope.filterKeys.push(filter.key);
-      $scope.filterValues.push(filter.value);
-    })
+    $scope.filterTags = filters.tags ? filters.tags : [];
     $timeout(function() {},0);
   })
   
