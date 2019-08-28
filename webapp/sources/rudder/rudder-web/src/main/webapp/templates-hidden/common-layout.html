@@ -411,8 +411,11 @@
         </lift:Authz.whenhasrights>
 
         <lift:Authz.whennorights>
-          <div class="portlet"><div class="portlet-content"><div class="callout-fade callout-warning" style="padding: 30px; text-align:center">
-          You don't have sufficient authorization rights to access this content. Please contact your administrator to have more information.
+          <div class="portlet"><div class="portlet-content"><div class="callout-fade callout-error" style="padding: 30px; text-align:center">
+            <div class="marker">
+              <span class="glyphicon glyphicon-info-sign"></span>
+            </div>
+            You don't have sufficient authorization rights to access this content. Please contact your administrator to have more information.
           </div></div></div>
         </lift:Authz.whennorights>
       </div>

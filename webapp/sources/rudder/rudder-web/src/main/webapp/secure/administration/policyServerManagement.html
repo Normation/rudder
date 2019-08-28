@@ -23,10 +23,11 @@
 <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/authorizedNetworks.js"></script>
 </head>
 <div class="portlet">
+  
     <div class="inner-portlet">
-      <h3 class="page-title">Client-server communication</h3>
+      <h3 class="page-title">Allowed Networks</h3>
       <div class="portlet-content">
-        <div class="col-xs-12 callout-fade callout-warning">
+        <div class="col-xs-12 callout-fade callout-info">
           <div class="marker">
             <span class="glyphicon glyphicon-info-sign"></span>
           </div>
@@ -47,7 +48,6 @@
             <div id="policyServerText"></div>
             <form class="lift:form.ajax">
               <div class="row">
-                <label class="col-xs-12">Allowed networks</label>
                 <div id="allowNetworkFields" class="networkFieldsContainer">
                   <div class="network-group col-lg-4 col-sm-6 col-xs-12">
                     <div class="input-group">
@@ -81,9 +81,10 @@
         </div>
       </div>
     </div>
+
     <div class="inner-portlet">
       <h3 class="page-title">Relay synchronization method</h3>
-        <div class="col-lg-12 callout-fade callout-warning">
+        <div class="col-lg-12 callout-fade callout-info">
           <div class="marker">
             <span class="glyphicon glyphicon-info-sign"></span>
           </div>
@@ -147,6 +148,7 @@
         </div>
 
     </div>
+  
     <div class="inner-portlet">
       <h3 class="page-title">Security</h3>
       <div class="lift:administration.PropertiesManagement.denyBadClocks" id="denyBadClocksForm">
@@ -174,9 +176,10 @@
         </form>
       </div>
     </div>
-  <div class="inner-portlet">
+ 
+    <div class="inner-portlet">
     <h3 class="page-title">Reporting protocol</h3>
-        <div class="col-lg-12 callout-fade callout-warning">
+        <div class="col-lg-12 callout-fade callout-info">
           <div class="marker">
             <span class="glyphicon glyphicon-info-sign"></span>
           </div>
@@ -211,7 +214,7 @@
       <div class="portlet-content">
         <div class="lift:administration.PropertiesManagement.unexpectedReportInterpretation" id="unexpectedReportInterpretation">
         <form class="lift:form.ajax form-horizontal" >
-          <div class="col-lg-12 callout-fade callout-warning">
+          <div class="col-lg-12 callout-fade callout-info">
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
@@ -219,7 +222,7 @@
 
             These options will take effects when the next reports are received from a node or if you "clear caches" below.
           </div>
-          <div class="col-lg-12 callout-fade callout-warning">
+          <div class="col-lg-12 callout-fade callout-info">
               <div class="marker">
                 <span class="glyphicon glyphicon-info-sign"></span>
               </div>
@@ -257,7 +260,7 @@
             </li>
           </ul>
 
-          <div class="col-lg-12 callout-fade callout-warning">
+          <div class="col-lg-12 callout-fade callout-info">
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
@@ -309,12 +312,15 @@
             <input type="submit" value="[save]" id="unexpectedReportInterpretationFormSubmit"/>
           </lift:authz>
         </form>
+        </div>
+      </div>
+    </div>
 
     <div class="inner-portlet">
       <h3 class="page-title">Set default settings value on node acceptation</h3>
       <div class="portlet-content">
         <div class="lift:administration.PropertiesManagement.nodeOnAcceptDefaults" id="nodeOnAcceptDefaults">
-          <div class="col-xs-12 callout-fade callout-warning">
+          <div class="col-xs-12 callout-fade callout-info">
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
@@ -361,7 +367,7 @@
       <h3 class="page-title">Change audit logs</h3>
       <div class="portlet-content">
         <div class="lift:administration.PropertiesManagement.changeMessage" id="changeMessageForm">
-          <div class="col-xs-12 callout-fade callout-warning">
+          <div class="col-xs-12 callout-fade callout-info">
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
@@ -425,7 +431,7 @@
     <div class="inner-portlet">
       <h3 class="page-title">Modified files</h3>
       <div class="portlet-content">
-        <div class="col-xs-12 callout-fade callout-warning">
+        <div class="col-xs-12 callout-fade callout-info">
           <div class="marker">
             <span class="glyphicon glyphicon-info-sign"></span>
           </div>
@@ -449,7 +455,7 @@
       <h3 class="page-title">Logging</h3>
       <div class="portlet-content">
         <div class="lift:administration.PropertiesManagement.loggingConfiguration" id="storeAllLogsForm">
-          <div class="col-xs-12 callout-fade callout-warning">
+          <div class="col-xs-12 callout-fade callout-info">
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
@@ -492,7 +498,7 @@
       <h3 class="page-title">Policy Generation System Hooks</h3>
       <div class="portlet-content">
         <div class="lift:administration.PropertiesManagement.generationHookCfpromise" id="generationHookCfpromise">
-          <div class="col-xs-12 callout-fade callout-warning">
+          <div class="col-xs-12 callout-fade callout-info">
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
@@ -532,7 +538,7 @@
         </div>
         <br />
         <div class="lift:administration.PropertiesManagement.generationHookTriggerNodeUpdate" id="generationHookTriggerNodeUpdate">
-          <div class="col-xs-12 callout-fade callout-warning">
+          <div class="col-xs-12 callout-fade callout-info">
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
@@ -613,7 +619,7 @@
       <h3 class="page-title">Usage survey participation</h3>
       <div class="portlet-content">
         <div class="lift:administration.PropertiesManagement.sendMetricsConfiguration" id="sendMetrics">
-          <div class="col-xs-12 callout-fade callout-warning">
+          <div class="col-xs-12 callout-fade callout-info">
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
@@ -660,7 +666,7 @@
       <div class="page-title">Display compliance and recent changes columns on rule summary</div>
       <div class="portlet-content">
         <div class="lift:administration.PropertiesManagement.displayRuleColumnConfiguration" id="displayColumns">
-          <div class="col-xs-12 callout-fade callout-warning">
+          <div class="col-xs-12 callout-fade callout-info">
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
@@ -701,7 +707,7 @@
       <h3 class="page-title">Display changes graphs</h3>
       <div class="portlet-content">
         <div class="lift:administration.PropertiesManagement.displayGraphsConfiguration" id="displayGraphs">
-          <div class="col-xs-12 callout-fade callout-warning">
+          <div class="col-xs-12 callout-fade callout-info">
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
@@ -739,11 +745,11 @@
       <h3 class="page-title">Enable script evaluation in Directives</h3>
       <div class="portlet-content">
         <div class="lift:administration.PropertiesManagement.directiveScriptEngineConfiguration" id="directiveScriptEngine">
-          <div class="col-xs-12 callout-fade callout-warning">
+          <div class="col-xs-12 callout-fade callout-info">
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
-              If enabled, all password fields can contain a JavaScript expression.
+              If enabled, all Directive fields can contain a JavaScript expression.
               These expressions are evaluated during promise generation, and can therefore provide unique values for each node.
               Read the <a href="/rudder-doc/reference/current/usage/advanced_configuration_management.html#_javascript_evaluation_in_directives" target="_blank">script documentation</a> for more information.
           </div>
@@ -775,7 +781,7 @@
     <div class="inner-portlet">
       <h3 class="page-title">Clear policy caches</h3>
       <div class="portlet-content">
-        <div class="col-xs-12 callout-fade callout-warning">
+        <div class="col-xs-12 callout-fade callout-info">
           <div class="marker">
             <span class="glyphicon glyphicon-info-sign"></span>
           </div>
@@ -798,7 +804,7 @@
     <div class="inner-portlet">
       <h3 class="page-title">Manage dynamic groups</h3>
       <div class="portlet-content">
-        <div class="col-xs-12 callout-fade callout-warning">
+        <div class="col-xs-12 callout-fade callout-info">
           <div class="marker">
             <span class="glyphicon glyphicon-info-sign"></span>
           </div>
@@ -820,7 +826,7 @@
     <div class="inner-portlet">
       <h3 class="page-title">Manage Technique library</h3>
       <div class="portlet-content">
-        <div class="col-xs-12 callout-fade callout-warning">
+        <div class="col-xs-12 callout-fade callout-info">
           <div class="marker">
             <span class="glyphicon glyphicon-info-sign"></span>
           </div>
@@ -839,7 +845,7 @@
     <div class="inner-portlet">
       <h3 class="page-title">Launch support script</h3>
       <div class="portlet-content">
-        <div class="col-xs-12 callout-fade callout-warning">
+        <div class="col-xs-12 callout-fade callout-info">
           <div class="marker">
             <span class="glyphicon glyphicon-info-sign"></span>
           </div>
