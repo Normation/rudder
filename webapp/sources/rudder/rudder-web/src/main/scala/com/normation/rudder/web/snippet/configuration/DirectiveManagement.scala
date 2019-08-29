@@ -227,7 +227,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         "#info-title *" #> "Directives" &
         "#details *" #> {
             <div class="col-lg-12">
-              <div class="col-lg-12 callout-fade callout-warning">
+              <div class="col-lg-12 callout-fade callout-info">
                 <div class="marker">
                   <span class="glyphicon glyphicon-info-sign"></span>
                 </div>

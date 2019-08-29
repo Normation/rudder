@@ -32,14 +32,17 @@
       <h3 class="box-title"><i class="fa fa-file-text" aria-hidden="true"></i>Directive <b id="directiveTitle"></b></h3>
     </div>
       <div id="edit-box" class="box-body">
-        <div class="bs-callout bs-callout-warning" id="deprecation-warning" role="alert">
+        <div class="callout callout-warning" id="deprecation-warning" role="alert">
+          <div class="marker">
+            <span class="glyphicon glyphicon-info-sign"></span>
+          </div>
           <h4>Technique version deprecated</h4>
           <div>This Directive uses a version of this Technique that is deprecated: <span id="deprecation-message"></span>.<br/>
              <span id="migrate-button"></span>
           </div>
         </div>
         <lift:authz role="directive_edit">
-          <div class="col-lg-12 callout-fade callout-warning" id="pendingChangeRequestNotification">
+          <div class="col-lg-12 callout-fade callout-info" id="pendingChangeRequestNotification">
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>

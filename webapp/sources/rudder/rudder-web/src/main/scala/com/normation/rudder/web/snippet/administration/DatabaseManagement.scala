@@ -164,7 +164,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
     }
 
     val dialog =
-      <div class="callout-fade callout-warning">
+      <div class="callout-fade callout-info">
         <div class="marker"><span class="glyphicon glyphicon-exclamation-sign"></span></div>
         Are you sure you want to
         <b>{action.name}</b>
