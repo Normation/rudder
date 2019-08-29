@@ -195,7 +195,7 @@ app.controller('ncf-builder', function ($scope, $uibModal, $http, $q, $location,
   $scope.selectedTechnique;
   $scope.originalTechnique;
   // Are we authenticated on the interface
-  $scope.authenticated = false;
+  $scope.authenticated = undefined;
 
   //Generic methods filters
   $scope.filter = {

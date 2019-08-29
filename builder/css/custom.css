@@ -988,6 +988,27 @@ ul.list-unstyled > li{
 .method-details-footer > .btn{
   margin-left: 10px;
 }
+/* LOADER */
+.loading{
+  position: absolute;
+  width: 100%;
+  top: 20%;
+}
+.loading > h1 {
+  color: #999;
+  font-style: italic;
+}
+.loading .loading-text{
+  position: relative;
+  padding-right: 60px;
+}
+.loading .loading-text > .ajaxloader{
+  height: 60px;
+  width: 60px;
+  position: absolute;
+  right: 0;
+  top: calc(50% - 30px);
+}
 /* DEBUG */
 .modal.fade.in {
   opacity: 1;
