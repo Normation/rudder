@@ -523,7 +523,7 @@
                               <form name="CForm.form">
                                 <div class="form-group condition-form">
                                   <label class="control-label" for="advanced">Other conditions:</label>
-                                  <textarea msd-elastic name="cfClasses" class="form-control" rows="1" id="advanced" ng-pattern="/^\S+$/" ng-model="method_call.advanced_class" ng-change="updateClassContext(method_call)"></textarea>
+                                  <textarea msd-elastic name="cfClasses" class="form-control" rows="1" id="advanced" ng-pattern="/^[a-zA-Z0-9!()._]+$/" ng-model="method_call.advanced_class" ng-change="updateClassContext(method_call)"></textarea>
                                   <div ng-messages="CForm.form.cfClasses.$error" role="alert">
                                     <div ng-message="pattern" class="text-danger">This field cannot contain whitespace</div>
                                   </div>
