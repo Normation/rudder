@@ -56,7 +56,7 @@ bytes = "0.4.12"
 hex = "0.3.2"
 
 [dev-dependencies]
-criterion = "0.2"
+criterion = "0.3"
 filetime = "0.2"
 tempfile = "3.0"
 
