@@ -424,6 +424,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             result <- rwActiveTechniqueRepository.move(
                           ActiveTechniqueCategoryId(sourceCatId)
                         , ActiveTechniqueCategoryId(destCatId)
+                        , None
                         , ModificationId(uuidGen.newUuid)
                         , CurrentUser.actor
                         , Some("User moved Active Technique Category from UI")) ?~! "Error while trying to move category with requested id %s into new parent: %s".format(sourceCatId,destCatId)

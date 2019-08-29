@@ -39,6 +39,7 @@ package com.normation.rudder.services.policies
 
 import com.normation.cfclerk.domain.RootTechniqueCategoryId
 import com.normation.cfclerk.domain.SubTechniqueCategoryId
+import com.normation.cfclerk.domain.TechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services._
 import com.normation.eventlog.ModificationId
@@ -137,6 +138,15 @@ class TechniqueAcceptationUpdater(
     }
 
     def handleCategoriesUpdate(mods: Set[TechniqueCategoryModType]): Box[Seq[Unit]] = {
+      // we use the same id for category and active category: the directory name,
+      // *safe* for root category: it's "/" for technique, and "Active Techniques" in LDAP
+      def toActiveCatId(id: TechniqueCategoryId): ActiveTechniqueCategoryId = {
+        id match {
+          case RootTechniqueCategoryId =>ActiveTechniqueCategoryId("Active Techniques")
+          case SubTechniqueCategoryId(name, parentId) => ActiveTechniqueCategoryId(name.value)
+        }
+      }
+
       // we need to sort change: first delete, then add, then move, then update
       val sorted = mods.toList.sortWith { (a, b) => (a, b) match {
         case (TechniqueCategoryModType.Deleted(_), _) => true
@@ -152,44 +162,52 @@ class TechniqueAcceptationUpdater(
 
       Control.bestEffort(sorted) { mod => mod match {
         case TechniqueCategoryModType.Deleted(cat) =>
-          logger.debug(s"Category '${cat.id.name.value}' deleted")
+          logger.debug(s"Category '${cat.id.name.value}' deleted in file system")
           if(cat.subCategoryIds.isEmpty && cat.techniqueIds.isEmpty) {
-            rwActiveTechniqueRepo.delete(ActiveTechniqueCategoryId(cat.id.name.value), modId, actor, reason).map(_ => ())
+            rwActiveTechniqueRepo.delete(toActiveCatId(cat.id), modId, actor, reason).map(_ => ())
           } else {
             logger.info(s"Not deleting non empty category: '${cat.id.toString}'")
             Full(())
           } // do nothing
         case TechniqueCategoryModType.Added(cat, parentId) =>
-          logger.debug(s"Category '${cat.id.name.value}' added into '${parentId.toString}'")
+          logger.debug(s"Category '${cat.id.toString}' added into '${parentId.toString}'")
           rwActiveTechniqueRepo.addActiveTechniqueCategory(
             ActiveTechniqueCategory(
-                ActiveTechniqueCategoryId(cat.id.name.value)
+                toActiveCatId(cat.id)
               , cat.name
               , cat.description
               , Nil
               , Nil
               , cat.isSystem
-            ), ActiveTechniqueCategoryId(parentId.name.value), modId, actor, reason
+            ), toActiveCatId(parentId), modId, actor, reason
           ).map(_ => ())
-        case TechniqueCategoryModType.Moved(name, from, to) =>
-          logger.debug(s"Category '${name.value}' moved from '${from.toString}' to '${to.name.toString}'")
-          rwActiveTechniqueRepo.move(ActiveTechniqueCategoryId(name.value), ActiveTechniqueCategoryId(to.name.value), modId, actor, reason).map(_ => ())
+        case TechniqueCategoryModType.Moved(from, to) =>
+          to match {
+            case RootTechniqueCategoryId =>
+              Failure(s"Category '${from.toString}' is trying to replace root categoy. This is likely a bug, please report it.")
+
+            case SubTechniqueCategoryId(name, parentId) =>
+              logger.debug(s"Category '${from.toString}' moved to '${to.toString}'")
+              // if rdn changed, we need to issue a modrdn
+              val newName = if(from.name == to.name) None else Some(ActiveTechniqueCategoryId(to.name.value))
+              rwActiveTechniqueRepo.move(ActiveTechniqueCategoryId(from.name.value), toActiveCatId(parentId), newName, modId, actor, reason).map(_ => ())
+          }
         case TechniqueCategoryModType.Updated(cat) =>
           logger.debug(s"Category '${cat.id.toString}' updated")
-          roActiveTechniqueRepo.getActiveTechniqueCategory(ActiveTechniqueCategoryId(cat.id.name.value)) match {
+          roActiveTechniqueRepo.getActiveTechniqueCategory(toActiveCatId(cat.id)) match {
             case Empty          =>
               cat.id match {
                 case _:RootTechniqueCategoryId.type => Full(())
                 case i:SubTechniqueCategoryId =>
                   rwActiveTechniqueRepo.addActiveTechniqueCategory(
                     ActiveTechniqueCategory(
-                        ActiveTechniqueCategoryId(cat.id.name.value)
+                        toActiveCatId(cat.id)
                       , cat.name
                       , cat.description
                       , Nil
                       , Nil
                       , cat.isSystem
-                    ), ActiveTechniqueCategoryId(i.parentId.name.value), modId, actor, reason
+                    ), toActiveCatId(i.parentId), modId, actor, reason
                   ).map(_ => ())
                 }
             case Full(existing) =>

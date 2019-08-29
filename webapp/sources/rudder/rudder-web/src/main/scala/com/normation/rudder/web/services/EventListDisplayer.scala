@@ -80,7 +80,6 @@ import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import org.joda.time.format.DateTimeFormat
 import com.normation.rudder.web.model.LinkUtil
 import org.joda.time.format.ISODateTimeFormat
-import scala.concurrent.Future
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment),

@@ -49,7 +49,7 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Control
 
 class TechniqueRepositoryImpl(
-    techniqueReader: TechniqueReader
+  techniqueReader: TechniqueReader
   , refLibCallbacks: Seq[TechniquesLibraryUpdateNotification]
   , uuidGen        : StringUuidGenerator
 ) extends TechniqueRepository with UpdateTechniqueLibrary with Loggable {
@@ -95,6 +95,7 @@ class TechniqueRepositoryImpl(
   }
 
   override def update(modId: ModificationId, actor:EventActor, reason: Option[String]) : Box[Map[TechniqueName, TechniquesLibraryUpdateType]] = {
+    import TechniqueCategoryModType._
     try {
       val modifiedPackages = techniqueReader.getModifiedTechniques
       if (techniqueReader.needReload() || /* first time init */ null == techniqueInfosCache) {
@@ -114,14 +115,14 @@ class TechniqueRepositoryImpl(
 
         // check for changes in categories
         val updatedCategories: Set[TechniqueCategoryModType] = {
-          val updates = techniqueInfosCache.allCategories.flatMap { case (id, cat) =>
+          val updates: Iterable[TechniqueCategoryModType] = techniqueInfosCache.allCategories.flatMap { case (id, cat) =>
             // we only works on parents looking for their children for move/add/delete since id are not stable on move
             oldInfo.allCategories.get(id) match {
               case None      => // added or move (since id depends on parent), but it will be processed below, ignore
                 Nil
               case Some(old) =>
                 val m1 = if(old.name != cat.name || old.description != cat.description) {
-                  TechniqueCategoryModType.Updated(cat) :: Nil
+                  Updated(cat) :: Nil
                 } else Nil
 
                 val m2 = if(old.subCategoryIds != cat.subCategoryIds) {
@@ -131,18 +132,18 @@ class TechniqueRepositoryImpl(
                     // hypothesis: directory names for category are unique in technique lib
                     (oldInfo.allCategories.find(_._2.subCategoryIds.exists(_.name == changedId.name)), techniqueInfosCache.allCategories.find(_._2.subCategoryIds.exists(_.name == changedId.name))) match {
                       case (Some((oldId, _)), Some((newId, _))) =>
-                        if(oldId != newId) TechniqueCategoryModType.Moved(changedId.name, oldId, newId) :: Nil
+                        if(oldId != newId) Moved(changedId, newId) :: Nil
                         else Nil
 
                       case (None, Some((newId, _))) =>
                         //new cat should be in new info
                         techniqueInfosCache.allCategories.get(changedId).map(c =>
-                          TechniqueCategoryModType.Added(c, newId)
+                          Added(c, newId)
                         ).toList
                       case (Some(_), None) =>
                         // old cat should be in old info
                         oldInfo.allCategories.get(changedId).map(c =>
-                          TechniqueCategoryModType.Deleted(c)
+                          Deleted(c)
                         ).toList
                       case (None, None) =>
                         Nil
@@ -154,7 +155,23 @@ class TechniqueRepositoryImpl(
           }
 
           // we may have counted moved categories two time => Set
-          updates.toSet
+          val changed = updates.toSet
+          // now, we need to take care of the case in #15590. So we need to look for couple of deleted/added where
+          // {name, techniques, subcategories} are the same and transform them into move.
+          val deleted = changed.collect { case d: Deleted => d }
+          // for each delete, look for a corresponding add, and in that case mark them as to be removed from changed
+          val (moveToAdd, otherToRemove) = ((List.empty[Moved], List.empty[TechniqueCategoryModType]) /: deleted) { case ((move, toDelete), d@Deleted(currentDel)) =>
+            changed.find(c => c match {
+                // hypothesis: it's a directory rename if the display name and content is the same
+              case Added(cat, parentId) => currentDel.name == cat.name && currentDel.subCategoryIds == cat.subCategoryIds && currentDel.techniqueIds == cat.techniqueIds
+              case _ => false
+            })match {
+              case Some(a@Added(add, _)) => ((Moved(currentDel.id, add.id)::move, a :: d :: toDelete))
+              case _ => (move, toDelete)
+            }
+          }
+
+          changed -- otherToRemove ++ moveToAdd
         }
 
         val res = Control.bestEffort(callbacks) { callback =>
@@ -197,6 +214,10 @@ class TechniqueRepositoryImpl(
     } yield {
       (TechniqueId(id, v), p)
     }).toMap
+  }
+
+  override def getAllCategories: Map[TechniqueCategoryId, TechniqueCategory] = {
+    techniqueInfosCache.allCategories
   }
 
   override def getTechniquesInfo() = techniqueInfosCache

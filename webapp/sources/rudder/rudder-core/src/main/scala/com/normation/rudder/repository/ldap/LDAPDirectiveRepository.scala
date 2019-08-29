@@ -817,7 +817,7 @@ class WoLDAPDirectiveRepository(
    * Both category to move and destination have to exists, else it is a failure.
    * The destination category can not be a child of the category to move.
    */
-  def move(categoryId:ActiveTechniqueCategoryId, intoParent:ActiveTechniqueCategoryId, modId : ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategoryId] = {
+  def move(categoryId:ActiveTechniqueCategoryId, intoParent:ActiveTechniqueCategoryId, optionNewName: Option[ActiveTechniqueCategoryId], modId : ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategoryId] = {
       for {
         con            <- ldap
         oldParents     <- if(autoExportOnModify) {
@@ -837,12 +837,11 @@ class WoLDAPDirectiveRepository(
                               }
                             case _ => Failure("Can not find the category entry name for category with ID %s. Name is needed to check unicity of categories by level")
                           }
-        result         <- userLibMutex.writeLock { con.move(categoryEntry.dn, newParentEntry.dn) }
-        category       <- getActiveTechniqueCategory(categoryId)
-        autoArchive    <- (if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem ) {
+        result         <- userLibMutex.writeLock { con.move(categoryEntry.dn, newParentEntry.dn, optionNewName.map(n => rudderDit.ACTIVE_TECHNIQUES_LIB.buildRDN(n.value))) }
+        newCat         <- getActiveTechniqueCategory(optionNewName.getOrElse(categoryId))
+        autoArchive    <- (if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !newCat.isSystem ) {
                             for {
-                              newCat   <- getActiveTechniqueCategory(categoryId)
-                              parents  <- getParentsForActiveTechniqueCategory(categoryId)
+                              parents  <- getParentsForActiveTechniqueCategory(newCat.id)
                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                               moved    <- gitCatArchiver.moveActiveTechniqueCategory(newCat, oldParents.map( _.id), parents.map( _.id), Some((modId, commiter, reason)))
                             } yield {

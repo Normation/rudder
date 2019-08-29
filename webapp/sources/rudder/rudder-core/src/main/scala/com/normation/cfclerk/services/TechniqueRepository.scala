@@ -107,12 +107,12 @@ trait TechniqueRepository {
    * If the policyName is unknown, the returned collection will
    * be empty.
    */
-  def getTechniqueVersions(name:TechniqueName) : SortedSet[TechniqueVersion]
+  def getTechniqueVersions(name: TechniqueName): SortedSet[TechniqueVersion]
 
   /**
    * Get the list of technique (with their version) for that name
    */
-  def getByName(name:TechniqueName) : Map[TechniqueVersion, Technique]
+  def getByName(name: TechniqueName): Map[TechniqueVersion, Technique]
 
   ////////////////// method for categories //////////////////
 
@@ -122,14 +122,17 @@ trait TechniqueRepository {
 
   def getParentTechniqueCategory_forTechnique(id: TechniqueId): Box[TechniqueCategory]
 
-  final def getTechniqueCategoriesBreadCrump(id: TechniqueId): Box[Seq[TechniqueCategory]] = {
+  final
+  def getTechniqueCategoriesBreadCrump(id: TechniqueId): Box[Seq[TechniqueCategory]] = {
     for {
       cat <- getParentTechniqueCategory_forTechnique(id)
       path <- sequence(cat.id.getIdPathFromRoot) { currentCatId =>
-        getTechniqueCategory(currentCatId) ?~! "'%s' category was not found but should be a parent of '%s'".format(currentCatId, cat.id)
+        getTechniqueCategory(currentCatId) ?~! s"'${currentCatId.toString}' category was not found but should be a parent of '${cat.id.toString}'"
       }
     } yield {
       path
     }
   }
+
+  def getAllCategories: Map[TechniqueCategoryId, TechniqueCategory]
 }
