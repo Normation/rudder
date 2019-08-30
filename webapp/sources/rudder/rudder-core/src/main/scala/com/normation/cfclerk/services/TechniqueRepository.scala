@@ -107,12 +107,12 @@ trait TechniqueRepository {
    * If the policyName is unknown, the returned collection will
    * be empty.
    */
-  def getTechniqueVersions(name:TechniqueName) : SortedSet[TechniqueVersion]
+  def getTechniqueVersions(name: TechniqueName): SortedSet[TechniqueVersion]
 
   /**
    * Get the list of technique (with their version) for that name
    */
-  def getByName(name:TechniqueName) : Map[TechniqueVersion, Technique]
+  def getByName(name: TechniqueName): Map[TechniqueVersion, Technique]
 
   ////////////////// method for categories //////////////////
 
@@ -126,10 +126,12 @@ trait TechniqueRepository {
     for {
       cat  <- getParentTechniqueCategory_forTechnique(id)
       path <- zio.ZIO.foreach(cat.id.getIdPathFromRoot) { currentCatId =>
-        getTechniqueCategory(currentCatId).chainError(s"'${currentCatId.name}' category was not found but should be a parent of '${cat.id.name}'. This is likely an error, please report it.")
+        getTechniqueCategory(currentCatId).chainError(s"'${currentCatId.toString}' category was not found but should be a parent of '${cat.id.name}'. This is likely an error, please report it.")
       }
     } yield {
       path
     }
   }
+
+  def getAllCategories: Map[TechniqueCategoryId, TechniqueCategory]
 }
