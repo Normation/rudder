@@ -27,7 +27,7 @@ flate2 = { version = "1.0", features = ["zlib"], default-features = false }
 diesel = { version = "1.4", features = ["postgres", "chrono", "r2d2"] }
 #### Bad (=Not widely used or <1.0)
 log = "0.4"
-structopt = { version = "0.2", features = [ "paw" ] }
+structopt = { version = "0.3", features = [ "paw" ] }
 paw = "1.0"
 toml = "0.5"
 inotify = "0.7"
@@ -51,9 +51,8 @@ itertools = "0.8"
 md-5 = "0.8"
 hyper = "0.12"
 sha2 = "0.8"
-bytebuffer = "0.2.1"
-bytes = "0.4.12"
-hex = "0.3.2"
+bytes = "0.4"
+hex = "0.3"
 
 [dev-dependencies]
 criterion = "0.3"

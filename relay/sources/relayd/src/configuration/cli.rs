@@ -33,6 +33,7 @@ use std::path::{Path, PathBuf};
 #[derive(StructOpt, Debug)]
 #[allow(clippy::module_name_repetitions)]
 #[structopt(name = "rudder-relayd")]
+#[structopt(author, about)]
 // version and description are taken from Cargo.toml
 // struct fields comments are used as option description in help
 pub struct CliConfiguration {
