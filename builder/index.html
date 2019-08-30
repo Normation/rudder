@@ -3,7 +3,7 @@
     <head>
         <link type="image/x-icon" rel="icon" href="ncf-builder/css/favicon.ico"/>
 
-        <link href="css/angular-filemanager-1.5.1.min.css?version=dev" rel="stylesheet">
+        <link href="css/angular-filemanager-1.5.1-custom.css?version=dev" rel="stylesheet">
         <link href="css/bootstrap-4.0.0.min.css?version=dev" rel="stylesheet">
         <link rel="stylesheet" href="css/font-awesome-5.6.1.min.css?version=dev">
         <link rel="stylesheet" href="webfonts/ionicons-2.0.1/css/ionicons.min.css?version=dev">
@@ -16,12 +16,12 @@
         <script src="js/angular-messages-1.3.20.min.js?version=dev"></script>
         <script src="js/angular-animate-1.3.20.min.js?version=dev"></script>
         <script src="js/angular-sanitize-1.3.20.min.js?version=dev"></script>
-        <script src="js/angular-translate.min.js"></script>
-        <script src="js/ng-file-upload.min.js"></script>
+        <script src="js/angular-translate.min.js?version=dev"></script>
+        <script src="js/ng-file-upload.min.js?version=dev"></script>
         <script src="js/ngToast-1.4.0.min.js?version=dev"></script>
         <script src="js/angular-drag-and-drop-lists.min.js?version=dev"></script>
         <script src="js/jquery-3.4.1.min.js?version=dev"></script>
-        <script src="js/angular-filemanager-1.5.1.min.js?version=dev"></script>
+        <script src="js/angular-filemanager-1.5.1-custom.js?version=dev"></script>
         <script src="js/elastic.min.js?version=dev"></script>
         <script src="js/popper.min.js?version=dev"></script>
         <script src="js/bootstrap-4.0.0.min.js?version=dev"></script>
@@ -583,7 +583,7 @@
                               Reset
                               <i class="fas fa-undo-alt"></i>
                             </button>
-                            <button 
+                            <button
                               class="btn btn-sm btn-primary"
                               ng-if="getMethodDocumentation(method_call) !== undefined"
                               ng-class="{ 'btn-outline' : !method_call.showDoc}"
@@ -628,7 +628,7 @@
             </div>
 
             <div class="w-100"></div>
-            
+
             <div class="col-auto methods-filter" ng-class="{'hidden':!ui.showMethodsFilter}">
               <label class="label-btn-group align-self-center">Agent type:</label>
               <div class="btn-group" role="group" aria-label="Basic example">
@@ -666,9 +666,9 @@
                           <b>:::</b>
                         </div>
                         <div class="method-name col" ng-click="addMethod(method)">
-                          {{method.name}}<!--{{method.description}}-->
-                          <span 
-                            class="cursor-help" 
+                          {{method.name}}
+                          <span
+                            class="cursor-help"
                             ng-if="method.deprecated"
                             popover-title="{{method.name}}" uib-popover-template="'deprecatedMethod.html'"
                             popover-placement="bottom" popover-trigger="mouseenter" popover-append-to-body="true">

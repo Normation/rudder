@@ -160,7 +160,7 @@ app.directive('popover', function() {
 // Declare controller ncf-builder
 app.controller('ncf-builder', function ($scope, $uibModal, $http, $q, $location, $anchorScroll, ngToast, $timeout, focus, $sce, fileManagerConfig, apiMiddleware, apiHandler, $window) {
   // Variable we use in the whole application
-  
+
   //UI state
   $scope.ui = {
     showTechniques    : true,
@@ -1553,7 +1553,7 @@ app.config(['fileManagerConfigProvider', function (config) {
     extractUrl          : apiPath,
     permissionsUrl      : apiPath,
     isEditableFilePattern : /.*/,
-    //tplPath             : baseUrl + '/templates/angular/filemanager',
+    tplPath             : '/ncf-builder/templates',
     allowedActions: angular.extend(defaults.allowedActions, {
       compress: false,
       compressChooseName: false,
