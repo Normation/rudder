@@ -527,7 +527,7 @@ $scope.exportTechnique = function(){
       args:          call["args"],
       class_context: call["class_context"],
       method_name:   call["method_name"],
-      promiser:      call["promiser"]
+      component:     call["component"]
     }
   }
   var exportedTechnique = {
