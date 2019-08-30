@@ -214,7 +214,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       , isEnabled:Boolean
       , isSystem : Boolean
     ) : LDAPEntry = {
-      val mod = LDAPEntry(new DN(new RDN(A_ACTIVE_TECHNIQUE_UUID,uuid),parentDN))
+      val mod = LDAPEntry(new DN(buildRDN(uuid),parentDN))
       mod +=! (A_OC, OC.objectClassNames(OC_ACTIVE_TECHNIQUE).toSeq:_*)
       mod +=! (A_TECHNIQUE_UUID, techniqueName.value)
       mod +=! (A_IS_ENABLED, isEnabled.toLDAPString)
@@ -222,6 +222,8 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       mod +=! (A_ACCEPTATION_DATETIME, compactRender(acceptationDateTimes))
       mod
     }
+
+    def buildRDN(rdn: String): RDN = new RDN(A_ACTIVE_TECHNIQUE_UUID, rdn)
 
     def directiveModel(uuid:String, techniqueVersion:TechniqueVersion, parentDN:DN) : LDAPEntry = {
       val mod = LDAPEntry(new DN(new RDN(A_DIRECTIVE_UUID,uuid),parentDN))

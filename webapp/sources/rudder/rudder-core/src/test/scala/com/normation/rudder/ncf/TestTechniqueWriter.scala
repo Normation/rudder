@@ -173,26 +173,20 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   }
 
   def techRepo : TechniqueRepository = new TechniqueRepository {
-
-    def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T = ???
-    def getTemplateContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => T): T = ???
-    def getFileContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => T): T = ???
-    def getTechniquesInfo(): TechniquesInfo = ???
-    def getAll(): Map[TechniqueId, domain.Technique] = ???
-
-    def get(techniqueId: TechniqueId): Option[domain.Technique] = ???
-
-    def getLastTechniqueByName(techniqueName: TechniqueName): Option[domain.Technique] = ???
-
-    def getByIds(techniqueIds: Seq[TechniqueId]): Seq[domain.Technique] = ???
-    def getTechniqueVersions(name: TechniqueName): SortedSet[TechniqueVersion] = ???
-    def getByName(name: TechniqueName): Map[TechniqueVersion, domain.Technique] = ???
-
-    def getTechniqueLibrary: RootTechniqueCategory = ???
-
-    def getTechniqueCategory(id: TechniqueCategoryId): IOResult[TechniqueCategory] = ???
-
-    def getParentTechniqueCategory_forTechnique(id: TechniqueId): IOResult[TechniqueCategory] = ???
+    override def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T = ???
+    override def getTemplateContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => T): T = ???
+    override def getFileContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => T): T = ???
+    override def getTechniquesInfo(): TechniquesInfo = ???
+    override def getAll(): Map[TechniqueId, domain.Technique] = ???
+    override def get(techniqueId: TechniqueId): Option[domain.Technique] = ???
+    override def getLastTechniqueByName(techniqueName: TechniqueName): Option[domain.Technique] = ???
+    override def getByIds(techniqueIds: Seq[TechniqueId]): Seq[domain.Technique] = ???
+    override def getTechniqueVersions(name: TechniqueName): SortedSet[TechniqueVersion] = ???
+    override def getByName(name: TechniqueName): Map[TechniqueVersion, domain.Technique] = ???
+    override def getTechniqueLibrary: RootTechniqueCategory = ???
+    override def getTechniqueCategory(id: TechniqueCategoryId): IOResult[TechniqueCategory] = ???
+    override def getParentTechniqueCategory_forTechnique(id: TechniqueId): IOResult[TechniqueCategory] = ???
+    override def getAllCategories: Map[TechniqueCategoryId, TechniqueCategory] = ???
   }
 
   val valueCompiler = new InterpolatedValueCompilerImpl

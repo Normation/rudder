@@ -863,7 +863,7 @@ class WoLDAPDirectiveRepository(
    * Both category to move and destination have to exists, else it is a.fail.
    * The destination category can not be a child of the category to move.
    */
-  def move(categoryId:ActiveTechniqueCategoryId, intoParent:ActiveTechniqueCategoryId, modId : ModificationId, actor: EventActor, reason: Option[String]) : IOResult[ActiveTechniqueCategoryId] = {
+  def move(categoryId:ActiveTechniqueCategoryId, intoParent:ActiveTechniqueCategoryId, optionNewName: Option[ActiveTechniqueCategoryId], modId : ModificationId, actor: EventActor, reason: Option[String]) : IOResult[ActiveTechniqueCategoryId] = {
     for {
       con            <- ldap
       oldParents     <- if(autoExportOnModify) {
@@ -886,12 +886,12 @@ class WoLDAPDirectiveRepository(
                           case _ => "Can not find the category entry name for category with ID %s. Name is needed to check unicity of categories by level".fail
                         }
       result         <- userLibMutex.writeLock { con.move(categoryEntry.dn, newParentEntry.dn) }
-      category       <- getActiveTechniqueCategory(categoryId).notOptional(s"Error: can not find back just move category '${categoryId.toString}'")
-      autoArchive    <- ZIO.when(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem ) {
+      newCat         <- getActiveTechniqueCategory(optionNewName.getOrElse(categoryId)).notOptional(s"Error: can not find back just move category '${categoryId.toString}'")
+      autoArchive    <- ZIO.when(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !newCat.isSystem ) {
                           for {
                             parents  <- getParentsForActiveTechniqueCategory(categoryId)
                             commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                            moved    <- gitCatArchiver.moveActiveTechniqueCategory(category, oldParents.map( _.id), parents.map( _.id), Some((modId, commiter, reason)))
+                            moved    <- gitCatArchiver.moveActiveTechniqueCategory(newCat, oldParents.map( _.id), parents.map( _.id), Some((modId, commiter, reason)))
                           } yield {
                             moved
                           }

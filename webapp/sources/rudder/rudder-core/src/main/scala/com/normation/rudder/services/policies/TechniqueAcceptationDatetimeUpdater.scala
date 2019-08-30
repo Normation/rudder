@@ -39,6 +39,7 @@ package com.normation.rudder.services.policies
 
 import com.normation.cfclerk.domain.RootTechniqueCategoryId
 import com.normation.cfclerk.domain.SubTechniqueCategoryId
+import com.normation.cfclerk.domain.TechniqueCategoryId
 import com.normation.NamedZioLogger
 import com.normation.box._
 import com.normation.cfclerk.domain.TechniqueName
@@ -56,6 +57,7 @@ import com.normation.zio._
 import net.liftweb.common.Box
 import org.joda.time.DateTime
 import zio._
+import zio.syntax._
 
 /**
  * This handler is in charge to maintain a correct state
@@ -135,6 +137,15 @@ class TechniqueAcceptationUpdater(
     }
 
     def handleCategoriesUpdate(mods: Set[TechniqueCategoryModType]): IOResult[Seq[Unit]] = {
+      // we use the same id for category and active category: the directory name,
+      // *safe* for root category: it's "/" for technique, and "Active Techniques" in LDAP
+      def toActiveCatId(id: TechniqueCategoryId): ActiveTechniqueCategoryId = {
+        id match {
+          case RootTechniqueCategoryId =>ActiveTechniqueCategoryId("Active Techniques")
+          case SubTechniqueCategoryId(name, parentId) => ActiveTechniqueCategoryId(name.value)
+        }
+      }
+
       // we need to sort change: first delete, then add, then move, then update
       val sorted = mods.toList.sortWith { (a, b) => (a, b) match {
         case (TechniqueCategoryModType.Deleted(_), _) => true
@@ -150,44 +161,53 @@ class TechniqueAcceptationUpdater(
 
       sorted.accumulate { mod => mod match {
         case TechniqueCategoryModType.Deleted(cat) =>
-          logPure.debug(s"Category '${cat.id.name.value}' deleted") *> (
+          logPure.debug(s"Category '${cat.id.name.value}' deleted in file system") *> (
           if(cat.subCategoryIds.isEmpty && cat.techniqueIds.isEmpty) {
-            rwActiveTechniqueRepo.delete(ActiveTechniqueCategoryId(cat.id.name.value), modId, actor, reason).map(_ => ())
+            rwActiveTechniqueRepo.delete(toActiveCatId(cat.id), modId, actor, reason).map(_ => ())
           } else {
             logPure.info(s"Not deleting non empty category: '${cat.id.toString}'") *>
             UIO.unit
           }) // do nothing
         case TechniqueCategoryModType.Added(cat, parentId) =>
-          logPure.debug(s"Category '${cat.id.name.value}' added into '${parentId.toString}'") *>
+          logPure.debug(s"Category '${cat.id.toString}' added into '${parentId.toString}'") *>
           rwActiveTechniqueRepo.addActiveTechniqueCategory(
             ActiveTechniqueCategory(
-                ActiveTechniqueCategoryId(cat.id.name.value)
+                toActiveCatId(cat.id)
               , cat.name
               , cat.description
               , Nil
               , Nil
               , cat.isSystem
-            ), ActiveTechniqueCategoryId(parentId.name.value), modId, actor, reason
+            ), toActiveCatId(parentId), modId, actor, reason
           ).unit
-        case TechniqueCategoryModType.Moved(name, from, to) =>
-          logPure.debug(s"Category '${name.value}' moved from '${from.toString}' to '${to.name.toString}'") *>
-          rwActiveTechniqueRepo.move(ActiveTechniqueCategoryId(name.value), ActiveTechniqueCategoryId(to.name.value), modId, actor, reason).unit
+        case TechniqueCategoryModType.Moved(from, to) =>
+          to match {
+            case RootTechniqueCategoryId =>
+              Unexpected(s"Category '${from.toString}' is trying to replace root categoy. This is likely a bug, please report it.").fail
+
+            case SubTechniqueCategoryId(name, parentId) =>
+              logPure.debug(s"Category '{from.toString}' moved to '${to.toString}'") *> {
+                // if rdn changed, we need to issue a modrdn
+                val newName = if(from.name == to.name) None else Some(ActiveTechniqueCategoryId(to.name.value))
+                rwActiveTechniqueRepo.move(ActiveTechniqueCategoryId(from.name.value), toActiveCatId(parentId), newName, modId, actor, reason).unit
+              }
+          }
         case TechniqueCategoryModType.Updated(cat) =>
           logPure.debug(s"Category '${cat.id.toString}' updated") *>
-          roActiveTechniqueRepo.getActiveTechniqueCategory(ActiveTechniqueCategoryId(cat.id.name.value)).flatMap { opt => opt match {
+          roActiveTechniqueRepo.getActiveTechniqueCategory(toActiveCatId(cat.id)).flatMap { opt => opt match {
             case None          =>
               cat.id match {
                 case _:RootTechniqueCategoryId.type => UIO.unit
                 case i:SubTechniqueCategoryId =>
                   rwActiveTechniqueRepo.addActiveTechniqueCategory(
                     ActiveTechniqueCategory(
-                        ActiveTechniqueCategoryId(cat.id.name.value)
+                        toActiveCatId(cat.id)
                       , cat.name
                       , cat.description
                       , Nil
                       , Nil
                       , cat.isSystem
-                    ), ActiveTechniqueCategoryId(i.parentId.name.value), modId, actor, reason
+                    ), toActiveCatId(i.parentId), modId, actor, reason
                   ).unit
                 }
             case Some(existing) =>

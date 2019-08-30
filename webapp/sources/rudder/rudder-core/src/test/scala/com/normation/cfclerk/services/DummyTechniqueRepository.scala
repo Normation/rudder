@@ -99,4 +99,5 @@ class DummyTechniqueRepository(policies: Seq[Technique] = Seq()) extends Techniq
   override def getTechniqueCategory(id: TechniqueCategoryId): IOResult[TechniqueCategory] = null
   override def getParentTechniqueCategory_forTechnique(id: TechniqueId): IOResult[TechniqueCategory] = null
 
+  override def getAllCategories: Map[TechniqueCategoryId, TechniqueCategory] = ???
 }
