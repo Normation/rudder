@@ -37,6 +37,8 @@
 
 package com.normation.rudder.services.policies.nodeconfig
 
+import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.cfclerk.domain.TechniqueVersionFormatException
 import com.normation.inventory.domain.NodeId
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPEntry
@@ -50,9 +52,17 @@ import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
 import com.normation.cfclerk.domain.Variable
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.NodeConfiguration
+import net.liftweb.json._
+import net.liftweb.json.JsonDSL._
+import cats.implicits._
+import org.joda.time.format.ISODateTimeFormat
+
+import scala.util.control.NonFatal
 
 
 case class PolicyHash(
@@ -95,6 +105,75 @@ case class NodeConfigurationHash(
 }
 
 object NodeConfigurationHash {
+
+  /*
+   * Serialization / unserialization to json.
+   * We want something as compact as possible, so NodeConfigurationHash are serialized like that:
+   * { i: [ "nodeid"(string), "writtendate"(string), nodeInfoCache(int), parameterHash(int), nodecContextHash(int)]
+   * , p: [ [ "ruleId"(string), "directiveid"(string), "techniqueversion"(string), hash(int)]
+   *      , [ ....
+   *      ]
+   * } (minified)
+   *
+   */
+  def toJson(hash: NodeConfigurationHash): String = {
+    compactRender(
+      (
+        ("i" -> JArray(List(hash.id.value, hash.writtenDate.toString(ISODateTimeFormat.dateTime()), hash.nodeInfoHash, hash.parameterHash, hash.nodeContextHash)))
+      ~ ("p" -> JArray(hash.policyHash.toList.map(p => JArray(List(p.draftId.ruleId.value, p.draftId.directiveId.value, p.draftId.techniqueVersion.toString, p.cacheValue)))))
+      )
+    )
+  }
+
+  def fromJson(json: String): Either[String, NodeConfigurationHash] = {
+    def jval = try {
+      Right(parse(json))
+    } catch {
+      case NonFatal(ex) => Left(s"Error when parsing node configuration cache entry. Expection was: ${ex.getMessage}")
+    }
+
+    def readDate(date: String): Either[String, DateTime] = try {
+      Right(ISODateTimeFormat.dateTimeParser().parseDateTime(date))
+    } catch {
+      case NonFatal(ex) => Left(s"Error, written date can not be parsed as a date: ${date}")
+    }
+
+    def readPolicy(p: JValue) = {
+      p match {
+        case JArray(List(JString(ruleId), JString(directiveId), JString(techniqueVerion), JInt(policyHash))) =>
+          try {
+            Right(PolicyHash(PolicyId(RuleId(ruleId), DirectiveId(directiveId), TechniqueVersion(techniqueVerion)), policyHash.toInt))
+          } catch {
+            case ex: TechniqueVersionFormatException => Left(s"Technique version for policy '${ruleId}@@${directiveId}' was not recognized: ${techniqueVerion}")
+          }
+      }
+    }
+
+    def extractNodeConfigCAche(j: JValue): Either[String, NodeConfigurationHash] = {
+      j match {
+        case JObject(List(
+                 JField("i", JArray(List(JString(nodeId), JString(date), JInt(nodeInfoCache), JInt(paramCache), JInt(nodeContextCache))))
+               , JField("p", JArray(policies))
+             )) =>
+
+          for {
+            d <- readDate(date)
+            p <- policies.traverse(readPolicy(_))
+          } yield {
+            NodeConfigurationHash(NodeId(nodeId), d, nodeInfoCache.toInt, paramCache.toInt, nodeContextCache.toInt, p.toSet)
+          }
+        case _ => Left(s"Cannot parse node configuration hash: ${json.splitAt(20)}...")
+      }
+    }
+
+    for {
+      v <- jval
+      x <- extractNodeConfigCAche(v)
+    } yield {
+      x
+    }
+  }
+
 
   /**
    * Build the hash from a node configuration.
@@ -316,10 +395,6 @@ class LdapNodeConfigurationHashRepository(
   , ldapCon  : LDAPConnectionProvider[RwLDAPConnection]
 ) extends NodeConfigurationHashRepository with Loggable {
 
-  import net.liftweb.json._
-  import net.liftweb.json.Serialization.{ read, write }
-  implicit val formats = Serialization.formats(NoTypeHints) ++ net.liftweb.json.ext.JodaTimeSerializers.all
-
   /**
    * Logic: there is only one object that contains all node config cache.
    * Each node config cache is stored in one value of the "nodeConfig" attribute.
@@ -342,24 +417,10 @@ class LdapNodeConfigurationHashRepository(
                  }
      } yield {
        e.valuesFor(A_NODE_CONFIG).flatMap { json =>
-         try {
-           Some(read[NodeConfigurationHash](json))
-         } catch {
-           case e: Exception =>
-             //try to get the nodeid from what should be some json
-             try {
-               for {
-                 JString(id) <- parse(json) \\ "id" \ "value"
-               } yield {
-                 logger.info(s"Ignoring following node configuration cache info because of deserialisation error: ${id}. Policies will be regenerated for it.")
-               }
-             } catch {
-               case e:Exception => //ok, that's does not seem to be json
-                 logger.info(s"Ignoring an unknown node configuration cache info because of deserialisation problem.")
-             }
-
-             logger.debug(s"Faulty json and exception was: ${json}", e)
-
+         NodeConfigurationHash.fromJson(json) match {
+           case Right(value) => Some(value)
+           case Left(error)  =>
+             logger.info(s"Ignoring node configuration cache info because of deserialisation problem: ${error}")
              None
          }
        }
@@ -367,7 +428,7 @@ class LdapNodeConfigurationHashRepository(
   }
 
   private[this] def toLdap(nodeConfigs: Set[NodeConfigurationHash]): LDAPEntry = {
-    val caches = nodeConfigs.map{ x => write(x) }
+    val caches = nodeConfigs.map{ x => NodeConfigurationHash.toJson(x) }
     val entry = rudderDit.NODE_CONFIGS.model
     entry +=! (A_NODE_CONFIG, caches.toSeq:_*)
     entry
