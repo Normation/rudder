@@ -35,18 +35,26 @@ use crate::{
         metadata_hash_checker, metadata_parser, parse_parameter_from_raw, put_handler,
         shared_folder_head,
     },
-    {stats::Stats, status::Status, JobConfig},
+    stats::Stats,
+    status::Status,
+    JobConfig,
 };
 
 use futures::Future;
-use hyper::StatusCode;
 use std::{
     collections::HashMap,
     net::SocketAddr,
     sync::{Arc, RwLock},
 };
 use tracing::info;
-use warp::{body, filters, filters::method::v2::*, path, reject::custom, reply, Buf, Filter};
+use warp::{
+    body,
+    filters::{self, method::v2::*},
+    http::StatusCode,
+    path,
+    reject::custom,
+    reply, Buf, Filter,
+};
 
 pub fn api(
     listen: SocketAddr,

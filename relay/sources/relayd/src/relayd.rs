@@ -32,6 +32,7 @@ use relayd::{
     check_configuration, configuration::cli::CliConfiguration, error::Error, init_logger, start,
 };
 use std::process::exit;
+use structopt::StructOpt;
 use tracing::error;
 
 /// Sets exit code based on error type
@@ -42,9 +43,9 @@ fn error_code(e: Error) -> i32 {
     }
 }
 
-#[paw::main]
 /// Everything in a lib to allow extensive testing
-fn main(cli_cfg: CliConfiguration) {
+fn main() {
+    let cli_cfg = CliConfiguration::from_args();
     if cli_cfg.check_configuration {
         if let Err(e) = check_configuration(&cli_cfg.configuration_dir) {
             println!("{}", e);

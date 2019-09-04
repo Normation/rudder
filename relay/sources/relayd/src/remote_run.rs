@@ -169,9 +169,7 @@ impl FromStr for Condition {
     }
 }
 
-fn lines_stream(
-    child: &mut Child,
-) -> impl Stream<Item = hyper::Chunk, Error = Error> + Send + 'static {
+fn lines_stream(child: &mut Child) -> impl Stream<Item = Chunk, Error = Error> + Send + 'static {
     let stdout = child
         .stdout()
         .take()

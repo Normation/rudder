@@ -29,26 +29,25 @@
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{error::Error, JobConfig};
-use chrono::prelude::DateTime;
-use chrono::{Duration, Utc};
+use chrono::{prelude::DateTime, Duration, Utc};
 use hex;
-use hyper::StatusCode;
-use openssl::error::ErrorStack;
-use openssl::hash::MessageDigest;
-use openssl::pkey::PKey;
-use openssl::pkey::Public;
-use openssl::rsa::Rsa;
-use openssl::sign::Verifier;
+use openssl::{
+    error::ErrorStack,
+    hash::MessageDigest,
+    pkey::{PKey, Public},
+    rsa::Rsa,
+    sign::Verifier,
+};
 use regex::Regex;
 use sha2::{Digest, Sha256, Sha512};
-use std::fmt;
-use std::fs;
-use std::io::BufRead;
-use std::io::Read;
-use std::path::Path;
-use std::str::FromStr;
-use std::sync::Arc;
-use warp::Buf;
+use std::{
+    fmt, fs,
+    io::{BufRead, Read},
+    path::Path,
+    str::FromStr,
+    sync::Arc,
+};
+use warp::{http::StatusCode, Buf};
 
 pub enum HashType {
     Sha256,
@@ -257,7 +256,7 @@ pub fn put_handler(
     ttl: String,
     job_config: Arc<JobConfig>,
     mut buf: warp::body::FullBody,
-) -> Result<hyper::StatusCode, Error> {
+) -> Result<StatusCode, Error> {
     let timestamp = match parse_ttl(ttl) {
         Ok(ttl) => ttl,
         Err(_x) => return Ok(StatusCode::from_u16(500).unwrap()),
@@ -319,11 +318,7 @@ pub fn put_handler(
     Ok(StatusCode::from_u16(200).unwrap())
 }
 
-pub fn metadata_hash_checker(
-    path: String,
-    hash: String,
-    job_config: Arc<JobConfig>,
-) -> hyper::StatusCode {
+pub fn metadata_hash_checker(path: String, hash: String, job_config: Arc<JobConfig>) -> StatusCode {
     if !Path::new(job_config.cfg.shared_files.path.to_str().unwrap())
         .join("shared-files/")
         .join(format!("{}.metadata", path))
@@ -350,7 +345,7 @@ pub fn shared_folder_head(
     path: String,
     raw: String, // example of raw: hash_type=sha256?hash=181210f8f9c779c26da1d9b2075bde0127302ee0e3fca38c9a83f5b1dd8e5d3b
     job_config: Arc<JobConfig>,
-) -> Result<hyper::StatusCode, Error> {
+) -> Result<StatusCode, Error> {
     if !Path::new(&format!(
         "{}shared-folder/{}",
         job_config.cfg.shared_files.path.to_str().unwrap(),
@@ -455,18 +450,11 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==".to_string()).unwrap(),
     #[test]
     pub fn it_parses_ttl() {
         assert!(parse_ttl("1h 7s".to_string()).is_ok());
-
         assert!(parse_ttl("1hour 2minutes".to_string()).is_ok());
-
         assert!(parse_ttl("1d 7seconds".to_string()).is_ok());
-
         assert_eq!(parse_ttl("9136".to_string()).unwrap(), 9136);
-
         assert!(parse_ttl("913j".to_string()).is_err());
-
         assert!(parse_ttl("913b83".to_string()).is_err());
-
         assert!(parse_ttl("913h 89j".to_string()).is_err());
     }
-
 }

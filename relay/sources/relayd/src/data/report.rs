@@ -532,5 +532,4 @@ mod tests {
             Err("test\n2018-08-24T15:55:01+00:00 R: @@Common@@broken".to_string())
         );
     }
-
 }

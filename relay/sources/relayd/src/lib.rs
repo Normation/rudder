@@ -74,27 +74,28 @@ use std::{
 use structopt::clap::crate_version;
 use tokio_signal::unix::{Signal, SIGHUP, SIGINT, SIGTERM};
 use tracing::{debug, error, info};
-use tracing_fmt::{
-    filter::{env::EnvFilter, reload::Handle},
-    format::NewRecorder,
-    FmtSubscriber,
-};
 use tracing_log::LogTracer;
+use tracing_subscriber::fmt::format::Format;
+use tracing_subscriber::fmt::format::Full;
+use tracing_subscriber::fmt::format::NewRecorder;
+use tracing_subscriber::{filter::Filter, fmt::Subscriber, reload::Handle};
 
-pub fn init_logger() -> Result<Handle<EnvFilter, NewRecorder>, Error> {
-    let subscriber = FmtSubscriber::builder()
-        .with_filter_reloading()
+pub fn init_logger(
+) -> Result<Handle<Filter, Subscriber<NewRecorder, Format<Full, ()>, fn() -> std::io::Stdout>>, Error>
+{
+    let builder = Subscriber::builder()
         .without_time()
-        .finish();
-    let reload_handle = subscriber.reload_handle();
+        // Until actual config load
+        .with_filter("error")
+        .with_filter_reloading();
+    let reload_handle = builder.reload_handle();
+    let subscriber = builder.finish();
     // Set logger for global context
     tracing::subscriber::set_global_default(subscriber)?;
 
     // Set logger for dependencies using log
     LogTracer::init()?;
 
-    // Until actual config load
-    reload_handle.reload("error")?;
     Ok(reload_handle)
 }
 
@@ -107,7 +108,10 @@ pub fn check_configuration(cfg_dir: &Path) -> Result<(), Error> {
 #[allow(clippy::cognitive_complexity)]
 pub fn start(
     cli_cfg: CliConfiguration,
-    reload_handle: Handle<EnvFilter, NewRecorder>,
+    reload_handle: Handle<
+        Filter,
+        Subscriber<NewRecorder, Format<Full, ()>, fn() -> std::io::Stdout>,
+    >,
 ) -> Result<(), Error> {
     // Start by setting log config
     let log_cfg = LogConfig::new(&cli_cfg.configuration_dir)?;
@@ -202,14 +206,14 @@ pub struct JobConfig {
     pub nodes: RwLock<NodesList>,
     pub pool: Option<PgPool>,
     pub client: Option<Client>,
-    handle: Handle<EnvFilter, NewRecorder>,
+    handle: Handle<Filter, Subscriber<NewRecorder, Format<Full, ()>, fn() -> std::io::Stdout>>,
 }
 
 impl JobConfig {
     pub fn new(
         cli_cfg: CliConfiguration,
         cfg: Configuration,
-        handle: Handle<EnvFilter, NewRecorder>,
+        handle: Handle<Filter, Subscriber<NewRecorder, Format<Full, ()>, fn() -> std::io::Stdout>>,
     ) -> Result<Arc<Self>, Error> {
         // Create dirs
         if cfg.processing.inventory.output != InventoryOutputSelect::Disabled {
@@ -274,7 +278,7 @@ impl JobConfig {
     fn reload_logging(&self) -> Result<(), Error> {
         LogConfig::new(&self.cli_cfg.configuration_dir).and_then(|log_cfg| {
             self.handle
-                .reload(EnvFilter::try_new(log_cfg.to_string())?)
+                .reload(Filter::try_new(log_cfg.to_string())?)
                 .map_err(|e| e.into())
         })
     }

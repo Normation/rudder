@@ -68,13 +68,13 @@ pub enum Error {
     Ssl(openssl::error::ErrorStack),
     InvalidCondition(String),
     ParseBoolean(std::str::ParseBoolError),
-    LogFormat(tracing_fmt::filter::reload::Error),
+    LogFormat(tracing_subscriber::reload::Error),
     GlobalLogger(tracing::dispatcher::SetGlobalDefaultError),
     SetLogLogger(log::SetLoggerError),
     InvalidTtl(String),
     MissingTargetNodes,
     InvalidHashType,
-    InvalidLogFilter(tracing_fmt::filter::env::ParseError),
+    InvalidLogFilter(tracing_subscriber::filter::ParseError),
     InvalidHeader,
     HttpClient(reqwest::Error),
 }
@@ -216,8 +216,8 @@ impl From<openssl::error::ErrorStack> for Error {
     }
 }
 
-impl From<tracing_fmt::filter::reload::Error> for Error {
-    fn from(err: tracing_fmt::filter::reload::Error) -> Self {
+impl From<tracing_subscriber::reload::Error> for Error {
+    fn from(err: tracing_subscriber::reload::Error) -> Self {
         Error::LogFormat(err)
     }
 }
@@ -234,8 +234,8 @@ impl From<log::SetLoggerError> for Error {
     }
 }
 
-impl From<tracing_fmt::filter::env::ParseError> for Error {
-    fn from(err: tracing_fmt::filter::env::ParseError) -> Self {
+impl From<tracing_subscriber::filter::ParseError> for Error {
+    fn from(err: tracing_subscriber::filter::ParseError) -> Self {
         Error::InvalidLogFilter(err)
     }
 }
