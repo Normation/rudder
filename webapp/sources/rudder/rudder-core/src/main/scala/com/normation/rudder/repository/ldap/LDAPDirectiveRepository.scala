@@ -885,11 +885,11 @@ class WoLDAPDirectiveRepository(
                             }
                           case _ => "Can not find the category entry name for category with ID %s. Name is needed to check unicity of categories by level".fail
                         }
-      result         <- userLibMutex.writeLock { con.move(categoryEntry.dn, newParentEntry.dn) }
+      result         <- userLibMutex.writeLock { con.move(categoryEntry.dn, newParentEntry.dn, optionNewName.map(n => rudderDit.ACTIVE_TECHNIQUES_LIB.buildCategoryRDN(n.value))) }
       newCat         <- getActiveTechniqueCategory(optionNewName.getOrElse(categoryId)).notOptional(s"Error: can not find back just move category '${categoryId.toString}'")
       autoArchive    <- ZIO.when(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !newCat.isSystem ) {
                           for {
-                            parents  <- getParentsForActiveTechniqueCategory(categoryId)
+                            parents  <- getParentsForActiveTechniqueCategory(newCat.id)
                             commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                             moved    <- gitCatArchiver.moveActiveTechniqueCategory(newCat, oldParents.map( _.id), parents.map( _.id), Some((modId, commiter, reason)))
                           } yield {
