@@ -44,14 +44,13 @@ import java.security.interfaces.RSAPublicKey
 import java.security.spec.X509EncodedKeySpec
 
 import com.normation.inventory.domain._
+import com.normation.rudder.domain.logger.PolicyLogger
 import com.normation.utils.HashcodeCaching
-
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import org.bouncycastle.openssl.PEMParser
 import org.bouncycastle.util.encoders.Hex
 import org.joda.time.DateTime
-
 import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
 
@@ -85,7 +84,7 @@ final case class NodeInfo(
   , archDescription: Option[String]
   , ram            : Option[MemorySize]
   , timezone       : Option[NodeTimezone]
-) extends HashcodeCaching with Loggable{
+) extends HashcodeCaching {
 
   val id                         = node.id
   val name                       = node.name
@@ -111,7 +110,7 @@ final case class NodeInfo(
           case Full(hash)  => "MD5="+hash
           case eb:EmptyBox =>
             val e = eb ?~! s"Error when trying to get the CFEngine-MD5 digest of CFEngine public key for node '${hostname}' (${id.value})"
-            logger.error(e.messageChain)
+            PolicyLogger.error(e.messageChain)
             ""
         }
 
@@ -120,20 +119,20 @@ final case class NodeInfo(
           case Full(hash) => "SHA="+hash
           case eb:EmptyBox =>
             val e = eb ?~! s"Error when trying to get the CFEngine-SHA256 digest of CFEngine public key for node '${hostname}' (${id.value})"
-            logger.error(e.messageChain)
+            PolicyLogger.error(e.messageChain)
             ""
         }
 
       case Some((AgentType.Dsc, _)) =>
-        logger.info(s"Node '${hostname}' (${id.value}) is a DSC node and a we do not know how to generate a hash yet")
+        PolicyLogger.info(s"Node '${hostname}' (${id.value}) is a DSC node and a we do not know how to generate a hash yet")
         ""
 
       case Some((_, _)) =>
-        logger.info(s"Node '${hostname}' (${id.value}) has an unsuported key type (CFEngine agent with certificate?) and a we do not know how to generate a hash yet")
+        PolicyLogger.info(s"Node '${hostname}' (${id.value}) has an unsuported key type (CFEngine agent with certificate?) and a we do not know how to generate a hash yet")
         ""
 
       case None =>
-        logger.info(s"Node '${hostname}' (${id.value}) doesn't have a registered public key")
+        PolicyLogger.info(s"Node '${hostname}' (${id.value}) doesn't have a registered public key")
         ""
     }
   }
@@ -154,14 +153,14 @@ final case class NodeInfo(
           hash
         case eb:EmptyBox =>
           val e = eb ?~! s"Error when trying to get the sha-256 digest of CFEngine public key for node '${hostname}' (${id.value})"
-          logger.error(e.messageChain)
+          PolicyLogger.error(e.messageChain)
           ""
         }
       case Some(cert : Certificate) =>
-        logger.info(s"Node '${hostname}' (${id.value}) is a Dsc node and a we do not know how to generate a hash yet")
+        PolicyLogger.info(s"Node '${hostname}' (${id.value}) is a Dsc node and a we do not know how to generate a hash yet")
         ""
       case None =>
-        logger.info(s"Node '${hostname}' (${id.value}) doesn't have a registered public key")
+        PolicyLogger.info(s"Node '${hostname}' (${id.value}) doesn't have a registered public key")
         ""
 
     }

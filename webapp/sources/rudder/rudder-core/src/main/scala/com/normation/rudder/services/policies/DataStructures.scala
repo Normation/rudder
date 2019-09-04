@@ -231,7 +231,7 @@ final case class NodeConfiguration(
   , nodeContext : Map[String, Variable]
   , parameters  : Set[ParameterForConfiguration]
   , isRootServer: Boolean = false
-) extends HashcodeCaching with Loggable {
+) extends HashcodeCaching {
 
   def getTechniqueIds() : Set[TechniqueId] = {
     policies.map( _.technique.id ).toSet
@@ -350,7 +350,7 @@ final case class Policy(
   , ruleOrder          : BundleOrder
   , directiveOrder     : BundleOrder
   , overrides          : Set[PolicyId] //a set of other draft overriden by that one
-) extends Loggable {
+)  {
 
   // here, it is extremely important to keep sorted order
   // List[Map[id, List[Variable]]

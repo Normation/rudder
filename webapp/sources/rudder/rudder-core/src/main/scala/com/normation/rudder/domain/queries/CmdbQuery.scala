@@ -712,7 +712,7 @@ case object EditorComparator extends LDAPCriterionType {
  *
  * Used for "process" attribute
  */
-case class JsonFixedKeyComparator(ldapAttr:String, jsonKey: String, quoteValue: Boolean) extends TStringComparator with Loggable {
+case class JsonFixedKeyComparator(ldapAttr:String, jsonKey: String, quoteValue: Boolean) extends TStringComparator {
   override val comparators = BaseComparators.comparators
 
   def format(attribute:String, value:String) = {
@@ -757,7 +757,7 @@ case class JsonFixedKeyComparator(ldapAttr:String, jsonKey: String, quoteValue: 
  *
  *  Used for environmentVariable
  */
-case class NameValueComparator(ldapAttr: String) extends TStringComparator with Loggable {
+case class NameValueComparator(ldapAttr: String) extends TStringComparator {
   import KeyValueComparator.HasKey
   override val comparators = HasKey +: BaseComparators.comparators
 
@@ -814,7 +814,7 @@ case class NameValueComparator(ldapAttr: String) extends TStringComparator with 
  * of nodes.
  */
 final case class SubGroupChoice(id: NodeGroupId, name: String)
-class SubGroupComparator(getGroups: () => Box[Seq[SubGroupChoice]]) extends TStringComparator with Loggable {
+class SubGroupComparator(getGroups: () => Box[Seq[SubGroupChoice]]) extends TStringComparator {
   override val comparators = Equals :: Nil
 
   override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = comparator match {
