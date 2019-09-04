@@ -58,6 +58,7 @@ import JE._
 import net.liftweb.json._
 import JsonDSL._
 import com.jayway.jsonpath.JsonPath
+import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeProperty
@@ -840,11 +841,11 @@ class SubGroupComparator(getGroups: () => Box[Seq[SubGroupChoice]]) extends TStr
         }
       }) match {
         case Full(list)   => list.sortBy( _.label )
-        case eb: EmptyBox => //if an error occure, log and display the error in place of the label
+        case eb: EmptyBox => //if an error occur, log and display the error in place of the label
           val e = eb ?~! s"An error happens when trying to find the list of groups to use in sub-groups"
           e.rootExceptionCause match {
-            case eb: EmptyBox => logger.error(e.messageChain)
-            case Full(ex)     => logger.error(e.messageChain, ex)
+            case eb: EmptyBox => ApplicationLogger.error(e.messageChain)
+            case Full(ex)     => ApplicationLogger.error(e.messageChain, ex)
           }
           SelectableOption(value, "Error when looking for available groups") :: Nil
       }
