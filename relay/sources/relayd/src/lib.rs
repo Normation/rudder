@@ -42,6 +42,7 @@ pub mod output;
 pub mod processing;
 pub mod remote_run;
 pub mod shared_files;
+pub mod shared_folder;
 pub mod stats;
 pub mod status;
 

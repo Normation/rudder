@@ -31,10 +31,8 @@
 use crate::{
     error::Error,
     remote_run::{RemoteRun, RemoteRunTarget},
-    shared_files::{
-        metadata_hash_checker, metadata_parser, parse_parameter_from_raw, put_handler,
-        shared_folder_head,
-    },
+    shared_files::{metadata_hash_checker, metadata_parser, parse_parameter_from_raw, put_handler},
+    shared_folder::{shared_folder, SharedFolderParams},
     stats::Stats,
     status::Status,
     JobConfig,
@@ -44,6 +42,7 @@ use futures::Future;
 use std::{
     collections::HashMap,
     net::SocketAddr,
+    path::Path,
     sync::{Arc, RwLock},
 };
 use tracing::info;
@@ -62,19 +61,17 @@ pub fn api(
     job_config: Arc<JobConfig>,
     stats: Arc<RwLock<Stats>>,
 ) -> impl Future<Item = (), Error = ()> {
-    // TODO put these endpoints into relay-api?
     let stats = get()
         .and(path("stats"))
         .map(move || reply::json(&(*stats.clone().read().expect("open stats database"))));
 
     let job_config0 = job_config.clone();
-    // FIXME handle errors with proper codes
+    // TODO test error case
     let reload = post()
         .and(path("reload"))
         .map(move || reply::json(&job_config0.clone().reload().map_err(custom)));
 
     let job_config1 = job_config.clone();
-    // FIXME handle errors with proper codes
     let status = get()
         .and(path("status"))
         .map(move || reply::json(&Status::poll(job_config1.clone())));
@@ -150,7 +147,7 @@ pub fn api(
     let job_config6 = job_config.clone();
     let shared_files_head = head()
         .and(path::peek())
-        .and(filters::query::raw()) // recuperation du parametre ?hash=file-hash
+        .and(filters::query::raw()) // get the hash parameter ?hash=file-hash
         .map(move |peek: filters::path::Peek, raw: String| {
             reply::with_status(
                 "".to_string(),
@@ -163,16 +160,19 @@ pub fn api(
         });
 
     let job_config7 = job_config.clone();
-    let shared_folder_head = head().and(path::peek()).and(filters::query::raw()).map(
-        move |peek: filters::path::Peek, raw: String| match shared_folder_head(
-            peek.as_str().to_string(),
-            raw,
-            job_config7.clone(),
-        ) {
-            Ok(status) => reply::with_status("".to_string(), status),
-            Err(_e) => reply::with_status("".to_string(), StatusCode::from_u16(500).unwrap()),
-        },
-    );
+    let shared_folder = head()
+        .and(path::peek())
+        .and(warp::query::<SharedFolderParams>())
+        .map(
+            move |file: warp::filters::path::Peek, params: SharedFolderParams| match shared_folder(
+                params,
+                Path::new(&file.as_str()),
+                job_config7.clone(),
+            ) {
+                Ok(reply) => reply,
+                Err(e) => reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR),
+            },
+        );
 
     // Routing
 
@@ -182,7 +182,8 @@ pub fn api(
     // /rudder/relay-api/
     let remote_run = path("remote-run").and(nodes.or(all).or(node_id));
     let shared_files = path("shared-files").and((shared_files_put).or(shared_files_head));
-    let shared_folder = path("shared-folder").and(shared_folder_head);
+    // GET is handled directly by httpd
+    let shared_folder = path("shared-folder").and(shared_folder);
     let relay_api = path("relay-api").and(remote_run.or(shared_files).or(shared_folder));
 
     // global route

@@ -44,11 +44,12 @@ use std::{
     fmt, fs,
     io::{BufRead, Read},
     path::Path,
+    str,
     str::FromStr,
     sync::Arc,
 };
 use warp::{http::StatusCode, Buf};
-
+#[derive(Debug, Clone, Copy)]
 pub enum HashType {
     Sha256,
     Sha512,
@@ -66,8 +67,21 @@ impl FromStr for HashType {
     }
 }
 
+impl fmt::Display for HashType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                HashType::Sha256 => "sha256",
+                HashType::Sha512 => "sha512",
+            }
+        )
+    }
+}
+
 impl HashType {
-    fn hash(&self, bytes: &[u8]) -> String {
+    pub fn hash(&self, bytes: &[u8]) -> String {
         match &self {
             HashType::Sha256 => {
                 let mut hasher = Sha256::new();
@@ -93,28 +107,25 @@ impl HashType {
 #[derive(Debug)]
 pub struct Metadata {
     pub header: String,
-    pub algorithm: String,
+    pub algorithm: HashType,
     pub digest: String,
     pub hash_value: String,
     pub short_pubkey: String,
     pub hostname: String,
-    pub keydate: String,
-    pub keyid: String,
+    pub key_date: String,
+    pub key_id: String,
 }
 
 impl fmt::Display for Metadata {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut mystring = String::new();
-
-        mystring.push_str(&format!("header={}\n", &self.header));
-        mystring.push_str(&format!("algorithm={}\n", &self.algorithm));
-        mystring.push_str(&format!("digest={}\n", &self.digest));
-        mystring.push_str(&format!("hash_value={}\n", &self.hash_value));
-        mystring.push_str(&format!("short_pubkey={}\n", &self.short_pubkey));
-        mystring.push_str(&format!("hostname={}\n", &self.hostname));
-        mystring.push_str(&format!("keydate={}\n", &self.keydate));
-        mystring.push_str(&format!("keyid={}\n", &self.keyid));
-        write!(f, "{}", mystring)
+        writeln!(f, "header={}", &self.header)?;
+        writeln!(f, "algorithm={}", &self.algorithm)?;
+        writeln!(f, "digest={}", &self.digest)?;
+        writeln!(f, "hash_value={}", &self.hash_value)?;
+        writeln!(f, "short_pubkey={}", &self.short_pubkey)?;
+        writeln!(f, "hostname={}", &self.hostname)?;
+        writeln!(f, "keydate={}", &self.key_date)?;
+        writeln!(f, "keyid={}", &self.key_id)
     }
 }
 
@@ -126,38 +137,36 @@ impl FromStr for Metadata {
             return Err(Error::InvalidHeader);
         }
         Ok(Metadata {
-            header: parse_value("header", s).unwrap(),
-            algorithm: parse_value("algorithm", s).unwrap(),
-            digest: parse_value("digest", s).unwrap(),
-            hash_value: parse_value("hash_value", s).unwrap(),
-            short_pubkey: parse_value("short_pubkey", s).unwrap(),
-            hostname: parse_value("hostname", s).unwrap(),
-            keydate: parse_value("keydate", s).unwrap(),
-            keyid: parse_value("keyid", s).unwrap(),
+            header: parse_value("header", s)?,
+            algorithm: HashType::from_str(s)?,
+            digest: parse_value("digest", s)?,
+            hash_value: parse_value("hash_value", s)?,
+            short_pubkey: parse_value("short_pubkey", s)?,
+            hostname: parse_value("hostname", s)?,
+            key_date: parse_value("keydate", s)?,
+            key_id: parse_value("keyid", s)?,
         })
     }
 }
 
-pub fn parse_value(key: &str, file: &str) -> Result<String, ()> {
+pub fn parse_value(key: &str, file: &str) -> Result<String, Error> {
     let regex_key = Regex::new(&format!(r"{}=(?P<key>[^\n]+)\n", key)).unwrap();
 
     match regex_key.captures(&file) {
-        Some(y) => match y.name("key") {
-            Some(x) => Ok(x.as_str().parse::<String>().unwrap()),
-            _ => Err(()),
+        Some(capture) => match capture.name("key") {
+            Some(x) => Ok(x.as_str().to_string()),
+            _ => Err(Error::InvalidHeader),
         },
-        None => Err(()),
+        None => Err(Error::InvalidHeader),
     }
 }
 
 pub fn same_hash_than_in_nodeslist(
     pubkey: PKey<Public>,
     hash_type: HashType,
-    keyhash: &str,
+    key_hash: &str,
 ) -> Result<bool, Error> {
-    let public_key_der: &[u8] = &pubkey.public_key_to_der()?;
-
-    Ok(hash_type.hash(public_key_der) == keyhash)
+    Ok(hash_type.hash(&pubkey.public_key_to_der()?) == key_hash)
 }
 
 pub fn get_pubkey(pubkey: String) -> Result<PKey<Public>, ErrorStack> {
@@ -216,38 +225,25 @@ pub fn parse_ttl(ttl: String) -> Result<i64, Error> {
 }
 
 pub fn metadata_parser(buf: &mut warp::body::FullBody) -> Result<Metadata, Error> {
-    let mut metadata = String::new();
-
-    let reader = buf.reader();
-
-    for line in reader.lines() {
-        let mytmpstr = line.unwrap();
-        if mytmpstr != "" {
-            metadata.push_str(&format!("{}\n", mytmpstr));
-        } else {
-            metadata.push_str("\n");
-            break;
-        }
-    }
-
-    Metadata::from_str(&metadata)
+    let mut metadata: Vec<u8> = Vec::new();
+    let _ = buf.reader().read_to_end(&mut metadata)?;
+    Metadata::from_str(str::from_utf8(&metadata)?)
 }
 
-pub fn file_writer(buf: &mut warp::body::FullBody, path: &str, job_config: Arc<JobConfig>) {
-    let mut myvec: Vec<u8> = vec![];
+pub fn file_writer(
+    buf: &mut warp::body::FullBody,
+    path: &Path,
+    job_config: Arc<JobConfig>,
+) -> Result<(), Error> {
+    let mut file_content: Vec<u8> = vec![];
 
     buf.by_ref().reader().consume(1); // skip the line feed
-    buf.reader().read_to_end(&mut myvec).unwrap();
+    buf.reader().read_to_end(&mut file_content).unwrap();
 
-    fs::write(
-        format!(
-            "{}shared-files/{}",
-            job_config.cfg.shared_files.path.to_str().unwrap(),
-            path
-        ),
-        myvec,
-    )
-    .expect("Unable to write file");
+    Ok(fs::write(
+        job_config.cfg.shared_files.path.join(path),
+        file_content,
+    )?)
 }
 
 pub fn put_handler(
@@ -269,13 +265,13 @@ pub fn put_handler(
     let (file, meta_pubkey, hash_type, digest) = (
         buf.by_ref(),
         &meta.short_pubkey,
-        &meta.algorithm,
+        meta.algorithm,
         &meta.digest,
     );
 
     if !same_hash_than_in_nodeslist(
         get_pubkey(meta_pubkey.to_string()).unwrap(),
-        HashType::from_str(hash_type).unwrap(),
+        hash_type,
         &meta.digest,
     )? {
         return Ok(StatusCode::from_u16(404).unwrap());
@@ -284,7 +280,7 @@ pub fn put_handler(
     if validate_signature(
         file.bytes(),
         get_pubkey(meta_pubkey.to_string()).unwrap(),
-        HashType::from_str(hash_type).unwrap(),
+        hash_type,
         &hex::decode(digest).unwrap(),
     )? {
         return Ok(StatusCode::from_u16(500).unwrap());
@@ -299,88 +295,53 @@ pub fn put_handler(
         return Ok(StatusCode::from_u16(404).unwrap());
     }
 
-    let _ = fs::create_dir_all(format!(
-        "{}shared-files/{}/{}/",
-        job_config.cfg.shared_files.path.to_str().unwrap(),
-        target_uuid,
-        source_uuid
-    )); // create folders if they don't exist
+    fs::create_dir_all(
+        job_config
+            .cfg
+            .shared_files
+            .path
+            .join(target_uuid)
+            .join(source_uuid),
+    )
+    .unwrap(); // create folders if they don't exist
     fs::write(
-        format!(
-            "{}shared-files/{}.metadata",
-            job_config.cfg.shared_files.path.to_str().unwrap(),
-            peek
-        ),
+        job_config
+            .cfg
+            .shared_files
+            .path
+            .join(format!("{}.metadata", peek)),
         format!("{}expires={}\n", metadata_string, timestamp),
     )
     .expect("Unable to write file");
-    file_writer(buf.by_ref(), peek, job_config.clone());
+    file_writer(buf.by_ref(), Path::new(peek), job_config.clone())?;
     Ok(StatusCode::from_u16(200).unwrap())
 }
 
 pub fn metadata_hash_checker(path: String, hash: String, job_config: Arc<JobConfig>) -> StatusCode {
-    if !Path::new(job_config.cfg.shared_files.path.to_str().unwrap())
-        .join("shared-files/")
+    if !job_config
+        .cfg
+        .shared_files
+        .path
         .join(format!("{}.metadata", path))
         .exists()
     {
         return StatusCode::from_u16(404).unwrap();
     }
 
-    let contents = fs::read_to_string(&format!(
-        "{}shared-files/{}.metadata",
-        job_config.cfg.shared_files.path.to_str().unwrap(),
-        path
-    ))
-    .expect("Something went wrong while reading the file");
+    let contents = fs::read_to_string(
+        job_config
+            .cfg
+            .shared_files
+            .path
+            .join(format!("{}.metadata", path)),
+    )
+    .unwrap();
 
     if parse_value("hash_value", &contents).unwrap() == hash {
         return StatusCode::from_u16(200).unwrap();
     }
 
     StatusCode::from_u16(404).unwrap()
-}
-
-pub fn shared_folder_head(
-    path: String,
-    raw: String, // example of raw: hash_type=sha256?hash=181210f8f9c779c26da1d9b2075bde0127302ee0e3fca38c9a83f5b1dd8e5d3b
-    job_config: Arc<JobConfig>,
-) -> Result<StatusCode, Error> {
-    if !Path::new(&format!(
-        "{}shared-folder/{}",
-        job_config.cfg.shared_files.path.to_str().unwrap(),
-        path
-    ))
-    .exists()
-    {
-        return Ok(StatusCode::from_u16(404).unwrap());
-    }
-
-    let it: Vec<String> = raw
-        .split('?')
-        .map(|s| parse_parameter_from_raw(s.to_string()))
-        .collect();
-
-    let hash_type = &it[0];
-    let hash = &it[1];
-
-    if hash == "" {
-        return Ok(StatusCode::from_u16(200).unwrap());
-    }
-
-    let hash_type = HashType::from_str(&hash_type)?;
-    let f = fs::read(format!(
-        "{}shared-folder/{}",
-        job_config.cfg.shared_files.path.to_str().unwrap(),
-        path
-    ))?;
-    let hash_file = hash_type.hash(&f);
-
-    if hash == &hash_file {
-        return Ok(StatusCode::from_u16(304).unwrap());
-    }
-
-    Ok(StatusCode::from_u16(200).unwrap())
 }
 
 pub fn parse_parameter_from_raw(raw: String) -> String {
@@ -399,14 +360,14 @@ mod tests {
     pub fn it_writes_the_metadata() {
         let metadata = Metadata {
             header: "rudder-signature-v1".to_string(),
-            algorithm: "sha256".to_string(),
+            algorithm: HashType::Sha256,
             digest: "8ca9efc5752e133e2e80e2661c176fa50f".to_string(),
             hash_value: "a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f"
                 .to_string(),
             short_pubkey: "shortpubkey".to_string(),
             hostname: "ubuntu-18-04-64".to_string(),
-            keydate: "2018-10-3118:21:43.653257143".to_string(),
-            keyid: "B29D02BB".to_string(),
+            key_date: "2018-10-3118:21:43.653257143".to_string(),
+            key_id: "B29D02BB".to_string(),
         };
 
         assert_eq!(format!("{}", metadata), "header=rudder-signature-v1\nalgorithm=sha256\ndigest=8ca9efc5752e133e2e80e2661c176fa50f\nhash_value=a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f\nshort_pubkey=shortpubkey\nhostname=ubuntu-18-04-64\nkeydate=2018-10-3118:21:43.653257143\nkeyid=B29D02BB\n");

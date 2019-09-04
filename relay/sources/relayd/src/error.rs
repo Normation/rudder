@@ -65,6 +65,7 @@ pub enum Error {
     JsonParsing(serde_json::Error),
     IntegerParsing(num::ParseIntError),
     Utf8(std::string::FromUtf8Error),
+    StrUtf8(std::str::Utf8Error),
     Ssl(openssl::error::ErrorStack),
     InvalidCondition(String),
     ParseBoolean(std::str::ParseBoolError),
@@ -105,6 +106,7 @@ impl Display for Error {
             JsonParsing(ref err) => write!(f, "json parsing error: {}", err),
             IntegerParsing(ref err) => write!(f, "integer parsing error: {}", err),
             Utf8(ref err) => write!(f, "UTF-8 decoding error: {}", err),
+            StrUtf8(ref err) => write!(f, "UTF-8 decoding error: {}", err),
             Ssl(ref err) => write!(f, "Ssl error: {}", err),
             InvalidCondition(ref condition) => write!(f, "Invalid agent Condition : {}", condition),
             ParseBoolean(ref err) => write!(f, "Error occurred while parsing the boolean: {}", err),
@@ -136,6 +138,7 @@ impl StdError for Error {
             JsonParsing(ref err) => Some(err),
             IntegerParsing(ref err) => Some(err),
             Utf8(ref err) => Some(err),
+            StrUtf8(ref err) => Some(err),
             Ssl(ref err) => Some(err),
             ParseBoolean(ref err) => Some(err),
             LogFormat(ref err) => Some(err),
@@ -207,6 +210,12 @@ impl From<num::ParseIntError> for Error {
 impl From<std::string::FromUtf8Error> for Error {
     fn from(err: std::string::FromUtf8Error) -> Self {
         Error::Utf8(err)
+    }
+}
+
+impl From<std::str::Utf8Error> for Error {
+    fn from(err: std::str::Utf8Error) -> Self {
+        Error::StrUtf8(err)
     }
 }
 

@@ -52,6 +52,7 @@ pub struct Configuration {
     pub output: OutputConfig,
     pub remote_run: RemoteRun,
     pub shared_files: SharedFiles,
+    pub shared_folder: SharedFolder,
 }
 
 impl Configuration {
@@ -153,6 +154,11 @@ pub struct SharedFiles {
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+pub struct SharedFolder {
+    pub path: PathBuf,
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct OutputConfig {
     pub database: DatabaseConfig,
     pub upstream: UpstreamConfig,
@@ -234,7 +240,10 @@ mod tests {
                 use_sudo: false,
             },
             shared_files: SharedFiles {
-                path: PathBuf::from("tests/"),
+                path: PathBuf::from("tests/shared-files"),
+            },
+            shared_folder: SharedFolder {
+                path: PathBuf::from("tests/shared-folder"),
             },
         };
         assert_eq!(config.unwrap(), reference);
