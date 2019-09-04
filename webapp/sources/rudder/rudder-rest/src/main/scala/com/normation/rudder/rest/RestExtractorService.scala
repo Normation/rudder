@@ -722,6 +722,13 @@ case class RestExtractorService (
     }
   }
 
+  def extractRule(req : Req) : Box[RestRule] = {
+    req.json match {
+      case Full(json) => extractRuleFromJSON(json)
+      case _          => extractRule(req.params)
+    }
+  }
+
   def extractDirective(req : Req) : Box[RestDirective] = {
     req.json match {
       case Full(json) => extractDirectiveFromJSON(json)

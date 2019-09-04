@@ -137,10 +137,11 @@ class DirectiveApi (
     val schema = API.CreateDirective
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit var action = "createDirective"
+      var action = "createDirective"
+      val id = restExtractor.extractId(req)(x => Full(DirectiveId(x))).map(_.getOrElse(DirectiveId(uuidGen.newUuid)))
       val response = for {
         restDirective <- restExtractor.extractDirective(req) ?~! s"Could not extract values from request"
-        directiveId <- restExtractor.extractId(req)(x => Full(DirectiveId(x))).map(_.getOrElse(DirectiveId(uuidGen.newUuid)))
+        directiveId <- id
         optCloneId <- restExtractor.extractString("source")(req)(x => Full(DirectiveId(x)))
         result <- optCloneId match {
           case None =>
@@ -153,7 +154,7 @@ class DirectiveApi (
         result
       }
 
-      actionResponse(response, req, "Could not create Directive", None, authzToken.actor)
+      actionResponse(response, req, "Could not create Directive", id.map(_.value), authzToken.actor)(action)
     }
   }
 
@@ -275,11 +276,11 @@ class DirectiveAPIService2 (
 
        // Check parameters of the new Directive
        _   <- ( for {
-                              // Two step process, could be simplified
-                              paramEditor <- editorService.get(technique.id, newDirective.id, newDirective.parameters)
-                              checkedParameters <- sequence (paramEditor.mapValueSeq.toSeq)( checkParameters(paramEditor))
-                            } yield { checkedParameters.toMap }
-                          ) ?~ (s"Error with directive Parameters" )
+                  // Two step process, could be simplified
+                  paramEditor <- editorService.get(technique.id, newDirective.id, newDirective.parameters)
+                  checkedParameters <- sequence (paramEditor.mapValueSeq.toSeq)( checkParameters(paramEditor))
+                } yield { checkedParameters.toMap }
+              ) ?~ (s"Error with directive Parameters" )
 
       saveDiff <- writeDirective.saveDirective(activeTechnique.id, newDirective, modId, actor, reason).toBox  ?~! (s"Could not save Directive ${newDirective.id.value}" )
     } yield {
