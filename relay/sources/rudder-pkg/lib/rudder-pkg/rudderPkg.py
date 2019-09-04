@@ -256,19 +256,34 @@ def plugin_disable_all():
 def plugin_enable_all():
     plugin_status(utils.DB["plugins"].keys(), True)
 
+"""
+Update the licences from the Rudder repo
+It first check for the */licenses page and find the subfolders.
+Iterate through them to find all *.license files and *.key files.
+"""
 def update_licenses():
     utils.readConf()
-    url = utils.URL + "/licenses/" + utils.REPO
+    url = utils.URL + "/licenses"
     r = requests.get(url, auth=(utils.USERNAME, utils.PASSWORD))
     htmlElements = html.document_fromstring(r.text)
     htmlElements.make_links_absolute(url + "/", resolve_base_href=True)
-    toDownload = re.compile('\S+\.(license|key)')
 
-    for elem in htmlElements.iterlinks():
-        match = toDownload.search(elem[2])
-        if match is not None:
-            #logging.info("downloading %s"%(elem[2]))
-            utils.download(elem[2], utils.LICENCES_PATH + "/" + os.path.basename(elem[2]))
+    folderPattern = re.compile(url + '/[a-z0-9\-]+/')
+    downloadPattern = re.compile('\S+\.(license|key)')
+
+    # Filter to only keep folders
+    licenseFolders = list(filter(lambda x: folderPattern.match(x), [elem[2] for elem in htmlElements.iterlinks()]))
+
+    # Find the .licence and .key files under each folder
+    for folderUrl in set(licenseFolders):
+        r = requests.get(folderUrl, auth=(utils.USERNAME, utils.PASSWORD))
+        htmlElements = html.document_fromstring(r.text)
+        htmlElements.make_links_absolute(folderUrl + "/", resolve_base_href=True)
+        for link in set([elem[2] for elem in htmlElements.iterlinks()]):
+            match = downloadPattern.search(link)
+            if match is not None:
+                logging.info("downloading %s"%(link))
+                utils.download(link, utils.LICENCES_PATH + "/" + os.path.basename(link))
 
 # TODO validate index sign if any?
 """ Download the index file on the repos """
