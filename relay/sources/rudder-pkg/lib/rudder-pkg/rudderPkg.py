@@ -68,11 +68,12 @@ def package_list_installed():
         else:
             latestRelease.append("")
 
-    table = { "Plugin Name"    : pluginName,
-              "Version"        : version,
-            }
+    table = [
+                { "title": "Plugin Name", "value": pluginName },
+                { "title": "Version"    , "value": version    },
+            ]
     if printLatest:
-        table["Latest release"] = latestRelease
+        table.append({ "title": "Latest release", "value": latestRelease })
     print(utils.dictToAsciiTable(table))
 
 """
@@ -87,10 +88,11 @@ def package_list_name():
         pluginName.append(str(p))
         shortName.append(str(pluginDict[p][0]))
         description.append(str(pluginDict[p][1]))
-    table = { "Plugin Name"       : pluginName,
-              "Plugin Short Name" : shortName,
-              "Description"       : description,
-            }
+    table = [
+                { "title": "Plugin Name"      , "value": pluginName  },
+                { "title": "Plugin Short Name", "value": shortName   },
+                { "title": "Description"      , "value": description },
+            ]
     print(utils.dictToAsciiTable(table))
 
 """
@@ -133,11 +135,12 @@ def package_search(name):
         version.append(data[2])
         compatible.append(data[3])
 
-    table = { "Plugin Name"  : pluginName,
-              "Release Mode" : releaseMode,
-              "Version"      : version,
-              "Compatible"   : compatible,
-            }
+    table = [
+                { "title": "Plugin Name" , "value": pluginName  },
+                { "title": "Release Mode", "value": releaseMode },
+                { "title": "Version"     , "value": version     },
+                { "title": "Compatible"  , "value": compatible  },
+            ]
     print(utils.dictToAsciiTable(table))
 
 """

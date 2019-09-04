@@ -100,14 +100,16 @@ def createPath(path):
             fail("Could not create dir %s"%(path))
 """
    Print dict list in a fancy manner
-   Assume the dict is following the format:
-   { "strkey1" : [ "str", "str2", ... ],
-     "strkey2" : [ "str", "str2", ... ],
-   }
+   Assume the list is following the format:
+   [
+     { "title": "strkey1", "value" : [ "str", "str2", ... ] },
+     { "tilte": "strkey2", "value" : [ "str", "str2", ... ] },
+     ...
+   ]
 """
 def dictToAsciiTable(data):
     # Get maximum text length to print
-    lengths = [ len(max(data.get(k) + [k], key=len)) for k in data.keys() ]
+    lengths = [ len(max([column["title"]] + column["value"], key=len)) for column in data ]
     lenstr = "| " + " | ".join("{:<%s}" % m for m in lengths) + " |"
     lenstr += "\n"
 
@@ -117,16 +119,16 @@ def dictToAsciiTable(data):
        sepBar += "+" + "-" * (int(iSep) + 2)
     sepBar += "+\n"
 
-    outmsg = sepBar + lenstr.format(*data.keys()) + sepBar
+    outmsg = sepBar + lenstr.format(*[column["title"] for column in data]) + sepBar
 
     # Write rows, at least an empty one if everything is empty
     printedRows = 0
-    maxRows = max([len(data.get(k)) + 1 for k in data.keys()])
+    maxRows = max([len(column["value"]) + 1 for column in data])
     while True:
        row = []
-       for k in data.keys():
-           if len(data.get(k)) > printedRows:
-               row.append(data.get(k)[printedRows])
+       for column in data:
+           if len(column["value"]) > printedRows:
+               row.append(column["value"][printedRows])
            else:
                row.append("")
        outmsg += lenstr.format(*row)
