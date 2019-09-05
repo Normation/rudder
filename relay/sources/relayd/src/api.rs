@@ -31,13 +31,12 @@
 use crate::{
     error::Error,
     remote_run::{RemoteRun, RemoteRunTarget},
-    shared_files::{metadata_hash_checker, metadata_parser, parse_parameter_from_raw, put_handler},
-    shared_folder::{shared_folder, SharedFolderParams},
+    shared_files::{self, metadata_parser, SharedFilesHeadParams, SharedFilesPutParams},
+    shared_folder::{self, SharedFolderParams},
     stats::Stats,
     status::Status,
     JobConfig,
 };
-
 use futures::Future;
 use std::{
     collections::HashMap,
@@ -47,10 +46,10 @@ use std::{
 };
 use tracing::info;
 use warp::{
-    body,
-    filters::{self, method::v2::*},
+    body::{self, FullBody},
+    filters::{method::v2::*, path::Peek},
     http::StatusCode,
-    path,
+    path, query,
     reject::custom,
     reply, Buf, Filter,
 };
@@ -123,22 +122,33 @@ pub fn api(
 
     let job_config5 = job_config.clone();
     let shared_files_put = put()
-        .and(filters::query::raw())
-        .and(path::peek())
-        .and(warp::body::concat())
+        .and(path::param::<String>())
+        .and(path::param::<String>())
+        .and(path::param::<String>())
+        .and(query::<SharedFilesPutParams>())
+        .and(body::concat())
         .map(
-            move |ttl: String, peek: filters::path::Peek, mut buf: warp::body::FullBody| {
+            move |target_id,
+                  source_id,
+                  file_id,
+                  params: SharedFilesPutParams,
+                  mut buf: FullBody| {
                 reply::with_status(
                     "".to_string(),
-                    match put_handler(
+                    match shared_files::put(
+                        // FIXME avoid parsing metadata twice!
+                        // Warning, this reads inside of file content too for
+                        // metadata k/v
                         format!("{}", metadata_parser(buf.by_ref()).unwrap()),
-                        peek.as_str(),
-                        parse_parameter_from_raw(ttl),
+                        target_id,
+                        source_id,
+                        file_id,
+                        params,
                         job_config5.clone(),
                         buf,
                     ) {
                         Ok(x) => x,
-                        Err(_x) => StatusCode::from_u16(500).unwrap(),
+                        Err(_x) => StatusCode::INTERNAL_SERVER_ERROR,
                     },
                 )
             },
@@ -146,33 +156,31 @@ pub fn api(
 
     let job_config6 = job_config.clone();
     let shared_files_head = head()
-        .and(path::peek())
-        .and(filters::query::raw()) // get the hash parameter ?hash=file-hash
-        .map(move |peek: filters::path::Peek, raw: String| {
+        .and(path::param::<String>())
+        .and(path::param::<String>())
+        .and(path::param::<String>())
+        .and(query::<SharedFilesHeadParams>())
+        .map(move |target_id, source_id, file_id, params| {
             reply::with_status(
                 "".to_string(),
-                metadata_hash_checker(
-                    peek.as_str().to_string(),
-                    parse_parameter_from_raw(raw),
-                    job_config6.clone(),
-                ),
+                match shared_files::head(target_id, source_id, file_id, params, job_config6.clone())
+                {
+                    Ok(x) => x,
+                    Err(_x) => StatusCode::INTERNAL_SERVER_ERROR,
+                },
             )
         });
 
     let job_config7 = job_config.clone();
     let shared_folder = head()
         .and(path::peek())
-        .and(warp::query::<SharedFolderParams>())
-        .map(
-            move |file: warp::filters::path::Peek, params: SharedFolderParams| match shared_folder(
-                params,
-                Path::new(&file.as_str()),
-                job_config7.clone(),
-            ) {
+        .and(query::<SharedFolderParams>())
+        .map(move |file: Peek, params| {
+            match shared_folder::head(params, Path::new(&file.as_str()), job_config7.clone()) {
                 Ok(reply) => reply,
                 Err(e) => reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR),
-            },
-        );
+            }
+        });
 
     // Routing
 

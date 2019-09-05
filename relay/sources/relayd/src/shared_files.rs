@@ -28,18 +28,17 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{error::Error, JobConfig};
-use chrono::{prelude::DateTime, Duration, Utc};
+use crate::{error::Error, hashing::HashType, JobConfig};
+use chrono::{Duration, Utc};
 use hex;
 use openssl::{
     error::ErrorStack,
-    hash::MessageDigest,
     pkey::{PKey, Public},
     rsa::Rsa,
     sign::Verifier,
 };
 use regex::Regex;
-use sha2::{Digest, Sha256, Sha512};
+use serde::Deserialize;
 use std::{
     fmt, fs,
     io::{BufRead, Read},
@@ -48,61 +47,7 @@ use std::{
     str::FromStr,
     sync::Arc,
 };
-use warp::{http::StatusCode, Buf};
-#[derive(Debug, Clone, Copy)]
-pub enum HashType {
-    Sha256,
-    Sha512,
-}
-
-impl FromStr for HashType {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "sha256" => Ok(HashType::Sha256),
-            "sha512" => Ok(HashType::Sha512),
-            _ => Err(Error::InvalidHashType),
-        }
-    }
-}
-
-impl fmt::Display for HashType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                HashType::Sha256 => "sha256",
-                HashType::Sha512 => "sha512",
-            }
-        )
-    }
-}
-
-impl HashType {
-    pub fn hash(&self, bytes: &[u8]) -> String {
-        match &self {
-            HashType::Sha256 => {
-                let mut hasher = Sha256::new();
-                hasher.input(bytes);
-                format!("{:x}", hasher.result())
-            }
-            HashType::Sha512 => {
-                let mut hasher = Sha512::new();
-                hasher.input(bytes);
-                format!("{:x}", hasher.result())
-            }
-        }
-    }
-
-    fn to_openssl_hash(&self) -> MessageDigest {
-        match &self {
-            HashType::Sha256 => MessageDigest::sha256(),
-            HashType::Sha512 => MessageDigest::sha512(),
-        }
-    }
-}
+use warp::{body::FullBody, http::StatusCode, Buf};
 
 #[derive(Debug)]
 pub struct Metadata {
@@ -133,50 +78,34 @@ impl FromStr for Metadata {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if parse_value("header", s).unwrap() != "rudder-signature-v1" {
+        if Metadata::parse_value("header", s).unwrap() != "rudder-signature-v1" {
             return Err(Error::InvalidHeader);
         }
         Ok(Metadata {
-            header: parse_value("header", s)?,
+            header: Metadata::parse_value("header", s)?,
             algorithm: HashType::from_str(s)?,
-            digest: parse_value("digest", s)?,
-            hash_value: parse_value("hash_value", s)?,
-            short_pubkey: parse_value("short_pubkey", s)?,
-            hostname: parse_value("hostname", s)?,
-            key_date: parse_value("keydate", s)?,
-            key_id: parse_value("keyid", s)?,
+            digest: Metadata::parse_value("digest", s)?,
+            hash_value: Metadata::parse_value("hash_value", s)?,
+            short_pubkey: Metadata::parse_value("short_pubkey", s)?,
+            hostname: Metadata::parse_value("hostname", s)?,
+            key_date: Metadata::parse_value("keydate", s)?,
+            key_id: Metadata::parse_value("keyid", s)?,
         })
     }
 }
 
-pub fn parse_value(key: &str, file: &str) -> Result<String, Error> {
-    let regex_key = Regex::new(&format!(r"{}=(?P<key>[^\n]+)\n", key)).unwrap();
+impl Metadata {
+    fn parse_value(key: &str, file: &str) -> Result<String, Error> {
+        let regex_key = Regex::new(&format!(r"{}=(?P<key>[^\n]+)\n", key)).unwrap();
 
-    match regex_key.captures(&file) {
-        Some(capture) => match capture.name("key") {
-            Some(x) => Ok(x.as_str().to_string()),
-            _ => Err(Error::InvalidHeader),
-        },
-        None => Err(Error::InvalidHeader),
+        match regex_key.captures(&file) {
+            Some(capture) => match capture.name("key") {
+                Some(x) => Ok(x.as_str().to_string()),
+                _ => Err(Error::InvalidHeader),
+            },
+            None => Err(Error::InvalidHeader),
+        }
     }
-}
-
-pub fn same_hash_than_in_nodeslist(
-    pubkey: PKey<Public>,
-    hash_type: HashType,
-    key_hash: &str,
-) -> Result<bool, Error> {
-    Ok(hash_type.hash(&pubkey.public_key_to_der()?) == key_hash)
-}
-
-pub fn get_pubkey(pubkey: String) -> Result<PKey<Public>, ErrorStack> {
-    PKey::from_rsa(Rsa::public_key_from_pem_pkcs1(
-        format!(
-            "-----BEGIN RSA PUBLIC KEY-----\n{}\n-----END RSA PUBLIC KEY-----\n",
-            pubkey
-        )
-        .as_bytes(),
-    )?)
 }
 
 pub fn validate_signature(
@@ -190,51 +119,13 @@ pub fn validate_signature(
     verifier.verify(digest)
 }
 
-pub fn parse_ttl(ttl: String) -> Result<i64, Error> {
-    let regex_timestamp = Regex::new(r"^([0-9]+)$").unwrap();
-
-    if regex_timestamp.is_match(&ttl) {
-        return Ok(ttl.parse::<i64>().unwrap());
-    };
-
-    let regex_numbers = Regex::new(r"^(?:(?P<days>\d+)(?:d|days|day))?\s*(?:(?P<hours>\d+)(?:h|hours|hour))?\s*(?:(?P<minutes>\d+)(?:m|minutes|minute))?\s*(?:(?P<seconds>\d+)(?:s|seconds|second))?$").unwrap();
-
-    fn parse_time<'t>(cap: &regex::Captures<'t>, n: &str) -> Result<i64, Error> {
-        Ok(match cap.name(n) {
-            Some(s) => s.as_str().parse::<i64>()?,
-            None => 0,
-        })
-    }
-
-    if let Some(cap) = regex_numbers.captures(&ttl) {
-        let s = parse_time(&cap, "seconds")?;
-        let m = parse_time(&cap, "minutes")?;
-        let h = parse_time(&cap, "hours")?;
-        let d = parse_time(&cap, "days")?;
-
-        let expiration: DateTime<Utc> = Utc::now()
-            + Duration::seconds(s)
-            + Duration::seconds(m)
-            + Duration::seconds(h)
-            + Duration::seconds(d);
-
-        Ok(expiration.timestamp())
-    } else {
-        Err(Error::InvalidTtl(ttl))
-    }
-}
-
-pub fn metadata_parser(buf: &mut warp::body::FullBody) -> Result<Metadata, Error> {
+pub fn metadata_parser(buf: &mut FullBody) -> Result<Metadata, Error> {
     let mut metadata: Vec<u8> = Vec::new();
     let _ = buf.reader().read_to_end(&mut metadata)?;
     Metadata::from_str(str::from_utf8(&metadata)?)
 }
 
-pub fn file_writer(
-    buf: &mut warp::body::FullBody,
-    path: &Path,
-    job_config: Arc<JobConfig>,
-) -> Result<(), Error> {
+fn file_writer(buf: &mut FullBody, path: &Path, job_config: Arc<JobConfig>) -> Result<(), Error> {
     let mut file_content: Vec<u8> = vec![];
 
     buf.by_ref().reader().consume(1); // skip the line feed
@@ -246,53 +137,106 @@ pub fn file_writer(
     )?)
 }
 
-pub fn put_handler(
-    metadata_string: String,
-    peek: &str,
+fn get_pubkey(pubkey: &str) -> Result<PKey<Public>, ErrorStack> {
+    PKey::from_rsa(Rsa::public_key_from_pem_pkcs1(
+        format!(
+            "-----BEGIN RSA PUBLIC KEY-----\n{}\n-----END RSA PUBLIC KEY-----\n",
+            pubkey
+        )
+        .as_bytes(),
+    )?)
+}
+
+#[derive(Deserialize, Debug)]
+pub struct SharedFilesPutParams {
     ttl: String,
+}
+
+impl SharedFilesPutParams {
+    #[cfg(test)]
+    fn new(ttl: &str) -> Self {
+        Self {
+            ttl: ttl.to_string(),
+        }
+    }
+
+    fn ttl(&self) -> Result<Duration, Error> {
+        if Regex::new(r"^([0-9]+)$").unwrap().is_match(&self.ttl) {
+            return Ok(Duration::seconds(self.ttl.parse::<i64>().unwrap()));
+        };
+
+        let regex_numbers = Regex::new(r"^(?:(?P<days>\d+)(?:d|days|day))?\s*(?:(?P<hours>\d+)(?:h|hours|hour))?\s*(?:(?P<minutes>\d+)(?:m|minutes|minute))?\s*(?:(?P<seconds>\d+)(?:s|seconds|second))?$").unwrap();
+        fn parse_time<'t>(cap: &regex::Captures<'t>, n: &str) -> Result<i64, Error> {
+            Ok(match cap.name(n) {
+                Some(s) => s.as_str().parse::<i64>()?,
+                None => 0,
+            })
+        }
+
+        if let Some(cap) = regex_numbers.captures(&self.ttl) {
+            let s = parse_time(&cap, "seconds")?;
+            let m = parse_time(&cap, "minutes")?;
+            let h = parse_time(&cap, "hours")?;
+            let d = parse_time(&cap, "days")?;
+
+            Ok(
+                Duration::seconds(s)
+                    + Duration::minutes(m)
+                    + Duration::hours(h)
+                    + Duration::days(d),
+            )
+        } else {
+            Err(Error::InvalidTtl(self.ttl.clone()))
+        }
+    }
+}
+
+pub fn put(
+    metadata_string: String,
+    target_id: String,
+    source_id: String,
+    file_id: String,
+    params: SharedFilesPutParams,
     job_config: Arc<JobConfig>,
-    mut buf: warp::body::FullBody,
+    mut buf: FullBody,
 ) -> Result<StatusCode, Error> {
-    let timestamp = match parse_ttl(ttl) {
-        Ok(ttl) => ttl,
-        Err(_x) => return Ok(StatusCode::from_u16(500).unwrap()),
+    // Removal timestamp = now + ttl
+    let timestamp = match params.ttl() {
+        Ok(ttl) => Utc::now() + ttl,
+        Err(_x) => return Ok(StatusCode::INTERNAL_SERVER_ERROR),
     };
 
-    let myvec: Vec<String> = peek.split('/').map(|s| s.to_string()).collect();
-    let (target_uuid, source_uuid, _file_id) = (&myvec[0], &myvec[1], &myvec[2]);
-
     let meta = Metadata::from_str(&metadata_string).unwrap();
-    let (file, meta_pubkey, hash_type, digest) = (
-        buf.by_ref(),
-        &meta.short_pubkey,
-        meta.algorithm,
-        &meta.digest,
-    );
+    let pubkey = get_pubkey(&meta.short_pubkey)?;
+    let (file, hash_type) = (buf.by_ref(), meta.algorithm);
+    let file_path = job_config
+        .cfg
+        .shared_files
+        .path
+        .join(&target_id)
+        .join(&source_id)
+        .join(format!("{}.metadata", file_id));
 
-    if !same_hash_than_in_nodeslist(
-        get_pubkey(meta_pubkey.to_string()).unwrap(),
-        hash_type,
-        &meta.digest,
-    )? {
-        return Ok(StatusCode::from_u16(404).unwrap());
+    if hash_type.hash(&pubkey.public_key_to_der()?) != meta.digest {
+        return Ok(StatusCode::NOT_FOUND);
     }
 
     if validate_signature(
         file.bytes(),
-        get_pubkey(meta_pubkey.to_string()).unwrap(),
+        pubkey,
         hash_type,
-        &hex::decode(digest).unwrap(),
+        &hex::decode(meta.digest).unwrap(),
     )? {
-        return Ok(StatusCode::from_u16(500).unwrap());
+        return Ok(StatusCode::INTERNAL_SERVER_ERROR);
     }
 
     if !job_config
         .nodes
         .read()
         .expect("Cannot read nodes list")
-        .is_subnode(source_uuid)
+        .is_subnode(&source_id)
     {
-        return Ok(StatusCode::from_u16(404).unwrap());
+        return Ok(StatusCode::NOT_FOUND);
     }
 
     fs::create_dir_all(
@@ -300,55 +244,50 @@ pub fn put_handler(
             .cfg
             .shared_files
             .path
-            .join(target_uuid)
-            .join(source_uuid),
+            .join(&target_id)
+            .join(&source_id),
     )
     .unwrap(); // create folders if they don't exist
     fs::write(
-        job_config
-            .cfg
-            .shared_files
-            .path
-            .join(format!("{}.metadata", peek)),
+        &file_path,
         format!("{}expires={}\n", metadata_string, timestamp),
     )
     .expect("Unable to write file");
-    file_writer(buf.by_ref(), Path::new(peek), job_config.clone())?;
-    Ok(StatusCode::from_u16(200).unwrap())
+    file_writer(buf.by_ref(), &file_path, job_config.clone())?;
+    Ok(StatusCode::OK)
 }
 
-pub fn metadata_hash_checker(path: String, hash: String, job_config: Arc<JobConfig>) -> StatusCode {
-    if !job_config
+#[derive(Deserialize, Debug)]
+pub struct SharedFilesHeadParams {
+    hash: String,
+}
+
+pub fn head(
+    target_id: String,
+    source_id: String,
+    file_id: String,
+    params: SharedFilesHeadParams,
+    job_config: Arc<JobConfig>,
+) -> Result<StatusCode, Error> {
+    let file_path = job_config
         .cfg
         .shared_files
         .path
-        .join(format!("{}.metadata", path))
-        .exists()
-    {
-        return StatusCode::from_u16(404).unwrap();
+        .join(&target_id)
+        .join(&source_id)
+        .join(format!("{}.metadata", file_id));
+
+    if !file_path.exists() {
+        return Ok(StatusCode::NOT_FOUND);
     }
 
-    let contents = fs::read_to_string(
-        job_config
-            .cfg
-            .shared_files
-            .path
-            .join(format!("{}.metadata", path)),
+    Ok(
+        if Metadata::parse_value("hash_value", &fs::read_to_string(file_path)?)? == params.hash {
+            StatusCode::OK
+        } else {
+            StatusCode::NOT_FOUND
+        },
     )
-    .unwrap();
-
-    if parse_value("hash_value", &contents).unwrap() == hash {
-        return StatusCode::from_u16(200).unwrap();
-    }
-
-    StatusCode::from_u16(404).unwrap()
-}
-
-pub fn parse_parameter_from_raw(raw: String) -> String {
-    raw.split('=')
-        .map(|s| s.to_string())
-        .filter(|s| s != "hash" && s != "ttl" && s != "hash_type")
-        .collect::<String>()
 }
 
 #[cfg(test)]
@@ -374,20 +313,6 @@ mod tests {
     }
 
     #[test]
-    pub fn it_validates_keyhashes() {
-        assert_eq!(same_hash_than_in_nodeslist(
-        get_pubkey("MIIBCAKCAQEAlntroa72gD50MehPoyp6mRS5fzZpsZEHu42vq9KKxbqSsjfUmxnT
-Rsi8CDvBt7DApIc7W1g0eJ6AsOfV7CEh3ooiyL/fC9SGATyDg5TjYPJZn3MPUktg
-YBzTd1MMyZL6zcLmIpQBH6XHkH7Do/RxFRtaSyicLxiO3H3wapH20TnkUvEpV5Qh
-zUkNM8vHZuu3m1FgLrK5NCN7BtoGWgeyVJvBMbWww5hS15IkCRuBkAOK/+h8xe2f
-hMQjrt9gW2qJpxZyFoPuMsWFIaX4wrN7Y8ZiN37U2q1G11tv2oQlJTQeiYaUnTX4
-z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==".to_string()).unwrap(),
-        HashType::Sha512,
-        "3c4641f2e99ade126b9923ffdfc432d486043e11ce7bd5528cc50ed372fc4c224dba7f2a2a3a24f114c06e42af5f45f5c248abd7ae300eeefc27bcf0687d7040"
-    ).unwrap(), true);
-    }
-
-    #[test]
     pub fn it_validates_signatures() {
         // Generate a keypair
         let k0 = Rsa::generate(2048).unwrap();
@@ -410,12 +335,24 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==".to_string()).unwrap(),
 
     #[test]
     pub fn it_parses_ttl() {
-        assert!(parse_ttl("1h 7s".to_string()).is_ok());
-        assert!(parse_ttl("1hour 2minutes".to_string()).is_ok());
-        assert!(parse_ttl("1d 7seconds".to_string()).is_ok());
-        assert_eq!(parse_ttl("9136".to_string()).unwrap(), 9136);
-        assert!(parse_ttl("913j".to_string()).is_err());
-        assert!(parse_ttl("913b83".to_string()).is_err());
-        assert!(parse_ttl("913h 89j".to_string()).is_err());
+        assert_eq!(
+            SharedFilesPutParams::new("1h 7s").ttl().unwrap(),
+            Duration::hours(1) + Duration::seconds(7)
+        );
+        assert_eq!(
+            SharedFilesPutParams::new("1hour 2minutes").ttl().unwrap(),
+            Duration::hours(1) + Duration::minutes(2)
+        );
+        assert_eq!(
+            SharedFilesPutParams::new("1d 7seconds").ttl().unwrap(),
+            Duration::days(1) + Duration::seconds(7)
+        );
+        assert_eq!(
+            SharedFilesPutParams::new("9136").ttl().unwrap(),
+            Duration::seconds(9136)
+        );
+        assert!(SharedFilesPutParams::new("913j").ttl().is_err());
+        assert!(SharedFilesPutParams::new("913b83").ttl().is_err());
+        assert!(SharedFilesPutParams::new("913h 89j").ttl().is_err());
     }
 }

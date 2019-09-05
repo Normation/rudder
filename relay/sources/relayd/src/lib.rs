@@ -37,6 +37,7 @@ pub mod api;
 pub mod configuration;
 pub mod data;
 pub mod error;
+pub mod hashing;
 pub mod input;
 pub mod output;
 pub mod processing;
@@ -81,9 +82,9 @@ use tracing_subscriber::fmt::format::Full;
 use tracing_subscriber::fmt::format::NewRecorder;
 use tracing_subscriber::{filter::Filter, fmt::Subscriber, reload::Handle};
 
-pub fn init_logger(
-) -> Result<Handle<Filter, Subscriber<NewRecorder, Format<Full, ()>, fn() -> std::io::Stdout>>, Error>
-{
+type LogHandle = Handle<Filter, Subscriber<NewRecorder, Format<Full, ()>, fn() -> std::io::Stdout>>;
+
+pub fn init_logger() -> Result<LogHandle, Error> {
     let builder = Subscriber::builder()
         .without_time()
         // Until actual config load
@@ -107,13 +108,7 @@ pub fn check_configuration(cfg_dir: &Path) -> Result<(), Error> {
 }
 
 #[allow(clippy::cognitive_complexity)]
-pub fn start(
-    cli_cfg: CliConfiguration,
-    reload_handle: Handle<
-        Filter,
-        Subscriber<NewRecorder, Format<Full, ()>, fn() -> std::io::Stdout>,
-    >,
-) -> Result<(), Error> {
+pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), Error> {
     // Start by setting log config
     let log_cfg = LogConfig::new(&cli_cfg.configuration_dir)?;
     reload_handle.reload(log_cfg.to_string())?;
@@ -207,14 +202,14 @@ pub struct JobConfig {
     pub nodes: RwLock<NodesList>,
     pub pool: Option<PgPool>,
     pub client: Option<Client>,
-    handle: Handle<Filter, Subscriber<NewRecorder, Format<Full, ()>, fn() -> std::io::Stdout>>,
+    handle: LogHandle,
 }
 
 impl JobConfig {
     pub fn new(
         cli_cfg: CliConfiguration,
         cfg: Configuration,
-        handle: Handle<Filter, Subscriber<NewRecorder, Format<Full, ()>, fn() -> std::io::Stdout>>,
+        handle: LogHandle,
     ) -> Result<Arc<Self>, Error> {
         // Create dirs
         if cfg.processing.inventory.output != InventoryOutputSelect::Disabled {

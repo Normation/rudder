@@ -28,12 +28,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::shared_files::HashType;
+use crate::hashing::HashType;
 use crate::{error::Error, JobConfig};
 use serde::Deserialize;
 use std::{fs, path::Path, str::FromStr, sync::Arc};
 use tracing::debug;
 use warp::{http::StatusCode, reply};
+
+// TODO async io
+// return text in request?
 
 #[derive(Deserialize, Debug)]
 pub struct SharedFolderParams {
@@ -47,7 +50,7 @@ fn default_hash() -> String {
     "sha256".to_string()
 }
 
-pub fn shared_folder(
+pub fn head(
     params: SharedFolderParams,
     // Relative path
     file: &Path,

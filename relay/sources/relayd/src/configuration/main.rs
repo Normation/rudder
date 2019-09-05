@@ -31,6 +31,7 @@
 use crate::{data::node::NodeId, error::Error};
 use serde::Deserialize;
 use std::{
+    collections::HashSet,
     fs::read_to_string,
     net::SocketAddr,
     path::{Path, PathBuf},
@@ -115,7 +116,7 @@ pub struct ReportingConfig {
     pub directory: BaseDirectory,
     pub output: ReportingOutputSelect,
     pub catchup: CatchupConfig,
-    pub skip_logs: bool,
+    pub skip_event_types: HashSet<String>,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -220,7 +221,7 @@ mod tests {
                         frequency: 10,
                         limit: 50,
                     },
-                    skip_logs: false,
+                    skip_event_types: HashSet::new(),
                 },
             },
             output: OutputConfig {
