@@ -3,6 +3,9 @@ body, html{
 	background-color: #ecf1f5;
 	overflow: hidden;
 }
+a{
+  text-decoration: none !important;
+}
 .fade.modal-backdrop.in {
   opacity: .3;
 }
@@ -412,6 +415,9 @@ ul.tabs-list > li > .badge.empty{
   cursor: pointer;
 }
 /* FILEMANAGER */
+.ng-hide{
+  display: none !important;
+}
 .filemanager-container{
   position: fixed;
   top: 0;
@@ -435,6 +441,16 @@ ul.tabs-list > li > .badge.empty{
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   margin: 0;
+  background-color: #f08004;
+  padding-left : 0;
+  padding-right: 0;
+}
+.filemanager-container nav.navbar.navbar-inverse > .container-fluid > .row{
+  flex: 1;
+  align-items: baseline;
+}
+.file-tree ul.nav.nav-sidebar:first-child{
+  padding-top: 10px;
 }
 .filemanager-container .breadcrumb{
   background-color: transparent;
@@ -446,11 +462,8 @@ ul.tabs-list > li > .badge.empty{
 .filemanager-container .breadcrumb > li > a{
   color: rgba(255,255,255, .7) !important;
 }
-.filemanager-container .navbar .navbar-form.navbar-right{
-  margin: 16px 0;
-}
 .filemanager-container .navbar-inverse .navbar-form input[type=text] {
-  margin: 10px;
+  margin: 0px !important;
 }
 .filemanager-container .sidebar{
   margin: 0;
@@ -461,6 +474,7 @@ ul.tabs-list > li > .badge.empty{
 }
 .filemanager-container .nav > li > a {
   padding: 6px 10px;
+  text-decoration: none !important;
 }
 .filemanager-container nav.navbar .btn.btn-flat{
   opacity: .7;
@@ -475,7 +489,8 @@ ul.tabs-list > li > .badge.empty{
 }
 .filemanager-container .dropdown-menu > li > a{
   padding: 10px 20px;
-  font-size: 12px;
+  font-size: 14px;
+  white-space: nowrap;
 }
 .filemanager-container textarea.form-control{
   resize: vertical;
@@ -497,6 +512,7 @@ ul.tabs-list > li > .badge.empty{
 #context-menu ul > li.divider + li > a {
   color: #de4b39;
 }
+.filemanager-container a,
 .filemanager-container .nav-sidebar>li.active>a {
   color: #3379b7;
 }
@@ -508,6 +524,43 @@ ul.tabs-list > li > .badge.empty{
   padding: 10px;
   text-align: right;
   border-top: 1px solid #eeeeef;
+}
+.filemanager-container .navbar-form.navbar-right .dropdown-menu{
+  padding: 10px;
+  right: 0;
+  left: auto;
+  min-width: 16rem;
+}
+
+.upload-list .list-group li.list-group-item {
+  display: flex;
+  flex-direction: row;
+  padding: 0;
+  margin-bottom: 4px;
+  border-radius: 4px;
+}
+.upload-list .list-group li.list-group-item .btn{
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  background-color: #fff;
+  border-color: #fff;
+  color: #ccc;
+  box-shadow: none;
+  border-left-color: #e5e5e5;
+}
+.upload-list .list-group li.list-group-item .btn:hover{
+  color: #fff;
+  background-color: #c82333;
+  border-color: #bd2130;
+}
+.upload-list .list-group li.list-group-item h5{
+  margin: 0;
+  padding: 10px 0 ;
+}
+.upload-list .list-group li.list-group-item p{
+  margin: 6px 0;
+  font-size: .9em;
+  opacity: .6;
 }
 /* FILES LIST */
 ul.files-list{
@@ -582,6 +635,10 @@ ul.files-list > li > .target-remove:hover + .border{
   border-left: 4px solid #3379b7;
   color: #777;
   font-style: italic;
+  padding: 14px 10px;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+  overflow: hidden;
 }
 .files-list > li.empty + li {
   border-top-right-radius: 4px;
@@ -632,8 +689,8 @@ ul.files-list > li:hover > span.target-remove{
 ul.files-list > li > span.target-remove > i,
 ul.files-list > li > span.warning-sign  > i {
  position: absolute;
- top: calc( 50% - 7px);
- right: calc( 50% - 5.5px);
+ top: calc( 50% - 8px);
+ right: calc( 50% - 8px);
 }
 
 ul.files-list > li .use-with{
@@ -988,6 +1045,7 @@ ul.list-unstyled > li{
 .method-details-footer > .btn{
   margin-left: 10px;
 }
+
 /* LOADER */
 .loading{
   position: absolute;
@@ -1009,7 +1067,6 @@ ul.list-unstyled > li{
   right: 0;
   top: calc(50% - 30px);
 }
-/* DEBUG */
 .modal.fade.in {
   opacity: 1;
 }

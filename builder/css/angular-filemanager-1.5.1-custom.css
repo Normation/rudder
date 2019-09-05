@@ -230,20 +230,22 @@
 
 
 .modal .modal-content {
-    border-radius: 10px 10px 4px 4px;
+  border-radius: 10px 10px 4px 4px;
 }
 
 .modal .modal-header {
-    border-radius: 4px 4px 0 0;
-    background: #2196F3;
-    padding: 1.3em;
+  border-radius: 4px 4px 0 0;
+  background: #2196F3;
+  padding: 1.3em;
+  align-items: center;
 }
 
 .modal .modal-header .modal-title {
     font-size: 20px;
     line-height: 100%;
-    color: #D4E5F5;
     margin: 0;
+    color: #ffffff;
+    flex: 1
 }
 
 .modal .modal-header .close {
@@ -253,9 +255,6 @@
 
 .modal .modal-header .close.fullscreen {
     font-size: 14px;
-    position: relative;
-    top: 4px;
-    margin-right: .8em;
 }
 body {
   font-size: 14px;
@@ -387,9 +386,12 @@ textarea.code {
 }
 
 .iconset {
-  padding: 10px;
+  padding: 10px 15px;
 }
 
+.iconset .item-list > .row > .col-auto{
+  padding-right: 0;
+}
 .col-120 {
   width: 100px;
   max-height: 100px;
@@ -416,14 +418,15 @@ textarea.code {
   overflow: hidden;
   margin: 0;
   padding: 0;
-  padding: 10px 0;
+  padding: 10px;
   border: none;
   background: none;
+  display: block;
 }
 
 .table-files .selected,
 .iconset .thumbnail.selected {
-  background: #2196F3;
+  background: #3379b7
 }
 
 .iconset .thumbnail.selected,
@@ -660,12 +663,10 @@ table th > a:focus {
 }
 
 .breadcrumb {
-  background: none; 
-  padding: 0;
-  font-size: 17px;
-  margin: 12px 0;
+  font-size: 18px;
   overflow: hidden;
-  max-height: 30px
+  margin: 0;
+  padding: 0 !important;
 }
 
 .breadcrumb>.active,

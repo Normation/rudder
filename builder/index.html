@@ -2,8 +2,8 @@
 <html ng-app="ncf">
     <head>
         <link type="image/x-icon" rel="icon" href="ncf-builder/css/favicon.ico"/>
-
         <link href="css/angular-filemanager-1.5.1-custom.css?version=dev" rel="stylesheet">
+        <link href="css/glyphicons/css/glyphicons.min.css?version=dev" rel="stylesheet">
         <link href="css/bootstrap-4.0.0.min.css?version=dev" rel="stylesheet">
         <link rel="stylesheet" href="css/font-awesome-5.6.1.min.css?version=dev">
         <link rel="stylesheet" href="webfonts/ionicons-2.0.1/css/ionicons.min.css?version=dev">
@@ -165,7 +165,7 @@
                       Import <i class="fas fa-file-import"></i>
                       <input id="btn-import" type="file" onchange="angular.element(this).scope().onImportFileChange(this)" class="hidden">
                     </label>
-                    <button class="btn btn-sm btn-success" ng-click="newTechnique()">Create <i class="fas fa-plus-circle"></i></button>
+                    <button class="btn btn-sm btn-success" ng-click="newTechnique();$event.stopPropagation();">Create <i class="fas fa-plus-circle"></i></button>
                   </div>
                   <div class="w-100"></div>
                   <div class="col input-group input-group-sm">

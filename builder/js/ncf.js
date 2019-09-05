@@ -319,9 +319,7 @@ function updateResources() {
   )
 }
 function updateFileManagerConf () {
-
   var newUrl =  "/rudder/secure/api/resourceExplorer/"+ $scope.selectedTechnique.bundle_name +"/" + $scope.selectedTechnique.version
-
   updateResources()
 
   apiHandler.prototype.deferredHandler = function(data, deferred, code, defaultMsg) {
@@ -720,6 +718,7 @@ $scope.onImportFileChange = function (fileEl) {
         $scope.selectPopup(technique, select);
       }
     }
+
     focus('focusTechniqueName');
   };
 
@@ -980,17 +979,22 @@ $scope.onImportFileChange = function (fileEl) {
   // Create a new technique stub
   var newTech = {
       "method_calls" : []
-    , "name": ""
-    , "description": ""
-    , "version": "1.0"
-    , "bundle_name": undefined
-    , "bundle_args": []
-    , "parameter": []
+    , "name"         : ""
+    , "description"  : ""
+    , "version"      : "1.0"
+    , "bundle_name"  : undefined
+    , "bundle_args"  : []
+    , "parameter"    : []
+    , "resources"    : []
   };
 
   $scope.newTechnique = function() {
-    //$scope.ui.editForm.$setPristine();
-    $scope.checkSelect(newTech, $scope.selectTechnique);
+    if($scope.selectedTechnique === undefined || $scope.selectedTechnique.bundle_name){
+      $scope.checkSelect(newTech, $scope.selectTechnique);
+    }else{
+      $scope.selectedTechnique = newTech
+    }
+    $scope.toggleDisplay(false)
   };
 
 
@@ -1479,16 +1483,13 @@ var confirmModalCtrl = function ($scope, $uibModalInstance, actionName, kind, na
 };
 
 var cloneModalCtrl = function ($scope, $uibModalInstance, technique, techniques) {
-
   technique.bundle_name = undefined;
   $scope.techniques = techniques;
   $scope.technique = technique;
   $scope.oldTechniqueName = technique.name;
-
   $scope.clone = function() {
     $uibModalInstance.close(technique);
   }
-
   $scope.cancel = function () {
     $uibModalInstance.dismiss('cancel');
   };
