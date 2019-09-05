@@ -323,7 +323,8 @@ trait PromiseGenerationService {
 
       // finally, run post-generation hooks. They can lead to an error message for build, but node policies are updated
       postHooksTime         =  System.currentTimeMillis
-      updatedNodes          =  updatedNodeConfigs.keySet
+      updatedNodes          =  updatedNodeConfigs.keySet.toSeq.toSet // prevent from keeping an undue reference after generation
+                                                                     // Doing Set[NodeId]() ++ updatedNodeConfigs.keySet didn't allow to free the objects
       errorNodes            =  activeNodeIds -- nodeConfigs.keySet
       _                     <- runPostHooks(generationTime, new DateTime(postHooksTime), updatedNodeConfigs, systemEnv, UPDATED_NODE_IDS_PATH)
       timeRunPostGenHooks   =  (System.currentTimeMillis - postHooksTime)
@@ -331,7 +332,8 @@ trait PromiseGenerationService {
 
       /// now, if there was failed config or failed write, time to show them
       //invalidate compliance may be very very long - make it async
-      _                     =  ZioRuntime.runNow(IOResult.effect(invalidateComplianceCache (updatedNodeConfigs.keySet)).run.unit.fork)
+      _                     =  ZioRuntime.runNow(IOResult.effect(invalidateComplianceCache (updatedNodes)).run.unit.fork)
+
       _                     =  {
                                  PolicyLogger.info("Timing summary:")
                                  PolicyLogger.info("Run pre-gen scripts hooks     : %10s ms".format(timeRunPreGenHooks))

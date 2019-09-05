@@ -47,6 +47,7 @@ import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.ldap.sdk.BuildFilter._
 import com.normation.ldap.sdk._
+import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeProperty
@@ -846,7 +847,7 @@ class SubGroupComparator(getGroups: () => Box[Seq[SubGroupChoice]]) extends TStr
       }).either.runNow match {
         case Right(list) => list.sortBy( _.label )
         case Left(error) => //if an error occure, log and display the error in place of the label
-          logger.error(s"An error happens when trying to find the list of groups to use in sub-groups: ${error.fullMsg}")
+          ApplicationLogger.error(s"An error happens when trying to find the list of groups to use in sub-groups: ${error.fullMsg}")
           SelectableOption(value, "Error when looking for available groups") :: Nil
       }
     }
