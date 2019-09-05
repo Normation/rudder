@@ -15,7 +15,7 @@ def terminal_size():
     h, w, hp, wp = struct.unpack('HHHH',
         fcntl.ioctl(0, termios.TIOCGWINSZ,
         struct.pack('HHHH', 0, 0, 0, 0)))
-    return w, h
+    return h, w
 
 
 """
@@ -389,7 +389,7 @@ def install(metadata, package_file, exist):
 
 def readConf():
     # Repos specific variables
-    global REPO, URL, USERNAME, PASSWORD
+    global URL, USERNAME, PASSWORD
     logging.debug('Reading conf file %s'%(CONFIG_PATH))
     try:
         config = configparser.RawConfigParser()
