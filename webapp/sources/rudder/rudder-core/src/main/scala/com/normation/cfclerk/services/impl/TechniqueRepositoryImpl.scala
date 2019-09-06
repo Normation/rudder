@@ -131,9 +131,10 @@ class TechniqueRepositoryImpl(
                   notInBoth.toList.flatMap { changedId =>
                     // hypothesis: directory names for category are unique in technique lib
                     (oldInfo.allCategories.find(_._2.subCategoryIds.exists(_.name == changedId.name)), techniqueInfosCache.allCategories.find(_._2.subCategoryIds.exists(_.name == changedId.name))) match {
-                      case (Some((oldId, _)), Some((newId, _))) =>
-                        if(oldId != newId) Moved(changedId, newId) :: Nil
-                        else Nil
+                      case (Some((oldParentId, _)), Some((newParentId, _))) =>
+                        if(oldParentId != newParentId) {
+                          Moved(SubTechniqueCategoryId(changedId.name, oldParentId), SubTechniqueCategoryId(changedId.name, newParentId)) :: Nil
+                        } else Nil
 
                       case (None, Some((newId, _))) =>
                         //new cat should be in new info

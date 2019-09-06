@@ -168,6 +168,8 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     ).asInstanceOf[SubTechniqueCategory]
   }
 
+  val rootCategory = fsRepos.getTechniqueLibrary
+
   /**
    * Add a switch to be able to see tmp files (not clean themps) with
    * -Dtests.clean.tmp=false
@@ -198,7 +200,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     fsRepos.update(modid, actor, None)
     val cat = getCategory("test1")
 
-    (testCallback.categories must containTheSameElementsAs(Seq(TechniqueCategoryModType.Added(cat, cat.id.parentId)))) and
+    (testCallback.categories must containTheSameElementsAs(Seq(TechniqueCategoryModType.Added(cat, rootCategory.id)))) and
     (ldapRepo.added must beEqualTo(cat.id.name.value :: Nil) )
   }
 
@@ -213,6 +215,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     (testCallback.categories must containTheSameElementsAs(Seq(TechniqueCategoryModType.Moved(cat1.id, cat2.id)))) and
     (ldapRepo.moved must beEqualTo((cat1.id.name.value, "Active Techniques", Some(cat2.id.name.value)) :: Nil) )
   }
+
 
   "We can delete an empty category" in {
     val cat2 = getCategory("test2")
@@ -248,5 +251,24 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     (fsRepos.getAllCategories.get(cat2.id) must beSome[TechniqueCategory]) and
     (ldapRepo.moved must beEqualTo(("fileDistribution", "Active Techniques", Some("fileDistribution2")) :: Nil) ) and
     (ldapRepo.updatedTechniques must containTheSameElementsAs(Seq("copyGitFile", "fileTemplate")) )
+  }
+
+  "Moving a sub-category to root works" in {
+    ldapRepo.moved = Nil
+    ldapRepo.added = Nil
+
+    createCategory("fileDistribution2/fileSecurity", "File Security")
+    fsRepos.update(modid, actor, None)
+    val cat = getCategory("fileSecurity")
+    (techniqueRoot / "fileDistribution2" / "fileSecurity").moveTo(techniqueRoot / "fileSecurity")
+    addCommitAll("Move a sub-category to root one")
+    fsRepos.update(modid, actor, None)
+    val cat2 = getCategory("fileSecurity")
+
+    (testCallback.categories must containTheSameElementsAs(Seq(TechniqueCategoryModType.Moved(cat.id, cat2.id)))) and
+    (fsRepos.getAllCategories.get(cat2.id) must beSome[TechniqueCategory]) and
+    (ldapRepo.moved must beEqualTo(("fileSecurity", "Active Techniques", None) :: Nil) ) and
+    (ldapRepo.updatedTechniques must containTheSameElementsAs(Seq()) )
+
   }
 }
