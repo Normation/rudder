@@ -50,6 +50,7 @@ object TechniqueCategoryModType {
   case class Updated(id: TechniqueCategory) extends TechniqueCategoryModType // change in name, description
   case class Added(cat: TechniqueCategory, parentId: TechniqueCategoryId) extends TechniqueCategoryModType
   case class Deleted(cat: TechniqueCategory) extends TechniqueCategoryModType
+  // be careful - the newId is NOT the parent ID, but the full new ID so that renamed are alse taken into account
   case class Moved(oldId: TechniqueCategoryId, newId: TechniqueCategoryId) extends TechniqueCategoryModType
 }
 
