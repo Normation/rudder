@@ -6,12 +6,11 @@ FIRST_INSTALL="$1"
 APACHE="$2"
 APACHE_USER="$3"
 APACHE_GROUP="$4"
+APACHE_VHOSTDIR="$5"
 
 LOG_FILE="/var/log/rudder/install/rudder-server-relay-$(date +%Y%m%d%H%M%S).log"
 
 echo "$(date) - Starting rudder-server-relay post installation script" >> ${LOG_FILE}
-
-
 
 # Create groups ans users before managing the services
 echo -n "INFO: Creating users ..."
@@ -84,6 +83,10 @@ if [ ! -f /var/rudder/lib/ssl/nodescerts.pem ]; then
   touch /var/rudder/lib/ssl/nodescerts.pem
   touch /var/rudder/lib/ssl/allnodescerts.pem
 fi
+
+# Remove wsgi conf from vhost
+sed -i '/^Set up a WSGI serving process/d' /etc/$(APACHE_VHOSTDIR)/rudder.conf
+sed -i '/^WSGI/d' /etc/$(APACHE_VHOSTDIR)/rudder.conf
 
 echo -n "INFO: Starting services..."
 systemctl start rudder-relayd >> ${LOG_FILE}
