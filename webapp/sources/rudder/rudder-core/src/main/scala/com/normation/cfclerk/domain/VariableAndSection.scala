@@ -55,7 +55,7 @@ case class Section(val spec: SectionSpec) extends SectionChild with HashcodeCach
  *
  */
 
-sealed trait Variable extends Loggable {
+sealed trait Variable {
 
   //define in sub classes
   type T <: VariableSpec
