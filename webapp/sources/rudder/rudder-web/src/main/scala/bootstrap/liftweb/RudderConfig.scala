@@ -1737,6 +1737,7 @@ object RudderConfig extends Loggable {
     )
     , new CreateSystemToken(roLDAPApiAccountRepository.systemAPIAccount)
     , new CheckApiTokenAutorizationKind(rudderDit, rwLdap)
+    , new CheckNashornWarning()
   )
 
   //////////////////////////////////////////////////////////////////////////////////////////
