@@ -50,7 +50,6 @@ import scala.collection.immutable.TreeMap
 import org.joda.time.DateTime
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.exceptions.NotFoundException
-import net.liftweb.common.Loggable
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.rudder.domain.parameters.Parameter
 import com.normation.inventory.domain.AgentType
