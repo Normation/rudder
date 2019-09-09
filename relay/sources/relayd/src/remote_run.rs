@@ -65,6 +65,8 @@ impl RemoteRun {
         })
     }
 
+    // FIXME remove once fixed
+    #[allow(unused_must_use)]
     pub fn run(
         &self,
         job_config: Arc<JobConfig>,
@@ -87,6 +89,7 @@ impl RemoteRun {
                     ),
                 )))
             } else {
+                // FIXME: never executed
                 self.run_parameters.execute_agent_no_output(
                     job_config.clone(),
                     self.target.get_connected_nodes(job_config.clone()),
@@ -106,6 +109,7 @@ impl RemoteRun {
                     ),
                 )))
             } else {
+                // FIXME: never executed
                 self.run_parameters.execute_agent_no_output(
                     job_config.clone(),
                     self.target.get_connected_nodes(job_config.clone()),
@@ -169,9 +173,7 @@ impl FromStr for Condition {
     }
 }
 
-fn lines_stream(
-    child: &mut Child,
-) -> impl Stream<Item = hyper::Chunk, Error = Error> + Send + 'static {
+fn lines_stream(child: &mut Child) -> impl Stream<Item = Chunk, Error = Error> + Send + 'static {
     let stdout = child
         .stdout()
         .take()

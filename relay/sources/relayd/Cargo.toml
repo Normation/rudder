@@ -23,41 +23,38 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 nom = "5.0"
 # Could use native lib instead, but maybe not prod-ready
-flate2 = { version = "1.0", features = ["zlib"], default-features = false }
-diesel = { version = "1.4", features = ["postgres", "chrono", "r2d2"] }
+flate2 = { version = "1.0", default-features = false, features = ["zlib"]  }
+diesel = { version = "1.4", default-features = false, features = ["postgres", "chrono", "r2d2"] }
+regex = "1.3"
 #### Bad (=Not widely used or <1.0)
 log = "0.4"
-structopt = { version = "0.3", features = [ "paw" ] }
-paw = "1.0"
+structopt = { version = "0.3", default-features = false }
 toml = "0.5"
 inotify = "0.7"
 openssl = "0.10"
-# Disable uneeded features (udp, unix socket, etc.)
-tokio = { version = "0.1", default-features = false, features = ["fs", "io", "reactor", "rt-full", "experimental-tracing"] }
+tokio = { version = "0.1", default-features = false, features = ["experimental-tracing"] }
 tokio-signal = "0.2"
 tokio-threadpool = "0.1"
 tokio-process = "0.2"
 tokio-io = "0.1"
 # Compile dev and release with trace logs enabled
 tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_trace"] }
-tracing-fmt = "0.0.1-alpha.3"
-tracing-log = "0.0.1-alpha.1"
+tracing-subscriber = { version = "0.1", default-features = false, features = ["filter", "fmt", "tracing-log"] }
+tracing-log = { version = "0.1", default-features = false, features = ["log-tracer"] }
 futures = "0.1"
-warp = "0.1"
+hyper = { version = "0.12", default-features = false }
+warp = { version = "0.1", default-features = false }
 reqwest = "0.9"
 chrono = { version = "0.4", features = ["serde"] }
-regex = "1.1"
 itertools = "0.8"
 md-5 = "0.8"
-hyper = "0.12"
 sha2 = "0.8"
-bytes = "0.4"
 hex = "0.3"
 
 [dev-dependencies]
 criterion = "0.3"
 filetime = "0.2"
-tempfile = "3.0"
+tempfile = "3.1"
 
 [profile.release]
 # Smaller binaries

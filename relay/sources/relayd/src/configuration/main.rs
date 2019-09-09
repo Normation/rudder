@@ -31,6 +31,7 @@
 use crate::{data::node::NodeId, error::Error};
 use serde::Deserialize;
 use std::{
+    collections::HashSet,
     fs::read_to_string,
     net::SocketAddr,
     path::{Path, PathBuf},
@@ -52,6 +53,7 @@ pub struct Configuration {
     pub output: OutputConfig,
     pub remote_run: RemoteRun,
     pub shared_files: SharedFiles,
+    pub shared_folder: SharedFolder,
 }
 
 impl Configuration {
@@ -114,7 +116,7 @@ pub struct ReportingConfig {
     pub directory: BaseDirectory,
     pub output: ReportingOutputSelect,
     pub catchup: CatchupConfig,
-    pub skip_logs: bool,
+    pub skip_event_types: HashSet<String>,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -149,6 +151,11 @@ pub struct RemoteRun {
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct SharedFiles {
+    pub path: PathBuf,
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+pub struct SharedFolder {
     pub path: PathBuf,
 }
 
@@ -214,7 +221,7 @@ mod tests {
                         frequency: 10,
                         limit: 50,
                     },
-                    skip_logs: false,
+                    skip_event_types: HashSet::new(),
                 },
             },
             output: OutputConfig {
@@ -234,7 +241,10 @@ mod tests {
                 use_sudo: false,
             },
             shared_files: SharedFiles {
-                path: PathBuf::from("tests/"),
+                path: PathBuf::from("tests/shared-files"),
+            },
+            shared_folder: SharedFolder {
+                path: PathBuf::from("tests/shared-folder"),
             },
         };
         assert_eq!(config.unwrap(), reference);

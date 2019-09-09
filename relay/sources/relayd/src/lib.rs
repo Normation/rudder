@@ -37,11 +37,13 @@ pub mod api;
 pub mod configuration;
 pub mod data;
 pub mod error;
+pub mod hashing;
 pub mod input;
 pub mod output;
 pub mod processing;
 pub mod remote_run;
 pub mod shared_files;
+pub mod shared_folder;
 pub mod stats;
 pub mod status;
 
@@ -74,27 +76,28 @@ use std::{
 use structopt::clap::crate_version;
 use tokio_signal::unix::{Signal, SIGHUP, SIGINT, SIGTERM};
 use tracing::{debug, error, info};
-use tracing_fmt::{
-    filter::{env::EnvFilter, reload::Handle},
-    format::NewRecorder,
-    FmtSubscriber,
-};
 use tracing_log::LogTracer;
+use tracing_subscriber::fmt::format::Format;
+use tracing_subscriber::fmt::format::Full;
+use tracing_subscriber::fmt::format::NewRecorder;
+use tracing_subscriber::{filter::Filter, fmt::Subscriber, reload::Handle};
 
-pub fn init_logger() -> Result<Handle<EnvFilter, NewRecorder>, Error> {
-    let subscriber = FmtSubscriber::builder()
-        .with_filter_reloading()
+type LogHandle = Handle<Filter, Subscriber<NewRecorder, Format<Full, ()>, fn() -> std::io::Stdout>>;
+
+pub fn init_logger() -> Result<LogHandle, Error> {
+    let builder = Subscriber::builder()
         .without_time()
-        .finish();
-    let reload_handle = subscriber.reload_handle();
+        // Until actual config load
+        .with_filter("error")
+        .with_filter_reloading();
+    let reload_handle = builder.reload_handle();
+    let subscriber = builder.finish();
     // Set logger for global context
     tracing::subscriber::set_global_default(subscriber)?;
 
     // Set logger for dependencies using log
     LogTracer::init()?;
 
-    // Until actual config load
-    reload_handle.reload("error")?;
     Ok(reload_handle)
 }
 
@@ -105,10 +108,7 @@ pub fn check_configuration(cfg_dir: &Path) -> Result<(), Error> {
 }
 
 #[allow(clippy::cognitive_complexity)]
-pub fn start(
-    cli_cfg: CliConfiguration,
-    reload_handle: Handle<EnvFilter, NewRecorder>,
-) -> Result<(), Error> {
+pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), Error> {
     // Start by setting log config
     let log_cfg = LogConfig::new(&cli_cfg.configuration_dir)?;
     reload_handle.reload(log_cfg.to_string())?;
@@ -202,14 +202,14 @@ pub struct JobConfig {
     pub nodes: RwLock<NodesList>,
     pub pool: Option<PgPool>,
     pub client: Option<Client>,
-    handle: Handle<EnvFilter, NewRecorder>,
+    handle: LogHandle,
 }
 
 impl JobConfig {
     pub fn new(
         cli_cfg: CliConfiguration,
         cfg: Configuration,
-        handle: Handle<EnvFilter, NewRecorder>,
+        handle: LogHandle,
     ) -> Result<Arc<Self>, Error> {
         // Create dirs
         if cfg.processing.inventory.output != InventoryOutputSelect::Disabled {
@@ -274,7 +274,7 @@ impl JobConfig {
     fn reload_logging(&self) -> Result<(), Error> {
         LogConfig::new(&self.cli_cfg.configuration_dir).and_then(|log_cfg| {
             self.handle
-                .reload(EnvFilter::try_new(log_cfg.to_string())?)
+                .reload(Filter::try_new(log_cfg.to_string())?)
                 .map_err(|e| e.into())
         })
     }

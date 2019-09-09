@@ -283,12 +283,6 @@ pub struct Report {
     pub serial: i32,
 }
 
-impl Report {
-    pub fn is_log(&self) -> bool {
-        self.event_type.starts_with("log_")
-    }
-}
-
 impl Display for Report {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
@@ -532,5 +526,4 @@ mod tests {
             Err("test\n2018-08-24T15:55:01+00:00 R: @@Common@@broken".to_string())
         );
     }
-
 }

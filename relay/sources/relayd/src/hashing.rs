@@ -28,33 +28,62 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::path::{Path, PathBuf};
+use crate::error::Error;
+use openssl::hash::MessageDigest;
+use sha2::{Digest, Sha256, Sha512};
+use std::{fmt, str, str::FromStr};
 
-#[derive(StructOpt, Debug)]
-#[structopt(name = "rudder-relayd")]
-#[structopt(author, about)]
-// version and description are taken from Cargo.toml
-// struct fields comments are used as option description in help
-pub struct CliConfiguration {
-    /// Sets a custom config directory
-    #[structopt(
-        short = "c",
-        long = "config",
-        default_value = "/opt/rudder/etc/relayd/",
-        parse(from_os_str)
-    )]
-    pub configuration_dir: PathBuf,
-
-    /// Checks the syntax of the configuration file
-    #[structopt(short = "k", long = "check")]
-    pub check_configuration: bool,
+#[derive(Debug, Clone, Copy)]
+pub enum HashType {
+    Sha256,
+    Sha512,
 }
 
-impl CliConfiguration {
-    pub fn new<P: AsRef<Path>>(path: P, check_configuration: bool) -> Self {
-        Self {
-            configuration_dir: path.as_ref().to_path_buf(),
-            check_configuration,
+impl FromStr for HashType {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "sha256" => Ok(HashType::Sha256),
+            "sha512" => Ok(HashType::Sha512),
+            _ => Err(Error::InvalidHashType),
+        }
+    }
+}
+
+impl fmt::Display for HashType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                HashType::Sha256 => "sha256",
+                HashType::Sha512 => "sha512",
+            }
+        )
+    }
+}
+
+impl HashType {
+    pub fn hash(self, bytes: &[u8]) -> String {
+        match self {
+            HashType::Sha256 => {
+                let mut hasher = Sha256::new();
+                hasher.input(bytes);
+                format!("{:x}", hasher.result())
+            }
+            HashType::Sha512 => {
+                let mut hasher = Sha512::new();
+                hasher.input(bytes);
+                format!("{:x}", hasher.result())
+            }
+        }
+    }
+
+    pub fn to_openssl_hash(self) -> MessageDigest {
+        match self {
+            HashType::Sha256 => MessageDigest::sha256(),
+            HashType::Sha512 => MessageDigest::sha512(),
         }
     }
 }

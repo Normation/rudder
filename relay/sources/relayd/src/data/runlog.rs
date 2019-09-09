@@ -37,6 +37,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::HashSet,
     convert::TryFrom,
     fmt::{self, Display},
     fs::read_to_string,
@@ -75,14 +76,14 @@ impl RunLog {
         RunLog::try_from((info, read_to_string(path)?.as_ref()))
     }
 
-    pub fn without_logs(&self) -> Self {
+    pub fn without_types(&self, types: &HashSet<String>) -> Self {
         Self {
             info: self.info.clone(),
             reports: self
                 .reports
                 .as_slice()
                 .iter()
-                .filter(|r| !r.is_log())
+                .filter(|r| !types.contains(&r.event_type))
                 .cloned()
                 .collect(),
         }
@@ -182,6 +183,8 @@ mod tests {
 
     #[test]
     fn it_removes_logs_in_runlog() {
+        let mut filter = HashSet::new();
+        let _ = filter.insert("log_info".to_string());
         assert_eq!(
             RunLog {
                 info: RunInfo::from_str(
@@ -233,7 +236,7 @@ mod tests {
                     }
                 ]
             }
-            .without_logs(),
+            .without_types(&filter),
             RunLog {
                 info: RunInfo::from_str(
                     "2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log"

@@ -273,8 +273,14 @@ fn output_report_database_inner(
 
     let parsed_runlog = RunLog::try_from((run_info.clone(), signed_runlog.as_ref()))?;
 
-    let filtered_runlog = if job_config.cfg.processing.reporting.skip_logs {
-        parsed_runlog.without_logs()
+    let filtered_runlog = if !job_config
+        .cfg
+        .processing
+        .reporting
+        .skip_event_types
+        .is_empty()
+    {
+        parsed_runlog.without_types(&job_config.cfg.processing.reporting.skip_event_types)
     } else {
         parsed_runlog
     };
