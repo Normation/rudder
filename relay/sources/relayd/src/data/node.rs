@@ -28,20 +28,17 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::error::Error;
+use crate::{error::Error, remote_run::RemoteRunTarget};
 use openssl::{stack::Stack, x509::X509};
 use serde::Deserialize;
 use serde_json;
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fs::{read, read_to_string},
     path::Path,
     str::FromStr,
 };
 use tracing::{info, trace, warn};
-
-use crate::remote_run::RemoteRunTarget;
-use itertools::Itertools;
 
 pub type NodeId = String;
 pub type Host = String;
@@ -166,12 +163,11 @@ impl NodesList {
     }
 
     pub fn get_relays(&self) -> Vec<String> {
-        self.list
-            .data
-            .values()
-            .map(|v| v.policy_server.clone())
-            .unique()
-            .collect()
+        let mut relays = HashSet::new();
+        for policy_server in self.list.data.values().map(|v| v.policy_server.clone()) {
+            let _ = relays.insert(policy_server);
+        }
+        relays.into_iter().collect()
     }
 
     pub fn get_all_subnodes(&self) -> Vec<String> {
@@ -199,13 +195,17 @@ impl NodesList {
     }
 
     pub fn get_neighbors_which_are_relay(&self, relay_id: &str) -> Vec<String> {
-        self.list
+        let mut relays = HashSet::new();
+        for policy_server in self
+            .list
             .data
             .values()
             .map(|v| v.policy_server.clone())
-            .unique()
             .filter(|k| k == relay_id)
-            .collect()
+        {
+            let _ = relays.insert(policy_server);
+        }
+        relays.into_iter().collect()
     }
 }
 
