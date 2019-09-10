@@ -936,7 +936,7 @@ object BuildNodeConfiguration extends Loggable {
                                                        }.mapError(_.deduplicate)
                                   } yield {
                                     draft.toBoundedPolicyDraft(expandedVars.toMap)
-                                  }).chainError(s"When processing directive '${draft.directiveOrder.value}'")
+                                  }).chainError(s"When processing directive '${draft.directiveName}'")
                                 }.mapError(_.deduplicate)
             // from policy draft, check and build the ordered seq of policy
             policies   <- MergePolicyService.buildPolicy(context.nodeInfo, globalPolicyMode, boundedDrafts).toIO

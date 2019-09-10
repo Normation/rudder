@@ -314,8 +314,8 @@ final object MergePolicyService {
         PolicyLogger.warn(s"Unicity check: NON STABLE POLICY ON NODE '${nodeInfo.hostname}' for mono-instance (unique) technique "+
             s"'${keep.technique.id}'. Several directives with same priority '${keep.priority}' are applied. "+
             s"Keeping (ruleId@@directiveId) '${keep.id.ruleId.value}@@${keep.id.directiveId.value}' (order: ${keep.ruleOrder.value}/"+
-            s"${keep.directiveOrder.value}, discarding: ${samePriority.tail.map(x => s"${x.id.ruleId.value}@@${x.id.directiveId.value}:"+
-            s"${x.ruleOrder.value}/${x.directiveOrder.value}").mkString("'", "', ", "'")}")
+            s"${keep.directiveName}, discarding: ${samePriority.tail.map(x => s"${x.id.ruleId.value}@@${x.id.directiveId.value}:"+
+            s"${x.ruleName}/${x.directiveName}").mkString("'", "', ", "'")}")
       }
       PolicyLogger.trace(s"Unicity check: on node '${nodeInfo.id.value}' for mono-instance (unique) technique '${keep.technique.id}': "+
           s"keeping (ruleId@@directiveId) '${keep.id.ruleId.value}@@${keep.id.directiveId.value}', discarding less priorize: "+
@@ -335,8 +335,8 @@ final object MergePolicyService {
       set.toList.sorted(onlyBundleOrder.toOrdering).head
     }
 
-    val displayDraft  = (x: BoundPolicyDraft) => s"'${x.ruleOrder.value}/${x.directiveOrder.value}'"
-    val displayPolicy = (x: Policy          ) => s"'${x.ruleOrder.value}/${x.directiveOrder.value}'"
+    val displayDraft  = (x: BoundPolicyDraft) => s"'${x.ruleName}/${x.directiveName}'"
+    val displayPolicy = (x: Policy          ) => s"'${x.ruleName}/${x.directiveName}'"
 
     PolicyLogger.trace(s"'${nodeInfo.id.value}': directive for unique techniques: ${keptUniqueDraft.map(displayDraft).mkString(" | ")}")
     PolicyLogger.trace(s"'${nodeInfo.id.value}': indep multi-directives: ${deduplicatedMultiDirective.map(displayDraft).mkString(" | ")}")

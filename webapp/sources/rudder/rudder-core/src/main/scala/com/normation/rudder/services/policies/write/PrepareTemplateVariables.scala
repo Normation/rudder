@@ -187,7 +187,7 @@ class PrepareTemplateVariablesImpl(
     val generationVariable = STVariable("GENERATIONTIMESTAMP", false, Seq(generationTimestamp), true)
 
     sequence(policies) { p =>
-      logger.trace(s"Processing node '${agentNodeProps.nodeId.value}':${p.ruleOrder.value}/${p.directiveOrder.value} [${p.id.value}]")
+      logger.trace(s"Processing node '${agentNodeProps.nodeId.value}':${p.ruleName}/${p.directiveName} [${p.id.value}]")
       for {
         variables <- prepareVariables(agentNodeProps, p, systemVars) ?~! s"Error when trying to build variables for technique(s) in node ${agentNodeProps.nodeId.value}"
       } yield {

@@ -635,17 +635,21 @@ class TestNodeConfiguration() {
   }
 
   def draft (
-      id          : PolicyId
-    , technique   : Technique
-    , variableMap : Map[String, Variable]
-    , tracker     : TrackerVariable
-    , rule        : BundleOrder
-    , directive   : BundleOrder
-    , system      : Boolean = true
-    , policyMode  : Option[PolicyMode] = None
+      id            : PolicyId
+    , ruleName      : String
+    , directiveName : String
+    , technique     : Technique
+    , variableMap   : Map[String, Variable]
+    , tracker       : TrackerVariable
+    , ruleOrder     : BundleOrder
+    , directiveOrder: BundleOrder
+    , system        : Boolean = true
+    , policyMode    : Option[PolicyMode] = None
   ) = {
     BoundPolicyDraft(
         id
+      , ruleName
+      , directiveName
       , technique
       , DateTime.now
       , variableMap
@@ -654,8 +658,8 @@ class TestNodeConfiguration() {
       , 0
       , system
       , policyMode
-      , rule
-      , directive
+      , ruleOrder
+      , directiveOrder
       , Set()
     )
   }
@@ -664,6 +668,8 @@ class TestNodeConfiguration() {
     val id = PolicyId(RuleId("hasPolicyServer-root"), DirectiveId("common-root"), TechniqueVersion("1.0"))
     draft(
         id
+      , "Rudder system policy: basic setup (common)"
+      , "Common"
       , commonTechnique
       , commonVariables(nodeId, allNodeInfos)
       , commonTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId)) //card = 1 because unique
@@ -684,6 +690,8 @@ class TestNodeConfiguration() {
     val id = PolicyId(RuleId("server-roles"), DirectiveId("server-roles-directive"), TechniqueVersion("1.0"))
     draft(
         id
+      , "Rudder system policy: Server roles"
+      , "Server Roles"
       , rolesTechnique
       , rolesVariables
       , rolesTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
@@ -704,6 +712,8 @@ class TestNodeConfiguration() {
     val id = PolicyId(RuleId("root-DP"), DirectiveId("root-distributePolicy"), TechniqueVersion("1.0"))
     draft(
         id
+      , "distributePolicy"
+      , "Distribute Policy"
       , distributeTechnique
       , distributeVariables
       , distributeTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
@@ -723,6 +733,8 @@ class TestNodeConfiguration() {
     val id = PolicyId(RuleId("inventory-all"), DirectiveId("inventory-all"), TechniqueVersion("1.0"))
       draft(
         id
+      , "Rudder system policy: daily inventory"
+      , "Inventory"
       , inventoryTechnique
       , inventoryVariables
       , inventoryTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
@@ -749,6 +761,8 @@ class TestNodeConfiguration() {
     val id = PolicyId(RuleId("rule1"), DirectiveId("directive1"), TechniqueVersion("1.0"))
     draft(
         id
+      , "10. Global configuration for all nodes"
+      , "10. Clock Configuration"
       , clockTechnique
       , clockVariables
       , clockTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
@@ -783,6 +797,8 @@ class TestNodeConfiguration() {
     val id = PolicyId(RuleId("rule2"), DirectiveId("directive2"), TechniqueVersion("1.0"))
     draft(
         id
+      , "50. Deploy PLOP STACK"
+      , "20. Install PLOP STACK main rpm"
       , rpmTechnique
       , rpmVariables
       , rpmTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
@@ -811,6 +827,8 @@ class TestNodeConfiguration() {
     val id = PolicyId(RuleId("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f"), DirectiveId("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f"), TechniqueVersion("1.0"))
     draft(
         id
+      , "60-rule-technique-std-lib"
+      , "Package management."
       , pkgTechnique
       , pkgVariables
       , pkgTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
@@ -841,6 +859,8 @@ class TestNodeConfiguration() {
     val id = PolicyId(RuleId("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f"), DirectiveId("e9a1a909-2490-4fc9-95c3-9d0aa01717c9"), TechniqueVersion("1.0"))
     draft(
         id
+      , "60-rule-technique-std-lib"
+      , "10-File template 1"
       , fileTemplateTechnique
       , fileTemplateVariables1
       , fileTemplateTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
@@ -869,6 +889,8 @@ class TestNodeConfiguration() {
     val id = PolicyId(RuleId("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f"), DirectiveId("99f4ef91-537b-4e03-97bc-e65b447514cc"), TechniqueVersion("1.0"))
     draft(
         id
+      , "60-rule-technique-std-lib"
+      , "20-File template 2"
       , fileTemplateTechnique
       , fileTemplateVariables2
       , fileTemplateTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
@@ -884,6 +906,8 @@ class TestNodeConfiguration() {
     val id = PolicyId(RuleId("ff44fb97-b65e-43c4-b8c2-000000000000"), DirectiveId("99f4ef91-537b-4e03-97bc-e65b447514cc"), TechniqueVersion("1.0"))
     draft(
         id
+      , "99-rule-technique-std-lib"
+      , "20-File template 2"
       , fileTemplateTechnique
       , fileTemplateVariables2
       , fileTemplateTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
@@ -908,6 +932,8 @@ class TestNodeConfiguration() {
     val id = PolicyId(RuleId("208716db-2675-43b9-ab57-bfbab84346aa"), DirectiveId("16d86a56-93ef-49aa-86b7-0d10102e4ea9"), TechniqueVersion("1.0"))
     draft(
         id
+      , "50-rule-technique-ncf"
+      , "Create a file"
       , ncf1Technique
       , ncf1Variables
       , ncf1Technique.trackerVariableSpec.toVariable(Seq(id.getReportId))
@@ -947,7 +973,9 @@ class TestNodeConfiguration() {
   def copyGitFileDirectives(i:Int) = {
     val id = PolicyId(RuleId("rulecopyGitFile"), DirectiveId(DIRECTIVE_NAME_COPY_GIT_FILE+i), TechniqueVersion("2.3"))
     draft(
-      id
+        id
+      , "90-copy-git-file"
+      , "Copy git file"
       , copyGitFileTechnique
       , copyGitFileVariable(i)
       , copyGitFileTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
@@ -1013,7 +1041,9 @@ class TestNodeConfiguration() {
   lazy val gvd1 = {
     val id = PolicyId(RuleId("rule1"), DirectiveId("directive1"), TechniqueVersion("1.0"))
     draft(
-      id
+        id
+      , "10. Global configuration for all nodes"
+      , "99. Generic Variable Def #1"
       , gvdTechnique
       , gvdVariables1
       , gvdTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
@@ -1036,6 +1066,8 @@ class TestNodeConfiguration() {
     val id = PolicyId(RuleId("rule1"), DirectiveId("directive2"), TechniqueVersion("1.0"))
     draft(
         id
+      , "10. Global configuration for all nodes"
+      , "00. Generic Variable Def #2"
       , gvdTechnique
       , gvdVariables2
       , gvdTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))

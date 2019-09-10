@@ -341,6 +341,8 @@ final object PolicyTechnique {
  */
 final case class Policy(
     id                 : PolicyId
+  , ruleName           : String // human readable name of the original rule, for ex for log
+  , directiveName      : String // human readable name of the original directive, for ex for log
   , technique          : PolicyTechnique
   , techniqueUpdateTime: DateTime
   , policyVars         : NonEmptyList[PolicyVars]
@@ -431,6 +433,8 @@ final object Policy {
  */
 final case class ParsedPolicyDraft(
     id               : PolicyId
+  , ruleName         : String // human readable name of the original rule, for ex for log
+  , directiveName    : String // human readable name of the original directive, for ex for log
   , technique        : Technique
   , acceptationDate  : DateTime
   , priority         : Int
@@ -446,6 +450,8 @@ final case class ParsedPolicyDraft(
   def toBoundedPolicyDraft(expandedVars: Map[String, Variable]) = {
     BoundPolicyDraft(
         id             = id
+      , ruleName       = ruleName
+      , directiveName  = directiveName
       , technique      = technique
       , acceptationDate= acceptationDate
       , expandedVars   = expandedVars
@@ -469,6 +475,8 @@ final case class ParsedPolicyDraft(
  */
 final case class BoundPolicyDraft(
     id             : PolicyId
+  , ruleName       : String // human readable name of the original rule, for ex for log
+  , directiveName  : String // human readable name of the original directive, for ex for log
   , technique      : Technique
   , acceptationDate: DateTime
   , expandedVars   : Map[String, Variable] // contains vars with expanded parameters
@@ -503,6 +511,8 @@ final case class BoundPolicyDraft(
     PolicyTechnique.forAgent(technique, agent).map { pt =>
       Policy(
           id
+        , ruleName
+        , directiveName
         , pt
         , acceptationDate
         , NonEmptyList.of(PolicyVars(
