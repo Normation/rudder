@@ -486,14 +486,14 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
   }
 
   def getAll(): Box[Map[NodeId, NodeInfo]] = withUpToDateCache("all nodes info") { cache =>
-    Full(cache.mapValues(_._2))
+    Full(cache.map{ case  (id, (_, nodeInfo)) => (id, nodeInfo)})
   }
   def getAllSystemNodeIds(): Box[Seq[NodeId]] = withUpToDateCache("all system nodes") { cache =>
     Full(cache.collect { case(k, (_,x)) if(x.isPolicyServer) => k }.toSeq)
   }
 
   def getAllNodes(): Box[Map[NodeId, Node]] = withUpToDateCache("all nodes") { cache =>
-    Full(cache.mapValues(_._2.node))
+    Full(cache.map{ case  (id, (_, nodeInfo)) => (id, nodeInfo.node)})
   }
 
   override def getLDAPNodeInfo(nodeIds: Set[NodeId], predicats: Seq[NodeInfoMatcher], composition: CriterionComposition): Box[Set[LDAPNodeInfo]] = {

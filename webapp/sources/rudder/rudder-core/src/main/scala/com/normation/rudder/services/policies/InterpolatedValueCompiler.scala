@@ -383,46 +383,46 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
 
   //empty string is a special case that must be look appart from plain string.
   //also parse full blank string, because no need to look for more case for them.
-  def emptyVar    : Parser[List[CharSeq]] = """(?iums)(\s)*""".r ^^ { x => List(CharSeq(x)) }
+  val emptyVar    : Parser[List[CharSeq]] = """(?iums)(\s)*""".r ^^ { x => List(CharSeq(x)) }
 
   // plain string must not match our identifier, ${rudder.* and ${node.properties.*}
   // here we defined a function to build them, with the possibility to
-  def plainString : Parser[CharSeq] = ("""(?iums)((?!(\Q${\E\s*rudder\s*\.|\Q${\E\s*node\s*\.\s*properties)).)+""").r  ^^ { CharSeq(_) }
+  val plainString : Parser[CharSeq] = ("""(?iums)((?!(\Q${\E\s*rudder\s*\.|\Q${\E\s*node\s*\.\s*properties)).)+""").r  ^^ { CharSeq(_) }
 
   //identifier for step in the path or param names
-  def propId      : Parser[String] = """[\-_a-zA-Z0-9]+""".r
-
-  // all interpolation
-  def interpol    : Parser[Interpolation] = rudderProp | nodeProp
+  val propId      : Parser[String] = """[\-_a-zA-Z0-9]+""".r
 
   //an interpolated variable looks like: ${rudder.XXX}, or ${RuDder.xXx}
-  def rudderProp  : Parser[Interpolation] = "${" ~> space ~> id("rudder") ~> space ~> id(".") ~> space ~>(nodeAccess | parameter ) <~ space <~ "}"
+  val rudderProp  : Parser[Interpolation] = "${" ~> space ~> id("rudder") ~> space ~> id(".") ~> space ~>(nodeAccess | parameter ) <~ space <~ "}"
 
   //a node path looks like: ${rudder.node.HERE.PATH}
-  def nodeAccess  : Parser[Interpolation] = { id("node") ~> space ~> id(".") ~> space ~> repsep(propId, space ~> id(".") ~> space) ^^ { seq => NodeAccessor(seq) } }
+  val nodeAccess  : Parser[Interpolation] = { id("node") ~> space ~> id(".") ~> space ~> repsep(propId, space ~> id(".") ~> space) ^^ { seq => NodeAccessor(seq) } }
 
   //a parameter looks like: ${rudder.PARAM_NAME}
-  def parameter   : Parser[Interpolation] = { id("param") ~> space ~> id(".") ~> space ~> propId ^^ { p => Param(p) } }
+  val parameter   : Parser[Interpolation] = { id("param") ~> space ~> id(".") ~> space ~> propId ^^ { p => Param(p) } }
 
   //an interpolated variable looks like: ${rudder.XXX}, or ${RuDder.xXx}
-  def nodeProp    : Parser[Interpolation] = "${" ~> space ~> id("node") ~> space ~> id(".") ~> space ~> id("properties") ~> rep1( space ~> "[" ~> space ~>
+  val nodeProp    : Parser[Interpolation] = "${" ~> space ~> id("node") ~> space ~> id(".") ~> space ~> id("properties") ~> rep1( space ~> "[" ~> space ~>
                                             propId <~ space <~ "]" ) ~ opt(propOption) <~ space <~ "}" ^^ { case ~(path, opt) => Property(path, opt) }
 
+  // all interpolation
+  val interpol    : Parser[Interpolation] = rudderProp | nodeProp
+
   //here, the number of " must be strictly decreasing - ie. triple quote before
-  def propOption  : Parser[PropertyOption] = space ~> "|" ~> space ~>  ( onNodeOpt |  "default" ~> space ~> "=" ~> space ~>
+  val propOption  : Parser[PropertyOption] = space ~> "|" ~> space ~>  ( onNodeOpt |  "default" ~> space ~> "=" ~> space ~>
                                              ( interpolOpt | emptyTQuote | tqString | emptySQuote | sqString )  )
 
-  def onNodeOpt   : Parser[InterpreteOnNode.type] = id("node") ^^^ InterpreteOnNode
+  val onNodeOpt   : Parser[InterpreteOnNode.type] = id("node") ^^^ InterpreteOnNode
 
-  def interpolOpt : Parser[DefaultValue] = interpol ^^ { x => DefaultValue(x::Nil) }
-  def emptySQuote : Parser[DefaultValue] = id("\"\"")         ^^   { _ => DefaultValue(CharSeq("")::Nil) }
-  def emptyTQuote : Parser[DefaultValue] = id("\"\"\"\"\"\"") ^^   { _ => DefaultValue(CharSeq("")::Nil) }
+  val interpolOpt : Parser[DefaultValue] = interpol ^^ { x => DefaultValue(x::Nil) }
+  val emptySQuote : Parser[DefaultValue] = id("\"\"")         ^^   { _ => DefaultValue(CharSeq("")::Nil) }
+  val emptyTQuote : Parser[DefaultValue] = id("\"\"\"\"\"\"") ^^   { _ => DefaultValue(CharSeq("")::Nil) }
 
   //string must be simple or triple quoted string
-  def sqString    : Parser[DefaultValue] = id("\"")  ~> rep1(sqplainStr | interpol )<~ id("\"") ^^ { case x => DefaultValue(x) }
-  def sqplainStr  : Parser[Token]        = ("""(?iums)((?!(\Q${\E\s*rudder\s*\.|\Q${\E\s*node\s*\.\s*properties|")).)+""").r  ^^ { str => CharSeq(str) }
+  val sqString    : Parser[DefaultValue] = id("\"")  ~> rep1(sqplainStr | interpol )<~ id("\"") ^^ { case x => DefaultValue(x) }
+  val sqplainStr  : Parser[Token]        = ("""(?iums)((?!(\Q${\E\s*rudder\s*\.|\Q${\E\s*node\s*\.\s*properties|")).)+""").r  ^^ { str => CharSeq(str) }
 
-  def tqString    : Parser[DefaultValue]   = id("\"\"\"")  ~> rep1(tqplainStr | interpol )<~ id("\"\"\"") ^^ { case x => DefaultValue(x) }
-  def tqplainStr  : Parser[Token]          = ("""(?iums)((?!(\Q${\E\s*rudder\s*\.|\Q${\E\s*node\s*\.\s*properties|"""+"\"\"\""+ """)).)+""").r  ^^ { str => CharSeq(str) }
+  val tqString    : Parser[DefaultValue]   = id("\"\"\"")  ~> rep1(tqplainStr | interpol )<~ id("\"\"\"") ^^ { case x => DefaultValue(x) }
+  val tqplainStr  : Parser[Token]          = ("""(?iums)((?!(\Q${\E\s*rudder\s*\.|\Q${\E\s*node\s*\.\s*properties|"""+"\"\"\""+ """)).)+""").r  ^^ { str => CharSeq(str) }
 
 }

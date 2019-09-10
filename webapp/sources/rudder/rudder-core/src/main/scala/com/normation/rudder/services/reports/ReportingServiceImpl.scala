@@ -272,8 +272,8 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
       if(ruleIds.isEmpty) {
         reports
       } else {
-        reports.mapValues { status =>
-          NodeStatusReport.filterByRules(status, ruleIds)
+        reports.map { case (id, status) =>
+          (id, NodeStatusReport.filterByRules(status, ruleIds))
         }.filter( _._2.report.reports.nonEmpty )
       }
     }
