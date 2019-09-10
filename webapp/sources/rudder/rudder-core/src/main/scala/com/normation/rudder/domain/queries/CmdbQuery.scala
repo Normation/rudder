@@ -820,7 +820,6 @@ case class NameValueComparator(ldapAttr: String) extends TStringComparator {
 final case class SubGroupChoice(id: NodeGroupId, name: String)
 
 class SubGroupComparator(getGroups: () => IOResult[Seq[SubGroupChoice]]) extends TStringComparator {
-class SubGroupComparator(getGroups: () => Box[Seq[SubGroupChoice]]) extends TStringComparator {
   override val comparators = Equals :: Nil
 
   override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = comparator match {

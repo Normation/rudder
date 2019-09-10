@@ -45,7 +45,7 @@ import java.nio.file.Files
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.PosixFilePermissions
 
-import bootstrap.liftweb.BootraspLogger
+import bootstrap.liftweb.BootstrapLogger
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 
@@ -75,10 +75,10 @@ class CreateSystemToken(systemAccount : ApiAccount) extends BootstrapChecks {
     } yield { }
     ) match {
       case Full(_) =>
-        BootraspLogger.logEffect.info(s"System api token file created in ${tokenPath}")
+        BootstrapLogger.logEffect.info(s"System api token file created in ${tokenPath}")
       case eb : EmptyBox =>
         val fail = eb ?~! s"An error occured while creating system api token file in ${tokenPath}"
-        BootraspLogger.logEffect.error(fail.messageChain)
+        BootstrapLogger.logEffect.error(fail.messageChain)
     }
 
   }

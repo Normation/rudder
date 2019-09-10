@@ -148,13 +148,13 @@ class CheckSystemGroups(
 
           val updatedGroup = group.copy(isDynamic = true, query = Some(query))
           rwRepos.updateSystemGroup(updatedGroup, modId, RudderEventActor, Some(message)).toBox
-          BootraspLogger.logEffect.info(message)
+          BootstrapLogger.logEffect.info(message)
 
         }
       }
       case eb: EmptyBox =>
         val fail = eb ?~! "Could not migrate system groups"
-        BootraspLogger.logEffect.error(fail.messageChain)
+        BootstrapLogger.logEffect.error(fail.messageChain)
     }
   }
 }

@@ -63,7 +63,7 @@ trait BootstrapChecks {
 
 }
 
-object BootraspLogger extends NamedZioLogger {
+object BootstrapLogger extends NamedZioLogger {
   override final def loggerName: String = "bootchecks"
 }
 
@@ -76,7 +76,7 @@ class SequentialImmediateBootStrapChecks(_checkActions:BootstrapChecks*) extends
   }
 
   override val description = "Sequence of bootstrap checks"
-  val formater = new PeriodFormatterBuilder()
+  val formatter = new PeriodFormatterBuilder()
     .appendMinutes()
     .appendSuffix(" m")
     .appendSeparator(" ")
@@ -90,14 +90,14 @@ class SequentialImmediateBootStrapChecks(_checkActions:BootstrapChecks*) extends
   @throws(classOf[ UnavailableException ])
   override def checks() : Unit = checkActions.zipWithIndex.foreach { case (check,i) =>
     val start = System.currentTimeMillis
-    val msg = if(BootraspLogger.logEffect.isDebugEnabled) {
+    val msg = if(BootstrapLogger.logEffect.isDebugEnabled) {
       s"[#${i}] ${check.description}"
     } else {
       s"${check.description}"
     }
-    BootraspLogger.logEffect.info(msg)
+    BootstrapLogger.logEffect.info(msg)
     check.checks
-    BootraspLogger.logEffect.debug(msg + s": OK in [${formater.print(new Duration(System.currentTimeMillis - start).toPeriod)}] ms")
+    BootstrapLogger.logEffect.debug(msg + s": OK in [${formatter.print(new Duration(System.currentTimeMillis - start).toPeriod)}] ms")
   }
 
 }
