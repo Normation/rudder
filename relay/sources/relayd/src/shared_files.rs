@@ -29,6 +29,7 @@
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{error::Error, hashing::HashType, JobConfig};
+use bytes::IntoBuf;
 use chrono::{Duration, Utc};
 use hex;
 use openssl::{
@@ -41,8 +42,7 @@ use regex::Regex;
 use serde::Deserialize;
 use std::{
     fmt, fs,
-    io::{BufRead, Read},
-    path::Path,
+    io::{BufRead, BufReader, Read},
     str,
     str::FromStr,
     sync::Arc,
@@ -125,18 +125,6 @@ pub fn metadata_parser(buf: &mut FullBody) -> Result<Metadata, Error> {
     Metadata::from_str(str::from_utf8(&metadata)?)
 }
 
-fn file_writer(buf: &mut FullBody, path: &Path, job_config: Arc<JobConfig>) -> Result<(), Error> {
-    let mut file_content: Vec<u8> = vec![];
-
-    buf.by_ref().reader().consume(1); // skip the line feed
-    buf.reader().read_to_end(&mut file_content).unwrap();
-
-    Ok(fs::write(
-        job_config.cfg.shared_files.path.join(path),
-        file_content,
-    )?)
-}
-
 fn get_pubkey(pubkey: &str) -> Result<PKey<Public>, ErrorStack> {
     PKey::from_rsa(Rsa::public_key_from_pem_pkcs1(
         format!(
@@ -192,44 +180,13 @@ impl SharedFilesPutParams {
 }
 
 pub fn put(
-    metadata_string: String,
     target_id: String,
     source_id: String,
     file_id: String,
     params: SharedFilesPutParams,
     job_config: Arc<JobConfig>,
-    mut buf: FullBody,
+    body: FullBody,
 ) -> Result<StatusCode, Error> {
-    // Removal timestamp = now + ttl
-    let timestamp = match params.ttl() {
-        Ok(ttl) => Utc::now() + ttl,
-        Err(_x) => return Ok(StatusCode::INTERNAL_SERVER_ERROR),
-    };
-
-    let meta = Metadata::from_str(&metadata_string).unwrap();
-    let pubkey = get_pubkey(&meta.short_pubkey)?;
-    let (file, hash_type) = (buf.by_ref(), meta.algorithm);
-    let file_path = job_config
-        .cfg
-        .shared_files
-        .path
-        .join(&target_id)
-        .join(&source_id)
-        .join(format!("{}.metadata", file_id));
-
-    if hash_type.hash(&pubkey.public_key_to_der()?) != meta.digest {
-        return Ok(StatusCode::NOT_FOUND);
-    }
-
-    if validate_signature(
-        file.bytes(),
-        pubkey,
-        hash_type,
-        &hex::decode(meta.digest).unwrap(),
-    )? {
-        return Ok(StatusCode::INTERNAL_SERVER_ERROR);
-    }
-
     if !job_config
         .nodes
         .read()
@@ -239,21 +196,54 @@ pub fn put(
         return Ok(StatusCode::NOT_FOUND);
     }
 
-    fs::create_dir_all(
-        job_config
-            .cfg
-            .shared_files
-            .path
-            .join(&target_id)
-            .join(&source_id),
-    )
-    .unwrap(); // create folders if they don't exist
+    let mut stream = BufReader::new(body.into_buf().reader());
+    let mut raw_meta = String::new();
+    // Here we cannot iterate on lines as the file content may not be valid UTF-8.
+    let mut read = 2;
+    // Let's read while we find an empty line.
+    while read > 1 {
+        read = stream.read_line(&mut raw_meta)?;
+    }
+    let meta = Metadata::from_str(&raw_meta)?;
+    let mut file = vec![];
+    stream.read_to_end(&mut file)?;
+
+    let base_path = job_config
+        .cfg
+        .shared_files
+        .path
+        .join(&target_id)
+        .join(&source_id);
+    let pubkey = get_pubkey(&meta.short_pubkey)?;
+
+    if meta.algorithm.hash(&pubkey.public_key_to_der()?) != meta.digest {
+        return Ok(StatusCode::NOT_FOUND);
+    }
+
+    if !validate_signature(
+        &file,
+        pubkey,
+        meta.algorithm,
+        &hex::decode(&meta.digest).unwrap(),
+    )? {
+        return Ok(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    // Everything is correct, let's store the file
+    fs::create_dir_all(&base_path)?;
     fs::write(
-        &file_path,
-        format!("{}expires={}\n", metadata_string, timestamp),
-    )
-    .expect("Unable to write file");
-    file_writer(buf.by_ref(), &file_path, job_config.clone())?;
+        &base_path.join(format!("{}.metadata", file_id)),
+        format!(
+            "{}expires={}\n",
+            meta,
+            match params.ttl() {
+                // Removal timestamp = now + ttl
+                Ok(ttl) => Utc::now() + ttl,
+                Err(_x) => return Ok(StatusCode::INTERNAL_SERVER_ERROR),
+            }
+        ),
+    )?;
+    fs::write(&base_path.join(file_id), file)?;
     Ok(StatusCode::OK)
 }
 

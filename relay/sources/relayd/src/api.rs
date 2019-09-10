@@ -31,7 +31,7 @@
 use crate::{
     error::Error,
     remote_run::{RemoteRun, RemoteRunTarget},
-    shared_files::{self, metadata_parser, SharedFilesHeadParams, SharedFilesPutParams},
+    shared_files::{self, SharedFilesHeadParams, SharedFilesPutParams},
     shared_folder::{self, SharedFolderParams},
     stats::Stats,
     status::Status,
@@ -51,7 +51,7 @@ use warp::{
     http::StatusCode,
     path, query,
     reject::custom,
-    reply, Buf, Filter,
+    reply, Filter,
 };
 
 pub fn api(
@@ -128,18 +128,10 @@ pub fn api(
         .and(query::<SharedFilesPutParams>())
         .and(body::concat())
         .map(
-            move |target_id,
-                  source_id,
-                  file_id,
-                  params: SharedFilesPutParams,
-                  mut buf: FullBody| {
+            move |target_id, source_id, file_id, params: SharedFilesPutParams, buf: FullBody| {
                 reply::with_status(
                     "".to_string(),
                     match shared_files::put(
-                        // FIXME avoid parsing metadata twice!
-                        // Warning, this reads inside of file content too for
-                        // metadata k/v
-                        format!("{}", metadata_parser(buf.by_ref()).unwrap()),
                         target_id,
                         source_id,
                         file_id,
