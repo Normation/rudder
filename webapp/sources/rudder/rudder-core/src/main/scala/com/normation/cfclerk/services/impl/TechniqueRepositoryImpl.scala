@@ -224,7 +224,7 @@ class TechniqueRepositoryImpl(
   override def getTechniquesInfo() = techniqueInfosCache
 
   override def getTechniqueVersions(name: TechniqueName): SortedSet[TechniqueVersion] = {
-    SortedSet[TechniqueVersion]() ++ techniqueInfosCache.techniques.get(name).toSeq.flatMap(_.keySet)
+    SortedSet[TechniqueVersion]() ++ techniqueInfosCache.techniques.get(name).toSeq.flatMap(_.keysIterator)
   }
 
   override def getByName(name:TechniqueName) : Map[TechniqueVersion, Technique] = {

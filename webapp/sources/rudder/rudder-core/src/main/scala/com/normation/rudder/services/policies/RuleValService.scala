@@ -173,7 +173,7 @@ class RuleValServiceImpl(
 
   def getTargetedNodes(rule: Rule, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]): Set[NodeId] = {
     val wantedNodeIds = groupLib.getNodeIds(rule.targets, allNodeInfos)
-    val nodeIds = wantedNodeIds.intersect(allNodeInfos.keySet)
+    val nodeIds = wantedNodeIds.intersect(allNodeInfos.keysIterator.toSet)
     if(nodeIds.size != wantedNodeIds.size) {
       logger.error(s"Some nodes are in the target of rule '${rule.name}' (${rule.id.value}) but are not present " +
           s"in the system. It looks like an inconsistency error. Ignored nodes: ${(wantedNodeIds -- nodeIds).map( _.value).mkString(", ")}")

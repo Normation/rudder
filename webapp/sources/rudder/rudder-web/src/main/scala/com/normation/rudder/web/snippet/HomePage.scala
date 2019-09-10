@@ -177,7 +177,7 @@ class HomePage extends Loggable {
       userRules <- roRuleRepo.getIds()
       n3 = System.currentTimeMillis
       _ = TimingDebugLogger.trace(s"Get rules: ${n3 - n2}ms")
-      reports   <- reportingService.findRuleNodeStatusReports(nodeInfos.keySet, userRules)
+      reports   <- reportingService.findRuleNodeStatusReports(nodeInfos.keysIterator.toSet, userRules)
       global    <- reportingService.getGlobalUserCompliance()
       n4 = System.currentTimeMillis
       _ = TimingDebugLogger.trace(s"Compute Rule Node status reports for all nodes: ${n4 - n3}ms")
@@ -421,7 +421,7 @@ class HomePage extends Loggable {
       }.toMap.mapValues{_.maxBy(_.value)} // Get the max version available
 
       // take back the initial set of nodes to be sure to have one agent for each
-      val allAgents = nodeInfos.keySet.toSeq.map(nodeId => agentVersionByNodeEntries.get(nodeId) match {
+      val allAgents = nodeInfos.keysIterator.toSeq.map(nodeId => agentVersionByNodeEntries.get(nodeId) match {
         case Some(v) => v
         case None    =>
           logger.debug(s"Node with ID '${nodeId.value}' have an unknow agent version")

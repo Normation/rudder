@@ -118,7 +118,7 @@ class TechniqueTree(
 
   private[this] def techniqueNode(dep: TechniqueDependencies, technique:Technique, activeTechnique:ActiveTechnique) : JsTreeNode = new JsTreeNode {
     override def body = {  <a href="#"><span class="treeTechniqueName tooltipable" tooltipid={activeTechnique.techniqueName.value} title={technique.description}>{technique.name}</span></a><div class="tooltipContent" id={activeTechnique.techniqueName.value}><h3>{technique.name}</h3><div>{technique.description}</div></div> }
-    override def children = dep.directives.keySet.toList.map {  directiveId => directiveNode(dep,directiveId) }
+    override def children = dep.directives.keysIterator.toList.map {  directiveId => directiveNode(dep,directiveId) }
     override val attrs =  ("data-jstree" -> """{ "type" : "template" }""")  :: Nil ::: (if(!activeTechnique.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
   }
 

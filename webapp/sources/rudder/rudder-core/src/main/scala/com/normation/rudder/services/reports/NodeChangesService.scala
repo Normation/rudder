@@ -241,7 +241,7 @@ class CachedNodeChangesServiceImpl(
       changes.getOrElse(ruleId, Map()).getOrElse(i, 0)
     }
 
-    (changes1.keySet ++ changes2.keySet).map { ruleId =>
+    (changes1.keysIterator.toSet ++ changes2.keysIterator).map { ruleId =>
       (ruleId,
         on.map { i =>
           val updated = get(changes1, ruleId, i) + get(changes2, ruleId, i)

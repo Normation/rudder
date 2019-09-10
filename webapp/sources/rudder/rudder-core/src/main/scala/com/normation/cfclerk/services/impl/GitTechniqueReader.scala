@@ -258,7 +258,7 @@ class GitTechniqueReader(
         if(versionsMods.values.forall( _ == VersionDeleted)
            && currentTechniquesInfoCache.techniques.get(name).map( _.size) == Some(versionsMods.size)
         ) {
-          (name, TechniqueDeleted(name, versionsMods.keySet))
+          (name, TechniqueDeleted(name, versionsMods.keysIterator.toSet))
         } else {
           (name, TechniqueUpdated(name, versionsMods))
         }

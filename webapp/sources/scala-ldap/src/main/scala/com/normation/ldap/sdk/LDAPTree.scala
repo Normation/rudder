@@ -187,15 +187,17 @@ object LDAPTree {
 
       val mods:Tree[TreeModification] = if(rootDiff.isEmpty) Tree(NoMod) else Tree(Replace((source.root.dn,rootDiff)))
 
-      val intersection = source.children.keySet intersect(target.children.keySet)
+      val sourceKeys = source.children.keysIterator.toSet
+      val targetKeys = target.children.keysIterator.toSet
+      val intersection = sourceKeys.intersect(targetKeys)
 
       //remove entries present in source but not in target
-      for(k <- source.children.keySet -- intersection) {
+      for(k <- sourceKeys -- intersection) {
         mods.addChild(k, Tree(Delete(source.children(k).map(_.dn))))
       }
 
       //add entries present in target but not in source
-      for(k <- target.children.keySet -- intersection) {
+      for(k <- targetKeys -- intersection) {
         mods.addChild(k, Tree(Add(target.children(k))))
       }
 

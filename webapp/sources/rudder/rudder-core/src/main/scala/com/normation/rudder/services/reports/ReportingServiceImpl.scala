@@ -120,7 +120,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
 
     for {
       systemDirectiveIds <- directivesRepo.getFullDirectiveLibrary().map( _.allDirectives.values.collect{ case(at, d) if(at.isSystem) => d.id }.toSet)
-      nodeIds            <- nodeInfoService.getAll().map( _.keySet )
+      nodeIds            <- nodeInfoService.getAll().map( _.keysIterator.toSet )
       reports            <- findRuleNodeStatusReports(nodeIds, Set())
     } yield {
 
@@ -221,7 +221,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
 
       for {
         // disabled nodes are ignored
-        allNodeIds        <- nodeInfoService.getAll.map( _.filter { case(_,n) => n.state != NodeState.Ignored }.keySet )
+        allNodeIds        <- nodeInfoService.getAll.map( _.filter { case(_,n) => n.state != NodeState.Ignored }.keysIterator.toSet )
         //only try to update nodes that are accepted in Rudder
         nodeIds            =  nodeIdsToCheck.intersect(allNodeIds)
         /*
@@ -255,7 +255,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
         newStatus           <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(expired, Set())
       } yield {
         //here, newStatus.keySet == expired.keySet, so we have processed all nodeIds that should be modified.
-        logger.debug(s"Compliance cache miss (updated):[${newStatus.keySet.map(_.value).mkString(" , ")}], "+
+        logger.debug(s"Compliance cache miss (updated):[${newStatus.keysIterator.map(_.value).mkString(" , ")}], "+
                                s" hit:[${upToDate.map(_.value).mkString(" , ")}]")
         cache = cache ++ newStatus
         val toReturn = cache.filterKeys { id => nodeIds.contains(id) }
@@ -291,7 +291,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
       for {
         infos <- nodeInfoService.getAll
       } yield {
-        checkAndUpdateCache(infos.keySet)
+        checkAndUpdateCache(infos.keysIterator.toSet)
       }
     }
     ()

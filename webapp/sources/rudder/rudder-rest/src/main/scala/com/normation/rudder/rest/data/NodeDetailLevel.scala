@@ -75,12 +75,12 @@ sealed trait NodeDetailLevel {
    * Does any of the listed fields need to be looked-up
    * with full inventory ?
    */
-  final def needFullInventory() = NodeDetailLevel.fullInventoryFields.keySet.intersect(fields).nonEmpty
+  final def needFullInventory() = NodeDetailLevel.fullInventoryFields.keysIterator.toSet.intersect(fields).nonEmpty
 
   /**
    * Does any of the listed fields need software look-up?
    */
-  final def needSoftware() = NodeDetailLevel.softwareFields.keySet.intersect(fields).nonEmpty
+  final def needSoftware() = NodeDetailLevel.softwareFields.keysIterator.toSet.intersect(fields).nonEmpty
 }
 
 case object MinimalDetailLevel extends NodeDetailLevel {

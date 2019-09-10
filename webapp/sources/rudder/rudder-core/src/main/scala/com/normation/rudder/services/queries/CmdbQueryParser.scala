@@ -121,7 +121,7 @@ trait DefaultStringQueryParser extends StringQueryParser {
 
     val objectType = criterionObjects.getOrElse(line.objectType,
       return Failure(s"The object type '${line.objectType}' is unknown in line 'line'. Possible object types: [${
-        criterionObjects.keySet.toList.sorted.mkString(",")}] ".format(line))
+        criterionObjects.keysIterator.toList.sorted.mkString(",")}] ".format(line))
     )
 
     val criterion = objectType.criterionForName(line.attribute).getOrElse {

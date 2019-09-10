@@ -234,7 +234,7 @@ object RuleTarget extends Loggable {
       serverRoles.size>0 || isPolicyServer || nodeId == Constants.ROOT_POLICY_SERVER_ID
     }
     (Set[NodeId]() /: targets) { case (nodes , target) => target match {
-      case AllTarget => return allNodes.keySet
+      case AllTarget => return allNodes.keysIterator.toSet
       case AllTargetExceptPolicyServers => nodes ++ allNodes.collect { case(k,n) if(!n._1) => k }
       case PolicyServerTarget(nodeId) => nodes + nodeId
       case AllServersWithRole =>
@@ -258,7 +258,7 @@ object RuleTarget extends Loggable {
       case TargetIntersection(targets) =>
         val nodeSets = targets.map(t => getNodeIds(Set(t), allNodes, groups))
         // Compute the intersection of the sets of Nodes
-        val intersection = (allNodes.keySet/: nodeSets) {
+        val intersection = (allNodes.keysIterator.toSet /: nodeSets) {
           case (currentIntersection, nodes) => currentIntersection.intersect(nodes)
         }
         nodes ++ intersection

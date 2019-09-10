@@ -833,8 +833,8 @@ object ExecutionBatch extends Loggable {
                                     * - reports without expected component => unknown
                                     * - both expected component and reports => check
                                     */
-                                   val reportKeys = reports.keySet
-                                   val expectedKeys = expectedComponents.keySet
+                                   val reportKeys = reports.keysIterator.toSet
+                                   val expectedKeys = expectedComponents.keysIterator.toSet
                                    val okKeys = reportKeys.intersect(expectedKeys)
 
                                    val missing = expectedComponents.filterKeys(k => !reportKeys.contains(k)).map { case ((d,_), (pm,mrs,c)) =>
