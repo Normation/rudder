@@ -138,6 +138,7 @@ class ComplianceModeEditForm [T <: ComplianceMode] (
   , saveConfigureCallback: Function1[T,Box[Unit]]
   , startNewPolicyGeneration: () => Unit
   , getGlobalConfiguration : Box[GlobalComplianceMode]
+  , disableChangeOnly : Boolean
 ) (implicit p: ParseComplianceMode[T]) extends DispatchSnippet with Loggable  {
 
   // Html template
@@ -209,7 +210,7 @@ class ComplianceModeEditForm [T <: ComplianceMode] (
        angular.bootstrap("#complianceMode", ['complianceMode']);
        var scope = angular.element($$("#complianceModeController")).scope();
        scope.$$apply(function(){
-         scope.init(${toJs(complianceMode)}, ${toJs(globalMode)}, ${isNodePage} ,${callback.toJsCmd}, "${S.contextPath}", ${allModes});
+         scope.init(${toJs(complianceMode)}, ${toJs(globalMode)}, ${isNodePage} ,${callback.toJsCmd}, "${S.contextPath}", ${allModes}, ${disableChangeOnly});
        });
       """
     }) match {

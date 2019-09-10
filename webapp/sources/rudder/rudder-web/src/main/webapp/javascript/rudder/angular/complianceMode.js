@@ -64,14 +64,16 @@ complianceModeModule.controller("complianceModeController", function($scope) {
   $scope.callback;
   $scope.savedValue;
   $scope.contextPath;
+  $scope.disabledChangeOnly;
 
- $scope.init = function(complianceMode, globalValue, isNodePage, callback, contextPath, allModes) {
+ $scope.init = function(complianceMode, globalValue, isNodePage, callback, contextPath, allModes, disabledChangeOnly) {
    $scope.complianceMode=complianceMode;
    $scope.globalValue = globalValue;
    $scope.isNodePage =  isNodePage;
    $scope.callback=callback;
    $scope.contextPath=contextPath;
-   $scope.savedValue = angular.copy($scope.complianceMode)
+   $scope.savedValue = angular.copy($scope.complianceMode);
+   $scope.disabledChangeOnly = disabledChangeOnly;
  }
  
  $scope.disableHeartbeat = function(){

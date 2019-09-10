@@ -71,8 +71,10 @@ import com.normation.box._
 import com.normation.rudder.reports.AgentReportingHTTPS
 import com.normation.rudder.reports.AgentReportingProtocol
 import com.normation.rudder.reports.AgentReportingSyslog
+import com.normation.rudder.reports.ChangesOnly
 
 import scala.xml.Text
+import scala.xml.UnprefixedAttribute
 /**
  * This class manage the displaying of user configured properties.
  *
@@ -560,8 +562,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       }
     }
 
-    val reportRadioInitialState : Box[(AgentReportingProtocol,Boolean)] = (initReportProtocol,initDisabledSyslog) match {
-      case (Full(a),Full(b)) => Full((a,b))
+    val reportRadioInitialState : Box[(AgentReportingProtocol,Boolean, Boolean)] = (initReportProtocol,initDisabledSyslog) match {
+      case (Full(a),Full(b)) =>
+        Full((a,b, configService.rudder_compliance_mode_name.toBox.map(_ == ChangesOnly.name).getOrElse(false)))
       case (eb1 : EmptyBox, eb2: EmptyBox) =>
         val fail1 = eb1 ?~! "Error when getting reporting protocol"
         val fail2 = eb2 ?~! "Error when getting disabled syslog protocol"
@@ -583,9 +586,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       (
         "#reportProtocol" #> {
           reportRadioInitialState match {
-            case Full((initReport, initDisabled)) =>
+            case Full((initReport, initDisabled, disabledHttps)) =>
               val (_,initValue) = labelAndValue(initReport,initDisabled)
-              def radioHtml(protocol : AgentReportingProtocol, disabledSyslog : Boolean): NodeSeq = {
+              def radioHtml(protocol : AgentReportingProtocol, disabledSyslog : Boolean, disable :Boolean ): NodeSeq = {
                 val (label,value) = labelAndValue(protocol,disabledSyslog)
                 val inputId = value + "-id"
                 val ajaxCall = SHtml.ajaxCall(Str(""), _ => displayDisableSyslogSectionJS(value) & check)._2.toJsCmd
@@ -594,10 +597,15 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
                 } else {
                     <input id={inputId} type="radio" name="reportProtocol" onclick={ajaxCall}/>
                 }
+                val finalInput =
+                  if (disable)
+                    inputCheck.copy(attributes = new UnprefixedAttribute("disabled", Seq(Text("disabled")), inputCheck.attributes))
+                  else
+                    inputCheck
                 <li class="rudder-form">
                   <div class="input-group">
                     <label class="input-group-addon" for={inputId}>
-                      {inputCheck}<label for={inputId} class="label-radio">
+                      {finalInput}<label for={inputId} class="label-radio">
                       <span class="ion ion-record"></span>
                     </label>
                       <span class="ion ion-checkmark-round check-icon"></span>
@@ -609,8 +617,16 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
                 </li>
               }
 
+
+
+              <div class="col-lg-12 callout-fade callout-warning" ng-if="disabledChangeOnly">
+                <div class="marker">
+                  <span class="glyphicon glyphicon-info-sign"></span>
+                </div>
+                'HTTPS' mode is disabled if "Non compliant reports only" compliant mode is enabled
+              </div> ++
               <ul id="reportProtocol">
-                {((AgentReportingHTTPS, true) :: (AgentReportingHTTPS, false) :: (AgentReportingSyslog, false) :: Nil).map((radioHtml _).tupled)}
+                {((AgentReportingHTTPS, true, disabledHttps) :: (AgentReportingHTTPS, false, disabledHttps) :: (AgentReportingSyslog, false, false) :: Nil).map((radioHtml _).tupled)}
               </ul> ++ Script(OnLoad(displayDisableSyslogSectionJS(initValue) & check()))
             case eb: EmptyBox =>
               val fail = eb ?~ "there was an error while fetching value of reporting protocol' "
@@ -681,6 +697,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         }
       , () => startNewPolicyGeneration
       , globalMode
+      , configService.rudder_report_protocol_default().map(_ == AgentReportingHTTPS).toBox.getOrElse(false)
     )
   }
   val agentPolicyModeEditForm = {
