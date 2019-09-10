@@ -80,9 +80,9 @@ class CheckApiTokenAutorizationKind(
         val name = e(A_NAME).orElse(e(A_API_UUID)).getOrElse("")
         ldap.save(e) foldM (
           err =>
-            BootraspLogger.logPure.error(s"Error when trying to add default '${DEFAULT_AUTHZ.name.toUpperCase}' authorization level to API token ${name}. Error was: ${err.fullMsg}")
+            BootstrapLogger.logPure.error(s"Error when trying to add default '${DEFAULT_AUTHZ.name.toUpperCase}' authorization level to API token ${name}. Error was: ${err.fullMsg}")
         , ok  =>
-            BootraspLogger.logPure.info(s"[migration] Adding default '${DEFAULT_AUTHZ.name.toUpperCase}' authorization level to API token '${name}'")
+            BootstrapLogger.logPure.info(s"[migration] Adding default '${DEFAULT_AUTHZ.name.toUpperCase}' authorization level to API token '${name}'")
         )
       }
     }

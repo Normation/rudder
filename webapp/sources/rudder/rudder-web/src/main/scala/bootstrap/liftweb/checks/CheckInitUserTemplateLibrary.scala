@@ -83,21 +83,21 @@ class CheckInitUserTemplateLibrary(
     }).toBox match {
       case eb:EmptyBox =>
         val e = eb ?~! s"Error when trying to check for root entry of the user template library"
-        BootraspLogger.logEffect.error(e.messageChain)
-      case Full(None) => BootraspLogger.logEffect.error("The root entry of the user template library was not found")
+        BootstrapLogger.logEffect.error(e.messageChain)
+      case Full(None) => BootstrapLogger.logEffect.error("The root entry of the user template library was not found")
       case Full(Some(root)) => root.getAsGTime(A_INIT_DATETIME) match {
-        case Some(date) => BootraspLogger.logEffect.debug("The root user template library was initialized on %s".format(date.dateTime.toString("YYYY/MM/dd HH:mm")))
+        case Some(date) => BootstrapLogger.logEffect.debug("The root user template library was initialized on %s".format(date.dateTime.toString("YYYY/MM/dd HH:mm")))
         case None =>
-          BootraspLogger.logEffect.info("The Active Technique library is not marked as being initialized: adding all policies from reference library...")
+          BootstrapLogger.logEffect.info("The Active Technique library is not marked as being initialized: adding all policies from reference library...")
           copyReferenceLib() match {
             case Full(x) =>
               asyncDeploymentAgent ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor)
-              BootraspLogger.logEffect.info("...done")
+              BootstrapLogger.logEffect.info("...done")
             case eb:EmptyBox =>
               val e = eb ?~! "Some error where encountered during the initialization of the user library"
               val msg = e.messageChain.split("<-").mkString("\n ->")
-              BootraspLogger.logEffect.warn(msg)
-              e.rootExceptionCause.foreach(ex => BootraspLogger.logEffect.debug("cause was:", ex))
+              BootstrapLogger.logEffect.warn(msg)
+              e.rootExceptionCause.foreach(ex => BootstrapLogger.logEffect.debug("cause was:", ex))
               // Even if complete reload failed, we need to trigger a policy deployment, as otherwise it will never be done
               asyncDeploymentAgent ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor)
           }
@@ -106,9 +106,9 @@ class CheckInitUserTemplateLibrary(
           ldap.flatMap(_.save(root)).toBox match {
             case eb:EmptyBox =>
               val e = eb ?~! "Error when updating information about the LDAP root entry of technique library."
-              BootraspLogger.logEffect.error(e.messageChain)
+              BootstrapLogger.logEffect.error(e.messageChain)
               e.rootExceptionCause.foreach { ex =>
-                BootraspLogger.logEffect.error("Root exception was: ", ex)
+                BootstrapLogger.logEffect.error("Root exception was: ", ex)
               }
             case _ => // nothing to do
           }

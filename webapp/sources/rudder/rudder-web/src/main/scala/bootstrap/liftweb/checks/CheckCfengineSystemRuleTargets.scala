@@ -56,7 +56,7 @@ import com.unboundid.ldap.sdk.RDN
 import java.io.File
 import java.io.FileInputStream
 
-import bootstrap.liftweb.BootraspLogger
+import bootstrap.liftweb.BootstrapLogger
 
 import com.normation.errors._
 import zio._
@@ -98,7 +98,7 @@ object CheckCfengineSystemRuleTargets {
     } else {
       con.save(wanted, true, keepAttrs).flatMap { mod =>
         ZIO.when(mod != LDIFNoopChangeRecord(wanted.dn)) {
-          BootraspLogger.logPure.info(s"Updating system configuration stored in entry '${wanted.dn.toString}': ${mod}")
+          BootstrapLogger.logPure.info(s"Updating system configuration stored in entry '${wanted.dn.toString}': ${mod}")
         } *> mod.succeed
       }
     }
@@ -114,7 +114,7 @@ class CheckCfengineSystemRuleTargets(
   override val description = "Check that system group / directive / rules for Rudder 4.2 are agent-specific"
 
   def FAIL(msg:String) = {
-    BootraspLogger.logEffect.error(msg)
+    BootstrapLogger.logEffect.error(msg)
     throw new UnavailableException(msg)
   }
 
@@ -207,7 +207,7 @@ class CheckCfengineSystemRuleTargets(
                         val wanted = hasPolicyServer(uuid)
                         compare(con, wanted, entry)
                       case _ =>
-                        BootraspLogger.logPure.warn(s"Ignoring entry '${entry.dn.toString}' when updating 'hasPolicyServer-*' system groups: name is not well formed") *>
+                        BootstrapLogger.logPure.warn(s"Ignoring entry '${entry.dn.toString}' when updating 'hasPolicyServer-*' system groups: name is not well formed") *>
                         LDIFNoopChangeRecord(entry.dn).succeed
                     }
         }
@@ -229,7 +229,7 @@ class CheckCfengineSystemRuleTargets(
       case eb: EmptyBox =>
         val e = eb ?~! "Error when updating system configuration for CFEngine based agent"
         e.rootExceptionCause.foreach { ex =>
-          BootraspLogger.logEffect.debug("Exception was: ", ex)
+          BootstrapLogger.logEffect.debug("Exception was: ", ex)
         }
         FAIL(e.messageChain)
 

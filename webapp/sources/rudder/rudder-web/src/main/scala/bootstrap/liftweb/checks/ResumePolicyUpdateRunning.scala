@@ -65,15 +65,15 @@ class ResumePolicyUpdateRunning(
     try {
       if (file.exists) {
         // File exists, update policies
-        BootraspLogger.logEffect.info(s"Flag file '${filePath}' found, Start a new policy update now")
+        BootstrapLogger.logEffect.info(s"Flag file '${filePath}' found, Start a new policy update now")
         asyncGeneration ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor)
       } else {
-        BootraspLogger.logEffect.info(s"Flag file '${filePath}' does not exist, No need to start a new policy update")
+        BootstrapLogger.logEffect.info(s"Flag file '${filePath}' does not exist, No need to start a new policy update")
       }
     } catch {
       // Exception while checking the file existence
       case e : Exception =>
-        BootraspLogger.logEffect.error(s"An error occurred while accessing flag file '${filePath}', cause is: ${e.getMessage}")
+        BootstrapLogger.logEffect.error(s"An error occurred while accessing flag file '${filePath}', cause is: ${e.getMessage}")
     }
   }
 
