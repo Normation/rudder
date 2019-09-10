@@ -302,7 +302,7 @@ class BuildBundleSequence(
    */
   def buildTechniqueBundles(nodeId: NodeId, agentType: AgentType, globalPolicyMode: GlobalPolicyMode, nodePolicyMode: Option[PolicyMode])(policy: Policy): Box[TechniqueBundles] = {
     // naming things to make them clear
-    val name = Promiser(policy.ruleOrder.value + "/" + policy.directiveOrder.value)
+    val name = Promiser(policy.ruleName + "/" + policy.directiveName)
 
     // and for now, all bundle get the same reportKey
     val techniqueBundles = policy.technique.agentConfig.bundlesequence.map { bundleName =>
