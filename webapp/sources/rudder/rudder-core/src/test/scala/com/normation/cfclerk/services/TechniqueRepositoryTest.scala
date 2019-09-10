@@ -270,7 +270,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     (testCallback.categories must containTheSameElementsAs(Seq(TechniqueCategoryModType.Moved(cat.id, cat2.id)))) and
     (fsRepos.getAllCategories.get(cat2.id) must beSome[TechniqueCategory]) and
     (ldapRepo.moved must beEqualTo(("fileSecurity", "Active Techniques", None) :: Nil) ) and
-    (ldapRepo.updatedTechniques must containTheSameElementsAs(Seq()) )
+    (ldapRepo.updatedTechniques must containTheSameElementsAs(Seq("fileTemplate", "copyGitFile")) )
 
   }
 }
