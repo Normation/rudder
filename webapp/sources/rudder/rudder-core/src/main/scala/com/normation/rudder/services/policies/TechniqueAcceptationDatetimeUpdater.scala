@@ -237,7 +237,7 @@ class TechniqueAcceptationUpdater(
 
                                 case (TechniqueUpdated(name, mods), Some(activeTechnique)) =>
                                   logger.debug("Update acceptation datetime for: " + activeTechnique.techniqueName)
-                                  val versionsMap = mods.keySet.map( v => (v, acceptationDatetime)).toMap
+                                  val versionsMap = mods.keysIterator.map( v => (v, acceptationDatetime)).toMap
                                   rwActiveTechniqueRepo.setAcceptationDatetimes(activeTechnique.id, versionsMap, modId, actor, reason) match {
                                     case e: EmptyBox =>
                                       e ?~! s"Error when saving Active Technique ${activeTechnique.id.value} for technque ${activeTechnique.techniqueName}"

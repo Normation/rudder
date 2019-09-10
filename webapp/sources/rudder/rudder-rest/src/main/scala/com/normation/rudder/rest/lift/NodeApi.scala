@@ -556,7 +556,7 @@ class NodeApiService6 (
                        case PendingInventory  => nodeInfoService.getPendingNodeInfos()
                        case RemovedInventory  => nodeInfoService.getDeletedNodeInfos()
                      }
-      nodeIds     =  nodeFilter.getOrElse(nodeInfos.keySet).toSet
+      nodeIds     =  nodeFilter.getOrElse(nodeInfos.keysIterator).toSet
       runs        <- roAgentRunsRepository.getNodesLastRun(nodeIds)
       inventories <- if(detailLevel.needFullInventory()) {
                        inventoryRepository.getAllInventories(state)
@@ -564,7 +564,7 @@ class NodeApiService6 (
                        Full(Map[NodeId, FullInventory]())
                      }
       software    <- if(detailLevel.needSoftware()) {
-                       softwareRepository.getSoftwareByNode(nodeInfos.keySet, state)
+                       softwareRepository.getSoftwareByNode(nodeInfos.keysIterator.toSet, state)
                      } else {
                        Full(Map[NodeId, Seq[Software]]())
                      }

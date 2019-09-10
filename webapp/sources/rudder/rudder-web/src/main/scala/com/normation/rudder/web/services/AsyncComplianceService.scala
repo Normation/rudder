@@ -125,7 +125,7 @@ class AsyncComplianceService (
           toCompliance(nodeId, status.report.reports)
         }
         //add missing elements with "None" compliance, see #7281, #8030, #8141, #11842
-        val missingIds = nodeIds -- found.keysIterator.toSet // maybe a memory leak here
+        val missingIds = nodeIds -- found.keysIterator
         found ++ (missingIds.map(id => (id,None)))
       }
     }
@@ -150,7 +150,8 @@ class AsyncComplianceService (
           toCompliance(ruleId, reports)
         }
         // add missing elements with "None" compliance, see #7281, #8030, #8141, #11842
-        val missingIds = ruleIds -- found.keysIterator.toSet // maybe a memory leak here
+        val missingIds = ruleIds -- found.keysIterator
+
         found ++ (missingIds.map(id => (id,None)))
       }
     }

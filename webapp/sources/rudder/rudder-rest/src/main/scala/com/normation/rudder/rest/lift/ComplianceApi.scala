@@ -243,7 +243,7 @@ class ComplianceAPIService(
       nodeInfos     <- nodeInfoService.getAll()
       compliance    <- getGlobalComplianceMode()
       reportsByNode <- reportingService.findRuleNodeStatusReports(
-                        nodeInfos.keySet, rules.map(_.id).toSet
+                        nodeInfos.keysIterator.toSet, rules.map(_.id).toSet
                       )
     } yield {
 
@@ -354,7 +354,7 @@ class ComplianceAPIService(
                       }
       compliance   <- getGlobalComplianceMode()
       reports      <- reportingService.findRuleNodeStatusReports(
-                        nodeInfos.keySet, rules.map(_.id).toSet
+                        nodeInfos.keysIterator.toSet, rules.map(_.id).toSet
                       )
     } yield {
 

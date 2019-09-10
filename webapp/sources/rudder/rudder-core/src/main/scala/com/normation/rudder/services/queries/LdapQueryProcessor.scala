@@ -850,7 +850,7 @@ class InternalLDAPQueryProcessor(
       // Get only filters applied to nodes (NodeDn and 'node' objectType)
       nodeFilters      =  groupedSetFilter.get(QueryNodeDn).flatMap ( _.get("node") ).map( _.flatMap(_.filters).toSet)
       // Get the other filters, by only removing those with 'node' objectType ... maybe we could do a partition here, or even do it above
-      subQueries       =  groupedSetFilter.mapValues(_.filterKeys { _ != "node" }).filterNot( _._2.isEmpty)
+      subQueries =  groupedSetFilter.mapValues(_.filterKeys { _ != "node" }).filterNot( _._2.isEmpty).toSeq.toMap
     } yield {
       // at that point, it may happen that nodeFilters and otherFilters are empty. In that case, we add a
       // "get all nodes" query and all filters will be done in node info.

@@ -39,7 +39,7 @@ package com.normation.rudder.services.eventlog
 
 import com.normation.rudder.domain.logger.HistorizationLogger
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.{DirectiveId, Rule}
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.HistorizationRepository
@@ -122,7 +122,7 @@ class HistorizationServiceImpl(
 
       // a node closable is a node that is current in the database, but don't exist in the
       // ldap
-      val closable = registered.keySet.filter(x => !(nodeInfos.map(node => node.id.value)).contains(x))
+      val closable = registered.keysIterator.toSet.filter(x => !(nodeInfos.map(node => node.id.value)).contains(x))
       historizationRepository.updateNodes(changed, closable.toSeq)
     }) ?~! "Could not update the nodes historization information in base."
 
@@ -150,7 +150,7 @@ class HistorizationServiceImpl(
 
       // a group closable is a group that is current in the database, but don't exist in the
       // ldap
-      val closable = registered.keySet.filter(x => !(nodeGroups.map( _.nodeGroup.id.value)).toSet.contains(x))
+      val closable = registered.keysIterator.toSet.filter(x => !(nodeGroups.map( _.nodeGroup.id.value)).toSet.contains(x))
 
       historizationRepository.updateGroups(changed, closable.toSeq)
     }) ?~! "Could not update the groups historization information in base."
@@ -188,9 +188,10 @@ class HistorizationServiceImpl(
          }
       }.toSeq.map { case (t,fat,d) => (d, fat.toActiveTechnique, t) }
 
-      val stringDirectiveIds = directives.keySet.map( _.value)
+      val directiveSet = directives.keysIterator.toSet
+      val stringDirectiveIds = directiveSet.map( _.value)
 
-      val closable = registered.keySet.filter(x => !stringDirectiveIds.contains(x))
+      val closable = registered.keysIterator.toSet.filter(x => !stringDirectiveIds.contains(x))
 
       historizationRepository.updateDirectives(changed, closable.toSeq)
     }) ?~! s"Could not update the directives historization information in base."
@@ -208,7 +209,7 @@ class HistorizationServiceImpl(
       })
 
       // a closable rule is a rule that is in the database, but not in the ldap
-      val closable = registered.keySet.filter(x => !(rules.map(rule => rule.id)).contains(x)).
+      val closable = registered.keysIterator.toSet.filter(x => !(rules.map(rule => rule.id)).contains(x)).
                     map(x => x.value)
       historizationRepository.updateRules(changed, closable.toSeq)
     }) ?~! s"Could not update the rules historization information in base."

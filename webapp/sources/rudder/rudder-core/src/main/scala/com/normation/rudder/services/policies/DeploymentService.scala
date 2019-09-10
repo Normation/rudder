@@ -401,11 +401,14 @@ trait PromiseGenerationService {
       configsAndErrors      <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, parallelism, jsTimeout, generationContinueOnError) ?~! "Cannot build target configuration node"
       /// only keep successfull node config. We will keep the failed one to fail the whole process in the end if needed
       nodeConfigs           =  configsAndErrors.ok.map(c => (c.nodeInfo.id, c)).toMap
+      configsError          =  configsAndErrors.errors
       timeBuildConfig       =  (System.currentTimeMillis - buildConfigTime)
       _                     =  PolicyLogger.debug(s"Node's target configuration built in ${timeBuildConfig} ms, start to update rule values.")
 
       updatedNodeConfigIds  =  getNodesConfigVersion(nodeConfigs, nodeConfigCaches, generationTime)
-      updatedNodeConfigs    =  nodeConfigs.filterKeys(id => updatedNodeConfigIds.keySet.contains(id))
+      updatedNodeConfigs    =  nodeConfigs.filterKeys(id => updatedNodeConfigIds.keySet.contains(id)).toSeq.toMap
+      nodeConfigsInfos      =  nodeConfigs.map{ case (nodeid, nodeconfig) => (nodeid, nodeconfig.nodeInfo)}
+      allNodeConfigsId      =  nodeConfigs.keysIterator.toSet
 
       reportTime            =  System.currentTimeMillis
       expectedReports       =  computeExpectedReports(ruleVals, updatedNodeConfigs.values.toSeq, updatedNodeConfigIds, generationTime, allNodeModes)
@@ -415,10 +418,11 @@ trait PromiseGenerationService {
       ///// so now we have everything for each updated nodes, we can start writing node policies and then expected reports
 
       // WHY DO WE NEED TO FORGET OTHER NODES CACHE INFO HERE ?
-      _                     <- forgetOtherNodeConfigurationState(nodeConfigs.keySet) ?~! "Cannot clean the configuration cache"
+      _                     <- forgetOtherNodeConfigurationState(allNodeConfigsId) ?~! "Cannot clean the configuration cache"
 
       writeTime             =  System.currentTimeMillis
-      writtenNodeConfigs    <- writeNodeConfigurations(rootNodeId, updatedNodeConfigIds, nodeConfigs, allLicenses, globalPolicyMode, generationTime, parallelism) ?~!"Cannot write nodes configuration"
+
+      writtenNodeConfigs    <- writeNodeConfigurations(rootNodeId, updatedNodeConfigIds, updatedNodeConfigs, nodeConfigsInfos, allLicenses, globalPolicyMode, generationTime, parallelism) ?~!"Cannot write nodes configuration"
       timeWriteNodeConfig   =  (System.currentTimeMillis - writeTime)
       _                     =  PolicyLogger.debug(s"Node configuration written in ${timeWriteNodeConfig} ms, start to update expected reports.")
 
@@ -429,9 +433,9 @@ trait PromiseGenerationService {
 
       // finally, run post-generation hooks. They can lead to an error message for build, but node policies are updated
       postHooksTime         =  System.currentTimeMillis
-      updatedNodes          =  updatedNodeConfigs.keySet.toSeq.toSet // prevent from keeping an undue reference after generation
+      updatedNodes          =  updatedNodeConfigs.keysIterator.toSet // prevent from keeping an undue reference after generation
                                                                      // Doing Set[NodeId]() ++ updatedNodeConfigs.keySet didn't allow to free the objects
-      errorNodes            =  activeNodeIds -- nodeConfigs.keySet
+      errorNodes            =  activeNodeIds -- allNodeConfigsId
       _                     <- runPostHooks(generationTime, new DateTime(postHooksTime), updatedNodeConfigs, systemEnv, UPDATED_NODE_IDS_PATH)
       timeRunPostGenHooks   =  (System.currentTimeMillis - postHooksTime)
       _                     =  PolicyLogger.debug(s"Post-policy-generation hooks ran in ${timeRunPostGenHooks} ms")
@@ -455,7 +459,7 @@ trait PromiseGenerationService {
                                    PolicyLogger.warn(s"Nodes in errors (${errorNodes.size}): '${errorNodes.map(_.value).mkString("','")}'")
                                  }
                                }
-      allErrors             =  configsAndErrors.errors.map(_.messageChain)
+      allErrors             =  configsError.map(_.messageChain)
       result                <- if (allErrors.isEmpty) {
                                  Full(updatedNodes)
                                } else {
@@ -623,7 +627,8 @@ trait PromiseGenerationService {
   def writeNodeConfigurations(
       rootNodeId      : NodeId
     , updated         : Map[NodeId, NodeConfigId]
-    , allNodeConfig   : Map[NodeId, NodeConfiguration]
+    , nodeConfigsToWrite  : Map[NodeId, NodeConfiguration]
+    , allNodeInfos    : Map[NodeId, NodeInfo]
     , allLicenses     : Map[NodeId, CfeEnterpriseLicense]
     , globalPolicyMode: GlobalPolicyMode
     , generationTime  : DateTime
@@ -1071,7 +1076,7 @@ object BuildNodeConfiguration extends Loggable {
 
       val success = nodeConfigs.collect { case Right(c) => c }.toList
       val failures = nodeConfigs.collect { case Left(f) => f }.toSet
-      val failedIds = nodeContexts.keySet -- success.map( _.nodeInfo.id )
+      val failedIds = nodeContexts.keysIterator.toSet -- success.map( _.nodeInfo.id )
 
       val result = recFailNodes(failedIds, success, failures)
       failures.size match {
@@ -1098,7 +1103,7 @@ object BuildNodeConfiguration extends Loggable {
     if(newFailed.isEmpty) { //ok, returns
       NodeConfigurations(maybeSuccess, failures.toList.map(Failure(_)))
     } else { // recurse
-      val allFailed = failed ++ newFailed.keySet
+      val allFailed = failed ++ newFailed.keysIterator
       recFailNodes(allFailed, maybeSuccess.filter(cfg => !allFailed.contains(cfg.nodeInfo.id)), failures ++ newFailed.values)
     }
   }
@@ -1120,7 +1125,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
    * Return the updated map of all node configurations (really present).
    */
   def purgeDeletedNodes(allNodes: Set[NodeId], allNodeConfigs: Map[NodeId, NodeConfiguration]) : Box[Map[NodeId, NodeConfiguration]] = {
-    val nodesToDelete = allNodeConfigs.keySet -- allNodes
+    val nodesToDelete = allNodeConfigs.keysIterator.toSet -- allNodes
     for {
       deleted <- nodeConfigurationService.deleteNodeConfigurations(nodesToDelete)
     } yield {
@@ -1158,7 +1163,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
     } else {
       val nodeToKeep = updatedConfig.map( _.id ).toSet
       PolicyLogger.info(s"Configuration of following ${updatedConfig.size} nodes were updated, their promises are going to be written: [${updatedConfig.map(_.id.value).mkString(", ")}]")
-      nodeConfigurations.keySet.intersect(nodeToKeep)
+      nodeConfigurations.keysIterator.toSet.intersect(nodeToKeep)
     }
   }
 
@@ -1219,7 +1224,8 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
   def writeNodeConfigurations(
       rootNodeId      : NodeId
     , updated         : Map[NodeId, NodeConfigId]
-    , allNodeConfigs  : Map[NodeId, NodeConfiguration]
+    , nodeConfigsToWrite  : Map[NodeId, NodeConfiguration]
+    , allNodeInfos    : Map[NodeId, NodeInfo]
     , allLicenses     : Map[NodeId, CfeEnterpriseLicense]
     , globalPolicyMode: GlobalPolicyMode
     , generationTime  : DateTime
@@ -1229,7 +1235,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
     val fsWrite0   =  System.currentTimeMillis
 
     for {
-      written    <- promisesFileWriterService.writeTemplate(rootNodeId, updated.keySet, allNodeConfigs, updated, allLicenses, globalPolicyMode, generationTime, maxParallelism)
+      written    <- promisesFileWriterService.writeTemplate(rootNodeId, updated.keysIterator.toSet, nodeConfigsToWrite, allNodeInfos, updated, allLicenses, globalPolicyMode, generationTime, maxParallelism)
       ldapWrite0 =  DateTime.now.getMillis
       fsWrite1   =  (ldapWrite0 - fsWrite0)
       _          =  PolicyLogger.debug(s"Node configuration written on filesystem in ${fsWrite1} ms")
@@ -1237,7 +1243,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
 
       // #10625 : that should be one logic-level up (in the main generation for loop)
 
-      toCache    =  allNodeConfigs.filterKeys(updated.contains(_)).values.toSet
+      toCache    =  nodeConfigsToWrite.values.toSet
       cached     <- nodeConfigurationService.save(toCache.map(x => NodeConfigurationHash(x, generationTime)))
       ldapWrite1 =  (DateTime.now.getMillis - ldapWrite0)
       _          =  PolicyLogger.debug(s"Node configuration cached in LDAP in ${ldapWrite1} ms")

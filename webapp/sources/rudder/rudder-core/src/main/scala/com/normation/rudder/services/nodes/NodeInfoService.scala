@@ -369,7 +369,7 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
         case Full(newCache) =>
           logger.debug(s"NodeInfo cache is not up to date, last modification time: '${newCache.lastModTime}', last cache update:"+
                        s" '${lastUpdate}' => reseting cache with ${newCache.nodeInfos.size} entries")
-          logger.trace(s"NodeInfo cache updated entries: [${newCache.nodeInfos.keySet.map{ _.value }.mkString(", ")}]")
+          logger.trace(s"NodeInfo cache updated entries: [${newCache.nodeInfos.keysIterator.map{ _.value }.mkString(", ")}]")
           nodeCache = Some(newCache)
           Full(newCache.nodeInfos)
         case eb: EmptyBox =>

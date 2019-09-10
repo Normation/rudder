@@ -524,7 +524,7 @@ class UpdateExpectedReportsJdbcRepository(
 
       Update[(String, String)]("""
         update nodes_info set config_ids = ? where node_id = ?
-      """).updateMany(params).map(_ => configInfos.keySet)
+      """).updateMany(params).map(_ => configInfos.keysIterator.toSet)
     }
   }
 

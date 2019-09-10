@@ -235,14 +235,14 @@ object DisplayNodeGroupTree extends Loggable {
     , targetActions  : Map[String,(FullRuleTargetInfo) => JsCmd] = Map()
   ) : NodeSeq = {
 
-    val keepTarget = groupLib.getTarget(nodeInfo).keySet
+    val keepTarget = groupLib.getTarget(nodeInfo).keysIterator.toSet
 
     displayTree(
         groupLib
       , onClickCategory
       , onClickTarget
       , targetActions
-      , keepCategory   = (cat => cat.allTargets.keySet.intersect(keepTarget).nonEmpty)
+      , keepCategory   = (cat => keepTarget.intersect(cat.allTargets.keysIterator.toSet).nonEmpty)
       , keepTargetInfo = (ti => keepTarget.contains(ti.target.target))
     )
   }

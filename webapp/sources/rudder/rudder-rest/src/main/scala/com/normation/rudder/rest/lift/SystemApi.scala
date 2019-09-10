@@ -525,7 +525,7 @@ class SystemApiService11(
       valideDate <- tryo { GitTagDateTimeFormatter.parseDateTime(datetime) } ?~! "The given archive id is not a valid archive tag: %s".format(datetime)
       archives   <- list()
       commiter   <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
-      tag        <- Box(archives.get(valideDate)) ?~! "The archive with tag '%s' is not available. Available archives: %s".format(datetime,archives.keySet.map( _.toString(GitTagDateTimeFormatter)).mkString(", "))
+      tag        <- Box(archives.get(valideDate)) ?~! "The archive with tag '%s' is not available. Available archives: %s".format(datetime,archives.keysIterator.map( _.toString(GitTagDateTimeFormatter)).mkString(", "))
       restored   <- restore(tag.commit,commiter,newModId,RestUtils.getActor(req),Some("Restore archive for date time %s requested from REST API".format(datetime)),false)
     } yield {
       restored

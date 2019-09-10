@@ -48,10 +48,10 @@ import com.normation.rudder.reports._
 import com.normation.rudder.reports.execution.AgentRunId
 import net.liftweb.common.Loggable
 import java.util.regex.Pattern
-import com.normation.rudder.domain.policies.PolicyMode
+
+import com.normation.rudder.domain.policies.{DirectiveId, PolicyMode, RuleId}
 import com.normation.rudder.domain.reports.ReportType.BadPolicyMode
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
-import com.normation.rudder.domain.policies.RuleId
 
 /*
  *  we want to retrieve for each node the expected reports that matches it LAST
@@ -833,8 +833,8 @@ object ExecutionBatch extends Loggable {
                                     * - reports without expected component => unknown
                                     * - both expected component and reports => check
                                     */
-                                   val reportKeys = reports.keySet
-                                   val expectedKeys = expectedComponents.keySet
+                                   val reportKeys = reports.keysIterator.toSet
+                                   val expectedKeys = expectedComponents.keysIterator.toSet
                                    val okKeys = reportKeys.intersect(expectedKeys)
 
                                    val missing = expectedComponents.filterKeys(k => !reportKeys.contains(k)).map { case ((d,_), (pm,mrs,c)) =>
@@ -914,7 +914,7 @@ object ExecutionBatch extends Loggable {
           val currentDirectives = currentStatusReports.directives
 
           //don't keep directive that were removed between the two configs
-          val toKeep = runDirectives.filterKeys(k => currentDirectives.keySet.contains(k))
+          val toKeep = runDirectives.filterKeys(k => currentDirectives.keySet.contains(k)).toSeq.toMap
 
           //now override currentDirective with the one to keep in currentReport
           val updatedDirectives = currentDirectives ++ toKeep

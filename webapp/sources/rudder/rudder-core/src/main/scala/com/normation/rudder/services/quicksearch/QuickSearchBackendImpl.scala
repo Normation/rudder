@@ -289,7 +289,7 @@ object QSLdapBackend {
 
     if(m.size != QSAttribute.all.size) {
       throw new IllegalArgumentException("Be carefull, it seems that the list of attributes in QSAttribute was modified, but not the list of name mapping" +
-          s"Please check for '${(m.keySet.diff(QSAttribute.all)++QSAttribute.all.diff(m.keySet)).mkString("', '")}'"
+          s"Please check for '${(m.keysIterator.toSet.diff(QSAttribute.all)++QSAttribute.all.diff(m.keysIterator.toSet)).mkString("', '")}'"
       )
     }
     m
@@ -300,7 +300,7 @@ object QSLdapBackend {
   }
 
   /**
-   * Mapping between attributes and their filter in the backend
+   * Mapping between attributes aQnd their filter in the backend
    */
   object QSAttributeLdapFilter {
     //

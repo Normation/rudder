@@ -119,10 +119,10 @@ class CachedReportsExecutionRepository(
 
   override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRunWithNodeConfig]]] = this.synchronized {
     (for {
-      runs <- readBackend.getNodesLastRun(nodeIds.diff(cache.keySet))
+      runs <- readBackend.getNodesLastRun(nodeIds.diff(cache.keysIterator.toSet))
     } yield {
-      cache = cache ++ runs
-      cache.filterKeys { x => nodeIds.contains(x) }
+      cache = cache ++ runs.toSeq.toMap
+      cache.filterKeys { x => nodeIds.contains(x) }.toSeq.toMap
     }) ?~! s"Error when trying to update the cache of Agent Runs informations"
   }
 

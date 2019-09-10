@@ -80,7 +80,7 @@ trait PrepareTemplateVariables {
     , nodeConfigVersion: NodeConfigId
     , rootNodeConfigId : NodeId
     , templates        : Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]
-    , allNodeConfigs   : Map[NodeId, NodeConfiguration]
+    //, allNodeConfigs   : Map[NodeId, NodeConfiguration]
     , rudderIdCsvTag   : String
     , globalPolicyMode : GlobalPolicyMode
     , generationTime   : DateTime
@@ -105,7 +105,7 @@ class PrepareTemplateVariablesImpl(
     , nodeConfigVersion: NodeConfigId
     , rootNodeConfigId : NodeId
     , templates        : Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]
-    , allNodeConfigs   : Map[NodeId, NodeConfiguration]
+   // , allNodeConfigs   : Map[NodeId, NodeConfiguration]
     , rudderIdCsvTag   : String
     , globalPolicyMode : GlobalPolicyMode
     , generationTime   : DateTime

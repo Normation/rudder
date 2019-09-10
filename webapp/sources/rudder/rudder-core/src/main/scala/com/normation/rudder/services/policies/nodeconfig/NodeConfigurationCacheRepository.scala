@@ -283,10 +283,10 @@ class InMemoryNodeConfigurationHashRepository extends NodeConfigurationHashRepos
    * delete all node configuration
    */
   def deleteAllNodeConfigurations() : Box[Unit] = {
-    val values = repository.keySet
+    val values = repository.keysIterator.toSet
     repository.clear
 
-    Full(values.toSet)
+    Full(values)
   }
 
   /**
@@ -294,7 +294,7 @@ class InMemoryNodeConfigurationHashRepository extends NodeConfigurationHashRepos
    * given in the argument.
    */
   def onlyKeepNodeConfiguration(nodeIds:Set[NodeId]) : Box[Set[NodeId]] = {
-    val remove = repository.keySet -- nodeIds
+    val remove = repository.keysIterator.toSet -- nodeIds
     repository --= remove
     Full(nodeIds)
   }
@@ -304,7 +304,7 @@ class InMemoryNodeConfigurationHashRepository extends NodeConfigurationHashRepos
   def save(NodeConfigurationHash: Set[NodeConfigurationHash]): Box[Set[NodeId]] = {
     val toAdd = NodeConfigurationHash.map(c => (c.id, c)).toMap
     repository ++= toAdd
-    Full(toAdd.keySet)
+    Full(toAdd.keysIterator.toSet)
   }
 }
 
