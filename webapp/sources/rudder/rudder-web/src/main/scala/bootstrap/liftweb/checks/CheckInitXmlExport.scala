@@ -72,10 +72,10 @@ class CheckInitXmlExport(
       tagMap <- itemArchiveManager.getFullArchiveTags
       ident  <- personIdentService.getPersonIdentOrDefault(RudderEventActor.name)
       res    <- if(tagMap.isEmpty) {
-                  BootraspLogger.info("No full archive of configuration-repository items seems to have been done, initialising the system with one") *>
+                  BootstrapLogger.info("No full archive of configuration-repository items seems to have been done, initialising the system with one") *>
                   itemArchiveManager.exportAll(ident, ModificationId(uuidGen.newUuid), RudderEventActor, Some("Initialising configuration-repository sub-system"), false)
                 } else {
-                  BootraspLogger.trace("At least a full archive of configuration items done, no need for further initialisation") *>
+                  BootstrapLogger.trace("At least a full archive of configuration items done, no need for further initialisation") *>
                   UIO.unit
                 }
 
@@ -84,13 +84,13 @@ class CheckInitXmlExport(
     }).toBox match {
       case eb:EmptyBox =>
         val fail = eb ?~! "Error when trying to initialise to configuration-repository sub-system with a first full archive"
-        BootraspLogger.logEffect.error(fail.messageChain)
+        BootstrapLogger.logEffect.error(fail.messageChain)
         fail.rootExceptionCause.foreach { t =>
-          BootraspLogger.logEffect.error("Root exception was:", t)
+          BootstrapLogger.logEffect.error("Root exception was:", t)
         }
 
       case Full(_) =>
-        BootraspLogger.logEffect.info("First full archive of configuration-repository items done")
+        BootstrapLogger.logEffect.info("First full archive of configuration-repository items done")
     }
   }
 }

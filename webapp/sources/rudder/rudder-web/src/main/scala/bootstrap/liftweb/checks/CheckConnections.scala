@@ -61,7 +61,7 @@ class CheckConnections(
   override def checks() : Unit = {
 
     def FAIL(msg:String) = {
-      BootraspLogger.logEffect.error(msg)
+      BootstrapLogger.logEffect.error(msg)
       throw new UnavailableException(msg)
     }
 
@@ -78,7 +78,7 @@ class CheckConnections(
       case e: Exception => FAIL("Can not open connection to PostgreSQL database server")
     }
 
-    BootraspLogger.logEffect.info("LDAP and PostgreSQL connection are OK")
+    BootstrapLogger.logEffect.info("LDAP and PostgreSQL connection are OK")
   }
 
 }

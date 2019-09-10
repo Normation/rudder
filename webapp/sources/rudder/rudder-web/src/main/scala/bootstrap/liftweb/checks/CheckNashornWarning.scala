@@ -38,9 +38,8 @@
 package bootstrap.liftweb.checks
 
 import bootstrap.liftweb.BootstrapChecks
-import com.normation.rudder.domain.logger.ApplicationLogger
+import bootstrap.liftweb.BootstrapLogger
 import javax.servlet.UnavailableException
-import net.liftweb.common._
 
 import scala.util.control.NonFatal
 
@@ -60,7 +59,7 @@ class CheckNashornWarning() extends BootstrapChecks {
       val javaVersionElements = System.getProperty("java.version").split('.')
       val major = Integer.parseInt(javaVersionElements(0))
       if(major >= 11) {
-        ApplicationLogger.warn(s"Set '${nashornProp}=${nashornVal}' to avoid redundant deprecation warnings")
+        BootstrapLogger.logEffect.warn(s"Set '${nashornProp}=${nashornVal}' to avoid redundant deprecation warnings")
         System.getProperty(nashornProp) match {
           case null  => System.setProperty(nashornProp, nashornVal)
           case value =>
@@ -75,7 +74,7 @@ class CheckNashornWarning() extends BootstrapChecks {
       }
     } catch { // in case of error, don't touch anything
       case NonFatal(ex) => // do nothing
-        logger.warn(s"Unable to remove NashHorn deprecation warning, exception was: ${ex.getMessage}")
+        BootstrapLogger.logEffect.warn(s"Unable to remove NashHorn deprecation warning, exception was: ${ex.getMessage}")
     }
   }
 

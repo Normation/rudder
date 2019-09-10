@@ -73,7 +73,7 @@ class CheckDIT(
   override def checks() : Unit = {
 
     def FAIL(msg:String) = {
-      BootraspLogger.logEffect.error(msg)
+      BootstrapLogger.logEffect.error(msg)
       throw new UnavailableException(msg)
     }
 
@@ -114,9 +114,9 @@ class CheckDIT(
       con <- ldap
       e   <- ditEntries.accumulate { e =>
                con.exists(e.dn).flatMap {
-                 case true  =>  BootraspLogger.logPure.debug(s"DIT entry '${e.dn}' already in LDAP directory, nothing to do")
+                 case true  =>  BootstrapLogger.logPure.debug(s"DIT entry '${e.dn}' already in LDAP directory, nothing to do")
                  case false =>
-                   BootraspLogger.logPure.info(s"Missing DIT entry '${e.dn}', trying to add it") *> con.save(e)
+                   BootstrapLogger.logPure.info(s"Missing DIT entry '${e.dn}', trying to add it") *> con.save(e)
                }
              }
     } yield {
@@ -158,7 +158,7 @@ class CheckDIT(
     }
 
 
-    BootraspLogger.logEffect.info("All the required DIT entries are present in the LDAP directory")
+    BootstrapLogger.logEffect.info("All the required DIT entries are present in the LDAP directory")
   }
 
 }
