@@ -123,6 +123,8 @@ class PolicyAgregationTest extends Specification {
     val v = InputVariable(InputVariableSpec("card", "description for " + varName, multivalued = true), values)
     BoundPolicyDraft(
         id
+      , "rule name"
+      , "directive name"
       , technique
       , DateTime.now
       , Map((v.spec.name -> v))

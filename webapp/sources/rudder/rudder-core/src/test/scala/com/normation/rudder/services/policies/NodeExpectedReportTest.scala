@@ -122,6 +122,8 @@ class NodeExpectedReportTest extends Specification {
   val p1_id = PolicyId(r1, d1, TechniqueVersion("1.0"))
   val p1 = Policy(
       p1_id
+    , "rule name"
+    , "directive name"
     , technique      = t1
     , DateTime.now.minusDays(1)
     , policyVars     = NonEmptyList.of(
@@ -150,6 +152,8 @@ class NodeExpectedReportTest extends Specification {
   val p2_id = PolicyId(r2, d3, TechniqueVersion("1.0"))
   val p2 = Policy(
       p2_id
+    , "rule name"
+    , "directive name"
     , technique      = t2
     , DateTime.now.minusDays(1)
     , policyVars     = NonEmptyList.of(

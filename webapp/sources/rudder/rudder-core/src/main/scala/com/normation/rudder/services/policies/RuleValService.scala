@@ -117,7 +117,7 @@ class RuleValServiceImpl(
   }
 
 
-  def getParsedPolicyDraft(piId : DirectiveId, ruleId:RuleId, ruleOrder: BundleOrder, directiveLib: FullActiveTechniqueCategory) : Box[Option[ParsedPolicyDraft]]= {
+  def getParsedPolicyDraft(piId : DirectiveId, ruleId:RuleId, ruleOrder: BundleOrder, ruleName: String, directiveLib: FullActiveTechniqueCategory) : Box[Option[ParsedPolicyDraft]]= {
     directiveLib.allDirectives.get(piId) match {
       case None => Failure("Cannot find Directive with id %s when building Rule %s".format(piId.value, ruleId.value))
       case Some((_, directive) ) if !(directive.isEnabled) =>
@@ -147,6 +147,8 @@ class RuleValServiceImpl(
 
             Some(ParsedPolicyDraft(
                 PolicyId(ruleId, piId, technique.id.version)
+              , ruleName
+              , directive.name
               , technique
                 // if the technique don't have an acceptation date time, this is bad. Use "now",
                 // which mean that it will be considered as new every time.
@@ -178,7 +180,7 @@ class RuleValServiceImpl(
     val nodeIds = getTargetedNodes(rule, groupLib, allNodeInfos)
 
     for {
-      drafts <- bestEffort(rule.directiveIds.toSeq) { getParsedPolicyDraft(_, rule.id, BundleOrder(rule.name), directiveLib) }
+      drafts <- bestEffort(rule.directiveIds.toSeq) { getParsedPolicyDraft(_, rule.id, BundleOrder(rule.name), rule.name, directiveLib) }
     } yield {
       RuleVal(rule.id, nodeIds, drafts.flatten)
     }
