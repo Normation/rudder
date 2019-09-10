@@ -85,8 +85,8 @@ if [ ! -f /var/rudder/lib/ssl/nodescerts.pem ]; then
 fi
 
 # Remove wsgi conf from vhost
-sed -i '/^Set up a WSGI serving process/d' /etc/$(APACHE_VHOSTDIR)/rudder.conf
-sed -i '/^WSGI/d' /etc/$(APACHE_VHOSTDIR)/rudder.conf
+sed -i '/^Set up a WSGI serving process/d' /etc/${APACHE_VHOSTDIR}/rudder.conf
+sed -i '/^WSGI/d' /etc/${APACHE_VHOSTDIR}/rudder.conf
 
 echo -n "INFO: Starting services..."
 systemctl start rudder-relayd >> ${LOG_FILE}
