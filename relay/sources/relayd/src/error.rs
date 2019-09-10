@@ -44,9 +44,7 @@ use toml;
 
 #[derive(Debug)]
 pub enum Error {
-    /// Unspecified parsing errors
-    /// TODO add details
-    InvalidRunLog,
+    InvalidRunLog(String),
     InvalidRunInfo(String),
     InvalidFileName,
     InvalidFile(PathBuf),
@@ -83,7 +81,7 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         match *self {
-            InvalidRunLog => write!(f, "invalid run log"),
+            InvalidRunLog(ref s) => write!(f, "invalid run log {}", s),
             InvalidRunInfo(ref s) => write!(f, "invalid run info {}", s),
             InconsistentRunlog => write!(f, "inconsistent run log"),
             InvalidFileName => write!(f, "file name should be valid unicode"),

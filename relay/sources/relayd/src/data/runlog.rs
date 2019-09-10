@@ -108,7 +108,7 @@ impl TryFrom<(RunInfo, &str)> for RunLog {
             }
             Err(e) => {
                 warn!("{:?}: could not parse '{}'", e, raw_reports.0);
-                Err(Error::InvalidRunLog)
+                Err(Error::InvalidRunLog(format!("{:?}", e)))
             }
         }
     }

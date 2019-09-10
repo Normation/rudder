@@ -47,15 +47,10 @@ pub type KeyHash = String;
 // We ignore the key-hash field as we directly deal with proper certificates
 #[derive(Deserialize, Default)]
 struct Info {
-    // hostname and policy_server be used for remote-run
-    // TODO: remove annotation once it's done
-    #[allow(dead_code)]
     hostname: Host,
     #[serde(rename = "policy-server")]
-    #[allow(dead_code)]
     policy_server: NodeId,
     #[serde(rename = "key-hash")]
-    #[allow(dead_code)]
     key_hash: KeyHash,
     #[serde(skip)]
     // Can be empty when not on a root server or no known certificates for
