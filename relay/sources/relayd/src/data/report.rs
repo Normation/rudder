@@ -76,7 +76,7 @@ fn agent_log_level(i: &str) -> IResult<&str, AgentLogLevel> {
 }
 
 fn non_rudder_report_begin(i: &str) -> IResult<&str, AgentLogLevel> {
-    // FIXME add space here?
+    // A space is already hardcoded after each agent_log_level
     let (i, _) = tag("R:")(i)?;
     let (i, _) = not(tag(" @@"))(i)?;
     Ok((i, "log_info"))
@@ -131,9 +131,6 @@ fn log_entries(i: &str) -> IResult<&str, Vec<LogEntry>> {
 }
 
 pub fn report(i: &str) -> IResult<&str, ParsedReport> {
-    // FIXME
-    // no line break inside a field (except message)
-    // handle partial reports without breaking following ones
     let (i, logs) = log_entries(i)?;
     let (i, execution_datetime) =
         map_res(take_until(" "), |d| DateTime::parse_from_str(d, "%+"))(i)?;
@@ -190,7 +187,6 @@ fn until_next(i: &str) -> IResult<&str, ParsedReport> {
     let (i, tag) = tag("R: @@")(i)?;
     // The end of the broken report
     let (i, multi) = multilines(i)?;
-    // FIXME better
     let mut lines = first.to_string();
     lines.push_str(tag);
     for line in multi {

@@ -46,6 +46,7 @@ chrono = { version = "0.4", features = ["serde"] }
 md-5 = "0.8"
 sha2 = "0.8"
 hex = "0.3"
+bytes = "0.4"
 
 [dev-dependencies]
 criterion = "0.3"
