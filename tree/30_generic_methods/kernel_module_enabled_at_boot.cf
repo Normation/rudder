@@ -19,10 +19,10 @@
 # @name Kernel module enabled at boot
 # @description Ensure that a given kernel module will be loaded at system boot
 # @documentation Ensure that a given kernel module is enabled at boot on the system.
+#  This method only works on systemd systems.
 #  Rudder will look for a line matching the module name in a given section in the file:
 #
 #  * `/etc/modules-load.d/enabled_by_rudder.conf` on systemd systems
-#  * `/etc/modprobe.d/enabled_by_rudder.conf` on non-systemd systems
 #
 #  If the module is already enabled by a different option file than used by Rudder, it will add
 #  an entry in the file managed by Rudder listed above, and leave intact the already present one.
@@ -43,9 +43,7 @@ bundle agent kernel_module_enabled_at_boot(module_name)
 {
   vars:
     systemd::
-      "module_dir"              string => "/etc/modprobe.d";
-    !systemd::
-      "canonified_module_name"  string => canonify("${module_name}");
+      "module_dir"              string => "/etc/modules-load.d";
     any::
       "old_class_prefix"        string => canonify("kernel_module_enabled_at_boot_${module_name}");
       "args"                     slist => { "${module_name}" };
@@ -65,13 +63,18 @@ bundle agent kernel_module_enabled_at_boot(module_name)
       "should_report" expression => "${report_data.should_report}";
 
   methods:
-    pass1.!pass2::
+    pass1.!pass2.systemd::
       "disable_reporting_${class_prefix}"    usebundle => disable_reporting;
       "edit_modprobe_config_${class_prefix}" usebundle => file_ensure_lines_present("${module_dir}/enabled_by_rudder.conf", "${module_name}");
       "reenable_reporting_${class_prefix}"   usebundle => enable_reporting,
         ifvarclass => "should_report";
 
-    pass3::
+    pass3.!systemd::
+      "unsupported"                          usebundle => _classes_failure("${class_prefix}");
+      "unsupported"                          usebundle => _classes_failure("${old_class_prefix}");
+      "report"                               usebundle => _log_v3("This method is not supported on non-systemd systems", "${module_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    pass3.systemd::
       "result_classes"     usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
       "old_result_classes" usebundle => _classes_copy("${inner_class_prefix}", "${old_class_prefix}");
       "report"             usebundle => _log_v3("Ensure that kernel module ${module_name} is enabled on the system", "${module_name}", "${old_class_prefix}", "${class_prefix}", @{args});
