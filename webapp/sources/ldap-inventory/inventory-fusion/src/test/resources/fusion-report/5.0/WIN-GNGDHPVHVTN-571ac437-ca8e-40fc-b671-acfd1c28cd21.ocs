@@ -1,0 +1,678 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<REQUEST>
+  <CONTENT>
+    <ACCESSLOG>
+      <LOGDATE>2019-06-24 15:39:43</LOGDATE>
+    </ACCESSLOG>
+    <BIOS>
+      <ASSETTAG />  <BDATE>04/01/2014</BDATE>
+      <BMANUFACTURER>SeaBIOS</BMANUFACTURER>
+      <BVERSION>1.10.2-1</BVERSION>
+      <MMANUFACTURER />  <MMODEL />  <MSN />  <SKUNUMBER />  <SMANUFACTURER>QEMU</SMANUFACTURER>
+      <SMODEL>Standard PC (i440FX + PIIX, 1996)</SMODEL>
+      <SSN /></BIOS>
+    <CONTROLLERS>
+      <CAPTION>82371SB PIIX3 IDE [Natoma/Triton II]</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>Qemu virtual machine</NAME>
+      <PCISUBSYSTEMID>1af4:1100</PCISUBSYSTEMID>
+      <PRODUCTID>7010</PRODUCTID>
+      <TYPE>Contrôleur IDE PCI Bus Master Intel(R) 82371SB</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82801I (ICH9 Family) USB UHCI Controller #1</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>QEMU Virtual Machine</NAME>
+      <PCISUBSYSTEMID>1af4:1100</PCISUBSYSTEMID>
+      <PRODUCTID>2934</PRODUCTID>
+      <TYPE>Contrôleur hôte universel Intel(R) gamme ICH9 USB - 2934</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82801I (ICH9 Family) USB UHCI Controller #2</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>QEMU Virtual Machine</NAME>
+      <PCISUBSYSTEMID>1af4:1100</PCISUBSYSTEMID>
+      <PRODUCTID>2935</PRODUCTID>
+      <TYPE>Contrôleur hôte universel Intel(R) gamme ICH9 USB - 2935</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82801I (ICH9 Family) USB UHCI Controller #3</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>QEMU Virtual Machine</NAME>
+      <PCISUBSYSTEMID>1af4:1100</PCISUBSYSTEMID>
+      <PRODUCTID>2936</PRODUCTID>
+      <TYPE>Contrôleur hôte universel Intel(R) gamme ICH9 USB - 2936</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82801I (ICH9 Family) USB2 EHCI Controller #1</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>QEMU Virtual Machine</NAME>
+      <PCISUBSYSTEMID>1af4:1100</PCISUBSYSTEMID>
+      <PRODUCTID>293a</PRODUCTID>
+      <TYPE>Contrôleur hôte étendu Intel(R) gamme ICH9 USB2 - 293A</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>Virtio console</CAPTION>
+      <MANUFACTURER>Red Hat, Inc</MANUFACTURER>
+      <NAME>Virtio console</NAME>
+      <PCISUBSYSTEMID>1af4:0003</PCISUBSYSTEMID>
+      <PRODUCTID>1003</PRODUCTID>
+      <TYPE>Contrôleur PCI de communications simplifiées</TYPE>
+      <VENDORID>1af4</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82371SB PIIX3 ISA [Natoma/Triton II]</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>Qemu virtual machine</NAME>
+      <PCISUBSYSTEMID>1af4:1100</PCISUBSYSTEMID>
+      <PRODUCTID>7000</PRODUCTID>
+      <TYPE>Pont Intel 82371SB PCI vers ISA</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>QXL paravirtual graphic card</CAPTION>
+      <MANUFACTURER>Red Hat, Inc.</MANUFACTURER>
+      <NAME>QEMU Virtual Machine</NAME>
+      <PCISUBSYSTEMID>1af4:1100</PCISUBSYSTEMID>
+      <PRODUCTID>0100</PRODUCTID>
+      <TYPE>Carte graphique VGA standard</TYPE>
+      <VENDORID>1b36</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>440FX - 82441FX PMC [Natoma]</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>Qemu virtual machine</NAME>
+      <PCISUBSYSTEMID>1af4:1100</PCISUBSYSTEMID>
+      <PRODUCTID>1237</PRODUCTID>
+      <TYPE>Pont Intel 82441FX Processeur Pentium(R) Pro vers PCI</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82801FB/FBM/FR/FW/FRW (ICH6 Family) High Definition Audio Controller</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>QEMU Virtual Machine</NAME>
+      <PCISUBSYSTEMID>1af4:1100</PCISUBSYSTEMID>
+      <PRODUCTID>2668</PRODUCTID>
+      <TYPE>Contrôleur audio haute définition</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>RTL-8100/8101L/8139 PCI Fast Ethernet Adapter</CAPTION>
+      <MANUFACTURER>Realtek Semiconductor Co., Ltd.</MANUFACTURER>
+      <NAME>QEMU Virtual Machine</NAME>
+      <PCISUBSYSTEMID>1af4:1100</PCISUBSYSTEMID>
+      <PRODUCTID>8139</PRODUCTID>
+      <TYPE>Realtek RTL8139C+ carte réseau Fast Ethernet</TYPE>
+      <VENDORID>10ec</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>Virtio memory balloon</CAPTION>
+      <MANUFACTURER>Red Hat, Inc</MANUFACTURER>
+      <NAME>Virtio memory balloon</NAME>
+      <PCISUBSYSTEMID>1af4:0005</PCISUBSYSTEMID>
+      <PRODUCTID>1002</PRODUCTID>
+      <TYPE>Périphérique PCI</TYPE>
+      <VENDORID>1af4</VENDORID>
+    </CONTROLLERS>
+    <CPUS>
+      <CORE>1</CORE>
+      <DESCRIPTION>Intel64 Family 6 Model 61 Stepping 2</DESCRIPTION>
+      <FAMILYNUMBER>6</FAMILYNUMBER>
+      <ID>D2 06 03 00 FF FB 8B 07</ID>
+      <MANUFACTURER>Intel</MANUFACTURER>
+      <MODEL>61</MODEL>
+      <NAME>Intel Core Processor (Broadwell)</NAME>
+      <SPEED>2000</SPEED>
+      <STEPPING>2</STEPPING>
+      <THREAD>1</THREAD>
+    </CPUS>
+    <DRIVES>
+      <DESCRIPTION>Disque fixe local</DESCRIPTION>
+      <FILESYSTEM>NTFS</FILESYSTEM>
+      <FREE>9273</FREE>
+      <LABEL></LABEL>
+      <LETTER>C:</LETTER>
+      <SERIAL>18D50161</SERIAL>
+      <SYSTEMDRIVE>1</SYSTEMDRIVE>
+      <TOTAL>20377</TOTAL>
+      <TYPE>Local Disk</TYPE>
+      <VOLUMN></VOLUMN>
+    </DRIVES>
+    <DRIVES>
+      <DESCRIPTION>Disque CD-ROM</DESCRIPTION>
+      <LETTER>D:</LETTER>
+      <SYSTEMDRIVE></SYSTEMDRIVE>
+      <TYPE>Compact Disc</TYPE>
+    </DRIVES>
+    <DRIVES>
+      <FILESYSTEM>NTFS</FILESYSTEM>
+      <FREE>71</FREE>
+      <LABEL>Réservé au système</LABEL>
+      <LETTER>Réservé au système</LETTER>
+      <SERIAL>34D39252</SERIAL>
+      <SYSTEMDRIVE></SYSTEMDRIVE>
+      <TOTAL>99</TOTAL>
+      <TYPE>Local Disk</TYPE>
+      <VOLUMN>Réservé au système</VOLUMN>
+    </DRIVES>
+    <ENVS>
+      <KEY>ComSpec</KEY>
+      <VAL>%SystemRoot%\system32\cmd.exe</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>FP_NO_HOST_CHECK</KEY>
+      <VAL>NO</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>OS</KEY>
+      <VAL>Windows_NT</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>Path</KEY>
+      <VAL>C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Program Files\Rudder\bin</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PATHEXT</KEY>
+      <VAL>.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PROCESSOR_ARCHITECTURE</KEY>
+      <VAL>AMD64</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>TEMP</KEY>
+      <VAL>%SystemRoot%\TEMP</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>TMP</KEY>
+      <VAL>%SystemRoot%\TEMP</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>USERNAME</KEY>
+      <VAL>SYSTEM</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>windir</KEY>
+      <VAL>%SystemRoot%</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PSModulePath</KEY>
+      <VAL>C:\Users\Administrateur\Documents\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\Windows\system32\WindowsPowerShell\v1.0\Modules\;C:\Program Files\Rudder\policy;C:\Program Files\Rudder\share\initial-policy</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>NUMBER_OF_PROCESSORS</KEY>
+      <VAL>1</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PROCESSOR_LEVEL</KEY>
+      <VAL>6</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PROCESSOR_IDENTIFIER</KEY>
+      <VAL>Intel64 Family 6 Model 61 Stepping 2, GenuineIntel</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PROCESSOR_REVISION</KEY>
+      <VAL>3d02</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>windows_tracing_logfile</KEY>
+      <VAL>C:\BVTBin\Tests\installpackage\csilogfile.log</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>windows_tracing_flags</KEY>
+      <VAL>3</VAL>
+    </ENVS>
+    <HARDWARE>
+      <ARCHNAME>MSWin32-x64-multi-thread</ARCHNAME>
+      <CHASSIS_TYPE>Other</CHASSIS_TYPE>
+      <CHECKSUM>131071</CHECKSUM>
+      <DEFAULTGATEWAY>192.168.210.1</DEFAULTGATEWAY>
+      <DNS>192.168.210.1</DNS>
+      <ETIME>6</ETIME>
+      <IPADDR>192.168.210.8</IPADDR>
+      <LASTLOGGEDUSER>Administrateur</LASTLOGGEDUSER>
+      <MEMORY>2047</MEMORY>
+      <NAME>WIN-GNGDHPVHVTN</NAME>
+      <OSCOMMENTS>Service Pack 1</OSCOMMENTS>
+      <OSNAME>Microsoft Windows Server 2008 R2 Standard </OSNAME>
+      <OSVERSION>6.1.7601</OSVERSION>
+      <PROCESSORN>1</PROCESSORN>
+      <PROCESSORS>2000</PROCESSORS>
+      <PROCESSORT>Intel Core Processor (Broadwell)</PROCESSORT>
+      <USERID>Administrateur</USERID>
+      <UUID>C81E971B-A4D8-4718-AAB7-AD81D91EC1C3</UUID>
+      <VMSYSTEM>QEMU</VMSYSTEM>
+      <WINLANG>1036</WINLANG>
+      <WINOWNER>Utilisateur Windows</WINOWNER>
+      <WINPRODID>00477-179-0000007-84578</WINPRODID>
+      <WINPRODKEY>HMG6P-C7VGP-47GJ9-TWBD4-2YYCD</WINPRODKEY>
+      <WORKGROUP>WORKGROUP</WORKGROUP>
+    </HARDWARE>
+    <INPUTS>
+      <CAPTION>Étendu (101 ou 102 touches)</CAPTION>
+      <DESCRIPTION>Clavier standard PS/2</DESCRIPTION>
+      <LAYOUT>0000040C</LAYOUT>
+      <NAME>Étendu (101 ou 102 touches)</NAME>
+    </INPUTS>
+    <INPUTS>
+      <CAPTION>Périphérique d’entrée USB</CAPTION>
+      <DESCRIPTION>Périphérique d’entrée USB</DESCRIPTION>
+      <INTERFACE>USB</INTERFACE>
+      <MANUFACTURER>(Périphériques système standard)</MANUFACTURER>
+      <NAME>Périphérique d’entrée USB</NAME>
+      <POINTINGTYPE>2</POINTINGTYPE>
+    </INPUTS>
+    <INPUTS>
+      <CAPTION>Souris compatible PS/2</CAPTION>
+      <DESCRIPTION>Souris compatible PS/2</DESCRIPTION>
+      <INTERFACE>PS/2</INTERFACE>
+      <MANUFACTURER>Microsoft</MANUFACTURER>
+      <NAME>Souris compatible PS/2</NAME>
+      <POINTINGTYPE>2</POINTINGTYPE>
+    </INPUTS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-574</ID>
+      <NAME>Accès DCOM service de certificats</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-544</ID>
+      <NAME>Administrateurs</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-552</ID>
+      <NAME>Duplicateurs</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-568</ID>
+      <NAME>IIS_IUSRS</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-546</ID>
+      <NAME>Invités</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-573</ID>
+      <NAME>Lecteurs des journaux d’événements</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-569</ID>
+      <NAME>Opérateurs de chiffrement</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-556</ID>
+      <NAME>Opérateurs de configuration réseau</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-551</ID>
+      <NAME>Opérateurs de sauvegarde</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-550</ID>
+      <NAME>Opérateurs d’impression</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-545</ID>
+      <NAME>Utilisateurs</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-547</ID>
+      <NAME>Utilisateurs avec pouvoir</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-558</ID>
+      <NAME>Utilisateurs de l’Analyseur de performances</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-555</ID>
+      <NAME>Utilisateurs du Bureau à distance</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-559</ID>
+      <NAME>Utilisateurs du journal de performances</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-562</ID>
+      <NAME>Utilisateurs du modèle COM distribué</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-21-1202468010-2263478365-3281567188-1000</ID>
+      <NAME>WinRMRemoteWMIUsers__</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_USERS>
+      <ID>S-1-5-21-1202468010-2263478365-3281567188-1001</ID>
+      <NAME>abrianceau</NAME>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>S-1-5-21-1202468010-2263478365-3281567188-500</ID>
+      <NAME>Administrateur</NAME>
+    </LOCAL_USERS>
+    <MEMORIES>
+      <CAPACITY>2048</CAPACITY>
+      <CAPTION>DIMM 0</CAPTION>
+      <DESCRIPTION>DIMM</DESCRIPTION>
+      <MANUFACTURER>QEMU</MANUFACTURER>
+      <MEMORYCORRECTION>Multi-bit ECC</MEMORYCORRECTION>
+      <NUMSLOTS>1</NUMSLOTS>
+      <TYPE>RAM</TYPE>
+    </MEMORIES>
+    <NETWORKS>
+      <DESCRIPTION>Realtek RTL8139C+ carte réseau Fast Ethernet</DESCRIPTION>
+      <IPADDRESS>192.168.210.8</IPADDRESS>
+      <IPDHCP>192.168.210.1</IPDHCP>
+      <IPGATEWAY>192.168.210.1</IPGATEWAY>
+      <IPMASK>255.255.255.128</IPMASK>
+      <IPSUBNET>192.168.210.0</IPSUBNET>
+      <MACADDR>52:54:00:8F:B8:71</MACADDR>
+      <PCIID>10EC:8139:1100:1AF4</PCIID>
+      <PNPDEVICEID>PCI\VEN_10EC&amp;DEV_8139&amp;SUBSYS_11001AF4&amp;REV_20\3&amp;13C0B0C5&amp;0&amp;18</PNPDEVICEID>
+      <SPEED>100</SPEED>
+      <STATUS>Up</STATUS>
+      <TYPE>ethernet</TYPE>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>Realtek RTL8139C+ carte réseau Fast Ethernet</DESCRIPTION>
+      <IPADDRESS6>fe80::e187:4859:86f6:2f53</IPADDRESS6>
+      <IPMASK6>ffff:ffff:ffff:ffff::</IPMASK6>
+      <IPSUBNET6>fe80::</IPSUBNET6>
+      <MACADDR>52:54:00:8F:B8:71</MACADDR>
+      <PCIID>10EC:8139:1100:1AF4</PCIID>
+      <PNPDEVICEID>PCI\VEN_10EC&amp;DEV_8139&amp;SUBSYS_11001AF4&amp;REV_20\3&amp;13C0B0C5&amp;0&amp;18</PNPDEVICEID>
+      <SPEED>100</SPEED>
+      <STATUS>Up</STATUS>
+      <TYPE>ethernet</TYPE>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <OPERATINGSYSTEM>
+      <ARCH>64-bit</ARCH>
+      <BOOT_TIME>2019-06-24 15:37:57</BOOT_TIME>
+      <DNS_DOMAIN>demo.normation.com</DNS_DOMAIN>
+      <FQDN>WIN-GNGDHPVHVTN.demo.normation.com</FQDN>
+      <FULL_NAME>Microsoft Windows Server 2008 R2 Standard </FULL_NAME>
+      <INSTALL_DATE>2018-10-05 09:22:56</INSTALL_DATE>
+      <KERNEL_NAME>MSWin32</KERNEL_NAME>
+      <KERNEL_VERSION>6.1.7601</KERNEL_VERSION>
+      <NAME>Windows</NAME>
+      <SERVICE_PACK>Service Pack 1</SERVICE_PACK>
+      <TIMEZONE>
+        <NAME>Romance Standard Time</NAME>
+        <OFFSET>+0200</OFFSET>
+      </TIMEZONE>
+    </OPERATINGSYSTEM>
+    <PORTS>
+      <CAPTION>Port de communication (COM1)</CAPTION>
+      <DESCRIPTION>Port de communication</DESCRIPTION>
+      <NAME>Port de communication (COM1)</NAME>
+      <TYPE>Serial</TYPE>
+    </PORTS>
+    <PRINTERS>
+      <DRIVER>Microsoft XPS Document Writer</DRIVER>
+      <NAME>Microsoft XPS Document Writer</NAME>
+      <NETWORK>0</NETWORK>
+      <PORT>XPSPort:</PORT>
+      <PRINTPROCESSOR>winprint</PRINTPROCESSOR>
+      <RESOLUTION>600x600</RESOLUTION>
+      <SHARED>0</SHARED>
+      <STATUS>Idle</STATUS>
+    </PRINTERS>
+    <RUDDER>
+      <AGENT>
+        <AGENT_CERT>-----BEGIN CERTIFICATE-----
+MIIFZzCCA0+gAwIBAgIJANMgATX3kL5pMA0GCSqGSIb3DQEBCwUAMFQxGDAWBgNV
+BAMMD1dJTi1HTkdESFBWSFZUTjE4MDYGCgmSJomT8ixkAQEMKDU3MWFjNDM3LWNh
+OGUtNDBmYy1iNjcxLWFjZmQxYzI4Y2QyMSIgZHUwHhcNMTgxMDA4MTMyODA0WhcN
+MjgxMDA1MTMyODA0WjBUMRgwFgYDVQQDDA9XSU4tR05HREhQVkhWVE4xODA2BgoJ
+kiaJk/IsZAEBDCg1NzFhYzQzNy1jYThlLTQwZmMtYjY3MS1hY2ZkMWMyOGNkMjEi
+IGR1MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA0nAlLw8dFFewQz8P
+/YT9+AlFYBre3BoPOSnKCn3lDF6SV2islftv5H5hoGeoomLMmDoC+U4pSDmYaZQo
+cJMtWNOMpkNBzeMtAxxqprFFBtKfvx4t6i+RJoiR+x77i/PuWaXbivTM1uZEbT9U
+26zsOqH7YJGo3Oxxg3VUNpxckb+TQU2lQo8FfMWV5d5uajaBoQmtvE72q2HMKVRy
+UL3xWuqwcbNmLjqr8BLszHFYJaiajJHZFo3c9X+92+4zwWZR+GEK+EO3meUe3jvZ
+t1VCc+71aBfZFH7xcD6yMWgTootEez3hWBO0pcV2kwiue75AywJmZTVwjGwVEx9U
+aex0loR41VxxgVziEsFWb+nSGYXT0+tVxJ6G11+2kXx+w702iPNbUfYvdxqsJ2md
+1BcMnnNqe1MyTiLNbaoQooKJRQv/xDi6yk7EdjE3GFBJobyipkPF1suGoCCR5fB/
+ACsowROY42yiVv8bVEAAJpCKVXStO/DQJx3hLOq5eCV3OAj2Dz0Nb8eUHJN6ekJW
+38J4BVLsQdsk6YaeJfbZm2Mpp2Bbk5D8Joy1Rxu8WkQcw9idiXYFj6tNbr8PAimp
+X68vKgMRFRw+nnQV8wXkltrDMQrBnk4L0QLfWNeLc4gpOEYz4Iikd3QBALCXtr1q
+YnqUt1HD3SbcG23xhUI9VyqMk1sCAwEAAaM8MDowDAYDVR0TBAUwAwEB/zALBgNV
+HQ8EBAMCArQwHQYDVR0OBBYEFHl96MpK9BzrmPoC3GR52neNBOeXMA0GCSqGSIb3
+DQEBCwUAA4ICAQBASD/91vIIRIeYADOcn3XvMOeseELpv6L5Wgc6+h+VnI4dfQRm
+8m9vGP1nSR3sWX3WmeA+6kvUno7SXK+2/RvwMiYbta25on3NI9xJ/GW9O43+eEMV
++ak02HviPSg8bfw7TA01Fkxb24T/Gid6AtwY/D5M34aIleHcIENp77VC2YlM9OXb
+KG85tvT5F6ebrfY0ZBeyw6dt5c/R1+e8pLxwIJTz0eYnM5x8h9NF/Ah1E1liwAHl
+l3gm4Db61XbWegegnPEAWtJjyARN7FTrnvbH0QBHoMUxiq6/7GSDt2sUytVmM6aA
+2/OVdVeavkYkkhqk6BFxkg7qT6+O37Fzzap2KqgAqE3ZaHw9d8QjYc6dmV4mmajp
+sJN6GSxxTqiUyqkjZ39/AoF6hT9R6zH+/WEkQts1zCJjl1CDZbvjyhbN1baXZRqU
+H8NmQf+m1/rpQIRwaa7abfTBsEXIdkJNWVO30vJYnXhlNFSvblYAY+1IuhjWY/VF
+vn9iXrpxmtDFqEqedpvyeMuykaOlrJSD8zKiWldx22kTgl8U7iULnsJTj8rbOv6g
+PwRam8llXICqihzvg5idIVLrTzBRouZgDSf3mE4nT7ESaI9TjG7kJgsxnC/e5QGp
+Md6ZbKisdDVCyb8p5R2SzDIdD74i+wetC/beXXvHsWrOO7zW9PEIR+rTKQ==
+-----END CERTIFICATE-----
+        </AGENT_CERT>
+        <AGENT_NAME>dsc</AGENT_NAME>
+        <OWNER>win-gngdhpvhvtn\administrateur</OWNER>
+        <POLICY_SERVER_HOSTNAME>192.168.210.2</POLICY_SERVER_HOSTNAME>
+        <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
+      </AGENT>
+      <AGENT_CAPABILITIES></AGENT_CAPABILITIES>
+      <HOSTNAME>WIN-GNGDHPVHVTN</HOSTNAME>
+      <SERVER_ROLES></SERVER_ROLES>
+      <UUID>571ac437-ca8e-40fc-b671-acfd1c28cd21</UUID>
+    </RUDDER>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <FROM>registry</FROM>
+      <GUID>FusionInventory-Agent</GUID>
+      <HELPLINK>https://github.com/fusioninventory/fusioninventory-agent</HELPLINK>
+      <INSTALLDATE>08/01/2019</INSTALLDATE>
+      <NAME>FusionInventory Agent 2.3.19 (x64 edition)</NAME>
+      <PUBLISHER>FusionInventory Team</PUBLISHER>
+      <UNINSTALL_STRING>C:\Program Files\FusionInventory-Agent\Uninstall.exe</UNINSTALL_STRING>
+      <VERSION>2.3.19</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <FROM>registry</FROM>
+      <GUID>HxD_is1</GUID>
+      <HELPLINK>http://mh-nexus.de/hxd/</HELPLINK>
+      <INSTALLDATE>08/10/2018</INSTALLDATE>
+      <NAME>HxD Hex Editor 2.1</NAME>
+      <PUBLISHER>Maël Hörz</PUBLISHER>
+      <UNINSTALL_STRING>&quot;C:\Program Files\HxD\unins000.exe&quot;</UNINSTALL_STRING>
+      <URL_INFO_ABOUT>http://mh-nexus.de/</URL_INFO_ABOUT>
+      <VERSION>2.1</VERSION>
+      <VERSION_MAJOR>2</VERSION_MAJOR>
+      <VERSION_MINOR>1</VERSION_MINOR>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <COMMENTS>Mozilla Maintenance Service</COMMENTS>
+      <FROM>registry</FROM>
+      <GUID>MozillaMaintenanceService</GUID>
+      <INSTALLDATE>05/10/2018</INSTALLDATE>
+      <NAME>Mozilla Maintenance Service</NAME>
+      <PUBLISHER>Mozilla</PUBLISHER>
+      <UNINSTALL_STRING>&quot;C:\Program Files (x86)\Mozilla Maintenance Service\uninstall.exe&quot;</UNINSTALL_STRING>
+      <VERSION>62.0.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <FROM>registry</FROM>
+      <GUID>{7DEBE4EB-6B40-3766-BB35-5CBBC385DA37}</GUID>
+      <INSTALLDATE>05/10/2018</INSTALLDATE>
+      <NAME>Microsoft .NET Framework 4.5.1</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <UNINSTALL_STRING>MsiExec.exe /X{7DEBE4EB-6B40-3766-BB35-5CBBC385DA37}</UNINSTALL_STRING>
+      <URL_INFO_ABOUT>http://go.microsoft.com/fwlink/?LinkId=286133</URL_INFO_ABOUT>
+      <VERSION>4.5.50938</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <FROM>registry</FROM>
+      <INSTALLDATE>21/11/2010</INSTALLDATE>
+      <NAME>Internet Explorer (64bit)</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <VERSION>8.0.7601.17514</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i586</ARCH>
+      <COMMENTS>Mozilla Firefox 62.0.3 (x86 fr)</COMMENTS>
+      <FROM>registry</FROM>
+      <GUID>Mozilla Firefox 62.0.3 (x86 fr)</GUID>
+      <HELPLINK>https://support.mozilla.org</HELPLINK>
+      <INSTALLDATE>05/10/2018</INSTALLDATE>
+      <NAME>Mozilla Firefox 62.0.3 (x86 fr)</NAME>
+      <PUBLISHER>Mozilla</PUBLISHER>
+      <UNINSTALL_STRING>&quot;C:\Program Files (x86)\Mozilla Firefox\uninstall\helper.exe&quot;</UNINSTALL_STRING>
+      <URL_INFO_ABOUT>https://www.mozilla.org</URL_INFO_ABOUT>
+      <VERSION>62.0.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i586</ARCH>
+      <FROM>registry</FROM>
+      <GUID>Notepad++</GUID>
+      <INSTALLDATE>05/10/2018</INSTALLDATE>
+      <NAME>Notepad++ (32-bit x86)</NAME>
+      <PUBLISHER>Notepad++ Team</PUBLISHER>
+      <UNINSTALL_STRING>C:\Program Files (x86)\Notepad++\uninstall.exe</UNINSTALL_STRING>
+      <URL_INFO_ABOUT>http://notepad-plus-plus.org/</URL_INFO_ABOUT>
+      <VERSION>7.5.7</VERSION>
+      <VERSION_MAJOR>7</VERSION_MAJOR>
+      <VERSION_MINOR>57</VERSION_MINOR>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i586</ARCH>
+      <FROM>registry</FROM>
+      <GUID>Rudder</GUID>
+      <INSTALLDATE>22/06/2019</INSTALLDATE>
+      <NAME>Rudder agent (DSC)</NAME>
+      <PUBLISHER>Normation</PUBLISHER>
+      <UNINSTALL_STRING>&quot;C:\Program Files\Rudder\Uninstall.exe&quot;</UNINSTALL_STRING>
+      <VERSION>5.0-1.12</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i586</ARCH>
+      <FROM>registry</FROM>
+      <GUID>{4594566F-2BCE-49AC-AC27-8847F164CB94}</GUID>
+      <INSTALLDATE>08/01/2019</INSTALLDATE>
+      <NAME>NXLog-CE</NAME>
+      <PUBLISHER>NXLog Ltd</PUBLISHER>
+      <UNINSTALL_STRING>MsiExec.exe /X{4594566F-2BCE-49AC-AC27-8847F164CB94}</UNINSTALL_STRING>
+      <VERSION>2.10.2102</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i586</ARCH>
+      <FROM>registry</FROM>
+      <GUID>{A6B7AF13-8494-409E-BF2C-062EEB4E5765}</GUID>
+      <INSTALLDATE>16/01/2019</INSTALLDATE>
+      <NAME>Wazuh Agent 3.7.2</NAME>
+      <PUBLISHER>Wazuh, Inc.</PUBLISHER>
+      <UNINSTALL_STRING>MsiExec.exe /X{A6B7AF13-8494-409E-BF2C-062EEB4E5765}</UNINSTALL_STRING>
+      <VERSION>3.7.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i586</ARCH>
+      <FROM>registry</FROM>
+      <INSTALLDATE>21/11/2010</INSTALLDATE>
+      <NAME>Internet Explorer</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <VERSION>8.0.7601.17514</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <COMMENTS>Update</COMMENTS>
+      <FROM>WMI</FROM>
+      <INSTALLDATE>05/10/2018</INSTALLDATE>
+      <NAME>KB2819745</NAME>
+      <RELEASE_TYPE>Update</RELEASE_TYPE>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <COMMENTS>Update</COMMENTS>
+      <FROM>WMI</FROM>
+      <INSTALLDATE>05/10/2018</INSTALLDATE>
+      <NAME>KB2809215</NAME>
+      <RELEASE_TYPE>Update</RELEASE_TYPE>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <COMMENTS>Hotfix</COMMENTS>
+      <FROM>WMI</FROM>
+      <INSTALLDATE>05/10/2018</INSTALLDATE>
+      <NAME>KB2872035</NAME>
+      <RELEASE_TYPE>Hotfix</RELEASE_TYPE>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <COMMENTS>Update</COMMENTS>
+      <FROM>WMI</FROM>
+      <INSTALLDATE>21/11/2010</INSTALLDATE>
+      <NAME>KB976902</NAME>
+      <RELEASE_TYPE>Update</RELEASE_TYPE>
+    </SOFTWARES>
+    <SOUNDS>
+      <CAPTION>Périphérique High Definition Audio</CAPTION>
+      <DESCRIPTION>Périphérique High Definition Audio</DESCRIPTION>
+      <MANUFACTURER>Microsoft</MANUFACTURER>
+      <NAME>Périphérique High Definition Audio</NAME>
+    </SOUNDS>
+    <STORAGES>
+      <DESCRIPTION>Lecteur de disque</DESCRIPTION>
+      <DISKSIZE>21474</DISKSIZE>
+      <FIRMWARE>2.5+</FIRMWARE>
+      <INTERFACE>IDE</INTERFACE>
+      <MANUFACTURER>(Lecteurs de disque standard)</MANUFACTURER>
+      <MODEL>QEMU HARDDISK</MODEL>
+      <NAME>\\.\PHYSICALDRIVE0</NAME>
+      <SCSI_COID>0</SCSI_COID>
+      <SCSI_LUN>0</SCSI_LUN>
+      <SCSI_UNID>0</SCSI_UNID>
+      <SERIAL>QM00001</SERIAL>
+      <SERIALNUMBER>QM00001</SERIALNUMBER>
+      <TYPE>Fixed hard disk media</TYPE>
+    </STORAGES>
+    <STORAGES>
+      <DESCRIPTION>Lecteur de CD-ROM</DESCRIPTION>
+      <MANUFACTURER>(Lecteurs de CD-ROM standard)</MANUFACTURER>
+      <MODEL>QEMU QEMU DVD-ROM ATA Device</MODEL>
+      <NAME>QEMU QEMU DVD-ROM ATA Device</NAME>
+      <SCSI_COID>0</SCSI_COID>
+      <SCSI_LUN>0</SCSI_LUN>
+      <SCSI_UNID>1</SCSI_UNID>
+      <SERIALNUMBER />  <TYPE>UNKNOWN</TYPE>
+    </STORAGES>
+    <USBDEVICES>
+      <CAPTION>Périphérique d’entrée USB</CAPTION>
+      <MANUFACTURER>Adomax Technology Co., Ltd</MANUFACTURER>
+      <NAME>Périphérique d’entrée USB</NAME>
+      <PRODUCTID>0001</PRODUCTID>
+      <SERIAL>42</SERIAL>
+      <VENDORID>0627</VENDORID>
+    </USBDEVICES>
+    <USERS>
+      <DOMAIN>WIN-GNGDHPVHVTN</DOMAIN>
+      <LOGIN>Administrateur</LOGIN>
+    </USERS>
+    <VERSIONCLIENT>FusionInventory-Agent_v2.3.19</VERSIONCLIENT>
+    <VERSIONPROVIDER>
+      <COMMENTS>Provided by Teclib</COMMENTS>
+      <COMMENTS>Installer built with Appveyor on Sat Feb 18 09:34:43 UTC 2017</COMMENTS>
+      <NAME>FusionInventory</NAME>
+      <PERL_EXE>C:\Program Files\FusionInventory-Agent\perl\bin\perl.exe</PERL_EXE>
+      <PERL_VERSION>v5.22.2</PERL_VERSION>
+      <PROGRAM>fusioninventory-agent</PROGRAM>
+      <VERSION>2.3.19</VERSION>
+    </VERSIONPROVIDER>
+    <VIDEOS>
+      <NAME>Carte graphique VGA standard</NAME>
+    </VIDEOS>
+  </CONTENT>
+  <DEVICEID>WIN-GNGDHPVHVTN-2019-01-08-10-52-16</DEVICEID>
+  <QUERY>INVENTORY</QUERY>
+</REQUEST>
