@@ -66,8 +66,8 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.domain.nodes.NodeState
-
 import com.normation.box._
+import org.joda.time.format.ISODateTimeFormat
 
 object ShowNodeDetailsFromNode {
 
@@ -236,7 +236,7 @@ class ShowNodeDetailsFromNode(
                 bindNode(node, sm, withinPopup,displayCompliance, globalMode) ++ Script(
                   DisplayNode.jsInit(node.id, sm.node.softwareIds, "") &
                   JsRaw(s"""
-                    $$('.portlet-header.page-title').html("<span>Node: ${sm.node.main.hostname}</span><span class='update-info'>last updated ${sm.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")}</span>");
+                    $$('.portlet-header.page-title').html("<span>Node: ${sm.node.main.hostname}</span><span class='update-info'>last updated ${sm.node.inventoryDate.map(_.toString(ISODateTimeFormat.dateTimeNoMillis())).getOrElse("Unknown")}</span>");
                     $$( "#${detailsId}" ).tabs({ active : ${tab} } );
                     $$('#nodeInventory .ui-tabs-vertical .ui-tabs-nav li a').on('click',function(){
                       var tab = $$(this).attr('href');
