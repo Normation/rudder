@@ -52,14 +52,17 @@ import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.util.Helpers._
 import org.joda.time.format.DateTimeFormat
+
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
 import com.normation.appconfig.ReadConfigService
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.domain.nodes.NodeState
-
 import com.normation.box._
+import org.joda.time.DateTime
+
+import scala.xml.Text
 
 /**
  * Display the last reports of a server
@@ -71,6 +74,7 @@ class ReportDisplayer(
   , reportingService    : ReportingService
   , techniqueRepository : TechniqueRepository
   , configService       : ReadConfigService
+  , logDisplayer: LogDisplayer
 ) extends Loggable {
 
   private[this] val getAllNodeInfos = RudderConfig.nodeInfoService.getAll _
@@ -108,6 +112,16 @@ class ReportDisplayer(
       for {
         report  <- reportingService.findNodeStatusReport(node.id)
         data    <- getComplianceData(node.id, report)
+        runDate : Option[DateTime] = report.runInfo match {
+          case a : ComputeCompliance => Some(a.lastRunDateTime)
+          case a : LastRunAvailable  => Some(a.lastRunDateTime)
+          case a : NoExpectedReport   => Some(a.lastRunDateTime)
+          case a : NoReportInInterval => None
+          case a : Pending => a.optLastRun.map(_._1)
+          case a : ReportsDisabledInInterval => None
+          case  NoRunNoExpectedReport => None
+
+        }
       } yield {
         import net.liftweb.util.Helpers.encJs
         val intro = encJs(displayIntro(report).toString)
@@ -304,6 +318,16 @@ class ReportDisplayer(
         directiveLib <- directiveRepository.getFullDirectiveLibrary.toBox
       } yield {
 
+        val runDate : Option[DateTime] = report.runInfo match {
+          case a: ComputeCompliance => Some(a.lastRunDateTime)
+          case a: LastRunAvailable => Some(a.lastRunDateTime)
+          case a: NoExpectedReport => Some(a.lastRunDateTime)
+          case a: NoReportInInterval => None
+          case a: Pending => a.optLastRun.map(_._1)
+          case a: ReportsDisabledInInterval => None
+          case NoRunNoExpectedReport => None
+        }
+
       val intro = displayIntro(report)
 
       def triggerAgent(node: NodeInfo) : NodeSeq = {
@@ -333,6 +357,7 @@ class ReportDisplayer(
        *
        * And if don't even have expected configuration, don't display anything.
        */
+
 
       report.runInfo match {
         case NoRunNoExpectedReport | _:NoExpectedReport =>
@@ -366,6 +391,10 @@ class ReportDisplayer(
               "lastreportgrid-intro"      #> intro
             & "runagent"                  #> triggerAgent(node)
             & "lastreportgrid-grid"       #> showReportDetail(filtered, node, withCompliance = false)
+            & "#AllLogButton"             #> SHtml.ajaxButton(Text("Show logs ") ++ <i class="fa fa-table"></i>
+                ,  () => logDisplayer.asyncDisplay(node.id,runDate,"complianceLogsGrid") & SetHtml("logTitle", <h3 class="page-title space-top">All logs for current run</h3>) & OnLoad(logDisplayer.ajaxRefresh(node.id,runDate, "complianceLogsGrid"))
+                , ("class", "btn btn-primary")
+              )
             & "lastreportgrid-missing"    #> NodeSeq.Empty
             & "lastreportgrid-unexpected" #> NodeSeq.Empty
           )(reportByNodeTemplate)
@@ -379,6 +408,10 @@ class ReportDisplayer(
               "lastreportgrid-intro"      #> intro
             & "runagent"                  #> triggerAgent(node)
             & "lastreportgrid-grid"       #> showReportDetail(report, node, withCompliance = true)
+            & "#AllLogButton"             #> SHtml.ajaxButton(Text("Show logs ") ++ <i class="fa fa-table"></i>
+                                               ,  () => logDisplayer.asyncDisplay(node.id,runDate, "complianceLogsGrid") & SetHtml("logTitle", <h3 class="page-title space-top">All logs for current run</h3>) & OnLoad(logDisplayer.ajaxRefresh(node.id,runDate, "complianceLogsGrid"))
+                                               , ("class", "btn btn-primary")
+                                             )
             & "lastreportgrid-missing"    #> showMissingReports(missing)
             & "lastreportgrid-unexpected" #> showUnexpectedReports(unexpected)
           )(reportByNodeTemplate)

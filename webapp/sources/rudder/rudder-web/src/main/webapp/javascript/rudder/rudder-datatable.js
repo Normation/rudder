@@ -1205,7 +1205,7 @@ function createNodeTable(gridId, data, contextPath, refresh) {
  *   , "message" : Report message [String]
  *   }
  */
-function createTechnicalLogsTable(gridId, data, contextPath, refresh, pickEventLogsInInterval) {
+function createTechnicalLogsTable(gridId, data, contextPath, refresh, pickEventLogsInInterval, regroup) {
 
   var columns = [ {
       "sWidth": "10%"
@@ -1235,12 +1235,19 @@ function createTechnicalLogsTable(gridId, data, contextPath, refresh, pickEventL
       "sWidth": "24%"
     , "mDataProp": "message"
     , "sTitle": "Message"
+  } , {
+      "mDataProp": "runDate"
+    , "sTitle": "Run date"
+    , "bVisible" : false
   } ];
 
   var params = {
       "bFilter" : true
     , "bPaginate" : true
     , "bLengthChange": true
+    , "rowGroup": {
+         dataSrc: 'runDate'
+      }
     , "sPaginationType": "full_numbers"
     , "oLanguage": {
         "sSearch": ""
@@ -1249,6 +1256,10 @@ function createTechnicalLogsTable(gridId, data, contextPath, refresh, pickEventL
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh"><"dataTables_pickdates"><"dataTables_pickend"><"dataTables_pickstart">'+
       '>rt<"dataTables_wrapper_bottom"lip>'
   };
+
+  if (regroup) {
+    params["rowGroup"] = { dataSrc: 'runDate' }
+  }
 
   createTable(gridId,data, columns, params, contextPath, refresh, "technical_logs", false, pickEventLogsInInterval);
 

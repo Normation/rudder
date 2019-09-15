@@ -458,3 +458,14 @@ td.listclose:after {
   width: 100%;
   text-align: left;
 }
+
+.dtrg-group td::before {
+  content : "\f013  Run start date: ";
+  font-family: FontAwesome;
+}
+
+table.dataTable tr.dtrg-group td {
+  background-color : #eeeeee;
+  font-weight: bold;
+  color: #555
+}

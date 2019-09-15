@@ -41,7 +41,6 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.web.model._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.Reports
-import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.js._
@@ -74,12 +73,15 @@ class LogDisplayer(
     , "logs-content"
   )
 
-  private val gridName = "logsGrid"
-
-  def asyncDisplay(nodeId : NodeId) : NodeSeq = {
+  def ajaxRefresh(nodeId : NodeId, runDate : Option[DateTime], tableId : String)  = {
+    runDate match {
+      case Some(runDate) => SHtml.ajaxInvoke(() => refreshData(nodeId, reportRepository.findReportsByNodeByRun(nodeId, runDate).filter(_.severity.startsWith("log")), tableId))
+      case None => SHtml.ajaxInvoke(() => refreshData(nodeId, reportRepository.findReportsByNode(nodeId), tableId))
+    }
+  }
+  def asyncDisplay(nodeId : NodeId, runDate : Option[DateTime], tableId :String)  = {
     val id = JsNodeId(nodeId)
-    val ajaxRefresh =  SHtml.ajaxInvoke( () => refreshData(nodeId, reportRepository.findReportsByNode(nodeId)))
-
+    val refresh = ajaxRefresh(nodeId,runDate, tableId)
     def getEventsInterval(jsonInterval: String): JsCmd = {
       import net.liftweb.util.Helpers.tryo
       import net.liftweb.json.parse
@@ -104,7 +106,7 @@ class LogDisplayer(
         }
       }) match {
         case Full(reports) =>
-          refreshData(nodeId, reports)
+          refreshData(nodeId, reports, tableId)
         case eb : EmptyBox =>
           val fail = eb ?~! "Could not get latest event logs"
           logger.error(fail.messageChain)
@@ -113,8 +115,6 @@ class LogDisplayer(
       }
     }
 
-    Script(
-      OnLoad(
         // set static content
         SetHtml("logsDetails",content) &
         // Create empty table
@@ -123,18 +123,17 @@ class LogDisplayer(
            """'{"start":"'+$(".pickStartInput").val()+'", "end":"'+$(".pickEndInput").val()+'"}'"""
          ), getEventsInterval)._2).toJsCmd}
 
-          createTechnicalLogsTable("${gridName}",[], "${S.contextPath}",function() {${ajaxRefresh.toJsCmd}}, pickEventLogsInInterval);""") &
+          createTechnicalLogsTable("${tableId}",[], "${S.contextPath}",function() {${refresh.toJsCmd}}, pickEventLogsInInterval, ${runDate.nonEmpty});""") &
         // Load data asynchronously
-
         JsRaw(
       s"""
         $$("#details_${id}").on( "tabsactivate", function(event, ui) {
           if(ui.newPanel.attr('id')== 'node_logs') {
-            ${ajaxRefresh.toJsCmd}
+            ${refresh.toJsCmd}
           }
         });
       """
-    )))
+    )
   }
 
   /**
@@ -169,6 +168,7 @@ class LogDisplayer(
 
         ReportLine (
             report.executionDate
+          , report.executionTimestamp
           , report.severity
           , ruleName
           , directiveName
@@ -183,11 +183,11 @@ class LogDisplayer(
 
   }
 
-  def refreshData(nodeId : NodeId, reports: => Seq[Reports]) : JsCmd = {
+  def refreshData(nodeId : NodeId, reports: => Seq[Reports], tableId : String) : JsCmd = {
 
     val data = getReportsLineForNode(nodeId, reports).json.toJsCmd
 
-    OnLoad(JsRaw(s"""refreshTable("${gridName}",${data});""")
+    OnLoad(JsRaw(s"""refreshTable("${tableId}",${data});""")
     )
   }
 }
@@ -205,6 +205,7 @@ class LogDisplayer(
  */
 case class ReportLine (
     executionDate  : DateTime
+  , runDate        : DateTime
   , severity       : String
   , ruleName       : String
   , directiveName  : String
@@ -217,6 +218,7 @@ case class ReportLine (
 
       JsObj(
           ( "executionDate", executionDate.toString("yyyy-MM-dd HH:mm:ss") )
+        , ( "runDate", runDate.toString("yyyy-MM-dd HH:mm:ss") )
         , ( "severity"     , severity )
         , ( "ruleName"     , escapeHTML(ruleName) )
         , ( "directiveName", escapeHTML(directiveName) )
