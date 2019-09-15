@@ -2016,6 +2016,7 @@ object RudderConfig extends Loggable {
     , reportingServiceImpl
     , techniqueRepositoryImpl
     , configService
+    , logDisplayerImpl
   )
   private[this] lazy val propertyRepository = new RudderPropertiesRepositoryImpl(doobie)
   private[this] lazy val autoReportLogger = new AutomaticReportLogger(

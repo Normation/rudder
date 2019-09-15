@@ -1385,10 +1385,13 @@ pre.display-keys > label{
   color: #1b809e;
 }
 .space-top{
-  margin-top: 20px;
+  margin-top: 20px !important;
 }
 .space-bottom{
   margin-bottom: 30px;
+}
+.btn.space-bottom {
+  margin-bottom: 20px;
 }
 .space-left{
   margin-left:5px !important;

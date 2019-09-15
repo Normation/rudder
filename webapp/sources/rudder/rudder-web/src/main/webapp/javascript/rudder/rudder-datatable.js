@@ -1205,8 +1205,7 @@ function createNodeTable(gridId, data, contextPath, refresh) {
  *   , "message" : Report message [String]
  *   }
  */
-function createTechnicalLogsTable(gridId, data, contextPath, refresh, pickEventLogsInInterval) {
-
+function createTechnicalLogsTable(gridId, data, contextPath, refresh, regroup) {
   var columns = [ {
       "sWidth": "10%"
     , "mDataProp": "executionDate"
@@ -1235,6 +1234,10 @@ function createTechnicalLogsTable(gridId, data, contextPath, refresh, pickEventL
       "sWidth": "24%"
     , "mDataProp": "message"
     , "sTitle": "Message"
+  } , {
+      "mDataProp": "runDate"
+    , "sTitle": "Run date"
+    , "bVisible" : false
   } ];
 
   var params = {
@@ -1250,7 +1253,18 @@ function createTechnicalLogsTable(gridId, data, contextPath, refresh, pickEventL
       '>rt<"dataTables_wrapper_bottom"lip>'
   };
 
-  createTable(gridId,data, columns, params, contextPath, refresh, "technical_logs", false, pickEventLogsInInterval);
+  if (regroup) {
+    params["rowGroup"] = { dataSrc: 'runDate' }
+    params["aaSorting"] = [[1,"desc"]]
+    columns.unshift({
+                          "sWidth": "2%"
+                        , "mDataProp" : function() { return ""}
+                        , "sTitle": ""
+                        , "class" : "greyBackground"
+                      })
+  }
+
+  createTable(gridId,data, columns, params, contextPath, refresh, gridId, false);
 
 }
 
@@ -1319,7 +1333,7 @@ function createChangesTable(gridId, data, contextPath, refresh) {
  *   , "hasDetails" : do our event needs to display details (do we need to be able to open the row [Boolean]
  *   }
  */
-function createEventLogTable(gridId, data, contextPath, refresh, pickEventLogsInInterval) {
+function createEventLogTable(gridId, data, contextPath, refresh) {
 
   var columns = [ {
       "sWidth": "10%"
@@ -1413,7 +1427,7 @@ function createEventLogTable(gridId, data, contextPath, refresh, pickEventLogsIn
       '>rt<"dataTables_wrapper_bottom"lip>'
   };
 
-  createTable(gridId,data, columns, params, contextPath, refresh, "event_logs", false, pickEventLogsInInterval);
+  createTable(gridId,data, columns, params, contextPath, refresh, "event_logs", false);
 }
 
 function computeCompliancePercent (complianceArray) {
@@ -1749,7 +1763,7 @@ function createInnerTable(myTable,  createFunction, contextPath, kind) {
 }
 
 // Create a table from its id, data, columns, custom params, context patch and refresh function
-function createTable(gridId,data,columns, customParams, contextPath, refresh, storageId, isPopup, pickEventLogsInInterval) {
+function createTable(gridId,data,columns, customParams, contextPath, refresh, storageId, isPopup) {
   var defaultParams = {
       "asStripeClasses": [ 'color1', 'color2' ]
     , "bAutoWidth": false
@@ -1795,12 +1809,6 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
   $('#grid_remove_popup_grid').parent().addClass("table-responsive");
   $('#grid_remove_popup_grid').parents('.modal-dialog').addClass("modal-lg");
 
-  if (!( typeof pickEventLogsInInterval === 'undefined')) {
-    $('#filterLogs').removeClass('hide');
-    //Initialize the two datepickers
-    $('#filterLogs .pickStartInput, #filterLogs .pickEndInput').datetimepicker({dateFormat:'yy-mm-dd', timeFormat: 'HH:mm:ss', timeInput: true});
-    $('#filterLogsButton').click(pickEventLogsInInterval);
-  }
   return table;
 }
 
