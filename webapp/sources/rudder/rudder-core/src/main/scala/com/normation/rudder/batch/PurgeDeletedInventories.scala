@@ -66,7 +66,7 @@ class PurgeDeletedInventories(
       logger.info(s"Disable automatic purge for delete nodes inventories (update interval cannot be less than 1 hour)")
     } else {
       logger.debug(s"***** starting batch that purge deleted inventories older than ${TTL} days, every ${updateInterval.toString()} *****")
-      scheduler.scheduleWithFixedDelay(10.minute, updateInterval) {
+      scheduler.scheduleWithFixedDelay(updateInterval, updateInterval) {
         removeNodeService.purgeDeletedNodesPreviousDate(DateTime.now().withTimeAtStartOfDay().minusDays(TTL)) match {
           case Full(nodes) =>
             logger.info(s"Purged ${nodes.length} inventories from the removed inventory tree")
