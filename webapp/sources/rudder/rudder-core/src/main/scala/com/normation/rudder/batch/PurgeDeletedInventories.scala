@@ -79,7 +79,7 @@ class PurgeDeletedInventories(
           ScheduledJobLoggerPure.error(error.fullMsg)
       })
       import zio.duration.Duration.{fromScala => zduration}
-      ZioRuntime.unsafeRun(prog.delay(zduration(10.minutes)).repeat(Schedule.spaced(zduration(updateInterval))).provide(ZioRuntime.Environment).fork)
+      ZioRuntime.unsafeRun(prog.delay(zduration(updateInterval)).repeat(Schedule.spaced(zduration(updateInterval))).provide(ZioRuntime.Environment).fork)
     }
   }
 }
