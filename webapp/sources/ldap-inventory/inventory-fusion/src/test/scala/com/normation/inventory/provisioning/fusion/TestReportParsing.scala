@@ -191,27 +191,27 @@ class TestReportParsing extends Specification with Loggable {
 
     "be empty when there is no agent" in {
       val agents = parser.parse("fusion-report/rudder-tag/minimal-zero-agent.ocs").node.agents.map(_.agentType).toList
-      agents must be empty
+      agents must beEmpty
     }
 
     "have one agent when using community" in {
-    val agents = parser.parse("fusion-report/rudder-tag/minimal-one-agent.ocs").node.agents.map(_.agentType).toList
-      agents == (CfeCommunity :: Nil)
+      val agents = parser.parse("fusion-report/rudder-tag/minimal-one-agent.ocs").node.agents.map(_.agentType).toList
+      agents === (CfeCommunity :: Nil)
     }
 
     "have two agent when using community and nova" in {
       val agents = parser.parse("fusion-report/rudder-tag/minimal-two-agents.ocs").node.agents.map(_.agentType).toList
-      agents == (CfeCommunity :: CfeEnterprise :: Nil)
+      agents === (CfeCommunity :: CfeEnterprise :: Nil)
     }
 
     "be empty when there is two agents, using two different policy servers" in {
       val agents = parser.parse("fusion-report/rudder-tag/minimal-two-agents-fails.ocs").node.agents.map(_.agentType).toList
-      agents must be empty
+      agents must beEmpty
     }
 
     "have dsc agent agent when using rudder-agent based on dsc" in {
       val agents = parser.parse("fusion-report/dsc-agent.ocs").node.agents.map(_.agentType).toList
-      agents == (Dsc :: Nil)
+      agents === (Dsc :: Nil)
     }
 
   }
@@ -219,37 +219,37 @@ class TestReportParsing extends Specification with Loggable {
   "Parsing Windows 2012" should {
     "parse as windows 2012" in {
       val os = parser.parse("fusion-report/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs").node.main.osDetails.os
-      os == Windows2012
+      os === Windows2012
     }
     "parse as windows 2012" in {
       val os = parser.parse("fusion-report/windows2012r2.ocs").node.main.osDetails.os
-      os == Windows2012R2
+      os === Windows2012R2
     }
   }
 
   "Parsing Windows 2016" should {
     "parse as windows 2016" in {
       val os = parser.parse("fusion-report/windows2016.ocs").node.main.osDetails.os
-      os == Windows2016
+      os === Windows2016
     }
   }
 
   "Parsing Windows 2019" should {
     "parse as windows 2019" in {
       val os = parser.parse("fusion-report/windows2019.ocs").node.main.osDetails.os
-      os == Windows2019
+      os === Windows2019
     }
   }
 
   "Hostname should be correctly detected" should {
-     "get node1 when it is defined as this" in {
-        val hostname = parser.parse("fusion-report/signed_inventory.ocs").node.main.hostname
-        hostname == "node1"
-     }
+    "get node1 when it is defined as this" in {
+      val hostname = parser.parse("fusion-report/signed_inventory.ocs").node.main.hostname
+      hostname === "node1"
+    }
 
     "get WIN-AI8CLNPLOV5.eu-west-1.compute.internal as the hostname" in {
       val hostname = parser.parse("fusion-report/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs").node.main.hostname
-      hostname == "WIN-AI8CLNPLOV5.eu-west-1.compute.internal"
+      hostname === "WIN-AI8CLNPLOV5.eu-west-1.compute.internal"
     }
   }
 
@@ -275,25 +275,31 @@ class TestReportParsing extends Specification with Loggable {
   "Parsing Slackware" should {
     "parse as slackware" in {
       val os = parser.parse("fusion-report/slackinv.ocs").node.main.osDetails.os
-      os == Slackware
+      os === Slackware
     }
   }
 
   "Parsing Mint" should {
     "parse as mint" in {
       val os = parser.parse("fusion-report/mint.ocs").node.main.osDetails.os
-      os == Mint
+      os === Mint
     }
   }
 
   "Parsing inventory with only KERNEL_NAME in OPERATING SYSTEM" should {
     "parse as a unknown linux when it's a linux" in {
       val os = parser.parse("fusion-report/only-kernel-name-0034fbbe-4b52-4212-9535-1f1a952c6f36.ocs").node.main.osDetails.os
-      os == UnknownLinuxType
+      os === UnknownLinuxType
     }
     "parse as a unknown windows when its windows" in {
       val os = parser.parse("fusion-report/windows2016-incomplete.ocs").node.main.osDetails.os
-      os == UnknownWindowsType
+      os === UnknownWindowsType
     }
+  }
+  "Virtuozzo VM should be correctly parsed" in {
+    val inventory = parser.parse("fusion-report/virtuozzo.ocs")
+
+    (inventory.machine.machineType must beEqualTo(VirtualMachineType(Virtuozzo))) and
+    (inventory.node.main.osDetails must beEqualTo(Linux(Debian, "Debian GNU/Linux 9.5 (stretch)", new Version("9.5"), None, new Version("4.9.0-7-amd64"))))
   }
 }

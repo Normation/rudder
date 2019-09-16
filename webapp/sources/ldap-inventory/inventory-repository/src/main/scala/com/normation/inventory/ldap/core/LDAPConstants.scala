@@ -257,6 +257,9 @@ object LDAPConstants {
   val OC_VM_AIX_LPAR = "aixLpar"
   val OC_VM_HYPERV = "hyperV"
   val OC_VM_BSDJAIL = "bsdJail"
+  val OC_VM_LXC = "lxc"
+  val OC_VM_VIRTUOZZO = "virtuozzo"
+  val OC_VM_OPENVZ = "openvz"
 
 
   implicit val OC = new LDAPSchema()

@@ -599,6 +599,9 @@ class FusionReportUnmarshaller(
         case "aix_lpar" => report.machine.copy(machineType = VirtualMachineType(AixLPAR) )
         case "hyper-v" => report.machine.copy(machineType = VirtualMachineType(HyperV) )
         case "bsdjail" => report.machine.copy(machineType = VirtualMachineType(BSDJail) )
+        case "virtuozzo" => report.machine.copy(machineType = VirtualMachineType(Virtuozzo) )
+        case "openvz" => report.machine.copy(machineType = VirtualMachineType(OpenVZ) )
+        case "lxc" => report.machine.copy(machineType = VirtualMachineType(LXC) )
         case _ => report.machine.copy(machineType = VirtualMachineType(UnknownVmType) )
       }
     }).copy(mbUuid = optText(xml \\"UUID").map(MotherBoardUuid.apply(_)).orElse(report.machine.mbUuid))

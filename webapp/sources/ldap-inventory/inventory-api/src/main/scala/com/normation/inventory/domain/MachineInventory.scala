@@ -149,7 +149,9 @@ case object Xen extends VmType("xen") with HashcodeCaching
 case object AixLPAR extends VmType("aixlpar") with HashcodeCaching
 case object HyperV extends VmType("hyperv") with HashcodeCaching
 case object BSDJail extends VmType("bsdjail") with HashcodeCaching
-
+case object Virtuozzo extends VmType("virtuozzo") with HashcodeCaching
+case object OpenVZ extends VmType("openvz") with HashcodeCaching
+case object LXC extends VmType("lxc") with HashcodeCaching
 
 
 /**
