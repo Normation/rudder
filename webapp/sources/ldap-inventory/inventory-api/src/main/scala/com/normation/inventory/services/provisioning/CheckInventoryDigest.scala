@@ -185,32 +185,20 @@ class InventoryDigestServiceV1(
 
     repo.get(receivedInventory.node.main.id).flatMap {
       case Some(storedInventory) =>
-        val status = storedInventory.node.main.keyStatus
-        val inventory  : IOResult[NodeInventory] = status match {
-          case UndefinedKey =>
-            storedInventory.node.agents.map(_.securityToken).headOption match {
-              case None =>
-                // There is no key and status is undefined, use received key
-                receivedInventory.node.succeed
-              case Some(securityToken) =>
-                securityToken match {
-                  case key : AgentKey =>
-                    key.publicKey.foldM (
-                      // Key stored is not valid and status is undefined try received key,
-                      // There treat the case of the bootstrapped key for rudder root server
-                      _ => receivedInventory.node.succeed
-                    , // Stored key is valid, use it !
-                      _ =>  storedInventory.node.succeed
-                    )
-                  case cert : Certificate =>
-                    // We don't sign inventory with cert for now, use sorted one
-                    storedInventory.node.succeed
-                }
-            }
-          // Certified node always use stored inventory key
-          case CertifiedKey => storedInventory.node.succeed
-        }
-        inventory.flatMap(i => extractKey(i).map((_,status)))
+        val keyStatus = storedInventory.node.main.keyStatus
+        val inventory  : NodeInventory =
+          //if inventory was deleted, don't care, use new one
+          storedInventory.node.main.status match {
+            case RemovedInventory => receivedInventory.node
+            case _                => //in other case, check is the key update is valid
+              keyStatus match {
+                case UndefinedKey => // Trust On First Use (TOFU) (user may have reseted, etc)
+                  receivedInventory.node
+                // Certified node always use stored inventory key
+                case CertifiedKey => storedInventory.node
+              }
+          }
+        extractKey(inventory).map((_, keyStatus))
       case _ =>
         val status = receivedInventory.node.main.keyStatus
         extractKey(receivedInventory.node).map((_,status))
