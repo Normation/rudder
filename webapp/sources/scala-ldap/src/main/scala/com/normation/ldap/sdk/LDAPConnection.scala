@@ -658,7 +658,7 @@ class RwLDAPConnection(
           case Replace((dn,mods)) => sequence(mods) { mod => modify(dn,mod) }
         }
       }
-      ((Full(Seq()):Box[Seq[LDIFChangeRecord]])/:tree.toSeq) { (records,mod) =>
+      tree.toSeq.foldLeft(Full(Seq()):Box[Seq[LDIFChangeRecord]]) { (records,mod) =>
         records match {
           case Full(seq) => applyTreeModification(mod) match {
             case f@Failure(_,_,_) => f

@@ -166,7 +166,7 @@ class RuleDisplayer (
     }
 
     directive match {
-      case Some(d) => d.checkRules match {case (toCheck,toUncheck) => (toCheck.map(r => action(r.id,true)) ++ toUncheck.map(r => action(r.id,false)) :\ Noop){ _ & _}}
+      case Some(d) => d.checkRules match {case (toCheck,toUncheck) => (toCheck.map(r => action(r.id,true)) ++ toUncheck.map(r => action(r.id,false))).foldLeft(Noop){ _ & _ }}
       case None    => Noop
     }
   }

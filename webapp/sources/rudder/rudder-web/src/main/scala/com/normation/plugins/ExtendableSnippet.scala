@@ -144,7 +144,7 @@ trait ExtendableSnippet[T] extends DispatchSnippet {
               mainDispatch) ++
               afterSnippetExtensionSeq.map( _.compose(snippet) )
 
-    (Map.empty[String, NodeSeq => NodeSeq] /: all){ case (previous, current) =>
+    all.foldLeft(Map.empty[String, NodeSeq => NodeSeq]){ case (previous, current) =>
       previous ++ (for {
         (key, transform) <- current.iterator
       } yield {

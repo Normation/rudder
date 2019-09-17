@@ -170,7 +170,7 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
                    * In case of none, return a failure.
                    */
                    val failure: Box[String] = Failure(s"Missing tags ${tags.map(t => s"OPERATINGSYSTEM/${t}").mkString(", ")}. At least one of them is mandatory")
-                   (failure /: tags) { case (state, tag) =>
+                   tags.foldLeft(failure) { case (state, tag) =>
                      state match {
                        case Full(x) => Full(x)
                        case _       => checkNodeSeq(report, "OPERATINGSYSTEM", false, Some(tag)).or(failure)

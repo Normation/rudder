@@ -331,9 +331,9 @@ class InternalLDAPQueryProcessor(
     val dnMapSets : Map[DnType, Set[DN]] =
       dnMapMapSets map { case (dnType, dnMapSet) =>
         val dnSet:Set[DN] = normalizedQuery.composition match {
-          case Or  => (Set[DN]() /: dnMapSet)( _ union _._2 )
+          case Or  => dnMapSet.foldLeft(Set[DN]())( _ union _._2 )
           case And =>
-            val s = if(dnMapSet.isEmpty) Set[DN]() else (dnMapSet.head._2 /: dnMapSet)( _ intersect _._2 )
+            val s = if(dnMapSet.isEmpty) Set[DN]() else dnMapSet.foldLeft(dnMapSet.head._2)( _ intersect _._2 )
             if(s.isEmpty) {
               logger.debug("[%s] `-> early stop query (empty sub-query)".format(debugId))
               return Full(LdapQueryProcessorResult(Nil, Nil)) //there is no need to go farther, since it will lead to ending with empty set
@@ -373,7 +373,7 @@ class InternalLDAPQueryProcessor(
         case Full((ldapFilters, specialFilters)) =>
           val finalLdapFilter = normalizedQuery.composition match {
             case Or  =>
-              Some(OR( ((ldapFilters /: filterSeqSet)( _ union _ )).toSeq:_*))
+              Some(OR( (filterSeqSet.foldLeft(ldapFilters)( _ union _ )).toSeq:_*))
             case And => //if returnFilter is None, just and other filter, else add it. TODO : may it be empty ?
               val seqFilter = ldapFilters.toSeq ++
                   filterSeqSet.map(s => if(s.size > 1) OR(s.toSeq:_*) else s.head ) //s should not be empty, since we returned earlier if it was the case
@@ -492,7 +492,7 @@ class InternalLDAPQueryProcessor(
 
     def buildSearchRequest(addedSpecialFilters:Set[SpecialFilter]) : Box[SearchRequest] = {
       //special filter can modify the filter and the attributes to get
-      val params = ( (filter,attributes) /: addedSpecialFilters) {
+      val params = addedSpecialFilters.foldLeft((filter,attributes)) {
             case ( (f, currentAttributes), r:GeneralRegexFilter) =>
               val filterToApply = composition match {
                 case Or => Some(ALL)
@@ -630,7 +630,7 @@ class InternalLDAPQueryProcessor(
    */
   private[this] def unspecialiseFilters(filters:Set[ExtendedFilter]) : Box[(Set[Filter], Set[SpecialFilter])] = {
     val start = (Set[Filter](), Set[SpecialFilter]())
-    Full((start /: filters) {
+    Full(filters.foldLeft(start) {
       case (  (ldapFilters,specials), LDAPFilter(f)        ) => (ldapFilters + f, specials)
       case (  (ldapFilters,specials), r:GeneralRegexFilter ) => (ldapFilters, specials + r)
       case (x, f) => return Failure("Can not handle filter type: '%s', abort".format(f))

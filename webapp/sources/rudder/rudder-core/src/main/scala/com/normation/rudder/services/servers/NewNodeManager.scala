@@ -378,8 +378,8 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
 
     // Best effort it, starting with an empty result
     val start : Box[Seq[Srv]] = Full(Seq())
-    ( ids :\ start ) {
-      case (id, result) =>
+    ids.foldLeft(start ) {
+      case (result, id) =>
 
         // Refuse the node and get the result
         val refusal = for {
@@ -666,7 +666,7 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
 
     // Transform the sequence of box into a boxed result, best effort it!
     val start : Box[Seq[FullInventory]] = Full(Seq())
-    ( acceptanceResults :\ start ) {
+    acceptanceResults.foldRight(start) {
       // Node accepted, and result ok, accumulate success
       case (Full(inv), Full(seq)) =>
         Full(inv +: seq)

@@ -55,12 +55,12 @@ trait JsTreeNode {
   def children : List[JsTreeNode]
 
   def toXml : NodeSeq = {
-    (<li>
+    attrs.map(x => x:MetaData).foldLeft(<li>
       {body}
       <ul>
         {this.children.map( _.toXml).toSeq}
       </ul>
-    </li> /: attrs.map(x => x:MetaData))( (node, attr) => node % attr )
+    </li>)( (node, attr) => node % attr )
   }
 }
 

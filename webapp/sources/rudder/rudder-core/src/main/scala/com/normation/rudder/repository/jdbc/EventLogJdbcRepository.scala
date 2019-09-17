@@ -141,7 +141,7 @@ class EventLogJdbcRepository(
     // here, we have to build the parameters by hand
     // the first is the array needed by xpath, the following are eventType - if any
     val eventTypeParam = eventTypeFilter.zipWithIndex
-    val param = ( HPS.set(1, List(changeRequest.value.toString)) /: eventTypeParam ) { case (current, (event,index)) =>
+    val param = eventTypeParam.foldLeft(HPS.set(1, List(changeRequest.value.toString))) { case (current, (event,index)) =>
       // zipwithIndex starts at 0, and we have already 1 used for the array, so we +2 the index
       current *> HPS.set(index+2, event.eventType.serialize)
     }

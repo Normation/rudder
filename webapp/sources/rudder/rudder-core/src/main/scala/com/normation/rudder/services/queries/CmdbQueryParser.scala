@@ -106,7 +106,7 @@ trait DefaultStringQueryParser extends StringQueryParser {
       )
     }
 
-    val lines = ( (Full(List()):Box[List[CriterionLine]]) /: query.criteria.toList ){
+    val lines = query.criteria.toList.foldLeft(Full(List()):Box[List[CriterionLine]]){
       (opt,x) => opt.flatMap(l => parseLine(x).map( _::l ) )
     } match {
       case f@Failure(_,_,_) => return f
@@ -196,7 +196,7 @@ trait JsonQueryLexer extends QueryLexer {
         // try to parse all lines. On the first parsing error (parseCrtierion returns Failure),
         // stop and return a Failure
         // if all parsing are OK, return a Full(list(criterionLine)
-        ( (Full(List[StringCriterionLine]()):Box[List[StringCriterionLine]]) /: arr){
+        arr.foldLeft(Full(List[StringCriterionLine]()):Box[List[StringCriterionLine]]){
           (opt,x) => opt.flatMap(l=> parseCriterion(x).map( _:: l))
         } match {
           case Full(l) => Full(l.reverse)

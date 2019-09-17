@@ -361,7 +361,7 @@ class UploadedFileField(basePath: String)(val id: String) extends DirectiveField
   def toClient: String = if (null == f) "" else f.getName
 
   def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = {
-    Some((listFiles.map(_._1).toSet /: filters) { (files, filter) => files.filter(f => filter(f)) })
+    Some(filters.foldLeft(listFiles.map(_._1).toSet) { (files, filter) => files.filter(f => filter(f)) })
   }
   def getDefaultValue = null
 
@@ -557,7 +557,7 @@ class FilePermsField(val id: String) extends DirectiveField {
   }
 
   def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] =
-    Some((FilePerms.allPerms /: filters) { (filePerms, filter) =>
+    Some(filters.foldLeft(FilePerms.allPerms) { (filePerms, filter) =>
       filePerms.filter(p => filter(p))
     })
 

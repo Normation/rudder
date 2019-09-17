@@ -161,7 +161,7 @@ class TechniqueRepositoryImpl(
           // {name, techniques, subcategories} are the same and transform them into move.
           val deleted = changed.collect { case d: Deleted => d }
           // for each delete, look for a corresponding add, and in that case mark them as to be removed from changed
-          val (moveToAdd, otherToRemove) = ((List.empty[Moved], List.empty[TechniqueCategoryModType]) /: deleted) { case ((move, toDelete), d@Deleted(currentDel)) =>
+          val (moveToAdd, otherToRemove) = deleted.foldLeft((List.empty[Moved], List.empty[TechniqueCategoryModType])) { case ((move, toDelete), d@Deleted(currentDel)) =>
             changed.find(c => c match {
                 // hypothesis: it's a directory rename if the display name and content is the same
               case Added(cat, parentId) => currentDel.name == cat.name && currentDel.subCategoryIds == cat.subCategoryIds && currentDel.techniqueIds == cat.techniqueIds

@@ -460,7 +460,7 @@ class RoLDAPNodeGroupRepository(
       con     <- ldap
       entries <- groupLibMutex.readLock( con.getTree(rudderDit.GROUP.dn) ) ?~! "The root category of the node group library seems to be missing in LDAP directory. Please check its content"
     } yield {
-      val allMaps =  (emptyAll /: entries.toSeq) { case (current, e) =>
+      val allMaps =  entries.toSeq.foldLeft(emptyAll) { case (current, e) =>
          if(isACategory(e)) {
            mapper.entry2NodeGroupCategory(e) match {
              case Full(category) =>

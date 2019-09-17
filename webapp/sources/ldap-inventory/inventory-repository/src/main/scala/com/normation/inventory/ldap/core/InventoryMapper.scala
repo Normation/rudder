@@ -515,7 +515,7 @@ class InventoryMapper(
       val m = MachineInventory(id,inventoryStatus,machineType,name,mbUuid,inventoryDate, receiveDate
                                , manufacturer, systemSerialNumber)
       //map subentries and return result
-      (m /: tree.children) { case (m,(rdn,t)) => mapAndAddMachineElement(t.root(),m) }
+      tree.children.foldLeft(m) { case (m,(rdn,t)) => mapAndAddMachineElement(t.root(),m) }
     }
   }
 
@@ -996,7 +996,7 @@ class InventoryMapper(
       node <- nodeFromEntry(tree.root)
     } yield {
       //map subentries and return result
-      (node /: tree.children) { case (m,(rdn,t)) => mapAndAddNodeElement(t.root(),m) }
+      tree.children.foldLeft(node) { case (m,(rdn,t)) => mapAndAddNodeElement(t.root(),m) }
     }
   }
 

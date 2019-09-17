@@ -273,7 +273,7 @@ class UpdateExpectedReportsJdbcRepository(
 
     // we want to close all error nodeexpectedreports, and all non current
     // we keep valid current identified by nodeId, we won't have to save them afterward.
-    val (toClose, okConfigs) = ( (List[(DateTime, NodeId, NodeConfigId, DateTime)](), List[NodeId]() ) /: oldConfigs) { case ((nok, ok), next) =>
+    val (toClose, okConfigs) = oldConfigs.foldLeft((List[(DateTime, NodeId, NodeConfigId, DateTime)](), List[NodeId]() )) { case ((nok, ok), next) =>
       next match {
         case Left(n) => ((currentConfigs(n._1)._2, n._1, n._2, n._3)::nok, ok)
         case Right(r) =>
@@ -288,7 +288,7 @@ class UpdateExpectedReportsJdbcRepository(
     //same reasoning for config info: only update the ones for witch the last id is not the correct one
     //we use configs because we must know if a nodeInfo is completly missing and add it
     type T = (Vector[NodeConfigIdInfo], NodeId)
-    val (toAdd, toUpdate, okInfos) = ( (List[T](), List[T](), List[NodeId]() ) /: configs ) { case ((add, update, ok), next) =>
+    val (toAdd, toUpdate, okInfos) = configs.foldLeft((List[T](), List[T](), List[NodeId]() )) { case ((add, update, ok), next) =>
       configInfos.get(next.nodeId) match {
         case None => // add it
           ( (Vector(NodeConfigIdInfo(next.nodeConfigId, next.beginDate, None)), next.nodeId) :: add, update, ok)

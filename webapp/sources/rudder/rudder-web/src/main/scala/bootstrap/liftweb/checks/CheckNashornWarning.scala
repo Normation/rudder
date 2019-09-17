@@ -40,7 +40,6 @@ package bootstrap.liftweb.checks
 import bootstrap.liftweb.BootstrapChecks
 import com.normation.rudder.domain.logger.ApplicationLogger
 import javax.servlet.UnavailableException
-import net.liftweb.common._
 
 import scala.util.control.NonFatal
 
