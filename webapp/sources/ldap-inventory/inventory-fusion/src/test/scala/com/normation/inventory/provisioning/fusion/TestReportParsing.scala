@@ -189,7 +189,7 @@ class TestReportParsing extends Specification with Loggable {
 
     "be empty when there is no agent" in {
       val agents = parseRun("fusion-report/rudder-tag/minimal-zero-agent.ocs").node.agents.map(_.agentType).toList
-      agents must be empty
+      agents must beEmpty
     }
 
     "have one agent when using community" in {
@@ -205,7 +205,7 @@ class TestReportParsing extends Specification with Loggable {
 
     "be empty when there is two agents, using two different policy servers" in {
       val agents = parseRun("fusion-report/rudder-tag/minimal-two-agents-fails.ocs").node.agents.map(_.agentType).toList
-      agents must be empty
+      agents must beEmpty
     }
 
     "have dsc agent agent when using rudder-agent based on dsc" in {
@@ -294,5 +294,11 @@ class TestReportParsing extends Specification with Loggable {
       val os = parseRun("fusion-report/windows2016-incomplete.ocs").node.main.osDetails.os
       os === UnknownWindowsType
     }
+  }
+  "Virtuozzo VM should be correctly parsed" in {
+    val inventory = parseRun("fusion-report/virtuozzo.ocs")
+
+    (inventory.machine.machineType must beEqualTo(VirtualMachineType(Virtuozzo))) and
+    (inventory.node.main.osDetails must beEqualTo(Linux(Debian, "Debian GNU/Linux 9.5 (stretch)", new Version("9.5"), None, new Version("4.9.0-7-amd64"))))
   }
 }

@@ -423,6 +423,9 @@ class InventoryMapper(
       case VirtualMachineType(AixLPAR) => OC(OC_VM_AIX_LPAR)
       case VirtualMachineType(HyperV) => OC(OC_VM_HYPERV)
       case VirtualMachineType(BSDJail) => OC(OC_VM_BSDJAIL)
+      case VirtualMachineType(OpenVZ) => OC(OC_VM_OPENVZ)
+      case VirtualMachineType(Virtuozzo) => OC(OC_VM_VIRTUOZZO)
+      case VirtualMachineType(LXC) => OC(OC_VM_LXC)
       case PhysicalMachineType => OC(OC_PM)
     }
   }
