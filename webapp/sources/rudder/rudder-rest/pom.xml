@@ -98,6 +98,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-core</artifactId>
+      <version>${spring-security-version}</version>
+    </dependency>
 
     <dependency>
       <groupId>com.normation.rudder</groupId>

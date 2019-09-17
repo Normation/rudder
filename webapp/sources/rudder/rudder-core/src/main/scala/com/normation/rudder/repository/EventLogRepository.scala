@@ -374,6 +374,8 @@ trait EventLogRepository {
    */
   def getEventLogByCriteria(criteria: Option[String], limit :Option[Int] = None, orderBy: Option[String] = None) : IOResult[Vector[EventLog]]
 
+  def getEventLogCount: IOResult[Long]
+
   def getEventLogByChangeRequest(
       changeRequest  : ChangeRequestId
     , xpath          : String
