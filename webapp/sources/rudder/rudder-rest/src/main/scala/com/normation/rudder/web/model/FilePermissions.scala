@@ -150,7 +150,7 @@ case object rwx extends Perm {
 object Perm {
   //utility methods to see the bitset as an int
   //unknown result for bs.size > 31
-  private def bitSetToInt(bs:BitSet) : Int = (0 /: bs){ (o,j) =>  o | 1 << j }
+  private def bitSetToInt(bs:BitSet) : Int = bs.foldLeft(0){ (o,j) =>  o | 1 << j }
 
   def apply(o:Byte) = o match {
     case 0 => Some(none)
@@ -231,14 +231,14 @@ case class PermSet(file:FilePerms,perms:(Perm => Unit, () => Perm)* )  extends H
     case None => file
   }
 
-  def octal:String = ("" /: perms ) { (s,p) => s + p._2().octal.toString }
+  def octal:String = perms.foldLeft("") { (s,p) => s + p._2().octal.toString }
 
   //simule erad/write/exec vars
-  def read = (true /: perms){ (b,p) => b & p._2().read }
+  def read = perms.foldLeft(true){ (b,p) => b & p._2().read }
   def read_=(b:Boolean): Unit = { if(b) this+(r) else this-(r) }
-  def write = (true /: perms){ (b,p) => b & p._2().write }
+  def write = perms.foldLeft(true){ (b,p) => b & p._2().write }
   def write_=(b:Boolean): Unit = { if(b) this+(w) else this-(w) }
-  def exec = (true /: perms){ (b,p) => b & p._2().exec }
+  def exec = perms.foldLeft(true){ (b,p) => b & p._2().exec }
   def exec_=(b:Boolean): Unit = { if(b) this+(x) else this-(x) }
 
 }

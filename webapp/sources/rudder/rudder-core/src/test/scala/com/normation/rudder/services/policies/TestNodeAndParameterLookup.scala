@@ -55,7 +55,6 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import org.specs2.matcher.Expectable
-import java.util.regex.Pattern
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonAST.JValue
 import com.normation.rudder.domain.nodes.NodeProperty
@@ -243,17 +242,17 @@ class TestNodeAndParameterLookup extends Specification {
 
     "fails on unknown rudder subpath" in {
       val s = """${rudder.foo.bar}"""
-      parseAll(all, s) must haveClass[scala.util.parsing.combinator.Parsers$Failure]
+      parseAll(all, s) must haveClass[scala.util.parsing.combinator.Parsers#Failure]
     }
 
     "error on parse node properties with path=0" in {
       val s = """${node.properties}"""
-      parseAll(all, s) must haveClass[scala.util.parsing.combinator.Parsers$Failure]
+      parseAll(all, s) must haveClass[scala.util.parsing.combinator.Parsers#Failure]
     }
 
     "error on parse node properties with path=0" in {
       val s = """${node.properties[]}"""
-      parseAll(all, s) must haveClass[scala.util.parsing.combinator.Parsers$Failure]
+      parseAll(all, s) must haveClass[scala.util.parsing.combinator.Parsers#Failure]
     }
 
     "parse node properties with path=1" in {
@@ -540,19 +539,19 @@ class TestNodeAndParameterLookup extends Specification {
 
     "fails when the curly brace after ${rudder. is not closed" in {
       lookupService.lookupNodeParameterization(Seq(badUnclosed))(context) must beFailure(
-        """On variable 'empty'.* `}' expected but `=' found.*""".r
+        """On variable 'empty'.* end of input expected.*""".r
       )
     }
 
     "fails when the part after ${rudder.} is empty" in {
       lookupService.lookupNodeParameterization(Seq(badEmptyRudder))(context) must beFailure(
-        (".*" + Pattern.quote("""string matching regex `(?iu)\Qparam\E' expected but `}' found""")+".*"). r
+        """On variable 'empty'.* end of input expected.*""".r
       )
     }
 
     "fails when the part after ${rudder.} is not recognised" in {
       lookupService.lookupNodeParameterization(Seq(badUnknown))(context.copy(parameters = p(fooParam))) must beFailure(
-        (".*" + Pattern.quote("""string matching regex `(?iu)\Qparam\E' expected but `f' found""")+".*"). r
+         """On variable 'empty'.* end of input expected.*""".r
       )
     }
   }

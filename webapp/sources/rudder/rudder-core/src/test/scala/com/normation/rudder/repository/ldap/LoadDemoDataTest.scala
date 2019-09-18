@@ -71,7 +71,7 @@ class LoadDemoDataTest extends Specification {
   }
 
 
-  val numEntries = (0 /: bootstrapLDIFs) { case (x,path) =>
+  val numEntries = bootstrapLDIFs.foldLeft(0) { case (x,path) =>
     val reader = new com.unboundid.ldif.LDIFReader(path)
     var i = 0
     while(reader.readEntry != null) i += 1

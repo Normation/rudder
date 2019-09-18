@@ -217,7 +217,7 @@ class ItemArchiveManagerImpl(
         activeTechniquesInError <- activeTechniquesInErrorIO
       } yield {
 
-        val (atNotArchived, dirNotArchived) = ( (Seq.empty[ActiveTechniqueNotArchived], Seq.empty[DirectiveNotArchived]) /: activeTechniquesInError) {
+        val (atNotArchived, dirNotArchived) = activeTechniquesInError.foldLeft((Seq.empty[ActiveTechniqueNotArchived], Seq.empty[DirectiveNotArchived])) {
           case ( (ats,dirs) , (at,dir)  ) => (ats ++ at, dirs ++ dir)
         }
 

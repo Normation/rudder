@@ -89,7 +89,7 @@ class NameAndVersionIdFinder(
       merged  <- ZIO.foreach(entries) { e => ZIO.fromEither(mapper.softwareFromEntry(e)) }
     } yield {
       //now merge back
-      (MergedSoftware(Set(),Set())/: entities) { case(ms, s) =>
+      entities.foldLeft(MergedSoftware(Set(),Set())) { case(ms, s) =>
         merged.find { x => x.name == s.name && x.version == s.version } match {
           case None => ms.copy(newSoftware = ms.newSoftware+s)
           case Some(x) => ms.copy(alreadySavedSoftware = ms.alreadySavedSoftware+x)

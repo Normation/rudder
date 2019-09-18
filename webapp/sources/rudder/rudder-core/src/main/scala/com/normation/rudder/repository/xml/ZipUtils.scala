@@ -123,7 +123,7 @@ object ZipUtils {
         val c = existing :+ Zippable(getPath(f), None)
 
 
-        (c /: sortFile(f.listFiles)) { (seq,ff) =>
+        sortFile(f.listFiles).foldLeft(c) { (seq,ff) =>
           recZippable(ff,seq)
         }
       } else {

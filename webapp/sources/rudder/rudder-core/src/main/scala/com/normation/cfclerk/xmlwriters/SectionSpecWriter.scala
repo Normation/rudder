@@ -25,7 +25,7 @@ class SectionSpecWriterImpl extends SectionSpecWriter {
     if (rootSection.name != SECTION_ROOT_NAME)
       Failure(s"root section name should be equals to ${SECTION_ROOT_NAME} but is ${rootSection.name}")
     else {
-      val children = (rootSection.children.flatMap( serializeChild(_))/:NodeSeq.Empty)((a,b) => a ++ b)
+      val children = rootSection.children.flatMap( serializeChild(_)).foldLeft(NodeSeq.Empty)((a,b) => a ++ b)
       val xml = createXmlNode(SECTIONS_ROOT,children)
       Full(xml)
     }
@@ -39,7 +39,7 @@ class SectionSpecWriterImpl extends SectionSpecWriter {
   }
 
   private[this] def serializeSection(section:SectionSpec):NodeSeq = {
-    val children = (section.children.flatMap( serializeChild(_))/:NodeSeq.Empty)((a,b) => a ++ b)
+    val children = section.children.flatMap(serializeChild(_)).foldLeft(NodeSeq.Empty)((a,b) => a ++ b)
     val xml = (   createXmlNode(SECTION,children)
                 % Attribute(SECTION_NAME,           Text(section.name),Null)
                 % Attribute(SECTION_IS_MULTIVALUED, Text(section.isMultivalued.toString),Null)
@@ -83,7 +83,7 @@ class SectionSpecWriterImpl extends SectionSpecWriter {
         val longDescription = createXmlTextNode(VAR_LONG_DESCRIPTION,   variable.longDescription)
         val isMultiValued   = createXmlTextNode(VAR_IS_MULTIVALUED,     variable.multivalued.toString)
         val checked         = createXmlTextNode(VAR_IS_CHECKED,         variable.checked.toString)
-        val items           = (valueLabels.map(serializeItem(_))/:NodeSeq.Empty)((a,b) => a ++ b)
+        val items           = valueLabels.map(serializeItem(_)).foldLeft(NodeSeq.Empty)((a,b) => a ++ b)
         val constraint      = serializeConstraint(variable.constraint)
 
         val children = (  name

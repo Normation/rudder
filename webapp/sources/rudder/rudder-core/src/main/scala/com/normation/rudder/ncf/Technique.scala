@@ -204,7 +204,7 @@ object CheckConstraint  {
   def check(constraint: List[Constraint.Constraint], value : String) : CheckResult = {
     import Constraint._
 
-    (constraint.map(_.check(value)) :\ (OK : CheckResult)) {
+    constraint.map(_.check(value)).foldRight(OK : CheckResult) {
       case (OK, OK) => OK
       case (NOK(m1), NOK(m2)) => NOK(m1 ::: m2)
       case (res:NOK,_) => res

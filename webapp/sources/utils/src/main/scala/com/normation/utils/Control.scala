@@ -98,7 +98,7 @@ object Control {
    * } yield { processingOk } //match on Failure / Full(report)
    */
   def pipeline[T,U](seq: Seq[T],init:U)(call:(T,U) => Box[U]) : Box[U] = {
-    ((Full(init):Box[U]) /: seq){ (currentValue, nextProcessor) =>
+    seq.foldLeft(Full(init):Box[U]){ (currentValue, nextProcessor) =>
       currentValue match {
         case x:EmptyBox => return x //interrupt pipeline early
         case Full(value) => call(nextProcessor,value)
