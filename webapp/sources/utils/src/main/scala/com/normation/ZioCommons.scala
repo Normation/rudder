@@ -220,7 +220,7 @@ object errors {
     /*
      * Execute in parallel, non ordered, and accumulate error, using at max N fibers
      */
-    def accumulateParNELN[R, E, B](n: Long)(f: A => ZIO[R, E, B]): ZIO[R, NonEmptyList[E], List[B]] = {
+    def accumulateParNELN[R, E, B](n: Int)(f: A => ZIO[R, E, B]): ZIO[R, NonEmptyList[E], List[B]] = {
       transform(ZIO.foreachParN(n)(in){ x => f(x).either })
     }
   }
@@ -238,7 +238,7 @@ object errors {
     /*
      * Execute in parallel, non ordered, and accumulate error, using at max N fibers
      */
-    def accumulateParN[R, E <: RudderError, B](n: Long)(f: A => ZIO[R, E, B]): ZIO[R, Accumulated[E], List[B]] = {
+    def accumulateParN[R, E <: RudderError, B](n: Int)(f: A => ZIO[R, E, B]): ZIO[R, Accumulated[E], List[B]] = {
       in.accumulateParNELN(n)(f).mapError(errors => Accumulated(errors))
     }
   }

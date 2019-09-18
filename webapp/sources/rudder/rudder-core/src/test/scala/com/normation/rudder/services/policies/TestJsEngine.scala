@@ -69,15 +69,6 @@ class TestJsEngine extends Specification {
   val setFooVariable = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}var foo = 'some value'; foo"))
   val getFooVariable = variableSpec.toVariable(Seq(s"${JsEngine.DEFAULT_EVAL}foo"))
 
-  /*
-   * For some tests, we need to know if we are on rhino or nashorn
-   */
-  val isNashorn = {
-    val javaVersionElements = System.getProperty("java.version").split('.')
-    val major = Integer.parseInt(javaVersionElements(1))
-    major >= 8 // else rhino, because we don't support java 1.5 and before in all case
-  }
-
   val policyFile = this.getClass.getClassLoader.getResource("rudder-js.policy")
 
   /**
@@ -182,27 +173,15 @@ class TestJsEngine extends Specification {
     }
 
     "not be able to access FS with JS" in {
-      val failMsg = if(isNashorn) {
-        ".*access denied to.*".r
-      } else {
-        ".*(forced interrupted|access denied to).*".r
-      }
-
       JsEngine.SandboxedJsEngine.sandboxed(policyFile) { box =>
         box.singleEval("""(new java.io.File("/tmp/rudder-test-fromjsengine")).createNewFile();""", JsRudderLibBinding.Crypt.bindings)
-      } must beFailure(failMsg)
+      } must beFailure(".*access denied to.*".r)
     }
 
     "not be able to kill the system with JS" in {
-      val failMsg = if(isNashorn) {
-        ".*access denied to.*".r
-      } else {
-        ".*(forced interrupted|access denied to).*".r
-      }
-
       JsEngine.SandboxedJsEngine.sandboxed(policyFile) { box =>
         box.singleEval("""java.lang.System.exit(0);""", JsRudderLibBinding.Crypt.bindings)
-      } must beFailure(failMsg)
+      } must beFailure(".*access denied to.*".r)
     }
 
     "not be able to loop for ever with JS" in {

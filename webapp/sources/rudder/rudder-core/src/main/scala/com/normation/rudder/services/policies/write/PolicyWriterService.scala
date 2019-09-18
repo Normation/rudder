@@ -198,7 +198,7 @@ class PolicyWriterServiceImpl(
    * here, f must not throws execption.
    *
    */
-  def parrallelSequence[U,T](seq: Seq[U])(f:U => Box[T])(implicit timeout: Duration, maxParallelism: Long): Box[Seq[T]] = {
+  def parrallelSequence[U,T](seq: Seq[U])(f:U => Box[T])(implicit timeout: Duration, maxParallelism: Int): Box[Seq[T]] = {
     ZIO.accessM[Blocking]{ b =>
       seq.accumulateParN(maxParallelism)(a => b.blocking.blocking(f(a).toIO))
     }.timeout(timeout).foldM(
@@ -213,7 +213,7 @@ class PolicyWriterServiceImpl(
   }
 
   // a version for Hook with a nicer message accumulation
-  def parallelSequenceNodeHook(seq: Seq[AgentNodeConfiguration])(f: AgentNodeConfiguration => HookReturnCode)(implicit timeout: Duration, maxParallelism: Long): Box[Unit] = {
+  def parallelSequenceNodeHook(seq: Seq[AgentNodeConfiguration])(f: AgentNodeConfiguration => HookReturnCode)(implicit timeout: Duration, maxParallelism: Int): Box[Unit] = {
 
     final case class HookError(nodeId: NodeId, errorCode: HookReturnCode.Error) extends RudderError {
       def limitOut(s: String) = {
@@ -308,7 +308,7 @@ class PolicyWriterServiceImpl(
     // we will already have timeout at the thread level for stalling threads.
     implicit val timeout = Duration(2, TimeUnit.HOURS)
     // Max number of thread used in the I/O thread pool for blocking tasks.
-    implicit val maxParallelism = parallelism.toLong
+    implicit val maxParallelism = parallelism
 
     //interpret HookReturnCode as a Box
 
@@ -501,7 +501,7 @@ class PolicyWriterServiceImpl(
    */
   private[this] def readTemplateFromFileSystem(
       techniqueIds: Set[TechniqueId]
-  )(implicit timeout: Duration, maxParallelism: Long): Box[Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]] = {
+  )(implicit timeout: Duration, maxParallelism: Int): Box[Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]] = {
 
     //list of (template id, template out path)
     val templatesToRead = for {
@@ -571,7 +571,7 @@ class PolicyWriterServiceImpl(
    */
   private[this] def readResourcesFromFileSystem(
      techniqueIds: Set[TechniqueId]
-  )(implicit timeout: Duration, maxParallelism: Long): Box[Map[(TechniqueResourceId, AgentType), TechniqueResourceCopyInfo]] = {
+  )(implicit timeout: Duration, maxParallelism: Int): Box[Map[(TechniqueResourceId, AgentType), TechniqueResourceCopyInfo]] = {
 
     val staticResourceToRead = for {
       technique      <- techniqueRepository.getByIds(techniqueIds.toSeq)

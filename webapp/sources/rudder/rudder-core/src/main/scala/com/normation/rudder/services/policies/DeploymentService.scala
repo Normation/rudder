@@ -885,7 +885,7 @@ object BuildNodeConfiguration extends Loggable {
     JsEngineProvider.withNewEngine(scriptEngineEnabled, maxParallelism, jsTimeout) { jsEngine =>
 
       // here, we consider j
-      val nodeConfigsProg = ZIO.foreachParN(maxParallelism.toLong)(nodeContexts.toSeq) { case (nodeId, context) =>
+      val nodeConfigsProg = ZIO.foreachParN(maxParallelism)(nodeContexts.toSeq) { case (nodeId, context) =>
 
         (for {
             parsedDrafts  <- policyDraftByNode.get(nodeId).notOptional("Promise generation algorithm error: cannot find back the configuration information for a node")
@@ -1451,7 +1451,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
       _ <- effect {
              file.parent.createDirectoryIfNotExists(true)
              if(file.exists) {
-               file.moveTo(savedOld, true)
+               file.moveTo(savedOld)(File.CopyOptions(overwrite = true))
              }
            }(s"Can not move previous updated node IDs file to '${savedOld.pathAsString}'")
       _ <- effect {

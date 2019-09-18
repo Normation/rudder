@@ -314,7 +314,7 @@ object JsRudderLibBinding {
 }
 
 /**
- * This class provides the Rhino (java 7) or Longhorn (Java 8 & up)
+ * This class provides the nashorn (Java 8 & up)
  * java script engine.
  *
  * It allows to eval parameters in directives which are starting
@@ -623,7 +623,7 @@ object JsEngine {
           // submit to the pool and synchroniously retrieve the value with a timeout
           task.get(maxTime.toMillis, TimeUnit.MILLISECONDS)
       } catch {
-        case ex: ExecutionException => //this can happen when rhino get security exception... Yeah...
+        case ex: ExecutionException => //this can happen when jsengine get security exception... Yeah...
           throw RudderFatalScriptException(s"Evaluating script '${name}' was forced interrupted due to ${ex.getMessage}, aborting.", ex)
 
         case ex: TimeoutException =>

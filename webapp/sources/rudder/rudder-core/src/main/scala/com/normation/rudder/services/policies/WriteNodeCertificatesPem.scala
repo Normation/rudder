@@ -95,7 +95,7 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
                   case _              => None
                 })}
       writen <- writeCertificatesToNew(allCertsNew, certs)
-      moved  <- IOResult.effect(allCertsNew.moveTo(file, overwrite = true))
+      moved  <- IOResult.effect(allCertsNew.moveTo(file)(File.CopyOptions(overwrite = true)))
       hook   <- execHook(reloadScriptPath)
     } yield ()
   }

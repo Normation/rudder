@@ -347,16 +347,16 @@ class ProcessFile(
         move      <- processed match {
                        case Right(InventoryProcessStatus.Accepted(_)) =>
                          //move to received dir
-                         safeMove(signature.map(s => s.moveTo(received / s.name, overwrite = true))) *>
-                         safeMove(inventory.moveTo(received / inventory.name, overwrite = true))
+                         safeMove(signature.map(s => s.moveTo(received / s.name)(File.CopyOptions(overwrite = true)))) *>
+                         safeMove(inventory.moveTo(received / inventory.name)(File.CopyOptions(overwrite = true)))
                        case Right(x) =>
                          InventoryProcessingLogger.error(s"Error when processing inventory '${inventory.name}', status: ${x.getClass.getSimpleName}") *>
-                         safeMove(signature.map(s => s.moveTo(failed / s.name, overwrite = true))) *>
-                         safeMove(inventory.moveTo(failed / inventory.name, overwrite = true))
+                         safeMove(signature.map(s => s.moveTo(failed / s.name)(File.CopyOptions(overwrite = true)))) *>
+                         safeMove(inventory.moveTo(failed / inventory.name)(File.CopyOptions(overwrite = true)))
                        case Left(x) =>
                          InventoryProcessingLogger.error(x.fullMsg) *>
-                         safeMove(signature.map(s => s.moveTo(failed / s.name, overwrite = true))) *>
-                         safeMove(inventory.moveTo(failed / inventory.name, overwrite = true))
+                         safeMove(signature.map(s => s.moveTo(failed / s.name)(File.CopyOptions(overwrite = true)))) *>
+                         safeMove(inventory.moveTo(failed / inventory.name)(File.CopyOptions(overwrite = true)))
                      }
       } yield {
         ()

@@ -832,7 +832,7 @@ class WoLDAPNodeGroupRepository(
       oldGroup     <- mapper.entry2NodeGroup(existing).toIO.chainError("Error when trying to get the existing group with id %s".format(nodeGroupId.value))
       systemCheck  <- if(oldGroup.isSystem) "You can not move system group".fail else UIO.unit
 
-      groupRDN     <- existing.rdn.succeed.notOptional("Error when retrieving RDN for an exising group - seems like a bug")
+      groupRDN     <- existing.rdn.notOptional("Error when retrieving RDN for an exising group - seems like a bug")
       name         <- checkNameAlreadyInUse(con, oldGroup.name, nodeGroupId)
       exists       <- ZIO.when(name) {
                         s"Cannot change the group name to ${oldGroup.name}: there is already a group with the same name".fail
