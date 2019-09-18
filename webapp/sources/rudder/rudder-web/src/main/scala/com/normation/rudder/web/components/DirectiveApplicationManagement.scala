@@ -76,7 +76,7 @@ object DirectiveApplicationResult {
     results match {
       case Nil => DirectiveApplicationResult(Nil,Nil,Nil)
       case head :: Nil => head
-      case _ => (results.tail :\ results.head) (mergeOne)
+      case _ => results.tail.foldRight(results.head) (mergeOne)
     }
   }
 }
@@ -113,7 +113,7 @@ case class DirectiveApplicationManagement (
   // Map to get children categories from a category
   private[this] val categories = {
     def mapCategories (cat : Category, map : Map[CategoryId,List[CategoryId]] = Map.empty) : Map[CategoryId,List[CategoryId]] = {
-      (cat.childs :\ map) (mapCategories) + (cat.id -> cat.childs.map(_.id))
+      cat.childs.foldRight(map) (mapCategories) + (cat.id -> cat.childs.map(_.id))
     }
 
     mapCategories(rootCategory).withDefaultValue(Nil)
@@ -136,7 +136,7 @@ case class DirectiveApplicationManagement (
         case Some(parent) => toApply(parent,rules,updatedMap)
       }
     }
-    (baseMap :\ baseMap) {case ((cat,rules),map) => toApply(cat, rules, map)}
+    baseMap.foldRight(baseMap) {case ((cat,rules),map) => toApply(cat, rules, map)}
 
   }
 

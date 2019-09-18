@@ -182,7 +182,7 @@ object RunHooks {
      * But we still want the whole operation to be non-bloking.
      */
     import HookReturnCode._
-    ( Future(Ok("",""):HookReturnCode) /: hooks.hooksFile) { case (previousFuture, nextHookName) =>
+    hooks.hooksFile.foldLeft(Future(Ok("",""):HookReturnCode)) { case (previousFuture, nextHookName) =>
       val path = hooks.basePath + File.separator + nextHookName
       previousFuture.flatMap {
         case x: Success =>

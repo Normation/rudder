@@ -183,7 +183,7 @@ class CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(
         }
       }
       //the param is migrated if any of its value was migrated
-      val wasMigrated = (false /: newParams){ case (paste, (_,current)) => paste || current }
+      val wasMigrated = newParams.foldLeft(false){ case (paste, (_,current)) => paste || current }
 
       (key,(newParams.map(_._1),wasMigrated))
     }

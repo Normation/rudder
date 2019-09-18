@@ -469,7 +469,7 @@ class RoLDAPDirectiveRepository(
       con     <- ldap
       entries <- userLibMutex.readLock( con.getTree(rudderDit.ACTIVE_TECHNIQUES_LIB.dn) ) ?~! "The root category of the user library of techniques seems to be missing in LDAP directory. Please check its content"
     } yield {
-      val allMaps =  (emptyAll /: entries.toSeq) { case (current, e) =>
+      val allMaps =  entries.toSeq.foldLeft(emptyAll) { case (current, e) =>
          if(isACategory(e)) {
            mapper.entry2ActiveTechniqueCategory(e) match {
              case Full(category) =>

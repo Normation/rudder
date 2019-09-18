@@ -152,7 +152,7 @@ class FileHistoryLogRepository[ID,T](
     for {
       versions <- this.versions(id)
       hlogs <- {
-        ( (Full(Seq()):Box[Seq[HLog]]) /: versions ) { (current, v) =>
+        versions.foldLeft(Full(Seq()):Box[Seq[HLog]]) { (current, v) =>
             for {
               seq <- current
               hlog <- this.get(id,v)

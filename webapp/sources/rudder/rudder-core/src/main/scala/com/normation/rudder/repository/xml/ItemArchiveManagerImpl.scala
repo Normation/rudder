@@ -210,13 +210,13 @@ class ItemArchiveManagerImpl(
                                         case f:Failure => (Seq(ActiveTechniqueNotArchived(activeTechnique.id, f)), Seq.empty[DirectiveNotArchived])
                                       }
                                     }
-      val (atNotArchived, dirNotArchived) = ( (Seq.empty[ActiveTechniqueNotArchived], Seq.empty[DirectiveNotArchived]) /: activeTechniquesInError) {
+      val (atNotArchived, dirNotArchived) = activeTechniquesInError.foldLeft((Seq.empty[ActiveTechniqueNotArchived], Seq.empty[DirectiveNotArchived])) {
         case ( (ats,dirs) , (at,dir)  ) => (ats ++ at, dirs ++ dir)
       }
       (catInError, atNotArchived, dirNotArchived)
     }
 
-    (NotArchivedElements( Seq(), Seq(), Seq()) /: byCategories) {
+    byCategories.foldLeft(NotArchivedElements( Seq(), Seq(), Seq())) {
       case (NotArchivedElements(cats, ats, dirs), (cat,at,dir)) => NotArchivedElements(cats++cat, ats++at, dirs++dir)
     }
   }

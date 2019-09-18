@@ -479,8 +479,8 @@ class ExecutionBatchTest extends Specification {
       )
 
       s"[${id}] be OK with patterns ${patterns}" in {
-        ( (result.compliance === compliance) /: p) { case( example, nextPattern) =>
-          (example /: result.componentValues(nextPattern._1).messages) { case (newExample, nextMessage) =>
+        p.foldLeft((result.compliance === compliance)) { case( example, nextPattern) =>
+          result.componentValues(nextPattern._1).messages.foldLeft(example) { case (newExample, nextMessage) =>
             val msgCompliance = ComplianceLevel.compute(List( nextMessage.reportType))
             val patternCompliance = ComplianceLevel.compute(List( nextPattern._2.tpe))
             newExample and msgCompliance === patternCompliance

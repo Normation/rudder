@@ -99,7 +99,7 @@ object ReportType {
     if (reportTypes.isEmpty) {
       NoAnswer
     } else {
-      ( reportTypes :\ (EnforceNotApplicable : ReportType) ) {
+      reportTypes.foldLeft(EnforceNotApplicable : ReportType) {
         case (_, BadPolicyMode)       | (BadPolicyMode, _)        => BadPolicyMode
         case (_, Unexpected)          | (Unexpected, _)           => Unexpected
         case (_, EnforceError)        | (EnforceError, _)         => EnforceError

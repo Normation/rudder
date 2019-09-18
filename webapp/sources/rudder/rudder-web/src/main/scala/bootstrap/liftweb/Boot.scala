@@ -507,7 +507,7 @@ class Boot extends Loggable {
 
   private[this] def addPluginsMenuTo(plugins: List[RudderPluginDef], menus:List[Menu]) : List[Menu] = {
     //return the updated siteMap
-    (menus /: plugins){ case (prev, mutator) => mutator.updateSiteMap(prev) }
+    plugins.foldLeft(menus){ case (prev, mutator) => mutator.updateSiteMap(prev) }
   }
 
   private[this] def initPlugins(): List[RudderPluginDef] = {

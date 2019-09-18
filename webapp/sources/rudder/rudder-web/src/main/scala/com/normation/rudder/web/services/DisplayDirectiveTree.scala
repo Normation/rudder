@@ -100,7 +100,7 @@ object AgentCompat {
   }
 
   def apply (agentTypes: Traversable[AgentType]) : AgentCompat = {
-    (agentTypes :\ (NoAgent : AgentCompat)) {
+    agentTypes.foldRight(NoAgent : AgentCompat) {
       case (_, All) => All
       case (AgentType.Dsc, NoAgent) => Dsc
       case (_, NoAgent) => Classic

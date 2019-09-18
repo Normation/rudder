@@ -192,7 +192,7 @@ class CheckPendingNodeInDynGroups(
 
         case (Nil, b, res) => // end of main phase: zero-ïze group dependencies in b and put them back in the other two queues
           NodeLogger.PendingNode.Policies.trace("==> unblock things")
-          val (newTodo, newRes) = ( (List.empty[DynGroup], res) /: b) { case ( (t, r), next ) =>
+          val (newTodo, newRes) = b.foldLeft((List.empty[DynGroup], res)) { case ( (t, r), next ) =>
             if(next.query.composition == CAnd) { // the group has zero node b/c intersect with 0 => new result
               NodeLogger.PendingNode.Policies.trace(" -> evicting " + next.id.value)
               (t, (next.id, Set.empty[NodeId])::r )
@@ -244,7 +244,7 @@ class CheckPendingNodeInDynGroups(
       if(g._isEnabled) {
         g.query.map { query =>
           // partition group query into Subgroup / simple criterion
-          val (dep, criteria) = ( (Set.empty[NodeGroupId], List.empty[CriterionLine])/: query.criteria) { case ( (g, q),  next) =>
+          val (dep, criteria) = query.criteria.foldLeft((Set.empty[NodeGroupId], List.empty[CriterionLine])) { case ( (g, q),  next) =>
             if(next.objectType.objectType == "group") { // it's a dependency
               // we only know how to process the comparator "exact string match" for group
               next.comparator match {

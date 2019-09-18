@@ -222,7 +222,7 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
   def parseToken(tokens:List[Token]): InterpolationContext => Box[String] = {
     def build(context: InterpolationContext) = {
       val init: Box[String] = Full("")
-      ( init /: tokens){
+      tokens.foldLeft(init){
         case (eb:EmptyBox, _ ) => eb
         case (Full(str), token) => analyse(context, token) match {
           case eb:EmptyBox => eb

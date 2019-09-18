@@ -239,7 +239,7 @@ class SystemVariableServiceImpl(
       }
 
       //build the final string
-      (""/:roles) { (x,y) => x + y }
+      roles.foldLeft("") { (x,y) => x + y }
     } else {
       ""
     }

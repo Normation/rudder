@@ -74,7 +74,7 @@ object PendingChangeRequestDisplayer extends Loggable{
         NodeSeq.Empty
       case Full(crs) =>
         // Need to fold the Element into one parent, or it behaves strangely (repeat the parent ...)
-        val pendingChangeRequestLink =( NodeSeq.Empty /: crs) {
+        val pendingChangeRequestLink =crs.foldLeft(NodeSeq.Empty) {
           (res,cr) => res ++
           {
             if (CurrentUser.checkRights(AuthorizationType.Validator.Read)||CurrentUser.checkRights(AuthorizationType.Deployer.Read)||cr.owner == CurrentUser.actor.name) {

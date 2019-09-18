@@ -78,7 +78,7 @@ object ResultHelper {
   }
 
   def sequence[T,U](seq : Seq[T])( f : T => Result[U]) : Result[Seq[U]] = {
-    ((Right(Seq()) : Result[Seq[U]]) /: seq) {
+    seq.foldLeft((Right(Seq()) : Result[Seq[U]])) {
       case (e @ Left(_), _) => e
       case (Right(res), value) =>f(value).map( res :+ _)
     }
