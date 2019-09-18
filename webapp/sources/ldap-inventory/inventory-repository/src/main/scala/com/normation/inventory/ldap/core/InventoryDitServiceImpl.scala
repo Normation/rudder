@@ -61,7 +61,7 @@ class InventoryDitServiceImpl(
     sortWith{ (x,y) => x._1.compareTo(y._1) >= 0 }
 
   override def getDit(dn:DN) : Option[InventoryDit] = {
-    ( (Option.empty[InventoryDit]) /: baseDns ) {
+    baseDns.foldLeft(Option.empty[InventoryDit]) {
       case (Some(x), _) => Some(x)
       case (_      , (baseDn,dit) ) if(baseDn.isAncestorOf(dn,true)) => Some(dit)
       case _            => None

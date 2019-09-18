@@ -671,7 +671,7 @@ class RwLDAPConnection(
           case Replace((dn,mods)) => IO.foreach(mods) { mod => modify(dn, mod) }
         }
       }
-      ((Seq().succeed:LDAPIOResult[Seq[LDIFChangeRecord]]) /: mods) { (records, mod) =>
+      mods.foldLeft(Seq().succeed:LDAPIOResult[Seq[LDIFChangeRecord]]) { (records, mod) =>
         records.flatMap { seq =>
           applyTreeModification(mod).map { newRecords =>
             (seq ++ newRecords)

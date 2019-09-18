@@ -135,8 +135,8 @@ case class RuleCategory(
 
     // Merge current map with already merged map
     def mergeChildMaps (
-        currentMap    : ChildMap
-      , alreadyMerged : ChildMap
+        alreadyMerged : ChildMap
+      , currentMap    : ChildMap
     ) : ChildMap = {
       // get all distinct keys from both map
       val keys = (currentMap.keys ++ alreadyMerged.keys).toList.distinct
@@ -163,7 +163,7 @@ case class RuleCategory(
     val baseMap : ChildMap = Map((List.empty[RuleCategoryId]) -> (this :: Nil))
 
     // fold all maps together
-    (augmentedChildMap :\ baseMap) (mergeChildMaps _ )
+    augmentedChildMap.foldLeft(baseMap) (mergeChildMaps _ )
   }
 }
 

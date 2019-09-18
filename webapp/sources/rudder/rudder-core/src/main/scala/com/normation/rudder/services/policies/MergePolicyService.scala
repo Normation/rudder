@@ -271,7 +271,7 @@ final object MergePolicyService {
     }
 
     // group directives by non-multi-instance, multi-instance non-multi-policy, multi-instance-multi-policy
-    val groupedDrafts = (GroupedDrafts(Map(),Map(),Set()) /: updatedTrackingKeyValues) { case(grouped, draft) =>
+    val groupedDrafts = updatedTrackingKeyValues.foldLeft(GroupedDrafts(Map(),Map(),Set())) { case(grouped, draft) =>
       if(draft.technique.isMultiInstance) {
         draft.technique.generationMode match {
           case TechniqueGenerationMode.MultipleDirectives | TechniqueGenerationMode.MultipleDirectivesWithParameters =>

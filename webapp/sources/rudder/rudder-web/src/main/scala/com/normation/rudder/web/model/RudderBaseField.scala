@@ -122,7 +122,7 @@ abstract class RudderBaseField extends BaseField {
   protected var value = defaultValue
   override def get = value
   override def set(in:ValueType) : ValueType = {
-    value = (in /: setFilter)( (currentVal,currentFilter) => currentFilter(currentVal) )
+    value = setFilter.foldLeft(in)( (currentVal,currentFilter) => currentFilter(currentVal) )
     validate
     value
   }

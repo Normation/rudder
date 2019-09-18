@@ -338,9 +338,9 @@ class InternalLDAPQueryProcessor(
     def dnMapSets(normalizedQuery: LDAPNodeQuery, dnMapMapSets: Map[DnType, Map[String,Set[DN]]]) : Map[DnType, Set[DN]] = {
       dnMapMapSets map { case (dnType, dnMapSet) =>
         val dnSet:Set[DN] = normalizedQuery.composition match {
-          case Or  => (Set[DN]() /: dnMapSet)( _ union _._2 )
+          case Or  => dnMapSet.foldLeft(Set[DN]())( _ union _._2 )
           case And =>
-            val s = if(dnMapSet.isEmpty) Set[DN]() else (dnMapSet.head._2 /: dnMapSet)( _ intersect _._2 )
+            val s = if(dnMapSet.isEmpty) Set[DN]() else dnMapSet.foldLeft(dnMapSet.head._2)( _ intersect _._2 )
 //            if(s.isEmpty) {
 //              logger.debug(s"[${debugId}] `-> early stop query (empty sub-query)"))
 //              return Full(LdapQueryProcessorResult(Nil, Nil)) //there is no need to go farther, since it will lead to ending with empty set
@@ -373,7 +373,7 @@ class InternalLDAPQueryProcessor(
       }.map { case (ldapFilters, specialFilters) =>
         val finalLdapFilter = normalizedQuery.composition match {
           case Or  =>
-            Some(OR( ((ldapFilters /: filterSeqSet)( _ union _ )).toSeq:_*))
+            Some(OR( (filterSeqSet.foldLeft(ldapFilters)( _ union _ )).toSeq:_*))
           case And => //if returnFilter is None, just and other filter, else add it. TODO : may it be empty ?
             val seqFilter = ldapFilters.toSeq ++ filterSeqSet.flatMap(s => s.size match {
                   case n if n < 1 => None

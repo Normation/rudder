@@ -140,7 +140,7 @@ object TechniqueCategoryId {
   def buildId(path:String) : TechniqueCategoryId = {
     val absPath = "/" + path
     val parts = absPath.split("/").filterNot(x => empty.findFirstIn(x).isDefined)
-    ( (RootTechniqueCategoryId:TechniqueCategoryId) /: parts) { (id,name) =>
+    parts.foldLeft((RootTechniqueCategoryId:TechniqueCategoryId)) { (id,name) =>
         SubTechniqueCategoryId(TechniqueCategoryName(name), id)
     }
   }

@@ -531,7 +531,7 @@ object QSLdapBackend {
       // if several, take only one at random. If none, that's strange, reject entry
       // also, don't look in objectClass to find the pattern
       for {
-        (attr, desc) <- (Option.empty[(QSAttribute, String)] /: e.attributes) { (current, next) => (current, next ) match {
+        (attr, desc) <- e.attributes.foldLeft(Option.empty[(QSAttribute, String)]) { (current, next) => (current, next ) match {
                           case (Some(x), _) => Some(x)
                           case (None   , a) =>
                             for {

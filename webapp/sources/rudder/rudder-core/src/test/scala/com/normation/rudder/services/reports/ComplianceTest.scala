@@ -138,7 +138,7 @@ class ComplianceTest extends Specification {
           ).filter( _.size == headers.size)
 
           //merged line which need to be
-          Full( (Vector.empty[Array[String]] /: cleaned ) { case (previous, nextLine) =>
+          Full(cleaned.foldLeft(Vector.empty[Array[String]]) { case (previous, nextLine) =>
             nextLine(0) match {
               case "" =>
                 if(previous.isEmpty) {

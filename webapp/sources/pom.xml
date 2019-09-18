@@ -350,8 +350,10 @@ limitations under the License.
     <rudder-major-version>5.1</rudder-major-version>
     <rudder-version>5.1.0~alpha1-SNAPSHOT</rudder-version>
 
-    <scala-version>2.12.8</scala-version>
+    <scala-version>2.12.10</scala-version>
     <scala-binary-version>2.12</scala-binary-version>
+    <scala-parser-combinators-version>1.1.2</scala-parser-combinators-version>
+    <scala-xml-version>1.2.0</scala-xml-version>
     <lift-version>3.3.0</lift-version>
     <slf4j-version>1.7.25</slf4j-version>
     <logback-version>1.2.3</logback-version>
@@ -423,6 +425,16 @@ limitations under the License.
         <groupId>org.scala-lang</groupId>
         <artifactId>scala-reflect</artifactId>
         <version>${scala-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.scala-lang.modules</groupId>
+        <artifactId>scala-parser-combinators_${scala-binary-version}</artifactId>
+        <version>${scala-parser-combinators-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.scala-lang.modules</groupId>
+        <artifactId>scala-xml_${scala-binary-version}</artifactId>
+        <version>${scala-xml-version}</version>
       </dependency>
       <dependency>
         <groupId>org.typelevel</groupId>
@@ -703,6 +715,11 @@ limitations under the License.
       <groupId>org.specs2</groupId>
       <artifactId>specs2-junit_${scala-binary-version}</artifactId>
       <version>${specs2-version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.scala-lang.modules</groupId>
+      <artifactId>scala-parser-combinators_${scala-binary-version}</artifactId>
       <scope>test</scope>
     </dependency>
 

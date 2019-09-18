@@ -903,7 +903,7 @@ object ExecutionBatch extends Loggable {
     val t11 = System.currentTimeMillis
     TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - compute buildRuleNodeStatusReport: ${t11-t10}ms")
 
-    val (computed, newStatus) = ((nil, nil)/: currentRunReports) { case ( (c,n), currentStatusReports) =>
+    val (computed, newStatus) = currentRunReports.foldLeft((nil, nil)) { case ( (c,n), currentStatusReports) =>
       complianceForRun.get(currentStatusReports.ruleId) match {
         case None => //the whole rule is new!
           //here, the reports are ACTUALLY pending, not missing.

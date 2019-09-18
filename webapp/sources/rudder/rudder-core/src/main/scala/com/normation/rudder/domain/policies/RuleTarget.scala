@@ -233,7 +233,7 @@ object RuleTarget extends Loggable {
     def isANodeWithRole (nodeId : NodeId, isPolicyServer : Boolean ,serverRoles : Set[ServerRole]) : Boolean = {
       serverRoles.size>0 || isPolicyServer || nodeId == Constants.ROOT_POLICY_SERVER_ID
     }
-    (Set[NodeId]() /: targets) { case (nodes , target) => target match {
+    targets.foldLeft(Set[NodeId]()) { case (nodes , target) => target match {
       case AllTarget => return allNodes.keySet
       case AllTargetExceptPolicyServers => nodes ++ allNodes.collect { case(k,n) if(!n._1) => k }
       case PolicyServerTarget(nodeId) => nodes + nodeId
@@ -258,7 +258,7 @@ object RuleTarget extends Loggable {
       case TargetIntersection(targets) =>
         val nodeSets = targets.map(t => getNodeIds(Set(t), allNodes, groups))
         // Compute the intersection of the sets of Nodes
-        val intersection = (allNodes.keySet/: nodeSets) {
+        val intersection = nodeSets.foldLeft(allNodes.keySet) {
           case (currentIntersection, nodes) => currentIntersection.intersect(nodes)
         }
         nodes ++ intersection
@@ -266,7 +266,7 @@ object RuleTarget extends Loggable {
       case TargetUnion(targets) =>
         val nodeSets = targets.map(t => getNodeIds(Set(t), allNodes, groups))
         // Compute the union of the sets of Nodes
-        val union = (Set[NodeId]()/: nodeSets) {
+        val union = nodeSets.foldLeft(Set[NodeId]()) {
           case (currentUnion, nodes) => currentUnion.union(nodes)
         }
         nodes ++ union
@@ -373,7 +373,7 @@ object RuleTarget extends Loggable {
       case Seq(t:TargetExclusion) => t
       case _ =>
         val start = TargetExclusion(TargetUnion(Set()),TargetUnion(Set()))
-        val res = (start /: targets) {
+        val res = targets.foldLeft(start) {
           case (res,e:TargetExclusion) =>
            res.updateInclude(e.includedTarget).updateExclude(e.excludedTarget)
           case (res,t) => res.updateInclude(t)
