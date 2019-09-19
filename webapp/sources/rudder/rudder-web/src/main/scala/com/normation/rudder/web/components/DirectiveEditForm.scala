@@ -288,6 +288,7 @@ class DirectiveEditForm(
           technique.id.name.value }>
           { technique.name } version {technique.id.version}
         </a> &
+      "#techniqueID *" #> technique.id.name.value &
       "#techniqueDescription *" #> technique.description &
       "#isDisabled" #> {
         if (!fullActiveTechnique.isEnabled || !directive.isEnabled)
@@ -300,7 +301,7 @@ class DirectiveEditForm(
       } &
       "#nameField" #> {directiveName.toForm_!} &
       "#tagField *" #> tagsEditForm.tagsForm("directiveTags", "directiveEditTagsApp", updateTag, false) &
-      "#rudderID *" #> {directive.id.value} &
+      "#directiveID *" #> {directive.id.value} &
       "#shortDescriptionField" #> directiveShortDescription.toForm_! &
       "#longDescriptionField" #> directiveLongDescription.toForm_! &
       "#priority" #> directivePriority.toForm_! &
@@ -311,7 +312,7 @@ class DirectiveEditForm(
       "#directiveRulesTab *" #> ruleDisplayer &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) % ("class" -> "btn btn-success") } &
       "#notifications *" #> updateAndDisplayNotifications() &
-      "#showTechnical *" #> SHtml.a(() => JsRaw("$('#technicalDetails').show(400);") & showDetailsStatus(true), Text("Show technical details"), ("class","listopen")) &
+      "#showTechnical *" #> <button type="button" class="btn btn-technical-details btn-sm btn-primary" onclick="$('#technicalDetails').toggle(400);$(this).toggleClass('opened');">Technical Details</button> &
       "#isSingle *" #> showIsSingle &
       "#compatibilityOs" #> osCompatibility &
       "#compatibilityAgent" #> agentCompatibility &
@@ -336,12 +337,6 @@ class DirectiveEditForm(
 
     )
     )
-  }
-
-  private[this] def showDetailsStatus(hide:Boolean) : JsCmd = {
-    val name = if (hide) "Hide" else "Show"
-    val classAttribute = ("class", if (hide) "listclose" else "listopen")
-    SetHtml("showTechnical",SHtml.a(() => JsRaw("$('#technicalDetails').toggle(400);") & showDetailsStatus(!hide), Text(s"$name technical details"), classAttribute))
   }
 
   private[this] def clone(): JsCmd = {
