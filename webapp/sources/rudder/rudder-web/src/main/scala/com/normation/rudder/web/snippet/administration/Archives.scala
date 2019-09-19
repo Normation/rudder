@@ -193,7 +193,7 @@ class Archives extends DispatchSnippet with Loggable {
       val e = eb ?~! msg
       logger.error(e.messageChain)
       logger.error(e.exceptionChain.mkString("", "\n", ""))
-      S.error(noticeId, msg)
+      JsRaw(s"""createErrorNotification(${msg})""")
       Replace(formName, outerXml.applyAgain)
     }
 
@@ -202,21 +202,15 @@ class Archives extends DispatchSnippet with Loggable {
 
           if(!elements.isEmpty) {
             val cats = elements.categories.map { case CategoryNotArchived(catId, f) => "Error when archiving Category with id '%s': %s".format(catId.value, f.fullMsg) }
-            val ats = elements.activeTechniques.map { case ActiveTechniqueNotArchived(atId, f) => "Error when rchiving Active Technique with id '%s': %s".format(atId.value, f.fullMsg) }
+            val ats  = elements.activeTechniques.map { case ActiveTechniqueNotArchived(atId, f) => "Error when archiving Active Technique with id '%s': %s".format(atId.value, f.fullMsg) }
             val dirs = elements.directives.map { case DirectiveNotArchived(dirId, f) => "Error when archiving Directive with id '%s': %s".format(dirId.value, f.fullMsg) }
 
             val all = cats ++ ats ++ dirs
 
             all.foreach( logger.warn( _ ) )
 
-            val error = <div>
-                <b>The archive was created but some element have not been archived:</b>
-                <ul>
-                  {all.map(msg => <li>{msg}</li>)}
-                </ul>
-              </div>
-
-            S.warning(noticeId, error)
+            val error = "The archive was created but some element have not been archived." ++ all.map(msg => msg).mkString(". ")
+            JsRaw(s"""createWarningNotification(${error})""")
           }
 
           Replace(formName, outerXml.applyAgain) &
@@ -227,7 +221,6 @@ class Archives extends DispatchSnippet with Loggable {
     // JsCmd which will be sent back to the browser
     // as part of the response
     def archive(): JsCmd = {
-      S.clearCurrentNotices
       (for {
         commiter <- personIdentService.getPersonIdentOrDefault(CurrentUser.actor.name)
         archive  <- archiveFunction(commiter, ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("User requested archive creation"), false)
@@ -240,7 +233,6 @@ class Archives extends DispatchSnippet with Loggable {
     }
 
     def restore(): JsCmd = {
-      S.clearCurrentNotices
       selectedCommitId match {
         case None    => error(Empty, "A valid archive must be chosen")
         case Some(commit) => (
@@ -256,7 +248,6 @@ class Archives extends DispatchSnippet with Loggable {
     }
 
     def download() : JsCmd = {
-      S.clearCurrentNotices
       selectedCommitId match {
         case None    => error(Empty, "A valid archive must be chosen")
         case Some(commit) =>
