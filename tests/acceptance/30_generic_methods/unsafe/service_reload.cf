@@ -44,7 +44,7 @@ bundle agent test
       "ph" usebundle => service_reload("${init.service_script}");
 
   commands:
-    "/usr/sbin/service ${init.service_script} start";
+    "${paths.service} ${init.service_script} start";
 }
 
 #######################################################
