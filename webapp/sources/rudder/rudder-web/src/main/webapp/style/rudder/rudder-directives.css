@@ -150,6 +150,20 @@
   top:1px;
   color: #999;
 }
+.btn.btn-technical-details{
+  min-width: 150px;
+  transition-duration: .2s;
+}
+.btn.btn-technical-details.opened{
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.btn.btn-technical-details:before{
+  content: "Show ";
+}
+.btn.btn-technical-details.opened:before{
+  content: "Hide ";
+}
 #confirmUpdateActionDialog #grid_remove_popup_grid_wrapper{
   float:left;
   width:100%;

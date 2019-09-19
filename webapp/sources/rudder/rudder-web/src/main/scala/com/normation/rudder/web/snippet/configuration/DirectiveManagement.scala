@@ -301,6 +301,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                <li><b>Supported agents: </b>{comp.agents.mkString(", ")}</li>
              } }
            } &
+           "#techniqueID *" #>  technique.id.name.value &
            "#techniqueDescription *" #>  technique.description &
            "#techniqueLongDescription" #>  technique.longDescription &
            "#isSingle *" #> showIsSingle(technique) &
