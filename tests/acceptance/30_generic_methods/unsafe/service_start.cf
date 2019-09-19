@@ -30,7 +30,7 @@ bundle agent init
       "service_name"  string => "syslogd";
 
   commands:
-    "/usr/sbin/service ${service_name} stop";
+    "${paths.service} ${service_name} stop";
 
 }
 
