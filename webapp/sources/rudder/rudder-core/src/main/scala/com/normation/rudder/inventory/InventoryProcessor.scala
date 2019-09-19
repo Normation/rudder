@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.inventory.provisioning.endpoint
+package com.normation.rudder.inventory
 
 import java.security.{PublicKey => JavaSecPubKey}
 
@@ -52,7 +52,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.SecurityToken
 import com.normation.inventory.domain.UndefinedKey
 import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.inventory.provisioning.endpoint.FusionReportEndpoint._
 import com.normation.inventory.services.core.FullInventoryRepository
 import com.normation.inventory.services.provisioning.InventoryDigestServiceV1
 import com.normation.inventory.services.provisioning.ReportSaver
@@ -60,6 +59,7 @@ import com.normation.inventory.services.provisioning.ReportUnmarshaller
 import com.normation.zio.ZioRuntime
 import com.unboundid.ldif.LDIFChangeRecord
 import org.joda.time.Duration
+import org.joda.time.format.PeriodFormat
 import zio._
 import zio.syntax._
 
@@ -222,7 +222,7 @@ class InventoryProcessor(
       afterParsing =  System.currentTimeMillis()
       reportName   = report.name
       nodeId       = report.node.main.id
-      _            =  InventoryProcessingLogger.debug(s"Inventory '${report.name}' parsed in ${printer.print(new Duration(afterParsing, System.currentTimeMillis).toPeriod)} ms, now saving")
+      _            =  InventoryProcessingLogger.debug(s"Inventory '${report.name}' parsed in ${PeriodFormat.getDefault.print(new Duration(afterParsing, System.currentTimeMillis).toPeriod)} ms, now saving")
       saved        <- info.optSignatureStream match { // Do we have a signature ?
                         // Signature here, check it
                         case Some(sig) =>
@@ -232,14 +232,14 @@ class InventoryProcessor(
                         case None =>
                           saveNoSignature(report, secPair._2).chainError(s"Error when trying to check inventory key status for Node '${nodeId.value}'")
                       }
-      _            <- InventoryProcessingLogger.debug(s"Inventory '${report.name}' for node '${report.node.main.id.value}' pre-processed in ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
+      _            <- InventoryProcessingLogger.debug(s"Inventory '${report.name}' for node '${report.node.main.id.value}' pre-processed in ${PeriodFormat.getDefault.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
     } yield {
       saved
     }
 
 
     res map { status =>
-        import com.normation.inventory.provisioning.endpoint.StatusLog.LogMessage
+        import com.normation.rudder.inventory.StatusLog.LogMessage
         status match {
           case InventoryProcessStatus.MissingSignature(_,_) => InventoryProcessingLogger.error(status.msg)
           case InventoryProcessStatus.SignatureInvalid(_,_) => InventoryProcessingLogger.error(status.msg)
@@ -300,7 +300,7 @@ class InventoryProcessor(
                    InventoryProcessingLogger.debug("Report saved.")
                }
       _      <- InventoryProcessingLogger.info(s"Report '${report.name}' for node '${report.node.main.hostname}' [${report.node.main.id.value}] (signature:${report.node.main.keyStatus.value}) "+
-                s"processed in ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
+                s"processed in ${PeriodFormat.getDefault.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
     } yield ()
   }
 }

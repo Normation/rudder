@@ -512,7 +512,6 @@ class TestNodeConfiguration() {
       systemVariableServiceSpec
     , draftServerManagement
     , toolsFolder              = "tools_folder"
-    , cmdbEndPoint             = "http://localhost:8080/endpoint/upload/"
     , communityPort            = 5309
     , sharedFilesFolder        = "/var/rudder/configuration-repository/shared-files"
     , webdavUser               = "rudder"

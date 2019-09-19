@@ -59,8 +59,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <module>inventory-provisioning-core</module>
     <!-- Fusion Inventory parsing -->
     <module>inventory-fusion</module>
-    <!-- Default implementation for a provisionning WebService. -->
-    <module>inventory-provisioning-web</module>
   </modules>
 
   <repositories>

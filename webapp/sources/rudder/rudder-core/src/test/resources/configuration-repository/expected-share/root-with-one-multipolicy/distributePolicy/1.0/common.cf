@@ -7,8 +7,7 @@ bundle common distribute_policy_common {
     "relay_sync_method"      string => "classic";
     "relay_sync_promises"    string => "false";
     "relay_sync_sharedfiles" string => "false";
-    "cmdb_endpoint"          string => "http://localhost:8080/endpoint/upload/";
 
   classes:
-    "has_cmdb_endpoint" expression => "any", scope => "namespace";
+
 }

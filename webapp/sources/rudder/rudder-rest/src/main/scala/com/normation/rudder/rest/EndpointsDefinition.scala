@@ -568,8 +568,46 @@ object InfoApi extends ApiModuleProvider[InfoApi] {
 }
 
 /*
- * This API definition need to be in Rudder core because it defines spicific
- * User API rights, which is a special thing. The actual implementation will
+ * Porting the old "inventory endpoints" APIs to rudder.
+ * You have an endpoint for inventory processing status,
+ * one to send inventory if you don't want to use file watcher parsing,
+ * and control start/stop/restart of file watcher.
+ */
+sealed trait InventoryApi extends EndpointSchema with GeneralApi with SortIndex
+object InventoryApi extends ApiModuleProvider[InventoryApi] {
+
+  final case object QueueInformation extends InventoryApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
+    val description = "Get information about inventory current processing status"
+    val (action, path)  = GET / "inventories" / "info"
+  }
+
+  final case object UploadInventory extends InventoryApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
+    val description = "Upload an inventory (parameter 'file' and its signature (parameter 'signature') with 'content-disposition:file' attachement format"
+    val (action, path)  = POST / "inventories" / "upload"
+  }
+
+  final case object FileWatcherStart extends InventoryApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
+    val description = "Start inventory file watcher (inotify)"
+    val (action, path)  = POST / "inventories" / "watcher" / "start"
+  }
+
+  final case object FileWatcherStop extends InventoryApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
+    val description = "Stop inventory file watcher (inotify)"
+    val (action, path)  = POST / "inventories" / "watcher" / "stop"
+  }
+
+  final case object FileWatcherRestart extends InventoryApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
+    val description = "Restart inventory file watcher (inotify)"
+    val (action, path)  = POST / "inventories" / "watcher" / "restart"
+  }
+
+  def endpoints = ca.mrvisser.sealerate.values[InventoryApi].toList.sortBy( _.z )
+}
+
+
+/*
+ * This API definition need to be in Rudder core because it defines specific
+ * user API rights, which is a special thing. The actual implementation will
  * be defined in the API Authorization plugin.
  * Note that these endpoint don't have token ID has parameter because an user can only manage
  * its own token, and Rudder will make the mapping server side.
@@ -612,6 +650,7 @@ object AllApi {
     SystemApi.endpoints :::
     TechniqueApi.endpoints :::
     RuleApi.endpoints :::
+    InventoryApi.endpoints :::
     InfoApi.endpoints :::
     // UserApi is not declared here, it will be contributed by plugin
     Nil

@@ -105,7 +105,6 @@ class SystemVariableServiceImpl(
   , policyServerManagementService: PolicyServerManagementService
   // Variables definitions
   , toolsFolder              : String
-  , cmdbEndPoint             : String
   , communityPort            : Int
   , sharedFilesFolder        : String
   , webdavUser               : String
@@ -144,7 +143,6 @@ class SystemVariableServiceImpl(
 
 
   val varToolsFolder                = systemVariableSpecService.get("TOOLS_FOLDER"                   ).toVariable(Seq(toolsFolder))
-  val varCmdbEndpoint               = systemVariableSpecService.get("CMDBENDPOINT"                   ).toVariable(Seq(cmdbEndPoint))
   val varWebdavUser                 = systemVariableSpecService.get("DAVUSER"                        ).toVariable(Seq(webdavUser))
   val varWebdavPassword             = systemVariableSpecService.get("DAVPASSWORD"                    ).toVariable(Seq(webdavPassword))
   val varSharedFilesFolder          = systemVariableSpecService.get("SHARED_FILES_FOLDER"            ).toVariable(Seq(sharedFilesFolder))
@@ -205,7 +203,6 @@ class SystemVariableServiceImpl(
       logger.trace("Global system variables done")
       val vars =
         varToolsFolder ::
-        varCmdbEndpoint ::
         varSharedFilesFolder ::
         varCommunityPort ::
         varWebdavUser  ::

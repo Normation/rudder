@@ -7,11 +7,7 @@ bundle common distribute_policy_common {
     "relay_sync_method"      string => "&RELAY_SYNC_METHOD&";
     "relay_sync_promises"    string => "&RELAY_SYNC_PROMISES&";
     "relay_sync_sharedfiles" string => "&RELAY_SYNC_SHAREDFILES&";
-    "cmdb_endpoint"          string => "&CMDBENDPOINT&";
 
   classes:
-&if(CMDBENDPOINT)&
-    "has_cmdb_endpoint" expression => "any", scope => "namespace";
-&endif&
 
 }

@@ -108,7 +108,7 @@ object RestUtils extends Loggable {
     JsonAST.render(value, RenderSettings.pretty.copy(spaceAfterFieldName= true))
   }
 
-  private[this] def effectiveResponse (id:Option[String], message:JValue, status:HttpStatus, action : String , prettify : Boolean) : LiftResponse = {
+  def effectiveResponse (id:Option[String], message:JValue, status:HttpStatus, action : String , prettify : Boolean) : LiftResponse = {
     status match {
       case _:RestError =>
         // Log any error
@@ -242,7 +242,7 @@ object ApiVersion {
 
 }
 
-sealed trait HttpStatus {
+trait HttpStatus {
   def code : Int
   def status : String
   def container : String
