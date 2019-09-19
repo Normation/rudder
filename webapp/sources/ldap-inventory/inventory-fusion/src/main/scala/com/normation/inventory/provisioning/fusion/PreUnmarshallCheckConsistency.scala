@@ -58,15 +58,18 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
    * If any of these variable are not set, just abort
    */
   override def apply(report:NodeSeq) : Box[NodeSeq] = {
+    val agentTagContent = getInTags(report, "AGENT")
+    val rudderTagContent = getInTags(report, "RUDDER")
+
     val checks =
-      checkId _ ::
-      checkHostnameTags _ ::
-      checkRoot _ ::
-      checkPolicyServer _ ::
+      checkId(rudderTagContent) _ ::
+      checkHostnameTags(rudderTagContent) _ ::
+      checkRoot(agentTagContent) _ ::
+      checkPolicyServer(agentTagContent) _ ::
       checkOS _ ::
       checkKernelVersion _ ::
-      checkAgentType _ ::
-      checkSecurityToken _ ::
+      checkAgentType(agentTagContent) _ ::
+      checkSecurityToken(agentTagContent) _ ::
       Nil
 
     pipeline(checks, report) { (check,currentReport) =>
@@ -75,6 +78,22 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
 
   }
 
+  // Utilitary method to get only once the RUDDER and the AGENT
+  private[this] def getInTags(xml:NodeSeq, tag:String) : NodeSeq = {
+    xml \\ tag
+  }
+
+  private[this] def checkWithinNodeSeq(nodes:NodeSeq, child:String) : Box[String] = {
+    val nodes2 = nodes \ child
+
+    nodes2 match {
+      case NodeSeq.Empty => Failure(s"Missing XML element: '${child}.")
+      case x => x.head.text match {
+        case null | "" => Failure(s"Tag ${child} content is empty")
+        case s => Full(s)
+      }
+    }
+  }
 
 
   private[this] def checkNodeSeq(xml:NodeSeq, tag:String, directChildren:Boolean = false, optChild:Option[String] = None) : Box[String] = {
@@ -97,19 +116,11 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
     }
   }
 
-  private[this] def checkInRudderTag(xml:NodeSeq,tag : String) : Box[String] = {
-    checkNodeSeq(xml,"RUDDER",false,Some(tag))
-  }
-
-  private[this] def checkInAgentTag(xml:NodeSeq,tag : String) : Box[String] = {
-    checkNodeSeq(xml,"AGENT",false,Some(tag))
-  }
-
-  private[this] def checkId(report:NodeSeq) : Box[NodeSeq] = {
+  private[this] def checkId(rudderNodeSeq : NodeSeq)(report:NodeSeq) : Box[NodeSeq] = {
     val tag = "UUID"
     for {
       tagHere <- {
-        checkInRudderTag(report,tag) match {
+        checkWithinNodeSeq(rudderNodeSeq, tag) match {
           case full : Full[String] => full
           case eb: EmptyBox => checkNodeSeq(report, tag, true) ?~! s"Missing node ID attribute '${tag}' in report. This attribute is mandatory and must contains node ID."
         }
@@ -120,22 +131,23 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
     }
   }
 
-  private[this] def checkHostnameTags(report:NodeSeq) : Box[NodeSeq] = {
-
+  private[this] def checkHostnameTags(rudderNodeSeq : NodeSeq)(report:NodeSeq) : Box[NodeSeq] = {
     // Hostname can be found in two tags:
     // Either RUDDER∕HOSTNAME or OPERATINGSYSTEM/FQDN
-    ( checkInRudderTag(report,"HOSTNAME"), checkNodeSeq(report, "OPERATINGSYSTEM", false, Some("FQDN")) ) match {
-      case (Full(_),_) | (_,Full(_)) => Full(report)
-      case (_:EmptyBox, _:EmptyBox) => Failure("Missing hostname tags (RUDDER∕HOSTNAME and OPERATINGSYSTEM/FQDN) in report. Having at least one of Those tags is mandatory.")
+    for {
+      tagHere <- checkWithinNodeSeq(rudderNodeSeq, "HOSTNAME").or(checkNodeSeq(report, "OPERATINGSYSTEM", false, Some("FQDN"))) ?~! (
+                 "Missing hostname tags (RUDDER∕HOSTNAME and OPERATINGSYSTEM/FQDN) in report. Having at least one of Those tags is mandatory.")
+    } yield {
+      report
     }
   }
 
-  private[this] def checkRoot(report:NodeSeq) : Box[NodeSeq] = {
+  private[this] def checkRoot(agentNodeSeq : NodeSeq)(report:NodeSeq) : Box[NodeSeq] = {
     val agentTag = "OWNER"
     val tag = "USER"
     for {
       tagHere <- {
-        checkInAgentTag(report,agentTag) match {
+        checkWithinNodeSeq(agentNodeSeq,agentTag) match {
           case full : Full[String] => full
           case eb: EmptyBox => checkNodeSeq(report, tag) ?~! s"Missing administrator attribute '${tag}' in report. This attribute is mandatory and must contains node local administrator login."
         }
@@ -145,12 +157,12 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
     }
   }
 
-  private[this] def checkPolicyServer(report:NodeSeq) : Box[NodeSeq] = {
+  private[this] def checkPolicyServer(agentNodeSeq : NodeSeq)(report:NodeSeq) : Box[NodeSeq] = {
     val agentTag = "POLICY_SERVER_UUID"
     val tag = "POLICY_SERVER"
     for {
       tagHere <- {
-        checkInAgentTag(report,agentTag) match {
+        checkWithinNodeSeq(agentNodeSeq,agentTag) match {
           case full : Full[String] => full
           case eb: EmptyBox => checkNodeSeq(report, tag) ?~! s"Missing rudder policy server attribute '${tag}' in report. This attribute is mandatory and must contain Rudder ID pour policy server."
         }
@@ -222,12 +234,12 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
   }
 
 
-  private[this] def checkAgentType(report:NodeSeq) : Box[NodeSeq] = {
+  private[this] def checkAgentType(agentNodeSeq : NodeSeq)(report:NodeSeq) : Box[NodeSeq] = {
     val agentTag = "AGENT_NAME"
     val tag = "AGENTNAME"
     for {
       tagHere <- {
-        checkInAgentTag(report,agentTag) match {
+        checkWithinNodeSeq(agentNodeSeq,agentTag) match {
           case full : Full[String] => full
           case eb: EmptyBox => checkNodeSeq(report, tag) ?~! s"Missing agent name attribute ${agentTag} in report. This attribute is mandatory and must contains agent type."
         }
@@ -238,9 +250,9 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
   }
 
   // since Rudder 4.3, a security token is mandatory
-  private[this] def checkSecurityToken(report:NodeSeq) : Box[NodeSeq] = {
+  private[this] def checkSecurityToken(agentNodeSeq : NodeSeq)(report:NodeSeq) : Box[NodeSeq] = {
     for {
-      tagHere <- checkInAgentTag(report, "CFENGINE_KEY").or(checkInAgentTag(report, "AGENT_CERT")) ?~! (
+      tagHere <- checkWithinNodeSeq(agentNodeSeq, "CFENGINE_KEY").or(checkWithinNodeSeq(agentNodeSeq, "AGENT_CERT")) ?~! (
                              "Missing security token attribute (RUDDER/AGENT/CFENGINE_KEY or RUDDER/AGENT/AGENT_CERT) " +
                              "in report. This attribute is mandatory and must contains agent certificate or public key.")
     } yield {
