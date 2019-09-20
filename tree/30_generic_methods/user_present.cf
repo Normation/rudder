@@ -19,12 +19,12 @@
 # @name User present
 # @description Ensure a user exists on the system.
 # @documentation This method does not create the user's home directory.
-#  Primary group will be created and set with default one.
-#  As in most UNIX system default behavior user creation will fail if a group with 
+#  Primary group will be created and set with default one, following the useradd default behaviour.
+#  As in most UNIX system default behavior user creation will fail if a group with
 #  the user name already exists.
 #
 # @parameter login User login
-# 
+#
 # @class_prefix user_present
 # @class_parameter login
 
@@ -42,11 +42,11 @@ bundle agent user_present(login)
       "pass3" expression => "pass3";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
-    
+
     "user_does_not_exist"         not => userexists("${login}");
     "group_does_not_exist"        not => groupexists("${login}");
     "args_defined"         expression => "group_does_not_exist.user_does_not_exist";
-       
+
 
   users:
     args_defined::
