@@ -275,7 +275,7 @@ class ProcessFile(
         }
       }
       inventoryProcessor.saveInventory(() => inventory.newInputStream, inventory.name, signature.map(s => () => s.newInputStream)) match {
-        case Full(InventoryProcessStatus.Accepted(report)) =>
+        case Full(InventoryProcessStatus.Accepted(_,_)) =>
           //move to received dir
           safeMove(signature.map(s => s.moveTo(received / s.name, overwrite = true)))
           safeMove(inventory.moveTo(received / inventory.name, overwrite = true))

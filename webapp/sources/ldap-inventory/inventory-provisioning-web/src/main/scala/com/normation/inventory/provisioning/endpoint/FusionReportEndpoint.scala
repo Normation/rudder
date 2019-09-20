@@ -121,10 +121,10 @@ class FusionReportEndpoint(
         case Full(status) =>
           import com.normation.inventory.provisioning.endpoint.StatusLog.LogMessage
           status match {
-            case InventoryProcessStatus.MissingSignature(_) => new ResponseEntity(status.msg, HttpStatus.UNAUTHORIZED)
-            case InventoryProcessStatus.SignatureInvalid(_) => new ResponseEntity(status.msg, HttpStatus.UNAUTHORIZED)
-            case InventoryProcessStatus.QueueFull(_)        => new ResponseEntity(status.msg, HttpStatus.SERVICE_UNAVAILABLE)
-            case InventoryProcessStatus.Accepted(_)         => new ResponseEntity(status.msg, HttpStatus.ACCEPTED)
+            case InventoryProcessStatus.MissingSignature(_,_) => new ResponseEntity(status.msg, HttpStatus.UNAUTHORIZED)
+            case InventoryProcessStatus.SignatureInvalid(_,_) => new ResponseEntity(status.msg, HttpStatus.UNAUTHORIZED)
+            case InventoryProcessStatus.QueueFull(_,_)        => new ResponseEntity(status.msg, HttpStatus.SERVICE_UNAVAILABLE)
+            case InventoryProcessStatus.Accepted(_,_)         => new ResponseEntity(status.msg, HttpStatus.ACCEPTED)
           }
         case eb: EmptyBox =>
           val fail = eb ?~! s"Error when trying to process inventory '${inventoryFile.getOriginalFilename}'"
