@@ -184,9 +184,6 @@ class Archives extends DispatchSnippet with Loggable {
     , downloadRestAction        : String               //the specific action for the REST api, i.e the %s in: /api/archives/zip/%s
   ) : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
 
-
-    val noticeId = formName + "Notice"
-
     var selectedCommitId = Option.empty[GitCommitId]
 
     def error(eb:EmptyBox, msg:String) = {

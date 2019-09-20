@@ -141,7 +141,7 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall {
   private[this] def checkHostnameTags(rudderNodeSeq : NodeSeq)(report:NodeSeq) : IOResult[NodeSeq] = {
     // Hostname can be found in two tags:
     // Either RUDDER∕HOSTNAME or OPERATINGSYSTEM/FQDN
-    checkWithinNodeSeq(report,"HOSTNAME").orElse(checkNodeSeq(report, "OPERATINGSYSTEM", false, Some("FQDN")) ).map(_ => report) mapError( _ =>
+    checkWithinNodeSeq(rudderNodeSeq,"HOSTNAME").orElse(checkNodeSeq(report, "OPERATINGSYSTEM", false, Some("FQDN")) ).map(_ => report) mapError( _ =>
       InventoryError.Inconsistency(s"Missing hostname tags (RUDDER∕HOSTNAME and OPERATINGSYSTEM/FQDN) in report. Having at least one of Those tags is mandatory."))
   }
 
@@ -150,7 +150,7 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall {
     val tag = "USER"
     for {
       tagHere <- {
-        checkWithinNodeSeq(report,agentTag) catchAll  { _ => checkNodeSeq(report, tag).chainError(s"Missing administrator attribute '${tag}' in report. This attribute is mandatory and must contains node local administrator login.")
+        checkWithinNodeSeq(agentNodeSeq,agentTag) catchAll  { _ => checkNodeSeq(report, tag).chainError(s"Missing administrator attribute '${tag}' in report. This attribute is mandatory and must contains node local administrator login.")
         }
       }
     } yield {

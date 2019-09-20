@@ -83,19 +83,19 @@ class TestPreUnmarshaller extends Specification {
   "Pre inventory check should be ok" should {
      "With a valid inventory on Linux" in {
         val linux = post.check("fusion-report/signed_inventory.ocs")
-        linux.toOption must not beNone
+        linux must beRight
      }
 
-    "With a valid inventory in Windows" in {
-      val windows = post.check("fusion-report/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs")
-      windows.toOption must not beNone
-    }
+     "With a valid inventory in Windows" in {
+       val windows = post.check("fusion-report/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs")
+       windows must beRight
+     }
   }
 
   "Pre inventory check should fail" should {
      "When there is no fqdn defined" in {
         val noFQDN = post.check("fusion-report/centos.no_rudder_extension.no_fqdn")
-        noFQDN.toOption must beNone
+        noFQDN must beLeft
      }
 
     "When there is no security token defined" in {
@@ -104,9 +104,9 @@ class TestPreUnmarshaller extends Specification {
     }
   }
 
-  "A report without OS/NAME but with KERNEL_NAME" should { "work" in {
+  "A report without OS/NAME but with KERNEL_NAME should work" in {
     val report = post.check("fusion-report/only-kernel-name-0034fbbe-4b52-4212-9535-1f1a952c6f36.ocs")
-    report.toOption must not beNone
-  } }
+    report must beRight
+  }
 
 }

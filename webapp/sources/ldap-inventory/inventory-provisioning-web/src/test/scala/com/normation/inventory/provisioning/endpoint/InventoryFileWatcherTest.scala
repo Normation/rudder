@@ -82,10 +82,10 @@ class InventoryFileWatcherTest extends Specification with AfterAll with Loggable
   val saveInventory: SaveInventoryInfo => IOResult[InventoryProcessStatus] = { info =>
     import InventoryProcessStatus._
     val res = info.fileName match {
-      case `queueFull`  => QueueFull(null)
-      case `invalidSig` => SignatureInvalid(null)
-      case `missingSig` => MissingSignature(null)
-      case _            => Accepted(null)
+      case `queueFull`  => QueueFull(null, null)
+      case `invalidSig` => SignatureInvalid(null, null)
+      case `missingSig` => MissingSignature(null, null)
+      case _            => Accepted(null, null)
     }
 
     result.set(Some((info.fileName, res))) *> res.succeed
