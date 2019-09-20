@@ -19,7 +19,6 @@ function test_is_exec {
 # check exec rights for hooks
 test_is_exec "node-post-deletion/10-clean-policies"
 test_is_exec "policy-generation-finished/50-reload-policy-file-server"
-test_is_exec "policy-generation-node-ready/10-cf-promise-check"
 test_is_exec "policy-generation-node-ready/90-change-perm"
 
 #
