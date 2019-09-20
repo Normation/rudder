@@ -68,36 +68,40 @@ object InventoryProcessingLogger extends NamedZioLogger {
   override def loggerName: String = "inventory-processing"
 }
 
-sealed trait InventoryProcessStatus { def report: InventoryReport }
-object InventoryProcessStatus {
-  final case class Accepted        (report: InventoryReport) extends InventoryProcessStatus
-  final case class QueueFull       (report: InventoryReport) extends InventoryProcessStatus
-  final case class SignatureInvalid(report: InventoryReport) extends InventoryProcessStatus
-  final case class MissingSignature(report: InventoryReport) extends InventoryProcessStatus
+sealed trait InventoryProcessStatus {
+  def reportName: String
+  def     nodeId: NodeId
+
+}
+final object InventoryProcessStatus {
+  final case class Accepted        (reportName: String, nodeId: NodeId) extends InventoryProcessStatus
+  final case class QueueFull       (reportName: String, nodeId: NodeId) extends InventoryProcessStatus
+  final case class SignatureInvalid(reportName: String, nodeId: NodeId) extends InventoryProcessStatus
+  final case class MissingSignature(reportName: String, nodeId: NodeId) extends InventoryProcessStatus
 }
 
 
 object StatusLog {
   implicit class LogMessage(status: InventoryProcessStatus) {
     def msg: String = status match {
-      case InventoryProcessStatus.MissingSignature(report) =>
-        s"Rejecting Inventory '${report.name}' for Node '${report.node.main.id.value}' because its signature is missing. " +
+      case InventoryProcessStatus.MissingSignature(reportName, nodeId) =>
+        s"Rejecting Inventory '${reportName}' for Node '${nodeId.value}' because its signature is missing. " +
         s"You can go back to unsigned state by running the following command on the Rudder Server: " +
-        s"'/opt/rudder/bin/rudder-keys reset-status ${report.node.main.id.value}'"
+        s"'/opt/rudder/bin/rudder-keys reset-status ${nodeId.value}'"
 
-      case InventoryProcessStatus.SignatureInvalid(report) =>
-        s"Rejecting Inventory '${report.name}' for Node '${report.node.main.id.value}' because the Inventory signature is " +
+      case InventoryProcessStatus.SignatureInvalid(reportName, nodeId) =>
+        s"Rejecting Inventory '${reportName}' for Node '${nodeId.value}' because the Inventory signature is " +
         s"not valid: the Inventory was not signed with the same agent key as the one saved within Rudder for that Node. If " +
         s"you updated the agent key on this node, you can update the key stored within Rudder with the following command on " +
-        s"the Rudder Server: '/opt/rudder/bin/rudder-keys change-key ${report.node.main.id.value} <your new public key>'. " +
+        s"the Rudder Server: '/opt/rudder/bin/rudder-keys change-key ${nodeId.value} <your new public key>'. " +
         s"If you did not change the key, please ensure that the node sending that inventory is actually the node registered " +
         s"within Rudder"
 
-      case InventoryProcessStatus.QueueFull(report) =>
-        s"Rejecting Inventory '${report.name}' for Node '${report.node.main.id.value}' because processing queue is full."
+      case InventoryProcessStatus.QueueFull(reportName, nodeId) =>
+        s"Rejecting Inventory '${reportName}' for Node '${nodeId.value}' because processing queue is full."
 
-      case InventoryProcessStatus.Accepted(report) =>
-        s"Inventory '${report.name}' for Node '${report.node.main.id.value}' added to processing queue."
+      case InventoryProcessStatus.Accepted(reportName, nodeId) =>
+        s"Inventory '${reportName}' for Node '${nodeId.value}' added to processing queue."
     }
   }
 }
@@ -159,7 +163,7 @@ class InventoryProcessor(
                          checkQueueAndSave(certifiedReport)
                        } else {
                          // Signature is not valid, reject inventory
-                         InventoryProcessStatus.SignatureInvalid(report).succeed
+                         InventoryProcessStatus.SignatureInvalid(report.name, report.node.main.id).succeed
                        }
            } yield {
              saved
@@ -174,7 +178,7 @@ class InventoryProcessor(
         // Status is undefined => We accept unsigned inventory
         case UndefinedKey => checkQueueAndSave(report)
         // We are in certified state, refuse inventory with no signature
-        case CertifiedKey => InventoryProcessStatus.MissingSignature(report).succeed
+        case CertifiedKey => InventoryProcessStatus.MissingSignature(report.name, report.node.main.id).succeed
       }).chainError(
         // An error occurred while checking inventory key status
         s"Error when trying to check inventory key status for Node '${report.node.main.id.value}'"
@@ -215,6 +219,8 @@ class InventoryProcessor(
                         case Some(list) => SecurityToken.checkCertificateSubject(report.node.main.id, list)
                       }
       afterParsing =  System.currentTimeMillis()
+      reportName   = report.name
+      nodeId       = report.node.main.id
       _            =  InventoryProcessingLogger.debug(s"Inventory '${report.name}' parsed in ${printer.print(new Duration(afterParsing, System.currentTimeMillis).toPeriod)} ms, now saving")
       saved        <- info.optSignatureStream match { // Do we have a signature ?
                         // Signature here, check it
@@ -223,7 +229,7 @@ class InventoryProcessor(
 
                         // There is no Signature
                         case None =>
-                          saveNoSignature(report, secPair._2).chainError(s"Error when trying to check inventory key status for Node '${report.node.main.id.value}'")
+                          saveNoSignature(report, secPair._2).chainError(s"Error when trying to check inventory key status for Node '${nodeId.value}'")
                       }
       _            <- InventoryProcessingLogger.debug(s"Inventory '${report.name}' for node '${report.node.main.id.value}' pre-processed in ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
     } yield {
@@ -234,10 +240,10 @@ class InventoryProcessor(
     res map { status =>
         import com.normation.inventory.provisioning.endpoint.StatusLog.LogMessage
         status match {
-          case InventoryProcessStatus.MissingSignature(_) => InventoryProcessingLogger.error(status.msg)
-          case InventoryProcessStatus.SignatureInvalid(_) => InventoryProcessingLogger.error(status.msg)
-          case InventoryProcessStatus.QueueFull(_)        => InventoryProcessingLogger.warn(status.msg)
-          case InventoryProcessStatus.Accepted(_)         => InventoryProcessingLogger.trace(status.msg)
+          case InventoryProcessStatus.MissingSignature(_,_) => InventoryProcessingLogger.error(status.msg)
+          case InventoryProcessStatus.SignatureInvalid(_,_) => InventoryProcessingLogger.error(status.msg)
+          case InventoryProcessStatus.QueueFull(_,_)        => InventoryProcessingLogger.warn(status.msg)
+          case InventoryProcessStatus.Accepted(_,_)         => InventoryProcessingLogger.trace(status.msg)
         }
     } catchAll { err =>
         val fail = Chained(s"Error when trying to process inventory '${info.fileName}'", err)
@@ -257,9 +263,9 @@ class InventoryProcessor(
       _     <- checkAliveLdap()
       canDo <- queue.offer(report)
       res   <- if(canDo) {
-                 InventoryProcessStatus.Accepted(report).succeed
+                 InventoryProcessStatus.Accepted(report.name, report.node.main.id).succeed
                } else {
-                 InventoryProcessStatus.QueueFull(report).succeed
+                 InventoryProcessStatus.QueueFull(report.name, report.node.main.id).succeed
                }
     } yield {
       res

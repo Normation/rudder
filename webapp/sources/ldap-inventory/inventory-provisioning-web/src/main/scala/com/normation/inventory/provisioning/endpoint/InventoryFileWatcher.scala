@@ -345,7 +345,7 @@ class ProcessFile(
       for {
         processed <- saveInventory(SaveInventoryInfo(inventory.name, () => inventory.newInputStream, signature.map(s => () => s.newInputStream))).either
         move      <- processed match {
-                       case Right(InventoryProcessStatus.Accepted(_)) =>
+                       case Right(InventoryProcessStatus.Accepted(_,_)) =>
                          //move to received dir
                          safeMove(signature.map(s => s.moveTo(received / s.name)(File.CopyOptions(overwrite = true)))) *>
                          safeMove(inventory.moveTo(received / inventory.name)(File.CopyOptions(overwrite = true)))
