@@ -88,23 +88,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <groupId>net.liftweb</groupId>
       <artifactId>lift-json_${scala-binary-version}</artifactId>
       <version>${lift-version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.scala-lang</groupId>
-          <artifactId>scalap</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>net.liftweb</groupId>
       <artifactId>lift-common_${scala-binary-version}</artifactId>
       <version>${lift-version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>*</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
 
     <dependency>

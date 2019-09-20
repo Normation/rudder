@@ -125,26 +125,27 @@ class TechniqueWriter (
     for {
       directives <- readDirectives.getFullDirectiveLibrary().map(_.allActiveTechniques.values.filter(_.techniqueName.value == techniqueId.name).flatMap(_.directives).filter(_.techniqueVersion == techniqueId.version))
 
-      technique <- techniqueRepository.get(techniqueId).notOptional(s"No Technique with ID '${techniqueId.toString()}' found in reference library.")
+      technique  <- techniqueRepository.get(techniqueId).notOptional(s"No Technique with ID '${techniqueId.toString()}' found in reference library.")
 
       // Check if we have directives, and either, make an error, if we don't force deletion, or delete them all, creating a change request
-      _ <- directives match {
-             case Nil => UIO.unit
-             case _ =>
-               if (deleteDirective) {
-                 val wf = workflowLevelService.getWorkflowService()
-                 for {
-                   cr <- directives.map(createCr(_,technique.rootSection)).reduceOption(mergeCrs).notOptional(s"Could not create a change request to delete ${techniqueName}/${techniqueVersion} directives")
-                   _ <- wf.startWorkflow(cr, committer, Some(s"Deleting technique ${techniqueName}/${techniqueVersion}")).succeed
-                  } yield {
-                   ()
-                  }
-               } else
-                 Unexpected(s"${directives.size} directives are defined for ${techniqueName}/${techniqueVersion} please delete them, or force deletion").fail
-           }
-      _ <- archiver.deleteTechnique(techniqueName,techniqueVersion,modId,committer, s"Deleting technique ${techniqueName}/${techniqueVersion}")
-
-      _  <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of Technique ${techniqueName}")).succeed.chainError(s"An error occurred during technique update after deletion of Technique ${techniqueName}")
+      _          <-  directives match {
+                       case Nil => UIO.unit
+                       case _ =>
+                         if (deleteDirective) {
+                           val wf = workflowLevelService.getWorkflowService()
+                           for {
+                             cr <- directives.map(createCr(_,technique.rootSection)).reduceOption(mergeCrs).notOptional(s"Could not create a change request to delete ${techniqueName}/${techniqueVersion} directives")
+                             _  <- wf.startWorkflow(cr, committer, Some(s"Deleting technique ${techniqueName}/${techniqueVersion}")).toIO
+                            } yield {
+                             ()
+                            }
+                         } else
+                           Unexpected(s"${directives.size} directives are defined for ${techniqueName}/${techniqueVersion} please delete them, or force deletion").fail
+                     }
+      _          <- archiver.deleteTechnique(techniqueName,techniqueVersion,modId,committer, s"Deleting technique ${techniqueName}/${techniqueVersion}")
+      _          <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of Technique ${techniqueName}")).toIO.chainError(
+                      s"An error occurred during technique update after deletion of Technique ${techniqueName}"
+                    )
     } yield {
       ()
     }

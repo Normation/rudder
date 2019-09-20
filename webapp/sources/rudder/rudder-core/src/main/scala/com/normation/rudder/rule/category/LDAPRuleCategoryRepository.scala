@@ -142,7 +142,7 @@ class RoLDAPRuleCategoryRepository(
     }
 
     for {
-      root <- categories.find( _._1 == rootDn).succeed.notOptional(s"The category with id '${rootDn}' was not found on the back but is referenced by other categories")
+      root <- categories.find( _._1 == rootDn).notOptional(s"The category with id '${rootDn}' was not found on the back but is referenced by other categories")
     } yield {
       root._2.copy(childs = getChildren(rootDn))
     }

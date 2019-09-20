@@ -646,7 +646,7 @@ class WoLDAPDirectiveRepository(
       //for log event - perhaps put that elsewhere ?
       activeTechnique   <- getActiveTechnique(inActiveTechniqueId).notOptional(s"Can not find the User Policy Entry with id '${inActiveTechniqueId.value}' to add directive '${directive.id.value}'")
       activeTechniqueId =  TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion)
-      technique         <- techniqueRepository.get(activeTechniqueId).succeed.notOptional(s"Can not find the technique with ID '${activeTechniqueId.toString}'")
+      technique         <- techniqueRepository.get(activeTechniqueId).notOptional(s"Can not find the technique with ID '${activeTechniqueId.toString}'")
       optDiff           <- (diffMapper.modChangeRecords2DirectiveSaveDiff(
                                technique.id.name
                              , technique.rootSection

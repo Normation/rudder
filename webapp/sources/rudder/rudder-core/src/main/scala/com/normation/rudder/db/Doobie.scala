@@ -56,7 +56,6 @@ import doobie.postgres.implicits._ // it is necessary whatever intellij/scalac t
 import doobie._
 import cats.data._
 import cats.effect._
-import cats.implicits._
 import doobie._
 
 import zio.Task
@@ -78,7 +77,7 @@ class Doobie(datasource: DataSource) {
         ce <- ExecutionContexts.fixedThreadPool[IO](32) // our connect EC
         te <- ExecutionContexts.cachedThreadPool[IO]    // our transaction EC
       } yield {
-        Transactor.fromDataSource[IO](datasource, ce, te)
+        Transactor.fromDataSource[IO](datasource, ce, Blocker.liftExecutionContext(te))
       }
     }
     xa.use(xa => query(xa))

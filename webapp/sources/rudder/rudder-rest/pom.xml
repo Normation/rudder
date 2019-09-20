@@ -41,7 +41,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   </parent>
 
   <description>
-    Rudder Rest API endpoints  
+    Rudder Rest API endpoints
   </description>
 
   <repositories>
@@ -53,7 +53,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <releases><enabled>false</enabled></releases>
     </repository>
   </repositories>
-  
+
   <build>
     <resources>
       <resource>
@@ -71,7 +71,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         </includes>
       </resource>
     </resources>
-    
+
     <plugins>
      <plugin>
        <groupId>org.apache.maven.plugins</groupId>
@@ -91,7 +91,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       </plugin>
     </plugins>
   </build>
-  
+
   <properties>
     <!-- seriously, maven...  http://stackoverflow.com/questions/13228472/how-to-acces-maven-build-timestamp-for-resource-filtering#13228882 -->
     <build-timestamp>${maven.build.timestamp}</build-timestamp>
@@ -110,7 +110,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>config</artifactId>
       <version>1.3.1</version>
     </dependency>
-    
+
     <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>javax.servlet-api</artifactId>
@@ -118,19 +118,26 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <scope>provided</scope>
     </dependency>
 
-    <!-- it seems to not be resolved, don't know why -->
+    <!-- it seems to not be resolved, don't know why - lift-json -->
     <dependency>
       <groupId>com.thoughtworks.paranamer</groupId>
       <artifactId>paranamer</artifactId>
       <version>2.8</version>
     </dependency>
-    
+
+    <!-- Doing HTTP requests for remote run -->
+    <dependency>
+      <groupId>org.scalaj</groupId>
+      <artifactId>scalaj-http_${scala-binary-version}</artifactId>
+      <version>2.3.0</version>
+    </dependency>
+
     <dependency>
       <groupId>com.lihaoyi</groupId>
       <artifactId>sourcecode_${scala-binary-version}</artifactId>
-      <version>0.1.4</version>
+      <version>0.1.7</version>
     </dependency>
-    
+
     <!-- Testing Liftweb -->
     <dependency>
       <groupId>net.liftweb</groupId>
@@ -152,7 +159,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>1.17</version>
       <scope>test</scope>
     </dependency>
-    
+
     <!-- the slf4j commons-logging replacement -->
     <dependency>
       <groupId>org.slf4j</groupId>

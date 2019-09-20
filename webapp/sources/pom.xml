@@ -342,7 +342,7 @@ limitations under the License.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <!-- Maven plugin version -->
-    <scala-maven-plugin-version>3.2.2</scala-maven-plugin-version>
+    <scala-maven-plugin-version>3.4.0</scala-maven-plugin-version>
 
     <!-- Libraries version that MUST be used in all children project -->
 
@@ -355,37 +355,41 @@ limitations under the License.
     <scala-parser-combinators-version>1.1.2</scala-parser-combinators-version>
     <scala-xml-version>1.2.0</scala-xml-version>
     <lift-version>3.3.0</lift-version>
-    <slf4j-version>1.7.25</slf4j-version>
+    <slf4j-version>1.7.28</slf4j-version>
     <logback-version>1.2.3</logback-version>
     <junit-version>4.12</junit-version>
-    <jodatime-version>2.10</jodatime-version>
-    <jodaconvert-version>2.1.1</jodaconvert-version>
+    <jodatime-version>2.10.3</jodatime-version>
+    <jodaconvert-version>2.2.1</jodaconvert-version>
     <commons-io-version>2.6</commons-io-version>
-    <commons-codec-version>1.11</commons-codec-version>
-    <commons-lang-version>2.6</commons-lang-version>
-    <spring-version>5.0.8.RELEASE</spring-version>
-    <spring-security-version>5.0.7.RELEASE</spring-security-version>
-    <jgit-version>5.0.2.201807311906-r</jgit-version>
-    <cglib-version>3.2.7</cglib-version>
+    <commons-codec-version>1.13</commons-codec-version>
+    <spring-version>5.1.9.RELEASE</spring-version>
+    <spring-security-version>5.1.6.RELEASE</spring-security-version>
+    <jgit-version>5.5.0.201909110433-r</jgit-version>
+    <cglib-version>3.3.0</cglib-version>
     <asm-version>5.2</asm-version>
-    <bcpkix-jdk15on-version>1.60</bcpkix-jdk15on-version>
-    <silencer-lib-version>1.4.1</silencer-lib-version>
-    <better-files-version>3.7.0</better-files-version>
+    <bcpkix-jdk15on-version>1.63</bcpkix-jdk15on-version>
+    <silencer-lib-version>1.4.2</silencer-lib-version>
+    <better-files-version>3.8.0</better-files-version>
+    <sourcecode-version>0.1.7</sourcecode-version>
+    <quicklense-version>1.4.12</quicklense-version>
+    <hikaricp-version>3.4.0</hikaricp-version>
+    <postgresql-version>42.2.8</postgresql-version>
     <!--
       These one must be updated to work together
       We declare cats in "test" here, because it is not directly needed
       in any project before rudder.
     -->
-    <monix-version>2.3.3</monix-version>
-    <cats-version>1.6.0</cats-version>
-    <specs2-version>4.3.5</specs2-version>
-    <doobie-version>0.6.0</doobie-version>
-    <fs2-version>1.0.0</fs2-version>
+    <monix-version>3.0.0</monix-version>
+    <cats-version>2.0.0</cats-version>
+    <specs2-version>4.7.0</specs2-version>
+    <doobie-version>0.8.2</doobie-version>
+    <fs2-version>1.0.4</fs2-version>
     <http4s-version>0.19.0</http4s-version>
     <shapeless-version>2.3.3</shapeless-version>
-    <cats-effect-version>1.0.0</cats-effect-version>
-    <dev-zio-version>1.0.0-RC10-1</dev-zio-version>
-    <zio-cats-version>2.0.0.0-RC1</zio-cats-version>
+    <cats-effect-version>2.0.0</cats-effect-version>
+    <dev-zio-version>1.0.0-RC12-1</dev-zio-version>
+    <zio-cats-version>2.0.0.0-RC3</zio-cats-version>
+
     <!--
       Hack to make scalac jvm parameters like RAM configurable.
       With that, one can override Xmx or add jvm parameters either
@@ -466,10 +470,36 @@ limitations under the License.
         <artifactId>shapeless_${scala-binary-version}</artifactId>
         <version>${shapeless-version}</version>
       </dependency>
+      <dependency>
+        <groupId>com.lihaoyi</groupId>
+        <artifactId>sourcecode_${scala-binary-version}</artifactId>
+        <version>${sourcecode-version}</version>
+      </dependency>
+      <dependency>
 
-      <!--
+        <groupId>com.zaxxer</groupId>
+        <artifactId>HikariCP</artifactId>
+        <version>${hikaricp-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <version>${postgresql-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.softwaremill.quicklens</groupId>
+        <artifactId>quicklens_${scala-binary-version}</artifactId>
+        <version>${quicklense-version}</version>
+      </dependency
+
+      ><!--
         lift-web
       -->
+      <dependency>
+        <groupId>xerces</groupId>
+        <artifactId>xercesImpl</artifactId>
+        <version>2.12.0</version>
+      </dependency>
       <dependency>
         <groupId>net.liftweb</groupId>
         <artifactId>lift-common_${scala-binary-version}</artifactId>
@@ -494,11 +524,27 @@ limitations under the License.
         <groupId>net.liftweb</groupId>
         <artifactId>lift-util_${scala-binary-version}</artifactId>
         <version>${lift-version}</version>
+        <exclusions>
+          <exclusion>
+            <artifactId>mail</artifactId>
+            <groupId>javax.mail</groupId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>net.liftweb</groupId>
         <artifactId>lift-webkit_${scala-binary-version}</artifactId>
         <version>${lift-version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+          </exclusion>
+          <exclusion> <!-- -->
+            <groupId>org.mozilla</groupId>
+            <artifactId>rhino</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <!-- joda time -->
       <dependency>
@@ -528,11 +574,6 @@ limitations under the License.
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
         <version>${commons-io-version}</version>
-      </dependency>
-      <dependency>
-        <groupId>commons-lang</groupId>
-        <artifactId>commons-lang</artifactId>
-        <version>${commons-lang-version}</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
@@ -720,6 +761,7 @@ limitations under the License.
     <dependency>
       <groupId>org.scala-lang.modules</groupId>
       <artifactId>scala-parser-combinators_${scala-binary-version}</artifactId>
+      <version>${scala-parser-combinators-version}</version>
       <scope>test</scope>
     </dependency>
 

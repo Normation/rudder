@@ -193,12 +193,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
     <!-- it seems to not be resolved, don't know why -->
     <dependency>
-      <groupId>com.thoughtworks.paranamer</groupId>
-      <artifactId>paranamer</artifactId>
-      <version>2.8</version>
-    </dependency>
-    <!-- it seems to not be resolved, don't know why -->
-    <dependency>
       <groupId>org.scala-lang.modules</groupId>
       <artifactId>scala-parser-combinators_${scala-binary-version}</artifactId>
     </dependency>
@@ -213,22 +207,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-    </dependency>
-
-    <!-- Doing HTTP requests -->
-    <dependency>
-      <groupId>org.scalaj</groupId>
-      <artifactId>scalaj-http_${scala-binary-version}</artifactId>
-      <version>2.3.0</version>
-    </dependency>
-
-    <!-- Authentication -->
-    <!-- spring dep needed so that the correct version is resolved -->
-    <!-- Spring Framework Project libraries -->
-    <!-- Needed to use spring configuration by annotation -->
-    <dependency>
-      <groupId>cglib</groupId>
-      <artifactId>cglib</artifactId>
     </dependency>
 
     <!-- the slf4j commons-logging replacement -->
