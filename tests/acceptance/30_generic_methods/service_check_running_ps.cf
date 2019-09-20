@@ -22,10 +22,12 @@ body common control
 bundle agent init
 {
   vars:
-    !ubuntu::
+    !ubuntu.!redhat::
       "service_regex_1"            string => "/usr/sbin/cron";
     ubuntu::
       "service_regex_1"            string => "cron";
+    redhat::
+      "service_regex_1"            string => "crond";
     any::
       "service_regex_2"            string => "thisisadummyservice";
       "canonified_service_regex_1" string => canonify("${service_regex_1}");
