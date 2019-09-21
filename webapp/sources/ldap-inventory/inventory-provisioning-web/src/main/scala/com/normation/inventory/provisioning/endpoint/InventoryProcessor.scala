@@ -48,6 +48,7 @@ import com.normation.inventory.domain.InventoryLogger
 import com.normation.inventory.domain.InventoryReport
 import com.normation.errors._
 import com.normation.inventory.domain.KeyStatus
+import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.SecurityToken
 import com.normation.inventory.domain.UndefinedKey
 import com.normation.inventory.ldap.core.InventoryDit

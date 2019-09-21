@@ -42,9 +42,9 @@ import java.nio.file.Files
 import java.util.zip.ZipFile
 
 import com.normation.rudder.rest.RestTestSetUp
-import com.normation.rudder.rest.RestUtils.{toJsonResponse, toJsonError}
+import com.normation.rudder.rest.RestUtils.toJsonResponse
 import net.liftweb.common.{Full, Loggable}
-import net.liftweb.http.{InMemoryResponse, LiftResponse, Req}
+import net.liftweb.http.{InMemoryResponse, Req}
 import net.liftweb.json.JsonAST.{JArray, JField, JObject}
 import net.liftweb.json.JsonDSL._
 import org.apache.commons.io.FileUtils
@@ -52,8 +52,8 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
-
 import com.normation.zio._
+import net.liftweb.http.JsonResponse
 
 @RunWith(classOf[JUnitRunner])
 class SystemApiTests extends Specification with AfterAll with Loggable {
@@ -508,7 +508,9 @@ class SystemApiTests extends Specification with AfterAll with Loggable {
         def filterGeneratedFile(f: File): Boolean = matcher.contains(f)
         testDir must org.specs2.matcher.ContentMatchers.haveSameFilesAs(RestTestSetUp.testNodeConfiguration.configurationRepositoryRoot)
           .withFilter(filterGeneratedFile _)
-      case Full(resp: LiftResponse) => resp must beEqualTo(toJsonError(None, "Error when trying to get archive as a Zip")(action, false))
+      case Full(JsonResponse(json, headers, cookies, code)) =>
+        (code must beEqualTo(500)) and
+        (json.toJsCmd must beMatching(".*Error when trying to get archive as a Zip: SystemError: Error when retrieving commit revision.*"))
       case _ => ko
     }
   }
