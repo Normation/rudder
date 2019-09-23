@@ -17,6 +17,9 @@ use_rudder_auth = True
 import ncf
 import ncf_constraints
 
+import urllib3
+urllib3.disable_warnings()
+
 def format_error(exception, when, code):
   if not isinstance(exception, ncf.NcfError):
     exception = ncf.NcfError("Unknown internal error during " + when, "Cause: " + str(exception) + "\n" + traceback.format_exc())
