@@ -146,7 +146,8 @@ bundle agent check
 
   commands:
     pass2::
-      "${paths.userdel}  ${init.user[${init.indices}]}" handle => "h${init.indices}";
+      "${paths.userdel}  ${init.user[${init.indices}]}" handle => "deluser${init.indices}";
+      "${paths.groupdel} ${init.user[${init.indices}]}" handle => "delgroup${init.indices}";
       "${paths.groupdel} ${init.primary_group[1]}" handle => "del1";
       "${paths.groupdel} ${init.primary_group[2]}" handle => "del2";
 
