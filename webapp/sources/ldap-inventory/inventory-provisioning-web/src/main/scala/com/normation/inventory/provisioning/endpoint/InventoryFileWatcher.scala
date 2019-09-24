@@ -190,12 +190,12 @@ class InventoryFileWatcher(
   def stopWatcher(): Either[Throwable, Unit] = this.synchronized {
     watcher match {
       case None    => //ok
-        InventoryLogger.info(s"Stoping incoming inventory watcher ignored (already stoped).")
+        InventoryLogger.info(s"Stopping incoming inventory watcher ignored (already stopped).")
         Right(())
       case Some(w) =>
         w.stop() match {
           case Right(()) =>
-            InventoryLogger.info(s"Incoming inventory watcher stoped")
+            InventoryLogger.info(s"Incoming inventory watcher stopped")
             watcher = None
             Right(())
           case Left(ex) =>
@@ -234,8 +234,10 @@ class ProcessFile(
   private def remove(file: File): Unit = synchronized {
     toBeProcessed = (toBeProcessed - file)
   }
-
-  val newTask = (f:File) => Task (processFile(f) ).delayExecution(500 millis).doOnFinish (_ => Task (remove(f)))
+  // We cannot handle too many inventories at the same time, so we:
+  // * increase by 500ms the delay per inventories in the list of inventories to be read
+  // * increase by 3s the delay per inventory in the queue of the Inventory Processor
+  val newTask = (f:File) => Task (processFile(f) ).delayExecution((toBeProcessed.size + 1) * 500 + (inventoryProcessor.queueSize.get) * 3000 millis).doOnFinish (_ => Task (remove(f)))
 
   def addFile(file: File): Unit =  synchronized {
     toBeProcessed.get(file) match {
