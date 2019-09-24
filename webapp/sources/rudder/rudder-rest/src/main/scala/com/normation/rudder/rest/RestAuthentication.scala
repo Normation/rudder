@@ -44,6 +44,10 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.UserService
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.RudderAccount.Api
+import com.normation.rudder.RudderAccount.User
+import com.normation.rudder.api.{ ApiAuthorization => ApiAuthz }
+import com.normation.rudder.api.HttpAction
 
 class RestAuthentication(
   userService : UserService
@@ -53,10 +57,23 @@ class RestAuthentication(
     case Get("api" :: "authentication" :: Nil | "authentication" :: Nil,  req) => {
       val session = LiftSession(req)
       val currentUser = userService.getCurrentUser
+      val baseTechniqueApi = ApiPath.of("techniques")
       //the result depends upon the "acl" param value, defaulted to "non read" (write).
+      logger.info( currentUser.account)
       val (message, status) = req.param("acl").openOr("write").toLowerCase match {
         case "read" => //checking if current user has read rights on techniques
-          if(currentUser.checkRights(AuthorizationType.Technique.Read)) {
+          val check = currentUser.account match {
+            case _: User =>  currentUser.checkRights(AuthorizationType.Technique.Read)
+            case _: Api  => currentUser.getApiAuthz match {
+              case ApiAuthz.RW => true
+              case ApiAuthz.ACL(acl)  => AclCheck.apply(acl,baseTechniqueApi, HttpAction.POST) ||
+                                                 AclCheck.apply(acl,baseTechniqueApi, HttpAction.PUT)  ||
+                                                 AclCheck.apply(acl,baseTechniqueApi, HttpAction.GET)
+              case ApiAuthz.None => false
+              case ApiAuthz.RO => true
+            }
+          }
+          if (check) {
             (session.uniqueId, RestOk)
           } else {
             val msg = s"Authentication API forbids read access to Techniques for user ${currentUser.actor.name}"
@@ -64,7 +81,18 @@ class RestAuthentication(
             (msg, ForbiddenError)
           }
         case _ => //checking for write access - by defaults, we look for the higher priority
-          if(currentUser.checkRights(AuthorizationType.Technique.Write)) {
+
+          val check = currentUser.account match {
+            case _: User =>  currentUser.checkRights(AuthorizationType.Technique.Write)
+            case _: Api  => currentUser.getApiAuthz match {
+              case ApiAuthz.RW => true
+              case ApiAuthz.ACL(acl)  => AclCheck.apply(acl,baseTechniqueApi, HttpAction.POST) ||
+                                                 AclCheck.apply(acl,baseTechniqueApi, HttpAction.PUT)
+              case ApiAuthz.None => false
+              case ApiAuthz.RO => false
+            }
+          }
+          if(check) {
             (session.uniqueId, RestOk)
           } else {
             val msg = s"Authentication API forbids write access to Techniques for user ${currentUser.actor.name}"
