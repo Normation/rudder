@@ -29,6 +29,13 @@
           </li>
         </ul>
       </div>
+
+      <div class="col-lg-12 callout-fade callout-warning" ng-if="disabledChangeOnly">
+        <div class="marker">
+          <span class="glyphicon glyphicon-info-sign"></span>
+        </div>
+        'Non compliant reports only' mode is disabled if https reporting protocol is enabled
+      </div>
     </div>
     <form role="form" name="complianceModeForm" class="form-horizontal" >
 
@@ -51,7 +58,7 @@
           <li class="rudder-form">
             <div class="input-group">
               <label class="input-group-addon" for="noncompliant">
-                <input type="radio" ng-model="complianceMode.name"  value="changes-only" id="noncompliant"/>
+                <input type="radio" ng-model="complianceMode.name"  ng-disabled="disabledChangeOnly" value="changes-only" id="noncompliant"/>
                 <label for="noncompliant" class="label-radio">
                   <span class="ion ion-record"></span>
                 </label>
@@ -82,7 +89,7 @@
       <div ng-hide="complianceMode.name !== 'changes-only'" class="animate-hide">
         <div class="page-title">Agent run heartbeat</div>
         <div class="portlet-content" >
-          <div class="well">
+          <div class="callout-fade callout-info">
           <!-- global run is defined on node page, so first section is displayed in global settings page -->
             <div ng-if="!isNodePage">
               In "changes only" compliance mode, the agent will, by default, report a "heartbeat" every time it runs.<br/>
