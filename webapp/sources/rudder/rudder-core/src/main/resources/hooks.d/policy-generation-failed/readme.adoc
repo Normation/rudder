@@ -1,0 +1,16 @@
+= policy-generation-failed
+
+== When/What ?
+
+This directory contains hooks executed when a policy generation failed.
+
+== Parameters
+
+Hooks parameters are passed by environment variable:
+
+- RUDDER_GENERATION_DATETIME     : ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time that
+identifies that policy generation.
+- RUDDER_END_GENERATION_DATETIME : ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time when
+the generation ended (minus these hooks)
+- RUDDER_ERROR_MESSAGE_PATH      : path to a file which contains the full error message of
+the policy generation failure.
