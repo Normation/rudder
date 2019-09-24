@@ -88,7 +88,7 @@ class NameAndVersionIdFinder(
       val merged = con.searchOne(dit.SOFTWARE.dn, filter, A_SOFTWARE_UUID, A_NAME, A_SOFT_VERSION).flatMap(e => mapper.softwareFromEntry(e) )
 
       //now merge back
-      (MergedSoftware(Set(),Set())/: entities) { case(ms, s) =>
+      entities.foldLeft(MergedSoftware(Set(),Set())) { case(ms, s) =>
         merged.find { x => x.name == s.name && x.version == s.version } match {
           case None => ms.copy(newSoftware = ms.newSoftware+s)
           case Some(x) => ms.copy(alreadySavedSoftware = ms.alreadySavedSoftware+x)

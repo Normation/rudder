@@ -317,6 +317,11 @@ object RuleApi extends ApiModuleProvider[RuleApi] {
     val description = "Create a new rule"
     val (action, path)  = PUT / "rules"
   }
+  // must be before rule details, else it is never reached
+  final case object GetRuleTree extends RuleApi with ZeroParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
+    val description = "Get rule categories and rule structured in a tree format"
+    val (action, path)  = GET / "rules" / "tree"
+  }
   final case object RuleDetails extends RuleApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     val description = "Get information about given rule"
     val (action, path)  = GET / "rules" / "{id}"
@@ -328,10 +333,6 @@ object RuleApi extends ApiModuleProvider[RuleApi] {
   final case object UpdateRule extends RuleApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     val description = "Update information about given rule"
     val (action, path)  = POST / "rules" / "{id}"
-  }
-  final case object GetRuleTree extends RuleApi with ZeroParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
-    val description = "Get rule categories and rule structured in a tree format"
-    val (action, path)  = GET / "rules" / "tree"
   }
   final case object GetRuleCategoryDetails extends RuleApi with OneParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "Get information about given rule category"
