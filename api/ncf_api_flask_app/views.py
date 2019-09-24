@@ -98,7 +98,10 @@ def get_auth():
         # Authentication success return it
         success = jsonify ( authentication_result )
         return success
-      result.append(authentication_result["response"])
+      if ("errorDetails" in authentication_result):
+        result.append(authentication_result["errorDetails"])
+      else:
+        result.append("authentication error: " + str(authentication_result["status_code"]))
     # all authentication have failed, return an error
     error = jsonify ({ "error" : {"message": "Could not authenticate with ncf API", "details": "\n".join(result) }})
     error.status_code = 401
