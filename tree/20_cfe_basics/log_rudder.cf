@@ -381,10 +381,11 @@ bundle agent _method_reporting_context(c_name, c_key)
 bundle agent rudder_reporting_context(d_id, r_id, t_name)
 {
   vars:
-    "report_data.technique_name" string => "${t_name}";
-    "report_data.directive_id"   string => "${d_id}";
-    "report_data.rule_id"        string => "${r_id}";
-    "report_data.identifier"     string => "${r_id}@@${d_id}@@0";
+    "report_data.technique_name"          string => "${t_name}";
+    "report_data.directive_id"            string => "${d_id}";
+    "report_data.canonified_directive_id" string => canonify("${d_id}");
+    "report_data.rule_id"                 string => "${r_id}";
+    "report_data.identifier"              string => "${r_id}@@${d_id}@@0";
 }
 
 bundle agent rudder_reporting_context_id(id, t_name)
@@ -397,12 +398,13 @@ bundle agent rudder_reporting_context_id(id, t_name)
 bundle agent clean_reporting_context
 {
   vars:
-    "report_data.component_name" string => "";
-    "report_data.component_key"  string => "";
-    "report_data.technique_name" string => "";
-    "report_data.directive_id"   string => "";
-    "report_data.rule_id"        string => "";
-    "report_data.identifier"     string => "";
+    "report_data.component_name"          string => "";
+    "report_data.component_key"           string => "";
+    "report_data.technique_name"          string => "";
+    "report_data.directive_id"            string => "";
+    "report_data.canonified_directive_id" string => "";
+    "report_data.rule_id"                 string => "";
+    "report_data.identifier"              string => "";
 }
 
 bundle agent disable_reporting
