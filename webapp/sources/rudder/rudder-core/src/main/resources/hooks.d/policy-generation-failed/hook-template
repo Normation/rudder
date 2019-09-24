@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# Hooks parameter are passed by environment variable:
+#
+# - RUDDER_GENERATION_DATETIME       : generation datetime: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time that identify that policy generation.
+# - RUDDER_END_GENERATION_DATETIME   : generation end time: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time when the generation ended (minus these hooks)
+# - RUDDER_ERROR_MESSAGE_PATH        : path to a file whinch contains the policy generation error message
+
+# Errors code on hooks are interpreted as follow:
+# - 0     : success, no log (appart if debug one)          , continue to next hook
+# - 1-31  : error  , error   log in /var/log/rudder/webapp/, stop processing
+# - 32-63 : warning, warning log in /var/log/rudder/webapp/, continue to next hook
+# - 64-255: reserved for futur use case. Behavior may change without notice.
+
+exit 0
+
