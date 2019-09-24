@@ -246,9 +246,6 @@ class SystemVariableServiceImpl(
 
     val varRudderServerRole = systemVariableSpecService.get("RUDDER_SERVER_ROLES").toVariable().copyWithSavedValue(varRoleMappingValue)
 
-    // we need to know the mapping between policy servers and their children - do it one time for all nodes.
-    val childrenByPolicyServer = allNodeInfos.values.toList.groupBy( _.policyServerId )
-
     if (nodeInfo.isPolicyServer) {
       nodeConfigurationRoles.add(ServerRole("policy_server"))
       if (nodeInfo.id == nodeInfo.policyServerId) {
@@ -334,6 +331,9 @@ class SystemVariableServiceImpl(
     // If we are facing a policy server, we have to allow each child to connect, plus the policy parent,
     // else it's only the policy server
     val policyServerVars = if (nodeInfo.isPolicyServer) {
+
+      // we need to know the mapping between policy servers and their children
+      val childrenByPolicyServer = allNodeInfos.values.toList.groupBy( _.policyServerId )
 
       // Find the "policy children" of this policy server
       // thanks to the allNodeInfos, this is super easy
