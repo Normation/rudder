@@ -268,6 +268,7 @@ object RunHooks {
        val dir = new File(basePath)
        // Check that dir exists before looking in it
        if (dir.exists) {
+         HooksLogger.debug(s"Looking for hooks in directory '${basePath}', ignoring files with suffix: '${ignoreSuffixes.mkString("','")}'")
          // only keep executable files
          val files = dir.listFiles().toList.flatMap { file =>
            file match {

@@ -345,7 +345,8 @@ object RudderConfig extends Loggable {
   // The base directory for hooks. I'm not sure it needs to be configurable
   // as we only use it in generation.
   val HOOKS_D = "/opt/rudder/etc/hooks.d"
-  val UPDATED_NODE_IDS_PATH = "/var/rudder/policy-generation-info/updated-nodeids"
+  val UPDATED_NODE_IDS_PATH = "/var/rudder/policy-generation-info/last-updated-nodeids"
+  val GENERATION_FAILURE_MSG_PATH = "/var/rudder/policy-generation-info/last-failure-message"
   /*
    * This is a parameter for compatibility mode for Rudder 5.0.
    * It should be removed in 5.1 and up.
@@ -1456,6 +1457,7 @@ object RudderConfig extends Loggable {
       , HOOKS_IGNORE_SUFFIXES
       , UPDATED_NODE_IDS_PATH
       , UPDATED_NODE_IDS_COMPABILITY
+      , GENERATION_FAILURE_MSG_PATH
   )}
 
   private[this] lazy val asyncDeploymentAgentImpl: AsyncDeploymentActor = {

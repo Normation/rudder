@@ -464,6 +464,20 @@ trait PromiseGenerationService {
     } yield {
       result
     }
+    // if result is a failure, execute policy generation failure hooks
+    result match {
+      case f: Failure =>
+        // in case of a failed generation, run corresponding hooks
+        val failureHooksTime =  System.currentTimeMillis
+        val exceptionInfo = f.rootExceptionCause.map(ex => s"\n\nException linked to failure: ${ex.getMessage}\n  ${ex.getStackTrace.map(_.toString).mkString("\n  ")}").getOrElse("")
+        runFailureHooks(generationTime, new DateTime(failureHooksTime), systemEnv, f.messageChain+exceptionInfo, GENERATION_FAILURE_MSG_PATH) match {
+          case f:Failure => PolicyLogger.error(s"Failure when executing policy generation failure hooks: ${f.messageChain}")
+          case _ => //
+        }
+        val timeRunFailureGenHooks =  (System.currentTimeMillis - failureHooksTime)
+        PolicyLogger.debug(s"Generation-failure hooks ran in ${timeRunFailureGenHooks} ms")
+      case _ => //
+    }
     PolicyLogger.info("Policy generation completed in: %10s".format(periodFormatter.print(new Period(System.currentTimeMillis - initialTime))))
     result
   }
@@ -519,6 +533,7 @@ trait PromiseGenerationService {
   def HOOKS_D                : String
   def HOOKS_IGNORE_SUFFIXES  : List[String]
   def UPDATED_NODE_IDS_PATH  : String
+  def GENERATION_FAILURE_MSG_PATH  : String
 
   /*
    * From global configuration and node modes, build node modes
@@ -676,6 +691,10 @@ trait PromiseGenerationService {
    */
   def runPostHooks(generationTime: DateTime, endTime: DateTime, idToConfiguration: Map[NodeId, NodeConfiguration], systemEnv: HookEnvPairs, nodeIdsPath: String): Box[Unit]
 
+  /**
+   * Run failure hook
+   */
+  def runFailureHooks(generationTime: DateTime, endTime: DateTime, systemEnv: HookEnvPairs, errorMessage: String, errorMessagePath: String): Box[Unit]
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -716,6 +735,7 @@ class PromiseGenerationServiceImpl (
   , override val HOOKS_IGNORE_SUFFIXES: List[String]
   , override val UPDATED_NODE_IDS_PATH: String
   , override val postGenerationHookCompabilityMode: Option[Boolean]
+  , override val GENERATION_FAILURE_MSG_PATH: String
 ) extends PromiseGenerationService with
   PromiseGeneration_performeIO with
   PromiseGeneration_buildRuleVals with
@@ -1089,6 +1109,7 @@ object BuildNodeConfiguration extends Loggable {
 
   // we need to remove all nodes whose parent are failed, recursively
   // we don't want to have zillions of "node x failed b/c parent failed", so we just say "children node failed b/c parent failed"
+  @scala.annotation.tailrec
   def recFailNodes(failed: Set[NodeId], maybeSuccess: List[NodeConfiguration], failures: Set[String]): NodeConfigurations = {
     // filter all nodes whose parent is in failed
     val newFailed = maybeSuccess.collect { case cfg if(failed.contains(cfg.nodeInfo.policyServerId )) =>
@@ -1603,7 +1624,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
                                }.sortBy( _._2 ).map( _._1 )
       defaultEnvParams      =  (  ("RUDDER_GENERATION_DATETIME", generationTime.toString())
                                :: ("RUDDER_END_GENERATION_DATETIME", endTime.toString) //what is the most alike a end time
-                               :: ("RUDDER_NODE_IDS_PATH", UPDATED_NODE_IDS_PATH)
+                               :: ("RUDDER_NODE_IDS_PATH", nodeIdsPath)
                                :: ("RUDDER_NUMBER_NODES_UPDATED", updatedNodeIds.size.toString)
                                :: ("RUDDER_ROOT_POLICY_SERVER_UPDATED", if(updatedNodeIds.contains("root")) "0" else "1" )
                                :: Nil )
@@ -1617,6 +1638,76 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
                                  , systemEnv
                                )
 
+    } yield ()
+  }
+
+
+  /*
+   * Write a sourcable file with the sorted list of updated NodeIds in RUDDER_NODE_IDS variable.
+   * This file contains:
+   * - comments with the generation time
+   * - updated policy server / relay
+   * - updated normal nodes
+   * - all update nodes
+   *
+   * We keep one generation back in a "${path}.old"
+   */
+  def writeErrorMessageForHook(path: String, error: String, start: DateTime, end: DateTime): Box[Unit] = {
+    // format of date in the file
+    def date(d: DateTime) = d.toString(ISODateTimeFormat.basicDateTime())
+
+    def effect(x: => Unit)(msg: String) = {
+      try {
+        Full(x)
+      } catch {
+        case NonFatal(ex) => Failure(s"${msg}. Exception was: ${ex.getClass.getSimpleName}: ${ex.getMessage}")
+      }
+    }
+
+    implicit val openOptions = File.OpenOptions.append
+    implicit val charset = StandardCharsets.UTF_8
+
+    val file = File(path)
+    val savedOld = File(path+".old")
+
+    for {
+      _ <- effect {
+             file.parent.createDirectoryIfNotExists(true)
+             if(file.exists) {
+               file.moveTo(savedOld, true)
+             }
+           }(s"Can not move previous updated node IDs file to '${savedOld.pathAsString}'")
+      _ <- effect {
+            // header
+            file.writeText(s"# This file contains error message for the failed policy generation started at '${date(start)}' ended at '${date(end)}'\n\n")
+            file.writeText(error)
+           }(s"Can not write error message file '${file.pathAsString}'")
+    } yield ()
+  }
+
+  /*
+   * Post generation hooks
+   */
+  override def runFailureHooks(
+      generationTime    : DateTime
+    , endTime           : DateTime
+    , systemEnv         : HookEnvPairs
+    , errorMessage      : String
+    , errorMessagePath  : String
+  ): Box[Unit] = {
+    for {
+      written        <- writeErrorMessageForHook(errorMessagePath, errorMessage, generationTime, endTime)
+      failureHooks   <- RunHooks.getHooks(HOOKS_D + "/policy-generation-failed", HOOKS_IGNORE_SUFFIXES)
+      // we want to sort node with root first, then relay, then other nodes for hooks
+      envParams      =  (  ("RUDDER_GENERATION_DATETIME", generationTime.toString())
+                            :: ("RUDDER_END_GENERATION_DATETIME", endTime.toString) //what is the most alike a end time
+                            :: ("RUDDER_ERROR_MESSAGE_PATH", errorMessagePath)
+                            :: Nil )
+      _              <- RunHooks.syncRun(
+                            failureHooks
+                          , HookEnvPairs.build(envParams:_*)
+                          , systemEnv
+                        )
     } yield ()
   }
 
