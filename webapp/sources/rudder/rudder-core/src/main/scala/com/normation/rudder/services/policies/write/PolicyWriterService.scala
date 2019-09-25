@@ -84,6 +84,7 @@ import com.normation.rudder.domain.logger.PolicyLogger
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.services.policies.ParallelSequence
 import com.normation.rudder.services.policies.Parallelism
+import org.apache.commons.lang.StringUtils
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -747,7 +748,7 @@ class PolicyWriterServiceImpl(
       (replaced, dest) =  reportIdToReplace match {
                             case None => (filled, templateInfo.destination)
                             case Some(id) =>
-                              val replace = (s: String) => s.replaceAll(Policy.TAG_OF_RUDDER_MULTI_POLICY, id.getRudderUniqueId)
+                              val replace = (s: String) => StringUtils.replace(s, Policy.TAG_OF_RUDDER_MULTI_POLICY, id.getRudderUniqueId)
                               (replace(filled), replace(templateInfo.destination))
                           }
       _                <- tryo { FileUtils.writeStringToFile(new File(outPath, dest), replaced, StandardCharsets.UTF_8) } ?~!
