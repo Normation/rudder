@@ -375,7 +375,7 @@ pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
 .skin-yellow .sidebar ul.sidebar-menu > li.treeview:nth-child(2) > ul.treeview-menu ,
 .skin-yellow .sidebar ul.sidebar-menu > li.treeview:nth-child(3) > ul.treeview-menu {
   display: block !important;
-  height: 100% !important;
+  height: auto !important;
 }
 .skin-yellow .sidebar ul.sidebar-menu > li.treeview:nth-child(2) > a,
 .skin-yellow .sidebar ul.sidebar-menu > li.treeview:nth-child(3) > a{
@@ -635,10 +635,6 @@ ul.graph-legend > li.legend:hover{
 .skin-yellow .sidebar-menu>li.footer {
   color: #556D77;
   background: #1a2226;
-  position:absolute;
-  bottom:0;
-  width:230px;
-  overflow:hidden;
 }
 .skin-yellow.sidebar-collapse .sidebar-menu>li.footer{
   -webkit-animation: expand .3s ease-in-out forwards; /* Safari 4+ */
@@ -647,6 +643,7 @@ ul.graph-legend > li.legend:hover{
   animation:         expand .3s ease-in-out forwards; /* IE 10+, Fx 29+ */
 }
 .skin-yellow .sidebar-menu>li.footer{
+  margin-top: auto;
   -webkit-animation: squeeze .3s ease-in-out forwards; /* Safari 4+ */
   -moz-animation:    squeeze .3s ease-in-out forwards; /* Fx 5+ */
   -o-animation:      squeeze .3s ease-in-out forwards; /* Opera 12+ */
@@ -659,7 +656,24 @@ ul.graph-legend > li.legend:hover{
 .skin-yellow .sidebar-menu>li.footer>a:hover, .skin-yellow .sidebar-menu>li.footer.active>a:hover {
   color: #fff;
   background: #1e282c;
-}
+}.skin-yellow .sidebar {
+   padding-bottom: 0;
+   height: 100%;
+ }
+ .skin-yellow aside.main-sidebar.fixed {
+   height: 100%;
+ }
+ .sidebar > ul.sidebar-menu {
+   height: 100%;
+   overflow-y: auto !important;
+   overflow-x: hidden !important;
+   display: flex;
+   flex-direction: column;
+ }
+ .sidebar-mini .sidebar > ul.sidebar-menu {
+   overflow-y: visible !important;
+   overflow-x: visible !important;
+ }
 /* ----- <DROPDOWN MENU>  ----- */
 @media (max-width: 767px){
   .navbar-nav .open .dropdown-menu {
