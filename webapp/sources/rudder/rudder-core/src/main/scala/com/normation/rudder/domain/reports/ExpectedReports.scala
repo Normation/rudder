@@ -42,7 +42,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.utils.HashcodeCaching
 import org.joda.time.DateTime
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
@@ -75,7 +74,7 @@ final case class NodeModeConfig(
  * A place where we store overriden directive. We keep what rule->directive
  * is overriden by what other rule->directive
  */
-case class OverridenPolicy(
+final case class OverridenPolicy(
     policy     : PolicyId
   , overridenBy: PolicyId
 )
@@ -126,19 +125,19 @@ final case class DirectiveExpectedReports (
   , policyMode : Option[PolicyMode]
   , isSystem   : Boolean
   , components : List[ComponentExpectedReport]
-) extends HashcodeCaching
+)
 
 /**
  * The Cardinality is per Component
  */
-case class ComponentExpectedReport(
+final case class ComponentExpectedReport(
     componentName             : String
 
   //TODO: change that to have a Seq[(String, String).
   //or even better, un Seq[ExpectedValue] where expectedValue is the pair
   , componentsValues          : List[String]
   , unexpandedComponentsValues: List[String]
-) extends HashcodeCaching {
+) {
 
   /**
    * Get a normalized list of pair of (value, unexpandedvalue).
@@ -164,7 +163,7 @@ case class ComponentExpectedReport(
   }
 }
 
-final case class NodeConfigId(value: String)
+final case class NodeConfigId(value: String) extends AnyVal
 
 final case class NodeAndConfigId(
     nodeId : NodeId
@@ -271,15 +270,15 @@ object ExpectedReportsSerialisation {
     )
   }
 
+  implicit class ToValidInt(val b: BigInt) extends AnyVal {
+    def toValidInt = if(b.isValidInt) b.toInt else throw new NumberFormatException(s"${b.toString} is not a valid integer")
+  }
+
   def parseJsonNodeExpectedReports(s: String): Box[JsonNodeExpectedReports] = {
     import PolicyMode.{Audit, Enforce}
     import net.liftweb.util.Helpers.tryo
 
     implicit val formats = DefaultFormats
-
-    implicit class ToValidInt(b: BigInt) {
-      def toValidInt = if(b.isValidInt) b.toInt else throw new NumberFormatException(s"${b.toString} is not a valid integer")
-    }
 
     def modes(json: JValue): Box[NodeModeConfig] = {
       def fail = Failure(s"Cannot parse JSON as modes parameters for expected node configuration: ${compactRender(json)}")
@@ -456,7 +455,7 @@ object ExpectedReportsSerialisation {
     }
   }
 
-  implicit class NodeToJson(n: NodeExpectedReports) {
+  implicit class NodeToJson(val n: NodeExpectedReports) extends AnyVal {
     def toJValue() = {
       jsonNodeExpectedReports(JsonNodeExpectedReports(n.modes, n.ruleExpectedReports, n.overrides))
     }

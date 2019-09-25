@@ -38,7 +38,6 @@
 package com.normation.rudder.web.model
 
 import com.normation.inventory.domain.NodeId
-import com.normation.utils.HashcodeCaching
 
 
 /**
@@ -46,10 +45,7 @@ import com.normation.utils.HashcodeCaching
  * from a NodeId and an optionnal salt.
  * Use toString to get the id.
  */
-sealed case class JsNodeId(
-    nodeId: NodeId,
-    salt: String = ""
-)  extends HashcodeCaching {
+final case class JsNodeId(nodeId: NodeId, salt: String = "") {
   override val toString = {
     val uuid = nodeId.value.replaceAll("-","")
     salt + uuid.substring(0,java.lang.Math.min(uuid.length,6))

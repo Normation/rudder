@@ -162,7 +162,7 @@ extends RestHelper {
    * { "archiveType" : [ { "id" : "datetimeID", "date": "human readable date" , "commiter": "name", "gitPath": "path" }, ... ]
    */
   private[this] def formatList(archiveType:String, availableArchives: Map[DateTime, GitArchiveId]) : JValue = {
-    case class JsonArchive(id:String, date:String, commiter:String, gitPath:String)
+final case class JsonArchive(id:String, date:String, commiter:String, gitPath:String)
     val ordered = availableArchives.toList.sortWith {
                     case ( (d1,_), (d2,_) ) => d1.isAfter(d2)
                   }.map {

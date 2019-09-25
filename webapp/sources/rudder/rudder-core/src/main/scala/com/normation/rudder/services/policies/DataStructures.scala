@@ -43,7 +43,6 @@ import com.normation.cfclerk.domain.Variable
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.policies.{DirectiveId, GlobalPolicyMode, PolicyMode, RuleId}
-import com.normation.utils.HashcodeCaching
 import net.liftweb.common.Box
 
 import scala.collection.immutable.TreeMap
@@ -81,7 +80,7 @@ import com.normation.cfclerk.domain.TechniqueVersion
  *   for different step in the process.
  */
 
-final case class BundleOrder(value: String)
+final case class BundleOrder(value: String) extends AnyVal
 
 object BundleOrder {
   val default: BundleOrder = BundleOrder("")
@@ -126,7 +125,7 @@ object BundleOrder {
  * interpolated variables in directives variables.
  * It is by nature node dependent.
  */
-case class InterpolationContext(
+final case class InterpolationContext(
         nodeInfo        : NodeInfo
       , policyServerInfo: NodeInfo
       , globalPolicyMode: GlobalPolicyMode
@@ -169,7 +168,7 @@ object InterpolationContext {
 final case class ParameterForConfiguration(
     name       : ParameterName
   , value      : String
-) extends HashcodeCaching
+)
 
 final case object ParameterForConfiguration {
   def fromParameter(param: Parameter) : ParameterForConfiguration = {
@@ -230,7 +229,7 @@ final case class NodeConfiguration(
   , nodeContext : Map[String, Variable]
   , parameters  : Set[ParameterForConfiguration]
   , isRootServer: Boolean = false
-) extends HashcodeCaching {
+) {
 
   def getTechniqueIds() : Set[TechniqueId] = {
     policies.map( _.technique.id ).toSet
@@ -244,7 +243,7 @@ final case class NodeConfiguration(
  * used to differenciate multi-version technique, etc.
  *
  */
-final case class PolicyId(ruleId: RuleId, directiveId: DirectiveId, techniqueVersion: TechniqueVersion) extends HashcodeCaching {
+final case class PolicyId(ruleId: RuleId, directiveId: DirectiveId, techniqueVersion: TechniqueVersion) {
 
   val value = s"${ruleId.value}@@${directiveId.value}"
 
@@ -283,7 +282,7 @@ final case class PolicyTechnique(
   , isSystem               : Boolean = false
   , generationMode         : TechniqueGenerationMode = TechniqueGenerationMode.MergeDirectives
   , useMethodReporting     : Boolean = false
-) extends HashcodeCaching {
+) {
 
   val templatesIds: Set[TechniqueResourceId] = agentConfig.templates.map(_.id).toSet
 
@@ -435,7 +434,7 @@ final case class ParsedPolicyDraft(
   , originalVariables: Map[String, Variable] // the original variable, unexpanded
   , ruleOrder        : BundleOrder
   , directiveOrder   : BundleOrder
-) extends HashcodeCaching {
+) {
 
   def toBoundedPolicyDraft(expandedVars: Map[String, Variable]) = {
     BoundPolicyDraft(
@@ -520,4 +519,4 @@ final case class RuleVal(
     ruleId            : RuleId
   , nodeIds           : Set[NodeId]
   , parsedPolicyDrafts: Seq[ParsedPolicyDraft]
-) extends HashcodeCaching
+)

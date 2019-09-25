@@ -54,7 +54,7 @@ import com.normation.rudder.domain.reports.NodeConfigId
 import org.joda.time.DateTime
 import com.normation.rudder.domain.reports.ExpectedReportsSerialisation
 
-case class RoReportsExecutionRepositoryImpl (
+final case class RoReportsExecutionRepositoryImpl (
     db: Doobie
   , pgInClause : PostgresqlInClause
 ) extends RoReportsExecutionRepository with Loggable {
@@ -144,7 +144,7 @@ case class RoReportsExecutionRepositoryImpl (
   }
 }
 
-case class WoReportsExecutionRepositoryImpl (
+final case class WoReportsExecutionRepositoryImpl (
     db            : Doobie
   , readExecutions: RoReportsExecutionRepositoryImpl
 ) extends WoReportsExecutionRepository with Loggable {

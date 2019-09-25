@@ -37,7 +37,6 @@
 
 package com.normation.rudder.reports
 
-import com.normation.utils.HashcodeCaching
 import net.liftweb.common._
 import org.joda.time.Duration
 import com.normation.inventory.domain.NodeId
@@ -58,7 +57,7 @@ import com.normation.rudder.domain.Constants
 final case class ReportingConfiguration(
     agentRunInterval      : Option[AgentRunInterval]
   , heartbeatConfiguration: Option[HeartbeatConfiguration]
-) extends HashcodeCaching
+)
 
 final case class HeartbeatConfiguration(
     overrides      : Boolean
@@ -70,8 +69,8 @@ final case class AgentRunInterval(
   , interval   : Int //in minute
   , startMinute: Int
   , startHour  : Int
-  , splaytime  : Int)
-extends HashcodeCaching {
+  , splaytime  : Int
+) {
 
   def json() = {
 
@@ -89,8 +88,7 @@ extends HashcodeCaching {
   }
 }
 
-final case class ResolvedAgentRunInterval(
-  interval: Duration, heartbeatPeriod: Int)
+final case class ResolvedAgentRunInterval(interval: Duration, heartbeatPeriod: Int)
 
 trait AgentRunIntervalService {
   def getGlobalAgentRun(): Box[AgentRunInterval]

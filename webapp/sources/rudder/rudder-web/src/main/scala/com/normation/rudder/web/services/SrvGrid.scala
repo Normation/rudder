@@ -205,7 +205,7 @@ class SrvGrid(
  *   , "callBack" : Callback on Node, if absend replaced by a link to nodeId [ Function ]
  *   }
  */
-case class NodeLine (
+final case class NodeLine (
     node       : NodeInfo
   , lastReport : Box[Option[AgentRunWithNodeConfig]]
   , callback   : Option[(String, Boolean) => JsCmd]

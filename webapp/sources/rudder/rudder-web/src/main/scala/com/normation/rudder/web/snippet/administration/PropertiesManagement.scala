@@ -815,7 +815,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     type Result[T] = Either[String, T]
     val hookPath = "/opt/rudder/etc/hooks.d/policy-generation-finished/60-trigger-node-update"
     val propPath = hookPath+".properties"
-    case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
+final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
     object TriggerProp {
       val MAX_NODES = "MAX_NODES"
       val NODE_PERCENT = "NODE_PERCENT"

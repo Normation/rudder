@@ -52,7 +52,6 @@ import JsCmds._
 import JE._
 import net.liftweb.json._
 import com.normation.rudder.domain.servers.Srv
-import com.normation.utils.HashcodeCaching
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.appconfig.ReadConfigService
 import com.normation.rudder.web.ChooseTemplate
@@ -65,7 +64,7 @@ object NodeGrid {
  * a case class used to pass the JSON that contains id of
  * the node we want args for
  */
-case class JsonArg(jsid:String, id:String, status:String) extends HashcodeCaching
+final case class JsonArg(jsid:String, id:String, status:String)
 
 /**
  * Present a grid of server in a jQuery Datatable
@@ -76,7 +75,7 @@ case class JsonArg(jsid:String, id:String, status:String) extends HashcodeCachin
  *   of head() in the calling template head
  * - call the display(servers) method
  */
-class NodeGrid(
+final class NodeGrid(
     getNodeAndMachine: LDAPFullInventoryRepository
   , nodeInfoService  : NodeInfoService
   , configService    : ReadConfigService

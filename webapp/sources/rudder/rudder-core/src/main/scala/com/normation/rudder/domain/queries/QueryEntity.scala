@@ -38,15 +38,14 @@
 package com.normation.rudder.domain.queries
 
 import com.normation.inventory.domain._
-import com.normation.utils.HashcodeCaching
 
-case class QueryUuid(val value:String) extends Uuid with HashcodeCaching
+final case class QueryUuid(val value:String) extends AnyVal with Uuid
 //  val attrName = A_QUERY_UUID
 
 //case class QueryId(override val uuid:QueryUuid, override val parentDn:DN) extends UuidValueDnId(uuid,parentDn)
 
-case class QueryEntity(
+final case class QueryEntity(
   val uuid:Option[QueryUuid],
   val description:Option[String],
   val query:Option[Query]
-) extends HashcodeCaching
+)

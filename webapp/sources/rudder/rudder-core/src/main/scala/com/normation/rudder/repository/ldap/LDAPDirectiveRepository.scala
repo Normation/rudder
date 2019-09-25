@@ -317,7 +317,7 @@ class RoLDAPDirectiveRepository(
                         for {
                           category <- getActiveTechniqueCategory(ligthCat.id)
                           parents  <- getParentsForActiveTechniqueCategory(category.id)
-                          upts     <- sequence(category.items) { uactiveTechniqueId => getActiveTechnique(uactiveTechniqueId).flatMap { Box(_) } }
+                          upts     <- sequence(category.items) { uactiveTechniqueId => getActiveTechniqueByActiveTechnique(uactiveTechniqueId).flatMap { Box(_) } }
                         } yield {
                           ( (category.id :: parents.map(_.id)).reverse, CategoryWithActiveTechniques(category, upts.toSet))
                         }
@@ -328,7 +328,7 @@ class RoLDAPDirectiveRepository(
     }
   }
 
-  def getActiveTechnique(id: ActiveTechniqueId): Box[Option[ActiveTechnique]] = {
+  def getActiveTechniqueByActiveTechnique(id: ActiveTechniqueId): Box[Option[ActiveTechnique]] = {
     userLibMutex.readLock {
       getActiveTechnique[ActiveTechniqueId](id, { id => EQ(A_ACTIVE_TECHNIQUE_UUID, id.value) } )
     }
@@ -409,7 +409,7 @@ class RoLDAPDirectiveRepository(
 
   def getFullDirectiveLibrary() : Box[FullActiveTechniqueCategory] = {
     //data structure to holds all relation between objects
-    case class AllMaps(
+final case class AllMaps(
         categories: Map[ActiveTechniqueCategoryId, ActiveTechniqueCategory]
       , activeTechiques: Map[ActiveTechniqueId, ActiveTechnique]
       , categoriesByCategory: Map[ActiveTechniqueCategoryId, List[ActiveTechniqueCategoryId]]
@@ -594,7 +594,7 @@ class WoLDAPDirectiveRepository(
       piEntry            =  mapper.userDirective2Entry(directive, uptEntry.dn)
       result             <- userLibMutex.writeLock { con.save(piEntry, true) }
       //for log event - perhaps put that elsewhere ?
-      activeTechnique    <- getActiveTechnique(inActiveTechniqueId).flatMap(Box(_)) ?~! "Can not find the User Policy Entry with id %s to add directive %s".format(inActiveTechniqueId, directive.id)
+      activeTechnique    <- getActiveTechniqueByActiveTechnique(inActiveTechniqueId).flatMap(Box(_)) ?~! "Can not find the User Policy Entry with id %s to add directive %s".format(inActiveTechniqueId, directive.id)
       activeTechniqueId  =  TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion)
       technique          <- Box(techniqueRepository.get(activeTechniqueId)) ?~! "Can not find the technique with ID '%s'".format(activeTechniqueId.toString)
       optDiff            <- diffMapper.modChangeRecords2DirectiveSaveDiff(
@@ -775,7 +775,7 @@ class WoLDAPDirectiveRepository(
 
 
 
-  def delete(id:ActiveTechniqueCategoryId, modId : ModificationId, actor:EventActor, reason: Option[String], checkEmpty:Boolean = true) : Box[ActiveTechniqueCategoryId] = {
+  def deleteCategory(id:ActiveTechniqueCategoryId, modId: ModificationId, actor:EventActor, reason: Option[String], checkEmpty:Boolean = true) : Box[ActiveTechniqueCategoryId] = {
     for {
       con <-ldap
       deleted <- {
@@ -910,7 +910,7 @@ class WoLDAPDirectiveRepository(
       activeTechnique      <- getUPTEntry(con, uactiveTechniqueId, "1.1") ?~! "Can not move non existing template in use library with ID %s".format(uactiveTechniqueId)
       newCategory          <- getCategoryEntry(con, newCategoryId, "1.1") ?~! "Can not move template with ID %s into non existing category of user library %s".format(uactiveTechniqueId, newCategoryId)
       moved                <- userLibMutex.writeLock { con.move(activeTechnique.dn, newCategory.dn) ?~! "Error when moving technique %s to category %s".format(uactiveTechniqueId, newCategoryId) }
-      movedActiveTechnique <- getActiveTechnique(uactiveTechniqueId).flatMap { Box(_)  }
+      movedActiveTechnique <- getActiveTechniqueByActiveTechnique(uactiveTechniqueId).flatMap { Box(_)  }
       autoArchive          <- ( if(autoExportOnModify && !moved.isInstanceOf[LDIFNoopChangeRecord] && !movedActiveTechnique.isSystem) {
                                 for {
                                   parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
@@ -944,7 +944,7 @@ class WoLDAPDirectiveRepository(
                            case None => Full("OK")
                            case Some(diff) => actionLogger.saveModifyTechnique(modId, principal = actor, modifyDiff = diff, reason = reason)
                          }
-      newactiveTechnique <- getActiveTechnique(uactiveTechniqueId).flatMap { Box(_) }
+      newactiveTechnique <- getActiveTechniqueByActiveTechnique(uactiveTechniqueId).flatMap { Box(_) }
       autoArchive     <- if(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord] && ! newactiveTechnique.isSystem) {
                            for {
                              parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
@@ -967,7 +967,7 @@ class WoLDAPDirectiveRepository(
                            activeTechnique.+=!(A_ACCEPTATION_DATETIME, json)
                            userLibMutex.writeLock { con.save(activeTechnique) }
                          }
-      newActiveTechnique  <- getActiveTechnique(uactiveTechniqueId).flatMap { Box(_) }
+      newActiveTechnique  <- getActiveTechniqueByActiveTechnique(uactiveTechniqueId).flatMap { Box(_) }
       autoArchive         <- if(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord] && !newActiveTechnique.isSystem) {
                                for {
                                  parents <- activeTechniqueBreadCrump(uactiveTechniqueId)
@@ -985,7 +985,7 @@ class WoLDAPDirectiveRepository(
    * Delete the technique in user library.
    * If no such element exists, it is a success.
    */
-  def delete(uactiveTechniqueId:ActiveTechniqueId, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
+  def deleteActiveTechnique(uactiveTechniqueId:ActiveTechniqueId, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
      for {
       con                <- ldap
       oldParents         <- if(autoExportOnModify) {

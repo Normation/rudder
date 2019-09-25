@@ -38,7 +38,6 @@
 package com.normation.inventory.domain
 
 import com.normation.utils.Utils._
-import com.normation.utils.HashcodeCaching
 import org.bouncycastle.openssl.PEMParser
 import java.io.StringReader
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
@@ -55,18 +54,18 @@ import org.bouncycastle.cert.X509CertificateHolder
  * A simple class to denote a manufacturer
  * TODO : Should be merge with SoftwareEditor
  */
-final case class Manufacturer(name:String) extends HashcodeCaching { assert(!isEmpty(name)) }
+final case class Manufacturer(name:String) extends AnyVal
 
 /**
  * A simple class to denote a software editor
  */
-final case class SoftwareEditor(val name:String) extends HashcodeCaching { assert(!isEmpty(name)) }
+final case class SoftwareEditor(val name:String) extends AnyVal
 
 sealed trait SecurityToken {
   def key : String
 }
 
-case object SecurityToken {
+final case object SecurityToken {
   def kind(token : SecurityToken) = {
     token match {
       case _: PublicKey   => PublicKey.kind
@@ -85,7 +84,7 @@ object Certificate {
 /**
  * A simple class to denote a software cryptographic public key
  */
-final case class PublicKey(value : String) extends SecurityToken with HashcodeCaching { assert(!isEmpty(value))
+final case class PublicKey(value : String) extends SecurityToken { assert(!isEmpty(value))
 
   // Value of the key may be stored (with old fusion inventory version) as one line and without rsa header and footer, we should add them if missing and format the key
   val key = {
@@ -112,7 +111,7 @@ final case class PublicKey(value : String) extends SecurityToken with HashcodeCa
 
 }
 
-final case class Certificate(value : String) extends SecurityToken with HashcodeCaching { assert(!isEmpty(value))
+final case class Certificate(value : String) extends SecurityToken { assert(!isEmpty(value))
 
   // Value of the key may be stored (with old fusion inventory version) as one line and without rsa header and footer, we should add them if missing and format the key
   val key = {
@@ -147,20 +146,7 @@ final case class Certificate(value : String) extends SecurityToken with Hashcode
  *
  * Comparison are really important in Version
  */
-final class Version(val value:String) extends Comparable[Version] {
-  require(!isEmpty(value))
-
+final class Version(val value:String) extends AnyVal with Comparable[Version] {
   override def compareTo(other:Version) = this.value.compareTo(other.value)
   override def toString() = "[%s]".format(value)
-
-  //subclass have to override that
-  def canEqual(other:Any) = other.isInstanceOf[Version]
-
-  override def hashCode() = 31 * value.hashCode
-
-  override def equals(other:Any) = other match {
-    case that:Version => (that canEqual this) && this.value == that.value
-    case _ => false
-  }
-
 }

@@ -37,7 +37,6 @@
 
 package com.normation.cfclerk.domain
 
-import com.normation.utils.HashcodeCaching
 import scala.collection.SortedSet
 
 /**
@@ -46,12 +45,7 @@ import scala.collection.SortedSet
  * a parent category (i.e: all subcategories of
  * a given categories must have different names)
  */
-case class TechniqueCategoryName(value:String) extends HashcodeCaching {
-  require(null != value && value.length > 0, "Id of a category can not be null nor empty")
-}
-
-object RootTechniqueCategoryName extends TechniqueCategoryName("/")
-
+final case class TechniqueCategoryName(value: String) extends AnyVal
 
 sealed abstract class TechniqueCategoryId(val name:TechniqueCategoryName) {
 
@@ -90,15 +84,12 @@ sealed abstract class TechniqueCategoryId(val name:TechniqueCategoryName) {
   }
 }
 
-case object RootTechniqueCategoryId extends TechniqueCategoryId(RootTechniqueCategoryName)
+final case object RootTechniqueCategoryId extends TechniqueCategoryId(TechniqueCategoryName("/"))
 
-case class SubTechniqueCategoryId(
+final case class SubTechniqueCategoryId(
     override val name: TechniqueCategoryName,
     parentId : TechniqueCategoryId
-) extends TechniqueCategoryId(name) with HashcodeCaching {
-
-
-}
+) extends TechniqueCategoryId(name)
 
 object TechniqueCategoryId {
 
@@ -171,25 +162,25 @@ sealed trait TechniqueCategory {
       ) )
 }
 
-case class RootTechniqueCategory(
+final case class RootTechniqueCategory(
     name          : String
   , description   : String
   , subCategoryIds: Set[SubTechniqueCategoryId] = Set()
   , techniqueIds  : SortedSet[TechniqueId] = SortedSet()
   , isSystem      : Boolean = false
-) extends TechniqueCategory with HashcodeCaching {
+) extends TechniqueCategory {
   type A = RootTechniqueCategoryId.type
   override lazy val id : A = RootTechniqueCategoryId
 }
 
-case class SubTechniqueCategory(
+final case class SubTechniqueCategory(
     override val id : SubTechniqueCategoryId
   , name            : String
   , description     : String
   , subCategoryIds  : Set[SubTechniqueCategoryId] = Set()
   , techniqueIds    : SortedSet[TechniqueId] = SortedSet()
   , isSystem        : Boolean = false
-) extends TechniqueCategory with HashcodeCaching {
+) extends TechniqueCategory {
   type A = SubTechniqueCategoryId
 }
 

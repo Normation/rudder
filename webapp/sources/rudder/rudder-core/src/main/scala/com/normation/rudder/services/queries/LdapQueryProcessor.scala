@@ -51,7 +51,6 @@ import net.liftweb.common._
 import com.normation.utils.Control.{pipeline, sequence}
 import java.util.regex.Pattern
 
-import com.normation.utils.HashcodeCaching
 import net.liftweb.util.Helpers
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.nodes.LDAPNodeInfo
@@ -65,7 +64,7 @@ import org.slf4j.LoggerFactory
  */
 sealed trait ExtendedFilter
 //pur LDAP filters
-final case class LDAPFilter(f:Filter) extends ExtendedFilter with HashcodeCaching
+final case class LDAPFilter(f:Filter) extends ExtendedFilter
 
 //special ones
 sealed trait SpecialFilter  extends ExtendedFilter
@@ -75,8 +74,8 @@ sealed trait GeneralRegexFilter extends SpecialFilter {
 }
 sealed trait RegexFilter    extends GeneralRegexFilter
 sealed trait NotRegexFilter extends GeneralRegexFilter
-final case class SimpleRegexFilter         (attributeName:String, regex:String) extends RegexFilter    with HashcodeCaching
-final case class SimpleNotRegexFilter      (attributeName:String, regex:String) extends NotRegexFilter with HashcodeCaching
+final case class SimpleRegexFilter         (attributeName:String, regex:String) extends RegexFilter
+final case class SimpleNotRegexFilter      (attributeName:String, regex:String) extends NotRegexFilter
 
 
 /*
@@ -102,7 +101,7 @@ final case class LDAPNodeQuery(
     //that map MUST not contains node related filters
   , objectTypesFilters: Map[DnType, Map[String, List[SubQuery]]]
   , nodeInfoFilters   : Seq[NodeInfoMatcher]
-) extends HashcodeCaching
+)
 
 /*
  * A subquery is something that need to be done appart from the main query to
@@ -125,7 +124,7 @@ case class RequestLimits (
   val subRequestSizeLimit:Int,
   val requestTimeLimit:Int,
   val requestSizeLimit:Int
-) extends HashcodeCaching
+)
 
 object DefaultRequestLimits extends RequestLimits(0,0,0,0)
 
@@ -145,8 +144,7 @@ class AcceptedNodesLDAPQueryProcessor(
       nodeEntry     : LDAPEntry
     , inventoryEntry: LDAPEntry
     , machineInfo   : Option[LDAPEntry]
-
-  ) extends HashcodeCaching
+  )
 
   /**
    * only report entries that match query in also in node
@@ -409,7 +407,7 @@ class InternalLDAPQueryProcessor(
       con      <- ldap
       results  <- executeQuery(rt.baseDn.toString, rt.scope, nodeObjectTypes.objectFilter, rt.filter, finalSpecialFilters, select.toSet, normalizedQuery.composition, debugId)
     } yield {
-      postFilterNode(results.groupBy( _.dn ).map( _._2.head ).toSeq, query.returnType, limitToNodeIds)
+      postFilterNode(debugId, results.groupBy( _.dn ).map( _._2.head ).toSeq, query.returnType, limitToNodeIds)
     }
 
     if(logger.isDebugEnabled) {
@@ -428,8 +426,7 @@ class InternalLDAPQueryProcessor(
    * - step1: filter out policy server if we only want "simple" nodes
    * - step2: filter out nodes based on a given list of acceptable entries
    */
-  private[this] def postFilterNode(entries: Seq[LDAPEntry], returnType: QueryReturnType, limitToNodeIds:Option[Seq[NodeId]]) : Seq[LDAPEntry] = {
-
+  private[this] def postFilterNode(debugId: Long, entries: Seq[LDAPEntry], returnType: QueryReturnType, limitToNodeIds:Option[Seq[NodeId]]) : Seq[LDAPEntry] = {
     val step1 = returnType match {
                   //actually, we are able at that point to know if we have a policy server,
                   //so we don't post-process anything.
@@ -438,9 +435,12 @@ class InternalLDAPQueryProcessor(
                 }
     val step2 = limitToNodeIds match {
                  case None => step1
-                 case Some(seq) => step1.filter(e =>
-                                     seq.exists(nodeId => nodeId.value == e(A_NODE_UUID).getOrElse("Missing attribute %s in node entry, that case is not supported.").format(A_NODE_UUID))
-                                   )
+                 case Some(seq) =>
+                   logger.debug(s"[${debugId}] |--- post filter nodes by restricting from the ones in parameter set of ${seq.size} nodes")
+
+                   step1.filter { e =>
+                     seq.exists(nodeId => nodeId.value == e(A_NODE_UUID).getOrElse("")) // node entry must have a nodeid
+                   }
                }
 
     step2
@@ -874,5 +874,4 @@ class InternalLDAPQueryProcessor(
       LDAPNodeQuery(mainFilters, query.composition, subQueries, nodeInfos)
     }
   }
-
 }

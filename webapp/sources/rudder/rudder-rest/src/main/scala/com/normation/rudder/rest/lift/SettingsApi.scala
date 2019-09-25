@@ -293,7 +293,7 @@ class SettingsApi(
     }
   }
 
-  case object RestPolicyMode extends RestSetting[PolicyMode] {
+final case object RestPolicyMode extends RestSetting[PolicyMode] {
     val key = "global_policy_mode"
     val startPolicyGeneration = true
     def get = configService.rudder_policy_mode_name
@@ -357,50 +357,50 @@ class SettingsApi(
     }
   }
 
-  case object RestPolicyModeOverridable extends RestBooleanSetting {
+final case object RestPolicyModeOverridable extends RestBooleanSetting {
     val key = "global_policy_mode_overridable"
     val startPolicyGeneration = true
     def get = configService.rudder_policy_overridable()
     def set =  configService.set_rudder_policy_overridable _
   }
 
-  case object RestRunFrequency extends RestIntSetting {
+final case object RestRunFrequency extends RestIntSetting {
     val key = "run_frequency"
     val startPolicyGeneration = true
     def get = configService.agent_run_interval()
     def set = configService.set_agent_run_interval _
   }
-  case object RestRunHour extends RestIntSetting {
+final case object RestRunHour extends RestIntSetting {
     val key = "first_run_hour"
     val startPolicyGeneration = true
     def get = configService.agent_run_start_hour()
     def set = configService.set_agent_run_start_hour _
   }
-  case object RestRunMinute extends RestIntSetting {
+final case object RestRunMinute extends RestIntSetting {
     val key = "first_run_minute"
     val startPolicyGeneration = true
     def get = configService.agent_run_start_minute()
     def set = configService.set_agent_run_start_minute _
   }
-  case object RestSplayTime extends RestIntSetting {
+final case object RestSplayTime extends RestIntSetting {
     val key = "splay_time"
     val startPolicyGeneration = true
     def get = configService.agent_run_splaytime()
     def set = configService.set_agent_run_splaytime _
   }
-  case object RestModifiedFileTTL extends RestIntSetting {
+final case object RestModifiedFileTTL extends RestIntSetting {
     val key = "modified_file_ttl"
     val startPolicyGeneration = true
     def get = configService.cfengine_modified_files_ttl()
     def set = (value : Int, _, _) => configService.set_cfengine_modified_files_ttl(value)
   }
-  case object RestOutputFileTTL extends RestIntSetting {
+final case object RestOutputFileTTL extends RestIntSetting {
     val key = "output_file_ttl"
     val startPolicyGeneration = true
     def get = configService.cfengine_outputs_ttl()
     def set = (value : Int, _, _) => configService.set_cfengine_outputs_ttl(value)
   }
-  case object RestReportingMode extends RestSetting[ComplianceModeName] {
+final case object RestReportingMode extends RestSetting[ComplianceModeName] {
     val key = "reporting_mode"
     val startPolicyGeneration = true
     def get = for {
@@ -421,67 +421,67 @@ class SettingsApi(
     }
     def toJson(value : ComplianceModeName) : JValue = value.name
   }
-  case object RestHeartbeat extends RestIntSetting {
+final case object RestHeartbeat extends RestIntSetting {
     val startPolicyGeneration = true
     val key = "heartbeat_frequency"
     def get = configService.rudder_compliance_heartbeatPeriod()
     def set =  configService.set_rudder_compliance_heartbeatPeriod _
   }
-  case object RestLogAllReports extends RestBooleanSetting {
+final case object RestLogAllReports extends RestBooleanSetting {
     val key = "log_all_reports"
     val startPolicyGeneration = true
     def get = configService.rudder_store_all_centralized_logs_in_file()
     def set = (value : Boolean, _, _) => configService.set_rudder_store_all_centralized_logs_in_file(value)
   }
-  case object RestChangeMessageEnabled extends RestBooleanSetting {
+final case object RestChangeMessageEnabled extends RestBooleanSetting {
     val startPolicyGeneration = false
     val key = "enable_change_message"
     def get = configService.rudder_ui_changeMessage_enabled()
     def set = (value : Boolean, _, _) => configService.set_rudder_ui_changeMessage_enabled(value)
   }
-  case object RestChangeMessageManadatory extends RestBooleanSetting {
+final case object RestChangeMessageManadatory extends RestBooleanSetting {
     val startPolicyGeneration = false
     val key = "mandatory_change_message"
     def get = configService.rudder_ui_changeMessage_mandatory()
     def set = (value : Boolean, _, _) => configService.set_rudder_ui_changeMessage_mandatory(value)
   }
-  case object RestChangeMessagePrompt extends RestStringSetting {
+final case object RestChangeMessagePrompt extends RestStringSetting {
     val startPolicyGeneration = false
     val key = "change_message_prompt"
     def get = configService.rudder_ui_changeMessage_explanation()
     def set = (value : String, _, _) => configService.set_rudder_ui_changeMessage_explanation(value)
   }
-  case object RestChangeRequestEnabled extends RestBooleanSetting {
+final case object RestChangeRequestEnabled extends RestBooleanSetting {
     val startPolicyGeneration = false
     val key = "enable_change_request"
     def get = configService.rudder_workflow_enabled()
     def set = (value : Boolean, _, _) => configService.set_rudder_workflow_enabled(value)
   }
-  case object RestChangeRequestSelfDeployment extends RestBooleanSetting {
+final case object RestChangeRequestSelfDeployment extends RestBooleanSetting {
     val startPolicyGeneration = false
     val key = "enable_self_deployment"
     def get = configService.rudder_workflow_self_deployment()
     def set = (value : Boolean, _, _) => configService.set_rudder_workflow_self_deployment(value)
   }
-  case object RestChangeRequestSelfValidation extends RestBooleanSetting {
+final case object RestChangeRequestSelfValidation extends RestBooleanSetting {
     val key = "enable_self_validation"
     val startPolicyGeneration = true
     def get = configService.rudder_workflow_self_validation()
     def set = (value : Boolean, _, _) => configService.set_rudder_workflow_self_validation(value)
   }
-  case object RestRequireTimeSynch extends RestBooleanSetting {
+final case object RestRequireTimeSynch extends RestBooleanSetting {
     val key = "require_time_synchronization"
     val startPolicyGeneration = true
     def get = configService.cfengine_server_denybadclocks()
     def set = (value : Boolean, _, _) => configService.set_cfengine_server_denybadclocks(value)
   }
-  case object RestUseReverseDNS extends RestBooleanSetting {
+final case object RestUseReverseDNS extends RestBooleanSetting {
     val key = "use_reverse_dns"
     val startPolicyGeneration = true
     def get = Full(false)
     def set = (value : Boolean, _, _) => Full(Unit)
   }
-  case object RestRelaySyncMethod extends RestSetting[RelaySynchronizationMethod] {
+final case object RestRelaySyncMethod extends RestSetting[RelaySynchronizationMethod] {
     val key = "relay_server_synchronization_method"
     val startPolicyGeneration = true
     def get = configService.relay_server_sync_method()
@@ -502,19 +502,19 @@ class SettingsApi(
       }
     }
   }
-  case object RestRelaySynchronizePolicies extends RestBooleanSetting {
+final case object RestRelaySynchronizePolicies extends RestBooleanSetting {
     val key = "relay_server_synchronize_policies"
     val startPolicyGeneration = true
     def get = configService.relay_server_syncpromises()
     def set = (value : Boolean, _, _) => configService.set_relay_server_syncpromises(value)
   }
-  case object RestRelaySynchronizeSharedFiles extends RestBooleanSetting {
+final case object RestRelaySynchronizeSharedFiles extends RestBooleanSetting {
     val key = "relay_server_synchronize_shared_files"
     val startPolicyGeneration = true
     def get = configService.relay_server_syncsharedfiles()
     def set = (value : Boolean, _, _) => configService.set_relay_server_syncsharedfiles(value)
   }
-  case object RestReportingProtocol extends RestSetting[SyslogProtocol] {
+final case object RestReportingProtocol extends RestSetting[SyslogProtocol] {
     val key = "rsyslog_reporting_protocol"
     val startPolicyGeneration = true
     def get = configService.rudder_syslog_protocol()
@@ -534,13 +534,13 @@ class SettingsApi(
         }
     }
   }
-  case object RestChangesGraphs extends RestBooleanSetting {
+final case object RestChangesGraphs extends RestBooleanSetting {
     val startPolicyGeneration = false
     val key = "display_recent_changes_graphs"
     def get = configService.display_changes_graph()
     def set = (value : Boolean, _, _) => configService.set_display_changes_graph(value)
   }
-  case object RestSendMetrics extends RestSetting[Option[Boolean]] {
+final case object RestSendMetrics extends RestSetting[Option[Boolean]] {
     val startPolicyGeneration = true
     def toJson(value : Option[Boolean]) : JValue = value.map(JBool(_)).getOrElse(JString("not defined"))
     def parseJson(json: JValue) = {
@@ -563,7 +563,7 @@ class SettingsApi(
     def set = configService.set_send_server_metrics _
   }
 
-  case object RestJSEngine extends RestSetting[FeatureSwitch] {
+final case object RestJSEngine extends RestSetting[FeatureSwitch] {
     val startPolicyGeneration = true
     def toJson(value : FeatureSwitch) : JValue = value.name
     def parseJson(json: JValue) = {
@@ -580,7 +580,7 @@ class SettingsApi(
     def set = (value : FeatureSwitch, _, _) => configService.set_rudder_featureSwitch_directiveScriptEngine(value)
   }
 
-  case object RestOnAcceptPolicyMode extends RestSetting[Option[PolicyMode]] {
+final case object RestOnAcceptPolicyMode extends RestSetting[Option[PolicyMode]] {
     val startPolicyGeneration = false
     def parseParam(value: String): Box[Option[PolicyMode]] = {
       Full(PolicyMode.allModes.find( _.name == value))
@@ -596,7 +596,7 @@ class SettingsApi(
     def get = configService.rudder_node_onaccept_default_policy_mode()
     def set = (value : Option[PolicyMode], _, _) => configService.set_rudder_node_onaccept_default_policy_mode(value)
   }
-  case object RestOnAcceptNodeState extends RestSetting[NodeState] {
+final case object RestOnAcceptNodeState extends RestSetting[NodeState] {
     val startPolicyGeneration = false
     def parseParam(value: String): Box[NodeState] = {
       Full(NodeState.values.find( _.name == value).getOrElse(NodeState.Enabled))
@@ -631,12 +631,12 @@ class SettingsApi(
     }
   }
 
-  case object RestChangeRequestUnexpectedAllowsDuplicate extends RestChangeUnexpectedReportInterpretation {
+final case object RestChangeRequestUnexpectedAllowsDuplicate extends RestChangeUnexpectedReportInterpretation {
     val startPolicyGeneration = false
     val key = "unexpected_allows_duplicate"
     val prop = UnexpectedReportBehavior.AllowsDuplicate
   }
-  case object RestChangeRequestUnexpectedUnboundVarValues extends RestChangeUnexpectedReportInterpretation {
+final case object RestChangeRequestUnexpectedUnboundVarValues extends RestChangeUnexpectedReportInterpretation {
     val startPolicyGeneration = false
     val key = "unexpected_unbound_var_values"
     val prop = UnexpectedReportBehavior.UnboundVarValues
@@ -651,48 +651,48 @@ class SettingsApi(
     RestUtils.response(restExtractorService, kind, id)(function, req, errorMessage)
   }
 
-  case object RestComputeChanges extends RestBooleanSetting {
+final case object RestComputeChanges extends RestBooleanSetting {
     val startPolicyGeneration = false
     val key = "rudder_compute_changes"
     def get = configService.rudder_compute_changes()
     def set = (value : Boolean, _, _) => configService.set_rudder_compute_changes(value)
   }
 
-  case object RestGenerationComputeDynGroups extends RestBooleanSetting {
+final case object RestGenerationComputeDynGroups extends RestBooleanSetting {
     val startPolicyGeneration = false
     val key = "rudder_generation_compute_dyngroups"
     def get = configService.rudder_generation_compute_dyngroups()
     def set = (value : Boolean, _, _) => configService.set_rudder_generation_compute_dyngroups(value)
   }
 
-  case object RestPersistComplianceLevels extends RestBooleanSetting {
+final case object RestPersistComplianceLevels extends RestBooleanSetting {
     val startPolicyGeneration = false
     val key = "rudder_save_db_compliance_levels"
     def get = configService.rudder_save_db_compliance_levels()
     def set = (value : Boolean, _, _) => configService.set_rudder_save_db_compliance_levels(value)
   }
 
-  case object RestPersistComplianceDetails extends RestBooleanSetting {
+final case object RestPersistComplianceDetails extends RestBooleanSetting {
     val startPolicyGeneration = false
     val key = "rudder_save_db_compliance_details"
     def get = configService.rudder_save_db_compliance_details()
     def set = (value : Boolean, _, _) => configService.set_rudder_save_db_compliance_details(value)
   }
-  case object RestGenerationMaxParallelism extends RestStringSetting {
+final case object RestGenerationMaxParallelism extends RestStringSetting {
     val startPolicyGeneration = false
     val key = "rudder_generation_max_parallelism"
     def get = configService.rudder_generation_max_parallelism()
     def set = (value : String, _, _) => configService.set_rudder_generation_max_parallelism(value)
   }
 
-  case object RestGenerationJsTimeout extends RestIntSetting {
+final case object RestGenerationJsTimeout extends RestIntSetting {
     val startPolicyGeneration = false
     val key = "rudder_generation_js_timeout"
     def get = configService.rudder_generation_js_timeout()
     def set = (value : Int, _, _) => configService.set_rudder_generation_js_timeout(value)
   }
 
-  case object RestContinueGenerationOnError extends RestBooleanSetting {
+final case object RestContinueGenerationOnError extends RestBooleanSetting {
     val startPolicyGeneration = false
     val key = "rudder_generation_continue_on_error"
     def get = configService.rudder_generation_continue_on_error()

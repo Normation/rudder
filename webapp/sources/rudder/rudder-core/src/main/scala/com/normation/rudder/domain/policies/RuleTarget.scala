@@ -43,7 +43,6 @@ import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.utils.Control.sequence
-import com.normation.utils.HashcodeCaching
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.common._
@@ -63,7 +62,7 @@ sealed abstract class RuleTarget {
 sealed trait SimpleTarget extends RuleTarget //simple as opposed to composed
 
 object GroupTarget { def r = "group:(.+)".r }
-final case class GroupTarget(groupId:NodeGroupId) extends SimpleTarget with HashcodeCaching {
+final case class GroupTarget(groupId:NodeGroupId) extends SimpleTarget {
   override def target = "group:"+groupId.value
 }
 
@@ -75,7 +74,7 @@ final case class GroupTarget(groupId:NodeGroupId) extends SimpleTarget with Hash
 sealed trait NonGroupRuleTarget extends SimpleTarget
 
 object PolicyServerTarget { def r = "policyServer:(.+)".r }
-final case class PolicyServerTarget(nodeId:NodeId) extends NonGroupRuleTarget with HashcodeCaching {
+final case class PolicyServerTarget(nodeId:NodeId) extends NonGroupRuleTarget {
   override def target = "policyServer:"+nodeId.value
 }
 
@@ -405,13 +404,13 @@ object RuleTarget extends Loggable {
 
 /** common information on a target */
 
-case class RuleTargetInfo(
+final case class RuleTargetInfo(
     target     : RuleTarget
   , name       : String
   , description: String
   , isEnabled  : Boolean
   , isSystem   : Boolean
-) extends HashcodeCaching
+)
 
 ///// the full version with all information /////
 
@@ -438,7 +437,7 @@ final case class FullRuleTargetInfo(
   , description: String
   , isEnabled  : Boolean
   , isSystem   : Boolean
-) extends HashcodeCaching {
+) {
 
   def toTargetInfo = RuleTargetInfo(
       target = target.target

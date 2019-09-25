@@ -311,7 +311,7 @@ class LDAPEntityMapper(
       }
       // custom properties mapped as NodeProperties
       val customProperties = inventoryEntry.valuesFor(A_CUSTOM_PROPERTY).toList.flatMap { json =>
-        import inventoryMapper.CustomPropertiesSerialization._
+        import com.normation.inventory.ldap.core.CustomPropertiesSerialization._
         json.toCustomProperty match {
           case Left(ex)  =>
             logger.error(s"Error when trying to deserialize Node Custom Property, it will be ignored: ${ex.getMessage}", ex)
@@ -981,6 +981,6 @@ class LDAPEntityMapper(
 // This need to be on top level, else lift json does absolutly nothing good.
 // a stable case class for json serialisation
 // { "acl": [ {"path":"some/path", "actions":["get","put"]}, {"path":"other/path","actions":["get"]}}
-final case class JsonApiAcl(acl: List[JsonApiAuthz])
+final case class JsonApiAcl(acl: List[JsonApiAuthz]) extends AnyVal
 final case class JsonApiAuthz(path: String, actions: List[String])
 

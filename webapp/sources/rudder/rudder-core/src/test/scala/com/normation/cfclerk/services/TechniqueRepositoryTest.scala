@@ -111,7 +111,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
       added = that.id.value :: added
       Full(that)
     }
-    override def delete(id: ActiveTechniqueCategoryId, modificationId: ModificationId, actor: EventActor, reason: Option[String], checkEmpty: Boolean): Box[ActiveTechniqueCategoryId] = {
+    override def deleteCategory(id: ActiveTechniqueCategoryId, modificationId: ModificationId, actor: EventActor, reason: Option[String], checkEmpty: Boolean): Box[ActiveTechniqueCategoryId] = {
       deleted = id.value :: deleted
       Full(id)
     }
@@ -130,7 +130,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     override def getActiveTechniqueAndDirective(id: DirectiveId): Box[(ActiveTechnique, Directive)] = ???
     override def getDirectives(activeTechniqueId: ActiveTechniqueId, includeSystem: Boolean): Box[Seq[Directive]] = ???
     override def getActiveTechniqueByCategory(includeSystem: Boolean): Box[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
-    override def getActiveTechnique(id: ActiveTechniqueId): Box[Option[ActiveTechnique]] = ???
+    override def getActiveTechniqueByActiveTechnique(id: ActiveTechniqueId): Box[Option[ActiveTechnique]] = ???
     override def getActiveTechnique(techniqueName: TechniqueName): Box[Option[ActiveTechnique]] = ???
     override def activeTechniqueBreadCrump(id: ActiveTechniqueId): Box[List[ActiveTechniqueCategory]] = ???
     override def getActiveTechniqueLibrary: Box[ActiveTechniqueCategory] = ???
@@ -147,7 +147,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     override def move(id: ActiveTechniqueId, newCategoryId: ActiveTechniqueCategoryId, modId: ModificationId, actor: EventActor, reason: Option[String]): Box[ActiveTechniqueId] = ???
     override def changeStatus(id: ActiveTechniqueId, status: Boolean, modId: ModificationId, actor: EventActor, reason: Option[String]): Box[ActiveTechniqueId] = ???
     override def setAcceptationDatetimes(id: ActiveTechniqueId, datetimes: Map[TechniqueVersion, DateTime], modId: ModificationId, actor: EventActor, reason: Option[String]): Box[ActiveTechniqueId] = ???
-    override def delete(id: ActiveTechniqueId, modId: ModificationId, actor: EventActor, reason: Option[String]): Box[ActiveTechniqueId] = ???
+    override def deleteActiveTechnique(id: ActiveTechniqueId, modId: ModificationId, actor: EventActor, reason: Option[String]): Box[ActiveTechniqueId] = ???
   }
 
   val ldapCallBack = new TechniqueAcceptationUpdater("update", 0, ldapRepo, ldapRepo, fsRepos, new StringUuidGeneratorImpl())

@@ -37,14 +37,13 @@
 
 package com.normation.rudder.rule.category
 
-import com.normation.utils.HashcodeCaching
 import com.normation.rudder.domain.policies.Rule
 import net.liftweb.common._
 
 /**
  * The Id for the server group category
  */
-case class RuleCategoryId(value:String) extends HashcodeCaching
+final case class RuleCategoryId(value:String) extends AnyVal
 
 
 /**
@@ -55,13 +54,13 @@ case class RuleCategoryId(value:String) extends HashcodeCaching
  * some subcategories
  * some items
  */
-case class RuleCategory(
+final case class RuleCategory(
     id          : RuleCategoryId
   , name        : String
   , description : String
   , childs      : List[RuleCategory]
   , isSystem    : Boolean = false
-) extends Loggable {
+) {
   def findParent (category : RuleCategory) :  Box[RuleCategory]= {
     if (childs.contains(category)) {
       Full(this)

@@ -109,8 +109,8 @@ bundle common g
     classes: 
       "policy_server" expression => "any";
       "root_server" expression => "any";
-      "rudder-ldap" expression => "any";
       "rudder-inventory-ldap" expression => "any";
+      "rudder-ldap" expression => "any";
       "rudder-reports" expression => "any";
       "rudder-webapp" expression => "any";
       "rudder-jetty" expression => "any";

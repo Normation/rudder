@@ -973,13 +973,13 @@ class EventLogDetailsServiceImpl(
   }
 }
 
-case class RollbackInfo(
+final case class RollbackInfo(
     target : RollbackedEvent
   , rollbackType : String
   , rollbacked : Seq[RollbackedEvent]
 )
 
-case class RollbackedEvent(
+final case class RollbackedEvent(
     id        : Int
   , date      : String
   , eventType : String

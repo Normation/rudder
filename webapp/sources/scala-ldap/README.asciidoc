@@ -92,7 +92,7 @@ anonymous or not, pooled or not.
 So for retrieving user properties, you will do the search/searchOne on the wanted branch, something like:
 
  --------------------------------------
-    case class User(cn: String, sn: String, email: String)
+final case class User(cn: String, sn: String, email: String)
 
     val users = new DN("ou=Users, o=My Company")
 

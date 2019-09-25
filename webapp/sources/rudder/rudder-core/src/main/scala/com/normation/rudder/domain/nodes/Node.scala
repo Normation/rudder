@@ -44,7 +44,6 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.reports.ReportingConfiguration
-import com.normation.utils.HashcodeCaching
 import com.normation.utils.Control.sequence
 import com.normation.rudder.services.policies.ParameterEntry
 import org.joda.time.DateTime
@@ -66,7 +65,7 @@ import net.liftweb.http.S
  * This is independant from inventory, and can exist without one.
  *
  */
-case class Node(
+final case class Node(
     id                        : NodeId
   , name                      : String
   , description               : String
@@ -77,9 +76,9 @@ case class Node(
   , nodeReportingConfiguration: ReportingConfiguration
   , properties                : Seq[NodeProperty]
   , policyMode                : Option[PolicyMode]
-) extends HashcodeCaching
+)
 
-case object Node {
+final case object Node {
   def apply (inventory : FullInventory) : Node = {
     Node(
         inventory.node.main.id
@@ -129,7 +128,7 @@ final object NodeState {
 /*
  * Name of the owner of a node property.
  */
-final case class NodePropertyProvider(value: String)
+final case class NodePropertyProvider(value: String) extends AnyVal
 
 /**
  * A node property is a key/value pair + metadata.
@@ -318,7 +317,7 @@ object JsonSerialisation {
   import net.liftweb.json._
   import net.liftweb.json.JsonDSL._
 
-  implicit class JsonNodeProperty(x: NodeProperty) {
+  implicit class JsonNodeProperty(val x: NodeProperty) extends AnyVal {
     def toJson(): JObject = (
         ( "name"     -> x.name  )
       ~ ( "value"    -> x.value )
@@ -326,8 +325,8 @@ object JsonSerialisation {
     )
   }
 
-  implicit class JsonNodeProperties(props: Seq[NodeProperty]) {
-    implicit val formats = DefaultFormats
+  implicit class JsonNodeProperties(val props: Seq[NodeProperty]) extends AnyVal {
+    implicit def formats = DefaultFormats
 
     def dataJson(x: NodeProperty) : JField = {
       JField(x.name, x.value)
@@ -342,15 +341,15 @@ object JsonSerialisation {
     }
   }
 
-  implicit class JsonParameter(x: ParameterEntry) {
+  implicit class JsonParameter(val x: ParameterEntry) extends AnyVal {
     def toJson(): JObject = (
         ( "name"     -> x.parameterName )
       ~ ( "value"    -> x.escapedValue  )
     )
   }
 
-  implicit class JsonParameters(parameters: Set[ParameterEntry]) {
-    implicit val formats = DefaultFormats
+  implicit class JsonParameters(val parameters: Set[ParameterEntry]) extends AnyVal {
+    implicit def formats = DefaultFormats
 
     def dataJson(x: ParameterEntry) : JField = {
       JField(x.parameterName, x.escapedValue)

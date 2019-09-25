@@ -115,14 +115,14 @@ object Doobie {
     case Left(e) => Failure(e.getMessage, Full(e), Empty)
     case Right(a) => Full(a)
   }
-  implicit class XorToBox[A](res: Either[Throwable, A]) {
+  implicit class XorToBox[A](val res: Either[Throwable, A]) extends AnyVal {
     def box = xorToBox(res)
   }
   implicit def xorBoxToBox[A](res: Either[Throwable, Box[A]]): Box[A] = res match {
     case Left(e) => Failure(e.getMessage, Full(e), Empty)
     case Right(a) => a
   }
-  implicit class XorBoxToBox[A](res: Either[Throwable, Box[A]]) {
+  implicit class XorBoxToBox[A](val res: Either[Throwable, Box[A]]) extends AnyVal {
     def box = xorBoxToBox(res)
   }
 

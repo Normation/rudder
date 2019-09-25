@@ -51,13 +51,13 @@ import com.normation.rudder.rule.category.RuleCategory
  * A category of the technique library.
  *
  */
-case class ActiveTechniqueCategoryContent(
+final case class ActiveTechniqueCategoryContent(
     category  : ActiveTechniqueCategory
   , categories: Set[ActiveTechniqueCategoryContent]
   , templates : Set[ActiveTechniqueContent]
 )
 
-case class ActiveTechniqueContent(
+final case class ActiveTechniqueContent(
     activeTechnique : ActiveTechnique
   , directives      : Set[Directive]
 )
@@ -65,7 +65,7 @@ case class ActiveTechniqueContent(
 /**
  * Identifier for user library archive
  */
-case class ActiveTechniqueLibraryArchiveId(value:String)
+final case class ActiveTechniqueLibraryArchiveId(value:String) extends AnyVal
 
 /**
  * That trait allows to manage the import of active techniques library
@@ -129,7 +129,7 @@ trait ParseGlobalParameters {
 /**
  * A category of the group library.
  */
-case class NodeGroupCategoryContent(
+final case class NodeGroupCategoryContent(
     category  : NodeGroupCategory
   , categories: Set[NodeGroupCategoryContent]
   , groups    : Set[NodeGroup]
@@ -138,7 +138,7 @@ case class NodeGroupCategoryContent(
 /**
  * Identifier for user library archive
  */
-case class NodeGroupLibraryArchiveId(value:String)
+final case class NodeGroupLibraryArchiveId(value:String) extends AnyVal
 
 trait ParseGroupLibrary {
 

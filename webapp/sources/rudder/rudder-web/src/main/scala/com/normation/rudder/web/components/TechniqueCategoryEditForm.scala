@@ -115,7 +115,7 @@ class TechniqueCategoryEditForm(
   }
 
   private[this] def deleteCategory() : JsCmd = {
-    activeTechniqueCategoryRepository.delete(currentCategory.id, ModificationId(uuidGen.newUuid),CurrentUser.actor, Some("User deleted technique category from UI")) match {
+    activeTechniqueCategoryRepository.deleteCategory(currentCategory.id, ModificationId(uuidGen.newUuid),CurrentUser.actor, Some("User deleted technique category from UI")) match {
       case Full(id) =>
         //update UI
         JsRaw("$('#removeCategoryActionDialog').bsModal('hide');") &

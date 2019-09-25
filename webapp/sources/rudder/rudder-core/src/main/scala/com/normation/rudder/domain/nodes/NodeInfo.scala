@@ -45,7 +45,6 @@ import java.security.spec.X509EncodedKeySpec
 
 import com.normation.inventory.domain._
 import com.normation.rudder.domain.logger.PolicyLogger
-import com.normation.utils.HashcodeCaching
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import org.bouncycastle.openssl.PEMParser
@@ -84,7 +83,7 @@ final case class NodeInfo(
   , archDescription: Option[String]
   , ram            : Option[MemorySize]
   , timezone       : Option[NodeTimezone]
-) extends HashcodeCaching {
+) {
 
   val id                         = node.id
   val name                       = node.name

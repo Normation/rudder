@@ -214,11 +214,11 @@ class TestInventory extends Specification {
         val m = machine("machine in " + status.name, status)
         repo.save(m)
 
-        val found = repo.get(m.id)
+        val found = repo.getMachine(m.id)
 
         (m === found.openOrThrowException("For test")) and {
           repo.delete(m.id)
-          val x = repo.get(m.id)
+          val x = repo.getMachine(m.id)
           x must beEqualTo(Empty)
           ok
         }
@@ -232,7 +232,7 @@ class TestInventory extends Specification {
       }
 
       val toFound = machine("m1", AcceptedInventory)
-      val found = repo.get(toFound.id)
+      val found = repo.getMachine(toFound.id)
 
       toFound === found.openOrThrowException("For test")
 
@@ -246,9 +246,9 @@ class TestInventory extends Specification {
 
       (
         repo.move(m.id, AcceptedInventory).isOK
-        and m.copy(status = AcceptedInventory) === repo.get(m.id).openOrThrowException("For test")
+        and m.copy(status = AcceptedInventory) === repo.getMachine(m.id).openOrThrowException("For test")
         and repo.move(m.id, RemovedInventory).isOK
-        and m.copy(status = RemovedInventory) === repo.get(m.id).openOrThrowException("For test")
+        and m.copy(status = RemovedInventory) === repo.getMachine(m.id).openOrThrowException("For test")
       )
     }
 
@@ -262,7 +262,7 @@ class TestInventory extends Specification {
         and repo.move(m1.id, RemovedInventory).isOK
         and {
           val dn = inventoryDitService.getDit(AcceptedInventory).MACHINES.MACHINE.dn(m1.id)
-          m2 === repo.get(m1.id).openOrThrowException("For test") and ldap.server.entryExists(dn.toString) === false
+          m2 === repo.getMachine(m1.id).openOrThrowException("For test") and ldap.server.entryExists(dn.toString) === false
         }
       )
     }

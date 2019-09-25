@@ -37,7 +37,6 @@
 
 package com.normation.rudder.domain.policies
 
-import com.normation.utils.HashcodeCaching
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.SectionSpec
@@ -57,7 +56,7 @@ sealed trait ChangeRequestDirectiveDiff {
 final case class DeleteDirectiveDiff(
     techniqueName: TechniqueName
   , directive    : Directive
-) extends DirectiveDiff with HashcodeCaching with ChangeRequestDirectiveDiff {
+) extends DirectiveDiff with ChangeRequestDirectiveDiff {
   def needDeployment : Boolean = true
 }
 
@@ -67,7 +66,7 @@ sealed trait DirectiveSaveDiff extends DirectiveDiff
 final case class AddDirectiveDiff(
     techniqueName: TechniqueName
   , directive    : Directive
-) extends DirectiveSaveDiff with HashcodeCaching with ChangeRequestDirectiveDiff {
+) extends DirectiveSaveDiff with ChangeRequestDirectiveDiff {
   def needDeployment : Boolean = false
 }
 
@@ -85,7 +84,7 @@ final case class ModifyDirectiveDiff(
   , modIsSystem        : Option[SimpleDiff[Boolean]]           = None
   , modPolicyMode      : Option[SimpleDiff[Option[PolicyMode]]]= None
   , modTags            : Option[SimpleDiff[Set[Tag]]]          = None
-) extends DirectiveSaveDiff with HashcodeCaching {
+) extends DirectiveSaveDiff {
   def needDeployment : Boolean = {
     modTechniqueVersion.isDefined || modParameters.isDefined || modPriority.isDefined || modIsActivated.isDefined || modName.isDefined ||modPolicyMode.isDefined
   }
@@ -95,7 +94,7 @@ final case class ModifyToDirectiveDiff(
     techniqueName: TechniqueName
   , directive    : Directive
   , rootSection  : SectionSpec
-) extends DirectiveDiff with HashcodeCaching with ChangeRequestDirectiveDiff {
+) extends DirectiveDiff with ChangeRequestDirectiveDiff {
   // This case is undecidable, so it is always true
   def needDeployment : Boolean = true
 }

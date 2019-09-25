@@ -41,12 +41,11 @@ import com.normation.cfclerk.exceptions._
 import scala.xml._
 import net.liftweb.common._
 import com.normation.utils.Control.bestEffort
-import com.normation.utils.HashcodeCaching
 
 /* A SectionChild is either a Variable or a Section*/
 sealed trait SectionChild
 
-case class Section(val spec: SectionSpec) extends SectionChild with HashcodeCaching
+final case class Section(spec: SectionSpec) extends SectionChild
 
 /**
  *
@@ -188,20 +187,20 @@ sealed trait Variable {
   }
 }
 
-case class SystemVariable(
+final case class SystemVariable(
     override val spec: SystemVariableSpec
   , override val values: Seq[String]
-) extends Variable with HashcodeCaching {
+) extends Variable {
   type T = SystemVariableSpec
   override def copyWithAppendedValues(seq: Seq[String]): SystemVariable = this.copy(values = this.copyWithAppendedValuesResult(seq))
   override def copyWithSavedValue(s: String): SystemVariable = this.copy(values = this.copyWithSavedValueResult(s))
   override def copyWithSavedValues(seq: Seq[String]): SystemVariable = this.copy(values = this.copyWithSavedValuesResult(seq))
 }
 
-case class TrackerVariable(
+final case class TrackerVariable(
     override val spec: TrackerVariableSpec
   , override val values: Seq[String]
-) extends Variable with HashcodeCaching {
+) extends Variable {
   type T = TrackerVariableSpec
   override def copyWithAppendedValues(seq: Seq[String]): TrackerVariable = this.copy(values = this.copyWithAppendedValuesResult(seq))
   override def copyWithSavedValue(s: String): TrackerVariable = this.copy(values = this.copyWithSavedValueResult(s))
@@ -210,40 +209,40 @@ case class TrackerVariable(
 
 trait SectionVariable extends Variable with SectionChild
 
-case class InputVariable(
+final case class InputVariable(
     override val spec: InputVariableSpec
   , override val values: Seq[String]
-) extends SectionVariable with HashcodeCaching {
+) extends SectionVariable {
   type T = InputVariableSpec
   override def copyWithAppendedValues(seq: Seq[String]): InputVariable = this.copy(values = this.copyWithAppendedValuesResult(seq))
   override def copyWithSavedValue(s: String): InputVariable = this.copy(values = this.copyWithSavedValueResult(s))
   override def copyWithSavedValues(seq: Seq[String]): InputVariable = this.copy(values = this.copyWithSavedValuesResult(seq))
 }
 
-case class SelectVariable(
+final case class SelectVariable(
     override val spec: SelectVariableSpec
   , override val values: Seq[String]
-) extends SectionVariable with HashcodeCaching {
+) extends SectionVariable {
   type T = SelectVariableSpec
   override def copyWithAppendedValues(seq: Seq[String]): SelectVariable = this.copy(values = this.copyWithAppendedValuesResult(seq))
   override def copyWithSavedValue(s: String): SelectVariable = this.copy(values = this.copyWithSavedValueResult(s))
   override def copyWithSavedValues(seq: Seq[String]): SelectVariable = this.copy(values = this.copyWithSavedValuesResult(seq))
 }
 
-case class SelectOneVariable(
+final case class SelectOneVariable(
     override val spec: SelectOneVariableSpec
   , override val values: Seq[String]
-) extends SectionVariable with HashcodeCaching {
+) extends SectionVariable {
   type T = SelectOneVariableSpec
   override def copyWithAppendedValues(seq: Seq[String]): SelectOneVariable = this.copy(values = this.copyWithAppendedValuesResult(seq))
   override def copyWithSavedValue(s: String): SelectOneVariable = this.copy(values = this.copyWithSavedValueResult(s))
   override def copyWithSavedValues(seq: Seq[String]): SelectOneVariable = this.copy(values = this.copyWithSavedValuesResult(seq))
 }
 
-case class PredefinedValuesVariable(
+final case class PredefinedValuesVariable(
     override val spec: PredefinedValuesVariableSpec
   , override val values: Seq[String]
-) extends SectionVariable with HashcodeCaching {
+) extends SectionVariable {
   type T = PredefinedValuesVariableSpec
   override def copyWithAppendedValues(seq: Seq[String]): PredefinedValuesVariable = this.copy(values = this.copyWithAppendedValuesResult(seq))
   override def copyWithSavedValue(s: String): PredefinedValuesVariable = this.copy(values = this.copyWithSavedValueResult(s))

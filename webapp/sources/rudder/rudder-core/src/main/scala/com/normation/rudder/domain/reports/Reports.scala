@@ -43,7 +43,6 @@ import org.slf4j.LoggerFactory
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.utils.HashcodeCaching
 
 /**
  * Define one "line" of reports from an agent execution
@@ -85,7 +84,7 @@ final case class ResultSuccessReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends EnforceReports with HashcodeCaching {
+) extends EnforceReports {
   val severity = Reports.RESULT_SUCCESS
 }
 
@@ -99,7 +98,7 @@ final case class ResultNotApplicableReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends EnforceReports with HashcodeCaching {
+) extends EnforceReports {
   val severity = Reports.RESULT_NOTAPPLICABLE
 }
 
@@ -113,7 +112,7 @@ final case class ResultRepairedReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends EnforceReports with HashcodeCaching {
+) extends EnforceReports {
   val severity = Reports.RESULT_REPAIRED
 }
 
@@ -133,7 +132,7 @@ final case class ResultErrorReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends EnforceReports with HashcodeCaching {
+) extends EnforceReports {
   val severity = Reports.RESULT_ERROR
 }
 
@@ -147,7 +146,7 @@ final case class AuditCompliantReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends AuditReports with HashcodeCaching {
+) extends AuditReports {
   val severity = Reports.AUDIT_COMPLIANT
 }
 
@@ -161,7 +160,7 @@ final case class AuditNonCompliantReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends AuditReports with HashcodeCaching {
+) extends AuditReports {
   val severity = Reports.AUDIT_NONCOMPLIANT
 }
 
@@ -175,7 +174,7 @@ final case class AuditErrorReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends AuditReports with HashcodeCaching {
+) extends AuditReports {
   val severity = Reports.AUDIT_ERROR
 }
 
@@ -189,7 +188,7 @@ final case class AuditNotApplicableReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends AuditReports with HashcodeCaching {
+) extends AuditReports {
   val severity = Reports.AUDIT_NOTAPPLICABLE
 }
 
@@ -203,7 +202,7 @@ final case class UnknownReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends ResultReports with HashcodeCaching {
+) extends ResultReports {
   val severity = Reports.RESULT_UNKNOWN
 }
 
@@ -217,7 +216,7 @@ final case class LogRepairedReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends LogReports with HashcodeCaching {
+) extends LogReports {
   val severity = Reports.LOG_REPAIRED
 }
 
@@ -231,7 +230,7 @@ final case class LogWarnReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends LogReports with HashcodeCaching {
+) extends LogReports {
   val severity = Reports.LOG_WARN
 }
 
@@ -245,7 +244,7 @@ final case class LogInformReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends LogReports with HashcodeCaching {
+) extends LogReports {
   val severity = Reports.LOG_INFO
 }
 
@@ -259,7 +258,7 @@ final case class LogDebugReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends LogReports with HashcodeCaching {
+) extends LogReports {
   val severity = Reports.LOG_DEBUG
 }
 
@@ -273,7 +272,7 @@ final case class LogTraceReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends LogReports with HashcodeCaching {
+) extends LogReports {
   val severity = Reports.LOG_TRACE
 }
 
@@ -287,7 +286,7 @@ final case class RudderControlReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends LogReports with HashcodeCaching {
+) extends LogReports {
   val severity = Reports.CONTROL
 }
 

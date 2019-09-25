@@ -52,7 +52,6 @@ import net.liftweb.http._
 import scala.xml._
 import net.liftweb.util.Helpers._
 import com.normation.utils.Control.sequence
-import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 import net.liftweb.json.JArray
@@ -114,13 +113,13 @@ class RuleGrid(
     , applicationStatus: ApplicationStatus
     , trackerVariables : Seq[(Directive,ActiveTechnique,Technique)]
     , targets          : Set[RuleTargetInfo]
-  ) extends Line with HashcodeCaching
+  ) extends Line
 
   private[this] case class ErrorLine(
       rule:Rule
     , trackerVariables: Box[Seq[(Directive,ActiveTechnique,Technique)]]
     , targets:Box[Set[RuleTargetInfo]]
-  ) extends Line with HashcodeCaching
+  ) extends Line
 
   private[this] val getFullNodeGroupLib      = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
   private[this] val getFullDirectiveLib      = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
@@ -701,7 +700,7 @@ class RuleGrid(
    *   , "policyMode": Policy mode applied by this Rule [ String ]
    *   }
    */
-case class RuleLine (
+final case class RuleLine (
     name             : String
   , id               : RuleId
   , description      : String

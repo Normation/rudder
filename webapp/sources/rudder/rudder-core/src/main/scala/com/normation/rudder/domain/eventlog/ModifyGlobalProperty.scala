@@ -2,7 +2,7 @@ package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog._
 
-case class ModifyGlobalProperty(
+final case class ModifyGlobalProperty(
     eventType: ModifyGlobalPropertyEventType
   , eventDetails : EventLogDetails
 ) extends EventLog  {
@@ -12,7 +12,7 @@ case class ModifyGlobalProperty(
   val propertyName = eventType.propertyName
 }
 
-case class ModifyGlobalPropertyEventFilter (eventType : ModifyGlobalPropertyEventType) extends EventLogFilter {
+final case class ModifyGlobalPropertyEventFilter (eventType : ModifyGlobalPropertyEventType) extends EventLogFilter {
 
    def apply(x :(EventLogType,EventLogDetails)) : ModifyGlobalProperty  = ModifyGlobalProperty(eventType,x._2)
 }

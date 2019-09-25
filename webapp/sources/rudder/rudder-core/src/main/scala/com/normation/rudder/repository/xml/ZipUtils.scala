@@ -35,7 +35,7 @@ import scala.collection.Seq
 
 object ZipUtils {
 
-  case class Zippable(path:String, useContent:Option[(InputStream => Box[Any]) => Box[Any]])
+final case class Zippable(path:String, useContent:Option[(InputStream => Box[Any]) => Box[Any]])
 
   def unzip(zip: ZipFile, intoDir: File) : Box[Unit] = {
     if(intoDir.exists && intoDir.isDirectory && intoDir.canWrite) {

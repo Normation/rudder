@@ -238,18 +238,17 @@ object QSObject {
   // default sort for QuickSearchResult:
   // - by type
   // - then by name
-  def sortQSObject(a: QSObject, b:QSObject): Boolean = {
-
-    implicit class QSObjectOrder(o: QSObject) {
-      def order() = o match {
-        case Common    => 0
-        case Node      => 1
-        case Group     => 2
-        case Parameter => 3
-        case Directive => 4
-        case Rule      => 5
-      }
+  implicit class QSObjectOrder(val o: QSObject) extends AnyVal {
+    def order() = o match {
+      case Common    => 0
+      case Node      => 1
+      case Group     => 2
+      case Parameter => 3
+      case Directive => 4
+      case Rule      => 5
     }
+  }
+  def sortQSObject(a: QSObject, b:QSObject): Boolean = {
     a.order <= b.order
   }
 }
@@ -333,16 +332,16 @@ final object QSMapping {
  * And the domain for results: ids and full results.
  */
 
-sealed trait QuickSearchResultId { def value: String; def tpe: QSObject }
+sealed trait QuickSearchResultId extends Any { def value: String; def tpe: QSObject }
 
 object QuickSearchResultId {
   import QSObject._
 
-  final case class QRNodeId      (value: String) extends QuickSearchResultId { override final val tpe = Node     }
-  final case class QRGroupId     (value: String) extends QuickSearchResultId { override final val tpe = Group    }
-  final case class QRDirectiveId (value: String) extends QuickSearchResultId { override final val tpe = Directive}
-  final case class QRParameterId (value: String) extends QuickSearchResultId { override final val tpe = Parameter}
-  final case class QRRuleId      (value: String) extends QuickSearchResultId { override final val tpe = Rule     }
+  final case class QRNodeId      (value: String) extends AnyVal with QuickSearchResultId { override def tpe = Node     }
+  final case class QRGroupId     (value: String) extends AnyVal with QuickSearchResultId { override def tpe = Group    }
+  final case class QRDirectiveId (value: String) extends AnyVal with QuickSearchResultId { override def tpe = Directive}
+  final case class QRParameterId (value: String) extends AnyVal with QuickSearchResultId { override def tpe = Parameter}
+  final case class QRRuleId      (value: String) extends AnyVal with QuickSearchResultId { override def tpe = Rule     }
 }
 
 final case class QuickSearchResult(

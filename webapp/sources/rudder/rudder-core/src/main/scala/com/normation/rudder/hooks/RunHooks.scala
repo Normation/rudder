@@ -80,7 +80,7 @@ final case class Hooks(basePath: String, hooksFile: List[String])
 final case class HookEnvPair(name: String, value: String) {
   def show = s"[${name}:${value}]"
 }
-final case class HookEnvPairs(values: List[HookEnvPair]) {
+final case class HookEnvPairs(values: List[HookEnvPair]) extends AnyVal {
   //shortcut to view envVariables as a Map[String, String]
   def toMap = values.map(p => (p.name, p.value)).toMap
 

@@ -39,21 +39,17 @@ package com.normation.inventory.domain
 
 import java.security.MessageDigest
 
-import com.normation.utils.Utils._
-import com.normation.utils.HashcodeCaching
-
-trait Uuid {
-  val value:String
-  require(!isEmpty(value), "An UUID can not have a null or empty value (value: %s)".format(value))
+trait Uuid extends Any {
+  def value: String
 }
 
-case class NodeId(val value:String) extends Uuid with HashcodeCaching
+final case class NodeId(val value:String) extends AnyVal with Uuid
 
-case class MachineUuid(val value:String) extends Uuid with HashcodeCaching
+final case class MachineUuid(val value:String) extends AnyVal with Uuid
 
-case class SoftwareUuid(val value:String) extends Uuid with HashcodeCaching
+final case class SoftwareUuid(val value:String) extends AnyVal with Uuid
 
-case class MotherBoardUuid(val value:String) extends Uuid with HashcodeCaching
+final case class MotherBoardUuid(val value:String) extends AnyVal with Uuid
 
 object IdGenerator {
   /**

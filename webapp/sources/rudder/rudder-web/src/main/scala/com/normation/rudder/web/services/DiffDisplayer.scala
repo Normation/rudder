@@ -55,7 +55,7 @@ trait DiffItem[T] {
 
 }
 
-case class Added[T](
+final case class Added[T](
     value:T
 ) extends DiffItem[T] {
   val newValue = Some(value)
@@ -66,7 +66,7 @@ case class Added[T](
     </li>
 }
 
-case class Deleted[T](
+final case class Deleted[T](
     value:T
 ) extends DiffItem[T] {
 
@@ -76,7 +76,7 @@ case class Deleted[T](
     </li>
 }
 
-case class Unchanged[T](
+final case class Unchanged[T](
     value:T
 ) extends DiffItem[T] {
 
@@ -87,7 +87,7 @@ case class Unchanged[T](
 }
 
 // Not used yet, but for later use
-case class Modified[T](
+final case class Modified[T](
     oldValue:T
   , newValue:T
 ) extends DiffItem[T] {

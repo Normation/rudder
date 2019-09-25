@@ -42,7 +42,6 @@ import com.normation.cfclerk.domain.TechniqueResourceId
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.policies.NodeConfiguration
-import com.normation.utils.HashcodeCaching
 import com.normation.templates.STVariable
 import com.normation.cfclerk.domain.Variable
 import com.normation.inventory.domain.OsDetails
@@ -63,7 +62,7 @@ import com.normation.rudder.services.policies.PolicyId
  * as Rudder model view them (i.e, before preparing them so that they
  * can be written as CFEngine rules)
  */
-case class AgentNodeConfiguration(
+final case class AgentNodeConfiguration(
     config   : NodeConfiguration
   , agentType: AgentType
   , paths    : NodePromisesPaths
@@ -102,42 +101,42 @@ final case class AgentNodeWritableConfiguration(
  * from their generation directory to their final directory.
  * A back-up folder is also provided to save a copy.
  */
-case class NodePromisesPaths(
+final case class NodePromisesPaths(
     nodeId      : NodeId
   , baseFolder  : String //directory where the file have to in the end
   , newFolder   : String //poclicies are temporarly store in a policyName.new directory
   , backupFolder: String
-) extends HashcodeCaching
+)
 
 /**
  * A class that store a list of "prepared template", i.e templates with
  * their destination computed and all the variables to use to replace
  * parameter in them.
  */
-case class PreparedTechnique(
+final case class PreparedTechnique(
     templatesToProcess  : Set[TechniqueTemplateCopyInfo]
   , environmentVariables: Seq[STVariable]
   , filesToCopy         : Set[TechniqueFile]
   , reportIdToReplace   : Option[PolicyId] // if the technique is multi-instance multi-policy, the id to use in replacement
-) extends HashcodeCaching
+)
 
 /**
  * A class that store information about a template to copy somewhere.
  * It gives what template to copy where.
  */
-case class TechniqueTemplateCopyInfo(
+final case class TechniqueTemplateCopyInfo(
     id         : TechniqueResourceId
   , destination: String
   , content    : String //template content as a file
-) extends HashcodeCaching {
+) {
   override def toString() = s"Technique template ${id.name}; destination ${destination}"
 }
 
 
-case class TechniqueResourceCopyInfo(
+final case class TechniqueResourceCopyInfo(
     id         : TechniqueResourceId
   , destination: String
   , content    : String //template resource as a file
-) extends HashcodeCaching {
+) {
   override def toString() = s"Technique resource ${id.name}; destination ${destination}"
 }

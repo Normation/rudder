@@ -82,7 +82,7 @@ import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.utils.Control
 
-case class RestExtractorService (
+final case class RestExtractorService (
     readRule             : RoRuleRepository
   , readDirective        : RoDirectiveRepository
   , readGroup            : RoNodeGroupRepository

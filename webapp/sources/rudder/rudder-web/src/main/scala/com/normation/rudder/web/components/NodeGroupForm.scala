@@ -47,7 +47,6 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.web.components.popup.CreateCloneGroupPopup
 import com.normation.rudder.web.components.popup.ModificationValidationPopup
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.utils.HashcodeCaching
 import net.liftweb.http.LocalSnippet
 import net.liftweb.http.js._
 import JsCmds._
@@ -74,9 +73,9 @@ object NodeGroupForm {
   private val saveButtonId = "groupSaveButtonId"
 
   private sealed trait RightPanel
-  private case object NoPanel extends RightPanel
-  private case class GroupForm(group:Either[NonGroupRuleTarget, NodeGroup], parentCategoryId:NodeGroupCategoryId) extends RightPanel with HashcodeCaching
-  private case class CategoryForm(category:NodeGroupCategory) extends RightPanel with HashcodeCaching
+  private final case object NoPanel extends RightPanel
+  private final case class GroupForm(group:Either[NonGroupRuleTarget, NodeGroup], parentCategoryId:NodeGroupCategoryId) extends RightPanel
+  private final case class CategoryForm(category:NodeGroupCategory) extends RightPanel
 
   val htmlId_groupTree = "groupTree"
   val htmlId_item = "ajaxItemContainer"

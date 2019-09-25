@@ -44,8 +44,6 @@ import com.normation.ldap.sdk.LDAPEntry
 import LDAPConstants._
 import com.normation.inventory.domain._
 import net.liftweb.common._
-import com.normation.utils.HashcodeCaching
-
 
 /**
  * A DIT is only composed with ENTRY
@@ -125,7 +123,7 @@ trait AbstractDit {
  * @param SOFTWARE_BASE_DN
  *   the DN under which Software OU is
  */
-case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String) extends AbstractDit with HashcodeCaching {
+final case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String) extends AbstractDit {
   dit =>
 
   implicit val DIT = dit
