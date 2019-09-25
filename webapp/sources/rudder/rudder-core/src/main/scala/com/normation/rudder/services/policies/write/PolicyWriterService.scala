@@ -90,6 +90,7 @@ import zio.blocking.Blocking
 import zio.duration.Duration
 import cats.data._
 import cats.implicits._
+import org.apache.commons.lang.StringUtils
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -782,7 +783,10 @@ class PolicyWriterServiceImpl(
       (replaced, dest) =  reportIdToReplace match {
                             case None => (filled, templateInfo.destination)
                             case Some(id) =>
-                              val replace = (s: String) => s.replaceAll(Policy.TAG_OF_RUDDER_MULTI_POLICY, id.getRudderUniqueId)
+                              // this is done quite heavely on big instances, with string rather big, and the performance of
+                              // StringUtils.replace ix x4 the one of String.replace (no regex), see:
+                              // https://stackoverflow.com/questions/16228992/commons-lang-stringutils-replace-performance-vs-string-replace/19163566
+                              val replace = (s: String) => StringUtils.replace(s, Policy.TAG_OF_RUDDER_MULTI_POLICY, id.getRudderUniqueId)
                               (replace(filled), replace(templateInfo.destination))
                           }
       _                <- tryo { FileUtils.writeStringToFile(new File(outPath, dest), replaced, StandardCharsets.UTF_8) } ?~!
