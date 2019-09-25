@@ -39,6 +39,8 @@ package bootstrap.liftweb
 
 import java.io.File
 import java.nio.charset.StandardCharsets
+import java.security.Security
+import java.util.concurrent.TimeUnit
 
 import bootstrap.liftweb.checks._
 import com.normation.appconfig._
@@ -51,7 +53,31 @@ import com.normation.cfclerk.xmlwriters.SectionSpecWriterImpl
 import com.normation.errors.IOResult
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core._
+import com.normation.inventory.ldap.provisioning.AddIpValues
+import com.normation.inventory.ldap.provisioning.CheckMachineName
+import com.normation.inventory.ldap.provisioning.CheckOsType
+import com.normation.inventory.ldap.provisioning.DefaultLDIFReportLogger
+import com.normation.inventory.ldap.provisioning.DefaultReportSaver
+import com.normation.inventory.ldap.provisioning.FromMotherBoardUuidIdFinder
+import com.normation.inventory.ldap.provisioning.LastInventoryDate
+import com.normation.inventory.ldap.provisioning.LogReportPreCommit
+import com.normation.inventory.ldap.provisioning.NameAndVersionIdFinder
+import com.normation.inventory.ldap.provisioning.PendingNodeIfNodeWasRemoved
+import com.normation.inventory.ldap.provisioning.PostCommitLogger
+import com.normation.inventory.ldap.provisioning.UseExistingMachineIdFinder
+import com.normation.inventory.ldap.provisioning.UseExistingNodeIdFinder
+import com.normation.inventory.ldap.provisioning.UuidMergerPreCommit
+import com.normation.inventory.provisioning.fusion.FusionReportUnmarshaller
+import com.normation.inventory.provisioning.fusion.PreUnmarshallCheckConsistency
 import com.normation.inventory.services.core._
+import com.normation.inventory.services.provisioning.DefaultReportUnmarshaller
+import com.normation.inventory.services.provisioning.InventoryDigestServiceV1
+import com.normation.inventory.services.provisioning.MachineDNFinderService
+import com.normation.inventory.services.provisioning.NamedMachineDNFinderAction
+import com.normation.inventory.services.provisioning.NamedNodeInventoryDNFinderAction
+import com.normation.inventory.services.provisioning.NodeInventoryDNFinderService
+import com.normation.inventory.services.provisioning.PreCommit
+import com.normation.inventory.services.provisioning.ReportUnmarshaller
 import com.normation.ldap.sdk._
 import com.normation.plugins.ReadPluginPackageInfo
 import com.normation.plugins.SnippetExtensionRegister
@@ -63,6 +89,9 @@ import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain._
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.queries._
+import com.normation.rudder.inventory.InventoryFileWatcher
+import com.normation.rudder.inventory.InventoryProcessingLogger
+import com.normation.rudder.inventory.InventoryProcessor
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.migration._
 import com.normation.rudder.ncf.TechniqueArchiverImpl
@@ -124,6 +153,7 @@ import com.unboundid.ldap.sdk.DN
 import net.liftweb.common.Loggable
 import net.liftweb.common._
 import org.apache.commons.io.FileUtils
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import zio.syntax._
 import zio.duration._
 
@@ -146,6 +176,9 @@ object RudderProperties {
 
   val JVM_CONFIG_FILE_KEY = "rudder.configFile"
   val DEFAULT_CONFIG_FILE_NAME = "configuration.properties"
+
+  // Set security provider with bouncy castle one
+  Security.addProvider(new BouncyCastleProvider())
 
   /**
    * Where to go to look for properties
@@ -251,7 +284,6 @@ object RudderConfig extends Loggable {
   val RUDDER_DIR_LOCK = config.getString("rudder.dir.lock") //TODO no more used ?
   val RUDDER_DIR_SHARED_FILES_FOLDER = config.getString("rudder.dir.shared.files.folder")
   val RUDDER_DIR_LICENSESFOLDER = config.getString("rudder.dir.licensesFolder")
-  val RUDDER_ENDPOINT_CMDB = config.getString("rudder.endpoint.cmdb")
   val RUDDER_WEBDAV_USER = config.getString("rudder.webdav.user")
   val RUDDER_WEBDAV_PASSWORD = config.getString("rudder.webdav.password") ; filteredPasswords += "rudder.webdav.password"
   val RUDDER_COMMUNITY_PORT = config.getInt("rudder.community.port")
@@ -400,6 +432,46 @@ object RudderConfig extends Loggable {
     , p.getProperty("current-year")
     , p.getProperty("build-timestamp")
     )
+  }
+
+  val LDIF_TRACELOG_ROOT_DIR = try {
+    config.getString("ldif.tracelog.rootdir")
+  } catch {
+    case ex:ConfigException => "/var/rudder/inventories/debug"
+  }
+
+  val WAITING_QUEUE_SIZE = try {
+    config.getInt("waiting.inventory.queue.size")
+  } catch {
+    case ex:ConfigException => 50
+  }
+
+  // the number of inventories parsed in parallel.
+  // It also limits the number of inventories proccessed in
+  // parallel, because obviously you need to parse the inventory before saving it.
+  // Minimum 1, 1x mean "0.5x number of cores"
+  val MAX_PARSE_PARALLEL = try {
+    config.getString("inventory.parse.parallelization")
+  } catch {
+    case ex: ConfigException => "0.5x"
+  }
+
+  val INVENTORY_ROOT_DIR = try {
+    config.getString("inventories.root.directory")
+  } catch {
+    case ex: ConfigException => "/var/rudder/inventories"
+  }
+
+  val WATCHER_ENABLE = try {
+    config.getBoolean("inventories.watcher.enable")
+  } catch {
+    case ex: ConfigException => true
+  }
+
+  val WATCHER_WAIT_FOR_SIG = try {
+    config.getInt("inventories.watcher.waitForSignatureDuration")
+  } catch {
+    case ex: ConfigException => 10 // in seconds
   }
 
   ApplicationLogger.info(s"Starting Rudder ${rudderFullVersion} web application [build timestamp: ${builtTimestamp}]")
@@ -772,6 +844,125 @@ object RudderConfig extends Loggable {
   val techniqueArchiver = new TechniqueArchiverImpl(gitRepo,   new File(RUDDER_DIR_GITROOT) , prettyPrinter, "/", gitModificationRepository, personIdentService)
   val ncfTechniqueWriter = new TechniqueWriter(techniqueArchiver, updateTechniqueLibrary, interpolationCompiler, roDirectiveRepository, techniqueRepository, workflowLevelService, prettyPrinter, RUDDER_DIR_GITROOT)
 
+  lazy val pipelinedReportUnmarshaller : ReportUnmarshaller = {
+    val fusionReportParser = {
+      new FusionReportUnmarshaller(
+          uuidGen
+        , rootParsingExtensions    = Nil
+        , contentParsingExtensions = Nil
+      )
+    }
+
+    new DefaultReportUnmarshaller(
+     fusionReportParser,
+     Seq(
+         new PreUnmarshallCheckConsistency
+     )
+    )
+  }
+
+  lazy val automaticMerger: PreCommit = new UuidMergerPreCommit(
+      uuidGen
+    , acceptedNodesDit
+    , new NodeInventoryDNFinderService(Seq(
+        //start by trying to use an already given UUID
+        NamedNodeInventoryDNFinderAction("use_existing_id", new UseExistingNodeIdFinder(inventoryDitService,roLdap,acceptedNodesDit.BASE_DN.getParent))
+    ))
+    , new MachineDNFinderService(Seq(
+        //start by trying to use an already given UUID
+        NamedMachineDNFinderAction("use_existing_id", new UseExistingMachineIdFinder(inventoryDitService,roLdap,acceptedNodesDit.BASE_DN.getParent))
+        //look if it's in the accepted inventories
+      , NamedMachineDNFinderAction("check_mother_board_uuid_accepted", new FromMotherBoardUuidIdFinder(roLdap,acceptedNodesDit,inventoryDitService))
+        //see if it's in the "pending" branch
+      , NamedMachineDNFinderAction("check_mother_board_uuid_pending", new FromMotherBoardUuidIdFinder(roLdap,pendingNodesDit,inventoryDitService))
+        //see if it's in the "removed" branch
+      , NamedMachineDNFinderAction("check_mother_board_uuid_removed", new FromMotherBoardUuidIdFinder(roLdap,removedNodesDitImpl,inventoryDitService))
+    ))
+    , new NameAndVersionIdFinder(
+      "check_name_and_version"
+    , roLdap
+    , inventoryMapper
+    , acceptedNodesDit
+  )
+  )
+
+  lazy val ldifReportLogger = new DefaultLDIFReportLogger(LDIF_TRACELOG_ROOT_DIR)
+  lazy val reportSaver = new DefaultReportSaver(
+      rwLdap
+    , acceptedNodesDit
+    , inventoryMapper
+    , (
+         CheckOsType
+      :: automaticMerger
+      :: CheckMachineName
+      :: new LastInventoryDate()
+      :: AddIpValues
+      :: new LogReportPreCommit(inventoryMapper,ldifReportLogger)
+      :: Nil
+      )
+    , (
+         new PendingNodeIfNodeWasRemoved(fullInventoryRepository)
+      :: new PendingNodeIfNodeWasRemoved(fullInventoryRepository)
+      :: new PostCommitLogger(ldifReportLogger)
+      :: Nil
+      )
+  )
+
+  lazy val inventoryProcessor = {
+    val checkLdapAlive: () => IOResult[Unit] = {
+      () =>
+      for {
+        con <- rwLdap
+        res <- con.get(pendingNodesDit.NODES.dn, "1.1")
+      } yield {
+        ()
+      }
+    }
+    val maxParallel = try {
+      val user = if(MAX_PARSE_PARALLEL.endsWith("x")) {
+        val xx = MAX_PARSE_PARALLEL.substring(0, MAX_PARSE_PARALLEL.size-1)
+        java.lang.Double.parseDouble(xx) * Runtime.getRuntime.availableProcessors()
+      } else {
+        java.lang.Double.parseDouble(MAX_PARSE_PARALLEL)
+      }
+      Math.max(1, user).toLong
+    } catch {
+      case ex: Exception =>
+        // logs are not available here
+        println(s"ERROR Error when parsing configuration properties for the parallelisation of inventory processing. " +
+                s"Expecting a positive integer or number of time the avaiblable processors. Default to '0.5x': " +
+                s"inventory.parse.parallelization=${MAX_PARSE_PARALLEL}")
+        Math.max(1, Math.ceil(Runtime.getRuntime.availableProcessors().toDouble/2).toLong)
+    }
+    new InventoryProcessor(
+        pipelinedReportUnmarshaller
+      , reportSaver
+      , WAITING_QUEUE_SIZE
+      , maxParallel
+      , fullInventoryRepository
+      , new InventoryDigestServiceV1(fullInventoryRepository)
+      , checkLdapAlive
+      , pendingNodesDit
+    )
+  }
+  lazy val inventoryWatcher = {
+    val watcher = new InventoryFileWatcher(
+        inventoryProcessor
+      , INVENTORY_ROOT_DIR + "/incoming"
+      , INVENTORY_ROOT_DIR + "/accepted-nodes-updates"
+      , INVENTORY_ROOT_DIR + "/received"
+      , INVENTORY_ROOT_DIR + "/failed"
+      , zio.duration.Duration(WATCHER_WAIT_FOR_SIG.toLong, TimeUnit.SECONDS)
+      , ".sign"
+    )
+    if(WATCHER_ENABLE) {
+      watcher.startWatcher()
+    } else { // don't start
+     InventoryProcessingLogger.debug(s"Not automatically incoming inventory watcher because 'inventories.watcher.enable'=${WATCHER_ENABLE}")
+    }
+    watcher
+  }
+
   val ApiVersions =
     ApiVersion(8  , true) ::
     ApiVersion(9  , true) ::
@@ -797,6 +988,7 @@ object RudderConfig extends Loggable {
       , new TechniqueApi(restExtractorService, techniqueApiService6)
       , new RuleApi(restExtractorService, ruleApiService2, ruleApiService6, stringUuidGenerator)
       , new SystemApi(restExtractorService, systemApiService11, rudderMajorVersion, rudderFullVersion, builtTimestamp)
+      , new InventoryApi(restExtractorService, inventoryProcessor, inventoryWatcher)
         // info api must be resolved latter, because else it misses plugin apis !
     )
 
@@ -1381,7 +1573,6 @@ object RudderConfig extends Loggable {
       systemVariableSpecService
     , psMngtService
     , RUDDER_DIR_DEPENDENCIES
-    , RUDDER_ENDPOINT_CMDB
     , RUDDER_COMMUNITY_PORT
     , RUDDER_DIR_SHARED_FILES_FOLDER
     , RUDDER_WEBDAV_USER

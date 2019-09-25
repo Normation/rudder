@@ -60,10 +60,6 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                             , constraint = Constraint(mayBeEmpty=true)
                                           )
     , SystemVariableSpec(
-                             "CMDBENDPOINT" , "The cmdb endpoint"
-                                            , multivalued  = false
-                        )
-    , SystemVariableSpec(
                             "COMMUNITYPORT" , "The port used by the community edition"
                                             , multivalued  = false
                         )

@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.inventory.provisioning.endpoint
+package com.normation.rudder.inventory
 
 import java.io.InputStream
 import java.nio.file.ClosedWatchServiceException

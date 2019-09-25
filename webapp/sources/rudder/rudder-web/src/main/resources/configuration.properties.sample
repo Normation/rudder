@@ -92,7 +92,6 @@ ldap.maxPoolSize=2
 #
 ldap.authpw=secret
 
-
 ###########################
 # SQL database properties  ##########################################################
 ###########################
@@ -152,7 +151,7 @@ rudder.batch.reportscleaner.delete.TTL=4
 # you need ~65GB for a month back of data).
 # There is no archive state for compliance levels.
 #
-rudder.batch.reportscleaner.compliancelevels.delete.TTL=15
+rudder.batch.reportscleaner.compliancelevels.delete.TTL=8
 
 #
 # Schedule option for automatic cleaning
@@ -183,9 +182,51 @@ rudder.batch.databasecleaner.runtime.hour=0
 # Default : sunday
 rudder.batch.databasecleaner.runtime.day=sunday
 
-#################################
-# Automatic inventories cleaning ###########################################################
-#################################
+#########################
+# Inventories processing ###########################################################
+#########################
+
+#
+# Inventories are processed throught a file watcher
+# (inotify) which react to new
+# inventories put in ${inventories.root.directory}/incoming.
+# You can [start, stop, restart] the watcher with POST to API
+# /api/latest/inventories/watcher/[start, stop, restart].
+#
+inventories.root.directory=/var/rudder/inventories
+
+# 'inventories.watcher.waitForSignatureDuration' is the time
+# in seconds the watcher will wait for the signature file
+# in case there is only an inventory file before sending
+# only inventory to backend.
+inventories.watcher.waitForSignatureDuration=10
+
+#
+# Max number of inventories waiting to be processed internally.
+# For a rough estimation, you can consider that an inventory in queue
+# takes 5 MB, so to handle 50 (default), the application will
+# need around 250 MB of spare memory.
+#
+waiting.inventory.queue.size=50
+
+#
+# You may want to limit the number of inventory files parsed in parallele.
+# The goal is to avoid parsing hundreds of XML in parallel when we prefer
+# to totally parse some (and then the others) and send them to backend.
+# You can specify a positive integer or a string formated "Nx" where
+# "N" is an Int and x means "number of available core".
+# A safe default is "0.5x"
+inventory.parse.parallelization=0.5x
+
+#
+# You can keep exhaustive information about LDAP base modification
+# happening in relation to inventory processing. It is mostly used
+# for debug.
+# You can enable that log by setting the following logger in
+# /opt/rudder/etc/logback.xml file to "trace" level (default "off"):
+# <logger name="trace.ldif.in.file" level="trace" />
+#
+ldif.tracelog.rootdir=/var/rudder/inventories/debug
 
 #
 # Automatic inventories cleaning

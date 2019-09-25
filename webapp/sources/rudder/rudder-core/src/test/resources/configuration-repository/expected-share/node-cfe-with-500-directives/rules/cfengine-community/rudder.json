@@ -5,7 +5,6 @@
   "AGENT_TYPE":"cfengine-community",
   "AUTHORIZED_NETWORKS":"192.168.49.0/24",
   "CFENGINE_OUTPUTS_TTL":"7",
-  "CMDBENDPOINT":"http://localhost:8080/endpoint/upload/",
   "COMMUNITYPORT":"5309",
   "CONFIGURATION_REPOSITORY_FOLDER":"/tmp/test-rudder-config-repo-2019-08-13T15:43:57.745+02:00/configuration-repository",
   "DAVPASSWORD":"rudder",

@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 <TECHNIQUE name="Distribute the policy to servers">
   <DESCRIPTION>Distribute policy</DESCRIPTION>
-  
+
   <SYSTEM>true</SYSTEM>
 
   <BUNDLES>
@@ -67,7 +67,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   </FILES>
 
   <SYSTEMVARS>
-    <NAME>CMDBENDPOINT</NAME>
     <NAME>CLIENTSFOLDERS</NAME>
     <NAME>SYSLOGPORT</NAME>
     <NAME>SHARED_FILES_FOLDER</NAME>
