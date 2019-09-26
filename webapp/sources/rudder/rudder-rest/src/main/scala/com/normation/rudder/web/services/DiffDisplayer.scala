@@ -37,17 +37,14 @@
 
 package com.normation.rudder.web.services
 
-import scala.xml.NodeSeq
-import com.normation.rudder.domain.policies.DirectiveId
-import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.domain.policies.{DirectiveId, _}
 import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.rule.category.RuleCategoryId
-import net.liftweb.common.Full
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Loggable
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.rule.category.{RuleCategory, RuleCategoryId, RuleCategoryService}
+import com.normation.rudder.web.model.LinkUtil
+import net.liftweb.common.{EmptyBox, Full, Loggable}
+
 import scala.language.implicitConversions
+import scala.xml.NodeSeq
 
 trait DiffItem[T] {
 
@@ -56,39 +53,39 @@ trait DiffItem[T] {
 }
 
 case class Added[T](
-    value:T
+  value:T
 ) extends DiffItem[T] {
   val newValue = Some(value)
 
   def display(implicit displayer : T => NodeSeq) : NodeSeq =
     <li style="background:none repeat scroll 0 0 #D6FFD6; list-style-type:none">
-    +&nbsp;{displayer(value)}
+      +&nbsp;{displayer(value)}
     </li>
 }
 
 case class Deleted[T](
-    value:T
+  value:T
 ) extends DiffItem[T] {
 
   def display(implicit displayer : T => NodeSeq) : NodeSeq =
     <li style="background:none repeat scroll 0 0 #FFD6D6; list-style-type:none">
-    -&nbsp;&nbsp;{displayer(value)}
+      -&nbsp;&nbsp;{displayer(value)}
     </li>
 }
 
 case class Unchanged[T](
-    value:T
+  value:T
 ) extends DiffItem[T] {
 
   def display(implicit displayer : T => NodeSeq) : NodeSeq =
     <li style="list-style-type:none">
-    &nbsp;&nbsp;&nbsp;{displayer(value)}
+      &nbsp;&nbsp;&nbsp;{displayer(value)}
     </li>
 }
 
 // Not used yet, but for later use
 case class Modified[T](
-    oldValue:T
+  oldValue:T
   , newValue:T
 ) extends DiffItem[T] {
 
@@ -96,20 +93,17 @@ case class Modified[T](
   private[this] val add    = Added(oldValue)
 
   def display(implicit displayer : T => NodeSeq) : NodeSeq =
-  delete.display ++ add.display
+    delete.display ++ add.display
 }
 
-object DiffDisplayer extends Loggable {
-
-  //Directive targets Displayer
-  private[this] val linkUtil = RudderConfig.linkUtil
+class DiffDisplayer(linkUtil: LinkUtil) extends Loggable {
 
   private[this] implicit def displayDirective(directiveId: DirectiveId) = {
     <span> Directive {linkUtil.createDirectiveLink(directiveId)}</span>
   }
   def displayDirectiveChangeList (
-          oldDirectives:Seq[DirectiveId]
-        , newDirectives:Seq[DirectiveId]
+    oldDirectives:Seq[DirectiveId]
+    , newDirectives:Seq[DirectiveId]
   ) : NodeSeq = {
 
     // First, find unchanged and deleted (have find no clean way to make a 3 way partition)
@@ -123,19 +117,19 @@ object DiffDisplayer extends Loggable {
     val changeMap:Seq[DiffItem[DirectiveId]] = deletedMap ++ unchangedMap ++ added
     <ul style="padding-left:10px">
       { for {
-          change <- changeMap
-        } yield {
-          // Implicit used here (displayDirective)
-          change.display
-      } }
+      change <- changeMap
+    } yield {
+      // Implicit used here (displayDirective)
+      change.display
+    } }
     </ul>
   }
 
   // Almost the same as display Directive see comments there for more details
   def displayRuleTargets (
-          oldTargets:Seq[RuleTarget]
-        , newTargets:Seq[RuleTarget]
-        , groupLib: FullNodeGroupCategory
+    oldTargets:Seq[RuleTarget]
+    , newTargets:Seq[RuleTarget]
+    , groupLib: FullNodeGroupCategory
   ) : NodeSeq = {
 
     implicit def displayNodeGroup(target: RuleTarget) : NodeSeq= {
@@ -146,16 +140,16 @@ object DiffDisplayer extends Loggable {
           <span> Nodes that belongs to all these groups: <ul>{targets.map(t => <li>{displayNodeGroup(t)}</li>)}</ul> </span>
         case TargetExclusion(included,excluded) =>
           <span> Include {displayNodeGroup(included)} </span>
-          <br/><span> Exclude {displayNodeGroup(excluded)} </span>
+              <br/><span> Exclude {displayNodeGroup(excluded)} </span>
 
         case GroupTarget(nodeGroupId) =>
           <span> Group {linkUtil.createGroupLink(nodeGroupId)}</span>
         case x => groupLib.allTargets.get(x).map{ targetInfo =>
-            <span>
-              {targetInfo.name}
-              {if (targetInfo.isSystem) <span class="greyscala">(System)</span>}
-            </span>
-          }.getOrElse(<span> {x.target}</span>)
+          <span>
+            {targetInfo.name}
+            {if (targetInfo.isSystem) <span class="greyscala">(System)</span>}
+          </span>
+        }.getOrElse(<span> {x.target}</span>)
       }
     }
 
@@ -166,30 +160,30 @@ object DiffDisplayer extends Loggable {
             case _:TargetUnion =>
               <span> all Nodes from: </span>
             case _:TargetIntersection =>
-            <span> Nodes that belongs to all these groups:</span>
+              <span> Nodes that belongs to all these groups:</span>
           }
         }
 
-       val includedKind = {
-         ((newIncluded,oldIncluded) match {
-           case (_:TargetUnion,_:TargetUnion) | (_:TargetIntersection,_:TargetIntersection) =>
-           Seq(Unchanged (newIncluded))
-           case _ =>
-           (Seq(Deleted(oldIncluded),Added(newIncluded)))
-         }).flatMap(_.display(displayKind))
-       }
-       val excludedKind = {
-         ((newExcluded,oldExcluded) match {
-           case (_:TargetUnion,_:TargetUnion) | (_:TargetIntersection,_:TargetIntersection) =>
-           Seq(Unchanged (newExcluded))
-           case _ =>
-           (Seq(Deleted(oldExcluded),Added(newExcluded)))
-         }).flatMap(_.display(displayKind))
-       }
-       val includedTargets = displayRuleTargets(newIncluded.targets.toSeq,oldIncluded.targets.toSeq, groupLib)
-       val excludedTargets = displayRuleTargets(newExcluded.targets.toSeq,oldExcluded.targets.toSeq, groupLib)
-       <span> Include</span> ++ includedKind ++ includedTargets ++
-       <span> Exclude</span> ++ excludedKind ++ excludedTargets
+        val includedKind = {
+          ((newIncluded,oldIncluded) match {
+            case (_:TargetUnion,_:TargetUnion) | (_:TargetIntersection,_:TargetIntersection) =>
+              Seq(Unchanged (newIncluded))
+            case _ =>
+              (Seq(Deleted(oldIncluded),Added(newIncluded)))
+          }).flatMap(_.display(displayKind))
+        }
+        val excludedKind = {
+          ((newExcluded,oldExcluded) match {
+            case (_:TargetUnion,_:TargetUnion) | (_:TargetIntersection,_:TargetIntersection) =>
+              Seq(Unchanged (newExcluded))
+            case _ =>
+              (Seq(Deleted(oldExcluded),Added(newExcluded)))
+          }).flatMap(_.display(displayKind))
+        }
+        val includedTargets = displayRuleTargets(newIncluded.targets.toSeq,oldIncluded.targets.toSeq, groupLib)
+        val excludedTargets = displayRuleTargets(newExcluded.targets.toSeq,oldExcluded.targets.toSeq, groupLib)
+        <span> Include</span> ++ includedKind ++ includedTargets ++
+          <span> Exclude</span> ++ excludedKind ++ excludedTargets
 
       case (_,_) =>
         val (unchanged,deleted) = oldTargets.partition(newTargets.contains)
@@ -200,20 +194,21 @@ object DiffDisplayer extends Loggable {
         val changeMap:Seq[DiffItem[RuleTarget]] = deletedMap ++ unchangedMap ++ added
         <ul style="padding-left:10px">
           { for {
-              change <- changeMap
-            } yield {
-              // Implicit used here (displayNodeGroup)
-              change.display
-            }
+          change <- changeMap
+        } yield {
+          // Implicit used here (displayNodeGroup)
+          change.display
+        }
           }
         </ul>
     }
   }
 
-  private[this] val ruleCategoryService = RudderConfig.ruleCategoryService
+  //
+  private[this] val ruleCategoryService = new RuleCategoryService()
 
   def displayRuleCategory (
-      rootCategory: RuleCategory
+    rootCategory: RuleCategory
     , oldCategory : RuleCategoryId
     , newCategory : Option[RuleCategoryId]
   ) = {
@@ -227,21 +222,21 @@ object DiffDisplayer extends Loggable {
       }
     }
     implicit def displayRuleCategory(ruleCategoryId: RuleCategoryId) = {
-    <span>{getCategoryFullName(ruleCategoryId)}</span>
+      <span>{getCategoryFullName(ruleCategoryId)}</span>
     }
 
     newCategory match {
       case Some(newCategory) =>
         val changes = Seq(Deleted(oldCategory),Added(newCategory))
-            <ul style="padding-left:10px">
-      { for {
+        <ul style="padding-left:10px">
+          { for {
           change <- changes
         } yield {
           // Implicit used here (displayRuleCategory)
           change.display
         }
-      }
-    </ul>
+          }
+        </ul>
       case None => displayRuleCategory(oldCategory)
 
     }

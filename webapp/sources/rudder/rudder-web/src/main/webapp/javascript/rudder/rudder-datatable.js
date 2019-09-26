@@ -1351,6 +1351,11 @@ function createEventLogTable(gridId, data, contextPath, refresh, pickEventLogsIn
 
   var params = {
       "bFilter" : true
+      , "serverSide" : true
+          , "ajax" : {
+               "type" : "GET"
+              , "url" : contextPath + "/secure/api/eventlog"
+          }
     , "bPaginate" : true
     , "bLengthChange": true
     , "sPaginationType": "full_numbers"
@@ -1386,7 +1391,11 @@ function createEventLogTable(gridId, data, contextPath, refresh, pickEventLogsIn
                 var detailsTd = $("."+detailsId);
                 detailsTd.attr("id",detailsId);
                 // Set data in the open row with the details function from data
-                fnData.details(detailsId);
+//                fnData.details(detailsId);
+                $.getJSON(contextPath + '/secure/api/eventlog/' + fnData.id + "/details", function(data) {
+                    var html = $.parseHTML( data["data"]["content"] );
+                    $("td#"+detailsId).append( html );
+                });
                 // Set final css
                 var color = 'color1';
                 if(tableRow.hasClass('color2'))
