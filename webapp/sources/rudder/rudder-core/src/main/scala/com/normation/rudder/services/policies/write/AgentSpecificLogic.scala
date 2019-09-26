@@ -137,6 +137,26 @@ class AgentRegister {
   }
 
   /**
+   * Find the first agent matching the required agentType/osDetail.
+   * If none is found, return a failure.
+   */
+  def findHandler(agentNodeProps: AgentNodeProperties) = {
+    pipeline.find(handler => handler.handle(agentNodeProps)) match {
+      case None    =>
+        val msg = if(agentNodeProps.isPolicyServer) {
+          s"""We could not generate policies for server '${agentNodeProps.nodeId.value}', therefore making updates """ +
+            s"""for nodes behind it unavailable. Maybe you are missing 'scale out' plugin?"""
+        } else {
+          s"""We could not generate policies for node '${agentNodeProps.nodeId.value}' based on """ +
+            s"""'${agentNodeProps.agentType.toString()}' agent and '${agentNodeProps.osDetails.fullName}' system. Maybe you are missing a dedicated plugin?"""
+        }
+        Failure(msg)
+
+      case Some(h) => Full(h)
+    }
+  }
+
+  /**
    * Execute a `traverse` on the registered agent, where `f` is used when the agentType/os is handled.
    * Exec default on other cases.
    *
