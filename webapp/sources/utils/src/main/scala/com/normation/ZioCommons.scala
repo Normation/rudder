@@ -36,6 +36,12 @@ import com.normation.errors.RudderError
 import com.normation.errors.SystemError
 import _root_.zio._
 import _root_.zio.syntax._
+import _root_.zio.clock._
+import _root_.zio.random._
+import _root_.zio.blocking._
+import _root_.zio.console._
+import _root_.zio.system.{System => ZSystem}
+import _root_.zio.internal._
 import com.normation.zio.ZioRuntime
 import org.slf4j.Logger
 
@@ -303,7 +309,16 @@ object zio {
      * IO into an async thread pool to avoid deadlock in case of
      * a hierarchy of calls.
      */
-    val internal = new DefaultRuntime(){}
+    val internal = new DefaultRuntime() {
+      object ForkJoinBlockin extends Blocking {
+        val blocking: Blocking.Service[Any] = new Blocking.Service[Any] {
+          val blockingExecutor: UIO[Executor] = Executor.fromExecutionContext(Int.MaxValue)(scala.concurrent.ExecutionContext.global).succeed
+        }
+      }
+
+      override val Platform: Platform = PlatformLive.fromExecutionContext(scala.concurrent.ExecutionContext.global)
+      override val Environment: Environment = new Clock.Live with Console.Live with ZSystem.Live with Random.Live with Blocking.Live
+    }
 
     /*
      * use the blocking thread pool provided by that runtime.
