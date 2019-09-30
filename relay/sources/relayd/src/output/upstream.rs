@@ -70,7 +70,6 @@ fn forward_file(
             job_config
                 .client
                 .clone()
-                .expect("HTTP client should be initialized")
                 .put(&format!(
                     "{}/{}/{}",
                     job_config.cfg.output.upstream.url,

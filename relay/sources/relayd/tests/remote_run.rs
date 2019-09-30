@@ -7,7 +7,7 @@ mod common;
 mod tests {
     use super::*;
     #[test]
-    fn it_processes_the_parameters() {
+    fn it_runs_local_remote_run_async() {
         let cli_cfg = CliConfiguration::new("tests/test_simple/config/", false);
 
         thread::spawn(move || {
@@ -17,10 +17,9 @@ mod tests {
         assert!(common::start_api().is_ok());
 
         let client = reqwest::Client::new();
-
         let params = [
-            ("asynchronous", "false"),
-            ("keep_output", "true"),
+            ("asynchronous", "true"),
+            ("keep_output", "false"),
             ("classes", "class2,class3"),
             ("nodes", "root"),
         ];
@@ -32,6 +31,7 @@ mod tests {
             .unwrap();
 
         thread::sleep(time::Duration::from_millis(500));
+
         let data = read_to_string("target/tmp/api_test.txt").expect("Unable to read file");
 
         assert_eq!(
