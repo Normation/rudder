@@ -77,18 +77,24 @@ use structopt::clap::crate_version;
 use tokio_signal::unix::{Signal, SIGHUP, SIGINT, SIGTERM};
 use tracing::{debug, error, info};
 use tracing_log::LogTracer;
-use tracing_subscriber::fmt::format::Format;
-use tracing_subscriber::fmt::format::Full;
-use tracing_subscriber::fmt::format::NewRecorder;
-use tracing_subscriber::{filter::Filter, fmt::Subscriber, reload::Handle};
+use tracing_subscriber::{
+    filter::EnvFilter,
+    fmt::Subscriber,
+    fmt::{
+        format::{Format, Full, NewRecorder},
+        Formatter,
+    },
+    reload::Handle,
+};
 
-type LogHandle = Handle<Filter, Subscriber<NewRecorder, Format<Full, ()>, fn() -> std::io::Stdout>>;
+type LogHandle =
+    Handle<EnvFilter, Formatter<NewRecorder, Format<Full, ()>, fn() -> std::io::Stdout>>;
 
 pub fn init_logger() -> Result<LogHandle, Error> {
     let builder = Subscriber::builder()
         .without_time()
         // Until actual config load
-        .with_filter("error")
+        .with_env_filter("error")
         .with_filter_reloading();
     let reload_handle = builder.reload_handle();
     let subscriber = builder.finish();
@@ -201,7 +207,7 @@ pub struct JobConfig {
     pub cfg: Configuration,
     pub nodes: RwLock<NodesList>,
     pub pool: Option<PgPool>,
-    pub client: Option<Client>,
+    pub client: Client,
     handle: LogHandle,
 }
 
@@ -233,17 +239,9 @@ impl JobConfig {
             None
         };
 
-        let client = if cfg.processing.reporting.output == ReportingOutputSelect::Upstream
-            || cfg.processing.inventory.output == InventoryOutputSelect::Upstream
-        {
-            Some(
-                Client::builder()
-                    .danger_accept_invalid_certs(!cfg.output.upstream.verify_certificates)
-                    .build()?,
-            )
-        } else {
-            None
-        };
+        let client = Client::builder()
+            .danger_accept_invalid_certs(!cfg.output.upstream.verify_certificates)
+            .build()?;
 
         let nodes = RwLock::new(NodesList::new(
             cfg.general.node_id.to_string(),
@@ -274,7 +272,7 @@ impl JobConfig {
     fn reload_logging(&self) -> Result<(), Error> {
         LogConfig::new(&self.cli_cfg.configuration_dir).and_then(|log_cfg| {
             self.handle
-                .reload(Filter::try_new(log_cfg.to_string())?)
+                .reload(EnvFilter::try_new(log_cfg.to_string())?)
                 .map_err(|e| e.into())
         })
     }

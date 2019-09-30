@@ -28,20 +28,67 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{error::Error, JobConfig};
+use crate::{
+    configuration::main::RemoteRun as RemoteRunCfg, data::node::Host, error::Error, JobConfig,
+};
 use futures::{Future, Stream};
-use hyper::Chunk;
+use hyper::{Body, Chunk};
 use regex::Regex;
+use reqwest::r#async::multipart::Form;
 use std::{
     collections::HashMap,
     io::BufReader,
-    path::PathBuf,
     process::{Command, Stdio},
     str::FromStr,
     sync::Arc,
 };
 use tokio_process::{Child, CommandExt};
-use tracing::info;
+use tracing::{debug, error, span, trace, Level};
+
+// From futures_stream_select_all crate (https://github.com/swizard0/futures-stream-select-all)
+// Will be in future versions of futures
+pub fn select_all<I, T, E>(streams: I) -> Box<dyn Stream<Item = T, Error = E> + Send>
+where
+    I: IntoIterator + Send,
+    I::Item: Stream<Item = T, Error = E> + 'static + Send,
+    T: 'static + Send,
+    E: 'static + Send,
+{
+    struct Level<T, E> {
+        power: usize,
+        stream: Box<dyn Stream<Item = T, Error = E> + Send>,
+    }
+
+    let mut stack: Vec<Level<T, E>> = Vec::new();
+    for stream in streams {
+        let mut lev_a = Level {
+            power: 0,
+            stream: Box::new(stream),
+        };
+        while stack
+            .last()
+            .map(|l| lev_a.power == l.power)
+            .unwrap_or(false)
+        {
+            let lev_b = stack.pop().unwrap();
+            lev_a = Level {
+                power: lev_b.power + 1,
+                stream: Box::new(lev_b.stream.select(lev_a.stream)),
+            }
+        }
+        stack.push(lev_a);
+    }
+
+    if let Some(tree_lev) = stack.pop() {
+        let mut tree = tree_lev.stream;
+        while let Some(node) = stack.pop() {
+            tree = Box::new(tree.select(node.stream))
+        }
+        tree
+    } else {
+        Box::new(futures::stream::empty())
+    }
+}
 
 #[derive(Debug)]
 pub struct RemoteRun {
@@ -65,58 +112,126 @@ impl RemoteRun {
         })
     }
 
-    // FIXME remove once fixed
-    #[allow(unused_must_use)]
+    fn consume(
+        stream: impl Stream<Item = Chunk, Error = Error> + Send + 'static,
+    ) -> impl Future<Item = (), Error = ()> {
+        stream
+            .for_each(|l| {
+                trace!("Read {:#?}", l);
+                Ok(())
+            })
+            .map_err(|e| error!("Stream error: {}", e))
+    }
+
     pub fn run(
         &self,
         job_config: Arc<JobConfig>,
     ) -> Result<impl warp::reply::Reply, warp::reject::Rejection> {
-        if self.run_parameters.keep_output && self.run_parameters.asynchronous {
-            return Err(warp::reject::custom(
+        debug!(
+            "Starting remote run (asynchronous: {}, keep_output: {})",
+            self.run_parameters.asynchronous, self.run_parameters.keep_output
+        );
+        match (
+            self.run_parameters.asynchronous,
+            self.run_parameters.keep_output,
+        ) {
+            // There are actually three cases:
+            // * sync with output
+            // * sync without output
+            // * async
+            //
+            // Coded by two booleans, hence the impossible case.
+            (true, true) => Err(warp::reject::custom(
                 "keep_output and asynchronous cannot be true simultaneously",
-            ));
-        }
-        if self.target == RemoteRunTarget::All {
-            info!("remote-run triggered on all the nodes");
+            )),
+            (true, false) => {
+                for relay in self.target.next_hops(job_config.clone()) {
+                    tokio::spawn(RemoteRun::consume(
+                        self.forward_call(job_config.clone(), relay),
+                    ));
+                }
+                tokio::spawn(RemoteRun::consume(self.run_parameters.remote_run(
+                    &job_config.cfg.remote_run,
+                    self.target.neighbors(job_config.clone()),
+                )));
 
-            if self.run_parameters.keep_output
-                && self.target.get_connected_nodes(job_config.clone()).len() == 1
-            {
-                Ok(warp::reply::html(hyper::Body::wrap_stream(
-                    self.run_parameters.execute_agent_output(
-                        job_config.clone(),
-                        self.target.get_connected_nodes(job_config.clone()),
-                    ),
+                Ok(warp::reply::html(Body::wrap_stream(
+                    futures::stream::empty::<Chunk, Error>(),
                 )))
-            } else {
-                // FIXME: never executed
-                self.run_parameters.execute_agent_no_output(
-                    job_config.clone(),
-                    self.target.get_connected_nodes(job_config.clone()),
-                );
-                Ok(warp::reply::html(hyper::Body::empty()))
             }
-        } else {
-            info!("Remote run launched on nodes: {:?}", self.target);
-
-            if self.run_parameters.keep_output
-                && self.target.get_connected_nodes(job_config.clone()).len() == 1
-            {
-                Ok(warp::reply::html(hyper::Body::wrap_stream(
-                    self.run_parameters.execute_agent_output(
-                        job_config.clone(),
-                        self.target.get_connected_nodes(job_config.clone()),
-                    ),
-                )))
-            } else {
-                // FIXME: never executed
-                self.run_parameters.execute_agent_no_output(
-                    job_config.clone(),
-                    self.target.get_connected_nodes(job_config.clone()),
-                );
-                Ok(warp::reply::html(hyper::Body::empty()))
-            }
+            (false, false) => Ok(warp::reply::html(Body::wrap_stream(
+                self.run_parameters
+                    .remote_run(
+                        &job_config.cfg.remote_run,
+                        self.target.neighbors(job_config.clone()),
+                    )
+                    .select(select_all(
+                        self.target
+                            .next_hops(job_config.clone())
+                            .iter()
+                            .map(|relay| self.forward_call(job_config.clone(), relay.clone())),
+                    ))
+                    .map(|_| Chunk::from("")),
+            ))),
+            (false, true) => Ok(warp::reply::html(Body::wrap_stream(
+                self.run_parameters
+                    .remote_run(
+                        &job_config.cfg.remote_run,
+                        self.target.neighbors(job_config.clone()),
+                    )
+                    .select(select_all(
+                        self.target
+                            .next_hops(job_config.clone())
+                            .iter()
+                            .map(|relay| self.forward_call(job_config.clone(), relay.clone())),
+                    )),
+            ))),
         }
+    }
+
+    fn forward_call(
+        &self,
+        job_config: Arc<JobConfig>,
+        node: Host,
+    ) -> impl Stream<Item = Chunk, Error = Error> + Send + 'static {
+        let report_span = span!(Level::TRACE, "upstream");
+        let _report_enter = report_span.enter();
+
+        // We cannot simply deserialize if using `.form()` as we
+        // need specific formatting
+        let mut form = Form::new()
+            .text("keep_output", self.run_parameters.keep_output.to_string())
+            .text("asynchronous", self.run_parameters.asynchronous.to_string())
+            .text(
+                "classes",
+                self.run_parameters
+                    .conditions
+                    .iter()
+                    .map(|c| c.data.as_ref())
+                    .collect::<Vec<&str>>()
+                    .join(","),
+            );
+        if let RemoteRunTarget::Nodes(nodes) = &self.target {
+            form = form.text("nodes", nodes.join(","))
+        }
+
+        job_config
+            .client
+            .clone()
+            .post(&format!(
+                "{}/rudder/relay-api/{}",
+                node,
+                match &self.target {
+                    RemoteRunTarget::All => "all",
+                    RemoteRunTarget::Nodes(_) => "nodes",
+                },
+            ))
+            .multipart(form)
+            .send()
+            .map(|response| response.into_body())
+            .flatten_stream()
+            .map_err(|e| e.into())
+            .map(|c| c.into())
     }
 }
 
@@ -127,18 +242,19 @@ pub enum RemoteRunTarget {
 }
 
 impl RemoteRunTarget {
-    pub fn get_connected_nodes(&self, job_config: Arc<JobConfig>) -> Vec<String> {
+    pub fn neighbors(&self, job_config: Arc<JobConfig>) -> Vec<Host> {
+        let nodes = job_config.nodes.read().expect("Cannot read nodes list");
         match self {
-            RemoteRunTarget::All => job_config
-                .nodes
-                .read()
-                .expect("Cannot read nodes list")
-                .get_neighbors_from_target(RemoteRunTarget::All),
-            RemoteRunTarget::Nodes(nodeslist) => job_config
-                .nodes
-                .read()
-                .expect("Cannot read nodes list")
-                .get_neighbors_from_target(RemoteRunTarget::Nodes(nodeslist.clone())),
+            RemoteRunTarget::All => nodes.neighbors(),
+            RemoteRunTarget::Nodes(nodeslist) => nodes.neighbors_from(nodeslist),
+        }
+    }
+
+    pub fn next_hops(&self, job_config: Arc<JobConfig>) -> Vec<Host> {
+        let nodes = job_config.nodes.read().expect("Cannot read nodes list");
+        match self {
+            RemoteRunTarget::All => nodes.sub_relays(),
+            RemoteRunTarget::Nodes(nodeslist) => nodes.sub_relays_from(nodeslist),
         }
     }
 }
@@ -171,18 +287,6 @@ impl FromStr for Condition {
             })
         }
     }
-}
-
-fn lines_stream(child: &mut Child) -> impl Stream<Item = Chunk, Error = Error> + Send + 'static {
-    let stdout = child
-        .stdout()
-        .take()
-        .expect("child did not have a handle to stdout");
-
-    tokio_io::io::lines(BufReader::new(stdout))
-        .map_err(Error::from)
-        .inspect(|line| println!("Line: {}", line))
-        .map(Chunk::from)
 }
 
 #[derive(Debug)]
@@ -224,83 +328,65 @@ impl RunParameters {
         })
     }
 
-    pub fn command(&self, is_root: bool, job_config: Arc<JobConfig>) -> (PathBuf, Vec<String>) {
-        let program = job_config.cfg.remote_run.command.clone();
-
-        let mut args = vec![];
-        args.push(if is_root { "agent" } else { "remote" }.to_string());
-        args.push("run".to_string());
-        if !&self.conditions.is_empty() {
-            args.push("-D".to_string());
-            let conditions_argument: Vec<String> =
-                self.conditions.iter().map(|c| c.data.clone()).collect();
-            args.push(conditions_argument.join(","));
-        }
-        (program, args)
-    }
-
-    pub fn execute_agent_output(
-        &self,
-        job_config: Arc<JobConfig>,
-        nodeslist: Vec<String>,
-    ) -> impl Stream<Item = hyper::Chunk, Error = Error> + Send + 'static {
-        let (program, args) = self.command(false, job_config.clone());
-
-        let mut cmd = if job_config.cfg.remote_run.use_sudo {
+    pub fn command(&self, cfg: &RemoteRunCfg, nodes: Vec<String>) -> Command {
+        let mut cmd = if cfg.use_sudo {
             let mut tmp = Command::new("sudo");
-            tmp.arg(&program);
+            tmp.args(&cfg.command);
             tmp
         } else {
-            Command::new(&program)
+            Command::new(&cfg.command)
         };
-
-        cmd.args(&args);
-        cmd.arg(&nodeslist[0]);
-        cmd.stdout(Stdio::piped());
-        let mut child = cmd.spawn_async().expect("failed to spawn command");
-        let lines = lines_stream(&mut child);
-        let child_future = child
-            .map(|_status| info!("conditions OK"))
-            .map_err(|e| panic!("error while running child: {}", e));
-
-        tokio::spawn(child_future);
-        lines
+        cmd.arg("remote".to_string());
+        cmd.arg("run".to_string());
+        if !&self.conditions.is_empty() {
+            cmd.arg("-D".to_string());
+            cmd.arg(
+                self.conditions
+                    .iter()
+                    .map(|c| c.data.as_str())
+                    .collect::<Vec<&str>>()
+                    .join(","),
+            );
+        }
+        cmd.arg(nodes.join(","));
+        cmd
     }
 
-    pub fn execute_agent_no_output(
+    fn remote_run(
         &self,
-        job_config: Arc<JobConfig>,
-        nodeslist: Vec<String>,
-    ) -> impl Stream<Item = hyper::Chunk, Error = Error> + Send + 'static {
-        let (program, args) = self.command(false, job_config.clone());
+        cfg: &RemoteRunCfg,
+        nodes: Vec<String>,
+    ) -> Box<dyn Stream<Item = hyper::Chunk, Error = Error> + Send + 'static> {
+        trace!("Starting local remote run on {:#?} with {:#?}", nodes, cfg);
+        let mut cmd = self.command(cfg, nodes);
+        cmd.stdout(Stdio::piped());
 
-        for node in nodeslist {
-            if job_config.cfg.remote_run.use_sudo {
-                let mut cmd = Command::new("sudo");
-                cmd.arg(&program);
-                cmd.args(&args);
-                cmd.arg(node);
-                cmd.stdout(Stdio::piped());
-                let child = cmd.spawn_async().expect("failed to spawn command");
-                let child_future = child
-                    .map(|_status| info!("conditions OK"))
-                    .map_err(|e| panic!("error while running child: {}", e));
-
-                tokio::spawn(child_future);
-            } else {
-                let mut cmd = Command::new(&program);
-                cmd.args(&args);
-                cmd.arg(node);
-                cmd.stdout(Stdio::piped());
-                let child = cmd.spawn_async().expect("failed to spawn command");
-                let child_future = child
-                    .map(|_status| info!("conditions OK"))
-                    .map_err(|e| panic!("error while running child: {}", e));
-
-                tokio::spawn(child_future);
+        match cmd.spawn_async() {
+            Ok(mut c) => {
+                let lines = RunParameters::lines_stream(&mut c);
+                tokio::spawn(c.map(|_| ()).map_err(|_| ()));
+                debug!("Spawned remote run command: '{:#?}'", cmd);
+                Box::new(lines)
+            }
+            Err(e) => {
+                error!("Remote run error while running '{:#?}': {}", cmd, e);
+                Box::new(futures::stream::once(Err(e.into())))
             }
         }
-        futures::stream::empty()
+    }
+
+    fn lines_stream(
+        child: &mut Child,
+    ) -> impl Stream<Item = Chunk, Error = Error> + Send + 'static {
+        let stdout = child
+            .stdout()
+            .take()
+            .expect("child did not have a handle to stdout");
+
+        tokio_io::io::lines(BufReader::new(stdout))
+            .map_err(Error::from)
+            .inspect(|line| debug!("output: {}", line))
+            .map(Chunk::from)
     }
 }
 

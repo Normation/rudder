@@ -121,12 +121,12 @@ impl NodesList {
         self.list.data.get(id).is_some()
     }
 
-    pub fn get_keyhash_from_uuid(&self, source_uuid: &str) -> Option<String> {
-        self.list.data.get(source_uuid).map(|s| s.key_hash.clone())
+    pub fn key_hash(&self, id: &str) -> Option<KeyHash> {
+        self.list.data.get(id).map(|s| s.key_hash.clone())
     }
 
-    pub fn get_hostname(&self, uuid: &str) -> Option<String> {
-        self.list.data.get(uuid).map(|s| s.hostname.clone())
+    pub fn hostname(&self, id: &str) -> Option<Host> {
+        self.list.data.get(id).map(|s| s.hostname.clone())
     }
 
     pub fn certs(&self, id: &str) -> Option<&Stack<X509>> {
@@ -148,7 +148,37 @@ impl NodesList {
             .to_string())
     }
 
-    fn get_neighbors(&self) -> Vec<String> {
+    fn next_hop(&self, node_id: &str) -> Option<Host> {
+        // nodeslist should not contain loops but just in case
+        // 20 levels of relays should be more than enough
+        const MAX_RELAY_LEVELS: u8 = 20;
+
+        let mut current_id = node_id;
+        let mut current = self.list.data.get(current_id)?;
+        let mut next_hop: Option<NodeId> = None;
+
+        for level in 0..MAX_RELAY_LEVELS {
+            if current.policy_server == self.my_id {
+                next_hop = Some(current_id.to_string());
+                break;
+            }
+            current_id = &current.policy_server;
+            current = self.list.data.get(current_id)?;
+
+            if level == MAX_RELAY_LEVELS {
+                warn!(
+                    "Reached maximum level of relay ({}) for {}, there is probably a loop",
+                    MAX_RELAY_LEVELS, node_id
+                );
+            }
+        }
+
+        next_hop
+    }
+
+    // NOTE: Following methods could be made faster by pre-computing a graph in cache
+
+    pub fn neighbors(&self) -> Vec<Host> {
         self.list
             .data
             .values()
@@ -157,48 +187,44 @@ impl NodesList {
             .collect()
     }
 
-    pub fn get_relays(&self) -> Vec<String> {
-        let mut relays = HashSet::new();
-        for policy_server in self.list.data.values().map(|v| v.policy_server.clone()) {
-            let _ = relays.insert(policy_server);
-        }
-        relays.into_iter().collect()
+    pub fn neighbors_from(&self, nodes: &[String]) -> Vec<Host> {
+        nodes
+            .iter()
+            .filter_map(|n| self.list.data.get::<str>(&n))
+            .filter(|n| n.policy_server == self.my_id)
+            .map(|n| n.hostname.clone())
+            .collect()
     }
 
-    pub fn get_all_subnodes(&self) -> Vec<String> {
-        // retrieve all the nodes under a relay
-        self.list.data.keys().cloned().collect()
-    }
-
-    pub fn get_neighbors_from_target(&self, target_nodes: RemoteRunTarget) -> Vec<String> {
-        match target_nodes {
-            RemoteRunTarget::All => self.get_neighbors(),
-            RemoteRunTarget::Nodes(nodes) => nodes
-                .into_iter()
-                .filter(|n| {
-                    self.list.data.get::<str>(&n).map(|n| &n.policy_server) == Some(&self.my_id)
-                })
-                .map(|n| {
-                    self.list
-                        .data
-                        .get::<str>(&n)
-                        .map(|n| n.hostname.clone())
-                        .unwrap()
-                })
-                .collect(),
-        }
-    }
-
-    pub fn get_neighbors_which_are_relay(&self, relay_id: &str) -> Vec<String> {
+    pub fn sub_relays(&self) -> Vec<Host> {
         let mut relays = HashSet::new();
         for policy_server in self
             .list
             .data
             .values()
-            .map(|v| v.policy_server.clone())
-            .filter(|k| k == relay_id)
+            .filter_map(|v| self.list.data.get(&v.policy_server))
+            .filter(|v| v.policy_server == self.my_id)
+            .map(|v| v.hostname.clone())
         {
             let _ = relays.insert(policy_server);
+        }
+        relays.into_iter().collect()
+    }
+
+    pub fn sub_relays_from(&self, nodes: &[String]) -> Vec<Host> {
+        let mut relays = HashSet::new();
+        for relay in nodes
+            .iter()
+            .filter_map(|n| self.next_hop(n))
+            .filter(|n| n != &self.my_id)
+        {
+            let _ = relays.insert(
+                self.list
+                    .data
+                    .get::<str>(&relay)
+                    .map(|n| n.hostname.clone())
+                    .unwrap(),
+            );
         }
         relays.into_iter().collect()
     }
@@ -255,108 +281,72 @@ mod tests {
     }
 
     #[test]
-    fn its_filtering_nodes_requests() {
-        let file_nodelist =
-            NodesList::new("root".to_string(), "tests/files/nodeslist.json", None).unwrap();
+    fn it_filters_neighbors() {
+        let mut reference = vec![
+            "node1.rudder.local",
+            "node2.rudder.local",
+            "server.rudder.local",
+        ];
+        reference.sort();
 
-        assert_eq!(
-            file_nodelist.get_neighbors_from_target(RemoteRunTarget::Nodes(vec![
+        let mut actual = NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
+            .unwrap()
+            .neighbors();
+        actual.sort();
+
+        assert_eq!(reference, actual);
+    }
+
+    #[test]
+    fn it_gets_neighbors() {
+        let mut reference = vec![
+            "node1.rudder.local",
+            "node2.rudder.local",
+            "server.rudder.local",
+        ];
+        reference.sort();
+
+        let mut actual = NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
+            .unwrap()
+            .neighbors();
+        actual.sort();
+
+        assert_eq!(reference, actual);
+    }
+
+    #[test]
+    fn it_gets_sub_relays() {
+        let mut reference = vec![
+            "node1.rudder.local",
+            "node2.rudder.local",
+            "server.rudder.local",
+        ];
+        reference.sort();
+
+        let mut actual = NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
+            .unwrap()
+            .sub_relays();
+        actual.sort();
+
+        assert_eq!(reference, actual);
+    }
+
+    #[test]
+    fn it_filters_sub_relays() {
+        let mut reference = vec!["node1.rudder.local", "node2.rudder.local"];
+        reference.sort();
+
+        let mut actual = NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
+            .unwrap()
+            .sub_relays_from(&vec![
                 "b745a140-40bc-4b86-b6dc-084488fc906b".to_string(),
                 "a745a140-40bc-4b86-b6dc-084488fc906b".to_string(),
                 "root".to_string(),
                 "37817c4d-fbf7-4850-a985-50021f4e8f41".to_string(),
                 "e745a140-40bc-4b86-b6dc-084488fc906b".to_string(),
-            ])),
-            [
-                "server.rudder.local".to_string(),
-                "node2.rudder.local".to_string(),
-                "node1.rudder.local".to_string()
-            ]
-        );
+            ]);
+        actual.sort();
 
-        assert_eq!(
-            file_nodelist
-                .get_neighbors_from_target(RemoteRunTarget::All)
-                .sort(),
-            [
-                "server.rudder.local".to_string(),
-                "node2.rudder.local".to_string(),
-                "node1.rudder.local".to_string(),
-            ]
-            .sort()
-        );
-
-        assert_eq!(
-            file_nodelist
-                .get_neighbors_from_target(RemoteRunTarget::All)
-                .len(),
-            3
-        );
-    }
-
-    #[test]
-    fn its_getting_all_the_subnodes() {
-        let mut my_string_vec = [
-            "37817c4d-fbf7-4850-a985-50021f4e8f41",
-            "b745a140-40bc-4b86-b6dc-084488fc906b",
-            "c745a140-40bc-4b86-b6dc-084488fc906b",
-            "e745a140-40bc-4b86-b6dc-084488fc906b",
-            "a745a140-40bc-4b86-b6dc-084488fc906b",
-            "root",
-        ];
-
-        let file_nodelist =
-            NodesList::new("root".to_string(), "tests/files/nodeslist.json", None).unwrap();
-
-        assert_eq!(
-            file_nodelist.get_all_subnodes().sort(),
-            my_string_vec.sort()
-        );
-    }
-
-    #[test]
-    fn its_getting_the_neighbors() {
-        let mut my_string_vec = [
-            "e745a140-40bc-4b86-b6dc-084488fc906b",
-            "root",
-            "37817c4d-fbf7-4850-a985-50021f4e8f41",
-        ];
-
-        let file_nodelist =
-            NodesList::new("root".to_string(), "tests/files/nodeslist.json", None).unwrap();
-
-        assert_eq!(file_nodelist.get_neighbors().sort(), my_string_vec.sort());
-    }
-
-    #[test]
-    fn its_getting_the_relays() {
-        let mut my_string_vec = [
-            "e745a140-40bc-4b86-b6dc-084488fc906b",
-            "root",
-            "37817c4d-fbf7-4850-a985-50021f4e8f41",
-            "a",
-        ];
-
-        let file_nodelist =
-            NodesList::new("root".to_string(), "tests/files/nodeslist.json", None).unwrap();
-
-        assert_eq!(file_nodelist.get_relays().sort(), my_string_vec.sort());
-    }
-
-    #[test]
-    fn its_getting_the_neighbors_which_are_relay() {
-        let mut my_string_vec = [
-            "e745a140-40bc-4b86-b6dc-084488fc906b",
-            "root",
-            "37817c4d-fbf7-4850-a985-50021f4e8f41",
-        ];
-
-        let file_nodelist =
-            NodesList::new("root".to_string(), "tests/files/nodeslist.json", None).unwrap();
-
-        assert_eq!(
-            file_nodelist.get_neighbors_which_are_relay("root").sort(),
-            my_string_vec.sort()
-        );
+        assert_eq!(reference, actual);
     }
 }

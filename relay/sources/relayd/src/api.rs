@@ -94,18 +94,22 @@ pub fn api(
         post()
             .and(path("nodes"))
             .and(path::end().and(body::form()).and_then(
-                move |simple_map: HashMap<String, String>| match simple_map.get("nodes") {
-                    Some(x) => match RemoteRun::new(
-                        RemoteRunTarget::Nodes(
-                            x.split(',').map(|s| s.to_string()).collect::<Vec<String>>(),
-                        ),
-                        &simple_map,
-                    ) {
-                        Ok(x) => x.run(job_config3.clone()),
-                        Err(x) => Err(custom(Error::InvalidCondition(x.to_string()))),
-                    },
-
-                    None => Err(custom(Error::MissingTargetNodes)),
+                move |simple_map: HashMap<String, String>| {
+                    match simple_map.get("nodes") {
+                        Some(nodes) => match RemoteRun::new(
+                            RemoteRunTarget::Nodes(
+                                nodes
+                                    .split(',')
+                                    .map(|s| s.to_string())
+                                    .collect::<Vec<String>>(),
+                            ),
+                            &simple_map,
+                        ) {
+                            Ok(handle) => handle.run(job_config3.clone()),
+                            Err(e) => Err(custom(Error::InvalidCondition(e.to_string()))),
+                        },
+                        None => Err(custom(Error::MissingTargetNodes)),
+                    }
                 },
             ));
 
