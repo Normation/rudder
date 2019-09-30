@@ -376,6 +376,7 @@ bundle common paths
       "path[service]"   string => "/sbin/service";
       "path[svc]"       string => "/sbin/service";
       "path[useradd]"   string => "/usr/sbin/useradd";
+      "path[usermod]"   string => "/usr/sbin/usermod";
       "path[userdel]"   string => "/usr/sbin/userdel";
       "path[yum]"       string => "/usr/bin/yum";
 
