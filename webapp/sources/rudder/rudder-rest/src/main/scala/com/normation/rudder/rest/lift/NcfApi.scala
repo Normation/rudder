@@ -90,7 +90,7 @@ class NcfApi(
         methods   <- restExtractor.extractGenericMethod(json \ "methods")
         methodMap = methods.map(m => (m.id,m)).toMap
         technique <- restExtractor.extractNcfTechnique(json \ "technique", methodMap)
-        allDone   <- techniqueWriter.writeAll(technique, methodMap, modId, authzToken.actor )
+        allDone   <- techniqueWriter.writeAll(technique, methodMap, modId, authzToken.actor, true )
       } yield {
         json
       }
@@ -111,7 +111,7 @@ class NcfApi(
         methods   <- restExtractor.extractGenericMethod(json \ "methods")
         methodMap = methods.map(m => (m.id,m)).toMap
         technique <- restExtractor.extractNcfTechnique(json \ "technique", methodMap)
-        allDone   <- techniqueWriter.writeAll(technique, methodMap, modId, authzToken.actor)
+        allDone   <- techniqueWriter.writeAll(technique, methodMap, modId, authzToken.actor, true)
       } yield {
         json
       }

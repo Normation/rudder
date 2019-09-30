@@ -193,15 +193,19 @@ class TechniqueWriter (
   }
 
   // Write and commit all techniques files
-  def writeAll(technique : Technique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor) : Result[Seq[String]] = {
+  def writeAll(technique : Technique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor, launchLibUpdate : Boolean) : Result[Seq[String]] = {
     for {
       agentFiles <- writeAgentFiles(technique, methods, modId, committer)
       metadata   <- writeMetadata(technique, methods, modId, committer)
-      libUpdate  <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")) match {
-                      case Full(techniques) => Right(techniques)
-                      case eb:EmptyBox =>
-                        val fail = eb ?~! s"An error occured during technique update after files were created for ncf Technique ${technique.name}"
-                        Left(TechniqueUpdateError(fail.msg,fail.exception))
+      libUpdate  <- if (launchLibUpdate) {
+                      techLibUpdate.update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")) match {
+                        case Full(techniques) => Right(techniques)
+                        case eb: EmptyBox =>
+                          val fail = eb ?~! s"An error occured during technique update after files were created for ncf Technique ${technique.name}"
+                          Left(TechniqueUpdateError(fail.msg, fail.exception))
+                      }
+                    } else {
+                      Right("ok")
                     }
     } yield {
       metadata +: agentFiles

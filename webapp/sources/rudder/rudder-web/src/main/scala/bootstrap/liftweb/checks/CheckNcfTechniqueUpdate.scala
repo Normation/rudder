@@ -40,12 +40,14 @@ package checks
 
 import net.liftweb.common._
 import java.io.File
+
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.ncf.TechniqueWriter
 import scalaj.http.Http
-import monix.execution.Scheduler.{ global => scheduler }
+import monix.execution.Scheduler.{global => scheduler}
+
 import scala.concurrent.duration._
 import com.normation.eventlog.EventActor
 import com.normation.rudder.api.ApiAccount
@@ -53,6 +55,8 @@ import com.normation.rudder.ncf.ResultHelper._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JArray
 import bootstrap.liftweb.BootstrapChecks
+import com.normation.cfclerk.services.UpdateTechniqueLibrary
+import com.normation.rudder.ncf.TechniqueUpdateError
 
 sealed trait NcfTechniqueUpgradeError {
   def msg : String
@@ -87,6 +91,7 @@ class CheckNcfTechniqueUpdate(
   , techniqueWrite : TechniqueWriter
   , systemApiToken : ApiAccount
   , uuidGen        : StringUuidGenerator
+  , techLibUpdate  : UpdateTechniqueLibrary
 ) extends BootstrapChecks {
 
   override val description = "Regenerate all ncf techniques"
@@ -157,13 +162,20 @@ class CheckNcfTechniqueUpdate(
 
         // Actually write techniques
         techniqueUpdated   <- (sequence(techniques)(
-                                techniqueWrite.writeAll(_, methods, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value))
+                                techniqueWrite.writeAll(_, methods, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value), false)
                               )) match {
                                 case Full(m) => Right(m)
                                 case eb : EmptyBox =>
                                   val fail = eb ?~! "An error occured while writing ncf Techniques"
                                   Left(WriteTechniqueError(fail.messageChain, None))
                               }
+
+       libUpdate            <- techLibUpdate.update(ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value), Some(s"Update Technique library after updating all techniques at start up")) match {
+                                 case Full(techniques) => Right(techniques)
+                                 case eb: EmptyBox =>
+                                   val fail = eb ?~! s"An error occured during techniques update after update of all techniques from the editor"
+                                   Left(TechniqueUpdateError(fail.msg, fail.exception))
+                               }
         flagDeleted        <- tryo (
                                   file.delete()
                                 , s"An error occured while deleting file ${ncfTechniqueUpdateFlag} after techniques were written, you may need to delete it manually"

@@ -1709,6 +1709,7 @@ object RudderConfig extends Loggable {
         , ncfTechniqueWriter
         , roLDAPApiAccountRepository.systemAPIAccount
         , uuidGen
+        , updateTechniqueLibrary
       )
     , new ResumePolicyUpdateRunning(
           asyncDeploymentAgent
