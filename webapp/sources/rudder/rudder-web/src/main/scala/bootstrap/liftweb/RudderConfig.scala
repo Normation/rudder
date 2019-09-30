@@ -260,6 +260,11 @@ object RudderConfig extends Loggable {
   val RUDDER_BATCH_REPORTSCLEANER_ARCHIVE_TTL = config.getInt("rudder.batch.reportscleaner.archive.TTL") //AutomaticReportsCleaning.defaultArchiveTTL
   val RUDDER_BATCH_REPORTSCLEANER_DELETE_TTL = config.getInt("rudder.batch.reportscleaner.delete.TTL") //AutomaticReportsCleaning.defaultDeleteTTL
   val RUDDER_BATCH_REPORTSCLEANER_COMPLIANCE_DELETE_TTL = config.getInt("rudder.batch.reportscleaner.compliancelevels.delete.TTL") //AutomaticReportsCleaning.defaultDeleteTTL
+  val RUDDER_BATCH_REPORTSCLEANER_LOG_DELETE_TTL = try {
+    config.getString("rudder.batch.reportscleaner.deleteReportLog.TTL")
+  } catch {
+    case ex: Exception => "2x"
+  }
   val RUDDER_BATCH_REPORTSCLEANER_FREQUENCY = config.getString("rudder.batch.reportscleaner.frequency") //AutomaticReportsCleaning.defaultDay
   val RUDDER_BATCH_DATABASECLEANER_RUNTIME_HOUR = config.getInt("rudder.batch.databasecleaner.runtime.hour") //AutomaticReportsCleaning.defaultHour
   val RUDDER_BATCH_DATABASECLEANER_RUNTIME_MINUTE = config.getInt("rudder.batch.databasecleaner.runtime.minute") //AutomaticReportsCleaning.defaultMinute
@@ -1632,13 +1637,17 @@ object RudderConfig extends Loggable {
         throw new RuntimeException(exceptionMsg)
     }
 
+
     new AutomaticReportsCleaning(
       databaseManagerImpl
+    , roLDAPConnectionProvider
     , RUDDER_BATCH_REPORTSCLEANER_DELETE_TTL
     , RUDDER_BATCH_REPORTSCLEANER_ARCHIVE_TTL
     , RUDDER_BATCH_REPORTSCLEANER_COMPLIANCE_DELETE_TTL
+    , RUDDER_BATCH_REPORTSCLEANER_LOG_DELETE_TTL
     , cleanFrequency
-  )}
+    )
+  }
 
   private[this] lazy val techniqueLibraryUpdater = new CheckTechniqueLibrary(
       techniqueRepositoryImpl

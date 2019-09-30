@@ -39,7 +39,6 @@ package com.normation.rudder.repository.jdbc
 
 import java.sql.Timestamp
 
-
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
@@ -49,10 +48,12 @@ import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.repository.ReportsRepository
 import org.joda.time._
 import net.liftweb.common._
-import doobie._, doobie.implicits._
+import doobie._
+import doobie.implicits._
 import cats.implicits._
 import com.normation.rudder.db.Doobie._
 import com.normation.rudder.db.Doobie
+import org.joda.time.format.ISODateTimeFormat
 
 class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Loggable {
   import doobie._
@@ -255,6 +256,14 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     }
   }
 
+  override def deleteLogReports(date: DateTime): Box[Int] = {
+    val dateAt = date.toString(ISODateTimeFormat.dateTimeNoMillis())
+    val q = s"delete from ${reports} where executionTimeStamp < '${dateAt}' and eventtype like 'log_%'"
+
+    logger.debug(s"""Deleting log reports with SQL query: [[${q}]]""")
+    Update0(q, None).run.transact(xa).attempt.unsafeRunSync
+  }
+
   override def getHighestId() : Box[Long] = {
     query[Long](s"select id from RudderSysEvents order by id desc limit 1").unique.transact(xa).attempt.unsafeRunSync
   }
@@ -370,6 +379,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
      */
     def distinctRuns(seq: Seq[AgentRun]): Seq[AgentRun] = {
       //that one is for a list of agentRun with same id
+      @scala.annotation.tailrec
       def recDisctinct(runs: List[AgentRun]): AgentRun = {
         runs match {
           case Nil => throw new IllegalArgumentException("Error in code: distinctRuns methods should never call the recDistinct one with an empty list")
