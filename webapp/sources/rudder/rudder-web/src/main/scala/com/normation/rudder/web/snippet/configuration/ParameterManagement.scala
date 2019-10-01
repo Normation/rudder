@@ -47,6 +47,7 @@ import net.liftweb.http.SHtml._
 import net.liftweb.http.js._
 import net.liftweb.http.js.JsCmds._
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.parameters.GlobalParameter
 import net.liftweb.http.js.JE.JsRaw
 import com.normation.rudder.web.components.popup.CreateOrUpdateGlobalParameterPopup
@@ -97,9 +98,13 @@ class ParameterManagement extends DispatchSnippet with Loggable {
         ".description [id]" #> ("description-" + lineHtmlId) &
         ".overridable *" #> param.overridable &
         ".change *" #> <div>{
-          ajaxButton("Edit", () => showPopup(GlobalParamModAction.Update, Some(param)), ("class", "btn btn-default btn-xs"), ("style", "min-width:50px;")) ++
-          ajaxButton("Delete", () => showPopup(GlobalParamModAction.Delete, Some(param)), ("class", "btn btn-danger btn-xs"), ("style", "margin-left:5px;min-width:0px;"))
-                       }</div>
+          (if(CurrentUser.checkRights(AuthorizationType.Parameter.Edit)) {
+            ajaxButton("Edit", () => showPopup(GlobalParamModAction.Update, Some(param)), ("class", "btn btn-default btn-xs"), ("style", "min-width:50px;"))
+          } else NodeSeq.Empty) ++
+          (if(CurrentUser.checkRights(AuthorizationType.Parameter.Write)) {
+            ajaxButton("Delete", () => showPopup(GlobalParamModAction.Delete, Some(param)), ("class", "btn btn-danger btn-xs"), ("style", "margin-left:5px;min-width:0px;"))
+          } else NodeSeq.Empty)
+        }</div>
       }) &
       ".createParameter *" #> ajaxButton("Create Global Parameter", () => showPopup(GlobalParamModAction.Create, None) , ("class","btn btn-success new-icon space-bottom space-top"))
      ).apply(dataTableXml(gridName)) ++ Script(initJs)

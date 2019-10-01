@@ -97,7 +97,6 @@ object AuthorizationApiMapping {
     override def mapAuthorization(authz: AuthorizationType): List[ApiAclElement] = {
       import AuthorizationType._
       // shorthand to get authz for a given api
-
       authz match {
         case NoRights             => Nil
         case AnyRights            => ApiAuthz.allAuthz.acl
@@ -113,12 +112,9 @@ object AuthorizationApiMapping {
         case Compliance.Write     => Nil
         case Compliance.Edit      => Nil
 
-        // Configuration doesn't give API rights.
-        // But as nothing manage parameter API, I think it's the correct place
-        // to add it.
-        case Configuration.Read   => ParameterApi.ListParameters.x :: ParameterApi.ParameterDetails.x :: Nil
-        case Configuration.Write  => ParameterApi.CreateParameter.x :: ParameterApi.DeleteParameter.x :: Nil
-        case Configuration.Edit   => ParameterApi.UpdateParameter.x :: Nil
+        case Configuration.Read   => (Parameter.Read :: Technique.Read :: Directive.Read :: Rule.Read :: Nil).flatMap(c => mapAuthorization(c))
+        case Configuration.Write  => (Parameter.Write :: Technique.Write :: Directive.Write :: Rule.Write :: Nil).flatMap(c => mapAuthorization(c))
+        case Configuration.Edit   => (Parameter.Edit :: Technique.Edit :: Directive.Edit :: Rule.Edit :: Nil).flatMap(c => mapAuthorization(c))
 
         case Deployment.Read      => Nil
         case Deployment.Write     => Nil
@@ -127,6 +123,10 @@ object AuthorizationApiMapping {
         case Deployer.Read        => Nil // ChangeRequestApi.ListChangeRequests.x :: ChangeRequestApi.ChangeRequestsDetails.x :: Nil
         case Deployer.Write       => Nil // ChangeRequestApi.DeclineRequestsDetails.x :: ChangeRequestApi.AcceptRequestsDetails.x :: Nil
         case Deployer.Edit        => Nil // ChangeRequestApi.UpdateRequestsDetails.x :: Nil
+
+        case Parameter.Read       => ParameterApi.ListParameters.x :: ParameterApi.ParameterDetails.x :: Nil
+        case Parameter.Write      => ParameterApi.CreateParameter.x :: ParameterApi.DeleteParameter.x :: Nil
+        case Parameter.Edit       => ParameterApi.UpdateParameter.x :: Nil
 
         case Directive.Read       => DirectiveApi.ListDirectives.x :: DirectiveApi.DirectiveDetails.x :: Nil
         case Directive.Write      => DirectiveApi.CreateDirective.x :: DirectiveApi.DeleteDirective.x ::
