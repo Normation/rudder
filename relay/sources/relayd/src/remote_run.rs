@@ -331,7 +331,7 @@ impl RunParameters {
     pub fn command(&self, cfg: &RemoteRunCfg, nodes: Vec<String>) -> Command {
         let mut cmd = if cfg.use_sudo {
             let mut tmp = Command::new("sudo");
-            tmp.args(&cfg.command);
+            tmp.arg(&cfg.command);
             tmp
         } else {
             Command::new(&cfg.command)
