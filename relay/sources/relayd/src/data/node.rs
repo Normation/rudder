@@ -28,7 +28,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{error::Error, remote_run::RemoteRunTarget};
+use crate::error::Error;
 use openssl::{stack::Stack, x509::X509};
 use serde::Deserialize;
 use serde_json;
