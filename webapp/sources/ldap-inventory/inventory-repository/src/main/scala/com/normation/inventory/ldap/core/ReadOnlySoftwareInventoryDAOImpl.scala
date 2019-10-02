@@ -111,17 +111,18 @@ class ReadOnlySoftwareDAOImpl(
   }
 
   def getSoftwaresForAllNodes() : Box[Set[SoftwareUuid]] = {
-    // fetch all softwares, for all nodes, in all 3 dits
+    // Accepted Dit, to get the software
     val acceptedDit = inventoryDitService.getDit(AcceptedInventory)
 
+    // We need to search on the parent parent, as acceptedDit.NODES.dn.getParent ou=Accepted inventories
+    val nodeBaseSearch = acceptedDit.NODES.dn.getParent.getParent
     var mutSetSoftwares: scala.collection.mutable.Set[SoftwareUuid] = scala.collection.mutable.Set[SoftwareUuid]()
 
     (for {
       con           <- ldap
 
       // fetch all nodes
-      nodes        = con.searchSub(acceptedDit.NODES.dn.getParent, IS(OC_NODE), A_NODE_UUID)
-
+      nodes        = con.searchSub(nodeBaseSearch, IS(OC_NODE), A_NODE_UUID)
       batchedNodes = nodes.grouped(50).toSeq
 
       _            <- sequence(batchedNodes) { nodeEntries: Seq[LDAPEntry] =>
@@ -129,7 +130,7 @@ class ReadOnlySoftwareDAOImpl(
 
                              val t2           = System.currentTimeMillis
                              val orFilter     = BuildFilter.OR(nodeIds.map(x => EQ(A_NODE_UUID, x.value)): _*)
-                             val softwareEntry=  con.searchSub(acceptedDit.NODES.dn.getParent, orFilter, A_SOFTWARE_DN)
+                             val softwareEntry=  con.searchSub(nodeBaseSearch, orFilter, A_SOFTWARE_DN)
                              val ids          = softwareEntry.flatMap(entry => entry.valuesFor(A_SOFTWARE_DN).toSet )
                              val results      = sequence(ids) { id => acceptedDit.SOFTWARE.SOFT.idFromDN(new DN(id)) }
                              val t3           = System.currentTimeMillis()
