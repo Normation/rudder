@@ -703,7 +703,7 @@ class NodeApiService8 (
   }
 
   def runNode(nodeId: NodeId, classes : List[String]) : Box[OutputStream => Unit] = {
-    val request = remoteRunRequest(nodeId,classes,true,true)
+    val request = remoteRunRequest(nodeId, classes, true, false)
 
     val in = new PipedInputStream(pipeSize)
 
