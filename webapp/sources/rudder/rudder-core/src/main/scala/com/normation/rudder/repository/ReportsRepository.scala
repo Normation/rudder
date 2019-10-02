@@ -99,6 +99,9 @@ trait ReportsRepository {
   def archiveEntries(date : DateTime) : Box[Int]
   def deleteEntries(date : DateTime) : Box[Int]
 
+  def deleteLogReports(date: DateTime): Box[Int]
+
+
   //automaticReportLogger only
   /**
    * Get the highest id of any kind of reports.
