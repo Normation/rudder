@@ -57,7 +57,7 @@
 
   There is also the possibility to create "custom" roles by combining those elements:
     type: "node", "group", "deployment", "administration", "configuration", "rule", "technique"
-    "directive", "validator", "deployer",
+    "directive", "parameter", "validator", "deployer",
     level: "read", "write", "edit", "all" (read, write, edit)
 
   Example: "node_read" (can read nodes), "validator_all" (same as validator)

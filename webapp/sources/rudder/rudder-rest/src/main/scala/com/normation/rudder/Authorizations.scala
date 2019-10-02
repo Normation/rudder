@@ -78,6 +78,7 @@ sealed trait Deployment     extends AuthorizationType { def authzKind = "deploym
 sealed trait Directive      extends AuthorizationType { def authzKind = "directive"      }
 sealed trait Group          extends AuthorizationType { def authzKind = "group"          }
 sealed trait Node           extends AuthorizationType { def authzKind = "node"           }
+sealed trait Parameter      extends AuthorizationType { def authzKind = "parameter"      }
 sealed trait Rule           extends AuthorizationType { def authzKind = "rule"           }
 sealed trait Technique      extends AuthorizationType { def authzKind = "technique"      }
 sealed trait UserAccount    extends AuthorizationType { def authzKind = "userAccount"    }
@@ -148,6 +149,12 @@ final object AuthorizationType {
     final case object Write extends Rule with ActionType.Write with AuthorizationType
     def values = Set(Read, Edit, Write)
   }
+  final case object Parameter {
+    final case object Read  extends Parameter with ActionType.Read  with AuthorizationType
+    final case object Edit  extends Parameter with ActionType.Edit  with AuthorizationType
+    final case object Write extends Parameter with ActionType.Write with AuthorizationType
+    def values = Set(Read, Edit, Write)
+  }
   final case object Technique {
     final case object Read  extends Technique with ActionType.Read  with AuthorizationType
     final case object Edit  extends Technique with ActionType.Edit  with AuthorizationType
@@ -167,7 +174,7 @@ final object AuthorizationType {
     def values = Set(Read, Edit, Write)
   }
 
-  def configurationKind: Set[AuthorizationType] = Configuration.values ++ Rule.values ++ Directive.values ++ Technique.values
+  def configurationKind: Set[AuthorizationType] = Configuration.values ++ Rule.values ++ Directive.values ++ Technique.values ++ Parameter.values
   def nodeKind: Set[AuthorizationType] = Node.values ++ Group.values
   def workflowKind: Set[AuthorizationType] = Validator.values ++ Deployer.values
   def complianceKind: Set[AuthorizationType] = Compliance.values ++ (nodeKind ++ configurationKind).collect { case x: ActionType.Read  => x }
@@ -266,7 +273,7 @@ object RoleToRights {
          } else {
            Set(action)
          }
-         allActions.flatMap( a => AuthorizationType.allKind.find( x => x.authzKind == authz && x.action == a).toSet )
+         allActions.flatMap( a => AuthorizationType.allKind.find( x => x.authzKind.toLowerCase == authz && x.action == a).toSet )
        case _                    => Set()
      }
   }
