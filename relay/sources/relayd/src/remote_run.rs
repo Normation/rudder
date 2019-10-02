@@ -259,7 +259,7 @@ impl RemoteRunTarget {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Condition {
     data: String,
 }
@@ -289,7 +289,7 @@ impl FromStr for Condition {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct RunParameters {
     asynchronous: bool,
     keep_output: bool,
@@ -303,14 +303,14 @@ impl RunParameters {
         raw_conditions: Option<&String>,
     ) -> Result<Self, Error> {
         let conditions: Vec<_> = match raw_conditions {
-            Some(conditions) => {
+            Some(conditions) if !conditions.is_empty() => {
                 let split_conditions: Result<Vec<_>, _> = conditions
                     .split(',')
                     .map(|s| Condition::from_str(s))
                     .collect();
                 split_conditions?
             }
-            None => vec![],
+            _ => vec![],
         };
         let asynchronous = match raw_asynchronous {
             Some(asynchronous) => asynchronous.parse::<bool>()?,
@@ -398,6 +398,31 @@ mod tests {
     fn it_handles_command_injection() {
         assert!(Condition::from_str("cl$$y").is_err());
         assert!(Condition::from_str("cl~#~").is_err());
+    }
+
+    #[test]
+    fn it_defines_parameters() {
+        assert_eq!(
+            RunParameters::new(None, None, Some(&"".to_string())).unwrap(),
+            RunParameters {
+                asynchronous: false,
+                keep_output: false,
+                conditions: vec![],
+            }
+        );
+        assert_eq!(
+            RunParameters::new(
+                Some(&"true".to_string()),
+                Some(&"true".to_string()),
+                Some(&"test".to_string())
+            )
+            .unwrap(),
+            RunParameters {
+                asynchronous: true,
+                keep_output: true,
+                conditions: vec![Condition::from_str("test").unwrap()],
+            }
+        );
     }
 
     #[test]
