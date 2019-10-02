@@ -106,18 +106,18 @@ class RestQuicksearch (
 
     val user = userService.getCurrentUser
 
-    val nodeOK      = user.checkRights(AuthorizationType.Node.Read)
-    val groupOK     = user.checkRights(AuthorizationType.Group.Read)
-    val ruleOK      = user.checkRights(AuthorizationType.Configuration.Read) || user.checkRights(AuthorizationType.Rule.Read)
-    // directive and parameters
-    val directiveOK = user.checkRights(AuthorizationType.Configuration.Read)|| user.checkRights(AuthorizationType.Directive.Read)
+    val nodeOK       = user.checkRights(AuthorizationType.Node.Read)
+    val groupOK      = user.checkRights(AuthorizationType.Group.Read)
+    val ruleOK       = user.checkRights(AuthorizationType.Configuration.Read) || user.checkRights(AuthorizationType.Rule.Read)
+    val directiveOK  = user.checkRights(AuthorizationType.Configuration.Read) || user.checkRights(AuthorizationType.Directive.Read)
+    val parametersOK = user.checkRights(AuthorizationType.Configuration.Read) || user.checkRights(AuthorizationType.Parameter.Read)
 
     results.filter { _.id match {
       case _: QRNodeId      => nodeOK
       case _: QRGroupId     => groupOK
       case _: QRRuleId      => ruleOK
-      case _: QRParameterId |
-           _: QRDirectiveId => directiveOK
+      case _: QRParameterId => parametersOK
+      case _: QRDirectiveId => directiveOK
       }
     }
   }

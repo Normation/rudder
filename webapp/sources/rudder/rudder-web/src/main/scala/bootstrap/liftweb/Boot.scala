@@ -110,6 +110,7 @@ object PluginsInfo {
 
   def pluginApisDef: List[EndpointSchema] = {
 
+    @scala.annotation.tailrec
     def recApi(apis: List[EndpointSchema], plugins: List[RudderPluginDef]): List[EndpointSchema] = {
       plugins match {
         case Nil => apis
@@ -402,7 +403,7 @@ class Boot extends Loggable {
         , Menu(name+"ParameterManagement", <span>Parameters</span>) /
             "secure" / (name+"Manager") / "parameterManagement"
             >> LocGroup(name+"Group")
-            >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Directive.Read ) )
+            >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Parameter.Read ) )
       )
     }
 
