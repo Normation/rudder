@@ -85,6 +85,7 @@ install: build
 	mkdir -p $(DESTDIR)/var/rudder/inventories/accepted-nodes-updates
 	mkdir -p $(DESTDIR)/var/rudder/lib/ssl
 	mkdir -p $(DESTDIR)/var/rudder/reports/incoming
+	mkdir -p $(DESTDIR)/var/rudder/reports/failed
 	mkdir -p $(DESTDIR)/var/rudder/shared-files
 	mkdir -p $(DESTDIR)/var/rudder/share
 	mkdir -p $(DESTDIR)/var/log/rudder/apache2/
