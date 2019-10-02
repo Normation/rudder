@@ -45,6 +45,8 @@ import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.utils.Control
 
+import scala.concurrent.duration.Duration
+
 
 sealed trait DeleteCommand {
   def date: DateTime
@@ -88,6 +90,8 @@ trait DatabaseManager {
    * Delete reports older than target date both in archived reports and reports database
    */
   def deleteEntries(reports: DeleteCommand.Reports, complianceLevels: Option[DeleteCommand.ComplianceLevel]) : Box[Int]
+
+  def deleteLogReports(olderThan: Duration): Box[Int]
 }
 
 class DatabaseManagerImpl(
@@ -131,4 +135,9 @@ class DatabaseManagerImpl(
      // Accumulate errors, them sum values
      (Control.bestEffort(Seq(nodeReports, nodeConfigs, deleteNodeConfigs, deleteNodeCompliances, deleteNodeComplianceLevels)) (identity)).map(_.sum)
    }
+
+  override def deleteLogReports(since: Duration): Box[Int] = {
+    val date = DateTime.now().minus(since.toMillis)
+    reportsRepository.deleteLogReports(date) ?~! "An error occured while deleting log reports"
+  }
 }

@@ -37,6 +37,8 @@
 
 package com.normation.rudder.batch
 
+import com.normation.ldap.sdk.LDAPConnectionProvider
+import com.normation.ldap.sdk.RoLDAPConnection
 import net.liftweb.actor.LAPinger
 import com.normation.rudder.services.system.DatabaseManager
 import net.liftweb.common._
@@ -46,6 +48,7 @@ import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import net.liftweb.actor.SpecializedLiftActor
 import com.normation.rudder.services.system.DeleteCommand
+import com.normation.utils.Control
 
 /**
  *  An helper object designed to help building automatic reports cleaning
@@ -64,8 +67,8 @@ object AutomaticReportsCleaning {
   val defaultHour   = 0
   val defaultDay    = "sunday"
 
-  val defaultArchiveTTL = 30
-  val defaultDeleteTTL  = 90
+  val defaultArchiveTTL = 4
+  val defaultDeleteTTL  = 15
 
   /**
    *  Build a frequency depending on the value
@@ -126,6 +129,31 @@ object AutomaticReportsCleaning {
         Failure("%s is not correctly set, value is %d, should be in [0-23]".format(hourParam,hour))
     else
       Failure("%s is not correctly set, value is %d, should be in [0-59]".format(minParam,min))
+  }
+
+  // what we are looking for in node run interval JSON
+  final case class RunInterval(interval: Int)
+  def getMaxRunMinutes(ldapCon: LDAPConnectionProvider[RoLDAPConnection]): Box[Int] = {
+    import com.normation.ldap.sdk._
+    import net.liftweb.json._
+    implicit val format = DefaultFormats
+
+    val runIntervalAttr = "serializedAgentRunInterval"
+    for {
+      ldap    <- ldapCon
+      e       <- ldap.get("propertyName=agent_run_interval,ou=Application Properties,cn=rudder-configuration", "propertyValue")
+      default =  e.getAsInt("propertyValue").getOrElse(5) // default run value
+      nodes   <- Full(ldap.searchOne("ou=Nodes,cn=rudder-configuration", BuildFilter.HAS(runIntervalAttr), runIntervalAttr))
+      ints    <- Control.sequence(nodes) { node => // don't fail on parsing error, just return 0
+                  Full(try {
+                    parse(node(runIntervalAttr).getOrElse("{}")).extract[RunInterval].interval
+                  } catch {
+                    case ex:Exception => 0
+                  })
+                }
+    } yield {
+      (default +: ints).max
+    }
   }
 }
 
@@ -258,6 +286,7 @@ case class ManualLaunch(date:DateTime) extends DatabaseCleanerMessage
 trait DatabaseCleanerActor extends SpecializedLiftActor[DatabaseCleanerMessage] {
   def isIdle : Boolean
 }
+
 /**
  *  A class that periodically check if the Database has to be cleaned.
  *
@@ -268,16 +297,18 @@ trait DatabaseCleanerActor extends SpecializedLiftActor[DatabaseCleanerMessage] 
  */
 class AutomaticReportsCleaning(
     val dbManager         : DatabaseManager
+  ,     ldap              : LDAPConnectionProvider[RoLDAPConnection]
   , val deletettl         : Int // in days
   , val archivettl        : Int // in days
   , val complianceLevelttl: Int // in days
+  , val deleteLogttlString: String // 2x or time in minutes
   , val freq              : CleanFrequency
 ) {
   val reportLogger = ReportLogger
   val logger = ScheduledJobLogger
 
   // Check if automatic reports archiving has to be started
-  val archiver:DatabaseCleanerActor = if(archivettl < 1) {
+  val archiver: DatabaseCleanerActor = if(archivettl < 1) {
     val propertyName = "rudder.batch.reportsCleaner.archive.TTL"
     reportLogger.info("Disable automatic database archive sinces property %s is 0 or negative".format(propertyName))
     new LADatabaseCleaner(ArchiveAction(dbManager,this),-1, complianceLevelttl)
@@ -294,7 +325,7 @@ class AutomaticReportsCleaning(
   }
   archiver ! CheckLaunch
 
-  val deleter:DatabaseCleanerActor = if(deletettl < 1) {
+  val deleter: DatabaseCleanerActor = if(deletettl < 1) {
     val propertyName = "rudder.batch.reportsCleaner.delete.TTL"
     reportLogger.info("Disable automatic database deletion sinces property %s is 0 or negative".format(propertyName))
     new LADatabaseCleaner(DeleteAction(dbManager,this),-1, complianceLevelttl)
@@ -303,6 +334,64 @@ class AutomaticReportsCleaning(
     new LADatabaseCleaner(DeleteAction(dbManager,this), deletettl, complianceLevelttl)
   }
   deleter ! CheckLaunch
+
+
+  // cleaning log info is special, it's not a cron but an "every NN minutes"
+  val deleteLogReportPropertyName = "rudder.batch.reportsCleaner.deleteLogReport.TTL"
+  val deleteLogttl = {
+    def toInt(s: String, orig: String): Option[Int] = {
+      try {
+        Some(s.toInt)
+      } catch {
+        case ex: NumberFormatException =>
+          logger.warn(s"Impossible to read value for '${deleteLogReportPropertyName}': '${orig}'. It should be either an integer (minutes) or a number of run (NNx , with NN an integer).")
+          None
+      }
+    }
+    // parse user string
+    if(deleteLogttlString.endsWith("x")) {
+      val r = {
+        toInt(deleteLogttlString.substring(0, deleteLogttlString.size - 1), deleteLogttlString) match {
+          case None =>
+            logger.info(s"Defaulting to 2 runs for log report cleaning")
+            2
+          case Some(r) =>
+            r
+        }
+      }
+      val interval = AutomaticReportsCleaning.getMaxRunMinutes(ldap) match {
+        case Full(x) =>
+          logger.debug(s"Found maximun run interval: ${x} minutes")
+          x
+        case eb: EmptyBox =>
+          logger.error((eb ?~! s"Error when trying to get maximun run interval, defaulting to  5 minutes. Error was: ").messageChain)
+          5
+      }
+      interval * r
+    } else {
+      toInt(deleteLogttlString, deleteLogttlString) match {
+        case None =>
+          logger.info("Defaulting to 10 minutes for log reports cleaning")
+          10
+        case Some(x) =>
+          x
+      }
+    }
+  }
+  if(deleteLogttl < 1) {
+    reportLogger.info(s"Disable automatic database deletion of log reports sinces property '${deleteLogReportPropertyName}' is 0 or negative")
+  } else {
+    logger.debug(s"***** starting Automatic 'Delete Log Reports'; delete log older than ${deleteLogttl} minutes (with same batch period) *****")
+    import scala.concurrent.duration._
+    monix.execution.Scheduler.global.scheduleAtFixedRate(deleteLogttl.minutes, deleteLogttl.minutes) {
+      dbManager.deleteLogReports(scala.concurrent.duration.Duration(deleteLogttl.toLong, scala.concurrent.duration.MINUTES)) match {
+        case Full(n)      => logger.debug(s"Deleted ${n} log reports from report table.")
+        case eb: EmptyBox =>
+          val msg = (eb ?~! s"Error when trying to clean log reports from report table.").messageChain
+          logger.warn(msg)
+      }
+    }
+  }
 
   ////////////////////////////////////////////////////////////////
   //////////////////// implementation details ////////////////////

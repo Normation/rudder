@@ -141,6 +141,14 @@ rudder.jdbc.maxPoolSize=25
 rudder.batch.reportscleaner.archive.TTL=4
 rudder.batch.reportscleaner.delete.TTL=4
 
+# Report with level "log" (log_info, log_warn, etc) are not kept more than a couple of runs.
+# They are used for debugging purpose, and so have a limited interest span (but can consume a lot
+# of DB space).
+# The TTL is given as a number of run to keep (the max run period of all nodes will be used),
+# with the format: Nx (with N a positive integer); or by a number of minutes: N (with N a positive integer).
+# The value is only updated date when rudder starts.
+rudder.batch.reportsCleaner.deleteLogReport.TTL=2x
+
 #
 # Automatic compliance levels cleaning.
 # This allows you to define the periode of time during which
