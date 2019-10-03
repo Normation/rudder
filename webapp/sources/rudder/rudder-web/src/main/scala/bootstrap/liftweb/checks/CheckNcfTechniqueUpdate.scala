@@ -40,19 +40,22 @@ package checks
 
 import net.liftweb.common._
 import java.io.File
+
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.ncf.TechniqueWriter
 import scalaj.http.Http
-import monix.execution.Scheduler.{ global => scheduler }
+import monix.execution.Scheduler.{global => scheduler}
+
 import scala.concurrent.duration._
 import com.normation.eventlog.EventActor
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.ncf.ResultHelper._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JArray
-import bootstrap.liftweb.BootstrapChecks
+import com.normation.cfclerk.services.UpdateTechniqueLibrary
+import com.normation.rudder.ncf.TechniqueUpdateError
 
 sealed trait NcfTechniqueUpgradeError {
   def msg : String
@@ -87,6 +90,7 @@ class CheckNcfTechniqueUpdate(
   , techniqueWrite : TechniqueWriter
   , systemApiToken : ApiAccount
   , uuidGen        : StringUuidGenerator
+  , techLibUpdate  : UpdateTechniqueLibrary
 ) extends BootstrapChecks {
 
   override val description = "Regenerate all ncf techniques"
@@ -96,7 +100,9 @@ class CheckNcfTechniqueUpdate(
     def request(path : String) = {
       Http(s"http://localhost/ncf/api/${path}").
         param("path", "/var/rudder/configuration-repository/ncf/").
-        header("X-API-TOKEN", systemApiToken.token.value)
+        header("X-API-TOKEN", systemApiToken.token.value).
+        // that request can timeout, 1000 ms for connection timeout, 5 minutes to get data
+        timeout(1000, 300000)
     }
 
     val authRequest = request("auth")
@@ -111,7 +117,7 @@ class CheckNcfTechniqueUpdate(
       import com.normation.utils.Control.sequence
       import NcfTechniqueUpgradeError._
       ( for {
-        authResponse       <- tryo ( authRequest.asString , "An error occurred while fetching generic methods from ncf API", NcfApiAuthFailed)
+        authResponse       <- tryo ( authRequest.asString , "An error occurred while authentication to ncf API", NcfApiAuthFailed)
         authResult         <- if(authResponse.isSuccess) {
                                 Right(authResponse.body)
                               } else {
@@ -157,12 +163,19 @@ class CheckNcfTechniqueUpdate(
 
         // Actually write techniques
         techniqueUpdated   <- (sequence(techniques)(
-                                techniqueWrite.writeAll(_, methods, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value))
+                                techniqueWrite.writeTechnique(_, methods, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value))
                               )) match {
                                 case Full(m) => Right(m)
                                 case eb : EmptyBox =>
                                   val fail = eb ?~! "An error occured while writing ncf Techniques"
                                   Left(WriteTechniqueError(fail.messageChain, None))
+                              }
+        // Update technique library once all technique are updated
+        libUpdate          <- techLibUpdate.update(ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value), Some(s"Update Technique library after updating all techniques at start up")) match {
+                                case Full(techniques) => Right(techniques)
+                                case eb: EmptyBox =>
+                                  val fail = eb ?~! s"An error occured during techniques update after update of all techniques from the editor"
+                                  Left(TechniqueUpdateError(fail.msg, fail.exception))
                               }
         flagDeleted        <- tryo (
                                   file.delete()
@@ -181,6 +194,8 @@ class CheckNcfTechniqueUpdate(
           logger.warn(s"All ncf techniques were updated, but we could not delete flag file ${ncfTechniqueUpdateFlag}, please delete it manually")
         case Left(e : NcfTechniqueUpgradeError) =>
           logger.error(s"An error occured while updating ncf techniques: ${e.msg}")
+
+
       }
     }
 
