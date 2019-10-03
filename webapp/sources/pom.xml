@@ -490,9 +490,7 @@ limitations under the License.
         <groupId>com.softwaremill.quicklens</groupId>
         <artifactId>quicklens_${scala-binary-version}</artifactId>
         <version>${quicklense-version}</version>
-      </dependency
-
-      ><!--
+      </dependency><!--
         lift-web
       -->
       <dependency>
