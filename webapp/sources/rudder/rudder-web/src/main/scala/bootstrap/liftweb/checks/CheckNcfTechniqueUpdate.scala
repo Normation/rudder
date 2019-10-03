@@ -46,6 +46,8 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.ncf.TechniqueWriter
 import scalaj.http.Http
+import com.normation.cfclerk.services.UpdateTechniqueLibrary
+import com.normation.rudder.ncf.TechniqueUpdateError
 
 import com.normation.eventlog.EventActor
 import com.normation.rudder.api.ApiAccount
@@ -89,6 +91,7 @@ class CheckNcfTechniqueUpdate(
   , techniqueWrite : TechniqueWriter
   , systemApiToken : ApiAccount
   , uuidGen        : StringUuidGenerator
+  , techLibUpdate  : UpdateTechniqueLibrary
 ) extends BootstrapChecks {
 
   override val description = "Regenerate all ncf techniques"
@@ -96,7 +99,10 @@ class CheckNcfTechniqueUpdate(
   override def checks() : Unit = {
 
     def request(path : String) = {
-      Http(s"http://localhost/ncf/api/${path}").header("X-API-TOKEN", systemApiToken.token.value)
+      Http(s"http://localhost/ncf/api/${path}")
+        .header("X-API-TOKEN", systemApiToken.token.value)
+        // that request can timeout, 1000 ms for connection timeout, 5 minutes to get data
+        .timeout(1000, 300000)
     }
 
     val authRequest = request("auth")
@@ -109,7 +115,7 @@ class CheckNcfTechniqueUpdate(
       import com.normation.utils.Control.sequence
       import NcfTechniqueUpgradeError._
       ( for {
-        authResponse       <- tryo ( authRequest.asString , "An error occurred while fetching generic methods from ncf API", NcfApiAuthFailed)
+        authResponse       <- tryo ( authRequest.asString , "An error occurred while authentication to ncf API", NcfApiAuthFailed)
         authResult         <- if(authResponse.isSuccess) {
                                 Right(authResponse.body)
                               } else {
@@ -147,12 +153,19 @@ class CheckNcfTechniqueUpdate(
                               })
         // Actually write techniques
         techniqueUpdated   <- (sequence(techniques)(
-                                techniqueWrite.writeAll(_, methods, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value)).toBox
+                                techniqueWrite.writeTechnique(_, methods, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value)).toBox
                               )) match {
                                 case Full(m) => Right(m)
                                 case eb : EmptyBox =>
                                   val fail = eb ?~! "An error occured while writing ncf Techniques"
                                   Left(WriteTechniqueError(fail.messageChain, None))
+                              }
+        // Update technique library once all technique are updated
+        libUpdate          <- techLibUpdate.update(ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value), Some(s"Update Technique library after updating all techniques at start up")) match {
+                                case Full(techniques) => Right(techniques)
+                                case eb: EmptyBox =>
+                                  val fail = eb ?~! s"An error occured during techniques update after update of all techniques from the editor"
+                                  Left(TechniqueUpdateError(fail.msg, fail.exception))
                               }
         flagDeleted        <- tryo (
                                   ncfTechniqueUpdateFlag.delete()

@@ -53,7 +53,7 @@ import zio._
 import zio.syntax._
 import zio.duration._
 import com.normation.errors._
-import com.normation.rudder.domain.logger.PureReportLogger
+import com.normation.rudder.domain.logger.ReportLoggerPure
 import zio.blocking.Blocking
 import com.normation.box._
 
@@ -200,7 +200,7 @@ class CachedNodeChangesServiceImpl(
 
   // when the class is instanciated, ask for a cache init
   ZioRuntime.runNow((for {
-    _ <- PureReportLogger.Changes.debug("Initialize rule changes caches")
+    _ <- ReportLoggerPure.Changes.debug("Initialize rule changes caches")
     _ <- this.addUpdate(ChangesUpdate.Init)
   } yield ()).delay(10.seconds).fork.provide(ZioRuntime.Environment))
 
@@ -239,13 +239,13 @@ class CachedNodeChangesServiceImpl(
       for {
         // takeAll doesn't wait for items, so we wait for at least one and then take all other
         one  <- queue.take
-        _    <- PureReportLogger.Changes.debug(s"At least one new changes cache update available (${one}), start updating cache.")
+        _    <- ReportLoggerPure.Changes.debug(s"At least one new changes cache update available (${one}), start updating cache.")
         all  <- queue.takeAll
-        _    <- PureReportLogger.Changes.trace(s"Actually ${all.size + 1} updates!")
+        _    <- ReportLoggerPure.Changes.trace(s"Actually ${all.size + 1} updates!")
         // update the cache, log and never fail
         fib  <- blocking.blocking(updateCache(mergeUpdates(one, all))).fork
         _    <- fib.join
-        _    <- PureReportLogger.Changes.trace(s"done, looping")
+        _    <- ReportLoggerPure.Changes.trace(s"done, looping")
         loop <- consumeLoop(queue)
       } yield {
         loop
@@ -267,7 +267,7 @@ class CachedNodeChangesServiceImpl(
     // start infinite loop
     ZioRuntime.runNow(
       for{
-        _ <- PureReportLogger.Changes.debug(s"Start waiting for rule changes update")
+        _ <- ReportLoggerPure.Changes.debug(s"Start waiting for rule changes update")
        _  <- consumeLoop(queue).provide(ZioRuntime.Environment).fork: @silent // warn: deadcode
       } yield ()
     )
@@ -329,16 +329,16 @@ class CachedNodeChangesServiceImpl(
     IOResult.effect(computeChangeEnabled().getOrElse(true)).flatMap { enabled => // always true by default
       if(enabled) {
         for {
-          _  <- PureReportLogger.Changes.debug(s"Add changes cache update ${update} on queue")
+          _  <- ReportLoggerPure.Changes.debug(s"Add changes cache update ${update} on queue")
           ok <- QueuedChanges.queue.offer(update)
           s  <- QueuedChanges.queue.size
           _  <- ZIO.when(!ok) {
-                  PureReportLogger.Changes.warn(s"Error when notifying rule changes cache of an update. Changes may not be up to date")
+                  ReportLoggerPure.Changes.warn(s"Error when notifying rule changes cache of an update. Changes may not be up to date")
                 }
-          _  <- PureReportLogger.Changes.debug(s"Current rule changes queue update status: ${s+1}/${QueuedChanges.queue.capacity}")
+          _  <- ReportLoggerPure.Changes.debug(s"Current rule changes queue update status: ${s+1}/${QueuedChanges.queue.capacity}")
         } yield ()
       } else {
-        PureReportLogger.Changes.warn(s"Not updating changes by rule - disabled by configuration setting 'rudder_compute_changes' (set by REST API)")
+        ReportLoggerPure.Changes.warn(s"Not updating changes by rule - disabled by configuration setting 'rudder_compute_changes' (set by REST API)")
       }
     }
   }
@@ -357,20 +357,20 @@ class CachedNodeChangesServiceImpl(
             case None    => initCache()
             case Some(c) => update match {
               case ChangesUpdate.Init     =>
-                PureReportLogger.Changes.trace("Rule changes cache already initialiazed: not doint it again") *>
+                ReportLoggerPure.Changes.trace("Rule changes cache already initialiazed: not doint it again") *>
                 c.succeed
               case ChangesUpdate.For(l,h) => syncUpdate(c, l, h)
             }
           }
-          _ <- PureReportLogger.Changes.trace("step 4")
+          _ <- ReportLoggerPure.Changes.trace("step 4")
           _       <- cache.set(Some(updated))
           time2   <- currentTimeMillis
-          _       <- PureReportLogger.Changes.debug(s"Cache for changes by rule updated in ${time2 - time1} ms after new run(s) received")
+          _       <- ReportLoggerPure.Changes.debug(s"Cache for changes by rule updated in ${time2 - time1} ms after new run(s) received")
         } yield ()).chainError("An error occurred when trying to update the cache of last changes")
       } else {
-        PureReportLogger.Changes.warn(s"Not updating changes by rule - disabled by configuration setting 'rudder_compute_changes' (set by REST API)")
+        ReportLoggerPure.Changes.warn(s"Not updating changes by rule - disabled by configuration setting 'rudder_compute_changes' (set by REST API)")
       }
-    }.catchAll(err => PureReportLogger.error(err.fullMsg))
+    }.catchAll(err => ReportLoggerPure.error(err.fullMsg))
   }
 
   /**
@@ -381,7 +381,7 @@ class CachedNodeChangesServiceImpl(
    */
   protected def initCache() : IOResult[ChangesCache] = {
     for {
-      _       <- PureReportLogger.Changes.debug("Rule Changes cache initialization...")
+      _       <- ReportLoggerPure.Changes.debug("Rule Changes cache initialization...")
       changes <- (try {
                    changeService.countChangesByRuleByInterval()
                   } catch {
@@ -389,11 +389,11 @@ class CachedNodeChangesServiceImpl(
                       val msg = "Rule Changes cache can not be updated du to OutOfMemory error. That mean that either your installation is missing " +
                         "RAM (see: https://docs.rudder.io/reference/current/administration/performance.html#_java_out_of_memory_error) or that the number of recent changes is " +
                         "overwhelming, and you hit: http://www.rudder-project.org/redmine/issues/7735. Look here for workaround"
-                      PureReportLogger.Changes.logEffect.error(msg)
+                      ReportLoggerPure.Changes.logEffect.error(msg)
                       Failure(msg)
                   }).toIO
-      _       <- PureReportLogger.Changes.debug("NodeChanges cache initialized")
-      _       <- PureReportLogger.Changes.trace("NodeChanges cache content: " + cacheToLog(changes._2))
+      _       <- ReportLoggerPure.Changes.debug("NodeChanges cache initialized")
+      _       <- ReportLoggerPure.Changes.trace("NodeChanges cache content: " + cacheToLog(changes._2))
     } yield {
       ChangesCache(changes._1, changes._2)
     }
@@ -406,7 +406,7 @@ class CachedNodeChangesServiceImpl(
    */
   protected def syncUpdate(previous: ChangesCache, lowestId: Long, highestId: Long): IOResult[ChangesCache] = {
     for {
-      _          <- PureReportLogger.Changes.debug(s"Rule Changes cache updating for changes between ID '${lowestId}' and '${highestId}'")
+      _          <- ReportLoggerPure.Changes.debug(s"Rule Changes cache updating for changes between ID '${lowestId}' and '${highestId}'")
       time0      <- currentTimeMillis
       changes    <- changeService.reportsRepository.getChangeReportsOnInterval(Math.max(lowestId, previous.highestId), highestId)
       intervals  <- IOResult.effect(changeService.getCurrentValidIntervals(None))
@@ -417,9 +417,9 @@ class CachedNodeChangesServiceImpl(
                       (id, c.toMap)
                     }
       time1      <- currentTimeMillis
-      _          <- PureReportLogger.Changes.debug(s"Rule Changes cache updated in ${time1 - time0} ms")
+      _          <- ReportLoggerPure.Changes.debug(s"Rule Changes cache updated in ${time1 - time0} ms")
       updates    =  merge(intervals, previous.changes, newChanges)
-      _          <- PureReportLogger.Changes.trace("NodeChanges cache content: " + cacheToLog(updates))
+      _          <- ReportLoggerPure.Changes.trace("NodeChanges cache content: " + cacheToLog(updates))
     } yield {
       ChangesCache(highestId, updates)
     }
@@ -433,7 +433,7 @@ class CachedNodeChangesServiceImpl(
     val clear =
       for {
         _ <- cache.set(None)
-        _ <- PureReportLogger.Changes.debug("NodeChange cache cleared")
+        _ <- ReportLoggerPure.Changes.debug("NodeChange cache cleared")
         _ <- addUpdate(ChangesUpdate.Init)
       } yield ()
 
