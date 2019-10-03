@@ -1,0 +1,70 @@
+#####################################################################################
+# Copyright 2019 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#
+################################################################################
+
+# @name Variable string match
+# @description Test the content of a string variable
+# @documentation Test a variable content and report a success if it matched, or an error if it does not or if the variable could not be found.
+#  Regex must respect PCRE format.
+#  Please note that this method is designed to only audit a variable state. If you want to use conditions resulting from this generic method,
+#  is it recommended to use instead condition_from_variable_match which is designed for it.
+#
+# @parameter variable_name Complete name of the variable being tested, like my_prefix.my_variable
+# @parameter expected_match Regex to use to test if the variable content is compliant
+#
+# @class_prefix variable_string_match
+# @class_parameter variable_name
+
+
+bundle agent variable_string_match(variable_name, expected_match)
+{
+  vars:
+      "old_class_prefix"  string => canonify("variable_string_match_${variable_name}");
+      "args"               slist => { "${variable_name}", "${expected_match}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("variable_string_match_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+    pass2::
+      "var_exists" expression => isvariable("${variable_name}");
+
+      "matches"           and => {regcmp("${expected_match}", "${${variable_name}}"), "var_exists"};
+
+  methods:
+    pass3::
+      "failure" usebundle => _classes_failure("${old_class_prefix}"),
+        ifvarclass => "!matches";
+      "failure" usebundle => _classes_failure("${class_prefix}"),
+        ifvarclass => "!matches";
+
+      "success" usebundle => _classes_success("${old_class_prefix}"),
+        ifvarclass => "matches";
+      "success" usebundle => _classes_success("${class_prefix}"),
+        ifvarclass => "matches";
+
+    pass3.var_exists::
+      "report"  usebundle => _log("Check that the variable ${variable_name} matches the regex: /${expected_match}/", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3.!var_exists::
+      "report"  usebundle => _log("The variable ${variable_name} could not be found", "${old_class_prefix}", "${class_prefix}", @{args});
+}
+
