@@ -37,6 +37,7 @@
 
 package com.normation.rudder.batch
 
+import com.normation.errors.IOResult
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RoLDAPConnection
 import net.liftweb.actor.LAPinger
@@ -44,11 +45,16 @@ import com.normation.rudder.services.system.DatabaseManager
 import net.liftweb.common._
 import org.joda.time._
 import com.normation.rudder.domain.logger.ReportLogger
+import com.normation.rudder.domain.logger.ReportLoggerPure
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.logger.ScheduledJobLogger
+import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import net.liftweb.actor.SpecializedLiftActor
 import com.normation.rudder.services.system.DeleteCommand
-import com.normation.utils.Control
+import com.unboundid.ldap.sdk.DN
+import zio._
+import zio.syntax._
+import com.normation.zio._
 
 /**
  *  An helper object designed to help building automatic reports cleaning
@@ -133,7 +139,7 @@ object AutomaticReportsCleaning {
 
   // what we are looking for in node run interval JSON
   final case class RunInterval(interval: Int)
-  def getMaxRunMinutes(ldapCon: LDAPConnectionProvider[RoLDAPConnection]): Box[Int] = {
+  def getMaxRunMinutes(ldapCon: LDAPConnectionProvider[RoLDAPConnection]): IOResult[Int] = {
     import com.normation.ldap.sdk._
     import net.liftweb.json._
     implicit val format = DefaultFormats
@@ -141,15 +147,15 @@ object AutomaticReportsCleaning {
     val runIntervalAttr = "serializedAgentRunInterval"
     for {
       ldap    <- ldapCon
-      e       <- ldap.get("propertyName=agent_run_interval,ou=Application Properties,cn=rudder-configuration", "propertyValue")
-      default =  e.getAsInt("propertyValue").getOrElse(5) // default run value
-      nodes   <- Full(ldap.searchOne("ou=Nodes,cn=rudder-configuration", BuildFilter.HAS(runIntervalAttr), runIntervalAttr))
-      ints    <- Control.sequence(nodes) { node => // don't fail on parsing error, just return 0
-                  Full(try {
+      opt     <- ldap.get(new DN("propertyName=agent_run_interval,ou=Application Properties,cn=rudder-configuration"), "propertyValue")
+      default =  opt.map(_.getAsInt("propertyValue").getOrElse(5)).getOrElse(5) // default run value
+      nodes   <- ldap.searchOne(new DN("ou=Nodes,cn=rudder-configuration"), BuildFilter.HAS(runIntervalAttr), runIntervalAttr)
+      ints    <- ZIO.foreach(nodes) { node => // don't fail on parsing error, just return 0
+                  (try {
                     parse(node(runIntervalAttr).getOrElse("{}")).extract[RunInterval].interval
                   } catch {
                     case ex:Exception => 0
-                  })
+                  }).succeed
                 }
     } yield {
       (default +: ints).max
@@ -359,39 +365,43 @@ class AutomaticReportsCleaning(
             r
         }
       }
-      val interval = AutomaticReportsCleaning.getMaxRunMinutes(ldap) match {
-        case Full(x) =>
-          logger.debug(s"Found maximun run interval: ${x} minutes")
-          x
-        case eb: EmptyBox =>
-          logger.error((eb ?~! s"Error when trying to get maximun run interval, defaulting to  5 minutes. Error was: ").messageChain)
-          5
-      }
-      interval * r
+      val interval = AutomaticReportsCleaning.getMaxRunMinutes(ldap).foldM(
+        failure =>
+          ScheduledJobLoggerPure.error(s"Error when trying to get maximun run interval, defaulting to  5 minutes. Error was: ${failure.fullMsg}") *>
+          5.succeed
+        , x =>
+          ScheduledJobLoggerPure.debug(s"Found maximun run interval: ${x} minutes") *>
+          x.succeed
+        )
+      interval.map(_ * r)
     } else {
       toInt(deleteLogttlString, deleteLogttlString) match {
         case None =>
-          logger.info("Defaulting to 10 minutes for log reports cleaning")
-          10
+          ScheduledJobLoggerPure.info("Defaulting to 10 minutes for log reports cleaning") *>
+          10.succeed
         case Some(x) =>
-          x
+          x.succeed
       }
     }
   }
-  if(deleteLogttl < 1) {
-    reportLogger.info(s"Disable automatic database deletion of log reports sinces property '${deleteLogReportPropertyName}' is 0 or negative")
-  } else {
-    logger.debug(s"***** starting Automatic 'Delete Log Reports'; delete log older than ${deleteLogttl} minutes (with same batch period) *****")
-    import scala.concurrent.duration._
-    monix.execution.Scheduler.global.scheduleAtFixedRate(deleteLogttl.minutes, deleteLogttl.minutes) {
-      dbManager.deleteLogReports(scala.concurrent.duration.Duration(deleteLogttl.toLong, scala.concurrent.duration.MINUTES)) match {
-        case Full(n)      => logger.debug(s"Deleted ${n} log reports from report table.")
-        case eb: EmptyBox =>
-          val msg = (eb ?~! s"Error when trying to clean log reports from report table.").messageChain
-          logger.warn(msg)
-      }
-    }
-  }
+
+  (for {
+    ttl   <- deleteLogttl
+    dur   =  zio.duration.Duration(ttl.toLong, scala.concurrent.duration.MINUTES)
+    batch <- if(ttl < 1) {
+               ReportLoggerPure.info(s"Disable automatic database deletion of log reports sinces property '${deleteLogReportPropertyName}' is 0 or negative") *>
+               UIO.unit
+             } else {
+               ReportLoggerPure.debug(s"***** starting Automatic 'Delete Log Reports'; delete log older than ${ttl} minutes (with same batch period) *****") *>
+               IOResult.effect(dbManager.deleteLogReports(dur.asScala) match {
+                   case Full(n)      => logger.debug(s"Deleted ${n} log reports from report table.")
+                   case eb: EmptyBox =>
+                     val msg = (eb ?~! s"Error when trying to clean log reports from report table.").messageChain
+                     logger.warn(msg)
+                 }
+               ).catchAll(error => ReportLoggerPure.error(s"Error when trying to clean log reports from report table: ${error.fullMsg}")).delay(dur).repeat(Schedule.spaced(dur).forever)
+              }
+  } yield ()).provide(ZioRuntime.Environment).runNow
 
   ////////////////////////////////////////////////////////////////
   //////////////////// implementation details ////////////////////

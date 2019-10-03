@@ -46,7 +46,7 @@ object ReportLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("report")
 }
 
-object PureReportLogger extends NamedZioLogger {
+object ReportLoggerPure extends NamedZioLogger {
   override def loggerName: String = "report"
 
   object Changes extends NamedZioLogger {

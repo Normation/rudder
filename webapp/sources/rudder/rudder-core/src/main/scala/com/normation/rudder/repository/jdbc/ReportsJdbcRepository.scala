@@ -262,7 +262,11 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     val q = s"delete from ${reports} where executionTimeStamp < '${dateAt}' and eventtype like 'log_%'"
 
     logger.debug(s"""Deleting log reports with SQL query: [[${q}]]""")
-    Update0(q, None).run.transact(xa).attempt.unsafeRunSync
+    transactRun(xa => Update0(q, None).run.transact(xa).attempt) match {
+      case Left(e)    =>
+          Failure(e.getMessage, Full(e), Empty)
+      case Right(option) => Full(option)
+    }
   }
 
   override def getHighestId() : Box[Long] = {

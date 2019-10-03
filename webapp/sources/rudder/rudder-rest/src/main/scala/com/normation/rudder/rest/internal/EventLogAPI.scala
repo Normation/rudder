@@ -97,15 +97,15 @@ class EventLogAPI (
 
       val draw = req.params.get("draw") match {
         case Some(value :: Nil) => Full(value.toInt)
-        case None => Failure("Missing 'draw' field from datatable's request")
+        case _ => Failure("Missing 'draw' field from datatable's request")
       }
       val start = req.params.get("start") match {
         case Some(value :: Nil) => Full(value)
-        case None => Failure("Missing 'start' field from datatable's request")
+        case _ => Failure("Missing 'start' field from datatable's request")
       }
       val length = req.params.get("length") match {
         case Some(value :: Nil) => Full(value)
-        case None => Failure("Missing 'length' field from datatable's request")
+        case _ => Failure("Missing 'length' field from datatable's request")
       }
 
       val response = (draw, start, length) match {
@@ -114,7 +114,7 @@ class EventLogAPI (
             case Full(totalRecord) =>
               getEventLogBySlice(s.toInt, l.toInt, None,  None,  Some("creationdate DESC" )) match {
                 case Full((totalFiltered, events)) =>
-                  responseFormater(d, totalRecord,  totalFiltered, events)
+                  responseFormater(d, totalRecord,  totalFiltered.toLong, events)
                 case eb:  EmptyBox                 =>
                   val fail = eb  ?~! "Failed to get eventlogs"
                   responseFormater(d, totalRecord,  0, Vector.empty, Some(fail.messageChain))
