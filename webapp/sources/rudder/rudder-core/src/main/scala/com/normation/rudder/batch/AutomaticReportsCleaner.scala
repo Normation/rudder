@@ -367,17 +367,17 @@ class AutomaticReportsCleaning(
       }
       val interval = AutomaticReportsCleaning.getMaxRunMinutes(ldap).foldM(
         failure =>
-          ScheduledJobLoggerPure.error(s"Error when trying to get maximun run interval, defaulting to  5 minutes. Error was: ${failure.fullMsg}") *>
+          ScheduledJobLoggerPure.warn(s"Error when trying to get maximun run interval, defaulting to  5 minutes. Error was: ${failure.fullMsg}") *>
           5.succeed
         , x =>
-          ScheduledJobLoggerPure.debug(s"Found maximun run interval: ${x} minutes") *>
+          ScheduledJobLoggerPure.trace(s"Found maximun run interval: ${x} minutes") *>
           x.succeed
         )
       interval.map(_ * r)
     } else {
       toInt(deleteLogttlString, deleteLogttlString) match {
         case None =>
-          ScheduledJobLoggerPure.info("Defaulting to 10 minutes for log reports cleaning") *>
+          ScheduledJobLoggerPure.debug("Defaulting to 10 minutes for log reports cleaning") *>
           10.succeed
         case Some(x) =>
           x.succeed
@@ -389,17 +389,19 @@ class AutomaticReportsCleaning(
     ttl   <- deleteLogttl
     dur   =  zio.duration.Duration(ttl.toLong, scala.concurrent.duration.MINUTES)
     batch <- if(ttl < 1) {
-               ReportLoggerPure.info(s"Disable automatic database deletion of log reports sinces property '${deleteLogReportPropertyName}' is 0 or negative") *>
+               ScheduledJobLoggerPure.info(s"Disable automatic database deletion of log reports sinces property '${deleteLogReportPropertyName}' is 0 or negative") *>
                UIO.unit
              } else {
-               ReportLoggerPure.debug(s"***** starting Automatic 'Delete Log Reports'; delete log older than ${ttl} minutes (with same batch period) *****") *>
+               ScheduledJobLoggerPure.debug(s"***** starting Automatic 'Delete Log Reports'; delete log older than ${ttl} minutes (with same batch period) *****") *>
                IOResult.effect(dbManager.deleteLogReports(dur.asScala) match {
                    case Full(n)      => logger.debug(s"Deleted ${n} log reports from report table.")
                    case eb: EmptyBox =>
                      val msg = (eb ?~! s"Error when trying to clean log reports from report table.").messageChain
                      logger.warn(msg)
                  }
-               ).catchAll(error => ReportLoggerPure.error(s"Error when trying to clean log reports from report table: ${error.fullMsg}")).delay(dur).repeat(Schedule.spaced(dur).forever)
+               ).catchAll(error =>
+                 ReportLoggerPure.error(s"Error when trying to clean log reports from report table: ${error.fullMsg}")
+               ).delay(dur).repeat(Schedule.spaced(dur).forever).fork
               }
   } yield ()).provide(ZioRuntime.Environment).runNow
 
