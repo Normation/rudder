@@ -72,11 +72,10 @@ import scala.util.{Success, Try, Failure => Catch}
 import scala.xml._
 
 /**
- * Used to display the event list, in the pending modification (AsyncDeployment),
- * or in the administration EventLogsViewer
+  *
  */
-class EventListDisplayer(
-  logDetailsService   : EventLogDetailsService
+class EventLogDetailsGenerator(
+    logDetailsService   : EventLogDetailsService
   , repos               : EventLogRepository
   , nodeGroupRepository : RoNodeGroupRepository
   , directiveRepository : RoDirectiveRepository
@@ -88,110 +87,6 @@ class EventListDisplayer(
 ) extends Loggable {
 
   private[this] val xmlPretty = new scala.xml.PrettyPrinter(80, 2)
-
-  private[this] val gridName = "eventLogsGrid"
-
-  def display(refreshEvents:() => Box[Seq[EventLog]]) : NodeSeq  = {
-    val limit: Int = 500
-    //common part between last events and interval
-    def displayEvents(events: Box[Seq[EventLog]]) :JsCmd = {
-      events match {
-        case Full(events) =>
-          val lines = {
-            val el = events.map(EventLogLine(_)).toList.sortWith(_.event.creationDate.getMillis > _.event.creationDate.getMillis)
-            if(el.size > limit) JsTableData(el.take(limit)) else JsTableData(el)
-          }
-          JsRaw(s"refreshTable('${gridName}',${lines.json.toJsCmd})")
-        case eb : EmptyBox =>
-          val fail = eb ?~! "Could not get latest event logs"
-          logger.error(fail.messageChain)
-          val xml = <div class="error">Error when trying to get last event logs. Error message was: {fail.messageChain}</div>
-          SetHtml("eventLogsError",xml)
-      }
-    }
-
-    def getLastEvents : JsCmd = {
-      displayEvents(refreshEvents())
-    }
-
-    def getEventsInterval(jsonInterval: String): JsCmd = {
-      import java.sql.Timestamp
-      val format = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss")
-
-      displayEvents(for {
-        parsed   <- tryo(parse(jsonInterval)) ?~! s"Error when trying to parse '${jsonInterval}' as a JSON datastructure with fields 'start' and 'end'"
-        startStr <- parsed \ "start" match {
-          case JString(startStr) if startStr.nonEmpty =>
-            val date = tryo(DateTime.parse(startStr, format)) ?~! s"Error when trying to parse start date '${startStr}"
-            date match {
-              case Full(d) => Full(Some(new Timestamp(d.getMillis)))
-              case eb: EmptyBox =>
-                eb ?~! s"Invalid start date"
-            }
-          case _ => Full(None)
-        }
-        endStr   <- parsed \ "end" match {
-          case JString(endStr) if endStr.nonEmpty =>
-            val date = tryo(DateTime.parse(endStr, format)) ?~! s"Error when trying to parse end date '${endStr}"
-            date match {
-              case Full(d) => Full(Some(new Timestamp(d.getMillis)))
-              case eb: EmptyBox =>
-                eb ?~! s"Invalid end date"
-            }
-          case _ => Full(None)
-        }
-        whereStatement = (startStr, endStr) match {
-          case (None, None) => None
-          case (Some(start), None) => Some(s" creationdate > '$start'")
-          case (None, Some(end)) => Some(s" creationdate < '$end'")
-          case (Some(start), Some(end)) =>
-            val orderedDate = if(start.after(end)) (end, start) else (start, end)
-            Some(s" creationdate > '${orderedDate._1}' and creationdate < '${orderedDate._2}'")
-        }
-        logs     <- repos.getEventLogByCriteria(whereStatement, None, Some("id DESC")).toBox
-      } yield {
-        logs
-      })
-    }
-
-    val refresh = AnonFunc(SHtml.ajaxInvoke( () => getLastEvents))
-
-    Script(OnLoad(JsRaw(s"""
-     var pickEventLogsInInterval = ${AnonFunc(SHtml.ajaxCall(JsRaw(
-      """'{"start":"'+$(".pickStartInput").val()+'", "end":"'+$(".pickEndInput").val()+'"}'"""
-    ), getEventsInterval)._2).toJsCmd}
-     var refreshEventLogs = ${refresh.toJsCmd};
-     createEventLogTable('${gridName}',[], '${S.contextPath}', refreshEventLogs, pickEventLogsInInterval)
-     refreshEventLogs();
-    """)))
-
-  }
-
-  /*
-   *   Javascript object containing all data to create a line in event logs table
-   *   { "id" : Event log id [Int]
-   *   , "date": date the event log was produced [Date/String]
-   *   , "actor": Name of the actor making the event [String]
-   *   , "type" : Type of the event log [String]
-   *   , "description" : Description of the event [String]
-   *   , "details" : function/ajax call, setting the details content, takes the id of the element to set [Function(String)]
-   *   , "hasDetails" : do our event needs to display details (do we need to be able to open the row [Boolean]
-   *   }
-   */
-  case class EventLogLine(event : EventLog) extends JsTableLine {
-    val json = {
-      JsObj(
-        "id" -> (event.id.map(_.toString).getOrElse("Unknown"): String)
-        , "date" -> DateFormaterService.getFormatedDate(event.creationDate)
-        , "actor" -> event.principal.name
-        , "type" -> S.?("rudder.log.eventType.names." + event.eventType.serialize)
-        , "description" -> displayDescription(event).toString
-        , "hasDetails" -> boolToJsExp(event.details != <entry></entry>)
-      )
-    }
-  }
-
-  //////////////////// Display description/details of ////////////////////
 
   //convention: "X" means "ignore"
 
@@ -1447,7 +1342,7 @@ class EventListDisplayer(
                 $("#cancel%3$s").show();
                 scrollToElement('%2$s', ".rudder_col");
                 if($('#%2$s').prop('open') != "opened")
-                $('#%2$s').click();""".format(gridName,rollbackInfo.target.id,id))
+                $('#%2$s').click();""".format("gridName",rollbackInfo.target.id,id))
           , Text(rollbackInfo.target.id.toString)
         )
           } has been completed.
@@ -1477,7 +1372,7 @@ class EventListDisplayer(
                 $("#cancel%3$s").show();
                 scrollToElement('%2$s', ".rudder_col");
                 if($('#%2$s').prop('open') != "opened")
-                $('#%2$s').click();""".format(gridName,ev.id,id))
+                $('#%2$s').click();""".format("gridName",ev.id,id))
                 , Text(ev.id.toString)
               )
                 }
@@ -1494,7 +1389,7 @@ class EventListDisplayer(
         <div id={"cancel%s".format(id)} style="display:none"> the event <span id={"currentId%s".format(id)}/>  is displayed in the table below
           {SHtml.ajaxButton("Clear display", () =>
           Run("""$('#%s').dataTable().fnFilter("",0,true,false);
-            $("#cancel%s").hide();""".format(gridName,id) )
+            $("#cancel%s").hide();""".format("gridName",id) )
         ) }
         </div>
         <br/>

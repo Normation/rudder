@@ -140,6 +140,7 @@ import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.services.user.TrivialPersonIdentService
 import com.normation.rudder.services.workflows._
 import com.normation.rudder.web.model._
+import com.normation.rudder.web.services.EventLogDetailsGenerator
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.rudder.web.services._
 import com.normation.templates.FillTemplatesService
@@ -1007,7 +1008,7 @@ object RudderConfig extends Loggable {
 
   // Internal APIs
   val sharedFileApi = new SharedFilesAPI(restExtractorService,RUDDER_DIR_SHARED_FILES_FOLDER)
-  val eventLogApi= new EventLogAPI(eventLogRepository, restExtractorService, eventListDisplayerImpl)
+  val eventLogApi= new EventLogAPI(eventLogRepository, restExtractorService, eventLogDetailsGenerator)
 
   lazy val asyncWorkflowInfo = new AsyncWorkflowInfo
   lazy val configService: ReadConfigService with UpdateConfigService = {
@@ -1345,7 +1346,8 @@ object RudderConfig extends Loggable {
   private[this] lazy val nodeGridImpl = new NodeGrid(ldapFullInventoryRepository, nodeInfoServiceImpl, configService)
 
   private[this] lazy val modificationService = new ModificationService(logRepository,gitModificationRepository,itemArchiveManagerImpl,uuidGen)
-  private[this] lazy val eventListDisplayerImpl = new EventListDisplayer(
+  private[this] lazy val eventListDisplayerImpl = new EventListDisplayer( logRepository )
+  private[this] lazy val eventLogDetailsGenerator = new EventLogDetailsGenerator(
       eventLogDetailsServiceImpl
     , logRepository
     , roLdapNodeGroupRepository

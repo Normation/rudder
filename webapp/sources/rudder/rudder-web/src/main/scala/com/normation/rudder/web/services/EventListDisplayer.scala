@@ -39,13 +39,6 @@ package com.normation.rudder.web.services
 import com.normation.box._
 import com.normation.eventlog.EventLog
 import com.normation.rudder.repository._
-import com.normation.rudder.rule.category.RoRuleCategoryRepository
-import com.normation.rudder.services.eventlog.EventLogDetailsService
-import com.normation.rudder.services.modification.ModificationService
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.services.user.PersonIdentService
-import com.normation.rudder.web.components.DateFormaterService
-import com.normation.rudder.web.model.LinkUtil
 import net.liftweb.common._
 import net.liftweb.http.{S, SHtml}
 import net.liftweb.http.js.JE._
@@ -62,31 +55,17 @@ import scala.xml._
  * Used to display the event list, in the pending modification (AsyncDeployment),
  * or in the administration EventLogsViewer
  */
-class EventListDisplayer(
-      logDetailsService   : EventLogDetailsService
-    , repos               : EventLogRepository
-    , nodeGroupRepository : RoNodeGroupRepository
-    , directiveRepository : RoDirectiveRepository
-    , nodeInfoService     : NodeInfoService
-    , ruleCatRepository   : RoRuleCategoryRepository
-    , modificationService : ModificationService
-    , personIdentService  : PersonIdentService
-    , linkUtil            : LinkUtil
+class EventListDisplayer( repos               : EventLogRepository
 ) extends Loggable {
 
   private[this] val gridName = "eventLogsGrid"
 
   def display(refreshEvents:() => Box[Seq[EventLog]]) : NodeSeq  = {
-    val limit: Int = 500
     //common part between last events and interval
     def displayEvents(events: Box[Seq[EventLog]]) :JsCmd = {
       events match {
         case Full(events) =>
-          val lines = {
-            val el = events.map(EventLogLine(_)).toList.sortWith(_.event.creationDate.getMillis > _.event.creationDate.getMillis)
-            if(el.size > limit) JsTableData(el.take(limit)) else JsTableData(el)
-          }
-          JsRaw(s"refreshTable('${gridName}',${lines.json.toJsCmd})")
+          JsRaw(s"refreshTable('${gridName}',[])")
         case eb : EmptyBox =>
           val fail = eb ?~! "Could not get latest event logs"
           logger.error(fail.messageChain)
@@ -151,24 +130,4 @@ class EventListDisplayer(
     """)))
   }
 
-  /*
-   *   Javascript object containing all data to create a line in event logs table
-   *   { "id" : Event log id [Int]
-   *   , "date": date the event log was produced [Date/String]
-   *   , "actor": Name of the actor making the event [String]
-   *   , "type" : Type of the event log [String]
-   *   , "hasDetails" : do our event needs to display details (do we need to be able to open the row [Boolean]
-   *   }
-   */
-  case class EventLogLine(event : EventLog) extends JsTableLine {
-    val json = {
-      JsObj(
-          "id" -> (event.id.map(_.toString).getOrElse("Unknown"): String)
-        , "date" -> DateFormaterService.getFormatedDate(event.creationDate)
-        , "actor" -> event.principal.name
-        , "type" -> S.?("rudder.log.eventType.names." + event.eventType.serialize)
-        , "hasDetails" -> boolToJsExp(event.details != <entry></entry>)
-      )
-    }
-  }
 }

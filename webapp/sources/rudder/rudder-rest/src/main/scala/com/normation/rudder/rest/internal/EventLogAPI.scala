@@ -52,13 +52,13 @@ import net.liftweb.json.JsonDSL._
 class EventLogAPI (
     repos: EventLogRepository
   , restExtractor : RestExtractorService
-  , eventLogDetail : EventListDisplayer
+  , eventLogDetail : EventLogDetailsGenerator
 ) extends  RestHelper with  Loggable {
 
   def serialize(event: EventLog): JValue = {
     import net.liftweb.json.JsonDSL._
 
-    ( ("id"          -> (event.id.map(_.toString).getOrElse("Unknown"): String))
+    ( ("id"          -> event.id)
     ~ ("date"        -> DateFormaterService.getFormatedDate(event.creationDate))
     ~ ("actor"       -> event.principal.name)
     ~ ("type"        -> S.?("rudder.log.eventType.names." + event.eventType.serialize))
@@ -67,25 +67,23 @@ class EventLogAPI (
     )
   }
 
-  def responseFormater(draw: Int, totalRecord: Long, totalFiltered: Long, logs: Vector[EventLog], errorMsg: Option[String] = None): JValue = {
-    errorMsg match {
-      case Some(msg) =>
-        ( ("draw"            -> draw)
-        ~ ("recordsTotal"    -> totalRecord)
-        ~ ("recordsFiltered" -> totalFiltered)
-        ~ ("data"            -> logs.map(serialize))
-        ~ ("error"           -> msg)
-        )
-      case _ =>
-        ( ("draw"            -> draw)
-        ~ ("recordsTotal"    -> totalRecord)
-        ~ ("recordsFiltered" -> totalFiltered)
-        ~ ("data"            -> logs.map(serialize))
-        )
-    }
+  def errorFormatter(errorMessage : String ) = {
+    ( ("draw"            -> 0)
+    ~ ("recordsTotal"    -> 0)
+    ~ ("recordsFiltered" -> 0)
+    ~ ("data"            -> "")
+    ~ ("error"           -> errorMessage)
+    )
+  }
+  def responseFormater(draw: Int, totalRecord: Long, totalFiltered: Long, logs: Seq[EventLog]): JValue = {
+    ( ("draw"            -> draw)
+    ~ ("recordsTotal"    -> totalRecord)
+    ~ ("recordsFiltered" -> totalFiltered)
+    ~ ("data"            -> logs.map(serialize))
+    )
   }
 
-  def getEventLogBySlice(start: Int,  nbelement: Int,  criteria : Option[String], optLimit:Option[Int] = None, orderBy:Option[String]): Box[(Int,Vector[EventLog])] = {
+  def getEventLogBySlice(start: Int,  nbelement: Int,  criteria : Option[String], optLimit:Option[Int] = None, orderBy:Option[String]): Box[(Int,Seq[EventLog])] = {
     repos.getEventLogByCriteria(criteria,  optLimit, orderBy).toBox match  {
       case Full(events) => Full((events.size, events.slice(start,start+nbelement)))
       case eb: EmptyBox  => eb ?~! s"Error when trying fetch eventlogs from database for page ${(start/nbelement)+1}"
@@ -95,67 +93,48 @@ class EventLogAPI (
   def requestDispatch: PartialFunction[Req, () => Box[LiftResponse]] = {
     case Get(Nil, req) =>
 
-      val draw = req.params.get("draw") match {
-        case Some(value :: Nil) => Full(value.toInt)
-        case _ => Failure("Missing 'draw' field from datatable's request")
-      }
-      val start = req.params.get("start") match {
-        case Some(value :: Nil) => Full(value)
-        case _ => Failure("Missing 'start' field from datatable's request")
-      }
-      val length = req.params.get("length") match {
-        case Some(value :: Nil) => Full(value)
-        case _ => Failure("Missing 'length' field from datatable's request")
-      }
 
-      val response = (draw, start, length) match {
-        case (Full(d), Full(s), Full(l)) =>
-          repos.getEventLogCount.toBox  match  {
-            case Full(totalRecord) =>
-              getEventLogBySlice(s.toInt, l.toInt, None,  None,  Some("creationdate DESC" )) match {
-                case Full((totalFiltered, events)) =>
-                  responseFormater(d, totalRecord,  totalFiltered.toLong, events)
-                case eb:  EmptyBox                 =>
-                  val fail = eb  ?~! "Failed to get eventlogs"
-                  responseFormater(d, totalRecord,  0, Vector.empty, Some(fail.messageChain))
-              }
-            case eb: EmptyBox      =>
-              val fail = eb ?~! "Failed to get event log's count"
-              responseFormater(d, 0,  0, Vector.empty, Some(fail.messageChain))
-          }
-
-        case (ebDraw: EmptyBox,_, _)      =>
-          val fail = ebDraw ?~! "Missing parameter in request"
-          responseFormater(0, 0, 0, Vector.empty, Some(fail.messageChain))
-
-        case (_,ebStart: EmptyBox, _)     =>
-          val fail = ebStart ?~! "Missing parameter in request"
-          responseFormater(0, 0, 0, Vector.empty, Some(fail.messageChain))
-
-        case (_,_, ebLength: EmptyBox)    =>
-          val fail = ebLength ?~! "Missing parameter in request"
-          responseFormater(0, 0, 0, Vector.empty, Some(fail.messageChain))
-      }
-      JsonResponse(response, Nil, Nil, 200)
-
-    case Get(id :: "details" :: Nil, _) =>
-      repos.getEventLogByCriteria(Some(s"id = $id")).toBox match {
-        case Full(e) =>
-          e.headOption match {
-            case Some(eventLog) =>
-              val crid = eventLog.id.flatMap(repos.getEventLogWithChangeRequest(_).toBox match {
-                case Full(Some((_, crId))) => crId
-                case _                     => None
-              })
-              val htmlDetails = eventLogDetail.displayDetails(eventLog, crid)
-              toJsonResponse(None, "content" -> htmlDetails.toString())("eventdetails", prettify = false)
-            case None =>
-              toJsonError(None, s"EventLog $id not found")("eventdetails", prettify = false)
-          }
+      (for {
+        optDraw <- restExtractor.extractInt("draw")(req)(i => Full(i.toInt))
+        draw <- Box(optDraw) ?~! "Missing 'draw' field from datatable's request"
+        optStart <- restExtractor.extractInt("start")(req)(i => Full(i.toInt))
+        start <- Box(optStart) ?~! "Missing 'start' field from datatable's request"
+        optLength <- restExtractor.extractInt("length")(req)(i => Full(i.toInt))
+        length <- Box(optLength) ?~! "Missing 'start' field from datatable's request"
+        (totalFiltered, events) <- getEventLogBySlice(start, length, None, None, Some("id DESC"))
+        totalRecord <- repos.getEventLogCount.toBox
+      } yield {
+        responseFormater(draw, totalRecord, totalFiltered.toLong, events)
+      }) match {
+        case Full(resp) =>
+          JsonResponse(resp)
         case eb: EmptyBox =>
-          val e = eb ?~! s"Error when trying to retrieve eventlog : $id"
-          toJsonError(None, e.messageChain)("eventdetails", prettify = false)
+          val fail = eb ?~! "Error when fetching event logs"
+          JsonResponse(errorFormatter(fail.messageChain), 500)
       }
+
+
+
+    case Get(id :: "details" :: Nil, req) =>
+      implicit val prettify = restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
+      implicit  val action : String = "eventDetails"
+      ( for {
+        realId <- Box.tryo(id.toLong)
+        event  <- repos.getEventLogById(realId).toBox
+        crId   = event.id.flatMap(repos.getEventLogWithChangeRequest(_).toBox match {
+          case Full(Some((_, crId))) => crId
+          case _ => None
+        })
+        htmlDetails = eventLogDetail.displayDetails(event, crId)
+      } yield {
+        toJsonResponse(None, "content" -> htmlDetails.toString())
+      } ) match {
+        case Full(resp) => resp
+        case eb : EmptyBox =>
+          val fail = eb ?~! s"Error when getting event log with id '${id}' details"
+          toJsonError(None, fail.messageChain)
+      }
+      
   }
   serve("secure" / "api" / "eventlog" prefix requestDispatch)
 }
