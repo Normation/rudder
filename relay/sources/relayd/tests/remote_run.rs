@@ -44,7 +44,7 @@ mod tests {
 
         let _ = remove_file("target/tmp/api_test.txt");
         let params_sync = [
-            ("asynchronous", "false"),
+            ("asynchronous", "true"),
             ("keep_output", "true"),
             ("classes", "class2,class4"),
             ("nodes", "root"),
