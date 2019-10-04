@@ -135,15 +135,22 @@ impl RemoteRun {
             self.run_parameters.asynchronous,
             self.run_parameters.keep_output,
         ) {
-            // There are actually three cases:
-            // * sync with output
-            // * sync without output
-            // * async
-            //
-            // Coded by two booleans, hence the impossible case.
-            (true, true) => Err(warp::reject::custom(
-                "keep_output and asynchronous cannot be true simultaneously",
-            )),
+            // Async and output -> spawn in background and stream output
+            (true, true) => Ok(warp::reply::html(Body::wrap_stream(
+                self.run_parameters
+                    .remote_run(
+                        &job_config.cfg.remote_run,
+                        self.target.neighbors(job_config.clone()),
+                        self.run_parameters.asynchronous,
+                    )
+                    .select(select_all(
+                        self.target
+                            .next_hops(job_config.clone())
+                            .iter()
+                            .map(|relay| self.forward_call(job_config.clone(), relay.clone())),
+                    )),
+            ))),
+            // Async and no output -> spawn in background and return early
             (true, false) => {
                 for relay in self.target.next_hops(job_config.clone()) {
                     tokio::spawn(RemoteRun::consume(
@@ -153,31 +160,34 @@ impl RemoteRun {
                 tokio::spawn(RemoteRun::consume(self.run_parameters.remote_run(
                     &job_config.cfg.remote_run,
                     self.target.neighbors(job_config.clone()),
+                    self.run_parameters.asynchronous,
                 )));
 
-                Ok(warp::reply::html(Body::wrap_stream(
-                    futures::stream::empty::<Chunk, Error>(),
-                )))
+                Ok(warp::reply::html(Body::empty()))
             }
+            // Sync and no output -> wait until the send and return empty output
             (false, false) => Ok(warp::reply::html(Body::wrap_stream(
                 self.run_parameters
                     .remote_run(
                         &job_config.cfg.remote_run,
                         self.target.neighbors(job_config.clone()),
+                        self.run_parameters.asynchronous,
                     )
+                    .map(|_| Chunk::from(""))
                     .select(select_all(
                         self.target
                             .next_hops(job_config.clone())
                             .iter()
                             .map(|relay| self.forward_call(job_config.clone(), relay.clone())),
-                    ))
-                    .map(|_| Chunk::from("")),
+                    )),
             ))),
+            // Sync and output -> wait until the end and return output
             (false, true) => Ok(warp::reply::html(Body::wrap_stream(
                 self.run_parameters
                     .remote_run(
                         &job_config.cfg.remote_run,
                         self.target.neighbors(job_config.clone()),
+                        self.run_parameters.asynchronous,
                     )
                     .select(select_all(
                         self.target
@@ -349,6 +359,7 @@ impl RunParameters {
             );
         }
         cmd.arg(nodes.join(","));
+        debug!("Remote run command: '{:#?}'", cmd);
         cmd
     }
 
@@ -356,19 +367,30 @@ impl RunParameters {
         &self,
         cfg: &RemoteRunCfg,
         nodes: Vec<String>,
-    ) -> Box<dyn Stream<Item = hyper::Chunk, Error = Error> + Send + 'static> {
+        asynchronous: bool,
+    ) -> Box<dyn Stream<Item = Chunk, Error = Error> + Send + 'static> {
         trace!("Starting local remote run on {:#?} with {:#?}", nodes, cfg);
         let mut cmd = self.command(cfg, nodes);
-        cmd.stdout(Stdio::piped());
+        if asynchronous {
+            cmd.stdout(Stdio::piped());
+        }
 
-        match cmd.spawn_async() {
-            Ok(mut c) => {
+        match (asynchronous, cmd.spawn_async()) {
+            (false, Ok(c)) => Box::new(
+                // send output at once
+                c.wait_with_output()
+                    .map(|o| o.stdout)
+                    .map(Chunk::from)
+                    .map_err(|e| e.into())
+                    .into_stream(),
+            ),
+            (true, Ok(mut c)) => {
+                // stream lines
                 let lines = RunParameters::lines_stream(&mut c);
                 tokio::spawn(c.map(|_| ()).map_err(|_| ()));
-                debug!("Spawned remote run command: '{:#?}'", cmd);
                 Box::new(lines)
             }
-            Err(e) => {
+            (_, Err(e)) => {
                 error!("Remote run error while running '{:#?}': {}", cmd, e);
                 Box::new(futures::stream::once(Err(e.into())))
             }
