@@ -53,6 +53,12 @@ trait QueryProcessor {
    */
   def process(query:Query) : Box[Seq[NodeInfo]]
 
+  /**
+   * Only get the nodeId, to update dynamic groups
+   * @param query
+   * @return
+   */
+  def processOnlyId(query:Query) : Box[Seq[NodeId]]
 }
 
 

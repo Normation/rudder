@@ -217,6 +217,19 @@ class AcceptedNodesLDAPQueryProcessor(
     } }
   }
 
+  override def processOnlyId(query:Query) : Box[Seq[NodeId]] = {
+    //only keep the one of the form Full(...)
+    queryAndChekNodeId(query, NodeInfoService.nodeInfoAttributes, None).map { seq => seq.flatMap {
+      case QueryResult(nodeEntry, _ , _) =>
+        processor.ldapMapper.entryToNode(nodeEntry) match {
+          case Full(node) => Seq(node.id)
+          case e:EmptyBox =>
+            logger.error((e ?~! "Ignoring entry in result set").messageChain)
+            Seq()
+        }
+    } }
+  }
+
 }
 
 /**
