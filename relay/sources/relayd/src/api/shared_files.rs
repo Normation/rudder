@@ -98,7 +98,7 @@ impl Metadata {
     fn parse_value(key: &str, file: &str) -> Result<String, Error> {
         let regex_key = Regex::new(&format!(r"{}=(?P<key>[^\n]+)\n", key)).unwrap();
 
-        match regex_key.captures(&file) {
+        match regex_key.captures(file) {
             Some(capture) => match capture.name("key") {
                 Some(x) => Ok(x.as_str().to_string()),
                 _ => Err(Error::InvalidHeader),
@@ -108,7 +108,7 @@ impl Metadata {
     }
 }
 
-pub fn validate_signature(
+fn validate_signature(
     file: &[u8],
     pubkey: PKey<Public>,
     hash_type: HashType,
@@ -117,12 +117,6 @@ pub fn validate_signature(
     let mut verifier = Verifier::new(hash_type.to_openssl_hash(), &pubkey).unwrap();
     verifier.update(file).unwrap();
     verifier.verify(digest)
-}
-
-pub fn metadata_parser(buf: &mut FullBody) -> Result<Metadata, Error> {
-    let mut metadata: Vec<u8> = Vec::new();
-    let _ = buf.reader().read_to_end(&mut metadata)?;
-    Metadata::from_str(str::from_utf8(&metadata)?)
 }
 
 fn get_pubkey(pubkey: &str) -> Result<PKey<Public>, ErrorStack> {

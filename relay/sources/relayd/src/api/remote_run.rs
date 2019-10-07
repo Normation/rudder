@@ -47,7 +47,7 @@ use tracing::{debug, error, span, trace, Level};
 
 // From futures_stream_select_all crate (https://github.com/swizard0/futures-stream-select-all)
 // Will be in future versions of futures
-pub fn select_all<I, T, E>(streams: I) -> Box<dyn Stream<Item = T, Error = E> + Send>
+fn select_all<I, T, E>(streams: I) -> Box<dyn Stream<Item = T, Error = E> + Send>
 where
     I: IntoIterator + Send,
     I::Item: Stream<Item = T, Error = E> + 'static + Send,
@@ -92,8 +92,8 @@ where
 
 #[derive(Debug)]
 pub struct RemoteRun {
-    pub target: RemoteRunTarget,
-    pub run_parameters: RunParameters,
+    target: RemoteRunTarget,
+    run_parameters: RunParameters,
 }
 
 impl RemoteRun {
@@ -270,7 +270,7 @@ impl RemoteRunTarget {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Condition {
+struct Condition {
     data: String,
 }
 
@@ -300,7 +300,7 @@ impl FromStr for Condition {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct RunParameters {
+struct RunParameters {
     asynchronous: bool,
     keep_output: bool,
     conditions: Vec<Condition>,
