@@ -210,7 +210,7 @@ class EventLogJdbcRepository(
     }).transact(xa))
   }
 
-  def getEventLogByCriteria(criteria : Option[String], optLimit:Option[Int] = None, orderBy:Option[String]) : IOResult[Vector[EventLog]] = {
+  def getEventLogByCriteria(criteria : Option[String], optLimit:Option[Int] = None, orderBy:Option[String]) : IOResult[Seq[EventLog]] = {
 
     val where = criteria.map(c => s"where ${c}").getOrElse("")
     val order = orderBy.map(o => s" order by ${o}").getOrElse("")
@@ -246,6 +246,13 @@ class EventLogJdbcRepository(
     }).transact(xa))
   }
 
+  def getEventLogById(id: Long): IOResult[EventLog] = {
+    val q = Query[Long,(String,EventLogDetails)](s"""
+      select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
+      from eventlog where id = ?
+    """).toQuery0(id)
+    transactIOResult(s"Error when getting event log with id ${id}")(xa => q.unique.map(toEventLog).transact(xa))
+  }
 }
 
 private object EventLogReportsMapper extends NamedZioLogger {

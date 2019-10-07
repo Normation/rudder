@@ -372,7 +372,9 @@ trait EventLogRepository {
    * Returns eventlog matching criteria
    * For the moment it only a string, it should be something else in the future
    */
-  def getEventLogByCriteria(criteria: Option[String], limit :Option[Int] = None, orderBy: Option[String] = None) : IOResult[Vector[EventLog]]
+  def getEventLogByCriteria(criteria: Option[String], limit :Option[Int] = None, orderBy: Option[String] = None) : IOResult[Seq[EventLog]]
+
+  def getEventLogById(id : Long) : IOResult[EventLog]
 
   def getEventLogCount: IOResult[Long]
 
