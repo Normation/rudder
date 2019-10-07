@@ -60,8 +60,8 @@ CARGO_SHA:=$(shell sha256sum relayd/Cargo.lock | awk '{print $$1}')
 SRC_SHA:=$(shell (find relayd/src/ -type f && echo relayd/Cargo.toml) | xargs sha256sum | sha256sum | awk '{print $$1}')
 build: man rudder-pkg/rudder_plugins_key.pub autocomplete/rudder-pkg.sh
 	# Build relayd
-	[ -x $(CACHER) ] && $(CACHER) get ../../../../../.cargo/ name=cargo cargo=$(CARGO_SHA)
-	[ -x $(CACHER) ] && $(CACHER) get relayd/target --with-env name=relayd cargo=$(CARGO_SHA) src=$(SRC_SHA)
+	[ -x $(CACHER) ] && $(CACHER) get ../../../../../.cargo/ name=cargo cargo=$(CARGO_SHA) || true
+	[ -x $(CACHER) ] && $(CACHER) get relayd/target --with-env name=relayd cargo=$(CARGO_SHA) src=$(SRC_SHA) || true
 	cd relayd && cargo build --release --bin rudder-relayd
 	[ -x $(CACHER) ] && $(CACHER) put ../../../../../.cargo/ name=cargo cargo=$(CARGO_SHA)
 	[ -x $(CACHER) ] && $(CACHER) put relayd/target --with-env name=relayd cargo=$(CARGO_SHA) src=$(SRC_SHA)
