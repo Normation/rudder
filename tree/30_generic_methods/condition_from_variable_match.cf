@@ -3,9 +3,12 @@
 # @documentation Test a variable content and create outcome classes depending on its value.
 #  This generic method will define a class `condition_from_variable_match_${condition_prefix}_{kept, repaired, error, reached}`. 
 #
-#  If the variable is found and its content matches the given regex, this will produce a kept outcome condition and a `${condition_prefix}_true` condition
-#  If the variable can not be found or if its content does not match the given regex, this will produce an error outcome condition and a `${condition_prefix}_false` condition
+#  * If the variable is found and its content matches the given regex, this will produce a kept outcome condition and a `${condition_prefix}_true` condition
+#  * If the variable is found but its content does not match the given regex, it will produce a kept outcome condition and a `${condition_prefix}_false` condition
+#  * If the variable can not be found, it will produce an error outcome condition and a `${condition_prefix}_false` condition
+#
 #  /!\ Regex for unix machine must be PCRE compatible and those for Windows agent must respect the .Net regex format.
+#
 # @parameter condition_prefix Prefix of the class (condition) generated
 # @parameter variable_name Complete name of the variable being tested, like my_prefix.my_variable
 # @parameter expected_match Regex to use to test if the variable content is compliant
