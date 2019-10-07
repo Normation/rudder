@@ -28,7 +28,7 @@ mod tests {
         ];
 
         let res = client
-            .post("http://localhost:3030/rudder/relay-api/remote-run/nodes")
+            .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
             .form(&params)
             .send();
 

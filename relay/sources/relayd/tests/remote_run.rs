@@ -29,7 +29,7 @@ mod tests {
             ("nodes", "root"),
         ];
         let mut response = client
-            .post("http://localhost:3030/rudder/relay-api/remote-run/nodes")
+            .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
             .form(&params_async)
             .send()
             .unwrap();
@@ -50,7 +50,7 @@ mod tests {
             ("nodes", "root"),
         ];
         let mut response = client
-            .post("http://localhost:3030/rudder/relay-api/remote-run/nodes")
+            .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
             .form(&params_sync)
             .send()
             .unwrap();

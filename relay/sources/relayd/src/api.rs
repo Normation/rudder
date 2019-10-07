@@ -38,12 +38,15 @@ use crate::{
     JobConfig,
 };
 use futures::Future;
+use serde::Serialize;
 use std::{
     collections::HashMap,
+    fmt::Display,
     net::SocketAddr,
     path::Path,
     sync::{Arc, RwLock},
 };
+use structopt::clap::crate_version;
 use tracing::info;
 use warp::{
     body::{self, FullBody},
@@ -51,8 +54,72 @@ use warp::{
     http::StatusCode,
     path, query,
     reject::custom,
-    reply, Filter,
+    reply, Filter, Reply,
 };
+
+#[derive(Serialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub struct Info {
+    pub major_version: String,
+    pub full_version: String,
+}
+
+impl Info {
+    fn new() -> Self {
+        Info {
+            major_version: format!(
+                "{}.{}",
+                env!("CARGO_PKG_VERSION_MAJOR"),
+                env!("CARGO_PKG_VERSION_MINOR")
+            ),
+            full_version: crate_version!().to_string(),
+        }
+    }
+}
+
+#[derive(Serialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ApiResult {
+    Success,
+    Error,
+}
+
+#[derive(Serialize, Debug, PartialEq, Eq)]
+struct ApiResponse<T: Serialize> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    data: Option<T>,
+    result: ApiResult,
+    action: &'static str,
+    #[serde(rename = "errorDetails")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error_details: Option<String>,
+}
+
+impl<T: Serialize> ApiResponse<T> {
+    fn new<E: Display>(action: &'static str, data: Result<T, E>) -> Self {
+        let (data, result, error_details) = match data {
+            Ok(d) => (Some(d), ApiResult::Success, None),
+            Err(e) => (None, ApiResult::Error, Some(e.to_string())),
+        };
+
+        Self {
+            data,
+            result,
+            action,
+            error_details,
+        }
+    }
+
+    fn reply(&self) -> impl Reply {
+        reply::with_status(
+            reply::json(self),
+            match self.result {
+                ApiResult::Success => StatusCode::OK,
+                ApiResult::Error => StatusCode::INTERNAL_SERVER_ERROR,
+            },
+        )
+    }
+}
 
 pub fn api(
     listen: SocketAddr,
@@ -60,20 +127,28 @@ pub fn api(
     job_config: Arc<JobConfig>,
     stats: Arc<RwLock<Stats>>,
 ) -> impl Future<Item = (), Error = ()> {
+    // WARNING: Not stable, will be replaced soon
+    // Kept for testing mainly
     let stats = get()
         .and(path("stats"))
         .map(move || reply::json(&(*stats.clone().read().expect("open stats database"))));
 
+    // New endpoints, following Rudder's API format
+    let info = get()
+        .and(path("info"))
+        .map(move || ApiResponse::new::<Error>("getSystemInfo", Ok(Info::new())).reply());
+
     let job_config0 = job_config.clone();
-    // TODO test error case
     let reload = post()
         .and(path("reload"))
-        .map(move || reply::json(&job_config0.clone().reload().map_err(custom)));
+        .map(move || ApiResponse::new("reloadConfiguration", job_config0.clone().reload()).reply());
 
     let job_config1 = job_config.clone();
-    let status = get()
-        .and(path("status"))
-        .map(move || reply::json(&Status::poll(job_config1.clone())));
+    let status = get().and(path("status")).map(move || {
+        ApiResponse::new::<Error>("getStatus", Ok(Status::poll(job_config1.clone()))).reply()
+    });
+
+    // Old compatible endpoints
 
     let job_config2 = job_config.clone();
     let node_id =
@@ -179,23 +254,21 @@ pub fn api(
         });
 
     // Routing
-
-    // /rudder/relay-ctl/
-    let relay_ctl = path("relay-ctl").and((stats.or(status)).or(reload));
-
-    // /rudder/relay-api/
+    // // /api/ for public API, /relay-api/ for internal relay API
+    let base = path("rudder").and(path("relay-api"));
+    let system = path("system").and(stats.or(status).or(reload).or(info));
     let remote_run = path("remote-run").and(nodes.or(all).or(node_id));
     let shared_files = path("shared-files").and((shared_files_put).or(shared_files_head));
     // GET is handled directly by httpd
     let shared_folder = path("shared-folder").and(shared_folder);
-    let relay_api = path("relay-api").and(remote_run.or(shared_files).or(shared_folder));
 
-    // global route
-    let routes = path("rudder")
-        .and(relay_ctl.or(relay_api))
+    // Global route for /1/
+    let routes_1 = base
+        .and(path("1"))
+        .and(system.or(remote_run).or(shared_files).or(shared_folder))
         .with(warp::log("relayd::relay-api"));
 
-    let (addr, server) = warp::serve(routes).bind_with_graceful_shutdown(listen, shutdown);
+    let (addr, server) = warp::serve(routes_1).bind_with_graceful_shutdown(listen, shutdown);
     info!("Started API on {}", addr);
     server
 }
