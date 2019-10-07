@@ -7,7 +7,7 @@ pub fn start_api() -> Result<(), ()> {
         thread::sleep(time::Duration::from_millis(200));
         retry -= 1;
 
-        let resp = reqwest::get("http://localhost:3030/status");
+        let resp = reqwest::get("http://localhost:3030/rudder/relay-api/1/system/status");
 
         if resp.is_ok() {
             return Ok(());

@@ -28,12 +28,40 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{check_configuration, output::database::ping, JobConfig};
+use crate::{api::ApiResult, check_configuration, output::database::ping, Error, JobConfig};
 use serde::Serialize;
 use std::sync::Arc;
 
-// TODO better serialized representation
-pub type State = Result<(), String>;
+#[derive(Serialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub struct State {
+    status: ApiResult,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    details: Option<String>,
+}
+
+impl From<Result<(), Error>> for State {
+    fn from(result: Result<(), Error>) -> Self {
+        match result {
+            Ok(()) => State {
+                status: ApiResult::Success,
+                details: None,
+            },
+            Err(e) => State {
+                status: ApiResult::Error,
+                details: Some(e.to_string()),
+            },
+        }
+    }
+}
+
+#[derive(Serialize, Debug, PartialEq, Eq)]
+pub struct NodeCounts {
+    // Total nodes under this relays
+    pub sub_nodes: usize,
+    // Nodes directly managed by this relay
+    pub managed_nodes: usize,
+}
 
 #[derive(Serialize, Debug, PartialEq, Eq)]
 pub struct Status {
@@ -47,9 +75,10 @@ impl Status {
             database: job_config
                 .pool
                 .clone()
-                .map(|p| ping(&p).map_err(|e| e.to_string())),
+                .map(|p| ping(&p).map_err(|e| e).into()),
             configuration: check_configuration(&job_config.cli_cfg.configuration_dir)
-                .map_err(|e| e.to_string()),
+                .map_err(|e| e)
+                .into(),
         }
     }
 }

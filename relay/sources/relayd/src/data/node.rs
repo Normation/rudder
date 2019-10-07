@@ -28,7 +28,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::error::Error;
+use crate::{error::Error, status::NodeCounts};
 use openssl::{stack::Stack, x509::X509};
 use serde::Deserialize;
 use serde_json;
@@ -113,6 +113,13 @@ impl NodesList {
             }
         }
         Ok(NodesList { list: nodes, my_id })
+    }
+
+    pub fn counts(&self) -> NodeCounts {
+        NodeCounts {
+            sub_nodes: self.list.data.len(),
+            managed_nodes: self.neighbors().len(),
+        }
     }
 
     /// Nodes list file only contains sub-nodes, so we only have to check for
