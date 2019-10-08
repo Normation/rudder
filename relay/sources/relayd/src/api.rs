@@ -28,13 +28,20 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
+mod remote_run;
+mod shared_files;
+mod shared_folder;
+mod system;
+
 use crate::{
+    api::{
+        remote_run::{RemoteRun, RemoteRunTarget},
+        shared_files::{SharedFilesHeadParams, SharedFilesPutParams},
+        shared_folder::SharedFolderParams,
+        system::{Info, Status},
+    },
     error::Error,
-    remote_run::{RemoteRun, RemoteRunTarget},
-    shared_files::{self, SharedFilesHeadParams, SharedFilesPutParams},
-    shared_folder::{self, SharedFolderParams},
     stats::Stats,
-    status::Status,
     JobConfig,
 };
 use futures::Future;
@@ -46,7 +53,6 @@ use std::{
     path::Path,
     sync::{Arc, RwLock},
 };
-use structopt::clap::crate_version;
 use tracing::info;
 use warp::{
     body::{self, FullBody},
@@ -56,26 +62,6 @@ use warp::{
     reject::custom,
     reply, Filter, Reply,
 };
-
-#[derive(Serialize, Debug, PartialEq, Eq)]
-#[serde(rename_all = "kebab-case")]
-pub struct Info {
-    pub major_version: String,
-    pub full_version: String,
-}
-
-impl Info {
-    fn new() -> Self {
-        Info {
-            major_version: format!(
-                "{}.{}",
-                env!("CARGO_PKG_VERSION_MAJOR"),
-                env!("CARGO_PKG_VERSION_MINOR")
-            ),
-            full_version: crate_version!().to_string(),
-        }
-    }
-}
 
 #[derive(Serialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -97,16 +83,19 @@ struct ApiResponse<T: Serialize> {
 
 impl<T: Serialize> ApiResponse<T> {
     fn new<E: Display>(action: &'static str, data: Result<T, E>) -> Self {
-        let (data, result, error_details) = match data {
-            Ok(d) => (Some(d), ApiResult::Success, None),
-            Err(e) => (None, ApiResult::Error, Some(e.to_string())),
-        };
-
-        Self {
-            data,
-            result,
-            action,
-            error_details,
+        match data {
+            Ok(d) => ApiResponse {
+                data: Some(d),
+                result: ApiResult::Success,
+                action,
+                error_details: None,
+            },
+            Err(e) => ApiResponse {
+                data: None,
+                result: ApiResult::Error,
+                action,
+                error_details: Some(e.to_string()),
+            },
         }
     }
 
@@ -121,7 +110,7 @@ impl<T: Serialize> ApiResponse<T> {
     }
 }
 
-pub fn api(
+pub fn run(
     listen: SocketAddr,
     shutdown: impl Future<Item = ()> + Send + 'static,
     job_config: Arc<JobConfig>,

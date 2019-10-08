@@ -28,9 +28,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{error::Error, status::NodeCounts};
+use crate::error::Error;
 use openssl::{stack::Stack, x509::X509};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json;
 use std::{
     collections::{HashMap, HashSet},
@@ -197,7 +197,7 @@ impl NodesList {
     pub fn neighbors_from(&self, nodes: &[String]) -> Vec<Host> {
         nodes
             .iter()
-            .filter_map(|n| self.list.data.get::<str>(&n))
+            .filter_map(|n| self.list.data.get::<str>(n))
             .filter(|n| n.policy_server == self.my_id)
             .map(|n| n.hostname.clone())
             .collect()
@@ -243,6 +243,14 @@ impl FromStr for RawNodesList {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(serde_json::from_str(s)?)
     }
+}
+
+#[derive(Serialize, Debug, PartialEq, Eq)]
+pub struct NodeCounts {
+    // Total nodes under this relays
+    pub sub_nodes: usize,
+    // Nodes directly managed by this relay
+    pub managed_nodes: usize,
 }
 
 #[cfg(test)]
@@ -345,7 +353,7 @@ mod tests {
 
         let mut actual = NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
             .unwrap()
-            .sub_relays_from(&vec![
+            .sub_relays_from(&[
                 "b745a140-40bc-4b86-b6dc-084488fc906b".to_string(),
                 "a745a140-40bc-4b86-b6dc-084488fc906b".to_string(),
                 "root".to_string(),

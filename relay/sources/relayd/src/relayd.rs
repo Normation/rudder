@@ -36,7 +36,7 @@ use structopt::StructOpt;
 use tracing::error;
 
 /// Sets exit code based on error type
-fn error_code(e: Error) -> i32 {
+fn error_code(e: &Error) -> i32 {
     match e {
         Error::ConfigurationParsing(_) => 2,
         _ => 1,
@@ -47,7 +47,7 @@ fn error_code(e: Error) -> i32 {
 fn main() {
     let cli_cfg = CliConfiguration::from_args();
     if cli_cfg.check_configuration {
-        if let Err(e) = check_configuration(&cli_cfg.configuration_dir) {
+        if let Err(ref e) = check_configuration(&cli_cfg.configuration_dir) {
             println!("{}", e);
             exit(error_code(e));
         }
@@ -55,13 +55,13 @@ fn main() {
     } else {
         let reload_handle = match init_logger() {
             Ok(handle) => handle,
-            Err(e) => {
+            Err(ref e) => {
                 println!("{}", e);
                 exit(error_code(e));
             }
         };
 
-        if let Err(e) = start(cli_cfg, reload_handle) {
+        if let Err(ref e) = start(cli_cfg, reload_handle) {
             error!("{}", e);
             exit(error_code(e));
         }

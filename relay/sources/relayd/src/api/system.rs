@@ -31,7 +31,27 @@
 use crate::{api::ApiResult, check_configuration, output::database::ping, Error, JobConfig};
 use serde::Serialize;
 use std::sync::Arc;
+use structopt::clap::crate_version;
 
+#[derive(Serialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub struct Info {
+    pub major_version: String,
+    pub full_version: String,
+}
+
+impl Info {
+    pub fn new() -> Self {
+        Info {
+            major_version: format!(
+                "{}.{}",
+                env!("CARGO_PKG_VERSION_MAJOR"),
+                env!("CARGO_PKG_VERSION_MINOR")
+            ),
+            full_version: crate_version!().to_string(),
+        }
+    }
+}
 #[derive(Serialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub struct State {
@@ -53,14 +73,6 @@ impl From<Result<(), Error>> for State {
             },
         }
     }
-}
-
-#[derive(Serialize, Debug, PartialEq, Eq)]
-pub struct NodeCounts {
-    // Total nodes under this relays
-    pub sub_nodes: usize,
-    // Nodes directly managed by this relay
-    pub managed_nodes: usize,
 }
 
 #[derive(Serialize, Debug, PartialEq, Eq)]

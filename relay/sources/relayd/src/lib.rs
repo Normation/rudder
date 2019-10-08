@@ -41,14 +41,9 @@ pub mod hashing;
 pub mod input;
 pub mod output;
 pub mod processing;
-pub mod remote_run;
-pub mod shared_files;
-pub mod shared_folder;
 pub mod stats;
-pub mod status;
 
 use crate::{
-    api::api,
     configuration::{
         cli::CliConfiguration,
         logging::LogConfig,
@@ -170,7 +165,7 @@ pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), 
         let (tx_stats, rx_stats) = mpsc::channel(1_024);
 
         tokio::spawn(Stats::receiver(stats.clone(), rx_stats));
-        tokio::spawn(api(
+        tokio::spawn(api::run(
             job_config.cfg.general.listen,
             shutdown,
             job_config.clone(),
