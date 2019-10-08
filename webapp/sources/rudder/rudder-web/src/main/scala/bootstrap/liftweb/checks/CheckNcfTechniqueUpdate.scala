@@ -47,7 +47,6 @@ import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.ncf.TechniqueWriter
 import scalaj.http.Http
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import com.normation.rudder.ncf.TechniqueUpdateError
 
 import com.normation.eventlog.EventActor
 import com.normation.rudder.api.ApiAccount
@@ -64,11 +63,12 @@ sealed trait NcfTechniqueUpgradeError {
 
 }
 object NcfTechniqueUpgradeError {
-  case class NcfApiAuthFailed   (msg : String, exception : Option[Throwable]) extends NcfTechniqueUpgradeError
-  case class NcfApiRequestFailed(msg : String, exception : Option[Throwable]) extends NcfTechniqueUpgradeError
-  case class JsonExtractionError(msg : String, exception : Option[Throwable]) extends NcfTechniqueUpgradeError
-  case class WriteTechniqueError(msg : String, exception : Option[Throwable]) extends NcfTechniqueUpgradeError
-  case class FlagFileError      (msg : String, exception : Option[Throwable]) extends NcfTechniqueUpgradeError
+  case class NcfApiAuthFailed    (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
+  case class NcfApiRequestFailed (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
+  case class JsonExtractionError (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
+  case class WriteTechniqueError (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
+  case class TechniqueUpdateError(msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
+  case class FlagFileError       (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
 
   type Result[T] = Either[NcfTechniqueUpgradeError, T]
   def tryo[T]( f : => T, errorMessage : String, catcher : (String,Option[Throwable]) => NcfTechniqueUpgradeError) : Result[T] = {
@@ -77,9 +77,7 @@ object NcfTechniqueUpgradeError {
     } catch {
       case e : Throwable => Left(catcher(errorMessage,Some(e)))
     }
-
   }
-
 }
 
 /**
@@ -198,7 +196,5 @@ class CheckNcfTechniqueUpdate(
       case e : Exception =>
         BootstrapLogger.logEffect.error(s"An error occurred while accessing flag file '${ncfTechniqueUpdateFlag}', cause is: ${e.getMessage}")
     }
-
   }
-
 }

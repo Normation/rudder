@@ -61,12 +61,10 @@ import net.liftweb.common._
 import net.liftweb.http.{S, SHtml}
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
-import net.liftweb.http.js._
-import net.liftweb.json._
 import net.liftweb.util.Helpers._
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
-import org.joda.time.format.{DateTimeFormat, ISODateTimeFormat}
+import org.joda.time.format.ISODateTimeFormat
 
 import scala.util.{Success, Try, Failure => Catch}
 import scala.xml._
