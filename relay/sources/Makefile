@@ -57,7 +57,7 @@ target/man/rudder-relayd.1.gz:
 
 CACHER=../../../../../build-caching
 CARGO_SHA:=$(shell sha256sum relayd/Cargo.lock | awk '{print $$1}')
-SRC_SHA:=$(shell (find relayd/src/ -type f && echo relayd/Cargo.toml) | xargs sha256sum | sha256sum | awk '{print $$1}')
+SRC_SHA:=$(shell (find relayd/src/ -type f && echo relayd/Cargo.toml) | sort | xargs sha256sum | sha256sum | awk '{print $$1}')
 build: man rudder-pkg/rudder_plugins_key.pub autocomplete/rudder-pkg.sh
 	# Build relayd
 	[ -x $(CACHER) ] && $(CACHER) get ../../../../../.cargo/ name=cargo cargo=$(CARGO_SHA) || true
