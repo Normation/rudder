@@ -1,4 +1,4 @@
-/*
+/* 6.0
 *************************************************************************************
 * Copyright 2015 Normation SAS
 *************************************************************************************
@@ -386,13 +386,15 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
    *   ************************************************************************
    */
 
+  val g0id = NodeGroupId("0")
+  val g0 = NodeGroup (g0id, "Real nodes", "", None, false, Set(rootId, node1.id, node2.id), true)
   val g1 = NodeGroup (NodeGroupId("1"), "Empty group", "", None, false, Set(), true)
   val g2 = NodeGroup (NodeGroupId("2"), "only root", "", None, false, Set(NodeId("root")), true)
   val g3 = NodeGroup (NodeGroupId("3"), "Even nodes", "", None, false, nodeIds.filter(_.value.toInt == 2), true)
   val g4 = NodeGroup (NodeGroupId("4"), "Odd nodes", "", None, false, nodeIds.filter(_.value.toInt != 2), true)
   val g5 = NodeGroup (NodeGroupId("5"), "Nodes id divided by 3", "", None, false, nodeIds.filter(_.value.toInt == 3), true)
   val g6 = NodeGroup (NodeGroupId("6"), "Nodes id divided by 5", "", None, false, nodeIds.filter(_.value.toInt == 5), true)
-  val groups = Set(g1, g2, g3, g4, g5, g6 ).map(g => (g.id, g))
+  val groups = Set(g0, g1, g2, g3, g4, g5, g6).map(g => (g.id, g))
 
   val groupTargets = groups.map{ case (id, g) => (GroupTarget(g.id), g) }
 
@@ -459,6 +461,8 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
 
 class TestNodeConfiguration() {
 
+  import org.joda.time.DateTime
+
   import com.normation.rudder.services.policies.NodeConfigData.{root, node1}
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // set up root node configuration
@@ -470,6 +474,7 @@ class TestNodeConfiguration() {
   implicit class PathString2(root: File) {
     def /(child: String) = new File(root, child)
   }
+  val t0 = System.currentTimeMillis()
 
   val abstractRoot = new File("/tmp/test-rudder-config-repo-" + DateTime.now.toString())
   abstractRoot.mkdirs()
@@ -481,17 +486,29 @@ class TestNodeConfiguration() {
   FileUtils.copyDirectory( new File("src/test/resources/configuration-repository") , configurationRepositoryRoot)
 
   val EXPECTED_SHARE = configurationRepositoryRoot/"expected-share"
+  val t1 = System.currentTimeMillis()
+  println(s"Paths inits             : ${t1-t0} ms")
 
   val repo = new GitRepositoryProviderImpl(configurationRepositoryRoot.getAbsolutePath)
+  val t2 = System.currentTimeMillis()
+  println(s"Git repo provider       : ${t2-t1} ms")
 
 
   val variableSpecParser = new VariableSpecParser
+  val t2bis = System.currentTimeMillis()
+  println(s"var Spec Parser        : ${t2bis-t2} ms")
   val systemVariableServiceSpec = new SystemVariableSpecServiceImpl()
+  val t3 = System.currentTimeMillis()
+  println(s"System Var Spec service : ${t3-t2bis} ms")
+
   val draftParser: TechniqueParser = new TechniqueParser(
       variableSpecParser
     , new SectionSpecParser(variableSpecParser)
     , systemVariableServiceSpec
   )
+  val t4 = System.currentTimeMillis()
+  println(s"Technique parser        : ${t4-t3} ms")
+
   val reader = new GitTechniqueReader(
                 draftParser
               , new SimpleGitRevisionProvider("refs/heads/master", repo)
@@ -501,13 +518,20 @@ class TestNodeConfiguration() {
               , Some("techniques")
               , "default-directive-names.conf"
             )
+  val t5 = System.currentTimeMillis()
+  println(s"Git tech reader         : ${t5-t4} ms")
 
   val techniqueRepository = new TechniqueRepositoryImpl(reader, Seq(), new StringUuidGeneratorImpl())
+  val t6 = System.currentTimeMillis()
+  println(s"Technique repository    : ${t6-t5} ms")
 
   val draftServerManagement = new PolicyServerManagementService() {
     override def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], modId: ModificationId, actor:EventActor) = ???
     override def getAuthorizedNetworks(policyServerId:NodeId) : Box[Seq[String]] = Full(List("192.168.49.0/24"))
   }
+  val t7 = System.currentTimeMillis()
+  println(s"Policy Server Management: ${t7-t6} ms")
+
   val systemVariableService = new SystemVariableServiceImpl(
       systemVariableServiceSpec
     , draftServerManagement
@@ -546,6 +570,9 @@ class TestNodeConfiguration() {
     , getReportProtocolDefault        = () => Full(AgentReportingSyslog)
     , getRudderVerifyCertificates     = () => Full(false)
   )
+
+  val t8 = System.currentTimeMillis()
+  println(s"System variable Service: ${t8-t7} ms")
 
   //a test node - CFEngine
   val nodeId = NodeId("c8813416-316f-4307-9b6a-ca9c109a9fb0")
@@ -613,6 +640,10 @@ class TestNodeConfiguration() {
 
   val globalSystemVariables = systemVariableService.getGlobalSystemVariables(globalAgentRun).openOrThrowException("I should get global system variable in test!")
 
+  val t9 = System.currentTimeMillis()
+  println(s"Nodes & groupes         : ${t9-t8} ms")
+
+
   //
   //root has 4 system directive, let give them some variables
   //
@@ -662,6 +693,21 @@ class TestNodeConfiguration() {
       , Set()
     )
   }
+
+  val commonDirective = Directive(
+      DirectiveId("common-root")
+    , TechniqueVersion("1.0")
+    , Map(
+        ("ALLOWEDNETWORK", Seq("192.168.0.0/16"))
+      , ("OWNER", Seq("${rudder.node.admin}"))
+      , ("UUID", Seq("${rudder.node.id}"))
+      , ("POLICYSERVER_ID", Seq("${rudder.node.policyserver.id}"))
+      , ("POLICYSERVER", Seq("${rudder.node.policyserver.hostname}"))
+      , ("POLICYSERVER_ADMIN", Seq("${rudder.node.policyserver.admin}"))
+      )
+    , "common-root"
+    , "", None, "", 5, true, true
+  )
 
   def common(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]) = {
     val id = PolicyId(RuleId("hasPolicyServer-root"), DirectiveId("common-root"), TechniqueVersion("1.0"))
@@ -792,6 +838,21 @@ class TestNodeConfiguration() {
        , spec("RPM_PACKAGE_VERSION_DEFINITION").toVariable(Seq("default","default","default"))
      ).map(v => (v.spec.name, v)).toMap
   }
+  def rpmDirective(id: String, pkg: String) = Directive(
+      DirectiveId(id)
+    , TechniqueVersion("7.0")
+    , Map(
+         ("RPM_PACKAGE_CHECK_INTERVAL", Seq("5"))
+       , ("RPM_PACKAGE_POST_HOOK_COMMAND", Seq(""))
+       , ("RPM_PACKAGE_POST_HOOK_RUN", Seq("false"))
+       , ("RPM_PACKAGE_REDACTION", Seq("add"))
+       , ("RPM_PACKAGE_REDLIST", Seq(pkg))
+       , ("RPM_PACKAGE_VERSION", Seq(""))
+       , ("RPM_PACKAGE_VERSION_CRITERION", Seq("=="))
+       , ("RPM_PACKAGE_VERSION_DEFINITION", Seq("default"))
+      )
+    , id, "", None, ""
+  )
   lazy val rpm = {
     val id = PolicyId(RuleId("rule2"), DirectiveId("directive2"), TechniqueVersion("1.0"))
     draft(
@@ -984,6 +1045,10 @@ class TestNodeConfiguration() {
       , Some(PolicyMode.Enforce)
     )
   }
+
+  val t10 = System.currentTimeMillis()
+  println(s"Get techniques & directives: ${t10-t9} ms")
+
 
 
   /**

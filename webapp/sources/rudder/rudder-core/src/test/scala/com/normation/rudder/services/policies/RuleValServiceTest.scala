@@ -40,7 +40,6 @@ import org.junit.runner._
 import org.specs2.runner._
 import org.specs2.mutable._
 import com.normation.cfclerk.domain._
-import net.liftweb.common._
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
@@ -55,6 +54,8 @@ import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.inventory.domain.AgentType
+
+import com.normation.zio._
 
 /**
  * Test how RuleVal and ParsedPolicyDraft are constructed, and if they
@@ -195,17 +196,17 @@ class RuleValServiceTest extends Specification {
       }
 
       "the directive val should have two variables: the two corresponding to the two components" in {
-        directivesVals.head.variables(null) match {
-          case eb:EmptyBox => ko((eb ?~! "Error when getting variables").messageChain)
-          case Full(vars) => vars.size === 2
+        directivesVals.head.variables(null).either.runNow match {
+          case Left(err) => ko(s"Error when getting variables: "+ err.fullMsg)
+          case Right(vars) => vars.size === 2
         }
       }
 
       val variables = directivesVals.head.variables
       "one variable should be reportKeysVariableName(component1) -> (variable_component1 :: (variable_component1one, variable_component1two))" in {
-        variables(null) match {
-          case eb:EmptyBox => ko("Error when parsing variable")
-          case Full(vars) => vars.get(reportKeysVariableName("component1")) match {
+        variables(null).either.runNow match {
+          case Left(_) => ko("Error when parsing variable")
+          case Right(vars) => vars.get(reportKeysVariableName("component1")) match {
             case None => ko(s"Excepted variable variable_component1, but got nothing. The variables are ${variables}")
             case Some(variable) =>
               variable.values.size === 3 and

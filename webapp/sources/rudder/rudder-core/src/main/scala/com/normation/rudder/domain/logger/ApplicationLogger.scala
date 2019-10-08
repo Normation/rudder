@@ -89,3 +89,11 @@ object JsDirectiveParamLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("jsDirectiveParam")
 }
 
+object JsDirectiveParamLoggerPure extends NamedZioLogger {
+  def loggerName = "jsDirectiveParam"
+}
+
+
+object GenerationLoggerPure extends NamedZioLogger {
+  def loggerName = "policy-generation"
+}

@@ -43,7 +43,6 @@ import com.normation.cfclerk.domain.Variable
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.policies.{DirectiveId, GlobalPolicyMode, PolicyMode, RuleId}
-import net.liftweb.common.Box
 
 import scala.collection.immutable.TreeMap
 import org.joda.time.DateTime
@@ -63,6 +62,8 @@ import com.normation.cfclerk.domain.TechniqueResourceId
 import com.normation.cfclerk.domain.AgentConfig
 import com.normation.cfclerk.domain.TechniqueGenerationMode
 import com.normation.cfclerk.domain.TechniqueVersion
+
+import com.normation.errors._
 
 /*
  * This file contains all the specific data structures used during policy generation.
@@ -134,7 +135,7 @@ final case class InterpolationContext(
       , nodeContext     : TreeMap[String, Variable]
         // parameters for this node
         //must be a case SENSITIVE Map !!!!
-      , parameters      : Map[ParameterName, InterpolationContext => Box[String]]
+      , parameters      : Map[ParameterName, InterpolationContext => IOResult[String]]
         //the depth of the interpolation context evaluation
         //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
         //for ex: param a => param b => param c => ..... => param a
@@ -156,7 +157,7 @@ object InterpolationContext {
       , nodeContext     : Map[String, Variable]
         // parameters for this node
         //must be a case SENSITIVE Map !!!!
-      , parameters      : Map[ParameterName, InterpolationContext => Box[String]]
+      , parameters      : Map[ParameterName, InterpolationContext => IOResult[String]]
         //the depth of the interpolation context evaluation
         //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
         //for ex: param a => param b => param c => ..... => param a
@@ -440,7 +441,7 @@ final case class ParsedPolicyDraft(
   , isSystem         : Boolean
   , policyMode       : Option[PolicyMode]
   , trackerVariable  : TrackerVariable
-  , variables        : InterpolationContext => Box[Map[String, Variable]]
+  , variables        : InterpolationContext => IOResult[Map[String, Variable]]
   , originalVariables: Map[String, Variable] // the original variable, unexpanded
   , ruleOrder        : BundleOrder
   , directiveOrder   : BundleOrder

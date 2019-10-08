@@ -51,16 +51,11 @@ import com.normation.cfclerk.domain.Variable
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.services.policies.HashOsType._
 import com.normation.rudder.services.policies.JsEngine._
-import com.normation.utils.Control._
 import ca.mrvisser.sealerate
 import javax.script.Bindings
 import javax.script.ScriptEngine
 import javax.script.ScriptEngineManager
 import javax.script.ScriptException
-import net.liftweb.common.Box
-import net.liftweb.common.Empty
-import net.liftweb.common.Failure
-import net.liftweb.common.Full
 import java.io.FilePermission
 
 import org.apache.commons.codec.digest.Md5Crypt
@@ -79,8 +74,10 @@ import java.security.cert.Certificate
 import sun.security.provider.PolicyFile
 import com.github.ghik.silencer.silent
 import com.normation.rudder.domain.logger.JsDirectiveParamLogger
-
-import com.normation.box._
+import com.normation.errors._
+import com.normation.rudder.domain.logger.JsDirectiveParamLoggerPure
+import zio._
+import zio.syntax._
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -335,7 +332,7 @@ final object JsEngineProvider {
    * Security policy are taken from `rudder-js.policy` file in the classpath
    * unlessthe file `/opt/rudder/etc/rudder-js.policy` is defined.
    */
-  def withNewEngine[T](feature: FeatureSwitch, maxThread: Int = 1, timeout: FiniteDuration)(script: JsEngine => Box[T]): Box[T] = {
+  def withNewEngine[T](feature: FeatureSwitch, maxThread: Int = 1, timeout: FiniteDuration)(script: JsEngine => IOResult[T]): IOResult[T] = {
     feature match {
       case FeatureSwitch.Enabled  =>
         val defaultPath = this.getClass.getClassLoader.getResource("rudder-js.policy")
@@ -349,18 +346,17 @@ final object JsEngineProvider {
         val res = SandboxedJsEngine.sandboxed(url, maxThread, timeout) { engine => script(engine) }
 
         //we may want to debug hard to debug case here, especially when we had a stackoverflow below
-        (JsDirectiveParamLogger.isDebugEnabled, res) match {
-          case (true, Failure(msg, Full(ex), x)) =>
-            import scala.util.{Properties => P}
-            JsDirectiveParamLogger.debug(s"Error when trying to use the JS script engine in a directive. Java version: '${P.javaVersion}'; JVM info: '${P.javaVmInfo}'; name: '${P.javaVmName}'; version: : '${P.javaVmVersion}'; vendor: '${P.javaVmVendor}';")
-
-            // in the case of an exception and debug enable, print stack
-            ex .printStackTrace()
-
-          case _ => // nothing more
-        }
-
-        res
+        res.foldM(
+          err =>
+            (if(JsDirectiveParamLogger.isDebugEnabled) {
+              import scala.util.{Properties => P}
+              JsDirectiveParamLoggerPure.debug(s"Error when trying to use the JS script engine in a directive. Java version: '${P.javaVersion}'; JVM info: '${P.javaVmInfo}'; name: '${P.javaVmName}'; version: : '${P.javaVmVersion}'; vendor: '${P.javaVmVendor}';") *>
+              // in the case of an exception and debug enable, print stack
+              JsDirectiveParamLoggerPure.debug(err.fullMsg)
+            } else UIO.unit
+            ) *> err.fail
+          , res => res.succeed
+        )
       case FeatureSwitch.Disabled =>
         script(DisabledEngine)
     }
@@ -379,7 +375,7 @@ sealed trait JsEngine {
    * correctly defined by the user to get and
    * interesting value.
    */
-  def eval(variable: Variable, lib: JsRudderLibBinding): Box[Variable]
+  def eval(variable: Variable, lib: JsRudderLibBinding): IOResult[Variable]
 }
 
 /*
@@ -408,7 +404,7 @@ object JsEngine {
      * Eval does nothing on variable without the EVAL keyword, and
      * fails on variable with the keyword.
      */
-    def eval(variable: Variable, lib: JsRudderLibBinding): Box[Variable] = {
+    def eval(variable: Variable, lib: JsRudderLibBinding): IOResult[Variable] = {
       val (default, js, _) = getEvaluatorTuple(variable)
       variable.values.find( x => x.startsWith(default)) match {
         /*
@@ -427,14 +423,14 @@ object JsEngine {
         case None =>
           variable.values.find( x => x.startsWith(js)) match {
             case None =>
-              Full(variable)
+              variable.succeed
             case Some(v) =>
-              Failure(s"Value '${v}' starts with the ${js} keyword, but the 'parameter evaluation feature' "
-                  +"is disabled. Please, either don't use the keyword or enable the feature")
+              Unexpected(s"Value '${v}' starts with the ${js} keyword, but the 'parameter evaluation feature' "
+                  +"is disabled. Please, either don't use the keyword or enable the feature").fail
            }
         case Some(v) =>
-           Failure(s"Value '${v}' starts with the ${default} keyword, but the 'parameter evaluation feature' "
-                  +"is disabled. Please, either don't use the keyword or enable the feature")
+           Unexpected(s"Value '${v}' starts with the ${default} keyword, but the 'parameter evaluation feature' "
+                  +"is disabled. Please, either don't use the keyword or enable the feature").fail
       }
     }
   }
@@ -456,7 +452,7 @@ object JsEngine {
      * This is expensive, several seconds on a 8-core i7 @ 3.5Ghz.
      * So you should minimize the number of time it is done.
      */
-    def sandboxed[T](policyFileUrl: URL, maxThread: Int = 1, timeout: FiniteDuration = DEFAULT_MAX_EVAL_DURATION)(script: SandboxedJsEngine => Box[T]): Box[T] = {
+    def sandboxed[T](policyFileUrl: URL, maxThread: Int = 1, timeout: FiniteDuration = DEFAULT_MAX_EVAL_DURATION)(script: SandboxedJsEngine => IOResult[T]): IOResult[T] = {
       var sandbox = new SandboxSecurityManager(policyFileUrl)
       var threadFactory = new RudderJsEngineThreadFactory(sandbox)
       var pool = Executors.newFixedThreadPool(maxThread, threadFactory)
@@ -469,7 +465,7 @@ object JsEngine {
           script(engine)
         } catch {
           case RudderFatalScriptException(message, cause) =>
-            Failure(message, Full(cause), Empty)
+            SystemError(message, cause).fail
         } finally {
           //clear everything
           pool.shutdownNow()
@@ -484,19 +480,19 @@ object JsEngine {
       }
     }
 
-    protected[policies] def getJsEngine(): Box[ScriptEngine] = {
+    protected[policies] def getJsEngine(): IOResult[ScriptEngine] = {
       val message = s"Error when trying to get the java script engine. Check with your system administrator that you JVM support JSR-223 with javascript"
       try {
         // create a script engine manager
         val factory = new ScriptEngineManager()
         // create a JavaScript engine
         factory.getEngineByName("JavaScript") match {
-          case null   => Failure(message)
-          case engine => Full(engine)
+          case null   => Unexpected(message).fail
+          case engine => engine.succeed
         }
       } catch {
         case ex: Exception =>
-         Failure(s"${message}. Exception message was: ${ex.getMessage}")
+         Unexpected(s"${message}. Exception message was: ${ex.getMessage}").fail
       }
     }
   }
@@ -550,12 +546,12 @@ object JsEngine {
      *
      * Nothing fancy here.
      */
-    def eval(variable: Variable, lib: JsRudderLibBinding): Box[Variable] = {
+    def eval(variable: Variable, lib: JsRudderLibBinding): IOResult[Variable] = {
 
       val (default, js, isPassword) = getEvaluatorTuple(variable)
 
       for {
-        values <- sequence(variable.values) { value =>
+        values <- ZIO.traverse(variable.values) { value =>
           (if (value.startsWith(default)) {
             val script = value.substring(default.length())
             //do something with script
@@ -566,11 +562,11 @@ object JsEngine {
               //do something with script
               singleEval(script, lib.bindings).map(reconstructPassword(_, isPassword))
             } else {
-              Full(value)
+              value.succeed
             }
-          }) ?~! s"Invalid script '${value}' for Variable ${variable.spec.name} - please check method call and/or syntax"
+          }).chainError(s"Invalid script '${value}' for Variable ${variable.spec.name} - please check method call and/or syntax")
         }
-        copied <- variable.copyWithSavedValues(values).toBox
+        copied <- variable.copyWithSavedValues(values).toIO
       } yield {
         copied
       }
@@ -583,15 +579,15 @@ object JsEngine {
      * The thread is also restricted, and can't do dangerous things (access
      * to FS, Network, System (jvm), class loader, etc).
      */
-    def singleEval(value: String, bindings: Bindings): Box[String] = {
+    def singleEval(value: String, bindings: Bindings): IOResult[String] = {
       val res = safeExec(value) {
         try {
           jsEngine.eval(value, bindings) match {
-            case null => Failure(s"The script '${value}' was evaluated to disallowed value 'null'")
-            case x    => Full(x.toString)
+            case null => Unexpected(s"The script '${value}' was evaluated to disallowed value 'null'").fail
+            case x    => x.toString.succeed
           }
         } catch {
-          case ex: ScriptException => Failure(ex.getMessage)
+          case ex: ScriptException => SystemError("Error with script evaluation", ex).fail
         }
       }
       res
@@ -605,14 +601,14 @@ object JsEngine {
      * The thread is also restricted, and can't do dangerous things (access
      * to FS, Network, System (jvm), class loader, etc).
      */
-    def safeExec[T](name: String)(block: => Box[T]): Box[T] = {
+    def safeExec[T](name: String)(block: => IOResult[T]): IOResult[T] = {
       //create the callable object
-      val scriptCallable = new Callable[Box[T]] with KillingThread() {
+      val scriptCallable = new Callable[IOResult[T]] with KillingThread() {
         def call() = {
           try {
             block
           } catch {
-            case ex: Exception => Failure(s"Error when evaluating value '${name}': ${ex.getMessage}", Full(ex), Empty)
+            case ex: Exception => SystemError(s"Error when evaluating value '${name}': ${ex.getMessage}", ex).fail
           }
         }
       }
@@ -634,12 +630,12 @@ object JsEngine {
                task.cancel(true)
               }
               if(task.isCancelled || task.isDone) {
-                Failure(s"Evaluating script '${name}' took more than ${maxTime.toString()}, aborting")
+                Unexpected(s"Evaluating script '${name}' took more than ${maxTime.toString()}, aborting").fail
             } else {
               //not interrupted - force kill
               scriptCallable.abortWithConsequences() //that throws TreadDead, the following is never reached
-                Failure(s"Evaluating script '${name}' took more than ${maxTime.toString()}, and " +
-                    "we were force to kill the thread. Check for infinite loop or uninterruptible system calls")
+                Unexpected(s"Evaluating script '${name}' took more than ${maxTime.toString()}, and " +
+                    "we were force to kill the thread. Check for infinite loop or uninterruptible system calls").fail
             }
           } catch {
             case ex: ThreadDeath =>
