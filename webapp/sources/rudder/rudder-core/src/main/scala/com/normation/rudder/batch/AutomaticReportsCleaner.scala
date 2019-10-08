@@ -141,8 +141,11 @@ object AutomaticReportsCleaning {
     val runIntervalAttr = "serializedAgentRunInterval"
     for {
       ldap    <- ldapCon
-      e       <- ldap.get("propertyName=agent_run_interval,ou=Application Properties,cn=rudder-configuration", "propertyValue")
-      default =  e.getAsInt("propertyValue").getOrElse(5) // default run value
+      default <- ldap.get("propertyName=agent_run_interval,ou=Application Properties,cn=rudder-configuration", "propertyValue") match {
+                   case Empty   => Full(5) // the value is not inialized, it's 5
+                   case Full(e) => Full(e.getAsInt("propertyValue").getOrElse(5)) // default run value
+                   case f: Failure => f
+                 }
       nodes   <- Full(ldap.searchOne("ou=Nodes,cn=rudder-configuration", BuildFilter.HAS(runIntervalAttr), runIntervalAttr))
       ints    <- Control.sequence(nodes) { node => // don't fail on parsing error, just return 0
                   Full(try {
@@ -364,7 +367,7 @@ class AutomaticReportsCleaning(
           logger.debug(s"Found maximun run interval: ${x} minutes")
           x
         case eb: EmptyBox =>
-          logger.error((eb ?~! s"Error when trying to get maximun run interval, defaulting to  5 minutes. Error was: ").messageChain)
+          logger.error((eb ?~! s"Error when trying to get maximun run interval, defaulting to 5 minutes. Error was: ").messageChain)
           5
       }
       interval * r
