@@ -1956,8 +1956,8 @@ object RudderConfig extends Loggable {
   import com.normation.cfclerk.domain._
   import org.joda.time.format.DateTimeFormat
 
-  lazy val frenchDateFormatter = DateTimeFormat.forPattern("dd/MM/yyyy").withLocale(Locale.FRANCE)
-  lazy val frenchTimeFormatter = DateTimeFormat.forPattern("kk:mm:ss").withLocale(Locale.FRANCE)
+  lazy val isoDateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd").withLocale(Locale.ENGLISH)
+  lazy val isoTimeFormatter = DateTimeFormat.forPattern("HH:mm:ss").withLocale(Locale.ENGLISH)
 
   object FieldFactoryImpl extends DirectiveFieldFactory {
     //only one field
@@ -1972,8 +1972,8 @@ object RudderConfig extends Loggable {
           case UploadedFileVType => new UploadedFileField(UPLOAD_ROOT_DIRECTORY)(id)
           case SharedFileVType => new FileField(id)
           case DestinationPathVType => default(id)
-          case DateVType(r) => new DateField(frenchDateFormatter)(id)
-          case TimeVType(r) => new TimeField(frenchTimeFormatter)(id)
+          case DateVType(r) => new DateField(isoDateFormatter)(id)
+          case TimeVType(r) => new TimeField(isoTimeFormatter)(id)
           case PermVType => new FilePermsField(id)
           case BooleanVType => new CheckboxField(id)
           case TextareaVType(r) => new TextareaField(id, () => configService.rudder_featureSwitch_directiveScriptEngine().toBox)
@@ -1999,7 +1999,7 @@ object RudderConfig extends Loggable {
       def translators = {
         val t = new Translators()
         t.add(StringTranslator)
-        t.add(new DateTimeTranslator(frenchDateFormatter, frenchTimeFormatter)) //TODO: how that can be session dependent ?
+        t.add(new DateTimeTranslator(isoDateFormatter, isoTimeFormatter))
         t.add(FilePermsTranslator)
         t.add(FileTranslator)
         t.add(DestinationFileTranslator)

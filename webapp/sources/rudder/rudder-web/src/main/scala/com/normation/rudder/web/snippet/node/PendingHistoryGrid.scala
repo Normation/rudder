@@ -137,7 +137,7 @@ object PendingHistoryGrid extends Loggable {
           "tr [serveruuid]" #> details.nodeId.value &
           "tr [kind]"       #> status.toLowerCase &
           "tr [inventory]"  #> details.inventoryVersion.toString() &
-          ".date *"      #> DateFormaterService.getFormatedDate(event.creationDate)&
+          ".date *"      #> DateFormaterService.getDisplayDate(event.creationDate)&
           ".name *"      #>  details.hostname&
           ".os *"        #> details.fullOsName&
           ".state *"     #> status.capitalize &
@@ -243,7 +243,7 @@ object PendingHistoryGrid extends Loggable {
       case Some(deleted) =>
         <div style="padding: 10px 15px 0">
           <i class="fa fa-exclamation-triangle warnicon" aria-hidden="true"></i>
-          <h3> {"This node was deleted on %s by %s".format(DateFormaterService.getFormatedDate(deleted.creationDate),deleted.principal.name)}</h3>
+          <h3> {s"This node was deleted on ${DateFormaterService.getDisplayDate(deleted.creationDate)} by ${deleted.principal.name}"}</h3>
         </div>
       case None => NodeSeq.Empty
   }

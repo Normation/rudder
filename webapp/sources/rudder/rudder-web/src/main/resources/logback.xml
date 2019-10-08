@@ -77,7 +77,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   -->
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-      <Pattern>%d{[yyyy-MM-dd HH:mm:ss]} %-5level %logger - %msg%n%ex{full}</Pattern>
+      <Pattern>%d{[yyyy-MM-dd HH:mm:ssZ]} %-5level %logger - %msg%n%ex{full}</Pattern>
     </encoder>
   </appender>
 

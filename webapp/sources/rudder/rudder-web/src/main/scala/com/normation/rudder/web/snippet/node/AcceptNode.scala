@@ -339,7 +339,7 @@ class AcceptNode extends Loggable {
       serverGrid.displayAndInit (
           nodes
         , "acceptNodeGrid"
-        , Seq( ( Text("Since")     , { e => Text(DateFormaterService.getFormatedDate(e.creationDate))})
+        , Seq( ( Text("Since")     , { e => Text(DateFormaterService.getDisplayDate(e.creationDate))})
              , ( Text("Directive") , { e => SHtml.ajaxButton(<span><i class="glyphicon glyphicon-search"></i></span>, { () =>  showExpectedPolicyPopup(e) }, ("class", "smallButton") )})
              , ( selectAll         , { e => <input type="checkbox" name="serverids" value={e.id.value.toString}/>  })
           )

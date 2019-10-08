@@ -545,8 +545,8 @@ class EventLogDetailsGenerator(
                 <h4>Successful policy update:</h4>
                 <ul class="evlogviewpad">
                   <li><b>ID:</b>&nbsp;{id}</li>
-                  <li><b>Start time:</b>&nbsp;{DateFormaterService.getFormatedDate(started)}</li>
-                  <li><b>End Time:</b>&nbsp;{DateFormaterService.getFormatedDate(ended)}</li>
+                  <li><b>Start time:</b>&nbsp;{DateFormaterService.getDisplayDate(started)}</li>
+                  <li><b>End Time:</b>&nbsp;{DateFormaterService.getDisplayDate(ended)}</li>
                 </ul>
                 { reasonHtml }
                 { xmlParameters(event.id) }
@@ -564,8 +564,8 @@ class EventLogDetailsGenerator(
                 <h4>Failed policy update:</h4>
                 <ul class="evlogviewpad">
                   <li><b>ID:</b>&nbsp;{id}</li>
-                  <li><b>Start time:</b>&nbsp;{DateFormaterService.getFormatedDate(started)}</li>
-                  <li><b>End Time:</b>&nbsp;{DateFormaterService.getFormatedDate(ended)}</li>
+                  <li><b>Start time:</b>&nbsp;{DateFormaterService.getDisplayDate(started)}</li>
+                  <li><b>End Time:</b>&nbsp;{DateFormaterService.getDisplayDate(ended)}</li>
                   <li><b>Error stack trace:</b>&nbsp;{failure.messageChain}</li>
                 </ul>
                 { reasonHtml }
@@ -1117,8 +1117,8 @@ class EventLogDetailsGenerator(
       "#token" #> apiAccount.token.value &
       "#description" #> apiAccount.description &
       "#isEnabled" #> apiAccount.isEnabled &
-      "#creationDate" #> DateFormaterService.getFormatedDate(apiAccount.creationDate) &
-      "#tokenGenerationDate" #> DateFormaterService.getFormatedDate(apiAccount.tokenGenerationDate)
+      "#creationDate" #> DateFormaterService.getDisplayDate(apiAccount.creationDate) &
+      "#tokenGenerationDate" #> DateFormaterService.getDisplayDate(apiAccount.tokenGenerationDate)
     )(xml)
 
 
@@ -1155,7 +1155,7 @@ class EventLogDetailsGenerator(
     "#nodeID" #> details.nodeId.value &
       "#nodeName" #> details.hostname &
       "#os" #> details.fullOsName &
-      "#version" #> DateFormaterService.getFormatedDate(details.inventoryVersion)
+      "#version" #> DateFormaterService.getDisplayDate(details.inventoryVersion)
     )(
     <ul class="evlogviewpad">
       <li><b>Node ID: </b><value id="nodeID"/></li>

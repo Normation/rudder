@@ -59,7 +59,7 @@ class EventLogAPI (
     import net.liftweb.json.JsonDSL._
 
     ( ("id"          -> event.id)
-    ~ ("date"        -> DateFormaterService.getFormatedDate(event.creationDate))
+    ~ ("date"        -> DateFormaterService.serialize(event.creationDate))
     ~ ("actor"       -> event.principal.name)
     ~ ("type"        -> S.?("rudder.log.eventType.names." + event.eventType.serialize))
     ~ ("description" -> eventLogDetail.displayDescription(event).toString)
@@ -134,7 +134,7 @@ class EventLogAPI (
           val fail = eb ?~! s"Error when getting event log with id '${id}' details"
           toJsonError(None, fail.messageChain)
       }
-      
+
   }
   serve("secure" / "api" / "eventlog" prefix requestDispatch)
 }

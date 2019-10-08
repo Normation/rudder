@@ -581,7 +581,7 @@ object ApiAccountSerialisation {
             case NoAccess | RO | RW => None
             case ACL(acls) => Some(acls.flatMap(x => x.actions.map(a => JsonApiAcl(x.path.value, a.name))))
           }
-          ( expirationDate.map(DateFormaterService.getFormatedDate)
+          ( expirationDate.map(DateFormaterService.serialize)
           , Some(authz.kind.name)
           , acl )
       }
@@ -591,10 +591,10 @@ object ApiAccountSerialisation {
       ("id"                    -> account.id.value) ~
       ("name"                  -> account.name.value) ~
       ("token"                 -> account.token.value) ~
-      ("tokenGenerationDate"   -> DateFormaterService.getFormatedDate(account.tokenGenerationDate)) ~
+      ("tokenGenerationDate"   -> DateFormaterService.serialize(account.tokenGenerationDate)) ~
       ("kind"                  -> account.kind.kind.name) ~
       ("description"           -> account.description) ~
-      ("creationDate"          -> DateFormaterService.getFormatedDate(account.creationDate)) ~
+      ("creationDate"          -> DateFormaterService.serialize(account.creationDate)) ~
       ("enabled"               -> account.isEnabled) ~
       ("expirationDate"        -> expirationDate) ~
       ("expirationDateDefined" -> expirationDate.isDefined ) ~
