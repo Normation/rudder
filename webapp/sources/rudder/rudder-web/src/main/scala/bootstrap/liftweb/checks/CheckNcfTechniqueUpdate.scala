@@ -55,7 +55,6 @@ import com.normation.rudder.ncf.ResultHelper._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JArray
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import com.normation.rudder.ncf.TechniqueUpdateError
 
 sealed trait NcfTechniqueUpgradeError {
   def msg : String
@@ -63,11 +62,12 @@ sealed trait NcfTechniqueUpgradeError {
 
 }
 object NcfTechniqueUpgradeError {
-  case class NcfApiAuthFailed   (msg : String, exception : Option[Throwable]) extends NcfTechniqueUpgradeError
-  case class NcfApiRequestFailed(msg : String, exception : Option[Throwable]) extends NcfTechniqueUpgradeError
-  case class JsonExtractionError(msg : String, exception : Option[Throwable]) extends NcfTechniqueUpgradeError
-  case class WriteTechniqueError(msg : String, exception : Option[Throwable]) extends NcfTechniqueUpgradeError
-  case class FlagFileError      (msg : String, exception : Option[Throwable]) extends NcfTechniqueUpgradeError
+  case class NcfApiAuthFailed    (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
+  case class NcfApiRequestFailed (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
+  case class JsonExtractionError (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
+  case class WriteTechniqueError (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
+  case class TechniqueUpdateError(msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
+  case class FlagFileError       (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
 
   type Result[T] = Either[NcfTechniqueUpgradeError, T]
   def tryo[T]( f : => T, errorMessage : String, catcher : (String,Option[Throwable]) => NcfTechniqueUpgradeError) : Result[T] = {
@@ -76,9 +76,7 @@ object NcfTechniqueUpgradeError {
     } catch {
       case e : Throwable => Left(catcher(errorMessage,Some(e)))
     }
-
   }
-
 }
 
 /**
@@ -182,10 +180,9 @@ class CheckNcfTechniqueUpdate(
                                 , s"An error occured while deleting file ${ncfTechniqueUpdateFlag} after techniques were written, you may need to delete it manually"
                                 , FlagFileError
                               )
-      } yield {
-
-      } ) match {
-        case Right(_) =>
+      } yield ()
+      ) match {
+        case Right(()) =>
           logger.info("All ncf techniques were updated")
         case Left(NcfApiAuthFailed(msg,e)) =>
           logger.warn(s"Could not authenticate in ncf API, maybe it was not initialized yet, retrying in 5 seconds")
@@ -194,8 +191,6 @@ class CheckNcfTechniqueUpdate(
           logger.warn(s"All ncf techniques were updated, but we could not delete flag file ${ncfTechniqueUpdateFlag}, please delete it manually")
         case Left(e : NcfTechniqueUpgradeError) =>
           logger.error(s"An error occured while updating ncf techniques: ${e.msg}")
-
-
       }
     }
 
@@ -210,7 +205,5 @@ class CheckNcfTechniqueUpdate(
       case e : Exception =>
         logger.error(s"An error occurred while accessing flag file '${ncfTechniqueUpdateFlag}', cause is: ${e.getMessage}")
     }
-
   }
-
 }
