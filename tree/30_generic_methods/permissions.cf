@@ -50,6 +50,8 @@ bundle agent permissions(path, mode, owner, group)
       "reenable_reporting_${class_prefix}"
                                       usebundle => enable_reporting,
                                      ifvarclass => "should_report";
+
+      # old_class_prefix outcome is defined by pemissions_type_recursion
       "new result classes"            usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
 
       "report"                        usebundle => _log_v3("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
