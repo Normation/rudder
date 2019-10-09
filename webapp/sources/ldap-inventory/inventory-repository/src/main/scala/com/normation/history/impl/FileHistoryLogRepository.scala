@@ -28,6 +28,7 @@ import com.normation.inventory.domain.InventoryError
 import com.normation.errors._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
+import org.joda.time.format.ISODateTimeFormat
 import zio._
 import zio.syntax._
 
@@ -208,7 +209,7 @@ class FileHistoryLogRepository[ID,T](
 }
 
 object FileHistoryLogRepository {
-  private val formatter = DateTimeFormat.forPattern("YYYY-MM-dd_HH:mm.ss.SSS")
+  private val formatter = ISODateTimeFormat.dateTime()
   private def vToS(version:DateTime) = formatter.print(version)
   private def sToV(version:String):Option[DateTime] = {
     try {

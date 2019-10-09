@@ -41,21 +41,35 @@ import org.joda.time.DateTime
 import org.joda.time.format.PeriodFormatterBuilder
 import org.joda.time.Duration
 import org.joda.time.chrono.ISOChronology
-import org.joda.time.format.DateTimeFormat
 import net.liftweb.common.Box
 import net.liftweb.util.Helpers
+import org.joda.time.format.DateTimeFormat
+import org.joda.time.format.DateTimeFormatterBuilder
+import org.joda.time.format.ISODateTimeFormat
 
 object DateFormaterService {
 
-  // Default dateFormat
-  private[this] val dateFormat = "yyyy-MM-dd HH:mm"
+  val displayDateFormat = new DateTimeFormatterBuilder()
+    .append(DateTimeFormat.forPattern("YYYY-MM-dd"))
+    .appendLiteral(' ')
+    .append(DateTimeFormat.forPattern("hh:mm:ssZ")).toFormatter
 
-  def getFormatedDate(date : DateTime) : String = {
-    date.toString(dateFormat)
+  /*
+   * Display date must be used only for the user facing date in non serialized form
+   * (for ex: in a web page).
+   */
+  def getDisplayDate(date : DateTime) : String = {
+    date.toString(displayDateFormat)
   }
 
+  /*
+   * Format a date for serialisation (json, database, etc). We use
+   * ISO 8601 (rfc 3339) for that (without millis)
+   */
+  def serialize(datetime: DateTime): String = datetime.toString(ISODateTimeFormat.dateTimeNoMillis)
+
   def parseDate(date : String) : Box[DateTime] = {
-      Helpers.tryo {DateTimeFormat.forPattern(dateFormat).parseDateTime(date) }
+      Helpers.tryo { ISODateTimeFormat.dateTimeNoMillis().parseDateTime(date) }
   }
   private[this] val periodFormatter = new PeriodFormatterBuilder().
     appendDays().

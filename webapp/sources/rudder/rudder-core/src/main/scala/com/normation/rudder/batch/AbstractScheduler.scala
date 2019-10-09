@@ -43,6 +43,7 @@ import org.joda.time.DateTime
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import net.liftweb.actor.SpecializedLiftActor
+import org.joda.time.format.ISODateTimeFormat
 
 
 // -----------------------------------------------------
@@ -164,7 +165,7 @@ trait AbstractScheduler {
         LAPinger.schedule(this, AbstractActorUpdateMessage.StartUpdate, realUpdateInterval*1000l)
 
         //log some information
-        val format = "yyyy/MM/dd HH:mm:ss"
+        val format = ISODateTimeFormat.dateTimeNoMillis()
 
         result match {
           case e:EmptyBox =>

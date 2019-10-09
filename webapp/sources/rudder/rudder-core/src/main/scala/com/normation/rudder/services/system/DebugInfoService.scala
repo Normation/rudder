@@ -36,7 +36,7 @@
 */
 
 
-package com.normation.rudder.services
+package com.normation.rudder.services.system
 
 import java.nio.file.{Files, Paths}
 import java.util.concurrent.TimeUnit

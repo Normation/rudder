@@ -659,7 +659,7 @@ object DisplayNode extends Loggable {
     }
 
     private def displayTabVariable(jsId:JsNodeId,sm:FullInventory) : NodeSeq = {
-      val title = sm.node.inventoryDate.map(date => "Environment variable status on %s".format(DateFormaterService.getFormatedDate(date)))
+      val title = sm.node.inventoryDate.map(date => s"Environment variable status on ${DateFormaterService.getDisplayDate(date)}")
       displayTabGrid(jsId)("var", Full(sm.node.environmentVariables),title){
         ("Name", {x:EnvironmentVariable => Text(x.name)}) ::
         ("Value", {x:EnvironmentVariable => Text(x.value.getOrElse("Unspecified"))}) ::
@@ -688,7 +688,7 @@ object DisplayNode extends Loggable {
     }
 
     private def displayTabProcess(jsId:JsNodeId,sm:FullInventory) : NodeSeq = {
-    val title = sm.node.inventoryDate.map(date => "Process status on %s".format(DateFormaterService.getFormatedDate(date)))
+    val title = sm.node.inventoryDate.map(date => s"Process status on ${DateFormaterService.getDisplayDate(date)}")
     displayTabGrid(jsId)("process", Full(sm.node.processes),title){
         ("User", {x:Process => ?(x.user)}) ::
         ("PID", {x:Process => Text(x.pid.toString())}) ::
@@ -720,7 +720,7 @@ object DisplayNode extends Loggable {
         ("Name", {x:Bios => Text(x.name)}) ::
         ("Editor", {x:Bios => ?(x.editor.map( _.name))}) ::
         ("Version", {x:Bios => ?(x.version.map( _.value))}) ::
-        ("Release Date", {x:Bios => ?(x.releaseDate.map(DateFormaterService.getFormatedDate(_)))}) ::
+        ("Release Date", {x:Bios => ?(x.releaseDate.map(DateFormaterService.getDisplayDate(_)))}) ::
         Nil
     }
 

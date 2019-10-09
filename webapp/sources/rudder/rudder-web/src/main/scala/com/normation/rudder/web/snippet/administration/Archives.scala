@@ -272,7 +272,7 @@ class Archives extends DispatchSnippet with Loggable {
           m.toList.sortWith {
             case ( (d1,_), (d2,_) ) => d1.isAfter(d2)
           }.map { case (date,revTag) =>
-            ( Some(revTag.commit), DateFormaterService.getFormatedDate(date) )
+            ( Some(revTag.commit), DateFormaterService.getDisplayDate(date) )
           }
       }
       baseOptions ::: tagOptions
