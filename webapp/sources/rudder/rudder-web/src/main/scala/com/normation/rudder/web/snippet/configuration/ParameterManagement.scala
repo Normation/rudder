@@ -106,7 +106,9 @@ class ParameterManagement extends DispatchSnippet with Loggable {
           } else NodeSeq.Empty)
         }</div>
       }) &
-      ".createParameter *" #> ajaxButton("Create Global Parameter", () => showPopup(GlobalParamModAction.Create, None) , ("class","btn btn-success new-icon space-bottom space-top"))
+      ".createParameter *" #> (if(CurrentUser.checkRights(AuthorizationType.Parameter.Write)) {
+          ajaxButton("Create Global Parameter", () => showPopup(GlobalParamModAction.Create, None) , ("class","btn btn-success new-icon space-bottom space-top"))
+        } else NodeSeq.Empty)
      ).apply(dataTableXml(gridName)) ++ Script(initJs)
   }
 
