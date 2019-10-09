@@ -122,7 +122,7 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] with Loggable {
       commitedChange <- try {
           commitChange(postPreCommitReport)
         } catch {
-          case ex:Exception => Failure("Exception when commiting inventory, abort.", Full(ex), Empty)
+          case ex:Exception => Failure(s"Exception when commiting inventory, abort: ${ex.getMessage}", Full(ex), Empty)
         }
 
       t2 = System.currentTimeMillis

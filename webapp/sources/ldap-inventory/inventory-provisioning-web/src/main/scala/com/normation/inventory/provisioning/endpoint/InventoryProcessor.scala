@@ -348,7 +348,12 @@ class InventoryProcessor(
       (reportSaver.save(report) ?~! "Can't merge inventory report in LDAP directory, aborting") match {
         case Empty => logger.error("The report is empty, not saving anything")
         case f:Failure =>
-          logger.error("Error when trying to process report: %s".format(f.messageChain),f)
+          logger.error(s"Error when trying to process report: ${f.messageChain}")
+          if(logger.isDebugEnabled) {
+            f.rootExceptionCause.foreach{ ex =>
+              logger.debug("Root exception was: " + ex.printStackTrace())
+            }
+          }
         case Full(report) =>
           logger.debug("Report saved.")
       }
