@@ -284,6 +284,10 @@ object LDAPConstants {
   OC +=(OC_VM_AIX_LPAR, OC(OC_VM))
   OC +=(OC_VM_HYPERV, OC(OC_VM))
   OC +=(OC_VM_BSDJAIL, OC(OC_VM))
+  OC +=(OC_VM_LXC, OC(OC_VM))
+  OC +=(OC_VM_VIRTUOZZO, OC(OC_VM))
+  OC +=(OC_VM_OPENVZ, OC(OC_VM))
+
 
   OC +=(OC_PE,
       must = Set(),
@@ -301,7 +305,10 @@ object LDAPConstants {
             OC_VM_QEMU,
             OC_VM_AIX_LPAR,
             OC_VM_HYPERV,
-            OC_VM_BSDJAIL
+            OC_VM_BSDJAIL,
+            OC_VM_LXC,
+            OC_VM_VIRTUOZZO,
+            OC_VM_OPENVZ
   )
 
   OC +=(OC_MEMORY, sup = OC(OC_PE),
