@@ -175,7 +175,7 @@ object NodeDetailLevel {
     // the date is in RFC 3339. Not having timezone for nodes can be very frustrating
     val runDate      : INFO => JValue = (info:INFO) => info._2.map(d => JString(d.toString(ISODateTimeFormat.dateTimeNoMillis()))).getOrElse(JNothing)
     // this date should have had a timezone in it
-    val inventoryDate: INFO => JValue = (info:INFO) => DateFormaterService.getFormatedDate(info._1.inventoryDate)
+    val inventoryDate: INFO => JValue = (info:INFO) => DateFormaterService.serialize(info._1.inventoryDate)
     val properties   : INFO => JValue = (info:INFO) => info._1.properties.toApiJson
     val policyMode   : INFO => JValue = (info:INFO) => info._1.policyMode.map(_.name).getOrElse[String]("default")
     val timezone     : INFO => JValue = (info:INFO) => info._1.timezone.map( t => ("name" -> t.name) ~ ("offset" -> t.offset) )
@@ -258,7 +258,7 @@ object NodeDetailLevel {
           ( "productId"      -> license.productId ) ~
           ( "productKey"     -> license.productKey ) ~
           ( "description"    -> license.description ) ~
-          ( "expirationDate" -> license.expirationDate.map(DateFormaterService.getFormatedDate) )
+          ( "expirationDate" -> license.expirationDate.map(DateFormaterService.serialize) )
         }
 
         if(soft.isEmpty) {
@@ -271,7 +271,7 @@ object NodeDetailLevel {
               ( "version"     -> software.version.map(_.value) ) ~
               ( "license"     -> software.license.map(licenseJson) ) ~
               ( "description" -> software.description ) ~
-              ( "releaseDate" -> software.releaseDate.map(DateFormaterService.getFormatedDate) )
+              ( "releaseDate" -> software.releaseDate.map(DateFormaterService.serialize) )
           }.toList
           JArray(softwares)
         }
@@ -496,7 +496,7 @@ object NodeDetailLevel {
                   ( "version"  -> bio.version.map(_.value) ) ~
                   ( "quantity" -> bio.quantity ) ~
                   ( "description" -> bio.description ) ~
-                  ( "releaseDate" -> bio.releaseDate.map(DateFormaterService.getFormatedDate) )
+                  ( "releaseDate" -> bio.releaseDate.map(DateFormaterService.getDisplayDate) )
               }.toList
               JArray(bios)
             }

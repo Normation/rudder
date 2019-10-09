@@ -49,6 +49,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ScheduledJobLogger
+import org.joda.time.format.ISODateTimeFormat
 
 //Message to send to the updater manager to start a new update of all dynamic groups or get results
 sealed trait GroupUpdateMessage
@@ -203,7 +204,7 @@ class UpdateDynamicGroups(
         }
 
         //log some information
-        val format = "yyyy/MM/dd HH:mm:ss"
+        val format = ISODateTimeFormat.dateTimeNoMillis()
         logger.debug(s"Dynamic group update in ${new Duration(end.getMillis - start.getMillis).toPeriod().toString} (started at ${start.toString(format)}, ended at ${end.toString(format)})")
 
         for {

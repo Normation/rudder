@@ -59,8 +59,8 @@ import com.normation.rudder.rest.v1.RestTechniqueReload
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.services.ClearCacheService
-import com.normation.rudder.services.DebugInfoScriptResult
-import com.normation.rudder.services.DebugInfoService
+import com.normation.rudder.services.system.DebugInfoScriptResult
+import com.normation.rudder.services.system.DebugInfoService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox

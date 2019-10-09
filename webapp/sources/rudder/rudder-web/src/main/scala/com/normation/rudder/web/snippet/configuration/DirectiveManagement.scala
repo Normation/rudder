@@ -359,7 +359,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     val techniqueVersionInfo = validTechniques.map { case(v,t, timeStamp) =>
       val isDeprecated       = t.deprecrationInfo.isDefined
       val deprecationMessage = t.deprecrationInfo.map(_.message).getOrElse("")
-      val acceptationDate    = DateFormaterService.getFormatedDate(timeStamp)
+      val acceptationDate    = DateFormaterService.getDisplayDate(timeStamp)
       val agentTypes         = t.agentConfigs.map(_.agentType).toSet
       val (dscSupport,classicSupport) = AgentCompat(agentTypes) match {
         case AgentCompat.Dsc => (true,false)

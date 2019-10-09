@@ -64,8 +64,8 @@ import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.{SystemApi => API}
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.services.ClearCacheService
-import com.normation.rudder.services.DebugInfoScriptResult
-import com.normation.rudder.services.DebugInfoService
+import com.normation.rudder.services.system.DebugInfoScriptResult
+import com.normation.rudder.services.system.DebugInfoService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio._
 import net.liftweb.common._

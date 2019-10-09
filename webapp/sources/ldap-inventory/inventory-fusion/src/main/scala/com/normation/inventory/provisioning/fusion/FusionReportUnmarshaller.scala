@@ -65,8 +65,7 @@ class FusionReportUnmarshaller(
   , ramUnit        : String = "Mo"
   , swapUnit       : String = "Mo"
   , fsSpaceUnit    : String = "Mo"
-  ,
-    lastLoggedUserDatetimeFormat : String = "EEE MMM dd HH:mm"
+  , lastLoggedUserDatetimeFormat : String = "EEE MMM dd HH:mm"
 ) extends ParsedReportUnmarshaller {
 
   import OptText.optText
