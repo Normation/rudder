@@ -43,8 +43,6 @@ import org.specs2.runner._
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.ldap.sdk.RwLDAPConnection
-import com.unboundid.ldap.sdk.DN
-import net.liftweb.common.Failure
 
 
 /**
