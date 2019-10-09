@@ -58,12 +58,13 @@ target/man/rudder-relayd.1.gz:
 CACHER=../../../../../build-caching
 build: man rudder-pkg/rudder_plugins_key.pub autocomplete/rudder-pkg.sh
 	# Build relayd 
+	mkdir -p ../../../../../.cargo/ relayd/target/
 	[ -x $(CACHER) ] && $(CACHER) get ../../../../../.cargo/ name=cargo major=$(RUDDER_MAJOR_VERSION) || true
-	[ -x $(CACHER) ] && $(CACHER) get relayd/target --with-env name=relayd major=$(RUDDER_MAJOR_VERSION) || true
+	[ -x $(CACHER) ] && $(CACHER) get relayd/target/ --with-env name=relayd major=$(RUDDER_MAJOR_VERSION) || true
 	cd relayd && cargo build --release --bin rudder-relayd
 	# the cache is always updated and cargo will rebuild only what is needed
 	[ -x $(CACHER) ] && $(CACHER) put ../../../../../.cargo/ name=cargo major=$(RUDDER_MAJOR_VERSION)
-	[ -x $(CACHER) ] && $(CACHER) put relayd/target --with-env name=relayd major=$(RUDDER_MAJOR_VERSION)
+	[ -x $(CACHER) ] && $(CACHER) put relayd/target/ --with-env name=relayd major=$(RUDDER_MAJOR_VERSION)
 
 ifeq ($(SELINUX),true)
 	# Build SELinux policy package
