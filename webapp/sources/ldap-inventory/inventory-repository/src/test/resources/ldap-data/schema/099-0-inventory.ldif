@@ -323,6 +323,12 @@ attributeTypes: ( 1.3.6.1.4.1.35061.1.1.400.3
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.400.3.1
+  NAME 'networkSubnet'
+  DESC 'Network interface subnet'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 attributeTypes: ( 1.3.6.1.4.1.35061.1.1.400.4
   NAME 'networkInterfaceMacAddress'
   DESC 'Network interface MAC address'
@@ -723,14 +729,29 @@ objectClasses: ( 1.3.6.1.4.1.35061.1.2.80.6
   DESC 'An LPAR partition on AIX'
   SUP VirtualMachine
   AUXILIARY )
-objectClasses: ( 1.3.6.1.4.1.35061.1.2.80
+objectClasses: ( 1.3.6.1.4.1.35061.1.2.80.7
+  NAME 'BSDJail'
+  DESC 'A BSD Jail'
+  SUP VirtualMachine
+  AUXILIARY )
+objectClasses: ( 1.3.6.1.4.1.35061.1.2.80.8
   NAME 'hyperV'
   DESC 'A Hyper-V VM'
   SUP VirtualMachine
   AUXILIARY )
-objectClasses: ( 1.3.6.1.4.1.35061.1.2.80.7
-  NAME 'BSDJail'
-  DESC 'A BSD Jail'
+objectClasses: ( 1.3.6.1.4.1.35061.1.2.80.9
+  NAME 'lxc'
+  DESC 'LXC container'
+  SUP VirtualMachine
+  AUXILIARY )
+objectClasses: ( 1.3.6.1.4.1.35061.1.2.80.10
+  NAME 'virtuozzo'
+  DESC 'Virtuozzo container'
+  SUP VirtualMachine
+  AUXILIARY )
+objectClasses: ( 1.3.6.1.4.1.35061.1.2.80.11
+  NAME 'openvz'
+  DESC 'OpenVZ container'
   SUP VirtualMachine
   AUXILIARY )
 objectClasses: ( 1.3.6.1.4.1.35061.1.2.4
@@ -865,7 +886,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.1.2.20
   STRUCTURAL
   MUST ( networkInterface )
   MAY ( status $ speed $ ipHostNumber $ networkInterfaceMacAddress $
-  networkInterfaceGateway $ ipNetworkNumber $ networkInterfaceDhcpServer $
+  networkInterfaceGateway $ ipNetworkNumber $ networkSubnet $ networkInterfaceDhcpServer $
   networkInterfaceMask $ networkInterfaceType $ networkInterfaceTypeMib) )
 objectClasses: ( 1.3.6.1.4.1.35061.1.2.21
   NAME 'software'
