@@ -54,7 +54,7 @@ target/man/rudder-relayd.1.gz:
 	$(GET) target/man/rudder-relayd.1 https://docs.rudder.io/man/${RUDDER_MAJOR_VERSION}/rudder-relayd.1 ""
 	gzip -f target/man/rudder-relayd.1
 
-CACHE=cache() { [ -x ../../../../../build-caching ] && ../../../../../build-caching "$$@"; [ -x ../../../../../../build-caching ] && ../../../../../../build-caching "$$@" } ; cache
+CACHE=cache() { [ -x ../../../../../build-caching ] && ../../../../../build-caching "$$@"; [ -x ../../../../../../build-caching ] && ../../../../../../build-caching "$$@" ; } ; cache
 build: man rudder-pkg/rudder_plugins_key.pub autocomplete/rudder-pkg.sh
 	# Build relayd 
 	mkdir -p ../../../../../.cargo/ relayd/target/
