@@ -59,7 +59,6 @@ class RestAuthentication(
       val currentUser = userService.getCurrentUser
       val baseTechniqueApi = ApiPath.of("techniques")
       //the result depends upon the "acl" param value, defaulted to "non read" (write).
-      logger.info( currentUser.account)
       val (message, status) = req.param("acl").openOr("write").toLowerCase match {
         case "read" => //checking if current user has read rights on techniques
           val check = currentUser.account match {
