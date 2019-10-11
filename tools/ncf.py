@@ -21,6 +21,7 @@ from pprint import pprint
 
 # Verbose output
 VERBOSE = 0
+CFENGINE_PATH="/opt/rudder/bin/cf-promises"
 
 dirs = [ "10_ncf_internals", "20_cfe_basics", "30_generic_methods", "40_it_ops_knowledge", "50_techniques", "60_services", "ncf-hooks.d" ]
 
@@ -90,11 +91,14 @@ def check_output(command, env = {}):
   return output
 
 
-def get_all_generic_methods_filenames():
+def get_all_generic_methods_filenames(alt_path=None):
   result = []
-  filelist1 = get_all_generic_methods_filenames_in_dir(get_root_dir() + "/tree/30_generic_methods")
-  filelist2 = get_all_generic_methods_filenames_in_dir("/var/rudder/configuration-repository/30_generic_methods")
-  result = filelist1 + filelist2
+  if alt_path is None:
+    filelist1 = get_all_generic_methods_filenames_in_dir(get_root_dir() + "/tree/30_generic_methods")
+    filelist2 = get_all_generic_methods_filenames_in_dir("/var/rudder/configuration-repository/30_generic_methods")
+    result = filelist1 + filelist2
+  else:
+    result = get_all_generic_methods_filenames_in_dir(alt_path)
 
   return result
 
@@ -194,11 +198,11 @@ def parse_bundlefile_metadata(content, bundle_type):
       match_line += line
     else:
       match_line = line
-    if re.match("[^#]*bundle\s+agent\s+(\w+)\([^)]*$", match_line, flags=re.UNICODE|re.MULTILINE|re.DOTALL):
+    if re.match("[^#]*bundle\s+agent\s+(\w+)\s*\([^)]*$", match_line, flags=re.UNICODE|re.MULTILINE|re.DOTALL):
       multiline = True
 
     # read a complete bundle definition
-    match = re.match("[^#]*bundle\s+agent\s+(\w+)(\(([^)]+)\))?[^(]*$", match_line, flags=re.UNICODE|re.MULTILINE|re.DOTALL)
+    match = re.match("[^#]*bundle\s+agent\s+(\w+)\s*(\(([^)]*)\))?\s*\{?\s*$", match_line, flags=re.UNICODE|re.MULTILINE|re.DOTALL)
     if match:
       multiline = False
       res['bundle_name'] = match.group(1)
@@ -298,7 +302,7 @@ def parse_technique_methods(technique_file, gen_methods):
 
   env = os.environ.copy()
   env['RES_OPTIONS'] = 'attempts:0'
-  out = check_output(["/opt/rudder/bin/cf-promises", "-pjson", "-f", technique_file], env=env)
+  out = check_output([CFENGINE_PATH, "-pjson", "-f", technique_file], env=env)
   try:
     promises = json.loads(out)
   except Exception as e:
@@ -435,10 +439,10 @@ def get_agents_support(method, content):
     agents.append("cfengine-community")
   return agents
 
-def get_all_generic_methods_metadata():
+def get_all_generic_methods_metadata(alt_path=None):
   all_metadata = {}
 
-  filenames = get_all_generic_methods_filenames()
+  filenames = get_all_generic_methods_filenames(alt_path)
   errors = []
   warnings = []
 
@@ -457,7 +461,4 @@ def get_all_generic_methods_metadata():
       continue # skip this file, it doesn't have the right tags in - yuk!
 
   return { "data": { "generic_methods" : all_metadata }, "errors": format_errors(errors), "warnings": warnings }
-
-
-
 
