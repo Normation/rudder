@@ -1,9 +1,11 @@
 import os, logging, sys, re, hashlib, requests, json
 import distutils.spawn
+import logging.handlers
 from pprint import pprint
 from pkg_resources import parse_version
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, DEVNULL
 import fcntl, termios, struct, traceback
+
 try:
     import ConfigParser as configparser
 except Exception:
@@ -27,20 +29,22 @@ def terminal_size():
 """
 def startLogger(logLevel):
     root = logging.getLogger()
-    root.setLevel(logging.DEBUG)
     # stdout logger
     stdoutHandler = logging.StreamHandler(sys.stdout)
     stdoutFormatter = logging.Formatter('%(message)s')
     stdoutHandler.setFormatter(stdoutFormatter)
     if logLevel == 'INFO':
+        root.setLevel(logging.INFO)
         stdoutHandler.setLevel(logging.INFO)
     elif logLevel == 'DEBUG':
+        root.setLevel(logging.DEBUG)
         stdoutHandler.setLevel(logging.DEBUG)
     else:
         fail("unknow loglevel %s"%(logLevel))
 
     # log file logger
-    fileHandler = logging.FileHandler(filename=LOG_PATH , mode='w')
+    os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+    fileHandler = logging.handlers.RotatingFileHandler(filename=LOG_PATH,maxBytes=1000000,backupCount=1)
     fileHandler.setLevel(logging.DEBUG)
     fileFormatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     fileHandler.setFormatter(fileFormatter)
@@ -61,11 +65,11 @@ def shell(command, comment=None, keep_output=False, fail_exit=True, keep_error=F
     if keep_output:
       keep_out = PIPE
     else:
-      keep_out = None
+      keep_out = DEVNULL
     if keep_error:
       keep_err = PIPE
     else:
-      keep_err = None
+      keep_err = DEVNULL
     process = Popen(command, stdout=keep_out, stderr=keep_err, shell=True, universal_newlines=True)
     output, error = process.communicate()
     retcode = process.poll()
@@ -81,7 +85,7 @@ def shell(command, comment=None, keep_output=False, fail_exit=True, keep_error=F
   return (retcode, output, error)
 
 def fail(message, code=1):
-    traceback.print_exc(file=sys.stdout)
+    logging.debug(traceback.format_exc())
     logging.error(message)
     exit(code)
 
@@ -426,7 +430,7 @@ def list_plugin_name():
 ############# Variables ############# 
 """ Defining global variables."""
 
-LOG_PATH = "/var/log/rudder/rudder-pkg.log"
+LOG_PATH = "/var/log/rudder/rudder-pkg/rudder-pkg.log"
 CONFIG_PATH = "/opt/rudder/etc/rudder-pkg/rudder-pkg.conf"
 FOLDER_PATH = "/var/rudder/tmp/plugins"
 INDEX_PATH = FOLDER_PATH + "/rpkg.index"
