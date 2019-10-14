@@ -200,8 +200,8 @@ class EventLogJdbcRepository(
     }).transact(xa))
   }
 
-  def getEventLogCount: IOResult[Long] = {
-    val q  ="SELECT count(*) FROM eventlog"
+  def getEventLogCount(criteria : Option[String]): IOResult[Long] = {
+    val q  =s"SELECT count(*) FROM eventlog where ${criteria.getOrElse("1 = 1")}"
     //sql"SELECT count(*) FROM eventlog".query[Long].option.transact(xa).unsafeRunSync
     transactIOResult(s"Error when retrieving event logs count with request: ${q}")(xa => (for {
       entries <- query[Long](q).unique

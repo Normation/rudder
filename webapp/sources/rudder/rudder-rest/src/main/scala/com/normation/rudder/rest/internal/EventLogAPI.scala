@@ -48,6 +48,9 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}
 import net.liftweb.json.JValue
 import net.liftweb.json.JsonDSL._
+import net.liftweb.util.Helpers.tryo
+import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
 
 class EventLogAPI (
     repos: EventLogRepository
@@ -83,28 +86,53 @@ class EventLogAPI (
     )
   }
 
-  def getEventLogBySlice(start: Int,  nbelement: Int,  criteria : Option[String], optLimit:Option[Int] = None, orderBy:Option[String]): Box[(Int,Seq[EventLog])] = {
-    repos.getEventLogByCriteria(criteria,  optLimit, orderBy).toBox match  {
-      case Full(events) => Full((events.size, events.slice(start,start+nbelement)))
-      case eb: EmptyBox  => eb ?~! s"Error when trying fetch eventlogs from database for page ${(start/nbelement)+1}"
+  def getEventLogBySlice(start: Int, criteria : Option[String], optLimit:Option[Int], orderBy:String): Box[Seq[EventLog]] = {
+    repos.getEventLogByCriteria(Some( s"${criteria.getOrElse("1 = 1")} order by ${orderBy} offset ${start}" ),  optLimit, None).toBox match  {
+      case Full(events) => Full( events)
+      case eb: EmptyBox  => eb ?~! s"Error when trying fetch eventlogs from database for page ${(start/optLimit.getOrElse(1))+1}"
     }
   }
 
   def requestDispatch: PartialFunction[Req, () => Box[LiftResponse]] = {
     case Get(Nil, req) =>
 
+      def extractDateTimeOpt(i : String) = {
+        val format = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss")
 
+        if (i == "") {
+          Full(None)
+        }  else {
+          tryo(Some(DateTime.parse(i, format)))
+        }
+      }
       (for {
         optDraw <- restExtractor.extractInt("draw")(req)(i => Full(i.toInt))
         draw <- Box(optDraw) ?~! "Missing 'draw' field from datatable's request"
         optStart <- restExtractor.extractInt("start")(req)(i => Full(i.toInt))
         start <- Box(optStart) ?~! "Missing 'start' field from datatable's request"
         optLength <- restExtractor.extractInt("length")(req)(i => Full(i.toInt))
-        length <- Box(optLength) ?~! "Missing 'start' field from datatable's request"
-        (totalFiltered, events) <- getEventLogBySlice(start, length, None, None, Some("id DESC"))
-        totalRecord <- repos.getEventLogCount.toBox
+        length <- Box(optLength) ?~! "Missing 'length' field from datatable's request"
+
+        optStartDate <- restExtractor.extractString("startDate")(req)(extractDateTimeOpt).map(_.flatten)
+        optEndDate   <- restExtractor.extractString("endDate")(req)(extractDateTimeOpt).map(_.flatten)
+
+        dateCriteria = {
+          (optStartDate,optEndDate) match {
+            case (None,None)         => None
+            case (Some(start), None) => Some(s" creationDate >= '${start}'")
+            case (None, Some(end))   => Some(s" creationDate <= '${end}'")
+            case (Some(start), Some(end)) if end.isBefore(start) => Some(s" creationDate >= '${end}' and creationDate <= '${start}'")
+            case (Some(start), Some(end))                        => Some(s" creationDate >= '${start}' and creationDate <= '${end}'")
+          }
+        }
+        optLength <- restExtractor.extractInt("length")(req)(i => Full(i.toInt))
+        length <- Box(optLength) ?~! "Missing 'length' field from datatable's request"
+
+        events <- getEventLogBySlice(start, dateCriteria, Some(length), "id DESC")
+        totalRecord <- repos.getEventLogCount(None).toBox
+        totalFilter <- repos.getEventLogCount(dateCriteria).toBox
       } yield {
-        responseFormater(draw, totalRecord, totalFiltered.toLong, events)
+        responseFormater(draw, totalRecord, totalFilter, events)
       }) match {
         case Full(resp) =>
           JsonResponse(resp)

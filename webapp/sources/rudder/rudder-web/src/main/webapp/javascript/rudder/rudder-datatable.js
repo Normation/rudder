@@ -1370,6 +1370,10 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
           , "ajax" : {
                "type" : "GET"
               , "url" : contextPath + "/secure/api/eventlog"
+              , "data" : function (d)  {
+                        d.startDate = $(".pickStartInput").val()
+                        d.endDate = $(".pickEndInput").val()
+                       }
           }
     , "bPaginate" : true
     , "bLengthChange": true
