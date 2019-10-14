@@ -84,9 +84,14 @@ trait ReportsRepository {
   ) : Seq[Reports]
 
   def findReportsByNodeOnInterval(
-      nodeId: NodeId
+    nodeId: NodeId
     , start : DateTime
     , end   : DateTime
+  ) : Seq[Reports]
+
+  def findReportsByNodeByRun(
+      nodeId: NodeId
+    , runDate : DateTime
   ) : Seq[Reports]
 
   //databaseManager only

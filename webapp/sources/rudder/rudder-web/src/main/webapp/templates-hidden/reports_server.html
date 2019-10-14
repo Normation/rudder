@@ -3,10 +3,19 @@
   <runAgent></runAgent>
   <lastreportgrid-intro></lastreportgrid-intro>
 
+
+  <button id="AllLogButton" class="btn btn-primary">Show Logs <i class="fa fa-table"></i></button>
+
   <lastreportgrid-grid></lastreportgrid-grid>
-  <div id="reportsGrid_paginate_area" class="paginate"></div>
 
+  <div class="clearfix"></div>
 
+  <div id="logRun"  class="space-top" style="display:none;">
+    <h3 class="page-title space-top">All logs for current run</h3>
+    <button class="btn btn-primary" onclick="showHideRunLogs('#node-compliance-intro')">Hide Logs</button>
+    <table id="complianceLogsGrid" cellspacing="0">
+    </table>
+  </div>
   <lastreportgrid-missing></lastreportgrid-missing>
   <lastreportgrid-unexpected></lastreportgrid-unexpected>
 

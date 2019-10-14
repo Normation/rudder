@@ -101,6 +101,17 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     transactRun(xa => q.to[Vector].transact(xa))
   }
 
+
+  override def findReportsByNodeByRun(
+    nodeId: NodeId
+    , runDate : DateTime
+  ) : Vector[Reports] = {
+    val q = Query[(NodeId, DateTime), Reports](baseQuery +
+      " and nodeId = ? and executionTimeStamp = ? ORDER BY executionTimeStamp asc"
+      , None).toQuery0((nodeId, runDate))
+    transactRun(xa => q.to[Vector].transact(xa))
+  }
+
   override def findReportsByNodeOnInterval(
       nodeId: NodeId
     , start : DateTime
