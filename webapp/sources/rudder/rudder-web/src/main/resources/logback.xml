@@ -153,7 +153,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <!--
     Dump Inventories in LDIF
     ========================
-    This logger allow to trace LDAP writes operation related
+    This logger allows to trace LDAP writes operation related
     receiving inventories and to output them in LDIF file
     (the output directory path
     is configured in the main configuration file)
@@ -166,12 +166,30 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <logger name="trace.ldif.in.file" level="off" />
 
   <!--
+    Debug inventory processing
+    ==========================
+    This logger allows to log information about inventories processing: detection in
+    /var/rudder/inventories/incoming, parsing, signature validity, etc
+  -->
+  <logger name="inventory-processing" level="info" />
+
+  <!--
     Debug LDAP queries related to inventory search
     ==============================================
     Uncomment and set to "debug" or "trace" to have precise logs about
     LDAP queries done by the node search engine
   -->
   <logger name="com.normation.rudder.services.queries" level="info" />
+
+  <!--
+    Debug Node acceptation/group
+    ============================
+    This logger allows to log information about node acceptation step, and dynamic
+    group processing. It has several sub-logger usefull for trace-level debug:
+    - nodes.pending
+    - nodes.pending.policies
+  -->
+  <logger name="nodes" level="info" />
 
   <!-- Specific logger for Dynamic group update -->
   <logger name="com.normation.rudder.services.queries.DynGroupUpdaterServiceImpl" level="info" />
@@ -350,7 +368,9 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <!--
     Application
     ===========
-    This logger is in charge of general application logging (webapp status, etc)
+    This logger is in charge of general application logging (webapp status, etc).
+    You can use "application.plugin" name if you want to set a different level
+    for plusins related log
   -->
   <logger name="application" level="info" additivity="false">
     <appender-ref ref="OPSLOG" />
