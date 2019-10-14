@@ -595,7 +595,7 @@ class NodeApiService6 (
   def queryNodes ( query: Query, state: InventoryStatus, detailLevel : NodeDetailLevel, version : ApiVersion)( implicit prettify : Boolean) = {
     implicit val action = s"list${state.name.capitalize}Nodes"
     ( for {
-        nodeIds <-  acceptedNodeQueryProcessor.process(query).map(_.map(_.id))
+        nodeIds <-  acceptedNodeQueryProcessor.processOnlyId(query)
       } yield {
         listNodes(state,detailLevel,Some(nodeIds),version)
       }

@@ -53,6 +53,11 @@ trait QueryProcessor {
    */
   def process(query:Query) : Box[Seq[NodeInfo]]
 
+  /**
+   * Only get node ids corresponding to that request, with minimal consistency check.
+   * This method is useful to maximize performance (low memory, high throughout) for ex for dynamic groups.
+   */
+  def processOnlyId(query:Query) : Box[Seq[NodeId]]
 }
 
 
