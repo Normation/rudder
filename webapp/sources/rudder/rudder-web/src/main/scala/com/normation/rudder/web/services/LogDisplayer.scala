@@ -220,12 +220,20 @@ final case class ReportLine (
   , message        : String
 ) extends JsTableLine {
 
+    val (kind,status) : (String,String) = {
+      severity.split("_").toList match {
+        case _ :: Nil => (severity,severity)
+        case head :: rest => (head,rest.mkString("_"))
+        case Nil => (severity,severity)
+      }
+    }
     override val json  = {
 
       JsObj(
           ( "executionDate", DateFormaterService.getDisplayDate(executionDate) )
         , ( "runDate"      , DateFormaterService.getDisplayDate(runDate) )
-        , ( "severity"     , severity )
+        , ( "kind"         , kind )
+        , ( "status"       , status )
         , ( "ruleName"     , escapeHTML(ruleName) )
         , ( "directiveName", escapeHTML(directiveName) )
         , ( "component"    , escapeHTML(component) )
