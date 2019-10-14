@@ -147,7 +147,7 @@ bundle agent ncf_services(service, action)
 
     # init.d
     # WARN: Some actions may not be supported by the init script
-    pass1.!is_boot_action.(!systemctl_utility_present|is_init_service).!is_upstart_service.!svcadm_utility_present.!service_utility_present.!startsrc_utility_present.is_init_service::
+    pass1.!is_boot_action.(!systemctl_utility_present|is_init_service).!is_upstart_service.!svcadm_utility_present.!service_utility_present.!startsrc_utility_present.init_service_exists::
       "action_command" string => "/etc/init.d/${service} ${action}",
                    ifvarclass => "!is_check_action";
       # is-active is mapped to "status"
@@ -157,11 +157,11 @@ bundle agent ncf_services(service, action)
 
     # Slackware
     pass1.slackware.!is_boot_action::
-     "action_command" string => "/etc/rc.d/rc.${service} ${action}",
-                    ifvarclass => "!is_check_action";
+     "action_command"  string => "/etc/rc.d/rc.${service} ${action}",
+                           if => "!is_check_action";
     # is-active is mapped to "status"
-     "action_command" string => "/etc/rc.d/rc.${service} status",
-                    ifvarclass => "is_check_action";
+     "action_command"  string => "/etc/rc.d/rc.${service} status",
+                           if => "is_check_action";
 
     # windows
     # Implementation is done in services promises
@@ -213,8 +213,16 @@ bundle agent ncf_services(service, action)
       "is_upstart_service"         not => returnszero("/sbin/initctl status ${service} 2>&1 | ${paths.path[grep]} -E 'Unknown job|Unable to connect to Upstart' > /dev/null", "useshell"),
                             ifvarclass => "ubuntu.initctl_utility_present";
 
-      # Due to compatibility issues when mixing init.d/service and systemctl calls, we use the init script when present
-      "is_init_service"     expression => fileexists("/etc/init.d/${service}");
+      # Due to compatibility issues when mixing init.d/service and systemctl calls, we use the init script when no systemd unit file is present
+      # We only want to activate the init exception when necessary, i.e. when the init script exists and no unit files are present
+      #
+      # This has no impact for debian system service as their init script already redirect to systemd, but is only necessary for external programs
+      # only providing an init script on a systemd system.
+      "init_service_exists" expression => fileexists("/etc/init.d/${service}"),
+                                    if => "!is_systemd_service";
+      "is_init_service"            not => returnszero("${paths.path[systemctl]} --no-ask-password list-unit-files --type service --all ${service}.service 2>&1 | grep -q '\b1 unit files listed'", "useshell"),
+                                    # Only execute when necessary
+                                    if => "init_service_exists.systemctl_utility_present";
 
     pass1::
       "method_found"        expression => isvariable("method");
