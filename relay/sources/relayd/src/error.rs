@@ -28,227 +28,87 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-#![allow(clippy::enum_glob_use)]
-use self::Error::*;
 use crate::data::node::NodeId;
 use chrono;
 use diesel;
 use serde_json;
-use std::{
-    error::Error as StdError,
-    fmt::{self, Display, Formatter},
-    io, num,
-    path::PathBuf,
-};
+use std::{io, num, path::PathBuf};
+use thiserror::Error;
 use toml;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
+    #[error("invalid run log: {0}")]
     InvalidRunLog(String),
+    #[error("invalid run info: {0}")]
     InvalidRunInfo(String),
+    #[error("file name should be valid unicode")]
     InvalidFileName,
+    #[error("received path {0:?} is not a file")]
     InvalidFile(PathBuf),
+    #[error("inconsistent run log")]
     InconsistentRunlog,
+    #[error("empty run log")]
     EmptyRunlog,
+    #[error("missing id in certificate")]
     MissingIdInCertificate,
+    #[error("certificate for unknown node: {0}")]
     CertificateForUnknownNode(NodeId),
+    #[error("missing certificate for node: {0}")]
     MissingCertificateForNode(NodeId),
-    Unspecified(String),
-    Database(diesel::result::Error),
-    DatabaseConnection(diesel::ConnectionError),
-    Pool(diesel::r2d2::PoolError),
-    Io(io::Error),
-    ConfigurationParsing(toml::de::Error),
-    DateParsing(chrono::ParseError),
-    JsonParsing(serde_json::Error),
-    IntegerParsing(num::ParseIntError),
-    Utf8(std::string::FromUtf8Error),
-    StrUtf8(std::str::Utf8Error),
-    Ssl(openssl::error::ErrorStack),
-    InvalidCondition(String),
-    ParseBoolean(std::str::ParseBoolError),
-    LogFormat(tracing_subscriber::reload::Error),
-    GlobalLogger(tracing::dispatcher::SetGlobalDefaultError),
-    SetLogLogger(log::SetLoggerError),
+    #[error("database error: {0}")]
+    Database(#[from] diesel::result::Error),
+    #[error("database connection error: {0}")]
+    DatabaseConnection(#[from] diesel::ConnectionError),
+    #[error("database pool error: {0}")]
+    Pool(#[from] diesel::r2d2::PoolError),
+    #[error("I/O error: {0}")]
+    Io(#[from] io::Error),
+    #[error("configuration parsing error: {0}")]
+    ConfigurationParsing(#[from] toml::de::Error),
+    #[error("date parsing error: {0}")]
+    DateParsing(#[from] chrono::ParseError),
+    #[error("json parsing error: {0}")]
+    JsonParsing(#[from] serde_json::Error),
+    #[error("integer parsing error: {0}")]
+    IntegerParsing(#[from] num::ParseIntError),
+    #[error("UTF-8 decoding error: {0}")]
+    Utf8(#[from] std::string::FromUtf8Error),
+    #[error("UTF-8 decoding error: {0}")]
+    StrUtf8(#[from] std::str::Utf8Error),
+    #[error("SSL error: {0}")]
+    Ssl(#[from] openssl::error::ErrorStack),
+    #[error("invalid condition: {condition:}, should match {condition_regex:}")]
+    InvalidCondition {
+        condition: String,
+        condition_regex: &'static str,
+    },
+    #[error("invalid condition: {condition:}, should have less then {max_length:} chars")]
+    MaxLengthCondition {
+        condition: String,
+        max_length: usize,
+    },
+    #[error("boolean parsing error: {0}")]
+    ParseBoolean(#[from] std::str::ParseBoolError),
+    #[error("log format error: {0}")]
+    LogFormat(#[from] tracing_subscriber::reload::Error),
+    #[error("global logger setting error: {0}")]
+    GlobalLogger(#[from] tracing::dispatcher::SetGlobalDefaultError),
+    #[error("logger setting error: {0}")]
+    SetLogLogger(#[from] log::SetLoggerError),
+    #[error("invalid ttl: {0}")]
     InvalidTtl(String),
+    #[error("missing target nodes")]
     MissingTargetNodes,
-    InvalidHashType,
-    InvalidLogFilter(tracing_subscriber::filter::ParseError),
+    #[error("invalid hash type provided {invalid:} (available hash types: {valid:})")]
+    InvalidHashType {
+        invalid: String,
+        valid: &'static str,
+    },
+    #[error("invalid log filter: {0}")]
+    InvalidLogFilter(#[from] tracing_subscriber::filter::ParseError),
+    #[error("invalid header")]
     InvalidHeader,
-    HttpClient(reqwest::Error),
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
-        match *self {
-            InvalidRunLog(ref s) => write!(f, "invalid run log {}", s),
-            InvalidRunInfo(ref s) => write!(f, "invalid run info {}", s),
-            InconsistentRunlog => write!(f, "inconsistent run log"),
-            InvalidFileName => write!(f, "file name should be valid unicode"),
-            InvalidFile(ref path) => write!(f, "received path {:#?} is not a file", path),
-            EmptyRunlog => write!(f, "agent run log is empty"),
-            MissingIdInCertificate => write!(f, "certificate is missing a Rudder id"),
-            MissingCertificateForNode(ref node) => {
-                write!(f, "no certificate known for {} node", node)
-            }
-            CertificateForUnknownNode(ref node) => {
-                write!(f, "certificate for unknown {} node", node)
-            }
-            Unspecified(ref err) => write!(f, "internal error: {}", err),
-            Database(ref err) => write!(f, "database error: {}", err),
-            DatabaseConnection(ref err) => write!(f, "database connection error: {}", err),
-            Pool(ref err) => write!(f, "database connection pool error: {}", err),
-            Io(ref err) => write!(f, "I/O error: {}", err),
-            ConfigurationParsing(ref err) => write!(f, "configuration parsing error: {}", err),
-            DateParsing(ref err) => write!(f, "date parsing error: {}", err),
-            JsonParsing(ref err) => write!(f, "json parsing error: {}", err),
-            IntegerParsing(ref err) => write!(f, "integer parsing error: {}", err),
-            Utf8(ref err) => write!(f, "UTF-8 decoding error: {}", err),
-            StrUtf8(ref err) => write!(f, "UTF-8 decoding error: {}", err),
-            Ssl(ref err) => write!(f, "Ssl error: {}", err),
-            InvalidCondition(ref condition) => write!(f, "Invalid agent Condition : {}", condition),
-            ParseBoolean(ref err) => write!(f, "Error occurred while parsing the boolean: {}", err),
-            LogFormat(ref err) => write!(f, "Logging error: {}", err),
-            GlobalLogger(ref err) => write!(f, "Global logger setting error: {}", err),
-            SetLogLogger(ref err) => write!(f, "Global logger setting error: {}", err),
-            InvalidTtl(ref s) => write!(f, "invalid ttl {}", s),
-            MissingTargetNodes => write!(f, "missing nodes list"),
-            InvalidHashType => write!(
-                f,
-                "Invalid hash type provided, available hash types : sha256, sha512"
-            ),
-            InvalidLogFilter(ref err) => write!(f, "Log filter is invalid: {}", err),
-            InvalidHeader => write!(f, "Invalid header"),
-            HttpClient(ref err) => write!(f, "HTTP error: {}", err),
-        }
-    }
-}
-
-impl StdError for Error {
-    fn cause(&self) -> Option<&dyn StdError> {
-        match *self {
-            Database(ref err) => Some(err),
-            DatabaseConnection(ref err) => Some(err),
-            Pool(ref err) => Some(err),
-            Io(ref err) => Some(err),
-            ConfigurationParsing(ref err) => Some(err),
-            DateParsing(ref err) => Some(err),
-            JsonParsing(ref err) => Some(err),
-            IntegerParsing(ref err) => Some(err),
-            Utf8(ref err) => Some(err),
-            StrUtf8(ref err) => Some(err),
-            Ssl(ref err) => Some(err),
-            ParseBoolean(ref err) => Some(err),
-            LogFormat(ref err) => Some(err),
-            HttpClient(ref err) => Some(err),
-            _ => None,
-        }
-    }
-}
-
-impl From<diesel::result::Error> for Error {
-    fn from(err: diesel::result::Error) -> Self {
-        Error::Database(err)
-    }
-}
-
-impl From<std::str::ParseBoolError> for Error {
-    fn from(err: std::str::ParseBoolError) -> Self {
-        Error::ParseBoolean(err)
-    }
-}
-
-impl From<diesel::ConnectionError> for Error {
-    fn from(err: diesel::ConnectionError) -> Self {
-        Error::DatabaseConnection(err)
-    }
-}
-
-impl From<diesel::r2d2::PoolError> for Error {
-    fn from(err: diesel::r2d2::PoolError) -> Self {
-        Error::Pool(err)
-    }
-}
-
-impl From<String> for Error {
-    fn from(string: String) -> Self {
-        Error::Unspecified(string)
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(err: io::Error) -> Self {
-        Error::Io(err)
-    }
-}
-
-impl From<toml::de::Error> for Error {
-    fn from(err: toml::de::Error) -> Self {
-        Error::ConfigurationParsing(err)
-    }
-}
-impl From<chrono::ParseError> for Error {
-    fn from(err: chrono::ParseError) -> Self {
-        Error::DateParsing(err)
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(err: serde_json::Error) -> Self {
-        Error::JsonParsing(err)
-    }
-}
-
-impl From<num::ParseIntError> for Error {
-    fn from(err: num::ParseIntError) -> Self {
-        Error::IntegerParsing(err)
-    }
-}
-
-impl From<std::string::FromUtf8Error> for Error {
-    fn from(err: std::string::FromUtf8Error) -> Self {
-        Error::Utf8(err)
-    }
-}
-
-impl From<std::str::Utf8Error> for Error {
-    fn from(err: std::str::Utf8Error) -> Self {
-        Error::StrUtf8(err)
-    }
-}
-
-impl From<openssl::error::ErrorStack> for Error {
-    fn from(err: openssl::error::ErrorStack) -> Self {
-        Error::Ssl(err)
-    }
-}
-
-impl From<tracing_subscriber::reload::Error> for Error {
-    fn from(err: tracing_subscriber::reload::Error) -> Self {
-        Error::LogFormat(err)
-    }
-}
-
-impl From<tracing::dispatcher::SetGlobalDefaultError> for Error {
-    fn from(err: tracing::dispatcher::SetGlobalDefaultError) -> Self {
-        Error::GlobalLogger(err)
-    }
-}
-
-impl From<log::SetLoggerError> for Error {
-    fn from(err: log::SetLoggerError) -> Self {
-        Error::SetLogLogger(err)
-    }
-}
-
-impl From<tracing_subscriber::filter::ParseError> for Error {
-    fn from(err: tracing_subscriber::filter::ParseError) -> Self {
-        Error::InvalidLogFilter(err)
-    }
-}
-
-impl From<reqwest::Error> for Error {
-    fn from(err: reqwest::Error) -> Self {
-        Error::HttpClient(err)
-    }
+    #[error("HTTP error: {0}")]
+    HttpClient(#[from] reqwest::Error),
 }

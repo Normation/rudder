@@ -32,6 +32,6 @@ mod tests {
             .form(&params)
             .send();
 
-        assert_eq!(res.unwrap().text().unwrap(), "Unhandled rejection: Invalid agent Condition : Invalid agent Condition : Wrong condition: \'clas~1\', it should match ^[a-zA-Z0-9][a-zA-Z0-9_]*$".to_string());
+        assert_eq!(res.unwrap().text().unwrap(), "Unhandled rejection: invalid condition: clas~1, should match ^[a-zA-Z0-9][a-zA-Z0-9_]*$".to_string());
     }
 }

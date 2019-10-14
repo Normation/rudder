@@ -280,17 +280,18 @@ impl FromStr for Condition {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let condition_regex = r"^[a-zA-Z0-9][a-zA-Z0-9_]*$";
         let re = Regex::new(condition_regex).unwrap();
-        if s.len() > 1024 {
-            return Err(Error::InvalidCondition(
-                "Wrong condition: A condition cannot be longer than 1024 characters".to_string(),
-            ));
+        let max_length = 1024;
+        if s.len() > max_length {
+            return Err(Error::MaxLengthCondition {
+                condition: s.to_string(),
+                max_length,
+            });
         }
         if !re.is_match(s) {
-            Err(Error::InvalidCondition(format!(
-                "Wrong condition: '{}', it should match {}",
-                s.to_string(),
-                condition_regex
-            )))
+            Err(Error::InvalidCondition {
+                condition: s.to_string(),
+                condition_regex,
+            })
         } else {
             Ok(Condition {
                 data: s.to_string(),

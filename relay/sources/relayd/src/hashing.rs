@@ -46,7 +46,10 @@ impl FromStr for HashType {
         match s {
             "sha256" => Ok(HashType::Sha256),
             "sha512" => Ok(HashType::Sha512),
-            _ => Err(Error::InvalidHashType),
+            _ => Err(Error::InvalidHashType {
+                invalid: s.to_string(),
+                valid: "sha256, sha512",
+            }),
         }
     }
 }

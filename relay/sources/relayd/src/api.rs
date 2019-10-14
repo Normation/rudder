@@ -149,7 +149,7 @@ pub fn run(
                     &simple_map,
                 ) {
                     Ok(handle) => handle.run(job_config2.clone()),
-                    Err(e) => Err(custom(Error::InvalidCondition(e.to_string()))),
+                    Err(e) => Err(custom(e.to_string())),
                 },
             ));
 
@@ -170,7 +170,7 @@ pub fn run(
                             &simple_map,
                         ) {
                             Ok(handle) => handle.run(job_config3.clone()),
-                            Err(e) => Err(custom(Error::InvalidCondition(e.to_string()))),
+                            Err(e) => Err(custom(e.to_string())),
                         },
                         None => Err(custom(Error::MissingTargetNodes)),
                     }
@@ -184,7 +184,7 @@ pub fn run(
             &simple_map,
         ) {
             Ok(handle) => handle.run(job_config4.clone()),
-            Err(e) => Err(custom(Error::InvalidCondition(e.to_string()))),
+            Err(e) => Err(custom(e.to_string())),
         },
     );
 
