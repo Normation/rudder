@@ -789,4 +789,24 @@ function callRemoteRun(nodeId, refreshCompliance) {
   });
 }
 
+function showHideRunLogs(scrollTarget, init, refresh) {
+  $("#AllLogButton").toggle()
+  $("#logRun").toggle()
+  if ( ! $.fn.DataTable.isDataTable( '#complianceLogsGrid' ) ) {
+    init()
+  }
+  if (refresh !== undefined) {
+    refresh()
+  }
+  $([document.documentElement, document.body]).animate({
+          scrollTop: $(scrollTarget).offset().top
+      }, 400);
+}
 
+function initDatePickers(id, action) {
+  $(id + ' .pickStartInput, ' + id + ' .pickEndInput').datetimepicker({dateFormat:'yy-mm-dd', timeFormat: 'HH:mm:ss', timeInput: true});
+  $(id+"Button").click(function () {
+    var param = '{"start":"'+$(id +" .pickStartInput").val()+'", "end":"'+$(id +" .pickEndInput").val()+'"}'
+    action(param)
+  });
+}

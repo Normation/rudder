@@ -280,7 +280,7 @@ class ShowNodeDetailsFromNode(
       "#nodeDetails" #> DisplayNode.showNodeDetails(inventory, Some((node, globalMode)), Some(node.creationDate),  AcceptedInventory, isDisplayingInPopup = withinPopup) &
       "#nodeInventory *" #> DisplayNode.show(inventory, false) &
       "#reportsDetails *" #> reportDisplayer.asyncDisplay(node) &
-      "#logsDetails *" #> logDisplayer.asyncDisplay(node.id) &
+      "#logsDetails *" #> Script(OnLoad(logDisplayer.asyncDisplay(node.id,None, "logsGrid"))) &
       "#node_parameters -*" #> (if(node.id == Constants.ROOT_POLICY_SERVER_ID) NodeSeq.Empty else nodeStateEditForm(node).nodeStateConfiguration) &
       "#node_parameters -*" #> agentPolicyModeEditForm.cfagentPolicyModeConfiguration &
       "#node_parameters -*" #> agentScheduleEditForm(node).cfagentScheduleConfiguration &

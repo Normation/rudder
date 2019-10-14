@@ -121,11 +121,9 @@ class EventListDisplayer( repos               : EventLogRepository
     val refresh = AnonFunc(SHtml.ajaxInvoke( () => getLastEvents))
 
     Script(OnLoad(JsRaw(s"""
-     var pickEventLogsInInterval = ${AnonFunc(SHtml.ajaxCall(JsRaw(
-       """'{"start":"'+$(".pickStartInput").val()+'", "end":"'+$(".pickEndInput").val()+'"}'"""
-     ), getEventsInterval)._2).toJsCmd}
      var refreshEventLogs = ${refresh.toJsCmd};
-     createEventLogTable('${gridName}',[], '${S.contextPath}', refreshEventLogs, pickEventLogsInInterval)
+     initDatePickers("#filterLogs", ${AnonFunc("param", SHtml.ajaxCall(JsVar("param"), getEventsInterval)._2).toJsCmd});
+     createEventLogTable('${gridName}',[], '${S.contextPath}', refreshEventLogs)
      refreshEventLogs();
     """)))
   }
