@@ -228,6 +228,19 @@ class AcceptedNodesLDAPQueryProcessor(
     } }
   }
 
+  override def processOnlyId(query:Query) : Box[Seq[NodeId]] = {
+    //only keep the one of the form Full(...)
+    queryAndChekNodeId(query, Seq(A_NODE_UUID), None).map { seq => seq.flatMap {
+      case QueryResult(nodeEntry, _ , _) =>
+        nodeDit.NODES.NODE.idFromDn(nodeEntry.dn) match {
+          case Some(nodeId) => Some(nodeId)
+          case None =>
+            logger.error(s"Error when processing query ${query.toJSONString}: fetched node entry ${nodeEntry.toString()} is not a correct nodeId")
+            None
+        }
+    } }
+  }
+
 }
 
 /**

@@ -457,9 +457,9 @@ class GroupApiService2 (
     readGroup.getNodeGroup(NodeGroupId(id)).toBox match {
       case Full((group,_)) =>
         group.query match {
-          case Some(query) => queryProcessor.process(query) match {
-            case Full(nodeList) =>
-              val updatedGroup = group.copy(serverList = nodeList.map(_.id).toSet)
+          case Some(query) => queryProcessor.processOnlyId(query) match {
+            case Full(nodeIds) =>
+              val updatedGroup = group.copy(serverList = nodeIds.toSet)
               val reloadGroupDiff = ModifyToNodeGroupDiff(updatedGroup)
               createChangeRequestAndAnswer(id, reloadGroupDiff, group, Some(group), actor, req, DGModAction.Update, apiVersion)
             case eb:EmptyBox =>
