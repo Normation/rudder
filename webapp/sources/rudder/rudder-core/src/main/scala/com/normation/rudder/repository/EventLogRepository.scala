@@ -376,7 +376,7 @@ trait EventLogRepository {
 
   def getEventLogById(id : Long) : IOResult[EventLog]
 
-  def getEventLogCount: IOResult[Long]
+  def getEventLogCount(criteria : Option[String]): IOResult[Long]
 
   def getEventLogByChangeRequest(
       changeRequest  : ChangeRequestId
