@@ -1336,98 +1336,89 @@ function createChangesTable(gridId, data, contextPath, refresh) {
 function createEventLogTable(gridId, data, contextPath, refresh) {
 
   var columns = [ {
-      "sWidth": "10%"
-      , "mDataProp": "id"
-      , "sTitle": "Id"
-      , "sClass" : "eventId"
-      , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+    "width"       : "10%"
+  , "data"        : "id"
+  , "title"       : "Id"
+  , "className"   : "eventId"
+  , "createdCell" :
+      function (nTd, sData, oData, iRow, iCol) {
         if( oData.hasDetails ) {
           $(nTd).addClass("listopen");
         }
       }
   } , {
-      "sWidth": "20%"
-    , "mDataProp": "date"
-    , "sTitle": "Date"
+    "width": "20%"
+  , "data" : "date"
+  , "title": "Date"
   } , {
-      "sWidth": "10%"
-    , "mDataProp": "actor"
-    , "sTitle": "Actor"
+    "width": "10%"
+  , "data" : "actor"
+  , "title": "Actor"
   } , {
-      "sWidth": "30%"
-    , "mDataProp": "type"
-    , "sTitle": "Type"
+    "width": "30%"
+  , "data" : "type"
+  , "title": "Type"
   } , {
-      "sWidth": "30%"
-    , "mDataProp": "description"
-    , "sTitle": "Description"
+    "width"    : "30%"
+  , "data"     : "description"
+  , "title"    : "Description"
+  , "orderable": false
   } ];
 
-  var params = {
-      "bFilter" : true
-      , "processing" : true
-      , "serverSide" : true
-          , "ajax" : {
-               "type" : "GET"
-              , "url" : contextPath + "/secure/api/eventlog"
-              , "data" : function (d)  {
-                        d.startDate = $(".pickStartInput").val()
-                        d.endDate = $(".pickEndInput").val()
-                       }
-          }
-    , "bPaginate" : true
-    , "bLengthChange": true
-    , "sPaginationType": "full_numbers"
-    , "oLanguage": {
-        "sSearch": ""
+  var params =
+  { "filter" : true
+  , "processing" : true
+  , "serverSide" : true
+  , "ajax" :
+    { "type" : "POST"
+    , "contentType": "application/json"
+    , "url" : contextPath + "/secure/api/eventlog"
+    , "data" :
+       function (d) {
+         d.startDate = $(".pickStartInput").val()
+         d.endDate = $(".pickEndInput").val()
+         return JSON.stringify( d );
+       }
     }
-    , "aaSorting": [[ 0, "desc" ]]
-    , "fnDrawCallback" : function( oSettings ) {
-        var myTable = this;
-        var lines = $(myTable.fnGetNodes());
-          lines.each( function () {
-          var tableRow = $(this);
-          var fnData = myTable.fnGetData( this );
-          tableRow.attr("id",fnData.id);
-          if (fnData.hasDetails) {
-            tableRow.addClass("curspoint");
-            // Remove all previously added callbacks on row or you will get problems
-            tableRow.unbind();
-            // Add callback to open the line
-            tableRow.click( function (e) {
-              e.stopPropagation();
-              // Chack if our line is opened/closed
-              var IdTd = tableRow.find("td.eventId");
-              if (IdTd.hasClass("listclose")) {
-                myTable.fnClose(this);
-                tableRow.removeClass("opened");
-              } else {
-                tableRow.addClass("opened");
-                // Set details
-                var detailsId =  'details-'+fnData.id;
-                // First open the row an d set the id
-                var openedRow = $(myTable.fnOpen(this,'',detailsId));
-                var detailsTd = $("."+detailsId);
-                detailsTd.attr("id",detailsId);
+  , "paging" : true
+  , "lengthChange": true
+  , "pagingType": "full_numbers"
+  , "language":
+    { "Search": "" }
+  , "order": [[ 0, "desc" ]]
+  , "createdRow" :
+      function( row, data, dataIndex, cells ) {
+        var table = this.api();
+        row = $(row);
+        row.attr("id",data.id);
+        if (data.hasDetails) {
+          row.addClass("curspoint");
+          // Remove all previously added callbacks on row or you will get problems
+          row.unbind();
+          // Add callback to open the line
+          row.click( function (e) {
+            e.stopPropagation();
+            // Check if our line is opened/closed
+            var IdTd = $(table.cell(row,0).node());
+            if (IdTd.hasClass("listclose")) {
+              table.row(row).child().hide();
+              row.removeClass("opened");
+            } else {
+                row.addClass("opened");
                 // Set data in the open row with the details function from data
-                $.getJSON(contextPath + '/secure/api/eventlog/' + fnData.id + "/details", function(data) {
+                $.getJSON(contextPath + '/secure/api/eventlog/' + data.id + "/details", function(data) {
                     var html = $.parseHTML( data["data"]["content"] );
-                    $("td#"+detailsId).append( html );
+                    table.row(row).child(html).show();
                 });
-                // Set final css
-                var color = 'color1';
-                if(tableRow.hasClass('color2'))
-                  color = 'color2';
-                openedRow.addClass(color + ' eventLogDescription');
               }
               // toggle list open / close classes
               IdTd.toggleClass('listopen');
               IdTd.toggleClass('listclose');
             } );
           }
-        } );
+
       }
-    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh"><"dataTables_pickdates"><"dataTables_pickend"><"dataTables_pickstart">'+
+    , "dom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh"><"dataTables_pickdates"><"dataTables_pickend"><"dataTables_pickstart">'+
       '>rt<"dataTables_wrapper_bottom"lip>'
   };
 
