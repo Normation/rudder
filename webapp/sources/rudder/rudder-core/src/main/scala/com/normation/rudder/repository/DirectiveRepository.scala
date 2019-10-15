@@ -45,7 +45,6 @@ import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies._
-import com.normation.utils.HashcodeCaching
 import com.normation.utils.Utils
 import org.joda.time.DateTime
 
@@ -70,7 +69,7 @@ object ActiveTechniqueCategoryOrdering extends Ordering[List[ActiveTechniqueCate
 final case class CategoryWithActiveTechniques(
     category : ActiveTechniqueCategory
   , templates: Set[ActiveTechnique]
-) extends HashcodeCaching
+)
 
 
 /**
@@ -202,7 +201,7 @@ trait RoDirectiveRepository {
    * Return Empty if the active technique is not found,
    * Fails on error.
    */
-  def getActiveTechnique(id:ActiveTechniqueId) : IOResult[Option[ActiveTechnique]]
+  def getActiveTechniqueByActiveTechnique(id:ActiveTechniqueId) : IOResult[Option[ActiveTechnique]]
 
 
   /**
@@ -357,7 +356,7 @@ trait WoDirectiveRepository {
    * Delete the active technique in the active tehcnique library.
    * If no such element exists, it is a success.
    */
-  def delete(id:ActiveTechniqueId, modId: ModificationId, actor: EventActor, reason: Option[String]) : IOResult[ActiveTechniqueId]
+  def deleteActiveTechnique(id:ActiveTechniqueId, modId: ModificationId, actor: EventActor, reason: Option[String]) : IOResult[ActiveTechniqueId]
 
 
   /**
@@ -396,7 +395,7 @@ trait WoDirectiveRepository {
    *  - Full(category id) for a success
    *  - Failure(with error message) iif an error happened.
    */
-  def delete(id:ActiveTechniqueCategoryId, modificationId: ModificationId, actor: EventActor, reason: Option[String], checkEmpty:Boolean = true) : IOResult[ActiveTechniqueCategoryId]
+  def deleteCategory(id:ActiveTechniqueCategoryId, modificationId: ModificationId, actor: EventActor, reason: Option[String], checkEmpty:Boolean = true) : IOResult[ActiveTechniqueCategoryId]
 
   /**
    * Move an existing category into a new one.

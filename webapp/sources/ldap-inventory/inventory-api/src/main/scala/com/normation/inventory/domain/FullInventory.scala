@@ -37,9 +37,7 @@
 
 package com.normation.inventory.domain
 
-import com.normation.utils.HashcodeCaching
-
-case class FullInventory(
+final case class FullInventory(
     node:NodeInventory,
     machine:Option[MachineInventory]
-) extends HashcodeCaching
+)

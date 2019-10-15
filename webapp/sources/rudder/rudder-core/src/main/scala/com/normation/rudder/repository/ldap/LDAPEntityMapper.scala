@@ -1001,6 +1001,6 @@ class LDAPEntityMapper(
 // This need to be on top level, else lift json does absolutly nothing good.
 // a stable case class for json serialisation
 // { "acl": [ {"path":"some/path", "actions":["get","put"]}, {"path":"other/path","actions":["get"]}}
-final case class JsonApiAcl(acl: List[JsonApiAuthz])
+final case class JsonApiAcl(acl: List[JsonApiAuthz]) extends AnyVal
 final case class JsonApiAuthz(path: String, actions: List[String])
 

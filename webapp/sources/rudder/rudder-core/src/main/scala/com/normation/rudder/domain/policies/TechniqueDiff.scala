@@ -37,7 +37,6 @@
 
 package com.normation.rudder.domain.policies
 
-import com.normation.utils.HashcodeCaching
 import com.normation.cfclerk.domain.TechniqueName
 
 
@@ -49,14 +48,14 @@ sealed trait TechniqueDiff
 
 final case class AddTechniqueDiff(
     technique: ActiveTechnique
-) extends TechniqueDiff with HashcodeCaching
+) extends TechniqueDiff
 
 final case class DeleteTechniqueDiff(
     technique: ActiveTechnique
-) extends TechniqueDiff with HashcodeCaching
+) extends TechniqueDiff
 
 final case class ModifyTechniqueDiff(
     id                  : ActiveTechniqueId
   , name                : TechniqueName
   , modIsEnabled: Option[SimpleDiff[Boolean]] = None
-) extends TechniqueDiff with HashcodeCaching
+) extends TechniqueDiff

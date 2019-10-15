@@ -47,7 +47,6 @@ import com.normation.rudder.domain._
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.nodes.NaiveNodeInfoServiceCachedImpl
-import com.normation.utils.HashcodeCaching
 import com.normation.zio._
 import com.unboundid.ldap.sdk.DN
 import net.liftweb.common._
@@ -121,7 +120,7 @@ class TestQueryProcessor extends Loggable {
     override val criterionObjects = Map[String,ObjectCriterion]() ++ ditQueryData.criteriaMap
   }
 
-  case class TestQuery(name:String,query:Query,awaited:Seq[NodeId]) extends HashcodeCaching
+  case class TestQuery(name:String,query:Query,awaited:Seq[NodeId])
 
 
   // when one need to debug search, you can just uncomment that to set log-level to trace
@@ -448,7 +447,7 @@ class TestQueryProcessor extends Loggable {
 
     //same as q3 with and
     val q4 = TestQuery(
-      "q3",
+      "q4",
       parser("""
       {  "select":"node",  "composition":"and", "where":[
           { "objectType":"node" , "attribute":"nodeId" , "comparator":"regex", "value":"[nN]ode[01]" }
@@ -469,7 +468,7 @@ class TestQueryProcessor extends Loggable {
     //test regex for "not containing word", see http://stackoverflow.com/questions/406230/regular-expression-to-match-string-not-containing-a-word
     //here, we don't want to have node0 or node1
     val q6 = TestQuery(
-      "q5",
+      "q6",
       parser("""
       {  "select":"node", "where":[
           { "objectType":"node" , "attribute":"nodeId" , "comparator":"regex", "value":"((?!node0|node1).)*" }
@@ -479,7 +478,7 @@ class TestQueryProcessor extends Loggable {
 
     //same as q5, but with "not regex"
     val q7 = TestQuery(
-      "q6",
+      "q7",
       parser("""
       {  "select":"node", "where":[
           { "objectType":"node" , "attribute":"nodeId" , "comparator":"notRegex", "value":"node0" }
@@ -490,7 +489,7 @@ class TestQueryProcessor extends Loggable {
     //same as q5 on IP, to test with escaping
     //192.168.56.101 is for node3
     val q8 = TestQuery(
-      "q7",
+      "q8",
       parser("""
       {  "select":"node", "where":[
           { "objectType":"node" , "attribute":"ipHostNumber" , "comparator":"notRegex", "value":"192.168.56.101" }
@@ -501,7 +500,7 @@ class TestQueryProcessor extends Loggable {
     //typical use case for server on internal/dmz/both: want intenal (but not both)
     //that test a match regex and not regex
     val q9 = TestQuery(
-      "q8",
+      "q9",
       parser("""
       {  "select":"node", "where":[
           { "objectType":"node" , "attribute":"ipHostNumber" , "comparator":"regex", "value":"127.0.0.*" }

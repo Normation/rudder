@@ -54,7 +54,6 @@ import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.rudder.web.services.JsTableData
 import com.normation.rudder.web.services.JsTableLine
 import com.normation.utils.Control.sequence
-import com.normation.utils.HashcodeCaching
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.js.JE.AnonFunc
@@ -115,13 +114,13 @@ class RuleGrid(
     , applicationStatus: ApplicationStatus
     , trackerVariables : Seq[(Directive,ActiveTechnique,Technique)]
     , targets          : Set[RuleTargetInfo]
-  ) extends Line with HashcodeCaching
+  ) extends Line
 
   private[this] case class ErrorLine(
       rule:Rule
     , trackerVariables: Box[Seq[(Directive,ActiveTechnique,Technique)]]
     , targets:Box[Set[RuleTargetInfo]]
-  ) extends Line with HashcodeCaching
+  ) extends Line
 
   private[this] val getFullNodeGroupLib      = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
   private[this] val getFullDirectiveLib      = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
@@ -702,7 +701,7 @@ class RuleGrid(
    *   , "policyMode": Policy mode applied by this Rule [ String ]
    *   }
    */
-case class RuleLine (
+final case class RuleLine (
     name             : String
   , id               : RuleId
   , description      : String

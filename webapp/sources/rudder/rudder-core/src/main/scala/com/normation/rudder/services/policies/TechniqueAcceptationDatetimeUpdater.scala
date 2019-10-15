@@ -163,7 +163,7 @@ class TechniqueAcceptationUpdater(
         case TechniqueCategoryModType.Deleted(cat) =>
           logPure.debug(s"Category '${cat.id.name.value}' deleted in file system") *> (
           if(cat.subCategoryIds.isEmpty && cat.techniqueIds.isEmpty) {
-            rwActiveTechniqueRepo.delete(toActiveCatId(cat.id), modId, actor, reason).map(_ => ())
+            rwActiveTechniqueRepo.deleteCategory(toActiveCatId(cat.id), modId, actor, reason).map(_ => ())
           } else {
             logPure.info(s"Not deleting non empty category: '${cat.id.toString}'") *>
             UIO.unit

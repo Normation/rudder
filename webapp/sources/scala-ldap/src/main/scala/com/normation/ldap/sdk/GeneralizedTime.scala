@@ -33,7 +33,7 @@ import org.joda.time.DateTime
  * http://en.wikipedia.org/wiki/ISO_8601)
  *
  */
-case class GeneralizedTime(val dateTime:DateTime) {
+final case class GeneralizedTime(val dateTime:DateTime) extends AnyVal {
   /**
    * Print the string into a well formed generalize time format.
    */

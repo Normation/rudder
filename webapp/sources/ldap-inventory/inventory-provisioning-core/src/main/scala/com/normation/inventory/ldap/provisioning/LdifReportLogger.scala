@@ -48,7 +48,7 @@ import zio._
  * with given name (a timestamp will be added)
  * File will be stored under a configured directory
  */
-trait LDIFReportLogger {
+trait LDIFReportLogger extends Any {
   /**
    *
    * @param reportName

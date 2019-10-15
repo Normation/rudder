@@ -68,7 +68,7 @@ import zio.syntax._
 import com.normation.errors._
 import com.normation.box._
 
-case class PolicyHash(
+final case class PolicyHash(
     draftId   : PolicyId
   , cacheValue: Int
 )
@@ -88,7 +88,7 @@ case class PolicyHash(
  * date.
  *
  */
-case class NodeConfigurationHash(
+final case class NodeConfigurationHash(
     id             : NodeId
   , writtenDate    : DateTime
   , nodeInfoHash   : Int

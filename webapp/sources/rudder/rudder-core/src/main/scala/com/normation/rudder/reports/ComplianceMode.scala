@@ -50,15 +50,15 @@ sealed trait ComplianceModeName {
   val name : String
 }
 
-case object FullCompliance extends ComplianceModeName {
+final case object FullCompliance extends ComplianceModeName {
   val name = "full-compliance"
 }
 
-case object ChangesOnly extends ComplianceModeName {
+final case object ChangesOnly extends ComplianceModeName {
   val name = "changes-only"
 }
 
-case object ReportsDisabled extends ComplianceModeName {
+final case object ReportsDisabled extends ComplianceModeName {
   val name = "reports-disabled"
 }
 
@@ -81,12 +81,12 @@ sealed trait ComplianceMode {
   val name = mode.name
 }
 
-case class GlobalComplianceMode (
+final case class GlobalComplianceMode (
     mode : ComplianceModeName
   , heartbeatPeriod : Int
 ) extends ComplianceMode
 
-case class NodeComplianceMode (
+final case class NodeComplianceMode (
     mode : ComplianceModeName
   , heartbeatPeriod : Int
   , overrideGlobal : Boolean

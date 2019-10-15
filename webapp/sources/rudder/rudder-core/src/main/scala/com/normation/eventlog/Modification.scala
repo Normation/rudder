@@ -37,8 +37,6 @@
 
 package com.normation.eventlog
 
-import com.normation.utils.HashcodeCaching
-
 /**
  * A modification is some write action we want to be able to trace.
  * Typical modification are update on a rule, creation of a directive,
@@ -49,7 +47,7 @@ import com.normation.utils.HashcodeCaching
  */
 
 
-final case class ModificationId(value:String) extends HashcodeCaching
+final case class ModificationId(value:String) extends AnyVal
 
 object ModificationId {
   val dummy = ModificationId("dummy-modification-id")

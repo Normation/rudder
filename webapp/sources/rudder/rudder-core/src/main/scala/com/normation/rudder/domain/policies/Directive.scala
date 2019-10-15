@@ -39,10 +39,9 @@ package com.normation.rudder.domain.policies
 
 import scala.xml._
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.utils.HashcodeCaching
 import com.normation.cfclerk.domain.SectionSpec
 
-case class DirectiveId(value : String) extends HashcodeCaching
+final case class DirectiveId(value : String) extends AnyVal
 
 /**
  * Define a directive.
@@ -63,7 +62,7 @@ case class DirectiveId(value : String) extends HashcodeCaching
  */
  //TODO: why not keeping techniqueName here ? data duplication ?
 
-case class Directive(
+final case class Directive(
     id : DirectiveId
     /**
      * They reference one and only one Technique version
@@ -119,7 +118,7 @@ case class Directive(
      * Optionally, Directive can have Tags
      */
    , tags : Tags = Tags(Set())
-) extends HashcodeCaching {
+) {
   //system object must ALWAYS be ENABLED.
   def isEnabled = _isEnabled || isSystem
 }
@@ -127,7 +126,7 @@ case class Directive(
 final case class SectionVal(
     sections  : Map[String, Seq[SectionVal]] = Map() //name -> values
   , variables : Map[String, String]          = Map() //name -> values
-) extends HashcodeCaching
+)
 
 object SectionVal {
   val ROOT_SECTION_NAME = "sections"

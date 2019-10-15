@@ -165,9 +165,9 @@ import scala.concurrent.duration.FiniteDuration
  * For now, config properties can only be loaded from either
  * a file in the classpath, or a file in the file system.
  */
-sealed trait ConfigResource
-final case class ClassPathResource(name: String) extends ConfigResource
-final case class FileSystemResource(file: File) extends ConfigResource
+sealed trait ConfigResource extends Any
+final case class ClassPathResource(name: String) extends AnyVal with ConfigResource
+final case class FileSystemResource(file: File) extends AnyVal with ConfigResource
 
 /**
  * User defined configuration variable

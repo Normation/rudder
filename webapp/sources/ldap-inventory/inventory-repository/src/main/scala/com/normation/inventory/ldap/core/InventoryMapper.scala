@@ -88,6 +88,36 @@ object InventoryMappingResult {
 
 }
 
+
+
+////////////////// Node Custom Properties /////////////////////////
+object CustomPropertiesSerialization {
+
+  import net.liftweb.json._
+
+  /*
+   * CustomProperty serialization must follow NodeProperties one:
+   * {"name":"propkey","value": JVALUE}
+   * with JVALUE either a simple type (string, int, etc) or a valid JSON
+   */
+  implicit class Serialise(val cs: CustomProperty) extends AnyVal {
+    def toJson: String = {
+      Serialization.write(cs)(DefaultFormats)
+    }
+  }
+
+  implicit class Unserialize(val json: String) extends AnyVal {
+    def toCustomProperty: Either[Throwable, CustomProperty] = {
+      implicit val formats = DefaultFormats
+      try {
+        Right(Serialization.read[CustomProperty](json))
+      } catch {
+        case ex: Exception => Left(ex)
+      }
+    }
+  }
+}
+
 class DateTimeSerializer extends Serializer[DateTime] {
   private val IntervalClass = classOf[DateTime]
 

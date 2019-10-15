@@ -53,7 +53,6 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.services.queries._
-import com.normation.utils.HashcodeCaching
 import com.normation.zio._
 import com.unboundid.ldap.sdk._
 import net.liftweb.common._
@@ -77,26 +76,26 @@ sealed trait CriterionComparator {
 
 trait BaseComparator extends CriterionComparator
 
-case object Exists extends BaseComparator {
+final case object Exists extends BaseComparator {
   override val id = "exists"
   override def hasValue = false
 }
-case object NotExists extends BaseComparator {
+final case object NotExists extends BaseComparator {
   override val id = "notExists"
   override def hasValue = false
 }
-case object Equals    extends BaseComparator { override val id = "eq" }
-case object NotEquals extends BaseComparator { override val id = "notEq" }
+final case object Equals    extends BaseComparator { override val id = "eq" }
+final case object NotEquals extends BaseComparator { override val id = "notEq" }
 
 trait OrderedComparator extends BaseComparator
-case object Greater   extends OrderedComparator { override val id = "gt"} //strictly greater
-case object Lesser    extends OrderedComparator { override val id = "lt"} //strictly lower
-case object GreaterEq extends OrderedComparator { override val id = "gteq"} //greater or equals
-case object LesserEq  extends OrderedComparator { override val id = "lteq"} //lower or equals
+final case object Greater   extends OrderedComparator { override val id = "gt"} //strictly greater
+final case object Lesser    extends OrderedComparator { override val id = "lt"} //strictly lower
+final case object GreaterEq extends OrderedComparator { override val id = "gteq"} //greater or equals
+final case object LesserEq  extends OrderedComparator { override val id = "lteq"} //lower or equals
 
 trait SpecialComparator extends BaseComparator
-case object Regex extends SpecialComparator { override val id = "regex" }
-case object NotRegex extends SpecialComparator { override val id = "notRegex" }
+final case object Regex extends SpecialComparator { override val id = "regex" }
+final case object NotRegex extends SpecialComparator { override val id = "notRegex" }
 
 sealed trait KeyValueComparator extends BaseComparator
 object KeyValueComparator {
@@ -195,7 +194,7 @@ sealed trait NodeCriterionType extends CriterionType {
 }
 
 
-case object NodeStateComparator extends NodeCriterionType {
+final case object NodeStateComparator extends NodeCriterionType {
 
   //this need to be lazy, else access to "S." at boot will lead to NPE.
   lazy val nodeStates = NodeState.labeledPairs.map{ case (x, label) => (x.name, label) }
@@ -240,11 +239,11 @@ case object NodeStateComparator extends NodeCriterionType {
  *   {"name":"k","value":{ "any":"json","here":"here"}}
  *
  */
-case class SplittedValue(key   : String, values: List[String]) {
+final case class SplittedValue(key   : String, values: List[String]) {
   def value = values.mkString("=")
 }
 
-case class NodePropertyComparator(ldapAttr: String) extends NodeCriterionType {
+final case class NodePropertyComparator(ldapAttr: String) extends NodeCriterionType {
   override val comparators = KeyValueComparator.values.toList ++ BaseComparators.comparators
 
   // split k=v (v may not exists if there is no '='
@@ -351,7 +350,7 @@ sealed trait LDAPCriterionType extends CriterionType {
 }
 
 //a comparator type with undefined comparators
-case class BareComparator(override val comparators: CriterionComparator*) extends LDAPCriterionType with HashcodeCaching {
+final case class BareComparator(override val comparators: CriterionComparator*) extends LDAPCriterionType {
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = Right(v)
   override def toLDAP(value:String) = Right(value)
 }
@@ -373,7 +372,7 @@ trait TStringComparator extends LDAPCriterionType {
   }
 }
 
-case object StringComparator extends TStringComparator {
+final case object StringComparator extends TStringComparator {
   override val comparators = BaseComparators.comparators
 
   override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = comparator match {
@@ -387,7 +386,7 @@ case object StringComparator extends TStringComparator {
   }
 }
 
-case object ExactStringComparator extends TStringComparator {
+final case object ExactStringComparator extends TStringComparator {
   override val comparators = Equals :: Nil
 
   override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = comparator match {
@@ -396,7 +395,7 @@ case object ExactStringComparator extends TStringComparator {
   }
 }
 
-case object OrderedStringComparator extends TStringComparator {
+final case object OrderedStringComparator extends TStringComparator {
   override val comparators = OrderedComparators.comparators
 
   override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = comparator match {
@@ -415,7 +414,7 @@ case object OrderedStringComparator extends TStringComparator {
   }
 }
 
-case object DateComparator extends LDAPCriterionType {
+final case object DateComparator extends LDAPCriterionType {
   override val comparators = OrderedComparators.comparators.filterNot( c => c == Regex || c == NotRegex)
   val fmt = "dd/MM/yyyy"
   val frenchFmt = DateTimeFormat.forPattern(fmt).withLocale(Locale.FRANCE)
@@ -473,7 +472,7 @@ case object DateComparator extends LDAPCriterionType {
 
 }
 
-case object BooleanComparator extends LDAPCriterionType {
+final case object BooleanComparator extends LDAPCriterionType {
   override val comparators = BaseComparators.comparators
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = v.toLowerCase match {
     case "t" | "f" | "true" | "false" => Right(v)
@@ -485,7 +484,7 @@ case object BooleanComparator extends LDAPCriterionType {
   }
 }
 
-case object LongComparator extends LDAPCriterionType {
+final case object LongComparator extends LDAPCriterionType {
   override val comparators = OrderedComparators.comparators
   override protected def validateSubCase(v:String,comparator:CriterionComparator) =  try {
     Right((v.toLong).toString)
@@ -499,7 +498,7 @@ case object LongComparator extends LDAPCriterionType {
   }
 }
 
-case object MemoryComparator extends LDAPCriterionType {
+final case object MemoryComparator extends LDAPCriterionType {
   override val comparators = OrderedComparators.comparators
   override protected def validateSubCase(v: String, comparator: CriterionComparator) = {
     comparator match {
@@ -517,7 +516,7 @@ case object MemoryComparator extends LDAPCriterionType {
 }
 
 
-case object MachineComparator extends LDAPCriterionType {
+final case object MachineComparator extends LDAPCriterionType {
 
   val machineTypes = "Virtual" ::  "Physical" :: Nil
 
@@ -549,7 +548,7 @@ case object MachineComparator extends LDAPCriterionType {
     )
 }
 
-case object OstypeComparator extends LDAPCriterionType {
+final case object OstypeComparator extends LDAPCriterionType {
   val osTypes = List("AIX", "BSD", "Linux", "Solaris", "Windows")
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
@@ -582,7 +581,7 @@ case object OstypeComparator extends LDAPCriterionType {
     )
 }
 
-case object OsNameComparator extends LDAPCriterionType {
+final case object OsNameComparator extends LDAPCriterionType {
   import net.liftweb.http.S
 
   val osNames = AixOS ::
@@ -635,7 +634,7 @@ case object OsNameComparator extends LDAPCriterionType {
  *
  *   So we do actually need a special agent type "cfengine", and hand craft the buildFilter for it.
  */
-case object AgentComparator extends LDAPCriterionType {
+final case object AgentComparator extends LDAPCriterionType {
 
   val ANY_CFENGINE = "cfengine"
   val (cfeTypes, cfeAgents) = ((ANY_CFENGINE, "Any CFEngine based agent"),(ANY_CFENGINE, AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil))
@@ -689,7 +688,7 @@ case object AgentComparator extends LDAPCriterionType {
     )
 }
 
-case object EditorComparator extends LDAPCriterionType {
+final case object EditorComparator extends LDAPCriterionType {
   val editors = List("Microsoft", "RedHat", "Debian", "Adobe", "Macromedia")
   override val comparators = BaseComparators.comparators
   override protected def validateSubCase(v:String,comparator:CriterionComparator) =
@@ -716,7 +715,7 @@ case object EditorComparator extends LDAPCriterionType {
  *
  * Used for "process" attribute
  */
-case class JsonFixedKeyComparator(ldapAttr:String, jsonKey: String, quoteValue: Boolean) extends TStringComparator {
+final case class JsonFixedKeyComparator(ldapAttr:String, jsonKey: String, quoteValue: Boolean) extends TStringComparator {
   override val comparators = BaseComparators.comparators
 
   def format(attribute:String, value:String) = {
@@ -761,7 +760,7 @@ case class JsonFixedKeyComparator(ldapAttr:String, jsonKey: String, quoteValue: 
  *
  *  Used for environmentVariable
  */
-case class NameValueComparator(ldapAttr: String) extends TStringComparator {
+final case class NameValueComparator(ldapAttr: String) extends TStringComparator {
   import KeyValueComparator.HasKey
   override val comparators = HasKey +: BaseComparators.comparators
 
@@ -867,12 +866,12 @@ class SubGroupComparator(getGroups: () => IOResult[Seq[SubGroupChoice]]) extends
  * on an inventory (or successlly on an inventory) property but on a RudderNode property.
  * In that case, give the predicat that the node must follows.
  */
-case class Criterion(val name:String, val cType: CriterionType, overrideObjectType: Option[String] = None) extends HashcodeCaching {
+final case class Criterion(val name:String, val cType: CriterionType, overrideObjectType: Option[String] = None) {
   require(name != null && name.length > 0, "Criterion name must be defined")
   require(cType != null, "Criterion Type must be defined")
 }
 
-case class ObjectCriterion(val objectType:String, val criteria:Seq[Criterion]) extends HashcodeCaching {
+final case class ObjectCriterion(val objectType:String, val criteria:Seq[Criterion]) {
   require(objectType.length > 0, "Unique identifier for line must be defined")
   require(criteria.size > 0, "You must at least have one criterion for the line")
 
@@ -893,11 +892,11 @@ case class ObjectCriterion(val objectType:String, val criteria:Seq[Criterion]) e
   }
 }
 
-case class CriterionLine(objectType:ObjectCriterion, attribute:Criterion, comparator:CriterionComparator, value:String="") extends HashcodeCaching
+final case class CriterionLine(objectType:ObjectCriterion, attribute:Criterion, comparator:CriterionComparator, value:String="")
 
 sealed abstract class CriterionComposition
-case object And extends CriterionComposition
-case object Or extends CriterionComposition
+final case object And extends CriterionComposition
+final case object Or extends CriterionComposition
 object CriterionComposition {
     def parse(s:String) : Option[CriterionComposition] = {
     s.toLowerCase match {
@@ -912,7 +911,7 @@ sealed trait QueryReturnType {
   def value : String
 }
 
-case object QueryReturnType {
+final case object QueryReturnType {
   def apply(value : String) = {
     value match {
       case NodeReturnType.value => Right(NodeReturnType)
@@ -921,14 +920,14 @@ case object QueryReturnType {
     }
   }
 }
-case object NodeReturnType extends QueryReturnType{
+final case object NodeReturnType extends QueryReturnType{
   override val value = "node"
 }
-case object NodeAndPolicyServerReturnType extends QueryReturnType{
+final case object NodeAndPolicyServerReturnType extends QueryReturnType{
   override val value = "nodeAndPolicyServer"
 }
 
-case class Query(
+final case class Query(
     val returnType:QueryReturnType,  //"node" or "node and policy servers"
     val composition:CriterionComposition,
     val criteria: List[CriterionLine] //list of all criteria to be matched by returned values

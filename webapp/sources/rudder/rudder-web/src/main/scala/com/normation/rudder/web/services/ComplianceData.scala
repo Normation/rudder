@@ -270,7 +270,7 @@ object ComputePolicyMode {
  *   , "executionDate" : date the report was run on the Node [String]
  *   }
  */
-case class ChangeLine (
+final case class ChangeLine (
     report        : ResultReports
   , nodeName      : Option[String] = None
   , ruleName      : Option[String] = None
@@ -329,7 +329,7 @@ object ChangeLine {
  *   , "explanation" : Policy mode explanation [String]
  *   }
  */
-case class RuleComplianceLine (
+final case class RuleComplianceLine (
     rule             : Rule
   , id               : RuleId
   , compliance       : ComplianceLevel
@@ -369,7 +369,7 @@ case class RuleComplianceLine (
  *   , "explanation" : Policy mode explanation [String]
  *   }
  */
-case class DirectiveComplianceLine (
+final case class DirectiveComplianceLine (
     directive        : Directive
   , techniqueName    : String
   , techniqueVersion : TechniqueVersion
@@ -407,7 +407,7 @@ case class DirectiveComplianceLine (
  *   , "jsid"    : unique identifier for the line [String]
  *   }
  */
-case class NodeComplianceLine (
+final case class NodeComplianceLine (
     nodeInfo   : NodeInfo
   , compliance : ComplianceLevel
   , details    : JsTableData[DirectiveComplianceLine]
@@ -441,7 +441,7 @@ case class NodeComplianceLine (
  *   , "jsid"    : unique identifier for the line [String]
  *   }
  */
-case class ComponentComplianceLine (
+final case class ComponentComplianceLine (
     component   : String
   , compliance  : ComplianceLevel
   , details     : JsTableData[ValueComplianceLine]
@@ -472,7 +472,7 @@ case class ComponentComplianceLine (
  *   , "jsid"    : unique identifier for the line [String]
  *   }
  */
-case class ValueComplianceLine (
+final case class ValueComplianceLine (
     value       : String
   , messages    : List[(String, String)]
   , compliance  : ComplianceLevel

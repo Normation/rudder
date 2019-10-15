@@ -40,7 +40,6 @@ package com.normation.rudder.domain.eventlog
 import com.normation.eventlog._
 import org.joda.time.DateTime
 import com.normation.inventory.domain.NodeId
-import com.normation.utils.HashcodeCaching
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.Constants
 
@@ -54,7 +53,7 @@ final case class InventoryLogDetails(
   , hostname        : String
   , fullOsName      : String
   , actorIp         : String
-) extends HashcodeCaching
+)
 
 sealed trait AssetEventLog extends EventLog { override final val eventLogCategory = AssetLogCategory }
 
@@ -84,7 +83,7 @@ object InventoryEventLog {
 
 final case class AcceptNodeEventLog (
     override val eventDetails : EventLogDetails
-) extends InventoryEventLog with HashcodeCaching {
+) extends InventoryEventLog {
 
   override val eventType = AcceptNodeEventLog.eventType
 }
@@ -112,7 +111,7 @@ object AcceptNodeEventLog extends EventLogFilter {
 
 final case class RefuseNodeEventLog (
     override val eventDetails : EventLogDetails
-) extends InventoryEventLog with HashcodeCaching {
+) extends InventoryEventLog {
   override val eventType = RefuseNodeEventLog.eventType
 }
 
@@ -142,11 +141,11 @@ object RefuseNodeEventLog extends EventLogFilter {
 
 final case class NodeLogDetails(
     node: NodeInfo
-) extends HashcodeCaching
+)
 
 final case class DeleteNodeEventLog (
     override val eventDetails : EventLogDetails
-) extends InventoryEventLog with HashcodeCaching {
+) extends InventoryEventLog {
   override val eventType = DeleteNodeEventLog.eventType
 
 }

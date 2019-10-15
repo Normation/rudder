@@ -40,7 +40,6 @@ package com.normation.inventory.services.provisioning
 import com.normation.errors._
 import com.normation.inventory.domain._
 import net.liftweb.common._
-import com.normation.utils.HashcodeCaching
 import zio._
 import zio.syntax._
 
@@ -48,7 +47,7 @@ import zio.syntax._
  * Implementation of IdFinderAction that is pipelinable
  * for servers
  */
-sealed case class NamedNodeInventoryDNFinderAction(val name:String,val action:NodeInventoryDNFinderAction) extends HashcodeCaching
+sealed case class NamedNodeInventoryDNFinderAction(val name:String,val action:NodeInventoryDNFinderAction)
 
 class NodeInventoryDNFinderService(actions: Seq[NamedNodeInventoryDNFinderAction]) extends NodeInventoryDNFinderAction {
 
@@ -72,7 +71,7 @@ class NodeInventoryDNFinderService(actions: Seq[NamedNodeInventoryDNFinderAction
  * Implementation of IdFinderAction that is pipelinable
  * for machines
  */
-sealed case class NamedMachineDNFinderAction(val name:String,val action:MachineDNFinderAction) extends HashcodeCaching
+sealed case class NamedMachineDNFinderAction(val name:String,val action:MachineDNFinderAction)
 
 class MachineDNFinderService(actions:Seq[NamedMachineDNFinderAction]) extends MachineDNFinderAction with Loggable {
 

@@ -42,7 +42,6 @@ import com.normation.inventory.ldap.core.InventoryMappingResult.InventoryMapping
 import com.normation.inventory.ldap.core.InventoryMappingRudderError.MalformedDN
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.ldap.sdk.LDAPEntry
-import com.normation.utils.HashcodeCaching
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 
@@ -125,7 +124,7 @@ trait AbstractDit {
  * @param SOFTWARE_BASE_DN
  *   the DN under which Software OU is
  */
-case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String) extends AbstractDit with HashcodeCaching {
+final case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String) extends AbstractDit {
   dit =>
 
   implicit val DIT = dit

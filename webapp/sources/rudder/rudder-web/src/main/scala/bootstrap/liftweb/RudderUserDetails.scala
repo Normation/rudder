@@ -53,7 +53,6 @@ import com.normation.rudder.api._
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.rest.RoleApiMapping
-import com.normation.utils.HashcodeCaching
 import org.bouncycastle.util.encoders.Hex
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
@@ -110,7 +109,7 @@ object PasswordEncoder {
 /**
  * An user list is a parsed list of users with their authorisation
  */
-case class UserDetailList(
+final case class UserDetailList(
     encoder    : PasswordEncoder.Rudder
   , users      : Map[String, RudderUserDetail]
 )
@@ -230,7 +229,7 @@ final case class RudderUserDetail(
     account : RudderAccount
   , roles   : Set[Role]
   , apiAuthz: ApiAuthorization
-) extends UserDetails with HashcodeCaching {
+) extends UserDetails {
   // merge roles rights
   val authz = new Rights(roles.flatMap(_.rights.authorizationTypes).toSeq:_*)
   override val (getUsername, getPassword, getAuthorities) = account match {

@@ -91,7 +91,6 @@ package com.normation.rudder.web.model
 import scala.collection.BitSet
 import com.normation.utils.Utils.isEmpty
 import Perm._
-import com.normation.utils.HashcodeCaching
 
 trait Perm {
   def bits:BitSet
@@ -114,35 +113,35 @@ trait Perm {
   def exec = bits(0)
 }
 
-case object none extends Perm {
+final case object none extends Perm {
   val bits = BitSet()
   override def toString() = "---"
 }
-case object r extends Perm {
+final case object r extends Perm {
   val bits = BitSet(2)
   override def toString() = "r--"
 }
-case object w extends Perm {
+final case object w extends Perm {
   val bits = BitSet(1)
   override def toString() = "-w-"
 }
-case object x extends Perm {
+final case object x extends Perm {
   val bits = BitSet(0)
   override def toString() = "--x"
 }
-case object rw extends Perm {
+final case object rw extends Perm {
   val bits = BitSet(2,1)
   override def toString() = "rw-"
 }
-case object rx extends Perm {
+final case object rx extends Perm {
   val bits = BitSet(2,0)
   override def toString() = "r-x"
 }
-case object wx extends Perm {
+final case object wx extends Perm {
   val bits = BitSet(1,0)
   override def toString() = "-wx"
 }
-case object rwx extends Perm {
+final case object rwx extends Perm {
   val bits = BitSet(2,1,0)
   override def toString() = "rwx"
 }
@@ -201,7 +200,7 @@ object Perm {
   def allPerms = Set(none,r,w,x,rw,rx,wx,rwx)
 }
 
-case class PermSet(file:FilePerms,perms:(Perm => Unit, () => Perm)* )  extends HashcodeCaching {
+final case class PermSet(file:FilePerms,perms:(Perm => Unit, () => Perm)* ) {
 
   /*
    * Add to all perms the given rights

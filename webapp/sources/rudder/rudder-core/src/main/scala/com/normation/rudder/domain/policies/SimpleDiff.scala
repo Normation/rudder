@@ -37,7 +37,6 @@
 
 package com.normation.rudder.domain.policies
 
-import com.normation.utils.HashcodeCaching
 import scala.xml._
 
 /**
@@ -45,7 +44,7 @@ import scala.xml._
  * old and new value of something.
  */
 
-final case class SimpleDiff[T](oldValue:T, newValue:T) extends HashcodeCaching
+final case class SimpleDiff[T](oldValue:T, newValue:T)
 
 final object SimpleDiff {
   def toXml[T](eltTag:Elem, diff:SimpleDiff[T])(serialize:T => NodeSeq) : NodeSeq = {

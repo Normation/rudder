@@ -63,12 +63,12 @@ sealed trait NcfTechniqueUpgradeError {
 
 }
 object NcfTechniqueUpgradeError {
-  case class NcfApiAuthFailed    (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
-  case class NcfApiRequestFailed (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
-  case class JsonExtractionError (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
-  case class WriteTechniqueError (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
-  case class TechniqueUpdateError(msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
-  case class FlagFileError       (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
+final case class NcfApiAuthFailed    (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
+final case class NcfApiRequestFailed (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
+final case class JsonExtractionError (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
+final case class TechniqueUpdateError(msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
+final case class WriteTechniqueError (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
+final case class FlagFileError       (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
 
   type Result[T] = Either[NcfTechniqueUpgradeError, T]
   def tryo[T]( f : => T, errorMessage : String, catcher : (String,Option[Throwable]) => NcfTechniqueUpgradeError) : Result[T] = {

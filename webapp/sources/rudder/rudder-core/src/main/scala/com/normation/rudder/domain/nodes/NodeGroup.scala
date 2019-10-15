@@ -39,13 +39,12 @@ package com.normation.rudder.domain.nodes
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.queries.Query
-import com.normation.utils.HashcodeCaching
 
 /**
  * UUId type for Node Groups, so that they
  * can be uniquely identified in our world.
  */
-case class NodeGroupId(value:String) extends HashcodeCaching
+final case class NodeGroupId(value:String) extends AnyVal
 
 /**
  * This class define a node group
@@ -57,7 +56,7 @@ case class NodeGroupId(value:String) extends HashcodeCaching
  * - a list of node id, if the group is static (or even dynamic?)
  *
  */
-case class NodeGroup(
+final case class NodeGroup(
     id         : NodeGroupId
   , name       : String
   , description: String
@@ -66,7 +65,7 @@ case class NodeGroup(
   , serverList : Set[NodeId]
   , _isEnabled : Boolean
   , isSystem   : Boolean = false
-) extends HashcodeCaching {
+) {
   //system object must ALWAYS be ENABLED.
   def isEnabled = _isEnabled || isSystem
 }

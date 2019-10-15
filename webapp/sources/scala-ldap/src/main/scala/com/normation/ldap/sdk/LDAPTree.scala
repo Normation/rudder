@@ -103,7 +103,7 @@ object LDAPTree {
   //loggin
   val logger = org.slf4j.LoggerFactory.getLogger(classOf[LDAPTree])
 
-  def apply(r:LDAPEntry,c:Traversable[(RDN,LDAPTree)]) : LDAPTree = new LDAPTree {
+  def apply(r:LDAPEntry, c:Traversable[(RDN,LDAPTree)]) : LDAPTree = new LDAPTree {
     require(null != r, "root of a tree can't be null")
     require(null != c, "children map of a tree can't be null")
 

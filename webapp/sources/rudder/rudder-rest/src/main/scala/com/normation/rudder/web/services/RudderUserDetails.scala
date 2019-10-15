@@ -39,7 +39,6 @@ package com.normation.rudder.web.services
 import java.util.Collection
 import com.normation.rudder.{AuthorizationType, Rights, Role, RudderAccount}
 import com.normation.rudder.api.ApiAuthorization
-import com.normation.utils.HashcodeCaching
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
 import scala.collection.JavaConverters.asJavaCollectionConverter
@@ -86,7 +85,7 @@ final case class RudderUserDetail(
   account : RudderAccount
   , roles   : Set[Role]
   , apiAuthz: ApiAuthorization
-) extends UserDetails with HashcodeCaching {
+) extends UserDetails {
   // merge roles rights
   val authz = new Rights(roles.flatMap(_.rights.authorizationTypes).toSeq:_*)
   override val (getUsername, getPassword, getAuthorities) = account match {

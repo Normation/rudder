@@ -54,7 +54,7 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 
 
-case object WorkflowUpdate
+final case object WorkflowUpdate
 
 
 /*

@@ -112,7 +112,7 @@ object BuildBundleSequence {
   // ad-hoc data structure to denote a directive name
   // (actually, the directive applied in to rule),
   // or in CFEngine name a "promiser"
-  final case class Promiser(value: String)
+  final case class Promiser(value: String) extends AnyVal
 
   // A bundle paramer is just a String, but it can be quoted with simple or double quote
   // (double quote is the default, and simple quote are used mostly for JSON)
@@ -201,7 +201,17 @@ object BuildBundleSequence {
   }
 
   val cleanReportingBundle : Bundle = Bundle(None, BundleName(s"""clean_reporting_context"""), Nil )
+
+  /*
+   * Some Techniques don't have any bundle (at least common).
+   * We don't want to include these technique in the bundle sequence,
+   * obviously
+   */
+  implicit final class NoBundleTechnique(val bundles: List[TechniqueBundles]) extends AnyVal {
+    def removeEmptyBundle: List[TechniqueBundles] = bundles.filterNot(_.main.isEmpty)
+  }
 }
+
 
 class BuildBundleSequence(
     systemVariableSpecService : SystemVariableSpecService
@@ -279,15 +289,6 @@ class BuildBundleSequence(
   ////////////////////////////////////////////
   ////////// Implementation details //////////
   ////////////////////////////////////////////
-
-  /*
-   * Some Techniques don't have any bundle (at least common).
-   * We don't want to include these technique in the bundle sequence,
-   * obviously
-   */
-  implicit final class NoBundleTechnique(bundles: List[TechniqueBundles]) {
-    def removeEmptyBundle: List[TechniqueBundles] = bundles.filterNot(_.main.isEmpty)
-  }
 
   /*
    * For each techniques:
@@ -568,7 +569,7 @@ final case class JsonRunHook(
 )
 
 object JsonRunHookSer {
-  implicit class ToJson(h: NodeRunHook) {
+  implicit class ToJson(val h: NodeRunHook) extends AnyVal {
     import net.liftweb.json._
     def jsonParam: String = {
       val jh = JsonRunHook(

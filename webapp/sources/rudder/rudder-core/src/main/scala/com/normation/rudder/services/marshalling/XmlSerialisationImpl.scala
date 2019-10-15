@@ -112,7 +112,7 @@ object TagsXml {
   }
 }
 
-case class XmlSerializerImpl (
+final case class XmlSerializerImpl (
     rule        : RuleSerialisation
   , directive   : DirectiveSerialisation
   , group       : NodeGroupSerialisation

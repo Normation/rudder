@@ -36,10 +36,9 @@
 */
 
 package com.normation.rudder.domain.policies
-import com.normation.utils.HashcodeCaching
 import com.normation.rudder.rule.category.RuleCategoryId
 
-case class RuleId(value:String) extends HashcodeCaching
+final case class RuleId(value:String) extends AnyVal
 
 /**
  * A rule is a binding between a set of directives
@@ -51,7 +50,7 @@ case class RuleId(value:String) extends HashcodeCaching
  * In that case, it *MUST* be considered desactivated, whatever
  * the isEnabledField say.
  */
-case class Rule(
+final case class Rule(
     id              : RuleId
   , name            : String
   , categoryId      : RuleCategoryId
@@ -67,7 +66,7 @@ case class Rule(
      * Optionally, Rule can have Tags
      */
    , tags           : Tags = Tags(Set())
-) extends HashcodeCaching {
+) {
   //system object must ALWAYS be ENABLED.
   def isEnabled = isSystem || (isEnabledStatus && !targets.isEmpty && !directiveIds.isEmpty)
 }

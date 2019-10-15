@@ -526,7 +526,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
   private[this] def refreshBottomPanel(id:ActiveTechniqueId) : JsCmd = {
     for {
-      activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(id).toBox.flatMap { Box(_) }
+      activeTechnique <- roActiveTechniqueRepository.getActiveTechniqueByActiveTechnique(id).toBox.flatMap { Box(_) }
       technique <- techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName)
     } { //TODO : check errors
       updateCurrentTechniqueDetails(Some(technique), Some(activeTechnique))

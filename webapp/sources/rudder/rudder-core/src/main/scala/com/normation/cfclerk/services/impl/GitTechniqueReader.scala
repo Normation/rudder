@@ -66,6 +66,7 @@ import com.normation.errors._
 import com.normation.zio.ZioRuntime
 import zio._
 import zio.syntax._
+import GitTechniqueReader._
 
 /**
  *
@@ -119,6 +120,12 @@ import zio.syntax._
  *   Else, the relative path without leading nor trailing "/" is used. For
  *   example, in example (2), Some("techniques") must be used.
  */
+object GitTechniqueReader {
+
+  //denotes a path for a technique, so it starts by a "/"
+  //and is not prefixed by relativePathToGitRepos
+  final case class TechniquePath(path:String) extends AnyVal
+}
 
 class GitTechniqueReader(
   techniqueParser            : TechniqueParser,
@@ -142,10 +149,6 @@ class GitTechniqueReader(
       case Left(err) => throw new RuntimeException(err.fullMsg)
     }
   }
-
-  //denotes a path for a technique, so it starts by a "/"
-  //and is not prefixed by relativePathToGitRepos
-  private[this] case class TechniquePath(path:String)
 
   //the path of the PT lib relative to the git repos
   //withtout leading and trailing /.

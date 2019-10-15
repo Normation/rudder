@@ -22,10 +22,9 @@ package com.normation.eventlog
 
 import org.joda.time.DateTime
 import scala.xml._
-import com.normation.utils.HashcodeCaching
 
 
-final case class EventActor(name:String) extends HashcodeCaching
+final case class EventActor(name:String) extends AnyVal
 
 /**
  * A type that describe on what category an event belongs to.
@@ -79,7 +78,7 @@ final case class EventLogDetails(
  , val severity      : Int = 100
  , val reason        : Option[String]
  , val details       : Elem
-) extends HashcodeCaching
+)
 
 trait EventLogFilter extends PartialFunction[(EventLogType, EventLogDetails) , EventLog] {
   /**
@@ -87,7 +86,7 @@ trait EventLogFilter extends PartialFunction[(EventLogType, EventLogDetails) , E
    * Must be unique among all events.
    * Most of the time, the event class name plus Type is OK.
    */
-  val eventType : EventLogType
+  def eventType : EventLogType
 
 
   override  def isDefinedAt(x : (EventLogType, EventLogDetails)) : Boolean = {
@@ -163,9 +162,9 @@ trait EventLog  {
 /**
  * The unspecialized Event Log. Used as a container when unserializing data, to be specialized later by the EventLogSpecializers
  */
-case class UnspecializedEventLog(
+final case class UnspecializedEventLog(
     override val eventDetails : EventLogDetails
-) extends EventLog with HashcodeCaching {
+) extends EventLog {
   override val eventType = UnspecializedEventLog.eventType
   override val eventLogCategory = UnknownLogCategory
 }
@@ -181,7 +180,7 @@ object EventLog {
   val emptyDetails = withContent(NodeSeq.Empty)
 }
 
-case object UnknownEventLogType extends NoRollbackEventLogType {
+final case object UnknownEventLogType extends NoRollbackEventLogType {
   def serialize = "UnknownType"
 }
 

@@ -217,11 +217,11 @@ class TestInventory extends Specification {
         val m = machine("machine in " + status.name, status)
         repo.save(m).testRun
 
-        val found = repo.get(m.id).testRun
+        val found = repo.getMachine(m.id).testRun
 
         (Right(Some(m)) === found) and {
           repo.delete(m.id).testRun
-          val x = repo.get(m.id).testRun
+          val x = repo.getMachine(m.id).testRun
           x must beEqualTo(Right(None))
           ok
         }
@@ -235,7 +235,7 @@ class TestInventory extends Specification {
       }
 
       val toFound = machine("m1", AcceptedInventory)
-      val found = repo.get(toFound.id).testRun
+      val found = repo.getMachine(toFound.id).testRun
 
       Right(Some(toFound)) === found
 
@@ -249,9 +249,9 @@ class TestInventory extends Specification {
 
       (
         repo.move(m.id, AcceptedInventory).isOK
-        and (repo.get(m.id).testRun must beRight(Some(m.copy(status = AcceptedInventory))))
+        and (repo.getMachine(m.id).testRun must beRight(Some(m.copy(status = AcceptedInventory))))
         and repo.move(m.id, RemovedInventory).isOK
-        and (repo.get(m.id).testRun must beRight(Some(m.copy(status = RemovedInventory))))
+        and (repo.getMachine(m.id).testRun must beRight(Some(m.copy(status = RemovedInventory))))
       )
     }
 
@@ -265,7 +265,7 @@ class TestInventory extends Specification {
         and (repo.move(m1.id, RemovedInventory).testRun must beRight)
         and {
           val dn = inventoryDitService.getDit(AcceptedInventory).MACHINES.MACHINE.dn(m1.id)
-          Right(Some(m2)) === repo.get(m1.id).testRun and ldap.server.entryExists(dn.toString) === false
+          Right(Some(m2)) === repo.getMachine(m1.id).testRun and ldap.server.entryExists(dn.toString) === false
         }
       )
     }

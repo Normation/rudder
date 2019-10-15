@@ -58,7 +58,6 @@ import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.utils.HashcodeCaching
 
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
@@ -72,13 +71,13 @@ import com.normation.errors._
  * (never starts with a "/", not heading nor trailing
  * empty characters), but this is not enforce by that class.
  */
-final case class GitPath(value: String) extends HashcodeCaching
+final case class GitPath(value: String) extends AnyVal
 
 /**
  * A git commit string character, the SHA-1 hash that can be
  * use in git command line with git checkout, git show, etc.
  */
-final case class GitCommitId(value: String) extends HashcodeCaching
+final case class GitCommitId(value: String) extends AnyVal
 
 
 /**
@@ -88,8 +87,7 @@ final case class GitCommitId(value: String) extends HashcodeCaching
  * indication, especially if its 'master' (a branch path is more likely to be
  * a little more stable).
  */
-final case class GitArchiveId(path: GitPath, commit: GitCommitId, commiter: PersonIdent) extends HashcodeCaching
-
+final case class GitArchiveId(path: GitPath, commit: GitCommitId, commiter: PersonIdent)
 
 final case class ActiveTechniqueNotArchived(
     activeTechniqueId: ActiveTechniqueId

@@ -43,7 +43,6 @@ import net.liftweb.common._
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.eventlog.EventActor
-import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.ModificationId
 
 import com.normation.box._
@@ -55,11 +54,11 @@ import com.normation.box._
  * removed/added members are compared with the
  * state pre-update.
  */
-case class DynGroupDiff(
+final case class DynGroupDiff(
     members:Set[NodeId],
     removed:Set[NodeId],
     added:Set[NodeId]
-) extends HashcodeCaching
+)
 
 object DynGroupDiff {
   def apply(newGroup : NodeGroup, oldGroup : NodeGroup): DynGroupDiff = {

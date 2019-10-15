@@ -47,17 +47,17 @@ import net.liftweb.common.Box
 
 sealed trait TechniqueCategoryModType
 object TechniqueCategoryModType {
-  case class Updated(id: TechniqueCategory) extends TechniqueCategoryModType // change in name, description
-  case class Added(cat: TechniqueCategory, parentId: TechniqueCategoryId) extends TechniqueCategoryModType
-  case class Deleted(cat: TechniqueCategory) extends TechniqueCategoryModType
+final case class Updated(id: TechniqueCategory) extends TechniqueCategoryModType // change in name, description
+final case class Added(cat: TechniqueCategory, parentId: TechniqueCategoryId) extends TechniqueCategoryModType
+final case class Deleted(cat: TechniqueCategory) extends TechniqueCategoryModType
   // be careful - the newId is NOT the parent ID, but the full new ID so that renamed are alse taken into account
-  case class Moved(oldId: TechniqueCategoryId, newId: TechniqueCategoryId) extends TechniqueCategoryModType
+final case class Moved(oldId: TechniqueCategoryId, newId: TechniqueCategoryId) extends TechniqueCategoryModType
 }
 
 sealed trait TechniqueVersionModType
-case object VersionDeleted extends TechniqueVersionModType
-case object VersionAdded extends TechniqueVersionModType
-case object VersionUpdated extends TechniqueVersionModType
+final case object VersionDeleted extends TechniqueVersionModType
+final case object VersionAdded extends TechniqueVersionModType
+final case object VersionUpdated extends TechniqueVersionModType
 
 sealed trait TechniquesLibraryUpdateType {
   val techniqueName: TechniqueName
@@ -67,7 +67,7 @@ sealed trait TechniquesLibraryUpdateType {
  * All version of a technique were deleted, so the technique is
  * full deleted
  */
-case class TechniqueDeleted(techniqueName: TechniqueName, deletedVersion: Set[TechniqueVersion]) extends TechniquesLibraryUpdateType
+final case class TechniqueDeleted(techniqueName: TechniqueName, deletedVersion: Set[TechniqueVersion]) extends TechniquesLibraryUpdateType
 
 /**
  * Some version of a technique were modified, either:
@@ -77,7 +77,7 @@ case class TechniqueDeleted(techniqueName: TechniqueName, deletedVersion: Set[Te
  *
  * One version can have only ONE state update.
  */
-case class TechniqueUpdated(techniqueName: TechniqueName, diff: Map[TechniqueVersion, TechniqueVersionModType]) extends TechniquesLibraryUpdateType
+final case class TechniqueUpdated(techniqueName: TechniqueName, diff: Map[TechniqueVersion, TechniqueVersionModType]) extends TechniquesLibraryUpdateType
 
 /**
  * A trait that allows its implementation to get notification

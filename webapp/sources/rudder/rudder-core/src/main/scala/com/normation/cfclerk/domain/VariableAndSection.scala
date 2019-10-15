@@ -39,7 +39,6 @@ package com.normation.cfclerk.domain
 
 import cats.implicits._
 import com.normation.utils.Control.bestEffort
-import com.normation.utils.HashcodeCaching
 import net.liftweb.common._
 
 import scala.xml._
@@ -47,7 +46,7 @@ import scala.xml._
 /* A SectionChild is either a Variable or a Section*/
 sealed trait SectionChild
 
-case class Section(val spec: SectionSpec) extends SectionChild with HashcodeCaching
+final case class Section(spec: SectionSpec) extends SectionChild
 
 /**
  *
@@ -190,20 +189,20 @@ sealed trait Variable {
   }
 }
 
-case class SystemVariable(
+final case class SystemVariable(
     override val spec: SystemVariableSpec
   , override val values: Seq[String]
-) extends Variable with HashcodeCaching {
+) extends Variable {
   type T = SystemVariableSpec
   override def copyWithAppendedValues(seq: Seq[String]) = this.copyWithAppendedValuesResult(seq).map(x => this.copy(values = x))
   override def copyWithSavedValue(s: String) = this.copyWithSavedValueResult(s).map(x => this.copy(values = x))
   override def copyWithSavedValues(seq: Seq[String]) = this.copyWithSavedValuesResult(seq).map(x => this.copy(values = x))
 }
 
-case class TrackerVariable(
+final case class TrackerVariable(
     override val spec: TrackerVariableSpec
   , override val values: Seq[String]
-) extends Variable with HashcodeCaching {
+) extends Variable {
   type T = TrackerVariableSpec
   override def copyWithAppendedValues(seq: Seq[String]) = this.copyWithAppendedValuesResult(seq).map(x => this.copy(values = x))
   override def copyWithSavedValue(s: String) = this.copyWithSavedValueResult(s).map(x => this.copy(values = x))
@@ -212,40 +211,40 @@ case class TrackerVariable(
 
 trait SectionVariable extends Variable with SectionChild
 
-case class InputVariable(
+final case class InputVariable(
     override val spec: InputVariableSpec
   , override val values: Seq[String]
-) extends SectionVariable with HashcodeCaching {
+) extends SectionVariable {
   type T = InputVariableSpec
   override def copyWithAppendedValues(seq: Seq[String]) = this.copyWithAppendedValuesResult(seq).map(x => this.copy(values = x))
   override def copyWithSavedValue(s: String) = this.copyWithSavedValueResult(s).map(x => this.copy(values = x))
   override def copyWithSavedValues(seq: Seq[String]) = this.copyWithSavedValuesResult(seq).map(x => this.copy(values = x))
 }
 
-case class SelectVariable(
+final case class SelectVariable(
     override val spec: SelectVariableSpec
   , override val values: Seq[String]
-) extends SectionVariable with HashcodeCaching {
+) extends SectionVariable {
   type T = SelectVariableSpec
   override def copyWithAppendedValues(seq: Seq[String]) = this.copyWithAppendedValuesResult(seq).map(x => this.copy(values = x))
   override def copyWithSavedValue(s: String) = this.copyWithSavedValueResult(s).map(x => this.copy(values = x))
   override def copyWithSavedValues(seq: Seq[String]) = this.copyWithSavedValuesResult(seq).map(x => this.copy(values = x))
 }
 
-case class SelectOneVariable(
+final case class SelectOneVariable(
     override val spec: SelectOneVariableSpec
   , override val values: Seq[String]
-) extends SectionVariable with HashcodeCaching {
+) extends SectionVariable {
   type T = SelectOneVariableSpec
   override def copyWithAppendedValues(seq: Seq[String]) = this.copyWithAppendedValuesResult(seq).map(x => this.copy(values = x))
   override def copyWithSavedValue(s: String) = this.copyWithSavedValueResult(s).map(x => this.copy(values = x))
   override def copyWithSavedValues(seq: Seq[String]) = this.copyWithSavedValuesResult(seq).map(x => this.copy(values = x))
 }
 
-case class PredefinedValuesVariable(
+final case class PredefinedValuesVariable(
     override val spec: PredefinedValuesVariableSpec
   , override val values: Seq[String]
-) extends SectionVariable with HashcodeCaching {
+) extends SectionVariable {
   type T = PredefinedValuesVariableSpec
   override def copyWithAppendedValues(seq: Seq[String]) = this.copyWithAppendedValuesResult(seq).map(x => this.copy(values = x))
   override def copyWithSavedValue(s: String) = this.copyWithSavedValueResult(s).map(x => this.copy(values = x))

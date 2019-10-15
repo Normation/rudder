@@ -39,12 +39,9 @@ package com.normation.rudder.repository
 
 import com.normation.rudder.domain.nodes._
 import com.normation.inventory.domain.NodeId
-import net.liftweb.common._
 import com.normation.eventlog.EventActor
-import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.nodes._
-import net.liftweb.common._
 import com.normation.inventory.domain.NodeId
 import com.normation.utils.Utils
 import com.normation.eventlog.EventActor
@@ -85,7 +82,7 @@ object NodeGroupCategoryOrdering extends Ordering[List[NodeGroupCategoryId]] {
 final case class CategoryAndNodeGroup(
     category: NodeGroupCategory
   , groups  : Set[NodeGroup]
-) extends HashcodeCaching
+)
 
 
 final case class FullNodeGroupCategory(
@@ -95,7 +92,7 @@ final case class FullNodeGroupCategory(
   , subCategories: List[FullNodeGroupCategory]
   , targetInfos  : List[FullRuleTargetInfo]
   , isSystem     : Boolean = false
-) extends Loggable with HashcodeCaching {
+) {
 
   def toNodeGroupCategory = NodeGroupCategory(
       id = id
@@ -228,7 +225,7 @@ trait RoNodeGroupRepository {
    * @param id
    * @return
    */
-  def getParentGroupCategory(id: NodeGroupId): IOResult[NodeGroupCategory]
+  def getNodeGroupCategory(id: NodeGroupId): IOResult[NodeGroupCategory]
 
   /**
    * Get all node groups defined in that repository

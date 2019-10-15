@@ -7,9 +7,6 @@ import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.EventLogType
 import com.normation.rudder.domain.Constants
-import com.normation.utils.HashcodeCaching
-
-
 /**
  * Update the policy server
  */
@@ -19,7 +16,7 @@ sealed trait PolicyServerEventLog extends EventLog
 
 final case class UpdatePolicyServer(
     override val eventDetails : EventLogDetails
-) extends PolicyServerEventLog with HashcodeCaching {
+) extends PolicyServerEventLog {
   override val cause = None
   override val eventType = UpdatePolicyServer.eventType
   override val eventLogCategory = PolicyServerLogCategory

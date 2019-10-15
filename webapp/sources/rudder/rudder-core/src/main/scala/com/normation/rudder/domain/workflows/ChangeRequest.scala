@@ -60,7 +60,7 @@ import com.normation.rudder.domain.parameters._
  */
 
 
-case class ChangeRequestId(value:Int) {
+final case class ChangeRequestId(value:Int) extends AnyVal {
   override def toString = value.toString
 }
 
@@ -236,7 +236,7 @@ sealed trait Changes[T, DIFF, T_CHANGE <: ChangeItem[DIFF]] {
 
 }
 
-case class DirectiveChangeItem(
+final case class DirectiveChangeItem(
   //no ID: that object does not have any meaning outside
   // a change request
     actor       : EventActor
@@ -246,11 +246,12 @@ case class DirectiveChangeItem(
 ) extends ChangeItem[ChangeRequestDirectiveDiff]
 
 
-case class DirectiveChange(
+final case class DirectiveChange(
     val initialState: Option[(TechniqueName, Directive, SectionSpec)]
   , val firstChange: DirectiveChangeItem
   , val nextChanges: Seq[DirectiveChangeItem]
 ) extends Change[(TechniqueName, Directive, SectionSpec), ChangeRequestDirectiveDiff, DirectiveChangeItem] {
+  @scala.annotation.tailrec
   private[this] def recChange(
       previousState: Box[DirectiveChangeItem]
     , nexts:List[DirectiveChangeItem]): Box[DirectiveChangeItem] = {
@@ -278,7 +279,7 @@ case class DirectiveChange(
   }
 }
 
-case class DirectiveChanges(
+final case class DirectiveChanges(
     val changes: DirectiveChange
   , val changeHistory: Seq[DirectiveChange]
 )extends Changes[(TechniqueName, Directive, SectionSpec), ChangeRequestDirectiveDiff, DirectiveChangeItem]
@@ -286,7 +287,7 @@ case class DirectiveChanges(
 
 //////////////////// Node Part //////////////////////////////////////////////
 
-case class NodeGroupChangeItem(
+final case class NodeGroupChangeItem(
   //no ID: that object does not have any meaning outside
   // a change request
     actor       : EventActor
@@ -295,11 +296,12 @@ case class NodeGroupChangeItem(
   , diff        : ChangeRequestNodeGroupDiff
 ) extends ChangeItem[ChangeRequestNodeGroupDiff]
 
-case class NodeGroupChange(
+final case class NodeGroupChange(
     val initialState: Option[NodeGroup]
   , val firstChange : NodeGroupChangeItem
   , val nextChanges : Seq[NodeGroupChangeItem]
 ) extends Change[NodeGroup, ChangeRequestNodeGroupDiff, NodeGroupChangeItem] {
+  @scala.annotation.tailrec
   private[this] def recChange(
       previousState : Box[NodeGroupChangeItem]
     , nexts         : List[NodeGroupChangeItem]) :  Box[NodeGroupChangeItem]  = {
@@ -328,12 +330,12 @@ case class NodeGroupChange(
   }
 }
 
-case class NodeGroupChanges(
+final case class NodeGroupChanges(
     val changes: NodeGroupChange
   , val changeHistory: Seq[NodeGroupChange]
 )extends Changes[NodeGroup, ChangeRequestNodeGroupDiff, NodeGroupChangeItem]
 
-case class RuleChangeItem(
+final case class RuleChangeItem(
   //no ID: that object does not have any meaning outside
   // a change request
     actor       : EventActor
@@ -342,7 +344,7 @@ case class RuleChangeItem(
   , diff        : ChangeRequestRuleDiff
 ) extends ChangeItem[ChangeRequestRuleDiff]
 
-case class RuleChange(
+final case class RuleChange(
     val initialState: Option[Rule]
   , val firstChange: RuleChangeItem
   , val nextChanges: Seq[RuleChangeItem]
@@ -351,21 +353,21 @@ case class RuleChange(
   val change = Full(firstChange)
 }
 
-case class RuleChanges(
+final case class RuleChanges(
     val changes: RuleChange
   , val changeHistory: Seq[RuleChange]
 )extends Changes[Rule, ChangeRequestRuleDiff, RuleChangeItem]
 
 
 //////////////////// Change Request section ////////////////////////////////////////
-case class GlobalParameterChangeItem(
+final case class GlobalParameterChangeItem(
     actor       : EventActor
   , creationDate: DateTime
   , reason      : Option[String]
   , diff        : ChangeRequestGlobalParameterDiff
 ) extends ChangeItem[ChangeRequestGlobalParameterDiff]
 
-case class GlobalParameterChange(
+final case class GlobalParameterChange(
     val initialState: Option[GlobalParameter]
   , val firstChange : GlobalParameterChangeItem
   , val nextChanges : Seq[GlobalParameterChangeItem]
@@ -374,7 +376,7 @@ case class GlobalParameterChange(
   val change = Full(firstChange)
 }
 
-case class GlobalParameterChanges(
+final case class GlobalParameterChanges(
     val changes      : GlobalParameterChange
   , val changeHistory: Seq[GlobalParameterChange]
 )extends Changes[GlobalParameter, ChangeRequestGlobalParameterDiff, GlobalParameterChangeItem]

@@ -41,8 +41,7 @@ import net.liftweb.actor.LiftActor
 import net.liftweb.http.ListenerManager
 import com.normation.rudder.services.workflows.WorkflowUpdate
 
-class AsyncWorkflowInfo extends LiftActor  with ListenerManager {
-
+class AsyncWorkflowInfo extends LiftActor with ListenerManager {
 
   def createUpdate = WorkflowUpdate
 
