@@ -39,18 +39,16 @@ package com.normation.rudder.javascript
 
 
 import com.normation.cfclerk.domain.Variable
+import com.normation.errors.RudderError
 import com.normation.rudder.services.policies.JsEngine
 import javax.script.SimpleBindings
-import net.liftweb.common.Box
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Failure
-import net.liftweb.common.Full
 import org.junit.runner.RunWith
 import org.specs2.matcher.Matcher
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 
 import scala.util.matching.Regex
+import com.normation.zio._
 
 
 @RunWith(classOf[JUnitRunner])
@@ -60,24 +58,24 @@ class CalculateComplianceTest extends Specification {
   /**
    * A failure matcher utility that pattern matches the result message
    */
-  def beFailure[T](regex: Regex): Matcher[Box[T]] = { b: Box[T] =>
+  def beFailure[T](regex: Regex): Matcher[Either[RudderError, T]] = { b: Either[RudderError, T] =>
     (
       b match {
-        case Failure(m, _, _) if( regex.pattern.matcher(m).matches() ) => true
+        case Left(err) if( regex.pattern.matcher(err.fullMsg).matches() ) => true
+        case Left(err) => println("err: " + err.fullMsg) ; false
         case _ => false
       }
     , s"${b} is not a Failure whose message matches ${regex.toString}"
     )
   }
 
-  def beVariableValue[T](cond: String => Boolean): Matcher[Box[Variable]] = { b: Box[Variable] =>
+  def beVariableValue[T](cond: String => Boolean): Matcher[Either[RudderError, Variable]] = { b: Either[RudderError, Variable] =>
     (
       b match {
-        case Full(v) if( v.values.size == 1 && cond(v.values(0)) ) => true
-        case Full(v) => false
-        case eb: EmptyBox =>
-          val e = eb ?~! "Error with test"
-          e.rootExceptionCause.foreach { ex => ex.printStackTrace() }
+        case Right(v) if( v.values.size == 1 && cond(v.values(0)) ) => true
+        case Right(v) => false
+        case Left(err) =>
+          println(err.fullMsg)
           false
       }
     , s"${b} is not a Full(InputVariable) that matches condition ${cond} but a '${b}'"
@@ -86,22 +84,22 @@ class CalculateComplianceTest extends Specification {
 
 
   val emptyJsBindings = new SimpleBindings()
-  def js(js: String): Box[String] = {
+  def js(js: String): Either[RudderError, String] = {
     JsEngine.SandboxedJsEngine.sandboxed(this.getClass.getClassLoader.getResource("rudder-js.policy")) { box =>
       for {
         x <- box.singleEval(js, emptyJsBindings)
       } yield x
-    }
+    }.either.runNow
   }
 
 
   "Test a js expression" should {
     "be ok" in {
-      js("1+1") must beEqualTo(Full("2"))
+      js("1+1") must beEqualTo(Right("2"))
     }
 
     "be not ok in " in {
-      js("throw 'plop'") must beFailure(".*plop.*".r)
+      js("throw 'plop'") must beFailure("(?s).*plop.*".r)
     }
   }
 

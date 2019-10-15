@@ -74,7 +74,6 @@ import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.hooks.HookEnvPairs
-
 import com.normation.rudder.hooks.HooksImplicits
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHashRepository
@@ -87,18 +86,19 @@ import cats.data.NonEmptyList
 import com.normation.rudder.domain.reports.OverridenPolicy
 import com.normation.rudder.hooks.Hooks
 import com.normation.rudder.hooks.HooksLogger
-
 import org.joda.time.Period
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.format.PeriodFormatterBuilder
 
 import scala.concurrent.duration.FiniteDuration
 import scala.util.control.NonFatal
-
 import com.normation.box._
-import com.normation.zio._
 import com.normation.errors._
+import com.normation.rudder.domain.logger.GenerationLoggerPure
+import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import zio._
+import zio.syntax._
+import com.normation.zio._
 
 /**
  * A deployment hook is a class that accept callbacks.
@@ -350,7 +350,7 @@ trait PromiseGenerationService {
                                    PolicyLogger.warn(s"Nodes in errors (${errorNodes.size}): '${errorNodes.map(_.value).mkString("','")}'")
                                  }
                                }
-      allErrors             =  configsAndErrors.errors.map(_.messageChain)
+      allErrors             =  configsAndErrors.errors.map(_.fullMsg)
       result                <- if (allErrors.isEmpty) {
                                  Full(updatedNodes)
                                } else {
@@ -634,6 +634,7 @@ class PromiseGenerationServiceImpl (
 ) extends PromiseGenerationService with
   PromiseGeneration_performeIO with
   PromiseGeneration_NodeCertificates with
+  PromiseGeneration_BuildNodeContext with
   PromiseGeneration_buildRuleVals with
   PromiseGeneration_buildNodeConfigurations with
   PromiseGeneration_updateAndWriteRule with
@@ -718,6 +719,12 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
     }).map(_.id).toSet
 
   }
+}
+
+trait PromiseGeneration_BuildNodeContext {
+
+  def interpolatedValueCompiler: InterpolatedValueCompiler
+  def systemVarService: SystemVariableService
 
   /**
    * Build interpolation contexts.
@@ -729,7 +736,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
    * It's also the place where parameters are looked for
    * local overrides.
    */
-  override def getNodeContexts(
+  def getNodeContexts(
       nodeIds               : Set[NodeId]
     , allNodeInfos          : Map[NodeId, NodeInfo]
     , allGroups             : FullNodeGroupCategory
@@ -751,10 +758,10 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
      *   - to node info parameters: ok
      *   - to parameters : hello loops!
      */
-    def buildParams(parameters: Seq[GlobalParameter]): Box[Map[ParameterName, InterpolationContext => Box[String]]] = {
-      bestEffort(parameters) { param =>
+    def buildParams(parameters: Seq[GlobalParameter]): IOResult[Map[ParameterName, InterpolationContext => IOResult[String]]] = {
+      parameters.accumulate { param =>
         for {
-          p <- interpolatedValueCompiler.compile(param.value) ?~! s"Error when looking for interpolation variable in global parameter '${param.name}'"
+          p <- interpolatedValueCompiler.compile(param.value).chainError(s"Error when looking for interpolation variable in global parameter '${param.name}'")
         } yield {
           (param.name, p)
         }
@@ -763,7 +770,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
 
     for {
       globalSystemVariables <- systemVarService.getGlobalSystemVariables(globalAgentRun)
-      parameters            <- buildParams(globalParameters) ?~! "Can not parsed global parameter (looking for interpolated variables)"
+      parameters            <- buildParams(globalParameters).toBox ?~! "Can not parsed global parameter (looking for interpolated variables)"
     } yield {
       (nodeIds.flatMap { nodeId:NodeId =>
         (for {
@@ -835,7 +842,7 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
 
 final case class NodeConfigurations(
     ok    : List[NodeConfiguration]
-  , errors: List[Failure]
+  , errors: List[RudderError]
 )
 
 object BuildNodeConfiguration extends Loggable {
@@ -856,6 +863,44 @@ object BuildNodeConfiguration extends Loggable {
             }
             Failure(failure + msg)
       }
+    }
+  }
+
+  final case class Counters(
+      sumTimeFilter     : Ref[Long]
+    , sumTimeParameter  : Ref[Long]
+    , nbBoundDraft      : Ref[Long]
+    , sumTimeExpandeVar : Ref[Long]
+    , sumTimeEvalJs     : Ref[Long]
+    , nbEvalJs          : Ref[Long]
+    , sumTimeBoundDraft : Ref[Long]
+    , sumTimeMerge      : Ref[Long]
+  )
+
+  object Counters {
+    def make(): UIO[Counters] = for {
+       a <- Ref.make(0L)
+       b <- Ref.make(0L)
+       c <- Ref.make(0L)
+       d <- Ref.make(0L)
+       e <- Ref.make(0L)
+       f <- Ref.make(0L)
+       g <- Ref.make(0L)
+       h <- Ref.make(0L)
+    } yield Counters(a,b,c,d,e,f,g,h)
+
+    def log(counters: Counters): UIO[Unit] = {
+      for {
+        a <- counters.sumTimeFilter.get.map(_/1000000)
+        b <- counters.sumTimeParameter.get.map(_/1000000)
+        c <- counters.nbBoundDraft.get
+        d <- counters.sumTimeExpandeVar.get.map(_/1000000)
+        e <- counters.sumTimeEvalJs.get.map(_/1000000)
+        f <- counters.nbEvalJs.get
+        g <- counters.sumTimeBoundDraft.get.map(_/1000000)
+        h <- counters.sumTimeMerge.get.map(_/1000000)
+        _ <- TimingDebugLoggerPure.PolicyGeneration.BuildNodeConfig.trace(s"[tf:$a ms] [tp:$b ms] [tbd:$g ms (tev:$d ms; tjs: $e % $f) % $c)] [tm: $h ms]")
+      } yield ()
     }
   }
 
@@ -885,6 +930,7 @@ object BuildNodeConfiguration extends Loggable {
 
     //step 1: from RuleVals to expanded rules vals
 
+    val t0 = System.nanoTime()
     //group by nodes
     //no consistancy / unicity check is done here, it will be done
     //in an other phase. We are just switching to a node-first view.
@@ -897,102 +943,149 @@ object BuildNodeConfiguration extends Loggable {
       }
       byNodeDrafts.toMap
     }
-
+    val t1 = System.nanoTime()
+    TimingDebugLogger.PolicyGeneration.BuildNodeConfig.debug(s"Policy draft for nodes built in: ${(t1-t0)/1000000} ms")
 
     // 1.3: build node config, binding ${rudder./node.properties} parameters
     // open a scope for the JsEngine, because its init is long.
 
-    JsEngineProvider.withNewEngine(scriptEngineEnabled, maxParallelism, jsTimeout) { jsEngine =>
+    val nanoTime = UIO.effectTotal(System.nanoTime())
 
-      // here, we consider j
-      val nodeConfigsProg = ZIO.foreachParN(maxParallelism)(nodeContexts.toSeq) { case (nodeId, context) =>
 
-        (for {
-            parsedDrafts  <- policyDraftByNode.get(nodeId).notOptional("Promise generation algorithm error: cannot find back the configuration information for a node")
-            // if a node is in state "emtpy policies", we only keep system policies + log
-            filteredDrafts=  if(context.nodeInfo.state == NodeState.EmptyPolicies) {
-                                PolicyLogger.info(s"Node '${context.nodeInfo.hostname}' (${context.nodeInfo.id.value}) is in '${context.nodeInfo.state.name}' state, keeping only system policies for it")
-                                parsedDrafts.flatMap(d =>
-                                  if(d.isSystem) {
-                                    Some(d)
-                                  } else {
-                                    PolicyLogger.trace(s"Node '${context.nodeInfo.id.value}': skipping policy '${d.id.value}'")
-                                    None
-                                  }
+    val evalJsProg = JsEngineProvider.withNewEngine(scriptEngineEnabled, maxParallelism, jsTimeout) { jsEngine =>
+
+      val nodeConfigsProg = for {
+        counters          <- Counters.make()
+        ncp               <- ZIO.foreachParN(maxParallelism)(nodeContexts.toIterable) { case (nodeId, context) =>
+
+                              (for {
+                                t1_0           <- nanoTime
+                                parsedDrafts   <- policyDraftByNode.get(nodeId).notOptional("Promise generation algorithm error: cannot find back the configuration information for a node")
+
+                                // if a node is in state "emtpy policies", we only keep system policies + log
+                                filteredDrafts =  if(context.nodeInfo.state == NodeState.EmptyPolicies) {
+                                                    PolicyLogger.info(s"Node '${context.nodeInfo.hostname}' (${context.nodeInfo.id.value}) is in '${context.nodeInfo.state.name}' state, keeping only system policies for it")
+                                                    parsedDrafts.flatMap(d =>
+                                                      if(d.isSystem) {
+                                                        Some(d)
+                                                      } else {
+                                                        PolicyLogger.trace(s"Node '${context.nodeInfo.id.value}': skipping policy '${d.id.value}'")
+                                                        None
+                                                      }
+                                                    )
+                                                  } else {
+                                                    parsedDrafts
+                                                  }
+                                t1_1           <- nanoTime
+                                _              <- counters.sumTimeFilter.update(_ + t1_1 - t1_0)
+
+                                /*
+                                 * Clearly, here, we are evaluating parameters, and we are not using that just after in the
+                                 * variable expansion, which mean that we are doing the same work again and again and again.
+                                 * Moreover, we also are evaluating again and again parameters whose context ONLY depends
+                                 * on other parameter, and not node config at all. Bad bad bad bad.
+                                 * TODO: two stages parameter evaluation
+                                 *  - global
+                                 *  - by node
+                                 *  + use them in variable expansion (the variable expansion should have a fully evaluated InterpolationContext)
+                                 */
+                                parameters     <- context.parameters.accumulate { case (name, param) =>
+                                                    for {
+                                                      p <- param(context)
+                                                    } yield {
+                                                      (name, p)
+                                                    }
+                                                  }.mapError(_.deduplicate)
+
+                    ////////////////////////////////////////////  fboundedDraft ////////////////////////////////////////////
+
+                                t1_2           <- nanoTime
+                                _              <- counters.sumTimeParameter.update(_ + t1_2 - t1_1)
+                                boundedDrafts  <- filteredDrafts.accumulate { draft =>
+                                                    (for {
+                                                      _          <- counters.nbBoundDraft.update(_ + 1)
+                                                      ret        <- (for {
+                                                                      //bind variables with interpolated context
+                                                                      t2_0              <- nanoTime
+                                                                      expandedVariables <- draft.variables(context)
+                                                                      t2_1              <- nanoTime
+                                                                      _                 <- counters.sumTimeExpandeVar.update(_ + t2_1 - t2_0)
+                                                                      // And now, for each variable, eval - if needed - the result
+                                                                      expandedVars      <- expandedVariables.accumulate { case (k, v) =>
+                                                                                             //js lib is specific to the node os, bind here to not leak eval between vars
+                                                                                             val jsLib = context.nodeInfo.osDetails.os match {
+                                                                                               case AixOS => JsRudderLibBinding.Aix
+                                                                                               case _     => JsRudderLibBinding.Crypt
+                                                                                             }
+
+                                                                                             for {
+                                                                                               _    <- counters.nbEvalJs.update(_+1)
+                                                                                               t3_0 <- nanoTime
+                                                                                               t    <- jsEngine.eval(v, jsLib).map( x => (k, x) )
+                                                                                               t3_1 <- nanoTime
+                                                                                               _    <- counters.sumTimeEvalJs.update(_ + t3_1 - t3_0)
+                                                                                             } yield t
+                                                                                           }.mapError(_.deduplicate)
+                                                                      } yield {
+                                                                        draft.toBoundedPolicyDraft(expandedVars.toMap)
+                                                                      }).chainError(s"When processing directive '${draft.directiveName}'")
+                                                    } yield {
+                                                      ret
+                                                    } )
+                                                   }.mapError(_.deduplicate)
+                                t1_3           <- nanoTime
+                                _              <- counters.sumTimeBoundDraft.update(_ + t1_3 - t1_2)
+
+                    ////////////////////////////////////////////  fboundedDraft ////////////////////////////////////////////
+
+                                // from policy draft, check and build the ordered seq of policy
+                                policies      <- MergePolicyService.buildPolicy(context.nodeInfo, globalPolicyMode, boundedDrafts).toIO
+                                t1_4          <- nanoTime
+                                _             <- counters.sumTimeMerge.update(_ + t1_4 - t1_3)
+                              } yield {
+                                // we have the node mode
+                                val nodeModes = allNodeModes(context.nodeInfo.id)
+                                val nodeConfig = NodeConfiguration(
+                                    nodeInfo     = context.nodeInfo
+                                  , modesConfig  = nodeModes
+                                    //system technique should not have hooks, and at least it is not supported.
+                                  , runHooks     = MergePolicyService.mergeRunHooks(policies.filter( ! _.technique.isSystem), nodeModes.nodePolicyMode, nodeModes.globalPolicyMode)
+                                  , policies     = policies
+                                  , nodeContext  = context.nodeContext
+                                  , parameters   = parameters.map { case (k,v) => ParameterForConfiguration(k, v) }.toSet
+                                  , isRootServer = context.nodeInfo.id == context.policyServerInfo.id
                                 )
-                              } else {
-                                parsedDrafts
-                              }
+                                nodeConfig
+                              }).chainError(s"Error with parameters expansion for node '${context.nodeInfo.hostname}' (${context.nodeInfo.id.value})").either
+                          }
+      _                   <- Counters.log(counters)
+      } yield ncp
 
-            /*
-             * Clearly, here, we are evaluating parameters, and we are not using that just after in the
-             * variable expansion, which mean that we are doing the same work again and again and again.
-             * Moreover, we also are evaluating again and again parameters whose context ONLY depends
-             * on other parameter, and not node config at all. Bad bad bad bad.
-             * TODO: two stages parameter evaluation
-             *  - global
-             *  - by node
-             *  + use them in variable expansion (the variable expansion should have a fully evaluated InterpolationContext)
-             */
-            parameters    <- context.parameters.accumulate { case (name, param) =>
-                               for {
-                                 p <- param(context).toIO
-                               } yield {
-                                 (name, p)
-                               }
-                             }.mapError(_.deduplicate)
-            boundedDrafts <- filteredDrafts.accumulate { draft =>
-                                (for {
-                                  //bind variables with interpolated context
-                                  expandedVariables <- draft.variables(context).toIO
-                                  // And now, for each variable, eval - if needed - the result
-                                  expandedVars      <- expandedVariables.accumulate { case (k, v) =>
-                                                          //js lib is specific to the node os, bind here to not leak eval between vars
-                                                          val jsLib = context.nodeInfo.osDetails.os match {
-                                                           case AixOS => JsRudderLibBinding.Aix
-                                                           case _     => JsRudderLibBinding.Crypt
-                                                         }
-                                                         jsEngine.eval(v, jsLib).map( x => (k, x) ).toIO
-                                                       }.mapError(_.deduplicate)
-                                  } yield {
-                                    draft.toBoundedPolicyDraft(expandedVars.toMap)
-                                  }).chainError(s"When processing directive '${draft.directiveName}'")
-                                }.mapError(_.deduplicate)
-            // from policy draft, check and build the ordered seq of policy
-            policies   <- MergePolicyService.buildPolicy(context.nodeInfo, globalPolicyMode, boundedDrafts).toIO
-          } yield {
-            // we have the node mode
-            val nodeModes = allNodeModes(context.nodeInfo.id)
-
-            NodeConfiguration(
-                nodeInfo     = context.nodeInfo
-              , modesConfig  = nodeModes
-                //system technique should not have hooks, and at least it is not supported.
-              , runHooks     = MergePolicyService.mergeRunHooks(policies.filter( ! _.technique.isSystem), nodeModes.nodePolicyMode, nodeModes.globalPolicyMode)
-              , policies     = policies
-              , nodeContext  = context.nodeContext
-              , parameters   = parameters.map { case (k,v) => ParameterForConfiguration(k, v) }.toSet
-              , isRootServer = context.nodeInfo.id == context.policyServerInfo.id
-            )
-          }).chainError(s"Error with parameters expansion for node '${context.nodeInfo.hostname}' (${context.nodeInfo.id.value})").either
-      }
-      val nodeConfigs = nodeConfigsProg.runNow
-      val success = nodeConfigs.collect { case Right(c) => c }.toList
-      val failures = nodeConfigs.collect { case Left(f) => f.fullMsg }.toSet
-      val failedIds = nodeContexts.keySet -- success.map( _.nodeInfo.id )
-
-      val result = recFailNodes(failedIds, success, failures)
-      failures.size match {
-        case 0    => Full(result)
-        case _ if generationContinueOnError
-                  =>  logger.error(s"Error while computing Node Configuration for nodes")
-          logger.error(s"Cause is ${failures.mkString(",")}")
-                     Full(result)
-        case _    => val allErrors = result.errors.map(_.messageChain)
-                     logger.error(s"Error while computing Node Configuration for nodes: ${allErrors.mkString(" ; ")}")
-                     Failure(s"Error while computing Node Configuration for nodes: ${allErrors.mkString(" ; ")}")
-      }
+      // now the program that builds NodeConfigs, log time, and check result for errors/successes
+      for {
+        t0        <- nanoTime
+        res       <- nodeConfigsProg
+        t1        <- nanoTime
+        _         <- TimingDebugLoggerPure.PolicyGeneration.BuildNodeConfig.debug(s"Total run config: ${(t1-t0)/1000000} ms")
+        success   =  res.collect { case Right(c) => c }.toList
+        failures  =  res.collect { case Left(f) => f.fullMsg }.toSet
+        failedIds =  nodeContexts.keySet -- success.map( _.nodeInfo.id )
+        result    =  recFailNodes(failedIds, success, failures)
+        finalRes  <- failures.size match {
+                       case 0    => result.succeed
+                       case _ if generationContinueOnError =>
+                          GenerationLoggerPure.error(s"Error while computing Node Configuration for nodes") *>
+                          GenerationLoggerPure.error(s"Cause is ${failures.mkString(",")}") *>
+                          result.succeed
+                       case _    =>
+                         val allErrors = Chained(s"Error while computing Node Configuration for nodes: ", Accumulated(NonEmptyList.fromListUnsafe(result.errors)))
+                         GenerationLoggerPure.error(allErrors.fullMsg) *> allErrors.fail
+                     }
+      } yield finalRes
     }
+
+    // do evaluation
+    evalJsProg.toBox
   }
 
   // we need to remove all nodes whose parent are failed, recursively
@@ -1005,7 +1098,7 @@ object BuildNodeConfiguration extends Loggable {
     }.toMap
 
     if(newFailed.isEmpty) { //ok, returns
-      NodeConfigurations(maybeSuccess, failures.toList.map(Failure(_)))
+      NodeConfigurations(maybeSuccess, failures.toList.map(Unexpected(_)))
     } else { // recurse
       val allFailed = failed ++ newFailed.keySet
       recFailNodes(allFailed, maybeSuccess.filter(cfg => !allFailed.contains(cfg.nodeInfo.id)), failures ++ newFailed.values)
