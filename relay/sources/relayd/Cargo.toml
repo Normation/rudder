@@ -36,6 +36,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.8"
 structopt = { version = "0.3", default-features = false }
+thiserror = "1.0"
 tokio = { version = "0.1", default-features = false, features = ["experimental-tracing"] }
 tokio-io = "0.1"
 tokio-process = "0.2"
