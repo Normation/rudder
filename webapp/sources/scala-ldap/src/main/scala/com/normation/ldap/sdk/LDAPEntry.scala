@@ -279,7 +279,7 @@ object LDAPEntry {
    */
   val logger = LoggerFactory.getLogger(classOf[LDAPEntry])
 
-  def apply(e:UnboundidEntry):LDAPEntry = new LDAPEntry(e) // val e = LDAPEntry(unboundidEntry)
+  def apply(e:UnboundidEntry):LDAPEntry = new LDAPEntry(new UnboundidEntry(e.getDN,e.getAttributes)) // val e = LDAPEntry(unboundidEntry)
   def apply(dn:DN, attributes:Attribute*):LDAPEntry = LDAPEntry(new UnboundidEntry(dn,attributes:_*))
   def apply(dn:DN, attributes:Iterable[Attribute]):LDAPEntry = LDAPEntry(new UnboundidEntry(dn, attributes.toSeq:_*))
   def apply(rdnAttribute:String,rdnValue:String,parentDn:String, attributes:Attribute*) : LDAPEntry = {
