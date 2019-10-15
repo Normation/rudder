@@ -36,7 +36,7 @@ bundle agent init
     "regex[1]"         string => ".*";
     "status[1]"        string => "success";
     "mode[1]"          string => "enforce";
-    
+
     "content[2]"       string => "";
     "variable_name[2]" string => "my_prefix.variable1";
     "regex[2]"         string => ".+";
@@ -56,7 +56,7 @@ and other animals";
 dog
 and other animals";
     "variable_name[4]" string => "my_prefix.variable4";
-    "regex[4]"         string => "\N+[\n]dog.*";
+    "regex[4]"         string => "[^\n]+[\n]dog.*";
     "status[4]"        string => "success";
     "mode[4]"          string => "enforce";
 
@@ -83,7 +83,7 @@ and other animals";
     "regex[8]"         string => ".*";
     "status[8]"        string => "success";
     "mode[8]"          string => "audit";
-    
+
     "content[9]"       string => "";
     "variable_name[9]" string => "my_prefix.variable9";
     "regex[9]"         string => ".+";
@@ -103,7 +103,7 @@ and other animals";
 dog
 and other animals";
     "variable_name[11]" string => "my_prefix.variable11";
-    "regex[11]"         string => "\N+[\n]dog.*";
+    "regex[11]"         string => "[^\n]+[\n]dog.*";
     "status[11]"        string => "success";
     "mode[11]"          string => "audit";
 
