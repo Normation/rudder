@@ -37,6 +37,7 @@
 
 package com.normation.rudder.domain.logger
 
+import com.normation.NamedZioLogger
 import org.slf4j.LoggerFactory
 import net.liftweb.common.Logger
 
@@ -45,6 +46,22 @@ import net.liftweb.common.Logger
  */
 object TimingDebugLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("debug_timing")
+  object PolicyGeneration extends Logger {
+  override protected def _logger = LoggerFactory.getLogger("debug_timing.generation")
+    object BuildNodeConfig extends Logger {
+  override protected def _logger = LoggerFactory.getLogger("debug_timing.generation.buildNodeConfig")
+    }
+  }
+}
+
+object TimingDebugLoggerPure extends NamedZioLogger {
+  override def loggerName: String = "debug_timing"
+  object PolicyGeneration extends NamedZioLogger {
+    override def loggerName: String = "debug_timing.generation"
+    object BuildNodeConfig extends NamedZioLogger {
+      override def loggerName: String = "debug_timing.generation.buildNodeConfig"
+    }
+  }
 }
 
 
