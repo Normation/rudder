@@ -27,7 +27,6 @@ import com.normation.history.impl.FileHistoryLogRepository._
 import com.normation.inventory.domain.InventoryError
 import com.normation.errors._
 import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.ISODateTimeFormat
 import zio._
 import zio.syntax._

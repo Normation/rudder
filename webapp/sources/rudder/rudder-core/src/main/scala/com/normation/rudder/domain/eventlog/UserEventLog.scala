@@ -38,7 +38,6 @@
 package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog.EventLog
-import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.EventLogType
@@ -51,7 +50,7 @@ sealed trait UserEventLog extends EventLog {
 
 final case class LoginEventLog(
     override val eventDetails : EventLogDetails
-) extends UserEventLog with HashcodeCaching {
+) extends UserEventLog {
 
   override val eventType = LoginEventLog.eventType
 }
@@ -64,7 +63,7 @@ object LoginEventLog extends EventLogFilter {
 
 final case class BadCredentialsEventLog(
     override val eventDetails : EventLogDetails
-) extends UserEventLog with HashcodeCaching {
+) extends UserEventLog {
 
   override val eventType = BadCredentialsEventLog.eventType
 }
@@ -78,7 +77,7 @@ object BadCredentialsEventLog extends EventLogFilter {
 
 final case class LogoutEventLog(
     override val eventDetails : EventLogDetails
-) extends UserEventLog with HashcodeCaching {
+) extends UserEventLog {
 
   override val eventType = LogoutEventLog.eventType
 }
@@ -99,7 +98,7 @@ sealed trait APIAccountEventLog extends EventLog {
 
 final case class CreateAPIAccountEventLog(
     override val eventDetails : EventLogDetails
-) extends APIAccountEventLog with HashcodeCaching {
+) extends APIAccountEventLog {
 
   override val eventType = CreateAPIAccountEventLog.eventType
 }
@@ -112,7 +111,7 @@ object CreateAPIAccountEventLog extends EventLogFilter {
 
 final case class DeleteAPIAccountEventLog(
     override val eventDetails : EventLogDetails
-) extends APIAccountEventLog with HashcodeCaching {
+) extends APIAccountEventLog {
 
   override val eventType = DeleteAPIAccountEventLog.eventType
 }
@@ -125,7 +124,7 @@ object DeleteAPIAccountEventLog extends EventLogFilter {
 
 final case class ModifyAPIAccountEventLog(
     override val eventDetails : EventLogDetails
-) extends APIAccountEventLog with HashcodeCaching {
+) extends APIAccountEventLog {
 
   override val eventType = ModifyAPIAccountEventLog.eventType
 }

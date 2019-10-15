@@ -99,7 +99,7 @@ trait RestDataSerializer {
 
 }
 
-case class RestDataSerializerImpl (
+final case class RestDataSerializerImpl (
     readTechnique : TechniqueRepository
   , diffService   : DiffService
 ) extends RestDataSerializer with Loggable {
@@ -571,23 +571,21 @@ object ApiAccountSerialisation {
   implicit val formats = Serialization.formats(NoTypeHints)
 
 
-  implicit class Json(account: ApiAccount) {
-
-    val (expirationDate, authzType, acl) :  (Option[String],Option[String],Option[List[JsonApiAcl]]) = {
-      account.kind match {
-        case User | System => (None,None,None)
-        case PublicApiAccount(authz,expirationDate) =>
-          val acl = authz match {
-            case NoAccess | RO | RW => None
-            case ACL(acls) => Some(acls.flatMap(x => x.actions.map(a => JsonApiAcl(x.path.value, a.name))))
-          }
-          ( expirationDate.map(DateFormaterService.serialize)
-          , Some(authz.kind.name)
-          , acl )
-      }
-    }
-
+  implicit class Json(val account: ApiAccount) extends AnyVal {
     def toJson(): JObject = {
+      val (expirationDate, authzType, acl) :  (Option[String],Option[String],Option[List[JsonApiAcl]]) = {
+        account.kind match {
+          case User | System => (None,None,None)
+          case PublicApiAccount(authz,expirationDate) =>
+            val acl = authz match {
+              case NoAccess | RO | RW => None
+              case ACL(acls) => Some(acls.flatMap(x => x.actions.map(a => JsonApiAcl(x.path.value, a.name))))
+            }
+            ( expirationDate.map(DateFormaterService.serialize)
+            , Some(authz.kind.name)
+            , acl )
+        }
+      }
       ("id"                    -> account.id.value) ~
       ("name"                  -> account.name.value) ~
       ("token"                 -> account.token.value) ~
@@ -599,7 +597,7 @@ object ApiAccountSerialisation {
       ("expirationDate"        -> expirationDate) ~
       ("expirationDateDefined" -> expirationDate.isDefined ) ~
       ("authorizationType"     -> authzType ) ~
-      ("acl"               -> acl.map(x => Extraction.decompose(x)))
+      ("acl"                   -> acl.map(x => Extraction.decompose(x)))
     }
   }
 }

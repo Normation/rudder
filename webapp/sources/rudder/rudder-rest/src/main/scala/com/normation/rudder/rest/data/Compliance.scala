@@ -81,7 +81,7 @@ import com.normation.rudder.domain.reports.ComplianceLevel
  *   (total number of node, repartition of node by status)
  * - nodeCompliance: the list of compliance for each node, for that that rule
  */
-case class ByRuleRuleCompliance(
+final case class ByRuleRuleCompliance(
 
     id             : RuleId
   , name           : String
@@ -91,20 +91,20 @@ case class ByRuleRuleCompliance(
   , directives     : Seq[ByRuleDirectiveCompliance]
 )
 
-case class ByRuleDirectiveCompliance(
+final case class ByRuleDirectiveCompliance(
     id        : DirectiveId
   , name      : String
   , compliance: ComplianceLevel
   , components: Seq[ByRuleComponentCompliance]
 )
 
-case class ByRuleComponentCompliance(
+final case class ByRuleComponentCompliance(
     name      : String
   , compliance: ComplianceLevel
   , nodes     : Seq[ByRuleNodeCompliance]
 )
 
-case class ByRuleNodeCompliance(
+final case class ByRuleNodeCompliance(
     id    : NodeId
   , name  : String
   , values: Seq[ComponentValueStatusReport]
@@ -118,7 +118,7 @@ case class ByRuleNodeCompliance(
  *   (total number of rules, repartition of rules by status)
  * - ruleUnderNodeCompliance: the list of compliance for each rule, for that node
  */
-case class ByNodeNodeCompliance(
+final case class ByNodeNodeCompliance(
     id             : NodeId
     //compliance by nodes
   , name  : String
@@ -136,7 +136,7 @@ case class ByNodeNodeCompliance(
  *   repartition of directive compliance by status
  * - directiveCompliances: status for each directive, for that rule.
  */
-case class ByNodeRuleCompliance(
+final case class ByNodeRuleCompliance(
     id        : RuleId
   , name      : String
     //compliance by directive (by nodes)
@@ -144,7 +144,7 @@ case class ByNodeRuleCompliance(
   , directives: Seq[ByNodeDirectiveCompliance]
 )
 
-case class ByNodeDirectiveCompliance(
+final case class ByNodeDirectiveCompliance(
     id        : DirectiveId
   , name      : String
   , compliance: ComplianceLevel
@@ -162,7 +162,7 @@ object JsonCompliance {
 
   //global compliance
 
-  implicit class JsonGlobalCompliance(optCompliance: Option[(ComplianceLevel, Long)]) {
+  implicit class JsonGlobalCompliance(val optCompliance: Option[(ComplianceLevel, Long)]) extends AnyVal {
     def toJson: JValue = {
       optCompliance match {
         case Some((details, value)) =>
@@ -180,7 +180,7 @@ object JsonCompliance {
   }
 
 
-  implicit class JsonbyRuleCompliance(rule: ByRuleRuleCompliance) {
+  implicit class JsonbyRuleCompliance(val rule: ByRuleRuleCompliance) extends AnyVal {
     def toJsonV6 = (
         ("id" -> rule.id.value)
       ~ ("name" -> rule.name)
@@ -254,7 +254,7 @@ object JsonCompliance {
 
   }
 
-  implicit class JsonByNodeCompliance(n: ByNodeNodeCompliance) {
+  implicit class JsonByNodeCompliance(val n: ByNodeNodeCompliance) extends AnyVal {
     def toJsonV6 = (
         ("id" -> n.id.value)
       ~ ("compliance" -> n.compliance.complianceWithoutPending)

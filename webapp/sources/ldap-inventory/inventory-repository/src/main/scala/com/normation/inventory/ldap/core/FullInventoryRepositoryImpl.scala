@@ -70,7 +70,7 @@ class FullInventoryRepositoryImpl(
   /**
    * Get the expected DN of a machine from its ID and status
    */
-  private[this] def dn(uuid:MachineUuid, inventoryStatus : InventoryStatus) = {
+  private[this] def dnMachine(uuid:MachineUuid, inventoryStatus : InventoryStatus) = {
     inventoryDitService.getDit(inventoryStatus).MACHINES.MACHINE.dn(uuid)
   }
   private[this] def dn(uuid:NodeId, inventoryStatus : InventoryStatus) = {
@@ -90,7 +90,7 @@ class FullInventoryRepositoryImpl(
   private[this] def getExistingMachineDN(con: RwLDAPConnection, id: MachineUuid): LDAPIOResult[Seq[(Boolean, DN)]] = {
     val status = Seq(AcceptedInventory, PendingInventory, RemovedInventory)
     ZIO.foreach(status) { x =>
-      val d = dn(id, x)
+      val d = dnMachine(id, x)
       con.exists(d).map(exists => (exists, d))
     }
   }
@@ -117,10 +117,10 @@ class FullInventoryRepositoryImpl(
   /**
    * Get a machine by its ID
    */
-  override def get(id:MachineUuid) : IOResult[Option[MachineInventory]] = {
+  override def getMachine(id:MachineUuid) : IOResult[Option[MachineInventory]] = {
     for {
       con     <- ldap
-      optDn   <- findDnForId[MachineUuid](con, id, dn)
+      optDn   <- findDnForId[MachineUuid](con, id, dnMachine)
       machine <- optDn match {
                       case Some((x, _)) =>
                         for {
@@ -148,7 +148,7 @@ class FullInventoryRepositoryImpl(
   def getNodesForMachine(con: RwLDAPConnection, id:MachineUuid) : LDAPIOResult[Map[InventoryStatus, Set[LDAPEntry]]] = {
 
     val status = Seq(PendingInventory, AcceptedInventory, RemovedInventory)
-    val orFilter = BuildFilter.OR(status.map(x => EQ(A_CONTAINER_DN,dn(id, x).toString)):_*)
+    val orFilter = BuildFilter.OR(status.map(x => EQ(A_CONTAINER_DN,dnMachine(id, x).toString)):_*)
 
     def machineForNodeStatus(con:RwLDAPConnection, inventoryStatus: InventoryStatus) = {
       con.searchOne(nodeDn(inventoryStatus),  orFilter, A_NODE_UUID).map(_.toSet)
@@ -171,7 +171,7 @@ class FullInventoryRepositoryImpl(
   private[this] def updateNodes(con: RwLDAPConnection, nodes: Map[InventoryStatus, Set[LDAPEntry]], newMachineId:Option[(MachineUuid, InventoryStatus)] ): LDAPIOResult[List[LDIFChangeRecord]] = {
     val mod = newMachineId match {
       case None => new Modification(ModificationType.DELETE, A_CONTAINER_DN)
-      case Some((id, status)) => new Modification(ModificationType.REPLACE, A_CONTAINER_DN, dn(id, status).toString)
+      case Some((id, status)) => new Modification(ModificationType.REPLACE, A_CONTAINER_DN, dnMachine(id, status).toString)
     }
 
     val res: ZIO[Any, NonEmptyList[LDAPRudderError], List[LDIFChangeRecord]] = nodes.values.flatten.map( _.dn).accumulateNEL { dn =>
@@ -227,7 +227,7 @@ class FullInventoryRepositoryImpl(
                                     //keep it and delete the other one
                                     con.delete(machineDN)
                                   } else {
-                                    con.move(machineDN, dn(id, intoStatus).getParent).map(Seq(_))
+                                    con.move(machineDN, dnMachine(id, intoStatus).getParent).map(Seq(_))
                                   }
                        } yield {
                          moved
@@ -326,7 +326,7 @@ class FullInventoryRepositoryImpl(
                           // 1/ not make 3 existence tests each time we get a node,
                           // 2/ make the thing more debuggable. If we don't use the DN and display
                           //    information taken elsewhere, future debugging will leads people to madness
-                          con.getTree(dn(machineId, status)).flatMap {
+                          con.getTree(dnMachine(machineId, status)).flatMap {
                             case None    => None.succeed
                             case Some(x) => mapper.machineFromTree(x).map(Some(_))
                           }

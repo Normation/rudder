@@ -38,7 +38,6 @@
 package com.normation.rudder.web.components
 
 import net.liftweb.common.Failure
-import com.normation.utils.HashcodeCaching
 
-case class ComponentInitializationException(val failure:Failure) extends Exception(failure.messageChain) with HashcodeCaching
+final case class ComponentInitializationException(val failure:Failure) extends Exception(failure.messageChain)
 

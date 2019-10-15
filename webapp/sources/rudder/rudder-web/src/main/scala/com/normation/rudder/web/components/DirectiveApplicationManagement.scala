@@ -45,7 +45,7 @@ import net.liftweb.common._
 
 
 
-case class DirectiveApplicationResult (
+final case class DirectiveApplicationResult (
     rules              : List[RuleId]
   , completeCategory   : List[RuleCategoryId]
   , incompleteCategory : List[RuleCategoryId]
@@ -82,7 +82,7 @@ object DirectiveApplicationResult {
 }
 
 
-case class DirectiveApplicationManagement (
+final case class DirectiveApplicationManagement (
     directive    : Directive
   , rules        : List[Rule]
   , rootCategory : RuleCategory

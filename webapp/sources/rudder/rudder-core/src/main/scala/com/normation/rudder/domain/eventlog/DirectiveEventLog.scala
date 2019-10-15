@@ -39,13 +39,11 @@ package com.normation.rudder.domain.eventlog
 
 
 import com.normation.eventlog._
-import com.normation.utils.HashcodeCaching
-
 sealed trait DirectiveEventLog extends EventLog { override final val eventLogCategory = DirectiveLogCategory }
 
 final case class AddDirective(
     override val eventDetails : EventLogDetails
-) extends DirectiveEventLog with HashcodeCaching {
+) extends DirectiveEventLog {
   override val cause = None
   override val eventType = AddDirective.eventType
 }
@@ -58,7 +56,7 @@ object AddDirective extends EventLogFilter {
 
 final case class DeleteDirective(
     override val eventDetails : EventLogDetails
-) extends DirectiveEventLog with HashcodeCaching {
+) extends DirectiveEventLog {
   override val cause = None
   override val eventType = DeleteDirective.eventType
 }
@@ -71,7 +69,7 @@ object DeleteDirective extends EventLogFilter {
 
 final case class ModifyDirective(
     override val eventDetails : EventLogDetails
-) extends DirectiveEventLog with HashcodeCaching {
+) extends DirectiveEventLog {
   override val cause = None
   override val eventType = ModifyDirective.eventType
 }

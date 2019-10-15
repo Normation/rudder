@@ -38,20 +38,16 @@
 package com.normation.rudder.domain.queries
 
 import com.normation.inventory.domain._
-import com.normation.utils.HashcodeCaching
 
-
-case class GroupCategoryUuid(val value:String) extends Uuid with HashcodeCaching
+final case class GroupCategoryUuid(val value:String) extends AnyVal with Uuid
 //  val attrName = A_GROUP_CATEGORY_UUID
 
-
-
-case class GroupCategory(
+final case class GroupCategory(
     uuid       : GroupCategoryUuid
   , name       : String
   , description: String
   , children   : List[GroupCategoryUuid]
   , items      : List[QueryUuid]
   //val technical : Boolean = false
-) extends HashcodeCaching
+)
 

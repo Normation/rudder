@@ -58,7 +58,6 @@ import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.repository._
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
-import com.normation.utils.HashcodeCaching
 import net.liftweb.common._
 import zio._
 import zio.syntax._
@@ -66,34 +65,34 @@ import zio.syntax._
 /**
  * A container for items which depend on directives
  */
-case class DirectiveDependencies(
+final case class DirectiveDependencies(
   directiveId:DirectiveId,
   rules:Set[Rule]
-) extends HashcodeCaching
+)
 
 /**
  * A container for items which depend on directives
  */
-case class TargetDependencies(
+final case class TargetDependencies(
   target:RuleTarget,
   rules:Set[Rule]
-) extends HashcodeCaching
+)
 
 /**
  * A container for items which depend on technique
  * For now, we don't care of directive <-> rules
  */
-case class TechniqueDependencies(
+final case class TechniqueDependencies(
   activeTechniqueId:ActiveTechniqueId,
   directives:Map[DirectiveId, (Directive,Set[RuleId])],
   rules:Map[RuleId,Rule]
-) extends HashcodeCaching
+)
 
 
 sealed trait ModificationStatus
-case object DontCare extends ModificationStatus
-case object OnlyEnableable extends ModificationStatus
-case object OnlyDisableable extends ModificationStatus
+final case object DontCare extends ModificationStatus
+final case object OnlyEnableable extends ModificationStatus
+final case object OnlyDisableable extends ModificationStatus
 
 /**
  *
@@ -357,7 +356,7 @@ class DependencyAndDeletionServiceImpl(
       deletedPis <- ZIO.foreach(directives) { directive =>
                       cascadeDeleteDirective(directive.id, modId, actor, reason = reason).toIO
                     }
-      deletedActiveTechnique <- woDirectiveRepository.delete(id, modId, actor, reason)
+      deletedActiveTechnique <- woDirectiveRepository.deleteActiveTechnique(id, modId, actor, reason)
     } yield {
       val allCrs = scala.collection.mutable.Map[RuleId,Rule]()
       val directives = deletedPis.map { case DirectiveDependencies(directiveId,seqCrs) =>

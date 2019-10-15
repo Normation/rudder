@@ -50,7 +50,6 @@ import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.nodes.LDAPNodeInfo
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.utils.Control.sequence
-import com.normation.utils.HashcodeCaching
 import com.unboundid.ldap.sdk.DereferencePolicy.NEVER
 import com.unboundid.ldap.sdk.{LDAPConnection => _, SearchScope => _, _}
 import net.liftweb.common._
@@ -74,7 +73,7 @@ import com.normation.ldap.sdk.syntax._
  */
 sealed trait ExtendedFilter
 //pur LDAP filters
-final case class LDAPFilter(f:Filter) extends ExtendedFilter with HashcodeCaching
+final case class LDAPFilter(f:Filter) extends ExtendedFilter
 
 //special ones
 sealed trait SpecialFilter  extends ExtendedFilter
@@ -84,8 +83,8 @@ sealed trait GeneralRegexFilter extends SpecialFilter {
 }
 sealed trait RegexFilter    extends GeneralRegexFilter
 sealed trait NotRegexFilter extends GeneralRegexFilter
-final case class SimpleRegexFilter   (attributeName:String, regex:String) extends RegexFilter    with HashcodeCaching
-final case class SimpleNotRegexFilter(attributeName:String, regex:String) extends NotRegexFilter with HashcodeCaching
+final case class SimpleRegexFilter   (attributeName:String, regex:String) extends RegexFilter
+final case class SimpleNotRegexFilter(attributeName:String, regex:String) extends NotRegexFilter
 
 
 /*
@@ -111,7 +110,7 @@ final case class LDAPNodeQuery(
     //that map MUST not contains node related filters
   , objectTypesFilters: Map[DnType, Map[String, List[SubQuery]]]
   , nodeInfoFilters   : Seq[NodeInfoMatcher]
-) extends HashcodeCaching
+)
 
 /*
  * A subquery is something that need to be done appart from the main query to
@@ -135,7 +134,7 @@ case class RequestLimits (
   val subRequestSizeLimit:Int,
   val requestTimeLimit:Int,
   val requestSizeLimit:Int
-) extends HashcodeCaching
+)
 
 object DefaultRequestLimits extends RequestLimits(0,0,0,0)
 
@@ -155,8 +154,7 @@ class AcceptedNodesLDAPQueryProcessor(
       nodeEntry     : LDAPEntry
     , inventoryEntry: LDAPEntry
     , machineInfo   : Option[LDAPEntry]
-
-  ) extends HashcodeCaching
+  )
 
   /**
    * only report entries that match query in also in node
@@ -902,5 +900,4 @@ class InternalLDAPQueryProcessor(
       LDAPNodeQuery(mainFilters, query.composition, subQueries, nodeInfos)
     }
   }
-
 }

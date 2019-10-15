@@ -37,7 +37,6 @@
 
 package com.normation.rudder.domain.parameters
 
-import com.normation.utils.HashcodeCaching
 import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.domain.policies.TriggerDeploymentDiff
 
@@ -48,11 +47,11 @@ sealed trait ChangeRequestGlobalParameterDiff {
   def parameter:GlobalParameter
 }
 
-final case class AddGlobalParameterDiff(parameter:GlobalParameter) extends ParameterDiff with ChangeRequestGlobalParameterDiff with HashcodeCaching {
+final case class AddGlobalParameterDiff(parameter:GlobalParameter) extends ParameterDiff with ChangeRequestGlobalParameterDiff {
   def needDeployment : Boolean = false
 }
 
-final case class DeleteGlobalParameterDiff(parameter:GlobalParameter) extends ParameterDiff with ChangeRequestGlobalParameterDiff with HashcodeCaching {
+final case class DeleteGlobalParameterDiff(parameter:GlobalParameter) extends ParameterDiff with ChangeRequestGlobalParameterDiff {
   def needDeployment : Boolean = true
 }
 
@@ -61,7 +60,7 @@ final case class ModifyGlobalParameterDiff(
   , modValue            : Option[SimpleDiff[String]] = None
   , modDescription      : Option[SimpleDiff[String]] = None
   , modOverridable      : Option[SimpleDiff[Boolean]] = None
-) extends ParameterDiff with HashcodeCaching {
+) extends ParameterDiff {
   def needDeployment : Boolean = {
     modValue.isDefined || modOverridable.isDefined
   }
@@ -70,7 +69,7 @@ final case class ModifyGlobalParameterDiff(
 
 final case class ModifyToGlobalParameterDiff(
     parameter : GlobalParameter
-) extends ParameterDiff with HashcodeCaching with ChangeRequestGlobalParameterDiff {
+) extends ParameterDiff  with ChangeRequestGlobalParameterDiff {
   // This case is undecidable, so it is always true
   def needDeployment : Boolean = true
 }

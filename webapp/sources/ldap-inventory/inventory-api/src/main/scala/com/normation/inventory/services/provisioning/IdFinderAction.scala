@@ -62,7 +62,7 @@ trait MachineDNFinderAction {
 }
 
 
-case class MergedSoftware(
+final case class MergedSoftware(
     newSoftware         : Set[Software]
   , alreadySavedSoftware: Set[Software]
 )

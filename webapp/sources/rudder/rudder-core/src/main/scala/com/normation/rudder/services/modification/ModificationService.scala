@@ -49,10 +49,11 @@ import com.normation.box._
 import net.liftweb.common._
 
 class ModificationService(
-      eventLogRepository : EventLogRepository
-    , gitModificationRepository : GitModificationRepository
-    , itemArchiveManager : ItemArchiveManager
-    , uuidGen : StringUuidGenerator ) {
+    eventLogRepository       : EventLogRepository
+  , gitModificationRepository: GitModificationRepository
+  , itemArchiveManager       : ItemArchiveManager
+  , uuidGen : StringUuidGenerator
+) {
 
   def getCommitsfromEventLog(eventLog:EventLog) : Box[Option[GitCommitId]] = {
     eventLog.modificationId match {

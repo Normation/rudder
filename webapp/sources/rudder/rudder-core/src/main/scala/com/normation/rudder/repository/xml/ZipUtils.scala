@@ -37,7 +37,7 @@ import zio.syntax._
 
 object ZipUtils {
 
-  case class Zippable(path:String, useContent:Option[(InputStream => IOResult[Any]) => IOResult[Any]])
+  final case class Zippable(path:String, useContent:Option[(InputStream => IOResult[Any]) => IOResult[Any]])
 
   def unzip(zip: ZipFile, intoDir: File) : IOResult[Unit] = {
     if(intoDir.exists && intoDir.isDirectory && intoDir.canWrite) {

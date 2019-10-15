@@ -39,14 +39,11 @@ package com.normation.rudder.domain.eventlog
 
 
 import com.normation.eventlog._
-import com.normation.utils.HashcodeCaching
-
-
 sealed trait RuleEventLog extends EventLog { override final val eventLogCategory = RuleLogCategory }
 
 final case class AddRule(
     override val eventDetails : EventLogDetails
-) extends RuleEventLog with HashcodeCaching {
+) extends RuleEventLog {
   override val eventType = AddRule.eventType
 }
 
@@ -59,7 +56,7 @@ object AddRule extends EventLogFilter {
 
 final case class DeleteRule(
     override val eventDetails : EventLogDetails
-) extends RuleEventLog with HashcodeCaching {
+) extends RuleEventLog {
   override val eventType = DeleteRule.eventType
 }
 
@@ -72,7 +69,7 @@ object DeleteRule extends EventLogFilter {
 
 final case class ModifyRule(
     override val eventDetails : EventLogDetails
-) extends RuleEventLog with HashcodeCaching {
+) extends RuleEventLog {
   override val eventType = ModifyRule.eventType
 }
 

@@ -94,7 +94,7 @@ import com.normation.rudder.domain.policies.PolicyMode
 
 import com.normation.box._
 
-case class XmlUnserializerImpl (
+final case class XmlUnserializerImpl (
     rule        : RuleUnserialisation
   , directive   : DirectiveUnserialisation
   , group       : NodeGroupUnserialisation

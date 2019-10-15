@@ -20,14 +20,13 @@
 
 package com.normation.ldap.sdk.schema
 
-import com.normation.utils.HashcodeCaching
 
-case class LDAPObjectClass(
-    name : String
-  , sup  : LDAPObjectClass = LDAPObjectClass.TOP
-  , must : Set[String] = Set()
-  , may  : Set[String] = Set()
-) extends HashcodeCaching {
+final case class LDAPObjectClass(
+    name: String
+  , sup : LDAPObjectClass = LDAPObjectClass.TOP
+  , must: Set[String] = Set()
+  , may : Set[String] = Set()
+) {
 
   val mustAttr : Set[String] = must ++ { if(null == sup) Set.empty else sup.mustAttr }
   val mayAttr  : Set[String] = may  ++ { if(null == sup) Set.empty else sup.mayAttr  }
@@ -42,7 +41,7 @@ object LDAPObjectClass {
   val TOP = new LDAPObjectClass("top", null, Set("objectClass"))
 }
 
-case class LDAPObjectClasses(all: Set[LDAPObjectClass]) extends HashcodeCaching {
+final case class LDAPObjectClasses(all: Set[LDAPObjectClass]) {
   assert(!all.isEmpty,"Object classes can't be empty (it should at least contains top)")
 
   val names     : Set[String] = all.map(_.name)

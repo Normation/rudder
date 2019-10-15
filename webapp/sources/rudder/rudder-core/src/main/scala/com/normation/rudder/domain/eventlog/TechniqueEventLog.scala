@@ -41,7 +41,6 @@ package com.normation.rudder.domain.eventlog
 import com.normation.eventlog._
 import scala.xml._
 import com.normation.cfclerk.domain._
-import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.EventLogDetails
 import com.normation.rudder.domain.Constants
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
@@ -55,7 +54,7 @@ sealed trait TechniqueEventLog extends EventLog { override final val eventLogCat
 
 final case class ReloadTechniqueLibrary(
     override val eventDetails : EventLogDetails
-) extends TechniqueEventLog with HashcodeCaching {
+) extends TechniqueEventLog {
   override val cause = None
   override val eventType = ReloadTechniqueLibrary.eventType
 }
@@ -117,7 +116,7 @@ object TechniqueEventLogsFilter {
 
 final case class AddTechnique(
     override val eventDetails : EventLogDetails
-) extends TechniqueEventLog with HashcodeCaching {
+) extends TechniqueEventLog {
   override val cause = None
   override val eventType = AddTechnique.eventType
 }
@@ -129,7 +128,7 @@ object AddTechnique extends EventLogFilter {
 
 final case class ModifyTechnique(
     override val eventDetails : EventLogDetails
-) extends TechniqueEventLog with HashcodeCaching {
+) extends TechniqueEventLog {
   override val cause = None
   override val eventType = ModifyTechnique.eventType
 }
@@ -141,7 +140,7 @@ object ModifyTechnique extends EventLogFilter {
 
 final case class DeleteTechnique(
     override val eventDetails : EventLogDetails
-) extends TechniqueEventLog with HashcodeCaching {
+) extends TechniqueEventLog {
   override val cause = None
   override val eventType = DeleteTechnique.eventType
 }

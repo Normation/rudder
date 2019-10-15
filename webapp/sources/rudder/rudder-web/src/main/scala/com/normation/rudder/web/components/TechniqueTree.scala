@@ -84,7 +84,7 @@ class TechniqueTree(
         case h::tail => Full((h, tail))
         case _ => Failure("No parent category found for template %s, abort".format(techniqueId))
       }
-      activeTechnique <- activeTechniqueRepository.getActiveTechnique(techniqueId).toBox.flatMap { Box(_) }
+      activeTechnique <- activeTechniqueRepository.getActiveTechniqueByActiveTechnique(techniqueId).toBox.flatMap { Box(_) }
       technique <- techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName)
       dep <- dependencyService.techniqueDependencies(techniqueId,getGrouLib().toBox,switchStatusFilter)
     } yield {

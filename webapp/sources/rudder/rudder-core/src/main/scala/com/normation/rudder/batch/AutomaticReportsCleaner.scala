@@ -204,7 +204,7 @@ trait CleanFrequency {
  *  An hourly frequency.
  *  It runs every hour past min minutes
  */
-case class Hourly(min:Int) extends CleanFrequency{
+final case class Hourly(min: Int) extends CleanFrequency {
 
   def checker(date:DateTime):DateTime = date.withMinuteOfHour(min)
 
@@ -224,7 +224,7 @@ case class Hourly(min:Int) extends CleanFrequency{
  *  A daily frequency.
  *  It runs every day at hour:min
  */
-case class Daily(hour:Int,min:Int) extends CleanFrequency{
+final case class Daily(hour: Int, min: Int) extends CleanFrequency{
 
   def checker(date:DateTime):DateTime = date.withMinuteOfHour(min).withHourOfDay(hour)
 
@@ -244,7 +244,7 @@ case class Daily(hour:Int,min:Int) extends CleanFrequency{
  *  A weekly frequency.
  *  It runs every week on day at hour:min
  */
-case class Weekly(day:Int,hour:Int,min:Int) extends CleanFrequency{
+final case class Weekly(day: Int, hour: Int, min: Int) extends CleanFrequency{
 
   def checker(date:DateTime):DateTime = date.withMinuteOfHour(min).withHourOfDay(hour).withDayOfWeek(day)
 
@@ -276,18 +276,18 @@ case class Weekly(day:Int,hour:Int,min:Int) extends CleanFrequency{
 // States into which the cleaner process can be.
 sealed trait CleanerState
 // The process is idle.
-case object IdleCleaner extends CleanerState
+final case object IdleCleaner extends CleanerState
 // An update is currently cleaning the databases.
-case object ActiveCleaner extends CleanerState
+final case object ActiveCleaner extends CleanerState
 
 sealed trait DatabaseCleanerMessage
 // Messages the cleaner can receive.
 // Ask to clean database (need to be in active state).
-case object CleanDatabase extends DatabaseCleanerMessage
+final case object CleanDatabase extends DatabaseCleanerMessage
 // Ask to check if cleaning has to be launched (need to be in idle state).
-case object CheckLaunch extends DatabaseCleanerMessage
+final case object CheckLaunch extends DatabaseCleanerMessage
 
-case class ManualLaunch(date:DateTime) extends DatabaseCleanerMessage
+final case class ManualLaunch(date:DateTime) extends DatabaseCleanerMessage
 
 trait DatabaseCleanerActor extends SpecializedLiftActor[DatabaseCleanerMessage] {
   def isIdle : Boolean

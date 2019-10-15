@@ -108,7 +108,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     transacRun(xa => sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa))
   }
 
-  val nodeInfoService = new NodeInfoService {
+  object nodeInfoService extends NodeInfoService {
     def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition) : Box[Set[LDAPNodeInfo]] = ???
     def getNodeInfo(nodeId: NodeId) : Box[Option[NodeInfo]] = ???
     def getNode(nodeId: NodeId): Box[Node] = ???
@@ -145,7 +145,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     def getActiveTechniqueAndDirective(id:DirectiveId) : IOResult[Option[(ActiveTechnique, Directive)]] = ???
     def getDirectives(activeTechniqueId:ActiveTechniqueId, includeSystem:Boolean = false) : IOResult[Seq[Directive]] = ???
     def getActiveTechniqueByCategory(includeSystem:Boolean = false) : IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
-    def getActiveTechnique(id:ActiveTechniqueId) : IOResult[Option[ActiveTechnique]] = ???
+    def getActiveTechniqueByActiveTechnique(id:ActiveTechniqueId) : IOResult[Option[ActiveTechnique]] = ???
     def getActiveTechnique(techniqueName: TechniqueName) : IOResult[Option[ActiveTechnique]] = ???
     def activeTechniqueBreadCrump(id:ActiveTechniqueId) : IOResult[List[ActiveTechniqueCategory]] = ???
     def getActiveTechniqueLibrary : IOResult[ActiveTechniqueCategory] = ???

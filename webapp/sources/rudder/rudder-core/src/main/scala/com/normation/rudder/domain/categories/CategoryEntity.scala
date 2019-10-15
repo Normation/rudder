@@ -38,7 +38,6 @@
 package com.normation.rudder.domain.categories
 
 import com.normation.inventory.domain._
-import com.normation.utils.HashcodeCaching
 
 /**
  * A category in the LDAP.
@@ -47,13 +46,13 @@ import com.normation.utils.HashcodeCaching
  *
  */
 
-case class CategoryUuid(val value:String) extends Uuid with HashcodeCaching
+final case class CategoryUuid(val value:String) extends AnyVal with Uuid
 
-case class CaetgoryEntity(
+final case class CaetgoryEntity(
   val uuid:Option[CategoryUuid],
   val description:Option[String],
   val name:Option[String]
-) extends HashcodeCaching
+)
 
 
 /**

@@ -104,7 +104,7 @@ import org.bouncycastle.cert.X509CertificateHolder
 import zio._
 import zio.syntax._
 
-case class RestExtractorService (
+final case class RestExtractorService (
     readRule             : RoRuleRepository
   , readDirective        : RoDirectiveRepository
   , readGroup            : RoNodeGroupRepository

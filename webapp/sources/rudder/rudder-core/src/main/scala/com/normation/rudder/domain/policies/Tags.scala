@@ -53,20 +53,17 @@ object Tag {
   implicit def tagValue(value : String)  : TagValue = TagValue(value)
 }
 
-final case class TagName ( val value : String )
-final case class TagValue( val value : String )
-
-
+final case class TagName ( val value : String ) extends AnyVal
+final case class TagValue( val value : String ) extends AnyVal
 final case class Tag( name : TagName, value : TagValue )
 
 /**
  * We can have multiple Tags with same name - unicity is really on tuple (name, value)
  */
-final case class Tags(tags : Set[Tag]){
+final case class Tags(tags : Set[Tag]) extends AnyVal {
   def map[A](f : Tag => A) = {
     tags.map(f)
   }
-
 }
 
 object JsonTagSerialisation {

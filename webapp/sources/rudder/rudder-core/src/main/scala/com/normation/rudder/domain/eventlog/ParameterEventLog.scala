@@ -39,14 +39,11 @@ package com.normation.rudder.domain.eventlog
 
 
 import com.normation.eventlog._
-import com.normation.utils.HashcodeCaching
-
-
 sealed trait ParameterEventLog extends EventLog { override final val eventLogCategory = ParameterLogCategory }
 
 final case class AddGlobalParameter(
     override val eventDetails : EventLogDetails
-) extends ParameterEventLog with HashcodeCaching {
+) extends ParameterEventLog {
   override val cause = None
   override val eventType = AddGlobalParameter.eventType
 }
@@ -59,7 +56,7 @@ object AddGlobalParameter extends EventLogFilter {
 
 final case class ModifyGlobalParameter(
     override val eventDetails : EventLogDetails
-) extends ParameterEventLog with HashcodeCaching {
+) extends ParameterEventLog {
   override val cause = None
   override val eventType = ModifyGlobalParameter.eventType
 }
@@ -72,7 +69,7 @@ object ModifyGlobalParameter extends EventLogFilter {
 
 final case class DeleteGlobalParameter(
     override val eventDetails : EventLogDetails
-) extends ParameterEventLog with HashcodeCaching {
+) extends ParameterEventLog {
   override val cause = None
   override val eventType = DeleteGlobalParameter.eventType
 }

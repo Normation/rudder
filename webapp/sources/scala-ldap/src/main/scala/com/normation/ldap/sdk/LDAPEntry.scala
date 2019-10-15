@@ -179,27 +179,27 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
   //////  Methods to retrieve the first value of attribute in typed way  //////
 
   def getAsBoolean(attributeName:String) : Option[Boolean] = _backed.getAttributeValueAsBoolean(attributeName) match {
-    case null => None
+      case null => None
     case b => Some(b.booleanValue)
   }
   def getAsDate(attributeName:String) : Option[java.util.Date] = _backed.getAttributeValueAsDate(attributeName) match {
-    case null => None
-    case x => Some(x)
+      case null => None
+      case x    => Some(x)
   }
    def getAsGTime(attributeName:String) : Option[GeneralizedTime] = apply(attributeName) flatMap { x =>
     GeneralizedTime.parse(x)
   }
   def getAsDn(attributeName:String) : Option[DN] = _backed.getAttributeValueAsDN(attributeName) match {
-    case null => None
-    case x => Some(x)
+      case null => None
+      case x    => Some(x)
   }
   def getAsInt(attributeName:String) : Option[Int] = _backed.getAttributeValueAsInteger(attributeName) match {
-    case null => None
+      case null => None
     case x => Some(x.intValue)
   }
 
   def getAsLong(attributeName:String) : Option[Long] = _backed.getAttributeValueAsLong(attributeName) match {
-    case null => None
+      case null => None
     case x => Some(x.longValue)
   }
 
@@ -279,7 +279,7 @@ object LDAPEntry {
    */
   val logger = LoggerFactory.getLogger(classOf[LDAPEntry])
 
-  def apply(e:UnboundidEntry):LDAPEntry = new LDAPEntry(new UnboundidEntry(e.getDN,e.getAttributes)) // val e = LDAPEntry(unboundidEntry)
+  def apply(e:UnboundidEntry):LDAPEntry = new LDAPEntry(e) // val e = LDAPEntry(unboundidEntry)
   def apply(dn:DN, attributes:Attribute*):LDAPEntry = LDAPEntry(new UnboundidEntry(dn,attributes:_*))
   def apply(dn:DN, attributes:Iterable[Attribute]):LDAPEntry = LDAPEntry(new UnboundidEntry(dn, attributes.toSeq:_*))
   def apply(rdnAttribute:String,rdnValue:String,parentDn:String, attributes:Attribute*) : LDAPEntry = {

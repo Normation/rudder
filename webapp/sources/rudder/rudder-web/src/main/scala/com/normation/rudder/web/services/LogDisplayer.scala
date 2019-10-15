@@ -205,7 +205,7 @@ class LogDisplayer(
  *   , "message" : Report message [String]
  *   }
  */
-case class ReportLine (
+final case class ReportLine (
     executionDate  : DateTime
   , runDate        : DateTime
   , severity       : String
