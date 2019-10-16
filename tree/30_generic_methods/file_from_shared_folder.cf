@@ -16,14 +16,14 @@
 #
 #####################################################################################
 
-# @name File copy from Rudder shared folder 
+# @name File copy from Rudder shared folder
 # @description Ensure that a file or directory is copied from Rudder shared folder (/var/rudder/configuration-repository/shared-files)
 #
 # @parameter source      Source file (path, relative to /var/rudder/configuration-repository/shared-files)
 # @parameter destination Destination file (absolute path on the target node)
 # @parameter hash_type   Hash algorithm used to check if file is updated (md5, sha1, sha256). Only used on Windows, ignored on Unix.
 # @parameter_constraint hash_type "select" : [ "md5", "sha1", "sha256" ]
-# 
+#
 # @class_prefix file_from_shared_folder
 # @class_parameter destination
 
@@ -35,11 +35,13 @@ bundle agent file_from_shared_folder(source, destination, hash_type)
       "old_class_prefix"        string => "file_from_shared_folder_${canonified_destination}";
 
       "args"                     slist => { "/var/rudder/configuration-repository/shared-files/${source}", "${destination}", "${hash_type}" };
+      "inner_args"               slist => { "/var/rudder/configuration-repository/shared-files/${source}", "${destination}" };
       "report_param"            string => join("_", args);
+      "inner_report_param"      string => join("_", inner_args);
       "full_class_prefix"       string => canonify("file_from_shared_folder_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
 
-      "full_inner_class_prefix" string => canonify("file_from_remote_source_${report_param}_inf");
+      "full_inner_class_prefix" string => canonify("file_copy_from_remote_source_${inner_report_param}_inf");
       "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
   classes:
