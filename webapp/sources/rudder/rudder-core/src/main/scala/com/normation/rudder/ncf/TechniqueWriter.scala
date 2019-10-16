@@ -250,6 +250,7 @@ class TechniqueWriter (
     for {
       agentFiles <- writeAgentFiles(technique, methods, modId, committer)
       metadata   <- writeMetadata(technique, methods, modId, committer)
+      commit     <- archiver.commitTechnique(technique,metadata +: agentFiles, modId, committer, s"Committing technique ${technique.name}")
     } yield {
       metadata +: agentFiles
     }
