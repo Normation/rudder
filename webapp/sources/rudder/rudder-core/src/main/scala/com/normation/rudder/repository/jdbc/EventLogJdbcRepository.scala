@@ -87,13 +87,13 @@ class EventLogJdbcRepository(
                 )
         """.update.withUniqueGeneratedKeys[Int]("id").transact(xa))
 
-        for {
+        (for {
           id      <- boxId
           details =  eventLog.eventDetails.copy(id = Some(id), modificationId = Some(modId))
           saved   <- EventLogReportsMapper.mapEventLog(eventLog.eventType, details).toIO
         } yield {
           saved
-        }
+        }).blocking
 
       case _ => Inconsistancy(s"Eventlog with type '${eventLog.eventType} has invalid XML for details (it must be a well formed document with only one root): ${eventLog.details}'").fail
     }
