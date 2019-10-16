@@ -39,6 +39,7 @@ package com.normation.rudder.rest.internal
 import com.normation.box._
 import com.normation.eventlog._
 import com.normation.rudder.repository.EventLogRepository
+import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils._
 import com.normation.rudder.web.components.DateFormaterService
@@ -94,7 +95,7 @@ class EventLogAPI (
   }
 
   def requestDispatch: PartialFunction[Req, () => Box[LiftResponse]] = {
-    case Get(Nil, req) =>
+    case Post(Nil, req) =>
 
       def extractDateTimeOpt(i : String) = {
         val format = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss")
@@ -105,16 +106,33 @@ class EventLogAPI (
           tryo(Some(DateTime.parse(i, format)))
         }
       }
-      (for {
-        optDraw <- restExtractor.extractInt("draw")(req)(i => Full(i.toInt))
-        draw <- Box(optDraw) ?~! "Missing 'draw' field from datatable's request"
-        optStart <- restExtractor.extractInt("start")(req)(i => Full(i.toInt))
-        start <- Box(optStart) ?~! "Missing 'start' field from datatable's request"
-        optLength <- restExtractor.extractInt("length")(req)(i => Full(i.toInt))
-        length <- Box(optLength) ?~! "Missing 'length' field from datatable's request"
 
-        optStartDate <- restExtractor.extractString("startDate")(req)(extractDateTimeOpt).map(_.flatten)
-        optEndDate   <- restExtractor.extractString("endDate")(req)(extractDateTimeOpt).map(_.flatten)
+      (for {
+        json <- req.json
+        draw <- CompleteJson.extractJsonInt(json, "draw")
+        start <- CompleteJson.extractJsonInt(json, "start")
+        length <- CompleteJson.extractJsonInt(json, "length")
+        optStartDate <- CompleteJson.extractJsonString(json,"startDate", extractDateTimeOpt)
+        optEndDate   <- CompleteJson.extractJsonString(json,"endDate", extractDateTimeOpt)
+
+        order <- CompleteJson.extractJsonArray(json,"order") {
+          json =>
+            for {
+              colId <- CompleteJson.extractJsonInt(json,"column")
+              col <- colId match{
+
+                case 0 => Full("id")
+                case 1 => Full("creationdate")
+                case 2 => Full("principal")
+                case 3 => Full("eventtype")
+                  case _ => Failure("not a valid column")
+
+              }
+              dir <- CompleteJson.extractJsonString(json,"dir")
+            } yield {
+              s"${col} ${dir}"
+            }
+        }
 
         dateCriteria = {
           (optStartDate,optEndDate) match {
@@ -125,10 +143,8 @@ class EventLogAPI (
             case (Some(start), Some(end))                        => Some(s" creationDate >= '${start}' and creationDate <= '${end}'")
           }
         }
-        optLength <- restExtractor.extractInt("length")(req)(i => Full(i.toInt))
-        length <- Box(optLength) ?~! "Missing 'length' field from datatable's request"
 
-        events <- getEventLogBySlice(start, dateCriteria, Some(length), "id DESC")
+        events <- getEventLogBySlice(start, dateCriteria, Some(length), order.mkString(", "))
         totalRecord <- repos.getEventLogCount(None).toBox
         totalFilter <- repos.getEventLogCount(dateCriteria).toBox
       } yield {
