@@ -453,31 +453,33 @@ object JsEngine {
      * So you should minimize the number of time it is done.
      */
     def sandboxed[T](policyFileUrl: URL, maxThread: Int = 1, timeout: FiniteDuration = DEFAULT_MAX_EVAL_DURATION)(script: SandboxedJsEngine => IOResult[T]): IOResult[T] = {
-      var sandbox = new SandboxSecurityManager(policyFileUrl)
-      var threadFactory = new RudderJsEngineThreadFactory(sandbox)
-      var pool = Executors.newFixedThreadPool(maxThread, threadFactory)
-      System.setSecurityManager(sandbox)
+      final case class ManagedJsEnv(pool: ExecutorService, engine: SandboxedJsEngine)
 
-      getJsEngine().flatMap { jsEngine =>
-        val engine = new SandboxedJsEngine(jsEngine, sandbox, pool, timeout)
-
-        try {
-          script(engine)
-        } catch {
-          case RudderFatalScriptException(message, cause) =>
-            SystemError(message, cause).fail
-        } finally {
+      val managedJsEngine = Managed.make(
+        getJsEngine().flatMap( jsEngine =>
+          IOResult.effect {
+            val sandbox = new SandboxSecurityManager(policyFileUrl)
+            val threadFactory = new RudderJsEngineThreadFactory(sandbox)
+            val pool = Executors.newFixedThreadPool(maxThread, threadFactory)
+            System.setSecurityManager(sandbox)
+            ManagedJsEnv(pool, new SandboxedJsEngine(jsEngine, sandbox, pool, timeout))
+          }
+        )
+      ) { managedJsEnv =>
+        IOResult.effect{
           //clear everything
-          pool.shutdownNow()
-          pool = null
-          threadFactory = null
-          sandbox = null
+          managedJsEnv.pool.shutdownNow()
           //check & clear interruption of the calling thread
           Thread.currentThread().isInterrupted()
           //restore the "none" security manager
           System.setSecurityManager(null)
-        }
+        }.foldM(
+          err => JsDirectiveParamLoggerPure.error(err.fullMsg)
+        , ok  => ok.succeed
+        )
       }
+
+      managedJsEngine.use(managedJsEnv => script(managedJsEnv.engine))
     }
 
     protected[policies] def getJsEngine(): IOResult[ScriptEngine] = {
@@ -620,7 +622,7 @@ object JsEngine {
           task.get(maxTime.toMillis, TimeUnit.MILLISECONDS)
       } catch {
         case ex: ExecutionException => //this can happen when jsengine get security exception... Yeah...
-          throw RudderFatalScriptException(s"Evaluating script '${name}' was forced interrupted due to ${ex.getMessage}, aborting.", ex)
+          SystemError(s"Evaluating script '${name}' was forced interrupted due to ${ex.getMessage}, aborting.", ex).fail
 
         case ex: TimeoutException =>
           //try to interrupt the thread
@@ -639,23 +641,19 @@ object JsEngine {
             }
           } catch {
             case ex: ThreadDeath =>
-                throw RudderFatalScriptException(s"Evaluating script '${name}' took more than ${maxTime.toString()}, and " +
-                    "we were force to kill the thread. Check for infinite loop or uninterruptible system calls", ex)
+                SystemError(s"Evaluating script '${name}' took more than ${maxTime.toString()}, and " +
+                    "we were force to kill the thread. Check for infinite loop or uninterruptible system calls", ex).fail
 
             case ex: InterruptedException =>
-              throw RudderFatalScriptException(s"Evaluating script '${name}' was forced interrupted, aborting.", ex)
+              SystemError(s"Evaluating script '${name}' was forced interrupted, aborting.", ex).fail
           }
       }
       } catch {
         case ex: RejectedExecutionException =>
-          throw RudderFatalScriptException(s"Evaluating script '${name}' lead to a '${ex.getClass.getName}'. Perhaps the thread pool was stopped?", ex)
+          SystemError(s"Evaluating script '${name}' lead to a '${ex.getClass.getName}'. Perhaps the thread pool was stopped?", ex).fail
       }
     }
   }
-  /*
-   * An exception marker class to handle thread related error cases
-   */
-  protected[policies] case class RudderFatalScriptException(message: String, cause: Throwable) extends Exception(message, cause)
 
   /*
    * A sandboxed security manager, allowing only restricted
