@@ -186,6 +186,13 @@ object errors {
   }
 
   /*
+   * tag an effect as blocking (ie should run on the blocking thread pool)
+   */
+  implicit class ToBlocking[E<: RudderError, A](effect: ZIO[Any, E, A]) {
+    def blocking: ZIO[Any, E, A] = ZioRuntime.blocking(effect)
+  }
+
+  /*
    * A mapper from PureResult to IOResult
    */
   implicit class PureToIoResult[A](res: PureResult[A]) {
@@ -309,17 +316,7 @@ object zio {
      * IO into an async thread pool to avoid deadlock in case of
      * a hierarchy of calls.
      */
-    val internal = new DefaultRuntime() {
-      object ForkJoinBlockin extends Blocking {
-        val blocking: Blocking.Service[Any] = new Blocking.Service[Any] {
-          // that seems to yield ~10% better perf
-          val blockingExecutor: UIO[Executor] = Executor.fromExecutionContext(Int.MaxValue)(scala.concurrent.ExecutionContext.global).succeed
-        }
-      }
-      // Disabling tracing doesn't yield notable perf gain, but debuging is much harder => keep it (and perhaps locally disable it in really hot spot
-      override val Platform: Platform = PlatformLive.fromExecutionContext(scala.concurrent.ExecutionContext.global) //.withTracingConfig(_root_.zio.internal.tracing.TracingConfig.disabled)
-      override val Environment: Environment = new Clock.Live with Console.Live with ZSystem.Live with Random.Live with Blocking.Live
-    }
+    val internal = new DefaultRuntime() {}
 
     /*
      * use the blocking thread pool provided by that runtime.

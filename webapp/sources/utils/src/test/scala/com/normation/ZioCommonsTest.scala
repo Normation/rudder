@@ -476,3 +476,73 @@ Process finished with exit code 0
     println("last line of main")
   }
 }
+
+
+
+object TestConcurrentRun {
+/*
+runs with jvm arg:
+
+-Dscala.concurrent.context.minThreads=1
+-Dscala.concurrent.context.maxThreads=20
+-Dscala.concurrent.context.maxExtraThreads=10000
+ */
+import _root_.zio._
+import _root_.zio.syntax._
+import _root_.zio.duration._
+import _root_.zio.clock._
+import _root_.zio.random._
+import _root_.zio.console._
+import _root_.zio.system.{System => ZSystem}
+import _root_.zio.internal._
+
+  def main(args: Array[String]): Unit = {
+
+    val runtime = new DefaultRuntime() {
+      object ForkJoinBlockin extends Blocking {
+        val blocking: Blocking.Service[Any] = new Blocking.Service[Any] {
+          val blockingExecutor: UIO[Executor] = Executor.fromExecutionContext(Int.MaxValue)(scala.concurrent.ExecutionContext.global).succeed
+        }
+      }
+      override val Platform: Platform = PlatformLive.fromExecutionContext(scala.concurrent.ExecutionContext.global) //.withTracingConfig(_root_.zio.internal.tracing.TracingConfig.disabled)
+      override val Environment: Environment = new Clock.Live with Console.Live with ZSystem.Live with Random.Live with Blocking.Live
+    }
+
+    val schedule = ZSchedule.spaced(100.millis).forever
+    val start = System.currentTimeMillis
+    def time = (System.currentTimeMillis()-start).toString
+
+
+    import cats._
+    import cats.syntax._
+    import _root_.zio.interop.catz._
+
+
+    println("before declaration: " + time)
+
+    val c = (cats.effect.IO { println("cats blcocking "); Thread.sleep(5000)})
+
+    val p1 = IOResult.effect { println("1 - " + time); Thread.sleep(5000)}.repeat(schedule)
+    val p2 = IOResult.effect { println("2 - " + time); Thread.sleep(5000)}.repeat(schedule).delay(100.millis)
+    val p3 = IOResult.effect { println("3 - " + time); Thread.sleep(5000)}.repeat(schedule).delay(200.millis)
+    val p4 = IOResult.effect { println("4 - " + time); Thread.sleep(5000)}.repeat(schedule).delay(300.millis)
+
+    val p = IOResult.effect{ println("== " + time)}.delay(400.millis).repeat(schedule)
+
+    println("start run " + time)
+
+//    runtime.unsafeRunSync(blocking.blocking(scala.concurrent.blocking(cats.effect.IO { println("cats blcocking "); Thread.sleep(5000)}).to[Task]))
+
+
+//    c.unsafeRunSync() // this block the thread until end of exex
+    runtime.unsafeRunSync(c.to[Task].fork)
+    runtime.unsafeRunSync(p1.fork)
+    runtime.unsafeRunSync(p2.fork)
+    runtime.unsafeRunSync(p3.fork)
+    runtime.unsafeRunSync(p4.fork)
+    runtime.unsafeRunSync(p.fork)
+
+    println("terminating after 3s")
+    Thread.sleep(3*1000)
+  }
+}
