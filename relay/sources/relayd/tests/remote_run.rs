@@ -21,10 +21,12 @@ mod tests {
         assert!(common::start_api().is_ok());
         let client = reqwest::Client::new();
 
+        // Async & keep
+
         let _ = remove_file("target/tmp/api_test.txt");
         let params_async = [
             ("asynchronous", "true"),
-            ("keep_output", "false"),
+            ("keep_output", "true"),
             ("classes", "class2,class3"),
             ("nodes", "root"),
         ];
@@ -34,18 +36,18 @@ mod tests {
             .send()
             .unwrap();
         assert_eq!(response.status(), hyper::StatusCode::OK);
-        assert_eq!(response.text().unwrap(), "".to_string());
-        // async, let's wait a bit
-        thread::sleep(time::Duration::from_millis(700));
+        assert_eq!(response.text().unwrap(), "OK".to_string());
         assert_eq!(
             "remote run -D class2,class3 server.rudder.local".to_string(),
             read_to_string("target/tmp/api_test.txt").unwrap()
         );
 
+        // Async & no keep
+
         let _ = remove_file("target/tmp/api_test.txt");
         let params_sync = [
             ("asynchronous", "true"),
-            ("keep_output", "true"),
+            ("keep_output", "false"),
             ("classes", "class2,class4"),
             ("nodes", "root"),
         ];
@@ -55,9 +57,53 @@ mod tests {
             .send()
             .unwrap();
         assert_eq!(response.status(), hyper::StatusCode::OK);
-        assert_eq!(response.text().unwrap(), "OK".to_string());
+        assert_eq!(response.text().unwrap(), "".to_string());
+        // async, let's wait a bit
+        thread::sleep(time::Duration::from_millis(700));
         assert_eq!(
             "remote run -D class2,class4 server.rudder.local".to_string(),
+            read_to_string("target/tmp/api_test.txt").unwrap()
+        );
+
+        // Sync & keep
+
+        let _ = remove_file("target/tmp/api_test.txt");
+        let params_sync = [
+            ("asynchronous", "false"),
+            ("keep_output", "true"),
+            ("classes", "class2,class5"),
+            ("nodes", "root"),
+        ];
+        let mut response = client
+            .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
+            .form(&params_sync)
+            .send()
+            .unwrap();
+        assert_eq!(response.status(), hyper::StatusCode::OK);
+        assert_eq!(response.text().unwrap(), "OK\n".to_string());
+        assert_eq!(
+            "remote run -D class2,class5 server.rudder.local".to_string(),
+            read_to_string("target/tmp/api_test.txt").unwrap()
+        );
+
+        // Sync & no keep
+
+        let _ = remove_file("target/tmp/api_test.txt");
+        let params_sync = [
+            ("asynchronous", "false"),
+            ("keep_output", "false"),
+            ("classes", "class2,class6"),
+            ("nodes", "root"),
+        ];
+        let mut response = client
+            .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
+            .form(&params_sync)
+            .send()
+            .unwrap();
+        assert_eq!(response.status(), hyper::StatusCode::OK);
+        assert_eq!(response.text().unwrap(), "".to_string());
+        assert_eq!(
+            "remote run -D class2,class6 server.rudder.local".to_string(),
             read_to_string("target/tmp/api_test.txt").unwrap()
         );
     }
