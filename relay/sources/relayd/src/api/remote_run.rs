@@ -372,9 +372,7 @@ impl RunParameters {
     ) -> Box<dyn Stream<Item = Chunk, Error = Error> + Send + 'static> {
         trace!("Starting local remote run on {:#?} with {:#?}", nodes, cfg);
         let mut cmd = self.command(cfg, nodes);
-        if asynchronous {
-            cmd.stdout(Stdio::piped());
-        }
+        cmd.stdout(Stdio::piped());
 
         match (asynchronous, cmd.spawn_async()) {
             (false, Ok(c)) => Box::new(
