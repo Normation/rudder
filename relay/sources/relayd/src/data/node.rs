@@ -101,15 +101,26 @@ impl NodesList {
         certificates_file: Option<P>,
     ) -> Result<Self, Error> {
         info!("Parsing nodes list from {:#?}", nodes_file.as_ref());
-        let mut nodes = read_to_string(nodes_file)?.parse::<RawNodesList>()?;
+
+        let mut nodes = if nodes_file.as_ref().exists() {
+            read_to_string(nodes_file)?
+        } else {
+            info!("Nodes list file does not exist, considering it as empty");
+            "".to_string()
+        }
+        .parse::<RawNodesList>()?;
 
         if let Some(certificates_file) = certificates_file {
-            for cert in X509::stack_from_pem(&read(certificates_file.as_ref())?)? {
-                Self::id_from_cert(&cert)
-                    .and_then(|id| nodes.add_certificate(&id, cert))
-                    .map_err(|e| warn!("{}", e))
-                    // Skip node and continue
-                    .unwrap_or(())
+            if certificates_file.as_ref().exists() {
+                for cert in X509::stack_from_pem(&read(certificates_file.as_ref())?)? {
+                    Self::id_from_cert(&cert)
+                        .and_then(|id| nodes.add_certificate(&id, cert))
+                        .map_err(|e| warn!("{}", e))
+                        // Skip node and continue
+                        .unwrap_or(())
+                }
+            } else {
+                info!("Certificates file does not exist, skipping");
             }
         }
         Ok(NodesList { list: nodes, my_id })
