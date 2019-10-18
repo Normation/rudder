@@ -141,7 +141,8 @@ fn serve(
             // FIXME: no need for a spawn
             tokio::spawn(lazy(|| fail));
             error!("refused: report from {:?}, unknown id", &info.node_id);
-            return Err(());
+            // this is actually expected behavior
+            return Ok(());
         }
 
         debug!("received: {:?}", file);
