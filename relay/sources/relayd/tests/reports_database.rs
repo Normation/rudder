@@ -49,7 +49,9 @@ fn it_reads_and_inserts_a_runlog() {
     let file_old = "target/tmp/test_simple/incoming/2017-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log";
     let file_new = "target/tmp/test_simple/incoming/2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log";
     let file_broken = "target/tmp/test_simple/incoming/2018-02-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log";
-    let file_failed = "target/tmp/test_simple/failed/2018-02-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log";
+    let file_unknown = "target/tmp/test_simple/incoming/2018-02-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906d.log";
+    let file_broken_failed = "target/tmp/test_simple/failed/2018-02-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log";
+    let file_unknown_failed = "target/tmp/test_simple/failed/2018-02-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906d.log";
 
     copy(
         "tests/runlogs/2017-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.signed",
@@ -65,12 +67,17 @@ fn it_reads_and_inserts_a_runlog() {
 
     assert!(start_number(&db, 1).is_ok());
 
+    copy("tests/files/config/main.conf", file_broken).unwrap();
+    copy("tests/files/config/main.conf", file_unknown).unwrap();
+
+    thread::sleep(time::Duration::from_millis(500));
+    assert!(start_number(&db, 1).is_ok());
+
     copy(
         "tests/runlogs/2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.signed",
         file_new,
     )
     .unwrap();
-    copy("tests/files/config/main.conf", file_broken).unwrap();
 
     assert!(start_number(&db, 2).is_ok());
 
@@ -79,7 +86,10 @@ fn it_reads_and_inserts_a_runlog() {
     assert!(!Path::new(file_new).exists());
     // Test broken file has been moved
     assert!(!Path::new(file_broken).exists());
-    assert!(Path::new(file_failed).exists());
+    assert!(Path::new(file_broken_failed).exists());
+    // Test unknown file has been moved
+    assert!(!Path::new(file_unknown).exists());
+    assert!(Path::new(file_unknown_failed).exists());
 
     let body = reqwest::get("http://localhost:3030/rudder/relay-api/1/system/stats")
         .unwrap()
@@ -87,8 +97,8 @@ fn it_reads_and_inserts_a_runlog() {
         .unwrap();
     let answer = serde_json::from_str(&body).unwrap();
     let reference = Stats {
-        report_received: 3,
-        report_refused: 1,
+        report_received: 4,
+        report_refused: 2,
         report_sent: 0,
         report_inserted: 2,
         inventory_received: 0,

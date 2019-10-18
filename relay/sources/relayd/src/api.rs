@@ -82,10 +82,16 @@ struct ApiResponse<T: Serialize> {
 }
 
 impl<T: Serialize> ApiResponse<T> {
-    fn new<E: Display>(action: &'static str, data: Result<T, E>) -> Self {
+    fn new<E: Display>(action: &'static str, data: Result<Option<T>, E>) -> Self {
         match data {
-            Ok(d) => ApiResponse {
+            Ok(Some(d)) => ApiResponse {
                 data: Some(d),
+                result: ApiResult::Success,
+                action,
+                error_details: None,
+            },
+            Ok(None) => ApiResponse {
+                data: None,
                 result: ApiResult::Success,
                 action,
                 error_details: None,
@@ -125,16 +131,20 @@ pub fn run(
     // New endpoints, following Rudder's API format
     let info = get()
         .and(path("info"))
-        .map(move || ApiResponse::new::<Error>("getSystemInfo", Ok(Info::new())).reply());
+        .map(move || ApiResponse::new::<Error>("getSystemInfo", Ok(Some(Info::new()))).reply());
 
     let job_config0 = job_config.clone();
-    let reload = post()
-        .and(path("reload"))
-        .map(move || ApiResponse::new("reloadConfiguration", job_config0.clone().reload()).reply());
+    let reload = post().and(path("reload")).map(move || {
+        ApiResponse::<()>::new::<Error>(
+            "reloadConfiguration",
+            job_config0.clone().reload().map(|_| None),
+        )
+        .reply()
+    });
 
     let job_config1 = job_config.clone();
     let status = get().and(path("status")).map(move || {
-        ApiResponse::new::<Error>("getStatus", Ok(Status::poll(job_config1.clone()))).reply()
+        ApiResponse::new::<Error>("getStatus", Ok(Some(Status::poll(job_config1.clone())))).reply()
     });
 
     // Old compatible endpoints
