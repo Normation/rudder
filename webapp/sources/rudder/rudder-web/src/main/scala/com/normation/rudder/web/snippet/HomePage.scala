@@ -119,10 +119,6 @@ final case class PendingChart (value : Int) extends ComplianceLevelPieChart{
 object HomePage {
   private val nodeInfosService = RudderConfig.nodeInfoService
 
-  object boxNodeInfos extends RequestVar[Box[Map[NodeId, NodeInfo]]](initNodeInfos) {
-    override def doSync[F](f: => F): F = this.synchronized(f)
-  }
-
   def initNodeInfos(): Box[Map[NodeId, NodeInfo]] = {
     TimingDebugLogger.debug(s"Start timing homepage")
     val n1 = System.currentTimeMillis
@@ -177,7 +173,7 @@ final case object DisabledChartType extends ChartType
 final case class ColoredChartType(value: Double) extends ChartType
 
     ( for {
-      nodeInfos <- HomePage.boxNodeInfos.get
+      nodeInfos <- HomePage.initNodeInfos
       n2 = System.currentTimeMillis
       userRules <- roRuleRepo.getIds().toBox
       n3 = System.currentTimeMillis
@@ -306,7 +302,7 @@ final case class ColoredChartType(value: Double) extends ChartType
     val osNames = JsObj(osTypes.map {os => (S.?("os.name." + os.name), Str(os.name))}:_*)
 
     ( for {
-      nodeInfos <- HomePage.boxNodeInfos.get
+      nodeInfos <- HomePage.initNodeInfos
     } yield {
       val machines = nodeInfos.values.map { _.machine.map(_.machineType) match {
                         case Some(_: VirtualMachineType) => "Virtual"
@@ -373,7 +369,7 @@ final case class ColoredChartType(value: Double) extends ChartType
 
     for {
       con              <- ldap
-      nodeInfos        <- HomePage.boxNodeInfos.get.toIO
+      nodeInfos        <- HomePage.initNodeInfos.toIO
       n2               =  System.currentTimeMillis
       agentSoftEntries <-  con.searchOne(acceptedNodesDit.SOFTWARE.dn, OR(AgentType.allValues.toList.map(t => SUB(A_NAME, null, Array(t.inventorySoftwareName), null)):_*))
       agentSoftDn      =  agentSoftEntries.map(_.dn.toString).toSet
