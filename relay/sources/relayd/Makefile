@@ -51,7 +51,8 @@ outdated:
 	# only check on our dependencies
 	cargo outdated --root-deps-only
 
-deps-update: update outdated;
+deps-update: update outdated
+	cd fuzz && cargo update
 
 dev-env: build-env
 	rustup component add rustfmt
