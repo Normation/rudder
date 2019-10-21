@@ -368,7 +368,7 @@
                           </div>
                         </div>
                       </div>
-                      <div ng-if="fileManagerState.open" class="filemanager-container">
+                      <div ng-if="fileManagerState.open" class="filemanager-container" ng-click="closeWindow($event,false)">
                         <angular-filemanager></angular-filemanager>
                       </div>
                     </div>

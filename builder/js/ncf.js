@@ -186,7 +186,6 @@ app.controller('ncf-builder', function ($scope, $uibModal, $http, $q, $location,
   $scope.closeWindow = function(event, enforce){
     if((enforce)||(event.currentTarget == event.target)){
       $scope.fileManagerState.open = false;
-      hideFileManager();
     }
   }
 
@@ -1327,6 +1326,7 @@ $scope.onImportFileChange = function (fileEl) {
       $http.post("/rudder/secure/api/techniques", data).success(saveSuccess).error(saveError("updating", data)).finally(function(){$scope.$broadcast('endSaving');});
     }
   };
+
   // Popup definitions
   // Popup to know if there is some changes to save before switching of selected technique
   // paramters:
@@ -1495,6 +1495,7 @@ var cloneModalCtrl = function ($scope, $uibModalInstance, technique, techniques)
   };
 };
 
+
 var SaveChangesModalCtrl = function ($scope, $uibModalInstance, technique, editForm) {
   $scope.technique = technique;
   $scope.save = function() {
@@ -1565,6 +1566,3 @@ app.config(['fileManagerConfigProvider', function (config) {
   });
 }]);
 
-function hideFileManager(){
-  $("angular-filemanager").remove();
-}
