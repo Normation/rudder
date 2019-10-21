@@ -458,7 +458,7 @@ class ClassicTechniqueWriter(basePath : String) extends AgentSpecificTechniqueWr
             if resource.state != ResourceFileState.Deleted
           } yield {
             <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/resources/${resource.path}"}>
-              <INCLUDED>true</INCLUDED>
+              <INCLUDED>false</INCLUDED>
             </FILE>
           }
         }
