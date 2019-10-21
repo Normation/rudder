@@ -63,7 +63,7 @@ class EventLogAPI (
     import net.liftweb.json.JsonDSL._
 
     ( ("id"          -> event.id)
-    ~ ("date"        -> DateFormaterService.serialize(event.creationDate))
+    ~ ("date"        -> DateFormaterService.getDisplayDate(event.creationDate))
     ~ ("actor"       -> event.principal.name)
     ~ ("type"        -> S.?("rudder.log.eventType.names." + event.eventType.serialize))
     ~ ("description" -> eventLogDetail.displayDescription(event).toString)
