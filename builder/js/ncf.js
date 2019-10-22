@@ -482,9 +482,8 @@ $scope.getSessionStorage = function(){
   if(t2 !== null && t2.bundle_name === "") t2.bundle_name=undefined;
   $scope.originalTechnique = angular.copy(t2);
   if(t1 !== null){
-    $scope.restoreFlag  = true;
+    ngToast.create({ content: "<b>Info: </b> Technique restored from current session.", className: 'info'});
     $scope.selectedTechnique = angular.copy(t1);
-
     updateFileManagerConf()
     if(t2.bundle_name !== undefined){
       //Not a new technique
@@ -524,8 +523,6 @@ $scope.getSessionStorage = function(){
               $scope.selectedTechnique = angular.copy($scope.originalTechnique);
               updateFileManagerConf();
               $scope.resetFlags();
-            }else{
-              $scope.keepChanges();
             }
           });
         }
@@ -562,14 +559,10 @@ $scope.clearSessionStorage = function(){
 }
 
 $scope.resetFlags = function(){
-  $scope.restoreFlag  = false;
   $scope.suppressFlag = false;
   $scope.conflictFlag = false;
 }
 
-$scope.keepChanges = function(){
-  $scope.restoreFlag  = false;
-}
 $scope.updateItemSessionStorage = function(item, oldTechnique, newTechnique){
   //Checking oldTechnique allows us to not clear the session storage when page is loading so $scope.selectedTechnique and $scope.originalTechnique are still undefined.
   if(oldTechnique && !newTechnique){
@@ -725,7 +718,6 @@ $scope.onImportFileChange = function (fileEl) {
   // Select it if it was not selected, unselect it otherwise
   $scope.selectTechnique = function(technique) {
     $scope.fileManagerState.open   = false;
-    $scope.restoreFlag  = false;
     $scope.suppressFlag = false;
     $scope.conflictFlag = false;
     // Always clean Selected methods and display methods list

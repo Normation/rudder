@@ -268,12 +268,8 @@
                 <div class="row flex-column no-gutters">
                   <div class="col-auto">
                     <div class="col-xs-12">
-                      <div class="alert alert-info" ng-if="restoreFlag && !conflictFlag">
-                        Technique restored from current session.
-                        <br/>
-                        <div ng-if="suppressFlag">
+                      <div class="alert alert-info" ng-if="!conflictFlag && suppressFlag">
                         This Technique has been deleted while you were away. Saving it will recreate it.
-                        </div>
                       </div>
                     </div>
                     <div class="tab tab-general" ng-if="ui.activeTab == 'general'">
