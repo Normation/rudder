@@ -584,11 +584,11 @@
                               <i class="fas fa-undo-alt"></i>
                             </button>
                             <button
-                              class="btn btn-sm btn-primary"
+                              class="btn btn-sm btn-primary show-doc"
                               ng-if="getMethodDocumentation(method_call) !== undefined"
-                              ng-class="{ 'btn-outline' : !method_call.showDoc}"
-                              ng-click="$event.stopPropagation(); method_call.showDoc = !method_call.showDoc">
-                              {{method_call.showDoc ? "Hide" : "Show"}} docs
+                              ng-class="{ 'doc-opened' : generic_methods[method_call.method_name].showDoc}"
+                              ng-click="showMethodDocumentation($event,method_call.method_name)">
+                              Show docs
                               <i class="fa fa-book"></i>
                             </button>
                           </div>
@@ -652,7 +652,7 @@
 
             <div class="col generic-methods-container">
               <div class="row">
-                <div class="col">
+                <div class="col" id="methods-list-container">
                   <ul class="list-unstyled" ng-repeat="(kind,methods) in methodsByCategory" ng-if="checkFilterCategory(methods)">
                     <h5 id={{kind}}>{{capitaliseFirstLetter(kind)}}</h5>
                     <li ng-repeat="method in methods | filter:filter.text" ng-show="checkFilterMethod(method)">
@@ -661,7 +661,8 @@
                         dnd-draggable="method"
                         dnd-effect-allowed="move"
                         dnd-type="'bundle'"
-                        class="method">
+                        class="method"
+                        id="{{method.bundle_name}}">
                         <div class="cursorMove col-auto">
                           <b>:::</b>
                         </div>

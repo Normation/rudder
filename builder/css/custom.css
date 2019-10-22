@@ -779,8 +779,10 @@ ul.files-list > li .use-with > span{
 .method-details ul.list-unstyled > li{
   margin-bottom: 0px;
 }
-
-
+.method-details .btn.show-doc{
+  position: relative;
+  box-shadow: none !important;
+}
 /* =====  METHODS  ===== */
 .col-methods{
   box-shadow: -2px 0px 8px 0px #00000024;
@@ -980,6 +982,10 @@ ul.list-unstyled > li{
   border-left: 1px solid #e5e5e5;
   cursor: pointer;
 }
+.method-details .btn.show-doc{
+  position: relative;
+  box-shadow: none !important;
+}
 .method .show-doc:before,
 .method .edit-method:before{
   content: "";
@@ -993,6 +999,23 @@ ul.list-unstyled > li{
   background-color: #337ab7;
   z-index: 999;
 }
+.method-details .btn.show-doc:before{
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  transform: rotate(45deg);
+  opacity: 0;
+  right: 0;
+  top: calc(50% - 5px);
+  background-color: #337ab7;
+  z-index: 999;
+  transition-duration: .2s;
+  transition-property: background-color;
+}
+.method-details .btn.show-doc:hover:before{
+  background-color: #0069d9;
+}
 .method.doc-opened .show-doc,
 .active .method .edit-method{
   background-color: #337ab7;
@@ -1002,6 +1025,10 @@ ul.list-unstyled > li{
 .active .method .edit-method:before{
   opacity: 1;
   bottom: -5px;
+}
+.method-details .btn.show-doc.doc-opened:before{
+  opacity: 1;
+  right: -5px;
 }
 .method .edit-method{
   padding: 0 15px;

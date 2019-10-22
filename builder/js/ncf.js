@@ -1028,6 +1028,15 @@ $scope.onImportFileChange = function (fileEl) {
     return "";
   };
 
+  $scope.showMethodDocumentation = function(event, method_name){
+    event.stopPropagation();
+    $scope.ui.showTechniques = false;
+    $scope.generic_methods[method_name].showDoc = true;
+    var method_element = document.getElementById(method_name);
+    var topPos = method_element.offsetTop;
+    $('#methods-list-container').stop().animate({scrollTop:topPos}, 200, 'swing', undefined);
+  }
+
   $scope.methodUrl = function(method) {
     var name = method.bundle_name !== undefined ? method.bundle_name : $scope.getMethodBundleName(method);
     if (usingRudder) {
