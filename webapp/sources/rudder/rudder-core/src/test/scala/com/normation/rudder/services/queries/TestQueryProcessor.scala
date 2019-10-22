@@ -141,7 +141,7 @@ class TestQueryProcessor extends Loggable {
       con.search("cn=rudder-configuration", Sub, BuildFilter.ALL).size
     }).openOrThrowException("For tests")
 
-    val expected = 42+37  //bootstrap + inventory-sample
+    val expected = 42+38  //bootstrap + inventory-sample
     assert(expected == s, s"Not found the expected number of entries in test LDAP directory [expected: ${expected}, found: ${s}], perhaps the demo entries where not correctly loaded")
   }
 
@@ -282,7 +282,17 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(2) :: Nil)
 
-    testQueries(q1 :: q2 ::q3 :: q4 :: q5 :: Nil)
+    val q6 = TestQuery(
+      "q6",
+      parser("""
+      {  "select":"node", "composition":"And", "where":[
+        { "objectType":"group", "attribute":"nodeGroupId", "comparator":"eq", "value":"AIXSystems" }
+      , { "objectType":"node", "attribute":"OS", "comparator":"eq", "value":"Linux"}
+      ] }
+      """).openOrThrowException("For tests"),
+      Nil)
+
+    testQueries(q1 :: q2 :: q3 :: q4 :: q5 :: q6 :: Nil)
   }
 
   @Test def machineComponentQueries(): Unit = {

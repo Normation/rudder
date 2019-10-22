@@ -46,6 +46,17 @@ jsonNodeGroupQuery: {"select":"node","composition":"Or","where":[{"objectType":"
 nodeId: node2
 nodeId: node3
 
+dn: nodeGroupId=AIXSystems,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+nodeGroupId: AIXSystems
+objectClass: nodeGroup
+objectClass: top
+cn: AIXSystems
+isEnabled: TRUE
+isSystem: FALSE
+isDynamic: TRUE
+jsonNodeGroupQuery: {"select":"node","composition":"And","where":[{"objectType":"node","attribute":"OS","comparator":"eq","value":"AIX"}]}
+
+
 #all used node in that example
 
 dn: nodeId=root,ou=Nodes,cn=rudder-configuration
