@@ -15,7 +15,7 @@ path = "src/relayd.rs"
 
 [[bench]]
 harness = false
-name = "runlog"
+name = "benches"
 
 [dependencies]
 bytes = "0.4"

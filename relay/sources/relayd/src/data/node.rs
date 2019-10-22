@@ -112,6 +112,8 @@ impl NodesList {
 
         if let Some(certificates_file) = certificates_file {
             if certificates_file.as_ref().exists() {
+                // TODO PERF: stack_from_pem is mono threaded, could be parallelized if necessary,
+                // by splitting the file before calling it
                 for cert in X509::stack_from_pem(&read(certificates_file.as_ref())?)? {
                     Self::id_from_cert(&cert)
                         .and_then(|id| nodes.add_certificate(&id, cert))
@@ -277,6 +279,16 @@ mod tests {
             "node1.rudder.local"
         );
         assert_eq!(nodeslist.list.data.len(), 6);
+    }
+
+    #[test]
+    fn it_parses_big_nodeslist() {
+        assert!(NodesList::new(
+            "root".to_string(),
+            "benches/files/nodeslist.json",
+            Some("benches/files/allnodescerts.pem")
+        )
+        .is_ok())
     }
 
     #[test]
