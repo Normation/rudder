@@ -326,16 +326,21 @@
                           </span>
                         </li>
                         <li ng-repeat="param in selectedTechnique.parameter track by $index">
-                          <div class="input-group mb-1">
-                            <input  type="text" class="form-control" ng-model="param.name" placeholder="Parameter name" required/>
-                            <div class="input-group-append">
-                              <button class="btn btn-outline-secondary clipboard" type="button" data-clipboard-text="{{'${'+getBundleName(param.name)+'}'}}" title="Copy to clipboard">
-                                <i class="ion ion-clipboard"></i>
-                              </button>
-                            </div>
-                          </div>
                           <span class="border"></span>
-                          <div class="use-with"><span>{{'${'+getBundleName(param.name)+'}'}}</span></div>
+                          <div class="col">
+                            <div class="input-group input-group-sm mb-1">
+                              <input  type="text" class="form-control" ng-model="param.name" placeholder="Parameter name" required/>
+                              <div class="input-group-append">
+                                <button class="btn btn-outline-secondary clipboard" type="button" data-clipboard-text="{{'${'+getBundleName(param.name)+'}'}}" title="Copy to clipboard">
+                                  <i class="ion ion-clipboard"></i>
+                                </button>
+                              </div>
+                            </div>
+                            <div class="use-with"><span>{{'${'+getBundleName(param.name)+'}'}}</span></div>
+                          </div>
+                          <div class="col-auto remove-item" ng-click="selectedTechnique.parameter.splice($index,1)">
+                            <i class="fa fa-times"></i>
+                          </div>
                         </li>
                       </ul>
                       <div class="text-center">

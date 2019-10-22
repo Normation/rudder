@@ -569,9 +569,12 @@ ul.files-list{
   margin: 0 0 15px 0;
   padding: 0 15px;
 }
+ul.files-list .form-control{
+  box-shadow: none !important;
+}
 ul.files-list > li {
   border: 1px solid #e5e5e5;
-  padding: 6px 10px;
+  padding: 10px 10px 6px 10px;
   padding-left: 14px;
   display: block;
   float: left;
@@ -583,8 +586,13 @@ ul.files-list > li {
   border-left-width: 0px;
   box-shadow: 0px 5px 4px -3px rgba(0,0,0,.1);
 }
+
 ul.files-list.parameters > li{
-  padding-right: 10px;
+  display: flex;
+  padding: 0;
+}
+ul.files-list.parameters > li > .col{
+  padding: 10px 10px 5px 12px;
 }
 ul.files-list > li > .border{
   background-color: #ccc;
@@ -635,7 +643,7 @@ ul.files-list > li > .target-remove:hover + .border{
   border-left: 4px solid #3379b7;
   color: #777;
   font-style: italic;
-  padding: 14px 10px;
+  padding: 14px 10px !important;
   border-top-right-radius: 4px;
   border-bottom-right-radius: 4px;
   overflow: hidden;
@@ -708,6 +716,21 @@ ul.files-list > li .use-with > span{
   font-weight: bold;
   word-break: break-word;
 }
+ul.files-list > li > .remove-item{
+  display: flex;
+  border-left: 1px solid #e5e5e5;
+  align-items: center;
+  color: #c1c1c1;
+  background-color: #fff;
+  cursor: pointer;
+  transition-duration: .2s;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+ul.files-list > li > .remove-item:hover{
+  color: #fff;
+  background-color: #d9534f;
+}
 .is-edited .method .edit-method {
   color: #3379b7 !important;
 }
@@ -724,7 +747,10 @@ ul.files-list > li .use-with > span{
 .missingParameters .requiredParameters{
   display: block !important;
 }
-
+.btn.clipboard{
+  border-color: #ced4da !important;
+  box-shadow: none !important;
+}
 .method.missingParameters:after{
   content: "";
   display: block;
