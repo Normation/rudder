@@ -46,7 +46,7 @@ pub struct CliConfiguration {
     pub configuration_dir: PathBuf,
 
     /// Checks the syntax of the configuration file
-    #[structopt(short = "k", long = "check")]
+    #[structopt(short = "t", long = "test")]
     pub check_configuration: bool,
 }
 

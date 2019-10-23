@@ -20,7 +20,7 @@ the upstream relay or send them to the root server.
 
 *-c, --config* _directory_::
   Configuration directory to load (default is _/opt/rudder/etc/relayd/_).
-*-k, --check*::
+*-t, --test*::
   Test configuration files syntax and exit.
 *-h, --help*::
   Print help information.

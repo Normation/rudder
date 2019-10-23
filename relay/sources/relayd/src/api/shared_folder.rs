@@ -28,15 +28,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::hashing::HashType;
-use crate::{error::Error, JobConfig};
+use crate::{error::Error, hashing::HashType, JobConfig};
+use futures::{future, Future};
 use serde::Deserialize;
-use std::{fs, path::Path, str::FromStr, sync::Arc};
-use tracing::debug;
-use warp::{http::StatusCode, reply};
-
-// TODO async io
-// return text in request?
+use std::{io, path::PathBuf, str::FromStr, sync::Arc};
+use tokio::fs::read;
+use tracing::{debug, trace};
+use warp::http::StatusCode;
 
 #[derive(Deserialize, Debug)]
 pub struct SharedFolderParams {
@@ -53,46 +51,40 @@ fn default_hash() -> String {
 pub fn head(
     params: SharedFolderParams,
     // Relative path
-    file: &Path,
+    file: PathBuf,
     job_config: Arc<JobConfig>,
-) -> Result<warp::reply::WithStatus<String>, Error> {
-    let file_path = job_config.cfg.shared_folder.path.join(file);
+) -> impl Future<Item = StatusCode, Error = Error> + Send {
+    let file_path = job_config.cfg.shared_folder.path.join(&file);
     debug!(
         "Received request for {:#} ({:#} locally) with the following parameters: {:?}",
         file.display(),
         file_path.display(),
         params
     );
-    let hash_type = HashType::from_str(&params.hash_type)?;
 
-    Ok(if file_path.exists() {
-        if params.hash.is_empty() {
-            reply::with_status(
-                format!("{} exists but hash is empty", file.display()),
-                StatusCode::OK,
-            )
-        } else {
-            let actual_hash = hash_type.hash(&fs::read(file_path)?);
-            debug!("{} {} hash is {}", file.display(), hash_type, params.hash);
-            if params.hash == actual_hash {
-                reply::with_status(
-                    format!("{} exists and has same hash", file.display()),
-                    StatusCode::NOT_MODIFIED,
-                )
-            } else {
-                reply::with_status(
-                    format!(
-                        "{:#} exists but its hash is which is different",
-                        file.display()
-                    ),
-                    StatusCode::OK,
-                )
+    future::result(HashType::from_str(&params.hash_type)).and_then(move |hash_type| {
+        read(file_path).then(move |res| match res {
+            Ok(data) => {
+                if params.hash.is_empty() {
+                    debug!("{} exists and no hash was provided", file.display());
+                    return future::ok(StatusCode::OK);
+                }
+
+                let hash = hash_type.hash(&data);
+                trace!("{} has {} hash '{}'", file.display(), hash_type, hash);
+                if hash == params.hash {
+                    debug!("{} exists and has same hash", file.display());
+                    future::ok(StatusCode::NOT_MODIFIED)
+                } else {
+                    debug!("{} exists but its hash is different", file.display());
+                    future::ok(StatusCode::OK)
+                }
             }
-        }
-    } else {
-        reply::with_status(
-            format!("{} does not exist on the server", file.display()),
-            StatusCode::NOT_FOUND,
-        )
+            Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
+                debug!("{} does not exist on the server", file.display());
+                future::ok(StatusCode::NOT_FOUND)
+            }
+            Err(e) => future::err(e.into()),
+        })
     })
 }

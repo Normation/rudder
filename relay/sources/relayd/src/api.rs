@@ -50,17 +50,18 @@ use std::{
     collections::HashMap,
     fmt::Display,
     net::SocketAddr,
-    path::Path,
+    path::PathBuf,
     sync::{Arc, RwLock},
 };
-use tracing::info;
+use tracing::{error, info, span, Level};
 use warp::{
     body::{self, FullBody},
     filters::{method::v2::*, path::Peek},
+    fs,
     http::StatusCode,
     path, query,
     reject::custom,
-    reply, Filter, Reply,
+    reply, Filter, Rejection, Reply,
 };
 
 #[derive(Serialize, Debug, PartialEq, Eq)]
@@ -71,7 +72,7 @@ pub enum ApiResult {
 }
 
 #[derive(Serialize, Debug, PartialEq, Eq)]
-struct ApiResponse<T: Serialize> {
+pub struct ApiResponse<T: Serialize> {
     #[serde(skip_serializing_if = "Option::is_none")]
     data: Option<T>,
     result: ApiResult,
@@ -79,40 +80,43 @@ struct ApiResponse<T: Serialize> {
     #[serde(rename = "errorDetails")]
     #[serde(skip_serializing_if = "Option::is_none")]
     error_details: Option<String>,
+    #[serde(skip)]
+    status_code: StatusCode,
 }
 
 impl<T: Serialize> ApiResponse<T> {
-    fn new<E: Display>(action: &'static str, data: Result<Option<T>, E>) -> Self {
+    fn new<E: Display>(
+        action: &'static str,
+        data: Result<Option<T>, E>,
+        status_code: Option<StatusCode>,
+    ) -> Self {
         match data {
             Ok(Some(d)) => ApiResponse {
                 data: Some(d),
                 result: ApiResult::Success,
                 action,
                 error_details: None,
+                status_code: status_code.unwrap_or(StatusCode::OK),
             },
             Ok(None) => ApiResponse {
                 data: None,
                 result: ApiResult::Success,
                 action,
                 error_details: None,
+                status_code: status_code.unwrap_or(StatusCode::OK),
             },
             Err(e) => ApiResponse {
                 data: None,
                 result: ApiResult::Error,
                 action,
                 error_details: Some(e.to_string()),
+                status_code: status_code.unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             },
         }
     }
 
     fn reply(&self) -> impl Reply {
-        reply::with_status(
-            reply::json(self),
-            match self.result {
-                ApiResult::Success => StatusCode::OK,
-                ApiResult::Error => StatusCode::INTERNAL_SERVER_ERROR,
-            },
-        )
+        reply::with_status(reply::json(self), self.status_code)
     }
 }
 
@@ -122,6 +126,9 @@ pub fn run(
     job_config: Arc<JobConfig>,
     stats: Arc<RwLock<Stats>>,
 ) -> impl Future<Item = (), Error = ()> {
+    let span = span!(Level::TRACE, "api");
+    let _enter = span.enter();
+
     // WARNING: Not stable, will be replaced soon
     // Kept for testing mainly
     let stats = get()
@@ -129,22 +136,28 @@ pub fn run(
         .map(move || reply::json(&(*stats.clone().read().expect("open stats database"))));
 
     // New endpoints, following Rudder's API format
-    let info = get()
-        .and(path("info"))
-        .map(move || ApiResponse::new::<Error>("getSystemInfo", Ok(Some(Info::new()))).reply());
+    let info = get().and(path("info")).map(move || {
+        ApiResponse::new::<Error>("getSystemInfo", Ok(Some(Info::new())), None).reply()
+    });
 
     let job_config0 = job_config.clone();
     let reload = post().and(path("reload")).map(move || {
         ApiResponse::<()>::new::<Error>(
             "reloadConfiguration",
             job_config0.clone().reload().map(|_| None),
+            None,
         )
         .reply()
     });
 
     let job_config1 = job_config.clone();
     let status = get().and(path("status")).map(move || {
-        ApiResponse::new::<Error>("getStatus", Ok(Some(Status::poll(job_config1.clone())))).reply()
+        ApiResponse::new::<Error>(
+            "getStatus",
+            Ok(Some(Status::poll(job_config1.clone()))),
+            None,
+        )
+        .reply()
     });
 
     // Old compatible endpoints
@@ -242,15 +255,18 @@ pub fn run(
         });
 
     let job_config7 = job_config.clone();
-    let shared_folder = head()
+    let shared_folder_head = head()
         .and(path::peek())
         .and(query::<SharedFolderParams>())
-        .map(move |file: Peek, params| {
-            match shared_folder::head(params, Path::new(&file.as_str()), job_config7.clone()) {
-                Ok(reply) => reply,
-                Err(e) => reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR),
-            }
+        .and_then(move |file: Peek, params| {
+            shared_folder::head(params, PathBuf::from(&file.as_str()), job_config7.clone())
+                .map(|c| reply::with_status("".to_string(), c))
+                .map_err(|e| {
+                    error!("{}", e);
+                    warp::reject::custom(e)
+                })
         });
+    let shared_folder_get = fs::dir(job_config.cfg.shared_folder.path.clone());
 
     // Routing
     // // /api/ for public API, /relay-api/ for internal relay API
@@ -258,16 +274,27 @@ pub fn run(
     let system = path("system").and(stats.or(status).or(reload).or(info));
     let remote_run = path("remote-run").and(nodes.or(all).or(node_id));
     let shared_files = path("shared-files").and((shared_files_put).or(shared_files_head));
-    // GET is handled directly by httpd
-    let shared_folder = path("shared-folder").and(shared_folder);
+    let shared_folder = path("shared-folder").and(shared_folder_head.or(shared_folder_get));
 
     // Global route for /1/
     let routes_1 = base
         .and(path("1"))
         .and(system.or(remote_run).or(shared_files).or(shared_folder))
+        .recover(customize_error)
         .with(warp::log("relayd::relay-api"));
 
     let (addr, server) = warp::serve(routes_1).bind_with_graceful_shutdown(listen, shutdown);
     info!("Started API on {}", addr);
     server
+}
+
+fn customize_error(reject: Rejection) -> Result<impl Reply, Rejection> {
+    // See https://github.com/seanmonstar/warp/issues/77
+    // We generally prefer 404 to 405 when they are conflicting.
+    // Maybe be improved in the future
+    if reject.is_not_found() || reject.status() == StatusCode::METHOD_NOT_ALLOWED {
+        Ok(reply::with_status("", StatusCode::NOT_FOUND))
+    } else {
+        Err(reject)
+    }
 }

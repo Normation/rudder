@@ -56,5 +56,21 @@ mod tests {
             .unwrap();
 
         assert_eq!(500, internal_error.status());
+
+        let mut get_succeeds = client
+            .get("http://127.0.0.1:3030/rudder/relay-api/1/shared-folder/c745a140-40bc-4b86-b6dc-084488fc906b/37817c4d-fbf7-4850-a985-50021f4e8f41/file")
+            .send()
+            .unwrap();
+
+        assert_eq!(200, get_succeeds.status());
+        assert_eq!(get_succeeds.text().unwrap(), "123\n");
+
+        let mut get_fails = client
+            .get("http://127.0.0.1:3030/rudder/relay-api/1/shared-folder/c745a140-40bc-4b86-b6dc-084488fc906b/doesnotexist")
+            .send()
+            .unwrap();
+
+        assert_eq!(404, get_fails.status());
+        assert_eq!(get_fails.text().unwrap(), "");
     }
 }
