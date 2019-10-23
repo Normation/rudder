@@ -28,7 +28,7 @@
 # Be careful that using a global variable can lead to unpredictable content in case of multiple definition, which is implicitly the case when a technique has more than one instance (directive). 
 # Please note that only global variables are available within templates.
 #
-# ## Usage
+# #### Usage
 #
 # This function will evaluate a mathematical expression that may contain variables and format the result according to the provided formatt string.
 #
