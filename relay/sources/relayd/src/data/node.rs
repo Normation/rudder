@@ -79,6 +79,12 @@ pub struct RawNodesList {
 }
 
 impl RawNodesList {
+    fn new() -> Self {
+        Self {
+            data: HashMap::new(),
+        }
+    }
+
     fn add_certificate(&mut self, id: &str, cert: X509) -> Result<(), Error> {
         trace!("Adding certificate for node {}", id);
         self.data
@@ -103,12 +109,11 @@ impl NodesList {
         info!("Parsing nodes list from {:#?}", nodes_file.as_ref());
 
         let mut nodes = if nodes_file.as_ref().exists() {
-            read_to_string(nodes_file)?
+            read_to_string(nodes_file)?.parse::<RawNodesList>()?
         } else {
             info!("Nodes list file does not exist, considering it as empty");
-            "".to_string()
-        }
-        .parse::<RawNodesList>()?;
+            RawNodesList::new()
+        };
 
         if let Some(certificates_file) = certificates_file {
             if certificates_file.as_ref().exists() {
@@ -279,6 +284,13 @@ mod tests {
             "node1.rudder.local"
         );
         assert_eq!(nodeslist.list.data.len(), 6);
+    }
+
+    #[test]
+    fn it_parses_absent_nodeslist() {
+        let nodeslist =
+            NodesList::new("root".to_string(), "tests/files/notthere.json", None).unwrap();
+        assert_eq!(nodeslist.list.data.len(), 0);
     }
 
     #[test]
