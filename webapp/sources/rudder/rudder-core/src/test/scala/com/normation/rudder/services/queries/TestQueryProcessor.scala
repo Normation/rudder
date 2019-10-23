@@ -296,7 +296,17 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       Nil)
 
-    testQueries(q1 :: q2 :: q3 :: q4 :: q5 :: q6 :: Nil)
+    val q7 = TestQuery(
+      "q7",
+      parser("""
+      {  "select":"node", "composition":"Or", "where":[
+        { "objectType":"group", "attribute":"nodeGroupId", "comparator":"eq", "value":"AIXSystems" }
+      , { "objectType":"node", "attribute":"OS", "comparator":"eq", "value":"Linux"}
+      ] }
+      """).openOrThrowException("For tests"),
+      s(0) :: s(1) :: s(2) :: s(3) :: s(4) :: s(5) :: s(6) :: s(7) :: Nil)
+
+    testQueries(q1 :: q2 :: q3 :: q4 :: q5 :: q6 :: q7 :: Nil)
   }
 
   @Test def machineComponentQueries(): Unit = {
