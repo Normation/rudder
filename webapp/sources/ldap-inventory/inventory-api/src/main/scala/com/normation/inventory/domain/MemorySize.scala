@@ -37,6 +37,8 @@
 
 package com.normation.inventory.domain
 
+import com.normation.utils.HashcodeCaching
+
 
 /**
  * A size for some chunk of memory in octets.
@@ -44,7 +46,7 @@ package com.normation.inventory.domain
  * with a number of byte, but also string inputs like
  * 244 Mo, 23 kB, etc
  */
-final case class MemorySize(size:Long) extends AnyVal with Comparable[MemorySize] {
+case class MemorySize(size:Long) extends Comparable[MemorySize] with HashcodeCaching {
   override def toString() = "%s B".format(size)
 
   def toStringMo() = {
@@ -158,7 +160,6 @@ object MemorySize {
       else BigDecimal(m.toBigInt)
     }
 
-    @scala.annotation.tailrec
     def rec(m:BigDecimal, u:List[String]) : (BigDecimal,String)= u match {
       case Nil => throw new IllegalArgumentException("At list one unit have to be provided for the memory pretty printer. Look around in the class where the dev don't use that method correctly.")
       case h::Nil => //no bigger units, stop here

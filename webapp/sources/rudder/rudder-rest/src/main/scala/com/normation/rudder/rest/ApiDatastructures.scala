@@ -76,11 +76,11 @@ import com.normation.rudder.api.HttpAction
 
 
 //Api supported range version
-sealed trait ApiV extends Any
+sealed trait ApiV
 object ApiV {
-final case object OnlyLatest                 extends ApiV
-final case class  From(from: Int           ) extends AnyVal with ApiV
-final case class  FromTo(from: Int, to: Int) extends ApiV //from must be <= to
+  case object OnlyLatest                 extends ApiV
+  case class  From(from: Int           ) extends ApiV
+  case class  FromTo(from: Int, to: Int) extends ApiV //from must be <= to
 }
 
 /*
@@ -104,14 +104,14 @@ object ApiKind {
  * We differentiate on two kind of item : string part (normal path of the URI),
  * and variables (i.e part that are used to identify some resources)
  */
-sealed trait ApiPathSegment extends Any { def value: String }
+sealed trait ApiPathSegment { def value: String }
 object ApiPathSegment {
   // a variable used to identify a resources
-  final case class Resource(value: String) extends AnyVal with ApiPathSegment
-  final case class Segment (value: String) extends AnyVal with ApiPathSegment
+  final case class Resource(value: String) extends ApiPathSegment
+  final case class Segment (value: String) extends ApiPathSegment
 }
 
-final case class ApiPath(parts: NonEmptyList[ApiPathSegment]) extends AnyVal {
+final case class ApiPath(parts: NonEmptyList[ApiPathSegment]) {
   //canonical representation: variable in {}
   override def toString() = parts.map { p => p match {
     case ApiPathSegment.Resource(v) => "{"+v+"}"
@@ -125,7 +125,6 @@ final case class ApiPath(parts: NonEmptyList[ApiPathSegment]) extends AnyVal {
   def /(s: String ): ApiPath = /(ApiPath.of(s))
 
   def drop(prefix: ApiPath): Either[String, ApiPath] = {
-    @scala.annotation.tailrec
     def dropRec(p: List[ApiPathSegment], path: List[ApiPathSegment]): Either[String, ApiPath] = {
       (p, path) match {
         case (h1 :: Nil, h2 :: g :: t) if(h1 == h2) => Right(ApiPath(NonEmptyList(g, t)))
@@ -230,10 +229,10 @@ trait EndpointSchema0 extends EndpointSchema {
 object EndpointSchema {
   object syntax {
     // syntaxt to build endpoints
-    implicit class BuildPath(val action: HttpAction) extends AnyVal {
+    implicit class BuildPath(action: HttpAction) {
       def /(s: String) = (action, ApiPath.of(s))
     }
-    implicit class AddPath(val pair: (HttpAction, ApiPath)) extends AnyVal {
+    implicit class AddPath(pair: (HttpAction, ApiPath)) {
       def /(s: String) = (pair._1, pair._2 / s)
       def /(path: ApiPath) = (pair._1, ApiPath(pair._2.parts.concatNel(path.parts)))
     }
@@ -272,7 +271,6 @@ trait PathMatcher[T] {
 
 object PathMatcher {
   final object Zero extends PathMatcher[Unit] {
-    @scala.annotation.tailrec
     def compare(schema: List[ApiPathSegment], path: List[ApiPathSegment]): Option[Unit] = {
       (schema, path) match {
         case (Nil, Nil) => Some(())
@@ -283,7 +281,6 @@ object PathMatcher {
   }
 
   final object One extends PathMatcher[String] {
-    @scala.annotation.tailrec
     def compare(schema: List[ApiPathSegment], path: List[ApiPathSegment]): Option[String] = {
       (schema, path) match {
         case (Nil, Nil) => None // where would be my free variable value, hum?
@@ -295,7 +292,6 @@ object PathMatcher {
   }
 
   final object Two extends PathMatcher[(String, String)] {
-    @scala.annotation.tailrec
     def compare(schema: List[ApiPathSegment], path: List[ApiPathSegment]): Option[(String, String)] = {
       (schema, path) match {
         case (Nil, Nil) => None // where would be my free variable value, hum?

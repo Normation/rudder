@@ -36,6 +36,7 @@
 */
 package com.normation.rudder.api
 
+import com.normation.utils.HashcodeCaching
 import com.normation.rudder.domain.policies.SimpleDiff
 import org.joda.time.DateTime
 
@@ -45,9 +46,9 @@ import org.joda.time.DateTime
 
 sealed trait ApiAccountDiff
 
-final case class AddApiAccountDiff(apiAccount:ApiAccount) extends ApiAccountDiff
+final case class AddApiAccountDiff(apiAccount:ApiAccount) extends ApiAccountDiff with HashcodeCaching
 
-final case class DeleteApiAccountDiff(apiAccount:ApiAccount) extends ApiAccountDiff
+final case class DeleteApiAccountDiff(apiAccount:ApiAccount) extends ApiAccountDiff with HashcodeCaching
 
 final case class ModifyApiAccountDiff(
     id                     : ApiAccountId
@@ -59,4 +60,4 @@ final case class ModifyApiAccountDiff(
   , modExpirationDate      : Option[SimpleDiff[Option[DateTime]]] = None
   , modAccountKind         : Option[SimpleDiff[String]] = None
   , modAccountAcl          : Option[SimpleDiff[List[ApiAclElement]]] = None
-) extends ApiAccountDiff
+) extends ApiAccountDiff with HashcodeCaching

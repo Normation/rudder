@@ -135,7 +135,7 @@ sealed trait ExpiringStatus extends RunAndConfigInfo {
 /*
  * Really, that node exists ?
  */
-final case object NoRunNoExpectedReport extends ErrorNoConfigData
+case object NoRunNoExpectedReport extends ErrorNoConfigData
 
 /*
  * We don't have the needed configId in the expected
@@ -144,7 +144,7 @@ final case object NoRunNoExpectedReport extends ErrorNoConfigData
  * (it is some weird data lost in the server, or a node
  * not yet initialized)
  */
-final case class NoExpectedReport(
+case class NoExpectedReport(
     lastRunDateTime: DateTime
   , lastRunConfigId: Option[NodeConfigId]
 ) extends ErrorNoConfigData
@@ -153,7 +153,7 @@ final case class NoExpectedReport(
  * No report of interest (either none, or
  * some but too old for our situation)
  */
-final case class NoReportInInterval(
+case class NoReportInInterval(
     expectedConfig: NodeExpectedReports
 ) extends NoReport
 
@@ -161,11 +161,11 @@ final case class NoReportInInterval(
  * No report of interest but expected because
  * we are on the correct mode for that
  */
-final case class ReportsDisabledInInterval(
+case class ReportsDisabledInInterval(
     expectedConfig: NodeExpectedReports
 ) extends NoReport
 
-final case class Pending(
+case class Pending(
     expectedConfig     : NodeExpectedReports
   , optLastRun         : Option[(DateTime, NodeExpectedReports)]
   , expirationDateTime : DateTime
@@ -176,7 +176,7 @@ final case class Pending(
  * versions are init in the server for that node,
  * and we don't have a version is an error
  */
-final case class UnexpectedVersion(
+case class UnexpectedVersion(
     lastRunDateTime   : DateTime
   , lastRunConfigInfo : Some[NodeExpectedReports]
   , lastRunExpiration : DateTime
@@ -191,7 +191,7 @@ final case class UnexpectedVersion(
  * but we really should, because versions are init
  * in the server for that node
  */
-final case class UnexpectedNoVersion(
+case class UnexpectedNoVersion(
     lastRunDateTime   : DateTime
   , lastRunConfigId   : NodeConfigId
   , lastRunExpiration : DateTime
@@ -207,7 +207,7 @@ final case class UnexpectedNoVersion(
  * but we really should, because versions are init
  * in the server for that node
  */
-final case class UnexpectedUnknowVersion(
+case class UnexpectedUnknowVersion(
     lastRunDateTime   : DateTime
   , lastRunConfigId   : NodeConfigId
   , expectedConfig    : NodeExpectedReports
@@ -217,7 +217,7 @@ final case class UnexpectedUnknowVersion(
 }
 
 
-final case class ComputeCompliance(
+case class ComputeCompliance(
     lastRunDateTime    : DateTime
   , expectedConfig     : NodeExpectedReports
   , expirationDateTime : DateTime
@@ -330,7 +330,7 @@ object ExecutionBatch extends Loggable {
     Pattern.compile("""\Q"""+ x.replaceAll(replaceCFEngineVars, """\\E.*\\Q""") + """\E""")
   }
 
-final case class ContextForNoAnswer(
+  case class ContextForNoAnswer(
       agentExecutionInterval: Int
     , complianceMode        : ComplianceMode
   )
@@ -1209,7 +1209,7 @@ final case class ContextForNoAnswer(
   }
 
 
-  implicit class ToMessageStatusReport(val r: Reports) extends AnyVal {
+  implicit class ToMessageStatusReport(r: Reports) {
     // build the resulting reportType from a report, checking that the
     // policy mode is the one expected
     def toMessageStatusReport(mode: PolicyMode) = {

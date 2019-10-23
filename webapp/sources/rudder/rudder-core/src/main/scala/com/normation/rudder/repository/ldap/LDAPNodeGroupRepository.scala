@@ -350,7 +350,7 @@ class RoLDAPNodeGroupRepository(
    * @param id
    * @return
    */
-  def getNodeGroupCategory(id: NodeGroupId): Box[NodeGroupCategory] = {
+  def getParentGroupCategory(id: NodeGroupId): Box[NodeGroupCategory] = {
     groupLibMutex.readLock { for {
       con <- ldap
       groupEntry <- getSGEntry(con, id, "1.1") ?~! "Entry with ID '%s' was not found".format(id)
@@ -419,7 +419,7 @@ class RoLDAPNodeGroupRepository(
    */
   def getFullGroupLibrary() : Box[FullNodeGroupCategory] = {
 
-final case class AllMaps(
+    case class AllMaps(
         categories: Map[NodeGroupCategoryId, NodeGroupCategory]
       , categoriesByCategory: Map[NodeGroupCategoryId, List[NodeGroupCategoryId]]
       , targetByCategory: Map[NodeGroupCategoryId, List[FullRuleTargetInfo]]
@@ -819,7 +819,7 @@ class WoLDAPNodeGroupRepository(
                       }
       autoArchive  <- if(autoExportOnModify && optDiff.isDefined && !nodeGroup.isSystem) { //only persists if modification are present
                         for {
-                          parent   <- getNodeGroupCategory(nodeGroup.id)
+                          parent   <- getParentGroupCategory(nodeGroup.id)
                           parents  <- getParents_NodeGroupCategory(parent.id)
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                           archived <- gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map( _.id), Some((modId, commiter, reason)))
@@ -848,7 +848,7 @@ class WoLDAPNodeGroupRepository(
       con          <- ldap
       oldParents   <- if(autoExportOnModify) {
                         for {
-                          parent   <- getNodeGroupCategory(nodeGroupId)
+                          parent   <- getParentGroupCategory(nodeGroupId)
                           parents  <- getParents_NodeGroupCategory(parent.id)
                         } yield (parent::parents).map( _.id )
                       } else Full(Nil)
@@ -895,7 +895,7 @@ class WoLDAPNodeGroupRepository(
       con          <- ldap
       parents      <- if(autoExportOnModify) {
                         for {
-                          parent   <- getNodeGroupCategory(id)
+                          parent   <- getParentGroupCategory(id)
                           parents  <- getParents_NodeGroupCategory(parent.id)
                         } yield {
                           (parent :: parents ) map ( _.id )

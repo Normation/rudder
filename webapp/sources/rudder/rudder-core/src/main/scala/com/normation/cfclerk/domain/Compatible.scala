@@ -38,13 +38,14 @@
 package com.normation.cfclerk.domain
 
 import scala.xml._
+import com.normation.utils.HashcodeCaching
 
-final case class OperatingSystem(name: String="", version: String="") {
+case class OperatingSystem(name: String="", version: String="") extends HashcodeCaching {
     override def toString = if (version == "") name
     else name + " " + version
 }
 
-final case class Agent(name: String="", version: String="") {
+case class Agent(name: String="", version: String="") extends HashcodeCaching {
     override def toString = if (version == "") name
     else name + " " + version
 }
@@ -53,7 +54,7 @@ final case class Agent(name: String="", version: String="") {
  * @author vincent
  * Representation of the compatible marker
  */
-final case class Compatible(os: Seq[OperatingSystem]=Seq.empty, agents: Seq[Agent]=Seq.empty) {
+case class Compatible(os: Seq[OperatingSystem]=Seq.empty, agents: Seq[Agent]=Seq.empty) extends HashcodeCaching {
   def toHtml: NodeSeq = {
     val osHtml =
       if (!os.isEmpty) <p><b>Supported operating systems : </b>{os.mkString(", ")}</p>

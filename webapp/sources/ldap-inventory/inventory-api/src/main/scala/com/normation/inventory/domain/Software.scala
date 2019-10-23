@@ -38,17 +38,18 @@
 package com.normation.inventory.domain
 
 import org.joda.time.DateTime
+import com.normation.utils.HashcodeCaching
 
-final case class License(
+case class License(
   name : String,
   description:Option[String] = None,
   productId : Option[String] = None,
   productKey : Option[String] = None,
   oem : Option[String] = None,
   expirationDate : Option[DateTime] = None
-)
+) extends HashcodeCaching
 
-final case class Software(
+case class Software(
   id:SoftwareUuid,
   name :Option[String] = None,
   description:Option[String] = None,
@@ -56,4 +57,4 @@ final case class Software(
   editor : Option[SoftwareEditor] = None,
   releaseDate : Option[DateTime] = None,
   license : Option[License] = None
-)
+)extends HashcodeCaching

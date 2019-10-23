@@ -35,7 +35,7 @@ class CreateCloneGroupPopup(
 
   private[this] val categories = roNodeGroupRepository.getAllNonSystemCategories
   // Fetch the parent category, if any
-  private[this] val parentCategoryId = nodeGroup.flatMap(x => roNodeGroupRepository.getNodeGroupCategory(x.id)).map(_.id.value).getOrElse("")
+  private[this] val parentCategoryId = nodeGroup.flatMap(x => roNodeGroupRepository.getParentGroupCategory(x.id)).map(_.id.value).getOrElse("")
 
   var createContainer = false
 

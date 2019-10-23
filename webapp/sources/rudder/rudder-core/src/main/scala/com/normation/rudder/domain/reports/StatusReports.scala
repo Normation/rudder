@@ -443,7 +443,7 @@ object NodeStatusReportSerialization {
     )
   }
 
-  implicit class RunComplianceInfoToJs(val x: (RunAndConfigInfo, RunComplianceInfo)) extends AnyVal {
+  implicit class RunComplianceInfoToJs(x: (RunAndConfigInfo, RunComplianceInfo)) {
     def toJValue() = {
       (
         ( "run"    -> jsonRunInfo(x._1)    )
@@ -455,7 +455,7 @@ object NodeStatusReportSerialization {
     def toCompactJson = compactRender(toJValue)
   }
 
-  implicit class AggregatedStatusReportToJs(val x: AggregatedStatusReport) extends AnyVal {
+  implicit class AggregatedStatusReportToJs(x: AggregatedStatusReport) {
     import ComplianceLevelSerialisation._
 
     def toJValue(): JValue = {

@@ -51,47 +51,47 @@ sealed trait ReportType {
 
 
 object ReportType {
-final case object EnforceNotApplicable extends ReportType {
+  case object EnforceNotApplicable extends ReportType {
     val severity = "NotApplicable"
   }
-final case object EnforceSuccess extends ReportType {
+  case object EnforceSuccess extends ReportType {
     val severity = "Success"
   }
-final case object EnforceRepaired extends ReportType{
+  case object EnforceRepaired extends ReportType{
     val severity = "Repaired"
   }
-final case object EnforceError extends ReportType{
+  case object EnforceError extends ReportType{
     val severity = "Error"
   }
 
-final case object AuditNotApplicable extends ReportType {
+  case object AuditNotApplicable extends ReportType {
     val severity = "AuditNotApplicable"
   }
-final case object AuditCompliant extends ReportType {
+  case object AuditCompliant extends ReportType {
     val severity = "Compliant"
   }
-final case object AuditNonCompliant extends ReportType{
+  case object AuditNonCompliant extends ReportType{
     val severity = "NonCompliant"
   }
-final case object AuditError extends ReportType{
+  case object AuditError extends ReportType{
     val severity = "AuditError"
   }
-final case object BadPolicyMode extends ReportType{
+  case object BadPolicyMode extends ReportType{
     val severity = "BadPolicyMode"
   }
-final case object Unexpected extends ReportType{
+  case object Unexpected extends ReportType{
     val severity = "Unexpected"
   }
-final case object NoAnswer extends ReportType{
+  case object NoAnswer extends ReportType{
     val severity = "NoAnswer"
   }
-final case object Disabled extends ReportType{
+  case object Disabled extends ReportType{
     val severity = "ReportsDisabled"
   }
-final case object Pending extends ReportType{
+  case object Pending extends ReportType{
     val severity = "Applying"
   }
-final case object Missing extends ReportType{
+  case object Missing extends ReportType{
     val severity = "Missing"
   }
 

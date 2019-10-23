@@ -1,5 +1,6 @@
 package com.normation.rudder.domain.eventlog
 
+import com.normation.utils._
 import com.normation.eventlog._
 import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.domain.policies.SimpleDiff
@@ -9,7 +10,7 @@ sealed trait ChangeRequestEventLog extends EventLog { override final val eventLo
 
 final case class AddChangeRequest(
     override val eventDetails : EventLogDetails
-) extends ChangeRequestEventLog {
+) extends ChangeRequestEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = AddChangeRequest.eventType
 }
@@ -22,7 +23,7 @@ object AddChangeRequest extends EventLogFilter {
 
 final case class DeleteChangeRequest(
     override val eventDetails : EventLogDetails
-) extends ChangeRequestEventLog {
+) extends ChangeRequestEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = DeleteChangeRequest.eventType
 }
@@ -35,7 +36,7 @@ object DeleteChangeRequest extends EventLogFilter {
 
 final case class ModifyChangeRequest(
     override val eventDetails : EventLogDetails
-) extends ChangeRequestEventLog {
+) extends ChangeRequestEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = ModifyChangeRequest.eventType
 }
@@ -63,11 +64,11 @@ sealed trait ChangeRequestDiff {
   def diffDescription : Option[SimpleDiff[String]] = None
 }
 
-final case class AddChangeRequestDiff(
+case class AddChangeRequestDiff(
     changeRequest: ChangeRequest
 )extends ChangeRequestDiff
 
-final case class DeleteChangeRequestDiff(
+case class DeleteChangeRequestDiff(
     changeRequest: ChangeRequest
 ) extends ChangeRequestDiff
 
@@ -86,7 +87,7 @@ object ModifyToChangeRequestDiff {
     ModifyToChangeRequestDiff(newCr,modName,modDesc)
   }
 }
-final case class ModifyToChangeRequestDiff(
+case class ModifyToChangeRequestDiff(
     changeRequest : ChangeRequest
   , override val diffName        : Option[SimpleDiff[String]]
   , override val diffDescription : Option[SimpleDiff[String]]

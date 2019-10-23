@@ -98,7 +98,7 @@ class FullQuickSearchService(implicit
 object QuickSearchService {
 
 
-  implicit class QSParser(val query: String) extends AnyVal {
+  implicit class QSParser(query: String) {
     def parse(): Box[Query] = QSRegexQueryParser.parse(query)
   }
 

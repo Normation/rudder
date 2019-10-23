@@ -38,6 +38,7 @@
 package com.normation.cfclerk.domain
 
 import com.normation.utils.Utils._
+import com.normation.utils.HashcodeCaching
 import com.normation.inventory.domain.AgentType
 
 /**
@@ -47,8 +48,8 @@ import com.normation.inventory.domain.AgentType
  * TODO : check case sensivity and allowed chars.
  *
  */
-final case class TechniqueName(value: String) extends AnyVal with Ordered[TechniqueName] {
-  override def toString = value
+case class TechniqueName(value: String) extends Ordered[TechniqueName] with HashcodeCaching {
+  override lazy val toString = value
 
   override def compare(that: TechniqueName) = this.value.compare(that.value)
 }
@@ -58,7 +59,7 @@ final case class TechniqueName(value: String) extends AnyVal with Ordered[Techni
  * A policy ID is built from the policy name, unique
  * among all policies, and a version for that policy.
  */
-final case class TechniqueId(name: TechniqueName, version: TechniqueVersion) extends Ordered[TechniqueId] {
+case class TechniqueId(name: TechniqueName, version: TechniqueVersion) extends Ordered[TechniqueId] with HashcodeCaching {
   override def toString() = name.toString + "/" + version.toString
 
   override def compare(that: TechniqueId): Int = {
@@ -155,7 +156,7 @@ final object TechniqueGenerationMode {
 /**
  * A structure containing all informations about a technique deprecation
  */
-final case class TechniqueDeprecationInfo (message : String) extends AnyVal
+case class TechniqueDeprecationInfo (message : String)
 
 /**
  * A Policy is made of a name, a description, and the list of templates name relevant
@@ -165,7 +166,7 @@ final case class TechniqueDeprecationInfo (message : String) extends AnyVal
  * @author Nicolas Charles
  *
  */
-final case class Technique(
+case class Technique(
     id                     : TechniqueId
   , name                   : String
   , description            : String
@@ -180,7 +181,7 @@ final case class Technique(
   , isSystem               : Boolean = false
   , generationMode         : TechniqueGenerationMode = TechniqueGenerationMode.MergeDirectives
   , useMethodReporting     : Boolean = false
-) {
+) extends HashcodeCaching {
 
   require(null != id && !isEmpty(id.name.value), "ID is required in policy")
   require(!isEmpty(name), "Name is required in policy")
@@ -197,7 +198,7 @@ final case class Technique(
 /**
  * The representation of a bundle name, used for the bundlesequence
  */
-final case class BundleName(value : String) extends AnyVal
+case class BundleName(value : String) extends HashcodeCaching
 
 object Technique {
   def normalizeName(name: String): String = {

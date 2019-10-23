@@ -77,14 +77,14 @@ class ExtensibleAuthorizationApiMapping(base: List[AuthorizationApiMapping]) ext
 
 
 object AuthorizationApiMapping {
-  implicit class ToAuthz(val api: EndpointSchema) extends AnyVal {
+  implicit class ToAuthz(api: EndpointSchema) {
     def x: ApiAclElement = AuthzForApi(api)
   }
 
   /*
    * A default mapping for "only 'all rights' (ie admin) can access it
    */
-final case object OnlyAdmin extends AuthorizationApiMapping {
+  case object OnlyAdmin extends AuthorizationApiMapping {
     override def mapAuthorization(authz: AuthorizationType): List[ApiAclElement] = Nil
   }
 

@@ -37,6 +37,7 @@
 
 package com.normation.rudder.domain.policies
 
+
 /**
  * Application status of a rule
  */

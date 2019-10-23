@@ -78,22 +78,22 @@ sealed trait AgentCompat {
 }
 
 object AgentCompat {
-final case object Dsc     extends AgentCompat {
+  case object Dsc     extends AgentCompat {
     def icon : NodeSeq = dscIcon
     def techniqueText : NodeSeq = <p>This Technique is only compatible with <b class="dsc">DSC</b> agent.</p>
     def directiveText : NodeSeq = <p>This Directive is based on a Technique version compatible with <b class="dsc">DSC agent</b>.</p>
   }
-final case object Classic extends AgentCompat {
+  case object Classic extends AgentCompat {
     def icon : NodeSeq = classicIcon
     def techniqueText : NodeSeq = <p>This Technique is only compatible with <b>Classic</b> agent.</p>
     def directiveText : NodeSeq = <p>This Directive is based on a Technique version compatible with <b>Classic agent</b>.</p>
   }
-final case object All     extends AgentCompat {
+  case object All     extends AgentCompat {
     def icon : NodeSeq = classicIcon ++ dscIcon
     def techniqueText : NodeSeq = <p>This Technique has at least a version compatible with both <b>Classic</b> and <b class="dsc">DSC</b> agents.</p>
     def directiveText : NodeSeq = <p>This Directive is based on a Technique version compatible with both <b>Classic</b> and <b class="dsc">DSC</b> agents.</p>
   }
-final case object NoAgent extends AgentCompat {
+  case object NoAgent extends AgentCompat {
     def icon : NodeSeq = NodeSeq.Empty
     def techniqueText : NodeSeq = NodeSeq.Empty
     def directiveText : NodeSeq = NodeSeq.Empty

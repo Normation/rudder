@@ -59,7 +59,7 @@ import com.normation.inventory.domain.AcceptedInventory
 class NodeHistoryViewer extends StatefulSnippet {
   lazy val diffRepos = RudderConfig.inventoryHistoryLogRepository
 
-  var uuid : NodeId = NodeId("temporary")
+  var uuid : NodeId = null
   var selectedDate : DateTime = null
   var dates : Seq[(DateTime,String)] = Seq()
   //id of html element to update

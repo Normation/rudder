@@ -148,22 +148,22 @@ object InterpolatedValueCompilerImpl {
    * - node information (thanks to a pointed path to the interesting property)
    * - rudder parameters (only globals for now)
    */
-  sealed trait Token extends Any//could be Either[CharSeq, Interpolation]
+  sealed trait Token //could be Either[CharSeq, Interpolation]
 
-final case class   CharSeq(s:String) extends AnyVal with Token
-  sealed trait Interpolation     extends Any with Token
+  case class   CharSeq(s:String) extends Token
+  sealed trait Interpolation     extends Token
 
   //everything is expected to be lower case
-  final case class NodeAccessor(path:List[String]) extends AnyVal with Interpolation
+  final case class NodeAccessor(path:List[String]) extends Interpolation
   //everything is expected to be lower case
-  final case class Param(name:String)              extends AnyVal with Interpolation
+  final case class Param(name:String)              extends Interpolation
   //here, we keep the case as it is given
   final case class Property(path: List[String], opt: Option[PropertyOption])    extends Interpolation
 
   //here, we have node property option
-  sealed trait PropertyOption extends Any
+  sealed trait PropertyOption
   final case object InterpreteOnNode                 extends PropertyOption
-  final case class  DefaultValue(value: List[Token]) extends AnyVal with PropertyOption
+  final case class  DefaultValue(value: List[Token]) extends PropertyOption
 }
 
 class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueCompiler {
@@ -350,7 +350,6 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
   def getJsonProperty(path: List[String], json: JValue): Box[String] = {
     import net.liftweb.json._
 
-    @scala.annotation.tailrec
     def access(json: => JValue, path: List[String]): JValue = path match {
       case Nil       => json
       case h :: tail => access( json \ h, tail)

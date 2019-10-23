@@ -373,7 +373,7 @@ final object MergePolicyService {
      * avoid groupBy
      */
     // utility class to store reportId + RunHook
-final case class BoundHook(id: PolicyId, mode: PolicyMode, technique: String, hook: RunHook)
+    case class BoundHook(id: PolicyId, mode: PolicyMode, technique: String, hook: RunHook)
 
     def recMerge(currentHook: BoundHook, remaining: List[BoundHook]): List[NodeRunHook] = {
       // partition between mergeable hooks and non-mergeable one

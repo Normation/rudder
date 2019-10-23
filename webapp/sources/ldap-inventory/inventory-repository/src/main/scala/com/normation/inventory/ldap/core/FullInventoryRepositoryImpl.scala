@@ -66,7 +66,7 @@ class FullInventoryRepositoryImpl(
   /**
    * Get the expected DN of a machine from its ID and status
    */
-  private[this] def dnMachine(uuid:MachineUuid, inventoryStatus : InventoryStatus) = {
+  private[this] def dn(uuid:MachineUuid, inventoryStatus : InventoryStatus) = {
     inventoryDitService.getDit(inventoryStatus).MACHINES.MACHINE.dn(uuid)
   }
   private[this] def dn(uuid:NodeId, inventoryStatus : InventoryStatus) = {
@@ -77,7 +77,7 @@ class FullInventoryRepositoryImpl(
   }
 
   private[this] def findDnForMachine(con: RwLDAPConnection, id:MachineUuid): Option[DN] = {
-    Seq(AcceptedInventory, PendingInventory, RemovedInventory).find(s => con.exists(dnMachine(id,s))).map(dnMachine(id, _))
+    Seq(AcceptedInventory, PendingInventory, RemovedInventory).find(s => con.exists(dn(id,s))).map(dn(id, _))
   }
 
   private[this] def findDnForNode(con: RwLDAPConnection, id:NodeId): Option[DN] = {
@@ -94,7 +94,7 @@ class FullInventoryRepositoryImpl(
   private[this] def getExistingMachineDN(con: RwLDAPConnection, id: MachineUuid): Seq[(Boolean, DN)] = {
     val status = Seq(AcceptedInventory, PendingInventory, RemovedInventory)
     status.map{ x =>
-      val d = dnMachine(id, x)
+      val d = dn(id, x)
       val exists = con.exists(d)
       (exists, d)
     }
@@ -103,7 +103,7 @@ class FullInventoryRepositoryImpl(
   /**
    * Get a machine by its ID
    */
-  override def getMachine(id:MachineUuid) : Box[MachineInventory] = {
+  override def get(id:MachineUuid) : Box[MachineInventory] = {
     for {
       con <- ldap
       tree <- {
@@ -123,7 +123,7 @@ class FullInventoryRepositoryImpl(
   def getNodesForMachine(con: RwLDAPConnection, id:MachineUuid) : Map[InventoryStatus, Set[LDAPEntry]] = {
 
     val status = Seq(PendingInventory, AcceptedInventory, RemovedInventory)
-    val orFilter = BuildFilter.OR(status.map(x => EQ(A_CONTAINER_DN,dnMachine(id, x).toString)):_*)
+    val orFilter = BuildFilter.OR(status.map(x => EQ(A_CONTAINER_DN,dn(id, x).toString)):_*)
 
     def machineForNodeStatus(con:RwLDAPConnection, inventoryStatus: InventoryStatus) = {
       con.searchOne(nodeDn(inventoryStatus),  orFilter, A_NODE_UUID).toSet
@@ -141,7 +141,7 @@ class FullInventoryRepositoryImpl(
     import com.normation.utils.Control.bestEffort
     val mod = newMachineId match {
       case None => new Modification(ModificationType.DELETE, A_CONTAINER_DN)
-      case Some((id, status)) => new Modification(ModificationType.REPLACE, A_CONTAINER_DN, dnMachine(id, status).toString)
+      case Some((id, status)) => new Modification(ModificationType.REPLACE, A_CONTAINER_DN, dn(id, status).toString)
     }
 
     bestEffort(nodes.values.flatten.map( _.dn).toSeq) { dn =>
@@ -200,7 +200,7 @@ class FullInventoryRepositoryImpl(
                                     //keep it and delete the other one
                                     con.delete(machineDN)
                                   } else {
-                                    con.move(machineDN, dnMachine(id, intoStatus).getParent).map(Seq(_))
+                                    con.move(machineDN, dn(id, intoStatus).getParent).map(Seq(_))
                                   }
                        } yield {
                          moved
@@ -300,7 +300,7 @@ class FullInventoryRepositoryImpl(
             // 1/ not make 3 existence tests each time we get a node,
             // 2/ make the thing more debuggable. If we don't use the DN and display
             //    information taken elsewhere, future debugging will leads people to madness
-            con.getTree(dnMachine(machineId, status)) match {
+            con.getTree(dn(machineId, status)) match {
             case Empty => Full(None)
             case Full(x) => mapper.machineFromTree(x).map(Some(_))
             case f:Failure => f
@@ -311,6 +311,8 @@ class FullInventoryRepositoryImpl(
       FullInventory(server, optMachine)
     }
   }
+
+
 
 
   override def get(id:NodeId) : Box[FullInventory] = {
@@ -328,7 +330,7 @@ class FullInventoryRepositoryImpl(
             // 1/ not make 3 existence tests each time we get a node,
             // 2/ make the thing more debuggable. If we don't use the DN and display
             //    information taken elsewhere, future debugging will leads people to madness
-            con.getTree(dnMachine(machineId, status)) match {
+            con.getTree(dn(machineId, status)) match {
             case Empty => Full(None)
             case Full(x) => mapper.machineFromTree(x).map(Some(_))
             case f:Failure => f
@@ -411,7 +413,7 @@ class FullInventoryRepositoryImpl(
       // logic in machine#move. Don't do anything if machine already in correct status.
       val machineMoved = (for {
         (machineId, mStatus) <- getMachineId(id, into)
-        moved <- if(mStatus == into) Full(Seq(LDIFNoopChangeRecord(dnMachine(machineId, mStatus))))
+        moved <- if(mStatus == into) Full(Seq(LDIFNoopChangeRecord(dn(machineId, mStatus))))
                  else move(machineId, into)
       } yield {
         moved

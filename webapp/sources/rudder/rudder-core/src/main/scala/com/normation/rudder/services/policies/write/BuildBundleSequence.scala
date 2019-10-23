@@ -55,11 +55,6 @@ import com.normation.cfclerk.domain.TechniqueGenerationMode
 import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.policies.NodeRunHook
 import com.normation.cfclerk.domain.RunHook
-import com.normation.rudder.services.policies.write.BuildBundleSequence.TechniqueBundles
-import com.normation.rudder.services.policies.write.CfengineBundleVariables.audit
-import com.normation.rudder.services.policies.write.CfengineBundleVariables.cleanup
-import com.normation.rudder.services.policies.write.CfengineBundleVariables.enforce
-
 import scala.collection.immutable.ListMap
 
 /**
@@ -115,7 +110,7 @@ object BuildBundleSequence {
   // ad-hoc data structure to denote a directive name
   // (actually, the directive applied in to rule),
   // or in CFEngine name a "promiser"
-  final case class Directive(value: String) extends AnyVal
+  final case class Directive(value: String)
 
   // A bundle paramer is just a String, but it can be quoted with simple or double quote
   // (double quote is the default, and simple quote are used mostly for JSON)
@@ -176,40 +171,7 @@ object BuildBundleSequence {
   }
 
   val cleanReportingBundle : Bundle = Bundle(None, BundleName(s"""clean_reporting_context"""), Nil )
-
-  /*
-   * Some Techniques don't have any bundle (at least common).
-   * We don't want to include these technique in the bundle sequence,
-   * obviously
-   */
-  implicit final class NoBundleTechnique(val bundles: List[TechniqueBundles]) extends AnyVal {
-    def removeEmptyBundle: List[TechniqueBundles] = bundles.filterNot(_.main.isEmpty)
-  }
-
-
-  /*
-   * Each bundle must be preceded by the correct "set_dry_mode" mode,
-   * and we always end with a "set_dry_mode("false")".
-   * Also, promiser must be differents for all items so that cfengine
-   * doesn't try to avoid to do the set, so we are using the technique
-   * promiser.
-   * We need to finish by a remove dry run, as hooks expect to be in enforce mode
-   */
-  implicit final class DryRunManagement(val bundles: List[TechniqueBundles]) extends AnyVal {
-    def addDryRunManagement: List[TechniqueBundles] = bundles match {
-      case Nil  => Nil
-      case list => list.map { tb =>
-                       val pre = tb.policyMode match {
-                         case PolicyMode.Audit  => audit
-                         case PolicyMode.Enforce => enforce
-                       }
-                       tb.copy(pre = pre :: Nil)
-                   //always remove dry mode in last action
-                   } ::: ( cleanup("remove_dry_run_mode") :: Nil )
-    }
-  }
 }
-
 
 class BuildBundleSequence(
     systemVariableSpecService : SystemVariableSpecService
@@ -286,6 +248,15 @@ class BuildBundleSequence(
   ////////////////////////////////////////////
   ////////// Implementation details //////////
   ////////////////////////////////////////////
+
+  /*
+   * Some Techniques don't have any bundle (at least common).
+   * We don't want to include these technique in the bundle sequence,
+   * obviously
+   */
+  implicit final class NoBundleTechnique(bundles: List[TechniqueBundles]) {
+    def removeEmptyBundle: List[TechniqueBundles] = bundles.filterNot(_.main.isEmpty)
+  }
 
   /*
    * For each techniques:
@@ -400,6 +371,28 @@ object CfengineBundleVariables {
         //only user bundle may be set on PolicyMode = Verify
       , formatMethodsUsebundle(escape, userBundles.addDryRunManagement, runHooks, cleanupDryRunForSystem)
     )
+  }
+
+  /*
+   * Each bundle must be preceded by the correct "set_dry_mode" mode,
+   * and we always end with a "set_dry_mode("false")".
+   * Also, promiser must be differents for all items so that cfengine
+   * doesn't try to avoid to do the set, so we are using the technique
+   * promiser.
+   * We need to finish by a remove dry run, as hooks expect to be in enforce mode
+   */
+  implicit final class DryRunManagement(bundles: List[TechniqueBundles]) {
+    def addDryRunManagement: List[TechniqueBundles] = bundles match {
+      case Nil  => Nil
+      case list => list.map { tb =>
+                       val pre = tb.policyMode match {
+                         case PolicyMode.Audit  => audit
+                         case PolicyMode.Enforce => enforce
+                       }
+                       tb.copy(pre = pre :: Nil)
+                   //always remove dry mode in last action
+                   } ::: ( cleanup("remove_dry_run_mode") :: Nil )
+    }
   }
 
   val audit   = Bundle(None, BundleName("""set_dry_run_mode("true")"""), Nil)
@@ -522,7 +515,7 @@ final case class JsonRunHook(
 )
 
 object JsonRunHookSer {
-  implicit class ToJson(val h: NodeRunHook) extends AnyVal {
+  implicit class ToJson(h: NodeRunHook) {
     import net.liftweb.json._
     def jsonParam: String = {
       val jh = JsonRunHook(

@@ -38,7 +38,7 @@
 package com.normation.rudder.domain.workflows
 
 
-final case class WorkflowNodeId(value:String) extends AnyVal {
+case class WorkflowNodeId(value:String){
   override def toString = value
 }
 
@@ -52,7 +52,7 @@ trait WorkflowNode {
   def id       : WorkflowNodeId
 }
 
-final case class WorkflowStepChange(
+case class WorkflowStepChange(
     id    : ChangeRequestId
   , from  : WorkflowNodeId
   , to    : WorkflowNodeId

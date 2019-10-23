@@ -117,7 +117,7 @@ serializedNodeProperty: {"name":"number","value":42}
 dn: nodeId=node4,ou=Nodes,cn=rudder-configuration
 objectClass: top
 objectClass: rudderNode
-nodeId: node4
+nodeId: serv,ou=Nodes=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 cn: has machine with nothing
 isSystem: false
 isBroken: false

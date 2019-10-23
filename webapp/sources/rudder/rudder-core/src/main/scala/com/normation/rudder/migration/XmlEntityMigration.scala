@@ -80,7 +80,7 @@ object TestIsEntry {
 /**
  * Change labels of a list of Elem
  */
-final case class ChangeLabel(label:String, logger: Logger) extends Function1[NodeSeq, Option[Elem]] {
+case class ChangeLabel(label:String, logger: Logger) extends Function1[NodeSeq, Option[Elem]] {
 
   override def apply(nodes:NodeSeq) = nodes match {
     case e:Elem => Some(e.copy(label = label))
@@ -93,7 +93,7 @@ final case class ChangeLabel(label:String, logger: Logger) extends Function1[Nod
 /**
  * Change labels of a list of Elem
  */
-final case class EncapsulateChild(label:String, logger:Logger) extends Function1[NodeSeq, Option[NodeSeq]] {
+case class EncapsulateChild(label:String, logger:Logger) extends Function1[NodeSeq, Option[NodeSeq]] {
 
   override def apply(nodes:NodeSeq) = nodes match {
     case e:Elem => Some(e.copy(child = Encapsulate(label, logger).apply(e.child).getOrElse(NodeSeq.Empty)))
@@ -105,7 +105,7 @@ final case class EncapsulateChild(label:String, logger:Logger) extends Function1
 /**
  * Change labels of a list of Elem
  */
-final case class Encapsulate(label:String, logger: Logger) extends Function1[NodeSeq, Option[NodeSeq]] {
+case class Encapsulate(label:String, logger: Logger) extends Function1[NodeSeq, Option[NodeSeq]] {
 
   override def apply(nodes:NodeSeq) = nodes match {
     case e:Elem => Some(e.copy(label=label,child=e))
@@ -130,14 +130,14 @@ trait MigrableEntity {
   def data: Elem
 }
 
-final case class MigrationEventLog(
+case class MigrationEventLog(
     id       : Long
   , eventType: String
   , data     : Elem
 ) extends MigrableEntity
 
 
-final case class MigrationChangeRequest(
+case class MigrationChangeRequest(
     id  : Long
   , name: String
   , data: Elem

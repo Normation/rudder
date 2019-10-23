@@ -47,6 +47,7 @@ import com.normation.cfclerk.xmlparsers._
 import CfclerkXmlConstants._
 import scala.xml._
 import com.normation.cfclerk.exceptions.ParsingException
+import com.normation.utils.HashcodeCaching
 
 @RunWith(classOf[JUnitRunner])
 class SectionTest extends Specification {
@@ -223,7 +224,7 @@ class SectionTest extends Specification {
 
 }
 
-final case class SectionParser(sectionSpecParser: SectionSpecParser)  {
+case class SectionParser(sectionSpecParser: SectionSpecParser) extends HashcodeCaching  {
   val id = new TechniqueId(new TechniqueName("test-TechniqueId"), TechniqueVersion("1.0"))
   val policyName = "test-policyName"
 

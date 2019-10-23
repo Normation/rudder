@@ -147,7 +147,7 @@ object AgentType {
 /*
  * Version of the agent
  */
-final case class AgentVersion(value: String) extends AnyVal
+final case class AgentVersion(value: String)
 
 final case class AgentInfo(
     agentType     : AgentType
@@ -163,7 +163,7 @@ object AgentInfoSerialisation {
 
   import net.liftweb.json._
 
-  implicit class ToJson(val agent: AgentInfo) extends AnyVal {
+  implicit class ToJson(agent: AgentInfo) {
 
     def toJsonString =
       compactRender(

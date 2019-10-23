@@ -38,5 +38,5 @@
 package com.normation.rudder.domain.system
 
 sealed abstract class OrchestratorStatus
-final case object ButtonActivated extends OrchestratorStatus
-final case object ButtonReleased extends OrchestratorStatus
+case object ButtonActivated extends OrchestratorStatus
+case object ButtonReleased extends OrchestratorStatus

@@ -44,6 +44,7 @@ import com.normation.rudder.services.policies.PromiseGenerationService
 import net.liftweb.http.ListenerManager
 import com.normation.eventlog.{EventActor, EventLog}
 import com.normation.rudder.domain.eventlog._
+import com.normation.utils.HashcodeCaching
 import com.normation.rudder.services.marshalling.DeploymentStatusSerialisation
 import com.normation.rudder.services.eventlog.EventLogDeploymentService
 import net.liftweb.common._
@@ -60,11 +61,11 @@ sealed trait StartDeploymentMessage
 
 //ask for a new deployment - automatic deployment !
 //actor: the actor who asked for the deployment
-final case class AutomaticStartDeployment(modId: ModificationId, actor:EventActor) extends StartDeploymentMessage
+final case class AutomaticStartDeployment(modId: ModificationId, actor:EventActor) extends HashcodeCaching with StartDeploymentMessage
 
 //ask for a new deployment - manual deployment (human clicked on "regenerate now"
 //actor: the actor who asked for the deployment
-final case class ManualStartDeployment(modId: ModificationId, actor:EventActor, reason:String) extends StartDeploymentMessage
+final case class ManualStartDeployment(modId: ModificationId, actor:EventActor, reason:String) extends HashcodeCaching with StartDeploymentMessage
 
 /**
  * State of the deployment agent.
@@ -73,13 +74,13 @@ final case class ManualStartDeployment(modId: ModificationId, actor:EventActor, 
 
 sealed trait DeployerState
 //not currently doing anything
-final case object IdleDeployer extends DeployerState
+final case object IdleDeployer extends DeployerState with HashcodeCaching
 //a deployment is currently running
-final case class Processing(id:Long, started: DateTime) extends DeployerState
+final case class Processing(id:Long, started: DateTime) extends DeployerState with HashcodeCaching
 //a deployment is currently running and an other is queued
-final case class ProcessingAndPendingAuto(asked: DateTime, current:Processing, actor : EventActor, eventLogId : Int) extends DeployerState
+final case class ProcessingAndPendingAuto(asked: DateTime, current:Processing, actor : EventActor, eventLogId : Int) extends DeployerState with HashcodeCaching
 //a deployment is currently running and a manual is queued
-final case class ProcessingAndPendingManual(asked: DateTime, current:Processing, actor : EventActor, eventLogId : Int, reason:String) extends DeployerState
+final case class ProcessingAndPendingManual(asked: DateTime, current:Processing, actor : EventActor, eventLogId : Int, reason:String) extends DeployerState with HashcodeCaching
 
 /**
  * Status of the last deployment process
@@ -87,15 +88,15 @@ final case class ProcessingAndPendingManual(asked: DateTime, current:Processing,
 sealed trait CurrentDeploymentStatus
 
 //noting was done for now
-final case object NoStatus extends CurrentDeploymentStatus
+final case object NoStatus extends CurrentDeploymentStatus with HashcodeCaching
 //last status - success or error
-final case class SuccessStatus(id:Long, started: DateTime, ended:DateTime, configuration: Set[NodeId]) extends CurrentDeploymentStatus
-final case class ErrorStatus(id:Long, started: DateTime, ended:DateTime, failure:Failure) extends CurrentDeploymentStatus
+final case class SuccessStatus(id:Long, started: DateTime, ended:DateTime, configuration: Set[NodeId]) extends CurrentDeploymentStatus with HashcodeCaching
+final case class ErrorStatus(id:Long, started: DateTime, ended:DateTime, failure:Failure) extends CurrentDeploymentStatus with HashcodeCaching
 
 final case class DeploymentStatus(
   current: CurrentDeploymentStatus,
   processing: DeployerState
-)
+) extends HashcodeCaching
 
 /**
  * Async version of the deployment service.
@@ -126,11 +127,9 @@ final class AsyncDeploymentActor(
     , end    : DateTime
     , results: Box[Set[NodeId]]
     , actor  : EventActor
-    , eventLogId: Int
-  )
-
+    , eventLogId: Int) extends HashcodeCaching
   //message from manager to deployment agent
-  private[this] case class NewDeployment(id:Long, modId:ModificationId, started: DateTime, actor : EventActor, eventLogId : Int)
+  private[this] sealed case class NewDeployment(id:Long, modId:ModificationId, started: DateTime, actor : EventActor, eventLogId : Int) extends HashcodeCaching
 
   private[this] var lastFinishedDeployement : CurrentDeploymentStatus = getLastFinishedDeployment
   private[this] var currentDeployerState : DeployerState = IdleDeployer

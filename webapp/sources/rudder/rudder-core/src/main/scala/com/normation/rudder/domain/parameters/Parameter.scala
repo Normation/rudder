@@ -35,9 +35,10 @@
 *************************************************************************************
 */
 package com.normation.rudder.domain.parameters
+import com.normation.utils.HashcodeCaching
 import java.util.regex.Pattern
 
-final case class ParameterName(value:String) extends AnyVal
+case class ParameterName(value:String) extends HashcodeCaching
 
 object ParameterName {
   val patternName = Pattern.compile("[a-zA-Z0-9_]+");
@@ -57,7 +58,7 @@ sealed trait Parameter {
 /**
  * A Global Parameter is a parameter globally defined, that may be overriden
  */
-final case class GlobalParameter(
+case class GlobalParameter(
     override val name       : ParameterName
   , override val value      : String
   , override val description: String

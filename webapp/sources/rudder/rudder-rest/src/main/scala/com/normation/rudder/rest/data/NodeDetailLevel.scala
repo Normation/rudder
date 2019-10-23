@@ -83,23 +83,23 @@ sealed trait NodeDetailLevel {
   final def needSoftware() = NodeDetailLevel.softwareFields.keySet.intersect(fields).nonEmpty
 }
 
-final case object MinimalDetailLevel extends NodeDetailLevel {
+case object MinimalDetailLevel extends NodeDetailLevel {
   val fields = NodeDetailLevel.minimalFields.toSet
 }
 
-final case object DefaultDetailLevel extends NodeDetailLevel {
+case object DefaultDetailLevel extends NodeDetailLevel {
   val fields = NodeDetailLevel.defaultFields.toSet
 }
 
-final case object FullDetailLevel extends NodeDetailLevel {
+case object FullDetailLevel extends NodeDetailLevel {
   val fields = NodeDetailLevel.allFields.toSet
 }
 
-final case object API2DetailLevel extends NodeDetailLevel {
+case object API2DetailLevel extends NodeDetailLevel {
   val fields = NodeDetailLevel.minimalFields.toSet ++ Set("os","machine")
 }
 
-final case class CustomDetailLevel (
+case class CustomDetailLevel (
     base         : NodeDetailLevel
   , customFields : Set[String]
 ) extends NodeDetailLevel {

@@ -251,8 +251,8 @@ object ComplianceLevelSerialisation {
   //transform the compliance percent to a list with a given order:
   // pc_reportDisabled, pc_notapplicable, pc_success, pc_repaired,
   // pc_error, pc_pending, pc_noAnswer, pc_missing, pc_unknown
-  implicit class ComplianceLevelToJs(val compliance: ComplianceLevel) extends AnyVal {
-
+  implicit class ComplianceLevelToJs(compliance: ComplianceLevel) {
+    
     def toJsArray(): JsArray = JsArray (
         JE.JsObj(("number",compliance.reportsDisabled)   , ("percent",JE.Num(compliance.pc.reportsDisabled)))    //  0
       , JE.JsObj(("number",compliance.notApplicable)     , ("percent",JE.Num(compliance.pc.notApplicable)))      //  1
@@ -284,7 +284,7 @@ object ComplianceLevelSerialisation {
   // and we only keep the one > 0 (we want the result to be
   // human-readable and to aknolewdge the fact that there may be
   // new fields.
-  implicit class CompliancePercentToJs(val c: CompliancePercent) extends AnyVal {
+  implicit class CompliancePercentToJs(c: CompliancePercent) {
     def toJson(): JObject = {
       import c._
       toJObject(pending, success, repaired, error, unexpected, missing, noAnswer

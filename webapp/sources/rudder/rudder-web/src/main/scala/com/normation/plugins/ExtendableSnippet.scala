@@ -40,9 +40,10 @@ package com.normation.plugins
 import net.liftweb.http._
 
 import scala.xml.NodeSeq
+import com.normation.utils.HashcodeCaching
 import scala.reflect.ClassTag
 
-final case class SnippetExtensionKey(value:String)
+case class SnippetExtensionKey(value:String) extends HashcodeCaching
 
 /**
  * A default implement for extension point with only

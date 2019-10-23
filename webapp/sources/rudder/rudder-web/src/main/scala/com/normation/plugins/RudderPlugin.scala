@@ -39,13 +39,14 @@ package com.normation.plugins
 
 import scala.xml.NodeSeq
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.utils.HashcodeCaching
 import com.typesafe.config.{Config, ConfigFactory}
 import bootstrap.liftweb.{ClassPathResource, ConfigResource, FileSystemResource, RudderProperties}
 import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import net.liftweb.sitemap.Menu
 
-final case class PluginVersion(
+case class PluginVersion(
     major : Int
   , minor : Int
   , micro : Int
@@ -96,7 +97,7 @@ object PluginVersion {
   }
 }
 
-final case class PluginName(value:String) {
+case class PluginName(value:String) extends HashcodeCaching {
   if(null == value || value.length == 0) {
     ApplicationLogger.error("A plugin name can not be null nor empty")
     throw new IllegalArgumentException("A plugin name can not be null nor empty")

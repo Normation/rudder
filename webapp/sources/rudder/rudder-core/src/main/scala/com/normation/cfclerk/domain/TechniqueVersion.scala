@@ -36,8 +36,7 @@
 */
 
 package com.normation.cfclerk.domain
-
-import scala.util.matching.Regex
+import com.normation.utils.HashcodeCaching
 
 /**
  * When comparing two version numbers, first the epoch of each are compared, then
@@ -94,18 +93,13 @@ object TechniqueVersion {
    */
   def splitEpochUpstream(value: String): (Int, UpstreamTechniqueVersion) = {
     val arr = value.split(":")
-    if (arr.length <= 1) {
-      UpstreamTechniqueVersion.checkValid(value)
-      return (0, UpstreamTechniqueVersion(value))
-    }
+    if (arr.length <= 1) return (0, UpstreamTechniqueVersion(value))
 
     val errorEx = new TechniqueVersionFormatException("The epoch value has to be an unsigned integer which is not the case of : " + arr(0))
     try {
       val epochVal = arr(0).toInt
       if (epochVal < 0) throw errorEx
-      val v = rest(value, arr(0) + ":")
-      UpstreamTechniqueVersion.checkValid(v)
-      return (epochVal, UpstreamTechniqueVersion(v))
+      return (epochVal, UpstreamTechniqueVersion(rest(value, arr(0) + ":")))
     } catch {
       case e: NumberFormatException => throw errorEx
     }
@@ -119,20 +113,11 @@ object TechniqueVersion {
   }
 }
 
-object UpstreamTechniqueVersion {
-  val intsReg = new Regex("[0-9]+")
-  val noIntsReg = new Regex("[^0-9]*")
+case class UpstreamTechniqueVersion(value: String) extends Ordered[UpstreamTechniqueVersion] with HashcodeCaching {
+  checkValid(value)
 
-final case class CharVersion(c: Char) extends AnyVal with Ordered[CharVersion] {
-    def compare(cv: CharVersion): Int = {
-      if (c == cv.c) 0
-      else if (c == '~' && cv.c != '~') -1
-      else if (c != '~' && cv.c == '~') 1
-      else if (c.isLetter && !cv.c.isLetter) -1
-      else if (!c.isLetter && cv.c.isLetter) 1
-      else c compare cv.c
-    }
-  }
+  import scala.util.matching.Regex
+  import TechniqueVersion.rest
 
   def checkValid(strings: String*): Unit = {
     for (value <- strings) {
@@ -149,12 +134,8 @@ final case class CharVersion(c: Char) extends AnyVal with Ordered[CharVersion] {
       }
     }
   }
-}
 
-final case class UpstreamTechniqueVersion(value: String) extends AnyVal with Ordered[UpstreamTechniqueVersion] {
-  import TechniqueVersion.rest
-  import UpstreamTechniqueVersion._
-
+  val intsReg = new Regex("[0-9]+")
 
   def compare(upsreamTechniqueVersion: UpstreamTechniqueVersion): Int = {
     val (s1, s2) = (value, upsreamTechniqueVersion.value)
@@ -170,6 +151,8 @@ final case class UpstreamTechniqueVersion(value: String) extends AnyVal with Ord
       case _ => 0
     }
   }
+
+  val noIntsReg = new Regex("[^0-9]*")
 
   def compareRest(s1: String, s2: String): Int = {
     val (sub1, sub2) = (noIntsReg.findPrefixOf(s1).get, noIntsReg.findPrefixOf(s2).get)
@@ -209,6 +192,17 @@ final case class UpstreamTechniqueVersion(value: String) extends AnyVal with Ord
       case (Some(_), _) => 1
       case (_, Some(_)) => -1
       case _ => 0
+    }
+  }
+
+  private case class CharVersion(c: Char) extends Ordered[CharVersion] with HashcodeCaching {
+    def compare(cv: CharVersion): Int = {
+      if (c == cv.c) 0
+      else if (c == '~' && cv.c != '~') -1
+      else if (c != '~' && cv.c == '~') 1
+      else if (c.isLetter && !cv.c.isLetter) -1
+      else if (!c.isLetter && cv.c.isLetter) 1
+      else c compare cv.c
     }
   }
 }

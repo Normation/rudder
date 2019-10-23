@@ -146,7 +146,7 @@ object TestSystemData {
 
   //an utility class for filtering file lines given a regex,
   //used in the file content matcher
-final case class RegexFileContent(regex: List[String]) extends LinesContent[File] {
+  case class RegexFileContent(regex: List[String]) extends LinesContent[File] {
     val patterns = regex.map(_.r.pattern)
 
     override def lines(f: File): Seq[String] = {

@@ -103,31 +103,12 @@ class DynGroupServiceImpl(
   }
 }
 
-object CheckPendingNodeInDynGroups {
-
-  final case class DynGroup(id: NodeGroupId, dependencies: Set[NodeGroupId], testNodes: Set[NodeId], query: Query, includeNodes: Set[NodeId])
-
-  // for debuging message
-  implicit class DynGroupsToString(val gs: List[(NodeGroupId, Set[NodeId])]) extends AnyVal {
-    def show: String = gs.map { case (id, nodes) =>
-      id.value + ":" + nodes.map(_.value).mkString(",")
-    }.mkString("[", "][", "]")
-  }
-  implicit class ResToString(val gs: List[DynGroup]) extends AnyVal {
-    def show: String = gs.map { case DynGroup(id, dep, nodes, q, inc) =>
-      id.value + ":" + nodes.size + "{"+dep.map(_.value).mkString(",")+"}"
-    }.mkString("[", "][", "]")
-  }
-}
-
 /**
  * A service that check if nodes are in dynamique groups
  */
 class CheckPendingNodeInDynGroups(
   queryChecker: QueryChecker
 ) {
-  import CheckPendingNodeInDynGroups._
-
   /**
    * For each node in the list, find
    * the list of dynamic group they belongs to from the parameter.
@@ -143,7 +124,6 @@ class CheckPendingNodeInDynGroups(
       swapMap(mapGroupAndNodes)
     }
   }
-
 
   /**
    * Given a list of dynamique groups and a list of nodes, find which groups contains which
@@ -177,9 +157,22 @@ class CheckPendingNodeInDynGroups(
   def processDynGroups(groups: List[NodeGroup], nodeIds: Set[NodeId]): Box[List[(NodeGroupId, Set[NodeId])]] = {
     // a data structure to keep a group ID, set of nodes, dependencies, query and composition/
     // the query does not contain group anymore.
+
+    final case class DynGroup(id: NodeGroupId, dependencies: Set[NodeGroupId], testNodes: Set[NodeId], query: Query, includeNodes: Set[NodeId])
+
     NodeLogger.PendingNode.Policies.debug(s"Checking dyn-groups belonging for nodes [${nodeIds.map(_.value).mkString(", ")}]:${groups.map(g => s"${g.id.value}: ${g.name}").sorted.mkString("{", "}{", "}")}")
 
-
+    // for debuging message
+    implicit class DynGroupsToString(gs: List[(NodeGroupId, Set[NodeId])]) {
+      def show: String = gs.map { case (id, nodes) =>
+        id.value + ":" + nodes.map(_.value).mkString(",")
+      }.mkString("[", "][", "]")
+    }
+    implicit class ResToString(gs: List[DynGroup]) {
+      def show: String = gs.map { case DynGroup(id, dep, nodes, q, inc) =>
+        id.value + ":" + nodes.size + "{"+dep.map(_.value).mkString(",")+"}"
+      }.mkString("[", "][", "]")
+    }
 
     /*
      * one step of the algo

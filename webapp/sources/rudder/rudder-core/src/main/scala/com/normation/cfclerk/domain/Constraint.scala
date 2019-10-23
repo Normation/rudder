@@ -38,6 +38,7 @@
 package com.normation.cfclerk.domain
 
 import org.joda.time.format.ISODateTimeFormat
+import com.normation.utils.HashcodeCaching
 import net.liftweb.common._
 
 class ConstraintException(val msg: String) extends Exception(msg)
@@ -45,7 +46,7 @@ class ConstraintException(val msg: String) extends Exception(msg)
 /**
  * A constraint about the type of a variable
  */
-sealed trait VTypeConstraint extends Any {
+sealed trait VTypeConstraint {
   def name: String
 
   /* type of the element to use in string template.
@@ -68,12 +69,12 @@ sealed trait VTypeConstraint extends Any {
 /*
  * When we want to have a string put in string template
  */
-sealed trait STString extends Any with VTypeConstraint {
+sealed trait STString extends VTypeConstraint {
   override type STTYPE = String
   override def getFormatedValidated(value: String, forField: String, escapeString: String => String): Box[String] = Full(escapeString(value))
 }
 
-sealed trait VTypeWithRegex extends Any with STString {
+sealed trait VTypeWithRegex extends STString {
   def regex:Option[RegexConstraint]
 }
 
@@ -132,8 +133,8 @@ sealed trait StringVType extends VTypeConstraint with VTypeWithRegex with STStri
     case Some(regex) => regex.check(value, forField).map(escapeString(_))
   }
 }
-final case class BasicStringVType(regex: Option[RegexConstraint] = None) extends StringVType { override val name = "string" }
-final case class TextareaVType(regex: Option[RegexConstraint] = None)  extends StringVType { override val name = "textarea" }
+case class BasicStringVType(regex: Option[RegexConstraint] = None) extends StringVType { override val name = "string" }
+case class TextareaVType(regex: Option[RegexConstraint] = None)  extends StringVType { override val name = "textarea" }
 
 sealed trait FixedRegexVType extends StringVType
 object IpVType extends FixedRegexVType {
@@ -153,7 +154,7 @@ object MailVType extends FixedRegexVType {
   override val regex = Some(MailRegex)
 }
 
-final case class IntegerVType(regex: Option[RegexConstraint] = None) extends VTypeConstraint with VTypeWithRegex  {
+case class IntegerVType(regex: Option[RegexConstraint] = None) extends VTypeConstraint with VTypeWithRegex  {
   override val name = "integer"
   override def getFormatedValidated(value:String, forField:String, escapeString: String => String) : Box[String] = {
     super.getFormatedValidated(value, forField, escapeString).flatMap( _ =>
@@ -167,13 +168,13 @@ final case class IntegerVType(regex: Option[RegexConstraint] = None) extends VTy
 }
 
 sealed trait SizeVType extends StringVType
-final case class SizebVType (regex: Option[RegexConstraint] = None) extends SizeVType { override val name = "size-b" }
-final case class SizekbVType(regex: Option[RegexConstraint] = None) extends SizeVType { override val name = "size-kb" }
-final case class SizembVType(regex: Option[RegexConstraint] = None) extends SizeVType { override val name = "size-mb" }
-final case class SizegbVType(regex: Option[RegexConstraint] = None) extends SizeVType { override val name = "size-gb" }
-final case class SizetbVType(regex: Option[RegexConstraint] = None) extends SizeVType { override val name = "size-tb" }
+case class SizebVType (regex: Option[RegexConstraint] = None) extends SizeVType { override val name = "size-b" }
+case class SizekbVType(regex: Option[RegexConstraint] = None) extends SizeVType { override val name = "size-kb" }
+case class SizembVType(regex: Option[RegexConstraint] = None) extends SizeVType { override val name = "size-mb" }
+case class SizegbVType(regex: Option[RegexConstraint] = None) extends SizeVType { override val name = "size-gb" }
+case class SizetbVType(regex: Option[RegexConstraint] = None) extends SizeVType { override val name = "size-tb" }
 
-final case class DateTimeVType(regex: Option[RegexConstraint] = None) extends VTypeConstraint with VTypeWithRegex {
+case class DateTimeVType(regex: Option[RegexConstraint] = None) extends VTypeConstraint with VTypeWithRegex {
   override val name = "datetime"
   override def getFormatedValidated(value:String, forField:String, escapeString: String => String) : Box[String] = {
     super.getFormatedValidated(value, forField, escapeString).flatMap( _ =>
@@ -185,8 +186,8 @@ final case class DateTimeVType(regex: Option[RegexConstraint] = None) extends VT
     )
   }
 }
-final case class DateVType(regex: Option[RegexConstraint] = None) extends VTypeConstraint with VTypeWithRegex { override val name = "date" }
-final case class TimeVType(regex: Option[RegexConstraint] = None) extends VTypeConstraint with VTypeWithRegex { override val name = "time" }
+case class DateVType(regex: Option[RegexConstraint] = None) extends VTypeConstraint with VTypeWithRegex { override val name = "date" }
+case class TimeVType(regex: Option[RegexConstraint] = None) extends VTypeConstraint with VTypeWithRegex { override val name = "time" }
 
 //other types
 
@@ -213,26 +214,26 @@ sealed trait DerivedPasswordVType extends AbstactPassword {
 final case object AixDerivedPasswordVType   extends DerivedPasswordVType { override val tpe = HashAlgoConstraint.DerivedPasswordType.AIX   }
 final case object LinuxDerivedPasswordVType extends DerivedPasswordVType { override val tpe = HashAlgoConstraint.DerivedPasswordType.Linux }
 
-final case object BooleanVType extends VTypeConstraint with STBoolean {
+case object BooleanVType extends VTypeConstraint with STBoolean {
   override val name = "boolean"
 }
 
-final case object UploadedFileVType    extends VTypeConstraint with STString { override val name = "uploadedfile" }
-final case object SharedFileVType      extends VTypeConstraint with STString { override val name = "sharedfile" }
-final case object DestinationPathVType extends VTypeConstraint with STString { override val name = "destinationfullpath" }
-final case object PermVType            extends VTypeConstraint with STString { override val name = "perm" }
-final case object RawVType             extends VTypeConstraint with STString {
+case object UploadedFileVType    extends VTypeConstraint with STString { override val name = "uploadedfile" }
+case object SharedFileVType      extends VTypeConstraint with STString { override val name = "sharedfile" }
+case object DestinationPathVType extends VTypeConstraint with STString { override val name = "destinationfullpath" }
+case object PermVType            extends VTypeConstraint with STString { override val name = "perm" }
+case object RawVType             extends VTypeConstraint with STString {
   override val name = "raw"
    // no escaping for raw types
   override def getFormatedValidated(value:String, forField:String, escapeString: String => String) : Box[String] = Full(value)
 }
 
-final case class Constraint(
+case class Constraint(
     typeName  : VTypeConstraint = BasicStringVType()
   , default   : Option[String] = None
   , mayBeEmpty: Boolean = false
   , usedFields: Set[String] = Set()
-) {
+) extends HashcodeCaching {
 
   def check(varValue: String, varName: String) : Unit = {
     //only check for non-empty variable

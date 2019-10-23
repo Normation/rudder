@@ -36,6 +36,7 @@
 */
 
 package com.normation.cfclerk.domain
+import com.normation.utils.HashcodeCaching
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
@@ -44,7 +45,7 @@ import java.util.regex.Pattern
 /**
  * We require a non empty regex pattern
  */
-case class RegexConstraint(pattern: String, errorMsg: String) {
+case class RegexConstraint(pattern: String, errorMsg: String) extends HashcodeCaching {
 
   if(pattern == null || pattern.size < 1) {
     throw new ConstraintException("A regex constraint was created with an empty pattern, which has no meaning")

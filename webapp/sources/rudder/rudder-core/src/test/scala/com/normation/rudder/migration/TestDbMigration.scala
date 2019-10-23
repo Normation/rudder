@@ -53,7 +53,7 @@ import com.normation.rudder.db.Doobie._
 import doobie.implicits._
 import cats._
 
-final case class MigEx102(msg:String) extends Exception(msg)
+case class MigEx102(msg:String) extends Exception(msg)
 
 
 object MigrationTestLog {
@@ -61,7 +61,7 @@ object MigrationTestLog {
   val defaultTimestamp = new Timestamp(System.currentTimeMillis)
 }
 
-final case class MigrationTestLog(
+case class MigrationTestLog(
     id       : Option[Long] = None
   , eventType: String
   , timestamp: Timestamp = MigrationTestLog.defaultTimestamp

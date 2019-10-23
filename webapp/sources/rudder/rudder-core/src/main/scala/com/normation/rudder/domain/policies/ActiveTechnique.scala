@@ -40,8 +40,9 @@ package com.normation.rudder.domain.policies
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import org.joda.time.DateTime
+import com.normation.utils.HashcodeCaching
 
-final case class ActiveTechniqueId(value: String) extends AnyVal
+case class ActiveTechniqueId(value:String) extends HashcodeCaching
 
 /**
  * An active technique is a technique from the technique library
@@ -57,7 +58,7 @@ final case class ActiveTechniqueId(value: String) extends AnyVal
  * activated, what version of the technique are activated, what
  * directives use it.
  */
-final case class ActiveTechnique(
+case class ActiveTechnique(
     id                  : ActiveTechniqueId
   , techniqueName       : TechniqueName
   , acceptationDatetimes: Map[TechniqueVersion, DateTime]
@@ -65,7 +66,7 @@ final case class ActiveTechnique(
   , directives          : List[DirectiveId] = Nil
   , _isEnabled          : Boolean = true
   , isSystem            : Boolean = false
-) {
+) extends HashcodeCaching {
   //system object must ALWAYS be ENABLED.
   def isEnabled = _isEnabled || isSystem
 }

@@ -39,6 +39,7 @@ package com.normation.cfclerk.domain
 
 import com.normation.cfclerk.exceptions._
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
+import com.normation.utils.HashcodeCaching
 import com.normation.cfclerk.xmlparsers.EmptyReportKeysValue
 
 /**
@@ -92,7 +93,7 @@ sealed trait SectionChildSpec {
 /**
  * Metadata about a section object.
  */
-final case class SectionSpec(
+case class SectionSpec(
     name            : String
   , isMultivalued   : Boolean = false
   , isComponent     : Boolean = false
@@ -100,7 +101,7 @@ final case class SectionSpec(
   , displayPriority : DisplayPriority = HighDisplayPriority
   , description     : String = ""
   , children        : Seq[SectionChildSpec] = Seq()
-) extends SectionChildSpec {
+) extends SectionChildSpec with HashcodeCaching {
 
   lazy val getDirectVariables : Seq[VariableSpec] = {
     children.collect { case v:VariableSpec => v }
@@ -197,7 +198,7 @@ sealed trait VariableSpec {
 
 // A SystemVariable is automatically filled by Rudder
 // It has the RAW constraint, meaning it is *NOT* escaped
-final case class SystemVariableSpec(
+case class SystemVariableSpec(
   override val name: String,
   val description: String,
   val longDescription: String = "",
@@ -210,7 +211,7 @@ final case class SystemVariableSpec(
   // A system variable is always of the "raw" type, meaning it won't be escaped
   val constraint: Constraint = Constraint(RawVType)
 
-) extends VariableSpec {
+) extends VariableSpec with HashcodeCaching {
 
   override type T = SystemVariableSpec
   override type V = SystemVariable
@@ -224,9 +225,9 @@ final case class SystemVariableSpec(
  * Typically, in a Rudder context, that variable will
  * keep track of directive and rule ids.
  */
-final case class TrackerVariableSpec(
+case class TrackerVariableSpec(
   val boundingVariable: Option[String] = None
-) extends VariableSpec {
+) extends VariableSpec with HashcodeCaching {
 
   override type T = TrackerVariableSpec
   override type V = TrackerVariable
@@ -252,7 +253,7 @@ sealed trait SectionVariableSpec extends SectionChildSpec with VariableSpec {
   override type T <: SectionVariableSpec
 }
 
-final case class ValueLabel(value: String, label: String) {
+case class ValueLabel(value: String, label: String) extends HashcodeCaching  {
   def tuple = (value, label)
   def reverse = ValueLabel(label, value)
 }
@@ -264,7 +265,7 @@ trait ValueLabelVariableSpec extends SectionVariableSpec {
 /**
  * A "list of checkbox" kind of select
  */
-final case class SelectVariableSpec(
+case class SelectVariableSpec(
   override val name: String,
   val description: String,
   val longDescription: String = "",
@@ -276,7 +277,7 @@ final case class SelectVariableSpec(
 
   val constraint: Constraint = Constraint()
 
-) extends ValueLabelVariableSpec {
+) extends ValueLabelVariableSpec with HashcodeCaching {
 
   override type T = SelectVariableSpec
   override type V = SelectVariable
@@ -287,7 +288,7 @@ final case class SelectVariableSpec(
 /**
  * A button-like or dropdown kind of select
  */
-final case class SelectOneVariableSpec(
+case class SelectOneVariableSpec(
   override val name: String,
   val description: String,
   val longDescription: String = "",
@@ -299,7 +300,7 @@ final case class SelectOneVariableSpec(
 
   val constraint: Constraint = Constraint()
 
-) extends ValueLabelVariableSpec {
+) extends ValueLabelVariableSpec with HashcodeCaching {
 
   override type T = SelectOneVariableSpec
   override type V = SelectOneVariable
@@ -312,7 +313,7 @@ final case class SelectOneVariableSpec(
  * to give a set of values to use, and the user
  * won't be able to change them.
  */
-final case class PredefinedValuesVariableSpec(
+case class PredefinedValuesVariableSpec(
     override val name: String
   , val description: String
     //The list of predefined values, provided
@@ -327,7 +328,7 @@ final case class PredefinedValuesVariableSpec(
   , val checked: Boolean = true
 
   , val constraint: Constraint = Constraint()
-) extends SectionVariableSpec {
+) extends SectionVariableSpec with HashcodeCaching {
 
   def nelOfProvidedValues = providedValues._1 :: providedValues._2.toList
 
@@ -343,7 +344,7 @@ final case class PredefinedValuesVariableSpec(
 /**
  * Standard, unique input (text field)
  */
-final case class InputVariableSpec(
+case class InputVariableSpec(
   override val name: String,
   val description: String,
   val longDescription: String = "",
@@ -354,7 +355,7 @@ final case class InputVariableSpec(
 
   val constraint: Constraint = Constraint()
 
-) extends SectionVariableSpec {
+) extends SectionVariableSpec with HashcodeCaching {
 
   override type T = InputVariableSpec
   override type V = InputVariable

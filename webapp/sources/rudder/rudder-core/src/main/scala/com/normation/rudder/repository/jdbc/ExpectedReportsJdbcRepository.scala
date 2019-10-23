@@ -42,6 +42,7 @@ import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.rudder.repository.FindExpectedReportRepository
+import com.normation.utils.HashcodeCaching
 import net.liftweb.common._
 import net.liftweb.json._
 import org.joda.time.DateTime
@@ -529,7 +530,7 @@ class UpdateExpectedReportsJdbcRepository(
 
 }
 
-final case class ReportAndNodeMapping(
+case class ReportAndNodeMapping(
     val pkId                : Long
   , val nodeJoinKey         : Long
   , val ruleId              : RuleId
@@ -543,9 +544,9 @@ final case class ReportAndNodeMapping(
   , val endDate             : Option[DateTime] = None
   , val nodeId              : NodeId
   , val nodeConfigVersions  : List[NodeConfigId]
-)
+) extends HashcodeCaching
 
-final case class ReportMapping(
+case class ReportMapping(
     val pkId                : Int
   , val nodeJoinKey         : Int
   , val ruleId              : RuleId
@@ -557,7 +558,7 @@ final case class ReportMapping(
   , val unexpandedCptsValues: Seq[String]
   , val beginDate           : DateTime = DateTime.now()
   , val endDate             : Option[DateTime] = None
-)
+) extends HashcodeCaching
 
 object ComponentsValuesSerialiser {
 

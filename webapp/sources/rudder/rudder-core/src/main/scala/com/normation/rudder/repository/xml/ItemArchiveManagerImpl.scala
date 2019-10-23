@@ -286,7 +286,7 @@ class ItemArchiveManagerImpl(
 
     rulesArchiveId <- importRulesAndDeploy(archiveId, modId, actor, reason, includeSystem)
     eventLogged    <- eventLogger.saveEventLog(modId,new ImportRulesArchive(actor,archiveId, reason))
-    commit         <- restoreCommitAtHead(commiter,commitMsg,archiveId,PartialArchive.ruleArchive,modId)
+    commit         <- restoreCommitAtHead(commiter,commitMsg,archiveId,RuleArchive,modId)
     } yield
       archiveId
   }
@@ -345,7 +345,7 @@ class ItemArchiveManagerImpl(
     for {
       groupsArchiveId <- importGroupLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem)
       eventLogged     <- eventLogger.saveEventLog(modId, new ImportGroupsArchive(actor,archiveId, reason))
-      commit          <- restoreCommitAtHead(commiter,commitMsg,archiveId,PartialArchive.groupArchive,modId)
+      commit          <- restoreCommitAtHead(commiter,commitMsg,archiveId,GroupArchive,modId)
     } yield
       archiveId
   }
@@ -367,7 +367,7 @@ class ItemArchiveManagerImpl(
     for {
     parametersArchiveId <- importParametersAndDeploy(archiveId, modId, actor, reason, includeSystem)
     eventLogged    <- eventLogger.saveEventLog(modId,new ImportParametersArchive(actor,archiveId, reason))
-    commit         <- restoreCommitAtHead(commiter,commitMsg,archiveId,PartialArchive.parameterArchive,modId)
+    commit         <- restoreCommitAtHead(commiter,commitMsg,archiveId,ParameterArchive,modId)
     } yield
       archiveId
   }
@@ -457,7 +457,7 @@ class ItemArchiveManagerImpl(
  * In a near future we should factorise code in archive manager to have only 2
  * implementation (Partial, Full) instead of 4 (All, groups, directives, rules)
  */
-trait ArchiveMode extends Any {
+trait ArchiveMode {
   def configureRm(rmCmd:RmCommand):RmCommand
   def configureCheckout(coCmd:CheckoutCommand):CheckoutCommand
 }
@@ -467,40 +467,38 @@ trait ArchiveMode extends Any {
  * relative to git directory root.
  * To be counted as a directory the last character have to be a /.
  */
-final case class PartialArchive(directory:String) extends AnyVal with ArchiveMode {
+case class PartialArchive(directory:String) extends ArchiveMode {
   def configureRm(rmCmd:RmCommand) = rmCmd.addFilepattern(directory)
   def configureCheckout(coCmd:CheckoutCommand) = coCmd.addPath(directory)
 }
 
-object PartialArchive {
-  val groupArchive     = PartialArchive("groups/")
-  val ruleArchive      = PartialArchive("rules/")
-  val directiveArchive = PartialArchive("directives/")
-  val ncfArchive       = PartialArchive("ncf/")
-  val parameterArchive = PartialArchive("parameters/")
-}
+object GroupArchive     extends PartialArchive("groups/")
+object RuleArchive      extends PartialArchive("rules/")
+object DirectiveArchive extends PartialArchive("directives/")
+object ncfArchive       extends PartialArchive("ncf/")
+object ParameterArchive extends PartialArchive("parameters/")
 
-import PartialArchive._
+case object TechniqueLibraryArchive extends ArchiveMode {
 
-final case object TechniqueLibraryArchive extends ArchiveMode {
-  def configureRm(rmCmd:RmCommand) = directiveArchive.configureRm(ncfArchive.configureRm(rmCmd))
-  def configureCheckout(coCmd:CheckoutCommand) = directiveArchive.configureCheckout(ncfArchive.configureCheckout(coCmd))
+  def configureRm(rmCmd:RmCommand) = DirectiveArchive.configureRm(ncfArchive.configureRm(rmCmd))
+
+  def configureCheckout(coCmd:CheckoutCommand) = DirectiveArchive.configureCheckout(ncfArchive.configureCheckout(coCmd))
 }
-final case object FullArchive extends ArchiveMode {
+case object FullArchive extends ArchiveMode {
 
   def configureRm(rmCmd:RmCommand) =
     TechniqueLibraryArchive.configureRm(
-      ruleArchive.configureRm(
-        groupArchive.configureRm(
-          parameterArchive.configureRm(rmCmd)
+      RuleArchive.configureRm(
+        GroupArchive.configureRm(
+          ParameterArchive.configureRm(rmCmd)
         )
     ) )
 
   def configureCheckout(coCmd:CheckoutCommand) =
     TechniqueLibraryArchive.configureCheckout(
-      ruleArchive.configureCheckout(
-        groupArchive.configureCheckout(
-          parameterArchive.configureCheckout(coCmd)
+      RuleArchive.configureCheckout(
+        GroupArchive.configureCheckout(
+          ParameterArchive.configureCheckout(coCmd)
         )
     ) )
 }

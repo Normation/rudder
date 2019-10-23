@@ -47,7 +47,7 @@ import org.joda.time.DateTime
  * with given name (a timestamp will be added)
  * File will be stored under a configured directory
  */
-trait LDIFReportLogger extends Any {
+trait LDIFReportLogger {
   /**
    *
    * @param reportName

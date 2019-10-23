@@ -37,6 +37,7 @@
 
 package com.normation.rudder.domain.policies
 
+import com.normation.utils.HashcodeCaching
 import com.normation.rudder.rule.category.RuleCategoryId
 
 
@@ -51,11 +52,11 @@ sealed trait ChangeRequestRuleDiff {
   def rule     : Rule
 }
 
-final case class AddRuleDiff(rule:Rule) extends RuleDiff with ChangeRequestRuleDiff {
+final case class AddRuleDiff(rule:Rule) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff {
   def needDeployment : Boolean = true
 }
 
-final case class DeleteRuleDiff(rule:Rule) extends RuleDiff with ChangeRequestRuleDiff {
+final case class DeleteRuleDiff(rule:Rule) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff {
   def needDeployment : Boolean = true
 }
 
@@ -73,7 +74,7 @@ final case class ModifyRuleDiff(
   , modIsSystem         : Option[SimpleDiff[Boolean]] = None
   , modCategory         : Option[SimpleDiff[RuleCategoryId]] = None
   , modTags             : Option[SimpleDiff[Set[Tag]]] = None
-) extends RuleDiff {
+) extends RuleDiff with HashcodeCaching {
   def needDeployment : Boolean = {
     modSerial.isDefined || modTarget.isDefined || modDirectiveIds.isDefined || modIsActivatedStatus.isDefined || modName.isDefined
   }
@@ -81,7 +82,7 @@ final case class ModifyRuleDiff(
 
 final case class ModifyToRuleDiff(
     rule     : Rule
-) extends RuleDiff with ChangeRequestRuleDiff {
+) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff {
   // This case is undecidable, so it is always true
   def needDeployment : Boolean = true
 }

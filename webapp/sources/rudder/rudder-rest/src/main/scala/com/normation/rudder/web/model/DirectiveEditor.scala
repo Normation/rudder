@@ -53,6 +53,7 @@ import JE._
 import com.normation.cfclerk.domain.{ VariableSpec, TechniqueId }
 import org.slf4j.LoggerFactory
 import scala.xml._
+import com.normation.utils.HashcodeCaching
 import net.liftweb.util.Helpers
 
 /**
@@ -284,14 +285,14 @@ trait SectionField extends SectionChildField {
   }
 }
 
-final case class SectionFieldImp(
+case class SectionFieldImp(
   val name               : String,
   val childFields        : Seq[SectionChildField],
   val displayedByDefault : Boolean,
   // Only variables of the current section have entries in the values map
   // the key of type String is the id (variable name),
   // the value is a function which should be called at validation time
-  val values     : Map[String, () => String]) extends SectionField {
+  val values     : Map[String, () => String]) extends SectionField with HashcodeCaching {
 
   def toClient = childFields.mkString
 
@@ -336,12 +337,12 @@ final case class SectionFieldImp(
   }
 }
 
-final case class MultivaluedSectionField(
+case class MultivaluedSectionField(
     val sections          : Seq[SectionField]
   , private val newSection: () => SectionField
   , val displayedByDefault: Boolean
   , val readOnlySection   : Boolean
-) extends SectionField {
+) extends SectionField with HashcodeCaching {
   require(!sections.isEmpty)
 
   val name: String = sections.head.name
@@ -558,7 +559,7 @@ final case class MultivaluedSectionField(
  * @parameter Directive
  *   Directive: the Directive for witch this editor is build
  */
-final case class DirectiveEditor(
+case class DirectiveEditor(
   //       techniqueId / directiveId here.
     val techniqueId            : TechniqueId
   , val directiveId            : DirectiveId
@@ -566,7 +567,7 @@ final case class DirectiveEditor(
   , val description            : String
   , val sectionField           : SectionField
   , val variableSpecs          : Map[String, VariableSpec]
-  ) {
+  )  extends HashcodeCaching {
 
   /**
    * Get the map of (varname, list(values)),

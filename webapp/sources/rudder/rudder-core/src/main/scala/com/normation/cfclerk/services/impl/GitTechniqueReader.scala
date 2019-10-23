@@ -44,6 +44,7 @@ import org.xml.sax.SAXParseException
 import com.normation.cfclerk.exceptions._
 import java.io.File
 import net.liftweb.common._
+import scala.collection.mutable.{ Map => MutMap }
 import scala.collection.immutable.SortedMap
 import java.io.InputStream
 import org.eclipse.jgit.treewalk.TreeWalk
@@ -101,7 +102,7 @@ import java.io.IOException
  *  In that implementation, the name of the directory of a category
  *  is used for the techniqueCategoryName.
  *
- * @param relativePathToGitRepos
+ * @parameter relativePathToGitRepos
  *   The relative path from the root directory of the git repository to
  *   the root directory of the policy template library.
  *   If the root directory of the git repos is in the PT lib root dir,
@@ -109,12 +110,6 @@ import java.io.IOException
  *   Else, the relative path without leading nor trailing "/" is used. For
  *   example, in example (2), Some("techniques") must be used.
  */
-object GitTechniqueReader {
-
-  //denotes a path for a technique, so it starts by a "/"
-  //and is not prefixed by relativePathToGitRepos
-final case class TechniquePath(path:String) extends AnyVal
-}
 
 class GitTechniqueReader(
   techniqueParser            : TechniqueParser,
@@ -128,7 +123,9 @@ class GitTechniqueReader(
 
   reader =>
 
-  import GitTechniqueReader.TechniquePath
+  //denotes a path for a technique, so it starts by a "/"
+  //and is not prefixed by relativePathToGitRepos
+  private[this] case class TechniquePath(path:String)
 
   //the path of the PT lib relative to the git repos
   //withtout leading and trailing /.
@@ -543,7 +540,6 @@ class GitTechniqueReader(
   /**
    * We remove each category for which parent category is not defined.
    */
-  @scala.annotation.tailrec
   private[this] def recToRemove(
       catId:SubTechniqueCategoryId
     , toRemove:collection.mutable.HashSet[SubTechniqueCategoryId]

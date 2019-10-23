@@ -38,6 +38,7 @@
 package com.normation.rudder.domain.servers
 
 import org.joda.time.DateTime
+import com.normation.utils.HashcodeCaching
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.ServerRole
 import com.normation.inventory.domain.InventoryStatus
@@ -47,7 +48,7 @@ import com.normation.rudder.domain.RudderLDAPConstants._
 /**
  * Class that only contains most meaningfull data about a server (a non registered node)
  */
-final case class Srv(
+case class Srv(
     id            : NodeId
   , status        : InventoryStatus
   , hostname      : String
@@ -58,7 +59,7 @@ final case class Srv(
   , creationDate  : DateTime
   , isPolicyServer: Boolean
   , serverRoles   : Set[ServerRole]
-)
+) extends HashcodeCaching
 
 
 object Srv {

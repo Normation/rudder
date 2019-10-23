@@ -39,12 +39,14 @@ package com.normation.rudder.domain.eventlog
 
 
 import com.normation.eventlog._
+import com.normation.utils.HashcodeCaching
+
 sealed trait NodeGroupEventLog extends EventLog { override final val eventLogCategory = NodeGroupLogCategory }
 
 
 final case class AddNodeGroup(
     override val eventDetails : EventLogDetails
-) extends NodeGroupEventLog {
+) extends NodeGroupEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = AddNodeGroup.eventType
 }
@@ -58,7 +60,7 @@ object AddNodeGroup extends EventLogFilter {
 
 final case class DeleteNodeGroup(
     override val eventDetails : EventLogDetails
-) extends NodeGroupEventLog {
+) extends NodeGroupEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = DeleteNodeGroup.eventType
 }
@@ -71,7 +73,7 @@ object DeleteNodeGroup extends EventLogFilter {
 
 final case class ModifyNodeGroup(
     override val eventDetails : EventLogDetails
-) extends NodeGroupEventLog {
+) extends NodeGroupEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = ModifyNodeGroup.eventType
 }

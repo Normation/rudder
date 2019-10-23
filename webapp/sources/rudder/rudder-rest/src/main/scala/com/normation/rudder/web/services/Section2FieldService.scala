@@ -41,6 +41,7 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.web.model._
 import net.liftweb.common._
 import com.normation.cfclerk.domain._
+import com.normation.utils.HashcodeCaching
 import net.liftweb.common._
 import com.normation.utils.Control.sequence
 
@@ -233,7 +234,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
   //If there is no value, a None is returned
   private def createMapForEachSubSection(section: SectionSpec, valuesByName:Map[String,Seq[String]]): Seq[Map[String, Option[String]]] = {
     // values represent all the values we have for the same name of variable
-final case class NameValuesVar(name: String, values: Seq[String])
+    case class NameValuesVar(name: String, values: Seq[String]) extends HashcodeCaching
 
     // seq of variable values with same name correctly ordered
     val seqOfNameValues : Seq[NameValuesVar] = {

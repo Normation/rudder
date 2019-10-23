@@ -151,7 +151,7 @@ final object DB {
 
   //////////
 
-final case class StatusUpdate(
+  case class StatusUpdate(
       key    : String
     , lastId : Long
     , date   : DateTime
@@ -172,14 +172,14 @@ final case class StatusUpdate(
 
   //////////
 
-final case class SerializedGroupsNodes(
+  case class SerializedGroupsNodes(
       groupPkeyId: Long   // really, the database id from the group
     , nodes      : String
   )
 
   //////////
 
-final case class SerializedNodes[T](
+  case class SerializedNodes[T](
         id             : T  // will be Unit for insert and Long for select
       , nodeId         : String
       , nodeName       : String
@@ -190,7 +190,7 @@ final case class SerializedNodes[T](
 
   //////////
 
-final case class SerializedDirectives[T](
+  case class SerializedDirectives[T](
         id                  : T
       , directiveId         : String
       , directiveName       : String
@@ -206,7 +206,7 @@ final case class SerializedDirectives[T](
 
   //////////
 
-final case class SerializedRules[T](
+  case class SerializedRules[T](
       id               : T
     , ruleId           : String
     , categoryId       : Option[String]

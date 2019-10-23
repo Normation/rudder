@@ -63,14 +63,14 @@ sealed trait DetailLevel {
   def value : String
 }
 
-final case object FullDetails extends DetailLevel {
+case object FullDetails extends DetailLevel {
   val value = "full"
 }
-final case object MinimalDetails extends DetailLevel {
+case object MinimalDetails extends DetailLevel {
   val value = "minimal"
 }
 
-final case class APIChangeRequestInfo (
+case class APIChangeRequestInfo (
     name        : Option[String]
   , description : Option[String]
 ) {
@@ -82,7 +82,7 @@ final case class APIChangeRequestInfo (
   }
 }
 
-final case class RestRuleCategory(
+case class RestRuleCategory(
       name : Option[String] = None
     , description : Option[String] = None
     , parent : Option[RuleCategoryId] = None
@@ -115,7 +115,7 @@ final case class RestRuleCategory(
   }
 }
 
-final case class RestGroupCategory(
+case class RestGroupCategory(
       name : Option[String] = None
     , description : Option[String] = None
     , parent : Option[NodeGroupCategoryId] = None
@@ -150,7 +150,7 @@ final case class RestGroupCategory(
 }
 
 
-final case class RestDirective(
+case class RestDirective(
       name             : Option[String]
     , shortDescription : Option[String]
     , longDescription  : Option[String]
@@ -199,18 +199,18 @@ final case class RestDirective(
     }
 }
 
-final case class DirectiveState (
+case class DirectiveState (
     technique : Technique
   , directive : Directive
 )
 
-final case class DirectiveUpdate(
+case class DirectiveUpdate(
     activeTechnique: ActiveTechnique
   , before: DirectiveState
   , after : DirectiveState
 )
 
-final case class RestGroup(
+case class RestGroup(
       name        : Option[String] = None
     , description : Option[String] = None
     , query       : Option[Query] = None
@@ -242,22 +242,22 @@ final case class RestGroup(
     }
 }
 
-final case class RestNodeProperties(
+case class RestNodeProperties(
     properties : Option[Seq[NodeProperty]]
 )
 
-final case class RestNode (
+case class RestNode (
     properties : Option[Seq[NodeProperty]]
   , policyMode : Option[Option[PolicyMode]]
   , state      : Option[NodeState]
 )
 
 sealed trait NodeStatusAction
-final case object AcceptNode extends NodeStatusAction
-final case object RefuseNode extends NodeStatusAction
-final case object DeleteNode extends NodeStatusAction
+case object AcceptNode extends NodeStatusAction
+case object RefuseNode extends NodeStatusAction
+case object DeleteNode extends NodeStatusAction
 
-final case class RestParameter(
+case class RestParameter(
       value       : Option[String] = None
     , description : Option[String] = None
     , overridable : Option[Boolean] = None
@@ -277,7 +277,7 @@ final case class RestParameter(
     }
 }
 
-final case class RestRule(
+case class RestRule(
       name             : Option[String]           = None
     , category         : Option[RuleCategoryId]   = None
     , shortDescription : Option[String]           = None

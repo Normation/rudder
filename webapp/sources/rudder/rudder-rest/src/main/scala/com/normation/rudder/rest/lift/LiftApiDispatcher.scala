@@ -47,7 +47,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.JString
 import org.slf4j.LoggerFactory
 
-final case class DefaultParams(prettify: Boolean) extends AnyVal
+final case class DefaultParams(prettify: Boolean)
 
 trait LiftApiModule extends ApiModule[Req, Full[LiftResponse], AuthzToken, DefaultParams] {
   def restExtractor: RestExtractorService

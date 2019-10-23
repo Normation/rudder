@@ -38,11 +38,13 @@
 package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog._
+import com.normation.utils.HashcodeCaching
+
 sealed trait NodeEventLog extends EventLog { override final val eventLogCategory = NodeLogCategory }
 
 final case class ModifyNode(
     override val eventDetails : EventLogDetails
-) extends NodeEventLog {
+) extends NodeEventLog with HashcodeCaching {
   override val eventType = ModifyNode.eventType
 }
 

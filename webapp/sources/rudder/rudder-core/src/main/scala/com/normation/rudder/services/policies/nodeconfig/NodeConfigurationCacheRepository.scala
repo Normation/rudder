@@ -65,7 +65,7 @@ import org.joda.time.format.ISODateTimeFormat
 import scala.util.control.NonFatal
 
 
-final case class PolicyHash(
+case class PolicyHash(
     draftId   : PolicyId
   , cacheValue: Int
 )
@@ -85,7 +85,7 @@ final case class PolicyHash(
  * date.
  *
  */
-final case class NodeConfigurationHash(
+case class NodeConfigurationHash(
     id             : NodeId
   , writtenDate    : DateTime
   , nodeInfoHash   : Int

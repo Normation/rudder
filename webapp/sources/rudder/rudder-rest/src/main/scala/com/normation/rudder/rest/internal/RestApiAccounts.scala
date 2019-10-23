@@ -181,7 +181,7 @@ class RestApiAccounts (
 
 }
 
-final case class RestApiAccount(
+case class RestApiAccount(
     id          : Option[ApiAccountId]
   , name        : Option[ApiAccountName]
   , description : Option[String]

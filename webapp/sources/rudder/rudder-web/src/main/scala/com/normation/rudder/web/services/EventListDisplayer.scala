@@ -1680,13 +1680,13 @@ trait RollBackAction {
   def selectRollbackedEventsRequest(id:Int) = s" id ${op} ${id} and modificationid IS NOT NULL"
 }
 
-final case object RollbackTo extends RollBackAction{
+case object RollbackTo extends RollBackAction{
   val name = "after"
   val op   = ">"
   def action = modificationService.restoreToEventLog _
 }
 
-final case object RollbackBefore extends RollBackAction{
+case object RollbackBefore extends RollBackAction{
   val name = "before"
   val op   = ">="
   def action = modificationService.restoreBeforeEventLog _

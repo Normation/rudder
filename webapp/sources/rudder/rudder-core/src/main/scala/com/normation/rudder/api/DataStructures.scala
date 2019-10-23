@@ -36,6 +36,7 @@
 */
 package com.normation.rudder.api
 
+import com.normation.utils.HashcodeCaching
 import org.joda.time.DateTime
 import cats.implicits._
 import cats.data._
@@ -43,19 +44,19 @@ import cats.data._
 /**
  * ID of the Account
  */
-final case class ApiAccountId(value:String) extends AnyVal
+final case class ApiAccountId(value:String) extends HashcodeCaching
 
 /**
  * Name of the principal, used in event log to know
  * who did actions.
  */
-final case class ApiAccountName(value:String) extends AnyVal
+final case class ApiAccountName(value:String) extends HashcodeCaching
 
 /**
  * The actual authentication token.
  * A token is defined with [0-9a-zA-Z]{n}, with n not small.
  */
-final case class ApiToken(value: String) extends AnyVal
+final case class ApiToken(value: String) extends HashcodeCaching
 
 object ApiToken {
 
@@ -123,7 +124,7 @@ final object AclPathSegment {
 /*
  *
  */
-sealed trait AclPath extends Any {
+sealed trait AclPath {
   def value: String = parts.toList.map( _.value ).mkString("/")
   def parts: NonEmptyList[AclPathSegment]
 }
@@ -132,11 +133,11 @@ final object AclPath {
 
  // the full path is enumerated. At least one segment must be given ("/" is not possible
   // in our simpler case)
-  final case class FullPath(segments: NonEmptyList[AclPathSegment]) extends AnyVal with AclPath {
+  final case class FullPath(segments: NonEmptyList[AclPathSegment]) extends AclPath {
     def parts = segments
   }
   // only the root is given, and the path ends with "**". It can even be only "**"
-  final case class Root(segments: List[AclPathSegment])             extends AnyVal with AclPath {
+  final case class Root(segments: List[AclPathSegment])              extends AclPath {
     def parts = NonEmptyList.ofInitLast(segments, AclPathSegment.DoubleWildcard)
   }
 
@@ -145,7 +146,6 @@ final object AclPath {
   // we don't accept empty string and ignore empty subpart,
   // and "**" must be the last segment.
   def parse(path: String): Either[String, AclPath] = {
-    @scala.annotation.tailrec
     def doubleWildcardCanOnlyBeLast(l: List[AclPathSegment]): Either[String, Unit] = {
       l match {
         case Nil                                  => Right(())
@@ -276,5 +276,5 @@ final case class ApiAccount(
   , isEnabled          : Boolean
   , creationDate       : DateTime
   , tokenGenerationDate: DateTime
-)
+) extends HashcodeCaching
 

@@ -38,30 +38,31 @@
 package com.normation.inventory.domain
 
 import org.joda.time.DateTime
+import com.normation.utils.HashcodeCaching
 
 sealed trait PhysicalElement {
   def description:Option[String]
   def quantity : Int
 }
 
-final case class Bios(
+case class Bios(
     name        : String
   , description : Option[String] = None
   , version     : Option[Version] = None
   , editor      : Option[SoftwareEditor] = None
   , releaseDate : Option[DateTime] = None
   , quantity    : Int = 1
-) extends PhysicalElement
+) extends PhysicalElement with HashcodeCaching
 
-final case class Controller(
+case class Controller(
     name         : String
   , description  : Option[String] = None
   , manufacturer : Option[Manufacturer] = None
   , cType        : Option[String] = None
   , quantity     : Int = 1
-) extends PhysicalElement
+) extends PhysicalElement with HashcodeCaching
 
-final case class MemorySlot (
+case class MemorySlot (
     slotNumber   : String //string, because sometime it looks like: RAM slot #0
   , name         : Option[String] = None
   , description  : Option[String] = None
@@ -71,16 +72,16 @@ final case class MemorySlot (
   , memType      : Option[String] = None
   , serialNumber : Option[String] = None
   , quantity     : Int = 1
-) extends PhysicalElement
+) extends PhysicalElement with HashcodeCaching
 
-final case class Port(
+case class Port(
     name        : String
   , description : Option[String] = None
   , pType       : Option[String] = None
   , quantity    : Int = 1
-) extends PhysicalElement
+) extends PhysicalElement with HashcodeCaching
 
-final case class Processor(
+case class Processor(
     manufacturer  : Option[Manufacturer]
   , name          : String
   , arch          : Option[String]
@@ -95,22 +96,22 @@ final case class Processor(
   , familyName    : Option[String] = None
   , model         : Option[Int]
   , quantity      : Int = 1
-) extends PhysicalElement
+) extends PhysicalElement with HashcodeCaching
 
-final case class Slot(
+case class Slot(
     name        : String
   , description : Option[String] = None
   , status      : Option[String] = None
   , quantity    : Int = 1
-) extends PhysicalElement
+) extends PhysicalElement with HashcodeCaching
 
-final case class Sound(
+case class Sound(
     name        : String
   , description : Option[String] = None
   , quantity    : Int = 1
-) extends PhysicalElement
+) extends PhysicalElement with HashcodeCaching
 
-final case class Storage(
+case class Storage(
     name         : String
   , description  : Option[String] = None
   , size         : Option[MemorySize] = None
@@ -120,16 +121,16 @@ final case class Storage(
   , serialNumber : Option[String] = None
   , sType        : Option[String] = None
   , quantity     : Int = 1
-) extends PhysicalElement
+) extends PhysicalElement with HashcodeCaching
 
-final case class Video (
+case class Video (
     name        : String
   , description : Option[String] = None
   , chipset     : Option[String] = None
   , memory      : Option[MemorySize] = None
   , resolution  : Option[String] = None
   , quantity    : Int = 1
-) extends PhysicalElement
+) extends PhysicalElement with HashcodeCaching
 
 
 /**
@@ -139,18 +140,18 @@ final case class Video (
  * for the VM type. They should be lower case only.
  */
 sealed abstract class VmType(val name:String)
-final case object UnknownVmType extends VmType("unknown")
-final case object SolarisZone extends VmType("solariszone")
-final case object VirtualBox extends VmType("vbox")
-final case object VMWare extends VmType("vmware")
-final case object QEmu extends VmType("qemu")
-final case object Xen extends VmType("xen")
-final case object AixLPAR extends VmType("aixlpar")
-final case object HyperV extends VmType("hyperv")
-final case object BSDJail extends VmType("bsdjail")
-final case object Virtuozzo extends VmType("virtuozzo")
-final case object OpenVZ extends VmType("openvz")
-final case object LXC extends VmType("lxc")
+case object UnknownVmType extends VmType("unknown") with HashcodeCaching
+case object SolarisZone extends VmType("solariszone") with HashcodeCaching
+case object VirtualBox extends VmType("vbox") with HashcodeCaching
+case object VMWare extends VmType("vmware") with HashcodeCaching
+case object QEmu extends VmType("qemu") with HashcodeCaching
+case object Xen extends VmType("xen") with HashcodeCaching
+case object AixLPAR extends VmType("aixlpar") with HashcodeCaching
+case object HyperV extends VmType("hyperv") with HashcodeCaching
+case object BSDJail extends VmType("bsdjail") with HashcodeCaching
+case object Virtuozzo extends VmType("virtuozzo") with HashcodeCaching
+case object OpenVZ extends VmType("openvz") with HashcodeCaching
+case object LXC extends VmType("lxc") with HashcodeCaching
 
 
 /**
@@ -161,15 +162,15 @@ final case object LXC extends VmType("lxc")
  */
 sealed abstract class MachineType
 
-final case class VirtualMachineType(vm:VmType) extends MachineType {
+case class VirtualMachineType(vm:VmType) extends MachineType with HashcodeCaching {
   override def toString() = vm.name
 }
-final case object PhysicalMachineType extends MachineType {
+case object PhysicalMachineType extends MachineType with HashcodeCaching {
   override def toString() = "physicalMachine"
 }
 
 
-final case class MachineInventory(
+case class MachineInventory(
     id                : MachineUuid
   , status            : InventoryStatus
   , machineType       : MachineType
@@ -188,4 +189,4 @@ final case class MachineInventory(
   , sounds            : Seq[Sound] = Nil
   , storages          : Seq[Storage] = Nil
   , videos            : Seq[Video] = Nil
-)
+) extends HashcodeCaching

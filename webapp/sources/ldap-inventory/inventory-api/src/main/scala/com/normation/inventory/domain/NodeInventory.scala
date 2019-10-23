@@ -39,6 +39,7 @@ package com.normation.inventory.domain
 
 import java.net.InetAddress
 
+import com.normation.utils.HashcodeCaching
 import org.joda.time.DateTime
 import net.liftweb.common._
 import net.liftweb.json.JsonAST.JValue
@@ -47,14 +48,14 @@ sealed trait NodeElement {
   def description : Option[String]
 }
 
-final case class FileSystem(
+case class FileSystem(
     mountPoint  : String
   , name        : Option[String] = None
   , description : Option[String] = None
   , fileCount   : Option[Int] = None
   , freeSpace   : Option[MemorySize] = None
   , totalSpace  : Option[MemorySize] = None
-) extends NodeElement
+) extends NodeElement with HashcodeCaching
 
 /**
  * For network, we *should* have a group for all layer 3 information that
@@ -68,7 +69,7 @@ final case class FileSystem(
  * it's better to have correct information that not have them,
  * even if they are a little mixed-up.
  */
-final case class Network (
+case class Network (
     name        : String
   , description : Option[String] = None
   , ifAddresses : Seq[InetAddress] = Seq()
@@ -81,11 +82,11 @@ final case class Network (
   , ifType      : Option[String] = None
   , speed       : Option[String] = None
   , typeMib     : Option[String] = None
-) extends NodeElement {
+) extends NodeElement with HashcodeCaching {
   def ifAddress : Option[InetAddress] = ifAddresses.headOption
 }
 
-final case class Process (
+case class Process (
     pid           : Int
   , commandName   : Option[String]
   , cpuUsage      : Option[Float]    = None
@@ -98,9 +99,9 @@ final case class Process (
   , user          : Option[String]   = None
   , virtualMemory : Option[Double]   = None
   , description   : Option[String]   = None
-)extends NodeElement
+)extends NodeElement with HashcodeCaching
 
-final case class VirtualMachine (
+case class VirtualMachine (
     vmtype      : Option[String] = None
   , subsystem   : Option[String] = None
   , owner       : Option[String] = None
@@ -111,13 +112,13 @@ final case class VirtualMachine (
   , uuid        : MachineUuid
     // TODO : Maybe add an inventoryStatus field
   , description : Option[String] = None
-) extends NodeElement
+) extends NodeElement with HashcodeCaching
 
-final case class EnvironmentVariable (
+case class EnvironmentVariable (
     name        : String
   , value       : Option[String] = None
   , description : Option[String] = None
-) extends NodeElement
+) extends NodeElement with HashcodeCaching
 
 object InetAddressUtils {
 
@@ -162,20 +163,20 @@ object WindowsType {
   )
 }
 
-final case object UnknownWindowsType extends WindowsType                 { val name = "Windows"       }
-final case object WindowsXP     extends WindowsType { val name = "WindowsXP"     }
-final case object WindowsVista  extends WindowsType { val name = "WindowsVista"  }
-final case object WindowsSeven  extends WindowsType { val name = "WindowsSeven"  }
-final case object Windows10     extends WindowsType { val name = "Windows10"  }
-final case object Windows2000   extends WindowsType { val name = "Windows2000"   }
-final case object Windows2003   extends WindowsType { val name = "Windows2003"   }
-final case object Windows2008   extends WindowsType { val name = "Windows2008"   }
-final case object Windows2008R2 extends WindowsType { val name = "Windows2008R2" }
-final case object Windows2012   extends WindowsType { val name = "Windows2012"   }
-final case object Windows2012R2 extends WindowsType { val name = "Windows2012R2" }
-final case object Windows2016   extends WindowsType { val name = "Windows2016"   }
-final case object Windows2016R2 extends WindowsType { val name = "Windows2016R2" }
-final case object Windows2019   extends WindowsType { val name = "Windows2019" }
+case object UnknownWindowsType extends WindowsType                 { val name = "Windows"       }
+case object WindowsXP     extends WindowsType with HashcodeCaching { val name = "WindowsXP"     }
+case object WindowsVista  extends WindowsType with HashcodeCaching { val name = "WindowsVista"  }
+case object WindowsSeven  extends WindowsType with HashcodeCaching { val name = "WindowsSeven"  }
+case object Windows10     extends WindowsType with HashcodeCaching { val name = "Windows10"  }
+case object Windows2000   extends WindowsType with HashcodeCaching { val name = "Windows2000"   }
+case object Windows2003   extends WindowsType with HashcodeCaching { val name = "Windows2003"   }
+case object Windows2008   extends WindowsType with HashcodeCaching { val name = "Windows2008"   }
+case object Windows2008R2 extends WindowsType with HashcodeCaching { val name = "Windows2008R2" }
+case object Windows2012   extends WindowsType with HashcodeCaching { val name = "Windows2012"   }
+case object Windows2012R2 extends WindowsType with HashcodeCaching { val name = "Windows2012R2" }
+case object Windows2016   extends WindowsType with HashcodeCaching { val name = "Windows2016"   }
+case object Windows2016R2 extends WindowsType with HashcodeCaching { val name = "Windows2016R2" }
+case object Windows2019   extends WindowsType with HashcodeCaching { val name = "Windows2019" }
 
 /**
  * Specific Linux subtype (distribution)
@@ -201,18 +202,18 @@ object LinuxType {
   )
 }
 
-final case object UnknownLinuxType extends LinuxType { val name = "UnknownLinux" }
-final case object Debian           extends LinuxType { val name = "Debian"       }
-final case object Ubuntu           extends LinuxType { val name = "Ubuntu"       }
-final case object Redhat           extends LinuxType { val name = "Redhat"       }
-final case object Centos           extends LinuxType { val name = "Centos"       }
-final case object Fedora           extends LinuxType { val name = "Fedora"       }
-final case object Suse             extends LinuxType { val name = "Suse"         }
-final case object Android          extends LinuxType { val name = "Android"      }
-final case object Oracle           extends LinuxType { val name = "Oracle"       }
-final case object Scientific       extends LinuxType { val name = "Scientific"   }
-final case object Slackware        extends LinuxType { val name = "Slackware"    }
-final case object Mint             extends LinuxType { val name = "Mint"    }
+case object UnknownLinuxType extends LinuxType with HashcodeCaching { val name = "UnknownLinux" }
+case object Debian           extends LinuxType with HashcodeCaching { val name = "Debian"       }
+case object Ubuntu           extends LinuxType with HashcodeCaching { val name = "Ubuntu"       }
+case object Redhat           extends LinuxType with HashcodeCaching { val name = "Redhat"       }
+case object Centos           extends LinuxType with HashcodeCaching { val name = "Centos"       }
+case object Fedora           extends LinuxType with HashcodeCaching { val name = "Fedora"       }
+case object Suse             extends LinuxType with HashcodeCaching { val name = "Suse"         }
+case object Android          extends LinuxType with HashcodeCaching { val name = "Android"      }
+case object Oracle           extends LinuxType with HashcodeCaching { val name = "Oracle"       }
+case object Scientific       extends LinuxType with HashcodeCaching { val name = "Scientific"   }
+case object Slackware        extends LinuxType with HashcodeCaching { val name = "Slackware"    }
+case object Mint             extends LinuxType with HashcodeCaching { val name = "Mint"    }
 
 //solaris has only one flavour for now
 //to be updated in the future with OSS verison
@@ -240,8 +241,8 @@ object BsdType {
   )
 }
 
-final case object UnknownBsdType extends BsdType { val name = "UnknownBSD" }
-final case object FreeBSD        extends BsdType { val name = "FreeBSD"  }
+case object UnknownBsdType extends BsdType with HashcodeCaching { val name = "UnknownBSD" }
+case object FreeBSD        extends BsdType with HashcodeCaching { val name = "FreeBSD"  }
 
 /**
  * The different OS type. For now, we know:
@@ -261,44 +262,44 @@ sealed abstract class OsDetails(
   , val kernelVersion : Version        // "2.6.32.12-0.7-default", "N/A" for windows
 )
 
-final case class UnknownOS(
+case class UnknownOS(
     override val fullName      : String = "N/A"
   , override val version       : Version = new Version("N/A")
   , override val servicePack   : Option[String]  = None
   , override val kernelVersion : Version = new Version("N/A")
-) extends OsDetails(UnknownOSType, fullName, version, servicePack, kernelVersion)
+) extends OsDetails(UnknownOSType, fullName, version, servicePack, kernelVersion) with HashcodeCaching
 
-final case class Linux(
+case class Linux(
     override val os            : OsType
   , override val fullName      : String
   , override val version       : Version
   , override val servicePack   : Option[String]
   , override val kernelVersion : Version
-) extends OsDetails(os, fullName, version, servicePack, kernelVersion)
+) extends OsDetails(os, fullName, version, servicePack, kernelVersion) with HashcodeCaching
 
-final case class Solaris(
+case class Solaris(
     override val fullName      : String
   , override val version       : Version
   , override val servicePack   : Option[String]
   , override val kernelVersion : Version
-) extends OsDetails(SolarisOS, fullName, version, servicePack, kernelVersion)
+) extends OsDetails(SolarisOS, fullName, version, servicePack, kernelVersion) with HashcodeCaching
 
-final case class Bsd(
+case class Bsd(
     override val os            : OsType
   , override val fullName      : String
   , override val version       : Version
   , override val servicePack   : Option[String]
   , override val kernelVersion : Version
-) extends OsDetails(os, fullName, version, servicePack, kernelVersion)
+) extends OsDetails(os, fullName, version, servicePack, kernelVersion) with HashcodeCaching
 
-final case class Aix(
+case class Aix(
     override val fullName      : String
   , override val version       : Version
   , override val servicePack   : Option[String]
   , override val kernelVersion : Version
-) extends OsDetails(AixOS, fullName, version, servicePack, kernelVersion)
+) extends OsDetails(AixOS, fullName, version, servicePack, kernelVersion) with HashcodeCaching
 
-final case class Windows(
+case class Windows(
     override val os            : OsType
   , override val fullName      : String
   , override val version       : Version
@@ -308,9 +309,9 @@ final case class Windows(
   , registrationCompany        : Option[String] = None
   , productKey                 : Option[String] = None
   , productId                  : Option[String] = None
-) extends OsDetails(os, fullName, version, servicePack, kernelVersion)
+) extends OsDetails(os, fullName, version, servicePack, kernelVersion) with HashcodeCaching
 
-final case class NodeSummary(
+case class NodeSummary(
     id : NodeId
   , status:InventoryStatus
   , rootUser : String
@@ -320,15 +321,15 @@ final case class NodeSummary(
   , keyStatus : KeyStatus
   //agent name
   //ipss
-)
+) extends HashcodeCaching
 
 sealed trait KeyStatus {
   val value : String
 }
-final case object CertifiedKey extends KeyStatus {
+case object CertifiedKey extends KeyStatus {
   val value = "certified"
 }
-final case object UndefinedKey extends KeyStatus {
+case object UndefinedKey extends KeyStatus {
   val value = "undefined"
 }
 
@@ -352,9 +353,9 @@ object KeyStatus {
   }
 }
 
-final case class ServerRole(value: String) extends AnyVal
+final case class ServerRole(value: String) extends HashcodeCaching
 
-final case class NodeInventory(
+case class NodeInventory(
     main                 : NodeSummary
   , name                 : Option[String]     = None
   , description          : Option[String]     = None
@@ -390,7 +391,7 @@ final case class NodeInventory(
   , serverRoles          : Set[ServerRole]          = Set()
   , timezone             : Option[NodeTimezone]     = None
   , customProperties     : List[CustomProperty]     = Nil
-) {
+) extends HashcodeCaching {
 
   /**A copy of the node with the updated main.
    * Use it like:

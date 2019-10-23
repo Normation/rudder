@@ -48,7 +48,7 @@ trait ReadOnlyMachineRepository {
    * it should not. In that case, return the machine with the most
    * prioritary status (Accepted > Pending > Removed)
    */
-  def getMachine(id:MachineUuid) : Box[MachineInventory]
+  def get(id:MachineUuid) : Box[MachineInventory]
 
 }
 

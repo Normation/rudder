@@ -131,7 +131,7 @@ class LdapConfigRepository(
 }
 
 
-final case class ModifyGlobalPropertyInfo(
+case class ModifyGlobalPropertyInfo(
     eventLogType : ModifyGlobalPropertyEventType
   , actor:EventActor
   , reason:Option[String]

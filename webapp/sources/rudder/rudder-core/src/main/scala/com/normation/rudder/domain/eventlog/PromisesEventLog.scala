@@ -38,11 +38,13 @@
 package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog._
+import com.normation.utils.HashcodeCaching
+
 sealed trait PromiseEventLog extends EventLog { override final val eventLogCategory = DeploymentLogCategory }
 
 final case class AutomaticStartDeployement(
     override val eventDetails : EventLogDetails
-) extends PromiseEventLog {
+) extends PromiseEventLog with HashcodeCaching {
   override val eventType = AutomaticStartDeployement.eventType
 }
 
@@ -54,7 +56,7 @@ object AutomaticStartDeployement extends EventLogFilter {
 
 final case class ManualStartDeployement(
     override val eventDetails : EventLogDetails
-) extends PromiseEventLog {
+) extends PromiseEventLog with HashcodeCaching {
   override val eventType = ManualStartDeployement.eventType
 }
 
@@ -66,7 +68,7 @@ object ManualStartDeployement extends EventLogFilter {
 
 final case class SuccessfulDeployment (
     override val eventDetails : EventLogDetails
-) extends PromiseEventLog {
+) extends PromiseEventLog with HashcodeCaching {
   override val eventType = SuccessfulDeployment.eventType
 }
 
@@ -78,7 +80,7 @@ object SuccessfulDeployment extends EventLogFilter {
 
 final case class FailedDeployment (
     override val eventDetails : EventLogDetails
-) extends PromiseEventLog {
+) extends PromiseEventLog with HashcodeCaching {
   override val eventType = FailedDeployment.eventType
 }
 

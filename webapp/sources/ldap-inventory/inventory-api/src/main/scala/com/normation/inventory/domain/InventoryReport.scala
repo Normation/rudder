@@ -38,6 +38,8 @@
 package com.normation.inventory.domain
 
 import scala.xml.NodeSeq
+import com.normation.utils.HashcodeCaching
+
 
 /**
  * Define what an inventory report can contain
@@ -59,7 +61,7 @@ import scala.xml.NodeSeq
  * (of course) be empty.
  *
  */
-final case class InventoryReport(
+case class InventoryReport(
   val name:String, //an id for that report (ex: name of the file received)
   val inventoryAgentDevideId:String,
   val node:NodeInventory,
@@ -72,4 +74,4 @@ final case class InventoryReport(
   val applications : Seq[Software],
   //other not specified managed element
   val sourceReport : NodeSeq
-)
+) extends HashcodeCaching

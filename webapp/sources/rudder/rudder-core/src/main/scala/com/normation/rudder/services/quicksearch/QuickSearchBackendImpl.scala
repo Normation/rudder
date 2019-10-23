@@ -122,7 +122,7 @@ object QSDirectiveBackend extends Loggable {
     }
   }
 
-  implicit class QSAttributeFilter(val a: QSAttribute) extends AnyVal {
+  implicit class QSAttributeFilter(a: QSAttribute) {
 
     private[this] def toMatch(at: FullActiveTechnique, dir: Directive): Option[Set[(String,String)]] = {
 
@@ -295,7 +295,7 @@ object QSLdapBackend {
     m
   }
 
-  implicit class QSAttributeLdapName(val a: QSAttribute) extends AnyVal {
+  implicit class QSAttributeLdapName(a: QSAttribute) {
     def ldapName(): String = attributeNameMapping(a)
   }
 
@@ -358,7 +358,7 @@ object QSLdapBackend {
     }
   }
 
-  implicit class QSAttributeLdapFilter(val a: QSAttribute) extends AnyVal {
+  implicit class QSAttributeLdapFilter(a: QSAttribute) {
     import QSAttributeLdapFilter._
 
     def filter(token: String): Option[Filter] = {
@@ -408,7 +408,7 @@ object QSLdapBackend {
    * an attribute.
    * The transformation may fail (option = none).
    */
-  implicit class LdapAttributeValueTransform(val a: QSAttribute) extends AnyVal {
+  implicit class LdapAttributeValueTransform( a: QSAttribute) {
 
     def transform(pattern: Pattern, value: String): Option[String] = {
 
@@ -464,7 +464,7 @@ object QSLdapBackend {
   /**
    * correctly transform entry to a result, putting what is needed in type and description
    */
-  final implicit class EntryToSearchResult(val e: LDAPEntry) {
+  final implicit class EntryToSearchResult(e: LDAPEntry) {
     import QuickSearchResultId._
     import QSAttributeLdapFilter._
 

@@ -38,12 +38,17 @@
 package com.normation.rudder.domain.appconfig
 
 import java.util.regex.Pattern
+
+
+
+import com.normation.utils.HashcodeCaching
+
 import ca.mrvisser.sealerate
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 
-final case class RudderWebPropertyName(value: String) extends AnyVal
+case class RudderWebPropertyName(value:String) extends HashcodeCaching
 
 object RudderWebPropertyName {
   val patternName = Pattern.compile("[a-zA-Z0-9_]+");
@@ -52,7 +57,7 @@ object RudderWebPropertyName {
 /**
  * A Property used by the webapp, configured in the Administration page
  */
-final case class RudderWebProperty(
+case class RudderWebProperty(
     name       : RudderWebPropertyName
   , value      : String
   , description: String

@@ -41,9 +41,10 @@ import com.normation.cfclerk.domain._
 import java.io.InputStream
 import scala.collection.immutable.SortedMap
 import scala.collection.mutable.{ Map => MutMap }
+import com.normation.utils.HashcodeCaching
 
 
-final case class TechniquesInfo(
+case class TechniquesInfo(
     rootCategory          : RootTechniqueCategory
   , gitRevId              : String
     //the TechniqueCategoryId is a path from the point of view of a tree
@@ -52,7 +53,7 @@ final case class TechniquesInfo(
     //head of categories is the root category
   , subCategories         : Map[SubTechniqueCategoryId, TechniqueCategory]
   , directivesDefaultNames: Map[String, String]
-) {
+) extends HashcodeCaching {
   val allCategories = Map[TechniqueCategoryId, TechniqueCategory]() ++ subCategories + (rootCategory.id -> rootCategory)
 }
 

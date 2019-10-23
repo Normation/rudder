@@ -42,6 +42,9 @@ import com.normation.eventlog._
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.repository.GitArchiveId
 import com.normation.rudder.repository.GitCommitId
+import com.normation.utils.HashcodeCaching
+
+
 sealed trait ImportExportEventLog  extends EventLog { override final val eventLogCategory = ImportExportItemsLogCategory }
 
 sealed trait ImportEventLog  extends ImportExportEventLog
@@ -81,7 +84,7 @@ object ImportExportEventLog {
 
 final case class ExportGroupsArchive(
     override val eventDetails : EventLogDetails
-) extends ExportEventLog {
+) extends ExportEventLog with HashcodeCaching {
   override val eventType = ExportGroupsArchive.eventType
 
   def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
@@ -105,7 +108,7 @@ object ExportGroupsArchive extends EventLogFilter {
 
 final case class ImportGroupsArchive(
     override val eventDetails : EventLogDetails
-) extends ImportEventLog {
+) extends ImportEventLog with HashcodeCaching {
   override val eventType = ImportGroupsArchive.eventType
 
   def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
@@ -129,7 +132,7 @@ object ImportGroupsArchive extends EventLogFilter {
 
 final case class ExportTechniqueLibraryArchive(
     override val eventDetails : EventLogDetails
-) extends ExportEventLog {
+) extends ExportEventLog with HashcodeCaching {
   override val eventType = ExportTechniqueLibraryArchive.eventType
 
   def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
@@ -153,7 +156,7 @@ object ExportTechniqueLibraryArchive extends EventLogFilter {
 
 final case class ImportTechniqueLibraryArchive(
     override val eventDetails : EventLogDetails
-) extends ImportEventLog {
+) extends ImportEventLog with HashcodeCaching {
   override val eventType = ImportTechniqueLibraryArchive.eventType
 
   def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
@@ -178,7 +181,7 @@ object ImportTechniqueLibraryArchive extends EventLogFilter {
 
 final case class ExportRulesArchive(
     override val eventDetails : EventLogDetails
-) extends ExportEventLog {
+) extends ExportEventLog with HashcodeCaching {
   override val eventType = ExportRulesArchive.eventType
 
   def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
@@ -202,7 +205,7 @@ object ExportRulesArchive extends EventLogFilter {
 
 final case class ImportRulesArchive(
     override val eventDetails : EventLogDetails
-) extends ImportEventLog {
+) extends ImportEventLog with HashcodeCaching {
   override val eventType = ImportRulesArchive.eventType
 
   def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
@@ -226,7 +229,7 @@ object ImportRulesArchive extends EventLogFilter {
 
 final case class ExportParametersArchive(
     override val eventDetails : EventLogDetails
-) extends ExportEventLog {
+) extends ExportEventLog with HashcodeCaching {
   override val eventType = ExportParametersArchive.eventType
 
   def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
@@ -250,7 +253,7 @@ object ExportParametersArchive extends EventLogFilter {
 
 final case class ImportParametersArchive(
     override val eventDetails : EventLogDetails
-) extends ImportEventLog {
+) extends ImportEventLog with HashcodeCaching {
   override val eventType = ImportParametersArchive.eventType
 
   def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
@@ -274,7 +277,7 @@ object ImportParametersArchive extends EventLogFilter {
 
 final case class ExportFullArchive(
     override val eventDetails : EventLogDetails
-) extends ExportEventLog {
+) extends ExportEventLog with HashcodeCaching {
   override val eventType = ExportFullArchive.eventType
 
   def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
@@ -298,7 +301,7 @@ object ExportFullArchive extends EventLogFilter {
 
 final case class ImportFullArchive(
     override val eventDetails : EventLogDetails
-) extends ImportEventLog {
+) extends ImportEventLog with HashcodeCaching {
   override val eventType = ImportFullArchive.eventType
 
   def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
@@ -323,7 +326,7 @@ object ImportFullArchive extends EventLogFilter {
 
 final case class Rollback(
     override val eventDetails : EventLogDetails
-) extends ImportEventLog {
+) extends ImportEventLog with HashcodeCaching {
   override val eventType = RollbackEventType
 
   def this(actor:EventActor, rollbackedEvent:Seq[EventLog],targetEvent: EventLog, rollbackType:String, reason: Option[String]) = this(EventLogDetails(

@@ -35,12 +35,13 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.rest
+package com.normation.rudder.web.rest
 
 import java.io.File
 import java.nio.file.Files
 import java.util.zip.ZipFile
 
+import com.normation.rudder.rest.RestTestSetUp
 import com.normation.rudder.rest.RestUtils.{toJsonResponse, toJsonError}
 import net.liftweb.common.{Full, Loggable}
 import net.liftweb.http.{InMemoryResponse, LiftResponse, Req}

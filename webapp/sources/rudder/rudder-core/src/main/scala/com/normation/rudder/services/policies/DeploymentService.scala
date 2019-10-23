@@ -120,7 +120,7 @@ trait PromiseGenerationHooks {
 /*
  * Objects to manage parallelism along generation process
  */
-final case class Parallelism(
+case class Parallelism(
     max      : Int
   , scheduler: Scheduler
   , semaphore: TaskSemaphore

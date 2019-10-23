@@ -20,6 +20,7 @@
 
 package com.normation.ldap.sdk
 
+import com.normation.utils.HashcodeCaching
 import com.unboundid.ldap.sdk.Attribute
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.schema.Schema
@@ -31,12 +32,12 @@ import com.unboundid.ldap.sdk.schema.Schema
 sealed trait TypedAttribute {
   val name:String
 }
-final case class BooleanAttribute(name:String,value:List[Boolean]) extends TypedAttribute
-final case class LongAttribute(name:String,values:List[Long]) extends TypedAttribute
-final case class DNAttribute(name:String,values: List[DN]) extends TypedAttribute
-final case class StringAttribute(name:String,values:List[String]) extends TypedAttribute
-final case class BinaryAttribute(name:String,values: List[Array[Byte]]) extends TypedAttribute
-final case class GeneralizedTimeAttribute(name:String,values:List[GeneralizedTime]) extends TypedAttribute
+case class BooleanAttribute(name:String,value:List[Boolean]) extends TypedAttribute with HashcodeCaching
+case class LongAttribute(name:String,values:List[Long]) extends TypedAttribute with HashcodeCaching
+case class DNAttribute(name:String,values: List[DN]) extends TypedAttribute with HashcodeCaching
+case class StringAttribute(name:String,values:List[String]) extends TypedAttribute with HashcodeCaching
+case class BinaryAttribute(name:String,values: List[Array[Byte]]) extends TypedAttribute with HashcodeCaching
+case class GeneralizedTimeAttribute(name:String,values:List[GeneralizedTime]) extends TypedAttribute with HashcodeCaching
 
 
 object TypedAttribute {

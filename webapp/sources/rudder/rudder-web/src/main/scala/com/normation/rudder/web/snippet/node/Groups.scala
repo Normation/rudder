@@ -54,6 +54,7 @@ import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
 import com.normation.rudder.web.model._
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.services.DisplayNodeGroupTree
+import com.normation.utils.HashcodeCaching
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.LocalSnippet
@@ -71,9 +72,9 @@ object Groups {
   val htmlId_updateContainerForm = "updateContainerForm"
 
   private sealed trait RightPanel
-  private final case object NoPanel extends RightPanel
-  private final case class GroupForm(group:Either[NonGroupRuleTarget, NodeGroup], parentCategoryId:NodeGroupCategoryId) extends RightPanel
-  private final case class CategoryForm(category: NodeGroupCategory) extends RightPanel
+  private case object NoPanel extends RightPanel
+  private case class GroupForm(group:Either[NonGroupRuleTarget, NodeGroup], parentCategoryId:NodeGroupCategoryId) extends RightPanel with HashcodeCaching
+  private case class CategoryForm(category: NodeGroupCategory) extends RightPanel with HashcodeCaching
 
 }
 

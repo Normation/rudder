@@ -92,7 +92,7 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.domain.policies.PolicyMode
 
-final case class XmlUnserializerImpl (
+case class XmlUnserializerImpl (
     rule        : RuleUnserialisation
   , directive   : DirectiveUnserialisation
   , group       : NodeGroupUnserialisation

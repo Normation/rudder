@@ -37,6 +37,8 @@
 
 package com.normation.inventory.domain
 
+import com.normation.utils.HashcodeCaching
+
 /**
  * Defined the status of a machine or
  * server.
@@ -56,8 +58,8 @@ object InventoryStatus {
   }
 }
 
-final case object AcceptedInventory extends InventoryStatus("accepted")
-final case object PendingInventory extends InventoryStatus("pending")
-final case object RemovedInventory extends InventoryStatus("removed")
+case object AcceptedInventory extends InventoryStatus("accepted") with HashcodeCaching
+case object PendingInventory extends InventoryStatus("pending") with HashcodeCaching
+case object RemovedInventory extends InventoryStatus("removed") with HashcodeCaching
 
 //to be extended to "suspicious inventory" and other alike

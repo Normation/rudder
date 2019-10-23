@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory
 import net.liftweb.common.Logger
 import com.normation.rudder.services.reports._
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ResolvedAgentRunInterval
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ChangesOnly
@@ -74,16 +75,16 @@ object ComplianceDebugLogger extends Logger {
 
   def node(id: NodeId) : Logger = nodeCache.get(id.value)
 
-  implicit class NodeConfigIdInfoToLog(val n: NodeConfigIdInfo) extends AnyVal {
-    def toLog: String = s"${n.configId.value}/[${n.creation}-${n.endOfLife.fold("now")(_.toString)}]"
+  implicit class NodeConfigIdInfoToLog(n: NodeConfigIdInfo) {
+    val toLog: String = s"${n.configId.value}/[${n.creation}-${n.endOfLife.fold("now")(_.toString)}]"
   }
-  implicit class NodeExpectedConfigToLog(val n: NodeExpectedReports) extends AnyVal {
-    def toLog: String = s"${n.nodeConfigId.value}/[${n.beginDate}-${n.endDate.fold("now")(_.toString)}]"
+  implicit class NodeExpectedConfigToLog(n: NodeExpectedReports) {
+    val toLog: String = s"${n.nodeConfigId.value}/[${n.beginDate}-${n.endDate.fold("now")(_.toString)}]"
   }
 
-  implicit class RunAndConfigInfoToLog(val c: RunAndConfigInfo) extends AnyVal {
+  implicit class RunAndConfigInfoToLog(c: RunAndConfigInfo) {
 
-    def logDetails: String = c match {
+    val logDetails: String = c match {
       case NoRunNoExpectedReport =>
         "expected NodeConfigId: not found | last run: not found"
 
@@ -125,7 +126,7 @@ object ComplianceDebugLogger extends Logger {
 
     }
 
-    def logName =  c match {
+    val logName =  c match {
       case    NoRunNoExpectedReport     => "NoRunNoExpectedReport"
       case _: NoExpectedReport          => "NoRunNoExpectedReport"
       case _: NoReportInInterval        => "NoReportInInterval"
@@ -137,10 +138,10 @@ object ComplianceDebugLogger extends Logger {
       case _: ComputeCompliance         => "ComputeCompliance"
     }
 
-    def toLog: String = logName + ": " + logDetails
+    val toLog: String = logName + ": " + logDetails
   }
 
-  implicit class AgentRunConfigurationToLog(val info: (NodeId, ComplianceMode, ResolvedAgentRunInterval)) extends AnyVal {
+  implicit class AgentRunConfigurationToLog(info: (NodeId, ComplianceMode, ResolvedAgentRunInterval)) {
 
     private[this] def log(c: ComplianceMode, r: ResolvedAgentRunInterval): String = {
       val h = c.mode match {
@@ -150,9 +151,9 @@ object ComplianceDebugLogger extends Logger {
       s"run interval: ${r.interval.toStandardMinutes.getMinutes} min${h}"
     }
 
+    val (id, c, r) = info
 
-    def toLog: String = {
-      val (id, c, r) = info
+    val toLog: String = {
       s"[${id.value}:${c.name}, ${log(c, r)}]"
     }
   }

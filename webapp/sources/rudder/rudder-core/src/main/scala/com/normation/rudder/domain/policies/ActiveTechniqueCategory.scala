@@ -38,14 +38,15 @@
 package com.normation.rudder.domain.policies
 
 import com.normation.rudder.domain.categories.ItemCategory
+import com.normation.utils.HashcodeCaching
 
-final case class ActiveTechniqueCategoryId(value: String) extends AnyVal
+case class ActiveTechniqueCategoryId(value:String) extends HashcodeCaching
 
-final case class ActiveTechniqueCategory(
+case class ActiveTechniqueCategory(
     id         : ActiveTechniqueCategoryId
   , name       : String
   , description: String
   , children   : List[ActiveTechniqueCategoryId]
   , items      : List[ActiveTechniqueId]
   , isSystem   : Boolean = false // by default, we can't create system Category
-) extends ItemCategory[ActiveTechniqueCategoryId,ActiveTechniqueId] {}
+) extends ItemCategory[ActiveTechniqueCategoryId,ActiveTechniqueId] with HashcodeCaching {}

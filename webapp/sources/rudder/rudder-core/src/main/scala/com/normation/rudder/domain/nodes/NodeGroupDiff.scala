@@ -40,6 +40,7 @@ package com.normation.rudder.domain.nodes
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.domain.queries.Query
+import com.normation.utils.HashcodeCaching
 import com.normation.rudder.domain.policies.TriggerDeploymentDiff
 
 /**
@@ -52,15 +53,16 @@ sealed trait ChangeRequestNodeGroupDiff {
   def group:NodeGroup
 }
 
-final case class DeleteNodeGroupDiff(group:NodeGroup) extends NodeGroupDiff with ChangeRequestNodeGroupDiff {
+final case class DeleteNodeGroupDiff(group:NodeGroup) extends
+  NodeGroupDiff with HashcodeCaching with ChangeRequestNodeGroupDiff {
   def needDeployment : Boolean = true
 }
 
-final case class AddNodeGroupDiff(group:NodeGroup) extends NodeGroupDiff with ChangeRequestNodeGroupDiff {
+final case class AddNodeGroupDiff(group:NodeGroup) extends NodeGroupDiff with HashcodeCaching with ChangeRequestNodeGroupDiff {
   def needDeployment : Boolean = false
 }
 
-final case class ModifyToNodeGroupDiff(group:NodeGroup) extends NodeGroupDiff with ChangeRequestNodeGroupDiff {
+final case class ModifyToNodeGroupDiff(group:NodeGroup) extends NodeGroupDiff with HashcodeCaching with ChangeRequestNodeGroupDiff {
   // This case is undecidable, so it is always true
   def needDeployment : Boolean = true
 }
@@ -75,7 +77,7 @@ final case class ModifyNodeGroupDiff(
   , modNodeList   : Option[SimpleDiff[Set[NodeId]]]   = None
   , modIsActivated: Option[SimpleDiff[Boolean]]       = None
   , modIsSystem   : Option[SimpleDiff[Boolean]]       = None
-) extends NodeGroupDiff {
+) extends NodeGroupDiff with HashcodeCaching {
 
   def needDeployment : Boolean = {
     modQuery.isDefined || modIsDynamic.isDefined || modNodeList.isDefined || modIsActivated.isDefined || modName.isDefined

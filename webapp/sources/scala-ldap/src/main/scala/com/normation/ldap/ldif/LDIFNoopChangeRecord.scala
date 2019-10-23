@@ -27,8 +27,9 @@ import com.unboundid.ldap.sdk.LDAPResult
 import com.unboundid.ldap.sdk.ResultCode
 import com.unboundid.ldap.sdk.ChangeType
 import com.unboundid.util.ByteStringBuffer
+import com.normation.utils.HashcodeCaching
 
-final case class LDIFNoopChangeRecord(dn:DN) extends LDIFChangeRecord(dn.toString, null) {
+case class LDIFNoopChangeRecord(dn:DN) extends LDIFChangeRecord(dn.toString, null) with HashcodeCaching {
 
   override def processChange(con:LDAPInterface, includeControle:Boolean) = new LDAPResult(0, ResultCode.NO_OPERATION)
 

@@ -18,36 +18,20 @@
 *************************************************************************************
 */
 
-package com.normation.ldap.sdk
+package com.normation.utils
 
 /**
- * An utility type for Boolean format in
- * OpenLDAP directory.
- * It simply knows how to print itself to a
- * (strictly) compatible string format.
+ * This is a trait that allows immutable data structure,
+ * especially Case Class, to cache their hashCode.
+ *
+ * All immutable case class should extend that trait.
+ *
+ * WARNING: do not use that on mutable structure.
  */
-trait LDAPBoolean {
+trait HashcodeCaching {
+  self: Product =>
 
-  /**
-   * Give the correct string for
-   * LDAP.
-   * It can be used directly in place of
-   * toString for implicit conversion.
-   * For ex, use:
-   * true.toLDAPString
-   */
-  def toLDAPString : String
-  override def toString = toLDAPString
-}
-
-object LDAPBoolean {
-  def apply(b:Boolean) = if(b) TRUE else FALSE
-}
-
-case object TRUE extends LDAPBoolean {
-  override def toLDAPString = "TRUE"
-}
-
-case object FALSE extends LDAPBoolean {
-  override def toLDAPString = "FALSE"
+  override lazy val hashCode: Int = {
+    scala.runtime.ScalaRunTime._hashCode(this)
+  }
 }

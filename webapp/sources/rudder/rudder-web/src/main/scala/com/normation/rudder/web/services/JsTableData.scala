@@ -63,7 +63,7 @@ trait JsTableLine extends Loggable {
  * That class a set of Data to use in datatable
  * It should be used as data parameter when creating datatable in javascript
  */
-final case class JsTableData[T <: JsTableLine] ( lines : List[T] ) {
+case class JsTableData[T <: JsTableLine] ( lines : List[T] ) {
 
   def json = JsArray(lines.map(_.json))
 

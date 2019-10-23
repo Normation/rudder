@@ -45,6 +45,7 @@ import BuildFilter._
 
 import scala.collection.SortedMap
 import com.normation.rudder.services.queries.SpecialFilter
+import com.normation.utils.HashcodeCaching
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderLDAPConstants.{A_NODE_GROUP_UUID, A_NODE_PROPERTY, A_STATE, OC_RUDDER_NODE_GROUP}
 import com.normation.rudder.domain.RudderDit
@@ -70,9 +71,9 @@ import net.liftweb.common.Box
  *
  */
 sealed abstract class DnType
-final case object QueryMachineDn extends DnType
-final case object QueryNodeDn extends DnType
-final case object QuerySoftwareDn extends DnType
+case object QueryMachineDn extends DnType
+case object QueryNodeDn extends DnType
+case object QuerySoftwareDn extends DnType
 
 /*
  * Mapping data for LDAP query processor
@@ -90,15 +91,15 @@ final case object QuerySoftwareDn extends DnType
  * - used for the join
  */
 sealed  abstract class LDAPJoinElement(val selectAttribute:String)
-final case object DNJoin extends LDAPJoinElement("1.1")
-final case object ParentDNJoin extends LDAPJoinElement("1.1")
-final case object NodeDnJoin extends LDAPJoinElement(A_NODE_UUID)
+final case object DNJoin extends LDAPJoinElement("1.1") with HashcodeCaching
+final case object ParentDNJoin extends LDAPJoinElement("1.1") with HashcodeCaching
+final case object NodeDnJoin extends LDAPJoinElement(A_NODE_UUID) with HashcodeCaching
 //  case class QueryJoin(query:Query) extends LDAPJoinElement
 
 //that class represent the base filter for an object type.
 //it's special because it MUST always be ANDED to any
 //request for that object type.
-final case class LDAPObjectTypeFilter(value: Filter) extends AnyVal
+final case class LDAPObjectTypeFilter(value: Filter)
 
 class DitQueryData(dit: InventoryDit, nodeDit: NodeDit, rudderDit: RudderDit, getGroups: () => Box[Seq[SubGroupChoice]]) {
   private val peObjectCriterion = ObjectCriterion(OC_PE, Seq(
@@ -277,7 +278,7 @@ case class LDAPObjectType(
   , filter        : Option[Filter]
   , join          : LDAPJoinElement
   , specialFilters: Set[(CriterionComposition, SpecialFilter)] = Set()
-)
+) extends HashcodeCaching
 
   //template query for each object type
 

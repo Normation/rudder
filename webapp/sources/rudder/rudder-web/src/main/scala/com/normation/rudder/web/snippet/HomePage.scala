@@ -81,32 +81,32 @@ sealed trait ComplianceLevelPieChart{
   }
 }
 
-final case class DisabledChart (value : Int) extends ComplianceLevelPieChart{
+case class DisabledChart (value : Int) extends ComplianceLevelPieChart{
   val label = "Reports Disabled"
   val color = "#b4b4b4"
 }
 
-final case class GreenChart (value : Int) extends ComplianceLevelPieChart{
+case class GreenChart (value : Int) extends ComplianceLevelPieChart{
   val label = "Perfect (100%)"
   val color = "#5cb85c"
 }
 
-final case class BlueChart (value : Int) extends ComplianceLevelPieChart{
+case class BlueChart (value : Int) extends ComplianceLevelPieChart{
   val label = "Good (> 75%)"
   val color = "#9bc832"
 }
 
-final case class OrangeChart (value : Int) extends ComplianceLevelPieChart{
+case class OrangeChart (value : Int) extends ComplianceLevelPieChart{
   val label = "Average (> 50%)"
   val color = "#f0ad4e"
 }
 
-final case class RedChart (value : Int) extends ComplianceLevelPieChart{
+case class RedChart (value : Int) extends ComplianceLevelPieChart{
   val label = "Poor (< 50%)"
   val color = "#c9302c"
 }
 
-final case class PendingChart (value : Int) extends ComplianceLevelPieChart{
+case class PendingChart (value : Int) extends ComplianceLevelPieChart{
   val label = "Applying"
   val color = "#5bc0de"
 }
@@ -167,9 +167,9 @@ class HomePage extends Loggable {
   def getAllCompliance = {
 
     trait ChartType
-final case object PendingChartType extends ChartType
-final case object DisabledChartType extends ChartType
-final case class ColoredChartType(value: Double) extends ChartType
+    case object PendingChartType extends ChartType
+    case object DisabledChartType extends ChartType
+    case class ColoredChartType(value: Double) extends ChartType
 
     ( for {
       nodeInfos <- HomePage.boxNodeInfos.get

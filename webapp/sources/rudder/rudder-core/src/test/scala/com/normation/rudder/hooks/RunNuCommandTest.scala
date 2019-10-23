@@ -50,7 +50,7 @@ import scala.collection.JavaConverters._
  */
 
 @RunWith(classOf[JUnitRunner])
-final case class RunNuCommandTest()(implicit ee: ExecutionEnv) extends Specification {
+case class RunNuCommandTest()(implicit ee: ExecutionEnv) extends Specification {
 
   "A command" should {
 
