@@ -206,6 +206,14 @@ body > .container-fluid > .row > div {
 .show-methods .col-techniques > .row{
   transform: translateX(-50px);
 }
+.dndPlaceholder{
+  margin: 10px 0;
+  padding: 15px;
+  border: 2px dashed #e5e5e5;
+  border-radius: 4px;
+  height: 58px;
+  background-color: #f9f9f9;
+}
 /* ===== TECHNIQUES ===== */
 .col-techniques{
   box-shadow: 2px 0px 8px 0px #00000024;
@@ -406,7 +414,6 @@ ul.tabs-list > li > .badge.empty{
   padding: 0 15px;
 }
 #no-methods{
-  margin: auto 15px;
   padding: 15px;
   border: 2px dashed #e5e5e5;
   border-radius: 4px;
@@ -414,6 +421,7 @@ ul.tabs-list > li > .badge.empty{
   background-color: #f3f8ff;
   cursor: pointer;
 }
+
 /* FILEMANAGER */
 .ng-hide{
   display: none !important;

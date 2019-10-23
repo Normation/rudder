@@ -381,10 +381,10 @@
                   </div>
 
                   <div class="col">
-                    <div id="no-methods" ng-if="selectedTechnique.method_calls.length === 0" ng-click="toggleDisplay(false)">
-                        Drag and drop generic methods here from the list on the right to build target configuration for this technique.
-                    </div>
                     <ul id="methods" class="list-unstyled" dnd-list="selectedTechnique.method_calls" dnd-drop="dropCallback(item, index, type);" >
+                    <li id="no-methods" ng-if="selectedTechnique.method_calls.length === 0" ng-click="toggleDisplay(false)">
+                        Drag and drop generic methods here from the list on the right to build target configuration for this technique.
+                    </li>
                     <li
                       ng-repeat="method_call in selectedTechnique.method_calls"
                       ng-show="checkFilterMethod(method_call)"
