@@ -344,7 +344,7 @@ class ClassicTechniqueWriter(basePath : String) extends AgentSpecificTechniqueWr
          |bundle agent ${technique.bundleName.value}${bundleParams}
          |{
          |  vars:
-         |    "resources_dir" string => "$${this.promise_dir}/resources";
+         |    "resources_dir" string => "$${this.promise_dirname}/resources";
          |  methods:
          |${methodCalls}
          |}""".stripMargin('|')
