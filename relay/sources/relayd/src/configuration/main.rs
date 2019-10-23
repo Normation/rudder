@@ -28,7 +28,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{data::node::NodeId, error::Error};
+use crate::{configuration::Secret, data::node::NodeId, error::Error};
 use serde::Deserialize;
 use std::{
     collections::HashSet,
@@ -167,7 +167,9 @@ pub struct OutputConfig {
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct DatabaseConfig {
+    /// URL without the password
     pub url: String,
+    pub password: Secret,
     pub max_pool_size: u32,
 }
 
@@ -176,7 +178,7 @@ pub struct UpstreamConfig {
     // TODO better URL type
     pub url: String,
     pub user: String,
-    pub password: String,
+    pub password: Secret,
     pub verify_certificates: bool,
     // TODO timeout?
 }
@@ -228,11 +230,12 @@ mod tests {
                 upstream: UpstreamConfig {
                     url: "https://127.0.0.1:8080".to_string(),
                     user: "rudder".to_string(),
-                    password: "password".to_string(),
+                    password: Secret::new("password".to_string()),
                     verify_certificates: false,
                 },
                 database: DatabaseConfig {
-                    url: "postgres://rudderreports:PASSWORD@127.0.0.1/rudder".to_string(),
+                    url: "postgres://rudderreports@127.0.0.1/rudder".to_string(),
+                    password: Secret::new("PASSWORD".to_string()),
                     max_pool_size: 5,
                 },
             },
