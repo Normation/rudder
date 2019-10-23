@@ -60,6 +60,9 @@ import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
 import net.liftweb.json.JsonAST.JArray
 import com.normation.rudder.ncf.CheckConstraint
+import com.normation.rudder.ncf.Technique
+import com.normation.rudder.repository.json.DataExtractor.CompleteJson
+import com.normation.rudder.rest.TwoParam
 
 class NcfApi(
     techniqueWriter     : TechniqueWriter
@@ -84,26 +87,29 @@ class NcfApi(
     API.endpoints.map(e => e match {
         case API.UpdateTechnique  => UpdateTechnique
         case API.CreateTechnique  => CreateTechnique
-        case API.GetResources     => GetResources
+        case API.GetResources     => new GetResources[API.GetResources.type](false, API.GetResources)
+        case API.GetNewResources  => new GetResources[API.GetNewResources.type ](true, API.GetNewResources)
         case API.ParameterCheck   => ParameterCheck
         case API.DeleteTechnique  => DeleteTechnique
     })
   }
 
-  object GetResources extends LiftApiModule {
-    val schema = API.GetResources
+  class GetResources[T <:  TwoParam ](newTechnique : Boolean, val schema : T) extends LiftApiModule {
+
     val restExtractor = restExtractorService
     implicit val dataName = "resources"
     def process(version: ApiVersion, path: ApiPath, techniqueInfo: (String,String), req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
 
-      val resourcesPath = s"techniques/ncf_techniques/${techniqueInfo._1}/${techniqueInfo._2}/resources"
+      val (resourcesPath,action) = if (newTechnique)
+        (s"workspace/${techniqueInfo._1}/${techniqueInfo._2}/resources", "newTechniqueResources")
+                                 else
+        (s"techniques/ncf_techniques/${techniqueInfo._1}/${techniqueInfo._2}/resources", "techniqueResources")
 
       val resourceDir = File(s"/var/rudder/configuration-repository/${resourcesPath}")
 
       def getAllFiles (file : File):List[String]  = {
         if (file.exists) {
           if (file.isRegularFile) {
-            logger.info(file.name)
             resourceDir.relativize(file).toString :: Nil
           } else {
             file.children.toList.flatMap(getAllFiles)
@@ -156,7 +162,7 @@ class NcfApi(
         }
       }
 
-      resp(getRessourcesStatus.toBox, req, "Could not get resource state of technique")("techniqueResources")
+      resp(getRessourcesStatus.toBox, req, "Could not get resource state of technique")("action")
     }
   }
 
@@ -233,6 +239,25 @@ class NcfApi(
 
 
   object CreateTechnique extends LiftApiModule0 {
+
+    def moveRessources(technique : Technique, internalId : String) = {
+      val workspacePath =      s"workspace/${internalId}/${technique.version.value}/resources"
+      val finalPath =  s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/resources"
+
+      val workspaceDir = File(s"/var/rudder/configuration-repository/${workspacePath}")
+      val finalDir = File(s"/var/rudder/configuration-repository/${finalPath}")
+
+      IOResult.effect("Error when moving resource file from workspace to final destination") (
+        if (workspaceDir.exists) {
+          finalDir.createDirectoryIfNotExists(true)
+          workspaceDir.moveTo(finalDir)(File.CopyOptions.apply(true))
+          workspaceDir.parent.parent.delete()
+          "ok"
+        } else {
+          "ok"
+        } )
+    }
+
     val schema = API.CreateTechnique
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -243,10 +268,13 @@ class NcfApi(
           methods   <- restExtractor.extractGenericMethod(json \ "methods")
           methodMap = methods.map(m => (m.id,m)).toMap
           technique <- restExtractor.extractNcfTechnique(json \ "technique", methodMap, true)
+          internalId <- CompleteJson.extractJsonString(json \ "technique", "internalId")
+          resoucesMoved <- moveRessources(technique,internalId).toBox
           allDone   <- techniqueWriter.writeTechniqueAndUpdateLib(technique, methodMap, modId, authzToken.actor).toBox
         } yield {
           json
         }
+
       val wrapper : ActionType = {
         case _ => response
       }
