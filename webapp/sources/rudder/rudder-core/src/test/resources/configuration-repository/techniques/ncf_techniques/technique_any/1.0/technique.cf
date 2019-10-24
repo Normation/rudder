@@ -6,7 +6,7 @@
 bundle agent technique_any(version)
 {
   vars:
-    "resources_dir" string => "${this.promise_dir}/resources";
+    "resources_dir" string => "${this.promise_dirname}/resources";
   methods:
     "Test component$&é)à\'\"_${report_data.directive_id}_0" usebundle => _method_reporting_context("Test component$&é)à\'\"", "${node.properties[apache_package_name]}"),
                                                                    if => concat("any");
