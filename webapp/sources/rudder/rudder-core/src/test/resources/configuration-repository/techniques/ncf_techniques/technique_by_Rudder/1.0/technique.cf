@@ -6,7 +6,7 @@
 bundle agent technique_by_Rudder(technique_parameter)
 {
   vars:
-    "resources_dir" string => "${this.promise_dir}/resources";
+    "resources_dir" string => "${this.promise_dirname}/resources";
   methods:
     "Customized component_${report_data.directive_id}_0" usebundle => _method_reporting_context("Customized component", "${node.properties[apache_package_name]}"),
                                                                 if => concat("any");
