@@ -192,6 +192,10 @@ object NcfApi extends ApiModuleProvider[NcfApi] {
     val description = "Get currently deployed resources of a technique"
     val (action, path)  = GET / "techniques" / "{techniqueId}" / "{techniqueVersion}" / "resources"
   }
+  final case object GetNewResources extends NcfApi with TwoParam with StartsAtVersion15 with SortIndex { val z = implicitly[Line].value
+    val description = "Get ressources of a new technique"
+    val (action, path)  = GET / "techniques" / "{techniqueId}" / "new" / "{techniqueVersion}" / "resources"
+  }
   final case object ParameterCheck extends NcfApi with ZeroParam with StartsAtVersion15 with SortIndex { val z = implicitly[Line].value
     val description = "Get currently deployed resources of a technique"
     val (action, path)  = POST / "techniques" / "parameter" / "check"

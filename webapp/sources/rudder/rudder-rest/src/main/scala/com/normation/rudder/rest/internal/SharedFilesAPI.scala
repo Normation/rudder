@@ -258,7 +258,7 @@ class SharedFilesAPI(
         case Full(response) =>
           response
         case eb : EmptyBox =>
-          val fail = eb ?~! s"An error occured while looking into directory"
+          val fail = eb ?~! s"An error occurred while looking into directory"
           logger.error(fail.messageChain)
           errorResponse(fail.messageChain)
       }
@@ -365,7 +365,7 @@ class SharedFilesAPI(
       case Full (response) =>
       response
       case eb: EmptyBox =>
-      val fail = eb ?~! s"An error occured while looking into directory"
+      val fail = eb ?~! s"An error occurred while looking into directory"
       logger.error (fail.messageChain)
       errorResponse (fail.messageChain)
       }
@@ -378,15 +378,24 @@ class SharedFilesAPI(
     new PartialFunction[Req, () => Box[LiftResponse]] {
       def isDefinedAt(req: Req): Boolean = {
         req.path.partPath match {
+          case techniqueId :: "new" :: techniqueVersion :: _ =>
+            val path = File(s"/var/rudder/configuration-repository/workspace/${techniqueId}/${techniqueVersion}/resources")
+            val pf = requestDispatch(path)
+            pf.isDefinedAt(req.withNewPath(req.path.drop(3)))
           case techniqueId :: techniqueVersion :: _ =>
             val path = File(s"/var/rudder/configuration-repository/techniques/ncf_techniques/${techniqueId}/${techniqueVersion}/resources")
             val pf = requestDispatch(path)
-                         pf.isDefinedAt(req.withNewPath(req.path.drop(3)))
+            pf.isDefinedAt(req.withNewPath(req.path.drop(3)))
           case _ => false
         }
       }
       def apply(req: Req): () => Box[LiftResponse] =
         req.path.partPath match {
+          case techniqueId :: "new" :: techniqueVersion  :: _ =>
+            val path = File(s"/var/rudder/configuration-repository/workspace/${techniqueId}/${techniqueVersion}/resources")
+            path.createIfNotExists(true,true)
+            val pf = requestDispatch(path)
+            pf.apply(req.withNewPath(req.path.drop(3)))
           case techniqueId :: techniqueVersion  :: _ =>
             val path = File(s"/var/rudder/configuration-repository/techniques/ncf_techniques/${techniqueId}/${techniqueVersion}/resources")
             path.createIfNotExists(true,true)
