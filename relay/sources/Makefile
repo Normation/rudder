@@ -90,6 +90,7 @@ install: build
 	mkdir -p $(DESTDIR)/var/rudder/inventories/incoming
 	mkdir -p $(DESTDIR)/var/rudder/inventories/accepted-nodes-updates
 	mkdir -p $(DESTDIR)/var/rudder/lib/ssl
+	mkdir -p $(DESTDIR)/var/rudder/lib/relay
 	mkdir -p $(DESTDIR)/var/rudder/reports/incoming
 	mkdir -p $(DESTDIR)/var/rudder/reports/failed
 	mkdir -p $(DESTDIR)/var/rudder/shared-files
