@@ -1,23 +1,20 @@
 <nav class="navbar navbar-inverse">
     <div class="container-fluid">
         <div class="row">
-            <div class="col-sm-9 col-md-10 hidden-xs">
+            <div class="col-sm-9 col-md-9 hidden-xs">
                 <div ng-show="!config.breadcrumb">
                     <a class="navbar-brand hidden-xs ng-binding" href="">angular-{{"filemanager" | translate}}</a>
                 </div>
                 <div ng-include="config.tplPath + '/current-folder-breadcrumb.html'" ng-show="config.breadcrumb">
                 </div>
             </div>
-            <div class="col-sm-3 col-md-2">
+            <div class="col-sm-3 col-md-3">
                 <div class="navbar-collapse">
                     <div class="navbar-form navbar-right text-right">
-                        <div class="pull-left visible-xs" ng-if="fileNavigator.currentPath.length">
-                            <button class="btn btn-primary btn-flat" ng-click="fileNavigator.upDir()">
+                        <div class="btn-group">
+                            <button class="btn btn-flat"  ng-if="fileNavigator.currentPath.length" ng-click="fileNavigator.upDir()">
                                 <i class="glyphicon glyphicon-chevron-left"></i>
                             </button>
-                            {{fileNavigator.getCurrentFolderName() | strLimit : 12}}
-                        </div>
-                        <div class="btn-group">
                             <button class="btn btn-flat btn-sm dropdown-toggle" type="button" id="dropDownMenuSearch" data-toggle="dropdown" aria-expanded="true">
                                 <i class="glyphicon glyphicon-search mr2"></i>
                             </button>

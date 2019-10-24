@@ -235,7 +235,7 @@
 
 .modal .modal-header {
   border-radius: 4px 4px 0 0;
-  background: #2196F3;
+  background: #f08004;
   padding: 1.3em;
   align-items: center;
 }
@@ -341,7 +341,7 @@ textarea.code {
 }
 
 
-.nav-sidebar> li > a:hover, 
+.nav-sidebar> li > a:hover,
 .nav-sidebar> li > a:focus {
   background: none;
   color: #1378b9;
@@ -486,7 +486,7 @@ textarea.code {
 .dropdown-menu.dropdown-right-click {
   display: block;
   position: static;
-  margin-bottom: 5px; 
+  margin-bottom: 5px;
 }
 
 .dropdown-menu.dropdown-right-click .divider {
@@ -672,6 +672,7 @@ table th > a:focus {
 .breadcrumb>.active,
 .breadcrumb a {
   color: #fff;
+  font-weight: 700;
 }
 
 .breadcrumb>li+li:before {

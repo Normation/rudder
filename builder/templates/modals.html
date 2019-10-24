@@ -1,4 +1,4 @@
-<div class="modal animated fadeIn" id="imagepreview">
+<div class="modal animated fadeIn filemanager-container" id="imagepreview">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
@@ -22,10 +22,9 @@
   </div>
 </div>
 
-<div class="modal animated fadeIn" id="remove">
+<div class="modal animated fadeIn filemanager-container" id="remove">
   <div class="modal-dialog">
     <div class="modal-content">
-    <form ng-submit="remove()">
       <div class="modal-header">
         <h4 class="modal-title">{{"confirm" | translate}}</h4>
         <button type="button" class="close" data-dismiss="modal">
@@ -40,17 +39,15 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal" ng-disabled="apiMiddleware.apiHandler.inprocess">{{"cancel" | translate}}</button>
-        <button type="submit" class="btn btn-primary" ng-disabled="apiMiddleware.apiHandler.inprocess" autofocus="autofocus">{{"remove" | translate}}</button>
+        <button type="button" ng-click="remove()" class="btn btn-primary" ng-disabled="apiMiddleware.apiHandler.inprocess" autofocus="autofocus">{{"remove" | translate}}</button>
       </div>
-      </form>
     </div>
   </div>
 </div>
 
-<div class="modal animated fadeIn" id="move">
+<div class="modal animated fadeIn filemanager-container" id="move">
   <div class="modal-dialog">
     <div class="modal-content">
-        <form ng-submit="move()">
             <div class="modal-header">
               <h4 class="modal-title">{{'move' | translate}}</h4>
               <button type="button" class="close" data-dismiss="modal">
@@ -64,18 +61,16 @@
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-default" data-dismiss="modal" ng-disabled="apiMiddleware.apiHandler.inprocess">{{"cancel" | translate}}</button>
-              <button type="submit" class="btn btn-primary" ng-disabled="apiMiddleware.apiHandler.inprocess">{{'move' | translate}}</button>
+              <button type="button" ng-click="move()" class="btn btn-primary" ng-disabled="apiMiddleware.apiHandler.inprocess">{{'move' | translate}}</button>
             </div>
-        </form>
     </div>
   </div>
 </div>
 
 
-<div class="modal animated fadeIn" id="rename">
+<div class="modal animated fadeIn  filemanager-container" id="rename">
   <div class="modal-dialog">
     <div class="modal-content">
-        <form ng-submit="rename()">
             <div class="modal-header">
               <h4 class="modal-title">{{'rename' | translate}}</h4>
               <button type="button" class="close" data-dismiss="modal">
@@ -91,17 +86,15 @@
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-default" data-dismiss="modal" ng-disabled="apiMiddleware.apiHandler.inprocess">{{"cancel" | translate}}</button>
-              <button type="submit" class="btn btn-primary" ng-disabled="apiMiddleware.apiHandler.inprocess">{{'rename' | translate}}</button>
+              <button type="button" ng-click="rename()" class="btn btn-primary" ng-disabled="apiMiddleware.apiHandler.inprocess">{{'rename' | translate}}</button>
             </div>
-        </form>
     </div>
   </div>
 </div>
 
-<div class="modal animated fadeIn" id="copy">
+<div class="modal animated fadeIn  filemanager-container" id="copy">
   <div class="modal-dialog">
     <div class="modal-content">
-        <form ng-submit="copy()">
             <div class="modal-header">
               <h4 class="modal-title">{{'copy_file' | translate}}</h4>
               <button type="button" class="close" data-dismiss="modal">
@@ -120,17 +113,15 @@
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-default" data-dismiss="modal" ng-disabled="apiMiddleware.apiHandler.inprocess">{{"cancel" | translate}}</button>
-              <button type="submit" class="btn btn-primary" ng-disabled="apiMiddleware.apiHandler.inprocess">{{"copy" | translate}}</button>
+              <button type="button" ng-click="copy()" class="btn btn-primary" ng-disabled="apiMiddleware.apiHandler.inprocess">{{"copy" | translate}}</button>
             </div>
-        </form>
     </div>
   </div>
 </div>
 
-<div class="modal animated fadeIn" id="compress">
+<div class="modal animated fadeIn filemanager-container" id="compress">
   <div class="modal-dialog">
     <div class="modal-content">
-        <form ng-submit="compress()">
             <div class="modal-header">
               <h4 class="modal-title">{{'compress' | translate}}</h4>
               <button type="button" class="close" data-dismiss="modal">
@@ -163,18 +154,16 @@
               </div>
               <div ng-hide="apiMiddleware.apiHandler.asyncSuccess">
                   <button type="button" class="btn btn-default" data-dismiss="modal" ng-disabled="apiMiddleware.apiHandler.inprocess">{{"cancel" | translate}}</button>
-                  <button type="submit" class="btn btn-primary" ng-disabled="apiMiddleware.apiHandler.inprocess">{{'compress' | translate}}</button>
+                  <button type="button" ng-click="compress()" class="btn btn-primary" ng-disabled="apiMiddleware.apiHandler.inprocess">{{'compress' | translate}}</button>
               </div>
             </div>
-        </form>
     </div>
   </div>
 </div>
 
-<div class="modal animated fadeIn" id="extract" ng-init="singleSelection().emptyName()">
+<div class="modal animated fadeIn filemanager-container" id="extract" ng-init="singleSelection().emptyName()">
   <div class="modal-dialog">
     <div class="modal-content">
-        <form ng-submit="extract()">
             <div class="modal-header">
               <h4 class="modal-title">{{'extract_item' | translate}}</h4>
               <button type="button" class="close" data-dismiss="modal">
@@ -198,18 +187,16 @@
               </div>
               <div ng-hide="apiMiddleware.apiHandler.asyncSuccess">
                   <button type="button" class="btn btn-default" data-dismiss="modal" ng-disabled="apiMiddleware.apiHandler.inprocess">{{"cancel" | translate}}</button>
-                  <button type="submit" class="btn btn-primary" ng-disabled="apiMiddleware.apiHandler.inprocess">{{'extract' | translate}}</button>
+                  <button type="submit" ng-click="extract()" class="btn btn-primary" ng-disabled="apiMiddleware.apiHandler.inprocess">{{'extract' | translate}}</button>
               </div>
             </div>
-        </form>
     </div>
   </div>
 </div>
 
-<div class="modal animated fadeIn" id="edit" ng-class="{'modal-fullscreen': fullscreen}">
+<div class="modal animated fadeIn filemanager-container" id="edit" ng-class="{'modal-fullscreen': fullscreen}">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
-        <form ng-submit="edit()">
             <div class="modal-header">
               <h4 class="modal-title">{{'edit_file' | translate}}</h4>
               <button type="button" class="close fullscreen" ng-click="fullscreen=!fullscreen">
@@ -229,17 +216,15 @@
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-default" data-dismiss="modal" ng-disabled="apiMiddleware.apiHandler.inprocess">{{'close' | translate}}</button>
-              <button type="submit" class="btn btn-primary" ng-show="config.allowedActions.edit" ng-disabled="apiMiddleware.apiHandler.inprocess">{{'save' | translate}}</button>
+              <button type="button" ng-click="edit()" class="btn btn-primary" ng-show="config.allowedActions.edit" ng-disabled="apiMiddleware.apiHandler.inprocess">{{'save' | translate}}</button>
             </div>
-        </form>
     </div>
   </div>
 </div>
 
-<div class="modal animated fadeIn" id="newfolder">
+<div class="modal animated fadeIn filemanager-container" id="newfolder">
   <div class="modal-dialog">
     <div class="modal-content">
-        <form ng-submit="createFolder()">
             <div class="modal-header">
               <h4 class="modal-title">{{'new_folder' | translate}}</h4>
               <button type="button" class="close" data-dismiss="modal">
@@ -254,17 +239,15 @@
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-default" data-dismiss="modal" ng-disabled="apiMiddleware.apiHandler.inprocess">{{"cancel" | translate}}</button>
-              <button type="submit" class="btn btn-primary" ng-disabled="apiMiddleware.apiHandler.inprocess">{{'create' | translate}}</button>
+              <button type="submit" ng-click="createFolder()" class="btn btn-primary" ng-disabled="apiMiddleware.apiHandler.inprocess">{{'create' | translate}}</button>
             </div>
-        </form>
     </div>
   </div>
 </div>
 
-<div class="modal animated fadeIn" id="uploadfile">
+<div class="modal animated fadeIn filemanager-container" id="uploadfile">
   <div class="modal-dialog">
     <div class="modal-content">
-        <form>
             <div class="modal-header">
               <h4 class="modal-title">{{"upload_files" | translate}}</h4>
               <button type="button" class="close" data-dismiss="modal">
@@ -274,13 +257,13 @@
             </div>
             <div class="modal-body">
               <label class="radio">
-                {{"files_will_uploaded_to" | translate}} 
+                {{"files_will_uploaded_to" | translate}}
                 <b>/{{fileNavigator.currentPath.join('/')}}</b>
               </label>
               <button class="btn btn-default btn-block mt-2" ngf-select="$parent.addForUpload($files)" ngf-multiple="true">
                 {{"select_files" | translate}}
               </button>
-              
+
               <div class="upload-list">
                 <ul class="list-group">
                   <li class="list-group-item" ng-repeat="(index, uploadFile) in $parent.uploadFileList">
@@ -308,15 +291,13 @@
                   <button type="submit" class="btn btn-primary" ng-disabled="!$parent.uploadFileList.length || apiMiddleware.apiHandler.inprocess" ng-click="uploadFiles()">{{'upload' | translate}}</button>
               </div>
             </div>
-        </form>
     </div>
   </div>
 </div>
 
-<div class="modal animated fadeIn" id="changepermissions">
+<div class="modal animated fadeIn filemanager-container" id="changepermissions">
   <div class="modal-dialog">
     <div class="modal-content">
-        <form ng-submit="changePermissions()">
             <div class="modal-header">
               <h4 class="modal-title">{{'change_permissions' | translate}}</h4>
               <button type="button" class="close" data-dismiss="modal">
@@ -352,13 +333,13 @@
               </div>
               <div class="clearfix mt10">
                   <span class="label label-primary pull-left" ng-hide="temp.multiple">
-                    {{'original' | translate}}: 
-                    {{temp.model.perms.toCode(selectionHas('dir') ? 'd':'-')}} 
+                    {{'original' | translate}}:
+                    {{temp.model.perms.toCode(selectionHas('dir') ? 'd':'-')}}
                     ({{temp.model.perms.toOctal()}})
                   </span>
                   <span class="label label-primary pull-right">
-                    {{'changes' | translate}}: 
-                    {{temp.tempModel.perms.toCode(selectionHas('dir') ? 'd':'-')}} 
+                    {{'changes' | translate}}:
+                    {{temp.tempModel.perms.toCode(selectionHas('dir') ? 'd':'-')}}
                     ({{temp.tempModel.perms.toOctal()}})
                   </span>
               </div>
@@ -366,14 +347,13 @@
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-default" data-dismiss="modal">{{"cancel" | translate}}</button>
-              <button type="submit" class="btn btn-primary" ng-disabled="">{{'change' | translate}}</button>
+              <button type="button" ng-click="changePermissions()" class="btn btn-primary" ng-disabled="">{{'change' | translate}}</button>
             </div>
-        </form>
     </div>
   </div>
 </div>
 
-<div class="modal animated fadeIn" id="selector" ng-controller="ModalFileManagerCtrl">
+<div class="modal animated fadeIn filemanager-container" id="selector" ng-controller="ModalFileManagerCtrl">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">

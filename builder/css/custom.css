@@ -460,7 +460,8 @@ ul.tabs-list > li > .badge.empty{
   color: rgba(255,255,255, 1) !important;
 }
 .filemanager-container .breadcrumb > li > a{
-  color: rgba(255,255,255, .7) !important;
+  color: rgba(255,255,255, 1) !important;
+  margin-right: 5px;
 }
 .filemanager-container .navbar-inverse .navbar-form input[type=text] {
   margin: 0px !important;
