@@ -38,7 +38,7 @@ use std::{
     path::Path,
     str::FromStr,
 };
-use tracing::{info, trace, warn};
+use tracing::{error, info, trace, warn};
 
 pub type NodeId = String;
 pub type Host = String;
@@ -136,7 +136,7 @@ impl NodesList {
     pub fn counts(&self) -> NodeCounts {
         NodeCounts {
             sub_nodes: self.list.data.len(),
-            managed_nodes: self.neighbors().len(),
+            managed_nodes: self.my_neighbors().len(),
         }
     }
 
@@ -144,6 +144,14 @@ impl NodesList {
     /// node presence.
     pub fn is_subnode(&self, id: &str) -> bool {
         self.list.data.get(id).is_some()
+    }
+
+    pub fn is_my_neighbor(&self, id: &str) -> Result<bool, ()> {
+        self.list
+            .data
+            .get(id)
+            .ok_or(())
+            .map(|n| n.policy_server == self.my_id)
     }
 
     pub fn key_hash(&self, id: &str) -> Option<KeyHash> {
@@ -173,22 +181,27 @@ impl NodesList {
             .to_string())
     }
 
-    fn next_hop(&self, node_id: &str) -> Option<Host> {
+    /// Some(Next hop) if any, None if directly connected, error if not found
+    fn next_hop(&self, node_id: &str) -> Result<Option<NodeId>, ()> {
         // nodeslist should not contain loops but just in case
         // 20 levels of relays should be more than enough
         const MAX_RELAY_LEVELS: u8 = 20;
 
+        if self.is_my_neighbor(node_id)? {
+            return Ok(None);
+        }
+
         let mut current_id = node_id;
-        let mut current = self.list.data.get(current_id)?;
-        let mut next_hop: Option<NodeId> = None;
+        let mut current = self.list.data.get(current_id).ok_or(())?;
+        let mut next_hop = Err(());
 
         for level in 0..MAX_RELAY_LEVELS {
             if current.policy_server == self.my_id {
-                next_hop = Some(current_id.to_string());
+                next_hop = Ok(Some(current_id.to_string()));
                 break;
             }
             current_id = &current.policy_server;
-            current = self.list.data.get(current_id)?;
+            current = self.list.data.get(current_id).ok_or(())?;
 
             if level == MAX_RELAY_LEVELS {
                 warn!(
@@ -203,7 +216,7 @@ impl NodesList {
 
     // NOTE: Following methods could be made faster by pre-computing a graph in cache
 
-    pub fn neighbors(&self) -> Vec<Host> {
+    pub fn my_neighbors(&self) -> Vec<Host> {
         self.list
             .data
             .values()
@@ -212,16 +225,20 @@ impl NodesList {
             .collect()
     }
 
-    pub fn neighbors_from(&self, nodes: &[String]) -> Vec<Host> {
+    pub fn neighbors_from(&self, server: &NodeId, nodes: &[NodeId]) -> Vec<Host> {
         nodes
             .iter()
             .filter_map(|n| self.list.data.get::<str>(n))
-            .filter(|n| n.policy_server == self.my_id)
+            .filter(|n| &n.policy_server == server)
             .map(|n| n.hostname.clone())
             .collect()
     }
 
-    pub fn sub_relays(&self) -> Vec<Host> {
+    pub fn my_neighbors_from(&self, nodes: &[NodeId]) -> Vec<Host> {
+        self.neighbors_from(&self.my_id, nodes)
+    }
+
+    pub fn my_sub_relays(&self) -> Vec<Host> {
         let mut relays = HashSet::new();
         for policy_server in self
             .list
@@ -236,21 +253,33 @@ impl NodesList {
         relays.into_iter().collect()
     }
 
-    pub fn sub_relays_from(&self, nodes: &[String]) -> Vec<Host> {
-        let mut relays = HashSet::new();
-        for relay in nodes
-            .iter()
-            .filter_map(|n| self.next_hop(n))
-            .filter(|n| n != &self.my_id)
-        {
-            let _ = relays.insert(
-                self.list
+    /// Relays to contact to trigger given nodes, with the matching nodes
+    /// Logs and ignores unknown nodes
+    pub fn my_sub_relays_from(&self, nodes: &[NodeId]) -> Vec<(Host, Vec<NodeId>)> {
+        let mut relays: HashMap<Host, Vec<NodeId>> = HashMap::new();
+        for node in nodes.iter() {
+            let hostname = match self.next_hop(node) {
+                Ok(Some(ref next_hop)) => self
+                    .list
                     .data
-                    .get::<str>(&relay)
+                    .get::<str>(next_hop)
                     .map(|n| n.hostname.clone())
+                    // We are sure it is there at this point
                     .unwrap(),
-            );
+                Ok(None) => continue,
+                Err(()) => {
+                    error!("Unknown node {}", node);
+                    continue;
+                }
+            };
+
+            if let Some(nodes) = relays.get_mut(&hostname) {
+                nodes.push(node.clone());
+            } else {
+                relays.insert(hostname, vec![node.clone()]);
+            }
         }
+
         relays.into_iter().collect()
     }
 }
@@ -331,6 +360,42 @@ mod tests {
     }
 
     #[test]
+    fn if_gets_subrelays() {
+        assert!(
+            NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
+                .unwrap()
+                .is_subnode("37817c4d-fbf7-4850-a985-50021f4e8f41")
+        );
+        assert!(
+            !NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
+                .unwrap()
+                .is_subnode("unknown")
+        );
+    }
+
+    #[test]
+    fn if_gets_my_neighbors() {
+        assert!(
+            NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
+                .unwrap()
+                .is_my_neighbor("37817c4d-fbf7-4850-a985-50021f4e8f41")
+                .unwrap()
+        );
+        assert!(
+            !NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
+                .unwrap()
+                .is_my_neighbor("b745a140-40bc-4b86-b6dc-084488fc906b")
+                .unwrap()
+        );
+        assert!(
+            NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
+                .unwrap()
+                .is_my_neighbor("unknown")
+                .is_err()
+        );
+    }
+
+    #[test]
     fn it_filters_neighbors() {
         let mut reference = vec![
             "node1.rudder.local",
@@ -341,7 +406,7 @@ mod tests {
 
         let mut actual = NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
             .unwrap()
-            .neighbors();
+            .my_neighbors();
         actual.sort();
 
         assert_eq!(reference, actual);
@@ -358,7 +423,7 @@ mod tests {
 
         let mut actual = NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
             .unwrap()
-            .neighbors();
+            .my_neighbors();
         actual.sort();
 
         assert_eq!(reference, actual);
@@ -375,7 +440,7 @@ mod tests {
 
         let mut actual = NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
             .unwrap()
-            .sub_relays();
+            .my_sub_relays();
         actual.sort();
 
         assert_eq!(reference, actual);
@@ -383,12 +448,18 @@ mod tests {
 
     #[test]
     fn it_filters_sub_relays() {
-        let mut reference = vec!["node1.rudder.local", "node2.rudder.local"];
+        let mut reference = vec![(
+            "node1.rudder.local".to_string(),
+            vec![
+                "b745a140-40bc-4b86-b6dc-084488fc906b".to_string(),
+                "a745a140-40bc-4b86-b6dc-084488fc906b".to_string(),
+            ],
+        )];
         reference.sort();
 
         let mut actual = NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
             .unwrap()
-            .sub_relays_from(&[
+            .my_sub_relays_from(&[
                 "b745a140-40bc-4b86-b6dc-084488fc906b".to_string(),
                 "a745a140-40bc-4b86-b6dc-084488fc906b".to_string(),
                 "root".to_string(),

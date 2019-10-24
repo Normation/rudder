@@ -36,9 +36,46 @@ mod tests {
             .send()
             .unwrap();
         assert_eq!(response.status(), hyper::StatusCode::OK);
-        assert_eq!(response.text().unwrap(), "OK".to_string());
+        assert_eq!(response.text().unwrap(), "OK\nEND\n".to_string());
         assert_eq!(
             "remote run -D class2,class3 server.rudder.local".to_string(),
+            read_to_string("target/tmp/api_test.txt").unwrap()
+        );
+
+        let _ = remove_file("target/tmp/api_test.txt");
+        let params_async = [
+            ("asynchronous", "true"),
+            ("keep_output", "true"),
+            ("classes", "class2,class45"),
+            ("nodes", "e745a140-40bc-4b86-b6dc-084488fc906b"),
+        ];
+        let mut response = client
+            .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
+            .form(&params_async)
+            .send()
+            .unwrap();
+        assert_eq!(response.status(), hyper::StatusCode::OK);
+        assert_eq!(response.text().unwrap(), "OK\nEND\n".to_string());
+        assert_eq!(
+            "remote run -D class2,class45 node1.rudder.local".to_string(),
+            read_to_string("target/tmp/api_test.txt").unwrap()
+        );
+
+        let _ = remove_file("target/tmp/api_test.txt");
+        let params_async = [
+            ("asynchronous", "true"),
+            ("keep_output", "true"),
+            ("classes", "class2,class46"),
+        ];
+        let mut response = client
+            .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes/e745a140-40bc-4b86-b6dc-084488fc906b")
+            .form(&params_async)
+            .send()
+            .unwrap();
+        assert_eq!(response.status(), hyper::StatusCode::OK);
+        assert_eq!(response.text().unwrap(), "OK\nEND\n".to_string());
+        assert_eq!(
+            "remote run -D class2,class46 node1.rudder.local".to_string(),
             read_to_string("target/tmp/api_test.txt").unwrap()
         );
 
@@ -80,7 +117,7 @@ mod tests {
             .send()
             .unwrap();
         assert_eq!(response.status(), hyper::StatusCode::OK);
-        assert_eq!(response.text().unwrap(), "OK\n".to_string());
+        assert_eq!(response.text().unwrap(), "OK\nEND\n".to_string());
         assert_eq!(
             "remote run -D class2,class5 server.rudder.local".to_string(),
             read_to_string("target/tmp/api_test.txt").unwrap()
