@@ -34,7 +34,7 @@ use flate2::read::GzDecoder;
 use openssl::{stack::Stack, x509::X509};
 use relayd::data::node::NodesList;
 use relayd::{
-    configuration::main::DatabaseConfig,
+    configuration::{main::DatabaseConfig, Secret},
     data::{report::QueryableReport, RunInfo, RunLog},
     input::signature,
     output::database::{schema::ruddersysevents::dsl::*, *},
@@ -120,7 +120,8 @@ fn bench_uncompress_runlog(c: &mut Criterion) {
 
 pub fn db() -> PgPool {
     let db_config = DatabaseConfig {
-        url: "postgres://rudderreports:PASSWORD@127.0.0.1/rudder".to_string(),
+        url: "postgres://rudderreports@127.0.0.1/rudder".to_string(),
+        password: Secret::new("PASSWORD".to_string()),
         max_pool_size: 10,
     };
     pg_pool(&db_config).unwrap()

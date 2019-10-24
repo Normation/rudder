@@ -66,7 +66,11 @@ pub mod schema {
 pub type PgPool = Pool<ConnectionManager<PgConnection>>;
 
 pub fn pg_pool(configuration: &DatabaseConfig) -> Result<PgPool, Error> {
-    let manager = ConnectionManager::<PgConnection>::new(&configuration.url[..]);
+    let manager = ConnectionManager::<PgConnection>::new(format!(
+        "{}?password={}",
+        configuration.url,
+        configuration.password.value()
+    ));
     Ok(Pool::builder()
         .max_size(configuration.max_pool_size)
         .build(manager)?)
@@ -157,12 +161,16 @@ pub fn insert_runlog(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{data::report::QueryableReport, output::database::schema::ruddersysevents::dsl::*};
+    use crate::{
+        configuration::Secret, data::report::QueryableReport,
+        output::database::schema::ruddersysevents::dsl::*,
+    };
     use diesel;
 
     pub fn db() -> PgPool {
         let db_config = DatabaseConfig {
-            url: "postgres://rudderreports:PASSWORD@127.0.0.1/rudder".to_string(),
+            url: "postgres://rudderreports:@127.0.0.1/rudder".to_string(),
+            password: Secret::new("PASSWORD".to_string()),
             max_pool_size: 5,
         };
         pg_pool(&db_config).unwrap()
