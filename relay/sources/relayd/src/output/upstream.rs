@@ -78,7 +78,7 @@ fn forward_file(
                 ))
                 .basic_auth(
                     &job_config.cfg.output.upstream.user,
-                    Some(&job_config.cfg.output.upstream.password),
+                    Some(&job_config.cfg.output.upstream.password.value()),
                 )
                 .body(d)
                 .send()
