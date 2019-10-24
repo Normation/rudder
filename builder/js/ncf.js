@@ -306,7 +306,8 @@ function defineMethodClassContext (method_call) {
   }
 }
 function updateResources() {
-  var resourceUrl = '/rudder/secure/api/techniques/' + $scope.selectedTechnique.bundle_name +"/" + $scope.selectedTechnique.version +"/resources"
+  var urlParam= ($scope.originalTechnique.bundle_name !== undefined) ? $scope.selectedTechnique.bundle_name : $scope.selectedTechnique.internalId + "/new"
+  var resourceUrl = '/rudder/secure/api/techniques/' + urlParam +"/" + $scope.selectedTechnique.version +"/resources"
   $http.get(resourceUrl).then(
     function(response) {
       $scope.selectedTechnique.resources = response.data.data.resources;
@@ -318,7 +319,9 @@ function updateResources() {
   )
 }
 function updateFileManagerConf () {
-  var newUrl =  "/rudder/secure/api/resourceExplorer/"+ $scope.selectedTechnique.bundle_name +"/" + $scope.selectedTechnique.version
+
+  var urlParam= $scope.originalTechnique.bundle_name !== undefined ? $scope.selectedTechnique.bundle_name : $scope.selectedTechnique.internalId + "/new"
+  var newUrl =  "/rudder/secure/api/resourceExplorer/"+ urlParam +"/" + $scope.selectedTechnique.version
   updateResources()
 
   apiHandler.prototype.deferredHandler = function(data, deferred, code, defaultMsg) {
@@ -968,8 +971,8 @@ $scope.onImportFileChange = function (fileEl) {
   };
 
   // Create a new technique stub
-  var newTech = {
-      "method_calls" : []
+  function newTech() {
+    return { "method_calls" : []
     , "name"         : ""
     , "description"  : ""
     , "version"      : "1.0"
@@ -977,11 +980,13 @@ $scope.onImportFileChange = function (fileEl) {
     , "bundle_args"  : []
     , "parameter"    : []
     , "resources"    : []
-  };
+    , "internalId"   : uuidv4()
+    };
+  }
 
   $scope.newTechnique = function() {
     if($scope.selectedTechnique === undefined || $scope.selectedTechnique.bundle_name){
-      $scope.checkSelect(newTech, $scope.selectTechnique);
+      $scope.checkSelect(newTech(), $scope.selectTechnique);
     }else{
       $scope.selectedTechnique = newTech
     }
@@ -1312,7 +1317,7 @@ $scope.onImportFileChange = function (fileEl) {
         $scope.ui.selectedMethods = [];
       }
 
-      updateResources();
+      updateFileManagerConf()
       $scope.resetFlags();
     }
 
@@ -1566,4 +1571,11 @@ app.config(['fileManagerConfigProvider', function (config) {
     })
   });
 }]);
+
+// From https://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript
+function uuidv4() {
+  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+  );
+}
 
