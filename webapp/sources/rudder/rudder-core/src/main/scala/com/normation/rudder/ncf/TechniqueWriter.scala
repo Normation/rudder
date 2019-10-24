@@ -497,7 +497,8 @@ class DSCTechniqueWriter(
                           translater.translateToAgent(arg, AgentType.Dsc) match {
                             case Full(dscValue) => Right((id,dscValue))
                             case eb : EmptyBox =>
-                              Left(IOError("",None))
+                              val fail = eb ?~! s"Error when translating parameter '${arg}' of technique of method ${call.methodId} of technique ${technique.name}"
+                              Left(IOError(fail.messageChain,None))
                           }
                      }).map(_.toMap)
 
@@ -505,7 +506,8 @@ class DSCTechniqueWriter(
         condition <- translater.translateToAgent(call.condition, AgentType.Dsc) match {
                        case Full(c) => Right(c)
                        case eb : EmptyBox =>
-                         Left(IOError("",None))
+                         val fail = eb ?~! s"Error when translating condition '${call.condition}' of technique of method ${call.methodId} of technique ${technique.name}"
+                         Left(IOError(fail.messageChain,None))
                      }
 
         methodParams =
