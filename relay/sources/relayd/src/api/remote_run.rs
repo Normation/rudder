@@ -340,6 +340,8 @@ impl RunParameters {
     }
 
     pub fn command(&self, cfg: &RemoteRunCfg, nodes: Vec<String>) -> Command {
+        assert!(!nodes.is_empty());
+
         let mut cmd = if cfg.use_sudo {
             let mut tmp = Command::new("sudo");
             tmp.arg(&cfg.command);
@@ -371,6 +373,12 @@ impl RunParameters {
         asynchronous: bool,
     ) -> Box<dyn Stream<Item = Chunk, Error = Error> + Send + 'static> {
         trace!("Starting local remote run on {:#?} with {:#?}", nodes, cfg);
+
+        if nodes.is_empty() {
+            debug!("No nodes to trigger locally, skipping");
+            return Box::new(futures::stream::empty());
+        }
+
         let mut cmd = self.command(cfg, nodes);
         cmd.stdout(Stdio::piped());
 
