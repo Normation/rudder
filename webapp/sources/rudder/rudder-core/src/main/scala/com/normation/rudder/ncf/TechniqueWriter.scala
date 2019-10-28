@@ -378,11 +378,11 @@ class ClassicTechniqueWriter(basePath : String) extends AgentSpecificTechniqueWr
           promiser = s"dummy_report_${index}"
         } yield {
           def naReport(condition : String, message : String) = {
-            s"""    "${promiser}" usebundle => _classes_noop(canonify("${classPrefix}"))
+            s"""    "${promiser}" usebundle => _classes_noop(canonify("${classPrefix}")),
                |     ${promiser.map(_ => ' ')}     unless => ${condition};
-               |    "${promiser}" usebundle => ${reportingContext(method, classParameterValue)}
+               |    "${promiser}" usebundle => ${reportingContext(method, classParameterValue)},
                |     ${promiser.map(_ => ' ')}     unless => ${condition};
-               |    "${promiser}" usebundle => log_rudder("${message}", "${escapedClassParameterValue}", canonify("${classPrefix}"), canonify("${classPrefix}"), @{args})
+               |    "${promiser}" usebundle => log_rudder("${message}", "${escapedClassParameterValue}", canonify("${classPrefix}"), canonify("${classPrefix}"), @{args}),
                |     ${promiser.map(_ => ' ')}     unless => ${condition};""".stripMargin('|')
           }
 
