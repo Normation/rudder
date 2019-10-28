@@ -52,7 +52,9 @@ enum OutputError {
 impl From<Error> for OutputError {
     fn from(err: Error) -> Self {
         match err {
-            Error::Database(_) | Error::DatabaseConnection(_) => OutputError::Transient,
+            Error::Database(_) | Error::DatabaseConnection(_) | Error::HttpClient(_) => {
+                OutputError::Transient
+            }
             _ => OutputError::Permanent,
         }
     }
