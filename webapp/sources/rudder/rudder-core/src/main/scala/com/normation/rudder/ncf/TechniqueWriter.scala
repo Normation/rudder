@@ -396,7 +396,7 @@ class ClassicTechniqueWriter(basePath : String) extends AgentSpecificTechniqueWr
            // ... or if the condition needs rudder_reporting
            if (methodNeedReporting(method)) {
              val message =  s"""Skipping method '${method_info.name}' with key parameter '${escapedClassParameterValue}' since condition '${method.condition}' is not reached"""
-             val condition = s"""concat("${canonifyCondition(method)}")""""
+             val condition = s"""concat("${canonifyCondition(method)}")"""
              Some((condition,message))
            } else {
              None
