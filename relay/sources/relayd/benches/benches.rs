@@ -74,7 +74,7 @@ fn bench_nodeslist_certs(c: &mut Criterion) {
 
 fn bench_parse_runlog(c: &mut Criterion) {
     let runlog = read_to_string(
-        "tests/runlogs/2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log",
+        "tests/files/runlogs/2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log",
     )
     .unwrap();
     let info =
@@ -86,10 +86,10 @@ fn bench_parse_runlog(c: &mut Criterion) {
 }
 
 fn bench_signature_runlog(c: &mut Criterion) {
-    let data = read("tests/test_smime/normal.signed").unwrap();
+    let data = read("tests/files/smime/normal.signed").unwrap();
 
     let x509 = X509::from_pem(
-        read_to_string("tests/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert")
+        read_to_string("tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert")
             .unwrap()
             .as_bytes(),
     )
@@ -107,7 +107,7 @@ fn bench_signature_runlog(c: &mut Criterion) {
 // Allows comparing gzip implementations
 fn bench_uncompress_runlog(c: &mut Criterion) {
     // same as in input.rs
-    let data = read("tests/test_gz/normal.log.gz").unwrap();
+    let data = read("tests/files/gz/normal.log.gz").unwrap();
     c.bench_function("uncompress runlog", move |b| {
         b.iter(|| {
             let mut gz = GzDecoder::new(data.as_slice());
@@ -139,7 +139,7 @@ fn bench_insert_runlog(c: &mut Criterion) {
     assert_eq!(results.len(), 0);
 
     let runlog = RunLog::new(
-        "tests/runlogs/2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log",
+        "tests/files/runlogs/2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log",
     )
     .unwrap();
 

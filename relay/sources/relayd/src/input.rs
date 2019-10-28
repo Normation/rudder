@@ -110,18 +110,18 @@ mod tests {
 
     #[test]
     fn it_reads_gzipped_files() {
-        let reference = read("tests/test_gz/normal.log").unwrap();
+        let reference = read("tests/files/gz/normal.log").unwrap();
         assert_eq!(
-            read_compressed_file("tests/test_gz/normal.log.gz").unwrap(),
+            read_compressed_file("tests/files/gz/normal.log.gz").unwrap(),
             reference
         );
     }
 
     #[test]
     fn it_reads_plain_files() {
-        let reference = read("tests/test_gz/normal.log").unwrap();
+        let reference = read("tests/files/gz/normal.log").unwrap();
         assert_eq!(
-            read_compressed_file("tests/test_gz/normal.log").unwrap(),
+            read_compressed_file("tests/files/gz/normal.log").unwrap(),
             reference
         );
     }
@@ -129,10 +129,10 @@ mod tests {
     #[test]
     fn it_reads_signed_content() {
         // unix2dos normal.log
-        let reference = read_to_string("tests/test_smime/normal.log").unwrap();
+        let reference = read_to_string("tests/files/smime/normal.log").unwrap();
 
         let x509 =
-            X509::from_pem(&read("tests/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert").unwrap())
+            X509::from_pem(&read("tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert").unwrap())
                 .unwrap();
 
         // Certs
@@ -143,7 +143,7 @@ mod tests {
             // openssl smime -sign -signer ../keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert
             //         -in normal.log -out normal.signed -inkey ../keys/e745a140-40bc-4b86-b6dc-084488fc906b.priv
             //         -passin "pass:Cfengine passphrase" -text -nocerts -md sha256
-            signature(&read("tests/test_smime/normal.signed").unwrap(), &certs,).unwrap(),
+            signature(&read("tests/files/smime/normal.signed").unwrap(), &certs,).unwrap(),
             reference
         );
     }
@@ -151,13 +151,13 @@ mod tests {
     #[test]
     fn it_detects_wrong_content() {
         let x509 =
-            X509::from_pem(&read("tests/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert").unwrap())
+            X509::from_pem(&read("tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert").unwrap())
                 .unwrap();
         let mut certs = Stack::new().unwrap();
         certs.push(x509).unwrap();
 
         assert!(signature(
-            &read("tests/test_smime/normal-diff.signed").unwrap(),
+            &read("tests/files/smime/normal-diff.signed").unwrap(),
             &certs,
         )
         .is_err());
@@ -166,12 +166,12 @@ mod tests {
     #[test]
     fn it_detects_wrong_certificates() {
         let x509bis = X509::from_pem(
-            &read("tests/keys/e745a140-40bc-4b86-b6dc-084488fc906b-other.cert").unwrap(),
+            &read("tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b-other.cert").unwrap(),
         )
         .unwrap();
         let mut certs = Stack::new().unwrap();
         certs.push(x509bis).unwrap();
 
-        assert!(signature(&read("tests/test_smime/normal.signed").unwrap(), &certs,).is_err());
+        assert!(signature(&read("tests/files/smime/normal.signed").unwrap(), &certs,).is_err());
     }
 }
