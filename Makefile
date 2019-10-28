@@ -29,7 +29,6 @@ localdepends:
 
 # Install ncf in DESTDIR
 install:
-	mkdir -p $(DESTDIR)
 	mkdir -p $(DESTDIR)/share/doc/ncf
 	$(CP_A) examples $(DESTDIR)/share/doc/ncf/
 	$(INSTALL) -m 644 README.md $(DESTDIR)/share/doc/ncf/
@@ -42,7 +41,6 @@ install:
 	mkdir -p $(DESTDIR)/bin
 	ln -sf ../share/ncf/ncf $(DESTDIR)/bin/ncf
 	mkdir -p $(DESTDIR)/share/man/man1
-	$(INSTALL) -m 644 doc/ncf.1 $(DESTDIR)/share/man/man1/
 
 test: test-common
 	cd tests/acceptance/ && ./testall --info
@@ -54,34 +52,6 @@ test-common:
 	[ `id | cut -d\( -f2 | cut -d\) -f1` = 'root' ] || type fakeroot 2>/dev/null || { echo "Not running as root and fakeroot not found." ; exit 1 ; }
 	cd tests/style/ && ./testall
 	cd tests/unit/ && ./testall
-
-doc: 
-	mkdir -p doc
-	ls tree/30_generic_methods/*.cf | xargs egrep -h "^\s*bundle\s+agent\s+" | sed -r "s/\s*bundle\s+agent\s+//" | sort > doc/all_generic_methods.txt
-	tools/ncf_doc.py
-	rm -f tools/ncf_doc.pyc
-	rm -f tools/ncf.pyc
-
-doc/ncf.1:
-	cd doc && a2x --doctype manpage --format manpage ncf.asciidoc
-
-html: doc
-	# To use this, run pip install pelican Markdown
-	
-	# Copy README.md and prefix it with metadata to make the site's index file
-	echo "Title: A powerful and structured CFEngine framework" > site/content/index.md
-	echo "URL: " >> site/content/index.md
-	echo "save_as: index.html" >> site/content/index.md
-	# Skip the first line (title that will be re-added by pelican)
-	tail -n+2 README.md >> site/content/index.md
-
-	# Copy reference data
-	cp doc/generic_methods.md site/content/
-	cp doc/generic_methods.html site/pelican-bootstrap3/templates/includes/
-	cd site; make html
-
-testsite: html
-	cd site; make serve
 
 clean:
 	rm -rf tests/style/.succeeded
@@ -96,9 +66,6 @@ clean:
 	rm -f tests/acceptance/test.xml
 	rm -f tests/acceptance/xml.tmp
 	rm -rf tests/acceptance/workdir/
-	rm -f doc/all_generic_methods.txt
-	rm -f doc/generic_methods.md
-	rm -f doc/ncf.1
 	find $(CURDIR) -name "*.[pP][yY][cC]" -exec rm "{}" \;
 
 distclean: clean
