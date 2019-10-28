@@ -1458,6 +1458,7 @@ object RudderConfig extends Loggable {
       , configService.rudder_generation_max_parallelism _
       , configService.rudder_generation_js_timeout _
       , configService.rudder_generation_continue_on_error _
+      , configService.rudder_backup_previous_policies _
       , HOOKS_D
       , HOOKS_IGNORE_SUFFIXES
       , UPDATED_NODE_IDS_PATH

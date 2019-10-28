@@ -307,10 +307,12 @@ trait PromiseGenerationService {
     }
 
     val generationContinueOnError = getGenerationContinueOnError().getOrElse(false)
+    val backupPoliciesAtEndOfGeneration = getBackupPreviousPolicies().getOrElse(false)
 
     PolicyLogger.debug(s"Policy generation parallelism set to: ${maxParallelism} (change with REST API settings parameter 'rudder_generation_max_parallelism')")
     PolicyLogger.debug(s"Policy generation JS evaluation of directive parameter timeout: ${jsTimeout} s (change with REST API settings parameter 'rudder_generation_jsTimeout')")
     PolicyLogger.debug(s"Policy generation continues on NodeConfigurations evaluation: ${generationContinueOnError} (change with REST API settings parameter 'rudder_generation_continue_on_error')")
+    PolicyLogger.debug(s"Previous set of policies are backuped at the end of policy generation: ${backupPoliciesAtEndOfGeneration} (change with REST API settings parameter 'rudder_backup_previous_policies')")
 
     implicit val parallelism = Parallelism(maxParallelism, Scheduler.io(executionModel = ExecutionModel.AlwaysAsyncExecution), TaskSemaphore(maxParallelism = maxParallelism))
 
@@ -418,7 +420,7 @@ trait PromiseGenerationService {
       _                     <- forgetOtherNodeConfigurationState(nodeConfigs.keySet) ?~! "Cannot clean the configuration cache"
 
       writeTime             =  System.currentTimeMillis
-      writtenNodeConfigs    <- writeNodeConfigurations(rootNodeId, updatedNodeConfigIds, nodeConfigs, allLicenses, globalPolicyMode, generationTime, parallelism) ?~!"Cannot write nodes configuration"
+      writtenNodeConfigs    <- writeNodeConfigurations(rootNodeId, updatedNodeConfigIds, nodeConfigs, allLicenses, globalPolicyMode, generationTime, parallelism, backupPoliciesAtEndOfGeneration) ?~!"Cannot write nodes configuration"
       timeWriteNodeConfig   =  (System.currentTimeMillis - writeTime)
       _                     =  PolicyLogger.debug(s"Node configuration written in ${timeWriteNodeConfig} ms, start to update expected reports.")
 
@@ -521,6 +523,7 @@ trait PromiseGenerationService {
   def getMaxParallelism      : () => Box[String]
   def getJsTimeout           : () => Box[Int]
   def getGenerationContinueOnError :() => Box[Boolean]
+  def getBackupPreviousPolicies: () => Box[Boolean]
 
   // Trigger dynamic group update
   def triggerNodeGroupUpdate(): Box[Unit]
@@ -643,6 +646,7 @@ trait PromiseGenerationService {
     , globalPolicyMode: GlobalPolicyMode
     , generationTime  : DateTime
     , parallelism     : Parallelism
+    , backupPoliciesAtEndOfGeneration : Boolean
   ) : Box[Set[NodeConfiguration]]
 
   /**
@@ -731,6 +735,7 @@ class PromiseGenerationServiceImpl (
   , override val getMaxParallelism           : () => Box[String]
   , override val getJsTimeout                : () => Box[Int]
   , override val getGenerationContinueOnError: () => Box[Boolean]
+  , override val getBackupPreviousPolicies   : () => Box[Boolean]
   , override val HOOKS_D: String
   , override val HOOKS_IGNORE_SUFFIXES: List[String]
   , override val UPDATED_NODE_IDS_PATH: String
@@ -1238,19 +1243,20 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
    * Return the list of configuration successfully written.
    */
   def writeNodeConfigurations(
-      rootNodeId      : NodeId
-    , updated         : Map[NodeId, NodeConfigId]
-    , allNodeConfigs  : Map[NodeId, NodeConfiguration]
-    , allLicenses     : Map[NodeId, CfeEnterpriseLicense]
-    , globalPolicyMode: GlobalPolicyMode
-    , generationTime  : DateTime
-    , maxParallelism  : Parallelism
+      rootNodeId                     : NodeId
+    , updated                        : Map[NodeId, NodeConfigId]
+    , allNodeConfigs                 : Map[NodeId, NodeConfiguration]
+    , allLicenses                    : Map[NodeId, CfeEnterpriseLicense]
+    , globalPolicyMode               : GlobalPolicyMode
+    , generationTime                 : DateTime
+    , maxParallelism                 : Parallelism
+    , backupPoliciesAtEndOfGeneration: Boolean
   ) : Box[Set[NodeConfiguration]] = {
 
     val fsWrite0   =  System.currentTimeMillis
 
     for {
-      written    <- promisesFileWriterService.writeTemplate(rootNodeId, updated.keySet, allNodeConfigs, updated, allLicenses, globalPolicyMode, generationTime, maxParallelism)
+      written    <- promisesFileWriterService.writeTemplate(rootNodeId, updated.keySet, allNodeConfigs, updated, allLicenses, globalPolicyMode, generationTime, maxParallelism, backupPoliciesAtEndOfGeneration)
       ldapWrite0 =  DateTime.now.getMillis
       fsWrite1   =  (ldapWrite0 - fsWrite0)
       _          =  PolicyLogger.debug(s"Node configuration written on filesystem in ${fsWrite1} ms")

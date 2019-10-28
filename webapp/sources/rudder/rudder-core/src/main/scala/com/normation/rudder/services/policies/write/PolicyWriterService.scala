@@ -97,14 +97,15 @@ trait PolicyWriterService {
    *
    */
   def writeTemplate(
-      rootNodeId    : NodeId
-    , nodesToWrite  : Set[NodeId]
-    , allNodeConfigs: Map[NodeId, NodeConfiguration]
-    , versions      : Map[NodeId, NodeConfigId]
-    , allLicenses   : Map[NodeId, CfeEnterpriseLicense]
-    , globalPolicyMode: GlobalPolicyMode
-    , generationTime  : DateTime
-    , parallelism     : Parallelism
+      rootNodeId                     : NodeId
+    , nodesToWrite                   : Set[NodeId]
+    , allNodeConfigs                 : Map[NodeId, NodeConfiguration]
+    , versions                       : Map[NodeId, NodeConfigId]
+    , allLicenses                    : Map[NodeId, CfeEnterpriseLicense]
+    , globalPolicyMode               : GlobalPolicyMode
+    , generationTime                 : DateTime
+    , parallelism                    : Parallelism
+    , backupPoliciesAtEndOfGeneration: Boolean
   ) : Box[Seq[NodeConfiguration]]
 }
 
@@ -212,14 +213,15 @@ class PolicyWriterServiceImpl(
    *
    */
   override def writeTemplate(
-      rootNodeId      : NodeId
-    , nodesToWrite    : Set[NodeId]
-    , allNodeConfigs  : Map[NodeId, NodeConfiguration]
-    , versions        : Map[NodeId, NodeConfigId]
-    , allLicenses     : Map[NodeId, CfeEnterpriseLicense]
-    , globalPolicyMode: GlobalPolicyMode
-    , generationTime  : DateTime
-    , parallelism     : Parallelism
+      rootNodeId                     : NodeId
+    , nodesToWrite                   : Set[NodeId]
+    , allNodeConfigs                 : Map[NodeId, NodeConfiguration]
+    , versions                       : Map[NodeId, NodeConfigId]
+    , allLicenses                    : Map[NodeId, CfeEnterpriseLicense]
+    , globalPolicyMode               : GlobalPolicyMode
+    , generationTime                 : DateTime
+    , parallelism                    : Parallelism
+    , backupPoliciesAtEndOfGeneration: Boolean
   ) : Box[Seq[NodeConfiguration]] = {
 
     val nodeConfigsToWrite     = allNodeConfigs.filterKeys(nodesToWrite.contains(_))
@@ -363,7 +365,7 @@ class PolicyWriterServiceImpl(
       movedPromisesTime1 = System.currentTimeMillis
       _                  = policyLogger.debug(s"Hooks for policy-generation-node-ready executed in ${movedPromisesTime1-licensesCopiedTime} ms")
 
-      movedPromises    <- tryo { movePromisesToFinalPosition(pathsInfo) }
+      movedPromises    <- tryo { movePromisesToFinalPosition(pathsInfo, backupPoliciesAtEndOfGeneration) }
 
       movedPromisesTime2 = System.currentTimeMillis
       movedPromisesDur   = movedPromisesTime2 - movedPromisesTime1
@@ -646,10 +648,11 @@ class PolicyWriterServiceImpl(
   }
 
   /**
-   * Move the generated promises from the new folder to their final folder, backuping previous promises in the way
-   * @param folder : (Container identifier, (base folder, new folder of the policies, backup folder of the policies) )
+   * Move the generated policies from the new folder to their final folder, backuping previous policies in the way
+   * if backupPoliciesAtEndOfGeneration is true, otherwise removing preivous policies
+   * folder : (Container identifier, (base folder, new folder of the policies, backup folder of the policies) )
    */
-  private[this] def movePromisesToFinalPosition(folders: Seq[NodePromisesPaths]): Seq[NodePromisesPaths] = {
+  private[this] def movePromisesToFinalPosition(folders: Seq[NodePromisesPaths], backupPoliciesAtEndOfGeneration: Boolean): Seq[NodePromisesPaths] = {
     // We need to sort the folders by "depth", so that we backup and move the deepest one first
     val sortedFolder = folders.sortBy(x => x.baseFolder.count(_ =='/')).reverse
 
@@ -658,8 +661,14 @@ class PolicyWriterServiceImpl(
       // Folders is a map of machine.uuid -> (base_machine_folder, backup_machine_folder, machine)
       for (folder @ NodePromisesPaths(_, baseFolder, newFolder, backupFolder) <- sortedFolder) {
         // backup old promises
-        logger.trace("Backuping old promises from %s to %s ".format(baseFolder, backupFolder))
-        backupNodeFolder(baseFolder, backupFolder)
+        if (backupPoliciesAtEndOfGeneration) {
+          logger.trace("Backuping old policies from %s to %s ".format(baseFolder, backupFolder))
+          backupNodeFolder(baseFolder, backupFolder)
+        } else {
+          logger.trace(s"Deleting old policies in ${baseFolder}")
+          deleteNodeFolder(baseFolder)
+        }
+
         try {
           newFolders += folder
 
@@ -775,6 +784,13 @@ class PolicyWriterServiceImpl(
     }
   }
 
+  /**
+   * Delete the previous node policies folder
+   */
+  private[this] def deleteNodeFolder(nodeFolder: String): Unit = {
+    val src = new File(nodeFolder)
+    FileUtils.deleteDirectory(src)
+  }
   /**
    * Move the newly created folder to the final location
    * @param newFolder : where the promises have been written

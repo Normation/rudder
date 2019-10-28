@@ -118,6 +118,7 @@ class SettingsApi(
       RestGenerationMaxParallelism ::
       RestGenerationJsTimeout ::
       RestContinueGenerationOnError ::
+      RestBackupPreviousPolicies ::
       Nil
 
   val allSettings_v8 = RestUseReverseDNS :: allSettings_v10
@@ -697,6 +698,13 @@ class SettingsApi(
     val key = "rudder_generation_continue_on_error"
     def get = configService.rudder_generation_continue_on_error()
     def set = (value : Boolean, _, _) => configService.set_rudder_generation_continue_on_error(value)
+  }
+
+  case object RestBackupPreviousPolicies extends RestBooleanSetting {
+    val startPolicyGeneration = false
+    val key = "rudder_backup_previous_policies"
+    def get = configService.rudder_backup_previous_policies()
+    def set = (value : Boolean, _, _) => configService.set_rudder_backup_previous_policies(value)
   }
 }
 

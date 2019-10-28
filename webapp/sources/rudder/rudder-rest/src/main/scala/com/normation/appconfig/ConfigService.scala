@@ -215,6 +215,7 @@ trait ReadConfigService {
 
   def rudder_generation_max_parallelism(): Box[String]
   def rudder_generation_js_timeout(): Box[Int]
+  def rudder_backup_previous_policies(): Box[Boolean]
 
   def rudder_generation_continue_on_error(): Box[Boolean]
 }
@@ -345,8 +346,10 @@ trait UpdateConfigService {
 
   def set_rudder_generation_max_parallelism(value: String): Box[Unit]
   def set_rudder_generation_js_timeout(value: Int): Box[Unit]
+  def set_rudder_backup_previous_policies(value: Boolean): Box[Unit]
 
   def set_rudder_generation_continue_on_error(value: Boolean): Box[Unit]
+
 }
 
 class LDAPBasedConfigService(
@@ -399,6 +402,7 @@ class LDAPBasedConfigService(
        rudder.generation.max.parallelism=x0.5
        rudder.generation.js.timeout=30
        rudder.generation.continue.on.error=false
+       rudder.backup.previous.policies=false
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -684,6 +688,11 @@ class LDAPBasedConfigService(
   def set_rudder_save_db_compliance_levels(value: Boolean): Box[Unit] = save("rudder_save_db_compliance_levels", value)
   def rudder_save_db_compliance_details(): Box[Boolean] = get("rudder_save_db_compliance_details")
   def set_rudder_save_db_compliance_details(value: Boolean): Box[Unit] = save("rudder_save_db_compliance_details", value)
+
+  def rudder_backup_previous_policies(): Box[Boolean] = get("rudder_backup_previous_policies")
+  def set_rudder_backup_previous_policies(value: Boolean): Box[Unit] = save("rudder_backup_previous_policies", value)
+
+
 
   /// generation: js timeout, parallelism
   def rudder_generation_max_parallelism(): Box[String] = get("rudder_generation_max_parallelism")
