@@ -581,7 +581,7 @@ object ApiAccountSerialisation {
               case NoAccess | RO | RW => None
               case ACL(acls) => Some(acls.flatMap(x => x.actions.map(a => JsonApiAcl(x.path.value, a.name))))
             }
-            ( expirationDate.map(DateFormaterService.serialize)
+            ( expirationDate.map(DateFormaterService.getDisplayDateTimePicker)
             , Some(authz.kind.name)
             , acl )
         }
