@@ -29,6 +29,7 @@
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
 mod common;
+
 use relayd::{configuration::cli::CliConfiguration, init_logger, start};
 use reqwest;
 use std::thread;

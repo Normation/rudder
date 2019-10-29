@@ -29,19 +29,11 @@
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
 use relayd::{
-    check_configuration, configuration::cli::CliConfiguration, error::Error, init_logger, start,
+    check_configuration, configuration::cli::CliConfiguration, init_logger, return_code, start,
 };
 use std::{env, process::exit};
 use structopt::StructOpt;
 use tracing::error;
-
-/// Sets exit code based on error type
-fn error_code(e: &Error) -> i32 {
-    match e {
-        Error::ConfigurationParsing(_) => 2,
-        _ => 1,
-    }
-}
 
 /// Everything in a lib to allow extensive testing
 fn main() {
@@ -55,7 +47,7 @@ fn main() {
     if cli_cfg.check_configuration {
         if let Err(ref e) = check_configuration(&cli_cfg.configuration_dir) {
             println!("{}", e);
-            exit(error_code(e));
+            exit(return_code(Some(e)));
         }
         println!("Syntax: OK");
     } else {
@@ -63,13 +55,13 @@ fn main() {
             Ok(handle) => handle,
             Err(ref e) => {
                 println!("{}", e);
-                exit(error_code(e));
+                exit(return_code(Some(e)));
             }
         };
 
         if let Err(ref e) = start(cli_cfg, reload_handle) {
             error!("{}", e);
-            exit(error_code(e));
+            exit(return_code(Some(e)));
         }
     }
 }
