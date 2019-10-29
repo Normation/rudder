@@ -86,7 +86,7 @@ impl RawNodesList {
         }
     }
 
-    fn add_certificate(&mut self, id: &str, cert: X509) -> Result<(), Error> {
+    fn add_certificate(&mut self, id: &NodeIdRef, cert: X509) -> Result<(), Error> {
         trace!("Adding certificate for node {}", id);
         self.data
             .get_mut(id)
@@ -97,13 +97,13 @@ impl RawNodesList {
 
 pub struct NodesList {
     list: RawNodesList,
-    my_id: String,
+    my_id: NodeId,
 }
 
 impl NodesList {
     // Load nodes list from the nodeslist.json file
     pub fn new<P: AsRef<Path>>(
-        my_id: String,
+        my_id: NodeId,
         nodes_file: P,
         certificates_file: Option<P>,
     ) -> Result<Self, Error> {
@@ -143,11 +143,11 @@ impl NodesList {
 
     /// Nodes list file only contains sub-nodes, so we only have to check for
     /// node presence.
-    pub fn is_subnode(&self, id: &str) -> bool {
+    pub fn is_subnode(&self, id: &NodeIdRef) -> bool {
         self.list.data.get(id).is_some()
     }
 
-    pub fn is_my_neighbor(&self, id: &str) -> Result<bool, ()> {
+    pub fn is_my_neighbor(&self, id: &NodeIdRef) -> Result<bool, ()> {
         self.list
             .data
             .get(id)
@@ -155,15 +155,15 @@ impl NodesList {
             .map(|n| n.policy_server == self.my_id)
     }
 
-    pub fn key_hash(&self, id: &str) -> Option<KeyHash> {
+    pub fn key_hash(&self, id: &NodeIdRef) -> Option<KeyHash> {
         self.list.data.get(id).map(|s| s.key_hash.clone())
     }
 
-    pub fn hostname(&self, id: &str) -> Option<Host> {
+    pub fn hostname(&self, id: &NodeIdRef) -> Option<Host> {
         self.list.data.get(id).map(|s| s.hostname.clone())
     }
 
-    pub fn certs(&self, id: &str) -> Option<&Stack<X509>> {
+    pub fn certs(&self, id: &NodeIdRef) -> Option<&Stack<X509>> {
         self.list
             .data
             .get(id)
@@ -183,7 +183,7 @@ impl NodesList {
     }
 
     /// Some(Next hop) if any, None if directly connected, error if not found
-    fn next_hop(&self, node_id: &str) -> Result<Option<NodeId>, ()> {
+    fn next_hop(&self, node_id: &NodeIdRef) -> Result<Option<NodeId>, ()> {
         // nodeslist should not contain loops but just in case
         // 20 levels of relays should be more than enough
         const MAX_RELAY_LEVELS: u8 = 20;
@@ -230,7 +230,7 @@ impl NodesList {
         nodes
             .iter()
             .filter_map(|n| self.list.data.get::<str>(n))
-            .filter(|n| &n.policy_server == server)
+            .filter(|n| n.policy_server == server)
             .map(|n| n.hostname.clone())
             .collect()
     }
