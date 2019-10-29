@@ -71,6 +71,16 @@ object DateFormaterService {
   def parseDate(date : String) : Box[DateTime] = {
       Helpers.tryo { ISODateTimeFormat.dateTimeNoMillis().parseDateTime(date) }
   }
+
+
+  val dateFormatTimePicker = "yyyy-MM-dd HH:mm"
+  def parseDateTimePicker(date : String) : Box[DateTime] = {
+    Helpers.tryo {DateTimeFormat.forPattern(dateFormatTimePicker).parseDateTime(date) }
+  }
+
+  def getDisplayDateTimePicker(date : DateTime) : String = {
+    date.toString(dateFormatTimePicker)
+  }
   private[this] val periodFormatter = new PeriodFormatterBuilder().
     appendDays().
     appendSuffix(" day", " days").

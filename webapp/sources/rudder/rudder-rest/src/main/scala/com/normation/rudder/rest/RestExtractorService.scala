@@ -904,7 +904,7 @@ final case class RestExtractorService (
       enabled     <- extractJsonBoolean(json, "enabled")
       oldId       <- extractJsonString(json, "oldId", toApiAccountId)
       expirationDefined <- extractJsonBoolean(json, "expirationDateDefined")
-      expirationValue  <- extractJsonString(json, "expirationDate", DateFormaterService.parseDate)
+      expirationValue  <- extractJsonString(json, "expirationDate", DateFormaterService.parseDateTimePicker)
       authType    <- extractJsonString(json, "authorizationType", ApiAuthorizationKind.parse)
 
       acl     <- extractJsonArray(json , "acl")((extractApiACLFromJSON _ )).map(_.getOrElse(Nil))
