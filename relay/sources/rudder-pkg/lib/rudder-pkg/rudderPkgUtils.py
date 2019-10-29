@@ -3,9 +3,13 @@ import distutils.spawn
 import logging.handlers
 from pprint import pprint
 from pkg_resources import parse_version
-from subprocess import Popen, PIPE, DEVNULL
 import fcntl, termios, struct, traceback
 
+try:
+    from subprocess import Popen, PIPE, DEVNULL
+except:
+    from subprocess import Popen, PIPE
+    DEVNULL = open(os.devnull, 'wb')
 try:
     import ConfigParser as configparser
 except Exception:
