@@ -131,9 +131,10 @@ mod tests {
         // unix2dos normal.log
         let reference = read_to_string("tests/files/smime/normal.log").unwrap();
 
-        let x509 =
-            X509::from_pem(&read("tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert").unwrap())
-                .unwrap();
+        let x509 = X509::from_pem(
+            &read("tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert").unwrap(),
+        )
+        .unwrap();
 
         // Certs
         let mut certs = Stack::new().unwrap();
@@ -150,9 +151,10 @@ mod tests {
 
     #[test]
     fn it_detects_wrong_content() {
-        let x509 =
-            X509::from_pem(&read("tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert").unwrap())
-                .unwrap();
+        let x509 = X509::from_pem(
+            &read("tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert").unwrap(),
+        )
+        .unwrap();
         let mut certs = Stack::new().unwrap();
         certs.push(x509).unwrap();
 

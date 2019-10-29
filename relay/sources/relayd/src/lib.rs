@@ -82,6 +82,15 @@ use tracing_subscriber::{
     reload::Handle,
 };
 
+/// Sets exit code based on error type
+/// None means unspecified error or panic
+pub fn return_code(e: Option<&Error>) -> i32 {
+    match e {
+        Some(Error::ConfigurationParsing(_)) => 2,
+        Some(_) | None => 1,
+    }
+}
+
 type LogHandle =
     Handle<EnvFilter, Formatter<NewRecorder, Format<Full, ()>, fn() -> std::io::Stdout>>;
 
@@ -129,14 +138,15 @@ pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), 
 
     debug!("Setup signal handlers");
 
-    // SIGINT or SIGTERM: graceful shutdown
+    // SIGINT or SIGTERM: immediate shutdown
+    // TODO: graceful shutdown
     let shutdown = Signal::new(SIGINT)
         .flatten_stream()
         .select(Signal::new(SIGTERM).flatten_stream())
         .into_future()
         .map(|_sig| {
             info!("Signal received: shutdown requested");
-            exit(1);
+            exit(return_code(None));
         })
         .map_err(|e| error!("signal error {}", e.0));
 
@@ -159,21 +169,23 @@ pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), 
     }
     let mut runtime = builder
         .blocking_threads(job_config.cfg.general.blocking_threads)
+        // TODO check why resume_unwind is not enough
+        .panic_handler(|_| std::process::exit(return_code(None)))
         .build()?;
 
+    // don't use block_on_all as it panics on main future panic but not others
     runtime.spawn(lazy(move || {
+        tokio::spawn(reload);
+        tokio::spawn(shutdown);
+
         let (tx_stats, rx_stats) = mpsc::channel(1_024);
 
         tokio::spawn(Stats::receiver(stats.clone(), rx_stats));
         tokio::spawn(api::run(
             job_config.cfg.general.listen,
-            shutdown,
             job_config.clone(),
             stats.clone(),
         ));
-
-        //tokio::spawn(shutdown);
-        tokio::spawn(reload);
 
         if job_config.cfg.processing.reporting.output.is_enabled() {
             reporting::start(&job_config, &tx_stats);
@@ -189,12 +201,10 @@ pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), 
 
         Ok(())
     }));
-    runtime
-        .shutdown_on_idle()
-        .wait()
-        .expect("Server shutdown failed");
 
-    unreachable!("Server halted unexpectedly");
+    // waits for completion of all futures
+    runtime.shutdown_on_idle().wait().expect("shutdown failed");
+    Err(Error::ServerHaltedUnexpectedly)
 }
 
 pub struct JobConfig {

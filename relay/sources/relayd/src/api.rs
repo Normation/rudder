@@ -122,7 +122,6 @@ impl<T: Serialize> ApiResponse<T> {
 
 pub fn run(
     listen: SocketAddr,
-    shutdown: impl Future<Item = ()> + Send + 'static,
     job_config: Arc<JobConfig>,
     stats: Arc<RwLock<Stats>>,
 ) -> impl Future<Item = (), Error = ()> {
@@ -283,9 +282,9 @@ pub fn run(
         .recover(customize_error)
         .with(warp::log("relayd::relay-api"));
 
-    let (addr, server) = warp::serve(routes_1).bind_with_graceful_shutdown(listen, shutdown);
-    info!("Started API on {}", addr);
-    server
+    info!("Starting API on {}", listen);
+    // TODO graceful shutdown
+    warp::serve(routes_1).bind(listen)
 }
 
 fn customize_error(reject: Rejection) -> Result<impl Reply, Rejection> {
