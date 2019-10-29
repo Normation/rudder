@@ -41,6 +41,7 @@ use std::{
 use tracing::{error, info, trace, warn};
 
 pub type NodeId = String;
+pub type NodeIdRef = str;
 pub type Host = String;
 pub type KeyHash = String;
 
@@ -225,7 +226,7 @@ impl NodesList {
             .collect()
     }
 
-    pub fn neighbors_from(&self, server: &NodeId, nodes: &[NodeId]) -> Vec<Host> {
+    pub fn neighbors_from(&self, server: &NodeIdRef, nodes: &[NodeId]) -> Vec<Host> {
         nodes
             .iter()
             .filter_map(|n| self.list.data.get::<str>(n))
@@ -337,7 +338,7 @@ mod tests {
         let nodeslist = NodesList::new(
             "root".to_string(),
             "tests/files/nodeslist.json",
-            Some("tests/keys/nodescerts.pem"),
+            Some("tests/files/keys/nodescerts.pem"),
         )
         .unwrap();
         assert_eq!(nodeslist.list.data.len(), 6);

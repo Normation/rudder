@@ -33,7 +33,7 @@ use openssl::hash::MessageDigest;
 use sha2::{Digest, Sha256, Sha512};
 use std::{fmt, str, str::FromStr};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum HashType {
     Sha256,
     Sha512,
@@ -88,5 +88,29 @@ impl HashType {
             HashType::Sha256 => MessageDigest::sha256(),
             HashType::Sha512 => MessageDigest::sha512(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_parses_hash_types() {
+        assert_eq!(HashType::from_str("sha256").unwrap(), HashType::Sha256);
+        assert_eq!(HashType::from_str("sha512").unwrap(), HashType::Sha512);
+        assert!(HashType::from_str("").is_err());
+    }
+
+    #[test]
+    fn it_computes_hashes() {
+        let sha256 = HashType::Sha256;
+        assert_eq!(
+            sha256.hash("test".as_bytes()),
+            "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+        );
+
+        let sha512 = HashType::Sha512;
+        assert_eq!(sha512.hash("test".as_bytes()), "ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff");
     }
 }

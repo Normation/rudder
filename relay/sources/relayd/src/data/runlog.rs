@@ -158,7 +158,7 @@ mod tests {
     fn it_parses_runlog() {
         // For each .json file, compare it with the matching .log
         let mut test_done = 0;
-        for entry in read_dir("tests/runlogs/").unwrap() {
+        for entry in read_dir("tests/files/runlogs/").unwrap() {
             let path = entry.unwrap().path();
             if path.extension().unwrap() == "json" {
                 let runlog = RunLog::new(&path.with_extension("log")).unwrap();

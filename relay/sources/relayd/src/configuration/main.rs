@@ -201,7 +201,7 @@ mod tests {
         let reference = Configuration {
             general: GeneralConfig {
                 nodes_list_file: PathBuf::from("tests/files/nodeslist.json"),
-                nodes_certs_file: PathBuf::from("tests/keys/nodescerts.pem"),
+                nodes_certs_file: PathBuf::from("tests/files/keys/nodescerts.pem"),
                 node_id: "root".to_string(),
                 listen: "127.0.0.1:3030".parse().unwrap(),
                 core_threads: None,
@@ -217,7 +217,7 @@ mod tests {
                     },
                 },
                 reporting: ReportingConfig {
-                    directory: PathBuf::from("target/tmp/runlogs/"),
+                    directory: PathBuf::from("target/tmp/reporting/"),
                     output: ReportingOutputSelect::Database,
                     catchup: CatchupConfig {
                         frequency: 10,
@@ -240,14 +240,14 @@ mod tests {
                 },
             },
             remote_run: RemoteRun {
-                command: PathBuf::from("tests/fake_agent.sh"),
+                command: PathBuf::from("tests/api_remote_run/fake_agent.sh"),
                 use_sudo: false,
             },
             shared_files: SharedFiles {
-                path: PathBuf::from("tests/shared-files"),
+                path: PathBuf::from("tests/api_shared_files"),
             },
             shared_folder: SharedFolder {
-                path: PathBuf::from("tests/shared-folder"),
+                path: PathBuf::from("tests/api_shared_folder"),
             },
         };
         assert_eq!(config.unwrap(), reference);

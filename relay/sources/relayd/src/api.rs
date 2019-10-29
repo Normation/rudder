@@ -298,3 +298,39 @@ fn customize_error(reject: Rejection) -> Result<impl Reply, Rejection> {
         Err(reject)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_serializes_api_response() {
+        assert_eq!(
+            serde_json::to_string(&ApiResponse::<()>::new::<Error>(
+                "actionName1",
+                Ok(None),
+                None
+            ))
+            .unwrap(),
+            "{\"result\":\"success\",\"action\":\"actionName1\"}".to_string()
+        );
+        assert_eq!(
+            serde_json::to_string(&ApiResponse::new::<Error>(
+                "actionName2",
+                Ok(Some("thing".to_string())),
+                None
+            ))
+            .unwrap(),
+            "{\"data\":\"thing\",\"result\":\"success\",\"action\":\"actionName2\"}".to_string()
+        );
+        assert_eq!(
+            serde_json::to_string(&ApiResponse::<()>::new::<Error>(
+                "actionName3",
+                Err(Error::InconsistentRunlog),
+                None
+            ))
+            .unwrap(),
+            "{\"result\":\"error\",\"action\":\"actionName3\",\"errorDetails\":\"inconsistent run log\"}".to_string()
+        );
+    }
+}

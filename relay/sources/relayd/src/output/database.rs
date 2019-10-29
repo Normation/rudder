@@ -189,7 +189,7 @@ mod tests {
         assert_eq!(results.len(), 0);
 
         let runlog = RunLog::new(
-            "tests/runlogs/2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log",
+            "tests/files/runlogs/2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log",
         )
         .unwrap();
 
