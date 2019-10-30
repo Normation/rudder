@@ -5,6 +5,9 @@ After=network-online.target
 [Service]
 ExecStart=/opt/rudder/bin/rudder-relayd
 ExecReload=/opt/rudder/bin/rudder relay reload
+# Do not restart on known errors, which won't get fixed by themselves
+RestartPreventExitStatus=2 3
+Restart=on-failure
 User=rudder-relayd
 Group=rudder
 

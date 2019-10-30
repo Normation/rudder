@@ -29,7 +29,7 @@
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
 use relayd::{
-    check_configuration, configuration::cli::CliConfiguration, init_logger, return_code, start,
+    check_configuration, configuration::cli::CliConfiguration, init_logger, start, ExitStatus,
 };
 use std::{env, process::exit};
 use structopt::StructOpt;
@@ -48,23 +48,23 @@ fn main() {
 
     let cli_cfg = CliConfiguration::from_args();
     if cli_cfg.check_configuration {
-        if let Err(ref e) = check_configuration(&cli_cfg.configuration_dir) {
+        if let Err(e) = check_configuration(&cli_cfg.configuration_dir) {
             println!("{}", e);
-            exit(return_code(Some(e)));
+            exit(ExitStatus::StartError(e).code());
         }
         println!("Syntax: OK");
     } else {
         let reload_handle = match init_logger() {
             Ok(handle) => handle,
-            Err(ref e) => {
+            Err(e) => {
                 println!("{}", e);
-                exit(return_code(Some(e)));
+                exit(ExitStatus::StartError(e).code());
             }
         };
 
-        if let Err(ref e) = start(cli_cfg, reload_handle) {
+        if let Err(e) = start(cli_cfg, reload_handle) {
             error!("{}", e);
-            exit(return_code(Some(e)));
+            exit(ExitStatus::StartError(e).code());
         }
     }
 }
