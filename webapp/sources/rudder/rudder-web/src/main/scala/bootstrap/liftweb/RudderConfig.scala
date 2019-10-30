@@ -253,6 +253,21 @@ object RudderConfig extends Loggable {
   val RUDDER_JDBC_USERNAME = config.getString("rudder.jdbc.username")
   val RUDDER_JDBC_PASSWORD = config.getString("rudder.jdbc.password") ; filteredPasswords += "rudder.jdbc.password"
   val RUDDER_JDBC_MAX_POOL_SIZE = config.getInt("rudder.jdbc.maxPoolSize")
+
+  val RUDDER_JDBC_BATCH_MAX_SIZE = {
+    val x = try {
+      config.getInt("rudder.jdbc.batch.max.size")
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.debug("Property 'rudder.jdbc.batch.max.size' is missing or empty in rudder.configFile. Default to 500.")
+        500
+    }
+    if(x < 0) { // 0 is ok, it means "always check"
+      500
+    } else {
+      x
+    }
+  }
   val RUDDER_DIR_GITROOT = config.getString("rudder.dir.gitRoot")
   val RUDDER_DIR_TECHNIQUES = config.getString("rudder.dir.techniques")
   val RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL = config.getInt("rudder.batch.dyngroup.updateInterval") //60 //one hour
@@ -1534,9 +1549,9 @@ object RudderConfig extends Loggable {
   )
 
   private[this] lazy val pgIn = new PostgresqlInClause(70)
-  private[this] lazy val findExpectedRepo = new FindExpectedReportsJdbcRepository(doobie, pgIn)
-  private[this] lazy val updateExpectedRepo = new UpdateExpectedReportsJdbcRepository(doobie, pgIn)
-  private[this] lazy val reportsRepositoryImpl = new ReportsJdbcRepository(doobie)
+  private[this] lazy val findExpectedRepo = new FindExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
+  private[this] lazy val updateExpectedRepo = new UpdateExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
+  private[this] lazy val reportsRepositoryImpl = new ReportsJdbcRepository(doobie, RUDDER_JDBC_BATCH_MAX_SIZE)
   private[this] lazy val complianceRepositoryImpl = new ComplianceJdbcRepository(
       doobie
     , configService.rudder_save_db_compliance_details _

@@ -157,10 +157,11 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     override def invalidate(nodeIds: Set[NodeId]) = Full(Map())
   }
 
+  val RUDDER_JDBC_BATCH_MAX_SIZE = 5000
   lazy val pgIn = new PostgresqlInClause(2)
-  lazy val reportsRepo = new ReportsJdbcRepository(doobie)
-  lazy val findExpected = new FindExpectedReportsJdbcRepository(doobie, pgIn)
-  lazy val updateExpected = new UpdateExpectedReportsJdbcRepository(doobie, pgIn)
+  lazy val reportsRepo = new ReportsJdbcRepository(doobie, RUDDER_JDBC_BATCH_MAX_SIZE)
+  lazy val findExpected = new FindExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
+  lazy val updateExpected = new UpdateExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
 
   lazy val agentRunService = new AgentRunIntervalService() {
     private[this] val interval = Duration.standardMinutes(5)

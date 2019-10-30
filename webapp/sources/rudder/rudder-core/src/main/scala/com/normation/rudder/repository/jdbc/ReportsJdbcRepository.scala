@@ -54,8 +54,9 @@ import cats.implicits._
 import com.normation.rudder.db.Doobie._
 import com.normation.rudder.db.Doobie
 import org.joda.time.format.ISODateTimeFormat
+import com.normation.utils.Control.sequence
 
-class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Loggable {
+class ReportsJdbcRepository(doobie: Doobie, jdbcMaxBatchSize: Int) extends ReportsRepository with Loggable {
   import doobie._
 
   val reports = "ruddersysevents"
@@ -76,22 +77,27 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
   override def getExecutionReports(runs: Set[AgentRunId], filterByRules: Set[RuleId]): Box[Map[NodeId, Seq[Reports]]] = {
    if(runs.isEmpty) Full(Map())
    else {
-    val nodeParam = runs.map(x => s"('${x.nodeId.value}','${new Timestamp(x.date.getMillis)}'::timestamp)" ).mkString(",")
-    val ruleClause = if(filterByRules.isEmpty) ""
-                    else s"and ruleid in ${filterByRules.map(_.value).mkString("('", "','" , "')")}"
-    /*
-     * be careful in the number of parenthesis for "in values", it is:
-     * ... in (VALUES ('a', 'b') );
-     * ... in (VALUES ('a', 'b'), ('c', 'd') );
-     * etc. No more, no less.
-     */
-    query[Reports](
-      s"""select ${common_reports_column}
+     val ruleClause = if (filterByRules.isEmpty) ""
+     else s"and ruleid in ${filterByRules.map(_.value).mkString("('", "','", "')")}"
+
+     val batchedRuns = runs.grouped(jdbcMaxBatchSize).toSeq
+     val result = sequence(batchedRuns) { runBatch =>
+       val nodeParam = runBatch.map(x => s"('${x.nodeId.value}','${new Timestamp(x.date.getMillis)}'::timestamp)").mkString(",")
+       /*
+        * be careful in the number of parenthesis for "in values", it is:
+        * ... in (VALUES ('a', 'b') );
+        * ... in (VALUES ('a', 'b'), ('c', 'd') );
+        * etc. No more, no less.
+        */
+       query[Reports](
+         s"""select ${common_reports_column}
           from RudderSysEvents
           where (nodeid, executiontimestamp) in (VALUES ${nodeParam})
-      """ + ruleClause).to[Vector].transact(xa).attempt.unsafeRunSync.map( _.groupBy( _.nodeId)) ?~!
-      s"Error when trying to get last run reports for ${runs.size} nodes"
-    }
+      """ + ruleClause).to[Vector].transact(xa).attempt.unsafeRunSync.map(_.groupBy(_.nodeId)) ?~!
+         s"Error when trying to get last run reports for ${runs.size} nodes"
+     }
+     result.map(_.flatten.toMap) // I'm a bit unsure on how to efficiently convert the Seq[Map[]] into a Map
+   }
   }
 
   override def findReportsByNode(nodeId   : NodeId) : Vector[Reports] = {

@@ -37,6 +37,7 @@
 
 package com.normation.rudder.repository.jdbc
 
+import cats.free.Free
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.reports._
@@ -49,11 +50,13 @@ import org.joda.time.DateTime
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._
-import doobie._, doobie.implicits._
+import doobie._
+import doobie.implicits._
 import cats.implicits._
 import com.normation.rudder.domain.logger.PolicyLogger
 import com.normation.rudder.domain.logger.ReportLogger
-
+import com.normation.utils.Control.sequence
+import doobie.free.connection
 
 class PostgresqlInClause(
     //max number of element to switch from in (...) to in(values(...)) clause
@@ -94,8 +97,9 @@ class PostgresqlInClause(
 
 
 class FindExpectedReportsJdbcRepository(
-    doobie    : Doobie
-  , pgInClause: PostgresqlInClause
+    doobie          : Doobie
+  , pgInClause      : PostgresqlInClause
+  , jdbcMaxBatchSize: Int
 ) extends FindExpectedReportRepository with Loggable {
 
   import pgInClause._
@@ -111,26 +115,29 @@ class FindExpectedReportsJdbcRepository(
       nodeConfigIds: Set[NodeAndConfigId]
   ): Box[Map[NodeAndConfigId, Option[NodeExpectedReports]]] = {
 
-    nodeConfigIds.toList match { //"in" param can't be empty
-      case Nil        => Full(Map())
-      case nodeAndIds =>
-
-        (for {
-          configs <- query[Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]](s"""
+    val batchedNodeConfigIds = nodeConfigIds.grouped(jdbcMaxBatchSize).toSeq
+    sequence(batchedNodeConfigIds) { ids: Set[NodeAndConfigId] =>
+      ids.toList match { //"in" param can't be empty
+        case Nil        => Full(Seq())
+        case nodeAndIds =>
+          (for {
+            configs <- query[Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]](s"""
                        select nodeid, nodeconfigid, begindate, enddate, configuration
                        from nodeconfigurations
                        where (nodeid, nodeconfigid) in (${nodeAndIds.map(x => s"('${x.nodeId.value}','${x.version.value}')").mkString(",")} )
                      """).to[Vector]
-        }yield {
-          val configsMap = (configs.flatMap {
-            case Left((id, c, _)) =>
-              logger.error(s"Error when deserializing JSON for expected node configuration ${id.value} (${c.value})")
-              None
-            case Right(x) => Some((NodeAndConfigId(x.nodeId, x.nodeConfigId), x))
-          }).toMap
-          nodeConfigIds.map(id => (id, configsMap.get(id))).toMap
-        }).transact(xa).attempt.unsafeRunSync
-    }
+          }yield {
+            val configsMap = (configs.flatMap {
+              case Left((id, c, _)) =>
+                logger.error(s"Error when deserializing JSON for expected node configuration ${id.value} (${c.value})")
+                None
+              case Right(x) => Some((NodeAndConfigId(x.nodeId, x.nodeConfigId), x))
+            }).toMap
+            ids.map(id => (id, configsMap.get(id)))
+          }).transact(xa).attempt.unsafeRunSync
+      }
+    }.map( x => x.flatten.map{ case (id, option) => (id -> option)}.toMap )
+
   }
 
   /*
@@ -142,26 +149,33 @@ class FindExpectedReportsJdbcRepository(
     if(nodeIds.isEmpty) {
       Full(Map())
     } else {
-        val t0 = System.currentTimeMillis
-        (for {
-          configs <- (Fragment.const(s"with tempnodeid (id) as (values ${nodeIds.map(x => s"('${x.value}')").mkString(",")})") ++
-                      fr"""
+        var queryTiming = 0L
+        val ids = nodeIds.grouped(jdbcMaxBatchSize).toSeq
+        val result = sequence(ids) {  batchedIds: Set[NodeId] =>
+          val t0_0 = System.currentTimeMillis
+          (for {
+            configs <- (Fragment.const(s"with tempnodeid (id) as (values ${batchedIds.map(x => s"('${x.value}')").mkString(",")})") ++
+              fr"""
                        select nodeid, nodeconfigid, begindate, enddate, configuration
                        from nodeconfigurations
                        inner join tempnodeid on tempnodeid.id = nodeconfigurations.nodeid
                        where enddate is null"""
-                     ).query[Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]].to[Vector]
-        } yield {
-          val t1 =  System.currentTimeMillis
-          TimingDebugLogger.trace(s"Compliance: query to get current expected reports: ${t1-t0}ms")
-          val configsMap = (configs.flatMap {
-            case Left((id, c, _)) =>
-              logger.error(s"Error when deserializing JSON for expected node configuration ${id.value} (${c.value})")
-              None
-            case Right(x) => Some((x.nodeId, x))
-          }).toMap
-          nodeIds.map(id => (id, configsMap.get(id))).toMap
-        }).transact(xa).attempt.unsafeRunSync
+              ).query[Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]].to[Vector]
+          } yield {
+            val t1_1 =  System.currentTimeMillis
+            queryTiming += t1_1 - t0_0
+            TimingDebugLogger.trace(s"Compliance: query to get current expected reports within batch: ${t1_1 - t0_0}ms")
+            val configsMap = (configs.flatMap {
+              case Left((id, c, _)) =>
+                logger.error(s"Error when deserializing JSON for expected node configuration ${id.value} (${c.value})")
+                None
+              case Right(x) => Some((x.nodeId, x))
+            }).toMap
+            batchedIds.map(id => (id, configsMap.get(id))).toSeq
+          }).transact(xa).attempt.unsafeRunSync
+        }
+        TimingDebugLogger.trace(s"Compliance: query to get current expected reports: ${queryTiming}ms")
+        result.map(_.flatten.toMap)
     }
   }
 
@@ -180,13 +194,17 @@ class FindExpectedReportsJdbcRepository(
   override def getNodeConfigIdInfos(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[Vector[NodeConfigIdInfo]]]] = {
     if(nodeIds.isEmpty) Full(Map.empty[NodeId, Option[Vector[NodeConfigIdInfo]]])
     else {
-      (for {
-        entries <-query[(NodeId, String)](s"""select node_id, config_ids from nodes_info
-                                              where ${in("node_id", nodeIds.map(_.value))}""").to[Vector]
-      } yield {
-        val res = entries.map{ case(nodeId, config) => (nodeId, NodeConfigIdSerializer.unserialize(config)) }.toMap
-        nodeIds.map(n => (n, res.get(n))).toMap
-      }).transact(xa).attempt.unsafeRunSync
+      val batchedNodesId = nodeIds.grouped(jdbcMaxBatchSize).toSeq
+      sequence(batchedNodesId) { ids: Set[NodeId] =>
+        (for {
+          entries <- query[(NodeId, String)](
+            s"""select node_id, config_ids from nodes_info
+                                              where ${in("node_id", ids.map(_.value))}""").to[Vector]
+        } yield {
+          val res = entries.map { case (nodeId, config) => (nodeId, NodeConfigIdSerializer.unserialize(config)) }.toMap
+          ids.map(n => (n, res.get(n)))
+        }).transact(xa).attempt.unsafeRunSync
+      }.map(_.flatten.toMap)
     }
   }
 }
@@ -197,6 +215,7 @@ class FindExpectedReportsJdbcRepository(
 class UpdateExpectedReportsJdbcRepository(
     doobie     : Doobie
   , pgInClause: PostgresqlInClause
+  , jdbcMaxBatchSize: Int
 ) extends UpdateExpectedReportsRepository {
 
   import doobie._
@@ -211,46 +230,76 @@ class UpdateExpectedReportsJdbcRepository(
   }
 
 
-  def saveNodeExpectedReports(configs: List[NodeExpectedReports]): Box[List[NodeExpectedReports]] = {
-
+  def saveNodeExpectedReports(configs: List[NodeExpectedReports]): Box[Seq[NodeExpectedReports]]  = {
+    import cats.implicits._
     PolicyLogger.expectedReports.debug(s"Saving ${configs.size} nodes expected reports")
-    configs.map(x => s"('${x.nodeId.value}')") match {
-      case Nil     => Full(Nil)
-      case nodeIds =>
+    configs match {
+      case Nil       => Full(Nil)
+      case neConfigs =>
 
-        val withFrag = Fragment.const(s"with tempnodeid (id) as (values ${nodeIds.mkString(",")})")
+        var timingFindOldNodesConfig = 0L
+        var timingFindOldConfigInfo = 0L
+        var timingSaveConfig = 0L
 
-        type A = Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]
-        val getConfigs: Either[Throwable, List[A]] = (
-                        withFrag ++ fr"""
+        val batchedConfigs: List[List[NodeExpectedReports]] = neConfigs.grouped(jdbcMaxBatchSize).toList
+        val resultingNodeExpectedReports: Either[Throwable, List[Free[connection.ConnectionOp, List[NodeExpectedReports]]]] = batchedConfigs.traverse { conf: Seq[NodeExpectedReports] =>
+          val confString = conf.map(x => s"('${x.nodeId.value}')")
+
+          val withFrag = Fragment.const(s"with tempnodeid (id) as (values ${confString.mkString(",")})")
+          type A = Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]
+          val getConfigs: Either[Throwable, List[A]] = (
+            withFrag ++ fr"""
                            select nodeid, nodeconfigid, begindate, enddate, configuration
                            from nodeconfigurations
                            inner join tempnodeid on tempnodeid.id = nodeconfigurations.nodeid
                            where enddate is NULL"""
-                        ).query[A].to[List].transact(xa).attempt.unsafeRunSync
+            ).query[A].to[List].transact(xa).attempt.unsafeRunSync
 
-        type B = (NodeId, Vector[NodeConfigIdInfo])
-        val getInfos: Either[Throwable, List[B]] = (
-                            withFrag ++ fr"""
+          type B = (NodeId, Vector[NodeConfigIdInfo])
+          val getInfos: Either[Throwable, List[B]] = (
+            withFrag ++ fr"""
                               select node_id, config_ids from nodes_info
                               inner join tempnodeid on tempnodeid.id = nodes_info.node_id
                             """
-                          ).query[B].to[List].transact(xa).attempt.unsafeRunSync
+            ).query[B].to[List].transact(xa).attempt.unsafeRunSync
 
-        // common part: find old configs and node config info for all config to update
-        val time_0 = System.currentTimeMillis
-        for {
-          oldConfigs  <- getConfigs
-          time_1      =  System.currentTimeMillis
-          _           =  TimingDebugLogger.debug(s"saveNodeExpectedReports: find old nodes config in ${time_1-time_0}ms")
-          configInfos <- getInfos
-          time_2      =  System.currentTimeMillis
-          _           =  TimingDebugLogger.debug(s"saveNodeExpectedReports: find old config info ${time_2-time_1}ms")
-          updated     <- doUpdateNodeExpectedReports(configs, oldConfigs, configInfos.toMap)
-          time_3      =  System.currentTimeMillis
-          _           =  TimingDebugLogger.debug(s"saveNodeExpectedReports: save configs etc in ${time_3-time_2}ms")
-        } yield {
-          configs
+          val time_0 = System.currentTimeMillis
+          for {
+            oldConfigs  <- getConfigs
+            time_1      =  System.currentTimeMillis
+            _           =  (timingFindOldNodesConfig += (time_1 - time_0))
+            _           =  TimingDebugLogger.debug(s"saveNodeExpectedReports: batched find old nodes config in ${time_1-time_0}ms")
+            configInfos <- getInfos
+            time_2      =  System.currentTimeMillis
+            _           =  (timingFindOldConfigInfo += (time_2 - time_1))
+            _           =  TimingDebugLogger.debug(s"saveNodeExpectedReports: batched find old config info ${time_2-time_1}ms")
+            updated     <- doUpdateNodeExpectedReports(conf.toList, oldConfigs, configInfos.toMap)
+            time_3      =  System.currentTimeMillis
+            _           =  (timingSaveConfig += (time_3 - time_2))
+            _           =  TimingDebugLogger.debug(s"saveNodeExpectedReports: batched save configs etc in ${time_3-time_2}ms")
+          } yield {
+            updated
+          }
+
+        }
+
+        TimingDebugLogger.debug(s"saveNodeExpectedReports: find old nodes config in ${timingFindOldNodesConfig}ms")
+        TimingDebugLogger.debug(s"saveNodeExpectedReports: find old config info ${timingFindOldConfigInfo}ms")
+        TimingDebugLogger.debug(s"saveNodeExpectedReports: save configs etc in ${timingSaveConfig}ms")
+
+        // Do the actual change
+        resultingNodeExpectedReports.map(_.traverse( x => x )).map(_.transact(xa).attempt.unsafeRunSync) match {
+          case Left(throwable) =>
+            val msg = s"There were an error while updating the expected reports, cause is ${throwable.getMessage}"
+            logger.error("msg")
+            Failure(msg, Full(throwable), Empty)
+          case Right(transactResult) =>
+            transactResult match {
+              case Left(commitError) =>
+                val msg = s"There were an error while updating the expected reports, cause is ${commitError.getMessage}"
+                Failure(msg, Full(commitError), Empty)
+              case Right(nodesExpectedReports) => Full(nodesExpectedReports.flatten)
+            }
         }
     }
   }
@@ -263,7 +312,7 @@ class UpdateExpectedReportsJdbcRepository(
       configs    : List[NodeExpectedReports]
     , oldConfigs : List[Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]]
     , configInfos: Map[NodeId, Vector[NodeConfigIdInfo]]
-  ): Either[Throwable, List[NodeExpectedReports]] = {
+  ): Either[Throwable, Free[connection.ConnectionOp, List[NodeExpectedReports]]] = {
 
     import Doobie._
     import doobie.xa
@@ -313,7 +362,7 @@ class UpdateExpectedReportsJdbcRepository(
     PolicyLogger.expectedReports.trace(s"Updating node configuration timeline info: [${toUpdate.sortBy(_._2.value).map{ case(i,n) => s"${n.value}(${i.size} entries):${i.map(_.configId.value).sorted.mkString(",")}"}.mkString("][")}]")
 
     //now, mass update
-    (for {
+    Right(for {
       closedConfigs <- Update[(DateTime, NodeId, NodeConfigId, DateTime)]("""
                           update nodeconfigurations set enddate = ?
                           where nodeid = ? and nodeconfigid = ? and begindate = ?
@@ -330,7 +379,7 @@ class UpdateExpectedReportsJdbcRepository(
                        """).updateMany(toAdd)
     } yield {
       configs
-    }).transact(xa).attempt.unsafeRunSync
+    })
   }
 
 
