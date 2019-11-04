@@ -909,7 +909,7 @@ $scope.onImportFileChange = function (fileEl) {
     if (usingRudder) {
       return "/rudder-doc/reference/current/reference/generic_methods.html#"+name
     } else {
-      return "http://www.ncf.io/pages/reference.html#"+name;
+      return "https://docs.rudder.io/reference/current/reference/generic_methods.html#_"+name;
     }
   }
 
