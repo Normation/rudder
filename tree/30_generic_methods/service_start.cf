@@ -19,9 +19,9 @@
 # @name Service start
 # @description Start a service using the appropriate method
 # @deprecated This is an action that should not be used in the general case.
-# If you really want to call the start method, use [service_action](#service_action).
-# Otherwise, simply call [service_started](#service_started)
-# @documentation See [service_action](#service_action) for documentation.
+# If you really want to call the start method, use [service_action](#_service_action).
+# Otherwise, simply call [service_started](#_service_started)
+# @documentation See [service_action](#_service_action) for documentation.
 #
 # @parameter service_name Name of the service
 # 

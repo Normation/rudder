@@ -18,7 +18,7 @@
 
 # @name File ensure line in INI section
 # @rename file_line_present_in_ini_section
-# @deprecated Use [file_line_present_in_ini_section](#file_line_present_in_ini_section) instead.
+# @deprecated Use [file_line_present_in_ini_section](#_file_line_present_in_ini_section) instead.
 # @description Ensure that a line is present in a section in a specific location. The objective of this method is to handle INI-style files.
 #
 # @parameter file File name to edit (absolute path on the target node)

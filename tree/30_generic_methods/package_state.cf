@@ -47,7 +47,7 @@
 # 
 # The last parameter is the provider, which is documented in the next section.
 #
-# You can use [package_state_options](#package_state_options) to pass options to the underlying package manager
+# You can use [package_state_options](#_package_state_options) to pass options to the underlying package manager
 # (currently only with *apt* package manager).
 #
 # #### Package providers
@@ -126,7 +126,7 @@
 # package_absent("postgresql", "", "", "");
 # ```
 # 
-# See also : [package_present](#package_present), [package_absent](#package_absent), [package_state_options](#package_state_options)
+# See also : [package_present](#_package_present), [package_absent](#_package_absent), [package_state_options](#_package_state_options)
 # @parameter name Name of the package, or path to a local package if state is present
 # @parameter version Version of the package, can be "latest" for latest version or "any" for any version (defaults to "any")
 # @parameter_constraint version "allow_empty_string" : true

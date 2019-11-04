@@ -18,7 +18,7 @@
 
 # @name Package present
 # @description Enforce the presence of a package
-# @documentation See [package_state](#package_state) for documentation.
+# @documentation See [package_state](#_package_state) for documentation.
 # @parameter            name Name of the package, or path to a local package
 # @parameter            version Version of the package, can be "latest" for latest version or "any" for any version (defaults to "any")
 # @parameter_constraint version "allow_empty_string" : true

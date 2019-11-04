@@ -18,7 +18,7 @@
 
 # @name File ensure key-value in INI section
 # @rename file_key_value_present_in_ini_section
-# @deprecated Use [file_key_value_present_in_ini_section](#file_key_value_present_in_ini_section) instead.
+# @deprecated Use [file_key_value_present_in_ini_section](#_file_key_value_present_in_ini_section) instead.
 # @description Ensure that a key-value pair is present in a section in a specific location. The objective of this method is to handle INI-style files.
 #
 # @parameter file File name to edit (absolute path on the target node)

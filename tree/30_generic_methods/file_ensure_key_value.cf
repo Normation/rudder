@@ -18,7 +18,7 @@
 
 # @name File ensure key -> value present
 # @rename file_key_value_present
-# @deprecated Use [file_key_value_present](#file_key_value_present) instead.
+# @deprecated Use [file_key_value_present](#_file_key_value_present) instead.
 # @description Ensure that the file contains a pair of "key separator value"
 # @documentation Edit (or create) the file, and ensure it contains an entry key -> value with arbitrary separator between the key and its value.
 # If the key is already present, the method will change the value associated with this key.

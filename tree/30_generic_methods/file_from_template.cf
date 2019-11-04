@@ -19,9 +19,9 @@
 # @name File from template
 # @description Build a file from a legacy CFEngine template
 # @deprecated This method uses CFEngine's templating which is deprecated and not portable accross agents.
-# Please use [file_from_template_mustache](#file_from_template_mustache) or [file_from_template_jinja2](#file_from_template_jinja2) instead.
+# Please use [file_from_template_mustache](#_file_from_template_mustache) or [file_from_template_jinja2](#_file_from_template_jinja2) instead.
 # 
-# @documentation See [file_from_template_type](#file_from_template_type) for general documentation about
+# @documentation See [file_from_template_type](#_file_from_template_type) for general documentation about
 # templates usage.
 #
 # @parameter source_template Source file containing a template to be expanded (absolute path on the target node)

@@ -19,7 +19,7 @@
 # @name Service restart
 # @description Restart a service using the appropriate method
 # @action
-# @documentation See [service_action](#service_action) for documentation.
+# @documentation See [service_action](#_service_action) for documentation.
 #
 # @parameter service_name Name of the service
 # 

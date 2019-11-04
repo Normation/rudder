@@ -18,7 +18,7 @@
 
 # @name File from a jinja2 template
 # @description Build a file from a jinja2 template
-# @documentation See [file_from_template_type](#file_from_template_type) for general documentation about
+# @documentation See [file_from_template_type](#_file_from_template_type) for general documentation about
 # templates usage.
 #
 # This generic method will build a file from a jinja2 template

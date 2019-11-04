@@ -19,7 +19,7 @@
 # @name Service ensure started at boot
 # @description Force a service to be started at boot
 # @rename service_enabled
-# @deprecated Use [service_enabled](#service_enabled) instead.
+# @deprecated Use [service_enabled](#_service_enabled) instead.
 #
 # @parameter service_name Service name (as recognized by systemd, init.d, Windows, SRC, SMF, etc...)
 #

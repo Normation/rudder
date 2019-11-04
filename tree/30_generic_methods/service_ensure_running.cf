@@ -19,7 +19,7 @@
 # @name Service ensure running
 # @description Ensure that a service is running using the appropriate method
 # @rename service_started
-# @deprecated Use [service_started](#service_started) instead.
+# @deprecated Use [service_started](#_service_started) instead.
 #
 # @parameter service_name Service name (as recognized by systemd, init.d, etc...)
 # 

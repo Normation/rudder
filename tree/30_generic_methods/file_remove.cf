@@ -19,7 +19,7 @@
 # @name File remove
 # @description Remove a file if it exists
 # @rename file_absent
-# @deprecated Use [file_absent](#file_absent) instead.
+# @deprecated Use [file_absent](#_file_absent) instead.
 #
 # @parameter target     File to remove (absolute path on the target node)
 #

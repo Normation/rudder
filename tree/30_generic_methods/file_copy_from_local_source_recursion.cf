@@ -18,7 +18,7 @@
 
 # @name File copy from local source recurse
 # @rename file_from_local_source_recursion
-# @deprecated Use [file_from_local_source_recursion](#file_from_local_source_recursion) instead.
+# @deprecated Use [file_from_local_source_recursion](#_file_from_local_source_recursion) instead.
 # @description Ensure that a file or directory is copied from a local source
 #
 # @parameter source      Source file (absolute path on the target node)

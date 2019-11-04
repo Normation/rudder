@@ -20,7 +20,7 @@
 # @description Ensure that a file or directory is copied from a policy server
 # @documentation *Note*: This method uses CFEngine file copy protocol, and can only download files from
 # the policy server. To download a file from an external source, you can use
-# HTTP with the [file_download](#file_download) method.
+# HTTP with the [file_download](#_file_download) method.
 # 
 # This method requires that the policy server is configured to accept
 # copy of the source file from the agents it will be applied to.

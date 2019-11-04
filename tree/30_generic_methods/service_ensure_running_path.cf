@@ -19,7 +19,7 @@
 # @name Service ensure running with service path
 # @description Ensure that a service is running using the appropriate method, specifying the path of the service in the ps output, or using Windows task manager
 # @rename service_started_path
-# @deprecated Use [service_started_path](#service_started_path) instead.
+# @deprecated Use [service_started_path](#_service_started_path) instead.
 
 # 
 # @parameter service_name Service name (as recognized by systemd, init.d, Windows, etc...)

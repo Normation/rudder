@@ -19,9 +19,9 @@
 # @name Service stop
 # @description Stop a service using the appropriate method
 # @deprecated This is an action that should not be used in the general case.
-# If you really want to call the stop method, use [service_action](#service_action).
-# Otherwise, simply call [service_stopped](#service_stopped)
-# @documentation See [service_action](#service_action) for documentation.
+# If you really want to call the stop method, use [service_action](#_service_action).
+# Otherwise, simply call [service_stopped](#_service_stopped)
+# @documentation See [service_action](#_service_action) for documentation.
 #
 # @parameter service_name Name of the service
 # 

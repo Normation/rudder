@@ -83,7 +83,7 @@
 # sharedfile_to_node("73570beb-2d4a-43d2-8ffc-f84a6817849c", "application.properties", "/srv/db/application.properties", "356 days")
 # ```
 #
-# To download the file, node *B* will use [sharedfile_from_node](#sharedfile_from_node) with:
+# To download the file, node *B* will use [sharedfile_from_node](#_sharedfile_from_node) with:
 #
 # ```
 # sharedfile_from_node("2bf1afdc-6725-4d3d-96b8-9128d09d353c", "application.properties", "/opt/application/etc/application.properties")

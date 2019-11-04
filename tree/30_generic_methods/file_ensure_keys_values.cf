@@ -18,7 +18,7 @@
 
 # @name File ensure keys -> values present
 # @rename file_keys_values_present
-# @deprecated Use [file_keys_values_present](#file_keys_values_present) instead.
+# @deprecated Use [file_keys_values_present](#_file_keys_values_present) instead.
 # @description Ensure that the file contains all pairs of "key separator value", with arbitrary separator between each key and its value
 # @documentation This method ensures key-value pairs are present in a file.
 # 
@@ -31,7 +31,7 @@
 #
 # This method always ignores spaces and tabs when replacing (which means for example that `key = value` will match the `=` separator).
 #
-# Keys are considered unique (to allow replacing the value), so you should use [file_ensure_lines_present](#file_ensure_lines_present)
+# Keys are considered unique (to allow replacing the value), so you should use [file_ensure_lines_present](#_file_ensure_lines_present)
 # if you want to have multiple lines with the same key.
 #
 # #### Example
@@ -43,8 +43,8 @@
 # key3 = value3
 # ```
 #
-# To define key-value pairs, use the [variable_dict](#variable_dict) or
-# [variable_dict_from_file](#variable_dict_from_file) methods.
+# To define key-value pairs, use the [variable_dict](#_variable_dict) or
+# [variable_dict_from_file](#_variable_dict_from_file) methods.
 #
 # For example, if you use the following content (stored in `/tmp/data.json`):
 #

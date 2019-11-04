@@ -18,7 +18,7 @@
 
 # @name File ensure block present
 # @rename file_block_present
-# @deprecated Use [file_block_present](#file_block_present) instead.
+# @deprecated Use [file_block_present](#_file_block_present) instead.
 # @description Ensure that a text block is present in a specific location
 #
 # @parameter file File name to edit (absolute path on the target node)

@@ -18,7 +18,7 @@
 
 # @name File template expand
 # @deprecated This method uses CFEngine's templating which is deprecated and not portable accross agents.
-# Please use [file_from_template_mustache](#file_from_template_mustache) or [file_from_template_jinja2](#file_from_template_jinja2) instead.
+# Please use [file_from_template_mustache](#_file_from_template_mustache) or [file_from_template_jinja2](#_file_from_template_jinja2) instead.
 # @description This is a bundle to expand a template in a specific location
 #
 # @parameter tml_file File name (with full path within the framework) of the template file

@@ -19,7 +19,7 @@
 # @name File download
 # @description Download a file if it does not exist, using curl with a fallback on wget
 # @rename file_from_http_server
-# @deprecated Use [file_from_http_server](#file_from_http_server) instead.
+# @deprecated Use [file_from_http_server](#_file_from_http_server) instead.
 # @documentation This method finds a HTTP command-line tool and downloads the given source
 # into the destination.
 # 

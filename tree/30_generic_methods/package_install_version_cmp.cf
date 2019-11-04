@@ -18,7 +18,7 @@
 
 # @name Package install version compare
 # @description Install a package or verify if it is installed in a specific version, or higher or lower version than a version specified
-# @deprecated Use [package_present](#package_present) instead.
+# @deprecated Use [package_present](#_package_present) instead.
 # @documentation *Example*:
 # ```
 # methods:

@@ -19,7 +19,7 @@
 # @name Service ensure stopped
 # @description Ensure that a service is stopped using the appropriate method
 # @rename service_stopped
-# @deprecated Use [service_stopped](#service_stopped) instead.
+# @deprecated Use [service_stopped](#_service_stopped) instead.
 #
 # @parameter service_name Service
 # 

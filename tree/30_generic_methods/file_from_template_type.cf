@@ -30,7 +30,7 @@
 #
 # The template file should be somewhere on the local file system, so
 # if you want to use a file shared from the policy server, you need to copy 
-# it first (using [file_copy_from_remote_source](#file_copy_from_remote_source)).
+# it first (using [file_copy_from_remote_source](#_file_copy_from_remote_source)).
 #
 # It is common to use a specific folder to store those templates after copy,
 # for example in `${sys.workdir}/templates/`.
@@ -48,8 +48,8 @@
 #
 # ncf currently supports three templating languages:
 #
-# * *mustache* templates, which are documented in [file_from_template_mustache](#file_from_template_mustache)
-# * *jinja2* templates, which are documented in [file_from_template_jinja2](#file_from_template_jinja2)
+# * *mustache* templates, which are documented in [file_from_template_mustache](#_file_from_template_mustache)
+# * *jinja2* templates, which are documented in [file_from_template_jinja2](#_file_from_template_jinja2)
 # * CFEngine templates, which are a legacy implementation that is here for compatibility,
 # and should not be used for new templates.
 #
@@ -58,7 +58,7 @@
 # Here is a complete example of templating usage:
 #
 # The (basic) template file, present on the server in `/PATH_TO_MY_FILE/ntp.conf.mustache`
-# (for syntax reference, see [file_from_template_mustache](#file_from_template_mustache)):
+# (for syntax reference, see [file_from_template_mustache](#_file_from_template_mustache)):
 #
 # ```mustache
 # {{#classes.linux}}

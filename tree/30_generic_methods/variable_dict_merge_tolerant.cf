@@ -20,7 +20,7 @@
 # @description Define a variable resulting of the merge of two other variables, allowing merging undefined variables
 # @documentation To use the generated variable, you must use the form `${variable_prefix.variable_name[key]}` with each name replaced with the parameters of this method.
 #
-# See [variable_dict_merge](#variable_dict_merge) for usage documentation. The only difference is that this method
+# See [variable_dict_merge](#_variable_dict_merge) for usage documentation. The only difference is that this method
 # will not fail if one of the variables do not exist, and will return the other one. If both are undefined, the method will still fail.
 #
 # @parameter variable_prefix The prefix of the variable name

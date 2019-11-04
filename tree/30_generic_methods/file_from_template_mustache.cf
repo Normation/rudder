@@ -18,7 +18,7 @@
 
 # @name File from a mustache template
 # @description Build a file from a mustache template
-# @documentation See [file_from_template_type](#file_from_template_type) for general documentation about
+# @documentation See [file_from_template_type](#_file_from_template_type) for general documentation about
 # templates usage.
 #
 # #### Syntax
