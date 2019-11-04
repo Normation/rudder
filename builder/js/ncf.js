@@ -1039,7 +1039,7 @@ $scope.onImportFileChange = function (fileEl) {
     if (usingRudder) {
       return "/rudder-doc/reference/current/reference/generic_methods.html#"+name
     }
-    return "http://www.ncf.io/pages/reference.html#"+name;
+    return "https://docs.rudder.io/reference/current/reference/generic_methods.html#_"+name;
   }
 
   // Get parameters information relative to a method_call
@@ -1539,6 +1539,7 @@ app.config(function($httpProvider,$locationProvider) {
     //Allows the browser to indicate to the cache to retrieve the GET request content from the original server rather than sending one he must keep.
     $httpProvider.defaults.headers.get['Pragma'] = 'no-cache';
 });
+<<<<<<< HEAD
 
 app.config(['fileManagerConfigProvider', function (config) {
   var apiPath = '/rudder/secure/api/techniques/';
@@ -1579,3 +1580,5 @@ function uuidv4() {
   );
 }
 
+=======
+>>>>>>> branches/rudder/5.0
