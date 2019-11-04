@@ -18,7 +18,7 @@
 
 # @name Create symlink (force overwrite)
 # @rename file_symlink_present_force
-# @deprecated Use [file_symlink_present_force](#file_symlink_present_force) instead.
+# @deprecated Use [file_symlink_present_force](#_file_symlink_present_force) instead.
 # @description Create a symlink at a destination path and pointing to a source target even if a file or directory already exists.
 #
 # @parameter source      Source file (absolute path on the target node)

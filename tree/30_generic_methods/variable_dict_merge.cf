@@ -27,7 +27,7 @@
 #
 # It is only a one-level merge, and the value of the first-level key will be completely replaced by the merge.
 #
-# This method will fail if one of the variables is not defined. See [variable_dict_merge_tolerant](#variable_dict_merge_tolerant)
+# This method will fail if one of the variables is not defined. See [variable_dict_merge_tolerant](#_variable_dict_merge_tolerant)
 # if you want to allow one of the variables not to be defined.
 #
 #### Usage

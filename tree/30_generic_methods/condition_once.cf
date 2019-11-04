@@ -36,7 +36,7 @@
 # The first agent run will have `my_condition` defined, contrary to subsequent runs
 # for which no class will be defined.
 #
-# See also : [command_execution_once](#command_execution_once)
+# See also : [command_execution_once](#_command_execution_once)
 # @parameter condition     The condition to define
 #
 # @class_prefix condition_once

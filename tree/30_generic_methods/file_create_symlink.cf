@@ -18,7 +18,7 @@
 
 # @name Create symlink
 # @rename file_symlink_present
-# @deprecated Use [file_symlink_present](#file_symlink_present) instead.
+# @deprecated Use [file_symlink_present](#_file_symlink_present) instead.
 # @description Create a symlink at a destination path and pointing to a source target except if a file or directory already exists.
 #
 # @parameter source      Source file (absolute path on the target node)

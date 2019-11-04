@@ -19,7 +19,7 @@
 # @name Directory create
 # @description Create a directory if it doesn't exist
 # @rename directory_present
-# @deprecated Use [directory_present](#directory_present) instead.
+# @deprecated Use [directory_present](#_directory_present) instead.
 #
 # @parameter target Full path of directory to create (trailing '/' is optional)
 #

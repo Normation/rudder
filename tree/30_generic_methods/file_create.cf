@@ -18,7 +18,7 @@
 
 # @name File create
 # @rename file_present
-# @deprecated Use [file_present](#file_present) instead.
+# @deprecated Use [file_present](#_file_present) instead.
 # @description Create a file if it doesn't exist
 #
 # @parameter target     File to create (absolute path on the target node)

@@ -18,7 +18,7 @@
 
 # @name File copy from local source
 # @rename file_from_local_source
-# @deprecated Use [file_from_local_source](#file_from_local_source) instead.
+# @deprecated Use [file_from_local_source](#_file_from_local_source) instead.
 # @description Ensure that a file or directory is copied from a local source
 #
 # @parameter source      Source file (absolute path on the target node)

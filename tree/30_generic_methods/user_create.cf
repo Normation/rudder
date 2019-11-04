@@ -19,8 +19,8 @@
 # @name User create
 # @description Create a user
 # @deprecated Please split into calls to other user_* methods:
-# [user_present](#user_present) [user_fullname](#user_fullname) [user_home](#user_home)
-# [user_primary_group](#user_primary_group) [user_shell](#user_shell) and [user_locked](#user_locked)
+# [user_present](#_user_present) [user_fullname](#_user_fullname) [user_home](#_user_home)
+# [user_primary_group](#_user_primary_group) [user_shell](#_user_shell) and [user_locked](#_user_locked)
 # @documentation This method does not create the user's home directory.
 # @agent_version >=3.6
 #

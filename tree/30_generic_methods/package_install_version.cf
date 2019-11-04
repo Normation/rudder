@@ -18,7 +18,7 @@
 
 # @name Package install version
 # @description Install or update a package in a specific version
-# @deprecated Use [package_present](#package_present) instead.
+# @deprecated Use [package_present](#_package_present) instead.
 #
 # @parameter package_name    Name of the package to install
 # @parameter package_version Version of the package to install (can be "latest" to install it in its latest version)

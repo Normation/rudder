@@ -18,7 +18,7 @@
 
 # @name File copy from remote source recurse
 # @rename file_from_remote_source_recursion
-# @deprecated Use [file_from_remote_source_recursion](#file_from_remote_source_recursion) instead.
+# @deprecated Use [file_from_remote_source_recursion](#_file_from_remote_source_recursion) instead.
 # @description Ensure that a file or directory is copied from a policy server
 # @documentation This method requires that the policy server is configured to accept
 # copy of the source file or directory from the agents it will be applied to.

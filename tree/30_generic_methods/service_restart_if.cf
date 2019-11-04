@@ -18,8 +18,8 @@
 
 # @name Service restart at a condition
 # @description Restart a service using the appropriate method if the specified class is true, otherwise it is considered as not required and success classes are returned.
-# @deprecated Use [service_restart](#service_restart) with a condition
-# @documentation See [service_action](#service_action) for documentation.
+# @deprecated Use [service_restart](#_service_restart) with a condition
+# @documentation See [service_action](#_service_action) for documentation.
 #
 # @parameter service_name Name of the service
 # @parameter trigger_class class(es) which will trigger the restart of Service "(package_service_installed|service_conf_changed)" by example

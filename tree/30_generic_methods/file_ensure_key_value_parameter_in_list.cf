@@ -18,7 +18,7 @@
 
 # @name File ensure key value parameter in list
 # @rename file_key_value_parameter_present_in_list
-# @deprecated Use [file_key_value_parameter_present_in_list](#file_key_value_parameter_present_in_list) instead.
+# @deprecated Use [file_key_value_parameter_present_in_list](#_file_key_value_parameter_present_in_list) instead.
 # @description Ensure that one parameter exists in a list of parameters, on one single line, in the right hand side of a key->values line
 # @documentation Edit the file, and ensure it contains the defined parameter in the list of values on the right hand side of a key->values line.
 # If the parameter is not there, it will be added at the end, separated by parameter_separator.

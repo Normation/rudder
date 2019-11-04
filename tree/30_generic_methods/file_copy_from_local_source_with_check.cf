@@ -18,7 +18,7 @@
 
 # @name File copy from local source with check
 # @rename file_from_local_source_with_check
-# @deprecated Use [file_from_local_source_with_check](#file_from_local_source_with_check) instead.
+# @deprecated Use [file_from_local_source_with_check](#_file_from_local_source_with_check) instead.
 
 # @description Ensure that a file or directory is copied from a local source if a check command succeeds
 # @documentation This method is a conditionnal file copy.

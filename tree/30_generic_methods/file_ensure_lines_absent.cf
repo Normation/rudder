@@ -18,7 +18,7 @@
 
 # @name File ensure lines absent
 # @rename file_lines_absent
-# @deprecated Use [file_lines_absent](#file_lines_absent) instead.
+# @deprecated Use [file_lines_absent](#_file_lines_absent) instead.
 # @description Ensure that a line is absent in a specific location
 #
 # @parameter file File name to edit (absolute path on the target node)

@@ -23,7 +23,7 @@
 # The file will be downloaded using CFEngine protocol and copied into a new file.
 # The destination path must be the complete absolute path of the destination file.
 #
-# See [sharedfile_to_node](#sharedfile_to_node) for a complete example. 
+# See [sharedfile_to_node](#_sharedfile_to_node) for a complete example. 
 #
 # *INFO*: Please note that this method must be used on an agent that is connected to
 # Rudder relay or server (>=4.1)

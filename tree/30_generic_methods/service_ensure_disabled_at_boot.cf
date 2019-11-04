@@ -18,7 +18,7 @@
 
 # @name Service ensure disabled at boot
 # @rename service_disabled_at_boot
-# @deprecated Use [service_disabled_at_boot](#service_disabled_at_boot) instead.
+# @deprecated Use [service_disabled_at_boot](#_service_disabled_at_boot) instead.
 # @description Force a service not to be enabled at boot
 #
 # @parameter service_name Service name (as recognized by systemd, init.d, etc...)

@@ -18,7 +18,7 @@
 
 # @name Package remove
 # @description Remove a package
-# @deprecated Use [package_absent](#package_absent) instead.
+# @deprecated Use [package_absent](#_package_absent) instead.
 # @documentation *Example*:
 # ```
 # methods:

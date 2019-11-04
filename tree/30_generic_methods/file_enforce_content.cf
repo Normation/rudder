@@ -18,7 +18,7 @@
 
 # @name File enforce content
 # @rename file_content
-# @deprecated Use [file_content](#file_content) instead.
+# @deprecated Use [file_content](#_file_content) instead.
 # @description Enforce the content of a file
 #
 # @parameter file  File name to edit (absolute path on the target node)

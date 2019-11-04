@@ -23,7 +23,7 @@
 # Be careful that using a global variable can lead to unpredictable content in case of multiple definition, which is implicitly the case when a technique has more than one instance (directive). 
 # Please note that only global variables are available within templates.
 #
-# See [variable_dict_from_file_type](#variable_dict_from_file_type) for complete documentation.
+# See [variable_dict_from_file_type](#_variable_dict_from_file_type) for complete documentation.
 # @parameter variable_prefix The prefix of the variable name
 # @parameter variable_name   The variable to define, the full name will be variable_prefix.variable_name
 # @parameter file_name       The absolute local file name with JSON content

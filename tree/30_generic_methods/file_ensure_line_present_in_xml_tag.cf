@@ -18,7 +18,7 @@
 
 # @name File ensure line in XML section
 # @rename file_line_present_in_xml_tag
-# @deprecated Use [file_line_present_in_xml_tag](#file_line_present_in_xml_tag) instead.
+# @deprecated Use [file_line_present_in_xml_tag](#_file_line_present_in_xml_tag) instead.
 # @description Ensure that a line is present in a tag in a specific location. The objective of this method is to handle XML-style files. Note that if the tag is not present in the file, it won't be added, and the edition will fail.
 #
 # @parameter file File name to edit (absolute path on the target node)
