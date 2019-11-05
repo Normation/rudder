@@ -388,7 +388,7 @@ class CachedNodeChangesServiceImpl(
                     case ex: OutOfMemoryError =>
                       val msg = "Rule Changes cache can not be updated du to OutOfMemory error. That mean that either your installation is missing " +
                         "RAM (see: https://docs.rudder.io/reference/current/administration/performance.html#_java_out_of_memory_error) or that the number of recent changes is " +
-                        "overwhelming, and you hit: http://www.rudder-project.org/redmine/issues/7735. Look here for workaround"
+                        "overwhelming, and you hit: https://issues.rudder.io/issues/7735. Look here for workaround"
                       ReportLoggerPure.Changes.logEffect.error(msg)
                       Failure(msg)
                   }).toIO
