@@ -12,4 +12,4 @@
 # Copy nodelist.json to its final destination and reload relayd
 
 cp /var/rudder/cfengine-community/inputs/distributePolicy/1.0/nodeslist.json /var/rudder/lib/relay/ 
-/opt/rudder/bin/rudder relay reload -p
+systemctl reload-or-restart rudder-relayd
