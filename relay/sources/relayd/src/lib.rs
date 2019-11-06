@@ -82,12 +82,36 @@ use tracing_subscriber::{
     reload::Handle,
 };
 
-/// Sets exit code based on error type
-/// None means unspecified error or panic
-pub fn return_code(e: Option<&Error>) -> i32 {
-    match e {
-        Some(Error::ConfigurationParsing(_)) => 2,
-        Some(_) | None => 1,
+// There are two main phases in execution:
+//
+// * Startup, when all config files are loaded, various structures are initialized,
+// and tokio runtime is started. During startup, all errors make the program stop
+// as all steps are necessary to correctly start the app.
+// * Run, once everything is started. Errors are caught and logged, except
+// for panics which stop the program
+//
+// The program should generally only be automatically restarted when
+// encountering an unexpected error (panic). Start errors require external
+// actions.
+
+pub enum ExitStatus {
+    /// Expected shutdown
+    Shutdown,
+    /// Unexpected crash (=panic in tokio)
+    Crash,
+    /// Could not start properly due to an error
+    StartError(Error),
+}
+
+impl ExitStatus {
+    /// Exit with code based on error type
+    pub fn code(&self) -> i32 {
+        match self {
+            ExitStatus::Shutdown => 0,
+            ExitStatus::Crash => 1,
+            ExitStatus::StartError(Error::ConfigurationParsing(_)) => 2,
+            ExitStatus::StartError(_) => 3,
+        }
     }
 }
 
@@ -146,7 +170,7 @@ pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), 
         .into_future()
         .map(|_sig| {
             info!("Signal received: shutdown requested");
-            exit(return_code(None));
+            exit(ExitStatus::Shutdown.code());
         })
         .map_err(|e| error!("signal error {}", e.0));
 
@@ -161,8 +185,6 @@ pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), 
 
     // ---- Start server ----
 
-    info!("Starting server");
-
     let mut builder = tokio::runtime::Builder::new();
     if let Some(threads) = job_config.cfg.general.core_threads {
         builder.core_threads(threads);
@@ -170,7 +192,7 @@ pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), 
     let mut runtime = builder
         .blocking_threads(job_config.cfg.general.blocking_threads)
         // TODO check why resume_unwind is not enough
-        .panic_handler(|_| std::process::exit(return_code(None)))
+        .panic_handler(|_| exit(ExitStatus::Crash.code()))
         .build()?;
 
     // don't use block_on_all as it panics on main future panic but not others
@@ -199,12 +221,13 @@ pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), 
             info!("Skipping inventory as it is disabled");
         }
 
+        info!("Server started");
         Ok(())
     }));
 
     // waits for completion of all futures
     runtime.shutdown_on_idle().wait().expect("shutdown failed");
-    Err(Error::ServerHaltedUnexpectedly)
+    panic!("Server halted unexpectedly");
 }
 
 pub struct JobConfig {

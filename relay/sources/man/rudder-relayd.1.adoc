@@ -27,6 +27,17 @@ the upstream relay or send them to the root server.
 *-V, --version*::
   Print version information.
 
+== EXIT CODES
+
+*0*::
+  Normal shutdown
+*1*::
+  Unexpected crash
+*2*::
+  Invalid configuration files
+*3*::
+  Other errors
+
 == AUTHOR
 
 Rudder developers <dev@rudder.io>

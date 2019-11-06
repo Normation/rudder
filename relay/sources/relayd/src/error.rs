@@ -38,8 +38,6 @@ use toml;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("server halted unexpectedly")]
-    ServerHaltedUnexpectedly,
     #[error("invalid run log: {0}")]
     InvalidRunLog(String),
     #[error("invalid run info: {0}")]
