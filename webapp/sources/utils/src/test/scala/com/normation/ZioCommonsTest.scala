@@ -513,8 +513,6 @@ import _root_.zio.internal._
     def time = (System.currentTimeMillis()-start).toString
 
 
-    import cats._
-    import cats.syntax._
     import _root_.zio.interop.catz._
 
 

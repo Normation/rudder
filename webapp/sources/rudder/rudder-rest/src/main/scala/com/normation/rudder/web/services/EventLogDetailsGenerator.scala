@@ -82,6 +82,7 @@ class EventLogDetailsGenerator(
   , modificationService : ModificationService
   , personIdentService  : PersonIdentService
   , linkUtil            : LinkUtil
+  , diffDisplayer       : DiffDisplayer
 ) extends Loggable {
 
   private[this] val xmlPretty = new scala.xml.PrettyPrinter(80, 2)
@@ -302,7 +303,6 @@ class EventLogDetailsGenerator(
             xml }
 
         case mod:ModifyRule =>
-          val diffDisplayer = new DiffDisplayer(linkUtil)
           "*" #> { val xml : NodeSeq = logDetailsService.getRuleModifyDetails(mod.details) match {
             case Full(modDiff) =>
               <div class="evloglmargin">
@@ -1044,7 +1044,6 @@ class EventLogDetailsGenerator(
   }
 
   private[this] def ruleDetails(xml:NodeSeq, rule:Rule, groupLib: FullNodeGroupCategory, rootRuleCategory: RuleCategory) = {
-    val diffDisplayer = new DiffDisplayer(linkUtil)
     (
       "#ruleID"    #> rule.id.value &
         "#ruleName"  #> rule.name &
