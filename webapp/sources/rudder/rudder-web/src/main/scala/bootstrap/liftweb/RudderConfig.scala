@@ -645,6 +645,7 @@ object RudderConfig extends Loggable {
   )
   val workflowEventLogService = new WorkflowEventLogServiceImpl(eventLogRepository,uuidGen)
   val diffService: DiffService = new DiffServiceImpl()
+  lazy val diffDisplayer = new DiffDisplayer(linkUtil)
   lazy val commitAndDeployChangeRequest : CommitAndDeployChangeRequestService =
     new CommitAndDeployChangeRequestServiceImpl(
         uuidGen
@@ -1357,6 +1358,7 @@ object RudderConfig extends Loggable {
     , modificationService
     , personIdentServiceImpl
     , linkUtil
+    , diffDisplayer
   )
   private[this] lazy val fileManagerImpl = new FileManager(UPLOAD_ROOT_DIRECTORY)
   private[this] lazy val databaseManagerImpl = new DatabaseManagerImpl(reportsRepositoryImpl, updateExpectedRepo)
