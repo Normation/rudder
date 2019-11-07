@@ -37,7 +37,7 @@ bundle agent package_check_installed(package_name)
       "full_class_prefix"       string => canonify("package_check_installed_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
 
-      "full_inner_class_prefix" string => canonify("package_install_${package_name}___latest_verify_false");
+      "full_inner_class_prefix" string => canonify("package_install_${package_name}____latest_verify_false");
       "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
   classes:
