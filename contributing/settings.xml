@@ -1,0 +1,124 @@
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+    <!-- <mirrors>
+      <mirror>
+            <This sends everything else to /public
+            <id>nexus</id>
+            <mirrorOf>*</mirrorOf>
+            <url>http://nexus.normation.com/nexus/content/groups/public</url>
+          </mirror>
+        </mirrors>
+        -->
+    <localRepository>[PATH TO .m2 DIRECTORY]</localRepository>
+    <profiles>
+    <profile>
+      <id>license-info</id>
+      <properties>
+        <plugin-resource-publickey>license.pubkey</plugin-resource-publickey>
+	<plugin-resource-license></plugin-resource-license>
+        <plugin-declared-version>4.2-1.1.0</plugin-declared-version>
+      </properties>
+      <activation>
+          <activeByDefault>true</activeByDefault>
+      </activation>
+    </profile>
+    <profile>
+      <id>nexus</id>
+      <build>
+         <plugins>
+            <plugin>
+               <groupId>org.sonatype.plugins</groupId>
+               <artifactId>nexus-staging-maven-plugin</artifactId>
+               <version>1.5.1</version>
+               <executions>
+                  <execution>
+                     <id>default-deploy</id>
+                     <phase>deploy</phase>
+                     <goals>
+                        <goal>deploy</goal>
+                     </goals>
+                  </execution>
+               </executions>
+               <configuration>
+                  <serverId>nexus-releases</serverId>
+                  <nexusUrl>http://nexus.normation.com/nexus/</nexusUrl>
+                  <skipStaging>true</skipStaging>
+               </configuration>
+             </plugin>
+                   <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>3.0.1</version>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+         </plugins>
+      </build>
+      <!--      <repositories>
+        <repository>
+          <id>normation</id>
+          <url>http://nexus.normation.com/nexus/content/repositories/private-releases</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>true</enabled></snapshots>
+          </repository>
+          <repository>
+          <id>normation-snapshot</id>
+          <url>http://nexus.normation.com/nexus/content/repositories/snapshots</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+
+        <repository>
+          <id>normation-public</id>
+          <url>http://nexus.normation.com/nexus/content/repositories/releases</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+
+
+            <repository>
+      <id>rudder-release</id>
+      <url>http://www.rudder-project.org/maven-releases/</url>
+      <layout>default</layout>
+      <snapshots><enabled>false</enabled></snapshots>
+    </repository>
+    <repository>
+      <id>rudder-snapshot</id>
+      <url>http://www.rudder-project.org/maven-snapshots/</url>
+      <layout>default</layout>
+      <snapshots><enabled>true</enabled></snapshots>
+    </repository>
+
+      </repositories> -->
+      <!--<pluginRepositories>
+        <pluginRepository>
+          <id>normation</id>
+          <url>http://nexus.normation.com/nexus/content/repositories/private-releases</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>true</enabled></snapshots>
+        </pluginRepository>
+      </pluginRepositories>-->
+    </profile>
+  </profiles>
+    <activeProfiles>
+      <activeProfile>nexus</activeProfile>
+    </activeProfiles>
+
+
+<servers>
+  <server>
+    <id>releases.nexus.normation.com</id>
+    <username>[USERNAME: firstname.lastname]</username>
+    <password>[PASSWORD]</password>
+
+  </server>
+</servers>
+</settings>

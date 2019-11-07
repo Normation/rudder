@@ -75,9 +75,9 @@ You need to edit it to provide your Gtihub and redmine token:
 [default]
 ## Uncomment and set your own values
 ## To manage your tokens, click here https://github.com/settings/tokens
-github_token = 
+github_token =
 ## Redmine personal access token, (create one here http://www.rudder-project.org/redmine/my/account)
-redmine_token = 
+redmine_token =
 ```
 
 === Usage
@@ -100,7 +100,8 @@ It is also used for continuous integration and release testing.
 
 === Scala
 
-Rudder Scala developers are mostly using IntelliJ, with the Scala plugin.
+Follow these link:contributing/webapp.md[instructions] to setup a development's environment with IntelliJ
+allowing you to test your changes.
 
 === Rust
 
