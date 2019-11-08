@@ -102,31 +102,6 @@ html {
 .overflow_auto {
   overflow: auto;
 }
-
-/**********************************
- * Node details
- **********************************/
-
-#nodeDetails {
- padding:10px;
-}
-
-#node_summary #nodeDetails {
- float:left;
- width:50%;
- border-right : 2px #b2b2b2 solid;
-}
-
-#node_summary #nodeGroups {
- float:left;
- width:50%;
- padding:10px;
-}
-#node_parameters{
-  padding: 10px;
-  float: left;
-}
-
 /**********************************
  *            FORM                *
  **********************************/
@@ -1455,9 +1430,7 @@ label span.text-fit{
   border : none !important;
   overflow: visible;
 }
-#node_inventory{
-	padding : 0 !important;
-}
+
 #serverDetails .dataTables_wrapper_top .dataTables_length{
   padding: 5px;
 }

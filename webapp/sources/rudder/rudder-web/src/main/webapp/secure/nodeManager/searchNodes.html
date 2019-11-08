@@ -2,7 +2,8 @@
 
 <head>
     <title>Rudder - Search Nodes</title>
-    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-tags.css" media="screen">
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-tags.css"  media="screen">
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-node.css" media="screen">
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/angular/elastic.min.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/angular/auditMode.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/angular/nodeProperties.js"></script>
@@ -11,14 +12,6 @@
 <div class="portlet">
   <div class="portlet-header page-title">Nodes</div>
   <div class="portlet-content">
-    <div class="callout-fade callout-info" >
-      <div class="marker">
-        <span class="glyphicon glyphicon-info-sign"></span>
-      </div>
-      <div>
-        Make a query base search and display node details
-      </div>
-    </div>
     <div data-lift="node.SearchNodes.head"></div>
     <div class="inner-portlet">
       <div class="inner-portlet-content">
@@ -29,15 +22,13 @@
     </div>
     <div class="inner-portlet">
       <div class="inner-portlet-content">
-        <div id="querySearchSection" onclick="$('#query-search-content').toggle(400);$('#querySearchSection').toggleClass('unfoldedSectionQuery');" class="inner-portlet-header">
-            Query based search
-        </div>
-        <div id="query-search-content" style="display:none;">
+        <div id="query-search-content">
           <div class="callout-fade callout-info">
             <div class="marker">
               <span class="glyphicon glyphicon-info-sign"></span>
             </div>
             <div>
+              <h4>Query based search</h4>
               Find nodes in your Rudder infrastructure that match different criteria.<br />
               Define <a href="/secure/nodeManager/groups">node groups</a> from your search results.
             </div>
