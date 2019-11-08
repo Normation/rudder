@@ -1,6 +1,3 @@
 ProtectSystem=strict
 ReadWritePaths=/var/rudder/reports /var/rudder/inventories
 PrivateTmp=True
-PrivateUsers=True
-PrivateDevices=True
-MemoryDenyWriteExecute=True
