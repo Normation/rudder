@@ -275,7 +275,7 @@ function scrollToElement(elementId, containerSelector) {
   // We need to remove the container offset from the elem offset so we scroll the correct amount in scroll function
   var offset = $("#"+ elementId).offset()
   if(offset){
-    var offsetTop = offset.top - container.offset().top;
+    var offsetTop = offset.top - container.offset().top - 60;
     container.animate({ scrollTop: offsetTop }, 500);
   }
 }

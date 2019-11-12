@@ -2773,12 +2773,10 @@ ul > li.rudder-form > .input-group.disabled *{
 h3.box-title {
   padding:0;
 }
-.nav-tabs-custom>.nav-tabs, .box-header.with-border,.nav-tabs-custom>.nav-tabs>li.active>a{
-  border-color: #e2e2e2 !important;
+.box-header.with-border,.nav-tabs-custom>.nav-tabs>li.active>a{
+  border-color: #e5e5e5 !important;
 }
-.nav-tabs-custom>.nav-tabs>li.active>a,.nav-tabs-custom>.nav-tabs>li.active>a:hover{
-  border-bottom:none !important;
-}
+
 .box.has-toolbar{
   margin-bottom:65px;
 }
@@ -3000,10 +2998,21 @@ table a > i.fa-pencil:hover{
 }
 
 /* TABS */
-.ui-tabs-nav {
-  border-bottom : 2px solid #e9e9e9;
+#editRuleZone .box .box-title .fa {
+  text-align: center;
 }
-.ui-tabs-nav > .ui-tabs-tab {
+.ui-tabs-nav{
+  border-bottom: 2px solid #e5e5E5;
+}
+
+.nav-tabs-custom > .nav-tabs{
+  border-bottom: 2px solid #e5e5E5;
+  float: left;
+  width: 100%;
+  padding: 0 10px;
+}
+.ui-tabs-nav > .ui-tabs-tab,
+.nav-tabs-custom > .nav-tabs > li{
   display: inline-block;
   padding: 6px 10px;
   margin: 0;
@@ -3011,20 +3020,34 @@ table a > i.fa-pencil:hover{
   outline: none !important;
   position:relative;
 }
-.ui-tabs-nav > .ui-tabs-tab > a {
+.nav-tabs-custom > .nav-tabs > li{
+  margin-left: 10px;
+}
+.nav-tabs-custom > .nav-tabs > li{
+  padding: 0;
+}
+.ui-tabs-nav > .ui-tabs-tab > a,
+.nav-tabs-custom > .nav-tabs > li > a{
   color: #777;
   transition-property: color;
   transition-duration: .2s;
   font-size: 15px;
 }
-.ui-tabs-nav > .ui-tabs-tab > a:hover {
+.nav-tabs-custom > .nav-tabs > li > a{
+  padding: 6px 0;
+}
+.ui-tabs-nav > .ui-tabs-tab > a:hover,
+.nav-tabs-custom > .nav-tabs > li > a:hover{
   color: #3c8dbc;
 }
-.ui-tabs-nav > .ui-tabs-tab.ui-tabs-active > a {
+
+.ui-tabs-nav > .ui-tabs-tab.ui-tabs-active > a,
+ .nav-tabs-custom > .nav-tabs > li.active > a {
   color  : #333 !important;
   cursor : default;
 }
-.ui-tabs-nav > .ui-tabs-tab:before {
+.ui-tabs-nav > .ui-tabs-tab:before,
+ .nav-tabs-custom > .nav-tabs > li:before{
   content: "";
   position: absolute;
   bottom : -3px;
@@ -3034,9 +3057,17 @@ table a > i.fa-pencil:hover{
   background-color : transparent;
   transition-property : background-color;
   transition-duration : .2s;
+  z-index: 1;
 }
-.ui-tabs-nav > .ui-tabs-tab.ui-tabs-active:before{
+.ui-tabs-nav > .ui-tabs-tab.ui-tabs-active:before,
+.nav-tabs-custom > .nav-tabs > li.active:before{
   background-color : #3c8dbc;
+}
+
+.nav-tabs-custom > .nav-tabs > li,
+.nav-tabs-custom > .nav-tabs > li > a{
+  border: none !important;
+  background-color: transparent !important;
 }
 
 /* UI TOOLTIPS */
