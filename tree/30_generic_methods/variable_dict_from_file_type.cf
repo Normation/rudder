@@ -23,6 +23,11 @@
 # Be careful that using a global variable can lead to unpredictable content in case of multiple definition, which is implicitly the case when a technique has more than one instance (directive). 
 #
 # This method will load data from various file formats (yaml, json, csv). 
+#
+# #### CSV parsing
+#
+# The input file must use CRLF as line delimiter
+# to be readable (as stated in RFC 4180).
 # 
 # #### Examples
 # 
