@@ -47,7 +47,8 @@ def startLogger(logLevel):
         fail("unknow loglevel %s"%(logLevel))
 
     # log file logger
-    os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+    if not os.is_dir(os.path.dirname(LOG_PATH)):
+      os.makedirs(os.path.dirname(LOG_PATH))
     fileHandler = logging.handlers.RotatingFileHandler(filename=LOG_PATH,maxBytes=1000000,backupCount=1)
     fileHandler.setLevel(logging.DEBUG)
     fileFormatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
