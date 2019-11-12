@@ -1087,8 +1087,6 @@ function createNodeTable(gridId, data, contextPath, refresh) {
         elem.click(function(e) {
           oData.callback(displayCompliance);
           e.stopPropagation();
-          $('#query-search-content').toggle(400);
-          $('#querySearchSection').toggleClass('unfoldedSectionQuery');
         });
         elem.attr("href","javascript://");
     } else {
