@@ -395,7 +395,7 @@ class PolicyWriterServiceImpl(
                             res
                           }
       postMvHooksTime2   = System.currentTimeMillis
-      _                  = policyLogger.debug(s"Hooks for policy-generation-node-ready executed in ${postMvHooksTime2 - movedPromisesTime2} ms")
+      _                  = policyLogger.debug(s"Hooks for policy-generation-node-finished executed in ${postMvHooksTime2 - movedPromisesTime2} ms")
     } yield {
       val ids = movedPromises.map { _.nodeId }.toSet
       allNodeConfigs.filterKeys { id => ids.contains(id) }.values.toSeq
