@@ -186,7 +186,7 @@ class RuleCompliance (
       case oom: OutOfMemoryError =>
         val msg = "NodeChanges can not be retrieved du to OutOfMemory error. That mean that either your installation is missing " +
           "RAM (see: https://docs.rudder.io/reference/current/administration/performance.html#_java_out_of_memory_error) or that the number of recent changes is " +
-          "overwhelming, and you hit: http://www.rudder-project.org/redmine/issues/7735. Look here for workaround"
+          "overwhelming, and you hit: https://issues.rudder.io/issues/7735. Look here for workaround"
         logger.error(msg)
         Noop
     }
@@ -201,7 +201,7 @@ class RuleCompliance (
    */
   def refreshTableChanges(intervalStartTimestamp: Option[Long]) : JsCmd = {
     val intervals = recentChangesService.getCurrentValidIntervals(None).sortBy(_.getStartMillis)
-    val failure = Failure("No interval defined. It's likelly a bug, please contact report it to rudder-project.org/redmine")
+    val failure = Failure("No interval defined. It's likelly a bug, please contact report it to https://issues.rudder.io")
     val int = intervalStartTimestamp.orElse(intervals.lastOption.map(_.getStartMillis)) match {
       case Some(t) => intervals.find { i => t == i.getStartMillis } match {
         case Some(i) => Full(i)
@@ -235,7 +235,7 @@ class RuleCompliance (
       case oom: OutOfMemoryError =>
         val msg = "NodeChanges can not be retrieved du to OutOfMemory error. That mean that either your installation is missing " +
           "RAM (see: https://docs.rudder.io/reference/current/administration/performance.html#_java_out_of_memory_error) or that the number of recent changes is " +
-          "overwhelming, and you hit: http://www.rudder-project.org/redmine/issues/7735. Look here for workaround"
+          "overwhelming, and you hit: https://issues.rudder.io/issues/7735. Look here for workaround"
         logger.error(msg)
         Noop
     }

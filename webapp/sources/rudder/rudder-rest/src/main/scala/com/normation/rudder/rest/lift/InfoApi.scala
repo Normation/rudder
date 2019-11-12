@@ -96,7 +96,7 @@ class InfoApi(
 
     availableVersions.reverse match {
       case Nil         =>
-        ( "documentation" -> "http://www.rudder-project.org/rudder-api-doc/") ~
+        ( "documentation" -> "https://docs.rudder.io/api/") ~
         ( "error" -> "No API version supported. please contact your administrator or report a bug")
 
       case max :: tail =>
@@ -115,7 +115,7 @@ class InfoApi(
         }
         val jsonEndpoints = list.map(_.schema.name).distinct.map(n => jsonInfos(n)) //can't fails, same source 'list'
 
-        ( "documentation" -> "http://www.rudder-project.org/rudder-api-doc/") ~
+        ( "documentation" -> "https://docs.rudder.io/api/") ~
         ( "availableVersions" ->
           ( "latest" -> max.value) ~
           ( "all" -> availableVersions)
@@ -163,13 +163,13 @@ class InfoApi(
 
       val json = endpoints.filter(e => e.schema.name.toLowerCase() == name.toLowerCase() && e.schema.kind != ApiKind.Internal).sortBy( _.version.value ).toList match {
         case Nil =>
-          ( "documentation" -> "http://www.rudder-project.org/rudder-api-doc/") ~
+          ( "documentation" -> "https://docs.rudder.io/api/") ~
           ( "error" -> s"No endpoint with name '${name}' defined.")
 
         case h :: tail =>
           val jsonEndpoints = (h::tail).map( _.json )
 
-          ( "documentation" -> "http://www.rudder-project.org/rudder-api-doc/") ~
+          ( "documentation" -> "https://docs.rudder.io/api/") ~
           ( name            -> h.schema.description ) ~
           ( "endpoints"     -> jsonEndpoints )
       }
