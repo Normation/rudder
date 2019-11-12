@@ -505,13 +505,13 @@ final case object MemoryComparator extends LDAPCriterionType {
       case Regex | NotRegex => validateRegex(v)
       case _ =>
         if(MemorySize.parse(v).isDefined) Right(v)
-        else Left(Inconsistancy(s"Invalid memory size : '${v}', expecting '300 Mo', '16KB', etc"))
+        else Left(Inconsistancy(s"Invalid memory size : '${v}', expecting '300 M', '16KB', etc"))
     }
   }
 
   override def toLDAP(v:String) = MemorySize.parse(v) match {
     case Some(m) => Right(m.toString)
-    case None => Left(Inconsistancy(s"Invalid memory size : '${v}', expecting '300 Mo', '16KB', etc"))
+    case None => Left(Inconsistancy(s"Invalid memory size : '${v}', expecting '300 M', '16KB', etc"))
   }
 }
 

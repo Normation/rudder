@@ -589,7 +589,7 @@ object DisplayNode extends Loggable {
         logger.error(e.messageChain)
         <div class="error"><label>Policy Server:</label> Could not fetch details about the policy server</div>
       case Full(Some(policyServerDetails)) =>
-        <div><label>Policy Server:</label> <a href={linkUtil.baseNodeLink(policyServerDetails.id)}  onclick="location.reload()">{policyServerDetails.hostname}</a></div>
+        <div><label>Policy Server:</label> <a href={linkUtil.baseNodeLink(policyServerDetails.id)}  onclick={s"updateNodeIdAndReload('${policyServerDetails.id.value}')"}>{policyServerDetails.hostname}</a></div>
       case Full(None) =>
         logger.error(s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${sm.node.main.hostname}' ('${sm.node.main.id.value}')")
         <div class="error"><label>Policy Server:</label> Could not fetch details about the policy server</div>
