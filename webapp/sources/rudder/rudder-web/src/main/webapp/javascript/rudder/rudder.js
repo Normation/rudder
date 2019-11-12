@@ -713,3 +713,17 @@ function graphTooltip (tooltip, displayColor) {
 function checkIPaddress(address) {
   return (/^((((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\/([1-9]|(0|([1-2][0-9]))|(3[0-2])))?)|(([0-9a-f]|:){1,4}(:([0-9a-f]{0,4})*){1,7}(\/([0-9]{1,2}|1[01][0-9]|12[0-8]))?)|(0.0.0.0))$/i).test(address);
 }
+
+function updateNodeIdAndReload(nodeId) {
+  try {
+    var json = JSON.parse(location.hash);
+    if ('nodeId' in json) {
+      json['nodeId'] = nodeId
+    }
+  } catch (e) {
+    var json = {"nodeId" : nodeId}
+  }
+  location.hash = JSON.stringify(json)
+
+  location.reload()
+}
