@@ -348,14 +348,8 @@ object RwLDAPConnection {
    */
   def onlyReportOnAdd(errorCode:ResultCode) : Boolean = {
     errorCode match {
-      case NO_SUCH_ATTRIBUTE |
-           UNDEFINED_ATTRIBUTE_TYPE |
-           ATTRIBUTE_OR_VALUE_EXISTS |
-           INVALID_ATTRIBUTE_SYNTAX |
-           NO_SUCH_OBJECT |
-           INVALID_DN_SYNTAX |
-           ENTRY_ALREADY_EXISTS |
-           ENCODING_ERROR => true
+      case ATTRIBUTE_OR_VALUE_EXISTS |
+           ENTRY_ALREADY_EXISTS => true
       case _ => false
     }
   }
@@ -372,13 +366,8 @@ object RwLDAPConnection {
    */
   def onlyReportOnModify(errorCode:ResultCode) : Boolean = {
     errorCode match {
-      case NO_SUCH_ATTRIBUTE |
-           UNDEFINED_ATTRIBUTE_TYPE |
-           ATTRIBUTE_OR_VALUE_EXISTS |
-           INVALID_ATTRIBUTE_SYNTAX |
-           INVALID_DN_SYNTAX |
-           ENTRY_ALREADY_EXISTS |
-           ENCODING_ERROR => true
+      case ATTRIBUTE_OR_VALUE_EXISTS |
+           ENTRY_ALREADY_EXISTS => true
       case _ => false
     }
   }
@@ -492,8 +481,12 @@ class RwLDAPConnection(
 
 
   private[this] def logIgnoredException(dn: => String, action: String, e:Throwable) : Unit = {
-      val message = s"Exception ignored (by configuration) when trying to $action entry '$dn'.  Reported exception was: ${e.getMessage}"
-      logger.error(message,e)
+    val diagnostic = e match {
+      case ex: LDAPException => ex.getResultString
+      case ex                => ex.getMessage
+    }
+    val message = s"Exception ignored (by configuration) when trying to $action entry '$dn'.  Reported exception was: ${diagnostic}"
+    logger.error(message,e)
   }
 
   private[this] def logException(onlyReportThat: ResultCode => Boolean, dn: => String, action: String) = {
