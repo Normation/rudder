@@ -137,10 +137,11 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
                   logger.warn(s"API account linked to a user account '${user.actor.name}' is disabled because the API Authorization plugin is disabled.")
                   None //token link to user account is a plugin only feature
 
-                // without plugin but ACL configured, standard api account are change to RO to avoid unwanted mod
+                // without plugin but ACL configured, standard api account are change to "no right" to avoid unwanted mod
+                // (making them "ro" could give the token MORE rights than with the plugin - ex: token only have "ro" on compliance)
                 case (false, ApiAuthz.ACL(acl), RudderAccount.Api(ApiAccount(_, _:ApiAccountKind.PublicApi, _, _, _, _, _, _))) =>
-                  logger.info(s"API account '${user.actor.name}' has ACL authorization but no plugin allows to interpret them. Revert to R0 rights.")
-                  checkRO(endpoint.schema.action)
+                  logger.info(s"API account '${user.actor.name}' has ACL authorization but no plugin allows to interpret them. Removing all rights for that token.")
+                  None
 
                 // in other cases, we interpret rights are they are reported (system user has ACL or RW independently of plugin status)
                 case (_ , ApiAuthz.None, _)    =>
