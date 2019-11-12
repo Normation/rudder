@@ -74,7 +74,7 @@ object MemorySize {
    *
    */
   private val num_r = """(\d[\d_ ]*)""".r
-  private val numunit_r = """(\d[\d_ ]*) *([\p{Alpha}]?[BOo])""".r
+  private val numunit_r = """(\d[\d_ ]*) *([\p{Alpha}]?[B]?)""".r
   val Ko = 1024L
 
   private def clean(s:String) : Long = s.replaceAll(" ","").replaceAll("_","").toLong
@@ -95,15 +95,15 @@ object MemorySize {
     s match {
       case num_r(x) => Some(clean(x))
       case numunit_r(x,y) => y.toLowerCase match {
-        case "b" |"o" |""  => Some(clean(x))
-        case "ko"|"kb"|"k" => Some(Ko*clean(x))
-        case "mo"|"mb"|"m" => Some(Ko*Ko*clean(x))
-        case "go"|"gb"|"g" => Some(Ko*Ko*Ko*clean(x))
-        case "to"|"tb"|"t" => Some(Ko*Ko*Ko*Ko*clean(x))
-        case "po"|"pb"|"p" => Some(Ko*Ko*Ko*Ko*Ko*clean(x))
-        case "eo"|"eb"|"e" => Some(Ko*Ko*Ko*Ko*Ko*Ko*clean(x))
-        case "zo"|"zb"|"z" => Some(Ko*Ko*Ko*Ko*Ko*Ko*Ko*clean(x))
-        case "yo"|"yb"|"y" => Some(Ko*Ko*Ko*Ko*Ko*Ko*Ko*Ko*clean(x))
+        case "b" |""  => Some(clean(x))
+        case "kb"|"k" => Some(Ko*clean(x))
+        case "mb"|"m" => Some(Ko*Ko*clean(x))
+        case "gb"|"g" => Some(Ko*Ko*Ko*clean(x))
+        case "tb"|"t" => Some(Ko*Ko*Ko*Ko*clean(x))
+        case "pb"|"p" => Some(Ko*Ko*Ko*Ko*Ko*clean(x))
+        case "eb"|"e" => Some(Ko*Ko*Ko*Ko*Ko*Ko*clean(x))
+        case "zb"|"z" => Some(Ko*Ko*Ko*Ko*Ko*Ko*Ko*clean(x))
+        case "yb"|"y" => Some(Ko*Ko*Ko*Ko*Ko*Ko*Ko*Ko*clean(x))
         case _ => None
       }
       case _ => None

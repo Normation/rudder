@@ -805,3 +805,17 @@ function initDatePickers(id, action) {
     action(param)
   });
 }
+
+function updateNodeIdAndReload(nodeId) {
+  try {
+    var json = JSON.parse(location.hash);
+    if ('nodeId' in json) {
+      json['nodeId'] = nodeId
+    }
+  } catch (e) {
+    var json = {"nodeId" : nodeId}
+  }
+  location.hash = JSON.stringify(json)
+
+  location.reload()
+}
