@@ -51,6 +51,7 @@ bundle agent ncf_services(service, action)
     # systemd
     pass1.!is_init_service.systemctl_utility_present::
       "action_command" string => "${paths.path[systemctl]} --no-ask-password ${action} ${service}.service";
+      "reset_command"  string => "${paths.path[systemctl]} --no-ask-password reset-failed ${service}.service";
       "method"         string => "systemctl";
 
     # upstart
@@ -208,6 +209,9 @@ bundle agent ncf_services(service, action)
                                 strcmp("is-active-process", "${action}"),
                                 strcmp("is-enabled", "${action}")
                               };
+      "is_start_action"         expression => regcmp(".*start.*", "${action}");
+      "is_systemd_action"       expression => strcmp("systemctl", "${method}");
+      "is_systemd_start_action" expression => "is_start_action.is_systemd_action";
 
       # Due to lack of integration between upstart and init scripts, we have to make different cases.
       "is_upstart_service"         not => returnszero("/sbin/initctl status ${service} 2>&1 | ${paths.path[grep]} -E 'Unknown job|Unable to connect to Upstart' > /dev/null", "useshell"),
@@ -302,6 +306,14 @@ bundle agent ncf_services(service, action)
         ifvarclass     => "${class_prefix}_stop_service_ok";
 
   commands:
+    # https://bugzilla.redhat.com/show_bug.cgi?id=1016548
+    # Required if the service reached restart limit.
+    # The usual use-case of Rudder is to fix config and restart service, so we
+    # always want to actually do it.
+    pass1.is_systemd_start_action::
+      "${reset_command}"
+        contain => in_shell_and_silent;
+
     #####
     # Actual command - for actions on non-windows systems
     #####
