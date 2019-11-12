@@ -1256,7 +1256,6 @@ ul.graph-legend > li.legend:hover{
 .node-tab-content{
   float:left;
   width:100%;
-  margin-bottom:15px;
 }
 #serverDetails > .ui-tabs.ui-widget.ui-widget-content{
   margin:0;
@@ -1569,13 +1568,6 @@ form .tooltip-content p {
   font-size: 10px;
 }
 
-#nodeDetails .rudder-label{
-  position: relative;
-  margin-bottom: -4px;
-  top: -1px;
-  padding: 1px 8px;
-}
-
 .rudder-label.label-md{
   font-size: 12px;
   padding: 4px 12px;
@@ -1721,7 +1713,7 @@ form .tooltip-content p {
   overflow: hidden;
 }
 .callout-fade h4{
-  font-size: 25px;
+  font-size: 1.4em;
   margin-top: 0;
   margin-bottom: 12px;
   color: #818181;
@@ -3547,6 +3539,50 @@ table a > i.fa-pencil:hover{
   top: 0
 }
 
+/* ID CARD */
+.id-card{
+  background-color: #f9f9f9;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  padding: 10px;
+  font-size: 18px;
+  color: #222D42;
+  margin-bottom: 15px;
+  display: flex;
+}
+.id-card .card-img {
+  width: 150px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.5;
+  margin-left: -10px;
+}
+@media (max-width: 992px){
+  .id-card .card-img  {
+    display: none !important
+  }
+}
+.id-card .card-info {
+  flex: auto;
+}
+.id-card .card-info label {
+  font-weight: normal;
+  display: inline-block;
+  color: #222D42;
+  opacity: .5;
+  min-width: 180px;
+}
+.id-card .card-info > div:last-child label {
+  margin-bottom: 0;
+}
+.id-card .icon-info{
+  top: 3px;
+}
+.id-card .tooltip > .tooltip-inner{
+  width: auto !important;
+  max-width: unset !important;
+}
 /* KEYFRAMES */
 @keyframes opacity-1 {
   0%   {opacity:0;visibility: visible;}

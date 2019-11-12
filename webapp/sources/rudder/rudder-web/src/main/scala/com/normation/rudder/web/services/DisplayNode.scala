@@ -376,127 +376,160 @@ object DisplayNode extends Loggable {
         case _ => NodeSeq.Empty
       }
     }
+    val osIcon = sm.node.main.osDetails.os.name.toLowerCase();
 
-     <div  id="nodeDetails" >
-     <h3> Node characteristics</h3>
+    val osTooltip : String = {
+      s"""
+        <ul>
+          <li><b>Type:</b> ${sm.node.main.osDetails.os.kernelName}</li>
+          <li><b>Name:</b> ${S.?("os.name." + sm.node.main.osDetails.os.name)}</li>
+          <li><b>Version:</b> ${sm.node.main.osDetails.version.value}</li>
+          <li><b>Service Pack:</b> ${sm.node.main.osDetails.servicePack.getOrElse("None")}</li>
+          <li><b>Architecture Description:</b> ${sm.node.archDescription.getOrElse("None")}</li>
+        </ul>
+      """
+    }
+    val machineTooltip : String = {
+      s"""
+        <ul>
+          <li><b>Total physical memory (RAM):</b> ${sm.node.ram.map(_.toStringMo).getOrElse("-")}</li>
+          <li><b>Manufacturer:</b> ${sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-")}</li>
+          <li><b>Total swap space:</b> ${sm.node.swap.map( _.toStringMo).getOrElse("-")}</li>
+          <li><b>System Serial Number:</b> ${sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-")}</li>
+          <li><b>Time Zone:</b>
+            ${sm.node.timezone.map(x =>
+        if(x.name.toLowerCase == "utc") "UTC" else s"${x.name} (UTC ${x.offset})"
+      ).getOrElse("unknown")}
+          </li>
+          <li>
+          ${ sm.machine.map( _.id.value).map( machineId =>
+        "<b>Machine ID:</b> " ++ {machineId}
+      ).getOrElse("""<span class="error">Machine Information are missing for that node</span>""")
+      }
+          </li>
+        </ul>
+      """
+    }
 
-      <b>Hostname:</b> <p style="display:inline-block">{sm.node.main.hostname}</p><br/>
-      <b>Node ID:</b> <p style="display:inline-block">{sm.node.main.id.value}</p><br/>
-
-      <h4 class="tablemargin">General</h4>
-
-        <div class="tablepadding">
-          {/* style "inline-block" is for selection by triple-click of the whole content in firefox, need something else for chrome */}
-          <b>Machine type:</b> {displayMachineType(sm.machine)}<br/>
-          <b>Manufacturer:</b> {sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-")}<br/>
-          <b>Total physical memory (RAM):</b> {sm.node.ram.map( _.toStringMo).getOrElse("-")}<br/>
-          <b>Total swap space:</b> {sm.node.swap.map( _.toStringMo).getOrElse("-")}<br/>
-          <b>System Serial Number:</b> {sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-")}<br/>
-          <b>Time Zone:</b> {sm.node.timezone.map(x =>
-              if(x.name.toLowerCase == "utc") "UTC" else s"${x.name} (UTC ${x.offset})"
-            ).getOrElse("unknown")}<br/>
+    <div id="nodeDetails">
+      <div class="id-card node">
+        <div class={"card-img " ++ osIcon}></div>
+        <div class="card-info">
+          <div><label>Hostname:         </label>
+            {sm.node.main.hostname}
+              { nodeAndGlobalMode match {
+              case Some((n, _)) => <span class={"node-state "++ getNodeState(n.state).toLowerCase}></span>
+              case None         => NodeSeq.Empty
+              } }
+          </div>
+          <div><label>Node ID:          </label> {sm.node.main.id.value}</div>
+          <div><label>Operating system: </label> {sm.node.main.osDetails.fullName}<span class="glyphicon glyphicon-info-sign icon-info" data-toggle="tooltip" data-placement="right" data-html="true" data-original-title={osTooltip}></span></div>
+          <div>
+            <label>Machine:             </label>
+            {displayMachineType(sm.machine)}
+            <span class="machine-info ram">{sm.node.ram.map( _.toStringMo).getOrElse("-")}</span>
+            <span class="glyphicon glyphicon-info-sign icon-info" data-toggle="tooltip" data-placement="right" data-html="true" data-original-title={machineTooltip}></span>
+          </div>
         </div>
-
-      <h4 class="tablemargin">Operating system details</h4>
-        <div class="tablepadding">
-          <b>Operating System:</b> {sm.node.main.osDetails.fullName}<br/>
-          <b>Operating System Type:</b> {sm.node.main.osDetails.os.kernelName}<br/>
-          <b>Operating System Name:</b> {S.?("os.name."+sm.node.main.osDetails.os.name)}<br/>
-          <b>Operating System Version:</b> {sm.node.main.osDetails.version.value}<br/>
-          <b>Operating System Service Pack:</b> {sm.node.main.osDetails.servicePack.getOrElse("None")}<br/>
-          <b>Operating System Architecture Description:</b> {sm.node.archDescription.getOrElse("None")}<br/>
-        </div>
-
-      <h4 class="tablemargin">Rudder information</h4>
-        <div class="tablepadding">
-         { nodeAndGlobalMode match {
-           case Some((n, _)) => <b>Node state: </b><span class="rudder-label label-sm label-state">{getNodeState(n.state)}</span><br/>
-           case None         => NodeSeq.Empty
-         } }
-         { nodePolicyMode match {
-           case None => NodeSeq.Empty
-           case Some((mode,explanation)) =>
-            <b>Node policy mode:</b><span id="badge-apm"></span><br/>  ++
-            Script(OnLoad(JsRaw(s"""
-              $$('#badge-apm').append(createBadgeAgentPolicyMode('node',"${mode}","${explanation}"));
-              $$('.rudder-label').bsTooltip();
-            """)))
-         } }
-          { displayServerRole(sm, inventoryStatus) }
-          <b>Inventory date (node local time):</b>  {sm.node.inventoryDate.map(_.toString(ISODateTimeFormat.dateTimeNoMillis())).getOrElse("Unknown")}<br/>
-          <b>Date inventory last received:</b>  {sm.node.receiveDate.map(_.toString(ISODateTimeFormat.dateTimeNoMillis())).getOrElse("Unknown")}<br/>
-          {creationDate.map { creation =>
-            <xml:group><b>Date first accepted in Rudder:</b> {creation.toString(ISODateTimeFormat.dateTimeNoMillis())}<br/></xml:group>
-          }.getOrElse(NodeSeq.Empty) }
-          <b>Agent:</b> {sm.node.agents.map(a => s"${a.agentType.displayName} (${a.version.map(_.value).getOrElse("unknown version")})").headOption.getOrElse("Not found")
-          }<br/>
-          { sm.machine.map( _.id.value).map( machineId =>
-                <b>Machine ID:</b> ++ {machineId}
-            ).getOrElse(<span class="error">Machine Information are missing for that node</span>)
-          }<br/>
-          { displayPolicyServerInfos(sm) }<br/>
-          {
-            sm.node.agents.headOption match {
-              case Some(agent) =>
-                val checked = (sm.node.main.status, sm.node.main.keyStatus) match {
-                  case (AcceptedInventory, CertifiedKey) => <span>
-                                                              <span class="glyphicon glyphicon-ok text-success tooltipable" title="" tooltipid={s"tooltip-key-${sm.node.main.id.value}"}></span>
-                                                              <span class="tooltipContent" id={s"tooltip-key-${sm.node.main.id.value}"}>
-                                                                Inventories for this Node must be signed with this key
-                                                              </span>
-                                                            </span>
-                  case (AcceptedInventory, UndefinedKey) => <span>
-                                                              <span class="glyphicon glyphicon-exclamation-sign text-warning tooltipable" title="" tooltipid={s"tooltip-key-${sm.node.main.id.value}"}></span>
-                                                              <span class="tooltipContent" id={s"tooltip-key-${sm.node.main.id.value}"}>
-                                                                Inventories for this Node are not signed
-                                                              </span>
-                                                            </span>
-                  case _ => // not accepted inventory? Should not get there
-                    NodeSeq.Empty
-                }
-                val nodeId      = sm.node.main.id
-                val publicKeyId = s"publicKey-${nodeId.value}"
-                val cfKeyHash   = nodeInfoService.getNodeInfo(nodeId) match {
-                  case Full(Some(nodeInfo)) if(nodeInfo.securityTokenHash.nonEmpty) => <label>Key hash:</label><span>{nodeInfo.securityTokenHash}</span>
-                  case _                                                            => NodeSeq.Empty
-                }
-
-                val tokenKind = agent.securityToken match {
-                  case _ : PublicKey   => "Public key"
-                  case _ : Certificate => "Certificate"
-                }
-                <div>
-                  <div><b>Node security information: </b>{tokenKind} {checked} (<a href="#" onclick={s"$$('#${publicKeyId}').toggle(300); return false;"}>details</a>)</div>{
-                    agent.securityToken match {
-                      case _ : PublicKey   => NodeSeq.Empty
-                      case c : Certificate =>
-                        c.cert.either.runNow match {
-                          case Left(e)     => <span title={e.fullMsg}>Error while reading certificate information</span>
-                          case Right(cert) =>
-                              <ul style="margin-left:5px">
-                                <li>SHA1 Fingerprint: {SHA1.hash(cert.getEncoded).grouped(2).mkString(":")}</li>
-                                <li>Expiration date: {new DateTime(cert.getNotAfter).toString(ISODateTimeFormat.dateTimeNoMillis())}</li>
-                              </ul>
-                        }
-                    }
-                  }
-                  <div style="width=100%; overflow:auto;">
-                    <pre id={publicKeyId} class="display-keys" style="display:none;"><label>{tokenKind}:</label>{agent.securityToken.key}{cfKeyHash}</pre>
-                  </div>{Script(OnLoad(JsRaw(s"""createTooltip();""")))}
-               </div>
-              case None => NodeSeq.Empty
-            }
-          }
-        </div>
-
-      <h4 class="tablemargin">Accounts</h4>
-        <div class="tablepadding">
-          <b>Administrator account:</b> {sm.node.main.rootUser}<br/>
-          <b>Local account(s):</b> {displayAccounts(sm.node)}<br/>
-        </div> <br/>
-        {deleteButton}
-
       </div>
+
+      <div class="row">
+
+        <div class="rudder-info col-lg-6 col-sm-7 col-xs-12">
+          <h3>Rudder information</h3>
+          <div>
+            { nodePolicyMode match {
+             case None => NodeSeq.Empty
+             case Some((mode,explanation)) =>
+              <label>Policy mode:</label><span id="badge-apm"></span> ++
+              Script(OnLoad(JsRaw(s"""
+                $$('#badge-apm').append(createBadgeAgentPolicyMode('node',"${mode}","${explanation}"));
+                $$('.rudder-label, .icon-info').bsTooltip();
+              """)))
+            }}
+          </div>
+          { displayServerRole(sm, inventoryStatus) }
+          <div><label>Agent:</label> {sm.node.agents.map(a => s"${a.agentType.displayName} (${a.version.map(_.value).getOrElse("unknown version")})").headOption.getOrElse("Not found")}</div>
+          { displayPolicyServerInfos(sm) }
+          <div><label>Administrator account:</label> {sm.node.main.rootUser}</div>
+          { sm.node.agents.headOption match {
+            case Some(agent) =>
+              val checked = (sm.node.main.status, sm.node.main.keyStatus) match {
+                case (AcceptedInventory, CertifiedKey) =>
+                  <span>
+                    <span class="glyphicon glyphicon-ok text-success tooltipable" title="" tooltipid={s"tooltip-key-${sm.node.main.id.value}"}></span>
+                    <span class="tooltipContent" id={s"tooltip-key-${sm.node.main.id.value}"}>
+                      Inventories for this Node must be signed with this key
+                    </span>
+                  </span>
+                case (AcceptedInventory, UndefinedKey) =>
+                  <span>
+                    <span class="glyphicon glyphicon-exclamation-sign text-warning tooltipable" title="" tooltipid={s"tooltip-key-${sm.node.main.id.value}"}></span>
+                    <span class="tooltipContent" id={s"tooltip-key-${sm.node.main.id.value}"}>
+                      Inventories for this Node are not signed
+                    </span>
+                  </span>
+                case _ => // not accepted inventory? Should not get there
+                  NodeSeq.Empty
+              }
+              val nodeId      = sm.node.main.id
+              val publicKeyId = s"publicKey-${nodeId.value}"
+              val cfKeyHash   = nodeInfoService.getNodeInfo(nodeId) match {
+                case Full(Some(nodeInfo)) if(nodeInfo.securityTokenHash.nonEmpty) => <label>Key hash:</label><span>{nodeInfo.securityTokenHash}</span>
+                case _                                                            => NodeSeq.Empty
+              }
+
+              val tokenKind = agent.securityToken match {
+                case _ : PublicKey   => "Public key"
+                case _ : Certificate => "Certificate"
+              }
+              <div>
+                <div><label>Security information:</label> {tokenKind} {checked} (<a href="#" onclick={s"$$('#${publicKeyId}').toggle(300); return false;"}>details</a>)</div>{
+                agent.securityToken match {
+                  case _ : PublicKey   => NodeSeq.Empty
+                  case c : Certificate =>
+                    c.cert.either.runNow match {
+                      case Left(e)     => <span title={e.fullMsg}>Error while reading certificate information</span>
+                      case Right(cert) =>
+                        <ul style="margin-left:5px">
+                          <li>SHA1 Fingerprint: {SHA1.hash(cert.getEncoded).grouped(2).mkString(":")}</li>
+                          <li>Expiration date: {new DateTime(cert.getNotAfter).toString(ISODateTimeFormat.dateTimeNoMillis())}</li>
+                        </ul>
+                    }
+                }
+                }
+                <div style="width=100%; overflow:auto;">
+                  <pre id={publicKeyId} class="display-keys" style="display:none;"><label>{tokenKind}:</label>{agent.securityToken.key}{cfKeyHash}</pre>
+                </div>{Script(OnLoad(JsRaw(s"""createTooltip();""")))}
+              </div>
+            case None => NodeSeq.Empty
+          }}
+        </div>
+
+        <div class="status-info col-lg-6 col-sm-5 col-xs-12">
+          <h3>Status information</h3>
+          <div>
+            <label>Inventory created (node local time):</label>  {sm.node.inventoryDate.map(DateFormaterService.getDisplayDate(_)).getOrElse("Unknown")}
+          </div>
+          <div>
+            <label>Inventory received:</label>  {sm.node.receiveDate.map(DateFormaterService.getDisplayDate(_)).getOrElse("Unknown")}
+          </div>
+          <div>
+            {creationDate.map { creation =>
+              <xml:group><label>Accepted since:</label> {DateFormaterService.getDisplayDate(creation)}</xml:group>
+            }.getOrElse(NodeSeq.Empty) }
+          </div>
+        </div>
+
+        <div class="accounts-info col-xs-12">
+          <h3>Accounts</h3>
+          <div>
+            <label>Local account(s):</label> {displayAccounts(sm.node)}
+          </div>
+        </div>
+        {deleteButton}
+      </div>
+    </div>
   }
 
   private def htmlId(jsId:JsNodeId, prefix:String) : String = prefix + jsId.toString
@@ -533,19 +566,19 @@ object DisplayNode extends Loggable {
               nodeInfo.serverRoles.map(_.value).mkString("(",", ",")")
             }
 
-            <span><b>Role: </b>Rudder {kind} {roles}</span><br/>
+            <div><label>Role:</label> Rudder {kind} {roles}</div>
           case Full(None) =>
             logger.error(s"Could not fetch node details for node with id ${sm.node.main.id}")
-            <span class="error"><b>Role: </b>Could not fetch Role for this node</span><br/>
+            <div class="error"><label>Role:</label> Could not fetch Role for this node</div>
           case eb:EmptyBox =>
             val e = eb ?~! s"Could not fetch node details for node with id ${sm.node.main.id}"
             logger.error(e.messageChain)
-            <span class="error"><b>Role: </b>Could not fetch Role for this node</span><br/>
+            <div class="error"><label>Role:</label> Could not fetch Role for this node</div>
         }
       case RemovedInventory =>
-        <span><b>Role: </b>Deleted node</span><br/>
+        <div><label>Role:</label> Deleted node</div>
       case PendingInventory =>
-        <span><b>Role: </b>Pending node</span><br/>
+        <div><label>Role:</label> Pending node</div>
     }
   }
 
@@ -554,12 +587,12 @@ object DisplayNode extends Loggable {
       case eb:EmptyBox =>
         val e = eb ?~! s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${sm.node.main.hostname}' ('${sm.node.main.id.value}')"
         logger.error(e.messageChain)
-        <span class="error"><b>Policy Server: </b>Could not fetch details about the policy server</span>
+        <div class="error"><label>Policy Server:</label> Could not fetch details about the policy server</div>
       case Full(Some(policyServerDetails)) =>
-        <span><b>Policy Server: </b><a href={linkUtil.baseNodeLink(policyServerDetails.id)}  onclick="location.reload()">{policyServerDetails.hostname}</a></span>
+        <div><label>Policy Server:</label> <a href={linkUtil.baseNodeLink(policyServerDetails.id)}  onclick="location.reload()">{policyServerDetails.hostname}</a></div>
       case Full(None) =>
         logger.error(s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${sm.node.main.hostname}' ('${sm.node.main.id.value}')")
-        <span class="error"><b>Policy Server: </b>Could not fetch details about the policy server</span>
+        <div class="error"><label>Policy Server:</label> Could not fetch details about the policy server</div>
     }
   }
 
