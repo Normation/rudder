@@ -30,6 +30,7 @@
 # #### Setup
 #
 # This method requires the presence of [osquery](https://osquery.io/) on the target nodes.
+# It won't install it automatically. Check the correct way of doing so for your OS.
 #
 # #### Building queries
 #
@@ -82,6 +83,8 @@ bundle agent variable_dict_from_osquery(variable_prefix, variable_name, query)
                                               if => "variable_string_from_command_${variable_name}_ok";
 
   classes:
+      "should_report"    expression => "${report_data.should_report}";
+
     pass2::
       "variable_defined" expression => isvariable("${variable_prefix}.${variable_name}");
 
@@ -91,8 +94,11 @@ bundle agent variable_dict_from_osquery(variable_prefix, variable_name, query)
       "pass1" expression => "any";
 
   methods:
+      "disable_reporting_${class_prefix}"  usebundle => disable_reporting;
       # store string output in temp variable
       "query" usebundle => variable_string_from_command("variable_dict_from_osquery_tmp", "${variable_name}", "osqueryi --json \"${query}\" 2>/dev/null");
+      "reenable_reporting_${class_prefix}" usebundle => enable_reporting,
+                                           ifvarclass => "should_report";
 
     pass3.!variable_defined::
       "error" usebundle => _classes_failure("${old_class_prefix}");
