@@ -553,7 +553,7 @@ bundle agent rudder_common_report_index(technique_name, status, identifier, comp
     # Hence, as we are facing a severe bug and we want to avoid changing more things, we define an abort class after displaying an error message .
     (dry_run|global_dry_run).report_repaired::
       "abort" usebundle => _abort("repaired_during_dryrun", "Repaired previous component while in dry-run mode, this is a bug. Aborting immediately."),
-                action  => immediate;
+                action  => immediate_ignore_dry_run;
 
   reports:
     log_reports::
@@ -597,7 +597,7 @@ bundle agent rudder_common_reports_generic_index(technique_name, class_prefix, i
     # This case should NEVER happen. If it ever happens, it is a bug in CFEngine or ncf that lead to changing something in dry-run mode.
     # Hence, as we are facing a severe bug and we want to avoid changing more things, we define an abort class after displaying an error message .
       "abort" usebundle => _abort("repaired_during_dryrun", "Repaired previous component while in dry-run mode, this is a bug. Aborting immediately."),
-                action  => immediate,
+                action  => immediate_ignore_dry_run,
              ifvarclass => "(dry_run|global_dry_run).${class_prefix}_repaired";
 
     !(dry_run|global_dry_run)::
