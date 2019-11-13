@@ -35,15 +35,16 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.repository.ldap
+package com.normation.ldap.sdk
 
+import com.normation.ldap.listener.InMemoryDsConnectionProvider
+import com.unboundid.ldap.sdk.DN
+import net.liftweb.common.Failure
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-import com.normation.ldap.listener.InMemoryDsConnectionProvider
-import com.normation.ldap.sdk.{LDAPRudderError, RoLDAPConnection, RwLDAPConnection}
-import com.unboundid.ldap.sdk.DN
 import com.normation.zio._
+
 /**
  * A simple test class to check that the demo data file is up to date
  * with the schema (there may still be a desynchronization if both
@@ -58,15 +59,13 @@ class LoadDemoDataTest extends Specification {
       "01-pwpolicy" ::
       "04-rfc2307bis" ::
       "05-rfc4876" ::
-      "099-0-inventory" ::
-      "099-1-rudder"  ::
       Nil
   ) map { name =>
     this.getClass.getClassLoader.getResource("ldap-data/schema/" + name + ".ldif").getPath
   }
 
   val baseDN = "cn=rudder-configuration"
-  val bootstrapLDIFs = ("ldap/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>
+  val bootstrapLDIFs = ("ldap-data/bootstrap.ldif" :: Nil) map { name =>
     this.getClass.getClassLoader.getResource(name).getPath
   }
 
@@ -90,6 +89,37 @@ class LoadDemoDataTest extends Specification {
     "correctly load and read back test-entries" in {
 
       ldap.server.countEntries === numEntries
+    }
+
+
+    "correctly error on a bad move" in {
+
+      val dn = new DN("ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
+      val newParent = new DN("ou=Not Existing Place For Inventories,ou=Inventories,cn=rudder-configuration")
+
+      val res = ldap.newConnection.flatMap(_.move(dn, newParent)).either.runNow
+      /*
+       * Failure message is:
+       * Can not move 'biosName=bios1,machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration' to new parent
+       * 'machineId=machine-does-not-exists,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration': Unable to modify the DN of entry
+       * 'biosName=bios1,machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration' because the parent for the new DN
+       * 'biosName=bios1,machineId=machine-does-not-exists,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration' does not exist.
+       */
+      res must beAnInstanceOf[Left[LDAPRudderError, _]] and (
+        ldap.newConnection.flatMap(_.exists(dn)).runNow must beTrue
+      )
+
+    }
+
+    "Missing attribute is a grave message that should not be ignored (#10067)" in {
+
+      val dn = new DN("ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
+      val entry = LDAPEntry(dn)
+      entry += ("falseAttribute", "anything")
+
+      val res = ldap.newConnection.flatMap(_.save(entry)).either.runNow
+
+      res must beAnInstanceOf[Left[LDAPRudderError, _]]
     }
   }
 }
