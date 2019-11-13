@@ -357,7 +357,7 @@
                               <div ng-class="{'small-left-margin': method_call.class_context !== 'any'}">
                                 <h4 class="input-group panel-title">
                                   <div class="method-name">
-                                    {{method_call.component}}
+                                    {{method_call.component ? method_call.component : getMethodName(method_call)}}
                                     <span
                                       class="cursor-help"
                                       uib-popover-template="'deprecatedMethod.html'"
@@ -436,7 +436,7 @@
                     <div class="markdown" ng-if="getMethodDocumentation(selectedMethod) !== undefined && selectedMethod.showDoc" ng-bind-html="getMethodDocumentation(selectedMethod)"></div>
                     <div class="form-group">
                       <label for="component">Report component:</label>
-                      <input type="text" name="component" class="form-control" ng-model="selectedMethod.component"/>
+                      <input type="text" name="component" class="form-control" ng-model="selectedMethod.component" placeholder="{{getMethodName(selectedMethod)}}"/>
                     </div>
                     <uib-accordion>
                         <uib-accordion-group is-open="conditionIsOpen">

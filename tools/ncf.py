@@ -576,7 +576,7 @@ def generate_technique_content(technique, methods):
       arg_value = ""
     class_context = canonify_class_context(method_call['class_context'])
 
-    if 'component' in method_call:
+    if 'component' in method_call or len(method_call["component"]) > 0:
       promiser = regex.sub(r'\\"', method_call["component"])
     else:
       promiser = regex.sub(r'\\"', method_name)
