@@ -449,12 +449,11 @@ final case object DateComparator extends LDAPCriterionType {
    */
   override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
 
-    val date = parseDate(value).getOrElse(throw new IllegalArgumentException("The date format was not recognized: '%s', expected '%s'".format(value, fmt)))
-
-    val date0000 = GeneralizedTime(date.withTimeAtStartOfDay).toString
-    val date2359 = GeneralizedTime(date.withTime(23, 59, 59, 999)).toString
-
-    val eq = AND(GTEQ(attributeName, date0000), LTEQ(attributeName, date2359))
+    // don't parse the date and throw exception when not needed
+    lazy val date = parseDate(value).getOrElse(throw new IllegalArgumentException("The date format was not recognized: '%s', expected '%s'".format(value, fmt)))
+    def date0000 = GeneralizedTime(date.withTimeAtStartOfDay).toString
+    def date2359 = GeneralizedTime(date.withTime(23, 59, 59, 999)).toString
+    def eq = AND(GTEQ(attributeName, date0000), LTEQ(attributeName, date2359))
 
     comparator match {
       //for equals and not equals, check value for jocker
