@@ -20,12 +20,14 @@
 # @description Download a file if it does not exist, using curl with a fallback on wget
 # @documentation This method finds a HTTP command-line tool and downloads the given source
 # into the destination.
-# 
+#
+# This method **will NOT update the file after the first download** until its removal.
+#
 # It tries `curl` first, and `wget` as fallback.
 #
 # @parameter source      URL to download from
-# @parameter destination File destination (absolute path on the target node)
-# 
+# @parameter destination File destination (absolute path on the target node)
+#
 # @class_prefix file_from_http_server
 # @class_parameter destination
 
@@ -36,7 +38,7 @@ bundle agent file_from_http_server(source, destination)
 
 
     _ncf_path_exists_curl::
-      "action_command"            string => "${ncf_paths.path[curl]} -s -L -o ${destination} ${source}";
+      "action_command"            string => "${ncf_paths.path[curl]} -f -s -L -o ${destination} ${source}";
 
 
     !_ncf_path_exists_curl._stdlib_path_exists_wget::
