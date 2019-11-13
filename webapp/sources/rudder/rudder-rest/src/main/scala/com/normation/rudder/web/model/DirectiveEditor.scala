@@ -463,7 +463,6 @@ final case class MultivaluedSectionField(
             <div  id={sectionId} class={classes}>
               <div class="section-title" onClick={methodName}>{ "%s #%s".format(name, i + 1) }</div>
               { showFormEntry(section, i) }
-              <hr class="spacer"/>
               { // showAddAnother under the last element
                 if ((i + 1) == size) {
                   showAddAnother()
@@ -471,7 +470,6 @@ final case class MultivaluedSectionField(
                   NodeSeq.Empty
                 }
               }
-              <hr class="spacer"/>
             </div> ++ Script(JsRaw(""" function %s { %s } """.format(methodName, changeVisibility.toJsCmd)))
         }
       }</div>
