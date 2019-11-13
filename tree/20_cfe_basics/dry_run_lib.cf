@@ -171,7 +171,7 @@ bundle agent pop_dry_run_mode()
   methods:
     empty_stack::
       "abort" usebundle => _abort("BUG in dry-run stack", "pop_dry_run_mode was called mor times than push_dry_run_mode. Stopping immediately to prevent any unwanted behaviour."),
-                action  => immediate;
+                action  => immediate_ignore_dry_run;
     pass3::
       "set_mode_to ${dry_run_unique.value}" usebundle => set_dry_run_mode("${mode}");
 }
