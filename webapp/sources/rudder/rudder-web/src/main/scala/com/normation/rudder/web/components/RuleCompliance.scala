@@ -241,13 +241,14 @@ class RuleCompliance (
   def refreshCompliance() : JsCmd = {
     ( for {
         reports      <- reportingService.findDirectiveRuleStatusReportsByRule(rule.id)
-        updatedRule  <- roRuleRepository.get(rule.id)
+        allRules     <- roRuleRepository.getAll()
+        updatedRule  <- Box(allRules.find(_.id == rule.id))
         directiveLib <- getFullDirectiveLib()
         allNodeInfos <- getAllNodeInfos()
         globalMode   <- configService.rudder_global_policy_mode()
       } yield {
 
-        val directiveData = ComplianceData.getRuleByDirectivesComplianceDetails(reports, updatedRule, allNodeInfos, directiveLib, globalMode).json.toJsCmd
+        val directiveData = ComplianceData.getRuleByDirectivesComplianceDetails(reports, updatedRule, allNodeInfos, directiveLib, allRules, globalMode).json.toJsCmd
         val nodeData = ComplianceData.getRuleByNodeComplianceDetails(directiveLib, reports, allNodeInfos, globalMode).json.toJsCmd
         JsRaw(s"""
           refreshTable("reportsGrid", ${directiveData});
