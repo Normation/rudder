@@ -305,6 +305,7 @@ class DirectiveEditForm(
       "#shortDescriptionField" #> directiveShortDescription.toForm_! &
       "#longDescriptionField" #> directiveLongDescription.toForm_! &
       "#priority" #> directivePriority.toForm_! &
+      "#policyModesLabel" #> policyModesLabel &
       "#policyModes" #> policyModes.toForm_! &
       "#version" #> versionSelect.toForm_! &
       "#version *+" #> migrateButton(directiveVersion.get,"Migrate") &
@@ -493,39 +494,53 @@ class DirectiveEditForm(
         or contact your Rudder administrator about this.
       </p>
   }
-    private[this] val policyModes = {
-      val l = Seq(
-          None -> s"Use global default mode (currently ${globalMode.mode.name})"
-        , Some(Enforce) -> "Override to Enforce"
-        , Some(Audit) -> "Override to Audit"
-      )
-      new WBSelectObjField(
-        "Policy mode"
-      , l
-      , defaultValue = directive.policyMode
-    ) {
-      override val displayHtml =
-        <div>
-          <b>Policy mode</b>
-          <span>
-            <span tooltipid="policyModeId" class="ruddericon tooltipable glyphicon glyphicon-question-sign" title=""></span>
-            <div class="tooltipContent" id="policyModeId">
-              <h4>Policy mode</h4>
-              <p>Configuration rules in Rudder can operate in one of two modes:</p>
-              <ol>
-                <li><b>Audit</b>: the agent will examine configurations and report any differences, but will not make any changes</li>
-                <li><b>Enforce</b>: the agent will make changes to fix any configurations that differ from your directives</li>
-              </ol>
-              <p>
-                By default all nodes and all directives operate in the global default mode defined in
-                <b> Settings</b>, which is currently <b>{globalMode.mode.name}</b>.
-              </p>
-              {globalOverrideText}
-            </div>
-          </span>
+
+  private[this] val policyModesLabel =
+    <label class="wbBaseFieldLabel">
+      <b>Policy mode</b>
+      <span>
+        <span tooltipid="policyModeId" class="ruddericon tooltipable glyphicon glyphicon-question-sign" title=""></span>
+        <div class="tooltipContent" id="policyModeId">
+          <h4>Policy mode</h4>
+          <p>Configuration rules in Rudder can operate in one of two modes:</p>
+          <ol>
+            <li><b>Audit</b>: the agent will examine configurations and report any differences, but will not make any changes</li>
+            <li><b>Enforce</b>: the agent will make changes to fix any configurations that differ from your directives</li>
+          </ol>
+          <p>
+            By default all nodes and all directives operate in the global default mode defined in
+            <b> Settings</b>, which is currently <b>{globalMode.mode.name}</b>.
+          </p>
+          {globalOverrideText}
         </div>
-      override def className = "form-control"
-      override def labelClassName = "col-xs-12"
+      </span>
+    </label>
+
+  private[this] val policyModes = {
+    val l = Seq(
+        "global"
+      , "audit"
+      , "enforce"
+    )
+    val defaultMode = directive.policyMode match {
+      case Some(Enforce) => "enforce"
+      case Some(Audit) => "audit"
+      case _ => "global"
+    }
+    new WBRadioField(
+      "Policy Mode",
+      l,
+      defaultMode,
+      {
+        case "global"  => <span class="global-btn">Global mode (<span class={s"global-mode " ++ globalMode.mode.name}></span>)</span>
+        case "audit"   => <span class="audit-btn">Audit</span>
+        case "enforce" => <span class="enforce-btn">Enforce</span>
+        case _ => NodeSeq.Empty
+      }
+    ) {
+      override def setFilter = notNull _ :: trim _ :: Nil
+      override def className = "policymode-group"
+      override def labelClassName = "hidden"
       override def subContainerClassName = "col-xs-12"
     }
   }
@@ -577,6 +592,12 @@ class DirectiveEditForm(
       val finalRem = removeRules.map(r => r.copy(directiveIds =  r.directiveIds - directive.id ))
       val updatedRules = (finalAdd ++ finalRem).sortBy(_.id.value)
 
+      val newPolicyMode = policyModes.get match {
+        case "global"  => None
+        case "enforce" => Some(Enforce)
+        case "audit"   => Some(Audit)
+      }
+
       if (isADirectiveCreation) {
 
         // On creation, don't create workflow
@@ -594,7 +615,7 @@ class DirectiveEditForm(
           , priority         = directivePriority.get
           , longDescription  = directiveLongDescription.get
           , _isEnabled       = directive.isEnabled
-          , policyMode       = policyModes.get
+          , policyMode       = newPolicyMode
           , tags             = newTags
         )
 
@@ -614,7 +635,7 @@ class DirectiveEditForm(
           , shortDescription = directiveShortDescription.get
           , priority         = directivePriority.get
           , longDescription  = directiveLongDescription.get
-          , policyMode       = policyModes.get
+          , policyMode       = newPolicyMode
           , tags             = newTags
         )
 
