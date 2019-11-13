@@ -64,7 +64,8 @@ class PluginManagement extends DispatchSnippet with Loggable {
   private[this] def displayPlugin(p:RudderPluginDef)(xml:NodeSeq) : NodeSeq = {
     (
       "data-plugin=name *" #> p.displayName &
-      "data-plugin=id" #> (p.name.value + ": " + p.id) &
+      "data-plugin=fullid" #> p.name.value &
+      "data-plugin=baseclass" #> p.id &
       "data-plugin=version" #> p.version.toString &
       "data-plugin=description" #> p.description &
       "data-plugin=statusInformation" #> p.statusInformation
