@@ -107,10 +107,10 @@ class RuleApi(
     API.endpoints.map(e => e match {
       case API.ListRules              => ListRules
       case API.CreateRule             => CreateRule
+      case API.GetRuleTree            => GetRuleTree
       case API.RuleDetails            => RuleDetails
       case API.DeleteRule             => DeleteRule
       case API.UpdateRule             => UpdateRule
-      case API.GetRuleTree            => GetRuleTree
       case API.GetRuleCategoryDetails => GetRuleCategoryDetails
       case API.DeleteRuleCategory     => DeleteRuleCategory
       case API.UpdateRuleCategory     => UpdateRuleCategory
