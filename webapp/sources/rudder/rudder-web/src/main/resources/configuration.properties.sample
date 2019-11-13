@@ -289,17 +289,9 @@ rudder.dir.shared.files.folder=/var/rudder/configuration-repository/shared-files
 #
 rudder.debug.nodeconfiguration.path=/var/log/rudder/nodeConfigurations
 
-############################################
-# Technique library and its Git properties ##########################################
-############################################
-
-#
-# The path of the root directory of the Technique library.
-# It MUST be the same directory of ${rudder.dir.gitRoot}
-# or one of its sub-directories
-#
-rudder.dir.techniques=/var/rudder/configuration-repository/techniques
-
+####################
+# Technique library #################################################################
+####################
 
 #
 # The directory containing tools used by Rudder or nodes.
@@ -319,16 +311,6 @@ rudder.dir.dependencies=/var/rudder/tools
 #
 rudder.batch.techniqueLibrary.updateInterval=5
 
-#
-# Configure the refs path to use for the git repository for
-# the Technique Reference Library.
-# The default is to use "refs/heads/master" (the local master
-# branch).
-# You have to use the full ref path.
-#
-rudder.techniqueLibrary.git.refs.path=refs/heads/master
-
-
 ##########################################################
 # Configuration repository, its update and Git properties ###########################
 ##########################################################
@@ -343,15 +325,6 @@ rudder.techniqueLibrary.git.refs.path=refs/heads/master
 # .git,  directives, groups and rules directories.
 #
 rudder.dir.gitRoot=/var/rudder/configuration-repository
-
-#
-# If true, an archive of Rules, groups,
-# Directives and Active Techniques are recorded
-# to the rudder.dir.gitRoot directory specified above
-# and a git commit is performed when any of these items is modified.
-# Boolean, defaults to true.
-#
-rudder.autoArchiveItems=true
 
 ###############################
 # Dynamic group configuration #######################################################
@@ -561,6 +534,30 @@ rudder.jvm.fatal.exceptions=
 # DEPRECATED properties #############################################################
 #########################
 
+#
+# The path of the root directory of the Technique library.
+# It MUST be the same directory of ${rudder.dir.gitRoot}
+# or one of its sub-directories
+#
+rudder.dir.techniques=/var/rudder/configuration-repository/techniques
+
+#
+# Configure the refs path to use for the git repository for
+# the Technique Reference Library.
+# The default is to use "refs/heads/master" (the local master
+# branch).
+# You have to use the full ref path.
+#
+rudder.techniqueLibrary.git.refs.path=refs/heads/master
+
+#
+# If true, an archive of Rules, groups,
+# Directives and Active Techniques are recorded
+# to the rudder.dir.gitRoot directory specified above
+# and a git commit is performed when any of these items is modified.
+# Boolean, defaults to true.
+#
+rudder.autoArchiveItems=true
 
 #
 # Command line tools used to check the validity of generated promises
