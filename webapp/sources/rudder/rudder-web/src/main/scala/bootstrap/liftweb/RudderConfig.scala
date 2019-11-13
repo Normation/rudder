@@ -352,6 +352,16 @@ object RudderConfig extends Loggable {
     }
   }
 
+  val RUDDER_BATCH_CLEAN_PROMISES_INTERVAL = {
+    try {
+      config.getInt("rudder.batch.clean.policies.interval")
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.info("Property 'rudder.batch.clean.policies.interval' is missing or empty in rudder.configFile. Default to 24 hours.")
+        24
+    }
+  }
+
   // Roles definitions
   val RUDDER_SERVER_ROLES = Seq(
       //each time, it's (role name, key in the config file)
@@ -462,6 +472,7 @@ object RudderConfig extends Loggable {
   val checkInventoryUpdate = new CheckInventoryUpdate(nodeInfoServiceImpl, asyncDeploymentAgent, stringUuidGenerator, 15.seconds)
   val purgeDeletedInventories = new PurgeDeletedInventories(removeNodeServiceImpl, RUDDER_BATCH_PURGE_DELETED_INVENTORIES_INTERVAL.hours, RUDDER_BATCH_PURGE_DELETED_INVENTORIES)
   val purgeUnreferencedSoftwares = new PurgeUnreferencedSoftwares(softwareService, RUDDER_BATCH_DELETE_SOFTWARE_INTERVAL.hours)
+  val cleanPoliciesFolder = new CleanPoliciesFolder(nodeInfoServiceImpl, RUDDER_BATCH_CLEAN_PROMISES_INTERVAL.hours)
   val databaseManager: DatabaseManager = databaseManagerImpl
   val automaticReportsCleaning: AutomaticReportsCleaning = dbCleaner
   val checkTechniqueLibrary: CheckTechniqueLibrary = techniqueLibraryUpdater
@@ -769,6 +780,7 @@ object RudderConfig extends Loggable {
     , itemArchiveManager
     , personIdentService
     , gitRepo
+    , cleanPoliciesFolder
   )
 
   private[this] val complianceAPIService = new ComplianceAPIService(

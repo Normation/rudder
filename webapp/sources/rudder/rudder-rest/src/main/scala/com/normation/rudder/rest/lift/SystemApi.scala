@@ -47,8 +47,10 @@ import com.normation.eventlog.{EventActor, ModificationId}
 import com.normation.cfclerk.services.{GitRepositoryProvider, UpdateTechniqueLibrary}
 import com.normation.rudder.batch.{AsyncDeploymentAgent, ManualStartDeployment, UpdateDynamicGroups}
 import com.normation.rudder.UserService
+import com.normation.rudder.batch.CleanPoliciesFolder
 import com.normation.rudder.repository.xml.{GitFindUtils, GitTagDateTimeFormatter}
 import com.normation.rudder.repository.{GitArchiveId, GitCommitId, ItemArchiveManager}
+import com.normation.rudder.rest.SystemApi.CleanPolicies
 import com.normation.rudder.services.{ClearCacheService, DebugInfoScriptResult, DebugInfoService}
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
@@ -106,6 +108,7 @@ class SystemApi(
       case API.GetDirectivesZipArchive        => GetDirectivesZipArchive
       case API.GetRulesZipArchive             => GetRulesZipArchive
       case API.GetAllZipArchive               => GetAllZipArchive
+      case API.CleanPolicies                  => CleanPolicies
     })
   }
 
@@ -147,6 +150,15 @@ class SystemApi(
       apiv11service.debugInfo(params)
     }
 
+  }
+
+  object CleanPolicies extends LiftApiModule0 {
+    val schema = API.CleanPolicies
+    val restExtractor = restExtractorService
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      apiv11service.cleanPolicies(req, params)
+    }
   }
 
   //Reload [techniques / dynamics groups] endpoint implementation
@@ -428,6 +440,7 @@ class SystemApiService11(
   , itemArchiveManager   : ItemArchiveManager
   , personIdentService   : PersonIdentService
   , repo                 : GitRepositoryProvider
+  , cleanPoliciesFolder  : CleanPoliciesFolder
 ) (implicit userService: UserService) extends Loggable {
 
 
@@ -936,5 +949,20 @@ class SystemApiService11(
     clearCacheService.action(getActor(req))
     asyncDeploymentAgent.launchDeployment(dest)
     toJsonResponse(None, "policies" -> "Started")
+  }
+
+
+  def cleanPolicies(req: Req, params: DefaultParams) : LiftResponse = {
+
+    implicit val action = "cleanPolicies"
+    implicit val prettify = params.prettify
+
+    cleanPoliciesFolder.launch match {
+      case emptyBox: EmptyBox =>
+        val fail = emptyBox ?~! "An error while cleaning policies folder through rest API"
+        toJsonError(None, fail.messageChain)
+      case Full(deleted) =>
+        toJsonResponse(None, ("length" ->  deleted.length) ~ ("nodes" -> deleted))
+    }
   }
 }

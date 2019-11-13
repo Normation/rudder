@@ -59,6 +59,7 @@ import com.normation.rudder.User
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.RudderAccount
 import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
+import com.normation.rudder.batch.CleanPoliciesFolder
 import com.normation.rudder.batch.{AsyncDeploymentAgent, StartDeploymentMessage, UpdateDynamicGroups}
 import com.normation.rudder.repository._
 import com.normation.rudder.rest.v1.RestTechniqueReload
@@ -69,6 +70,7 @@ import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.user.PersonIdentService
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
+import scala.concurrent.duration._
 
 
 /*
@@ -217,6 +219,7 @@ object RestTestSetUp {
       , fakeItemArchiveManager
       , fakePersonIndentService
       , fakeRepo
+      , new CleanPoliciesFolder(???, 24.hours)
   )
 
   val systemApi = new com.normation.rudder.rest.lift.SystemApi(restExtractorService, apiService11, "5.0", "5.0.0", "some time")

@@ -228,6 +228,22 @@ rudder.batch.purge.inventories.delete.TTL=7
 # Interval in hours
 rudder.batch.purge.inventories.delete.interval=24
 
+###########################
+# Promise folder cleaning ###########################################################
+###########################
+
+#
+# Promise folder cleaning
+# This allows you to schedule the purge of unused promised folders (Deleted Nodes, or Nodes that has moved to another relay/policy server)
+#
+#
+# Defaults: check runs every 24 hours.
+#
+
+# Interval in hours
+rudder.batch.clean.promises.interval=24
+
+
 #####################
 # Webdav properties #################################################################
 #####################
