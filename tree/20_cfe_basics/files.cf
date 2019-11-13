@@ -563,6 +563,7 @@ body copy_from rudder_copy_from(from, server,compare,trustkey,preserve,purge)
     compare     => "${compare}";
     encrypt     => "true";
     verify      => "true";
+    type_check  => "true";
     trustkey    => "${trustkey}";
     preserve    => "${preserve}"; # Preserve the permissions
     purge       => "${purge}";
