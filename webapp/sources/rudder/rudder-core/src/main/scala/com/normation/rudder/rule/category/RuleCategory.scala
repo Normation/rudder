@@ -78,8 +78,10 @@ case class RuleCategory(
   // Return that category and its parent category id
   def find (categoryId : RuleCategoryId) : Box[(RuleCategory,RuleCategoryId)] = {
     childPath(categoryId) match {
-
-      case Full(_ :: parent :: category :: Nil) => Full((category,parent.id))
+      // special case for long hierarchy
+      case Full(list) if list.size > 2 =>
+          val parent :: category :: Nil = list.takeRight(2)
+          Full((category,parent.id))
       case Full(parent :: category :: Nil) => Full((category,parent.id))
       case Full(category :: Nil) => Full((category,category.id))
       case Full(_) =>
