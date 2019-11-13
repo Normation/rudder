@@ -34,7 +34,9 @@
 *
 *************************************************************************************
 */
-
+.section-title {
+  border-bottom-color: #f08004 ;
+}
 #versionTable + .checkbox-group{
   margin-top:4px;
 }
@@ -163,7 +165,6 @@
     content:"";
   }
 }
-
 .radio > label > input{
   top: -2px;
 }

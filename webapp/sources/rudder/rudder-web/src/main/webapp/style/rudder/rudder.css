@@ -307,7 +307,12 @@ input.deleteNetwork * {
 /**********************************
  *define the group/section table
  **********************************/
-
+#directiveInfo {
+  margin-bottom: 20px;
+}
+#querySearchSection{
+  font-size: 14px;
+}
 fieldset.sectionFieldset {
   padding: 1px 10px 1px 10px;
 }
@@ -316,21 +321,74 @@ fieldset.groupFieldset {
   padding: 1px 10px 1px 10px;
 }
 
-div.foldableSection div.section-title {
+#edit-box > .foldedSection > .section-title {
+  border-bottom-color: transparent;
+}
+.section-title {
+  font-size: 22px;
+  cursor: default;
+  background: none;
+  border-bottom: 2px solid #e5e5e5;
+  padding: 0 0 5px 0;
+  margin-bottom: 10px;
+  color: #222d42;
+}
+.foldableSection div.section-title{
+  font-size: 20px;
+  border-bottom: 2px solid #e5e5e5;
+  color: #222d428a;
+}
+.foldableSection.foldedSection div.section-title{
+  border-bottom-color: transparent;
+}
+.foldedSection .section-title,
+.foldableSection div.section-title,
+.unfoldedSection .section-title,
+#querySearchSection{
   cursor: pointer;
 }
 
-div.unfoldedSection div.section-title:before,div.foldedSection div.section-title:before {
-  content: url("../../images/tableau/flecheDroiteGris.png");
-  padding-right: 3px;
-  transition-duration:.2s;
+div.unfoldedSection div.section-title:before,div.foldedSection div.section-title:before,
+#querySearchSection:before{
+  content: "\f0da";
   display: inline-block;
-  margin-right: 6px;
   position: relative;
-  top: 1px;
+  top: 2px;
+  margin-right: 10px;
+  font: normal normal normal 14px/1 FontAwesome;
+  font-size: inherit;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  opacity: .6;
+  transition-duration: .2s;
 }
 
-div.unfoldedSection div.section-title:before {
+.foldableSection .foldableSection > .section-title{
+  border-bottom: none;
+  color: #222D42DD;
+  margin-bottom: 8px;
+  transition-duration: .2s;
+  cursor: pointer;
+}
+.foldableSection .foldableSection > .section-title:before{
+  opacity: 0.4;
+}
+
+.sectionFieldset.foldableSection{
+  border-left: 4px solid #e5e5e5;
+  transition-duration: .2s;
+  padding-left: 10px;
+}
+.sectionFieldset.foldableSection.unfoldedSection:hover{
+   border-left-color: #f08004;
+}
+.sectionFieldset.foldableSection.foldedSection:hover{
+  border-left-color: #aaa;
+}
+
+
+div.unfoldedSection div.section-title:before,
+#querySearchSection.unfoldedSectionQuery:before{
   -webkit-transform:rotate(90deg);
   -ms-transform:rotate(90deg);
   -moz-transform:rotate(90deg);
@@ -345,23 +403,17 @@ div.foldedSection div.section-title:before {
   -o-transform:rotate(0deg);
   transform:rotate(0deg);
 }
-#querySearchSection:hover{
-    cursor: pointer;
-}
-#querySearchSection:before {
-  content: url("../../images/tableau/flecheDroiteGris.png");
-  padding-right: 3px;
-}
-#querySearchSection.unfoldedSectionQuery:before {
-  content: url("../../images/tableau/flecheBasGris.png");
-  padding-right: 3px;
-}
+
 .foldedSection table, .foldedSection div {
   display:none;
 }
 
 .foldedSection div.section-title {
   display:block;
+}
+
+table.directiveSectionDef {
+  margin-bottom: 16px;
 }
 
 /**********************************
@@ -557,18 +609,6 @@ table .innerDetails li{
    background: none;
 }
 
-.section-title {
-  font-size: 18px;
-  cursor: default;
-  background: none;
-  border-bottom: 1px solid #e2e2e2;
-  padding: 5px 0 5px 0px;
-  color: #333;
-}
-.foldedSection .section-title,
-.unfoldedSection .section-title {
-  cursor: pointer;
-}
 .portlet-header .ui-icon {
    float: right;
    cursor: pointer;
