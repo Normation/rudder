@@ -282,15 +282,17 @@ rudder.community.port=5309
 rudder.dir.licensesFolder=/opt/rudder/etc/licenses
 
 #
-# Directories used to write nodes promises.
-# - promises generated for a node with id UUID go in ***/var/rudder/share/UUID***
+# Directories used to write nodes policies.
+# - policies generated for a node with id UUID go in ***/var/rudder/share/UUID***
 #   For now, that property can not be modified, because there is no simple
-#   way of doing that and letting node knowing where to go look for there promises.
-# - promises generated for CFEngine community server go into ***/var/rudder/cfengine-community/inputs***
-# - promises generated for CFEngine Nova server go into ***/var/cfengine/inputs***
+#   way of doing that and letting node knowing where to go look for their policies.
+# - policies generated for Rudder Root Server go into ***/var/rudder/cfengine-community/inputs***
+
 # - 'rudder.dir.backup' is the directory path where previous configuration of each node are stored
-#
-rudder.dir.backup=/var/rudder/backup/
+# CAUTION: For performance and consistency, it is necessary that the rudder.dir.backup is on the same
+# filesystem as /var/rudder/share/ , otherwise the policies change for nodes is non-atomic (move becomes
+# copy then delete), and can result to incomplete/partial policies being distributed to nodes.
+rudder.dir.backup=/var/rudder/share/backup/
 
 #
 # Shared folder
