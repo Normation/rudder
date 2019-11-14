@@ -91,9 +91,6 @@ $.fn.dataTable.ext.search.push(
     });
 
 
-
-
-
 $.fn.dataTableExt.afnSortData['compliance'] = function ( oSettings, iColumn )
 {
     var data =
@@ -145,8 +142,6 @@ $.fn.dataTableExt.afnSortData['changes'] = function ( oSettings, iColumn )
     return data;
 };
 
-
-
 function computeChangeGraph(changes, id, currentRowsIds, changeCount, displayGraph) {
   recentChanges[id] = changes;
   recentChangesCount[id] = changeCount;
@@ -154,9 +149,6 @@ function computeChangeGraph(changes, id, currentRowsIds, changeCount, displayGra
     generateRecentGraph(id, displayGraph);
   }
 }
-
-
-
 
 function recentChangesGraph(changes, graphId, displayFullGraph) {
   var context = $("#"+graphId)
@@ -215,7 +207,6 @@ function recentChangesGraph(changes, graphId, displayFullGraph) {
     , data: chartData
     , options : option
   });
-
 
 }
 
@@ -1073,9 +1064,7 @@ function createRuleComponentValueTable (contextPath) {
  *   { "name" : Node hostname [String]
  *   , "id" : Node id [String]
  *   , "machineType" : Node machine type [String]
- *   , "osName" : Node OS name [String]
- *   , "osVersion" : Node OS version [ String ]
- *   , "servicePack" : Node OS service pack [ String ]
+ *   , "os" : Node OS name, version and service pack [String]
  *   , "lastReport" : Last report received about that node [ String ]
  *   , "callBack" : Callback on Node, if missing, replaced by a link to nodeId [ Function ]
  *   }
@@ -1120,17 +1109,9 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "mDataProp": "machineType"
     , "sTitle": "Machine type"
   } , {
-      "sWidth": "10%"
-    , "mDataProp": "osName"
-    , "sTitle": "OS name"
-  } , {
-      "sWidth": "7%"
-    , "mDataProp": "osVersion"
-    , "sTitle": "OS version"
-  } , {
-      "sWidth": "5%"
-    , "mDataProp": "servicePack"
-    , "sTitle": "OS SP"
+      "sWidth": "22%"
+    , "mDataProp": "os"
+    , "sTitle": "Operating System"
   } , {
       "mDataProp": "agentPolicyMode"
     , "sWidth": "8%"
@@ -1172,6 +1153,10 @@ function createNodeTable(gridId, data, contextPath, refresh) {
           "targets": [ 0 ]
         , "visible": false
         , "searchable": true
+
+      } , {
+        "type"    : "natural-ci"
+      , "targets" : 3
       }]
     , "fnDrawCallback": function( oSettings ) {
 
