@@ -512,6 +512,7 @@ class TestNodeConfiguration() {
   val draftServerManagement = new PolicyServerManagementService() {
     override def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], modId: ModificationId, actor:EventActor) = ???
     override def getAuthorizedNetworks(policyServerId:NodeId) : Box[Seq[String]] = Full(List("192.168.49.0/24"))
+    override def deleteRelaySystemObjects(policyServerId: NodeId): Box[Unit] = ???
   }
   val systemVariableService = new SystemVariableServiceImpl(
       systemVariableServiceSpec

@@ -1424,7 +1424,11 @@ object RudderConfig extends Loggable {
   private[this] lazy val ruleValService: RuleValService = new RuleValServiceImpl(interpolationCompiler)
 
   private[this] lazy val psMngtService: PolicyServerManagementService = new PolicyServerManagementServiceImpl(
-    roLdapDirectiveRepository, woLdapDirectiveRepository)
+      roLdapDirectiveRepository
+    , woLdapDirectiveRepository
+    , rwLdap
+    , rudderDit
+  )
   private[this] lazy val historizationService = new HistorizationServiceImpl(historizationJdbcRepository)
 
   lazy val deploymentService = {
@@ -1668,6 +1672,7 @@ object RudderConfig extends Loggable {
       , nodeInfoServiceImpl
       , ldapFullInventoryRepository
       , logRepository
+      , policyServerManagementService
       , nodeReadWriteMutex
       , nodeInfoServiceImpl
       , updateExpectedRepo

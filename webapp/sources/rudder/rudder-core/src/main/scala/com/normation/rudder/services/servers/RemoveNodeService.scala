@@ -122,6 +122,7 @@ class RemoveNodeServiceImpl(
     , nodeInfoService           : NodeInfoService
     , fullNodeRepo              : LDAPFullInventoryRepository
     , actionLogger              : EventLogRepository
+    , policyServerManagement    : PolicyServerManagementService
     , groupLibMutex             : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
     , nodeInfoServiceCache      : NodeInfoService with CachedRepository
     , nodeConfigurationsRepo    : UpdateExpectedReportsRepository
@@ -202,10 +203,13 @@ class RemoveNodeServiceImpl(
           for {
             moved  <- groupLibMutex.writeLock {atomicDelete(nodeId, modId, actor) } ?~! "Error when deleting a node"
             closed <- nodeConfigurationsRepo.closeNodeConfigurations(nodeId)
-
             invLogDetails = InventoryLogDetails (nodeInfo.id,nodeInfo.inventoryDate, nodeInfo.hostname, nodeInfo.osDetails.fullName, actor.name)
             eventlog = DeleteNodeEventLog.fromInventoryLogDetails (None, actor, invLogDetails)
             saved  <- actionLogger.saveEventLog(modId, eventlog)
+                      // if the node was a policy server, we need to delete group and directive/rule for it
+            _      <- if(nodeInfo.isPolicyServer) {
+                        policyServerManagement.deleteRelaySystemObjects(nodeId) ?~! s"Error when deleting system objects (groups, directives, rules) related to relay server '${nodeId.value}'"
+                      } else Full(())
 
             _ = nodeInfoServiceCache.clearCache
 
@@ -233,7 +237,7 @@ class RemoveNodeServiceImpl(
       }
     }
     logger.debug("Trying to remove node %s from the LDAP".format(nodeId.value))
-    nodeId.value match {
+    (nodeId.value match {
       case "root" => Failure("The root node cannot be deleted from the nodes list.")
       case _ => {
 
@@ -258,6 +262,12 @@ class RemoveNodeServiceImpl(
           result
         }
       }
+    }) match {
+      case Full(x) => Full(x)
+      case eb: EmptyBox =>
+        val e = eb ?~! s"Error when deleting node '${nodeId.value}'"
+        logger.error(e.messageChain)
+        e
     }
   }
 

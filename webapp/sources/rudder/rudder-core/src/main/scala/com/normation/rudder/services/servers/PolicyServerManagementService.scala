@@ -48,6 +48,12 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import sun.net.util.IPAddressUtil
 import ca.mrvisser.sealerate
+import com.normation.ldap.sdk.LDAPConnectionProvider
+import com.normation.ldap.sdk.RwLDAPConnection
+import com.normation.rudder.domain.RudderDit
+import com.normation.rudder.domain.logger.ApplicationLogger
+import com.unboundid.ldap.sdk.DN
+import com.unboundid.ldap.sdk.RDN
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 
@@ -69,6 +75,12 @@ trait PolicyServerManagementService {
    * Update the list of authorized networks with the given list
    */
   def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], modId: ModificationId, actor:EventActor) : Box[Seq[String]]
+
+  /**
+   * Delete things related to a relay (groups, rules, directives)
+   */
+  def deleteRelaySystemObjects(policyServerId: NodeId): Box[Unit]
+
 }
 
 object PolicyServerManagementService {
@@ -102,6 +114,8 @@ object PolicyServerManagementService {
 class PolicyServerManagementServiceImpl(
     roDirectiveRepository: RoDirectiveRepository
   , woDirectiveRepository: WoDirectiveRepository
+  , ldap                 : LDAPConnectionProvider[RwLDAPConnection]
+  , dit                  : RudderDit
 ) extends PolicyServerManagementService with Loggable {
 
   /**
@@ -138,6 +152,37 @@ class PolicyServerManagementServiceImpl(
       saved <- woDirectiveRepository.saveSystemDirective(activeTechnique.id, newPi, modId, actor, msg) ?~! "Can not save directive for Active Technique '%s'".format(activeTechnique.id.value)
     } yield {
       networks
+    }
+  }
+
+  /**
+   * Delete things related to a relay:
+   * - group: nodeGroupId=hasPolicyServer-${uuid},groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+   * - rule target:  ruleTarget=policyServer:${RELAY_UUID},groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+   * - directive:  directiveId=${RELAY_UUID}-distributePolicy,activeTechniqueId=distributePolicy,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+   * - directive: directiveId=common-${RELAY_UUID},activeTechniqueId=common,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuratio
+   * - rule: ruleId=${RELAY_UUID}-DP,ou=Rules,ou=Rudder,cn=rudder-configuration
+   * - rule: ruleId=hasPolicyServer-${RELAY_UUID},ou=Rules,ou=Rudder,cn=rudder-configuration
+   */
+  def deleteRelaySystemObjects(policyServerId: NodeId): Box[Unit] = {
+    if(policyServerId == Constants.ROOT_POLICY_SERVER_ID) {
+      Failure("Root server configuration elements can't be deleted")
+    } else { // we don't have specific validation to do: if the node is not a policy server, nothing will be done
+      def DN(child: String, parentDN: DN) = new DN(child+","+parentDN.toString)
+      val id = policyServerId.value
+
+// nodeGroupId=hasPolicyServer-b887aee5-f191-45cd-bb2d-9e3f5b30d06e,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+
+      for {
+        con <- ldap
+        _   <- con.delete(DN(s"nodeGroupId=hasPolicyServer-${id}", dit.GROUP.SYSTEM.dn))
+        _   <- con.delete(DN(s"ruleTarget=policyServer:${id}", dit.GROUP.SYSTEM.dn))
+        _   <- con.delete(DN(s"directiveId=${id}-distributePolicy,activeTechniqueId=distributePolicy,techniqueCategoryId=Rudder Internal", dit.ACTIVE_TECHNIQUES_LIB.dn))
+        _   <- con.delete(DN(s"directiveId=common-${id},activeTechniqueId=common,techniqueCategoryId=Rudder Internal", dit.ACTIVE_TECHNIQUES_LIB.dn))
+        _   <- con.delete(DN(s"ruleId=${id}-DP", dit.RULES.dn))
+        _   <- con.delete(DN(s"ruleId=hasPolicyServer-${id}", dit.RULES.dn))
+        _   =  ApplicationLogger.info(s"System configuration object (rules, directives, groups) related to relay '${id}' were successfully deleted.")
+      } yield ()
     }
   }
 }

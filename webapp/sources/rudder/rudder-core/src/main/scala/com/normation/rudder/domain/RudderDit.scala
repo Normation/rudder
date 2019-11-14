@@ -381,8 +381,6 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
         case GroupTarget(groupId) => group.groupDN(groupId.value, system.dn)
         case t => new DN(new RDN(A_RULE_TARGET, target.target), system.dn)
       }
-
-
     }
   }
 
