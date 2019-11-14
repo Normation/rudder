@@ -106,7 +106,8 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
       reports <- findRuleNodeStatusReports(nodeIds, Set(ruleId))
     } yield {
       val toKeep = reports.values.flatMap( _.report.reports )
-      RuleStatusReport(ruleId, toKeep)
+      val overrides = reports.values.flatMap( _.overrides ).toList.distinct
+      RuleStatusReport(ruleId, toKeep, overrides)
     }
   }
 
@@ -277,7 +278,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
       } else {
         reports.mapValues { status =>
           NodeStatusReport.filterByRules(status, ruleIds)
-        }.filter( _._2.report.reports.nonEmpty )
+        }.filter { case (k,v) => v.report.reports.nonEmpty || v.overrides.nonEmpty }
       }
     }
   }

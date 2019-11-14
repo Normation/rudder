@@ -617,11 +617,14 @@ object ComplianceData extends Loggable {
     , rule            : Rule
     , allNodeInfos    : Map[NodeId, NodeInfo]
     , directiveLib    : FullActiveTechniqueCategory
+    , allRules        : Seq[Rule] // for overrides
     , globalMode      : GlobalPolicyMode
   ) : JsTableData[DirectiveComplianceLine] = {
 
+    val overrides = getOverridenDirectiveDetails(report.overrides, directiveLib, allRules)
     val lines = getDirectivesComplianceDetails(report.report.directives.values.toSet, directiveLib, globalMode, ComputePolicyMode.directiveModeOnRule(allNodeInfos.map(_._2.policyMode).toSet, globalMode))
-    JsTableData(lines.toList)
+
+    JsTableData(overrides ++ lines)
   }
 
   // From Node Point of view
