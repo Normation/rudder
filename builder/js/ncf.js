@@ -1539,7 +1539,6 @@ app.config(function($httpProvider,$locationProvider) {
     //Allows the browser to indicate to the cache to retrieve the GET request content from the original server rather than sending one he must keep.
     $httpProvider.defaults.headers.get['Pragma'] = 'no-cache';
 });
-<<<<<<< HEAD
 
 app.config(['fileManagerConfigProvider', function (config) {
   var apiPath = '/rudder/secure/api/techniques/';
@@ -1579,6 +1578,3 @@ function uuidv4() {
     (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
   );
 }
-
-=======
->>>>>>> branches/rudder/5.0
