@@ -721,8 +721,7 @@ $scope.onImportFileChange = function (fileEl) {
   // Select it if it was not selected, unselect it otherwise
   $scope.selectTechnique = function(technique) {
     $scope.fileManagerState.open   = false;
-    $scope.suppressFlag = false;
-    $scope.conflictFlag = false;
+    $scope.resetFlags();
     // Always clean Selected methods and display methods list
     $scope.ui.selectedMethods = [];
     // Check if that technique is the same as the original selected one
@@ -1466,7 +1465,6 @@ $scope.onImportFileChange = function (fileEl) {
 });
 
 var confirmModalCtrl = function ($scope, $uibModalInstance, actionName, kind, name) {
-
   $scope.actionName = actionName;
   $scope.kind = kind;
   $scope.name = name;

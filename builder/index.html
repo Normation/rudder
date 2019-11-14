@@ -237,7 +237,7 @@
                         <li>
                           <a ng-disabled="isNotSaved()" class="action-primary" ng-click="exportTechnique(selectedTechnique)">Export <i class="fas fa-file-export"></i></a>
                         </li>
-                        <li>
+                        <li ng-hide="originalTechnique.bundle_name===undefined">
                           <a ng-disabled="isNotSaved()" class="action-danger" ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)">Delete <i class="fas fa-times-circle"></i></a>
                         </li>
                       </ul>
