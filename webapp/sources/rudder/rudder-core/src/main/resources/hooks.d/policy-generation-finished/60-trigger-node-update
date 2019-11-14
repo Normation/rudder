@@ -18,6 +18,10 @@
 # This feature can generate a more run than expected and some load on the network. In big
 # Rudder installation (thousands of nodes), we advice to measure these metrics and disable
 # the hook if necessary.
+# Other specifities:
+# - obviously, node agent will run more frequently than its configured period since a run
+#   will be triggered at each generation;
+# - splay time is not honored (all agent runs are triggered simultaneously).
 #
 
 # if ${TEST} is defined, property file is not read and curl command not executed
