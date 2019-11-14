@@ -78,6 +78,7 @@ class RuleCompliance (
   private[this] val roRuleRepository    = RudderConfig.roRuleRepository
   private[this] val getFullDirectiveLib = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
   private[this] val getAllNodeInfos     = RudderConfig.nodeInfoService.getAll _
+  private[this] val getGroups           = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
 
   import RuleCompliance._
 
@@ -242,13 +243,14 @@ class RuleCompliance (
     ( for {
         reports      <- reportingService.findDirectiveRuleStatusReportsByRule(rule.id)
         allRules     <- roRuleRepository.getAll()
+        groups       <- getGroups()
         updatedRule  <- Box(allRules.find(_.id == rule.id))
         directiveLib <- getFullDirectiveLib()
         allNodeInfos <- getAllNodeInfos()
         globalMode   <- configService.rudder_global_policy_mode()
       } yield {
 
-        val directiveData = ComplianceData.getRuleByDirectivesComplianceDetails(reports, updatedRule, allNodeInfos, directiveLib, allRules, globalMode).json.toJsCmd
+        val directiveData = ComplianceData.getRuleByDirectivesComplianceDetails(reports, updatedRule, allNodeInfos, directiveLib, groups, allRules, globalMode).json.toJsCmd
         val nodeData = ComplianceData.getRuleByNodeComplianceDetails(directiveLib, reports, allNodeInfos, globalMode).json.toJsCmd
         JsRaw(s"""
           refreshTable("reportsGrid", ${directiveData});
