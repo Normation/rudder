@@ -54,39 +54,9 @@ import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KE
 import com.normation.rudder.domain.policies.PolicyMode._
 
 object ComputePolicyMode {
-  def ruleMode(globalMode : GlobalPolicyMode, directives : Set[Directive]) = {
-   globalMode.overridable match {
-      case PolicyModeOverrides.Unoverridable =>
-        (globalMode.mode.name, s"""Rudder's global agent policy mode is set to <i><b>${globalMode.mode.name}</b></i> and is not overridable on a per-node or per-directive basis. Please check your Settings or contact your Rudder administrator.""")
-      case PolicyModeOverrides.Always =>
-
-        // We have a Set here so we only have 3 elem max (None, Some(audit), some(enforce))
-        val directivePolicyMode = directives.map(_.policyMode)
-        directivePolicyMode.toList match {
-          // We only have one element!!
-          case mode :: Nil => mode match {
-            // global mode was not overriden by any directive, use global mode
-            case None => (globalMode.mode.name, "")
-            // Global mode is overriden by all directives with the same mode
-            case Some(m) => (m.name, "")
-          }
-          // No directives linked to the Rule, fallback to globalMode
-          case Nil => (globalMode.mode.name, "This mode is the globally defined default. You can change it in the global <i><b>settings</b></i>.")
-          case modes =>
-            // Here we now need to check if global mode is the same that all selected mode for directives
-            // So we replace any "None" (use global mode) by global mode and we will decide after what happens
-            val effectiveModes = directivePolicyMode.map(_.getOrElse(globalMode.mode))
-            // Check if there is still more than one mode applied
-            if (effectiveModes.size > 1)  {
-              // More that one mode applied, status is 'mixed', global mode was different than the one enforced on some directives
-              ("mixed", "This rule has at least one directive that will enforce configurations, and at least one that will audit them.")
-            } else {
-              // After all there is only one mode and it's the same than global mode => some modes were using default mode,
-              // some were enforce the same mode as global
-              (globalMode.mode.name, "")
-            }
-        }
-    }
+  def ruleMode(globalMode : GlobalPolicyMode, directives : Set[Directive], nodeModes: Set[Option[PolicyMode]]) = {
+    val mixed = "This rule is applied on at least one node or directive that will <b class='text-Enforce'>enforces</b> configurations, and at least one that will <b class='text-Audit'>audits</b> them."
+    genericComputeMode(None, "Rule", directives.map(_.policyMode) ++ nodeModes, "node or directive", globalMode, mixed)
   }
 
   def directiveModeOnNode(nodeMode : Option[PolicyMode], globalMode : GlobalPolicyMode)(directiveMode : Option[PolicyMode]) = {
