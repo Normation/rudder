@@ -691,7 +691,7 @@ body{
   width: calc(100% + 30px);
   border: none;
   margin-left: -15px;
-  height:calc(100vh - 95px);
+  height:calc(100vh - 60px);
 }
 #headerBar ~ .content-wrapper #editor-iframe{
   height:calc(100vh - 125px);
