@@ -126,7 +126,7 @@ class RuleValServiceImpl(
 
   def getParsedPolicyDraft(piId : DirectiveId, ruleId:RuleId, ruleOrder: BundleOrder, directiveLib: FullActiveTechniqueCategory) : Box[Option[ParsedPolicyDraft]]= {
     directiveLib.allDirectives.get(piId) match {
-      case None => Failure("Cannot find Directive with id %s when building Rule %s".format(piId.value, ruleId.value))
+      case None => Failure(s"Cannot find directive with id '${piId.value}' when building rule '${ruleOrder.value}' (${ruleId.value})")
       case Some((_, directive) ) if !(directive.isEnabled) =>
         logger.debug("The Directive with id %s is disabled and we don't generate a ParsedPolicyDraft for Rule %s".format(piId.value, ruleId.value))
         Full(None)
