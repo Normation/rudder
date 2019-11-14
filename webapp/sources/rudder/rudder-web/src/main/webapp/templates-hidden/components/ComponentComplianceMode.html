@@ -109,35 +109,49 @@
             </div>
           </div>
           <div>
-            <div class="form-group" ng-show="isNodePage">
-              <div>
-                <label for="overrideHeartbeat" class="control-label">
-                  <input  id="overrideHeartbeat" ng-model="complianceMode.overrides" type="checkbox"/>
+
+            <ul ng-show="isNodePage">
+              <li class="rudder-form">
+                <div class="input-group">
+                  <label class="input-group-addon" for="overrideHeartbeat">
+                    <input id="overrideHeartbeat" ng-model="complianceMode.overrides" type="checkbox"/>
+                    <label for="overrideHeartbeat" class="label-radio">
+                      <span class="ion ion-checkmark-round"></span>
+                    </label>
+                    <span class="ion ion-checkmark-round check-icon"></span>
+                  </label>
+                  <label class="form-control" for="overrideHeartbeat">
                     Override global value
-                </label>
+                    <span id="denyBadClocksTooltip"></span>
+                  </label>
+                </div>
+              </li>
+            </ul>
+
+            <div class="form-group " ng-class="{ 'has-error' : complianceModeForm.heartbeat.$invalid }">
+              <label class="control-label pull-left" for="heartbeat">Send heartbeat every</label>
+              <div class="pull-left col-sm-1">
+                <input type="number" min="1" integer="" required="" max="{{checkMaximumValue()}}" class="form-control input-sm" name="heartbeat" id="heartbeat" ng-disabled="disableHeartbeat()" ng-model="complianceMode.heartbeatPeriod"/>
               </div>
+              <label class="control-label pull-left" for="heartbeat">runs</label>
             </div>
-          <div class="form-group " ng-class="{ 'has-error' : complianceModeForm.heartbeat.$invalid }">
-            <label class="control-label pull-left" for="heartbeat">Send heartbeat every</label>
-            <div class="pull-left col-sm-1">
-              <input type="number" min="1" integer="" required="" max="{{checkMaximumValue()}}" class="form-control input-sm" name="heartbeat" id="heartbeat" ng-disabled="disableHeartbeat()" ng-model="complianceMode.heartbeatPeriod"/>
-            </div>
-            <label class="control-label pull-left" for="heartbeat">runs</label>
-          </div>
-      <div class="form-group">
-          <div class="control-label pull-left" ng-hide="complianceModeForm.$invalid">
-            Heartbeat will be sent every {{complianceMode.heartbeatPeriod * agentRun}} minutes
-          </div>
-          <span class="control-label pull-left error" ng-show="complianceModeForm.heartbeat.$error.required">Number of runs between heartbeats cannot be empty</span>
+
+            <div class="form-group">
+              <div class="control-label pull-left" ng-hide="complianceModeForm.$invalid">
+                Heartbeat will be sent every {{complianceMode.heartbeatPeriod * agentRun}} minutes
+              </div>
+              <span class="control-label pull-left error" ng-show="complianceModeForm.heartbeat.$error.required">Number of runs between heartbeats cannot be empty</span>
               <span class="control-label pull-left error" ng-show="complianceModeForm.heartbeat.$error.number">Number of runs between heartbeats must be a valid integer</span>
-    <span class="control-label pull-left error" ng-show="complianceModeForm.heartbeat.$error.min || complianceModeForm.heartbeat.$error.max">
-      Number of runs between heartbeats must be in range from 1 to {{checkMaximumValue()}} (24 hours with a {{agentRun}} minutes frequency)</span>
+              <span class="control-label pull-left error" ng-show="complianceModeForm.heartbeat.$error.min || complianceModeForm.heartbeat.$error.max">
+                Number of runs between heartbeats must be in range from 1 to {{checkMaximumValue()}} (24 hours with a {{agentRun}} minutes frequency)
+              </span>
+            </div>
+
           </div>
         </div>
       </div>
-      </div>
       <lift:authz role="administration_write">
-        <div class="form-group" ng-hide="isNodePage    &amp;&amp; complianceMode.name === 'full-compliance'">
+        <div class="form-group" ng-hide="isNodePage && complianceMode.name === 'full-compliance'">
           <div class="pull-left control-label">
             <button type="submit" class="btn btn-default" ng-click="save()" ng-disabled="complianceModeForm.$invalid || isUnchanged()" id="complianceModeSubmit">Save changes</button>
           </div>
