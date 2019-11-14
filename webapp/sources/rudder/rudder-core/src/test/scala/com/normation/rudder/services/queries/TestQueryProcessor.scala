@@ -142,7 +142,7 @@ class TestQueryProcessor extends Loggable {
       con.search("cn=rudder-configuration", Sub, BuildFilter.ALL).size
     }).openOrThrowException("For tests")
 
-    val expected = 42+38  //bootstrap + inventory-sample
+    val expected = 41+38  //bootstrap + inventory-sample
     assert(expected == s, s"Not found the expected number of entries in test LDAP directory [expected: ${expected}, found: ${s}], perhaps the demo entries where not correctly loaded")
   }
 
