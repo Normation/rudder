@@ -52,6 +52,7 @@ import com.normation.rudder.web.components.DateFormaterService
 import org.joda.time.Interval
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 import com.normation.rudder.domain.policies.PolicyMode._
+import com.normation.rudder.repository.FullNodeGroupCategory
 
 object ComputePolicyMode {
   def ruleMode(globalMode : GlobalPolicyMode, directives : Set[Directive], nodeModes: Set[Option[PolicyMode]]) = {
@@ -587,12 +588,16 @@ object ComplianceData extends Loggable {
     , rule            : Rule
     , allNodeInfos    : Map[NodeId, NodeInfo]
     , directiveLib    : FullActiveTechniqueCategory
+    , groupLib        : FullNodeGroupCategory
     , allRules        : Seq[Rule] // for overrides
     , globalMode      : GlobalPolicyMode
   ) : JsTableData[DirectiveComplianceLine] = {
 
     val overrides = getOverridenDirectiveDetails(report.overrides, directiveLib, allRules)
-    val lines = getDirectivesComplianceDetails(report.report.directives.values.toSet, directiveLib, globalMode, ComputePolicyMode.directiveModeOnRule(allNodeInfos.map(_._2.policyMode).toSet, globalMode))
+    // restrict mode calcul to node really targetted by that rule
+    val appliedNodes = groupLib.getNodeIds(rule.targets, allNodeInfos)
+    val nodeModes = appliedNodes.flatMap(id => allNodeInfos.get(id).map(_.policyMode))
+    val lines = getDirectivesComplianceDetails(report.report.directives.values.toSet, directiveLib, globalMode, ComputePolicyMode.directiveModeOnRule(nodeModes, globalMode))
 
     JsTableData(overrides ++ lines)
   }
