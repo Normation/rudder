@@ -995,7 +995,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         def noModif() = initSendMetrics == currentSendMetrics
         def check() = {
           S.notice("sendMetricsMsg","")
-          Run(s"""$$("#sendMetricsSubmit").button( "option", "disabled",${noModif()});""")
+          Run(s"""$$("#sendMetricsSubmit").prop("disabled",${noModif()});""")
         }
         def submit() = {
           val save = configService.set_send_server_metrics(currentSendMetrics,CurrentUser.actor,genericReasonMessage)
