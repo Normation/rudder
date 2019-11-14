@@ -199,9 +199,7 @@ class SrvGrid(
  *   { "name" : Node hostname [String]
  *   , "id" : Node id [String]
  *   , "machineType" : Node machine type [String]
- *   , "osName" : Node OS name [String]
- *   , "osVersion" : Node OS version [ String ]
- *   , "servicePack" : Node OS service pack [ String ]
+ *   , "os" : Node OS name, version and service pack [String]
  *   , "lastReport" : Last report received about that node [ String ]
  *   , "callBack" : Callback on Node, if absend replaced by a link to nodeId [ Function ]
  *   }
@@ -252,14 +250,14 @@ final case class NodeLine (
        ( "name" -> hostname )
      , ( "state" -> node.state.name )
      , ( "id" -> node.id.value )
-     , ( "machineType" -> (node.machine.map { _.machineType match {
-                            case _: VirtualMachineType => "Virtual"
-                            case PhysicalMachineType   => "Physical"
-                          } }.getOrElse("No Machine Inventory" ):String )
+     , ( "machineType" ->
+         (node.machine.map { _.machineType match {
+           case _: VirtualMachineType => "Virtual"
+           case PhysicalMachineType   => "Physical"
+         } }.getOrElse("No Machine Inventory" ):String )
        )
-     , ( "osName") -> S.?(s"os.name.${node.osDetails.os.name}")
-     , ( "osVersion" -> node.osDetails.version.value)
-     , ( "servicePack" -> (node.osDetails.servicePack.getOrElse("N/A"): String))
+     , ( "os" -> (S.?(s"os.name.${node.osDetails.os.name}") ++ " " ++ node.osDetails.version.value ++ " " ++ (node.osDetails.servicePack.getOrElse(""): String)))
+
      , ( "agentPolicyMode" -> policyMode.toString)
      , ( "explanation" -> explanation.toString)
      , ( "lastReport" ->  lastReportValue )
