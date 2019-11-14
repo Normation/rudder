@@ -279,20 +279,32 @@ class RuleEditForm(
       import net.liftweb.json._
       import net.liftweb.json.Serialization.write
       implicit val formats = Serialization.formats(NoTypeHints)
-      val map = (for {
-        id <- selectedDirectiveIds
-        (t,d) <-  directiveLib.allDirectives.get(id)
-      } yield {
-        (id.value, JsDirective(
-            d.id.value
-          , linkUtil.directiveLink(d.id)
-          , d.name
-          , d.shortDescription
-          , t.newestAvailableTechnique.get.name
-          , d.techniqueVersion.toString
-          , d.policyMode.map(_.name).getOrElse(globalMode.mode.name)
-        ))
-      }).toMap
+      // here, we want to display a "broken directive" message in the UI if we don't have it in lib
+      val map = selectedDirectiveIds.map { id =>
+        val details = directiveLib.allDirectives.get(id) match {
+          case Some((t,d)) =>
+            JsDirective(
+                d.id.value
+              , linkUtil.directiveLink(d.id)
+              , d.name
+              , d.shortDescription
+              , t.newestAvailableTechnique.get.name
+              , d.techniqueVersion.toString
+              , d.policyMode.map(_.name).getOrElse(globalMode.mode.name)
+            )
+          case None => //the rule reference a non-existing directive. It will break generation. We need to make it appears
+            JsDirective(
+                id.value
+              , linkUtil.directiveLink(id)
+              , s"Unknown directive with id: '${id.value}'"
+              , s"This directive is not known by Rudder. You should likely delete it from that rule."
+              , "Technique unknown"
+              , "Technique version unknown"
+              , "error"
+            )
+        }
+        (id.value, details)
+      }.toMap
       write(map)
     }
 
