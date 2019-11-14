@@ -1,5 +1,5 @@
 # Cron file for Rudder relay
 #
 
-*/5 * * * * root /opt/rudder/share/relay-api/cleanup.sh >/dev/null
+*/5 * * * * root /opt/rudder/bin/relay-cleanup >/dev/null
 
