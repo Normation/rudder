@@ -103,7 +103,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
       reports <- findRuleNodeStatusReports(nodeIds, Set(ruleId))
     } yield {
       val toKeep = reports.values.flatMap( _.report.reports )
-      val overrides = reports.values.flatMap( _.overrides ).toList.distinct
+      val overrides = reports.values.flatMap( _.overrides.filter(_.overridenBy.ruleId != ruleId) ).toList.distinct
       RuleStatusReport(ruleId, toKeep, overrides)
     }
   }
