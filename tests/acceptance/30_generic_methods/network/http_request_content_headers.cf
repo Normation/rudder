@@ -22,8 +22,8 @@ body common control
 bundle agent init
 {
   vars:
-    "existant_url"          string => "http://www.ncf.io";
-    "nonexistant_url"       string => "http://www.ncf.io/testurl";
+    "existant_url"          string => "https://postman-echo.com/post";
+    "nonexistant_url"       string => "https://postman-echo.com/something";
     "canon_nonexistant_url" string => canonify("${nonexistant_url}");
     "canon_existant_url"    string => canonify("${existant_url}");
     "headers"               string => "Content-type: application/xml";
