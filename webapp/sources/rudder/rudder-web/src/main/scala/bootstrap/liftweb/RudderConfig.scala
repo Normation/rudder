@@ -151,6 +151,7 @@ import com.typesafe.config.Config
 import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigFactory
 import com.unboundid.ldap.sdk.DN
+import com.unboundid.ldap.sdk.RDN
 import net.liftweb.common.Loggable
 import net.liftweb.common._
 import org.apache.commons.io.FileUtils
@@ -273,15 +274,8 @@ object RudderConfig extends Loggable {
       x.millis
     }
   }
-  val LDAP_INVENTORIES_ACCEPTED_BASEDN = config.getString("ldap.inventories.accepted.basedn")
-  val LDAP_INVENTORIES_PENDING_BASEDN = config.getString("ldap.inventories.pending.basedn")
-  val LDAP_INVENTORIES_REMOVED_BASEDN = config.getString("ldap.inventories.removed.basedn")
-  val LDAP_INVENTORIES_SOFTWARE_BASEDN = config.getString("ldap.inventories.software.basedn")
-  val LDAP_RUDDER_BASE = config.getString("ldap.rudder.base")
-  val LDAP_NODE_BASE = config.getString("ldap.node.base")
   val RUDDER_DIR_BACKUP = config.getString("rudder.dir.backup")
   val RUDDER_DIR_DEPENDENCIES = config.getString("rudder.dir.dependencies")
-  val RUDDER_DIR_UPLOADED_FILE_SHARING = config.getString("rudder.dir.uploaded.file.sharing")
   val RUDDER_DIR_LOCK = config.getString("rudder.dir.lock") //TODO no more used ?
   val RUDDER_DIR_SHARED_FILES_FOLDER = config.getString("rudder.dir.shared.files.folder")
   val RUDDER_DIR_LICENSESFOLDER = config.getString("rudder.dir.licensesFolder")
@@ -311,6 +305,7 @@ object RudderConfig extends Loggable {
   val RUDDER_BATCH_DATABASECLEANER_RUNTIME_DAY = config.getString("rudder.batch.databasecleaner.runtime.day") //"sunday"
   val RUDDER_BATCH_REPORTS_LOGINTERVAL = config.getInt("rudder.batch.reports.logInterval") //1 //one minute
   val RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH = config.getString("rudder.techniqueLibrary.git.refs.path")
+  // THIS ONE IS STILL USED FOR USERS USING GIT REPLICATION
   val RUDDER_AUTOARCHIVEITEMS = config.getBoolean("rudder.autoArchiveItems") //true
   val RUDDER_SYSLOG_PORT = config.getInt("rudder.syslog.port") //514
   val RUDDER_REPORTS_EXECUTION_MAX_DAYS = config.getInt("rudder.batch.storeAgentRunTimes.maxDays") // In days : 0
@@ -336,7 +331,6 @@ object RudderConfig extends Loggable {
   val RUDDER_REPORTS_EXECUTION_INTERVAL = config.getInt("rudder.batch.storeAgentRunTimes.updateInterval") // In seconds : 5
 
   val HISTORY_INVENTORIES_ROOTDIR = config.getString("history.inventories.rootdir")
-  val UPLOAD_ROOT_DIRECTORY = config.getString("upload.root.directory")
 
   //used in spring security "applicationContext-security.xml", be careful if you change its name
   val RUDDER_REST_ALLOWNONAUTHENTICATEDUSER = config.getBoolean("rudder.rest.allowNonAuthenticatedUser")
@@ -510,7 +504,6 @@ object RudderConfig extends Loggable {
   val debugScript : DebugInfoService = scriptLauncher
   val stringUuidGenerator: StringUuidGenerator = uuidGen
   val cmdbQueryParser: CmdbQueryParser = queryParser
-  val fileManager: FileManager = fileManagerImpl
   val inventoryHistoryLogRepository: InventoryHistoryLogRepository = diffRepos
   val inventoryEventLogService: InventoryEventLogService = inventoryLogEventServiceImpl
   val ruleApplicationStatus: RuleApplicationStatusService = ruleApplicationStatusImpl
@@ -1085,12 +1078,18 @@ object RudderConfig extends Loggable {
   )
 
   private[this] lazy val ruleApplicationStatusImpl: RuleApplicationStatusService = new RuleApplicationStatusServiceImpl()
-  private[this] lazy val acceptedNodesDitImpl: InventoryDit = new InventoryDit(new DN(LDAP_INVENTORIES_ACCEPTED_BASEDN), new DN(LDAP_INVENTORIES_SOFTWARE_BASEDN), "Accepted inventories")
-  private[this] lazy val pendingNodesDitImpl: InventoryDit = new InventoryDit(new DN(LDAP_INVENTORIES_PENDING_BASEDN), new DN(LDAP_INVENTORIES_SOFTWARE_BASEDN), "Pending inventories")
-  private[this] lazy val removedNodesDitImpl = new InventoryDit(new DN(LDAP_INVENTORIES_REMOVED_BASEDN), new DN(LDAP_INVENTORIES_SOFTWARE_BASEDN),"Removed Servers")
-  private[this] lazy val rudderDitImpl: RudderDit = new RudderDit(new DN(LDAP_RUDDER_BASE))
-  private[this] lazy val nodeDitImpl: NodeDit = new NodeDit(new DN(LDAP_NODE_BASE))
-  private[this] lazy val inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl,removedNodesDitImpl)
+
+  def DN(rdn: String, parent: DN) = new DN(new RDN(rdn),  parent)
+  private[this] lazy val LDAP_BASEDN = new DN("cn=rudder-configuration")
+  private[this] lazy val LDAP_INVENTORIES_BASEDN = DN("ou=Inventories", LDAP_BASEDN)
+  private[this] lazy val LDAP_INVENTORIES_SOFTWARE_BASEDN = LDAP_INVENTORIES_BASEDN
+
+  private[this] lazy val acceptedNodesDitImpl: InventoryDit = new InventoryDit(DN("ou=Accepted Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN, "Accepted inventories")
+  private[this] lazy val pendingNodesDitImpl: InventoryDit = new InventoryDit(DN("ou=Pending Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN, "Pending inventories")
+  private[this] lazy val removedNodesDitImpl = new InventoryDit(DN("ou=Removed Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN,"Removed Servers")
+  private[this] lazy val rudderDitImpl: RudderDit = new RudderDit(DN("ou=Rudder", LDAP_BASEDN))
+  private[this] lazy val nodeDitImpl: NodeDit = new NodeDit(LDAP_BASEDN)
+  private[this] lazy val inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
   private[this] lazy val uuidGen: StringUuidGenerator = new StringUuidGeneratorImpl
   private[this] lazy val systemVariableSpecService = new SystemVariableSpecServiceImpl()
   private[this] lazy val ldapEntityMapper: LDAPEntityMapper = new LDAPEntityMapper(rudderDitImpl, nodeDitImpl, acceptedNodesDitImpl, queryParser, inventoryMapper)
@@ -1360,7 +1359,6 @@ object RudderConfig extends Loggable {
     , linkUtil
     , diffDisplayer
   )
-  private[this] lazy val fileManagerImpl = new FileManager(UPLOAD_ROOT_DIRECTORY)
   private[this] lazy val databaseManagerImpl = new DatabaseManagerImpl(reportsRepositoryImpl, updateExpectedRepo)
   private[this] lazy val softwareInventoryDAO: ReadOnlySoftwareDAO = new ReadOnlySoftwareDAOImpl(inventoryDitService, roLdap, inventoryMapper)
   private[this] lazy val softwareInventoryRWDAO: WriteOnlySoftwareDAO = new WriteOnlySoftwareDAOImpl(acceptedNodesDitImpl, rwLdap)
@@ -1971,7 +1969,6 @@ object RudderConfig extends Loggable {
         case select: SelectVariableSpec => new SelectField(id, select.valueslabels)
         case input: InputVariableSpec => v.constraint.typeName match {
           case str: SizeVType => new InputSizeField(id, () => configService.rudder_featureSwitch_directiveScriptEngine().toBox, str.name.substring(prefixSize.size))
-          case UploadedFileVType => new UploadedFileField(UPLOAD_ROOT_DIRECTORY)(id)
           case SharedFileVType => new FileField(id)
           case DestinationPathVType => default(id)
           case DateVType(r) => new DateField(isoDateFormatter)(id)

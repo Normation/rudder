@@ -53,6 +53,7 @@ import com.normation.rudder.services.reports.NodeChanges
 import com.normation.rudder.web.ChooseTemplate
 
 import com.normation.box._
+import com.normation.errors._
 
 object RuleCompliance {
   private def details = ChooseTemplate(
@@ -244,13 +245,14 @@ class RuleCompliance (
   def refreshCompliance() : JsCmd = {
     ( for {
         reports      <- reportingService.findDirectiveRuleStatusReportsByRule(rule.id)
-        updatedRule  <- roRuleRepository.get(rule.id).toBox
+        allRules     <- roRuleRepository.getAll().toBox
+        updatedRule  <- allRules.find(_.id == rule.id).notOptional(s"The rule '${rule.id}' is missing").toBox
         directiveLib <- getFullDirectiveLib().toBox
         allNodeInfos <- getAllNodeInfos()
         globalMode   <- configService.rudder_global_policy_mode().toBox
       } yield {
 
-        val directiveData = ComplianceData.getRuleByDirectivesComplianceDetails(reports, updatedRule, allNodeInfos, directiveLib, globalMode).json.toJsCmd
+        val directiveData = ComplianceData.getRuleByDirectivesComplianceDetails(reports, updatedRule, allNodeInfos, directiveLib, allRules, globalMode).json.toJsCmd
         val nodeData = ComplianceData.getRuleByNodeComplianceDetails(directiveLib, reports, allNodeInfos, globalMode).json.toJsCmd
         JsRaw(s"""
           refreshTable("reportsGrid", ${directiveData});

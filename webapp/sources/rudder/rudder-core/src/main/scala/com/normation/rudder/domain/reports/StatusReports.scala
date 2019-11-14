@@ -73,14 +73,15 @@ sealed trait StatusReport {
 final class RuleStatusReport private (
     val forRule: RuleId
   , val report : AggregatedStatusReport
+  , val overrides : List[OverridenPolicy]
 ) extends StatusReport {
   val compliance = report.compliance
   val byNodes: Map[NodeId, AggregatedStatusReport] = report.reports.groupBy(_.nodeId).mapValues(AggregatedStatusReport(_))
 }
 
 object RuleStatusReport {
-  def apply(ruleId: RuleId, reports: Iterable[RuleNodeStatusReport]) = {
-    new RuleStatusReport(ruleId, AggregatedStatusReport(reports.toSet.filter( _.ruleId == ruleId)))
+  def apply(ruleId: RuleId, reports: Iterable[RuleNodeStatusReport], overrides : List[OverridenPolicy]) = {
+    new RuleStatusReport(ruleId, AggregatedStatusReport(reports.toSet.filter( _.ruleId == ruleId)), overrides)
   }
 }
 
