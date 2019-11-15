@@ -131,8 +131,8 @@ trait ReportsRepository {
   def getChangeReportsByRuleOnInterval(ruleId: RuleId, interval: Interval, limit: Option[Int]): Box[Seq[ResultRepairedReport]]
 
   //reportExecution only
-  // Return the max id before a datetime - if there is none, returns fromId
-  def getMaxIdBeforeDateTime(fromId: Long, before: DateTime): Box[Long]
+  // Return the max id before a datetime
+  def getMaxIdBeforeDateTime(fromId: Long, before: DateTime): Box[Option[Long]]
   /**
    * From an id and an end date (optionnal, if none, till now), return a list of AgentRun, and the max ID that has been considered
    */
