@@ -1193,6 +1193,7 @@ ul.graph-legend > li.legend:hover{
 }
 #addPropTable{
   width:100%;
+  margin-bottom: 20px;
 }
 #addPropTable tbody > tr{
   padding:0;

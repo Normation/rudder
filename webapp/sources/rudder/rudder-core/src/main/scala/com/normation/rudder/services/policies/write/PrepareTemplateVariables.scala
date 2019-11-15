@@ -182,6 +182,38 @@ class PrepareTemplateVariablesImpl(
     for {
       variableHandler    <- agentRegister.findHandler(agentNodeProps) ?~! s"Error when trying to fetch variable escaping method for node ${agentNodeProps.nodeId.value}"
       preparedTechniques <-  sequence(policies) { p =>
+        for {
+          variables <- prepareVariables(agentNodeProps, variableHandler, p, systemVars) ?~! s"Error when trying to build variables for technique(s) in node ${agentNodeProps.nodeId.value}"
+        } yield {
+          val techniqueTemplatesIds = p.technique.templatesIds
+          // only set if technique is multi-policy
+          val reportId = p.technique.generationMode match {
+            case TechniqueGenerationMode.MultipleDirectives => Some(p.id)
+            case _ => None
+          }
+          //if technique is multi-policy, we need to update destination path to add an unique id along with the version
+          //to have one directory by directive.
+          val techniqueTemplates = {
+            val templates = allTemplates.filterKeys(k => techniqueTemplatesIds.contains(k._1) && k._2 == agentNodeProps.agentType).values.toSet
+            p.technique.generationMode match {
+              case TechniqueGenerationMode.MultipleDirectives =>
+                templates.map(copyInfo => copyInfo.copy(destination = Policy.makeUniqueDest(copyInfo.destination, p)))
+              case _ =>
+                templates
+            }
+          }
+          val files = {
+            val files = p.technique.agentConfig.files.toSet[TechniqueFile]
+            p.technique.generationMode match {
+              case TechniqueGenerationMode.MultipleDirectives =>
+                files.map(file => file.copy(outPath = Policy.makeUniqueDest(file.outPath, p)))
+              case _ =>
+                files
+            }
+          }
+    for {
+      variableHandler    <- agentRegister.findHandler(agentNodeProps) ?~! s"Error when trying to fetch variable escaping method for node ${agentNodeProps.nodeId.value}"
+      preparedTechniques <-  sequence(policies) { p =>
        logger.trace(s"Processing node '${agentNodeProps.nodeId.value}':${p.ruleName}/${p.directiveName} [${p.id.value}]")
         for {
           variables <- prepareVariables(agentNodeProps, variableHandler, p, systemVars) ?~! s"Error when trying to build variables for technique(s) in node ${agentNodeProps.nodeId.value}"
@@ -219,6 +251,26 @@ class PrepareTemplateVariablesImpl(
     } yield {
       preparedTechniques
     }
+  }
+
+  // Create a STVariable from a Variable
+  private[this] def stVariableFromVariable(
+      v               : Variable
+    , variableEscaping: AgentSpecificGeneration
+    , nodeId: NodeId
+    , techniqueId: TechniqueId
+  ) : STVariable = {
+    STVariable(
+        name = v.spec.name
+      , mayBeEmpty = v.spec.constraint.mayBeEmpty
+      , values = v.getValidatedValue(variableEscaping.escape) ?~! s"Wrong value type for variable '${v.spec.name}'"  match {
+          case Full(seq) => seq
+          case eb: EmptyBox =>
+            val e = (eb ?~! s"Error when preparing variable for node with ID '${nodeId.value}' on Technique '${techniqueId.toString()}'")
+            throw new VariableException(e.messageChain)
+        }
+      , v.spec.isSystem
+      )
   }
 
   // Create a STVariable from a Variable
