@@ -16,6 +16,58 @@
 #
 #####################################################################################
 
+# @name Info log for Rudder
+# @description Logging info output for Rudder reports
+#
+# The mode parameter can be: log_repaired, log_warn, log_info, log_debug or log_trace
+#
+# @parameter mode              The log mode we want to report in
+# @parameter message           The common part of the message to display
+# @parameter class_parameter   The class_parameter for reporting (4.3+ version)
+# @parameter class_prefix      The prefix of the class for different states (4.3+ version)
+#
+# @class_prefix    logger_rudder_mode
+# @class_parameter class_prefix
+bundle agent log_rudder_mode(mode, message, class_parameter, class_prefix)
+{
+  vars:
+      # When ${class_prefix} itself contains ${class_prefix}, it uses the previous value when calling
+      # _rudder_common_reports_generic. We reset it at the beginning of the bundle execution
+      # to be able to test if class_prefix is actually defined.
+      "c_class_prefix"         string => "";
+      "c_class_prefix"         string => canonify("${class_prefix}");
+      "component_key"          string => "${class_parameter}";
+
+    pass1.!known_mode::
+      "effective_mode"         string => "log_warn";
+
+  defaults:
+      # if class_parameter is not set, then use the component_key from report_data
+      "component_key"          string => "${report_data.component_key}", if_match_regex => "";
+
+  classes:
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+      # Verify that the mode is known
+      "known_mode" or => {
+                           strcmp("log_repaired", "${mode}"),
+                           strcmp("log_warn",     "${mode}"),
+                           strcmp("log_info",     "${mode}"),
+                           strcmp("log_debug",    "${mode}"),
+                           strcmp("log_trace",    "${mode}")
+                         };
+
+  methods:
+    known_mode.pass2::
+      "report" usebundle => _rudder_common_report("${report_data.technique_name}", "${c_class_prefix}", "${mode}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message}"),
+        classes    => classes_generic("logger_rudder_mode_${c_class_prefix}");
+
+  reports:
+    info.!known_mode.pass1::
+      "Unknown logging mode ${mode}, forcing \"debug\" instead.";
+
+}
 # @name Log for Rudder
 # @description Logging output for Rudder reports
 #
