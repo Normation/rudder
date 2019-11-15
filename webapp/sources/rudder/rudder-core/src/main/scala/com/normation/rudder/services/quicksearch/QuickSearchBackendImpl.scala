@@ -46,13 +46,11 @@ import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPEntry
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.ldap.sdk.Sub
-
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.unboundid.ldap.sdk.Filter
-
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import com.normation.ldap.sdk.LDAPBoolean
@@ -61,6 +59,8 @@ import com.normation.rudder.domain.policies.Tag
 import com.normation.rudder.domain.policies.TagName
 import com.normation.rudder.domain.policies.TagValue
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
+import com.normation.rudder.services.nodes.NodeInfoService
+
 import scala.util.control.NonFatal
 import net.liftweb.common.Loggable
 
@@ -207,9 +207,11 @@ object QSLdapBackend {
     , inventoryDit: InventoryDit
     , nodeDit     : NodeDit
     , rudderDit   : RudderDit
+    , nodeInfos   : NodeInfoService
   ): Box[Seq[QuickSearchResult]] = {
     for {
       connection  <- ldap
+      nodes       <- nodeInfos.getAll().map(_.keySet.map(_.value))
     } yield {
       //the filter for attribute and for attributes must be non empty, else return nothing
       val ocFilter   = query.objectClass.map( _.filter ).flatten.toSeq
@@ -239,7 +241,14 @@ object QSLdapBackend {
 
         // transformat LDAPEntries to quicksearch results, keeping only the attribute
         // that matches the query on the result and no system entries but nodes.
-        (others ++ merged).flatMap( _.toResult(query))
+        // Also, only keep nodes that exists.
+        (others ++ merged).flatMap(e =>
+          if(nodes.contains(e.value_!(A_NODE_UUID))) {
+            e.toResult(query)
+          } else {
+            None
+          }
+        )
       }
     }
   }
