@@ -97,7 +97,10 @@ class ReportsExecutionService (
         val fromDate = DateTime.now.minus(catchupFromDuration.toMillis)
 
         reportsRepository.getMaxIdBeforeDateTime(lastReportId, fromDate) match {
-          case Full(id) => (fromDate, id)
+          case Full(Some(id)) => (fromDate, id)
+          case Full(None)     =>
+             logger.debug(s"There is no reports before date ${fromDate.toString} with id higher than ${lastReportId}, fallbacking to lastReportId")
+            (fromDate, lastReportId)
           case eb:EmptyBox => logger.error(s"Could not correctly retrieve from were to retrieve report processing, fallbacking to default value, error is is ${eb}")
             (fromDate, lastReportId)
         }
