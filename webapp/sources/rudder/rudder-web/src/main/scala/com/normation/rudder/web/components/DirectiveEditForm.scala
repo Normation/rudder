@@ -192,10 +192,15 @@ class DirectiveEditForm(
         ).display
     }
 
-    val versionSelect = directiveVersion
+    val versionSelect = if (isADirectiveCreation) {
+      <div id="version" class="row wbBaseField form-group">
+        <label for="version" class="col-xs-12 wbBaseFieldLabel"><span class="text-fit"><b>Technique version</b></span></label>
+        <div  class="col-xs-12"><input  name="version" class="form-control" readonly="" value={directive.techniqueVersion.toString}/></div>
+      </div>
+     } else { directiveVersion.toForm_! }
     val currentVersion = showDeprecatedVersion(directive.techniqueVersion)
     // It is always a Full, but in case add a warning
-    val versionSelectId = versionSelect.uniqueFieldId match {
+    val versionSelectId = directiveVersion.uniqueFieldId match {
       case Full(id) => id
       case _ =>
         logger.warn("could not find id for migration select version")
@@ -307,8 +312,8 @@ class DirectiveEditForm(
       "#priority" #> directivePriority.toForm_! &
       "#policyModesLabel" #> policyModesLabel &
       "#policyModes" #> policyModes.toForm_! &
-      "#version" #> versionSelect.toForm_! &
-      "#version *+" #> migrateButton(directiveVersion.get,"Migrate") &
+      "#version" #> versionSelect &
+      "#version *+" #> (if (isADirectiveCreation) NodeSeq.Empty else migrateButton(directiveVersion.get,"Migrate")) &
       "#parameters" #> parameterEditor.toFormNodeSeq &
       "#directiveRulesTab *" #> ruleDisplayer &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) % ("class" -> "btn btn-success") } &
@@ -328,7 +333,7 @@ class DirectiveEditForm(
             processKey(event , '${htmlId_save}');
           } );
           checkMigrationButton("${currentVersion}","${versionSelectId}");
-          $$('#${versionSelect.uniqueFieldId.getOrElse("id_not_found")}').change(
+          $$('#${directiveVersion.uniqueFieldId.getOrElse("id_not_found")}').change(
             function () {
               checkMigrationButton("${currentVersion}","${versionSelectId}")
             }
@@ -547,18 +552,29 @@ class DirectiveEditForm(
 
   val versions = fullActiveTechnique.techniques.keys.map(v => (v,showDeprecatedVersion(v))).toSeq.sortBy(_._1)
 
-  private[this] val directiveVersion =
+  private[this] val directiveVersion = {
+    val attributes = ("id" -> "selectVersion") ::
+      (if (isADirectiveCreation) {
+        ("disabled" -> "true") :: Nil
+      }else {
+        Nil
+      })
+
     new WBSelectObjField(
-        "Technique version"
+      "Technique version"
       , versions
       , directive.techniqueVersion
-      , Seq(("id" -> "selectVersion"))
+      , attributes
+
     ) {
 
       override def className = "form-control"
+
       override def labelClassName = "col-xs-12 text-bold"
+
       override def subContainerClassName = "version-group"
     }
+  }
 
   private[this] val formTracker = {
     val l = List(directiveName, directiveShortDescription, directiveLongDescription) //++ crReasons

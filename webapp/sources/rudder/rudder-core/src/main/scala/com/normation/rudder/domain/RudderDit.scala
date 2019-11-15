@@ -58,6 +58,7 @@ import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import com.normation.ldap.sdk.syntax._
 import com.normation.rudder.rule.category.RuleCategoryId
 
+
 class CATEGORY(
     val uuid: String,
     val parentDN : DN,
