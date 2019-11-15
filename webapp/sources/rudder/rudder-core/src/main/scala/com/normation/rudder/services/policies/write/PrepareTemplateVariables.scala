@@ -170,7 +170,7 @@ class PrepareTemplateVariablesImpl(
     val generationVariable = STVariable("GENERATIONTIMESTAMP", false, Seq(generationTimestamp), true)
 
     for {
-      variableHandler    <- agentRegister.findHandler(agentNodeProps) ?~! s"Error when trying to etch variable escaping method for node ${agentNodeProps.nodeId.value}"
+      variableHandler    <- agentRegister.findHandler(agentNodeProps) ?~! s"Error when trying to fetch variable escaping method for node ${agentNodeProps.nodeId.value}"
       preparedTechniques <-  sequence(policies) { p =>
         for {
           variables <- prepareVariables(agentNodeProps, variableHandler, p, systemVars) ?~! s"Error when trying to build variables for technique(s) in node ${agentNodeProps.nodeId.value}"
