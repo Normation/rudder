@@ -56,12 +56,13 @@ import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.inventory.ldap.core.LDAPConstants.OC_NODE
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
-import com.normation.ldap.sdk.BuildFilter.{AND, LTEQ, IS}
+import com.normation.ldap.sdk.BuildFilter.{AND, IS, LTEQ}
 import com.normation.ldap.sdk.{GeneralizedTime, LDAPConnectionProvider, One, RwLDAPConnection}
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.eventlog._
+import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.hooks.HookEnvPairs
@@ -135,7 +136,6 @@ class RemoveNodeServiceImpl(
     , HOOKS_D                   : String
     , HOOKS_IGNORE_SUFFIXES     : List[String]
 ) extends RemoveNodeService with NamedZioLogger {
-
 
   override def loggerName: String = this.getClass.getName
 
@@ -244,8 +244,9 @@ class RemoveNodeServiceImpl(
           }
       }
     }
+
     logEffect.debug("Trying to remove node %s from the LDAP".format(nodeId.value))
-    nodeId.value match {
+    (nodeId.value match {
       case "root" => Failure("The root node cannot be deleted from the nodes list.")
       case _ => {
 
@@ -274,7 +275,7 @@ class RemoveNodeServiceImpl(
       case Full(x) => Full(x)
       case eb: EmptyBox =>
         val e = eb ?~! s"Error when deleting node '${nodeId.value}'"
-        logger.error(e.messageChain)
+        NodeLogger.error(e.messageChain)
         e
     }
   }

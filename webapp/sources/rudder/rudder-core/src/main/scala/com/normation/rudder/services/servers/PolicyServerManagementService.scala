@@ -53,7 +53,6 @@ import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.unboundid.ldap.sdk.DN
-import com.unboundid.ldap.sdk.RDN
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 

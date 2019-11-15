@@ -112,6 +112,10 @@ rudder.jdbc.username=rudder
 rudder.jdbc.password=Normation
 rudder.jdbc.maxPoolSize=25
 
+#
+# Batch size for memory or database intensive request.
+# This will split big query in smaller queries
+rudder.jdbc.batch.max.size=500
 
 #############################
 # Automatic reports cleaning ###########################################################
