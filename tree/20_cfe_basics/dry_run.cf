@@ -54,7 +54,6 @@
 # There are alternate ways to control the dry-run mode, but they are less safe
 # and should be used with caution.
 #  - set the global_dry_run class (this one is never set by ncf)
-#  - set a <promise_type>_dry_run class to make only this promise type to be dry-runned
 # If you use one of those and not call the set_dry_run_mode bundle,
 # the dry-run mode will be ignore on incompatible systems and will lead to enforce
 # policies supposed to only be in dry-run mode.
@@ -204,83 +203,121 @@ bundle agent pop_dry_run_mode()
 
 body file control
 {
-   namespace => "bodydefault"; 
+   namespace => "bodydefault";
 }
 
 # Actions that can be dry runned
+# (for some reason, we cannot inherit_from a default body)
+
+# in bundle agent
+
 body action users_action
 {
-  user_dry_run|dry_run|global_dry_run::
+  dry_run|global_dry_run::  
     action_policy => "warn";
-  !(user_dry_run|dry_run|global_dry_run)::
+  !(dry_run|global_dry_run)::
     action_policy => "fix";
 }
 
 body action files_action
 {
-  files_dry_run|dry_run|global_dry_run::
+  dry_run|global_dry_run::  
     action_policy => "warn";
-  !(files_dry_run|dry_run|global_dry_run)::
+  !(dry_run|global_dry_run)::
     action_policy => "fix";
 }
 
 body action packages_action
 {
-  packages_dry_run|dry_run|global_dry_run::
+  dry_run|global_dry_run::  
     action_policy => "warn";
-  !(packages_dry_run|dry_run|global_dry_run)::
+  !(dry_run|global_dry_run)::
     action_policy => "fix";
 }
 
 body action guest_environments_action
 {
-  guest_environments_dry_run|dry_run|global_dry_run::
+  dry_run|global_dry_run::  
     action_policy => "warn";
-  !(guest_environments_dry_run|dry_run|global_dry_run)::
+  !(dry_run|global_dry_run)::
     action_policy => "fix";
 }
 
 body action processes_action
 {
-  processes_dry_run|dry_run|global_dry_run::
+  dry_run|global_dry_run::  
     action_policy => "warn";
-  !(processes_dry_run|dry_run|global_dry_run)::
+  !(dry_run|global_dry_run)::
     action_policy => "fix";
 }
 
 body action services_action
 {
-  services_dry_run|dry_run|global_dry_run::
+  dry_run|global_dry_run::  
     action_policy => "warn";
-  !(services_dry_run|dry_run|global_dry_run)::
+  !(dry_run|global_dry_run)::
     action_policy => "fix";
 }
 
 body action commands_action
 {
-  commands_dry_run|dry_run|global_dry_run::
+  dry_run|global_dry_run::  
     action_policy => "warn";
-  !(commands_dry_run|dry_run|global_dry_run)::
+  !(dry_run|global_dry_run)::
     action_policy => "fix";
 }
 
 body action storage_action
 {
-  storage_dry_run|dry_run|global_dry_run::
+  dry_run|global_dry_run::  
     action_policy => "warn";
-  !(storage_dry_run|dry_run|global_dry_run)::
+  !(dry_run|global_dry_run)::
     action_policy => "fix";
 }
 
 body action databases_action
 {
-  databases_dry_run|dry_run|global_dry_run::
+  dry_run|global_dry_run::  
     action_policy => "warn";
-  !(databases_dry_run|dry_run|global_dry_run)::
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+# in bundle edit_line
+
+body action delete_lines_action
+{
+  dry_run|global_dry_run::  
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action field_edits_action
+{
+  dry_run|global_dry_run::  
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action insert_lines_action
+{
+  dry_run|global_dry_run::  
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action replace_patterns_action
+{
+  dry_run|global_dry_run::  
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
     action_policy => "fix";
 }
 
 body file control
 {
-    namespace => "default"; 
+    namespace => "default";
 }
