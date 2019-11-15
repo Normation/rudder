@@ -105,23 +105,7 @@ allowing you to test your changes.
 
 === Rust
 
-We can rely on recent Rust compilers as we control the version
-installed on our package builders. The easiest way to install and manage
-Rust toolchains is to use https://rustup.rs.
-
-Good IDEs for Rust development include https://github.com/rust-lang/rls-vscode#quick-start[VS Code] or IntelliJ.
-
-Other useful tools:
-
-```bash
-rustup component add rustfmt # to format code, use with "cargo fmt"
-rustup component add clippy  # various linters, use with "cargo clippy"
-cargo install cargo-audit    # to list known vulnerabilities in dependencies
-cargo install cargo-outdated # to list outdated dependencies
-cargo install cargo-update   # to update cargo-installed tools
-cargo install cargo-tree     # to see the tree of dependencies
-cargo install cargo-benchcmp # to compare benchmarks results
-```
+Follow the link:contributing/rust.adoc[dedicated doc].
 
 === Shell
 
