@@ -37,30 +37,23 @@
 
 package com.normation.rudder.services.policies.write
 
-import com.normation.cfclerk.domain.PARAMETER_VARIABLE
-import com.normation.cfclerk.domain.SectionVariableSpec
-import com.normation.cfclerk.domain.SystemVariableSpec
-import com.normation.cfclerk.domain.TechniqueFile
-import com.normation.cfclerk.domain.TechniqueGenerationMode
-import com.normation.cfclerk.domain.TechniqueResourceId
-import com.normation.cfclerk.domain.TrackerVariableSpec
-import com.normation.cfclerk.domain.Variable
+import com.normation.cfclerk.domain._
 import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.policies.{GlobalPolicyMode, PolicyMode}
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.services.policies.NodeConfiguration
-import com.normation.rudder.services.policies.ParameterEntry
-import com.normation.rudder.services.policies.Policy
 import com.normation.templates.STVariable
-import com.normation.utils.Control
 import com.normation.utils.Control.bestEffort
-import com.normation.utils.Control.sequence
 import net.liftweb.common._
 import org.joda.time.DateTime
+import com.normation.inventory.domain.AgentType
+import com.normation.rudder.services.policies.ParameterEntry
+import com.normation.rudder.services.policies.Policy
+import com.normation.utils.Control.sequence
+import com.normation.utils.Control
 
 trait PrepareTemplateVariables {
 
@@ -186,47 +179,72 @@ class PrepareTemplateVariablesImpl(
     val rudderParametersVariable = STVariable(PARAMETER_VARIABLE, true, parameters, true)
     val generationVariable = STVariable("GENERATIONTIMESTAMP", false, Seq(generationTimestamp), true)
 
-    sequence(policies) { p =>
-      logger.trace(s"Processing node '${agentNodeProps.nodeId.value}':${p.ruleName}/${p.directiveName} [${p.id.value}]")
-      for {
-        variables <- prepareVariables(agentNodeProps, p, systemVars) ?~! s"Error when trying to build variables for technique(s) in node ${agentNodeProps.nodeId.value}"
-      } yield {
-        val techniqueTemplatesIds = p.technique.templatesIds
-        // only set if technique is multi-policy
-        val reportId = p.technique.generationMode match {
-          case TechniqueGenerationMode.MultipleDirectives => Some(p.id)
-          case _ => None
-        }
-        //if technique is multi-policy, we need to update destination path to add an unique id along with the version
-        //to have one directory by directive.
-        val techniqueTemplates = {
-          val templates = allTemplates.filterKeys(k => techniqueTemplatesIds.contains(k._1) && k._2 ==  agentNodeProps.agentType).values.toSet
-          p.technique.generationMode match {
-            case TechniqueGenerationMode.MultipleDirectives =>
-              templates.map( copyInfo => copyInfo.copy(destination = Policy.makeUniqueDest(copyInfo.destination, p)))
-            case _ =>
-              templates
+    for {
+      variableHandler    <- agentRegister.findHandler(agentNodeProps) ?~! s"Error when trying to fetch variable escaping method for node ${agentNodeProps.nodeId.value}"
+      preparedTechniques <-  sequence(policies) { p =>
+       logger.trace(s"Processing node '${agentNodeProps.nodeId.value}':${p.ruleName}/${p.directiveName} [${p.id.value}]")
+        for {
+          variables <- prepareVariables(agentNodeProps, variableHandler, p, systemVars) ?~! s"Error when trying to build variables for technique(s) in node ${agentNodeProps.nodeId.value}"
+        } yield {
+          val techniqueTemplatesIds = p.technique.templatesIds
+          // only set if technique is multi-policy
+          val reportId = p.technique.generationMode match {
+            case TechniqueGenerationMode.MultipleDirectives => Some(p.id)
+            case _ => None
           }
-        }
-        val files = {
-          val files = p.technique.agentConfig.files.toSet[TechniqueFile]
-          p.technique.generationMode match {
-            case TechniqueGenerationMode.MultipleDirectives =>
-              files.map( file => file.copy(outPath = Policy.makeUniqueDest(file.outPath, p)))
-            case _ =>
-              files
+          //if technique is multi-policy, we need to update destination path to add an unique id along with the version
+          //to have one directory by directive.
+          val techniqueTemplates = {
+            val templates = allTemplates.filterKeys(k => techniqueTemplatesIds.contains(k._1) && k._2 == agentNodeProps.agentType).values.toSet
+            p.technique.generationMode match {
+              case TechniqueGenerationMode.MultipleDirectives =>
+                templates.map(copyInfo => copyInfo.copy(destination = Policy.makeUniqueDest(copyInfo.destination, p)))
+              case _ =>
+                templates
+            }
           }
-        }
+          val files = {
+            val files = p.technique.agentConfig.files.toSet[TechniqueFile]
+            p.technique.generationMode match {
+              case TechniqueGenerationMode.MultipleDirectives =>
+                files.map(file => file.copy(outPath = Policy.makeUniqueDest(file.outPath, p)))
+              case _ =>
+                files
+            }
+          }
 
-        PreparedTechnique(techniqueTemplates, variables:+ rudderParametersVariable :+ generationVariable, files, reportId)
+          PreparedTechnique(techniqueTemplates, variables :+ rudderParametersVariable :+ generationVariable, files, reportId)
+        }
       }
+    } yield {
+      preparedTechniques
+    }
+  }
+
+  // Create a STVariable from a Variable
+  private[this] def stVariableFromVariable(
+      v               : Variable
+    , variableEscaping: AgentSpecificGeneration
+    , nodeId: NodeId
+    , techniqueId: TechniqueId
+  ) : Box[STVariable] = {
+    for {
+      values <- v.getValidatedValue(variableEscaping.escape) ?~! s"Error when preparing variable for node with ID '${nodeId.value}' on Technique '${techniqueId.toString()}: wrong value type for variable '${v.spec.name}'"
+    } yield {
+      STVariable(
+          name = v.spec.name
+        , mayBeEmpty = v.spec.constraint.mayBeEmpty
+        , values = values
+        , v.spec.isSystem
+        )
     }
   }
 
   private[this] def prepareVariables(
-      agentNodeProps: AgentNodeProperties
-    , policy        : Policy
-    , systemVars    : Map[String, Variable]
+      agentNodeProps      : AgentNodeProperties
+    , agentVariableHandler: AgentSpecificGeneration
+    , policy              : Policy
+    , systemVars          : Map[String, Variable]
   ) : Box[Seq[STVariable]] = {
 
     // we want to check that all technique variables are correctly provided.
@@ -236,12 +254,13 @@ class PrepareTemplateVariablesImpl(
     val variables = policy.expandedVars + ((policy.trackerVariable.spec.name, policy.trackerVariable))
 
     for {
-      variables <- bestEffort(policy.technique.getAllVariableSpecs) { variableSpec =>
+      stVariables <- bestEffort(policy.technique.getAllVariableSpecs) { variableSpec =>
                      variableSpec match {
                        case x : TrackerVariableSpec =>
                          variables.get(x.name) match {
                            case None    => Failure(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Misssing mandatory value for tracker variable: '${x.name}'")
-                           case Some(v) => Full(Some(x.toVariable(v.values)))
+                           case Some(v) =>
+                             stVariableFromVariable(v, agentVariableHandler, agentNodeProps.nodeId, policy.technique.id).map(Some(_))
                          }
                        case x : SystemVariableSpec => systemVars.get(x.name) match {
                            case None =>
@@ -252,31 +271,18 @@ class PrepareTemplateVariablesImpl(
                                Failure(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Missing value for system variable: '${x.name}'")
                              }
                            case Some(sysvar) =>
-                             Full(Some(x.toVariable(sysvar.values)))
+                             stVariableFromVariable(sysvar, agentVariableHandler, agentNodeProps.nodeId, policy.technique.id).map(Some(_))
                        }
                        case x : SectionVariableSpec =>
                          variables.get(x.name) match {
                            case None    => Failure(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Misssing value for standard variable: '${x.name}'")
-                           case Some(v) => Full(Some(x.toVariable(v.values)))
+                           case Some(v) => stVariableFromVariable(v, agentVariableHandler, agentNodeProps.nodeId, policy.technique.id).map(Some(_))
                          }
                      }
                    }
-      validated   <- //return STVariable in place of Rudder variables
-                     sequence(variables.flatten.toList) { v =>
-                       for {
-                         agent <- agentRegister.findMap(agentNodeProps) { agent =>  v.getValidatedValue(agent.escape) ?~! s"Wrong value type for variable '${v.spec.name}'" } ?~!
-                                  s"Error when preparing variable for node with ID '${agentNodeProps.nodeId.value}' on Technique '${policy.technique.id.toString()}'"
-                       } yield {
-
-                         STVariable(
-                           name = v.spec.name
-                         , mayBeEmpty = v.spec.constraint.mayBeEmpty
-                         , values = agent
-                         , v.spec.isSystem
-                       ) }
-                     }
     } yield {
-      validated
+      //return the collection without the none
+      stVariables.flatten
     }
   }
 
