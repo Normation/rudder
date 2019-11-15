@@ -49,7 +49,7 @@ trait UpdateExpectedReportsRepository {
    * Save a list of NodeExpectedReports, correctly handling
    * previous NodeExpectedReports for that node
    */
-  def saveNodeExpectedReports(configs: List[NodeExpectedReports]): Box[List[NodeExpectedReports]]
+  def saveNodeExpectedReports(configs: List[NodeExpectedReports]): Box[Seq[NodeExpectedReports]]
 
   /**
    * Close opened expected node configurations for the given nodeID.
