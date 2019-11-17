@@ -118,11 +118,14 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
   }
 
   def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]] = {
-
+    val n1 = System.currentTimeMillis
     for {
       systemDirectiveIds <- directivesRepo.getFullDirectiveLibrary().map( _.allDirectives.values.collect{ case(at, d) if(at.isSystem) => d.id }.toSet)
       nodeIds            <- nodeInfoService.getAll().map( _.keySet )
       reports            <- findRuleNodeStatusReports(nodeIds, Set())
+      n2                 =  System.currentTimeMillis
+      _                  =  TimingDebugLogger.debug(s"Getting reports for global user compliance in:  ${n2-n1}ms")
+
     } yield {
 
       //filter anything marked as system
@@ -149,12 +152,17 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
         }
       }
 
+      val n3 = System.currentTimeMillis
+      TimingDebugLogger.trace(s"Filtering global report to remove system directives in: ${n3-n2}ms")
 
       // if we don't have any report that is not a system one, the user-rule global compliance is undefined
       if(globalReports.isEmpty) {
         None
       } else { // aggregate values
         val complianceLevel = ComplianceLevel.sum(reports.flatMap( _._2.report.reports.toSeq.map( _.compliance)))
+        val n4 = System.currentTimeMillis
+        TimingDebugLogger.trace(s"Agregating compliance level for  global user compliance in: ${n4-n3}ms")
+
         Some((
             complianceLevel
           , complianceLevel.complianceWithoutPending.round
@@ -267,15 +275,22 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
   } }
 
   override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Map[NodeId, NodeStatusReport]] = {
+    val n1 = System.currentTimeMillis
     for {
       reports <- checkAndUpdateCache(nodeIds)
+      n2      = System.currentTimeMillis
+      _       = TimingDebugLogger.trace(s"Getting node status reports from cache in: ${n2 - n1}ms")
     } yield {
       if(ruleIds.isEmpty) {
         reports
       } else {
-        reports.mapValues { status =>
+        val n1 = System.currentTimeMillis
+        val result = reports.mapValues { status =>
           NodeStatusReport.filterByRules(status, ruleIds)
         }.filter { case (k,v) => v.report.reports.nonEmpty || v.overrides.nonEmpty }
+        val n3 = System.currentTimeMillis
+        TimingDebugLogger.debug(s"Filter Node Status Reports on ${ruleIds.size} in : ${n3 - n2}ms")
+        result
       }
     }
   }
