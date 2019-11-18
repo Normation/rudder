@@ -1017,7 +1017,7 @@ object RudderConfig extends Loggable {
 
   // Internal APIs
   val sharedFileApi = new SharedFilesAPI(restExtractorService,RUDDER_DIR_SHARED_FILES_FOLDER)
-  val eventLogApi= new EventLogAPI(eventLogRepository, restExtractorService, eventLogDetailsGenerator)
+  val eventLogApi= new EventLogAPI(eventLogRepository, restExtractorService, eventLogDetailsGenerator, personIdentService)
 
   lazy val asyncWorkflowInfo = new AsyncWorkflowInfo
   lazy val configService: ReadConfigService with UpdateConfigService = {

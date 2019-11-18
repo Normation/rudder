@@ -42,6 +42,7 @@ import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils._
+import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.web.services._
 import net.liftweb.common._
@@ -57,6 +58,8 @@ class EventLogAPI (
     repos: EventLogRepository
   , restExtractor : RestExtractorService
   , eventLogDetail : EventLogDetailsGenerator
+  , personIdentService  : PersonIdentService
+
 ) extends  RestHelper with  Loggable {
 
   def serialize(event: EventLog): JValue = {
@@ -157,8 +160,6 @@ class EventLogAPI (
           JsonResponse(errorFormatter(fail.messageChain), 500)
       }
 
-
-
     case Get(id :: "details" :: Nil, req) =>
       implicit val prettify = restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
       implicit  val action : String = "eventDetails"
@@ -171,7 +172,12 @@ class EventLogAPI (
         })
         htmlDetails = eventLogDetail.displayDetails(event, crId)
       } yield {
-        toJsonResponse(None, "content" -> htmlDetails.toString())
+        val response =
+          ( ("id"          -> id)
+          ~ ("content"     -> htmlDetails.toString())
+          ~ ("canRollback" -> event.canRollBack)
+          )
+        toJsonResponse(None, response)
       } ) match {
         case Full(resp) => resp
         case eb : EmptyBox =>
@@ -179,6 +185,33 @@ class EventLogAPI (
           toJsonError(None, fail.messageChain)
       }
 
+    case Get(id :: "details" :: "rollback" :: Nil, req) =>
+      implicit val prettify = restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
+      implicit  val action : String = "eventRollback"
+
+      ( for {
+        reqParam         <- req.params.get("action") match {
+                              case Some(actions) if(actions.size == 1) => Full(actions.head)
+                              case Some(actions) => Failure(s"Only one action is excepted, ${actions.size} found in request : ${actions.mkString(",")}")
+                              case None => Failure("Empty action")
+                            }
+        rollbackReq      <- if(reqParam == "after") Full(eventLogDetail.RollbackTo) else if (reqParam == "before") Full(eventLogDetail.RollbackBefore) else Failure(s"Unknown rollback's action : ${reqParam}")
+        idLong           <- Box.tryo(id.toLong)
+        event            <- repos.getEventLogById(idLong).toBox
+        committer        <- personIdentService.getPersonIdentOrDefault(CurrentUserService.actor.name).toBox
+        rollbackExec     <- rollbackReq.action(event, committer, Seq(event), event)
+      } yield {
+        val r =
+          ( ("action" -> reqParam)
+          ~ ("id"     -> id)
+          )
+        toJsonResponse(None, r)
+      } ) match {
+        case Full(resp)   => resp
+        case eb: EmptyBox =>
+          val fail = eb ?~! s"Error when performing eventlog's rollback with id '${id}'"
+          toJsonError(None, fail.messageChain)
+      }
   }
   serve("secure" / "api" / "eventlog" prefix requestDispatch)
 }
