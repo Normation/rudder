@@ -162,7 +162,7 @@ class InventoryFileWatcher(
   val failed   = File(failedInventoryPath)
   logDirPerm(failed, "Failed")
 
-  implicit val scheduler = ZioRuntime.unsafeRun(ZioRuntime.Environment.blocking.blockingExecutor).asEC
+  implicit val scheduler = ZioRuntime.unsafeRun(ZioRuntime.environment.blocking.blockingExecutor).asEC
   val fileProcessor = new ProcessFile(inventoryProcessor.saveInventory, received, failed, waitForSig, sigExtension)
 
   var watcher = Option.empty[Watchers]
@@ -288,9 +288,9 @@ class ProcessFile(
             // - then execute on different IO scheduler
             // - if the map wasn't interrupted in the first 500 ms, it is not interruptible anymore
 
-            val effect = ZioRuntime.Environment.blocking.blockingExecutor.flatMap(executor =>
+            val effect = ZioRuntime.environment.blocking.blockingExecutor.flatMap(executor =>
               (
-                   UIO.unit.delay(fileWrittenThreshold).provide(ZioRuntime.Environment)
+                   UIO.unit.delay(fileWrittenThreshold).provide(ZioRuntime.environment)
                 *> queue.offer(WatchEvent.End(file))
                 *> processFile(file, locks).uninterruptible
               ).fork.lock(executor)
@@ -425,6 +425,6 @@ class ProcessFile(
     }
 
     // run program for that input file.
-    lockProg.provide(ZioRuntime.Environment)
+    lockProg.provide(ZioRuntime.environment)
   }
 }

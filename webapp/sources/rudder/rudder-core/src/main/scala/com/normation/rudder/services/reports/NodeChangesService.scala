@@ -202,7 +202,7 @@ class CachedNodeChangesServiceImpl(
   ZioRuntime.runNow((for {
     _ <- ReportLoggerPure.Changes.debug("Initialize rule changes caches")
     _ <- this.addUpdate(ChangesUpdate.Init)
-  } yield ()).delay(10.seconds).fork.provide(ZioRuntime.Environment))
+  } yield ()).delay(10.seconds).fork.provide(ZioRuntime.environment))
 
   /*
    * The cache can only be modified through a queue of updates.
@@ -268,7 +268,7 @@ class CachedNodeChangesServiceImpl(
     ZioRuntime.runNow(
       for{
         _ <- ReportLoggerPure.Changes.debug(s"Start waiting for rule changes update")
-       _  <- consumeLoop(queue).provide(ZioRuntime.Environment).fork: @silent // warn: deadcode
+       _  <- consumeLoop(queue).provide(ZioRuntime.environment).fork: @silent // warn: deadcode
       } yield ()
     )
   }
@@ -437,7 +437,7 @@ class CachedNodeChangesServiceImpl(
         _ <- addUpdate(ChangesUpdate.Init)
       } yield ()
 
-    ZioRuntime.runNow(clear.provide(ZioRuntime.Environment))
+    ZioRuntime.runNow(clear)
   }
 
   /*

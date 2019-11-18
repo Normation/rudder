@@ -316,11 +316,11 @@ object zio {
      * use the blocking thread pool provided by that runtime.
      */
     def blocking[E,A](io: ZIO[Any,E,A]): ZIO[Any,E,A] = {
-      _root_.zio.blocking.blocking(io).provide(internal.Environment)
+      _root_.zio.blocking.blocking(io).provide(internal.environment)
     }
 
     def effectBlocking[A](effect: => A): ZIO[Any, Throwable, A] = {
-      _root_.zio.blocking.effectBlocking(effect).provide(internal.Environment)
+      _root_.zio.blocking.effectBlocking(effect).provide(internal.environment)
     }
 
     def runNow[A](io: IOResult[A]): A = {
@@ -342,7 +342,7 @@ object zio {
      */
     def unsafeRun[E, A](zio: => ZIO[Any, E, A]): A = internal.unsafeRun(blocking(zio))
 
-    def Environment = internal.Environment
+    def environment = internal.environment
   }
 
   /*
