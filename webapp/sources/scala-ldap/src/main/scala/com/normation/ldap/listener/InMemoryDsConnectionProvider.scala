@@ -81,7 +81,7 @@ object InMemoryDsConnectionProvider {
     val schema = Schema.getSchema(schemaLDIFPaths:_*)
     val config = new InMemoryDirectoryServerConfig(baseDNs:_*)
     config.setSchema(schema)
-    new InMemoryDsConnectionProvider[CON](config,bootstrapLDIFPaths,ldifFileLogger, ZioRuntime.Environment)
+    new InMemoryDsConnectionProvider[CON](config,bootstrapLDIFPaths,ldifFileLogger, ZioRuntime.environment)
   }
 
 

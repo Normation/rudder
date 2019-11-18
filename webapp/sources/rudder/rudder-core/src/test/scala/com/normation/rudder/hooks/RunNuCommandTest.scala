@@ -73,7 +73,7 @@ class RunNuCommandTest() extends Specification {
           c.stderr
         }
 
-      prog.provide(ZioRuntime.Environment).runNow must beMatching("return code=0\nPATH=.*\nfoo=bar\n".r)
+      prog.provide(ZioRuntime.environment).runNow must beMatching("return code=0\nPATH=.*\nfoo=bar\n".r)
     }
 
     "has only the 3 stdin, stdout, stderr file descriptors" in {
@@ -87,7 +87,7 @@ class RunNuCommandTest() extends Specification {
           (c.code, c.stdout.split("\n").size)
         }
 
-      prog.provide(ZioRuntime.Environment).runNow must beEqualTo((0, 4))
+      prog.provide(ZioRuntime.environment).runNow must beEqualTo((0, 4))
     }
 
     "can actually modify the file system" in {
@@ -105,7 +105,7 @@ class RunNuCommandTest() extends Specification {
         }
 
       (file.exists() must beFalse) and
-      (prog.provide(ZioRuntime.Environment).runNow must beEqualTo(0)) and
+      (prog.provide(ZioRuntime.environment).runNow must beEqualTo(0)) and
       (file.exists() must beTrue)
     }
   }

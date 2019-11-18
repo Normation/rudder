@@ -403,7 +403,7 @@ class AutomaticReportsCleaning(
                  ReportLoggerPure.error(s"Error when trying to clean log reports from report table: ${error.fullMsg}")
                ).delay(dur).repeat(Schedule.spaced(dur).forever).fork
               }
-  } yield ()).provide(ZioRuntime.Environment).runNow
+  } yield ()).provide(ZioRuntime.environment).runNow
 
   ////////////////////////////////////////////////////////////////
   //////////////////// implementation details ////////////////////

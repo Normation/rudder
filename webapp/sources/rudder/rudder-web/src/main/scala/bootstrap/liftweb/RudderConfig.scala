@@ -1290,7 +1290,7 @@ object RudderConfig extends Loggable {
       , authDn = LDAP_AUTHDN
       , authPw = LDAP_AUTHPW
       , poolSize = LDAP_MAX_POOL_SIZE
-      , blockingModule = ZioRuntime.Environment
+      , blockingModule = ZioRuntime.environment
     )
   lazy val rwLdap =
     new RWPooledSimpleAuthConnectionProvider(
@@ -1299,7 +1299,7 @@ object RudderConfig extends Loggable {
       , authDn = LDAP_AUTHDN
       , authPw = LDAP_AUTHPW
       , poolSize = LDAP_MAX_POOL_SIZE
-      , blockingModule = ZioRuntime.Environment
+      , blockingModule = ZioRuntime.environment
     )
 
   //query processor for accepted nodes

@@ -120,7 +120,7 @@ trait GitArchiverUtils {
    */
   def commitAddFile(modId : ModificationId, commiter:PersonIdent, gitPath:String, commitMessage:String) : IOResult[GitCommitId] = {
     semaphoreAdd.flatMap(lock =>
-      ZIO.bracket(lock.acquire)(_ => lock.release) { _ =>
+      lock.withPermit(
         for {
           _      <- GitArchiveLogger.debug(s"Add file '${gitPath}' from configuration repository")
           git    <- gitRepo.git
@@ -137,7 +137,8 @@ trait GitArchiverUtils {
         } yield {
           commit
         }
-    })
+      )
+    )
   }
 
   /**
@@ -146,7 +147,7 @@ trait GitArchiverUtils {
    */
   def commitRmFile(modId : ModificationId, commiter:PersonIdent, gitPath:String, commitMessage:String) : IOResult[GitCommitId] = {
     semaphoreDelete.flatMap(lock =>
-      ZIO.bracket(lock.acquire)(_ => lock.release) { _ =>
+      lock.withPermit(
         for {
           _      <- GitArchiveLogger.debug(s"remove file '${gitPath}' from configuration repository")
           git    <- gitRepo.git
@@ -162,7 +163,8 @@ trait GitArchiverUtils {
         } yield {
           commit
         }
-      })
+      )
+    )
   }
 
   /**
@@ -174,7 +176,7 @@ trait GitArchiverUtils {
    */
   def commitMvDirectory(modId : ModificationId, commiter:PersonIdent, oldGitPath:String, newGitPath:String, commitMessage:String) : IOResult[GitCommitId] = {
     semaphoreMove.flatMap(lock =>
-      ZIO.bracket(lock.acquire)(_ => lock.release) { _ =>
+      lock.withPermit(
         for {
           _      <- GitArchiveLogger.debug(s"move file '${oldGitPath}' from configuration repository to '${newGitPath}'")
           git    <- gitRepo.git
@@ -194,7 +196,8 @@ trait GitArchiverUtils {
         } yield {
           commit
         }
-    })
+      )
+    )
   }
 
   def toGitPath(fsPath:File) = fsPath.getPath.replace(gitRootDirectory.getPath +"/","")

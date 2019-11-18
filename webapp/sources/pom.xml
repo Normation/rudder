@@ -387,8 +387,8 @@ limitations under the License.
     <http4s-version>0.19.0</http4s-version>
     <shapeless-version>2.3.3</shapeless-version>
     <cats-effect-version>2.0.0</cats-effect-version>
-    <dev-zio-version>1.0.0-RC12-1</dev-zio-version>
-    <zio-cats-version>2.0.0.0-RC3</zio-cats-version>
+    <dev-zio-version>1.0.0-RC17</dev-zio-version>
+    <zio-cats-version>2.0.0.0-RC8</zio-cats-version>
 
     <!--
       Hack to make scalac jvm parameters like RAM configurable.

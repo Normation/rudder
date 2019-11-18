@@ -43,7 +43,6 @@ import org.joda.time.DateTime
 import com.normation.errors.Chained
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.zio.ZioRuntime
-import zio.Schedule
 import zio._
 
 import scala.concurrent.duration._
@@ -79,7 +78,7 @@ class PurgeDeletedInventories(
           ScheduledJobLoggerPure.error(error.fullMsg)
       })
       import zio.duration.Duration.{fromScala => zduration}
-      ZioRuntime.unsafeRun(prog.delay(zduration(updateInterval)).repeat(Schedule.spaced(zduration(updateInterval))).provide(ZioRuntime.Environment).fork)
+      ZioRuntime.unsafeRun(prog.delay(zduration(updateInterval)).repeat(Schedule.spaced(zduration(updateInterval))).provide(ZioRuntime.environment).fork)
     }
   }
 }
