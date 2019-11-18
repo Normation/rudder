@@ -211,7 +211,7 @@ object QSLdapBackend {
   ): Box[Seq[QuickSearchResult]] = {
     for {
       connection  <- ldap
-      nodes       <- nodeInfos.getAll().map(_.keySet.map(_.value))
+      nodeIds     <- nodeInfos.getAll().map(_.keySet.map(_.value))
     } yield {
       //the filter for attribute and for attributes must be non empty, else return nothing
       val ocFilter   = query.objectClass.map( _.filter ).flatten.toSeq
@@ -234,21 +234,17 @@ object QSLdapBackend {
         //and we get node always with a hostname
         val (nodes, others) = entries.partition { x => x.isA(OC_NODE) || x.isA(OC_RUDDER_NODE) }
         // merge node attribute for node entries with same node id
-        val merged = nodes.groupBy( _.value_!(A_NODE_UUID)).map { case (_, samenodes) => samenodes.reduce[LDAPEntry] { case (n1, n2) =>
-          n2.attributes.foreach( a => n1 += a)
-          n1
-        } }
+        val merged = nodes.groupBy( _.value_!(A_NODE_UUID)).filter(e => nodeIds.contains(e._1)).map { case (_, samenodes) =>
+          samenodes.reduce[LDAPEntry] { case (n1, n2) =>
+            n2.attributes.foreach( a => n1 += a)
+            n1
+          }
+        }
 
         // transformat LDAPEntries to quicksearch results, keeping only the attribute
         // that matches the query on the result and no system entries but nodes.
         // Also, only keep nodes that exists.
-        (others ++ merged).flatMap(e =>
-          if(nodes.contains(e.value_!(A_NODE_UUID))) {
-            e.toResult(query)
-          } else {
-            None
-          }
-        )
+        (others ++ merged).flatMap( _.toResult(query))
       }
     }
   }
