@@ -99,10 +99,8 @@ class SynchronizedFileTemplate(templateName: String, localTemplate: Either[Rudde
     localTemplate match {
       case Right(sourceTemplate) =>
         (for {
-          _        <- semaphore.acquire
           // we need to work on an instance of the template
-          template <- IOResult.effect(sourceTemplate.getInstanceOf())
-          _        <- semaphore.release
+          template <- semaphore.withPermit(IOResult.effect(sourceTemplate.getInstanceOf()))
           /*
            * Here, we are using bestEffort to try to test a maxum of false values,
            * but the StringTemplate thing is mutable, so we don't have the intersting
@@ -162,8 +160,7 @@ class FillTemplatesService {
 
   def getTemplateFromContent(templateName: String,content: String): IOResult[SynchronizedFileTemplate] = {
     for {
-      _ <- semaphore.acquire
-      c <- cache.get(content) match {
+      c <- semaphore.withPermit(cache.get(content) match {
              case Some(template) => template.succeed
              case None =>
                for {
@@ -175,8 +172,7 @@ class FillTemplatesService {
                } yield {
                  template
                }
-        }
-      _ <- semaphore.release
+        })
     } yield {
       c
     }
