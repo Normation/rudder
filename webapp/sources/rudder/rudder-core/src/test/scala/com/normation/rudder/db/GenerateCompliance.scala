@@ -106,7 +106,7 @@ object GenerateCompliance {
     , properties.getProperty("ldap.host")
     , properties.getProperty("ldap.port").toInt
     , poolSize = 2
-    , blockingModule = ZioRuntime.Environment
+    , blockingModule = ZioRuntime.environment
   )
   lazy val rwLdap =
     new RWPooledSimpleAuthConnectionProvider(
@@ -115,7 +115,7 @@ object GenerateCompliance {
     , properties.getProperty("ldap.host")
     , properties.getProperty("ldap.port").toInt
     , poolSize = 2
-    , blockingModule = ZioRuntime.Environment
+    , blockingModule = ZioRuntime.environment
     )
 
   lazy val rudderDit = new RudderDit(new DN(properties.getProperty("ldap.rudder.base")))

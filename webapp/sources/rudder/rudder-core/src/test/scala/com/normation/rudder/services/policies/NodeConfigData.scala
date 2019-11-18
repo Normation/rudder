@@ -648,11 +648,11 @@ class TestNodeConfiguration() {
   //
   //root has 4 system directive, let give them some variables
   //
-  implicit class UnsafeGet(t: Option[Technique]) {
-    def unsafeGet = t.getOrElse(throw new RuntimeException("Bad init for test"))
+  implicit class UnsafeGet(repo: TechniqueRepositoryImpl) {
+    def unsafeGet(id: TechniqueId) = repo.get(id).getOrElse(throw new RuntimeException(s"Bad init for test: technique '${id.toString()}' not found"))
   }
 
-  val commonTechnique = techniqueRepository.get(TechniqueId(TechniqueName("common"), TechniqueVersion("1.0"))).unsafeGet
+  val commonTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("common"), TechniqueVersion("1.0")))
   def commonVariables(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]) = {
      val spec = commonTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
@@ -724,7 +724,7 @@ class TestNodeConfiguration() {
     )
   }
 
-  val rolesTechnique = techniqueRepository.get(TechniqueId(TechniqueName("server-roles"), TechniqueVersion("1.0"))).unsafeGet
+  val rolesTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("server-roles"), TechniqueVersion("1.0")))
   val rolesVariables = {
      val spec = commonTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
@@ -746,7 +746,7 @@ class TestNodeConfiguration() {
     )
   }
 
-  val distributeTechnique = techniqueRepository.get(TechniqueId(TechniqueName("distributePolicy"), TechniqueVersion("1.0"))).unsafeGet
+  val distributeTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("distributePolicy"), TechniqueVersion("1.0")))
   val distributeVariables = {
      val spec = commonTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
@@ -768,7 +768,7 @@ class TestNodeConfiguration() {
     )
   }
 
-  val inventoryTechnique = techniqueRepository.get(TechniqueId(TechniqueName("inventory"), TechniqueVersion("1.0"))).unsafeGet
+  val inventoryTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("inventory"), TechniqueVersion("1.0")))
   val inventoryVariables = {
      val spec = commonTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
@@ -792,7 +792,7 @@ class TestNodeConfiguration() {
   //
   // 4 user directives: clock management, rpm, package, a multi-policiy: fileTemplate, and a ncf one: Create_file
   //
-  lazy val clockTechnique = techniqueRepository.get(TechniqueId(TechniqueName("clockConfiguration"), TechniqueVersion("3.0"))).unsafeGet
+  lazy val clockTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("clockConfiguration"), TechniqueVersion("3.0")))
   lazy val clockVariables = {
      val spec = clockTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
@@ -825,7 +825,7 @@ class TestNodeConfiguration() {
    * that variable is unique, so it get the first draft value all along.
    */
 
-  lazy val rpmTechnique = techniqueRepository.get(TechniqueId(TechniqueName("rpmPackageInstallation"), TechniqueVersion("7.0"))).unsafeGet
+  lazy val rpmTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("rpmPackageInstallation"), TechniqueVersion("7.0")))
   lazy val rpmVariables = {
      val spec = rpmTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
@@ -870,7 +870,7 @@ class TestNodeConfiguration() {
     )
   }
 
-  lazy val pkgTechnique = techniqueRepository.get(TechniqueId(TechniqueName("packageManagement"), TechniqueVersion("1.0"))).unsafeGet
+  lazy val pkgTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("packageManagement"), TechniqueVersion("1.0")))
   lazy val pkgVariables = {
      val spec = pkgTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
@@ -900,7 +900,7 @@ class TestNodeConfiguration() {
     )
   }
 
-  lazy val fileTemplateTechnique = techniqueRepository.get(TechniqueId(TechniqueName("fileTemplate"), TechniqueVersion("1.0"))).unsafeGet
+  lazy val fileTemplateTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("fileTemplate"), TechniqueVersion("1.0")))
   lazy val fileTemplateVariables1 = {
      val spec = fileTemplateTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
@@ -980,7 +980,7 @@ class TestNodeConfiguration() {
   }
 
 
-  val ncf1Technique = techniqueRepository.get(TechniqueId(TechniqueName("Create_file"), TechniqueVersion("1.0"))).unsafeGet
+  val ncf1Technique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("Create_file"), TechniqueVersion("1.0")))
   val ncf1Variables = {
      val spec = ncf1Technique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
@@ -1009,7 +1009,7 @@ class TestNodeConfiguration() {
     * test for multiple generation
     */
   val DIRECTIVE_NAME_COPY_GIT_FILE="directive-copyGitFile"
-  lazy val copyGitFileTechnique = techniqueRepository.get(TechniqueId(TechniqueName("copyGitFile"), TechniqueVersion("2.3"))).unsafeGet
+  lazy val copyGitFileTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("copyGitFile"), TechniqueVersion("2.3")))
   def copyGitFileVariable(i: Int) = {
     val spec = copyGitFileTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
     Seq(
@@ -1095,7 +1095,7 @@ class TestNodeConfiguration() {
    *
    * In summary: sorting directives that are merged into one is a different problem than sorting directives for the bundle sequence.
    */
-  lazy val gvdTechnique  = techniqueRepository.get(TechniqueId(TechniqueName("genericVariableDefinition"), TechniqueVersion("2.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
+  lazy val gvdTechnique  = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("genericVariableDefinition"), TechniqueVersion("2.0")))
   lazy val gvdVariables1 = {
      val spec = gvdTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(

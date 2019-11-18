@@ -210,7 +210,7 @@ class PolicyWriterServiceImpl(
         case Some(seq) =>
           seq.succeed
       }
-    ).provide(ZioRuntime.Environment).toBox
+    ).provide(ZioRuntime.environment).toBox
   }
 
   // a version for Hook with a nicer message accumulation
@@ -238,7 +238,7 @@ class PolicyWriterServiceImpl(
       )
     }
 
-    ZIO.accessM[Blocking](b => b.blocking.blocking(prog.either)).timeout(timeout).provide(ZioRuntime.Environment).runNow match {
+    ZIO.accessM[Blocking](b => b.blocking.blocking(prog.either)).timeout(timeout).provide(ZioRuntime.environment).runNow match {
       case None            => Failure(s"Hook execution timed out after '${timeout.asJava.toString}'")
       case Some(Right(x))  => Full(())
       case Some(Left(nel)) =>
