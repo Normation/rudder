@@ -68,6 +68,7 @@ class ReportingServiceImpl(
   , val runIntervalService         : AgentRunIntervalService
   , val nodeInfoService            : NodeInfoService
   , val directivesRepo             : RoDirectiveRepository
+  , val rulesRepo                  : RoRuleRepository
   , val getGlobalComplianceMode    : () => Box[GlobalComplianceMode]
   , val getGlobalPolicyMode        : () => Box[GlobalPolicyMode]
   , val getUnexpectedInterpretation: () => Box[UnexpectedReportInterpretation]
@@ -79,6 +80,7 @@ class CachedReportingServiceImpl(
 ) extends ReportingService with RuleOrNodeReportingServiceImpl with CachedFindRuleNodeStatusReports {
   val confExpectedRepo = defaultFindRuleNodeStatusReports.confExpectedRepo
   val directivesRepo   = defaultFindRuleNodeStatusReports.directivesRepo
+  val rulesRepo        = defaultFindRuleNodeStatusReports.rulesRepo
 }
 
 /**
@@ -91,6 +93,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
   def confExpectedRepo: FindExpectedReportRepository
   def directivesRepo  : RoDirectiveRepository
   def nodeInfoService : NodeInfoService
+  def rulesRepo       : RoRuleRepository
 
   override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[RuleStatusReport] = {
     //here, the logic is ONLY to get the node for which that rule applies and then step back
@@ -117,57 +120,43 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
     }
   }
 
+  def getUserNodeStatusReports() : Box[Map[NodeId, NodeStatusReport]] = {
+    val n1 = System.currentTimeMillis
+    for {
+      nodeIds            <- nodeInfoService.getAll().map( _.keySet )
+      userRules          <- rulesRepo.getIds()
+      n2                 = System.currentTimeMillis
+      _                  = TimingDebugLogger.trace(s"Reporting service - Get nodes and users rules in: ${n2 - n1}ms")
+      reports            <- findRuleNodeStatusReports(nodeIds, userRules)
+    } yield {
+      reports
+    }
+  }
+
+  def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] =  {
+    // if we don't have any report that is not a system one, the user-rule global compliance is undefined
+    val n1 = System.currentTimeMillis
+    if(reports.isEmpty) {
+      None
+    } else { // aggregate values
+      val complianceLevel = ComplianceLevel.sum(reports.flatMap( _._2.report.reports.toSeq.map( _.compliance)))
+      val n2 = System.currentTimeMillis
+      TimingDebugLogger.trace(s"Agregating compliance level for  global user compliance in: ${n2-n1}ms")
+
+      Some((
+      complianceLevel
+      , complianceLevel.complianceWithoutPending.round
+      ))
+    }
+  }
+
   def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]] = {
     val n1 = System.currentTimeMillis
     for {
-      systemDirectiveIds <- directivesRepo.getFullDirectiveLibrary().map( _.allDirectives.values.collect{ case(at, d) if(at.isSystem) => d.id }.toSet)
-      nodeIds            <- nodeInfoService.getAll().map( _.keySet )
-      reports            <- findRuleNodeStatusReports(nodeIds, Set())
-      n2                 =  System.currentTimeMillis
-      _                  =  TimingDebugLogger.debug(s"Getting reports for global user compliance in:  ${n2-n1}ms")
-
+      reports    <- getUserNodeStatusReports
+      compliance =  computeComplianceFromReports(reports)
     } yield {
-
-      //filter anything marked as system
-      val globalReports = reports.values.toList.flatMap { r =>
-
-        val filtered = r.report.reports.flatMap(x => x.withFilteredElements(
-            (d: DirectiveStatusReport) => !systemDirectiveIds.contains( d.directiveId )
-          , _ => true // components are not filtered
-          , _ => true // values are not filtered
-        ))
-
-        if(filtered.isEmpty) {
-          None
-        } else {
-          Some(
-            NodeStatusReport.applyByNode(
-                r.nodeId
-              , r.runInfo
-              , r.statusInfo
-              , Nil // overrides are not used here
-              , filtered
-            )
-          )
-        }
-      }
-
-      val n3 = System.currentTimeMillis
-      TimingDebugLogger.trace(s"Filtering global report to remove system directives in: ${n3-n2}ms")
-
-      // if we don't have any report that is not a system one, the user-rule global compliance is undefined
-      if(globalReports.isEmpty) {
-        None
-      } else { // aggregate values
-        val complianceLevel = ComplianceLevel.sum(reports.flatMap( _._2.report.reports.toSeq.map( _.compliance)))
-        val n4 = System.currentTimeMillis
-        TimingDebugLogger.trace(s"Agregating compliance level for  global user compliance in: ${n4-n3}ms")
-
-        Some((
-            complianceLevel
-          , complianceLevel.complianceWithoutPending.round
-        ))
-      }
+      compliance
     }
   }
 }
@@ -281,17 +270,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
       n2      = System.currentTimeMillis
       _       = TimingDebugLogger.trace(s"Getting node status reports from cache in: ${n2 - n1}ms")
     } yield {
-      if(ruleIds.isEmpty) {
-        reports
-      } else {
-        val n1 = System.currentTimeMillis
-        val result = reports.mapValues { status =>
-          NodeStatusReport.filterByRules(status, ruleIds)
-        }.filter { case (k,v) => v.report.reports.nonEmpty || v.overrides.nonEmpty }
-        val n3 = System.currentTimeMillis
-        TimingDebugLogger.debug(s"Filter Node Status Reports on ${ruleIds.size} in : ${n3 - n2}ms")
-        result
-      }
+      filterReportsByRules(reports, ruleIds)
     }
   }
 
@@ -455,13 +434,13 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
     } yield {
       val t2 = System.currentTimeMillis
       //we want to have nodeStatus for all asked node, not only the ones with reports
-      val nodeStatusReports = runInfos.map { case (nodeId, runInfo) =>
+      val nodeStatusReports = runInfos.par.map { case (nodeId, runInfo) =>
         val status = ExecutionBatch.getNodeStatusReports(nodeId, runInfo, reports.getOrElse(nodeId, Seq()), unexpectedInterpretation)
         (status.nodeId, status)
       }
       val t3 = System.currentTimeMillis
       TimingDebugLogger.trace(s"Compliance: Computing nodeStatusReports from execution batch: ${t3-t2}ms")
-      nodeStatusReports
+      nodeStatusReports.seq
     }
   }
 }

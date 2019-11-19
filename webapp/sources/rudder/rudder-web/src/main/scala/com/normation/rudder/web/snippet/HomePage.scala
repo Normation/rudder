@@ -177,11 +177,16 @@ class HomePage extends Loggable {
       userRules <- roRuleRepo.getIds()
       n3 = System.currentTimeMillis
       _ = TimingDebugLogger.trace(s"Get rules: ${n3 - n2}ms")
+      // reports contains the reports for user rules, used in the donut
       reports   <- reportingService.findRuleNodeStatusReports(nodeInfos.keySet, userRules)
-      global    <- reportingService.getGlobalUserCompliance()
       n4 = System.currentTimeMillis
       _ = TimingDebugLogger.trace(s"Compute Rule Node status reports for all nodes: ${n4 - n3}ms")
-      _ = TimingDebugLogger.debug(s"Compute compliance: ${n4 - n2}ms")
+      // global compliance is a unique number, used in the top right hand size, based on
+      // user rules, and ignoring pending nodes
+      global    =  reportingService.computeComplianceFromReports(reports)
+      n5 = System.currentTimeMillis
+      _ = TimingDebugLogger.trace(s"Compute global compliance in: ${n5 - n4}ms")
+      _ = TimingDebugLogger.debug(s"Compute compliance: ${n5 - n2}ms")
     } yield {
 
       val reportsByNode = reports.mapValues { status => ComplianceLevel.sum(status.report.reports.map(_.compliance)) }
