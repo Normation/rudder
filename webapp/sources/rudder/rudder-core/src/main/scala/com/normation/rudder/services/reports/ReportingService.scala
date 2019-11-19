@@ -38,6 +38,7 @@
 package com.normation.rudder.services.reports
 
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.{ComplianceLevel, NodeStatusReport, RuleStatusReport}
 import net.liftweb.common.Box
@@ -66,6 +67,20 @@ trait ReportingService {
   def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport]
 
 
+  /**
+   * find node status reports for *user* rules (all non system rules)
+   */
+  def getUserNodeStatusReports() : Box[Map[NodeId, NodeStatusReport]]
+
+  /**
+   * * Get the global compliance for reports passed in parameters
+   * * Returns get an unique number which describe the global compliance value (without
+   * * taking into account pending reports).
+   * * It's what is displayed on Rudder home page.
+   * * If reports are empty, returns none.
+   */
+  def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)]
+
  /**
   * Get the global compliance, restricted to user defined rules/directives.
   * Also get an unique number which describe the global compliance value (without
@@ -74,4 +89,22 @@ trait ReportingService {
   * If all rules/directies are system one, returns none.
   */
   def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]]
+
+
+
+
+  // Utilitary method to filter reports by rules
+  def filterReportsByRules(reports: Map[NodeId, NodeStatusReport], ruleIds: Set[RuleId]): Map[NodeId, NodeStatusReport] = {
+    if(ruleIds.isEmpty) {
+      reports
+    } else {
+      val n1 = System.currentTimeMillis
+      val result = reports.mapValues { status =>
+        NodeStatusReport.filterByRules(status, ruleIds)
+      }.filter { case (k,v) => v.report.reports.nonEmpty || v.overrides.nonEmpty }
+      val n2 = System.currentTimeMillis
+      TimingDebugLogger.trace(s"Filter Node Status Reports on ${ruleIds.size} in : ${n2 - n1}ms")
+      result
+    }
+  }
 }
