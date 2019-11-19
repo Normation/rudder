@@ -47,9 +47,10 @@ import org.specs2.runner._
 @RunWith(classOf[JUnitRunner])
 class MemoryTest extends Specification {
 
-  val validMemoryValue: List[(String, Long)] = ("1234" -> 1234L) :: ("1234k" -> 1234*1024L) :: ("1MB" -> 1024*1024L) :: ("1mB" -> 1024*1024L) :: ("114 mB" -> 114*1024*1024L) :: Nil
+  // we need to keep "o" parsing in 5.0 for compatibility.
+  val validMemoryValue: List[(String, Long)] = ("1234" -> 1234L) :: ("1234k" -> 1234*1024L) :: ("1MB" -> 1024*1024L) :: ("1mB" -> 1024*1024L) :: ("114 mB" -> 114*1024*1024L) :: ("1 ko" -> 1024L) :: Nil
 
-  val invalidMemoryValue: List[String] = "1234ko"  :: " 1234k" :: "_1234k" :: "afddf" :: Nil
+  val invalidMemoryValue: List[String] = "1234kk"  :: " 1234k" :: "_1234k" :: "afddf" :: Nil
 
 
   "Parsing memory type" should {
