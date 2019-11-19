@@ -64,10 +64,7 @@ import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.ResolvedAgentRunInterval
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.execution._
-import com.normation.rudder.repository.CategoryWithActiveTechniques
-import com.normation.rudder.repository.ComplianceRepository
-import com.normation.rudder.repository.FullActiveTechniqueCategory
-import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.repository.{CategoryWithActiveTechniques, ComplianceRepository, FullActiveTechniqueCategory, RoDirectiveRepository, RoRuleRepository}
 import com.normation.rudder.services.nodes.LDAPNodeInfo
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.NodeConfigData
@@ -89,7 +86,6 @@ import zio._
 import zio.syntax._
 
 import scala.collection.SortedMap
-import com.normation.rudder.repository.ComplianceRepository
 import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 
 import scala.concurrent.duration._
@@ -158,6 +154,13 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
   }
 
+  val rulesRepos = new RoRuleRepository {
+    def get(ruleId:RuleId) : IOResult[Rule] = ???
+    def getAll(includeSytem:Boolean = false) : IOResult[Seq[Rule]] = ???
+    def getIds(includeSytem:Boolean = false) : IOResult[Set[RuleId]] = ???
+
+  }
+
   val dummyComplianceCache = new CachedFindRuleNodeStatusReports {
     def defaultFindRuleNodeStatusReports: DefaultFindRuleNodeStatusReports = null
     def nodeInfoService: NodeInfoService = self.nodeInfoService
@@ -165,6 +168,10 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
     def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]] = null
     override def invalidate(nodeIds: Set[NodeId]) = Full(Map())
+
+    def getUserNodeStatusReports() : Box[Map[NodeId, NodeStatusReport]] = Full(Map())
+    def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = None
+
   }
 
   val RUDDER_JDBC_BATCH_MAX_SIZE = 5000
@@ -324,6 +331,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     , agentRunService
     , nodeInfoService
     , directivesRepos
+    , rulesRepos
     , () => Full(compliance)
     , () => GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always).succeed
     , () => Full(UnexpectedReportInterpretation(Set()))
