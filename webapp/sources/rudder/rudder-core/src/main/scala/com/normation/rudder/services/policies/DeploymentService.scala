@@ -86,6 +86,7 @@ import com.normation.rudder.domain.reports.RuleExpectedReports
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.logger.PolicyLogger
 import cats.data.NonEmptyList
+import com.normation.inventory.domain.MemorySize
 import com.normation.rudder.domain.reports.OverridenPolicy
 import com.normation.rudder.hooks.Hooks
 import com.normation.rudder.hooks.HooksLogger
@@ -367,6 +368,8 @@ trait PromiseGenerationService {
       timeFetchAll         =  (System.currentTimeMillis - fetch0Time)
       _                    =  PolicyLogger.debug(s"All relevant information fetched in ${timeFetchAll} ms, start names historization.")
 
+
+      _                    =  logMetrics(allNodeInfos, allRules, directiveLib, groupLib, allParameters, nodeConfigCaches)
       /////
       ///// end of inputs, all information gathered for promise generation.
       /////
@@ -521,6 +524,33 @@ trait PromiseGenerationService {
   def getMaxParallelism      : () => Box[String]
   def getJsTimeout           : () => Box[Int]
   def getGenerationContinueOnError :() => Box[Boolean]
+
+  /**
+   * This method logs interesting metrics that can be use to assess performance problem.
+   */
+  def logMetrics(allNodeInfos: Map[NodeId, NodeInfo], allRules: Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allParameters: Seq[GlobalParameter], nodeConfigCaches: Map[NodeId, NodeConfigurationHash]): Unit = {
+    /*
+     * log:
+     * - number of nodes (total, number with cache)
+     * - number of rules (total, enable)
+     * - number of directives (total, enable)
+     * - number of groups (total, enable, and for enable: number of nodes)
+     * - number of parameters
+     */
+    val ram = MemorySize(Runtime.getRuntime().maxMemory()).toStringMo
+    val n  = allNodeInfos.size
+    val nc = nodeConfigCaches.size
+    val r  = allRules.size
+    val re = allRules.filter(_.isEnabled).size
+    val t  = directiveLib.allActiveTechniques.size
+    val te = directiveLib.allActiveTechniques.filter( _._2.isEnabled).size
+    val d  = directiveLib.allDirectives.size
+    val de = directiveLib.allDirectives.filter(_._2._2.isEnabled).size
+    val g  = groupLib.allGroups.size
+    val gd = groupLib.allGroups.filter(_._2.nodeGroup.isDynamic).size
+    val p  = allParameters.size
+    PolicyLogger.info(s"[metrics] Xmx:$ram nodes:$n (cached:$nc) rules:$r (enabled:$re) techniques:$t (enabled:$te) directives:$d (enabled:$de) groups:$g (dynamic:$gd) parameters:$p")
+  }
 
   // Trigger dynamic group update
   def triggerNodeGroupUpdate(): Box[Unit]

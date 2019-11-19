@@ -63,6 +63,7 @@ import com.unboundid.ldap.sdk.SearchRequest
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.inventory.domain.PhysicalMachineType
 import com.normation.inventory.domain.AgentType
+import com.normation.rudder.domain.logger.ComplianceLogger
 import com.unboundid.ldap.sdk.controls.MatchedValuesRequestControl
 import com.unboundid.ldap.sdk.controls.MatchedValuesFilter
 import com.unboundid.ldap.sdk.DN
@@ -188,6 +189,9 @@ class HomePage extends Loggable {
       _ = TimingDebugLogger.trace(s"Compute global compliance in: ${n5 - n4}ms")
       _ = TimingDebugLogger.debug(s"Compute compliance: ${n5 - n2}ms")
     } yield {
+
+      // log global compliance info (useful for metrics on number of components and log data analysis)
+      ComplianceLogger.info(s"[metrics] global compliance (number of components): ${global.map(g => g._1.total + " "+ g._1.toString).getOrElse("undefined")}")
 
       val reportsByNode = reports.mapValues { status => ComplianceLevel.sum(status.report.reports.map(_.compliance)) }
 

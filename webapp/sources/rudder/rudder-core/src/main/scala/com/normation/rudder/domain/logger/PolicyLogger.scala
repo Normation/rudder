@@ -50,3 +50,7 @@ object PolicyLogger extends Logger {
   }
 
 }
+
+object ComplianceLogger extends Logger {
+  override protected def _logger = LoggerFactory.getLogger("compliance")
+}

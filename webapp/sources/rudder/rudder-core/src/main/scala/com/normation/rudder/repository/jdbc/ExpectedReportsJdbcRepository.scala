@@ -315,7 +315,6 @@ class UpdateExpectedReportsJdbcRepository(
   ): Either[Throwable, Free[connection.ConnectionOp, List[NodeExpectedReports]]] = {
 
     import Doobie._
-    import doobie.xa
 
     val currentConfigs = configs.map( c => (c.nodeId, (c.nodeConfigId, c.beginDate)) ).toMap
 
