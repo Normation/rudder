@@ -413,7 +413,7 @@ class Boot extends Loggable {
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",AuthorizationType.Administration.Read) )
 
-        , Menu("TechniqueLibraryManagement", <span>Active Tree</span>) /
+        , Menu("TechniqueLibraryManagement", <span>Active tree</span>) /
             "secure" / "administration" / "techniqueLibraryManagement"
             >> LocGroup("administrationGroup")
             >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Technique.Read ) )
@@ -430,7 +430,7 @@ class Boot extends Loggable {
         >> LocGroup("pluginsGroup")
         >> TestAccess ( () => userIsAllowed("/secure/index", AuthorizationType.Administration.Read)
       )) submenus (
-          Menu("pluginInformation", <span>Plugin Information</span>) /
+          Menu("pluginInformation", <span>Plugin information</span>) /
             "secure" / "plugins" / "pluginInformation"
             >> LocGroup("pluginsGroup")
             >> TestAccess ( () => userIsAllowed("/secure/index", AuthorizationType.Administration.Read) )
