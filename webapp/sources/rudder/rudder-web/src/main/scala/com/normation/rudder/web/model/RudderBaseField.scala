@@ -127,6 +127,8 @@ abstract class RudderBaseField extends BaseField {
     value
   }
 
+  def labelExtensions : NodeSeq = NodeSeq.Empty
+
   ///// fields errors //////
   protected var _errors = List.empty[FieldError]
   def errors = _errors
@@ -141,10 +143,12 @@ abstract class RudderBaseField extends BaseField {
   // Class used for the elements
   def subContainerClassName : String = "col-lg-9 col-sm-12 col-xs-12"
   //def className : String = "rudderBaseFieldClassName"
-    def className : String = "rudderBaseFieldClassName form-control vresize col-lg-12 col-sm-12"
+  def className : String = "rudderBaseFieldClassName form-control vresize col-lg-12 col-sm-12"
   //def labelClassName : String = "threeCol"
-    def labelClassName : String = "col-lg-3 col-sm-12 col-xs-12 text-right"
+  def containerClassName : String = ""
+  def labelClassName : String = "col-lg-3 col-sm-12 col-xs-12 text-right"
   def errorClassName : String = "col-lg-9 col-lg-offset-3 col-sm-12 col-xs-12 col-xs-offset-0 col-sm-offset-0"
+  def inputAttributes : Seq[(String,String)] = Seq.empty
   ///////// method to optionnaly override //////////
 
   // add some HTLM to help the user to fill that field
@@ -177,7 +181,7 @@ abstract class RudderBaseField extends BaseField {
         "field-label" #> displayHtml
       & "field-input" #> (
           errors match {
-            case Nil => inputField % ( "id" -> id) % ("class" -> className)
+            case Nil => inputAttributes.foldLeft(inputField % ( "id" -> id) % ("class" -> className)) { case (a,b) => a % b}
             case l =>
               val c = className + " errorInput"
               inputField % ( "id" -> id) % ("class" -> c)
@@ -194,8 +198,8 @@ abstract class RudderBaseField extends BaseField {
             }
         )
     )(
-    <div class="row wbBaseField form-group">
-      <label for={id} class={labelClassName + " wbBaseFieldLabel"}><field-label></field-label></label>
+    <div class={s"row wbBaseField form-group ${containerClassName}"}>
+      <label for={id} class={s"${labelClassName} wbBaseFieldLabel"}><field-label></field-label> {labelExtensions}</label>
       <div class={subContainerClassName}>
         <field-input></field-input>
         <field-infos></field-infos>
@@ -206,7 +210,7 @@ abstract class RudderBaseField extends BaseField {
 
   def readOnlyValue =
    <div class="row wbBaseField form-group readonly-field">
-      <label class={labelClassName + " wbBaseFieldLabel"}>{displayHtml}</label>
+      <label class={s"${labelClassName} wbBaseFieldLabel"}>{displayHtml}</label>
       <div>
         <div class={subContainerClassName}>
           {defaultValue}

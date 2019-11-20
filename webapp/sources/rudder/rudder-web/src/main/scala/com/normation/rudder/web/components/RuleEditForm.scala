@@ -370,27 +370,25 @@ class RuleEditForm(
     )(crForm) ++ Script(
       OnLoad(
         // Initialize angular part of page and group tree
-        JsRaw(s"""
-          if(!angular.element('#groupManagement').scope()){
-            angular.bootstrap('#groupManagement', ['groupManagement']);
-          }
-          var scope = angular.element($$("#GroupCtrl")).scope();
-          scope.$$apply(function(){
-            scope.init(${ruleTarget.toString()},${maptarget});
-          } );
-          buildGroupTree('#${htmlId_groupTree}','${S.contextPath}', [], 'on', undefined, false);"""
-        ) &
-        //function to update list of PIs before submiting form
-        JsRaw(s"""
-          if(!angular.element('#ruleDirectives').scope()){
-            angular.bootstrap('#ruleDirectives', ['ruleDirectives']);
-          }
-          var ruleDirectiveScope = angular.element($$("#DirectiveCtrl")).scope();
-          ruleDirectiveScope.$$apply(function(){
-            ruleDirectiveScope.init(${selectedDirectives});
-          } );
-          buildDirectiveTree('#${htmlId_activeTechniquesTree}', ${serializedirectiveIds(selectedDirectiveIds.toSeq)},'${S.contextPath}', 0);
-        """) &
+        JsRaw(s"""|
+          |setupMarkdown(${Str(rule.longDescription).toJsCmd}, "longDescriptionField")
+          |if(!angular.element('#groupManagement').scope()){
+          |  angular.bootstrap('#groupManagement', ['groupManagement']);
+          |}
+          |var scope = angular.element($$("#GroupCtrl")).scope();
+          |scope.$$apply(function(){
+          |  scope.init(${ruleTarget.toString()},${maptarget});
+          |} );
+          |buildGroupTree('#${htmlId_groupTree}','${S.contextPath}', [], 'on', undefined, false);
+          |if(!angular.element('#ruleDirectives').scope()){
+          |  angular.bootstrap('#ruleDirectives', ['ruleDirectives']);
+          |}
+          |var ruleDirectiveScope = angular.element($$("#DirectiveCtrl")).scope();
+          |ruleDirectiveScope.$$apply(function(){
+          |  ruleDirectiveScope.init(${selectedDirectives});
+          |} );
+          |buildDirectiveTree('#${htmlId_activeTechniquesTree}', ${serializedirectiveIds(selectedDirectiveIds.toSeq)},'${S.contextPath}', 0);
+        """.stripMargin) &
         After(TimeSpan(50), JsRaw("""createTooltip();"""))
       )
     )
@@ -527,11 +525,17 @@ class RuleEditForm(
   }
 
   private[this] val crLongDescription = {
-    new WBTextAreaField("Description", rule.longDescription.toString) {
+    new WBTextAreaField("Description", rule.longDescription) {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def className = "form-control"
-      override def labelClassName = "col-xs-12"
-      override def subContainerClassName = "col-xs-12"
+      override def labelClassName = "row col-xs-12"
+      override def subContainerClassName = "row col-xs-12"
+      override def containerClassName = "col-xs-6 row"
+      override def inputAttributes: Seq[(String, String)] = Seq(("rows","15"))
+      override def labelExtensions: NodeSeq =
+        <i class="fa fa-check text-success cursorPointer half-opacity"     onmouseenter="toggleOpacity(this)" title="Valid description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> ++ Text(" ") ++
+          <i class="fa fa-eye-slash text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" title="Show/hide preview" onmouseout="toggleOpacity(this)" onclick="togglePreview(this, 'longDescriptionField')"></i>
+
     }
   }
 
