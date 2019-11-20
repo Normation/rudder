@@ -325,22 +325,18 @@ class DirectiveEditForm(
       displayDeprecationWarning
     )(crForm) ++
     Script(OnLoad(
-      JsRaw("""activateButtonOnFormChange("%s", "%s");  """
-        .format(htmlId_policyConf, htmlId_save)) &
-      JsRaw(s"""$$('#technicalDetails').hide();""") &
-      JsRaw(s"""
-          $$("input").not("#treeSearch").keydown( function(event) {
-            processKey(event , '${htmlId_save}');
-          } );
-          checkMigrationButton("${currentVersion}","${versionSelectId}");
-          $$('#${directiveVersion.uniqueFieldId.getOrElse("id_not_found")}').change(
-            function () {
-              checkMigrationButton("${currentVersion}","${versionSelectId}")
-            }
-          );
-          adjustHeight("#edit-box","#directiveToolbar")
-          """)
-
+      JsRaw(
+        s"""activateButtonOnFormChange("${htmlId_policyConf}", "${htmlId_save}");
+           |setupMarkdown(${Str(directive.longDescription).toJsCmd}, "longDescriptionField")
+           |$$('#technicalDetails').hide();
+           |$$("input").not("#treeSearch").keydown( function(event) {
+           |  processKey(event , '${htmlId_save}');
+           |} );
+           |checkMigrationButton("${currentVersion}","${versionSelectId}");
+           |$$('#${directiveVersion.uniqueFieldId.getOrElse("id_not_found")}').change( function () {
+           |  checkMigrationButton("${currentVersion}","${versionSelectId}")
+           |} );
+           |adjustHeight("#edit-box","#directiveToolbar")""".stripMargin)
     )
     )
   }
@@ -418,11 +414,17 @@ class DirectiveEditForm(
   }
 
   private[this] val directiveLongDescription = {
-    new WBTextAreaField("Description", directive.longDescription.toString) {
+    new WBTextAreaField("Description", directive.longDescription) {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def className = "form-control"
-      override def labelClassName = "col-xs-12"
-      override def subContainerClassName = "col-xs-12"
+      override def labelClassName = "row col-xs-12"
+      override def subContainerClassName = "row col-xs-12"
+      override def containerClassName = "col-xs-6 row"
+      override def inputAttributes: Seq[(String, String)] = Seq(("rows","15"))
+      override def labelExtensions: NodeSeq =
+        <i class="fa fa-check text-success cursorPointer half-opacity"     onmouseenter="toggleOpacity(this)" title="Valid description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> ++ Text(" ") ++
+        <i class="fa fa-eye-slash text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" title="Show/hide preview" onmouseout="toggleOpacity(this)" onclick="togglePreview(this, 'longDescriptionField')"></i>
+
     }
   }
 
