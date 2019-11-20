@@ -63,3 +63,7 @@ object PolicyLoggerPure extends NamedZioLogger {
 object GitArchiveLogger extends NamedZioLogger {
   override def loggerName: String = "git-policy-archive"
 }
+
+object ComplianceLogger extends Logger {
+  override protected def _logger = LoggerFactory.getLogger("compliance")
+}

@@ -154,7 +154,6 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
   }
 
   def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]] = {
-    val n1 = System.currentTimeMillis
     for {
       reports    <- getUserNodeStatusReports
       compliance =  computeComplianceFromReports(reports)
