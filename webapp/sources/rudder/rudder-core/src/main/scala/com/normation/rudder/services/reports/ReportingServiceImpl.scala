@@ -377,12 +377,14 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
                              case ReportsDisabled => Full(nodeIds.map(id => (id, None)).toMap)
                              case _ => agentRunRepository.getNodesLastRun(nodeIds)
                            }
-      currentConfigs    <- confExpectedRepo.getCurrentExpectedsReports(nodeIds)
       t1                =  System.currentTimeMillis
-      _                 =  TimingDebugLogger.trace(s"Compliance: get current expected reports: ${t1-t0}ms")
-      nodeConfigIdInfos <- confExpectedRepo.getNodeConfigIdInfos(nodeIds)
+      _                 =  TimingDebugLogger.trace(s"Compliance: get nodes last run : ${t1-t0}ms")
+      currentConfigs    <- confExpectedRepo.getCurrentExpectedsReports(nodeIds)
       t2                =  System.currentTimeMillis
-      _                 =  TimingDebugLogger.trace(s"Compliance: get Node Config Id Infos: ${t2-t1}ms")
+      _                 =  TimingDebugLogger.trace(s"Compliance: get current expected reports: ${t2-t1}ms")
+      nodeConfigIdInfos <- confExpectedRepo.getNodeConfigIdInfos(nodeIds)
+      t3                =  System.currentTimeMillis
+      _                 =  TimingDebugLogger.trace(s"Compliance: get Node Config Id Infos: ${t3-t2}ms")
     } yield {
       ExecutionBatch.computeNodesRunInfo(runs, currentConfigs, nodeConfigIdInfos)
     }
