@@ -65,7 +65,7 @@ bundle agent init
       "group[7]" string => "";
       "other[7]" string => "";
 
-      "files[8]" string => "file4/subfile1";
+      "files[8]" string => "file4/1/2/3/4/5/subfile1";
       "user[8]"  string => "*:+rx, bin:-wx";
       "group[8]" string => "*:+w, *:-w, bin:-wx";
       "other[8]" string => "";
@@ -82,12 +82,12 @@ bundle agent init
   files:
       "${tmp}/${files[${create_indices}]}"
         create => "true",
-        acl    => access_generic("@{initial_acls_files}");
+        acl => access_generic("@{initial_acls_files}");
 
       "${tmp}/${files[4]}"
         create => "true",
-        acl    => access_generic("@{initial_acls_directories}");
-
+        depth_search => recurse_with_base("3"),
+        acl => access_generic("@{initial_acls_directories}");
 }
 
 #######################################################
