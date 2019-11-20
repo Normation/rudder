@@ -803,3 +803,12 @@ input.no-tw-bs, .no-tw-bs input[type="checkbox"], .no-tw-bs input[type="radio"]{
   color: #337ab7;
   text-decoration:none;
 }
+
+textarea.form-control, .content-wrapper textarea.form-control {
+  height: auto;
+}
+
+.half-opacity {
+  opacity:0.5
+}
+

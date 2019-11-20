@@ -199,7 +199,7 @@ class NodeGroupForm(
                           {RuleTarget.toCFEngineClassName(nodeGroup.name)}
                         </div>
                       </div>
-      & "group-description" #> groupDescription.toForm_!
+      & "#longDescriptionField *" #> (groupDescription.toForm_! ++ Script(OnLoad(JsRaw(s"""setupMarkdown(${Str(nodeGroup.description).toJsCmd}, "longDescriptionField")"""))))
       & "group-container" #> groupContainer.toForm_!
       & "group-static" #> groupStatic.toForm_!
       & "group-showgroup" #> (searchNodeComponent.get match {
@@ -239,7 +239,7 @@ class NodeGroupForm(
                       <input readonly="" class="form-control" value={target.target}/>
                     </div>
       & "group-cfeclasses" #> NodeSeq.Empty
-      & "group-description" #> groupDescription.readOnlyValue
+      & "#longDescriptionField" #> (groupDescription.toForm_! ++ Script(JsRaw(s"""setupMarkdown("", "longDescriptionField")""")))
       & "group-container" #> groupContainer.readOnlyValue
       & "group-static" #> NodeSeq.Empty
       & "group-showgroup" #> nodes
@@ -274,15 +274,22 @@ class NodeGroupForm(
       t => rootCategory.allTargets.get(t).map(_.description).getOrElse("")
       , _.description
     )
-    new WBTextAreaField("Group description", desc) {
+    new WBTextAreaField("Description", desc) {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def className = "form-control"
-      override def labelClassName = ""
-      override def subContainerClassName = ""
-      override def validations =  Nil
+      override def labelClassName = "row col-xs-12"
+      override def subContainerClassName = "row col-xs-12"
+      override def containerClassName = "col-xs-6"
       override def errorClassName = "field_errors paddscala"
+      override def inputAttributes: Seq[(String, String)] = Seq(("rows","15"))
+      override def labelExtensions: NodeSeq =
+        <i class="fa fa-check text-success cursorPointer half-opacity"     onmouseenter="toggleOpacity(this)" title="Valid description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> ++ Text(" ") ++
+          <i class="fa fa-eye-slash text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" title="Show/hide preview" onmouseout="toggleOpacity(this)" onclick="togglePreview(this, 'longDescriptionField')"></i>
+
     }
   }
+
+
 
   private[this] val groupStatic = {
     val text = nodeGroup match {

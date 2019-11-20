@@ -49,7 +49,26 @@
                <group-name></group-name>
                <group-container></group-container>
                <group-static></group-static>
-               <group-description></group-description>
+
+               <div id="longDescriptionFieldMarkdownContainer"  class="row wbBaseField form-group">
+                 <label class="wbBaseFieldLabel"><span class="text-fit">Description</span>
+                   <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" title="Edit description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i>
+                 </label>
+                 <div class="markdown">
+                   <div id="longDescriptionFieldMarkdown"></div>
+                   <p id="longDescriptionFieldMarkdownEmpty" class="nodisplay half-opacity">No description defined, click on <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> to edit </p>
+                 </div>
+               </div>
+               <div id="longDescriptionFieldContainer" class="nodisplay">
+                 <div id="longDescriptionField">
+                   Here comes the longDescription field
+                 </div>
+                 <div id="longDescriptionFieldMarkdownPreviewContainer" class="wbBaseField col-xs-6 row">
+                   <label class="col-xs-12 row wbBaseFieldLabel"><span class="text-fit">Preview</span></label>
+                   <div id="longDescriptionFieldPreviewMarkdown" class=" col-xs-12 row markdown"></div>
+                 </div>
+               </div>
+
                <group-rudderid></group-rudderid>
                <group-cfeclasses></group-cfeclasses>
              </div>

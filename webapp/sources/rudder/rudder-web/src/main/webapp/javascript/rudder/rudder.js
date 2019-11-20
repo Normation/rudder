@@ -819,3 +819,50 @@ function updateNodeIdAndReload(nodeId) {
 
   location.reload()
 }
+
+var converter = new showdown.Converter();
+
+function generateMarkdown(text, container) {
+  var html = converter.makeHtml(text)
+  $(container).html(html)
+}
+
+function setupMarkdown(initialValue, id) {
+  console.log($("#" + id))
+  console.log($("#" + id + " textarea"))
+  $("#" + id + " textarea").keyup(function() {
+    var value = $(this).val()
+    console.log(value)
+    generateMarkdown(value,"#" + id + "Markdown")
+    generateMarkdown(value,"#" + id + "PreviewMarkdown")
+
+    console.log($("#" + id + "Markdown"))
+    if (value.length === 0) {
+      $("#" + id + "MarkdownEmpty").show();
+    } else {
+      $("#" + id + "MarkdownEmpty").hide();
+    }
+  } )
+
+  if (initialValue.length === 0) {
+    $("#" + id + "MarkdownEmpty").show();
+  }
+  generateMarkdown(initialValue,"#" + id + "Markdown")
+  generateMarkdown(initialValue,"#" + id + "PreviewMarkdown")
+
+}
+
+function togglePreview(target, id) {
+  $("#"+ id + "MarkdownPreviewContainer").toggle();
+  $(target).toggleClass('fa-eye-slash fa-eye');
+  $('#'+ id).toggleClass('col-xs-6 col-xs-12');
+}
+
+function toggleMarkdownEditor(id) {
+  $("#"+ id + "Container").toggle();
+  $("#"+ id + "MarkdownContainer").toggle();
+}
+
+function toggleOpacity(target) {
+  $(target).toggleClass("half-opacity")
+}
