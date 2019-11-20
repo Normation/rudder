@@ -40,7 +40,7 @@ package com.normation.rudder.reports.execution
 import com.normation.inventory.domain.NodeId
 import net.liftweb.common._
 import com.normation.rudder.repository.CachedRepository
-import com.normation.rudder.domain.logger.ReportLogger
+import com.normation.rudder.domain.logger.{ReportLogger, TimingDebugLogger}
 import com.normation.rudder.domain.reports.NodeAndConfigId
 import com.normation.rudder.repository.FindExpectedReportRepository
 
@@ -118,9 +118,12 @@ class CachedReportsExecutionRepository(
   }
 
   override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRunWithNodeConfig]]] = this.synchronized {
+    val n1 = System.currentTimeMillis
     (for {
       runs <- readBackend.getNodesLastRun(nodeIds.diff(cache.keySet))
     } yield {
+      val n2 = System.currentTimeMillis
+      TimingDebugLogger.trace(s"CachedReportsExecutionRepository: get nodes last run in: ${n2 - n1}ms")
       cache = cache ++ runs
       cache.filterKeys { x => nodeIds.contains(x) }
     }) ?~! s"Error when trying to update the cache of Agent Runs informations"
@@ -128,7 +131,7 @@ class CachedReportsExecutionRepository(
 
   override def updateExecutions(executions : Seq[AgentRun]) : Seq[Box[AgentRun]] = this.synchronized {
     logger.trace(s"Update runs for nodes [${executions.map( _.agentRunId.nodeId.value ).mkString(", ")}]")
-
+    val n1 = System.currentTimeMillis
     val runs = writeBackend.updateExecutions(executions)
     //update complete runs
     val completed = runs.collect { case Full(x) if(x.isCompleted) => x }
@@ -160,6 +163,9 @@ class CachedReportsExecutionRepository(
           }
       }
     }
+    val n2 = System.currentTimeMillis
+    TimingDebugLogger.trace(s"CachedReportsExecutionRepository: update execution in ${n2 - n1}ms")
+
     //now, get back the one in left, and query for node config
     val nodeAndConfigs = runWithConfigs.collect { case Left(AgentRunWithNodeConfig(id, Some((config, None)), _, _)) => NodeAndConfigId(id.nodeId, config)}
 
@@ -180,6 +186,8 @@ class CachedReportsExecutionRepository(
           case Right(x) => (x.agentRunId.nodeId, Some(x))
         }
     }).toMap
+    val n3 = System.currentTimeMillis
+    TimingDebugLogger.trace(s"CachedReportsExecutionRepository: compte result of update execution in ${n3 - n2}ms")
 
     cache = cache ++ results
     runs
