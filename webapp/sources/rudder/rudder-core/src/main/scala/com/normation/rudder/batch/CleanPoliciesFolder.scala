@@ -99,7 +99,7 @@ class CleanPoliciesFolder(
     import File._
 
     def getNodeFolders(file: File, parentId: String): Iterator[String] = {
-      file.children.filter{d => d.name !="rules" && d.isDirectory && (d / "rules").exists}.map(_.autoClosed).flatMap {
+      file.children.filter{d => d.name !="rules" && d.isDirectory && (d / "rules").exists}.flatMap {
         nodeFolder =>
           val nodeId = NodeId(nodeFolder.name)
           if (
@@ -112,7 +112,6 @@ class CleanPoliciesFolder(
           ) {
            nodeFolder.delete()
            val res = Iterator(nodeFolder.name)
-            nodeFolder.autoClosed
            res
           } else {
             if ((nodeFolder / "share").exists) {
