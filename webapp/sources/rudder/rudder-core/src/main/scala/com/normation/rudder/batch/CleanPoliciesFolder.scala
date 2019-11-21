@@ -102,7 +102,7 @@ class CleanPoliciesFolder(
           val nodeId = NodeId(nodeFolder.name)
           if (
             currentNodes.get(nodeId) match {
-              case None => false
+              case None => true
               case Some(nodeInfo) =>
                 val policyServerId = nodeInfo.policyServerId
                 parentId != policyServerId.value
