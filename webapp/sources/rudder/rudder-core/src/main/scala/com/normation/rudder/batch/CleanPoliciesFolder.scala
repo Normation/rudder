@@ -99,29 +99,40 @@ class CleanPoliciesFolder(
     import File._
 
     def getNodeFolders(file: File, parentId: String): Iterator[String] = {
-      file.children.filter{d => d.name !="rules" && d.isDirectory && (d / "rules").exists}.flatMap {
+      file.children.flatMap {
         nodeFolder =>
-          val nodeId = NodeId(nodeFolder.name)
-          if (
-            currentNodes.get(nodeId) match {
-              case None => true
-              case Some(nodeInfo) =>
-                val policyServerId = nodeInfo.policyServerId
-                parentId != policyServerId.value
-            }
-          ) {
-           nodeFolder.delete()
-           val res = Iterator(nodeFolder.name)
-           res
-          } else {
-            if ((nodeFolder / "share").exists) {
-            getNodeFolders(nodeFolder / "share", nodeFolder.name)
+        val folderName = nodeFolder.name
+          if (folderName !="rules") {
+            if (nodeFolder.isDirectory && (nodeFolder / "rules").exists) {
+              val nodeId = NodeId(nodeFolder.name)
+              if (
+                currentNodes.get(nodeId) match {
+                  case None => true
+                  case Some(nodeInfo) =>
+                    val policyServerId = nodeInfo.policyServerId
+                    parentId != policyServerId.value
+                }
+              ) {
+                nodeFolder.delete()
+                val res = Iterator(nodeFolder.name)
+                res
+              } else {
+                if ((nodeFolder / "share").exists) {
+                  getNodeFolders(nodeFolder / "share", nodeFolder.name)
+                } else {
+                  Iterator.empty
+                }
+              }
             } else {
               Iterator.empty
             }
+            }
+       else {
+        Iterator.empty
+      }
           }
       }
-    }
+    
 
     Try(getNodeFolders(root/"var"/"rudder"/"share", "root").toSeq) match {
       case Success(value) => Full(value)
