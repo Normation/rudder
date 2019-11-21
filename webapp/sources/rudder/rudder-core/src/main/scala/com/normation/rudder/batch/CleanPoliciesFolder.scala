@@ -45,9 +45,10 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.services.nodes.NodeInfoService
 import monix.execution.Scheduler.{global => scheduler}
 import net.liftweb.common._
-import net.liftweb.util.Helpers.tryo
 
 import scala.concurrent.duration._
+import scala.util.{Success, Failure => Catch}
+import scala.util.Try
 
 
 /**
@@ -120,7 +121,10 @@ class CleanPoliciesFolder(
       }
     }
 
-    tryo(getNodeFolders(root/"var"/"rudder"/"share", "root").toSeq)
+    Try(getNodeFolders(root/"var"/"rudder"/"share", "root").toSeq) match {
+      case Success(value) => Full(value)
+      case Catch(e) => Failure(e.getMessage, Full(e), Empty)
+    }
   }
 
 }
