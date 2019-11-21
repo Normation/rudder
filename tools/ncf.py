@@ -580,6 +580,7 @@ def generate_technique_content(technique, methods):
       promiser = regex.sub(r'\\"', method_call["component"])
     else:
       promiser = regex.sub(r'\\"', method_name)
+      method_call["component"] = promiser
 
     # Set bundle context, first escape paramters
     content.append('    "'+promiser+'_context_${report_data.directive_id}_' + str(report_unique_id) + '" usebundle => '+ generate_reporting_context(method_info, method_call) + ";")
@@ -600,7 +601,10 @@ def generate_technique_content(technique, methods):
 def generate_reporting_context(method_info, method_call):
   # regex to match quote characters not preceded by a backslash
   regex = re.compile(r'(?<!\\)"', flags=re.UNICODE )
-  class_parameter_name  = regex.sub(r'\\"', method_call["component"])
+  if 'component' in method_call or len(method_call["component"]) > 0:
+    class_parameter_name  = regex.sub(r'\\"', method_call["component"])
+  else:
+    class_parameter_name = regex.sub(r'\\"', method_info["name"])
   class_parameter_value = generate_reporting_class_parameter(method_info, method_call)
   return '_method_reporting_context("'+class_parameter_name+'", "'+class_parameter_value+'")'
 
