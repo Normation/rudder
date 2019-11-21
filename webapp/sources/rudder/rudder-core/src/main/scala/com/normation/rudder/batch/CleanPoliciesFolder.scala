@@ -101,37 +101,27 @@ class CleanPoliciesFolder(
     def getNodeFolders(file: File, parentId: String): Iterator[String] = {
       file.children.flatMap {
         nodeFolder =>
-        val folderName = nodeFolder.name
-          if (folderName !="rules") {
-            if (nodeFolder.isDirectory && (nodeFolder / "rules").exists) {
-              val nodeId = NodeId(nodeFolder.name)
-              if (
-                currentNodes.get(nodeId) match {
-                  case None => true
-                  case Some(nodeInfo) =>
-                    val policyServerId = nodeInfo.policyServerId
-                    parentId != policyServerId.value
-                }
-              ) {
-                nodeFolder.delete()
-                val res = Iterator(nodeFolder.name)
-                res
-              } else {
-                if ((nodeFolder / "share").exists) {
-                  getNodeFolders(nodeFolder / "share", nodeFolder.name)
-                } else {
-                  Iterator.empty
-                }
-              }
+          val nodeId = NodeId(nodeFolder.name)
+          if (
+            currentNodes.get(nodeId) match {
+              case None => true
+              case Some(nodeInfo) =>
+                val policyServerId = nodeInfo.policyServerId
+                parentId != policyServerId.value
+            }
+          ) {
+            nodeFolder.delete()
+            val res = Iterator(nodeFolder.name)
+            res
+          } else {
+            if ((nodeFolder / "share").exists) {
+              getNodeFolders(nodeFolder / "share", nodeFolder.name)
             } else {
               Iterator.empty
             }
-            }
-       else {
-        Iterator.empty
-      }
           }
       }
+    }
 
 
     Try(getNodeFolders(root/"var"/"rudder"/"share", "root").toList) match {
