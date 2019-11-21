@@ -277,6 +277,12 @@ final object MergePolicyService {
       }
     }
 
+    def setOverrides(main: BoundPolicyDraft, overridens: Iterable[BoundPolicyDraft]): BoundPolicyDraft = {
+      // store overrides
+      val o = overridens.map(x => PolicyId(x.id.ruleId,x.id.directiveId,x.technique.id.version)).toSet
+      main.copy(overrides = o)
+    }
+
     // choose among directives from non-multi-instance technique which one to keep
     val keptUniqueDraft = groupedDrafts.uniqueInstance.map { case (techniqueName, drafts) =>
 
@@ -313,18 +319,15 @@ final object MergePolicyService {
           s"keeping (ruleId@@directiveId) '${keep.id.ruleId.value}@@${keep.id.directiveId.value}', discarding less priorize: "+
           s"${lesserPriority.map(x => x.id.ruleId.value+"@@"+x.id.directiveId.value).mkString("'", "', ", "'")}")
 
-      val o = (samePriority.tail.map(x => PolicyId(x.id.ruleId,x.id.directiveId,x.technique.id.version)) ++
-                  lesserPriority.map(x => PolicyId(x.id.ruleId,x.id.directiveId,x.technique.id.version))
-              ).toSet
-
-      keep.copy(overrides = o)
+      setOverrides(keep, samePriority.tail ++ lesserPriority)
     }
 
 
     // for multiDirective directives, we must only keep one copy of the same directive even if provided by several rules
     // (ie: some directive id => only keep the first by (rule name, directive name)
     val deduplicatedMultiDirective = groupedDrafts.multiDirectives.groupBy( _.id.directiveId ).map { case (directiveId, set) =>
-      set.toList.sorted(onlyBundleOrder.toOrdering).head
+      val sorted = set.toList.sorted(onlyBundleOrder.toOrdering)
+      setOverrides(sorted.head, sorted.tail) // head can't be null because of groupBy
     }
 
 
