@@ -180,7 +180,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     }
   }
 
-  lazy val roAgentRun = new RoReportsExecutionRepositoryImpl(doobie, pgIn)
+  lazy val roAgentRun = new RoReportsExecutionRepositoryImpl(doobie, pgIn, 200)
   lazy val woAgentRun = new WoReportsExecutionRepositoryImpl(doobie, roAgentRun)
 
 

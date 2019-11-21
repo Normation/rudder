@@ -66,7 +66,7 @@ class AgentRunsTest extends DBCommon {
   }
 
 
-  lazy val roRunRepo = new RoReportsExecutionRepositoryImpl(doobie, new PostgresqlInClause(2))
+  lazy val roRunRepo = new RoReportsExecutionRepositoryImpl(doobie, new PostgresqlInClause(2), 200)
   lazy val woRunRepo = new WoReportsExecutionRepositoryImpl(doobie, roRunRepo)
 
 

@@ -48,15 +48,17 @@ import com.normation.rudder.db.Doobie._
 
 import doobie._, doobie.implicits._
 import cats.implicits._
+import com.normation.utils.Control.sequence
 
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeConfigId
 import org.joda.time.DateTime
 import com.normation.rudder.domain.reports.ExpectedReportsSerialisation
 
-case class RoReportsExecutionRepositoryImpl (
-    db: Doobie
-  , pgInClause : PostgresqlInClause
+class RoReportsExecutionRepositoryImpl (
+    db              : Doobie
+  , pgInClause      : PostgresqlInClause
+  , jdbcMaxBatchSize: Int
 ) extends RoReportsExecutionRepository with Loggable {
 
   import Doobie._
@@ -73,7 +75,7 @@ case class RoReportsExecutionRepositoryImpl (
       (opt1, opt2, opt3, opt4, opt5) match {
         case (Some(id), Some(config), Some(begin), end, Some(json)) =>
           ExpectedReportsSerialisation.parseJsonNodeExpectedReports(json) match {
-            case Full(x)      =>
+            case Full(x) =>
               Some(NodeExpectedReports(NodeId(id), NodeConfigId(config), begin, end, x.modes, x.ruleExpectedReports, x.overrides))
             case eb: EmptyBox =>
               val e = eb ?~! s"Error when deserialising node configuration for node with ID: ${id}, configId: ${config}"
@@ -84,63 +86,68 @@ case class RoReportsExecutionRepositoryImpl (
       }
     }
 
-    // map node id to // ('node-id') // to use in values
-    nodeIds.map(id => s"('${id.value}')").toList match {
-      case Nil => Full(Map())
-      case nodes =>
-        // we can't use "Fragments.in", because of: https://github.com/tpolecat/doobie/issues/426
-        // so we use:
-        //  WITH  temp (id) AS (VALUES (a), (b), ...here some thousands more...)
-        //  SELECT * FROM othertable INNER JOIN temp ON temp.id == othertable.id
+    val batchedNodeConfigIds = nodeIds.grouped(jdbcMaxBatchSize).toSeq
+    sequence(batchedNodeConfigIds) { ids: Set[NodeId] =>
+      // map node id to // ('node-id') // to use in values
+      ids.map(id => s"('${id.value}')").toList match {
+        case Nil => Full(Map[NodeId, Option[AgentRunWithNodeConfig]]())
+        case nodes =>
+          // we can't use "Fragments.in", because of: https://github.com/tpolecat/doobie/issues/426
+          // so we use:
+          //  SELECT * FROM table where nodeid in (VALUES (a), (b), ...here some thousands more...)
 
-        val innerFromFrag = (
-          fr"""from (""" ++
-          Fragment.const(s"""with tempnodeids (id) as (values ${nodes.mkString(",")} )""") ++
-          fr"""
-               select distinct on (nodeid)
-                 nodeid, date, nodeconfigid, complete, insertionid
-               from reportsexecution
-               inner join tempnodeids on tempnodeids.id = reportsexecution.nodeid
-               where complete = true
-               order by nodeid, insertionid desc
-          ) as r """
-        )
+          val innerFromFrag = (
+            fr"""from (
+                 select reportsexecution.nodeid, reportsexecution.date, reportsexecution.nodeconfigid, reportsexecution.complete, reportsexecution.insertionid from
+                    reportsexecution where (nodeid, insertionid) in (
+                      select nodeid, max(insertionid) as insertionid
+                        from reportsexecution
+                        where complete = true
+                        and nodeid in """ ++
+              Fragment.const(s"""(values ${nodes.mkString(",")} )""") ++
+              fr"""
+                        GROUP BY nodeid
+                     )
+                  ) as r"""
+            )
 
-        //the whole query
+          //the whole query
 
-        val query: ConnectionIO[Map[NodeId, Option[AgentRunWithNodeConfig]]] = for {
-          // Here to make the query faster, we distinct only on the reportexecution to get the last run
-          // but we need to get the matching last entry on nodeconfigurations.
-          // I didn't find any better solution than doing a distinct on the table
-          runs <- (fr""" select r.nodeid, r.date, r.nodeconfigid, r.complete, r.insertionid,
+          val query: ConnectionIO[Map[NodeId, Option[AgentRunWithNodeConfig]]] = for {
+            // Here to make the query faster, we distinct only on the reportexecution to get the last run
+            // but we need to get the matching last entry on nodeconfigurations.
+            // I didn't find any better solution than doing a distinct on the table
+            runs <- (fr""" select r.nodeid, r.date, r.nodeconfigid, r.complete, r.insertionid,
                          c.nodeid, c.nodeconfigid, c.begindate, c.enddate, c.configuration
                    """ ++
-                   innerFromFrag ++
-                   fr""" left outer join nodeconfigurations as c
+              innerFromFrag ++
+              fr""" left outer join nodeconfigurations as c
                          on r.nodeId = c.nodeid and r.nodeconfigid = c.nodeconfigid
                      """).query[
-                          //
-                          // For some reason unknown of me, if we use Option[NodeId] for the parameter,
-                          // we are getting the assertion fail from NodeId: "An UUID can not have a null or empty value (value: null)"
-                          // But somehow, the null value is correctly transformed to None latter.
-                          // So we have to use string, and tranform it node in unserNodeConfig. Strange.
-                          //
-                          (DB.AgentRun, Option[String], Option[String], Option[DateTime], Option[DateTime], Option[String])
-                        ].map {
-                          case tuple@(r, t1, t2, t3, t4, t5) => (r, unserNodeConfig(t1, t2, t3, t4, t5))
-                        }.to[Vector]
-        } yield {
+              //
+              // For some reason unknown of me, if we use Option[NodeId] for the parameter,
+              // we are getting the assertion fail from NodeId: "An UUID can not have a null or empty value (value: null)"
+              // But somehow, the null value is correctly transformed to None latter.
+              // So we have to use string, and tranform it node in unserNodeConfig. Strange.
+              //
+              (DB.AgentRun, Option[String], Option[String], Option[DateTime], Option[DateTime], Option[String])
+            ].map {
+              case tuple@(r, t1, t2, t3, t4, t5) => (r, unserNodeConfig(t1, t2, t3, t4, t5))
+            }.to[Vector]
+          } yield {
 
-          val runsMap = (runs.map { case (r, optConfig) =>
-            val run = r.toAgentRun
-            val config = run.nodeConfigVersion.map(c => (c, optConfig))
-            (run.agentRunId.nodeId, AgentRunWithNodeConfig(run.agentRunId, config, run.isCompleted, run.insertionId))
-          }).toMap
-          nodeIds.map(id => (id, runsMap.get(id))).toMap
-        }
+            val runsMap = (runs.map { case (r, optConfig) =>
+              val run = r.toAgentRun
+              val config = run.nodeConfigVersion.map(c => (c, optConfig))
+              (run.agentRunId.nodeId, AgentRunWithNodeConfig(run.agentRunId, config, run.isCompleted, run.insertionId))
+            }).toMap
+            ids.map(id => (id, runsMap.get(id))).toMap
 
-        query.transact(xa).attempt.unsafeRunSync
-    }
+          }
+
+          query.transact(xa).attempt.unsafeRunSync.box
+      }
+    }.map(_.flatten.toMap)
   }
 }
 
