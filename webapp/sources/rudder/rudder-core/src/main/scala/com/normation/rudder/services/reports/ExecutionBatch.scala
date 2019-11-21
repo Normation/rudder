@@ -48,6 +48,7 @@ import com.normation.rudder.reports._
 import com.normation.rudder.reports.execution.AgentRunId
 import net.liftweb.common.Loggable
 import java.util.regex.Pattern
+
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.reports.ReportType.BadPolicyMode
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
@@ -292,7 +293,7 @@ object ExecutionBatch extends Loggable {
    * containers to store common information about "what are we
    * talking about in that merge ?"
    */
-  private[this] final case class MergeInfo(
+  private[reports] final case class MergeInfo(
       nodeId: NodeId
     , run: Option[DateTime]
     , configId: Option[NodeConfigId]
@@ -791,41 +792,43 @@ object ExecutionBatch extends Loggable {
     , unexpectedInterpretation: UnexpectedReportInterpretation
   ): Set[RuleNodeStatusReport] = {
 
+    var u1, u2, u3, u4 = 0L
+
     val t0 = System.currentTimeMillis
+    val reportsPerRule = executionReports.groupBy(_.ruleId)
     val complianceForRun: Map[RuleId, RuleNodeStatusReport] = (for {
       RuleExpectedReports(ruleId
         , directives       ) <- lastRunNodeConfig.ruleExpectedReports
       directiveStatusReports =  {
 
-                                   val t1 = System.currentTimeMillis
+                                   val t1 = System.nanoTime
                                    //here, we had at least one report, even if it not a ResultReports (i.e: run start/end is meaningful
 
-                                   val reportsForThatNodeRule: Seq[ResultReports] = executionReports.filter( _.ruleId == ruleId)
+                                   val reportsForThatNodeRule: Seq[ResultReports] = reportsPerRule.getOrElse(ruleId, Seq[ResultReports]())
 
                                    val reports = reportsForThatNodeRule.groupBy(x => (x.directiveId, x.component) )
 
                                    val expectedComponents = (for {
-                                     directive <- directives
-                                     component <- directive.components
-                                   } yield {
-
-                                     val policyMode = PolicyMode.directivePolicyMode(
-                                         lastRunNodeConfig.modes.globalPolicyMode
-                                       , lastRunNodeConfig.modes.nodePolicyMode
-                                       , directive.policyMode
-                                       , directive.isSystem
-                                     )
-
+                                     directive  <- directives
+                                     policyMode =  PolicyMode.directivePolicyMode(
+                                                          lastRunNodeConfig.modes.globalPolicyMode
+                                                        , lastRunNodeConfig.modes.nodePolicyMode
+                                                        , directive.policyMode
+                                                        , directive.isSystem
+                                                   )
                                      // the status to use for ACTUALLY missing reports, i.e for reports for which
                                      // we have a run but are not here. Basically, it's "missing" when on
                                      // full compliance and "success" when on changes only - but that success
                                      // depends upon the policy mode
-                                     val missingReportStatus = missingReportType(lastRunNodeConfig.complianceMode, policyMode)
+                                     missingReportStatus = missingReportType(lastRunNodeConfig.complianceMode, policyMode)
+
+                                     component  <- directive.components
+                                   } yield {
 
                                      ((directive.directiveId, component.componentName), (policyMode, missingReportStatus, component))
                                    }).toMap
-                                   val t2 = System.currentTimeMillis
-                                   TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - prepare data: ${t2-t1}ms")
+                                   val t2 = System.nanoTime
+                                   u1 += t2-t1
 
                                    /*
                                     * now we have three cases:
@@ -837,35 +840,46 @@ object ExecutionBatch extends Loggable {
                                    val expectedKeys = expectedComponents.keySet
                                    val okKeys = reportKeys.intersect(expectedKeys)
 
-                                   val missing = expectedComponents.filterKeys(k => !reportKeys.contains(k)).map { case ((d,_), (pm,mrs,c)) =>
-                                     DirectiveStatusReport(d, Map(c.componentName ->
-                                       /*
-                                        * Here, we group by unexpanded component value, not expanded one. We want in the end:
-                                        * -- edit file  ## component name
-                                        * --- /tmp/${rudder.node.ip} ## component value
-                                        * ----- /tmp/ip1 ## report 1
-                                        * ----- /tmp/ip2 ## report 2
-                                        * Not:
-                                        * -- edit file
-                                        * --- /tmp/ip1
-                                        * ----- /tmp/ip1
-                                        * --- /tmp/ip2
-                                        * ----- /tmp/ip2
-                                        */
-                                       ComponentStatusReport(c.componentName, c.groupedComponentValues.map { case(v,u) => (u ->
-                                         ComponentValueStatusReport(v, u, MessageStatusReport(mrs, "") :: Nil)
-                                       )}.toMap)
-                                     ))
-                                   }
-                                   val t3 = System.currentTimeMillis
-                                   TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - get missing reports: ${t3-t2}ms")
+                                   // If okKeys.size == reportKeys.size, there is no unexpected reports
+                                   // If okKeys.size == expectedKeys.size, there is no missing reports
+                                   val missing = (if (okKeys.size != expectedKeys.size) {
+                                     expectedComponents.filterKeys(k => !reportKeys.contains(k)).map { case ((d,_), (pm,mrs,c)) =>
+                                         DirectiveStatusReport(d, Map(c.componentName ->
+                                           /*
+                                            * Here, we group by unexpanded component value, not expanded one. We want in the end:
+                                            * -- edit file  ## component name
+                                            * --- /tmp/${rudder.node.ip} ## component value
+                                            * ----- /tmp/ip1 ## report 1
+                                            * ----- /tmp/ip2 ## report 2
+                                            * Not:
+                                            * -- edit file
+                                            * --- /tmp/ip1
+                                            * ----- /tmp/ip1
+                                            * --- /tmp/ip2
+                                            * ----- /tmp/ip2
+                                            */
+                                           ComponentStatusReport(c.componentName, c.groupedComponentValues.map { case(v,u) => (u ->
+                                             ComponentValueStatusReport(v, u, MessageStatusReport(mrs, "") :: Nil)
+                                             )}.toMap)
+                                         ))
+                                       }
+                                     } else {
+                                       Nil
+                                     })
+                                   val t3 = System.nanoTime
+                                   u2 += t3-t2
 
                                    //unexpected contains the one with unexpected key and all non matching serial/version
-                                   val unexpected = buildUnexpectedDirectives(
+                                   val unexpected = (if (okKeys.size != reportKeys.size) {
+                                     buildUnexpectedDirectives(
                                        reports.filterKeys(k => !expectedKeys.contains(k)).values.flatten.toSeq
-                                   )
-                                   val t4 = System.currentTimeMillis
-                                   TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - unexpected directives computation: ${t4-t3}ms")
+                                     )
+                                   } else {
+                                     Seq[DirectiveStatusReport]()
+                                   })
+
+                                   val t4 = System.nanoTime
+                                   u3 += t4-t3
 
                                    val expected = okKeys.map { k =>
                                      val (policyMode, missingReportStatus, components) = expectedComponents(k)
@@ -873,8 +887,9 @@ object ExecutionBatch extends Loggable {
                                        checkExpectedComponentWithReports(components, reports(k), missingReportStatus, policyMode, unexpectedInterpretation)
                                      ))
                                    }
-                                   val t5 = System.currentTimeMillis
-                                   TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - expected directives computation: ${t5-t4}ms")
+
+                                   val t5 = System.nanoTime
+                                   u4 += t5-t4
 
                                    missing ++ unexpected ++ expected
                                 }
@@ -892,8 +907,13 @@ object ExecutionBatch extends Loggable {
       )
     }).toMap
     val t10 = System.currentTimeMillis
-    TimingDebugLogger.trace(s"Compliance: Compute complianceForRun map: ${t10-t0}ms")
 
+    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - prepare data: ${u1/1000}µs")
+    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - get missing reports: ${u2/1000}µs")
+    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - unexpected directives computation: ${u3/1000}µs")
+    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - expected directives computation: ${u4/1000}µs")
+
+    TimingDebugLogger.trace(s"Compliance: Compute complianceForRun map: ${t10-t0}ms")
     //now, for all current expected reports, choose between the computed value and the default one
 
     // note: isn't there something specific to do for unexpected reports ? Keep them all ?
@@ -901,6 +921,7 @@ object ExecutionBatch extends Loggable {
     val nil = Seq[RuleNodeStatusReport]()
     val currentRunReports = buildRuleNodeStatusReport(mergeInfo, currentConfig, ReportType.Pending)
     val t11 = System.currentTimeMillis
+
     TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - compute buildRuleNodeStatusReport: ${t11-t10}ms")
 
     val (computed, newStatus) = currentRunReports.foldLeft((nil, nil)) { case ( (c,n), currentStatusReports) =>
@@ -1025,15 +1046,15 @@ object ExecutionBatch extends Loggable {
 
     // an utility class that store an expected value and the list of mathing reports for it
     final case class Value(
-        value           : String
-      , unexpanded      : String
-      , cardinality     : Int // number of expected reports, most of the time '1'
-      , numberDuplicates: Int // the number of dropped duplicated message for that pairing, so that we can know how bad syslog is. Should be 0.
-      , isVar           : Boolean
-      , pattern         : Pattern
-      , specificity     : Int // how specific the pattern is. ".*" is 0 (not specific at all), "foobarbaz" is 9.
-      , matchingReports : List[Reports]
-    )
+                            value: String
+                            , unexpanded: String
+                            , cardinality: Int // number of expected reports, most of the time '1'
+                            , numberDuplicates: Int // the number of dropped duplicated message for that pairing, so that we can know how bad syslog is. Should be 0.
+                            , isVar: Boolean
+                            , pattern: Option[Pattern]
+                            , specificity: Int // how specific the pattern is. ".*" is 0 (not specific at all), "foobarbaz" is 9.
+                            , matchingReports: List[Reports]
+                          )
 
     /*
      * This function recursively try to pair the first report from input list with one of the component
@@ -1056,23 +1077,24 @@ object ExecutionBatch extends Loggable {
       //   values (or if not runtime, at least a sequence obtained through a variable).
       // Be careful: the list of values must be kept sorted in the same order as paramater!
       def findMatchingValue(
-          report              : ResultReports
-        , values              : List[Value]
-        , dropDuplicated      : (Value, ResultReports) => Boolean
-        , incrementCardinality: (Value, ResultReports) => Boolean
-      ): (List[Value], Option[Value]) = {
+                             report: ResultReports
+                             , values: List[Value]
+                             , dropDuplicated: (Value, ResultReports) => Boolean
+                             , incrementCardinality: (Value, ResultReports) => Boolean
+                           ): (List[Value], Option[Value]) = {
         val (stack, found) = values.foldLeft(((Nil: List[Value]), Option.empty[Value])) { case ((stack, found), value) =>
           found match {
             case Some(x) => (value :: stack, Some(x))
-            case None    =>
-              if(value.pattern.matcher(report.keyValue).matches()) {
-                val card = value.cardinality + (if(incrementCardinality(value, report)) 1 else 0)
-                val (r, nbDup) = if(dropDuplicated(value, report)) {
+            case None =>
+              // We don't need to match if it's not a variable. By construct, if it is a var, there is a pattern
+              if ( ((!value.isVar)&&(value.value==report.keyValue)) || (value.isVar && (value.pattern.get.matcher(report.keyValue).matches())) ) {
+                val card = value.cardinality + (if (incrementCardinality(value, report)) 1 else 0)
+                val (r, nbDup) = if (dropDuplicated(value, report)) {
                   val msg = s"Following report is duplicated and will be ignored because of Rudder setting choice: ${report.toString}"
-                  if(value.numberDuplicates <= 0) { //first time is an info
+                  if (value.numberDuplicates <= 0) { //first time is an info
                     logger.info(msg)
                     (value.matchingReports, 1)
-                  } else if(value.numberDuplicates == 1) { //second time is a warning
+                  } else if (value.numberDuplicates == 1) { //second time is a warning
                     logger.warn(msg)
                     (value.matchingReports, 2)
                   } else { // more than two times: log error and let the report leads to an unexpected
@@ -1084,9 +1106,9 @@ object ExecutionBatch extends Loggable {
                   (report :: value.matchingReports, value.numberDuplicates)
                 }
                 (stack, Some(value.copy(
-                    cardinality      = card
+                  cardinality = card
                   , numberDuplicates = nbDup
-                  , matchingReports  = r
+                  , matchingReports = r
                 )))
               } else {
                 (value :: stack, None)
@@ -1109,9 +1131,9 @@ object ExecutionBatch extends Loggable {
           tryPair match {
             case Some(v) =>
               recPairReports(tail, newFreeValues, v :: pairedValues, unexpected, mode)
-            case None    =>
+            case None =>
               // here, we don't have found any free value for that report. We are not done yet because it can be an
-              // unexpected reprots bound to an already existing value (and so the whole component should be
+              // unexpected reports bound to an already existing value (and so the whole component should be
               // unexpected or if mode allows duplicates or unbound var values, it can be ok.
 
               val duplicate = (value: Value, report: ResultReports) => {
@@ -1120,7 +1142,7 @@ object ExecutionBatch extends Loggable {
                   // and we will also forbid more than 3 duplicates for the same component value. Because if there is
                   // more than 3, it's OK to raise attention of people on that, it may be an other problem than syslog
                   // being made, or syslog being so made than something must be done.
-                  val dup = value.matchingReports.collect { case r if(r == report) => r}
+                  val dup = value.matchingReports.collect { case r if (r == report) => r }
                   //predicate OK if we found at least one identical report
                   dup.size >= 1
                 }
@@ -1154,27 +1176,35 @@ object ExecutionBatch extends Loggable {
     // bugs like #7758. A pattern specificity, in our case, can somehow be told from
     // the lenght of the pattern when \Q\E.* are removed.
     //
-    val values = expectedComponent.groupedComponentValues.toList.map { case(v, u) =>
+    val values = expectedComponent.groupedComponentValues.toList.map { case (v, u) =>
       val isVar = matchCFEngineVars.pattern.matcher(v).matches()
-      val pattern = replaceCFEngineVars(v)
-      val specificity = pattern.toString.replaceAll("""\\Q""", "").replaceAll("""\\E""", "").replaceAll("""\.\*""", "").size
+      val pattern = if (isVar) { // If this is not a var, there isn't anything to replace.
+        Some(replaceCFEngineVars(v))
+      } else {
+        None
+      }
+      //If this is not a variable, we use the variable itself
+      val specificity = pattern.map(_.toString.replaceAll("""\\Q""", "").replaceAll("""\\E""", "").replaceAll("""\.\*""", "")).getOrElse("v").size
       // default cardinality for a value is 1
       // default duplicate is 0 (and hopefully will remain so)
       Value(v, u, 1, 0, isVar, pattern, specificity, Nil)
-    }.sortWith( _.specificity > _.specificity)
+    }.sortWith(_.specificity > _.specificity)
 
-    logger.trace("values order: \n - " + values.mkString("\n - "))
+    if (logger.isTraceEnabled)
+      logger.trace("values order: \n - " + values.mkString("\n - "))
 
     // we also need to sort reports to have a chance to not use a specific pattern for not the most specific report
-    val sortedReports = filteredReports.sortWith( _.keyValue.size > _.keyValue.size )
+    val sortedReports = filteredReports.sortWith(_.keyValue.size > _.keyValue.size)
 
-    logger.trace("sorted reports: \n - "+ sortedReports.map( _.keyValue).mkString("\n - "))
+    if (logger.isTraceEnabled)
+      logger.trace("sorted reports: \n - " + sortedReports.map(_.keyValue).mkString("\n - "))
 
     val (pairedValue, unexpected) = recPairReports(sortedReports.toList, values, Nil, Nil, unexpectedInterpretation)
 
-    logger.trace("paires: \n + " + pairedValue.mkString("\n + "))
-    logger.trace("unexpected: " + unexpected)
-
+    if (logger.isTraceEnabled) {
+      logger.trace("paires: \n + " + pairedValue.mkString("\n + "))
+      logger.trace("unexpected: " + unexpected)
+    }
     // now, we need to transform pairedValue into ComponentStatus reports
     val unexpectedReportStatus = unexpected.map(r =>
       ComponentValueStatusReport(r.keyValue, r.keyValue, MessageStatusReport(ReportType.Unexpected, r.message) :: Nil)
