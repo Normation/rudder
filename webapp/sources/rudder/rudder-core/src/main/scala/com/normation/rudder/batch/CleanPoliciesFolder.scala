@@ -75,7 +75,8 @@ class CleanPoliciesFolder(
   def launch = {
     (for {
       nodes <- nodeInfoService.getAll()
-      deleted <- cleanPoliciesFolderOfDeletedNode(nodes)
+      d <- Box.tryo{cleanPoliciesFolderOfDeletedNode(nodes)}
+      deleted <- d
     } yield {
       deleted
     }) match {
@@ -98,7 +99,7 @@ class CleanPoliciesFolder(
     import File._
 
     def getNodeFolders(file: File, parentId: String): Iterator[String] = {
-      file.children.filter{d => d.name !="rules" && d.isDirectory && (d / "rules").exists}.flatMap {
+      file.children.filter{d => d.name !="rules" && d.isDirectory && (d / "rules").exists}.map(_.autoClosed).flatMap {
         nodeFolder =>
           val nodeId = NodeId(nodeFolder.name)
           if (
@@ -110,7 +111,9 @@ class CleanPoliciesFolder(
             }
           ) {
            nodeFolder.delete()
-           Iterator(nodeFolder.name)
+           val res = Iterator(nodeFolder.name)
+            nodeFolder.autoClosed
+           res
           } else {
             if ((nodeFolder / "share").exists) {
             getNodeFolders(nodeFolder / "share", nodeFolder.name)
