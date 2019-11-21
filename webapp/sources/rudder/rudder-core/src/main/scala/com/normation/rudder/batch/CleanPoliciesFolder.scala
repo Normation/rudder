@@ -95,7 +95,7 @@ class CleanPoliciesFolder(
     }
   }
 
-  def cleanPoliciesFolderOfDeletedNode(currentNodes : Map[NodeId,NodeInfo]) : Box[Seq[String]] = {
+  def cleanPoliciesFolderOfDeletedNode(currentNodes : Map[NodeId,NodeInfo]) : Box[List[String]] = {
     import File._
 
     def getNodeFolders(file: File, parentId: String): Iterator[String] = {
@@ -132,9 +132,9 @@ class CleanPoliciesFolder(
       }
           }
       }
-    
 
-    Try(getNodeFolders(root/"var"/"rudder"/"share", "root").toSeq) match {
+
+    Try(getNodeFolders(root/"var"/"rudder"/"share", "root").toList) match {
       case Success(value) => Full(value)
       case Catch(e) => Failure(e.getMessage, Full(e), Empty)
     }

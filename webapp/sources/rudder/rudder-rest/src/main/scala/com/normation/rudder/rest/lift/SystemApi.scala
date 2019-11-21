@@ -50,7 +50,6 @@ import com.normation.rudder.UserService
 import com.normation.rudder.batch.CleanPoliciesFolder
 import com.normation.rudder.repository.xml.{GitFindUtils, GitTagDateTimeFormatter}
 import com.normation.rudder.repository.{GitArchiveId, GitCommitId, ItemArchiveManager}
-import com.normation.rudder.rest.SystemApi.CleanPolicies
 import com.normation.rudder.services.{ClearCacheService, DebugInfoScriptResult, DebugInfoService}
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
