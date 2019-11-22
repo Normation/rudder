@@ -48,12 +48,12 @@ import com.normation.rudder.domain.reports.DirectiveExpectedReports
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.GlobalComplianceMode
-
 import org.joda.time.DateTime
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
 import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.services.reports.ExecutionBatch.MergeInfo
 
 
 
@@ -67,6 +67,67 @@ class ExecutionBatchTest extends Specification {
 
   val strictUnexpectedInterpretation = UnexpectedReportInterpretation(Set())
   val executionTimestamp = new DateTime()
+
+  /**
+   * Construct all the data for mergeCompareByRule, to have pleinty of data
+   */
+  def buildDataForMergeCompareByRule(
+      nodeId         : String
+    , nbRules        : Int
+    , nbDirectives   : Int
+    , nbReportsPerDir: Int
+  ) = {
+    val ruleIds = (1 to nbRules).map("rule_id_"+_+nodeId).toSeq
+    val directiveIds = (1 to nbDirectives).map("directive_id_"+_+nodeId).toSeq
+    val dirPerRule = ruleIds.map(rule => (RuleId(rule), directiveIds.map(dir => DirectiveId(dir + "@@"+rule))))
+
+
+    val treeOfData = dirPerRule map { case (ruleId, directives) =>
+      (ruleId, directives.map(dirId => (dirId, (1 to nbReportsPerDir).map("component"+dirId.value+_).toSeq)))
+    }
+
+    // create RuleExpectedReports
+    val expectedReports = treeOfData.map { case (ruleId, directives) =>
+        RuleExpectedReports(ruleId,
+          directives.map { case (directiveId, components) =>
+            DirectiveExpectedReports(directiveId, None, false,
+              components.map(componentName => ComponentExpectedReport(componentName, componentName :: Nil, componentName :: Nil)).toList
+            )
+          }.toList
+        )
+    }
+    val now = DateTime.now
+
+    val executionReports = expectedReports.flatMap { case RuleExpectedReports(ruleId, directives) =>
+      directives.flatMap { case DirectiveExpectedReports(directiveId, _, _, components) =>
+        components.flatMap { case ComponentExpectedReport(componentName, componentsValues, _) =>
+          componentsValues.map { case value =>
+            ResultSuccessReport(now, ruleId, directiveId, nodeId, 0, componentName, value, now, "empty text")
+          }
+        }
+      }
+    }
+
+    val globalPolicyMode = GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always)
+
+    val nodeConfigId = NodeConfigId("version_" + nodeId)
+    val mode = NodeModeConfig(GlobalComplianceMode(FullCompliance, 30), None, AgentRunInterval(None, 5, 14, 5, 4), None, globalPolicyMode, Some(PolicyMode.Enforce))
+
+    val nodeExpectedReport = NodeExpectedReports(
+         NodeId(nodeId)
+      ,  nodeConfigId
+      , now
+      , None
+      , mode
+      , expectedReports.toList
+      , Nil
+    )
+
+    val mergeInfo = MergeInfo(NodeId(nodeId), Some(now), Some(nodeConfigId), now.plus(100))
+
+    (mergeInfo, executionReports, nodeExpectedReport, nodeExpectedReport, strictUnexpectedInterpretation)
+
+  }
 
   def buildExpected(
       nodeIds: Seq[String]
@@ -1054,4 +1115,34 @@ class ExecutionBatchTest extends Specification {
     }
   }
 
+  "performance for mergeCompareByRule" should {
+    val nbRuleInit = 12
+    val initData = buildDataForMergeCompareByRule("test", nbRuleInit, 12, 4)
+
+    val nodeList = (1 to 100).map("nodeId_" + _).toSeq
+
+    val runData = nodeList.map(buildDataForMergeCompareByRule(_, 15, 12, 5))
+
+    "init correctly" in {
+      val result = (ExecutionBatch.mergeCompareByRule _).tupled(initData)
+      result.size === nbRuleInit and
+      result.toSeq.map(x => x.compliance).map(x => x.success).sum === 576
+    }
+
+    "run fast enough" in {
+      runData.map(x =>  (ExecutionBatch.mergeCompareByRule _).tupled(x) )
+
+      val t0 = System.currentTimeMillis
+
+      for (i <- 1 to 10) {
+        val t0_0 = System.currentTimeMillis
+        runData.map(x => (ExecutionBatch.mergeCompareByRule _).tupled(x))
+        val t1_1 = System.currentTimeMillis
+        println(s"${i}th call to mergeCompareByRule for ${nodeList.size} nodes took ${t1_1-t0_0}ms")
+      }
+      val t1 = System.currentTimeMillis
+      println(s"Time to run test is ${t1-t0} ms")
+      (t1-t0) must be lessThan( 50000 ) // On my Dell XPS15, this test runs in 7500-8500 ms
+    }
+  }
 }
