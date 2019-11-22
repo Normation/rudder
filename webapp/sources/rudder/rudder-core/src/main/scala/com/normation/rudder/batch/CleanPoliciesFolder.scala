@@ -99,6 +99,15 @@ class CleanPoliciesFolder(
     def getNodeFolders(file: File, parentId: String): Iterator[String] = {
       file.children.flatMap {
         nodeFolder =>
+          if (logger.isDebugEnabled) {
+            val openfd = try {
+              (root / "proc" / "self").children.size
+            } catch {
+              case fse: FileSystemException =>
+                -1
+            }
+            logger.debug(s"Currently ${openfd} open files by Rudder Server process")
+          }
           val nodeId = NodeId(nodeFolder.name)
           if (
             currentNodes.get(nodeId) match {
@@ -126,9 +135,17 @@ class CleanPoliciesFolder(
       Full(getNodeFolders(root / "var" / "rudder" / "share", "root").toList )
     } catch {
       case fse : FileSystemException =>
-        Failure("Too many files open, maybe you can raise open file descriptor limit (ulimit -n)", Full(fse), Empty)
+
+        val openfd = try {
+          (root / "proc" / "self").children.size
+        } catch {
+        case fse: FileSystemException =>
+            -1
+        }
+        Failure(s"Too many files open (currently ${openfd}, but number may have dropped), maybe you can raise open file descriptor limit (ulimit -n)", Full(fse), Empty)
     }
   }
 
 }
+
 
