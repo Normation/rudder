@@ -86,7 +86,7 @@ class CleanPoliciesFolder(
         val error = (eb ?~! s"Error when deleting unreferenced policies directory")
         logger.error(error.messageChain)
         error.rootExceptionCause.foreach(ex =>
-          logger.error("Exception was:", ex)
+          logger.debug("Exception was:", ex)
         )
         error
       case Full(deleted) =>
@@ -133,7 +133,7 @@ class CleanPoliciesFolder(
       }
     } catch {
       case fse : FileSystemException =>
-        Failure(fse.getMessage, Full(fse), Empty)
+        Failure("Too many files open, maybe you can augment fd limit (ulimit)", Full(fse), Empty)
     }
   }
 
