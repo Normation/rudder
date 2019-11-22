@@ -40,7 +40,6 @@ package com.normation.rudder.batch
 import java.nio.file.FileSystemException
 
 import better.files.File
-import better.files.File.root
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.rudder.domain.nodes.NodeInfo
@@ -49,8 +48,6 @@ import monix.execution.Scheduler.{global => scheduler}
 import net.liftweb.common._
 
 import scala.concurrent.duration._
-import scala.util.{Success, Failure => Catch}
-import scala.util.Try
 
 
 /**
@@ -77,8 +74,7 @@ class CleanPoliciesFolder(
   def launch = {
     (for {
       nodes <- nodeInfoService.getAll()
-      d <- Box.tryo{cleanPoliciesFolderOfDeletedNode(nodes)}
-      deleted <- d
+      deleted <- cleanPoliciesFolderOfDeletedNode(nodes)
     } yield {
       deleted
     }) match {
@@ -127,13 +123,10 @@ class CleanPoliciesFolder(
 
 
     try {
-      Try(getNodeFolders(root / "var" / "rudder" / "share", "root").toList) match {
-        case Success(value) => Full(value)
-        case Catch(e) => Failure(e.getMessage, Full(e), Empty)
-      }
+      Full(getNodeFolders(root / "var" / "rudder" / "share", "root").toList )
     } catch {
       case fse : FileSystemException =>
-        Failure("Too many files open, maybe you can augment fd limit (ulimit)", Full(fse), Empty)
+        Failure("Too many files open, maybe you can raise open file descriptor limit (ulimit -n)", Full(fse), Empty)
     }
   }
 
