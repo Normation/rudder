@@ -2056,7 +2056,7 @@ object RudderConfig extends Loggable {
    * Agent runs: we use a cache for them.
    */
   private[this] lazy val cachedAgentRunRepository = {
-    val roRepo = new RoReportsExecutionRepositoryImpl(doobie, pgIn)
+    val roRepo = new RoReportsExecutionRepositoryImpl(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
     new CachedReportsExecutionRepository(
         roRepo
       , new WoReportsExecutionRepositoryImpl(doobie, roRepo )
