@@ -37,6 +37,8 @@
 
 package com.normation.rudder.batch
 
+import java.nio.file.FileSystemException
+
 import better.files.File
 import better.files.File.root
 import com.normation.inventory.domain.NodeId
@@ -124,9 +126,14 @@ class CleanPoliciesFolder(
     }
 
 
-    Try(getNodeFolders(root/"var"/"rudder"/"share", "root").toList) match {
-      case Success(value) => Full(value)
-      case Catch(e) => Failure(e.getMessage, Full(e), Empty)
+    try {
+      Try(getNodeFolders(root / "var" / "rudder" / "share", "root").toList) match {
+        case Success(value) => Full(value)
+        case Catch(e) => Failure(e.getMessage, Full(e), Empty)
+      }
+    } catch {
+      case fse : FileSystemException =>
+        Failure(fse.getMessage, Full(fse), Empty)
     }
   }
 
