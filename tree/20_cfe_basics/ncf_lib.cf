@@ -786,6 +786,7 @@ body select_region ncf_section_AIX_user(username)
 body copy_from ncf_local_cp_method(from, method)
 {
   source      => "${from}";
+  type_check  => "true";
   compare     => "${method}";
   copy_backup => "timestamp";
 }
@@ -796,6 +797,7 @@ body copy_from ncf_remote_cp_method(from, server, method)
 {
   servers     => { "${server}" };
   source      => "${from}";
+  type_check  => "true";
   portnumber  => "${configuration.cfengine_port}";
   compare     => "${method}";
   encrypt     => "true";
