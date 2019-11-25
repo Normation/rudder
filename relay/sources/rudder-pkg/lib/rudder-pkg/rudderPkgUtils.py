@@ -47,7 +47,7 @@ def startLogger(logLevel):
         fail("unknow loglevel %s"%(logLevel))
 
     # log file logger
-    if not os.is_dir(os.path.dirname(LOG_PATH)):
+    if not os.path.isdir(os.path.dirname(LOG_PATH)):
       os.makedirs(os.path.dirname(LOG_PATH))
     fileHandler = logging.handlers.RotatingFileHandler(filename=LOG_PATH,maxBytes=1000000,backupCount=1)
     fileHandler.setLevel(logging.DEBUG)
