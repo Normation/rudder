@@ -302,6 +302,7 @@ object RudderConfig extends Loggable {
       x
     }
   }
+
   val RUDDER_DIR_GITROOT = config.getString("rudder.dir.gitRoot")
   val RUDDER_DIR_TECHNIQUES = RUDDER_DIR_GITROOT + "/techniques"
   val RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL = config.getInt("rudder.batch.dyngroup.updateInterval") //60 //one hour
@@ -319,7 +320,7 @@ object RudderConfig extends Loggable {
   val RUDDER_BATCH_DATABASECLEANER_RUNTIME_MINUTE = config.getInt("rudder.batch.databasecleaner.runtime.minute") //AutomaticReportsCleaning.defaultMinute
   val RUDDER_BATCH_DATABASECLEANER_RUNTIME_DAY = config.getString("rudder.batch.databasecleaner.runtime.day") //"sunday"
   val RUDDER_BATCH_REPORTS_LOGINTERVAL = config.getInt("rudder.batch.reports.logInterval") //1 //one minute
-  val RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH = config.getString("rudder.techniqueLibrary.git.refs.path")
+  val RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH = "refs/heads/master"
   // THIS ONE IS STILL USED FOR USERS USING GIT REPLICATION
   val RUDDER_AUTOARCHIVEITEMS = config.getBoolean("rudder.autoArchiveItems") //true
   val RUDDER_SYSLOG_PORT = config.getInt("rudder.syslog.port") //514
