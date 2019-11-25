@@ -173,6 +173,10 @@ class InventoryProcessor(
       }
     }
 
+    /*
+     * This method used to allow acceptation of nodes without signature. We will remove it in a futur
+     * minor of Rudder 6.0 if nothing blocking is found with mandatory signatures in all cases.
+     */
     def saveNoSignature(report: InventoryReport, keyStatus: KeyStatus): IOResult[InventoryProcessStatus] = {
       // Check if we need a signature or not
       (keyStatus match {
@@ -230,7 +234,8 @@ class InventoryProcessor(
 
                         // There is no Signature
                         case None =>
-                          saveNoSignature(report, secPair._2).chainError(s"Error when trying to check inventory key status for Node '${nodeId.value}'")
+                          Inconsistancy(s"Error, inventory '${report.node}' has no signature, which is not supported anymore in Rudder 6.0. " +
+                                        s"Please check that your node's agent is compatible with that version.").fail
                       }
       _            <- InventoryProcessingLogger.debug(s"Inventory '${report.name}' for node '${report.node.main.id.value}' pre-processed in ${PeriodFormat.getDefault.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
     } yield {
