@@ -303,7 +303,7 @@ object RudderConfig extends Loggable {
     }
   }
   val RUDDER_DIR_GITROOT = config.getString("rudder.dir.gitRoot")
-  val RUDDER_DIR_TECHNIQUES = config.getString("rudder.dir.techniques")
+  val RUDDER_DIR_TECHNIQUES = RUDDER_DIR_GITROOT + "/techniques"
   val RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL = config.getInt("rudder.batch.dyngroup.updateInterval") //60 //one hour
   val RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL = config.getInt("rudder.batch.techniqueLibrary.updateInterval") //60 * 5 //five minutes
   val RUDDER_BATCH_REPORTSCLEANER_ARCHIVE_TTL = config.getInt("rudder.batch.reportscleaner.archive.TTL") //AutomaticReportsCleaning.defaultArchiveTTL
