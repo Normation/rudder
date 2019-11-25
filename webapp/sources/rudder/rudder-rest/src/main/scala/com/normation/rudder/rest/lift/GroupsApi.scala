@@ -79,16 +79,16 @@ class GroupsApi(
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {
         case API.ListGroups  => List
+        case API.GetGroupTree => GetTree
         case API.GroupDetails => Get
         case API.DeleteGroup  => Delete
         case API.CreateGroup => Create
         case API.UpdateGroup => Update
-        case API.GetGroupTree => GetTree
         case API.DeleteGroupCategory => DeleteCategory
         case API.CreateGroupCategory => CreateCategory
         case API.GetGroupCategoryDetails => GetCategory
-        case API.ReloadGroup => Reload
         case API.UpdateGroupCategory => UpdateCategory
+        case API.ReloadGroup => Reload
     }).toList
   }
 

@@ -112,15 +112,15 @@ class NodeApi (
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {
+      case API.ListPendingNodes         => ListPendingNodes
       case API.NodeDetails              => NodeDetails
       case API.PendingNodeDetails       => PendingNodeDetails
       case API.DeleteNode               => DeleteNode
-      case API.UpdateNode               => UpdateNode
       case API.ChangePendingNodeStatus  => ChangePendingNodeStatus
       case API.ChangePendingNodeStatus2 => ChangePendingNodeStatus2
-      case API.ListAcceptedNodes        => ListAcceptedNodes
-      case API.ListPendingNodes         => ListPendingNodes
       case API.ApplyPocicyAllNodes      => ApplyPocicyAllNodes
+      case API.UpdateNode               => UpdateNode
+      case API.ListAcceptedNodes        => ListAcceptedNodes
       case API.ApplyPolicy              => ApplyPolicy
     })
   }
