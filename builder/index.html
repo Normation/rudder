@@ -434,14 +434,14 @@
                             </div>
 
                             <div class="method-param col-auto"  ng-if="getClassParameter(method_call).value">
-                              <label>{{getClassParameter(method_call).name}}:</label>
+                              <label>{{getClassParameter(method_call).name | parameterName}}:</label>
                               <input class="form-control" ng-click="$event.stopPropagation();" ng-readonly="true" ng-model="getClassParameter(method_call).value" />
                             </div>
                             <div ng-form="arg_method" ng-repeat="parameter in method_call.parameters  track by $index" class="method-errors col-auto">
                               <input ng-hide="true" type="text" name="param" ng-model="parameter.value" constraint parameter="parameter">
                               <ng-messages ng-if="parameter.$errors.length > 0" for="arg_method.param.$error" multiple>
                                 <div class="text-danger" ng-message="constraint">
-                                  Invalid constraint for parameter: '{{parameter.name}}'
+                                  Invalid constraint for parameter: '{{parameter.name | parameterName}}'
                                 </div>
                               </ng-messages>
                             </div>
@@ -479,7 +479,7 @@
                               <div class="form-group method-parameter" show-errors ng-form="subForm" ng-repeat="parameter in method_call.parameters track by $index">
                                 <ng-form name="paramForm" role="form">
                                   <label for="param-{{$index}}">
-                                    <span>{{parameter.name}}:</span>
+                                    <span>{{parameter.name | parameterName}}:</span>
                                     <small>
                                       {{parameter.description}}
                                     </small>
