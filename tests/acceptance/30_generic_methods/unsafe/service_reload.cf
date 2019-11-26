@@ -32,7 +32,8 @@ bundle agent init
     !systemd.(debian|suse)::
       "service_script" string => "cron";
 
-    "c_service_script" string => canonify("${service_script}");
+    any::
+      "c_service_script" string => canonify("${service_script}");
 }
 
 #######################################################
