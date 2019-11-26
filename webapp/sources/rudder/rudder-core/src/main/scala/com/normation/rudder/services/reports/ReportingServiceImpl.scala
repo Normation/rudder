@@ -56,6 +56,7 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.ReportsDisabled
 import com.normation.rudder.domain.nodes.NodeState
+import com.normation.utils.Control.sequence
 
 /**
  * Defaults non-cached version of the reporting service.
@@ -72,6 +73,7 @@ class ReportingServiceImpl(
   , val getGlobalComplianceMode    : () => Box[GlobalComplianceMode]
   , val getGlobalPolicyMode        : () => Box[GlobalPolicyMode]
   , val getUnexpectedInterpretation: () => Box[UnexpectedReportInterpretation]
+  , val jdbcMaxBatchSize           : Int
 ) extends ReportingService with RuleOrNodeReportingServiceImpl with DefaultFindRuleNodeStatusReports
 
 class CachedReportingServiceImpl(
@@ -301,6 +303,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
   def agentRunRepository         : RoReportsExecutionRepository
   def getGlobalComplianceMode    : () => Box[GlobalComplianceMode]
   def getUnexpectedInterpretation: () => Box[UnexpectedReportInterpretation]
+  def jdbcMaxBatchSize           : Int
 
   override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Map[NodeId, NodeStatusReport]] = {
     /*
@@ -406,43 +409,51 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
     , unexpectedInterpretation: UnexpectedReportInterpretation
   ): Box[Map[NodeId, NodeStatusReport]] = {
 
-    val t0 = System.currentTimeMillis
+    var u1, u2 = 0L
 
-    /*
-     * We want to optimize and only query reports for nodes that we
-     * actually want to merge/compare or report as unexpected reports
-     */
-    val agentRunIds = (runInfos.collect { case(nodeId, run:LastRunAvailable) =>
-       AgentRunId(nodeId, run.lastRunDateTime)
-    }).toSet ++ (runInfos.collect { case(nodeId, Pending(_, Some(run), _)) =>
-       AgentRunId(nodeId, run._1)
-    }).toSet
-
-    for {
+    val batchedRunsInfos = runInfos.grouped(jdbcMaxBatchSize).toSeq
+    val result = sequence(batchedRunsInfos) { runBatch =>
+      val t0 = System.nanoTime()
       /*
-       * now get reports for agent rules.
-       * We want to do a batch query for all nodes to be able to minimize number of requests.
-       *
-       * We don't want to do the query if we are in "reports-disabled" mode, since in that mode,
-       * either we don't have reports (expected) or we have reports that will be out of date
-       * (for ex. just after a change in the option).
+       * We want to optimize and only query reports for nodes that we
+       * actually want to merge/compare or report as unexpected reports
        */
-      reports <- complianceModeName match {
-                                      case ReportsDisabled => Full(Map[NodeId,Seq[Reports]]())
-                                      case _               => reportsRepository.getExecutionReports(agentRunIds, ruleIds)
-                                    }
-      t1      =  System.currentTimeMillis
-      _       =  TimingDebugLogger.trace(s"Compliance: get Execution Reports for ${runInfos.size} runInfos: ${t1-t0}ms")
-    } yield {
-      val t2 = System.currentTimeMillis
-      //we want to have nodeStatus for all asked node, not only the ones with reports
-      val nodeStatusReports = runInfos.par.map { case (nodeId, runInfo) =>
-        val status = ExecutionBatch.getNodeStatusReports(nodeId, runInfo, reports.getOrElse(nodeId, Seq()), unexpectedInterpretation)
-        (status.nodeId, status)
+      val agentRunIds = runBatch.flatMap { case (nodeId, run) => run match {
+        case r: LastRunAvailable    => Some(AgentRunId(nodeId, r.lastRunDateTime))
+        case Pending(_, Some(r), _) => Some(AgentRunId(nodeId, r._1))
+        case _                      => None
+      } }.toSet
+
+      for {
+        /*
+         * now get reports for agent rules.
+         *
+         * We don't want to do the query if we are in "reports-disabled" mode, since in that mode,
+         * either we don't have reports (expected) or we have reports that will be out of date
+         * (for ex. just after a change in the option).
+         */
+        reports <- complianceModeName match {
+          case ReportsDisabled => Full(Map[NodeId, Seq[Reports]]())
+          case _               => reportsRepository.getExecutionReports(agentRunIds, ruleIds)
+        }
+        t1 = System.nanoTime()
+        _  = u1 += (t1 -t0)
+        _ = TimingDebugLogger.trace(s"Compliance: get Execution Reports in batch for ${runInfos.size} runInfos: ${(t1 - t0)/1000}µs")
+      } yield {
+        val t2 = System.nanoTime()
+        //we want to have nodeStatus for all asked node, not only the ones with reports
+        val nodeStatusReports = runBatch.map { case (nodeId, runInfo) =>
+          val status = ExecutionBatch.getNodeStatusReports(nodeId, runInfo, reports.getOrElse(nodeId, Seq()), unexpectedInterpretation)
+          (status.nodeId, status)
+        }
+        val t3 = System.nanoTime()
+        u2 += (t3 - t2)
+        TimingDebugLogger.trace(s"Compliance: Computing nodeStatusReports in batch from execution batch: ${(t3 - t2)/1000}µs")
+        nodeStatusReports
       }
-      val t3 = System.currentTimeMillis
-      TimingDebugLogger.trace(s"Compliance: Computing nodeStatusReports from execution batch: ${t3-t2}ms")
-      nodeStatusReports.seq
     }
+    TimingDebugLogger.trace(s"Compliance: get Execution Reports for ${runInfos.size} runInfos: ${u1/1000}µs")
+    TimingDebugLogger.trace(s"Compliance: Computing nodeStatusReports from execution batch: ${u2/1000}µs")
+    result.map(_.flatten.toMap)
   }
 }

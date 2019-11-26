@@ -71,7 +71,7 @@ class ReportsTest extends DBCommon {
     sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa).unsafeRunSync
   }
 
-  lazy val repostsRepo = new ReportsJdbcRepository(doobie, 200)
+  lazy val repostsRepo = new ReportsJdbcRepository(doobie)
 
   sequential
 
