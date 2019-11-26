@@ -28,7 +28,9 @@ bundle agent init
     aix::
       "service_script" string => "syslogd";
     debian|suse::
-      "service_script" string => "cron";
+      "service_script" string => "dbus";
+
+    "c_service_script" string => canonify("${service_script}");
 }
 
 #######################################################
@@ -52,7 +54,7 @@ bundle agent test
 bundle agent check
 {
   classes:
-    "ok" expression => "service_reload_${init.service_script}_reached.service_reload_${init.service_script}_repaired.!service_reload_${init.service_script}_kept.!service_reload_${init.service_script}_error";
+    "ok" expression => "service_reload_${init.c_service_script}_reached.service_reload_${init.c_service_script}_repaired.!service_reload_${init.c_service_script}_kept.!service_reload_${init.c_service_script}_error";
 
   reports:
     ok::
