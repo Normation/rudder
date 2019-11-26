@@ -1,7 +1,7 @@
 #######################################################
 #
 # Test checking if ACLs are present or not
-# 
+#
 #######################################################
 
 bundle common acc_path
@@ -65,7 +65,7 @@ bundle agent init
       "group[7]" string => "";
       "other[7]" string => "";
 
-      "files[8]" string => "file4/subfile1";
+      "files[8]" string => "file4/1/2/3/4/5/subfile1";
       "user[8]"  string => "*:+rw";
       "group[8]" string => "";
       "other[8]" string => "";
@@ -86,6 +86,7 @@ bundle agent init
 
       "${tmp}/${files[4]}"
         create => "true",
+        depth_search => recurse_with_base("3"),
         acl    => access_generic("@{initial_acls_directories}");
 
 }

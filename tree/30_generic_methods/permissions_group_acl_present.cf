@@ -171,7 +171,7 @@ bundle agent permissions_group_acl_present(path, recursive, group, ace)
   files:
     pass2::
       "${file_array[${file_list}]}"
-        depth_search => include_base,
+        depth_search => recurse_with_base("inf"),
         acl => add_posix_acl(@{applied_aces}),
         classes => classes_generic("${inner_class_prefix[${file_list}]}"),
         ifvarclass => "path_exists_${canonified_file_array[${file_list}]}.isrecursive_${canonified_file_array[${file_list}]}";

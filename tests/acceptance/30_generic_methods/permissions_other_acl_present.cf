@@ -67,7 +67,7 @@ bundle agent init
       "status[4]"    string => "repaired";
       "execute[4]"   string => "true";
 
-      "files[5]"     string => "file4/subfile1";
+      "files[5]"     string => "file4/1/2/3/4/5/subfile1";
       "create[5]"    string => "true";
       "initial[5]"    slist => { "user:*:rwx", "group:*:rx", "group:bin:r", "user:bin:r", "all:r" };
       "exp_lines[5]"  slist => { "user::rwx", "group::r-x", "group:bin:r--", "user:bin:r--", "other::---" };
@@ -86,7 +86,7 @@ bundle agent init
       "files[7]"     string => "file7";
       "recursive[7]" string => "false";
       "ace[7]"       string => "+rwx";
-      "create[7]"    string => "true"; 
+      "create[7]"    string => "true";
       "initial[7]"    slist => { "user:*:rwx", "group:*:rx", "group:bin:r", "user:bin:r", "all:r" };
       "exp_lines[7]"  slist => { "user::rwx", "group::r-x", "group:bin:r--", "user:bin:r--", "other::rwx" };
       "mode[7]"      string => "enforce";
@@ -123,7 +123,7 @@ bundle agent init
       "status[10]"    string => "repaired";
       "execute[10]"   string => "true";
 
-      "files[11]"     string => "file10/subfile1";
+      "files[11]"     string => "file10/1/2/3/4/5/subfile1";
       "create[11]"    string => "true";
       "initial[11]"    slist => { "user:*:rwx", "group:*:rx", "group:bin:r", "user:bin:r", "all:r" };
       "exp_lines[11]"  slist => { "user::rwx", "group::r-x", "group:bin:r--", "user:bin:r--", "other::r--" };
@@ -160,6 +160,11 @@ bundle agent init
       "status[14]"    string => "success";
       "execute[14]"   string => "true";
 
+      "files[15_bis]"     string => "file15/1/2/3/4/5/subfile1";
+      "create[15_bis]"    string => "true";
+      "initial[15_bis]"    slist => { "user:*:rwx", "group:*:rx", "group:bin:x", "user:bin:r", "all:x" };
+      "exp_lines[15_bis]"  slist => { "user::rwx", "group::r-x", "group:bin:--x", "user:bin:r--", "other::--x" };
+
       "files[15]"     string => "file15/.";
       "recursive[15]" string => "true";
       "ace[15]"       string => "-rw";
@@ -170,10 +175,6 @@ bundle agent init
       "status[15]"    string => "success";
       "execute[15]"   string => "true";
 
-      "files[16]"     string => "file15/subfile1";
-      "create[16]"    string => "true";
-      "initial[16]"    slist => { "user:*:rwx", "group:*:rx", "group:bin:x", "user:bin:r", "all:x" };
-      "exp_lines[16]"  slist => { "user::rwx", "group::r-x", "group:bin:--x", "user:bin:r--", "other::--x" };
 
       "files[17]"     string => "file17/.";
       "recursive[17]" string => "true";
@@ -189,7 +190,7 @@ bundle agent init
       "files[18]"     string => "file18";
       "recursive[18]" string => "false";
       "ace[18]"       string => "+rx";
-      "create[18]"    string => "true"; 
+      "create[18]"    string => "true";
       "initial[18]"    slist => { "user:*:rwx", "group:*:rx", "group:bin:r", "user:bin:r", "all:rx" };
       "exp_lines[18]"  slist => { "user::rwx", "group::r-x", "group:bin:r--", "user:bin:r--", "other::r-x" };
       "mode[18]"      string => "enforce";
@@ -226,7 +227,7 @@ bundle agent init
       "status[21]"    string => "success";
       "execute[21]"   string => "true";
 
-      "files[22]"     string => "file21/subfile1";
+      "files[22]"     string => "file21/1/2/3/4/5/subfile1";
       "create[22]"    string => "true";
       "initial[22]"    slist => { "user:*:rwx", "group:*:rx", "group:bin:rw", "user:bin:r", "all:r" };
       "exp_lines[22]"  slist => { "user::rwx", "group::r-x", "group:bin:rw-", "user:bin:r--", "other::r--" };
@@ -291,6 +292,12 @@ bundle agent init
       "status[29]"    string => "success";
       "execute[29]"   string => "true";
 
+
+      "files[30_bis]"     string => "file30/1/2/3/4/5/subfile1";
+      "create[30_bis]"    string => "true";
+      "initial[30_bis]"    slist => { "user:*:rwx", "group:*:rx", "group:bin:wx", "user:bin:r", "all:x" };
+      "exp_lines[30_bis]"  slist => { "user::rwx", "group::r-x", "group:bin:-wx", "user:bin:r--", "other::--x" };
+
       "files[30]"     string => "file30/.";
       "recursive[30]" string => "true";
       "ace[30]"       string => "-rw";
@@ -301,10 +308,6 @@ bundle agent init
       "status[30]"    string => "success";
       "execute[30]"   string => "true";
 
-      "files[31]"     string => "file30/subfile1";
-      "create[31]"    string => "true";
-      "initial[31]"    slist => { "user:*:rwx", "group:*:rx", "group:bin:wx", "user:bin:r", "all:x" };
-      "exp_lines[31]"  slist => { "user::rwx", "group::r-x", "group:bin:-wx", "user:bin:r--", "other::--x" };
 
       "files[32]"     string => "file32/.";
       "recursive[32]" string => "true";
@@ -357,7 +360,7 @@ bundle agent init
       "status[36]"    string => "success";
       "execute[36]"   string => "true";
 
-      "files[37]"     string => "file36/subfile1";
+      "files[37]"     string => "file36/1/2/3/4/5/subfile1";
       "create[37]"    string => "true";
       "initial[37]"    slist => { "user:*:rwx", "group:*:rx", "group:bin:rw", "user:bin:r", "all:r" };
       "exp_lines[37]"  slist => { "user::rwx", "group::r-x", "group:bin:rw-", "user:bin:r--", "other::r--" };
@@ -424,7 +427,7 @@ bundle agent init
       "status[43]"    string => "error";
       "execute[43]"   string => "true";
 
-      "files[44]"     string => "file43/subfile1";
+      "files[44]"     string => "file43/1/2/3/4/5/subfile1";
       "create[44]"    string => "true";
       "initial[44]"    slist => { "user:*:rwx", "group:*:rx", "group:bin:r", "user:bin:r", "all:r" };
       "exp_lines[44]"  slist => { "user::rwx", "group::r-x", "group:bin:r--", "user:bin:r--", "other::r--" };
@@ -480,7 +483,7 @@ bundle agent init
       "status[49]"    string => "error";
       "execute[49]"   string => "true";
 
-      "files[50]"     string => "file49/subfile1";
+      "files[50]"     string => "file49/1/2/3/4/5/subfile1";
       "create[50]"    string => "true";
       "initial[50]"    slist => { "user:*:rwx", "group:*:rx", "group:bin:r", "user:bin:r", "all:x" };
       "exp_lines[50]"  slist => { "user::rwx", "group::r-x", "group:bin:r--", "user:bin:r--", "other::--x" };
@@ -525,7 +528,7 @@ bundle agent init
       "exp_lines[56]"  slist => { "user::rwx", "group::r-x", "group:bin:---", "user:bin:r--", "other::---" };
       "execute[56]"   string => "false";
 
-      "files[57]"     string => "rfile4/subfile1";
+      "files[57]"     string => "rfile4/1/2/3/4/5/subfile1";
       "create[57]"    string => "true";
       "initial[57]"    slist => { "user:*:rwx", "group:*:rx", "group:bin:r", "user:bin:r", "all:r" };
       "exp_lines[57]"  slist => { "user::rwx", "group::r-x", "group:bin:r--", "user:bin:r--", "other::---" };
@@ -539,10 +542,15 @@ bundle agent init
       "execute[58]"   string => "true";
 
       "indices" slist => getindices("files");
+      # Needed for succes + recursive
+      "indices_recursive" slist => { "15", "30" };
 
       "printable_lines[${indices}]" string => join("${const.endl}", "exp_lines[${indices}]");
 
   classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
       "create_${indices}" expression => strcmp("${create[${indices}]}", "true");
 
   files:
@@ -550,6 +558,12 @@ bundle agent init
         create => "true",
         ifvarclass => "create_${indices}",
         acl => access_generic("@{initial[${indices}]}");
+
+      pass3::
+        "${tmp}/${files[${indices_recursive}]}"
+        create => "true",
+        depth_search => recurse_with_base("3"),
+        acl => access_generic("@{initial[${indices_recursive}]}");
 }
 
 #######################################################
