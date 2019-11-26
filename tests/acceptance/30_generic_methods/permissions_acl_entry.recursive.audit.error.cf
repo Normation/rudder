@@ -66,7 +66,7 @@ bundle agent init
       "other[7]" string => "";
 
       # Has a user:bin:rx instead of user:bin:r
-      "files[8]" string => "file7/subfile1";
+      "files[8]" string => "file7/1/2/3/4/5/subfile1";
       "user[8]"  string => "";
       "group[8]" string => "";
       "other[8]" string => "";
@@ -162,7 +162,7 @@ bundle agent check
       "lines_${init.create_indices}_ok" expression => "lines_matches_${init.create_indices}_${init.canonified_lines[${init.create_indices}]}";
       "lines_not_ok" expression => "lines_${init.create_indices}_ok";
 
-      
+
       "classes_ok"  expression => "ph1_ok.ph2_ok.ph3_ok.ph4_ok.ph5_ok.ph6_ok.ph7_ok.ph9_ok.ph10_ok.ph11_ok.ph12_ok.ph13_ok";
       "ok"          expression => "classes_ok.!lines_not_ok";
 
