@@ -103,6 +103,10 @@ object GroupApi extends ApiModuleProvider[GroupApi] {
     val description = "Create a new group"
     val (action, path)  = PUT / "groups"
   }
+  final case object GetGroupTree extends GroupApi with ZeroParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
+    val description = "List all group categories and group in a tree format"
+    val (action, path)  = GET / "groups" / "tree"
+  }
   final case object GroupDetails extends GroupApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     val description = "Get information about the given group"
     val (action, path)  = GET / "groups" / "{id}"
@@ -121,10 +125,7 @@ object GroupApi extends ApiModuleProvider[GroupApi] {
   }
   // API v5 updates 'Create' methods but no new endpoints
   // API v6
-  final case object GetGroupTree extends GroupApi with ZeroParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
-    val description = "List all group categories and group in a tree format"
-    val (action, path)  = GET / "groups" / "tree"
-  }
+
   final case object GetGroupCategoryDetails extends GroupApi with OneParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "Get information about the given group category"
     val (action, path)  = GET / "groups" / "categories" / "{id}"
