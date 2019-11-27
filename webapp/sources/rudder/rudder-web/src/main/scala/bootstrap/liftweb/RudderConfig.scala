@@ -1766,6 +1766,7 @@ object RudderConfig extends Loggable {
         , globalComplianceModeService.getGlobalComplianceMode _
         , configService.rudder_global_policy_mode _
         , () => configService.rudder_compliance_unexpected_report_interpretation().toBox
+        , RUDDER_JDBC_BATCH_MAX_SIZE
       )
     , nodeInfoServiceImpl
   )
@@ -1773,7 +1774,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val pgIn = new PostgresqlInClause(70)
   private[this] lazy val findExpectedRepo = new FindExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
   private[this] lazy val updateExpectedRepo = new UpdateExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
-  private[this] lazy val reportsRepositoryImpl = new ReportsJdbcRepository(doobie, RUDDER_JDBC_BATCH_MAX_SIZE)
+  private[this] lazy val reportsRepositoryImpl = new ReportsJdbcRepository(doobie)
   private[this] lazy val complianceRepositoryImpl = new ComplianceJdbcRepository(
       doobie
     , () => configService.rudder_save_db_compliance_details().toBox

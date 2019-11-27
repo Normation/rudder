@@ -176,7 +176,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
   val RUDDER_JDBC_BATCH_MAX_SIZE = 5000
   lazy val pgIn = new PostgresqlInClause(2)
-  lazy val reportsRepo = new ReportsJdbcRepository(doobie, RUDDER_JDBC_BATCH_MAX_SIZE)
+  lazy val reportsRepo = new ReportsJdbcRepository(doobie)
   lazy val findExpected = new FindExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
   lazy val updateExpected = new UpdateExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
 
@@ -335,6 +335,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     , () => Full(compliance)
     , () => GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always).succeed
     , () => Full(UnexpectedReportInterpretation(Set()))
+    , RUDDER_JDBC_BATCH_MAX_SIZE
   )
 
   sequential
