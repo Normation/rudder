@@ -157,6 +157,16 @@ app.directive('popover', function() {
   }
 });
 
+app.filter('parameterName', function () {
+  return function (text) {
+      if (!text) {
+          return text;
+      }
+
+      return text.charAt(0).toUpperCase() + text.substring(1).replace(/_/g, ' '); // Replaces all occurences
+  };
+})
+
 // Declare controller ncf-builder
 app.controller('ncf-builder', function ($scope, $uibModal, $http, $q, $location, $anchorScroll, ngToast, $timeout, focus, $sce, fileManagerConfig, apiMiddleware, apiHandler, $window) {
   // Variable we use in the whole application
