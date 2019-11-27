@@ -67,7 +67,8 @@ trait ReportsRepository {
   /**
    * Find the reports corresponding to the given agent executions,
    * so the reports for a set of (node, execution starting timestamp).
-   *
+   *  We assume that this method is called with a limited list of runs, as it can return a
+   *  *really* large amount of data
    * That method doesn't check if there is missing execution in
    * the result compared to inputs.
    */
