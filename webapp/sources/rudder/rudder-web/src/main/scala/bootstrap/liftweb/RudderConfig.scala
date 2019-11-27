@@ -245,6 +245,10 @@ object RudderConfig extends Loggable {
   // filter the fallback admin password
   filteredPasswords += "rudder.auth.admin.password"
 
+  // list of configuration properties that we want to totally hide
+  val hiddenRegisteredProperties = scala.collection.mutable.Buffer[String]()
+  hiddenRegisteredProperties += "rudder.dir.licensesFolder"
+
   //other values
 
   val LDAP_HOST = config.getString("ldap.host")
@@ -278,7 +282,7 @@ object RudderConfig extends Loggable {
   val RUDDER_DIR_DEPENDENCIES = config.getString("rudder.dir.dependencies")
   val RUDDER_DIR_LOCK = config.getString("rudder.dir.lock") //TODO no more used ?
   val RUDDER_DIR_SHARED_FILES_FOLDER = config.getString("rudder.dir.shared.files.folder")
-  val RUDDER_DIR_LICENSESFOLDER = config.getString("rudder.dir.licensesFolder")
+  val RUDDER_ENDPOINT_CMDB = config.getString("rudder.endpoint.cmdb")
   val RUDDER_WEBDAV_USER = config.getString("rudder.webdav.user")
   val RUDDER_WEBDAV_PASSWORD = config.getString("rudder.webdav.password") ; filteredPasswords += "rudder.webdav.password"
   val RUDDER_COMMUNITY_PORT = config.getInt("rudder.community.port")
@@ -424,7 +428,6 @@ object RudderConfig extends Loggable {
 
   val HOOKS_IGNORE_SUFFIXES = RudderProperties.splitProperty(config.getString("rudder.hooks.ignore-suffixes"))
 
-  val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"
   val prettyPrinter = new RudderPrettyPrinter(Int.MaxValue, 2)
   val userLibraryDirectoryName = "directives"
@@ -1052,14 +1055,16 @@ object RudderConfig extends Loggable {
       val config = RudderProperties.config
       if(ApplicationLogger.isInfoEnabled) {
         //sort properties by key name
-        val properties = config.entrySet.asScala.toSeq.sortBy( _.getKey ).map{ x =>
+        val properties = config.entrySet.asScala.toSeq.sortBy( _.getKey ).flatMap{ x =>
           //the log line: registered property: property_name=property_value
-          s"registered property: ${x.getKey}=${if(filteredPasswords.contains(x.getKey)) "**********" else x.getValue.render}"
+          if(hiddenRegisteredProperties.contains(x.getKey)) None
+          else Some(s"registered property: ${x.getKey}=${if(filteredPasswords.contains(x.getKey)) "**********" else x.getValue.render}")
         }
         ApplicationLogger.info("List of registered properties:")
         properties.foreach { p =>
           ApplicationLogger.info(p)
         }
+        ApplicationLogger.info("Plugin's license directory: '/opt/rudder/etc/plugins/licenses/'")
       }
 
       ////////// bootstraps checks //////////
