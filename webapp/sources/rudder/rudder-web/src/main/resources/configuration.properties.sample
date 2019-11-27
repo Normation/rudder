@@ -250,11 +250,6 @@ rudder.webdav.password=rudder
 rudder.community.port=5309
 
 #
-# Path to where CFEngine Enterprise (ex Nova) licenses are stored.
-#
-rudder.dir.licensesFolder=/opt/rudder/etc/licenses
-
-#
 # Directories used to write nodes policies.
 # - policies generated for a node with id UUID go in ***/var/rudder/share/UUID***
 #   For now, that property can not be modified, because there is no simple
