@@ -75,13 +75,13 @@ final class RuleStatusReport private (
   , val report : AggregatedStatusReport
   , val overrides : List[OverridenPolicy]
 ) extends StatusReport {
-  val compliance = report.compliance
-  val byNodes: Map[NodeId, AggregatedStatusReport] = report.reports.groupBy(_.nodeId).mapValues(AggregatedStatusReport(_))
+  lazy val compliance = report.compliance
+  lazy val byNodes: Map[NodeId, AggregatedStatusReport] = report.reports.groupBy(_.nodeId).mapValues(AggregatedStatusReport(_))
 }
 
 object RuleStatusReport {
   def apply(ruleId: RuleId, reports: Iterable[RuleNodeStatusReport], overrides : List[OverridenPolicy]) = {
-    new RuleStatusReport(ruleId, AggregatedStatusReport(reports.toSet.filter( _.ruleId == ruleId)), overrides)
+    new RuleStatusReport(ruleId, AggregatedStatusReport(reports.filter( _.ruleId == ruleId)), overrides)
   }
 }
 

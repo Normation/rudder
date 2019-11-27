@@ -37,6 +37,7 @@
 
 package com.normation.rudder.services.reports
 
+import com.normation.cfclerk.domain.{TechniqueVersion, UpstreamTechniqueVersion}
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -53,6 +54,7 @@ import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
 import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.reports.ExecutionBatch.MergeInfo
 
 
@@ -67,6 +69,45 @@ class ExecutionBatchTest extends Specification {
 
   val strictUnexpectedInterpretation = UnexpectedReportInterpretation(Set())
   val executionTimestamp = new DateTime()
+
+
+  def buildRules(nbRules:Int) = {
+    (1 to nbRules).map("rule_id"+_).toSeq
+  }
+  /**
+   * compute nodestatusreports
+   *
+   */
+  def buildNodeStatusReports(
+      nodeId         : String
+    , nbRules        : Int
+    , nbDirectives   : Int
+  ) =  {
+    val ruleIds = buildRules(nbRules)
+    val directiveIds = (1 to nbDirectives).map("directive_id_"+_).toSeq
+    val dirPerRule = ruleIds.map(rule => (RuleId(rule), directiveIds.map(dir => DirectiveId(dir + "@@"+rule)))).toMap
+
+    val policyId = PolicyId(ruleIds.head, directiveIds.head, TechniqueVersion("1.0"))
+    val overridenBy = PolicyId(ruleIds.head, directiveIds.head, TechniqueVersion("2.0"))
+
+
+    val now = DateTime.now
+
+    val ruleNodeStatusReport = ruleIds.map { case ruleId => RuleNodeStatusReport(
+      NodeId(nodeId)
+      , RuleId(ruleId)
+      , None
+      , None
+      , dirPerRule(ruleId).map(dirId => (dirId, DirectiveStatusReport(dirId, Map()))).toMap
+      , now)
+    }
+
+    NodeStatusReport(
+      NodeId(nodeId)
+    , NoRunNoExpectedReport, RunComplianceInfo.OK
+    , OverridenPolicy(policyId, overridenBy) :: Nil
+    , ruleNodeStatusReport)
+  }
 
   /**
    * Construct all the data for mergeCompareByRule, to have pleinty of data
@@ -1115,6 +1156,7 @@ class ExecutionBatchTest extends Specification {
     }
   }
 
+  sequential
   "performance for mergeCompareByRule" should {
     val nbRuleInit = 12
     val initData = buildDataForMergeCompareByRule("test", nbRuleInit, 12, 4)
@@ -1143,6 +1185,34 @@ class ExecutionBatchTest extends Specification {
       val t1 = System.currentTimeMillis
       println(s"Time to run test is ${t1-t0} ms")
       (t1-t0) must be lessThan( 50000 ) // On my Dell XPS15, this test runs in 7500-8500 ms
+    }
+  }
+
+  "performance for buildRuleStatusReport" should {
+    val nbRuleInit = 50
+    val initData = buildNodeStatusReports("test", nbRuleInit, nbRuleInit)
+
+    val nodeList = (1 to 100).map("nodeId_" + _).toSeq
+
+    val runData = nodeList.map(id => (NodeId(id), buildNodeStatusReports(id, nbRuleInit, nbRuleInit))).toMap
+
+    "run fast enough" in {
+      val rules = buildRules(nbRuleInit).map(RuleId(_))
+
+      // Warm it up
+      rules.map(ruleId => ReportingServiceUtils.buildRuleStatusReport(ruleId, runData))
+
+      val t0 = System.currentTimeMillis
+
+      for (i <- 1 to 10) {
+        val t0_0 = System.currentTimeMillis
+        rules.map(ruleId => ReportingServiceUtils.buildRuleStatusReport(ruleId, runData))
+        val t1_1 = System.currentTimeMillis
+        println(s"${i}th call to buildRuleStatusReport for ${nodeList.size} nodes and ${nbRuleInit} rules took ${t1_1-t0_0}ms")
+      }
+      val t1 = System.currentTimeMillis
+      println(s"Time to run test is ${t1-t0} ms")
+      (t1-t0) must be lessThan( 10000 ) // On my Dell XPS15, this test runs in 3s
     }
   }
 }
