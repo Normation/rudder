@@ -342,7 +342,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
         elem.text(data.name);
 
         elem.click(function(){
-          localStorage.setItem('Active_Rule_Tab', 1);
+          localStorage.setItem('Active_Rule_Tab', 0);
         });
 
         // Row parameters
@@ -404,7 +404,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
         var elem = callbackElement(oData, "showForm");
         elem.append('<div id="compliance-bar-'+oData.id+'"><center><img class="ajaxloader svg-loader" src="'+resourcesPath+'/images/ajax-loader.svg" /></center></div>');
         elem.click(function(){
-          localStorage.setItem('Active_Rule_Tab', 1);
+          localStorage.setItem('Active_Rule_Tab', 0);
         });
         $(nTd).empty();
         $(nTd).prepend(elem);
@@ -423,7 +423,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
         var id = "Changes-"+oData.id;
         elem.append('<div id="'+id+'"></div>');
         elem.click(function(){
-          localStorage.setItem('Active_Rule_Tab', 1);
+          localStorage.setItem('Active_Rule_Tab', 0);
         });
         $(nTd).empty();
         $(nTd).prepend(elem);
@@ -443,7 +443,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
         elem.addClass("btn btn-default btn-xs");
         elem.click( function() {
           data.callback("showForm");
-          localStorage.setItem('Active_Rule_Tab', 0);
+          localStorage.setItem('Active_Rule_Tab', 1);
         } );
         elem.text("Edit");
         $(nTd).empty();
