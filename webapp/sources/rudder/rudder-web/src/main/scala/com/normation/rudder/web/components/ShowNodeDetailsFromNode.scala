@@ -67,7 +67,6 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.box._
-import com.normation.rudder.web.services.DisplayNode.displayTabProperties
 
 object ShowNodeDetailsFromNode {
 
