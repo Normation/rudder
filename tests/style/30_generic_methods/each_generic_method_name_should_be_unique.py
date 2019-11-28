@@ -6,7 +6,7 @@ import ncf
 
 def check_comments_for_all_generic_methods():
   errors = 0
-  filenames = ncf.get_all_generic_methods_filenames()
+  filenames = ncf.get_all_generic_methods_filenames(None)
   names = []
 
   for file in filenames:
