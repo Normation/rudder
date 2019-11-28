@@ -61,6 +61,20 @@ import com.normation.utils.Control.sequence
 import com.normation.box._
 import com.normation.errors._
 
+object ReportingServiceUtils {
+
+  /*
+   * Build rule status reports from node reports, decide=ing which directive should be "skipped"
+   */
+  def buildRuleStatusReport(ruleId: RuleId, nodeReports: Map[NodeId, NodeStatusReport]): RuleStatusReport = {
+    val toKeep = nodeReports.values.flatMap( _.report.reports ).filter(_.ruleId == ruleId).toList
+    // we don't keep overrides for a directive which is already in "toKeep"
+    val toKeepDir = toKeep.map(_.directives.keySet).toSet.flatten
+    val overrides = nodeReports.values.flatMap( _.overrides.filterNot(r => toKeepDir.contains(r.policy.directiveId))).toList.distinct
+    RuleStatusReport(ruleId, toKeep, overrides)
+  }
+}
+
 /**
  * Defaults non-cached version of the reporting service.
  * Just the composition of the two defaults implementation.
@@ -110,9 +124,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
       _       =  TimingDebugLogger.debug(s"findCurrentNodeIds: Getting node IDs for rule '${ruleId.value}' took ${time_1-time_0}ms")
       reports <- findRuleNodeStatusReports(nodeIds, Set(ruleId))
     } yield {
-      val toKeep = reports.values.flatMap( _.report.reports )
-      val overrides = reports.values.flatMap( _.overrides.filter(_.overridenBy.ruleId != ruleId) ).toList.distinct
-      RuleStatusReport(ruleId, toKeep, overrides)
+      ReportingServiceUtils.buildRuleStatusReport(ruleId, reports)
     }
   }
 
