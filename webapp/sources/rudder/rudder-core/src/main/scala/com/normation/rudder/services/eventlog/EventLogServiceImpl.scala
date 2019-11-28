@@ -55,7 +55,7 @@ class EventLogDeploymentService(
    */
   def getLastDeployement() : Box[CurrentDeploymentStatus] = {
     val query = "eventtype in ('" + SuccessfulDeploymentEventType.serialize +"', '"+FailedDeploymentEventType.serialize +"')"
-    repository.getEventLogByCriteria(Some(query), Some(1), Some("creationdate desc") ).toBox match {
+    repository.getEventLogByCriteria(Some(query), Some(1), Some("creationdate desc"), None ).toBox match {
       case Full(seq) if seq.size > 1 => Failure("Too many answer from last policy update")
       case Full(seq) if seq.size == 1 =>
         eventLogDetailsService.getDeploymentStatusDetails(seq.head.details)
@@ -69,7 +69,7 @@ class EventLogDeploymentService(
    */
   def getLastSuccessfulDeployement() : Box[EventLog] = {
     val query = "eventtype = '"+SuccessfulDeploymentEventType.serialize +"'"
-    repository.getEventLogByCriteria(Some(query), Some(1), Some("creationdate desc") ).toBox match {
+    repository.getEventLogByCriteria(Some(query), Some(1), Some("creationdate desc"), None ).toBox match {
       case Full(seq) if seq.size > 1 => Failure("Too many answer from last policy update")
       case Full(seq) if seq.size == 1 => Full(seq.head)
       case Full(seq) if seq.size == 0 => Empty
@@ -84,7 +84,7 @@ class EventLogDeploymentService(
   def getListOfModificationEvents(lastSuccess : EventLog) = {
     val eventList = ModificationWatchList.events.map("'"+_.serialize+"'").mkString(",")
     val query = "eventtype in (" +eventList+ ") and id > " +lastSuccess.id.getOrElse(0)
-    repository.getEventLogByCriteria(Some(query), None, Some("id DESC") )
+    repository.getEventLogByCriteria(Some(query), None, Some("id DESC"), None )
   }
 
 }

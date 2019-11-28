@@ -90,8 +90,8 @@ class EventLogAPI (
     )
   }
 
-  def getEventLogBySlice(start: Int, criteria : Option[String], optLimit:Option[Int], orderBy:String): Box[Seq[EventLog]] = {
-    repos.getEventLogByCriteria(Some( s"${criteria.getOrElse("1 = 1")} order by ${orderBy} offset ${start}" ),  optLimit, None).toBox match  {
+  def getEventLogBySlice(start: Int, criteria : Option[String], optLimit:Option[Int], orderBy:String, filter: Option[String]): Box[Seq[EventLog]] = {
+    repos.getEventLogByCriteria(Some( s"${criteria.getOrElse("1 = 1")} order by ${orderBy} offset ${start}" ),  optLimit, None, filter).toBox match  {
       case Full(events) => Full( events)
       case eb: EmptyBox  => eb ?~! s"Error when trying fetch eventlogs from database for page ${(start/optLimit.getOrElse(1))+1}"
     }
@@ -99,6 +99,19 @@ class EventLogAPI (
 
   def requestDispatch: PartialFunction[Req, () => Box[LiftResponse]] = {
     case Post(Nil, req) =>
+
+
+      def extractFilterOpt(json : JValue) = {
+       for {
+         value <- CompleteJson.extractJsonString(json,"value")
+       } yield {
+         if (value == "") {
+           None
+         } else {
+           Some(s" temp1.filter like '%${value}%'")
+         }
+       }
+      }
 
       def extractDateTimeOpt(i : String) = {
         val format = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss")
@@ -115,6 +128,8 @@ class EventLogAPI (
         draw <- CompleteJson.extractJsonInt(json, "draw")
         start <- CompleteJson.extractJsonInt(json, "start")
         length <- CompleteJson.extractJsonInt(json, "length")
+
+        filter <- CompleteJson.extractJsonObj(json, "search", extractFilterOpt)
         optStartDate <- CompleteJson.extractJsonString(json,"startDate", extractDateTimeOpt)
         optEndDate   <- CompleteJson.extractJsonString(json,"endDate", extractDateTimeOpt)
 
@@ -137,19 +152,26 @@ class EventLogAPI (
             }
         }
 
-        dateCriteria = {
-          (optStartDate,optEndDate) match {
+
+
+        dateCriteria = (optStartDate,optEndDate)  match {
             case (None,None)         => None
             case (Some(start), None) => Some(s" creationDate >= '${start}'")
             case (None, Some(end))   => Some(s" creationDate <= '${end}'")
             case (Some(start), Some(end)) if end.isBefore(start) => Some(s" creationDate >= '${end}' and creationDate <= '${start}'")
             case (Some(start), Some(end))                        => Some(s" creationDate >= '${start}' and creationDate <= '${end}'")
           }
+
+        (criteria, from) = (filter,dateCriteria) match {
+          case (None, res) => (res, None)
+          case (Some(value), None) => (Some(value), Some(" from ( select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data, UNNEST(xpath('string(//entry)',data))::text as filter from eventlog) as temp1 "))
+          case (Some(value), Some(res)) => (Some(s"${value} and ${res}"), Some(" from ( select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data, UNNEST(xpath('string(//entry)',data))::text as filter from eventlog) as temp1 "))
         }
 
-        events <- getEventLogBySlice(start, dateCriteria, Some(length), order.mkString(", "))
+
+        events <- getEventLogBySlice(start, criteria, Some(length), order.mkString(", "), from)
         totalRecord <- repos.getEventLogCount(None).toBox
-        totalFilter <- repos.getEventLogCount(dateCriteria).toBox
+        totalFilter <- repos.getEventLogCount(criteria, from).toBox
       } yield {
         responseFormater(draw, totalRecord, totalFilter, events)
       }) match {

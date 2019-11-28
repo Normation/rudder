@@ -201,8 +201,9 @@ class EventLogJdbcRepository(
     }).transact(xa))
   }
 
-  def getEventLogCount(criteria : Option[String]): IOResult[Long] = {
-    val q  =s"SELECT count(*) FROM eventlog where ${criteria.getOrElse("1 = 1")}"
+  def getEventLogCount(criteria : Option[String], extendedFilter : Option[String] = None): IOResult[Long] = {
+    val from = extendedFilter.getOrElse("from eventlog")
+    val q  =s"SELECT count(*) ${from} where ${criteria.getOrElse("1 = 1")}"
     //sql"SELECT count(*) FROM eventlog".query[Long].option.transact(xa).unsafeRunSync
     transactIOResult(s"Error when retrieving event logs count with request: ${q}")(xa => (for {
       entries <- query[Long](q).unique
@@ -211,15 +212,16 @@ class EventLogJdbcRepository(
     }).transact(xa))
   }
 
-  def getEventLogByCriteria(criteria : Option[String], optLimit:Option[Int] = None, orderBy:Option[String]) : IOResult[Seq[EventLog]] = {
+  def getEventLogByCriteria(criteria : Option[String], optLimit:Option[Int] = None, orderBy:Option[String], extendedFilter : Option[String]) : IOResult[Seq[EventLog]] = {
 
     val where = criteria.map(c => s"where ${c}").getOrElse("")
     val order = orderBy.map(o => s" order by ${o}").getOrElse("")
     val limit = optLimit.map(l => s" limit ${l}").getOrElse("")
+    val from = extendedFilter.getOrElse("from eventlog")
 
     val q = s"""
       select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
-      from eventlog
+      ${from}
       ${where} ${order} ${limit}
     """
 
