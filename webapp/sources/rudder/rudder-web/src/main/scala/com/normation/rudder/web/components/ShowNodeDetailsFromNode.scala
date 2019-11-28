@@ -67,6 +67,7 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.box._
+import com.normation.rudder.web.services.DisplayNode.displayTabProperties
 
 object ShowNodeDetailsFromNode {
 
@@ -276,17 +277,16 @@ class ShowNodeDetailsFromNode(
         <div id={groupTreeId}>
           <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node, None, None, Map(("info", _ => Noop)))}</ul>
         </div> &
-      "#nodeDetails" #> DisplayNode.showNodeDetails(inventory, Some((node, globalMode)), Some(node.creationDate),  AcceptedInventory, isDisplayingInPopup = withinPopup) &
-      "#nodeInventory *" #> DisplayNode.show(inventory, false) &
-      "#reportsDetails *" #> reportDisplayer.asyncDisplay(node) &
-      "#logsDetails *" #> Script(OnLoad(logDisplayer.asyncDisplay(node.id,None, "logsGrid"))) &
+      "#nodeDetails"        #> DisplayNode.showNodeDetails(inventory, Some((node, globalMode)), Some(node.creationDate),  AcceptedInventory, isDisplayingInPopup = withinPopup) &
+      "#nodeInventory *"    #> DisplayNode.showInventoryVerticalMenu(inventory) &
+      "#reportsDetails *"   #> reportDisplayer.asyncDisplay(node) &
+      "#nodeProperties *"   #> DisplayNode.displayTabProperties(id, node) &
+      "#logsDetails *"      #> Script(OnLoad(logDisplayer.asyncDisplay(node.id,None, "logsGrid"))) &
       "#node_parameters -*" #> (if(node.id == Constants.ROOT_POLICY_SERVER_ID) NodeSeq.Empty else nodeStateEditForm(node).nodeStateConfiguration) &
       "#node_parameters -*" #> agentPolicyModeEditForm.cfagentPolicyModeConfiguration &
       "#node_parameters -*" #> agentScheduleEditForm(node).cfagentScheduleConfiguration &
       "#node_parameters *+" #> complianceModeEditForm(node).complianceModeConfiguration &
-      "#extraHeader" #> DisplayNode.showExtraHeader(inventory) &
-      "#extraContent" #> DisplayNode.showExtraContent(Some(node), inventory) &
-      "#node_tabs [id]" #> s"details_${id}"
+      "#node_tabs [id]"     #> s"details_${id}"
     ).apply(serverDetailsTemplate)
   }
 

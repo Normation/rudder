@@ -137,7 +137,7 @@ object DisplayNode extends Loggable {
     val jsId = JsNodeId(nodeId,salt)
     val detailsId = htmlId(jsId,"details_")
     val softGridDataId = htmlId(jsId,"soft_grid_data_")
-    val softPanelId = htmlId(jsId,"sd_soft_")
+    val softPanelId = "node_inventory"
     val eltIdswidth = List( ("process",List("50","50","70","85","120","50","100","850"),1),("var",List("200","800"),0))
     val eltIds = List( "vm", "fs", "net","bios", "controllers", "memories", "ports", "processors", "slots", "sounds", "storages", "videos")
 
@@ -219,82 +219,52 @@ object DisplayNode extends Loggable {
     )
   }
 
-  /**
-   * Show details about the server in a tabbed fashion if
-   * the server exists, display an error message if the
-   * server is not found or if a problem occurred when fetching it
-   *
-   * showExtraFields : if true, then everything is shown, otherwise, the extrafileds are not in the main tabs.
-   * To show then, look at showExtraHeader
-   *
-   * Salt is a string added to every used id.
-   * It useful only if you have several DisplayNode element on a single page.
-   */
-  def show(sm:FullInventory, showExtraFields : Boolean = true, salt:String = "") : NodeSeq = {
+  def showInventoryVerticalMenu(sm:FullInventory, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
     val mainTabDeclaration : List[NodeSeq] =
-      <li><a href={htmlId_#(jsId,"sd_bios_")}>BIOS</a></li> ::
+      <li><a href={htmlId_#(jsId,"sd_fs_")}>File systems</a></li>         ::
+      <li><a href={htmlId_#(jsId,"sd_net_")}>Network interfaces</a></li>  ::
+      <li><a href={htmlId_#(jsId,"sd_soft_")}>Software</a></li>           ::
+      <li><a href={htmlId_#(jsId,"sd_var_")}>Environment</a></li>         ::
+    // Hardware content
+      <li><a href={htmlId_#(jsId,"sd_bios_")}>BIOS</a></li>               ::
       <li><a href={htmlId_#(jsId,"sd_controllers_")}>Controllers</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_memories_")}>Memory</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_ports_")}>Ports</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_processors_")}>Processors</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_slots_")}>Slots</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_sounds_")}>Sound</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_storages_")}>Storage</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_videos_")}>Video</a></li> ::
+      <li><a href={htmlId_#(jsId,"sd_memories_")}>Memory</a></li>         ::
+      <li><a href={htmlId_#(jsId,"sd_ports_")}>Ports</a></li>             ::
+      <li><a href={htmlId_#(jsId,"sd_processors_")}>Processors</a></li>   ::
+      <li><a href={htmlId_#(jsId,"sd_slots_")}>Slots</a></li>             ::
+      <li><a href={htmlId_#(jsId,"sd_sounds_")}>Sound</a></li>            ::
+      <li><a href={htmlId_#(jsId,"sd_storages_")}>Storage</a></li>        ::
+      <li><a href={htmlId_#(jsId,"sd_videos_")}>Video</a></li>            ::
+    //
+      <li><a href={htmlId_#(jsId,"sd_process_")}>Processes</a></li>       ::
+      <li><a href={htmlId_#(jsId,"sd_vm_")}>Virtual Machines</a></li>     ::
       Nil
 
     val tabContent =
-      { if (showExtraFields) displayTabFilesystems(jsId, sm) else Nil } ::
-      { if (showExtraFields) displayTabNetworks(jsId, sm) else Nil } ::
-      { if (showExtraFields) displayTabSoftware(jsId) else Nil } ::
-      displayTabBios(jsId, sm) ::
+      displayTabBios(jsId, sm)        ::
       displayTabControllers(jsId, sm) ::
-      displayTabMemories(jsId, sm) ::
-      displayTabPorts(jsId, sm) ::
-      displayTabProcessors(jsId, sm) ::
-      displayTabSlots(jsId, sm) ::
-      displayTabSounds(jsId, sm) ::
-      displayTabStorages(jsId, sm) ::
-      displayTabVideos(jsId, sm) ::
+      displayTabMemories(jsId, sm)    ::
+      displayTabPorts(jsId, sm)       ::
+      displayTabProcessors(jsId, sm)  ::
+      displayTabSlots(jsId, sm)       ::
+      displayTabSounds(jsId, sm)      ::
+      displayTabStorages(jsId, sm)    ::
+      displayTabVideos(jsId, sm)      ::
+      displayTabFilesystems(jsId, sm) ::
+      displayTabNetworks(jsId, sm)    ::
+      displayTabSoftware(jsId)        ::
+      displayTabVariable(jsId, sm)    ::
+      displayTabProcess(jsId, sm)     ::
+      displayTabVM(jsId, sm)          ::
       Nil
 
-      val tabId = htmlId(jsId,"hardware_details_")
-      <div id={tabId} class="sInventory ui-tabs-vertical">
-        <ul>{mainTabDeclaration}</ul>
-        {tabContent.flatten}
-      </div> ++ Script(OnLoad(JsRaw(s"$$('#${tabId}').tabs()")))
-  }
+    val tabId = htmlId(jsId,"node_details_")
 
-  /**
-  * show the extra tabs header part
-  */
-  def showExtraHeader(sm:FullInventory, salt:String = "") : NodeSeq = {
-    val jsId = JsNodeId(sm.node.main.id,salt)
-    <xml:group>
-    <li><a href={htmlId_#(jsId,"sd_fs_")}>File systems</a></li>
-    <li><a href={htmlId_#(jsId,"sd_net_")}>Network interfaces</a></li>
-    <li><a href={htmlId_#(jsId,"sd_soft_")}>Software</a></li>
-    <li><a href={htmlId_#(jsId,"sd_var_")}>Environment</a></li>
-    <li><a href={htmlId_#(jsId,"sd_process_")}>Processes</a></li>
-    <li><a href={htmlId_#(jsId,"sd_vm_")}>Virtual machines</a></li>
-    <li><a href={htmlId_#(jsId,"sd_props_")}>Properties</a></li>
-    </xml:group>
-  }
-
-  /**
-  * show the extra part
-  * If there is no node available (pending inventory), there is nothing to show
-  */
-  def showExtraContent(node: Option[NodeInfo], sm: FullInventory, salt:String = "") : NodeSeq = {
-    val jsId = JsNodeId(sm.node.main.id,salt)
-    displayTabFilesystems(jsId, sm) ++
-    displayTabNetworks(jsId, sm) ++
-    displayTabVariable(jsId, sm) ++
-    displayTabProcess(jsId, sm) ++
-    displayTabVM(jsId, sm) ++
-    node.map(displayTabProperties(jsId, _)).getOrElse(Nil) ++
-    displayTabSoftware(jsId)
+    <div id={tabId} class="sInventory ui-tabs-vertical">
+      <ul>{mainTabDeclaration}</ul>
+      {tabContent.flatten}
+    </div> ++ Script(OnLoad(JsRaw(s"$$('#${tabId}').tabs()")))
   }
 
   /**
@@ -312,16 +282,7 @@ object DisplayNode extends Loggable {
     <div id={detailsId} class="tabs">
       <ul>
         <li><a href={htmlId_#(jsId,"node_summary_")}>Summary</a></li>
-        <li><a href={htmlId_#(jsId,"node_inventory_")}>Hardware</a></li>
-        {showExtraHeader(sm, salt)}
        </ul>
-       <div id="node_inventory">
-         <div id={htmlId(jsId,"node_inventory_")}>
-           {show(sm, false, "")}
-         </div>
-       </div>
-       {showExtraContent(nodeAndGlobalMode.map(_._1), sm, salt)}
-
        <div id={htmlId(jsId,"node_summary_")}>
          {showNodeDetails(sm, nodeAndGlobalMode, None, inventoryStatus, salt)}
        </div>
@@ -620,8 +581,7 @@ object DisplayNode extends Loggable {
   }
 
   private def displayTabGrid[T](jsId:JsNodeId)(eltName:String, optSeq:Box[Seq[T]],title:Option[String]=None)(columns:List[(String, T => NodeSeq)]) = {
-
-    <div id={htmlId(jsId,"sd_"+eltName +"_")} class="sInventory overflow_auto" style="display:none;">{
+    <div id={htmlId(jsId,"sd_"+eltName +"_")} class="sInventory overflow_auto">{
       optSeq match {
         case Empty =>
           <div class="col-xs-12 alert alert-warning">
@@ -692,6 +652,7 @@ object DisplayNode extends Loggable {
     }
 
     private def displayTabVariable(jsId:JsNodeId,sm:FullInventory) : NodeSeq = {
+
       val title = sm.node.inventoryDate.map(date => s"Environment variable status on ${DateFormaterService.getDisplayDate(date)}")
       displayTabGrid(jsId)("var", Full(sm.node.environmentVariables),title){
         ("Name", {x:EnvironmentVariable => Text(x.name)}) ::
@@ -700,7 +661,7 @@ object DisplayNode extends Loggable {
       }
     }
 
-    private def displayTabProperties(jsId:JsNodeId, node: NodeInfo) : NodeSeq = {
+    def displayTabProperties(jsId:JsNodeId, node: NodeInfo) : NodeSeq = {
       import com.normation.rudder.domain.nodes.JsonSerialisation._
       import com.normation.rudder.AuthorizationType
       import net.liftweb.json._
@@ -709,8 +670,8 @@ object DisplayNode extends Loggable {
       val jsonProperties = compactRender(node.properties.toApiJson())
       val userHasRights = CurrentUser.checkRights(AuthorizationType.Node.Write)
       def tabProperties = ChooseTemplate(List("templates-hidden", "components", "ComponentNodeProperties") , "nodeproperties-tab")
-
-      val css: CssSel =  "#tabPropsId [id]" #> htmlId(jsId,"sd_props_")
+      val tabId = htmlId(jsId,"sd_props_")
+      val css: CssSel =  "#tabPropsId [id]" #> tabId
       css(tabProperties) ++ Script(OnLoad(JsRaw(s"""
         angular.bootstrap('#nodeProp', ['nodeProperties']);
         var scope  = angular.element($$("#nodeProp")).scope();
