@@ -555,7 +555,7 @@ class GroupApiService6 (
 
   def getCategoryTree(apiVersion: ApiVersion) = {
     for {
-        root <- readGroup.getFullGroupLibrary
+        root <- readGroup.getFullGroupLibrary.toBox
     } yield {
       restDataSerializer.serializeGroupCategory(root, root.id, FullDetails, apiVersion)
     }
