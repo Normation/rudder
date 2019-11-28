@@ -137,7 +137,7 @@ object DisplayNode extends Loggable {
     val jsId = JsNodeId(nodeId,salt)
     val detailsId = htmlId(jsId,"details_")
     val softGridDataId = htmlId(jsId,"soft_grid_data_")
-    val softPanelId = "node_inventory"
+    val softPanelId = "soft_tab"
     val eltIdswidth = List( ("process",List("50","50","70","85","120","50","100","850"),1),("var",List("200","800"),0))
     val eltIds = List( "vm", "fs", "net","bios", "controllers", "memories", "ports", "processors", "slots", "sounds", "storages", "videos")
 
@@ -210,10 +210,8 @@ object DisplayNode extends Loggable {
       // for the software tab, we check for the panel id, and the firstChild id
       // if the firstChild.id == softGridId, then it hasn't been loaded, otherwise it is softGridId_wrapper
       JsRaw(s"""
-        $$("#${detailsId}").on( "tabsactivate", function(event, ui) {
-          if(ui.newPanel.attr('id')== '${softPanelId}' ){
+        $$("#${softPanelId}").click(function() {
             ${  SHtml.ajaxCall(JsRaw("'"+nodeId.value+"'"), loadSoftware(jsId, softIds) )._2.toJsCmd}
-          }
         });
         """)
     )
@@ -224,7 +222,7 @@ object DisplayNode extends Loggable {
     val mainTabDeclaration : List[NodeSeq] =
       <li><a href={htmlId_#(jsId,"sd_fs_")}>File systems</a></li>         ::
       <li><a href={htmlId_#(jsId,"sd_net_")}>Network interfaces</a></li>  ::
-      <li><a href={htmlId_#(jsId,"sd_soft_")}>Software</a></li>           ::
+      <li id="soft_tab"><a href={htmlId_#(jsId,"sd_soft_")}>Software</a></li>           ::
       <li><a href={htmlId_#(jsId,"sd_var_")}>Environment</a></li>         ::
     // Hardware content
       <li><a href={htmlId_#(jsId,"sd_bios_")}>BIOS</a></li>               ::
