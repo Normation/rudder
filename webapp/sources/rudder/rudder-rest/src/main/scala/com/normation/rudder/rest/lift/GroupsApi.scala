@@ -183,7 +183,13 @@ class GroupsApi(
     val schema = API.GetGroupTree
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV2.listGroups(req, version)
+      implicit val action = schema.name
+      response (
+        serviceV6.getCategoryTree(version)
+        , req
+        , s"Could not fetch Group tree"
+        , None
+      )
     }
   }
   object GetCategory extends LiftApiModule {
