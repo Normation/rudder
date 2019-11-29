@@ -217,7 +217,7 @@ class CreateOrCloneRulePopup(
             onFailure & onFailureCallback()
       }
       createRule & JsRaw( s"""
-        localStorage.setItem('Active_Rule_Tab', 0);
+        localStorage.setItem('Active_Rule_Tab', 1);
         var scope = angular.element( $$("#showFiltersRules")).scope();
         scope.$$apply(function(){
           scope.filterGlobal(scope.searchStr);
