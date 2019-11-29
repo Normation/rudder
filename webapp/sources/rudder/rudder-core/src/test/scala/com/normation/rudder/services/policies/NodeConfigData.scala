@@ -459,7 +459,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
  *
  */
 
-class TestNodeConfiguration() {
+class TestNodeConfiguration(prefixTestResources: String = "") {
 
   import org.joda.time.DateTime
 
@@ -483,7 +483,7 @@ class TestNodeConfiguration() {
   val configurationRepositoryRoot = abstractRoot/"configuration-repository"
   //initialize config-repo content from our test/resources source
 
-  FileUtils.copyDirectory( new File("src/test/resources/configuration-repository") , configurationRepositoryRoot)
+  FileUtils.copyDirectory( new File(prefixTestResources + "src/test/resources/configuration-repository") , configurationRepositoryRoot)
 
   val EXPECTED_SHARE = configurationRepositoryRoot/"expected-share"
   val t1 = System.currentTimeMillis()

@@ -507,10 +507,9 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
   override final def getDeletedNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = getNotAcceptedNodeInfo(nodeId, RemovedInventory).toBox
 
   /**
-   * Clear cache. Try a reload asynchronously, disregarding
-   * the result
+   * Clear cache.
    */
-  override def clearCache(): Unit = this.synchronized {
+  override def clearCache(): Unit = {
     this.nodeCache = None
   }
 

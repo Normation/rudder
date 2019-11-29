@@ -26,6 +26,11 @@
 package com.normation
 
 
+import _root_.zio._
+import _root_.zio.blocking.Blocking
+import _root_.zio.clock.Clock
+import _root_.zio.duration.Duration
+import _root_.zio.syntax._
 import com.github.ghik.silencer.silent
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
@@ -36,11 +41,6 @@ import net.liftweb.common._
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
-import _root_.zio._
-import _root_.zio.blocking.Blocking
-import _root_.zio.clock.Clock
-import _root_.zio.duration.Duration
-import _root_.zio.syntax._
 
 @RunWith(classOf[JUnitRunner])
 class ZioCommonsTest extends Specification {
@@ -488,13 +488,13 @@ runs with jvm arg:
 -Dscala.concurrent.context.maxExtraThreads=10000
  */
 import _root_.zio._
-import _root_.zio.syntax._
-import _root_.zio.duration._
 import _root_.zio.clock._
-import _root_.zio.random._
 import _root_.zio.console._
-import _root_.zio.system.{System => ZSystem}
+import _root_.zio.duration._
 import _root_.zio.internal._
+import _root_.zio.random._
+import _root_.zio.syntax._
+import _root_.zio.system.{System => ZSystem}
 
   def main(args: Array[String]): Unit = {
 
@@ -598,3 +598,4 @@ object TestTwoRunNow2 {
     Thread.sleep(10*1000)
   }
 }
+

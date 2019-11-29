@@ -43,6 +43,9 @@ import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.domain.logger.{ReportLogger, TimingDebugLogger}
 import com.normation.rudder.domain.reports.NodeAndConfigId
 import com.normation.rudder.repository.FindExpectedReportRepository
+import zio._
+import com.normation.zio._
+import com.normation.errors._
 
 /**
  * Service for reading or storing execution of Nodes
@@ -89,6 +92,7 @@ class CachedReportsExecutionRepository(
 ) extends RoReportsExecutionRepository with WoReportsExecutionRepository with CachedRepository {
 
   val logger = ReportLogger
+  val semaphore = Semaphore.make(1).runNow
 
   /*
    * We need to synchronise on cache to avoid the case:
@@ -113,11 +117,11 @@ class CachedReportsExecutionRepository(
   private[this] var cache = Map[NodeId, Option[AgentRunWithNodeConfig]]()
 
 
-  override def clearCache(): Unit = this.synchronized {
+  override def clearCache(): Unit = semaphore.withPermit(IOResult.effect {
     cache = Map()
-  }
+  }).runNow
 
-  override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRunWithNodeConfig]]] = this.synchronized {
+  override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRunWithNodeConfig]]] = semaphore.withPermit(IOResult.effect {
     val n1 = System.currentTimeMillis
     (for {
       runs <- readBackend.getNodesLastRun(nodeIds.diff(cache.keySet))
@@ -127,9 +131,9 @@ class CachedReportsExecutionRepository(
       cache = cache ++ runs
       cache.filterKeys { x => nodeIds.contains(x) }
     }) ?~! s"Error when trying to update the cache of Agent Runs informations"
-  }
+  }).runNow
 
-  override def updateExecutions(executions : Seq[AgentRun]) : Seq[Box[AgentRun]] = this.synchronized {
+  override def updateExecutions(executions : Seq[AgentRun]) : Seq[Box[AgentRun]] = semaphore.withPermit(IOResult.effect {
     logger.trace(s"Update runs for nodes [${executions.map( _.agentRunId.nodeId.value ).mkString(", ")}]")
     val n1 = System.currentTimeMillis
     val runs = writeBackend.updateExecutions(executions)
@@ -191,5 +195,5 @@ class CachedReportsExecutionRepository(
 
     cache = cache ++ results
     runs
-  }
+  }).runNow
 }

@@ -63,7 +63,7 @@ import org.eclipse.jgit.diff.DiffEntry.ChangeType
 import java.io.IOException
 
 import com.normation.errors._
-import com.normation.zio.ZioRuntime
+import com.normation.zio._
 import zio._
 import zio.syntax._
 import GitTechniqueReader._
@@ -136,19 +136,10 @@ class GitTechniqueReader(
   val relativePathToGitRepos : Option[String],
   val directiveDefaultName   : String //full (with extension) name of the file containing default name for directive (default-directive-names.conf)
 ) extends TechniqueReader with Loggable {
-  reader =>
 
-  /*
-   * That class is not yet ported to ZIO.
-   * So we accept that any error in a IOResult[A] will lead to an exception, which will
-   * need to be taken care for.
-   */
-  implicit class RunOrThrow[A](effect: IOResult[A]) {
-    def runNow: A = ZioRuntime.runNow(effect.either) match {
-      case Right(x)  => x
-      case Left(err) => throw new RuntimeException(err.fullMsg)
-    }
-  }
+  // semaphore to have consistent read
+  val semaphore = Semaphore.make(1).runNow
+
 
   //the path of the PT lib relative to the git repos
   //withtout leading and trailing /.
@@ -181,7 +172,7 @@ class GitTechniqueReader(
   //can not set private because of "outer ref cannot be checked" scalac bug
   private case class NoRootCategory(msg: String) extends Exception(msg)
 
-  private[this] var currentTechniquesInfoCache : TechniquesInfo = {
+  private[this] var currentTechniquesInfoCache : TechniquesInfo = semaphore.withPermit(IOResult.effect {
     val currentRevTree = revisionProvider.currentRevTreeId.runNow
     try {
       processRevTreeId(currentRevTree)
@@ -203,7 +194,7 @@ class GitTechniqueReader(
         revisionProvider.setCurrentRevTreeId(newRevTreeId).runNow
         processRevTreeId(newRevTreeId)
     }
-  }
+  }).runNow
 
   private[this] var nextTechniquesInfoCache : (ObjectId,TechniquesInfo) = (revisionProvider.currentRevTreeId.runNow, currentTechniquesInfoCache)
   //a non empty list IS the indicator of differences between current and next
@@ -211,89 +202,89 @@ class GitTechniqueReader(
 
   override def getModifiedTechniques : Map[TechniqueName, TechniquesLibraryUpdateType] = {
     val nextId = revisionProvider.getAvailableRevTreeId.runNow
-    if(nextId == nextTechniquesInfoCache._1) modifiedTechniquesCache
-    else reader.synchronized { //update next and calculate diffs
-      val nextTechniquesInfo = processRevTreeId(nextId)
+      if(nextId == nextTechniquesInfoCache._1) modifiedTechniquesCache
+      else semaphore.withPermit(IOResult.effect { //update next and calculate diffs
+        val nextTechniquesInfo = processRevTreeId(nextId)
 
-      //get the list of ALL valid package infos, both in current and in next version,
-      //so we have both deleted package (from current) and new one (from next)
-      val allKnownTechniquePaths = getTechniquePath(currentTechniquesInfoCache) ++ getTechniquePath(nextTechniquesInfo)
+        //get the list of ALL valid package infos, both in current and in next version,
+        //so we have both deleted package (from current) and new one (from next)
+        val allKnownTechniquePaths = getTechniquePath(currentTechniquesInfoCache) ++ getTechniquePath(nextTechniquesInfo)
 
-      val diffFmt = new DiffFormatter(null)
-      diffFmt.setRepository(repo.db.runNow)
-      val diffPathEntries : Set[(TechniquePath, ChangeType)] =
-        diffFmt.scan(nextTechniquesInfoCache._1, nextId).asScala.flatMap { diffEntry =>
-          Seq( (toTechniquePath(diffEntry.getOldPath), diffEntry.getChangeType), (toTechniquePath(diffEntry.getNewPath), diffEntry.getChangeType))
-        }.toSet
-      diffFmt.close
+        val diffFmt = new DiffFormatter(null)
+        diffFmt.setRepository(repo.db.runNow)
+        val diffPathEntries : Set[(TechniquePath, ChangeType)] =
+          diffFmt.scan(nextTechniquesInfoCache._1, nextId).asScala.flatMap { diffEntry =>
+            Seq( (toTechniquePath(diffEntry.getOldPath), diffEntry.getChangeType), (toTechniquePath(diffEntry.getNewPath), diffEntry.getChangeType))
+          }.toSet
+        diffFmt.close
 
-      /*
-       * now, group diff entries by TechniqueId to find which were updated
-       * we take into account any modifications, as anything among a
-       * delete, rename, copy, add, modify must be accepted and the matching
-       * datetime saved.
-       */
-      val modifiedTechnique : Set[(TechniqueId, ChangeType)] = diffPathEntries.flatMap { case (path, changeType) =>
-        allKnownTechniquePaths.find { case (techniquePath, _) =>
-          path.path.startsWith(techniquePath.path)
-        }.map { case (n, techniqueId) =>
-          (techniqueId, changeType)
+        /*
+         * now, group diff entries by TechniqueId to find which were updated
+         * we take into account any modifications, as anything among a
+         * delete, rename, copy, add, modify must be accepted and the matching
+         * datetime saved.
+         */
+        val modifiedTechnique : Set[(TechniqueId, ChangeType)] = diffPathEntries.flatMap { case (path, changeType) =>
+          allKnownTechniquePaths.find { case (techniquePath, _) =>
+            path.path.startsWith(techniquePath.path)
+          }.map { case (n, techniqueId) =>
+            (techniqueId, changeType)
+          }
         }
-      }
 
-      //now, build the actual modification by techniques:
-      val techniqueMods = modifiedTechnique.groupBy( _._1.name ).map { case (name, mods) =>
-        //deduplicate mods by ids:
-        val versionsMods: Map[TechniqueVersion, TechniqueVersionModType] = mods.groupBy( _._1.version).map { case(version, pairs) =>
-          val modTypes = pairs.map( _._2 ).toSet
+        //now, build the actual modification by techniques:
+        val techniqueMods = modifiedTechnique.groupBy( _._1.name ).map { case (name, mods) =>
+          //deduplicate mods by ids:
+          val versionsMods: Map[TechniqueVersion, TechniqueVersionModType] = mods.groupBy( _._1.version).map { case(version, pairs) =>
+            val modTypes = pairs.map( _._2 ).toSet
 
-          //merge logic
-          //delete + add (+mod) => have to check if still present
-          //delete (+ mod) => delete
-          //add (+ mod) => add
-          //other: mod
-          if(modTypes.contains(ChangeType.DELETE)) {
-            if(modTypes.contains(ChangeType.ADD)) {
-              if(currentTechniquesInfoCache.techniquesCategory.isDefinedAt(TechniqueId(name, version))) {
-                //it was present before mod, so can't have been added first, so
-                //it was deleted then added (certainly a move), so it is actually mod
-                (version, VersionUpdated)
+            //merge logic
+            //delete + add (+mod) => have to check if still present
+            //delete (+ mod) => delete
+            //add (+ mod) => add
+            //other: mod
+            if(modTypes.contains(ChangeType.DELETE)) {
+              if(modTypes.contains(ChangeType.ADD)) {
+                if(currentTechniquesInfoCache.techniquesCategory.isDefinedAt(TechniqueId(name, version))) {
+                  //it was present before mod, so can't have been added first, so
+                  //it was deleted then added (certainly a move), so it is actually mod
+                  (version, VersionUpdated)
+                } else {
+                  //it was not here, so was added then deleted, so it's a noop.
+                  //not sure we want to trace that ? As a deletion perhaps ?
+                  (version, VersionDeleted)
+                }
               } else {
-                //it was not here, so was added then deleted, so it's a noop.
-                //not sure we want to trace that ? As a deletion perhaps ?
                 (version, VersionDeleted)
               }
+            } else if(modTypes.contains(ChangeType.ADD)) {
+              //add
+              (version, VersionAdded)
             } else {
-              (version, VersionDeleted)
+              //mod
+              (version, VersionUpdated)
             }
-          } else if(modTypes.contains(ChangeType.ADD)) {
-            //add
-            (version, VersionAdded)
+          }.toMap
+
+          //now, build the technique mod.
+          //distinguish the case where all mod are deletion AND they represent the whole set of known version
+          //from other case (just simple updates)
+
+          if(versionsMods.values.forall( _ == VersionDeleted)
+             && currentTechniquesInfoCache.techniques.get(name).map( _.size) == Some(versionsMods.size)
+          ) {
+            (name, TechniqueDeleted(name, versionsMods.keySet))
           } else {
-            //mod
-            (version, VersionUpdated)
+            (name, TechniqueUpdated(name, versionsMods))
           }
         }.toMap
 
-        //now, build the technique mod.
-        //distinguish the case where all mod are deletion AND they represent the whole set of known version
-        //from other case (just simple updates)
-
-        if(versionsMods.values.forall( _ == VersionDeleted)
-           && currentTechniquesInfoCache.techniques.get(name).map( _.size) == Some(versionsMods.size)
-        ) {
-          (name, TechniqueDeleted(name, versionsMods.keySet))
-        } else {
-          (name, TechniqueUpdated(name, versionsMods))
-        }
-      }.toMap
-
-      //Ok, now rebuild Technique !
-      modifiedTechniquesCache = techniqueMods
-      nextTechniquesInfoCache = (nextId, nextTechniquesInfo)
-      modifiedTechniquesCache
+        //Ok, now rebuild Technique !
+        modifiedTechniquesCache = techniqueMods
+        nextTechniquesInfoCache = (nextId, nextTechniquesInfo)
+        modifiedTechniquesCache
+      }).runNow
     }
-  }
 
   override def getMetadataContent[T](techniqueId: TechniqueId)(useIt : Option[InputStream] => T) : T = {
     //build a treewalk with the path, given by metadata.xml
@@ -395,14 +386,14 @@ class GitTechniqueReader(
    * commit were done in git repository.
    */
   override def readTechniques : TechniquesInfo = {
-    reader.synchronized {
+    semaphore.withPermit(IOResult.effect {
       if(needReload) {
         currentTechniquesInfoCache = nextTechniquesInfoCache._2
         revisionProvider.setCurrentRevTreeId(nextTechniquesInfoCache._1).runNow
         modifiedTechniquesCache = Map()
       }
       currentTechniquesInfoCache
-    }
+    }).runNow
   }
 
 

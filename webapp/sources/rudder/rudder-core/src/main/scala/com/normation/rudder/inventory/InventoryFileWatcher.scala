@@ -53,6 +53,7 @@ import scala.util.control.NonFatal
 import zio._
 import zio.syntax._
 import zio.duration._
+import com.normation.zio._
 
 import scala.tools.nsc.interpreter.InputStream
 
@@ -152,6 +153,8 @@ class InventoryFileWatcher(
     }
   }
 
+  val semaphore = Semaphore.make(1).runNow
+
 
   val incoming = File(incomingInventoryPath)
   logDirPerm(incoming, "Incoming")
@@ -167,11 +170,10 @@ class InventoryFileWatcher(
 
   var watcher = Option.empty[Watchers]
 
-  def startWatcher(): Either[Throwable, Unit] = this.synchronized {
+  def startWatcher() = semaphore.withPermit(IOResult.effect {
     watcher match {
       case Some(w) => // does nothing
         InventoryProcessingLogger.logEffect.info(s"Starting incoming inventory watcher ignored (already started).")
-        Right(())
 
       case None    =>
         val w = Watchers(incoming, updated, fileProcessor.addFile)
@@ -182,33 +184,32 @@ class InventoryFileWatcher(
             incoming.collectChildren(_.isRegularFile).toList.map(_.touch())
             updated.collectChildren(_.isRegularFile).toList.map(_.touch())
             watcher = Some(w)
-            Right(())
           case Left(ex) =>
             InventoryProcessingLogger.logEffect.error(s"Error when trying to start incoming inventories file watcher. Reported exception was: ${ex.getMessage()}")
-            Left(ex)
+            throw ex
         }
     }
-  }
+  }).either.runNow
 
-  def stopWatcher(): Either[Throwable, Unit] = this.synchronized {
+  def stopWatcher() = semaphore.withPermit(IOResult.effect {
     watcher match {
       case None    => //ok
         InventoryProcessingLogger.logEffect.info(s"Stoping incoming inventory watcher ignored (already stoped).")
-        Right(())
+
       case Some(w) =>
         w.stop() match {
           case Right(()) =>
             InventoryProcessingLogger.logEffect.info(s"Incoming inventory watcher stoped")
             watcher = None
-            Right(())
+
           case Left(ex) =>
             InventoryProcessingLogger.logEffect.error(s"Error when trying to stop incoming inventories file watcher. Reported exception was: ${ex.getMessage()}.")
             // in all case, remove the previous watcher, it's most likely in a dead state
             watcher = None
-            Left(ex)
+            throw ex
         }
     }
-  }
+  }).either.runNow
 
 
 }
