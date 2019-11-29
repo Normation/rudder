@@ -1387,13 +1387,37 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
               table.row(row).child().hide();
               row.removeClass("opened");
             } else {
-                row.addClass("opened");
-                // Set data in the open row with the details function from data
-                $.getJSON(contextPath + '/secure/api/eventlog/' + data.id + "/details", function(data) {
-                    var html = $.parseHTML( data["data"]["content"] );
+              row.addClass("opened");
+
+              // Set data in the open row with the details function from data
+              $.ajax({
+                type: "GET",
+                url: contextPath + "/secure/api/eventlog/" + data.id + "/details" ,
+                contentType: "application/json; charset=utf-8",
+                success: function (response, status, jqXHR) {
+                  var id = response["data"]["id"]
+                  var rollback = setupRollbackBlock(id)
+                  var html = $.parseHTML( response["data"]["content"] );
+                  if(response["data"]["canRollback"]){
+                    table.row(row).child($(rollback).append(html)).show();
+                    $("#restoreBtn" + id).click(function(event){
+                      var rollback ='#rollback'+id
+                      $(rollback).hide();
+                      var confirm = "#confirm" + id.toString();
+                      var radios = $('.radio');
+                      var action = getRadioChecked(radios);
+                      var confirmHtml = "<p><i class='fa fa-exclamation-triangle warnicon' aria-hidden='true'></i><b>Are you sure you want to restore configuration policy " + action + " this</b></p><span><button class='btn btn-default' onClick=cancelRollback(" + id + ")>Cancel</button></span>&nbsp;&nbsp;<button class='btn btn-danger' onClick=confirmRollback(" + id + ")>Confirm</button></span>";
+                      $(confirm).append(confirmHtml);
+                    });
+                  } else {
                     table.row(row).child(html).show();
-                });
-              }
+                  }
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                  createErrorNotification("Error while retrieve eventlog details: " + jqXHR.responseJSON.errorDetails)
+                }
+              });
+            }
               // toggle list open / close classes
               IdTd.toggleClass('listopen');
               IdTd.toggleClass('listclose');
@@ -1406,6 +1430,46 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
   };
 
   createTable(gridId,data, columns, params, contextPath, refresh, "event_logs", false);
+}
+
+function setupRollbackBlock(id) {
+  var rollbackId = 'rollback' + id;
+  var confirmId = 'confirm' + id;
+  var btnId = 'restoreBtn' + id;
+  var rollbackBlock = document.getElementById("rollbackBlock");
+  var returnedHTML = rollbackBlock.innerHTML.replace(/{{rollbackId}}/g, rollbackId)
+                        .replace(/{{restoreBtnId}}/g, btnId)
+                        .replace(/{{confirmId}}/g, confirmId);
+  return returnedHTML
+}
+
+function getRadioChecked(radios) {
+ for (var i = 0, length = radios.length; i < length; i++) {
+   if (radios[i].checked) {
+     return radios[i].value;
+   }
+ }
+}
+
+function confirmRollback(id) {
+  var radios = $('.radio');
+  var action = getRadioChecked(radios);
+  $.ajax({
+    type: "GET",
+    url: contextPath + '/secure/api/eventlog/' + id + "/details/rollback?action=" + action ,
+    contentType: "application/json; charset=utf-8",
+    success: function (response, status, jqXHR) {
+      createSuccessNotification("Rollback " + action + " eventlog " + id);
+    },
+    error: function (jqXHR, textStatus, errorThrown) {
+      createErrorNotification("Rollback failed : " + jqXHR.responseJSON.errorDetails)
+    }
+  });
+}
+
+function cancelRollback(id) {
+  $('#confirm'+id).empty();
+  $('#rollback'+id).show();
 }
 
 function computeCompliancePercent (complianceArray) {
