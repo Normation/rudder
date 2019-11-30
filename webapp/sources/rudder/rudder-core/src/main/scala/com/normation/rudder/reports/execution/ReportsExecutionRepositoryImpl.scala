@@ -41,19 +41,20 @@ package com.normation.rudder.reports.execution
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.DB
 import com.normation.rudder.repository.jdbc.PostgresqlInClause
-
 import net.liftweb.common._
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._
-
-import doobie._, doobie.implicits._
+import doobie._
+import doobie.implicits._
 import cats.implicits._
 import com.normation.utils.Control.sequence
-
+import zio._
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeConfigId
 import org.joda.time.DateTime
 import com.normation.rudder.domain.reports.ExpectedReportsSerialisation
+import com.normation.zio.ZioRuntime
+import zio.interop.catz._
 
 final case class RoReportsExecutionRepositoryImpl (
     db              : Doobie
@@ -215,11 +216,11 @@ final case class WoReportsExecutionRepositoryImpl (
         result
       }
 
-      transact(xa => action.transact(xa).attempt)
+      transactTask(xa => action.transact(xa).either)
     }
 
 
-    runs.toList.map(updateOne).sequence.unsafeRunSync.flatMap(x => x match {
+    ZioRuntime.unsafeRun(ZIO.sequence(runs.toList.map(updateOne))).flatMap(x => x match {
       case Left(ex)        =>
         Some(Failure(s"Error when updating last agent runs information: ${ex.getMessage()}"))
       case Right(Some(res)) =>

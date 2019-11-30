@@ -59,6 +59,7 @@ import doobie.postgres.implicits._
 import org.joda.time.DateTime
 
 import scala.util.Random
+import zio.interop.catz._
 
 /*
  * Allow to generate false compliance for testing purpose

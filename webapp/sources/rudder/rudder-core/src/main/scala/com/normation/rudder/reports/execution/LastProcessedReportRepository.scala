@@ -47,6 +47,7 @@ import org.joda.time.DateTime
 import net.liftweb.common._
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._
+import zio.interop.catz._
 
 
 /**
@@ -79,7 +80,7 @@ class LastProcessedReportRepositoryImpl (
         select lastid, date from statusupdate where key=${PROP_EXECUTION_STATUS}
       """.query[(Long, DateTime)].option
 
-    transactRun(xa => sql.transact(xa).attempt) match {
+    transactRun(xa => sql.transact(xa).either) match {
       case Right(x)  => Full(x)
       case Left(ex) => Failure(s"Error when retrieving '${PROP_EXECUTION_STATUS}' from db: ${ex.getMessage}", Full(ex), Empty)
     }
@@ -107,7 +108,7 @@ class LastProcessedReportRepositoryImpl (
                      }
     } yield {
       entry
-    }).transact(xa).attempt) match {
+    }).transact(xa).either) match {
       case Right(x) => Full(DB.StatusUpdate(PROP_EXECUTION_STATUS, newId, reportsDate))
       case Left(ex) => Failure(s"Error when retrieving '${PROP_EXECUTION_STATUS}' from db: ${ex.getMessage}", Full(ex), Empty)
     }

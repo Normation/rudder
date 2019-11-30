@@ -50,6 +50,7 @@ import cats.implicits._
 
 import com.normation.errors._
 import com.normation.zio._
+import zio.interop.catz._
 
 /**
  *

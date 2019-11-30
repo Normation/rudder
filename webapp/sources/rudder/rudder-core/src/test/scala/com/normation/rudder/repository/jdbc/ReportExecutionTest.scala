@@ -51,6 +51,7 @@ import org.specs2.runner.JUnitRunner
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import doobie.implicits._
+import zio.interop.catz._
 
 /**
  *

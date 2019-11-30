@@ -89,6 +89,7 @@ import scala.collection.SortedMap
 import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 
 import scala.concurrent.duration._
+import zio.interop.catz._
 
 /**
  *

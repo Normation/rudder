@@ -18,7 +18,7 @@ import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._
 import doobie._, doobie.implicits._
 import cats.implicits._
-
+import zio.interop.catz._
 
 /**
  * specify from/to version
@@ -359,7 +359,7 @@ trait BatchElementMigration[T <: MigrableEntity] extends XmlFileFormatMigration 
         saved
       })
 
-      val res = doobie.transactRun(xa => exec.transact(xa).attempt)
+      val res = doobie.transactRun(xa => exec.transact(xa).either)
 
       res match {
         case Right(k) if(k.size < 1) =>

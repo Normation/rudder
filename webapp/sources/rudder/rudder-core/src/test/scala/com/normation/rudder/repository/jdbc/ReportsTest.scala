@@ -54,6 +54,7 @@ import doobie.implicits._
 import cats.implicits._
 
 import com.normation.rudder.db.DB
+import zio.interop.catz._
 
 
 /**

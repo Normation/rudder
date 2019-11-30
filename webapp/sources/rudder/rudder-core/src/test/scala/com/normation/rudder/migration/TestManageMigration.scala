@@ -38,8 +38,6 @@
 package com.normation.rudder.migration
 
 
-import com.normation.BoxSpecMatcher
-
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
@@ -48,6 +46,7 @@ import com.normation.rudder.db.DBCommon
 import doobie.implicits._
 
 import com.normation.BoxSpecMatcher
+import zio.interop.catz._
 
 /**
  * Test how the migration run with a Database context

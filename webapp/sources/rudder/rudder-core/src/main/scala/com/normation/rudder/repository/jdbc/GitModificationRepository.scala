@@ -8,6 +8,7 @@ import com.normation.rudder.db.Doobie
 import com.normation.rudder.repository.GitCommitId
 import com.normation.rudder.repository.GitModificationRepository
 import doobie.implicits._
+import zio.interop.catz._
 
 class GitModificationRepositoryImpl(
     db : Doobie

@@ -310,7 +310,10 @@ object zio {
      * IO into an async thread pool to avoid deadlock in case of
      * a hierarchy of calls.
      */
-    val internal = new DefaultRuntime() {}
+    val internal = new DefaultRuntime() {
+
+
+    }
 
     /*
      * use the blocking thread pool provided by that runtime.
