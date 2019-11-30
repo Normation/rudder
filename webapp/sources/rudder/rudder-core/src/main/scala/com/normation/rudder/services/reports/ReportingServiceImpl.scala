@@ -58,7 +58,6 @@ import com.normation.utils.Control.sequence
 
 import com.normation.box._
 import com.normation.errors._
-import zio._
 import com.normation.zio._
 
 object ReportingServiceUtils {
@@ -185,7 +184,6 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
   def defaultFindRuleNodeStatusReports: DefaultFindRuleNodeStatusReports
   def nodeInfoService                 : NodeInfoService
 
-  val semaphore = Semaphore.make(1).runNow
   /**
    * The cache is managed node by node.
    * A missing nodeId mean that the cache wasn't initialized for
@@ -214,12 +212,12 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * Add a "blocking" signal the Future's thread pool to give more thread to other
    * because this one is taken for a long time.
    */
-  def invalidate(nodeIds: Set[NodeId]): Box[Map[NodeId, NodeStatusReport]] = semaphore.withPermit(IOResult.effect {
+  def invalidate(nodeIds: Set[NodeId]): Box[Map[NodeId, NodeStatusReport]] = scala.concurrent.blocking { this.synchronized {
     logger.debug(s"Compliance cache: invalidate cache for nodes: [${nodeIds.map { _.value }.mkString(",")}]")
     cache = cache -- nodeIds
     //preload new results
     checkAndUpdateCache(nodeIds)
-  }).runNow
+  } }
 
   /**
    * For the nodeIds in parameter, check that the cache is:
@@ -228,9 +226,9 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    *
    * - ignore nodes in "disabled" state
    */
-  private[this] def checkAndUpdateCache(nodeIdsToCheck: Set[NodeId]) : Box[scala.collection.immutable.Map[NodeId, NodeStatusReport]] = semaphore.withPermit(IOResult.effect {
+  private[this] def checkAndUpdateCache(nodeIdsToCheck: Set[NodeId]) : Box[Map[NodeId, NodeStatusReport]] = scala.concurrent.blocking { this.synchronized {
     if(nodeIdsToCheck.isEmpty) {
-      Full(Map[NodeId, NodeStatusReport]())
+      Full(Map())
     } else {
       val now = DateTime.now
 
@@ -278,7 +276,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
         toReturn
       }
     }
-  }).runNow
+  } }
 
   override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Map[NodeId, NodeStatusReport]] = {
     val n1 = System.currentTimeMillis
@@ -295,7 +293,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * Clear cache. Try a reload asynchronously, disregarding
    * the result
    */
-  override def clearCache(): Unit = {
+  override def clearCache(): Unit = this.synchronized {
     cache = Map()
     logger.debug("Compliance cache cleared")
     //reload it for future use

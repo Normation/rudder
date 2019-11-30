@@ -75,7 +75,7 @@ class Doobie(datasource: DataSource) {
   // we must not leak catsIO anywhere
   private[this] def transact[T](query: Transactor[Task] => Task[T]): Task[T] = {
     val xa = ZManaged.make {
-      val ce = ZioRuntime.internal.platform.executor.asEC // our connect EC
+      val ce = ZioRuntime.internal.Platform.executor.asEC // our connect EC
       for {
         te <- zio.blocking.blockingExecutor.map(_.asEC)  // our transaction EC
       } yield {
@@ -95,7 +95,7 @@ class Doobie(datasource: DataSource) {
   }
 
   def transactRun[T](query: Transactor[Task] => Task[T]): T = {
-    ZioRuntime.unsafeRun(zio.blocking.blockingExecutor.flatMap(ex => transactTask(query).lock(ex)).provide(ZioRuntime.environment))
+    ZioRuntime.unsafeRun(transactTask(query))
   }
 
   def transactRunBox[T](q: Transactor[Task] => Task[T]): Box[T] = {

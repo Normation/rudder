@@ -69,6 +69,8 @@ import zio.syntax._
 import GitTechniqueReader._
 import com.normation.rudder.domain.logger.TechniqueReaderLoggerPure
 import org.eclipse.jgit.lib.Repository
+import com.github.ghik.silencer.silent
+
 
 /**
  *
@@ -199,7 +201,7 @@ class GitTechniqueReader(
                             )
                         }
     } yield res
-  ).flatMap(Ref.make(_)).runNow
+  ).flatMap(Ref.make(_)).runNow: @silent // inferred Any - yes, that's what we want
 
   private[this] val nextTechniquesInfoCache: Ref[(ObjectId,TechniquesInfo)] = {
     (for {

@@ -362,9 +362,9 @@ object TestZioSemantic {
 
 
   def main(args: Array[String]): Unit = {
-    rt.unsafeRunSync(prog1(rt.environment))
+    rt.unsafeRunSync(prog1(rt.Environment))
     println("****************")
-    rt.unsafeRunSync(prog2(rt.environment))
+    rt.unsafeRunSync(prog2(rt.Environment))
 
 /* exec prints:
 
@@ -504,11 +504,11 @@ import _root_.zio.system.{System => ZSystem}
           val blockingExecutor: UIO[Executor] = Executor.fromExecutionContext(Int.MaxValue)(scala.concurrent.ExecutionContext.global).succeed
         }
       }
-      override val platform: Platform = PlatformLive.fromExecutionContext(scala.concurrent.ExecutionContext.global) //.withTracingConfig(_root_.zio.internal.tracing.TracingConfig.disabled)
-      override val environment = new Clock.Live with Console.Live with ZSystem.Live with Random.Live with Blocking.Live
+      override val Platform: Platform = PlatformLive.fromExecutionContext(scala.concurrent.ExecutionContext.global) //.withTracingConfig(_root_.zio.internal.tracing.TracingConfig.disabled)
+      override val Environment = new Clock.Live with Console.Live with ZSystem.Live with Random.Live with Blocking.Live
     }
 
-    val schedule = Schedule.spaced(100.millis).forever
+    val schedule = ZSchedule.spaced(100.millis).forever
     val start = System.currentTimeMillis
     def time = (System.currentTimeMillis()-start).toString
 
@@ -544,58 +544,3 @@ import _root_.zio.system.{System => ZSystem}
     Thread.sleep(3*1000)
   }
 }
-
-
-import _root_.zio.duration._
-
-object TestTwoRunNow {
-  def main (args: Array[String] ): Unit = {
-    val runtime = new DefaultRuntime {}
-
-    val deadlock = {
-      def plop(s: String, sem: Semaphore) = sem.withPermit((s + "plop").succeed)
-      def foo (s: String, sem: Semaphore) = sem.withPermit(plop(s + "foo" , sem))
-
-      for {
-        sem <- Semaphore.make(1)
-        res <- foo("oups", sem)
-        _   <- IO.effect(println(res))
-      } yield ()
-    }
-
-    val printDumps = (for {
-      dumps <- Fiber.dump.delay(2.seconds).provide(runtime.environment)
-      _     <- IO.effect(println("************* fiber dump  ************"))
-      s     <- ZIO.traverse(dumps) { _.prettyPrintM}
-      _     <- IO.effect(println(s.mkString("\n")))
-      _     <- IO.effect(println("************* /fiber dump ************"))
-    } yield ())
-
-    // case 1
-//    runtime.unsafeRun(deadlock.fork *> printDumps)
-
-    // case 2
-    runtime.unsafeRun(deadlock.fork)
-    runtime.unsafeRun(printDumps)
-
-    Thread.sleep(5*1000)
-  }
-}
-
-object TestTwoRunNow2 {
-  def main (args: Array[String] ): Unit = {
-    val runtime = new DefaultRuntime {}
-    runtime.unsafeRun(IO.effect(println("plop 1")).delay(1.second).provide(runtime.environment).forever.fork)
-
-    runtime.unsafeRun((for {
-      dumps <- Fiber.dump.delay(2.seconds).provide(runtime.environment)
-      _     <- IO.effect(println("************* fiber dump  ************"))
-      s     <- ZIO.traverse(dumps) { _.prettyPrintM}
-      _     <- IO.effect(println(s.mkString("\n")))
-      _     <- IO.effect(println("************* /fiber dump ************"))
-    } yield ()))
-
-    Thread.sleep(10*1000)
-  }
-}
-

@@ -112,7 +112,7 @@ trait GitArchiverUtils {
       case Right(dir) => dir
       case Left(err) =>
         val msg = s"Error when checking required directories '${file.getPath}' to archive in git: ${err.fullMsg}"
-        GitArchiveLoggerPure.logEffect.error(msg)
+        GitArchiveLogger.error(msg)
         throw new IllegalArgumentException(msg)
     }
   }
@@ -211,7 +211,7 @@ trait GitArchiverUtils {
   def writeXml(fileName:File, elem:Elem, logMessage:String) : IOResult[File] = {
     IOResult.effect {
       FileUtils.writeStringToFile(fileName, xmlPrettyPrinter.format(elem), encoding)
-      GitArchiveLoggerPure.logEffect.debug(logMessage)
+      GitArchiveLogger.debug(logMessage)
       fileName
     }
   }
@@ -278,7 +278,7 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
           // Store the commit the modification repository
           gitModificationRepository.addCommit(newCommitId, modId)
 
-          GitArchiveLoggerPure.debug("Restored commit %s at HEAD (commit %s)".format(commit.value,newCommitId.value))
+          GitArchiveLogger.debug("Restored commit %s at HEAD (commit %s)".format(commit.value,newCommitId.value))
           newCommitId
         }
       }
@@ -345,7 +345,7 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
               tags.append(tag)
             } catch {
               case e:IncorrectObjectTypeException =>
-                GitArchiveLoggerPure.logEffect.debug("Ignoring object due to JGit bug: " + ref.getName, e)
+                GitArchiveLogger.debug("Ignoring object due to JGit bug: " + ref.getName, e)
             }
           }
           tags.sortWith( (o1, o2) => o1.getTagName().compareTo(o2.getTagName()) <= 0 )
