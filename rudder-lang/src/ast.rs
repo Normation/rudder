@@ -1,16 +1,46 @@
+// Copyright 2019 Normation SAS
+//
+// This file is part of Rudder.
+//
+// Rudder is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// In accordance with the terms of section 7 (7. Additional Terms.) of
+// the GNU General Public License version 3, the copyright holders add
+// the following Additional permissions:
+// Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+// Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+// Public License version 3, when you create a Related Module, this
+// Related Module is not considered as a part of the work and may be
+// distributed under the license agreement of your choice.
+// A "Related Module" means a set of sources files including their
+// documentation that, without modification of the Source Code, enables
+// supplementary functions or services in addition to those offered by
+// the Software.
+//
+// Rudder is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
 pub mod context;
 pub mod enums;
-pub mod value;
 pub mod resource;
+pub mod value;
 
 use crate::error::*;
 use crate::parser::*;
-use std::collections::{HashMap,HashSet};
+use std::collections::{HashMap, HashSet};
 
-use self::context::{VarContext,VarKind};
+use self::context::{VarContext, VarKind};
 use self::enums::EnumList;
-use self::value::Value;
 use self::resource::*;
+use self::value::Value;
 
 // TODO v2: type inference, compatibility metadata
 // TODO aliases
@@ -28,24 +58,36 @@ pub struct AST<'src> {
     pub resources: HashMap<Token<'src>, ResourceDef<'src>>,
 }
 
-pub fn vec_collect_results<I,F,X,Y>(it: I, f: F, errors: &mut Vec<Error>) -> Vec<Y>
+pub fn vec_collect_results<I, F, X, Y>(it: I, f: F, errors: &mut Vec<Error>) -> Vec<Y>
 where
     I: Iterator<Item = X>,
     F: FnMut(X) -> Result<Y>,
 {
     it.map(f)
-      .filter(|r| if let Err(e) = r { errors.push(e.clone()); false } else { true })
-      .map(Result::unwrap)
-      .collect()
+        .filter(|r| {
+            if let Err(e) = r {
+                errors.push(e.clone());
+                false
+            } else {
+                true
+            }
+        })
+        .map(Result::unwrap)
+        .collect()
 }
 impl<'src> AST<'src> {
     /// Produce the final AST data structure.
     /// Call this when all files have been parsed.
     pub fn from_past(past: PAST) -> Result<AST> {
         let PAST {
-            enums, enum_mappings, resources, states,
-            variable_declarations, parameter_defaults,
-            parents, aliases,
+            enums,
+            enum_mappings,
+            resources,
+            states,
+            variable_declarations,
+            parameter_defaults,
+            parents,
+            aliases,
         } = past;
         let mut ast = AST::new();
         ast.add_enums(enums);
@@ -93,7 +135,7 @@ impl<'src> AST<'src> {
     fn add_enum_mappings(&mut self, enum_mappings: Vec<PEnumMapping<'src>>) {
         let mut mappings = enum_mappings;
         let enum_list = &mut self.enum_list; // borrow checking out of the closure
-        // Iterate over mappings as long as we can insert some
+                                             // Iterate over mappings as long as we can insert some
         loop {
             let map_count = mappings.len();
             // Try inserting every mapping that have an existing ancestor until there is no more
@@ -114,10 +156,10 @@ impl<'src> AST<'src> {
                 // Nothing changed since last loop, we failed !
                 for em in new_mappings {
                     self.errors.push(err!(
-                            em.to,
-                            "Enum {} not found when trying to define mapping {}",
-                            em.from,
-                            em.to
+                        em.to,
+                        "Enum {} not found when trying to define mapping {}",
+                        em.from,
+                        em.to
                     ));
                 }
                 break;
@@ -136,7 +178,9 @@ impl<'src> AST<'src> {
             let getter = |k| self.context.variables.get(&k).map(VarKind::clone);
             match Value::from_pvalue(&self.enum_list, &getter, value) {
                 Err(e) => self.errors.push(e),
-                Ok(val) => { self.variable_declarations.insert(variable, val); },
+                Ok(val) => {
+                    self.variable_declarations.insert(variable, val);
+                }
             }
         }
     }
@@ -146,7 +190,7 @@ impl<'src> AST<'src> {
         &mut self,
         parameter_defaults: Vec<(Token<'src>, Option<Token<'src>>, Vec<Option<PValue<'src>>>)>,
     ) {
-        for (resource,state,defaults) in parameter_defaults {
+        for (resource, state, defaults) in parameter_defaults {
             // parameters with default values must be the last ones
             if let Err(e) = defaults.iter()
                 .fold(Ok(None), |status, pv|
@@ -167,19 +211,19 @@ impl<'src> AST<'src> {
                 )
             { self.errors.push(e); } // -> no default values
             self.parameter_defaults.insert(
-                (resource,state),
+                (resource, state),
                 vec_collect_results(
                     // we could keep only 'Some' parameter if this was not aso used for parameter
                     // counting
-                    defaults.into_iter(),//.filter(Option::is_some),
+                    defaults.into_iter(), //.filter(Option::is_some),
                     |def| {
                         Ok(match def {
                             Some(pvalue) => Some(Value::from_static_pvalue(pvalue)?),
                             None => None,
                         })
                     },
-                    &mut self.errors
-                )
+                    &mut self.errors,
+                ),
             );
         }
     }
@@ -188,7 +232,12 @@ impl<'src> AST<'src> {
     fn add_resource_list(&mut self, resources: &Vec<PResourceDef<'src>>) {
         for res in resources {
             if self.resource_list.contains(&res.name) {
-                self.errors.push(err!(&res.name, "Resource {} already defined at {}", &res.name, self.resource_list.get(&res.name).unwrap()));
+                self.errors.push(err!(
+                    &res.name,
+                    "Resource {} already defined at {}",
+                    &res.name,
+                    self.resource_list.get(&res.name).unwrap()
+                ));
             } else {
                 self.resource_list.insert(res.name);
             }
@@ -196,11 +245,19 @@ impl<'src> AST<'src> {
     }
 
     /// Compute manually declared parent/child relationships
-    fn create_children_list(&mut self, parents: Vec<(Token<'src>, Token<'src>)>) -> HashMap<Token<'src>,HashSet<Token<'src>>> {
+    fn create_children_list(
+        &mut self,
+        parents: Vec<(Token<'src>, Token<'src>)>,
+    ) -> HashMap<Token<'src>, HashSet<Token<'src>>> {
         let mut children = HashMap::new();
-        for (child,parent) in parents {
+        for (child, parent) in parents {
             if !self.resource_list.contains(&parent) {
-                self.errors.push(err!(&child, "Resource {} declares {} as a parent, but it doesn't exist", child, parent));
+                self.errors.push(err!(
+                    &child,
+                    "Resource {} declares {} as a parent, but it doesn't exist",
+                    child,
+                    parent
+                ));
             } else {
                 children.entry(parent).or_insert(HashSet::new());
                 children.get_mut(&parent).unwrap().insert(child);
@@ -210,14 +267,26 @@ impl<'src> AST<'src> {
     }
 
     /// Create and store resource objects
-    fn add_resources(&mut self, resources: Vec<PResourceDef<'src>>, states: Vec<PStateDef<'src>>, mut children: HashMap<Token<'src>,HashSet<Token<'src>>>) {
+    fn add_resources(
+        &mut self,
+        resources: Vec<PResourceDef<'src>>,
+        states: Vec<PStateDef<'src>>,
+        mut children: HashMap<Token<'src>, HashSet<Token<'src>>>,
+    ) {
         // first separate states by resource
-        let mut state_list = self.resource_list.iter()
-            .map(|k| (*k,Vec::new()))
-            .collect::<HashMap<Token<'src>,Vec<PStateDef<'src>>>>();
+        let mut state_list = self
+            .resource_list
+            .iter()
+            .map(|k| (*k, Vec::new()))
+            .collect::<HashMap<Token<'src>, Vec<PStateDef<'src>>>>();
         for st in states {
             match state_list.get_mut(&st.resource_name) {
-                None => self.errors.push(err!(st.name, "Resource {} has not been defined for state {}", st.resource_name, st.name)),
+                None => self.errors.push(err!(
+                    st.name,
+                    "Resource {} has not been defined for state {}",
+                    st.resource_name,
+                    st.name
+                )),
                 Some(v) => v.push(st),
             }
         }
@@ -227,9 +296,18 @@ impl<'src> AST<'src> {
             // or else because we have not stopped on duplicate resources
             let states = state_list.remove(&name).unwrap_or_else(|| Vec::new());
             let res_children = children.remove(&name).unwrap_or_else(|| HashSet::new());
-            let (errs,resource) = ResourceDef::from_presourcedef(res, states, res_children, &self.context, &self.parameter_defaults, &self.enum_list);
+            let (errs, resource) = ResourceDef::from_presourcedef(
+                res,
+                states,
+                res_children,
+                &self.context,
+                &self.parameter_defaults,
+                &self.enum_list,
+            );
             self.errors.extend(errs);
-            if let Some(r) = resource { self.resources.insert(name, r); }
+            if let Some(r) = resource {
+                self.resources.insert(name, r);
+            }
         }
     }
 
@@ -242,9 +320,12 @@ impl<'src> AST<'src> {
                         // Assume default parameter replacement and type inference if any has already be done
                         match_parameters(&res.parameters, &sd.resource_params, sd.resource)?;
                         match res.states.get(&sd.state) {
-                            None => {
-                                fail!(sd.state, "State {} does not exist for resource {}", sd.state, sd.resource)
-                            }
+                            None => fail!(
+                                sd.state,
+                                "State {} does not exist for resource {}",
+                                sd.state,
+                                sd.resource
+                            ),
                             Some(st) => {
                                 // Assume default parameter replacement and type inference if any has already be done
                                 match_parameters(&st.parameters, &sd.state_params, sd.state)
@@ -253,10 +334,9 @@ impl<'src> AST<'src> {
                     }
                 }
             }
-            Statement::Case(_name, cases) => map_results(
-                cases.iter(),
-                |(_c, sts)| map_results(sts.iter(),|st| self.binding_check(st))
-            ),
+            Statement::Case(_name, cases) => map_results(cases.iter(), |(_c, sts)| {
+                map_results(sts.iter(), |st| self.binding_check(st))
+            }),
             _ => Ok(()),
         }
     }
@@ -283,7 +363,7 @@ impl<'src> AST<'src> {
                             }
                         }
                     }
-                    fix_results(cases.iter().flat_map( |(_cond, sts)| {
+                    fix_results(cases.iter().flat_map(|(_cond, sts)| {
                         sts.iter().map(|st| self.cases_check(variables, st, false))
                     }))?;
                 } else {
@@ -309,14 +389,16 @@ impl<'src> AST<'src> {
     }
 
     fn enum_expression_check(&self, context: &VarContext, statement: &Statement) -> Result<()> {
-        let getter = |k| context.variables.get(&k).or_else(|| self.context.variables.get(&k)).map(VarKind::clone);
+        let getter = |k| {
+            context
+                .variables
+                .get(&k)
+                .or_else(|| self.context.variables.get(&k))
+                .map(VarKind::clone)
+        };
         match statement {
             Statement::Case(case, cases) => {
-                let errors = self.enum_list.evaluate(
-                    &getter,
-                    cases,
-                    *case,
-                );
+                let errors = self.enum_list.evaluate(&getter, cases, *case);
                 if !errors.is_empty() {
                     return Err(Error::from_vec(errors));
                 }
@@ -340,17 +422,19 @@ impl<'src> AST<'src> {
                     );
                 }
                 Ok(())
-            },
-            Value::Number(_,_) => Ok(()),
-            Value::EnumExpression(e) => fail!(k, "Metadata {} contains an enum expression, this is not allowed", k),
-            Value::List(l) => map_results(l.iter(),|v| AST::metadata_sub_check(k,v)),
-            Value::Struct(s) => map_results(s.iter(),|(_,v)| AST::metadata_sub_check(k,v)),
+            }
+            Value::Number(_, _) => Ok(()),
+            Value::EnumExpression(e) => fail!(
+                k,
+                "Metadata {} contains an enum expression, this is not allowed",
+                k
+            ),
+            Value::List(l) => map_results(l.iter(), |v| AST::metadata_sub_check(k, v)),
+            Value::Struct(s) => map_results(s.iter(), |(_, v)| AST::metadata_sub_check(k, v)),
         }
     }
     fn metadata_check(&self, metadata: &HashMap<Token<'src>, Value<'src>>) -> Result<()> {
-        map_results(metadata.iter(),|(k, v)| {
-            AST::metadata_sub_check(k,v)
-        })
+        map_results(metadata.iter(), |(k, v)| AST::metadata_sub_check(k, v))
     }
 
     fn children_check(
@@ -396,25 +480,10 @@ impl<'src> AST<'src> {
         if vec![
             // TODO
             //"string",
-            "struct",
-            "list",
-            "if",
-            "case",
-            "enum",
-            "global",
-            "default",
-            "resource",
+            "struct", "list", "if", "case", "enum", "global", "default", "resource",
             //"state",
-            "fail",
-            "log",
-            "return",
-            "noop",
-            "format",
-            "comment",
-            //"dict",
-            "json",
-            "enforce",
-            //"condition",
+            "fail", "log", "return", "noop", "format", "comment", //"dict",
+            "json", "enforce", //"condition",
             "audit",
         ]
         .contains(&name.fragment())
@@ -436,9 +505,7 @@ impl<'src> AST<'src> {
     // - true / false
     fn invalid_variable_check(&self, name: Token<'src>, global: bool) -> Result<()> {
         self.invalid_identifier_check(name)?;
-        if self.enum_list.enum_exists(name)
-            && (!global || !self.enum_list.is_global(name))
-        {
+        if self.enum_list.enum_exists(name) && (!global || !self.enum_list.is_global(name)) {
             // there is a global variable for each global enum
             fail!(
                 name,
@@ -532,7 +599,6 @@ impl<'src> AST<'src> {
         }
         fix_results(errors.into_iter())
     }
-
 }
 
 fn match_parameters(pdef: &[Parameter], pref: &[Value], identifier: Token) -> Result<()> {

@@ -1,3 +1,33 @@
+// Copyright 2019 Normation SAS
+//
+// This file is part of Rudder.
+//
+// Rudder is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// In accordance with the terms of section 7 (7. Additional Terms.) of
+// the GNU General Public License version 3, the copyright holders add
+// the following Additional permissions:
+// Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+// Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+// Public License version 3, when you create a Related Module, this
+// Related Module is not considered as a part of the work and may be
+// distributed under the license agreement of your choice.
+// A "Related Module" means a set of sources files including their
+// documentation that, without modification of the Source Code, enables
+// supplementary functions or services in addition to those offered by
+// the Software.
+//
+// Rudder is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
 use std::collections::HashMap;
 ///
 /// We write our own error type to have a consistent error type through all our code.
@@ -27,15 +57,26 @@ pub type Result<T> = std::result::Result<T, Error>;
 impl Error {
     pub fn append(self, e2: Error) -> Error {
         match (self, e2) {
-            (Error::User(s1), Error::User(s2))    => Error::List(vec![s1, s2]),
-            (Error::List(mut l), Error::User(s))   => { l.push(s); Error::List(l) },
-            (Error::User(s), Error::List(mut l))   => { l.push(s); Error::List(l) },
-            (Error::List(mut l1), Error::List(l2)) => { l1.extend(l2); Error::List(l1) },
+            (Error::User(s1), Error::User(s2)) => Error::List(vec![s1, s2]),
+            (Error::List(mut l), Error::User(s)) => {
+                l.push(s);
+                Error::List(l)
+            }
+            (Error::User(s), Error::List(mut l)) => {
+                l.push(s);
+                Error::List(l)
+            }
+            (Error::List(mut l1), Error::List(l2)) => {
+                l1.extend(l2);
+                Error::List(l1)
+            }
         }
     }
 
     pub fn from_vec(vec: Vec<Error>) -> Error {
-        if vec.is_empty() { panic!("BUG do not call from_vec on empty vectors"); }
+        if vec.is_empty() {
+            panic!("BUG do not call from_vec on empty vectors");
+        }
         let mut it = vec.into_iter();
         let first = it.next().unwrap();
         it.fold(first, |e0, e| e0.append(e))
@@ -43,9 +84,12 @@ impl Error {
 
     // results must only contain errors
     pub fn from_vec_result<X>(vec: Vec<Result<X>>) -> Error
-        where X: fmt::Debug,
+    where
+        X: fmt::Debug,
     {
-        if vec.is_empty() { panic!("BUG do not call from_vec_result on empty vectors"); }
+        if vec.is_empty() {
+            panic!("BUG do not call from_vec_result on empty vectors");
+        }
         let mut it = vec.into_iter().map(Result::unwrap_err);
         let first = it.next().unwrap();
         it.fold(first, |e0, e| e0.append(e))
@@ -59,7 +103,7 @@ macro_rules! err {
     ($origin:expr, $ ( $ arg : tt ) *) => ({
         use crate::error::Error;
         Error::User(format!(
-                "'{}': {}", 
+                "'{}': {}",
                 $origin.position_str(),
                 format!( $ ( $ arg ) * )
         ))
@@ -93,7 +137,7 @@ where
 pub fn map_results<I, F, X>(it: I, f: F) -> Result<()>
 where
     I: Iterator<Item = X>,
-    F: FnMut(X) -> Result<()> // also accepts Fn
+    F: FnMut(X) -> Result<()>, // also accepts Fn
 {
     let err_list = it.map(f).filter_map(|r| r.err()).collect::<Vec<Error>>();
     if err_list.is_empty() {
@@ -106,14 +150,14 @@ where
 pub fn map_vec_results<I, F, X, Y>(it: I, f: F) -> Result<Vec<Y>>
 where
     I: Iterator<Item = X>,
-    F: FnMut(X) -> Result<Y> // also accepts Fn
+    F: FnMut(X) -> Result<Y>, // also accepts Fn
 {
     let (vals, errs): (Vec<Result<Y>>, Vec<Result<Y>>) = it.map(f).partition(|r| r.is_ok());
     if errs.is_empty() {
         Ok(vals.into_iter().map(|r| r.unwrap()).collect())
     } else {
         Err(Error::from_vec(
-            errs.into_iter().map(|r| r.err().unwrap()).collect()
+            errs.into_iter().map(|r| r.err().unwrap()).collect(),
         ))
     }
 }
@@ -121,24 +165,25 @@ where
 pub fn map_strings_results<I, F, X>(it: I, f: F, sep: &'static str) -> Result<String>
 where
     I: Iterator<Item = X>,
-    F: FnMut(X) -> Result<String> // also accepts Fn
+    F: FnMut(X) -> Result<String>, // also accepts Fn
 {
     Ok(map_vec_results(it, f)?.join(sep))
 }
 /// Same a map_vec_results but for hashmap
-pub fn map_hashmap_results<I, F, X, Y , Z>(it: I, f: F) -> Result<HashMap<Y,Z>>
+pub fn map_hashmap_results<I, F, X, Y, Z>(it: I, f: F) -> Result<HashMap<Y, Z>>
 where
     I: Iterator<Item = X>,
-    F: FnMut(X) -> Result<(Y,Z)>,
+    F: FnMut(X) -> Result<(Y, Z)>,
     Y: Eq + Hash,
 {
     #[allow(clippy::type_complexity)]
-    let (vals, errs): (Vec<Result<(Y, Z)>>, Vec<Result<(Y, Z)>>) = it.map(f).partition(|r| r.is_ok());
+    let (vals, errs): (Vec<Result<(Y, Z)>>, Vec<Result<(Y, Z)>>) =
+        it.map(f).partition(|r| r.is_ok());
     if errs.is_empty() {
         Ok(vals.into_iter().map(|r| r.unwrap()).collect())
     } else {
         Err(Error::from_vec(
-            errs.into_iter().map(|r| r.err().unwrap()).collect()
+            errs.into_iter().map(|r| r.err().unwrap()).collect(),
         ))
     }
 }
@@ -159,4 +204,3 @@ impl fmt::Display for Error {
         }
     }
 }
-

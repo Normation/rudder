@@ -1,3 +1,33 @@
+// Copyright 2019 Normation SAS
+//
+// This file is part of Rudder.
+//
+// Rudder is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// In accordance with the terms of section 7 (7. Additional Terms.) of
+// the GNU General Public License version 3, the copyright holders add
+// the following Additional permissions:
+// Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+// Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+// Public License version 3, when you create a Related Module, this
+// Related Module is not considered as a part of the work and may be
+// distributed under the license agreement of your choice.
+// A "Related Module" means a set of sources files including their
+// documentation that, without modification of the Source Code, enables
+// supplementary functions or services in addition to those offered by
+// the Software.
+//
+// Rudder is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
 mod error;
 mod token;
 
@@ -11,8 +41,8 @@ use nom::sequence::*;
 
 use std::collections::HashMap;
 
-use error::*;
 use crate::error::*;
+use error::*;
 // reexport tokens
 pub use token::Token;
 #[allow(unused_imports)]
@@ -27,7 +57,6 @@ pub use token::PInput;
 ///!
 ///! All parsers should manage whitespace inside them.
 ///! All parser assume whitespaces at the beginning of the input have been removed.
-
 
 // TODO v2: measures, actions, functions, iterators, include, proptest
 // ===== Public interfaces =====
@@ -63,25 +92,35 @@ impl<'src> PAST<'src> {
     pub fn add_file(&mut self, filename: &'src str, content: &'src str) -> Result<()> {
         let pfile = fix_error_type(pfile(PInput::new_extra(content, filename)))?;
         if pfile.header.version != 0 {
-            return Err(Error::User(format!("Format not supported yet: {}", pfile.header.version)));
+            return Err(Error::User(format!(
+                "Format not supported yet: {}",
+                pfile.header.version
+            )));
         }
-        pfile.code.into_iter().for_each(|declaration| {
-            match declaration {
+        pfile
+            .code
+            .into_iter()
+            .for_each(|declaration| match declaration {
                 PDeclaration::Enum(e) => self.enums.push(e),
                 PDeclaration::Mapping(e) => self.enum_mappings.push(e),
-                PDeclaration::Resource((r,d,p)) => {
-                    self.parameter_defaults.push((r.name.clone(),None,d));
-                    if let Some(parent) = p { self.parents.push((r.name.clone(),parent)) };
+                PDeclaration::Resource((r, d, p)) => {
+                    self.parameter_defaults.push((r.name.clone(), None, d));
+                    if let Some(parent) = p {
+                        self.parents.push((r.name.clone(), parent))
+                    };
                     self.resources.push(r);
-                },
-                PDeclaration::State((s,d)) => {
-                    self.parameter_defaults.push((s.resource_name.clone(),Some(s.name.clone()),d));
+                }
+                PDeclaration::State((s, d)) => {
+                    self.parameter_defaults.push((
+                        s.resource_name.clone(),
+                        Some(s.name.clone()),
+                        d,
+                    ));
                     self.states.push(s);
-                },
+                }
                 PDeclaration::GlobalVar(kv) => self.variable_declarations.push(kv),
                 PDeclaration::Alias(a) => self.aliases.push(a),
-            }
-        });
+            });
         Ok(())
     }
 }
@@ -117,14 +156,15 @@ fn strip_spaces_and_comment(i: PInput) -> PResult<()> {
 /// Combinator automatically call strip_spaces_and_comment before and after a parser
 /// This avoids having to call it manually many times
 fn sp<'src, O, F>(f: F) -> impl Fn(PInput<'src>) -> PResult<O>
-    where F: Fn(PInput<'src>) -> PResult<O>,
-          O: 'src,
+where
+    F: Fn(PInput<'src>) -> PResult<O>,
+    O: 'src,
 {
     move |i| {
-        let (i,_) = strip_spaces_and_comment(i)?;
-        let (i,r) = f(i)?;
-        let (i,_) = strip_spaces_and_comment(i)?;
-        Ok((i,r))
+        let (i, _) = strip_spaces_and_comment(i)?;
+        let (i, r) = f(i)?;
+        let (i, _) = strip_spaces_and_comment(i)?;
+        Ok((i, r))
     }
 }
 
@@ -301,9 +341,9 @@ impl<'src> PEnumExpression<'src> {
     // extract the first token of the expression
     pub fn token(&self) -> Token<'src> {
         match self {
-            PEnumExpression::Compare(_,_,v) => *v,
-            PEnumExpression::And(a,_) => a.token(),
-            PEnumExpression::Or(a,_) => a.token(),
+            PEnumExpression::Compare(_, _, v) => *v,
+            PEnumExpression::And(a, _) => a.token(),
+            PEnumExpression::Or(a, _) => a.token(),
             PEnumExpression::Not(a) => a.token(),
             PEnumExpression::Default(t) => *t,
         }
@@ -315,7 +355,7 @@ fn penum_expression(i: PInput) -> PResult<PEnumExpression> {
         enum_and_expression,
         enum_not_expression,
         map(tag("default"), |t| PEnumExpression::Default(Token::from(t))), // default looks like an atom so it must come first
-        enum_atom
+        enum_atom,
     ))(i)
 }
 fn enum_atom(i: PInput) -> PResult<PEnumExpression> {
@@ -348,7 +388,7 @@ fn enum_atom(i: PInput) -> PResult<PEnumExpression> {
                 penum: opt(terminated(pidentifier, sp(tag(":"))));
                 value: pidentifier;
             } => PEnumExpression::Compare(None, penum, value)
-        )
+        ),
     ))(i)
 }
 fn enum_or_expression(i: PInput) -> PResult<PEnumExpression> {
@@ -437,38 +477,41 @@ pub enum PInterpolatedElement {
 }
 fn pinterpolated_string(i: PInput) -> PResult<Vec<PInterpolatedElement>> {
     // There is a rest inside so this just serve as a guard
-    all_consuming(
-        alt((
-            many1(alt((
-                // $ constant
-                value(PInterpolatedElement::Static("$".into()), tag("$$")),
-                // variable
-                sequence!(
-                    {
-                        s: tag("${");
-                        variable: or_fail(pvariable_identifier, || PErrorKind::InvalidVariableReference);
-                        _x: or_fail(tag("}"), || PErrorKind::UnterminatedDelimiter(s));
-                    } => PInterpolatedElement::Variable(variable.fragment().into())
+    all_consuming(alt((
+        many1(alt((
+            // $ constant
+            value(PInterpolatedElement::Static("$".into()), tag("$$")),
+            // variable
+            sequence!(
+                {
+                    s: tag("${");
+                    variable: or_fail(pvariable_identifier, || PErrorKind::InvalidVariableReference);
+                    _x: or_fail(tag("}"), || PErrorKind::UnterminatedDelimiter(s));
+                } => PInterpolatedElement::Variable(variable.fragment().into())
+            ),
+            // invalid $
+            sequence!(
+                {
+                    _s: tag("$"); // $SomethingElse is an error
+                    _x: or_fail(tag("$"), || PErrorKind::InvalidVariableReference); // $$ is already processed so this is an error
+                } => PInterpolatedElement::Static("".into()) // this is mandatory but cannot happen
+            ),
+            // static data
+            map(take_until("$"), |s: PInput| {
+                PInterpolatedElement::Static(s.fragment.into())
+            }),
+            // end of string
+            map(
+                preceded(
+                    peek(anychar), // do no take rest if we are already at the end
+                    rest,
                 ),
-                // invalid $
-                sequence!(
-                    {
-                        _s: tag("$"); // $SomethingElse is an error
-                        _x: or_fail(tag("$"), || PErrorKind::InvalidVariableReference); // $$ is already processed so this is an error
-                    } => PInterpolatedElement::Static("".into()) // this is mandatory but cannot happen
-                ),
-                // static data
-                map(take_until("$"), |s: PInput| PInterpolatedElement::Static(s.fragment.into())),
-                // end of string
-                map(preceded(
-                        peek(anychar), // do no take rest if we are already at the end
-                        rest),
-                    |s: PInput| PInterpolatedElement::Static(s.fragment.into())),
-            ))),
-            // empty string
-            value(vec![PInterpolatedElement::Static("".into())], not(anychar)),
-        ))
-   )(i)
+                |s: PInput| PInterpolatedElement::Static(s.fragment.into()),
+            ),
+        ))),
+        // empty string
+        value(vec![PInterpolatedElement::Static("".into())], not(anychar)),
+    )))(i)
 }
 
 /// A PType is the type a variable or a parameter can take.
@@ -482,20 +525,20 @@ pub enum PType {
 }
 fn ptype(i: PInput) -> PResult<PType> {
     alt((
-        value(PType::String,  tag("string")),
-        value(PType::Number,  tag("num")),
+        value(PType::String, tag("string")),
+        value(PType::Number, tag("num")),
         value(PType::Boolean, tag("boolean")),
-        value(PType::Struct,  tag("struct")),
-        value(PType::List,    tag("list")),
+        value(PType::Struct, tag("struct")),
+        value(PType::List, tag("list")),
     ))(i)
 }
 
 /// A number is currently represented by a float64
 fn pnumber(i: PInput) -> PResult<(Token, f64)> {
-    let (i,val) = recognize_float(i)?;
-    match double::<&[u8],(&[u8],nom::error::ErrorKind)>(val.fragment.as_bytes()) {
+    let (i, val) = recognize_float(i)?;
+    match double::<&[u8], (&[u8], nom::error::ErrorKind)>(val.fragment.as_bytes()) {
         Err(_) => panic!(format!("A parsed number canot be reparsed : {:?}", val)),
-        Ok((_, n)) => Ok(( i, (val.into(),n) )),
+        Ok((_, n)) => Ok((i, (val.into(), n))),
     }
 }
 
@@ -511,7 +554,7 @@ fn plist(i: PInput) -> PResult<Vec<PValue>> {
 }
 
 /// A struct is stored in a HashMap
-fn pstruct(i: PInput) -> PResult<HashMap<String,PValue>> {
+fn pstruct(i: PInput) -> PResult<HashMap<String, PValue>> {
     wsequence!(
         {
             s: tag("{");
@@ -533,28 +576,28 @@ pub enum PValue<'src> {
     Number(Token<'src>, f64),
     EnumExpression(PEnumExpression<'src>),
     List(Vec<PValue<'src>>),
-    Struct(HashMap<String,PValue<'src>>),
+    Struct(HashMap<String, PValue<'src>>),
 }
 impl<'src> PValue<'src> {
     pub fn get_type(&self) -> PType {
         match self {
-            PValue::String(_,_)       => PType::String,
-            PValue::Number(_,_)       => PType::Number,
+            PValue::String(_, _) => PType::String,
+            PValue::Number(_, _) => PType::Number,
             PValue::EnumExpression(_) => PType::Boolean,
-            PValue::Struct(_)         => PType::Struct,
-            PValue::List(_)           => PType::List,
+            PValue::Struct(_) => PType::Struct,
+            PValue::List(_) => PType::List,
         }
     }
 }
 fn pvalue(i: PInput) -> PResult<PValue> {
     alt((
         // Be careful of ordering here
-        map(punescaped_string, |(x,y)| PValue::String(x,y)),
-        map(pescaped_string,   |(x,y)| PValue::String(x,y)),
-        map(pnumber,           |(x,y)| PValue::Number(x,y)),
-        map(penum_expression,          PValue::EnumExpression),
-        map(plist,                     PValue::List),
-        map(pstruct,                   PValue::Struct),
+        map(punescaped_string, |(x, y)| PValue::String(x, y)),
+        map(pescaped_string, |(x, y)| PValue::String(x, y)),
+        map(pnumber, |(x, y)| PValue::Number(x, y)),
+        map(penum_expression, PValue::EnumExpression),
+        map(plist, PValue::List),
+        map(pstruct, PValue::Struct),
     ))(i)
 }
 
@@ -579,34 +622,30 @@ fn pmetadata(i: PInput) -> PResult<PMetadata> {
 /// Such comment is parsed and kept contrarily to comments starting with '#'.
 fn pcomment(i: PInput) -> PResult<PMetadata> {
     let (i, start) = peek(tag("##"))(i)?;
-    let (i, lines) = 
-        many1(map(
-            preceded(
-                tag("##"),
-                alt((
-                    terminated(take_until("\n"), newline),
-                    // comment is the last line
-                    rest,
-                )),
-            ),
-            |x: PInput| x.to_string()
-        ))(i)?;
-    Ok((i, PMetadata {
-        key: "comment".into(),
-        value: PValue::String(start.into(), lines.join("\n")),
-    }))
+    let (i, lines) = many1(map(
+        preceded(
+            tag("##"),
+            alt((
+                terminated(take_until("\n"), newline),
+                // comment is the last line
+                rest,
+            )),
+        ),
+        |x: PInput| x.to_string(),
+    ))(i)?;
+    Ok((
+        i,
+        PMetadata {
+            key: "comment".into(),
+            value: PValue::String(start.into(), lines.join("\n")),
+        },
+    ))
 }
-
 
 /// A metadata list is an optional list of metadata entries
 /// Comments are considered to be metadata
 fn pmetadata_list(i: PInput) -> PResult<Vec<PMetadata>> {
-    many0(
-        alt((
-            pmetadata,
-            pcomment,
-        ))
-    )(i)
+    many0(alt((pmetadata, pcomment)))(i)
 }
 
 /// A parameters defines how a parameter can be passed.
@@ -648,7 +687,7 @@ pub struct PResourceDef<'src> {
     pub parameters: Vec<PParameter<'src>>,
 }
 // separate default parameters and parents because they are stored separately
-fn presource_def(i: PInput) -> PResult<(PResourceDef,Vec<Option<PValue>>,Option<Token>)> {
+fn presource_def(i: PInput) -> PResult<(PResourceDef, Vec<Option<PValue>>, Option<Token>)> {
     wsequence!(
         {
             metadata: pmetadata_list;
@@ -708,8 +747,8 @@ pub enum PCallMode {
 fn pcall_mode(i: PInput) -> PResult<PCallMode> {
     alt((
         value(PCallMode::Condition, tag("?")),
-        value(PCallMode::Audit,     tag("!")),
-        value(PCallMode::Enforce,   peek(anychar)),
+        value(PCallMode::Audit, tag("!")),
+        value(PCallMode::Enforce, peek(anychar)),
     ))(i)
 }
 
@@ -754,7 +793,10 @@ pub enum PStatement<'src> {
     VariableDefinition(Vec<PMetadata<'src>>, Token<'src>, PValue<'src>),
     StateDeclaration(PStateDeclaration<'src>),
     //   case keyword, list (condition   ,       then)
-    Case(Token<'src>, Vec<(PEnumExpression<'src>, Vec<PStatement<'src>>)>), // keep the pinput since it will be reparsed later
+    Case(
+        Token<'src>,
+        Vec<(PEnumExpression<'src>, Vec<PStatement<'src>>)>,
+    ), // keep the pinput since it will be reparsed later
     // Stop engine with a final message
     Fail(PValue<'src>),
     // Inform the user of something
@@ -769,7 +811,12 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
         // One state
         map(pstate_declaration, |s| PStatement::StateDeclaration(s)),
         // Variable definition
-        map(pair(pmetadata_list,pvariable_definition), |(metadata,(variable,value))| PStatement::VariableDefinition(metadata,variable,value)),
+        map(
+            pair(pmetadata_list, pvariable_definition),
+            |(metadata, (variable, value))| {
+                PStatement::VariableDefinition(metadata, variable, value)
+            },
+        ),
         // case
         wsequence!(
             {
@@ -819,10 +866,13 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
             }
         ),
         // Flow statements
-        map(preceded(sp(tag("return")),pvariable_identifier), PStatement::Return), // TODO at least one space here
-        map(preceded(sp(tag("fail")),pvalue),        PStatement::Fail), // TODO at least one space here
-        map(preceded(sp(tag("log")),pvalue),         PStatement::Log), // TODO at least one space here
-        map(tag("noop"),                             |_| PStatement::Noop),
+        map(
+            preceded(sp(tag("return")), pvariable_identifier),
+            PStatement::Return,
+        ), // TODO at least one space here
+        map(preceded(sp(tag("fail")), pvalue), PStatement::Fail), // TODO at least one space here
+        map(preceded(sp(tag("log")), pvalue), PStatement::Log),   // TODO at least one space here
+        map(tag("noop"), |_| PStatement::Noop),
     ))(i)
 }
 
@@ -837,7 +887,7 @@ pub struct PStateDef<'src> {
     pub statements: Vec<PStatement<'src>>,
 }
 // separate parameter defaults since they will be stored separately
-fn pstate_def(i: PInput) -> PResult<(PStateDef,Vec<Option<PValue>>)> {
+fn pstate_def(i: PInput) -> PResult<(PStateDef, Vec<Option<PValue>>)> {
     wsequence!(
         {
             metadata: pmetadata_list;
@@ -904,19 +954,25 @@ fn palias_def(i: PInput) -> PResult<PAliasDef> {
 pub enum PDeclaration<'src> {
     Enum(PEnum<'src>),
     Mapping(PEnumMapping<'src>),
-    Resource((PResourceDef<'src>,Vec<Option<PValue<'src>>>,Option<Token<'src>>)),
-    State((PStateDef<'src>,Vec<Option<PValue<'src>>>)),
+    Resource(
+        (
+            PResourceDef<'src>,
+            Vec<Option<PValue<'src>>>,
+            Option<Token<'src>>,
+        ),
+    ),
+    State((PStateDef<'src>, Vec<Option<PValue<'src>>>)),
     GlobalVar((Token<'src>, PValue<'src>)),
     Alias(PAliasDef<'src>),
 }
 fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
     alt((
-        map(penum,                PDeclaration::Enum),
-        map(penum_mapping,        PDeclaration::Mapping),
-        map(presource_def,        PDeclaration::Resource),
-        map(pstate_def,           PDeclaration::State),
+        map(penum, PDeclaration::Enum),
+        map(penum_mapping, PDeclaration::Mapping),
+        map(presource_def, PDeclaration::Resource),
+        map(pstate_def, PDeclaration::State),
         map(pvariable_definition, PDeclaration::GlobalVar),
-        map(palias_def,           PDeclaration::Alias),
+        map(palias_def, PDeclaration::Alias),
     ))(i)
 }
 

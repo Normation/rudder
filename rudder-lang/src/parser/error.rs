@@ -1,7 +1,37 @@
+// Copyright 2019 Normation SAS
+//
+// This file is part of Rudder.
+//
+// Rudder is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// In accordance with the terms of section 7 (7. Additional Terms.) of
+// the GNU General Public License version 3, the copyright holders add
+// the following Additional permissions:
+// Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+// Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+// Public License version 3, when you create a Related Module, this
+// Related Module is not considered as a part of the work and may be
+// distributed under the license agreement of your choice.
+// A "Related Module" means a set of sources files including their
+// documentation that, without modification of the Source Code, enables
+// supplementary functions or services in addition to those offered by
+// the Software.
+//
+// Rudder is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+use super::{PInput, Token};
 use crate::error::*;
-use super::{PInput,Token};
-use nom::error::{ParseError,ErrorKind,VerboseError};
-use nom::{IResult, Err};
+use nom::error::{ErrorKind, ParseError, VerboseError};
+use nom::{Err, IResult};
 use std::fmt;
 
 /// Result for all parser
@@ -12,11 +42,11 @@ pub type PResult<'src, O> = IResult<PInput<'src>, O, PError<PInput<'src>>>;
 /// for the developer.
 /// Sub parsers may mix error types from nom or from finalerror
 /// So this is a generir error type that must implement ParseError
-#[derive(Debug, PartialEq,Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum PErrorKind<I> {
     Nom(VerboseError<I>),
     #[cfg(test)]
-    NomTest(String),               // cannot be use outside of tests
+    NomTest(String), // cannot be use outside of tests
     InvalidFormat,                 // in header
     InvalidName(I),                // in identifier expressions (type of expression)
     UnexpectedToken(&'static str), // anywhere (expected token)
@@ -25,10 +55,10 @@ pub enum PErrorKind<I> {
     InvalidEscapeSequence,         // in string definition
     InvalidVariableReference,      // during string interpolation
     ExpectedKeyword(&'static str), // anywhere (keyword type)
-    UnsupportedMetadata(I),        // metadata or comments are not supported everywhere (metadata key)
+    UnsupportedMetadata(I), // metadata or comments are not supported everywhere (metadata key)
 }
 
-#[derive(Debug, PartialEq,Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct PError<I> {
     pub context: I,
     pub kind: PErrorKind<I>,
@@ -39,7 +69,6 @@ pub struct PError<I> {
 /// - nom VerboseError (stack errors)
 /// - pure PError (keep last error)
 impl<I: Clone> ParseError<I> for PError<I> {
-
     /// creates an error from the input position and an [ErrorKind]
     fn from_error_kind(input: I, kind: ErrorKind) -> Self {
         PError {
@@ -53,11 +82,10 @@ impl<I: Clone> ParseError<I> for PError<I> {
     /// through a parse tree, accumulating error context on the way
     fn append(input: I, kind: ErrorKind, other: Self) -> Self {
         match other.kind {
-            PErrorKind::Nom(e) =>
-                PError {
-                    context: input.clone(),
-                    kind: PErrorKind::Nom(VerboseError::append(input, kind, e)),
-                },
+            PErrorKind::Nom(e) => PError {
+                context: input.clone(),
+                kind: PErrorKind::Nom(VerboseError::append(input, kind, e)),
+            },
             _ => other,
         }
     }
@@ -107,10 +135,12 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
             PErrorKind::ExpectedKeyword(s) => format!("Token not found, expecting a '{}'",s),
             PErrorKind::UnsupportedMetadata(i) => format!("Parsed comment or metadata not supported at this place: '{}' fount at {}", i.fragment, Token::from(*i).position_str()),
         };
-        f.write_str(&format!("{} near '{}' {}",
-                             message,
-                             self.context.fragment,
-                             Token::from(self.context).position_str()))
+        f.write_str(&format!(
+            "{} near '{}' {}",
+            message,
+            self.context.fragment,
+            Token::from(self.context).position_str()
+        ))
     }
 }
 
@@ -127,11 +157,10 @@ impl Into<Error> for PError<PInput<'_>> {
 // Here closures could use ParseError<I> but this way we force the type inference for
 // all sub parsers to return PError<I>, which we won't have to specify during call.
 // Pass a closure instead of a PErrorKind to allow lazy evaluation of its parameters
-pub fn or_fail<'src, O, F, E>(f: F, e: E)
-    -> impl Fn(PInput<'src>) -> PResult<'src, O>
-    where
-        F: Fn(PInput<'src>) -> PResult<'src, O>,
-        E: Fn() -> PErrorKind<PInput<'src>>,
+pub fn or_fail<'src, O, F, E>(f: F, e: E) -> impl Fn(PInput<'src>) -> PResult<'src, O>
+where
+    F: Fn(PInput<'src>) -> PResult<'src, O>,
+    E: Fn() -> PErrorKind<PInput<'src>>,
 {
     move |input| {
         let x = f(input.clone());
@@ -139,11 +168,20 @@ pub fn or_fail<'src, O, F, E>(f: F, e: E)
             // a non nom error cannot be superseded
             // keep original context when possible
             Err(Err::Failure(err)) => match err.kind {
-                PErrorKind::Nom(_) => Err(Err::Failure(PError { context: err.context, kind: e()})),
+                PErrorKind::Nom(_) => Err(Err::Failure(PError {
+                    context: err.context,
+                    kind: e(),
+                })),
                 _ => Err(Err::Failure(err)),
             },
-            Err(Err::Error(err)) => Err(Err::Failure(PError { context: err.context, kind: e()})),
-            Err(Err::Incomplete(_)) => Err(Err::Failure(PError { context: input, kind: e()})),
+            Err(Err::Error(err)) => Err(Err::Failure(PError {
+                context: err.context,
+                kind: e(),
+            })),
+            Err(Err::Incomplete(_)) => Err(Err::Failure(PError {
+                context: input,
+                kind: e(),
+            })),
             Ok(y) => Ok(y),
         }
     }
@@ -158,4 +196,3 @@ pub fn fix_error_type<T>(res: PResult<T>) -> Result<T> {
         Err(Err::Incomplete(_)) => panic!("Incomplete should never happen"),
     }
 }
-

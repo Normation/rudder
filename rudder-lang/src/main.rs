@@ -1,20 +1,49 @@
+// Copyright 2019 Normation SAS
+//
+// This file is part of Rudder.
+//
+// Rudder is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// In accordance with the terms of section 7 (7. Additional Terms.) of
+// the GNU General Public License version 3, the copyright holders add
+// the following Additional permissions:
+// Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+// Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+// Public License version 3, when you create a Related Module, this
+// Related Module is not considered as a part of the work and may be
+// distributed under the license agreement of your choice.
+// A "Related Module" means a set of sources files including their
+// documentation that, without modification of the Source Code, enables
+// supplementary functions or services in addition to those offered by
+// the Software.
+//
+// Rudder is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
 #[macro_use]
 mod error;
-mod parser;
 mod ast;
-mod technique;
 mod generators;
+mod parser;
+mod technique;
 
-
-use crate::generators::*;
-use crate::error::*;
-use crate::technique::translate_file;
-use crate::parser::PAST;
-use crate::parser::Token;
 use crate::ast::AST;
+use crate::error::*;
+use crate::generators::*;
+use crate::parser::Token;
+use crate::parser::PAST;
+use crate::technique::translate_file;
 use std::cell::UnsafeCell;
 use std::fs;
-use std::path::{Path,PathBuf};
+use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
 ///!  Principle:
@@ -50,10 +79,10 @@ use structopt::StructOpt;
 #[structopt(rename_all = "kebab-case")]
 struct Opt {
     /// Output file or directory
-    #[structopt(long,short)]
+    #[structopt(long, short)]
     output: PathBuf,
     /// Input file or directory
-    #[structopt(long,short)]
+    #[structopt(long, short)]
     input: PathBuf,
     /// Set to use technique translation mode
     #[structopt(long)]
@@ -62,12 +91,17 @@ struct Opt {
     #[structopt(long)]
     technique: bool,
     /// Output format to use
-    #[structopt(long,short="f")]
+    #[structopt(long, short = "f")]
     output_format: Option<String>,
 }
 
 /// Read file, parse it and store it
-fn add_file<'a>(past: &mut PAST<'a>, source_list: &'a SourceList, path: &'a Path, filename: &'a str) -> Result<()> {
+fn add_file<'a>(
+    past: &mut PAST<'a>,
+    source_list: &'a SourceList,
+    path: &'a Path,
+    filename: &'a str,
+) -> Result<()> {
     let content = fs::read_to_string(path)
         .unwrap_or_else(|_| panic!("Something went wrong reading the file {}", filename));
     let content_str = source_list.append(content);
@@ -138,7 +172,8 @@ fn compile(source: &Path, dest: &Path, technique: bool) -> Result<()> {
 
     // generate final output
     let mut cfe = CFEngine::new();
-    let file = if technique { // TODO this should be a technique name not a file name
+    let file = if technique {
+        // TODO this should be a technique name not a file name
         Some(dest)
     } else {
         None
