@@ -1,0 +1,76 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+
+
+my %resource = ();
+my @state = ();
+my @config_lines=();
+
+foreach my $file (glob "/home/bpeccatte/Rudder/ncf/tree/30_generic_methods/*") {
+  # file exclusion
+  next if $file=~ /\/_/;
+  next if $file=~ /README/;
+  next if $file=~ /permissions.cf/;
+
+  open(my $fd, "<$file") or die "cannot read $file";
+
+  my $resource_blocks=1;
+  my $resource_identfiers=1;
+  if ($file =~ /\/variable_/) { $resource_identfiers=2; }
+
+  # init data
+  my $i=0;
+  my ($resource, $state, $prefix, $class_parameter) = ("", "", "", -1);
+  my $gm = "";
+  my @resource_params=();
+  my @state_params=();
+  my %param_id=();
+
+  # loop over GM
+  while(my $line=<$fd>)
+  {
+    if ($line =~ /^#.*\@parameter\s+(\w+)\s.*$/) {
+      $param_id{$1}=$i;
+      if ($i < $resource_identfiers) {
+        push @resource_params, "p$i";
+      } else {
+        push @state_params, "p$i";
+      }
+      $i++;
+    }
+    elsif($line =~ /^#.*\@class_prefix\s+(\w+)/) {
+      $prefix = $1;
+    }
+    elsif($line =~ /^#.*\@class_parameter\s+(\w+)/) {
+      $class_parameter = $param_id{$1};
+    }
+    elsif($line =~ /^bundle agent (\w+)\(/) {
+      $gm = $1;
+      $gm =~ /^((?:[a-zA-Z0-9]+_){$resource_blocks})(\w+)$/;
+      ($resource, $state) = ($1, $2);
+      chop $resource;
+    }
+  }
+
+  # keep output
+  $resource{"resource $resource(".join(",",@resource_params).")"}=1;
+  push @state, "$resource state $state(".join(",",@state_params)."){}";
+  push @config_lines, "$gm = { class_prefix=\"$prefix\", class_parameter_id = $class_parameter }";
+  #print "$gm = { class_prefix=\"$prefix\", class_parameter_id = $class_parameter }\n";
+}
+
+open(my $stdlib,">data/stdlib.rl") or die "Cannot write stdlib";
+print $stdlib "\@format=0\n";
+print $stdlib "\n\n";
+print $stdlib join("\n",keys %resource);
+print $stdlib "\n\n";
+print $stdlib join("\n", @state);
+print $stdlib "\n\n";
+close($stdlib);
+
+open(my $conf,">data/conf.list") or die "Cannot write methods config";
+print $conf join("\n",@config_lines);
+close($stdlib);
+

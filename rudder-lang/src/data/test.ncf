@@ -1,0 +1,36 @@
+@format=0
+
+#    default => log "info: ok"
+resource File(p)
+
+File state permissions(u,g,m) {
+}
+
+globalvar = "hello"
+
+resource ntp ()
+
+@metadata="value"
+ntp state configuration (x="default")
+{ 
+  #xs="pouet"
+  youpi = "youp${x}i"
+  en = os =~ debian
+  File("/tmp").permissions("root", "x$${root}i${youpi}2","g+w") as outvar
+
+  case {
+    outvar =~ kept => File("/tmp").permissions("root", "${globalvar}", "g+w"),
+    outvar =~ repaired  => File("/tmp").permissions("user", "user", "g+w"),
+#    default => return kept
+#    default => fail "failed agent"
+#    default => log "info: ok"
+#    en =~ true && outvar =~ error => File("/tmp").permissions("user", "user", "g+w"),
+    default => noop
+  }
+
+  case {
+    ubuntu => File("/tmp").permissions("root", "root", "g+w"),
+    os:debian => File("/tmp").permissions("user", "user", "g+w")
+  }
+}
+
