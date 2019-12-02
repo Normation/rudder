@@ -95,7 +95,7 @@ def get_all_generic_methods_filenames(alt_path=None):
   result = []
   if alt_path is None:
     filelist1 = get_all_generic_methods_filenames_in_dir(get_root_dir() + "/tree/30_generic_methods")
-    filelist2 = get_all_generic_methods_filenames_in_dir("/var/rudder/configuration-repository/30_generic_methods")
+    filelist2 = get_all_generic_methods_filenames_in_dir("/var/rudder/configuration-repository/ncf/30_generic_methods")
     result = filelist1 + filelist2
   else:
     result = get_all_generic_methods_filenames_in_dir(alt_path)
@@ -117,10 +117,13 @@ def get_all_techniques_filenames(migrate_technique = False):
   return get_all_cf_filenames_under_dir(path, not migrate_technique)
 
 
-def get_all_cf_filenames_under_dir(dir, only_technique_cf):
+def get_all_cf_filenames_under_dir(parent_dir, only_technique_cf):
   filenames = []
   filenames_add = filenames.append
-  for root, dirs, files in os.walk(dir):
+  for root, dirs, files in os.walk(parent_dir):
+    for dir in dirs:
+        filenames = filenames + get_all_cf_filenames_under_dir(os.path.join(parent_dir,dir),only_technique_cf)
+
     for file in files:
       if only_technique_cf:
         if file == "technique.cf":
