@@ -1,9 +1,39 @@
-use crate::ast::*;
+// Copyright 2019 Normation SAS
+//
+// This file is part of Rudder.
+//
+// Rudder is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// In accordance with the terms of section 7 (7. Additional Terms.) of
+// the GNU General Public License version 3, the copyright holders add
+// the following Additional permissions:
+// Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+// Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+// Public License version 3, when you create a Related Module, this
+// Related Module is not considered as a part of the work and may be
+// distributed under the license agreement of your choice.
+// A "Related Module" means a set of sources files including their
+// documentation that, without modification of the Source Code, enables
+// supplementary functions or services in addition to those offered by
+// the Software.
+//
+// Rudder is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+use super::Generator;
 use crate::ast::enums::*;
 use crate::ast::resource::*;
 use crate::ast::value::*;
+use crate::ast::*;
 use crate::parser::*;
-use super::Generator;
 
 use std::collections::HashMap;
 use std::fs::File;
@@ -65,7 +95,7 @@ impl CFEngine {
                     .as_str()
                     + "\""
             }
-            Value::Number(_,_) => unimplemented!(),
+            Value::Number(_, _) => unimplemented!(),
             Value::EnumExpression(e) => "".into(), // TODO
             Value::List(_) => unimplemented!(),
             Value::Struct(_) => unimplemented!(),
@@ -104,9 +134,7 @@ impl CFEngine {
                             .enum_iter(*e)
                             .filter(|i| {
                                 (**i != *item)
-                                    && gc
-                                        .enum_list
-                                        .is_ancestor(*e, **i, final_enum, *item)
+                                    && gc.enum_list.is_ancestor(*e, **i, final_enum, *item)
                             })
                             .map(|i| i.fragment())
                             .collect::<Vec<_>>();
@@ -155,11 +183,10 @@ impl CFEngine {
                     _ => "any".to_string(),
                 };
                 // TODO setup mode and output var by calling ... bundle
-                let param_str = map_strings_results(sd.resource_params
-                    .iter()
-                    .chain(sd.state_params.iter()),
+                let param_str = map_strings_results(
+                    sd.resource_params.iter().chain(sd.state_params.iter()),
                     |x| self.parameter_to_cfengine(x),
-                    ","
+                    ",",
                 )?;
                 let class = self.format_class(in_class)?;
                 if class == "any" {
@@ -183,18 +210,18 @@ impl CFEngine {
             }
             Statement::Case(_case, vec) => {
                 self.reset_cases();
-                map_strings_results(vec
-                    .iter(),
+                map_strings_results(
+                    vec.iter(),
                     |(case, vst)| {
                         // TODO case in case
                         let case_exp = self.format_case_expr(gc, case)?;
                         map_strings_results(
                             vst.iter(),
                             |st| self.format_statement(gc, st, case_exp.clone()),
-                            ""
+                            "",
                         )
                     },
-                    ""
+                    "",
                 )
             }
             Statement::Fail(msg) => Ok(format!(
@@ -228,40 +255,66 @@ impl CFEngine {
     fn value_to_string(&mut self, value: &Value, string_delim: bool) -> Result<String> {
         let delim = if string_delim { "\"" } else { "" };
         Ok(match value {
-            Value::String(s) => format!("{}{}{}", delim, s.data.iter().map(|t| 
-                match t {
-                    PInterpolatedElement::Static(s) => {
-                        // replace ${const.xx}
-                        s.replace("$","${consr.dollar}")
-                         .replace("\\n","${const.n}")
-                         .replace("\\r","${const.r}")
-                         .replace("\\t","${const.t}")
-                    }
-                    PInterpolatedElement::Variable(v) => {
-                        // translate variable name
-                        format!("${{{}}}",v)
-                    }
-                }).collect::<Vec<String>>().join(""), delim),
-            Value::Number(_, n) => format!("{}",n),
+            Value::String(s) => format!(
+                "{}{}{}",
+                delim,
+                s.data
+                    .iter()
+                    .map(|t| match t {
+                        PInterpolatedElement::Static(s) => {
+                            // replace ${const.xx}
+                            s.replace("$", "${consr.dollar}")
+                                .replace("\\n", "${const.n}")
+                                .replace("\\r", "${const.r}")
+                                .replace("\\t", "${const.t}")
+                        }
+                        PInterpolatedElement::Variable(v) => {
+                            // translate variable name
+                            format!("${{{}}}", v)
+                        }
+                    })
+                    .collect::<Vec<String>>()
+                    .join(""),
+                delim
+            ),
+            Value::Number(_, n) => format!("{}", n),
             Value::EnumExpression(e) => unimplemented!(),
-            Value::List(l) => format!("[ {} ]", map_strings_results(l.iter(), |x| self.value_to_string(x, true), ",")?),
-            Value::Struct(s) => format!("{{ {} }}", map_strings_results(s.iter(), |(x,y)| Ok(format!("\"{}\":{}",x,self.value_to_string(y, true)?)), ",")?),
+            Value::List(l) => format!(
+                "[ {} ]",
+                map_strings_results(l.iter(), |x| self.value_to_string(x, true), ",")?
+            ),
+            Value::Struct(s) => format!(
+                "{{ {} }}",
+                map_strings_results(
+                    s.iter(),
+                    |(x, y)| Ok(format!("\"{}\":{}", x, self.value_to_string(y, true)?)),
+                    ","
+                )?
+            ),
         })
     }
 
     fn generate_ncf_metadata(&mut self, name: &Token, resource: &ResourceDef) -> Result<String> {
         // description must be the last field
         let mut description = "".to_string();
-        map_strings_results(resource.metadata.iter(),
-            |(n,v)| 
-                if n.fragment()!="description" { 
-                    Ok(format!("# @{} {}", n.fragment(), self.value_to_string(v, false)?))} 
-                else { 
-                    description=format!("# @{} {}", n.fragment(), self.value_to_string(v, false)?);
+        map_strings_results(
+            resource.metadata.iter(),
+            |(n, v)| {
+                if n.fragment() != "description" {
+                    Ok(format!(
+                        "# @{} {}",
+                        n.fragment(),
+                        self.value_to_string(v, false)?
+                    ))
+                } else {
+                    description =
+                        format!("# @{} {}", n.fragment(), self.value_to_string(v, false)?);
                     Ok("#".to_string())
-                },
-            "\n"
-        ).map(|s| s+"\n"+&description+"\n\n")
+                }
+            },
+            "\n",
+        )
+        .map(|s| s + "\n" + &description + "\n\n")
     }
 }
 
@@ -280,11 +333,13 @@ impl Generator for CFEngine {
                 self.reset_context();
                 let mut content = match files.get(sn.file()) {
                     Some(s) => s.to_string(),
-                    None => if technique_metadata {
-                        self.generate_ncf_metadata(rn,res)?
-                    } else {
-                        String::new()
-                    },
+                    None => {
+                        if technique_metadata {
+                            self.generate_ncf_metadata(rn, res)?
+                        } else {
+                            String::new()
+                        }
+                    }
                 };
                 let params = res
                     .parameters

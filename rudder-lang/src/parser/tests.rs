@@ -1,7 +1,36 @@
-use super::*;
-use nom::Err;
-use maplit::hashmap;
+// Copyright 2019 Normation SAS
+//
+// This file is part of Rudder.
+//
+// Rudder is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// In accordance with the terms of section 7 (7. Additional Terms.) of
+// the GNU General Public License version 3, the copyright holders add
+// the following Additional permissions:
+// Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+// Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+// Public License version 3, when you create a Related Module, this
+// Related Module is not considered as a part of the work and may be
+// distributed under the license agreement of your choice.
+// A "Related Module" means a set of sources files including their
+// documentation that, without modification of the Source Code, enables
+// supplementary functions or services in addition to those offered by
+// the Software.
+//
+// Rudder is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
+use super::*;
+use maplit::hashmap;
+use nom::Err;
 
 //    type Result<'src, O> = std::Result< (PInput<'src>,O), Err<PError<PInput<'src>>> >;
 
@@ -9,7 +38,10 @@ use maplit::hashmap;
 // - create input from string
 // - convert output to string
 // - convert errors to ErrorKing with string parameter
-fn map_res<'src, F, O>(f: F, i: &'src str) -> std::result::Result<(&'src str, O), (&'src str, PErrorKind<&'src str>)>
+fn map_res<'src, F, O>(
+    f: F,
+    i: &'src str,
+) -> std::result::Result<(&'src str, O), (&'src str, PErrorKind<&'src str>)>
 where
     F: Fn(PInput<'src>) -> PResult<'src, O>,
 {
@@ -81,10 +113,7 @@ fn test_sp() {
         Ok(("", ("hello".into(), "world3".into())))
     );
     assert_eq!(
-        map_res(
-            tuple((sp(pidentifier), pidentifier)),
-            "hello world"
-        ),
+        map_res(tuple((sp(pidentifier), pidentifier)), "hello world"),
         Ok(("", ("hello".into(), "world".into())))
     );
 }
@@ -92,30 +121,39 @@ fn test_sp() {
 #[test]
 fn test_wsequence() {
     assert_eq!(
-        map_res(wsequence!( {
-                        id1: pidentifier;
-                        id2: pidentifier;
-                        _x: pidentifier;
-                    } => (id1,id2)
-                ), "hello  world end"),
+        map_res(
+            wsequence!( {
+                    id1: pidentifier;
+                    id2: pidentifier;
+                    _x: pidentifier;
+                } => (id1,id2)
+            ),
+            "hello  world end"
+        ),
         Ok(("", ("hello".into(), "world".into())))
     );
     assert_eq!(
-        map_res(wsequence!( { 
-                        id1: pidentifier;
-                        id2: pidentifier;
-                        _x: pidentifier;
-                    } => (id1,id2)
-               ), "hello world #end\nend"),
+        map_res(
+            wsequence!( {
+                     id1: pidentifier;
+                     id2: pidentifier;
+                     _x: pidentifier;
+                 } => (id1,id2)
+            ),
+            "hello world #end\nend"
+        ),
         Ok(("", ("hello".into(), "world".into())))
     );
-    assert!(
-        map_res(wsequence!( {
-                        id1: pidentifier;
-                        id2: pidentifier;
-                        _x: pidentifier;
-                    } => (id1,id2)
-              ), "hello world").is_err());
+    assert!(map_res(
+        wsequence!( {
+                  id1: pidentifier;
+                  id2: pidentifier;
+                  _x: pidentifier;
+              } => (id1,id2)
+        ),
+        "hello world"
+    )
+    .is_err());
 }
 
 #[test]
@@ -130,7 +168,7 @@ fn test_pheader() {
     );
     assert_eq!(
         map_res(pheader, "@format=21.5\n"),
-        Err(("21.5\n",PErrorKind::InvalidFormat))
+        Err(("21.5\n", PErrorKind::InvalidFormat))
     );
 }
 
@@ -215,10 +253,13 @@ fn test_pidentifier() {
 
 #[test]
 fn test_pvariable_identifier() {
-    assert_eq!(map_res(pvariable_identifier, "simple.value "), Ok((" ", "simple.value".into())));
+    assert_eq!(
+        map_res(pvariable_identifier, "simple.value "),
+        Ok((" ", "simple.value".into()))
+    );
 }
 
- #[test]
+#[test]
 fn test_penum() {
     assert_eq!(
         map_res(penum, "enum abc1 { a, b, c }"),
@@ -266,7 +307,7 @@ fn test_penum() {
 #[test]
 fn test_penum_mapping() {
     assert_eq!(
-        map_res(penum_mapping,"enum abc ~> def { a -> d, b -> e, * -> f}"),
+        map_res(penum_mapping, "enum abc ~> def { a -> d, b -> e, * -> f}"),
         Ok((
             "",
             PEnumMapping {
@@ -281,7 +322,8 @@ fn test_penum_mapping() {
         ))
     );
     assert_eq!(
-        map_res(penum_mapping,
+        map_res(
+            penum_mapping,
             "enum outcome ~> okerr { kept->ok, repaired->ok, error->error }"
         ),
         Ok((
@@ -302,7 +344,7 @@ fn test_penum_mapping() {
 #[test]
 fn test_penum_expression() {
     assert_eq!(
-        map_res(penum_expression,"a=~b:c"),
+        map_res(penum_expression, "a=~b:c"),
         Ok((
             "",
             PEnumExpression::Compare(Some("a".into()), Some("b".into()), "c".into())
@@ -435,13 +477,19 @@ fn test_pinterpolated_string() {
     );
     assert_eq!(
         map_res(pinterpolated_string, "hello herman"),
-        Ok(("", vec![PInterpolatedElement::Static("hello herman".into())]))
+        Ok((
+            "",
+            vec![PInterpolatedElement::Static("hello herman".into())]
+        ))
     );
     assert_eq!(
         map_res(pinterpolated_string, "hello herman 10$$"),
-        Ok(("", (vec![PInterpolatedElement::Static("hello herman 10".into()),
-                      PInterpolatedElement::Static("$".into()),
-                     ])
+        Ok((
+            "",
+            (vec![
+                PInterpolatedElement::Static("hello herman 10".into()),
+                PInterpolatedElement::Static("$".into()),
+            ])
         ))
     );
     assert_eq!(
@@ -452,13 +500,12 @@ fn test_pinterpolated_string() {
         map_res(pinterpolated_string, "hello herman ${variable1} ${var2}"),
         Ok((
             "",
-            (
-                vec![PInterpolatedElement::Static("hello herman ".into()),
-                     PInterpolatedElement::Variable("variable1".into()),
-                     PInterpolatedElement::Static(" ".into()),
-                     PInterpolatedElement::Variable("var2".into()),
-                    ]
-            )
+            (vec![
+                PInterpolatedElement::Static("hello herman ".into()),
+                PInterpolatedElement::Variable("variable1".into()),
+                PInterpolatedElement::Static(" ".into()),
+                PInterpolatedElement::Variable("var2".into()),
+            ])
         ))
     );
     assert_eq!(
@@ -509,10 +556,13 @@ fn test_pvalue() {
     );
     assert_eq!(
         map_res(pvalue, r#"[ "hello", 12 ]"#),
-        Ok(("", PValue::List(vec![
-                                PValue::String("\"".into(), "hello".into()),
-                                PValue::Number("12".into(), 12.0),
-                                 ])))
+        Ok((
+            "",
+            PValue::List(vec![
+                PValue::String("\"".into(), "hello".into()),
+                PValue::Number("12".into(), 12.0),
+            ])
+        ))
     );
     assert_eq!(
         map_res(pvalue, r#"[ "hello", 12"#),
@@ -520,17 +570,26 @@ fn test_pvalue() {
     );
     assert_eq!(
         map_res(pvalue, r#"{"key":"value"}"#),
-        Ok(("", PValue::Struct(hashmap! {
-            "key".into() => PValue::String("\"".into(), "value".into()),
-        })))
+        Ok((
+            "",
+            PValue::Struct(hashmap! {
+                "key".into() => PValue::String("\"".into(), "value".into()),
+            })
+        ))
     );
     assert_eq!(
-        map_res(pvalue, r#"{ "key": "value", "number": 12, "list": [ 12 ] }"#),
-        Ok(("", PValue::Struct(hashmap! {
-            "key".into() => PValue::String("\"".into(), "value".into()),
-            "number".into() => PValue::Number("12".into(), 12.0),
-            "list".into() => PValue::List(vec![PValue::Number("12".into(), 12.0)]),
-        })))
+        map_res(
+            pvalue,
+            r#"{ "key": "value", "number": 12, "list": [ 12 ] }"#
+        ),
+        Ok((
+            "",
+            PValue::Struct(hashmap! {
+                "key".into() => PValue::String("\"".into(), "value".into()),
+                "number".into() => PValue::Number("12".into(), 12.0),
+                "list".into() => PValue::List(vec![PValue::Number("12".into(), 12.0)]),
+            })
+        ))
     );
     assert_eq!(
         map_res(pvalue, r#"{"key":"value""#),
@@ -562,11 +621,12 @@ fn test_pmetadata() {
     );
     assert_eq!(
         map_res(pmetadata, r#"@key = {"key":"value"}"#),
-        Ok(("",
+        Ok((
+            "",
             PMetadata {
                 key: "key".into(),
                 value: PValue::Struct(hashmap! {
-                     "key".into() => PValue::String("\"".into(), "value".into())})
+                "key".into() => PValue::String("\"".into(), "value".into())})
             }
         ))
     );
@@ -579,7 +639,10 @@ fn test_pmetadata() {
 #[test]
 fn test_pmetadata_list() {
     assert_eq!(
-        map_res(pmetadata_list, "@key=\"value\"\n##hello\n##Herman\n@key=123"),
+        map_res(
+            pmetadata_list,
+            "@key=\"value\"\n##hello\n##Herman\n@key=123"
+        ),
         Ok((
             "",
             vec![
@@ -670,53 +733,69 @@ fn test_presource_def() {
         map_res(presource_def, "resource hello()"),
         Ok((
             "",
-            (PResourceDef {
-                metadata: Vec::new(),
-                name: "hello".into(),
-                parameters: vec![],
-            },vec![],None)
+            (
+                PResourceDef {
+                    metadata: Vec::new(),
+                    name: "hello".into(),
+                    parameters: vec![],
+                },
+                vec![],
+                None
+            )
         ))
     );
     assert_eq!(
         map_res(presource_def, "resource  hello2 ( )"),
         Ok((
             "",
-            (PResourceDef {
-                metadata: Vec::new(),
-                name: "hello2".into(),
-                parameters: vec![],
-            },vec![],None)
+            (
+                PResourceDef {
+                    metadata: Vec::new(),
+                    name: "hello2".into(),
+                    parameters: vec![],
+                },
+                vec![],
+                None
+            )
         ))
     );
     assert_eq!(
         map_res(presource_def, "resource  hello2 ( ): hello3"),
         Ok((
             "",
-            (PResourceDef {
-                metadata: Vec::new(),
-                name: "hello2".into(),
-                parameters: vec![],
-            },vec![],Some("hello3".into()))
+            (
+                PResourceDef {
+                    metadata: Vec::new(),
+                    name: "hello2".into(),
+                    parameters: vec![],
+                },
+                vec![],
+                Some("hello3".into())
+            )
         ))
     );
     assert_eq!(
         map_res(presource_def, "resource hello (p1: string, p2)"),
         Ok((
             "",
-            (PResourceDef {
-                metadata: Vec::new(),
-                name: "hello".into(),
-                parameters: vec![
-                    PParameter {
-                        name: "p1".into(),
-                        ptype: Some(PType::String),
-                    },
-                    PParameter {
-                        name: "p2".into(),
-                        ptype: None,
-                    }
-                ],
-            },vec![None, None],None)
+            (
+                PResourceDef {
+                    metadata: Vec::new(),
+                    name: "hello".into(),
+                    parameters: vec![
+                        PParameter {
+                            name: "p1".into(),
+                            ptype: Some(PType::String),
+                        },
+                        PParameter {
+                            name: "p2".into(),
+                            ptype: None,
+                        }
+                    ],
+                },
+                vec![None, None],
+                None
+            )
         ))
     );
 }
@@ -806,7 +885,10 @@ fn test_pstatement() {
         ))
     );
     assert_eq!(
-        map_res(pstatement, r#"resource().state( "p1", "p2") as resource_state"#),
+        map_res(
+            pstatement,
+            r#"resource().state( "p1", "p2") as resource_state"#
+        ),
         Ok((
             "",
             PStatement::StateDeclaration(PStateDeclaration {
@@ -842,9 +924,7 @@ fn test_pstatement() {
             PStatement::VariableDefinition(
                 Vec::new(),
                 "var".into(),
-                PValue::EnumExpression(
-                    map_res(penum_expression, "a=~bc").unwrap().1
-                )
+                PValue::EnumExpression(map_res(penum_expression, "a=~bc").unwrap().1)
             )
         ))
     );
@@ -876,13 +956,16 @@ fn test_pstate_def() {
         map_res(pstate_def, "resource state configuration() {}"),
         Ok((
             "",
-            (PStateDef {
-                metadata: Vec::new(),
-                name: "configuration".into(),
-                resource_name: "resource".into(),
-                parameters: vec![],
-                statements: vec![]
-            },vec![])
+            (
+                PStateDef {
+                    metadata: Vec::new(),
+                    name: "configuration".into(),
+                    resource_name: "resource".into(),
+                    parameters: vec![],
+                    statements: vec![]
+                },
+                vec![]
+            )
         ))
     );
 }
@@ -890,7 +973,10 @@ fn test_pstate_def() {
 #[test]
 fn test_palias_def() {
     assert_eq!(
-        map_res(palias_def, "alias File(path).keyvalue(key,value) = FileContentKey(path).xml_keyvalue(key,value)"),
+        map_res(
+            palias_def,
+            "alias File(path).keyvalue(key,value) = FileContentKey(path).xml_keyvalue(key,value)"
+        ),
         Ok((
             "",
             PAliasDef {
@@ -898,11 +984,11 @@ fn test_palias_def() {
                 resource_alias: "File".into(),
                 resource_alias_parameters: vec!["path".into()],
                 state_alias: "keyvalue".into(),
-                state_alias_parameters: vec!["key".into(),"value".into()],
+                state_alias_parameters: vec!["key".into(), "value".into()],
                 resource: "FileContentKey".into(),
                 resource_parameters: vec!["path".into()],
                 state: "xml_keyvalue".into(),
-                state_parameters: vec!["key".into(),"value".into()],
+                state_parameters: vec!["key".into(), "value".into()],
             }
         ))
     );
@@ -933,13 +1019,17 @@ fn test_pdeclaration() {
         )));
 }
 
-
 // ===== Functions used by other modules tests =====
 
 fn test_t<'a, F, X>(f: F, input: &'a str) -> X
-    where F: Fn(PInput<'a>) -> PResult<X>, X :'a {
-    let (i,out) = f(PInput::new_extra(input, "")).expect(&format!("Syntax error in {}",input));
-    if i.fragment.len() != 0 { panic!("Input not terminated in {}",input) }
+where
+    F: Fn(PInput<'a>) -> PResult<X>,
+    X: 'a,
+{
+    let (i, out) = f(PInput::new_extra(input, "")).expect(&format!("Syntax error in {}", input));
+    if i.fragment.len() != 0 {
+        panic!("Input not terminated in {}", input)
+    }
     out
 }
 pub fn penum_t<'a>(input: &'a str) -> PEnum<'a> {
@@ -957,4 +1047,3 @@ pub fn penum_expression_t(input: &str) -> PEnumExpression {
 pub fn pidentifier_t(input: &str) -> Token {
     test_t(pidentifier, input)
 }
-

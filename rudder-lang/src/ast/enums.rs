@@ -1,3 +1,33 @@
+// Copyright 2019 Normation SAS
+//
+// This file is part of Rudder.
+//
+// Rudder is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// In accordance with the terms of section 7 (7. Additional Terms.) of
+// the GNU General Public License version 3, the copyright holders add
+// the following Additional permissions:
+// Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+// Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+// Public License version 3, when you create a Related Module, this
+// Related Module is not considered as a part of the work and may be
+// distributed under the license agreement of your choice.
+// A "Related Module" means a set of sources files including their
+// documentation that, without modification of the Source Code, enables
+// supplementary functions or services in addition to those offered by
+// the Software.
+//
+// Rudder is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
 use super::context::VarKind;
 use super::resource::Statement;
 use crate::error::*;
@@ -278,8 +308,9 @@ impl<'src> EnumList<'src> {
         &self,
         getter: &VG,
         expr: PEnumExpression<'src>,
-    ) -> Result<EnumExpression<'src>> 
-        where VG: Fn(Token<'src>) -> Option<VarKind<'src>>
+    ) -> Result<EnumExpression<'src>>
+    where
+        VG: Fn(Token<'src>) -> Option<VarKind<'src>>,
     {
         match expr {
             PEnumExpression::Default(t) => Ok(EnumExpression::Default(t)),
@@ -289,23 +320,23 @@ impl<'src> EnumList<'src> {
             PEnumExpression::Or(e1, e2) => {
                 let r1 = self.canonify_expression(getter, *e1);
                 let r2 = self.canonify_expression(getter, *e2);
-                match (r1,r2) {
-                    (Err(er),   Ok(_))   => Err(er),
-                    (Ok(_),    Err(er))  => Err(er),
+                match (r1, r2) {
+                    (Err(er), Ok(_)) => Err(er),
+                    (Ok(_), Err(er)) => Err(er),
                     (Err(er1), Err(er2)) => Err(er1.append(er2)),
-                    (Ok(ex1),  Ok(ex2))  => Ok(EnumExpression::Or(Box::new(ex1), Box::new(ex2))),
+                    (Ok(ex1), Ok(ex2)) => Ok(EnumExpression::Or(Box::new(ex1), Box::new(ex2))),
                 }
-            },
+            }
             PEnumExpression::And(e1, e2) => {
                 let r1 = self.canonify_expression(getter, *e1);
                 let r2 = self.canonify_expression(getter, *e2);
-                match (r1,r2) {
-                    (Err(er),   Ok(_))   => Err(er),
-                    (Ok(_),    Err(er))  => Err(er),
+                match (r1, r2) {
+                    (Err(er), Ok(_)) => Err(er),
+                    (Ok(_), Err(er)) => Err(er),
                     (Err(er1), Err(er2)) => Err(er1.append(er2)),
-                    (Ok(ex1),  Ok(ex2))  => Ok(EnumExpression::And(Box::new(ex1), Box::new(ex2))),
+                    (Ok(ex1), Ok(ex2)) => Ok(EnumExpression::And(Box::new(ex1), Box::new(ex2))),
                 }
-            },
+            }
             PEnumExpression::Compare(var, enum1, value) => {
                 // get enum1 real type
                 let e1 = match enum1 {
@@ -488,7 +519,8 @@ impl<'src> EnumList<'src> {
         cases: &[(EnumExpression<'src>, Vec<Statement<'src>>)],
         case_name: Token<'src>,
     ) -> Vec<Error>
-        where VG: Fn(Token<'src>) -> Option<VarKind<'src>>
+    where
+        VG: Fn(Token<'src>) -> Option<VarKind<'src>>,
     {
         let mut variables = HashSet::new();
         cases
@@ -498,18 +530,24 @@ impl<'src> EnumList<'src> {
         let mut default_used = false;
         let mut errors = Vec::new();
         for values in it {
-            let mut matched_exp = cases.iter().filter(|(e,_)| self.eval(&values, e));
+            let mut matched_exp = cases.iter().filter(|(e, _)| self.eval(&values, e));
             match matched_exp.next() {
                 // Missing case
-                None => errors.push(err!(case_name, "Missing case in {}, '{}' is never processed", case_name, self.describe(&values))),
-                Some((e1,_)) => 
-                    if let Some((e2,_)) = matched_exp.next() {
+                None => errors.push(err!(
+                    case_name,
+                    "Missing case in {}, '{}' is never processed",
+                    case_name,
+                    self.describe(&values)
+                )),
+                Some((e1, _)) => {
+                    if let Some((e2, _)) = matched_exp.next() {
                         if !e1.is_default() && !e2.is_default() {
                             errors.push(err!(case_name,"Duplicate case at {} and {}, '{}' is processed twice, result may be unexpected",e1.position_str(),e2.position_str(),self.describe(&values)));
                         } else {
                             default_used = true;
                         }
-                    },
+                    }
+                }
             }
         }
         if !default_used && cases.iter().any(|(e, _)| e.is_default()) {
@@ -546,7 +584,7 @@ impl<'src> EnumList<'src> {
 /// Type to store either a constant value or an iterable value
 /// only used by ContextIterator
 #[derive(Clone)]
-enum AltVal<'b,'src> {
+enum AltVal<'b, 'src> {
     Constant(Token<'src>),
     Iterator(Iter<'b, Token<'src>>),
 }
@@ -559,7 +597,7 @@ struct ContextIterator<'b, 'src> {
     // variables to vary on
     var_list: Vec<Token<'src>>,
     //                 name        value or iterator
-    iterators: HashMap<Token<'src>, AltVal<'b,'src>>,
+    iterators: HashMap<Token<'src>, AltVal<'b, 'src>>,
     // current iteration         enum       value
     current: HashMap<Token<'src>, (Token<'src>, Token<'src>)>,
     // true before first iteration
@@ -574,8 +612,9 @@ impl<'b, 'src> ContextIterator<'b, 'src> {
         enum_list: &'b EnumList<'src>,
         getter: &VG,
         var_list: Vec<Token<'src>>,
-    ) -> ContextIterator<'b,'src>
-        where VG: Fn(Token<'src>) -> Option<VarKind<'src>>
+    ) -> ContextIterator<'b, 'src>
+    where
+        VG: Fn(Token<'src>) -> Option<VarKind<'src>>,
     {
         let mut iterators = HashMap::new();
         let mut current = HashMap::new();
@@ -607,7 +646,7 @@ impl<'b, 'src> ContextIterator<'b, 'src> {
     }
 }
 
-impl<'b,'src> Iterator for ContextIterator<'b,'src> {
+impl<'b, 'src> Iterator for ContextIterator<'b, 'src> {
     type Item = HashMap<Token<'src>, (Token<'src>, Token<'src>)>;
     /// Iterate: we store an iterator for each variables
     /// - we increment the first iterator
@@ -648,8 +687,8 @@ impl<'b,'src> Iterator for ContextIterator<'b,'src> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::context::*;
+    use super::*;
     use crate::parser::tests::*;
     use maplit::hashmap;
     use std::iter::FromIterator;
@@ -661,39 +700,63 @@ mod tests {
         assert!(e.add_enum(penum_t("global enum abc { a, b, c }")).is_ok());
         assert!(e.add_enum(penum_t("enum abc { a, b, c }")).is_err());
         assert!(e.add_enum(penum_t("enum abc2 { a, b, c }")).is_err());
-        assert!(e.add_mapping(penum_mapping_t("enum abc ~> def { a -> b, b -> b }")).is_err());
-        assert!(e.add_mapping(penum_mapping_t("enum abx ~> def { a -> b, b -> b, c->c }")).is_err());
-        assert!(e.add_mapping(penum_mapping_t("enum abc ~> abc { a -> b, b -> b, c->c }")).is_err());
-        assert!(e.add_mapping(penum_mapping_t("enum abc ~> def { a -> b, b -> b, x->c }")).is_err());
-        assert!(e.add_mapping(penum_mapping_t("enum abc ~> def { a -> b, b -> b, *->* }")).is_ok());
+        assert!(e
+            .add_mapping(penum_mapping_t("enum abc ~> def { a -> b, b -> b }"))
+            .is_err());
+        assert!(e
+            .add_mapping(penum_mapping_t("enum abx ~> def { a -> b, b -> b, c->c }"))
+            .is_err());
+        assert!(e
+            .add_mapping(penum_mapping_t("enum abc ~> abc { a -> b, b -> b, c->c }"))
+            .is_err());
+        assert!(e
+            .add_mapping(penum_mapping_t("enum abc ~> def { a -> b, b -> b, x->c }"))
+            .is_err());
+        assert!(e
+            .add_mapping(penum_mapping_t("enum abc ~> def { a -> b, b -> b, *->* }"))
+            .is_ok());
     }
 
-    fn init_tests() -> (VarContext<'static>,EnumList<'static>) {
+    fn init_tests() -> (VarContext<'static>, EnumList<'static>) {
         let mut e = EnumList::new();
         e.add_enum(penum_t(
-            "global enum os { debian, ubuntu, redhat, centos, aix }"
-        )).unwrap();
+            "global enum os { debian, ubuntu, redhat, centos, aix }",
+        ))
+        .unwrap();
         e.add_mapping(penum_mapping_t(
-            "enum os ~> family { ubuntu->debian, centos->redhat, *->* }"
-        )).unwrap();
+            "enum os ~> family { ubuntu->debian, centos->redhat, *->* }",
+        ))
+        .unwrap();
         e.add_mapping(penum_mapping_t(
-            "enum family ~> type { debian->linux, redhat->linux, aix->unix }"
-        )).unwrap();
+            "enum family ~> type { debian->linux, redhat->linux, aix->unix }",
+        ))
+        .unwrap();
         e.add_enum(penum_t("enum boolean { true, false }")).unwrap();
-        e.add_enum(penum_t("enum outcome { kept, repaired, error }")).unwrap();
+        e.add_enum(penum_t("enum outcome { kept, repaired, error }"))
+            .unwrap();
         e.add_mapping(penum_mapping_t(
-            "enum outcome ~> okerr { kept->ok, repaired->ok, error->error }"
-        )).unwrap();
+            "enum outcome ~> okerr { kept->ok, repaired->ok, error->error }",
+        ))
+        .unwrap();
         let mut context = VarContext::new();
-        context.new_enum_variable(None, pidentifier_t("os"), pidentifier_t("os"), None)
+        context
+            .new_enum_variable(None, pidentifier_t("os"), pidentifier_t("os"), None)
             .unwrap();
-        context.new_enum_variable(None, pidentifier_t("abool"), pidentifier_t("boolean"), None)
+        context
+            .new_enum_variable(None, pidentifier_t("abool"), pidentifier_t("boolean"), None)
             .unwrap();
-        context.new_enum_variable(None, pidentifier_t("out"), pidentifier_t("outcome"), None)
+        context
+            .new_enum_variable(None, pidentifier_t("out"), pidentifier_t("outcome"), None)
             .unwrap();
-        context.new_enum_variable(None, pidentifier_t("in"), pidentifier_t("outcome"), Some(pidentifier_t("kept")))
+        context
+            .new_enum_variable(
+                None,
+                pidentifier_t("in"),
+                pidentifier_t("outcome"),
+                Some(pidentifier_t("kept")),
+            )
             .unwrap();
-        (context,e)
+        (context, e)
     }
 
     #[test]
@@ -841,27 +904,32 @@ mod tests {
         let getter = |k| gc.variables.get(&k).map(VarKind::clone);
         assert!(enum_list.eval(
             &hashmap! { Token::from("abool") => (Token::from("boolean"),Token::from("true")) },
-            &enum_list.canonify_expression(&getter, penum_expression_t("abool"))
+            &enum_list
+                .canonify_expression(&getter, penum_expression_t("abool"))
                 .unwrap()
         ));
         assert!(enum_list.eval(
             &hashmap! { Token::from("os") => (Token::from("os"),Token::from("ubuntu")) },
-            &enum_list.canonify_expression(&getter, penum_expression_t("ubuntu"))
+            &enum_list
+                .canonify_expression(&getter, penum_expression_t("ubuntu"))
                 .unwrap()
         ));
         assert!(enum_list.eval(
             &hashmap! { Token::from("os") => (Token::from("os"),Token::from("ubuntu")) },
-            &enum_list.canonify_expression(&getter, penum_expression_t("debian"))
+            &enum_list
+                .canonify_expression(&getter, penum_expression_t("debian"))
                 .unwrap()
         ));
         assert!(!enum_list.eval(
             &hashmap! { Token::from("os") => (Token::from("os"),Token::from("ubuntu")) },
-            &enum_list.canonify_expression(&getter, penum_expression_t("os:debian"))
+            &enum_list
+                .canonify_expression(&getter, penum_expression_t("os:debian"))
                 .unwrap()
         ));
         assert!(enum_list.eval(
             &hashmap! { Token::from("os") => (Token::from("os"),Token::from("ubuntu")) },
-            &enum_list.canonify_expression(&getter, penum_expression_t("!os:debian"))
+            &enum_list
+                .canonify_expression(&getter, penum_expression_t("!os:debian"))
                 .unwrap()
         ));
         assert!(!enum_list.eval(&hashmap! { Token::from("os") => (Token::from("os"),Token::from("ubuntu")), Token::from("out") => (Token::from("outcome"),Token::from("kept")) },
@@ -936,16 +1004,25 @@ mod tests {
         let mut exprs = Vec::new();
 
         let ex = penum_expression_t("family:debian || family:redhat");
-        exprs.push((enum_list.canonify_expression(&getter, ex).unwrap(), Vec::new()));
+        exprs.push((
+            enum_list.canonify_expression(&getter, ex).unwrap(),
+            Vec::new(),
+        ));
         let result = enum_list.evaluate(&getter, &exprs, case);
         assert_eq!(result.len(), 1);
 
         let ex = penum_expression_t("os:aix");
-        exprs.push((enum_list.canonify_expression(&getter, ex).unwrap(), Vec::new()));
+        exprs.push((
+            enum_list.canonify_expression(&getter, ex).unwrap(),
+            Vec::new(),
+        ));
         assert!(enum_list.evaluate(&getter, &exprs, case).is_empty());
 
         let ex = penum_expression_t("family:redhat");
-        exprs.push((enum_list.canonify_expression(&getter, ex).unwrap(), Vec::new()));
+        exprs.push((
+            enum_list.canonify_expression(&getter, ex).unwrap(),
+            Vec::new(),
+        ));
         let result = enum_list.evaluate(&getter, &exprs, case);
         assert_eq!(result.len(), 2);
     }
@@ -958,12 +1035,18 @@ mod tests {
         let mut exprs = Vec::new();
 
         let ex = penum_expression_t("family:debian || family:redhat");
-        exprs.push((enum_list.canonify_expression(&getter, ex).unwrap(), Vec::new()));
+        exprs.push((
+            enum_list.canonify_expression(&getter, ex).unwrap(),
+            Vec::new(),
+        ));
         let result = enum_list.evaluate(&getter, &exprs, case);
         assert_eq!(result.len(), 1);
 
         let ex = penum_expression_t("default");
-        exprs.push((enum_list.canonify_expression(&getter, ex).unwrap(), Vec::new()));
+        exprs.push((
+            enum_list.canonify_expression(&getter, ex).unwrap(),
+            Vec::new(),
+        ));
         assert!(enum_list.evaluate(&getter, &exprs, case).is_empty());
     }
 
@@ -971,7 +1054,9 @@ mod tests {
     fn test_mapping_check() {
         let (_, mut e) = init_tests();
         assert!(e.mapping_check().is_empty());
-        assert!(e.add_mapping(penum_mapping_t("enum os ~> family2 { *->* }")).is_err());
+        assert!(e
+            .add_mapping(penum_mapping_t("enum os ~> family2 { *->* }"))
+            .is_err());
         assert!(!e.mapping_check().is_empty());
     }
 }
