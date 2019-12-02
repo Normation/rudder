@@ -240,7 +240,7 @@ rudder.webdav.user=rudder
 rudder.webdav.password=rudder
 
 ####################################
-# CFEngine and promises properties ##################################################
+# CFEngine and policies properties ##################################################
 ####################################
 
 #
@@ -276,7 +276,7 @@ rudder.dir.shared.files.folder=/var/rudder/configuration-repository/shared-files
 # Node Configurations are all the parameters (global parameters,
 # applied rules/directives with their parameters, node information, etc)
 # contextualized for the node. They are the resources used to actually
-# generate promises for THAT node.
+# generate policies for THAT node.
 #
 # By default, these information are only used internally by Rudder and
 # are not available to the user. But they may be needed in some cases,
@@ -561,7 +561,7 @@ rudder.techniqueLibrary.git.refs.path=refs/heads/master
 rudder.autoArchiveItems=true
 
 #
-# Command line tools used to check the validity of generated promises
+# Command line tools used to check the validity of generated policies
 # DEPRECATED: these commands aren't used anymore. This task is now managed by hook:
 #             /opt/rudder/etc/hooks.d/policy-generation-node-ready/10-cf-promise-check
 #
@@ -569,8 +569,8 @@ rudder.autoArchiveItems=true
 #rudder.nova.checkpromises.command=/bin/true
 
 #
-# Command to force the server to reload its promises
-# This will be run every time promises are regenerated on the root server
+# Command to force the server to reload its policies
+# This will be run every time policies are regenerated on the root server
 # DEPRECATED: that command isn't used anymore. This task is now managed by hook:
 #             /opt/rudder/etc/hooks.d/policy-generation-finished/50-reload-policy-file-server
 #
@@ -591,7 +591,7 @@ upload.root.directory=/var/rudder/files/
 #
 # The directory used to put uploaded files shared between
 # several nodes.
-# A symlink from the file to the relevant node promise directory
+# A symlink from the file to the relevant node policies directory
 # will be created on each node needing the file in place
 # of copying it.
 # DEPRECATED: not used anymore in Rudder UI

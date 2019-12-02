@@ -104,7 +104,7 @@ class PrepareTemplateVariablesImpl(
   ) : Box[AgentNodeWritableConfiguration] = {
 
     val nodeId = agentNodeConfig.config.nodeInfo.id
-    logger.debug(s"Writting promises for node '${agentNodeConfig.config.nodeInfo.hostname}' (${nodeId.value})")
+    logger.debug(s"Writing policies for node '${agentNodeConfig.config.nodeInfo.hostname}' (${nodeId.value})")
 
     val systemVariables = agentNodeConfig.config.nodeContext ++ List(
         systemVariableSpecService.get("NOVA"     ).toVariable(if(agentNodeConfig.agentType == AgentType.CfeEnterprise) Seq("true") else Seq())
