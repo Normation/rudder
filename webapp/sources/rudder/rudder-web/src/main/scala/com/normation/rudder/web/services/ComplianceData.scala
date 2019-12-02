@@ -553,7 +553,8 @@ object ComplianceData extends Loggable {
     , rules       : Seq[Rule]
   ) : List[DirectiveComplianceLine] = {
     val overridesData = for {
-      over                            <- overrides
+      // we don't want to write an overriden directive several time for the same overriding rule/directive.
+      over                            <- overrides.groupBy(_.overridenBy).map(_._2.head)
       (overridenTech , overridenDir)  <- directiveLib.allDirectives.get(over.policy.directiveId)
       rule                            <- rules.find( _.id == over.overridenBy.ruleId)
       (overridingTech, overridingDir) <- directiveLib.allDirectives.get(over.overridenBy.directiveId)
