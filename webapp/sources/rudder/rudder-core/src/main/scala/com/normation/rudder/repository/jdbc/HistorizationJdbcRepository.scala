@@ -38,22 +38,25 @@
 package com.normation.rudder.repository.jdbc
 
 import net.liftweb.common._
-
 import com.normation.rudder.db.DB
 import com.normation.rudder.db.Doobie
-
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.repository.HistorizationRepository
-
-import doobie._, doobie.implicits._
-import cats._, cats.data._, cats.implicits._
+import doobie._
+import doobie.implicits._
+import cats._
+import cats.data._
+import cats.implicits._
 import org.joda.time.DateTime
 import com.normation.cfclerk.domain.Technique
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.db.Doobie._
+import com.normation.zio.ZioRuntime
+import zio._
+import zio.interop.catz._
 
 class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository with  Loggable {
 
@@ -221,12 +224,12 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
     updateQuery(rules.map(_.id.value).toList ++ closable, "rules", "ruleid") match {
       case None              =>  //nothing to do
       case Some(updateQuery) =>
-        (for {
-          updated  <- transact(xa => updateQuery.update.run.transact(xa))
-          inserted <- rules.map(r => transact(xa => insertRule(now)(r).transact(xa))).toList.sequence
+        ZioRuntime.unsafeRun(for {
+          updated  <- transactTask(xa => updateQuery.update.run.transact(xa))
+          inserted <- ZIO.sequence(rules.map(r => transactTask(xa => insertRule(now)(r).transact(xa))))
         } yield {
           ()
-        }).unsafeRunSync()
+        })
     }
   }
 

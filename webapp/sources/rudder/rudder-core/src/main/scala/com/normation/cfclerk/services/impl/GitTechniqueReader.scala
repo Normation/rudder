@@ -47,6 +47,7 @@ import java.io.File
 import net.liftweb.common._
 
 import scala.collection.immutable.SortedMap
+import scala.collection.JavaConverters._
 import java.io.InputStream
 
 import org.eclipse.jgit.treewalk.TreeWalk
@@ -56,17 +57,20 @@ import scala.collection.mutable.{Map => MutMap}
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.cfclerk.services._
 
-import scala.collection.JavaConverters._
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.errors.MissingObjectException
 import org.eclipse.jgit.diff.DiffEntry.ChangeType
 import java.io.IOException
 
 import com.normation.errors._
-import com.normation.zio.ZioRuntime
+import com.normation.zio._
 import zio._
 import zio.syntax._
 import GitTechniqueReader._
+import com.normation.rudder.domain.logger.TechniqueReaderLoggerPure
+import org.eclipse.jgit.lib.Repository
+import com.github.ghik.silencer.silent
+
 
 /**
  *
@@ -136,19 +140,9 @@ class GitTechniqueReader(
   val relativePathToGitRepos : Option[String],
   val directiveDefaultName   : String //full (with extension) name of the file containing default name for directive (default-directive-names.conf)
 ) extends TechniqueReader with Loggable {
-  reader =>
 
-  /*
-   * That class is not yet ported to ZIO.
-   * So we accept that any error in a IOResult[A] will lead to an exception, which will
-   * need to be taken care for.
-   */
-  implicit class RunOrThrow[A](effect: IOResult[A]) {
-    def runNow: A = ZioRuntime.runNow(effect.either) match {
-      case Right(x)  => x
-      case Left(err) => throw new RuntimeException(err.fullMsg)
-    }
-  }
+  // semaphore to have consistent read
+  val semaphore = Semaphore.make(1).runNow
 
   //the path of the PT lib relative to the git repos
   //withtout leading and trailing /.
@@ -181,51 +175,55 @@ class GitTechniqueReader(
   //can not set private because of "outer ref cannot be checked" scalac bug
   private case class NoRootCategory(msg: String) extends Exception(msg)
 
-  private[this] var currentTechniquesInfoCache : TechniquesInfo = {
-    val currentRevTree = revisionProvider.currentRevTreeId.runNow
-    try {
-      processRevTreeId(currentRevTree)
-    } catch {
-      case NoRootCategory(msg) =>
-        logger.error(s"The stored Git revision '${currentRevTree}' does not provide a root category.xml, which is mandatory. Error message was: ${msg}")
-        val newRevTreeId = revisionProvider.getAvailableRevTreeId.runNow
-        if(newRevTreeId != currentRevTree) {
-          logger.error(s"Trying to load last available revision of the technique library to unstuck the situation.")
-          revisionProvider.setCurrentRevTreeId(newRevTreeId).runNow
-          processRevTreeId(newRevTreeId)
-        } else {
-          sys.error("Please add a root category.xml and commit it before restarting Rudder.")
-        }
-      case e:MissingObjectException => //ah, that commit is not know on our repos
-        logger.error("The stored Git revision for the last version of the known Technique Library was not found in the local Git repository. " +
-            "That may happen if a commit was reverted, the Git repository was deleted and created again, or if LDAP datas where corrupted. Loading the last available Techique library version.")
-        val newRevTreeId = revisionProvider.getAvailableRevTreeId.runNow
-        revisionProvider.setCurrentRevTreeId(newRevTreeId).runNow
-        processRevTreeId(newRevTreeId)
-    }
+  private[this] val currentTechniquesInfoCache: Ref[TechniquesInfo] = semaphore.withPermit(
+    for {
+      currentRevTree <- revisionProvider.currentRevTreeId
+      db             <- repo.db
+      res            <- processRevTreeId(db, currentRevTree).catchAll {
+                          case err @ SystemError(m, NoRootCategory(msg)) =>
+                            for {
+                              _            <- TechniqueReaderLoggerPure.error(s"The stored Git revision '${currentRevTree}' does not provide a root category.xml, which is mandatory. Error message was: ${err.fullMsg}")
+                              newRevTreeId <- revisionProvider.getAvailableRevTreeId
+                              res <- if(newRevTreeId != currentRevTree) {
+                                        TechniqueReaderLoggerPure.error(s"Trying to load last available revision of the technique library to unstuck the situation.") *>
+                                        revisionProvider.setCurrentRevTreeId(newRevTreeId) *>
+                                        processRevTreeId(db, newRevTreeId)
+                                      } else {
+                                        Inconsistancy("Please add a root category.xml and commit it before restarting Rudder.").fail
+                                      }
+                            } yield res
+                          case e:MissingObjectException => //ah, that commit is not know on our repos
+                            TechniqueReaderLoggerPure.error("The stored Git revision for the last version of the known Technique Library was not found in the local Git repository. " +
+                                "That may happen if a commit was reverted, the Git repository was deleted and created again, or if LDAP datas where corrupted. Loading the last available Techique library version.") *>
+                            revisionProvider.getAvailableRevTreeId.flatMap(newRevTreeId =>
+                              revisionProvider.setCurrentRevTreeId(newRevTreeId) *>
+                              processRevTreeId(db, newRevTreeId)
+                            )
+                        }
+    } yield res
+  ).flatMap(Ref.make(_)).runNow: @silent // inferred Any - yes, that's what we want
+
+  private[this] val nextTechniquesInfoCache: Ref[(ObjectId,TechniquesInfo)] = {
+    (for {
+      a <- revisionProvider.currentRevTreeId
+      b <- currentTechniquesInfoCache.get
+      r <- Ref.make((a, b))
+    } yield r).runNow
   }
 
-  private[this] var nextTechniquesInfoCache : (ObjectId,TechniquesInfo) = (revisionProvider.currentRevTreeId.runNow, currentTechniquesInfoCache)
   //a non empty list IS the indicator of differences between current and next
-  private[this] var modifiedTechniquesCache : Map[TechniqueName, TechniquesLibraryUpdateType] = Map()
+  private[this] val modifiedTechniquesCache: Ref[Map[TechniqueName, TechniquesLibraryUpdateType]] = Ref.make(Map[TechniqueName, TechniquesLibraryUpdateType]()).runNow
 
   override def getModifiedTechniques : Map[TechniqueName, TechniquesLibraryUpdateType] = {
-    val nextId = revisionProvider.getAvailableRevTreeId.runNow
-    if(nextId == nextTechniquesInfoCache._1) modifiedTechniquesCache
-    else reader.synchronized { //update next and calculate diffs
-      val nextTechniquesInfo = processRevTreeId(nextId)
 
+    def buildTechniqueMods(
+        diffPathEntries      : Set[(TechniquePath, ChangeType)]
+      , currentTechniquesInfo: TechniquesInfo
+      , nextTechniquesInfo   : TechniquesInfo
+    ): Map[TechniqueName, TechniquesLibraryUpdateType] = {
       //get the list of ALL valid package infos, both in current and in next version,
       //so we have both deleted package (from current) and new one (from next)
-      val allKnownTechniquePaths = getTechniquePath(currentTechniquesInfoCache) ++ getTechniquePath(nextTechniquesInfo)
-
-      val diffFmt = new DiffFormatter(null)
-      diffFmt.setRepository(repo.db.runNow)
-      val diffPathEntries : Set[(TechniquePath, ChangeType)] =
-        diffFmt.scan(nextTechniquesInfoCache._1, nextId).asScala.flatMap { diffEntry =>
-          Seq( (toTechniquePath(diffEntry.getOldPath), diffEntry.getChangeType), (toTechniquePath(diffEntry.getNewPath), diffEntry.getChangeType))
-        }.toSet
-      diffFmt.close
+      val allKnownTechniquePaths = getTechniquePath(currentTechniquesInfo) ++ getTechniquePath(nextTechniquesInfo)
 
       /*
        * now, group diff entries by TechniqueId to find which were updated
@@ -242,7 +240,7 @@ class GitTechniqueReader(
       }
 
       //now, build the actual modification by techniques:
-      val techniqueMods = modifiedTechnique.groupBy( _._1.name ).map { case (name, mods) =>
+      modifiedTechnique.groupBy( _._1.name ).map { case (name, mods) =>
         //deduplicate mods by ids:
         val versionsMods: Map[TechniqueVersion, TechniqueVersionModType] = mods.groupBy( _._1.version).map { case(version, pairs) =>
           val modTypes = pairs.map( _._2 ).toSet
@@ -254,7 +252,7 @@ class GitTechniqueReader(
           //other: mod
           if(modTypes.contains(ChangeType.DELETE)) {
             if(modTypes.contains(ChangeType.ADD)) {
-              if(currentTechniquesInfoCache.techniquesCategory.isDefinedAt(TechniqueId(name, version))) {
+              if(currentTechniquesInfo.techniquesCategory.isDefinedAt(TechniqueId(name, version))) {
                 //it was present before mod, so can't have been added first, so
                 //it was deleted then added (certainly a move), so it is actually mod
                 (version, VersionUpdated)
@@ -280,20 +278,48 @@ class GitTechniqueReader(
         //from other case (just simple updates)
 
         if(versionsMods.values.forall( _ == VersionDeleted)
-           && currentTechniquesInfoCache.techniques.get(name).map( _.size) == Some(versionsMods.size)
+           && currentTechniquesInfo.techniques.get(name).map( _.size) == Some(versionsMods.size)
         ) {
           (name, TechniqueDeleted(name, versionsMods.keySet))
         } else {
           (name, TechniqueUpdated(name, versionsMods))
         }
       }.toMap
-
-      //Ok, now rebuild Technique !
-      modifiedTechniquesCache = techniqueMods
-      nextTechniquesInfoCache = (nextId, nextTechniquesInfo)
-      modifiedTechniquesCache
     }
+
+    (for {
+      nextId   <- revisionProvider.getAvailableRevTreeId
+      cached   <- nextTechniquesInfoCache.get
+      db       <- repo.db
+      mods     <- if(nextId == cached._1) modifiedTechniquesCache.get
+                  else for {
+                    nextTechniquesInfo <- processRevTreeId(db, nextId)
+                    managedDiffFmt     =  ZManaged.make(IOResult.effect{
+                                            val diffFmt = new DiffFormatter(null)
+                                            diffFmt.setRepository(db)
+                                            diffFmt
+                                          })(diffFmt => effectUioUnit(diffFmt.close))
+                    diffPathEntries    <- managedDiffFmt.use(diffFmt => IOResult.effect {
+                                            diffFmt.scan(cached._1, nextId).asScala.flatMap { diffEntry =>
+                                              Seq( (toTechniquePath(diffEntry.getOldPath), diffEntry.getChangeType), (toTechniquePath(diffEntry.getNewPath), diffEntry.getChangeType))
+                                            }.toSet
+                                          })
+                    next               <- processRevTreeId(db, nextId)
+                    mods               =  buildTechniqueMods(diffPathEntries, cached._2, next)
+                    nextCache          =  (nextId, next)
+                    _                  <- semaphore.withPermit(
+                                            modifiedTechniquesCache.set(mods) *> nextTechniquesInfoCache.set(nextCache)
+                                          )
+                  } yield mods
+    } yield {
+      mods
+    }).runNow
   }
+
+  private[this] final def getDBAndCurrentId() = (for {
+        a <- repo.db
+        b <- revisionProvider.currentRevTreeId
+      } yield (a, b)).runNow
 
   override def getMetadataContent[T](techniqueId: TechniqueId)(useIt : Option[InputStream] => T) : T = {
     //build a treewalk with the path, given by metadata.xml
@@ -303,12 +329,13 @@ class GitTechniqueReader(
 
     var is : InputStream = null
     try {
+      val (db, currentId) = getDBAndCurrentId()
       useIt {
         //now, the treeWalk
-        val tw = new TreeWalk(repo.db.runNow)
+        val tw = new TreeWalk(db)
         tw.setFilter(new FileTreeFilter(canonizedRelativePath, path))
         tw.setRecursive(true)
-        tw.reset(revisionProvider.currentRevTreeId.runNow)
+        tw.reset(currentId)
         var ids = List.empty[ObjectId]
         while(tw.next) {
           ids = tw.getObjectId(0) :: ids
@@ -318,7 +345,7 @@ class GitTechniqueReader(
             logger.error("Metadata file %s was not found for technique with id %s.".format(techniqueDescriptorName, techniqueId))
             None
           case h :: Nil =>
-            is = repo.db.runNow.open(h).openStream
+            is = db.open(h).openStream
             Some(is)
           case _ =>
             logger.error(s"There is more than one Technique with ID '${techniqueId}', what is forbidden. Please check if several categories have that Technique, and rename or delete the clones.")
@@ -354,12 +381,13 @@ class GitTechniqueReader(
 
     var is : InputStream = null
     try {
+      val (db, currentId) = getDBAndCurrentId()
       useIt {
         //now, the treeWalk
-        val tw = new TreeWalk(repo.db.runNow)
+        val tw = new TreeWalk(db)
         tw.setFilter(filenameFilter)
         tw.setRecursive(true)
-        tw.reset(revisionProvider.currentRevTreeId.runNow)
+        tw.reset(currentId)
         var ids = List.empty[ObjectId]
         while(tw.next) {
           ids = tw.getObjectId(0) :: ids
@@ -369,7 +397,7 @@ class GitTechniqueReader(
             logger.error(s"Template with id ${techniqueResourceId.toString} was not found")
             None
           case h :: Nil =>
-            is = repo.db.runNow.open(h).openStream
+            is = db.open(h).openStream
             Some(is)
           case _ =>
             logger.error(s"There is more than one Technique with name '${techniqueResourceId.name}' which is forbidden. Please check if several categories have that Technique and rename or delete the clones")
@@ -395,20 +423,35 @@ class GitTechniqueReader(
    * commit were done in git repository.
    */
   override def readTechniques : TechniquesInfo = {
-    reader.synchronized {
-      if(needReload) {
-        currentTechniquesInfoCache = nextTechniquesInfoCache._2
-        revisionProvider.setCurrentRevTreeId(nextTechniquesInfoCache._1).runNow
-        modifiedTechniquesCache = Map()
+    semaphore.withPermit(
+      for {
+        needed <- needReloadPure
+        info   <- if(needed) {
+                    for {
+                      next <- nextTechniquesInfoCache.get
+                      _    <- currentTechniquesInfoCache.set(next._2)
+                      _    <- revisionProvider.setCurrentRevTreeId(next._1)
+                      _    <- modifiedTechniquesCache.set(Map())
+                    } yield {
+                      next._2
+                    }
+                  } else {
+                    currentTechniquesInfoCache.get
+                  }
+      } yield {
+        info
       }
-      currentTechniquesInfoCache
-    }
+    ).runNow
   }
 
+  private[this] def needReloadPure = for {
+    nextId  <- revisionProvider.currentRevTreeId
+    cache   <- nextTechniquesInfoCache.get
+  } yield nextId != cache._1
 
-  override def needReload() = revisionProvider.currentRevTreeId.runNow != nextTechniquesInfoCache._1
+  override def needReload() = needReloadPure.runNow
 
-  private[this] def processRevTreeId(id:ObjectId, parseDescriptor:Boolean = true) : TechniquesInfo = {
+  private[this] def processRevTreeId(db: Repository, id: ObjectId, parseDescriptor: Boolean = true) : IOResult[TechniquesInfo] = {
     /*
      * Global process : the logic is completly different
      * from a standard "directory then subdirectoies" walk, because
@@ -432,29 +475,35 @@ class GitTechniqueReader(
      * - we are always looking for a category
      * - and so we have to found the matching catId in the category map.
      */
-      val techniqueInfos = new InternalTechniquesInfo()
+
+    for {
+      techniqueInfosRef <- Ref.make(new InternalTechniquesInfo())
       //we only want path ending by a descriptor file
 
       //start to process all categories related information
-      processCategories(id,techniqueInfos, parseDescriptor)
+      _                 <- processCategories(db, id, techniqueInfosRef, parseDescriptor)
 
       //now, build techniques
-      processTechniques(id,techniqueInfos,parseDescriptor)
+      _                 <- processTechniques(db, id, techniqueInfosRef, parseDescriptor)
+      techniqueInfos    <- techniqueInfosRef.get
+      defaulName        <- IOResult.effect( processDirectiveDefaultName(db, id))
+    } yield {
 
       //ok, return the result in its immutable format
       TechniquesInfo(
-        rootCategory = techniqueInfos.rootCategory.get,
-        gitRevId = id.name(),
-        techniquesCategory = techniqueInfos.techniquesCategory.toMap,
-        techniques = techniqueInfos.techniques.map { case(k,v) => (k, SortedMap.empty[TechniqueVersion,Technique] ++ v)}.toMap,
-        subCategories = Map[SubTechniqueCategoryId, SubTechniqueCategory]() ++ techniqueInfos.subCategories,
-        processDirectiveDefaultName(id)
+          rootCategory       = techniqueInfos.rootCategory.get
+        , gitRevId           = id.name()
+        , techniquesCategory = techniqueInfos.techniquesCategory.toMap
+        , techniques         = techniqueInfos.techniques.map { case(k,v) => (k, SortedMap.empty[TechniqueVersion,Technique] ++ v)}.toMap
+        , subCategories      = Map[SubTechniqueCategoryId, SubTechniqueCategory]() ++ techniqueInfos.subCategories
+        , defaulName
       )
+    }
   }
 
-  private[this] def processDirectiveDefaultName(revTreeId: ObjectId) : Map[String, String] = {
+  private[this] def processDirectiveDefaultName(db: Repository, revTreeId: ObjectId) : Map[String, String] = {
       //a first walk to find categories
-      val tw = new TreeWalk(repo.db.runNow)
+      val tw = new TreeWalk(db)
       tw.setFilter(new FileTreeFilter(canonizedRelativePath, directiveDefaultName))
       tw.setRecursive(true)
       tw.reset(revTreeId)
@@ -468,7 +517,7 @@ class GitTechniqueReader(
         if(tw.getNameString == directiveDefaultName) {
           var is : InputStream = null
           try {
-            is = repo.db.runNow.open(tw.getObjectId(0)).openStream
+            is = db.open(tw.getObjectId(0)).openStream
             prop.load(is)
           } catch {
             case ex: Exception =>
@@ -488,80 +537,115 @@ class GitTechniqueReader(
 
   }
 
-  private[this] def processTechniques(revTreeId: ObjectId, techniqueInfos : InternalTechniquesInfo, parseDescriptor:Boolean) : Unit = {
+  private[this] def processTechniques(gitRepo: Repository, revTreeId: ObjectId, techniqueInfosRef: Ref[InternalTechniquesInfo], parseDescriptor: Boolean) : IOResult[Unit] = {
       //a first walk to find categories
-      val tw = new TreeWalk(repo.db.runNow)
+    val managed = ZManaged.make(IOResult.effect {
+      val tw = new TreeWalk(gitRepo)
       tw.setFilter(new FileTreeFilter(canonizedRelativePath, techniqueDescriptorName))
       tw.setRecursive(true)
       tw.reset(revTreeId)
+      tw
+    })(tw => effectUioUnit(tw.close()))
 
-      //now, for each potential path, look if the cat or policy
-      //is valid
-      while(tw.next) {
-        val path = toTechniquePath(tw.getPathString) //we will need it to build the category id
-        processTechnique(repo.db.runNow.open(tw.getObjectId(0)).openStream, path.path, techniqueInfos, parseDescriptor, revTreeId).either.runNow match {
-          case Left(err)  => logger.error(s"Error with technique at path: '${path.path}', it will be ignored. Error: ${err.fullMsg}")
-          case Right(()) => // ok
-        }
+    def rec(tw: TreeWalk): IOResult[Unit] = {
+      IOResult.effect(tw.next()).flatMap { hasNext =>
+        if(hasNext) {
+          val path = toTechniquePath(tw.getPathString) //we will need it to build the category id
+          val stream = ZManaged.make(IOResult.effect(gitRepo.open(tw.getObjectId(0)).openStream))(is => effectUioUnit(is.close()))
+          for {
+            _       <- processTechnique(stream, path.path, techniqueInfosRef, parseDescriptor, revTreeId).foldM(
+                           err => TechniqueReaderLoggerPure.error(s"Error with technique at path: '${path.path}', it will be ignored. Error: ${err.fullMsg}")
+                         , ok  => UIO.unit
+                       )
+            _       <- rec(tw)
+          } yield ()
+        } else UIO.unit
       }
+    }
+
+    managed.use(tw => rec(tw))
   }
 
 
-  private[this] def processCategories(revTreeId: ObjectId, techniqueInfos : InternalTechniquesInfo, parseDescriptor:Boolean) : Unit = {
-      //a first walk to find categories
-      val tw = new TreeWalk(repo.db.runNow)
+  private[this] def processCategories(db: Repository, revTreeId: ObjectId, infosRef: Ref[InternalTechniquesInfo], parseDescriptor: Boolean): IOResult[Unit] = {
+    //now, for each potential path, look if the cat or policy is valid
+    def recBuildCat(db: Repository, cats: Map[TechniqueCategoryId, TechniqueCategory], tw: TreeWalk): IOResult[Map[TechniqueCategoryId, TechniqueCategory]] = {
+      for {
+        hasNext <- IOResult.effect(tw.next())
+        res     <- if(hasNext) {
+                     for {
+                       id  <- IOResult.effect(tw.getObjectId(0))
+                       path = toTechniquePath(tw.getPathString) //we will need it to build the category id
+                       opt <- extractMaybeCategory(id, db, path.path, parseDescriptor).either
+                       res <- opt match {
+                                case Left(err)  =>
+                                  TechniqueReaderLoggerPure.error(s"Error with category at path: '${path.path}', it will be ignored. Error: ${err.fullMsg}") *>
+                                  recBuildCat(db, cats, tw)
+                                case Right(cat) =>
+                                  val updated = cats + (cat.id -> cat)
+                                  recBuildCat(db, updated, tw)
+                               }
+                     } yield {
+                       res
+                     }
+                   } else {
+                     cats.succeed
+                   }
+      } yield res
+    }
+
+    @scala.annotation.tailrec
+    def recBuildRoot(root: RootTechniqueCategory, techniqueInfos: InternalTechniquesInfo, subCategories: List[SubTechniqueCategoryId]): RootTechniqueCategory = {
+      subCategories match {
+        case Nil       => root
+        case h :: tail => h match {
+                            case sId @ SubTechniqueCategoryId(_, RootTechniqueCategoryId) => //update root
+                              recBuildRoot(root.copy( subCategoryIds = root.subCategoryIds + sId ), techniqueInfos, tail)
+                            case sId @ SubTechniqueCategoryId(_, pId: SubTechniqueCategoryId) =>
+                              val cat = techniqueInfos.subCategories(pId)
+                              techniqueInfos.subCategories(pId) = cat.copy( subCategoryIds = cat.subCategoryIds + sId )
+                              recBuildRoot(root, techniqueInfos, tail)
+                          }
+      }
+    }
+
+    //a first walk to find categories
+    val managed = ZManaged.make(IOResult.effect {
+      val tw = new TreeWalk(db)
       tw.setFilter(new FileTreeFilter(canonizedRelativePath, categoryDescriptorName))
       tw.setRecursive(true)
       tw.reset(revTreeId)
+      tw
+    })(tw => effectUioUnit(tw.close()))
 
-      val maybeCategories = MutMap[TechniqueCategoryId, TechniqueCategory]()
-
-      //now, for each potential path, look if the cat or policy
-      //is valid
-      while(tw.next) {
-        val path = toTechniquePath(tw.getPathString) //we will need it to build the category id
-        extractMaybeCategory(tw.getObjectId(0), path.path, parseDescriptor).either.runNow match {
-          case Left(err)  => logger.error(s"Error with category at path: '${path.path}', it will be ignored. Error: ${err.fullMsg}")
-          case Right(cat) => maybeCategories.update(cat.id, cat)
-        }
-      }
-
-      val toRemove = new collection.mutable.HashSet[SubTechniqueCategoryId]()
-      maybeCategories.foreach {
-        case (sId:SubTechniqueCategoryId,cat:SubTechniqueCategory) =>
-          recToRemove(sId,toRemove, maybeCategories)
-
-        case _ => //ignore
-      }
-
+    for {
+      cats            <- managed.use(tw => recBuildCat(db, Map(), tw))
+      toRemove        =  cats.flatMap {
+                           case (sId:SubTechniqueCategoryId,cat:SubTechniqueCategory) =>
+                             recToRemove(sId,Set[SubTechniqueCategoryId](), cats)
+                           case _ => Set[SubTechniqueCategoryId]()
+                         }
       //now, actually remove things
-      maybeCategories --= toRemove
-
+      maybeCategories =  cats -- toRemove
       //update techniqueInfos
-      techniqueInfos.subCategories ++= maybeCategories.collect { case (sId:SubTechniqueCategoryId, cat:SubTechniqueCategory) => (sId -> cat) }
-
-      var root = maybeCategories.get(RootTechniqueCategoryId) match {
-          case None =>
-            val path = repo.db.runNow.getWorkTree.getPath + canonizedRelativePath.map( "/" + _ + "/" + categoryDescriptorName).getOrElse("")
-            throw new NoRootCategory(s"Missing techniques root category in Git, expecting category descriptor for Git path: '${path}'")
-          case Some(sub:SubTechniqueCategory) =>
-            logger.error("Bad type for root category in the Technique Library. Please check the hierarchy of categories")
-            throw new NoRootCategory(s"Bad type for root category in the Technique Library, found: '${sub}'. Please check the hierarchy of categories")
-          case Some(r:RootTechniqueCategory) => r
-      }
-
-      //update subcategories
-      techniqueInfos.subCategories.toSeq.foreach {
-        case(sId@SubTechniqueCategoryId(_,RootTechniqueCategoryId) , _ ) => //update root
-          root = root.copy( subCategoryIds = root.subCategoryIds + sId )
-        case(sId@SubTechniqueCategoryId(_,pId:SubTechniqueCategoryId) , _ ) =>
-          val cat = techniqueInfos.subCategories(pId)
-          techniqueInfos.subCategories(pId) = cat.copy( subCategoryIds = cat.subCategoryIds + sId )
-      }
-
+      techniqueInfos  <- infosRef.get
+      _               =  techniqueInfos.subCategories ++= maybeCategories.collect { case (sId: SubTechniqueCategoryId, cat: SubTechniqueCategory) => (sId -> cat) }
+      root            <- maybeCategories.get(RootTechniqueCategoryId) match {
+                          case None =>
+                            val path = db.getWorkTree.getPath + canonizedRelativePath.map( "/" + _ + "/" + categoryDescriptorName).getOrElse("")
+                            SystemError("Error when processing techniques in configuration repository",
+                              NoRootCategory(s"Missing techniques root category in Git, expecting category descriptor for Git path: '${path}'")).fail
+                          case Some(sub:SubTechniqueCategory) =>
+                            TechniqueReaderLoggerPure.error("Bad type for root category in the Technique Library. Please check the hierarchy of categories") *>
+                            SystemError("Error when processing techniques in configuration repository",
+                              NoRootCategory(s"Bad type for root category in the Technique Library, found: '${sub}'. Please check the hierarchy of categories")).fail
+                          case Some(r: RootTechniqueCategory) => r.succeed
+                        }
+      updateRoot     =  recBuildRoot(root, techniqueInfos, techniqueInfos.subCategories.keySet.toList)
       //finally, update root !
-      techniqueInfos.rootCategory = Some(root)
-
+      _              =  techniqueInfos.rootCategory = Some(updateRoot)
+      _              <- infosRef.set(techniqueInfos)
+    } yield ()
   }
 
 
@@ -570,21 +654,19 @@ class GitTechniqueReader(
    */
   @scala.annotation.tailrec
   private[this] def recToRemove(
-      catId:SubTechniqueCategoryId
-    , toRemove:collection.mutable.HashSet[SubTechniqueCategoryId]
-    , maybeCategories: MutMap[TechniqueCategoryId, TechniqueCategory]
-  ) : Boolean = {
+      catId          : SubTechniqueCategoryId
+    , toRemove       : Set[SubTechniqueCategoryId]
+    , maybeCategories: Map[TechniqueCategoryId, TechniqueCategory]
+  ) : Set[SubTechniqueCategoryId] = {
       catId.parentId match {
-        case RootTechniqueCategoryId => false
+        case RootTechniqueCategoryId => toRemove
         case sId:SubTechniqueCategoryId =>
           if(toRemove.contains(sId)) {
-            toRemove += catId
-            true
+            toRemove + catId
           } else if(maybeCategories.isDefinedAt(sId)) {
             recToRemove(sId, toRemove, maybeCategories )
           } else {
-            toRemove += catId
-            true
+            toRemove + catId
           }
       }
   }
@@ -596,25 +678,25 @@ class GitTechniqueReader(
  )
 
   private[this] def processTechnique(
-      is             : InputStream
+      is             : ZManaged[Any, RudderError, InputStream]
     , filePath       : String
-    , techniquesInfo : InternalTechniquesInfo
+    , techniquesInfo : Ref[InternalTechniquesInfo]
     , parseDescriptor: Boolean // that option is a success optimization for the case diff between old/new commit
     , revTreeId      : ObjectId
   ): IOResult[Unit] = {
-    def updateParentCat(catId: TechniqueCategoryId, techniqueId: TechniqueId, descriptorFile: File) : Boolean = {
+    def updateParentCat(info: InternalTechniquesInfo, catId: TechniqueCategoryId, techniqueId: TechniqueId, descriptorFile: File) : Boolean = {
       catId match {
         case RootTechniqueCategoryId =>
-          val cat = techniquesInfo.rootCategory.getOrElse(
+          val cat = info.rootCategory.getOrElse(
               throw new RuntimeException(s"Can not find the parent (root) category '${descriptorFile.getParent}' for package '${techniqueId.toString()}'")
           )
-          techniquesInfo.rootCategory = Some(cat.copy(techniqueIds = cat.techniqueIds + techniqueId ))
+          info.rootCategory = Some(cat.copy(techniqueIds = cat.techniqueIds + techniqueId ))
           true
 
         case sid:SubTechniqueCategoryId =>
-          techniquesInfo.subCategories.get(sid) match {
+          info.subCategories.get(sid) match {
             case Some(cat) =>
-              techniquesInfo.subCategories(sid) = cat.copy(techniqueIds = cat.techniqueIds + techniqueId )
+              info.subCategories(sid) = cat.copy(techniqueIds = cat.techniqueIds + techniqueId )
               true
             case None =>
               logger.error(s"Can not find the parent (root) category '${descriptorFile.getParent}' for package '${techniqueId.toString()}'")
@@ -631,25 +713,26 @@ class GitTechniqueReader(
 
     for {
       pack <- if(parseDescriptor) loadDescriptorFile(is, filePath).flatMap(d => ZIO.fromEither(techniqueParser.parseXml(d, techniqueId)))
-                 else dummyTechnique.succeed
+              else dummyTechnique.succeed
+      info <- techniquesInfo.get
       res  <- Task.effect {
                 //check that that package is not already know, else its an error (by id ?)
-                techniquesInfo.techniques.get(techniqueId.name) match {
+                info.techniques.get(techniqueId.name) match {
                   case None => //so we don't have any version yet, and so no id
-                    if(updateParentCat(parentCategoryId, techniqueId, descriptorFile)) {
-                      techniquesInfo.techniques(techniqueId.name) = MutMap(techniqueId.version -> pack)
-                      techniquesInfo.techniquesCategory(techniqueId) = parentCategoryId
+                    if(updateParentCat(info,parentCategoryId, techniqueId, descriptorFile)) {
+                      info.techniques(techniqueId.name) = MutMap(techniqueId.version -> pack)
+                      info.techniquesCategory(techniqueId) = parentCategoryId
                     }
                   case Some(versionMap) => //check for the version
                     versionMap.get(techniqueId.version) match {
                       case None => //add that version
-                        if(updateParentCat(parentCategoryId, techniqueId, descriptorFile)) {
-                          techniquesInfo.techniques(techniqueId.name)(techniqueId.version) = pack
-                          techniquesInfo.techniquesCategory(techniqueId) = parentCategoryId
+                        if(updateParentCat(info, parentCategoryId, techniqueId, descriptorFile)) {
+                          info.techniques(techniqueId.name)(techniqueId.version) = pack
+                          info.techniquesCategory(techniqueId) = parentCategoryId
                         }
                       case Some(v) => //error, policy package version already exsits
                         logger.error("Ignoring package for policy with ID %s and root directory %s because an other policy is already defined with that id and root path %s".format(
-                            TechniqueId, descriptorFile.getParent, techniquesInfo.techniquesCategory(techniqueId).toString)
+                            TechniqueId, descriptorFile.getParent, info.techniquesCategory(techniqueId).toString)
                         )
                     }
                 }
@@ -658,7 +741,7 @@ class GitTechniqueReader(
                 case e : ConstraintException => s"Ignoring technique '${filePath}}' because the descriptor file is malformed. Error message was: ${e.getMessage}}".fail
                 case e : Exception => s"Error when processing technique '${filePath}}': ${e.getMessage}}".fail
               }
-              , ok => ok.succeed
+              , ok => techniquesInfo.set(info)
               )
     }yield {
       ()
@@ -678,6 +761,7 @@ class GitTechniqueReader(
    */
   private[this] def extractMaybeCategory(
       descriptorObjectId: ObjectId
+    , db                : Repository
     , filePath          : String
     , parseDescriptor   : Boolean // that option is a success optimization for the case diff between old/new commit
   ) : IOResult[TechniqueCategory] = {
@@ -688,11 +772,11 @@ class GitTechniqueReader(
         case _ => Some(s)
       }
     }
-    def parse(parseDesc:Boolean, catId: TechniqueCategoryId): IOResult[(String, String, Boolean)] = {
+    def parse(db: Repository, parseDesc:Boolean, catId: TechniqueCategoryId): IOResult[(String, String, Boolean)] = {
       if(parseDesc) {
+        val managedStream = ZManaged.make(IOResult.effect(db.open(descriptorObjectId).openStream))(is => effectUioUnit(is.close()))
         for {
-          db  <- repo.db
-          xml <- loadDescriptorFile(repo.db.runNow.open(descriptorObjectId).openStream, filePath)
+          xml <- loadDescriptorFile(managedStream, filePath)
         } yield {
           val name = nonEmpty((xml \\ "name").text).getOrElse(catId.name.value)
           val description = nonEmpty((xml \\ "description").text).getOrElse("")
@@ -709,7 +793,7 @@ class GitTechniqueReader(
     val catId = TechniqueCategoryId.buildId(catPath)
     //built the category
     for {
-      triple <- parse(parseDescriptor, catId)
+      triple <- parse(db, parseDescriptor, catId)
     } yield {
       val (name, desc, system ) = triple
       catId match {
@@ -721,23 +805,23 @@ class GitTechniqueReader(
 
   /**
    * Load a descriptor document.
-   * @param file : the full filename
-   * @return the xml representation of the file
    */
-  private[this] def loadDescriptorFile(is: InputStream, filePath : String ) : IOResult[Elem] = {
-    Task.effect {
-      XML.load(is)
-    }.foldM(
-      err => err match {
-        case e: SAXParseException =>
-          LoadTechniqueError.Parsing(s"Unexpected issue with the descriptor file '${filePath}' at line ${e.getLineNumber}, column ${e.getColumnNumber}: ${e.getMessage}").fail
-        case e: java.net.MalformedURLException =>
-          LoadTechniqueError.Parsing("Descriptor file not found: " + filePath).fail
-        case ex => SystemError(s"Error when parsing ${filePath}", ex).fail
-      }
-    , doc => if(doc.isEmpty) {
-        LoadTechniqueError.Parsing(s"Error when parsing descriptor file: '${filePath}': the parsed document is empty").fail
-      } else doc.succeed
+  private[this] def loadDescriptorFile(managedStream: ZManaged[Any, RudderError, InputStream], filePath : String ) : IOResult[Elem] = {
+    managedStream.use(is =>
+      Task.effect {
+        XML.load(is)
+      }.foldM(
+        err => err match {
+          case e: SAXParseException =>
+            LoadTechniqueError.Parsing(s"Unexpected issue with the descriptor file '${filePath}' at line ${e.getLineNumber}, column ${e.getColumnNumber}: ${e.getMessage}").fail
+          case e: java.net.MalformedURLException =>
+            LoadTechniqueError.Parsing("Descriptor file not found: " + filePath).fail
+          case ex => SystemError(s"Error when parsing ${filePath}", ex).fail
+        }
+      , doc => if(doc.isEmpty) {
+          LoadTechniqueError.Parsing(s"Error when parsing descriptor file: '${filePath}': the parsed document is empty").fail
+        } else doc.succeed
+      )
     )
   }
 
@@ -749,7 +833,7 @@ class GitTechniqueReader(
    * As we may have files&templates outside technique, we
    * need to keep track of there relative id
    */
-  private[this] def getTechniquePath(techniqueInfos:TechniquesInfo) : Set[(TechniquePath, TechniqueId)] = {
+  private[this] def getTechniquePath(techniqueInfos: TechniquesInfo) : Set[(TechniquePath, TechniqueId)] = {
     val set = scala.collection.mutable.Set[(TechniquePath, TechniqueId)]()
     techniqueInfos.rootCategory.techniqueIds.foreach { id =>
       set += ((TechniquePath( "/" + id.toString), id))

@@ -50,8 +50,6 @@ import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.services.nodes.NodeInfoService
 
-import scala.concurrent._
-import scala.concurrent.ExecutionContext.Implicits.global
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.ReportsDisabled
@@ -60,6 +58,7 @@ import com.normation.utils.Control.sequence
 
 import com.normation.box._
 import com.normation.errors._
+import com.normation.zio._
 
 object ReportingServiceUtils {
 
@@ -298,16 +297,14 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
     cache = Map()
     logger.debug("Compliance cache cleared")
     //reload it for future use
-    Future {
+    IOResult.effect {
       for {
         infos <- nodeInfoService.getAll
       } yield {
         checkAndUpdateCache(infos.keySet)
       }
-    }
-    ()
+    }.fork.unit.runNow
   }
-
 }
 
 trait DefaultFindRuleNodeStatusReports extends ReportingService {

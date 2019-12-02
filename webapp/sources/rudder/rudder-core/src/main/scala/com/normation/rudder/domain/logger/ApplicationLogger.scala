@@ -97,3 +97,7 @@ object JsDirectiveParamLoggerPure extends NamedZioLogger {
 object GenerationLoggerPure extends NamedZioLogger {
   def loggerName = "policy-generation"
 }
+
+object TechniqueReaderLoggerPure extends NamedZioLogger {
+  def loggerName = "techniques.reader"
+}

@@ -54,6 +54,7 @@ import com.normation.rudder.db.Doobie
 
 import com.normation.errors._
 import zio.syntax._
+import zio.interop.catz._
 
 /**
  * The EventLog repository

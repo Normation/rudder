@@ -977,7 +977,7 @@ object RudderConfig extends Loggable {
     if(WATCHER_ENABLE) {
       watcher.startWatcher()
     } else { // don't start
-     InventoryProcessingLogger.debug(s"Not automatically incoming inventory watcher because 'inventories.watcher.enable'=${WATCHER_ENABLE}")
+     InventoryProcessingLogger.debug(s"Not automatically starting incoming inventory watcher because 'inventories.watcher.enable'=${WATCHER_ENABLE}")
     }
     watcher
   }

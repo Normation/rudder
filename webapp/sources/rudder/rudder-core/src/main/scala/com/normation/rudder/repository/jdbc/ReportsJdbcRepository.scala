@@ -55,6 +55,7 @@ import com.normation.errors.IOResult
 import com.normation.rudder.db.Doobie._
 import com.normation.rudder.db.Doobie
 import org.joda.time.format.ISODateTimeFormat
+import zio.interop.catz._
 
 
 class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Loggable {
@@ -151,7 +152,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
 
   override def getDatabaseSize(databaseName:String) : Box[Long] = {
     val q = query[Long](s"""select pg_total_relation_size('${databaseName}') as "size" """).unique
-    transactRun(xa => q.transact(xa).attempt) ?~! "Could not compute the size of the database"
+    transactRun(xa => q.transact(xa).either) ?~! "Could not compute the size of the database"
   }
 
   override def archiveEntries(date : DateTime) : Box[Int] = {
@@ -200,10 +201,10 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
                  |]]""".stripMargin)
 
           (for {
-            i <- transactRun(xa => (archiveQuery :: deleteQuery :: Nil).traverse(q => Update0(q, None).run).transact(xa).attempt)
+            i <- transactRun(xa => (archiveQuery :: deleteQuery :: Nil).traverse(q => Update0(q, None).run).transact(xa).either)
             _ = logger.debug("Archiving and deleting done, starting to vacuum reports table")
             // Vacuum cannot be run in a transaction block, it has to be in an autoCommit block
-            _ <- transactRun(xa => (FC.setAutoCommit(true) *> Update0(vacuum, None).run <* FC.setAutoCommit(false)).transact(xa).attempt)
+            _ <- transactRun(xa => (FC.setAutoCommit(true) *> Update0(vacuum, None).run <* FC.setAutoCommit(false)).transact(xa).either)
             _ = logger.debug(s"Successfully vacuumed table ${reports}")
           } yield {
             i
@@ -225,15 +226,15 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
 
   // Utilitary methods for reliable archiving of reports
   private[this] def getHighestArchivedReports() : Box[Option[Long]] = {
-    transactRun(xa => query[Long]("select id from archivedruddersysevents order by id desc limit 1").option.transact(xa).attempt) ?~! "Could not fetch the highest archived report in the database"
+    transactRun(xa => query[Long]("select id from archivedruddersysevents order by id desc limit 1").option.transact(xa).either) ?~! "Could not fetch the highest archived report in the database"
   }
 
   private[this] def getLowestReports() : Box[Option[Long]] = {
-    transactRun(xa => query[Long]("select id from ruddersysevents order by id asc limit 1").option.transact(xa).attempt) ?~! "Could not fetch the lowest report in the database"
+    transactRun(xa => query[Long]("select id from ruddersysevents order by id asc limit 1").option.transact(xa).either) ?~! "Could not fetch the lowest report in the database"
   }
 
   private[this] def getHighestIdBeforeDate(date : DateTime) : Box[Option[Long]] = {
-    transactRun(xa => query[Long](s"select id from ruddersysevents where executionTimeStamp < '${date.toString("yyyy-MM-dd")}' order by id desc limit 1").option.transact(xa).attempt) ?~! s"Could not fetch the highest id before date ${date.toString("yyyy-MM-dd")} in the database"
+    transactRun(xa => query[Long](s"select id from ruddersysevents where executionTimeStamp < '${date.toString("yyyy-MM-dd")}' order by id desc limit 1").option.transact(xa).either) ?~! s"Could not fetch the highest id before date ${date.toString("yyyy-MM-dd")} in the database"
   }
 
   override def deleteEntries(date : DateTime) : Box[Int] = {
@@ -256,10 +257,10 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
                    |]]""".stripMargin)
 
     (for {
-      i <- transactRun(xa => (d1 :: d2 :: d3 :: Nil).traverse(q => Update0(q, None).run).transact(xa).attempt)
+      i <- transactRun(xa => (d1 :: d2 :: d3 :: Nil).traverse(q => Update0(q, None).run).transact(xa).either)
            // Vacuum cannot be run in a transaction block, it has to be in an autoCommit block
       _ <- { (v1 :: v2 :: v3 :: Nil).map { vacuum =>
-                transactRun(xa => (FC.setAutoCommit(true) *> Update0(vacuum, None).run <* FC.setAutoCommit(false)).transact(xa).attempt) }.sequence
+                transactRun(xa => (FC.setAutoCommit(true) *> Update0(vacuum, None).run <* FC.setAutoCommit(false)).transact(xa).either) }.sequence
            }
     } yield {
       i
@@ -277,7 +278,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     val q = s"delete from ${reports} where executionTimeStamp < '${dateAt}' and eventtype like 'log_%'"
 
     logger.debug(s"""Deleting log reports with SQL query: [[${q}]]""")
-    transactRun(xa => Update0(q, None).run.transact(xa).attempt) match {
+    transactRun(xa => Update0(q, None).run.transact(xa).either) match {
       case Left(e)    =>
           Failure(e.getMessage, Full(e), Empty)
       case Right(option) => Full(option)
@@ -292,7 +293,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     val events = kinds.map(k => s"eventtype='${k}'").mkString(" or ")
     val q = query[(Long, Reports)](s"${idQuery} and (${events}) order by executiondate desc limit 100")
 
-    transactRun(xa => q.to[Vector].transact(xa).attempt) match {
+    transactRun(xa => q.to[Vector].transact(xa).either) match {
       case Left(e)    =>
           val msg = s"Could not fetch last hundred reports in the database. Reason is : ${e.getMessage}"
           logger.error(msg)
@@ -303,7 +304,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
 
   override def getReportsWithLowestId : Box[Option[(Long, Reports)]] = {
     val q = query[(Long, Reports)](s"${idQuery} order by id asc limit 1")
-    transactRun(xa => q.option.transact(xa).attempt) match {
+    transactRun(xa => q.option.transact(xa).either) match {
       case Left(e)    =>
           Failure(e.getMessage, Full(e), Empty)
       case Right(option) => Full(option)
@@ -313,7 +314,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
 
   def getReportsWithLowestIdFromDate(from:DateTime) : Box[Option[(Long, Reports)]] = {
     val q = query[(Long, Reports)](s"${idQuery} and executionTimeStamp >= '${new Timestamp(from.getMillis)}' order by id asc limit 1")
-    transactRun(xa => q.option.transact(xa).attempt) match {
+    transactRun(xa => q.option.transact(xa).either) match {
       case Left(e)    =>
         Failure(e.getMessage, Full(e), Empty)
       case Right(option) => Full(option)

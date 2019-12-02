@@ -195,7 +195,7 @@ class InventoryApi (
         case Right(()) =>
           toJsonResponse(None, "Incoming inventory watcher started")
         case Left(ex) =>
-          toJsonError(None, s"Error when trying to start incoming inventories file watcher. Reported exception was: ${ex.getMessage()}.")
+          toJsonError(None, s"Error when trying to start incoming inventories file watcher. Reported exception was: ${ex.fullMsg}.")
       }
     }
   }
@@ -210,7 +210,7 @@ class InventoryApi (
         case Right(()) =>
           toJsonResponse(None, "Incoming inventory watcher stopped")
         case Left(ex) =>
-          toJsonError(None, s"Error when trying to stop incoming inventories file watcher. Reported exception was: ${ex.getMessage()}.")
+          toJsonError(None, s"Error when trying to stop incoming inventories file watcher. Reported exception was: ${ex.fullMsg}.")
       }
     }
   }
@@ -228,7 +228,7 @@ class InventoryApi (
         case Right(()) =>
           toJsonResponse(None, "Incoming inventory watcher restarted")
         case Left(ex) =>
-          toJsonError(None, s"Error when trying to restart incoming inventories file watcher. Reported exception was: ${ex.getMessage()}.")
+          toJsonError(None, s"Error when trying to restart incoming inventories file watcher. Reported exception was: ${ex.fullMsg}.")
       }
     }
   }

@@ -53,6 +53,7 @@ import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.domain.reports.AggregatedStatusReport
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.CompliancePercent
+import zio.interop.catz._
 
 
 final case class RunCompliance(
@@ -174,7 +175,7 @@ class ComplianceJdbcRepository(
     } yield {
       val saved = runCompliances.map(_.nodeId)
       reports.filter(r => saved.contains(r.nodeId))
-    }).transact(xa).attempt)
+    }).transact(xa).either)
 
     res match {
       case Right(_) => // ok

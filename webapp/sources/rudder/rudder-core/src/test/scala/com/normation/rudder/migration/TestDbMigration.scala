@@ -52,6 +52,7 @@ import com.normation.rudder.db.Doobie._
 
 import doobie.implicits._
 import cats._
+import zio.interop.catz._
 
 final case class MigEx102(msg:String) extends Exception(msg)
 

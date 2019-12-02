@@ -47,10 +47,8 @@ import com.normation.inventory.domain.CertifiedKey
 import com.normation.inventory.domain.InventoryLogger
 import com.normation.inventory.domain.InventoryReport
 import com.normation.errors._
-import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.SecurityToken
-import com.normation.inventory.domain.UndefinedKey
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.services.core.FullInventoryRepository
 import com.normation.inventory.services.provisioning.InventoryDigestServiceV1
@@ -171,23 +169,6 @@ class InventoryProcessor(
            }
         }
       }
-    }
-
-    /*
-     * This method used to allow acceptation of nodes without signature. We will remove it in a futur
-     * minor of Rudder 6.0 if nothing blocking is found with mandatory signatures in all cases.
-     */
-    def saveNoSignature(report: InventoryReport, keyStatus: KeyStatus): IOResult[InventoryProcessStatus] = {
-      // Check if we need a signature or not
-      (keyStatus match {
-        // Status is undefined => We accept unsigned inventory
-        case UndefinedKey => checkQueueAndSave(report)
-        // We are in certified state, refuse inventory with no signature
-        case CertifiedKey => InventoryProcessStatus.MissingSignature(report.name, report.node.main.id).succeed
-      }).chainError(
-        // An error occurred while checking inventory key status
-        s"Error when trying to check inventory key status for Node '${report.node.main.id.value}'"
-      )
     }
 
     def parseSafe(newInventoryStream: () => InputStream, inventoryFileName: String): IOResult[InventoryReport] = {

@@ -56,6 +56,7 @@ import com.normation.rudder.domain.logger.PolicyLogger
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.utils.Control.sequence
 import doobie.free.connection
+import zio.interop.catz._
 
 class PostgresqlInClause(
     //max number of element to switch from in (...) to in(values(...)) clause
@@ -252,7 +253,7 @@ class UpdateExpectedReportsJdbcRepository(
                            from nodeconfigurations
                            inner join tempnodeid on tempnodeid.id = nodeconfigurations.nodeid
                            where enddate is NULL"""
-            ).query[A].to[List].transact(xa).attempt)
+            ).query[A].to[List].transact(xa).either)
 
           type B = (NodeId, Vector[NodeConfigIdInfo])
           val getInfos: Either[Throwable, List[B]] = transactRun(xa => (
@@ -260,7 +261,7 @@ class UpdateExpectedReportsJdbcRepository(
                               select node_id, config_ids from nodes_info
                               inner join tempnodeid on tempnodeid.id = nodes_info.node_id
                             """
-            ).query[B].to[List].transact(xa).attempt)
+            ).query[B].to[List].transact(xa).either)
 
           val time_0 = System.currentTimeMillis
           for {
@@ -288,7 +289,7 @@ class UpdateExpectedReportsJdbcRepository(
 
         // Do the actual change
 
-        val res = resultingNodeExpectedReports.map(batch => transactRun(xa => batch.sequence.transact(xa).attempt))
+        val res = resultingNodeExpectedReports.map(batch => transactRun(xa => batch.sequence.transact(xa).either))
 
         res match {
           case Left(throwable) =>
@@ -405,7 +406,7 @@ class UpdateExpectedReportsJdbcRepository(
                  |]]""".stripMargin)
 
     (for {
-       i <- transactRun(xa => (copy :: delete :: Nil).traverse(q => Update0(q, None).run).transact(xa).attempt)
+       i <- transactRun(xa => (copy :: delete :: Nil).traverse(q => Update0(q, None).run).transact(xa).either)
     } yield {
        i
     }) match {
@@ -435,7 +436,7 @@ class UpdateExpectedReportsJdbcRepository(
                    |]]""".stripMargin)
 
     (for {
-      i <- transactRun(xa => (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).transact(xa).attempt)
+      i <- transactRun(xa => (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).transact(xa).either)
     } yield {
       i
     }) match  {
@@ -473,7 +474,7 @@ class UpdateExpectedReportsJdbcRepository(
                  |]]""".stripMargin)
 
     (for {
-       i <- transactRun(xa => (copy :: delete :: Nil).traverse(q => Update0(q, None).run).transact(xa).attempt)
+       i <- transactRun(xa => (copy :: delete :: Nil).traverse(q => Update0(q, None).run).transact(xa).either)
     } yield {
        i
     }) match {
@@ -503,7 +504,7 @@ class UpdateExpectedReportsJdbcRepository(
                    |]]""".stripMargin)
 
     (for {
-      i <- transactRun(xa => (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).transact(xa).attempt)
+      i <- transactRun(xa => (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).transact(xa).either)
     } yield {
       i
     }) match  {
@@ -530,7 +531,7 @@ class UpdateExpectedReportsJdbcRepository(
                    |]]""".stripMargin)
 
     (for {
-      i <- transactRun(xa => Update0(d1, None).run.transact(xa).attempt)
+      i <- transactRun(xa => Update0(d1, None).run.transact(xa).either)
     } yield {
       i
     }) match  {

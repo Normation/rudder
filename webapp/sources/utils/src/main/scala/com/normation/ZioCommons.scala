@@ -310,17 +310,20 @@ object zio {
      * IO into an async thread pool to avoid deadlock in case of
      * a hierarchy of calls.
      */
-    val internal = new DefaultRuntime() {}
+    val internal = new DefaultRuntime() {
+
+
+    }
 
     /*
      * use the blocking thread pool provided by that runtime.
      */
     def blocking[E,A](io: ZIO[Any,E,A]): ZIO[Any,E,A] = {
-      _root_.zio.blocking.blocking(io).provide(internal.environment)
+      _root_.zio.blocking.blocking(io).provide(internal.Environment)
     }
 
     def effectBlocking[A](effect: => A): ZIO[Any, Throwable, A] = {
-      _root_.zio.blocking.effectBlocking(effect).provide(internal.environment)
+      _root_.zio.blocking.effectBlocking(effect).provide(internal.Environment)
     }
 
     def runNow[A](io: IOResult[A]): A = {
@@ -342,7 +345,7 @@ object zio {
      */
     def unsafeRun[E, A](zio: => ZIO[Any, E, A]): A = internal.unsafeRun(blocking(zio))
 
-    def environment = internal.environment
+    def environment = internal.Environment
   }
 
   /*

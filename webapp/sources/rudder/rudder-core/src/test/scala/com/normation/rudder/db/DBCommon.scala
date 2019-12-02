@@ -39,8 +39,6 @@ package com.normation.rudder.db
 
 import java.util.Properties
 
-import cats.effect.IO
-
 import scala.io.Source
 import com.normation.rudder.db.Doobie._
 import com.normation.rudder.migration.MigrableEntity
@@ -54,7 +52,8 @@ import doobie.implicits._
 import cats.implicits._
 import com.normation.rudder.migration.MigrationTestLog
 import org.joda.time.DateTime
-
+import zio.interop.catz._
+import zio._
 
 /**
  * Here we manage all the initialisation of services and database
@@ -156,7 +155,7 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
   }
 
   lazy val doobie = new Doobie(dataSource)
-  def transacRun[T](query: Transactor[IO] => IO[T]) = {
+  def transacRun[T](query: Transactor[Task] => Task[T]) = {
     doobie.transactRun(xa => query(xa))
   }
   lazy val migrationEventLogRepository = new MigrationEventLogRepository(doobie)

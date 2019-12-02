@@ -47,6 +47,7 @@ import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
 import doobie.implicits._
+import zio.interop.catz._
 
 
 /**

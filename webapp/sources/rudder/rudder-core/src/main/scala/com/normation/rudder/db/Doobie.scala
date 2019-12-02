@@ -55,12 +55,14 @@ import scala.language.implicitConversions
 import doobie.postgres.implicits._ // it is necessary whatever intellij/scalac tells
 import doobie._
 import cats.data._
-import cats.effect._
+import cats.effect.{IO => _, _}
 import doobie._
 
-import zio.Task
+import zio._
 import zio.interop.catz._
 import com.normation.errors._
+import com.normation.zio._
+import com.normation.box._
 
 /**
  *
@@ -70,34 +72,34 @@ import com.normation.errors._
  */
 class Doobie(datasource: DataSource) {
 
-  def transact[T](query: Transactor[IO] => IO[T]): IO[T] = {
-    implicit val cs = IO.contextShift(scala.concurrent.ExecutionContext.global)
-    val xa: Resource[IO, DataSourceTransactor[IO]] = {
+  // we must not leak catsIO anywhere
+  private[this] def transact[T](query: Transactor[Task] => Task[T]): Task[T] = {
+    val xa = ZManaged.make {
+      val ce = ZioRuntime.internal.Platform.executor.asEC // our connect EC
       for {
-        ce <- ExecutionContexts.fixedThreadPool[IO](32) // our connect EC
-        te <- ExecutionContexts.cachedThreadPool[IO]    // our transaction EC
+        te <- zio.blocking.blockingExecutor.map(_.asEC)  // our transaction EC
       } yield {
-        Transactor.fromDataSource[IO](datasource, ce, Blocker.liftExecutionContext(te))
+        Transactor.fromDataSource[Task](datasource, ce, Blocker.liftExecutionContext(te))
       }
-    }
+    }(_ => effectUioUnit(())).provide(ZioRuntime.environment)
+
     xa.use(xa => query(xa))
   }
 
-  def transactTask[T](query: Transactor[IO] => IO[T]): Task[T] = {
-    transact(query).to[Task]
+  def transactTask[T](query: Transactor[Task] => Task[T]): Task[T] = {
+    transact(query)
   }
 
-  def transactIOResult[T](errorMsg: String)(query: Transactor[IO] => IO[T]): IOResult[T] = {
-    transact(query).to[Task].mapError(ex => SystemError(errorMsg, ex))
+  def transactIOResult[T](errorMsg: String)(query: Transactor[Task] => Task[T]): IOResult[T] = {
+    transact(query).mapError(ex => SystemError(errorMsg, ex))
   }
 
-  def transactRun[T](query: Transactor[IO] => IO[T]): T = {
-    transact(query).unsafeRunSync()
+  def transactRun[T](query: Transactor[Task] => Task[T]): T = {
+    ZioRuntime.unsafeRun(transactTask(query))
   }
 
-  def transactRunBox[T](q: Transactor[IO] => IO[T]): Box[T] = {
-    import Doobie._
-    transact(q).attempt.unsafeRunSync()
+  def transactRunBox[T](q: Transactor[Task] => Task[T]): Box[T] = {
+    transactIOResult("Error running doobie transaction")(q).toBox
   }
 }
 
