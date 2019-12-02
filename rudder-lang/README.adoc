@@ -1,35 +1,35 @@
-Language
-========
+= Rudder language
+
+== Language
 
 This language is not:
+
 - a general purpose language
 - a turing complete language
 - an imperative language
 
 It has no:
+
 - recussion
 - generator / generic iterator
 - way of looping except on finite list
 
-This language is only targeted at STATE DEFINITION.
+This language is only targeted at *state definition*.
 
 Everything that is not a state definition is a convenience for easier definition of a state.
 
 The compiler is very pedantic to avoid defining invalid states as much as possible.
 
-Concepts
-========
+== Concepts
 
-Resource
---------
+=== Resource
 
 - a resource is an object that sits on the system being configured
 - a resource is defined by a resource type with 0 or more parameters
 - a resource type with 0 parameter defines a unique resource in the system
 - a resource can contain other resources
 
-State
------
+== State
 
 - a state is an elementary configuration of a resource
 - a state is defined by a name and 0 or more parameter
@@ -37,17 +37,15 @@ State
 - a given resource can only have one state of a given name 
 - state application produces a status also named outcome
 
-Variables and types
--------------------
+=== Variables and types
 
 - Configurations can be parametered via constants and variables.
 - constants and variables have a type
 - types are distincts from resource and state
-- types are all based on basic types: integer, float, string, boolean, array, hashmap
+- types are all based on basic types: `integer`, `float`, `string`, `boolean`, `array`, `hashmap`
 - a variable cannot contain a resource or a state
 
-Enums and conditions
---------------------
+=== Enums and conditions
 
 - an enum is an exaustive list of possible value
 - an anum mapping maps all possible values of an enum to another enum
@@ -55,7 +53,7 @@ Enums and conditions
 - an enum expression is a boolean expression of enum comparison
 - enum comparison compares a variable with an enum value with mapping knowledge
 - state application outcome are enums too
-- a 'case' is a list of conditions that must match all possible cases exactly once
-- an 'if' is a single condition
+- a `case` is a list of conditions that must match all possible cases exactly once
+- an `if` is a single condition
 
 
