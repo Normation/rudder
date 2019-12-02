@@ -528,13 +528,12 @@ impl<'src> AST<'src> {
         errors = Vec::new();
         for (rname, resource) in self.resources.iter() {
             // check that resource definition is not recursive
-            //  TODO resource is in AST now
-            //errors.push(self.children_check(*rname, &resource.children, 0));
+            errors.push(self.children_check(*rname, &resource.children, 0));
         }
         fix_results(errors.into_iter())
     }
 
-}    
+}
 
 fn match_parameters(pdef: &[Parameter], pref: &[Value], identifier: Token) -> Result<()> {
     if pdef.len() != pref.len() {

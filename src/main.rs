@@ -10,6 +10,7 @@ use crate::generators::*;
 use crate::error::*;
 use crate::technique::translate_file;
 use crate::parser::PAST;
+use crate::parser::Token;
 use crate::ast::AST;
 use std::cell::UnsafeCell;
 use std::fs;
@@ -39,6 +40,10 @@ use structopt::StructOpt;
 
 // Next steps:
 //
+//
+
+// TODO a state S on an object A depending on a condition on an object B is invalid if A is a descendant of B
+// TODO except if S is the "absent" state
 
 /// Rust langage compiler
 #[derive(Debug, StructOpt)]
@@ -133,7 +138,7 @@ fn compile(source: &Path, dest: &Path, technique: bool) -> Result<()> {
 
     // generate final output
     let mut cfe = CFEngine::new();
-    let file = if technique {
+    let file = if technique { // TODO this should be a technique name not a file name
         Some(dest)
     } else {
         None

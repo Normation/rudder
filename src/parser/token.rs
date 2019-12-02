@@ -14,6 +14,7 @@ pub type PInput<'src> = LocatedSpanEx<&'src str, &'src str>;
 /// A token behave like &str and has many useful traits.
 /// It has copy for convenient use.
 #[derive(Debug, Copy, Clone)]
+//#[derive(Copy, Clone)]
 pub struct Token<'src> {
     val: LocatedSpanEx<&'src str, &'src str>,
 }
@@ -55,6 +56,14 @@ impl<'src> From<&'src str> for Token<'src> {
         }
     }
 }
+
+// uncomment to make token debug prints shorter
+//impl<'src> fmt::Debug for Token<'src> {
+//    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//        //write!(f, "{}", self)
+//        write!(f, "\"{}\"", self.fragment())
+//    }
+//}
 
 /// Convert from PInput (used by parsers)
 impl<'src> From<PInput<'src>> for Token<'src> {

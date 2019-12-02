@@ -29,8 +29,7 @@ pub use token::PInput;
 ///! All parser assume whitespaces at the beginning of the input have been removed.
 
 
-// TODO v2: measures, actions, functions, iterators, include
-// TODO proptest
+// TODO v2: measures, actions, functions, iterators, include, proptest
 // ===== Public interfaces =====
 
 /// PAST is just a global structure parsed data sequentially.
@@ -93,6 +92,8 @@ pub fn parse_string(content: &str) -> Result<Vec<PInterpolatedElement>> {
 }
 
 // ===== Parsers =====
+
+// TODO nomplus: sp!(parser) sp!(parser,sp) sp sequence, wsequence, cut_with
 
 /// Eat everything that can be ignored between tokens
 /// ie white spaces, newlines and simple comments (with a single #)
@@ -218,8 +219,8 @@ fn penum(i: PInput) -> PResult<PEnum> {
     wsequence!(
         {
             metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
-            global: opt(tag("global"));
-            e:      tag("enum");
+            global: opt(tag("global")); // TODO at least one space here
+            e:      tag("enum"); // TODO at least one space here
             _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
             name:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
             b:      tag("{"); // do not fail here, it could still be a mapping
@@ -249,7 +250,7 @@ fn penum_mapping(i: PInput) -> PResult<PEnumMapping> {
     wsequence!(
         {
             metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
-            e:    tag("enum");
+            e:    tag("enum");// TODO at least one space here
             _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
             from: or_fail(pidentifier,|| PErrorKind::InvalidName(e));
             _x:   or_fail(tag("~>"),|| PErrorKind::UnexpectedToken("~>"));
@@ -651,7 +652,7 @@ fn presource_def(i: PInput) -> PResult<(PResourceDef,Vec<Option<PValue>>,Option<
     wsequence!(
         {
             metadata: pmetadata_list;
-            _x: tag("resource");
+            _x: tag("resource"); // TODO at least one space here
             name: pidentifier;
             s: tag("(");
             parameter_list: separated_list(sp(tag(",")), pparameter);
@@ -801,7 +802,7 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
         wsequence!(
             {
                 metadata: pmetadata_list; // metadata is invalid here, check it after the 'if' tag below
-                case: tag("if");
+                case: tag("if");// TODO at least one space here
                 expr: or_fail(penum_expression, || PErrorKind::ExpectedKeyword("enum expression"));
                 _x: or_fail(tag("=>"), || PErrorKind::UnexpectedToken("=>"));
                 stmt: or_fail(pstatement, || PErrorKind::ExpectedKeyword("statement"));
@@ -818,9 +819,9 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
             }
         ),
         // Flow statements
-        map(preceded(sp(tag("return")),pvariable_identifier), PStatement::Return),
-        map(preceded(sp(tag("fail")),pvalue),        PStatement::Fail),
-        map(preceded(sp(tag("log")),pvalue),         PStatement::Log),
+        map(preceded(sp(tag("return")),pvariable_identifier), PStatement::Return), // TODO at least one space here
+        map(preceded(sp(tag("fail")),pvalue),        PStatement::Fail), // TODO at least one space here
+        map(preceded(sp(tag("log")),pvalue),         PStatement::Log), // TODO at least one space here
         map(tag("noop"),                             |_| PStatement::Noop),
     ))(i)
 }
@@ -841,7 +842,7 @@ fn pstate_def(i: PInput) -> PResult<(PStateDef,Vec<Option<PValue>>)> {
         {
             metadata: pmetadata_list;
             resource_name: pidentifier;
-            _st: tag("state");
+            _st: tag("state"); // TODO at least one space here
             name: pidentifier;
             s: or_fail(tag("("), || PErrorKind::UnexpectedToken("("));
             parameter_list: separated_list(sp(tag(",")), pparameter);
@@ -879,7 +880,7 @@ fn palias_def(i: PInput) -> PResult<PAliasDef> {
     wsequence!(
         {
             metadata: pmetadata_list;
-            _x: tag("alias");
+            _x: tag("alias"); // TODO at least one space here
             resource_alias: pidentifier;
             resource_alias_parameters: delimited(sp(tag("(")),separated_list(sp(tag(",")),pidentifier),sp(tag(")")));
             _x: tag(".");

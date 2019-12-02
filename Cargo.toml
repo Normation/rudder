@@ -1,5 +1,5 @@
 [package]
-name = "ncf2"
+name = "rudderc"
 version = "0.1.0"
 authors = ["Benoît Peccatte <benoit.peccatte@normation.com>"]
 edition = "2018"

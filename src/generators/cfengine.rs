@@ -225,9 +225,10 @@ impl CFEngine {
         }
     }
 
-    fn value_to_string(&mut self, value: &Value) -> Result<String> {
+    fn value_to_string(&mut self, value: &Value, string_delim: bool) -> Result<String> {
+        let delim = if string_delim { "\"" } else { "" };
         Ok(match value {
-            Value::String(s) => format!("\"{}\"", s.data.iter().map(|t| 
+            Value::String(s) => format!("{}{}{}", delim, s.data.iter().map(|t| 
                 match t {
                     PInterpolatedElement::Static(s) => {
                         // replace ${const.xx}
@@ -240,19 +241,27 @@ impl CFEngine {
                         // translate variable name
                         format!("${{{}}}",v)
                     }
-                }).collect::<Vec<String>>().join("")),
+                }).collect::<Vec<String>>().join(""), delim),
             Value::Number(_, n) => format!("{}",n),
             Value::EnumExpression(e) => unimplemented!(),
-            Value::List(l) => format!("[ {} ]", map_strings_results(l.iter(), |x| self.value_to_string(x), ",")?),
-            Value::Struct(s) => format!("{{ {} }}", map_strings_results(s.iter(), |(x,y)| Ok(format!("\"{}\":{}",x,self.value_to_string(y)?)), ",")?),
+            Value::List(l) => format!("[ {} ]", map_strings_results(l.iter(), |x| self.value_to_string(x, true), ",")?),
+            Value::Struct(s) => format!("{{ {} }}", map_strings_results(s.iter(), |(x,y)| Ok(format!("\"{}\":{}",x,self.value_to_string(y, true)?)), ",")?),
         })
     }
 
     fn generate_ncf_metadata(&mut self, name: &Token, resource: &ResourceDef) -> Result<String> {
+        // description must be the last field
+        let mut description = "".to_string();
         map_strings_results(resource.metadata.iter(),
-            |(n,v)| Ok(format!("# @{} {}", n.fragment(), self.value_to_string(v)?)),
+            |(n,v)| 
+                if n.fragment()!="description" { 
+                    Ok(format!("# @{} {}", n.fragment(), self.value_to_string(v, false)?))} 
+                else { 
+                    description=format!("# @{} {}", n.fragment(), self.value_to_string(v, false)?);
+                    Ok("#".to_string())
+                },
             "\n"
-        )
+        ).map(|s| s+"\n"+&description+"\n\n")
     }
 }
 
@@ -284,12 +293,20 @@ impl Generator for CFEngine {
                     .map(|p| p.name.fragment())
                     .collect::<Vec<&str>>()
                     .join(",");
-                content.push_str(&format!(
-                    "bundle agent {}_{} ({})\n",
-                    rn.fragment(),
-                    sn.fragment(),
-                    params
-                ));
+                if sn.fragment() == "technique" {
+                    content.push_str(&format!(
+                        "bundle agent {}_{} \n",
+                        rn.fragment(),
+                        sn.fragment()
+                    ));
+                } else {
+                    content.push_str(&format!(
+                        "bundle agent {}_{} ({})\n",
+                        rn.fragment(),
+                        sn.fragment(),
+                        params
+                    ));
+                }
                 content.push_str("{\n  methods:\n");
                 for st in state.statements.iter() {
                     content.push_str(&self.format_statement(gc, st, "any".to_string())?);

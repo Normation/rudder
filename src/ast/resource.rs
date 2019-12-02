@@ -57,7 +57,6 @@ fn create_parameters<'src>(
 }
 
 /// Create a local context from a list of parameters
-// TODO return vec
 fn create_default_context<'src>(
     global_context: &VarContext<'src>,
     resource_parameters: &[Parameter<'src>],
@@ -109,6 +108,7 @@ impl<'src> ResourceDef<'src> {
         // create final version of states
         let mut states = HashMap::new();
         for st in pstates {
+            let state_name = st.name.clone();
             let (err, state) = StateDef::from_pstate_def(
                 st,
                 name.clone(),
@@ -119,7 +119,7 @@ impl<'src> ResourceDef<'src> {
                 enum_list,
             );
             errors.extend(err);
-            if let Some(st) = state { states.insert(name,st); }
+            if let Some(st) = state { states.insert(state_name,st); }
         }
         (errors,
          Some(ResourceDef {
@@ -241,6 +241,7 @@ pub struct StateDeclaration<'src> {
 
 
 /// A single statement within a state definition
+// TODO error reporting
 #[derive(Debug)]
 pub enum Statement<'src> {
     // TODO should we split variable definition and enum definition ? this would probably help generators
