@@ -673,13 +673,14 @@ trait PromiseGenerationService {
    * Return the list of configuration successfully written.
    */
   def writeNodeConfigurations(
-      rootNodeId      : NodeId
-    , updated         : Map[NodeId, NodeConfigId]
-    , allNodeConfig   : Map[NodeId, NodeConfiguration]
-    , allLicenses     : Map[NodeId, CfeEnterpriseLicense]
-    , globalPolicyMode: GlobalPolicyMode
-    , generationTime  : DateTime
-    , parallelism     : Parallelism
+      rootNodeId        : NodeId
+    , updated           : Map[NodeId, NodeConfigId]
+    , updatedNodeConfigs: Map[NodeId, NodeConfiguration]
+    , allNodeInfos      : Map[NodeId, NodeInfo]
+    , allLicenses       : Map[NodeId, CfeEnterpriseLicense]
+    , globalPolicyMode  : GlobalPolicyMode
+    , generationTime    : DateTime
+    , parallelism       : Parallelism
   ) : Box[Set[NodeId]]
 
   /**
@@ -725,7 +726,7 @@ trait PromiseGenerationService {
   /**
    * Run post generation hooks
    */
-  def runPostHooks(generationTime: DateTimFe, endTime: DateTime, idToConfiguration: Map[NodeId, NodeInfo], systemEnv: HookEnvPairs, nodeIdsPath: String): Box[Unit]
+  def runPostHooks(generationTime: DateTime, endTime: DateTime, idToConfiguration: Map[NodeId, NodeInfo], systemEnv: HookEnvPairs, nodeIdsPath: String): Box[Unit]
 
   /**
    * Run failure hook
