@@ -556,29 +556,29 @@ impl<'src> EnumList<'src> {
         errors
     }
 
-    /// There can be only one mapping per item that defines an identical descendant
-    pub fn mapping_check(&self) -> Vec<Error> {
-        let mut errors = Vec::new();
-        for (from, tos) in self.direct_mapping_path.iter() {
-            for item in self.enums[from].1.iter() {
-                if tos
-                    .iter()
-                    .map(|to| self.mappings[&(*from, *to)][item])
-                    .filter(|i| i == item)
-                    .count()
-                    > 1
-                {
-                    errors.push(err!(
-                        item,
-                        "There is more than one mapping that maps {}:{} to itself",
-                        from,
-                        item
-                    ));
-                }
-            }
-        }
-        errors
-    }
+    // There can be only one mapping per item that defines an identical descendant
+    // pub fn mapping_check(&self) -> Vec<Error> {
+    //     let mut errors = Vec::new();
+    //     for (from, tos) in self.direct_mapping_path.iter() {
+    //         for item in self.enums[from].1.iter() {
+    //             if tos
+    //                 .iter()
+    //                 .map(|to| self.mappings[&(*from, *to)][item])
+    //                 .filter(|i| i == item)
+    //                 .count()
+    //                 > 1
+    //             {
+    //                 errors.push(err!(
+    //                     item,
+    //                     "There is more than one mapping that maps {}:{} to itself",
+    //                     from,
+    //                     item
+    //                 ));
+    //             }
+    //         }
+    //     }
+    //     errors
+    // }
 }
 
 /// Type to store either a constant value or an iterable value
@@ -637,7 +637,7 @@ impl<'b, 'src> ContextIterator<'b, 'src> {
             };
         }
         ContextIterator {
-            enum_list: enum_list,
+            enum_list,
             var_list,
             iterators,
             current,

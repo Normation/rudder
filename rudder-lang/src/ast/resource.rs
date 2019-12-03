@@ -54,6 +54,7 @@ fn create_metadata<'src>(
             Ok(v) => v,
         };
         // Check for uniqueness and concat comments
+        // match metadata.entry(meta.key) { } WIP
         if metadata.contains_key(&meta.key) {
             if meta.key.fragment() == "comment" {
                 match metadata.get_mut(&meta.key).unwrap() {
@@ -144,10 +145,10 @@ impl<'src> ResourceDef<'src> {
         // create final version of states
         let mut states = HashMap::new();
         for st in pstates {
-            let state_name = st.name.clone();
+            let state_name = st.name;
             let (err, state) = StateDef::from_pstate_def(
                 st,
-                name.clone(),
+                name,
                 &mut children,
                 &parameters,
                 context,
@@ -340,7 +341,7 @@ impl<'src> Statement<'src> {
                         context.new_variable(Some(global_context), var, value.get_type())?;
                     }
                 }
-                let (mut errors, metadata) = create_metadata(pmetadata);
+                let (mut _errors, metadata) = create_metadata(pmetadata);
                 Statement::VariableDefinition(metadata, var, value)
             }
             PStatement::StateDeclaration(PStateDeclaration {
@@ -415,7 +416,7 @@ impl<'src> Statement<'src> {
                 // check that parameters use existing variables
                 map_results(resource_params.iter(), |p| p.context_check(&getter))?;
                 map_results(state_params.iter(), |p| p.context_check(&getter))?;
-                let (mut errors, metadata) = create_metadata(metadata);
+                let (mut _errors, metadata) = create_metadata(metadata);
                 Statement::StateDeclaration(StateDeclaration {
                     metadata,
                     mode,

@@ -121,7 +121,7 @@ impl<'src> Value<'src> {
             PValue::String(pos, s) => Ok(Value::String(StringObject::from_static_pstring(pos, s)?)),
             PValue::Number(pos, n) => Ok(Value::Number(pos, n)),
             // TODO replace with real thing / the only accepted expression is true or false
-            PValue::EnumExpression(e) => Ok(Value::Number("".into(), 1.)),
+            PValue::EnumExpression(_) => Ok(Value::Number("".into(), 1.)),
             //PValue::EnumExpression(e) => fail!(e.token(), "Enum expression are not allowed in static context"),
             PValue::List(l) => Ok(Value::List(map_vec_results(
                 l.into_iter(),
@@ -135,7 +135,7 @@ impl<'src> Value<'src> {
     }
 
     // TODO check where it is called
-    pub fn context_check<VG>(&self, getter: &VG) -> Result<()>
+    pub fn context_check<VG>(&self, _getter: &VG) -> Result<()>
     where
         VG: Fn(Token<'src>) -> Option<VarKind<'src>>,
     {
@@ -143,7 +143,7 @@ impl<'src> Value<'src> {
             Value::String(s) => {
                 map_results(s.data.iter(), |e| match e {
                     PInterpolatedElement::Static(_) => Ok(()),
-                    PInterpolatedElement::Variable(v) => Ok(()),
+                    PInterpolatedElement::Variable(_v) => Ok(()),
                     // TODO
                     //                            match getter(Token::new("", v)) {
                     //                                None => fail!(s.pos, "Variable {} does not exist at {}", v, s.pos),

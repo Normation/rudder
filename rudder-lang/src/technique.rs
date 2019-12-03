@@ -233,7 +233,7 @@ fn canonify(input: &str) -> String {
         })
         .collect::<Vec<u8>>();
     str::from_utf8(&s)
-        .expect(&format!("Canonify failed on {}", input))
+        .unwrap_or_else(|_| panic!("Canonify failed on {}", input))
         .to_owned()
 }
 
@@ -340,7 +340,7 @@ fn parse_cfstring(i: &str) -> IResult<&str, Vec<CFStringElt>> {
     )))(i)
 }
 
-fn translate_arg(config: &toml::Value, arg: &str) -> Result<String> {
+fn translate_arg(_config: &toml::Value, arg: &str) -> Result<String> {
     let var = match parse_cfstring(arg) {
         Err(_) => return Err(Error::User(format!("Invalid variable syntax in '{}'", arg))),
         Ok((_, o)) => o,
@@ -349,7 +349,7 @@ fn translate_arg(config: &toml::Value, arg: &str) -> Result<String> {
     map_strings_results(var.iter(), |x| Ok(format!("\"{}\"", x.to_string()?)), ",")
 }
 
-fn translate_condition(config: &toml::Value, cond: &str) -> Result<String> {
+fn translate_condition(_config: &toml::Value, cond: &str) -> Result<String> {
     lazy_static! {
         static ref METHOD_RE: Regex = Regex::new(r"^(\w+)_(\w+)$").unwrap();
         static ref OS_RE: Regex = Regex::new(r"^([a-zA-Z]+)(_(\d+))*$").unwrap();
@@ -374,7 +374,7 @@ fn translate_condition(config: &toml::Value, cond: &str) -> Result<String> {
     };
 
     // detect system classes
-    if let Some(caps) = OS_RE.captures(cond) {
+    if let Some(_caps) = OS_RE.captures(cond) {
         // TODO here we consider any match is an os match, should we have an OS whitelist ?
         // OS are global enum so we don't have to say which enum to match
         return Ok(cond.into());
