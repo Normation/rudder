@@ -106,7 +106,7 @@ class PrepareTemplateVariablesImpl(
     import com.normation.rudder.services.policies.SystemVariableService._
 
     val nodeId = agentNodeConfig.config.nodeInfo.id
-    logger.debug(s"Writting promises for node '${agentNodeConfig.config.nodeInfo.hostname}' (${nodeId.value})")
+    logger.debug(s"Writing policies for node '${agentNodeConfig.config.nodeInfo.hostname}' (${nodeId.value})")
 
     // Computing policy mode of the node
     val agentPolicyMode = PolicyMode.computeMode(globalPolicyMode, agentNodeConfig.config.nodeInfo.policyMode, Seq()) match {

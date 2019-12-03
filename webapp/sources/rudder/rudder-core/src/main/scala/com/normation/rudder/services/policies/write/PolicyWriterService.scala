@@ -351,7 +351,7 @@ class PolicyWriterServiceImpl(
                           }
       promiseWrittenTime = System.currentTimeMillis
       promiseWrittenDur  = promiseWrittenTime - preparedPromisesTime
-      _                  = policyLogger.debug(s"Promises written in ${promiseWrittenDur} ms")
+      _                  = policyLogger.debug(s"Policies written in ${promiseWrittenDur} ms")
 
 
       //////////
@@ -469,7 +469,7 @@ class PolicyWriterServiceImpl(
 
     val agentConfig = configs.flatMap { config =>
       if(config.nodeInfo.agentsName.size == 0) {
-        logger.info(s"Node '${config.nodeInfo.hostname}' (${config.nodeInfo.id.value}) has no agent type configured and so no promises will be generated")
+        logger.info(s"Node '${config.nodeInfo.hostname}' (${config.nodeInfo.id.value}) has no agent type configured and so no policies will be generated")
       }
       config.nodeInfo.agentsName.map {agentType => (agentType, config) }
     }
@@ -693,18 +693,18 @@ class PolicyWriterServiceImpl(
       // Folders is a map of machine.uuid -> (base_machine_folder, backup_machine_folder, machine)
       for (folder @ NodePromisesPaths(_, baseFolder, newFolder, backupFolder) <- sortedFolder) {
         // backup old promises
-        logger.trace("Backuping old promises from %s to %s ".format(baseFolder, backupFolder))
+        logger.trace("Backuping old policies from %s to %s ".format(baseFolder, backupFolder))
         backupNodeFolder(baseFolder, backupFolder)
         try {
           newFolders += folder
 
-          logger.trace("Copying new promises into %s ".format(baseFolder))
+          logger.trace("Copying new policies into %s ".format(baseFolder))
           // move new promises
           moveNewNodeFolder(newFolder, baseFolder)
 
         } catch {
           case ex: Exception =>
-            logger.error("Could not write promises into %s, reason : ".format(baseFolder), ex)
+            logger.error("Could not write policies into %s, reason : ".format(baseFolder), ex)
             throw ex
         }
       }
@@ -713,12 +713,12 @@ class PolicyWriterServiceImpl(
       case ex: Exception =>
 
         for (folder <- newFolders) {
-          logger.info("Restoring old promises on folder %s".format(folder.baseFolder))
+          logger.info("Restoring old policies on folder %s".format(folder.baseFolder))
           try {
             restoreBackupNodeFolder(folder.baseFolder, folder.backupFolder);
           } catch {
             case ex: Exception =>
-              logger.error("could not restore old promises into %s ".format(folder.baseFolder))
+              logger.error("could not restore old policies into %s ".format(folder.baseFolder))
               throw ex
           }
         }
@@ -775,7 +775,7 @@ class PolicyWriterServiceImpl(
     //here, we need a big try/catch, because almost anything in string template can
     //throw errors
     // write the files to the new promise folder
-    logger.trace(s"Create promises file ${outPath} ${templateInfo.destination}")
+    logger.trace(s"Create policies file ${outPath} ${templateInfo.destination}")
 
     for {
       filled           <- fillTemplates.fill(templateInfo.destination, templateInfo.content, variableSet).toBox
@@ -837,8 +837,8 @@ class PolicyWriterServiceImpl(
         FileUtils.deleteDirectory(src.getParentFile())
       }
     } else {
-      logger.error("Could not find freshly created promises at %s".format(sourceFolder))
-      throw new IOException("Created promises not found !!!!")
+      logger.error("Could not find freshly created policies at %s".format(sourceFolder))
+      throw new IOException("Created policies not found !!!!")
     }
   }
 
@@ -856,8 +856,8 @@ class PolicyWriterServiceImpl(
 
       FileUtils.moveDirectory(src, dest)
     } else {
-      logger.error("Could not find freshly backup promises at %s".format(backupFolder))
-      throw new IOException("Backup promises could not be found, and valid promises couldn't be restored !!!!")
+      logger.error("Could not find freshly backup policies at %s".format(backupFolder))
+      throw new IOException("Backup policies could not be found, and valid policies couldn't be restored !!!!")
     }
   }
 }

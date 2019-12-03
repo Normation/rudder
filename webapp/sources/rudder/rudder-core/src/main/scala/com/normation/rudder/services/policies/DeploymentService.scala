@@ -1185,11 +1185,11 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
     }
 
     if(updatedConfig.size == 0) {
-      PolicyLogger.info("No node configuration was updated, no promises to write")
+      PolicyLogger.info("No node configuration was updated, no policies to write")
       Set()
     } else {
       val nodeToKeep = updatedConfig.map( _.id ).toSet
-      PolicyLogger.info(s"Configuration of following ${updatedConfig.size} nodes were updated, their promises are going to be written: [${updatedConfig.map(_.id.value).mkString(", ")}]")
+      PolicyLogger.info(s"Configuration of following ${updatedConfig.size} nodes were updated, their policies are going to be written: [${updatedConfig.map(_.id.value).mkString(", ")}]")
       nodeConfigurations.keySet.intersect(nodeToKeep)
     }
   }

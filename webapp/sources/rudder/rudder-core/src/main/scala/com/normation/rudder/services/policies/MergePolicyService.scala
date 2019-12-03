@@ -233,7 +233,7 @@ final object MergePolicyService {
       if(seq.size > 1) {
         PolicyLogger.error(s"The directive '${seq.head.id.directiveId.value}' on rule '${seq.head.id.ruleId.value}' was added several times on node "+
                      s"'${nodeInfo.id.value}' WITH DIFFERENT PARAMETERS VALUE. It's a bug, please report it. Taking one set of parameter "+
-                     s"at random for the promise generation.")
+                     s"at random for the policy generation.")
         import net.liftweb.json._
         implicit val formats = Serialization.formats(NoTypeHints)
         def r(j:JValue) = if(j == JNothing) "{}" else prettyRender(j)

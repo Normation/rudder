@@ -108,7 +108,7 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                            , multivalued = false
                         )
     , SystemVariableSpec(
-         "RELAY_SYNC_PROMISES"             , "Synchronize promises on relay with Rsync in rsync mode"
+         "RELAY_SYNC_PROMISES"             , "Synchronize policies on relay with Rsync in rsync mode"
                                            ,  constraint = Constraint(typeName = BooleanVType, default=Some("true"))
                         )
     , SystemVariableSpec(
@@ -185,7 +185,7 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                         )
       // this variable may be empty, has it is not filled by rudder, but by cf-clerk
     , SystemVariableSpec(
-                     "GENERATIONTIMESTAMP" , "Timestamp of the promises generation"
+                     "GENERATIONTIMESTAMP" , "Timestamp of the policies generation"
                                            , multivalued = false
                                            , constraint = Constraint(mayBeEmpty=true)
                         )

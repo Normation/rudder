@@ -271,9 +271,9 @@ rudder.batch.purge.inventories.delete.interval=24
 rudder.webdav.user=rudder
 rudder.webdav.password=rudder
 
-###################################
-# CFEngine and promises properties ##################################################
-###################################
+####################################
+# CFEngine and policies properties ##################################################
+####################################
 
 #
 # Port used by the community edition of CFEngine agent to
@@ -308,7 +308,7 @@ rudder.dir.shared.files.folder=/var/rudder/configuration-repository/shared-files
 # Node Configurations are all the parameters (global parameters,
 # applied rules/directives with their parameters, node information, etc)
 # contextualized for the node. They are the resources used to actually
-# generate promises for THAT node.
+# generate policies for THAT node.
 #
 # By default, these information are only used internally by Rudder and
 # are not available to the user. But they may be needed in some cases,
