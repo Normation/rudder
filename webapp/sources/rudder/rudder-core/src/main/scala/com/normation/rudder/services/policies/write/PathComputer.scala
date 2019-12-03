@@ -141,9 +141,9 @@ class PathComputerImpl(
                 s"The faulty chain of node ID is: ${chain.reverse.map(_.value).mkString(" -> ")}")
       } else {
         for {
-          toNode <- Box(allNodeConfig.get(toNodeId)) ?~! s"Missing node with id ${toNodeId.value} when trying to build the promise files path for node ${fromNodeId.value}"
+          toNode <- Box(allNodeConfig.get(toNodeId)) ?~! s"Missing node with id ${toNodeId.value} when trying to build the policies files path for node ${fromNodeId.value}"
           pid    =  toNode.policyServerId
-          parent <- Box(allNodeConfig.get(pid)) ?~! s"Can not find the parent node (${pid.value}) of node ${toNodeId.value} when trying to build the promise files for node ${fromNodeId.value}"
+          parent <- Box(allNodeConfig.get(pid)) ?~! s"Can not find the parent node (${pid.value}) of node ${toNodeId.value} when trying to build the policies files for node ${fromNodeId.value}"
           result <- parent match {
                       case root if root.id == NodeId("root") =>
                           // root is a specific case, it is the root of everything
