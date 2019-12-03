@@ -96,7 +96,7 @@ impl CFEngine {
                     + "\""
             }
             Value::Number(_, _) => unimplemented!(),
-            Value::EnumExpression(e) => "".into(), // TODO
+            Value::EnumExpression(_e) => "".into(), // TODO
             Value::List(_) => unimplemented!(),
             Value::Struct(_) => unimplemented!(),
         })
@@ -278,7 +278,7 @@ impl CFEngine {
                 delim
             ),
             Value::Number(_, n) => format!("{}", n),
-            Value::EnumExpression(e) => unimplemented!(),
+            Value::EnumExpression(_e) => unimplemented!(),
             Value::List(l) => format!(
                 "[ {} ]",
                 map_strings_results(l.iter(), |x| self.value_to_string(x, true), ",")?
@@ -294,7 +294,7 @@ impl CFEngine {
         })
     }
 
-    fn generate_ncf_metadata(&mut self, name: &Token, resource: &ResourceDef) -> Result<String> {
+    fn generate_ncf_metadata(&mut self, _name: &Token, resource: &ResourceDef) -> Result<String> {
         // description must be the last field
         let mut description = "".to_string();
         map_strings_results(

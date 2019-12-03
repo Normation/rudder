@@ -87,7 +87,7 @@ impl<'src> AST<'src> {
             variable_declarations,
             parameter_defaults,
             parents,
-            aliases,
+            aliases: _aliases,
         } = past;
         let mut ast = AST::new();
         ast.add_enums(enums);
@@ -197,9 +197,9 @@ impl<'src> AST<'src> {
                     match (status, pv) {
                         (Ok(None), None)       => Ok(None),
                         (Ok(None), Some(x))    => Ok(Some(x)),
-                        (Ok(Some(x)), Some(y)) => Ok(Some(y)),
+                        (Ok(Some(_)), Some(y)) => Ok(Some(y)),
                         //default followed by non default
-                        (Ok(Some(x)), None)    => {
+                        (Ok(Some(_)), None)    => {
                             match state {
                                 Some(s) => self.errors.push(err!(s,"Parameter default for state {} followed by parameter without default",s)),
                                 None => self.errors.push(err!(resource,"Parameter default for resource {} followed by parameter without default",resource)),
@@ -229,7 +229,7 @@ impl<'src> AST<'src> {
     }
 
     /// List all resources and detect duplicates
-    fn add_resource_list(&mut self, resources: &Vec<PResourceDef<'src>>) {
+    fn add_resource_list(&mut self, resources: &[PResourceDef<'src>]) {
         for res in resources {
             if self.resource_list.contains(&res.name) {
                 self.errors.push(err!(
@@ -259,7 +259,7 @@ impl<'src> AST<'src> {
                     parent
                 ));
             } else {
-                children.entry(parent).or_insert(HashSet::new());
+                children.entry(parent).or_insert_with(HashSet::new);
                 children.get_mut(&parent).unwrap().insert(child);
             }
         }
@@ -292,10 +292,10 @@ impl<'src> AST<'src> {
         }
         // now create resources
         for res in resources {
-            let name = res.name.clone();
+            let name = res.name;
             // or else because we have not stopped on duplicate resources
-            let states = state_list.remove(&name).unwrap_or_else(|| Vec::new());
-            let res_children = children.remove(&name).unwrap_or_else(|| HashSet::new());
+            let states = state_list.remove(&name).unwrap_or_else(Vec::new);
+            let res_children = children.remove(&name).unwrap_or_else(HashSet::new);
             let (errs, resource) = ResourceDef::from_presourcedef(
                 res,
                 states,
@@ -424,7 +424,7 @@ impl<'src> AST<'src> {
                 Ok(())
             }
             Value::Number(_, _) => Ok(()),
-            Value::EnumExpression(e) => fail!(
+            Value::EnumExpression(_) => fail!(
                 k,
                 "Metadata {} contains an enum expression, this is not allowed",
                 k

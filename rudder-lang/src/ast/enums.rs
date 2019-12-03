@@ -557,6 +557,7 @@ impl<'src> EnumList<'src> {
     }
 
     /// There can be only one mapping per item that defines an identical descendant
+    #[allow(dead_code)]
     pub fn mapping_check(&self) -> Vec<Error> {
         let mut errors = Vec::new();
         for (from, tos) in self.direct_mapping_path.iter() {
@@ -637,7 +638,7 @@ impl<'b, 'src> ContextIterator<'b, 'src> {
             };
         }
         ContextIterator {
-            enum_list: enum_list,
+            enum_list,
             var_list,
             iterators,
             current,
