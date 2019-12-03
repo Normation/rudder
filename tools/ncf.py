@@ -152,8 +152,8 @@ def parse_bundlefile_metadata(content, bundle_type):
   res = {}
   warnings = []
   parameters = []
-  param_names = set() 
-  param_constraints = {} 
+  param_names = set()
+  param_constraints = {}
   multiline = False
   previous_tag = None
   match_line = ""
@@ -186,8 +186,8 @@ def parse_bundlefile_metadata(content, bundle_type):
         previous_tag = tag
         continue
 
-    
-     
+
+
     # Parse line without tag, if previous tag was a multiline tag
     if previous_tag is not None and previous_tag in multiline_tags:
       match = re.match("^\s*# ?(.*)$", line, flags=re.UNICODE)
@@ -217,7 +217,7 @@ def parse_bundlefile_metadata(content, bundle_type):
 
       # Any tags should come before the "bundle agent" declaration
       break
-      
+
   # The tag "class_parameter_id" is a magic tag, it's value is built from class_parameter and the list of args
   if "class_parameter_id" in tags[bundle_type]:
     try:
@@ -233,7 +233,7 @@ def parse_bundlefile_metadata(content, bundle_type):
       warning_message = "In technique '' defining constraint on non existing parameters: "+ ", ".join(wrong_constraint_names)
       print(warning_message)
       warnings.append(warning_message)
- 
+
   # If we found any parameters, store them in the res object
   if len(parameters) > 0:
     for param in parameters:
@@ -244,7 +244,7 @@ def parse_bundlefile_metadata(content, bundle_type):
         if not check['result']:
           raise NcfError("Value for constraint '" + key + "' of parameter '"+ param['name'] +"' is not valid, "+", ".join(check["errors"]))
       param["constraints"] = constraints
-    
+
   res['parameter'] = parameters
 
   if bundle_type == "generic_method" and not "agent_version" in res:
@@ -269,7 +269,7 @@ def parse_bundlefile_metadata(content, bundle_type):
 def class_context_and(a, b):
   """Concatenate two CFEngine class contexts, and simplify useless cases"""
 
-  # Filter 'any' class 
+  # Filter 'any' class
   contexts = [ context for context in [a,b] if context != "any" ]
 
   final_contexts = []
@@ -390,7 +390,7 @@ def parse_technique_methods(technique_file, gen_methods):
       if ifvarclass_context is not None:
         promise_class_context = class_context_and(class_context, ifvarclass_context)
 
-      if not (method_name.startswith("_") or method_name.startswith("log")): 
+      if not (method_name.startswith("_") or method_name.startswith("log")):
         if promiser == "method_call":
           promiser = gen_methods[method_name]["name"]
         if args:
@@ -547,7 +547,7 @@ def generate_technique_content(technique, methods):
   content.append('bundle agent '+ technique['bundle_name']+bundle_param)
   content.append('{')
 
-  
+
   content.append('  methods:')
 
   # Handle method calls
@@ -576,7 +576,7 @@ def generate_technique_content(technique, methods):
       arg_value = ""
     class_context = canonify_class_context(method_call['class_context'])
 
-    if 'component' in method_call or len(method_call["component"]) > 0:
+    if 'component' in method_call and len(method_call["component"]) > 0:
       promiser = regex.sub(r'\\"', method_call["component"])
     else:
       promiser = regex.sub(r'\\"', method_name)
@@ -595,7 +595,7 @@ def generate_technique_content(technique, methods):
   # Join all lines with \n to get a pretty CFEngine file
   result =  '\n'.join(content)+"\n"
 
-  return result 
+  return result
 
 
 def generate_reporting_context(method_info, method_call):
@@ -642,7 +642,7 @@ def get_all_techniques_metadata(include_methods_calls = True, alt_path = ''):
       if include_methods_calls:
         method_calls = parse_technique_methods(file, methods)
         metadata['method_calls'] = method_calls
-      
+
       all_metadata[metadata['bundle_name']] = metadata
 
     except NcfError as e:
@@ -694,7 +694,7 @@ def write_technique(technique_metadata, alt_path = ""):
     path = alt_path
 
   try:
-    methods= get_all_generic_methods_metadata(alt_path)["data"]["generic_methods"]    
+    methods= get_all_generic_methods_metadata(alt_path)["data"]["generic_methods"]
     # Check if file exists
     bundle_name = technique_metadata['bundle_name']
     filename = os.path.realpath(os.path.join(path, "50_techniques", bundle_name, bundle_name+".cf"))
@@ -721,7 +721,7 @@ def write_technique(technique_metadata, alt_path = ""):
 
     # Execute post hooks
     execute_hooks("post", action, path, bundle_name)
-   
+
     return { "data" : { "technique" : technique } , "warnings" : warnings }
 
   except NcfError as e:
