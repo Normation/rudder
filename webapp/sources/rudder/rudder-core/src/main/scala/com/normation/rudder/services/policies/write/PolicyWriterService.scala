@@ -47,7 +47,7 @@ import com.normation.inventory.domain.AgentType.CfeEnterprise
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.licenses.CfeEnterpriseLicense
-import com.normation.rudder.domain.nodes.NodeProperty
+import com.normation.rudder.domain.nodes.{NodeInfo, NodeProperty}
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.hooks.HookEnvPairs
@@ -97,14 +97,15 @@ trait PolicyWriterService {
    *
    */
   def writeTemplate(
-      rootNodeId    : NodeId
-    , nodesToWrite  : Set[NodeId]
-    , allNodeConfigs: Map[NodeId, NodeConfiguration]
-    , versions      : Map[NodeId, NodeConfigId]
-    , allLicenses   : Map[NodeId, CfeEnterpriseLicense]
-    , globalPolicyMode: GlobalPolicyMode
-    , generationTime  : DateTime
-    , parallelism     : Parallelism
+      rootNodeId        : NodeId
+    , nodesToWrite      : Set[NodeId]
+    , updatedNodeConfigs: Map[NodeId, NodeConfiguration]
+    , allNodeInfos      : Map[NodeId, NodeInfo]
+    , versions          : Map[NodeId, NodeConfigId]
+    , allLicenses       : Map[NodeId, CfeEnterpriseLicense]
+    , globalPolicyMode  : GlobalPolicyMode
+    , generationTime    : DateTime
+    , parallelism       : Parallelism
   ) : Box[Seq[NodeId]]
 }
 
@@ -212,23 +213,23 @@ class PolicyWriterServiceImpl(
    *
    */
   override def writeTemplate(
-      rootNodeId      : NodeId
-    , nodesToWrite    : Set[NodeId]
-    , allNodeConfigs  : Map[NodeId, NodeConfiguration]
-    , versions        : Map[NodeId, NodeConfigId]
-    , allLicenses     : Map[NodeId, CfeEnterpriseLicense]
-    , globalPolicyMode: GlobalPolicyMode
-    , generationTime  : DateTime
-    , parallelism     : Parallelism
+      rootNodeId        : NodeId
+    , nodesToWrite      : Set[NodeId]
+    , updatedNodeConfigs: Map[NodeId, NodeConfiguration]
+    , allNodeInfos      : Map[NodeId, NodeInfo]
+    , versions          : Map[NodeId, NodeConfigId]
+    , allLicenses       : Map[NodeId, CfeEnterpriseLicense]
+    , globalPolicyMode  : GlobalPolicyMode
+    , generationTime    : DateTime
+    , parallelism       : Parallelism
   ) : Box[Seq[NodeId]] = {
 
-    val nodeConfigsToWrite     = allNodeConfigs.filterKeys(nodesToWrite.contains(_))
-    val interestingNodeConfigs = allNodeConfigs.filterKeys(k => nodeConfigsToWrite.exists{ case(x, _) => x == k }).values.toSeq
+    val interestingNodeConfigs = updatedNodeConfigs.values.toSeq
     val techniqueIds           = interestingNodeConfigs.flatMap( _.getTechniqueIds ).toSet
 
     // todo: do that only when logging it! - or used a view to avoid duplication of memoru
     //debug - but don't fails for debugging !
-    logNodeConfig.log(nodeConfigsToWrite.values.toSeq) match {
+    logNodeConfig.log(interestingNodeConfigs) match {
       case eb:EmptyBox =>
         val e = eb ?~! "Error when trying to write node configurations for debugging"
         logger.error(e)
@@ -266,7 +267,7 @@ class PolicyWriterServiceImpl(
 
     val readTemplateTime1 = System.currentTimeMillis
     for {
-      configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeConfigs, newPostfix, backupPostfix)
+      configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeInfos, newPostfix, backupPostfix)
       pathsInfo        =  configAndPaths.map { _.paths }
       templates        <- readTemplateFromFileSystem(techniqueIds)
       resources        <- readResourcesFromFileSystem(techniqueIds)
@@ -282,7 +283,7 @@ class PolicyWriterServiceImpl(
 // we could start batching here
       preparedPromises <- ParallelSequence.traverse(configAndPaths) { case agentNodeConfig =>
                             val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
-                            prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, Policy.TAG_OF_RUDDER_ID, globalPolicyMode, generationTime) ?~!
+                            prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, Policy.TAG_OF_RUDDER_ID, globalPolicyMode, generationTime) ?~!
                             s"Error when calculating configuration for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})"
                          }
       preparedPromisesTime = System.currentTimeMillis
@@ -417,7 +418,7 @@ class PolicyWriterServiceImpl(
   private[this] def calculatePathsForNodeConfigurations(
       configs            : Seq[NodeConfiguration]
     , rootNodeConfigId   : NodeId
-    , allNodeConfigs     : Map[NodeId, NodeConfiguration]
+    , allNodeInfos       : Map[NodeId, NodeInfo]
     , newsFileExtension  : String
     , backupFileExtension: String
   ): Box[Seq[AgentNodeConfiguration]] = {
@@ -440,7 +441,7 @@ class PolicyWriterServiceImpl(
                       , pathComputer.getRootPath(agentType) + backupFileExtension
                     ))
                   } else {
-                    pathComputer.computeBaseNodePath(config.nodeInfo.id, rootNodeConfigId, allNodeConfigs.mapValues(_.nodeInfo)).map { case NodePromisesPaths(id, base, news, backup) =>
+                    pathComputer.computeBaseNodePath(config.nodeInfo.id, rootNodeConfigId, allNodeInfos).map { case NodePromisesPaths(id, base, news, backup) =>
                         val postfix = agentType.toRulesPath
                         NodePromisesPaths(id, base + postfix, news + postfix, backup + postfix)
                     }

@@ -426,7 +426,7 @@ trait PromiseGenerationService {
 
       writeTime             =  System.currentTimeMillis
 // we don't need nodeConfigs, but rather the nodeConfigs for updated nodes, and all nodesInfos
-      _                     <- writeNodeConfigurations(rootNodeId, updatedNodeConfigIds, updatedNodeConfigs, allLicenses, globalPolicyMode, generationTime, parallelism) ?~!"Cannot write nodes configuration"
+      _                     <- writeNodeConfigurations(rootNodeId, updatedNodeConfigIds, updatedNodeConfigs, allNodeConfigsInfos, allLicenses, globalPolicyMode, generationTime, parallelism) ?~!"Cannot write nodes configuration"
       timeWriteNodeConfig   =  (System.currentTimeMillis - writeTime)
       _                     =  PolicyLogger.debug(s"Node configuration written in ${timeWriteNodeConfig} ms, start to update expected reports.")
 
@@ -725,7 +725,7 @@ trait PromiseGenerationService {
   /**
    * Run post generation hooks
    */
-  def runPostHooks(generationTime: DateTime, endTime: DateTime, idToConfiguration: Map[NodeId, NodeInfo], systemEnv: HookEnvPairs, nodeIdsPath: String): Box[Unit]
+  def runPostHooks(generationTime: DateTimFe, endTime: DateTime, idToConfiguration: Map[NodeId, NodeInfo], systemEnv: HookEnvPairs, nodeIdsPath: String): Box[Unit]
 
   /**
    * Run failure hook
@@ -1274,19 +1274,20 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
    * Return the list of configuration successfully written.
    */
   def writeNodeConfigurations(
-      rootNodeId      : NodeId
-    , updated         : Map[NodeId, NodeConfigId]
-    , allNodeConfigs  : Map[NodeId, NodeConfiguration]
-    , allLicenses     : Map[NodeId, CfeEnterpriseLicense]
-    , globalPolicyMode: GlobalPolicyMode
-    , generationTime  : DateTime
-    , maxParallelism  : Parallelism
+      rootNodeId        : NodeId
+    , updated           : Map[NodeId, NodeConfigId]
+    , updatedNodeConfigs: Map[NodeId, NodeConfiguration]
+    , allNodeInfos      : Map[NodeId, NodeInfo]
+    , allLicenses       : Map[NodeId, CfeEnterpriseLicense]
+    , globalPolicyMode  : GlobalPolicyMode
+    , generationTime    : DateTime
+    , maxParallelism    : Parallelism
   ) : Box[Set[NodeId]] = {
 
     val fsWrite0   =  System.currentTimeMillis
 
     for {
-      written    <- promisesFileWriterService.writeTemplate(rootNodeId, updated.keySet, allNodeConfigs, updated, allLicenses, globalPolicyMode, generationTime, maxParallelism)
+      written    <- promisesFileWriterService.writeTemplate(rootNodeId, updated.keySet, updatedNodeConfigs, allNodeInfos, updated, allLicenses, globalPolicyMode, generationTime, maxParallelism)
       ldapWrite0 =  DateTime.now.getMillis
       fsWrite1   =  (ldapWrite0 - fsWrite0)
       _          =  PolicyLogger.debug(s"Node configuration written on filesystem in ${fsWrite1} ms")
@@ -1294,7 +1295,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
 
       // #10625 : that should be one logic-level up (in the main generation for loop)
 
-      toCache    =  allNodeConfigs.filterKeys(updated.contains(_)).values.toSet
+      toCache    =  updatedNodeConfigs.values.toSet
       _          <- nodeConfigurationService.save(toCache.map(x => NodeConfigurationHash(x, generationTime)))
       ldapWrite1 =  (DateTime.now.getMillis - ldapWrite0)
       _          =  PolicyLogger.debug(s"Node configuration cached in LDAP in ${ldapWrite1} ms")
