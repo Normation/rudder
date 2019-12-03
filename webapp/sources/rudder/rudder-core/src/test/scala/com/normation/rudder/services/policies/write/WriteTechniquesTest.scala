@@ -280,13 +280,13 @@ class WriteSystemTechniquesTest extends TechniquesTest{
       promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now, parallelism)
     }
 
-    "correctly write the expected promises files with defauls installation" in {
+    "correctly write the expected policies files with defauls installation" in {
       val (rootPath, writter) = getPromiseWritter("root-default")
       (writeNodeConfigWithUserDirectives(writter) mustFull) and
       compareWith(rootPath, "root-default-install")
     }
 
-    "correctly write the expected promises files when 2 directives configured" in {
+    "correctly write the expected policies files when 2 directives configured" in {
       val (rootPath, writter) = getPromiseWritter("root-2-directives")
       (writeNodeConfigWithUserDirectives(writter, clock, rpm) mustFull) and
       compareWith(rootPath, "root-with-two-directives",
@@ -296,7 +296,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
       )
     }
 
-    "correctly write the expected promises files with a multi-policy configured, skipping fileTemplate3 from bundle order" in {
+    "correctly write the expected policies files with a multi-policy configured, skipping fileTemplate3 from bundle order" in {
       val (rootPath, writter) = getPromiseWritter("root-1-multipolicy")
       (writeNodeConfigWithUserDirectives(writter, fileTemplate1, fileTemplate2, fileTemplate3) mustFull) and
       compareWith(rootPath, "root-with-one-multipolicy",
