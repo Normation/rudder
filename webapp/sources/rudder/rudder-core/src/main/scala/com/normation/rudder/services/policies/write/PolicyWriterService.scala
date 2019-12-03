@@ -105,7 +105,7 @@ trait PolicyWriterService {
     , globalPolicyMode: GlobalPolicyMode
     , generationTime  : DateTime
     , parallelism     : Parallelism
-  ) : Box[Seq[NodeConfiguration]]
+  ) : Box[Seq[NodeId]]
 }
 
 class PolicyWriterServiceImpl(
@@ -220,12 +220,13 @@ class PolicyWriterServiceImpl(
     , globalPolicyMode: GlobalPolicyMode
     , generationTime  : DateTime
     , parallelism     : Parallelism
-  ) : Box[Seq[NodeConfiguration]] = {
+  ) : Box[Seq[NodeId]] = {
 
     val nodeConfigsToWrite     = allNodeConfigs.filterKeys(nodesToWrite.contains(_))
     val interestingNodeConfigs = allNodeConfigs.filterKeys(k => nodeConfigsToWrite.exists{ case(x, _) => x == k }).values.toSeq
     val techniqueIds           = interestingNodeConfigs.flatMap( _.getTechniqueIds ).toSet
 
+    // todo: do that only when logging it! - or used a view to avoid duplication of memoru
     //debug - but don't fails for debugging !
     logNodeConfig.log(nodeConfigsToWrite.values.toSeq) match {
       case eb:EmptyBox =>
@@ -278,7 +279,7 @@ class PolicyWriterServiceImpl(
       //////////
       // nothing agent specific before that
       //////////
-
+// we could start batching here
       preparedPromises <- ParallelSequence.traverse(configAndPaths) { case agentNodeConfig =>
                             val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
                             prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, Policy.TAG_OF_RUDDER_ID, globalPolicyMode, generationTime) ?~!
@@ -329,6 +330,8 @@ class PolicyWriterServiceImpl(
       licensesCopiedTime = System.currentTimeMillis
       licensesCopiedDur  = licensesCopiedTime - parametersWrittenTime
       _                  = policyLogger.debug(s"Licenses copied in ${licensesCopiedDur} ms")
+
+// we could end batching
 
       _                 = fillTemplates.clearCache
       /// perhaps that should be a post-hook somehow ?
@@ -397,8 +400,7 @@ class PolicyWriterServiceImpl(
       postMvHooksTime2   = System.currentTimeMillis
       _                  = policyLogger.debug(s"Hooks for policy-generation-node-finished executed in ${postMvHooksTime2 - movedPromisesTime2} ms")
     } yield {
-      val ids = movedPromises.map { _.nodeId }.toSet
-      allNodeConfigs.filterKeys { id => ids.contains(id) }.values.toSeq
+      movedPromises.map { _.nodeId }
     }
 
   }
@@ -760,8 +762,6 @@ class PolicyWriterServiceImpl(
 
   /**
    * Move the machine promises folder  to the backup folder
-   * @param machineFolder
-   * @param backupFolder
    */
   private[this] def backupNodeFolder(nodeFolder: String, backupFolder: String): Unit = {
     val src = new File(nodeFolder)
@@ -777,8 +777,6 @@ class PolicyWriterServiceImpl(
 
   /**
    * Move the newly created folder to the final location
-   * @param newFolder : where the promises have been written
-   * @param nodeFolder : where the promises will be
    */
   private[this] def moveNewNodeFolder(sourceFolder: String, destinationFolder: String): Unit = {
     val src = new File(sourceFolder)
