@@ -473,10 +473,10 @@ class LDAPBasedConfigService(
     case _ => SyslogUDP
   }
 
+  // default is HTTPS, in particular for ""
   private[this] implicit def toReportProtocol(p: RudderWebProperty): AgentReportingProtocol = p.value match {
-    case AgentReportingHTTPS.value => // value is TCP
-      AgentReportingHTTPS
-    case _ => AgentReportingSyslog
+    case AgentReportingSyslog.value => AgentReportingSyslog
+    case _                          => AgentReportingHTTPS
   }
 
   private[this] implicit def toOptionPolicyMode(p: RudderWebProperty): Option[PolicyMode] = {
