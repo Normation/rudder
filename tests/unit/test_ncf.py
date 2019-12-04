@@ -90,7 +90,7 @@ class TestNcf(unittest.TestCase):
     self.assertEqual(metadata['bundle_args'], ["package_name", "package_version"])
     self.assertEqual(metadata['name'], "Package install")
     self.assertEqual(metadata['description'], "Install a package by name from the default system package manager")
-    self.assertEqual(metadata['parameter'], [ { 'constraints': { "allow_empty_string": False, "allow_whitespace_string": False, "max_length" : 16384 }, 'name': 'package_name', 'description': 'Name of the package to install'},{ 'constraints': { "allow_empty_string": False, "allow_whitespace_string": False, "max_length" : 16384 }, 'name': 'package_version', 'description': 'Version of the package to install'}])
+    self.assertEqual(metadata['parameter'], [ { 'constraints': { "allow_empty_string": False, "allow_whitespace_string": False, "max_length" : 16384 }, 'type' : 'string', 'name': 'package_name', 'description': 'Name of the package to install'},{ 'constraints': { "allow_empty_string": False, "allow_whitespace_string": False, "max_length" : 16384 }, 'type': 'string', 'name': 'package_version', 'description': 'Version of the package to install'}])
     self.assertEqual(metadata['class_prefix'], "package_install")
     self.assertEqual(metadata['class_parameter'], "package_name")
     self.assertEqual(metadata['class_parameter_id'], 1)

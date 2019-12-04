@@ -1053,14 +1053,6 @@ $scope.onImportFileChange = function (fileEl) {
 
   // Get parameters information relative to a method_call
   $scope.getMethodParameters = function(method_call) {
-    function createParameter (name, value, description) {
-      return {
-          "name" : name
-        , "value" : value
-        , "description" : description
-        , "$errors" : []
-      };
-    }
     var params = [];
     // parameter information are stored into generic methods (maybe a better solution would be to merge data when we fetch them ...)
     if (method_call.method_name in $scope.generic_methods ) {
@@ -1076,7 +1068,15 @@ $scope.onImportFileChange = function (fileEl) {
       }
     } else {
       // We have no informations about this generic method, just call it 'parameter'
-      params = method_call.args.map( function(arg) { return createParameter ('parameter', arg);});
+      params = method_call.args.map( function(value) {
+                 return {
+                     "name" : "Paramter"
+                   , "value" : value
+                   , "description" : "Unknown parameter"
+                   , "type" : "string"
+                   , "$errors" : []
+                 };
+               });
     }
     return params;
   };

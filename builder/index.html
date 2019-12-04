@@ -479,7 +479,7 @@
                               <div class="form-group method-parameter" show-errors ng-form="subForm" ng-repeat="parameter in method_call.parameters track by $index">
                                 <ng-form name="paramForm" role="form">
                                   <label for="param-{{$index}}">
-                                    <span>{{parameter.name | parameterName}}:</span>
+                                    <span>{{parameter.name | parameterName}} - <span class="badge badge-secondary ng-binding">{{parameter.type}}</span> - </span>
                                     <small>
                                       {{parameter.description}}
                                     </small>
