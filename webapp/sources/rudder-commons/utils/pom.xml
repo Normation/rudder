@@ -19,7 +19,7 @@ limitations under the License.
   <parent>
     <groupId>com.normation</groupId>
     <artifactId>commons-parent</artifactId>
-    <version>5.0.15-SNAPSHOT</version>
+    <version>5.0.15</version>
   </parent>
 
   <artifactId>utils</artifactId>
