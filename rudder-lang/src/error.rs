@@ -83,17 +83,18 @@ impl Error {
     }
 
     // results must only contain errors
-    // pub fn from_vec_result<X>(vec: Vec<Result<X>>) -> Error
-    // where
-    //     X: fmt::Debug,
-    // {
-    //     if vec.is_empty() {
-    //         panic!("BUG do not call from_vec_result on empty vectors");
-    //     }
-    //     let mut it = vec.into_iter().map(Result::unwrap_err);
-    //     let first = it.next().unwrap();
-    //     it.fold(first, |e0, e| e0.append(e))
-    // }
+    #[allow(dead_code)]
+    pub fn from_vec_result<X>(vec: Vec<Result<X>>) -> Error
+    where
+        X: fmt::Debug,
+    {
+        if vec.is_empty() {
+            panic!("BUG do not call from_vec_result on empty vectors");
+        }
+        let mut it = vec.into_iter().map(Result::unwrap_err);
+        let first = it.next().unwrap();
+        it.fold(first, |e0, e| e0.append(e))
+    }
 }
 
 /// This macro returns from current function/closure with an error.

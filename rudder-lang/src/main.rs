@@ -28,6 +28,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
+#![allow(clippy::large_enum_variant)]
+
 #[macro_use]
 mod error;
 mod ast;

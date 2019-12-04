@@ -33,7 +33,8 @@ use super::enums::*;
 use super::value::Value;
 use crate::error::*;
 use crate::parser::*;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, hash_map::Entry};
+// use std::collections::hash_map::Entry;
 
 ///! There are 2 kinds of functions return
 ///! - Result: could not return data, fatal to the caller
@@ -54,30 +55,56 @@ fn create_metadata<'src>(
             Ok(v) => v,
         };
         // Check for uniqueness and concat comments
-        // match metadata.entry(meta.key) { } WIP
-        if metadata.contains_key(&meta.key) {
-            if meta.key.fragment() == "comment" {
-                match metadata.get_mut(&meta.key).unwrap() {
-                    Value::String(o1) => match value {
-                        Value::String(o2) => o1.append(o2),
-                        _ => errors.push(err!(meta.key, "Comment metadata must be of type string")),
-                    },
-                    _ => errors.push(err!(
+        match metadata.entry(meta.key) {
+            Entry::Occupied(mut entry) => {
+                let key: Token = *entry.key();
+                if key.fragment() == "comment" {
+                    match entry.get_mut() {
+                        Value::String(ref mut o1) => match value {
+                            Value::String(o2) => o1.append(o2),
+                            _ => errors.push(err!(meta.key, "Comment metadata must be of type string")),
+                        },
+                        _ => errors.push(err!(
+                            key,
+                            "Existing comment metadata must be of type string"
+                        )),
+                    };
+                } else {
+                    errors.push(err!(
                         meta.key,
-                        "Existing comment metadata must be of type string"
-                    )),
+                        "metadata {} already defined at {}",
+                        &meta.key,
+                        key,
+                    ));
                 }
-            } else {
-                errors.push(err!(
-                    meta.key,
-                    "metadata {} already defined at {}",
-                    &meta.key,
-                    metadata.entry(meta.key).key()
-                ));
-            }
-        } else {
-            metadata.insert(meta.key, value);
-        }
+            },
+            Entry::Vacant(entry) => {
+                entry.insert(value);
+            },
+        };
+        // if metadata.contains_key(&meta.key) {
+        //     if meta.key.fragment() == "comment" {
+        //         match metadata.get_mut(&meta.key).unwrap() {
+        //             Value::String(o1) => match value {
+        //                 Value::String(o2) => o1.append(o2),
+        //                 _ => errors.push(err!(meta.key, "Comment metadata must be of type string")),
+        //             },
+        //             _ => errors.push(err!(
+        //                 meta.key,
+        //                 "Existing comment metadata must be of type string"
+        //             )),
+        //         }
+        //     } else {
+        //         errors.push(err!(
+        //             meta.key,
+        //             "metadata {} already defined at {}",
+        //             &meta.key,
+        //             metadata.entry(meta.key).key()
+        //         ));
+        //     }
+        // } else {
+        //     metadata.insert(meta.key, value);
+        // }
     }
     (errors, metadata)
 }
