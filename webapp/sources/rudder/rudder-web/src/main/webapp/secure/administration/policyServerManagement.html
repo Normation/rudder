@@ -864,6 +864,42 @@
       </div>
     </div>
 
+
+  <div class="inner-portlet">
+    <h3 class="page-title">Certificate's validation</h3>
+    <div class="lift:administration.PropertiesManagement.enforceCertificateValidation" id="enforceCertificateValidationForm">
+      <form class="lift:form.ajax">
+          <div class="col-lg-12 callout-fade callout-warning">
+            <div class="marker">
+              <span class="glyphicon glyphicon-info-sign"></span>
+            </div>
+            Before enabling this, you have to replace self-signed certificates created by Rudder on your policy servers
+            by valid certificates and to enforce using an hostname matching these certificates in
+            <strong>policy_server.dat</strong> for all agents.
+          </div>
+        <ul>
+          <li class="rudder-form">
+            <div class="input-group">
+              <label class="input-group-addon" for="enforceCertificateValidation">
+                <input id="enforceCertificateValidation" type="checkbox">
+                <label for="enforceCertificateValidation" class="label-radio">
+                  <span class="ion ion-checkmark-round"></span>
+                </label>
+                <span class="ion ion-checkmark-round check-icon"></span>
+              </label>
+              <label class="form-control" for="enforceCertificateValidation">
+                Enforce validation of policy server certificate for inventory and reporting
+              </label>
+            </div>
+          </li>
+        </ul>
+        <lift:authz role="administration_write">
+          <input type="submit" value="[save]" id="enforceCertificateSubmit"/>
+        </lift:authz>
+      </form>
+    </div>
+  </div>
+
   </div>
   <div class="lift:administration.PropertiesManagement.onloadScript"></div>
 </lift:surround>
