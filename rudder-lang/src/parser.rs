@@ -104,16 +104,16 @@ impl<'src> PAST<'src> {
                 PDeclaration::Enum(e) => self.enums.push(e),
                 PDeclaration::Mapping(e) => self.enum_mappings.push(e),
                 PDeclaration::Resource((r, d, p)) => {
-                    self.parameter_defaults.push((r.name.clone(), None, d));
+                    self.parameter_defaults.push((r.name, None, d));
                     if let Some(parent) = p {
-                        self.parents.push((r.name.clone(), parent))
+                        self.parents.push((r.name, parent))
                     };
                     self.resources.push(r);
                 }
                 PDeclaration::State((s, d)) => {
                     self.parameter_defaults.push((
-                        s.resource_name.clone(),
-                        Some(s.name.clone()),
+                        s.resource_name,
+                        Some(s.name),
                         d,
                     ));
                     self.states.push(s);
@@ -337,18 +337,19 @@ pub enum PEnumExpression<'src> {
     Not(Box<PEnumExpression<'src>>),
     Default(Token<'src>),
 }
-impl<'src> PEnumExpression<'src> {
-    // extract the first token of the expression
-    pub fn token(&self) -> Token<'src> {
-        match self {
-            PEnumExpression::Compare(_, _, v) => *v,
-            PEnumExpression::And(a, _) => a.token(),
-            PEnumExpression::Or(a, _) => a.token(),
-            PEnumExpression::Not(a) => a.token(),
-            PEnumExpression::Default(t) => *t,
-        }
-    }
-}
+// impl<'src> PEnumExpression<'src> {
+//     // extract the first token of the expression
+//     pub fn token(&self) -> Token<'src> {
+//         match self {
+//             PEnumExpression::Compare(_, _, v) => *v,
+//             PEnumExpression::And(a, _) => a.token(),
+//             PEnumExpression::Or(a, _) => a.token(),
+//             PEnumExpression::Not(a) => a.token(),
+//             PEnumExpression::Default(t) => *t,
+//         }
+//     }
+// }
+
 fn penum_expression(i: PInput) -> PResult<PEnumExpression> {
     alt((
         enum_or_expression,
@@ -537,7 +538,7 @@ fn ptype(i: PInput) -> PResult<PType> {
 fn pnumber(i: PInput) -> PResult<(Token, f64)> {
     let (i, val) = recognize_float(i)?;
     match double::<&[u8], (&[u8], nom::error::ErrorKind)>(val.fragment.as_bytes()) {
-        Err(_) => panic!(format!("A parsed number canot be reparsed : {:?}", val)),
+        Err(_e) => panic!(format!("A parsed number canot be reparsed : {:?}", val)),
         Ok((_, n)) => Ok((i, (val.into(), n))),
     }
 }
@@ -809,7 +810,7 @@ pub enum PStatement<'src> {
 fn pstatement(i: PInput) -> PResult<PStatement> {
     alt((
         // One state
-        map(pstate_declaration, |s| PStatement::StateDeclaration(s)),
+        map(pstate_declaration, PStatement::StateDeclaration),
         // Variable definition
         map(
             pair(pmetadata_list, pvariable_definition),

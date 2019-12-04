@@ -163,7 +163,7 @@ where
     E: Fn() -> PErrorKind<PInput<'src>>,
 {
     move |input| {
-        let x = f(input.clone());
+        let x = f(input);
         match x {
             // a non nom error cannot be superseded
             // keep original context when possible

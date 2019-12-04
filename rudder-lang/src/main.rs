@@ -28,6 +28,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
+#![allow(clippy::large_enum_variant)]
+
 #[macro_use]
 mod error;
 mod ast;
@@ -38,7 +40,6 @@ mod technique;
 use crate::ast::AST;
 use crate::error::*;
 use crate::generators::*;
-use crate::parser::Token;
 use crate::parser::PAST;
 use crate::technique::translate_file;
 use std::cell::UnsafeCell;
@@ -112,6 +113,7 @@ fn add_file<'a>(
 /// but where we can append new data.
 /// The goal is to be able to hold references to immutable data while
 /// still appending new data at the end of the list.
+#[derive(Default)]
 pub struct SourceList(UnsafeCell<Option<(String, Box<SourceList>)>>);
 
 impl SourceList {
