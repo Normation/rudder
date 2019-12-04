@@ -1,0 +1,20 @@
+# @name test_enrico_renomag
+# @description 
+# @version 1.0
+
+bundle agent test_enrico
+{
+  methods:
+    "File copy from remote source_context_0" usebundle => _method_reporting_context("File copy from remote source", "${tmp_knowledge.hello_path}");
+    "File copy from remote source" usebundle => file_copy_from_remote_source("${tmp_knowledge.hello_file}", "${tmp_knowledge.hello_path}"),
+      ifvarclass => concat("any");
+    "Permissions (non recursive)_context_1" usebundle => _method_reporting_context("Permissions (non recursive)", "/tmp/hello");
+    "Permissions (non recursive)" usebundle => permissions("/tmp/hello", "755", "root", "root"),
+      ifvarclass => concat("any.file_copy_from_remote_source__tmp_hello_repaired");
+    "Service restart at a condition_context_2" usebundle => _method_reporting_context("Service restart at a condition", "rudder-agent");
+    "Service restart at a condition" usebundle => service_restart_if("rudder-agent", "file_copy_from_remote_source__tmp_hello_repaired"),
+      ifvarclass => concat("any");
+    "Service restart_context_3" usebundle => _method_reporting_context("Service restart", "rudder-agent");
+    "Service restart" usebundle => service_restart("rudder-agent"),
+      ifvarclass => concat("file_copy_from_remote_source__tmp_hello_repaired");
+}
