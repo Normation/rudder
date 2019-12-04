@@ -1,0 +1,35 @@
+{
+  "method_calls": [
+    {
+      "method_name": "package_install",
+      "class_context": "any",
+      "args": [
+        "ntp"
+      ],
+      "component": "Package install"
+    },
+    {
+      "method_name": "file_ensure_lines_present",
+      "class_context": "any",
+      "args": [
+        "/etc/ntp.conf",
+        "server pool.ntp.org"
+      ],
+      "component": "File ensure lines present"
+    },
+    {
+      "method_name": "service_restart",
+      "class_context": "file_ensure_lines_present__etc_ntp_conf_repaired",
+      "args": [
+        "ntp"
+      ],
+      "component": "Service restart"
+    }
+  ],
+  "name": "NTP Technique",
+  "description": "Configure the NTP",
+  "version": "1.1",
+  "bundle_name": "NTP_Technique",
+  "parameter": [],
+  "bundle_args": []
+}

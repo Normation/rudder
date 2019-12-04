@@ -83,6 +83,7 @@ impl Error {
     }
 
     // results must only contain errors
+    #[allow(dead_code)]
     pub fn from_vec_result<X>(vec: Vec<Result<X>>) -> Error
     where
         X: fmt::Debug,
@@ -197,7 +198,7 @@ impl fmt::Display for Error {
                 f,
                 "{}",
                 v.iter()
-                    .map(|x| format!("{}", x))
+                    .map(|x| x.to_string())
                     .collect::<Vec<String>>()
                     .join("\n")
             ),
