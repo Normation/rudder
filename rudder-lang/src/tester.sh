@@ -1,9 +1,7 @@
 #!/bin/bash
 
 set -xe
-name="xx"
-
-export LD_LIBRARY_PATH=/home/bpeccatte/Rudder/ncf/cfe/usr/lib
+name=$1
 
 # Take original technique an make a json
 ./ncf ncf-to-json ${name}.cf

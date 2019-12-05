@@ -11,7 +11,7 @@ Usage:
 """
 
 
-NCF='/home/bpeccatte/Rudder/ncf'
+NCF='/usr/share/ncf'
 
 import sys
 sys.path.append(NCF+'/tools')
@@ -25,7 +25,7 @@ import re
 import jsondiff
 from subprocess import check_output
 
-ncf.CFENGINE_PATH="/home/bpeccatte/Rudder/ncf/cfe/usr/sbin/cf-promises"
+ncf.CFENGINE_PATH="/opt/rudder/bin/cf-promises"
 ncf_path=NCF+'/tree/30_generic_methods'
 
 def ncf_to_json(cf_file):

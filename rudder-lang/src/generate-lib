@@ -8,7 +8,7 @@ my %resource = ();
 my @state = ();
 my @config_lines=();
 
-foreach my $file (glob "/home/bpeccatte/Rudder/ncf/tree/30_generic_methods/*") {
+foreach my $file (glob "/usr/share/ncf/tree/30_generic_methods/*") {
   # file exclusion
   next if $file=~ /\/_/;
   next if $file=~ /README/;
