@@ -60,7 +60,7 @@ import net.liftweb.http.StatefulSnippet
  *
  */
 
-class Node extends StatefulSnippet with Loggable {
+class NodeDetails extends StatefulSnippet with Loggable {
 
   private[this] val getFullGroupLibrary = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
 
