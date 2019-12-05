@@ -37,6 +37,7 @@
 
 package com.normation.rudder.rest.lift
 
+import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -91,11 +92,14 @@ import net.liftweb.json.JsonDSL.string2jvalue
 import scalaj.http.Http
 import scalaj.http.HttpConstants
 import scalaj.http.HttpOptions
-import zio._
-import com.normation.box._
 import com.normation.rudder.domain.nodes.NodeProperty
+import com.normation.box._
 import com.normation.zio._
-import scalaj.http.HttpResponse
+import com.normation.errors._
+import com.normation.rudder.domain.logger.NodeLogger
+import com.normation.rudder.domain.logger.NodeLoggerPure
+import zio._
+import zio.syntax._
 
 /*
  * NodeApi implementation.
@@ -291,8 +295,8 @@ class NodeApi (
     val restExtractor = restExtractorService
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       (for {
-        classes <- restExtractorService.extractList("classes")(req)(json => Full(json))
-        response <- apiV8service.runNode(NodeId(id),classes)
+        classes  <- restExtractorService.extractList("classes")(req)(json => Full(json))
+        response = apiV8service.runNode(NodeId(id), classes)
       } yield {
         OutputStreamResponse(response)
       }) match {
@@ -667,29 +671,9 @@ class NodeApiService8 (
     }
   }
 
-  // buffer size for file I/O
-  private[this] val pipeSize = 4096
-
-  def runResponse(in : InputStream)(out : OutputStream) = {
-    val bytes : Array[Byte] = new Array(pipeSize)
-    val zero = 0.toByte
-    var read = 0
-    try {
-      while (read != -1) {
-        Arrays.fill(bytes,zero)
-        read = in.read(bytes)
-        out.write(bytes)
-        out.flush()
-      }
-    } catch {
-      case e : IOException =>
-        out.write(s"Error when trying to contact internal remote-run API: ${e.getMessage}".getBytes(StandardCharsets.UTF_8))
-        out.flush()
-    }
-  }
-
   def remoteRunRequest(nodeId: NodeId, classes : List[String], keepOutput : Boolean, asynchronous : Boolean) = {
     val url = s"${relayApiEndpoint}/remote-run/nodes/${nodeId.value}"
+//    val url = "http://httpbin.org/post"
     val params =
       ( "classes"     , classes.mkString(",") ) ::
       ( "keep_output" , keepOutput.toString   ) ::
@@ -699,28 +683,111 @@ class NodeApiService8 (
     // We should add an option to allow the user to define a certificate in configuration file
     val options = HttpOptions.allowUnsafeSSL :: Nil
 
-    Http(url).params(params).options(options).postForm
+    Http(url).params(params).options(options).copy(headers = List(("User-Agent", s"rudder/remote run query for node ${nodeId.value}"))).postForm
   }
 
-  def runNode(nodeId: NodeId, classes : List[String]) : Box[OutputStream => Unit] = {
-    val request = remoteRunRequest(nodeId,classes,true,true)
-
-    val in = new PipedInputStream(pipeSize)
-
-    // type annotation necessary to avoid "Any was infered, perhaps an error ?"
-    val response: Task[HttpResponse[Unit]]  = Task.bracket(Task.effect(new PipedOutputStream(in)))(out => Task.effect(out.close()).run.unit) { out =>
-      Task.effect( request.exec{ case (status,headers,is) =>
-        if (status >= 200 && status < 300) {
-          runResponse(is)(out)
-        } else {
-          out.write((s"Error ${status} occured when contacting internal remote-run API to apply " +
-                    s"classes on Node '${nodeId.value}': \n${HttpConstants.readString(is)}\n\n").getBytes)
-          out.flush
+  /*
+   * Execute remote run on given node and pipe response to output stream
+   */
+  def runNode[A](nodeId: NodeId, classes : List[String]): OutputStream => Unit = {
+    def copyStreamTo(pipeSize: Int, in : InputStream)(out: OutputStream )=  {
+      val bytes : Array[Byte] = new Array(pipeSize)
+      val zero = 0.toByte
+      var read = 0
+      try {
+        while (read != -1) {
+          Arrays.fill(bytes,zero)
+          read = in.read(bytes)
+          out.write(bytes)
+          out.flush()
         }
-      })
+      } catch {
+        case e : IOException =>
+          out.write(s"Error when trying to contact internal remote-run API: ${e.getMessage}".getBytes(StandardCharsets.UTF_8))
+          out.flush()
+      }
     }
-    ZioRuntime.unsafeRun(response)
-    Full(runResponse(in))
+
+    def msg(s: String) = s"Error occured when contacting internal remote-run API to apply classes on Node '${nodeId.value}': ${s}"
+
+    // buffer size for file I/O
+    val pipeSize = 4096
+
+    val request = remoteRunRequest(nodeId,classes,true,false).timeout(connTimeoutMs = 1000, readTimeoutMs = 5*1000)
+
+    val copy = (os: OutputStream) => {
+      import zio.duration._
+      for {
+        _   <- NodeLoggerPure.debug(s"Executing remote run call: ${request.toString}")
+        opt <- IOResult.effect {
+                request.exec{ case (status,headers,is) =>
+                  NodeLogger.debug(s"Processing remore-run on ${nodeId.value}: HTTP status ${status}") // this one is written two times - why ??
+                  if (status >= 200 && status < 300) {
+                    copyStreamTo(pipeSize, is)(os)
+                  } else {
+                    val error = msg(s"(HTTP code ${status}) \n${HttpConstants.readString(is)}\n\n")
+                    NodeLogger.error(error)
+                    os.write(error.getBytes)
+                    os.flush
+                  }
+                }
+              }.catchAll { err =>
+                NodeLoggerPure.error(msg(err.fullMsg)) *> IOResult.effect {
+                  os.write(msg(err.msg).getBytes)
+                  os.flush
+                }
+              }.timeout(5.seconds).provide(ZioRuntime.environment)
+        _   <- NodeLoggerPure.debug("=== done processing request !")
+        res <- opt match {
+                  case None    =>
+                    val error = msg(s"request timed out after ${(5.seconds.render)}")
+                    /// I don't know what happen but the proccessing seems to stop here
+                    /// log is written, and nothing else - actually, it's like there's a second query which doesn't terminate
+                    NodeLoggerPure.error(error)
+                 case Some(x) => x.succeed
+               }
+        _   <- NodeLoggerPure.debug("=== I'm going to close output stream!")
+        _   <- IOResult.effect(os.close())
+        _   <- NodeLoggerPure.debug("=== closed!")
+      } yield res
+    }
+
+    // all
+    // we use pipedStream between node answer and our caller answer to decouple a bit the two.
+    // A simpler solution would be to directly copy from request.exec input stream to caller out stream.
+
+    /* logs:
+[2019-12-04 23:41:59+0000] DEBUG api-processing - Processing request: POST /rudder/secure/api/nodes/fd8799d1-ca1a-4d41-a75a-6329b13045c5/applyPolicy [JSON request with valid JSON body]
+[2019-12-04 23:41:59+0000] DEBUG api-processing - Found a valid endpoint handler: 'applyPolicy' on [POST nodes/{id}/applyPolicy] with version '12'
+[2019-12-04 23:41:59+0000] DEBUG api-processing - Account 'admin' has ACL authorizations.
+[2019-12-04 23:41:59+0000] DEBUG nodes - Executing remote run call: HttpRequest(https://localhost/rudder/relay-api/remote-run/nodes/fd8799d1-ca1a-4d41-a75a-6329b13045c5,POST,FormBodyConnectFunc,List((classes,), (keep_output,true), (asynchronous,false)),List((User-Agent,scalaj-http/1.0), (User-Agent,rudder remote run query for node fd8799d1-ca1a-4d41-a75a-6329b13045c5), (content-type,application/x-www-form-urlencoded)),List(scalaj.http.HttpOptions$$$Lambda$2193/1042155450@44abf99d, scalaj.http.HttpOptions$$$Lambda$2194/1661822083@69968066, scalaj.http.HttpOptions$$$Lambda$5199/896988804@58442d5f, scalaj.http.HttpOptions$$$Lambda$2193/1042155450@7ac4bd3b, scalaj.http.HttpOptions$$$Lambda$2194/1661822083@61b8d4ef, scalaj.http.HttpOptions$$$Lambda$2195/1821575044@3cf0ed0e),None,UTF-8,4096,QueryStringUrlFunc,true)
+[2019-12-04 23:42:00+0000] DEBUG nodes - Processing remore-run on fd8799d1-ca1a-4d41-a75a-6329b13045c5: HTTP status 200
+
+[2019-12-04 23:42:04+0000] DEBUG nodes - Processing remore-run on fd8799d1-ca1a-4d41-a75a-6329b13045c5: HTTP status 200
+[2019-12-04 23:42:05+0000] DEBUG nodes - === done processing request !
+[2019-12-04 23:42:05+0000] ERROR nodes - Error occured when contacting internal remote-run API to apply classes on Node 'fd8799d1-ca1a-4d41-a75a-6329b13045c5': request timed out after 5 s
+[2019-12-04 23:42:05+0000] DEBUG nodes - === I'm going to close output stream!
+[2019-12-04 23:42:05+0000] DEBUG nodes - === closed!
+[2019-12-04 23:42:05+0000] DEBUG nodes - === fiber joined!
+[2019-12-04 23:42:05+0000] DEBUG nodes - === out closed!
+[2019-12-04 23:42:05+0000] DEBUG api-processing - Handler for 'POST secure/api/nodes/fd8799d1-ca1a-4d41-a75a-6329b13045c5/applyPolicy' executed in 5154 ms
+
+
+     */
+
+    (for {
+      in  <- IOResult.effect(new PipedInputStream(pipeSize))
+      out <- IOResult.effect(new PipedOutputStream(in))
+      f   <- copy(out).fork
+      res <- IOResult.effect(copyStreamTo(pipeSize, in) _)
+      _   <- f.join
+      _   <- NodeLoggerPure.debug("=== fiber joined!")
+      _   <- IOResult.effect(out.close())
+      _   <- NodeLoggerPure.debug("=== out closed!")
+    } yield res).catchAll { err =>
+      NodeLoggerPure.error(msg(err.fullMsg)) *>
+      IOResult.effect(copyStreamTo(pipeSize, new ByteArrayInputStream(msg(err.msg).getBytes(StandardCharsets.UTF_8))) _)
+    }.runNow
   }
 
   def runAllNodes(classes : List[String]) : Box[JValue] = {
