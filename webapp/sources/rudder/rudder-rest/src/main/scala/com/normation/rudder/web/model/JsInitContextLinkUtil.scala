@@ -107,7 +107,7 @@ class LinkUtil (
     RedirectTo(baseDirectiveLink(id))
 
   def baseNodeLink(id:NodeId) =
-    s"""/secure/nodeManager/searchNodes#{"nodeId":"${id.value}"}"""
+    s"""/secure/nodeManager/node/${id.value}"""
 
   def nodeLink(id:NodeId) =
     s"""${S.contextPath}${baseNodeLink(id)}"""

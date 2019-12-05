@@ -304,6 +304,8 @@ class Boot extends Loggable {
         RewriteResponse("secure" :: "administration" :: "techniqueLibraryManagement" :: Nil, Map("techniqueId" -> activeTechniqueId))
       case RewriteRequest(ParsePath("secure"::"nodeManager"::"searchNodes"::nodeId::Nil, _, _, _), GetRequest, _) =>
         RewriteResponse("secure"::"nodeManager"::"searchNodes"::Nil, Map("nodeId" -> nodeId))
+      case RewriteRequest(ParsePath("secure"::"nodeManager"::"node"::nodeId::Nil, _, _, _), GetRequest, _) =>
+        RewriteResponse("secure"::"nodeManager"::"node"::Nil, Map("nodeId" -> nodeId))
     }
 
     // Fix relative path to css resources
@@ -367,6 +369,11 @@ class Boot extends Loggable {
         , Menu("SearchNodes", <span>Search nodes</span>) /
             "secure" / "nodeManager" / "searchNodes"
             >> LocGroup("nodeGroup")
+
+        , Menu("NodeDetails", <span>Node details</span>) /
+            "secure" / "nodeManager" / "node"
+            >> LocGroup("nodeGroup")
+            >> Hidden
 
         , Menu("ManageNewNode", <span>Accept new nodes</span>) /
             "secure" / "nodeManager" / "manageNewNode"
