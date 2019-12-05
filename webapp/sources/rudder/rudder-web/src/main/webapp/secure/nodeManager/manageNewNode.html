@@ -2,21 +2,18 @@
 
 <head>
   <title>Rudder - New Nodes Management</title>
+  <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-node.css" media="screen">
 </head>
 
 <div class="portlet">
-<div class="inner-portlet">
-  <div class="page-title">Accept new Nodes</div>
-  <div class="callout-fade callout-info">
-    <div class="marker">
-      <span class="glyphicon glyphicon-info-sign"></span>
-    </div>
+  <div class="portlet-header page-title">Accept new Nodes</div>
+  <div class="page-title-description">
     Accept or refuse Nodes in your infrastructure that have declared themselves to Rudder by sending an inventory report. To add new nodes, install the rudder-agent package on a machine, and follow the instructions provided.
   </div>
 
   <div class="portlet-content">
-    <div id="new_servers_tab" class="tabs">
-      <ul>
+    <div id="new_servers_tab">
+      <ul class="rudder-ui-tabs">
         <li><a href="#review_new_server">Review new nodes</a></li>
         <li><a href="#history">History</a></li>
       </ul>
