@@ -121,7 +121,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "nodeOnAcceptDefaults" => nodeOnAcceptDefaultsConfiguration
     case "generationHookCfpromise" => generationHookCfpromise
     case "generationHookTriggerNodeUpdate" => generationHookTriggerNodeUpdate
+    case "enforceCertificateValidation" => enforceCertificateValidation
   }
+
 
   def changeMessageConfiguration = { xml : NodeSeq =>
 
@@ -339,6 +341,50 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
          SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-default"))
       }
     ) apply (xml ++ Script(check()))
+  }
+
+  def enforceCertificateValidation = { xml : NodeSeq =>
+
+    //  initial values, updated on successfull submit
+    var initEnforceCertificate = configService.rudder_verify_certificates().toBox
+
+    // form values
+    var enforceCertificate = initEnforceCertificate.getOrElse(false)
+
+    def submit = {
+      configService.set_rudder_verify_certificates(enforceCertificate, CurrentUser.actor, genericReasonMessage).toBox.foreach(updateOk => initEnforceCertificate = Full(enforceCertificate))
+
+      // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
+      startNewPolicyGeneration
+      check() & JsRaw("""createSuccessNotification("Validation of policy server certificate correctly updated")""")
+    }
+
+    def noModif = (
+      initEnforceCertificate.map(_ == enforceCertificate).getOrElse(false)
+      )
+
+    def check() = {
+      Run(s"""$$("#enforceCertificateSubmit").prop('disabled', ${noModif});""")
+    }
+
+    ( "#enforceCertificateValidation" #> {
+      initEnforceCertificate match {
+        case Full(value) =>
+          SHtml.ajaxCheckbox(
+            value
+            , (b : Boolean) => { enforceCertificate = b; check() }
+            , ("id","enforceCertificateValidation")
+          )
+        case eb: EmptyBox =>
+          val fail = eb ?~ "there was an error while fetching value of property: 'Certificate value' "
+          <div class="error">{fail.msg}</div>
+      }
+    } &
+
+      "#enforceCertificateSubmit " #> {
+        SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-default"))
+      }
+      ) apply (xml ++ Script(check()))
   }
 
   def relaySynchronizationMethodManagement = { xml : NodeSeq =>
