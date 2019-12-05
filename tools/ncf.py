@@ -32,7 +32,7 @@ tags["technique"]      = [ "version" ]
 [ value.extend(common_tags) for (k,value) in tags.items() ]
 
 optionnal_tags = {}
-optionnal_tags["generic_method"] = [ "deprecated", "documentation", "parameter_constraint", "agent_requirements", "action", "rename" ]
+optionnal_tags["generic_method"] = [ "deprecated", "documentation", "parameter_constraint", "parameter_type", "agent_requirements", "action", "rename" ]
 optionnal_tags["technique"]      = [ "parameter" ]
 multiline_tags                   = [ "description", "documentation", "deprecated" ]
 
@@ -147,6 +147,7 @@ def parse_bundlefile_metadata(content, bundle_type):
   parameters = []
   param_names = set()
   param_constraints = {}
+  param_types = {}
   default_constraint = {
     "allow_whitespace_string" : False
   , "allow_empty_string" : False
@@ -180,6 +181,10 @@ def parse_bundlefile_metadata(content, bundle_type):
           constraint = json.loads("{" + match.group(4)+ "}")
           # extend default_constraint if it was not already defined)
           param_constraints.setdefault(match.group(3), default_constraint.copy()).update(constraint)
+        if tag == "parameter_type":
+          param_type = match.group(4)
+          # extend default_constraint if it was not already defined)
+          param_types.setdefault(match.group(3), "string").update(param_type)
         else:
           res[tag] = match.group(2)
         previous_tag = tag
@@ -233,12 +238,21 @@ def parse_bundlefile_metadata(content, bundle_type):
       print(warning_message)
       warnings.append(warning_message)
 
+  # Check that we don't have a type that is defined on a non existing parameter:
+  wrong_type_names = set(param_types.keys()) - param_names
+  if len(wrong_type_names) > 0:
+      warning_message = "In technique '' defining type on non existing parameters: "+ ", ".join(wrong_type_names)
+      print(warning_message)
+      warnings.append(warning_message)
+
   # If we found any parameters, store them in the res object
   if len(parameters) > 0:
     for param in parameters:
       parameter_name = param["name"]
       constraints = param_constraints.get(param["name"], default_constraint)
+      param_type = param_types.get(param["name"], "string")
       param["constraints"] = constraints
+      param["type"] = param_type
 
   res['parameter'] = parameters
 
