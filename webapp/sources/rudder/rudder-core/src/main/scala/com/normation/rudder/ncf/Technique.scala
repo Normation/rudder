@@ -112,14 +112,77 @@ final case class GenericMethod(
 )
 
 final case class MethodParameter(
-    id          : ParameterId
-  , description : String
-  , constraint  : List[Constraint]
+    id            : ParameterId
+  , description   : String
+  , constraint    : List[Constraint]
+  , parameterType : ParameterType.ParameterType
 )
 final case class TechniqueParameter (
     id   : ParameterId
   , name : ParameterId
 )
+
+object ParameterType {
+  trait ParameterType
+  case object StringParameter extends ParameterType
+  case object Raw extends ParameterType
+  case object HereString extends ParameterType
+
+  trait ParameterTypeService {
+    def create(value : String) : PureResult[ParameterType]
+    def translate(value : String, paramType : ParameterType, agentType: AgentType) : PureResult[String]
+  }
+
+  class BasicParameterTypeService extends  ParameterTypeService {
+    def create(value : String) = {
+      value match {
+        case "string"     => Right(StringParameter)
+        case "raw"        => Right(Raw)
+        case "HereString" => Right(HereString)
+        case _            => Left(Unexpected(s"'${value}' is not a valid method parameter type"))
+      }
+    }
+
+    def translate(value : String, paramType : ParameterType, agentType: AgentType) : PureResult[String] = {
+      (paramType,agentType) match {
+        case (Raw,_) => Right(value)
+        case (StringParameter | HereString, AgentType.CfeCommunity | AgentType.CfeEnterprise) =>
+          Right(s""""${value.replaceAll("""(?<!\\)"""", """\\"""").replaceAll("""(?<!\\)\\(?!(\\|"|'))""","""\\\\""")}"""")
+        case (HereString, AgentType.Dsc) => Right(
+         s"""@`
+            |${value.replaceAll("\"", "`\"")}
+            |`@
+          """.stripMargin)
+        case (StringParameter, AgentType.Dsc) => Right(s""""${value.replaceAll("\"", "`\"")}"""")
+        case (_, _) => Left(Unexpected("Cannot translate"))
+      }
+    }
+  }
+  
+  class PlugableParameterTypeService extends ParameterTypeService {
+
+
+
+    def create(value : String) = {
+      (innerServices foldRight (Left(Unexpected(s"'${value}' is not a valid method parameter type")) : PureResult[ParameterType])) {
+        case(_, res @ Right(_)) => res
+        case(service, _) => service.create(value)
+      }
+    }
+
+    def translate(value : String, paramType : ParameterType, agentType: AgentType) : PureResult[String] = {
+      (innerServices foldRight (Left(Unexpected(s"'${value}' is not a valid method parameter type")) : PureResult[String])) {
+        case(_, res @ Right(_)) => res
+        case(service, _) => service.translate(value,paramType,agentType)
+      }
+    }
+
+    def addNewParameterService(service : ParameterTypeService) = innerServices = service :: innerServices
+    private[this] var innerServices: List[ParameterTypeService] = new BasicParameterTypeService :: Nil
+  }
+}
+
+
 
 object Constraint {
   sealed trait Constraint {

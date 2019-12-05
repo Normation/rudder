@@ -63,6 +63,7 @@ import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
+import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.services.user.PersonIdentService
@@ -75,6 +76,8 @@ import scala.xml.{Node => XmlNode}
 import com.normation.rudder.services.policies.InterpolatedValueCompiler
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowLevelService
+import com.normation.utils.Control
+import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 
 trait NcfError extends RudderError {
@@ -96,9 +99,10 @@ class TechniqueWriter (
   , workflowLevelService: WorkflowLevelService
   , xmlPrettyPrinter : RudderPrettyPrinter
   , basePath         : String
+  , parameterTypeService: ParameterTypeService
 ) {
 
-  private[this] val agentSpecific = new ClassicTechniqueWriter(basePath) :: new DSCTechniqueWriter(basePath, translater) :: Nil
+  private[this] val agentSpecific = new ClassicTechniqueWriter(basePath, parameterTypeService) :: new DSCTechniqueWriter(basePath, translater, parameterTypeService) :: Nil
 
   def deleteTechnique(techniqueName : String, techniqueVersion : String, deleteDirective : Boolean, modId : ModificationId, committer : EventActor) : IOResult[Unit] ={
     val techniqueId = TechniqueId(TechniqueName(techniqueName), TechniqueVersion(techniqueVersion))
@@ -292,7 +296,7 @@ trait AgentSpecificTechniqueWriter {
   def agentMetadata ( technique : Technique, methods : Map[BundleName, GenericMethod] ) : PureResult[NodeSeq]
 }
 
-class ClassicTechniqueWriter(basePath : String) extends AgentSpecificTechniqueWriter {
+class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterTypeService) extends AgentSpecificTechniqueWriter {
 
   // We need to add a reporting bundle for this method to generate a na report for any method with a condition != any/cfengine (which ~= true
   def methodNeedReporting(method : MethodCall) =  method.condition != "any" && method.condition != "cfengine-community"
@@ -322,11 +326,22 @@ class ClassicTechniqueWriter(basePath : String) extends AgentSpecificTechniqueWr
         method_info <- methods.get(method.methodId)
         classParameterValue <- method.parameters.get(method_info.classParameter)
 
+        params <- Control.sequence(method_info.parameters) {
+          p =>
+            import  com.normation.box.EitherToBox
+            for {
+            value <- Box(method.parameters.get(p.id))
+            escaped <- parameterTypeService.translate(value, p.parameterType, AgentType.CfeCommunity).toBox
+          } yield {
+            escaped
+          }
+        }
+
       } yield {
         val condition = canonifyCondition(method)
         val promiser = s"${escapeCFEngineString(method.component)}_$${report_data.directive_id}_${index}"
         // Check constraint and missing value
-        val args = method_info.parameters.map(p => escapeCFEngineString(method.parameters(p.id))).mkString("\"","\", \"","\"")
+        val args = params.mkString(", ")
 
         s"""    "${promiser}" usebundle => ${reportingContext(method, classParameterValue)},
            |     ${promiser.map(_ => ' ')}         if => concat("${condition}");
@@ -470,9 +485,11 @@ class ClassicTechniqueWriter(basePath : String) extends AgentSpecificTechniqueWr
 
 }
 
+import ParameterType.ParameterTypeService
 class DSCTechniqueWriter(
     basePath   : String
   , translater : InterpolatedValueCompiler
+  , parameterTypeService : ParameterTypeService
 ) extends AgentSpecificTechniqueWriter{
 
   val genericParams =
@@ -488,14 +505,16 @@ class DSCTechniqueWriter(
       val componentName = s"""-componentName "${call.component.replaceAll("\"", "`\"")}""""
 
       def naReport(method : GenericMethod, expectedReportingValue : String) =
-        s"""_rudder_common_report_na ${componentName} -componentKey "${expectedReportingValue}" -message "Not applicable" ${genericParams}"""
+        s"""_rudder_common_report_na ${componentName} -componentKey ${expectedReportingValue} -message "Not applicable" ${genericParams}"""
       for {
 
         // First translate parameters to Dsc values
         params    <- ((call.parameters.toList).traverse {
                         case (id, arg) =>
                           translater.translateToAgent(arg, AgentType.Dsc) match {
-                            case Full(dscValue) => Right((id,dscValue))
+                            case Full(dscValue) =>
+                              parameterTypeService.translate(dscValue, methods.get(call.methodId).flatMap(_.parameters.find(_.id == id)).map(_.parameterType).getOrElse(ParameterType.StringParameter), AgentType.Dsc).map(dscValue => (id,dscValue))
+
                             case eb : EmptyBox =>
                               val fail = eb ?~! s"Error when translating parameter '${arg}' of technique of method ${call.methodId} of technique ${technique.name}"
                               Left(IOError(fail.messageChain,None))
@@ -514,7 +533,7 @@ class DSCTechniqueWriter(
           ( for {
             (id, arg) <- params
           } yield {
-          s"""-${id.validDscName} "${arg.replaceAll("\"", "`\"")}""""
+          s"""-${id.validDscName} ${arg}"""
           }).mkString(" ")
 
         effectiveCall =
@@ -528,7 +547,7 @@ class DSCTechniqueWriter(
                       Left(MethodNotFound(s"Method '${call.methodId.value}' not found when writing dsc Technique '${technique.name}' methods calls", None))
                   }
         // Check if class parameter is correctly defined
-        classParameter <- params.get(method.classParameter).map(_.replaceAll("\"", "`\"")) match {
+        classParameter <- params.get(method.classParameter) match {
                             case Some(classParameter) =>
                               Right(classParameter)
                             case None =>

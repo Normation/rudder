@@ -70,7 +70,8 @@ class LDAPDiffMapper(
 ) extends Loggable {
 
   // utility method for safe non null
-  private def nonNull[A, B](a: PureResult[A], b: B)(f: (A, B) => A): PureResult[A] = {
+  private def nonNull[A, B](a: PureResult
+    [A], b: B)(f: (A, B) => A): PureResult[A] = {
     b match {
       case null  => a
       case value => a.map(x => f(x, b))

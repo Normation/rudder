@@ -67,6 +67,7 @@ import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.workflows.ChangeRequest
+import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -190,15 +191,20 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   }
 
   val valueCompiler = new InterpolatedValueCompilerImpl
-  val writer = new TechniqueWriter(TestTechniqueArchiver,TestLibUpdater,valueCompiler, readDirectives, techRepo, workflowLevelService, new RudderPrettyPrinter(Int.MaxValue, 2), basePath)
-  val dscWriter = new DSCTechniqueWriter(basePath, valueCompiler)
-  val classicWriter = new ClassicTechniqueWriter(basePath)
+  val parameterTypeService : PlugableParameterTypeService = new PlugableParameterTypeService
+  val writer = new TechniqueWriter(TestTechniqueArchiver,TestLibUpdater,valueCompiler, readDirectives, techRepo, workflowLevelService, new RudderPrettyPrinter(Int.MaxValue, 2), basePath, parameterTypeService)
+  val dscWriter = new DSCTechniqueWriter(basePath, valueCompiler, new ParameterType.PlugableParameterTypeService)
+  val classicWriter = new ClassicTechniqueWriter(basePath, new ParameterType.PlugableParameterTypeService)
 
+  import ParameterType._
   val defaultConstraint = Constraint.NonEmpty :: Constraint.NoWhiteSpace :: Constraint.MaxLength(16384) :: Nil
   val methods = ( GenericMethod(
       BundleName("package_install_version")
     , "Package install version"
-    , MethodParameter(ParameterId("package_name"),"", defaultConstraint) :: MethodParameter(ParameterId("package_version"),"", defaultConstraint) :: Nil
+    , MethodParameter(ParameterId("package_name"),"",
+      defaultConstraint, StringParameter) ::
+      MethodParameter(ParameterId("package_version"),"", defaultConstraint, StringParameter) ::
+      Nil
     , ParameterId("package_name")
     , "package_install_version"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: AgentType.Dsc :: Nil
@@ -207,7 +213,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   GenericMethod(
       BundleName("service_start")
     , "Service start"
-    , MethodParameter(ParameterId("service_name"),"", defaultConstraint) :: Nil
+    , MethodParameter(ParameterId("service_name"),"", defaultConstraint, StringParameter) :: Nil
     , ParameterId("service_name")
     , "service_start"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: AgentType.Dsc :: Nil
@@ -216,7 +222,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   GenericMethod(
       BundleName("package_install")
     , "Package install"
-    , MethodParameter(ParameterId("package_name"),"", defaultConstraint) :: Nil
+    , MethodParameter(ParameterId("package_name"),"", defaultConstraint, StringParameter) :: Nil
     , ParameterId("package_name")
     , "package_install"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil
@@ -225,7 +231,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   GenericMethod(
       BundleName("command_execution")
     , "Command execution"
-    , MethodParameter(ParameterId("command"),"", defaultConstraint) :: Nil
+    , MethodParameter(ParameterId("command"),"", defaultConstraint, StringParameter) :: Nil
     , ParameterId("command")
     , "command_execution"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: AgentType.Dsc :: Nil
@@ -234,7 +240,8 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   GenericMethod(
       BundleName("_logger")
     , "_logger"
-    , MethodParameter(ParameterId("message"),"", defaultConstraint) :: MethodParameter(ParameterId("old_class_prefix"),"", defaultConstraint) :: Nil
+    , MethodParameter(ParameterId("message"),"", defaultConstraint, StringParameter) ::
+      MethodParameter(ParameterId("old_class_prefix"),"", defaultConstraint, StringParameter) :: Nil
     , ParameterId("message")
     , "_logger"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil

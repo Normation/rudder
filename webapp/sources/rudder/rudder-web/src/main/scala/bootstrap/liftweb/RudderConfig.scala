@@ -94,6 +94,7 @@ import com.normation.rudder.inventory.InventoryProcessingLogger
 import com.normation.rudder.inventory.InventoryProcessor
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.migration._
+import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
 import com.normation.rudder.ncf.TechniqueArchiverImpl
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.reports.AgentRunIntervalService
@@ -696,6 +697,7 @@ object RudderConfig extends Loggable {
       , userPropertyService
       , workflowLevelService
       , stringUuidGenerator
+      , typeParameterService
     )
 
   val tokenGenerator = new TokenGeneratorImpl(32)
@@ -861,7 +863,7 @@ object RudderConfig extends Loggable {
       )
 
   val techniqueArchiver = new TechniqueArchiverImpl(gitRepo,   new File(RUDDER_DIR_GITROOT) , prettyPrinter, "/", gitModificationRepository, personIdentService)
-  val ncfTechniqueWriter = new TechniqueWriter(techniqueArchiver, updateTechniqueLibrary, interpolationCompiler, roDirectiveRepository, techniqueRepository, workflowLevelService, prettyPrinter, RUDDER_DIR_GITROOT)
+  val ncfTechniqueWriter = new TechniqueWriter(techniqueArchiver, updateTechniqueLibrary, interpolationCompiler, roDirectiveRepository, techniqueRepository, workflowLevelService, prettyPrinter, RUDDER_DIR_GITROOT, typeParameterService)
 
   lazy val pipelinedReportUnmarshaller : ReportUnmarshaller = {
     val fusionReportParser = {
@@ -1656,6 +1658,7 @@ object RudderConfig extends Loggable {
     service
   }
   lazy val interpolationCompiler = new InterpolatedValueCompilerImpl()
+  lazy val typeParameterService : PlugableParameterTypeService = new PlugableParameterTypeService()
   private[this] lazy val ruleValService: RuleValService = new RuleValServiceImpl(interpolationCompiler)
 
   private[this] lazy val psMngtService: PolicyServerManagementService = new PolicyServerManagementServiceImpl(
