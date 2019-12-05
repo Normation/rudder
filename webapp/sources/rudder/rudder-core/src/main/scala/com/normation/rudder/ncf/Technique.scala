@@ -45,8 +45,6 @@ import com.normation.inventory.domain.Version
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.ncf.Constraint.Constraint
 import com.normation.rudder.ncf.Constraint.CheckResult
-import com.normation.rudder.ncf.Constraint.NOK
-import com.normation.rudder.ncf.Constraint.OK
 
 sealed trait NcfId {
   def value : String
@@ -141,7 +139,7 @@ object Constraint {
 
   case object NoWhiteSpace extends  Constraint {
     def check(value: String): CheckResult = {
-      if (value.matches("""(?s)^\S.*\S$|^\S$""")) {
+      if (value.matches("""^(?!\s).*(?<!\s)$""")) {
         OK
       } else {
         NOK(one("Must not have leading or trailing whitespaces"))
