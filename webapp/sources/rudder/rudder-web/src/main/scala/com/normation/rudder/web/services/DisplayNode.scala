@@ -434,7 +434,7 @@ object DisplayNode extends Loggable {
               val nodeId      = sm.node.main.id
               val publicKeyId = s"publicKey-${nodeId.value}"
               val cfKeyHash   = nodeInfoService.getNodeInfo(nodeId) match {
-                case Full(Some(nodeInfo)) if(nodeInfo.securityTokenHash.nonEmpty) => <label>Key hash:</label><span>{nodeInfo.securityTokenHash}</span>
+                case Full(Some(nodeInfo)) if(nodeInfo.securityTokenHash.nonEmpty) => <div><label>Key hash:</label> <samp>{nodeInfo.securityTokenHash}</samp></div>
                 case _                                                            => NodeSeq.Empty
               }
 
@@ -442,24 +442,21 @@ object DisplayNode extends Loggable {
                 case _ : PublicKey   => "Public key"
                 case _ : Certificate => "Certificate"
               }
-              <div>
-                <div><label>Security information:</label> {tokenKind} {checked} (<a href="#" onclick={s"$$('#${publicKeyId}').toggle(300); return false;"}>details</a>)</div>{
-                agent.securityToken match {
+              <div class="security-info">
+                {agent.securityToken match {
                   case _ : PublicKey   => NodeSeq.Empty
                   case c : Certificate =>
                     c.cert.either.runNow match {
                       case Left(e)     => <span title={e.fullMsg}>Error while reading certificate information</span>
-                      case Right(cert) =>
-                        <ul style="margin-left:5px">
-                          <li>SHA1 Fingerprint: {SHA1.hash(cert.getEncoded).grouped(2).mkString(":")}</li>
-                          <li>Expiration date: {new DateTime(cert.getNotAfter).toString(ISODateTimeFormat.dateTimeNoMillis())}</li>
-                        </ul>
+                      case Right(cert) => (
+                        <div><label>SHA1 Fingerprint: </label> <samp>{SHA1.hash(cert.getEncoded).grouped(2).mkString(":")}</samp></div>
+                        <div><label>Expiration date: </label> {new DateTime(cert.getNotAfter).toString(ISODateTimeFormat.dateTimeNoMillis())}</div>
+                      )
                     }
-                }
-                }
-                <div style="width=100%; overflow:auto;">
-                  <pre id={publicKeyId} class="display-keys" style="display:none;"><label>{tokenKind}:</label>{agent.securityToken.key}{cfKeyHash}</pre>
-                </div>{Script(OnLoad(JsRaw(s"""createTooltip();""")))}
+                }}
+                {cfKeyHash}
+                <button type="button" class="toggle-security-info btn btn-default" onclick={s"$$('#${publicKeyId}').toggle(300); $$(this).toggleClass('opened'); return false;"}> <b>{tokenKind}</b> {checked}</button>
+                <pre id={publicKeyId} class="display-keys" style="display:none;"><div>{agent.securityToken.key}</div></pre>{Script(OnLoad(JsRaw(s"""createTooltip();""")))}
               </div>
             case None => NodeSeq.Empty
           }}

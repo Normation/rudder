@@ -177,7 +177,8 @@ div#query-search-content {
 }
 .rudder-info   > div,
 .status-info   > div,
-.accounts-info > div{
+.accounts-info > div,
+.security-info > div{
   margin-bottom: 8px;
 }
 .rudder-info   > div label,
@@ -267,4 +268,36 @@ div#query-search-content {
 .callout-fade.callout-info p .glyphicon{
   margin-right: 5px;
   color: #1b809e;
+}
+.btn.toggle-security-info{
+  min-width: 155px;
+  margin-top: 8px;
+  transition-duration .2;
+}
+.btn.toggle-security-info:before{
+  content: "Show ";
+}
+.btn.toggle-security-info.opened:before{
+  content: "Hide ";
+}
+.btn.toggle-security-info.opened{
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  margin-bottom: -1px;
+}
+.security-info{
+  width: 100%;
+  overflow: auto;
+}
+pre.display-keys{
+  padding: 12px;
+  border-top-left-radius: 0;
+}
+pre.display-keys > label:first-child{
+  margin-top:0;
+}
+pre.display-keys > label{
+  display:block;
+  margin-top:12px;
+  font-weight:bold;
 }

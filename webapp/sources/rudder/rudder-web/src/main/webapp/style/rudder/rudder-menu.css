@@ -1274,17 +1274,6 @@ ul.graph-legend > li.legend:hover{
   font-weight: normal;
   font-size: 13.2px;
 }
-pre.display-keys{
-  padding: 6px 8px;
-}
-pre.display-keys > label:first-child{
-  margin-top:0;
-}
-pre.display-keys > label{
-  display:block;
-  margin-top:12px;
-  font-weight:bold;
-}
 /* --- DIRECTIVE PAGE --- */
 .editTech{
   margin-top:4px;
