@@ -80,6 +80,9 @@ object NodeLogger extends Logger {
     }
   }
 }
+object NodeLoggerPure extends NamedZioLogger {
+  def loggerName = "nodes"
+}
 
 /*
  * A logger to log information about the JS script eval for directives
