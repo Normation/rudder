@@ -100,6 +100,7 @@ import com.normation.errors._
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.PublicKey
+import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import org.bouncycastle.cert.X509CertificateHolder
 import zio._
 import zio.syntax._
@@ -113,6 +114,7 @@ final case class RestExtractorService (
   , userPropertyService  : UserPropertyService
   , workflowLevelService : WorkflowLevelService
   , uuidGenerator        : StringUuidGenerator
+  , parameterTypeService : ParameterTypeService
 ) extends Loggable {
 
   import com.normation.rudder.repository.json.DataExtractor.OptionnalJson._
@@ -1182,8 +1184,9 @@ final case class RestExtractorService (
       id          <- CompleteJson.extractJsonString(json, "name", a => Full(ParameterId(a)))
       description <- CompleteJson.extractJsonString(json, "description")
       constraint  <- extractMethodConstraint(json \ "constraints")
+      paramType   <- CompleteJson.extractJsonString(json, "type",a => parameterTypeService.create(a).toBox  )
     } yield {
-      MethodParameter(id, description, constraint)
+      MethodParameter(id, description, constraint, paramType)
     }
   }
 
