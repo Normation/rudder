@@ -180,7 +180,9 @@ td.listclose:after {
   border-top: 1px solid transparent;
 }
 .dataTable > tbody > tr.details{
-  border-top: none;
+  border-top: 1px solid #f1f1f1;
+  background-color: inherit !important;
+  position: relative;
 }
 .dataTable > tbody > tr.color2{
   background-color: #f2f8ff;

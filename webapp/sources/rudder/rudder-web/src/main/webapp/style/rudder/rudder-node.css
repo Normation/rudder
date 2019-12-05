@@ -49,7 +49,14 @@ div#query-search-content {
   color: #222D42 !important;
   font-size: 24px !important;
 }
-#NodeDetailsTabMenu ~ .ui-tabs-panel{
+.page-title-description{
+  padding: 0 15px;
+  margin-bottom: 8px;
+  font-size: 1.2em;
+  color: #222D42aa;
+}
+
+.rudder-ui-tabs ~ .ui-tabs-panel{
   padding: 0 15px 15px 15px;
   float: left;
   width: 100%;
@@ -59,14 +66,14 @@ div#query-search-content {
   padding: 0 !important;
 }
 
-#NodeDetailsTabMenu {
+.rudder-ui-tabs {
   border-bottom: 2px solid #e5e5E5;
   margin: 0 0 15px 0;
   position: relative;
   background-color: #fff;
   z-index: 10;
 }
-#NodeDetailsTabMenu > .ui-tabs-tab{
+.rudder-ui-tabs > .ui-tabs-tab{
   display: inline-block;
   padding: 6px 0px;
   margin: 0 0 0 15px;
@@ -257,11 +264,7 @@ div#query-search-content {
 .id-card .card-img.freebsd{
   background-image: url(../../images/os/freebsd-logo.svg);
 }
-
-
-
-
-
-
-
-
+.callout-fade.callout-info p .glyphicon{
+  margin-right: 5px;
+  color: #1b809e;
+}
