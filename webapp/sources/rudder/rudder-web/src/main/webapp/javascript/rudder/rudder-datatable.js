@@ -847,7 +847,7 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         $(nTd).addClass("listopen");
         var editLink = $("<a />");
-        editLink.attr("href",contextPath +'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'"}');
+        editLink.attr("href",contextPath +'/secure/nodeManager/node/'+oData.id);
         var editIcon = $("<i>");
         editIcon.addClass("fa fa-search node-details");
         editLink.click(function(e) {e.stopPropagation();});
@@ -1079,7 +1079,7 @@ function createNodeTable(gridId, data, contextPath, refresh) {
         });
         elem.attr("href","javascript://");
     } else {
-        elem.attr("href",contextPath+'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'","displayCompliance":'+displayCompliance+'}');
+        elem.attr("href",contextPath+'/secure/nodeManager/node/'+oData.id+'?displayCompliance='+displayCompliance);
     }
     return elem;
   }

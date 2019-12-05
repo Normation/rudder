@@ -44,7 +44,6 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.web.components.SearchNodeComponent
-import com.normation.rudder.web.components.ShowNodeDetailsFromNode
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -78,7 +77,7 @@ import com.normation.box._
 
 class SearchNodes extends StatefulSnippet with Loggable {
 
-  private[this] val queryParser = RudderConfig.cmdbQueryParser
+  private[this] val queryParser         = RudderConfig.cmdbQueryParser
   private[this] val getFullGroupLibrary = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
   private[this] val linkUtil            = RudderConfig.linkUtil
 
@@ -145,8 +144,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
 
   private[this] def setSearchComponent(query:Option[Query]) : SearchNodeComponent = {
     def showNodeDetails(nodeId:String, displayCompliance : Boolean) : JsCmd = {
-      updateLocationHash(nodeId, displayCompliance) &
-      JsRaw("""scrollToElement("serverDetails", ".rudder_col");""".format(nodeId))
+      linkUtil.redirectToNodeLink(NodeId(nodeId))
     }
 
     val sc = new SearchNodeComponent(
@@ -179,22 +177,6 @@ class SearchNodes extends StatefulSnippet with Loggable {
    * We want to look for #{ "nodeId":"XXXXXXXXXXXX" }
    */
   private[this] def parseHashtag(): JsCmd = {
-    def displayDetails(jsonData: String) = {
-      import net.liftweb.json._
-      val json = parse(jsonData)
-      json \ "nodeId" match {
-        case JString(nodeId) =>
-          val displayCompliance = json \ "displayCompliance" match {
-            case JBool(displayCompliance) => displayCompliance
-            case _ => false
-          }
-          val nodeDetails = new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary).display(false, displayCompliance)
-          SetHtml("serverDetails", nodeDetails)
-        case _ =>
-          SetHtml("serverDetails", NodeSeq.Empty)
-      }
-    }
-
     def executeQuery(query:String) : JsCmd = {
       val q = queryParser(query)
       val sc = setSearchComponent(q)
@@ -210,10 +192,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
       }
     }
 
-    JsRaw(s"""parseSearchHash(
-        function(x) { ${SHtml.ajaxCall(JsVar("x"), displayDetails _ )._2.toJsCmd} }
-      , function(x) { ${SHtml.ajaxCall(JsVar("x") , executeQuery   _ )._2.toJsCmd} }
-    )""")
+    JsRaw(s"""parseSearchHash(function(x) { ${SHtml.ajaxCall(JsVar("x") , executeQuery   _ )._2.toJsCmd} })""")
   }
 
   /**
@@ -243,13 +222,5 @@ class SearchNodes extends StatefulSnippet with Loggable {
         JsRaw(s"updateHashString('query', ${q.toJSONString})")
       case None => Noop
     }
-
-  }
-
-  private def updateLocationHash(nodeId:String, displayCompliance : Boolean) = {
-    //JsRaw("""this.window.location.hash = "#" + JSON.stringify({'nodeId':'%s'})""".format(nodeId))
-    JsRaw(s"updateHashString('nodeId', '${nodeId}')") &
-    JsRaw(s"updateHashString('displayCompliance', ${displayCompliance})") &
-    SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary)).display(false,displayCompliance))
   }
 }

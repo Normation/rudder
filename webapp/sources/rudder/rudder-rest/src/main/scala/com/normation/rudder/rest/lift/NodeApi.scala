@@ -98,7 +98,6 @@ import com.normation.zio._
 import com.normation.errors._
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
-import zio._
 import zio.syntax._
 
 /*
