@@ -86,8 +86,8 @@ trait ReportsRepository {
 
   def findReportsByNodeOnInterval(
     nodeId: NodeId
-    , start : DateTime
-    , end   : DateTime
+    , start : Option[DateTime]
+    , end   : Option[DateTime]
   ) : Seq[Reports]
 
   def findReportsByNodeByRun(

@@ -80,6 +80,7 @@ class LogDisplayer(
       case None => SHtml.ajaxInvoke(() => refreshData(nodeId, reportRepository.findReportsByNode(nodeId), tableId))
     }
   }
+
   def asyncDisplay(nodeId : NodeId, runDate : Option[DateTime], tableId :String)  = {
     val id = JsNodeId(nodeId)
     val refresh = ajaxRefresh(nodeId,runDate, tableId)
@@ -92,18 +93,21 @@ class LogDisplayer(
       (for {
         parsed   <- tryo(parse(jsonInterval)) ?~! s"Error when trying to parse '${jsonInterval}' as a JSON datastructure with fields 'start' and 'end'"
         startStr <- parsed \ "start" match {
-                      case JString(startStr) => tryo(DateTime.parse(startStr, format)) ?~! s"Bad format for start date, was execpting '${format.toString}' and got '${startStr}'"
-                      case x => Failure("Error: missing start date and time")
+                      case JString("")       => Full(None)
+                      case JString(startStr) => tryo(Some(DateTime.parse(startStr, format))) ?~! s"Error when trying to parse start date '${startStr}"
+                      case _                 => Failure("Invalid value for start date")
                     }
         endStr   <- parsed \ "end" match {
-                      case JString(endStr) => tryo(DateTime.parse(endStr, format)) ?~! s"Bad format for end date, was execpting '${format.toString}' and got '${endStr}'"
-                      case x => Failure("Error: missing end date and time")
+                      case JString("")     => Full(None)
+                      case JString(endStr) => tryo(Some(DateTime.parse(endStr, format))) ?~! s"Error when trying to parse end date '${endStr}"
+                      case _               => Failure("Invalid value for end date")
                     }
       } yield {
-        if(startStr.isBefore(endStr)) {
-          reportRepository.findReportsByNodeOnInterval(nodeId, startStr, endStr)
-        } else {
-          reportRepository.findReportsByNodeOnInterval(nodeId, endStr, startStr)
+        (startStr, endStr) match {
+          case (Some(startValue),Some(endValue)) if startValue.isAfter(endValue) =>
+            reportRepository.findReportsByNodeOnInterval(nodeId, endStr, startStr)
+          case _ =>
+            reportRepository.findReportsByNodeOnInterval(nodeId, startStr, endStr)
         }
       }) match {
         case Full(reports) =>
@@ -122,20 +126,20 @@ class LogDisplayer(
     } else {
       Noop
     } ) &
-    // Create empty table
-    JsRaw(s"""
-      ${if (runDate.isEmpty) {
+      // Create empty table
+      JsRaw(s"""
+    ${if (runDate.isEmpty) {
         s"""$$("#details_${id}").on( "tabsactivate", function(event, ui) {
-          if(ui.newPanel.attr('id')== 'node_logs') {
-            ${refresh.toJsCmd}
-          }
-        });
-        initDatePickers("#filterLogs", ${AnonFunc("param",SHtml.ajaxCall(JsVar("param"), getEventsInterval)._2).toJsCmd});
-        """} else ""
+        if(ui.newPanel.attr('id')== 'node_logs') {
+          ${refresh.toJsCmd}
+        }
+      });
+      initDatePickers("#filterLogs", ${AnonFunc("param",SHtml.ajaxCall(JsVar("param"), getEventsInterval)._2).toJsCmd});
+      """} else ""
       }
-      createTechnicalLogsTable("${tableId}",[], "${S.contextPath}",function() {${refresh.toJsCmd}}, ${runDate.isEmpty});
-      """
-    )
+    createTechnicalLogsTable("${tableId}",[], "${S.contextPath}",function() {${refresh.toJsCmd}}, ${runDate.isEmpty});
+    """
+      )
   }
 
   /**
