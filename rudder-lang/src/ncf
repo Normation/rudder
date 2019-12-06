@@ -10,11 +10,14 @@ Usage:
 
 """
 
-
-NCF='/usr/share/ncf'
+import configparser
+cfg = configparser.ConfigParser()
+cfg.read('cfg.ini')
+ncf_dir = cfg['default_paths']['ncf']
+cfengine_path = cfg['default_paths']['cfengine']
 
 import sys
-sys.path.append(NCF+'/tools')
+sys.path.append(ncf_dir+'/tools')
 import ncf
 import codecs
 import json
@@ -25,8 +28,8 @@ import re
 import jsondiff
 from subprocess import check_output
 
-ncf.CFENGINE_PATH="/opt/rudder/bin/cf-promises"
-ncf_path=NCF+'/tree/30_generic_methods'
+ncf.CFENGINE_PATH=cfengine_path
+ncf_path=ncf_dir+'/tree/30_generic_methods'
 
 def ncf_to_json(cf_file):
   methods_data = ncf.get_all_generic_methods_metadata(ncf_path)
