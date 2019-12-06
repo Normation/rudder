@@ -37,9 +37,10 @@
 
 package com.normation.rudder.ncf
 
+import java.util.regex.Pattern
+
 import com.normation.errors.PureResult
 import com.normation.errors.Unexpected
-
 import cats.data.NonEmptyList
 import com.normation.inventory.domain.Version
 import com.normation.inventory.domain.AgentType
@@ -202,7 +203,7 @@ object Constraint {
 
   case object NoWhiteSpace extends  Constraint {
     def check(value: String): CheckResult = {
-      if (value.matches("""^(?!\s).*(?<!\s)$""")) {
+      if (Pattern.compile("""^(?!\s).*(?<!\s)$""", Pattern.DOTALL).asPredicate().test(value)) {
         OK
       } else {
         NOK(one("Must not have leading or trailing whitespaces"))

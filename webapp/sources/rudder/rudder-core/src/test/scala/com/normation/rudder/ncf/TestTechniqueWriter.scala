@@ -408,12 +408,14 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
       val value3 = "S"
       val value4 = "ééé ```"
       val value5 = "sdfsqdfsqfsdf sfhdskjhdfs jkhsdkfjhksqdhf"
+      val value6 = ""
 
       Constraint.NoWhiteSpace.check(value1) must equalTo(Constraint.OK)
       Constraint.NoWhiteSpace.check(value2) must equalTo(Constraint.OK)
       Constraint.NoWhiteSpace.check(value3) must equalTo(Constraint.OK)
       Constraint.NoWhiteSpace.check(value4) must equalTo(Constraint.OK)
       Constraint.NoWhiteSpace.check(value5) must equalTo(Constraint.OK)
+      Constraint.NoWhiteSpace.check(value6) must equalTo(Constraint.OK)
     }
 
     "Correctly refuse text starting or ending with withspace" in {
@@ -422,14 +424,12 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
         """ Some
           |text""".stripMargin
       val value3 = " "
-      val value4 = ""
-      val value5 = "sdfsqdfsqfsdf sfhdskjhdfs jkhsdkfjhksqdhf "
+      val value4 = "sdfsqdfsqfsdf sfhdskjhdfs jkhsdkfjhksqdhf "
 
       Constraint.NoWhiteSpace.check(value1) must haveClass[Constraint.NOK]
       Constraint.NoWhiteSpace.check(value2) must haveClass[Constraint.NOK]
       Constraint.NoWhiteSpace.check(value3) must haveClass[Constraint.NOK]
       Constraint.NoWhiteSpace.check(value4) must haveClass[Constraint.NOK]
-      Constraint.NoWhiteSpace.check(value5) must haveClass[Constraint.NOK]
     }
   }
 
