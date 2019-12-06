@@ -16,13 +16,15 @@
 #
 #####################################################################################
 
-# @name Condition from command 
+# @name Condition from command
 # @description Execute a command and create result conditions depending on its exit code
 # @documentation This method executes a command, and defines a `${condition_prefix}_true` or a `${condition_prefix}_false` condition depending on the result of the command:
 #
 # * If the exit code is in the `true_codes` list, this will produce a kept outcome class and a `${condition_prefix}_true` condition
 # * If the exit code is in the `false_codes` list, this will produce a repaired outcome class and a `${condition_prefix}_false` condition
 # * If the exit code is not in the list, or if the command is not present, this will produce an error outcome class and no classes with `${condition_prefix}`
+#
+# WARNING: This method will still execute the given command in `Audit mode`. This is because we assume that only commands which are not changing the system state should be used to define a condition.
 #
 # The created condition is global to the agent.
 #
@@ -48,7 +50,7 @@
 # @parameter command            The command to run
 # @parameter true_codes         List of codes that produce a true status separated with commas (ex: 1,2,5)
 # @parameter false_codes        List of codes that produce a false status separated with commas (ex: 3,4,6)
-# 
+#
 # @class_prefix condition_from_command
 # @class_parameter condition_prefix
 
@@ -64,12 +66,23 @@ bundle agent condition_from_command(condition_prefix, command, true_codes, false
       "true_list"     slist => splitstring("${true_codes}", "\s*,\s*", "256");
       "false_list"    slist => splitstring("${false_codes}", "\s*,\s*", "256");
 
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
   methods:
+    pass2.!pass3::
+      # In audit mode, we need to force enforce mode to execute the command
+      "remove_dry_run_mode" usebundle => push_dry_run_mode("false");
+    pass3::
+      "restore dry-run"     usebundle => pop_dry_run_mode();
       "report"
         usebundle  => _log_v3("Execute the test command ${command} to create ${condition_prefix}_{true,false}", "${condition_prefix}", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass => "${class_prefix}_reached";
 
   commands:
+    pass2.!pass3::
       "${command}"
         contain      => in_shell,
         classes      => classes_generic_return_boolean_list_two("${old_class_prefix}", "${class_prefix}", "${condition_prefix}", @{true_list}, @{false_list});
