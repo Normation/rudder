@@ -119,12 +119,29 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
 
   override def findReportsByNodeOnInterval(
       nodeId: NodeId
-    , start : DateTime
-    , end   : DateTime
+    , start : Option[DateTime]
+    , end   : Option[DateTime]
   ) : Vector[Reports] = {
-    val q = Query[(NodeId, DateTime, DateTime), Reports](baseQuery +
-        " and nodeId = ? and executionTimeStamp >= ?  and executionTimeStamp < ? ORDER BY executionTimeStamp asc"
-      , None).toQuery0((nodeId, start, end))
+
+    val q = (start,end) match {
+      case (Some(start), Some(end)) =>
+        Query[(NodeId, DateTime, DateTime), Reports](baseQuery +
+          " and nodeId = ? and executionTimeStamp >= ?  and executionTimeStamp < ? ORDER BY executionTimeStamp asc"
+          , None).toQuery0((nodeId, start, end))
+      case (None,Some(end)) =>
+        Query[(NodeId, DateTime), Reports](baseQuery +
+          " and nodeId = ? and executionTimeStamp <= ? ORDER BY executionTimeStamp asc"
+          , None).toQuery0((nodeId, end))
+      case (Some(start), None) =>
+        Query[(NodeId, DateTime), Reports](baseQuery +
+        " and nodeId = ? and executionTimeStamp >= ? ORDER BY executionTimeStamp asc"
+        , None).toQuery0((nodeId, start))
+      case (None, None) =>
+        Query[NodeId, Reports](baseQuery +
+          " and nodeId = ? ORDER BY executionTimeStamp asc"
+          , None).toQuery0(nodeId)
+    }
+
     transactRun(xa => q.to[Vector].transact(xa))
   }
 
