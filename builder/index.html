@@ -156,7 +156,7 @@
           <div class="col-xl-4 col-5 col-techniques" ng-click="toggleDisplay(true)">
             <div class="row flex-column">
               <div class="col-auto">
-                <div class="row" ng-if="ui.showTechniques">
+                <div class="row">
                   <div class="col">
                     <h3 class="title">Techniques</h3>
                   </div>
@@ -210,14 +210,14 @@
               </div>
             </div>
           </div>
-          <div class="col no-technique" ng-if="!selectedTechnique">
+          <div class="col no-technique" ng-show="!selectedTechnique">
             <h1>Technique editor</h1>
             <p>Create a new technique or edit one  from the list on the left.</p>
             <p>Define target configuration using the generic methods from the list on the right as building blocks.</p>
             <button class="btn btn-success btn-lg" ng-click="newTechnique()" role="button">Create Technique  <i class="fas fa-plus-circle"></i></button>
           </div>
 
-          <div class="col col-technique" ng-if="selectedTechnique">
+          <div class="col col-technique" ng-show="selectedTechnique">
             <div class="row flex-column no-gutters">
               <div class="col-auto main-header">
                 <div class="row no-margin">
@@ -610,7 +610,7 @@
               </div>
             </div>
           </div>
-        <div class="col-xl-4 col-5 col-methods" ng-click="toggleDisplay(false)" ng-if="selectedTechnique">
+        <div class="col-xl-4 col-5 col-methods" ng-click="toggleDisplay(false)" ng-show="selectedTechnique">
           <div class="row flex-column">
             <div class="col-auto">
               <div class="row">
@@ -618,7 +618,7 @@
                   <h3 class="title">Generic Methods</h3>
                 </div>
                 <div class="col-auto">
-                  <button class="btn btn-sm btn-outline-secondary">Close</button>
+                  <button class="btn btn-sm btn-outline-secondary" ng-click="toggleDisplay(true); ; $event.stopPropagation();">Close</button>
                 </div>
                 <div class="w-100"></div>
                 <div class="col input-group input-group-sm">
