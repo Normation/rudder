@@ -19,7 +19,7 @@ limitations under the License.
   <parent>
     <groupId>com.normation</groupId>
     <artifactId>parent-pom</artifactId>
-    <version>5.0.11-BPCE</version>
+    <version>5.0.11-BPCE-2</version>
   </parent>
 
   <artifactId>scala-ldap</artifactId>
