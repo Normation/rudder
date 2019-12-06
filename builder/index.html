@@ -272,7 +272,7 @@
                         This Technique has been deleted while you were away. Saving it will recreate it.
                       </div>
                     </div>
-                    <div class="tab tab-general" ng-if="ui.activeTab == 'general'">
+                    <div class="tab tab-general" ng-show="ui.activeTab == 'general'">
                           <div class="col-xs-12">
                               <div class="alert alert-warning" ng-if="conflictFlag">
                                 Your changes have been kept. If you save this Technique, your version will replace the current one.
@@ -313,7 +313,7 @@
                               </span>
                           </div>
                     </div>
-                    <div class="tab tab-parameters" ng-if="ui.activeTab == 'parameters'">
+                    <div class="tab tab-parameters" ng-show="ui.activeTab == 'parameters'">
                       <ul class="files-list parameters">
                         <li class="empty" ng-show="selectedTechnique.parameter.length === 0">
                           <span>There is no parameter defined.</span>
@@ -345,7 +345,7 @@
                         </div>
                       </div>
                     </div>
-                    <div class="tab tab-resources" ng-if="ui.activeTab == 'resources'">
+                    <div class="tab tab-resources" ng-show="ui.activeTab == 'resources'">
                       <div class="col-xs-12">
                         <ul class="files-list">
                           <li class="empty" ng-show="selectedTechnique.resources.length === 0">
@@ -459,7 +459,7 @@
                         <div>
                           <div class="form-group">
                             <label for="component">Report component:</label>
-                            <input type="text" name="component" class="form-control" ng-model="method_call.component"  placeholder="{{getMethodName(selectedMethod)}}"/>
+                            <input type="text" name="component" class="form-control" ng-model="method_call.component"  placeholder="{{getMethodName(method_call)}}"/>
                           </div>
                           <div class="row">
                             <ul class="tabs-list">
