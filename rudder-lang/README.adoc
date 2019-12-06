@@ -10,7 +10,7 @@ This language is not:
 
 It has no:
 
-- recussion
+- recursion
 - generator / generic iterator
 - way of looping except on finite list
 
@@ -57,3 +57,11 @@ The compiler is very pedantic to avoid defining invalid states as much as possib
 - an `if` is a single condition
 
 
+== Tests
+
+=== Required modules
+- perl (script: *src/generate-lib*)
+    `cpan Config::IniFiles`
+    
+=== Configuration
+- *cfg.ini* to define the cfengine and ncf binaries paths
