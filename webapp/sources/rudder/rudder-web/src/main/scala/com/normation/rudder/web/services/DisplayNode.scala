@@ -68,7 +68,7 @@ import org.joda.time.format.ISODateTimeFormat
 /**
  * A service used to display details about a server
  * inventory with tabs like:
- * [general][software][network][file system]
+ * [summary][compliance reports][inventory][properties][technical logs][settings]
  *
  * Use it by calling:
  * # head if not yet called in that page
@@ -260,7 +260,7 @@ object DisplayNode extends Loggable {
     val tabId = htmlId(jsId,"node_details_")
 
     <div id={tabId} class="sInventory ui-tabs-vertical">
-      <ul>{mainTabDeclaration}</ul>
+      <ul class="list-tabs-invetory">{mainTabDeclaration}</ul>
       {tabContent.flatten}
     </div> ++ Script(OnLoad(JsRaw(s"$$('#${tabId}').tabs()")))
   }
@@ -278,12 +278,16 @@ object DisplayNode extends Loggable {
     val jsId = JsNodeId(sm.node.main.id,salt)
     val detailsId = htmlId(jsId,"details_")
     <div id={detailsId} class="tabs">
-      <ul>
+      <ul class="rudder-ui-tabs">
         <li><a href={htmlId_#(jsId,"node_summary_")}>Summary</a></li>
-       </ul>
-       <div id={htmlId(jsId,"node_summary_")}>
-         {showNodeDetails(sm, nodeAndGlobalMode, None, inventoryStatus, salt)}
-       </div>
+        <li><a href={htmlId_#(jsId,"node_inventory_")}>Inventory</a></li>
+      </ul>
+      <div id={htmlId(jsId,"node_summary_")}>
+        {showNodeDetails(sm, nodeAndGlobalMode, None, inventoryStatus, salt)}
+      </div>
+      <div id={htmlId(jsId,"node_inventory_")}>
+        {showInventoryVerticalMenu(sm)}
+      </div>
     </div>
   }
 

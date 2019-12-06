@@ -1104,13 +1104,13 @@ ul.graph-legend > li.legend:hover{
   min-width: 95px;
 }
 /* --- NODE PAGE --- */
-#nodeInventory .ui-tabs-nav{
+.ui-tabs-nav.list-tabs-invetory{
   margin-bottom: 15px;
   float: left;
   width: 12em;
   border-bottom: none;
 }
-#nodeInventory .ui-tabs-nav > .ui-tabs-tab {
+.ui-tabs-nav.list-tabs-invetory > .ui-tabs-tab {
   display: block;
   border: 1px solid #e8e8e8;
   border-top: none;
@@ -1118,11 +1118,11 @@ ul.graph-legend > li.legend:hover{
   transition-duration: .2s;
   padding: 0;
 }
-#nodeInventory .ui-tabs-nav > .ui-tabs-tab {
+.ui-tabs-nav.list-tabs-invetory > .ui-tabs-tab {
   border: 1px solid #e8e8e8;
   position: relative;
 }
-#nodeInventory .ui-tabs-nav > .ui-tabs-tab.ui-tabs-active:after{
+.ui-tabs-nav.list-tabs-invetory > .ui-tabs-tab.ui-tabs-active:after{
   content: "";
   position: absolute;
   top: calc(50% - 4px);
@@ -1135,20 +1135,20 @@ ul.graph-legend > li.legend:hover{
   transform: rotate(45deg);
   background-color: #fff;
 }
-#nodeInventory .ui-tabs-nav > .ui-tabs-tab.ui-tabs-active:before{
+.ui-tabs-nav.list-tabs-invetory > .ui-tabs-tab.ui-tabs-active:before{
     content:initial;
 }
-#nodeInventory .ui-tabs-nav > .ui-tabs-tab > a{
+.ui-tabs-nav.list-tabs-invetory > .ui-tabs-tab > a{
   transition-property : background-color;
   background-color: #f5f6f7;
   padding: 6px 10px;
   transition-duration: .2s;
   display: block;
 }
-#nodeInventory .ui-tabs-nav > .ui-tabs-tab > a:hover{
+.ui-tabs-nav.list-tabs-invetory > .ui-tabs-tab > a:hover{
   background-color:#fff;
 }
-#nodeInventory .ui-tabs-nav > .ui-tabs-tab.ui-tabs-active > a{
+.ui-tabs-nav.list-tabs-invetory > .ui-tabs-tab.ui-tabs-active > a{
   background-color: #fff;
 }
 #nodeInventory > .sInventory > div{

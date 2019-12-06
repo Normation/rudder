@@ -87,7 +87,9 @@ div#query-search-content {
  font-size: 14px;
  color: #222D42;
 }
-
+.details #nodeDetails {
+  padding: 0;
+}
 #nodeGroups {
   flex: 30;
   border-left: 2px solid #e5e5e5;
@@ -174,6 +176,13 @@ div#query-search-content {
 .status-info   > h3,
 .accounts-info > h3{
   color: #222d428a;
+  padding: 5px 0 !important;
+  display: block;
+  margin-bottom: 10px;
+  line-height: inherit;
+  border: 0;
+  border-bottom: 2px solid #e5e5e5;
+  font-size: 18px;
 }
 .rudder-info   > div,
 .status-info   > div,
@@ -197,6 +206,9 @@ div#query-search-content {
   line-height: 0px;
 }
 
+.details .ui-tabs-nav.list-tabs-invetory {
+  margin-right: 15px;
+}
 
 /* OS ICONS */
 .id-card .card-img.linux{
