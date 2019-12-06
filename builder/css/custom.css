@@ -205,6 +205,7 @@ body > .container-fluid > .row > div {
 }
 .show-methods .col-techniques > .row{
   transform: translateX(-50px);
+  pointer-events: none;
 }
 .dndPlaceholder{
   margin: 10px 0;
