@@ -994,7 +994,9 @@ $scope.onImportFileChange = function (fileEl) {
   }
 
   $scope.newTechnique = function() {
-    if($scope.selectedTechnique === undefined || $scope.selectedTechnique.bundle_name){
+    if($scope.selectedTechnique !== undefined && $scope.selectedTechnique.bundle_name===undefined){
+      $scope.resetTechnique();
+    }else if($scope.selectedTechnique === undefined || $scope.selectedTechnique.bundle_name){
       $scope.checkSelect(newTech(), $scope.selectTechnique);
     }else{
       $scope.selectedTechnique = newTech
