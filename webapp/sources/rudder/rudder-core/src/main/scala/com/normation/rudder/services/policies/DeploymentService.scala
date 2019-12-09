@@ -431,6 +431,7 @@ trait PromiseGenerationService {
       _                     =  PolicyLogger.debug(s"Node configuration written in ${timeWriteNodeConfig} ms, start to update expected reports.")
 
       reportTime            =  System.currentTimeMillis
+// here we should not convert to values.toSeq, as it double the footprint for this part
       expectedReports       =  computeExpectedReports(updatedNodeConfigs.values.toSeq, updatedNodeConfigIds, generationTime, allNodeModes)
       timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
       _                     =  PolicyLogger.debug(s"Reports computed in ${timeSetExpectedReport} ms")
