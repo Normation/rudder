@@ -55,6 +55,8 @@ trait NodeConfigurationLogger {
 
   def log(nodeConfiguration: Seq[NodeConfiguration]): Box[Set[NodeId]]
 
+  def isDebugEnabled: Boolean
+
 }
 
 /**
@@ -69,6 +71,8 @@ class NodeConfigurationLoggerImpl(
 ) extends NodeConfigurationLogger {
 
   val logger = LoggerFactory.getLogger("rudder.debug.nodeconfiguration")
+
+  def isDebugEnabled: Boolean = logger.isDebugEnabled
 
   {
     val p = new File(path)

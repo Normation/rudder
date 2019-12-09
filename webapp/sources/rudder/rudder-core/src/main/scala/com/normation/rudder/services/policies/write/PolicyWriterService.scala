@@ -148,7 +148,7 @@ class PolicyWriterServiceImpl(
         val message = s"could not write ${fileName} file, cause is: ${e.getMessage}"
         Failure(message)
       case Success(_) =>
-        Full(agentNodeConfig)
+        Full(agentNodeConfig.config.nodeInfo.id)
     }
   }
 
@@ -171,7 +171,7 @@ class PolicyWriterServiceImpl(
         val message = s"could not write ${fileName} file, cause is: ${e.getMessage}"
         Failure(message)
       case Success(_) =>
-        Full(agentNodeConfig)
+        Full(agentNodeConfig.config.nodeInfo.id)
     }
   }
 
@@ -225,18 +225,19 @@ class PolicyWriterServiceImpl(
   ) : Box[Seq[NodeId]] = {
 
     val interestingNodeConfigs = updatedNodeConfigs.values.toSeq
-    val techniqueIds           = interestingNodeConfigs.flatMap( _.getTechniqueIds ).toSet
+    val techniqueIds = interestingNodeConfigs.flatMap(_.getTechniqueIds).toSet
 
-    // todo: do that only when logging it! - or used a view to avoid duplication of memoru
-    //debug - but don't fails for debugging !
-    logNodeConfig.log(interestingNodeConfigs) match {
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error when trying to write node configurations for debugging"
-        logger.error(e)
-        e.rootExceptionCause.foreach { ex =>
-          logger.error("Root exception cause was:", ex)
+    if (logNodeConfig.isDebugEnabled) {
+      //debug - but don't fails for debugging !
+      logNodeConfig.log(interestingNodeConfigs) match {
+        case eb: EmptyBox =>
+          val e = eb ?~! "Error when trying to write node configurations for debugging"
+          logger.error(e)
+          e.rootExceptionCause.foreach { ex =>
+            logger.error("Root exception cause was:", ex)
+          }
+          case _ => //nothing to do
         }
-      case _ => //nothing to do
     }
 
     /*
@@ -280,7 +281,6 @@ class PolicyWriterServiceImpl(
       //////////
       // nothing agent specific before that
       //////////
-// we could start batching here
       preparedPromises <- ParallelSequence.traverse(configAndPaths) { case agentNodeConfig =>
                             val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
                             prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, Policy.TAG_OF_RUDDER_ID, globalPolicyMode, generationTime) ?~!
@@ -308,7 +308,7 @@ class PolicyWriterServiceImpl(
       // nothing agent specific after that
       //////////
 
-      propertiesWritten <- ParallelSequence.traverse(configAndPaths) { case agentNodeConfig =>
+      _                   <- ParallelSequence.traverse(configAndPaths) { case agentNodeConfig =>
                              writeNodePropertiesFile(agentNodeConfig) ?~!
                                s"An error occured while writing property file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                            }
@@ -317,7 +317,7 @@ class PolicyWriterServiceImpl(
       propertiesWrittenDur  = propertiesWrittenTime - promiseWrittenTime
       _                     = policyLogger.debug(s"Properties written in ${propertiesWrittenDur} ms")
 
-      parametersWritten <- ParallelSequence.traverse(configAndPaths) { case agentNodeConfig =>
+      _                   <- ParallelSequence.traverse(configAndPaths) { case agentNodeConfig =>
                              writeRudderParameterFile(agentNodeConfig) ?~!
                                s"An error occured while writing parameter file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                           }
@@ -326,13 +326,13 @@ class PolicyWriterServiceImpl(
       parametersWrittenDur  = parametersWrittenTime - propertiesWrittenTime
       _                     = policyLogger.debug(s"Parameters written in ${parametersWrittenDur} ms")
 
-      licensesCopied   <- copyLicenses(configAndPaths, allLicenses)
+      _                  <- copyLicenses(configAndPaths, allLicenses)
 
       licensesCopiedTime = System.currentTimeMillis
       licensesCopiedDur  = licensesCopiedTime - parametersWrittenTime
       _                  = policyLogger.debug(s"Licenses copied in ${licensesCopiedDur} ms")
 
-// we could end batching
+
 
       _                 = fillTemplates.clearCache
       /// perhaps that should be a post-hook somehow ?

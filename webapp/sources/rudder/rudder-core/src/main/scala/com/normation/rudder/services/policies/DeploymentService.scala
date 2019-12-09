@@ -417,22 +417,18 @@ trait PromiseGenerationService {
       updatedNodeInfo       =  updatedNodeConfigs.map{ case (nodeid, nodeconfig) => (nodeid, nodeconfig.nodeInfo)}
       updatedNodesId        =  updatedNodeInfo.keySet.toSeq.toSet // prevent from keeping an undue reference after generation
 
-      // Doing Set[NodeId]() ++ updatedNodeConfigs.keySet didn't allow to free the objects
-
       ///// so now we have everything for each updated nodes, we can start writing node policies and then expected reports
 
       // WHY DO WE NEED TO FORGET OTHER NODES CACHE INFO HERE ?
       _                     <- forgetOtherNodeConfigurationState(allNodeConfigsId) ?~! "Cannot clean the configuration cache"
 
       writeTime             =  System.currentTimeMillis
-// we don't need nodeConfigs, but rather the nodeConfigs for updated nodes, and all nodesInfos
       _                     <- writeNodeConfigurations(rootNodeId, updatedNodeConfigIds, updatedNodeConfigs, allNodeConfigsInfos, allLicenses, globalPolicyMode, generationTime, parallelism) ?~!"Cannot write nodes configuration"
       timeWriteNodeConfig   =  (System.currentTimeMillis - writeTime)
       _                     =  PolicyLogger.debug(s"Node configuration written in ${timeWriteNodeConfig} ms, start to update expected reports.")
 
       reportTime            =  System.currentTimeMillis
-// here we should not convert to values.toSeq, as it double the footprint for this part
-      expectedReports       =  computeExpectedReports(updatedNodeConfigs.values.toSeq, updatedNodeConfigIds, generationTime, allNodeModes)
+      expectedReports       =  computeExpectedReports(updatedNodeConfigs, updatedNodeConfigIds, generationTime, allNodeModes)
       timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
       _                     =  PolicyLogger.debug(s"Reports computed in ${timeSetExpectedReport} ms")
 
@@ -443,7 +439,6 @@ trait PromiseGenerationService {
 
       // finally, run post-generation hooks. They can lead to an error message for build, but node policies are updated
       postHooksTime         =  System.currentTimeMillis
-// here, we could whange the signature to use NodeInfo rather than NodeConfiguration, as we only use NodeInfo
       _                     <- runPostHooks(generationTime, new DateTime(postHooksTime), updatedNodeInfo, systemEnv, UPDATED_NODE_IDS_PATH)
       timeRunPostGenHooks   =  (System.currentTimeMillis - postHooksTime)
       _                     =  PolicyLogger.debug(s"Post-policy-generation hooks ran in ${timeRunPostGenHooks} ms")
@@ -689,7 +684,7 @@ trait PromiseGenerationService {
    * (that does not save them in base)
    */
   def computeExpectedReports(
-      nodeConfigs      : Seq[NodeConfiguration]
+      nodeConfigs      : Map[NodeId, NodeConfiguration]
     , versions         : Map[NodeId, NodeConfigId]
     , generationTime   : DateTime
     , allNodeModes     : Map[NodeId, NodeModeConfig]
@@ -1315,14 +1310,13 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
   def confExpectedRepo : UpdateExpectedReportsRepository
 
   override def computeExpectedReports(
-      configs          : Seq[NodeConfiguration]
+      configs          : Map[NodeId, NodeConfiguration]
     , updatedNodes     : Map[NodeId, NodeConfigId]
     , generationTime   : DateTime
     , allNodeModes     : Map[NodeId, NodeModeConfig]
   ) : List[NodeExpectedReports] = {
 
-    configs.map { nodeConfig =>
-      val nodeId = nodeConfig.nodeInfo.id
+    configs.map { case (nodeId, nodeConfig) =>
       // overrides are in the reverse way, we need to transform them into OverridenPolicy
       val overrides = nodeConfig.policies.flatMap { p =>
         p.overrides.map(overriden => OverridenPolicy(overriden, p.id) )
