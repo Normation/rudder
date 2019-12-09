@@ -52,6 +52,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <dependencies>
 
     <dependency>
+      <groupId>commons-lang</groupId>
+      <artifactId>commons-lang</artifactId>
+      <version>${commons-lang-version}</version>
+    </dependency>
+
+    <dependency>
       <groupId>com.normation</groupId>
       <artifactId>utils</artifactId>
       <version>${rudder-version}</version>

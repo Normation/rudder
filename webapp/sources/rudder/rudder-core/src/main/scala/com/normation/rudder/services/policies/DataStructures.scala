@@ -408,7 +408,7 @@ final object Policy {
                 existingVariable.copyWithAppendedValues(newVar.values) match {
                   case Left(err) =>
                     PolicyGenerationLogger.error(s"Error when merging variables '${existingVariable.spec.name}' (init: ${existingVariable.values.toString} ; " +
-                                       s"new val: ${newVar.values.toString}. This is most likely a bug, please report it")
+                                                 s"new val: ${newVar.values.toString}. This is most likely a bug, please report it")
                     existingVariable
                   case Right(v) => v
                 }

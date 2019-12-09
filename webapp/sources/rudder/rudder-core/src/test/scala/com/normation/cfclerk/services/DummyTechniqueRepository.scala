@@ -72,9 +72,9 @@ class DummyTechniqueRepository(policies: Seq[Technique] = Seq()) extends Techniq
 
   def this() = this(Seq()) //Spring need that...
 
-  override def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T = ???
-  override def getTemplateContent[T](id: TechniqueResourceId)(useIt: Option[InputStream] => T): T = ???
-  override def getFileContent[T](id: TechniqueResourceId)(useIt: Option[InputStream] => T): T = ???
+  override def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => IOResult[T]): IOResult[T] = ???
+  override def getTemplateContent[T](id: TechniqueResourceId)(useIt: Option[InputStream] => IOResult[T]): IOResult[T] = ???
+  override def getFileContent[T](id: TechniqueResourceId)(useIt: Option[InputStream] => IOResult[T]): IOResult[T] = ???
   override def getAll(): Map[TechniqueId, Technique] = { policyMap }
 
   override def get(policyName: TechniqueId): Option[Technique] = {

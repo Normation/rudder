@@ -173,9 +173,9 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   }
 
   def techRepo : TechniqueRepository = new TechniqueRepository {
-    override def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T = ???
-    override def getTemplateContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => T): T = ???
-    override def getFileContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => T): T = ???
+    override def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => IOResult[T]): IOResult[T] = ???
+    override def getTemplateContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => IOResult[T]): IOResult[T] = ???
+    override def getFileContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => IOResult[T]): IOResult[T] = ???
     override def getTechniquesInfo(): TechniquesInfo = ???
     override def getAll(): Map[TechniqueId, domain.Technique] = ???
     override def get(techniqueId: TechniqueId): Option[domain.Technique] = ???

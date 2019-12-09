@@ -67,10 +67,12 @@ import com.normation.rudder.services.policies.Policy
 import java.nio.charset.StandardCharsets
 
 import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
+import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.services.policies.MergePolicyService
 import com.normation.rudder.services.policies.BoundPolicyDraft
 import org.apache.commons.io.FileUtils
-
+import zio.syntax._
+import com.normation.zio._
 
 /**
  * Details of tests executed in each instances of
@@ -224,9 +226,9 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
   def assertResourceContent(id: TechniqueResourceId, isTemplate: Boolean, expectedContent: String) = {
     val ext = if(isTemplate) Some(TechniqueTemplate.templateExtension) else None
     reader.getResourceContent(id, ext) {
-        case None     => ko("Can not open an InputStream for " + id.toString)
-        case Some(is) => IOUtils.toString(is, StandardCharsets.UTF_8) === expectedContent
-      }
+        case None     => ko("Can not open an InputStream for " + id.toString).succeed
+        case Some(is) => (IOUtils.toString(is, StandardCharsets.UTF_8) === expectedContent).succeed
+      }.runNow
   }
 
   def compareWith(path: File, expectedPath: String, ignoreRegex: List[String] = Nil) = {
@@ -251,7 +253,13 @@ class WriteSystemTechniquesTest extends TechniquesTest{
   import TestSystemData._
   import data._
 
-  val parallelism = Runtime.getRuntime.availableProcessors()
+  val parallelism = Integer.max(1, java.lang.Runtime.getRuntime.availableProcessors()/2)
+
+  // uncomment to have timing information
+  org.slf4j.LoggerFactory.getLogger("policy.generation").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.DEBUG)
+  org.slf4j.LoggerFactory.getLogger("policy.generation.timing").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
+
+  PolicyGenerationLogger.debug(s"Max parallelism: ${parallelism}")
 
   sequential
 

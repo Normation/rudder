@@ -533,6 +533,8 @@ class TestNodeAndParameterLookup extends Specification {
       )
     }
 
+
+
     "fails when the curly brace after ${rudder. is not closed" in {
       getError(lookupService.lookupNodeParameterization(Seq(badUnclosed))(context)) must beMatching(
         """.*On variable 'empty'.* end of input expected.*""".r

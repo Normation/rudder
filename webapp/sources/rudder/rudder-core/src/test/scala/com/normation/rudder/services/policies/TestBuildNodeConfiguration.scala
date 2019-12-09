@@ -125,7 +125,7 @@ class TestBuildNodeConfiguration extends Specification {
   val jsTimeout                 = FiniteDuration(5, "minutes")
   val generationContinueOnError = false
 
-  org.slf4j.LoggerFactory.getLogger("debug_timing.generation.buildNodeConfig").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
+  org.slf4j.LoggerFactory.getLogger("policy.generation.timing.buildNodeConfig").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
 
   "build node configuration" in {
 

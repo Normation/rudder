@@ -270,7 +270,7 @@ class BuildBundleSequence(
       //split system and user directive (technique)
       (systemBundle, userBundle) =  techniquesBundles.toList.removeEmptyBundle.partition( _.isSystem )
       bundleVars                 <- writeAllAgentSpecificFiles.getBundleVariables(agentNodeProps, systemInputFiles, systemBundle, userInputFiles, userBundle, runHooks).toIO.chainError(
-                                    s"Error for node '${agentNodeProps.nodeId.value}' bundle creation"
+                                      s"Error for node '${agentNodeProps.nodeId.value}' bundle creation"
                                     )
       // map to correct variables
       vars                       <- ZIO.sequence(List(

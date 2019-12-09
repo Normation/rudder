@@ -37,16 +37,14 @@
 
 package com.normation.rudder.services.policies.write
 
+import com.normation.errors._
 import com.normation.inventory.domain.AgentType.CfeEnterprise
 import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.AgentType
 import net.liftweb.common.Loggable
-import net.liftweb.common.Full
-import net.liftweb.common.Box
 import org.apache.commons.io.FilenameUtils
 import com.normation.rudder.domain.nodes.NodeInfo
-import net.liftweb.common.Failure
 
 /**
  * Utility tool to compute the path of a server promises (and others information) on the rootMachine
@@ -55,7 +53,7 @@ import net.liftweb.common.Failure
  */
 trait PathComputer {
 
-  def computeBaseNodePath(searchedNodeId : NodeId, rootNodeId: NodeId, allNodeConfigs:Map[NodeId, NodeInfo]): Box[NodePromisesPaths]
+  def computeBaseNodePath(searchedNodeId : NodeId, rootNodeId: NodeId, allNodeConfigs:Map[NodeId, NodeInfo]): PureResult[NodePoliciesPaths]
 
   def getRootPath(agentType : AgentType) : String
 }
@@ -88,14 +86,14 @@ class PathComputerImpl(
    * @param searchedNodeConfiguration : the machine we search
    * @return
    */
-  def computeBaseNodePath(searchedNodeId : NodeId, rootNodeId: NodeId, allNodeConfigs: Map[NodeId, NodeInfo]): Box[NodePromisesPaths] = {
+  def computeBaseNodePath(searchedNodeId : NodeId, rootNodeId: NodeId, allNodeConfigs: Map[NodeId, NodeInfo]): PureResult[NodePoliciesPaths] = {
     if(searchedNodeId == rootNodeId) {
-      Failure("ComputeBaseNodePath can not be used to get the (special) root paths")
+      Left(Inconsistancy("ComputeBaseNodePath can not be used to get the (special) root paths"))
     } else {
       for {
         path <- recurseComputePath(rootNodeId, searchedNodeId, "/"  + searchedNodeId.value, allNodeConfigs, Nil)
       } yield {
-        NodePromisesPaths(
+        NodePoliciesPaths(
             searchedNodeId
           , FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path + promisesPrefix)
           , FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path + promisesPrefix + newPostfix)
@@ -132,18 +130,18 @@ class PathComputerImpl(
    * if they are reached.
    *
    */
-  private def recurseComputePath(fromNodeId: NodeId, toNodeId: NodeId, path : String, allNodeConfig: Map[NodeId, NodeInfo], chain: List[NodeId]) : Box[String] = {
+  private def recurseComputePath(fromNodeId: NodeId, toNodeId: NodeId, path : String, allNodeConfig: Map[NodeId, NodeInfo], chain: List[NodeId]) : PureResult[String] = {
     if (fromNodeId == toNodeId) {
-      Full(path)
+      Right(path)
     } else {
       if(chain.size >= chainDepthLimit) {
-        Failure(s"We reach the maximum number of relay depth (${chainDepthLimit}), which is likely to denote a cycle in the chain of policy parents. " +
-                s"The faulty chain of node ID is: ${chain.reverse.map(_.value).mkString(" -> ")}")
+        Left(Unexpected(s"We reach the maximum number of relay depth (${chainDepthLimit}), which is likely to denote a cycle in the chain of policy parents. " +
+                        s"The faulty chain of node ID is: ${chain.reverse.map(_.value).mkString(" -> ")}"))
       } else {
         for {
-          toNode <- Box(allNodeConfig.get(toNodeId)) ?~! s"Missing node with id ${toNodeId.value} when trying to build the policies files path for node ${fromNodeId.value}"
+          toNode <- allNodeConfig.get(toNodeId).notOptionalPure(s"Missing node with id ${toNodeId.value} when trying to build the policies files path for node ${fromNodeId.value}")
           pid    =  toNode.policyServerId
-          parent <- Box(allNodeConfig.get(pid)) ?~! s"Can not find the parent node (${pid.value}) of node ${toNodeId.value} when trying to build the policies files for node ${fromNodeId.value}"
+          parent <- allNodeConfig.get(pid).notOptionalPure("Can not find the parent node (${pid.value}) of node ${toNodeId.value} when trying to build the policies files for node ${fromNodeId.value}")
           result <- parent match {
                       case root if root.id == NodeId("root") =>
                           // root is a specific case, it is the root of everything

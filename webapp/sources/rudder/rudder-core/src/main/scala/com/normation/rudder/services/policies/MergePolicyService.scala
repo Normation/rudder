@@ -233,8 +233,8 @@ final object MergePolicyService {
 
       if(seq.lengthCompare(1) > 0) {
         PolicyGenerationLogger.error(s"The directive '${seq.head.id.directiveId.value}' on rule '${seq.head.id.ruleId.value}' was added several times on node " +
-                     s"'${nodeInfo.id.value}' WITH DIFFERENT PARAMETERS VALUE. It's a bug, please report it. Taking one set of parameter "+
-                     s"at random for the policy generation.")
+                                     s"'${nodeInfo.id.value}' WITH DIFFERENT PARAMETERS VALUE. It's a bug, please report it. Taking one set of parameter " +
+                                     s"at random for the policy generation.")
         import net.liftweb.json._
         implicit val formats = Serialization.formats(NoTypeHints)
         def r(j:JValue) = if(j == JNothing) "{}" else prettyRender(j)
@@ -319,14 +319,14 @@ final object MergePolicyService {
       val differentDirectives = samePriority.groupBy(_.id.directiveId)
       if(differentDirectives.size > 1) {
         PolicyGenerationLogger.warn(s"Unicity check: NON STABLE POLICY ON NODE '${nodeInfo.hostname}' for mono-instance (unique) technique " +
-            s"'${keep.technique.id}'. Several directives with same priority '${keep.priority}' are applied. "+
-            s"Keeping (ruleId@@directiveId) '${keep.id.ruleId.value}@@${keep.id.directiveId.value}' (order: ${keep.ruleOrder.value}/"+
-            s"${keep.directiveName}, discarding: ${samePriority.tail.map(x => s"${x.id.ruleId.value}@@${x.id.directiveId.value}:"+
+                                    s"'${keep.technique.id}'. Several directives with same priority '${keep.priority}' are applied. " +
+                                    s"Keeping (ruleId@@directiveId) '${keep.id.ruleId.value}@@${keep.id.directiveId.value}' (order: ${keep.ruleOrder.value}/" +
+                                    s"${keep.directiveName}, discarding: ${samePriority.tail.map(x => s"${x.id.ruleId.value}@@${x.id.directiveId.value}:"+
             s"${x.ruleName}/${x.directiveName}").mkString("'", "', ", "'")}")
       }
       PolicyGenerationLogger.trace(s"Unicity check: on node '${nodeInfo.id.value}' for mono-instance (unique) technique '${keep.technique.id}': " +
-          s"keeping (ruleId@@directiveId) '${keep.id.ruleId.value}@@${keep.id.directiveId.value}', discarding less priorize: "+
-          s"${lesserPriority.map(x => x.id.ruleId.value+"@@"+x.id.directiveId.value).mkString("'", "', ", "'")}")
+                                   s"keeping (ruleId@@directiveId) '${keep.id.ruleId.value}@@${keep.id.directiveId.value}', discarding less priorize: " +
+                                   s"${lesserPriority.map(x => x.id.ruleId.value+"@@"+x.id.directiveId.value).mkString("'", "', ", "'")}")
 
       setOverrides(keep, samePriority.tail ++ lesserPriority)
     }

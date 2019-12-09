@@ -431,7 +431,7 @@ object JsEngine {
            Unexpected(s"Value '${v}' starts with the ${default} keyword, but the 'parameter evaluation feature' "
                   +"is disabled. Please, either don't use the keyword or enable the feature").fail
       }
-    }
+    }.untraced
   }
 
   final object SandboxedJsEngine {
@@ -478,7 +478,7 @@ object JsEngine {
         )
       }
 
-      managedJsEngine.use(managedJsEnv => script(managedJsEnv.engine))
+      managedJsEngine.use(managedJsEnv => script(managedJsEnv.engine).untraced).untraced
     }
 
     protected[policies] def getJsEngine(): IOResult[ScriptEngine] = {
@@ -551,7 +551,7 @@ object JsEngine {
 
       val (default, js, isPassword) = getEvaluatorTuple(variable)
 
-      for {
+      (for {
         values <- ZIO.traverse(variable.values) { value =>
           (if (value.startsWith(default)) {
             val script = value.substring(default.length())
@@ -570,7 +570,7 @@ object JsEngine {
         copied <- variable.copyWithSavedValues(values).toIO
       } yield {
         copied
-      }
+      }).untraced
     }
 
     /**
@@ -591,7 +591,7 @@ object JsEngine {
           case ex: ScriptException => SystemError("Error with script evaluation", ex).fail
         }
       }
-      res
+      res.untraced
     }
 
     /**
@@ -614,7 +614,7 @@ object JsEngine {
         }
       }
 
-      try {
+      (try {
         val task = pool.submit(scriptCallable)
         try {
           // submit to the pool and synchroniously retrieve the value with a timeout
@@ -650,7 +650,7 @@ object JsEngine {
       } catch {
         case ex: RejectedExecutionException =>
           SystemError(s"Evaluating script '${name}' lead to a '${ex.getClass.getName}'. Perhaps the thread pool was stopped?", ex).fail
-      }
+      }).untraced.uninterruptible
     }
   }
 

@@ -39,8 +39,11 @@ package com.normation.cfclerk.services
 
 import com.normation.cfclerk.domain._
 import java.io.InputStream
+
+import com.normation.errors.IOResult
+
 import scala.collection.immutable.SortedMap
-import scala.collection.mutable.{ Map => MutMap }
+import scala.collection.mutable.{Map => MutMap}
 
 
 final case class TechniquesInfo(
@@ -93,7 +96,7 @@ trait TechniqueReader {
    * The implementation must take care of correct closing of the input
    * stream and any I/O exception.
    */
-  def getMetadataContent[T](techniqueId: TechniqueId)(useIt : Option[InputStream] => T) : T
+  def getMetadataContent[T](techniqueId: TechniqueId)(useIt : Option[InputStream] => IOResult[T]) : IOResult[T]
 
 
   /**
@@ -109,7 +112,7 @@ trait TechniqueReader {
    * The implementation must take care of correct closing of the input
    * stream and any I/O exception.
    */
-  def getResourceContent[T](techniqueResourceId: TechniqueResourceId, postfixName: Option[String])(useIt : Option[InputStream] => T) : T
+  def getResourceContent[T](techniqueResourceId: TechniqueResourceId, postfixName: Option[String])(useIt : Option[InputStream] => IOResult[T]) : IOResult[T]
 
   /**
    * An indicator that the underlying policy template library changed and that the content

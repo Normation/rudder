@@ -112,11 +112,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
     </dependency>
-    <dependency>
-      <groupId>commons-lang</groupId>
-      <artifactId>commons-lang</artifactId>
-      <version>2.6</version>
-    </dependency>
 
     <dependency>
       <groupId>commons-codec</groupId>

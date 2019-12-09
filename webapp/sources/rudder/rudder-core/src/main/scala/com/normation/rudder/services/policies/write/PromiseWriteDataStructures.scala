@@ -66,7 +66,7 @@ import com.normation.rudder.services.policies.PolicyId
 final case class AgentNodeConfiguration(
     config   : NodeConfiguration
   , agentType: AgentType
-  , paths    : NodePromisesPaths
+  , paths    : NodePoliciesPaths
 )
 
 
@@ -92,7 +92,7 @@ final case class AgentNodeProperties(
  */
 final case class AgentNodeWritableConfiguration(
     agentNodeProps    : AgentNodeProperties
-  , paths             : NodePromisesPaths
+  , paths             : NodePoliciesPaths
   , preparedTechniques: Seq[PreparedTechnique]
   , systemVariables   : Map[String, Variable]
   , policies          : List[Policy]
@@ -103,9 +103,9 @@ final case class AgentNodeWritableConfiguration(
  * from their generation directory to their final directory.
  * A back-up folder is also provided to save a copy.
  */
-final case class NodePromisesPaths(
+final case class NodePoliciesPaths(
     nodeId      : NodeId
-  , baseFolder  : String //directory where the file have to in the end
+  , baseFolder  : String //directory where the file have to be in the end
   , newFolder   : String //poclicies are temporarly store in a policyName.new directory
   , backupFolder: String
 )

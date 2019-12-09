@@ -199,13 +199,13 @@ class TechniqueRepositoryImpl(
   }
 
 
-  override def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T =
+  override def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => IOResult[T]): IOResult[T] =
     techniqueReader.getMetadataContent(techniqueId)(useIt)
 
-  override def getFileContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => T): T =
+  override def getFileContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => IOResult[T]): IOResult[T] =
     techniqueReader.getResourceContent(techniqueResourceId, None)(useIt)
 
-  override def getTemplateContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => T): T =
+  override def getTemplateContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => IOResult[T]): IOResult[T] =
     techniqueReader.getResourceContent(techniqueResourceId, Some(TechniqueTemplate.templateExtension))(useIt)
 
   /**
