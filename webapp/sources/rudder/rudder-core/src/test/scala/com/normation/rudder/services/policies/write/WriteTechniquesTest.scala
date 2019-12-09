@@ -251,7 +251,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
   import TestSystemData._
   import data._
 
-  val parallelism = 1
+  val parallelism = Runtime.getRuntime.availableProcessors()
 
   sequential
 

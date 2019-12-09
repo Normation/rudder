@@ -98,9 +98,9 @@ class SynchronizedFileTemplate(templateName: String, localTemplate: Either[Rudde
   def fill(templateName: String, content: String, variables: Seq[STVariable]): IOResult[String] = {
     localTemplate match {
       case Right(sourceTemplate) =>
-        (for {
+        semaphore.withPermit(for {
           // we need to work on an instance of the template
-          template <- semaphore.withPermit(IOResult.effect(sourceTemplate.getInstanceOf()))
+          template <- IOResult.effect(sourceTemplate.getInstanceOf())
           /*
            * Here, we are using bestEffort to try to test a maxum of false values,
            * but the StringTemplate thing is mutable, so we don't have the intersting
@@ -148,19 +148,18 @@ class FillTemplatesService {
    * If a content is not in the cache, it will create the StringTemplate instance, and return it
    *
    */
-  private[this] var cache = Map[String, SynchronizedFileTemplate]()
+  private[this] val cache = ZioRuntime.unsafeRun(Ref.make(Map[String, SynchronizedFileTemplate]()))
 
   def clearCache(): IOResult[Unit] = {
     semaphore.withPermit {
-      UIO.effectTotal {
-        cache = Map()
-      }
+      cache.set(Map())
     }
   }
 
   def getTemplateFromContent(templateName: String,content: String): IOResult[SynchronizedFileTemplate] = {
-    for {
-      c <- semaphore.withPermit(cache.get(content) match {
+    semaphore.withPermit(for {
+      c <- cache.get
+      x <- c.get(content) match {
              case Some(template) => template.succeed
              case None =>
                for {
@@ -168,14 +167,14 @@ class FillTemplatesService {
                              new StringTemplate(content, classOf[NormationAmpersandTemplateLexer])
                            }.either
                  template = new SynchronizedFileTemplate(templateName, parsed)
-                 _        <- UIO.effectTotal { cache = cache + ((content, template)) }
+                 _        <- cache.update(_ + ((content, template)) )
                } yield {
                  template
                }
-        })
+        }
     } yield {
-      c
-    }
+      x
+    })
   }
 
   /**
