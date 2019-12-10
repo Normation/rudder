@@ -388,8 +388,8 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
           method_info <- methods.get(method.methodId)
           classParameterValue <- method.parameters.get(method_info.classParameter)
 
-          classPrefix = s"$${class_prefix}_${method_info.classPrefix}_${classParameterValue}"
           escapedClassParameterValue = escapeCFEngineString(classParameterValue)
+          classPrefix = s"$${class_prefix}_${method_info.classPrefix}_${escapedClassParameterValue}"
           promiser = s"dummy_report_${index}"
         } yield {
           def naReport(condition : String, message : String) = {
