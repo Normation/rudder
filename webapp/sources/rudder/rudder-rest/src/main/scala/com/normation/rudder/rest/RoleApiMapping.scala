@@ -102,9 +102,11 @@ object AuthorizationApiMapping {
         case AnyRights            => ApiAuthz.allAuthz.acl
         // Administration is Rudder setting
 
-        case Administration.Read  => SettingsApi.GetAllSettings.x :: SettingsApi.GetSetting.x :: Nil
-        case Administration.Write => SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: Nil
-        case Administration.Edit  => SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: Nil
+        case Administration.Read  => SettingsApi.GetAllSettings.x :: SettingsApi.GetSetting.x :: SystemApi.ArchivesDirectivesList.x :: SystemApi.ArchivesFullList.x :: SystemApi.ArchivesGroupsList.x ::
+                                     SystemApi.ArchivesRulesList.x :: SystemApi.GetAllZipArchive.x :: SystemApi.GetDirectivesZipArchive.x :: SystemApi.GetGroupsZipArchive.x :: SystemApi.GetRulesZipArchive.x ::
+                                     SystemApi.Info.x :: SystemApi.Status.x ::  Nil
+        case Administration.Write => SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: SystemApi.endpoints.map(_.x)
+        case Administration.Edit  => SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: SystemApi.endpoints.map(_.x)
 
         case Compliance.Read      => ComplianceApi.GetGlobalCompliance.x :: ComplianceApi.GetRulesCompliance.x ::
                                      ComplianceApi.GetRulesComplianceId.x :: ComplianceApi.GetNodesCompliance.x ::
@@ -156,8 +158,8 @@ object AuthorizationApiMapping {
 
         case Technique.Read       => TechniqueApi.ListTechniques.x :: TechniqueApi.ListTechniquesDirectives.x ::
                                      TechniqueApi.ListTechniqueDirectives.x :: Nil
-        case Technique.Write      => Nil
-        case Technique.Edit       => Nil
+        case Technique.Write      => NcfApi.CreateTechnique.x :: SystemApi.PoliciesUpdate.x :: SystemApi.PoliciesRegenerate.x :: Nil
+        case Technique.Edit       => NcfApi.UpdateTechnique.x :: SystemApi.PoliciesUpdate.x :: SystemApi.PoliciesRegenerate.x :: Nil
 
         case UserAccount.Read     => UserApi.GetApiToken.x :: Nil
         case UserAccount.Write    => Nil
