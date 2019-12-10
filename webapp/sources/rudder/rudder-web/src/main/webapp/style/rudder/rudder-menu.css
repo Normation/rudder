@@ -2583,26 +2583,6 @@ form input.dyngroupReloadingButton, form button#launchDebugScriptButton{
 	width:auto;
 	min-width:130px;
 }
-.content-wrapper .technique-settings .btn-default {
-  color: #fff;
-  background-color: #337ab7;
-  border-color: #2e6da4;
-}
-.content-wrapper .technique-settings .btn-default:hover {
-  color: #fff;
-  background-color: #286090;
-  border-color: #204d74;
-}
-.content-wrapper .technique-settings .btn-default:active{
-  color: #fff;
-  background-color: #286090;
-  border-color: #204d74
-}
-.content-wrapper .technique-settings .btn-default:focus{
-  color: #fff;
-  background-color: #286090;
-  border-color: #122b40;
-}
 
 #pendingNodeConfirm_wrapper .ui-widget-header{
   background-color:transparent;

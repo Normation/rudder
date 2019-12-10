@@ -802,7 +802,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       }
 
       Script(OnLoad(initJs)) ++
-      SHtml.ajaxButton("Reload Techniques", process _, ("class","btn btn-default"))
+      SHtml.ajaxButton("Reload Techniques", process _, ("class","btn btn-primary"))
   }
 
 }
