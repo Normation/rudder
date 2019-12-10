@@ -408,17 +408,20 @@
                             </button>
                           </div>
                           <div class="row no-gutters flex-column">
-                            <div class="method-condition col-auto" ng-if="method_call.class_context !== 'any'">
+                            <div class="method-condition col-auto flex-form" ng-if="method_call.class_context !== 'any'">
                               <label>Condition:</label>
-                              <input
-                                ng-click="$event.stopPropagation();"
+                              <textarea
                                 class="form-control"
+                                msd-elastic
+                                rows="1"
+                                ng-model="method_call.class_context"
+                                ng-readonly="true"
+                                ng-click="$event.stopPropagation();"
                                 uib-popover-html="'<small>Click <span class=\'text-info\'>3</span> times to copy the whole condition below</small>'"
                                 popover-trigger="mouseenter"
                                 popover-append-to-body="true"
-                                popover-title="{{method_call.class_context}}"
-                                ng-readonly="true"
-                                ng-model="method_call.class_context"/>
+                                popover-title="{{method_call.class_context}}">
+                              </textarea>
                             </div>
 
                             <div class="method-name col-auto">
@@ -433,9 +436,9 @@
                               </span>
                             </div>
 
-                            <div class="method-param col-auto"  ng-if="getClassParameter(method_call).value">
-                              <label>{{getClassParameter(method_call).name | parameterName}}:</label>
-                              <input class="form-control" ng-click="$event.stopPropagation();" ng-readonly="true" ng-model="getClassParameter(method_call).value" />
+                            <div class="method-param col-auto flex-form"  ng-if="getClassParameter(method_call).value">
+                              <label>{{getClassParameter(method_call).name | parameterName}}: </label>
+                              <textarea class="form-control" msd-elastic rows="1" ng-model="getClassParameter(method_call).value" ng-readonly="true" ng-click="$event.stopPropagation();"></textarea>
                             </div>
                             <div ng-form="arg_method" ng-repeat="parameter in method_call.parameters  track by $index" class="method-errors col-auto">
                               <input ng-hide="true" type="text" name="param" ng-model="parameter.value" constraint parameter="parameter">
