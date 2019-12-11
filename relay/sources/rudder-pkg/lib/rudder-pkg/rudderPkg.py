@@ -80,14 +80,16 @@ def package_list_installed():
     List available plugin names.
 """
 def package_list_name():
+    utils.readConf()
     pluginDict = utils.list_plugin_name()
     pluginName = []
     shortName = []
     description = []
     for p in pluginDict.keys():
-        pluginName.append(str(p))
-        shortName.append(str(pluginDict[p][0]))
-        description.append(str(pluginDict[p][1]))
+        if utils.check_download(utils.URL + "/" + utils.RUDDER_VERSION + "/" + str(pluginDict[p][0])):
+            pluginName.append(str(p))
+            shortName.append(str(pluginDict[p][0]))
+            description.append(str(pluginDict[p][1]))
     table = [
                 { "title": "Plugin Name"      , "value": pluginName  },
                 { "title": "Plugin Short Name", "value": shortName   },

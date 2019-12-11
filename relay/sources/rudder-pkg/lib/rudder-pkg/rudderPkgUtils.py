@@ -184,6 +184,13 @@ def download(completeUrl, dst=""):
     return fileDst
 
 """
+    Make a HEAD request on the given url, return true if result is 200, false instead
+"""
+def check_download(completeUrl):
+    r = requests.head(completeUrl, auth=(USERNAME, PASSWORD))
+    return (r.status_code <= 301)
+
+"""
    Verify Hash
 """
 def verifyHash(targetPath, shaSumPath):
