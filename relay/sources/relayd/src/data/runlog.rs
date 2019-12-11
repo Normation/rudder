@@ -170,7 +170,7 @@ mod tests {
             }
         }
         // check we did at least one test
-        assert!(test_done > 0);
+        assert!(test_done > 1);
     }
 
     #[test]

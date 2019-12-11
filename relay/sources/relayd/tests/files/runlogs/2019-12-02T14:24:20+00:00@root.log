@@ -1,0 +1,106 @@
+2019-12-11T15:51:55+00:00 R: @@Common@@control@@rudder@@run@@0@@start@@20191202-150503-68b01c0f@@2019-12-02 14:24:20+00:00##root@#Start execution
+2019-12-11T16:51:55+00:00 rudder     info: Automatically promoting context scope for 'heartbeat_sent' to namespace visibility, due to persistence
+2019-12-11T17:51:55+00:00 R: [INFO] Starting CFEngine 3.12.2 on host server.rudder.local (sles_15 x86_64)
+2019-12-11T18:51:55+00:00 R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@ncf Initialization@@None@@2019-12-02 14:24:20+00:00##root@#Configuration library initialization was correct
+2019-12-11T19:51:55+00:00 R: @@Common@@log_repaired@@hasPolicyServer-root@@common-root@@0@@Update@@None@@2019-12-02 14:24:20+00:00##root@#Common configuration library updated
+2019-12-11T20:51:55+00:00 R: @@Common@@result_repaired@@hasPolicyServer-root@@common-root@@0@@Update@@None@@2019-12-02 14:24:20+00:00##root@#Policy or configuration library were updated
+2019-12-11T21:51:55+00:00 R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@Security parameters@@None@@2019-12-02 14:24:20+00:00##root@#The internal environment security is acceptable
+2019-12-11T22:51:55+00:00 R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@None@@2019-12-02 14:24:20+00:00##root@#Cron daemon status was correct
+2019-12-11T23:51:55+00:00 rudder     info: Executing 'no timeout' ... '/bin/sh /var/rudder/cfengine-community/inputs/common/1.0/check-rsyslog-version 5.6.4'
+2019-12-12T00:51:55+00:00 rudder     info: Completed execution of '/bin/sh /var/rudder/cfengine-community/inputs/common/1.0/check-rsyslog-version 5.6.4'
+2019-12-12T01:51:55+00:00 R: @@Common@@log_info@@hasPolicyServer-root@@common-root@@0@@Log system for reports@@None@@2019-12-02 14:24:20+00:00##root@#Detected running syslog as rsyslog
+2019-12-12T02:51:55+00:00 R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@Log system for reports@@None@@2019-12-02 14:24:20+00:00##root@#Logging system for report centralization is already correctly configured
+2019-12-12T03:51:55+00:00 rudder     info: Executing 'no timeout' ... '/bin/sh /var/rudder/cfengine-community/inputs/common/1.0/check-rsyslog-version'
+2019-12-12T04:51:55+00:00 rudder     info: Completed execution of '/bin/sh /var/rudder/cfengine-community/inputs/common/1.0/check-rsyslog-version'
+2019-12-12T05:51:55+00:00 R: @@Common@@log_info@@hasPolicyServer-root@@common-root@@0@@None@@/var/rudder/tmp/rudder_monitoring.csv@@2019-12-02 14:24:20+00:00##root@#Remove file /var/rudder/tmp/rudder_monitoring.csv was correct
+2019-12-12T06:51:55+00:00 R: @@DistributePolicy@@result_na@@root-DP@@root-distributePolicy@@0@@Synchronize resources@@None@@2019-12-02 14:24:20+00:00##root@#Nothing needs to be updated
+2019-12-12T07:51:55+00:00 R: @@DistributePolicy@@result_na@@root-DP@@root-distributePolicy@@0@@Synchronize policies@@None@@2019-12-02 14:24:20+00:00##root@#Rudder server does not need to synchronize its policies
+2019-12-12T08:51:55+00:00 R: @@DistributePolicy@@result_na@@root-DP@@root-distributePolicy@@0@@Synchronize files@@None@@2019-12-02 14:24:20+00:00##root@#Rudder server does not need to synchronize its shared files
+2019-12-12T09:51:55+00:00 R: @@DistributePolicy@@result_success@@root-DP@@root-distributePolicy@@0@@Send inventories to Rudder server@@None@@2019-12-02 14:24:20+00:00##root@#No inventory to send
+2019-12-12T10:51:55+00:00 R: @@DistributePolicy@@result_success@@root-DP@@root-distributePolicy@@0@@Configure apache ACL@@None@@2019-12-02 14:24:20+00:00##root@#Apache ACLs are correct
+2019-12-12T11:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check logrotate configuration@@None@@2019-12-02 14:24:20+00:00##root@#The logrotate configuration is correct
+2019-12-12T12:51:55+00:00 R: [INFO] Executing is-active on rudder-relayd using the systemctl method
+2019-12-12T13:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check relayd process@@rudder-relayd@@2019-12-02 14:24:20+00:00##root@#Check if the service rudder-relayd is started was correct
+2019-12-12T14:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check relayd process@@rudder-relayd@@2019-12-02 14:24:20+00:00##root@#Ensure that service rudder-relayd is running was correct
+2019-12-12T15:51:55+00:00 R: [INFO] Executing is-enabled on rudder-relayd using the systemctl method
+2019-12-12T16:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check relayd process@@rudder-relayd@@2019-12-02 14:24:20+00:00##root@#Check if service rudder-relayd is started at boot was correct
+2019-12-12T17:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check relayd process@@rudder-relayd@@2019-12-02 14:24:20+00:00##root@#Ensure service rudder-relayd is started at boot was correct
+2019-12-12T18:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check relayd process@@None@@2019-12-02 14:24:20+00:00##root@#relayd service running was correct
+2019-12-12T19:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check relayd boot script@@None@@2019-12-02 14:24:20+00:00##root@#relayd service enabled was correct
+2019-12-12T20:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Relayd service configuration@@/opt/rudder/etc/relayd@@2019-12-02 14:24:20+00:00##root@#Ensure permissions mode 640, owner root and group rudder on /opt/rudder/etc/relayd on type all with inf recursion level was correct
+2019-12-12T21:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Relayd service configuration@@/opt/rudder/etc/relayd@@2019-12-02 14:24:20+00:00##root@#Ensure permissions mode 640, owner root and group rudder on /opt/rudder/etc/relayd with ${recursion} recursion level was correct
+2019-12-12T22:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Relayd service configuration@@/opt/rudder/etc/relayd/main.conf@@2019-12-02 14:24:20+00:00##root@#Build file /opt/rudder/etc/relayd/main.conf from mustache type template /var/rudder/cfengine-community/inputs/server-roles/1.0/relayd.conf.tpl was correct
+2019-12-12T23:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Relayd service configuration@@/opt/rudder/etc/relayd/main.conf@@2019-12-02 14:24:20+00:00##root@#Build file /opt/rudder/etc/relayd/main.conf from mustache template /var/rudder/cfengine-community/inputs/server-roles/1.0/relayd.conf.tpl was correct
+2019-12-13T00:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Relayd service configuration@@None@@2019-12-02 14:24:20+00:00##root@#rudder-relayd configration was correct
+2019-12-13T01:51:55+00:00 R: [INFO] Executing is-active on postgresql using the systemctl method
+2019-12-13T02:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check postgresql process@@postgresql@@2019-12-02 14:24:20+00:00##root@#Check if the service postgresql is started was correct
+2019-12-13T03:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check postgresql process@@postgresql@@2019-12-02 14:24:20+00:00##root@#Ensure that service postgresql is running was correct
+2019-12-13T04:51:55+00:00 R: [INFO] Executing is-enabled on postgresql using the systemctl method
+2019-12-13T05:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check postgresql process@@postgresql@@2019-12-02 14:24:20+00:00##root@#Check if service postgresql is started at boot was correct
+2019-12-13T06:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check postgresql process@@postgresql@@2019-12-02 14:24:20+00:00##root@#Ensure service postgresql is started at boot was correct
+2019-12-13T07:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check postgresql process@@None@@2019-12-02 14:24:20+00:00##root@#postgresql service running was correct
+2019-12-13T08:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check postgresql boot script@@None@@2019-12-02 14:24:20+00:00##root@#postgresql service enabled was correct
+2019-12-13T09:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check LDAP in rudder-webapp.properties@@None@@2019-12-02 14:24:20+00:00##root@#Web interface configuration files (checked LDAP password) was correct
+2019-12-13T10:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check LDAP credentials@@None@@2019-12-02 14:24:20+00:00##root@#OpenLDAP configuration file (rootdn password) was correct
+2019-12-13T11:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check rudder-passwords.conf@@None@@2019-12-02 14:24:20+00:00##root@#Presence and permissions of Rudder password file was correct
+2019-12-13T12:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check pgpass file@@None@@2019-12-02 14:24:20+00:00##root@#Presence and permissions of pgsql password file was correct
+2019-12-13T13:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check SQL in rudder-webapp.properties@@None@@2019-12-02 14:24:20+00:00##root@#Web interface configuration files (SQL password) was correct
+2019-12-13T14:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check SQL credentials@@None@@2019-12-02 14:24:20+00:00##root@#PostgreSQL user account's already correct.
+2019-12-13T15:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check allowed networks configuration@@None@@2019-12-02 14:24:20+00:00##root@#Allowed networks configuration is correct
+2019-12-13T16:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check WebDAV properties@@None@@2019-12-02 14:24:20+00:00##root@#Rudder WebDAV properties was correct
+2019-12-13T17:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check WebDAV credentials@@None@@2019-12-02 14:24:20+00:00##root@#Apache WebDAV user and password are OK
+2019-12-13T18:51:55+00:00 R: [INFO] Executing is-active on apache2 using the systemctl method
+2019-12-13T19:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check apache process@@apache2@@2019-12-02 14:24:20+00:00##root@#Check if the service apache2 is started was correct
+2019-12-13T20:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check apache process@@apache2@@2019-12-02 14:24:20+00:00##root@#Ensure that service apache2 is running was correct
+2019-12-13T21:51:55+00:00 R: [INFO] Executing is-enabled on apache2 using the systemctl method
+2019-12-13T22:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check apache process@@apache2@@2019-12-02 14:24:20+00:00##root@#Check if service apache2 is started at boot was correct
+2019-12-13T23:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check apache process@@apache2@@2019-12-02 14:24:20+00:00##root@#Ensure service apache2 is started at boot was correct
+2019-12-14T00:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check apache process@@None@@2019-12-02 14:24:20+00:00##root@#apache service running was correct
+2019-12-14T01:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check apache boot script@@None@@2019-12-02 14:24:20+00:00##root@#apache service enabled was correct
+2019-12-14T02:51:55+00:00 R: [INFO] Executing is-active on rudder-jetty using the systemctl method
+2019-12-14T03:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check jetty process@@rudder-jetty@@2019-12-02 14:24:20+00:00##root@#Check if the service rudder-jetty is started was correct
+2019-12-14T04:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check jetty process@@rudder-jetty@@2019-12-02 14:24:20+00:00##root@#Ensure that service rudder-jetty is running was correct
+2019-12-14T05:51:55+00:00 R: [INFO] Executing is-enabled on rudder-jetty using the systemctl method
+2019-12-14T06:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check jetty process@@rudder-jetty@@2019-12-02 14:24:20+00:00##root@#Check if service rudder-jetty is started at boot was correct
+2019-12-14T07:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check jetty process@@rudder-jetty@@2019-12-02 14:24:20+00:00##root@#Ensure service rudder-jetty is started at boot was correct
+2019-12-14T08:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check jetty process@@None@@2019-12-02 14:24:20+00:00##root@#jetty service running was correct
+2019-12-14T09:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check jetty boot script@@None@@2019-12-02 14:24:20+00:00##root@#jetty service enabled was correct
+2019-12-14T10:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check jetty process@@/var/rudder/cfengine-community/ppkeys/root-MD5=c5dbf58ee7e0ab9fb383d212c0280cda.pub@@2019-12-02 14:24:20+00:00##root@#Symlink /var/rudder/cfengine-community/ppkeys/root-MD5=c5dbf58ee7e0ab9fb383d212c0280cda.pub targeting /var/rudder/cfengine-community/ppkeys/localhost.pub was correct
+2019-12-14T11:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check jetty process@@/var/rudder/cfengine-community/ppkeys/root-MD5=c5dbf58ee7e0ab9fb383d212c0280cda.pub@@2019-12-02 14:24:20+00:00##root@#Symlink /var/rudder/cfengine-community/ppkeys/root-MD5=c5dbf58ee7e0ab9fb383d212c0280cda.pub targeting /var/rudder/cfengine-community/ppkeys/localhost.pub was correct
+2019-12-14T12:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check jetty process@@/var/rudder/cfengine-community/ppkeys/root-MD5=c5dbf58ee7e0ab9fb383d212c0280cda.pub@@2019-12-02 14:24:20+00:00##root@#Symlink /var/rudder/cfengine-community/ppkeys/root-MD5=c5dbf58ee7e0ab9fb383d212c0280cda.pub targeting /var/rudder/cfengine-community/ppkeys/localhost.pub (without overwrite) was correct
+2019-12-14T13:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check configuration-repository folder@@None@@2019-12-02 14:24:20+00:00##root@#The /var/rudder/configuration-repository directory is present
+2019-12-14T14:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check configuration-repository GIT lock@@None@@2019-12-02 14:24:20+00:00##root@#The /var/rudder/configuration-repository git lock file is not present or not older than 5 minutes
+2019-12-14T15:51:55+00:00 rudder     info: Executing 'no timeout' ... '/opt/rudder/bin/curl --proxy '' --max-time 240 -s http://localhost:8080/rudder/api/status |/bin/grep -q OK'
+2019-12-14T16:51:55+00:00 rudder     info: Automatically promoting context scope for 'site_ok' to namespace visibility, due to persistence
+2019-12-14T17:51:55+00:00 rudder     info: Completed execution of '/opt/rudder/bin/curl --proxy '' --max-time 240 -s http://localhost:8080/rudder/api/status |/bin/grep -q OK'
+2019-12-14T18:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check rudder status@@None@@2019-12-02 14:24:20+00:00##root@#The http://localhost:8080/rudder/api/status web interface is running
+2019-12-14T19:51:55+00:00 R: [INFO] Executing is-active on rudder-slapd using the systemctl method
+2019-12-14T20:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check slapd process@@rudder-slapd@@2019-12-02 14:24:20+00:00##root@#Check if the service rudder-slapd is started was correct
+2019-12-14T21:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check slapd process@@rudder-slapd@@2019-12-02 14:24:20+00:00##root@#Ensure that service rudder-slapd is running was correct
+2019-12-14T22:51:55+00:00 R: [INFO] Executing is-enabled on rudder-slapd using the systemctl method
+2019-12-14T23:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check slapd process@@rudder-slapd@@2019-12-02 14:24:20+00:00##root@#Check if service rudder-slapd is started at boot was correct
+2019-12-15T00:51:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check slapd process@@rudder-slapd@@2019-12-02 14:24:20+00:00##root@#Ensure service rudder-slapd is started at boot was correct
+2019-12-15T01:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check slapd process@@None@@2019-12-02 14:24:20+00:00##root@#slapd service running was correct
+2019-12-15T02:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check slapd boot script@@None@@2019-12-02 14:24:20+00:00##root@#slapd service enabled was correct
+2019-12-15T03:51:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Send metrics to rudder-project@@None@@2019-12-02 14:24:20+00:00##root@#Sending metrics to rudder-project.org succeeded
+2019-12-15T04:51:55+00:00 R: @@Inventory@@result_success@@inventory-all@@inventory-all@@0@@inventory@@None@@2019-12-02 14:24:20+00:00##root@#Next inventory scheduled between 00:00 and 06:00
+2019-12-15T05:51:55+00:00 R: @@packageManagement@@log_info@@32377fd7-02fd-43d0-aab7-28460a91347b@@d957f62e-91d4-416c-8211-e70e7951c592@@0@@None@@vim@@2019-12-02 14:24:20+00:00##root@#Presence of package vim in any version was correct
+2019-12-15T06:51:55+00:00    error: package module: ErrorMessage=No provider of 'vim2' found.
+2019-12-15T07:51:55+00:00    error: Error installing package 'vim2'
+2019-12-15T08:51:55+00:00    error: Method 'ncf_package' failed in some repairs
+2019-12-15T09:51:55+00:00 R: @@packageManagement@@log_warn@@32377fd7-02fd-43d0-aab7-28460a91347b@@d957f62e-91d4-416c-8211-e70e7951c592@@0@@None@@vim2@@2019-12-02 14:24:20+00:00##root@#If you tried to install a virtual package, please use in place the concrete package you want to install.
+2019-12-15T10:51:55+00:00 Presence of package vim2 in any version could not be repaired
+2019-12-15T11:51:55+00:00    error: Method 'package_state_options' failed in some repairs
+2019-12-15T12:51:55+00:00 R: @@packageManagement@@result_success@@32377fd7-02fd-43d0-aab7-28460a91347b@@d957f62e-91d4-416c-8211-e70e7951c592@@0@@Package@@vim@@2019-12-02 14:24:20+00:00##root@#Presence of package vim in any version was correct
+2019-12-15T13:51:55+00:00 R: @@packageManagement@@result_error@@32377fd7-02fd-43d0-aab7-28460a91347b@@d957f62e-91d4-416c-8211-e70e7951c592@@0@@Package@@vim2@@2019-12-02 14:24:20+00:00##root@#Presence of package vim2 in any version could not be repaired
+2019-12-15T14:51:55+00:00 R: @@packageManagement@@result_na@@32377fd7-02fd-43d0-aab7-28460a91347b@@d957f62e-91d4-416c-8211-e70e7951c592@@0@@Post-modification script@@vim@@2019-12-02 14:24:20+00:00##root@#No post-modification script was set to run
+2019-12-15T15:51:55+00:00 R: @@packageManagement@@result_na@@32377fd7-02fd-43d0-aab7-28460a91347b@@d957f62e-91d4-416c-8211-e70e7951c592@@0@@Post-modification script@@vim2@@2019-12-02 14:24:20+00:00##root@#No post-modification script was set to run
+2019-12-15T16:51:55+00:00    error: Method 'package_management_1_2_d957f62e_91d4_416c_8211_e70e7951c592' failed in some repairs
+2019-12-15T17:51:55+00:00    error: Method 'run_d957f62e_91d4_416c_8211_e70e7951c592' failed in some repairs
+2019-12-15T18:51:55+00:00 R: @@Common@@result_na@@hasPolicyServer-root@@common-root@@0@@Monitoring@@None@@2019-12-02 14:24:20+00:00##root@#No Rudder monitoring information to share with the server
+2019-12-15T19:51:55+00:00 R: @@Common@@control@@rudder@@run@@0@@end@@20191202-150503-68b01c0f@@2019-12-02 14:24:20+00:00##root@#End execution
+2019-12-15T20:51:55+00:00 R: [INFO] Executing is-active on syslog using the systemctl method
+2019-12-15T21:51:55+00:00 R: @@Common@@log_info@@hasPolicyServer-root@@common-root@@0@@Make sure syslog service runs@@syslog@@2019-12-02 14:24:20+00:00##root@#Check if the service syslog is started was correct
+2019-12-15T22:51:55+00:00 R: @@Common@@log_info@@hasPolicyServer-root@@common-root@@0@@Make sure syslog service runs@@syslog@@2019-12-02 14:24:20+00:00##root@#Ensure that service syslog is running was correct
+2019-12-15T23:51:55+00:00 R: @@Common@@log_info@@hasPolicyServer-root@@common-root@@0@@Make sure syslog service runs@@syslog@@2019-12-02 14:24:20+00:00##root@#Ensure that service syslog is running was correct
+2019-12-16T00:51:55+00:00 
