@@ -36,8 +36,9 @@ class Plugin:
             logging.error("could not parse the index file %s"%(utils.INDEX_PATH))
             utils.fail("could not parse the index file %s"%(utils.INDEX_PATH))
         if not len(self.packagesInfo):
-            utils.fail('No packages were found corresponding to %s'%(self.name))
-        logging.debug("Found corresponding packages: %s"%(self.packagesInfo))
+            logging.debug('No packages were found corresponding to %s'%(self.name))
+        else:
+            logging.debug("Found corresponding packages: %s"%(self.packagesInfo))
 
     """Return a set of Rpkg objects, matching all the rpkgs found compatible with the current Rudder version."""
     def getCompatiblePackagesInfo(self):
@@ -69,32 +70,18 @@ class Plugin:
         for iRpkg in self.packagesInfo :
             if (iRpkg.version.pluginLongVersion == longVersion and iRpkg.version.mode == mode):
                 return iRpkg
-        utils.fail("Version %s in %s could not be found for the plugin %s"%(longVersion, mode, self.name))
+        return None
 
     """Return the latest released Rpkg object found compatible with current Rudder version."""
     def getLatestCompatibleRelease(self):
         try:
             return max(self.getCompatibleRelease())
         except:
-            utils.fail("Could not find any compatible release for %s"%(self.name))
+            return None
 
     """Return the latest nightly Rpkg object found compatible with current Rudder version."""
     def getLatestCompatibleNightly(self):
         try:
             return max(self.getCompatibleNightly())
         except:
-            utils.fail("Could not find any compatible nightly for %s"%(self.name))
-
-    """Return the latest release Rpkg object found compatible or not with current Rudder version."""
-    def getLatestRelease(self):
-        try:
-            return max(self.releasePackagesInfo)
-        except:
-            utils.fail("Could not find any compatible release for %s"%(self.name))
-
-    """Return the latest nightly Rpkg object found compatible or not with current Rudder version."""
-    def getLatestNightly(self):
-        try:
-            return max(self.nightlyPackagesInfo)
-        except:
-            utils.fail("Could not find any compatible nightly for %s"%(self.name))
+            return None
