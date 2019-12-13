@@ -102,6 +102,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration.FiniteDuration
 import scala.util.control.NonFatal
 
+import jdk.nashorn.internal.ir.debug.ObjectSizeCalculator
 
 /**
  * A deployment hook is a class that accept callbacks.
@@ -392,12 +393,14 @@ trait PromiseGenerationService {
       ruleVals              <- buildRuleVals(activeRuleIds, allRules, directiveLib, groupLib, allNodeInfos) ?~! "Cannot build Rule vals"
       timeRuleVal           =  (System.currentTimeMillis - ruleValTime)
       _                     =  PolicyLogger.debug(s"RuleVals built in ${timeRuleVal} ms, start to expand their values.")
-
+      _ = PolicyLogger.debug("RuleVal size is " +ObjectSizeCalculator.getObjectSize(ruleVals))
       nodeContextsTime      =  System.currentTimeMillis
       activeNodeIds         =  ruleVals.foldLeft(Set[NodeId]()){case(s,r) => s ++ r.nodeIds}
       nodeContexts          <- getNodeContexts(activeNodeIds, allNodeInfos, groupLib, allLicenses, allParameters, globalAgentRun, globalComplianceMode, globalPolicyMode) ?~! "Could not get node interpolation context"
       timeNodeContexts      =  (System.currentTimeMillis - nodeContextsTime)
       _                     =  PolicyLogger.debug(s"Node contexts built in ${timeNodeContexts} ms, start to build new node configurations.")
+      _ = PolicyLogger.debug("nodeContexts size is " +ObjectSizeCalculator.getObjectSize(nodeContexts))
+
 
       buildConfigTime       =  System.currentTimeMillis
       /// here, we still have directive by directive info
@@ -416,6 +419,14 @@ trait PromiseGenerationService {
       updatedNodeConfigs    =  nodeConfigs.filterKeys(id => updatedNodeConfigIds.keySet.contains(id))
       updatedNodeInfo       =  updatedNodeConfigs.map{ case (nodeid, nodeconfig) => (nodeid, nodeconfig.nodeInfo)}
       updatedNodesId        =  updatedNodeInfo.keySet.toSeq.toSet // prevent from keeping an undue reference after generation
+      _ = PolicyLogger.debug("nodeConfigs size is " +ObjectSizeCalculator.getObjectSize(nodeConfigs))
+      _ = PolicyLogger.debug("allNodeConfigsInfos size is " +ObjectSizeCalculator.getObjectSize(allNodeConfigsInfos))
+      _ = PolicyLogger.debug("allNodeConfigsId size is " +ObjectSizeCalculator.getObjectSize(allNodeConfigsId))
+      _ = PolicyLogger.debug("updatedNodeConfigIds size is " +ObjectSizeCalculator.getObjectSize(updatedNodeConfigIds))
+      _ = PolicyLogger.debug("updatedNodeConfigs size is " +ObjectSizeCalculator.getObjectSize(updatedNodeConfigs))
+      _ = PolicyLogger.debug("updatedNodeInfo size is " +ObjectSizeCalculator.getObjectSize(updatedNodeInfo))
+      _ = PolicyLogger.debug("updatedNodesId size is " +ObjectSizeCalculator.getObjectSize(updatedNodesId))
+
 
       ///// so now we have everything for each updated nodes, we can start writing node policies and then expected reports
 
@@ -431,6 +442,7 @@ trait PromiseGenerationService {
       expectedReports       =  computeExpectedReports(updatedNodeConfigs, updatedNodeConfigIds, generationTime, allNodeModes)
       timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
       _                     =  PolicyLogger.debug(s"Reports computed in ${timeSetExpectedReport} ms")
+      _ = PolicyLogger.debug("expectedReports size is " +ObjectSizeCalculator.getObjectSize(expectedReports))
 
       saveExpectedTime      =  System.currentTimeMillis
       _                     <- saveExpectedReports(expectedReports) ?~! "Error when saving expected reports"
