@@ -117,7 +117,7 @@ class CachedReportsExecutionRepository(
     cache = Map()
   }
 
-  override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRunWithNodeConfig]]] = this.synchronized {
+  override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRunWithNodeConfig]]] = scala.concurrent.blocking { this.synchronized {
     val n1 = System.currentTimeMillis
     (for {
       runs <- readBackend.getNodesLastRun(nodeIds.diff(cache.keySet))
@@ -127,7 +127,7 @@ class CachedReportsExecutionRepository(
       cache = cache ++ runs
       cache.filterKeys { x => nodeIds.contains(x) }
     }) ?~! s"Error when trying to update the cache of Agent Runs informations"
-  }
+  } }
 
   override def updateExecutions(executions : Seq[AgentRun]) : Seq[Box[AgentRun]] = this.synchronized {
     logger.trace(s"Update runs for nodes [${executions.map( _.agentRunId.nodeId.value ).mkString(", ")}]")
