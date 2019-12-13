@@ -235,6 +235,9 @@ td.listclose:after {
   float: left;
   width: 100%;
 }
+.dataTable > tbody > tr > td.details ul {
+  margin-bottom: 0;
+}
 .dataTable .dataTable .innerDetails {
   border-top: none !important;
 }
