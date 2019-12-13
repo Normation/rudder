@@ -52,7 +52,7 @@ object DateFormaterService {
   val displayDateFormat = new DateTimeFormatterBuilder()
     .append(DateTimeFormat.forPattern("YYYY-MM-dd"))
     .appendLiteral(' ')
-    .append(DateTimeFormat.forPattern("hh:mm:ssZ")).toFormatter
+    .append(DateTimeFormat.forPattern("HH:mm:ssZ")).toFormatter
 
   /*
    * Display date must be used only for the user facing date in non serialized form
