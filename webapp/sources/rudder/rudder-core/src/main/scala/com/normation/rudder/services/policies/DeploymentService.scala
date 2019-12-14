@@ -94,6 +94,7 @@ import monix.eval.Task
 import monix.eval.TaskSemaphore
 import monix.execution.ExecutionModel
 import monix.execution.Scheduler
+import org.github.jamm.MemoryMeter
 import org.joda.time.Period
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.format.PeriodFormatterBuilder
@@ -309,6 +310,8 @@ trait PromiseGenerationService {
 
     val generationContinueOnError = getGenerationContinueOnError().getOrElse(false)
 
+val memoryMeter = new MemoryMeter;
+
     PolicyLogger.debug(s"Policy generation parallelism set to: ${maxParallelism} (change with REST API settings parameter 'rudder_generation_max_parallelism')")
     PolicyLogger.debug(s"Policy generation JS evaluation of directive parameter timeout: ${jsTimeout} s (change with REST API settings parameter 'rudder_generation_jsTimeout')")
     PolicyLogger.debug(s"Policy generation continues on NodeConfigurations evaluation: ${generationContinueOnError} (change with REST API settings parameter 'rudder_generation_continue_on_error')")
@@ -368,6 +371,15 @@ trait PromiseGenerationService {
       timeFetchAll         =  (System.currentTimeMillis - fetch0Time)
       _                    =  PolicyLogger.debug(s"All relevant information fetched in ${timeFetchAll} ms, start names historization.")
 
+      _                    =  PolicyLogger.debug(s"Size of allNodeInfos is ${memoryMeter.measure(allNodeInfos)} ")
+      _                    =  PolicyLogger.debug(s"Size deepof allNodeInfos is ${memoryMeter.measureDeep(allNodeInfos)} ")
+
+      _                    =  PolicyLogger.debug(s"Size of allNodeModes is ${memoryMeter.measure(allNodeModes)} ")
+      _                    =  PolicyLogger.debug(s"Size deepof allNodeModes is ${memoryMeter.measureDeep(allNodeModes)} ")
+
+      _                    =  PolicyLogger.debug(s"Size of nodeConfigCaches is ${memoryMeter.measure(nodeConfigCaches)} ")
+      _                    =  PolicyLogger.debug(s"Size deepof nodeConfigCaches is ${memoryMeter.measureDeep(nodeConfigCaches)} ")
+
 
       _                    =  logMetrics(allNodeInfos, allRules, directiveLib, groupLib, allParameters, nodeConfigCaches)
       /////
@@ -393,11 +405,18 @@ trait PromiseGenerationService {
       timeRuleVal           =  (System.currentTimeMillis - ruleValTime)
       _                     =  PolicyLogger.debug(s"RuleVals built in ${timeRuleVal} ms, start to expand their values.")
 
+      _                    =  PolicyLogger.debug(s"Size of ruleVals is ${memoryMeter.measure(ruleVals)} ")
+      _                    =  PolicyLogger.debug(s"Size deepof ruleVals is ${memoryMeter.measureDeep(ruleVals)} ")
+
+
       nodeContextsTime      =  System.currentTimeMillis
       activeNodeIds         =  ruleVals.foldLeft(Set[NodeId]()){case(s,r) => s ++ r.nodeIds}
       nodeContexts          <- getNodeContexts(activeNodeIds, allNodeInfos, groupLib, allLicenses, allParameters, globalAgentRun, globalComplianceMode, globalPolicyMode) ?~! "Could not get node interpolation context"
       timeNodeContexts      =  (System.currentTimeMillis - nodeContextsTime)
       _                     =  PolicyLogger.debug(s"Node contexts built in ${timeNodeContexts} ms, start to build new node configurations.")
+
+      _                    =  PolicyLogger.debug(s"Size of nodeContexts is ${memoryMeter.measure(nodeContexts)} ")
+      _                    =  PolicyLogger.debug(s"Size deepof nodeContexts is ${memoryMeter.measureDeep(nodeContexts)} ")
 
       buildConfigTime       =  System.currentTimeMillis
       /// here, we still have directive by directive info
@@ -409,6 +428,10 @@ trait PromiseGenerationService {
       timeBuildConfig       =  (System.currentTimeMillis - buildConfigTime)
       _                     =  PolicyLogger.debug(s"Node's target configuration built in ${timeBuildConfig} ms, start to update rule values.")
 
+      _                    =  PolicyLogger.debug(s"Size of nodeConfigs is ${memoryMeter.measure(nodeConfigs)} ")
+      _                    =  PolicyLogger.debug(s"Size deepof nodeConfigs is ${memoryMeter.measureDeep(nodeConfigs)} ")
+
+
       allNodeConfigsInfos   =  nodeConfigs.map{ case (nodeid, nodeconfig) => (nodeid, nodeconfig.nodeInfo)}
       allNodeConfigsId      =  allNodeConfigsInfos.keysIterator.toSet
 
@@ -416,6 +439,19 @@ trait PromiseGenerationService {
       updatedNodeConfigs    =  nodeConfigs.filterKeys(id => updatedNodeConfigIds.keySet.contains(id))
       updatedNodeInfo       =  updatedNodeConfigs.map{ case (nodeid, nodeconfig) => (nodeid, nodeconfig.nodeInfo)}
       updatedNodesId        =  updatedNodeInfo.keySet.toSeq.toSet // prevent from keeping an undue reference after generation
+
+      _                    =  PolicyLogger.debug(s"Size of updatedNodeConfigIds is ${memoryMeter.measure(updatedNodeConfigIds)} ")
+      _                    =  PolicyLogger.debug(s"Size deepof updatedNodeConfigIds is ${memoryMeter.measureDeep(updatedNodeConfigIds)} ")
+
+      _                    =  PolicyLogger.debug(s"Size of updatedNodeConfigs is ${memoryMeter.measure(updatedNodeConfigs)} ")
+      _                    =  PolicyLogger.debug(s"Size deepof updatedNodeConfigs is ${memoryMeter.measureDeep(updatedNodeConfigs)} ")
+
+      _                    =  PolicyLogger.debug(s"Size of updatedNodeInfo is ${memoryMeter.measure(updatedNodeInfo)} ")
+      _                    =  PolicyLogger.debug(s"Size deepof updatedNodeInfo is ${memoryMeter.measureDeep(updatedNodeInfo)} ")
+
+      _                    =  PolicyLogger.debug(s"Size of updatedNodesId is ${memoryMeter.measure(updatedNodesId)} ")
+      _                    =  PolicyLogger.debug(s"Size deepof updatedNodesId is ${memoryMeter.measureDeep(updatedNodesId)} ")
+
 
       ///// so now we have everything for each updated nodes, we can start writing node policies and then expected reports
 
@@ -431,6 +467,10 @@ trait PromiseGenerationService {
       expectedReports       =  computeExpectedReports(updatedNodeConfigs, updatedNodeConfigIds, generationTime, allNodeModes)
       timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
       _                     =  PolicyLogger.debug(s"Reports computed in ${timeSetExpectedReport} ms")
+
+      _                    =  PolicyLogger.debug(s"Size of expectedReports is ${memoryMeter.measure(expectedReports)} ")
+      _                    =  PolicyLogger.debug(s"Size deepof expectedReports is ${memoryMeter.measureDeep(expectedReports)} ")
+
 
       saveExpectedTime      =  System.currentTimeMillis
       _                     <- saveExpectedReports(expectedReports) ?~! "Error when saving expected reports"
