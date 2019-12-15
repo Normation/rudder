@@ -88,6 +88,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
               </includes>
             </resource>
           </webResources>
+
+	  <!-- this is needed to get instrumentation working, jar need to be out of web-inf -->
+          <packagingExcludes>
+            WEB-INF/lib/jamm-*.jar
+          </packagingExcludes>
+
         </configuration>
       </plugin>
       <plugin>
