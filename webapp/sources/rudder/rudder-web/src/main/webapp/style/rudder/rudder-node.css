@@ -95,6 +95,11 @@ div#query-search-content {
   border-left: 2px solid #e5e5e5;
   margin-top: -15px;
 }
+.jstree-anchor > i.jstree-icon.fa.fa-folder,
+.jstree-anchor > .treeGroupCategoryName {
+  position: relative;
+  top: 2px;
+}
 #nodeGroups > h3 {
   color: #222D42;
   padding: 15px 15px 10px !important;
@@ -198,12 +203,13 @@ div#query-search-content {
   margin-bottom: 0;
 }
 .rudder-info .rudder-label {
-  position: relative;
-  margin-bottom: -4px;
-  top: -1px;
   font-size: 12px;
-  padding: 10px 18px !important;
-  line-height: 0px;
+  margin-bottom: -4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px !important;
+  height: 20px;
 }
 
 .details .ui-tabs-nav.list-tabs-invetory {
