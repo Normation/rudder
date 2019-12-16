@@ -58,14 +58,17 @@ def package_list_installed():
         currentVersion = rpkg.PluginVersion(utils.DB["plugins"][p]["version"])
         version.append(currentVersion.pluginLongVersion)
         extra = ""
-        if printLatest:
-            pkgs = plugin.Plugin(p)
-            pkgs.getAvailablePackages()
-            latestVersion = pkgs.getLatestCompatibleRelease().version
-            if currentVersion < latestVersion:
-                extra = "version %s is available"%(latestVersion.pluginLongVersion)
-            latestRelease.append(latestVersion.pluginLongVersion + " " + extra)
-        else:
+        try:
+            if printLatest:
+                pkgs = plugin.Plugin(p)
+                pkgs.getAvailablePackages()
+                latestVersion = pkgs.getLatestCompatibleRelease().version
+                if currentVersion < latestVersion:
+                    extra = "version %s is available"%(latestVersion.pluginLongVersion)
+                latestRelease.append(latestVersion.pluginLongVersion + " " + extra)
+            else:
+                latestRelease.append("")
+        except:
             latestRelease.append("")
 
     table = [
@@ -84,16 +87,26 @@ def package_list_name():
     pluginDict = utils.list_plugin_name()
     pluginName = []
     shortName = []
+    latestRelease = []
     description = []
     for p in pluginDict.keys():
         if utils.check_download(utils.URL + "/" + utils.RUDDER_VERSION + "/" + str(pluginDict[p][0])):
             pluginName.append(str(p))
             shortName.append(str(pluginDict[p][0]))
             description.append(str(pluginDict[p][1]))
+
+            pkgs = plugin.Plugin(p)
+            pkgs.getAvailablePackages()
+            try:
+                latestVersion = pkgs.getLatestCompatibleRelease().version.pluginLongVersion
+            except:
+                latestVersion = ""
+            latestRelease.append(latestVersion)
     table = [
-                { "title": "Plugin Name"      , "value": pluginName  },
-                { "title": "Plugin Short Name", "value": shortName   },
-                { "title": "Description"      , "value": description },
+                { "title": "Plugin Name"      , "value": pluginName    },
+                { "title": "Plugin Short Name", "value": shortName     },
+                { "title": "Description"      , "value": description   },
+                { "title": "Latest release"   , "value": latestRelease }
             ]
     print(utils.dictToAsciiTable(table))
 
@@ -106,17 +119,17 @@ def package_show(name, version, mode):
     pkgs = plugin.Plugin(name[0])
     pkgs.getAvailablePackages()
     if version != "":
-        if mode == "release":
-            rpkg = pkgs.getRpkgByLongVersion(version, mode)
-        else:
-            rpkg = pkgs.getRpkgByLongVersion(version, mode)
+        rpkg = pkgs.getRpkgByLongVersion(version, mode)
     else:
         if mode == "release":
             rpkg = pkgs.getLatestCompatibleRelease()
         else:
             rpkg = pkgs.getLatestCompatibleNightly()
+    if rpkg is not None:
+        rpkg.show_metadata()
+    else:
+        utils.fail("Could not find any package in %s for %s"%(mode, name))
 
-    rpkg.show_metadata()
 
 """
     Given a name, lookf for a the given packages availables for this plugin.
@@ -154,12 +167,12 @@ def package_install_specific_version(name, longVersion, mode="release"):
     utils.readConf()
     pkgs = plugin.Plugin(name[0])
     pkgs.getAvailablePackages()
-    if mode == "release":
-        rpkg = pkgs.getRpkgByLongVersion(longVersion, mode)
+    rpkg = pkgs.getRpkgByLongVersion(longVersion, mode)
+    if rpkg is not None:
+        rpkgPath = utils.downloadByRpkg(rpkg)
+        install_file([rpkgPath])
     else:
-        rpkg = pkgs.getRpkgByLongVersion(longVersion, mode)
-    rpkgPath = utils.downloadByRpkg(rpkg)
-    install_file([rpkgPath])
+        utils.fail("Could not find any package for %s in version %s"%(name, longVersion))
 
 """
     Install the latest available and compatible package for a given plugin.
@@ -173,8 +186,10 @@ def package_install_latest(name, mode="release"):
         rpkg = pkgs.getLatestCompatibleRelease()
     else:
         rpkg = pkgs.getLatestCompatibleNightly()
-    rpkgPath = utils.downloadByRpkg(rpkg)
-    install_file([rpkgPath])
+    if rpkg is not None:
+        rpkgPath = utils.downloadByRpkg(rpkg)
+        install_file([rpkgPath])
+    utils.fail("Could not find any compatible %s for %s"%(mode, name))
 
 """Remove a given plugin. Expect a list of name as parameter."""
 def remove(package_names):
