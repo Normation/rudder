@@ -357,7 +357,7 @@ final case class Policy(
   // == .toList (keep order)     ==> List[List[Variable]]
   // == flatten (keep order)     ==> List[Variable]
   val expandedVars    = Policy.mergeVars(policyVars.map( _.expandedVars.values).toList.flatten)
-  val originalVars    = Policy.mergeVars(policyVars.map( _.originalVars.values).toList.flatten)
+  //val originalVars    = Policy.mergeVars(policyVars.map( _.originalVars.values).toList.flatten)
   val trackerVariable = policyVars.head.trackerVariable.spec.cloneSetMultivalued.toVariable(policyVars.map(_.trackerVariable.values).toList.flatten)
 }
 
