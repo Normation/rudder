@@ -801,8 +801,9 @@ ul.files-list > li > .remove-item:hover{
   margin-bottom: 12px;
 }
 .method-details .tab-result .form-control[readonly]{
-  background: repeating-linear-gradient( -45deg, #ffffff, #ffffff 10px, #f1F1F1 10px, #f1F1F1 20px );
   cursor: default;
+  background-color: #f7f7f7;
+  box-shadow: none !important;
 }
 .method-details .tab-result .input-group-prepend > .input-group-text{
   min-width: 80px;
@@ -1109,6 +1110,28 @@ ul.list-unstyled > li{
   margin-left: 10px;
 }
 
+/* RESULT CONDITIONS */
+.result-class .result-success .input-group-text,
+.result-class .result-repaired .input-group-text,
+.result-class .result-error .input-group-text{
+  border-left-width: 4px;
+  border-left-style: solid;
+}
+.result-class .result-success .input-group-text{
+  border-left-color: #8fb92a;
+}
+.result-class .result-repaired .input-group-text{
+  border-left-color: #ffd715;
+}
+.result-class .result-error .input-group-text{
+  border-left-color: #C80004;
+}
+.result-class .clipboard{
+  background-color: #e9ecef;
+}
+.result-class .clipboard:hover{
+  background-color: #6c757d;
+}
 /* LOADER */
 .loading{
   position: absolute;
