@@ -431,10 +431,10 @@ val memoryMeter = new MemoryMeter;
       _                    =  PolicyLogger.debug(s"Size of nodeConfigs is ${memoryMeter.measure(nodeConfigs)} ")
       _                    =  PolicyLogger.debug(s"Size deepof nodeConfigs is ${memoryMeter.measureDeep(nodeConfigs)} ")
 
-      nodeContexts         = nodeConfigs.map { case (_, nodeconfig) => nodeconfig.nodeContext}
+      policies         = nodeConfigs.map { case (_, nodeconfig) => nodeconfig.policies}
 
-      _                    =  PolicyLogger.debug(s"Size of nodeConfigs.nodeContext is ${memoryMeter.measure(nodeContexts)}")
-      _                    =  PolicyLogger.debug(s"Size deepof nodeConfigs is ${memoryMeter.measureDeep(nodeContexts)} ")
+      _                    =  PolicyLogger.debug(s"Size of nodeConfigs.policies is ${memoryMeter.measure(policies)}")
+      _                    =  PolicyLogger.debug(s"Size deepof nodeConfigs.policies is ${memoryMeter.measureDeep(policies)} ")
 
 
 
