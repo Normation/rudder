@@ -99,10 +99,10 @@ class ParameterManagement extends DispatchSnippet with Loggable {
         ".overridable *" #> param.overridable &
         ".change *" #> <div>{
           (if(CurrentUser.checkRights(AuthorizationType.Parameter.Edit)) {
-            ajaxButton("Edit", () => showPopup(GlobalParamModAction.Update, Some(param)), ("class", "btn btn-default btn-xs"), ("style", "min-width:50px;"))
+            ajaxButton("Edit", () => showPopup(GlobalParamModAction.Update, Some(param)), ("class", "btn btn-default btn-sm"), ("style", "min-width:50px;"))
           } else NodeSeq.Empty) ++
           (if(CurrentUser.checkRights(AuthorizationType.Parameter.Write)) {
-            ajaxButton("Delete", () => showPopup(GlobalParamModAction.Delete, Some(param)), ("class", "btn btn-danger btn-xs"), ("style", "margin-left:5px;min-width:0px;"))
+            ajaxButton("Delete", () => showPopup(GlobalParamModAction.Delete, Some(param)), ("class", "btn btn-danger btn-sm"), ("style", "margin-left:5px;min-width:50px;"))
           } else NodeSeq.Empty)
         }</div>
       }) &

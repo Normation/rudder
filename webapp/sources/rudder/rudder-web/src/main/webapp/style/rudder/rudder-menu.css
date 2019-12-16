@@ -107,7 +107,7 @@ pre.json-beautify, .content-wrapper pre.json-beautify{
   overflow: hidden;
   position: relative;
   margin-bottom: 0;
-  padding: 6px;
+  padding: 7px 6px;
   padding-right: 65px;
   white-space: pre-wrap;
   word-break: break-all;

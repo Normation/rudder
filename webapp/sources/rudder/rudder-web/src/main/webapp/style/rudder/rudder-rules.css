@@ -125,6 +125,9 @@ label.rule-info + div{
   }
 }
 
+.dataTable .progress-bar {
+  line-height: 22px;
+}
 /* Directive and Group sections */
 #ruleDirectives,
 #DirectiveCtrl,
