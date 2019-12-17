@@ -127,9 +127,9 @@ def get_all_cf_filenames_under_dir(parent_dir, only_technique_cf):
     for file in files:
       if only_technique_cf:
         if file == "technique.cf":
-          filenames_add(os.path.join(root, file))
+          filenames.append(os.path.join(root, file))
       elif  not file.startswith("_") and file.endswith(".cf"):
-        filenames_add(os.path.join(root, file))
+        filenames.append(os.path.join(root, file))
   return filenames
 
 
@@ -424,7 +424,6 @@ def get_all_techniques_metadata(include_methods_calls = True, migrate_technique 
   method_errors = methods_data["errors"]
   warnings = methods_data["warnings"]
   errors = []
-
   for file in filenames:
     with codecs.open(file, encoding="utf-8") as fd:
       content = fd.read()
