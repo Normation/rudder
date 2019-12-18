@@ -168,13 +168,17 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     }
   }
 
+  private[this] def closePopup() : JsCmd = {
+    JsRaw("""$('body').removeClass('modal-open').attr('style','');""")
+  }
+
   private[this] def fullPolicyGeneration : NodeSeq = {
     <lift:authz role="deployment_write"> {
       SHtml.ajaxButton(
         "Regenerate"
         , () => {
           clearCacheService.clearNodeConfigurationCache(storeEvent = true, CurrentUser.actor)
-          Noop
+          closePopup()
         }
         , ("class","btn btn-danger")
       )
