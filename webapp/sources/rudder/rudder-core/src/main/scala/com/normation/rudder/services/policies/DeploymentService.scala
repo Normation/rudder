@@ -348,7 +348,7 @@ trait PromiseGenerationService {
       // this is to be done as many time as necessary to gc in each context
       fetch0Time           =  System.currentTimeMillis
       (updatedNodeConfigIds, updatedNodeConfigs, allNodeConfigsInfos, updatedNodesId, updatedNodeInfo, allLicenses, globalPolicyMode, allNodeModes, allErrors, errorNodes, timeFetchAll, timeHistorize, timeRuleVal, timeBuildConfig)   <- for {
-        (activeNodeIds, ruleVals,nodeContexts,allNodeModes, scriptEngineEnabled, globalPolicyMode, nodeConfigCaches, allLicenses, timeFetchAll, timeHistorize, timeRuleVal, timeBuildConfig) <- for {
+        (activeNodeIds, ruleVals,nodeContexts,allNodeModes, scriptEngineEnabled, globalPolicyMode, nodeConfigCaches, allLicenses, timeFetchAll, timeHistorize, timeRuleVal) <- for {
           allRules             <- findDependantRules() ?~! "Could not find dependant rules"
           fetch1Time           =  System.currentTimeMillis
           _                    =  PolicyLogger.trace(s"Fetched rules in ${fetch1Time-fetch0Time} ms")
@@ -412,7 +412,7 @@ trait PromiseGenerationService {
           _                     =  PolicyLogger.debug(s"Node contexts built in ${timeNodeContexts} ms, start to build new node configurations.")
 
         } yield {
-          (activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, nodeConfigCaches, allLicenses, timeFetchAll, timeHistorize, timeRuleVal, timeBuildConfig)
+          (activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, nodeConfigCaches, allLicenses, timeFetchAll, timeHistorize, timeRuleVal)
         }
         buildConfigTime       =  System.currentTimeMillis
         /// here, we still have directive by directive info
