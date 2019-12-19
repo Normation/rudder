@@ -84,7 +84,7 @@ trait AbstractScheduler {
   val schedulerMinimumIntervalTime = 1
   val schedulerMaximumIntervalTime = 300
   def updateInterval: Int // in seconds
-  val executeTask: Long => Box[T]
+  def executeTask: Long => Box[T]
   def displayName : String
   def propertyName : String
 
