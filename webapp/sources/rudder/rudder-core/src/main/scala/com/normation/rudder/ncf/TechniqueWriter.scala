@@ -474,7 +474,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
           } yield {
             <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/resources/${resource.path}"}>
               <INCLUDED>false</INCLUDED>
-              <OUTPATH>${technique.bundleName.value}/${technique.version.value}/resources/${resource.path}</OUTPATH>
+              <OUTPATH>{technique.bundleName.value}/{technique.version.value}/resources/{resource.path}</OUTPATH>
             </FILE>
           }
         }
