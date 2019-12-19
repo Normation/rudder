@@ -66,13 +66,13 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private[this] def displayTime(label: String, time: DateTime): NodeSeq = {
-    val t = time.toString("yyyy-MM-dd HH:mm:ss")
+    val t = time.toString("yyyy-MM-dd HH:mm:ssZ")
     val d = DateFormaterService.getFormatedPeriod(time, DateTime.now)
     // exceptionnaly not putting {} to remove the noide
     <span>{label + t}</span><div class="help-block">{"↳ " + d} ago</div>
   }
   private[this] def displayDate(label: String, time: DateTime): NodeSeq = {
-    val t = time.toString("yyyy-MM-dd HH:mm:ss")
+    val t = time.toString("yyyy-MM-dd HH:mm:ssZ")
     <span class="dropdown-header">{label + t}</span>
   }
   private[this] def updateDuration = {
