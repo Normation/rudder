@@ -18,7 +18,7 @@ limitations under the License.
 
   <groupId>com.normation</groupId>
   <artifactId>parent-pom</artifactId>
-  <version>6.0.1-SNAPSHOT</version>
+  <version>6.0.1</version>
   <packaging>pom</packaging>
 
   <!-- ====================================  PROJECT INFORMATION  ==================================== -->
@@ -348,7 +348,7 @@ limitations under the License.
 
     <current-year>2019</current-year>
     <rudder-major-version>6.0</rudder-major-version>
-    <rudder-version>6.0.1-SNAPSHOT</rudder-version>
+    <rudder-version>6.0.1</rudder-version>
 
     <scala-version>2.12.10</scala-version>
     <scala-binary-version>2.12</scala-binary-version>
