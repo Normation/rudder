@@ -1,0 +1,11 @@
+# @parameters [  ]
+# @name Configure NTP
+#
+# @version 1.0
+# @description test
+
+bundle agent Configure_NTP_technique 
+{
+  methods:
+      "Package present" usebundle => package_present("ntp","","","");
+}

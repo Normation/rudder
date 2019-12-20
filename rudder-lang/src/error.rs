@@ -28,6 +28,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
+use ngrammatic::{Corpus, CorpusBuilder};
 use std::collections::HashMap;
 ///
 /// We write our own error type to have a consistent error type through all our code.
@@ -42,6 +43,9 @@ use std::collections::HashMap;
 ///
 use std::fmt;
 use std::hash::Hash;
+use crate::parser::Token;
+
+const FUZZY_THRESHOLD: f32 = 0.5; // pub + `crate::` before calling since it may end up in the main.rs file.
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Error {
@@ -203,5 +207,52 @@ impl fmt::Display for Error {
                     .join("\n")
             ),
         }
+    }
+}
+
+
+// Must have a trait to add the following method as ngrammatic::corpus only has an `add_text()` method
+trait FuzzyChecker<'src, I> {
+	fn add_vec(&mut self, list: I);
+}
+
+impl<'src, I: Iterator<Item = &'src Token<'src>>> FuzzyChecker<'src, I> for Corpus {
+	fn add_vec(&mut self, list: I) {
+		list.for_each(|token| {
+            self.add_text(&*token)
+        });
+	}
+}
+
+/// Searches for a matching string in an Iterator of Token
+fn fuzzy_search<'src, I>(token_fragment: &str, list: I) -> Option<String>
+where 
+	I: Iterator<Item = &'src Token<'src>>,
+{
+	let mut corpus = CorpusBuilder::new().finish();
+	corpus.add_vec(list);
+    let results = corpus.search(token_fragment, FUZZY_THRESHOLD);
+	if let Some(top_match) = results.first() {
+		return Some(top_match.text.to_string())
+	}
+	None
+}
+
+/// Adds a suggestion o an error message if a similar Token name is found in the available context (scope + global)
+pub fn get_suggestion_message<'src, I>(unmatched_token_fragment: &str, list: I) -> String
+where 
+    I: Iterator<Item = &'src Token<'src>>,
+{
+    match list.size_hint() {
+        (_, Some(0)) => "\nNo variable in the current context".to_owned(),
+        (_, Some(1)) => {
+            let token = list.last().unwrap();
+            format!("\nDid you mean: \"{}\"?", token.fragment())
+        }, 
+        _ => match fuzzy_search(unmatched_token_fragment, list) {
+            Some(message) => format!("\nDid you mean: \"{}\"?", message),
+            None => "\nNo similar name found.".to_owned(),
+            // previous is explicit, testing purpose. prod -> None => "".to_owned(),
+        },
     }
 }
