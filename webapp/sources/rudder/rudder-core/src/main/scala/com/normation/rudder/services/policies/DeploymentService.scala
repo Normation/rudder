@@ -346,112 +346,116 @@ trait PromiseGenerationService {
 
       // Create these objects in a separate for {} yield to avoid unecessary memory retention by the GC
       // this is to be done as many time as necessary to gc in each context
+      // if it doesn't do what's expected, do it more, more, mooooooooore
       fetch0Time           =  System.currentTimeMillis
-      (updatedNodeConfigIds, updatedNodeConfigs, allNodeConfigsInfos, updatedNodesId, updatedNodeInfo, allLicenses, globalPolicyMode, allNodeModes, allErrors, errorNodes, timeFetchAll, timeHistorize, timeRuleVal, timeBuildConfig)   <- for {
-        (activeNodeIds, ruleVals,nodeContexts,allNodeModes, scriptEngineEnabled, globalPolicyMode, nodeConfigCaches, allLicenses, timeFetchAll, timeHistorize, timeRuleVal) <- for {
-          allRules             <- findDependantRules() ?~! "Could not find dependant rules"
-          fetch1Time           =  System.currentTimeMillis
-          _                    =  PolicyLogger.trace(s"Fetched rules in ${fetch1Time-fetch0Time} ms")
-          allNodeInfos         <- getAllNodeInfos.map( _.filter { case(_,n) =>
-            if(n.state == NodeState.Ignored) {
-              PolicyLogger.debug(s"Skipping node '${n.id.value}' because the node is in state '${n.state.name}'")
-              false
-            } else true
-          })  ?~! "Could not get Node Infos" //disabled node don't get new policies
-          fetch2Time           =  System.currentTimeMillis
-          _                    =  PolicyLogger.trace(s"Fetched node infos in ${fetch2Time-fetch1Time} ms")
-          directiveLib         <- getDirectiveLibrary() ?~! "Could not get the directive library"
-          fetch3Time           =  System.currentTimeMillis
-          _                    =  PolicyLogger.trace(s"Fetched directives in ${fetch3Time-fetch2Time} ms")
-          groupLib             <- getGroupLibrary() ?~! "Could not get the group library"
-          fetch4Time           =  System.currentTimeMillis
-          _                    =  PolicyLogger.trace(s"Fetched groups in ${fetch4Time-fetch3Time} ms")
-          allParameters        <- getAllGlobalParameters ?~! "Could not get global parameters"
-          fetch5Time           =  System.currentTimeMillis
-          _                    =  PolicyLogger.trace(s"Fetched global parameters in ${fetch5Time-fetch4Time} ms")
-          globalAgentRun       <- getGlobalAgentRun
-          fetch6Time           =  System.currentTimeMillis
-          _                    =  PolicyLogger.trace(s"Fetched run infos in ${fetch6Time-fetch5Time} ms")
-          scriptEngineEnabled  <- getScriptEngineEnabled() ?~! "Could not get if we should use the script engine to evaluate directive parameters"
-          globalComplianceMode <- getGlobalComplianceMode
-          globalPolicyMode     <- getGlobalPolicyMode() ?~! "Cannot get the Global Policy Mode (Enforce or Verify)"
-          nodeConfigCaches     <- getNodeConfigurationHash() ?~! "Cannot get the Configuration Cache"
-          allLicenses          <- getAllLicenses() ?~! "Cannont get licenses information"
-          allNodeModes         =  buildNodeModes(allNodeInfos, globalComplianceMode, globalAgentRun, globalPolicyMode)
-          timeFetchAll         =  (System.currentTimeMillis - fetch0Time)
-          _                    =  PolicyLogger.debug(s"All relevant information fetched in ${timeFetchAll} ms, start names historization.")
+      (updatedNodesId, updatedNodeInfo, expectedReports, allErrors, errorNodes, timeFetchAll, timeHistorize, timeRuleVal, timeBuildConfig, timeWriteNodeConfig, timeSetExpectedReport) <- for {
+        (updatedNodeConfigIds, updatedNodeConfigs, allNodeConfigsInfos, updatedNodesId, updatedNodeInfo, allLicenses, globalPolicyMode, allNodeModes, allErrors, errorNodes, timeFetchAll, timeHistorize, timeRuleVal, timeBuildConfig)   <- for {
+          (activeNodeIds, ruleVals,nodeContexts,allNodeModes, scriptEngineEnabled, globalPolicyMode, nodeConfigCaches, allLicenses, timeFetchAll, timeHistorize, timeRuleVal) <- for {
+            allRules             <- findDependantRules() ?~! "Could not find dependant rules"
+            fetch1Time           =  System.currentTimeMillis
+            _                    =  PolicyLogger.trace(s"Fetched rules in ${fetch1Time-fetch0Time} ms")
+            allNodeInfos         <- getAllNodeInfos.map( _.filter { case(_,n) =>
+              if(n.state == NodeState.Ignored) {
+                PolicyLogger.debug(s"Skipping node '${n.id.value}' because the node is in state '${n.state.name}'")
+                false
+              } else true
+            })  ?~! "Could not get Node Infos" //disabled node don't get new policies
+            fetch2Time           =  System.currentTimeMillis
+            _                    =  PolicyLogger.trace(s"Fetched node infos in ${fetch2Time-fetch1Time} ms")
+            directiveLib         <- getDirectiveLibrary() ?~! "Could not get the directive library"
+            fetch3Time           =  System.currentTimeMillis
+            _                    =  PolicyLogger.trace(s"Fetched directives in ${fetch3Time-fetch2Time} ms")
+            groupLib             <- getGroupLibrary() ?~! "Could not get the group library"
+            fetch4Time           =  System.currentTimeMillis
+            _                    =  PolicyLogger.trace(s"Fetched groups in ${fetch4Time-fetch3Time} ms")
+            allParameters        <- getAllGlobalParameters ?~! "Could not get global parameters"
+            fetch5Time           =  System.currentTimeMillis
+            _                    =  PolicyLogger.trace(s"Fetched global parameters in ${fetch5Time-fetch4Time} ms")
+            globalAgentRun       <- getGlobalAgentRun
+            fetch6Time           =  System.currentTimeMillis
+            _                    =  PolicyLogger.trace(s"Fetched run infos in ${fetch6Time-fetch5Time} ms")
+            scriptEngineEnabled  <- getScriptEngineEnabled() ?~! "Could not get if we should use the script engine to evaluate directive parameters"
+            globalComplianceMode <- getGlobalComplianceMode
+            globalPolicyMode     <- getGlobalPolicyMode() ?~! "Cannot get the Global Policy Mode (Enforce or Verify)"
+            nodeConfigCaches     <- getNodeConfigurationHash() ?~! "Cannot get the Configuration Cache"
+            allLicenses          <- getAllLicenses() ?~! "Cannont get licenses information"
+            allNodeModes         =  buildNodeModes(allNodeInfos, globalComplianceMode, globalAgentRun, globalPolicyMode)
+            timeFetchAll         =  (System.currentTimeMillis - fetch0Time)
+            _                    =  PolicyLogger.debug(s"All relevant information fetched in ${timeFetchAll} ms, start names historization.")
 
-          _                    =  logMetrics(allNodeInfos, allRules, directiveLib, groupLib, allParameters, nodeConfigCaches)
-          /////
-          ///// end of inputs, all information gathered for promise generation.
-          /////
+            _                    =  logMetrics(allNodeInfos, allRules, directiveLib, groupLib, allParameters, nodeConfigCaches)
+            /////
+            ///// end of inputs, all information gathered for promise generation.
+            /////
 
-          ///// this thing has nothing to do with promise generation and should be
-          ///// else where. You can ignore it if you want to understand generation process.
-          historizeTime =  System.currentTimeMillis
-          _             <- historizeData(allRules, directiveLib, groupLib, allNodeInfos, globalAgentRun)
-          timeHistorize =  (System.currentTimeMillis - historizeTime)
-          _             =  PolicyLogger.debug(s"Historization of names done in ${timeHistorize} ms, start to build rule values.")
-          ///// end ignoring
+            ///// this thing has nothing to do with promise generation and should be
+            ///// else where. You can ignore it if you want to understand generation process.
+            historizeTime =  System.currentTimeMillis
+            _             <- historizeData(allRules, directiveLib, groupLib, allNodeInfos, globalAgentRun)
+            timeHistorize =  (System.currentTimeMillis - historizeTime)
+            _             =  PolicyLogger.debug(s"Historization of names done in ${timeHistorize} ms, start to build rule values.")
+            ///// end ignoring
 
-          ///// parse rule for directive parameters and build node context that will be used for them
-          ///// also restrict generation to only active rules & nodes:
-          ///// - number of nodes: only node somehow targetted by a rule have to be considered.
-          ///// - number of rules: any rule without target or with only target with no node can be skipped
+            ///// parse rule for directive parameters and build node context that will be used for them
+            ///// also restrict generation to only active rules & nodes:
+            ///// - number of nodes: only node somehow targetted by a rule have to be considered.
+            ///// - number of rules: any rule without target or with only target with no node can be skipped
 
-          ruleValTime           =  System.currentTimeMillis
-          activeRuleIds         =  getAppliedRuleIds(allRules, groupLib, directiveLib, allNodeInfos)
-          ruleVals              <- buildRuleVals(activeRuleIds, allRules, directiveLib, groupLib, allNodeInfos) ?~! "Cannot build Rule vals"
-          timeRuleVal           =  (System.currentTimeMillis - ruleValTime)
-          _                     =  PolicyLogger.debug(s"RuleVals built in ${timeRuleVal} ms, start to expand their values.")
+            ruleValTime           =  System.currentTimeMillis
+            activeRuleIds         =  getAppliedRuleIds(allRules, groupLib, directiveLib, allNodeInfos)
+            ruleVals              <- buildRuleVals(activeRuleIds, allRules, directiveLib, groupLib, allNodeInfos) ?~! "Cannot build Rule vals"
+            timeRuleVal           =  (System.currentTimeMillis - ruleValTime)
+            _                     =  PolicyLogger.debug(s"RuleVals built in ${timeRuleVal} ms, start to expand their values.")
 
-          nodeContextsTime      =  System.currentTimeMillis
-          activeNodeIds         =  ruleVals.foldLeft(Set[NodeId]()){case(s,r) => s ++ r.nodeIds}
-          nodeContexts          <- getNodeContexts(activeNodeIds, allNodeInfos, groupLib, allLicenses, allParameters, globalAgentRun, globalComplianceMode, globalPolicyMode) ?~! "Could not get node interpolation context"
-          timeNodeContexts      =  (System.currentTimeMillis - nodeContextsTime)
-          _                     =  PolicyLogger.debug(s"Node contexts built in ${timeNodeContexts} ms, start to build new node configurations.")
+            nodeContextsTime      =  System.currentTimeMillis
+            activeNodeIds         =  ruleVals.foldLeft(Set[NodeId]()){case(s,r) => s ++ r.nodeIds}
+            nodeContexts          <- getNodeContexts(activeNodeIds, allNodeInfos, groupLib, allLicenses, allParameters, globalAgentRun, globalComplianceMode, globalPolicyMode) ?~! "Could not get node interpolation context"
+            timeNodeContexts      =  (System.currentTimeMillis - nodeContextsTime)
+            _                     =  PolicyLogger.debug(s"Node contexts built in ${timeNodeContexts} ms, start to build new node configurations.")
+
+          } yield {
+            (activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, nodeConfigCaches, allLicenses, timeFetchAll, timeHistorize, timeRuleVal)
+          }
+          buildConfigTime       =  System.currentTimeMillis
+          /// here, we still have directive by directive info
+          configsAndErrors      <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, parallelism, jsTimeout, generationContinueOnError) ?~! "Cannot build target configuration node"
+          /// only keep successfull node config. We will keep the failed one to fail the whole process in the end if needed
+          nodeConfigs           =  configsAndErrors.ok.map(c => (c.nodeInfo.id, c)).toMap
+          allErrors             =  configsAndErrors.errors.map(_.messageChain)
+          errorNodes            =  activeNodeIds -- nodeConfigs.keySet
+          timeBuildConfig       =  (System.currentTimeMillis - buildConfigTime)
+          _                     =  PolicyLogger.debug(s"Node's target configuration built in ${timeBuildConfig} ms, start to update rule values.")
+
+
+          allNodeConfigsInfos   =  nodeConfigs.map{ case (nodeid, nodeconfig) => (nodeid, nodeconfig.nodeInfo)}
+          allNodeConfigsId      =  allNodeConfigsInfos.keysIterator.toSet
+
+          updatedNodeConfigIds  =  getNodesConfigVersion(nodeConfigs, nodeConfigCaches, generationTime)
+          updatedNodeConfigs    =  nodeConfigs.collect{ case (id, value) if (updatedNodeConfigIds.keySet.contains(id)) => (id, value) } // filterKeys wrap original collection
+          updatedNodeInfo       =  updatedNodeConfigs.map{ case (nodeid, nodeconfig) => (nodeid, nodeconfig.nodeInfo)}
+          updatedNodesId        =  updatedNodeInfo.keySet.toSeq.toSet // prevent from keeping an undue reference after generation
+          // WHY DO WE NEED TO FORGET OTHER NODES CACHE INFO HERE ?
+          _                     <- forgetOtherNodeConfigurationState(allNodeConfigsId) ?~! "Cannot clean the configuration cache"
 
         } yield {
-          (activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, nodeConfigCaches, allLicenses, timeFetchAll, timeHistorize, timeRuleVal)
+          (updatedNodeConfigIds, updatedNodeConfigs, allNodeConfigsInfos, updatedNodesId, updatedNodeInfo, allLicenses, globalPolicyMode, allNodeModes, allErrors, errorNodes, timeFetchAll, timeHistorize, timeRuleVal, timeBuildConfig)
         }
-        buildConfigTime       =  System.currentTimeMillis
-        /// here, we still have directive by directive info
-        configsAndErrors      <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, parallelism, jsTimeout, generationContinueOnError) ?~! "Cannot build target configuration node"
-        /// only keep successfull node config. We will keep the failed one to fail the whole process in the end if needed
-        nodeConfigs           =  configsAndErrors.ok.map(c => (c.nodeInfo.id, c)).toMap
-        allErrors             =  configsAndErrors.errors.map(_.messageChain)
-        errorNodes            =  activeNodeIds -- nodeConfigs.keySet
-        timeBuildConfig       =  (System.currentTimeMillis - buildConfigTime)
-        _                     =  PolicyLogger.debug(s"Node's target configuration built in ${timeBuildConfig} ms, start to update rule values.")
+
+        ///// so now we have everything for each updated nodes, we can start writing node policies and then expected reports
 
 
-        allNodeConfigsInfos   =  nodeConfigs.map{ case (nodeid, nodeconfig) => (nodeid, nodeconfig.nodeInfo)}
-        allNodeConfigsId      =  allNodeConfigsInfos.keysIterator.toSet
+        writeTime             =  System.currentTimeMillis
+        _                     <- writeNodeConfigurations(rootNodeId, updatedNodeConfigIds, updatedNodeConfigs, allNodeConfigsInfos, allLicenses, globalPolicyMode, generationTime, parallelism) ?~!"Cannot write nodes configuration"
+        timeWriteNodeConfig   =  (System.currentTimeMillis - writeTime)
+        _                     =  PolicyLogger.debug(s"Node configuration written in ${timeWriteNodeConfig} ms, start to update expected reports.")
 
-        updatedNodeConfigIds  =  getNodesConfigVersion(nodeConfigs, nodeConfigCaches, generationTime)
-        updatedNodeConfigs    =  nodeConfigs.collect{ case (id, value) if (updatedNodeConfigIds.keySet.contains(id)) => (id, value) } // filterKeys wrap original collection
-        updatedNodeInfo       =  updatedNodeConfigs.map{ case (nodeid, nodeconfig) => (nodeid, nodeconfig.nodeInfo)}
-        updatedNodesId        =  updatedNodeInfo.keySet.toSeq.toSet // prevent from keeping an undue reference after generation
-        // WHY DO WE NEED TO FORGET OTHER NODES CACHE INFO HERE ?
-        _                     <- forgetOtherNodeConfigurationState(allNodeConfigsId) ?~! "Cannot clean the configuration cache"
-
+        reportTime            =  System.currentTimeMillis
+        expectedReports       =  computeExpectedReports(updatedNodeConfigs, updatedNodeConfigIds, generationTime, allNodeModes)
+        timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
+        _                     =  PolicyLogger.debug(s"Reports computed in ${timeSetExpectedReport} ms")
       } yield {
-        (updatedNodeConfigIds, updatedNodeConfigs, allNodeConfigsInfos, updatedNodesId, updatedNodeInfo, allLicenses, globalPolicyMode, allNodeModes, allErrors, errorNodes, timeFetchAll, timeHistorize, timeRuleVal, timeBuildConfig)
+        (updatedNodesId, updatedNodeInfo, expectedReports, allErrors, errorNodes, timeFetchAll, timeHistorize, timeRuleVal, timeBuildConfig, timeWriteNodeConfig, timeSetExpectedReport)
       }
-
-      ///// so now we have everything for each updated nodes, we can start writing node policies and then expected reports
-
-
-      writeTime             =  System.currentTimeMillis
-      _                     <- writeNodeConfigurations(rootNodeId, updatedNodeConfigIds, updatedNodeConfigs, allNodeConfigsInfos, allLicenses, globalPolicyMode, generationTime, parallelism) ?~!"Cannot write nodes configuration"
-      timeWriteNodeConfig   =  (System.currentTimeMillis - writeTime)
-      _                     =  PolicyLogger.debug(s"Node configuration written in ${timeWriteNodeConfig} ms, start to update expected reports.")
-
-      reportTime            =  System.currentTimeMillis
-      expectedReports       =  computeExpectedReports(updatedNodeConfigs, updatedNodeConfigIds, generationTime, allNodeModes)
-      timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
-      _                     =  PolicyLogger.debug(s"Reports computed in ${timeSetExpectedReport} ms")
-
 
       saveExpectedTime      =  System.currentTimeMillis
       _                     <- saveExpectedReports(expectedReports) ?~! "Error when saving expected reports"
