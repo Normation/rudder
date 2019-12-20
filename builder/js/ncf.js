@@ -1248,8 +1248,9 @@ $scope.onImportFileChange = function (fileEl) {
   $scope.newParam = {}
 
   $scope.addParameter = function() {
-    $scope.selectedTechnique.parameter.push(angular.copy($scope.newParam))
-    $scope.newParam.name = ""
+    $scope.newParam.id = uuidv4();
+    $scope.selectedTechnique.parameter.push(angular.copy($scope.newParam));
+    $scope.newParam.name = "";
   }
   // Save a technique
   $scope.saveTechnique = function() {
