@@ -277,7 +277,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
      )
 
       // Actually write the promise files for the root node
-      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now, parallelism)
+      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> rnc.nodeInfo), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now, parallelism)
     }
 
     "correctly write the expected promises files with defauls installation" in {
@@ -332,6 +332,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
           root.id
         , Set(root.id)
         , Map(root.id -> getRootNodeConfig(emptyGroupLib))
+        , Map(root.id -> getRootNodeConfig(emptyGroupLib).nodeInfo)
         , Map(root.id -> NodeConfigId("root-cfg-id"))
         , Map()
         , globalPolicyMode
@@ -351,7 +352,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
       // Actually write the promise files for the root node
       val (rootPath, writter) = getPromiseWritter("group-2")
 
-      writter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now, parallelism).openOrThrowException("Can not write template!")
+      writter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> rnc.nodeInfo), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode, DateTime.now, parallelism).openOrThrowException("Can not write template!")
 
       rootPath/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/some-groups.cf")
     }
@@ -380,6 +381,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
             root.id
           , Set(root.id, cfeNode.id)
           , Map(root.id -> rnc, cfeNode.id -> cfeNC)
+          , Map(root.id -> rnc.nodeInfo, cfeNode.id -> cfeNC.nodeInfo)
           , Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id"))
           , Map(), globalPolicyMode, DateTime.now, parallelism
       )
@@ -414,6 +416,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
             root.id
           , Set(root.id, cfeNode.id)
           , Map(root.id -> rnc, cfeNode.id -> cfeNC)
+          , Map(root.id -> rnc.nodeInfo, cfeNode.id -> cfeNC.nodeInfo)
           , Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id"))
           , Map(), globalPolicyMode, DateTime.now, parallelism
       )
@@ -453,6 +456,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
         root.id
         , Set(root.id, cfeNode.id)
         , Map(root.id -> rnc, cfeNode.id -> cfeNC)
+        , Map(root.id -> rnc.nodeInfo, cfeNode.id -> cfeNC.nodeInfo)
         , Map(root.id -> NodeConfigId("root-cfg-id-500"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id-500"))
         , Map(), globalPolicyMode, DateTime.now, parallelism
       )

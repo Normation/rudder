@@ -271,6 +271,93 @@ class StatusReportTest extends Specification {
     }
 
   }
+  sequential
+
+  "performance for compute ReportType" should {
+    val nbSet = 90
+    val sizeSet = 100
+
+    // force tests to be sequentials
+
+    val initData = buildComplianceLevelSets(nbSet,sizeSet)
+
+    "init correctly" in {
+      val result = initData.headOption.map(x => ComplianceLevel.compute(x._2))
+      val result2 = initData.headOption.map(x => ComplianceLevel.compute2(x._2))
+
+      val comp = ComplianceLevel.sum(Seq(result.get))
+      val comp2 = ComplianceLevel.sum2(Seq(result.get))
+      result.size === 1 and
+      result2 === result and
+      comp === comp2
+    }
+
+    "run fast enough to compute2" in {
+      initData.map( x => ComplianceLevel.compute2(x._2))
+      val t0 = System.nanoTime
+
+      for (i <- 1 to 100) {
+        val t0_0 = System.nanoTime
+        initData.map(x => ComplianceLevel.compute2(x._2))
+        val t1_1 = System.nanoTime
+        println(s"${i}th call to compute2 for ${nbSet} sets took ${(t1_1-t0_0)/1000} µs")
+      }
+      val t1 = System.nanoTime
+      println(s"Time to run test is ${(t1-t0)/1000} µs")
+      (t1-t0) must be lessThan( 150000000 )  // tests show 24 224µs
+    }
+
+
+    "run fast enough to compute" in {
+      initData.map( x => ComplianceLevel.compute(x._2))
+      val t0 = System.nanoTime
+
+      for (i <- 1 to 100) {
+        val t0_0 = System.nanoTime
+        initData.map(x => ComplianceLevel.compute(x._2))
+        val t1_1 = System.nanoTime
+        println(s"${i}th call to compute for ${nbSet} sets took ${(t1_1-t0_0)/1000} µs")
+      }
+      val t1 = System.nanoTime
+      println(s"Time to run test is ${(t1-t0)/1000} µs")
+      (t1-t0) must be lessThan( 200000*1000 ) // tests show 60030µs
+    }
+
+
+    "run fast enough to sum2" in {
+      ComplianceLevel.sum2(initData.map( x => ComplianceLevel.compute2(x._2)))
+
+      val source = initData.map(x => (x._1, ComplianceLevel.compute2(x._2))).map( _._2)
+      val t0 = System.nanoTime
+
+      for (i <- 1 to 100) {
+        val t0_0 = System.nanoTime
+        val result = ComplianceLevel.sum2(source)
+        val t1_1 = System.nanoTime
+        println(s"${i}th call to sum2 for ${nbSet} sets took ${(t1_1-t0_0)/1000} µs")
+      }
+      val t1 = System.nanoTime
+      println(s"Time to run test for sum2 is ${(t1-t0)/1000} µs")
+      (t1-t0) must be lessThan( 20000*1000 )   //tests show 2066 µs
+    }
+
+    "run fast enough to sum" in {
+      ComplianceLevel.sum(initData.map( x => ComplianceLevel.compute(x._2)))
+
+      val source = initData.map(x => (x._1, ComplianceLevel.compute(x._2))).map( _._2)
+      val t0 = System.nanoTime
+
+      for (i <- 1 to 100) {
+        val t0_0 = System.nanoTime
+        val result = ComplianceLevel.sum(source)
+        val t1_1 = System.nanoTime
+        println(s"${i}th call to sum for ${nbSet} sets took ${(t1_1-t0_0)/1000} µs")
+      }
+      val t1 = System.nanoTime
+      println(s"Time to run test for sum is ${(t1-t0)/1000} µs")
+      (t1-t0) must be lessThan( 20000*1000 )  // tests show 3159µs
+    }
+  }
 
   private[this] def parse(s: String): Seq[RuleNodeStatusReport] = {
 
@@ -315,6 +402,16 @@ class StatusReportTest extends Specification {
 
   private[this] def aggregate(nr: Seq[RuleNodeStatusReport]): AggregatedStatusReport = {
     AggregatedStatusReport(nr)
+  }
+
+  def buildComplianceLevelSets(
+      nbSet: Int
+   ,  sizeSet: Int
+  ) = {
+    val sets = (1 to nbSet).toSeq
+    val reportTypes: Seq[ReportType] = (1 to (sizeSet/2)).map(_ => EnforceSuccess).toSeq ++ ((1 to (sizeSet/2)).map(_ => EnforceRepaired).toSeq)
+
+    sets.map( x => (x, reportTypes ++ (1 to x).map(_ => EnforceNotApplicable)))
   }
 
 

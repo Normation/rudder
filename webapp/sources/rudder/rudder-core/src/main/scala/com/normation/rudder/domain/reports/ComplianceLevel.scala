@@ -144,7 +144,7 @@ object ComplianceLevel {
   private def pc_for(i:Int, total:Int) : Double = if(total == 0) 0 else (i * 100 / BigDecimal(total)).setScale(2, BigDecimal.RoundingMode.HALF_UP).toDouble
 
 
-  def compute(reports: Iterable[ReportType]): ComplianceLevel = {
+  def compute2(reports: Iterable[ReportType]): ComplianceLevel = {
     import ReportType._
     if(reports.isEmpty) { ComplianceLevel(notApplicable = 1)}
     else reports.foldLeft(ComplianceLevel()) { case (compliance, report) =>
@@ -167,10 +167,122 @@ object ComplianceLevel {
     }
   }
 
- def sum(compliances: Iterable[ComplianceLevel]): ComplianceLevel = {
+  def compute(reports: Iterable[ReportType]): ComplianceLevel = {
+    import ReportType._
+    if(reports.isEmpty) {
+      ComplianceLevel(notApplicable = 1)
+    } else {
+      var notApplicable = 0
+      var success = 0
+      var repaired = 0
+      var error = 0
+      var unexpected = 0
+      var missing = 0
+      var noAnswer = 0
+      var pending = 0
+      var reportsDisabled = 0
+      var compliant = 0
+      var auditNotApplicable = 0
+      var nonCompliant = 0
+      var auditError = 0
+      var badPolicyMode = 0
+
+      reports.foreach { report =>
+        report match {
+          case EnforceNotApplicable => notApplicable += 1
+          case EnforceSuccess => success += 1
+          case EnforceRepaired => repaired += 1
+          case EnforceError => error += 1
+          case Unexpected => unexpected += 1
+          case Missing => missing += 1
+          case NoAnswer => noAnswer += 1
+          case Pending => pending += 1
+          case Disabled => reportsDisabled += 1
+          case AuditCompliant => compliant += 1
+          case AuditNotApplicable => auditNotApplicable += 1
+          case AuditNonCompliant => nonCompliant += 1
+          case AuditError => auditError += 1
+          case BadPolicyMode => badPolicyMode += 1
+        }
+      }
+      ComplianceLevel(
+        pending = pending
+      , success = success
+      , repaired = repaired
+      , error =error
+      , unexpected =unexpected
+      , missing = missing
+      , noAnswer=noAnswer
+      , notApplicable=notApplicable
+      , reportsDisabled=reportsDisabled
+      , compliant  = compliant
+      , auditNotApplicable= auditNotApplicable
+      , nonCompliant  =nonCompliant
+      , auditError = auditError
+      , badPolicyMode =badPolicyMode
+      )
+    }
+  }
+
+ def sum2(compliances: Iterable[ComplianceLevel]): ComplianceLevel = {
    if(compliances.isEmpty) ComplianceLevel()
    else compliances.reduce( _ + _)
  }
+
+  def sum(compliances: Iterable[ComplianceLevel]): ComplianceLevel = {
+    if (compliances.isEmpty) {
+      ComplianceLevel()
+    } else {
+      var pending: Int = 0
+      var success: Int = 0
+      var repaired: Int = 0
+      var error: Int = 0
+      var unexpected: Int = 0
+      var missing: Int = 0
+      var noAnswer: Int = 0
+      var notApplicable: Int = 0
+      var reportsDisabled: Int = 0
+      var compliant: Int = 0
+      var auditNotApplicable: Int = 0
+      var nonCompliant: Int = 0
+      var auditError: Int = 0
+      var badPolicyMode: Int = 0
+
+
+      compliances.foreach { compliance =>
+        pending += compliance.pending
+        success += compliance.success
+        repaired += compliance.repaired
+        error += compliance.error
+        unexpected += compliance.unexpected
+        missing += compliance.missing
+        noAnswer += compliance.noAnswer
+        notApplicable += compliance.notApplicable
+        reportsDisabled += compliance.reportsDisabled
+        compliant += compliance.compliant
+        auditNotApplicable += compliance.auditNotApplicable
+        nonCompliant += compliance.nonCompliant
+        auditError += compliance.auditError
+        badPolicyMode += compliance.badPolicyMode
+      }
+      ComplianceLevel(
+        pending = pending
+        , success = success
+        , repaired = repaired
+        , error = error
+        , unexpected = unexpected
+        , missing = missing
+        , noAnswer = noAnswer
+        , notApplicable = notApplicable
+        , reportsDisabled = reportsDisabled
+        , compliant = compliant
+        , auditNotApplicable = auditNotApplicable
+        , nonCompliant = nonCompliant
+        , auditError = auditError
+        , badPolicyMode = badPolicyMode
+      )
+    }
+  }
 }
 
 
