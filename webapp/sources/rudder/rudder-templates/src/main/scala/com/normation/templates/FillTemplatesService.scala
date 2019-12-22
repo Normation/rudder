@@ -123,13 +123,22 @@ class SynchronizedFileTemplate(templateName: String,content: String)  extends Lo
             Failure(s"Mandatory variable ${variable.name} is empty, can not write ${templateName}")
           } else {
             logger.trace(s"Adding in ${templateName} variable '${variable.name}' with values [${variable.values.mkString(",")}]")
-            bestEffort(variable.values) { value =>
+// here we could try to pass the list as one: STAttributeList, or simply a java.util.list
+
+     /*       bestEffort(variable.values) { value =>
               try {
                 Full(template.setAttribute(variable.name, value))
               } catch {
                 case ex: Exception => Failure(s"Error when trying to replace variable '${variable.name}' with values [${variable.values.mkString(",")}]: ${ex.getMessage}", Full(ex), Empty)
+              }*/
+            try {
+            variable.values match {
+              case seq if seq.size>1 => Full(template.setAttribute(variable.name, scala.collection.JavaConverters.seqAsJavaList(seq)))
+              case seq if seq.size == 1 =>   Full(template.setAttribute(variable.name, seq.head))
+            } } catch {
+                case ex: Exception => Failure(s"Error when trying to replace variable '${variable.name}' with values [${variable.values.mkString(",")}]: ${ex.getMessage}", Full(ex), Empty)
               }
-            }
+
           }
         }
         //return the actual template with replaced variable in case of success
