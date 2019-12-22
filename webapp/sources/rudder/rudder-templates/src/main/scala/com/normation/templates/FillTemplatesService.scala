@@ -135,6 +135,7 @@ class SynchronizedFileTemplate(templateName: String,content: String)  extends Lo
             variable.values match {
               case seq if seq.size>1 => Full(template.setAttribute(variable.name, scala.collection.JavaConverters.seqAsJavaList(seq)))
               case seq if seq.size == 1 =>   Full(template.setAttribute(variable.name, seq.head))
+                case _ => Full(template.setAttribute(variable.name, null))
             } } catch {
                 case ex: Exception => Failure(s"Error when trying to replace variable '${variable.name}' with values [${variable.values.mkString(",")}]: ${ex.getMessage}", Full(ex), Empty)
               }
