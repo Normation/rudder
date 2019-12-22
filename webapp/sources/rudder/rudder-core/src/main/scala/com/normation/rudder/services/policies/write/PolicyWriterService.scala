@@ -127,6 +127,8 @@ class PolicyWriterServiceImpl(
 
   val policyLogger = PolicyLogger
 
+
+
   private[this] def writeNodePropertiesFile (agentNodeConfig: AgentNodeConfiguration) = {
 
     def generateNodePropertiesJson(properties : Seq[NodeProperty]): JValue = {
@@ -137,6 +139,7 @@ class PolicyWriterServiceImpl(
 
     val fileName = Constants.GENERATED_PROPERTY_FILE
     val path = Constants.GENERATED_PROPERTY_DIR
+
     val jsonProperties = generateNodePropertiesJson(agentNodeConfig.config.nodeInfo.properties)
     val propertyContent = JsonAST.prettyRender(jsonProperties)
     logger.trace(s"Create node properties file '${agentNodeConfig.paths.newFolder}/${path}/${fileName}'")
@@ -270,38 +273,55 @@ class PolicyWriterServiceImpl(
     for {
       configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeInfos, newPostfix, backupPostfix)
       pathsInfo        =  configAndPaths.map { _.paths }
-      templates        <- readTemplateFromFileSystem(techniqueIds)
-      resources        <- readResourcesFromFileSystem(techniqueIds)
-      // Clearing cache
-      _                 = fillTemplates.clearCache
-      readTemplateTime2 = System.currentTimeMillis
-      readTemplateDur   = readTemplateTime2 - readTemplateTime1
-      _                 = policyLogger.debug(s"Paths computed and templates read in ${readTemplateDur} ms")
+// we should for yield that to free all agent specific ressources
+      (promisesWritten, promiseWrittenTime) <- for {
+        (preparedPromises, resources, readTemplateTime2) <- for {
+          templates        <- readTemplateFromFileSystem(techniqueIds)
+          resources        <- readResourcesFromFileSystem(techniqueIds)
+          // Clearing cache
+          _                 = fillTemplates.clearCache
+          readTemplateTime2 = System.currentTimeMillis
+          readTemplateDur   = readTemplateTime2 - readTemplateTime1
+          _                 = policyLogger.debug(s"Paths computed and templates read in ${readTemplateDur} ms")
 
-      //////////
-      // nothing agent specific before that
-      //////////
-      preparedPromises <- ParallelSequence.traverse(configAndPaths) { case agentNodeConfig =>
-                            val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
-                            prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, Policy.TAG_OF_RUDDER_ID, globalPolicyMode, generationTime) ?~!
-                            s"Error when calculating configuration for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})"
-                         }
-      preparedPromisesTime = System.currentTimeMillis
-      preparedPromisesDur  = preparedPromisesTime - readTemplateTime2
-      _                    = policyLogger.debug(s"Promises prepared in ${preparedPromisesDur} ms")
+          //////////
+          // nothing agent specific before that
+          //////////
 
-      promiseWritten   <- ParallelSequence.traverse(preparedPromises) { prepared =>
-                            (for {
-                              _ <- writePromises(prepared.paths, prepared.agentNodeProps.agentType, prepared.preparedTechniques, resources)
-                              _ <- writeAllAgentSpecificFiles.write(prepared) ?~! s"Error with node '${prepared.paths.nodeId.value}'"
-                              _ <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
-                            } yield {
-                              "OK"
-                            }) ?~! s"Error when writing configuration for node '${prepared.paths.nodeId.value}'"
-                          }
-      promiseWrittenTime = System.currentTimeMillis
-      promiseWrittenDur  = promiseWrittenTime - preparedPromisesTime
-      _                  = policyLogger.debug(s"Promises written in ${promiseWrittenDur} ms")
+          // this part looks like a memory hot spot
+          preparedPromises <- ParallelSequence.traverse(configAndPaths) { case agentNodeConfig =>
+            val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
+            prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, Policy.TAG_OF_RUDDER_ID, globalPolicyMode, generationTime) ?~!
+              s"Error when calculating configuration for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})"
+          }
+        } yield {
+          (preparedPromises, resources, readTemplateTime2)
+        }
+
+
+
+
+        preparedPromisesTime = System.currentTimeMillis
+        preparedPromisesDur  = preparedPromisesTime - readTemplateTime2
+        _                    = policyLogger.debug(s"Promises prepared in ${preparedPromisesDur} ms")
+
+        promiseWritten   <- ParallelSequence.traverse(preparedPromises) { prepared =>
+                              (for {
+                                _ <- writePromises(prepared.paths, prepared.agentNodeProps.agentType, prepared.preparedTechniques, resources)
+                                _ <- writeAllAgentSpecificFiles.write(prepared) ?~! s"Error with node '${prepared.paths.nodeId.value}'"
+                                _ <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
+                              } yield {
+                                "OK"
+                              }) ?~! s"Error when writing configuration for node '${prepared.paths.nodeId.value}'"
+                            }
+
+        promiseWrittenTime = System.currentTimeMillis
+        promiseWrittenDur  = promiseWrittenTime - preparedPromisesTime
+        _                  = policyLogger.debug(s"Promises written in ${promiseWrittenDur} ms")
+
+      } yield {
+        (promiseWritten, promiseWrittenTime)
+      }
 
 
       //////////
@@ -507,10 +527,10 @@ class PolicyWriterServiceImpl(
     for {
       _ <- sequence(preparedTechniques) { preparedTechnique =>
              for {
-               templates <-  sequence(preparedTechnique.templatesToProcess.toSeq) { template =>
+               _ <-  sequence(preparedTechnique.templatesToProcess.toSeq) { template =>
                                writePromisesFiles(template, preparedTechnique.environmentVariables, paths.newFolder, preparedTechnique.reportIdToReplace)
                              }
-               files     <- sequence(preparedTechnique.filesToCopy.toSeq) { file =>
+               _ <- sequence(preparedTechnique.filesToCopy.toSeq) { file =>
                               copyResourceFile(file, agentType, paths.newFolder, preparedTechnique.reportIdToReplace, resources)
                             }
              } yield {
@@ -746,14 +766,19 @@ class PolicyWriterServiceImpl(
     logger.trace(s"Create promises file ${outPath} ${templateInfo.destination}")
 
     for {
-      filled           <- fillTemplates.fill(templateInfo.destination, templateInfo.content, variableSet)
-      // if the technique is multipolicy, replace rudderTag by reportId
-      (replaced, dest) =  reportIdToReplace match {
-                            case None => (filled, templateInfo.destination)
-                            case Some(id) =>
-                              val replace = (s: String) => StringUtils.replace(s, Policy.TAG_OF_RUDDER_MULTI_POLICY, id.getRudderUniqueId)
-                              (replace(filled), replace(templateInfo.destination))
-                          }
+      // we could also for yield here to save the filled
+      (replaced, dest) <- for {
+        filled           <- fillTemplates.fill(templateInfo.destination, templateInfo.content, variableSet)
+        // if the technique is multipolicy, replace rudderTag by reportId
+        (replaced, dest) = reportIdToReplace match {
+              case None     => (filled, templateInfo.destination)
+              case Some(id) =>
+                 val replace = (s: String) => StringUtils.replace(s, Policy.TAG_OF_RUDDER_MULTI_POLICY, id.getRudderUniqueId)
+                 (replace(filled), replace(templateInfo.destination))
+        }
+      } yield {
+        (replaced, dest)
+      }
       _                <- tryo { FileUtils.writeStringToFile(new File(outPath, dest), replaced, StandardCharsets.UTF_8) } ?~!
                             s"Bad format in Technique ${templateInfo.id.toString} (file: ${templateInfo.destination})"
     } yield {

@@ -123,7 +123,8 @@ class SynchronizedFileTemplate(templateName: String,content: String)  extends Lo
             Failure(s"Mandatory variable ${variable.name} is empty, can not write ${templateName}")
           } else {
             logger.trace(s"Adding in ${templateName} variable '${variable.name}' with values [${variable.values.mkString(",")}]")
-// here we could try to pass the list as one: STAttributeList, or simply a java.util.list
+// here we could try to pass the list as one: STAttributeList, or simply a java.util.list to lower pressure on gc,
+            // and hopefully gain a bit of speed
 
      /*       bestEffort(variable.values) { value =>
               try {

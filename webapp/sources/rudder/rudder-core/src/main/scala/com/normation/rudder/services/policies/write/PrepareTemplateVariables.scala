@@ -119,16 +119,15 @@ class PrepareTemplateVariablesImpl(
       , agentNodeConfig.config.nodeInfo.isPolicyServer
       , agentNodeConfig.config.nodeInfo.serverRoles
     )
-    val boxBundleVars = buildBundleSequence.prepareBundleVars(
-                            agentNodeProps
-                          , agentNodeConfig.config.nodeInfo.policyMode
-                          , globalPolicyMode
-                          , agentNodeConfig.config.policies
-                          , agentNodeConfig.config.runHooks
-                        ).map { bundleVars => bundleVars.map(x => (x.spec.name, x)).toMap }
-
     for {
-      bundleVars       <- boxBundleVars
+      //we could enclode a foryield here to systemvars, to save the bundleVars
+      bundleVars       <- buildBundleSequence.prepareBundleVars(
+                               agentNodeProps
+                             , agentNodeConfig.config.nodeInfo.policyMode
+                             , globalPolicyMode
+                             , agentNodeConfig.config.policies
+                             , agentNodeConfig.config.runHooks
+                           ).map { bundleVars => bundleVars.map(x => (x.spec.name, x)).toMap }
       parameters       <- Control.sequence(agentNodeConfig.config.parameters.toSeq) { x =>
                             agentRegister.findMap(agentNodeProps){ agent =>
                               Full(ParameterEntry(x.name.value, agent.escape(x.value), agentNodeConfig.agentType))

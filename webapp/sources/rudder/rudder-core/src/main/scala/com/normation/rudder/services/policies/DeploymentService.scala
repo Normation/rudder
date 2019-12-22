@@ -420,12 +420,12 @@ trait PromiseGenerationService {
           /// here, we still have directive by directive info
           configsAndErrors      <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, parallelism, jsTimeout, generationContinueOnError) ?~! "Cannot build target configuration node"
           /// only keep successfull node config. We will keep the failed one to fail the whole process in the end if needed
+// potentially i'm duplicating the data with this map, but according to heap size after gc, memory is not yet high
           nodeConfigs           =  configsAndErrors.ok.map(c => (c.nodeInfo.id, c)).toMap
           allErrors             =  configsAndErrors.errors.map(_.messageChain)
           errorNodes            =  activeNodeIds -- nodeConfigs.keySet
           timeBuildConfig       =  (System.currentTimeMillis - buildConfigTime)
           _                     =  PolicyLogger.debug(s"Node's target configuration built in ${timeBuildConfig} ms, start to update rule values.")
-
 
           allNodeConfigsInfos   =  nodeConfigs.map{ case (nodeid, nodeconfig) => (nodeid, nodeconfig.nodeInfo)}
           allNodeConfigsId      =  allNodeConfigsInfos.keysIterator.toSet
