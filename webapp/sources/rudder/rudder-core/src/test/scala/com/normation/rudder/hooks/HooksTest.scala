@@ -50,7 +50,6 @@ import com.normation.rudder.hooks.HookReturnCode.Ok
 import com.normation.rudder.hooks.HookReturnCode.ScriptError
 import com.normation.rudder.hooks.HookReturnCode.Warning
 import org.specs2.specification.AfterAll
-
 import scala.collection.JavaConverters._
 
 /**
@@ -102,4 +101,36 @@ class HooksTest() extends Specification with AfterAll {
     val res = runHooks(List("echoCODE.sh"), HookEnvPair("CODE", "0") :: Nil)
     res must beEqualTo(Ok("",""))
   }
+
+// This one is more for testing performance. I don't want to make it a test, because in
+// a CI it can be exptremelly different. But at least the code is here for anybody to check. 
+//  "Running a hook 1000 times should be extremely fast" >> {
+//
+//    //org.slf4j.LoggerFactory.getLogger("hooks").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.DEBUG)
+//    def runOne = RunHooks.syncRun(Hooks(tmp.pathAsString, List("echoCODE.sh")), HookEnvPairs(HookEnvPair("CODE", "0") :: Nil), HookEnvPairs(Nil), 1.second.toMillis, 1.second)
+//
+//    def many = (0 until 1000).map { i =>
+//      val t0 = System.currentTimeMillis()
+//      runOne
+//      val t1 = System.currentTimeMillis()
+//      t1 - t0
+//    }.sum
+//
+//    /* Typical results in a dell xps 8 cores:
+//     *  2838 ms
+//     *  2253 ms
+//     *  1902 ms
+//     *  1700 ms
+//     *  1698 ms
+//     *  1819 ms
+//     *  1708 ms
+//     *  1649 ms
+//     *  1619 ms
+//     *  1624 ms
+//     */
+//    val res = (0 until 10).foreach(_ => println(many + " ms"))
+//
+//    1 === 1
+//
+//  }
 }
