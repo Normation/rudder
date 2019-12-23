@@ -367,3 +367,10 @@ objectClass: property
 objectClass: top
 propertyName: rudder_featureSwitch_quicksearchEverything
 propertyValue: enabled
+
+dn: propertyName=rudder_report_protocol_default,ou=Application Properties,cn=rudder-configuration
+objectClass: property
+objectClass: top
+propertyName: rudder_report_protocol_default
+propertyValue: HTTPS
+
