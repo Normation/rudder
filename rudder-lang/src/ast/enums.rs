@@ -359,7 +359,7 @@ impl<'src> EnumList<'src> {
                                 }
                                 _ => fail!(
                                     value,
-                                    "Global enum value {} does not exist.{}",
+                                    "Global enum value {} does not exist{}",
                                     value,
                                     get_suggestion_message(value.fragment(), self.global_values.keys())
                                 ),
@@ -368,7 +368,7 @@ impl<'src> EnumList<'src> {
                                 Some(VarKind::Enum(t, _)) => t,
                                 _ => fail!(
                                     var1,
-                                    "Variable {} doesn't exist or doesn't have an enum type.{}",
+                                    "Variable {} doesn't exist or doesn't have an enum type{}",
                                     var1,
                                     get_suggestion_message(var1.fragment(), self.enums.keys()),
                                 ),
@@ -394,7 +394,7 @@ impl<'src> EnumList<'src> {
                                 ),
                                 Some((false, _)) => fail!(
                                     e1,
-                                    "Enum {} is not global, you must provide a variable.{}",
+                                    "Enum {} is not global, you must provide a variable{}",
                                     e1,
                                     get_suggestion_message(e1.fragment(), self.global_values.keys())
                                 ),
@@ -412,7 +412,7 @@ impl<'src> EnumList<'src> {
                 match self.enums.get(&e1) {
                     None => fail!(
                         e1,
-                        "Enum {} does not exist.{}",
+                        "Enum {} does not exist{}",
                         e1,
                         get_suggestion_message(e1.fragment(), self.enums.keys())
                     ),
@@ -420,7 +420,7 @@ impl<'src> EnumList<'src> {
                         if !list.contains(&val) {
                             fail!(
                                 val,
-                                "Value {} is not defined in enum {}.{}",
+                                "Value {} is not defined in enum {}{}",
                                 val,
                                 e1,
                                 get_suggestion_message(val.fragment(), self.enums.keys()))
@@ -431,7 +431,7 @@ impl<'src> EnumList<'src> {
                 match getter(var1) {
                     None => fail!(
                         var1,
-                        "Variable {} does not exist.{}",
+                        "Variable {} does not exist{}",
                         var1,
                         get_suggestion_message(var1.fragment(), self.enums.keys()),
                     ),
