@@ -42,7 +42,7 @@ use std::collections::HashMap;
 ///
 use std::fmt;
 use std::hash::Hash;
-use colored::*;
+use colored::Colorize;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Error {
@@ -104,7 +104,7 @@ impl Error {
 macro_rules! err {
     ($origin:expr, $ ( $ arg : tt ) *) => ({
         use crate::error::Error;
-        use colored::*;
+        use colored::Colorize;
 
         Error::User(format!(
                 "{}:\n{} {}",

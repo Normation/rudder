@@ -46,7 +46,7 @@ use std::cell::UnsafeCell;
 use std::fs;
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
-use colored::*;
+use colored::Colorize;
 
 ///!  Principle:
 ///!  1-  rl -> PAST::add_file() -> PAST

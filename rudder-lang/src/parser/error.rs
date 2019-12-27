@@ -33,7 +33,7 @@ use crate::error::*;
 use nom::error::{ErrorKind, ParseError, VerboseError};
 use nom::{Err, IResult};
 use std::fmt;
-use colored::*;
+use colored::Colorize;
 
 /// Result for all parser
 pub type PResult<'src, O> = IResult<PInput<'src>, O, PError<PInput<'src>>>;
