@@ -30,6 +30,7 @@
 
 use super::{PInput, Token};
 use crate::error::*;
+use colored::Colorize;
 use nom::error::{ErrorKind, ParseError, VerboseError};
 use nom::{Err, IResult};
 use std::fmt;
@@ -126,20 +127,22 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
             #[cfg(test)]
             PErrorKind::NomTest(msg) => format!("Testing only error message, this should never happen {}.\nPlease fill a BUG with context on when this happened!", msg),
             PErrorKind::InvalidFormat => "Invalid header format, it must contain a single line '@format=x' where x is an integer. Shebang accepted.".to_string(),
-            PErrorKind::InvalidName(i) => format!("The identifier is invalid in a {}.",i.fragment),
-            PErrorKind::UnexpectedToken(s) => format!("Unexpected token, expecting '{}' instead", s),
-            PErrorKind::UnterminatedDelimiter(i) => format!("Missing end of {}", i.fragment),
+            PErrorKind::InvalidName(i) => format!("The identifier is invalid in a {}.", i.fragment.bright_magenta()),
+            PErrorKind::UnexpectedToken(s) => format!("Unexpected token, expecting '{}', found", s.bright_magenta()),
+            PErrorKind::UnterminatedDelimiter(i) => format!("Missing closing delimiter for '{}'", i.fragment.bright_magenta()),
             PErrorKind::InvalidEnumExpression => "This enum expression is invalid".to_string(),
-            PErrorKind::InvalidEscapeSequence => "This escape cannot be used in a string".to_string(),
+            PErrorKind::InvalidEscapeSequence => "This escape sequence cannot be used in a string".to_string(),
             PErrorKind::InvalidVariableReference => "This variable reference is invalid".to_string(),
-            PErrorKind::ExpectedKeyword(s) => format!("Token not found, expecting a '{}'",s),
-            PErrorKind::UnsupportedMetadata(i) => format!("Parsed comment or metadata not supported at this place: '{}' fount at {}", i.fragment, Token::from(*i).position_str()),
+            PErrorKind::ExpectedKeyword(s) => format!("Token not found, expected '{}'", s.bright_magenta()),
+            PErrorKind::UnsupportedMetadata(i) => format!("Parsed comment or metadata not supported at this place: '{}' fount at {}", i.fragment.bright_magenta(), Token::from(*i).position_str().bright_yellow()),
         };
         f.write_str(&format!(
-            "{} near '{}' {}",
-            message,
+            "{}, near\n{}{} {}",
+            Token::from(self.context).position_str().bright_yellow(),
             self.context.fragment,
-            Token::from(self.context).position_str()
+            "-->".bright_blue(),
+            message.bold(),
+            
         ))
     }
 }

@@ -40,8 +40,9 @@ mod technique;
 use crate::ast::AST;
 use crate::error::*;
 use crate::generators::*;
-use crate::parser::PAST;
+use crate::parser::{PAST, Token};
 use crate::technique::translate_file;
+use colored::Colorize;
 use std::cell::UnsafeCell;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -103,10 +104,14 @@ fn add_file<'a>(
     path: &'a Path,
     filename: &'a str,
 ) -> Result<()> {
-    let content = fs::read_to_string(path)
-        .unwrap_or_else(|_| panic!("Something went wrong reading the file {}", filename));
-    let content_str = source_list.append(content);
-    past.add_file(filename, &content_str)
+    println!("|- {} {}", "Parsing".bright_green(), filename);
+    match fs::read_to_string(path) {
+        Ok(content) => {
+            let content_str = source_list.append(content);
+            past.add_file(filename, &content_str)
+        },
+        Err(e) => Err(err!(Token::new(filename, ""), "{}", e))
+    }
 }
 
 /// Implementation of a linked list containing immutable data
@@ -141,24 +146,26 @@ fn main() {
 
     if opt.translate {
         match translate_file(&opt.input, &opt.output) {
-            Err(e) => panic!("Error: {}", e),
-            Ok(_) => println!("Done"),
+            Err(e) => eprintln!("{}", e),
+            Ok(_) => println!("{} {}", "File translation".bright_green(), "OK".bright_cyan()),
         }
     } else {
         match compile(&opt.input, &opt.output, opt.technique) {
-            Err(e) => panic!("Error: {}", e),
-            Ok(_) => println!("Done"),
+            Err(e) => eprintln!("{}", e),
+            Ok(_) => println!("{} {}", "Compilation".bright_green(), "OK".bright_cyan()),
         }
     }
 }
 
 fn compile(source: &Path, dest: &Path, technique: bool) -> Result<()> {
     let sources = SourceList::new();
-
+    
     // read and add files
     let corelib = Path::new("data/corelib.rl");
     let stdlib = Path::new("data/stdlib.rl");
     let filename = source.to_string_lossy();
+
+    println!("{} of {}", "Processing compilation".bright_green(), &filename.bright_yellow());
 
     // data
     let mut past = PAST::new();
@@ -167,12 +174,16 @@ fn compile(source: &Path, dest: &Path, technique: bool) -> Result<()> {
     add_file(&mut past, &sources, source, &filename)?;
 
     // finish parsing into AST
+    println!("|- {}", "Generating intermediate code".bright_green());
     let ast = AST::from_past(past)?;
-
+    
+    
     // check that everything is OK
+    println!("|- {}", "Semantic verification".bright_green());
     ast.analyze()?;
 
     // generate final output
+    println!("|- {}", "Generating output code".bright_green());
     let mut cfe = CFEngine::new();
     let file = if technique {
         // TODO this should be a technique name not a file name

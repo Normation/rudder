@@ -28,8 +28,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use ngrammatic::CorpusBuilder;
-use std::collections::HashMap;
 ///
 /// We write our own error type to have a consistent error type through all our code.
 /// We translate other types to this one when necessary.
@@ -41,9 +39,12 @@ use std::collections::HashMap;
 /// - Compilation error: usually we can skip what we are doing and go to next iteration
 /// - List: aggregate compilation errors so that user can fix them all ant once
 ///
+use crate::parser::Token;
+use colored::Colorize;
+use ngrammatic::CorpusBuilder;
+use std::collections::HashMap;
 use std::fmt;
 use std::hash::Hash;
-use crate::parser::Token;
 
 const FUZZY_THRESHOLD: f32 = 0.5; // pub + `crate::` before calling since it may end up in the main.rs file.
 
@@ -107,9 +108,12 @@ impl Error {
 macro_rules! err {
     ($origin:expr, $ ( $ arg : tt ) *) => ({
         use crate::error::Error;
+        use colored::Colorize;
+
         Error::User(format!(
-                "'{}': {}",
-                $origin.position_str(),
+                "{}:\n{} {}",
+                $origin.position_str().bright_yellow(),
+                "-->".bright_blue(),
                 format!( $ ( $ arg ) * )
         ))
     });
@@ -197,10 +201,11 @@ where
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::User(msg) => write!(f, "Error {}", msg),
+            Error::User(msg) => write!(f, "{} at {}", "error".red(), msg),
             Error::List(v) => write!(
                 f,
-                "{}",
+                "{}:\n{}",
+                "errors".red(),
                 v.iter()
                     .map(|x| x.to_string())
                     .collect::<Vec<String>>()
