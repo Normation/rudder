@@ -28,6 +28,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
+use ngrammatic::CorpusBuilder;
 use std::collections::HashMap;
 ///
 /// We write our own error type to have a consistent error type through all our code.
@@ -42,6 +43,9 @@ use std::collections::HashMap;
 ///
 use std::fmt;
 use std::hash::Hash;
+use crate::parser::Token;
+
+const FUZZY_THRESHOLD: f32 = 0.5; // pub + `crate::` before calling since it may end up in the main.rs file.
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Error {
@@ -204,4 +208,41 @@ impl fmt::Display for Error {
             ),
         }
     }
+}
+
+/// Searches for a matching string in an Iterator of Token
+fn fuzzy_search<'src, I>(token_fragment: &str, list: I) -> Option<String>
+where 
+    I: Iterator<Item = &'src Token<'src>>,
+{
+    let mut corpus = CorpusBuilder::new().finish();
+    list.for_each(|token| corpus.add_text(token.fragment()));
+    let results = corpus.search(token_fragment, FUZZY_THRESHOLD);
+    if let Some(top_match) = results.first() {
+        return Some(top_match.text.to_string())
+    }
+    None
+}
+
+/// Adds a suggestion o an error message if a similar Token name is found in the available context (scope + global)
+pub fn get_suggestion_message<'src, I>(unmatched_token_fragment: &str, list: I) -> String
+where 
+    I: Iterator<Item = &'src Token<'src>>,
+{
+    let separator = ".\n";
+    let mut output_str = String::new();
+    output_str.push_str(separator);
+    match list.size_hint() {
+        (_, Some(0)) => output_str.push_str("No variable in the current context"),
+        (_, Some(1)) => {
+            let top_match = list.last().unwrap();
+            output_str.push_str(format!("Did you mean: \"{}\"?", top_match.fragment()).as_str())
+        }, 
+        _ => match fuzzy_search(unmatched_token_fragment, list) {
+            Some(message) => output_str.push_str(format!("Did you mean: \"{}\"?", message).as_str()),
+            None => output_str.push_str("No similar name found."),
+            // previous is explicit, testing purpose. prod -> None => return String::new(),
+        },
+    };
+    output_str
 }
