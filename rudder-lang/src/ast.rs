@@ -314,7 +314,7 @@ impl<'src> AST<'src> {
         }
     }
 
-    // binding_check fn dependance: compares library and user function's parameters. if diff, output an error
+    /// binding_check function dependance: compares library and user function's parameters. if diff, output an error
     fn parameters_count_check(
         &self,
         resource: Token<'src>,
