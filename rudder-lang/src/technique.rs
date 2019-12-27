@@ -29,6 +29,8 @@
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::error::*;
+use crate::parser::Token;
+use colored::Colorize;
 use lazy_static::lazy_static;
 use nom::branch::alt;
 use nom::bytes::complete::*;
@@ -64,33 +66,35 @@ struct MethodCall {
     component: String,
 }
 
-pub fn translate_file(json_file: &Path, rl_file: &Path) -> Result<()> {
-    let config_data = fs::read_to_string("data/config.toml").expect("Cannot read config.toml file");
-    let config: toml::Value = toml::from_str(&config_data).expect("Invalig config.toml file");
+pub fn translate_file(json_file: &Path, rl_file: &Path) -> Result<()>
+{
+    let input_filename = &json_file.to_string_lossy();
+    let output_filename = &rl_file.to_string_lossy();
+    let config_filename = "data/config.toml";
+    let file_error = |filename: &str, err| err!(Token::new(&filename.to_owned(), ""), "{}", err);
+    
+    println!(
+        "{} of {} into {}",
+        "Processing translation".bright_green(),
+        input_filename.bright_yellow(),
+        output_filename.bright_yellow()
+    );
 
-    // we use if let for error conversion
-    // we don't use match for better linear reading
-    let json_data = fs::read_to_string(&json_file);
-    if json_data.is_err() {
-        return Err(Error::User(format!(
-            "Cannot read file {}",
-            json_file.to_string_lossy()
-        )));
-    }
-    let technique = serde_json::from_str::<Technique>(&json_data.unwrap());
-    if technique.is_err() {
-        return Err(Error::User(format!(
-            "Invalid technique in file {}",
-            json_file.to_string_lossy()
-        )));
-    }
-    let rl_technique = translate(&config, &technique.unwrap())?;
-    if fs::write(&rl_file, rl_technique).is_err() {
-        return Err(Error::User(format!(
-            "Cannot write file {}",
-            rl_file.to_string_lossy()
-        )));
-    }
+    println!("|- {} {}", "Serializating".bright_green(), config_filename.bright_yellow());
+    let config_data = fs::read_to_string(config_filename).map_err(|e| file_error(config_filename, e))?;
+    let config: toml::Value = toml::from_str(&config_data).map_err(|e| {
+        err!(Token::new(config_filename, ""), "{}", e)
+    })?;
+
+    println!("|- {} {}", "Serializating".bright_green(), input_filename.bright_yellow());
+    let json_data = fs::read_to_string(&json_file).map_err(|e| file_error(input_filename, e))?;
+    let technique = serde_json::from_str::<Technique>(&json_data).map_err(|e| {
+        err!(Token::new(input_filename, ""), "{}", e)
+    })?;
+
+    println!("|- {} (translation phase)", "Generating output code".bright_green());
+    let rl_technique = translate(&config, &technique)?;
+    fs::write(&rl_file, rl_technique).map_err(|e| file_error(output_filename, e))?;
     Ok(())
 }
 

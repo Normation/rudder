@@ -42,11 +42,11 @@ use crate::error::*;
 use crate::generators::*;
 use crate::parser::{PAST, Token};
 use crate::technique::translate_file;
+use colored::Colorize;
 use std::cell::UnsafeCell;
 use std::fs;
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
-use colored::Colorize;
 
 ///!  Principle:
 ///!  1-  rl -> PAST::add_file() -> PAST
@@ -151,12 +151,12 @@ fn main() {
     if opt.translate {
         match translate_file(&opt.input, &opt.output) {
             Err(e) => eprintln!("{}", e),
-            Ok(_) => println!("{} {}", "File translation".bright_green(), "OK".cyan()),
+            Ok(_) => println!("{} {}", "File translation".bright_green(), "OK".bright_cyan()),
         }
     } else {
         match compile(&opt.input, &opt.output, opt.technique) {
             Err(e) => eprintln!("{}", e),
-            Ok(_) => println!("{} {}", "Compilation".bright_green(), "OK".cyan()),
+            Ok(_) => println!("{} {}", "Compilation".bright_green(), "OK".bright_cyan()),
         }
     }
 }

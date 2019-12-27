@@ -28,8 +28,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use ngrammatic::CorpusBuilder;
-use std::collections::HashMap;
 ///
 /// We write our own error type to have a consistent error type through all our code.
 /// We translate other types to this one when necessary.
@@ -41,10 +39,12 @@ use std::collections::HashMap;
 /// - Compilation error: usually we can skip what we are doing and go to next iteration
 /// - List: aggregate compilation errors so that user can fix them all ant once
 ///
+use crate::parser::Token;
+use colored::Colorize;
+use ngrammatic::CorpusBuilder;
+use std::collections::HashMap;
 use std::fmt;
 use std::hash::Hash;
-use colored::Colorize;
-use crate::parser::Token;
 
 const FUZZY_THRESHOLD: f32 = 0.5; // pub + `crate::` before calling since it may end up in the main.rs file.
 
