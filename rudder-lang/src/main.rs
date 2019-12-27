@@ -40,7 +40,7 @@ mod technique;
 use crate::ast::AST;
 use crate::error::*;
 use crate::generators::*;
-use crate::parser::PAST;
+use crate::parser::{PAST, Token};
 use crate::technique::translate_file;
 use std::cell::UnsafeCell;
 use std::fs;
@@ -105,11 +105,16 @@ fn add_file<'a>(
     filename: &'a str,
 ) -> Result<()> {
     println!("|- {} {}", "Parsing".bright_green(), filename);
-    if let Ok(content) = fs::read_to_string(path) {
-        let content_str = source_list.append(content);
-        past.add_file(filename, &content_str)
-    } else {
-        Err(Error::User(format!("could not read {}", &filename.bright_yellow())))
+    match fs::read_to_string(path) {
+        Ok(content) => {
+            let content_str = source_list.append(content);
+            past.add_file(filename, &content_str)
+        },
+        Err(e) => {
+            let tk = Token::new(filename, "");
+            println!("{:#?}", tk);
+            Err(err!(Token::new(filename, ""), "{}", e))
+        }
     }
 }
 

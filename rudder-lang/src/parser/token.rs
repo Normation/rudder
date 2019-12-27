@@ -60,12 +60,15 @@ impl<'src> Token<'src> {
 
     /// Format a token position for compiler output (file name and position included)
     pub fn position_str(&self) -> String {
-        format!(
-            "{}:{}:{}",
-            self.val.extra.to_string(),
-            self.val.line,
-            self.val.get_utf8_column(),
-        )
+        match self.val.offset {
+            0 => self.val.extra.to_owned(),
+            _ => format!(
+                "{}:{}:{}",
+                self.val.extra.to_string(),
+                self.val.line,
+                self.val.get_utf8_column(),
+            ),
+        }
     }
 
     /// Extract the string part of the token
