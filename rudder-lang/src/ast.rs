@@ -157,9 +157,10 @@ impl<'src> AST<'src> {
                 for em in new_mappings {
                     self.errors.push(err!(
                         em.to,
-                        "Enum {} not found when trying to define mapping {}",
+                        "Enum {} not found when trying to define mapping {}{}",
                         em.from,
-                        em.to
+                        em.to,
+                        get_suggestion_message(em.from.fragment(), enum_list.iter().map(|(k, _)| k)),
                     ));
                 }
                 break;
@@ -254,9 +255,10 @@ impl<'src> AST<'src> {
             if !self.resource_list.contains(&parent) {
                 self.errors.push(err!(
                     &child,
-                    "Resource {} declares {} as a parent, but it doesn't exist",
+                    "Resource {} declares {} as a parent, but it doesn't exist{}",
                     child,
-                    parent
+                    parent,
+                    get_suggestion_message(parent.fragment(), self.resource_list.iter()),
                 ));
             } else {
                 children.entry(parent).or_insert_with(HashSet::new);
@@ -283,9 +285,10 @@ impl<'src> AST<'src> {
             match state_list.get_mut(&st.resource_name) {
                 None => self.errors.push(err!(
                     st.name,
-                    "Resource {} has not been defined for state {}",
+                    "Resource {} has not been defined for state {}{}",
                     st.resource_name,
-                    st.name
+                    st.name,
+                    get_suggestion_message(st.resource_name.fragment(), state_list.keys())
                 )),
                 Some(v) => v.push(st),
             }
@@ -296,7 +299,7 @@ impl<'src> AST<'src> {
             // or else because we have not stopped on duplicate resources
             let states = state_list.remove(&name).unwrap_or_else(Vec::new);
             let res_children = children.remove(&name).unwrap_or_else(HashSet::new);
-            let (errs, resource) = ResourceDef::from_presourcedef(
+            let (errs, resource) = ResourceDef::from_presourcedef( // TODO moove param count errors checker out of from_presourcedef
                 res,
                 states,
                 res_children,
@@ -311,29 +314,68 @@ impl<'src> AST<'src> {
         }
     }
 
+    /// binding_check function dependance: compares library and user function's parameters. if diff, output an error
+    fn parameters_count_check(
+        &self,
+        resource: Token<'src>,
+        state: Option<Token<'src>>,
+        params: &Vec<Value<'src>>
+    ) -> Result<()> {
+        let fun_kind = if let Some(st) = state { st } else { resource };
+        let emptyvec = Vec::new();
+        let defaults = self.parameter_defaults.get(&(resource, state)).unwrap_or(&emptyvec);
+        let diff = defaults.len() as i32 - params.len() as i32;
+        if diff > 0 {
+            fail!(
+                fun_kind,
+                "{} instance of {} is missing parameters and there is no default values for them",
+                if state.is_some() { "Resource state" } else { "Resource" },
+                fun_kind
+            );
+        } else if diff < 0 {
+            fail!(
+                fun_kind,
+                "{} instance of {} has too many parameters, expecting {}, got {}",
+                if state.is_some() { "Resource state" } else { "Resource" },
+                fun_kind,
+                defaults.len(),
+                params.len()
+            );
+        }
+        Ok(())
+    }
+
     fn binding_check(&self, statement: &Statement) -> Result<()> {
         match statement {
             Statement::StateDeclaration(sd) => {
                 match self.resources.get(&sd.resource) {
-                    None => fail!(sd.resource, "Resource type {} does not exist", sd.resource),
+                    None => fail!(
+                        sd.resource,
+                        "Resource type {} does not exist{}",
+                        sd.resource,
+                        get_suggestion_message(sd.resource.fragment(), self.resources.keys()),
+                    ),
                     Some(res) => {
                         // Assume default parameter replacement and type inference if any has already be done
+                        self.parameters_count_check(sd.resource, None, &sd.resource_params)?;
                         match_parameters(&res.parameters, &sd.resource_params, sd.resource)?;
                         match res.states.get(&sd.state) {
                             None => fail!(
                                 sd.state,
-                                "State {} does not exist for resource {}",
+                                "State {} does not exist for resource {}{}",
                                 sd.state,
-                                sd.resource
+                                sd.resource,
+                                get_suggestion_message(sd.state.fragment(), res.states.keys()),
                             ),
                             Some(st) => {
                                 // Assume default parameter replacement and type inference if any has already be done
+                                self.parameters_count_check(sd.resource, Some(sd.state), &sd.state_params)?;
                                 match_parameters(&st.parameters, &sd.state_params, sd.state)
                             }
                         }
                     }
                 }
-            }
+            },
             Statement::Case(_name, cases) => map_results(cases.iter(), |(_c, sts)| {
                 map_results(sts.iter(), |st| self.binding_check(st))
             }),
@@ -524,7 +566,7 @@ impl<'src> AST<'src> {
         if self.resources.contains_key(&name) {
             fail!(
                 name,
-                "Variable name {} cannot be used because it is an resource name",
+                "Variable name {} cannot be used because it is a resource name",
                 name
             );
         }

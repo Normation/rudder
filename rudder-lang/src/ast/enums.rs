@@ -195,10 +195,11 @@ impl<'src> EnumList<'src> {
                     if !(values.contains(&f) || *f == "*") {
                         fail!(
                             f,
-                            "Value {} used in mapping {} does not exist in {}",
+                            "Value {} used in mapping {} does not exist in {}{}",
                             f,
                             e.to,
-                            *e.from
+                            *e.from,
+                            get_suggestion_message(f.fragment(), values.iter()),
                         );
                     }
                     pmapping.insert(f, t);
@@ -356,14 +357,20 @@ impl<'src> EnumList<'src> {
                                         fail!(value, "Variable {} must be compared with some enum in expression", value)
                                     }
                                 }
-                                _ => fail!(value, "Global enum value {} does not exist", value),
+                                _ => fail!(
+                                    value,
+                                    "Global enum value {} does not exist{}",
+                                    value,
+                                    get_suggestion_message(value.fragment(), self.global_values.keys())
+                                ),
                             },
-                            Some(var1) => match getter(var1) {
+                            Some(var1) => match getter(var1) { // TODO check it is useful to suggest here
                                 Some(VarKind::Enum(t, _)) => t,
                                 _ => fail!(
                                     var1,
-                                    "Variable {} doesn't exist or doesn't have an enum type",
-                                    var1
+                                    "Variable {} doesn't exist or doesn't have an enum type{}",
+                                    var1,
+                                    get_suggestion_message(var1.fragment(), self.enums.keys()),
                                 ),
                             },
                         },
@@ -379,11 +386,17 @@ impl<'src> EnumList<'src> {
                         } else {
                             match self.enums.get(&e1) {
                                 // or get it from a global enum
-                                None => fail!(e1, "No such enum {}", e1),
+                                None => fail!(
+                                    e1,
+                                    "No such enum {}{}",
+                                    e1,
+                                    get_suggestion_message(e1.fragment(), self.enums.keys())
+                                ),
                                 Some((false, _)) => fail!(
                                     e1,
-                                    "Enum {} is not global, you must provide a variable",
-                                    e1
+                                    "Enum {} is not global, you must provide a variable{}",
+                                    e1,
+                                    get_suggestion_message(e1.fragment(), self.global_values.keys())
                                 ),
                                 Some((true, _)) => self.find_elder(e1),
                             }
@@ -397,16 +410,31 @@ impl<'src> EnumList<'src> {
                 };
                 // check that enum exists and has value
                 match self.enums.get(&e1) {
-                    None => fail!(e1, "Enum {} does not exist", e1),
+                    None => fail!(
+                        e1,
+                        "Enum {} does not exist{}",
+                        e1,
+                        get_suggestion_message(e1.fragment(), self.enums.keys())
+                    ),
                     Some((_, list)) => {
                         if !list.contains(&val) {
-                            fail!(val, "Value {} is not defined in enum {}", val, e1)
+                            fail!(
+                                val,
+                                "Value {} is not defined in enum {}{}",
+                                val,
+                                e1,
+                                get_suggestion_message(val.fragment(), self.enums.keys()))
                         }
                     }
                 }
                 // check that var exists
                 match getter(var1) {
-                    None => fail!(var1, "Variable {} does not exist", var1),
+                    None => fail!(
+                        var1,
+                        "Variable {} does not exist{}",
+                        var1,
+                        get_suggestion_message(var1.fragment(), self.enums.keys()),
+                    ),
                     // wrong enum type
                     Some(VarKind::Enum(t, _)) => {
                         // check variable enum type

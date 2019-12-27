@@ -311,6 +311,28 @@ pub enum Statement<'src> {
     // Do nothing
     Noop,
 }
+
+// Seek for input-filled parameters of a corresponding resource or depending state, and fill potentially missing parameters with default ones
+fn push_default_parameters<'src>(
+    resource: Token<'src>,
+    state: Option<Token<'src>>,
+    param_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>,
+    params: &mut Vec<Value<'src>>
+) -> Result<()> {
+    let emptyvec = Vec::new();
+    let defaults = param_defaults.get(&(resource, state)).unwrap_or(&emptyvec);
+    let diff = defaults.len() as i32 - params.len() as i32;
+    if diff > 0 {
+        map_results(defaults.iter().skip(params.len()), |param| {
+            if let Some(p) = param {
+                (*params).push(p.clone());
+            };
+            Ok(())  
+        })?;
+    }
+    Ok(())
+}
+
 impl<'src> Statement<'src> {
     pub fn fom_pstatement<'b>(
         context: &'b mut VarContext<'src>,
@@ -376,60 +398,11 @@ impl<'src> Statement<'src> {
                 let mut resource_params = map_vec_results(resource_params.into_iter(), |v| {
                     Value::from_pvalue(enum_list, &getter, v)
                 })?;
-                let emptyvec = Vec::new();
-                let res_defaults = &parameter_defaults
-                    .get(&(resource, None))
-                    .unwrap_or(&emptyvec);
-                let res_missing = res_defaults.len() as i32 - resource_params.len() as i32;
-                if res_missing > 0 {
-                    map_results(res_defaults.iter().skip(resource_params.len()), |param| {
-                        match param {
-                                            Some(p) => resource_params.push(p.clone()),
-                                            None => fail!(
-                                                resource,
-                                                "Resources instance of {} is missing parameters and there is no default values for them",
-                                                resource
-                                            ),
-                                        };
-                        Ok(())
-                    })?;
-                } else if res_missing < 0 {
-                    fail!(
-                        resource,
-                        "Resources instance of {} has too many parameters, expecting {}, got {}",
-                        resource,
-                        res_defaults.len(),
-                        resource_params.len()
-                    );
-                }
+                push_default_parameters(resource, None, parameter_defaults, &mut resource_params)?;
                 let mut state_params = map_vec_results(state_params.into_iter(), |v| {
                     Value::from_pvalue(enum_list, &getter, v)
                 })?;
-                let st_defaults = &parameter_defaults
-                    .get(&(resource, Some(state)))
-                    .unwrap_or(&emptyvec);
-                let st_missing = st_defaults.len() as i32 - state_params.len() as i32;
-                if st_missing > 0 {
-                    map_results(st_defaults.iter().skip(state_params.len()), |param| {
-                        match param {
-                            Some(p) => state_params.push(p.clone()),
-                            None => fail!(
-                                state,
-                                "Resources state instance of {} is missing parameters and there is no default values for them",
-                                state
-                            ),
-                        };
-                        Ok(())
-                    })?;
-                } else if st_missing < 0 {
-                    fail!(
-                        state,
-                        "Resources state instance of {} has too many parameters, expecting {}, got {}",
-                        state,
-                        st_defaults.len(),
-                        state_params.len()
-                    );
-                }
+                push_default_parameters(resource, Some(state), parameter_defaults, &mut state_params)?;
                 // check that parameters use existing variables
                 map_results(resource_params.iter(), |p| p.context_check(&getter))?;
                 map_results(state_params.iter(), |p| p.context_check(&getter))?;
