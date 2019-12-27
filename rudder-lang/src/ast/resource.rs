@@ -385,7 +385,11 @@ impl<'src> Statement<'src> {
                     map_results(res_defaults.iter().skip(resource_params.len()), |param| {
                         match param {
                                             Some(p) => resource_params.push(p.clone()),
-                                            None => fail!(resource, "Resources instance of {} is missing parameters and there is no default values for them", resource),
+                                            None => fail!(
+                                                resource,
+                                                "Resources instance of {} is missing parameters and there is no default values for them",
+                                                resource
+                                            ),
                                         };
                         Ok(())
                     })?;
@@ -408,13 +412,23 @@ impl<'src> Statement<'src> {
                 if st_missing > 0 {
                     map_results(st_defaults.iter().skip(state_params.len()), |param| {
                         match param {
-                                           Some(p) => state_params.push(p.clone()),
-                                           None => fail!(state, "Resources state instance of {} is missing parameters and there is no default values for them", state),
-                                       };
+                            Some(p) => state_params.push(p.clone()),
+                            None => fail!(
+                                state,
+                                "Resources state instance of {} is missing parameters and there is no default values for them",
+                                state
+                            ),
+                        };
                         Ok(())
                     })?;
                 } else if st_missing < 0 {
-                    fail!(state, "Resources state instance of {} has too many parameters, expecting {}, got {}", state, st_defaults.len(), state_params.len());
+                    fail!(
+                        state,
+                        "Resources state instance of {} has too many parameters, expecting {}, got {}",
+                        state,
+                        st_defaults.len(),
+                        state_params.len()
+                    );
                 }
                 // check that parameters use existing variables
                 map_results(resource_params.iter(), |p| p.context_check(&getter))?;

@@ -42,6 +42,7 @@ use std::collections::HashMap;
 ///
 use std::fmt;
 use std::hash::Hash;
+use colored::*;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Error {
@@ -103,9 +104,12 @@ impl Error {
 macro_rules! err {
     ($origin:expr, $ ( $ arg : tt ) *) => ({
         use crate::error::Error;
+        use colored::*;
+
         Error::User(format!(
-                "'{}': {}",
-                $origin.position_str(),
+                "{}:\n{} {}",
+                $origin.position_str().bright_yellow(),
+                "-->".bright_blue(),
                 format!( $ ( $ arg ) * )
         ))
     });
@@ -193,10 +197,11 @@ where
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::User(msg) => write!(f, "Error {}", msg),
+            Error::User(msg) => write!(f, "{} at {}", "error".red(), msg),
             Error::List(v) => write!(
                 f,
-                "{}",
+                "{}:\n{}",
+                "errors".red(),
                 v.iter()
                     .map(|x| x.to_string())
                     .collect::<Vec<String>>()
