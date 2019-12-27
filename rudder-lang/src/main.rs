@@ -110,11 +110,7 @@ fn add_file<'a>(
             let content_str = source_list.append(content);
             past.add_file(filename, &content_str)
         },
-        Err(e) => {
-            let tk = Token::new(filename, "");
-            println!("{:#?}", tk);
-            Err(err!(Token::new(filename, ""), "{}", e))
-        }
+        Err(e) => Err(err!(Token::new(filename, ""), "{}", e))
     }
 }
 

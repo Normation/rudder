@@ -1,7 +1,7 @@
-# @parameters [  ]
 #
-# @name Configure NTP
 # @version 1.0
+# @parameters [  ]
+# @name Configure NTP
 # @description test
 
 bundle agent Configure_NTP_technique 
