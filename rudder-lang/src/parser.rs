@@ -31,6 +31,7 @@
 mod error;
 mod token;
 
+use nom::error::*;
 use nom::branch::*;
 use nom::bytes::complete::*;
 use nom::character::complete::*;
@@ -190,23 +191,42 @@ macro_rules! sequence {
     ( { $($f:ident : $parser:expr;)* } => $output:expr ) => {
         move |i| {
             $(
-                let (i,$f) = $parser (i)?;
+                // intercept error to update its context if it should lead to a handled compilation error
+                let (j, $f) = match $parser (i) {
+                    Ok(res) => res,
+                    Err(e) => return Err(update_error_context(e, get_accurate_context(i)))
+                };
+                let i = j;
             )*
             Ok((i, $output))
         }
     };
 }
+
 /// wsequence is the same a sequence, but we automatically insert space parsing between each call
 macro_rules! wsequence {
     ( { $($f:ident : $parser:expr;)* } => $output:expr ) => {
         move |i| {
             $(
-                let (i,$f) = $parser (i)?;
-                let (i,_) = strip_spaces_and_comment(i)?;
+                // intercept error to update its context if it should lead to a handled compilation error
+                let (j, $f) = match $parser (i) {
+                    Ok(res) => res,
+                    Err(e) => return Err(update_error_context(e, get_accurate_context(i)))
+                };
+                let (i,_) = strip_spaces_and_comment(j)?;
             )*
             Ok((i, $output))
         }
     };
+}
+
+/// Tool function allowing to save last state of parsing offset line before any error
+fn get_accurate_context(i: PInput) -> PInput {
+    // Might be useful to expand via a second parameter the limit pattern or even a function to combine with
+    let single_line_result: nom::IResult<PInput, PInput> = take_until("\n")(i);
+    // return the received input by default
+    let (_next, updated_context) = single_line_result.unwrap_or((i, i));
+    updated_context
 }
 
 /// A source file header consists of a single line '@format=<version>'.
@@ -223,7 +243,7 @@ fn pheader(i: PInput) -> PResult<PHeader> {
             version: or_fail(
                 map_res(take_until("\n"), |s: PInput| s.fragment.parse::<u32>()),
                 || PErrorKind::InvalidFormat
-                );
+            );
             _x: tag("\n");
         } => PHeader { version }
     )(i)
@@ -260,10 +280,10 @@ fn penum(i: PInput) -> PResult<PEnum> {
         {
             metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
             global: opt(tag("global")); // TODO at least one space here
-            e:      tag("enum"); // TODO at least one space here
-            _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
+            e:      or_err(tag("enum"), || PErrorKind::ExpectedReservedWord("enum")); // TODO at least one space here
+            _fail:  or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
             name:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
-            b:      tag("{"); // do not fail here, it could still be a mapping
+            b:      or_err(tag("{"), || PErrorKind::ExpectedToken("{")); // do not fail here, it could still be a mapping
             items:  separated_nonempty_list(sp(tag(",")), pidentifier);
             _x:     opt(tag(","));
             _x:     or_fail(tag("}"), || PErrorKind::UnterminatedDelimiter(b));
@@ -290,12 +310,12 @@ fn penum_mapping(i: PInput) -> PResult<PEnumMapping> {
     wsequence!(
         {
             metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
-            e:    tag("enum");// TODO at least one space here
+            e:     tag("enum");// TODO at least one space here
             _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
-            from: or_fail(pidentifier,|| PErrorKind::InvalidName(e));
-            _x:   or_fail(tag("~>"),|| PErrorKind::UnexpectedToken("~>"));
-            to:   or_fail(pidentifier,|| PErrorKind::InvalidName(e));
-            b:    or_fail(tag("{"),|| PErrorKind::UnexpectedToken("{"));
+            from:  or_fail(pidentifier,|| PErrorKind::InvalidName(e));
+            _x:    or_fail(tag("~>"),|| PErrorKind::ExpectedToken("~>"));
+            to:    or_fail(pidentifier,|| PErrorKind::InvalidName(e));
+            b:     or_fail(tag("{"),|| PErrorKind::ExpectedToken("{"));
             mapping:
                 separated_nonempty_list(
                     sp(tag(",")),
@@ -308,7 +328,7 @@ fn penum_mapping(i: PInput) -> PResult<PEnumMapping> {
                             || PErrorKind::InvalidName(to.into())),
                         or_fail(
                             sp(tag("->")),
-                            || PErrorKind::UnexpectedToken("->")),
+                            || PErrorKind::ExpectedToken("->")),
                         or_fail(
                             alt((
                                 pidentifier,
@@ -613,7 +633,7 @@ fn pmetadata(i: PInput) -> PResult<PMetadata> {
     wsequence!(
         {
             key: preceded(tag("@"), pidentifier);
-            _x: or_fail(tag("="), || PErrorKind::UnexpectedToken("="));
+            _x: or_fail(tag("="), || PErrorKind::ExpectedToken("="));
             value: pvalue;
         } => PMetadata { key, value }
     )(i)
@@ -829,7 +849,7 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
                         wsequence!(
                             {
                                 expr: or_fail(penum_expression, || PErrorKind::ExpectedKeyword("enum expression"));
-                                _x: or_fail(tag("=>"), || PErrorKind::UnexpectedToken("=>"));
+                                _x: or_fail(tag("=>"), || PErrorKind::ExpectedToken("=>"));
                                 stmt: or_fail(alt((
                                     map(pstatement, |x| vec![x]),
                                     wsequence!(
@@ -852,7 +872,7 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
                 metadata: pmetadata_list; // metadata is invalid here, check it after the 'if' tag below
                 case: tag("if");// TODO at least one space here
                 expr: or_fail(penum_expression, || PErrorKind::ExpectedKeyword("enum expression"));
-                _x: or_fail(tag("=>"), || PErrorKind::UnexpectedToken("=>"));
+                _x: or_fail(tag("=>"), || PErrorKind::ExpectedToken("=>"));
                 stmt: or_fail(pstatement, || PErrorKind::ExpectedKeyword("statement"));
             } => {
                 // Propagate metadata to the single statement
@@ -895,10 +915,10 @@ fn pstate_def(i: PInput) -> PResult<(PStateDef, Vec<Option<PValue>>)> {
             resource_name: pidentifier;
             _st: tag("state"); // TODO at least one space here
             name: pidentifier;
-            s: or_fail(tag("("), || PErrorKind::UnexpectedToken("("));
+            s: or_fail(tag("("), || PErrorKind::ExpectedToken("("));
             parameter_list: separated_list(sp(tag(",")), pparameter);
             _x: or_fail(tag(")"), || PErrorKind::UnterminatedDelimiter(s));
-            sb: or_fail(tag("{"), || PErrorKind::UnexpectedToken("{"));
+            sb: or_fail(tag("{"), || PErrorKind::ExpectedToken("{"));
             statements: many0(pstatement);
             _x: or_fail(tag("}"), || PErrorKind::UnterminatedDelimiter(sb));
         } => {
@@ -967,6 +987,7 @@ pub enum PDeclaration<'src> {
     Alias(PAliasDef<'src>),
 }
 fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
+    end_of_pfile(i)?;
     alt((
         map(penum, PDeclaration::Enum),
         map(penum_mapping, PDeclaration::Mapping),
@@ -975,6 +996,17 @@ fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
         map(pvariable_definition, PDeclaration::GlobalVar),
         map(palias_def, PDeclaration::Alias),
     ))(i)
+}
+
+fn end_of_pfile(i: PInput) -> PResult<()> {
+    let (i, _) = strip_spaces_and_comment(i)?;
+    if i.fragment.len() == 0 {
+        return Err(nom::Err::Error(PError {
+            context: None,
+            kind: PErrorKind::Nom(VerboseError::from_error_kind(i, ErrorKind::Eof))
+        }))
+    }
+    Ok((i, ()))
 }
 
 /// A PFile is the result of a single file parsing
@@ -989,7 +1021,7 @@ fn pfile(i: PInput) -> PResult<PFile> {
         {
             header: pheader;
             _x: strip_spaces_and_comment;
-            code: many0(pdeclaration);
+            code: many0(or_fail_perr(pdeclaration));
             _x: strip_spaces_and_comment;
         } => PFile {header, code}
     ))(i)

@@ -60,7 +60,7 @@ fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
         PErrorKind::NomTest(e) => PErrorKind::NomTest(e),
         PErrorKind::InvalidFormat => PErrorKind::InvalidFormat,
         PErrorKind::InvalidName(i) => PErrorKind::InvalidName(i.fragment),
-        PErrorKind::UnexpectedToken(i) => PErrorKind::UnexpectedToken(i),
+        PErrorKind::ExpectedToken(i) => PErrorKind::ExpectedToken(i),
         PErrorKind::UnterminatedDelimiter(i) => PErrorKind::UnterminatedDelimiter(i.fragment),
         PErrorKind::InvalidEnumExpression => PErrorKind::InvalidEnumExpression,
         PErrorKind::InvalidEscapeSequence => PErrorKind::InvalidEscapeSequence,
@@ -632,7 +632,7 @@ fn test_pmetadata() {
     );
     assert_eq!(
         map_res(pmetadata, "@key value"),
-        Err(("value", PErrorKind::UnexpectedToken("=")))
+        Err(("value", PErrorKind::ExpectedToken("=")))
     );
 }
 
