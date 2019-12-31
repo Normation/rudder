@@ -356,8 +356,7 @@ final case class Policy(
   // == map .values (keep order) ==> Iterator[List[Variable]]
   // == .toList (keep order)     ==> List[List[Variable]]
   // == flatten (keep order)     ==> List[Variable]
-  val expandedVars    = Policy.mergeVars(policyVars.map( _.expandedVars.values).toList.flatten)
-  val originalVars    = Policy.mergeVars(policyVars.map( _.originalVars.values).toList.flatten)
+  def expandedVars    = Policy.mergeVars(policyVars.map( _.expandedVars.values).toList.flatten)
   val trackerVariable = policyVars.head.trackerVariable.spec.cloneSetMultivalued.toVariable(policyVars.map(_.trackerVariable.values).toList.flatten)
 }
 
@@ -380,10 +379,6 @@ final object Policy {
    */
   def replaceRudderUniqueId(path: String, p: Policy): String = {
     path.replace(TAG_OF_RUDDER_MULTI_POLICY, p.id.getRudderUniqueId)
-  }
-
-  def withParams(p:Policy) : String  = {
-    s"${p.technique.id.name.value}(${p.expandedVars.values.map(_.values.headOption.getOrElse(""))})"
   }
 
   /*
