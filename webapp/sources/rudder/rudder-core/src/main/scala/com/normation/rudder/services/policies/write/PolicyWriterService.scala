@@ -527,7 +527,7 @@ class PolicyWriterServiceImpl(
     for {
       _ <- sequence(preparedTechniques) { preparedTechnique =>
              for {
-               _ <-  sequence(preparedTechnique.templatesToProcess.toSeq) { template =>
+               _ <-  sequence(scala.util.Random.shuffle(preparedTechnique.templatesToProcess.toSeq)) { template =>
                                writePromisesFiles(template, preparedTechnique.environmentVariables, paths.newFolder, preparedTechnique.reportIdToReplace)
                              }
                _ <- sequence(preparedTechnique.filesToCopy.toSeq) { file =>
