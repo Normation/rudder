@@ -98,11 +98,14 @@ class SynchronizedFileTemplate(templateName: String,content: String)  extends Lo
     *
     * If there is no error, returns the resulting content
     */
-  def fill(templateName: String, content: String, variables: Seq[STVariable]): Box[String] = localTemplate.synchronized {
+  def fill(templateName: String, content: String, variables: Seq[STVariable]): Box[(String, Long, Long, Long)] = localTemplate.synchronized {
     localTemplate match {
       case Full(sourceTemplate) =>
+        val t0 = System.nanoTime()
         // we need to work on an instance of the template
         val template = sourceTemplate.getInstanceOf()
+        val t1 = System.nanoTime()
+        val getInstanceTime = t1 - t0
         /*
          * Here, we are using bestEffort to try to test a maxum of false values,
          * but the StringTemplate thing is mutable, so we don't have the intersting
@@ -143,18 +146,23 @@ class SynchronizedFileTemplate(templateName: String,content: String)  extends Lo
 
           }
         }
+        val t2 = System.nanoTime()
+        val replaceTime = t2 - t1
         //return the actual template with replaced variable in case of success
-        replaced match {
+        val result = replaced match {
           case Full(_) => Full(template.toString())
           case Empty => //should not happen, but well, that the price of not using Either
             Failure(s"An unknown error happen when trying to fill template '${templateName}'")
           case f: Failure => //build a new failure with all the failure message concatenated and the templateName as context
             Failure(s"Error with template '${templateName}': ${f.failureChain.map { _.msg }.mkString("; ") }")
         }
+        val t3 = System.nanoTime()
+        val toStringTime = t3 - t2
+        (result, getInstanceTime, replaceTime, toStringTime)
       case _ =>
         val msg = s"Error with template '${templateName}' - the template was not correctly parsed"
         logger.error(msg)
-        Failure(msg)
+        (Failure(msg), 0, 0, 0)
     }
   }
 
@@ -194,14 +202,14 @@ class FillTemplatesService extends Loggable {
   /**
     * From a templateName, content and variable, find the template, and call method to fill it
     */
-  def fill(templateName: String, content: String, variables: Seq[STVariable]): Box[String] = {
+  def fill(templateName: String, content: String, variables: Seq[STVariable]): Box[(String, Long, Long, Long)] = {
     for {
       template <- getTemplateFromContent(templateName, content)
 
-      filled <- template.fill(templateName, content, variables)
+      (filled, getInstanceTime, varTime, toStringTime) <- template.fill(templateName, content, variables)
 
     } yield {
-      filled
+      (filled, getInstanceTime, varTime, toStringTime)
     }
   }
 }

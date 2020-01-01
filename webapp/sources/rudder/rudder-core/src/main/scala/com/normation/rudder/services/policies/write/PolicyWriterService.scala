@@ -307,21 +307,28 @@ class PolicyWriterServiceImpl(
 
         timings   <- ParallelSequence.traverse(preparedPromises) { prepared =>
                               (for {
-                                (_, fillTime, replaceTime, writeTime) <- writePromises(prepared.paths, prepared.agentNodeProps.agentType, prepared.preparedTechniques, resources)
+                                (_, fillTime, replaceTime, writeTime, getInstanceTime, replaceVarTime, toStringTime) <- writePromises(prepared.paths, prepared.agentNodeProps.agentType, prepared.preparedTechniques, resources)
                                 _ <- writeAllAgentSpecificFiles.write(prepared) ?~! s"Error with node '${prepared.paths.nodeId.value}'"
                                 _ <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
                               } yield {
 
-                                (fillTime, replaceTime, writeTime)
+                                (fillTime, replaceTime, writeTime, getInstanceTime, replaceVarTime, toStringTime)
                               }) ?~! s"Error when writing configuration for node '${prepared.paths.nodeId.value}'"
                             }
-        fillTime = timings.map{ case (fill, _, _) => fill}.sum
-        replaceTime = timings.map{ case (_, replace, _) => replace}.sum
-        writeTime = timings.map{ case (_, _, write) => write}.sum
+        fillTime = timings.map{ case (fill, _, _, _,_,_) => fill}.sum
+        replaceTime = timings.map{ case (_, replace, _, _,_,_) => replace}.sum
+        writeTime = timings.map{ case (_, _, write, _,_,_) => write}.sum
+        getInstanceTime = timings.map{ case (_, _, _, getInstanceTime,_,_) => getInstanceTime}.sum
+        replaceVarTime = timings.map{ case (_, _, _, _,replaceVarTime,_) => replaceVarTime}.sum
+        toStringTime = timings.map{ case (_, _, _, _,_,toStringTime) => toStringTime}.sum
 
         _ = policyLogger.debug(s"Templates filled in ${fillTime/(1000*1000)} ms")
-        _ = policyLogger.debug(s"Templates replaced in ${replaceTime/(1000*1000)} ms")
+        _ = policyLogger.debug(s"Templates RudderUniqueId replaced in ${replaceTime/(1000*1000)} ms")
         _ = policyLogger.debug(s"Templates wrote in ${writeTime/(1000*1000)} ms")
+        _ = policyLogger.debug(s"Templates instance got in ${getInstanceTime/(1000*1000)} ms")
+        _ = policyLogger.debug(s"Templates variables were set in ${replaceVarTime/(1000*1000)} ms")
+        _ = policyLogger.debug(s"Templates to string  in ${toStringTime/(1000*1000)} ms")
+
         promiseWrittenTime = System.currentTimeMillis
         promiseWrittenDur  = promiseWrittenTime - preparedPromisesTime
         _                  = policyLogger.debug(s"Promises written in ${promiseWrittenDur} ms")
@@ -529,7 +536,7 @@ class PolicyWriterServiceImpl(
     , agentType         : AgentType
     , preparedTechniques: Seq[PreparedTechnique]
     , resources         : Map[(TechniqueResourceId, AgentType), TechniqueResourceCopyInfo]
-  ) : Box[(NodePromisesPaths, Long, Long, Long)] = {
+  ) : Box[(NodePromisesPaths, Long, Long, Long, Long, Long, Long)] = {
     // write the promises of the current machine and set correct permission
     for {
       timings <- sequence(preparedTechniques) { preparedTechnique =>
@@ -537,22 +544,28 @@ class PolicyWriterServiceImpl(
                resultSeq <-  sequence(scala.util.Random.shuffle(preparedTechnique.templatesToProcess.toSeq)) { template =>
                                writePromisesFiles(template, preparedTechnique.environmentVariables, paths.newFolder, preparedTechnique.reportIdToReplace)
                              }
-               fillTime    = resultSeq.map{ case (_, fill, _, _) => fill}.sum
-               replaceTime = resultSeq.map{ case (_, _, replace, _) => replace}.sum
-               writeTime   = resultSeq.map{ case (_, _, _, write) => write}.sum
-
+               fillTime    = resultSeq.map{ case (_, fill, _, _, _ ,_ ,_) => fill}.sum
+               replaceTime = resultSeq.map{ case (_, _, replace, _, _ ,_ ,_) => replace}.sum
+               writeTime   = resultSeq.map{ case (_, _, _, write, _ ,_ ,_) => write}.sum
+               getInstanceTime   = resultSeq.map{ case (_, _, _, _, getInstanceTime ,_ ,_) => getInstanceTime}.sum
+               replaceVarTime    = resultSeq.map{ case (_, _, _, _, _ ,replaceVarTime ,_) => replaceVarTime}.sum
+               toStringTime      = resultSeq.map{ case (_, _, _, _, _ ,_ ,toStringTime) => toStringTime}.sum
                _         <- sequence(preparedTechnique.filesToCopy.toSeq) { file =>
                               copyResourceFile(file, agentType, paths.newFolder, preparedTechnique.reportIdToReplace, resources)
                             }
              } yield {
-               (fillTime, replaceTime, writeTime)
+               (fillTime, replaceTime, writeTime, getInstanceTime, replaceVarTime, toStringTime)
              }
            }
     } yield {
-      val fillTime = timings.map{ case (fill, _, _) => fill}.sum
-      val replaceTime = timings.map{ case (_, replace, _) => replace}.sum
-      val writeTime = timings.map{ case (_, _, write) => write}.sum
-      (paths, fillTime, replaceTime, writeTime)
+      val fillTime = timings.map{ case (fill, _, _, _, _, _) => fill}.sum
+      val replaceTime = timings.map{ case (_, replace, _, _, _, _) => replace}.sum
+      val writeTime = timings.map{ case (_, _, write, _, _, _) => write}.sum
+      val getInstanceTime = timings.map{ case (_, _, _, getInstanceTime, _, _) => getInstanceTime}.sum
+      val replaceVarTime = timings.map{ case (_, _, _, _, replaceVarTime, _) => replaceVarTime}.sum
+      val toStringTime = timings.map{ case (_, _, _, _, _, toStringTime) => toStringTime}.sum
+
+      (paths, fillTime, replaceTime, writeTime, getInstanceTime, replaceVarTime, toStringTime)
     }
   }
 
@@ -772,7 +785,7 @@ class PolicyWriterServiceImpl(
     , variableSet           : Seq[STVariable]
     , outPath               : String
     , reportIdToReplace     : Option[PolicyId]
-  ): Box[(String, Long, Long, Long)] = {
+  ): Box[(String, Long, Long, Long, Long, Long, Long)] = {
 
     //here, we need a big try/catch, because almost anything in string template can
     //throw errors
@@ -782,8 +795,9 @@ class PolicyWriterServiceImpl(
     val t0 = System.nanoTime()
     for {
       // we could also for yield here to save the filled
-      (replaced, dest, fillTime, replaceTime, t2) <- for {
-        filled           <- fillTemplates.fill(templateInfo.destination, templateInfo.content, variableSet)
+      (replaced, dest, fillTime, replaceTime, t2, getInstanceTime, replaceVarTime, toStringTime) <- for {
+        (filled, getInstanceTime, replaceVarTime, toStringTime)
+                         <- fillTemplates.fill(templateInfo.destination, templateInfo.content, variableSet)
         t1               = System.nanoTime()
         fillTime         = t1 - t0
         // if the technique is multipolicy, replace rudderTag by reportId
@@ -796,14 +810,14 @@ class PolicyWriterServiceImpl(
         t2               = System.nanoTime()
         replaceTime      = t2 - t1
       } yield {
-        (replaced, dest, fillTime, replaceTime, t2)
+        (replaced, dest, fillTime, replaceTime, t2, getInstanceTime, replaceVarTime, toStringTime)
       }
       _                <- tryo { FileUtils.writeStringToFile(new File(outPath, dest), replaced, StandardCharsets.UTF_8) } ?~!
                             s"Bad format in Technique ${templateInfo.id.toString} (file: ${templateInfo.destination})"
       t3                = System.nanoTime()
       writeTime         = t3 - t2
     } yield {
-      (outPath, fillTime, replaceTime, writeTime)
+      (outPath, fillTime, replaceTime, writeTime,  getInstanceTime, replaceVarTime, toStringTime)
     }
   }
 
