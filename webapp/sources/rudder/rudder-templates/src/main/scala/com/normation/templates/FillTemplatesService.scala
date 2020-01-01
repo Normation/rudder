@@ -154,7 +154,7 @@ class SynchronizedFileTemplate(templateName: String,content: String)  extends Lo
             val result = template.toString()
             val t3 = System.nanoTime()
             val toStringTime = t3 - t2
-            Full(result, getInstanceTime, replaceTime, toStringTime)
+            Full((result, getInstanceTime, replaceTime, toStringTime))
           case Empty => //should not happen, but well, that the price of not using Either
             Failure(s"An unknown error happen when trying to fill template '${templateName}'")
           case f: Failure => //build a new failure with all the failure message concatenated and the templateName as context
