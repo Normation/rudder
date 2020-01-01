@@ -149,20 +149,21 @@ class SynchronizedFileTemplate(templateName: String,content: String)  extends Lo
         val t2 = System.nanoTime()
         val replaceTime = t2 - t1
         //return the actual template with replaced variable in case of success
-        val result = replaced match {
-          case Full(_) => Full(template.toString())
+        replaced match {
+          case Full(_) =>
+            val result = template.toString()
+            val t3 = System.nanoTime()
+            val toStringTime = t3 - t2
+            Full(result, getInstanceTime, replaceTime, toStringTime)
           case Empty => //should not happen, but well, that the price of not using Either
             Failure(s"An unknown error happen when trying to fill template '${templateName}'")
           case f: Failure => //build a new failure with all the failure message concatenated and the templateName as context
             Failure(s"Error with template '${templateName}': ${f.failureChain.map { _.msg }.mkString("; ") }")
         }
-        val t3 = System.nanoTime()
-        val toStringTime = t3 - t2
-        (result, getInstanceTime, replaceTime, toStringTime)
       case _ =>
         val msg = s"Error with template '${templateName}' - the template was not correctly parsed"
         logger.error(msg)
-        (Failure(msg), 0L, 0L, 0L)
+        Failure(msg)
     }
   }
 
