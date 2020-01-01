@@ -274,7 +274,7 @@ class PolicyWriterServiceImpl(
       configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeInfos, newPostfix, backupPostfix)
       pathsInfo        =  configAndPaths.map { _.paths }
 // we should for yield that to free all agent specific ressources
-      (promisesWritten, promiseWrittenTime) <- for {
+      (promiseWrittenTime) <- for {
         (preparedPromises, resources, readTemplateTime2) <- for {
           templates        <- readTemplateFromFileSystem(techniqueIds)
           resources        <- readResourcesFromFileSystem(techniqueIds)
@@ -305,22 +305,29 @@ class PolicyWriterServiceImpl(
         preparedPromisesDur  = preparedPromisesTime - readTemplateTime2
         _                    = policyLogger.debug(s"Promises prepared in ${preparedPromisesDur} ms")
 
-        promiseWritten   <- ParallelSequence.traverse(preparedPromises) { prepared =>
+        timings   <- ParallelSequence.traverse(preparedPromises) { prepared =>
                               (for {
-                                _ <- writePromises(prepared.paths, prepared.agentNodeProps.agentType, prepared.preparedTechniques, resources)
+                                (_, fillTime, replaceTime, writeTime) <- writePromises(prepared.paths, prepared.agentNodeProps.agentType, prepared.preparedTechniques, resources)
                                 _ <- writeAllAgentSpecificFiles.write(prepared) ?~! s"Error with node '${prepared.paths.nodeId.value}'"
                                 _ <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
                               } yield {
-                                "OK"
+
+                                (fillTime, replaceTime, writeTime)
                               }) ?~! s"Error when writing configuration for node '${prepared.paths.nodeId.value}'"
                             }
+        fillTime = timings.map{ case (fill, _, _) => fill}.sum
+        replaceTime = timings.map{ case (_, replace, _) => replace}.sum
+        writeTime = timings.map{ case (_, _, write) => write}.sum
 
+        _ = policyLogger.debug(s"Templates filled in ${fillTime/(1000*1000)} ms")
+        _ = policyLogger.debug(s"Templates replaced in ${replaceTime/(1000*1000)} ms")
+        _ = policyLogger.debug(s"Templates wrote in ${writeTime/(1000*1000)} ms")
         promiseWrittenTime = System.currentTimeMillis
         promiseWrittenDur  = promiseWrittenTime - preparedPromisesTime
         _                  = policyLogger.debug(s"Promises written in ${promiseWrittenDur} ms")
 
       } yield {
-        (promiseWritten, promiseWrittenTime)
+        (promiseWrittenTime)
       }
 
 
@@ -522,29 +529,30 @@ class PolicyWriterServiceImpl(
     , agentType         : AgentType
     , preparedTechniques: Seq[PreparedTechnique]
     , resources         : Map[(TechniqueResourceId, AgentType), TechniqueResourceCopyInfo]
-  ) : Box[NodePromisesPaths] = {
+  ) : Box[(NodePromisesPaths, Long, Long, Long)] = {
     // write the promises of the current machine and set correct permission
     for {
-      _ <- sequence(preparedTechniques) { preparedTechnique =>
+      timings <- sequence(preparedTechniques) { preparedTechnique =>
              for {
                resultSeq <-  sequence(scala.util.Random.shuffle(preparedTechnique.templatesToProcess.toSeq)) { template =>
                                writePromisesFiles(template, preparedTechnique.environmentVariables, paths.newFolder, preparedTechnique.reportIdToReplace)
                              }
-               fillTime = resultSeq.map{ case (_, fill, replace, write) => fill}.sum
-               replaceTime = resultSeq.map{ case (_, fill, replace, write) => replace}.sum
-               writeTme = resultSeq.map{ case (_, fill, replace, write) => write}.sum
-               _ = policyLogger.debug(s"Template filled in ${fillTime/(1000*1000)} ms")
-               _ = policyLogger.debug(s"Template replaced in ${replaceTime/(1000*1000)} ms")
-               _ = policyLogger.debug(s"Template wrote in ${writeTme/(1000*1000)} ms")
+               fillTime    = resultSeq.map{ case (_, fill, _, _) => fill}.sum
+               replaceTime = resultSeq.map{ case (_, _, replace, _) => replace}.sum
+               writeTime   = resultSeq.map{ case (_, _, _, write) => write}.sum
+
                _         <- sequence(preparedTechnique.filesToCopy.toSeq) { file =>
                               copyResourceFile(file, agentType, paths.newFolder, preparedTechnique.reportIdToReplace, resources)
                             }
              } yield {
-               "OK"
+               (fillTime, replaceTime, writeTime)
              }
            }
     } yield {
-      paths
+      val fillTime = timings.map{ case (fill, _, _) => fill}.sum
+      val replaceTime = timings.map{ case (_, replace, _) => replace}.sum
+      val writeTime = timings.map{ case (_, _, write) => write}.sum
+      (paths, fillTime, replaceTime, writeTime)
     }
   }
 
