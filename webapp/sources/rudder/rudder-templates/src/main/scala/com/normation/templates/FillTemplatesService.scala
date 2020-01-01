@@ -98,7 +98,7 @@ class SynchronizedFileTemplate(templateName: String,content: String)  extends Lo
     *
     * If there is no error, returns the resulting content
     */
-  def fill(templateName: String, content: String, variables: Seq[STVariable]): Box[String] = this.synchronized {
+  def fill(templateName: String, content: String, variables: Seq[STVariable]): Box[String] = localTemplate.synchronized {
     localTemplate match {
       case Full(sourceTemplate) =>
         // we need to work on an instance of the template

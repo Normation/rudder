@@ -527,10 +527,16 @@ class PolicyWriterServiceImpl(
     for {
       _ <- sequence(preparedTechniques) { preparedTechnique =>
              for {
-               _ <-  sequence(scala.util.Random.shuffle(preparedTechnique.templatesToProcess.toSeq)) { template =>
+               resultSeq <-  sequence(scala.util.Random.shuffle(preparedTechnique.templatesToProcess.toSeq)) { template =>
                                writePromisesFiles(template, preparedTechnique.environmentVariables, paths.newFolder, preparedTechnique.reportIdToReplace)
                              }
-               _ <- sequence(preparedTechnique.filesToCopy.toSeq) { file =>
+               fillTime = resultSeq.map{ case (_, fill, replace, write) => fill}.sum
+               replaceTime = resultSeq.map{ case (_, fill, replace, write) => replace}.sum
+               writeTme = resultSeq.map{ case (_, fill, replace, write) => write}.sum
+               _ = policyLogger.debug(s"Template filled in ${fillTime/(1000*1000)} ms")
+               _ = policyLogger.debug(s"Template replaced in ${replaceTime/(1000*1000)} ms")
+               _ = policyLogger.debug(s"Template wrote in ${writeTme/(1000*1000)} ms")
+               _         <- sequence(preparedTechnique.filesToCopy.toSeq) { file =>
                               copyResourceFile(file, agentType, paths.newFolder, preparedTechnique.reportIdToReplace, resources)
                             }
              } yield {
@@ -758,17 +764,20 @@ class PolicyWriterServiceImpl(
     , variableSet           : Seq[STVariable]
     , outPath               : String
     , reportIdToReplace     : Option[PolicyId]
-  ): Box[String] = {
+  ): Box[(String, Long, Long, Long)] = {
 
     //here, we need a big try/catch, because almost anything in string template can
     //throw errors
     // write the files to the new promise folder
     logger.trace(s"Create promises file ${outPath} ${templateInfo.destination}")
 
+    val t0 = System.nanoTime()
     for {
       // we could also for yield here to save the filled
-      (replaced, dest) <- for {
+      (replaced, dest, fillTime, replaceTime, t2) <- for {
         filled           <- fillTemplates.fill(templateInfo.destination, templateInfo.content, variableSet)
+        t1               = System.nanoTime()
+        fillTime         = t1 - t0
         // if the technique is multipolicy, replace rudderTag by reportId
         (replaced, dest) = reportIdToReplace match {
               case None     => (filled, templateInfo.destination)
@@ -776,13 +785,17 @@ class PolicyWriterServiceImpl(
                  val replace = (s: String) => StringUtils.replace(s, Policy.TAG_OF_RUDDER_MULTI_POLICY, id.getRudderUniqueId)
                  (replace(filled), replace(templateInfo.destination))
         }
+        t2               = System.nanoTime()
+        replaceTime      = t2 - t1
       } yield {
-        (replaced, dest)
+        (replaced, dest, fillTime, replaceTime, t2)
       }
       _                <- tryo { FileUtils.writeStringToFile(new File(outPath, dest), replaced, StandardCharsets.UTF_8) } ?~!
                             s"Bad format in Technique ${templateInfo.id.toString} (file: ${templateInfo.destination})"
+      t3                = System.nanoTime()
+      writeTime         = t3 - t2
     } yield {
-      outPath
+      (outPath, fillTime, replaceTime, writeTime)
     }
   }
 
