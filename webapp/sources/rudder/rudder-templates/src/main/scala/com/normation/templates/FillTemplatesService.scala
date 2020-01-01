@@ -162,7 +162,7 @@ class SynchronizedFileTemplate(templateName: String,content: String)  extends Lo
       case _ =>
         val msg = s"Error with template '${templateName}' - the template was not correctly parsed"
         logger.error(msg)
-        (Failure(msg), 0, 0, 0)
+        (Failure(msg), 0L, 0L, 0L)
     }
   }
 
