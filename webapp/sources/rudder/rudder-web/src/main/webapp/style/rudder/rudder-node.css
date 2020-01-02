@@ -319,3 +319,12 @@ pre.display-keys > label{
   margin-top:12px;
   font-weight:bold;
 }
+.node-compliance-bar .progress{
+  margin        : 0px;
+  border-radius : 3px;
+  height        : 25px;
+}
+.node-compliance-bar .progress-bar span{
+  vertical-align  : middle;
+  horizontal-align: middle;
+}
