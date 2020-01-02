@@ -556,6 +556,10 @@ $scope.getSessionStorage = function(){
   (function() {
     new ClipboardJS('.clipboard');
   })();
+  //Correctly resize elastic textareas
+  $timeout(function() {
+    $scope.$broadcast("elastic:adjust");
+  }, 0);
 }
 
 $scope.$watch('selectedTechnique', function(newValue, oldValue) {
