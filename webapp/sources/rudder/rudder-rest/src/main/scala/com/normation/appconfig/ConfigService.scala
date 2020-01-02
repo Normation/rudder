@@ -657,8 +657,8 @@ class LDAPBasedConfigService(
     save("rudder_syslog_protocol_disabled", disabled, Some(info))
   }
 
-  def rudder_report_protocol_default() : IOResult[AgentReportingProtocol] = get("rudder.report.protocol.default")
-  def set_rudder_report_protocol_default(value: AgentReportingProtocol): IOResult[Unit] = save("rudder.report.protocol.default", value.value)
+  def rudder_report_protocol_default() : IOResult[AgentReportingProtocol] = get("rudder_report_protocol_default")
+  def set_rudder_report_protocol_default(value: AgentReportingProtocol): IOResult[Unit] = save("rudder_report_protocol_default", value.value)
   /**
    * Should we display recent changes graphs  ?
    */
