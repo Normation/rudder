@@ -960,7 +960,8 @@ ul.list-unstyled > li{
 .method .requiredParameters{
   position: relative;
 }
-.method .method-condition ~ div:before{
+.method .method-condition ~ div:before,
+.method .method-condition > label:before {
   content: "";
   position: absolute;
   top: 0;
@@ -968,6 +969,9 @@ ul.list-unstyled > li{
   left: 5px;
   width: 3px;
   background-color: #337ab7;
+}
+.method .method-condition > label:before{
+  top: 25px;
 }
 .method .method-condition ~ div{
   padding-left: 15px;
@@ -1158,6 +1162,19 @@ ul.list-unstyled > li{
 }
 .col.no-technique {
   padding: 50px;
+}
+.flex-form{
+  display: flex;
+}
+.flex-form textarea{
+  flex: 1;
+  margin-left: 5px;
+  overflow: auto !important;
+  max-height: 150px;
+
+}
+.flex-form.method-condition textarea{
+  word-break: break-all;
 }
 @keyframes pulse {
   0% {
