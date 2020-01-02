@@ -3553,6 +3553,34 @@ table a > i.fa-pencil:hover{
   width: auto !important;
   max-width: unset !important;
 }
+
+/* MARKDOWN */
+.markdown{
+  padding: 10px;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  background-color: #f3f8ff;
+}
+.markdown > h1:first-child{
+  margin-top: 0;
+}
+.markdown h2{
+  padding-left: 0;
+  padding-right: 0;
+}
+.markdown ul,
+.markdown ol,
+.markdown ul > li,
+.markdown ol > li{
+  list-style: initial;
+  margin-left: 7px;
+  padding: initial;
+}
+.markdown > p:last-child{
+  margin-bottom: 0;
+}
+
+
 /* KEYFRAMES */
 @keyframes opacity-1 {
   0%   {opacity:0;visibility: visible;}
