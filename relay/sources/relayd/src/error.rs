@@ -96,8 +96,6 @@ pub enum Error {
     GlobalLogger(#[from] tracing::dispatcher::SetGlobalDefaultError),
     #[error("logger setting error: {0}")]
     SetLogLogger(#[from] log::SetLoggerError),
-    #[error("invalid ttl: {0}")]
-    InvalidTtl(String),
     #[error("missing target nodes")]
     MissingTargetNodes,
     #[error("invalid hash type provided {invalid:} (available hash types: {valid:})")]
@@ -111,4 +109,6 @@ pub enum Error {
     InvalidHeader,
     #[error("HTTP error: {0}")]
     HttpClient(#[from] reqwest::Error),
+    #[error("Invalid duration: {0}")]
+    InvalidDuration(#[from] humantime::DurationError),
 }

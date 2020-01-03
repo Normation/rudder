@@ -59,18 +59,20 @@ pub fn start(job_config: &Arc<JobConfig>, stats: &mpsc::Sender<Event>) {
     let span = span!(Level::TRACE, "reporting");
     let _enter = span.enter();
 
+    let path = job_config
+        .cfg
+        .processing
+        .reporting
+        .directory
+        .join("incoming");
+
     let (sender, receiver) = mpsc::channel(1_024);
     tokio::spawn(serve(job_config.clone(), receiver, stats.clone()));
-    watch(
-        &job_config
-            .cfg
-            .processing
-            .reporting
-            .directory
-            .join("incoming"),
-        &job_config,
-        &sender,
-    );
+    tokio::spawn(cleanup(
+        path.clone(),
+        job_config.cfg.processing.reporting.cleanup.clone(),
+    ));
+    watch(&path, &job_config, &sender);
 }
 
 fn serve(

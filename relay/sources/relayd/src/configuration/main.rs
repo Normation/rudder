@@ -29,13 +29,19 @@
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{configuration::Secret, data::node::NodeId, error::Error};
-use serde::Deserialize;
+use serde::{
+    de::{Deserializer, Error as SerdeError, Unexpected, Visitor},
+    Deserialize,
+};
 use std::{
     collections::HashSet,
+    convert::TryFrom,
+    fmt,
     fs::read_to_string,
     net::SocketAddr,
     path::{Path, PathBuf},
     str::FromStr,
+    time::Duration,
 };
 use toml;
 use tracing::debug;
@@ -44,6 +50,40 @@ pub type BaseDirectory = PathBuf;
 pub type WatchedDirectory = PathBuf;
 pub type NodesListFile = PathBuf;
 pub type NodesCertsFile = PathBuf;
+
+// For compatibility with int fields containing an integer
+fn compat_humantime<'de, D>(d: D) -> Result<Duration, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct V;
+
+    impl<'de2> Visitor<'de2> for V {
+        type Value = Duration;
+
+        fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+            fmt.write_str("a duration")
+        }
+
+        fn visit_i64<E>(self, v: i64) -> Result<Duration, E>
+        where
+            E: SerdeError,
+        {
+            u64::try_from(v)
+                .map(|s| Duration::from_secs(s))
+                .map_err(|_| E::invalid_value(Unexpected::Signed(v), &self))
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Duration, E>
+        where
+            E: SerdeError,
+        {
+            humantime::parse_duration(v).map_err(|_| E::invalid_value(Unexpected::Str(v), &self))
+        }
+    }
+
+    d.deserialize_str(V)
+}
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 // Default can be implemented in serde using the Default trait
@@ -87,8 +127,39 @@ pub struct GeneralConfig {
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Copy, Clone)]
 pub struct CatchupConfig {
-    pub frequency: u64,
+    #[serde(deserialize_with = "compat_humantime")]
+    #[serde(default = "default_catchup_frequency")]
+    pub frequency: Duration,
+    #[serde(default = "default_catchup_limit")]
     pub limit: u64,
+}
+
+fn default_catchup_frequency() -> Duration {
+    Duration::from_secs(10)
+}
+
+fn default_catchup_limit() -> u64 {
+    50
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq, Copy, Clone)]
+pub struct CleanupConfig {
+    #[serde(deserialize_with = "compat_humantime")]
+    #[serde(default = "default_cleanup_frequency")]
+    pub frequency: Duration,
+    #[serde(deserialize_with = "compat_humantime")]
+    #[serde(default = "default_cleanup_retention")]
+    pub retention: Duration,
+}
+
+/// 1 hour
+fn default_cleanup_frequency() -> Duration {
+    Duration::from_secs(3600)
+}
+
+/// 1 week
+fn default_cleanup_retention() -> Duration {
+    Duration::from_secs(3600 * 24 * 7)
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -102,6 +173,7 @@ pub struct InventoryConfig {
     pub directory: BaseDirectory,
     pub output: InventoryOutputSelect,
     pub catchup: CatchupConfig,
+    pub cleanup: CleanupConfig,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -116,6 +188,7 @@ pub struct ReportingConfig {
     pub directory: BaseDirectory,
     pub output: ReportingOutputSelect,
     pub catchup: CatchupConfig,
+    pub cleanup: CleanupConfig,
     pub skip_event_types: HashSet<String>,
 }
 
@@ -212,16 +285,24 @@ mod tests {
                     directory: PathBuf::from("target/tmp/inventories/"),
                     output: InventoryOutputSelect::Upstream,
                     catchup: CatchupConfig {
-                        frequency: 10,
+                        frequency: Duration::from_secs(10),
                         limit: 50,
+                    },
+                    cleanup: CleanupConfig {
+                        frequency: Duration::from_secs(10),
+                        retention: Duration::from_secs(10),
                     },
                 },
                 reporting: ReportingConfig {
                     directory: PathBuf::from("target/tmp/reporting/"),
                     output: ReportingOutputSelect::Database,
                     catchup: CatchupConfig {
-                        frequency: 10,
+                        frequency: Duration::from_secs(10),
                         limit: 50,
+                    },
+                    cleanup: CleanupConfig {
+                        frequency: Duration::from_secs(30),
+                        retention: Duration::from_secs(30 * 60 + 20),
                     },
                     skip_event_types: HashSet::new(),
                 },

@@ -29,7 +29,7 @@
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    configuration::main::{CatchupConfig, WatchedDirectory},
+    configuration::main::{CatchupConfig, CleanupConfig, WatchedDirectory},
     processing::ReceivedFile,
     JobConfig,
 };
@@ -44,8 +44,49 @@ use std::{
     sync::Arc,
     time::{Duration, Instant, SystemTime},
 };
-use tokio::{fs::read_dir, prelude::*, timer::Interval};
+use tokio::{
+    fs::{read_dir, remove_file},
+    prelude::*,
+    timer::Interval,
+};
 use tracing::{debug, info, span, warn, Level};
+
+pub fn cleanup(path: WatchedDirectory, cfg: CleanupConfig) -> impl Future<Item = (), Error = ()> {
+    Interval::new(Instant::now(), cfg.frequency)
+        .map_err(|e| warn!("interval error: {}", e))
+        .for_each(move |_instant| {
+            debug!("cleaning {:?}", path);
+
+            let sys_time = SystemTime::now();
+
+            read_dir(path.clone())
+                .flatten_stream()
+                .map_err(|e| warn!("list error: {}", e))
+                .filter(move |entry| {
+                    poll_fn(move || entry.poll_metadata())
+                        // If metadata can't be fetched, skip it for now
+                        .map(|metadata| metadata.modified().unwrap_or(sys_time))
+                        // An error indicates a file in the future, let's approximate it to now
+                        .map(|modified| {
+                            sys_time
+                                .duration_since(modified)
+                                .unwrap_or_else(|_| Duration::new(0, 0))
+                        })
+                        .map(|duration| duration > cfg.retention)
+                        .map_err(|e| warn!("filter error: {}", e))
+                        // TODO async filter (https://github.com/rust-lang-nursery/futures-rs/pull/728)
+                        .wait()
+                        .unwrap_or(false)
+                })
+                .for_each(move |entry| {
+                    let path = entry.path();
+                    debug!("removing old file: {:?}", path);
+                    remove_file(path)
+                        .map_err(|e| warn!("remove error: {}", e))
+                        .map(|_| ())
+                })
+        })
+}
 
 pub fn watch(
     path: &WatchedDirectory,
@@ -68,7 +109,7 @@ fn list_files(
     cfg: CatchupConfig,
     tx: mpsc::Sender<ReceivedFile>,
 ) -> impl Future<Item = (), Error = ()> {
-    Interval::new(Instant::now(), Duration::from_secs(cfg.frequency))
+    Interval::new(Instant::now(), cfg.frequency)
         .map_err(|e| warn!("interval error: {}", e))
         .for_each(move |_instant| {
             debug!("listing {:?}", path);

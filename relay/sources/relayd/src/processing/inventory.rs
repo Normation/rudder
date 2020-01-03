@@ -55,22 +55,31 @@ pub fn start(job_config: &Arc<JobConfig>, stats: &mpsc::Sender<Event>) {
     let _enter = span.enter();
 
     let (sender, receiver) = mpsc::channel(1_024);
+
+    let incoming_path = job_config
+        .cfg
+        .processing
+        .inventory
+        .directory
+        .join("incoming");
     tokio::spawn(serve(
         job_config.clone(),
         receiver,
         InventoryType::New,
         stats.clone(),
     ));
-    watch(
-        &job_config
-            .cfg
-            .processing
-            .inventory
-            .directory
-            .join("incoming"),
-        &job_config,
-        &sender,
-    );
+    tokio::spawn(cleanup(
+        incoming_path.clone(),
+        job_config.cfg.processing.inventory.cleanup.clone(),
+    ));
+    watch(&incoming_path, &job_config, &sender);
+
+    let updates_path = job_config
+        .cfg
+        .processing
+        .inventory
+        .directory
+        .join("accepted-nodes-updates");
     let (sender, receiver) = mpsc::channel(1_024);
     tokio::spawn(serve(
         job_config.clone(),
@@ -78,16 +87,11 @@ pub fn start(job_config: &Arc<JobConfig>, stats: &mpsc::Sender<Event>) {
         InventoryType::Update,
         stats.clone(),
     ));
-    watch(
-        &job_config
-            .cfg
-            .processing
-            .inventory
-            .directory
-            .join("accepted-nodes-updates"),
-        &job_config,
-        &sender,
-    );
+    tokio::spawn(cleanup(
+        updates_path.clone(),
+        job_config.cfg.processing.inventory.cleanup.clone(),
+    ));
+    watch(&updates_path, &job_config, &sender);
 }
 
 fn serve(
