@@ -33,6 +33,7 @@ app.directive('techniquename', function($filter) {
     require: 'ngModel',
     link: function(scope, elm, attrs, ctrl) {
       ctrl.$validators.techniqueName = function(modelValue, viewValue) {
+        if(viewValue===undefined) return false;
          // Get all techniqueNames in lowercase
          var techniqueNames = scope.techniques.map(function (technique,index) { return technique.name.toLowerCase()})
          // Remove the original name from the technique names array
@@ -943,12 +944,12 @@ $scope.onImportFileChange = function (fileEl) {
 
   // Check if a technique has not been changed, and if we can use reset function
   $scope.isUnchanged = function(technique) {
-    return (!$scope.suppressFlag && angular.equals(technique, $scope.originalTechnique));
+    return angular.equals(technique, $scope.originalTechnique);
   };
 
   // Check if a technique has been saved,
   $scope.isNotSaved = function() {
-    return $scope.originalTechnique !== undefined && $scope.originalTechnique.bundle_name === undefined;
+    return ($scope.originalTechnique !== undefined && $scope.originalTechnique !== null) && $scope.originalTechnique.bundle_name === undefined;
   };
 
   // Check if a method has not been changed, and if we can use reset function
@@ -1137,12 +1138,13 @@ $scope.onImportFileChange = function (fileEl) {
   // selected technique is correct if:
   // * There is at least one method call
   $scope.checkSelectedTechnique = function() {
+    if($scope.selectedTechnique===undefined || $scope.selectedTechnique===null) return false;
     if (typeof($scope.selectedTechnique.method_calls) !== 'undefined') {
       var res = $scope.selectedTechnique.method_calls.length === 0;
       if ($scope.selectedTechnique.isClone) {
         return res
       }
-      return res ||  $scope.isUnchanged($scope.selectedTechnique)
+      return res || $scope.isUnchanged($scope.selectedTechnique)
     }
     return false;
   }
