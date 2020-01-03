@@ -71,7 +71,7 @@ def redirection_is_broken():
 
 def subprocess_Popen(cmd, stdout=None, stderr=None):
     if not redirection_is_broken() or (stdout is None and stderr is None) or stdout == subprocess.PIPE or stderr == subprocess.PIPE:
-        return subprocess.Popen(cmd, stdout=stdout, stderr=stderr, universal_newlines=True)
+        return subprocess.Popen(cmd, stdout=stdout, stderr=stderr)
 
     old_stdout_fd = -1
     old_stderr_fd = -1
@@ -84,7 +84,7 @@ def subprocess_Popen(cmd, stdout=None, stderr=None):
         old_stderr_fd = os.dup(2)
         os.dup2(stderr.fileno(), 2)
 
-    result = subprocess.Popen(cmd, universal_newlines=True)
+    result = subprocess.Popen(cmd)
 
     if old_stdout_fd >= 0:
         os.dup2(old_stdout_fd, 1)
@@ -128,7 +128,7 @@ def get_package_data():
 
         rpmProcess = subprocess_Popen([rpm_cmd, "-qp", "--provides", pkg_string], stdout=subprocess.PIPE, stderr=NULLFILE)
         for line in rpmProcess.stdout:
-            name = re.match("pattern\(\)\s+=+\s+(?P<name>[\S]+)[\s\S]+", line)
+            name = re.match("pattern\(\)\s+=+\s+(?P<name>[\S]+)[\s\S]+", line.decode("utf-8"))
             if name is not None:
                 sys.stdout.write("Name=" + name.group("name").rstrip("\n") + "\n")
                 sys.stdout.flush()
@@ -160,16 +160,16 @@ def list_installed():
 
       process =  subprocess_Popen(command , stdout=subprocess.PIPE, stderr=NULLFILE)
       for line in process.stdout:
-          name = re.match("Name\s*: (?P<name>\S+)", line)
+          name = re.match("Name\s*: (?P<name>\S+)", line.decode("utf-8"))
           version = None
-          arch = re.match("Arch\s*: (?P<arch>\S+)", line)
+          arch = re.match("Arch\s*: (?P<arch>\S+)", line.decode("utf-8"))
           if name is not None:
             sys.stdout.write("Name=" + name.group("name").rstrip("\n") + "\n")
 
             # The version showed in zypper info is the latest available version
             zypperProcess = subprocess_Popen([zypper_cmd] + ["patterns", "--installed-only"], stdout=subprocess.PIPE, stderr=NULLFILE)
             grepProcess = subprocess.Popen(["grep", name.group("name")], stdin=zypperProcess.stdout, stdout=subprocess.PIPE)
-            cutProcess = subprocess.Popen(["awk", "{print $5}"], stdin=grepProcess.stdout, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True)
+            cutProcess = subprocess.Popen(["awk", "{print $5}"], stdin=grepProcess.stdout, stdout=subprocess.PIPE, bufsize=1)
 
             zypperProcess.wait()
             grepProcess.wait()
@@ -180,7 +180,7 @@ def list_installed():
             version = cutProcess.stdout.readline()
             cutProcess.stdout.close()
             if version is not None:
-              sys.stdout.write("Version=" + version.rstrip("\n") + "\n")
+              sys.stdout.write("Version=" + version.decode("utf-8"))
           elif arch is not None:
             sys.stdout.write("Architecture=" + arch.group("arch").rstrip("\n") + "\n")
       process.stdout.close()
@@ -197,7 +197,7 @@ def list_installed_patterns():
     process =  subprocess_Popen(command, stdout=subprocess.PIPE)
     patterns = ""
     for line in process.stdout:
-        match = re.match("i\+?\s+\|\s+(?P<name>\S+)\s+\|.*$", line)
+        match = re.match("i\+?\s+\|\s+(?P<name>\S+)\s+\|.*$", line.decode("utf-8"))
         if match is not None:
             patterns +=  match.group("name") + " "
     process.stdout.close()
@@ -233,7 +233,7 @@ def list_updates(online):
 #
 # The first char will always be "v" which means there is a new version avaialble on search outputs.
 
-      match = re.match("v\s+\|[^\|]+\|\s+(?P<name>\S+)\s+\|\s+(?P<version>\S+)\s+\|\s+(?P<arch>\S+)\s*$", line)
+      match = re.match("v\s+\|[^\|]+\|\s+(?P<name>\S+)\s+\|\s+(?P<version>\S+)\s+\|\s+(?P<arch>\S+)\s*$", line.decode("utf-8"))
       if match is not None:
         sys.stdout.write("Name=" + match.group("name") + "\n")
         sys.stdout.write("Version=" + match.group("version") + "\n")
