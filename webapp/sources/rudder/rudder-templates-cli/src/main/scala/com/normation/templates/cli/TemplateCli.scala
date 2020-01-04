@@ -221,7 +221,7 @@ object TemplateCli {
     for {
       ok      <- if(template.getName.endsWith(inputExtension)) { Full("ok") } else { Failure(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'") }
       content <- Tryor(FileUtils.readFileToString(template, StandardCharsets.UTF_8), s"Error when reading variables from ${template.getAbsolutePath}")
-      filled  <- fillerService.fill(template.getAbsolutePath, content, variables)
+      (filled, _, _,_)  <- fillerService.fill(template.getAbsolutePath, content, variables)
       name     = template.getName
       out      = new File(outDir, name.substring(0, name.size-inputExtension.size)+outputExtension)
       writed  <- Tryor(FileUtils.writeStringToFile(out, filled, StandardCharsets.UTF_8), s"Error when writting filled template into ${out.getAbsolutePath}")
@@ -245,7 +245,7 @@ object TemplateCli {
 
   def filledAndWriteToStdout(variables: Seq[STVariable], content: String, templateName: String) = {
     for {
-      filled  <- fillerService.fill(templateName, content, variables)
+      (filled, _, _, _)  <- fillerService.fill(templateName, content, variables)
       writed  <- Tryor(IOUtils.write(filled, System.out, "UTF-8"), s"Error when writting filled template to stdout")
     } yield {
       templateName

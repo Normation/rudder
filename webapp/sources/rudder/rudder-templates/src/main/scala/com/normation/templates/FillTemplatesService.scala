@@ -98,7 +98,7 @@ class SynchronizedFileTemplate(templateName: String,content: String)  extends Lo
     *
     * If there is no error, returns the resulting content
     */
-  def fill(templateName: String, content: String, variables: Seq[STVariable]): Box[(String, Long, Long, Long)] = localTemplate.synchronized {
+  def fill(templateName: String, variables: Seq[STVariable]): Box[(String, Long, Long, Long)] = localTemplate.synchronized {
     localTemplate match {
       case Full(sourceTemplate) =>
         val t0 = System.nanoTime()
@@ -207,7 +207,7 @@ class FillTemplatesService extends Loggable {
     for {
       template <- getTemplateFromContent(templateName, content)
 
-      (filled, getInstanceTime, varTime, toStringTime) <- template.fill(templateName, content, variables)
+      (filled, getInstanceTime, varTime, toStringTime) <- template.fill(templateName, variables)
 
     } yield {
       (filled, getInstanceTime, varTime, toStringTime)
