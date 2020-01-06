@@ -6,7 +6,7 @@ use serde::Deserialize;
 use std::fmt;
 
 /// Allows hiding a value in logs
-#[derive(Deserialize, PartialEq, Eq, Clone)]
+#[derive(Deserialize, PartialEq, Eq, Clone, Default)]
 #[serde(transparent)]
 pub struct Secret {
     value: String,
