@@ -42,13 +42,13 @@ use std::{
     thread, time,
 };
 
-fn db_connection() -> PgConnection {
+pub fn db_connection() -> PgConnection {
     PgConnection::establish("postgres://rudderreports:PASSWORD@127.0.0.1/rudder").unwrap()
 }
 
 // Checks number of start execution reports
 // (so number of runlogs if everything goes well)
-fn start_number(db: &PgConnection, expected: usize) -> Result<(), ()> {
+pub fn start_number(db: &PgConnection, expected: usize) -> Result<(), ()> {
     let mut retry = 10;
     while retry > 0 {
         thread::sleep(time::Duration::from_millis(200));
@@ -88,8 +88,14 @@ fn it_reads_and_inserts_a_runlog() {
         file_old,
     )
     .unwrap();
-    // We need to file to be old
-    set_file_times(file_old, FileTime::zero(), FileTime::zero()).unwrap();
+    // We need to file to be old (10 minutes ago)
+    let old_time = chrono::Utc::now() - chrono::Duration::minutes(10);
+    set_file_times(
+        file_old,
+        FileTime::from_unix_time(old_time.timestamp(), 0),
+        FileTime::from_unix_time(old_time.timestamp(), 0),
+    )
+    .unwrap();
 
     thread::spawn(move || {
         start(cli_cfg, init_logger().unwrap()).unwrap();

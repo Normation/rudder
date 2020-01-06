@@ -30,8 +30,9 @@
 
 use crate::{error::Error, hashing::HashType, JobConfig};
 use bytes::IntoBuf;
-use chrono::{Duration, Utc};
+use chrono::Utc;
 use hex;
+use humantime::parse_duration;
 use openssl::{
     error::ErrorStack,
     pkey::{PKey, Public},
@@ -46,6 +47,7 @@ use std::{
     str,
     str::FromStr,
     sync::Arc,
+    time::Duration,
 };
 use warp::{body::FullBody, http::StatusCode, Buf};
 
@@ -145,32 +147,11 @@ impl SharedFilesPutParams {
     }
 
     fn ttl(&self) -> Result<Duration, Error> {
-        if Regex::new(r"^([0-9]+)$").unwrap().is_match(&self.ttl) {
-            return Ok(Duration::seconds(self.ttl.parse::<i64>().unwrap()));
-        };
-
-        let regex_numbers = Regex::new(r"^(?:(?P<days>\d+)(?:d|days|day))?\s*(?:(?P<hours>\d+)(?:h|hours|hour))?\s*(?:(?P<minutes>\d+)(?:m|minutes|minute))?\s*(?:(?P<seconds>\d+)(?:s|seconds|second))?$").unwrap();
-        fn parse_time<'t>(cap: &regex::Captures<'t>, n: &str) -> Result<i64, Error> {
-            Ok(match cap.name(n) {
-                Some(s) => s.as_str().parse::<i64>()?,
-                None => 0,
-            })
-        }
-
-        if let Some(cap) = regex_numbers.captures(&self.ttl) {
-            let s = parse_time(&cap, "seconds")?;
-            let m = parse_time(&cap, "minutes")?;
-            let h = parse_time(&cap, "hours")?;
-            let d = parse_time(&cap, "days")?;
-
-            Ok(
-                Duration::seconds(s)
-                    + Duration::minutes(m)
-                    + Duration::hours(h)
-                    + Duration::days(d),
-            )
-        } else {
-            Err(Error::InvalidTtl(self.ttl.clone()))
+        match self.ttl.parse::<u64>() {
+            // No units -> seconds
+            Ok(s) => Ok(Duration::from_secs(s)),
+            // Else parse as human time
+            Err(_) => parse_duration(&self.ttl).map_err(|e| e.into()),
         }
     }
 }
@@ -234,7 +215,9 @@ pub fn put(
             meta,
             match params.ttl() {
                 // Removal timestamp = now + ttl
-                Ok(ttl) => Utc::now() + ttl,
+                Ok(ttl) =>
+                    Utc::now()
+                        + chrono::Duration::from_std(ttl).expect("Unexpectedly large duration"),
                 Err(_x) => return Ok(StatusCode::INTERNAL_SERVER_ERROR),
             }
         ),
@@ -323,19 +306,19 @@ mod tests {
     pub fn it_parses_ttl() {
         assert_eq!(
             SharedFilesPutParams::new("1h 7s").ttl().unwrap(),
-            Duration::hours(1) + Duration::seconds(7)
+            Duration::from_secs(3600 + 7)
         );
         assert_eq!(
             SharedFilesPutParams::new("1hour 2minutes").ttl().unwrap(),
-            Duration::hours(1) + Duration::minutes(2)
+            Duration::from_secs(3600 + 120)
         );
         assert_eq!(
             SharedFilesPutParams::new("1d 7seconds").ttl().unwrap(),
-            Duration::days(1) + Duration::seconds(7)
+            Duration::from_secs(86400 + 7)
         );
         assert_eq!(
             SharedFilesPutParams::new("9136").ttl().unwrap(),
-            Duration::seconds(9136)
+            Duration::from_secs(9136)
         );
         assert!(SharedFilesPutParams::new("913j").ttl().is_err());
         assert!(SharedFilesPutParams::new("913b83").ttl().is_err());
