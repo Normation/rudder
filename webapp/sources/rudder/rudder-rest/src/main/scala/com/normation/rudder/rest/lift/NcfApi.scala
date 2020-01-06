@@ -61,7 +61,7 @@ import com.normation.rudder.ncf.ResourceFileState
 import net.liftweb.json.JsonAST.JArray
 import com.normation.rudder.ncf.CheckConstraint
 import com.normation.rudder.ncf.Technique
-import com.normation.rudder.repository.json.DataExtractor.CompleteJson
+import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.rudder.rest.TwoParam
 
 class NcfApi(
@@ -268,8 +268,9 @@ class NcfApi(
           methods   <- restExtractor.extractGenericMethod(json \ "methods")
           methodMap = methods.map(m => (m.id,m)).toMap
           technique <- restExtractor.extractNcfTechnique(json \ "technique", methodMap, true)
-          internalId <- CompleteJson.extractJsonString(json \ "technique", "internalId")
-          resoucesMoved <- moveRessources(technique,internalId).toBox
+          internalId <- OptionnalJson.extractJsonString(json \ "technique", "internalId")
+          // If no internalId (used to manage temporary folder for resources), ignore resources, this can happen when importing techniques through the api
+          resoucesMoved <- internalId.map( internalId => moveRessources(technique,internalId).toBox).getOrElse(Full("Ok"))
           allDone   <- techniqueWriter.writeTechniqueAndUpdateLib(technique, methodMap, modId, authzToken.actor).toBox
         } yield {
           json
