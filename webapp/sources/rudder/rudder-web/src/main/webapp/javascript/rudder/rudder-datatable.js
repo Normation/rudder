@@ -1194,10 +1194,50 @@ function createTechnicalLogsTable(gridId, data, contextPath, refresh, regroup) {
     , "mDataProp": "executionDate"
     , "sTitle": "Execution date"
   } , {
-      "sWidth": "8%"
-    , "mDataProp": "severity"
-    , "sTitle": "Severity"
-  } , {
+      "sWidth": "4%"
+    , "mDataProp": "status"
+    , "sTitle": "Status"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+         $(nTd).empty();
+         var value = oData.status.charAt(0).toUpperCase() + oData.status.slice(1);
+         var className = "";
+         var icon = "";
+         switch (oData.status) {
+              case "success":
+                className="label-green";
+                icon="fa fa-check-square"
+                break;
+              case "repaired":
+                className="label-success";
+                icon="fa fa-wrench"
+                break;
+              case "info":
+                className="label-info";
+                break;
+              case "error":
+                className="label-error";
+                icon="fa fa-window-close"
+                break;
+              case "warn":
+                className="label-warning";
+                break;
+              case "na":
+                className="label-primary";
+                value="N/A";
+                icon="fa fa-square"
+                break;
+              default:
+              }
+            switch (oData.kind) {
+              case "log":
+                icon= "fa fa-file-text"
+              default:
+            }
+            var state = '<div style="width:100%; text-align:left; white-space:nowrap; padding:5px;" class="rudder-label '+className +'"> <i class="' + icon  + '"></i> '+ value + '</div>'
+
+            $(nTd).prepend(state);
+          }
+      } ,  {
       "sWidth": "17%"
     , "mDataProp": "ruleName"
     , "sTitle": "Rule"
