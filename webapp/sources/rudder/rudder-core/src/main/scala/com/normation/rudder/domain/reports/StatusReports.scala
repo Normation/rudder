@@ -76,7 +76,7 @@ final class RuleStatusReport private (
   , val overrides : List[OverridenPolicy]
 ) extends StatusReport {
   val compliance = report.compliance
-  val byNodes: Map[NodeId, AggregatedStatusReport] = report.reports.groupBy(_.nodeId).mapValues(AggregatedStatusReport(_))
+  val byNodes: Map[NodeId, AggregatedStatusReport] = report.reports.groupBy(_.nodeId).map{case (a, value) => (a, AggregatedStatusReport(value))}
 }
 
 object RuleStatusReport {
@@ -111,7 +111,7 @@ final class NodeStatusReport private (
   , val report    : AggregatedStatusReport
 ) extends StatusReport {
   lazy val compliance = report.compliance
-  lazy val byRules: Map[RuleId, AggregatedStatusReport] = report.reports.groupBy(_.ruleId).mapValues(AggregatedStatusReport(_))
+  lazy val byRules: Map[RuleId, AggregatedStatusReport] = report.reports.groupBy(_.ruleId).map { case (a, value) => (a, AggregatedStatusReport(value))}
 }
 
 object NodeStatusReport {
