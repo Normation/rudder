@@ -36,6 +36,7 @@
 
 package com.normation.inventory.provisioning.fusion
 
+import java.io.InputStream
 import java.security.Security
 
 import com.normation.errors._
@@ -53,8 +54,6 @@ import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
 import zio._
-
-import scala.tools.nsc.interpreter.InputStream
 
 @RunWith(classOf[JUnitRunner])
 class TestSignatureService extends Specification with Loggable {
