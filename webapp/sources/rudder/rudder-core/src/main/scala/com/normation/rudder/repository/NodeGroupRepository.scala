@@ -172,10 +172,10 @@ final case class FullNodeGroupCategory(
    * Return all node ids that match the set of target.
    */
   def getNodeIds(targets: Set[RuleTarget], allNodeInfos: Map[NodeId, NodeInfo]) : Set[NodeId] = {
-    val allNodes = allNodeInfos.mapValues { x => (x.isPolicyServer, x.serverRoles) }
-    val groups = allGroups.mapValues { _.nodeGroup.serverList.toSet }
+    val allNodes = allNodeInfos.view.mapValues { x => (x.isPolicyServer, x.serverRoles) }
+    val groups = allGroups.view.mapValues { _.nodeGroup.serverList.toSet }
 
-    RuleTarget.getNodeIds(targets, allNodes, groups)
+    RuleTarget.getNodeIds(targets, allNodes.toMap, groups.toMap)
   }
 
   /**

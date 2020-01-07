@@ -372,7 +372,7 @@ final case class RestExtractorService (
     def parseSections(section:JValue) : Box[Map[String,Seq[SectionVal]]] = {
       section \ "sections" match {
         case JNothing => Full(Map())
-        case JArray(sections) => (sequence (sections.toSeq) (parseSection)).map(_.groupBy(_._1).mapValues(_.map(_._2)))
+        case JArray(sections) => (sequence (sections.toSeq) (parseSection)).map(_.groupMap(_._1)(_._2))
         case a => Failure("Missing required attribute 'name' for <section>: " + section)
       }
     }

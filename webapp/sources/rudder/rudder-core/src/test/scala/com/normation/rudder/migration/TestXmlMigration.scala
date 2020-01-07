@@ -63,7 +63,10 @@ class TestXmlMigration extends Specification with Loggable {
   val migration = XmlMigration_5_6
 
   def compare(b:Box[Elem], e:Elem) = {
-    val Full(x) = b
+    val x = b match {
+      case Full(x) => x
+      case _ => throw new IllegalArgumentException("bad test")
+    }
     scala.xml.Utility.trim(x) must beEqualTo(scala.xml.Utility.trim(e))
   }
 

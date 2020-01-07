@@ -55,7 +55,6 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.FullActiveTechnique
 
-import scala.language.implicitConversions
 import com.normation.rudder.api.ApiAccount
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.web.components.DateFormaterService

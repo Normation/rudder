@@ -125,7 +125,7 @@ trait NodeChangesService {
       //utility that create an interval from the given date to date+6hours
       def sixHours(t: DateTime): Interval = {
         //6 hours in milliseconds
-        new Interval(t, new DateTime(t.getMillis + 6l * 3600 * 1000))
+        new Interval(t, new DateTime(t.getMillis + 6L * 3600 * 1000))
       }
 
       //find the starting time, set minute/seconds/millis to 0
@@ -133,7 +133,7 @@ trait NodeChangesService {
 
       // generate the stream of intervals, and stop when "to" is after
       // start time of interval (as they are sorted)
-      Stream.iterate(sixHours(startTime)){ previousInterval =>
+      LazyList.iterate(sixHours(startTime)){ previousInterval =>
         sixHours(previousInterval.getEnd)
       }.takeWhile { i => i.getStart.isBefore(to) }.toList
     }
@@ -234,7 +234,7 @@ class CachedNodeChangesServiceImpl(
       }
     }
 
-    @silent // warn: deadcode
+    @silent("dead code following this construct") // yes, that's a loop
     def consumeLoop(queue: Queue[ChangesUpdate]): ZIO[Blocking, Nothing, Nothing] = {
       for {
         // takeAll doesn't wait for items, so we wait for at least one and then take all other
@@ -268,7 +268,7 @@ class CachedNodeChangesServiceImpl(
     ZioRuntime.runNow(
       for{
         _ <- ReportLoggerPure.Changes.debug(s"Start waiting for rule changes update")
-       _  <- consumeLoop(queue).provide(ZioRuntime.environment).fork: @silent // warn: deadcode
+       _  <- consumeLoop(queue).provide(ZioRuntime.environment).fork
       } yield ()
     )
   }

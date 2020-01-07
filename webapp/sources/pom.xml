@@ -142,20 +142,18 @@ limitations under the License.
           <compilerPlugins>
             <compilerPlugin>
               <groupId>com.github.ghik</groupId>
-              <artifactId>silencer-plugin_${scala-binary-version}</artifactId>
+              <artifactId>silencer-plugin_${scala-version}</artifactId>
               <version>${silencer-lib-version}</version>
             </compilerPlugin>
           </compilerPlugins>
           <args>
             <!-- require java8, cf http://www.rudder-project.org/redmine/issues/9917 -->
             <arg>-target:jvm-1.8</arg>
-            <!-- needed for cats resolution of implicits -->
-            <arg>-Ypartial-unification</arg>
             <arg>-dependencyfile</arg>
             <arg>${basedir}/.scala_dependencies</arg>
             <!-- standard warning, most of the one from https://tpolecat.github.io/2017/04/25/scalac-flags.html -->
             <!-- corresponding scala line:
-              -Ypartial-unification  -language:existentials -language:higherKinds -language:implicitConversions
+              -language:existentials -language:higherKinds -language:implicitConversions
               -Xlint:_,-nullary-unit,-missing-interpolator -Yno-adapted-args -Ywarn-dead-code -Ywarn-extra-implicit -Ywarn-inaccessible
               -Ywarn-infer-any -Ywarn-nullary-override -Ywarn-numeric-widen -Ywarn-unused:imports -Ywarn-unused:locals -Ywarn-unused:privates
             -->
@@ -167,18 +165,19 @@ limitations under the License.
             <arg>-language:higherKinds</arg>         <!-- Allow higher-kinded types -->
             <arg>-language:implicitConversions</arg> <!-- Allow definition of implicit functions called views -->
             <arg>-Xcheckinit</arg>                   <!--  Wrap field accessors to throw an exception on uninitialized access. -->
-            <arg>-Xfuture</arg>                      <!-- Turn on future language features. -->
-            <arg>-Xlint:_,-nullary-unit,-missing-interpolator</arg> <!-- Xlint, minus nullary-units and missing interpolator (which brings false positive in Rudder) -->
-            <arg>-Yno-adapted-args</arg>             <!-- Do not adapt an argument list (either by inserting () or creating a tuple) to match the receiver. -->
+            <arg>-Xlint:_,-nonlocal-return,-nullary-unit,-missing-interpolator</arg> <!-- Xlint, minus non-local returns, nullary-units and missing interpolator (which brings false positive in Rudder) -->
             <arg>-Ywarn-dead-code</arg>              <!-- Warn when dead code is identified. -->
             <arg>-Ywarn-extra-implicit</arg>         <!-- Warn when more than one implicit parameter section is defined. -->
-            <arg>-Ywarn-inaccessible</arg>           <!-- Warn about inaccessible types in method signatures. -->
-            <arg>-Ywarn-infer-any</arg>              <!-- Warn when a type argument is inferred to be `Any`. -->
-            <arg>-Ywarn-nullary-override</arg>       <!-- Warn when non-nullary `def f()' overrides nullary `def f'. -->
             <arg>-Ywarn-numeric-widen</arg>          <!-- Warn when numerics are widened. -->
             <arg>-Ywarn-unused:imports</arg>         <!-- Warn if an import selector is not referenced. -->
             <arg>-Ywarn-unused:locals</arg>          <!-- Warn if a local definition is unused. -->
             <arg>-Ywarn-unused:privates</arg>        <!-- Warn if a private member is unused. -->
+            <arg>-Ywarn-unused:implicits</arg>       <!-- Warn if an implicit parameter is unused. -->
+            <arg>-Ywarn-unused:privates</arg>        <!-- Warn if a private member is unused. -->
+            <arg>-Ybackend-parallelism</arg><arg>8</arg>         <!-- Enable paralellisation — change to desired number! -->
+            <arg>-Ycache-plugin-class-loader:last-modified</arg> <!-- Enables caching of classloaders for compiler plugins -->
+            <arg>-Ycache-macro-class-loader:last-modified</arg>  <!-- and macro definitions. This can lead to performance improvements. -->
+            <arg>-P:silencer:checkUnused</arg>
           </args>
           <jvmArgs>
             <jvmArg>-Xmx${jvmArg-Xmx}</jvmArg>
@@ -350,11 +349,11 @@ limitations under the License.
     <rudder-major-version>6.0</rudder-major-version>
     <rudder-version>6.0.3-SNAPSHOT</rudder-version>
 
-    <scala-version>2.12.10</scala-version>
-    <scala-binary-version>2.12</scala-binary-version>
+    <scala-version>2.13.1</scala-version>
+    <scala-binary-version>2.13</scala-binary-version>
     <scala-parser-combinators-version>1.1.2</scala-parser-combinators-version>
     <scala-xml-version>1.2.0</scala-xml-version>
-    <lift-version>3.3.0</lift-version>
+    <lift-version>3.4.0</lift-version>
     <slf4j-version>1.7.28</slf4j-version>
     <logback-version>1.2.3</logback-version>
     <junit-version>4.12</junit-version>
@@ -368,12 +367,15 @@ limitations under the License.
     <cglib-version>3.3.0</cglib-version>
     <asm-version>5.2</asm-version>
     <bcpkix-jdk15on-version>1.63</bcpkix-jdk15on-version>
-    <silencer-lib-version>1.4.2</silencer-lib-version>
+    <silencer-lib-version>1.4.4</silencer-lib-version>
     <better-files-version>3.8.0</better-files-version>
     <sourcecode-version>0.1.7</sourcecode-version>
-    <quicklense-version>1.4.12</quicklense-version>
+    <quicklens-version>1.4.12</quicklens-version>
     <hikaricp-version>3.4.0</hikaricp-version>
+    <nuprocess-version>1.2.5</nuprocess-version>
     <postgresql-version>42.2.8</postgresql-version>
+    <json-path-version>2.4.0</json-path-version>
+    <scalaj-version>2.3.0</scalaj-version>
     <!--
       These one must be updated to work together
       We declare cats in "test" here, because it is not directly needed
@@ -382,9 +384,9 @@ limitations under the License.
     <monix-version>3.0.0</monix-version>
     <cats-version>2.0.0</cats-version>
     <specs2-version>4.7.0</specs2-version>
-    <doobie-version>0.8.2</doobie-version>
-    <fs2-version>1.0.4</fs2-version>
-    <http4s-version>0.19.0</http4s-version>
+    <doobie-version>0.8.8</doobie-version>
+    <fs2-version>2.1.0</fs2-version>
+    <http4s-version>0.21.0-M6</http4s-version>
     <shapeless-version>2.3.3</shapeless-version>
     <cats-effect-version>2.0.0</cats-effect-version>
     <dev-zio-version>1.0.0-RC16</dev-zio-version>
@@ -489,7 +491,7 @@ limitations under the License.
       <dependency>
         <groupId>com.softwaremill.quicklens</groupId>
         <artifactId>quicklens_${scala-binary-version}</artifactId>
-        <version>${quicklense-version}</version>
+        <version>${quicklens-version}</version>
       </dependency><!--
         lift-web
       -->
@@ -684,17 +686,18 @@ limitations under the License.
     <dependency>
       <groupId>com.github.pathikrit</groupId>
       <artifactId>better-files_${scala-binary-version}</artifactId>
+      <version>${better-files-version}</version>
     </dependency>
     <dependency>
       <groupId>com.github.ghik</groupId>
-      <artifactId>silencer-lib_${scala-binary-version}</artifactId>
+      <artifactId>silencer-lib_${scala-version}</artifactId>
       <version>${silencer-lib-version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>ca.mrvisser</groupId>
       <artifactId>sealerate_${scala-binary-version}</artifactId>
-      <version>0.0.5</version>
+      <version>0.0.6</version>
       <scope>provided</scope>
     </dependency>
     <!-- joda-time is used in all projects -->

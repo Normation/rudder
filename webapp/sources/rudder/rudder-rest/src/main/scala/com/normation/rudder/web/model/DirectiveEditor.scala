@@ -433,7 +433,7 @@ final case class MultivaluedSectionField(
         map(name) = Buffer[String]()
       map(name) ++= values
     }
-    map.toMap
+    map.view.mapValues(_.toSeq).toMap
   }
   /**
    * Simple form presentation: each section is iterated, and a

@@ -50,6 +50,7 @@ import net.liftweb.common.Loggable
 import doobie._
 import doobie.implicits._
 import cats.implicits._
+import doobie.implicits.javasql._
 import com.normation.rudder.migration.MigrationTestLog
 import org.joda.time.DateTime
 import zio.interop.catz._

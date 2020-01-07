@@ -62,8 +62,6 @@ import bootstrap.liftweb.RudderConfig
 import net.liftweb.common.Box.box2Option
 import net.liftweb.common.Box.option2Box
 import net.liftweb.http.SHtml.ElemAttr.pairToBasic
-import scala.Option.option2Iterable
-import scala.xml.NodeSeq.seqToNodeSeq
 import com.normation.rudder.web.components._
 import com.normation.rudder.web.services.AgentCompat
 
@@ -237,7 +235,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         }
       }
 
-      xml ++ {
+      (xml: NodeSeq) ++ {
         Script(OnLoad(
           buildUserLibraryJsTree &
           //init bind callback to move
@@ -616,7 +614,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
           toList.sortWith( treeUtilService.sortPtCategory( _ , _ ) ).
           map(jsTreeNodeOf_ptCategory(_)
         ) ++
-        category.techniqueIds.map( _.name ).
+        category.techniqueIds.unsorted.map( _.name ).
           flatMap(x => treeUtilService.getPt(x,logger)).toList.
           sortWith((x,y) =>  treeUtilService.sortPt(x.id.name, y.id.name ) ).map(jsTreeNodeOf_pt( _ ) )
 
@@ -805,7 +803,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         processAction & createNotification
       }
 
-      Script(OnLoad(initJs)) ++
+      (Script(OnLoad(initJs)): NodeSeq) ++
       SHtml.ajaxButton("Reload Techniques", process _, ("class","btn btn-primary"))
   }
 

@@ -167,7 +167,7 @@ object RunNuCommand {
      *
      *
      */
-    import scala.collection.JavaConverters._
+    import scala.jdk.CollectionConverters._
     val cmdInfo =  s"'${cmd.cmdPath} ${cmd.parameters.mkString(" ")}'"
     val errorMsg = s"Error when executing command ${cmdInfo}"
 

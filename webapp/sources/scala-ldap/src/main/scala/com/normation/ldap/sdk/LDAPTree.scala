@@ -103,7 +103,7 @@ object LDAPTree {
   //loggin
   val logger = org.slf4j.LoggerFactory.getLogger(classOf[LDAPTree])
 
-  def apply(r:LDAPEntry, c:Traversable[(RDN,LDAPTree)]) : LDAPTree = new LDAPTree {
+  def apply(r:LDAPEntry, c: Iterable[(RDN,LDAPTree)]) : LDAPTree = new LDAPTree {
     require(null != r, "root of a tree can't be null")
     require(null != c, "children map of a tree can't be null")
 
@@ -188,7 +188,7 @@ object LDAPTree {
       //modification on root
       val rootDiff = LDAPEntry.merge(source.root, target.root, removeMissing = removeMissing)
 
-      val rootMod = if(rootDiff.isEmpty) NoMod else Replace((source.root.dn,rootDiff))
+      val rootMod = if(rootDiff.isEmpty) NoMod else Replace((source.root.dn, rootDiff.toSeq))
 
       val intersection = source.children.keySet intersect(target.children.keySet)
 

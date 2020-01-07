@@ -52,9 +52,10 @@ import org.eclipse.jgit.lib.PersonIdent
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
-
 import com.normation.box._
 import com.normation.errors._
+
+import scala.xml.NodeSeq
 
 class Archives extends DispatchSnippet with Loggable {
 
@@ -288,12 +289,12 @@ class Archives extends DispatchSnippet with Loggable {
       SHtml.selectObj[Option[GitCommitId]](buildCommitIdList, Full(selectedCommitId), { id => selectedCommitId = id}, ("id" -> archiveDateSelectId), ("class","form-control") )
     } &
     ("#"+restoreButtonId) #> {
-      SHtml.ajaxSubmit(restoreButtonName, restore _, ("id" -> restoreButtonId) , ("class","btn btn-default")) ++
-      Script(OnLoad(JsRaw("""enableIfNonEmpty("%s", "%s");$("#%s").prop("disabled",true);""".format(archiveDateSelectId, restoreButtonId, restoreButtonId))))
+      (SHtml.ajaxSubmit(restoreButtonName, restore _, ("id" -> restoreButtonId) , ("class","btn btn-default")) ++
+      Script(OnLoad(JsRaw("""enableIfNonEmpty("%s", "%s");$("#%s").prop("disabled",true);""".format(archiveDateSelectId, restoreButtonId, restoreButtonId))))):NodeSeq
     } &
     ("#"+downloadButtonId) #> {
-      SHtml.ajaxSubmit(downloadButtonName, download _, ("id" -> downloadButtonId) , ("class","btn btn-default")) ++
-      Script(OnLoad(JsRaw("""enableIfNonEmpty("%s", "%s");$("#%s").prop("disabled",true);""".format(archiveDateSelectId, downloadButtonId, downloadButtonId))))
+      (SHtml.ajaxSubmit(downloadButtonName, download _, ("id" -> downloadButtonId) , ("class","btn btn-default")) ++
+      Script(OnLoad(JsRaw("""enableIfNonEmpty("%s", "%s");$("#%s").prop("disabled",true);""".format(archiveDateSelectId, downloadButtonId, downloadButtonId))))):NodeSeq
     }
   }
 

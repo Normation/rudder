@@ -58,7 +58,7 @@ trait Tree[A] {
 }
 
 object Tree {
-  def apply[X](r:X,c:Traversable[(RDN,Tree[X])]) : Tree[X] = new Tree[X] {
+  def apply[X](r:X,c: Iterable[(RDN,Tree[X])]) : Tree[X] = new Tree[X] {
     require(null != r, "root of a tree can't be null")
     require(null != c, "children map of a tree can't be null")
 

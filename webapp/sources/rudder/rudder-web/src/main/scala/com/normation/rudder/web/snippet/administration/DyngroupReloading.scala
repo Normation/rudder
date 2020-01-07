@@ -47,6 +47,8 @@ import net.liftweb.http.js._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.util.Helpers._
 
+import scala.xml.NodeSeq
+
 class DyngroupReloading extends DispatchSnippet with Loggable {
 
   private[this] val updateDynamicGroups = RudderConfig.updateDynamicGroups
@@ -69,7 +71,7 @@ class DyngroupReloading extends DispatchSnippet with Loggable {
     val initJs = SetHtml("dynGroupUpdateInterval", <span>{updateDynamicGroupsInterval}</span>)
     //process the list of networks
     "#dyngroupReloadingButton" #> {
-      SHtml.ajaxSubmit("Reload dynamic groups", process _, ("class","btn btn-primary dyngroupReloadingButton")) ++ Script(OnLoad(initJs))
+      (SHtml.ajaxSubmit("Reload dynamic groups", process _, ("class","btn btn-primary dyngroupReloadingButton")) ++ Script(OnLoad(initJs))): NodeSeq
     }
   }
 }

@@ -65,7 +65,7 @@ class TestFileHistoryLogRepository {
   @Test def basicTest: Unit = {
     val id1 = "data1"
     assertEquals(Right(List()), repos.getIds.map(_.toList).runNow)
-    assertEquals(_:Left[RudderError, Any], repos.versions(id1).runNow)
+    assertEquals(Right(List()), repos.versions(id1).runNow)
 
     val data1 = "Some data 1\nwith multiple lines"
 

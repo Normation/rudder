@@ -138,17 +138,20 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
     path match {
       case None      => UIO.unit
       case Some(cmd) =>
-        // for the cmd, first arg is "cmd path", other are "parameters", and they must be splits
-        val (cmdPath :: args) = cmd.split("""\s""").toList
+        cmd.split("""\s""").toList match {
+          case Nil => UIO.unit
+          // for the cmd, first arg is "cmd path", other are "parameters", and they must be splits
+          case cmdPath :: args =>
 
-        for {
-          promise <- RunNuCommand.run(Cmd(cmdPath, args, Map()), Duration.fromNanos(5L * 60 * 1000 * 1000)) // error after 5 mins
-          result  <- promise.await
-          _       <- ZIO.when(result.code != 0) {
-                       Unexpected(s"Error when executing reload command '${cmd}' after writing node certificates file. Command " +
-                                  s"output: code: ${result.code}\nstdout: ${result.stdout}\nstderr: ${result.stderr}").fail
-                     }
-        } yield ()
+            for {
+              promise <- RunNuCommand.run(Cmd(cmdPath, args, Map()), Duration.fromNanos(5L * 60 * 1000 * 1000)) // error after 5 mins
+              result  <- promise.await
+              _       <- ZIO.when(result.code != 0) {
+                           Unexpected(s"Error when executing reload command '${cmd}' after writing node certificates file. Command " +
+                                      s"output: code: ${result.code}\nstdout: ${result.stdout}\nstderr: ${result.stderr}").fail
+                         }
+            } yield ()
+        }
     }
   }
 }

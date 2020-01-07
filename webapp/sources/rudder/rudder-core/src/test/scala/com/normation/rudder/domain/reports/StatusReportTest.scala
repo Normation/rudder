@@ -37,7 +37,6 @@
 
 package com.normation.rudder.domain.reports
 
-import scala.collection.TraversableOnce.flattenTraversableOnce
 import scala.io.Source
 
 import com.normation.inventory.domain.NodeId

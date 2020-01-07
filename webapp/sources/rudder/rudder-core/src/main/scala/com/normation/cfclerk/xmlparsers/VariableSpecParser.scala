@@ -296,7 +296,7 @@ class VariableSpecParser extends Loggable {
   private[this] def parseAlgoList(algos:String) : Seq[HashAlgoConstraint] = {
     if(algos.trim.isEmpty) HashAlgoConstraint.sort(HashAlgoConstraint.algorithms)
     else {
-      Control.sequence(algos.split(",")) { algo =>
+      Control.sequence(algos.split(",").toSeq) { algo =>
         HashAlgoConstraint.fromString( algo.trim )
       } match {
         case Full(seq) => seq

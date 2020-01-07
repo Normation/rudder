@@ -99,7 +99,7 @@ final case object NoAgent extends AgentCompat {
     def directiveText : NodeSeq = NodeSeq.Empty
   }
 
-  def apply (agentTypes: Traversable[AgentType]) : AgentCompat = {
+  def apply (agentTypes: Iterable[AgentType]) : AgentCompat = {
     agentTypes.foldRight(NoAgent : AgentCompat) {
       case (_, All) => All
       case (AgentType.Dsc, NoAgent) => Dsc

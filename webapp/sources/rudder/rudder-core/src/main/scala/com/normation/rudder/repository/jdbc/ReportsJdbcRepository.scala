@@ -446,7 +446,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
         }
       }
 
-      seq.groupBy { run => run.agentRunId }.mapValues { runs => recDisctinct(runs.toList) }.values.toSeq
+      seq.groupBy { run => run.agentRunId }.view.mapValues { runs => recDisctinct(runs.toList) }.values.toSeq
     }
 
     //actual logic for getReportsfromId
@@ -516,7 +516,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
           group by ruleid, interval;
       """
     ).to[Vector].transact(xa)) ?~! "Error when trying to retrieve change reports").map { res =>
-      val groups = res.groupBy(_._1).mapValues( _.groupBy(_._3).mapValues(_.map( _._2).head)) //head non empty due to groupBy, and seq == 1 by query
+      val groups = res.groupBy(_._1).view.mapValues( _.groupMapReduce(_._3)(_._2)( (a,b) => a) ).toMap //head non empty due to groupBy, and seq == 1 by query
       groups
     }, intervalMeta)._1 //tricking scalac for false positive unused warning on intervalMeta.
   }

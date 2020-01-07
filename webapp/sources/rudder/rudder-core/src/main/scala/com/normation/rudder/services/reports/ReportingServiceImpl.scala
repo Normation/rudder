@@ -60,7 +60,6 @@ import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.logger.ReportLoggerPure
 import zio._
 import com.normation.zio._
-import com.github.ghik.silencer.silent
 
 object ReportingServiceUtils {
 
@@ -223,17 +222,17 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    */
   val updateCacheFromRequest: IO[Nothing, Unit] = invalidateComplianceRequest.take.flatMap(invalidatedIds =>
     // batch node processing by slice of 10
-    ZIO.traverse_(invalidatedIds.sliding(batchSize).toIterable)(nodeIds =>
+    ZIO.traverse_(invalidatedIds.sliding(batchSize).to(Iterable))(nodeIds =>
       (for {
         updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(nodeIds, Set()).toIO
-        _       <- IOResult.effectNonBlocking(cache = cache ++ updated)
+        _       <- IOResult.effectNonBlocking { cache = cache ++ updated }
         _       <- ReportLoggerPure.Cache.debug(s"Compliance cache updated for nodes: ${nodeIds.map(_.value).mkString(", ")}")
       } yield ()).catchAll(err => ReportLoggerPure.Cache.error(s"Error when updating compliance cache for nodes: [${nodeIds.map(_.value).mkString(", ")}]: ${err.fullMsg}"))
     )
   )
 
   // start updating
-  updateCacheFromRequest.forever.fork.runNow: @silent("a type was inferred to be `Any`")
+  updateCacheFromRequest.forever.fork.runNow
 
 
   private[this] def cacheToLog(c: Map[NodeId, NodeStatusReport]): String = {

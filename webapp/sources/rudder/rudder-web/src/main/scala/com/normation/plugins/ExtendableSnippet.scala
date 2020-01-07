@@ -83,7 +83,7 @@ trait PluginExtensionPoint[T] extends SnippetExtensionPoint[T] {
 
   // protect all compose method with the guard. The check is done each time to allow runtime
   // switch on plugin status
-  final def compose(snippet: T): Map[String, NodeSeq => NodeSeq] = pluginCompose(snippet).mapValues(guard _)
+  final def compose(snippet: T): Map[String, NodeSeq => NodeSeq] = pluginCompose(snippet).view.mapValues(guard _).toMap
 
   def pluginCompose(snippet:T) : Map[String, NodeSeq => NodeSeq]
 }

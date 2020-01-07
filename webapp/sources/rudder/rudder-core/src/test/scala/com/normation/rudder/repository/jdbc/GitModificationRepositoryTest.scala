@@ -98,7 +98,7 @@ class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
     }
 
     "not find back a non existing commit" in {
-      repos.getCommits("badId").either.runNow must beRight(None)
+      repos.getCommits("badId").either.runNow must beRight(Option.empty[GitCommitId])
     }
 
     "produce an error when several commits were added" in {

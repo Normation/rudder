@@ -91,7 +91,7 @@ object TestSystemData {
   val data = new TestNodeConfiguration()
   import data._
 
-  val logNodeConfig = new NodeConfigurationLoggerImpl(abstractRoot + "/lognodes")
+  val logNodeConfig = new NodeConfigurationLoggerImpl(abstractRoot.getPath + "/lognodes")
 
   lazy val agentRegister = new AgentRegister()
   lazy val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles(agentRegister)

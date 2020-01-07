@@ -304,7 +304,7 @@ class PolicyWriterServiceImpl(
 
     //we need to add the current environment variables to the script context
     //plus the script environment variables used as script parameters
-    import scala.collection.JavaConverters._
+    import scala.jdk.CollectionConverters._
     val systemEnv = HookEnvPairs.build(System.getenv.asScala.toSeq:_*)
 
     // give a timeout for the whole tasks sufficiently large.

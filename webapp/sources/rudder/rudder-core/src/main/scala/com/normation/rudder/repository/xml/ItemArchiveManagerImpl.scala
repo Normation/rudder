@@ -172,7 +172,7 @@ class ItemArchiveManagerImpl(
     for {
       catWithUPT   <- uptRepository.getActiveTechniqueByCategory(includeSystem = true)
       //remove systems categories, we don't want to export them anymore
-      okCatWithUPT =  catWithUPT.collect {
+      okCatWithUPT =  catWithUPT.toMap.collect {
                           //always include root category, even if it's a system one
                           case (categories, CategoryWithActiveTechniques(cat, upts)) if(cat.isSystem == false || categories.size <= 1) =>
                             (categories, CategoryWithActiveTechniques(cat, upts.filter( _.isSystem == false )))
@@ -231,7 +231,7 @@ class ItemArchiveManagerImpl(
     for {
       catWithGroups   <- groupRepository.getGroupsByCategory(includeSystem = true)
       //remove systems categories, because we don't want them
-      okCatWithGroup  =   catWithGroups.collect {
+      okCatWithGroup  =   catWithGroups.toMap.collect {
                             //always include root category, even if it's a system one
                             case (categories, CategoryAndNodeGroup(cat, groups)) if(cat.isSystem == false || categories.size <= 1) =>
                               (categories, CategoryAndNodeGroup(cat, groups.filter( _.isSystem == false )))

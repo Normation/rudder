@@ -40,8 +40,10 @@ package com.normation.rudder.web.snippet.administration
 
 import net.liftweb.common.Loggable
 import net.liftweb.http.js.JsCmd
-import net.liftweb.http.{DispatchSnippet, IdMemoizeTransform, SHtml, S}
+import net.liftweb.http.{DispatchSnippet, IdMemoizeTransform, S, SHtml}
 import net.liftweb.util.Helpers._
+
+import scala.xml.NodeSeq
 import scala.xml.Text
 
 
@@ -62,7 +64,7 @@ class DebugScript extends DispatchSnippet with Loggable {
 
       //process the list of networks
       "#launchDebugScriptButton" #> {
-        SHtml.ajaxButton( <span class="fa fa-download"></span>++Text(" Download debug information"), process _ ,("class","btn btn-primary"))
+        SHtml.ajaxButton( (<span class="fa fa-download"></span>: NodeSeq) ++ Text(" Download debug information"), process _ ,("class","btn btn-primary"))
       }
     }
 

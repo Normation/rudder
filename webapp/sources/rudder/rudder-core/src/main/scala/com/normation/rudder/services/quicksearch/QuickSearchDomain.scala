@@ -323,7 +323,7 @@ final object QSMapping {
   val attributeNameMapping: Map[String, Set[QSAttribute]] = {
     //given that mapping, build the map of name -> Set(attribute)
     val byNames: Map[String, Seq[(String, QSAttribute)]] = attributeNames.toSeq.flatMap { case(a, names) => names.map( n => (n.toLowerCase,a) ) }.groupBy(_._1)
-    byNames.mapValues( _.map(_._2).toSet )
+    byNames.view.mapValues( _.map(_._2).toSet ).toMap
   }
 
 }

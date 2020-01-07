@@ -22,7 +22,7 @@ package com.normation.rudder.repository.xml
 
 import java.util.zip.ZipFile
 import java.io.File
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import org.apache.commons.io.FileUtils
 import java.io.InputStream
 import java.util.zip.ZipOutputStream

@@ -77,7 +77,6 @@ import org.joda.time.DateTime
 import zio._
 import zio.syntax._
 
-import scala.language.implicitConversions
 import com.normation.ldap.sdk.syntax._
 
 final object NodeStateEncoder {

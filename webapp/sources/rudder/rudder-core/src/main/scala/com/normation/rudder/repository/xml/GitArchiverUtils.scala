@@ -53,7 +53,7 @@ import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import zio._
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
 import scala.xml.Elem
 
@@ -348,7 +348,7 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
                 GitArchiveLogger.debug("Ignoring object due to JGit bug: " + ref.getName, e)
             }
           }
-          tags.sortWith( (o1, o2) => o1.getTagName().compareTo(o2.getTagName()) <= 0 )
+          tags.sortWith( (o1, o2) => o1.getTagName().compareTo(o2.getTagName()) <= 0 ).toSeq
         }
       })
   }

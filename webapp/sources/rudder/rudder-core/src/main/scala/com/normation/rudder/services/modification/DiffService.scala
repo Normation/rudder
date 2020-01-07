@@ -82,7 +82,7 @@ class DiffServiceImpl extends DiffService {
     , techniqueName : TechniqueName) : ModifyDirectiveDiff = {
     import SectionVal._
 
-    def toDirectiveDiff[T] : (Directive => T) => Option[SimpleDiff[T]] = toDiff(reference,newItem) _
+    def toDirectiveDiff[T] : (Directive => T) => Option[SimpleDiff[T]] = toDiff[Directive, T](reference,newItem) _
     val refSectionVal        = directiveValToSectionVal(refRootSection,reference.parameters)
     val newSectionVal        = directiveValToSectionVal(newRootSection,newItem.parameters)
     val diffParameters       = if (refSectionVal == newSectionVal) None else Some(SimpleDiff(refSectionVal,newSectionVal))

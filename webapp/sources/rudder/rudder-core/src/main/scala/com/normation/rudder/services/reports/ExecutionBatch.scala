@@ -843,7 +843,7 @@ final case class ContextForNoAnswer(
                                    // If okKeys.size == reportKeys.size, there is no unexpected reports
                                    // If okKeys.size == expectedKeys.size, there is no missing reports
                                    val missing = (if (okKeys.size != expectedKeys.size) {
-                                     expectedComponents.filterKeys(k => !reportKeys.contains(k)).map { case ((d,_), (pm,mrs,c)) =>
+                                     expectedComponents.view.filterKeys(k => !reportKeys.contains(k)).toMap.map { case ((d,_), (pm,mrs,c)) =>
                                          DirectiveStatusReport(d, Map(c.componentName ->
                                            /*
                                             * Here, we group by unexpanded component value, not expanded one. We want in the end:
@@ -872,7 +872,7 @@ final case class ContextForNoAnswer(
                                    //unexpected contains the one with unexpected key and all non matching serial/version
                                    val unexpected = (if (okKeys.size != reportKeys.size) {
                                      buildUnexpectedDirectives(
-                                       reports.filterKeys(k => !expectedKeys.contains(k)).values.flatten.toSeq
+                                       reports.view.filterKeys(k => !expectedKeys.contains(k)).values.flatten.toSeq
                                      )
                                    } else {
                                      Seq[DirectiveStatusReport]()
@@ -935,7 +935,7 @@ final case class ContextForNoAnswer(
           val currentDirectives = currentStatusReports.directives
 
           //don't keep directive that were removed between the two configs
-          val toKeep = runDirectives.filterKeys(k => currentDirectives.keySet.contains(k))
+          val toKeep = runDirectives.view.filterKeys(k => currentDirectives.keySet.contains(k)).toMap
 
           //now override currentDirective with the one to keep in currentReport
           val updatedDirectives = currentDirectives ++ toKeep
@@ -1226,7 +1226,7 @@ final case class ContextForNoAnswer(
      */
     ComponentStatusReport(
         expectedComponent.componentName
-      , ComponentValueStatusReport.merge(unexpectedReportStatus ::: pairedReportStatus).mapValues { status =>
+      , ComponentValueStatusReport.merge(unexpectedReportStatus ::: pairedReportStatus).view.mapValues { status =>
           // here we want to ensure that if a message is unexpected, all other are
           if(status.messages.exists( _.reportType == ReportType.Unexpected)) {
             val msgs = status.messages.map(m => m.copy(reportType = ReportType.Unexpected))
@@ -1234,7 +1234,7 @@ final case class ContextForNoAnswer(
           } else {
             status
           }
-      }
+      }.toMap
     )
   }
 

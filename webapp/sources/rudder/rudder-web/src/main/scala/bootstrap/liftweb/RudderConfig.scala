@@ -1054,7 +1054,7 @@ object RudderConfig extends Loggable {
 
     // this one must be in a fork thread pool
     ZioRuntime.internal.unsafeRunAsync(IOResult.effect {
-      import scala.collection.JavaConverters._
+      import scala.jdk.CollectionConverters._
       val config = RudderProperties.config
       if(ApplicationLogger.isInfoEnabled) {
         //sort properties by key name

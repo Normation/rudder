@@ -137,7 +137,7 @@ class RuleTargetTest extends Specification with Loggable {
 
   "Rule targets" should {
     "Be correctly serialized and deserialized from their target" in {
-      allTargets.par.forall { gt =>
+      allTargets.forall { gt =>
         RuleTarget.unser(gt.target) match {
           case Some(unser) => unser == gt
           case None        => gt.target == gt
@@ -147,7 +147,7 @@ class RuleTargetTest extends Specification with Loggable {
 
     "Have their group target removed in composite targets" in {
       val allComp = (allComposite ++ allTargetExclusions)
-      groupTargets.par.forall{
+      groupTargets.forall{
         case (gt, _) =>
          allComp.forall {
            case (comp, _) => comp.removeTarget(gt) match {

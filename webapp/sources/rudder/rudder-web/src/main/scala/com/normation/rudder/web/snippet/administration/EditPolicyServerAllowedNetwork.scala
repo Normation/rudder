@@ -155,13 +155,15 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
         }
       }
 
+      val gootNetsSeq = goodNets.toSeq
+
       //if no errors, actually save
       if(S.errors.isEmpty) {
         val modId = ModificationId(uuidGen.newUuid)
         (for {
           currentNetworks <- psService.getAuthorizedNetworks(policyServerId) ?~! s"Error when getting the list of current authorized networks for policy server ${policyServerId.value}"
-          changeNetwork   <- psService.setAuthorizedNetworks(policyServerId, goodNets, modId, CurrentUser.actor) ?~! "Error when saving new allowed networks for policy server ${policyServerId.value}"
-          modifications   =  UpdatePolicyServer.buildDetails(AuthorizedNetworkModification(currentNetworks, goodNets))
+          changeNetwork   <- psService.setAuthorizedNetworks(policyServerId, gootNetsSeq, modId, CurrentUser.actor) ?~! "Error when saving new allowed networks for policy server ${policyServerId.value}"
+          modifications   =  UpdatePolicyServer.buildDetails(AuthorizedNetworkModification(currentNetworks, gootNetsSeq))
           eventSaved      <- eventLogService.saveEventLog(modId,
                                UpdatePolicyServer(EventLogDetails(
                                  modificationId = None
@@ -217,7 +219,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
         "#addNetworkButton" #> SHtml.ajaxButton(<span class="glyphicon glyphicon-plus"></span>, add _ , ("id", s"addNetworkButton${policyServerId.value}")) &
         "#addaNetworkfield" #> SHtml.ajaxText(addNetworkField, addNetworkField = _, ("id", s"addaNetworkfield${policyServerId.value}")) &
         "#submitAllowedNetwork" #> {
-          SHtml.ajaxSubmit("Save changes", process _,("id",s"submitAllowedNetwork${policyServerId.value}"), ("class","btn btn-default")) ++ Script(
+          (SHtml.ajaxSubmit("Save changes", process _,("id",s"submitAllowedNetwork${policyServerId.value}"), ("class","btn btn-default")): NodeSeq) ++ Script(
             OnLoad (
               JsRaw(s"""
                 initInputAddress("${policyServerId.value}")

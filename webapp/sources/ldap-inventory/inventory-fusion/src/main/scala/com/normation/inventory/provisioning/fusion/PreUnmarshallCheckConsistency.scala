@@ -261,7 +261,7 @@ class PreUnmarshallCheckConsistency extends PreUnmarshall {
   private[this] def checkNodeUUID(uuid: String) : IOResult[String] = {
     uuid match {
       case uuidAuthCharRegex(x) => uuid.succeed
-      case _ => s"""The UUID '${uuid}' is not valid. It should be lesser than 50 chars and contains chars among the set [a-zA-Z0-9\-])""".inconsistency
+      case _ => s"""The UUID '${uuid}' is not valid. It should be lesser than 50 chars and contains chars among the set [a-zA-Z0-9\\-])""".inconsistency
     }
   }
 

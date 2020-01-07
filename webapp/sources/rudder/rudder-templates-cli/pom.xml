@@ -104,7 +104,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>com.github.scopt</groupId>
       <artifactId>scopt_${scala-binary-version}</artifactId>
-      <version>3.5.0</version>
+      <version>3.7.1</version>
     </dependency>
 
 

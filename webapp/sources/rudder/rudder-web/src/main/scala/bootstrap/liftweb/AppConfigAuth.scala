@@ -136,7 +136,7 @@ class AppConfigAuth extends ApplicationContextAware {
 
     //prepare specific properties for each configuredAuthProviders - we need system properties for spring
 
-    import scala.collection.JavaConverters._
+    import scala.jdk.CollectionConverters._
     configuredAuthProviders.foreach { x =>
       try {
         // try to load all the specific properties of that auth type

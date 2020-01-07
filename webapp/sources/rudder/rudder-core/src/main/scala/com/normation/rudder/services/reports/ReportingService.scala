@@ -99,12 +99,12 @@ trait ReportingService {
       reports
     } else {
       val n1 = System.currentTimeMillis
-      val result = reports.mapValues { status =>
+      val result = reports.view.mapValues { status =>
         NodeStatusReport.filterByRules(status, ruleIds)
       }.filter { case (k,v) => v.report.reports.nonEmpty || v.overrides.nonEmpty }
       val n2 = System.currentTimeMillis
       TimingDebugLogger.trace(s"Filter Node Status Reports on ${ruleIds.size} in : ${n2 - n1}ms")
       result
-    }
+    }.toMap
   }
 }

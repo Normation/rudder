@@ -165,7 +165,7 @@ object ApiPath {
   // (resource elements act as joker
   def compatible(p1: ApiPath, p2: ApiPath): Boolean = {
     import ApiPathSegment._
-    (p1.parts.size == p2.parts.size) && (p1.parts.toList, p2.parts.toList).zipped.forall {
+    (p1.parts.size == p2.parts.size) && (p1.parts.toList.lazyZip(p2.parts.toList)).forall {
       case (Segment(a), Segment(b)) => a == b
       case (Resource(_), _) => true
       case (_, Resource(_)) => true
@@ -203,7 +203,7 @@ trait EndpointSchema {
   // same name, but not the same path.
   def name: String = {
     val n = this.getClass.getSimpleName()
-    n(0).toLower + n.substring(1, n.size-1) // also remove the last '$'
+    n(0).toLower.toString + n.substring(1, n.size-1) // also remove the last '$'
   }
 
   // the kind of API

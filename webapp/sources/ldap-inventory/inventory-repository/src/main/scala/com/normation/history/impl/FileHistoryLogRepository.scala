@@ -31,6 +31,8 @@ import org.joda.time.format.ISODateTimeFormat
 import zio._
 import zio.syntax._
 
+import scala.reflect.ClassTag
+
 /**
  * A trait that allows to write and read datas of type T
  * to/from files
@@ -66,7 +68,7 @@ trait IdToFilenameConverter[ID] {
  * Any datas type may be used, as long as they can be read/write from
  * files
  */
-class FileHistoryLogRepository[ID,T](
+class FileHistoryLogRepository[ID:ClassTag,T](
   val rootDir:String,
   val marshaller:FileMarshalling[T],
   val converter:IdToFilenameConverter[ID]
@@ -134,7 +136,7 @@ class FileHistoryLogRepository[ID,T](
                 InventoryError.System(s"Error when trying to get file names")
               )
      } yield {
-      res
+      res.toSeq
     }
   }
 

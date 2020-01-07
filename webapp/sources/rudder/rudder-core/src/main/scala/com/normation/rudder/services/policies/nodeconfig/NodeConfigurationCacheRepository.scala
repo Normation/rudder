@@ -376,7 +376,7 @@ class InMemoryNodeConfigurationHashRepository extends NodeConfigurationHashRepos
    * given in the argument.
    */
   def onlyKeepNodeConfiguration(nodeIds:Set[NodeId]) : Box[Set[NodeId]] = {
-    val remove = repository.keySet -- nodeIds
+    val remove = repository.keySet.diff(nodeIds)
     repository --= remove
     Full(nodeIds)
   }
@@ -511,7 +511,7 @@ class LdapNodeConfigurationHashRepository(
       existingEntry <- ldap.get(rudderDit.NODE_CONFIGS.dn)
       existingCache <- fromLdap(existingEntry)
       //only update and add, keep existing config cache not updated
-      keptConfigs   =  existingCache.map(x => (x.id, x)).toMap.filterKeys( k => !updatedIds.contains(k) )
+      keptConfigs   =  existingCache.map(x => (x.id, x)).toMap.view.filterKeys( k => !updatedIds.contains(k) ).toMap
       entry         =  toLdap(caches ++ keptConfigs.values)
       saved         <- ldap.save(entry)
     } yield {

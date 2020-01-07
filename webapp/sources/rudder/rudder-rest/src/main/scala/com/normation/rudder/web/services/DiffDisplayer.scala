@@ -43,7 +43,6 @@ import com.normation.rudder.rule.category.{RuleCategory, RuleCategoryId, RuleCat
 import com.normation.rudder.web.model.LinkUtil
 import net.liftweb.common.{EmptyBox, Full, Loggable}
 
-import scala.language.implicitConversions
 import scala.xml.NodeSeq
 
 trait DiffItem[T] {

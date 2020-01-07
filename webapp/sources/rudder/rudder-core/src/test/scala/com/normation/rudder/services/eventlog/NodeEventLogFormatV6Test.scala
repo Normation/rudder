@@ -102,12 +102,12 @@ class NodeEventLogFormatV6Test extends Specification {
                               ArrayBuffer(
                                 NodeProperty("env_type", JString("production"), None)
                               , NodeProperty("shell", JString("/bin/sh"), None)
-                              )
+                              ).toSeq
                             , ArrayBuffer(
                                 NodeProperty("shell", JString("/bin/sh"), None)
                               , NodeProperty("env", JString("PROD"), None)
                               , NodeProperty("datacenter", ("Europe" -> ("France" -> true) ), None)
-                              )
+                              ).toSeq
                             ))
           , modPolicyMode = None
           , modKeyValue   = None

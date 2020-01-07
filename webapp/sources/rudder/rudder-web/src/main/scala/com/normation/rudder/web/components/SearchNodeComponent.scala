@@ -153,7 +153,7 @@ class SearchNodeComponent(
         //defaults values
         lines.insert(i+1, defaultLine)
       }
-      query = Some(Query(rType, composition, lines.to[List]))
+      query = Some(Query(rType, composition, lines.toList))
       initUpdate = false
       ajaxCriteriaRefresh
     }
@@ -169,7 +169,7 @@ class SearchNodeComponent(
           errors remove line
         }
 
-        query = Some(Query(rType, composition, lines.to[List]))
+        query = Some(Query(rType, composition, lines.toList))
       }
       initUpdate = false
       ajaxCriteriaRefresh
@@ -184,7 +184,7 @@ class SearchNodeComponent(
           case _ =>
         }
       }
-      val newQuery = Query(rType, composition, lines.to[List])
+      val newQuery = Query(rType, composition, lines.toList)
       query = Some(newQuery)
       if(errors.isEmpty) {
         // ********* EXECUTE QUERY ***********

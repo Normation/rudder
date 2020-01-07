@@ -40,7 +40,7 @@ object Control {
       case Full(u) => buf += u
       case e:EmptyBox => return e
     }
-    Full(buf)
+    Full(buf.toSeq)
   }
 
   /**
@@ -54,7 +54,7 @@ object Control {
       case e:EmptyBox => return e
       case Full(x) => buf += x
     } }
-    Full(buf)
+    Full(buf.toSeq)
   }
 
   /**
@@ -80,7 +80,7 @@ object Control {
         }
       case Full(x) => buf += x
     } }
-    errors.getOrElse(Full(buf))
+    errors.getOrElse(Full(buf.toSeq))
   }
 
   /**

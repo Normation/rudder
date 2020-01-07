@@ -246,7 +246,7 @@ class RuleEditForm(
 
     val usedDirectiveIds = roRuleRepository.getAll().toBox.getOrElse(Seq()).flatMap { case r =>
       r.directiveIds.map( id => (id -> r.id))
-    }.groupBy( _._1 ).mapValues( _.size).toSeq
+    }.groupMapReduce( _._1 )(_ => 1)(_+_).toSeq
 
     //is't there an other way to do that? We already have the target/name
     //in the tree, so there's just the existing id to find back

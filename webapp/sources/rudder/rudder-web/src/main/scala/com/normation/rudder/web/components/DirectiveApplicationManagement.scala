@@ -105,7 +105,7 @@ final case class DirectiveApplicationManagement (
   private[this] val applyingRulesId = applyingRules.map(_.id)
 
   // Map to get a Rule form it id
-  private[this] val rulesMap= rules.groupBy(_.id).mapValues(_.head)
+  private[this] val rulesMap= rules.groupMapReduce(_.id)(identity)( (a,b) => a )
 
 
   // Categories
@@ -142,10 +142,10 @@ final case class DirectiveApplicationManagement (
 
 
   // Get Rules from a category
-  private[this] val rulesByCategory = completeMapping(rules.groupBy(_.categoryId).mapValues(_.map(_.id))).withDefaultValue(Nil)
+  private[this] val rulesByCategory = completeMapping(rules.groupMap(_.categoryId)(_.id)).withDefaultValue(Nil)
 
   // Get applying Rules fror each category at the beginning
-  private[this] val applyingRulesbyCategory = completeMapping(applyingRules.groupBy(_.categoryId).mapValues(_.map(_.id))).withDefaultValue(Nil)
+  private[this] val applyingRulesbyCategory = completeMapping(applyingRules.groupMap(_.categoryId)(_.id)).withDefaultValue(Nil)
 
   // Current State, this variable will contains the application state of all Rules and categories
   private[this] var currentApplyingRules = applyingRulesbyCategory.withDefaultValue(Nil)

@@ -24,7 +24,7 @@ import com.unboundid.ldap.sdk.schema.Schema
 import com.unboundid.ldap.sdk.{DN,RDN, Attribute,Modification}
 import DN.NULL_DN
 import com.unboundid.ldif.LDIFRecord
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable.Buffer
 
 import org.slf4j.LoggerFactory

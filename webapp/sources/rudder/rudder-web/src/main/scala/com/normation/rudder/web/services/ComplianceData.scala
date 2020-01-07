@@ -521,7 +521,7 @@ object ComplianceData extends Loggable {
 
     //we can have rules with only overriden reports, so we just prepend them. When
     //a rule is defined for that id, it will override that default.
-    val overridesRules = overridesByRules.mapValues(_ => AggregatedStatusReport(Nil))
+    val overridesRules = overridesByRules.view.mapValues(_ => AggregatedStatusReport(Nil))
 
     val ruleComplianceLine = for {
       (ruleId, aggregate) <- (overridesRules ++ report.byRules)

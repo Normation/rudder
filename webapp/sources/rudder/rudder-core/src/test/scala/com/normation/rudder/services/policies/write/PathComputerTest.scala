@@ -62,11 +62,11 @@ class PathComputerTest extends Specification {
 
   "The paths for " should {
     "the root node should raise an error" in {
-      pathComputer.computeBaseNodePath(root.id, root.id, allNodeConfig.mapValues(_.nodeInfo)) must beAnInstanceOf[Failure]
+      pathComputer.computeBaseNodePath(root.id, root.id, allNodeConfig.view.mapValues(_.nodeInfo).toMap) must beAnInstanceOf[Failure]
     }
 
     "the nodeConfig should be " in {
-      pathComputer.computeBaseNodePath(node1.id, root.id, allNodeConfig.mapValues(_.nodeInfo)) must
+      pathComputer.computeBaseNodePath(node1.id, root.id, allNodeConfig.view.mapValues(_.nodeInfo).toMap) must
       beEqualTo(Full(NodePromisesPaths(node1.id,"/var/rudder/share/node1/rules", "/var/rudder/share/node1/rules.new", "/var/rudder/backup/node1/rules")))
     }
 
@@ -82,7 +82,7 @@ class PathComputerTest extends Specification {
       val badNode1 = node1NodeConfig.copy(nodeInfo = node1NodeConfig.nodeInfo.copy(policyServerId = node2.id) )
       val badNode2 = node2NodeConfig.copy(nodeInfo = node2NodeConfig.nodeInfo.copy(policyServerId = node1.id) )
       val badConfig = allNodeConfig + (node1.id -> badNode1) + (node2.id -> badNode2)
-      pathComputer.computeBaseNodePath(node1.id, root.id, badConfig.mapValues(_.nodeInfo)) must beAnInstanceOf[Failure]
+      pathComputer.computeBaseNodePath(node1.id, root.id, badConfig.view.mapValues(_.nodeInfo).toMap) must beAnInstanceOf[Failure]
     }
   }
 

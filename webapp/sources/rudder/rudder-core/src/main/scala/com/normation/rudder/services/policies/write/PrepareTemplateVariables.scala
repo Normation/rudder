@@ -226,7 +226,7 @@ class PrepareTemplateVariablesImpl(
           //if technique is multi-policy, we need to update destination path to add an unique id along with the version
           //to have one directory by directive.
           val techniqueTemplates = {
-            val templates = allTemplates.filterKeys(k => techniqueTemplatesIds.contains(k._1) && k._2 == agentNodeProps.agentType).values.toSet
+            val templates = allTemplates.view.filterKeys(k => techniqueTemplatesIds.contains(k._1) && k._2 == agentNodeProps.agentType).values.toSet
             p.technique.generationMode match {
               case TechniqueGenerationMode.MultipleDirectives =>
                 templates.map(copyInfo => copyInfo.copy(destination = Policy.makeUniqueDest(copyInfo.destination, p)))

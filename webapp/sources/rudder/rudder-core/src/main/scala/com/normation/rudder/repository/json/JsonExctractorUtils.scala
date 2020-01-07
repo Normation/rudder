@@ -42,7 +42,6 @@ import net.liftweb.common._
 import com.normation.utils.Control._
 import cats._, cats.implicits._
 import com.normation.rudder.domain.policies.JsonTagExtractor
-import scala.language.higherKinds
 
 trait JsonExctractorUtils[A[_]] {
 
