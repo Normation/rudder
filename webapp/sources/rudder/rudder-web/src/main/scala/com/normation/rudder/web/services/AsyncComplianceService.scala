@@ -200,4 +200,17 @@ class AsyncComplianceService (
     compliance(kind,tableId)
 
   }
+
+  def nodeCompliance(nodeId: NodeId): Box[ComplianceLevel] = {
+    val node = new NodeCompliance(Set(nodeId), Set())
+    node.computeCompliance match {
+      case Full(contentMap) =>
+        contentMap.get(nodeId) match {
+          case Some(Some(compliance)) => Full(compliance)
+          case _                      => Failure(s"No compliance found for ${nodeId.value}")
+        }
+      case eb: EmptyBox     =>
+        eb ?~! s"Compute compliance of ${nodeId.value} failed"
+    }
+  }
 }
