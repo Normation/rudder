@@ -37,6 +37,7 @@
 
 package com.normation.rudder.inventory
 
+import java.io.InputStream
 import java.security.{PublicKey => JavaSecPubKey}
 
 import com.normation.NamedZioLogger
@@ -60,8 +61,6 @@ import org.joda.time.Duration
 import org.joda.time.format.PeriodFormat
 import zio._
 import zio.syntax._
-
-import scala.tools.nsc.interpreter.InputStream
 
 object InventoryProcessingLogger extends NamedZioLogger {
   override def loggerName: String = "inventory-processing"

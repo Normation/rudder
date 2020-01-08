@@ -55,8 +55,6 @@ import zio.syntax._
 import zio.duration._
 import com.normation.zio._
 
-import scala.tools.nsc.interpreter.InputStream
-
 final class Watchers(incoming: FileMonitor, updates: FileMonitor) {
   def start()(implicit executionContext: ExecutionContext): Either[Throwable, Unit] = {
     try {
