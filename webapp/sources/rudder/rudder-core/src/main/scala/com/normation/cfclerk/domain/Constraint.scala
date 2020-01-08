@@ -37,8 +37,9 @@
 
 package com.normation.cfclerk.domain
 
+import com.normation.errors.Inconsistancy
+import com.normation.errors.PureResult
 import org.joda.time.format.ISODateTimeFormat
-import net.liftweb.common._
 
 class ConstraintException(val msg: String) extends Exception(msg)
 
@@ -62,7 +63,7 @@ sealed trait VTypeConstraint extends Any {
    *
    * The escape function is a parameter because it can change from one agent to the next.
    */
-  def getFormatedValidated(value: String, forField: String, escapeString: String => String) : Box[STTYPE]
+  def getFormatedValidated(value: String, forField: String, escapeString: String => String) : PureResult[STTYPE]
 }
 
 /*
@@ -70,7 +71,7 @@ sealed trait VTypeConstraint extends Any {
  */
 sealed trait STString extends Any with VTypeConstraint {
   override type STTYPE = String
-  override def getFormatedValidated(value: String, forField: String, escapeString: String => String): Box[String] = Full(escapeString(value))
+  override def getFormatedValidated(value: String, forField: String, escapeString: String => String): PureResult[String] = Right(escapeString(value))
 }
 
 sealed trait VTypeWithRegex extends Any with STString {
@@ -82,11 +83,11 @@ sealed trait VTypeWithRegex extends Any with STString {
  */
 sealed trait STBoolean extends VTypeConstraint {
   override type STTYPE = Boolean
-  override def getFormatedValidated(value: String, forField: String, escapeString: String => String): Box[Boolean] = {
+  override def getFormatedValidated(value: String, forField: String, escapeString: String => String): PureResult[Boolean] = {
     try {
-      Full(value.toBoolean)
+      Right(value.toBoolean)
     } catch {
-      case _:Exception => Failure(s"Wrong value ${value} for field '${forField}': expecting a boolean")
+      case _:Exception => Left(Inconsistancy(s"Wrong value ${value} for field '${forField}': expecting a boolean"))
     }
   }
 }
@@ -127,8 +128,8 @@ object VTypeConstraint {
 sealed trait StringVType extends VTypeConstraint with VTypeWithRegex with STString {
   def regex: Option[RegexConstraint]
 
-  override def getFormatedValidated(value:String, forField:String, escapeString: String => String) : Box[String] = regex match {
-    case None => Full(escapeString(value))
+  override def getFormatedValidated(value:String, forField:String, escapeString: String => String) : PureResult[String] = regex match {
+    case None => Right(escapeString(value))
     case Some(regex) => regex.check(value, forField).map(escapeString(_))
   }
 }
@@ -155,12 +156,12 @@ object MailVType extends FixedRegexVType {
 
 final case class IntegerVType(regex: Option[RegexConstraint] = None) extends VTypeConstraint with VTypeWithRegex  {
   override val name = "integer"
-  override def getFormatedValidated(value:String, forField:String, escapeString: String => String) : Box[String] = {
+  override def getFormatedValidated(value:String, forField:String, escapeString: String => String) : PureResult[String] = {
     super.getFormatedValidated(value, forField, escapeString).flatMap( _ =>
       (try {
-        Full(value.toInt)
+        Right(value.toInt)
       } catch {
-        case _:Exception => Failure(s"Wrong value ${value} for field '${forField}': expecting an integer.")
+        case _:Exception => Left(Inconsistancy(s"Wrong value ${value} for field '${forField}': expecting an integer."))
       }).map( _ => value )
     )
   }
@@ -175,12 +176,12 @@ final case class SizetbVType(regex: Option[RegexConstraint] = None) extends Size
 
 final case class DateTimeVType(regex: Option[RegexConstraint] = None) extends VTypeConstraint with VTypeWithRegex {
   override val name = "datetime"
-  override def getFormatedValidated(value:String, forField:String, escapeString: String => String) : Box[String] = {
+  override def getFormatedValidated(value:String, forField:String, escapeString: String => String) : PureResult[String] = {
     super.getFormatedValidated(value, forField, escapeString).flatMap( _ =>
       (try
-        Full(ISODateTimeFormat.dateTimeParser.parseDateTime(value))
+        Right(ISODateTimeFormat.dateTimeParser.parseDateTime(value))
       catch {
-        case _:Exception => Failure(s"Wrong value ${value} for field '${forField}': expecting a datetime in ISO 8601 standard.")
+        case _:Exception => Left(Inconsistancy(s"Wrong value ${value} for field '${forField}': expecting a datetime in ISO 8601 standard."))
       }).map( _.toString(ISODateTimeFormat.dateTime()))
     )
   }
@@ -192,7 +193,7 @@ final case class TimeVType(regex: Option[RegexConstraint] = None) extends VTypeC
 
 // passwords
 sealed trait AbstactPassword extends VTypeConstraint with STString {
-  override final def getFormatedValidated(value:String, forField:String, escapeString: String => String) : Box[String] = {
+  override final def getFormatedValidated(value:String, forField:String, escapeString: String => String) : PureResult[String] = {
     HashAlgoConstraint.unserialize(value).map( _._2 ).map(escapeString(_))
   }
 }
@@ -224,7 +225,7 @@ final case object PermVType            extends VTypeConstraint with STString { o
 final case object RawVType             extends VTypeConstraint with STString {
   override val name = "raw"
    // no escaping for raw types
-  override def getFormatedValidated(value:String, forField:String, escapeString: String => String) : Box[String] = Full(value)
+  override def getFormatedValidated(value:String, forField:String, escapeString: String => String) : PureResult[String] = Right(value)
 }
 
 final case class Constraint(
@@ -244,10 +245,8 @@ final case class Constraint(
       }
     } else {
       typeName.getFormatedValidated(varValue, varName, identity) match { // here, escaping is not important
-        case Full(_) => //OK
-        case f:Failure => throw new ConstraintException(f.messageChain)
-        //we don't want that to happen
-        case Empty => throw new ConstraintException(s"An unknown error occured when checking type constaint of value '${varValue}' for field '${varName}'.")
+        case Right(_)  => //OK
+        case Left(err) => throw new ConstraintException(err.fullMsg)
       }
     }
   }

@@ -36,10 +36,10 @@
 */
 
 package com.normation.cfclerk.domain
-import net.liftweb.common.Box
-import net.liftweb.common.Failure
-import net.liftweb.common.Full
 import java.util.regex.Pattern
+
+import com.normation.errors.Inconsistancy
+import com.normation.errors.PureResult
 
 /**
  * We require a non empty regex pattern
@@ -55,11 +55,11 @@ case class RegexConstraint(pattern: String, errorMsg: String) {
   val variablePattern = Pattern.compile(".*?\\$\\{.*?\\}.*?")
 
   /* throw a ConstraintException if the value doesn't match the pattern */
-  def check(varValue: String, varName: String) : Box[String]=
+  def check(varValue: String, varName: String) : PureResult[String]=
     if(variablePattern.matcher(varValue).matches || compiled.matcher(varValue).matches) {
-      Full(varValue)
+      Right(varValue)
     } else {
-      Failure(s"Please modify ${varName} to match the requested format ${if (errorMsg != "") " : " + errorMsg else ""}")
+      Left(Inconsistancy(s"Please modify ${varName} to match the requested format ${if (errorMsg != "") " : " + errorMsg else ""}"))
     }
 }
 

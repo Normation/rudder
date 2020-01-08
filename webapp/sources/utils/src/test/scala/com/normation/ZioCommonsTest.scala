@@ -544,3 +544,17 @@ import _root_.zio.system.{System => ZSystem}
     Thread.sleep(3*1000)
   }
 }
+
+object CollectAllSemantic {
+
+  def main(args: Array[String]): Unit = {
+
+    val effects = (1 to 10).map(i => IOResult.effect(println(s"hello $i"))).toList
+    val all = effects.take(5) ::: List(Unexpected("oups").fail) ::: effects.drop(5)
+
+    // ZIO.collectAll(all).runNow // that fails after the 5th
+
+    // ZIO.collectAll(all.map(_.run)).runNow that work all the way
+    ZIO.collectAllPar(List(Unexpected("oups1").fail) ::: all).runNow
+  }
+}

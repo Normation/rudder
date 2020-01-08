@@ -38,7 +38,6 @@
 package com.normation.rudder.services.policies.write
 
 import cats.implicits._
-import com.normation.box._
 import com.normation.cfclerk.domain.BundleName
 import com.normation.cfclerk.domain.RunHook
 import com.normation.cfclerk.domain.SystemVariable
@@ -54,9 +53,10 @@ import com.normation.rudder.services.policies.BundleOrder
 import com.normation.rudder.services.policies.NodeRunHook
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.PolicyId
-import com.normation.utils.Control.sequence
-import net.liftweb.common._
+import zio._
+import com.normation.errors._
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
+import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 
 import scala.collection.immutable.ListMap
 
@@ -233,7 +233,7 @@ class BuildBundleSequence(
     , globalPolicyMode: GlobalPolicyMode
     , policies        : List[Policy]
     , runHooks        : List[NodeRunHook]
-  ): Box[List[SystemVariable]] = {
+  ): IOResult[Map[String, SystemVariable]] = {
 
 
     // Fetch the policies configured and sort them according to (rules, directives)
@@ -264,25 +264,27 @@ class BuildBundleSequence(
 
     // get the output string for each bundle variables, agent dependant
     for {
+      _                          <- PolicyGenerationLoggerPure.trace(s"Preparing bundle list and input list for node : ${agentNodeProps.nodeId.value}")
       // - build techniques bundles from the sorted list of techniques
-      techniquesBundles          <- sequence(sortedPolicies)(buildTechniqueBundles(agentNodeProps.nodeId, agentNodeProps.agentType, globalPolicyMode, nodePolicyMode))
+      techniquesBundles          <- ZIO.traverse(sortedPolicies)(buildTechniqueBundles(agentNodeProps.nodeId, agentNodeProps.agentType, globalPolicyMode, nodePolicyMode)(_).toIO)
       //split system and user directive (technique)
       (systemBundle, userBundle) =  techniquesBundles.toList.removeEmptyBundle.partition( _.isSystem )
-      bundleVars                 <- writeAllAgentSpecificFiles.getBundleVariables(agentNodeProps, systemInputFiles, systemBundle, userInputFiles, userBundle, runHooks) ?~!
+      bundleVars                 <- writeAllAgentSpecificFiles.getBundleVariables(agentNodeProps, systemInputFiles, systemBundle, userInputFiles, userBundle, runHooks).toIO.chainError(
                                     s"Error for node '${agentNodeProps.nodeId.value}' bundle creation"
+                                    )
       // map to correct variables
-      vars                       <- List(
+      vars                       <- ZIO.sequence(List(
                                         //this one is CFengine specific and kept for historical reason
-                                        systemVariableSpecService.get("INPUTLIST"                         ).map(v => SystemVariable(v, CfengineBundleVariables.formatBundleFileInputFiles(inputs.map(_.path))))
+                                        systemVariableSpecService.get("INPUTLIST"                         ).map(v => (v.name, SystemVariable(v, CfengineBundleVariables.formatBundleFileInputFiles(inputs.map(_.path))))).toIO
                                         //this one is CFengine specific and kept for historical reason
-                                      , systemVariableSpecService.get("BUNDLELIST"                        ).map(v => SystemVariable(v, techniquesBundles.flatMap( _.bundleSequence.map(_.name)).mkString(", ", ", ", "") :: Nil))
-                                      , systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_INPUTS"   ).map(v => SystemVariable(v, bundleVars.systemDirectivesInputFiles))
-                                      , systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_SEQUENCE" ).map(v => SystemVariable(v, bundleVars.systemDirectivesUsebundle))
-                                      , systemVariableSpecService.get("RUDDER_DIRECTIVES_INPUTS"          ).map(v => SystemVariable(v, bundleVars.directivesInputFiles))
-                                      , systemVariableSpecService.get("RUDDER_DIRECTIVES_SEQUENCE"        ).map(v => SystemVariable(v, bundleVars.directivesUsebundle))
-                                    ).sequence.toBox
+                                      , systemVariableSpecService.get("BUNDLELIST"                        ).map(v => (v.name, SystemVariable(v, techniquesBundles.flatMap( _.bundleSequence.map(_.name)).mkString(", ", ", ", "") :: Nil))).toIO
+                                      , systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_INPUTS"   ).map(v => (v.name, SystemVariable(v, bundleVars.systemDirectivesInputFiles))).toIO
+                                      , systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_SEQUENCE" ).map(v => (v.name, SystemVariable(v, bundleVars.systemDirectivesUsebundle))).toIO
+                                      , systemVariableSpecService.get("RUDDER_DIRECTIVES_INPUTS"          ).map(v => (v.name, SystemVariable(v, bundleVars.directivesInputFiles))).toIO
+                                      , systemVariableSpecService.get("RUDDER_DIRECTIVES_SEQUENCE"        ).map(v => (v.name, SystemVariable(v, bundleVars.directivesUsebundle))).toIO
+                                    ))
     } yield {
-      vars
+      vars.toMap
     }
   }
 
@@ -301,7 +303,7 @@ class BuildBundleSequence(
    * (and it is also why we get it from sortTechniques, which is kind of strange :)
    *
    */
-  def buildTechniqueBundles(nodeId: NodeId, agentType: AgentType, globalPolicyMode: GlobalPolicyMode, nodePolicyMode: Option[PolicyMode])(policy: Policy): Box[TechniqueBundles] = {
+  def buildTechniqueBundles(nodeId: NodeId, agentType: AgentType, globalPolicyMode: GlobalPolicyMode, nodePolicyMode: Option[PolicyMode])(policy: Policy): PureResult[TechniqueBundles] = {
     // naming things to make them clear
     val name = Promiser(policy.ruleName + "/" + policy.directiveName)
 
@@ -354,7 +356,7 @@ class BuildBundleSequence(
       }
       TechniqueBundles(name, policy.id.directiveId, policy.technique.id, Nil, bundles, Nil, policy.technique.isSystem, policyMode, policy.technique.useMethodReporting)
     }
-  }.toBox
+  }
 
   /*
    * Sort the techniques according to the order of the associated BundleOrder of Policy.

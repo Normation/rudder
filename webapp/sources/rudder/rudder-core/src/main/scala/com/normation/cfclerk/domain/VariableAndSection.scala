@@ -38,8 +38,8 @@
 package com.normation.cfclerk.domain
 
 import cats.implicits._
-import com.normation.utils.Control.bestEffort
-import net.liftweb.common._
+import com.normation.errors.Accumulated
+import com.normation.errors.PureResult
 
 import scala.xml._
 
@@ -73,10 +73,14 @@ sealed trait Variable {
    */
 
 
-  def getValidatedValue(escape: String => String): Box[Seq[Any]] = {
-    bestEffort(values) { x =>
-      castValue(x, escape)
-    }
+  def getValidatedValue(escape: String => String): PureResult[Seq[Any]] = {
+    import cats.implicits._
+
+    val accumulated = values.toList.traverse(x => castValue(x, escape).toValidatedNel)
+    accumulated.fold(
+        err => Left(Accumulated(err))
+      , res => Right(res)
+    )
   }
 
   // the comments below contains implementations and should be reused in SelectVariable and SelectOne variable
@@ -179,12 +183,12 @@ sealed trait Variable {
   def copyWithSavedValues(seq: Seq[String]): Either[LoadTechniqueError, Variable]
   def copyWithAppendedValues(seq: Seq[String]): Either[LoadTechniqueError, Variable]
 
-  protected def castValue(x: String, escape: String => String) : Box[Any] = {
+  protected def castValue(x: String, escape: String => String) : PureResult[Any] = {
     //we don't want to check constraint on empty value
     // when the variable is optionnal.
     // But I'm not sure if I understand what is happening with a an optionnal
     // boolean, since we are returning a string in that case :/
-    if(this.spec.constraint.mayBeEmpty && x.length < 1) Full("")
+    if(this.spec.constraint.mayBeEmpty && x.length < 1) Right("")
     else spec.constraint.typeName.getFormatedValidated(x, spec.name, escape)
   }
 }
@@ -310,7 +314,7 @@ object Variable {
    * Check the value we intend to put in the variable
    */
   def checkValue(variable: Variable, value: String): Boolean = {
-    variable.castValue(value, identity).isDefined // here we are not interested in the escape part
+    variable.castValue(value, identity).isRight // here we are not interested in the escape part
   }
 }
 

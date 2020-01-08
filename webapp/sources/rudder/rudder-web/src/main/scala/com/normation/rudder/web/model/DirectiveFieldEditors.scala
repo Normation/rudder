@@ -728,15 +728,15 @@ class PasswordField(
       _x = x
       val r = {
           HashAlgoConstraint.unserialize( x) match {
-            case Full((a,hash)) =>
+            case Right((a,hash)) =>
               //update the hash algo to use only if not specified.
               //we don't check if previous hash and current algo matches: we only enforce
               //that new passwords use the new specified algo
               (Some(a),hash)
-            case eb:EmptyBox =>
+            case Left(err) =>
               //we don't have a password with the correct format.
               //report an error, assume the default (first) algo
-              logger.error((eb ?~! "Error when reading stored password hash").messageChain)
+              logger.error(s"Error when reading stored password hash: ${err.fullMsg}")
               (None, x)
           }
       }

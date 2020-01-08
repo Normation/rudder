@@ -44,8 +44,6 @@ import net.liftweb.json.JsonAST.JValue
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.errors._
-import zio._
-import zio.syntax._
 
 /**
  * A parser that handle parameterized value of
@@ -128,7 +126,7 @@ trait InterpolatedValueCompiler {
    * Return a Box, where Full denotes a successful
    * parsing of all values, and EmptyBox. an error.
    */
-  def compile(value: String): IOResult[InterpolationContext => IOResult[String]]
+  def compile(value: String): PureResult[InterpolationContext => PureResult[String]]
 
   /**
    *
@@ -204,10 +202,10 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
    * just call the parser on a value, and in case of successful parsing, interprete
    * the resulting AST (seq of token)
    */
-  override def compile(value: String): IOResult[InterpolationContext => IOResult[String]] = {
+  override def compile(value: String): PureResult[InterpolationContext => PureResult[String]] = {
     parseAll(all, value) match {
-      case NoSuccess(msg, remaining)  => Unexpected(s"""Error when parsing value "${value}", error message is: ${msg}""").fail
-      case Success(tokens, remaining) => parseToken(tokens).succeed
+      case NoSuccess(msg, remaining)  => Left(Unexpected(s"""Error when parsing value "${value}", error message is: ${msg}"""))
+      case Success(tokens, remaining) => Right(parseToken(tokens))
     }
   }
 
@@ -222,11 +220,12 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
    * The funny part that for each token add the interpretation of the token
    * by composing interpretation function.
    */
-  def parseToken(tokens:List[Token]): InterpolationContext => IOResult[String] = {
+  def parseToken(tokens:List[Token]): InterpolationContext => PureResult[String] = {
     def build(context: InterpolationContext) = {
-      val init = ""
-      ZIO.foldLeft(tokens)(init) {
-        (str, token) => analyse(context, token).map(s => (str + s))
+      val init: PureResult[String] = Right("")
+      (tokens).foldLeft(init) {
+        case (Right(str), token) => analyse(context, token).map(s => (str + s))
+        case (Left(err) , _    ) => Left(err)
       }
     }
 
@@ -239,9 +238,9 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
    * the final string (that may not succeed at run time, because of
    * unknown parameter, etc)
    */
-  def analyse(context: InterpolationContext, token:Token): IOResult[String] = {
+  def analyse(context: InterpolationContext, token:Token): PureResult[String] = {
     token match {
-      case CharSeq(s)          => s.succeed
+      case CharSeq(s)          => Right(s)
       case NodeAccessor(path)  => getNodeAccessorTarget(context, path)
       case Param(name)         => getRudderGlobalParam(context, ParameterName(name))
       case Property(path, opt) => opt match {
@@ -249,14 +248,17 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
           getNodeProperty(context, path)
         case Some(InterpreteOnNode) =>
           //in that case, we want to exactly output the agent-compatible string. For now, easy, only one string
-          ("${node.properties[" + path.mkString("][") + "]}").succeed
+          Right(("${node.properties[" + path.mkString("][") + "]}"))
         case Some(DefaultValue(optionTokens)) =>
           //in that case, we want to find the default value.
           //we authorize to have default value = ${node.properties[bla][bla][bla]|node},
           //because we may want to use prop1 and if node set, prop2 at run time.
           for {
             default <- parseToken(optionTokens)(context)
-            prop    <- getNodeProperty(context, path).foldM(_ => default.succeed, s => s.succeed)
+            prop    <- getNodeProperty(context, path) match {
+                         case Left(_)  => Right(default)
+                         case Right(s) => Right(s)
+                       }
           } yield {
             prop
           }
@@ -282,41 +284,41 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
   /**
    * Retrieve the global parameter from the node context.
    */
-  def getRudderGlobalParam(context: InterpolationContext, paramName: ParameterName): IOResult[String] = {
+  def getRudderGlobalParam(context: InterpolationContext, paramName: ParameterName): PureResult[String] = {
     context.parameters.get(paramName) match {
       case Some(value) =>
         if(context.depth >= maxEvaluationDepth) {
-          Unexpected(s"""Can not evaluted global parameter "${paramName.value}" because it uses an interpolation variable that depends upon """
-           + s"""other interpolated variables in a stack more than ${maxEvaluationDepth} in depth. We fear it's a circular dependancy.""").fail
+          Left(Unexpected(s"""Can not evaluted global parameter "${paramName.value}" because it uses an interpolation variable that depends upon """
+           + s"""other interpolated variables in a stack more than ${maxEvaluationDepth} in depth. We fear it's a circular dependancy."""))
         } else value(context.copy(depth = context.depth+1))
-      case _ => Unexpected(s"Error when trying to interpolate a variable: Rudder parameter not found: '${paramName.value}'").fail
+      case _ => Left(Unexpected(s"Error when trying to interpolate a variable: Rudder parameter not found: '${paramName.value}'"))
     }
   }
 
   /**
    * Get the targeted accessed node information, checking that it exists.
    */
-  def getNodeAccessorTarget(context: InterpolationContext, path: List[String]): IOResult[String] = {
-    val error = Unexpected(s"Unknow interpolated variable $${node.${path.mkString(".")}}" ).fail
+  def getNodeAccessorTarget(context: InterpolationContext, path: List[String]): PureResult[String] = {
+    val error = Left(Unexpected(s"Unknow interpolated variable $${node.${path.mkString(".")}}" ))
     path match {
-      case Nil => Unexpected("In node interpolated variable, at least one accessor must be provided").fail
+      case Nil => Left(Unexpected("In node interpolated variable, at least one accessor must be provided"))
       case access :: tail => access.toLowerCase :: tail match {
-        case "id" :: Nil => context.nodeInfo.id.value.succeed
-        case "hostname" :: Nil => context.nodeInfo.hostname.succeed
-        case "admin" :: Nil => context.nodeInfo.localAdministratorAccountName.succeed
-        case "state" :: Nil => context.nodeInfo.state.name.succeed
-        case "policymode" :: Nil =>
+        case "id"         :: Nil => Right(context.nodeInfo.id.value)
+        case "hostname"   :: Nil => Right(context.nodeInfo.hostname)
+        case "admin"      :: Nil => Right(context.nodeInfo.localAdministratorAccountName)
+        case "state"      :: Nil => Right(context.nodeInfo.state.name)
+        case "policymodeLeft(" :: Nil =>
           val effectivePolicyMode = context.globalPolicyMode.overridable match {
             case PolicyModeOverrides.Unoverridable =>
               context.globalPolicyMode.mode.name
             case PolicyModeOverrides.Always =>
               context.nodeInfo.policyMode.getOrElse(context.globalPolicyMode.mode).name
           }
-          effectivePolicyMode.succeed
+          Right(effectivePolicyMode)
         case "policyserver" :: tail2 => tail2 match {
-          case "id" :: Nil => context.policyServerInfo.id.value.succeed
-          case "hostname" :: Nil => context.policyServerInfo.hostname.succeed
-          case "admin" :: Nil => context.policyServerInfo.localAdministratorAccountName.succeed
+          case "id"       :: Nil => Right(context.policyServerInfo.id.value)
+          case "hostname" :: Nil => Right(context.policyServerInfo.hostname)
+          case "admin"    :: Nil => Right(context.policyServerInfo.localAdministratorAccountName)
           case _ => error
         }
         case seq => error
@@ -331,15 +333,15 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
    * If the path length is more than one, try to parse the string has a
    * json value and access the remaining part as a json path.
    */
-  def getNodeProperty(context: InterpolationContext, path: List[String]): IOResult[String] = {
+  def getNodeProperty(context: InterpolationContext, path: List[String]): PureResult[String] = {
     val errmsg = s"Missing property '$${node.properties[${path.mkString("][")}]}' on node '${context.nodeInfo.hostname}' [${context.nodeInfo.id.value}]"
     path match {
       //we should not reach that case since we enforce at leat one match of [...] in the parser
-      case Nil       => Unexpected(s"The syntax $${node.properties} is invalid, only $${node.properties[propertyname]} is accepted").fail
+      case Nil       => Left(Unexpected(s"The syntax $${node.properties} is invalid, only $${node.properties[propertyname]} is accepted"))
       case h :: tail => context.nodeInfo.properties.find(p => p.name == h) match {
-        case None       => Unexpected(errmsg).fail
+        case None       => Left(Unexpected(errmsg))
         case Some(prop) => tail match {
-          case Nil     => prop.renderValue.succeed
+          case Nil     => Right(prop.renderValue)
           //here, we need to parse the value in json and try to find the asked path
           case subpath => getJsonProperty(subpath, prop.value).chainError(errmsg)
         }
@@ -347,7 +349,7 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
     }
   }
 
-  def getJsonProperty(path: List[String], json: JValue): IOResult[String] = {
+  def getJsonProperty(path: List[String], json: JValue): PureResult[String] = {
     import net.liftweb.json._
 
     @scala.annotation.tailrec
@@ -358,9 +360,9 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
 
     for {
       prop <- access(json, path) match {
-                case JNothing   => Unexpected(s"Can not find property in JSON '${compactRender(json)}'").fail
-                case JString(s) => s.succeed //needed to special case to not have '\"' everywhere
-                case x          => compactRender(x).succeed
+                case JNothing   => Left(Unexpected(s"Can not find property in JSON '${compactRender(json)}'"))
+                case JString(s) => Right(s) //needed to special case to not have '\"' everywhere
+                case x          => Right(compactRender(x))
               }
     } yield {
       prop

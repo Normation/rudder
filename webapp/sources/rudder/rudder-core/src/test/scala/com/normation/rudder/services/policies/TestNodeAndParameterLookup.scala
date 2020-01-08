@@ -60,9 +60,6 @@ import scala.util.matching.Regex
 import org.specs2.matcher.Matcher
 import net.liftweb.json._
 
-import com.normation.zio._
-import zio._
-import zio.syntax._
 import com.normation.errors._
 
 /**
@@ -89,6 +86,8 @@ class TestNodeAndParameterLookup extends Specification {
   }
 
 
+  def getError[A](e: PureResult[A]) = e.swap.getOrElse(throw new RuntimeException("ERROR")).fullMsg
+
 
   import NodeConfigData._
   //null is for RuleValService, only used in
@@ -109,7 +108,7 @@ class TestNodeAndParameterLookup extends Specification {
       variables     : Seq[Variable]
     , context       : InterpolationContext
   )(test:Seq[Seq[String]] => org.specs2.execute.Result) : org.specs2.execute.Result  = {
-    lookupService.lookupNodeParameterization(variables)(context).either.runNow match {
+    lookupService.lookupNodeParameterization(variables)(context) match {
       case Left(err) =>
         failure("Error in test: " + err.fullMsg)
       case Right(res) => test(res.values.map( _.values ).toSeq)
@@ -154,8 +153,9 @@ class TestNodeAndParameterLookup extends Specification {
   val badChars = """$¹ ${plop} (foo) \$ @ %plop & \\ | $[xas]^"""
   val dangerousChars = ParameterForConfiguration(ParameterName("danger"), badChars)
 
-  def p(params: ParameterForConfiguration*): Map[ParameterName, InterpolationContext => IOResult[String]] = {
-    ZIO.traverse(params) { param =>
+  def p(params: ParameterForConfiguration*): Map[ParameterName, InterpolationContext => PureResult[String]] = {
+    import cats.implicits._
+    params.toList.traverse { param =>
       for {
         p <- compiler.compile(param.value).chainError(s"Error when looking for interpolation variable in global parameter '${param.name}'")
       } yield {
@@ -163,7 +163,10 @@ class TestNodeAndParameterLookup extends Specification {
       }
     }.map{seq =>
       Map(seq:_*)
-   }.chainError("Error when parsing parameters for interpolated variables").runNow
+   }.chainError("Error when parsing parameters for interpolated variables") match {
+      case Left(err)  => throw new RuntimeException(err.fullMsg)
+      case Right(res) => res
+    }
   }
 
 
@@ -373,7 +376,7 @@ class TestNodeAndParameterLookup extends Specification {
       test(parseAll(all, s), List(CharSeq("some text and "), Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(NodeAccessor(List("hostname"))::Nil))), CharSeq("  and some more text")))
     }
   }
-  def compileAndGet(s:String) = compiler.compile(s).runNow
+  def compileAndGet(s:String) = compiler.compile(s).getOrElse(throw new RuntimeException(s"compileAndGet(${s}): ERROR"))
 
   /**
    * Test that the interpretation of an AST is
@@ -400,17 +403,17 @@ class TestNodeAndParameterLookup extends Specification {
         , comp("policyserver.admin", context.policyServerInfo.localAdministratorAccountName)
       )
 
-      accessors must contain( (x:(String, InterpolationContext => IOResult[String], String)) => x._2(context).either.runNow match {
+      accessors must contain( (x:(String, InterpolationContext => PureResult[String], String)) => (x._2(context) match {
         case Left(err) => ko(s"Error when evaluating context for accessor ${x._1} with expected result '${x._3}': " + err.fullMsg)
         case Right(result) => result === x._3
-      }).forall
+      })).forall
     }
 
     "raise an error for an unknow accessor" in {
       val badAccessor = "rudder.node.foo"
-      compiler.compile("${"+badAccessor+"}").either.runNow match {
+      compiler.compile("${"+badAccessor+"}") match {
         case Left(err) => ko("Error when parsing interpolated value: " + err.fullMsg)
-        case Right(i) => i(context).either.runNow match {
+        case Right(i) => i(context) match {
           case Right(res) => ko(s"When interpreted, an unkown accessor '${badAccessor}' should yield an error")
           case Left(_) => 1 === 1 //here, ok(...) leads to a typing error
         }
@@ -421,14 +424,14 @@ class TestNodeAndParameterLookup extends Specification {
       val res = "p1 replaced"
       val i = compileAndGet("${rudder.param.p1}")
       val c = context.copy(parameters = Map(
-          (ParameterName("p1"), (i:InterpolationContext) => res.succeed)
+          (ParameterName("p1"), (i:InterpolationContext) => Right(res))
       ))
-      i(c).either.runNow must beEqualTo(Right(res))
+      i(c) must beEqualTo(Right(res))
     }
 
     "fails on missing param in context" in {
       val i = compileAndGet("${rudder.param.p1}")
-      i(context).either.runNow match {
+      i(context) match {
         case Right(_) => ko("The parameter should not have been found")
         case Left(_) => 1 === 1 //ok(...) leads to type error
       }
@@ -440,9 +443,9 @@ class TestNodeAndParameterLookup extends Specification {
       val p1value = compileAndGet("${rudder.param.p2}")
       val c = context.copy(parameters = Map(
           (ParameterName("p1"), p1value)
-        , (ParameterName("p2"), (i:InterpolationContext) => res.succeed)
+        , (ParameterName("p2"), (i:InterpolationContext) => Right(res))
       ))
-      i(c).runNow must beEqualTo(res)
+      i(c) must beEqualTo(Right(res))
     }
 
     "correctly replace maxDepth-1 parameter with interpolated values" in {
@@ -455,11 +458,11 @@ class TestNodeAndParameterLookup extends Specification {
           (ParameterName("p1"), p1value)
         , (ParameterName("p2"), p2value)
         , (ParameterName("p3"), p3value)
-        , (ParameterName("p4"), (i:InterpolationContext) => res.succeed)
+        , (ParameterName("p4"), (i:InterpolationContext) => Right(res))
       ))
 
       (compiler.maxEvaluationDepth == 5) and
-      (i(c).runNow must beEqualTo(res))
+      (i(c) must beEqualTo(Right(res)))
     }
 
     "fails to replace maxDepth parameter with interpolated values" in {
@@ -473,11 +476,11 @@ class TestNodeAndParameterLookup extends Specification {
         , (ParameterName("p2"), p2value)
         , (ParameterName("p3"), p3value)
         , (ParameterName("p4"), p3value)
-        , (ParameterName("p5"), (i:InterpolationContext) => res.succeed)
+        , (ParameterName("p5"), (i:InterpolationContext) => Right(res))
       ))
 
       (compiler.maxEvaluationDepth == 5) and
-      (i(c).either.runNow match {
+      (i(c) match {
         case Right(_) => ko("Was expecting an error due to too deep evaluation")
         case Left(_) => 1 === 1 //ok(...) does not type check
       })
@@ -489,7 +492,7 @@ class TestNodeAndParameterLookup extends Specification {
           (ParameterName("p1"), i)
       ))
 
-      i(c).either.runNow match {
+      i(c) match {
         case Right(_) => ko("Was expecting an error due to too deep evaluation")
         case Left(_) => 1 === 1 //ok(...) does not type check
       }
@@ -531,19 +534,19 @@ class TestNodeAndParameterLookup extends Specification {
     }
 
     "fails when the curly brace after ${rudder. is not closed" in {
-      ZioRuntime.unsafeRun(lookupService.lookupNodeParameterization(Seq(badUnclosed))(context).flip).fullMsg must beMatching(
+      getError(lookupService.lookupNodeParameterization(Seq(badUnclosed))(context)) must beMatching(
         """.*On variable 'empty'.* end of input expected.*""".r
       )
     }
 
     "fails when the part after ${rudder.} is empty" in {
-      ZioRuntime.unsafeRun(lookupService.lookupNodeParameterization(Seq(badEmptyRudder))(context).flip).fullMsg must beMatching(
+      getError(lookupService.lookupNodeParameterization(Seq(badEmptyRudder))(context)) must beMatching(
         """.*On variable 'empty'.* end of input expected.*""".r
       )
     }
 
     "fails when the part after ${rudder.} is not recognised" in {
-      ZioRuntime.unsafeRun(lookupService.lookupNodeParameterization(Seq(badUnknown))(context.copy(parameters = p(fooParam))).flip).fullMsg must beMatching(
+      getError(lookupService.lookupNodeParameterization(Seq(badUnknown))(context.copy(parameters = p(fooParam)))) must beMatching(
          """.*On variable 'empty'.* end of input expected.*""".r
       )
     }
@@ -588,7 +591,7 @@ class TestNodeAndParameterLookup extends Specification {
       val node = context.nodeInfo.node.copy(properties = p)
       val c = context.copy(nodeInfo = context.nodeInfo.copy(node = node))
 
-      i(c).either.runNow
+      i(c)
     }
 
     val json = """{  "Europe" : {  "France"  : "Paris" }   }"""
@@ -653,11 +656,11 @@ class TestNodeAndParameterLookup extends Specification {
 
     "not matter in nodes path accessor" in {
       val i = compileAndGet("${rudder.node.HoStNaMe}")
-      i(context).runNow must beEqualTo("node1.localhost")
+      i(context) must beEqualTo(Right("node1.localhost"))
     }
 
     "matter for parameter names" in {
-      ZioRuntime.unsafeRun(lookupService.lookupNodeParameterization(Seq(paramNameCaseSensitive))(context).flip).fullMsg must beMatching(
+      getError(lookupService.lookupNodeParameterization(Seq(paramNameCaseSensitive))(context)) must beMatching(
         ".*Rudder parameter not found: 'Foo'".r
       )
     }
@@ -666,11 +669,11 @@ class TestNodeAndParameterLookup extends Specification {
       val i = compileAndGet("${rudder.param.xX}")
       val c = context.copy(parameters = Map(
           //test all combination
-          (ParameterName("XX"), (i:InterpolationContext) => "bad".succeed)
-        , (ParameterName("Xx"), (i:InterpolationContext) => "bad".succeed)
-        , (ParameterName("xx"), (i:InterpolationContext) => "bad".succeed)
+          (ParameterName("XX"), (i:InterpolationContext) => Right("bad"))
+        , (ParameterName("Xx"), (i:InterpolationContext) => Right("bad"))
+        , (ParameterName("xx"), (i:InterpolationContext) => Right("bad"))
       ))
-      i(c).either.runNow match {
+      i(c) match {
         case Right(_) => ko("No, case must matter!")
         case Left(err) => err.msg must beEqualTo("Error when trying to interpolate a variable: Rudder parameter not found: 'xX'")
       }
@@ -685,7 +688,7 @@ class TestNodeAndParameterLookup extends Specification {
         val node = context.nodeInfo.node.copy(properties = props)
         val c = context.copy(nodeInfo = context.nodeInfo.copy(node = node))
 
-        i(c).either.runNow
+        i(c)
       }
 
       compare("DataCenter", "datacenter") must haveClass[Left[_,_]]

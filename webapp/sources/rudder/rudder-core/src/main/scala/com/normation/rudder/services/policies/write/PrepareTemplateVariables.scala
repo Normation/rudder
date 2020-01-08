@@ -46,15 +46,31 @@ import com.normation.rudder.domain.policies.{GlobalPolicyMode, PolicyMode}
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.templates.STVariable
-import com.normation.utils.Control.bestEffort
-import net.liftweb.common._
 import org.joda.time.DateTime
 import com.normation.inventory.domain.AgentType
-import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.services.policies.ParameterEntry
 import com.normation.rudder.services.policies.Policy
-import com.normation.utils.Control.sequence
-import com.normation.utils.Control
+import zio._
+import zio.syntax._
+import com.normation.errors._
+import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
+import com.normation.zio._
+
+
+
+case class PrepareTemplateTimer(
+    buildBundleSeq : Ref[Long]
+  , buildAgentVars : Ref[Long]
+  , prepareTemplate: Ref[Long]
+)
+
+object PrepareTemplateTimer {
+  def make() = for {
+    a <- Ref.make(0L)
+    b <- Ref.make(0L)
+    c <- Ref.make(0L)
+  } yield PrepareTemplateTimer(a, b, c)
+}
 
 trait PrepareTemplateVariables {
 
@@ -77,7 +93,8 @@ trait PrepareTemplateVariables {
     , rudderIdCsvTag   : String
     , globalPolicyMode : GlobalPolicyMode
     , generationTime   : DateTime
-  ): Box[AgentNodeWritableConfiguration]
+    , timer            : PrepareTemplateTimer
+  ): IOResult[AgentNodeWritableConfiguration]
 
 }
 
@@ -102,16 +119,16 @@ class PrepareTemplateVariablesImpl(
     , rudderIdCsvTag   : String
     , globalPolicyMode : GlobalPolicyMode
     , generationTime   : DateTime
-  ) : Box[AgentNodeWritableConfiguration] = {
+    , timer            : PrepareTemplateTimer
+  ) : IOResult[AgentNodeWritableConfiguration] = {
 
     import com.normation.rudder.services.policies.SystemVariableService._
 
     val nodeId = agentNodeConfig.config.nodeInfo.id
-    PolicyGenerationLogger.debug(s"Writing policies for node '${agentNodeConfig.config.nodeInfo.hostname}' (${nodeId.value})")
 
     // Computing policy mode of the node
     val agentPolicyMode = PolicyMode.computeMode(globalPolicyMode, agentNodeConfig.config.nodeInfo.policyMode, Seq()) match {
-      case Left(r) => PolicyGenerationLogger.error(s"Failed to compute policy mode for node ${agentNodeConfig.config.nodeInfo.node.id.value}, cause is ${r} - defaulting to enforce"); Enforce
+      case Left(r) => PolicyGenerationLoggerPure.error(s"Failed to compute policy mode for node ${agentNodeConfig.config.nodeInfo.node.id.value}, cause is ${r} - defaulting to enforce"); Enforce
       case Right(value) => value
     }
 
@@ -133,25 +150,30 @@ class PrepareTemplateVariablesImpl(
     )
 
     for {
-      (parameters, allSystemVars) <- for {
+      res <- for {
+          t0               <- currentTimeMillis
           bundleVars    <- buildBundleSequence.prepareBundleVars(
             agentNodeProps
             , agentNodeConfig.config.nodeInfo.policyMode
             , globalPolicyMode
             , agentNodeConfig.config.policies
             , agentNodeConfig.config.runHooks
-          ).map { bundleVars => bundleVars.map(x => (x.spec.name, x)).toMap }
-
-          parameters    <- Control.sequence(agentNodeConfig.config.parameters.toSeq) { x =>
-            agentRegister.findMap(agentNodeProps) { agent =>
-              Full(ParameterEntry(x.name.value, agent.escape(x.value), agentNodeConfig.agentType))
-            }
-          }
-
-          allSystemVars = systemVariables.toMap ++ bundleVars
+          )
+          t1               <- currentTimeMillis
+          _                <- timer.buildBundleSeq.update(_ + t1 - t0)
+          parameters       <- ZIO.traverse(agentNodeConfig.config.parameters) { x =>
+                                agentRegister.findMap(agentNodeProps){ agent =>
+                                  net.liftweb.common.Full(ParameterEntry(x.name.value, agent.escape(x.value), agentNodeConfig.agentType))
+                                }.toIO
+                              }
+          allSystemVars    =  systemVariables ++ bundleVars
+          t2               <- currentTimeMillis
+          _                <- timer.buildAgentVars.update(_ + t2 - t1)
       } yield {
         (parameters, allSystemVars)
       }
+      (parameters, allSystemVars) = res
+      t2               <- currentTimeMillis
       preparedTemplate <- prepareTechniqueTemplate(
                               agentNodeProps
                             , agentNodeConfig.config.policies
@@ -160,6 +182,8 @@ class PrepareTemplateVariablesImpl(
                             , templates
                             , generationTime.getMillis
                           )
+      t3                <- currentTimeMillis
+      _                 <- timer.prepareTemplate.update(_ + t3 - t2)
     } yield {
 
       AgentNodeWritableConfiguration(
@@ -180,17 +204,18 @@ class PrepareTemplateVariablesImpl(
     , systemVars          : Map[String, Variable]
     , allTemplates        : Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]
     , generationTimestamp : Long
-  ) : Box[Seq[PreparedTechnique]] = {
+  ) : IOResult[Seq[PreparedTechnique]] = {
 
     val rudderParametersVariable = STVariable(PARAMETER_VARIABLE, true, parameters, true)
     val generationVariable = STVariable("GENERATIONTIMESTAMP", false, Seq(generationTimestamp), true)
 
     for {
-      variableHandler    <- agentRegister.findHandler(agentNodeProps) ?~! s"Error when trying to fetch variable escaping method for node ${agentNodeProps.nodeId.value}"
-      preparedTechniques <-  sequence(policies) { p =>
-        PolicyGenerationLogger.trace(s"Processing node '${agentNodeProps.nodeId.value}':${p.ruleName}/${p.directiveName} [${p.id.value}]")
+      variableHandler    <- agentRegister.findHandler(agentNodeProps).toIO.chainError(s"Error when trying to fetch variable escaping method for node ${agentNodeProps.nodeId.value}")
+                            // here, `traverse` seems to give similar but more consistant results than `traverseParN`
+      preparedTechniques <- ZIO.traverse(policies) { p =>
         for {
-          variables <- prepareVariables(agentNodeProps, variableHandler, p, systemVars) ?~! s"Error when trying to build variables for technique(s) in node ${agentNodeProps.nodeId.value}"
+                                _         <- PolicyGenerationLoggerPure.trace(s"Processing node '${agentNodeProps.nodeId.value}':${p.ruleName}/${p.directiveName} [${p.id.value}]")
+                                variables <- prepareVariables(agentNodeProps, variableHandler, p, systemVars).chainError(s"Error when trying to build variables for technique(s) in node ${agentNodeProps.nodeId.value}")
         } yield {
           val techniqueTemplatesIds = p.technique.templatesIds
           // only set if technique is multi-policy
@@ -233,9 +258,9 @@ class PrepareTemplateVariablesImpl(
     , variableEscaping: AgentSpecificGeneration
     , nodeId: NodeId
     , techniqueId: TechniqueId
-  ) : Box[STVariable] = {
+  ) : IOResult[STVariable] = {
     for {
-      values <- v.getValidatedValue(variableEscaping.escape) ?~! s"Error when preparing variable for node with ID '${nodeId.value}' on Technique '${techniqueId.toString()}: wrong value type for variable '${v.spec.name}'"
+      values <- v.getValidatedValue(variableEscaping.escape).toIO.chainError(s"Error when preparing variable for node with ID '${nodeId.value}' on Technique '${techniqueId.toString()}: wrong value type for variable '${v.spec.name}'")
     } yield {
       STVariable(
           name = v.spec.name
@@ -251,7 +276,7 @@ class PrepareTemplateVariablesImpl(
     , agentVariableHandler: AgentSpecificGeneration
     , policy              : Policy
     , systemVars          : Map[String, Variable]
-  ) : Box[Seq[STVariable]] = {
+  ) : IOResult[Seq[STVariable]] = {
 
     // we want to check that all technique variables are correctly provided.
     // we can't do it when we built node configuration because some (system variable at least (note: but only? If so, we could just check
@@ -260,28 +285,28 @@ class PrepareTemplateVariablesImpl(
     val variables = policy.expandedVars + ((policy.trackerVariable.spec.name, policy.trackerVariable))
 
     for {
-      stVariables <- bestEffort(policy.technique.getAllVariableSpecs) { variableSpec =>
+      stVariables <- policy.technique.getAllVariableSpecs.accumulate { variableSpec =>
                      variableSpec match {
                        case x : TrackerVariableSpec =>
                          variables.get(x.name) match {
-                           case None    => Failure(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Misssing mandatory value for tracker variable: '${x.name}'")
+                           case None    => Inconsistancy(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Misssing mandatory value for tracker variable: '${x.name}'").fail
                            case Some(v) =>
                              stVariableFromVariable(v, agentVariableHandler, agentNodeProps.nodeId, policy.technique.id).map(Some(_))
                          }
                        case x : SystemVariableSpec => systemVars.get(x.name) match {
                            case None =>
                              if(x.constraint.mayBeEmpty) { //ok, that's expected
-                               PolicyGenerationLogger.trace(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Variable system named '${x.name}' not found in the extended variables environnement")
-                               Full(None)
+                               PolicyGenerationLoggerPure.trace(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Variable system named '${x.name}' not found in the extended variables environnement") *>
+                               None.succeed
                              } else {
-                               Failure(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Missing value for system variable: '${x.name}'")
+                               Inconsistancy(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Missing value for system variable: '${x.name}'").fail
                              }
                            case Some(sysvar) =>
                              stVariableFromVariable(sysvar, agentVariableHandler, agentNodeProps.nodeId, policy.technique.id).map(Some(_))
                        }
                        case x : SectionVariableSpec =>
                          variables.get(x.name) match {
-                           case None    => Failure(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Misssing value for standard variable: '${x.name}'")
+                           case None    => Inconsistancy(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Misssing value for standard variable: '${x.name}'").fail
                            case Some(v) => stVariableFromVariable(v, agentVariableHandler, agentNodeProps.nodeId, policy.technique.id).map(Some(_))
                          }
                      }

@@ -171,45 +171,54 @@ object errors {
    * Chain multiple error. You will loose the specificity of the
    * error type doing so.
    */
-  implicit class IOChainError[R, E <: RudderError, A](res: ZIO[R, E, A]) {
-    def chainError(hint: String): ZIO[R, RudderError, A] = res.mapError(err => Chained(hint, err))
+  implicit class IOChainError[R, E <: RudderError, A](val res: ZIO[R, E, A]) extends AnyVal {
+    def chainError(hint: => String): ZIO[R, RudderError, A] = res.mapError(err => Chained(hint, err))
   }
 
-  implicit class PureChainError[R, E <: RudderError, A](res: Either[E, A]) {
-    def chainError(hint: String): Either[RudderError, A] = res.leftMap(err => Chained(hint, err))
+  implicit class PureChainError[R, E <: RudderError, A](val res: Either[E, A]) extends AnyVal {
+    def chainError(hint: => String): Either[RudderError, A] = res.leftMap(err => Chained(hint, err))
   }
 
   /*
    * tag an effect as blocking (ie should run on the blocking thread pool)
    */
-  implicit class ToBlocking[E<: RudderError, A](effect: ZIO[Any, E, A]) {
+  implicit class ToBlocking[E<: RudderError, A](val effect: ZIO[Any, E, A]) extends AnyVal {
     def blocking: ZIO[Any, E, A] = ZioRuntime.blocking(effect)
   }
 
   /*
    * A mapper from PureResult to IOResult
    */
-  implicit class PureToIoResult[A](res: PureResult[A]) {
+  implicit class PureToIoResult[A](val res: PureResult[A]) extends AnyVal {
+    @inline
     def toIO: IOResult[A] = ZIO.fromEither(res)
   }
 
   // not optional - mandatory presence of an object
-  implicit class OptionToIoResult[A](res: Option[A]) {
-    def notOptional(error: String) = res match {
+  implicit class OptionToPureResult[A](val res: Option[A]) extends AnyVal {
+    def notOptionalPure(error: => String) = res match {
+      case None    => Left(Inconsistancy(error))
+      case Some(x) => Right(x)
+    }
+  }
+  implicit class OptionToIoResult[A](val res: Option[A]) extends AnyVal {
+    def notOptional(error: => String) = res match {
       case None    => Inconsistancy(error).fail
       case Some(x) => x.succeed
     }
   }
 
   // also with the flatmap included to avoid a combinator
-  implicit class MandatoryOptionIO[R, E <: RudderError, A](res: ZIO[R, E, Option[A]]) {
-    def notOptional(error: String) = res.flatMap( _.notOptional(error))
+  implicit class MandatoryOptionIO[R, E <: RudderError, A](val res: ZIO[R, E, Option[A]]) extends AnyVal {
+    def notOptional(error: => String) = res.flatMap( _.notOptional(error))
   }
 
   /**
    * Accumulate results of a ZIO execution in a ValidateNel
    */
-  implicit class AccumulateErrorsNEL[A](in: Iterable[A]) {
+  implicit class AccumulateErrorsNEL[A](val in: Iterable[A]) extends AnyVal {
+
+
     private def transform[R, E, B](seq: ZIO[R, Nothing, List[Either[E, B]]]) = {
       seq.flatMap { list =>
         val accumulated = list.traverse( _.toValidatedNel)
@@ -221,27 +230,41 @@ object errors {
      * Execute sequentially and accumulate errors
      */
     def accumulateNEL[R, E, B](f: A => ZIO[R, E, B]): ZIO[R, NonEmptyList[E], List[B]] = {
-      transform(ZIO.foreach(in){ x => f(x).either })
+      transform(ZIO.traverse(in){ x => f(x).either }).untraced
     }
+
+    def accumulateNELPure[R, E, B](f: A => Either[E, B]): Either[NonEmptyList[E], List[B]] = {
+      in.toList.traverse(x => f(x).toValidatedNel).toEither
+    }
+
 
     /*
      * Execute in parallel, non ordered, and accumulate error, using at max N fibers
      */
     def accumulateParNELN[R, E, B](n: Int)(f: A => ZIO[R, E, B]): ZIO[R, NonEmptyList[E], List[B]] = {
-      transform(ZIO.foreachParN(n)(in){ x => f(x).either })
+      transform(ZIO.traverseParN(n)(in){ x => f(x).either }).untraced
     }
   }
 
   /*
    * And a version that translate it to RudderError Accumulated.
    */
-  implicit class AccumulateErrors[A](in: Iterable[A]) {
+  implicit class AccumulateErrors[A](val in: Iterable[A]) extends AnyVal {
     /*
      * Execute sequentially and accumulate errors
      */
     def accumulate[R, E <: RudderError, B](f: A => ZIO[R, E, B]): ZIO[R, Accumulated[E], List[B]] = {
       in.accumulateNEL(f).mapError(errors => Accumulated(errors))
     }
+
+    def accumulatePure[E <: RudderError, B](f: A => Either[E, B]): Either[Accumulated[E], List[B]] = {
+      in.accumulateNELPure(f) match {
+        case Left(err)  => Left(Accumulated(err))
+        case Right(res) => Right(res)
+      }
+    }
+
+
     /*
      * Execute in parallel, non ordered, and accumulate error, using at max N fibers
      */
@@ -279,7 +302,7 @@ object errors {
     }
   }
 
-  implicit class BoxToEither[E <: RudderError, A](res: Box[A]) {
+  implicit class BoxToEither[E <: RudderError, A](val res: Box[A]) extends AnyVal {
     import cats.instances.either._
     def toPureResult: PureResult[A] = BoxUtil.fold[E, A, PureResult](
       err => Left(err)

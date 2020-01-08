@@ -55,8 +55,6 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.inventory.domain.AgentType
 
-import com.normation.zio._
-
 /**
  * Test how RuleVal and ParsedPolicyDraft are constructed, and if they
  * returns what is expected for meta techinques
@@ -196,7 +194,7 @@ class RuleValServiceTest extends Specification {
       }
 
       "the directive val should have two variables: the two corresponding to the two components" in {
-        directivesVals.head.variables(null).either.runNow match {
+        directivesVals.head.variables(null) match {
           case Left(err) => ko(s"Error when getting variables: "+ err.fullMsg)
           case Right(vars) => vars.size === 2
         }
@@ -204,7 +202,7 @@ class RuleValServiceTest extends Specification {
 
       val variables = directivesVals.head.variables
       "one variable should be reportKeysVariableName(component1) -> (variable_component1 :: (variable_component1one, variable_component1two))" in {
-        variables(null).either.runNow match {
+        variables(null) match {
           case Left(_) => ko("Error when parsing variable")
           case Right(vars) => vars.get(reportKeysVariableName("component1")) match {
             case None => ko(s"Excepted variable variable_component1, but got nothing. The variables are ${variables}")
