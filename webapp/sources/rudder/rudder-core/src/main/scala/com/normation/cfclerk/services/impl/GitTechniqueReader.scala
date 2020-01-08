@@ -192,7 +192,7 @@ class GitTechniqueReader(
                                         Inconsistancy("Please add a root category.xml and commit it before restarting Rudder.").fail
                                       }
                             } yield res
-                          case e:MissingObjectException => //ah, that commit is not know on our repos
+                          case SystemError(m, ex:MissingObjectException) => //ah, that commit is not know on our repos
                             TechniqueReaderLoggerPure.error("The stored Git revision for the last version of the known Technique Library was not found in the local Git repository. " +
                                 "That may happen if a commit was reverted, the Git repository was deleted and created again, or if LDAP datas where corrupted. Loading the last available Techique library version.") *>
                             revisionProvider.getAvailableRevTreeId.flatMap(newRevTreeId =>
