@@ -311,8 +311,12 @@ object zio {
      * a hierarchy of calls.
      */
     val internal = new DefaultRuntime() {
-
-
+      import _root_.zio.internal._
+      import _root_.zio.clock._
+      import _root_.zio.random._
+      import _root_.zio.console._
+      import _root_.zio.system._
+      override val Environment: ZEnv  = new Clock.Live with Console.Live with System.Live with Random.Live with RudderBlockingService //_root_.zio.blocking.Blocking.Live
     }
 
     /*
