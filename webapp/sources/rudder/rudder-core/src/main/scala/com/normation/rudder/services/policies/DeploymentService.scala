@@ -74,7 +74,6 @@ import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.hooks.HookEnvPairs
-import com.normation.rudder.hooks.HooksImplicits
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHashRepository
 import com.normation.rudder.domain.reports.DirectiveExpectedReports
@@ -92,7 +91,6 @@ import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.format.PeriodFormatterBuilder
 
 import scala.concurrent.duration.FiniteDuration
-import scala.util.control.NonFatal
 import com.normation.box._
 import com.normation.errors._
 import com.normation.rudder.domain.logger.GenerationLoggerPure
@@ -1461,7 +1459,6 @@ trait PromiseGeneration_historization extends PromiseGenerationService {
 final case class SortedNodeIds(servers: Seq[String], nodes: Seq[String])
 
 trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGenerationHooks {
-  import HooksImplicits._
 
   def postGenerationHookCompabilityMode: Option[Boolean]
 
@@ -1485,11 +1482,11 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
    * Pre generation hooks
    */
   override def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit] = {
-    for {
+    (for {
       //fetch all
-      preHooks <- RunHooks.getHooks(HOOKS_D + "/policy-generation-started", HOOKS_IGNORE_SUFFIXES)
-      _        <- RunHooks.syncRun(preHooks, HookEnvPairs.build( ("RUDDER_GENERATION_DATETIME", generationTime.toString) ), systemEnv)
-    } yield ()
+      preHooks <- RunHooks.getHooksPure(HOOKS_D + "/policy-generation-started", HOOKS_IGNORE_SUFFIXES)
+      _        <- RunHooks.asyncRun(preHooks, HookEnvPairs.build( ("RUDDER_GENERATION_DATETIME", generationTime.toString) ), systemEnv)
+    } yield ()).toBox
   }
 
 
@@ -1571,19 +1568,11 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
    *
    * We keep one generation back in a "${path}.old"
    */
-  def writeNodeIdsForHook(path: String, sortedNodeIds: SortedNodeIds, start: DateTime, end: DateTime): Box[Unit] = {
+  def writeNodeIdsForHook(path: String, sortedNodeIds: SortedNodeIds, start: DateTime, end: DateTime): IOResult[Unit] = {
     // format of date in the file
     def date(d: DateTime) = d.toString(ISODateTimeFormat.basicDateTime())
     // how to format a list of ids in the file
     def formatIds(ids: Seq[String]) = '(' + ids.mkString("\n", "\n","\n") + ')'
-
-    def effect(x: => Unit)(msg: String) = {
-      try {
-        Full(x)
-      } catch {
-        case NonFatal(ex) => Failure(s"${msg}. Exception was: ${ex.getClass.getSimpleName}: ${ex.getMessage}")
-      }
-    }
 
     implicit val openOptions = File.OpenOptions.append
     implicit val charset = StandardCharsets.UTF_8
@@ -1592,20 +1581,20 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
     val savedOld = File(path+".old")
 
     for {
-      _ <- effect {
+      _ <- IOResult.effect(s"Can not move previous updated node IDs file to '${savedOld.pathAsString}'") {
              file.parent.createDirectoryIfNotExists(true)
              if(file.exists) {
                file.moveTo(savedOld)(File.CopyOptions(overwrite = true))
              }
-           }(s"Can not move previous updated node IDs file to '${savedOld.pathAsString}'")
-      _ <- effect {
+           }
+      _ <- IOResult.effect(s"Can not write updated node IDs file '${file.pathAsString}'") {
             // header
             file.writeText(s"# This file contains IDs of nodes updated by policy generation started at '${date(start)}' ended at '${date(end)}'\n\n")
             // policy servers
             file.writeText(s"\nRUDDER_UPDATED_POLICY_SERVER_IDS=${formatIds(sortedNodeIds.servers)}\n")
             file.writeText(s"\nRUDDER_UPDATED_NODE_IDS=${formatIds(sortedNodeIds.nodes)}\n")
             file.writeText(s"\nRUDDER_NODE_IDS=${formatIds(sortedNodeIds.servers ++ sortedNodeIds.nodes)}\n")
-           }(s"Can not write updated node IDs file '${file.pathAsString}'")
+           }
     } yield ()
   }
 
@@ -1623,7 +1612,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
     val sortedNodeIds = getSortedNodeIds(updatedNodeConfigs)
     for {
       written               <- writeNodeIdsForHook(nodeIdsPath, sortedNodeIds, generationTime, endTime)
-      postHooks             <- RunHooks.getHooks(HOOKS_D + "/policy-generation-finished", HOOKS_IGNORE_SUFFIXES)
+      postHooks             <- RunHooks.getHooksPure(HOOKS_D + "/policy-generation-finished", HOOKS_IGNORE_SUFFIXES)
       // we want to sort node with root first, then relay, then other nodes for hooks
       updatedNodeIds        =  updatedNodeConfigs.toList.map { case (k, v) =>
                                  val id = v.nodeInfo.id
@@ -1642,14 +1631,14 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
                                  case None    => defaultEnvParams
                                  case Some(p) => p :: defaultEnvParams
                                }
-      _                     <- RunHooks.syncRun(
+      _                     <- RunHooks.asyncRun(
                                    postHooks
                                  , HookEnvPairs.build(envParams:_*)
                                  , systemEnv
                                )
 
     } yield ()
-  }
+  }.toBox
 
 
   /*
@@ -1662,17 +1651,9 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
    *
    * We keep one generation back in a "${path}.old"
    */
-  def writeErrorMessageForHook(path: String, error: String, start: DateTime, end: DateTime): Box[Unit] = {
+  def writeErrorMessageForHook(path: String, error: String, start: DateTime, end: DateTime): IOResult[Unit] = {
     // format of date in the file
     def date(d: DateTime) = d.toString(ISODateTimeFormat.basicDateTime())
-
-    def effect(x: => Unit)(msg: String) = {
-      try {
-        Full(x)
-      } catch {
-        case NonFatal(ex) => Failure(s"${msg}. Exception was: ${ex.getClass.getSimpleName}: ${ex.getMessage}")
-      }
-    }
 
     implicit val openOptions = File.OpenOptions.append
     implicit val charset = StandardCharsets.UTF_8
@@ -1681,17 +1662,17 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
     val savedOld = File(path+".old")
 
     for {
-      _ <- effect {
+      _ <- IOResult.effect(s"Can not move previous updated node IDs file to '${savedOld.pathAsString}'") {
              file.parent.createDirectoryIfNotExists(true)
              if(file.exists) {
                file.moveTo(savedOld)(File.CopyOptions(overwrite = true))
              }
-           }(s"Can not move previous updated node IDs file to '${savedOld.pathAsString}'")
-      _ <- effect {
+           }
+      _ <- IOResult.effect(s"Can not write error message file '${file.pathAsString}'") {
             // header
             file.writeText(s"# This file contains error message for the failed policy generation started at '${date(start)}' ended at '${date(end)}'\n\n")
             file.writeText(error)
-           }(s"Can not write error message file '${file.pathAsString}'")
+           }
     } yield ()
   }
 
@@ -1707,19 +1688,19 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
   ): Box[Unit] = {
     for {
       written        <- writeErrorMessageForHook(errorMessagePath, errorMessage, generationTime, endTime)
-      failureHooks   <- RunHooks.getHooks(HOOKS_D + "/policy-generation-failed", HOOKS_IGNORE_SUFFIXES)
+      failureHooks   <- RunHooks.getHooksPure(HOOKS_D + "/policy-generation-failed", HOOKS_IGNORE_SUFFIXES)
       // we want to sort node with root first, then relay, then other nodes for hooks
       envParams      =  (  ("RUDDER_GENERATION_DATETIME", generationTime.toString())
                             :: ("RUDDER_END_GENERATION_DATETIME", endTime.toString) //what is the most alike a end time
                             :: ("RUDDER_ERROR_MESSAGE_PATH", errorMessagePath)
                             :: Nil )
-      _              <- RunHooks.syncRun(
+      _              <- RunHooks.asyncRun(
                             failureHooks
                           , HookEnvPairs.build(envParams:_*)
                           , systemEnv
                         )
     } yield ()
-  }
+  }.toBox
 
 }
 

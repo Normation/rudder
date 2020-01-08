@@ -299,6 +299,7 @@ object errors {
 object zio {
 
   val currentTimeMillis = UIO.effectTotal(System.currentTimeMillis())
+  val currentTimeNanos  = UIO.effectTotal(System.nanoTime())
 
   /*
    * Default ZIO Runtime used everywhere.
