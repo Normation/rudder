@@ -62,6 +62,7 @@ import com.normation.rudder.hooks.HookReturnCode.Interrupt
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.box._
 import com.normation.cfclerk.domain.HashAlgoConstraint.SHA1
+import com.normation.rudder.domain.reports.{ComplianceLevelSerialisation}
 import com.normation.zio._
 import org.joda.time.format.ISODateTimeFormat
 
@@ -85,9 +86,20 @@ object DisplayNode extends Loggable {
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
   private[this] val nodeInfoService      = RudderConfig.nodeInfoService
   private[this] val linkUtil             = RudderConfig.linkUtil
+  private[this] val asyncComplianceService    = RudderConfig.asyncComplianceService
   private[this] val deleteNodePopupHtmlId = "deleteNodePopupHtmlId"
   private[this] val errorPopupHtmlId = "errorPopupHtmlId"
   private[this] val successPopupHtmlId = "successPopupHtmlId"
+
+
+  private def loadComplianceBar(nodeInfo: Option[NodeInfo]): Option[JsArray] = {
+    for {
+      node            <- nodeInfo
+      nodeCompliance  <- asyncComplianceService.nodeCompliance(node.id)
+    } yield {
+      ComplianceLevelSerialisation.ComplianceLevelToJs(nodeCompliance).toJsArray()
+    }
+  }
 
   private def loadSoftware(jsId:JsNodeId, softIds:Seq[SoftwareUuid])(nodeId:String):JsCmd = {
     (for {
@@ -300,6 +312,11 @@ object DisplayNode extends Loggable {
     , salt               : String = ""
     , isDisplayingInPopup: Boolean = false
   ) : NodeSeq = {
+
+    val nodeInfo = nodeAndGlobalMode.map(_._1)
+
+    val compliance = loadComplianceBar(nodeInfo).getOrElse(JsArray())
+
     val nodePolicyMode = nodeAndGlobalMode match {
       case Some((node,globalMode)) =>
         Some((globalMode.overridable,node.policyMode) match {
@@ -468,6 +485,7 @@ object DisplayNode extends Loggable {
 
         <div class="status-info col-lg-6 col-sm-5 col-xs-12">
           <h3>Status information</h3>
+          <div class="node-compliance-bar" id="toto"></div>
           <div>
             <label>Inventory created (node local time):</label>  {sm.node.inventoryDate.map(DateFormaterService.getDisplayDate(_)).getOrElse("Unknown")}
           </div>
@@ -489,7 +507,10 @@ object DisplayNode extends Loggable {
         </div>
         {deleteButton}
       </div>
-    </div>
+    </div> ++ Script(OnLoad(JsRaw(s"""
+        $$(".node-compliance-bar").html(buildComplianceBar(${compliance.toJsCmd}))
+      """
+    )))
   }
 
   private def htmlId(jsId:JsNodeId, prefix:String) : String = prefix + jsId.toString
