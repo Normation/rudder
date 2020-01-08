@@ -190,8 +190,8 @@ form select.selectField {
 }
 
 form input.removeLineButton {
-  padding: 0em 0.3em;
-  width:18px !important;
+  padding: 0;
+  width: 22px !important;
 }
 
 input.deleteNetwork * {
@@ -446,21 +446,9 @@ fieldset.searchNodes {
   clear: both;
 }
 
-fieldset.groupCategoryUpdateComponent {
-  padding:5px;
-  margin:5px;
-  width: 580px;
-
-}
-
 tr.query_line, .query_line td {
   padding: 4px 1px;
   text-align: center;
-}
-
-.composition {
-  padding: 5px 0px 0px 5px;
-  margin: 0px 0px 0px 0px;
 }
 
 .composition span {
@@ -1015,7 +1003,7 @@ table.fixedlayout{
   vertical-align: middle;
 }
 
-.treeActiveTechniqueName , .treeActiveTechniqueCategoryName , .treeGroupCategoryName, .treeRuleCategoryName {
+.treeActiveTechniqueName , .treeActiveTechniqueCategoryName, .treeRuleCategoryName {
   color: #555
 }
 
@@ -1130,16 +1118,6 @@ fieldset {
   color: #555555;
   margin: 5px 0px 0px 0px;
 }
-
-.groupCategoryUpdateComponent {
-  width: 450px;
-}
-
-#ajaxItemContainer {
-  float:left;
-  width: 66%
-}
-
 /**
  * Rollback
  */
@@ -1239,9 +1217,14 @@ li.excluded a{
 }
 
 .searchNodes tr td {
-  padding: 0 5px;
+  padding: 0 5px 5px 5px;
 }
-
+.searchNodes tr > td:first-child {
+  padding-left: 0;
+}
+.searchNodes tr > td:last-child {
+  padding-right: 0;
+}
 .deprecatedTechniqueIcon {
   margin-left : 3px;
 }
@@ -1400,10 +1383,6 @@ label span.text-fit{
   height: auto;
   padding: 1px 2px;
   text-decoration: none;
-}
-
-.jstree a.jstree-anchor .greyscala {
-  color: #999
 }
 
 .jstree a.jstree-anchor .categoryAction, .jstree a.jstree-anchor .treeActions  {

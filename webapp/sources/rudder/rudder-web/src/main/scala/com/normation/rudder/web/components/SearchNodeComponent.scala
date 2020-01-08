@@ -95,7 +95,10 @@ class SearchNodeComponent(
       List("templates-hidden", "server", "server_details")
     , "query-searchnodes"
   )
-
+  private[this] def nodesTable = ChooseTemplate(
+    List("templates-hidden", "server", "server_details")
+    , "nodes-table"
+  )
   private[this] def queryline = {
   <tr class="error"></tr>
   <tr class="query_line">
@@ -127,7 +130,7 @@ class SearchNodeComponent(
   def getQuery() : Option[Query] = query
 
   var dispatch : DispatchIt = {
-    case "showQuery" => { _ => buildQuery }
+    case "showQuery" => { _ => buildQuery(false)}
   }
 
   var initUpdate = true // this is true when we arrive on the page, or when we've done an search
@@ -138,13 +141,12 @@ class SearchNodeComponent(
 
   val errors = MutMap[CriterionLine,String]()
 
-  def buildQuery : NodeSeq = {
+  def buildQuery(isGroupsPage : Boolean) : NodeSeq = {
 
     if(None == query) query = Some(Query(NodeReturnType,And,List(defaultLine)))
     val lines = ArrayBuffer[CriterionLine]()
     var composition = query.get.composition
     var rType = query.get.returnType //for now, don't move
-
     def addLine(i:Int) : JsCmd = {
       if(i >= 0) {
         //used same info than previous line
@@ -155,7 +157,7 @@ class SearchNodeComponent(
       }
       query = Some(Query(rType, composition, lines.to[List]))
       initUpdate = false
-      ajaxCriteriaRefresh
+      ajaxCriteriaRefresh(isGroupsPage)
     }
 
     def removeLine(i:Int) : JsCmd ={
@@ -172,10 +174,10 @@ class SearchNodeComponent(
         query = Some(Query(rType, composition, lines.to[List]))
       }
       initUpdate = false
-      ajaxCriteriaRefresh
+      ajaxCriteriaRefresh(isGroupsPage)
     }
 
-    def processForm() : JsCmd = {
+    def processForm(isGroupPage : Boolean) : JsCmd = {
       //filter on non validate values
       errors.clear()
       lines.zipWithIndex.foreach { case (cl@CriterionLine(_,a,c,v),i) =>
@@ -196,31 +198,31 @@ class SearchNodeComponent(
         srvList = Empty
         searchFormHasError = true
       }
-      ajaxCriteriaRefresh & ajaxGridRefresh
+      ajaxCriteriaRefresh(isGroupsPage) & ajaxGridRefresh(isGroupsPage)
+      //ajaxGroupCriteriaRefresh & ajaxNodesTableRefresh()
     }
 
     /**
      * Refresh the query parameter part
      */
-    def ajaxCriteriaRefresh : JsCmd = {
+    def ajaxCriteriaRefresh(isGroupPage : Boolean) : JsCmd = {
       lines.clear()
-      SetHtml("SearchForm", displayQuery(content))& activateButtonOnChange
+      SetHtml("SearchForm", displayQuery(content, isGroupPage)) & activateButtonOnChange
     }
-
     def displayQueryLine(cl : CriterionLine, index:Int, addRemove:Boolean) : NodeSeq = {
 
      lines.append(cl)
 
      val initJs = cl.attribute.cType.initForm("v_"+index)
-     val inputAttributes = ("id","v_"+index) :: ("class", "queryInputValue") :: {if (cl.comparator.hasValue) Nil else ("disabled", "disabled") :: Nil }
+     val inputAttributes = ("id","v_"+index) :: ("class", "queryInputValue form-control input-sm") :: {if (cl.comparator.hasValue) Nil else ("disabled", "disabled") :: Nil }
      val input = cl.attribute.cType.toForm(cl.value, (x => lines(index) = lines(index).copy(value=x)), inputAttributes:_*)
      ( ".removeLine *" #> {
           if(addRemove)
-            SHtml.ajaxSubmit("-", () => removeLine(index), ("class", "removeLineButton btn btn-default btn-xs"))
+            SHtml.ajaxSubmit("-", () => removeLine(index), ("class", "removeLineButton btn btn-danger btn-xs"))
           else
             NodeSeq.Empty
         } &
-       ".addLine *" #> SHtml.ajaxSubmit("+", () => addLine(index), ("class", "removeLineButton btn btn-default btn-xs")) &
+       ".addLine *" #> SHtml.ajaxSubmit("+", () => addLine(index), ("class", "removeLineButton btn btn-success btn-xs")) &
        ".objectType *" #> objectTypeSelect(cl.objectType,lines,index) &
        ".attributeName *" #> attributeNameSelect(cl.objectType,cl.attribute,lines,index) &
        ".comparator *" #> comparatorSelect(cl.objectType,cl.attribute,cl.comparator,lines,index) &
@@ -239,7 +241,7 @@ class SearchNodeComponent(
      * Caution, we pass an html different at the init part (whole content-query)
      *
      */
-    def displayQuery(html: NodeSeq) = {
+    def displayQuery(html: NodeSeq, isGroupPage: Boolean) = {
       val Query(otName,comp, criteria) = query.get
       val checkBox = {
         SHtml.checkbox(
@@ -270,7 +272,7 @@ class SearchNodeComponent(
 
       ( "#typeQuery"   #> checkBox &
         "#composition" #> radio    &
-        "#submitSearch * " #> SHtml.ajaxSubmit("Search", () => processForm, ("id" -> "SubmitSearch"), ("class" -> "submitButton btn btn-default"))    &
+        "#submitSearch * " #> SHtml.ajaxSubmit("Search", () => processForm(isGroupsPage), ("id" -> "SubmitSearch"), ("class" -> "submitButton btn btn-primary"))    &
         "#query_lines *" #> criteria.zipWithIndex.flatMap { case (cl,i) => displayQueryLine(cl,i, criteria.size > 1)}
       ).apply(html
         /*}:NodeSeq} ++ { if(criteria.size > 0) {
@@ -284,20 +286,34 @@ class SearchNodeComponent(
             processKey(event , 'SubmitSearch')
           } );
           """)))
-
     }
+    /**
+      * Display the query part for group criteria
+      * Caution, we pass an html different at the init part (whole content-query)
+      *
+      */
 
     /*
      * Show the search engine and the grid
      */
     def showQueryAndGridContent() : NodeSeq = {
       (
-          "content-query" #> {x:NodeSeq => displayQuery(x)}
+          "content-query" #> {x:NodeSeq => displayQuery(x, false)}
         & "update-gridresult" #> srvGrid.displayAndInit(Seq(),"serverGrid") // we need to set something, or IE moans
       )(searchNodes)
     }
 
-    showQueryAndGridContent()  ++ Script(OnLoad(ajaxGridRefresh))
+    showQueryAndGridContent()  ++ Script(OnLoad(ajaxGridRefresh(false)))
+  }
+
+  def displayNodesTable: NodeSeq = {
+    def showQueryAndGridContent() : NodeSeq = {
+      (
+        "content-query" #> NodeSeq.Empty
+          & "update-nodestable" #> srvGrid.displayAndInit(Seq(),"groupNodesTable") // we need to set something, or IE moans
+        )(nodesTable)
+    }
+    showQueryAndGridContent()  ++ Script(OnLoad(ajaxGridRefresh(true)))
   }
 
   /**
@@ -306,9 +322,9 @@ class SearchNodeComponent(
    * zone, it must be removed before being added again, or problems will rises
    * @return
    */
-  def ajaxGridRefresh() : JsCmd = {
+  def ajaxGridRefresh(isGroupPage: Boolean) : JsCmd = {
     activateButtonOnChange &
-    gridResult
+    gridResult(isGroupPage)
   }
 
   /**
@@ -328,11 +344,12 @@ class SearchNodeComponent(
   /**
    * From the computed result, return the NodeSeq corresponding to the grid, plus the initialisation JS
    */
-  def gridResult : JsCmd = {
+  def gridResult(isGroupsPage: Boolean) : JsCmd = {
     // Ideally this would just check the size first ?
+    val tableId = if(isGroupsPage){"groupNodesTable"}else{"serverGrid"}
     srvList match {
       case Full(seq) =>
-        val refresh = srvGrid.refreshData(() => seq, onClickCallback, "serverGrid")
+        val refresh = srvGrid.refreshData(() => seq, onClickCallback, tableId)
         JsRaw(s"""(${refresh.toJsCmd}());createTooltip();""")
 
       case Empty =>
@@ -425,7 +442,7 @@ object SearchNodeComponent {
       case Nil => ""
     }
     comp.destroyForm(v_eltid) &
-    JsRaw("jQuery('#%s').replaceWith('%s')".format(v_eltid,comp.toForm(v_old,func,("id"->v_eltid), ("class" -> "queryInputValue")))) &
+    JsRaw("jQuery('#%s').replaceWith('%s')".format(v_eltid,comp.toForm(v_old,func,("id"->v_eltid), ("class" -> "queryInputValue form-control input-sm")))) &
     comp.initForm(v_eltid) &
     JsCmds.ReplaceOptions(c_eltid,comparators,Full(selectedComp)) &
     setIsEnableFor(selectedComp,v_eltid) &
@@ -541,7 +558,7 @@ object SearchNodeComponent {
       }),
       ("id","ot_"+i),
       ("onchange", ajaxAttr(lines,i)._2.toJsCmd),
-      ("class","selectField")
+      ("class","selectField form-control input-sm")
 
     )
   }
@@ -555,7 +572,7 @@ object SearchNodeComponent {
       }),
       ("id","at_"+i),
       ("onchange", ajaxComp(lines,i)._2.toJsCmd),
-      ("class","selectField")
+      ("class","selectField form-control input-sm")
     )
   }
 
@@ -568,7 +585,7 @@ object SearchNodeComponent {
       }),
       ("id","ct_"+i),
       ("onchange", ajaxVal(lines,i)._2.toJsCmd),
-      ("class","selectComparator")
+      ("class","selectComparator form-control input-sm")
     )
   }
 

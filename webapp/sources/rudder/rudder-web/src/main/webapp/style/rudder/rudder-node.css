@@ -38,7 +38,9 @@
 div#query-search-content {
   padding: 0 10px 10px 10px;
 }
-
+#queryParameters{
+  padding: 0 15px;
+}
 .rudder_col>.portlet{
   padding: 0 !important;
 }

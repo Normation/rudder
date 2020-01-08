@@ -1,61 +1,57 @@
-.nodeGroupContainer .col-sm{
-  background-color:transparent;
+/*
+*************************************************************************************
+* Copyright 2020 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+*
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+*
+*************************************************************************************
+*/
+.rudder-template .header-title h1 .group-system:before,
+.rudder-template .header-title h1 .group-system:after{
+  margin-left: 8px;
+  opacity: .4;
+  font-size: 0.8em;
 }
-.nodeGroupContainer .col-sm>div{
-  background-color:#fff;
-  float:left;
-  border-color: #ddd;
-  box-shadow: 0px 10px 10px -8px rgba(0, 0, 0, 0.15);
-  padding:0 15px;
+.rudder-template .header-title h1 .group-system:before{
+  content: "-";
+}
+.rudder-template .header-title h1 .group-system:after{
+  content: "System";
+}
+
+#groupParametersTab,
+#groupCriteriaTab,
+#categoryParametersTab{
+  padding: 0 15px;
+  float: left;
   width: 100%;
-  overflow: auto;
-}
-#groupParametersTab .btn.btn-success[disabled]{
-  pointer-events: none;
-  background-color: #b4b4b4;
-  border-color: #7a7a7a;
-}
-#groupParametersTab .section-title{
-  margin: 15px 13px 8px 8px;
-}
-.toggle-caret,.content-wrapper .toggle-caret,.content-wrapper label.toggle-caret{
-  display:block;
-  text-decoration:none !important;
-}
-.toggle-caret label{
-  cursor: pointer;
-}
-.toggle-caret .caret{
-  transition-duration:.2s;
-  -webkit-transform: rotate(-90deg);
-  -ms-transform: rotate(-90deg);
-  -o-transform: rotate(-90deg);
-  transform: rotate(-90deg);
-  color:#333;
-}
-.toggle-caret.open .caret{
-  -webkit-transform: rotate(0deg);
-  -ms-transform: rotate(0deg);
-  -o-transform: rotate(0deg);
-  transform: rotate(0deg);
-}
-.toggle-caret + .well{
-  color:#555;
-  padding: 6px 12px;
-  background-color: #eeeeee;
-  border: 1px solid #d0d0d0;
-}
-#groupDetails{
-  overflow-x: hidden;
-  overflow-y: auto;
-  border-left: 15px solid #ebf0f5;
-}
-#groupDetails .form-group.row{
-  padding: 0px 27px 0px 22px;
-}
-#groupDetails .well.row{
-  margin-left:auto;
-  margin-right:auto;
 }
 #groupDetails .radio-inline .radioTextLabel{
   margin:0;
@@ -67,9 +63,6 @@
 #pendingChangeRequestNotification + .wbBaseField .wbBaseFieldLabel{
   margin:0 0 0 5px;
 }
-#groupsTree > .page-title{
-  padding-bottom:7px;
-}
 #serverGrid tr.head th {
   padding: 4px 6px;
 }
@@ -78,4 +71,45 @@
   width: 100%;
   margin-bottom: 10px;
 }
-
+content-query{
+  display:block;
+}
+#query_lines{
+  width:100%;
+  table-layout:fixed;
+}
+#query_lines td{
+  white-space: nowrap;}
+#query_lines tbody tr td input, #query_lines tbody tr td select.selectField, #query_lines tbody tr td input.queryInputValue, #query_lines tbody tr td select.queryInputValue{
+  width:100%;
+}
+#query_lines tbody tr td:first-child{
+  width:130px;
+}
+#query_lines tbody tr td:nth-child(2){
+  width:170px;
+}
+#query_lines tbody tr td:nth-child(3){
+  width: 140px;
+}
+#query_lines tbody tr td:nth-child(5),#query_lines tbody tr td.last{
+  width:25px;
+}
+.searchNodes .query_line .form-control.input-sm {
+  height: 24px;
+  padding: 0px 2px;
+}
+.rudder-form.form-sm{
+  margin-bottom: 12px;
+}
+.searchNodes {
+  margin-top: 15px;
+}
+#ajaxItemContainer > form{
+  height: 100%;
+}
+@media screen and (max-width: 1200px){
+  #query_lines tbody tr td:nth-child(4){
+    width :250px;
+  }
+}

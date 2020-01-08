@@ -100,42 +100,59 @@ class NodeGroupCategoryForm(
 
   def showForm() : NodeSeq = {
     val html = SHtml.ajaxForm(
-      <div class="inner-portlet groupCategoryUpdateComponent">
-        <div>
-          <div class="page-title">Category details</div>
+      <div id="GroupTabs" class="main-container">
+        <div class="main-header">
+          <div class="header-title">
+            <h1>
+              <i class="title-icon fa fa-folder"></i>
+              <category-name></category-name>
+            </h1>
+            <lift:authz role="group_edit">
+              <div class="header-buttons">
+                <lift:authz role="node_write">
+                  <directive-delete></directive-delete>
+                  <directive-save></directive-save>
+                </lift:authz>
+              </div>
+            </lift:authz>
+          </div>
         </div>
-        <directive-notifications></directive-notifications>
-        <hr class="spacer"/>
-        <directive-name></directive-name>
-        <hr class="spacer"/>
-        <directive-description></directive-description>
-        <hr class="spacer"/>
-        <directive-container></directive-container>
-        <hr class="spacer"/>
-        <div class="wbBaseField">
-          <span class="threeCol textright"><b>Rudder ID:</b></span>
-          <div class="twoCol"><span>{_nodeGroupCategory.id.value}</span></div>
-       </div>
-        <hr class="spacer"/>
-        <lift:authz role="node_write">
-        <div class="margins space-top"><directive-save></directive-save> <directive-delete></directive-delete></div>
-        </lift:authz>
+        <div class="main-navbar">
+          <ul id="groupTabMenu" class="ui-tabs-nav ui-widget-header">
+            <li class="ui-tabs-tab ui-tab ui-tabs-active ui-state-active">
+              <a href="#categoryParametersTab">Parameters</a>
+            </li>
+          </ul>
+        </div>
+        <div class="main-details">
+          <div id="categoryParametersTab" class="main-form">
+            <directive-notifications></directive-notifications>
+            <directive-name></directive-name>
+            <directive-description></directive-description>
+            <directive-container></directive-container>
+            <div class="form-group row">
+              <label class="wbBaseFieldLabel">RUDDER ID</label>
+              <input readonly="" class="form-control" value={nodeGroupCategory.id.value}/>
+            </div>
+          </div>
+        </div>
       </div>
    )
 
     (
-        "directive-name"          #> name.toForm_!
+        "category-name"           #> name
+      & "directive-name"          #> name.toForm_!
       & "directive-description"   #> description.toForm_!
       & "directive-container"     #> container.toForm_!
       & "directive-notifications" #> updateAndDisplayNotifications()
       & (if (_nodeGroupCategory.isSystem) (
             "input [disabled]"        #> "true"
           & "textarea [disabled]"     #> "true"
-          & "directive-save"          #> SHtml.ajaxSubmit("Update", onSubmit _ , ("class","btn btn-success pull-right"))
+          & "directive-save"          #> SHtml.ajaxSubmit("Update", onSubmit _ , ("class","btn btn-success"))
           & "directive-delete"        #> deleteButton
         ) else (
             "directive-save" #> (
-                if (CurrentUser.checkRights(AuthorizationType.Group.Edit)) SHtml.ajaxSubmit("Update", onSubmit _ , ("class","btn btn-default"))
+                if (CurrentUser.checkRights(AuthorizationType.Group.Edit)) SHtml.ajaxSubmit("Update", onSubmit _ , ("class","btn btn-success"))
                 else NodeSeq.Empty
             )
           & "directive-delete" #> (
@@ -155,38 +172,35 @@ class NodeGroupCategoryForm(
   private[this] def deleteButton : NodeSeq = {
 
     if(parentCategory.isDefined && _nodeGroupCategory.children.isEmpty && _nodeGroupCategory.items.isEmpty) {
-      (
-       <button id="removeButton" class="btn btn-danger">Delete</button>
-        <div>
-            <div id="removeActionDialog" class="modal fade" data-keyboard="true" tabindex="-1">
-                <div class="modal-backdrop fade in" style="height: 100%;"></div>
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <div class="close" data-dismiss="modal">
-                                <span aria-hidden="true">&times;</span>
-                                <span class="sr-only">Close</span>
-                            </div>
-                            <h4 class="modal-title text-left">
-                                Delete a group category
-                            </h4>
-                        </div>
-                        <div class="modal-body">
-                            <div class="row">
-                                <div class="col-lg-12">
-                                    <h4 class="text-center">
-                                        Are you sure that you want to completely delete this category ?
-                                    </h4>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer" style="text-align:center">
-                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                            {SHtml.ajaxButton("Delete", onDelete _ ,("class", "btn btn-danger"))}
-                        </div>
-                    </div><!-- /.modal-content -->
-                </div><!-- /.modal-dialog -->
-            </div><!-- /.modal -->
+      ( <button id="removeButton" class="btn btn-danger">Delete</button>
+        <div id="removeActionDialog" class="modal fade" data-keyboard="true" data-container="body" tabindex="-1">
+          <div class="modal-backdrop fade in" style="height: 100%;"></div>
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <div class="close" data-dismiss="modal">
+                  <span aria-hidden="true">&times;</span>
+                  <span class="sr-only">Close</span>
+                </div>
+                <h4 class="modal-title text-left">
+                  Delete a group category
+                </h4>
+              </div>
+              <div class="modal-body">
+                <div class="row">
+                  <div class="col-lg-12">
+                    <h4 class="text-center">
+                        Are you sure that you want to completely delete this category ?
+                    </h4>
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer" style="text-align:center">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                {SHtml.ajaxButton("Delete", onDelete _ ,("class", "btn btn-danger"))}
+              </div>
+            </div>
+          </div>
         </div>
       ) ++
       Script(JsRaw("""
@@ -196,8 +210,8 @@ class NodeGroupCategoryForm(
         });
         """))
     } else {
-      <button disabled="disabled" class="btn btn-danger">Delete</button><br/>
-      <div class="note"><b>Note: </b>Only empty and non root categories can be deleted.</div>
+      ( <span class="btn btn-danger btn-tooltip disabled" data-toggle="tooltip" data-placement="bottom" data-html="true" data-original-title={"<div><i class='fa fa-exclamation-triangle text-warning'></i>Only empty and non root categories can be deleted.</div>"}>Delete</span>
+      ) ++ Script(JsRaw("""$('.btn-tooltip').bsTooltip();"""))
     }
   }
 
@@ -218,13 +232,18 @@ class NodeGroupCategoryForm(
   ///////////// fields for category settings ///////////////////
   private[this] val name = new WBTextField("Category name", _nodeGroupCategory.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
+    override def className = "form-control"
+    override def labelClassName = ""
+    override def subContainerClassName = ""
     override def validations =
       valMinLen(1, "Name must not be empty") _ :: Nil
   }
 
   private[this] val description = new WBTextAreaField("Category description", _nodeGroupCategory.description.toString) {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % ("style" -> "height:10em")
+    override def className = "form-control"
+    override def labelClassName = ""
+    override def subContainerClassName = ""
     override def validations =  Nil
     override def errorClassName = "field_errors paddscala"
   }
@@ -239,7 +258,9 @@ class NodeGroupCategoryForm(
         _nodeGroupCategory.id .value,
         Seq("disabled" -> "true")
       ) {
-        override def className = "rudderBaseFieldSelectClassName"
+        override def className = "form-control"
+        override def labelClassName = ""
+        override def subContainerClassName = ""
         override def validations =
       valMinLen(1, "Please select a category") _ :: Nil
       }
@@ -249,7 +270,9 @@ class NodeGroupCategoryForm(
       , categoryHierarchyDisplayer.getCategoriesHierarchy(rootCategory, exclude = Some( _.id == _nodeGroupCategory.id)).
             map { case (id, name) => (id.value -> name)}
       , parentCategoryId)  {
-          override def className = "rudderBaseFieldSelectClassName"
+          override def className = "form-control"
+          override def labelClassName = ""
+          override def subContainerClassName = ""
           override def validations =
       valMinLen(1, "Please select a category") _ :: Nil
       }
@@ -263,7 +286,7 @@ class NodeGroupCategoryForm(
     SetHtml(htmlIdCategory, showForm())
   }
 
-  private[this] def error(msg:String) = <span class="col-lg-12 errors-container">{msg}</span>
+  private[this] def error(msg:String) = <span class="col-xs-12 errors-container">{msg}</span>
 
   private[this] def onSuccess : JsCmd = {
 
@@ -273,7 +296,7 @@ class NodeGroupCategoryForm(
 
   private[this] def onFailure : JsCmd = {
     formTracker.addFormError(error("There was problem with your request."))
-    updateFormClientSide & JsRaw("""scrollToElement("notifications","#groupDetails");""")
+    updateFormClientSide & JsRaw("""scrollToElement("notifications","#ajaxItemContainer");""")
   }
 
   private[this] def onSubmit() : JsCmd = {

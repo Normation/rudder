@@ -29,83 +29,74 @@
 </component-staticbody>
 
 <component-body>
-<div id="GroupTabs">
-  <ul id="groupTabMenu">
-    <li><a href="#groupParametersTab">Group parameters</a></li>
-    <li><a href="#groupRulesTab">Related Rules</a></li>
-  </ul>
-
-  <div id="groupParametersTab">
-
-       <div class="inner-portlet">
-         <div>
-           <div class="page-title">
-             Group details
-           </div>
-           <div class="inner-portlet-content">
-             <div>
-               <group-notifications ></group-notifications>
-               <group-pendingchangerequest></group-pendingchangerequest>
-               <group-name></group-name>
-               <group-container></group-container>
-               <group-static></group-static>
-
-               <div id="longDescriptionFieldMarkdownContainer"  class="row wbBaseField form-group">
-                 <label class="wbBaseFieldLabel"><span class="text-fit">Description</span>
-                   <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" title="Edit description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i>
-                 </label>
-                 <div class="markdown">
-                   <div id="longDescriptionFieldMarkdown"></div>
-                   <p id="longDescriptionFieldMarkdownEmpty" class="nodisplay half-opacity">No description defined, click on <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> to edit </p>
-                 </div>
-               </div>
-               <div id="longDescriptionFieldContainer" class="nodisplay">
-                 <div id="longDescriptionField">
-                   Here comes the longDescription field
-                 </div>
-                 <div id="longDescriptionFieldMarkdownPreviewContainer" class="wbBaseField col-xs-6 row">
-                   <label class="col-xs-12 row wbBaseFieldLabel"><span class="text-fit">Preview</span></label>
-                   <div id="longDescriptionFieldPreviewMarkdown" class=" col-xs-12 row markdown"></div>
-                 </div>
-               </div>
-
-               <group-rudderid></group-rudderid>
-               <group-cfeclasses></group-cfeclasses>
-             </div>
-             <div class="searchNodes section-title">Group criteria</div>
-             <div id="SearchNodes">
-               <group-showGroup ></group-showGroup>
-             </div>
-<!--
-             <lift:authz role="group_edit">
-               <group-reason></group-reason>
-             </lift:authz>
--->
-
-             <lift:authz role="group_edit">
-             <div>
-               <div class="margins clearfix ">
-                 <div class="pull-left" >
-                 <lift:authz role="group_write"><group-delete></group-delete></lift:authz>
-                 <lift:authz role="group_write"><group-clone></group-clone></lift:authz>
-               </div>
-               <div class="pull-right"  >
-                 <group-save></group-save>
-                 <div id="saveButtonToolTip" class="tooltipContent">If your 'Save' button is disabled, it means that you have updated the query without Searching for new Nodes.
-                  Please click on 'Search' to enable saving again </div>
-               </div>
-             </div>
-           </div>
-           </lift:authz>
+<div id="GroupTabs" class="main-container">
+  <div class="main-header">
+    <div class="header-title">
+      <h1>
+        <i class="title-icon fa fa-sitemap"></i>
+        <span id="group-name"></span>
+      </h1>
+      <lift:authz role="group_edit">
+        <div class="header-buttons">
+          <lift:authz role="group_write"><group-delete></group-delete></lift:authz>
+          <lift:authz role="group_write"><group-clone></group-clone></lift:authz>
+          <group-save></group-save>
+          <div id="saveButtonToolTip" class="tooltipContent">
+            If your 'Save' button is disabled, it means that you have updated the query without Searching for new Nodes.
+            Please click on 'Search' to enable saving again
+          </div>
+        </div>
+      </lift:authz>
+    </div>
+  </div>
+  <div class="main-navbar">
+    <ul id="groupTabMenu">
+      <li><a href="#groupParametersTab">Parameters</a></li>
+      <li><a href="#groupCriteriaTab">Criteria</a></li>
+      <li><a href="#groupRulesTab">Related Rules</a></li>
+    </ul>
+  </div>
+  <div class="main-details">
+    <div id="groupParametersTab" class="main-form">
+       <group-notifications ></group-notifications>
+       <group-pendingchangerequest></group-pendingchangerequest>
+       <group-name></group-name>
+      <div id="longDescriptionFieldMarkdownContainer" class="row form-group wbBaseFieldLabel">
+        <label class="wbBaseFieldLabel"><span class="text-fit">Description</span>
+          <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" title="Edit description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i>
+        </label>
+        <div class="markdown">
+          <div id="longDescriptionFieldMarkdown"></div>
+          <p id="longDescriptionFieldMarkdownEmpty" class="nodisplay half-opacity">No description defined, click on <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> to edit </p>
         </div>
       </div>
-     </div>
-  </div>
-  <div id="groupRulesTab">
-    <div class="section-title">
-      This group is used in following rule targets (either as a target or exception group):
+      <div id="longDescriptionFieldContainer" class="nodisplay row form-group">
+        <div id="longDescriptionField">
+          Here comes the longDescription field
+        </div>
+        <div id="longDescriptionFieldMarkdownPreviewContainer" class="col-xs-6 row">
+          <label class="col-xs-12 row wbBaseFieldLabel"><span class="text-fit">Preview</span></label>
+          <div id="longDescriptionFieldPreviewMarkdown" class=" col-xs-12 row markdown"></div>
+        </div>
+      </div>
+      <group-rudderid></group-rudderid>
+      <group-container></group-container>
+      <group-cfeclasses></group-cfeclasses>
     </div>
-    <div id="groupRuleTabsContent"></div> </div>
+    <div id="groupRulesTab" class="main-form">
+      <div class="alert alert-info">
+        This group is used in following rule targets (either as a target or exception group):
+      </div>
+      <div id="groupRuleTabsContent"></div>
+    </div>
+    <div id="groupCriteriaTab" class="main-form">
+      <group-static></group-static>
+      <div id="SearchNodes">
+        <group-showGroup ></group-showGroup>
+      </div>
+    </div>
+    <div id="group-shownodestable" class="main-table"></div>
+  </div>
 </div>
 </component-body>
 </xml:group>

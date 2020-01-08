@@ -1,0 +1,202 @@
+/*
+*************************************************************************************
+* Copyright 2020 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+*
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+*
+*************************************************************************************
+*/
+
+
+
+/* === RESET === */
+.content-wrapper > .rudder_col{
+  padding: 0;
+}
+.content-wrapper .rudder-template .jstree{
+  margin-top: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow: auto;
+}
+.content-wrapper .rudder-template .jstree .jstree-anchor {
+  display: inline-block;
+  padding-right: 10px;
+  word-break: break-word;
+}
+.content-wrapper .rudder-template .jstree  .jstree-node{
+  overflow: hidden;
+}
+.main-details .well{
+  padding: 6px 12px;
+}
+/* === TEMPLATE === */
+.rudder-template{
+  display: flex;
+  color: #222D42;
+}
+.rudder-template .header-title{
+  display: flex;
+  justify-content: space-between;
+}
+.rudder-template .header-title .title-icon{
+  opacity: .4;
+  font-size: 0.8em;
+  margin-right: 2px;
+}
+.rudder-template .header-title h1{
+  padding: 0;
+  margin: 0;
+  font-size: 26px;
+}
+.rudder-template .header-buttons .btn {
+  margin-left: 10px;
+}
+.rudder-template .header-buttons .btn.btn-danger {
+  margin-right: 20px;
+}
+.rudder-template .header-buttons .tooltip{
+  margin-right: 15px;
+}
+.rudder-template .header-buttons .tooltip > .tooltip-inner {
+  width: auto !important;
+  min-width: initial;
+  max-width: initial;
+  padding: 10px !important;
+  color: #727988;
+}
+.rudder-template .header-buttons .tooltip > .tooltip-inner i.fa{
+  margin-right: 4px;
+}
+.rudder-template .header-buttons .tooltip > .tooltip-inner .text-warning{
+  color: #F08004;
+}
+.rudder-template .header-buttons .tooltip.bottom .tooltip-arrow{
+  border-bottom-color: #ccc;
+}
+/* === SIDEBAR === */
+.rudder-template .template-sidebar{
+  display: flex;
+  flex-basis: 30%;
+  flex-direction: column;
+  height: calc(100VH - 50px);
+  background-color: #fff;
+  position: relative;
+  z-index: 1;
+  box-shadow: 8px 0px 10px -10px #00000050;
+}
+.rudder-template .template-sidebar .sidebar-header{
+  padding: 15px;
+  border-bottom: 1px solid #e5e5e5;
+}
+.rudder-template .template-sidebar .sidebar-header .header-filter{
+  margin-top: 10px;
+}
+/* === MAIN === */
+.rudder-template .template-main{
+  display: flex;
+  flex-basis: 70%;
+  flex-direction: column;
+  height: auto;
+  animation: fadein .8s ease-out forwards;
+  overflow: hidden;
+}
+
+.rudder-template .template-main .main-header{
+  padding: 15px;
+}
+
+.rudder-template .template-main .main-navbar ul{
+  padding: 0 15px;
+}
+.rudder-template .template-main .main-navbar ul > li{
+  margin-right: 15px;
+  padding: 0 0 6px 0;
+}
+.rudder-template .template-main .main-navbar ul > li > a{
+  color: #3c8dbc;
+}
+.rudder-template .template-main .main-details{
+  padding: 0 15px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow: auto;
+}
+.rudder-template .template-main .main-container{
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 50px);
+  overflow: hidden;
+}
+.rudder-template .template-main .main-container .row{
+  height: initial;
+}
+.rudder-template .template-main .main-form{
+  flex: 4;
+}
+.rudder-template .template-main .main-form select.form-control{
+  width: auto;
+}
+.rudder-template .template-main .main-form .searchNodes select.form-control {
+  width: 100%;
+}
+.rudder-template .template-main .main-table{
+  flex: 1;
+  margin-left: -15px;
+  margin-right: -15px;
+}
+.rudder-template .template-main .main-table .dataTables_wrapper_top {
+  border-top-width: 2px;
+  border-left: none;
+}
+.rudder-template .template-main .main-table .dataTables_wrapper_bottom{
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  padding: 15px;
+}
+.rudder-template .template-main .main-table .dataTables_wrapper_top,
+.rudder-template .template-main .main-table .dataTable,
+.rudder-template .template-main .main-table .dataTables_wrapper_bottom{
+  border-left: none;
+}
+.rudder-template .template-main .main-table .dataTable thead > tr > th:first-child,
+.rudder-template .template-main .main-table .dataTable tbody > tr > td:first-child,
+.rudder-template .template-main .main-table .dataTables_wrapper_top,
+.rudder-template .template-main .main-table .dataTables_wrapper_bottom{
+  padding-left: 15px;
+}
+
+@keyframes fadein {
+  0%   {background-color: transparent; opacity:  0; transform:translateX(-100px);}
+  20%  {background-color:#fff; opacity: .2; transform:translateX(0);}
+  100% {background-color:#fff; opacity:  1; transform:translateX(0);}
+}

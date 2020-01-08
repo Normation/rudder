@@ -212,7 +212,7 @@ abstract class RudderBaseField extends BaseField {
    <div class="row wbBaseField form-group readonly-field">
       <label class={s"${labelClassName} wbBaseFieldLabel"}>{displayHtml}</label>
       <div>
-        <div class={subContainerClassName}>
+        <div class={s"form-control ${subContainerClassName}"}>
           {defaultValue}
         </div>
       </div>
