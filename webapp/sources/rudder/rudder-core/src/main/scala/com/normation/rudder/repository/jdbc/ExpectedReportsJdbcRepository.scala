@@ -52,7 +52,7 @@ import com.normation.rudder.db.Doobie._
 import doobie._
 import doobie.implicits._
 import cats.implicits._
-import com.normation.rudder.domain.logger.PolicyLogger
+import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.utils.Control.sequence
 import doobie.free.connection
@@ -232,7 +232,7 @@ class UpdateExpectedReportsJdbcRepository(
 
   def saveNodeExpectedReports(configs: List[NodeExpectedReports]): Box[Seq[NodeExpectedReports]]  = {
     import cats.implicits._
-    PolicyLogger.expectedReports.debug(s"Saving ${configs.size} nodes expected reports")
+    PolicyGenerationLogger.expectedReports.debug(s"Saving ${configs.size} nodes expected reports")
     configs match {
       case Nil       => Full(Nil)
       case neConfigs =>
@@ -357,11 +357,11 @@ class UpdateExpectedReportsJdbcRepository(
     // filter out node expected reports up to date
     val toSave = configs.filterNot(c => okConfigs.contains(c.nodeId))
 
-    PolicyLogger.expectedReports.trace(s"Nodes with up-to-date expected configuration: [${okConfigs.sortBy(_.value).map(r => s"${r.value}").mkString("][")}]")
-    PolicyLogger.expectedReports.debug(s"Closing out of date expected node's configuration: [${toClose.sortBy(_._2.value).map(r => s"${r._2.value} : ${r._3.value}").mkString("][")}]")
-    PolicyLogger.expectedReports.debug(s"Saving new expected node's configuration: [${toSave.sortBy(_.nodeId.value).map(r => s"${r.nodeId.value} : ${r.nodeConfigId.value}]").mkString("][")}]")
-    PolicyLogger.expectedReports.trace(s"Adding node configuration timeline info: [${toAdd.sortBy(_._2.value).map{ case(i,n) => s"${n.value}:${i.map(_.configId.value).sorted.mkString(",")}"}.mkString("][")}]")
-    PolicyLogger.expectedReports.trace(s"Updating node configuration timeline info: [${toUpdate.sortBy(_._2.value).map{ case(i,n) => s"${n.value}(${i.size} entries):${i.map(_.configId.value).sorted.mkString(",")}"}.mkString("][")}]")
+    PolicyGenerationLogger.expectedReports.trace(s"Nodes with up-to-date expected configuration: [${okConfigs.sortBy(_.value).map(r => s"${r.value}").mkString("][")}]")
+    PolicyGenerationLogger.expectedReports.debug(s"Closing out of date expected node's configuration: [${toClose.sortBy(_._2.value).map(r => s"${r._2.value} : ${r._3.value}").mkString("][")}]")
+    PolicyGenerationLogger.expectedReports.debug(s"Saving new expected node's configuration: [${toSave.sortBy(_.nodeId.value).map(r => s"${r.nodeId.value} : ${r.nodeConfigId.value}]").mkString("][")}]")
+    PolicyGenerationLogger.expectedReports.trace(s"Adding node configuration timeline info: [${toAdd.sortBy(_._2.value).map{ case(i,n) => s"${n.value}:${i.map(_.configId.value).sorted.mkString(",")}"}.mkString("][")}]")
+    PolicyGenerationLogger.expectedReports.trace(s"Updating node configuration timeline info: [${toUpdate.sortBy(_._2.value).map{ case(i,n) => s"${n.value}(${i.size} entries):${i.map(_.configId.value).sorted.mkString(",")}"}.mkString("][")}]")
 
     //now, mass update
     Right(for {

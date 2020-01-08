@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2012 Normation SAS
+* Copyright 2011 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -37,29 +37,31 @@
 
 package com.normation.rudder.domain.logger
 
-import com.normation.NamedZioLogger
-import org.slf4j.LoggerFactory
+import com.normation.rudder.domain.reports._
 import net.liftweb.common.Logger
+import org.slf4j.LoggerFactory
 
 /**
- * Applicative log of interest for Rudder ops.
+ * This logger is used to write non compliant reports in /var/log/rudder/compliance/non-compliant-reports.log
  */
-object TimingDebugLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("debug_timing")
-  object PolicyGeneration extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("debug_timing.generation")
-    object BuildNodeConfig extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("debug_timing.generation.buildNodeConfig")
-    }
-  }
-}
+object AllReportLogger extends Logger {
+  override protected def _logger = LoggerFactory.getLogger("non-compliant-reports")
 
-object TimingDebugLoggerPure extends NamedZioLogger {
-  override def loggerName: String = "debug_timing"
-  object PolicyGeneration extends NamedZioLogger {
-    override def loggerName: String = "debug_timing.generation"
-    object BuildNodeConfig extends NamedZioLogger {
-      override def loggerName: String = "debug_timing.generation.buildNodeConfig"
+  def FindLogger(reportType : String) :((=> AnyRef) => Unit) = {
+    import Reports._
+
+    reportType match{
+      // error
+      case RESULT_ERROR       => error
+      case AUDIT_NONCOMPLIANT => error
+      case AUDIT_ERROR        => error
+
+      // warning
+      case RESULT_REPAIRED => warn
+      case LOG_WARN        => warn
+      case LOG_WARNING     => warn
+
+      case _               => info
     }
   }
 }

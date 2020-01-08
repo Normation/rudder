@@ -51,7 +51,6 @@ import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.policies.NodeConfigData.root
 import com.normation.rudder.services.policies.NodeConfigData.rootNodeConfig
 import com.normation.rudder.services.policies.TestNodeConfiguration
-import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationLoggerImpl
 import com.normation.templates.FillTemplatesService
 import java.io.File
 
@@ -67,6 +66,7 @@ import com.normation.rudder.services.policies.ParameterForConfiguration
 import com.normation.rudder.services.policies.Policy
 import java.nio.charset.StandardCharsets
 
+import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
 import com.normation.rudder.services.policies.MergePolicyService
 import com.normation.rudder.services.policies.BoundPolicyDraft
 import org.apache.commons.io.FileUtils

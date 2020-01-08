@@ -97,10 +97,44 @@ object JsDirectiveParamLoggerPure extends NamedZioLogger {
 }
 
 
-object GenerationLoggerPure extends NamedZioLogger {
-  def loggerName = "policy-generation"
-}
-
 object TechniqueReaderLoggerPure extends NamedZioLogger {
   def loggerName = "techniques.reader"
+}
+
+/**
+ * Logger about change request and other workflow thing.
+ */
+object ChangeRequestLogger extends Logger {
+  override protected def _logger = LoggerFactory.getLogger("changeRequest")
+}
+
+/**
+ * Logger used for historization of object names by `HistorizationService`
+ */
+object HistorizationLogger extends Logger {
+  override protected def _logger = LoggerFactory.getLogger("historization")
+}
+
+object GitArchiveLoggerPure extends NamedZioLogger {
+  override def loggerName: String = "git-policy-archive"
+}
+
+object GitArchiveLogger extends Logger {
+  override protected def _logger = LoggerFactory.getLogger("git-policy-archive")
+}
+
+object ComplianceLogger extends Logger {
+  override protected def _logger = LoggerFactory.getLogger("compliance")
+}
+
+object ReportLogger extends Logger {
+  override protected def _logger = LoggerFactory.getLogger("report")
+}
+
+object ReportLoggerPure extends NamedZioLogger {
+  override def loggerName: String = "report"
+
+  object Changes extends NamedZioLogger {
+    override def loggerName: String = "report.changes"
+  }
 }

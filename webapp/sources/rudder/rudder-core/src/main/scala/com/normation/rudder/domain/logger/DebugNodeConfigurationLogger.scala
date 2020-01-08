@@ -35,26 +35,25 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.services.policies.nodeconfig
+package com.normation.rudder.domain.logger
 
-
-import com.normation.inventory.domain.NodeId
-import com.normation.utils.Control.sequence
 import java.io.File
 import java.io.PrintWriter
+
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.services.policies.NodeConfiguration
+import com.normation.utils.Control.sequence
 import net.liftweb.common._
-import net.liftweb.json.NoTypeHints
-import net.liftweb.json.Serialization
 import net.liftweb.json.Serialization.writePretty
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
-import com.normation.rudder.services.policies.NodeConfiguration
 
 
 trait NodeConfigurationLogger {
 
   def log(nodeConfiguration: Seq[NodeConfiguration]): Box[Set[NodeId]]
 
+  def isDebugEnabled: Boolean
 }
 
 /**
@@ -69,6 +68,7 @@ class NodeConfigurationLoggerImpl(
 ) extends NodeConfigurationLogger {
 
   val logger = LoggerFactory.getLogger("rudder.debug.nodeconfiguration")
+  def isDebugEnabled: Boolean = logger.isDebugEnabled
 
   {
     val p = new File(path)

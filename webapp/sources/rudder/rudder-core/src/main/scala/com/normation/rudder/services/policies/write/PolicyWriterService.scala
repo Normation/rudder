@@ -49,9 +49,7 @@ import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.hooks.HookEnvPairs
-import com.normation.rudder.hooks.HooksLogger
 import com.normation.rudder.hooks.RunHooks
-import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationLogger
 import com.normation.templates.FillTemplatesService
 import com.normation.templates.STVariable
 import com.normation.utils.Control._
@@ -78,7 +76,6 @@ import com.normation.rudder.services.policies.Policy
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 
-import com.normation.rudder.domain.logger.PolicyLogger
 import com.normation.rudder.hooks.HookReturnCode
 import zio._
 import zio.syntax._
@@ -90,7 +87,9 @@ import zio.blocking.Blocking
 import zio.duration.Duration
 import cats.data._
 import cats.implicits._
+import com.normation.rudder.domain.logger.NodeConfigurationLogger
 import org.apache.commons.lang.StringUtils
+import com.normation.rudder.domain.logger.PolicyGenerationLogger
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -122,14 +121,15 @@ class PolicyWriterServiceImpl(
   , writeAllAgentSpecificFiles: WriteAllAgentSpecificFiles
   , HOOKS_D                   : String
   , HOOKS_IGNORE_SUFFIXES     : List[String]
-) extends PolicyWriterService with Loggable {
+) extends PolicyWriterService {
+
+
+  val timingLogger = PolicyGenerationLogger.timing
 
   val hookWarnDurationMillis = (60*1000).millis
 
   val newPostfix = ".new"
   val backupPostfix = ".bkp"
-
-  val policyLogger = PolicyLogger
 
   private[this] def writeNodePropertiesFile (agentNodeConfig: AgentNodeConfiguration) = {
 
@@ -143,7 +143,7 @@ class PolicyWriterServiceImpl(
     val path = Constants.GENERATED_PROPERTY_DIR
     val jsonProperties = generateNodePropertiesJson(agentNodeConfig.config.nodeInfo.properties)
     val propertyContent = JsonAST.prettyRender(jsonProperties)
-    logger.trace(s"Create node properties file '${agentNodeConfig.paths.newFolder}/${path}/${fileName}'")
+    PolicyGenerationLogger.trace(s"Create node properties file '${agentNodeConfig.paths.newFolder}/${path}/${fileName}'")
     Try {
       val propertyFile = new File ( new File (agentNodeConfig.paths.newFolder, path), fileName)
       FileUtils.writeStringToFile(propertyFile, propertyContent, StandardCharsets.UTF_8)
@@ -166,7 +166,7 @@ class PolicyWriterServiceImpl(
     val fileName = Constants.GENERATED_PARAMETER_FILE
     val jsonParameters = generateParametersJson(agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name.value, x.value, agentNodeConfig.agentType)))
     val parameterContent = JsonAST.prettyRender(jsonParameters)
-    logger.trace(s"Create parameter file '${agentNodeConfig.paths.newFolder}/${fileName}'")
+    PolicyGenerationLogger.trace(s"Create parameter file '${agentNodeConfig.paths.newFolder}/${fileName}'")
     Try {
       val parameterFile = new File ( new File (agentNodeConfig.paths.newFolder), fileName)
       FileUtils.writeStringToFile(parameterFile, parameterContent, StandardCharsets.UTF_8)
@@ -273,9 +273,9 @@ class PolicyWriterServiceImpl(
     logNodeConfig.log(nodeConfigsToWrite.values.toSeq) match {
       case eb:EmptyBox =>
         val e = eb ?~! "Error when trying to write node configurations for debugging"
-        logger.error(e)
+        PolicyGenerationLogger.error(e)
         e.rootExceptionCause.foreach { ex =>
-          logger.error("Root exception cause was:", ex)
+          PolicyGenerationLogger.error("Root exception cause was:", ex)
         }
       case _ => //nothing to do
     }
@@ -324,7 +324,7 @@ class PolicyWriterServiceImpl(
       _                 = fillTemplates.clearCache
       readTemplateTime2 = System.currentTimeMillis
       readTemplateDur   = readTemplateTime2 - readTemplateTime1
-      _                 = policyLogger.debug(s"Paths computed and templates read in ${readTemplateDur} ms")
+      _                 = timingLogger.debug(s"Paths computed and templates read in ${readTemplateDur} ms")
 
       //////////
       // nothing agent specific before that
@@ -337,7 +337,7 @@ class PolicyWriterServiceImpl(
                          }
       preparedPromisesTime = System.currentTimeMillis
       preparedPromisesDur  = preparedPromisesTime - readTemplateTime2
-      _                    = policyLogger.debug(s"Promises prepared in ${preparedPromisesDur} ms")
+      _                    = timingLogger.debug(s"Promises prepared in ${preparedPromisesDur} ms")
 
       promiseWritten   <- parrallelSequence(preparedPromises) { prepared =>
                             (for {
@@ -351,7 +351,7 @@ class PolicyWriterServiceImpl(
                           }
       promiseWrittenTime = System.currentTimeMillis
       promiseWrittenDur  = promiseWrittenTime - preparedPromisesTime
-      _                  = policyLogger.debug(s"Policies written in ${promiseWrittenDur} ms")
+      _                  = timingLogger.debug(s"Policies written in ${promiseWrittenDur} ms")
 
 
       //////////
@@ -365,7 +365,7 @@ class PolicyWriterServiceImpl(
 
       propertiesWrittenTime = System.currentTimeMillis
       propertiesWrittenDur  = propertiesWrittenTime - promiseWrittenTime
-      _                     = policyLogger.debug(s"Properties written in ${propertiesWrittenDur} ms")
+      _                     = timingLogger.debug(s"Properties written in ${propertiesWrittenDur} ms")
 
       parametersWritten <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
                              writeRudderParameterFile(agentNodeConfig) ?~!
@@ -374,7 +374,7 @@ class PolicyWriterServiceImpl(
 
       parametersWrittenTime = System.currentTimeMillis
       parametersWrittenDur  = parametersWrittenTime - propertiesWrittenTime
-      _                     = policyLogger.debug(s"Parameters written in ${parametersWrittenDur} ms")
+      _                     = timingLogger.debug(s"Parameters written in ${parametersWrittenDur} ms")
 
 
       _                 = fillTemplates.clearCache
@@ -403,18 +403,18 @@ class PolicyWriterServiceImpl(
                                         , systemEnv
                                         , hookWarnDurationMillis // warn if a hook took more than a minute
                             )
-                            HooksLogger.trace(s"Run post-generation pre-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
+                            timingLogger.trace(s"Run post-generation pre-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
                             res
                           }
 
       movedPromisesTime1 = System.currentTimeMillis
-      _                  = policyLogger.debug(s"Hooks for policy-generation-node-ready executed in ${movedPromisesTime1-parametersWrittenTime} ms")
+      _                  = timingLogger.debug(s"Hooks for policy-generation-node-ready executed in ${movedPromisesTime1-parametersWrittenTime} ms")
 
       movedPromises    <- tryo { movePromisesToFinalPosition(pathsInfo) }
 
       movedPromisesTime2 = System.currentTimeMillis
       movedPromisesDur   = movedPromisesTime2 - movedPromisesTime1
-      _                  = policyLogger.debug(s"Policies moved to their final position in ${movedPromisesDur} ms")
+      _                  = timingLogger.debug(s"Policies moved to their final position in ${movedPromisesDur} ms")
 
       nodePostMvHooks  <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-finished", HOOKS_IGNORE_SUFFIXES)
       postMvHooks      <- parallelSequenceNodeHook(configAndPaths) { agentNodeConfig =>
@@ -438,11 +438,11 @@ class PolicyWriterServiceImpl(
                                         , systemEnv
                                         , hookWarnDurationMillis // warn if a hook took more than a minute
                             )
-                            HooksLogger.trace(s"Run post-generation post-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
+                            timingLogger.trace(s"Run post-generation post-move hooks for node '${nodeId}' in ${System.currentTimeMillis - timeHooks} ms")
                             res
                           }
       postMvHooksTime2   = System.currentTimeMillis
-      _                  = policyLogger.debug(s"Hooks for policy-generation-node-finished executed in ${postMvHooksTime2 - movedPromisesTime2} ms")
+      _                  = timingLogger.debug(s"Hooks for policy-generation-node-finished executed in ${postMvHooksTime2 - movedPromisesTime2} ms")
     } yield {
       val ids = movedPromises.map { _.nodeId }.toSet
       allNodeConfigs.filterKeys { id => ids.contains(id) }.values.toSeq
@@ -469,7 +469,7 @@ class PolicyWriterServiceImpl(
 
     val agentConfig = configs.flatMap { config =>
       if(config.nodeInfo.agentsName.size == 0) {
-        logger.info(s"Node '${config.nodeInfo.hostname}' (${config.nodeInfo.id.value}) has no agent type configured and so no policies will be generated")
+        PolicyGenerationLogger.info(s"Node '${config.nodeInfo.hostname}' (${config.nodeInfo.id.value}) has no agent type configured and so no policies will be generated")
       }
       config.nodeInfo.agentsName.map {agentType => (agentType, config) }
     }
@@ -525,7 +525,7 @@ class PolicyWriterServiceImpl(
             case None =>
               Failure(s"Error when trying to open template '${templateId.toString}'. Check that the file exists with a ${TechniqueTemplate.templateExtension} extension and is correctly commited in Git, or that the metadata for the technique are corrects.")
             case Some(inputStream) =>
-              logger.trace(s"Loading template: ${templateId}")
+              PolicyGenerationLogger.trace(s"Loading template: ${templateId}")
               //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
               val content = IOUtils.toString(inputStream, StandardCharsets.UTF_8)
               Full(TechniqueTemplateCopyInfo(templateId, templateOutPath, content))
@@ -536,7 +536,7 @@ class PolicyWriterServiceImpl(
       }
     }).map( _.toMap)
 
-    logger.debug(s"${templatesToRead.size} promises templates read in ${System.currentTimeMillis-now} ms")
+    timingLogger.debug(s"${templatesToRead.size} promises templates read in ${System.currentTimeMillis-now} ms")
     res
   }
 
@@ -590,7 +590,7 @@ class PolicyWriterServiceImpl(
             case None =>
               Failure(s"Error when trying to open template '${templateId.toString}'. Check that the file exists with a ${TechniqueTemplate.templateExtension} extension and is correctly commited in Git, or that the metadata for the technique are corrects.")
             case Some(inputStream) =>
-              logger.trace(s"Loading template: ${templateId}")
+              PolicyGenerationLogger.trace(s"Loading template: ${templateId}")
               //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
               val content = IOUtils.toString(inputStream, StandardCharsets.UTF_8)
               Full(TechniqueResourceCopyInfo(templateId, templateOutPath, content))
@@ -601,7 +601,7 @@ class PolicyWriterServiceImpl(
       }
     }).map( _.toMap)
 
-    logger.debug(s"${staticResourceToRead.size} techniques resources read in ${System.currentTimeMillis-now} ms")
+    timingLogger.debug(s"${staticResourceToRead.size} techniques resources read in ${System.currentTimeMillis-now} ms")
     res
   }
 
@@ -693,18 +693,18 @@ class PolicyWriterServiceImpl(
       // Folders is a map of machine.uuid -> (base_machine_folder, backup_machine_folder, machine)
       for (folder @ NodePromisesPaths(_, baseFolder, newFolder, backupFolder) <- sortedFolder) {
         // backup old promises
-        logger.trace("Backuping old policies from %s to %s ".format(baseFolder, backupFolder))
+        PolicyGenerationLogger.trace("Backuping old policies from %s to %s ".format(baseFolder, backupFolder))
         backupNodeFolder(baseFolder, backupFolder)
         try {
           newFolders += folder
 
-          logger.trace("Copying new policies into %s ".format(baseFolder))
+          PolicyGenerationLogger.trace("Copying new policies into %s ".format(baseFolder))
           // move new promises
           moveNewNodeFolder(newFolder, baseFolder)
 
         } catch {
           case ex: Exception =>
-            logger.error("Could not write policies into %s, reason : ".format(baseFolder), ex)
+            PolicyGenerationLogger.error("Could not write policies into %s, reason : ".format(baseFolder), ex)
             throw ex
         }
       }
@@ -713,12 +713,12 @@ class PolicyWriterServiceImpl(
       case ex: Exception =>
 
         for (folder <- newFolders) {
-          logger.info("Restoring old policies on folder %s".format(folder.baseFolder))
+          PolicyGenerationLogger.info("Restoring old policies on folder %s".format(folder.baseFolder))
           try {
             restoreBackupNodeFolder(folder.baseFolder, folder.backupFolder);
           } catch {
             case ex: Exception =>
-              logger.error("could not restore old policies into %s ".format(folder.baseFolder))
+              PolicyGenerationLogger.error("could not restore old policies into %s ".format(folder.baseFolder))
               throw ex
           }
         }
@@ -775,7 +775,7 @@ class PolicyWriterServiceImpl(
     //here, we need a big try/catch, because almost anything in string template can
     //throw errors
     // write the files to the new promise folder
-    logger.trace(s"Create policies file ${outPath} ${templateInfo.destination}")
+    PolicyGenerationLogger.trace(s"Create policies file ${outPath} ${templateInfo.destination}")
 
     for {
       filled           <- fillTemplates.fill(templateInfo.destination, templateInfo.content, variableSet).toBox
@@ -821,7 +821,7 @@ class PolicyWriterServiceImpl(
   private[this] def moveNewNodeFolder(sourceFolder: String, destinationFolder: String): Unit = {
     val src = new File(sourceFolder)
 
-    logger.trace("Moving folders from %s to %s".format(src, destinationFolder))
+    PolicyGenerationLogger.trace("Moving folders from %s to %s".format(src, destinationFolder))
 
     if (src.isDirectory()) {
       val dest = new File(destinationFolder)
@@ -837,7 +837,7 @@ class PolicyWriterServiceImpl(
         FileUtils.deleteDirectory(src.getParentFile())
       }
     } else {
-      logger.error("Could not find freshly created policies at %s".format(sourceFolder))
+      PolicyGenerationLogger.error("Could not find freshly created policies at %s".format(sourceFolder))
       throw new IOException("Created policies not found !!!!")
     }
   }
@@ -856,7 +856,7 @@ class PolicyWriterServiceImpl(
 
       FileUtils.moveDirectory(src, dest)
     } else {
-      logger.error("Could not find freshly backup policies at %s".format(backupFolder))
+      PolicyGenerationLogger.error("Could not find freshly backup policies at %s".format(backupFolder))
       throw new IOException("Backup policies could not be found, and valid policies couldn't be restored !!!!")
     }
   }

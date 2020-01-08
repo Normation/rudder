@@ -56,6 +56,7 @@ import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.PolicyId
 import com.normation.utils.Control.sequence
 import net.liftweb.common._
+import com.normation.rudder.domain.logger.PolicyGenerationLogger
 
 import scala.collection.immutable.ListMap
 
@@ -216,7 +217,7 @@ object BuildBundleSequence {
 class BuildBundleSequence(
     systemVariableSpecService : SystemVariableSpecService
   , writeAllAgentSpecificFiles: WriteAllAgentSpecificFiles
-) extends Loggable {
+) {
   import BuildBundleSequence._
 
   /*
@@ -234,7 +235,6 @@ class BuildBundleSequence(
     , runHooks        : List[NodeRunHook]
   ): Box[List[SystemVariable]] = {
 
-    logger.trace(s"Preparing bundle list and input list for node : ${agentNodeProps.nodeId.value}")
 
     // Fetch the policies configured and sort them according to (rules, directives)
 
@@ -337,7 +337,7 @@ class BuildBundleSequence(
 
         List(Bundle(Some(policy.id), bundleName, vars.toList))
       } else {
-        logger.warn(s"Technique '${policy.technique.id}' used in node '${nodeId.value}' contains some bundle with empty name, which is forbidden and so they are ignored in the final bundle sequence")
+        PolicyGenerationLogger.warn(s"Technique '${policy.technique.id}' used in node '${nodeId.value}' contains some bundle with empty name, which is forbidden and so they are ignored in the final bundle sequence")
         Nil
       }
     }.flatten.toList
@@ -372,9 +372,10 @@ class BuildBundleSequence(
     val sorted = policies.sortWith(compareBundleOrder)
 
     //some debug info to understand what order was used for each node:
-    if(logger.isDebugEnabled) {
+    // it's *extremelly* versbose, perhaps it should have it's own logger.
+    if(PolicyGenerationLogger.isTraceEnabled) {
       val logSorted = sorted.map(p => s"${p.technique.id}: [${p.ruleOrder.value} | ${p.directiveOrder.value}]").mkString("[","][", "]")
-      logger.debug(s"Sorted Technique (and their Rules and Directives used to sort): ${logSorted}")
+      PolicyGenerationLogger.trace(s"Sorted Technique (and their Rules and Directives used to sort): ${logSorted}")
     }
     sorted
   }

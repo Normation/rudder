@@ -88,6 +88,7 @@ import com.normation.rudder.batch._
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain._
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.inventory.InventoryFileWatcher
 import com.normation.rudder.inventory.InventoryProcessingLogger

@@ -299,6 +299,7 @@ object errors {
 object zio {
 
   val currentTimeMillis = UIO.effectTotal(System.currentTimeMillis())
+  val currentTimeNanos  = UIO.effectTotal(System.nanoTime())
 
   /*
    * Default ZIO Runtime used everywhere.
@@ -413,17 +414,17 @@ trait ZioLogger {
     com.normation.errors.effectUioUnit(log(logEffect))
   }
 
-  final def trace(msg: => String): UIO[Unit] = logAndForgetResult(_.trace(msg))
-  final def debug(msg: => String): UIO[Unit] = logAndForgetResult(_.debug(msg))
-  final def info (msg: => String): UIO[Unit] = logAndForgetResult(_.info (msg))
-  final def error(msg: => String): UIO[Unit] = logAndForgetResult(_.error(msg))
-  final def warn (msg: => String): UIO[Unit] = logAndForgetResult(_.warn (msg))
+  final def trace(msg: => String): UIO[Unit] = ZIO.when(logEffect.isTraceEnabled())(logAndForgetResult(_.trace(msg)))
+  final def debug(msg: => String): UIO[Unit] = ZIO.when(logEffect.isDebugEnabled())(logAndForgetResult(_.debug(msg)))
+  final def info (msg: => String): UIO[Unit] = ZIO.when(logEffect.isInfoEnabled ())(logAndForgetResult(_.info (msg)))
+  final def error(msg: => String): UIO[Unit] = ZIO.when(logEffect.isErrorEnabled())(logAndForgetResult(_.error(msg)))
+  final def warn (msg: => String): UIO[Unit] = ZIO.when(logEffect.isWarnEnabled ())(logAndForgetResult(_.warn (msg)))
 
-  final def trace(msg: => String, t: Throwable): UIO[Unit] = logAndForgetResult(_.trace(msg, t))
-  final def debug(msg: => String, t: Throwable): UIO[Unit] = logAndForgetResult(_.debug(msg, t))
-  final def info (msg: => String, t: Throwable): UIO[Unit] = logAndForgetResult(_.info (msg, t))
-  final def warn (msg: => String, t: Throwable): UIO[Unit] = logAndForgetResult(_.warn (msg, t))
-  final def error(msg: => String, t: Throwable): UIO[Unit] = logAndForgetResult(_.error(msg, t))
+  final def trace(msg: => String, t: Throwable): UIO[Unit] = ZIO.when(logEffect.isTraceEnabled())(logAndForgetResult(_.trace(msg, t)))
+  final def debug(msg: => String, t: Throwable): UIO[Unit] = ZIO.when(logEffect.isDebugEnabled())(logAndForgetResult(_.debug(msg, t)))
+  final def info (msg: => String, t: Throwable): UIO[Unit] = ZIO.when(logEffect.isInfoEnabled ())(logAndForgetResult(_.info (msg, t)))
+  final def warn (msg: => String, t: Throwable): UIO[Unit] = ZIO.when(logEffect.isErrorEnabled())(logAndForgetResult(_.warn (msg, t)))
+  final def error(msg: => String, t: Throwable): UIO[Unit] = ZIO.when(logEffect.isWarnEnabled ())(logAndForgetResult(_.error(msg, t)))
 
   final def ifTraceEnabled[T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isTraceEnabled) action else () )
   final def ifDebugEnabled[T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isDebugEnabled) action else () )
