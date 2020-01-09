@@ -54,6 +54,12 @@ chown rudder: /var/rudder/shared-files
 chmod 770 /var/rudder/shared-files
 chmod 755 /var/rudder/inventories
 
+# Make conf readable by relayd
+chgrp -R rudder /opt/rudder/etc/relayd
+chmod 750 /opt/rudder/etc/relayd
+chmod 640 /opt/rudder/etc/relayd/main.conf
+chmod 640 /opt/rudder/etc/relayd/logging.conf
+
 for dir in /var/rudder/inventories/incoming /var/rudder/inventories/accepted-nodes-updates /var/rudder/reports/incoming /var/rudder/reports/failed
 do
   chmod 770 ${dir}
