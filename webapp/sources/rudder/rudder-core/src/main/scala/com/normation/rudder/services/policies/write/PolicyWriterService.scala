@@ -97,15 +97,15 @@ trait PolicyWriterService {
    *
    */
   def writeTemplate(
-      rootNodeId        : NodeId
-    , nodesToWrite      : Set[NodeId]
-    , updatedNodeConfigs: Map[NodeId, NodeConfiguration]
-    , allNodeInfos      : Map[NodeId, NodeInfo]
-    , versions          : Map[NodeId, NodeConfigId]
-    , allLicenses       : Map[NodeId, CfeEnterpriseLicense]
-    , globalPolicyMode  : GlobalPolicyMode
-    , generationTime    : DateTime
-    , parallelism       : Parallelism
+      rootNodeId           : NodeId
+    , nodesToWrite         : Set[NodeId]
+    , allNodeConfigurations: Map[NodeId, NodeConfiguration]
+    , allNodeInfos         : Map[NodeId, NodeInfo]
+    , versions             : Map[NodeId, NodeConfigId]
+    , allLicenses          : Map[NodeId, CfeEnterpriseLicense]
+    , globalPolicyMode     : GlobalPolicyMode
+    , generationTime       : DateTime
+    , parallelism          : Parallelism
   ) : Box[Seq[NodeId]]
 }
 
@@ -216,18 +216,18 @@ class PolicyWriterServiceImpl(
    *
    */
   override def writeTemplate(
-      rootNodeId        : NodeId
-    , nodesToWrite      : Set[NodeId]
-    , updatedNodeConfigs: Map[NodeId, NodeConfiguration]
-    , allNodeInfos      : Map[NodeId, NodeInfo]
-    , versions          : Map[NodeId, NodeConfigId]
-    , allLicenses       : Map[NodeId, CfeEnterpriseLicense]
-    , globalPolicyMode  : GlobalPolicyMode
-    , generationTime    : DateTime
-    , parallelism       : Parallelism
+      rootNodeId           : NodeId
+    , nodesToWrite         : Set[NodeId]
+    , allNodeConfigurations: Map[NodeId, NodeConfiguration]
+    , allNodeInfos         : Map[NodeId, NodeInfo]
+    , versions             : Map[NodeId, NodeConfigId]
+    , allLicenses          : Map[NodeId, CfeEnterpriseLicense]
+    , globalPolicyMode     : GlobalPolicyMode
+    , generationTime       : DateTime
+    , parallelism          : Parallelism
   ) : Box[Seq[NodeId]] = {
 
-    val interestingNodeConfigs = updatedNodeConfigs.values.toSeq
+    val interestingNodeConfigs = allNodeConfigurations.collect { case (nodeId, nodeConfiguration) if (nodesToWrite.contains(nodeId)) => nodeConfiguration }.toSeq
     val techniqueIds = interestingNodeConfigs.flatMap(_.getTechniqueIds).toSet
 
     if (logNodeConfig.isDebugEnabled) {

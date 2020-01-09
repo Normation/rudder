@@ -251,13 +251,6 @@ trait PromiseGenerationService {
    * Return the list of node IDs actually updated.
    *
    */
-
-  def getFreeMem = (Runtime.getRuntime().freeMemory() / (1024*1024)).toString + " MB"
-  def doGC = {
-    System.gc()
-    System.runFinalization()
-  }
-
   def deploy() : Box[Set[NodeId]] = {
     PolicyLogger.info("Start policy generation, checking updated rules")
 
@@ -316,8 +309,6 @@ trait PromiseGenerationService {
 
     val generationContinueOnError = getGenerationContinueOnError().getOrElse(false)
 
-
-
     PolicyLogger.debug(s"Policy generation parallelism set to: ${maxParallelism} (change with REST API settings parameter 'rudder_generation_max_parallelism')")
     PolicyLogger.debug(s"Policy generation JS evaluation of directive parameter timeout: ${jsTimeout} s (change with REST API settings parameter 'rudder_generation_jsTimeout')")
     PolicyLogger.debug(s"Policy generation continues on NodeConfigurations evaluation: ${generationContinueOnError} (change with REST API settings parameter 'rudder_generation_continue_on_error')")
@@ -346,10 +337,10 @@ trait PromiseGenerationService {
 
       // Create these objects in a separate for {} yield to avoid unecessary memory retention by the GC
       // this is to be done as many time as necessary to gc in each context
-      // if it doesn't do what's expected, do it more, more, mooooooooore
+
       fetch0Time           =  System.currentTimeMillis
       (updatedNodesId, updatedNodeInfo, expectedReports, allErrors, errorNodes, timeFetchAll, timeHistorize, timeRuleVal, timeBuildConfig, timeWriteNodeConfig, timeSetExpectedReport) <- for {
-        (updatedNodeConfigIds, updatedNodeConfigs, allNodeConfigsInfos, updatedNodesId, updatedNodeInfo, allLicenses, globalPolicyMode, allNodeModes, allErrors, errorNodes, timeFetchAll, timeHistorize, timeRuleVal, timeBuildConfig)   <- for {
+        (updatedNodeConfigIds, allNodeConfigurations, allNodeConfigsInfos, updatedNodesId, updatedNodeInfo, allLicenses, globalPolicyMode, allNodeModes, allErrors, errorNodes, timeFetchAll, timeHistorize, timeRuleVal, timeBuildConfig)   <- for {
           (activeNodeIds, ruleVals,nodeContexts,allNodeModes, scriptEngineEnabled, globalPolicyMode, nodeConfigCaches, allLicenses, timeFetchAll, timeHistorize, timeRuleVal) <- for {
             allRules             <- findDependantRules() ?~! "Could not find dependant rules"
             fetch1Time           =  System.currentTimeMillis
@@ -421,36 +412,36 @@ trait PromiseGenerationService {
           configsAndErrors      <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, parallelism, jsTimeout, generationContinueOnError) ?~! "Cannot build target configuration node"
           /// only keep successfull node config. We will keep the failed one to fail the whole process in the end if needed
 // potentially i'm duplicating the data with this map, but according to heap size after gc, memory is not yet high
-          nodeConfigs           =  configsAndErrors.ok.map(c => (c.nodeInfo.id, c)).toMap
+          allNodeConfigurations =  configsAndErrors.ok.map(c => (c.nodeInfo.id, c)).toMap
           allErrors             =  configsAndErrors.errors.map(_.messageChain)
-          errorNodes            =  activeNodeIds -- nodeConfigs.keySet
+          errorNodes            =  activeNodeIds -- allNodeConfigurations.keySet
           timeBuildConfig       =  (System.currentTimeMillis - buildConfigTime)
           _                     =  PolicyLogger.debug(s"Node's target configuration built in ${timeBuildConfig} ms, start to update rule values.")
 
-          allNodeConfigsInfos   =  nodeConfigs.map{ case (nodeid, nodeconfig) => (nodeid, nodeconfig.nodeInfo)}
+          allNodeConfigsInfos   =  allNodeConfigurations.map{ case (nodeid, nodeconfig) => (nodeid, nodeconfig.nodeInfo)}
           allNodeConfigsId      =  allNodeConfigsInfos.keysIterator.toSet
 
-          updatedNodeConfigIds  =  getNodesConfigVersion(nodeConfigs, nodeConfigCaches, generationTime)
-          updatedNodeConfigs    =  nodeConfigs.collect{ case (id, value) if (updatedNodeConfigIds.keySet.contains(id)) => (id, value) } // filterKeys wrap original collection
-          updatedNodeInfo       =  updatedNodeConfigs.map{ case (nodeid, nodeconfig) => (nodeid, nodeconfig.nodeInfo)}
+          updatedNodeConfigIds  =  getNodesConfigVersion(allNodeConfigurations, nodeConfigCaches, generationTime)
+          //updatedNodeConfigs    =  nodeConfigs.collect{ case (id, value) if (updatedNodeConfigIds.keySet.contains(id)) => (id, value) } // filterKeys wrap original collection
+          updatedNodeInfo       =  allNodeConfigurations.collect{ case (nodeId, nodeconfig) if (updatedNodeConfigIds.keySet.contains(nodeId)) => (nodeId, nodeconfig.nodeInfo)}
           updatedNodesId        =  updatedNodeInfo.keySet.toSeq.toSet // prevent from keeping an undue reference after generation
           // WHY DO WE NEED TO FORGET OTHER NODES CACHE INFO HERE ?
           _                     <- forgetOtherNodeConfigurationState(allNodeConfigsId) ?~! "Cannot clean the configuration cache"
 
         } yield {
-          (updatedNodeConfigIds, updatedNodeConfigs, allNodeConfigsInfos, updatedNodesId, updatedNodeInfo, allLicenses, globalPolicyMode, allNodeModes, allErrors, errorNodes, timeFetchAll, timeHistorize, timeRuleVal, timeBuildConfig)
+          (updatedNodeConfigIds, allNodeConfigurations, allNodeConfigsInfos, updatedNodesId, updatedNodeInfo, allLicenses, globalPolicyMode, allNodeModes, allErrors, errorNodes, timeFetchAll, timeHistorize, timeRuleVal, timeBuildConfig)
         }
 
         ///// so now we have everything for each updated nodes, we can start writing node policies and then expected reports
 
 
         writeTime             =  System.currentTimeMillis
-        _                     <- writeNodeConfigurations(rootNodeId, updatedNodeConfigIds, updatedNodeConfigs, allNodeConfigsInfos, allLicenses, globalPolicyMode, generationTime, parallelism) ?~!"Cannot write nodes configuration"
+        _                     <- writeNodeConfigurations(rootNodeId, updatedNodeConfigIds, allNodeConfigurations, allNodeConfigsInfos, allLicenses, globalPolicyMode, generationTime, parallelism) ?~!"Cannot write nodes configuration"
         timeWriteNodeConfig   =  (System.currentTimeMillis - writeTime)
         _                     =  PolicyLogger.debug(s"Node configuration written in ${timeWriteNodeConfig} ms, start to update expected reports.")
 
         reportTime            =  System.currentTimeMillis
-        expectedReports       =  computeExpectedReports(updatedNodeConfigs, updatedNodeConfigIds, generationTime, allNodeModes)
+        expectedReports       =  computeExpectedReports(allNodeConfigurations, updatedNodeConfigIds, generationTime, allNodeModes)
         timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
         _                     =  PolicyLogger.debug(s"Reports computed in ${timeSetExpectedReport} ms")
       } yield {
@@ -694,14 +685,14 @@ trait PromiseGenerationService {
    * Return the list of configuration successfully written.
    */
   def writeNodeConfigurations(
-      rootNodeId        : NodeId
-    , updated           : Map[NodeId, NodeConfigId]
-    , updatedNodeConfigs: Map[NodeId, NodeConfiguration]
-    , allNodeInfos      : Map[NodeId, NodeInfo]
-    , allLicenses       : Map[NodeId, CfeEnterpriseLicense]
-    , globalPolicyMode  : GlobalPolicyMode
-    , generationTime    : DateTime
-    , parallelism       : Parallelism
+      rootNodeId           : NodeId
+    , updated              : Map[NodeId, NodeConfigId]
+    , allNodeConfigurations: Map[NodeId, NodeConfiguration]
+    , allNodeInfos         : Map[NodeId, NodeInfo]
+    , allLicenses          : Map[NodeId, CfeEnterpriseLicense]
+    , globalPolicyMode     : GlobalPolicyMode
+    , generationTime       : DateTime
+    , parallelism          : Parallelism
   ) : Box[Set[NodeId]]
 
   /**
@@ -709,10 +700,10 @@ trait PromiseGenerationService {
    * (that does not save them in base)
    */
   def computeExpectedReports(
-      nodeConfigs      : Map[NodeId, NodeConfiguration]
-    , versions         : Map[NodeId, NodeConfigId]
-    , generationTime   : DateTime
-    , allNodeModes     : Map[NodeId, NodeModeConfig]
+      allNodeConfigurations: Map[NodeId, NodeConfiguration]
+    , updatedId            : Map[NodeId, NodeConfigId]
+    , generationTime       : DateTime
+    , allNodeModes         : Map[NodeId, NodeModeConfig]
   ) : List[NodeExpectedReports]
 
   /**
@@ -1296,20 +1287,20 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
    * Return the list of configuration successfully written.
    */
   def writeNodeConfigurations(
-      rootNodeId        : NodeId
-    , updated           : Map[NodeId, NodeConfigId]
-    , updatedNodeConfigs: Map[NodeId, NodeConfiguration]
-    , allNodeInfos      : Map[NodeId, NodeInfo]
-    , allLicenses       : Map[NodeId, CfeEnterpriseLicense]
-    , globalPolicyMode  : GlobalPolicyMode
-    , generationTime    : DateTime
-    , maxParallelism    : Parallelism
+      rootNodeId           : NodeId
+    , updated              : Map[NodeId, NodeConfigId]
+    , allNodeConfigurations: Map[NodeId, NodeConfiguration]
+    , allNodeInfos         : Map[NodeId, NodeInfo]
+    , allLicenses          : Map[NodeId, CfeEnterpriseLicense]
+    , globalPolicyMode     : GlobalPolicyMode
+    , generationTime       : DateTime
+    , maxParallelism       : Parallelism
   ) : Box[Set[NodeId]] = {
 
     val fsWrite0   =  System.currentTimeMillis
 
     for {
-      written    <- promisesFileWriterService.writeTemplate(rootNodeId, updated.keySet, updatedNodeConfigs, allNodeInfos, updated, allLicenses, globalPolicyMode, generationTime, maxParallelism)
+      written    <- promisesFileWriterService.writeTemplate(rootNodeId, updated.keySet, allNodeConfigurations, allNodeInfos, updated, allLicenses, globalPolicyMode, generationTime, maxParallelism)
       ldapWrite0 =  DateTime.now.getMillis
       fsWrite1   =  (ldapWrite0 - fsWrite0)
       _          =  PolicyLogger.debug(s"Node configuration written on filesystem in ${fsWrite1} ms")
@@ -1317,7 +1308,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
 
       // #10625 : that should be one logic-level up (in the main generation for loop)
 
-      toCache    =  updatedNodeConfigs.values.toSet
+      toCache    =  allNodeConfigurations.filterKeys(updated.keySet.contains(_)).values.toSet
       _          <- nodeConfigurationService.save(toCache.map(x => NodeConfigurationHash(x, generationTime)))
       ldapWrite1 =  (DateTime.now.getMillis - ldapWrite0)
       _          =  PolicyLogger.debug(s"Node configuration cached in LDAP in ${ldapWrite1} ms")
@@ -1335,13 +1326,14 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
   def confExpectedRepo : UpdateExpectedReportsRepository
 
   override def computeExpectedReports(
-      configs          : Map[NodeId, NodeConfiguration]
-    , updatedNodes     : Map[NodeId, NodeConfigId]
-    , generationTime   : DateTime
-    , allNodeModes     : Map[NodeId, NodeModeConfig]
+      allNodeConfigurations: Map[NodeId, NodeConfiguration]
+    , updatedNodes         : Map[NodeId, NodeConfigId]
+    , generationTime       : DateTime
+    , allNodeModes         : Map[NodeId, NodeModeConfig]
   ) : List[NodeExpectedReports] = {
 
-    configs.map { case (nodeId, nodeConfig) =>
+    val updatedNodeIds = updatedNodes.keySet
+    allNodeConfigurations.collect { case (nodeId, nodeConfig) if (updatedNodeIds.contains(nodeId)) =>
       // overrides are in the reverse way, we need to transform them into OverridenPolicy
       val overrides = nodeConfig.policies.flatMap { p =>
         p.overrides.map(overriden => OverridenPolicy(overriden, p.id) )
