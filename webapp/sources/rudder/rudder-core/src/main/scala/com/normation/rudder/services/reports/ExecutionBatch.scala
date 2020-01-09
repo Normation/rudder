@@ -1226,13 +1226,13 @@ object ExecutionBatch extends Loggable {
      */
     ComponentStatusReport(
         expectedComponent.componentName
-      , ComponentValueStatusReport.merge(unexpectedReportStatus ::: pairedReportStatus).map { case (key, status) =>
+      , ComponentValueStatusReport.merge(unexpectedReportStatus ::: pairedReportStatus).mapValues { status =>
           // here we want to ensure that if a message is unexpected, all other are
           if(status.messages.exists( _.reportType == ReportType.Unexpected)) {
             val msgs = status.messages.map(m => m.copy(reportType = ReportType.Unexpected))
-            (key, status.copy(messages = msgs))
+            status.copy(messages = msgs)
           } else {
-            (key, status)
+            status
           }
       }
     )

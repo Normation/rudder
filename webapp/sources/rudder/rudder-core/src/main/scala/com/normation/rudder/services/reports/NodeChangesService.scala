@@ -275,12 +275,12 @@ class CachedNodeChangesServiceImpl(
             existing <- initCache()
           } yield {
             val intervals = changeService.getCurrentValidIntervals(None)
-            val newChanges = changes.groupBy(_.ruleId).map { case (ruleId, ch) =>
-              (ruleId, ( for {
+            val newChanges = changes.groupBy(_.ruleId).mapValues { ch =>
+              ( for {
                  interval <- intervals
               } yield {
                 (interval, ch.filter(interval contains _.executionTimestamp).size )
-              } ).toMap)
+              } ).toMap
             }
             logger.debug("NodeChanges cache updated")
             cache = Some(merge(intervals, existing, newChanges))

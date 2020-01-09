@@ -418,7 +418,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
         }
       }
 
-      seq.groupBy { run => run.agentRunId }.map { case (_,runs) => recDisctinct(runs.toList) }.toSeq
+      seq.groupBy { run => run.agentRunId }.mapValues { runs => recDisctinct(runs.toList) }.values.toSeq
     }
 
     //actual logic for getReportsfromId
