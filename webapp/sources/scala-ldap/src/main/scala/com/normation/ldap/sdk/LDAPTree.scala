@@ -72,7 +72,7 @@ trait LDAPTree extends Tree[LDAPEntry] with ToLDIFRecords with ToLDIFString  {
 
   override def toString(): String = {
     val children = {
-        if(_children.size > 0) {
+        if(_children.nonEmpty) {
           val c = _children.map{ case(k,v) => s"${k} -> ${v}" }
           s"children:{${c}}"
         } else {

@@ -231,7 +231,7 @@ object RuleTarget extends Loggable {
      *   * A node with the root id (in fact: Constants.ROOT_POLICY_SERVER_ID), the root policy server
      */
     def isANodeWithRole (nodeId : NodeId, isPolicyServer : Boolean ,serverRoles : Set[ServerRole]) : Boolean = {
-      serverRoles.size>0 || isPolicyServer || nodeId == Constants.ROOT_POLICY_SERVER_ID
+      serverRoles.nonEmpty || isPolicyServer || nodeId == Constants.ROOT_POLICY_SERVER_ID
     }
     targets.foldLeft(Set[NodeId]()) { case (nodes , target) => target match {
       case AllTarget => return allNodes.keySet

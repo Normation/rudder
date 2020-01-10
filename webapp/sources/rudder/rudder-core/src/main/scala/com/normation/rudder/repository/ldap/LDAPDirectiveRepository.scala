@@ -173,7 +173,7 @@ class RoLDAPDirectiveRepository(
       category          <- getCategoryEntry(con, id) ?~! "Entry with ID '%s' was not found".format(id)
     } yield {
       val results = con.searchSub(category.dn, IS(OC_DIRECTIVE), Seq[String]():_*)
-      results.map( x => mapper.entry2Directive(x) ).flatten.size > 0
+      results.map( x => mapper.entry2Directive(x) ).flatten.nonEmpty
     }) match {
       case Full(x) => x
       case _ => false

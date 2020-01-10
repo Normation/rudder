@@ -54,7 +54,7 @@ object Utils {
    */
   def getUniqueNode(root:Node, nodeName:String, subtree:Boolean = false) : Box[Node] = {
     def checkCardinality(nodes:NodeSeq) : Box[Node] = {
-      if(nodes.size < 1) Failure(s"No node found for name ${nodeName} in ${root} children with scope ${if(subtree) "subtree" else "one level"}")
+      if(nodes.isEmpty) Failure(s"No node found for name ${nodeName} in ${root} children with scope ${if(subtree) "subtree" else "one level"}")
       else if(nodes.size > 1 ) Failure(s"More than one node found for name ${nodeName} in ${root} children with scope ${if(subtree) "subtree" else "one level"}")
       else Full(nodes.head)
     }

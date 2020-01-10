@@ -227,7 +227,7 @@ class SystemVariableServiceImpl(
     val nodeConfigurationRoles = collection.mutable.Set[ServerRole]() ++ nodeInfo.serverRoles
 
     // Define the mapping of roles/hostnames, only if the node has a role
-    val varRoleMappingValue = if (nodeConfigurationRoles.size > 0) {
+    val varRoleMappingValue = if (nodeConfigurationRoles.nonEmpty) {
       val allNodeInfosSet = allNodeInfos.values.toSet
 
       val roles = defaultServerRoles.map { case ResolvedRudderServerRole(name, optValue) =>
@@ -253,7 +253,7 @@ class SystemVariableServiceImpl(
       }
     }
 
-    val varNodeRoleValue = if (nodeConfigurationRoles.size > 0) {
+    val varNodeRoleValue = if (nodeConfigurationRoles.nonEmpty) {
       "  classes: \n" + nodeConfigurationRoles.map(x => "    \"" + x.value + "\" expression => \"any\";").mkString("\n")
     } else {
       "# This node doesn't have any specific role"

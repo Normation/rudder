@@ -204,9 +204,9 @@ object RunHooks {
               ScriptError(result.code, result.stdout, result.stderr, msg)
             } else if(result.code >= 32 && result.code <= 64) { // warning
               HooksLogger.warn(msg)
-              if (result.stdout.size > 0)
+              if (result.stdout.nonEmpty)
                 HooksLogger.warn(s"  -> stdout : ${result.stdout}")
-              if (result.stderr.size > 0)
+              if (result.stderr.nonEmpty)
                 HooksLogger.warn(s"  -> stderr : ${result.stderr}")
               Warning(result.code, result.stdout, result.stderr, msg)
             } else if(result.code == Interrupt.code) {

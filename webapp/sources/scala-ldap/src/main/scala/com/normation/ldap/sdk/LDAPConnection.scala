@@ -309,7 +309,7 @@ sealed class RoLDAPConnection(
 
   override def get(dn:DN, attributes:String*) : Box[LDAPEntry] = {
     {
-      if(attributes.size == 0) backed.getEntry(dn.toString)
+      if(attributes.isEmpty) backed.getEntry(dn.toString)
       else backed.getEntry(dn.toString, attributes:_*)
     } match {
       case null => Empty
@@ -460,7 +460,7 @@ class RwLDAPConnection(
    *   the list of modification to apply.
    */
   private def applyMods[MOD <: ReadOnlyLDAPRequest](toLDIFChangeRecord:MOD => LDIFChangeRecord, backendAction: MOD => LDAPResult)(reqs:Seq[MOD]) : Box[Seq[LDIFChangeRecord]] = {
-    if(reqs.size < 1) Full(Seq())
+    if(reqs.isEmpty) Full(Seq())
     else {
       ldifFileLogger.records(reqs map ( toLDIFChangeRecord (_) ))
 

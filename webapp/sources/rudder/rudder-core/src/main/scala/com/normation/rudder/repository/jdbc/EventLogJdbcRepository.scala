@@ -242,7 +242,7 @@ private object EventLogReportsMapper extends Loggable {
         id             = Some(rs.getInt("id"))
       , modificationId = {
           val modId = rs.getString("modificationId")
-          if (modId != null && modId.size > 0)
+          if (modId != null && modId.nonEmpty)
             Some(ModificationId(modId))
           else
             None
@@ -257,7 +257,7 @@ private object EventLogReportsMapper extends Loggable {
       , severity    = rs.getInt("severity")
       , reason      = {
                         val desc = rs.getString("reason")
-                        if(desc != null && desc.size > 0) {
+                        if(desc != null && desc.nonEmpty) {
                           Some(desc)
                         } else None
                       }

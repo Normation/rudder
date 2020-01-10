@@ -120,7 +120,7 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
   // utility method that check duplicate elements in a string sequence case-unsensitive
   private[this] def checkUniqueness(seq:Seq[String])(errorMsg:String) : Unit = {
     val duplicates = seq.groupBy( _.toLowerCase ).collect {
-      case(k, x) if x.size > 1 => x.mkString("(",",",")")
+      case(k, x) if x.lengthCompare(1) > 0 => x.mkString("(",",",")")
     }
 
     if(duplicates.nonEmpty) {
@@ -134,10 +134,10 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
     val name = {
       val n = Utils.getAttributeText(root, "name", "")
       if(root.label == SECTIONS_ROOT) {
-        if(n.size > 0) throw new ParsingException("<%s> can not have a 'name' attribute.".format(SECTIONS_ROOT))
+        if(n.nonEmpty) throw new ParsingException("<%s> can not have a 'name' attribute.".format(SECTIONS_ROOT))
         else SECTION_ROOT_NAME
       } else {
-        if(n.size > 0) n
+        if(n.nonEmpty) n
         else throw new ParsingException("Section must have name. Missing name for: " + root)
       }
     }
@@ -156,8 +156,8 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
     val children = parseChildren(name, root, id, policyName)
 
     val expectedReportComponentKey = (children.collect { case x : PredefinedValuesVariableSpec => x }) match {
-      case seq if seq.size == 0 => None
-      case seq if seq.size == 1 => Some(seq.head.name)
+      case seq if seq.isEmpty => None
+      case seq if seq.lengthCompare(1) == 0 => Some(seq.head.name)
       case seq  =>
         logger.error(s"There are too many predefined reports keys for given section ${name} : keys are : ${seq.map(_.name).mkString(",")}")
         None

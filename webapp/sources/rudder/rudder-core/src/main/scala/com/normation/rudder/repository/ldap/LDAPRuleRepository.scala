@@ -146,7 +146,7 @@ class WoLDAPRuleRepository(
       deleted      <- con.delete(rudderDit.RULES.configRuleDN(id.value)) ?~! "Error when deleting rule with ID %s".format(id)
       diff         =  DeleteRuleDiff(oldCr)
       loggedAction <- actionLogger.saveDeleteRule(modId, principal = actor, deleteDiff = diff, reason = reason)
-      autoArchive  <- if(autoExportOnModify && deleted.size > 0  && !oldCr.isSystem) {
+      autoArchive  <- if(autoExportOnModify && deleted.nonEmpty  && !oldCr.isSystem) {
                         for {
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                           archive  <- gitCrArchiver.deleteRule(id, Some((modId, commiter, reason)))

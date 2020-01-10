@@ -205,9 +205,9 @@ class TechniqueParser(
 
   private[this] def parseTrackerVariableSpec(xml: Node): TrackerVariableSpec = {
     val trackerVariableSpecs = (xml \ TRACKINGVAR)
-    if(trackerVariableSpecs.size == 0) { //default trackerVariable variable spec for that package
+    if(trackerVariableSpecs.isEmpty) { //default trackerVariable variable spec for that package
       TrackerVariableSpec()
-    } else if(trackerVariableSpecs.size == 1) {
+    } else if(trackerVariableSpecs.lengthCompare(1) == 0) {
       variableSpecParser.parseTrackerVariableSpec(trackerVariableSpecs.head) match {
         case Full(p) => p
         case e:EmptyBox =>
@@ -221,7 +221,7 @@ class TechniqueParser(
       deprecationInfo <- (xml \ TECHNIQUE_DEPRECATION_INFO).headOption
     } yield {
       val message = deprecationInfo.text
-      if (message.size == 0) {
+      if (message.isEmpty) {
           val errorMsg = s"Error when parsing <${TECHNIQUE_DEPRECATION_INFO}> tag, text is empty and is mandatory"
           throw new ParsingException( errorMsg )
       } else {
