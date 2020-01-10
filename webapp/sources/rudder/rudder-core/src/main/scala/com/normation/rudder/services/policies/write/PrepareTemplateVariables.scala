@@ -44,7 +44,6 @@ import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.reports.NodeConfigId
-import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.templates.STVariable
 import com.normation.utils.Control.bestEffort
 import net.liftweb.common._
@@ -72,7 +71,6 @@ trait PrepareTemplateVariables {
     , nodeConfigVersion: NodeConfigId
     , rootNodeConfigId : NodeId
     , templates        : Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]
-    , allNodeConfigs   : Map[NodeId, NodeConfiguration]
     , rudderIdCsvTag   : String
     , globalPolicyMode : GlobalPolicyMode
     , generationTime   : DateTime
@@ -97,7 +95,6 @@ class PrepareTemplateVariablesImpl(
     , nodeConfigVersion: NodeConfigId
     , rootNodeConfigId : NodeId
     , templates        : Map[(TechniqueResourceId, AgentType), TechniqueTemplateCopyInfo]
-    , allNodeConfigs   : Map[NodeId, NodeConfiguration]
     , rudderIdCsvTag   : String
     , globalPolicyMode : GlobalPolicyMode
     , generationTime   : DateTime
@@ -121,22 +118,27 @@ class PrepareTemplateVariablesImpl(
       , agentNodeConfig.config.nodeInfo.isPolicyServer
       , agentNodeConfig.config.nodeInfo.serverRoles
     )
-    val boxBundleVars = buildBundleSequence.prepareBundleVars(
-                            agentNodeProps
-                          , agentNodeConfig.config.nodeInfo.policyMode
-                          , globalPolicyMode
-                          , agentNodeConfig.config.policies
-                          , agentNodeConfig.config.runHooks
-                        ).map { bundleVars => bundleVars.map(x => (x.spec.name, x)).toMap }
 
     for {
-      bundleVars       <- boxBundleVars
-      parameters       <- Control.sequence(agentNodeConfig.config.parameters.toSeq) { x =>
-                            agentRegister.findMap(agentNodeProps){ agent =>
-                              Full(ParameterEntry(x.name.value, agent.escape(x.value), agentNodeConfig.agentType))
-                            }
-                          }
-      allSystemVars    =  systemVariables.toMap ++ bundleVars
+      (parameters, allSystemVars) <- for {
+          bundleVars    <- buildBundleSequence.prepareBundleVars(
+            agentNodeProps
+            , agentNodeConfig.config.nodeInfo.policyMode
+            , globalPolicyMode
+            , agentNodeConfig.config.policies
+            , agentNodeConfig.config.runHooks
+          ).map { bundleVars => bundleVars.map(x => (x.spec.name, x)).toMap }
+
+          parameters    <- Control.sequence(agentNodeConfig.config.parameters.toSeq) { x =>
+            agentRegister.findMap(agentNodeProps) { agent =>
+              Full(ParameterEntry(x.name.value, agent.escape(x.value), agentNodeConfig.agentType))
+            }
+          }
+
+          allSystemVars = systemVariables.toMap ++ bundleVars
+      } yield {
+        (parameters, allSystemVars)
+      }
       preparedTemplate <- prepareTechniqueTemplate(
                               agentNodeProps
                             , agentNodeConfig.config.policies
