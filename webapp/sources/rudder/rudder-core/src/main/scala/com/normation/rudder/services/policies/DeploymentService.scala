@@ -424,7 +424,7 @@ trait PromiseGenerationService {
           updatedNodeConfigIds  =  getNodesConfigVersion(allNodeConfigurations, nodeConfigCaches, generationTime)
           //updatedNodeConfigs    =  nodeConfigs.collect{ case (id, value) if (updatedNodeConfigIds.keySet.contains(id)) => (id, value) } // filterKeys wrap original collection
           updatedNodeInfo       =  allNodeConfigurations.collect{ case (nodeId, nodeconfig) if (updatedNodeConfigIds.keySet.contains(nodeId)) => (nodeId, nodeconfig.nodeInfo)}
-          updatedNodesId        =  updatedNodeInfo.map(_._1) // prevent from keeping an undue reference after generation
+          updatedNodesId        =  updatedNodeInfo.map(_._1).toSet // prevent from keeping an undue reference after generation
           // WHY DO WE NEED TO FORGET OTHER NODES CACHE INFO HERE ?
           _                     <- forgetOtherNodeConfigurationState(allNodeConfigsId) ?~! "Cannot clean the configuration cache"
 
@@ -461,7 +461,7 @@ trait PromiseGenerationService {
 
       /// now, if there was failed config or failed write, time to show them
       //invalidate compliance may be very very long - make it async
-      _                     =  Future { invalidateComplianceCache(updatedNodesId.toSet) }(parallelism.scheduler)
+      _                     =  Future { invalidateComplianceCache(updatedNodesId) }(parallelism.scheduler)
       _                     =  {
                                  PolicyLogger.info("Timing summary:")
                                  PolicyLogger.info("Run pre-gen scripts hooks     : %10s ms".format(timeRunPreGenHooks))
