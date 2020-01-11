@@ -461,7 +461,7 @@ trait PromiseGenerationService {
 
       /// now, if there was failed config or failed write, time to show them
       //invalidate compliance may be very very long - make it async
-      _                     =  Future { invalidateComplianceCache(updatedNodesId) }(parallelism.scheduler)
+      _                     =  Future { invalidateComplianceCache(updatedNodesId.toSet) }(parallelism.scheduler)
       _                     =  {
                                  PolicyLogger.info("Timing summary:")
                                  PolicyLogger.info("Run pre-gen scripts hooks     : %10s ms".format(timeRunPreGenHooks))
