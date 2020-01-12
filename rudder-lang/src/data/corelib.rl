@@ -1,6 +1,6 @@
 @format=0
 
-global enum os {
+global enm os {
   ubuntu,
   debian
 }
@@ -22,4 +22,3 @@ enum outcome {
   repaired,
   error
 }
-
