@@ -43,31 +43,36 @@ import net.liftweb.common.Logger
 /**
  * Applicative log of for policy generation
  */
-object PolicyLogger extends Logger {
+object PolicyGenerationLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("policy.generation")
 
   object expectedReports extends Logger {
     override protected def _logger = LoggerFactory.getLogger("policy.generation.expected_reports")
   }
+
+  object timing extends Logger {
+    override protected def _logger = LoggerFactory.getLogger("policy.generation.timing")
+    object buildNodeConfig extends Logger {
+      override protected def _logger = LoggerFactory.getLogger("policy.generation.timing.buildNodeConfig")
+    }
+  }
+
 }
 
-object PolicyLoggerPure extends NamedZioLogger {
+object PolicyGenerationLoggerPure extends NamedZioLogger {
   override def loggerName  = "policy.generation"
 
   object expectedReports extends NamedZioLogger {
     override def loggerName = "policy.generation.expected_reports"
   }
+
+  object timing extends NamedZioLogger {
+    override def loggerName: String = "policy.generation.timing"
+    object buildNodeConfig extends NamedZioLogger {
+      override def loggerName: String = "policy.generation.timing.buildNodeConfig"
+    }
+  }
+
 }
 
 
-object GitArchiveLoggerPure extends NamedZioLogger {
-  override def loggerName: String = "git-policy-archive"
-}
-
-object GitArchiveLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("git-policy-archive")
-}
-
-object ComplianceLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("compliance")
-}

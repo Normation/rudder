@@ -50,6 +50,7 @@ import com.normation.utils.Control.bestEffort
 import net.liftweb.common._
 import org.joda.time.DateTime
 import com.normation.inventory.domain.AgentType
+import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.services.policies.ParameterEntry
 import com.normation.rudder.services.policies.Policy
 import com.normation.utils.Control.sequence
@@ -89,7 +90,7 @@ class PrepareTemplateVariablesImpl(
   , systemVariableSpecService: SystemVariableSpecService
   , buildBundleSequence      : BuildBundleSequence
   , agentRegister            : AgentRegister
-) extends PrepareTemplateVariables with Loggable {
+) extends PrepareTemplateVariables {
 
 
   override def prepareTemplateForAgentNodeConfiguration(
@@ -106,11 +107,11 @@ class PrepareTemplateVariablesImpl(
     import com.normation.rudder.services.policies.SystemVariableService._
 
     val nodeId = agentNodeConfig.config.nodeInfo.id
-    logger.debug(s"Writing policies for node '${agentNodeConfig.config.nodeInfo.hostname}' (${nodeId.value})")
+    PolicyGenerationLogger.debug(s"Writing policies for node '${agentNodeConfig.config.nodeInfo.hostname}' (${nodeId.value})")
 
     // Computing policy mode of the node
     val agentPolicyMode = PolicyMode.computeMode(globalPolicyMode, agentNodeConfig.config.nodeInfo.policyMode, Seq()) match {
-      case Left(r) => logger.error(s"Failed to compute policy mode for node ${agentNodeConfig.config.nodeInfo.node.id.value}, cause is ${r} - defaulting to enforce"); Enforce
+      case Left(r) => PolicyGenerationLogger.error(s"Failed to compute policy mode for node ${agentNodeConfig.config.nodeInfo.node.id.value}, cause is ${r} - defaulting to enforce"); Enforce
       case Right(value) => value
     }
 
@@ -182,7 +183,7 @@ class PrepareTemplateVariablesImpl(
     for {
       variableHandler    <- agentRegister.findHandler(agentNodeProps) ?~! s"Error when trying to fetch variable escaping method for node ${agentNodeProps.nodeId.value}"
       preparedTechniques <-  sequence(policies) { p =>
-        logger.trace(s"Processing node '${agentNodeProps.nodeId.value}':${p.ruleName}/${p.directiveName} [${p.id.value}]")
+        PolicyGenerationLogger.trace(s"Processing node '${agentNodeProps.nodeId.value}':${p.ruleName}/${p.directiveName} [${p.id.value}]")
         for {
           variables <- prepareVariables(agentNodeProps, variableHandler, p, systemVars) ?~! s"Error when trying to build variables for technique(s) in node ${agentNodeProps.nodeId.value}"
         } yield {
@@ -265,7 +266,7 @@ class PrepareTemplateVariablesImpl(
                        case x : SystemVariableSpec => systemVars.get(x.name) match {
                            case None =>
                              if(x.constraint.mayBeEmpty) { //ok, that's expected
-                               logger.trace(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Variable system named '${x.name}' not found in the extended variables environnement")
+                               PolicyGenerationLogger.trace(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Variable system named '${x.name}' not found in the extended variables environnement")
                                Full(None)
                              } else {
                                Failure(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Missing value for system variable: '${x.name}'")

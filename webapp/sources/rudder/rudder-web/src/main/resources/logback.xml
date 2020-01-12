@@ -273,6 +273,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <appender-ref ref="OPSLOG" />
     <appender-ref ref="STDOUT" />
   </logger>
+  <!--
+      These two loggers allows to log information about policy generation performance.
+      Use debug or trace level. Trace is very verbose.
+  -->
+  <logger name="policy.generation.timing" level="info" />
+  <logger name="policy.generation.timing.buildNodeConfig" level="info" />
 
 
   <!--

@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2013 Normation SAS
+* Copyright 2012 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -37,12 +37,19 @@
 
 package com.normation.rudder.domain.logger
 
+import com.normation.NamedZioLogger
 import org.slf4j.LoggerFactory
 import net.liftweb.common.Logger
 
 /**
- * Logger about change request and other workflow thing.
+ * Applicative log of interest for Rudder ops.
  */
-object ChangeRequestLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("changeRequest")
+object TimingDebugLogger extends Logger {
+  override protected def _logger = LoggerFactory.getLogger("debug_timing")
 }
+
+object TimingDebugLoggerPure extends NamedZioLogger {
+  override def loggerName: String = "debug_timing"
+}
+
+

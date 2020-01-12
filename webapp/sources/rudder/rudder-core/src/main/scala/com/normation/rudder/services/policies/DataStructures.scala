@@ -53,7 +53,7 @@ import com.normation.rudder.domain.parameters.Parameter
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import cats.data.NonEmptyList
-import com.normation.rudder.domain.logger.PolicyLogger
+import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.cfclerk.domain.RunHook
 import com.normation.cfclerk.domain.SystemVariableSpec
 import com.normation.cfclerk.domain.TrackerVariableSpec
@@ -403,11 +403,11 @@ final object Policy {
               case Some(existingVariable) => // value is already there
                 // hope it is multivalued, otherwise BAD THINGS will happen
                 if (!existingVariable.spec.multivalued) {
-                  PolicyLogger.warn(s"Attempt to append value into a non multivalued variable '${existingVariable.spec.name}', please report the problem as a bug.")
+                  PolicyGenerationLogger.warn(s"Attempt to append value into a non multivalued variable '${existingVariable.spec.name}', please report the problem as a bug.")
                 }
                 existingVariable.copyWithAppendedValues(newVar.values) match {
                   case Left(err) =>
-                    PolicyLogger.error(s"Error when merging variables '${existingVariable.spec.name}' (init: ${existingVariable.values.toString} ; " +
+                    PolicyGenerationLogger.error(s"Error when merging variables '${existingVariable.spec.name}' (init: ${existingVariable.values.toString} ; " +
                                        s"new val: ${newVar.values.toString}. This is most likely a bug, please report it")
                     existingVariable
                   case Right(v) => v

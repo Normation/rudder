@@ -316,20 +316,20 @@ object RunHooks {
                  //compare ignore case (that's why it's a regienMatches) extension and name
                  ignoreSuffixes.find(suffix => name.regionMatches(true, name.length - suffix.length, suffix, 0, suffix.length)) match {
                    case Some(suffix) =>
-                     PureHooksLogger.debug(s"Ignoring hook '${f.getAbsolutePath}' because suffix '${suffix}' is in the ignore list")
+                     HooksLogger.debug(s"Ignoring hook '${f.getAbsolutePath}' because suffix '${suffix}' is in the ignore list")
                      None
                    case None      =>
                      Some(f.getName)
                  }
                } else {
-                 PureHooksLogger.debug(s"Ignoring hook '${f.getAbsolutePath}' because it is not executable. Check permission if not expected behavior.")
+                 HooksLogger.debug(s"Ignoring hook '${f.getAbsolutePath}' because it is not executable. Check permission if not expected behavior.")
                  None
                }
            }
          }.sorted // sort them alphanumericaly
          Hooks(basePath, files)
        } else {
-         PureHooksLogger.debug(s"Ignoring hook directory '${dir.getAbsolutePath}' because path does not exists")
+         HooksLogger.debug(s"Ignoring hook directory '${dir.getAbsolutePath}' because path does not exists")
          // return an empty Hook
          Hooks(basePath, List[String]())
        }
