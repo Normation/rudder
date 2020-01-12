@@ -118,10 +118,10 @@ object RunNuCommand {
     val stdout = new java.lang.StringBuilder()
 
     override def onStderrChars(buffer: CharBuffer, closed: Boolean, coderResult: CoderResult): Unit = {
-      stderr.append(buffer)
+      while(!closed && buffer.hasRemaining) { stderr.append(buffer.get()) }
     }
     override def onStdoutChars(buffer: CharBuffer, closed: Boolean, coderResult: CoderResult): Unit = {
-      stdout.append(buffer)
+      while(!closed && buffer.hasRemaining) { stdout.append(buffer.get()) }
     }
 
     override def onExit(exitCode: Int): Unit = {
