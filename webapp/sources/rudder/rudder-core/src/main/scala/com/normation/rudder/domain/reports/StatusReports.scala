@@ -239,7 +239,7 @@ final case class DirectiveStatusReport(
 ) extends StatusReport {
   override lazy val compliance = ComplianceLevel.sum(components.map(_._2.compliance) )
   def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(DirectiveId, String, ComponentValueStatusReport)] = {
-      components.values.flatMap( _.getValues(predicate) ).toSeq.map { case(s,v) => (directiveId,s,v) }
+      components.values.view.flatMap( _.getValues(predicate) ).map { case(s,v) => (directiveId,s,v) }.force.toSeq
   }
 
   override def toString() = s"""[${directiveId.value} =>
@@ -288,7 +288,7 @@ final case class ComponentStatusReport(
    * Get all values matching the predicate
    */
   def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(String, ComponentValueStatusReport)] = {
-      componentValues.values.filter(predicate(_)).toSeq.map(x => (componentName, x))
+      componentValues.values.view.filter(predicate(_)).map(x => (componentName, x)).force.toSeq
   }
 
   /*
@@ -307,7 +307,7 @@ object ComponentStatusReport extends Loggable {
     components.groupBy( _.componentName).map { case (cptName, reports) =>
       val newValues = ComponentValueStatusReport.merge(reports.flatMap( _.componentValues.values))
       (cptName, ComponentStatusReport(cptName, newValues))
-    }.toMap
+    }
   }
 }
 
@@ -349,7 +349,7 @@ object ComponentValueStatusReport extends Loggable {
       )
 
     }
-    pairs.toMap
+    pairs
   }
 }
 
