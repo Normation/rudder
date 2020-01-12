@@ -226,7 +226,7 @@ object RuleNodeStatusReport {
       val newDirectives = DirectiveStatusReport.merge(reports.flatMap( _.directives.values))
 
       //the merge of two reports expire when the first one expire
-      val expire = reports.minBy(_.expirationDate.getMillis).expirationDate.getMillis
+      val expire = new DateTime(reports.minBy(_.expirationDate.getMillis).expirationDate.getMillis)
       (id, RuleNodeStatusReport(id._1, id._2, id._3, id._4, newDirectives, expire))
     }.toMap
   }
