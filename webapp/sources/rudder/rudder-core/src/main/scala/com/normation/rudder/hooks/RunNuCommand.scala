@@ -114,18 +114,18 @@ object RunNuCommand {
    * Exit code, stdout and stderr content are accumulated in CmdResult data structure.
    */
   private[this] class CmdProcessHandler(promise: Promise[Nothing, CmdResult]) extends NuAbstractCharsetHandler(StandardCharsets.UTF_8) {
-    val stderr = new StringBuilder()
-    val stdout = new StringBuilder()
+    val stderr = new java.lang.StringBuilder()
+    val stdout = new java.lang.StringBuilder()
 
     override def onStderrChars(buffer: CharBuffer, closed: Boolean, coderResult: CoderResult): Unit = {
-      while(buffer.hasRemaining) { stderr + buffer.get() }
+      stderr.append(buffer)
     }
     override def onStdoutChars(buffer: CharBuffer, closed: Boolean, coderResult: CoderResult): Unit = {
-      while(buffer.hasRemaining) { stdout + buffer.get() }
+      stdout.append(buffer)
     }
 
     override def onExit(exitCode: Int): Unit = {
-      promise.succeed(CmdResult(exitCode, stdout.toString, stderr.toString)).runNow
+      ZioRuntime.internal.unsafeRun(promise.succeed(CmdResult(exitCode, stdout.toString, stderr.toString)).untraced)
     }
 
     def run = promise
@@ -169,18 +169,18 @@ object RunNuCommand {
      */
     import scala.collection.JavaConverters._
     val cmdInfo =  s"'${cmd.cmdPath} ${cmd.parameters.mkString(" ")}'"
-    def effect[A](effect: => A) = IOResult.effect(s"Error when executing command ${cmdInfo}")(effect)
+    val errorMsg = s"Error when executing command ${cmdInfo}"
 
 
-    for {
+    (for {
       _              <- ZIO.when(limit == Infinity|| limit.toMillis <= 0) {
                           logger.warn(s"No duration limit set for command '${cmd.cmdPath} ${cmd.parameters.mkString(" ")}'. " +
                               "That can create a pill of zombies if termination of the command is not correct")
                         }
       promise        <- Promise.make[Nothing, CmdResult]
-      handler        <- effect(new CmdProcessHandler(promise))
-      processBuilder <- effect(new NuProcessBuilder((cmd.cmdPath::cmd.parameters).asJava, cmd.environment.asJava))
-      _              <- effect(processBuilder.setProcessListener(handler))
+      handler        =  new CmdProcessHandler(promise)
+      processBuilder =  new NuProcessBuilder((cmd.cmdPath::cmd.parameters).asJava, cmd.environment.asJava)
+      _              <- IOResult.effectNonBlocking(errorMsg)(processBuilder.setProcessListener(handler))
 
       /*
        * The start process is nasty:
@@ -189,21 +189,23 @@ object RunNuCommand {
        *   see: https://github.com/brettwooldridge/NuProcess/issues/63
        * In the meantime, we silent the logger, and we check for return code of min value with
        * commons use cases:
+       *
+       * It is non blocking though, as the blocking part is done in the spwaned thread.
        */
-      process        <- effect(processBuilder.start())
-      res            <- if(process == null) {
+      process        <- IOResult.effectNonBlocking(errorMsg)(processBuilder.start())
+      _              <- if(process == null) {
                           Unexpected(s"Error: unable to start native command ${cmdInfo}").fail
                         } else {
                           //that class#method does not accept interactive mode
-                          effect {
+                          // this part can block, waiting for things to complete
+                          IOResult.effect(errorMsg) {
                             process.closeStdin(true)
                             process.waitFor(limit.toMillis, java.util.concurrent.TimeUnit.MILLISECONDS)
-                            handler.run
-                          }
+                          }.fork
                         }
     } yield {
-      res
-    }
+      promise
+    }).untraced
   }
 
 }

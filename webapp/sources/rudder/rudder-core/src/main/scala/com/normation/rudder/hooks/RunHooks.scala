@@ -44,7 +44,6 @@ import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Logger
-import net.liftweb.util.Helpers.tryo
 import org.slf4j.LoggerFactory
 import zio._
 import zio.syntax._
@@ -52,6 +51,7 @@ import zio.duration._
 import com.normation.errors._
 import com.normation.zio._
 import com.normation.zio.ZioRuntime
+import com.normation.box._
 
 /*
  * The goal of that file is to give a simple abstraction to run hooks in
@@ -185,15 +185,17 @@ object RunHooks {
    * - > 255: should not happen, but treated as reserved.
    *
    */
-  def asyncRun(hooks: Hooks, hookParameters: HookEnvPairs, envVariables: HookEnvPairs, warnAfterMillis: Duration = 5.minutes, killAfter: Duration = 1.hour): IOResult[HookReturnCode] = {
+  def asyncRun(hooks: Hooks, hookParameters: HookEnvPairs, envVariables: HookEnvPairs, warnAfterMillis: Duration = 5.minutes, killAfter: Duration = 1.hour): IOResult[(HookReturnCode, Long)] = {
 
     import HookReturnCode._
 
     def logReturnCode(result: HookReturnCode): IOResult[Unit] = {
       for {
-        _ <- PureHooksLogger.trace(s"  -> results: ${result.msg}")
-        _ <- PureHooksLogger.trace(s"  -> stdout : ${result.stdout}")
-        _ <- PureHooksLogger.trace(s"  -> stderr : ${result.stderr}")
+        _ <- ZIO.when(PureHooksLogger.logEffect.isTraceEnabled()) {
+               PureHooksLogger.trace(s"  -> results: ${result.msg}") *>
+               PureHooksLogger.trace(s"  -> stdout : ${result.stdout}") *>
+               PureHooksLogger.trace(s"  -> stderr : ${result.stderr}")
+             }
         _ <- ZIO.when(result.code >= 32 && result.code <= 64) { // warning
                for {
                  _ <- PureHooksLogger.warn(result.msg)
@@ -244,7 +246,7 @@ object RunHooks {
           for {
             _ <- PureHooksLogger.debug(s"Run hook: '${path}' with environment parameters: ${hookParameters.show}")
             _ <- PureHooksLogger.trace(s"System environment variables: ${envVariables.show}")
-            p <- RunNuCommand.run(Cmd(path, Nil, env.toMap))
+            p <- RunNuCommand.run(Cmd(path, Nil, env.toMap)).untraced
             r <- p.await
             c =  translateReturnCode(path, r)
             _ <- logReturnCode(c)
@@ -252,22 +254,23 @@ object RunHooks {
             c
           }
       }
-    }
+    }.untraced
 
     val cmdInfo = s"'${hooks.basePath}' with environment parameters: [${hookParameters.show}]"
     (for {
       //cmdInfo is just for comments/log. We use "*" to synthetize
       _        <- PureHooksLogger.debug(s"Run hooks: ${cmdInfo}")
       _        <- PureHooksLogger.trace(s"Hook environment variables: ${envVariables.show}")
-      time_0   <- UIO(System.currentTimeMillis)
-      res      <- ZioRuntime.blocking(runAllSeq).timeout(killAfter).notOptional(s"Hook '${cmdInfo}' timed out after ${killAfter.asJava.toString}").provide(ZioRuntime.environment)
-      duration <- UIO(System.currentTimeMillis - time_0)
-      _        <- ZIO.when(duration > warnAfterMillis.toMillis) {
-                    PureHooksLogger.LongExecLogger.warn(s"Hooks in directory '${cmdInfo}' took more than configured expected max duration (${warnAfterMillis.toMillis}): ${duration} ms")
+      time_0   <- currentTimeNanos
+      res      <- ZioRuntime.blocking(runAllSeq).timeout(killAfter).notOptional(s"Hook '${cmdInfo}' timed out after ${killAfter.asJava.toString}").provide(ZioRuntime.environment).untraced
+      time_1   <- currentTimeNanos
+      duration =  time_1 - time_0
+      _        <- ZIO.when(duration/1000000 > warnAfterMillis.toMillis) {
+                    PureHooksLogger.LongExecLogger.warn(s"Hooks in directory '${cmdInfo}' took more than configured expected max duration (${warnAfterMillis.toMillis}): ${duration/1000000} ms")
                   }
-      _        <- PureHooksLogger.debug(s"Done in ${duration} ms: ${cmdInfo}") // keep that one in all cases if people want to do stats
+      _        <- PureHooksLogger.debug(s"Done in ${duration/1000} us: ${cmdInfo}") // keep that one in all cases if people want to do stats
     } yield {
-      res
+      (res, duration)
     }).chainError(s"Error when executing hooks in directory '${hooks.basePath}'.")
   }
 
@@ -290,7 +293,7 @@ object RunHooks {
    */
   def syncRun(hooks: Hooks, hookParameters: HookEnvPairs, envVariables: HookEnvPairs, warnAfterMillis: Duration = 5.minutes, killAfter: Duration = 1.hour): HookReturnCode = {
     asyncRun(hooks, hookParameters, envVariables, warnAfterMillis, killAfter).either.runNow match {
-      case Right(x)  => x
+      case Right(x)  => x._1
       case Left(err) => HookReturnCode.SystemError(s"Error when executing hooks in directory '${hooks.basePath}'. Error message is: ${err.fullMsg}")
     }
   }
@@ -300,8 +303,10 @@ object RunHooks {
    * Hooks must be executable and not ends with one of the
    * non-executable extensions.
    */
-   def getHooks(basePath: String, ignoreSuffixes: List[String]): Box[Hooks] = {
-     tryo {
+   def getHooks(basePath: String, ignoreSuffixes: List[String]): Box[Hooks] = getHooksPure(basePath, ignoreSuffixes).toBox
+
+   def getHooksPure(basePath: String, ignoreSuffixes: List[String]): IOResult[Hooks] = {
+     IOResult.effect {
        val dir = new File(basePath)
        // Check that dir exists before looking in it
        if (dir.exists) {
