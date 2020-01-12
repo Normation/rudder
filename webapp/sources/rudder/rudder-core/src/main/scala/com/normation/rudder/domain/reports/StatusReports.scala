@@ -116,7 +116,7 @@ final class NodeStatusReport private (
 
 object NodeStatusReport {
   def apply(nodeId: NodeId, runInfo:  RunAndConfigInfo, statusInfo: RunComplianceInfo, overrides : List[OverridenPolicy], reports: Iterable[RuleNodeStatusReport]) = {
-    new NodeStatusReport(nodeId, runInfo, statusInfo, overrides, AggregatedStatusReport(reports.toSet.filter( _.nodeId == nodeId)))
+    new NodeStatusReport(nodeId, runInfo, statusInfo, overrides, AggregatedStatusReport(reports.filter( _.nodeId == nodeId).toSet))
   }
 
   // To use when you are sure that all reports are indeed for the designated node.
@@ -200,11 +200,11 @@ final case class RuleNodeStatusReport(
   |  ${directives.values.toSeq.sortBy( _.directiveId.value ).map { x => s"${x}" }.mkString("\n  ")}]
   |""".stripMargin('|')
 
-
+/*
   def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(DirectiveId, String, ComponentValueStatusReport)] = {
       directives.values.flatMap( _.getValues(predicate)).toSeq
   }
-
+*/
   def withFilteredElements(
       directive: DirectiveStatusReport => Boolean
     , component: ComponentStatusReport => Boolean
@@ -226,7 +226,7 @@ object RuleNodeStatusReport {
       val newDirectives = DirectiveStatusReport.merge(reports.flatMap( _.directives.values))
 
       //the merge of two reports expire when the first one expire
-      val expire = new DateTime( reports.map( _.expirationDate.getMillis).min )
+      val expire = reports.minBy(_.expirationDate.getMillis).expirationDate.getMillis
       (id, RuleNodeStatusReport(id._1, id._2, id._3, id._4, newDirectives, expire))
     }.toMap
   }

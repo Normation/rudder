@@ -356,16 +356,6 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       t1                  =  System.currentTimeMillis
       _                   =  TimingDebugLogger.trace(s"Compliance: get node run infos: ${t1-t0}ms")
 
-      // that gives us configId for runs, and expected configId (some may be in both set)
-      expectedConfigIds   =  runInfos.collect { case (nodeId, x:ExpectedConfigAvailable) => NodeAndConfigId(nodeId, x.expectedConfig.nodeConfigId) }
-      lastrunConfigId     =  runInfos.collect {
-                               case (nodeId, Pending(_, Some(run), _)) => NodeAndConfigId(nodeId, run._2.nodeConfigId)
-                               case (nodeId, x:LastRunAvailable) => NodeAndConfigId(nodeId, x.lastRunConfigId)
-                             }
-
-      t2                  =  System.currentTimeMillis
-      _                   =  TimingDebugLogger.debug(s"Compliance: get run infos: ${t2-t0}ms")
-
       // compute the status
       nodeStatusReports   <- buildNodeStatusReports(runInfos, ruleIds, complianceMode.mode, unexpectedMode)
 
