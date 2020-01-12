@@ -103,18 +103,20 @@ class HooksTest() extends Specification with AfterAll {
   }
 
 // This one is more for testing performance. I don't want to make it a test, because in
-// a CI it can be exptremelly different. But at least the code is here for anybody to check. 
+// a CI it can be exptremelly different. But at least the code is here for anybody to check.
 //  "Running a hook 1000 times should be extremely fast" >> {
 //
 //    //org.slf4j.LoggerFactory.getLogger("hooks").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.DEBUG)
-//    def runOne = RunHooks.syncRun(Hooks(tmp.pathAsString, List("echoCODE.sh")), HookEnvPairs(HookEnvPair("CODE", "0") :: Nil), HookEnvPairs(Nil), 1.second.toMillis, 1.second)
 //
-//    def many = (0 until 1000).map { i =>
-//      val t0 = System.currentTimeMillis()
+//    import zio._
+//    import zio.syntax._
+//    import com.normation.zio._
+//
+//    val runOne = RunHooks.asyncRun(Hooks(tmp.pathAsString, List("echoCODE.sh")), HookEnvPairs(HookEnvPair("CODE", "0") :: Nil), HookEnvPairs(Nil), 1.second, 1.second)
+//
+//    val many = (ZIO.traverse(0 until 1000) { i =>
 //      runOne
-//      val t1 = System.currentTimeMillis()
-//      t1 - t0
-//    }.sum
+//    }).timed.provide(ZioRuntime.environment).map(_._1.toMillis)
 //
 //    /* Typical results in a dell xps 8 cores:
 //     *  2838 ms
@@ -128,9 +130,10 @@ class HooksTest() extends Specification with AfterAll {
 //     *  1619 ms
 //     *  1624 ms
 //     */
-//    val res = (0 until 10).foreach(_ => println(many + " ms"))
+//    val res = println((0 until 10).map(_ => ZioRuntime.unsafeRun(many)).sum)
 //
 //    1 === 1
+//
 //
 //  }
 }
