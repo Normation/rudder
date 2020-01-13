@@ -204,7 +204,7 @@ class RoLDAPDirectiveRepository(
       entries  <- con.searchSub(category.dn, IS(OC_DIRECTIVE), Seq[String]():_*)
       results  <- ZIO.foreach(entries)(x => mapper.entry2Directive(x).toIO)
     } yield {
-      results.size > 0
+      results.nonEmpty
     }).fold(_ => false, identity)
   }
 

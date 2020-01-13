@@ -687,7 +687,7 @@ class NodeInfoServiceCachedImpl(
                          logPure.debug(s"Error when checking for cache expiration: invalidating it. Error was: ${err.fullMsg}") *> false.succeed
                      , seq => {
                          //we only have interesting entries in the result, so it's up to date if we have exactly 0 entries
-                         val res = seq.size <= 0
+                         val res = seq.isEmpty
                          logPure.trace(s"Cache check for node info gave '${res}' (${seq.size} entry returned)") *> res.succeed
                        }
                      )

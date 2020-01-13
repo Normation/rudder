@@ -46,7 +46,7 @@ import java.util.regex.Pattern
  */
 case class RegexConstraint(pattern: String, errorMsg: String) {
 
-  if(pattern == null || pattern.size < 1) {
+  if(pattern == null || pattern.isEmpty) {
     throw new ConstraintException("A regex constraint was created with an empty pattern, which has no meaning")
   }
 

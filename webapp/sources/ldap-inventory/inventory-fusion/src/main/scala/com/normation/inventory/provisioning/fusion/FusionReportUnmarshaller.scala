@@ -308,8 +308,8 @@ class FusionReportUnmarshaller(
     // Check that a seq contains only one or identical values, if not fails
     def uniqueValueInSeq[T]( seq: Seq[T], errorMessage : String) : IOResult[T] = {
       seq.distinct match {
-        case entry if entry.size != 1 => InventoryError.Inconsistency(s"${errorMessage} (${entry.size} value(s) found in place of exactly 1)").fail
-        case entry if entry.size == 1 => entry.head.succeed
+        case entry if entry.lengthCompare(1) == 0 => entry.head.succeed
+        case entry  => InventoryError.Inconsistency(s"${errorMessage} (${entry.size} value(s) found in place of exactly 1)").fail
       }
     }
 

@@ -128,7 +128,7 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
   // utility method that check duplicate elements in a string sequence case-unsensitive
   private[this] def checkUniqueness(seq:Seq[String])(errorMsg:String) : ValidatedNel[LoadTechniqueError, Unit] = {
     val duplicates = seq.groupBy( _.toLowerCase ).collect {
-      case(k, x) if x.size > 1 => x.mkString("(",",",")")
+      case(k, x) if x.lengthCompare(1) > 0 => x.mkString("(",",",")")
     }
 
     if(duplicates.nonEmpty) {
@@ -145,10 +145,10 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
     val optName = {
       val n = Utils.getAttributeText(root, "name", "")
       if(root.label == SECTIONS_ROOT) {
-        if(n.size > 0) Left(LoadTechniqueError.Parsing(s"<${SECTIONS_ROOT}> can not have a 'name' attribute."))
+        if(n.nonEmpty) Left(LoadTechniqueError.Parsing(s"<${SECTIONS_ROOT}> can not have a 'name' attribute."))
         else Right(SECTION_ROOT_NAME)
       } else {
-        if(n.size > 0) Right(n)
+        if(n.nonEmpty) Right(n)
         else Left(LoadTechniqueError.Parsing("Section must have name. Missing name for: " + root))
       }
     }
@@ -168,8 +168,8 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
       name     <- optName
       children <- parseChildren(name, root, id, policyName)
       expectedReportComponentKey = (children.collect { case x : PredefinedValuesVariableSpec => x }) match {
-                    case seq if seq.size == 0 => None
-                    case seq if seq.size == 1 => Some(seq.head.name)
+                    case seq if seq.isEmpty               => None
+                    case seq if seq.lengthCompare(1) == 0 => Some(seq.head.name)
                     case seq  =>
                       logger.error(s"There are too many predefined reports keys for given section ${name} : keys are : ${seq.map(_.name).mkString(",")}")
                       None
@@ -183,6 +183,7 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
                     case (_ , Some(excp)) => Right(Some(excp))
                     case _ => Right(None)
                   }
+
     // sanity check or derived values from what is before, or the descriptor itself
     isMultivalued = ("true" == Utils.getAttributeText(root, SECTION_IS_MULTIVALUED, "false").toLowerCase || expectedReportComponentKey.isDefined)
     isComponent   = ("true"  == Utils.getAttributeText(root, SECTION_IS_COMPONENT, "false").toLowerCase || expectedReportComponentKey.isDefined)

@@ -265,7 +265,7 @@ final case class NodePropertyComparator(ldapAttr: String) extends NodeCriterionT
         }
       case KeyValueComparator.JsonSelect =>
         val x = value.split(":")
-        if(x.size >= 1) { // remaining '=' will be considered part of the value
+        if(x.nonEmpty) { // remaining '=' will be considered part of the value
           Right(value)
         } else {
           Left(Inconsistancy(s"When looking for 'key=json path expression', we found zero ':', but at least one is mandatory. The left "+
@@ -301,8 +301,8 @@ final case class NodePropertyComparator(ldapAttr: String) extends NodeCriterionT
       }
       // not equals mean: the key is not equals to kv._1 or the value is not defined or the value is defined but equals to kv._2.get
       case NotEquals      => NodeInfoMatcher((node: NodeInfo) => !matches(Equals, value).matches(node))
-      case Exists         => NodeInfoMatcher((node: NodeInfo) => node.properties.size >  0)
-      case NotExists      => NodeInfoMatcher((node: NodeInfo) => node.properties.size <= 0)
+      case Exists         => NodeInfoMatcher((node: NodeInfo) => node.properties.nonEmpty)
+      case NotExists      => NodeInfoMatcher((node: NodeInfo) => node.properties.isEmpty)
       case Regex          => regexMatcher(value)
       case NotRegex       => new NodeInfoMatcher {
                                val regex = regexMatcher(value)
@@ -870,9 +870,9 @@ final case class Criterion(val name:String, val cType: CriterionType, overrideOb
   require(cType != null, "Criterion Type must be defined")
 }
 
-final case class ObjectCriterion(val objectType:String, val criteria:Seq[Criterion]) {
-  require(objectType.length > 0, "Unique identifier for line must be defined")
-  require(criteria.size > 0, "You must at least have one criterion for the line")
+case class ObjectCriterion(val objectType:String, val criteria:Seq[Criterion]) {
+  require(objectType.nonEmpty, "Unique identifier for line must be defined")
+  require(criteria.nonEmpty, "You must at least have one criterion for the line")
 
   //optionnaly retrieve the criterion from a "string" attribute
   def criterionForName(name:String) : (Option[Criterion]) = {

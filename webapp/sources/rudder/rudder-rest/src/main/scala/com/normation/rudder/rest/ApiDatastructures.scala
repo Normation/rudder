@@ -152,7 +152,7 @@ object ApiPath {
   // we don't accept empty string and ignore empty subpart, but appart
   // from that everything works
   def parse(path: String): Either[String, ApiPath] = {
-    path.trim.split("/").filter( _.size > 0).toList match {
+    path.trim.split("/").filter( _.nonEmpty).toList match {
       case Nil    =>
         Left("The given is empty, it can't be a Rudder API path")
       case h :: t =>

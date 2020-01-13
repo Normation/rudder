@@ -199,7 +199,7 @@ class AcceptedNodesLDAPQueryProcessor(
         case NodeReturnType =>
             // we have a special case for the root node that always never to that group, even if some weird
             // scenario lead to the removal (or non addition) of them
-          val withoutServerRole = inNodes.filterNot { case QueryResult(e, inv, _) =>  (inv.valuesFor(A_SERVER_ROLE).size>0 || e(A_NODE_UUID) == Some("root")) }
+          val withoutServerRole = inNodes.filterNot { case QueryResult(e, inv, _) =>  (inv.valuesFor(A_SERVER_ROLE).nonEmpty || e(A_NODE_UUID) == Some("root")) }
           if(logger.isDebugEnabled) {
             val filtered = (inNodes.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }).toSet -- withoutServerRole.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }
             if(!filtered.isEmpty) {

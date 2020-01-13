@@ -1182,11 +1182,11 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
       }
     }
 
-    if(notUpdatedConfig.size > 0) {
+    if(notUpdatedConfig.nonEmpty) {
       PolicyGenerationLogger.debug(s"Not updating non-modified node configuration: [${notUpdatedConfig.map( _.id.value).mkString(", ")}]")
     }
 
-    if(updatedConfig.size == 0) {
+    if(updatedConfig.nonEmpty) {
       PolicyGenerationLogger.info("No node configuration was updated, no policies to write")
       Set()
     } else {
@@ -1421,7 +1421,7 @@ object RuleExpectedReportBuilder extends Loggable {
       }
     }.toList
 
-    if(allComponents.size < 1) {
+    if(allComponents.isEmpty) {
       //that log is outputed one time for each directive for each node using a technique, it's far too
       //verbose on debug.
       PolicyGenerationLogger.trace("Technique '%s' does not define any components, assigning default component with expected report = 1 for Directive %s".format(

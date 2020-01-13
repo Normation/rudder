@@ -331,7 +331,7 @@ sealed class RoLDAPConnection(
 
   override def get(dn:DN, attributes:String*) : LDAPIOResult[Option[LDAPEntry]] = {
     blocking {
-      val e = if(attributes.size == 0) backed.getEntry(dn.toString)
+      val e = if(attributes.isEmpty) backed.getEntry(dn.toString)
               else backed.getEntry(dn.toString, attributes:_*)
       e match {
         case null => None
@@ -487,7 +487,7 @@ class RwLDAPConnection(
    *   the list of modification to apply.
    */
   private def applyMods[MOD <: ReadOnlyLDAPRequest](modName: String, toLDIFChangeRecord:MOD => LDIFChangeRecord, backendAction: MOD => LDAPResult, onlyReportThat: ResultCode => Boolean)(reqs: List[MOD]) : LDAPIOResult[Seq[LDIFChangeRecord]] = {
-    if(reqs.size < 1) IO.succeed(Seq())
+    if(reqs.isEmpty) IO.succeed(Seq())
     else {
       UIO.effectTotal(ldifFileLogger.records(reqs map (toLDIFChangeRecord (_)))) *>
       IO.foreach(reqs) { req =>
