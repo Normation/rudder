@@ -1186,7 +1186,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
       PolicyGenerationLogger.debug(s"Not updating non-modified node configuration: [${notUpdatedConfig.map( _.id.value).mkString(", ")}]")
     }
 
-    if(updatedConfig.nonEmpty) {
+    if(updatedConfig.isEmpty) {
       PolicyGenerationLogger.info("No node configuration was updated, no policies to write")
       Set()
     } else {
