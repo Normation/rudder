@@ -45,6 +45,7 @@ import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
+import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.reports.NodeConfigId
@@ -102,14 +103,15 @@ trait PolicyWriterService {
    *
    */
   def writeTemplate(
-      rootNodeId    : NodeId
-    , nodesToWrite  : Set[NodeId]
-    , allNodeConfigs: Map[NodeId, NodeConfiguration]
-    , versions      : Map[NodeId, NodeConfigId]
+      rootNodeId      : NodeId
+    , nodesToWrite    : Set[NodeId]
+    , allNodeConfigs  : Map[NodeId, NodeConfiguration]
+    , allNodeInfos    : Map[NodeId, NodeInfo]
+    , versions        : Map[NodeId, NodeConfigId]
     , globalPolicyMode: GlobalPolicyMode
     , generationTime  : DateTime
     , parallelism     : Int
-  ) : Box[Seq[NodeConfiguration]]
+  ) : Box[Seq[NodeId]]
 }
 
 class PolicyWriterServiceImpl(
@@ -152,7 +154,7 @@ class PolicyWriterServiceImpl(
         val message = s"could not write ${fileName} file, cause is: ${e.getMessage}"
         Failure(message)
       case Success(_) =>
-        Full(agentNodeConfig)
+        Full(agentNodeConfig.config.nodeInfo.id)
     }
   }
 
@@ -175,7 +177,7 @@ class PolicyWriterServiceImpl(
         val message = s"could not write ${fileName} file, cause is: ${e.getMessage}"
         Failure(message)
       case Success(_) =>
-        Full(agentNodeConfig)
+        Full(agentNodeConfig.config.nodeInfo.id)
     }
   }
 
@@ -259,25 +261,28 @@ class PolicyWriterServiceImpl(
       rootNodeId      : NodeId
     , nodesToWrite    : Set[NodeId]
     , allNodeConfigs  : Map[NodeId, NodeConfiguration]
+    , allNodeInfos    : Map[NodeId, NodeInfo]
     , versions        : Map[NodeId, NodeConfigId]
     , globalPolicyMode: GlobalPolicyMode
     , generationTime  : DateTime
     , parallelism     : Int
-  ) : Box[Seq[NodeConfiguration]] = {
+  ) : Box[Seq[NodeId]] = {
 
-    val nodeConfigsToWrite     = allNodeConfigs.filterKeys(nodesToWrite.contains(_))
-    val interestingNodeConfigs = allNodeConfigs.filterKeys(k => nodeConfigsToWrite.exists{ case(x, _) => x == k }).values.toSeq
+    val interestingNodeConfigs = allNodeConfigs.collect { case (nodeId, nodeConfiguration) if (nodesToWrite.contains(nodeId)) => nodeConfiguration }.toSeq
+
     val techniqueIds           = interestingNodeConfigs.flatMap( _.getTechniqueIds ).toSet
 
-    //debug - but don't fails for debugging !
-    logNodeConfig.log(nodeConfigsToWrite.values.toSeq) match {
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error when trying to write node configurations for debugging"
-        PolicyGenerationLogger.error(e)
-        e.rootExceptionCause.foreach { ex =>
-          PolicyGenerationLogger.error("Root exception cause was:", ex)
-        }
-      case _ => //nothing to do
+    if (logNodeConfig.isDebugEnabled) {
+      //debug - but don't fails for debugging !
+      logNodeConfig.log(interestingNodeConfigs) match {
+        case eb: EmptyBox =>
+          val e = eb ?~! "Error when trying to write node configurations for debugging"
+          PolicyGenerationLogger.error(e)
+          e.rootExceptionCause.foreach { ex =>
+            PolicyGenerationLogger.error("Root exception cause was:", ex)
+          }
+        case _ => //nothing to do
+      }
     }
 
     /*
@@ -315,62 +320,71 @@ class PolicyWriterServiceImpl(
 
     val readTemplateTime1 = System.currentTimeMillis
     for {
-
-      configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeConfigs, newPostfix, backupPostfix)
+      configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeInfos, newPostfix, backupPostfix)
       pathsInfo        =  configAndPaths.map { _.paths }
-      templates        <- readTemplateFromFileSystem(techniqueIds)
-      resources        <- readResourcesFromFileSystem(techniqueIds)
-      // Clearing cache
-      _                 = fillTemplates.clearCache
-      readTemplateTime2 = System.currentTimeMillis
-      readTemplateDur   = readTemplateTime2 - readTemplateTime1
-      _                 = timingLogger.debug(s"Paths computed and templates read in ${readTemplateDur} ms")
+      // we need for yield that to free all agent specific resources
+      (promiseWrittenTime) <- for {
+        (preparedPromises, resources, readTemplateTime2) <- for {
+          templates         <- readTemplateFromFileSystem(techniqueIds)
+          resources         <- readResourcesFromFileSystem(techniqueIds)
+          // Clearing cache
+          _                 =  fillTemplates.clearCache
+          readTemplateTime2 =  System.currentTimeMillis
+          readTemplateDur   =  readTemplateTime2 - readTemplateTime1
+          _                 =  timingLogger.debug(s"Paths computed and templates read in ${readTemplateDur} ms")
 
-      //////////
-      // nothing agent specific before that
-      //////////
+          //////////
+          // nothing agent specific before that
+          //////////
 
-      preparedPromises <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
-                            val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
-                            prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, Policy.TAG_OF_RUDDER_ID, globalPolicyMode, generationTime) ?~!
-                            s"Error when calculating configuration for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})"
-                         }
-      preparedPromisesTime = System.currentTimeMillis
-      preparedPromisesDur  = preparedPromisesTime - readTemplateTime2
-      _                    = timingLogger.debug(s"Promises prepared in ${preparedPromisesDur} ms")
+          // this part looks like a memory hot spot
+          preparedPromises  <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
+                                 val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
+                                 prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, Policy.TAG_OF_RUDDER_ID, globalPolicyMode, generationTime) ?~!
+                                 s"Error when calculating configuration for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})"
+                               }
+        } yield {
+          (preparedPromises, resources, readTemplateTime2)
+        }
 
-      promiseWritten   <- parrallelSequence(preparedPromises) { prepared =>
-                            (for {
-                              _ <- writePromises(prepared.paths, prepared.agentNodeProps.agentType, prepared.preparedTechniques, resources)
-                              _ <- writeAllAgentSpecificFiles.write(prepared) ?~! s"Error with node '${prepared.paths.nodeId.value}'"
-                              _ <- writeDirectiveCsv(prepared.paths, prepared.policies, globalPolicyMode)
-                              _ <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
-                            } yield {
-                              "OK"
-                            }) ?~! s"Error when writing configuration for node '${prepared.paths.nodeId.value}'"
-                          }
-      promiseWrittenTime = System.currentTimeMillis
-      promiseWrittenDur  = promiseWrittenTime - preparedPromisesTime
-      _                  = timingLogger.debug(s"Policies written in ${promiseWrittenDur} ms")
+        preparedPromisesTime = System.currentTimeMillis
+        preparedPromisesDur  = preparedPromisesTime - readTemplateTime2
+        _                    = timingLogger.debug(s"Promises prepared in ${preparedPromisesDur} ms")
 
+        _                    <- parrallelSequence(preparedPromises) { prepared =>
+                                  (for {
+                                    _ <- writePromises(prepared.paths, prepared.agentNodeProps.agentType, prepared.preparedTechniques, resources)
+                                    _ <- writeAllAgentSpecificFiles.write(prepared) ?~! s"Error with node '${prepared.paths.nodeId.value}'"
+                                    _ <- writeDirectiveCsv(prepared.paths, prepared.policies, globalPolicyMode)
+                                    _ <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
+                                  } yield {
+                                    "OK"
+                                  }) ?~! s"Error when writing configuration for node '${prepared.paths.nodeId.value}'"
+                                }
+        promiseWrittenTime   =  System.currentTimeMillis
+        promiseWrittenDur    =  promiseWrittenTime - preparedPromisesTime
+        _                    =  timingLogger.debug(s"Policies written in ${promiseWrittenDur} ms")
 
+      } yield {
+        (promiseWrittenTime)
+      }
       //////////
       // nothing agent specific after that
       //////////
 
-      propertiesWritten <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
-                             writeNodePropertiesFile(agentNodeConfig) ?~!
-                               s"An error occured while writing property file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
-                           }
+      _                    <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
+                                writeNodePropertiesFile(agentNodeConfig) ?~!
+                                  s"An error occured while writing property file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
+                              }
 
       propertiesWrittenTime = System.currentTimeMillis
       propertiesWrittenDur  = propertiesWrittenTime - promiseWrittenTime
       _                     = timingLogger.debug(s"Properties written in ${propertiesWrittenDur} ms")
 
-      parametersWritten <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
-                             writeRudderParameterFile(agentNodeConfig) ?~!
-                               s"An error occured while writing parameter file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
-                          }
+      _                     <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
+                               writeRudderParameterFile(agentNodeConfig) ?~!
+                                 s"An error occured while writing parameter file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
+                            }
 
       parametersWrittenTime = System.currentTimeMillis
       parametersWrittenDur  = parametersWrittenTime - propertiesWrittenTime
@@ -382,7 +396,7 @@ class PolicyWriterServiceImpl(
       // and perhaps we should have an AgentSpecific global pre/post write
 
       nodePreMvHooks   <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-ready", HOOKS_IGNORE_SUFFIXES)
-      preMvHooks       <- parallelSequenceNodeHook(configAndPaths) { agentNodeConfig =>
+      _                <- parallelSequenceNodeHook(configAndPaths) { agentNodeConfig =>
                             val timeHooks = System.currentTimeMillis
                             val nodeId = agentNodeConfig.config.nodeInfo.node.id.value
                             val hostname = agentNodeConfig.config.nodeInfo.hostname
@@ -417,7 +431,7 @@ class PolicyWriterServiceImpl(
       _                  = timingLogger.debug(s"Policies moved to their final position in ${movedPromisesDur} ms")
 
       nodePostMvHooks  <- RunHooks.getHooks(HOOKS_D + "/policy-generation-node-finished", HOOKS_IGNORE_SUFFIXES)
-      postMvHooks      <- parallelSequenceNodeHook(configAndPaths) { agentNodeConfig =>
+      _                <- parallelSequenceNodeHook(configAndPaths) { agentNodeConfig =>
                             val timeHooks = System.currentTimeMillis
                             val nodeId = agentNodeConfig.config.nodeInfo.node.id.value
                             val hostname = agentNodeConfig.config.nodeInfo.hostname
@@ -444,8 +458,7 @@ class PolicyWriterServiceImpl(
       postMvHooksTime2   = System.currentTimeMillis
       _                  = timingLogger.debug(s"Hooks for policy-generation-node-finished executed in ${postMvHooksTime2 - movedPromisesTime2} ms")
     } yield {
-      val ids = movedPromises.map { _.nodeId }.toSet
-      allNodeConfigs.filterKeys { id => ids.contains(id) }.values.toSeq
+      movedPromises.map { _.nodeId }
     }
 
   }
@@ -462,7 +475,7 @@ class PolicyWriterServiceImpl(
   private[this] def calculatePathsForNodeConfigurations(
       configs            : Seq[NodeConfiguration]
     , rootNodeConfigId   : NodeId
-    , allNodeConfigs     : Map[NodeId, NodeConfiguration]
+    , allNodeInfos       : Map[NodeId, NodeInfo]
     , newsFileExtension  : String
     , backupFileExtension: String
   ): Box[Seq[AgentNodeConfiguration]] = {
@@ -485,7 +498,7 @@ class PolicyWriterServiceImpl(
                       , pathComputer.getRootPath(agentType) + backupFileExtension
                     ))
                   } else {
-                    pathComputer.computeBaseNodePath(config.nodeInfo.id, rootNodeConfigId, allNodeConfigs.mapValues(_.nodeInfo)).map { case NodePromisesPaths(id, base, news, backup) =>
+                    pathComputer.computeBaseNodePath(config.nodeInfo.id, rootNodeConfigId, allNodeInfos).map { case NodePromisesPaths(id, base, news, backup) =>
                         val postfix = agentType.toRulesPath
                         NodePromisesPaths(id, base + postfix, news + postfix, backup + postfix)
                     }
@@ -551,10 +564,10 @@ class PolicyWriterServiceImpl(
     for {
       _ <- sequence(preparedTechniques) { preparedTechnique =>
              for {
-               templates <-  sequence(preparedTechnique.templatesToProcess.toSeq) { template =>
+               _         <-  sequence(preparedTechnique.templatesToProcess.toSeq) { template =>
                                writePromisesFiles(template, preparedTechnique.environmentVariables, paths.newFolder, preparedTechnique.reportIdToReplace)
                              }
-               files     <- sequence(preparedTechnique.filesToCopy.toSeq) { file =>
+               _         <- sequence(preparedTechnique.filesToCopy.toSeq) { file =>
                               copyResourceFile(file, agentType, paths.newFolder, preparedTechnique.reportIdToReplace, resources)
                             }
              } yield {
@@ -778,17 +791,22 @@ class PolicyWriterServiceImpl(
     PolicyGenerationLogger.trace(s"Create policies file ${outPath} ${templateInfo.destination}")
 
     for {
-      filled           <- fillTemplates.fill(templateInfo.destination, templateInfo.content, variableSet).toBox
-      // if the technique is multipolicy, replace rudderTag by reportId
-      (replaced, dest) =  reportIdToReplace match {
-                            case None => (filled, templateInfo.destination)
-                            case Some(id) =>
-                              // this is done quite heavely on big instances, with string rather big, and the performance of
-                              // StringUtils.replace ix x4 the one of String.replace (no regex), see:
-                              // https://stackoverflow.com/questions/16228992/commons-lang-stringutils-replace-performance-vs-string-replace/19163566
-                              val replace = (s: String) => StringUtils.replace(s, Policy.TAG_OF_RUDDER_MULTI_POLICY, id.getRudderUniqueId)
-                              (replace(filled), replace(templateInfo.destination))
-                          }
+      // we need to for {} yield {} to free resources
+      (replaced, dest) <- for {
+        filled           <- fillTemplates.fill(templateInfo.destination, templateInfo.content, variableSet).toBox
+        // if the technique is multipolicy, replace rudderTag by reportId
+        (replaced, dest) =  reportIdToReplace match {
+                              case None => (filled, templateInfo.destination)
+                              case Some(id) =>
+                                // this is done quite heavely on big instances, with string rather big, and the performance of
+                                // StringUtils.replace ix x4 the one of String.replace (no regex), see:
+                                // https://stackoverflow.com/questions/16228992/commons-lang-stringutils-replace-performance-vs-string-replace/19163566
+                                val replace = (s: String) => StringUtils.replace(s, Policy.TAG_OF_RUDDER_MULTI_POLICY, id.getRudderUniqueId)
+                                (replace(filled), replace(templateInfo.destination))
+                            }
+      } yield {
+        (replaced, dest)
+      }
       _                <- tryo { FileUtils.writeStringToFile(new File(outPath, dest), replaced, StandardCharsets.UTF_8) } ?~!
                             s"Bad format in Technique ${templateInfo.id.toString} (file: ${templateInfo.destination})"
     } yield {
@@ -797,9 +815,7 @@ class PolicyWriterServiceImpl(
   }
 
   /**
-   * Move the machine promises folder  to the backup folder
-   * @param machineFolder
-   * @param backupFolder
+   * Move the machine policies folder to the backup folder
    */
   private[this] def backupNodeFolder(nodeFolder: String, backupFolder: String): Unit = {
     val src = new File(nodeFolder)
@@ -815,8 +831,6 @@ class PolicyWriterServiceImpl(
 
   /**
    * Move the newly created folder to the final location
-   * @param newFolder : where the promises have been written
-   * @param nodeFolder : where the promises will be
    */
   private[this] def moveNewNodeFolder(sourceFolder: String, destinationFolder: String): Unit = {
     val src = new File(sourceFolder)
