@@ -131,22 +131,27 @@ class PrepareTemplateVariablesImpl(
       , agentNodeConfig.config.nodeInfo.isPolicyServer
       , agentNodeConfig.config.nodeInfo.serverRoles
     )
-    val boxBundleVars = buildBundleSequence.prepareBundleVars(
-                            agentNodeProps
-                          , agentNodeConfig.config.nodeInfo.policyMode
-                          , globalPolicyMode
-                          , agentNodeConfig.config.policies
-                          , agentNodeConfig.config.runHooks
-                        ).map { bundleVars => bundleVars.map(x => (x.spec.name, x)).toMap }
 
     for {
-      bundleVars       <- boxBundleVars
-      parameters       <- Control.sequence(agentNodeConfig.config.parameters.toSeq) { x =>
-                            agentRegister.findMap(agentNodeProps){ agent =>
-                              Full(ParameterEntry(x.name.value, agent.escape(x.value), agentNodeConfig.agentType))
-                            }
-                          }
-      allSystemVars    =  systemVariables.toMap ++ bundleVars
+      (parameters, allSystemVars) <- for {
+          bundleVars    <- buildBundleSequence.prepareBundleVars(
+            agentNodeProps
+            , agentNodeConfig.config.nodeInfo.policyMode
+            , globalPolicyMode
+            , agentNodeConfig.config.policies
+            , agentNodeConfig.config.runHooks
+          ).map { bundleVars => bundleVars.map(x => (x.spec.name, x)).toMap }
+
+          parameters    <- Control.sequence(agentNodeConfig.config.parameters.toSeq) { x =>
+            agentRegister.findMap(agentNodeProps) { agent =>
+              Full(ParameterEntry(x.name.value, agent.escape(x.value), agentNodeConfig.agentType))
+            }
+          }
+
+          allSystemVars = systemVariables.toMap ++ bundleVars
+      } yield {
+        (parameters, allSystemVars)
+      }
       preparedTemplate <- prepareTechniqueTemplate(
                               agentNodeProps
                             , agentNodeConfig.config.policies
