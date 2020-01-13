@@ -55,6 +55,7 @@ trait NodeConfigurationLogger {
 
   def log(nodeConfiguration: Seq[NodeConfiguration]): Box[Set[NodeId]]
 
+  def isDebugEnabled: Boolean
 }
 
 /**
@@ -79,6 +80,8 @@ class NodeConfigurationLoggerImpl(
       logger.error(s"Error when trying to create the directory where node configurations are saved: '${path}'. Please check that that file is a directory with write permission for Rudder.")
     }
   }
+
+  def isDebugEnabled: Boolean = logger.isDebugEnabled
 
   def log(nodeConfiguration: Seq[NodeConfiguration]): Box[Set[NodeId]] = {
     import net.liftweb.json._
