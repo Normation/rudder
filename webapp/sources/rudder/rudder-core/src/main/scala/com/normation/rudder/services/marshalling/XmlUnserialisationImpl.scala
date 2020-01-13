@@ -222,7 +222,7 @@ class NodeGroupUnserialisationImpl(
       query           <- (group \ "query").headOption match {
                             case None => Full(None)
                             case Some(s) =>
-                              if(s.text.size == 0) Full(None)
+                              if(s.text.isEmpty) Full(None)
                               else cmdbQueryParser(s.text).map( Some(_) )
                           }
       isDynamic       <- (group \ "isDynamic").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isDynamic' in entry type nodeGroup : " + entry)
@@ -402,7 +402,7 @@ class DeploymentStatusUnserialisationImpl extends DeploymentStatusUnserialisatio
       errorMessage     <- (depStatus \ "errorMessage").headOption match {
                             case None => Full(None)
                             case Some(s) =>
-                              if(s.text.size == 0) Full(None)
+                              if(s.text.isEmpty) Full(None)
                               else Full(Some(s.text))
                   }
     } yield {

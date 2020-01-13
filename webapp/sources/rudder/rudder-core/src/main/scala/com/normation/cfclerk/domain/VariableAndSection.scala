@@ -99,7 +99,7 @@ sealed trait Variable {
         //set values(0) to s
         Seq(s) ++ values.tail
       } else if(Variable.checkValue(this, s)) {
-        if (this.values.size > 0)
+        if (this.values.nonEmpty)
           Seq(s) ++ values.tail
         else
           Seq(s)
@@ -119,7 +119,7 @@ sealed trait Variable {
   def copyWithSavedValuesResult(seq: Seq[String]): Seq[String] = {
     spec match {
       case vl: ValueLabelVariableSpec =>
-        if ((null != vl.valueslabels) && (vl.valueslabels.size > 0)) {
+        if ((null != vl.valueslabels) && (vl.valueslabels.nonEmpty)) {
           for (item <- seq)
             if (!(vl.valueslabels.map(x => x.value).contains(item)))
               throw new VariableException("Wrong value for variable " + vl.name + "  : " + item)
@@ -130,7 +130,7 @@ sealed trait Variable {
     if(seq != null) {
       if (!this.spec.checked) {
         seq
-      } else if (!this.spec.multivalued && values.size > 1) {
+      } else if (!this.spec.multivalued && values.lengthCompare(1) > 0) {
         throw new VariableException("Wrong variable length for " + this.spec.name)
       } else if (values.map(x => Variable.checkValue(this, x)).contains(false)) {
         throw new VariableException("Wrong variable value for " + this.spec.name) // this should really not be thrown
@@ -149,7 +149,7 @@ sealed trait Variable {
   protected def copyWithAppendedValuesResult(seq: Seq[String]): Seq[String] = {
     spec match {
       case vl: ValueLabelVariableSpec =>
-        if ((null != vl.valueslabels) && (vl.valueslabels.size > 0)) {
+        if ((null != vl.valueslabels) && (vl.valueslabels.nonEmpty)) {
           for (item <- seq)
             if (!(vl.valueslabels.map(x => x.value).contains(item)))
               throw new VariableException("Wrong value for variable " + vl.name + "  : " + item)
@@ -259,7 +259,7 @@ object Variable {
     val limit = 20
     val vs = values.map( v =>
       if(v.startsWith("${")) v
-      else if(v.size < limit) v
+      else if(v.lengthCompare(limit) < 0) v
       else v.take(limit) + "..."
     ).mkString("[", ", ", "]")
     s"${name}: ${vs}"

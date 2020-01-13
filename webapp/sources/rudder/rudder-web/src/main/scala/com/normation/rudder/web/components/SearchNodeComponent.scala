@@ -184,7 +184,7 @@ class SearchNodeComponent(
       }
       val newQuery = Query(rType, composition, lines.to[Seq])
       query = Some(newQuery)
-      if(errors.size == 0) {
+      if(errors.isEmpty) {
         // ********* EXECUTE QUERY ***********
         srvList = queryProcessor.process(newQuery)
         initUpdate = true

@@ -651,7 +651,7 @@ class NodeInfoServiceCachedImpl(
       } match {
         case Full(seq) =>
           //we only have interesting entries in the result, so it's up to date if we have exactly 0 entries
-          val res = seq.size <= 0
+          val res = seq.isEmpty
           logger.trace(s"Cache check for node info gave '${res}' (${seq.size} entry returned)")
           res
         case eb: EmptyBox =>

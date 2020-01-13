@@ -111,7 +111,7 @@ class SynchronizedFileTemplate(templateName: String,content: String)  extends Lo
         val replaced = bestEffort(variables) { case variable =>
           // Only System Variables have nullable entries
           if ( variable.isSystem && variable.mayBeEmpty &&
-            ( (variable.values.size == 0) || (variable.values.size ==1 && variable.values.head == "") )
+            ( (variable.values.isEmpty) || (variable.values.lengthCompare(1) == 0 && variable.values.head == "") )
           ) {
             try {
               Full(template.setAttribute(variable.name, null))
@@ -119,7 +119,7 @@ class SynchronizedFileTemplate(templateName: String,content: String)  extends Lo
               case ex: Exception =>
                 Failure(s"Error when trying to replace variable '${variable.name}' with values [${variable.values.mkString(",")}]: ${ex.getMessage}", Full(ex), Empty)
             }
-          } else if (!variable.mayBeEmpty && variable.values.size == 0) {
+          } else if (!variable.mayBeEmpty && variable.values.isEmpty) {
             Failure(s"Mandatory variable ${variable.name} is empty, can not write ${templateName}")
           } else {
             logger.trace(s"Adding in ${templateName} variable '${variable.name}' with values [${variable.values.mkString(",")}]")

@@ -275,7 +275,7 @@ class BuildBundleSequence(
 
     // and for now, all bundle get the same reportKey
     val techniqueBundles = policy.technique.agentConfig.bundlesequence.map { bundleName =>
-      if(bundleName.value.trim.size > 0) {
+      if(bundleName.value.trim.nonEmpty) {
         val vars =
           policy.technique.generationMode match {
             case TechniqueGenerationMode.MultipleDirectivesWithParameters =>
@@ -436,11 +436,11 @@ object CfengineBundleVariables {
 
     //that's the length to correctly vertically align things. Most important
     //number in all Rudder !
-    val alignWidth = if(escapedSeq.size <= 0) 0 else escapedSeq.map(_._1.size).max
+    val alignWidth = if(escapedSeq.isEmpty) 0 else escapedSeq.map(_._1.size).max
 
     (allBundles.flatMap { case (promiser, bundles) =>
       bundles.map { bundle =>
-        val params = if (bundle.params.size > 0) {
+        val params = if (bundle.params.nonEmpty) {
           bundle.params.map( _.quote(escape) ).mkString("(", ",", ")")
         } else {
           ""

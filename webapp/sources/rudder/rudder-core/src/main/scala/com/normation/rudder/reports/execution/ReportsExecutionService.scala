@@ -135,7 +135,7 @@ class ReportsExecutionService (
 
         reportsRepository.getReportsfromId(fromReportId, endBatchDate) match {
           case Full((reportExec, maxReportId)) =>
-            if (reportExec.size > 0) {
+            if (reportExec.nonEmpty) {
 
               val maxDate = {
                 // Keep the last report date if the last processed report is after all reports processed in this batch

@@ -180,7 +180,7 @@ class FullInventoryRepositoryImpl(
     for {
       con <- ldap
       nodes = getNodesForMachine(con, id)
-      intoStatus = priorityStatus.find(x => nodes.isDefinedAt(x) && nodes(x).size > 0).getOrElse(into)
+      intoStatus = priorityStatus.find(x => nodes.isDefinedAt(x) && nodes(x).nonEmpty).getOrElse(into)
       //now, check what to do:
       //if the machine is already in the target, does nothing
       //else, move

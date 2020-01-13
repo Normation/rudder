@@ -113,7 +113,7 @@ trait AbstractDit {
     } else None
   }
 
-  require(BASE_DN.getRDNs.size > 0,"The base DN of your DIT can't be empty")
+  require(BASE_DN.getRDNs.nonEmpty, "The base DN of your DIT can't be empty")
 
 }
 

@@ -67,14 +67,13 @@ class RuleApplicationStatusServiceImpl extends RuleApplicationStatusService {
 
     if(rule.isEnabled) {
       val isAllTargetsEnabled = rule.targets.flatMap( groupLib.allTargets.get(_) ).filter(!_.isEnabled).isEmpty
-      val nodeTargetSize = groupLib.getNodeIds(rule.targets, allNodeInfos).size
-      if (nodeTargetSize != 0) {
+      if (groupLib.getNodeIds(rule.targets, allNodeInfos).nonEmpty) {
         if(isAllTargetsEnabled) {
           val disabled = (rule.directiveIds
               .flatMap( directiveLib.allDirectives.get(_) )
               .filterNot { case (activeTechnique, directive) => activeTechnique.isEnabled && directive.isEnabled }
           )
-          if(disabled.size == 0) {
+          if(disabled.isEmpty) {
             FullyApplied
           } else if(rule.directiveIds.size - disabled.size > 0) {
             PartiallyApplied(disabled.toSeq.map{ case(at,d) => (at.toActiveTechnique,d) })
