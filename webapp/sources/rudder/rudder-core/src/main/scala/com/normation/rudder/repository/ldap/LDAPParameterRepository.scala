@@ -200,7 +200,7 @@ class WoLDAPParameterRepository(
                       }
       diff         =  DeleteGlobalParameterDiff(oldParamEntry)
       loggedAction <- actionLogger.saveDeleteGlobalParameter(modId, principal = actor, deleteDiff = diff, reason = reason)
-      autoArchive  <- ZIO.when(autoExportOnModify && deleted.size > 0) {
+      autoArchive  <- ZIO.when(autoExportOnModify && deleted.nonEmpty) {
                         for {
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                           archive  <- gitParameterArchiver.deleteParameter(parameterName,Some((modId, commiter, reason)))

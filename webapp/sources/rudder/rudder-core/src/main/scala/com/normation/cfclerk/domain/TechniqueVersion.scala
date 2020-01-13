@@ -181,7 +181,7 @@ final case class UpstreamTechniqueVersion(value: String) extends AnyVal with Ord
     else {
       val (restS1, restS2) = (rest(s1, sub1), rest(s2, sub2))
       val cmpI = compareIntegers(restS1, restS2)
-      if (cmpI != 0 || sub1.size == 0) cmpI
+      if (cmpI != 0 || sub1.isEmpty) cmpI
       else compareRest(restS1, restS2)
     }
   }

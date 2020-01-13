@@ -341,7 +341,7 @@ final case class ContextForNoAnswer(
    * the log message is actually sync with the info type.
    */
   private[this] def runType(traceMessage: String, runType: RunAndConfigInfo)(implicit nodeId: NodeId): RunAndConfigInfo = {
-    val msg = if(traceMessage.trim.size == 0) "" else ": " + traceMessage
+    val msg = if(traceMessage.trim.isEmpty) "" else ": " + traceMessage
     ComplianceDebugLogger.node(nodeId).trace(s"Run config for node ${nodeId.value}: ${runType.logName} ${msg}")
     runType
   }

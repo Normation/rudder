@@ -226,7 +226,7 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
         _backed.removeAttribute(attributeName)
       case seq =>
         val toSave = seq.filter { s => null != s && s.length > 0 }
-        if(toSave.size < 1) {
+        if(toSave.isEmpty) {
           _backed.removeAttribute(attributeName)
         } else {
          _backed.setAttribute(new Attribute(attributeName, toSave.asJava))

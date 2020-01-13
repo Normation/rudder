@@ -111,7 +111,7 @@ sealed trait Variable {
           //set values(0) to s
           Seq(s) ++ values.tail
         } else if(Variable.checkValue(this, s)) {
-          if (this.values.size > 0)
+          if (this.values.nonEmpty)
             Seq(s) ++ values.tail
           else
             Seq(s)
@@ -134,7 +134,7 @@ sealed trait Variable {
       res <- if(seq != null) {
                if (!this.spec.checked) {
                  Right(seq)
-               } else if (!this.spec.multivalued && values.size > 1) {
+               } else if (!this.spec.multivalued && values.lengthCompare(1) > 0) {
                  Left(LoadTechniqueError.Variable("Wrong variable length for " + this.spec.name))
                } else if (values.map(x => Variable.checkValue(this, x)).contains(false)) {
                  Left(LoadTechniqueError.Variable("Wrong variable value for " + this.spec.name)) // this should really not be thrown
@@ -260,7 +260,7 @@ object Variable {
     val limit = 20
     val vs = values.map( v =>
       if(v.startsWith("${")) v
-      else if(v.size < limit) v
+      else if(v.lengthCompare(limit) < 0) v
       else v.take(limit) + "..."
     ).mkString("[", ", ", "]")
     s"${name}: ${vs}"

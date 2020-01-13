@@ -132,7 +132,7 @@ class AcceptNode extends Loggable {
    */
   def retrieveLastVersions(uuid : NodeId) : Option[DateTime] = {
     diffRepos.versions(uuid).toBox match {
-      case Full(list) if (list.size > 0) => Some(list.head)
+      case Full(list) if (list.nonEmpty) => Some(list.head)
       case _ => None
     }
   }
@@ -239,7 +239,7 @@ class AcceptNode extends Loggable {
     implicit val formats = DefaultFormats
     val serverList = parse(jsonArrayOfIds).extract[List[String]].map(x => NodeId(x))
 
-    if (serverList.size == 0) {
+    if (serverList.isEmpty) {
       Alert("You didn't select any nodes")
     } else {
       SetHtml("manageNewNode", listNode(serverList, template))  & OnLoad(

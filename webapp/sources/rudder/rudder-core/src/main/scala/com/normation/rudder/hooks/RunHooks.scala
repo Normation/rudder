@@ -243,6 +243,7 @@ object RunHooks {
         case x: Success => // run the next hook
           val path = hooks.basePath + File.separator + nextHookName
           val env = envVariables.add(hookParameters)
+
           for {
             _ <- PureHooksLogger.debug(s"Run hook: '${path}' with environment parameters: ${hookParameters.show}")
             _ <- PureHooksLogger.trace(s"System environment variables: ${envVariables.show}")

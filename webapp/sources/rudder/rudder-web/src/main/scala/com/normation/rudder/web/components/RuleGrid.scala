@@ -594,9 +594,9 @@ class RuleGrid(
 
               val conditions = {
                 Seq((line.rule.isEnabledStatus && !line.rule.isEnabled, "Rule unapplied")
-                  , (line.trackerVariables.size <= 0, "No policy defined")
+                  , (line.trackerVariables.isEmpty, "No policy defined")
                   , (!isAllTargetsEnabled, "Group disabled")
-                  , (nodes.size <= 0, "Empty groups")
+                  , (nodes.isEmpty, "Empty groups")
                 ) ++
                   line.trackerVariables.flatMap {
                     case (directive, activeTechnique, _) =>

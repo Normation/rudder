@@ -322,7 +322,7 @@ class LDAPDiffMapper(
                   diff.map( _.copy(modNodeList = Some(SimpleDiff(oldGroup.serverList, mod.getValues.map(x => NodeId(x) ).toSet ) ) ) )
                 case A_QUERY_NODE_GROUP =>
                   mod.getModificationType match {
-                    case ADD | REPLACE if(mod.getAttribute.getValues.size > 0) => //if there is no values, we have to put "none"
+                    case ADD | REPLACE if(mod.getAttribute.getValues.nonEmpty) => //if there is no values, we have to put "none"
                       for {
                         d     <- diff
                         query <- cmdbQueryParser(mod.getAttribute().getValue).toPureResult

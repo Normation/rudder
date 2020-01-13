@@ -114,7 +114,7 @@ class SynchronizedFileTemplate(templateName: String, localTemplate: Either[Rudde
                           IOResult.effect(s"Error when trying to replace variable '${variable.name}' with values [${variable.values.mkString(",")}]") {
                             template.setAttribute(variable.name, null)
                           }
-                        } else if (!variable.mayBeEmpty && variable.values.size == 0) {
+                        } else if (!variable.mayBeEmpty && variable.values.isEmpty) {
                           Unexpected(s"Mandatory variable ${variable.name} is empty, can not write ${templateName}").fail
                         } else {
                           StringTemplateLogger.trace(s"Adding in ${templateName} variable '${variable.name}' with values [${variable.values.mkString(",")}]") *>

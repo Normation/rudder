@@ -214,7 +214,7 @@ object QSRegexQueryParser extends RegexParsers {
     case EmptyQuery => EmptyQuery
     case CharSeq(s) =>
       val trimed = s.trim
-      if(trimed.size <= 0) {
+      if(trimed.isEmpty) {
         EmptyQuery
       } else {
         CharSeq(trimed)

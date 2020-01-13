@@ -230,7 +230,8 @@ final object MergePolicyService {
       val main = seq.head //can not fail because of groupBy
       //compare policy draft
       //Following parameter are not relevant in that comparison (we compare directive, not rule, here:)
-      if(seq.size > 1) {
+
+      if(seq.lengthCompare(1) > 0) {
         PolicyGenerationLogger.error(s"The directive '${seq.head.id.directiveId.value}' on rule '${seq.head.id.ruleId.value}' was added several times on node " +
                      s"'${nodeInfo.id.value}' WITH DIFFERENT PARAMETERS VALUE. It's a bug, please report it. Taking one set of parameter "+
                      s"at random for the policy generation.")

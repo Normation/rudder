@@ -222,16 +222,16 @@ class TechniqueParser(
 
   private[this] def parseTrackerVariableSpec(xml: Node): Either[LoadTechniqueError, TrackerVariableSpec] = {
     val trackerVariableSpecs = (xml \ TRACKINGVAR)
-    if(trackerVariableSpecs.size == 0) { //default trackerVariable variable spec for that package
+    if(trackerVariableSpecs.isEmpty) { //default trackerVariable variable spec for that package
       Right(TrackerVariableSpec())
-    } else if(trackerVariableSpecs.size == 1) {
+    } else if(trackerVariableSpecs.lengthCompare(1) == 0) {
         variableSpecParser.parseTrackerVariableSpec(trackerVariableSpecs.head).chain(s"Error when parsing <${TRACKINGVAR}> tag")
     } else Left(LoadTechniqueError.Parsing(s"Only one <${TRACKINGVAR}> tag is allowed the the document, but found '${trackerVariableSpecs.size}'"))
   }
 
   private[this] def parseDeprecrationInfo(xml: Node): Either[LoadTechniqueError, Option[TechniqueDeprecationInfo]] = {
     (xml \ TECHNIQUE_DEPRECATION_INFO).headOption match {
-      case Some(deprecationInfo) if(deprecationInfo.text.size == 0) =>
+      case Some(deprecationInfo) if(deprecationInfo.text.isEmpty) =>
         Left(LoadTechniqueError.Parsing(s"Error when parsing <${TECHNIQUE_DEPRECATION_INFO}> tag, text is empty and is mandatory"))
       case x =>
         Right(x.map(n => TechniqueDeprecationInfo(n.text)))

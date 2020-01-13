@@ -53,7 +53,7 @@ object Utils {
    */
   def getUniqueNode(root:Node, nodeName:String, subtree:Boolean = false) : Either[LoadTechniqueError, Node] = {
     def checkCardinality(nodes:NodeSeq) : Either[LoadTechniqueError, Node] = {
-      if(nodes.size < 1) Left(LoadTechniqueError.Consistancy(s"No node found for name ${nodeName} in ${root} children with scope ${if(subtree) "subtree" else "one level"}"))
+      if(nodes.isEmpty) Left(LoadTechniqueError.Consistancy(s"No node found for name ${nodeName} in ${root} children with scope ${if(subtree) "subtree" else "one level"}"))
       else if(nodes.size > 1 ) Left(LoadTechniqueError.Consistancy(s"More than one node found for name ${nodeName} in ${root} children with scope ${if(subtree) "subtree" else "one level"}"))
       else Right(nodes.head)
     }
