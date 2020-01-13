@@ -374,3 +374,11 @@ objectClass: top
 propertyName: rudder_report_protocol_default
 propertyValue: HTTPS
 
+dn: propertyName=rudder_syslog_protocol_disabled,ou=Application Properties,c
+ n=rudder-configuration
+propertyName: rudder_syslog_protocol_disabled
+objectClass: property
+objectClass: top
+structuralObjectClass: property
+propertyValue: true
+
