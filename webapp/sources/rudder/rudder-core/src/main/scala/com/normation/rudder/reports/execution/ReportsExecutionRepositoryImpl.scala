@@ -135,13 +135,21 @@ class RoReportsExecutionRepositoryImpl (
               case tuple@(r, t1, t2, t3, t4, t5) => (r, unserNodeConfig(t1, t2, t3, t4, t5))
             }.to[Vector]
           } yield {
-
+/*
             val runsMap = (runs.map { case (r, optConfig) =>
               val run = r.toAgentRun
               val config = run.nodeConfigVersion.map(c => (c, optConfig))
               (run.agentRunId.nodeId, AgentRunWithNodeConfig(run.agentRunId, config, run.isCompleted, run.insertionId))
             }).toMap
             ids.map(id => (id, runsMap.get(id))).toMap
+
+ */
+            val runsMap = (runs.map { case (r, optConfig) =>
+              val run = r.toAgentRun
+              val config = run.nodeConfigVersion.map(c => (c, optConfig))
+              (run.agentRunId.nodeId, AgentRunWithNodeConfig(run.agentRunId, config, run.isCompleted, run.insertionId))
+            }).toMap
+            runsMap
 
           }
 
