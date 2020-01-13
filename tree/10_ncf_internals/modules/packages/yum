@@ -1,4 +1,11 @@
-#!/usr/bin/python
+#!/bin/sh
+# vim: syntax=python
+''':'
+# First try to run this script with python3, else run with python then python2
+command -v python3 >/dev/null 2>/dev/null && exec python3 "$0" "$@"   \
+    || (command -v python >/dev/null 2>/dev/null && exec python  "$0" "$@")  \
+    || exec python2 "$0" "$@"
+'''
 
 import sys
 import os
