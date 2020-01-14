@@ -472,7 +472,8 @@ object RudderConfig extends Loggable {
   val checkInventoryUpdate = new CheckInventoryUpdate(nodeInfoServiceImpl, asyncDeploymentAgent, stringUuidGenerator, 15.seconds)
   val purgeDeletedInventories = new PurgeDeletedInventories(removeNodeServiceImpl, RUDDER_BATCH_PURGE_DELETED_INVENTORIES_INTERVAL.hours, RUDDER_BATCH_PURGE_DELETED_INVENTORIES)
   val purgeUnreferencedSoftwares = new PurgeUnreferencedSoftwares(softwareService, RUDDER_BATCH_DELETE_SOFTWARE_INTERVAL.hours)
-  val cleanPoliciesFolder = new CleanPoliciesJob(nodeInfoServiceImpl, RUDDER_BATCH_CLEAN_POLICIES_INTERVAL.hours)
+  val cleanPoliciesService = new CleanPoliciesService(nodeInfoServiceImpl)
+  val cleanPoliciesFolder = new CleanPoliciesJob(cleanPoliciesService, RUDDER_BATCH_CLEAN_POLICIES_INTERVAL.hours)
   val databaseManager: DatabaseManager = databaseManagerImpl
   val automaticReportsCleaning: AutomaticReportsCleaning = dbCleaner
   val checkTechniqueLibrary: CheckTechniqueLibrary = techniqueLibraryUpdater
@@ -780,7 +781,7 @@ object RudderConfig extends Loggable {
     , itemArchiveManager
     , personIdentService
     , gitRepo
-    , cleanPoliciesFolder
+    , cleanPoliciesService
   )
 
   private[this] val complianceAPIService = new ComplianceAPIService(

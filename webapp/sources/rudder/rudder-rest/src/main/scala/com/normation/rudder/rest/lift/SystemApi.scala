@@ -47,7 +47,7 @@ import com.normation.eventlog.{EventActor, ModificationId}
 import com.normation.cfclerk.services.{GitRepositoryProvider, UpdateTechniqueLibrary}
 import com.normation.rudder.batch.{AsyncDeploymentAgent, ManualStartDeployment, UpdateDynamicGroups}
 import com.normation.rudder.UserService
-import com.normation.rudder.batch.CleanPoliciesJob
+import com.normation.rudder.batch.CleanPoliciesService
 import com.normation.rudder.repository.xml.{GitFindUtils, GitTagDateTimeFormatter}
 import com.normation.rudder.repository.{GitArchiveId, GitCommitId, ItemArchiveManager}
 import com.normation.rudder.services.{ClearCacheService, DebugInfoScriptResult, DebugInfoService}
@@ -439,7 +439,7 @@ class SystemApiService11(
   , itemArchiveManager   : ItemArchiveManager
   , personIdentService   : PersonIdentService
   , repo                 : GitRepositoryProvider
-  , cleanPoliciesFolder  : CleanPoliciesJob
+  , cleanPoliciesService : CleanPoliciesService
 ) (implicit userService: UserService) extends Loggable {
 
 
@@ -956,7 +956,7 @@ class SystemApiService11(
     implicit val action = "cleanPolicies"
     implicit val prettify = params.prettify
 
-    cleanPoliciesFolder.launch match {
+    cleanPoliciesService.cleanPolicies match {
       case emptyBox: EmptyBox =>
         val fail = emptyBox ?~! "An error while cleaning policies folder through rest API"
         toJsonError(None, fail.messageChain)

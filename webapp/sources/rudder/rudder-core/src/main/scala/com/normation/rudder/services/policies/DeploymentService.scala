@@ -1633,7 +1633,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
       _ <- effect {
              file.parent.createDirectoryIfNotExists(true)
              if(file.exists) {
-               file.moveTo(savedOld)(File.CopyOptions(overwrite = true))
+               file.moveTo(savedOld, true)
              }
            }(s"Can not move previous updated node IDs file to '${savedOld.pathAsString}'")
       _ <- effect {
@@ -1721,7 +1721,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
       _ <- effect {
              file.parent.createDirectoryIfNotExists(true)
              if(file.exists) {
-               file.moveTo(savedOld)(File.CopyOptions(overwrite = true))
+               file.moveTo(savedOld, true)
              }
            }(s"Can not move previous updated node IDs file to '${savedOld.pathAsString}'")
       _ <- effect {

@@ -49,6 +49,7 @@ import com.normation.cfclerk.services.{TechniquesLibraryUpdateNotification, Tech
 import com.normation.eventlog.{EventActor, EventLog, ModificationId}
 import net.liftweb.common.Box
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.inventory.domain.NodeId
 import net.liftweb.http.LiftResponse
 import net.liftweb.util.NamedPF
 import net.liftweb.http.S
@@ -59,19 +60,23 @@ import com.normation.rudder.User
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.RudderAccount
 import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
-import com.normation.rudder.batch.CleanPoliciesJob
+import com.normation.rudder.batch.CleanPoliciesService
 import com.normation.rudder.batch.{AsyncDeploymentAgent, StartDeploymentMessage, UpdateDynamicGroups}
+import com.normation.rudder.domain.nodes.Node
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.queries.CriterionComposition
+import com.normation.rudder.domain.queries.NodeInfoMatcher
 import com.normation.rudder.repository._
 import com.normation.rudder.rest.v1.RestTechniqueReload
 import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.rest.lift.{LiftApiProcessingLogger, LiftHandler, SystemApiService11}
+import com.normation.rudder.services.nodes.LDAPNodeInfo
+import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.{ClearCacheService, DebugInfoScriptResult, DebugInfoService}
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.user.PersonIdentService
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
-import scala.concurrent.duration._
-
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.
@@ -203,11 +208,22 @@ object RestTestSetUp {
 
 
 
- val testNodeConfiguration = new TestNodeConfiguration()
- val fakeRepo = testNodeConfiguration.repo
- val fakeScriptLauncher = new DebugInfoService {
-   override def launch(): Box[DebugInfoScriptResult] = Full(DebugInfoScriptResult("test", new Array[Byte](42)))
- }
+  val testNodeConfiguration = new TestNodeConfiguration()
+  val fakeRepo = testNodeConfiguration.repo
+  val fakeScriptLauncher = new DebugInfoService {
+    override def launch(): Box[DebugInfoScriptResult] = Full(DebugInfoScriptResult("test", new Array[Byte](42)))
+  }
+  val fakeNodeInfoService = new NodeInfoService {
+    def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition): Box[Set[LDAPNodeInfo]] = Full(Set())
+    def getNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = Full(None)
+    def getAll(): Box[Map[NodeId, NodeInfo]] = Full(Map())
+    def getAllNodes(): Box[Map[NodeId, Node]] = Full(Map())
+    def getAllSystemNodeIds(): Box[Seq[NodeId]] = Full(Seq())
+    def getPendingNodeInfos(): Box[Map[NodeId, NodeInfo]] = Full(Map())
+    def getPendingNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = Full(None)
+    def getDeletedNodeInfos(): Box[Map[NodeId, NodeInfo]] = Full(Map())
+    def getDeletedNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = Full(None)
+  }
 
   val apiService11 = new SystemApiService11(
         fakeUpdatePTLibService
@@ -219,7 +235,7 @@ object RestTestSetUp {
       , fakeItemArchiveManager
       , fakePersonIndentService
       , fakeRepo
-      , new CleanPoliciesJob(???, 24.hours)
+      , new CleanPoliciesService(fakeNodeInfoService)
   )
 
   val systemApi = new com.normation.rudder.rest.lift.SystemApi(restExtractorService, apiService11, "5.0", "5.0.0", "some time")
