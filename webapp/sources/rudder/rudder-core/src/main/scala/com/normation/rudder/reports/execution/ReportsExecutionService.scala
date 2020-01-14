@@ -38,8 +38,6 @@
 package com.normation.rudder.reports.execution
 
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.batch.FindNewReportsExecution
 import com.normation.rudder.domain.logger.ReportLogger
@@ -54,6 +52,14 @@ import com.normation.rudder.db.DB
 import com.normation.rudder.repository.ComplianceRepository
 
 import scala.concurrent.duration.FiniteDuration
+
+import zio._
+import com.normation.zio._
+import com.normation.errors._
+import com.github.ghik.silencer.silent
+
+// message for the queue: what nodes were updated?
+final case class InvalidateComplianceCacheMsg(updatedNodeIds: Set[NodeId])
 
 /**
  * That service contains most of the logic to merge
@@ -72,6 +78,25 @@ class ReportsExecutionService (
 
   val logger = ReportLogger
   var idForCheck: Long = 0
+
+  //compute cache compliance: it can be long, we don't want to accumulate "invalidate" request: we use a one element queue with a
+  // "discard" strategy.
+  val invalidateComplianceRequest = Queue.dropping[InvalidateComplianceCacheMsg](1).runNow
+  // start processing invalidate messages. `take` block until an element is here. `forever` loops.
+  invalidateComplianceRequest.take.flatMap(msg => IOResult.effect {
+      cachedCompliance.invalidate(msg.updatedNodeIds) match {
+        case eb: EmptyBox =>
+          val e = eb ?~! "An error occurred when trying to update the cache for compliance"
+          logger.error(e.messageChain)
+          e.rootExceptionCause.foreach { ex =>
+            logger.error("Root exception was: ", ex)
+          }
+        case Full(x) =>
+          //save compliance in DB
+          complianceRepos.saveRunCompliance(x.values.toList)
+          logger.trace("Cache for compliance updates after new run received")
+      }
+  }).forever.fork.runNow: @silent("a type was inferred to be `Any`")
 
   private[this] def computeCatchupEndTime(catchupFromDateTime: DateTime) : DateTime= {
     // Get reports of the last id and before last report date plus the maxCatchup interval
@@ -220,21 +245,15 @@ class ReportsExecutionService (
     // notify changes updates
     cachedChanges.update(lowestId, highestId)
 
-    Future {
-      // update compliance cache
-      cachedCompliance.invalidate(updatedNodeIds) match {
-        case eb: EmptyBox =>
-          val e = eb ?~! "An error occurred when trying to update the cache for compliance"
-          logger.error(e.messageChain)
-          e.rootExceptionCause.foreach { ex =>
-            logger.error("Root exception was: ", ex)
-          }
-        case Full(x) =>
-          //save compliance in DB
-          complianceRepos.saveRunCompliance(x.values.toList)
-          logger.trace("Cache for compliance updates after new run received")
-      }
-    }
+    // update compliance cache
+    // We need to "take" the previous queue content to merge not yet processed nodes with the new ones before posting
+    // the updated full set of node ids to invalidate.
+    (for {
+      elements <- invalidateComplianceRequest.takeAll
+      allIds   =  updatedNodeIds.union(elements.flatMap(_.updatedNodeIds).toSet)
+      _        <- invalidateComplianceRequest.offer(InvalidateComplianceCacheMsg(allIds))
+    } yield ()).runNow
+
     import org.joda.time.Duration
     logger.debug(s"Hooks execution time: ${PeriodFormat.getDefault().print(Duration.millis(System.currentTimeMillis - startHooks).toPeriod())}")
 

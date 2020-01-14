@@ -49,15 +49,14 @@ import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.services.nodes.NodeInfoService
-
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.ReportsDisabled
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.utils.Control.sequence
-
 import com.normation.box._
 import com.normation.errors._
+import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.zio._
 
 object ReportingServiceUtils {
@@ -176,7 +175,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
   }
 }
 
-trait CachedFindRuleNodeStatusReports extends ReportingService with CachedRepository with Loggable {
+trait CachedFindRuleNodeStatusReports extends ReportingService with CachedRepository {
 
   /**
    * underlying service that will provide the computation logic
@@ -213,7 +212,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * because this one is taken for a long time.
    */
   def invalidate(nodeIds: Set[NodeId]): Box[Map[NodeId, NodeStatusReport]] = scala.concurrent.blocking { this.synchronized {
-    logger.debug(s"Compliance cache: invalidate cache for nodes: [${nodeIds.map { _.value }.mkString(",")}]")
+    ReportLogger.debug(s"Compliance cache: invalidate cache for nodes: [${nodeIds.map { _.value }.mkString(",")}]")
     cache = cache -- nodeIds
     //preload new results
     checkAndUpdateCache(nodeIds)
@@ -268,11 +267,11 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
         newStatus           <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(expired, Set())
       } yield {
         //here, newStatus.keySet == expired.keySet, so we have processed all nodeIds that should be modified.
-        logger.debug(s"Compliance cache miss (updated):[${newStatus.keySet.map(_.value).mkString(" , ")}], "+
-                               s" hit:[${upToDate.map(_.value).mkString(" , ")}]")
+        ReportLogger.debug(s"Compliance cache miss (updated):[${newStatus.keySet.map(_.value).mkString(" , ")}], " +
+                           s" hit:[${upToDate.map(_.value).mkString(" , ")}]")
         cache = cache ++ newStatus
         val toReturn = cache.filterKeys { id => nodeIds.contains(id) }
-        logger.trace("Compliance cache content: " + cacheToLog(toReturn))
+        ReportLogger.trace("Compliance cache content: " + cacheToLog(toReturn))
         toReturn
       }
     }
@@ -295,7 +294,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    */
   override def clearCache(): Unit = this.synchronized {
     cache = Map()
-    logger.debug("Compliance cache cleared")
+    ReportLogger.debug("Compliance cache cleared")
     //reload it for future use
     IOResult.effect {
       for {
