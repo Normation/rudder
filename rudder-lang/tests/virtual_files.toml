@@ -1,0 +1,19 @@
+s_format='''
+@format=0
+'''
+
+s_enum='''
+@format=0
+enum error {
+    ok,
+    err
+}
+'''
+
+f_enm='''
+@format=0
+enm error {
+    ok,
+    err
+}
+'''

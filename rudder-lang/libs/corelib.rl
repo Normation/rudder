@@ -1,6 +1,6 @@
 @format=0
 
-global enm os {
+global enum os {
   ubuntu,
   debian
 }

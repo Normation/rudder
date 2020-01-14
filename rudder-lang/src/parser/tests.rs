@@ -58,17 +58,21 @@ fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
     let kind = match err.kind {
         PErrorKind::Nom(e) => PErrorKind::NomTest(format!("{:?}", e)),
         PErrorKind::NomTest(e) => PErrorKind::NomTest(e),
-        PErrorKind::InvalidFormat => PErrorKind::InvalidFormat,
-        PErrorKind::InvalidName(i) => PErrorKind::InvalidName(i.fragment),
+        PErrorKind::ExpectedKeyword(i) => PErrorKind::ExpectedKeyword(i),
+        PErrorKind::ExpectedReservedWord(i) => PErrorKind::ExpectedReservedWord(i),
         PErrorKind::ExpectedToken(i) => PErrorKind::ExpectedToken(i),
-        PErrorKind::UnterminatedDelimiter(i) => PErrorKind::UnterminatedDelimiter(i.fragment),
         PErrorKind::InvalidEnumExpression => PErrorKind::InvalidEnumExpression,
         PErrorKind::InvalidEscapeSequence => PErrorKind::InvalidEscapeSequence,
+        PErrorKind::InvalidFormat => PErrorKind::InvalidFormat,
+        PErrorKind::InvalidName(i) => PErrorKind::InvalidName(i.fragment),
         PErrorKind::InvalidVariableReference => PErrorKind::InvalidVariableReference,
-        PErrorKind::ExpectedKeyword(i) => PErrorKind::ExpectedKeyword(i),
         PErrorKind::UnsupportedMetadata(i) => PErrorKind::UnsupportedMetadata(i.fragment),
+        PErrorKind::UnterminatedDelimiter(i) => PErrorKind::UnterminatedDelimiter(i.fragment),
     };
-    (err.context.fragment, kind)
+    match err.context {
+        Some(context) => (context.fragment, kind),
+        None => panic!("NO CONTEXT")
+    }
 }
 
 #[test]

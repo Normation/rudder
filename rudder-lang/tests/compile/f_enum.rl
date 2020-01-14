@@ -1,0 +1,4 @@
+enm error {
+  true,
+  false
+}

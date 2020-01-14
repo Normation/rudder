@@ -325,13 +325,24 @@ impl Generator for CFEngine {
         // TODO add global variable definitions
         for (rn, res) in gc.resources.iter() {
             for (sn, state) in res.states.iter() {
-                if let Some(file_name) = file {
-                    if file_name.to_string_lossy() != sn.file() {
-                        continue;
-                    }
-                }
+                // This condition actually rejects every file that is not the input filename
+                // therefore preventing from having an output in another directory
+                // Solutions: check filename rather than path, or accept everything that is not from crate root lib 
+                let file_to_create = match file {
+                    Some(filepath) => {
+                        let input_filename = Path::new(sn.file()).file_name();
+                        if filepath.file_name() != input_filename {
+                            continue;
+                        }
+                        match filepath.to_str() {
+                            Some(output_filename) => output_filename,
+                            None => sn.file()
+                        }
+                    },
+                    None => sn.file()
+                };
                 self.reset_context();
-                let mut content = match files.get(sn.file()) {
+                let mut content = match files.get(file_to_create) {
                     Some(s) => s.to_string(),
                     None => {
                         if technique_metadata {
@@ -367,7 +378,7 @@ impl Generator for CFEngine {
                     content.push_str(&self.format_statement(gc, st, "any".to_string())?);
                 }
                 content.push_str("}\n");
-                files.insert(sn.file(), content);
+                files.insert(file_to_create, content);
             }
         }
         for (name, content) in files.iter() {
