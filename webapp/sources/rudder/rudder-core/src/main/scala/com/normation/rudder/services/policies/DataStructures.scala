@@ -135,7 +135,7 @@ final case class InterpolationContext(
       , nodeContext     : TreeMap[String, Variable]
         // parameters for this node
         //must be a case SENSITIVE Map !!!!
-      , parameters      : Map[ParameterName, InterpolationContext => IOResult[String]]
+      , parameters      : Map[ParameterName, InterpolationContext => PureResult[String]]
         //the depth of the interpolation context evaluation
         //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
         //for ex: param a => param b => param c => ..... => param a
@@ -157,7 +157,7 @@ object InterpolationContext {
       , nodeContext     : Map[String, Variable]
         // parameters for this node
         //must be a case SENSITIVE Map !!!!
-      , parameters      : Map[ParameterName, InterpolationContext => IOResult[String]]
+      , parameters      : Map[ParameterName, InterpolationContext => PureResult[String]]
         //the depth of the interpolation context evaluation
         //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
         //for ex: param a => param b => param c => ..... => param a
@@ -436,7 +436,7 @@ final case class ParsedPolicyDraft(
   , isSystem         : Boolean
   , policyMode       : Option[PolicyMode]
   , trackerVariable  : TrackerVariable
-  , variables        : InterpolationContext => IOResult[Map[String, Variable]]
+  , variables        : InterpolationContext => PureResult[Map[String, Variable]]
   , originalVariables: Map[String, Variable] // the original variable, unexpanded
   , ruleOrder        : BundleOrder
   , directiveOrder   : BundleOrder

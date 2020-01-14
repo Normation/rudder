@@ -49,13 +49,12 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeInfo
 
-import zio.syntax._
 import com.normation.errors._
 
 trait RuleValService {
   def buildRuleVal(rule: Rule, directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]) : Box[RuleVal]
 
-  def lookupNodeParameterization(variables:Seq[Variable]): InterpolationContext => IOResult[Map[String, Variable]]
+  def lookupNodeParameterization(variables:Seq[Variable]): InterpolationContext => PureResult[Map[String, Variable]]
 }
 
 
@@ -91,13 +90,13 @@ class RuleValServiceImpl(
    * We must exclude variable from ncf technique, that are processed differently, because
    * the provided value is not managed by rudder (it is on a cfengine file elsewhere).
    */
-  override def lookupNodeParameterization(variables:Seq[Variable]): InterpolationContext => IOResult[Map[String, Variable]] = {
+  override def lookupNodeParameterization(variables: Seq[Variable]): InterpolationContext => PureResult[Map[String, Variable]] = {
     (context:InterpolationContext) =>
-      variables.accumulate ( variable => variable.spec match {
+      variables.accumulatePure ( variable => variable.spec match {
         //do not touch ncf variables
-        case _: PredefinedValuesVariableSpec => variable.succeed
+        case _: PredefinedValuesVariableSpec => Right(variable)
         case _                               =>
-          (variable.values.accumulate { value =>
+          (variable.values.accumulatePure { value =>
             for {
               parsed <- interpolatedValueCompiler.compile(value)
               //can lead to stack overflow, no ?
@@ -105,10 +104,10 @@ class RuleValServiceImpl(
             } yield {
               applied
             }
-          }).foldM(
-              err => Chained(s"On variable '${variable.spec.name}':", err).fail
-            , seq => Variable.matchCopy(variable, seq).succeed
-          )
+          }) match {
+            case Left(err)  => Left(Chained(s"On variable '${variable.spec.name}':", err))
+            case Right(seq) => Right(Variable.matchCopy(variable, seq))
+          }
       } ).map(seqVar => seqVar.map(v => (v.spec.name, v)).toMap)
   }
 

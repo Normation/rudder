@@ -306,7 +306,7 @@ class VariableTest extends Specification {
     haveType("raw")
 
     "have correct content" in {
-      (rawVariable.copyWithSavedValue(rawValue).orThrow.getValidatedValue(identity).openOrThrowException("Invalid content for the raw variable") must containTheSameElementsAs(Seq(rawValue)))
+      (rawVariable.copyWithSavedValue(rawValue).orThrow.getValidatedValue(identity).getOrElse(throw new Exception("Invalid content for the raw variable")) must containTheSameElementsAs(Seq(rawValue)))
     }
   }
 
@@ -314,7 +314,7 @@ class VariableTest extends Specification {
     implicit val simpleVariable = variables(simpleName)
     haveType("string")
     "correctly escape variable" in {
-      simpleVariable.copyWithSavedValue(rawValue).orThrow.getValidatedValue(CFEngineAgentSpecificGeneration.escape).openOrThrowException("Invalid content for the escaped variable") must containTheSameElementsAs(Seq(escapedTo))
+      simpleVariable.copyWithSavedValue(rawValue).orThrow.getValidatedValue(CFEngineAgentSpecificGeneration.escape).getOrElse(throw new Exception("Invalid content for the escaped variable")) must containTheSameElementsAs(Seq(escapedTo))
     }
   }
 
@@ -552,7 +552,7 @@ class VariableTest extends Specification {
 
   private[this] def haveValue[T](value: T = refValue)(implicit variable: Variable) = {
     "have value '%s'".format(value) in {
-      variable.getValidatedValue(identity).openOrThrowException("test").head mustEqual value
+      variable.getValidatedValue(identity).getOrElse(throw new Exception("for test")).head mustEqual value
     }
   }
 

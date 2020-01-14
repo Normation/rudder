@@ -529,7 +529,7 @@ trait PromiseGenerationService {
       nodeIds               : Set[NodeId]
     , allNodeInfos          : Map[NodeId, NodeInfo]
     , allGroups             : FullNodeGroupCategory
-    , globalParameters      : Seq[GlobalParameter]
+    , globalParameters      : List[GlobalParameter]
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode
     , globalPolicyMode      : GlobalPolicyMode
@@ -785,7 +785,7 @@ trait PromiseGeneration_BuildNodeContext {
       nodeIds               : Set[NodeId]
     , allNodeInfos          : Map[NodeId, NodeInfo]
     , allGroups             : FullNodeGroupCategory
-    , globalParameters      : Seq[GlobalParameter]
+    , globalParameters      : List[GlobalParameter]
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode
     , globalPolicyMode      : GlobalPolicyMode
@@ -803,8 +803,8 @@ trait PromiseGeneration_BuildNodeContext {
      *   - to node info parameters: ok
      *   - to parameters : hello loops!
      */
-    def buildParams(parameters: Seq[GlobalParameter]): IOResult[Map[ParameterName, InterpolationContext => IOResult[String]]] = {
-      parameters.accumulate { param =>
+    def buildParams(parameters: List[GlobalParameter]): PureResult[Map[ParameterName, InterpolationContext => PureResult[String]]] = {
+      parameters.accumulatePure { param =>
         for {
           p <- interpolatedValueCompiler.compile(param.value).chainError(s"Error when looking for interpolation variable in global parameter '${param.name}'")
         } yield {
@@ -1041,7 +1041,7 @@ object BuildNodeConfiguration extends Loggable {
                                  */
                                 parameters     <- context.parameters.accumulate { case (name, param) =>
                                                     for {
-                                                      p <- param(context)
+                                                      p <- param(context).toIO
                                                     } yield {
                                                       (name, p)
                                                     }
@@ -1057,7 +1057,7 @@ object BuildNodeConfiguration extends Loggable {
                                                       ret        <- (for {
                                                                       //bind variables with interpolated context
                                                                       t2_0              <- nanoTime
-                                                                      expandedVariables <- draft.variables(context)
+                                                                      expandedVariables <- draft.variables(context).toIO
                                                                       t2_1              <- nanoTime
                                                                       _                 <- counters.sumTimeExpandeVar.update(_ + t2_1 - t2_0)
                                                                       // And now, for each variable, eval - if needed - the result

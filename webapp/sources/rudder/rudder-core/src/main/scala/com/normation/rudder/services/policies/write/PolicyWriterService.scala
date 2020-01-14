@@ -340,7 +340,9 @@ class PolicyWriterServiceImpl(
           // this part looks like a memory hot spot
           preparedPromises  <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
                                  val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
-                                 prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, Policy.TAG_OF_RUDDER_ID, globalPolicyMode, generationTime) ?~!
+                                 PrepareTemplateTimer.make().flatMap(prepareTimer =>
+                                   prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, Policy.TAG_OF_RUDDER_ID, globalPolicyMode, generationTime, prepareTimer)
+                                 ).toBox ?~!
                                  s"Error when calculating configuration for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})"
                                }
         } yield {

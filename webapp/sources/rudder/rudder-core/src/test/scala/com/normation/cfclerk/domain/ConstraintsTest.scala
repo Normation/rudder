@@ -37,11 +37,11 @@
 
 package com.normation.cfclerk.domain
 
+import com.normation.errors.PureResult
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 import org.specs2.matcher.Matcher
-import net.liftweb.common._
 import org.specs2.matcher.Expectable
 
 
@@ -86,18 +86,18 @@ class ConstraintsTest extends Specification {
 
   //////// utility matcher ////////
 
-  class BeFullMatcher[T] extends Matcher[Box[T]] {
-    def apply[S <: Box[T]](v: Expectable[S]) = {
+  class BeFullMatcher[T] extends Matcher[PureResult[T]] {
+    def apply[S <: PureResult[T]](v: Expectable[S]) = {
       result(v.value match {
-        case Full(_) => true
+        case Right(_) => true
         case _ => false
       }, v.description + " is true", v.description + " is false", v)
     }
   }
-  class BeFailedMatcher[T] extends Matcher[Box[T]] {
-    def apply[S <: Box[T]](v: Expectable[S]) = {
+  class BeFailedMatcher[T] extends Matcher[PureResult[T]] {
+    def apply[S <: PureResult[T]](v: Expectable[S]) = {
       result(v.value match {
-        case Failure(_, _, _) => true
+        case Left( _) => true
         case _ => false
       }, v.description + " is true", v.description + " is false", v)
     }

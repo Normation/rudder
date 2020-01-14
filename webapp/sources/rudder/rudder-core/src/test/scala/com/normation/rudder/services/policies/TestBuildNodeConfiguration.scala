@@ -137,7 +137,7 @@ class TestBuildNodeConfiguration extends Specification {
       val ruleVal = ruleValService.buildRuleVal(rule, directiveLib, groupLib, allNodes)
       val ruleVals = Seq(ruleVal.getOrElse(throw new RuntimeException("oups")))
       val t2 = System.currentTimeMillis()
-      val nodeContexts = buildContext.getNodeContexts(allNodes.keySet, allNodes, groupLib, Seq(), data.globalAgentRun, data.globalComplianceMode, globalPolicyMode).getOrElse(throw new RuntimeException("oups"))
+      val nodeContexts = buildContext.getNodeContexts(allNodes.keySet, allNodes, groupLib, Nil, data.globalAgentRun, data.globalComplianceMode, globalPolicyMode).getOrElse(throw new RuntimeException("oups"))
       val t3 = System.currentTimeMillis()
       BuildNodeConfiguration.buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, maxParallelism, jsTimeout, generationContinueOnError)
       val t4 = System.currentTimeMillis()
