@@ -50,31 +50,66 @@ import net.liftweb.common._
 import scala.concurrent.duration._
 
 
-/**
- * A naive scheduler which checks every updateInterval if software needs to be deleted
- */
-class CleanPoliciesFolder(
-     nodeInfoService : NodeInfoService
-   , updateInterval  : FiniteDuration
-) {
+class CleanPoliciesService (nodeInfoService: NodeInfoService) extends Loggable {
 
-  val logger = ScheduledJobLogger
+  def cleanPolicies: Box[List[String]] = {
 
+    def initPolicyCleaning (currentNodes : Map[NodeId,NodeInfo]) : Box[List[String]] = {
+      import File._
 
-  if (updateInterval < 1.hour) {
-    logger.info(s"Disable automatic unreferenced policies directory (update interval cannot be less than 1 hour)")
-  } else {
-    logger.debug(s"***** starting batch that purge unreferenced policies directory, every ${updateInterval.toString()} *****")
-    scheduler.scheduleWithFixedDelay(1.hour, updateInterval) {
+      def cleanPoliciesRec(file: File, parentId: String): Iterator[String] = {
+        file.children.flatMap {
+          nodeFolder =>
+            if (logger.isDebugEnabled) {
+              val openfd = try {
+                (root / "proc" / "self").children.size
+              } catch {
+                case fse: FileSystemException =>
+                  -1
+              }
+              logger.debug(s"Currently ${openfd} open files by Rudder Server process")
+            }
+            val nodeId = NodeId(nodeFolder.name)
+            def delete = {
+              nodeFolder.delete()
+              Iterator(nodeFolder.name)
+            }
+            currentNodes.get(nodeId) match {
+              // Node was deleted
+              case None =>
+                delete
+              // Node was moved to another relay
+              case Some(nodeInfo) if parentId != nodeInfo.policyServerId.value  =>
+                delete
+              // Node is a policy server and has some policies generated below, let's explore those policies
+              case Some(nodeInfo) if nodeInfo.isPolicyServer && (nodeFolder / "share").exists =>
+                cleanPoliciesRec(nodeFolder / "share", nodeFolder.name)
+              // Just a valid node, or a relay without nodes, skip
+              case Some(_) =>
+                Iterator.empty
+            }
+        }
+      }
 
+      try {
+        Full(cleanPoliciesRec(root / "var" / "rudder" / "share", "root").toList )
+      } catch {
+        case fse : FileSystemException =>
 
+          val openfd = try {
+            (root / "proc" / "self").children.size
+          } catch {
+            case fse: FileSystemException =>
+              -1
+          }
+          Failure(s"Too many files open (currently ${openfd}, but number may have dropped), maybe you can raise open file descriptor limit (ulimit -n)", Full(fse), Empty)
+      }
     }
-  }
 
-  def launch = {
+
     (for {
       nodes <- nodeInfoService.getAll()
-      deleted <- cleanPoliciesFolderOfDeletedNode(nodes)
+      deleted <- initPolicyCleaning(nodes)
     } yield {
       deleted
     }) match {
@@ -92,59 +127,24 @@ class CleanPoliciesFolder(
         Full(deleted)
     }
   }
+}
 
-  def cleanPoliciesFolderOfDeletedNode(currentNodes : Map[NodeId,NodeInfo]) : Box[List[String]] = {
-    import File._
+class CleanPoliciesJob(
+     cleanPoliciesService: CleanPoliciesService
+   , runInterval     : FiniteDuration
+) {
 
-    def getNodeFolders(file: File, parentId: String): Iterator[String] = {
-      file.children.flatMap {
-        nodeFolder =>
-          if (logger.isDebugEnabled) {
-            val openfd = try {
-              (root / "proc" / "self").children.size
-            } catch {
-              case fse: FileSystemException =>
-                -1
-            }
-            logger.debug(s"Currently ${openfd} open files by Rudder Server process")
-          }
-          val nodeId = NodeId(nodeFolder.name)
-          if (
-            currentNodes.get(nodeId) match {
-              case None => true
-              case Some(nodeInfo) =>
-                val policyServerId = nodeInfo.policyServerId
-                parentId != policyServerId.value
-            }
-          ) {
-            nodeFolder.delete()
-            val res = Iterator(nodeFolder.name)
-            res
-          } else {
-            if ((nodeFolder / "share").exists) {
-              getNodeFolders(nodeFolder / "share", nodeFolder.name)
-            } else {
-              Iterator.empty
-            }
-          }
-      }
-    }
+  val logger = ScheduledJobLogger
 
-
-    try {
-      Full(getNodeFolders(root / "var" / "rudder" / "share", "root").toList )
-    } catch {
-      case fse : FileSystemException =>
-
-        val openfd = try {
-          (root / "proc" / "self").children.size
-        } catch {
-        case fse: FileSystemException =>
-            -1
-        }
-        Failure(s"Too many files open (currently ${openfd}, but number may have dropped), maybe you can raise open file descriptor limit (ulimit -n)", Full(fse), Empty)
+  if (runInterval < 1.hour) {
+    logger.info(s"Disable automatic unreferenced policies directory (update interval cannot be less than 1 hour)")
+  } else {
+    logger.debug(s"***** starting batch that purge unreferenced policies directory, every ${runInterval.toString()} *****")
+    scheduler.scheduleWithFixedDelay(1.hour, runInterval) {
+      cleanPoliciesService.cleanPolicies
     }
   }
+
 
 }
 

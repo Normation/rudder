@@ -403,7 +403,7 @@ object SystemApi extends ApiModuleProvider[SystemApi] {
   }
 
   final case object CleanPolicies extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
-    val description    = "Start policies folder cleaning"
+    val description    = "Delete policies of deleted nodes or nodes that have been moved to another policy server"
     val (action, path) = POST / "system" / "clean" / "policies"
   }
 

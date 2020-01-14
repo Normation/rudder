@@ -229,19 +229,19 @@ rudder.batch.purge.inventories.delete.TTL=7
 rudder.batch.purge.inventories.delete.interval=24
 
 ###########################
-# Promise folder cleaning ###########################################################
+# Policies folder cleaning ###########################################################
 ###########################
 
 #
-# Promise folder cleaning
-# This allows you to schedule the purge of unused promised folders (Deleted Nodes, or Nodes that has moved to another relay/policy server)
+# Policies folder cleaning
+# This allows you to schedule the purge of unused policies folders (Deleted Nodes, or Nodes that has moved to another relay/policy server)
 #
 #
-# Defaults: check runs every 24 hours.
+# Defaults: garbage collection runs every 24 hours.
 #
 
 # Interval in hours
-rudder.batch.clean.promises.interval=24
+rudder.batch.clean.policies.interval=24
 
 
 #####################
