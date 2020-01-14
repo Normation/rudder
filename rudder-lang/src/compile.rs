@@ -17,7 +17,7 @@ fn add_file<'a>(
     path: &'a Path,
     filename: &'a str,
 ) -> Result<()> {
-    println!("|- {} {}", "Parsing".bright_green(), filename);
+    info!("|- {} {}", "Parsing".bright_green(), filename);
     match fs::read_to_string(path) {
         Ok(content) => {
             let content_str = source_list.append(content);
@@ -61,7 +61,7 @@ pub fn compile_file(source: &Path, dest: &Path, technique: bool) -> Result<()> {
     let input_filename = source.to_string_lossy();
     let output_filename = dest.to_string_lossy();
 
-    println!(
+    info!(
         "{} of {} into {}",
         "Processing compilation".bright_green(),
         input_filename.bright_yellow(),
@@ -76,16 +76,16 @@ pub fn compile_file(source: &Path, dest: &Path, technique: bool) -> Result<()> {
     add_file(&mut past, &sources, source, &input_filename)?;
 
     // finish parsing into AST
-    println!("|- {}", "Generating intermediate code".bright_green());
+    info!("|- {}", "Generating intermediate code".bright_green());
     let ast = AST::from_past(past)?;
     
     
     // check that everything is OK
-    println!("|- {}", "Semantic verification".bright_green());
+    info!("|- {}", "Semantic verification".bright_green());
     ast.analyze()?;
 
     // generate final output
-    println!("|- {}", "Generating output code".bright_green());
+    info!("|- {}", "Generating output code".bright_green());
     let mut cfe = CFEngine::new();
     let file = if technique {
         // TODO this should be a technique name not a file name
