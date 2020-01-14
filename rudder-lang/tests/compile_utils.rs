@@ -37,37 +37,27 @@ use colored::Colorize;
 
 /// Paired with `test_case` proc-macro calls from the `compile.rs` test file.
 /// Generates a file from a string and tests it
-pub fn test_generated_file(filename: &str, file: Option<&&str>) {
-    match file {
-        Some(content) => {
-            fs::create_dir_all("tests/tmp").expect("Could not create /tmp dir");
-            let path = PathBuf::from(format!("tests/tmp/{}.rl", filename));
-            let mut file = fs::File::create(&path).expect("Could not create file");
-            file.write_all(content.as_bytes()).expect("Could not write to file");
-            test_file(&path, filename);
-            fs::remove_file(path).expect("Could not delete temporary file");        
-        },
-        None => panic!(
-            format!(
-                "{}: {} does not match any lazy map element",
-                "Warning (test)".bright_yellow().bold(),
-                filename.bright_yellow()
-            )
-        )
-    };
+pub fn test_generated_file(filename: &str, content: &str) {
+    fs::create_dir_all("tests/tmp").expect("Could not create /tmp dir");
+    let path = PathBuf::from(format!("tests/tmp/{}.rl", filename));
+    let mut file = fs::File::create(&path).expect("Could not create file");
+    file.write_all(content.as_bytes()).expect("Could not write to file");
+    test_file(&path, &path, filename);
+    fs::remove_file(path).expect("Could not delete temporary file");
 }
 
 /// Paired with `test_case` proc-macro calls from the `compile.rs` test file.
 /// Tests the file that matches the `filename` argument
 pub fn test_real_file(filename: &str) {
     fs::create_dir_all("tests/tmp").expect("Could not create /tmp dir");
-    let path = PathBuf::from(format!("tests/compile/{}.rl", filename));
-    test_file(&path, filename);
+    let input_path = PathBuf::from(format!("tests/compile/{}.rl", filename));
+    let output_path = PathBuf::from(format!("tests/target/{}.rl", filename));
+    test_file(&input_path, &output_path, filename);
 }
 
 /// Core test function that actually compares the file compilation result to expected result
-fn test_file(path: &Path, filename: &str) {
-    let result = compile_file(&path, filename);
+fn test_file(input_path: &Path, output_path: &Path, filename: &str) {
+    let result = compile_file(&input_path, &output_path, filename);
     assert_eq!(
         result.is_ok(),
         should_compile(filename),
@@ -91,8 +81,8 @@ fn should_compile(filename: &str) -> bool {
 }
 
 /// Compile technique from base crate and expose its result
-fn compile_file(path: &Path, filename: &str) -> Result<(), String> {
-    match rudderc::compile::compile_file(path, path, false) {
+fn compile_file(input_path: &Path, output_path: &Path, filename: &str) -> Result<(), String> {
+    match rudderc::compile::compile_file(input_path, output_path, true) {
         Ok(_) => {
             println!("{}: compilation of {}", "Success (rudderc)".bright_green().bold(), filename.bright_yellow());
             Ok(())
