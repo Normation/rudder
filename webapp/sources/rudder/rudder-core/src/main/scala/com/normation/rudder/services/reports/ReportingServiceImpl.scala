@@ -57,7 +57,10 @@ import com.normation.utils.Control.sequence
 import com.normation.box._
 import com.normation.errors._
 import com.normation.rudder.domain.logger.ReportLogger
+import com.normation.rudder.domain.logger.ReportLoggerPure
+import zio._
 import com.normation.zio._
+import com.github.ghik.silencer.silent
 
 object ReportingServiceUtils {
 
@@ -94,6 +97,7 @@ class ReportingServiceImpl(
 class CachedReportingServiceImpl(
     val defaultFindRuleNodeStatusReports: ReportingServiceImpl
   , val nodeInfoService                 : NodeInfoService
+  , val batchSize                       : Int
 ) extends ReportingService with RuleOrNodeReportingServiceImpl with CachedFindRuleNodeStatusReports {
   val confExpectedRepo = defaultFindRuleNodeStatusReports.confExpectedRepo
   val directivesRepo   = defaultFindRuleNodeStatusReports.directivesRepo
@@ -175,6 +179,17 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
   }
 }
 
+
+
+/**
+ * Managed a cached version of node reports.
+ * The logic is:
+ * - we have a map of [NodeId, Reports]
+ * - access to `findRuleNodeStatusReports` use data from cache and returns immediatly,
+ *   filtering for expired reports
+ * - the only path to update the cache is through an async blocking queue of `InvalidateComplianceCacheMsg`
+ * - the dequeue actor calculs updated reports for invalidated nodes and update the map accordingly.
+ */
 trait CachedFindRuleNodeStatusReports extends ReportingService with CachedRepository {
 
   /**
@@ -182,6 +197,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    */
   def defaultFindRuleNodeStatusReports: DefaultFindRuleNodeStatusReports
   def nodeInfoService                 : NodeInfoService
+  def batchSize                       : Int
 
   /**
    * The cache is managed node by node.
@@ -189,6 +205,36 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * that node.
    */
   private[this] var cache = Map.empty[NodeId, NodeStatusReport]
+
+  /**
+   * The queue of invalidation request.
+   * The queue size is 1 and new request need to merge existing
+   * node id with new ones.
+   */
+  private[this] val invalidateComplianceRequest = Queue.dropping[Set[NodeId]](1).runNow
+
+  /**
+   * We need a semaphore to protect queue content merge-update
+   */
+  private[this] val invalidateMergeUpdateSemaphore = Semaphore.make(1).runNow
+
+  /**
+   * Update logic. We take message from queue one at a time, and update cache.
+   */
+  val updateCacheFromRequest: IO[Nothing, Unit] = invalidateComplianceRequest.take.flatMap(invalidatedIds =>
+    // batch node processing by slice of 10
+    ZIO.traverse_(invalidatedIds.sliding(batchSize).toIterable)(nodeIds =>
+      (for {
+        updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(nodeIds, Set()).toIO
+        _       <- IOResult.effectNonBlocking(cache = cache ++ updated)
+        _       <- ReportLoggerPure.Cache.debug(s"Compliance cache updated for nodes: ${nodeIds.map(_.value).mkString(", ")}")
+      } yield ()).catchAll(err => ReportLoggerPure.Cache.error(s"Error when updating compliance cache for nodes: [${nodeIds.map(_.value).mkString(", ")}]: ${err.fullMsg}"))
+    )
+  )
+
+  // start updating
+  updateCacheFromRequest.forever.fork.runNow: @silent("a type was inferred to be `Any`")
+
 
   private[this] def cacheToLog(c: Map[NodeId, NodeStatusReport]): String = {
     import com.normation.rudder.domain.logger.ComplianceDebugLogger.RunAndConfigInfoToLog
@@ -204,28 +250,33 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
     }.mkString("\n", "\n", "")
   }
 
-  /**
-   * Invalidate some keys in the cache. That won't charge them again
-   * immediately
-   *
-   * Add a "blocking" signal the Future's thread pool to give more thread to other
-   * because this one is taken for a long time.
-   */
-  def invalidate(nodeIds: Set[NodeId]): Box[Map[NodeId, NodeStatusReport]] = scala.concurrent.blocking { this.synchronized {
-    ReportLogger.debug(s"Compliance cache: invalidate cache for nodes: [${nodeIds.map { _.value }.mkString(",")}]")
-    cache = cache -- nodeIds
-    //preload new results
-    checkAndUpdateCache(nodeIds)
-  } }
 
   /**
-   * For the nodeIds in parameter, check that the cache is:
-   * - initialized, else go find missing rule node status reports (one time for all)
-   * - none reports is expired, else switch its status to "missing" for all components
-   *
-   * - ignore nodes in "disabled" state
+   * Invalidate some keys in the cache. This method returns immediatly.
+   * The update is computed asynchronously.
    */
-  private[this] def checkAndUpdateCache(nodeIdsToCheck: Set[NodeId]) : Box[Map[NodeId, NodeStatusReport]] = scala.concurrent.blocking { this.synchronized {
+  def invalidate(nodeIds: Set[NodeId]): IOResult[Unit] = {
+    ZIO.when(nodeIds.nonEmpty) {
+        ReportLoggerPure.Cache.debug(s"Compliance cache: invalidation request for nodes: [${nodeIds.map { _.value }.mkString(",")}]") *>
+      invalidateMergeUpdateSemaphore.withPermit(for {
+        elements <- invalidateComplianceRequest.takeAll
+        allIds   =  nodeIds.union(elements.flatten.toSet)
+        _        <- invalidateComplianceRequest.offer(allIds)
+      } yield ())
+    }
+  }
+
+  /**
+   * Look in the cache for compliance for given nodes.
+   * Only data from cache is used, and even then are filtered out for expired data, so
+   * in the end, only node with up-to-date data are returned.
+   * For missing node in cache, a cache invalidation is triggered.
+   *
+   * That means that not all parameter node will lead to a NodeStatusReport in the map.
+   * This is handled in higher level of the app and leads to "no data available" in
+   * place of compliance bar.
+   */
+  private[this] def checkAndGetCache(nodeIdsToCheck: Set[NodeId]) : Box[Map[NodeId, NodeStatusReport]] = {
     if(nodeIdsToCheck.isEmpty) {
       Full(Map())
     } else {
@@ -233,14 +284,20 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
 
       for {
         // disabled nodes are ignored
-        allNodeIds        <- nodeInfoService.getAll.map( _.filter { case(_,n) => n.state != NodeState.Ignored }.keySet )
+        allNodeIds    <- nodeInfoService.getAll.map( _.filter { case(_,n) => n.state != NodeState.Ignored }.keySet )
         //only try to update nodes that are accepted in Rudder
-        nodeIds            =  nodeIdsToCheck.intersect(allNodeIds)
+        nodeIds       =  nodeIdsToCheck.intersect(allNodeIds)
+        inCache       =  cache.filter { case(id, _) => nodeIds.contains(id) }
         /*
+         * Now, we want to signal to cache that some compliance may be missing / expired
+         * for the next time.
+         *
          * Three cases:
-         * 1/ cache does exist and up to date,
+         * 1/ cache does exist and up to date INCLUDING the one with "missing" (because the report is
+         *    ok and will be until a new report comes)
          * 2/ cache exists but expiration date expired,
          * 3/ cache does note exists.
+         *
          * For simplicity (and keeping computation logic elsewhere than in a cache that already has its cache logic
          * to manage), we will group 2 and 3, but it is well noted that it seems that a RuleNodeStatusReports that
          * expired could be computed without any more logic than "every thing is missing".
@@ -248,41 +305,45 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
          * The definition of expired date is the following:
          *  - Node is Pending -> expirationDateTime is the expiration time
          *  - There is a LastRunAvailable -> expirationDateTime is the lastRunExpiration
-         *  - Other cases: no expiration
+         *  - Other cases: no expiration, ie a "missing report" can not expire (and that's what we want)
          *
          */
-        (expired, upToDate) =  nodeIds.partition { id =>  //two group: expired id, and up to date info
-                                 cache.get(id) match {
-                                   case None         => true
-                                   case Some(status) => status.runInfo match { // We have a status on the run
-                                     case t : ExpiringStatus => t.expirationDateTime.isBefore(now)
-                                     case UnexpectedVersion(_, _, lastRunExpiration, _, _)
-                                                             => lastRunExpiration.isBefore(now)
-                                     case UnexpectedNoVersion(_, _, lastRunExpiration, _, _)
-                                                             => lastRunExpiration.isBefore(now)
-                                     case _                  => false
-                                   }
-                                 }
-                               }
-        newStatus           <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(expired, Set())
+         upToDate     =  inCache.filter { case (_, report) =>
+                           val expired = report.runInfo match {
+                             case t : ExpiringStatus => t.expirationDateTime.isBefore(now)
+                             case UnexpectedVersion(_, _, lastRunExpiration, _, _)
+                                                     => lastRunExpiration.isBefore(now)
+                             case UnexpectedNoVersion(_, _, lastRunExpiration, _, _)
+                                                     => lastRunExpiration.isBefore(now)
+                             case _                  => false
+                           }
+                           !expired
+                         }
+        // starting with nodeIds, is all accepted node passed in parameter,
+        // we don't miss node ids not yet in cache
+        requireUpdate =  nodeIds -- upToDate.keySet
+        _             <- invalidate(requireUpdate).unit.toBox
       } yield {
-        //here, newStatus.keySet == expired.keySet, so we have processed all nodeIds that should be modified.
-        ReportLogger.debug(s"Compliance cache miss (updated):[${newStatus.keySet.map(_.value).mkString(" , ")}], " +
-                           s" hit:[${upToDate.map(_.value).mkString(" , ")}]")
-        cache = cache ++ newStatus
-        val toReturn = cache.filterKeys { id => nodeIds.contains(id) }
-        ReportLogger.trace("Compliance cache content: " + cacheToLog(toReturn))
-        toReturn
+        ReportLogger.Cache.debug(s"Compliance cache to reload (expired, missing):[${requireUpdate.map(_.value).mkString(" , ")}]")
+        ReportLogger.Cache.trace("Compliance cache hit: " + cacheToLog(upToDate))
+        upToDate
       }
     }
-  } }
+  }
 
+  /**
+   * Find node status reports. That method returns immediatly with the information it has in cache, which
+   * can be outdated. This is the prefered way to avoid huge contention (see https://issues.rudder.io/issues/16557).
+   *
+   * That method nonetheless check for expiration dates.
+   */
   override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Map[NodeId, NodeStatusReport]] = {
     val n1 = System.currentTimeMillis
     for {
-      reports <- checkAndUpdateCache(nodeIds)
-      n2      = System.currentTimeMillis
-      _       = TimingDebugLogger.trace(s"Getting node status reports from cache in: ${n2 - n1}ms")
+
+      reports <- checkAndGetCache(nodeIds)
+      n2      =  System.currentTimeMillis
+      _       =  ReportLogger.Cache.debug(s"Get node compliance from cache in: ${n2 - n1}ms")
     } yield {
       filterReportsByRules(reports, ruleIds)
     }
@@ -292,17 +353,11 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * Clear cache. Try a reload asynchronously, disregarding
    * the result
    */
-  override def clearCache(): Unit = this.synchronized {
+  override def clearCache(): Unit = {
     cache = Map()
-    ReportLogger.debug("Compliance cache cleared")
+    ReportLogger.Cache.debug("Compliance cache cleared")
     //reload it for future use
-    IOResult.effect {
-      for {
-        infos <- nodeInfoService.getAll
-      } yield {
-        checkAndUpdateCache(infos.keySet)
-      }
-    }.fork.unit.runNow
+    nodeInfoService.getAll.flatMap { nodeIds => Full(invalidate(nodeIds.keySet).unit.runNow) }
   }
 }
 

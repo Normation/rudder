@@ -129,6 +129,10 @@ object ComplianceLogger extends Logger {
 
 object ReportLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("report")
+
+  object Cache extends Logger {
+    override protected def _logger = LoggerFactory.getLogger("report.cache")
+  }
 }
 
 object ReportLoggerPure extends NamedZioLogger {
@@ -136,5 +140,8 @@ object ReportLoggerPure extends NamedZioLogger {
 
   object Changes extends NamedZioLogger {
     override def loggerName: String = "report.changes"
+  }
+  object Cache extends NamedZioLogger {
+    override def loggerName: String = "report.cache"
   }
 }
