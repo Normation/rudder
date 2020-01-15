@@ -859,7 +859,7 @@ final case class ContextForNoAnswer(
                                             * ----- /tmp/ip2
                                             */
                                            ComponentStatusReport(c.componentName, c.groupedComponentValues.map { case(v,u) => (u ->
-                                             ComponentValueStatusReport(v, u, MessageStatusReport(mrs, "") :: Nil)
+                                             ComponentValueStatusReport(v, u, MessageStatusReport(mrs, None) :: Nil)
                                              )}.toMap)
                                          ))
                                        }
@@ -998,7 +998,7 @@ final case class ContextForNoAnswer(
           d.components.map { c =>
             (c.componentName, ComponentStatusReport(c.componentName,
               c.groupedComponentValues.map { case(v,uv) =>
-                (uv, ComponentValueStatusReport(v, uv, MessageStatusReport(status, "") :: Nil) )
+                (uv, ComponentValueStatusReport(v, uv, MessageStatusReport(status, None) :: Nil) )
               }.toMap
             ))
           }.toMap
