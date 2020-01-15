@@ -1773,6 +1773,7 @@ object RudderConfig extends Loggable {
         , RUDDER_JDBC_BATCH_MAX_SIZE
       )
     , nodeInfoServiceImpl
+    , RUDDER_JDBC_BATCH_MAX_SIZE // use same size as for SQL requests
   )
 
   private[this] lazy val pgIn = new PostgresqlInClause(70)
@@ -1977,6 +1978,7 @@ object RudderConfig extends Loggable {
     , new CreateSystemToken(roLDAPApiAccountRepository.systemAPIAccount)
     , new CheckApiTokenAutorizationKind(rudderDit, rwLdap)
     , new CheckNashornWarning()
+    , new LoadNodeComplianceCache(nodeInfoService, reportingServiceImpl)
   )
 
   //////////////////////////////////////////////////////////////////////////////////////////

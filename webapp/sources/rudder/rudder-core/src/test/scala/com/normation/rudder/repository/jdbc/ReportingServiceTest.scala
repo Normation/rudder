@@ -168,11 +168,12 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[RuleStatusReport] = null
     def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
     def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]] = null
-    override def invalidate(nodeIds: Set[NodeId]) = Full(Map())
+    override def invalidate(nodeIds: Set[NodeId]) = ZIO.succeed(Map())
 
     def getUserNodeStatusReports() : Box[Map[NodeId, NodeStatusReport]] = Full(Map())
     def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = None
 
+    override def batchSize: Int = 5000
   }
 
   val RUDDER_JDBC_BATCH_MAX_SIZE = 5000
