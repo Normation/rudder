@@ -30,9 +30,9 @@ package com.normation.ldap.sdk.schema
  * TODO: use/connect to com.unboundid.ldap.sdk.schema.Schema
  */
 class LDAPSchema {
-  type S = scala.collection.Set[LDAPObjectClass]
+  type S = scala.collection.immutable.Set[LDAPObjectClass]
   import scala.collection.mutable.{ Map => MutMap }
-  def S = scala.collection.Set[LDAPObjectClass] _
+  def S = scala.collection.immutable.Set[LDAPObjectClass] _
 
   /**
    * map of class name (lower case) -> object class

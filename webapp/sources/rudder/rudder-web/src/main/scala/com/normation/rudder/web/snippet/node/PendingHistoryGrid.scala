@@ -179,7 +179,7 @@ object PendingHistoryGrid extends Loggable {
   def initJsCallBack(entries : Seq[EventLog]) : JsCmd = {
     val eventWithDetails = entries.flatMap(event => logDetailsService.getDeleteNodeLogDetails(event.details).map((event,_)))
     // Group the events by node id, then drop the event details. Set default Map value to an empty Seq
-    val deletedNodes = eventWithDetails.groupBy(_._2.nodeId).mapValues(_.map(_._1)).withDefaultValue(Seq())
+    val deletedNodes = eventWithDetails.groupMap(_._2.nodeId)(_._1).withDefaultValue(Seq())
 
       JsRaw("""
           $(#table_var#.fnGetNodes()).each( function () {

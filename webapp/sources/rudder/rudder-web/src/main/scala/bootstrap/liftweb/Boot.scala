@@ -74,6 +74,7 @@ import org.reflections.Reflections
 import com.normation.zio._
 
 import scala.xml.NodeSeq
+import scala.xml.NodeSeq.seqToNodeSeq
 
 /*
  * Utilities about rights
@@ -358,7 +359,7 @@ class Boot extends Loggable {
 
     // All the following is related to the sitemap
     val nodeManagerMenu =
-      Menu("NodeManagerHome", <i class="fa fa-sitemap"></i> ++ <span>Node management</span>) /
+      Menu("NodeManagerHome", <i class="fa fa-sitemap"></i> ++ <span>Node management</span>: NodeSeq) /
         "secure" / "nodeManager" / "index"  >> TestAccess( ()
             => userIsAllowed("/secure/index",AuthorizationType.Node.Read) ) submenus (
 
@@ -388,7 +389,7 @@ class Boot extends Loggable {
 
     def policyMenu = {
       val name = "configuration"
-      Menu(name+"ManagerHome", <i class="fa fa-pencil"></i> ++ <span>{name.capitalize} policy</span>) /
+      Menu(name+"ManagerHome", <i class="fa fa-pencil"></i> ++ <span>{name.capitalize} policy</span>: NodeSeq) /
         "secure" / (name+"Manager") / "index" >> TestAccess ( ()
             => userIsAllowed("/secure/index",AuthorizationType.Configuration.Read) ) submenus (
 
@@ -415,7 +416,7 @@ class Boot extends Loggable {
     }
 
     def administrationMenu =
-      Menu("AdministrationHome", <i class="fa fa-gear"></i> ++ <span>Settings</span>) /
+      Menu("AdministrationHome", <i class="fa fa-gear"></i> ++ <span>Settings</span>: NodeSeq) /
         "secure" / "administration" / "index" >> TestAccess ( ()
             => userIsAllowed("/secure/index",AuthorizationType.Administration.Read, AuthorizationType.Technique.Read) ) submenus (
 
@@ -441,7 +442,7 @@ class Boot extends Loggable {
       )
 
     def pluginsMenu = {
-      (Menu("PluginsHome", <i class="fa fa-puzzle-piece"></i> ++ <span>Plugins</span>) /
+      (Menu("PluginsHome", <i class="fa fa-puzzle-piece"></i> ++ <span>Plugins</span>: NodeSeq) /
         "secure" / "plugins" / "index"
         >> LocGroup("pluginsGroup")
         >> TestAccess ( () => userIsAllowed("/secure/index", AuthorizationType.Administration.Read)
@@ -457,7 +458,7 @@ class Boot extends Loggable {
       // if we can't get the workflow property, default to false
       // (don't give rights if you don't know)
       def workflowEnabled = RudderConfig.configService.rudder_workflow_enabled.either.runNow.getOrElse(false)
-      Menu("UtilitiesHome", <i class="fa fa-wrench"></i> ++ <span>Utilities</span>) /
+      Menu("UtilitiesHome", <i class="fa fa-wrench"></i> ++ <span>Utilities</span>: NodeSeq) /
         "secure" / "utilities" / "index" >>
         TestAccess ( () =>
           if ((workflowEnabled && (CurrentUser.checkRights(AuthorizationType.Validator.Read) || CurrentUser.checkRights(AuthorizationType.Deployer.Read))) || CurrentUser.checkRights(AuthorizationType.Administration.Read) || CurrentUser.checkRights(AuthorizationType.Technique.Read))
@@ -479,7 +480,7 @@ class Boot extends Loggable {
     }
 
     val rootMenu = List(
-        Menu("Dashboard", <i class="fa fa-dashboard"></i> ++ <span>Dashboard</span>) / "secure" / "index"
+        Menu("Dashboard", <i class="fa fa-dashboard"></i> ++ <span>Dashboard</span>: NodeSeq) / "secure" / "index"
       , Menu("Login") / "index" >> Hidden
       , Menu("Templates") / "templates" / ** >> Hidden //allows access to html file use by js
       , nodeManagerMenu
@@ -528,7 +529,7 @@ class Boot extends Loggable {
   }
 
   private[this] def initPlugins(): List[RudderPluginDef] = {
-    import scala.collection.JavaConverters._
+    import scala.jdk.CollectionConverters._
 
     val reflections = new Reflections("bootstrap.rudder.plugin")
     val modules = reflections.getSubTypesOf(classOf[RudderPluginModule]).asScala.map(c => c.getField("MODULE$").get(null).asInstanceOf[RudderPluginModule])

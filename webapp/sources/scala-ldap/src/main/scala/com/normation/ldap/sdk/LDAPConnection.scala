@@ -43,7 +43,7 @@ import zio.blocking.Blocking
 import zio._
 import zio.syntax._
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import com.normation.ldap.sdk.syntax._
 
 /*
@@ -317,11 +317,11 @@ sealed class RoLDAPConnection(
 
   override def search(sr:SearchRequest) : LDAPIOResult[Seq[LDAPEntry]] = {
     blocking {
-      backed.search(sr).getSearchEntries.asScala.map(e => LDAPEntry(e.getParsedDN, e.getAttributes.asScala))
+      backed.search(sr).getSearchEntries.asScala.toSeq.map(e => LDAPEntry(e.getParsedDN, e.getAttributes.asScala))
     } catchAll {
       case e:LDAPSearchException if(onlyReportOnSearch(e.getResultCode)) =>
         LDAPConnectionLogger.error("Ignored execption (configured to be ignored)", e) *>
-        e.getSearchEntries.asScala.map(e => LDAPEntry(e.getParsedDN, e.getAttributes.asScala)).succeed
+        e.getSearchEntries.asScala.toSeq.map(e => LDAPEntry(e.getParsedDN, e.getAttributes.asScala)).succeed
       case ex: LDAPException =>
         LDAPRudderError.BackendException(s"Error during search: ${ex.getDiagnosticMessage}", ex).fail
       // catchAll is a lie, but if other kind of exception happens, we want to crash

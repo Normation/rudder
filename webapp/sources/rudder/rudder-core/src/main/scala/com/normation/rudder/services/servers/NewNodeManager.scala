@@ -158,7 +158,7 @@ class PostNodeAcceptanceHookScripts(
 
   override def afterNodeAcceptedAsync(nodeId: NodeId): Unit = {
     val systemEnv = {
-      import scala.collection.JavaConverters._
+      import scala.jdk.CollectionConverters._
       HookEnvPairs.build(System.getenv.asScala.toSeq:_*)
     }
 
@@ -913,7 +913,7 @@ class AcceptHostnameAndIp(
                           nodesInfo.map( ni => ni.hostname)
                         }
       noDuplicatesH  <- if(duplicatesH.isEmpty) Full({})
-                        else failure(duplicatesH, "Hostname")
+                        else failure(duplicatesH.toSeq, "Hostname")
     } yield {
       {}
     }

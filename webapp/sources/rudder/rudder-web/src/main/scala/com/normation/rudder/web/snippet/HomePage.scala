@@ -196,9 +196,9 @@ final case class ColoredChartType(value: Double) extends ChartType
     } yield {
 
       // log global compliance info (useful for metrics on number of components and log data analysis)
-      ComplianceLogger.info(s"[metrics] global compliance (number of components): ${global.map(g => g._1.total + " "+ g._1.toString).getOrElse("undefined")}")
+      ComplianceLogger.info(s"[metrics] global compliance (number of components): ${global.map(g => g._1.total.toString + " "+ g._1.toString).getOrElse("undefined")}")
 
-      val reportsByNode = reports.mapValues { status => ComplianceLevel.sum(status.report.reports.map(_.compliance)) }
+      val reportsByNode = reports.view.mapValues { status => ComplianceLevel.sum(status.report.reports.map(_.compliance)) }
 
       /*
        * Here, for the compliance by node, we want to distinguish (but NOT ignore, like in globalCompliance) the
@@ -321,7 +321,7 @@ final case class ColoredChartType(value: Double) extends ChartType
                         case Some(_: VirtualMachineType) => "Virtual"
                         case Some(PhysicalMachineType)   => "Physical"
                         case _                           => "No Machine Inventory"
-                      } }.groupBy(identity).mapValues(_.size).toList.sortBy(_._2).foldLeft((Nil : List[JsExp], Nil : List[JsExp]))
+                      } }.groupBy(identity).view.mapValues(_.size).toList.sortBy(_._2).foldLeft((Nil : List[JsExp], Nil : List[JsExp]))
       { case ((labels,values),(label,value)) => (label :: labels, value :: values) }
       val machinesArray = JsObj("labels" -> JsArray(machines._1), "values" -> JsArray(machines._2))
       val (osLabels,osValues) = nodeInfos.values.groupBy(_.osDetails.os.name).map{ case (os,value) => (S.?(s"os.name.${os}"), value.size) }.toList.sortBy(_._2).foldLeft((Nil : List[JsExp], Nil : List[JsExp]))
@@ -434,7 +434,7 @@ final case class ColoredChartType(value: Double) extends ChartType
               acceptedNodesDit.SOFTWARE.SOFT.idFromDN(new DN(x)).toOption.flatMap(s => agentMap(s.value).version)
             }
         )
-      }.toMap.mapValues{_.maxBy(_.value)} // Get the max version available
+      }.toMap.view.mapValues(_.maxBy(_.value)).toMap // Get the max version available
 
       // take back the initial set of nodes to be sure to have one agent for each
       val allAgents = nodeInfos.keySet.toSeq.map(nodeId => agentVersionByNodeEntries.get(nodeId) match {
@@ -457,7 +457,7 @@ final case class ColoredChartType(value: Double) extends ChartType
           replace("~", ".")
       }
 
-      val res = allAgents.groupBy(ag => formatVersion(ag.value)).mapValues( _.size)
+      val res = allAgents.groupBy(ag => formatVersion(ag.value)).view.mapValues( _.size).toMap
 
       TimingDebugLogger.debug(s"=> group and count agents: ${System.currentTimeMillis-n4}ms")
       res

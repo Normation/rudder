@@ -62,6 +62,7 @@ import org.joda.time.format.PeriodFormat
 import zio._
 import zio.syntax._
 
+
 object InventoryProcessingLogger extends NamedZioLogger {
   override def loggerName: String = "inventory-processing"
 }

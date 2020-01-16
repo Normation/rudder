@@ -162,7 +162,7 @@ trait AbstractScheduler {
         //if one update is pending, immediatly start one other
 
         //schedule next update, in minutes
-        LAPinger.schedule(this, AbstractActorUpdateMessage.StartUpdate, realUpdateInterval*1000l)
+        LAPinger.schedule(this, AbstractActorUpdateMessage.StartUpdate, realUpdateInterval*1000L)
 
         //log some information
         val format = ISODateTimeFormat.dateTimeNoMillis()

@@ -247,7 +247,7 @@ object CompareProperties {
         } yield {
           val toRemove = updated.collect { case Left(name)  => name }.toSet
           val toUpdate = updated.collect { case Right(prop) => (prop.name, prop) }.toMap
-          (oldPropsMap.filterKeys(k => !toRemove.contains(k)) ++ toUpdate).values.toSeq
+          (oldPropsMap.view.filterKeys(k => !toRemove.contains(k)).toMap ++ toUpdate).map(_._2).toSeq
         }
     }
   }

@@ -288,7 +288,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
                 , Some(showTargetInfo)
                 , Map()
            )}</ul>
-        </div>
+        </div>: NodeSeq
       ) ++ Script(OnLoad(
       //build jstree and
       //init bind callback to move

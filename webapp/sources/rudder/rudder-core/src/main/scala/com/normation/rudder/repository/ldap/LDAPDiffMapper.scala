@@ -233,7 +233,7 @@ class LDAPDiffMapper(
                             val beforeRootSection = oldVariableRootSection.getOrElse(variableRootSection)
                             diff.map( _.copy(modParameters = Some(SimpleDiff(
                                 SectionVal.directiveValToSectionVal(beforeRootSection,oldPi.parameters),
-                                SectionVal.directiveValToSectionVal(variableRootSection,parsePolicyVariables(mod.getAttribute().getValues)))
+                                SectionVal.directiveValToSectionVal(variableRootSection,parsePolicyVariables(mod.getAttribute().getValues.toSeq)))
                             )))
                           case A_NAME =>
                             nonNull(diff, mod.getAttribute().getValue) { (d, value) =>

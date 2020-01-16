@@ -182,7 +182,7 @@ class RemoveNodeServiceImpl(
     import DeletionResult._
     def effectiveDeletion( nodeInfo : NodeInfo, optNodePaths: Option[NodePromisesPaths], preHooks : Hooks, startPreHooks : Long) : Box[DeletionResult]  = {
       val systemEnv = {
-        import scala.collection.JavaConverters._
+        import scala.jdk.CollectionConverters._
         HookEnvPairs.build(System.getenv.asScala.toSeq:_*)
       }
 

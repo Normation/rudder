@@ -158,16 +158,16 @@ bundle common va
       "root_server" expression => strcmp("root","${rudder_roles.uuid}");
     # static definition of the machine roles
   classes: 
-    "policy_server" expression => "any";
-    "root_server" expression => "any";
-    "rudder-inventory-ldap" expression => "any";
     "rudder-ldap" expression => "any";
-    "rudder-reports" expression => "any";
-    "rudder-webapp" expression => "any";
-    "rudder-jetty" expression => "any";
-    "rudder-server-root" expression => "any";
-    "rudder-inventory-endpoint" expression => "any";
+    "policy_server" expression => "any";
+    "rudder-inventory-ldap" expression => "any";
     "rudder-db" expression => "any";
+    "rudder-jetty" expression => "any";
+    "rudder-webapp" expression => "any";
+    "rudder-inventory-endpoint" expression => "any";
+    "root_server" expression => "any";
+    "rudder-reports" expression => "any";
+    "rudder-server-root" expression => "any";
 
 }
 

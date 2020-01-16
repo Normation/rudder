@@ -187,7 +187,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     private[this] val nodes = Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), ResolvedAgentRunInterval(interval, 1))).toMap
     def getGlobalAgentRun() : Box[AgentRunInterval] = Full(AgentRunInterval(None, interval.toStandardMinutes.getMinutes, 0, 0, 0))
     def getNodeReportingConfigurations(nodeIds: Set[NodeId]): Box[Map[NodeId, ResolvedAgentRunInterval]] = {
-      Full(nodes.filterKeys { x => nodeIds.contains(x) })
+      Full(nodes.view.filterKeys { x => nodeIds.contains(x) }.toMap)
     }
   }
 
@@ -258,7 +258,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   val allNodes_t1 = Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), NodeConfigIdInfo(NodeConfigId(n+"_t1"), gen1, Some(gen2) ))).toMap
   val allNodes_t2 = Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), NodeConfigIdInfo(NodeConfigId(n+"_t2"), gen2, None ))).toMap
 
-  val allConfigs = (allNodes_t1.toSeq ++ allNodes_t2).groupBy( _._1 ).mapValues( _.map( _._2 ) )
+  val allConfigs = (allNodes_t1.toSeq ++ allNodes_t2).groupMap( _._1 )( _._2 )
 
   // this need to be NodeConfiguration (ex in NodeConfigData)
 

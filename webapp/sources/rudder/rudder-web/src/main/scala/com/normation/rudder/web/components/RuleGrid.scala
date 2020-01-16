@@ -435,7 +435,7 @@ class RuleGrid(
       val t1 = System.currentTimeMillis
       TimingDebugLogger.trace(s"Rule grid: transforming into data: convert to lines: ${t1-t0}ms")
 
-      var tData = 0l
+      var tData = 0L
 
       val lines = for {
          line <- converted

@@ -47,7 +47,7 @@ import java.io.File
 import net.liftweb.common._
 
 import scala.collection.immutable.SortedMap
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import java.io.InputStream
 
 import org.eclipse.jgit.treewalk.TreeWalk
@@ -201,7 +201,7 @@ class GitTechniqueReader(
                             )
                         }
     } yield res
-  ).flatMap(Ref.make(_)).runNow: @silent // inferred Any - yes, that's what we want
+  ).flatMap(Ref.make(_)).runNow: @silent("a type was inferred to be `Any`") // yes, that's what we want
 
   private[this] val nextTechniquesInfoCache: Ref[(ObjectId,TechniquesInfo)] = {
     (for {
@@ -532,7 +532,7 @@ class GitTechniqueReader(
           }
         }
       }
-      import scala.collection.JavaConverters._
+      import scala.jdk.CollectionConverters._
       prop.asScala.toMap
 
   }
@@ -690,13 +690,13 @@ class GitTechniqueReader(
           val cat = info.rootCategory.getOrElse(
               throw new RuntimeException(s"Can not find the parent (root) category '${descriptorFile.getParent}' for package '${techniqueId.toString()}'")
           )
-          info.rootCategory = Some(cat.copy(techniqueIds = cat.techniqueIds + techniqueId ))
+          info.rootCategory = Some(cat.copy(techniqueIds = cat.techniqueIds.union(Set(techniqueId) )))
           true
 
         case sid:SubTechniqueCategoryId =>
           info.subCategories.get(sid) match {
             case Some(cat) =>
-              info.subCategories(sid) = cat.copy(techniqueIds = cat.techniqueIds + techniqueId )
+              info.subCategories(sid) = cat.copy(techniqueIds = cat.techniqueIds.union(Set(techniqueId) ))
               true
             case None =>
               logger.error(s"Can not find the parent (root) category '${descriptorFile.getParent}' for package '${techniqueId.toString()}'")

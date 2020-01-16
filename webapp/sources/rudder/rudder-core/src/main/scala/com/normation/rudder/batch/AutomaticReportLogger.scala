@@ -120,7 +120,7 @@ class AutomaticReportLogger(
                 // None means this is a new rudder without any reports, don't log anything, current id is 0
                 case None =>
                   logger.warn("There is no reports to log")
-                  0l
+                  0L
 
                 // return last id and report the latest 100 non compliant reports
                 case Some(report) =>

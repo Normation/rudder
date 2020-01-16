@@ -41,7 +41,7 @@ import com.normation.rudder.{AuthorizationType, Rights, Role, RudderAccount}
 import com.normation.rudder.api.ApiAuthorization
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
-import scala.collection.JavaConverters.asJavaCollectionConverter
+import scala.jdk.CollectionConverters._
 
 /**
  * We don't use at all Spring Authority to implements

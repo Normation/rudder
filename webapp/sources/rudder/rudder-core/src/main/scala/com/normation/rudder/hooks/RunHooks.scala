@@ -157,7 +157,6 @@ object HookReturnCode {
 }
 
 object HooksImplicits {
-  import scala.language.implicitConversions
   implicit def hooksReturnCodeToBox(hrc: HookReturnCode): Box[Unit] = {
     hrc match {
       case _: HookReturnCode.Success => Full(())

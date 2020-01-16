@@ -51,7 +51,7 @@ import com.normation.rudder.db.DBCommon
 import com.normation.rudder.db.Doobie._
 
 import doobie.implicits._
-import cats._
+import doobie.implicits.javasql._
 import zio.interop.catz._
 
 final case class MigEx102(msg:String) extends Exception(msg)

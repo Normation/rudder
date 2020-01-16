@@ -96,22 +96,22 @@ object TemplateCli {
     opt[File]("outdir") valueName("<file>") action { (x, c) =>
       c.copy(outdir = x) } text("output directory for filled template, default is '.'")
 
-    opt[String]("inext") optional() valueName("<input file extension>") action { (x, c) =>
+    opt[String]("inext").optional() valueName("<input file extension>") action { (x, c) =>
        c.copy(inputExtension = x) } text("extension of input templates. Default is '.st'")
 
-    opt[String]("outext") optional() valueName("<output file extension>") action { (x, c) =>
+    opt[String]("outext").optional() valueName("<output file extension>") action { (x, c) =>
        c.copy(outputExtension = x) } text("extension of templates after processing. Default is '' (no extension added)")
 
-    opt[File]('p', "params") optional() valueName("<variable.json>") action { (x, c) =>
+    opt[File]('p', "params").optional() valueName("<variable.json>") action { (x, c) =>
       c.copy(variables = x) } text("JSON file defining variables. Default is 'variables.json'. See below for format details.")
 
-    opt[Unit]('X', "stackTrace") optional() action { (_, c) =>
+    opt[Unit]('X', "stackTrace").optional() action { (_, c) =>
       c.copy(showStackTrace = true) } text("Print stack trace on error")
 
-    opt[Unit]("stdout") optional() action { (_, c) =>
+    opt[Unit]("stdout").optional() action { (_, c) =>
       c.copy(outputToStdout = true) } text("Print stack trace on error")
 
-    arg[File]("<template.st>...") optional() unbounded() action { (x, c) =>
+    arg[File]("<template.st>...").optional().unbounded() action { (x, c) =>
       c.copy(templates = c.templates:+ x) } text("""list of templates to fill. Only file with the correct extension (by default '.st') will
         | be processed. The extension will be replaced by '.cf' by default, ounce processed.""".stripMargin)
 

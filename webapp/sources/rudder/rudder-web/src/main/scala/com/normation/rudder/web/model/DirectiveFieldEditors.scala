@@ -89,9 +89,9 @@ class TextField(
   def get = _x
   def set(x: String) = { if (null == x) _x = "" else _x = x; _x }
 
-  def toForm = display(TextField.textInput("text") )
+  def toForm = display(TextField.textInput("text")(_))
 
-  def display( xml: String => NodeSeq) = {
+  def display( xml: String => NodeSeq): Box[NodeSeq] = {
     val formId = Helpers.nextFuncName
     val valueInput = SHtml.textarea("", {s =>  parseClient(s)}, ("ng-model","result"), ("ng-hide", "true") )
     val (scriptEnabled, currentPrefix, currentValue) = scriptSwitch().getOrElse(Disabled) match {
@@ -175,7 +175,7 @@ class TextareaField(
 ) extends TextField(id,scriptSwitch) {
   self =>
 
-  override def toForm = display(TextField.textInput("textarea") )
+  override def toForm = display(TextField.textInput("textarea")(_))
 
 }
 
@@ -251,7 +251,7 @@ class SelectField(val id: String, items: Seq[ValueLabel]) extends DirectiveField
 
   def parseClient(s: String): Unit =
     if (null == s) values = getDefaultValue
-    else values = s.split(",")
+    else values = s.split(",").toSeq
 
   def toClient: String = if (null == values) "" else values.mkString(",")
 
@@ -483,7 +483,7 @@ class PeriodField(
 
   def toForm = {
       def intOpts(until: Int, by: Int = 1): Seq[(Int, String)] =
-        new Range(0, until, by).map(x => (x, x.toString))
+        (0 until until).by(by).map(x => (x, x.toString))
 
     val xml =
       <div>
@@ -780,7 +780,7 @@ class PasswordField(
     val hashes = JsObj(algos.filterNot { x => x == PLAIN || x == PreHashed }.map(a => (a.prefix,  Str(a.name))):_*)
     val formId = Helpers.nextFuncName
     val valueInput = SHtml.text("", {s =>  parseClient(s)}, ("ng-model","result"), ("ng-hide", "true") )
-    val otherPasswords = if (slavesValues.size == 0) "undefined" else JsObj(slavesValues().mapValues(Str(_)).toSeq:_*).toJsCmd
+    val otherPasswords = if (slavesValues.size == 0) "undefined" else JsObj(slavesValues().view.mapValues(Str(_)).toSeq:_*).toJsCmd
     val (scriptEnabled,isScript, currentValue) = scriptSwitch().getOrElse(Disabled) match {
       case Disabled => (false,false, currentHash)
       case Enabled =>
@@ -929,9 +929,9 @@ class FileField(
   def get = _x
   def set(x: String) = { if (null == x) _x = "" else _x = x; _x }
 
-  def toForm = display(FileField.fileInput("shared"))
+  def toForm = display(FileField.fileInput("shared")(_))
 
-  def display( xml: String => NodeSeq) = {
+  def display( xml: String => NodeSeq): Box[NodeSeq] = {
     val formId = Helpers.nextFuncName
     val valueInput = SHtml.text(toClient, {s =>  parseClient(s)}, ("class","form-control input-sm col-xs-12") , ("id",formId+"-fileInput") )
     val initScript = {

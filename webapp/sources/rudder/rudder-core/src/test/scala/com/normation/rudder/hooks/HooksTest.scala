@@ -50,7 +50,7 @@ import com.normation.rudder.hooks.HookReturnCode.Ok
 import com.normation.rudder.hooks.HookReturnCode.ScriptError
 import com.normation.rudder.hooks.HookReturnCode.Warning
 import org.specs2.specification.AfterAll
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /**
  * Test properties about NuProcess command, especially about

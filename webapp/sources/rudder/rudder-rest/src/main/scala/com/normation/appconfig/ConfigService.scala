@@ -53,7 +53,6 @@ import com.normation.rudder.domain.eventlog.{ModifyAgentRunIntervalEventType, Mo
 import net.liftweb.common.EmptyBox
 import com.normation.rudder.reports._
 
-import scala.language.implicitConversions
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode

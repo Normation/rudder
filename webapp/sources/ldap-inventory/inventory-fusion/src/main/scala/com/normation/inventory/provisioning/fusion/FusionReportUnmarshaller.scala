@@ -436,7 +436,9 @@ class FusionReportUnmarshaller(
   private[this] def demux(report:InventoryReport) : InventoryReport = {
     //how can that be better ?
     var r = report
-    r = r.copy(machine = r.machine.copy( bios = report.machine.bios.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
+    r = r.copy(machine = r.machine.copy( bios = report.machine.bios.
+
+      groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( controllers = report.machine.controllers.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( memories = demuxMemories(report.machine.memories) ) )
     r = r.copy(machine = r.machine.copy( ports = report.machine.ports.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )

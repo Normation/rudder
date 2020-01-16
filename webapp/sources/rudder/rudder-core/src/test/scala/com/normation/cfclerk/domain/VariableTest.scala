@@ -48,7 +48,6 @@ import org.specs2.mutable._
 import org.specs2.runner._
 import org.xml.sax.SAXParseException
 
-import scala.collection.mutable._
 import scala.xml._
 
 
@@ -107,7 +106,7 @@ class VariableTest extends Specification {
       throw new Exception("Unexpected issue (unvalido xml?) with the testvariable file ")
     }
 
-    val variables = Map[String, Variable]()
+    val variables = scala.collection.mutable.Map[String, Variable]()
     for {
       elt <- (doc \\ "VARIABLES")
       specNode <- elt.nonEmptyChildren
@@ -179,7 +178,7 @@ class VariableTest extends Specification {
 
   "Multivalued variable" should {
     val variable = InputVariable(InputVariableSpec(refName, refDescription, multivalued = true), Seq())
-    implicit val v = variable.copyWithSavedValues(listValue.split(";")).orThrow
+    implicit val v = variable.copyWithSavedValues(listValue.split(";").toSeq).orThrow
 
     haveName()
     haveDescription()

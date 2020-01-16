@@ -37,7 +37,7 @@
 
 package com.normation.rudder.rest
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 import org.apache.commons.io.IOUtils
 import org.junit.runner.RunWith
@@ -118,7 +118,7 @@ class TestRestFromFileDef extends Specification with Loggable {
 
   ///// tests ////
 
-  Fragments.foreach(files) { file =>
+  Fragments.foreach(files.toSeq) { file =>
 
     s"For each test defined in ${file}" should {
 

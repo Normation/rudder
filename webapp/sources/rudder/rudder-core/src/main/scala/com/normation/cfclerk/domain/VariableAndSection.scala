@@ -307,7 +307,7 @@ object Variable {
     for (value <- elt \ "value") {
       returnedValue += value.text
     }
-    returnedValue
+    returnedValue.toSeq
   }
 
   /**

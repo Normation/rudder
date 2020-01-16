@@ -129,7 +129,7 @@ class CachedReportsExecutionRepository(
       val n2 = System.currentTimeMillis
       TimingDebugLogger.trace(s"CachedReportsExecutionRepository: get nodes last run in: ${n2 - n1}ms")
       cache = cache ++ runs
-      cache.filterKeys { x => nodeIds.contains(x) }
+      cache.view.filterKeys { x => nodeIds.contains(x) }.toMap
     }) ?~! s"Error when trying to update the cache of Agent Runs informations"
   }).runNow
 

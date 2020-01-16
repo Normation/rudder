@@ -374,7 +374,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
                           "from the root server and check /var/log/rudder/webapp/ logs for additionnal information."
                 logPure.error(msg) *> msg.fail
               } else {
-                LocalNodeInfoCache(map, lastModif, entriesCSN, map.filter{case(_, (_, n)) => !n.isPolicyServer && n.serverRoles.isEmpty}.size).succeed
+                LocalNodeInfoCache(map, lastModif, entriesCSN.toSeq, map.filter{case(_, (_, n)) => !n.isPolicyServer && n.serverRoles.isEmpty}.size).succeed
               }
         } yield {
           ok
@@ -514,14 +514,14 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
   }
 
   def getAll(): Box[Map[NodeId, NodeInfo]] = withUpToDateCache("all nodes info") { cache =>
-    cache.mapValues(_._2).succeed
+    cache.view.mapValues(_._2).toMap.succeed
   }.toBox
   def getAllSystemNodeIds(): Box[Seq[NodeId]] = withUpToDateCache("all system nodes") { cache =>
     cache.collect { case(k, (_,x)) if(x.isPolicyServer) => k }.toSeq.succeed
   }.toBox
 
   def getAllNodes(): Box[Map[NodeId, Node]] = withUpToDateCache("all nodes") { cache =>
-    cache.mapValues(_._2.node).succeed
+    cache.view.mapValues(_._2.node).toMap.succeed
   }.toBox
 
   override def getLDAPNodeInfo(nodeIds: Set[NodeId], predicats: Seq[NodeInfoMatcher], composition: CriterionComposition): Box[Set[LDAPNodeInfo]] = {

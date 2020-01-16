@@ -842,7 +842,7 @@ class InternalLDAPQueryProcessor(
           // only group is a special case with AND
           // use objectType as ID safe for group, use group filter value
           val subQueries = (objectType, composition) match {
-            case ("group", And) => uniqueFilters.map(f => SubQuery("group:"+f.toString, dnType, objectType, Set(f))).to[List]
+            case ("group", And) => uniqueFilters.map(f => SubQuery("group:"+f.toString, dnType, objectType, Set(f))).toList
             case _              => SubQuery(objectType, dnType, objectType, uniqueFilters) :: Nil
           }
           (objectType, subQueries)
@@ -899,7 +899,7 @@ class InternalLDAPQueryProcessor(
       // Get only filters applied to nodes (NodeDn and 'node' objectType)
       nodeFilters      =  groupedSetFilter.get(QueryNodeDn).flatMap ( _.get("node") ).map( _.flatMap(_.filters).toSet)
       // Get the other filters, by only removing those with 'node' objectType ... maybe we could do a partition here, or even do it above
-      subQueries       =  groupedSetFilter.mapValues(_.filterKeys { _ != "node" }).filterNot( _._2.isEmpty)
+      subQueries       =  groupedSetFilter.view.mapValues(_.view.filterKeys { _ != "node" }.toMap).filterNot( _._2.isEmpty).toMap
     } yield {
       // at that point, it may happen that nodeFilters and otherFilters are empty. In that case, we add a
       // "get all nodes" query and all filters will be done in node info.

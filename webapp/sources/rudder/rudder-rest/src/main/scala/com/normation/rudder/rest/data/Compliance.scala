@@ -377,6 +377,6 @@ object JsonCompliance {
       , statusDisplayName(NoAnswer) -> c.pc.noAnswer
       , statusDisplayName(Disabled) -> c.pc.reportsDisabled
       , statusDisplayName(Pending) -> c.pc.pending
-    ).filter { case(k, v) => v > 0 }.mapValues(percent => percent )
+    ).filter { case(k, v) => v > 0 }.view.mapValues(percent => percent).toMap
   }
 }

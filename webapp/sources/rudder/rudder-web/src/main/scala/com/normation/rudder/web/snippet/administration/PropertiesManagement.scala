@@ -459,10 +459,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
                   </div>
                 </li>
               }
-              <ul id="relaySyncMethod">{
+              (<ul id="relaySyncMethod">{
               RelaySynchronizationMethod.all.map(radioHtml)
               }
-              </ul>++ Script(OnLoad(setRelaySyncMethodJs(value.value)))
+              </ul>: NodeSeq) ++ Script(OnLoad(setRelaySyncMethodJs(value.value)))
             case eb: EmptyBox =>
               val fail = eb ?~ "there was an error while fetching value of property: 'Synchronize Policies using rsync' "
               <div class="error">{fail.msg}</div>
@@ -665,12 +665,12 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
 
 
-              <div class="col-lg-12 callout-fade callout-warning" ng-if="disabledChangeOnly">
+              (<div class="col-lg-12 callout-fade callout-warning" ng-if="disabledChangeOnly">
                 <div class="marker">
                   <span class="glyphicon glyphicon-info-sign"></span>
                 </div>
                 'HTTPS' mode is disabled if "Non compliant reports only" compliant mode is enabled
-              </div> ++
+              </div>: NodeSeq) ++
               <ul id="reportProtocol">
                 {((AgentReportingHTTPS, true, disabledHttps) :: (AgentReportingHTTPS, false, disabledHttps) :: (AgentReportingSyslog, false, false) :: Nil).map((radioHtml _).tupled)}
               </ul> ++ Script(OnLoad(displayDisableSyslogSectionJS(initValue) & check()))

@@ -138,23 +138,24 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
         <groupId>com.zaxxer</groupId>
         <artifactId>HikariCP</artifactId>
-        <version>3.3.1</version>
+        <version>${hikaricp-version}</version>
     </dependency>
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.2.5</version>
+      <version>${postgresql-version}</version>
     </dependency>
     <dependency>
       <groupId>com.softwaremill.quicklens</groupId>
       <artifactId>quicklens_${scala-binary-version}</artifactId>
-      <version>1.4.12</version>
+      <version>${quicklens-version}</version>
     </dependency>
 
     <!-- files utils -->
     <dependency>
       <groupId>com.github.pathikrit</groupId>
       <artifactId>better-files_${scala-binary-version}</artifactId>
+      <version>${better-files-version}</version>
     </dependency>
 
     <!-- Doobie for SQL queries -->
@@ -187,7 +188,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
         <groupId>com.zaxxer</groupId>
         <artifactId>nuprocess</artifactId>
-        <version>1.2.4</version>
+        <version>${nuprocess-version}</version>
         <scope>compile</scope>
     </dependency>
 
@@ -195,7 +196,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>com.jayway.jsonpath</groupId>
       <artifactId>json-path</artifactId>
-      <version>2.4.0</version>
+      <version>${json-path-version}</version>
     </dependency>
 
     <!--

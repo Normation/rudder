@@ -40,9 +40,6 @@ import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import net.liftweb.common._
 import com.normation.rudder.repository.json.JsonExctractorUtils
 
-import scala.language.implicitConversions
-import scala.language.higherKinds
-
 /**
  * Tags that apply on Rules and Directives
  * We do not warranty unicity of tags name, only on tuple (name, value)

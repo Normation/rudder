@@ -45,7 +45,6 @@ import net.liftweb.http.Req
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 
-import scala.language.implicitConversions
 
 /*
  * Information about the API

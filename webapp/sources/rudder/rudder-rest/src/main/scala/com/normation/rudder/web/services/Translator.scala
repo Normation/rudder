@@ -191,7 +191,7 @@ object SelectFieldTranslator extends Translator[Seq[String]](
   new Serializer(
     "self" -> { s => s.mkString(",")}),
   new Unserializer(
-    "self" -> { s => Some(s.split(","):Seq[String]) }))
+    "self" -> { s => Some(s.split(",").toSeq) }))
 
 //file translator
 object FileTranslator extends Translator[File](

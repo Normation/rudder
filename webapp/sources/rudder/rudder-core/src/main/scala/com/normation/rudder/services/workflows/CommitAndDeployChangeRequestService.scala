@@ -342,14 +342,14 @@ final case object CheckGlobalParameter extends CheckChanges[GlobalParameter]  {
           name             = normalizeString(initial.name)
         , shortDescription = normalizeString(initial.shortDescription)
         , longDescription  = normalizeString(initial.longDescription)
-        , parameters       = initial.parameters.mapValues(_.map(_.trim))
+        , parameters       = initial.parameters.view.mapValues(_.map(_.trim)).toMap
       )
 
       val currentFixed = current.copy(
           name             = normalizeString(current.name)
         , shortDescription = normalizeString(current.shortDescription)
         , longDescription  = normalizeString(current.longDescription)
-        , parameters       = current.parameters.mapValues(_.map(_.trim))
+        , parameters       = current.parameters.view.mapValues(_.map(_.trim)).toMap
       )
 
 

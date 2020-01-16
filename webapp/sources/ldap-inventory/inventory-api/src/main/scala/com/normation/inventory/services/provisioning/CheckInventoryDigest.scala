@@ -84,7 +84,7 @@ class ParseInventoryDigestFileV1 extends ParseInventoryDigestFile {
 
     for {
       loaded  <- Task.effect {
-                   import scala.collection.JavaConverters._
+                   import scala.jdk.CollectionConverters._
                    properties.load(is)
                    properties.asInstanceOf[java.util.Map[String, String]].asScala.toMap
                  } mapError  { ex =>

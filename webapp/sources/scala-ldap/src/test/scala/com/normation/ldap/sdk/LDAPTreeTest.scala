@@ -85,9 +85,9 @@ class LDAPTreeTest extends Specification {
 
 
     (optTree must beRight[LDAPTree]) and
-    (tree._children.size.toLong must beEqualTo(1l)                         ) and
+    (tree._children.size.toLong must beEqualTo(1L)                         ) and
     (mTree.root                 must beEqualTo(LDAPEntry(dn2))             ) and
-    (mTree.children.size.toLong must beEqualTo(2l)                         ) and
+    (mTree.children.size.toLong must beEqualTo(2L)                         ) and
     (mTree._children(rdn3).root must beEqualTo(LDAPEntry(dn3))             ) and
     (mTree._children(rdn4).root must beEqualTo(LDAPEntry(new DN(rdn4,dn2))))
   }

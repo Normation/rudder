@@ -106,7 +106,7 @@ class ReadOnlySoftwareDAOImpl(
       softwareIds    =  softwareByNode.values.flatten.toSeq
       software       <- search(con, softwareIds)
     } yield {
-      softwareByNode.mapValues { ids => software.filter(s => ids.contains(s.id)) }
+      softwareByNode.view.mapValues { ids => software.filter(s => ids.contains(s.id)) }.toMap
     })
   }
 
@@ -139,7 +139,7 @@ class ReadOnlySoftwareDAOImpl(
       // fetch all nodes
       nodes           <- con.searchSub(nodeBaseSearch, IS(OC_NODE), A_NODE_UUID)
       mutSetSoftwares <- Ref.make[scala.collection.mutable.Set[SoftwareUuid]](scala.collection.mutable.Set())
-      _               <- ZIO.foreach(nodes.grouped(50).toIterable) { nodeEntries => // batch by 50 nodes to avoid destroying ram/ldap con
+      _               <- ZIO.foreach(nodes.grouped(50).to(Iterable)) { nodeEntries => // batch by 50 nodes to avoid destroying ram/ldap con
                            for {
                              nodeIds       <- ZIO.foreach(nodeEntries) { e => IOResult.effect(e(A_NODE_UUID).map(NodeId(_))).notOptional(s"Missing mandatory attribute '${A_NODE_UUID}'") }
                              t2            <- currentTimeMillis

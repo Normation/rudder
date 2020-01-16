@@ -103,7 +103,7 @@ class ShowNodeDetailsFromNode(
     new ComplianceModeEditForm(
         nodeMode
       , saveHeart(nodeInfo)
-      , () => Unit
+      , () => ()
       , globalMode
       , false
     )
@@ -137,7 +137,7 @@ class ShowNodeDetailsFromNode(
   def agentScheduleEditForm(nodeInfo : NodeInfo) = new AgentScheduleEditForm(
      () => getSchedule(nodeInfo)
      , saveSchedule(nodeInfo)
-     , () => Unit
+     , () => ()
      , () => Some(getGlobalSchedule)
    )
 

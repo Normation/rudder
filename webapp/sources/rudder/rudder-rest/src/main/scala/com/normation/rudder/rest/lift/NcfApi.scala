@@ -119,7 +119,7 @@ class NcfApi(
         }
       }
 
-      import scala.collection.JavaConverters._
+      import scala.jdk.CollectionConverters._
       import net.liftweb.json.JsonDSL._
       import ResourceFileState._
 

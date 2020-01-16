@@ -124,7 +124,7 @@ class CheckCfengineSystemRuleTargets(
       val rudderConfigBasePath = "/opt/rudder/share/"
 
       //we need to check for entries first in the standard rudder config path, then as fallback on classpath
-      import scala.collection.JavaConverters._
+      import scala.jdk.CollectionConverters._
       //build pair of (entries, pathFromWhereEntriesCome)
       val pairs = bootstrapLDIFs.map{ ldif =>
         val file = new File(rudderConfigBasePath, ldif)
@@ -169,7 +169,7 @@ class CheckCfengineSystemRuleTargets(
       val entry = hasPolicyServerTemplateEntry.duplicate()
       // use '"' in the replace to make clearer that we search for "root" which is the exact value we want to replace to "node-actual-uuid"
       // (but not someting-root-something for ex)
-      entry.setAttribute(new Attribute("jsonNodeGroupQuery", hasPolicyServerGroupQueryTemplate.replaceAll('"'+"root"+'"', '"'+uuid+'"')))
+      entry.setAttribute(new Attribute("jsonNodeGroupQuery", hasPolicyServerGroupQueryTemplate.replaceAll("\""+"root"+'"', "\""+uuid+"\"")))
       // also change the DN/RDN of the group to the correct one
       entry.setAttribute("nodeGroupId", s"hasPolicyServer-${uuid}")
       // Set correct name and description

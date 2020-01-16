@@ -271,6 +271,12 @@ class TestInventory extends Specification {
     }
   }
 
+  implicit class ForceGet[A, B](opt: Either[A, Option[B]]) {
+    def forceGet: Some[B]  = opt match {
+      case Right(Some(b)) => Some(b)
+      case _              => throw new Exception("in Test")
+    }
+  }
 
   "Saving, finding and moving node" should {
 
@@ -308,7 +314,7 @@ class TestInventory extends Specification {
         repo.save(full(n, m)).isOK
         and repo.move(n.main.id, PendingInventory, AcceptedInventory).isOK
         and {
-          val Some(FullInventory(node, machine)) = repo.get(n.main.id, AcceptedInventory).testRun.getOrElse(throw new Exception("in Test"))
+          val Some(FullInventory(node, machine)) = repo.get(n.main.id, AcceptedInventory).testRun.forceGet
 
           (
             machine === Some(m.copy(status = AcceptedInventory)) and
@@ -324,7 +330,7 @@ class TestInventory extends Specification {
       (
         repo.save(full(n, m)).isOK
         and {
-          val Some(FullInventory(node, machine)) = repo.get(n.main.id, PendingInventory).testRun.getOrElse(throw new Exception("in Test"))
+          val Some(FullInventory(node, machine)) = repo.get(n.main.id, PendingInventory).testRun.forceGet
 
           (
             node === n
@@ -340,7 +346,7 @@ class TestInventory extends Specification {
       (
         repo.save(full(n, m)).isOK
         and {
-          val Some(FullInventory(node, machine)) = repo.get(n.main.id, PendingInventory).testRun.getOrElse(throw new Exception("in Test"))
+          val Some(FullInventory(node, machine)) = repo.get(n.main.id, PendingInventory).testRun.forceGet
 
           (
             node === n
@@ -362,10 +368,10 @@ class TestInventory extends Specification {
         repo.save(FullInventory(n2,None)).isOK and repo.save(FullInventory(n3,None)).isOK
         and repo.move(n0.main.id, PendingInventory, AcceptedInventory).isOK
         and {
-          val Some(FullInventory(node0, m0)) = repo.get(n0.main.id, AcceptedInventory).testRun.getOrElse(throw new Exception("in Test"))
-          val Some(FullInventory(node1, m1)) = repo.get(n1.main.id, PendingInventory).testRun.getOrElse(throw new Exception("in Test"))
-          val Some(FullInventory(node2, m2)) = repo.get(n2.main.id, AcceptedInventory).testRun.getOrElse(throw new Exception("in Test"))
-          val Some(FullInventory(node3, m3)) = repo.get(n3.main.id, RemovedInventory).testRun.getOrElse(throw new Exception("in Test"))
+          val Some(FullInventory(node0, m0)) = repo.get(n0.main.id, AcceptedInventory).testRun.forceGet
+          val Some(FullInventory(node1, m1)) = repo.get(n1.main.id, PendingInventory).testRun.forceGet
+          val Some(FullInventory(node2, m2)) = repo.get(n2.main.id, AcceptedInventory).testRun.forceGet
+          val Some(FullInventory(node3, m3)) = repo.get(n3.main.id, RemovedInventory).testRun.forceGet
 
           //expected machine value
           val machine = m.copy(status = AcceptedInventory)
@@ -409,7 +415,7 @@ class TestInventory extends Specification {
       )
 
       repo.save(FullInventory(node, None)).isOK and {
-        val Some(FullInventory(n, m)) = repo.get(NodeId("windows 2012"), AcceptedInventory).testRun.getOrElse(throw new Exception("in Test"))
+        val Some(FullInventory(n, m)) = repo.get(NodeId("windows 2012"), AcceptedInventory).testRun.forceGet
         n === node
       }
 

@@ -161,7 +161,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             case (Full(activeTechLib), Full(allRules), Full(globalMode)) =>
               val usedDirectives = allRules.flatMap { case r =>
                   r.directiveIds.map( id => (id -> r.id))
-                }.groupBy( _._1 ).mapValues( _.size).toSeq
+                }.groupMapReduce( _._1 )(_ => 1)(_+_).toSeq
 
               <ul>{
                 DisplayDirectiveTree.displayTree(
@@ -190,7 +190,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
               <span class="error">An error occured when trying to get information from the database. Please contact your administrator of retry latter.</span>
           }
-      }</div>
+      }</div>: NodeSeq
     ) ++ Script(OnLoad(buildJsTree()))
   }
 
@@ -215,7 +215,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   }
 
   def initDirectiveDetails(): NodeSeq = directiveId match {
-    case Full(id) => <div id={ htmlId_policyConf } /> ++
+    case Full(id) => (<div id={ htmlId_policyConf } />: NodeSeq) ++
       //Here, we MUST add a Noop because of a Lift bug that add a comment on the last JsLine.
       Script(OnLoad(updateDirectiveForm(Right(DirectiveId(id)),None)))
     case _ =>  <div id={ htmlId_policyConf }></div>

@@ -63,7 +63,7 @@ class InventoryEventLogServiceImpl(
             case _ => return Failure("Wrong event log type, not an inventory")
           }
         }
-        Full(result)
+        Full(result.toSeq)
       case Empty => Empty
       case _ => Failure("Could not retrieve eventLogs")
     }

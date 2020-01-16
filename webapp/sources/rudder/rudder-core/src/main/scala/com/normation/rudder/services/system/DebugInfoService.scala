@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit
 import com.normation.NamedZioLogger
 import com.normation.rudder.hooks._
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import com.normation.errors._
 import zio._
 import zio.duration._

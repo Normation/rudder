@@ -151,7 +151,7 @@ class TestWriteNodeCertificatesPem extends Specification {
 
     val writer = new WriteNodeCertificatesPemImpl(Some("/non/existing/command"))
 
-    import scala.collection.JavaConverters._
+    import scala.jdk.CollectionConverters._
 
     val log = writer.logger.logEffect.asInstanceOf[ch.qos.logback.classic.Logger]
 

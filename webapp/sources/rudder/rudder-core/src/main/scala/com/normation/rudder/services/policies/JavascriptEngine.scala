@@ -45,7 +45,6 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicInteger
 
-import scala.language.implicitConversions
 import com.normation.cfclerk.domain.HashAlgoConstraint._
 import com.normation.cfclerk.domain.Variable
 import com.normation.rudder.domain.appconfig.FeatureSwitch
@@ -527,7 +526,7 @@ object JsEngine {
        * which interrected with it.
        *
        */
-      @silent def abortWithConsequences(): Unit = {
+      @silent("deprecated") def abortWithConsequences(): Unit = {
         Thread.currentThread().stop()
       }
     }

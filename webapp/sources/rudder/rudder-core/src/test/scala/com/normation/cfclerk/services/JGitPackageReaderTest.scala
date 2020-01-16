@@ -241,7 +241,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
     "have update technique" in {
       reader.readTechniques() //be sure there is no current modification
       val newPath = reader.canonizedRelativePath.map( _ + "/").getOrElse("") + "cat1/p1_1/2.0/newFile.st"
-      val newFile = new File(gitRoot.getAbsoluteFile + "/" + newPath)
+      val newFile = new File(gitRoot.getAbsoluteFile.getPath + "/" + newPath)
       FileUtils.writeStringToFile(newFile, "Some content for the new file", StandardCharsets.UTF_8)
       val git = new Git(repo.db.runNow)
       git.add.addFilepattern(newPath).call

@@ -87,7 +87,6 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import org.joda.time.DateTime
 
 import scala.collection.SortedMap
-import scala.language.implicitConversions
 import com.normation.inventory.domain.Windows
 import com.normation.inventory.domain.Windows2012
 import com.normation.inventory.domain.AgentType
@@ -1056,8 +1055,8 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
     * create the 500 expected directives files for copygitfile
     */
     def createCopyGitFileDirectories(nodeName: String, listIds: Seq[Int]): Unit = {
-      val dest_root_path = EXPECTED_SHARE + "/" + nodeName + "/rules/cfengine-community/copyGitFile"
-      val source_tml = EXPECTED_SHARE + "/" + "copyFileFromSharedFolder.cf"
+      val dest_root_path = EXPECTED_SHARE.getPath + "/" + nodeName + "/rules/cfengine-community/copyGitFile"
+      val source_tml = EXPECTED_SHARE.getPath + "/" + "copyFileFromSharedFolder.cf"
 
       val directiveBasePath = dest_root_path + "/2_3_"+DIRECTIVE_NAME_COPY_GIT_FILE.replace("-", "_")
 

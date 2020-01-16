@@ -148,7 +148,7 @@ trait PromiseGenerationService {
     val rootNodeId = Constants.ROOT_POLICY_SERVER_ID
     //we need to add the current environment variables to the script context
     //plus the script environment variables used as script parameters
-    import scala.collection.JavaConverters._
+    import scala.jdk.CollectionConverters._
     val systemEnv = HookEnvPairs.build(System.getenv.asScala.toSeq:_*)
 
 
@@ -715,7 +715,7 @@ class PromiseGenerationServiceImpl (
       Thread.sleep(50)
     }
 
-    Full(Unit)
+    Full(())
   }
 }
 
@@ -1251,7 +1251,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
      * to not have it, but it simplifie case.
      *
      */
-    val nodeConfigIds = allNodeConfigs.filterKeys(updatedNodes.contains).values.map { nodeConfig =>
+    val nodeConfigIds = allNodeConfigs.view.filterKeys(updatedNodes.contains).values.map { nodeConfig =>
       (nodeConfig.nodeInfo.id, NodeConfigId(hash(NodeConfigurationHash(nodeConfig, generationTime))))
     }.toMap
 
@@ -1290,7 +1290,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
 
       // #10625 : that should be one logic-level up (in the main generation for loop)
 
-      toCache    =  allNodeConfigs.filterKeys(updated.keySet.contains(_)).values.toSet
+      toCache    =  allNodeConfigs.view.filterKeys(updated.contains(_)).values.toSet
       _          <- nodeConfigurationService.save(toCache.map(x => NodeConfigurationHash(x, generationTime)))
       ldapWrite1 =  (DateTime.now.getMillis - ldapWrite0)
       _          =  PolicyGenerationLogger.timing.debug(s"Node configuration cached in LDAP in ${ldapWrite1} ms")
@@ -1498,7 +1498,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
    * plugins hooks
    */
   override def beforeDeploymentSync(generationTime: DateTime): Box[Unit] = {
-    sequence(codeHooks) { _.beforeDeploymentSync(generationTime) }.map( _ => () )
+    sequence(codeHooks.toSeq) { _.beforeDeploymentSync(generationTime) }.map( _ => () )
   }
 
   /*
@@ -1595,7 +1595,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
     // format of date in the file
     def date(d: DateTime) = d.toString(ISODateTimeFormat.basicDateTime())
     // how to format a list of ids in the file
-    def formatIds(ids: Seq[String]) = '(' + ids.mkString("\n", "\n","\n") + ')'
+    def formatIds(ids: Seq[String]) = "(" + ids.mkString("\n", "\n","\n") + ")"
 
     implicit val openOptions = File.OpenOptions.append
     implicit val charset = StandardCharsets.UTF_8
