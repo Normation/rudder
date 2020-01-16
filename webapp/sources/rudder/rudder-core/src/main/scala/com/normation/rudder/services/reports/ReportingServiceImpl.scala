@@ -37,29 +37,31 @@
 
 package com.normation.rudder.services.reports
 
-import com.normation.inventory.domain.NodeId
-import net.liftweb.common._
-import org.joda.time._
-import com.normation.rudder.domain.policies.{GlobalPolicyMode, RuleId}
-import com.normation.rudder.domain.reports._
-import com.normation.rudder.repository._
-import com.normation.rudder.reports.execution.{AgentRunId, RoReportsExecutionRepository}
-import com.normation.rudder.domain.reports.RuleStatusReport
-import com.normation.rudder.domain.reports.NodeStatusReport
-import com.normation.rudder.reports.AgentRunIntervalService
-import com.normation.rudder.domain.logger.TimingDebugLogger
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.reports.GlobalComplianceMode
-import com.normation.rudder.reports.ComplianceModeName
-import com.normation.rudder.reports.ReportsDisabled
-import com.normation.rudder.domain.nodes.NodeState
-import com.normation.utils.Control.sequence
 import com.normation.box._
 import com.normation.errors._
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.logger.ReportLoggerPure
-import zio._
+import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.reports.NodeStatusReport
+import com.normation.rudder.domain.reports.RuleStatusReport
+import com.normation.rudder.domain.reports._
+import com.normation.rudder.reports.AgentRunIntervalService
+import com.normation.rudder.reports.ComplianceModeName
+import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.reports.ReportsDisabled
+import com.normation.rudder.reports.execution.AgentRunId
+import com.normation.rudder.reports.execution.RoReportsExecutionRepository
+import com.normation.rudder.repository._
+import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.utils.Control.sequence
 import com.normation.zio._
+import net.liftweb.common._
+import org.joda.time._
+import zio._
 
 object ReportingServiceUtils {
 
@@ -221,8 +223,9 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * Update logic. We take message from queue one at a time, and update cache.
    */
   val updateCacheFromRequest: IO[Nothing, Unit] = invalidateComplianceRequest.take.flatMap(invalidatedIds =>
-    // batch node processing by slice of 10
-    ZIO.traverse_(invalidatedIds.sliding(batchSize).to(Iterable))(nodeIds =>
+    // batch node processing by slice of batchSize.
+    // Be careful, sliding default step is 1.
+    ZIO.traverse_(invalidatedIds.sliding(batchSize,batchSize).to(Iterable))(nodeIds =>
       (for {
         updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(nodeIds, Set()).toIO
         _       <- IOResult.effectNonBlocking { cache = cache ++ updated }
@@ -314,6 +317,8 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
                                                      => lastRunExpiration.isBefore(now)
                              case UnexpectedNoVersion(_, _, lastRunExpiration, _, _)
                                                      => lastRunExpiration.isBefore(now)
+                             case UnexpectedUnknowVersion(_, _, _, expectedExpiration)
+                                                     => expectedExpiration.isBefore(now)
                              case _                  => false
                            }
                            !expired
