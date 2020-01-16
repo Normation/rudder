@@ -6,6 +6,7 @@ Rudder package manager
 Usage:
     rudder package [--debug] install-file <package.rpkg>...
     rudder package [--debug] install <package> [--version=<version>] [--nightly]
+    rudder package [--debug] upgrade-all [--nightly]
     rudder package [--debug] show <package> [--version=<version>] [--nightly]
     rudder package [--debug] remove <package>...
     rudder package [--debug] search <package>...
@@ -33,6 +34,9 @@ Commands:
 
     install
         download and install the latest released version of the plugin
+
+    upgrade-all
+        download and upgrade the installed plugins to their latest available version
 
     show
         show detailed informations on a given plugin
@@ -103,6 +107,12 @@ if __name__ == "__main__":
             rudderPkg.package_list_installed()
     elif args['update']:
         rudderPkg.update()
+    elif args['upgrade-all']:
+        if args['--nightly']:
+            rudderPkg.upgrade_all("nightly")
+        else:
+            rudderPkg.upgrade_all("release")
+
     elif args['licenses']:
         rudderPkg.update_licenses()
     elif args['search']:

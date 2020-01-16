@@ -320,3 +320,21 @@ def update():
             logging.debug("restoring %s from %s"%(utils.INDEX_PATH, utils.INDEX_PATH + ".bkp"))
             os.rename(utils.INDEX_PATH + ".bkp", utils.INDEX_PATH)
         utils.fail(e)
+
+"""
+    Upgrade all plugins install in their latest compatible version
+"""
+def upgrade_all(mode):
+    for p in utils.DB["plugins"].keys():
+        currentVersion = rpkg.PluginVersion(utils.DB["plugins"][p]["version"])
+        pkgs = plugin.Plugin(p)
+        pkgs.getAvailablePackages()
+        if mode == "nightly":
+            latestVersion = pkgs.getLatestCompatibleNightly().version
+        else:
+            latestVersion = pkgs.getLatestCompatibleRelease().version
+        if currentVersion < latestVersion:
+            print("The plugin %s is installed in version %s. The version %s %s is available, the plugin will be upgraded."%(p, currentVersion.pluginLongVersion, mode, latestVersion.pluginLongVersion))
+            package_install_latest([p], mode)
+        else:
+            print("No newer %s compatible versions found for the plugin %s"%(mode, p))
