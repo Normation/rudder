@@ -7,9 +7,6 @@ use std::cell::UnsafeCell;
 use std::fs;
 use std::path::Path;
 
-pub fn ah() {
-    println!("AH");
-}
 /// Read file, parse it and store it
 fn add_file<'a>(
     past: &mut PAST<'a>,

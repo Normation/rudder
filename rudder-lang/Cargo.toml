@@ -23,3 +23,4 @@ ngrammatic = "^0.3.1"
 
 [dev-dependencies]
 proptest = "0.9"
+test-case = "0.3.3"
