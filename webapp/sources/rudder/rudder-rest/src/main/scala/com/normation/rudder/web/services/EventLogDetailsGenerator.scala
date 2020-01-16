@@ -854,13 +854,17 @@ class EventLogDetailsGenerator(
         case mod:ModifyGlobalProperty =>
           "*" #> { logDetailsService.getModifyGlobalPropertyDetails(mod.details) match {
             case Full((oldProp,newProp)) =>
+              val diff = SimpleDiff(oldProp.value,newProp.value)
               <div class="evloglmargin">
                 <h4>Global property overview:</h4>
                 <ul class="evlogviewpad">
                   <li><b>Name:</b> { mod.propertyName }</li>
-                  <li><b>Value:</b>
-                    { val diff = Some(SimpleDiff(oldProp.value,newProp.value))
-                  displaySimpleDiff(diff,"value",newProp.value) } </li>
+                  <li><b>Old Value:</b>
+                    <span class="diffOldValue">{diff.oldValue}</span>
+                  </li>
+                  <li><b>New Value:</b>
+                    <span class="diffNewValue">{diff.newValue}</span>
+                  </li>
                 </ul>
                 { reasonHtml }
                 { xmlParameters(event.id) }
