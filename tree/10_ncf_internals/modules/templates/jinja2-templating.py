@@ -2,9 +2,13 @@
 # vim: syntax=python
 ''':'
 # First try to run this script with python3, else run with python
-command -v python3 >/dev/null 2>/dev/null  \
-    && exec python3 "$0" "$@" \
-    || exec python  "$0" "$@"
+if command -v python3 >/dev/null 2>/dev/null; then
+  exec python3 "$0" "$@"
+elif command -v python >/dev/null 2>/dev/null; then
+  exec python  "$0" "$@"
+else
+  exec python2 "$0" "$@"
+fi
 '''
 
 #####################################################################################
@@ -26,7 +30,7 @@ command -v python3 >/dev/null 2>/dev/null  \
 #####################################################################################
 
 # Script for jinja2 templating.
-# Needs package python-jinja2 present on the system. 
+# Needs package python-jinja2 present on the system.
 # It will be copied into ${workdir}/modules by ncf initialization process.
 # Can be extended with extra filters and tests with script call jinja2_custom.py
 # loaded from /var/rudder/ncf/local/10_ncf_internals/modules/extensions/
