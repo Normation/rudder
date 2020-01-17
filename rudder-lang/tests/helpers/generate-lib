@@ -66,7 +66,7 @@ foreach my $file (glob $ncf_methods) {
   #print "$gm = { class_prefix=\"$prefix\", class_parameter_id = $class_parameter }\n";
 }
 
-open(my $stdlib,">data/stdlib.rl") or die "Cannot write stdlib";
+open(my $stdlib,">libs/stdlib.rl") or die "Cannot write stdlib";
 print $stdlib "\@format=0\n";
 print $stdlib "\n\n";
 print $stdlib join("\n",keys %resource);
@@ -75,7 +75,7 @@ print $stdlib join("\n", @state);
 print $stdlib "\n\n";
 close($stdlib);
 
-open(my $conf,">data/conf.list") or die "Cannot write methods config";
+open(my $conf,">libs/conf.list") or die "Cannot write methods config";
 print $conf join("\n",@config_lines);
 close($stdlib);
 
