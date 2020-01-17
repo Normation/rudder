@@ -37,7 +37,7 @@
 #
 # Jinja2 is a powerful templating language, running in Python.
 # The Jinja2 syntax reference documentation is [http://jinja.pocoo.org/docs/dev/templates/](http://jinja.pocoo.org/docs/dev/templates/)
-# which will likely be useful, as Jinja2 is very rich and allows a lot more 
+# which will likely be useful, as Jinja2 is very rich and allows a lot more
 # that what is explained here.
 #
 # This section presents some simple cases that cover what can be done with mustache templating,
@@ -47,7 +47,7 @@
 #
 # * `classes` to access currently defined conditions
 # * `vars` to access all currently defined variables
-# 
+#
 # Note: You can add comments in the template, that will not be rendered in the output file with
 # `{# ... #}`.
 #
@@ -231,7 +231,7 @@ bundle agent file_from_template_jinja2(source_template, destination)
 
       # Here we put the output into the errors variable. As the stdout is sent to a file, the output is only stderr,
       # and can be used to check for errors.
-      "errors" string => execresult("/usr/bin/python \"${jinja2_script}\" --strict \"${source_template}\" \"${datastate_file}\" > \"${destination_tmp}\"", "useshell"),
+      "errors" string => execresult("${jinja2_script} --strict \"${source_template}\" \"${datastate_file}\" > \"${destination_tmp}\"", "useshell"),
            ifvarclass => "state_dumped_${destination_canon}_ok";
 
   classes:
@@ -249,7 +249,7 @@ bundle agent file_from_template_jinja2(source_template, destination)
       "${datastate_file}"
         template_method => "mustache",
         create          => "true",
-        edit_template   => "${datastate_tpl}", 
+        edit_template   => "${datastate_tpl}",
         edit_defaults   => no_backup,
         classes         => classes_generic("state_dumped_${destination_canon}");
 
