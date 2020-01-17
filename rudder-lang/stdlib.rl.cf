@@ -1,176 +1,4 @@
-bundle agent file_from_template_mustache (p0,p1)
-{
-  methods:
-}
-bundle agent file_from_local_source_with_check (p0,p1,p2,p3)
-{
-  methods:
-}
-bundle agent file_ensure_key_value_present_in_ini_section (p0,p1,p2,p3)
-{
-  methods:
-}
-bundle agent file_create_symlink_enforce (p0,p1,p2)
-{
-  methods:
-}
-bundle agent file_template_expand (p0,p1,p2,p3,p4)
-{
-  methods:
-}
-bundle agent file_copy_from_local_source (p0,p1)
-{
-  methods:
-}
-bundle agent file_check_regular (p0)
-{
-  methods:
-}
-bundle agent file_from_local_source (p0,p1)
-{
-  methods:
-}
 bundle agent file_key_value_present (p0,p1,p2,p3)
-{
-  methods:
-}
-bundle agent file_symlink_present (p0,p1)
-{
-  methods:
-}
-bundle agent file_copy_from_local_source_with_check (p0,p1,p2,p3)
-{
-  methods:
-}
-bundle agent file_ensure_key_value_parameter_not_in_list (p0,p1,p2,p3,p4,p5,p6)
-{
-  methods:
-}
-bundle agent file_lines_present (p0,p1)
-{
-  methods:
-}
-bundle agent file_check_block_device (p0)
-{
-  methods:
-}
-bundle agent file_check_hardlink (p0,p1)
-{
-  methods:
-}
-bundle agent file_from_template (p0,p1)
-{
-  methods:
-}
-bundle agent file_check_symlinkto (p0,p1)
-{
-  methods:
-}
-bundle agent file_check_socket (p0)
-{
-  methods:
-}
-bundle agent file_from_shared_folder (p0,p1,p2)
-{
-  methods:
-}
-bundle agent file_key_value_parameter_absent_in_list (p0,p1,p2,p3,p4,p5,p6)
-{
-  methods:
-}
-bundle agent file_key_value_present_in_ini_section (p0,p1,p2,p3)
-{
-  methods:
-}
-bundle agent file_block_present (p0,p1)
-{
-  methods:
-}
-bundle agent file_key_value_parameter_present_in_list (p0,p1,p2,p3,p4,p5,p6)
-{
-  methods:
-}
-bundle agent file_ensure_key_value_parameter_in_list (p0,p1,p2,p3,p4,p5,p6)
-{
-  methods:
-}
-bundle agent file_key_value_present_option (p0,p1,p2,p3,p4)
-{
-  methods:
-}
-bundle agent file_replace_lines (p0,p1,p2)
-{
-  methods:
-}
-bundle agent file_symlink_present_option (p0,p1,p2)
-{
-  methods:
-}
-bundle agent file_check_symlink (p0)
-{
-  methods:
-}
-bundle agent file_report_content_head (p0,p1)
-{
-  methods:
-}
-bundle agent file_from_remote_source_recursion (p0,p1,p2)
-{
-  methods:
-}
-bundle agent file_create_symlink_force (p0,p1)
-{
-  methods:
-}
-bundle agent file_from_local_source_recursion (p0,p1,p2)
-{
-  methods:
-}
-bundle agent file_remove (p0)
-{
-  methods:
-}
-bundle agent file_copy_from_remote_source_recursion (p0,p1,p2)
-{
-  methods:
-}
-bundle agent file_from_http_server (p0,p1)
-{
-  methods:
-}
-bundle agent file_enforce_content (p0,p1,p2)
-{
-  methods:
-}
-bundle agent file_create_symlink (p0,p1)
-{
-  methods:
-}
-bundle agent file_ensure_line_present_in_ini_section (p0,p1,p2)
-{
-  methods:
-}
-bundle agent file_copy_from_local_source_recursion (p0,p1,p2)
-{
-  methods:
-}
-bundle agent file_ensure_lines_absent (p0,p1)
-{
-  methods:
-}
-bundle agent file_from_string_mustache (p0,p1)
-{
-  methods:
-}
-bundle agent file_line_present_in_xml_tag (p0,p1,p2)
-{
-  methods:
-}
-bundle agent file_check_exists (p0)
-{
-  methods:
-}
-bundle agent file_ensure_key_value (p0,p1,p2,p3)
 {
   methods:
 }
@@ -178,31 +6,7 @@ bundle agent file_report_content (p0,p1,p2)
 {
   methods:
 }
-bundle agent file_absent (p0)
-{
-  methods:
-}
-bundle agent file_report_content_tail (p0,p1)
-{
-  methods:
-}
-bundle agent file_ensure_keys_values (p0,p1,p2)
-{
-  methods:
-}
 bundle agent file_ensure_block_in_section (p0,p1,p2,p3)
-{
-  methods:
-}
-bundle agent file_lines_absent (p0,p1)
-{
-  methods:
-}
-bundle agent file_present (p0)
-{
-  methods:
-}
-bundle agent file_check_FIFO_pipe (p0)
 {
   methods:
 }
@@ -210,19 +14,7 @@ bundle agent file_symlink_present_force (p0,p1)
 {
   methods:
 }
-bundle agent file_ensure_block_present (p0,p1)
-{
-  methods:
-}
-bundle agent file_line_present_in_ini_section (p0,p1,p2)
-{
-  methods:
-}
-bundle agent file_check_character_device (p0)
-{
-  methods:
-}
-bundle agent file_keys_values_present (p0,p1,p2)
+bundle agent file_copy_from_local_source (p0,p1)
 {
   methods:
 }
@@ -230,35 +22,35 @@ bundle agent file_from_remote_source (p0,p1)
 {
   methods:
 }
-bundle agent file_ensure_key_value_option (p0,p1,p2,p3,p4)
+bundle agent file_ensure_keys_values (p0,p1,p2)
 {
   methods:
 }
-bundle agent file_create (p0)
+bundle agent file_check_regular (p0)
 {
   methods:
 }
-bundle agent file_download (p0,p1)
+bundle agent file_create_symlink_enforce (p0,p1,p2)
 {
   methods:
 }
-bundle agent file_ensure_line_present_in_xml_tag (p0,p1,p2)
+bundle agent file_report_content_head (p0,p1)
 {
   methods:
 }
-bundle agent file_ensure_lines_present (p0,p1)
+bundle agent file_symlink_present_option (p0,p1,p2)
 {
   methods:
 }
-bundle agent file_copy_from_remote_source (p0,p1)
+bundle agent file_from_http_server (p0,p1)
 {
   methods:
 }
-bundle agent file_content (p0,p1,p2)
+bundle agent file_absent (p0)
 {
   methods:
 }
-bundle agent file_block_present_in_section (p0,p1,p2,p3)
+bundle agent file_copy_from_remote_source_recursion (p0,p1,p2)
 {
   methods:
 }
@@ -266,11 +58,219 @@ bundle agent file_from_template_type (p0,p1,p2)
 {
   methods:
 }
+bundle agent file_key_value_parameter_present_in_list (p0,p1,p2,p3,p4,p5,p6)
+{
+  methods:
+}
+bundle agent file_line_present_in_xml_tag (p0,p1,p2)
+{
+  methods:
+}
+bundle agent file_lines_present (p0,p1)
+{
+  methods:
+}
+bundle agent file_check_symlinkto (p0,p1)
+{
+  methods:
+}
+bundle agent file_ensure_line_present_in_xml_tag (p0,p1,p2)
+{
+  methods:
+}
+bundle agent file_keys_values_present (p0,p1,p2)
+{
+  methods:
+}
+bundle agent file_remove (p0)
+{
+  methods:
+}
+bundle agent file_download (p0,p1)
+{
+  methods:
+}
+bundle agent file_block_present_in_section (p0,p1,p2,p3)
+{
+  methods:
+}
+bundle agent file_ensure_line_present_in_ini_section (p0,p1,p2)
+{
+  methods:
+}
+bundle agent file_lines_absent (p0,p1)
+{
+  methods:
+}
+bundle agent file_copy_from_local_source_with_check (p0,p1,p2,p3)
+{
+  methods:
+}
+bundle agent file_create_symlink_force (p0,p1)
+{
+  methods:
+}
+bundle agent file_key_value_parameter_absent_in_list (p0,p1,p2,p3,p4,p5,p6)
+{
+  methods:
+}
+bundle agent file_check_symlink (p0)
+{
+  methods:
+}
+bundle agent file_check_block_device (p0)
+{
+  methods:
+}
+bundle agent file_from_local_source (p0,p1)
+{
+  methods:
+}
+bundle agent file_key_value_present_option (p0,p1,p2,p3,p4)
+{
+  methods:
+}
+bundle agent file_present (p0)
+{
+  methods:
+}
+bundle agent file_ensure_block_present (p0,p1)
+{
+  methods:
+}
+bundle agent file_key_value_present_in_ini_section (p0,p1,p2,p3)
+{
+  methods:
+}
+bundle agent file_copy_from_remote_source (p0,p1)
+{
+  methods:
+}
+bundle agent file_from_string_mustache (p0,p1)
+{
+  methods:
+}
+bundle agent file_ensure_lines_present (p0,p1)
+{
+  methods:
+}
+bundle agent file_check_character_device (p0)
+{
+  methods:
+}
 bundle agent file_from_template_jinja2 (p0,p1)
 {
   methods:
 }
-bundle agent command_execution_once (p0,p1,p2,p3)
+bundle agent file_ensure_key_value (p0,p1,p2,p3)
+{
+  methods:
+}
+bundle agent file_check_FIFO_pipe (p0)
+{
+  methods:
+}
+bundle agent file_block_present (p0,p1)
+{
+  methods:
+}
+bundle agent file_enforce_content (p0,p1,p2)
+{
+  methods:
+}
+bundle agent file_content (p0,p1,p2)
+{
+  methods:
+}
+bundle agent file_ensure_key_value_option (p0,p1,p2,p3,p4)
+{
+  methods:
+}
+bundle agent file_ensure_key_value_parameter_not_in_list (p0,p1,p2,p3,p4,p5,p6)
+{
+  methods:
+}
+bundle agent file_from_remote_source_recursion (p0,p1,p2)
+{
+  methods:
+}
+bundle agent file_create (p0)
+{
+  methods:
+}
+bundle agent file_check_hardlink (p0,p1)
+{
+  methods:
+}
+bundle agent file_from_shared_folder (p0,p1,p2)
+{
+  methods:
+}
+bundle agent file_from_local_source_recursion (p0,p1,p2)
+{
+  methods:
+}
+bundle agent file_check_exists (p0)
+{
+  methods:
+}
+bundle agent file_report_content_tail (p0,p1)
+{
+  methods:
+}
+bundle agent file_ensure_lines_absent (p0,p1)
+{
+  methods:
+}
+bundle agent file_symlink_present (p0,p1)
+{
+  methods:
+}
+bundle agent file_create_symlink (p0,p1)
+{
+  methods:
+}
+bundle agent file_line_present_in_ini_section (p0,p1,p2)
+{
+  methods:
+}
+bundle agent file_check_socket (p0)
+{
+  methods:
+}
+bundle agent file_copy_from_local_source_recursion (p0,p1,p2)
+{
+  methods:
+}
+bundle agent file_ensure_key_value_parameter_in_list (p0,p1,p2,p3,p4,p5,p6)
+{
+  methods:
+}
+bundle agent file_ensure_key_value_present_in_ini_section (p0,p1,p2,p3)
+{
+  methods:
+}
+bundle agent file_from_local_source_with_check (p0,p1,p2,p3)
+{
+  methods:
+}
+bundle agent file_from_template (p0,p1)
+{
+  methods:
+}
+bundle agent file_from_template_mustache (p0,p1)
+{
+  methods:
+}
+bundle agent file_replace_lines (p0,p1,p2)
+{
+  methods:
+}
+bundle agent file_template_expand (p0,p1,p2,p3,p4)
+{
+  methods:
+}
+bundle agent environment_variable_present (p0,p1)
 {
   methods:
 }
@@ -282,175 +282,7 @@ bundle agent command_execution (p0)
 {
   methods:
 }
-bundle agent condition_from_expression (p0,p1)
-{
-  methods:
-}
-bundle agent condition_from_command (p0,p1,p2,p3)
-{
-  methods:
-}
-bundle agent condition_from_variable_existence (p0,p1)
-{
-  methods:
-}
-bundle agent condition_once (p0)
-{
-  methods:
-}
-bundle agent condition_from_expression_persistent (p0,p1,p2)
-{
-  methods:
-}
-bundle agent condition_from_variable_match (p0,p1,p2)
-{
-  methods:
-}
-bundle agent permissions_posix_acls_absent (p0,p1)
-{
-  methods:
-}
-bundle agent permissions_dirs (p0,p1,p2,p3)
-{
-  methods:
-}
-bundle agent permissions_other_acl_present (p0,p1,p2)
-{
-  methods:
-}
-bundle agent permissions_recursive (p0,p1,p2,p3)
-{
-  methods:
-}
-bundle agent permissions_user_acl_absent (p0,p1,p2)
-{
-  methods:
-}
-bundle agent permissions_dirs_recurse (p0,p1,p2,p3)
-{
-  methods:
-}
-bundle agent permissions_dirs_recursive (p0,p1,p2,p3)
-{
-  methods:
-}
-bundle agent permissions_acl_entry (p0,p1,p2,p3,p4)
-{
-  methods:
-}
-bundle agent permissions_user_acl_present (p0,p1,p2,p3)
-{
-  methods:
-}
-bundle agent permissions_group_acl_absent (p0,p1,p2)
-{
-  methods:
-}
-bundle agent permissions_recurse (p0,p1,p2,p3)
-{
-  methods:
-}
-bundle agent permissions_type_recursion (p0,p1,p2,p3,p4,p5)
-{
-  methods:
-}
-bundle agent permissions_group_acl_present (p0,p1,p2,p3)
-{
-  methods:
-}
-bundle agent schedule_simple_stateless (p0,p1,p2,p3,p4,p5,p6,p7,p8,p9)
-{
-  methods:
-}
-bundle agent schedule_simple_nodups (p0,p1,p2,p3,p4,p5,p6,p7,p8,p9)
-{
-  methods:
-}
-bundle agent schedule_simple (p0,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10)
-{
-  methods:
-}
-bundle agent schedule_simple_catchup (p0,p1,p2,p3,p4,p5,p6,p7,p8,p9)
-{
-  methods:
-}
-bundle agent service_reload (p0)
-{
-  methods:
-}
-bundle agent service_restart_if (p0,p1)
-{
-  methods:
-}
-bundle agent service_disabled (p0)
-{
-  methods:
-}
-bundle agent service_action (p0,p1)
-{
-  methods:
-}
-bundle agent service_ensure_disabled_at_boot (p0)
-{
-  methods:
-}
-bundle agent service_started_path (p0,p1)
-{
-  methods:
-}
-bundle agent service_stopped (p0)
-{
-  methods:
-}
-bundle agent service_enabled (p0)
-{
-  methods:
-}
-bundle agent service_restart (p0)
-{
-  methods:
-}
-bundle agent service_ensure_running_path (p0,p1)
-{
-  methods:
-}
-bundle agent service_check_started_at_boot (p0)
-{
-  methods:
-}
-bundle agent service_stop (p0)
-{
-  methods:
-}
-bundle agent service_ensure_running (p0)
-{
-  methods:
-}
-bundle agent service_check_running_ps (p0)
-{
-  methods:
-}
-bundle agent service_ensure_started_at_boot (p0)
-{
-  methods:
-}
-bundle agent service_check_disabled_at_boot (p0)
-{
-  methods:
-}
-bundle agent service_ensure_stopped (p0)
-{
-  methods:
-}
-bundle agent service_start (p0)
-{
-  methods:
-}
-bundle agent service_started (p0)
-{
-  methods:
-}
-bundle agent service_check_running (p0)
+bundle agent command_execution_once (p0,p1,p2,p3)
 {
   methods:
 }
@@ -458,11 +290,7 @@ bundle agent variable_string_from_file (p0,p1,p2)
 {
   methods:
 }
-bundle agent variable_string_from_math_expression (p0,p1,p2,p3)
-{
-  methods:
-}
-bundle agent variable_string_default (p0,p1,p2,p3)
+bundle agent variable_dict_from_file_type (p0,p1,p2,p3)
 {
   methods:
 }
@@ -470,15 +298,11 @@ bundle agent variable_iterator (p0,p1,p2,p3)
 {
   methods:
 }
+bundle agent variable_dict_merge_tolerant (p0,p1,p2,p3)
+{
+  methods:
+}
 bundle agent variable_dict_from_osquery (p0,p1,p2)
-{
-  methods:
-}
-bundle agent variable_dict (p0,p1,p2)
-{
-  methods:
-}
-bundle agent variable_dict_from_file_type (p0,p1,p2,p3)
 {
   methods:
 }
@@ -486,7 +310,7 @@ bundle agent variable_dict_merge (p0,p1,p2,p3)
 {
   methods:
 }
-bundle agent variable_dict_merge_tolerant (p0,p1,p2,p3)
+bundle agent variable_string (p0,p1,p2)
 {
   methods:
 }
@@ -498,7 +322,7 @@ bundle agent variable_iterator_from_file (p0,p1,p2,p3,p4)
 {
   methods:
 }
-bundle agent variable_string (p0,p1,p2)
+bundle agent variable_string_default (p0,p1,p2,p3)
 {
   methods:
 }
@@ -506,15 +330,11 @@ bundle agent variable_string_from_command (p0,p1,p2)
 {
   methods:
 }
-bundle agent sharedfile_from_node (p0,p1,p2)
+bundle agent variable_dict (p0,p1,p2)
 {
   methods:
 }
-bundle agent sharedfile_to_node (p0,p1,p2,p3)
-{
-  methods:
-}
-bundle agent monitoring_parameter (p0,p1)
+bundle agent variable_string_from_math_expression (p0,p1,p2,p3)
 {
   methods:
 }
@@ -522,55 +342,7 @@ bundle agent monitoring_template (p0)
 {
   methods:
 }
-bundle agent package_install_version_cmp_update (p0,p1,p2,p3,p4)
-{
-  methods:
-}
-bundle agent package_remove (p0)
-{
-  methods:
-}
-bundle agent package_verify (p0)
-{
-  methods:
-}
-bundle agent package_verify_version (p0,p1)
-{
-  methods:
-}
-bundle agent package_state (p0,p1,p2,p3,p4)
-{
-  methods:
-}
-bundle agent package_install (p0)
-{
-  methods:
-}
-bundle agent package_absent (p0,p1,p2,p3)
-{
-  methods:
-}
-bundle agent package_check_installed (p0)
-{
-  methods:
-}
-bundle agent package_install_version (p0,p1)
-{
-  methods:
-}
-bundle agent package_install_version_cmp (p0,p1,p2,p3)
-{
-  methods:
-}
-bundle agent package_state_options (p0,p1,p2,p3,p4,p5)
-{
-  methods:
-}
-bundle agent package_present (p0,p1,p2,p3)
-{
-  methods:
-}
-bundle agent environment_variable_present (p0,p1)
+bundle agent monitoring_parameter (p0,p1)
 {
   methods:
 }
@@ -582,35 +354,91 @@ bundle agent group_absent (p0)
 {
   methods:
 }
-bundle agent http_request_check_status_headers (p0,p1,p2,p3)
+bundle agent package_install_version (p0,p1)
 {
   methods:
 }
-bundle agent http_request_content_headers (p0,p1,p2,p3)
+bundle agent package_check_installed (p0)
 {
   methods:
 }
-bundle agent user_password_hash (p0,p1)
+bundle agent package_install (p0)
 {
   methods:
 }
-bundle agent user_absent (p0)
+bundle agent package_remove (p0)
 {
   methods:
 }
-bundle agent user_shell (p0,p1)
+bundle agent package_state_options (p0,p1,p2,p3,p4,p5)
 {
   methods:
 }
-bundle agent user_fullname (p0,p1)
+bundle agent package_verify (p0)
 {
   methods:
 }
-bundle agent user_uid (p0,p1)
+bundle agent package_state (p0,p1,p2,p3,p4)
 {
   methods:
 }
-bundle agent user_create (p0,p1,p2,p3,p4,p5)
+bundle agent package_verify_version (p0,p1)
+{
+  methods:
+}
+bundle agent package_absent (p0,p1,p2,p3)
+{
+  methods:
+}
+bundle agent package_present (p0,p1,p2,p3)
+{
+  methods:
+}
+bundle agent package_install_version_cmp_update (p0,p1,p2,p3,p4)
+{
+  methods:
+}
+bundle agent package_install_version_cmp (p0,p1,p2,p3)
+{
+  methods:
+}
+bundle agent condition_from_expression_persistent (p0,p1,p2)
+{
+  methods:
+}
+bundle agent condition_from_variable_existence (p0,p1)
+{
+  methods:
+}
+bundle agent condition_from_command (p0,p1,p2,p3)
+{
+  methods:
+}
+bundle agent condition_from_variable_match (p0,p1,p2)
+{
+  methods:
+}
+bundle agent condition_once (p0)
+{
+  methods:
+}
+bundle agent condition_from_expression (p0,p1)
+{
+  methods:
+}
+bundle agent schedule_simple_catchup (p0,p1,p2,p3,p4,p5,p6,p7,p8,p9)
+{
+  methods:
+}
+bundle agent schedule_simple_nodups (p0,p1,p2,p3,p4,p5,p6,p7,p8,p9)
+{
+  methods:
+}
+bundle agent schedule_simple (p0,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10)
+{
+  methods:
+}
+bundle agent schedule_simple_stateless (p0,p1,p2,p3,p4,p5,p6,p7,p8,p9)
 {
   methods:
 }
@@ -618,11 +446,15 @@ bundle agent user_locked (p0)
 {
   methods:
 }
-bundle agent user_present (p0)
+bundle agent user_fullname (p0,p1)
 {
   methods:
 }
-bundle agent user_home (p0,p1)
+bundle agent user_absent (p0)
+{
+  methods:
+}
+bundle agent user_present (p0)
 {
   methods:
 }
@@ -630,11 +462,111 @@ bundle agent user_primary_group (p0,p1)
 {
   methods:
 }
-bundle agent directory_present (p0)
+bundle agent user_create (p0,p1,p2,p3,p4,p5)
+{
+  methods:
+}
+bundle agent user_home (p0,p1)
+{
+  methods:
+}
+bundle agent user_shell (p0,p1)
+{
+  methods:
+}
+bundle agent user_uid (p0,p1)
+{
+  methods:
+}
+bundle agent user_password_hash (p0,p1)
+{
+  methods:
+}
+bundle agent service_ensure_running_path (p0,p1)
+{
+  methods:
+}
+bundle agent service_action (p0,p1)
+{
+  methods:
+}
+bundle agent service_ensure_stopped (p0)
+{
+  methods:
+}
+bundle agent service_check_started_at_boot (p0)
+{
+  methods:
+}
+bundle agent service_check_disabled_at_boot (p0)
+{
+  methods:
+}
+bundle agent service_restart (p0)
+{
+  methods:
+}
+bundle agent service_ensure_running (p0)
+{
+  methods:
+}
+bundle agent service_started (p0)
+{
+  methods:
+}
+bundle agent service_enabled (p0)
+{
+  methods:
+}
+bundle agent service_ensure_started_at_boot (p0)
+{
+  methods:
+}
+bundle agent service_stopped (p0)
+{
+  methods:
+}
+bundle agent service_ensure_disabled_at_boot (p0)
+{
+  methods:
+}
+bundle agent service_check_running_ps (p0)
+{
+  methods:
+}
+bundle agent service_started_path (p0,p1)
+{
+  methods:
+}
+bundle agent service_start (p0)
+{
+  methods:
+}
+bundle agent service_reload (p0)
+{
+  methods:
+}
+bundle agent service_check_running (p0)
+{
+  methods:
+}
+bundle agent service_restart_if (p0,p1)
+{
+  methods:
+}
+bundle agent service_stop (p0)
+{
+  methods:
+}
+bundle agent service_disabled (p0)
 {
   methods:
 }
 bundle agent directory_create (p0)
+{
+  methods:
+}
+bundle agent directory_present (p0)
 {
   methods:
 }
@@ -643,6 +575,74 @@ bundle agent directory_absent (p0,p1)
   methods:
 }
 bundle agent directory_check_exists (p0)
+{
+  methods:
+}
+bundle agent permissions_group_acl_absent (p0,p1,p2)
+{
+  methods:
+}
+bundle agent permissions_dirs (p0,p1,p2,p3)
+{
+  methods:
+}
+bundle agent permissions_recurse (p0,p1,p2,p3)
+{
+  methods:
+}
+bundle agent permissions_user_acl_absent (p0,p1,p2)
+{
+  methods:
+}
+bundle agent permissions_other_acl_present (p0,p1,p2)
+{
+  methods:
+}
+bundle agent permissions_group_acl_present (p0,p1,p2,p3)
+{
+  methods:
+}
+bundle agent permissions_recursive (p0,p1,p2,p3)
+{
+  methods:
+}
+bundle agent permissions_type_recursion (p0,p1,p2,p3,p4,p5)
+{
+  methods:
+}
+bundle agent permissions_dirs_recurse (p0,p1,p2,p3)
+{
+  methods:
+}
+bundle agent permissions_user_acl_present (p0,p1,p2,p3)
+{
+  methods:
+}
+bundle agent permissions_dirs_recursive (p0,p1,p2,p3)
+{
+  methods:
+}
+bundle agent permissions_posix_acls_absent (p0,p1)
+{
+  methods:
+}
+bundle agent permissions_acl_entry (p0,p1,p2,p3,p4)
+{
+  methods:
+}
+bundle agent http_request_check_status_headers (p0,p1,p2,p3)
+{
+  methods:
+}
+bundle agent http_request_content_headers (p0,p1,p2,p3)
+{
+  methods:
+}
+bundle agent sharedfile_to_node (p0,p1,p2,p3)
+{
+  methods:
+}
+bundle agent sharedfile_from_node (p0,p1,p2)
 {
   methods:
 }
