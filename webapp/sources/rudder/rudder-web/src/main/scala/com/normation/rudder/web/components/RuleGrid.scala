@@ -176,7 +176,7 @@ class RuleGrid(
     case FromConfig => configService.display_changes_graph.toBox.openOr(true)
   })
 
-  def reportTemplate = ChooseTemplate(
+  def reportTemplate: NodeSeq = ChooseTemplate(
       List("templates-hidden", "reports_grid")
     , "reports-report"
   )

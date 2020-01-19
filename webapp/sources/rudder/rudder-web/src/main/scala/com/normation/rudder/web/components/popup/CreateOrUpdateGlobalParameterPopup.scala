@@ -267,7 +267,7 @@ class CreateOrUpdateGlobalParameterPopup(
 
   private[this] def error(msg:String) = Text(msg)
 
-  def popupContent() = {
+  def popupContent(): NodeSeq = {
     val (buttonName, classForButton) = workflowEnabled match {
       case true =>
          ("Open Request", "wideButton btn-primary")

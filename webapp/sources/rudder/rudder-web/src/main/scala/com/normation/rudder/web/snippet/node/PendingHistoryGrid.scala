@@ -65,7 +65,7 @@ object PendingHistoryGrid extends Loggable {
   val logDetailsService = RudderConfig.eventLogDetailsService
 
   def pendingHistoryTemplatePath = List("templates-hidden", "pending_history_grid")
-  def template() =  Templates(pendingHistoryTemplatePath) match {
+  def template(): NodeSeq =  Templates(pendingHistoryTemplatePath) match {
     case Empty | Failure(_,_,_) =>
       throw new IllegalArgumentException("Template for pending history not found. I was looking for %s.html".format(pendingHistoryTemplatePath.mkString("/")))
     case Full(n) => n
@@ -235,7 +235,7 @@ object PendingHistoryGrid extends Loggable {
     }
   }
 
-  def displayIfDeleted (id:NodeId,lastInventoryDate:DateTime, deletedNodes : Map[NodeId,Seq[EventLog]]) = {
+  def displayIfDeleted (id:NodeId,lastInventoryDate:DateTime, deletedNodes : Map[NodeId,Seq[EventLog]]): NodeSeq = {
     // only take events that could have delete that inventory, as we set the default value to an empty sequence, there's no null here with the apply on the map
     val effectiveEvents = deletedNodes(id).filter(_.creationDate.isAfter(lastInventoryDate))
     // sort those events by date, to take the closer deletion date from the inventory date (head of the list)

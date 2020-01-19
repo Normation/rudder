@@ -66,7 +66,7 @@ class GiveReasonPopup(
 ) extends DispatchSnippet with Loggable {
 
  // Load the template from the popup
-  def popupTemplate = ChooseTemplate(
+  def popupTemplate: NodeSeq = ChooseTemplate(
       List("templates-hidden", "Popup", "giveReason")
     , "reason-givereasonpopup"
   )

@@ -92,12 +92,12 @@ class AcceptNode extends Loggable {
      }
   }
 
-  def acceptTemplate = ChooseTemplate(
+  def acceptTemplate: NodeSeq = ChooseTemplate(
       List("templates-hidden", "Popup", "accept_new_server")
     , "accept_new_server-template"
   )
 
-  def refuseTemplate = ChooseTemplate(
+  def refuseTemplate: NodeSeq = ChooseTemplate(
       List("templates-hidden", "Popup", "refuse_new_server")
     , "refuse_new_server-template"
   )
@@ -334,7 +334,7 @@ class AcceptNode extends Loggable {
     OnLoad(JsRaw("""createPopup("expectedPolicyPopup")""") )
   }
 
-  def display(html:NodeSeq, nodes: Seq[Srv]) = {
+  def display(html:NodeSeq, nodes: Seq[Srv]): NodeSeq = {
     val servers = {
       serverGrid.displayAndInit (
           nodes

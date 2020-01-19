@@ -7,10 +7,12 @@ import JsCmds._
 import JE._
 import com.normation.rudder.web.ChooseTemplate
 
+import scala.xml.NodeSeq
+
 class AgentPolicyModeEditForm extends DispatchSnippet with Loggable  {
 
   // Html template
-  def agentPolicyModeTemplate = ChooseTemplate(
+  def agentPolicyModeTemplate: NodeSeq = ChooseTemplate(
       List("templates-hidden", "components", "ComponentAgentPolicyMode")
     , "agentpolicymode-form"
   )
@@ -19,7 +21,7 @@ class AgentPolicyModeEditForm extends DispatchSnippet with Loggable  {
     case "cfagentPolicyModeConfiguration" => (xml) => cfagentPolicyModeConfiguration
   }
 
-  def cfagentPolicyModeConfiguration = {
+  def cfagentPolicyModeConfiguration: NodeSeq = {
     agentPolicyModeTemplate ++ Script(OnLoad(JsRaw("angular.bootstrap('#auditMode', ['auditmode']);")))
   }
 }

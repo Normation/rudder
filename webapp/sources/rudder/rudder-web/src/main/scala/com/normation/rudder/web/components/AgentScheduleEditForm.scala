@@ -39,7 +39,7 @@ package com.normation.rudder.web.components
 
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.common._
-import net.liftweb.http.{SHtml,S}
+import net.liftweb.http.{S, SHtml}
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js._
 import JsCmds._
@@ -47,6 +47,8 @@ import JE._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.web.ChooseTemplate
+
+import scala.xml.NodeSeq
 
 /**
  * Component to display and configure the Agent Schedule
@@ -59,7 +61,7 @@ class AgentScheduleEditForm(
 ) extends DispatchSnippet with Loggable  {
 
   // Html template
-  def agentScheduleTemplate = ChooseTemplate(
+  def agentScheduleTemplate: NodeSeq = ChooseTemplate(
       List("templates-hidden", "components", "ComponentAgentSchedule")
     , "schedule-agentschedule"
   )
@@ -129,7 +131,7 @@ class AgentScheduleEditForm(
     }
   }
 
-  def cfagentScheduleConfiguration = {
+  def cfagentScheduleConfiguration: NodeSeq = {
 
     val transform = (for {
       schedule  <- getConfigureCallback().map(_.json)

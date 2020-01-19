@@ -73,13 +73,13 @@ object TechniqueEditForm {
    */
   def staticInit:NodeSeq = ChooseTemplate(componentTechniqueEditForm, "component-staticinit")
 
-  private def body = ChooseTemplate(componentTechniqueEditForm, "component-body")
+  private def body: NodeSeq = ChooseTemplate(componentTechniqueEditForm, "component-body")
 
-  private def popupRemoveForm = ChooseTemplate(componentTechniqueEditForm, "component-popupremoveform")
+  private def popupRemoveForm: NodeSeq = ChooseTemplate(componentTechniqueEditForm, "component-popupremoveform")
 
-  private def popupDisactivateForm = ChooseTemplate(componentTechniqueEditForm, "component-popupdisableform")
+  private def popupDisactivateForm: NodeSeq = ChooseTemplate(componentTechniqueEditForm, "component-popupdisableform")
 
-  private def crForm = ChooseTemplate(componentTechniqueEditForm, "component-form")
+  private def crForm: NodeSeq = ChooseTemplate(componentTechniqueEditForm, "component-form")
 
   val htmlId_techniqueConf = "techniqueConfiguration"
   val htmlId_addPopup = "addPopup"

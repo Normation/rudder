@@ -354,7 +354,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     </span>
   }
 
-  private[this] def showVersions(activeTechnique: FullActiveTechnique, validTechniques: Seq[(TechniqueVersion, Technique, DateTime)]) = {
+  private[this] def showVersions(activeTechnique: FullActiveTechnique, validTechniques: Seq[(TechniqueVersion, Technique, DateTime)]): NodeSeq = {
 
     val techniqueVersionInfo = validTechniques.map { case(v,t, timeStamp) =>
       val isDeprecated       = t.deprecrationInfo.isDefined

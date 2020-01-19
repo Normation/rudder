@@ -61,11 +61,11 @@ class Nodes extends StatefulSnippet with Loggable {
     }
   }
 
-  def loadData(xml:NodeSeq) = {
+  def loadData(xml:NodeSeq): NodeSeq = {
     Script(OnLoad(srvGrid.refreshData(() => getNodes, None, "nodes").applied))
   }
 
-  def table(html:NodeSeq)= {
+  def table(html:NodeSeq): NodeSeq= {
     srvGrid.displayAndInit(Seq(), "nodes", None, Some(() => getNodes()))
   }
 

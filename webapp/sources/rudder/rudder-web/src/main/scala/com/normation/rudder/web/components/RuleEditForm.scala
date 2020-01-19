@@ -91,12 +91,12 @@ object RuleEditForm {
     , "component-staticinit"
   )
 
-  private def body = ChooseTemplate(
+  private def body: NodeSeq = ChooseTemplate(
       "templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil
     , "component-body"
   )
 
-  private def crForm = ChooseTemplate(
+  private def crForm: NodeSeq = ChooseTemplate(
       "templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil
     , "component-form"
   )

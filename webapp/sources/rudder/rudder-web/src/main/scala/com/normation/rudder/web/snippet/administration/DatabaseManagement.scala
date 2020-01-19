@@ -114,7 +114,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
 
     val inProgress = !(archiveAction.actorIsIdle && deleteAction.actorIsIdle)
 
-    def displayInProgress(lastValue: Box[Option[DateTime]]) = {
+    def displayInProgress(lastValue: Box[Option[DateTime]]): NodeSeq = {
       val date = displayDate(lastValue)
       if(inProgress){
         <span>Archiving is in progress, please wait (last known value: '{date}')</span>
@@ -197,7 +197,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
     showDialog
   }
 
-  private[this] def displayDate( entry : Box[Option[DateTime]]) : NodeSeq= {
+  private[this] def displayDate( entry : Box[Option[DateTime]]) : NodeSeq = {
     entry match {
       case Full(dateOption) => dateOption match {
         case Some(date) =>  <span>{DateFormaterService.getDisplayDate(date)}</span>

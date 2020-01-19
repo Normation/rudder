@@ -170,7 +170,7 @@ class HomePage extends Loggable {
     displayCount(() => countAllTechniques,"techniques")
   }
 
-  def getAllCompliance = {
+  def getAllCompliance: NodeSeq = {
 
     trait ChartType
 final case object PendingChartType extends ChartType
@@ -301,7 +301,7 @@ final case class ColoredChartType(value: Double) extends ChartType
     }
   }
 
-  def inventoryInfo() = {
+  def inventoryInfo(): NodeSeq = {
 
 
     val osTypes = AixOS       ::

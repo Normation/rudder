@@ -39,7 +39,7 @@ package com.normation.rudder.web.components
 
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.common._
-import net.liftweb.http.{SHtml,S}
+import net.liftweb.http.{S, SHtml}
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js._
 import JsCmds._
@@ -54,6 +54,8 @@ import com.normation.rudder.reports.NodeComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.NodeComplianceMode
 import com.normation.rudder.web.ChooseTemplate
+
+import scala.xml.NodeSeq
 
 /**
  * Component to display and configure the compliance Mode (and it's heartbeat)
@@ -142,7 +144,7 @@ class ComplianceModeEditForm [T <: ComplianceMode] (
 ) (implicit p: ParseComplianceMode[T]) extends DispatchSnippet with Loggable  {
 
   // Html template
-  def complianceModeTemplate = ChooseTemplate(
+  def complianceModeTemplate: NodeSeq = ChooseTemplate(
       List("templates-hidden", "components", "ComponentComplianceMode")
     , "property-compliancemode"
   )
@@ -197,7 +199,7 @@ class ComplianceModeEditForm [T <: ComplianceMode] (
     compactRender(json)
   }
 
-  def complianceModeConfiguration = {
+  def complianceModeConfiguration: NodeSeq = {
 
     val transform = (for {
       complianceMode <- getConfigureCallback

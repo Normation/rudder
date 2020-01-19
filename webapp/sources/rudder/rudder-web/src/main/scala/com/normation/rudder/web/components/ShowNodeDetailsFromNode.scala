@@ -72,7 +72,7 @@ object ShowNodeDetailsFromNode {
 
   private val groupTreeId = "node_groupTree"
 
-  private def serverDetailsTemplate = ChooseTemplate(
+  private def serverDetailsTemplate: NodeSeq = ChooseTemplate(
       List("templates-hidden", "server", "server_details")
     , "detail-server"
   )

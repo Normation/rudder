@@ -69,13 +69,13 @@ class CreateOrCloneRulePopup(
 
   // Load the template from the popup
   def templatePath = List("templates-hidden", "Popup", "createRule")
-  def template() =  Templates(templatePath) match {
+  def template(): NodeSeq =  Templates(templatePath) match {
      case Empty | Failure(_,_,_) =>
        error("Template for creation popup not found. I was looking for %s.html".format(templatePath.mkString("/")))
      case Full(n) => n
   }
 
-  def popupTemplate = ChooseTemplate(
+  def popupTemplate: NodeSeq = ChooseTemplate(
       List("templates-hidden", "Popup", "createRule")
     , "rule-createrulepopup"
   )
