@@ -37,13 +37,24 @@ use colored::Colorize;
 
 /// Paired with `test_case` proc-macro calls from the `compile.rs` test file.
 /// Generates a file from a string and tests it
-pub fn test_generated_file(filename: &str, content: &str) {
-    fs::create_dir_all("tests/tmp").expect("Could not create /tmp dir");
-    let path = PathBuf::from(format!("tests/tmp/{}.rl", filename));
-    let mut file = fs::File::create(&path).expect("Could not create file");
-    file.write_all(content.as_bytes()).expect("Could not write to file");
-    test_file(&path, filename);
-    fs::remove_file(path).expect("Could not delete temporary file");
+pub fn test_generated_file(filename: &str, file: Option<&&str>) {
+    match file {
+        Some(content) => {
+            fs::create_dir_all("tests/tmp").expect("Could not create /tmp dir");
+            let path = PathBuf::from(format!("tests/tmp/{}.rl", filename));
+            let mut file = fs::File::create(&path).expect("Could not create file");
+            file.write_all(content.as_bytes()).expect("Could not write to file");
+            test_file(&path, filename);
+            fs::remove_file(path).expect("Could not delete temporary file");        
+        },
+        None => panic!(
+            format!(
+                "{}: {} does not match any lazy map element",
+                "Warning (test)".bright_yellow().bold(),
+                filename.bright_yellow()
+            )
+        )
+    };
 }
 
 /// Paired with `test_case` proc-macro calls from the `compile.rs` test file.

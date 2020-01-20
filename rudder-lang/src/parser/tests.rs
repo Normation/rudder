@@ -71,7 +71,7 @@ fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
     };
     match err.context {
         Some(context) => (context.fragment, kind),
-        None => panic!("NO CONTEXT")
+        None => ("", kind)
     }
 }
 
@@ -172,7 +172,7 @@ fn test_pheader() {
     );
     assert_eq!(
         map_res(pheader, "@format=21.5\n"),
-        Err(("21.5\n", PErrorKind::InvalidFormat))
+        Err(("21.5", PErrorKind::InvalidFormat))
     );
 }
 
@@ -441,7 +441,7 @@ fn test_pescaped_strings() {
     );
     assert_eq!(
         map_res(pescaped_string, r#""2hello\xHerman""#),
-        Err((r#"xHerman""#, PErrorKind::InvalidEscapeSequence))
+        Err((r#"2hello\xHerman""#, PErrorKind::InvalidEscapeSequence))
     );
     assert_eq!(
         map_res(pescaped_string, r#""3hello"#),
@@ -548,11 +548,11 @@ fn test_pvalue() {
     );
     assert_eq!(
         map_res(pvalue, "\"hello\\x\""),
-        Err(("x\"", PErrorKind::InvalidEscapeSequence))
+        Err(("hello\\x\"", PErrorKind::InvalidEscapeSequence))
     );
     assert_eq!(
         map_res(pvalue, "\"hello\\"),
-        Err(("\\", PErrorKind::InvalidEscapeSequence))
+        Err(("hello\\", PErrorKind::InvalidEscapeSequence))
     );
     assert_eq!(
         map_res(pvalue, "12.5"),
@@ -867,7 +867,7 @@ fn test_variable_definition() {
     );
     assert_eq!(
         map_res(pvariable_definition, "var = :\n"),
-        Err((":\n", PErrorKind::ExpectedKeyword("value")))
+        Err((":", PErrorKind::ExpectedKeyword("value")))
     );
 }
 
