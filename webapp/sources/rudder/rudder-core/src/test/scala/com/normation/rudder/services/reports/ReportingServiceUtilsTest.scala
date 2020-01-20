@@ -57,7 +57,7 @@ import org.specs2.runner._
 
 
 @RunWith(classOf[JUnitRunner])
-class ReportingServiceTest extends Specification {
+class ReportingServiceUtilsTest extends Specification {
 
   /*
    * Check that "skipped" are correctly constructed. See

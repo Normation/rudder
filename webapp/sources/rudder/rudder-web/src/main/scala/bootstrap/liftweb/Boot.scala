@@ -216,6 +216,7 @@ class Boot extends Loggable {
 
   def boot(): Unit = {
 
+
     // Set locale to English to prevent having localized message in some exception message (like SAXParserException in AppConfigAuth).
     // For now we don't manage locale in Rudder so setting it to English is harmless.
     // If one day we handle it in Rudder we should start from here by modifying code here..
