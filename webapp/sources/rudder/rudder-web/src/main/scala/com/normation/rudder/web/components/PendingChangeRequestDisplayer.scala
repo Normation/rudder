@@ -96,7 +96,7 @@ object PendingChangeRequestDisplayer extends Loggable{
       xml   : NodeSeq
     , id    : T
     , check : checkFunction[T]
-  ) = {
+  ): NodeSeq = {
     if (RudderConfig.configService.rudder_workflow_enabled().toBox.getOrElse(false)) {
       val crs = check(id,true)
       displayPendingChangeRequest(xml,crs)
@@ -106,15 +106,15 @@ object PendingChangeRequestDisplayer extends Loggable{
     }
   }
 
-  def checkByRule(xml:NodeSeq,ruleId:RuleId) = {
+  def checkByRule(xml:NodeSeq,ruleId:RuleId): NodeSeq = {
     checkChangeRequest(xml,ruleId,workflowLevel.getByRule)
   }
 
-  def checkByGroup(xml:NodeSeq,groupId:NodeGroupId) = {
+  def checkByGroup(xml:NodeSeq,groupId:NodeGroupId): NodeSeq = {
     checkChangeRequest(xml,groupId,workflowLevel.getByNodeGroup)
   }
 
-  def checkByDirective(xml:NodeSeq,directiveId:DirectiveId) = {
+  def checkByDirective(xml:NodeSeq,directiveId:DirectiveId): NodeSeq = {
     checkChangeRequest(xml,directiveId,workflowLevel.getByDirective)
   }
 }

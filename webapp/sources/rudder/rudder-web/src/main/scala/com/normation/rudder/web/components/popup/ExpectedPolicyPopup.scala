@@ -56,7 +56,7 @@ import com.normation.box._
 
 object ExpectedPolicyPopup {
 
-  def expectedTechnique = ChooseTemplate(
+  def expectedTechnique: NodeSeq = ChooseTemplate(
       List("templates-hidden", "Popup", "expected_policy_popup")
     , "expectedpolicypopup-template"
   )

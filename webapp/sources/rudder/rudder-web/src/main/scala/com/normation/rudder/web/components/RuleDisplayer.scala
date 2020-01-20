@@ -128,7 +128,7 @@ class RuleDisplayer (
       , ("id","includeCheckbox")
     )
   }
-  def actionButtonCategory =
+  def actionButtonCategory: NodeSeq =
     if (directive.isEmpty) {
       SHtml.ajaxButton("", () => showCategoryPopup(None), ("class" -> "new-icon category btn btn-success btn-outline btn-sm"))
     } else {
@@ -173,7 +173,7 @@ class RuleDisplayer (
     }
   }
 
-  def actionButtonRule = {
+  def actionButtonRule: NodeSeq = {
     if (directive.isDefined) {
       NodeSeq.Empty
     } else {
@@ -343,7 +343,7 @@ class RuleDisplayer (
    }
   }
 
-  def ruleCreationPopup (ruleToClone:Option[Rule]) = {
+  def ruleCreationPopup (ruleToClone:Option[Rule]): NodeSeq = {
     ruleCategoryTree match {
       case Full(ruleCategoryTree) =>
         val root = ruleCategoryTree.getRoot

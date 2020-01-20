@@ -91,12 +91,12 @@ class SearchNodeComponent(
   private[this] val queryProcessor  = RudderConfig.acceptedNodeQueryProcessor
 
   // The portlet for the server detail
-  private[this] def searchNodes = ChooseTemplate(
+  private[this] def searchNodes: NodeSeq = ChooseTemplate(
       List("templates-hidden", "server", "server_details")
     , "query-searchnodes"
   )
 
-  private[this] def queryline = {
+  private[this] def queryline: NodeSeq = {
   <tr class="error"></tr>
   <tr class="query_line">
     <td class="first objectType"></td>
@@ -239,7 +239,7 @@ class SearchNodeComponent(
      * Caution, we pass an html different at the init part (whole content-query)
      *
      */
-    def displayQuery(html: NodeSeq) = {
+    def displayQuery(html: NodeSeq): NodeSeq = {
       val Query(otName,comp, criteria) = query.get
       val checkBox = {
         SHtml.checkbox(

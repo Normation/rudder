@@ -59,7 +59,7 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
        ) extends DispatchSnippet with Loggable {
 
  // Load the template from the popup
-  def popupTemplate = ChooseTemplate(
+  def popupTemplate: NodeSeq = ChooseTemplate(
       "templates-hidden" :: "Popup" :: "createActiveTechniqueCategory" :: Nil
     , "technique-createcategorypopup"
   )

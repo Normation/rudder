@@ -299,7 +299,7 @@ class ModificationValidationPopup(
   // _1 is explanation message, _2 is dependant rules
   def popupContent() : NodeSeq = {
 
-    def workflowMessage(directiveCreation: Boolean) = (
+    def workflowMessage(directiveCreation: Boolean): NodeSeq = (
       <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Request</h4>
       <hr class="css-fix"/>
       <div class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center">

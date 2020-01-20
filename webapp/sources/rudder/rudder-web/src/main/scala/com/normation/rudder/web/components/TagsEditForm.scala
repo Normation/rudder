@@ -12,18 +12,20 @@ import com.normation.rudder.domain.policies.JsonTagSerialisation
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.web.ChooseTemplate
 
+import scala.xml.NodeSeq
+
 class TagsEditForm(tags : Tags) extends Loggable {
 
   val templatePath = List("templates-hidden", "components", "ComponentTags")
-  def tagsTemplate = ChooseTemplate(templatePath, "tags-form")
+  def tagsTemplate: NodeSeq = ChooseTemplate(templatePath, "tags-form")
 
-  def editTagsTemplate = ChooseTemplate(templatePath, "tags-editform")
+  def editTagsTemplate: NodeSeq = ChooseTemplate(templatePath, "tags-editform")
 
   val jsTags = JsonTagSerialisation.serializeTags(tags)
 
   def parseResult(s : String) : Box[Tags] = CompleteJson.unserializeTags(s)
 
-  def tagsForm(controllerId:String, appId : String, update : Box[Tags] => Unit, isRule  : Boolean) = {
+  def tagsForm(controllerId:String, appId : String, update : Box[Tags] => Unit, isRule  : Boolean): NodeSeq = {
 
     val valueInput = SHtml.textarea("", {s => update(parseResult(s))}, ("ng-model","result"), ("ng-hide", "true") )
     val css: CssSel =
@@ -33,11 +35,11 @@ class TagsEditForm(tags : Tags) extends Loggable {
     css(tagTemplate(controllerId, appId, true,isRule))
   }
 
-  def viewTags(controllerId:String, appId : String, isRule  : Boolean) = {
+  def viewTags(controllerId:String, appId : String, isRule  : Boolean): NodeSeq = {
     tagTemplate(controllerId, appId, false, isRule)
   }
 
-  private[this] def tagTemplate(controllerId:String, appId : String, isEditForm  : Boolean, isRule  : Boolean) = {
+  private[this] def tagTemplate(controllerId:String, appId : String, isEditForm  : Boolean, isRule  : Boolean): NodeSeq = {
 
     val filterId = if (isRule) {
       "showFiltersRules"

@@ -56,7 +56,7 @@ import com.normation.box._
 import com.normation.errors._
 
 object RuleCompliance {
-  private def details = ChooseTemplate(
+  private def details: NodeSeq = ChooseTemplate(
       "templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil
     , "component-details"
   )

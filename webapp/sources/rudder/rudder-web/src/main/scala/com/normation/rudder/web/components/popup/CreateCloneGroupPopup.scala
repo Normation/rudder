@@ -65,7 +65,7 @@ class CreateCloneGroupPopup(
     )(popupTemplate) )
   }
 
-  def popupTemplate = ChooseTemplate(
+  def popupTemplate: NodeSeq = ChooseTemplate(
       List("templates-hidden", "Popup", "createCloneGroupPopup")
     , "groups-createclonegrouppopup"
   )

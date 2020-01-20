@@ -74,12 +74,12 @@ class RuleCategoryPopup(
 ) extends DispatchSnippet with Loggable {
 
   // Load the template from the popup
-  private def html = ChooseTemplate(
+  private def html: NodeSeq = ChooseTemplate(
       "templates-hidden" :: "Popup" :: "RuleCategoryPopup" :: Nil
     , "component-creationpopup"
   )
 
-  private def deleteHtml = ChooseTemplate(
+  private def deleteHtml: NodeSeq = ChooseTemplate(
       "templates-hidden" :: "Popup" :: "RuleCategoryPopup" :: Nil
     , "component-deletepopup"
   )

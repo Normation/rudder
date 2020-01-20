@@ -68,7 +68,7 @@ import com.normation.rudder.web.ChooseTemplate
 object RuleModificationValidationPopup extends Loggable {
   val htmlId_popupContainer = "validationContainer"
 
-  private def html = ChooseTemplate(
+  private def html: NodeSeq = ChooseTemplate(
       "templates-hidden" :: "Popup" :: "RuleModificationValidationPopup" :: Nil
     , "component-validationpopup"
   )
