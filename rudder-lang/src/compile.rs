@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 use crate::error::*;
 use crate::ast::AST;
 use crate::generators::*;
