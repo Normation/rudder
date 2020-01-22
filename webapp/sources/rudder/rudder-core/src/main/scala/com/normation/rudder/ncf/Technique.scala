@@ -88,6 +88,7 @@ case class ResourceFile(
 final case class Technique(
     bundleName  : BundleName
   , name        : String
+  , category    : String
   , methodCalls : Seq[MethodCall]
   , version     : Version
   , description : String

@@ -242,7 +242,7 @@ class NcfApi(
 
     def moveRessources(technique : Technique, internalId : String) = {
       val workspacePath =      s"workspace/${internalId}/${technique.version.value}/resources"
-      val finalPath =  s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/resources"
+      val finalPath =  s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/resources"
 
       val workspaceDir = File(s"/var/rudder/configuration-repository/${workspacePath}")
       val finalDir = File(s"/var/rudder/configuration-repository/${finalPath}")
