@@ -130,6 +130,7 @@ class TechniqueWriter (
       directives <- readDirectives.getFullDirectiveLibrary().map(_.allActiveTechniques.values.filter(_.techniqueName.value == techniqueId.name.value).flatMap(_.directives).filter(_.techniqueVersion == techniqueId.version))
 
       technique  <- techniqueRepository.get(techniqueId).notOptional(s"No Technique with ID '${techniqueId.toString()}' found in reference library.")
+      category   <- techniqueRepository.getParentTechniqueCategory_forTechnique(techniqueId)
 
       // Check if we have directives, and either, make an error, if we don't force deletion, or delete them all, creating a change request
       _          <-  directives match {
@@ -146,7 +147,8 @@ class TechniqueWriter (
                          } else
                            Unexpected(s"${directives.size} directives are defined for ${techniqueName}/${techniqueVersion} please delete them, or force deletion").fail
                      }
-      _          <- archiver.deleteTechnique(techniqueName,techniqueVersion,modId,committer, s"Deleting technique ${techniqueName}/${techniqueVersion}")
+
+      _          <- archiver.deleteTechnique(techniqueName,techniqueVersion, category.id.name.value, modId,committer, s"Deleting technique ${techniqueName}/${techniqueVersion}")
       _          <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of Technique ${techniqueName}")).toIO.chainError(
                       s"An error occurred during technique update after deletion of Technique ${techniqueName}"
                     )
@@ -271,7 +273,7 @@ class TechniqueWriter (
 
   def writeMetadata(technique : Technique, methods: Map[BundleName, GenericMethod], modId : ModificationId, commiter : EventActor) : IOResult[String] = {
 
-    val metadataPath = s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/metadata.xml"
+    val metadataPath = s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/metadata.xml"
 
     val path = s"${basePath}/${metadataPath}"
     for {
@@ -365,7 +367,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
          |}""".stripMargin('|')
 
     implicit val charset = StandardCharsets.UTF_8
-    val techFile = File(basePath) / "techniques"/ "ncf_techniques" / technique.bundleName.value / technique.version.value / "technique.cf"
+    val techFile = File(basePath) / "techniques"/ technique.category / technique.bundleName.value / technique.version.value / "technique.cf"
     val t = IOResult.effect(s"Could not write na reporting Technique file '${technique.name}' in path ${techFile.path.toString}") {
       techFile.createFileIfNotExists(true).write(content.stripMargin('|'))
       File(basePath).relativize(techFile.path).toString
@@ -432,7 +434,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
            |${methodsReporting.mkString("\n")}
            |}"""
 
-      val reportingFile = File(basePath) / "techniques"/ "ncf_techniques" / technique.bundleName.value / technique.version.value / "rudder_reporting.cf"
+      val reportingFile = File(basePath) / "techniques"/ technique.category / technique.bundleName.value / technique.version.value / "rudder_reporting.cf"
       IOResult.effect(s"Could not write na reporting Technique file '${technique.name}' in path ${reportingFile.path.toString}") {
         reportingFile.createFileIfNotExists(true).write(content.stripMargin('|'))
         Seq(File(basePath).relativize(reportingFile.path).toString)
@@ -460,11 +462,11 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
         {if (noAgentSupportReporting || needReporting) <NAME>{technique.bundleName.value}_rudder_reporting</NAME>}
       </BUNDLES>
       <FILES>
-        <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/technique.cf"}>
+        <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/technique.cf"}>
           <INCLUDED>true</INCLUDED>
         </FILE>
         { if (noAgentSupportReporting || needReporting)
-          <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/rudder_reporting.cf"}>
+          <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/rudder_reporting.cf"}>
             <INCLUDED>true</INCLUDED>
           </FILE>
         }
@@ -472,7 +474,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
             resource <- technique.ressources
             if resource.state != ResourceFileState.Deleted
           } yield {
-            <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/resources/${resource.path}"}>
+            <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/resources/${resource.path}"}>
               <INCLUDED>false</INCLUDED>
               <OUTPATH>{technique.bundleName.value}/{technique.version.value}/resources/{resource.path}</OUTPATH>
             </FILE>
@@ -496,7 +498,7 @@ class DSCTechniqueWriter(
     "-reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly"
 
   def computeTechniqueFilePath(technique : Technique) =
-    s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/technique.ps1"
+    s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/technique.ps1"
 
   def writeAgentFiles(technique : Technique, methods : Map[BundleName, GenericMethod] ): IOResult[Seq[String]] = {
 
@@ -642,7 +644,7 @@ class DSCTechniqueWriter(
 }
 
 trait TechniqueArchiver {
-  def deleteTechnique(techniqueName : String, techniqueVersion : String, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
+  def deleteTechnique(techniqueName : String, techniqueVersion : String, category : String, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
   def commitTechnique(technique : Technique, filesToAdd : Seq[String], modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
 }
 
@@ -659,15 +661,15 @@ class TechniqueArchiverImpl (
 
   override val encoding : String = "UTF-8"
 
-  def deleteTechnique(techniqueName : String, techniqueVersion : String, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
+  def deleteTechnique(techniqueName : String, techniqueVersion : String, category : String,  modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
     (for {
       git     <- gitRepo.git
       ident   <- personIdentservice.getPersonIdentOrDefault(commiter.name)
-      rm      <- IOResult.effect(git.rm.addFilepattern(s"techniques/ncf_techniques/${techniqueName}/${techniqueVersion}").call())
+      rm      <- IOResult.effect(git.rm.addFilepattern(s"techniques/${category}/${techniqueName}/${techniqueVersion}").call())
 
       commit  <- IOResult.effect(git.commit.setCommitter(ident).setMessage(msg).call())
     } yield {
-      s"techniques/ncf_techniques/${techniqueName}/${techniqueVersion}"
+      s"techniques/${category}/${techniqueName}/${techniqueVersion}"
     }).chainError(s"error when deleting and committing Technique '${techniqueName}/${techniqueVersion}").unit
   }
 
@@ -675,11 +677,11 @@ class TechniqueArchiverImpl (
 
     val filesToAdd =
       gitPath ++
-        (technique.ressources.filter(f => f.state == New || f.state == Modified)).map(f => s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/resources/${f.path}")
+        (technique.ressources.filter(f => f.state == New || f.state == Modified)).map(f => s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/resources/${f.path}")
     val filesToDelete =
       s"ncf/50_techniques/${technique.bundleName.value}" +:
         s"dsc/ncf/50_techniques/${technique.bundleName.value}" +:
-        technique.ressources.filter(f => f.state == Deleted ).map(f => s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/resources/${f.path}")
+        technique.ressources.filter(f => f.state == Deleted ).map(f => s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/resources/${f.path}")
     (for {
       git     <- gitRepo.git
       ident   <- personIdentservice.getPersonIdentOrDefault(commiter.name)
