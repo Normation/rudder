@@ -48,7 +48,7 @@ tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_t
 tracing-log = { version = "0.1", default-features = false, features = ["log-tracer"] }
 tracing-subscriber = { version = "0.1", default-features = false, features = ["env-filter", "fmt", "tracing-log"] }
 warp = { version = "0.1", default-features = false }
-humantime = "1"
+humantime = "2"
 
 [dev-dependencies]
 criterion = "0.3"

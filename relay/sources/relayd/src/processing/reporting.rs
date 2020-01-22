@@ -70,7 +70,7 @@ pub fn start(job_config: &Arc<JobConfig>, stats: &mpsc::Sender<Event>) {
     tokio::spawn(serve(job_config.clone(), receiver, stats.clone()));
     tokio::spawn(cleanup(
         path.clone(),
-        job_config.cfg.processing.reporting.cleanup.clone(),
+        job_config.cfg.processing.reporting.cleanup,
     ));
     watch(&path, &job_config, &sender);
 }
@@ -152,10 +152,10 @@ fn serve(
         let treat_file: Box<dyn Future<Item = (), Error = ()> + Send> =
             match job_config.cfg.processing.reporting.output {
                 ReportingOutputSelect::Database => {
-                    output_report_database(file.clone(), info, job_config.clone(), stats.clone())
+                    output_report_database(file, info, job_config.clone(), stats.clone())
                 }
                 ReportingOutputSelect::Upstream => {
-                    output_report_upstream(file.clone(), job_config.clone(), stats.clone())
+                    output_report_upstream(file, job_config.clone(), stats.clone())
                 }
                 // The job should not be started in this case
                 ReportingOutputSelect::Disabled => unreachable!("Report server should be disabled"),
@@ -209,14 +209,14 @@ fn output_report_database(
                     .directory
                     .clone(),
                 Event::ReportRefused,
-                stats.clone(),
+                stats,
             ),
             OutputError::Transient => {
                 info!("transient error, skipping");
                 Box::new(futures::future::err::<(), ()>(()))
             }
         })
-        .and_then(move |_| success(path.clone(), Event::ReportInserted, stats_clone.clone())),
+        .and_then(move |_| success(path.clone(), Event::ReportInserted, stats_clone)),
     )
 }
 
@@ -229,7 +229,7 @@ fn output_report_upstream(
     let path_clone2 = path.clone();
     let stats_clone = stats.clone();
     Box::new(
-        send_report(job_config.clone(), path.clone())
+        send_report(job_config, path.clone())
             .map_err(|e| {
                 error!("output error: {}", e);
                 OutputError::from(e)
@@ -245,14 +245,14 @@ fn output_report_upstream(
                         .directory
                         .clone(),
                     Event::ReportRefused,
-                    stats.clone(),
+                    stats,
                 ),
                 OutputError::Transient => {
                     info!("transient error, skipping");
                     Box::new(futures::future::err::<(), ()>(()))
                 }
             })
-            .and_then(move |_| success(path.clone(), Event::ReportSent, stats_clone.clone())),
+            .and_then(move |_| success(path.clone(), Event::ReportSent, stats_clone)),
     )
 }
 

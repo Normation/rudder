@@ -70,7 +70,7 @@ pub fn start(job_config: &Arc<JobConfig>, stats: &mpsc::Sender<Event>) {
     ));
     tokio::spawn(cleanup(
         incoming_path.clone(),
-        job_config.cfg.processing.inventory.cleanup.clone(),
+        job_config.cfg.processing.inventory.cleanup,
     ));
     watch(&incoming_path, &job_config, &sender);
 
@@ -89,7 +89,7 @@ pub fn start(job_config: &Arc<JobConfig>, stats: &mpsc::Sender<Event>) {
     ));
     tokio::spawn(cleanup(
         updates_path.clone(),
-        job_config.cfg.processing.inventory.cleanup.clone(),
+        job_config.cfg.processing.inventory.cleanup,
     ));
     watch(&updates_path, &job_config, &sender);
 }
@@ -139,19 +139,18 @@ fn serve(
 
         debug!("received: {:?}", file);
 
-        let treat_file: Box<dyn Future<Item = (), Error = ()> + Send> =
-            match job_config.cfg.processing.inventory.output {
-                InventoryOutputSelect::Upstream => output_inventory_upstream(
-                    file.clone(),
-                    inventory_type,
-                    job_config.clone(),
-                    stats.clone(),
-                ),
-                // The job should not be started in this case
-                InventoryOutputSelect::Disabled => {
-                    unreachable!("Inventory server should be disabled")
-                }
-            };
+        let treat_file: Box<dyn Future<Item = (), Error = ()> + Send> = match job_config
+            .cfg
+            .processing
+            .inventory
+            .output
+        {
+            InventoryOutputSelect::Upstream => {
+                output_inventory_upstream(file, inventory_type, job_config.clone(), stats.clone())
+            }
+            // The job should not be started in this case
+            InventoryOutputSelect::Disabled => unreachable!("Inventory server should be disabled"),
+        };
 
         tokio::spawn(lazy(|| treat_file));
         Ok(())
@@ -168,7 +167,7 @@ fn output_inventory_upstream(
     let path_clone2 = path.clone();
     let stats_clone = stats.clone();
     Box::new(
-        send_inventory(job_config.clone(), path.clone(), inventory_type)
+        send_inventory(job_config, path.clone(), inventory_type)
             .map_err(|e| {
                 error!("output error: {}", e);
                 OutputError::from(e)
@@ -184,13 +183,13 @@ fn output_inventory_upstream(
                         .directory
                         .clone(),
                     Event::InventoryRefused,
-                    stats.clone(),
+                    stats,
                 ),
                 OutputError::Transient => {
                     info!("transient error, skipping");
                     Box::new(futures::future::err::<(), ()>(()))
                 }
             })
-            .and_then(move |_| success(path.clone(), Event::InventorySent, stats_clone.clone())),
+            .and_then(move |_| success(path.clone(), Event::InventorySent, stats_clone)),
     )
 }
