@@ -712,7 +712,7 @@ class EventLogDetailsServiceImpl(
   def getWorkflotStepChange(xml:NodeSeq) : Box[WorkflowStepChange] = {
     for {
       entry         <- getEntryContent(xml)
-      workflowStep  <- (entry \ "workflowStep").headOption ?~! s"Entry type is not a 'changeRequest': ${entry}"
+      workflowStep  <- (entry \ "workflowStep").headOption ?~! s"Entry type is not a 'workflowStep': ${entry}"
       crId          <- (workflowStep \ "changeRequestId").headOption.map(id => ChangeRequestId(id.text.toInt)) ?~! s"Workflow event does not target any change request: ${workflowStep}"
       from          <- (workflowStep \ "from").headOption.map(from => WorkflowNodeId(from.text)) ?~! s"Workflow event does not have any from step: ${workflowStep}"
       to            <- (workflowStep \ "to").headOption.map(to => WorkflowNodeId(to.text)) ?~! s"workflow step does not have any to step: ${workflowStep}"
@@ -723,34 +723,33 @@ class EventLogDetailsServiceImpl(
   }
 
   def getRollbackDetails(xml:NodeSeq) : Box[RollbackInfo] = {
-  def getEvents(xml:NodeSeq)= {
-    for{
-      event     <- xml
-      eventlogs <- event.child
-      entry     <- eventlogs \ "rollbackedEvent"
-      id        <- (entry \ "id").headOption.map(_.text.toInt) ?~! ("Entry type is not a 'rollback': %s".format(entry))
-      evtType   <-(entry \ "type").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
-      author    <-(entry \ "author").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
-      date      <-(entry \ "date").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
-    } yield {
-      RollbackedEvent(id,date,evtType,author)
+    def getEvents(xml:Elem): Box[Seq[RollbackedEvent]]= {
+      sequence(xml  \ "rollbackedEvent") {
+        entry =>
+          for {
+            id      <- (entry \ "id").headOption.map(_.text.toInt) ?~! s"rollbacked event details does not have an id: ${entry}"
+            evtType <- (entry \ "type").headOption.map(_.text)     ?~! s"rollbacked event details does not have a type: ${entry}"
+            author  <- (entry \ "author").headOption.map(_.text)   ?~! s"rollbacked event details does not have an author: ${entry}"
+            date    <- (entry \ "date").headOption.map(_.text)     ?~! s"rollbacked event details does not have a date: ${entry}"
+          } yield {
+            RollbackedEvent(id, date, evtType, author)
+          }
+      }
     }
-  }
 
- val rollbackInfo =  for{
-      event        <- xml
-      eventlogs    <- event.child
-      entry        <- (eventlogs \ "main").headOption
-      id           <- (entry \ "id").headOption.map(_.text.toInt) ?~! ("Entry type is not a 'rollback': %s".format(entry))
-      evtType      <- (entry \ "type").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
-      author       <- (entry \ "author").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
-      date         <- (entry \ "date").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
-      rollbackType <- (entry \ "rollbackType").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
+    for {
+      entry        <- getEntryContent(xml)
+      rollback     <- (entry \ "main").headOption                        ?~! s"Entry type is not a 'rollback' event: ${entry}"
+      id           <- (rollback \ "id").headOption.map(_.text.toInt)     ?~! s"rollback event does not have an id: ${entry}"
+      evtType      <- (rollback \ "type").headOption.map(_.text)         ?~! s"rollback event does not have a type: ${entry}"
+      author       <- (rollback \ "author").headOption.map(_.text)       ?~! s"rollback event does not have an author: ${entry}"
+      date         <- (rollback \ "date").headOption.map(_.text)         ?~! s"rollback event does not have a date: ${entry}"
+      rollbackType <- (rollback \ "rollbackType").headOption.map(_.text) ?~! s"rollback event does not have a rollback type: ${entry}"
+      events       <- getEvents(entry)
     } yield {
       val target = RollbackedEvent(id,date,evtType,author)
-      RollbackInfo(target,rollbackType,getEvents(xml))
+      RollbackInfo(target,rollbackType,events)
     }
-   rollbackInfo.headOption
   }
 
   // Parameters
