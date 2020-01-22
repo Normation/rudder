@@ -70,7 +70,7 @@ where
             E: SerdeError,
         {
             u64::try_from(v)
-                .map(|s| Duration::from_secs(s))
+                .map(Duration::from_secs)
                 .map_err(|_| E::invalid_value(Unexpected::Signed(v), &self))
         }
 
