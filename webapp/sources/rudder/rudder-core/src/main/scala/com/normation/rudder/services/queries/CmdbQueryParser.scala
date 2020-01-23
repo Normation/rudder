@@ -181,7 +181,7 @@ trait JsonQueryLexer extends QueryLexer {
   def parseComposition(json: JObject ) : Box[Option[String]] = {
     json.values.get(COMPOSITION) match {
       case None => Full(None)
-      case Some(x:String) => Full(if(x.length > 0) Some(x) else None)
+      case Some(x:String) => Full(if(x.nonEmpty) Some(x) else None)
       case Some(x) => failureBadFormat(COMPOSITION,x)
     }
   }
@@ -251,28 +251,28 @@ trait JsonQueryLexer extends QueryLexer {
             //object type
             val objectType = line.get(OBJECT) match {
               case None => return failureMissing(OBJECT,line)
-              case Some(x:String) => if(x.length > 0) x else return failureEmpty(OBJECT,line)
+              case Some(x:String) => if(x.nonEmpty) x else return failureEmpty(OBJECT,line)
               case Some(x) => return failureBadParam(OBJECT,line,x)
             }
 
             // attribute
             val attribute = line.get(ATTRIBUTE) match {
               case None => return failureMissing(ATTRIBUTE,line)
-              case Some(x:String) => if(x.length > 0) x else return failureEmpty(ATTRIBUTE,line)
+              case Some(x:String) => if(x.nonEmpty) x else return failureEmpty(ATTRIBUTE,line)
               case Some(x) => return failureBadParam(ATTRIBUTE,line,x)
             }
 
             // comparator
             val comparator = line.get(COMPARATOR) match {
               case None => return failureMissing(COMPARATOR,line)
-              case Some(x:String) => if(x.length > 0) x else return failureEmpty(COMPARATOR,line)
+              case Some(x:String) => if(x.nonEmpty) x else return failureEmpty(COMPARATOR,line)
               case Some(x) => return failureBadParam(COMPARATOR,line,x)
             }
 
             // value
             val value = line.get(VALUE) match {
               case None => None
-              case Some(x:String) => if(x.length > 0) Some(x) else None
+              case Some(x:String) => if(x.nonEmpty) Some(x) else None
               case Some(x) => return failureBadParam(VALUE,line,x)
             }
             Full(StringCriterionLine(objectType,attribute,comparator,value))

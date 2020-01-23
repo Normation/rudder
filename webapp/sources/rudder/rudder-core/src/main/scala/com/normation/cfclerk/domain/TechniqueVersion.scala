@@ -136,7 +136,7 @@ final case class CharVersion(c: Char) extends AnyVal with Ordered[CharVersion] {
 
   def checkValid(strings: String*): Unit = {
     for (value <- strings) {
-      if (value.length == 0 || !value(0).isDigit)
+      if (value.isEmpty || !value(0).isDigit)
         throw new TechniqueVersionFormatException("The upstream_version should start with a digit : " + value)
 
       val validReg = new Regex("[A-Za-z0-9.+\\-:~]*")
