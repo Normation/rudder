@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: © 2020 Normation SAS
+// SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 /// We write our own error type to have a consistent error type through all our code.
 /// We translate other types to this one when necessary.
