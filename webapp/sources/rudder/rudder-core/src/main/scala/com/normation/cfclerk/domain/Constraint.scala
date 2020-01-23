@@ -237,7 +237,7 @@ final case class Constraint(
 
   def check(varValue: String, varName: String) : Unit = {
     //only check for non-empty variable
-    if(varValue == null || varValue.length < 1) {
+    if(varValue == null || varValue.isEmpty) {
       if(mayBeEmpty) {
         //OK
       } else {

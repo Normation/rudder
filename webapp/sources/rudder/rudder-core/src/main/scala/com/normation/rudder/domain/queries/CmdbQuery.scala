@@ -200,8 +200,9 @@ final case object NodeStateComparator extends NodeCriterionType {
   lazy val nodeStates = NodeState.labeledPairs.map{ case (x, label) => (x.name, label) }
 
   override def comparators = Seq(Equals, NotEquals)
+
   override protected def validateSubCase(v: String, comparator:CriterionComparator): PureResult[String] = {
-    if (null == v || v.length == 0) Left(Inconsistancy("Empty string not allowed")) else Right(v)
+    if (null == v || v.isEmpty) Left(Inconsistancy("Empty string not allowed")) else Right(v)
   }
 
   override def matches(comparator: CriterionComparator, value: String): NodeInfoMatcher = {
@@ -358,7 +359,7 @@ final case class BareComparator(override val comparators: CriterionComparator*) 
 trait TStringComparator extends LDAPCriterionType {
 
   override protected def validateSubCase(v: String, comparator: CriterionComparator) = {
-    if(null == v || v.length == 0) Left(Inconsistancy("Empty string not allowed")) else {
+    if(null == v || v.isEmpty) Left(Inconsistancy("Empty string not allowed")) else {
       comparator match {
         case Regex | NotRegex => validateRegex(v)
         case x                => Right(v)
@@ -521,7 +522,7 @@ final case object MachineComparator extends LDAPCriterionType {
 
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v: String, comparator:CriterionComparator) = {
-    if (null == v || v.length == 0) Left(Inconsistancy("Empty string not allowed")) else Right(v)
+    if (null == v || v.isEmpty) Left(Inconsistancy("Empty string not allowed")) else Right(v)
   }
 
   override def toLDAP(value: String) = Right(value)
@@ -551,7 +552,7 @@ final case object OstypeComparator extends LDAPCriterionType {
   val osTypes = List("AIX", "BSD", "Linux", "Solaris", "Windows")
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
-    if(null == v || v.length == 0) Left(Inconsistancy("Empty string not allowed")) else Right(v)
+    if(null == v || v.isEmpty) Left(Inconsistancy("Empty string not allowed")) else Right(v)
   }
   override def toLDAP(value:String) = Right(value)
 
@@ -591,7 +592,7 @@ final case object OsNameComparator extends LDAPCriterionType {
 
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
-    if(null == v || v.length == 0) Left(Inconsistancy("Empty string not allowed")) else Right(v)
+    if(null == v || v.isEmpty) Left(Inconsistancy("Empty string not allowed")) else Right(v)
   }
   override def toLDAP(value:String) = Right(value)
 
@@ -644,7 +645,7 @@ final case object AgentComparator extends LDAPCriterionType {
 
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
-    if(null == v || v.length == 0) Left(Inconsistancy("Empty string not allowed")) else Right(v)
+    if(null == v || v.isEmpty) Left(Inconsistancy("Empty string not allowed")) else Right(v)
   }
   override def toLDAP(value:String) = Right(value)
 
@@ -865,8 +866,9 @@ class SubGroupComparator(getGroups: () => IOResult[Seq[SubGroupChoice]]) extends
  * on an inventory (or successlly on an inventory) property but on a RudderNode property.
  * In that case, give the predicat that the node must follows.
  */
+<<<<<<< HEAD
 final case class Criterion(val name:String, val cType: CriterionType, overrideObjectType: Option[String] = None) {
-  require(name != null && name.length > 0, "Criterion name must be defined")
+  require(name != null && name.nonEmpty, "Criterion name must be defined")
   require(cType != null, "Criterion Type must be defined")
 }
 

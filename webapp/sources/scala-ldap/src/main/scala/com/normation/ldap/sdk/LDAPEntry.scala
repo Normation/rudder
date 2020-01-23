@@ -225,7 +225,7 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
       case null =>
         _backed.removeAttribute(attributeName)
       case seq =>
-        val toSave = seq.filter { s => null != s && s.length > 0 }
+        val toSave = seq.filter { s => null != s && s.nonEmpty }
         if(toSave.isEmpty) {
           _backed.removeAttribute(attributeName)
         } else {
@@ -283,7 +283,7 @@ object LDAPEntry {
   def apply(dn:DN, attributes:Attribute*):LDAPEntry = LDAPEntry(new UnboundidEntry(dn,attributes:_*))
   def apply(dn:DN, attributes:Iterable[Attribute]):LDAPEntry = LDAPEntry(new UnboundidEntry(dn, attributes.toSeq:_*))
   def apply(rdnAttribute:String,rdnValue:String,parentDn:String, attributes:Attribute*) : LDAPEntry = {
-    require(rdnValue != null && rdnValue.length > 0)
+    require(rdnValue != null && rdnValue.nonEmpty)
     apply(new DN(s"${rdnAttribute}=${rdnValue},${parentDn}"),attributes)
   }
 
