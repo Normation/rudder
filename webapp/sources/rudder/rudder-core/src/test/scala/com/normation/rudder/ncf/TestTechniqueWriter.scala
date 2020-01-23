@@ -105,7 +105,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   val expectedPath = "src/test/resources/configuration-repository"
   object TestTechniqueArchiver extends TechniqueArchiver {
     def commitTechnique(technique : Technique, gitPath : Seq[String], modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = UIO.unit
-    def deleteTechnique(techniqueName: String, techniqueVersion: String, modId: ModificationId, commiter: EventActor, msg: String): IOResult[Unit] = UIO.unit
+    def deleteTechnique(techniqueName: String, techniqueVersion: String, category : String, modId: ModificationId, commiter: EventActor, msg: String): IOResult[Unit] = UIO.unit
   }
 
   object TestLibUpdater extends UpdateTechniqueLibrary {
@@ -119,7 +119,6 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] = ???
 
     def getDirective(directiveId: DirectiveId): IOResult[Option[Directive]] = ???
-
 
     def getDirectiveWithContext(directiveId: DirectiveId): IOResult[Option[(domain.Technique, ActiveTechnique, Directive)]] = ???
 
@@ -253,6 +252,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     Technique(
         BundleName("technique_by_Rudder")
       , "Test Technique created through Rudder API"
+      , "ncf_techniques"
       , MethodCall(
             BundleName("package_install_version")
           , Map((ParameterId("package_name"),"${node.properties[apache_package_name]}"),(ParameterId("package_version"),"2.2.11"))
@@ -344,6 +344,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     Technique(
         BundleName("technique_any")
       , "Test Technique created through Rudder API"
+      , "ncf_techniques"
       , MethodCall(
             BundleName("package_install_version")
           , Map((ParameterId("package_name"),"${node.properties[apache_package_name]}"),(ParameterId("package_version"),"2.2.11"))

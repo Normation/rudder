@@ -270,8 +270,13 @@ class DirectiveAPIService2 (
     for {
       // Check if a directive exists with the current id
       _ <- readDirective.getDirective(newDirective.id).toBox match {
-        case Full(alreadyExists) => Failure(s"Cannot create a new Directive with id '${newDirective.id.value}' already exists")
-        case _ => Full("ok")
+        case Full(None) =>
+          Full("ok")
+        case Full(Some(_)) =>
+          Failure(s"Cannot create a new Directive with id '${newDirective.id.value}' already exists")
+        case eb : EmptyBox =>
+          val fail = eb ?~! s"Error when checking existence of directive with id ${newDirective.id.value}, before trying to create it"
+          fail
       }
 
        // Check parameters of the new Directive

@@ -1118,13 +1118,14 @@ final case class RestExtractorService (
     for {
       bundleName  <- CompleteJson.extractJsonString(json, "bundle_name", s => Full(BundleName(s)))
       version     <- CompleteJson.extractJsonString(json, "version")
+      category <- OptionnalJson.extractJsonString(json, "category").map(_.getOrElse("ncf_techniques"))
       description <- CompleteJson.extractJsonString(json, "description")
       name        <- CompleteJson.extractJsonString(json, "name")
       calls       <- CompleteJson.extractJsonArray(json , "method_calls")(extractMethodCall(_, methods))
       parameters  <- CompleteJson.extractJsonArray(json , "parameter")(extractTechniqueParameter(creation))
       files       <- OptionnalJson.extractJsonArray(json , "resources")(extractResourceFile).map(_.getOrElse(Nil))
     } yield {
-      NcfTechnique(bundleName, name, calls, new Version(version), description, parameters, files)
+      NcfTechnique(bundleName, name, category, calls, new Version(version), description, parameters, files)
     }
   }
 
