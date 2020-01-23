@@ -866,7 +866,6 @@ class SubGroupComparator(getGroups: () => IOResult[Seq[SubGroupChoice]]) extends
  * on an inventory (or successlly on an inventory) property but on a RudderNode property.
  * In that case, give the predicat that the node must follows.
  */
-<<<<<<< HEAD
 final case class Criterion(val name:String, val cType: CriterionType, overrideObjectType: Option[String] = None) {
   require(name != null && name.nonEmpty, "Criterion name must be defined")
   require(cType != null, "Criterion Type must be defined")
