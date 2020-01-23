@@ -246,7 +246,8 @@ bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identi
         ifvarclass => "${class_prefix}_repaired.!${class_prefix}_error";
 
       "error"
-        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "log_warn", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} could not be repaired"),
+        # Make errors info as they are actually generally checks
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "log_info", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} could not be repaired"),
         ifvarclass => "${class_prefix}_error";
 
 
