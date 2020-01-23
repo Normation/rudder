@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+// SPDX-FileCopyrightText: © 2020 Normation SAS
 
 /// To test only the technique compiler, run this: `cargo test --test compile`
 

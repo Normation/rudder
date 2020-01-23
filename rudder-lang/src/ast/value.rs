@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+// SPDX-FileCopyrightText: © 2020 Normation SAS
 
 use super::context::VarKind;
 use super::enums::{EnumExpression, EnumList};

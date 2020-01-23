@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+// SPDX-FileCopyrightText: © 2020 Normation SAS
 
 use crate::error::*;
 use crate::parser::{PType, Token};
