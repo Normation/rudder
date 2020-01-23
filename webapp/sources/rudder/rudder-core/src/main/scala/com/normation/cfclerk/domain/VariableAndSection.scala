@@ -183,7 +183,7 @@ sealed trait Variable {
     // when the variable is optionnal.
     // But I'm not sure if I understand what is happening with a an optionnal
     // boolean, since we are returning a string in that case :/
-    if(this.spec.constraint.mayBeEmpty && x.length < 1) Full("")
+    if(this.spec.constraint.mayBeEmpty && x.isEmpty) Full("")
     else spec.constraint.typeName.getFormatedValidated(x, spec.name, escape)
   }
 }

@@ -47,7 +47,7 @@ import scala.collection.SortedSet
  * a given categories must have different names)
  */
 case class TechniqueCategoryName(value:String) extends HashcodeCaching {
-  require(null != value && value.length > 0, "Id of a category can not be null nor empty")
+  require(null != value && value.nonEmpty, "Id of a category can not be null nor empty")
 }
 
 object RootTechniqueCategoryName extends TechniqueCategoryName("/")

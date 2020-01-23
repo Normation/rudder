@@ -199,7 +199,7 @@ case object NodeStateComparator extends NodeCriterionType {
 
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v: String, comparator:CriterionComparator) = {
-    if (null == v || v.length == 0) Failure("Empty string not allowed") else Full(v)
+    if (null == v || v.isEmpty) Failure("Empty string not allowed") else Full(v)
   }
 
   override def matches(comparator: CriterionComparator, value: String): NodeInfoMatcher = {
@@ -356,7 +356,7 @@ case class BareComparator(override val comparators: CriterionComparator*) extend
 trait TStringComparator extends LDAPCriterionType {
 
   override protected def validateSubCase(v: String, comparator: CriterionComparator) = {
-    if(null == v || v.length == 0) Failure("Empty string not allowed") else {
+    if(null == v || v.isEmpty) Failure("Empty string not allowed") else {
       comparator match {
         case Regex | NotRegex => validateRegex(v)
         case x                => Full(v)
@@ -519,7 +519,7 @@ case object MachineComparator extends LDAPCriterionType {
 
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v: String, comparator:CriterionComparator) = {
-    if (null == v || v.length == 0) Failure("Empty string not allowed") else Full(v)
+    if (null == v || v.isEmpty) Failure("Empty string not allowed") else Full(v)
   }
 
   override def toLDAP(value: String) = Full(value)
@@ -549,7 +549,7 @@ case object OstypeComparator extends LDAPCriterionType {
   val osTypes = List("AIX", "BSD", "Linux", "Solaris", "Windows")
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
-    if(null == v || v.length == 0) Failure("Empty string not allowed") else Full(v)
+    if(null == v || v.isEmpty) Failure("Empty string not allowed") else Full(v)
   }
   override def toLDAP(value:String) = Full(value)
 
@@ -589,7 +589,7 @@ case object OsNameComparator extends LDAPCriterionType {
 
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
-    if(null == v || v.length == 0) Failure("Empty string not allowed") else Full(v)
+    if(null == v || v.isEmpty) Failure("Empty string not allowed") else Full(v)
   }
   override def toLDAP(value:String) = Full(value)
 
@@ -642,7 +642,7 @@ case object AgentComparator extends LDAPCriterionType {
 
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
-    if(null == v || v.length == 0) Failure("Empty string not allowed") else Full(v)
+    if(null == v || v.isEmpty) Failure("Empty string not allowed") else Full(v)
   }
   override def toLDAP(value:String) = Full(value)
 
@@ -867,7 +867,7 @@ class SubGroupComparator(getGroups: () => Box[Seq[SubGroupChoice]]) extends TStr
  * In that case, give the predicat that the node must follows.
  */
 case class Criterion(val name:String, val cType: CriterionType, overrideObjectType: Option[String] = None) extends HashcodeCaching {
-  require(name != null && name.length > 0, "Criterion name must be defined")
+  require(name != null && name.nonEmpty, "Criterion name must be defined")
   require(cType != null, "Criterion Type must be defined")
 }
 
