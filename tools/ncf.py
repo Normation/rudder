@@ -112,16 +112,17 @@ def get_all_techniques_filenames(migrate_technique = False):
   if migrate_technique:
     path = os.path.join(basePath,"ncf/50_techniques")
   else:
-    path = os.path.join(basePath,"techniques/ncf_techniques")
+    path = os.path.join(basePath,"techniques")
 
   return get_all_cf_filenames_under_dir(path, not migrate_technique)
 
-
+excluded_dirs = [ "applications", "fileConfiguration", "fileDistribution", "jobScheduling", "systemSettings", "system" ]
 def get_all_cf_filenames_under_dir(parent_dir, only_technique_cf):
   filenames = []
   filenames_add = filenames.append
   for root, dirs, files in os.walk(parent_dir):
     for dir in dirs:
+      if dir not in excluded_dirs:
         filenames = filenames + get_all_cf_filenames_under_dir(os.path.join(parent_dir,dir),only_technique_cf)
 
     for file in files:
@@ -234,16 +235,16 @@ def parse_bundlefile_metadata(content, bundle_type):
   # Check that we don't have a constraint that is defined on a non existing parameter:
   wrong_constraint_names = set(param_constraints.keys()) - param_names
   if len(wrong_constraint_names) > 0:
-      warning_message = "In technique '' defining constraint on non existing parameters: "+ ", ".join(wrong_constraint_names)
-      print(warning_message)
-      warnings.append(warning_message)
+    warning_message = "In technique '' defining constraint on non existing parameters: "+ ", ".join(wrong_constraint_names)
+    print(warning_message)
+    warnings.append(warning_message)
 
   # Check that we don't have a type that is defined on a non existing parameter:
   wrong_type_names = set(param_types.keys()) - param_names
   if len(wrong_type_names) > 0:
-      warning_message = "In technique '' defining type on non existing parameters: "+ ", ".join(wrong_type_names)
-      print(warning_message)
-      warnings.append(warning_message)
+    warning_message = "In technique '' defining type on non existing parameters: "+ ", ".join(wrong_type_names)
+    print(warning_message)
+    warnings.append(warning_message)
 
   # If we found any parameters, store them in the res object
   if len(parameters) > 0:
@@ -299,8 +300,8 @@ def class_context_and(a, b):
   return '.'.join(final_contexts)
 
 def sanitize_cfpromises_string (value):
-    """All quotes in json provided by cf-promises are backslashed, so we need to remove all backslash before a quote from all values"""
-    return value.replace('\\"', '"').replace("\\'", "'")
+  """All quotes in json provided by cf-promises are backslashed, so we need to remove all backslash before a quote from all values"""
+  return value.replace('\\"', '"').replace("\\'", "'")
 
 def parse_function_call_class_context(function_call):
   """Extract a function call from class context"""
@@ -428,8 +429,12 @@ def get_all_techniques_metadata(include_methods_calls = True, migrate_technique 
     with codecs.open(file, encoding="utf-8") as fd:
       content = fd.read()
     try:
+      # path of file is Category/technique_name/technique_version/technique.cf  
+      # to get back the category of our technique we need to go up 3 directories
+      category = os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(file))))
       result = parse_technique_metadata(content)
       metadata = result["result"]
+      metadata["category"] = category
       warnings.extend(result["warnings"])
 
       if include_methods_calls:
