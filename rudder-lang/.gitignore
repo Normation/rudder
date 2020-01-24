@@ -2,4 +2,4 @@
 **/*.rs.bk
 *.iml
 /.idea
-/test/tmp/
+/tests/test_files/tmp

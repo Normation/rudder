@@ -32,7 +32,7 @@ fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
         PErrorKind::Nom(e) => PErrorKind::NomTest(format!("{:?}", e)),
         PErrorKind::NomTest(e) => PErrorKind::NomTest(e),
         PErrorKind::ExpectedKeyword(i) => PErrorKind::ExpectedKeyword(i),
-        PErrorKind::ExpectedReservedWord(i) => PErrorKind::ExpectedReservedWord(i),
+        // PErrorKind::ExpectedReservedWord(i) => PErrorKind::ExpectedReservedWord(i),
         PErrorKind::ExpectedToken(i) => PErrorKind::ExpectedToken(i),
         PErrorKind::InvalidEnumExpression => PErrorKind::InvalidEnumExpression,
         PErrorKind::InvalidEscapeSequence => PErrorKind::InvalidEscapeSequence,
@@ -41,6 +41,7 @@ fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
         PErrorKind::InvalidVariableReference => PErrorKind::InvalidVariableReference,
         PErrorKind::UnsupportedMetadata(i) => PErrorKind::UnsupportedMetadata(i.fragment),
         PErrorKind::UnterminatedDelimiter(i) => PErrorKind::UnterminatedDelimiter(i.fragment),
+        PErrorKind::Unparsed(i) => PErrorKind::Unparsed(i.fragment)
     };
     match err.context {
         Some(context) => (context.fragment, kind),
@@ -543,7 +544,7 @@ fn test_pvalue() {
     );
     assert_eq!(
         map_res(pvalue, r#"[ "hello", 12"#),
-        Err(("", PErrorKind::UnterminatedDelimiter("[")))
+        Err(("[ \"hello\", 12", PErrorKind::UnterminatedDelimiter("[")))
     );
     assert_eq!(
         map_res(pvalue, r#"{"key":"value"}"#),
@@ -788,6 +789,19 @@ fn test_presource_ref() {
         Ok(("", ("hello3".into(), vec![])))
     );
     assert_eq!(
+        map_res(presource_ref, "hello ( 12, 14 )"),
+        Ok((
+            "",
+            (
+                "hello".into(),
+                vec![
+                    PValue::Number("12".into(), 12.0),
+                    PValue::Number("14".into(), 14.0),
+                ]
+            )
+        ))
+    );
+    assert_eq!(
         map_res(presource_ref, "hello ( \"p1\", \"p2\" )"),
         Ok((
             "",
@@ -796,6 +810,19 @@ fn test_presource_ref() {
                 vec![
                     PValue::String("\"".into(), "p1".to_string()),
                     PValue::String("\"".into(), "p2".to_string())
+                ]
+            )
+        ))
+    );
+    assert_eq!(
+        map_res(presource_ref, r#"hello ( "12", "14", )"#),
+        Ok((
+            "",
+            (
+                "hello".into(),
+                vec![
+                    PValue::String("\"".into(), "12".to_string()),
+                    PValue::String("\"".into(), "14".to_string())
                 ]
             )
         ))

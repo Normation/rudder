@@ -1,6 +1,5 @@
 @format=0
 
-
 resource permissions(p0)
 resource user(p0)
 resource file(p0)

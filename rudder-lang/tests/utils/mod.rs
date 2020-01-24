@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+const TESTFILES_PATH: &'static str = "tests/test_files";
+const RLFILES_PATH: &'static str = "tests/test_files/rl";
+const VIRTUALFILES_PATH: &'static str = "tests/test_files/tmp";
+
 use colored::Colorize;
 use std::{
     fs,
@@ -11,8 +15,8 @@ use std::{
 /// Paired with `test_case` proc-macro calls from the `compile.rs` test file.
 /// Generates a file from a string and tests it
 pub fn test_generated_file(filename: &str, content: &str) {
-    fs::create_dir_all("tests/tmp").expect("Could not create /tmp dir");
-    let path = PathBuf::from(format!("tests/tmp/{}.rl", filename));
+    fs::create_dir_all(VIRTUALFILES_PATH).expect(&format!("Could not create {} path", TESTFILES_PATH));
+    let path = PathBuf::from(format!("{}/{}.rl", VIRTUALFILES_PATH, filename));
     let mut file = fs::File::create(&path).expect("Could not create file");
     file.write_all(content.as_bytes())
         .expect("Could not write to file");
@@ -23,10 +27,10 @@ pub fn test_generated_file(filename: &str, content: &str) {
 /// Paired with `test_case` proc-macro calls from the `compile.rs` test file.
 /// Tests the file that matches the `filename` argument
 pub fn test_real_file(filename: &str, dest_folder: &str) {
-    fs::create_dir_all(format!("tests/{}", dest_folder))
-        .expect(&format!("Could not create /{} dir", dest_folder));
-    let input_path = PathBuf::from(format!("tests/compile/{}.rl", filename));
-    let output_path = PathBuf::from(format!("tests/{}/{}.rl", dest_folder, filename));
+    fs::create_dir_all(format!("{}/{}", TESTFILES_PATH, dest_folder))
+        .expect(&format!("Could not create /test_files/{} dir", dest_folder));
+    let input_path = PathBuf::from(format!("{}/{}.rl", RLFILES_PATH, filename));
+    let output_path = PathBuf::from(format!("{}/{}/{}.rl", TESTFILES_PATH, dest_folder, filename));
     test_file(&input_path, &output_path, filename);
 }
 
@@ -37,7 +41,7 @@ fn test_file(input_path: &Path, output_path: &Path, filename: &str) {
         result.is_ok(),
         should_compile(filename),
         "{}: {} assertion is not true. Compiler result (lhs) differs from expectations (rhs)",
-        "Error (test)".bright_yellow().bold(),
+        "\nError (test)".bright_red().bold(),
         filename.bright_yellow(),
     );
 }

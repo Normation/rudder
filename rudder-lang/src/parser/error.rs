@@ -18,11 +18,11 @@ pub type PResult<'src, O> = IResult<PInput<'src>, O, PError<PInput<'src>>>;
 /// So this is a generir error type that must implement ParseError
 #[derive(Debug, PartialEq, Clone)]
 pub enum PErrorKind<I> {
-    Nom(VerboseError<I>),
+    Nom(VerboseError<I>), // TODO remove this one
     #[cfg(test)]
     NomTest(String), // cannot be use outside of tests
     ExpectedKeyword(&'static str),      // anywhere (keyword type)
-    ExpectedReservedWord(&'static str), // anywhere (keyword that does not exist)
+    // ExpectedReservedWord(&'static str), // anywhere
     ExpectedToken(&'static str),        // anywhere (expected token)
     InvalidEnumExpression,              // in enum expression
     InvalidEscapeSequence,              // in string definition
@@ -31,6 +31,7 @@ pub enum PErrorKind<I> {
     InvalidVariableReference,           // during string interpolation
     UnsupportedMetadata(I), // metadata or comments are not supported everywhere (metadata key)
     UnterminatedDelimiter(I), // after an opening delimiter (first delimiter)
+    Unparsed(I), // after an opening delimiter (first delimiter)
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -100,16 +101,17 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
             PErrorKind::Nom(e) => format!("Unprocessed parsing error: '{:#?}'.\nPlease fill a BUG with context on when this happened!", e),
             #[cfg(test)]
             PErrorKind::NomTest(msg) => format!("Testing only error message, this should never happen {}.\nPlease fill a BUG with context on when this happened!", msg),
-            PErrorKind::ExpectedKeyword(s) => format!("The following value kind was expected: '{}'.", s.bright_magenta()),
-            PErrorKind::ExpectedReservedWord(s) => format!("The following reserved keyword was expected: '{}'.", s.bright_magenta()),
+            PErrorKind::ExpectedKeyword(s) => format!("The following keyword was expected: '{}'.", s.bright_magenta()),
+            // PErrorKind::ExpectedReservedWord(s) => format!("The following reserved keyword was expected: '{}'.", s.bright_magenta()),
             PErrorKind::ExpectedToken(s) => format!("The following token was expected '{}'.", s.bright_magenta()),
             PErrorKind::InvalidEnumExpression => "This enum expression is invalid".to_string(),
             PErrorKind::InvalidEscapeSequence => "This escape sequence cannot be used in a string".to_string(),
             PErrorKind::InvalidFormat => "Invalid header format, it must contain a single line '@format=x' where x is an integer. Shebang accepted.".to_string(),
             PErrorKind::InvalidName(i) => format!("The identifier is invalid in a {}.", i.fragment.bright_magenta()),
             PErrorKind::InvalidVariableReference => "This variable reference is invalid".to_string(),
-            PErrorKind::UnsupportedMetadata(i) => format!("Parsed comment or metadata not supported at this place: '{}' fount at {}", i.fragment.bright_magenta(), Token::from(*i).position_str().bright_yellow()),
+            PErrorKind::UnsupportedMetadata(i) => format!("Parsed comment or metadata not supported at this place: '{}' found at {}", i.fragment.bright_magenta(), Token::from(*i).position_str().bright_yellow()),
             PErrorKind::UnterminatedDelimiter(i) => format!("Missing closing delimiter for '{}'", i.fragment.bright_magenta()),
+            PErrorKind::Unparsed(i) => format!("Could not parse the following: '{}'", i.fragment.bright_magenta()),
         };
 
         // simply removes superfluous line return (prettyfication)
@@ -118,8 +120,8 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
                 let context = ctx.fragment.trim_end_matches('\n');
                 // Formats final error output
                 f.write_str(&format!(
-                    "{}, near '{}'\n{} {}",
-                    Token::from(context.as_ref()).position_str().bright_yellow(),
+                    "{} near '{}'\n{} {}",
+                    Token::from(ctx).position_str().bright_yellow(),
                     context,
                     "-->".bright_blue(),
                     message.bold(),

@@ -105,6 +105,39 @@ pub fn parse_string(content: &str) -> Result<Vec<PInterpolatedElement>> {
 
 // TODO nomplus: sp!(parser) sp!(parser,sp) sp sequence, wsequence, cut_with
 
+fn etag<'src>(token: &'static str) -> impl Fn(PInput<'src>) -> PResult<PInput<'src>> {
+    move |i| {
+        or_err(tag(token), || PErrorKind::ExpectedToken(token))(i)
+    }
+}
+
+fn ftag<'src>(token: &'static str) -> impl Fn(PInput<'src>) -> PResult<PInput<'src>> {
+    move |i| {
+        or_fail(tag(token), || PErrorKind::ExpectedToken(token))(i)
+    }
+}
+
+fn space_terminated<'src>(token: &'static str) -> impl Fn(PInput<'src>) -> PResult<PInput<'src>> {
+    move |i| {
+        let (i, r) = tag(token)(i)?;
+        or_fail(space1, || PErrorKind::ExpectedKeyword("enum"))(i)?;
+        Ok((i, r))
+    }
+}
+
+fn parameter_list<'src, O, P>(open_deli: &'static str, parser: P, close_deli: &'static str) -> impl Fn(PInput<'src>) -> PResult<Vec<O>>
+where P: Copy + Fn(PInput<'src>) -> PResult<O>,
+O: 'src
+{
+    move |i| {
+        let (i, r) = sp(etag(open_deli))(i)?;
+        let (i, params) = sp(separated_list(sp(etag(",")), parser))(i)?;
+        let (i, _) = sp(opt(tag(",")))(i)?; // end of list comma is authorized but optional
+        let (i, _) = or_fail(sp(tag(close_deli)), || PErrorKind::UnterminatedDelimiter(r))(i)?;
+        Ok((i, params))
+    }
+}
+
 /// Eat everything that can be ignored between tokens
 /// ie white spaces, newlines and simple comments (with a single #)
 fn strip_spaces_and_comment(i: PInput) -> PResult<()> {
@@ -113,11 +146,11 @@ fn strip_spaces_and_comment(i: PInput) -> PResult<()> {
         multispace1,
         // simple comments (ie # but not ##)
         terminated(
-            tag("#"),
+            etag("#"),
             alt((
-                delimited(not(tag("#")), take_until("\n"), newline),
+                delimited(not(etag("#")), take_until("\n"), newline),
                 // comment is the last line
-                preceded(not(tag("#")), rest),
+                preceded(not(etag("#")), rest),
             )),
         ),
     )))(i)?;
@@ -208,13 +241,14 @@ pub struct PHeader {
 fn pheader(i: PInput) -> PResult<PHeader> {
     sequence!(
         {
-            _x: opt(tuple((tag("#!/"), take_until("\n"), newline)));
-            _x: or_fail(tag("@format="), || PErrorKind::InvalidFormat);
+            _x: opt(tuple((etag("#!/"), take_until("\n"), newline)));
+            _x: or_fail(sp(etag("@format")), || PErrorKind::InvalidFormat);
+            _x: or_fail(sp(etag("=")), || PErrorKind::InvalidFormat);
             version: or_fail(
                 map_res(take_until("\n"), |s: PInput| s.fragment.parse::<u32>()),
                 || PErrorKind::InvalidFormat
             );
-            _x: tag("\n");
+            _x: etag("\n");
         } => PHeader { version }
     )(i)
 }
@@ -248,14 +282,16 @@ pub struct PEnum<'src> {
 fn penum(i: PInput) -> PResult<PEnum> {
     wsequence!(
         {
+            // _test: or_err(tag("N"), || PErrorKind::Nom(VerboseError::from_char(i, 'N')));
+            // _test: or_err(tag("P"), || PErrorKind::ExpectedToken("P"));
             metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
-            global: opt(tag("global")); // TODO at least one space here
-            e:      or_err(tag("enum"), || PErrorKind::ExpectedReservedWord("enum")); // TODO at least one space here
+            global: opt(space_terminated("global"));
+            e:      space_terminated("enum");
             _fail:  or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
             name:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
-            b:      or_err(tag("{"), || PErrorKind::ExpectedToken("{")); // do not fail here, it could still be a mapping
-            items:  separated_nonempty_list(sp(tag(",")), pidentifier);
-            _x:     opt(tag(","));
+            b:      etag("{"); // do not fail here, it could still be a mapping
+            items:  separated_nonempty_list(sp(etag(",")), pidentifier); // all enum members
+            _x:     opt(tag(",")); // optional, applies only to the last member
             _x:     or_fail(tag("}"), || PErrorKind::UnterminatedDelimiter(b));
         } => PEnum {
                 global: global.is_some(),
@@ -280,34 +316,34 @@ fn penum_mapping(i: PInput) -> PResult<PEnumMapping> {
     wsequence!(
         {
             metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
-            e:     tag("enum");// TODO at least one space here
+            e:     space_terminated("enum");
             _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
             from:  or_fail(pidentifier,|| PErrorKind::InvalidName(e));
-            _x:    or_fail(tag("~>"),|| PErrorKind::ExpectedToken("~>"));
+            _x:    ftag("~>"); // already stated it is no enum, so fail
             to:    or_fail(pidentifier,|| PErrorKind::InvalidName(e));
-            b:     or_fail(tag("{"),|| PErrorKind::ExpectedToken("{"));
+            b:     ftag("{");
             mapping:
                 separated_nonempty_list(
-                    sp(tag(",")),
+                    sp(etag(",")),
                     separated_pair(
                         or_fail(
                             alt((
                                 pidentifier,
-                                map(tag("*"),|x: PInput| x.into())
+                                map(etag("*"), |x: PInput| x.into())
                             )),
                             || PErrorKind::InvalidName(to.into())),
                         or_fail(
-                            sp(tag("->")),
+                            sp(etag("->")),
                             || PErrorKind::ExpectedToken("->")),
                         or_fail(
                             alt((
                                 pidentifier,
-                                map(tag("*"),|x: PInput| x.into())
+                                map(etag("*"), |x: PInput| x.into())
                             )),
                             || PErrorKind::InvalidName(to.into()))
                     )
                 );
-            _x: opt(tag(","));
+            _x: opt(tag(",")); // optional, applies only to the last member
             _x: or_fail(tag("}"),|| PErrorKind::UnterminatedDelimiter(b));
         } => PEnumMapping {from, to, mapping}
     )(i)
@@ -345,7 +381,7 @@ fn penum_expression(i: PInput) -> PResult<PEnumExpression> {
         enum_or_expression,
         enum_and_expression,
         enum_not_expression,
-        map(tag("default"), |t| PEnumExpression::Default(Token::from(t))), // default looks like an atom so it must come first
+        map(etag("default"), |t| PEnumExpression::Default(Token::from(t))), // default looks like an atom so it must come first
         enum_atom,
     ))(i)
 }
@@ -353,7 +389,7 @@ fn enum_atom(i: PInput) -> PResult<PEnumExpression> {
     alt((
         wsequence!(
             {
-                t: tag("(");
+                t: etag("(");
                 e: penum_expression;
                 _x: or_fail(tag(")"), || PErrorKind::UnterminatedDelimiter(t));
             } => e
@@ -361,22 +397,22 @@ fn enum_atom(i: PInput) -> PResult<PEnumExpression> {
         wsequence!(
             {
                 var: pvariable_identifier;
-                _x: tag("=~");
-                penum: opt(terminated(pidentifier, sp(tag(":"))));
+                _x: etag("=~");
+                penum: opt(terminated(pidentifier, sp(etag(":"))));
                 value: or_fail(pidentifier, || PErrorKind::InvalidEnumExpression);
             } => PEnumExpression::Compare(Some(var), penum, value)
         ),
         wsequence!(
             {
                 var: pvariable_identifier;
-                _x: tag("!~");
-                penum: opt(terminated(pidentifier, sp(tag(":"))));
+                _x: etag("!~");
+                penum: opt(terminated(pidentifier, sp(etag(":"))));
                 value: or_fail(pidentifier, || PErrorKind::InvalidEnumExpression);
             } => PEnumExpression::Not(Box::new(PEnumExpression::Compare(Some(var), penum, value)))
         ),
         wsequence!(
             {
-                penum: opt(terminated(pidentifier, sp(tag(":"))));
+                penum: opt(terminated(pidentifier, sp(etag(":"))));
                 value: pidentifier;
             } => PEnumExpression::Compare(None, penum, value)
         ),
@@ -386,7 +422,7 @@ fn enum_or_expression(i: PInput) -> PResult<PEnumExpression> {
     wsequence!(
         {
             left: alt((enum_and_expression, enum_not_expression, enum_atom));
-            _x: tag("||");
+            _x: etag("||");
             right: or_fail(
                        alt((enum_or_expression, enum_and_expression, enum_not_expression, enum_atom)),
                        || PErrorKind::InvalidEnumExpression);
@@ -397,7 +433,7 @@ fn enum_and_expression(i: PInput) -> PResult<PEnumExpression> {
     wsequence!(
         {
             left: alt((enum_not_expression, enum_atom));
-            _x: tag("&&");
+            _x: etag("&&");
             right: or_fail(
                        alt((enum_and_expression, enum_not_expression, enum_atom)),
                        || PErrorKind::InvalidEnumExpression);
@@ -407,7 +443,7 @@ fn enum_and_expression(i: PInput) -> PResult<PEnumExpression> {
 fn enum_not_expression(i: PInput) -> PResult<PEnumExpression> {
     wsequence!(
         {
-            _x: tag("!");
+            _x: etag("!");
             value: or_fail(enum_atom, || PErrorKind::InvalidEnumExpression);
         } => PEnumExpression::Not(Box::new(value))
     )(i)
@@ -419,21 +455,21 @@ fn pescaped_string(i: PInput) -> PResult<(Token, String)> {
     // Add type annotation to help the type solver
     let f: fn(PInput) -> PResult<(Token, String)> = sequence!(
         {
-            prefix: tag("\"");
+            prefix: etag("\"");
             content: alt((
                         // empty lines are not properly handled by escaped_transform
                         // so we detect them here beforehand
-                        peek(value("".into(), tag("\""))),
+                        peek(value("".into(), etag("\""))),
                         or_fail(
                             escaped_transform(
                                 take_till1(|c: char| (c == '\\')||(c == '"')),
                                 '\\',
                                 alt((
-                                   value("\\", tag("\\")),
-                                   value("\"", tag("\"")),
-                                   value("\n", tag("n")),
-                                   value("\r", tag("r")),
-                                   value("\t", tag("t")),
+                                   value("\\", etag("\\")),
+                                   value("\"", etag("\"")),
+                                   value("\n", etag("n")),
+                                   value("\r", etag("r")),
+                                   value("\t", etag("t")),
                                 ))
                             ),
                             || PErrorKind::InvalidEscapeSequence
@@ -450,7 +486,7 @@ fn pescaped_string(i: PInput) -> PResult<(Token, String)> {
 fn punescaped_string(i: PInput) -> PResult<(Token, String)> {
     sequence!(
         {
-            prefix: tag("\"\"\"");
+            prefix: etag("\"\"\"");
             content: map(
                          or_fail(take_until("\"\"\""), || PErrorKind::UnterminatedDelimiter(prefix)),
                          |x: PInput| x.to_string()
@@ -471,11 +507,11 @@ fn pinterpolated_string(i: PInput) -> PResult<Vec<PInterpolatedElement>> {
     all_consuming(alt((
         many1(alt((
             // $ constant
-            value(PInterpolatedElement::Static("$".into()), tag("$$")),
+            value(PInterpolatedElement::Static("$".into()), etag("$$")),
             // variable
             sequence!(
                 {
-                    s: tag("${");
+                    s: etag("${");
                     variable: or_fail(pvariable_identifier, || PErrorKind::InvalidVariableReference);
                     _x: or_fail(tag("}"), || PErrorKind::UnterminatedDelimiter(s));
                 } => PInterpolatedElement::Variable(variable.fragment().into())
@@ -483,7 +519,7 @@ fn pinterpolated_string(i: PInput) -> PResult<Vec<PInterpolatedElement>> {
             // invalid $
             sequence!(
                 {
-                    _s: tag("$"); // $SomethingElse is an error
+                    _s: etag("$"); // $SomethingElse is an error
                     _x: or_fail(tag("$"), || PErrorKind::InvalidVariableReference); // $$ is already processed so this is an error
                 } => PInterpolatedElement::Static("".into()) // this is mandatory but cannot happen
             ),
@@ -516,11 +552,11 @@ pub enum PType {
 }
 fn ptype(i: PInput) -> PResult<PType> {
     alt((
-        value(PType::String, tag("string")),
-        value(PType::Number, tag("num")),
-        value(PType::Boolean, tag("boolean")),
-        value(PType::Struct, tag("struct")),
-        value(PType::List, tag("list")),
+        value(PType::String, etag("string")),
+        value(PType::Number, etag("num")),
+        value(PType::Boolean, etag("boolean")),
+        value(PType::Struct, etag("struct")),
+        value(PType::List, etag("list")),
     ))(i)
 }
 
@@ -537,9 +573,11 @@ fn pnumber(i: PInput) -> PResult<(Token, f64)> {
 fn plist(i: PInput) -> PResult<Vec<PValue>> {
     wsequence!(
         {
-            s: tag("[");
-            values: separated_list(sp(tag(",")),pvalue);
-            _x: or_fail(tag("]"),|| PErrorKind::UnterminatedDelimiter(s));
+            // s: tag("[");
+            // values: separated_list(sp(etag(",")), pvalue);
+            // _x: or_fail(peek(is_not(",")), || PErrorKind::ExpectedToken("parameter"));
+            // _x: or_fail(tag("]"),|| PErrorKind::UnterminatedDelimiter(s));
+            values: parameter_list("[", pvalue, "]");
         } => values
     )(i)
 }
@@ -548,14 +586,15 @@ fn plist(i: PInput) -> PResult<Vec<PValue>> {
 fn pstruct(i: PInput) -> PResult<HashMap<String, PValue>> {
     wsequence!(
         {
-            s: tag("{");
+            s: etag("{");
             values: separated_list(
-                        sp(tag(",")),
-                        separated_pair(pescaped_string, sp(tag(":")), pvalue)
+                        sp(etag(",")),
+                        separated_pair(pescaped_string, sp(etag(":")), pvalue)
                     );
+            // _x: or_fail(peek(alt((is_not(","), is_not(":")))), || PErrorKind::ExpectedToken("parameter"));
+            _x: opt(tag(",")); // optional, applies only to the last member
             _x: or_fail(tag("}"),|| PErrorKind::UnterminatedDelimiter(s));
         } => values.into_iter().map(|(k,v)| (k.1,v)).collect()
-
     )(i)
 }
 
@@ -602,8 +641,8 @@ pub struct PMetadata<'src> {
 fn pmetadata(i: PInput) -> PResult<PMetadata> {
     wsequence!(
         {
-            key: preceded(tag("@"), pidentifier);
-            _x: or_fail(tag("="), || PErrorKind::ExpectedToken("="));
+            key: preceded(etag("@"), pidentifier);
+            _x: ftag("=");
             value: pvalue;
         } => PMetadata { key, value }
     )(i)
@@ -612,10 +651,10 @@ fn pmetadata(i: PInput) -> PResult<PMetadata> {
 /// A parsed comment block starts with a ## and ends with the end of line.
 /// Such comment is parsed and kept contrarily to comments starting with '#'.
 fn pcomment(i: PInput) -> PResult<PMetadata> {
-    let (i, start) = peek(tag("##"))(i)?;
+    let (i, start) = peek(etag("##"))(i)?;
     let (i, lines) = many1(map(
         preceded(
-            tag("##"),
+            etag("##"),
             alt((
                 terminated(take_until("\n"), newline),
                 // comment is the last line
@@ -655,14 +694,14 @@ fn pparameter(i: PInput) -> PResult<(PParameter, Option<PValue>)> {
             ptype: opt(
                     wsequence!(
                         {
-                            _t: tag(":");
+                            _t: etag(":");
                             ty: or_fail(ptype,|| PErrorKind::ExpectedKeyword("type"));
                         } => ty)
                     );
             default: opt(
                     wsequence!(
                         {
-                            _t: tag("=");
+                            _t: etag("=");
                             val: or_fail(pvalue,|| PErrorKind::ExpectedKeyword("value"));
                         } => val)
                     );
@@ -682,14 +721,12 @@ fn presource_def(i: PInput) -> PResult<(PResourceDef, Vec<Option<PValue>>, Optio
     wsequence!(
         {
             metadata: pmetadata_list;
-            _x: tag("resource"); // TODO at least one space here
+            _x: space_terminated("resource");
             name: pidentifier;
-            s: tag("(");
-            parameter_list: separated_list(sp(tag(",")), pparameter);
-            _x: or_fail(tag(")"), || PErrorKind::UnterminatedDelimiter(s));
-            parent: opt(preceded(sp(tag(":")),pidentifier));
+            param_list: parameter_list("(", pparameter, ")");
+            parent: opt(preceded(sp(etag(":")),pidentifier));
         } => {
-            let (parameters, parameter_defaults) = parameter_list.into_iter().unzip();
+            let (parameters, parameter_defaults) = param_list.into_iter().unzip();
             (PResourceDef {
                       metadata,
                       name,
@@ -706,13 +743,13 @@ fn presource_ref(i: PInput) -> PResult<(Token, Vec<PValue>)> {
     wsequence!(
         {
             name: pidentifier;
-            params: opt(wsequence!(
-                        {
-                            t: tag("(");
-                            parameters: separated_list(sp(tag(",")), pvalue);
-                            _x: or_fail(tag(")"), || PErrorKind::UnterminatedDelimiter(t));
-                        } => parameters
-                    ));
+            params: opt(parameter_list("(", pvalue, ")"));
+            // params: opt(wsequence!({
+            //     t: sp(etag("("));
+            //     parameters: separated_list(sp(etag(",")), pvalue);
+            //     _x: or_fail(peek(is_not(",")), || PErrorKind::ExpectedToken("parameter"));
+            //     _x: or_fail(tag(")"), || PErrorKind::UnterminatedDelimiter(t));
+            // } => parameters));
         } => (name, params.unwrap_or_else(Vec::new))
     )(i)
 }
@@ -722,7 +759,7 @@ fn pvariable_definition(i: PInput) -> PResult<(Token, PValue)> {
     wsequence!(
         {
             variable: pidentifier;
-            _t: tag("=");
+            _t: etag("=");
             value: or_fail(pvalue, || PErrorKind::ExpectedKeyword("value"));
         } => (variable, value)
     )(i)
@@ -737,8 +774,8 @@ pub enum PCallMode {
 }
 fn pcall_mode(i: PInput) -> PResult<PCallMode> {
     alt((
-        value(PCallMode::Condition, tag("?")),
-        value(PCallMode::Audit, tag("!")),
+        value(PCallMode::Condition, etag("?")),
+        value(PCallMode::Audit, etag("!")),
         value(PCallMode::Enforce, peek(anychar)),
     ))(i)
 }
@@ -760,12 +797,10 @@ fn pstate_declaration(i: PInput) -> PResult<PStateDeclaration> {
             metadata: pmetadata_list;
             mode: pcall_mode;
             resource: presource_ref;
-            _t: tag(".");
+            _t: etag(".");
             state: pidentifier;
-            s: tag("(");
-            state_params: separated_list( sp(tag(",")), pvalue );
-            _x: or_fail(tag(")"), || PErrorKind::UnterminatedDelimiter(s));
-            outcome: opt(preceded(sp(tag("as")),pidentifier));
+            state_params: parameter_list("(", pvalue, ")");
+            outcome: opt(preceded(sp(etag("as")),pidentifier));
         } => PStateDeclaration {
                 metadata,
                 mode,
@@ -812,19 +847,19 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
         wsequence!(
             {
                 metadata: pmetadata_list; // metadata is invalid here, check it after the 'case' tag below
-                case: tag("case");
+                case: etag("case");
                 _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
-                s: tag("{");
-                cases: separated_list(sp(tag(",")),
+                s: etag("{");
+                cases: separated_list(sp(etag(",")),
                         wsequence!(
                             {
                                 expr: or_fail(penum_expression, || PErrorKind::ExpectedKeyword("enum expression"));
-                                _x: or_fail(tag("=>"), || PErrorKind::ExpectedToken("=>"));
+                                _x: ftag("=>");
                                 stmt: or_fail(alt((
                                     map(pstatement, |x| vec![x]),
                                     wsequence!(
                                         {
-                                            s: tag("{");
+                                            s: etag("{");
                                             vec: many0(pstatement);
                                             _x: or_fail(tag("}"),|| PErrorKind::UnterminatedDelimiter(s));
                                         } => vec
@@ -832,7 +867,7 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
                                 )), || PErrorKind::ExpectedKeyword("statement"));
                             } => (expr,stmt)
                         ));
-                _x: opt(tag(","));
+                _x: or_fail(peek(is_not(",")), || PErrorKind::ExpectedToken("Parameter"));
                 _x: or_fail(tag("}"),|| PErrorKind::UnterminatedDelimiter(s));
             } => PStatement::Case(case.into(), cases)
         ),
@@ -840,9 +875,9 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
         wsequence!(
             {
                 metadata: pmetadata_list; // metadata is invalid here, check it after the 'if' tag below
-                case: tag("if");// TODO at least one space here
+                case: space_terminated("if");
                 expr: or_fail(penum_expression, || PErrorKind::ExpectedKeyword("enum expression"));
-                _x: or_fail(tag("=>"), || PErrorKind::ExpectedToken("=>"));
+                _x: ftag("=>");
                 stmt: or_fail(pstatement, || PErrorKind::ExpectedKeyword("statement"));
             } => {
                 // Propagate metadata to the single statement
@@ -858,12 +893,12 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
         ),
         // Flow statements
         map(
-            preceded(sp(tag("return")), pvariable_identifier),
+            preceded(sp(space_terminated("return")), pvariable_identifier),
             PStatement::Return,
-        ), // TODO at least one space here
-        map(preceded(sp(tag("fail")), pvalue), PStatement::Fail), // TODO at least one space here
-        map(preceded(sp(tag("log")), pvalue), PStatement::Log),   // TODO at least one space here
-        map(tag("noop"), |_| PStatement::Noop),
+        ),
+        map(preceded(sp(space_terminated("fail")), pvalue), PStatement::Fail),
+        map(preceded(sp(space_terminated("log")), pvalue), PStatement::Log),
+        map(etag("noop"), |_| PStatement::Noop),
     ))(i)
 }
 
@@ -883,16 +918,14 @@ fn pstate_def(i: PInput) -> PResult<(PStateDef, Vec<Option<PValue>>)> {
         {
             metadata: pmetadata_list;
             resource_name: pidentifier;
-            _st: tag("state"); // TODO at least one space here
+            _st: space_terminated("state");
             name: pidentifier;
-            s: or_fail(tag("("), || PErrorKind::ExpectedToken("("));
-            parameter_list: separated_list(sp(tag(",")), pparameter);
-            _x: or_fail(tag(")"), || PErrorKind::UnterminatedDelimiter(s));
-            sb: or_fail(tag("{"), || PErrorKind::ExpectedToken("{"));
+            param_list: parameter_list("(", pparameter, ")");
+            sb: ftag("{");
             statements: many0(pstatement);
             _x: or_fail(tag("}"), || PErrorKind::UnterminatedDelimiter(sb));
         } => {
-            let (parameters, parameter_defaults) = parameter_list.into_iter().unzip();
+            let (parameters, parameter_defaults) = param_list.into_iter().unzip();
             (PStateDef {
                 metadata,
                 name,
@@ -921,18 +954,18 @@ fn palias_def(i: PInput) -> PResult<PAliasDef> {
     wsequence!(
         {
             metadata: pmetadata_list;
-            _x: tag("alias"); // TODO at least one space here
+            _x: space_terminated("alias");
             resource_alias: pidentifier;
-            resource_alias_parameters: delimited(sp(tag("(")),separated_list(sp(tag(",")),pidentifier),sp(tag(")")));
-            _x: tag(".");
+            resource_alias_parameters: parameter_list("(", pidentifier, ")");
+            _x: ftag(".");
             state_alias: pidentifier;
-            state_alias_parameters: delimited(sp(tag("(")),separated_list(sp(tag(",")),pidentifier),sp(tag(")")));
-            _x: tag("=");
+            state_alias_parameters: parameter_list("(", pidentifier, ")");
+            _x: ftag("=");
             resource: pidentifier;
-            resource_parameters: delimited(sp(tag("(")),separated_list(sp(tag(",")),pidentifier),sp(tag(")")));
-            _x: tag(".");
+            resource_parameters: parameter_list("(", pidentifier, ")");
+            _x: ftag(".");
             state: pidentifier;
-            state_parameters: delimited(sp(tag("(")),separated_list(sp(tag(",")),pidentifier),sp(tag(")")));
+            state_parameters: parameter_list("(", pidentifier, ")");
         } => PAliasDef {metadata, resource_alias, resource_alias_parameters,
                         state_alias, state_alias_parameters,
                         resource, resource_parameters,
@@ -958,14 +991,14 @@ pub enum PDeclaration<'src> {
 }
 fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
     end_of_pfile(i)?;
-    alt((
+    or_fail(alt((
         map(penum, PDeclaration::Enum),
         map(penum_mapping, PDeclaration::Mapping),
         map(presource_def, PDeclaration::Resource),
         map(pstate_def, PDeclaration::State),
         map(pvariable_definition, PDeclaration::GlobalVar),
         map(palias_def, PDeclaration::Alias),
-    ))(i)
+    )), || PErrorKind::Unparsed(get_accurate_context(i)))(i)
 }
 
 fn end_of_pfile(i: PInput) -> PResult<()> {
