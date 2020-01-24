@@ -200,7 +200,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     (cache.updated must beEqualTo(List(id)))
   }
 
-  "Cache should not return expired compliance ask for renew" >> {
+  "Cache should return expired compliance but also ask for renew" >> {
     val cache = new TestCache
     cache.reports = nodes.map { case (n, a, _) => (n.id, a) }.toMap
 
@@ -210,14 +210,14 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     // let a chance for zio to exec
     Thread.sleep(1000)
 
-    // now node was ask, it will return only non expired reports (ie only NoReport and such here)
+    // now node was ask, it will return all nodes, even expired, see: https://issues.rudder.io/issues/16612
     val n2 = cache.findRuleNodeStatusReports(cache.reports.keySet, Set())
 
     // let a chance for zio to exec again to find back expired
     Thread.sleep(1000)
 
     // these one are not expired (but false)
-    val okId = Set("n0", "n1", "n2", "n3").map(NodeId(_))
+    val okId = cache.reports.keySet
 
     (n1 must beEqualTo(Full(Map()) )) and
     (n2 must beEqualTo(Full(cache.reports.filter(x => okId.contains(x._1))))) and
