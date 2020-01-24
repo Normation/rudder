@@ -211,8 +211,10 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * The queue of invalidation request.
    * The queue size is 1 and new request need to merge existing
    * node id with new ones.
+   * It's a List and not a Set, because we want to keep the precedence in
+   * invalidation request.
    */
-  private[this] val invalidateComplianceRequest = Queue.dropping[Set[NodeId]](1).runNow
+  private[this] val invalidateComplianceRequest = Queue.dropping[List[NodeId]](1).runNow
 
   /**
    * We need a semaphore to protect queue content merge-update
@@ -227,7 +229,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
     // Be careful, sliding default step is 1.
     ZIO.traverse_(invalidatedIds.sliding(batchSize,batchSize).to(Iterable))(nodeIds =>
       (for {
-        updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(nodeIds, Set()).toIO
+        updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(nodeIds.toSet, Set()).toIO
         _       <- IOResult.effectNonBlocking { cache = cache ++ updated }
         _       <- ReportLoggerPure.Cache.debug(s"Compliance cache updated for nodes: ${nodeIds.map(_.value).mkString(", ")}")
       } yield ()).catchAll(err => ReportLoggerPure.Cache.error(s"Error when updating compliance cache for nodes: [${nodeIds.map(_.value).mkString(", ")}]: ${err.fullMsg}"))
@@ -259,10 +261,10 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    */
   def invalidate(nodeIds: Set[NodeId]): IOResult[Unit] = {
     ZIO.when(nodeIds.nonEmpty) {
-        ReportLoggerPure.Cache.debug(s"Compliance cache: invalidation request for nodes: [${nodeIds.map { _.value }.mkString(",")}]") *>
+      ReportLoggerPure.Cache.debug(s"Compliance cache: invalidation request for nodes: [${nodeIds.map { _.value }.mkString(",")}]") *>
       invalidateMergeUpdateSemaphore.withPermit(for {
         elements <- invalidateComplianceRequest.takeAll
-        allIds   =  nodeIds.union(elements.flatten.toSet)
+        allIds   =  (elements.flatten ++ nodeIds).distinct
         _        <- invalidateComplianceRequest.offer(allIds)
       } yield ())
     }
@@ -300,9 +302,14 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
          * 2/ cache exists but expiration date expired,
          * 3/ cache does note exists.
          *
-         * For simplicity (and keeping computation logic elsewhere than in a cache that already has its cache logic
-         * to manage), we will group 2 and 3, but it is well noted that it seems that a RuleNodeStatusReports that
-         * expired could be computed without any more logic than "every thing is missing".
+         * For both 2 and 3, we trigger a cache regeneration for the corresponding node.
+         * For 3, we don't return data. Compliance for that node will appear as "missing data"
+         * and will be excluded to nodes count.
+         *
+         * For 2, we need to return data because of issue https://issues.rudder.io/issues/16612
+         * Grace period is alredy taken into account in expiration date.
+         * We return the cached value up to 2 runs after grace period expiration (service above that
+         * one will display expiration info).
          *
          * The definition of expired date is the following:
          *  - Node is Pending -> expirationDateTime is the expiration time
@@ -330,7 +337,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
       } yield {
         ReportLogger.Cache.debug(s"Compliance cache to reload (expired, missing):[${requireUpdate.map(_.value).mkString(" , ")}]")
         ReportLogger.Cache.trace("Compliance cache hit: " + cacheToLog(upToDate))
-        upToDate
+        inCache
       }
     }
   }
