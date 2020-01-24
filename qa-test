@@ -5,8 +5,11 @@ set -ex
 ##################
 ### Slow tests ###
 ##################
-if [ "$1" = "--rust" ]; then
+if [ "$1" = "--relayd" ]; then
   cd relay/sources && make check
+  exit 0
+elif [ "$1" = "--language" ]; then
+  cd rudder-lang && make test
   exit 0
 elif [ "$1" = "--scala" ]; then
   cd webapp/sources && mvn clean install -Dmaven.test.postgres=false
