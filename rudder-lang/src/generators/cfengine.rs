@@ -355,8 +355,8 @@ impl Generator for CFEngine {
             }
         }
         for (name, content) in files.iter() {
-            let mut file = File::create(format!("{}.cf", name)).unwrap();
-            file.write_all(content.as_bytes()).unwrap();
+            let mut file = File::create(format!("{}.cf", name)).expect("Could not create output file");
+            file.write_all(content.as_bytes()).expect("Could not write content into output file");
         }
         Ok(())
     }

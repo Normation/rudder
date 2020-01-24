@@ -46,26 +46,26 @@ pub fn translate_file(json_file: &Path, rl_file: &Path) -> Result<()>
     let config_filename = "libs/config.toml";
     let file_error = |filename: &str, err| err!(Token::new(&filename.to_owned(), ""), "{}", err);
     
-    println!(
+    info!(
         "{} of {} into {}",
         "Processing translation".bright_green(),
         input_filename.bright_yellow(),
         output_filename.bright_yellow()
     );
 
-    println!("|- {} {}", "Serializating".bright_green(), config_filename.bright_yellow());
+    info!("|- {} {}", "Serializating".bright_green(), config_filename.bright_yellow());
     let config_data = fs::read_to_string(config_filename).map_err(|e| file_error(config_filename, e))?;
     let config: toml::Value = toml::from_str(&config_data).map_err(|e| {
         err!(Token::new(config_filename, ""), "{}", e)
     })?;
 
-    println!("|- {} {}", "Serializating".bright_green(), input_filename.bright_yellow());
+    info!("|- {} {}", "Serializating".bright_green(), input_filename.bright_yellow());
     let json_data = fs::read_to_string(&json_file).map_err(|e| file_error(input_filename, e))?;
     let technique = serde_json::from_str::<Technique>(&json_data).map_err(|e| {
         err!(Token::new(input_filename, ""), "{}", e)
     })?;
 
-    println!("|- {} (translation phase)", "Generating output code".bright_green());
+    info!("|- {} (translation phase)", "Generating output code".bright_green());
     let rl_technique = translate(&config, &technique)?;
     fs::write(&rl_file, rl_technique).map_err(|e| file_error(output_filename, e))?;
     Ok(())

@@ -21,10 +21,10 @@ pub fn test_generated_file(filename: &str, content: &str) {
 
 /// Paired with `test_case` proc-macro calls from the `compile.rs` test file.
 /// Tests the file that matches the `filename` argument
-pub fn test_real_file(filename: &str) {
-    fs::create_dir_all("tests/tmp").expect("Could not create /tmp dir");
+pub fn test_real_file(filename: &str, dest_folder: &str) {
+    fs::create_dir_all(format!("tests/{}", dest_folder)).expect(&format!("Could not create /{} dir", dest_folder));
     let input_path = PathBuf::from(format!("tests/compile/{}.rl", filename));
-    let output_path = PathBuf::from(format!("tests/target/{}.rl", filename));
+    let output_path = PathBuf::from(format!("tests/{}/{}.rl", dest_folder, filename));
     test_file(&input_path, &output_path, filename);
 }
 

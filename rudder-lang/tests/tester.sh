@@ -4,6 +4,8 @@ set -xe
 name=$1
 dir=$PWD/tests
 
+mkdir dir/target/
+
 # Take original technique an make a json
 $dir/helpers/ncf ncf-to-json $dir/translate/${name}.cf $dir/target/${name}.json
 
@@ -11,7 +13,7 @@ $dir/helpers/ncf ncf-to-json $dir/translate/${name}.cf $dir/target/${name}.json
 cargo run -- --translate -i $dir/target/${name}.json -o $dir/target/${name}.rl
 
 # Take rudder lang technique and compile it into cf file
-cargo run -- --technique -i $dir/compile/${name}.rl -o $dir/target/${name}.rl
+cargo run -- --compile -i $dir/compile/${name}.rl -o $dir/target/${name}.rl
 
 # take generated cf file a new json
 $dir/helpers/ncf ncf-to-json $dir/target/${name}.rl.cf $dir/target/${name}.rl.cf.json
