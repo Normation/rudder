@@ -7,17 +7,23 @@ use std::{
     io::Write,
     panic,
     path::{Path, PathBuf},
-    time::{SystemTime, UNIX_EPOCH}
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 /// Adds verbose levels: off, error, warn, info, debug, trace. For example info includes error, debug includes info and error
 /// The level is set through program arguments. Default is Warn
 /// run the program with `-l info` (eq. `--logger info`) optional argument. Case-insensitive
 /// There is also an optional json formatter that outputs plain json format. run the program with `-j` or `--json` optional argument.
-pub fn set(log_level: Option<LevelFilter>, is_fmt_json: bool, input: &Path, output: &Path, exec_action: &str) {
+pub fn set(
+    log_level: Option<LevelFilter>,
+    is_fmt_json: bool,
+    input: &Path,
+    output: &Path,
+    exec_action: &str,
+) {
     let log_level = match log_level {
         Some(level) => level,
-        None => LevelFilter::Warn
+        None => LevelFilter::Warn,
     };
 
     // Content called when panic! is encountered to close logger brackets and print error
@@ -28,24 +34,28 @@ pub fn set(log_level: Option<LevelFilter>, is_fmt_json: bool, input: &Path, outp
         // prevents any output stylization from the colored crate
         colored::control::set_override(false);
     }
-    
+
     let mut builder = env_logger::Builder::new();
     if is_fmt_json {
         // Note: record .file() and line() allow to get the origin of the print
         builder.format(move |buf, record| {
-            writeln!(buf, r#"    {{
+            writeln!(
+                buf,
+                r#"    {{
       "status": {:?},
       "message": {:?}
     }},"#,
-            record.level().to_string().to_ascii_lowercase(),
-            record.args().to_string()
-        )});
+                record.level().to_string().to_ascii_lowercase(),
+                record.args().to_string()
+            )
+        });
     }
-    builder.filter(None, log_level)
-    .format_timestamp(None)
-    .format_level(false)
-    .format_module_path(false)
-    .init();
+    builder
+        .filter(None, log_level)
+        .format_timestamp(None)
+        .format_level(false)
+        .format_module_path(false)
+        .init();
 }
 
 /// Trick function to get the core::PanicInfo.message content as a string
@@ -68,14 +78,16 @@ fn set_panic_hook(is_fmt_json: bool, exec_action: String) {
             None => parse_core_panic_message(&e.to_string()),
         };
         let location = match e.location() {
-            Some(loc) => {
-                format!(" in file '{}' at line {}", loc.file(), loc.line())
-            },
-            None => String::new()
+            Some(loc) => format!(" in file '{}' at line {}", loc.file(), loc.line()),
+            None => String::new(),
         };
-        let message = format!("The following unrecoverable error occured{}: '{}'", location, e_message);
+        let message = format!(
+            "The following unrecoverable error occured{}: '{}'",
+            location, e_message
+        );
         if is_fmt_json {
-            println!(r#"    {{
+            println!(
+                r#"    {{
       "Result": {{
           "action": {:?},
           "status": "unrecoverable error",
@@ -83,7 +95,9 @@ fn set_panic_hook(is_fmt_json: bool, exec_action: String) {
       }}
     }}
   ]
-}}"#, exec_action, message);
+}}"#,
+                exec_action, message
+            );
         } else {
             error!("{}", message);
         }
@@ -94,20 +108,27 @@ fn print_json_fmt_openning(input: &Path, output: &Path, exec_action: &str) {
     let start = SystemTime::now();
     let time = match start.duration_since(UNIX_EPOCH) {
         Ok(since_the_epoch) => since_the_epoch.as_millis().to_string(),
-        Err(_) => "could not get correct time".to_owned()
+        Err(_) => "could not get correct time".to_owned(),
     };
     println!("{{\n  \"action\": {:?},\n  \"input\": {:?},\n  \"output\": {:?},\n  \"time\": {:?},\n  \"logs\": [", exec_action, input, output, time);
 }
 
-pub fn print_output_closure(is_fmt_json: bool, is_success: bool, input_file: &str, output_file: &str, exec_action: &str) {
+pub fn print_output_closure(
+    is_fmt_json: bool,
+    is_success: bool,
+    input_file: &str,
+    output_file: &str,
+    exec_action: &str,
+) {
     let pwd = std::env::current_dir().unwrap_or(PathBuf::new());
     match is_fmt_json {
         true => {
             let res_str = match is_success {
                 true => "success",
-                false => "failure"
+                false => "failure",
             };
-            println!(r#"    {{
+            println!(
+                r#"    {{
       "Result": {{
         "action": {:?},
         "status": {:?},
@@ -117,12 +138,20 @@ pub fn print_output_closure(is_fmt_json: bool, is_success: bool, input_file: &st
       }}
     }}
   ]
-}}"#, exec_action, res_str, input_file, output_file, pwd);
-        },
+}}"#,
+                exec_action, res_str, input_file, output_file, pwd
+            );
+        }
         false => {
             let res_str = match is_success {
-                true => format!("Everything worked as expected, \"{}\" generated from \"{}\"", output_file, input_file),
-                false => format!("An error occured, \"{}\" file has not been created from \"{}\"", output_file, input_file)
+                true => format!(
+                    "Everything worked as expected, \"{}\" generated from \"{}\"",
+                    output_file, input_file
+                ),
+                false => format!(
+                    "An error occured, \"{}\" file has not been created from \"{}\"",
+                    output_file, input_file
+                ),
             };
             println!("{}", res_str)
         }

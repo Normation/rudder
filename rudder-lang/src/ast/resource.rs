@@ -6,7 +6,7 @@ use super::enums::*;
 use super::value::Value;
 use crate::error::*;
 use crate::parser::*;
-use std::collections::{HashMap, HashSet, hash_map::Entry};
+use std::collections::{hash_map::Entry, HashMap, HashSet};
 
 ///! There are 2 kinds of functions return
 ///! - Result: could not return data, fatal to the caller
@@ -34,7 +34,8 @@ fn create_metadata<'src>(
                     match entry.get_mut() {
                         Value::String(ref mut o1) => match value {
                             Value::String(o2) => o1.append(o2),
-                            _ => errors.push(err!(meta.key, "Comment metadata must be of type string")),
+                            _ => errors
+                                .push(err!(meta.key, "Comment metadata must be of type string")),
                         },
                         _ => errors.push(err!(
                             key,
@@ -49,10 +50,10 @@ fn create_metadata<'src>(
                         key,
                     ));
                 }
-            },
+            }
             Entry::Vacant(entry) => {
                 entry.insert(value);
-            },
+            }
         };
     }
     (errors, metadata)
@@ -290,7 +291,7 @@ fn push_default_parameters<'src>(
     resource: Token<'src>,
     state: Option<Token<'src>>,
     param_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>,
-    params: &mut Vec<Value<'src>>
+    params: &mut Vec<Value<'src>>,
 ) -> Result<()> {
     let emptyvec = Vec::new();
     let defaults = param_defaults.get(&(resource, state)).unwrap_or(&emptyvec);
@@ -300,7 +301,7 @@ fn push_default_parameters<'src>(
             if let Some(p) = param {
                 (*params).push(p.clone());
             };
-            Ok(())  
+            Ok(())
         })?;
     }
     Ok(())
@@ -375,7 +376,12 @@ impl<'src> Statement<'src> {
                 let mut state_params = map_vec_results(state_params.into_iter(), |v| {
                     Value::from_pvalue(enum_list, &getter, v)
                 })?;
-                push_default_parameters(resource, Some(state), parameter_defaults, &mut state_params)?;
+                push_default_parameters(
+                    resource,
+                    Some(state),
+                    parameter_defaults,
+                    &mut state_params,
+                )?;
                 // check that parameters use existing variables
                 map_results(resource_params.iter(), |p| p.context_check(&getter))?;
                 map_results(state_params.iter(), |p| p.context_check(&getter))?;

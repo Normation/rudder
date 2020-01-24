@@ -133,7 +133,10 @@ impl<'src> AST<'src> {
                         "Enum {} not found when trying to define mapping {}{}",
                         em.from,
                         em.to,
-                        get_suggestion_message(em.from.fragment(), enum_list.iter().map(|(k, _)| k)),
+                        get_suggestion_message(
+                            em.from.fragment(),
+                            enum_list.iter().map(|(k, _)| k)
+                        ),
                     ));
                 }
                 break;
@@ -272,7 +275,8 @@ impl<'src> AST<'src> {
             // or else because we have not stopped on duplicate resources
             let states = state_list.remove(&name).unwrap_or_else(Vec::new);
             let res_children = children.remove(&name).unwrap_or_else(HashSet::new);
-            let (errs, resource) = ResourceDef::from_presourcedef( // TODO moove param count errors checker out of from_presourcedef
+            let (errs, resource) = ResourceDef::from_presourcedef(
+                // TODO moove param count errors checker out of from_presourcedef
                 res,
                 states,
                 res_children,
@@ -292,24 +296,35 @@ impl<'src> AST<'src> {
         &self,
         resource: Token<'src>,
         state: Option<Token<'src>>,
-        params: &Vec<Value<'src>>
+        params: &Vec<Value<'src>>,
     ) -> Result<()> {
         let fun_kind = if let Some(st) = state { st } else { resource };
         let emptyvec = Vec::new();
-        let defaults = self.parameter_defaults.get(&(resource, state)).unwrap_or(&emptyvec);
+        let defaults = self
+            .parameter_defaults
+            .get(&(resource, state))
+            .unwrap_or(&emptyvec);
         let diff = defaults.len() as i32 - params.len() as i32;
         if diff > 0 {
             fail!(
                 fun_kind,
                 "{} instance of {} is missing parameters and there is no default values for them",
-                if state.is_some() { "Resource state" } else { "Resource" },
+                if state.is_some() {
+                    "Resource state"
+                } else {
+                    "Resource"
+                },
                 fun_kind
             );
         } else if diff < 0 {
             fail!(
                 fun_kind,
                 "{} instance of {} has too many parameters, expecting {}, got {}",
-                if state.is_some() { "Resource state" } else { "Resource" },
+                if state.is_some() {
+                    "Resource state"
+                } else {
+                    "Resource"
+                },
                 fun_kind,
                 defaults.len(),
                 params.len()
@@ -342,13 +357,17 @@ impl<'src> AST<'src> {
                             ),
                             Some(st) => {
                                 // Assume default parameter replacement and type inference if any has already be done
-                                self.parameters_count_check(sd.resource, Some(sd.state), &sd.state_params)?;
+                                self.parameters_count_check(
+                                    sd.resource,
+                                    Some(sd.state),
+                                    &sd.state_params,
+                                )?;
                                 match_parameters(&st.parameters, &sd.state_params, sd.state)
                             }
                         }
                     }
                 }
-            },
+            }
             Statement::Case(_name, cases) => map_results(cases.iter(), |(_c, sts)| {
                 map_results(sts.iter(), |st| self.binding_check(st))
             }),

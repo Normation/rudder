@@ -334,10 +334,14 @@ impl<'src> EnumList<'src> {
                                     value,
                                     "Global enum value {} does not exist{}",
                                     value,
-                                    get_suggestion_message(value.fragment(), self.global_values.keys())
+                                    get_suggestion_message(
+                                        value.fragment(),
+                                        self.global_values.keys()
+                                    )
                                 ),
                             },
-                            Some(var1) => match getter(var1) { // TODO check it is useful to suggest here
+                            Some(var1) => match getter(var1) {
+                                // TODO check it is useful to suggest here
                                 Some(VarKind::Enum(t, _)) => t,
                                 _ => fail!(
                                     var1,
@@ -369,7 +373,10 @@ impl<'src> EnumList<'src> {
                                     e1,
                                     "Enum {} is not global, you must provide a variable{}",
                                     e1,
-                                    get_suggestion_message(e1.fragment(), self.global_values.keys())
+                                    get_suggestion_message(
+                                        e1.fragment(),
+                                        self.global_values.keys()
+                                    )
                                 ),
                                 Some((true, _)) => self.find_elder(e1),
                             }
@@ -396,7 +403,8 @@ impl<'src> EnumList<'src> {
                                 "Value {} is not defined in enum {}{}",
                                 val,
                                 e1,
-                                get_suggestion_message(val.fragment(), self.enums.keys()))
+                                get_suggestion_message(val.fragment(), self.enums.keys())
+                            )
                         }
                     }
                 }

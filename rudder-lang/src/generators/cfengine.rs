@@ -300,7 +300,7 @@ impl Generator for CFEngine {
             for (sn, state) in res.states.iter() {
                 // This condition actually rejects every file that is not the input filename
                 // therefore preventing from having an output in another directory
-                // Solutions: check filename rather than path, or accept everything that is not from crate root lib 
+                // Solutions: check filename rather than path, or accept everything that is not from crate root lib
                 let file_to_create = match file {
                     Some(filepath) => {
                         let input_filename = Path::new(sn.file()).file_name();
@@ -309,10 +309,10 @@ impl Generator for CFEngine {
                         }
                         match filepath.to_str() {
                             Some(output_filename) => output_filename,
-                            None => sn.file()
+                            None => sn.file(),
                         }
-                    },
-                    None => sn.file()
+                    }
+                    None => sn.file(),
                 };
                 self.reset_context();
                 let mut content = match files.get(file_to_create) {
@@ -355,8 +355,10 @@ impl Generator for CFEngine {
             }
         }
         for (name, content) in files.iter() {
-            let mut file = File::create(format!("{}.cf", name)).expect("Could not create output file");
-            file.write_all(content.as_bytes()).expect("Could not write content into output file");
+            let mut file =
+                File::create(format!("{}.cf", name)).expect("Could not create output file");
+            file.write_all(content.as_bytes())
+                .expect("Could not write content into output file");
         }
         Ok(())
     }
