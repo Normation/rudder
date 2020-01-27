@@ -45,6 +45,7 @@ import java.util.concurrent.TimeUnit
 import better.files._
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
+import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.zio.ZioRuntime
 
 import scala.concurrent.ExecutionContext
@@ -349,11 +350,9 @@ class ProcessFile(
                          safeMove(signature.map(s => s.moveTo(received / s.name)(File.CopyOptions(overwrite = true)))) *>
                          safeMove(inventory.moveTo(received / inventory.name)(File.CopyOptions(overwrite = true)))
                        case Right(x) =>
-                         InventoryProcessingLogger.error(s"Error when processing inventory '${inventory.name}', status: ${x.getClass.getSimpleName}") *>
                          safeMove(signature.map(s => s.moveTo(failed / s.name)(File.CopyOptions(overwrite = true)))) *>
                          safeMove(inventory.moveTo(failed / inventory.name)(File.CopyOptions(overwrite = true)))
                        case Left(x) =>
-                         InventoryProcessingLogger.error(x.fullMsg) *>
                          safeMove(signature.map(s => s.moveTo(failed / s.name)(File.CopyOptions(overwrite = true)))) *>
                          safeMove(inventory.moveTo(failed / inventory.name)(File.CopyOptions(overwrite = true)))
                      }

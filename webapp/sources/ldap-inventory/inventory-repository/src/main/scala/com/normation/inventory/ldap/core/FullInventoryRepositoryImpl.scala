@@ -388,7 +388,7 @@ class FullInventoryRepositoryImpl(
                              res
                            }).foldM(
                                 e => {
-                                  InventoryLogger.warn(s"Error when trying to delete machine for server with id '${id.value}' and inventory status '${inventoryStatus}'. Message was: ${e.msg}") *>
+                                  InventoryProcessingLogger.warn(s"Error when trying to delete machine for server with id '${id.value}' and inventory status '${inventoryStatus}'. Message was: ${e.msg}") *>
                                   Seq().succeed
                                 }, _.succeed
                              )
@@ -431,7 +431,7 @@ class FullInventoryRepositoryImpl(
                       } yield {
                         moved
                       }).foldM(
-                        err => InventoryLogger.error(s"Error when updating the container value when moving nodes '${id.value}': ${err.msg}") *> Seq().succeed
+                        err => InventoryProcessingLogger.error(s"Error when updating the container value when moving nodes '${id.value}': ${err.msg}") *> Seq().succeed
                       , diff => diff.succeed
                       )
     } yield {

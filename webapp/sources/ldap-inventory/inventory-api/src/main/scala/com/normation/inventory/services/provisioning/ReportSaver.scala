@@ -37,7 +37,7 @@
 
 package com.normation.inventory.services.provisioning
 
-import com.normation.inventory.domain.InventoryLogger
+import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.inventory.domain.InventoryReport
 import com.normation.errors._
 import net.liftweb.common.Loggable
@@ -107,7 +107,7 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] with Loggable {
           t0  <- UIO(System.currentTimeMillis)
           res <- preCommit(currentReport).chainError(s"Error in preCommit pipeline with processor '${preCommit.name}', abort")
           t1  <- UIO(System.currentTimeMillis)
-          _   <- InventoryLogger.trace(s"Precommit '${preCommit.name}': ${t1 - t0} ms")
+          _   <- InventoryProcessingLogger.timing.trace(s"Precommit '${preCommit.name}': ${t1 - t0} ms")
         } yield {
           res
         }).chainError(s"Exception in preCommit pipeline with processor '${preCommit.name}}', abort")
@@ -117,12 +117,12 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] with Loggable {
        */
 
       t1 <- UIO(System.currentTimeMillis)
-      _  <- InventoryLogger.trace(s"Pre commit report: ${t1-t0} ms")
+      _  <- InventoryProcessingLogger.timing.trace(s"Pre commit report: ${t1-t0} ms")
 
       commitedChange <- commitChange(postPreCommitReport).chainError("Exception when commiting inventory, abort.")
 
       t2 <- UIO(System.currentTimeMillis)
-      _  <- InventoryLogger.trace(s"Commit report: ${t2-t1} ms")
+      _  <- InventoryProcessingLogger.timing.trace(s"Commit report: ${t2-t1} ms")
 
 
       /*
@@ -133,7 +133,7 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] with Loggable {
         }
 
       t3 <- UIO(System.currentTimeMillis)
-      _  <- InventoryLogger.trace(s"Post commit report: ${t3-t2} ms")
+      _  <- InventoryProcessingLogger.timing.trace(s"Post commit report: ${t3-t2} ms")
     } yield {
       postPostCommitReport
     }

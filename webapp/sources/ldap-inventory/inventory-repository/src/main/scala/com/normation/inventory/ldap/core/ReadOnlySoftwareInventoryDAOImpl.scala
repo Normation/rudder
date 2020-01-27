@@ -148,7 +148,7 @@ class ReadOnlySoftwareDAOImpl(
                              ids           =  softwareEntry.flatMap(entry => entry.valuesFor(A_SOFTWARE_DN).toSet )
                              results       <- ZIO.foreach(ids) { id => acceptedDit.SOFTWARE.SOFT.idFromDN(new DN(id)).toIO }.either
                              t3            <- currentTimeMillis
-                             _             <- InventoryLogger.debug(s"Software DNs from 50 nodes fetched in ${t3-t2} ms")
+                             _             <- InventoryProcessingLogger.debug(s"Software DNs from 50 nodes fetched in ${t3-t2} ms")
                              _             <- results match { // we don't want to return "results" because we need on-site dedup.
                                                 case Right(softIds) =>
                                                    mutSetSoftwares.update(_ ++ softIds)
