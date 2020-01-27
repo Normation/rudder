@@ -39,6 +39,7 @@ import _root_.zio.syntax._
 import com.normation.zio.ZioRuntime
 import org.slf4j.Logger
 
+
 /**
  * This is our based error for Rudder. Any method that can
  * error should return that RudderError type to allow
@@ -93,10 +94,10 @@ object errors {
       this.effectNonBlocking("An error occured")(effect)
     }
     def effect[A](error: String)(effect: => A): IO[SystemError, A] = {
-      ZioRuntime.effectBlocking(effect).mapError(ex => SystemError(error, ex))
+      effectNonBlocking(error)(effect) // see ZioRuntime.blocking for explanations
     }
     def effect[A](effect: => A): IO[SystemError, A] = {
-      this.effect("An error occured")(effect)
+      this.effectNonBlocking("An error occured")(effect) // see ZioRuntime.blocking for explanations
     }
     def effectM[A](error: String)(ioeffect: => IOResult[A]): IOResult[A] = {
       IO.effect(ioeffect).foldM(
@@ -183,7 +184,7 @@ object errors {
    * tag an effect as blocking (ie should run on the blocking thread pool)
    */
   implicit class ToBlocking[E<: RudderError, A](val effect: ZIO[Any, E, A]) extends AnyVal {
-    def blocking: ZIO[Any, E, A] = ZioRuntime.blocking(effect)
+    def blocking: ZIO[Any, E, A] = effect // see ZioRuntime.blocking for explanations
   }
 
   /*
@@ -334,28 +335,32 @@ object zio {
      * IO into an async thread pool to avoid deadlock in case of
      * a hierarchy of calls.
      */
-    val internal = new DefaultRuntime() {
+    object internal extends DefaultRuntime() {
       import _root_.zio.internal._
       import _root_.zio.clock._
       import _root_.zio.random._
       import _root_.zio.console._
       import _root_.zio.system._
       override val Environment: ZEnv  = new Clock.Live with Console.Live with System.Live with Random.Live with RudderBlockingService //_root_.zio.blocking.Blocking.Live
+
+      override val Platform: Platform = PlatformLive.fromExecutor(RudderExecutor.executor)
     }
 
     /*
      * use the blocking thread pool provided by that runtime.
+     * As we use the same pool for both blocking and non blocking, and
+     * since `blocking` implies a thread shift EVEN IF we are already on the correct
+     * pool, we don't do anything for `blocking`.
+     * That does not cause mayhem ONLY because we use a common pool for async and blocking.
      */
-    def blocking[E,A](io: ZIO[Any,E,A]): ZIO[Any,E,A] = {
-      _root_.zio.blocking.blocking(io).provide(internal.Environment)
-    }
+    def blocking[E,A](io: ZIO[Any,E,A]): ZIO[Any,E,A] = io
 
-    def effectBlocking[A](effect: => A): ZIO[Any, Throwable, A] = {
-      _root_.zio.blocking.effectBlocking(effect).provide(internal.Environment)
-    }
+    def effectBlocking[A](effect: => A): ZIO[Any, Throwable, A] = IO.effect(effect)
+
+    def lockOnRudderExecutor[E, A](io: ZIO[Any, E, A]) = io.lock(_root_.zio.internal.RudderExecutor.executor)
 
     def runNow[A](io: IOResult[A]): A = {
-      internal.unsafeRunSync(blocking(io)).fold(cause => throw cause.squashWith(err => new RuntimeException(err.fullMsg)), a => a)
+      internal.unsafeRunSync(blocking(lockOnRudderExecutor(io))).fold(cause => throw cause.squashWith(err => new RuntimeException(err.fullMsg)), a => a)
     }
 
     /*
@@ -371,7 +376,7 @@ object zio {
      * An unsafe run that is always started on a growing threadpool and its
      * effect marked as blocking.
      */
-    def unsafeRun[E, A](zio: => ZIO[Any, E, A]): A = internal.unsafeRun(blocking(zio))
+    def unsafeRun[E, A](zio: => ZIO[Any, E, A]): A = internal.unsafeRun(blocking(lockOnRudderExecutor(zio)))
 
     def environment = internal.Environment
   }

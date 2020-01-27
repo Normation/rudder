@@ -498,7 +498,7 @@ import _root_.zio.system.{System => ZSystem}
 
   def main(args: Array[String]): Unit = {
 
-    val runtime = new DefaultRuntime() {
+    object runtime extends DefaultRuntime() {
       object ForkJoinBlockin extends Blocking {
         val blocking: Blocking.Service[Any] = new Blocking.Service[Any] {
           val blockingExecutor: UIO[Executor] = Executor.fromExecutionContext(Int.MaxValue)(scala.concurrent.ExecutionContext.global).succeed
