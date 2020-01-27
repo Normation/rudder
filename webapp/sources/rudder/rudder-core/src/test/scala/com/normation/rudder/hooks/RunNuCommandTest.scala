@@ -66,7 +66,7 @@ class RunNuCommandTest() extends Specification {
       val prog =
         for {
           p <- RunNuCommand.run(Cmd("env", Nil, Map("PATH" -> PATH, "foo" -> "bar")))
-          c <- p.await.timeout(100.millis).notOptional("oups, timed out")
+          c <- p.await.timeout(500.millis).notOptional("oups, timed out")
         } yield {
           s"return code=${c.code}\n"++
           c.stdout ++
