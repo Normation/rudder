@@ -202,7 +202,7 @@ class CachedNodeChangesServiceImpl(
   ZioRuntime.runNow((for {
     _ <- ReportLoggerPure.Changes.debug("Initialize rule changes caches")
     _ <- this.addUpdate(ChangesUpdate.Init)
-  } yield ()).delay(10.seconds).fork.provide(ZioRuntime.environment))
+  } yield ()).delay(10.seconds).fork.provideManaged(ZioRuntime.environment))
 
   /*
    * The cache can only be modified through a queue of updates.
@@ -219,6 +219,7 @@ class CachedNodeChangesServiceImpl(
      * - if the result is interval, it's a new Interval with the lowest ID of all interval as
      *   lowestId and the highest ID if all interval for highestId
      */
+    @scala.annotation.tailrec
     private def mergeUpdates(current: ChangesUpdate, updates: List[ChangesUpdate]): ChangesUpdate = {
       updates match {
         case Nil     => current
@@ -268,7 +269,7 @@ class CachedNodeChangesServiceImpl(
     ZioRuntime.runNow(
       for{
         _ <- ReportLoggerPure.Changes.debug(s"Start waiting for rule changes update")
-       _  <- consumeLoop(queue).provide(ZioRuntime.environment).fork
+       _  <- consumeLoop(queue).provideManaged(ZioRuntime.environment).fork
       } yield ()
     )
   }

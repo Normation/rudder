@@ -177,7 +177,7 @@ class CheckNcfTechniqueUpdate(
           BootstrapLogger.logEffect.info(s"All ncf techniques were updated, ${techniques.size} were migrated")
         case Left(NcfApiAuthFailed(msg,e)) =>
           BootstrapLogger.logEffect.warn(s"Could not authenticate in ncf API, maybe it was not initialized yet, retrying in 5 seconds, details ${msg}")
-          ZioRuntime.internal.unsafeRunAsync(Task.effect(updateNcfTechniques).delay(5.seconds))( _ => ())
+          ZioRuntime.internal.runtime.unsafeRunAsync(Task.effect(updateNcfTechniques).delay(5.seconds).provideManaged(ZioRuntime.environment))( _ => ())
         case Left(FlagFileError(_,_)) =>
           BootstrapLogger.logEffect.warn(s"All ncf techniques were updated, but we could not delete flag file ${ncfTechniqueUpdateFlag}, please delete it manually")
         case Left(e : NcfTechniqueUpgradeError) =>
@@ -187,7 +187,7 @@ class CheckNcfTechniqueUpdate(
 
     try {
       if (ncfTechniqueUpdateFlag.exists) {
-        ZioRuntime.internal.unsafeRunAsync(Task.effect(updateNcfTechniques).delay(10.seconds))( _ => ())
+        ZioRuntime.internal.runtime.unsafeRunAsync(Task.effect(updateNcfTechniques).delay(10.seconds).provideManaged(ZioRuntime.environment))( _ => ())
       } else {
         BootstrapLogger.logEffect.info(s"Flag file '${ncfTechniqueUpdateFlag}' does not exist, do not regenerate ncf Techniques")
       }

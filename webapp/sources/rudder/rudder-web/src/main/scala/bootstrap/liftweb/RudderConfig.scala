@@ -1076,7 +1076,7 @@ object RudderConfig extends Loggable {
   def init() : Unit = {
 
     // this one must be in a fork thread pool
-    ZioRuntime.internal.unsafeRunAsync(IOResult.effect {
+    ZioRuntime.internal.runtime.unsafeRunAsync(IOResult.effect {
       import scala.jdk.CollectionConverters._
       val config = RudderProperties.config
       if(ApplicationLogger.isInfoEnabled) {

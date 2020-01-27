@@ -114,7 +114,7 @@ class HooksTest() extends Specification with AfterAll {
 //
 //    val runOne = RunHooks.asyncRun(Hooks(tmp.pathAsString, List("echoCODE.sh")), HookEnvPairs(HookEnvPair("CODE", "0") :: Nil), HookEnvPairs(Nil), 1.second, 1.second)
 //
-//    val many = (ZIO.traverse(0 until 1000) { i =>
+//    val many = (ZIO.foreach(0 until 1000) { i =>
 //      runOne
 //    }).timed.provide(ZioRuntime.environment).map(_._1.toMillis)
 //

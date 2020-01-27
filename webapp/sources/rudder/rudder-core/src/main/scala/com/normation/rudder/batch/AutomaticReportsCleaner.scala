@@ -401,9 +401,9 @@ class AutomaticReportsCleaning(
                  }
                ).catchAll(error =>
                  ReportLoggerPure.error(s"Error when trying to clean log reports from report table: ${error.fullMsg}")
-               ).delay(dur).repeat(ZSchedule.spaced(dur).forever).fork
+               ).delay(dur).repeat(Schedule.spaced(dur).forever).fork
               }
-  } yield ()).provide(ZioRuntime.environment).runNow
+  } yield ()).provideManaged(ZioRuntime.environment).runNow
 
   ////////////////////////////////////////////////////////////////
   //////////////////// implementation details ////////////////////

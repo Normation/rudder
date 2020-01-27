@@ -300,14 +300,14 @@ sealed class RoLDAPConnection(
     override val backed   : UnboundidLDAPConnection
   , val ldifFileLogger    : LDIFFileLogger
   , val onlyReportOnSearch: ResultCode => Boolean = RoLDAPConnection.onlyReportOnSearch
-  , val blockingModule    : Blocking
+  , val blockingModule    : Managed[Nothing, Blocking]
 ) extends
   UnboundidBackendLDAPConnection with
   ReadOnlyEntryLDAPConnection with
   ReadOnlyTreeLDAPConnection
 {
 
-  def blocking[A](effect: => A): Task[A] = blockingModule.blocking.blocking( IO.effect(effect) )
+  def blocking[A](effect: => A): Task[A] = zio.blocking.blocking( IO.effect(effect) ).provideManaged(blockingModule)
 
   /*
    * //////////////////////////////////////////////////////////////////
@@ -438,7 +438,7 @@ object RwLDAPConnection {
 class RwLDAPConnection(
     override val backed              : UnboundidLDAPConnection
   , override val ldifFileLogger      : LDIFFileLogger
-  , override val blockingModule      : Blocking
+  , override val blockingModule      : Managed[Nothing, Blocking]
   ,              onlyReportOnAdd     : ResultCode => Boolean = RwLDAPConnection.onlyReportOnAdd
   ,              onlyReportOnModify  : ResultCode => Boolean = RwLDAPConnection.onlyReportOnModify
   ,              onlyReportOnModifyDN: ResultCode => Boolean = RwLDAPConnection.onlyReportOnModifyDN

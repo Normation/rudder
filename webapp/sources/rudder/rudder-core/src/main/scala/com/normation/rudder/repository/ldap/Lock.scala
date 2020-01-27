@@ -44,7 +44,7 @@ trait ScalaReadWriteLock {
 trait ScalaLock {
   def lock(): Unit
   def unlock(): Unit
-  def clock: Clock
+  def clock: Managed[Nothing, Clock]
 
   def name: String
 
@@ -61,7 +61,7 @@ trait ScalaLock {
     )(_ =>
       LdapLockLogger.logPure.error("Do things in lock") *>
       block
-    ).provide(clock)
+    ).provideManaged(clock)
   }
 }
 
@@ -85,7 +85,7 @@ object ScalaLock {
     val semaphore = Semaphore.make(1)
     override def lock(): Unit = ()
     override def unlock(): Unit = ()
-    override def clock: Clock = ZioRuntime.environment
+    override def clock = ZioRuntime.environment
     override val name: String = n
     override def apply[T](block: => IOResult[T]): IOResult[T] = {
       for {
@@ -100,7 +100,7 @@ object ScalaLock {
   protected def noopLock(n: String, javaLock: Lock) : ScalaLock = new ScalaLock {
     override def lock(): Unit = ()
     override def unlock(): Unit = ()
-    override def clock: Clock = ZioRuntime.environment
+    override def clock = ZioRuntime.environment
     override def name: String = n
     override def apply[T](block: => IOResult[T]): IOResult[T] = block
   }

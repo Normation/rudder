@@ -39,8 +39,10 @@ package com.normation.rudder.db
 
 import javax.sql.DataSource
 import org.joda.time.DateTime
+
 import scala.xml.XML
 import java.sql.SQLXML
+
 import scala.xml.Elem
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.policies.RuleId
@@ -51,18 +53,18 @@ import com.normation.rudder.services.reports.RunAndConfigInfo
 import org.slf4j.LoggerFactory
 import doobie.util.log.ExecFailure
 import doobie.util.log.ProcessingFailure
-import doobie.postgres.implicits._ // it is necessary whatever intellij/scalac tells
+import doobie.postgres.implicits._
 import doobie._
 import doobie.implicits.javasql._
 import cats.data._
 import cats.effect.{IO => _, _}
 import doobie._
-
 import zio._
 import zio.interop.catz._
 import com.normation.errors._
 import com.normation.zio._
 import com.normation.box._
+import zio.blocking.Blocking
 
 /**
  *
@@ -75,13 +77,13 @@ class Doobie(datasource: DataSource) {
   // we must not leak catsIO anywhere
   private[this] def transact[T](query: Transactor[Task] => Task[T]): Task[T] = {
     val xa = ZManaged.make {
-      val ce = ZioRuntime.internal.Platform.executor.asEC // our connect EC
+      val ce = ZioRuntime.internal.platform.executor.asEC // our connect EC
       for {
-        te <- zio.blocking.blockingExecutor.map(_.asEC)  // our transaction EC
+        te <- ZIO.access[Blocking](_.get.blockingExecutor.asEC)  // our transaction EC
       } yield {
         Transactor.fromDataSource[Task](datasource, ce, Blocker.liftExecutionContext(te))
       }
-    }(_ => effectUioUnit(())).provide(ZioRuntime.environment)
+    }(_ => effectUioUnit(())).provideManaged(ZioRuntime.environment)
 
     xa.use(xa => query(xa))
   }

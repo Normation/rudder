@@ -188,7 +188,7 @@ trait SimpleAuthConnection extends UnboundidConnectionProvider {
 trait OneConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionProvider[LDAP] {
   self:UnboundidConnectionProvider =>
 
-  def blockingModule: Blocking
+  def blockingModule: Managed[Nothing, Blocking]
   def semaphore: Semaphore
   def ldifFileLogger:LDIFFileLogger
 
@@ -266,7 +266,7 @@ class ROAnonymousConnectionProvider(
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false,
-  val blockingModule: Blocking
+  val blockingModule: Managed[Nothing, Blocking]
 ) extends AnonymousConnection with OneConnectionProvider[RoLDAPConnection] {
   override val semaphore = ZioRuntime.unsafeRun(Semaphore.make(1))
   override val connection = ZioRuntime.unsafeRun(Ref.make(Option.empty[RoLDAPConnection]))
@@ -285,7 +285,7 @@ class RWAnonymousConnectionProvider(
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false,
-  val blockingModule: Blocking
+  val blockingModule: Managed[Nothing, Blocking]
 ) extends AnonymousConnection with OneConnectionProvider[RwLDAPConnection] {
   override def semaphore = ZioRuntime.unsafeRun(Semaphore.make(1))
   override val connection = ZioRuntime.unsafeRun(Ref.make(Option.empty[RwLDAPConnection]))
@@ -306,7 +306,7 @@ class ROPooledAnonymousConnectionProvider(
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false,
   override val poolSize : Int = 2,
-  val blockingModule: Blocking
+  val blockingModule: Managed[Nothing, Blocking]
 ) extends AnonymousConnection with PooledConnectionProvider[RoLDAPConnection] {
 
   def newConnection = {
@@ -324,7 +324,7 @@ class RWPooledAnonymousConnectionProvider(
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false,
   override val poolSize : Int = 2,
-  val blockingModule: Blocking
+  val blockingModule: Managed[Nothing, Blocking]
 ) extends AnonymousConnection with PooledConnectionProvider[RwLDAPConnection] {
   def newConnection = {
     LDAPIOResult.effectNonBlocking(new RwLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule))
@@ -343,7 +343,7 @@ class ROSimpleAuthConnectionProvider(
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false,
-  val blockingModule: Blocking
+  val blockingModule: Managed[Nothing, Blocking]
 ) extends SimpleAuthConnection with OneConnectionProvider[RoLDAPConnection] {
   override val semaphore = ZioRuntime.unsafeRun(Semaphore.make(1))
   override val connection = ZioRuntime.unsafeRun(Ref.make(Option.empty[RoLDAPConnection]))
@@ -365,7 +365,7 @@ class RWSimpleAuthConnectionProvider(
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false,
-  val blockingModule: Blocking
+  val blockingModule: Managed[Nothing, Blocking]
 ) extends SimpleAuthConnection with OneConnectionProvider[RwLDAPConnection]{
   override val semaphore = ZioRuntime.unsafeRun(Semaphore.make(1))
   override val connection = ZioRuntime.unsafeRun(Ref.make(Option.empty[RwLDAPConnection]))
@@ -387,7 +387,7 @@ class ROPooledSimpleAuthConnectionProvider(
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false,
   override val poolSize : Int = 2,
-  val blockingModule: Blocking
+  val blockingModule: Managed[Nothing, Blocking]
 ) extends SimpleAuthConnection with PooledConnectionProvider[RoLDAPConnection] {
   def newConnection = {
     LDAPIOResult.effectNonBlocking(new RoLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule))
@@ -406,7 +406,7 @@ class RWPooledSimpleAuthConnectionProvider(
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false,
   override val poolSize : Int = 2,
-  val blockingModule: Blocking
+  val blockingModule: Managed[Nothing, Blocking]
 ) extends SimpleAuthConnection with PooledConnectionProvider[RwLDAPConnection]{
   def newConnection = {
     LDAPIOResult.effectNonBlocking(new RwLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule))

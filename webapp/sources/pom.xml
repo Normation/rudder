@@ -64,6 +64,12 @@ limitations under the License.
       <layout>default</layout>
       <snapshots><enabled>true</enabled></snapshots>
     </repository>
+    <repository>
+      <id>sonatype-snapshot</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+      <layout>default</layout>
+      <snapshots><enabled>true</enabled></snapshots>
+    </repository>
   </repositories>
 
   <!-- ====================================  /PROJECT REPOS  ==================================== -->
@@ -390,8 +396,8 @@ limitations under the License.
     <http4s-version>0.21.0-M6</http4s-version>
     <shapeless-version>2.3.3</shapeless-version>
     <cats-effect-version>2.0.0</cats-effect-version>
-    <dev-zio-version>1.0.0-RC16</dev-zio-version>
-    <zio-cats-version>2.0.0.0-RC7</zio-cats-version>
+    <dev-zio-version>1.0.0-RC17+281-0351fa8d-SNAPSHOT</dev-zio-version>
+    <zio-cats-version>2.0.0.0-RC10</zio-cats-version>
 
     <!--
       Hack to make scalac jvm parameters like RAM configurable.
@@ -717,6 +723,11 @@ limitations under the License.
     <dependency>
       <groupId>dev.zio</groupId>
       <artifactId>zio_${scala-binary-version}</artifactId>
+      <version>${dev-zio-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.zio</groupId>
+      <artifactId>zio-stacktracer_${scala-binary-version}</artifactId>
       <version>${dev-zio-version}</version>
     </dependency>
     <!-- zio/cats compat -->

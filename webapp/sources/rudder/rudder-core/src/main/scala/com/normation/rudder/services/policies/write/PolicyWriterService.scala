@@ -231,7 +231,7 @@ class PolicyWriterServiceImpl(
         case Some(seq) =>
           seq.succeed
       }
-    ).provide(clock)
+    ).provideManaged(clock)
   }
 
   // a version for Hook with a nicer message accumulation
@@ -271,7 +271,7 @@ class PolicyWriterServiceImpl(
           case None    => Unexpected(s"Execution of computation timed out after '${timeout.asJava.toString}'").fail
           case Some(x) => UIO.unit
         }
-    ).provide(clock)
+    ).provideManaged(clock)
   }.untraced
 
 
@@ -558,7 +558,7 @@ class PolicyWriterServiceImpl(
                    }
         t1      <- currentTimeNanos
         _       <- fillTimer.get.update(_ + t1 - t0)
-        _       <- ZIO.traverse_(seqInfos) { info =>
+        _       <- ZIO.foreach_(seqInfos) { info =>
                      for {
                        // we need to for {} yield {} to free resources
                        replacedDest   <- for {
@@ -586,7 +586,7 @@ class PolicyWriterServiceImpl(
 
   private[this] def writeOtherResources(preparedTemplates: Seq[AgentNodeWritableConfiguration], writeTimer: WriteTimer, globalPolicyMode: GlobalPolicyMode, resources: Map[(TechniqueResourceId, AgentType), TechniqueResourceCopyInfo])(implicit timeout: Duration, maxParallelism: Int): IOResult[Unit] = {
     parrallelSequence(preparedTemplates) { prepared =>
-      val writeResources = ZIO.traverse_(prepared.preparedTechniques) { preparedTechnique => ZIO.traverse_(preparedTechnique.filesToCopy) { file =>
+      val writeResources = ZIO.foreach_(prepared.preparedTechniques) { preparedTechnique => ZIO.foreach_(preparedTechnique.filesToCopy) { file =>
          for {
            t0 <- currentTimeNanos
            r  <- copyResourceFile(file, prepared.agentNodeProps.agentType, prepared.paths.newFolder, preparedTechnique.reportIdToReplace, resources)
@@ -617,7 +617,7 @@ class PolicyWriterServiceImpl(
 
       // this allows to do some IO (JSON, CSV) while waiting for semaphores in
       // writePromise (for template filling)
-      ZIO.sequencePar(writeResources :: writeAgent :: writeCSV :: writeJSON :: Nil).
+      ZIO.collectAllPar(writeResources :: writeAgent :: writeCSV :: writeJSON :: Nil).
         chainError(s"Error when writing configuration for node '${prepared.paths.nodeId.value}'")
     }.unit
   }
@@ -644,7 +644,7 @@ class PolicyWriterServiceImpl(
       config.nodeInfo.agentsName.map {agentType => (agentType, config) }
     }
 
-    ZIO.traverse( agentConfig )  { case (agentInfo, config) =>
+    ZIO.foreach( agentConfig )  { case (agentInfo, config) =>
       val agentType = agentInfo.agentType
       for {
         paths <- if(rootNodeConfigId == config.nodeInfo.id) {
@@ -850,7 +850,7 @@ class PolicyWriterServiceImpl(
         mvOptions  <- getMoveOptions(sortedFolder.head)
         newFolders <- Ref.make(List.empty[NodePoliciesPaths])
                       // can't trivialy parallelise because we need parents before children
-        _          <- ZIO.traverseParN_(maxParallelism)(sortedFolder) { case folder @ NodePoliciesPaths(_, baseFolder, newFolder, backupFolder) =>
+        _          <- ZIO.foreachParN_(maxParallelism)(sortedFolder) { case folder @ NodePoliciesPaths(_, baseFolder, newFolder, backupFolder) =>
                         for {
                           _ <- PolicyGenerationLoggerPure.trace(s"Backuping old policies from '${baseFolder}' to '${backupFolder} ")
                           _ <- backupNodeFolder(baseFolder, backupFolder, mvOptions)
@@ -863,7 +863,7 @@ class PolicyWriterServiceImpl(
                         //here we do "as best as possible"
                         for {
                           folders <- newFolders.get
-                          _       <- ZIO.traverse(folders) { folder =>
+                          _       <- ZIO.foreach(folders) { folder =>
                                        PolicyGenerationLoggerPure.error(s"Error when moving policies to their node folder. Restoring old policies on folder ${folder.baseFolder}. Error was: ${err.fullMsg}") *>
                                        restoreBackupNodeFolder(folder.baseFolder, folder.backupFolder, mvOptions).catchAll(err =>
                                          PolicyGenerationLoggerPure.error(s"could not restore old policies into ${folder.baseFolder} ")

@@ -169,7 +169,7 @@ class TestBuildNodeConfiguration extends Specification {
 //        for {
 //        ref  <- Ref.make(0L)
 //        t1   <- nano
-//        loop <- ZIO.traverse(count) { i => // yes only one element
+//        loop <- ZIO.foreach(count) { i => // yes only one element
 //                  for {
 //                    t2  <- nano
 //                    res <- i.succeed

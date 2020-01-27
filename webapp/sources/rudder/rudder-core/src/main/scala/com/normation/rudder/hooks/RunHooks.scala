@@ -262,7 +262,7 @@ object RunHooks {
       _        <- PureHooksLogger.debug(s"Run hooks: ${cmdInfo}")
       _        <- PureHooksLogger.trace(s"Hook environment variables: ${envVariables.show}")
       time_0   <- currentTimeNanos
-      res      <- ZioRuntime.blocking(runAllSeq).timeout(killAfter).notOptional(s"Hook '${cmdInfo}' timed out after ${killAfter.asJava.toString}").provide(ZioRuntime.environment).untraced
+      res      <- ZioRuntime.blocking(runAllSeq).timeout(killAfter).notOptional(s"Hook '${cmdInfo}' timed out after ${killAfter.asJava.toString}").provideManaged(ZioRuntime.environment).untraced
       time_1   <- currentTimeNanos
       duration =  time_1 - time_0
       _        <- ZIO.when(duration/1000000 > warnAfterMillis.toMillis) {

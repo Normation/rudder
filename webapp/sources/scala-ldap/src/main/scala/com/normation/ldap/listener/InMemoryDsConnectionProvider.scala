@@ -41,7 +41,7 @@ class InMemoryDsConnectionProvider[CON <: RoLDAPConnection](
     //for example for bootstrap datas
   , bootstrapLDIFPaths : Seq[String] = Seq()
   , val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger()
-  , val blockingModule: Blocking
+  , val blockingModule: Managed[Nothing, Blocking]
 ) extends LDAPConnectionProvider[CON] with OneConnectionProvider[CON] with UnboundidConnectionProvider {
 
   /**

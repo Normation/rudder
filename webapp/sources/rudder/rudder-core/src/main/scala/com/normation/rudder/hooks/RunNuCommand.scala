@@ -125,7 +125,7 @@ object RunNuCommand {
     }
 
     override def onExit(exitCode: Int): Unit = {
-      ZioRuntime.internal.unsafeRun(promise.succeed(CmdResult(exitCode, stdout.toString, stderr.toString)).untraced)
+      ZioRuntime.internal.runtime.unsafeRun(promise.succeed(CmdResult(exitCode, stdout.toString, stderr.toString)).untraced)
     }
 
     def run = promise
