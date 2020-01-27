@@ -40,12 +40,11 @@ package com.normation.rudder.inventory
 import java.io.InputStream
 import java.security.{PublicKey => JavaSecPubKey}
 
-import com.normation.NamedZioLogger
 import com.normation.errors.Chained
 import com.normation.errors.IOResult
 import com.normation.errors.SystemError
 import com.normation.inventory.domain.CertifiedKey
-import com.normation.inventory.domain.InventoryLogger
+import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.inventory.domain.InventoryReport
 import com.normation.errors._
 import com.normation.inventory.domain.NodeId
@@ -63,9 +62,6 @@ import zio._
 import zio.syntax._
 
 
-object InventoryProcessingLogger extends NamedZioLogger {
-  override def loggerName: String = "inventory-processing"
-}
 
 sealed trait InventoryProcessStatus {
   def reportName: String
@@ -91,8 +87,10 @@ object StatusLog {
       case InventoryProcessStatus.SignatureInvalid(reportName, nodeId) =>
         s"Rejecting Inventory '${reportName}' for Node '${nodeId.value}' because the Inventory signature is " +
         s"not valid: the Inventory was not signed with the same agent key as the one saved within Rudder for that Node. If " +
-        s"you updated the agent key on this node, you can update the key stored within Rudder with the following command on " +
-        s"the Rudder Server: '/opt/rudder/bin/rudder-keys change-key ${nodeId.value} <your new public key>'. " +
+        s"you updated the agent key on this node, you can update the key stored within Rudder with the https://docs.rudder.io/api/#api-Nodes-updateNode" +
+        s"api (look for 'agentKey' property). The key path depends of your OS, on linux it's: '/var/rudder/cfengine-community/ppkeys/localhost.pub'. It is " +
+        s"also contained in the <AGENT_CERT> value of inventory (you can extract public key with `openssl x509 -pubkey -noout -in - << EOF " +
+        s"-----BEGIN CERTIFICATE----- .... -----END CERTIFICATE----- EOF`). " +
         s"If you did not change the key, please ensure that the node sending that inventory is actually the node registered " +
         s"within Rudder"
 
@@ -224,19 +222,21 @@ class InventoryProcessor(
     }
 
 
-    res map { status =>
+    res.foldM(
+      err => {
+        val fail = Chained(s"Error when trying to process inventory '${info.fileName}'", err)
+        InventoryProcessingLogger.error(fail.fullMsg) *> err.fail
+      }
+    , status => {
         import com.normation.rudder.inventory.StatusLog.LogMessage
-        status match {
+        (status match {
           case InventoryProcessStatus.MissingSignature(_,_) => InventoryProcessingLogger.error(status.msg)
           case InventoryProcessStatus.SignatureInvalid(_,_) => InventoryProcessingLogger.error(status.msg)
           case InventoryProcessStatus.QueueFull(_,_)        => InventoryProcessingLogger.warn(status.msg)
           case InventoryProcessStatus.Accepted(_,_)         => InventoryProcessingLogger.trace(status.msg)
-        }
-    } catchAll { err =>
-        val fail = Chained(s"Error when trying to process inventory '${info.fileName}'", err)
-        InventoryLogger.error(fail.fullMsg) *> err.fail
-    }
-    res
+        }) *> status.succeed
+      }
+    )
   }
 
   /*
@@ -258,7 +258,7 @@ class InventoryProcessor(
       res
     }).catchAll { err =>
       val e = Chained(s"There is an error with the LDAP backend preventing acceptation of inventory '${report.name}'", err)
-      InventoryLogger.error(err.fullMsg) *> e.fail
+      InventoryProcessingLogger.error(err.fullMsg) *> e.fail
     }
   }
 

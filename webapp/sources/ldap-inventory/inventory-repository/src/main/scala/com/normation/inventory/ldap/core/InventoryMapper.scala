@@ -522,7 +522,7 @@ class InventoryMapper(
   private[this] def mapAndAddElementGeneric[U, T](from: U, e: LDAPEntry, name: String, f: LDAPEntry => InventoryMappingPure[T], path: U => PathModify[U, Seq[T]]): UIO[U] = {
     f(e) match {
       case Left(error) =>
-        InventoryLogger.error(Chained(s"Error when mapping LDAP entry to a '${name}'. Entry details: ${e}.", error).fullMsg) *>
+        InventoryProcessingLogger.error(Chained(s"Error when mapping LDAP entry to a '${name}'. Entry details: ${e}.", error).fullMsg) *>
         from.succeed
       case Right(value) =>
         path(from).using( value +: _ ).succeed
@@ -545,7 +545,7 @@ class InventoryMapper(
       case e if(e.isA(OC_STORAGE))    => mapAndAdd("storage"    , storageFromEntry   , _.modify(_.storages)   )
       case e if(e.isA(OC_VIDEO))      => mapAndAdd("video"      , videoFromEntry     , _.modify(_.videos)     )
       case e                          =>
-        InventoryLogger.error(s"Unknown entry type for a machine element, that entry will be ignored: ${e}") *> machine.succeed
+        InventoryProcessingLogger.error(s"Unknown entry type for a machine element, that entry will be ignored: ${e}") *> machine.succeed
     }
   }
 
@@ -833,7 +833,7 @@ class InventoryMapper(
       case e if(e.isA(OC_FS))      => mapAndAdd("file system"      , fileSystemFromEntry, _.modify(_.fileSystems))
       case e if(e.isA(OC_VM_INFO)) => mapAndAdd("virtual machine"  , vmFromEntry        , _.modify(_.vms))
       case e =>
-        InventoryLogger.error(s"Unknow entry type for a server element, that entry will be ignored: ${e}") *>
+        InventoryProcessingLogger.error(s"Unknow entry type for a server element, that entry will be ignored: ${e}") *>
         node.succeed
     }
 
@@ -849,7 +849,7 @@ class InventoryMapper(
       } yield (uuid, st) ) match {
         case Right(st) => List(st)
         case Left(err) =>
-          InventoryLogger.logEffect.error(s"Error when processing machine DN '${x}': ${err.msg}")
+          InventoryProcessingLogger.logEffect.error(s"Error when processing machine DN '${x}': ${err.msg}")
           Nil
       }
     }
@@ -961,11 +961,11 @@ class InventoryMapper(
                               case Nil => None.succeed
                               case m :: Nil => Some(m).succeed
                               case l@( m1 :: m2 :: _) =>
-                                InventoryLogger.error("Several machine were registered for a node. That is not supported. " +
-                                    "The first in the following list will be choosen, but you may encouter strange " +
-                                    "results in the future: %s".
-                                      format(l.map{ case (id,status) => "%s [%s]".format(id.value, status.name)}.mkString(" ; "))
-                                    ) *>
+                                InventoryProcessingLogger.error("Several machine were registered for a node. That is not supported. " +
+                                  "The first in the following list will be choosen, but you may encouter strange " +
+                                  "results in the future: %s".
+                                    format(l.map{ case (id,status) => "%s [%s]".format(id.value, status.name)}.mkString(" ; "))
+                                ) *>
                                 Some(m1).succeed
                             }
       inventoryDate      =  entry.getAsGTime(A_INVENTORY_DATE).map { _.dateTime }
@@ -981,7 +981,7 @@ class InventoryMapper(
                               ZIO.foreach(entry.valuesFor(A_CUSTOM_PROPERTY))( a =>
                                 a.toCustomProperty.foldM(
                                     err =>
-                                      InventoryLogger.warn(Chained(s"Error when deserializing node inventory custom property (ignoring that property)", err).fullMsg) *> None.succeed
+                                      InventoryProcessingLogger.warn(Chained(s"Error when deserializing node inventory custom property (ignoring that property)", err).fullMsg) *> None.succeed
                                   , p =>
                                       Some(p).succeed
                                 )

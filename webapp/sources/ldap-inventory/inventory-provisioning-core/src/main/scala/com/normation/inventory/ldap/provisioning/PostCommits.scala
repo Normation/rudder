@@ -70,12 +70,12 @@ class AcceptPendingMachineIfServerIsAccepted(
       case (AcceptedInventory,  PendingInventory) =>
         // Change the container state, no need to keep the machine
         val fullInventory = FullInventory(report.node.copy(machineId = Some((report.machine.id,AcceptedInventory))),None)
-        InventoryLogger.debug(s"Found machine '${report.machine.id.value}' in pending DIT but that machine is the container of the accepted node '${report.node.main.id.value}'. Moving machine to accpeted") *>
+        InventoryProcessingLogger.debug(s"Found machine '${report.machine.id.value}' in pending DIT but that machine is the container of the accepted node '${report.node.main.id.value}'. Moving machine to accpeted") *>
         (for {
           res       <- fullInventoryRepositoryImpl.move(report.machine.id, AcceptedInventory)
           // Save Inventory to change the container too, no need to have the machine saved again
           inventory <- fullInventoryRepositoryImpl.save(fullInventory)
-          _         <- InventoryLogger.debug("Machine '%s' moved to accepted DIT".format(report.machine.id))
+          _         <- InventoryProcessingLogger.debug("Machine '%s' moved to accepted DIT".format(report.machine.id))
         } yield {
           records ++ res ++ inventory
         })
@@ -101,19 +101,19 @@ class PendingNodeIfNodeWasRemoved(
     (report.node.main.status, report.machine.status ) match {
       case (RemovedInventory,  RemovedInventory) =>
 
-        InventoryLogger.debug("Found node '%s' and machine '%s' in removed DIT but we received an inventory for it, moving them into pending".format(report.node.main.id, report.machine.id)) *>
+        InventoryProcessingLogger.debug("Found node '%s' and machine '%s' in removed DIT but we received an inventory for it, moving them into pending".format(report.node.main.id, report.machine.id)) *>
         (for {
           res <- writeOnlyFullInventoryRepository.move(report.node.main.id, RemovedInventory, PendingInventory)
-          _   <- InventoryLogger.debug("Node and machine '%s' moved to pending DIT".format(report.machine.id))
+          _   <- InventoryProcessingLogger.debug("Node and machine '%s' moved to pending DIT".format(report.machine.id))
         } yield {
           records ++ res
         })
 
       case (RemovedInventory,  _) =>
-        InventoryLogger.debug("Found node '%s' ain removed DIT but we received an inventory for it, moving it into pending and leaving the container alone".format(report.node.main.id)) *>
+        InventoryProcessingLogger.debug("Found node '%s' ain removed DIT but we received an inventory for it, moving it into pending and leaving the container alone".format(report.node.main.id)) *>
         (for {
           res <- writeOnlyFullInventoryRepository.moveNode(report.node.main.id, RemovedInventory, PendingInventory)
-          _   <- InventoryLogger.debug("Node '%s' moved to pending DIT".format(report.node.main.id))
+          _   <- InventoryProcessingLogger.debug("Node '%s' moved to pending DIT".format(report.node.main.id))
         } yield {
           records ++ res
         })

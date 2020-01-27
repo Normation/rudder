@@ -42,9 +42,9 @@ import java.nio.file.Files
 import better.files._
 import better.files.File.Attributes
 import com.normation.errors._
+import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.rudder.inventory.InventoryFileWatcher
 import com.normation.rudder.inventory.InventoryProcessStatus
-import com.normation.rudder.inventory.InventoryProcessingLogger
 import com.normation.rudder.inventory.InventoryProcessor
 import com.normation.rudder.inventory.SaveInventoryInfo
 import com.normation.rudder.rest.ApiPath

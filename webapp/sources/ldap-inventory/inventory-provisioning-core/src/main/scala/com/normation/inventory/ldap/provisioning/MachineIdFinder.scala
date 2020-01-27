@@ -104,9 +104,9 @@ class FromMotherBoardUuidIdFinder(
                        * merge. Notify the human merger service for candidate.
                        * For that case, take the first one
                        */
-                      InventoryLogger.info("Several ids found with UUID '%s':".format(uuid.value)) *>
+                      InventoryProcessingLogger.info("Several ids found with UUID '%s':".format(uuid.value)) *>
                       ZIO.foreach(entries) { e =>
-                        InventoryLogger.info(s"-> ${e(A_MACHINE_UUID).get}")
+                        InventoryProcessingLogger.info(s"-> ${e(A_MACHINE_UUID).get}")
                       } *>
                       Some((MachineUuid(entries(0)(A_MACHINE_UUID).get),inventoryDitService.getInventoryStatus(dit))).succeed
                     } else None.succeed)

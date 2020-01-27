@@ -91,7 +91,6 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.inventory.InventoryFileWatcher
-import com.normation.rudder.inventory.InventoryProcessingLogger
 import com.normation.rudder.inventory.InventoryProcessor
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.migration._

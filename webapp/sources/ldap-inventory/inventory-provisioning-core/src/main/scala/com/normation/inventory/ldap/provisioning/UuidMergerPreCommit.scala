@@ -99,7 +99,7 @@ class UuidMergerPreCommit(
       //check some size matching
        _ <- ZIO.when(report.node.softwareIds.toSet != report.applications.map( _.id ).toSet) {
               val msg = "Inconsistant report. Server#softwareIds does not match list of application in the report"
-              InventoryLogger.error(msg) *> InventoryError.Inconsistency(msg).fail
+              InventoryProcessingLogger.error(msg) *> InventoryError.Inconsistency(msg).fail
             }
       /*
        * Software are special. They are legions. And they are really simple.
@@ -122,7 +122,7 @@ class UuidMergerPreCommit(
      * - server's vms is one or more vms id changed
      */
     vms <- ZIO.foreach(report.vms)(vm => mergeVm(vm)).catchAll(e =>
-             InventoryLogger.error(s"Error when merging vm. Reported message was: ${e.fullMsg}") *> e.fail
+             InventoryProcessingLogger.error(s"Error when merging vm. Reported message was: ${e.fullMsg}") *> e.fail
            )
     /*
      * We always want the node and machine to have the same status.
@@ -131,7 +131,7 @@ class UuidMergerPreCommit(
      */
 
     finalNodeMachine <- mergeNode(node).foldM(
-      err => InventoryLogger.error(s"Error when merging node inventory. Reported message: ${err.fullMsg}. Remove machine for saving") *> err.fail
+      err => InventoryProcessingLogger.error(s"Error when merging node inventory. Reported message: ${err.fullMsg}. Remove machine for saving") *> err.fail
       , optNode => optNode match {
           case None =>
             // New node, save machine and node in reporting

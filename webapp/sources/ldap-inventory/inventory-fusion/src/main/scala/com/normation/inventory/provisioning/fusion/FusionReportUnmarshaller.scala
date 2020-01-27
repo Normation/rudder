@@ -80,7 +80,7 @@ class FusionReportUnmarshaller(
       input.map( s => conv(s))
     } catch {
       case ex: Exception =>
-        InventoryLogger.logEffect.warn(s"Ignoring '${tag}' content because it can't be converted to ${format}. Error is: ${ex.getMessage}")
+        InventoryProcessingLogger.logEffect.warn(s"Ignoring '${tag}' content because it can't be converted to ${format}. Error is: ${ex.getMessage}")
         None
     }
   }
@@ -103,7 +103,7 @@ class FusionReportUnmarshaller(
       Some(DateTime.parse(date,fmt))
     } catch {
       case e : IllegalArgumentException =>
-        InventoryLogger.logEffect.debug(s"error when parsing node '${n}', value: ${date}")
+        InventoryProcessingLogger.logEffect.debug(s"error when parsing node '${n}', value: ${date}")
       None
   } }
 
@@ -179,7 +179,7 @@ class FusionReportUnmarshaller(
               case None => // can update the manufacturer
                 report = report.copy(machine = report.machine.copy(manufacturer = Some(x)))
               case Some(existingManufacturer) => //cannot update it
-                InventoryLogger.logEffect.warn(s"Duplicate Machine Manufacturer definition in the inventory: s{existingManufacturer} is the current value, skipping the other value ${x}")
+                InventoryProcessingLogger.logEffect.warn(s"Duplicate Machine Manufacturer definition in the inventory: s{existingManufacturer} is the current value, skipping the other value ${x}")
             }
           }
           systemSerialNumber.foreach{ x =>
@@ -187,7 +187,7 @@ class FusionReportUnmarshaller(
               case None => // can update the System Serial Number
                 report = report.copy(machine = report.machine.copy(systemSerialNumber = Some(x)))
               case Some(existingSystemSerialNumber) => //cannot update it
-                InventoryLogger.logEffect.warn(s"Duplicate System Serial Number definition in the inventory: s{existingSystemSerialNumber} is the current value, skipping the other value ${x}")
+                InventoryProcessingLogger.logEffect.warn(s"Duplicate System Serial Number definition in the inventory: s{existingSystemSerialNumber} is the current value, skipping the other value ${x}")
             }
           }
         }
@@ -389,7 +389,7 @@ class FusionReportUnmarshaller(
 
       agent.catchAll { eb =>
         val e = Chained(s"Error when parsing an <RUDDER><AGENT> entry in '${report.name}', that agent will be ignored.", eb)
-        InventoryLogger.error(e.fullMsg) *> None.succeed
+        InventoryProcessingLogger.error(e.fullMsg) *> None.succeed
       }
     }
 
@@ -421,7 +421,7 @@ class FusionReportUnmarshaller(
         )
     } ) catchAll { eb =>
         val fail = Chained(s"Error when parsing <RUDDER> extention node in inventory report with name '${report.name}'. Rudder extension attribute won't be available in report.", eb)
-        InventoryLogger.error(fail.fullMsg) *> report.succeed
+        InventoryProcessingLogger.error(fail.fullMsg) *> report.succeed
     }
   }
 
@@ -481,7 +481,7 @@ class FusionReportUnmarshaller(
       val subnets = networks.flatMap( _.ifSubnet ).distinct
       val uniqIps = ips.distinct
       if(uniqIps.size < ips.size) {
-        InventoryLogger.logEffect.error(s"Network interface '${interface}' appears several time with same IPs. Taking only the first one, it is likelly a bug in fusion inventory.")
+        InventoryProcessingLogger.logEffect.error(s"Network interface '${interface}' appears several time with same IPs. Taking only the first one, it is likelly a bug in fusion inventory.")
       }
       referenceInterface.copy(ifAddresses = uniqIps, ifMask = masks, ifGateway = gateways, ifSubnet = subnets )
     }.toSeq
@@ -630,7 +630,7 @@ class FusionReportUnmarshaller(
           optText(xml\\"DATELASTLOGGEDUSER").map(date => userLoginDateTimeFormat.parseDateTime(date) )
         } catch {
           case e:IllegalArgumentException =>
-            InventoryLogger.logEffect.warn("Error when parsing date for last user loggin. Awaited format is %s, found: %s".format(lastLoggedUserDatetimeFormat,(xml\\"DATELASTLOGGEDUSER").text))
+            InventoryProcessingLogger.logEffect.warn("Error when parsing date for last user loggin. Awaited format is %s, found: %s".format(lastLoggedUserDatetimeFormat,(xml\\"DATELASTLOGGEDUSER").text))
             None
         }
     )
@@ -822,8 +822,8 @@ class FusionReportUnmarshaller(
     //volum or letter is mandatory
     letter.orElse(mount_point).orElse(volume) match {
       case None =>
-        InventoryLogger.logEffect.debug("Ignoring FileSystem entry because missing tag TYPE and LETTER")
-        InventoryLogger.logEffect.debug(d.toString())
+        InventoryProcessingLogger.logEffect.debug("Ignoring FileSystem entry because missing tag TYPE and LETTER")
+        InventoryProcessingLogger.logEffect.debug(d.toString())
         None
       case Some(mountPoint) =>
         Some(FileSystem(
@@ -854,8 +854,8 @@ class FusionReportUnmarshaller(
 
     optText(n\"DESCRIPTION").orElse(optText(n\"TYPE")) match {
       case None =>
-        InventoryLogger.logEffect.debug("Ignoring entry Network because tag DESCRIPTION is empty")
-        InventoryLogger.logEffect.debug(n.toString())
+        InventoryProcessingLogger.logEffect.debug("Ignoring entry Network because tag DESCRIPTION is empty")
+        InventoryProcessingLogger.logEffect.debug(n.toString())
         None
       case Some(desc) =>
         // in a single NETWORK element, we can have both IPV4 and IPV6
@@ -916,15 +916,15 @@ class FusionReportUnmarshaller(
 
     val bios = optText(b\"SMODEL") match {
       case None =>
-        InventoryLogger.logEffect.debug("Ignoring entry Bios because SMODEL is empty")
-        InventoryLogger.logEffect.debug(b.toString())
+        InventoryProcessingLogger.logEffect.debug("Ignoring entry Bios because SMODEL is empty")
+        InventoryProcessingLogger.logEffect.debug(b.toString())
         None
       case Some(model) =>
         val date = try {
           optText(b\"BDATE").map(d => biosDateTimeFormat.parseDateTime(d))
         } catch {
           case e:IllegalArgumentException =>
-            InventoryLogger.logEffect.warn("Error when parsing date for Bios. Awaited format is %s, found: %s".format(biosDateFormat,(b\"BDATE").text))
+            InventoryProcessingLogger.logEffect.warn("Error when parsing date for Bios. Awaited format is %s, found: %s".format(biosDateFormat,(b\"BDATE").text))
             None
         }
 
@@ -942,8 +942,8 @@ class FusionReportUnmarshaller(
   def processController(c: NodeSeq) : Option[Controller] = {
     optText(c\"NAME") match {
       case None =>
-        InventoryLogger.logEffect.debug("Ignoring entry Controller because tag NAME is empty")
-        InventoryLogger.logEffect.debug(c.toString())
+        InventoryProcessingLogger.logEffect.debug("Ignoring entry Controller because tag NAME is empty")
+        InventoryProcessingLogger.logEffect.debug(c.toString())
         None
       case Some(name) =>
         Some(Controller(
@@ -966,8 +966,8 @@ class FusionReportUnmarshaller(
     //add memory. Add all slots, but add capacity other than numSlot only for full slot
     val slot = optText(m\"NUMSLOTS") match {
       case None =>
-        InventoryLogger.logEffect.debug("Memory is missing tag NUMSLOTS, assigning a negative value for num slot")
-        InventoryLogger.logEffect.debug(m.toString())
+        InventoryProcessingLogger.logEffect.debug("Memory is missing tag NUMSLOTS, assigning a negative value for num slot")
+        InventoryProcessingLogger.logEffect.debug(m.toString())
         DUMMY_MEM_SLOT_NUMBER
       case Some(slot) =>  slot
     }
@@ -991,8 +991,8 @@ class FusionReportUnmarshaller(
   def processPort(p : NodeSeq) : Option[Port] = {
     optText(p\"NAME") match {
       case None =>
-        InventoryLogger.logEffect.debug("Ignoring entry Port because tag NAME is empty")
-        InventoryLogger.logEffect.debug(p.toString())
+        InventoryProcessingLogger.logEffect.debug("Ignoring entry Port because tag NAME is empty")
+        InventoryProcessingLogger.logEffect.debug(p.toString())
         None
       case Some(name) =>
         /*It seems that CAPTION and DESCRIPTION
@@ -1044,8 +1044,8 @@ class FusionReportUnmarshaller(
 
     name match {
       case None =>
-        InventoryLogger.logEffect.debug("Ignoring entry Slot because tags NAME and DESIGNATION are empty")
-        InventoryLogger.logEffect.debug(s.toString())
+        InventoryProcessingLogger.logEffect.debug("Ignoring entry Slot because tags NAME and DESIGNATION are empty")
+        InventoryProcessingLogger.logEffect.debug(s.toString())
         None
       case Some(sl) =>
         Some( Slot (
@@ -1069,8 +1069,8 @@ class FusionReportUnmarshaller(
 
     name match {
       case None =>
-        InventoryLogger.logEffect.debug("Ignoring entry Sound because tags NAME and MANUFACTURER are empty")
-        InventoryLogger.logEffect.debug(s.toString())
+        InventoryProcessingLogger.logEffect.debug("Ignoring entry Sound because tags NAME and MANUFACTURER are empty")
+        InventoryProcessingLogger.logEffect.debug(s.toString())
         None
       case Some(so) =>
         Some( Sound (
@@ -1088,8 +1088,8 @@ class FusionReportUnmarshaller(
      */
     optText(s\"NAME") match {
       case None =>
-        InventoryLogger.logEffect.debug("Ignoring entry Storage because tag NAME is empty")
-        InventoryLogger.logEffect.debug(s.toString())
+        InventoryProcessingLogger.logEffect.debug("Ignoring entry Storage because tag NAME is empty")
+        InventoryProcessingLogger.logEffect.debug(s.toString())
         None
       case Some(name) =>
         Some( Storage(
@@ -1114,8 +1114,8 @@ class FusionReportUnmarshaller(
   def processVideo(v : NodeSeq) : Option[Video] = {
     optText(v\"NAME").orElse(optText(v\"RESOLUTION")) match {
       case None =>
-        InventoryLogger.logEffect.debug("Ignoring entry Video because tag NAME is empty")
-        InventoryLogger.logEffect.debug(v.toString())
+        InventoryProcessingLogger.logEffect.debug("Ignoring entry Video because tag NAME is empty")
+        InventoryProcessingLogger.logEffect.debug(v.toString())
         None
       case Some(name) => Some( Video(
           name        = name
@@ -1130,8 +1130,8 @@ class FusionReportUnmarshaller(
   def processCpu(c : NodeSeq) : Option[Processor] = {
     optText(c\"NAME") match{
       case None =>
-        InventoryLogger.logEffect.debug("Ignoring entry CPU because tag MANIFACTURER and ARCH are empty")
-        InventoryLogger.logEffect.debug(c.toString())
+        InventoryProcessingLogger.logEffect.debug("Ignoring entry CPU because tag MANIFACTURER and ARCH are empty")
+        InventoryProcessingLogger.logEffect.debug(c.toString())
         None
       case Some(name) =>
         Some (
@@ -1155,8 +1155,8 @@ class FusionReportUnmarshaller(
   def processEnvironmentVariable(ev : NodeSeq) : Option[EnvironmentVariable] = {
     optText(ev\"KEY")  match {
     case None =>
-      InventoryLogger.logEffect.debug("Ignoring entry Envs because tag KEY is empty")
-      InventoryLogger.logEffect.debug(ev.toString())
+      InventoryProcessingLogger.logEffect.debug("Ignoring entry Envs because tag KEY is empty")
+      InventoryProcessingLogger.logEffect.debug(ev.toString())
       None
     case Some(key) =>
       Some (
@@ -1170,8 +1170,8 @@ class FusionReportUnmarshaller(
   def processVms(vm : NodeSeq) : Option[VirtualMachine] = {
     optText(vm\"UUID") match {
     case None =>
-      InventoryLogger.logEffect.debug("Ignoring entry VirtualMachine because tag UUID is empty")
-      InventoryLogger.logEffect.debug(vm.toString())
+      InventoryProcessingLogger.logEffect.debug("Ignoring entry VirtualMachine because tag UUID is empty")
+      InventoryProcessingLogger.logEffect.debug(vm.toString())
       None
     case Some(uuid) =>
         Some(
@@ -1191,8 +1191,8 @@ class FusionReportUnmarshaller(
   def processProcesses(proc : NodeSeq) : Option[Process] = {
      optInt(proc, "PID") match {
     case None =>
-      InventoryLogger.logEffect.debug("Ignoring entry Process because tag PID is invalid")
-      InventoryLogger.logEffect.debug(proc.toString())
+      InventoryProcessingLogger.logEffect.debug("Ignoring entry Process because tag PID is invalid")
+      InventoryProcessingLogger.logEffect.debug(proc.toString())
       None
     case Some(pid) =>
       Some (
@@ -1216,7 +1216,7 @@ class FusionReportUnmarshaller(
      case Some(date) => try {
          Some(DateTime.parse(date,fmt))
        } catch {
-         case e:IllegalArgumentException => InventoryLogger.logEffect.warn("error when parsing ACCESSLOG, reason %s".format(e.getMessage()))
+         case e:IllegalArgumentException =>   InventoryProcessingLogger.logEffect.warn("error when parsing ACCESSLOG, reason %s".format(e.getMessage()))
              None
        }
    }

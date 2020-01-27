@@ -39,7 +39,7 @@ package com.normation.inventory.ldap.provisioning
 
 import cats.data.NonEmptyList
 import com.normation.errors.RudderError
-import com.normation.inventory.domain.InventoryLogger
+import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.inventory.domain.InventoryReport
 import com.normation.errors._
 import com.normation.inventory.services.provisioning._
@@ -90,7 +90,7 @@ class DefaultReportSaver(
     }
 
     val t1 = System.currentTimeMillis
-    InventoryLogger.trace(s"Saving software: ${t1 - t0} ms")
+    InventoryProcessingLogger.timing.trace(s"Saving software: ${t1 - t0} ms")
 
     results = {
       for {
@@ -100,7 +100,7 @@ class DefaultReportSaver(
     } :: results
 
     val t2 = System.currentTimeMillis
-    InventoryLogger.trace(s"Saving machine: ${t2-t1} ms")
+    InventoryProcessingLogger.timing.trace(s"Saving machine: ${t2-t1} ms")
 
     results = {
       for {
@@ -112,7 +112,7 @@ class DefaultReportSaver(
     } :: results
 
     val t3 = System.currentTimeMillis
-    InventoryLogger.trace(s"Saving node: ${t3-t2} ms")
+    InventoryProcessingLogger.timing.trace(s"Saving node: ${t3-t2} ms")
 
     //finally, vms
     report.vms foreach { x =>
@@ -124,7 +124,7 @@ class DefaultReportSaver(
     }
 
     val t4 = System.currentTimeMillis
-    InventoryLogger.trace(s"Saving vms: ${t4-t3} ms")
+    InventoryProcessingLogger.timing.trace(s"Saving vms: ${t4-t3} ms")
 
     /*
      * TODO : what to do when there is a mix a failure/success ?
@@ -143,7 +143,7 @@ class DefaultReportSaver(
         LDAPRudderError.Accumulated(NonEmptyList.fromListUnsafe(errors)).fail
       } else { //ok, so at least one non error. Log errors, merge non error, and post-process it
         ZIO.foreach(errors)(e =>
-            ZIO.effect(InventoryLogger.error(s"Report processing will be incomplete, found error: ${e.msg}")).orElse(ZIO.unit)) *> successes.flatten.succeed
+            ZIO.effect(InventoryProcessingLogger.error(s"Report processing will be incomplete, found error: ${e.msg}")).orElse(ZIO.unit)) *> successes.flatten.succeed
       }
     }
   }

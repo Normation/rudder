@@ -1,7 +1,7 @@
 package com.normation.inventory.ldap.core
 
 
-import com.normation.inventory.domain.InventoryLogger
+import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.inventory.services.core.WriteOnlySoftwareDAO
 import com.normation.errors._
@@ -25,19 +25,19 @@ extends SoftwareService {
     for {
       allSoftwares      <- readOnlySoftware.getAllSoftwareIds()
       t2                <- currentTimeMillis
-      _                 <- InventoryLogger.debug(s"All softwares id in ou=software fetched: ${allSoftwares.size} softwares id in ${t2 - t1}ms")
+      _                 <- InventoryProcessingLogger.debug(s"All softwares id in ou=software fetched: ${allSoftwares.size} softwares id in ${t2 - t1}ms")
 
       allNodesSoftwares <- readOnlySoftware.getSoftwaresForAllNodes()
       t3                <- currentTimeMillis
-      _                 <- InventoryLogger.debug(s"All softwares id in nodes fetched: ${allNodesSoftwares.size} softwares id in ${t3 - t2}ms")
+      _                 <- InventoryProcessingLogger.debug(s"All softwares id in nodes fetched: ${allNodesSoftwares.size} softwares id in ${t3 - t2}ms")
 
 
       extraSoftware     =  allSoftwares -- allNodesSoftwares
-      _                 <- InventoryLogger.debug(s"Found ${extraSoftware.size} unreferenced software in ou=software, going to delete them")
+      _                 <- InventoryProcessingLogger.debug(s"Found ${extraSoftware.size} unreferenced software in ou=software, going to delete them")
 
       deletedSoftware   <- writeOnlySoftware.deleteSoftwares(extraSoftware.toSeq)
       t4                <- currentTimeMillis
-      _                 <- InventoryLogger.debug(s"Deleted ${deletedSoftware.size} software in ${t4 - t3}ms")
+      _                 <- InventoryProcessingLogger.timing.debug(s"Deleted ${deletedSoftware.size} software in ${t4 - t3}ms")
     } yield {
       deletedSoftware.map(x => x.toString).toSeq
     }

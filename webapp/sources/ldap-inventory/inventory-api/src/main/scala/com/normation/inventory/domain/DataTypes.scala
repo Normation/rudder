@@ -199,8 +199,10 @@ final class Version(val value:String) extends AnyVal with Comparable[Version] {
 }
 
 
-object InventoryLogger extends NamedZioLogger(){ def loggerName = "inventory-logger"}
-
+object InventoryProcessingLogger extends NamedZioLogger {
+  override def loggerName: String = "inventory-processing"
+  object timing extends NamedZioLogger(){ def loggerName = "inventory-logger.timing"}
+}
 
 sealed trait InventoryError extends RudderError
 
