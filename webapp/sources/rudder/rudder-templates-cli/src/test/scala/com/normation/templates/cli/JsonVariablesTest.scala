@@ -38,12 +38,12 @@
 package com.normation.templates.cli
 
 import com.normation.templates.STVariable
-
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
-
 import com.normation.zio._
+
+import scala.collection.immutable.ArraySeq
 
 @RunWith(classOf[JUnitRunner])
 class JsonVariablesTest extends Specification {
@@ -65,14 +65,14 @@ class JsonVariablesTest extends Specification {
          }
         """
       val variables = Seq(
-          STVariable("key1", true,  Seq(true), false)
-        , STVariable("key2", true,  Seq("some value"), false)
-        , STVariable("key3", true,  Seq("42"), false)
-        , STVariable("key4", true,  Seq("some", "more", "values", true, false), false)
-        , STVariable("key5", false, Seq("k5"), true)
-        , STVariable("key6", true,  Seq("a1", "a2", "a3"), false)
-        , STVariable("key7", true,  Seq(""), false)
-        , STVariable("key8", true,  Seq(), false)
+          STVariable("key1", true,  ArraySeq(true), false)
+        , STVariable("key2", true,  ArraySeq("some value"), false)
+        , STVariable("key3", true,  ArraySeq("42"), false)
+        , STVariable("key4", true,  ArraySeq("some", "more", "values", true, false), false)
+        , STVariable("key5", false, ArraySeq("k5"), true)
+        , STVariable("key6", true,  ArraySeq("a1", "a2", "a3"), false)
+        , STVariable("key7", true,  ArraySeq(""), false)
+        , STVariable("key8", true,  ArraySeq(), false)
       )
 
       ParseVariables.fromString(json).runNow must containTheSameElementsAs(variables)

@@ -61,7 +61,6 @@ sealed trait HashAlgoConstraint {
     case Right((algo,_))                  => Left(Inconsistancy(s"Bad algorithm prefix: found ${algo.prefix}, was expecting ${this.prefix}"))
     case Left(eb)                         => Left(eb)
   }
-
 }
 
 object HashAlgoConstraint {

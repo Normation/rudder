@@ -50,6 +50,10 @@ object PolicyGenerationLogger extends Logger {
     override protected def _logger = LoggerFactory.getLogger("policy.generation.expected_reports")
   }
 
+  object update extends Logger {
+    override protected def _logger = LoggerFactory.getLogger("policy.generation.update")
+  }
+
   object timing extends Logger {
     override protected def _logger = LoggerFactory.getLogger("policy.generation.timing")
     object buildNodeConfig extends Logger {
@@ -70,6 +74,9 @@ object PolicyGenerationLoggerPure extends NamedZioLogger {
     override def loggerName: String = "policy.generation.timing"
     object buildNodeConfig extends NamedZioLogger {
       override def loggerName: String = "policy.generation.timing.buildNodeConfig"
+    }
+    object hooks extends NamedZioLogger {
+      override def loggerName: String = "policy.generation.timing.hooks"
     }
   }
 

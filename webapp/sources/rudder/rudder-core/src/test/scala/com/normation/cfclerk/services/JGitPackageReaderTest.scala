@@ -61,6 +61,7 @@ import org.joda.time.DateTime
 import java.nio.charset.StandardCharsets
 
 import com.normation.zio._
+import zio.syntax._
 
 /**
  * Details of tests executed in each instances of
@@ -157,9 +158,9 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
   def assertResourceContent(id: TechniqueResourceId, isTemplate: Boolean, expectedContent: String) = {
     val ext = if(isTemplate) Some(TechniqueTemplate.templateExtension) else None
     reader.getResourceContent(id, ext) {
-        case None => ko("Can not open an InputStream for " + id.toString)
-        case Some(is) => IOUtils.toString(is, StandardCharsets.UTF_8) === expectedContent
-      }
+        case None => ko("Can not open an InputStream for " + id.toString).succeed
+        case Some(is) => (IOUtils.toString(is, StandardCharsets.UTF_8) === expectedContent).succeed
+      }.runNow
   }
 
   "The test lib" should {

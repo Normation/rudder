@@ -49,6 +49,10 @@ import com.normation.stringtemplate.language.NormationAmpersandTemplateLexer
 import com.normation.zio.ZioRuntime
 import zio._
 import zio.syntax._
+import com.normation.zio._
+import org.apache.commons.lang.StringUtils
+
+import scala.collection.immutable.ArraySeq
 
 /**
  * A "string template variable" is a variable destinated to be
@@ -67,10 +71,30 @@ import zio.syntax._
 final case class STVariable(
     name      : String
   , mayBeEmpty: Boolean
-  , values    : Seq[Any]
+  , values    : ArraySeq[Any]
   , isSystem  : Boolean
 )
 
+/*
+ * Timers accumulator for Fill Template and semaphore waiting
+ */
+final case class FillTemplateTimer(
+    fill: Ref[Long]
+  , stringify: Ref[Long]
+  , waitFill : Ref[Long]
+  , get      : Ref[Long]
+  , waitGet  : Ref[Long]
+)
+
+object FillTemplateTimer {
+  def make() = for {
+    a <- Ref.make(0L)
+    b <- Ref.make(0L)
+    c <- Ref.make(0L)
+    d <- Ref.make(0L)
+    e <- Ref.make(0L)
+  } yield FillTemplateTimer(a, b, c, d, e)
+}
 
 object StringTemplateLogger extends NamedZioLogger {
   override def loggerName: String = "string-template-processor"
@@ -95,41 +119,55 @@ class SynchronizedFileTemplate(templateName: String, localTemplate: Either[Rudde
     *
     * If there is no error, returns the resulting content
     */
-  def fill(templateName: String, content: String, variables: Seq[STVariable]): IOResult[String] = {
+  def fill(templateName: String, variables: Seq[STVariable], timer: FillTemplateTimer): IOResult[String] = {
     localTemplate match {
       case Right(sourceTemplate) =>
-        semaphore.withPermit(for {
-          // we need to work on an instance of the template
-          template <- IOResult.effect(sourceTemplate.getInstanceOf())
-          /*
-           * Here, we are using bestEffort to try to test a maxum of false values,
-           * but the StringTemplate thing is mutable, so we don't have the intersting
-           * content in case of success.
-           */
-          _        <- variables.accumulate { variable =>
-                        // Only System Variables have nullable entries
-                        if(variable.isSystem && variable.mayBeEmpty &&
-                          ( (variable.values.size == 0) || (variable.values.size ==1 && variable.values.head == "") )
-                        ) {
-                          IOResult.effect(s"Error when trying to replace variable '${variable.name}' with values [${variable.values.mkString(",")}]") {
-                            template.setAttribute(variable.name, null)
-                          }
-                        } else if (!variable.mayBeEmpty && variable.values.isEmpty) {
-                          Unexpected(s"Mandatory variable ${variable.name} is empty, can not write ${templateName}").fail
-                        } else {
-                          StringTemplateLogger.trace(s"Adding in ${templateName} variable '${variable.name}' with values [${variable.values.mkString(",")}]") *>
-                          variable.values.accumulate { value =>
-                            IOResult.effect(s"Error when trying to replace variable '${variable.name}' with values [${variable.values.mkString(",")}]") {
-                              template.setAttribute(variable.name, value)
-                            }
-                          }
-                        }
-                      }
-          //return the actual template with replaced variable in case of success
-          result    <- IOResult.effect("An error occured when converting template to string")(template.toString())
-        } yield {
-          result
-        }).chainError(s"Error with template '${templateName}'")
+        for {
+          t  <- (for {
+                  // we need to work on an instance of the template
+                              ///// BE CAREFULL: HERE, against all odds, the returned instance is NOT threadsafe. /////
+                  /*
+                   * Here, we are using bestEffort to try to test a maxum of false values,
+                   * but the StringTemplate thing is mutable, so we don't have the intersting
+                   * content in case of success.
+                   */
+                  // return (variable name, variable value, error message)
+                  t0        <- currentTimeNanos
+                  vars      <- variables.accumulate { variable =>
+                                // Only System Variables have nullable entries
+                                if(variable.isSystem && variable.mayBeEmpty &&
+                                  ( (variable.values.size == 0) || (variable.values.size ==1 && variable.values.head == "") )
+                                ) {
+                                  List((variable.name, null, s"Error when trying to replace variable '${variable.name}' with values []")).succeed
+                                } else if (!variable.mayBeEmpty && variable.values.size == 0) {
+                                  Unexpected(s"Mandatory variable ${variable.name} is empty, can not write ${templateName}").fail
+                                } else {
+                                  StringTemplateLogger.trace(s"Adding in ${templateName} variable '${variable.name}' with values [${variable.values.mkString(",")}]") *>
+                                  variable.values.accumulate { value =>
+                                    (variable.name, value, s"Error when trying to replace variable '${variable.name}' with values [${variable.values.mkString(",")}]").succeed
+                                  }
+                                }
+                              }
+                  t1        <- currentTimeNanos
+                  _         <- timer.fill.update(_ + t1 - t0)
+                  result    <- semaphore.withPermit(
+                                 for {
+                                   t0_in    <- currentTimeNanos
+                                   template <- IOResult.effectNonBlocking(sourceTemplate.getInstanceOf())
+                                   _        <- vars.flatten.accumulate { case (name, value, errorMsg) => IOResult.effectNonBlocking(errorMsg)(template.setAttribute(name, value))}
+                                   //return the actual template with replaced variable in case of success
+                                   result   <- IOResult.effectNonBlocking("An error occured when converting template to string")(template.toString())
+                                   t1_in    <- currentTimeNanos
+                                 } yield (result, t1_in - t0_in)
+                               )
+                  t2        <- currentTimeNanos
+                  delta     =  t2 - t1
+                  _         <- timer.waitFill.update(_ + delta - result._2)
+                  _         <- timer.stringify.update(_ + delta)
+                } yield {
+                  result._1
+                }).chainError(s"Error with template '${templateName}'")
+        } yield t
 
       case Left(_) =>
         val err = Unexpected(s"Error with template '${templateName}' - the template was not correctly parsed")
@@ -139,51 +177,126 @@ class SynchronizedFileTemplate(templateName: String, localTemplate: Either[Rudde
 
 }
 
+/*
+ * A performance optimized version of fill template which assumes that thread safety is managed for it.
+ * Main changes:
+ * - IT IS NOT THREADSAFE.
+ * - set variable's values directly as list and not one by one
+ * - unwrappe STVariable array seq to avoid the huge conversion cost.
+ */
+object FillTemplateThreadUnsafe {
+  ////////// Hottest method on whole Rudder //////////
+  def fill(templateName: String, sourceTemplate: StringTemplate, variables: Seq[STVariable], timer: FillTemplateTimer, replaceId: Option[(String, String)]): IOResult[(String, String)] = {
+    (for {
+      // we need to work on an instance of the template
+                  ///// BE CAREFULL: HERE, against all odds, the returned instance is NOT threadsafe. /////
+      /*
+       * Here, we are using bestEffort to try to test a maxum of false values,
+       * but the StringTemplate thing is mutable, so we don't have the intersting
+       * content in case of success.
+       */
+      // return (variable name, variable value, error message)
+      template  <- IOResult.effectNonBlocking(sourceTemplate.getInstanceOf()).untraced
+      t0        <- currentTimeNanos
+      vars      <- variables.accumulate { variable =>
+                    // Only System Variables have nullable entries
+                    if(variable.isSystem && variable.mayBeEmpty &&
+                      ( (variable.values.size == 0) || (variable.values.size ==1 && variable.values.head == "") )
+                    ) {
+                      List((variable.name, null, s"Error when trying to replace variable '${variable.name}' with values []")).succeed
+                    } else if (!variable.mayBeEmpty && variable.values.size == 0) {
+                      Unexpected(s"Mandatory variable ${variable.name} is empty, can not write ${templateName}").fail
+                    } else {
+                      StringTemplateLogger.trace(s"Adding in ${templateName} variable '${variable.name}' with values [${variable.values.mkString(",")}]") *>
+                      IOResult.effectNonBlocking(s"Error when trying to replace variable '${variable.name}' with values [${variable.values.mkString(",")}]"){
+                        // directly set the array of values in place of values one by one (and let ST build back the array, mutating its map for values
+                        // each time. Also: ST really need an array, so we use an array seq in STVariable (for immutability) and unwrappe it here to
+                        // avoid the cost of translation.
+                        template.setAttribute(variable.name, variable.values.unsafeArray)
+                      }.untraced
+                    }
+                  }.untraced
+      t1        <- currentTimeNanos
+      _         <- timer.fill.update(_ + t1 - t0)
+     //return the actual template with replaced variable in case of success
+     string     <- IOResult.effectNonBlocking("An error occured when converting template to string")(template.toString())
+                   // if the technique is multipolicy, replace rudderTag by reportId
+     result     =  replaceId match {
+                       case None => (string, templateName)
+                       case Some((from, to)) =>
+                         // this is done quite heavely on big instances, with string rather big, and the performance of
+                         // StringUtils.replace ix x4 the one of String.replace (no regex), see:
+                         // https://stackoverflow.com/questions/16228992/commons-lang-stringutils-replace-performance-vs-string-replace/19163566
+                         (StringUtils.replace(string, from, to), StringUtils.replace(templateName, from , to))
+                     }
+      t2        <- currentTimeNanos
+      delta     =  t2 - t1
+      _         <- timer.stringify.update(_ + delta)
+    } yield {
+      result
+    }).chainError(s"Error with template '${templateName}'").untraced.uninterruptible
+  }
+}
+
+
 class FillTemplatesService {
 
-  val semaphore = ZioRuntime.unsafeRun(Semaphore.make(1))
+  val semaphore = ZioRuntime.unsafeRun(Semaphore.make(1)) //now that we use Promises this semaphore doesn't cost anything
 
   /*
    * The cache is managed template by template
    * If a content is not in the cache, it will create the StringTemplate instance, and return it
    *
    */
-  private[this] val cache = ZioRuntime.unsafeRun(Ref.make(Map[String, SynchronizedFileTemplate]()))
+  private[this] val cache = ZioRuntime.unsafeRun(Ref.make(Map[String, Promise[RudderError, SynchronizedFileTemplate]]()))
 
   def clearCache(): IOResult[Unit] = {
-    semaphore.withPermit {
       cache.set(Map())
-    }
   }
 
-  def getTemplateFromContent(templateName: String,content: String): IOResult[SynchronizedFileTemplate] = {
-    semaphore.withPermit(for {
-      c <- cache.get
-      x <- c.get(content) match {
-             case Some(template) => template.succeed
-             case None =>
-               for {
-                 parsed <- IOResult.effect(s"Error when trying to parse template '${templateName}'") {
-                             new StringTemplate(content, classOf[NormationAmpersandTemplateLexer])
-                           }.either
-                 template = new SynchronizedFileTemplate(templateName, parsed)
-                 _        <- cache.update(_ + ((content, template)) )
-               } yield {
-                 template
-               }
-        }
-    } yield {
-      x
-    })
+
+  def getTemplateFromContent(templateName: String, content: String, timer: FillTemplateTimer): IOResult[Promise[RudderError, SynchronizedFileTemplate]] = {
+    for {
+      t0 <- currentTimeNanos
+      s  <- semaphore.withPermit(for {
+              t0_in <- currentTimeNanos
+              c     <- cache.get
+              x     <- c.get(content) match {
+                         case Some(promise) =>
+                           ZIO.succeed(promise)
+                         case None =>
+                           for {
+                             p <- Promise.make[RudderError, SynchronizedFileTemplate]
+                             _ <- p.complete(for {
+                                    parsed  <- IOResult.effect(s"Error when trying to parse template '${templateName}'") {
+                                                new StringTemplate(content, classOf[NormationAmpersandTemplateLexer])
+                                              }.either
+                                    template = new SynchronizedFileTemplate(templateName, parsed)
+                                  } yield {
+                                    template
+                                  }).fork
+                             _ <- cache.update(_ + (content -> p))
+                           } yield p
+                    }
+              t1_in <- currentTimeNanos
+              delta =  t1_in - t0_in
+              _     <- timer.get.update(_ + delta)
+            } yield {
+              (x, delta)
+            })
+      t1 <- currentTimeNanos
+      _  <- timer.waitGet.update(_ + t1 - t0 - s._2)
+    } yield s._1
   }
 
   /**
    * From a templateName, content and variable, find the template, and call method to fill it
    */
-  def fill(templateName: String, content: String, variables: Seq[STVariable]): IOResult[String] = {
+  def fill(templateName: String, content: String, variables: Seq[STVariable], timer: FillTemplateTimer): IOResult[String] = {
     for {
-      template <- getTemplateFromContent(templateName, content)
-      result   <- template.fill(templateName, content, variables)
+      promise  <- getTemplateFromContent(templateName, content, timer)
+      template <- promise.await
+      result   <- template.fill(templateName, variables, timer)
     } yield {
       result
     }

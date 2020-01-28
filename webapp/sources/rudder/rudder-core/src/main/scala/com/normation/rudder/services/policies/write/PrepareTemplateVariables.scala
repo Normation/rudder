@@ -56,6 +56,8 @@ import com.normation.errors._
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.zio._
 
+import scala.collection.immutable.ArraySeq
+
 
 
 case class PrepareTemplateTimer(
@@ -148,27 +150,26 @@ class PrepareTemplateVariablesImpl(
       , agentNodeConfig.config.nodeInfo.isPolicyServer
       , agentNodeConfig.config.nodeInfo.serverRoles
     )
-
     for {
       res <- for {
-          t0               <- currentTimeMillis
-          bundleVars    <- buildBundleSequence.prepareBundleVars(
-            agentNodeProps
-            , agentNodeConfig.config.nodeInfo.policyMode
-            , globalPolicyMode
-            , agentNodeConfig.config.policies
-            , agentNodeConfig.config.runHooks
-          )
-          t1               <- currentTimeMillis
-          _                <- timer.buildBundleSeq.update(_ + t1 - t0)
-          parameters       <- ZIO.traverse(agentNodeConfig.config.parameters) { x =>
-                                agentRegister.findMap(agentNodeProps){ agent =>
-                                  net.liftweb.common.Full(ParameterEntry(x.name.value, agent.escape(x.value), agentNodeConfig.agentType))
-                                }.toIO
-                              }
-          allSystemVars    =  systemVariables ++ bundleVars
-          t2               <- currentTimeMillis
-          _                <- timer.buildAgentVars.update(_ + t2 - t1)
+        t0               <- currentTimeMillis
+        bundleVars       <- buildBundleSequence.prepareBundleVars(
+                                agentNodeProps
+                              , agentNodeConfig.config.nodeInfo.policyMode
+                              , globalPolicyMode
+                              , agentNodeConfig.config.policies
+                              , agentNodeConfig.config.runHooks
+                            )
+        t1               <- currentTimeMillis
+        _                <- timer.buildBundleSeq.update(_ + t1 - t0)
+        parameters       <- ZIO.traverse(agentNodeConfig.config.parameters) { x =>
+                              agentRegister.findMap(agentNodeProps){ agent =>
+                                net.liftweb.common.Full(ParameterEntry(x.name.value, agent.escape(x.value), agentNodeConfig.agentType))
+                              }.toIO
+                            }
+        allSystemVars    =  systemVariables ++ bundleVars
+        t2               <- currentTimeMillis
+        _                <- timer.buildAgentVars.update(_ + t2 - t1)
       } yield {
         (parameters, allSystemVars)
       }
@@ -206,47 +207,47 @@ class PrepareTemplateVariablesImpl(
     , generationTimestamp : Long
   ) : IOResult[Seq[PreparedTechnique]] = {
 
-    val rudderParametersVariable = STVariable(PARAMETER_VARIABLE, true, parameters, true)
-    val generationVariable = STVariable("GENERATIONTIMESTAMP", false, Seq(generationTimestamp), true)
+    val rudderParametersVariable = STVariable(PARAMETER_VARIABLE, true, parameters.to(ArraySeq), true)
+    val generationVariable = STVariable("GENERATIONTIMESTAMP", false, ArraySeq(generationTimestamp), true)
 
     for {
       variableHandler    <- agentRegister.findHandler(agentNodeProps).toIO.chainError(s"Error when trying to fetch variable escaping method for node ${agentNodeProps.nodeId.value}")
                             // here, `traverse` seems to give similar but more consistant results than `traverseParN`
       preparedTechniques <- ZIO.traverse(policies) { p =>
-        for {
+                              for {
                                 _         <- PolicyGenerationLoggerPure.trace(s"Processing node '${agentNodeProps.nodeId.value}':${p.ruleName}/${p.directiveName} [${p.id.value}]")
                                 variables <- prepareVariables(agentNodeProps, variableHandler, p, systemVars).chainError(s"Error when trying to build variables for technique(s) in node ${agentNodeProps.nodeId.value}")
-        } yield {
-          val techniqueTemplatesIds = p.technique.templatesIds
-          // only set if technique is multi-policy
-          val reportId = p.technique.generationMode match {
-            case TechniqueGenerationMode.MultipleDirectives => Some(p.id)
-            case _ => None
-          }
-          //if technique is multi-policy, we need to update destination path to add an unique id along with the version
-          //to have one directory by directive.
-          val techniqueTemplates = {
-            val templates = allTemplates.view.filterKeys(k => techniqueTemplatesIds.contains(k._1) && k._2 == agentNodeProps.agentType).values.toSet
-            p.technique.generationMode match {
-              case TechniqueGenerationMode.MultipleDirectives =>
-                templates.map(copyInfo => copyInfo.copy(destination = Policy.makeUniqueDest(copyInfo.destination, p)))
-              case _ =>
-                templates
-            }
-          }
-          val files = {
-            val files = p.technique.agentConfig.files.toSet[TechniqueFile]
-            p.technique.generationMode match {
-              case TechniqueGenerationMode.MultipleDirectives =>
-                files.map(file => file.copy(outPath = Policy.makeUniqueDest(file.outPath, p)))
-              case _ =>
-                files
-            }
-          }
+                              } yield {
+                                val techniqueTemplatesIds = p.technique.templatesIds
+                                // only set if technique is multi-policy
+                                val reportId = p.technique.generationMode match {
+                                  case TechniqueGenerationMode.MultipleDirectives => Some(p.id)
+                                  case _ => None
+                                }
+                                //if technique is multi-policy, we need to update destination path to add an unique id along with the version
+                                //to have one directory by directive.
+                                val techniqueTemplates = {
+                                  val templates = allTemplates.view.filterKeys(k => techniqueTemplatesIds.contains(k._1) && k._2 == agentNodeProps.agentType).values.toSet
+                                  p.technique.generationMode match {
+                                    case TechniqueGenerationMode.MultipleDirectives =>
+                                      templates.map(copyInfo => copyInfo.copy(destination = Policy.makeUniqueDest(copyInfo.destination, p)))
+                                    case _ =>
+                                      templates
+                                  }
+                                }
+                                val files = {
+                                  val files = p.technique.agentConfig.files.toSet[TechniqueFile]
+                                  p.technique.generationMode match {
+                                    case TechniqueGenerationMode.MultipleDirectives =>
+                                      files.map(file => file.copy(outPath = Policy.makeUniqueDest(file.outPath, p)))
+                                    case _ =>
+                                      files
+                                  }
+                                }
 
-          PreparedTechnique(techniqueTemplates, variables :+ rudderParametersVariable :+ generationVariable, files, reportId)
-        }
-      }
+                                PreparedTechnique(techniqueTemplates, variables :+ rudderParametersVariable :+ generationVariable, files, reportId)
+                              }
+                            }
     } yield {
       preparedTechniques
     }
@@ -265,7 +266,7 @@ class PrepareTemplateVariablesImpl(
       STVariable(
           name = v.spec.name
         , mayBeEmpty = v.spec.constraint.mayBeEmpty
-        , values = values
+        , values = values.to(ArraySeq)
         , v.spec.isSystem
         )
     }

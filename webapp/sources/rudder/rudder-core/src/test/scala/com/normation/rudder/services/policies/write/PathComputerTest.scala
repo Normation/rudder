@@ -36,12 +36,11 @@
 
 package com.normation.rudder.services.policies.write
 
+import com.normation.errors.Inconsistancy
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
-import net.liftweb.common.Full
 import com.normation.rudder.domain.Constants
-import net.liftweb.common.Failure
 
 @RunWith(classOf[JUnitRunner])
 class PathComputerTest extends Specification {
@@ -62,12 +61,12 @@ class PathComputerTest extends Specification {
 
   "The paths for " should {
     "the root node should raise an error" in {
-      pathComputer.computeBaseNodePath(root.id, root.id, allNodeConfig.view.mapValues(_.nodeInfo).toMap) must beAnInstanceOf[Failure]
+      pathComputer.computeBaseNodePath(root.id, root.id, allNodeConfig.view.mapValues(_.nodeInfo).toMap) must beAnInstanceOf[Left[Inconsistancy, _]]
     }
 
     "the nodeConfig should be " in {
       pathComputer.computeBaseNodePath(node1.id, root.id, allNodeConfig.view.mapValues(_.nodeInfo).toMap) must
-      beEqualTo(Full(NodePromisesPaths(node1.id,"/var/rudder/share/node1/rules", "/var/rudder/share/node1/rules.new", "/var/rudder/backup/node1/rules")))
+      beEqualTo(Right(NodePoliciesPaths(node1.id,"/var/rudder/share/node1/rules", "/var/rudder/share/node1/rules.new", "/var/rudder/backup/node1/rules")))
     }
 
     // #TODO: migrate in scale-out relay plugin
@@ -82,7 +81,7 @@ class PathComputerTest extends Specification {
       val badNode1 = node1NodeConfig.copy(nodeInfo = node1NodeConfig.nodeInfo.copy(policyServerId = node2.id) )
       val badNode2 = node2NodeConfig.copy(nodeInfo = node2NodeConfig.nodeInfo.copy(policyServerId = node1.id) )
       val badConfig = allNodeConfig + (node1.id -> badNode1) + (node2.id -> badNode2)
-      pathComputer.computeBaseNodePath(node1.id, root.id, badConfig.view.mapValues(_.nodeInfo).toMap) must beAnInstanceOf[Failure]
+      pathComputer.computeBaseNodePath(node1.id, root.id, badConfig.view.mapValues(_.nodeInfo).toMap) must beAnInstanceOf[Left[Inconsistancy, _]]
     }
   }
 

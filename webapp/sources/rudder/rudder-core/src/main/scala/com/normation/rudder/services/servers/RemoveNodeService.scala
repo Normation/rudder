@@ -78,7 +78,7 @@ import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.repository.ldap.ScalaReadWriteLock
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.nodes.NodeInfoService.A_MOD_TIMESTAMP
-import com.normation.rudder.services.policies.write.NodePromisesPaths
+import com.normation.rudder.services.policies.write.NodePoliciesPaths
 import com.normation.rudder.services.policies.write.PathComputer
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
@@ -143,7 +143,7 @@ class RemoveNodeServiceImpl(
    * This method is an helper that does the policy server lookup for
    * you.
    */
-  def getNodePath(node: NodeInfo): Box[NodePromisesPaths] = {
+  def getNodePath(node: NodeInfo): Box[NodePoliciesPaths] = {
     //accumumate all the node infos from node id to root throught relay servers
     def recGetParent(node: NodeInfo): Box[Map[NodeId, NodeInfo]] = {
       if(node.id == Constants.ROOT_POLICY_SERVER_ID) {
@@ -160,7 +160,7 @@ class RemoveNodeServiceImpl(
     }
     for {
       nodeInfos <- recGetParent(node)
-      paths     <- pathComputer.computeBaseNodePath(node.id, Constants.ROOT_POLICY_SERVER_ID, nodeInfos)
+      paths     <- pathComputer.computeBaseNodePath(node.id, Constants.ROOT_POLICY_SERVER_ID, nodeInfos).toBox
     } yield {
       paths
     }
@@ -180,7 +180,7 @@ class RemoveNodeServiceImpl(
    */
   def removeNode(nodeId : NodeId, modId: ModificationId, actor:EventActor) : Box[DeletionResult] = {
     import DeletionResult._
-    def effectiveDeletion( nodeInfo : NodeInfo, optNodePaths: Option[NodePromisesPaths], preHooks : Hooks, startPreHooks : Long) : Box[DeletionResult]  = {
+    def effectiveDeletion( nodeInfo: NodeInfo, optNodePaths: Option[NodePoliciesPaths], preHooks: Hooks, startPreHooks: Long) : Box[DeletionResult]  = {
       val systemEnv = {
         import scala.jdk.CollectionConverters._
         HookEnvPairs.build(System.getenv.asScala.toSeq:_*)

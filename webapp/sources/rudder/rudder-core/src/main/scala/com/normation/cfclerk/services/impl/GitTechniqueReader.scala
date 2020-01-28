@@ -56,7 +56,6 @@ import org.eclipse.jgit.lib.ObjectId
 import scala.collection.mutable.{Map => MutMap}
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.cfclerk.services._
-
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.errors.MissingObjectException
 import org.eclipse.jgit.diff.DiffEntry.ChangeType
@@ -70,6 +69,7 @@ import GitTechniqueReader._
 import com.normation.rudder.domain.logger.TechniqueReaderLoggerPure
 import org.eclipse.jgit.lib.Repository
 import com.github.ghik.silencer.silent
+import org.eclipse.jgit.lib.ObjectStream
 
 
 /**
@@ -316,53 +316,49 @@ class GitTechniqueReader(
     }).runNow
   }
 
-  private[this] final def getDBAndCurrentId() = (for {
-        a <- repo.db
-        b <- revisionProvider.currentRevTreeId
-      } yield (a, b)).runNow
-
-  override def getMetadataContent[T](techniqueId: TechniqueId)(useIt : Option[InputStream] => T) : T = {
+  override def getMetadataContent[T](techniqueId: TechniqueId)(useIt : Option[InputStream] => IOResult[T]) : IOResult[T] = {
     //build a treewalk with the path, given by metadata.xml
     val path = techniqueId.toString + "/" + techniqueDescriptorName
     //has package id are unique among the whole tree, we are able to find a
     //template only base on the packageId + name.
 
-    var is : InputStream = null
-    try {
-      val (db, currentId) = getDBAndCurrentId()
-      useIt {
-        //now, the treeWalk
-        val tw = new TreeWalk(db)
-        tw.setFilter(new FileTreeFilter(canonizedRelativePath, path))
-        tw.setRecursive(true)
-        tw.reset(currentId)
-        var ids = List.empty[ObjectId]
-        while(tw.next) {
-          ids = tw.getObjectId(0) :: ids
-        }
-        ids match {
-          case Nil =>
-            logger.error("Metadata file %s was not found for technique with id %s.".format(techniqueDescriptorName, techniqueId))
-            None
-          case h :: Nil =>
-            is = db.open(h).openStream
-            Some(is)
-          case _ =>
-            logger.error(s"There is more than one Technique with ID '${techniqueId}', what is forbidden. Please check if several categories have that Technique, and rename or delete the clones.")
-            None
-      } }
-    } catch {
-      case ex:FileNotFoundException =>
-        logger.debug( () => "Template %s does not exist".format(path),ex)
-        useIt(None)
-    } finally {
-      if(null != is) {
-        is.close
-      }
-    }
+    val managed = Managed.make(
+      for {
+        db        <- repo.db
+        currentId <- revisionProvider.currentRevTreeId
+        optStream <- IOResult.effect {
+                       try {
+                         val tw = new TreeWalk(db)
+                         tw.setFilter(new FileTreeFilter(canonizedRelativePath, path))
+                         tw.setRecursive(true)
+                         tw.reset(currentId)
+                         var ids = List.empty[ObjectId]
+                         while(tw.next) {
+                           ids = tw.getObjectId(0) :: ids
+                         }
+                         ids match {
+                           case Nil =>
+                             logger.error("Metadata file %s was not found for technique with id %s.".format(techniqueDescriptorName, techniqueId))
+                             Option.empty[ObjectStream]
+                           case h :: Nil =>
+                             Some(db.open(h).openStream)
+                           case _ =>
+                             logger.error(s"There is more than one Technique with ID '${techniqueId}', what is forbidden. Please check if several categories have that Technique, and rename or delete the clones.")
+                             Option.empty[ObjectStream]
+                         }
+                       } catch {
+                         case ex:FileNotFoundException =>
+                           logger.debug( () => "Template %s does not exist".format(path),ex)
+                           Option.empty[ObjectStream]
+                       }
+                     }
+         } yield optStream
+    )(optStream => effectUioUnit(optStream.map(_.close())))
+
+    managed.use(useIt)
   }
 
-  override def getResourceContent[T](techniqueResourceId: TechniqueResourceId, postfixName: Option[String])(useIt : Option[InputStream] => T) : T = {
+  override def getResourceContent[T](techniqueResourceId: TechniqueResourceId, postfixName: Option[String])(useIt : Option[InputStream] => IOResult[T]) : IOResult[T] = {
     //build a treewalk with the path, given by TechniqueTemplateId
     val filenameFilter = {
       val name = techniqueResourceId.name + postfixName.getOrElse("")
@@ -379,39 +375,41 @@ class GitTechniqueReader(
     //has package id are unique among the whole tree, we are able to find a
     //template only base on the techniqueId + name.
 
-    var is : InputStream = null
-    try {
-      val (db, currentId) = getDBAndCurrentId()
-      useIt {
-        //now, the treeWalk
-        val tw = new TreeWalk(db)
-        tw.setFilter(filenameFilter)
-        tw.setRecursive(true)
-        tw.reset(currentId)
-        var ids = List.empty[ObjectId]
-        while(tw.next) {
-          ids = tw.getObjectId(0) :: ids
-        }
-        ids match {
-          case Nil =>
-            logger.error(s"Template with id ${techniqueResourceId.toString} was not found")
-            None
-          case h :: Nil =>
-            is = db.open(h).openStream
-            Some(is)
-          case _ =>
-            logger.error(s"There is more than one Technique with name '${techniqueResourceId.name}' which is forbidden. Please check if several categories have that Technique and rename or delete the clones")
-            None
-      } }
-    } catch {
-      case ex:FileNotFoundException =>
-        logger.debug( () => s"Technique Template ${techniqueResourceId.toString} does not exist", ex)
-        useIt(None)
-    } finally {
-      if(null != is) {
-        is.close
-      }
-    }
+    val managed = Managed.make(
+      for {
+        db        <- repo.db
+        currentId <- revisionProvider.currentRevTreeId
+        optStream <- IOResult.effect {
+                       try {
+                         //now, the treeWalk
+                         val tw = new TreeWalk(db)
+                         tw.setFilter(filenameFilter)
+                         tw.setRecursive(true)
+                         tw.reset(currentId)
+                         var ids = List.empty[ObjectId]
+                         while(tw.next) {
+                           ids = tw.getObjectId(0) :: ids
+                         }
+                         ids match {
+                           case Nil =>
+                             logger.error(s"Template with id ${techniqueResourceId.toString} was not found")
+                             Option.empty[ObjectStream]
+                           case h :: Nil =>
+                             Some(db.open(h).openStream)
+                           case _ =>
+                             logger.error(s"There is more than one Technique with name '${techniqueResourceId.name}' which is forbidden. Please check if several categories have that Technique and rename or delete the clones")
+                             Option.empty[ObjectStream]
+                         }
+                       } catch {
+                         case ex:FileNotFoundException =>
+                           logger.debug( () => s"Technique Template ${techniqueResourceId.toString} does not exist", ex)
+                           Option.empty[ObjectStream]
+                       }
+                    }
+      } yield optStream
+    )(optStream => effectUioUnit(optStream.map(_.close())))
+
+    managed.use(useIt)
   }
 
   /**

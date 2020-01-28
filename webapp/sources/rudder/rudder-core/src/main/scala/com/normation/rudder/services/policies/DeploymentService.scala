@@ -810,7 +810,7 @@ trait PromiseGeneration_BuildNodeContext {
         } yield {
           (param.name, p)
         }
-      }.map( _.toMap)
+      }.map(_.toMap)
     }
 
     for {
@@ -1201,7 +1201,8 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
     }
 
     if(notUpdatedConfig.nonEmpty) {
-      PolicyGenerationLogger.debug(s"Not updating non-modified node configuration: [${notUpdatedConfig.map( _.id.value).mkString(", ")}]")
+      PolicyGenerationLogger.update.debug(s"Configuration of ${notUpdatedConfig.size} nodes were already OK, not updating them")
+      PolicyGenerationLogger.update.trace(s" -> not updating nodes: [${notUpdatedConfig.map( _.id.value).mkString(", ")}]")
     }
 
     if(updatedConfig.isEmpty) {
@@ -1210,7 +1211,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
     } else {
       val nodeToKeep = updatedConfig.map( _.id ).toSet
       PolicyGenerationLogger.info(s"Configuration of ${updatedConfig.size} nodes were updated, their policies are going to be written")
-      PolicyGenerationLogger.debug(s" -> update nodes and policies: [${updatedConfig.map(_.id.value).mkString(", ")}]")
+      PolicyGenerationLogger.update.debug(s" -> updating nodes: [${updatedConfig.map(_.id.value).mkString(", ")}]")
       nodeConfigurations.keySet.intersect(nodeToKeep)
     }
   }

@@ -360,6 +360,7 @@ limitations under the License.
     <jodatime-version>2.10.3</jodatime-version>
     <jodaconvert-version>2.2.1</jodaconvert-version>
     <commons-io-version>2.6</commons-io-version>
+    <commons-lang-version>2.6</commons-lang-version>
     <commons-codec-version>1.13</commons-codec-version>
     <spring-version>5.1.9.RELEASE</spring-version>
     <spring-security-version>5.1.6.RELEASE</spring-security-version>

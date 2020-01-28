@@ -196,7 +196,7 @@ object RunNuCommand {
       _              <- if(process == null) {
                           Unexpected(s"Error: unable to start native command ${cmdInfo}").fail
                         } else {
-                          //that class#method does not accept interactive mode
+                          // that class#method does not accept interactive mode
                           // this part can block, waiting for things to complete
                           IOResult.effect(errorMsg) {
                             process.closeStdin(true)

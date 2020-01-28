@@ -54,17 +54,17 @@ trait TechniqueRepository {
    * Retrieve the metadata file content
    * (for example,to display it)
    */
-  def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T
+  def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => IOResult[T]): IOResult[T]
 
   /**
    * Get the template content for the given id
    */
-  def getTemplateContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => T): T
+  def getTemplateContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => IOResult[T]): IOResult[T]
 
   /**
    * Get the file content for the given id
    */
-  def getFileContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => T): T
+  def getFileContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => IOResult[T]): IOResult[T]
 
 
   /*

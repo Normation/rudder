@@ -48,11 +48,13 @@ import java.nio.charset.StandardCharsets
 
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
-
 import zio._
 import zio.syntax._
 import com.normation.errors._
+import com.normation.templates.FillTemplateTimer
 import com.normation.zio._
+
+import scala.collection.immutable.ArraySeq
 
 /**
  * The configuration object for our CLI.
@@ -162,13 +164,14 @@ object TemplateCli {
    */
   def process(config: Config): IOResult[Unit] = {
     for {
+      timer     <- FillTemplateTimer.make()
       variables <- ParseVariables.fromFile(config.variables)
       _         <- if(config.templates.nonEmpty) {
                      val filler = //if we are writing to stdout, use a different filler and ignore outputExtension
                                 if(config.outputToStdout) {
-                                  fillToStdout(variables.toSeq, config.inputExtension) _
+                                  fillToStdout(variables.toSeq, config.inputExtension, timer) _
                                 } else {
-                                  fill(variables.toSeq, config.outdir, config.inputExtension, config.outputExtension) _
+                                  fill(variables.toSeq, config.outdir, config.inputExtension, config.outputExtension, timer) _
                                 }
                      config.templates.accumulate { filler }
                    } else {
@@ -178,7 +181,7 @@ object TemplateCli {
                       */
                      for {
                        content <- readStdin()
-                       ok      <- filledAndWriteToStdout(variables.toSeq, content, "stdin")
+                       ok      <- filledAndWriteToStdout(variables.toSeq, content, "stdin", timer)
                      } yield {
                        ok
                      }
@@ -209,11 +212,11 @@ object TemplateCli {
    * Only file with inputExtension are processed.
    * inputExtension is replaced by outputExtension.
    */
-  def fill(variables: Seq[STVariable], outDir: File, inputExtension: String, outputExtension: String)(template: File): IOResult[String] = {
+  def fill(variables: Seq[STVariable], outDir: File, inputExtension: String, outputExtension: String, timer: FillTemplateTimer)(template: File): IOResult[String] = {
     for {
       ok      <- if(template.getName.endsWith(inputExtension)) { UIO.unit } else { Inconsistancy(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'").fail }
       content <- IOResult.effect(s"Error when reading variables from ${template.getAbsolutePath}")(FileUtils.readFileToString(template, StandardCharsets.UTF_8))
-      filled  <- fillerService.fill(template.getAbsolutePath, content, variables)
+      filled  <- fillerService.fill(template.getAbsolutePath, content, variables, timer)
       name     = template.getName
       out      = new File(outDir, name.substring(0, name.size-inputExtension.size)+outputExtension)
       writed  <- IOResult.effect( s"Error when writting filled template into ${out.getAbsolutePath}")(FileUtils.writeStringToFile(out, filled, StandardCharsets.UTF_8))
@@ -225,19 +228,19 @@ object TemplateCli {
   /**
    * Same as fill, but print everything to stdout
    */
-  def fillToStdout(variables: Seq[STVariable], inputExtension: String)(template: File): IOResult[String] = {
+  def fillToStdout(variables: Seq[STVariable], inputExtension: String, timer: FillTemplateTimer)(template: File): IOResult[String] = {
     for {
       ok      <- if(template.getName.endsWith(inputExtension)) { UIO.unit } else { Inconsistancy(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'").fail }
       content <- IOResult.effect(s"Error when reading variables from ${template.getAbsolutePath}")(FileUtils.readFileToString(template, StandardCharsets.UTF_8))
-      writed  <- filledAndWriteToStdout(variables, content, template.getName)
+      writed  <- filledAndWriteToStdout(variables, content, template.getName, timer)
     } yield {
       writed
     }
   }
 
-  def filledAndWriteToStdout(variables: Seq[STVariable], content: String, templateName: String) = {
+  def filledAndWriteToStdout(variables: Seq[STVariable], content: String, templateName: String, timer: FillTemplateTimer) = {
     for {
-      filled  <- fillerService.fill(templateName, content, variables)
+      filled  <- fillerService.fill(templateName, content, variables, timer)
       writed  <- IOResult.effect(s"Error when writting filled template to stdout")(IOUtils.write(filled, System.out, "UTF-8"))
     } yield {
       templateName
@@ -279,17 +282,17 @@ object ParseVariables extends Loggable {
 
   def fromString(jsonString: String): IOResult[Set[STVariable]] = {
 
-    def parseAsValue(v: JValue): List[Any] = {
+    def parseAsValue(v: JValue): ArraySeq[Any] = {
       v match {
-        case JString(value) => value :: Nil
-        case JBool(value)   => value :: Nil
+        case JString(value) => ArraySeq(value)
+        case JBool(value)   => ArraySeq(value)
         case JArray(arr)    => arr.map { x => x match {
                                  case JString(value) => value
                                  case JBool(value)   => value
                                  //at that level, any other thing, including array, is parser as a simple string
                                  case value          => compactRender(value)
-                               } }
-        case value            => compactRender(value) :: Nil
+                               } }.to(ArraySeq)
+        case value            => ArraySeq(compactRender(value))
       }
     }
 
