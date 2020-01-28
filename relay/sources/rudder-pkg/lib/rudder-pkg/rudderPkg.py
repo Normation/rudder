@@ -189,7 +189,8 @@ def package_install_latest(name, mode="release"):
     if rpkg is not None:
         rpkgPath = utils.downloadByRpkg(rpkg)
         install_file([rpkgPath])
-    utils.fail("Could not find any compatible %s for %s"%(mode, name))
+    else:
+        utils.fail("Could not find any compatible %s for %s"%(mode, name))
 
 """Remove a given plugin. Expect a list of name as parameter."""
 def remove(package_names):
