@@ -52,7 +52,7 @@
 # Will retry to run `command -a -t` until it returns `0`. Then it will
 # not execute it again.
 #
-# @parameter command        The command to run
+# @parameter command        Command to run
 # @parameter ok_codes       List of codes that produce a repaired status separated with commas (ex: 1,2,5). Defaults to 0.
 # @parameter_constraint ok_codes "allow_empty_string" : true
 # @parameter until          Try to execute the command until a particular state: 'ok', 'any' (defaults to 'any')
