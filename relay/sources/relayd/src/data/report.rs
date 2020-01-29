@@ -60,6 +60,14 @@ fn agent_log_level(i: &str) -> IResult<&str, AgentLogLevel> {
         map(tag("    info:"), |_| "log_info"),
         map(tag(" verbose:"), |_| "log_debug"),
         map(tag("   debug:"), |_| "log_debug"),
+        // At log level >= info, CFEngine adds the program name
+        // https://github.com/cfengine/core/blob/f57d0359757c6adb7ec2416f2072546b8db1181b/libutils/logging.c#L223
+        // For us it should always be "rudder" as it is part of our policies
+        map(tag("rudder CRITICAL:"), |_| "log_warn"),
+        map(tag("rudder    error:"), |_| "log_warn"),
+        map(tag("rudder  warning:"), |_| "log_warn"),
+        map(tag("rudder   notice:"), |_| "log_info"),
+        map(tag("rudder     info:"), |_| "log_info"),
         // ncf logs
         map(tag("R: [FATAL]"), |_| "log_warn"),
         map(tag("R: [ERROR]"), |_| "log_warn"),
@@ -451,6 +459,16 @@ mod tests {
             LogEntry {
                 event_type: "log_warn",
                 msg: "toto\ntruc".to_string(),
+                datetime: DateTime::parse_from_str("2019-05-09T13:36:46+00:00", "%+").unwrap(),
+            }
+        );
+        assert_eq!(
+            log_entry("2019-05-09T13:36:46+00:00 rudder     info: Executing\n")
+                .unwrap()
+                .1,
+            LogEntry {
+                event_type: "log_info",
+                msg: "Executing".to_string(),
                 datetime: DateTime::parse_from_str("2019-05-09T13:36:46+00:00", "%+").unwrap(),
             }
         );
