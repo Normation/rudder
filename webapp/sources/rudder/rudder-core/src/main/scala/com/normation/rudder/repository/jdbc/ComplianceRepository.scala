@@ -94,58 +94,67 @@ class ComplianceJdbcRepository(
    */
   override def saveRunCompliance(reports: List[NodeStatusReport]): Box[List[NodeStatusReport]] = {
 
-    /*
-     * some sorting of things. We must only store information about node status reports with
-     * a run
-     */
-    val runCompliances = reports.flatMap { r => r.runInfo match {
-      //ignore case with no runs
-      case _:NoReportInInterval |
-           NoRunNoExpectedReport |
-           _:ReportsDisabledInInterval => None
+    // Only compute compliance if we need to save complianceDetails or complianceLevels
+    val runCompliances = if (getSaveComplianceDetails().getOrElse(false) || getSaveComplianceLevels().getOrElse(true)) {
+      /*
+       * some sorting of things. We must only store information about node status reports with
+       * a run
+       */
+      reports.flatMap { r =>
+        r.runInfo match {
+          //ignore case with no runs
+          case _: NoReportInInterval |
+               NoRunNoExpectedReport |
+               _: ReportsDisabledInInterval => None
 
-      case x:Pending => x.optLastRun match {
-        case None =>
-          None
-        case Some((runTime, expected)) =>
-          Some(RunCompliance.from(runTime, x.expirationDateTime, r))
-      }
+          case x: Pending => x.optLastRun match {
+            case None =>
+              None
+            case Some((runTime, expected)) =>
+              Some(RunCompliance.from(runTime, x.expirationDateTime, r))
+          }
 
-      case x:NoExpectedReport =>
-        // here, the expiration date has not much meaning, since we don't have
-        // information on that node configuration (and so the node has most likelly no
-        // idea whatsoever of any config, even global). Take default values,
-        // ie 5min for run + 5min for grace
-        Some(RunCompliance.from(x.lastRunDateTime, x.lastRunDateTime.plusMinutes(10), r))
-      case x:UnexpectedVersion =>
-        Some(RunCompliance.from(x.lastRunDateTime, x.lastRunExpiration, r))
-      case x:UnexpectedNoVersion =>
-        Some(RunCompliance.from(x.lastRunDateTime, x.lastRunExpiration, r))
-      case x:UnexpectedUnknowVersion =>
-        // same has for NoExpectedReport, we can't now what the node
-        // thing its configuration is.
-        Some(RunCompliance.from(x.lastRunDateTime, x.lastRunDateTime.plusMinutes(10), r))
-      case x:ComputeCompliance =>
-        Some(RunCompliance.from(x.lastRunDateTime, x.expirationDateTime, r))
+          case x: NoExpectedReport =>
+            // here, the expiration date has not much meaning, since we don't have
+            // information on that node configuration (and so the node has most likelly no
+            // idea whatsoever of any config, even global). Take default values,
+            // ie 5min for run + 5min for grace
+            Some(RunCompliance.from(x.lastRunDateTime, x.lastRunDateTime.plusMinutes(10), r))
+          case x: UnexpectedVersion =>
+            Some(RunCompliance.from(x.lastRunDateTime, x.lastRunExpiration, r))
+          case x: UnexpectedNoVersion =>
+            Some(RunCompliance.from(x.lastRunDateTime, x.lastRunExpiration, r))
+          case x: UnexpectedUnknowVersion =>
+            // same has for NoExpectedReport, we can't now what the node
+            // thing its configuration is.
+            Some(RunCompliance.from(x.lastRunDateTime, x.lastRunDateTime.plusMinutes(10), r))
+          case x: ComputeCompliance =>
+            Some(RunCompliance.from(x.lastRunDateTime, x.expirationDateTime, r))
 
-    } }
-
-    type LEVELS = (String, DateTime, String, String, ComplianceLevel)
-
-    val nodeComplianceLevels: List[LEVELS] = runCompliances.flatMap { run =>
-      //one aggregatestatus reports can hold several RuleNodeStatusReports with the
-      //same node/rule/run but different serial. Here, we already know the nodeid and run,
-      //so group by ruleId, get directives, merge.
-
-      run.details.reports.groupBy( _.ruleId ).flatMap { case (ruleId, aggregats) =>
-        //get a map of all (directiveId -> seq(directives)
-        //be carefull to "toList", because we don't want to deduplicate if
-        //two directive are actually equal
-        aggregats.toList.flatMap( _.directives.values ).groupBy( _.directiveId ).map { case (directiveId, seq) =>
-
-            (run.nodeId.value, run.runTimestamp, ruleId.value, directiveId.value, ComplianceLevel.sum(seq.map(_.compliance)))
         }
       }
+    } else {
+      Nil
+    }
+    type LEVELS = (String, DateTime, String, String, ComplianceLevel)
+
+    val nodeComplianceLevels: List[LEVELS] = if (getSaveComplianceLevels().getOrElse(true)) {
+      runCompliances.flatMap { run =>
+        //one aggregatestatus reports can hold several RuleNodeStatusReports with the
+        //same node/rule/run but different serial. Here, we already know the nodeid and run,
+        //so group by ruleId, get directives, merge.
+
+        run.details.reports.groupBy(_.ruleId).flatMap { case (ruleId, aggregats) =>
+          //get a map of all (directiveId -> seq(directives)
+          //be carefull to "toList", because we don't want to deduplicate if
+          //two directive are actually equal
+          aggregats.toList.flatMap(_.directives.values).groupBy(_.directiveId).map { case (directiveId, seq) =>
+            (run.nodeId.value, run.runTimestamp, ruleId.value, directiveId.value, ComplianceLevel.sum(seq.map(_.compliance)))
+          }
+        }
+      }
+    } else {
+      Nil
     }
 
     val saveComplianceDetails = if(getSaveComplianceDetails().getOrElse(false)) {

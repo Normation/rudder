@@ -271,7 +271,9 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
                                s" hit:[${upToDate.map(_.value).mkString(" , ")}]")
         cache = cache ++ newStatus
         val toReturn = cache.filterKeys { id => nodeIds.contains(id) }
-        logger.trace("Compliance cache content: " + cacheToLog(toReturn))
+        if (logger.isTraceEnabled) {
+          logger.trace("Compliance cache content: " + cacheToLog(toReturn))
+        }
         toReturn
       }
     }
