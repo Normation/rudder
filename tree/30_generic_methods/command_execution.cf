@@ -20,27 +20,27 @@
 # @description Execute a command
 # @action
 #
-# @parameter command_name  Command name
+# @parameter command  Command to run
 # 
 # @class_prefix command_execution
-# @class_parameter command_name
+# @class_parameter command
 
-bundle agent command_execution(command_name)
+bundle agent command_execution(command)
 {
   vars:
-      "old_class_prefix"  string => canonify("command_execution_${command_name}");
-      "args"               slist => { "${command_name}" };
+      "old_class_prefix"  string => canonify("command_execution_${command}");
+      "args"               slist => { "${command}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("command_execution_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   methods:
       "report"
-        usebundle  => _log_v3("Execute the command ${command_name}", "${command_name}", "${old_class_prefix}", "${class_prefix}", @{args}),
+        usebundle  => _log_v3("Execute the command ${command}", "${command}", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass => "${old_class_prefix}_reached|${class_prefix}_reached";
 
   commands:
-      "${command_name}"
+      "${command}"
         contain      => in_shell,
         classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
