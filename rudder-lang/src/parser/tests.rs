@@ -44,7 +44,7 @@ fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
     };
     match err.context {
         Some(context) => (context.fragment, kind),
-        None => ("", kind)
+        None => ("", kind),
     }
 }
 

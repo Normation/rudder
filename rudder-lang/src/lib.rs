@@ -7,9 +7,9 @@ extern crate log;
 
 #[macro_use]
 pub mod error;
-pub mod logger;
-pub mod compile;
-pub mod translate;
 mod ast;
+pub mod compile;
 mod generators;
+pub mod logger;
 mod parser;
+pub mod translate;

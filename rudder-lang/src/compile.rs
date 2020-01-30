@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::error::*;
 use crate::ast::AST;
+use crate::error::*;
 use crate::generators::*;
-use crate::parser::{PAST, Token};
+use crate::parser::{Token, PAST};
 use colored::Colorize;
 use std::cell::UnsafeCell;
 use std::fs;
@@ -22,8 +22,8 @@ fn add_file<'a>(
         Ok(content) => {
             let content_str = source_list.append(content);
             past.add_file(filename, &content_str)
-        },
-        Err(e) => Err(err!(Token::new(filename, ""), "{}", e))
+        }
+        Err(e) => Err(err!(Token::new(filename, ""), "{}", e)),
     }
 }
 
@@ -54,7 +54,7 @@ impl SourceList {
 
 pub fn compile_file(source: &Path, dest: &Path, technique: bool) -> Result<()> {
     let sources = SourceList::new();
-    
+
     // read and add files
     let corelib = Path::new("libs/corelib.rl");
     let stdlib = Path::new("libs/stdlib.rl");
@@ -68,7 +68,6 @@ pub fn compile_file(source: &Path, dest: &Path, technique: bool) -> Result<()> {
         output_filename.bright_yellow()
     );
 
-
     // data
     let mut past = PAST::new();
     add_file(&mut past, &sources, corelib, "corelib.rl")?;
@@ -78,8 +77,7 @@ pub fn compile_file(source: &Path, dest: &Path, technique: bool) -> Result<()> {
     // finish parsing into AST
     info!("|- {}", "Generating intermediate code".bright_green());
     let ast = AST::from_past(past)?;
-    
-    
+
     // check that everything is OK
     info!("|- {}", "Semantic verification".bright_green());
     ast.analyze()?;

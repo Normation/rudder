@@ -4,11 +4,11 @@
 mod error;
 mod token;
 
-use nom::error::*;
 use nom::branch::*;
 use nom::bytes::complete::*;
 use nom::character::complete::*;
 use nom::combinator::*;
+use nom::error::*;
 use nom::multi::*;
 use nom::number::complete::*;
 use nom::sequence::*;
@@ -85,11 +85,8 @@ impl<'src> PAST<'src> {
                     self.resources.push(r);
                 }
                 PDeclaration::State((s, d)) => {
-                    self.parameter_defaults.push((
-                        s.resource_name,
-                        Some(s.name),
-                        d,
-                    ));
+                    self.parameter_defaults
+                        .push((s.resource_name, Some(s.name), d));
                     self.states.push(s);
                 }
                 PDeclaration::GlobalVar(kv) => self.variable_declarations.push(kv),
@@ -976,8 +973,8 @@ fn end_of_pfile(i: PInput) -> PResult<()> {
     if i.fragment.len() == 0 {
         return Err(nom::Err::Error(PError {
             context: None,
-            kind: PErrorKind::Nom(VerboseError::from_error_kind(i, ErrorKind::Eof))
-        }))
+            kind: PErrorKind::Nom(VerboseError::from_error_kind(i, ErrorKind::Eof)),
+        }));
     }
     Ok((i, ()))
 }

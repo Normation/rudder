@@ -6,19 +6,18 @@
 /// this file will be the integration tests base for techniques compilation to cfengine file
 /// takes an rl file and a cf file, parses the first, compiles,
 /// and compares expected result (inferrred by its filename) with compilation result
-/// Therefore, there are naming rules: 
+/// Therefore, there are naming rules:
 /// with success: s_ & failure: f_
 /// input is rl -> state_checkdef.rl
 /// output is .rl.cf -> state_checkdef.rl.cf
 /// example of files that should succeed: s_errors.rl s_errors.rl.cf
-
 // TODO: compare both result and generated output (.rl.cf) in separated tests
 // Note: 2 ways a test fails:
 // - either rudderc::compile() and expected result don't match
 // - or rudderc::compile() was not called at all (file does not exist or filename format is wrong)
 
-mod compile_utils;
-use compile_utils::*;
+mod utils;
+use utils::*;
 
 use test_case::test_case;
 
@@ -37,13 +36,11 @@ fn real_files(filename: &str) {
 // Note: any file not deleted in the `tests/tmp/` folder is a test that failed (kind of trace)
 
 #[test_case("s_purest", "@format=0\n" ; "s_purest")]
-
 #[test_case("f_enm", r#"@format=0
 enm error {
     ok,
     err
 }"#; "f_enm")]
-
 #[test_case("s_enum", r#"@format=0
 enum success {
     ok,
