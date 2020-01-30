@@ -432,6 +432,9 @@ def get_all_techniques_metadata(include_methods_calls = True, migrate_technique 
       # path of file is Category/technique_name/technique_version/technique.cf  
       # to get back the category of our technique we need to go up 3 directories
       category = os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(file))))
+      # if we are migrating a technique (5.0 -> 6.0) from configuration-repository/ncf to techniques/ncf_techniques, we need to set the category manually
+      if migrate_technique:
+        category = "ncf_techniques"
       result = parse_technique_metadata(content)
       metadata = result["result"]
       metadata["category"] = category
