@@ -257,7 +257,9 @@ class PrepareTemplateVariablesImpl(
                        case x : SystemVariableSpec => systemVars.get(x.name) match {
                            case None =>
                              if(x.constraint.mayBeEmpty) { //ok, that's expected
-                               logger.trace(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Variable system named '${x.name}' not found in the extended variables environnement")
+                               if (logger.isTraceEnabled) {
+                                 logger.trace(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Variable system named '${x.name}' not found in the extended variables environnement")
+                               }
                                Full(None)
                              } else {
                                Failure(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Missing value for system variable: '${x.name}'")

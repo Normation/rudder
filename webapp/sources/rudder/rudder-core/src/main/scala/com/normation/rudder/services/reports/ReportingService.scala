@@ -103,7 +103,9 @@ trait ReportingService {
         NodeStatusReport.filterByRules(status, ruleIds)
       }.filter { case (k,v) => v.report.reports.nonEmpty || v.overrides.nonEmpty }
       val n2 = System.currentTimeMillis
-      TimingDebugLogger.trace(s"Filter Node Status Reports on ${ruleIds.size} in : ${n2 - n1}ms")
+      if (TimingDebugLogger.isTraceEnabled) {
+        TimingDebugLogger.trace(s"Filter Node Status Reports on ${ruleIds.size} in : ${n2 - n1}ms")
+      }
       result
     }
   }

@@ -212,7 +212,9 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * because this one is taken for a long time.
    */
   def invalidate(nodeIds: Set[NodeId]): Box[Map[NodeId, NodeStatusReport]] = scala.concurrent.blocking { this.synchronized {
-    logger.debug(s"Compliance cache: invalidate cache for nodes: [${nodeIds.map { _.value }.mkString(",")}]")
+    if (logger.isDebugEnabled) {
+      logger.debug(s"Compliance cache: invalidate cache for nodes: [${nodeIds.map { _.value }.mkString(",")}]")
+    }
     cache = cache -- nodeIds
     //preload new results
     checkAndUpdateCache(nodeIds)
@@ -267,11 +269,15 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
         newStatus           <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(expired, Set())
       } yield {
         //here, newStatus.keySet == expired.keySet, so we have processed all nodeIds that should be modified.
-        logger.debug(s"Compliance cache miss (updated):[${newStatus.keySet.map(_.value).mkString(" , ")}], "+
-                               s" hit:[${upToDate.map(_.value).mkString(" , ")}]")
+        if (logger.isDebugEnabled) {
+          logger.debug(s"Compliance cache miss (updated):[${newStatus.keySet.map(_.value).mkString(" , ")}], " +
+            s" hit:[${upToDate.map(_.value).mkString(" , ")}]")
+        }
         cache = cache ++ newStatus
         val toReturn = cache.filterKeys { id => nodeIds.contains(id) }
-        logger.trace("Compliance cache content: " + cacheToLog(toReturn))
+        if (logger.isTraceEnabled) {
+          logger.trace("Compliance cache content: " + cacheToLog(toReturn))
+        }
         toReturn
       }
     }

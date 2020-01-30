@@ -130,13 +130,16 @@ class CachedReportsExecutionRepository(
   }
 
   override def updateExecutions(executions : Seq[AgentRun]) : Seq[Box[AgentRun]] = this.synchronized {
-    logger.trace(s"Update runs for nodes [${executions.map( _.agentRunId.nodeId.value ).mkString(", ")}]")
+    if (logger.isTraceEnabled) {
+      logger.trace(s"Update runs for nodes [${executions.map(_.agentRunId.nodeId.value).mkString(", ")}]")
+    }
     val n1 = System.currentTimeMillis
     val runs = writeBackend.updateExecutions(executions)
     //update complete runs
     val completed = runs.collect { case Full(x) if(x.isCompleted) => x }
-    logger.debug(s"Updating agent runs cache: [${completed.map(x => s"'${x.agentRunId.nodeId.value}' at '${x.agentRunId.date.toString()}'").mkString("," )}]")
-
+    if (logger.isDebugEnabled) {
+      logger.debug(s"Updating agent runs cache: [${completed.map(x => s"'${x.agentRunId.nodeId.value}' at '${x.agentRunId.date.toString()}'").mkString(",")}]")
+    }
     // log errors
     runs.foreach {
       case Full(x) => //

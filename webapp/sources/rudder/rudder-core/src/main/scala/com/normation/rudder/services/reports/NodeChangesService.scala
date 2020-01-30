@@ -207,7 +207,9 @@ class CachedNodeChangesServiceImpl(
               } yield {
                 cache = Some(changes)
                 logger.debug("NodeChanges cache initialized")
-                logger.trace("NodeChanges cache content: " + cacheToLog(changes))
+                if (logger.isTraceEnabled) {
+                  logger.trace("NodeChanges cache content: " + cacheToLog(changes))
+                }
                 changes
               }
             } catch {
@@ -220,7 +222,9 @@ class CachedNodeChangesServiceImpl(
             }
           case Some(changes) =>
             logger.debug("NodeChanges cache hit")
-            logger.trace("NodeChanges cache content: " + cacheToLog(changes))
+            if (logger.isTraceEnabled) {
+              logger.trace("NodeChanges cache content: " + cacheToLog(changes))
+            }
             Full(changes)
         }
       }
@@ -284,7 +288,9 @@ class CachedNodeChangesServiceImpl(
             }
             logger.debug("NodeChanges cache updated")
             cache = Some(merge(intervals, existing, newChanges))
-            logger.trace("NodeChanges cache content: " + cacheToLog(cache.get))
+            if (logger.isTraceEnabled) {
+              logger.trace("NodeChanges cache content: " + cacheToLog(cache.get))
+            }
             ()
           }
         }

@@ -152,8 +152,10 @@ class ReportsExecutionService (
               val res = Control.boxSequence(writeExecutions.updateExecutions(reportExec)) match {
                 case Full(result) =>
                   val executionTime = DateTime.now().getMillis() - startTime
-                  logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME} #${processId}] (${executionTime} ms) " +
+                  if (logger.isDebugEnabled) {
+                    logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME} #${processId}] (${executionTime} ms) " +
                       s"Added or updated ${result.size} agent runs, up to SQL ID ${maxReportId} (last run time was ${maxDate.toString()})")
+                  }
                   idForCheck = maxReportId
                   statusUpdateRepository.setExecutionStatus(maxReportId, maxDate)
 

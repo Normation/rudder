@@ -106,7 +106,9 @@ class DebugInfoServiceImpl extends DebugInfoService with Loggable {
       _         = logger.debug(s"debug-info script run finished in ${duration} ms")
 
       zip       <- if (cmdResult.code == 0 || cmdResult.code == 1) {
-                     logger.trace(s"stdout: ${cmdResult.stdout}")
+                     if (logger.isTraceEnabled) {
+                       logger.trace(s"stdout: ${cmdResult.stdout}")
+                     }
                      getScriptResult()
                    } else {
                      val msg = s"debug-info script exited with an error (code ${cmdResult.code}))."

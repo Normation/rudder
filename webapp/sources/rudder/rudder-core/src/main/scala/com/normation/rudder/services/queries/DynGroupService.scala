@@ -160,8 +160,9 @@ class CheckPendingNodeInDynGroups(
 
     final case class DynGroup(id: NodeGroupId, dependencies: Set[NodeGroupId], testNodes: Set[NodeId], query: Query, includeNodes: Set[NodeId])
 
-    NodeLogger.PendingNode.Policies.debug(s"Checking dyn-groups belonging for nodes [${nodeIds.map(_.value).mkString(", ")}]:${groups.map(g => s"${g.id.value}: ${g.name}").sorted.mkString("{", "}{", "}")}")
-
+    if (NodeLogger.PendingNode.Policies.isDebugEnabled) {
+      NodeLogger.PendingNode.Policies.debug(s"Checking dyn-groups belonging for nodes [${nodeIds.map(_.value).mkString(", ")}]:${groups.map(g => s"${g.id.value}: ${g.name}").sorted.mkString("{", "}{", "}")}")
+    }
     // for debuging message
     implicit class DynGroupsToString(gs: List[(NodeGroupId, Set[NodeId])]) {
       def show: String = gs.map { case (id, nodes) =>
@@ -180,10 +181,11 @@ class CheckPendingNodeInDynGroups(
     def recProcess(todo: List[DynGroup], blocked: List[DynGroup], done: List[(NodeGroupId, Set[NodeId])]): Box[List[(NodeGroupId, Set[NodeId])]] = {
       import com.normation.rudder.domain.queries.{ And => CAnd}
 
-      NodeLogger.PendingNode.Policies.trace("TODO   :" + todo.show   )
-      NodeLogger.PendingNode.Policies.trace("BLOCKED:" + blocked.show)
-      NodeLogger.PendingNode.Policies.trace("DONE   :" + done.show   )
-
+      if (NodeLogger.PendingNode.Policies.isTraceEnabled) {
+        NodeLogger.PendingNode.Policies.trace("TODO   :" + todo.show)
+        NodeLogger.PendingNode.Policies.trace("BLOCKED:" + blocked.show)
+        NodeLogger.PendingNode.Policies.trace("DONE   :" + done.show)
+      }
       (todo, blocked, done) match {
 
         case (Nil, Nil, res) => // termination condition
@@ -228,9 +230,10 @@ class CheckPendingNodeInDynGroups(
             // for these case, we keep all the node that are coming from the subgroup and that are looked for
             val (alreadyDone, remainingNewTodos) = newTodos.partition( _.query.criteria.isEmpty )
 
-            NodeLogger.PendingNode.Policies.trace(" -> unblock     : " + remainingNewTodos.map(_.id.value).mkString(", "))
-            NodeLogger.PendingNode.Policies.trace(" -> already done: " + alreadyDone.map(_.id.value).mkString(", "))
-
+            if (NodeLogger.PendingNode.Policies.isTraceEnabled) {
+              NodeLogger.PendingNode.Policies.trace(" -> unblock     : " + remainingNewTodos.map(_.id.value).mkString(", "))
+              NodeLogger.PendingNode.Policies.trace(" -> already done: " + alreadyDone.map(_.id.value).mkString(", "))
+            }
             val newRes =  alreadyDone.map(x => (x.id, x.includeNodes.union(x.testNodes)) ) ::: ((h.id, setNodeIds) :: res)
             recProcess(tail ::: remainingNewTodos, stillBlocked, newRes)
           }) ?~! s"Error when trying to find what nodes belong to dynamic group ${h.id}"
@@ -272,7 +275,9 @@ class CheckPendingNodeInDynGroups(
     // start the process ! End at the end, transform the result into a map.
     val res = recProcess(nodep, withdep, Nil)
     // end result
-    res.foreach(r => NodeLogger.PendingNode.Policies.debug("Result: " + r.show) )
+    if (NodeLogger.PendingNode.Policies.isDebugEnabled) {
+      res.foreach(r => NodeLogger.PendingNode.Policies.debug("Result: " + r.show))
+    }
     res
   }
 

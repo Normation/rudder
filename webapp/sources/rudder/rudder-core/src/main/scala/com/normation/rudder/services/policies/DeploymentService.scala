@@ -1073,7 +1073,9 @@ object BuildNodeConfiguration extends Loggable {
                                   if(d.isSystem) {
                                     Some(d)
                                   } else {
-                                    PolicyLogger.trace(s"Node '${context.nodeInfo.id.value}': skipping policy '${d.id.value}'")
+                                    if (PolicyLogger.isTraceEnabled) {
+                                      PolicyLogger.trace(s"Node '${context.nodeInfo.id.value}': skipping policy '${d.id.value}'")
+                                    }
                                     None
                                   }
                                 )
@@ -1218,7 +1220,9 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
     }
 
     if(notUpdatedConfig.nonEmpty) {
-      PolicyLogger.debug(s"Not updating non-modified node configuration: [${notUpdatedConfig.map( _.id.value).mkString(", ")}]")
+      if (PolicyLogger.isDebugEnabled) {
+        PolicyLogger.debug(s"Not updating non-modified node configuration: [${notUpdatedConfig.map(_.id.value).mkString(", ")}]")
+      }
     }
 
     if(updatedConfig.isEmpty) {
@@ -1271,10 +1275,11 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
       (nodeConfig.nodeInfo.id, NodeConfigId(hash(NodeConfigurationHash(nodeConfig, generationTime))))
     }.toMap
 
-    ComplianceDebugLogger.debug(s"Updated node configuration ids: ${nodeConfigIds.map {case (id, nodeConfigId) =>
-      s"[${id.value}:${ hashes.get(id).fold("???")(x => hash(x)) }->${ nodeConfigId.value }]"
-    }.mkString("") }")
-
+    if (ComplianceDebugLogger.isDebugEnabled) {
+      ComplianceDebugLogger.debug(s"Updated node configuration ids: ${nodeConfigIds.map {case (id, nodeConfigId) =>
+        s"[${id.value}:${ hashes.get(id).fold("???")(x => hash(x)) }->${ nodeConfigId.value }]"
+      }.mkString("") }")
+    }
     //return update nodeId with their config
     nodeConfigIds
   }
@@ -1413,8 +1418,10 @@ object RuleExpectedReportBuilder extends Loggable {
       // now the cardinality is the length of the boundingVariable
       (vars.expandedVars.get(boundingVar), vars.originalVars.get(boundingVar)) match {
         case (None, None) =>
-          PolicyLogger.debug("Could not find the bounded variable %s for %s in ParsedPolicyDraft %s".format(
+          if (PolicyLogger.isDebugEnabled) {
+            PolicyLogger.debug("Could not find the bounded variable %s for %s in ParsedPolicyDraft %s".format(
               boundingVar, vars.trackerVariable.spec.name, directiveId.value))
+          }
           (Seq(DEFAULT_COMPONENT_KEY),Seq()) // this is an autobounding policy
         case (Some(variable), Some(originalVariables)) if (variable.values.size==originalVariables.values.size) =>
           (variable.values, originalVariables.values)
@@ -1459,8 +1466,10 @@ object RuleExpectedReportBuilder extends Loggable {
     if(allComponents.isEmpty) {
       //that log is outputed one time for each directive for each node using a technique, it's far too
       //verbose on debug.
-      PolicyLogger.trace("Technique '%s' does not define any components, assigning default component with expected report = 1 for Directive %s".format(
-        technique.id, directiveId))
+      if (PolicyLogger.isTraceEnabled) {
+        PolicyLogger.trace("Technique '%s' does not define any components, assigning default component with expected report = 1 for Directive %s".format(
+          technique.id, directiveId))
+      }
 
       val trackingVarCard = getTrackingVariableCardinality
       List(ComponentExpectedReport(technique.id.name.value, trackingVarCard._1.toList, trackingVarCard._2.toList))

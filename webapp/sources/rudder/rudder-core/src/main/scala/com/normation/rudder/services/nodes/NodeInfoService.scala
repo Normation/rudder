@@ -367,9 +367,13 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
       val lastUpdate = nodeCache.map(_.lastModTime).getOrElse(new DateTime(0))
       getDataFromBackend(lastUpdate) match {
         case Full(newCache) =>
-          logger.debug(s"NodeInfo cache is not up to date, last modification time: '${newCache.lastModTime}', last cache update:"+
-                       s" '${lastUpdate}' => reseting cache with ${newCache.nodeInfos.size} entries")
-          logger.trace(s"NodeInfo cache updated entries: [${newCache.nodeInfos.keySet.map{ _.value }.mkString(", ")}]")
+          if (logger.isDebugEnabled) {
+            logger.debug(s"NodeInfo cache is not up to date, last modification time: '${newCache.lastModTime}', last cache update:" +
+              s" '${lastUpdate}' => reseting cache with ${newCache.nodeInfos.size} entries")
+          }
+          if (logger.isTraceEnabled) {
+            logger.trace(s"NodeInfo cache updated entries: [${newCache.nodeInfos.keySet.map{ _.value }.mkString(", ")}]")
+          }
           nodeCache = Some(newCache)
           Full(newCache.nodeInfos)
         case eb: EmptyBox =>
@@ -377,7 +381,9 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
           eb ?~! "Could not get node information from database"
       }
     } else {
-      logger.debug(s"NodeInfo cache is up to date, ${nodeCache.map(c => s"last modification time: '${c.lastModTime}' for: '${c.lastModEntryCSN.mkString("','")}'").getOrElse("")}")
+      if (logger.isDebugEnabled) {
+        logger.debug(s"NodeInfo cache is up to date, ${nodeCache.map(c => s"last modification time: '${c.lastModTime}' for: '${c.lastModEntryCSN.mkString("','")}'").getOrElse("")}")
+      }
       Full(nodeCache.get.nodeInfos) //get is ok because in a synchronized block with a test on isEmpty
     })
 
@@ -388,7 +394,9 @@ trait NodeInfoServiceCached extends NodeInfoService with Loggable with CachedRep
       x
     }
     val t1 = System.currentTimeMillis
-    TimingDebugLogger.debug(s"Get node info (${label}): ${t1-t0}ms")
+    if (TimingDebugLogger.isDebugEnabled) {
+      TimingDebugLogger.debug(s"Get node info (${label}): ${t1 - t0}ms")
+    }
     res
   }
 

@@ -122,7 +122,9 @@ class SynchronizedFileTemplate(templateName: String,content: String)  extends Lo
           } else if (!variable.mayBeEmpty && variable.values.isEmpty) {
             Failure(s"Mandatory variable ${variable.name} is empty, can not write ${templateName}")
           } else {
-            logger.trace(s"Adding in ${templateName} variable '${variable.name}' with values [${variable.values.mkString(",")}]")
+            if (logger.isTraceEnabled) {
+              logger.trace(s"Adding in ${templateName} variable '${variable.name}' with values [${variable.values.mkString(",")}]")
+            }
             bestEffort(variable.values) { value =>
               try {
                 Full(template.setAttribute(variable.name, value))

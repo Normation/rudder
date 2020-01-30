@@ -154,7 +154,9 @@ object ChangeRequestService {
       , rulesChanges
       , Map()
     )
-    ApplicationLogger.trace(s"New directive and rule change request: ${changeRequest}")
+    if (ApplicationLogger.isTraceEnabled) {
+      ApplicationLogger.trace(s"New directive and rule change request: ${changeRequest}")
+    }
     changeRequest
   }
 

@@ -315,10 +315,11 @@ final object MergePolicyService {
             s"${keep.directiveOrder.value}, discarding: ${samePriority.tail.map(x => s"${x.id.ruleId.value}@@${x.id.directiveId.value}:"+
             s"${x.ruleOrder.value}/${x.directiveOrder.value}").mkString("'", "', ", "'")}")
       }
-      PolicyLogger.trace(s"Unicity check: on node '${nodeInfo.id.value}' for mono-instance (unique) technique '${keep.technique.id}': "+
-          s"keeping (ruleId@@directiveId) '${keep.id.ruleId.value}@@${keep.id.directiveId.value}', discarding less priorize: "+
-          s"${lesserPriority.map(x => x.id.ruleId.value+"@@"+x.id.directiveId.value).mkString("'", "', ", "'")}")
-
+      if (PolicyLogger.isTraceEnabled) {
+        PolicyLogger.trace(s"Unicity check: on node '${nodeInfo.id.value}' for mono-instance (unique) technique '${keep.technique.id}': " +
+          s"keeping (ruleId@@directiveId) '${keep.id.ruleId.value}@@${keep.id.directiveId.value}', discarding less priorize: " +
+          s"${lesserPriority.map(x => x.id.ruleId.value + "@@" + x.id.directiveId.value).mkString("'", "', ", "'")}")
+      }
       setOverrides(keep, samePriority.tail ++ lesserPriority)
     }
 

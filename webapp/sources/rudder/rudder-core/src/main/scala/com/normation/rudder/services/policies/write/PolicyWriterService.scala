@@ -629,7 +629,9 @@ class PolicyWriterServiceImpl(
 
       agentType match {
         case CfeEnterprise =>
-          logger.debug("Writing licence for nodeConfiguration  " + config.nodeInfo.id);
+          if (logger.isDebugEnabled) {
+            logger.debug("Writing licence for nodeConfiguration  " + config.nodeInfo.id);
+          }
           val sourceLicenceNodeId = if(config.nodeInfo.isPolicyServer) {
             config.nodeInfo.id
           } else {
@@ -639,7 +641,9 @@ class PolicyWriterServiceImpl(
           licenses.get(sourceLicenceNodeId) match {
             case None =>
               // we are in the "free case", just log-debug it (as we already informed the user that there is no license)
-              logger.debug(s"Not copying missing license file into '${paths.newFolder}' for node '${config.nodeInfo.hostname}' (${config.nodeInfo.id.value}).")
+              if (logger.isDebugEnabled) {
+                logger.debug(s"Not copying missing license file into '${paths.newFolder}' for node '${config.nodeInfo.hostname}' (${config.nodeInfo.id.value}).")
+              }
               Full(x)
 
             case Some(license) =>

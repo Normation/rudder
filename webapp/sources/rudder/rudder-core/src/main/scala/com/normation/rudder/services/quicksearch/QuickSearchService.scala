@@ -77,7 +77,7 @@ class FullQuickSearchService(implicit
   def search(token: String): Box[Set[QuickSearchResult]] = {
     for {
       query   <- token.parse
-      _       =  logger.debug(s"User query for '${token}', parsed as user query: '${query.userToken}' on objects: " +
+      _       =  if (logger.isDebugEnabled)  logger.debug(s"User query for '${token}', parsed as user query: '${query.userToken}' on objects: " +
                  s"'${query.objectClass.mkString(", ")}' and attributes '${query.attributes.mkString(", ")}'")
       results <- sequence(QSBackend.all.toSeq) { b =>
                    val res = b.search(query)
@@ -85,7 +85,7 @@ class FullQuickSearchService(implicit
                      case eb: EmptyBox =>
                        logger.error((eb ?~! s"Error with quicksearch bachend ${b}").messageChain)
                      case Full(results) =>
-                       logger.debug(s"  - [${b}] found ${results.size} results")
+                       if (logger.isDebugEnabled) logger.debug(s"  - [${b}] found ${results.size} results")
                    }
                    res
                  }

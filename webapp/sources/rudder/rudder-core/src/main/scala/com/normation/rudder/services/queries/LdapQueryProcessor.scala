@@ -167,7 +167,7 @@ class AcceptedNodesLDAPQueryProcessor(
     for {
       res            <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId)
       timeres        =  (System.currentTimeMillis - timePreCompute)
-      _              =  logger.debug(s"Result obtained in ${timeres}ms for query ${query.toString}")
+      _              =  if (logger.isDebugEnabled) { logger.debug(s"Result obtained in ${timeres}ms for query ${query.toString}") }
       ldapEntries    <- nodeInfoService.getLDAPNodeInfo(res.entries.flatMap(x => x(A_NODE_UUID).map(NodeId(_))).toSet, res.nodeFilters, query.composition)
       ldapEntryTime  =  (System.currentTimeMillis - timePreCompute - timeres)
       _              =  logger.trace(s"Result of query converted in LDAP Entry in ${ldapEntryTime} ms")
@@ -298,8 +298,9 @@ class InternalLDAPQueryProcessor(
     }
 
     //log start query
-    logger.debug("[%s] Start search for %s".format(debugId, query.toString))
-
+    if (logger.isDebugEnabled) {
+      logger.debug("[%s] Start search for %s".format(debugId, query.toString))
+    }
     //TODO : with AND and empty set, we could return early
 
     /*
@@ -357,11 +358,9 @@ class InternalLDAPQueryProcessor(
       }
 
     if(logger.isTraceEnabled) {
-
       dnMapSets.foreach { case (dnType, dns) =>
         logger.trace("/// %s ==> %s".format(dnType, dns.map( _.getRDN).mkString(", ") ))
       }
-
     }
 
     //transform all the DNs we get to filters for the targeted object type
@@ -403,10 +402,11 @@ class InternalLDAPQueryProcessor(
     //final query, add "match only server id" filter if needed
     val rt = nodeObjectTypes.copy(filter = finalLdapFilter)
 
-    logger.debug("[%s] |- (final query) %s".format(debugId, rt))
+    if (logger.isDebugEnabled) {
+      logger.debug("[%s] |- (final query) %s".format(debugId, rt))
+    }
 
     val res = for {
-      con      <- ldap
       results  <- executeQuery(rt.baseDn.toString, rt.scope, nodeObjectTypes.objectFilter, rt.filter, finalSpecialFilters, select.toSet, normalizedQuery.composition, debugId)
     } yield {
       postFilterNode(results.groupBy( _.dn ).map( _._2.head ).toSeq, query.returnType, limitToNodeIds)
@@ -544,11 +544,11 @@ class InternalLDAPQueryProcessor(
 
       for {
         sr      <- buildSearchRequest(addedSpecialFilters)
-        _       =  logger.debug(s"[${debugId}] |--- ${sr}")
+        _       =  if (logger.isDebugEnabled) logger.debug(s"[${debugId}] |--- ${sr}")
         entries <- Full(con.search(sr))
-        _       =  logger.debug(s"[${debugId}] |---- after ldap search request ${entries.size} result(s)")
+        _       =  if (logger.isDebugEnabled) logger.debug(s"[${debugId}] |---- after ldap search request ${entries.size} result(s)")
         post    <- postProcessQueryResults(entries, addedSpecialFilters.map( (composition,_) ), debugId)
-        _       =  logger.debug(s"[${debugId}] |---- after post-processing: ${post.size} result(s)")
+        _       =  if (logger.isDebugEnabled) logger.debug(s"[${debugId}] |---- after post-processing: ${post.size} result(s)")
       } yield {
         post
       }
@@ -583,16 +583,20 @@ class InternalLDAPQueryProcessor(
                       case None    => Full(Seq())
                     }
                  //now, each filter individually
-        _        <- { logger.debug("[%s] |--- or (base filter): %s".format(debugId, entries.size)) ; Full({}) }
-        _        <- { logger.trace("[%s] |--- or (base filter): %s".format(debugId, entries.map( _.dn.getRDN  ).mkString(", "))) ; Full({}) }
+        _        =  if (logger.isDebugEnabled) { logger.debug("[%s] |--- or (base filter): %s".format(debugId, entries.size)) }
+        _        =  if (logger.isTraceEnabled) { logger.trace("[%s] |--- or (base filter): %s".format(debugId, entries.map( _.dn.getRDN  ).mkString(", "))) }
         specials <- sequence(sf.toSeq){ case (k, filters) => baseQuery(con, filters) }
         sFlat    =  specials.flatten
-        _        <- { logger.debug("[%s] |--- or (special filter): %s".format(debugId, sFlat.size)) ; Full({}) }
-        _        <- { logger.trace("[%s] |--- or (special filter): %s".format(debugId, sFlat.map( _.dn.getRDN  ).mkString(", "))) ; Full({}) }
+        _        =  if (logger.isDebugEnabled) { logger.debug("[%s] |--- or (special filter): %s".format(debugId, sFlat.size)) }
+        _        =  if (logger.isTraceEnabled) { logger.trace("[%s] |--- or (special filter): %s".format(debugId, sFlat.map( _.dn.getRDN  ).mkString(", "))) }
       } yield {
         val total = (entries ++ sFlat).distinct
-        logger.debug("[%s] |--- or (total): %s".format(debugId, total.size))
-        logger.trace("[%s] |--- or (total): %s".format(debugId, total.map( _.dn.getRDN  ).mkString(", ")))
+        if (logger.isDebugEnabled) {
+          logger.debug("[%s] |--- or (total): %s".format(debugId, total.size))
+        }
+        if (logger.isTraceEnabled) {
+          logger.trace("[%s] |--- or (total): %s".format(debugId, total.map(_.dn.getRDN).mkString(", ")))
+        }
         total
       }
     }
@@ -606,8 +610,10 @@ class InternalLDAPQueryProcessor(
                        case And => andQuery(con)
                      }
     } yield {
-      logger.debug(s"[${debugId}] |--- results are:")
-      results.foreach(r => logger.debug(s"[${debugId}] |--- ${r}"))
+      if (logger.isDebugEnabled) {
+        logger.debug(s"[${debugId}] |--- results are:")
+        results.foreach(r => logger.debug(s"[${debugId}] |--- ${r}"))
+      }
       results
     }
   }
@@ -616,7 +622,9 @@ class InternalLDAPQueryProcessor(
     val LDAPObjectType(base,scope, objectFilter, ldapFilters,joinType,specialFilters) = lot
 
     //log sub-query with two "-"
-    logger.debug("[%s] |-- %s".format(debugId, lot))
+    if (logger.isDebugEnabled) {
+      logger.debug("[%s] |-- %s".format(debugId, lot))
+    }
     for {
       results <- executeQuery(base, scope, objectFilter, ldapFilters, specialFilters.map( _._2), Set(joinType.selectAttribute), composition, debugId)
     } yield {
@@ -627,8 +635,12 @@ class InternalLDAPQueryProcessor(
           case NodeDnJoin => e.valuesFor("nodeId").map(nodeDit.NODES.NODE.dn )
         }
       }).toSet
-      logger.debug("[%s] |-- %s sub-results (merged)".format(debugId, res.size))
-      logger.trace("[%s] |-- ObjectType: %s; ids: %s".format(debugId, lot.baseDn, res.map( _.getRDN).mkString(", ")))
+      if (logger.isDebugEnabled) {
+        logger.debug("[%s] |-- %s sub-results (merged)".format(debugId, res.size))
+      }
+      if (logger.isTraceEnabled) {
+        logger.trace("[%s] |-- ObjectType: %s; ids: %s".format(debugId, lot.baseDn, res.map(_.getRDN).mkString(", ")))
+      }
       res
     }
   }
@@ -694,7 +706,9 @@ class InternalLDAPQueryProcessor(
                 case _       => false
               }
             }
-            logger.trace("[%5s] for regex check '%s' on attribute %s of entry: %s:%s".format(res, regexText, attr, entry.dn,entry.valuesFor(attr).mkString(",")))
+            if (logger.isTraceEnabled) {
+              logger.trace("[%5s] for regex check '%s' on attribute %s of entry: %s:%s".format(res, regexText, attr, entry.dn, entry.valuesFor(attr).mkString(",")))
+            }
             res
           }
         }
@@ -713,14 +727,18 @@ class InternalLDAPQueryProcessor(
            * have the attribute or NONE of the value matches the regex.
            */
           entries.filter { entry =>
-            logger.trace("Filtering with regex not matching '%s' entry: %s:%s".format(regexText,entry.dn,entry.valuesFor(attr).mkString(",")))
+            if (logger.isTraceEnabled) {
+              logger.trace("Filtering with regex not matching '%s' entry: %s:%s".format(regexText, entry.dn, entry.valuesFor(attr).mkString(",")))
+            }
             val res = entry.valuesFor(attr).forall { value =>
               valueFormatter(value) match {
                 case Full(v) => !pattern.matcher( v ).matches
                 case _       => false
               }
             }
-            logger.trace("Entry matches: " + res)
+            if (logger.isTraceEnabled) {
+              logger.trace("Entry matches: " + res)
+            }
             res
           }
         }
@@ -741,7 +759,9 @@ class InternalLDAPQueryProcessor(
       Full(results)
     } else {
       val filterSeq = specialFilters.toSeq
-      logger.debug("[%s] |---- post-process with filters: %s".format(debugId, filterSeq.mkString("[", "]  [", "]")))
+      if (logger.isDebugEnabled) {
+        logger.debug("[%s] |---- post-process with filters: %s".format(debugId, filterSeq.mkString("[", "]  [", "]")))
+      }
 
       //we only know how to process homogeneous CriterionComposition. Different one are an error
       for {
@@ -759,7 +779,7 @@ class InternalLDAPQueryProcessor(
                              applyFilter(filter, results).map( r => (Set() ++ r ++ currentResults).toSeq)
                            }
                        }
-        _           <- { logger.debug("[%s] |---- results (post-process): %s".format(debugId, results.size)) ; Full({})}
+        _           = if (logger.isDebugEnabled)  logger.debug("[%s] |---- results (post-process): %s".format(debugId, results.size))
       } yield {
         results
       }

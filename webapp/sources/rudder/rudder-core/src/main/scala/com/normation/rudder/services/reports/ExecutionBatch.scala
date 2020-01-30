@@ -342,7 +342,9 @@ object ExecutionBatch extends Loggable {
    */
   private[this] def runType(traceMessage: String, runType: RunAndConfigInfo)(implicit nodeId: NodeId): RunAndConfigInfo = {
     val msg = if(traceMessage.trim.isEmpty) "" else ": " + traceMessage
-    ComplianceDebugLogger.node(nodeId).trace(s"Run config for node ${nodeId.value}: ${runType.logName} ${msg}")
+    if (ComplianceDebugLogger.node(nodeId).isTraceEnabled) {
+      ComplianceDebugLogger.node(nodeId).trace(s"Run config for node ${nodeId.value}: ${runType.logName} ${msg}")
+    }
     runType
   }
 
@@ -617,8 +619,9 @@ object ExecutionBatch extends Loggable {
     //only interesting reports: for that node, with a status
     val nodeStatusReports = agentExecutionReports.collect{ case r: ResultReports if(r.nodeId == nodeId) => r }
 
-    ComplianceDebugLogger.node(nodeId).trace(s"Computing compliance for node ${nodeId.value} with: [${runInfo.toLog}]")
-
+    if (ComplianceDebugLogger.node(nodeId).isTraceEnabled) {
+      ComplianceDebugLogger.node(nodeId).trace(s"Computing compliance for node ${nodeId.value} with: [${runInfo.toLog}]")
+    }
     val t1 = System.currentTimeMillis
     val ruleNodeStatusReports = runInfo match {
 
@@ -633,7 +636,9 @@ object ExecutionBatch extends Loggable {
         )
 
       case ComputeCompliance(lastRunDateTime, expectedConfig, expirationTime) =>
-        ComplianceDebugLogger.node(nodeId).trace(s"Using merge/compare strategy between last reports from run at ${lastRunDateTime} and expect reports ${expectedConfig.toLog}")
+        if (ComplianceDebugLogger.node(nodeId).isTraceEnabled) {
+          ComplianceDebugLogger.node(nodeId).trace(s"Using merge/compare strategy between last reports from run at ${lastRunDateTime} and expect reports ${expectedConfig.toLog}")
+        }
         mergeCompareByRule(
             MergeInfo(nodeId, Some(lastRunDateTime), Some(expectedConfig.nodeConfigId), expirationTime)
           , nodeStatusReports
@@ -947,12 +952,13 @@ object ExecutionBatch extends Loggable {
     val t12 = System.currentTimeMillis
     TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - compute compliance : ${t12-t11}ms")
 
-
-    ComplianceDebugLogger.node(mergeInfo.nodeId).trace(s"Compute compliance for node ${mergeInfo.nodeId.value} using: rules for which compliance is based on run reports: ${
-      computed.map { x => s"[${x.ruleId.value}]"}.mkString("")
-    };"+s" rule updated since run: ${
-      newStatus.map { x => s"${x.ruleId.value}"}.mkString("[", "][", "]")
-    }")
+    if (ComplianceDebugLogger.node(mergeInfo.nodeId).isTraceEnabled) {
+      ComplianceDebugLogger.node(mergeInfo.nodeId).trace(s"Compute compliance for node ${mergeInfo.nodeId.value} using: rules for which compliance is based on run reports: ${
+        computed.map { x => s"[${x.ruleId.value}]" }.mkString("")
+      };" + s" rule updated since run: ${
+        newStatus.map { x => s"${x.ruleId.value}" }.mkString("[", "][", "]")
+      }")
+    }
 
     val t13 = System.currentTimeMillis
     TimingDebugLogger.debug(s"Compliance: mergeCompareByRule global cost : ${t13-t0}ms")
@@ -1126,8 +1132,9 @@ object ExecutionBatch extends Loggable {
           // never increment the cardinality for free value.
           val (newFreeValues, tryPair) = findMatchingValue(report, freeValues, (value, report) => false, (value, report) => false)
 
-          logger.trace(s"found unpaired value for '${report.keyValue}'? " + tryPair)
-
+          if (logger.isTraceEnabled) {
+            logger.trace(s"found unpaired value for '${report.keyValue}'? " + tryPair)
+          }
           tryPair match {
             case Some(v) =>
               recPairReports(tail, newFreeValues, v :: pairedValues, unexpected, mode)
@@ -1156,7 +1163,9 @@ object ExecutionBatch extends Loggable {
 
               val (newPairedValues, pairedAgain) = findMatchingValue(report, pairedValues, duplicate, unboundedVar)
 
-              logger.trace(s"Found paired again value for ${report.keyValue}? " + pairedAgain)
+              if (logger.isTraceEnabled) {
+                logger.trace(s"Found paired again value for ${report.keyValue}? " + pairedAgain)
+              }
 
               pairedAgain match {
                 case None    => //really unexpected after all

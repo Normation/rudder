@@ -128,10 +128,14 @@ class RuleValServiceImpl(
     directiveLib.allDirectives.get(piId) match {
       case None => Failure(s"Cannot find directive with id '${piId.value}' when building rule '${ruleOrder.value}' (${ruleId.value})")
       case Some((_, directive) ) if !(directive.isEnabled) =>
-        logger.debug("The Directive with id %s is disabled and we don't generate a ParsedPolicyDraft for Rule %s".format(piId.value, ruleId.value))
+        if (logger.isDebugEnabled) {
+          logger.debug("The Directive with id %s is disabled and we don't generate a ParsedPolicyDraft for Rule %s".format(piId.value, ruleId.value))
+        }
         Full(None)
       case Some((fullActiveDirective, _) ) if !(fullActiveDirective.isEnabled) =>
-        logger.debug(s"The Active Technique with id ${fullActiveDirective.id.value} is disabled and we don't generate a ParsedPolicyDraft for Rule ${ruleId.value}")
+        if (logger.isDebugEnabled) {
+          logger.debug(s"The Active Technique with id ${fullActiveDirective.id.value} is disabled and we don't generate a ParsedPolicyDraft for Rule ${ruleId.value}")
+        }
         Full(None)
       case Some((fullActiveTechnique, directive)) =>
         for {
@@ -150,8 +154,9 @@ class RuleValServiceImpl(
           otherVars = vared - technique.trackerVariableSpec.name
           //only normal vars can be interpolated
         } yield {
-            logger.trace("Creating a ParsedPolicyDraft %s from the ruleId %s".format(fullActiveTechnique.techniqueName, ruleId.value))
-
+            if (logger.isTraceEnabled) {
+              logger.trace("Creating a ParsedPolicyDraft %s from the ruleId %s".format(fullActiveTechnique.techniqueName, ruleId.value))
+            }
             Some(ParsedPolicyDraft(
                 PolicyId(ruleId, piId, technique.id.version)
               , technique
