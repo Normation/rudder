@@ -49,6 +49,7 @@ use std::{
     sync::Arc,
     time::Duration,
 };
+use tracing::{debug, span, warn, Level};
 use warp::{body::FullBody, http::StatusCode, Buf};
 
 // TODO use tokio-fs
@@ -118,8 +119,8 @@ fn validate_signature(
     hash_type: HashType,
     digest: &[u8],
 ) -> Result<bool, ErrorStack> {
-    let mut verifier = Verifier::new(hash_type.to_openssl_hash(), &pubkey).unwrap();
-    verifier.update(file).unwrap();
+    let mut verifier = Verifier::new(hash_type.to_openssl_hash(), &pubkey)?;
+    verifier.update(file)?;
     verifier.verify(digest)
 }
 
@@ -164,12 +165,22 @@ pub fn put(
     job_config: Arc<JobConfig>,
     body: FullBody,
 ) -> Result<StatusCode, Error> {
+    let span = span!(
+        Level::INFO,
+        "shared_files_put",
+        target_id = %target_id,
+        source_id = %source_id,
+        file_id = %file_id,
+    );
+    let _enter = span.enter();
+
     if !job_config
         .nodes
         .read()
         .expect("Cannot read nodes list")
         .is_subnode(&source_id)
     {
+        warn!("unknown source {}", source_id);
         return Ok(StatusCode::NOT_FOUND);
     }
 
@@ -193,17 +204,31 @@ pub fn put(
         .join(&source_id);
     let pubkey = get_pubkey(&meta.short_pubkey)?;
 
-    if meta.algorithm.hash(&pubkey.public_key_to_der()?) != meta.digest {
+    let key_hash = meta.algorithm.hash(&pubkey.public_key_to_der()?);
+    if key_hash != meta.digest {
+        warn!(
+            "hash of public key ({}) does not match metadata ({})",
+            key_hash, meta.digest
+        );
         return Ok(StatusCode::NOT_FOUND);
     }
 
-    if !validate_signature(
+    match validate_signature(
         &file,
         pubkey,
         meta.algorithm,
         &hex::decode(&meta.digest).unwrap(),
-    )? {
-        return Ok(StatusCode::INTERNAL_SERVER_ERROR);
+    ) {
+        Ok(is_valid) => {
+            if !is_valid {
+                warn!("invalid signature");
+                return Ok(StatusCode::INTERNAL_SERVER_ERROR);
+            }
+        }
+        Err(e) => {
+            warn!("error checking file signature: {}", e);
+            return Ok(StatusCode::INTERNAL_SERVER_ERROR);
+        }
     }
 
     // Everything is correct, let's store the file
@@ -218,7 +243,10 @@ pub fn put(
                 Ok(ttl) =>
                     Utc::now()
                         + chrono::Duration::from_std(ttl).expect("Unexpectedly large duration"),
-                Err(_x) => return Ok(StatusCode::INTERNAL_SERVER_ERROR),
+                Err(e) => {
+                    warn!("invalid ttl: {}", e);
+                    return Ok(StatusCode::INTERNAL_SERVER_ERROR);
+                }
             }
         ),
     )?;
@@ -238,6 +266,15 @@ pub fn head(
     params: SharedFilesHeadParams,
     job_config: Arc<JobConfig>,
 ) -> Result<StatusCode, Error> {
+    let span = span!(
+        Level::INFO,
+        "shared_files_head",
+        target_id = %target_id,
+        source_id = %source_id,
+        file_id = %file_id,
+    );
+    let _enter = span.enter();
+
     let file_path = job_config
         .cfg
         .shared_files
@@ -247,16 +284,28 @@ pub fn head(
         .join(format!("{}.metadata", file_id));
 
     if !file_path.exists() {
+        debug!("file {} does not exist", file_path.display());
         return Ok(StatusCode::NOT_FOUND);
     }
 
-    Ok(
-        if Metadata::parse_value("hash_value", &fs::read_to_string(file_path)?)? == params.hash {
-            StatusCode::OK
-        } else {
-            StatusCode::NOT_FOUND
-        },
-    )
+    let metadata_hash = Metadata::parse_value("hash_value", &fs::read_to_string(&file_path)?)?;
+
+    Ok(if metadata_hash == params.hash {
+        debug!(
+            "file {} has given hash '{}'",
+            file_path.display(),
+            metadata_hash
+        );
+        StatusCode::OK
+    } else {
+        debug!(
+            "file {} has '{}' hash but given hash is '{}'",
+            file_path.display(),
+            metadata_hash,
+            params.hash,
+        );
+        StatusCode::NOT_FOUND
+    })
 }
 
 #[cfg(test)]

@@ -33,7 +33,7 @@ use futures::{future, Future};
 use serde::Deserialize;
 use std::{io, path::PathBuf, str::FromStr, sync::Arc};
 use tokio::fs::read;
-use tracing::{debug, trace};
+use tracing::{debug, span, trace, Level};
 use warp::http::StatusCode;
 
 #[derive(Deserialize, Debug)]
@@ -54,6 +54,13 @@ pub fn head(
     file: PathBuf,
     job_config: Arc<JobConfig>,
 ) -> impl Future<Item = StatusCode, Error = Error> + Send {
+    let span = span!(
+        Level::INFO,
+        "shared_folder_head",
+        file = %file.display(),
+    );
+    let _enter = span.enter();
+
     let file_path = job_config.cfg.shared_folder.path.join(&file);
     debug!(
         "Received request for {:#} ({:#} locally) with the following parameters: {:?}",
