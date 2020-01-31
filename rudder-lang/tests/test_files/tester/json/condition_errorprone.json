@@ -1,5 +1,5 @@
 {
-    "name": "rescondition_errorproneource",
+    "name": "condition_errorprone",
     "description": "",
     "version": "1.0",
     "bundle_name": "condition_errorprone",
@@ -7,7 +7,7 @@
     "parameter": [],
     "method_calls": [
         {
-            "class_context": "any.([test[coucou].ok)",
+            "class_context": "(dragonfly|openbsd)",
             "component": "Command execution",
             "method_name": "command_execution",
             "args": [

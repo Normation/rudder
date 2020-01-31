@@ -1,0 +1,99 @@
+/*
+ * This file has the single purpose to generate an Os list
+ * that is fed to rudder lang as a "oslib.rl". 
+ * 
+ * USAGE: 2 types:
+ *
+ * - OsTree::Family(( "family_name", [ Family(..recursive..), Oses(...) ]))
+ * ie Family are tuples composed of a name and an array of Oses/Self
+ * a Family has a recursive behavior (as opposed to an Oses array which makes sense)
+ * 
+ * - OsTree::Oses([( "os_name", [Some("major"), Some(["minor"])] ])
+ * ie Oses are arrays of tuples containing a name and an array of versions
+ * a version is tuple holding an Option<String> and an Option<Vec<String>> since a major can work with multiple minor versions 
+ *
+ * Oses only hold an array of Os. Don't push a Family into it.
+ * Families can recursively hold child families. Push either Oses / Family into it. 
+ * OsTreeBuilder is the main array, it holds an array of OsTree
+ * 
+*/
+
+OsTreeBuilder([
+    Family(( "unix", [
+        Family(( "linux", [
+            Oses([
+                ("alpine_linux", []),
+                ("arch_linux", []),
+                ("centos", []),
+                ("debian", [ 
+                    (Some("8"), Some(["7", "8", "9"])),
+                    (Some("9"), Some(["0"])),
+                    (Some("10"), None),
+                ]),
+                ("fedora", []),
+                ("gentoo", []),
+                ("mandrake", []),
+                ("mandriva", []),
+                ("oracle", []),
+                ("oracle_vm_server", []),
+                // deal with redhat which is both an OS and a family
+                // best way seems to consequently add it as both
+                ("redhat", [ 
+                    (Some("7"), None),
+                    (Some("8"), None),
+                ]),
+                ("scientific_linux", []),
+                ("slackwave", []),
+                ("suse", [
+                    (Some("12"), None),
+                    (Some("15"), None),
+                ]),
+                ("ubuntu", [
+                    (Some("16"), Some(["04"])),
+                    (Some("18"), Some(["04"])),
+                ]),
+            ]),
+        ])),
+        Family(( "bsd", [
+            Oses([
+                ("dragonfly", []),
+                ("freebsd", []),
+                ("netbsd", []),
+                ("openbsd", []),
+            ]),
+        ])),
+        Family(( "redhat_entreprise", [
+            Oses([
+                ("redhat_es", []),
+                ("redhat_as", []),
+                ("redhat_wa", []),
+                ("redhat_c", []),
+                ("redhat_w", []),
+            ]),
+        ])),
+        Oses([ ("aix", []) ]),
+    ])),
+    Oses([
+        ("windows", [
+            (Some("7"), None),
+            (Some("2000"), None),
+            (Some("XP"), None),
+            (Some("Vista"), None),
+        ]),
+    ]),
+    Oses([
+        ("windows_server", [
+            (Some("2003"), None),
+            (Some("2008"), Some(["R2"])),
+            (Some("2012"), Some(["R2"])),
+        ]),
+    ]),
+    Oses([ ("android", []) ]),
+    Oses([ ("hp_ux", []) ]),
+    Oses([
+        ("solaris", [
+            (Some("10"), None),
+            (Some("11"), None),
+        ])
+    ]),
+])

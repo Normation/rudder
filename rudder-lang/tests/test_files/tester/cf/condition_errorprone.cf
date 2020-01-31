@@ -1,4 +1,4 @@
-# @name rescondition_errorproneource
+# @name condition_errorprone
 # @description 
 # @version 1.0
 
@@ -9,7 +9,7 @@ bundle agent condition_errorprone
     "resources_dir" string => "${this.promise_dirname}/resources";
   methods:
     "Command execution_${report_data.directive_id}_0" usebundle => _method_reporting_context("Command execution", "pwd"),
-                                                             if => concat("any.([test[coucou].ok)");
+                                                             if => concat("(dragonfly|openbsd)");
     "Command execution_${report_data.directive_id}_0" usebundle => command_execution("pwd"),
-                                                             if => concat("any.([test[coucou].ok)");
+                                                             if => concat("(dragonfly|openbsd)");
 }

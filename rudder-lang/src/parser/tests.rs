@@ -41,7 +41,7 @@ fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
         PErrorKind::InvalidVariableReference => PErrorKind::InvalidVariableReference,
         PErrorKind::UnsupportedMetadata(i) => PErrorKind::UnsupportedMetadata(i.fragment),
         PErrorKind::UnterminatedDelimiter(i) => PErrorKind::UnterminatedDelimiter(i.fragment),
-        PErrorKind::Unparsed(i) => PErrorKind::Unparsed(i.fragment)
+        PErrorKind::Unparsed(i) => PErrorKind::Unparsed(i.fragment),
     };
     match err.context {
         Some(context) => (context.fragment, kind),

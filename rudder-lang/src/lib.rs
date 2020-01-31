@@ -13,3 +13,4 @@ mod generators;
 pub mod logger;
 mod parser;
 pub mod translate;
+pub mod generate_oslib;

@@ -21,17 +21,17 @@ pub enum PErrorKind<I> {
     Nom(VerboseError<I>), // TODO remove this one
     #[cfg(test)]
     NomTest(String), // cannot be use outside of tests
-    ExpectedKeyword(&'static str),      // anywhere (keyword type)
+    ExpectedKeyword(&'static str), // anywhere (keyword type)
     // ExpectedReservedWord(&'static str), // anywhere
-    ExpectedToken(&'static str),        // anywhere (expected token)
-    InvalidEnumExpression,              // in enum expression
-    InvalidEscapeSequence,              // in string definition
-    InvalidFormat,                      // in header
-    InvalidName(I),                     // in identifier expressions (type of expression)
-    InvalidVariableReference,           // during string interpolation
-    UnsupportedMetadata(I), // metadata or comments are not supported everywhere (metadata key)
-    UnterminatedDelimiter(I), // after an opening delimiter (first delimiter)
-    Unparsed(I), // after an opening delimiter (first delimiter)
+    ExpectedToken(&'static str), // anywhere (expected token)
+    InvalidEnumExpression,       // in enum expression
+    InvalidEscapeSequence,       // in string definition
+    InvalidFormat,               // in header
+    InvalidName(I),              // in identifier expressions (type of expression)
+    InvalidVariableReference,    // during string interpolation
+    UnsupportedMetadata(I),      // metadata or comments are not supported everywhere (metadata key)
+    UnterminatedDelimiter(I),    // after an opening delimiter (first delimiter)
+    Unparsed(I),                 // after an opening delimiter (first delimiter)
 }
 
 #[derive(Debug, PartialEq, Clone)]

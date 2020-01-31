@@ -1,13 +1,13 @@
 {
-    "name": "simplest",
-    "description": "rudderlang simplest for a complete loop",
+    "name": "cdt",
+    "description": "rudderlang cdt for a complete loop",
     "version": "1.0",
-    "bundle_name": "simplest",
+    "bundle_name": "cdt",
     "bundle_args": [],
     "parameter": [],
     "method_calls": [
         {
-            "class_context": "scientific_linux",
+            "class_context": "debian",
             "component": "File absent",
             "method_name": "file_absent",
             "args": [

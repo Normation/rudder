@@ -22,7 +22,7 @@ colored = "1.9.0"
 ngrammatic = "^0.3.1"
 log = "0.4.0"
 env_logger = "0.7.1"
-
+ron = "0.5.1"
 [dev-dependencies]
 proptest = "0.9"
 test-case = "0.3.3"

@@ -65,7 +65,13 @@ fn create_parameters<'src>(
     parameter_defaults: &[Option<Value<'src>>],
 ) -> Result<Vec<Parameter<'src>>> {
     if pparameters.len() != parameter_defaults.len() {
-        panic!("BUG: parameter count should not differ from default count: expected {}, found {}", parameter_defaults.len(), pparameters.len());
+        println!("param def = {:#?}", parameter_defaults);
+        println!("param = {:#?}", pparameters);
+        panic!(
+            "BUG: parameter count should not differ from default count: expected {}, found {}",
+            parameter_defaults.len(),
+            pparameters.len()
+        );
     }
     map_vec_results(
         pparameters.into_iter().zip(parameter_defaults.iter()),

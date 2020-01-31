@@ -1,15 +1,15 @@
-# @name simplest
-# @description rudderlang simplest for a complete loop
+# @name cdt
+# @description rudderlang cdt for a complete loop
 # @version 1.0
 
 
-bundle agent simplest
+bundle agent cdt
 {
   vars:
     "resources_dir" string => "${this.promise_dirname}/resources";
   methods:
     "File absent_${report_data.directive_id}_0" usebundle => _method_reporting_context("File absent", "tmp"),
-                                                       if => concat("scientific_linux");
+                                                       if => concat("debian");
     "File absent_${report_data.directive_id}_0" usebundle => file_absent("tmp"),
-                                                       if => concat("scientific_linux");
+                                                       if => concat("debian");
 }

@@ -4,6 +4,7 @@ resource Configure_NTP()
 Configure_NTP state technique() {
   case {
     ubuntu => file("/tmp").absent(),
-    os:debian => file("/tmp").present()
+    os:debian => file("/tmp").present(),
+    default => log "info: ok"
   }
 }

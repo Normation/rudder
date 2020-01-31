@@ -9,7 +9,6 @@ command_execution = "(command_execution)_(.*)"
 [conditions]
 
 [methods]
-
 command_execution = { class_prefix="command_execution", class_parameter_id = 0 }
 command_execution_once = { class_prefix="command_execution_once", class_parameter_id = 0 }
 command_execution_result = { class_prefix="command_execution_result", class_parameter_id = 0 }
@@ -96,7 +95,11 @@ group_absent = { class_prefix="group_absent", class_parameter_id = 0 }
 group_present = { class_prefix="group_present", class_parameter_id = 0 }
 http_request_check_status_headers = { class_prefix="http_request_check_status_headers", class_parameter_id = 1 }
 http_request_content_headers = { class_prefix="http_request_content_headers", class_parameter_id = 1 }
-monitoring_parameter = { class_prefix="monitoring_parameter", class_parameter_id = 1 }
+kernel_module_configuration = { class_prefix="kernel_module_configuration", class_parameter_id = 0 }
+kernel_module_enabled_at_boot = { class_prefix="kernel_module_enabled_at_boot", class_parameter_id = 0 }
+kernel_module_loaded = { class_prefix="kernel_module_loaded", class_parameter_id = 0 }
+kernel_module_not_loaded = { class_prefix="kernel_module_not_loaded", class_parameter_id = 0 }
+monitoring_parameter = { class_prefix="monitoring_parameter", class_parameter_id = 0 }
 monitoring_template = { class_prefix="monitoring_template", class_parameter_id = 0 }
 package_absent = { class_prefix="package_absent", class_parameter_id = 0 }
 package_check_installed = { class_prefix="package_check_installed", class_parameter_id = 0 }
@@ -172,3 +175,4 @@ variable_string_default = { class_prefix="variable_string_default", class_parame
 variable_string_from_command = { class_prefix="variable_string_from_command", class_parameter_id = 1 }
 variable_string_from_file = { class_prefix="variable_string_from_file", class_parameter_id = 1 }
 variable_string_from_math_expression = { class_prefix="variable_string_from_math_expression", class_parameter_id = 1 }
+variable_string_match = { class_prefix="variable_string_match", class_parameter_id = 0 }

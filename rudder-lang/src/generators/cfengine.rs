@@ -100,7 +100,7 @@ impl CFEngine {
                 if gc.enum_list.is_global(*e) {
                     let final_enum = gc.enum_list.find_descendant_enum(*e, *item);
                     if *e == final_enum {
-                        item.fragment().to_string()
+                        item.fragment().to_string() // here
                     } else {
                         let others = gc
                             .enum_list
@@ -141,7 +141,13 @@ impl CFEngine {
     // TODO variables
     // TODO comments and metadata
     // TODO use in_class everywhere
-    fn format_statement(&mut self, gc: &AST, st: &Statement, in_class: String) -> Result<String> {
+    fn format_statement(
+        &mut self,
+        gc: &AST,
+        st: &Statement,
+        id: usize,
+        in_class: String,
+    ) -> Result<String> {
         match st {
             Statement::StateDeclaration(sd) => {
                 if let Some(var) = sd.outcome {
@@ -159,25 +165,45 @@ impl CFEngine {
                 let param_str = map_strings_results(
                     sd.resource_params.iter().chain(sd.state_params.iter()),
                     |x| self.parameter_to_cfengine(x),
-                    ",",
+                    ", ",
                 )?;
                 let class = self.format_class(in_class)?;
-                if class == "any" {
-                    Ok(format!(
-                        "      \"{}\" usebundle => {}_{}({});\n",
-                        component,
-                        sd.resource.fragment(),
-                        sd.state.fragment(),
-                        param_str,
-                    ))
+                let state_param = if sd.state_params.len() > 0 {
+                    if let Ok(param) = self.parameter_to_cfengine(&sd.state_params[0]) {
+                        format!(", {}", param)
+                    } else {
+                        "".to_string()
+                    }
                 } else {
+                    "".to_string()
+                };
+                let method_reporting_context = &format!(
+                    "    \"{}_${{report_data.directive_id}}_{}\" usebundle => _method_reporting_context(\"{}\"{})",
+                    component,
+                    id,
+                    component,
+                    state_param,
+                );
+                let method = &format!(
+                    "    \"{}_${{report_data.directive_id}}_{}\" usebundle => {}_{}({})",
+                    component,
+                    id,
+                    sd.resource.fragment(),
+                    sd.state.fragment(),
+                    param_str,
+                );
+                // facultative, only aesthetic to align the method `=>` with the conditonal `=>` like cfengine does
+                let padding_spaces = str::repeat(" ", component.len() + id.to_string().len() + 43);
+                if class == "any" {
+                    Ok(format!("{};\n{};\n", method_reporting_context, method))
+                } else {
+                    let condition = &format!("{}if => concat(\"{}\");", padding_spaces, class);
                     Ok(format!(
-                        "      \"{}\" usebundle => {}_{}({}), if => \"{}\";\n",
-                        component,
-                        sd.resource.fragment(),
-                        sd.state.fragment(),
-                        param_str,
-                        class,
+                        "{},\n{}\n{},\n{}\n",
+                        method_reporting_context,
+                        condition,
+                        method,
+                        condition
                     ))
                 }
             }
@@ -190,7 +216,7 @@ impl CFEngine {
                         let case_exp = self.format_case_expr(gc, case)?;
                         map_strings_results(
                             vst.iter(),
-                            |st| self.format_statement(gc, st, case_exp.clone()),
+                            |st| self.format_statement(gc, st, id, case_exp.clone()),
                             "",
                         )
                     },
@@ -260,34 +286,66 @@ impl CFEngine {
                 "{{ {} }}",
                 map_strings_results(
                     s.iter(),
-                    |(x, y)| Ok(format!("\"{}\":{}", x, self.value_to_string(y, true)?)),
+                    |(x, y)| Ok(format!(r#""{}":{}"#, x, self.value_to_string(y, true)?)),
                     ","
                 )?
             ),
         })
     }
 
-    fn generate_ncf_metadata(&mut self, _name: &Token, resource: &ResourceDef) -> Result<String> {
-        // description must be the last field
-        let mut description = "".to_string();
-        map_strings_results(
-            resource.metadata.iter(),
-            |(n, v)| {
-                if n.fragment() != "description" {
-                    Ok(format!(
-                        "# @{} {}",
-                        n.fragment(),
-                        self.value_to_string(v, false)?
-                    ))
-                } else {
-                    description =
-                        format!("# @{} {}", n.fragment(), self.value_to_string(v, false)?);
-                    Ok("#".to_string())
+    fn generate_parameters_metadatas<'src>(&mut self, parameters: Option<Value<'src>>) -> String {
+        let mut params_str = String::new();
+
+        let mut get_param_field = |param: &Value, entry: &str| -> String {
+            if let Value::Struct(param) = &param {
+                if let Some(val) = param.get(entry) {
+                    if let Ok(val_s) = self.value_to_string(val, false) {
+                        return match val {
+                            Value::String(_) => format!("{:?}: {:?}", entry, val_s),
+                            _ => format!("{:?}: {}", entry, val_s)
+                        }
+                    }
                 }
-            },
-            "\n",
-        )
-        .map(|s| s + "\n" + &description + "\n\n")
+            }
+            "".to_owned()
+        };
+
+        if let Some(Value::List(parameters)) = parameters {
+            parameters.iter().for_each(|param| {
+                params_str.push_str(&format!(
+                    "# @parameter {{ {}, {}, {} }}\n",
+                    get_param_field(param, "name"),
+                    get_param_field(param, "id"),
+                    get_param_field(param, "constraints")
+                ));
+            });
+        };
+        params_str
+    }
+
+    fn generate_ncf_metadata(&mut self, _name: &Token, resource: &ResourceDef) -> Result<String> {
+        let mut meta = resource.metadata.clone();
+        // removes parameters from meta and returns it formatted
+        let parameters: String = self.generate_parameters_metadatas(meta.remove(&Token::from("parameters")));
+        // description must be the last field
+        let mut map = map_hashmap_results(meta.iter(), |(n, v)| {
+            Ok((n.fragment(), self.value_to_string(v, false)?))
+        })?;
+        let mut metadatas = String::new();
+        let mut push_metadata = |entry: &str| {
+            if let Some(val) = map.remove(entry) {
+                metadatas.push_str(&format!("# @{} {}\n", entry, val));
+            }
+        };
+        push_metadata("name");
+        push_metadata("description");
+        push_metadata("version");
+        metadatas.push_str(&parameters);
+        for (key, val) in map.iter() {
+            metadatas.push_str(&format!("# @{} {}\n", key, val));
+        }
+        metadatas.push('\n');
+        Ok(metadatas)
     }
 }
 
@@ -315,7 +373,8 @@ impl Generator for CFEngine {
                     None => sn.file(),
                 };
                 self.reset_context();
-                let mut content = match files.get(file_to_create) {
+                let mut content = "# generated by rudder-lang\n".to_owned();
+                let fileinfo = match files.get(file_to_create) {
                     Some(s) => s.to_string(),
                     None => {
                         if technique_metadata {
@@ -325,30 +384,29 @@ impl Generator for CFEngine {
                         }
                     }
                 };
-                let params = res
+                content.push_str(&fileinfo);
+                let mut params = res
                     .parameters
                     .iter()
                     .chain(state.parameters.iter())
                     .map(|p| p.name.fragment())
                     .collect::<Vec<&str>>()
                     .join(",");
-                if sn.fragment() == "technique" {
-                    content.push_str(&format!(
-                        "bundle agent {}_{} \n",
-                        rn.fragment(),
-                        sn.fragment()
-                    ));
-                } else {
-                    content.push_str(&format!(
-                        "bundle agent {}_{} ({})\n",
-                        rn.fragment(),
-                        sn.fragment(),
-                        params
-                    ));
+                if params.len() > 0 {
+                    params = format!("({})", params);
                 }
-                content.push_str("{\n  methods:\n");
-                for st in state.statements.iter() {
-                    content.push_str(&self.format_statement(gc, st, "any".to_string())?);
+                content.push_str(&format!(
+                    "bundle agent {}_{}{}\n",
+                    rn.fragment(),
+                    sn.fragment(),
+                    params
+                ));
+                content.push_str(
+                    "{\n  vars:\n    \"resources_dir\" string => \"${this.promise_dirname}/resources\";\n"
+                );
+                content.push_str("  methods:\n");
+                for (i, st) in state.statements.iter().enumerate() {
+                    content.push_str(&self.format_statement(gc, st, i, "any".to_string())?);
                 }
                 content.push_str("}\n");
                 files.insert(file_to_create, content);

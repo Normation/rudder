@@ -106,15 +106,11 @@ pub fn parse_string(content: &str) -> Result<Vec<PInterpolatedElement>> {
 // TODO nomplus: sp!(parser) sp!(parser,sp) sp sequence, wsequence, cut_with
 
 fn etag<'src>(token: &'static str) -> impl Fn(PInput<'src>) -> PResult<PInput<'src>> {
-    move |i| {
-        or_err(tag(token), || PErrorKind::ExpectedToken(token))(i)
-    }
+    move |i| or_err(tag(token), || PErrorKind::ExpectedToken(token))(i)
 }
 
 fn ftag<'src>(token: &'static str) -> impl Fn(PInput<'src>) -> PResult<PInput<'src>> {
-    move |i| {
-        or_fail(tag(token), || PErrorKind::ExpectedToken(token))(i)
-    }
+    move |i| or_fail(tag(token), || PErrorKind::ExpectedToken(token))(i)
 }
 
 fn space_terminated<'src>(token: &'static str) -> impl Fn(PInput<'src>) -> PResult<PInput<'src>> {
@@ -125,9 +121,14 @@ fn space_terminated<'src>(token: &'static str) -> impl Fn(PInput<'src>) -> PResu
     }
 }
 
-fn parameter_list<'src, O, P>(open_deli: &'static str, parser: P, close_deli: &'static str) -> impl Fn(PInput<'src>) -> PResult<Vec<O>>
-where P: Copy + Fn(PInput<'src>) -> PResult<O>,
-O: 'src
+fn parameter_list<'src, O, P>(
+    open_deli: &'static str,
+    parser: P,
+    close_deli: &'static str,
+) -> impl Fn(PInput<'src>) -> PResult<Vec<O>>
+where
+    P: Copy + Fn(PInput<'src>) -> PResult<O>,
+    O: 'src,
 {
     move |i| {
         let (i, r) = sp(etag(open_deli))(i)?;
@@ -282,8 +283,6 @@ pub struct PEnum<'src> {
 fn penum(i: PInput) -> PResult<PEnum> {
     wsequence!(
         {
-            // _test: or_err(tag("N"), || PErrorKind::Nom(VerboseError::from_char(i, 'N')));
-            // _test: or_err(tag("P"), || PErrorKind::ExpectedToken("P"));
             metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
             global: opt(space_terminated("global"));
             e:      space_terminated("enum");
@@ -381,7 +380,9 @@ fn penum_expression(i: PInput) -> PResult<PEnumExpression> {
         enum_or_expression,
         enum_and_expression,
         enum_not_expression,
-        map(etag("default"), |t| PEnumExpression::Default(Token::from(t))), // default looks like an atom so it must come first
+        map(etag("default"), |t| {
+            PEnumExpression::Default(Token::from(t))
+        }), // default looks like an atom so it must come first
         enum_atom,
     ))(i)
 }
@@ -896,8 +897,14 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
             preceded(sp(space_terminated("return")), pvariable_identifier),
             PStatement::Return,
         ),
-        map(preceded(sp(space_terminated("fail")), pvalue), PStatement::Fail),
-        map(preceded(sp(space_terminated("log")), pvalue), PStatement::Log),
+        map(
+            preceded(sp(space_terminated("fail")), pvalue),
+            PStatement::Fail,
+        ),
+        map(
+            preceded(sp(space_terminated("log")), pvalue),
+            PStatement::Log,
+        ),
         map(etag("noop"), |_| PStatement::Noop),
     ))(i)
 }
@@ -991,14 +998,17 @@ pub enum PDeclaration<'src> {
 }
 fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
     end_of_pfile(i)?;
-    or_fail(alt((
-        map(penum, PDeclaration::Enum),
-        map(penum_mapping, PDeclaration::Mapping),
-        map(presource_def, PDeclaration::Resource),
-        map(pstate_def, PDeclaration::State),
-        map(pvariable_definition, PDeclaration::GlobalVar),
-        map(palias_def, PDeclaration::Alias),
-    )), || PErrorKind::Unparsed(get_accurate_context(i)))(i)
+    or_fail(
+        alt((
+            map(penum, PDeclaration::Enum),
+            map(penum_mapping, PDeclaration::Mapping),
+            map(presource_def, PDeclaration::Resource),
+            map(pstate_def, PDeclaration::State),
+            map(pvariable_definition, PDeclaration::GlobalVar),
+            map(palias_def, PDeclaration::Alias),
+        )),
+        || PErrorKind::Unparsed(get_accurate_context(i)),
+    )(i)
 }
 
 fn end_of_pfile(i: PInput) -> PResult<()> {

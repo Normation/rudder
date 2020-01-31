@@ -15,7 +15,8 @@ use std::{
 /// Paired with `test_case` proc-macro calls from the `compile.rs` test file.
 /// Generates a file from a string and tests it
 pub fn test_generated_file(filename: &str, content: &str) {
-    fs::create_dir_all(VIRTUALFILES_PATH).expect(&format!("Could not create {} path", TESTFILES_PATH));
+    fs::create_dir_all(VIRTUALFILES_PATH)
+        .expect(&format!("Could not create {} path", TESTFILES_PATH));
     let path = PathBuf::from(format!("{}/{}.rl", VIRTUALFILES_PATH, filename));
     let mut file = fs::File::create(&path).expect("Could not create file");
     file.write_all(content.as_bytes())
@@ -30,7 +31,10 @@ pub fn test_real_file(filename: &str, dest_folder: &str) {
     fs::create_dir_all(format!("{}/{}", TESTFILES_PATH, dest_folder))
         .expect(&format!("Could not create /test_files/{} dir", dest_folder));
     let input_path = PathBuf::from(format!("{}/{}.rl", RLFILES_PATH, filename));
-    let output_path = PathBuf::from(format!("{}/{}/{}.rl", TESTFILES_PATH, dest_folder, filename));
+    let output_path = PathBuf::from(format!(
+        "{}/{}/{}.rl",
+        TESTFILES_PATH, dest_folder, filename
+    ));
     test_file(&input_path, &output_path, filename);
 }
 
@@ -78,7 +82,15 @@ fn compile_file(input_path: &Path, output_path: &Path, filename: &str) -> Result
                 e
             );
             Err(e)
+        },
+        Err(rudderc::error::Error::List(e)) => {
+            println!(
+                "{}: compilation of {} failed: {:#?}",
+                "Error (rudderc)".bright_red().bold(),
+                filename.bright_yellow(),
+                e
+            );
+            Err(e.join("\n"))
         }
-        _ => panic!("What kind of error is this ? (rudderc). Please report this bug"),
     }
 }

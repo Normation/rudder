@@ -1,14 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::ast::AST;
-use crate::error::*;
-use crate::generators::*;
-use crate::parser::{Token, PAST};
+use crate::{
+    ast::AST,
+    error::*,
+    generators::*,
+    parser::{Token, PAST},
+    generate_oslib::generate_oslib,
+};
+
 use colored::Colorize;
-use std::cell::UnsafeCell;
-use std::fs;
-use std::path::Path;
+use std::{
+    cell::UnsafeCell,
+    fs,
+    path::Path
+};
 
 /// Read file, parse it and store it
 fn add_file<'a>(
@@ -54,8 +60,12 @@ impl SourceList {
 
 pub fn compile_file(source: &Path, dest: &Path, technique: bool) -> Result<()> {
     let sources = SourceList::new();
+    
+    let oslib = "libs/oslib.rl";
+    generate_oslib("libs/osbuilder.ron", oslib)?;
 
     // read and add files
+    let oses = Path::new(oslib);
     let corelib = Path::new("libs/corelib.rl");
     let stdlib = Path::new("libs/stdlib.rl");
     let input_filename = source.to_string_lossy();
@@ -70,6 +80,7 @@ pub fn compile_file(source: &Path, dest: &Path, technique: bool) -> Result<()> {
 
     // data
     let mut past = PAST::new();
+    add_file(&mut past, &sources, oses, "oslib.rl")?;
     add_file(&mut past, &sources, corelib, "corelib.rl")?;
     add_file(&mut past, &sources, stdlib, "stdlib.rl")?;
     add_file(&mut past, &sources, source, &input_filename)?;

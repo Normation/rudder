@@ -42,7 +42,7 @@ struct MethodCall {
 pub fn translate_file(json_file: &Path, rl_file: &Path) -> Result<()> {
     let input_filename = &json_file.to_string_lossy();
     let output_filename = &rl_file.to_string_lossy();
-    let config_filename = "libs/config.toml";
+    let config_filename = "libs/translate_config.toml";
     let file_error = |filename: &str, err| err!(Token::new(&filename.to_owned(), ""), "{}", err);
 
     info!(
@@ -92,8 +92,8 @@ fn translate(config: &toml::Value, technique: &Technique) -> Result<String> {
         "\n",
     )?;
     let out = format!(
-        r#"@format=0
-# This file has been generated with rltranslate 
+        r#"# This file has been generated with rltranslate
+@format=0
 
 @name="{name}"
 @description="{description}"
@@ -335,10 +335,28 @@ fn translate_arg(_config: &toml::Value, arg: &str) -> Result<String> {
     map_strings_results(var.iter(), |x| Ok(format!("\"{}\"", x.to_string()?)), ",")
 }
 
+fn is_balanced(cond: &str) -> bool {
+    let mut parenthesis_count: i32 = 0;
+    for c in cond.chars() {
+        if c == '(' {
+            parenthesis_count += 1;
+        } else if c == ')' {
+            parenthesis_count -= 1;
+        }
+    }
+    parenthesis_count == 0
+}
+
 fn translate_condition(_config: &toml::Value, cond: &str) -> Result<String> {
     lazy_static! {
         static ref METHOD_RE: Regex = Regex::new(r"^(\w+)_(\w+)$").unwrap();
-        static ref OS_RE: Regex = Regex::new(r"^([a-zA-Z]+)(_(\d+))*$").unwrap();
+        // Permissive expr to accept versions and _ separators in OS name + conditions under the following form : `.(...)`
+        // following version includes parenthesis handling and makes it barely readable
+        // matches a word that can be negative and that be followed by .| + word... possibly wrapped into parenthesis
+        static ref OS_RE: Regex = Regex::new(
+            // OS part: debian_9_0 \ And optional condition: (!(ubuntu|otheros).something)
+            r"^\(?(?P<os>([a-zA-Z\d]+)(_([a-zA-Z\d]+))*(\|([a-zA-Z\d]+)(_([a-zA-Z\d]+))*)*)\)?(.(?P<cdt>\(\(*!*\(*\w+\)*([.|]\(*!*\(*\w+\)*)*\)))?$"
+        ).unwrap();
     }
 
     // detect method outcome class
@@ -361,9 +379,21 @@ fn translate_condition(_config: &toml::Value, cond: &str) -> Result<String> {
 
     // detect system classes
     if let Some(_caps) = OS_RE.captures(cond) {
+        if !is_balanced(cond) {
+            return Err(Error::User(format!(
+                "Parenthesis error '{}'",
+                cond
+            )))
+        }
+        let os = OS_RE.replace_all(cond, "$os");
+        let mut result = os.to_string();
+        let cdt = OS_RE.replace_all(cond, "$cdt");
+        if cdt.len() > 0 {
+            result.push_str(&format!("&& {}", cdt));
+        };
         // TODO here we consider any match is an os match, should we have an OS whitelist ?
         // OS are global enum so we don't have to say which enum to match
-        return Ok(cond.into());
+        return Ok(result.into());
     }
 
     // TODO detect condition expressions
