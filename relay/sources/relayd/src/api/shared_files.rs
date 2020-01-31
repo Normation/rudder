@@ -88,7 +88,7 @@ impl FromStr for Metadata {
         }
         Ok(Metadata {
             header: Metadata::parse_value("header", s)?,
-            algorithm: HashType::from_str(s)?,
+            algorithm: HashType::from_str(&Metadata::parse_value("algorithm", s)?)?,
             digest: Metadata::parse_value("digest", s)?,
             hash_value: Metadata::parse_value("hash_value", s)?,
             short_pubkey: Metadata::parse_value("short_pubkey", s)?,
