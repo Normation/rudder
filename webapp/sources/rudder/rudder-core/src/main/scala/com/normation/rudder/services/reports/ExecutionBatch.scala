@@ -924,11 +924,11 @@ final case class ContextForNoAnswer(
 
     TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - compute buildRuleNodeStatusReport: ${t11-t10}ms")
 
-    val (computed, newStatus) = currentRunReports.foldLeft((nil, nil)) { case ( (c,n), currentStatusReports) =>
+    val (computed, newStatus) = currentRunReports.foldLeft((List[RuleNodeStatusReport](), List[RuleNodeStatusReport]())) { case ( (c,n), currentStatusReports) =>
       complianceForRun.get(currentStatusReports.ruleId) match {
         case None => //the whole rule is new!
           //here, the reports are ACTUALLY pending, not missing.
-          (c, n++Set(currentStatusReports))
+          (c,  currentStatusReports :: n )
 
         case Some(runStatusReport) => //look for added / removed directive
           val runDirectives = runStatusReport.directives
@@ -941,23 +941,26 @@ final case class ContextForNoAnswer(
           val updatedDirectives = currentDirectives ++ toKeep
           val newCompliance = runStatusReport.copy(directives = updatedDirectives)
 
-          (c:+newCompliance, n)
+          (newCompliance :: c, n)
       }
     }
+
     val t12 = System.currentTimeMillis
     TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - compute compliance : ${t12-t11}ms")
 
 
-    ComplianceDebugLogger.node(mergeInfo.nodeId).trace(s"Compute compliance for node ${mergeInfo.nodeId.value} using: rules for which compliance is based on run reports: ${
-      computed.map { x => s"[${x.ruleId.value}]"}.mkString("")
-    };"+s" rule updated since run: ${
-      newStatus.map { x => s"${x.ruleId.value}"}.mkString("[", "][", "]")
-    }")
+    if (ComplianceDebugLogger.node(mergeInfo.nodeId).isTraceEnabled) {
+      ComplianceDebugLogger.node(mergeInfo.nodeId).trace(s"Compute compliance for node ${mergeInfo.nodeId.value} using: rules for which compliance is based on run reports: ${
+        computed.map { x => s"[${x.ruleId.value}]" }.mkString("")
+      };" + s" rule updated since run: ${
+        newStatus.map { x => s"${x.ruleId.value}" }.mkString("[", "][", "]")
+      }")
+    }
 
     val t13 = System.currentTimeMillis
     TimingDebugLogger.debug(s"Compliance: mergeCompareByRule global cost : ${t13-t0}ms")
 
-    (computed ++ newStatus).toSet
+    (computed ::: newStatus).toSet
   }
 
   private[this] def buildUnexpectedReports(mergeInfo: MergeInfo, reports: Seq[Reports]): Set[RuleNodeStatusReport] = {
