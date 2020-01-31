@@ -230,7 +230,10 @@ pub fn run(
                         buf,
                     ) {
                         Ok(x) => x,
-                        Err(_x) => StatusCode::INTERNAL_SERVER_ERROR,
+                        Err(e) => {
+                            error!("error while processing request: {}", e);
+                            StatusCode::INTERNAL_SERVER_ERROR
+                        }
                     },
                 )
             },
@@ -248,7 +251,10 @@ pub fn run(
                 match shared_files::head(target_id, source_id, file_id, params, job_config6.clone())
                 {
                     Ok(x) => x,
-                    Err(_x) => StatusCode::INTERNAL_SERVER_ERROR,
+                    Err(e) => {
+                        error!("error while processing request: {}", e);
+                        StatusCode::INTERNAL_SERVER_ERROR
+                    }
                 },
             )
         });
