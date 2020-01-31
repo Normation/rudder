@@ -336,7 +336,9 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
         _             <- invalidate(requireUpdate).unit.toBox
       } yield {
         ReportLogger.Cache.debug(s"Compliance cache to reload (expired, missing):[${requireUpdate.map(_.value).mkString(" , ")}]")
-        ReportLogger.Cache.trace("Compliance cache hit: " + cacheToLog(upToDate))
+        if (ReportLogger.Cache.isTraceEnabled) {
+          ReportLogger.Cache.trace("Compliance cache hit: " + cacheToLog(upToDate))
+        }
         inCache
       }
     }
