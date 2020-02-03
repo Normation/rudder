@@ -39,6 +39,7 @@ package com.normation.rudder.rest.lift
 
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.appconfig.ReadConfigService
 import com.normation.rudder.appconfig.UpdateConfigService
 import com.normation.rudder.batch.AsyncDeploymentActor
@@ -56,7 +57,9 @@ import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.{SettingsApi => API}
+import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.reports.UnexpectedReportBehavior
+import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 import com.normation.rudder.services.servers.RelaySynchronizationMethod._
 import com.normation.utils.StringUuidGenerator
@@ -75,11 +78,14 @@ import net.liftweb.json.JsonDSL._
 
 
 class SettingsApi(
-    val restExtractorService: RestExtractorService
-  , val configService       : ReadConfigService with UpdateConfigService
-  , val asyncDeploymentAgent: AsyncDeploymentActor
-  , val uuidGen             : StringUuidGenerator
+    val restExtractorService         : RestExtractorService
+  , val configService                : ReadConfigService with UpdateConfigService
+  , val asyncDeploymentAgent         : AsyncDeploymentActor
+  , val uuidGen                      : StringUuidGenerator
+  , val policyServerManagementService: PolicyServerManagementService
+  , val nodeInfoService              : NodeInfoService
 ) extends LiftApiModuleProvider[API] {
+
 
   val allSettings_v10: List[RestSetting[_]] =
       RestPolicyMode ::
@@ -133,11 +139,14 @@ class SettingsApi(
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {
+      case API.GetAllAuthorizedNetworks => GetAllAuthorizedNetworks
+      case API.GetAuthorizedNetworks    => GetAuthorizedNetworks
+      case API.ModifyAuthorizedNetworks => ModifyAuthorizedNetworks
       case API.GetAllSettings => GetAllSettings
       case API.ModifySettings => ModifySettings
       case API.GetSetting     => GetSetting
       case API.ModifySetting  => ModifySetting
-    }).toList
+    })
   }
 
   object GetAllSettings extends LiftApiModule0 {
@@ -697,6 +706,93 @@ class SettingsApi(
     val key = "rudder_generation_continue_on_error"
     def get = configService.rudder_generation_continue_on_error()
     def set = (value : Boolean, _, _) => configService.set_rudder_generation_continue_on_error(value)
+  }
+
+  object GetAllAuthorizedNetworks extends LiftApiModule0 {
+    override val schema = API.GetAllAuthorizedNetworks
+    val restExtractor = restExtractorService
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val action = "getAllAuthorizedNetworks"
+      import com.normation.utils.Control.sequence
+      val result = for {
+        servers <- nodeInfoService.getAllSystemNodeIds()
+        authorizedNetworks <- sequence(servers)(nodeId => policyServerManagementService.getAuthorizedNetworks(nodeId).map((nodeId, _)))
+      } yield {
+        import net.liftweb.json.JsonDSL._
+        JArray(authorizedNetworks.toList.map {
+          case (nodeid, networks) =>
+            ("id" -> nodeid.value) ~ ("authorizedNetworks" -> networks.toList)
+        })
+      }
+      RestUtils.response(restExtractorService, "settings", None)(result, req, s"Could not get authorized networks")
+    }
+  }
+
+
+  object GetAuthorizedNetworks extends LiftApiModule {
+    override val schema = API.GetAuthorizedNetworks
+    val restExtractor = restExtractorService
+    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+
+      implicit val action = "getAuthorizedNetworks"
+      val result = for {
+        nodeInfo <- nodeInfoService.getNodeInfo(NodeId(id))
+        isServer <- nodeInfo match {
+          case Some(info) if info.isPolicyServer =>
+            Full(())
+          case Some(_) =>
+            Failure(s"Can get authorized networks of node with '${id}' because it is node a policy server (root or relay)")
+          case None =>
+            Failure(s"Could not find node information for id '${id}', this node does not exist")
+        }
+        networks <- policyServerManagementService.getAuthorizedNetworks(NodeId(id))
+      } yield {
+        JArray(networks.toList.map(JString))
+      }
+      RestUtils.response(restExtractorService, "settings", Some(id))(result, req, s"Could not get authorized networks for policy server '${id}'")
+    }
+  }
+
+  object ModifyAuthorizedNetworks extends LiftApiModule {
+    override val schema = API.ModifyAuthorizedNetworks
+    val restExtractor = restExtractorService
+    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+
+      implicit val action = "modifyAuthorizedNetworks"
+
+      val actor = authzToken.actor
+      val modificationId = new ModificationId(uuidGen.newUuid)
+      val nodeId = NodeId(id)
+      val result = for {
+        nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+        isServer <- nodeInfo match {
+          case Some(info) if info.isPolicyServer =>
+            Full(())
+          case Some(_) =>
+            Failure(s"Can set authorized networks of node with '${id}' because it is node a policy server (root or relay)")
+          case None =>
+            Failure(s"Could not find node information for id '${id}', this node does not exist")
+        }
+        networks <- restExtractorService.extractList("authorizedNetworks")(req) {
+                      v =>
+                        val netWithoutSpaces = v.replaceAll("""\s""", "")
+                        if(netWithoutSpaces.length != 0) {
+                          if (PolicyServerManagementService.isValidNetwork(netWithoutSpaces)) {
+                            Full(netWithoutSpaces)
+                          } else {
+                            Failure(s"${netWithoutSpaces} is not a valid authorized network")
+                          }
+                        }
+                        else {
+                          Failure("Cannot pass an empty authorized network")
+                        }
+                   }
+            set <- policyServerManagementService.setAuthorizedNetworks(nodeId, networks, modificationId, actor)
+      } yield {
+        JArray(networks.map(JString))
+      }
+      RestUtils.response(restExtractorService, "settings", Some(id))(result, req, s"Could not get authorized networks for policy server '${id}'")
+    }
   }
 }
 
