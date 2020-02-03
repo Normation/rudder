@@ -75,8 +75,8 @@ final class RuleStatusReport private (
   , val report : AggregatedStatusReport
   , val overrides : List[OverridenPolicy]
 ) extends StatusReport {
-  val compliance = report.compliance
-  val byNodes: Map[NodeId, AggregatedStatusReport] = report.reports.groupBy(_.nodeId).mapValues(AggregatedStatusReport(_))
+  lazy val compliance = report.compliance
+  lazy val byNodes: Map[NodeId, AggregatedStatusReport] = report.reports.groupBy(_.nodeId).mapValues(AggregatedStatusReport(_))
 }
 
 object RuleStatusReport {
@@ -119,9 +119,9 @@ object NodeStatusReport {
     new NodeStatusReport(nodeId, runInfo, statusInfo, overrides, AggregatedStatusReport(reports.toSet.filter( _.nodeId == nodeId)))
   }
 
-  // To use when you are sure that all reports are indeed for the designated node.
+  // To use when you are sure that all reports are indeed for the designated node. RuleNodeStatusReports must be merged
   def applyByNode(nodeId: NodeId, runInfo:  RunAndConfigInfo, statusInfo: RunComplianceInfo, overrides : List[OverridenPolicy], reports: Iterable[RuleNodeStatusReport]) = {
-    new NodeStatusReport(nodeId, runInfo, statusInfo, overrides, AggregatedStatusReport(reports.toSet))
+    new NodeStatusReport(nodeId, runInfo, statusInfo, overrides, AggregatedStatusReport.applyFromUniqueNode(reports.toSet))
   }
 
   /*
@@ -168,6 +168,10 @@ object AggregatedStatusReport {
   def apply(reports: Iterable[RuleNodeStatusReport]) = {
     val merged = RuleNodeStatusReport.merge(reports)
     new AggregatedStatusReport(merged.values.toSet)
+  }
+
+  def applyFromUniqueNode(reports: Set[RuleNodeStatusReport]) = {
+    new AggregatedStatusReport(reports)
   }
 
   /*
@@ -269,6 +273,21 @@ object DirectiveStatusReport {
       (directiveId, DirectiveStatusReport(directiveId, newComponents))
     }.toMap
   }
+/*
+  def merge2(directives: Iterable[DirectiveStatusReport]): Map[DirectiveId, DirectiveStatusReport] = {
+    directives.groupBy( _.directiveId).map { case (directiveId, directiveStatusReports) =>
+      val componentsByDirectives = directiveStatusReports.flatMap( _.components.values)
+      val componentsMap = componentsByDirectives.groupBy(_.componentName).map{ case (cptName, cptStatusReports) =>
+        val componentValues = cptStatusReports.flatMap(_.componentValues.values)
+
+      }
+      (directiveId, DirectiveStatusReport(directiveId, directiveStatusReports.map(_.rep).groupBy(_.components).map { case (component, reportsByComponents) =>
+        (component, ComponentStatusReport(component, reportsByComponents.groupBy(_.keyValue).map { case (keyValue, reportsByComponent) =>
+          (keyValue, ComponentValueStatusReport(keyValue, keyValue, reportsByComponent.map(r => MessageStatusReport(ReportType.Unexpected, r.message)).toList))
+        }.toMap)
+        )}.toMap)
+      )}
+  }*/
 }
 
 /**
