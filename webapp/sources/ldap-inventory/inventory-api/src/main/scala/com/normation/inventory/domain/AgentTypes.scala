@@ -112,7 +112,7 @@ object AgentType {
   final case object CfeCommunity extends AgentType {
     override def id           = "cfengine-community"
     override def oldShortName = "community"
-    override def displayName  = "Rudder (CFEngine Community)"
+    override def displayName  = "Rudder"
     override def toRulesPath  = "/cfengine-community"
     override def inventoryAgentNames   = Set("cfengine-community", "community")
     override val inventorySoftwareName = "rudder-agent"
