@@ -1005,7 +1005,7 @@ object RudderConfig extends Loggable {
       , new NcfApi(ncfTechniqueWriter, restExtractorService, stringUuidGenerator)
       , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8)
       , new ParameterApi(restExtractorService, parameterApiService2)
-      , new SettingsApi(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator)
+      , new SettingsApi(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator, policyServerManagementService, nodeInfoService)
       , new TechniqueApi(restExtractorService, techniqueApiService6)
       , new RuleApi(restExtractorService, ruleApiService2, ruleApiService6, stringUuidGenerator)
       , new SystemApi(restExtractorService, systemApiService11, rudderMajorVersion, rudderFullVersion, builtTimestamp)
