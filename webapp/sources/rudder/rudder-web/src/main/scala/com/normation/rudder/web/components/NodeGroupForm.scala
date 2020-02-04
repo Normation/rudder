@@ -144,7 +144,7 @@ class NodeGroupForm(
   def mainDispatch = Map(
     "showForm" -> { _:NodeSeq => showForm() },
     "showGroup" -> { _:NodeSeq => searchNodeComponent.get match {
-      case Full(component) => component.buildQuery
+      case Full(component) => component.buildQuery(true)
       case _ =>  <div>The component is not set</div>
      } }
   )
@@ -180,85 +180,88 @@ class NodeGroupForm(
     val rules = dependencyService.targetDependencies(target).map( _.rules.toSet.filter(!_.isSystem).map(_.id)).toOption
     RuleGrid.staticInit ++ ruleGrid.rulesGridWithUpdatedInfo(None, false, false) ++ Script(OnLoad(ruleGrid.asyncDisplayAllRules(rules).applied))
   }
-
+  private[this] val groupNameString = nodeGroup.fold(
+    t => rootCategory.allTargets.get(t).map(_.name).getOrElse(t.target)
+    , _.name
+  )
   private[this] def showFormNodeGroup(nodeGroup: NodeGroup): CssSel = {
+    val nodesSel = "#gridResult" #> NodeSeq.Empty
+    val nodes = nodesSel(searchNodeComponent.get match {
+      case Full(req)   => req.buildQuery(true)
+      case eb:EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
+    })
     (
-        "group-pendingchangerequest" #>  PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml,nodeGroup.id)
+        "#group-name" #> groupNameString
+      & "group-pendingchangerequest" #>  PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml,nodeGroup.id)
       & "group-name" #> groupName.toForm_!
       & "group-rudderid" #> <div class="form-group row">
                       <label class="wbBaseFieldLabel">Rudder ID</label>
                       <input readonly="" class="form-control" value={nodeGroup.id.value}/>
                     </div>
       & "group-cfeclasses" #> <div class="form-group row">
-                        <a href="#" onclick={s"$$('#cfe-${nodeGroup.id.value}').toggle(300);$$(this).toggleClass('open');return false;"} class="toggle-caret">
-                          <label class="wbBaseFieldLabel">Display agent conditions</label>
-                          <span class="caret"></span>
-                        </a>
-                        <div class="well row" style="display: none" id={s"cfe-${nodeGroup.id.value}"}>
-                          {RuleTarget.toCFEngineClassName(nodeGroup.id.value)}<br/>
-                          {RuleTarget.toCFEngineClassName(nodeGroup.name)}
+                          <label class="wbBaseFieldLabel">Agent conditions</label>
+                          <div class="well" id={s"cfe-${nodeGroup.id.value}"}>
+                            {RuleTarget.toCFEngineClassName(nodeGroup.id.value)}<br/>
+                            {RuleTarget.toCFEngineClassName(nodeGroup.name)}
+                          </div>
                         </div>
-                      </div>
       & "#longDescriptionField *" #> (groupDescription.toForm_! ++ Script(OnLoad(JsRaw(s"""setupMarkdown(${Str(nodeGroup.description).toJsCmd}, "longDescriptionField")"""))))
       & "group-container" #> groupContainer.toForm_!
       & "group-static" #> groupStatic.toForm_!
-      & "group-showgroup" #> (searchNodeComponent.get match {
-                       case Full(req) => req.buildQuery
-                       case eb:EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
-      })
+      & "group-showgroup" #> nodes
       & "group-clone" #> { if (CurrentUser.checkRights(AuthorizationType.Group.Write))
                      SHtml.ajaxButton("Clone", () => showCloneGroupPopup()) % ("id" -> "groupCloneButtonId") % ("class" -> " btn btn-default")
                    else NodeSeq.Empty
                  }
       & "group-save" #> { if (CurrentUser.checkRights(AuthorizationType.Group.Edit))
-                    <div  tooltipid="saveButtonToolTip" class="tooltipable" title=""> {
+                    <span  tooltipid="saveButtonToolTip" class="tooltipable" title=""> {
                       SHtml.ajaxSubmit("Save", onSubmit _)  %  ("id" -> saveButtonId) % ("class" -> " btn btn-success")
-                    } </div>
+                    } </span>
                    else NodeSeq.Empty
                 }
       & "group-delete" #> SHtml.ajaxButton("Delete", () => onSubmitDelete(), ("class" -> " btn btn-danger"))
       & "group-notifications" #> updateAndDisplayNotifications()
       & "#groupRuleTabsContent" #> showRulesForTarget(GroupTarget(nodeGroup.id))
+      & "#group-shownodestable *" #> (searchNodeComponent.get match {
+          case Full(req) => req.displayNodesTable
+          case eb:EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
+        })
     )
   }
 
   private[this] def showFormTarget(target: SimpleTarget): CssSel = {
-    // we want to remove the query part which doesn't mean anything for
-    // system group
-    val nodesSel = "#SearchForm" #> NodeSeq.Empty
-    val nodes = nodesSel(searchNodeComponent.get match {
-      case Full(req)   => req.buildQuery
-      case eb:EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
-    })
-
-    (
-        "group-pendingchangerequest" #> NodeSeq.Empty
-      & "group-name" #> groupName.readOnlyValue
-      & "group-rudderid" #> <div class="form-group row">
-                      <label class="wbBaseFieldLabel">Rudder ID</label>
-                      <input readonly="" class="form-control" value={target.target}/>
-                    </div>
-      & "group-cfeclasses" #> NodeSeq.Empty
-      & "#longDescriptionField" #> (groupDescription.toForm_! ++ Script(JsRaw(s"""setupMarkdown("", "longDescriptionField")""")))
-      & "group-container" #> groupContainer.readOnlyValue
-      & "group-static" #> NodeSeq.Empty
-      & "group-showgroup" #> nodes
-      & "group-clone" #> NodeSeq.Empty
-      & "group-save" #> NodeSeq.Empty
-      & "group-delete" #> NodeSeq.Empty
-      & "group-notifications" #> NodeSeq.Empty
-      & "#groupRuleTabsContent" #> showRulesForTarget(target)
+    ( "group-pendingchangerequest" #> NodeSeq.Empty
+    & "#group-name" #> <span>{groupNameString}<span class="group-system"></span></span>
+    & "group-name" #> groupName.readOnlyValue
+    & "#groupTabMenu" #> <ul id="groupTabMenu">
+                           <li><a href="#groupParametersTab">Parameters</a></li>
+                           <li><a href="#groupRulesTab">Related Rules</a></li>
+                         </ul>
+    & "group-rudderid" #> <div class="form-group row">
+                    <label class="wbBaseFieldLabel">RUDDER ID</label>
+                    <input readonly="" class="form-control" value={target.target}/>
+                  </div>
+    & "group-cfeclasses" #> NodeSeq.Empty
+    & "#longDescriptionField" #> (groupDescription.toForm_! ++ Script(JsRaw(s"""setupMarkdown("", "longDescriptionField")""")))
+    & "group-container" #> groupContainer.readOnlyValue
+    & "group-static" #> NodeSeq.Empty
+    & "group-showgroup" #> NodeSeq.Empty
+    & "group-clone" #> NodeSeq.Empty
+    & "group-save" #> NodeSeq.Empty
+    & "group-delete" #> NodeSeq.Empty
+    & "group-notifications" #> NodeSeq.Empty
+    & "#groupRuleTabsContent" #> showRulesForTarget(target)
+    & "#group-shownodestable *" #> (searchNodeComponent.get match {
+        case Full(req) => req.displayNodesTable
+        case eb:EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
+      })
     )
-
   }
 
   ///////////// fields for category settings ///////////////////
+
   private[this] val groupName = {
-    val name = nodeGroup.fold(
-      t => rootCategory.allTargets.get(t).map(_.name).getOrElse(t.target)
-      , _.name
-    )
-    new WBTextField("Group name", name) {
+    new WBTextField("Group name", groupNameString) {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def className = "form-control"
       override def labelClassName = ""
@@ -309,13 +312,13 @@ class NodeGroupForm(
        }
     ) {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def className = ""
+      override def className = "switch"
       override def labelClassName = ""
       override def subContainerClassName = ""
     }
   }
 
-  private[this] val groupContainer = new WBSelectField("Group container",
+  private[this] val groupContainer = new WBSelectField("Category",
       (categoryHierarchyDisplayer.getCategoriesHierarchy(rootCategory, None).map { case (id, name) => (id.value -> name)}),
       parentCategoryId.value) {
       override def className = "form-control"
@@ -333,7 +336,7 @@ class NodeGroupForm(
 
   private[this] def onFailure : JsCmd = {
     formTracker.addFormError(error("There was problem with your request."))
-    updateFormClientSide() & JsRaw("""scrollToElement("errorNotification","#groupDetails");""")
+    updateFormClientSide() & JsRaw("""scrollToElement("errorNotification","#ajaxItemContainer");""")
   }
 
   private[this] def onSubmit() : JsCmd = {

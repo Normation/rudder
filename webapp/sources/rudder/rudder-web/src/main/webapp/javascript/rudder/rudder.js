@@ -825,8 +825,6 @@ function generateMarkdown(text, container) {
 }
 
 function setupMarkdown(initialValue, id) {
-  console.log($("#" + id))
-  console.log($("#" + id + " textarea"))
   $("#" + id + " textarea").keyup(function() {
     var value = $(this).val()
     console.log(value)

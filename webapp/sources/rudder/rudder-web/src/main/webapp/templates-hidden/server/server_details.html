@@ -6,16 +6,28 @@
   <div id="SearchForm">
     <content-query>
       <div id="serverGrid_info_area"></div>
-      <div id="queryParameters">
-        <div class="composition no-tw-bs">
-          <label for="typeQuery">Include Rudder server components:</label>
-          <span id="typeQuery"></span>
-          <br/>
-          <span style="margin:5px 0px 7px 0px">
-            Match the criteria below with this operand:
-            <span style="margin-left:5px" id="composition">
-            </span>
-          </span>
+      <div id="queryParameters" class="row">
+        <ul>
+          <li class="rudder-form form-sm">
+            <div class="input-group">
+              <label for="typeQuery" class="input-group-addon">
+                <span id="typeQuery"></span>
+                <label class="label-radio" for="typeQuery">
+                  <span class="ion ion-checkmark-round"></span>
+                </label>
+                <span class="ion ion-checkmark-round check-icon"></span>
+              </label>
+              <label for="typeQuery" class="form-control">
+                Include Rudder server components
+              </label>
+            </div>
+          </li>
+        </ul>
+        <div class="wbBaseField form-group">
+        <label><span class="text-fit">Match the criteria below with this operand:</span></label>
+          <div class="switch">
+              <span class="radio-inline" id="composition"></span>
+          </div>
         </div>
         <table class="searchNodes" >
           <tbody id="query_lines"></tbody>
@@ -28,6 +40,10 @@
     <update-gridresult></update-gridresult>
   </div>
 </query-searchnodes>
+
+<nodes-table>
+    <update-nodesTable></update-nodesTable>
+</nodes-table>
 
 <lift:ignore>This part is the detail of a node</lift:ignore>
 <detail-server>

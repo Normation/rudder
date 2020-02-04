@@ -118,13 +118,9 @@ class RuleCategoryPopup(
                                     case None => NodeSeq.Empty
                                     case Some(c) =>
                                       <div class="row form-group">
-                                        <label class="col-lg-3 col-sm-12 col-xs-12 text-right wbBaseFieldLabel"><b>Rudder ID</b>
-                                        </label>
-                                        <div class="col-lg-9 col-sm-12 col-xs-12">
-                                          <input class="form-control col-lg-12 col-sm-12 col-xs-12" type="text" value={c.id.value} disabled="true">
-                                          </input>
-                                        </div>
-                                        </div>
+                                        <label class="wbBaseFieldLabel"><b>Rudder ID</b></label>
+                                        <input class="form-control" type="text" value={c.id.value} disabled="true"/>
+                                      </div>
                                   }) &
       "#saveCategory"          #> SHtml.ajaxSubmit(TextForButton, () => onSubmit(), ("id", "createRuleCategorySaveButton") , ("tabindex","5"), ("style","margin-left:5px;")) andThen
       ".notifications *"       #> updateAndDisplayNotifications()

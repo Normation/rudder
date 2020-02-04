@@ -317,12 +317,6 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
             $$.jstree.rollback(data.rlbk);
           }
         });
-        adjustHeight('#groupsTree');
-        adjustHeight('#groupDetails');
-        $$(window).on('resize',function(){
-          adjustHeight('#groupsTree');
-          adjustHeight('#groupDetails');
-        });
       """))
     )}
   }
@@ -427,7 +421,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     selectedCategoryId = Full(category.id)
     //update UI - no modification here, so no refreshGroupLib
     refreshRightPanel(CategoryForm(category)) &
-    JsRaw("""$('#groupDetails').show();""")
+    JsRaw("""$('#ajaxItemContainer').show();""")
   }
 
   //adaptater
@@ -440,10 +434,9 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     }
     refreshRightPanel(GroupForm(g, parentCategoryId))&
     JsRaw(s"""
-        jQuery('#groupDetails').show();
+        jQuery('#ajaxItemContainer').show();
         var groupId = JSON.stringify({${js}});
         window.location.hash = "#"+groupId;
-        adjustHeight('#groupDetails');
     """)
 
   }

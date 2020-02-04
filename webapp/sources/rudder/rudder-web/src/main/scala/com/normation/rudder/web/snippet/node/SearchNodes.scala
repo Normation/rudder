@@ -167,7 +167,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
   }
 
   def queryForm(sc : SearchNodeComponent) = {
-    SHtml.ajaxForm(sc.buildQuery)
+    SHtml.ajaxForm(sc.buildQuery(false))
   }
 
   /**

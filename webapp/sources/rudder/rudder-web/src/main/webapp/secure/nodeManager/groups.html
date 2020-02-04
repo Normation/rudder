@@ -3,86 +3,49 @@
 <head>
   <title>Rudder - Node Groups Management</title>
   <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-groups.css"/>
-  <style>
-    form select.selectComparator {
-      width: 100%;
-    }
-    form select.selectField {
-      width: 100%;
-    }
-    #queryParameters{
-      overflow-x:auto;
-    }
-    #query_lines{
-      width:100%;
-      table-layout:fixed;
-    }
-    #query_lines td{
-      white-space: nowrap;}
-    #query_lines tbody tr td input, #query_lines tbody tr td select.selectField, #query_lines tbody tr td input.queryInputValue, #query_lines tbody tr td select.queryInputValue{
-      width:100%;
-    }
-    #query_lines tbody tr td:first-child{
-      width:130px;
-    }
-    #query_lines tbody tr td:nth-child(2){
-      width:170px;
-    }
-    #query_lines tbody tr td:nth-child(3){
-      width: 140px;
-    }
-    #query_lines tbody tr td:nth-child(5),#query_lines tbody tr td.last{
-      width:25px;
-    }
-    @media screen and (max-width: 1200px){
-      #query_lines tbody tr td:nth-child(4){
-        width :250px;
-      }
-    }
-  </style>
+  <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-template.css"/>
 </head>
 
 <span data-list="node.Groups.head"></span>
-<div class="nodeGroupContainer">
-  <div class="col-sm">
-    <div id="groupsTree" data-lift="node.Groups.groupHierarchy">
-      <div class="page-title">
-        Group hierarchy
-        <lift:Authz role="group_write">
-          <div id="newItem">Here comes the New item Button</div>
-        </lift:Authz>
-      </div>
-      <div id="groupeTree_actions_zone">
-        <div class="col-xs-12 tree">
-          <div class="filter-tree">
-            <div class="input-group">
-              <div class="input-group-btn">
-                <button type="button" class="btn btn-default" aria-label="Bold" onclick="toggleTree('#groupTree', this);">
-                  <span class="fa fa-folder fa-folder-open"></span>
-                </button>
-              </div>
-              <input class="form-control" placeholder="Filter" id="groupSearch" onkeydown="refuseEnter(event);" onkeyup="searchTree('#groupSearch', '#groupTree');">
-              <div class="input-group-btn">
-                <button type="button" class="btn btn-default" aria-label="Bold" onclick="clearSearchFieldTree('#groupSearch', '#groupTree');" >
-                  <span class="fa fa-times"></span>
-                </button>
-              </div>
+<div class="rudder-template">
+  <div class="template-sidebar sidebar-left" data-lift="node.Groups.groupHierarchy">
+      <div class="sidebar-header">
+        <div class="header-title">
+          <h1>Groups</h1>
+          <div class="header-buttons">
+            <lift:Authz role="group_write">
+              <div id="newItem">Here comes the New item Button</div>
+            </lift:Authz>
+          </div>
+        </div>
+        <div class="header-filter">
+          <div class="input-group">
+            <div class="input-group-btn">
+              <button type="button" class="btn btn-default" aria-label="Bold" onclick="toggleTree('#groupTree', this);">
+                <span class="fa fa-folder fa-folder-open"></span>
+              </button>
+            </div>
+            <input class="form-control" placeholder="Filter" id="groupSearch" onkeydown="refuseEnter(event);" onkeyup="searchTree('#groupSearch', '#groupTree');">
+            <div class="input-group-btn">
+              <button type="button" class="btn btn-default" aria-label="Bold" onclick="clearSearchFieldTree('#groupSearch', '#groupTree');" >
+                <span class="fa fa-times"></span>
+              </button>
             </div>
           </div>
         </div>
+
       </div>
-      <div id="groupTree" class="col-xs-12 row">Here comes the Groups Tree</div>
-    </div>
+
+      <div id="groupTree" class="sidebar-list">Here comes the Groups Tree</div>
+
   </div>
 
-  <div class="col col-xl box-shadow" id="groupDetails" style="display:none;">
-    <div id="ajaxItemContainer" style="width: 100%">
+  <div class="template-main" id="ajaxItemContainer" style="display:none;">
       <span data-lift="node.Groups.initRightPanel"></span>
-    </div>
   </div>
+
 </div>
 
-<div class="spacer"></div>
 
 <div id="createGroupPopup" class="modal fade" data-keyboard="true" tabindex="-1">
   <div id="createGroupContainer"></div>
