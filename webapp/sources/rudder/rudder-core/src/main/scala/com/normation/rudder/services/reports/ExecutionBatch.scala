@@ -918,7 +918,6 @@ final case class ContextForNoAnswer(
 
     // note: isn't there something specific to do for unexpected reports ? Keep them all ?
 
-    val nil = Seq[RuleNodeStatusReport]()
     val currentRunReports = buildRuleNodeStatusReport(mergeInfo, currentConfig, ReportType.Pending)
     val t11 = System.currentTimeMillis
 
