@@ -434,7 +434,7 @@ class ChangeRequestChangesUnserialisationImpl (
       (for {
           groupsNode  <- (changeRequest \ "groups").headOption ?~! s"Missing child 'groups' in entry type changeRequest : ${xml}"
       } yield {
-        (groupsNode\"group").flatMap{ group =>
+        (groupsNode \ "group").iterator.flatMap { group =>
           for {
             nodeGroupId  <- group.attribute("id").map(id => NodeGroupId(id.text)) ?~!
                              s"Missing attribute 'id' in entry type changeRequest group changes  : ${group}"
@@ -472,7 +472,7 @@ class ChangeRequestChangesUnserialisationImpl (
       (for {
           directivesNode  <- (changeRequest \ "directives").headOption ?~! s"Missing child 'directives' in entry type changeRequest : ${xml}"
       } yield {
-        (directivesNode\"directive").flatMap{ directive =>
+        (directivesNode \ "directive").iterator.flatMap { directive =>
           for {
             directiveId  <- directive.attribute("id").map(id => DirectiveId(id.text)) ?~!
                              s"Missing attribute 'id' in entry type changeRequest directive changes  : ${directive}"
@@ -526,7 +526,7 @@ class ChangeRequestChangesUnserialisationImpl (
           rulesNode  <- (changeRequest \ "rules").headOption ?~! s"Missing child 'rules' in entry type changeRequest : ${xml}"
       } yield {
 
-        (rulesNode\"rule").flatMap{ rule =>
+        (rulesNode \ "rule").iterator.flatMap { rule =>
           for {
             ruleId       <- rule.attribute("id").map(id => RuleId(id.text)) ?~!
                              s"Missing attribute 'id' in entry type changeRequest rule changes  : ${rule}"
@@ -564,7 +564,7 @@ class ChangeRequestChangesUnserialisationImpl (
       (for {
           paramsNode  <- (changeRequest \ "globalParameters").headOption ?~! s"Missing child 'globalParameters' in entry type changeRequest : ${xml}"
       } yield {
-        (paramsNode\"globalParameter").flatMap{ param =>
+        (paramsNode \ "globalParameter").iterator.flatMap{ param =>
           for {
             paramName    <- param.attribute("name").map(name => ParameterName(name.text)) ?~!
                              s"Missing attribute 'name' in entry type globalParameters Global Parameter changes  : ${param}"
