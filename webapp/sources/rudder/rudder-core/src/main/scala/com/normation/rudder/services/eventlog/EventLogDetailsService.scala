@@ -727,11 +727,11 @@ class EventLogDetailsServiceImpl(
     for{
       event     <- xml
       eventlogs <- event.child
-      entry     <- eventlogs \ "rollbackedEvent"
+      entry     <- (eventlogs \ "rollbackedEvent").iterator
       id        <- (entry \ "id").headOption.map(_.text.toInt) ?~! ("Entry type is not a 'rollback': %s".format(entry))
-      evtType   <-(entry \ "type").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
-      author    <-(entry \ "author").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
-      date      <-(entry \ "date").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
+      evtType   <- (entry \ "type").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
+      author    <- (entry \ "author").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
+      date      <- (entry \ "date").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
     } yield {
       RollbackedEvent(id,date,evtType,author)
     }
