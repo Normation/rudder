@@ -28,21 +28,19 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{error::Error, hashing::HashType, JobConfig};
+use crate::{
+    data::shared_file::{Metadata, SharedFile},
+    error::Error,
+    JobConfig,
+};
 use bytes::IntoBuf;
 use chrono::Utc;
+use futures::future::Future;
 use hex;
 use humantime::parse_duration;
-use openssl::{
-    error::ErrorStack,
-    pkey::{PKey, Public},
-    rsa::Rsa,
-    sign::Verifier,
-};
-use regex::Regex;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{
-    fmt, fs,
+    fs,
     io::{BufRead, BufReader, Read},
     str,
     str::FromStr,
@@ -52,89 +50,7 @@ use std::{
 use tracing::{debug, span, warn, Level};
 use warp::{body::FullBody, http::StatusCode, Buf};
 
-// TODO use tokio-fs
-
-#[derive(Debug)]
-pub struct Metadata {
-    pub header: String,
-    pub algorithm: HashType,
-    pub digest: String,
-    pub hash_value: String,
-    pub short_pubkey: String,
-    pub hostname: String,
-    pub key_date: String,
-    pub key_id: String,
-}
-
-impl fmt::Display for Metadata {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "header={}", &self.header)?;
-        writeln!(f, "algorithm={}", &self.algorithm)?;
-        writeln!(f, "digest={}", &self.digest)?;
-        writeln!(f, "hash_value={}", &self.hash_value)?;
-        writeln!(f, "short_pubkey={}", &self.short_pubkey)?;
-        writeln!(f, "hostname={}", &self.hostname)?;
-        writeln!(f, "keydate={}", &self.key_date)?;
-        writeln!(f, "keyid={}", &self.key_id)
-    }
-}
-
-impl FromStr for Metadata {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if Metadata::parse_value("header", s).unwrap() != "rudder-signature-v1" {
-            return Err(Error::InvalidHeader);
-        }
-        Ok(Metadata {
-            header: Metadata::parse_value("header", s)?,
-            algorithm: HashType::from_str(&Metadata::parse_value("algorithm", s)?)?,
-            digest: Metadata::parse_value("digest", s)?,
-            hash_value: Metadata::parse_value("hash_value", s)?,
-            short_pubkey: Metadata::parse_value("short_pubkey", s)?,
-            hostname: Metadata::parse_value("hostname", s)?,
-            key_date: Metadata::parse_value("keydate", s)?,
-            key_id: Metadata::parse_value("keyid", s)?,
-        })
-    }
-}
-
-impl Metadata {
-    fn parse_value(key: &str, file: &str) -> Result<String, Error> {
-        let regex_key = Regex::new(&format!(r"{}=(?P<key>[^\n]+)\n", key)).unwrap();
-
-        match regex_key.captures(file) {
-            Some(capture) => match capture.name("key") {
-                Some(x) => Ok(x.as_str().to_string()),
-                _ => Err(Error::InvalidHeader),
-            },
-            None => Err(Error::InvalidHeader),
-        }
-    }
-}
-
-fn validate_signature(
-    file: &[u8],
-    pubkey: PKey<Public>,
-    hash_type: HashType,
-    digest: &[u8],
-) -> Result<bool, ErrorStack> {
-    let mut verifier = Verifier::new(hash_type.to_openssl_hash(), &pubkey)?;
-    verifier.update(file)?;
-    verifier.verify(digest)
-}
-
-fn get_pubkey(pubkey: &str) -> Result<PKey<Public>, ErrorStack> {
-    PKey::from_rsa(Rsa::public_key_from_pem_pkcs1(
-        format!(
-            "-----BEGIN RSA PUBLIC KEY-----\n{}\n-----END RSA PUBLIC KEY-----\n",
-            pubkey
-        )
-        .as_bytes(),
-    )?)
-}
-
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct SharedFilesPutParams {
     ttl: String,
 }
@@ -174,13 +90,58 @@ pub fn put(
     );
     let _enter = span.enter();
 
+    let file = SharedFile::new(source_id, target_id, file_id)?;
+
+    if job_config
+        .nodes
+        .read()
+        .expect("Cannot read nodes list")
+        .is_subnode(&file.target_id)
+    {
+        put_local(file, params, job_config, body)
+    } else if job_config.cfg.general.node_id == "root" {
+        Err(Error::UnknownNode(file.target_id))
+    } else {
+        put_forward(file, params, job_config, body)
+    }
+}
+
+fn put_forward(
+    file: SharedFile,
+    params: SharedFilesPutParams,
+    job_config: Arc<JobConfig>,
+    body: FullBody,
+) -> Result<StatusCode, Error> {
+    job_config
+        .client
+        .clone()
+        .put(&format!(
+            "{}/{}/{}",
+            job_config.cfg.output.upstream.url,
+            "relay-api/shared-files",
+            file.url(),
+        ))
+        .query(&params)
+        .body(body.into_buf().collect::<Vec<u8>>())
+        .send()
+        .wait()
+        .map(|r| r.status())
+        .map_err(|e| e.into())
+}
+
+pub fn put_local(
+    file: SharedFile,
+    params: SharedFilesPutParams,
+    job_config: Arc<JobConfig>,
+    body: FullBody,
+) -> Result<StatusCode, Error> {
     if !job_config
         .nodes
         .read()
         .expect("Cannot read nodes list")
-        .is_subnode(&source_id)
+        .is_subnode(&file.source_id)
     {
-        warn!("unknown source {}", source_id);
+        warn!("unknown source {}", file.source_id);
         return Ok(StatusCode::NOT_FOUND);
     }
 
@@ -193,31 +154,38 @@ pub fn put(
         read = stream.read_line(&mut raw_meta)?;
     }
     let meta = Metadata::from_str(&raw_meta)?;
-    let mut file = vec![];
-    stream.read_to_end(&mut file)?;
 
     let base_path = job_config
         .cfg
         .shared_files
         .path
-        .join(&target_id)
-        .join(&source_id);
-    let pubkey = get_pubkey(&meta.short_pubkey)?;
+        .join(&file.target_id)
+        .join(&file.source_id);
+    let pubkey = meta.pubkey()?;
 
-    let key_hash = meta.algorithm.hash(&pubkey.public_key_to_der()?);
-    if key_hash != meta.digest {
+    let known_key_hash = job_config
+        .nodes
+        .read()
+        .expect("Cannot read nodes list")
+        .key_hash(&file.source_id)
+        .ok_or_else(|| Error::UnknownNode(file.source_id.to_string()))?;
+    let key_hash = known_key_hash.hash_type.hash(&pubkey.public_key_to_der()?);
+    if key_hash != known_key_hash {
         warn!(
-            "hash of public key ({}) does not match metadata ({})",
-            key_hash, meta.digest
+            "hash of public key ({}) does not match known hash ({})",
+            key_hash, known_key_hash
         );
         return Ok(StatusCode::NOT_FOUND);
     }
 
-    match validate_signature(
-        &file,
-        pubkey,
-        meta.algorithm,
-        &hex::decode(&meta.digest).unwrap(),
+    // Read file content
+    let mut file_content = vec![];
+    stream.read_to_end(&mut file_content)?;
+
+    match meta.validate_signature(
+        &file_content,
+        meta.hash.hash_type,
+        &hex::decode(&meta.digest)?,
     ) {
         Ok(is_valid) => {
             if !is_valid {
@@ -234,15 +202,15 @@ pub fn put(
     // Everything is correct, let's store the file
     fs::create_dir_all(&base_path)?;
     fs::write(
-        &base_path.join(format!("{}.metadata", file_id)),
+        &base_path.join(format!("{}.metadata", file.file_id)),
         format!(
             "{}expires={}\n",
             meta,
             match params.ttl() {
                 // Removal timestamp = now + ttl
-                Ok(ttl) =>
-                    Utc::now()
-                        + chrono::Duration::from_std(ttl).expect("Unexpectedly large duration"),
+                Ok(ttl) => (Utc::now()
+                    + chrono::Duration::from_std(ttl).expect("Unexpectedly large duration"))
+                .timestamp(),
                 Err(e) => {
                     warn!("invalid ttl: {}", e);
                     return Ok(StatusCode::INTERNAL_SERVER_ERROR);
@@ -250,11 +218,11 @@ pub fn put(
             }
         ),
     )?;
-    fs::write(&base_path.join(file_id), file)?;
+    fs::write(&base_path.join(file.file_id), file_content)?;
     Ok(StatusCode::OK)
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct SharedFilesHeadParams {
     hash: String,
 }
@@ -275,33 +243,75 @@ pub fn head(
     );
     let _enter = span.enter();
 
+    let file = SharedFile::new(source_id, target_id, file_id)?;
+
+    if job_config
+        .nodes
+        .read()
+        .expect("Cannot read nodes list")
+        .is_subnode(&file.target_id)
+    {
+        head_local(file, params, job_config)
+    } else if job_config.cfg.general.node_id == "root" {
+        Err(Error::UnknownNode(file.target_id))
+    } else {
+        head_forward(file, params, job_config)
+    }
+}
+
+fn head_forward(
+    file: SharedFile,
+    params: SharedFilesHeadParams,
+    job_config: Arc<JobConfig>,
+) -> Result<StatusCode, Error> {
+    job_config
+        .client
+        .clone()
+        .head(&format!(
+            "{}/{}/{}",
+            job_config.cfg.output.upstream.url,
+            "relay-api/shared-files",
+            file.url(),
+        ))
+        .query(&params)
+        .send()
+        .wait()
+        .map(|r| r.status())
+        .map_err(|e| e.into())
+}
+
+pub fn head_local(
+    file: SharedFile,
+    params: SharedFilesHeadParams,
+    job_config: Arc<JobConfig>,
+) -> Result<StatusCode, Error> {
     let file_path = job_config
         .cfg
         .shared_files
         .path
-        .join(&target_id)
-        .join(&source_id)
-        .join(format!("{}.metadata", file_id));
+        .join(&file.target_id)
+        .join(&file.source_id)
+        .join(format!("{}.metadata", file.file_id));
 
     if !file_path.exists() {
         debug!("file {} does not exist", file_path.display());
         return Ok(StatusCode::NOT_FOUND);
     }
 
-    let metadata_hash = Metadata::parse_value("hash_value", &fs::read_to_string(&file_path)?)?;
+    let metadata = Metadata::from_str(&fs::read_to_string(&file_path)?)?;
 
-    Ok(if metadata_hash == params.hash {
+    Ok(if metadata.hash.value == params.hash {
         debug!(
             "file {} has given hash '{}'",
             file_path.display(),
-            metadata_hash
+            metadata.hash.value
         );
         StatusCode::OK
     } else {
         debug!(
             "file {} has '{}' hash but given hash is '{}'",
             file_path.display(),
-            metadata_hash,
+            metadata.hash.value,
             params.hash,
         );
         StatusCode::NOT_FOUND
@@ -311,45 +321,6 @@ pub fn head(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use openssl::sign::Signer;
-
-    #[test]
-    pub fn it_writes_the_metadata() {
-        let metadata = Metadata {
-            header: "rudder-signature-v1".to_string(),
-            algorithm: HashType::Sha256,
-            digest: "8ca9efc5752e133e2e80e2661c176fa50f".to_string(),
-            hash_value: "a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f"
-                .to_string(),
-            short_pubkey: "shortpubkey".to_string(),
-            hostname: "ubuntu-18-04-64".to_string(),
-            key_date: "2018-10-3118:21:43.653257143".to_string(),
-            key_id: "B29D02BB".to_string(),
-        };
-
-        assert_eq!(format!("{}", metadata), "header=rudder-signature-v1\nalgorithm=sha256\ndigest=8ca9efc5752e133e2e80e2661c176fa50f\nhash_value=a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f\nshort_pubkey=shortpubkey\nhostname=ubuntu-18-04-64\nkeydate=2018-10-3118:21:43.653257143\nkeyid=B29D02BB\n");
-    }
-
-    #[test]
-    pub fn it_validates_signatures() {
-        // Generate a keypair
-        let k0 = Rsa::generate(2048).unwrap();
-        let k0pkey = k0.public_key_to_pem().unwrap();
-        let k1 = Rsa::public_key_from_pem(&k0pkey).unwrap();
-
-        let keypriv = PKey::from_rsa(k0).unwrap();
-        let keypub = PKey::from_rsa(k1).unwrap();
-
-        let data = b"hello, world!";
-
-        // Sign the data
-        let mut signer = Signer::new(HashType::Sha512.to_openssl_hash(), &keypriv).unwrap();
-        signer.update(data).unwrap();
-
-        let signature = signer.sign_to_vec().unwrap();
-
-        assert!(validate_signature(data, keypub, HashType::Sha512, &signature).unwrap());
-    }
 
     #[test]
     pub fn it_parses_ttl() {

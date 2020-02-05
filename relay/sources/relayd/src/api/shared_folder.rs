@@ -28,10 +28,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{error::Error, hashing::HashType, JobConfig};
+use crate::{error::Error, hashing::Hash, JobConfig};
 use futures::{future, Future};
 use serde::Deserialize;
-use std::{io, path::PathBuf, str::FromStr, sync::Arc};
+use std::{io, path::PathBuf, sync::Arc};
 use tokio::fs::read;
 use tracing::{debug, span, trace, Level};
 use warp::http::StatusCode;
@@ -43,9 +43,18 @@ pub struct SharedFolderParams {
     #[serde(default = "default_hash")]
     hash_type: String,
 }
-
 fn default_hash() -> String {
     "sha256".to_string()
+}
+
+impl SharedFolderParams {
+    fn hash(self) -> Result<Option<Hash>, Error> {
+        if self.hash.is_empty() {
+            Ok(None)
+        } else {
+            Hash::new(self.hash_type, self.hash).map(Some)
+        }
+    }
 }
 
 pub fn head(
@@ -69,24 +78,26 @@ pub fn head(
         params
     );
 
-    future::result(HashType::from_str(&params.hash_type)).and_then(move |hash_type| {
+    future::result(params.hash()).and_then(move |hash| {
+        // TODO do not read entire file into memory
         read(file_path).then(move |res| match res {
-            Ok(data) => {
-                if params.hash.is_empty() {
+            Ok(data) => match hash {
+                None => {
                     debug!("{} exists and no hash was provided", file.display());
-                    return future::ok(StatusCode::OK);
-                }
-
-                let hash = hash_type.hash(&data);
-                trace!("{} has {} hash '{}'", file.display(), hash_type, hash);
-                if hash == params.hash {
-                    debug!("{} exists and has same hash", file.display());
-                    future::ok(StatusCode::NOT_MODIFIED)
-                } else {
-                    debug!("{} exists but its hash is different", file.display());
                     future::ok(StatusCode::OK)
                 }
-            }
+                Some(h) => {
+                    let actual_hash = h.hash_type.hash(&data);
+                    trace!("{} has hash '{}'", file.display(), actual_hash);
+                    if h == actual_hash {
+                        debug!("{} exists and has same hash", file.display());
+                        future::ok(StatusCode::NOT_MODIFIED)
+                    } else {
+                        debug!("{} exists but its hash is different", file.display());
+                        future::ok(StatusCode::OK)
+                    }
+                }
+            },
             Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
                 debug!("{} does not exist on the server", file.display());
                 future::ok(StatusCode::NOT_FOUND)

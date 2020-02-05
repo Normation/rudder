@@ -1,0 +1,41 @@
+#!/bin/sh
+
+# Like rudder-sign but adapted to custom keys
+
+# the file to sign
+FILE="$1"
+
+# the key to use for signature
+PRIVKEY="$2"
+PUBKEY="$3"
+
+# cfengine  passphrase
+PASSPHRASE="Cfengine passphrase"
+
+# Create signature
+SIGNATURE=`openssl dgst -passin "pass:${PASSPHRASE}" -sha512 -hex -sign "${PRIVKEY}" < "${FILE}" | sed -e 's/.*= //'`
+
+# Hostname (informative only, it can be slightly different from the rudder detected one)
+HOSTNAME="$4"
+
+# Private key modification date
+KEYDATE=`stat -c %y ${PRIVKEY}`
+
+# Public key identifier (last 4 bytes of the modulus)
+KEYID=`openssl rsa -passin "pass:${PASSPHRASE}" -in "${PRIVKEY}" -noout -modulus | sed 's/.*\(........\)$/\1/'`
+
+# Hardcoded 1.1 version
+SHORT_PUBKEY=`sed '/---/d' "${PUBKEY}" | tr -d '\n'`
+HASH_VALUE=`openssl "sha512" "${FILE}" | sed "s/sha512(.*)= *\\(.*\\)/\\1/i"`
+
+# Create a signature FILE
+cat > "${FILE}.sign" <<EOF
+header=rudder-signature-v1
+algorithm=sha512
+digest=${SIGNATURE}
+hash_value=${HASH_VALUE}
+short_pubkey=${SHORT_PUBKEY}
+hostname=${HOSTNAME}
+keydate=${KEYDATE}
+keyid=${KEYID}
+EOF
