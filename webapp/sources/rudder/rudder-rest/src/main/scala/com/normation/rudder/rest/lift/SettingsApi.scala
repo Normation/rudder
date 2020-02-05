@@ -59,6 +59,7 @@ import com.normation.rudder.services.reports.UnexpectedReportBehavior
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 import com.normation.rudder.services.servers.RelaySynchronizationMethod._
+import com.normation.utils.Control.sequence
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
@@ -163,7 +164,7 @@ class SettingsApi(
     val schema = API.GetAllSettings
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val data = for {
+      val settings = for {
         setting <- allSettings(version)
       } yield {
         val result = setting.getJson match {
@@ -174,6 +175,29 @@ class SettingsApi(
         }
         JField(setting.key, result)
       }
+      val data = if (version.value >= 11) {
+        val networks =
+          ( for {
+              servers <- nodeInfoService.getAllSystemNodeIds()
+              authorizedNetworks <- sequence(servers)(nodeId => policyServerManagementService.getAuthorizedNetworks(nodeId).map((nodeId, _)))
+            } yield {
+            import net.liftweb.json.JsonDSL._
+            JArray(authorizedNetworks.toList.map {
+              case (nodeid, networks) =>
+                ("id" -> nodeid.value) ~ ("authorizedNetworks" -> networks.toList)
+            })
+          }) match {
+            case Full(nets) =>
+              nets
+            case eb : EmptyBox =>
+              val fail = eb ?~! s"Could not get parameter 'authorized_networks'"
+              JString(fail.messageChain)
+          }
+        JField("authorized_networks",networks) :: settings
+      } else {
+        settings
+      }
+
       RestUtils.response(restExtractorService, "settings", None)(Full(data), req, s"Could not settings")("getAllSettings")
     }
   }
@@ -767,7 +791,7 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
         import net.liftweb.json.JsonDSL._
         JArray(authorizedNetworks.toList.map {
           case (nodeid, networks) =>
-            ("id" -> nodeid.value) ~ ("authorizedNetworks" -> networks.toList)
+            ("id" -> nodeid.value) ~ ("authorized_networks" -> networks.toList)
         })
       }
       RestUtils.response(restExtractorService, "settings", None)(result, req, s"Could not get authorized networks")
@@ -793,7 +817,7 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
         }
         networks <- policyServerManagementService.getAuthorizedNetworks(NodeId(id))
       } yield {
-        JArray(networks.toList.map(JString))
+        JObject(JField("authorized_networks", JArray(networks.toList.map(JString))))
       }
       RestUtils.response(restExtractorService, "settings", Some(id))(result, req, s"Could not get authorized networks for policy server '${id}'")
     }
@@ -819,7 +843,7 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
           case None =>
             Failure(s"Could not find node information for id '${id}', this node does not exist")
         }
-        networks <- restExtractorService.extractList("authorizedNetworks")(req) {
+        optNetworks <- restExtractorService.extractList("authorized_networks")(req) {
                       v =>
                         val netWithoutSpaces = v.replaceAll("""\s""", "")
                         if(netWithoutSpaces.length != 0) {
@@ -833,6 +857,10 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
                           Failure("Cannot pass an empty authorized network")
                         }
                    }
+            networks <- optNetworks match {
+                          case Some(networks) => Full(networks)
+                          case None => Failure("You must define a value for 'authorized_networks'")
+                        }
             set <- policyServerManagementService.setAuthorizedNetworks(nodeId, networks, modificationId, actor)
       } yield {
         JArray(networks.map(JString))

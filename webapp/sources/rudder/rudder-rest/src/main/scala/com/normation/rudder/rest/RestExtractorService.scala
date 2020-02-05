@@ -1088,10 +1088,10 @@ final case class RestExtractorService (
     }
   }
 
-  def extractList[T](key : String) (req : Req)(fun : String => Box[T]) : Box[List[T]]   = {
+  def extractList[T](key : String) (req : Req)(fun : String => Box[T]) : Box[Option[List[T]]]   = {
     req.json match {
       case Full(json) => json \ key match {
-        case JString(value) => fun(value).map(_ :: Nil)
+        case JString(value) => fun(value).map(v => Some(v :: Nil))
         case JArray(values) => com.normation.utils.Control.bestEffort(values){
                                  value =>
                                    value match {
@@ -1100,14 +1100,14 @@ final case class RestExtractorService (
                                        Failure(s"Not a valid value for '${key}' parameter, current value is : ${x}")
                                    }
 
-                               }.map(_.toList)
-        case JNothing => Full(Nil)
+                               }.map(v => Some(v.toList))
+        case JNothing => Full(None)
         case x => Failure(s"Not a valid value for '${key}' parameter, current value is : ${x}")
       }
       case _ =>
         req.params.get(key) match {
-          case None => Full(Nil)
-          case Some(list) => bestEffort(list)(fun(_)).map(_.toList)
+          case None => Full(Some(Nil))
+          case Some(list) => bestEffort(list)(fun(_)).map(v => Some(v.toList))
         }
     }
   }
