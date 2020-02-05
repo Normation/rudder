@@ -269,13 +269,13 @@ class NodeApi (
 
       (for {
         classes <- restExtractorService.extractList("classes")(req)(json => Full(json))
-        response <- apiV8service.runAllNodes(classes)
+        response <- apiV8service.runAllNodes(classes.getOrElse(Nil))
       } yield {
         toJsonResponse(None, response)
       }) match {
         case Full(response) => response
         case eb : EmptyBox => {
-          val fail = eb ?~! s"An error occured when applying policy on all Nodes"
+          val fail = eb ?~! s"An error occurred when applying policy on all Nodes"
           toJsonError(None, fail.messageChain)
         }
       }
@@ -288,7 +288,7 @@ class NodeApi (
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       (for {
         classes <- restExtractorService.extractList("classes")(req)(json => Full(json))
-        response <- apiV8service.runNode(NodeId(id),classes)
+        response <- apiV8service.runNode(NodeId(id),classes.getOrElse(Nil))
       } yield {
         OutputStreamResponse(response)
       }) match {
@@ -296,7 +296,7 @@ class NodeApi (
         case eb : EmptyBox => {
           implicit val prettify = params.prettify
           implicit val action = "applyPolicy"
-          val fail = eb ?~! s"An error occured when applying policy on Node '${id}'"
+          val fail = eb ?~! s"An error occurred when applying policy on Node '${id}'"
           toJsonError(Some(id), fail.messageChain)
 
         }

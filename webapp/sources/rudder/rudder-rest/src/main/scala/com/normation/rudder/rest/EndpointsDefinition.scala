@@ -274,15 +274,15 @@ object SettingsApi extends ApiModuleProvider[SettingsApi] {
   }
   final case object GetAllAuthorizedNetworks extends SettingsApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
     val description = "List all authorized networks"
-    val (action, path)  = GET / "settings" / "authorizedNetworks"
+    val (action, path)  = GET / "settings" / "authorized_networks"
   }
   final case object GetAuthorizedNetworks extends SettingsApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
     val description = "List all authorized networks for one relay"
-    val (action, path)  = GET / "settings" / "authorizedNetworks" / "{nodeId}"
+    val (action, path)  = GET / "settings" / "authorized_networks" / "{nodeId}"
   }
   final case object ModifyAuthorizedNetworks extends SettingsApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
     val description = "Update all authorized networks for one relay"
-    val (action, path)  = POST / "settings" / "authorizedNetworks" / "{nodeId}"
+    val (action, path)  = POST / "settings" / "authorized_networks" / "{nodeId}"
   }
 
   final case object GetSetting extends SettingsApi with OneParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
