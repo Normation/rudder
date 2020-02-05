@@ -40,6 +40,9 @@ package com.normation.rudder.inventory
 import java.io.InputStream
 import java.nio.file.ClosedWatchServiceException
 import java.nio.file.NoSuchFileException
+import java.nio.file.Path
+import java.nio.file.StandardWatchEventKinds
+import java.nio.file.WatchKey
 import java.util.concurrent.TimeUnit
 
 import better.files._
@@ -82,6 +85,8 @@ object Watchers {
   def apply(incoming: File, updates: File, checkProcess: File => Unit): Watchers = {
     def newWatcher(directory: File): FileMonitor = {
       new FileMonitor(directory, recursive = false) {
+        val maxDepth = 0 // see parent class for logic, needed to minimize change in overriden `process` method
+
         private var stopRequired = false
 
         /*
@@ -119,6 +124,26 @@ object Watchers {
               }
             }
           })
+        }
+        // This is a copy/paste of parent method, we just add a check for null before using `event.context`.
+        // See https://issues.rudder.io/issues/14991 and https://github.com/pathikrit/better-files/pull/392
+        override def process(key: WatchKey) = {
+          val path = key.watchable().asInstanceOf[Path]
+
+          import scala.jdk.CollectionConverters._
+          key.pollEvents().asScala foreach {
+            case event: java.nio.file.WatchEvent[Path] @unchecked if event.context() != null =>
+              val target: File = path.resolve(event.context())
+              if (reactTo(target)) {
+                if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
+                  val depth = root.relativize(target).getNameCount
+                  watch(target, (maxDepth - depth) max 0) // auto-watch new files in a directory
+                }
+                onEvent(event.kind(), target, event.count())
+              }
+            case event => if (reactTo(path)) onUnknownEvent(event)
+          }
+          key.reset()
         }
         override def close() = {
           stopRequired = true
