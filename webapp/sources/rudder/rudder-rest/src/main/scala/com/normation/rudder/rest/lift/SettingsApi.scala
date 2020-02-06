@@ -48,6 +48,7 @@ import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.reports._
+import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.AuthzToken
@@ -830,6 +831,20 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
 
       implicit val action = "modifyAuthorizedNetworks"
 
+      def checkAuthorizedNetwork (v : String ) = {
+          val netWithoutSpaces = v.replaceAll("""\s""", "")
+          if(netWithoutSpaces.length != 0) {
+            if (PolicyServerManagementService.isValidNetwork(netWithoutSpaces)) {
+              Full(netWithoutSpaces)
+            } else {
+              Failure(s"${netWithoutSpaces} is not a valid authorized network")
+            }
+          }
+          else {
+            Failure("Cannot pass an empty authorized network")
+          }
+      }
+
       val actor = authzToken.actor
       val modificationId = new ModificationId(uuidGen.newUuid)
       val nodeId = NodeId(id)
@@ -843,27 +858,15 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
           case None =>
             Failure(s"Could not find node information for id '${id}', this node does not exist")
         }
-        optNetworks <- restExtractorService.extractList("authorized_networks")(req) {
-                      v =>
-                        val netWithoutSpaces = v.replaceAll("""\s""", "")
-                        if(netWithoutSpaces.length != 0) {
-                          if (PolicyServerManagementService.isValidNetwork(netWithoutSpaces)) {
-                            Full(netWithoutSpaces)
-                          } else {
-                            Failure(s"${netWithoutSpaces} is not a valid authorized network")
-                          }
-                        }
-                        else {
-                          Failure("Cannot pass an empty authorized network")
-                        }
-                   }
-            networks <- optNetworks match {
-                          case Some(networks) => Full(networks)
-                          case None => Failure("You must define a value for 'authorized_networks'")
-                        }
-            set <- policyServerManagementService.setAuthorizedNetworks(nodeId, networks, modificationId, actor)
+        networks <- if (req.json_?) {
+                      CompleteJson.extractJsonListString(req.json.getOrElse(JNothing), "authorized_networks", (v => com.normation.utils.Control.sequence(v)(checkAuthorizedNetwork )))
+                    } else {
+                      restExtractorService.extractList("authorized_networks")(req)(checkAuthorizedNetwork)
+                    }
+
+        set <- policyServerManagementService.setAuthorizedNetworks(nodeId, networks, modificationId, actor)
       } yield {
-        JArray(networks.map(JString))
+        JArray(networks.map(JString).toList)
       }
       RestUtils.response(restExtractorService, "settings", Some(id))(result, req, s"Could not get authorized networks for policy server '${id}'")
     }
