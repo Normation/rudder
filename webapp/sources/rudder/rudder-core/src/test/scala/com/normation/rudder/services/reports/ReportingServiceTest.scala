@@ -109,11 +109,11 @@ class ReportingServiceTest extends Specification {
     val reports = List(
       NodeStatusReport(node1, NoRunNoExpectedReport, RunComplianceInfo.OK
         , List()
-        , List(rnReport(node1, rule1, dir1))
+        , Set(rnReport(node1, rule1, dir1))
       )
     , NodeStatusReport(node2, NoRunNoExpectedReport, RunComplianceInfo.OK
         , List(thisOverrideThatOn(rule2, rule1, dir1))
-        , List()
+        , Set()
       )
     ).map(r => (r.nodeId, r)).toMap
 
@@ -129,7 +129,7 @@ class ReportingServiceTest extends Specification {
     val reports = List(
       NodeStatusReport(node1, NoRunNoExpectedReport, RunComplianceInfo.OK
         , List(thisOverrideThatOn(rule2, rule1, dir1))
-        , List()
+        , Set()
       )
     ).map(r => (r.nodeId, r)).toMap
 

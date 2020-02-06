@@ -332,7 +332,7 @@ class ReportDisplayer(
              * In these case, filter out "unexpected" reports to only
              * keep missing ones, and do not show the "compliance" row.
              */
-            val filtered = NodeStatusReport(report.nodeId, report.runInfo, report.statusInfo, report.overrides, report.report.reports.flatMap { x =>
+            val filtered = NodeStatusReport(report.nodeId, report.runInfo, report.statusInfo, report.overrides, report.reports.flatMap { x =>
               x.withFilteredElements(
                   _ => true   //keep all (non empty) directives
                 , _ => true   //keep all (non empty) component values
@@ -514,7 +514,7 @@ class ReportDisplayer(
     * we could add more information at each level (directive name? rule name?)
     */
     for {
-      (_, directive) <- nodeStatusReports.report.directives
+      (_, directive) <- DirectiveStatusReport.merge(nodeStatusReports.reports.toIterable.flatMap(_.directives.values))
       value          <- directive.getValues(v => v.status == status)
     } yield {
       val (techName, techVersion) = directiveLib.allDirectives.get(value._1).map { case(tech,dir) =>

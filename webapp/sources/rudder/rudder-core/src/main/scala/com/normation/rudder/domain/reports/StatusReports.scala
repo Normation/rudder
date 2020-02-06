@@ -108,20 +108,21 @@ final class NodeStatusReport private (
   , val runInfo   : RunAndConfigInfo
   , val statusInfo: RunComplianceInfo
   , val overrides : List[OverridenPolicy]
-  , val report    : AggregatedStatusReport
+  , val reports   : Set[RuleNodeStatusReport]
 ) extends StatusReport {
-  lazy val compliance = report.compliance
-  lazy val byRules: Map[RuleId, AggregatedStatusReport] = report.reports.groupBy(_.ruleId).mapValues(AggregatedStatusReport(_))
+  lazy val compliance = ComplianceLevel.sum(reports.map(_.compliance))
+  lazy val byRules: Map[RuleId, AggregatedStatusReport] = reports.groupBy(_.ruleId).mapValues(AggregatedStatusReport(_))
 }
 
 object NodeStatusReport {
-  def apply(nodeId: NodeId, runInfo:  RunAndConfigInfo, statusInfo: RunComplianceInfo, overrides : List[OverridenPolicy], reports: Iterable[RuleNodeStatusReport]) = {
-    new NodeStatusReport(nodeId, runInfo, statusInfo, overrides, AggregatedStatusReport(reports.toSet.filter( _.nodeId == nodeId)))
-  }
-
   // To use when you are sure that all reports are indeed for the designated node. RuleNodeStatusReports must be merged
-  def applyByNode(nodeId: NodeId, runInfo:  RunAndConfigInfo, statusInfo: RunComplianceInfo, overrides : List[OverridenPolicy], reports: Iterable[RuleNodeStatusReport]) = {
-    new NodeStatusReport(nodeId, runInfo, statusInfo, overrides, AggregatedStatusReport.applyFromUniqueNode(reports.toSet))
+  // Only used in `getNodeStatusReports`
+  def apply(nodeId: NodeId, runInfo:  RunAndConfigInfo, statusInfo: RunComplianceInfo, overrides: List[OverridenPolicy], reports: Set[RuleNodeStatusReport]) = {
+    assert(reports.forall(_.nodeId == nodeId), {
+      import com.normation.rudder.domain.reports.NodeStatusReportSerialization.SetRuleNodeStatusReportToJs
+      s"You can't build a NodeStatusReport with reports for other node than itself. Current node id: ${nodeId.value}; Wrong reports: ${reports.filter(_.nodeId != nodeId).toJson}"
+    })
+    new NodeStatusReport(nodeId, runInfo, statusInfo, overrides, reports)
   }
 
   /*
@@ -137,10 +138,8 @@ object NodeStatusReport {
       , nodeStatusReport.runInfo
       , nodeStatusReport.statusInfo
       , nodeStatusReport.overrides
-      , AggregatedStatusReport.applyFromAggregatedStatusReport(nodeStatusReport.report, ruleIds)
+      , nodeStatusReport.reports.filter(r => ruleIds.contains(r.ruleId))
     )
-
-
   }
 }
 
@@ -476,6 +475,13 @@ object NodeStatusReportSerialization {
   }
 
   implicit class AggregatedStatusReportToJs(x: AggregatedStatusReport) {
+    def toJValue(): JValue = x.reports.toJValue()
+    def toJson() = prettyRender(toJValue)
+    def toCompactJson = compactRender(toJValue)
+  }
+
+
+  implicit class SetRuleNodeStatusReportToJs(reports: Set[RuleNodeStatusReport]) {
     import ComplianceLevelSerialisation._
 
     def toJValue(): JValue = {
@@ -486,7 +492,7 @@ object NodeStatusReportSerialization {
       //but in that case, we should also keep the total
       //number of events to be able to rebuild raw data
 
-      ("rules" -> (x.reports.map { r =>
+      ("rules" -> (reports.map { r =>
         (
           ("ruleId"        -> r.ruleId.value)
         ~ ("compliance"    -> r.compliance.pc.toJson)

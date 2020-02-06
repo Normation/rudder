@@ -122,7 +122,7 @@ class AsyncComplianceService (
         reports <- reportingService.findRuleNodeStatusReports(nodeIds, ruleIds)
       } yield {
         val found = reports.map { case (nodeId, status) =>
-          toCompliance(nodeId, status.report.reports)
+          toCompliance(nodeId, status.reports)
         }
         //add missing elements with "None" compliance, see #7281, #8030, #8141, #11842
         val missingIds = nodeIds -- found.keySet
@@ -146,7 +146,7 @@ class AsyncComplianceService (
         reports <- reportingService.findRuleNodeStatusReports(nodeIds, ruleIds)
       } yield {
         //flatMap on a Set is OK, since reports are different for different nodeIds
-        val found = reports.flatMap( _._2.report.reports ).groupBy( _.ruleId ).map { case (ruleId, reports) =>
+        val found = reports.flatMap( _._2.reports ).groupBy( _.ruleId ).map { case (ruleId, reports) =>
           toCompliance(ruleId, reports)
         }
         // add missing elements with "None" compliance, see #7281, #8030, #8141, #11842

@@ -43,16 +43,17 @@ import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.repository.ComplianceRepository
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._
-import doobie._, doobie.implicits._
+import doobie._
+import doobie.implicits._
 import cats.implicits._
 import com.normation.rudder.services.reports._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ReportLogger
 import org.joda.time.DateTime
 import com.normation.rudder.domain.reports.RunComplianceInfo
-import com.normation.rudder.domain.reports.AggregatedStatusReport
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.CompliancePercent
+import com.normation.rudder.domain.reports.RuleNodeStatusReport
 
 
 final case class RunCompliance(
@@ -61,13 +62,13 @@ final case class RunCompliance(
   , endOfLife   : DateTime
   , runInfo     : (RunAndConfigInfo, RunComplianceInfo)
   , summary     : CompliancePercent
-  , details     : AggregatedStatusReport
+  , details     : Set[RuleNodeStatusReport]
 )
 
 object RunCompliance {
 
   def from(runTimestamp: DateTime, endOfLife: DateTime, report: NodeStatusReport) = {
-    RunCompliance(report.nodeId, runTimestamp, endOfLife, (report.runInfo, report.statusInfo), report.compliance.pc, report.report)
+    RunCompliance(report.nodeId, runTimestamp, endOfLife, (report.runInfo, report.statusInfo), report.compliance.pc, report.reports)
   }
 }
 
@@ -144,7 +145,7 @@ class ComplianceJdbcRepository(
         //same node/rule/run but different serial. Here, we already know the nodeid and run,
         //so group by ruleId, get directives, merge.
 
-        run.details.reports.groupBy(_.ruleId).flatMap { case (ruleId, aggregats) =>
+        run.details.groupBy(_.ruleId).flatMap { case (ruleId, aggregats) =>
           //get a map of all (directiveId -> seq(directives)
           //be carefull to "toList", because we don't want to deduplicate if
           //two directive are actually equal

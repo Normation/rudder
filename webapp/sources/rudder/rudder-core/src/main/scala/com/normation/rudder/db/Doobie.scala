@@ -211,10 +211,18 @@ object Doobie {
     )
   }
 
+  implicit val SetRuleNodeStatusReportComposite: Composite[Set[RuleNodeStatusReport]] = {
+    import NodeStatusReportSerialization._
+    Composite[String].imap(
+        json => throw new RuntimeException(s"You can't deserialize a set of RuleNodeStatusReport for now"))(
+        x    => x.toCompactJson
+    )
+  }
+
   implicit val AggregatedStatusReportComposite: Composite[AggregatedStatusReport] = {
     import NodeStatusReportSerialization._
     Composite[String].imap(
-        json => throw new RuntimeException(s"You can deserialize aggredatedStatusReport for now"))(
+        json => throw new RuntimeException(s"You can't deserialize aggredatedStatusReport for now"))(
         x    => x.toCompactJson
     )
   }

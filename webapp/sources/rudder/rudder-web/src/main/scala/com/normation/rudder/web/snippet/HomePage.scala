@@ -193,7 +193,7 @@ class HomePage extends Loggable {
       // log global compliance info (useful for metrics on number of components and log data analysis)
       ComplianceLogger.info(s"[metrics] global compliance (number of components): ${global.map(g => g._1.total + " "+ g._1.toString).getOrElse("undefined")}")
 
-      val reportsByNode = reports.mapValues { status => ComplianceLevel.sum(status.report.reports.map(_.compliance)) }
+      val reportsByNode = reports.mapValues { status => ComplianceLevel.sum(status.reports.map(_.compliance)) }
 
       /*
        * Here, for the compliance by node, we want to distinguish (but NOT ignore, like in globalCompliance) the

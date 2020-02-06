@@ -783,7 +783,7 @@ object ExecutionBatch extends Loggable {
       case _                          => Nil
     }
 
-    NodeStatusReport.applyByNode(nodeId, runInfo, status, overrides, ruleNodeStatusReports)
+    NodeStatusReport.apply(nodeId, runInfo, status, overrides, ruleNodeStatusReports)
   }
 
 

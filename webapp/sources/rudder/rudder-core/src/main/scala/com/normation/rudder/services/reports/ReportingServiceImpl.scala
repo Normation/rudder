@@ -65,7 +65,7 @@ object ReportingServiceUtils {
    * Build rule status reports from node reports, decide=ing which directive should be "skipped"
    */
   def buildRuleStatusReport(ruleId: RuleId, nodeReports: Map[NodeId, NodeStatusReport]): RuleStatusReport = {
-    val toKeep = nodeReports.values.flatMap( _.report.reports ).filter(_.ruleId == ruleId).toList
+    val toKeep = nodeReports.values.flatMap( _.reports ).filter(_.ruleId == ruleId).toList
     // we don't keep overrides for a directive which is already in "toKeep"
     val toKeepDir = toKeep.map(_.directives.keySet).toSet.flatten
     val overrides = nodeReports.values.flatMap( _.overrides.filterNot(r => toKeepDir.contains(r.policy.directiveId))).toList.distinct
@@ -154,7 +154,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
     if(reports.isEmpty) {
       None
     } else { // aggregate values
-      val complianceLevel = ComplianceLevel.sum(reports.flatMap( _._2.report.reports.toSeq.map( _.compliance)))
+      val complianceLevel = ComplianceLevel.sum(reports.flatMap( _._2.reports.toSeq.map( _.compliance)))
       val n2 = System.currentTimeMillis
       TimingDebugLogger.trace(s"Agregating compliance level for  global user compliance in: ${n2-n1}ms")
 
@@ -196,7 +196,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
     //display compliance value and expiration date.
     c.map { case (nodeId, status) =>
 
-      val reportsString = status.report.reports.map { r =>
+      val reportsString = status.reports.map { r =>
         s"${r.ruleId.value}[exp:${r.expirationDate}]${r.compliance.toString}"
       }.mkString("\n  ", "\n  ", "")
 
