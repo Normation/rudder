@@ -337,24 +337,23 @@ function updateFileManagerConf () {
 
   apiHandler.prototype.deferredHandler = function(data, deferred, code, defaultMsg) {
     updateResources()
-
     if (!data || typeof data !== 'object') {
-        this.error = 'Error %s - Bridge response error, please check the API docs or this ajax response.'.replace('%s', code);
+      this.error = 'Error %s - Bridge response error, please check the API docs or this ajax response.'.replace('%s', code);
     }
     if (code == 404) {
-        this.error = 'Error 404 - Backend bridge is not working, please check the ajax response.';
+      this.error = 'Error 404 - Backend bridge is not working, please check the ajax response.';
     }
     if (data.result && data.result.error) {
-        this.error = data.result.error;
+      this.error = data.result.error;
     }
     if (!this.error && data.error) {
-        this.error = data.error.message;
+      this.error = data.error.message;
     }
     if (!this.error && defaultMsg) {
-        this.error = defaultMsg;
+      this.error = defaultMsg;
     }
     if (this.error) {
-        return deferred.reject(data);
+      return deferred.reject(data);
     }
     return deferred.resolve(data);
 };
@@ -724,7 +723,7 @@ $scope.onImportFileChange = function (fileEl) {
         // Selected technique is the same than actual selected technique, unselect it
         select(technique);
       } else {
-        // Display popup that shanges will be lost, and possible discard them
+        // Display popup that changes will be lost, and possible discard them
         $scope.selectPopup(technique, select);
       }
     }
@@ -944,7 +943,15 @@ $scope.onImportFileChange = function (fileEl) {
 
   // Check if a technique has not been changed, and if we can use reset function
   $scope.isUnchanged = function(technique) {
-    return angular.equals(technique, $scope.originalTechnique);
+    if(technique === undefined) return true;
+    //Check if there is uncommited resource
+    var checkUntouchedResources = true;
+    if( technique.resources !== undefined && technique.resources !== null ){
+      checkUntouchedResources = !technique.resources.some(function(r){
+        return r.state != "untouched";
+      })
+    }
+    return (angular.equals(technique, $scope.originalTechnique) && checkUntouchedResources);
   };
 
   // Check if a technique has been saved,
@@ -1276,6 +1283,7 @@ $scope.onImportFileChange = function (fileEl) {
         usedMethodsSet.add($scope.generic_methods[m.method_name]);
       }
     );
+
     var usedMethods = Array.from(usedMethodsSet);
 
     var reason = "Updating Technique " + technique.name + " using the Technique editor";
@@ -1292,7 +1300,6 @@ $scope.onImportFileChange = function (fileEl) {
       ncfTechnique = data.data.techniques.technique;
 
       // Transform back ncfTechnique to UITechnique, that will make it ok
-      //
       var savedTechnique = toTechUI(ncfTechnique);
 
       var invalidParametersArray = [];
@@ -1330,6 +1337,8 @@ $scope.onImportFileChange = function (fileEl) {
         // If we were cloning a technique, remove its 'clone' state
         savedTechnique.isClone    = false;
         $scope.originalTechnique  = angular.copy(savedTechnique);
+        // Resources will be reset by resource manager if original technique resources are undefined
+        $scope.originalTechnique.resources = undefined;
         $scope.selectedTechnique  = angular.copy(savedTechnique);
         // We will lose the link between the selected method and the technique, to prevent unintended behavior, close the edit method panel
         $scope.ui.selectedMethods = [];
