@@ -269,7 +269,7 @@ class NodeApi (
 
       (for {
         classes <- restExtractorService.extractList("classes")(req)(json => Full(json))
-        response <- apiV8service.runAllNodes(classes.getOrElse(Nil))
+        response <- apiV8service.runAllNodes(classes)
       } yield {
         toJsonResponse(None, response)
       }) match {
@@ -288,7 +288,7 @@ class NodeApi (
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       (for {
         classes <- restExtractorService.extractList("classes")(req)(json => Full(json))
-        response <- apiV8service.runNode(NodeId(id),classes.getOrElse(Nil))
+        response <- apiV8service.runNode(NodeId(id),classes)
       } yield {
         OutputStreamResponse(response)
       }) match {
