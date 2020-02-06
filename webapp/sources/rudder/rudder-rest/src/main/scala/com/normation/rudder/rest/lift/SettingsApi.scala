@@ -51,7 +51,6 @@ import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.SyslogProtocol
 import com.normation.rudder.reports.SyslogTCP
 import com.normation.rudder.reports.SyslogUDP
-import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.AuthzToken
@@ -63,14 +62,17 @@ import com.normation.rudder.services.reports.UnexpectedReportBehavior
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 import com.normation.rudder.services.servers.RelaySynchronizationMethod._
+import com.normation.utils.Control.bestEffort
 import com.normation.utils.Control.sequence
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
+import net.liftweb.common.Empty
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
+import net.liftweb.json.JNothing
 import net.liftweb.json.JsonAST.JBool
 import net.liftweb.json.JsonAST.JInt
 import net.liftweb.json.JsonAST.JString
@@ -141,9 +143,9 @@ class SettingsApi(
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {
-      case API.GetAllAuthorizedNetworks => GetAllAuthorizedNetworks
-      case API.GetAuthorizedNetworks    => GetAuthorizedNetworks
-      case API.ModifyAuthorizedNetworks => ModifyAuthorizedNetworks
+      case API.GetAllAllowedNetworks => GetAllAllowedNetworks
+      case API.GetAllowedNetworks    => GetAllowedNetworks
+      case API.ModifyAllowedNetworks => ModifyAllowedNetworks
       case API.GetAllSettings => GetAllSettings
       case API.ModifySettings => ModifySettings
       case API.GetSetting     => GetSetting
@@ -169,22 +171,22 @@ class SettingsApi(
       val data = if (version.value >= 11) {
         val networks =
           ( for {
-              servers <- nodeInfoService.getAllSystemNodeIds()
-              authorizedNetworks <- sequence(servers)(nodeId => policyServerManagementService.getAuthorizedNetworks(nodeId).map((nodeId, _)))
+              servers         <- nodeInfoService.getAllSystemNodeIds()
+              allowedNetworks <- sequence(servers)(nodeId => policyServerManagementService.getAuthorizedNetworks(nodeId).map((nodeId, _)))
             } yield {
             import net.liftweb.json.JsonDSL._
-            JArray(authorizedNetworks.toList.map {
+            JArray(allowedNetworks.toList.map {
               case (nodeid, networks) =>
-                ("id" -> nodeid.value) ~ ("authorizedNetworks" -> networks.toList)
+                ("id" -> nodeid.value) ~ ("allowed_networks" -> networks.toList)
             })
           }) match {
             case Full(nets) =>
               nets
             case eb : EmptyBox =>
-              val fail = eb ?~! s"Could not get parameter 'authorized_networks'"
+              val fail = eb ?~! s"Could not get parameter 'allowed_networks'"
               JString(fail.messageChain)
           }
-        JField("authorized_networks",networks) :: settings
+        JField("allowed_networks",networks) :: settings
       } else {
         settings
       }
@@ -733,69 +735,82 @@ class SettingsApi(
     def set = (value : Boolean, _, _) => configService.set_rudder_generation_continue_on_error(value)
   }
 
-  object GetAllAuthorizedNetworks extends LiftApiModule0 {
-    override val schema = API.GetAllAuthorizedNetworks
+  // if the directive is missing for policy server, it may be because it misses dedicated allowed networks.
+  // We don't want to fail on that, so we need to special case Empty
+  def getAllowedNetworksForServer(nodeId: NodeId): Box[Seq[String]] = {
+    policyServerManagementService.getAuthorizedNetworks(nodeId) match {
+      case Empty => Full(Nil)
+      case x     => x
+    }
+  }
+
+  object GetAllAllowedNetworks extends LiftApiModule0 {
+    override val schema = API.GetAllAllowedNetworks
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val action = "getAllAuthorizedNetworks"
+      implicit val action = "getAllAllowedNetworks"
       import com.normation.utils.Control.sequence
       val result = for {
-        servers <- nodeInfoService.getAllSystemNodeIds()
-        authorizedNetworks <- sequence(servers)(nodeId => policyServerManagementService.getAuthorizedNetworks(nodeId).map((nodeId, _)))
+        servers         <- nodeInfoService.getAllSystemNodeIds()
+        allowedNetworks <- sequence(servers) { nodeId =>
+                             // if the directive is missing for policy server, it may be because it misses dedicated allowed networks.
+                             // We don't want to fail on that, so we need to special case Empty
+                             getAllowedNetworksForServer(nodeId).map((nodeId, _))
+                           }
       } yield {
         import net.liftweb.json.JsonDSL._
-        JArray(authorizedNetworks.toList.map {
+        JArray(allowedNetworks.toList.map {
           case (nodeid, networks) =>
-            ("id" -> nodeid.value) ~ ("authorized_networks" -> networks.toList)
+            ("id" -> nodeid.value) ~ ("allowed_networks" -> networks.toList)
         })
       }
-      RestUtils.response(restExtractorService, "settings", None)(result, req, s"Could not get authorized networks")
+      RestUtils.response(restExtractorService, "settings", None)(result, req, s"Could not get allowed networks")
     }
   }
 
 
-  object GetAuthorizedNetworks extends LiftApiModule {
-    override val schema = API.GetAuthorizedNetworks
+  object GetAllowedNetworks extends LiftApiModule {
+    override val schema = API.GetAllowedNetworks
     val restExtractor = restExtractorService
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
 
-      implicit val action = "getAuthorizedNetworks"
+      implicit val action = "getAllowedNetworks"
       val result = for {
         nodeInfo <- nodeInfoService.getNodeInfo(NodeId(id))
         isServer <- nodeInfo match {
           case Some(info) if info.isPolicyServer =>
             Full(())
           case Some(_) =>
-            Failure(s"Can get authorized networks of node with '${id}' because it is node a policy server (root or relay)")
+            Failure(s"Can get allowed networks of node with '${id}' because it is node a policy server (root or relay)")
           case None =>
             Failure(s"Could not find node information for id '${id}', this node does not exist")
         }
-        networks <- policyServerManagementService.getAuthorizedNetworks(NodeId(id))
+        networks <- getAllowedNetworksForServer(NodeId(id))
       } yield {
-        JObject(JField("authorized_networks", JArray(networks.toList.map(JString))))
+        JObject(JField("allowed_networks", JArray(networks.toList.map(JString))))
       }
-      RestUtils.response(restExtractorService, "settings", Some(id))(result, req, s"Could not get authorized networks for policy server '${id}'")
+      RestUtils.response(restExtractorService, "settings", Some(id))(result, req, s"Could not get allowed networks for policy server '${id}'")
     }
   }
 
-  object ModifyAuthorizedNetworks extends LiftApiModule {
-    override val schema = API.ModifyAuthorizedNetworks
+  object ModifyAllowedNetworks extends LiftApiModule {
+    override val schema = API.ModifyAllowedNetworks
     val restExtractor = restExtractorService
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
 
-      implicit val action = "modifyAuthorizedNetworks"
+      implicit val action = "modifyAllowedNetworks"
 
-      def checkAuthorizedNetwork (v : String ) = {
+      def checkAllowedNetwork (v : String ) = {
           val netWithoutSpaces = v.replaceAll("""\s""", "")
           if(netWithoutSpaces.length != 0) {
             if (PolicyServerManagementService.isValidNetwork(netWithoutSpaces)) {
               Full(netWithoutSpaces)
             } else {
-              Failure(s"${netWithoutSpaces} is not a valid authorized network")
+              Failure(s"${netWithoutSpaces} is not a valid allowed network")
             }
           }
           else {
-            Failure("Cannot pass an empty authorized network")
+            Failure("Cannot pass an empty allowed network")
           }
       }
 
@@ -808,21 +823,29 @@ class SettingsApi(
           case Some(info) if info.isPolicyServer =>
             Full(())
           case Some(_) =>
-            Failure(s"Can set authorized networks of node with '${id}' because it is node a policy server (root or relay)")
+            Failure(s"Can set allowed networks of node with '${id}' because it is node a policy server (root or relay)")
           case None =>
             Failure(s"Could not find node information for id '${id}', this node does not exist")
         }
         networks <- if (req.json_?) {
-                      CompleteJson.extractJsonListString(req.json.getOrElse(JNothing), "authorized_networks", (v => com.normation.utils.Control.sequence(v)(checkAuthorizedNetwork )))
+                      req.json.getOrElse(JNothing) \ "allowed_networks" match {
+                        case JArray(values) => sequence(values) { _ match {
+                                                 case JString(s) => checkAllowedNetwork(s)
+                                                 case x          => Failure(s"Error extracting a string from json: '${x}'")
+                                               } }
+                        case _              => Failure(s"You must specify an array of IP for 'allowed_networks' parameter")
+                      }
                     } else {
-                      restExtractorService.extractList("authorized_networks")(req)(checkAuthorizedNetwork)
+                      req.params.get("allowed_networks") match {
+                        case None       => Failure(s"You must specify an array of IP for 'allowed_networks' parameter")
+                        case Some(list) => bestEffort(list)(checkAllowedNetwork(_))
+                      }
                     }
-
-        set <- policyServerManagementService.setAuthorizedNetworks(nodeId, networks, modificationId, actor)
+        set      <- policyServerManagementService.setAuthorizedNetworks(nodeId, networks, modificationId, actor)
       } yield {
         JArray(networks.map(JString).toList)
       }
-      RestUtils.response(restExtractorService, "settings", Some(id))(result, req, s"Could not get authorized networks for policy server '${id}'")
+      RestUtils.response(restExtractorService, "settings", Some(id))(result, req, s"Error when trying to modify allowed networks for policy server '${id}'")
     }
   }
 }
