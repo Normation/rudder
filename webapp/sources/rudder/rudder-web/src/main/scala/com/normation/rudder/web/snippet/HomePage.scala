@@ -184,7 +184,19 @@ class HomePage extends Loggable {
       _ = TimingDebugLogger.trace(s"Compute Rule Node status reports for all nodes: ${n4 - n3}ms")
       // global compliance is a unique number, used in the top right hand size, based on
       // user rules, and ignoring pending nodes
-      global    =  reportingService.computeComplianceFromReports(reports)
+
+      // TODO : we could first compute per nodes, and then compute the globalCompliance by excluding the pending nodes
+      compliancePerNodes = reports.map { case (nodeId, status) => (nodeId, ComplianceLevel.sum(status.reports.map(_.compliance))) }
+      global   = if(reports.isEmpty) {
+                             None
+                           } else {
+                             val complianceLevel = ComplianceLevel.sum(compliancePerNodes.map(_._2))
+                             Some((
+                               complianceLevel
+                             , complianceLevel.complianceWithoutPending.round
+                             ))
+                           }
+   //   global    =  reportingService.computeComplianceFromReports(reports)
       n5 = System.currentTimeMillis
       _ = TimingDebugLogger.trace(s"Compute global compliance in: ${n5 - n4}ms")
       _ = TimingDebugLogger.debug(s"Compute compliance: ${n5 - n2}ms")
@@ -193,7 +205,7 @@ class HomePage extends Loggable {
       // log global compliance info (useful for metrics on number of components and log data analysis)
       ComplianceLogger.info(s"[metrics] global compliance (number of components): ${global.map(g => g._1.total + " "+ g._1.toString).getOrElse("undefined")}")
 
-      val reportsByNode = reports.mapValues { status => ComplianceLevel.sum(status.reports.map(_.compliance)) }
+      //val reportsByNode = reports.mapValues { status => ComplianceLevel.sum(status.reports.map(_.compliance)) }
 
       /*
        * Here, for the compliance by node, we want to distinguish (but NOT ignore, like in globalCompliance) the
@@ -205,7 +217,7 @@ class HomePage extends Loggable {
        * Note: node without reports are also put in "pending".
        */
 
-      val complianceByNode : List[ChartType] = reportsByNode.values.map { r =>
+      val complianceByNode : List[ChartType] = compliancePerNodes.values.map { r =>
         if(r.pending == r.total) { PendingChartType }
         else if(r.reportsDisabled == r.total) { DisabledChartType }
         else { ColoredChartType(r.complianceWithoutPending) }
