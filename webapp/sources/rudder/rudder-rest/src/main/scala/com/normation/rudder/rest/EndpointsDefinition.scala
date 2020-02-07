@@ -285,17 +285,17 @@ object SettingsApi extends ApiModuleProvider[SettingsApi] {
     val description = "Get information about all Rudder settings"
     val (action, path)  = GET / "settings"
   }
-  final case object GetAllAuthorizedNetworks extends SettingsApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
-    val description = "List all authorized networks"
-    val (action, path)  = GET / "settings" / "authorized_networks"
+  final case object GetAllAllowedNetworks extends SettingsApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
+    val description = "List all allowed networks"
+    val (action, path)  = GET / "settings" / "allowed_networks"
   }
-  final case object GetAuthorizedNetworks extends SettingsApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
-    val description = "List all authorized networks for one relay"
-    val (action, path)  = GET / "settings" / "authorized_networks" / "{nodeId}"
+  final case object GetAllowedNetworks extends SettingsApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
+    val description = "List all allowed networks for one relay"
+    val (action, path)  = GET / "settings" / "allowed_networks" / "{nodeId}"
   }
-  final case object ModifyAuthorizedNetworks extends SettingsApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
-    val description = "Update all authorized networks for one relay"
-    val (action, path)  = POST / "settings" / "authorized_networks" / "{nodeId}"
+  final case object ModifyAllowedNetworks extends SettingsApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
+    val description = "Update all allowed networks for one relay"
+    val (action, path)  = POST / "settings" / "allowed_networks" / "{nodeId}"
   }
 
   final case object GetSetting extends SettingsApi with OneParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
