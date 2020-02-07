@@ -604,55 +604,18 @@ object ExecutionBatch extends Loggable {
     , unexpectedInterpretation: UnexpectedReportInterpretation
   ) : NodeStatusReport = {
 
-    // this one is merged, but that's not efficient
-    // this is aways called with only 1 node.
-    // actually it can't merge, as the merge group by nodeconfigid, and unexpected and missing have, by constuct, different configid
+    // UnexpectedVersion are always called for only one node
+    // The status can't merge, as the merge group by nodeconfigid, and unexpected and missing have, by constuct, different configid
     def buildUnexpectedVersion(runTime: DateTime, runVersion: Option[NodeConfigIdInfo], runExpiration: DateTime, expectedConfig: NodeExpectedReports, expectedExpiration: DateTime, nodeStatusReports: Seq[ResultReports]): Set[RuleNodeStatusReport] = {
-      // we should try to avoid the merge, and do
-      // seq with all reports which are missing
-      // seq with all reports unexpected
-      // and do the respective grouping
-      // still unsure of the correct way to do it in a maintenable way
-      // hopefully, expect big perf improvement
-      /*
-      val missingMergeInfo = MergeInfo(nodeId, Some(runTime), Some(expectedConfig.nodeConfigId), expectedExpiration)
-
-      val unexpectedMergeInfo = MergeInfo(nodeId, Some(runTime), runVersion.map(_.configId), runExpiration)
-      val unexpectedReports = nodeStatusReports
-
-      val missingByRules = expectedConfig.ruleExpectedReports.map { case RuleExpectedReports(ruleId, directives)  => (ruleId, directives) }.groupBy(_._1)
-      val unexpectedByRules = unexpectedReports.groupBy(x => x.ruleId)
-      */
-
       // we have 2 separate status: the missing and the expected, so two different RuleNodeStatusReport that will never merge
-      //RuleNodeStatusReport.merge(//mark all report of run unexpected,
-          //all expected missing
-          buildRuleNodeStatusReport(
-              MergeInfo(nodeId, Some(runTime), Some(expectedConfig.nodeConfigId), expectedExpiration)
-            , expectedConfig
-            , ReportType.Missing
-          ) ++
-          buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), runVersion.map(_.configId), runExpiration), nodeStatusReports)
-        //).values.toSet
+      //all expected missing
+      buildRuleNodeStatusReport(
+          MergeInfo(nodeId, Some(runTime), Some(expectedConfig.nodeConfigId), expectedExpiration)
+        , expectedConfig
+        , ReportType.Missing
+      ) ++
+      buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), runVersion.map(_.configId), runExpiration), nodeStatusReports)
 
-      /*
-          reports.groupBy(x => x.ruleId).map { case (ruleId, seq) =>
-      RuleNodeStatusReport(
-        mergeInfo.nodeId
-        , ruleId
-        , mergeInfo.run
-        , mergeInfo.configId
-        , seq.groupBy(_.directiveId).map{ case (directiveId, reportsByDirectives) =>
-          (directiveId, DirectiveStatusReport(directiveId, reportsByDirectives.groupBy(_.component).map { case (component, reportsByComponents) =>
-            (component, ComponentStatusReport(component, reportsByComponents.groupBy(_.keyValue).map { case (keyValue, reportsByComponent) =>
-              (keyValue, ComponentValueStatusReport(keyValue, keyValue, reportsByComponent.map(r => MessageStatusReport(ReportType.Unexpected, r.message)).toList))
-              }.toMap)
-            )}.toMap)
-          )}.toMap
-        , mergeInfo.expirationTime
-      )
-    }.toSet
-       */
     }
 
     //only interesting reports: for that node, with a status
@@ -882,7 +845,7 @@ object ExecutionBatch extends Loggable {
                                    // If okKeys.size == reportKeys.size, there is no unexpected reports
                                    // If okKeys.size == expectedKeys.size, there is no missing reports
                                    val missing = (if (okKeys.size != expectedKeys.size) {
-                                     expectedComponents.filterKeys(k => !reportKeys.contains(k)).map { case ((d,_), (pm,mrs,c)) =>
+                                     expectedComponents.filter(k => !reportKeys.contains(k._1)).map { case ((d,_), (pm,mrs,c)) =>
                                          DirectiveStatusReport(d, Map(c.componentName ->
                                            /*
                                             * Here, we group by unexpanded component value, not expanded one. We want in the end:
@@ -911,7 +874,7 @@ object ExecutionBatch extends Loggable {
                                    //unexpected contains the one with unexpected key and all non matching serial/version
                                    val unexpected = (if (okKeys.size != reportKeys.size) {
                                      buildUnexpectedDirectives(
-                                       reports.filterKeys(k => !expectedKeys.contains(k)).values.flatten.toSeq
+                                       reports.filter(k => !expectedKeys.contains(k._1)).values.flatten.toSeq
                                      )
                                    } else {
                                      Seq[DirectiveStatusReport]()
@@ -921,7 +884,7 @@ object ExecutionBatch extends Loggable {
                                    u3 += t4-t3
 
                                    // okKeys is DirectiveId, ComponentName
-                                   val expected2 = okKeys.groupBy(_._1).map { case (directiveId, cptName) =>
+                                   val expected = okKeys.groupBy(_._1).map { case (directiveId, cptName) =>
                                       DirectiveStatusReport(directiveId, cptName.toSeq.map { case (_, cpt) =>
                                         val k = (directiveId, cpt)
                                         val (policyMode, missingReportStatus, components) = expectedComponents(k)
@@ -933,7 +896,7 @@ object ExecutionBatch extends Loggable {
                                    u4 += t5-t4
 
 
-                                   (missing, unexpected, expected2)
+                                   (missing, unexpected, expected)
                                 }
     } yield {
       // if there is no missing nor unexpected, then data is alreay correct, otherwise we need to merge it

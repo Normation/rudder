@@ -273,21 +273,6 @@ object DirectiveStatusReport {
       (directiveId, DirectiveStatusReport(directiveId, newComponents))
     }.toMap
   }
-/*
-  def merge2(directives: Iterable[DirectiveStatusReport]): Map[DirectiveId, DirectiveStatusReport] = {
-    directives.groupBy( _.directiveId).map { case (directiveId, directiveStatusReports) =>
-      val componentsByDirectives = directiveStatusReports.flatMap( _.components.values)
-      val componentsMap = componentsByDirectives.groupBy(_.componentName).map{ case (cptName, cptStatusReports) =>
-        val componentValues = cptStatusReports.flatMap(_.componentValues.values)
-
-      }
-      (directiveId, DirectiveStatusReport(directiveId, directiveStatusReports.map(_.rep).groupBy(_.components).map { case (component, reportsByComponents) =>
-        (component, ComponentStatusReport(component, reportsByComponents.groupBy(_.keyValue).map { case (keyValue, reportsByComponent) =>
-          (keyValue, ComponentValueStatusReport(keyValue, keyValue, reportsByComponent.map(r => MessageStatusReport(ReportType.Unexpected, r.message)).toList))
-        }.toMap)
-        )}.toMap)
-      )}
-  }*/
 }
 
 /**
