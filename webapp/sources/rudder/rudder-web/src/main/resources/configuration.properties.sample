@@ -53,12 +53,6 @@
 rudder.dir.lock=/var/rudder/lock/
 
 #
-# URL where Inventory Reports are sent to be processed and stored.
-# This is the local URL of the "inventory endpoint" web application,
-#
-rudder.endpoint.cmdb=http://localhost:8080/endpoint/upload/
-
-#
 # Location of the relay api used by rudder webapp
 # It's the base url of relay api, Rudder will manage to call the correct url from that base
 #
