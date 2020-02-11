@@ -65,10 +65,18 @@ import net.liftweb.json.JsonDSL._
 import zio._
 import zio.syntax._
 
+
+sealed trait InventoryUploadApiMode
+object InventoryUploadApiMode {
+  final case object Forbiden extends InventoryUploadApiMode
+  final case object Public   extends InventoryUploadApiMode
+}
+
 class InventoryApi (
     restExtractorService: RestExtractorService
   , inventoryProcessor  : InventoryProcessor
   , inventoryFileWatcher: InventoryFileWatcher
+  , allowInventoryUpload: InventoryUploadApiMode
 ) extends LiftApiModuleProvider[API] {
 
   def schemas = API
@@ -175,13 +183,17 @@ class InventoryApi (
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val prettify = params.prettify
-      // we need at least the file, else the request is in error
-      (req.uploadedFiles.find(_.name == FILE), req.uploadedFiles.find(_.name == SIG)) match {
-        case (None, _) =>
-          toJsonError(None, "Missing uploaded file with parameter name 'file'")
-        case (Some(inv), sig) =>
-          parseInventory(params.prettify, inv, sig)
-      }
+      allowInventoryUpload match {
+        case InventoryUploadApiMode.Forbiden => toJsonError(None, "This API is not allowed with current configuration")
+        case InventoryUploadApiMode.Public   =>
+          // we need at least the file, else the request is in error
+          (req.uploadedFiles.find(_.name == FILE), req.uploadedFiles.find(_.name == SIG)) match {
+            case (None, _) =>
+              toJsonError(None, "Missing uploaded file with parameter name 'file'")
+            case (Some(inv), sig) =>
+              parseInventory(params.prettify, inv, sig)
+          }
+        }
     }
   }
 

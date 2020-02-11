@@ -283,7 +283,6 @@ object RudderConfig extends Loggable {
   val RUDDER_DIR_DEPENDENCIES = config.getString("rudder.dir.dependencies")
   val RUDDER_DIR_LOCK = config.getString("rudder.dir.lock") //TODO no more used ?
   val RUDDER_DIR_SHARED_FILES_FOLDER = config.getString("rudder.dir.shared.files.folder")
-  val RUDDER_ENDPOINT_CMDB = config.getString("rudder.endpoint.cmdb")
   val RUDDER_WEBDAV_USER = config.getString("rudder.webdav.user")
   val RUDDER_WEBDAV_PASSWORD = config.getString("rudder.webdav.password") ; filteredPasswords += "rudder.webdav.password"
   val RUDDER_COMMUNITY_PORT = config.getInt("rudder.community.port")
@@ -492,6 +491,18 @@ object RudderConfig extends Loggable {
     config.getInt("inventories.watcher.waitForSignatureDuration")
   } catch {
     case ex: ConfigException => 10 // in seconds
+  }
+
+  val UPLOAD_INVENTORY_API_OPEN = {
+    try {
+      if(config.getBoolean("inventories.upload.allowed")) {
+        InventoryUploadApiMode.Public
+      } else {
+        InventoryUploadApiMode.Forbiden
+      }
+    } catch {
+      case ex:ConfigException => InventoryUploadApiMode.Forbiden
+    }
   }
 
   ApplicationLogger.info(s"Starting Rudder ${rudderFullVersion} web application [build timestamp: ${builtTimestamp}]")
@@ -1009,7 +1020,7 @@ object RudderConfig extends Loggable {
       , new TechniqueApi(restExtractorService, techniqueApiService6)
       , new RuleApi(restExtractorService, ruleApiService2, ruleApiService6, stringUuidGenerator)
       , new SystemApi(restExtractorService, systemApiService11, rudderMajorVersion, rudderFullVersion, builtTimestamp)
-      , new InventoryApi(restExtractorService, inventoryProcessor, inventoryWatcher)
+      , new InventoryApi(restExtractorService, inventoryProcessor, inventoryWatcher, UPLOAD_INVENTORY_API_OPEN)
         // info api must be resolved latter, because else it misses plugin apis !
     )
 

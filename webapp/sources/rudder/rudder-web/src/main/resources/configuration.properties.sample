@@ -53,12 +53,6 @@
 rudder.dir.lock=/var/rudder/lock/
 
 #
-# URL where Inventory Reports are sent to be processed and stored.
-# This is the local URL of the "inventory endpoint" web application,
-#
-rudder.endpoint.cmdb=http://localhost:8080/endpoint/upload/
-
-#
 # Location of the relay api used by rudder webapp
 # It's the base url of relay api, Rudder will manage to call the correct url from that base
 #
@@ -259,6 +253,16 @@ ldif.tracelog.rootdir=/var/rudder/inventories/debug
 rudder.batch.purge.inventories.delete.TTL=7
 # Interval in hours
 rudder.batch.purge.inventories.delete.interval=24
+
+#
+# In Rudder 6.0, inventories are not uploaded anymore and an inotify file watcher
+# looks for new inventories coming into /var/rudder/inventories/{accepted-nodes-updates, incoming}.
+# We kept the old inventory upload API, but it is now a standard Rudder API publicly available
+# at /api/inventories/upload (see documentation).
+# This allow existing integration to be easely ported. Nonetheless, you may want to totally close
+# that API (even to client with a valid token) to avoid anything to be updloaded to Rudder.
+#
+# inventories.upload.allowed=false
 
 ####################
 # Webdav properties #################################################################
