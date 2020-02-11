@@ -257,6 +257,15 @@ Configure_NTP state technique() {
     if abs_file =~ kept => if abs_file =~ kept => noop
 }"#; "f_state_if_recursive")] // designed to be handled someday
 
+// enum expr without spaces
+#[test_case("s_state_exprs_nospace", r#"@format=0
+@metadata=1
+resource Configure_NTP()
+Configure_NTP state technique() {
+    file("/tmp").absent() as abs_file
+    file("/tmp").present() as pres_file
+    if abs_file=~kept|pres_file=~repaired&pres_file!~error => return kept
+}"#; "s_state_exprs_nospace")]
 // enum expressions
 #[test_case("s_state_exprs", r#"@format=0
 @metadata=1
@@ -264,7 +273,7 @@ resource Configure_NTP()
 Configure_NTP state technique() {
     file("/tmp").absent() as abs_file
     file("/tmp").present() as pres_file
-    if abs_file =~ kept || pres_file =~ repaired && pres_file !~ error => return kept
+    if abs_file =~ kept | pres_file =~ repaired & pres_file !~ error => return kept
 }"#; "s_state_exprs")]
 #[test_case("s_state_expr_nested", r#"@format=0
 @metadata=1
@@ -272,7 +281,7 @@ resource Configure_NTP()
 Configure_NTP state technique() {
     file("/tmp").absent() as abs_file
     file("/tmp").present() as pres_file
-    if (((abs_file =~ kept || pres_file !~ kept) && pres_file =~ error) && pres_file =~ error) => noop
+    if (((abs_file =~ kept | pres_file !~ kept) & pres_file =~ error) & pres_file =~ error) => noop
 }"#; "s_state_expr_nested")]
 // ======= VARIABLE DEFINITIONS ======= (754)
 #[test_case("s_variabledef_string", r#"@format=0

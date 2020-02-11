@@ -5,11 +5,8 @@ use crate::{
 use colored::Colorize;
 use ron::de::from_reader;
 use serde::Deserialize;
-use std::{
-    io::prelude::*,
-    fs,
-    path::Path
-};
+use std::fs;
+
 
 #[derive(Debug, Deserialize)]
 struct OsTreeBuilder(Vec<OsTree>);
@@ -75,15 +72,16 @@ fn rec_oslib_builder(os_tree: &OsTree, mut oslist: &mut Vec<String>) {
 /// into a necessary rudder-lang `global enum os` that holds every single supported Os(kind)
 pub fn generate_oslib(fname: &str, oslib_filename: &str) -> Result<()> {
     info!("{} from {}", "Generating OS list".bright_green(), fname.bright_yellow());
-    let f = fs::File::open(fname).map_err(|e| err!(Token::new(&fname.to_owned(), ""), "{}", e))?;
-    let os_tree_builder: OsTreeBuilder = from_reader(f).map_err(|e| err!(Token::new(fname, ""), "{}", e))?;
+    let ftree = fs::File::open(fname).map_err(|e| err!(Token::new(&fname.to_owned(), ""), "{}", e))?;
+    let os_tree_builder: OsTreeBuilder = from_reader(ftree).map_err(|e| err!(Token::new(fname, ""), "{}", e))?;
 
     let mut oslist: Vec<String> = Vec::new();
     os_tree_builder.0.iter().for_each(|os_tree| rec_oslib_builder(os_tree, &mut oslist));
     
     // // write global enum os in a file
     let content = format!("@format=0\n\nglobal enum os {{\n  {}\n}}", oslist.join(",\n  "));
-    let mut file = fs::File::create(Path::new(oslib_filename)).expect("Could not create os lib file");
-    file.write_all(content.as_bytes()).expect("Could not write content to os lib file");
+    {    
+        fs::write(oslib_filename, content.as_bytes()).expect("Could not write content to os lib file");
+    }
     Ok(())
 }
