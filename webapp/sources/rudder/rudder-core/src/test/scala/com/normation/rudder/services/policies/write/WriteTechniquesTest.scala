@@ -291,7 +291,6 @@ class WriteSystemTechniquesTest extends TechniquesTest{
     "correctly write the expected policies files with defauls installation but `.new` files exists" in {
 
       def addCrap(path: String): Unit = {
-        import better.files._
         better.files.File(path).append("some text that should be overwritten during generation").append(
           //this need to be longer than at least one file, else it's overwritten enterly without exposing the pb
           """
