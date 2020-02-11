@@ -288,6 +288,40 @@ class WriteSystemTechniquesTest extends TechniquesTest{
       compareWith(rootPath, "root-default-install")
     }
 
+    "correctly write the expected policies files with defauls installation but `.new` files exists" in {
+
+      def addCrap(path: String): Unit = {
+        import better.files._
+        better.files.File(path).append("some text that should be overwritten during generation").append(
+          //this need to be longer than at least one file, else it's overwritten enterly without exposing the pb
+          """
+            |"common-root","audit","merged","false","common","1.0","true","Common"
+            |"root-distributePolicy","audit","merged","false","distributePolicy","1.0","true","Distribute Policy"
+            |"inventory-all","audit","merged","false","inventory","1.0","true","Inventory"
+            |"server-roles-directive","audit","merged","false","server-roles","1.0","true","Server Roles"
+            |""".stripMargin).appendLines("some more crap")
+      }
+
+      val (rootPath, writter) = getPromiseWritter("root-default-crap")
+
+      // add garbage in rootPath/root.new/promises.cf (for a template), rudder.json & rudder-directives.csv (b/c special),
+      // /inventory/1.0/test-inventory.pl (pure file).
+
+      val newPolicies = new File(rootPath.getParentFile, "root.new")
+      newPolicies.mkdirs()
+
+      List("promises.cf", "rudder.json", "rudder-directives.csv").foreach(s =>
+        addCrap(newPolicies.getAbsolutePath +"/" + s)
+      )
+
+      val inventory = new File(newPolicies, "inventory/1.0")
+      inventory.mkdirs()
+      addCrap(inventory.getAbsolutePath+"/test-inventory.pl")
+
+      (writeNodeConfigWithUserDirectives(writter) mustFull) and
+      compareWith(rootPath, "root-default-install")
+    }
+
     "correctly write the expected policies files when 2 directives configured" in {
       val (rootPath, writter) = getPromiseWritter("root-2-directives")
       (writeNodeConfigWithUserDirectives(writter, clock, rpm) mustFull) and
@@ -307,6 +341,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
         :: Nil
       )
     }
+
   }
 
   "rudder-group.st template" should {
