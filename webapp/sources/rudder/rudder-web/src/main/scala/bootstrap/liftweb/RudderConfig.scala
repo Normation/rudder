@@ -368,6 +368,16 @@ object RudderConfig extends Loggable {
     }
   }
 
+  val RUDDER_BCRYPT_COST = {
+    try {
+      config.getInt("rudder.bcrypt.cost")
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.debug("Property 'rudder.bcrypt.cost' is missing or empty in rudder.configFile. Default cost to 12.")
+        12
+    }
+  }
+
   val RUDDER_BATCH_PURGE_DELETED_INVENTORIES_INTERVAL = {
     try {
       config.getInt("rudder.batch.purge.inventories.delete.interval")

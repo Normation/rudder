@@ -42,13 +42,9 @@ import java.io.FileInputStream
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
+import java.security.SecureRandom
 import java.util.Collection
-
-import com.normation.rudder.AuthorizationType
-import com.normation.rudder.Rights
-import com.normation.rudder.Role
-import com.normation.rudder.RoleToRights
-import com.normation.rudder.RudderAccount
+import com.normation.rudder._
 import com.normation.rudder.api._
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.PluginLogger
@@ -80,7 +76,10 @@ final case class UserFile(
 object PasswordEncoder {
   type Rudder = org.springframework.security.crypto.password.PasswordEncoder
 
+  import org.bouncycastle.crypto.generators.OpenBSDBCrypt
   import org.springframework.security.crypto.password.PasswordEncoder
+
+  val random = new SecureRandom()
 
   class DigestEncoder(digestName: String) extends PasswordEncoder {
     override def encode(rawPassword: CharSequence): String = {
@@ -100,10 +99,25 @@ object PasswordEncoder {
     override def encode(rawPassword: CharSequence): String = rawPassword.toString
     override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = rawPassword.toString == encodedPassword
   }
+  // Unsalted hash functions :
   val MD5    = new DigestEncoder("MD5"    )
   val SHA1   = new DigestEncoder("SHA-1"  )
   val SHA256 = new DigestEncoder("SHA-256")
   val SHA512 = new DigestEncoder("SHA-512")
+  // Salted hash functions :
+  val BCRYPT = new PasswordEncoder() {
+    override def encode(rawPassword: CharSequence): String = {
+      val salt: Array[Byte] = new Array(16)
+      random.nextBytes(salt)
+
+      // The version of bcrypt used is "2b". See https://en.wikipedia.org/wiki/Bcrypt#Versioning_history
+      // It prevents the length (unsigned char) of a long password to overflow and wrap at 256. (Cf https://marc.info/?l=openbsd-misc&m=139320023202696)
+      OpenBSDBCrypt.generate("2b", rawPassword.toString.toCharArray, salt, RudderConfig.RUDDER_BCRYPT_COST)
+    }
+    override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = {
+      OpenBSDBCrypt.checkPassword(encodedPassword, rawPassword.toString.toCharArray)
+    }
+  }
 }
 
 /**
@@ -302,10 +316,11 @@ object UserFileProcessing {
       Left(UserConfigFileError("Authentication file is malformed, the root tag '<authentication>' was not found", None))
     } else {
       val hash = (root(0) \ "@hash").text.toLowerCase match {
-        case "sha" | "sha1"       => PasswordEncoder.SHA1
+        case "sha"    | "sha1"    => PasswordEncoder.SHA1
         case "sha256" | "sha-256" => PasswordEncoder.SHA256
         case "sha512" | "sha-512" => PasswordEncoder.SHA512
         case "md5"                => PasswordEncoder.MD5
+        case "bcrypt"             => PasswordEncoder.BCRYPT
         case _                    => PasswordEncoder.PlainText
       }
 
