@@ -116,7 +116,7 @@ object PolicyWriterServiceImpl {
     // open file mode for create or overwrite mode
     def createParentsAndWrite(text: String) = IOResult.effect {
       file.parent.createDirectoryIfNotExists(true)
-      file.writeText(text)(Seq(StandardOpenOption.WRITE, StandardOpenOption.CREATE), StandardCharsets.UTF_8)
+      file.writeText(text)(Seq(StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE), StandardCharsets.UTF_8)
     }
   }
 }
