@@ -80,11 +80,34 @@ pub fn translate_file(json_file: &Path, rl_file: &Path) -> Result<()> {
     Ok(())
 }
 
-fn translate(config: &toml::Value, technique: &Technique) -> Result<String> {
-    let parameters_meta = serde_json::to_string(&technique.parameter);
-    if parameters_meta.is_err() {
-        return Err(Error::User("Unable to parse technique file".to_string()));
+fn translate_meta_parameters(parameters: &Vec<Value>) -> Result<String> {
+    let mut parameters_meta = String::new();
+    for param in parameters {
+        match param.as_object() {
+            Some(map) => {
+                let name = &map.get("name").expect("Unable to parse name parameter").to_string();
+                let id = &map.get("id").expect("Unable to parse id parameter").to_string();
+                let constraints = &map.get("constraints").expect("Unable to parse constraints parameter").to_string();
+                parameters_meta.push_str(&format!(
+                    r#"  {{ "name": {}, "id": {}, "constraints": {} }}{}"#,
+                    name,
+                    id,
+                    constraints,
+                    ",\n"
+                ));
+            },
+            None => return Err(Error::User(String::from("Unable to parse meta parameters")))
+        }
     }
+    // let parameters_meta = serde_json::to_string(&technique.parameter);
+    // if parameters_meta.is_err() {
+        // return Err(Error::User("Unable to parse technique file".to_string()));
+    // }
+    Ok(parameters_meta)
+}
+ 
+fn translate(config: &toml::Value, technique: &Technique) -> Result<String> {
+    let parameters_meta = translate_meta_parameters(&technique.parameter).unwrap();
     let parameters = technique.bundle_args.join(",");
     let calls = map_strings_results(
         technique.method_calls.iter(),
@@ -98,7 +121,7 @@ fn translate(config: &toml::Value, technique: &Technique) -> Result<String> {
 @name="{name}"
 @description="{description}"
 @version="{version}"
-@parameters={parameters_meta}
+@parameters= [{newline}{parameters_meta}]
 
 resource {bundle_name}({parameters})
 
@@ -110,7 +133,8 @@ resource {bundle_name}({parameters})
         version = technique.version,
         name = technique.name,
         bundle_name = technique.bundle_name,
-        parameters_meta = parameters_meta.unwrap(),
+        newline = "\n",
+        parameters_meta = parameters_meta,
         parameters = parameters,
         calls = calls
     );
@@ -147,6 +171,7 @@ fn translate_call(config: &toml::Value, call: &MethodCall) -> Result<String> {
         None => toml::value::Value::Integer(1),
         Some(r) => r.clone(),
     };
+
     let res_arg_count: usize = match res_arg_v.as_integer() {
         None => {
             return Err(Error::User(format!(

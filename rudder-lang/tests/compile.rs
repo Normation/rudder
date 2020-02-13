@@ -27,6 +27,8 @@ use test_case::test_case;
 #[test_case("s_basic")]
 #[test_case("s_enum_mapping")]
 #[test_case("s_state_case")]
+#[test_case("s_variables")]
+#[test_case("s_var")]
 // #[test_case("s_does_not_exist")] // supposed to fail as the file does not exist
 fn real_files(filename: &str) {
     // manually define here the output folder (direct parent folder is /tests/)

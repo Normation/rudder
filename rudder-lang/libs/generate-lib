@@ -27,6 +27,7 @@ foreach my $file (glob $ncf_methods) {
   # only one paramater, TODO hack for translate
   if ($file =~ /\/variable_string_escaped/) { next; }
 
+variable = { parameter_count=2 }
   # init data
   my $i=0;
   my ($resource, $state, $prefix, $class_parameter) = ("", "", "", -1);
