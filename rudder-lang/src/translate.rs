@@ -120,16 +120,21 @@ resource {bundle_name}({parameters})
 fn translate_call(config: &toml::Value, call: &MethodCall) -> Result<String> {
     lazy_static! {
         static ref RE: Regex = Regex::new(r"^([a-z]+)_(\w+)$").unwrap();
+        static ref RE_KERNEL_MODULE: Regex = Regex::new(r"^(kernel_module)_(\w+)$").unwrap();
     }
 
-    // separate resource and state
-    let (resource, state) = match RE.captures(&call.method_name) {
+    // `kernel_module` uses the main `_` resource/state separator
+    // so an exception is required to parse it properly
+    // dealt with the exception first, then with the common case
+    let (resource, state) = match RE_KERNEL_MODULE.captures(&call.method_name) {
         Some(caps) => (caps.get(1).unwrap().as_str(), caps.get(2).unwrap().as_str()),
-        None => {
-            return Err(Error::User(format!(
-                "Invalid method name '{}'",
-                call.method_name
-            )))
+        // here is the common case
+        None => match RE.captures(&call.method_name) {
+            Some(caps) => (caps.get(1).unwrap().as_str(), caps.get(2).unwrap().as_str()),
+            None => return Err(Error::User(format!(
+                        "Invalid method name '{}'",
+                        call.method_name
+                    )))
         }
     };
 

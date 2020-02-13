@@ -943,9 +943,9 @@ mod tests {
                 .unwrap()
         ));
         assert!(!enum_list.eval(&hashmap! { Token::from("os") => (Token::from("os"),Token::from("ubuntu")), Token::from("out") => (Token::from("outcome"),Token::from("kept")) },
-                        &enum_list.canonify_expression(&getter, penum_expression_t("os:debian && out =~ outcome:kept")).unwrap()));
+                        &enum_list.canonify_expression(&getter, penum_expression_t("os:debian & out =~ outcome:kept")).unwrap()));
         assert!(enum_list.eval(&hashmap! { Token::from("os") => (Token::from("os"),Token::from("ubuntu")), Token::from("out") => (Token::from("outcome"),Token::from("kept")) },
-                       &enum_list.canonify_expression(&getter, penum_expression_t("os:debian || out =~ outcome:kept")).unwrap()));
+                       &enum_list.canonify_expression(&getter, penum_expression_t("os:debian | out =~ outcome:kept")).unwrap()));
     }
 
     #[test]
@@ -964,7 +964,7 @@ mod tests {
         }
         {
             let mut var1 = HashSet::new();
-            let ex = penum_expression_t("os:debian && out =~ outcome:kept");
+            let ex = penum_expression_t("os:debian & out =~ outcome:kept");
             let exp = enum_list.canonify_expression(&getter, ex).unwrap();
             enum_list.list_variable_enum(&mut var1, &exp);
             assert_eq!(
@@ -974,17 +974,17 @@ mod tests {
         }
         {
             let mut var1 = HashSet::new();
-            let ex = penum_expression_t("family:debian && os:ubuntu");
+            let ex = penum_expression_t("family:debian & os:ubuntu");
             let exp = enum_list.canonify_expression(&getter, ex).unwrap();
             enum_list.list_variable_enum(&mut var1, &exp);
             assert_eq!(var1, HashSet::from_iter(vec![Token::from("os")]));
         }
         {
             let mut var1 = HashSet::new();
-            let ex1 = penum_expression_t("family:debian && os:ubuntu");
+            let ex1 = penum_expression_t("family:debian & os:ubuntu");
             let exp1 = enum_list.canonify_expression(&getter, ex1).unwrap();
             enum_list.list_variable_enum(&mut var1, &exp1);
-            let ex2 = penum_expression_t("os:debian && out =~ outcome:kept");
+            let ex2 = penum_expression_t("os:debian & out =~ outcome:kept");
             let exp2 = enum_list.canonify_expression(&getter, ex2).unwrap();
             enum_list.list_variable_enum(&mut var1, &exp2);
             assert_eq!(
@@ -999,7 +999,7 @@ mod tests {
         let (gc, enum_list) = init_tests();
         let getter = |k| gc.variables.get(&k).map(VarKind::clone);
         let mut varlist = HashSet::new();
-        let ex = penum_expression_t("os:debian && out =~ outcome:kept");
+        let ex = penum_expression_t("os:debian & out =~ outcome:kept");
         let exp = enum_list.canonify_expression(&getter, ex).unwrap();
         enum_list.list_variable_enum(&mut varlist, &exp);
         let it = ContextIterator::new(&enum_list, &getter, varlist.into_iter().collect());
@@ -1013,7 +1013,7 @@ mod tests {
         let case = Token::from("case");
         let mut exprs = Vec::new();
 
-        let ex = penum_expression_t("family:debian || family:redhat");
+        let ex = penum_expression_t("family:debian | family:redhat");
         exprs.push((
             enum_list.canonify_expression(&getter, ex).unwrap(),
             Vec::new(),
@@ -1044,7 +1044,7 @@ mod tests {
         let case = Token::from("case");
         let mut exprs = Vec::new();
 
-        let ex = penum_expression_t("family:debian || family:redhat");
+        let ex = penum_expression_t("family:debian | family:redhat");
         exprs.push((
             enum_list.canonify_expression(&getter, ex).unwrap(),
             Vec::new(),

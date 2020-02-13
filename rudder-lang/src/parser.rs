@@ -423,7 +423,7 @@ fn enum_or_expression(i: PInput) -> PResult<PEnumExpression> {
     wsequence!(
         {
             left: alt((enum_and_expression, enum_not_expression, enum_atom));
-            _x: etag("||");
+            _x: etag("|");
             right: or_fail(
                        alt((enum_or_expression, enum_and_expression, enum_not_expression, enum_atom)),
                        || PErrorKind::InvalidEnumExpression);
@@ -434,7 +434,7 @@ fn enum_and_expression(i: PInput) -> PResult<PEnumExpression> {
     wsequence!(
         {
             left: alt((enum_not_expression, enum_atom));
-            _x: etag("&&");
+            _x: etag("&");
             right: or_fail(
                        alt((enum_and_expression, enum_not_expression, enum_atom)),
                        || PErrorKind::InvalidEnumExpression);

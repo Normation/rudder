@@ -358,7 +358,7 @@ fn test_penum_expression() {
         ))
     );
     assert_eq!(
-        map_res(penum_expression, "bc&&(a||b=~hello:g)"),
+        map_res(penum_expression, "bc&(a|b=~hello:g)"),
         Ok((
             "",
             PEnumExpression::And(
@@ -394,7 +394,7 @@ fn test_penum_expression() {
         Err(("", PErrorKind::InvalidEnumExpression))
     );
     assert_eq!(
-        map_res(penum_expression, "a=~b||(c=~d"),
+        map_res(penum_expression, "a=~b|(c=~d"),
         Err(("", PErrorKind::UnterminatedDelimiter("(")))
     );
 }
