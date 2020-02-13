@@ -33,10 +33,13 @@
 
 <!--
   The "authentication" tag should have a "hash" attribute, with these allowed values:
-    "md5", "sha1", "sha256", "sha-256", "sha512", "sha-512"
+    "bcrypt", "md5", "sha1", "sha256", "sha-256", "sha512", "sha-512"
 
   Not specifying the "hash" attribute means using plain text passwords, which is not
   adviseable for security reasons.
+
+  To create a bcrypt hash of your password, please run this command:
+    htpasswd -nBC 12 "" | tr -d ':\n' | sed 's/$2y/$2b/'
 
   To create a sha512 hash of your password, please run this command:
     read mypass; echo -n $mypass | sha512sum
@@ -70,9 +73,9 @@
   into account: /etc/init.d/rudder-jetty restart
 -->
 
-<authentication hash="sha512">
+<authentication hash="bcrypt">
 
   <!-- Default credentials: admin / admin -->
-  <user name="admin" password="c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec" role="administrator" />
+  <user name="admin" password="$2b$12$Sz9Arn8QL59mGzt8ykXGhu/onddku53PnjgF6.hmyXnXqHBjUtUJu" role="administrator" />
 
 </authentication>
