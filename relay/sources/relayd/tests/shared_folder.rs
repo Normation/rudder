@@ -60,11 +60,18 @@ mod tests {
         assert_eq!(304, hashes_are_equal.status());
 
         let hashes_are_not_equal = client
-            .head("http://127.0.0.1:3030/rudder/relay-api/1/shared-folder/c745a140-40bc-4b86-b6dc-084488fc906b/37817c4d-fbf7-4850-a985-50021f4e8f41/file?hash_type=sha256&hash=cafebabe0xdeadbeef")
+            .head("http://127.0.0.1:3030/rudder/relay-api/1/shared-folder/c745a140-40bc-4b86-b6dc-084488fc906b/37817c4d-fbf7-4850-a985-50021f4e8f41/file?hash_type=sha256&hash=181210f8f9c779c26da1d9b2075bde0127302ee0e3fca38c9a83f5b1dd8e5d78")
             .send()
             .unwrap();
 
         assert_eq!(200, hashes_are_not_equal.status());
+
+        let hashes_invalid = client
+            .head("http://127.0.0.1:3030/rudder/relay-api/1/shared-folder/c745a140-40bc-4b86-b6dc-084488fc906b/37817c4d-fbf7-4850-a985-50021f4e8f41/file?hash_type=sha256&hash=test")
+            .send()
+            .unwrap();
+
+        assert_eq!(500, hashes_invalid.status());
 
         let no_hash_sent = client
             .head("http://127.0.0.1:3030/rudder/relay-api/1/shared-folder/c745a140-40bc-4b86-b6dc-084488fc906b/37817c4d-fbf7-4850-a985-50021f4e8f41/file?hash_type=sha256&hash=")
@@ -74,7 +81,7 @@ mod tests {
         assert_eq!(200, no_hash_sent.status());
 
         let wrong_path = client
-            .head("http://127.0.0.1:3030/rudder/relay-api/1/shared-folder/wrong-key-hash/37817c4d-fbf7-4850-a985-50021f4e8f41/file?hash_type=sha256&hash=181210f8f9c779c26da1d9b2075bde0127302ee0e3fca38c9a83f5b1dd8e5d3b")
+            .head("http://127.0.0.1:3030/rudder/relay-api/1/shared-folder/wrong-node/37817c4d-fbf7-4850-a985-50021f4e8f41/file?hash_type=sha256&hash=181210f8f9c779c26da1d9b2075bde0127302ee0e3fca38c9a83f5b1dd8e5d3b")
             .send()
             .unwrap();
 

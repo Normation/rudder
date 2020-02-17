@@ -32,6 +32,7 @@ pub mod node;
 pub mod report;
 pub mod runinfo;
 pub mod runlog;
+pub mod shared_file;
 
 pub use report::Report;
 pub use runinfo::RunInfo;

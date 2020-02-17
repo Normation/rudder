@@ -56,6 +56,8 @@ pub enum Error {
     CertificateForUnknownNode(NodeId),
     #[error("missing certificate for node: {0}")]
     MissingCertificateForNode(NodeId),
+    #[error("unknown node: {0}")]
+    UnknownNode(NodeId),
     #[error("database error: {0}")]
     Database(#[from] diesel::result::Error),
     #[error("database connection error: {0}")]
@@ -103,12 +105,22 @@ pub enum Error {
         invalid: String,
         valid: &'static str,
     },
+    #[error("invalid hash {0}")]
+    InvalidHash(String),
     #[error("invalid log filter: {0}")]
     InvalidLogFilter(#[from] tracing_subscriber::filter::ParseError),
-    #[error("invalid header")]
-    InvalidHeader,
+    #[error("invalid header: {0}")]
+    InvalidHeader(String),
+    #[error("duplicate header: {0}")]
+    DuplicateHeader(String),
+    #[error("missing header: {0}")]
+    MissingHeader(String),
     #[error("HTTP error: {0}")]
     HttpClient(#[from] reqwest::Error),
     #[error("Invalid duration: {0}")]
     InvalidDuration(#[from] humantime::DurationError),
+    #[error("Invalid hexadecimal: {0}")]
+    InvalidHexadecimalValue(#[from] hex::FromHexError),
+    #[error("invalid shared file: {0}")]
+    InvalidSharedFile(String),
 }

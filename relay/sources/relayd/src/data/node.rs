@@ -28,7 +28,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::error::Error;
+use crate::{error::Error, hashing::Hash};
 use openssl::{stack::Stack, x509::X509};
 use serde::{Deserialize, Serialize};
 use serde_json;
@@ -43,16 +43,14 @@ use tracing::{error, info, trace, warn};
 pub type NodeId = String;
 pub type NodeIdRef = str;
 pub type Host = String;
-pub type KeyHash = String;
 
-// We ignore the key-hash field as we directly deal with proper certificates
 #[derive(Deserialize, Default)]
 struct Info {
     hostname: Host,
     #[serde(rename = "policy-server")]
     policy_server: NodeId,
     #[serde(rename = "key-hash")]
-    key_hash: KeyHash,
+    key_hash: Hash,
     #[serde(skip)]
     // Can be empty when not on a root server or no known certificates for
     // a node
@@ -155,7 +153,7 @@ impl NodesList {
             .map(|n| n.policy_server == self.my_id)
     }
 
-    pub fn key_hash(&self, id: &NodeIdRef) -> Option<KeyHash> {
+    pub fn key_hash(&self, id: &NodeIdRef) -> Option<Hash> {
         self.list.data.get(id).map(|s| s.key_hash.clone())
     }
 
