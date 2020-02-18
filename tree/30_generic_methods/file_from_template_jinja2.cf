@@ -137,7 +137,7 @@
 # c is the current iterator_name value
 # ```
 #
-# To iterate over a container defined by the following json file, loaded with 
+# To iterate over a container defined by the following json file, loaded with
 # `variable_dict_from_file("variable_prefix", "dict_name", "path")`:
 #
 # ```json
@@ -278,10 +278,8 @@ bundle agent file_from_template_jinja2(source_template, destination)
       "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
       "report"              usebundle  => _log_v3("Build file ${destination} from jinja2 template ${source_template}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
-
-  reports:
-    pass3::
-      # Display templating errors in case of failure.
-      "Templating error: ${errors}" ifvarclass => "state_dumped_${destination_canon}_ok.!templating_ok";
+      # Report errors
+      "report" usebundle  => log_rudder_mode("log_warn", "Jinja templating failed with the following error:${const.endl}${errors}", "${destination}", "${class_prefix}"),
+                ifvarclass => "state_dumped_${destination_canon}_ok.!templating_ok";
 }
 
