@@ -1,0 +1,55 @@
+{
+    "name": "varvar",
+    "description": "",
+    "version": "1.0",
+    "parameter": [
+        {
+            "name": "pre",
+            "id": "01bb7939-781e-49d0-a6da-fc8b34e4a642",
+            "constraints": {
+                "allow_whitespace_string": false,
+                "allow_empty_string": false,
+                "max_length": 16384
+            },
+            "type": "string"
+        },
+        {
+            "name": "name",
+            "id": "d578d9cf-9742-441a-85e4-4c7024c2b3aa",
+            "constraints": {
+                "allow_whitespace_string": false,
+                "allow_empty_string": false,
+                "max_length": 16384
+            },
+            "type": "string"
+        }
+    ],
+    "bundle_name": "var_technique",
+    "bundle_args": [
+        "pre",
+        "name"
+    ],
+    "method_calls": [
+        {
+            "class_context": "any",
+            "component": "Variable string",
+            "method_name": "variable_string",
+            "args": [
+                "pre",
+                "name",
+                "val"
+            ]
+        },
+        {
+            "class_context": "any",
+            "component": "Variable iterator",
+            "method_name": "variable_iterator",
+            "args": [
+                "pre",
+                "name",
+                "val",
+                "."
+            ]
+        }
+    ]
+}
