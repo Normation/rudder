@@ -3,8 +3,9 @@
 resource Configure_NTP()
 Configure_NTP state technique() {
   case {
-    ubuntu => file("/tmp").absent(),
-    os:debian => file("/tmp").present(),
+    # this case makes no sense, testing purpose
+    os=~ubuntu => file("/tmp").absent(),
+    os=~os:debian => file("/tmp").present(),
     default => log "info: ok"
   }
 }

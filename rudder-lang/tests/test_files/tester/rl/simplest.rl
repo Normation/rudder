@@ -10,5 +10,5 @@ resource simplest()
 
 simplest state technique() {
   @component = "File absent"
-  if scientific_linux => file("tmp").absent() as file_absent_tmp
+  if ms_dos => file("tmp").absent() as file_absent_tmp
 }

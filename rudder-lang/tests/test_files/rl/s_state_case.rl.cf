@@ -11,8 +11,8 @@ bundle agent Configure_NTP_technique
     "any_${report_data.directive_id}_0" usebundle => file_absent("/tmp"),
                                                if => concat("ubuntu");
     "any_${report_data.directive_id}_0" usebundle => _method_reporting_context("any"),
-                                               if => concat("debian");
+                                               if => concat("debian.!()");
     "any_${report_data.directive_id}_0" usebundle => file_present("/tmp"),
-                                               if => concat("debian");
+                                               if => concat("debian.!()");
       "method_call" usebundle => ncf_log("info: ok");
 }

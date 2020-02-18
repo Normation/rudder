@@ -80,9 +80,9 @@ pub fn compile_file(source: &Path, dest: &Path, technique: bool) -> Result<()> {
 
     // data
     let mut past = PAST::new();
-    add_file(&mut past, &sources, oses, "oslib.rl")?;
     add_file(&mut past, &sources, corelib, "corelib.rl")?;
     add_file(&mut past, &sources, stdlib, "stdlib.rl")?;
+    add_file(&mut past, &sources, oses, "oslib.rl")?;
     add_file(&mut past, &sources, source, &input_filename)?;
 
     // finish parsing into AST

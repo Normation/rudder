@@ -114,6 +114,12 @@ impl<'src> AST<'src> {
             // Try inserting every mapping that have an existing ancestor until there is no more
             let mut new_mappings = Vec::new();
             for em in mappings {
+                // Add it to global context if its parent is global
+                if self.context.variables.get(&em.from).is_some() {
+                    if let Err(e) = self.context.new_enum_variable(None, em.to, em.to, None) {
+                        self.errors.push(e);
+                    }
+                }
                 if enum_list.enum_exists(em.from) {
                     if let Err(e) = enum_list.add_mapping(em) {
                         self.errors.push(e);

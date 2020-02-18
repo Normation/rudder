@@ -65,8 +65,6 @@ fn create_parameters<'src>(
     parameter_defaults: &[Option<Value<'src>>],
 ) -> Result<Vec<Parameter<'src>>> {
     if pparameters.len() != parameter_defaults.len() {
-        println!("param def = {:#?}", parameter_defaults);
-        println!("param = {:#?}", pparameters);
         panic!(
             "BUG: parameter count should not differ from default count: expected {}, found {}",
             parameter_defaults.len(),

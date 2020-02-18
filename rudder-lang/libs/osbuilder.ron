@@ -18,42 +18,8 @@
  * 
 */
 
-OsTreeBuilder([
-    Family(( "unix", [
-        Family(( "linux", [
-            Oses([
-                ("alpine_linux", []),
-                ("arch_linux", []),
-                ("centos", []),
-                ("debian", [ 
-                    (Some("8"), Some(["7", "8", "9"])),
-                    (Some("9"), Some(["0"])),
-                    (Some("10"), None),
-                ]),
-                ("fedora", []),
-                ("gentoo", []),
-                ("mandrake", []),
-                ("mandriva", []),
-                ("oracle", []),
-                ("oracle_vm_server", []),
-                // deal with redhat which is both an OS and a family
-                // best way seems to consequently add it as both
-                ("redhat", [ 
-                    (Some("7"), None),
-                    (Some("8"), None),
-                ]),
-                ("scientific_linux", []),
-                ("slackwave", []),
-                ("suse", [
-                    (Some("12"), None),
-                    (Some("15"), None),
-                ]),
-                ("ubuntu", [
-                    (Some("16"), Some(["04"])),
-                    (Some("18"), Some(["04"])),
-                ]),
-            ]),
-        ])),
+[
+    Type(( "unix", [
         Family(( "bsd", [
             Oses([
                 ("dragonfly", []),
@@ -71,29 +37,67 @@ OsTreeBuilder([
                 ("redhat_w", []),
             ]),
         ])),
-        Oses([ ("aix", []) ]),
+        Oses([
+            ("aix", []),
+            ("hp_ux", []),
+            ("solaris", [
+                (Some("10"), None),
+                (Some("11"), None),
+            ])
+        ]),
     ])),
-    Oses([
-        ("windows", [
-            (Some("7"), None),
-            (Some("2000"), None),
-            (Some("XP"), None),
-            (Some("Vista"), None),
+    Type(( "linux", [
+        Oses([
+            ("android", []),
+            ("alpine_linux", []),
+            ("arch_linux", []),
+            ("centos", []),
+            ("debian", [ 
+                (Some("8"), Some(["7", "8", "9"])),
+                (Some("9"), Some(["0"])),
+                (Some("10"), None),
+            ]),
+            ("fedora", []),
+            ("gentoo", []),
+            ("mandrake", []),
+            ("mandriva", []),
+            ("oracle", []),
+            ("oracle_vm_server", []),
+            // deal with redhat which is both an OS and a family
+            // best way seems to consequently add it as both
+            ("redhat", [ 
+                (Some("7"), None),
+                (Some("8"), None),
+            ]),
+            ("scientific_linux", []),
+            ("slackwave", []),
+            ("suse", [
+                (Some("12"), None),
+                (Some("15"), None),
+            ]),
+            ("ubuntu", [
+                (Some("16"), Some(["04"])),
+                (Some("18"), Some(["04"])),
+            ]),
         ]),
-    ]),
-    Oses([
-        ("windows_server", [
-            (Some("2003"), None),
-            (Some("2008"), Some(["R2"])),
-            (Some("2012"), Some(["R2"])),
-        ]),
-    ]),
-    Oses([ ("android", []) ]),
-    Oses([ ("hp_ux", []) ]),
-    Oses([
-        ("solaris", [
-            (Some("10"), None),
-            (Some("11"), None),
-        ])
-    ]),
-])
+    ])),
+    Type(( "ms_dos", [
+        Family(( "windows", [
+            Oses([
+                ("windows", [
+                    (Some("7"), None),
+                    (Some("2000"), None),
+                    (Some("XP"), None),
+                    (Some("Vista"), None),
+                ]),
+            ]),
+            Oses([
+                ("windows_server", [
+                    (Some("2003"), None),
+                    (Some("2008"), Some(["R2"])),
+                    (Some("2012"), Some(["R2"])),
+                ]),
+            ]),
+        ]))
+    ])),
+]
