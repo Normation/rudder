@@ -1,4 +1,14 @@
-#!/usr/bin/python
+#!/bin/sh
+# vim: syntax=python
+''':'
+# First try to run this script with python, else run with python3
+if command -v python >/dev/null 2>/dev/null; then
+  exec python  "$0" "$@"
+elif command -v python3 >/dev/null 2>/dev/null; then
+  exec python3 "$0" "$@"
+else
+  exec python2 "$0" "$@"
+'''
 
 #####################################################################################
 # Copyright 2016 Normation SAS
