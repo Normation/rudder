@@ -66,6 +66,7 @@ import com.normation.rudder.services.policies.ParameterForConfiguration
 import com.normation.rudder.services.policies.Policy
 import java.nio.charset.StandardCharsets
 
+import com.github.ghik.silencer.silent
 import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.services.policies.MergePolicyService
@@ -290,6 +291,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
 
     "correctly write the expected policies files with defauls installation but `.new` files exists" in {
 
+      @silent("local val .* in method addCrap is never used")
       def addCrap(path: String): Unit = {
         better.files.File(path).append("some text that should be overwritten during generation").append(
           //this need to be longer than at least one file, else it's overwritten enterly without exposing the pb
