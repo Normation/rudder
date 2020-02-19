@@ -93,7 +93,7 @@ mod tests {
         // .sign created with:
         // tools/rudder-sign tests/api_shared_files/37817c4d-fbf7-4850-a985-50021f4e8f41/e745a140-40bc-4b86-b6dc-084488fc906b/file2 tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.priv tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.pub "node1.rudder.local"
 
-        let file = "tests/api_shared_files/37817c4d-fbf7-4850-a985-50021f4e8f41/e745a140-40bc-4b86-b6dc-084488fc906b/file2";
+        let file = "tests/api_shared_files/37817c4d-fbf7-4850-a985-50021f4e8f41/files/e745a140-40bc-4b86-b6dc-084488fc906b/file2";
         let signature = read_to_string(&format!("{}.sign", file)).unwrap();
         let content = read_to_string(&format!("{}.source", file)).unwrap();
 

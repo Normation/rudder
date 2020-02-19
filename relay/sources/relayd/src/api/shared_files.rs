@@ -160,6 +160,7 @@ pub fn put_local(
         .shared_files
         .path
         .join(&file.target_id)
+        .join("files")
         .join(&file.source_id);
     let pubkey = meta.pubkey()?;
 
@@ -290,6 +291,7 @@ pub fn head_local(
         .shared_files
         .path
         .join(&file.target_id)
+        .join("files")
         .join(&file.source_id)
         .join(format!("{}.metadata", file.file_id));
 
