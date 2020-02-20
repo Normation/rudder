@@ -34,7 +34,6 @@ use crate::{
 use futures::{Future, Stream};
 use hyper::{Body, Chunk};
 use regex::Regex;
-use reqwest::r#async::multipart::Form;
 use std::{
     collections::HashMap,
     io::BufReader,
@@ -219,36 +218,36 @@ impl RemoteRun {
 
         debug!("Forwarding remote-run to {} for {:#?}", node, self.target);
 
-        // We cannot simply deserialize if using `.form()` as we
+        // We cannot simply serialize it using `.form()` as we
         // need specific formatting
-        let mut form = Form::new()
-            .text("keep_output", self.run_parameters.keep_output.to_string())
-            .text("asynchronous", self.run_parameters.asynchronous.to_string())
-            .text(
-                "classes",
-                self.run_parameters
-                    .conditions
-                    .iter()
-                    .map(|c| c.data.as_ref())
-                    .collect::<Vec<&str>>()
-                    .join(","),
-            );
+        let mut params = HashMap::new();
+        params.insert("keep_output", self.run_parameters.keep_output.to_string());
+        params.insert("asynchronous", self.run_parameters.asynchronous.to_string());
+        params.insert(
+            "classes",
+            self.run_parameters
+                .conditions
+                .iter()
+                .map(|c| c.data.as_ref())
+                .collect::<Vec<&str>>()
+                .join(","),
+        );
         if let RemoteRunTarget::Nodes(nodes) = &target {
-            form = form.text("nodes", nodes.join(","))
+            params.insert("nodes", nodes.join(","));
         }
 
         job_config
             .client
             .clone()
             .post(&format!(
-                "{}/rudder/relay-api/{}",
+                "https://{}/rudder/relay-api/remote-run/{}",
                 node,
                 match target {
                     RemoteRunTarget::All => "all",
                     RemoteRunTarget::Nodes(_) => "nodes",
                 },
             ))
-            .multipart(form)
+            .form(&params)
             .send()
             .map(|response| response.into_body())
             .flatten_stream()
