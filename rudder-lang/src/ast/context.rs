@@ -2,7 +2,8 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use crate::error::*;
-use crate::parser::{PType, Token};
+use crate::parser::Token;
+use super::value::Value;
 use std::collections::hash_map;
 use std::collections::HashMap;
 //use super::enums::EnumList;
@@ -15,7 +16,7 @@ pub enum VarKind<'src> {
     //   Enum          item value
     Enum(Token<'src>, Option<Token<'src>>),
     //     type
-    Generic(PType),
+    Generic(Value<'src>),
 }
 
 // TODO forbid variables names like global enum items (or enum type)
@@ -42,9 +43,8 @@ impl<'src> VarContext<'src> {
         self.variables.iter()
     }
 
-    /// Create a variable in the context.
-    /// Used by dedicated variable creation method for each kind.
-    fn new_var(
+    /// Checks whether a variable already exists in a given scope
+    fn check_new_var(
         &mut self,
         upper_context: Option<&VarContext<'src>>,
         name: Token<'src>,
@@ -82,20 +82,65 @@ impl<'src> VarContext<'src> {
         enum1: Token<'src>,
         value: Option<Token<'src>>,
     ) -> Result<()> {
-        self.new_var(upper_context, name)?;
+        self.check_new_var(upper_context, name)?;
         self.variables.insert(name, VarKind::Enum(enum1, value));
         Ok(())
     }
 
-    /// Create a generic variable in tis context.
+    /// Inserts a key, value into its related parent content.
+    /// Recursive function, meaning it goes deep to insert an element and check it does not exist yet
+    /// If the path is exactly the same as any existing global variable, throws an error
+    fn push_new_variable(name: Token<'src>, stored_ctx: &mut Value<'src>, new_var: &Value<'src>) -> Result<()> {
+        match stored_ctx {
+            Value::Struct(existing_map) => {
+                for (stored_k, stored_v) in existing_map.iter_mut() {
+                    match new_var {
+                        Value::Struct(new_map) => {
+                            for (new_k, new_v) in new_map {
+                                if stored_k == new_k {
+                                    return Self::push_new_variable(name, stored_v, &new_v)
+                                } else {
+                                    existing_map.insert(new_k.to_owned(), new_v.clone());
+                                    return Ok(())
+                                }
+                            }
+                        },
+                        // A bit tricky, following fail is a recursion side effect: code is designed to push directly the parent struct
+                        // not its String (or else) content. If another type has to be pushed, it means we entered into the recursive condition
+                        // therefore the content to push already exists
+                        _ => fail!(
+                            name,
+                            "Variable {} already defined",
+                            name,
+                        )
+                    }
+                }
+                Ok(())
+            },
+            // Not really sure which kind of cases this could handle, could maybe panic
+            _ => unimplemented!()
+        }
+    }
+
+    /// Create a generic variable in this context.
     pub fn new_variable(
         &mut self,
         upper_context: Option<&VarContext<'src>>,
         name: Token<'src>,
-        ptype: PType,
+        value: Value<'src>,
     ) -> Result<()> {
-        self.new_var(upper_context, name)?;
-        self.variables.insert(name, VarKind::Generic(ptype));
+        if let Some(ref mut existing_kind) = self.variables.get_mut(&name) {
+            match existing_kind {
+                VarKind::Generic(ref mut existing_var) => Self::push_new_variable(name, existing_var, &value)?,
+                // For now could as well be a panic since we are not currently allowing splitted enum declarations
+                VarKind::Enum(_, _) => unimplemented!()
+            };
+        } else {
+            // now only the second part of this checker makes really sense here since the first check is already done
+            // (unless push_or_err_rec destroys the existing variable)
+            self.check_new_var(upper_context, name)?;
+            self.variables.insert(name, VarKind::Generic(value));
+        }
         Ok(())
     }
 
@@ -104,7 +149,6 @@ impl<'src> VarContext<'src> {
             &mut self,
             upper_context: Option<&VarContext<'src>>,
             name: Token<'src>,
-            ptype: PType,
             value: Value<'src>,
         ) -> Result<()> {
             self.new_var(upper_context, name)?;

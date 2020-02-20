@@ -663,7 +663,7 @@ fn test_pparameter() {
             (
                 PParameter {
                     name: "hello".into(),
-                    ptype: Some(PType::String)
+                    ptype: Some(PValue::generate_automatic(PType::String))
                 },
                 None
             )
@@ -680,7 +680,7 @@ fn test_pparameter() {
             (
                 PParameter {
                     name: "hello".into(),
-                    ptype: Some(PType::String),
+                    ptype: Some(PValue::generate_automatic(PType::String)),
                 },
                 None
             )
@@ -693,7 +693,7 @@ fn test_pparameter() {
             (
                 PParameter {
                     name: "hello".into(),
-                    ptype: Some(PType::String),
+                    ptype: Some(PValue::generate_automatic(PType::String)),
                 },
                 Some(PValue::String("\"".into(), "default".to_string()))
             )
@@ -763,7 +763,7 @@ fn test_presource_def() {
                     parameters: vec![
                         PParameter {
                             name: "p1".into(),
-                            ptype: Some(PType::String),
+                            ptype: Some(PValue::generate_automatic(PType::String)),
                         },
                         PParameter {
                             name: "p2".into(),

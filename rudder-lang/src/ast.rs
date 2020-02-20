@@ -71,7 +71,6 @@ impl<'src> AST<'src> {
         let children = ast.create_children_list(parents);
         ast.add_resources(resources, states, children);
         //ast.add_aliases(aliases);
-        println!("context: {:#?}", ast.context);
         if ast.errors.is_empty() {
             Ok(ast)
         } else {
@@ -156,7 +155,7 @@ impl<'src> AST<'src> {
     /// Insert the variables definition into the global declaration space
     fn add_variables(&mut self, variable_declarations: Vec<(Token<'src>, PValue<'src>)>) {
         for (variable, value) in variable_declarations {
-            if let Err(e) = self.context.new_variable(None, variable, value.get_type()) {
+            if let Err(e) = self.context.new_variable(None, variable, Value::from_static_pvalue(value.clone()).unwrap()) {
                 self.errors.push(e);
             }
             let getter = |k| self.context.variables.get(&k).map(VarKind::clone);
@@ -455,7 +454,7 @@ impl<'src> AST<'src> {
         match v {
             Value::String(s) => {
                 if !s.is_static() {
-                    // we don't what else we can do so fail to keep a better behaviour for later
+                    // we don't know what else we can do so fail to keep a better behaviour for later
                     fail!(
                         k,
                         "Metadata {} has a value that contains variables, this is not allowed",
@@ -465,6 +464,7 @@ impl<'src> AST<'src> {
                 Ok(())
             }
             Value::Number(_, _) => Ok(()),
+            Value::Boolean(_, _) => Ok(()), // actually not sure what should be returned here
             Value::EnumExpression(_) => fail!(
                 k,
                 "Metadata {} contains an enum expression, this is not allowed",

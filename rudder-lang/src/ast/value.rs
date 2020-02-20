@@ -60,6 +60,7 @@ pub enum Value<'src> {
     //     position   format  variables
     String(StringObject<'src>),
     Number(Token<'src>, f64),
+    Boolean(Token<'src>, bool),
     EnumExpression(EnumExpression<'src>),
     List(Vec<Value<'src>>),
     Struct(HashMap<String, Value<'src>>),
@@ -76,6 +77,7 @@ impl<'src> Value<'src> {
         match pvalue {
             PValue::String(pos, s) => Ok(Value::String(StringObject::from_pstring(pos, s)?)),
             PValue::Number(pos, n) => Ok(Value::Number(pos, n)),
+            PValue::Boolean(pos, b) => Ok(Value::Boolean(pos, b)),
             PValue::EnumExpression(e) => Ok(Value::EnumExpression(
                 enum_list.canonify_expression(getter, e)?,
             )),
@@ -93,6 +95,7 @@ impl<'src> Value<'src> {
         match pvalue {
             PValue::String(pos, s) => Ok(Value::String(StringObject::from_static_pstring(pos, s)?)),
             PValue::Number(pos, n) => Ok(Value::Number(pos, n)),
+            PValue::Boolean(pos, b) => Ok(Value::Boolean(pos, b)),
             // TODO replace with real thing / the only accepted expression is true or false
             PValue::EnumExpression(_) => Ok(Value::Number("".into(), 1.)),
             //PValue::EnumExpression(e) => fail!(e.token(), "Enum expression are not allowed in static context"),
@@ -125,18 +128,8 @@ impl<'src> Value<'src> {
                 })
             }
             Value::Number(_, _) => unimplemented!(),
+            Value::Boolean(_, _) => unimplemented!(),
             Value::EnumExpression(_) => Ok(()), // check already done at enum creation
-            Value::List(_) => unimplemented!(),
-            Value::Struct(_) => unimplemented!(),
-        }
-    }
-
-    // TODO is it still useful given that it exists for PValue
-    pub fn get_type(&self) -> PType {
-        match self {
-            Value::String(_) => PType::String,
-            Value::Number(_, _) => unimplemented!(),
-            Value::EnumExpression(_) => PType::Boolean,
             Value::List(_) => unimplemented!(),
             Value::Struct(_) => unimplemented!(),
         }

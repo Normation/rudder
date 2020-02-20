@@ -86,7 +86,7 @@ fn create_default_context<'src>(
     let mut context = VarContext::new();
     let mut errors = Vec::new();
     for p in resource_parameters.iter().chain(parameters.iter()) {
-        if let Err(e) = context.new_variable(Some(global_context), p.name, p.ptype) {
+        if let Err(e) = context.new_variable(Some(global_context), p.name, p.value.clone()) {
             errors.push(e);
         }
     }
@@ -216,7 +216,7 @@ impl<'src> StateDef<'src> {
 #[derive(Debug)]
 pub struct Parameter<'src> {
     pub name: Token<'src>,
-    pub ptype: PType,
+    pub value: Value<'src>,
 }
 
 impl<'src> Parameter<'src> {
@@ -224,27 +224,25 @@ impl<'src> Parameter<'src> {
         p: PParameter<'src>,
         default: &Option<Value<'src>>,
     ) -> Result<Parameter<'src>> {
-        let ptype = match p.ptype {
-            Some(t) => t,
-            None => {
-                if let Some(val) = default {
-                    val.get_type()
-                } else {
-                    // Nothing -> String
-                    PType::String
-                }
+        let value = match p.ptype {
+            Some(t) => Value::from_static_pvalue(t)?,
+            None => match default {
+                Some(val) => val.clone(),
+                // if no default value, define an empty string
+                // may be better to store an option directly
+                None => Value::from_static_pvalue(PValue::generate_automatic(PType::String))?
             }
         };
         Ok(Parameter {
             name: p.name,
-            ptype,
+            value
         })
     }
 
     /// returns an error if the value has an incompatible type
     pub fn value_match(&self, param_ref: &Value) -> Result<()> {
-        match (&self.ptype, param_ref) {
-            (PType::String, Value::String(_)) => Ok(()),
+        match (&self.value, param_ref) {
+            (Value::String(_), Value::String(_)) => Ok(()),
             (t, _v) => fail!(
                 self.name,
                 "Parameter {} is not of the type {:?}",
@@ -331,8 +329,8 @@ impl<'src> Statement<'src> {
                         .map(VarKind::clone)
                 };
                 let value = Value::from_pvalue(enum_list, &getter, val)?;
-                match value.get_type() {
-                    PType::Boolean => context.new_enum_variable(
+                match value {
+                    Value::Boolean(_, _) => context.new_enum_variable(
                         Some(global_context),
                         var,
                         Token::new("stdlib", "boolean"),
@@ -341,7 +339,7 @@ impl<'src> Statement<'src> {
                     _ => {
                         // check that definition use existing variables
                         value.context_check(&getter)?;
-                        context.new_variable(Some(global_context), var, value.get_type())?;
+                        context.new_variable(Some(global_context), var, value.clone())?;
                     }
                 }
                 let (mut _errors, metadata) = create_metadata(pmetadata);

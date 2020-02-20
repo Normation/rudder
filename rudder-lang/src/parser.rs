@@ -543,25 +543,6 @@ fn pinterpolated_string(i: PInput) -> PResult<Vec<PInterpolatedElement>> {
     )))(i)
 }
 
-/// A PType is the type a variable or a parameter can take.
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum PType {
-    String,
-    Number,
-    Boolean,
-    Struct,
-    List,
-}
-fn ptype(i: PInput) -> PResult<PType> {
-    alt((
-        value(PType::String, etag("string")),
-        value(PType::Number, etag("num")),
-        value(PType::Boolean, etag("boolean")),
-        value(PType::Struct, etag("struct")),
-        value(PType::List, etag("list")),
-    ))(i)
-}
-
 /// A number is currently represented by a float64
 fn pnumber(i: PInput) -> PResult<(Token, f64)> {
     let (i, val) = recognize_float(i)?;
@@ -613,7 +594,16 @@ fn pstruct(i: PInput) -> PResult<HashMap<String, PValue>> {
 //         } => values.into_iter().map(|(k,v)| (k.1,v)).collect()
 //     )(i)
 // }
-
+/// A PType is the type a variable or a parameter can take.
+/// Its only purpose is to be a PValue construction helper
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum PType {
+    String,
+    Number,
+    Boolean,
+    Struct,
+    List,
+}
 /// PValue is a typed value of the content of a variable or a parameter.
 /// Must be cloneable because it is copied during default values expansion
 // TODO separate value from type and handle automatic values (varagent)
@@ -621,22 +611,20 @@ fn pstruct(i: PInput) -> PResult<HashMap<String, PValue>> {
 pub enum PValue<'src> {
     String(Token<'src>, String),
     Number(Token<'src>, f64),
+    Boolean(Token<'src>, bool),
     EnumExpression(PEnumExpression<'src>),
-    List(Vec<PValue<'src>>),
     Struct(HashMap<String, PValue<'src>>),
+    List(Vec<PValue<'src>>),
 }
 impl<'src> PValue<'src> {
-    pub fn get_type(&self) -> PType {
-        match self {
-            PValue::String(_, _) => PType::String,
-            PValue::Number(_, _) => PType::Number,
-            PValue::EnumExpression(_) => PType::Boolean,
-            PValue::Struct(_) => PType::Struct,
-            PValue::List(_) => PType::List,
+    pub fn generate_automatic(ptype: PType) -> PValue<'static> {
+        match ptype {
+            PType::String => PValue::String(Token::new("", ""), "Automatic".to_owned()),
+            PType::Number => PValue::Number(Token::new("", ""), 0.0),
+            PType::Boolean => PValue::Boolean(Token::new("", ""), false),
+            PType::Struct => PValue::Struct(HashMap::new()),
+            PType::List => PValue::List(Vec::new()),
         }
-    }
-    pub fn generate_empty() -> PValue<'static> {
-        PValue::String(Token::new("", ""), "RESERVED FOR AGENT DECLARATION".to_owned())
     }
 }
 fn pvalue(i: PInput) -> PResult<PValue> {
@@ -648,6 +636,16 @@ fn pvalue(i: PInput) -> PResult<PValue> {
         map(penum_expression, PValue::EnumExpression),
         map(plist, PValue::List),
         map(pstruct, PValue::Struct),
+    ))(i)
+}
+
+fn ptype(i: PInput) -> PResult<PValue> {
+    alt((
+        value(PValue::generate_automatic(PType::String), etag("string")),
+        value(PValue::generate_automatic(PType::Number), etag("num")),
+        value(PValue::generate_automatic(PType::Boolean), etag("boolean")),
+        value(PValue::generate_automatic(PType::Struct), etag("struct")),
+        value(PValue::generate_automatic(PType::List), etag("list")),
     ))(i)
 }
 
@@ -704,7 +702,7 @@ fn pmetadata_list(i: PInput) -> PResult<Vec<PMetadata>> {
 #[derive(Debug, PartialEq)]
 pub struct PParameter<'src> {
     pub name: Token<'src>,
-    pub ptype: Option<PType>,
+    pub ptype: Option<PValue<'src>>,
 }
 // return a pair because we will store the default value separately
 fn pparameter(i: PInput) -> PResult<(PParameter, Option<PValue>)> {
@@ -792,7 +790,7 @@ fn fill_map_rec<'src>(mut tokens: std::iter::Peekable<std::slice::Iter<Token<'sr
         if tokens.peek().is_some() {
             map.insert(tk_str, PValue::Struct(fill_map_rec(tokens)));
         } else {
-            map.insert(tk_str, PValue::generate_empty());
+            map.insert(tk_str, PValue::generate_automatic(PType::String));
         }
     }
     map

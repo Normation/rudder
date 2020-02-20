@@ -69,6 +69,7 @@ impl CFEngine {
                     + "\""
             }
             Value::Number(_, _) => unimplemented!(),
+            Value::Boolean(_, _) => unimplemented!(),
             Value::EnumExpression(_e) => "".into(), // TODO
             Value::List(_) => unimplemented!(),
             Value::Struct(_) => unimplemented!(),
@@ -313,6 +314,7 @@ impl CFEngine {
                 delim
             ),
             Value::Number(_, n) => format!("{}", n),
+            Value::Boolean(_, b) => format!("{}", b),
             Value::EnumExpression(_e) => unimplemented!(),
             Value::List(l) => format!(
                 "[ {} ]",
