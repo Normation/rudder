@@ -771,19 +771,6 @@ fn pvariable_definition(i: PInput) -> PResult<(Token, PValue)> {
     )(i)
 }
 
-fn fill_map_rec<'src>(mut tokens: std::iter::Peekable<std::slice::Iter<Token<'src>>>) -> HashMap<String, PValue<'src>> {
-    let mut map: HashMap<String, PValue> = HashMap::new();
-    if let Some(tk) = tokens.next() {
-        let tk_str = tk.fragment().to_owned();
-        if tokens.peek().is_some() {
-            map.insert(tk_str, PValue::Struct(fill_map_rec(tokens)));
-        } else {
-            map.insert(tk_str, PValue::generate_empty());
-        }
-    }
-    map
-}
-
 fn pvalue_varagent(i: PInput) -> PResult<PValue> {
     let (i, tokens) = many0(wsequence!(
         {
@@ -791,7 +778,14 @@ fn pvalue_varagent(i: PInput) -> PResult<PValue> {
             value: or_fail(pidentifier, || PErrorKind::ExpectedToken("incomplete declaration (.)"));
         } => value
     ))(i)?;
-    Ok((i, PValue::Struct(fill_map_rec(tokens.iter().peekable()))))
+    Ok((i, tokens.iter().rev().fold(PValue::generate_empty(),
+        |acc, token| {
+            let mut map = HashMap::new();
+            let tk_str = token.fragment().to_owned();
+            map.insert(tk_str, acc);
+            PValue::Struct(map)
+        }
+    )))
 }
 
 /// Global agent variable declaration is only a var declaration
