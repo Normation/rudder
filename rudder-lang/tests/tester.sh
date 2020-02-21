@@ -11,11 +11,11 @@ mkdir -p $dir/target/
 $cfjson_tester ncf-to-json $dir/cf/${name}.cf $dir/json/${name}.json
 
 # Take json and produce a rudder-lang technique
-cargo run -- --translate -i $dir/json/${name}.json -o $dir/rl/${name}.rl
+cargo run -- --translate -i $dir/json/${name}.json -o $dir/rl/${name}.json.rl
 
 # Take rudder lang technique and compile it into cf file
 # output format is generated behind the scenes, it actually is a cf file, not rl
-cargo run -- --compile -i $dir/rl/${name}.rl -o $dir/target/${name}.rl
+cargo run -- --compile -i $dir/rl/${name}.rl -o $dir/target/${name}.rl.cf
 
 # take generated cf file a new json
 $cfjson_tester ncf-to-json $dir/target/${name}.rl.cf $dir/target/${name}.rl.cf.json

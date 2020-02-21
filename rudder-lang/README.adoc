@@ -61,7 +61,8 @@ The compiler is very pedantic to avoid defining invalid states as much as possib
 
 === Required modules
 - perl (script: *src/generate-lib*)
-    `cpan Config::IniFiles`
+    `cpan TOML::Parser`
     
 === Configuration
-- *cfg.ini* to define the cfengine and ncf binaries paths
+- *cfg.toml* to define the cfengine and ncf binaries paths, and the compilation, translation paths
+(will require to install the `toml` library: `pip3 install toml`)

@@ -96,11 +96,11 @@ pub fn compile_file(source: &Path, dest: &Path, technique: bool) -> Result<()> {
     // generate final output
     info!("|- {}", "Generating output code".bright_green());
     let mut cfe = CFEngine::new();
-    let file = if technique {
+    let (input_file, output_file) = if technique {
         // TODO this should be a technique name not a file name
-        Some(dest)
+        (Some(source), Some(dest))
     } else {
-        None
+        (None, None)
     };
-    cfe.generate(&ast, file, technique)
+    cfe.generate(&ast, input_file, output_file, technique)
 }

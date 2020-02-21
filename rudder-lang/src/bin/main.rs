@@ -9,7 +9,7 @@ use log::*;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
-use rudderc::{compile::compile_file, logger, translate::translate_file};
+use rudderc::{ compile::compile_file, file_paths, logger, translate::translate_file };
 
 ///!  Principle:
 ///!  1-  rl -> PAST::add_file() -> PAST
@@ -49,17 +49,18 @@ use rudderc::{compile::compile_file, logger, translate::translate_file};
 /// by exception another kind of log can be outputted: panic log or completion log
 /// completion (success or failure) log looks like this: "Compilation result": { "status": "str", "from": "str", "to": "str", "pwd": "str" }
 /// `panic!` log looks like this: { "status": "str", "message": "str" } (a lightweight version of a default log)
-
-/// Rust langage compiler
-#[derive(Debug, StructOpt)]
+tools
 #[structopt(rename_all = "kebab-case")]
 struct Opt {
+    /// use default directory for input/output with the specified filename
+    #[structopt(long, short)]
+    default: Option<PathBuf>,    
     /// Output file or directory
     #[structopt(long, short)]
-    output: PathBuf,
+    output: Option<PathBuf>,
     /// Input file or directory
     #[structopt(long, short)]
-    input: PathBuf,
+    input: Option<PathBuf>,
     /// Set to use technique translation mode
     #[structopt(long, short)]
     translate: bool,
@@ -83,20 +84,28 @@ fn main() {
     // easy option parsing
     let opt = Opt::from_args();
 
-    let exec_action = if opt.compile { "compile" } else { "translate" };
+    // compile should be the default case, so if none of compile / translate is passed -> compile
+    let is_compile_default = if !opt.translate { true } else { false };
+    let exec_action = if is_compile_default { "compile" } else { "translate" };
 
     logger::set(
         opt.log_level,
         opt.json_log_fmt,
-        &opt.input,
-        &opt.output,
         &exec_action,
     );
-    
+
+    // if input / output file are not set, panic seems ok since nothing else can be done,
+    // including printing the output closure properly  
+    let (input, output) = file_paths::get(exec_action, &opt.default, &opt.input, &opt.output).unwrap();
     let result;
-    let mut output_fname = opt.output.to_str().unwrap_or("output file not found").to_owned();
-    if opt.translate {
-        result = translate_file(&opt.input, &opt.output);
+    if is_compile_default {
+        result = compile_file(&input, &output, is_compile_default);
+        match &result {
+            Err(e) => error!("{}", e),
+            Ok(_) => info!("{} {}", "Compilation".bright_green(), "OK".bright_cyan()),
+        }
+    } else {
+        result = translate_file(&input, &output);
         match &result {
             Err(e) => error!("{}", e),
             Ok(_) => info!(
@@ -105,20 +114,13 @@ fn main() {
                 "OK".bright_cyan()
             ),
         }
-    } else {
-        output_fname.push_str(".cf");
-        result = compile_file(&opt.input, &opt.output, opt.compile);
-        match &result {
-            Err(e) => error!("{}", e),
-            Ok(_) => info!("{} {}", "Compilation".bright_green(), "OK".bright_cyan()),
-        }
     }
 
     logger::print_output_closure(
         opt.json_log_fmt,
         result.is_ok(),
-        opt.input.to_str().unwrap_or("input file not found"),
-        &output_fname,
+        input.to_str().unwrap_or("input file not found"),
+        output.to_str().unwrap_or("output file not found"),
         &exec_action,
     );
 }

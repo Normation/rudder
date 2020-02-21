@@ -13,5 +13,5 @@ use std::path::Path;
 pub trait Generator {
     /// If file is None: Generate code for everything that has been parsed
     /// If file is some: Only generate code for a single source file (for incremental generation or for integration with existing files)
-    fn generate(&mut self, gc: &AST, file: Option<&Path>, technique_metadata: bool) -> Result<()>;
+    fn generate(&mut self, gc: &AST, input_file: Option<&Path>, output_file: Option<&Path>, technique_metadata: bool) -> Result<()>;
 }
