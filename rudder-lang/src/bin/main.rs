@@ -32,13 +32,6 @@ use rudderc::{ compile::compile_file, file_paths, logger, translate::translate_f
 // - arguments non ordonnés pour les resources et les states ?
 // - usage des alias: pour les children, pour les (in)compatibilités, pour le générateur?
 
-// Next steps:
-//
-//
-
-// TODO a state S on an object A depending on a condition on an object B is invalid if A is a descendant of B
-// TODO except if S is the "absent" state
-
 /// Usage example (long / short version):
 /// cargo run -- --compile --input tests/compile/s_basic.rl --output tests/target/s_basic.rl --log-level debug --json-log-fmt
 /// cargo run -- -c -i tests/compile/s_basic.rl -o tests/target/s_basic.rl -l debug -j
