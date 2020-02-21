@@ -771,6 +771,7 @@ fn pvariable_definition(i: PInput) -> PResult<(Token, PValue)> {
     )(i)
 }
 
+/// Gets a single pvalue structure out of a global agent variable declaration
 fn pvalue_varagent(i: PInput) -> PResult<PValue> {
     let (i, tokens) = many0(wsequence!(
         {
