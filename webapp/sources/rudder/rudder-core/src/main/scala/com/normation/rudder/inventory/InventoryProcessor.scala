@@ -213,7 +213,7 @@ class InventoryProcessor(
 
                         // There is no Signature
                         case None =>
-                          Inconsistancy(s"Error, inventory '${report.node}' has no signature, which is not supported anymore in Rudder 6.0. " +
+                          Inconsistancy(s"Error, inventory '${report.name}' has no signature, which is not supported anymore in Rudder 6.0. " +
                                         s"Please check that your node's agent is compatible with that version.").fail
                       }
       _            <- InventoryProcessingLogger.debug(s"Inventory '${report.name}' for node '${report.node.main.id.value}' pre-processed in ${PeriodFormat.getDefault.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
