@@ -119,7 +119,11 @@ declare connection.ip
 declare connection.hostname
 
 # `match` global variables
+<<<<<<< HEAD
 declare match
+=======
+declare match.0
+>>>>>>> Fixes #16807: rl add cfengine_core to libs, which declares global variables
 
 # `mon` global variables
 declare mon.listening_ports

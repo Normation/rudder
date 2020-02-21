@@ -32,6 +32,13 @@ use rudderc::{ compile::compile_file, file_paths, logger, translate::translate_f
 // - arguments non ordonnés pour les resources et les states ?
 // - usage des alias: pour les children, pour les (in)compatibilités, pour le générateur?
 
+// Next steps:
+//
+//
+
+// TODO a state S on an object A depending on a condition on an object B is invalid if A is a descendant of B
+// TODO except if S is the "absent" state
+
 /// Usage example (long / short version):
 /// cargo run -- --compile --input tests/compile/s_basic.rl --output tests/target/s_basic.rl --log-level debug --json-log-fmt
 /// cargo run -- -c -i tests/compile/s_basic.rl -o tests/target/s_basic.rl -l debug -j
@@ -50,9 +57,12 @@ const CONFIG: &str = "/opt/rudder/etc/rudderc.conf";
 #[derive(Debug, StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 struct Opt {
+<<<<<<< HEAD
     /// rudderc.conf path. Should only be called when working locally
     #[structopt(long, default_value="/opt/rudder/etc/rudderc.conf")]
     config_file: PathBuf,   
+=======
+>>>>>>> Fixes #16807: rl add cfengine_core to libs, which declares global variables
     /// use default directory for input/output with the specified filename
     #[structopt(long, short)]
     base: Option<PathBuf>,
@@ -88,7 +98,11 @@ fn main() {
     // compile should be the default case, so if none of compile / translate is passed -> compile
     let is_compile_default = if !opt.translate { true } else { false };
     let exec_action = if is_compile_default { "compile" } else { "translate" };
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> Fixes #16807: rl add cfengine_core to libs, which declares global variables
     logger::set(
         opt.log_level,
         opt.json_log_fmt,
@@ -116,15 +130,26 @@ fn main() {
         Ok(paths) => paths
     };
 
+    // if input / output file are not set, panic seems ok since nothing else can be done,
+    // including printing the output closure properly  
+    let (input, output) = file_paths::get(exec_action, &opt.default, &opt.input, &opt.output).unwrap();
     let result;
     if is_compile_default {
+<<<<<<< HEAD
         result = compile_file(&input, &output, is_compile_default, &libs_dir);
+=======
+        result = compile_file(&input, &output, is_compile_default);
+>>>>>>> Fixes #16807: rl add cfengine_core to libs, which declares global variables
         match &result {
             Err(e) => error!("{}", e),
             Ok(_) => info!("{} {}", "Compilation".bright_green(), "OK".bright_cyan()),
         }
     } else {
+<<<<<<< HEAD
         result = translate_file(&input, &output, &translate_config);
+=======
+        result = translate_file(&input, &output);
+>>>>>>> Fixes #16807: rl add cfengine_core to libs, which declares global variables
         match &result {
             Err(e) => error!("{}", e),
             Ok(_) => info!(
