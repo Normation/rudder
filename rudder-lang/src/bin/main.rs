@@ -49,7 +49,9 @@ use rudderc::{ compile::compile_file, file_paths, logger, translate::translate_f
 /// by exception another kind of log can be outputted: panic log or completion log
 /// completion (success or failure) log looks like this: "Compilation result": { "status": "str", "from": "str", "to": "str", "pwd": "str" }
 /// `panic!` log looks like this: { "status": "str", "message": "str" } (a lightweight version of a default log)
-tools
+
+/// Rust langage compiler
+#[derive(Debug, StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 struct Opt {
     /// use default directory for input/output with the specified filename
