@@ -69,7 +69,7 @@ done
 # Setup password files for inventory reception WebDAV access
 for passwdfile in /opt/rudder/etc/htpasswd-webdav-initial /opt/rudder/etc/htpasswd-webdav
 do
-  htpasswd -bc ${passwdfile} rudder rudder >> ${LOG_FILE}
+  htpasswd -bc ${passwdfile} rudder rudder >> ${LOG_FILE} 2>&1
 done
 
 # Generate certificates if needed
