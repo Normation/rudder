@@ -6,7 +6,7 @@ use regex::Regex;
 use std::{
     io::Write,
     panic,
-    path::{Path, PathBuf},
+    path::PathBuf,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -17,8 +17,6 @@ use std::{
 pub fn set(
     log_level: Option<LevelFilter>,
     is_fmt_json: bool,
-    input: &Path,
-    output: &Path,
     exec_action: &str,
 ) {
     let log_level = match log_level {
@@ -30,7 +28,7 @@ pub fn set(
     set_panic_hook(is_fmt_json, exec_action.to_owned());
 
     if is_fmt_json {
-        print_json_fmt_openning(input, output, exec_action);
+        set_json(exec_action);
         // prevents any output stylization from the colored crate
         colored::control::set_override(false);
     }
@@ -64,9 +62,14 @@ pub fn set(
 /// It is a edge case but not doing it would eventually break json format
 fn parse_core_panic_message(msg: &str) -> String {
     // note: expect message will be cut if it includes `: `. So not perfect solution, yet the best I found
-    let re = Regex::new(r#"^.+'(?P<e>.+?): .+message: "(?P<u>.+)".+$"#).unwrap();
-    let msg = re.replace_all(msg, "$e. ($u)");
-    msg.to_string()
+    // the following only works on `panic!` call
+    let re_panic = Regex::new(r#"^.+'(?P<e>.+?): .+message: "(?P<u>.+)".+$"#).unwrap();
+    let mut filtered_msg = re_panic.replace(msg, "$e. ($u)");
+    if filtered_msg.to_string() == msg {
+        let re_user_unwrap = Regex::new(r#"^.+User\("(?P<e>.+?)"\).+$"#).unwrap();
+        filtered_msg = re_user_unwrap.replace(msg, "$e");
+    }
+    filtered_msg.to_string()
 }
 
 /// panic default format takeover to print either proper json format output
@@ -104,13 +107,13 @@ fn set_panic_hook(is_fmt_json: bool, exec_action: String) {
     }));
 }
 
-fn print_json_fmt_openning(input: &Path, output: &Path, exec_action: &str) {
+fn set_json(exec_action: &str) {
     let start = SystemTime::now();
     let time = match start.duration_since(UNIX_EPOCH) {
         Ok(since_the_epoch) => since_the_epoch.as_millis().to_string(),
         Err(_) => "could not get correct time".to_owned(),
     };
-    println!("{{\n  \"action\": {:?},\n  \"input\": {:?},\n  \"output\": {:?},\n  \"time\": {:?},\n  \"logs\": [", exec_action, input, output, time);
+    println!("{{\n  \"action\": {:?},\n  \"time\": {:?},\n  \"logs\": [", exec_action, time);
 }
 
 pub fn print_output_closure(
@@ -145,11 +148,11 @@ pub fn print_output_closure(
         false => {
             let res_str = match is_success {
                 true => format!(
-                    "Everything worked as expected, '{}.cf' generated from '{}'",
+                    "Everything worked as expected, '{}' generated from '{}'",
                     output_file, input_file
                 ),
                 false => format!(
-                    "An error occured, '{}.cf' file has not been created from '{}'",
+                    "An error occured, '{}' file has not been created from '{}'",
                     output_file, input_file
                 ),
             };

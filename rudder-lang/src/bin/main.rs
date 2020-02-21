@@ -9,7 +9,7 @@ use log::*;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
-use rudderc::{compile::compile_file, logger, translate::translate_file};
+use rudderc::{ compile::compile_file, file_paths, logger, translate::translate_file };
 
 ///!  Principle:
 ///!  1-  rl -> PAST::add_file() -> PAST
@@ -32,6 +32,13 @@ use rudderc::{compile::compile_file, logger, translate::translate_file};
 // - arguments non ordonnés pour les resources et les states ?
 // - usage des alias: pour les children, pour les (in)compatibilités, pour le générateur?
 
+// Next steps:
+//
+//
+
+// TODO a state S on an object A depending on a condition on an object B is invalid if A is a descendant of B
+// TODO except if S is the "absent" state
+
 /// Usage example (long / short version):
 /// cargo run -- --compile --input tests/compile/s_basic.rl --output tests/target/s_basic.rl --log-level debug --json-log-fmt
 /// cargo run -- -c -i tests/compile/s_basic.rl -o tests/target/s_basic.rl -l debug -j
@@ -47,7 +54,7 @@ use rudderc::{compile::compile_file, logger, translate::translate_file};
 #[derive(Debug, StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 struct Opt {
-    /// use default path for input/output file or directory and concat the path (filename)
+    /// use default directory for input/output with the specified filename
     #[structopt(long, short)]
     default: Option<PathBuf>,    
     /// Output file or directory
@@ -79,33 +86,27 @@ fn main() {
     // easy option parsing
     let opt = Opt::from_args();
 
-    let mut input = PathBuf::new();
-    let mut output = PathBuf::new();
-    if let Some(input_path) = opt.input {
-        input = input_path;
-    }
-    if let Some(output_path) = opt.output {
-        output = output_path;
-    }
-    // if opt.default.is_some() {
-    //     unimplemented!();
-    // } else if opt.input.is_none() || opt.output.is_none() {
-    //     error!("No path specified");
-    //     return ;
-    // }
-
-    let exec_action = if opt.compile { "compile" } else { "translate" };
+    // compile should be the default case, so if none of compile / translate is passed -> compile
+    let is_compile_default = if !opt.translate { true } else { false };
+    let exec_action = if is_compile_default { "compile" } else { "translate" };
 
     logger::set(
         opt.log_level,
         opt.json_log_fmt,
-        &input,
-        &output,
         &exec_action,
     );
 
+    // if input / output file are not set, panic seems ok since nothing else can be done,
+    // including printing the output closure properly  
+    let (input, output) = file_paths::get(exec_action, &opt.default, &opt.input, &opt.output).unwrap();
     let result;
-    if opt.translate {
+    if is_compile_default {
+        result = compile_file(&input, &output, is_compile_default);
+        match &result {
+            Err(e) => error!("{}", e),
+            Ok(_) => info!("{} {}", "Compilation".bright_green(), "OK".bright_cyan()),
+        }
+    } else {
         result = translate_file(&input, &output);
         match &result {
             Err(e) => error!("{}", e),
@@ -114,12 +115,6 @@ fn main() {
                 "File translation".bright_green(),
                 "OK".bright_cyan()
             ),
-        }
-    } else {
-        result = compile_file(&input, &output, opt.compile);
-        match &result {
-            Err(e) => error!("{}", e),
-            Ok(_) => info!("{} {}", "Compilation".bright_green(), "OK".bright_cyan()),
         }
     }
 

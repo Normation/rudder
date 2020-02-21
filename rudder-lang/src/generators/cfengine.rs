@@ -351,7 +351,7 @@ impl CFEngine {
 
 impl Generator for CFEngine {
     // TODO methods differ if this is a technique generation or not
-    fn generate(&mut self, gc: &AST, file: Option<&Path>, technique_metadata: bool) -> Result<()> {
+    fn generate(&mut self, gc: &AST, input_file: Option<&Path>, output_file: Option<&Path>, technique_metadata: bool) -> Result<()> {
         let mut files: HashMap<&str, String> = HashMap::new();
         // TODO add global variable definitions
         for (rn, res) in gc.resources.iter() {
@@ -359,13 +359,13 @@ impl Generator for CFEngine {
                 // This condition actually rejects every file that is not the input filename
                 // therefore preventing from having an output in another directory
                 // Solutions: check filename rather than path, or accept everything that is not from crate root lib
-                let file_to_create = match file {
+                let file_to_create = match input_file {
                     Some(filepath) => {
-                        let input_filename = Path::new(sn.file()).file_name();
-                        if filepath.file_name() != input_filename {
+                        if filepath != Path::new(sn.file()) {
                             continue;
                         }
-                        match filepath.to_str() {
+                        // can unwrap here since if input_file is Some, so does output_file (see end of compile.rs)
+                        match output_file.unwrap().to_str() {
                             Some(output_filename) => output_filename,
                             None => sn.file(),
                         }
@@ -412,9 +412,15 @@ impl Generator for CFEngine {
                 files.insert(file_to_create, content);
             }
         }
+        if files.len() == 0 {
+            match output_file {
+                Some(filename) => File::create(filename).expect("Could not create output file"),
+                None => return Err(Error::User("No file to create".to_owned()))
+            };
+        }
         for (name, content) in files.iter() {
             let mut file =
-                File::create(format!("{}.cf", name)).expect("Could not create output file");
+                File::create(name).expect("Could not create output file");
             file.write_all(content.as_bytes())
                 .expect("Could not write content into output file");
         }
