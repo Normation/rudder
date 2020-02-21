@@ -32,13 +32,6 @@ use rudderc::{compile::compile_file, logger, translate::translate_file};
 // - arguments non ordonnés pour les resources et les states ?
 // - usage des alias: pour les children, pour les (in)compatibilités, pour le générateur?
 
-// Next steps:
-//
-//
-
-// TODO a state S on an object A depending on a condition on an object B is invalid if A is a descendant of B
-// TODO except if S is the "absent" state
-
 /// Usage example (long / short version):
 /// cargo run -- --compile --input tests/compile/s_basic.rl --output tests/target/s_basic.rl --log-level debug --json-log-fmt
 /// cargo run -- -c -i tests/compile/s_basic.rl -o tests/target/s_basic.rl -l debug -j
@@ -54,12 +47,15 @@ use rudderc::{compile::compile_file, logger, translate::translate_file};
 #[derive(Debug, StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 struct Opt {
+    /// use default path for input/output file or directory and concat the path (filename)
+    #[structopt(long, short)]
+    default: Option<PathBuf>,    
     /// Output file or directory
     #[structopt(long, short)]
-    output: PathBuf,
+    output: Option<PathBuf>,
     /// Input file or directory
     #[structopt(long, short)]
-    input: PathBuf,
+    input: Option<PathBuf>,
     /// Set to use technique translation mode
     #[structopt(long, short)]
     translate: bool,
@@ -83,19 +79,34 @@ fn main() {
     // easy option parsing
     let opt = Opt::from_args();
 
+    let mut input = PathBuf::new();
+    let mut output = PathBuf::new();
+    if let Some(input_path) = opt.input {
+        input = input_path;
+    }
+    if let Some(output_path) = opt.output {
+        output = output_path;
+    }
+    // if opt.default.is_some() {
+    //     unimplemented!();
+    // } else if opt.input.is_none() || opt.output.is_none() {
+    //     error!("No path specified");
+    //     return ;
+    // }
+
     let exec_action = if opt.compile { "compile" } else { "translate" };
 
     logger::set(
         opt.log_level,
         opt.json_log_fmt,
-        &opt.input,
-        &opt.output,
+        &input,
+        &output,
         &exec_action,
     );
 
     let result;
     if opt.translate {
-        result = translate_file(&opt.input, &opt.output);
+        result = translate_file(&input, &output);
         match &result {
             Err(e) => error!("{}", e),
             Ok(_) => info!(
@@ -105,7 +116,7 @@ fn main() {
             ),
         }
     } else {
-        result = compile_file(&opt.input, &opt.output, opt.compile);
+        result = compile_file(&input, &output, opt.compile);
         match &result {
             Err(e) => error!("{}", e),
             Ok(_) => info!("{} {}", "Compilation".bright_green(), "OK".bright_cyan()),
@@ -115,8 +126,8 @@ fn main() {
     logger::print_output_closure(
         opt.json_log_fmt,
         result.is_ok(),
-        opt.input.to_str().unwrap_or("input file not found"),
-        opt.output.to_str().unwrap_or("output file not found"),
+        input.to_str().unwrap_or("input file not found"),
+        output.to_str().unwrap_or("output file not found"),
         &exec_action,
     );
 }

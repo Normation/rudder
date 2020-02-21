@@ -12,8 +12,8 @@ Usage:
 
 import configparser
 import os
-cfg = configparser.ConfigParser()
-cfg.read(os.getcwd()+'/tests/helpers/cfg.ini')
+import toml
+cfg = toml.load(os.getcwd()+'/libs/cfg.toml')
 ncf_dir = cfg['default_paths']['ncf']
 cfengine_path = cfg['default_paths']['cfengine']
 
