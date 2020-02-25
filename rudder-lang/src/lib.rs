@@ -14,4 +14,3 @@ pub mod logger;
 pub mod file_paths;
 mod parser;
 pub mod translate;
-pub mod generate_oslib;
