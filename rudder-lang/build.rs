@@ -145,5 +145,5 @@ global enum minor {{
 
 fn main() {
     println!("Generating OS list");
-    generate_oslib("libs/osbuilder.ron", "libs/oslib2.rl").expect("Could not generate the os list");
+    generate_oslib("libs/osbuilder.ron", "libs/oslib.rl").expect("Could not generate the os list");
 }
