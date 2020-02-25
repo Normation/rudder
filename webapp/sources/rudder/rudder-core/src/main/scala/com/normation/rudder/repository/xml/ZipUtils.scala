@@ -78,7 +78,7 @@ object ZipUtils {
           case Some(is) =>
             if(x.path.endsWith("/")) x.path.substring(0,x.path.size -1) else x.path
         }
-        zout.putNextEntry(new ZipEntry(name)).succeed *> (
+        IOResult.effect(zout.putNextEntry(new ZipEntry(name))) *> (
           x.useContent match {
             case None    => ().succeed
             case Some(x) => x(addToZout)

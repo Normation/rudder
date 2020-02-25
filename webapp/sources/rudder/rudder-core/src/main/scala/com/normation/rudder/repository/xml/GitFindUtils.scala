@@ -169,7 +169,7 @@ object GitFindUtils extends NamedZioLogger {
       val all = directories.map(p => Zippable(p, None)).toSeq ++ zipEntries
       val out = new ByteArrayOutputStream()
 
-      ZipUtils.zip(out, all) *> out.toByteArray().succeed
+      ZipUtils.zip(out, all) *> IOResult.effect(out.toByteArray())
     }
   }
 }
