@@ -1,6 +1,6 @@
 {
-    "name": "parameters mult",
-    "description": "technique using multiple parameters",
+    "name": "parameters",
+    "description": "technique using parameters",
     "version": "1.0",
     "parameter": [
         {
@@ -12,22 +12,11 @@
                 "max_length": 16384
             },
             "type": "string"
-        },
-        {
-            "name": "12",
-            "id": "6e82d276-1181-4596-8fd8-bc3c007ae9ff",
-            "constraints": {
-                "allow_whitespace_string": false,
-                "allow_empty_string": false,
-                "max_length": 16384
-            },
-            "type": "string"
         }
     ],
-    "bundle_name": "parameters_mult",
+    "bundle_name": "parameters_technique",
     "bundle_args": [
-        "paramtest",
-        "12"
+        "paramtest"
     ],
     "method_calls": [
         {

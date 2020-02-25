@@ -50,6 +50,9 @@ use rudderc::{ compile::compile_file, file_paths, logger, translate::translate_f
 /// completion (success or failure) log looks like this: "Compilation result": { "status": "str", "from": "str", "to": "str", "pwd": "str" }
 /// `panic!` log looks like this: { "status": "str", "message": "str" } (a lightweight version of a default log)
 
+// config path on server, can manually be changed
+const CONFIG: &str = "/opt/rudder/etc/rudderc.conf";
+
 /// Rust langage compiler
 #[derive(Debug, StructOpt)]
 #[structopt(rename_all = "kebab-case")]

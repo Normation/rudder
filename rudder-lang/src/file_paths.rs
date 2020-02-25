@@ -46,7 +46,7 @@ fn get_output(exec_action: &str, paths: &toml::Value, opt_base: &Option<PathBuf>
             if exec_action == "compile" {
                 path.with_extension("rl.cf")
             } else {
-                path.with_extension("json.rl")
+                path.with_extension("rl")
             }
         }
     })

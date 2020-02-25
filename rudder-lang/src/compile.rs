@@ -63,7 +63,7 @@ pub fn compile_file(source: &Path, dest: &Path, technique: bool, libs_dir: &Path
     // read and add files
     let oses = libs_dir.join("oslib.rl");
     let corelib = libs_dir.join("corelib.rl");
-    let cfenginecore = libs_dir.join("cfengine_core.rl");
+    // let cfenginecore = libs_dir.join("cfengine_core.rl");
     let stdlib = libs_dir.join("stdlib.rl");
     let input_filename = source.to_string_lossy();
     let output_filename = dest.to_string_lossy();
@@ -78,7 +78,7 @@ pub fn compile_file(source: &Path, dest: &Path, technique: bool, libs_dir: &Path
     // data
     let mut past = PAST::new();
     add_file(&mut past, &sources, &corelib, "corelib.rl")?;
-    add_file(&mut past, &sources, &cfenginecore, "cfengine_core.rl")?;
+    // add_file(&mut past, &sources, &cfenginecore, "cfengine_core.rl")?;
     add_file(&mut past, &sources, &stdlib, "stdlib.rl")?;
     add_file(&mut past, &sources, &oses, "oslib.rl")?;
     add_file(&mut past, &sources, &source, &input_filename)?;
