@@ -42,7 +42,7 @@ struct MethodCall {
 pub fn translate_file(json_file: &Path, rl_file: &Path) -> Result<()> {
     let input_filename = &json_file.to_string_lossy();
     let output_filename = &rl_file.to_string_lossy();
-    let config_filename = "libs/translate_config.toml";
+    let config_filename = "tools/translate_config.toml";
     let file_error = |filename: &str, err| err!(Token::new(&filename.to_owned(), ""), "{}", err);
 
     info!(

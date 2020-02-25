@@ -61,7 +61,7 @@ The compiler is very pedantic to avoid defining invalid states as much as possib
 
 === Required modules
 - perl (script: *src/generate-lib*)
-    `cpan TOML::Parser`
+    `cpan TOML`
     
 === Configuration
 - *cfg.toml* to define the cfengine and ncf binaries paths, and the compilation, translation paths

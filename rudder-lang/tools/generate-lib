@@ -11,7 +11,7 @@ my @state = ();
 my @config_lines=();
 
 my $parser = TOML::Parser->new;
-my $cfg = $parser->parse_file("./cfg.toml");
+my $cfg = $parser->parse_file("./tools/cfg.toml");
 
 my $ncf_methods = $cfg->{default_paths}->{ncf} . "/tree/30_generic_methods/*";
 foreach my $file (glob $ncf_methods) {
@@ -74,7 +74,7 @@ foreach my $file (glob $ncf_methods) {
   #print "$gm = { class_prefix=\"$prefix\", class_parameter_id = $class_parameter }\n";
 }
 
-open(my $stdlib,">stdlib.rl") or die "Cannot write stdlib";
+open(my $stdlib,">./libs/stdlib.rl") or die "Cannot write stdlib";
 print $stdlib "\@format=0\n";
 print $stdlib "\n\n";
 print $stdlib join("\n",keys %resource);
@@ -95,7 +95,7 @@ command_execution = \"(command_execution)_(.*)\"
 
 [methods]
 ";
-open(my $conf,">translate_config.toml") or die "Cannot write methods config";
+open(my $conf,">./tools/translate_config.toml") or die "Cannot write methods config";
 print $conf join("\n",$config_header);
 print $conf join("\n",@config_lines);
 close($conf);

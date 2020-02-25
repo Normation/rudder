@@ -1,4 +1,7 @@
 build:
+	# check for cargo, perl, cpan, pip, pip3 install
+	# sudo cpan TOML
+	# pip3 install toml
 	cargo build
 
 test:
