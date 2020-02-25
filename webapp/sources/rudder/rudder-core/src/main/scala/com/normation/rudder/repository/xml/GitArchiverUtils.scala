@@ -241,7 +241,7 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
         git.add.addFilepattern(relativePath).call
         val commit = git.commit.setCommitter(commiter).setMessage(commitMessage).call
         val path = GitPath(tagPrefix+DateTime.now.toString(GitTagDateTimeFormatter))
-        logEffect.info("Create a new archive: " + path)
+        logEffect.info("Create a new archive: " + path.value)
         git.tag.setMessage(commitMessage).
           setName(path.value).
           setTagger(commiter).

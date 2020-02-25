@@ -20,16 +20,20 @@
 
 package com.normation.rudder.repository.xml
 
+import java.io.ByteArrayInputStream
 import java.util.zip.ZipFile
 import java.io.File
+
 import scala.jdk.CollectionConverters._
 import org.apache.commons.io.FileUtils
 import java.io.InputStream
 import java.util.zip.ZipOutputStream
 import java.util.zip.ZipEntry
+
 import org.apache.commons.io.IOUtils
 import java.io.FileInputStream
 import java.io.OutputStream
+
 import scala.collection.Seq
 import com.normation.errors._
 import zio._
@@ -67,19 +71,20 @@ object ZipUtils {
     ZIO.bracket(IOResult.effect(new ZipOutputStream(zipout)))(zout => effectUioUnit(zout.close())) { zout =>
       val addToZout = (is:InputStream) => IOResult.effect("Error when copying file")(IOUtils.copy(is, zout))
 
-      ZIO.foreach(toAdds) { x =>
+      ZIO.foreach_(toAdds) { x =>
         val name = x.useContent match {
           case None =>
             if(x.path.endsWith("/")) x.path else x.path + "/"
           case Some(is) =>
             if(x.path.endsWith("/")) x.path.substring(0,x.path.size -1) else x.path
         }
-        zout.putNextEntry(new ZipEntry(name))
-        x.useContent match {
-          case None    => ().succeed
-          case Some(x) => x(addToZout)
-        }
-      }.unit
+        zout.putNextEntry(new ZipEntry(name)).succeed *> (
+          x.useContent match {
+            case None    => ().succeed
+            case Some(x) => x(addToZout)
+          }
+        )
+      }
     }
   }
 

@@ -100,7 +100,6 @@ import com.normation.errors._
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import zio.duration._
-import zio.syntax._
 
 /*
  * NodeApi implementation.
