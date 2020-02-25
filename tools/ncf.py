@@ -27,7 +27,7 @@ dirs = [ "10_ncf_internals", "20_cfe_basics", "30_generic_methods", "40_it_ops_k
 
 tags = {}
 common_tags            = [ "name", "description", "parameter", "bundle_name", "bundle_args"]
-tags["generic_method"] = [ "documentation", "class_prefix", "class_parameter", "class_parameter_id", "deprecated", "agent_version", "agent_requirements", "parameter_constraint", "action", "rename" ]
+tags["generic_method"] = [ "documentation", "class_prefix", "class_parameter", "class_parameter_id", "deprecated", "agent_version", "agent_requirements", "parameter_constraint", "parameter_type", "action", "rename" ]
 tags["technique"]      = [ "version" ]
 [ value.extend(common_tags) for (k,value) in tags.items() ]
 
@@ -184,8 +184,7 @@ def parse_bundlefile_metadata(content, bundle_type):
           param_constraints.setdefault(match.group(3), default_constraint.copy()).update(constraint)
         if tag == "parameter_type":
           param_type = match.group(4)
-          # extend default_constraint if it was not already defined)
-          param_types.setdefault(match.group(3), "string").update(param_type)
+          param_types[match.group(3)] = param_type
         else:
           res[tag] = match.group(2)
         previous_tag = tag

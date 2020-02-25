@@ -11,7 +11,7 @@
 #
 # @parameter package_name Name of the package to install
 # @parameter package_version Version of the package to install
-
+# @parameter_type package_version version
 # @class_prefix package_install
 #   @class_parameter package_name
 #
