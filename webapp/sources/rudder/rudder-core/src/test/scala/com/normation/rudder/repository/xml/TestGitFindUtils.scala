@@ -50,21 +50,25 @@ import org.specs2.specification.AfterAll
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
 import java.nio.charset.StandardCharsets
+import java.util.zip.ZipFile
 
+import com.normation.errors.IOResult
 import com.normation.zio.ZioRuntime
+import org.specs2.matcher.ContentMatchers
 
 @RunWith(classOf[JUnitRunner])
-class TestGitFindUtils extends Specification with Loggable with AfterAll {
+class TestGitFindUtils extends Specification with Loggable with AfterAll with ContentMatchers {
 
   ////////// set up / clean-up and utilities //////////
 
-  lazy val gitRoot = new File("/tmp/test-jgit-"+ DateTime.now().toString())
+  lazy val root = new File("/tmp/test-jgit-"+ DateTime.now().toString())
+  lazy val gitRoot = new File(root, "repo")
 
 
   override def afterAll(): Unit = {
     if(System.getProperty("tests.clean.tmp") != "false") {
-      logger.debug("Deleting directory " + gitRoot.getAbsolutePath)
-      FileUtils.deleteDirectory(gitRoot)
+      logger.debug("Deleting directory " + root.getAbsolutePath)
+      FileUtils.deleteDirectory(root)
     }
   }
 
@@ -175,6 +179,21 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll {
       list(Nil, List("txt", "")) must contain(exactly(allTxt:_*))
     }
 
+  }
+
+  "zip and unzip is identity" >> {
+
+    val archive = new File(root, "archive.zip")
+
+    // a place to dezip
+    val unzip = new File(root, "unzip")
+    unzip.mkdir()
+
+    ZioRuntime.runNow(GitFindUtils.getZip(db, id).flatMap(bytes =>
+      IOResult.effect(FileUtils.writeByteArrayToFile(archive, bytes))
+    ) *> ZipUtils.unzip(new ZipFile(archive), unzip))
+
+    gitRoot must haveSameFilesAs(unzip).withFilter((file: File) => !file.getAbsolutePath.contains(".git"))
   }
 
 }
