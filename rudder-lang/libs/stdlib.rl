@@ -1,6 +1,7 @@
 @format=0
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 resource sharedfile(p0)
 resource variable(p0,p1)
 resource http(p0)
@@ -19,22 +20,31 @@ resource user(p0)
 resource file(p0)
 =======
 resource user(p0)
+=======
+
+>>>>>>> wip
 resource group(p0)
-resource permissions(p0)
+resource service(p0)
 resource http(p0)
 resource command(p0)
-resource directory(p0)
-resource package(p0)
-resource monitoring(p0)
-resource file(p0)
-resource variable(p0,p1)
-resource service(p0)
-resource sharedfile(p0)
 resource environment(p0)
+resource monitoring(p0)
+resource condition(p0)
+resource kernel_module(p0)
+resource variable(p0,p1)
+resource package(p0)
+resource sharedfile(p0)
+resource file(p0)
+resource directory(p0)
 resource schedule(p0)
+<<<<<<< HEAD
 resource condition(p0)
 resource kernel_module(p0)
 >>>>>>> Fixes #16807: rl add cfengine_core to libs, which declares global variables
+=======
+resource permissions(p0)
+resource user(p0)
+>>>>>>> wip
 
 command state execution(){}
 command state execution_once(p1,p2,p3){}
@@ -203,3 +213,4 @@ variable state string_from_command(p2){}
 variable state string_from_file(p2){}
 variable state string_from_math_expression(p2,p3){}
 variable state string_match(){}
+
