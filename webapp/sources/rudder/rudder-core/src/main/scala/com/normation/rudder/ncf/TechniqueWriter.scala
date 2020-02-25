@@ -301,8 +301,8 @@ trait AgentSpecificTechniqueWriter {
 class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterTypeService) extends AgentSpecificTechniqueWriter {
 
   // We need to add a reporting bundle for this method to generate a na report for any method with a condition != any/cfengine (which ~= true
-  def methodNeedReporting(method : MethodCall) =  method.condition != "any" && method.condition != "cfengine-community"
-  def needReportingBundle(technique : Technique) = technique.methodCalls.exists(methodNeedReporting)
+  def methodNeedReporting(call : MethodCall, method : GenericMethod) =  (! method.agentSupport.contains(AgentType.CfeCommunity)) || call.condition != "any" && call.condition != "cfengine-community"
+  def needReportingBundle(technique : Technique, methods : Map[BundleName, GenericMethod]) = technique.methodCalls.exists(c => methods.get(c.methodId).map(m => methodNeedReporting(c,m)).getOrElse(true))
 
   def canonifyCondition(methodCall: MethodCall) = {
     methodCall.condition.replaceAll("""(\$\{[^\}]*})""","""",canonify("$1"),"""")
@@ -375,7 +375,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
 
 
 
-    val t2 = if ( ! needReportingBundle(technique)) {
+    val t2 = if ( ! needReportingBundle(technique, methods)) {
       ZIO.succeed(Nil)
     } else {
 
@@ -411,7 +411,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
             Some((condition,message))
          } else {
            // ... or if the condition needs rudder_reporting
-           if (methodNeedReporting(method)) {
+           if (methodNeedReporting(method, method_info)) {
              val message =  s"""Skipping method '${method_info.name}' with key parameter '${escapedClassParameterValue}' since condition '${method.condition}' is not reached"""
              val condition = s"""concat("${canonifyCondition(method)}")"""
              Some((condition,message))
@@ -455,7 +455,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
                            ! (gm.agentSupport.contains(AgentType.CfeEnterprise) || (gm.agentSupport.contains(AgentType.CfeCommunity)))
                          )
                        )
-    val needReporting = needReportingBundle(technique)
+    val needReporting = needReportingBundle(technique, methods)
     val xml = <AGENT type="cfengine-community,cfengine-nova">
       <BUNDLES>
         <NAME>{technique.bundleName.value}</NAME>
