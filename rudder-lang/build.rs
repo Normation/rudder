@@ -1,11 +1,5 @@
-use crate::{
-    error::*,
-    parser::Token
-};
-use colored::Colorize;
 use ron::de::from_reader;
 use serde::Deserialize;
-use std::fs;
 
 #[derive(Default, Debug, Deserialize)]
 struct OsTreeBuilder {
@@ -78,8 +72,6 @@ impl Os {
     }
 }
 
-// fn aux_mapping_builder(mut mapped: &mut Vec<String>, mapper: &str) {}
-
 /// Browses an Os branch to convert it to a full list of supported oses
 fn rec_oslib_builder(os_tree: &OsTree, tree_builder: &mut OsTreeBuilder, parent: ParentBranch) {
     match os_tree {
@@ -106,15 +98,14 @@ fn rec_oslib_builder(os_tree: &OsTree, tree_builder: &mut OsTreeBuilder, parent:
 
 /// Reads the os builder .RON file and converts its content
 /// into a necessary rudder-lang `global enum os` that holds every single supported Os(kind)
-pub fn generate_oslib(fname: &str, oslib_filename: &str) -> Result<()> {
-    info!("{} from {}", "Generating OS list".bright_green(), fname.bright_yellow());
-    let file_tree = fs::File::open(fname).map_err(|e| err!(Token::new(&fname.to_owned(), ""), "{}", e))?;
-    let recvd_tree: Vec<OsTree> = from_reader(file_tree).map_err(|e| err!(Token::new(fname, ""), "{}", e))?;
+fn generate_oslib(fname: &str, oslib_filename: &str) -> std::io::Result<()> {
+    let file_tree = std::fs::File::open(fname)?;
+    let recvd_tree: Vec<OsTree> = from_reader(file_tree).unwrap();
 
     let mut tree_builder = OsTreeBuilder::default();
     recvd_tree.iter().for_each(|branch| rec_oslib_builder(branch, &mut tree_builder, ParentBranch::None));
     
-    // // write global enum os in a file
+    // write global enum os in a file
     let content = format!(
 r#"@format=0
 
@@ -148,9 +139,11 @@ global enum minor {{
         tree_builder.minor_map.join(",\n  "),
         tree_builder.minor.join(",\n  "),
     );
-    {
-        // has to create a scope bc write was sometimes not working properly
-        fs::write(oslib_filename, content.as_bytes()).expect("Could not write content to os lib file");
-    }
+    std::fs::write(oslib_filename, content.as_bytes())?;
     Ok(())
+}
+
+fn main() {
+    println!("Generating OS list");
+    generate_oslib("./tools/osbuilder.ron", "./libs/oslib.rl").expect("Could not generate the os list");
 }

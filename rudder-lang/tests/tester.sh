@@ -18,11 +18,11 @@ cargo run -- --translate -i $dir/json/${name}.json -o $dir/rl/${name}.json.rl
 cargo run -- --compile -i $dir/rl/${name}.rl -o $dir/target/${name}.rl.cf
 
 # take generated cf file a new json
-$cfjson_tester ncf-to-json $dir/target/${name}.rl.cf $dir/target/${name}.rl.cf.json
+$cfjson_tester ncf-to-json --config=tools/rudderc-dev.conf $dir/target/${name}.rl.cf $dir/target/${name}.rl.cf.json
 
 # TODO compare generated json
-$cfjson_tester compare-json $dir/json/${name}.json $dir/target/${name}.rl.cf.json
+$cfjson_tester compare-json --config=tools/rudderc-dev.conf $dir/json/${name}.json $dir/target/${name}.rl.cf.json
 
 # TODO compare generated cf files
-$cfjson_tester compare-cf $dir/cf/${name}.cf $dir/target/${name}.rl.cf
+$cfjson_tester compare-cf --config=tools/rudderc-dev.conf $dir/cf/${name}.cf $dir/target/${name}.rl.cf
 # diff --width=210 --suppress-common-lines --side-by-side ${dir}/cf/${name}.cf ${dir}/target/${name}.rl.cf

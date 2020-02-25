@@ -65,7 +65,12 @@ fn should_compile(filename: &str) -> bool {
 
 /// Compile technique from base crate and expose its result
 fn compile_file(input_path: &Path, output_path: &Path, filename: &str) -> Result<(), String> {
-    match rudderc::compile::compile_file(input_path, output_path, true) {
+match rudderc::compile::compile_file(
+        input_path,
+        output_path,
+        true,
+        &PathBuf::from("libs/")
+    ) {
         Ok(_) => {
             println!(
                 "{}: compilation of {}",

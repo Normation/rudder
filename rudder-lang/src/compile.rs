@@ -6,7 +6,6 @@ use crate::{
     error::*,
     generators::*,
     parser::{Token, PAST},
-    generate_oslib::generate_oslib,
 };
 
 use colored::Colorize;
@@ -58,17 +57,14 @@ impl SourceList {
     }
 }
 
-pub fn compile_file(source: &Path, dest: &Path, technique: bool) -> Result<()> {
+pub fn compile_file(source: &Path, dest: &Path, technique: bool, libs_dir: &Path) -> Result<()> {
     let sources = SourceList::new();
-    
-    let oslib = "libs/oslib.rl";
-    generate_oslib("libs/osbuilder.ron", oslib)?;
 
     // read and add files
-    let oses = Path::new(oslib);
-    let corelib = Path::new("libs/corelib.rl");
-    let cfenginecore = Path::new("libs/cfengine_core.rl");
-    let stdlib = Path::new("libs/stdlib.rl");
+    let oses = libs_dir.join("oslib.rl");
+    let corelib = libs_dir.join("corelib.rl");
+    let cfenginecore = libs_dir.join("cfengine_core.rl");
+    let stdlib = libs_dir.join("stdlib.rl");
     let input_filename = source.to_string_lossy();
     let output_filename = dest.to_string_lossy();
 
@@ -81,11 +77,11 @@ pub fn compile_file(source: &Path, dest: &Path, technique: bool) -> Result<()> {
 
     // data
     let mut past = PAST::new();
-    add_file(&mut past, &sources, corelib, "corelib.rl")?;
-    add_file(&mut past, &sources, cfenginecore, "cfengine_core.rl")?;
-    add_file(&mut past, &sources, stdlib, "stdlib.rl")?;
-    add_file(&mut past, &sources, oses, "oslib.rl")?;
-    add_file(&mut past, &sources, source, &input_filename)?;
+    add_file(&mut past, &sources, &corelib, "corelib.rl")?;
+    add_file(&mut past, &sources, &cfenginecore, "cfengine_core.rl")?;
+    add_file(&mut past, &sources, &stdlib, "stdlib.rl")?;
+    add_file(&mut past, &sources, &oses, "oslib.rl")?;
+    add_file(&mut past, &sources, &source, &input_filename)?;
 
     // finish parsing into AST
     info!("|- {}", "Generating intermediate code".bright_green());

@@ -54,9 +54,12 @@ use rudderc::{ compile::compile_file, file_paths, logger, translate::translate_f
 #[derive(Debug, StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 struct Opt {
+    /// rudderc.conf path. Should only be called when working locally
+    #[structopt(long, default_value="/opt/rudder/etc/rudderc.conf")]
+    config_file: PathBuf,   
     /// use default directory for input/output with the specified filename
     #[structopt(long, short)]
-    default: Option<PathBuf>,    
+    base: Option<PathBuf>,
     /// Output file or directory
     #[structopt(long, short)]
     output: Option<PathBuf>,
@@ -89,25 +92,43 @@ fn main() {
     // compile should be the default case, so if none of compile / translate is passed -> compile
     let is_compile_default = if !opt.translate { true } else { false };
     let exec_action = if is_compile_default { "compile" } else { "translate" };
-
+    
     logger::set(
         opt.log_level,
         opt.json_log_fmt,
         &exec_action,
     );
+    
+    let (
+        libs_dir,
+        translate_config,
+        input,
+        output
+    ) = match file_paths::get(exec_action, &opt.config_file, &opt.base, &opt.input, &opt.output) {
+        Err(e) => {
+            error!("{}", e);
+            // required before returning in order to have proper logging. Set for an error
+            logger::print_output_closure(
+                opt.json_log_fmt,
+                false,
+                "possibly no input path found",
+                "possibly no output path found",
+                &exec_action,
+            );
+            return ;
+        },
+        Ok(paths) => paths
+    };
 
-    // if input / output file are not set, panic seems ok since nothing else can be done,
-    // including printing the output closure properly  
-    let (input, output) = file_paths::get(exec_action, &opt.default, &opt.input, &opt.output).unwrap();
     let result;
     if is_compile_default {
-        result = compile_file(&input, &output, is_compile_default);
+        result = compile_file(&input, &output, is_compile_default, &libs_dir);
         match &result {
             Err(e) => error!("{}", e),
             Ok(_) => info!("{} {}", "Compilation".bright_green(), "OK".bright_cyan()),
         }
     } else {
-        result = translate_file(&input, &output);
+        result = translate_file(&input, &output, &translate_config);
         match &result {
             Err(e) => error!("{}", e),
             Ok(_) => info!(
@@ -121,8 +142,8 @@ fn main() {
     logger::print_output_closure(
         opt.json_log_fmt,
         result.is_ok(),
-        input.to_str().unwrap_or("input file not found"),
-        output.to_str().unwrap_or("output file not found"),
+        input.to_str().unwrap_or("no input path found"),
+        output.to_str().unwrap_or("no output path found"),
         &exec_action,
     );
 }
