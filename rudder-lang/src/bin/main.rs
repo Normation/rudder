@@ -92,8 +92,9 @@ fn main() {
         &opt.output,
         &exec_action,
     );
-
+    
     let result;
+    let mut output_fname = opt.output.to_str().unwrap_or("output file not found").to_owned();
     if opt.translate {
         result = translate_file(&opt.input, &opt.output);
         match &result {
@@ -105,6 +106,7 @@ fn main() {
             ),
         }
     } else {
+        output_fname.push_str(".cf");
         result = compile_file(&opt.input, &opt.output, opt.compile);
         match &result {
             Err(e) => error!("{}", e),
@@ -116,7 +118,7 @@ fn main() {
         opt.json_log_fmt,
         result.is_ok(),
         opt.input.to_str().unwrap_or("input file not found"),
-        opt.output.to_str().unwrap_or("output file not found"),
+        &output_fname,
         &exec_action,
     );
 }

@@ -1,6 +1,5 @@
 @format=0
 
-
 resource http(p0)
 resource environment(p0)
 resource service(p0)
@@ -185,4 +184,3 @@ variable state string_from_command(p2){}
 variable state string_from_file(p2){}
 variable state string_from_math_expression(p2,p3){}
 variable state string_match(){}
-

@@ -145,11 +145,11 @@ pub fn print_output_closure(
         false => {
             let res_str = match is_success {
                 true => format!(
-                    "Everything worked as expected, '{}.cf' generated from '{}'",
+                    "Everything worked as expected, '{}' generated from '{}'",
                     output_file, input_file
                 ),
                 false => format!(
-                    "An error occured, '{}.cf' file has not been created from '{}'",
+                    "An error occured, '{}' file has not been created from '{}'",
                     output_file, input_file
                 ),
             };

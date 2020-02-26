@@ -71,6 +71,7 @@ impl<'src> AST<'src> {
         let children = ast.create_children_list(parents);
         ast.add_resources(resources, states, children);
         //ast.add_aliases(aliases);
+        println!("context: {:#?}", ast.context);
         if ast.errors.is_empty() {
             Ok(ast)
         } else {
