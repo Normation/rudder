@@ -1,5 +1,5 @@
 [resources]
-variable = { parameter_count=2 }
+variable = 2
 
 [classes]
 command_execution = "(command_execution)_(.*)"

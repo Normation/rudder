@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+
 mod error;
 mod token;
 
@@ -116,7 +117,7 @@ fn ftag<'src>(token: &'static str) -> impl Fn(PInput<'src>) -> PResult<PInput<'s
 fn space_terminated<'src>(token: &'static str) -> impl Fn(PInput<'src>) -> PResult<PInput<'src>> {
     move |i| {
         let (i, r) = tag(token)(i)?;
-        or_fail(space1, || PErrorKind::ExpectedKeyword("enum"))(i)?;
+        or_fail(space1, || PErrorKind::ExpectedKeyword(token))(i)?;
         Ok((i, r))
     }
 }
@@ -353,7 +354,7 @@ fn penum_mapping(i: PInput) -> PResult<PEnumMapping> {
 /// A comparison check if the variable is of the right type and contains
 /// the provided item as a value, or an ancestor item if this is a mapped enum.
 /// 'default' is a value that is equivalent of 'true'.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum PEnumExpression<'src> {
     //             variable                 enum              value/item
     Compare(Option<Token<'src>>, Option<Token<'src>>, Token<'src>),
@@ -599,9 +600,24 @@ fn pstruct(i: PInput) -> PResult<HashMap<String, PValue>> {
     )(i)
 }
 
+/// Alternative version of pstruct based on "." rather than braces.
+/// Used for the agent
+/// A struct is stored in a HashMap
+// fn pstruct_agent(i: PInput) -> PResult<HashMap<String, PValue>> {
+//     wsequence!(
+//         {
+//             values: separated_list(
+//                         sp(etag(".")),
+//                         pvalue
+//                     );
+//         } => values.into_iter().map(|(k,v)| (k.1,v)).collect()
+//     )(i)
+// }
+
 /// PValue is a typed value of the content of a variable or a parameter.
 /// Must be cloneable because it is copied during default values expansion
-#[derive(Debug, PartialEq)]
+// TODO separate value from type and handle automatic values (varagent)
+#[derive(Debug, PartialEq, Clone)]
 pub enum PValue<'src> {
     String(Token<'src>, String),
     Number(Token<'src>, f64),
@@ -618,6 +634,9 @@ impl<'src> PValue<'src> {
             PValue::Struct(_) => PType::Struct,
             PValue::List(_) => PType::List,
         }
+    }
+    pub fn generate_empty() -> PValue<'static> {
+        PValue::String(Token::new("", ""), "RESERVED FOR AGENT DECLARATION".to_owned())
     }
 }
 fn pvalue(i: PInput) -> PResult<PValue> {
@@ -762,6 +781,41 @@ fn pvariable_definition(i: PInput) -> PResult<(Token, PValue)> {
             variable: pidentifier;
             _t: etag("=");
             value: or_fail(pvalue, || PErrorKind::ExpectedKeyword("value"));
+        } => (variable, value)
+    )(i)
+}
+
+fn fill_map_rec<'src>(mut tokens: std::iter::Peekable<std::slice::Iter<Token<'src>>>) -> HashMap<String, PValue<'src>> {
+    let mut map: HashMap<String, PValue> = HashMap::new();
+    if let Some(tk) = tokens.next() {
+        let tk_str = tk.fragment().to_owned();
+        if tokens.peek().is_some() {
+            map.insert(tk_str, PValue::Struct(fill_map_rec(tokens)));
+        } else {
+            map.insert(tk_str, PValue::generate_empty());
+        }
+    }
+    map
+}
+
+fn pvalue_varagent(i: PInput) -> PResult<PValue> {
+    let (i, tokens) = many0(wsequence!(
+        {
+            _sep: etag(".");
+            value: or_fail(pidentifier, || PErrorKind::ExpectedToken("incomplete declaration (.)"));
+        } => value
+    ))(i)?;
+    Ok((i, PValue::Struct(fill_map_rec(tokens.iter().peekable()))))
+}
+
+/// Global agent variable declaration is only a var declaration
+/// Cannot be initialized, its value is defined by the agent
+fn pvaragent_declaration(i: PInput) -> PResult<(Token, PValue)> {
+    wsequence!(
+        {
+            _identifier: space_terminated("declare");
+            variable: pidentifier;
+            value: pvalue_varagent;
         } => (variable, value)
     )(i)
 }
@@ -1005,6 +1059,7 @@ fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
             map(presource_def, PDeclaration::Resource),
             map(pstate_def, PDeclaration::State),
             map(pvariable_definition, PDeclaration::GlobalVar),
+            map(pvaragent_declaration, PDeclaration::GlobalVar),
             map(palias_def, PDeclaration::Alias),
         )),
         || PErrorKind::Unparsed(get_accurate_context(i)),
