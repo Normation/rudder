@@ -151,10 +151,9 @@ object ParameterType {
         case (StringParameter | HereString, AgentType.CfeCommunity | AgentType.CfeEnterprise) =>
           Right(s""""${value.replaceAll("""(?<!\\)"""", """\\"""").replaceAll("""(?<!\\)\\(?!(\\|"|'))""","""\\\\""")}"""")
         case (HereString, AgentType.Dsc) => Right(
-         s"""@`
+         s"""@'
             |${value.replaceAll("\"", "`\"")}
-            |`@
-          """.stripMargin)
+            |'@""".stripMargin)
         case (StringParameter, AgentType.Dsc) => Right(s""""${value.replaceAll("\"", "`\"")}"""")
         case (_, _) => Left(Unexpected("Cannot translate"))
       }
