@@ -53,7 +53,7 @@ use tokio::prelude::*;
 use tokio_threadpool::blocking;
 use tracing::{debug, error, info, span, warn, Level};
 
-static REPORT_EXTENSIONS: &[&str] = &["gz", "log"];
+static REPORT_EXTENSIONS: &[&str] = &["gz", "zip", "log"];
 
 pub fn start(job_config: &Arc<JobConfig>, stats: &mpsc::Sender<Event>) {
     let span = span!(Level::TRACE, "reporting");

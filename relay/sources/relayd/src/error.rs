@@ -123,4 +123,6 @@ pub enum Error {
     InvalidHexadecimalValue(#[from] hex::FromHexError),
     #[error("invalid shared file: {0}")]
     InvalidSharedFile(String),
+    #[error("could not extract zip file: {0}")]
+    Zip(#[from] zip::result::ZipError),
 }

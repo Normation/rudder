@@ -37,8 +37,14 @@ use openssl::{
     stack::Stack,
     x509::{store::X509StoreBuilder, X509},
 };
-use std::{ffi::OsStr, fs::read, io::Read, path::Path};
+use std::{
+    ffi::OsStr,
+    fs::read,
+    io::{Cursor, Read},
+    path::Path,
+};
 use tracing::debug;
+use zip::read::ZipArchive;
 
 pub fn read_compressed_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, Error> {
     let path = path.as_ref();
@@ -46,17 +52,30 @@ pub fn read_compressed_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, Error> {
     debug!("Reading {:#?} content", path);
     let data = read(path)?;
 
-    Ok(match path.extension().map(OsStr::to_str) {
-        Some(Some("gz")) => {
+    Ok(match path.extension().and_then(OsStr::to_str) {
+        Some("gz") => {
             debug!("{:?} has .gz extension, extracting", path);
             let mut gz = GzDecoder::new(data.as_slice());
             let mut uncompressed_data = vec![];
             gz.read_to_end(&mut uncompressed_data)?;
             uncompressed_data
         }
+        Some("zip") => {
+            debug!("{:?} has .zip extension, extracting", path);
+            let mut zip = ZipArchive::new(Cursor::new(data))?;
+            // Considering only the first file in the zip
+            // There should be only one anyway
+            let mut first_file = zip.by_index(0)?;
+            let mut uncompressed_data: Vec<u8> = Vec::new();
+            let _ = first_file.read_to_end(&mut uncompressed_data);
+            uncompressed_data
+        }
         // Let's assume everything else is a text file
         _ => {
-            debug!("{:?} has no gz/xz extension, no extraction needed", path);
+            debug!(
+                "{:?} has no compressed file extension, no extraction needed",
+                path
+            );
             data
         }
     })
@@ -113,6 +132,15 @@ mod tests {
         let reference = read("tests/files/gz/normal.log").unwrap();
         assert_eq!(
             read_compressed_file("tests/files/gz/normal.log.gz").unwrap(),
+            reference
+        );
+    }
+
+    #[test]
+    fn it_reads_zipped_files() {
+        let reference = read("tests/files/gz/normal.log").unwrap();
+        assert_eq!(
+            read_compressed_file("tests/files/gz/normal.log.zip").unwrap(),
             reference
         );
     }
