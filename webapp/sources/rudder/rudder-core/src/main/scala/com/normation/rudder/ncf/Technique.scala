@@ -152,7 +152,7 @@ object ParameterType {
           Right(s""""${value.replaceAll("""(?<!\\)"""", """\\"""").replaceAll("""(?<!\\)\\(?!(\\|"|'))""","""\\\\""")}"""")
         case (HereString, AgentType.Dsc) => Right(
          s"""@'
-            |${value.replaceAll("\"", "`\"")}
+            |${value}
             |'@""".stripMargin)
         case (StringParameter, AgentType.Dsc) => Right(s""""${value.replaceAll("\"", "`\"")}"""")
         case (_, _) => Left(Unexpected("Cannot translate"))
