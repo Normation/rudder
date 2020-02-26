@@ -1,0 +1,44 @@
+{
+    "name": "variables",
+    "description": "technique using variables",
+    "version": "1.0",
+    "parameter": [
+        {
+            "name": "coucou",
+            "id": "ac15b0bd-a226-4ad7-b93c-5515cae507a1",
+            "constraints": {
+                "allow_whitespace_string": false,
+                "allow_empty_string": false,
+                "max_length": 16384
+            },
+            "type": "string"
+        }
+    ],
+    "bundle_name": "variables_technique",
+    "bundle_args": [
+        "coucou"
+    ],
+    "method_calls": [
+        {
+            "class_context": "any",
+            "component": "Package absent",
+            "method_name": "package_absent",
+            "args": [
+                "vpn",
+                "",
+                "",
+                ""
+            ]
+        },
+        {
+            "class_context": "any",
+            "component": "Variable string",
+            "method_name": "variable_string",
+            "args": [
+                "hello",
+                "world",
+                "valhelloworld"
+            ]
+        }
+    ]
+}
