@@ -24,7 +24,7 @@ html,body{
 	margin-right:auto;
 }
 
-#login-page form p.legend{
+#login-page form .legend{
 	border-top-left-radius: 5px;
 	border-top-right-radius: 5px;
     color: #fff;
@@ -32,11 +32,11 @@ html,body{
     padding: 20px 50px;
     margin-bottom: 0;
 }
-#login-page form p.legend img{
+#login-page form .legend img{
 	height: auto;
 	width: 100%;
 }
-#login-page form p.legend span{
+#login-page form .legend span{
 	position: absolute;
     right: 5px;
     font-size: 15px;
@@ -179,7 +179,7 @@ form.rudder-form{
     padding-bottom: 20px;
 }
 
-form.rudder-form p.legend{
+form.rudder-form .legend{
     padding-left: 15px;
     padding-bottom: 5px;
     padding-top: 5px;
@@ -239,6 +239,10 @@ form.rudder-form .form-control:focus,.rudder-form .form-group.has-error .form-co
   animation: opacity-1 .3s linear forwards;
 }
 
+.plugin-info{
+  float: left;
+  width: 100%;
+}
 /* ----------------- BUTTONS -----------------  */
 .btn span.ion{
   position: absolute;
@@ -289,10 +293,8 @@ animation: opacity-1 .2s linear forwards;
 		margin-top: 80px;
 	    height: auto;	 
 	}
-	#login-page form p.legend{
-		margin-bottom: 30px;
-	}
 	#login-page form .welcome{
+		margin-top: 30px;
 		margin-bottom: 40px;
 	}
 	#login-page form .group-password{
@@ -313,10 +315,8 @@ animation: opacity-1 .2s linear forwards;
 	#login-page form{
 		margin-top: 20px;
 	}
-	#login-page form p.legend{
-		margin-bottom: 30px;
-	}
 	#login-page form .welcome{
+	    margin-top: 30px;
 		margin-bottom: 40px;
 	}
 	#login-page form .group-password{
@@ -338,10 +338,8 @@ animation: opacity-1 .2s linear forwards;
 		margin-top: 20px;
 		margin-top: 20px;
 	}
-	#login-page form p.legend{
-		margin-bottom: 30px;
-	}
 	#login-page form .welcome{
+	    margin-top: 30px;
 		margin-bottom: 40px;
 	}
 	#login-page form .group-password{
@@ -356,7 +354,7 @@ animation: opacity-1 .2s linear forwards;
 	#login-page form{
     margin-top: 20px;
 	}
-	#login-page form p.legend img{
+	#login-page form .legend img{
 	    padding: 0 50px;
 	}
 

@@ -135,6 +135,40 @@ impl CFEngine {
         })
     }
 
+    fn get_config_from_file() -> Result<toml::Value> {
+        let config_filename = "libs/translate_config.toml";
+        let file_error = |filename: &str, err| err!(Token::new(&filename.to_owned(), ""), "{}", err);
+        let config_data =
+            std::fs::read_to_string(config_filename).map_err(|e| file_error(config_filename, e))?;
+        toml::from_str(&config_data).map_err(|e| err!(Token::new(config_filename, ""), "{}", e))
+    }
+    fn get_class_parameter_index(method_name: String) -> Result<usize> {
+        // outcome detection and formating
+        let config = Self::get_config_from_file()?;
+        let mconf = match config.get("methods") {
+            None => return Err(Error::User("No methods section in config.toml".into())),
+            Some(m) => m,
+        };
+        let method = match mconf.get(&method_name) {
+            None => {
+                return Err(Error::User(format!(
+                    "Unknown generic method call: {}",
+                    &method_name
+                )))
+            }
+            Some(m) => m,
+        };
+        match method.get("class_parameter_id") {
+            None => {
+                Err(Error::User(format!(
+                    "Undefined class_parameter_id for {}",
+                    &method_name
+                )))
+            }
+            Some(m) => Ok(m.as_integer().unwrap() as usize)
+        }
+    }
+
     // TODO simplify expression and remove useless conditions for more readable cfengine
     // TODO underscore escapement
     // TODO how does cfengine use utf8
@@ -167,9 +201,11 @@ impl CFEngine {
                     |x| self.parameter_to_cfengine(x),
                     ", ",
                 )?;
+                let method_name = format!("{}_{}", sd.resource.fragment(), sd.state.fragment());
+                let index = Self::get_class_parameter_index(method_name)?;
                 let class = self.format_class(in_class)?;
-                let state_param = if sd.state_params.len() > 0 {
-                    if let Ok(param) = self.parameter_to_cfengine(&sd.state_params[0]) {
+                let resource_param = if sd.resource_params.len() > index {
+                    if let Ok(param) = self.parameter_to_cfengine(&sd.resource_params[index]) {
                         format!(", {}", param)
                     } else {
                         "".to_string()
@@ -182,7 +218,7 @@ impl CFEngine {
                     component,
                     id,
                     component,
-                    state_param,
+                    resource_param,
                 );
                 let method = &format!(
                     "    \"{}_${{report_data.directive_id}}_{}\" usebundle => {}_{}({})",

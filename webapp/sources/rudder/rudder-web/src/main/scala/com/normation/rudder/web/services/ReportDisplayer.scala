@@ -141,7 +141,7 @@ class ReportDisplayer(
   private[this] def displayIntro(report: NodeStatusReport): NodeSeq = {
 
     def explainCompliance(info: RunAndConfigInfo): NodeSeq = {
-      val dateFormat = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss")
+      val dateFormat = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ssZ")
 
       def currentConfigId(expectedConfig: NodeExpectedReports) = {
         s"Current configuration ID for this node is '${expectedConfig.nodeConfigId.value}' (generated on ${expectedConfig.beginDate.toString(dateFormat)})"

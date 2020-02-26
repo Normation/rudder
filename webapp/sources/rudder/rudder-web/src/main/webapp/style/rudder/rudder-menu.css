@@ -65,6 +65,10 @@
   }
 }
 
+.treeview .plugin-info{
+  display: none;
+}
+
 /*LOGO RUDDER*/
 header.main-header .logo-mini img{
   width:35px;
@@ -75,6 +79,9 @@ header.main-header .logo-mini img{
 header.main-header .logo-lg img{
   position: relative;
   top: -2px;
+  width: 100%;
+  max-height: 50px;
+  vertical-align: middle;
 }
 .content-wrapper h1,.content-wrapper h2,.content-wrapper h3,.content-wrapper h4,.content-wrapper h5,.content-wrapper h6,.content-wrapper .rudder-form{
   font-family: 'Source Sans Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif;

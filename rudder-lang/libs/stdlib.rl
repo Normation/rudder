@@ -1,8 +1,5 @@
 @format=0
 
-declare sys.hostname.coucou.qwpeodfu.aswefo
-declare sys2
-
 resource http(p0)
 resource environment(p0)
 resource service(p0)
