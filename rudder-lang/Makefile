@@ -1,11 +1,14 @@
 .DEFAULT_GOAL := build
+SHELL = /bin/bash
 
 cargo:
-        curl https://sh.rustup.rs -sSf | sh -s -- -y 
+        curl https://sh.rustup.rs -sSf | sh -s -- -y
+        source $(HOME)/.cargo/env
 
 deps:
         apt update && apt upgrade -y
-        apt install -y python3-pip perl 
+        apt install -y python3-pip perl
+        echo | cpan
         perl -MCPAN -e 'install TOML::Parser'
         pip3 install toml
 
