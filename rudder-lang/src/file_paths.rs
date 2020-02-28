@@ -59,7 +59,7 @@ pub fn get(exec_action: &str, opt_default: &Option<PathBuf>, opt_input: &Option<
     // Ease of read closure
     let err_gen = |e: &str| Err(Error::User(format!("{}", e)));
 
-    let config_filename = "libs/cfg.toml";
+    let config_filename = "tools/rudderc.conf";
     let config: toml::Value = match std::fs::read_to_string(config_filename) {
         Err(_) => return err_gen("Could not read toml config file"),
         Ok(config_data) => match toml::from_str(&config_data) {

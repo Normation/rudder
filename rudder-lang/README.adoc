@@ -60,9 +60,8 @@ The compiler is very pedantic to avoid defining invalid states as much as possib
 == Tests
 
 === Required modules
-- perl (script: *src/generate-lib*)
-    `cpan TOML`
+- perl (script: *tools/generate-lib*)
     
 === Configuration
-- *cfg.toml* to define the cfengine and ncf binaries paths, and the compilation, translation paths
+- *rudderc.conf* to define the cfengine and ncf binaries paths, and the compilation, translation paths
 (will require to install the `toml` library: `pip3 install toml`)

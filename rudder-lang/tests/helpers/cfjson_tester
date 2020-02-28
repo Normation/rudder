@@ -12,10 +12,10 @@ Usage:
 
 import configparser
 import os
-import toml
-cfg = toml.load(os.getcwd()+'/libs/cfg.toml')
-ncf_dir = cfg['default_paths']['ncf']
-cfengine_path = cfg['default_paths']['cfengine']
+cfg = configparser.ConfigParser()
+cfg.read(os.getcwd()+'/tools/rudderc.conf')
+ncf_dir = cfg['default_paths']['ncf'].strip('\"')
+cfengine_path = cfg['default_paths']['cfengine'].strip('\"')
 
 import sys
 sys.path.append(ncf_dir+'/tools')

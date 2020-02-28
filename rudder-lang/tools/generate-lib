@@ -4,16 +4,14 @@ use warnings;
 use strict;
 use warnings;
 use strict;
-use TOML::Parser;
+use  Config::IniFiles;
 
 my %resource = ();
 my @state = ();
 my @config_lines=();
 
-my $parser = TOML::Parser->new;
-my $cfg = $parser->parse_file("./tools/cfg.toml");
-
-my $ncf_methods = $cfg->{default_paths}->{ncf} . "/tree/30_generic_methods/*";
+my $cfg = Config::IniFiles->new( -file => "./tools/rudderc.conf" );
+my $ncf_methods = $cfg->val( 'default_paths', 'ncf' ) . "/tree/30_generic_methods/*";
 foreach my $file (glob $ncf_methods) {
   # file exclusion
   next if $file=~ /\/_/;
@@ -75,7 +73,7 @@ foreach my $file (glob $ncf_methods) {
 }
 
 open(my $stdlib,">./libs/stdlib.rl") or die "Cannot write stdlib";
-print $stdlib "\@format=0\n";
+print $stdlib "\@format=0";
 print $stdlib "\n\n";
 print $stdlib join("\n",keys %resource);
 print $stdlib "\n\n";
@@ -83,7 +81,7 @@ print $stdlib join("\n", @state);
 print $stdlib "\n\n";
 close($stdlib);
 
-my $config_header = "[resources]
+my $config_header = "COUCOU[resources]
 variable = { parameter_count=2 }
 
 [classes]
