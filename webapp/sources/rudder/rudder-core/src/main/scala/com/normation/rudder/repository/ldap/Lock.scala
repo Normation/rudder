@@ -91,12 +91,10 @@ object ScalaLock {
     override val name: String = n
     override def apply[T](block: => IOResult[T]): IOResult[T] = {
       for {
-        sem  <- semaphore
-        exec <- sem.withPermit(block).timeout(Duration.fromScala(timeout)).provide(clock)
-        res  <- exec match {
-                  case None    => SystemError(s"Semaphore '${name}' acquisition timed out after ${timeout.toString()}", new RuntimeException("Time out")).fail
-                  case Some(x) => x.succeed
-                }
+        sem <- semaphore
+               //here, we would like to have a timeout on the lock aquisition time, but not on the whole
+               //block execution time. See https://issues.rudder.io/issues/16839
+        res <- sem.withPermit(block)
       } yield (res)
     }
   }
