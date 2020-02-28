@@ -76,8 +76,10 @@ def check_output(command, env = {}):
   if VERBOSE == 1:
     sys.stderr.write("VERBOSE: About to run command '" + " ".join(command) + "'\n")
   command_env["PATH"] = os.environ['PATH']
-  process = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, env=command_env)
+  process = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=None, env=command_env)
   output, error = process.communicate()
+  output = output.decode("UTF-8", "ignore")
+  error = error.decode("UTF-8", "ignore")
   retcode = process.poll()
   if retcode == 0:
     sys.stderr.write(error)
