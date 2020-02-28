@@ -229,6 +229,7 @@ body > .container-fluid > .row > div {
   margin-top: 10px;
   padding: 0;
   border-top: 2px solid #e5e5e5;
+  overflow-y: scroll;
 }
 .techniques-list-container > ul {
   list-style: none;
