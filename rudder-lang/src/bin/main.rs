@@ -50,13 +50,19 @@ use rudderc::{ compile::compile_file, file_paths, logger, translate::translate_f
 /// completion (success or failure) log looks like this: "Compilation result": { "status": "str", "from": "str", "to": "str", "pwd": "str" }
 /// `panic!` log looks like this: { "status": "str", "message": "str" } (a lightweight version of a default log)
 
+// config path on server, can manually be changed
+const CONFIG: &str = "/opt/rudder/etc/rudderc.conf";
+
 /// Rust langage compiler
 #[derive(Debug, StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 struct Opt {
+    /// rudderc.conf path. Should only be called when working locally
+    #[structopt(long)]
+    config: Option<PathBuf>,   
     /// use default directory for input/output with the specified filename
     #[structopt(long, short)]
-    default: Option<PathBuf>,    
+    base: Option<PathBuf>,    
     /// Output file or directory
     #[structopt(long, short)]
     output: Option<PathBuf>,
@@ -89,25 +95,32 @@ fn main() {
     // compile should be the default case, so if none of compile / translate is passed -> compile
     let is_compile_default = if !opt.translate { true } else { false };
     let exec_action = if is_compile_default { "compile" } else { "translate" };
-
+    
     logger::set(
         opt.log_level,
         opt.json_log_fmt,
         &exec_action,
     );
-
+    
+    // get default path unless a config path has been specified
+    let config = if opt.config.is_some() { opt.config.unwrap() } else { PathBuf::from(CONFIG) };
     // if input / output file are not set, panic seems ok since nothing else can be done,
-    // including printing the output closure properly  
-    let (input, output) = file_paths::get(exec_action, &opt.default, &opt.input, &opt.output).unwrap();
+    // including printing the output closure properly
+    let (
+        libs_dir,
+        translate_config,
+        input,
+        output
+    ) = file_paths::get(exec_action, &config, &opt.base, &opt.input, &opt.output).unwrap();
     let result;
     if is_compile_default {
-        result = compile_file(&input, &output, is_compile_default);
+        result = compile_file(&input, &output, is_compile_default, &libs_dir);
         match &result {
             Err(e) => error!("{}", e),
             Ok(_) => info!("{} {}", "Compilation".bright_green(), "OK".bright_cyan()),
         }
     } else {
-        result = translate_file(&input, &output);
+        result = translate_file(&input, &output, &translate_config);
         match &result {
             Err(e) => error!("{}", e),
             Ok(_) => info!(
