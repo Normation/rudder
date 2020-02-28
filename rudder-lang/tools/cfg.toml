@@ -1,7 +1,0 @@
-[default_paths]
-    ncf="/usr/share/ncf"
-    cfengine="/opt/rudder/bin/cf-promises"
-    compile_input="tests/test_files/rl/"
-    compile_output="tests/test_files/target/"
-    translate_input="tests/test_files/json/"
-    translate_output="tests/test_files/target/"

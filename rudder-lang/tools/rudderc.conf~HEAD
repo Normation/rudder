@@ -1,0 +1,9 @@
+[default_paths]
+    ncf="/usr/share/ncf"
+    cfengine="/opt/rudder/bin/cf-promises"
+    rudderclibs="/opt/rudder/share/rudder-lang/lib/"
+    translate_config="/opt/rudder/share/rudder-lang/tools/translate_config.toml"
+    compile_input="/tmp/rudderc/tester/"
+    compile_output="/tmp/rudderc/tester/"
+    translate_input="/tmp/rudderc/tester/"
+    translate_output="/tmp/rudderc/tester/"
