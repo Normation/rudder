@@ -315,7 +315,7 @@ class GitParseGroupLibrary(
     for {
       db    <- repo.db
       //// BE CAREFUL: GIT DOES NOT LIST DIRECTORIES
-      paths <- GitFindUtils.listFiles(db, revTreeId, List(root.root.substring(0, root.root.size-1)), Nil)
+      paths <- GitFindUtils.listFiles(db, revTreeId, List(root.root), Nil)
       res   <- recParseDirectory(paths, root.directoryPath)
     } yield {
       res
@@ -429,7 +429,7 @@ class GitParseActiveTechniqueLibrary(
 
     (for {
       db    <- repo.db
-      paths <- GitFindUtils.listFiles(db, revTreeId, List(root.directoryPath.substring(0, root.directoryPath.size-1)), Nil)
+      paths <- GitFindUtils.listFiles(db, revTreeId, List(root.root), Nil)
       //// BE CAREFUL: GIT DOES NOT LIST DIRECTORIES
       res   <- recParseDirectory(paths, root.directoryPath)
     } yield {
