@@ -239,8 +239,10 @@ trait PooledConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionP
     new LDAPConnectionPool(self.newUnboundidConnection, poolSize)
   } catch {
     case ex: LDAPException =>
-      LDAPConnectionLogger.error(s"Error during LDAP connection pool initialisation. Exception: ${ex.getDiagnosticMessage}")
-      throw new Error(ex.getDiagnosticMessage)
+      val msg = s"Error during LDAP connection pool initialisation. Exception: " +
+                s"${ex.getClass.getSimpleName}:${ex.getMessage}; Details: ${ex.getDiagnosticMessage}"
+      LDAPConnectionLogger.error(msg)
+      throw new Error(msg)
   }
 
   override def close : UIO[Unit] = UIO.effectTotal(pool.close)

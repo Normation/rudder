@@ -231,6 +231,8 @@ object RudderProperties {
 object RudderConfig extends Loggable {
   import RudderProperties.config
 
+  private case class InitError(msg: String) extends Throwable(msg, null, false, false)
+
   // set the file location that contains mime info
   System.setProperty("content.types.user.table", this.getClass.getClassLoader.getResource("content-types.properties").getPath)
 
@@ -511,11 +513,24 @@ object RudderConfig extends Loggable {
   // such service must not expose implementation details
   //
 
+  // we need that to be the first thing, and take care of Exception so that the error is
+  // human undertandable when the directory is not up
+
+  val roLDAPConnectionProvider: LDAPConnectionProvider[RoLDAPConnection] = roLdap
+  // test connection is up and try to make an human understandable error message.
+  ApplicationLogger.debug(s"Test if LDAP connection is active")
+  ZioRuntime.internal.unsafeRun((for {
+    con    <- roLdap
+  } yield {
+    con.backed.getConnectionName
+  }).untraced.orDieWith(ex =>
+     InitError("An error occured when testing for LDAP connection: " + ex.fullMsg)
+  ))
+
   val pendingNodesDit: InventoryDit = pendingNodesDitImpl
   val acceptedNodesDit: InventoryDit = acceptedNodesDitImpl
   val nodeDit: NodeDit = nodeDitImpl
   val rudderDit: RudderDit = rudderDitImpl
-  val roLDAPConnectionProvider: LDAPConnectionProvider[RoLDAPConnection] = roLdap
   val roRuleRepository: RoRuleRepository = roLdapRuleRepository
   val woRuleRepository: WoRuleRepository = woLdapRuleRepository
   val woNodeRepository: WoNodeRepository = woLdapNodeRepository
