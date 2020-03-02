@@ -46,7 +46,7 @@ fn get_output(exec_action: &str, paths: &toml::Value, opt_base: &Option<PathBuf>
             if exec_action == "compile" {
                 path.with_extension("rl.cf")
             } else {
-                path.with_extension("json.rl")
+                path.with_extension("rl")
             }
         }
     })
@@ -62,7 +62,7 @@ pub fn get(exec_action: &str, default_paths: &PathBuf, opt_base: &Option<PathBuf
     let err_gen = |e: &str| Err(Error::User(format!("{}", e)));
 
     let config: toml::Value = match std::fs::read_to_string(default_paths) {
-        Err(_) => return err_gen("Could not read toml config file"),
+        Err(e) => return err_gen(&format!("Could not read toml config file: {}", e)),
         Ok(config_data) => match toml::from_str(&config_data) {
             Ok(config) => config,
             Err(_) => return err_gen("Could not parse (probably faulty) toml config file"),

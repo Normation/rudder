@@ -30,7 +30,7 @@ use test_case::test_case;
 // #[test_case("s_does_not_exist")] // supposed to fail as the file does not exist
 fn real_files(filename: &str) {
     // manually define here the output folder (direct parent folder is /tests/)
-    test_real_file(filename, "target");
+    test_real_file(filename);
 }
 
 // ======== Tests every raw string listed below ======== //

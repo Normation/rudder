@@ -63,13 +63,10 @@ pub fn compile_file(source: &Path, dest: &Path, technique: bool, libs_dir: &Path
     // read and add files
     let oses = libs_dir.join("oslib.rl");
     let corelib = libs_dir.join("corelib.rl");
-    let cfenginecore = libs_dir.join("cfengine_core.rl");
+    // let cfenginecore = libs_dir.join("cfengine_core.rl");
     let stdlib = libs_dir.join("stdlib.rl");
     let input_filename = source.to_string_lossy();
     let output_filename = dest.to_string_lossy();
-
-    println!("CORELIB {:?}", corelib);
-    println!("RUDDERCLIBS: {:?}", libs_dir);
 
     info!(
         "{} of {} into {}",

@@ -7,10 +7,9 @@ cargo:
 
 deps:
 	apt update && apt upgrade -y
-	apt install -y python3-pip perl
+	apt install -y perl
 	echo | cpan
-	perl -MCPAN -e 'install TOML::Parser'
-	pip3 install toml
+	perl -MCPAN -e 'install Config::IniFiles'
 
 build: deps 
 	perl tools/generate-lib
