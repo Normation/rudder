@@ -1,0 +1,174 @@
+#!/usr/bin/python3
+
+"""
+Ncf / rudder-lang compatibility tester
+
+Usage: 
+    ncf ncf-to-json <file.cf> <new.json> [<local_config_path.conf>]
+    ncf compare-json <first.json> <new.json> [<local_config_path.conf>]
+    ncf compare-cf <first.cf> <new.cf> [<local_config_path.conf>]
+"""
+
+import sys
+import os
+import configparser
+
+cfgpath = '/tools/rudderc.conf'
+if len(sys.argv) >= 5:
+  cfgpath = sys.argv[4]
+cfg_full_path = os.getcwd()+cfgpath
+if not os.path.exists(cfg_full_path):
+  print("No such file: " + cfg_full_path)
+  exit(1)
+
+cfg = configparser.ConfigParser()
+cfg.read(os.getcwd()+cfgpath)
+ncf_dir = cfg['default_paths']['ncf'].strip('\"')
+cfengine_path = cfg['default_paths']['cfengine'].strip('\"')
+
+sys.path.append(ncf_dir+'/tools')
+import ncf
+import codecs
+import json
+from pprint import pprint
+import docopt
+import re
+import jsondiff
+from subprocess import check_output
+
+ncf.CFENGINE_PATH=cfengine_path
+ncf_path=ncf_dir+'/tree/30_generic_methods'
+
+def ncf_to_json(cf_file, json_translation):
+  methods_data = ncf.get_all_generic_methods_metadata(ncf_path)
+  methods = methods_data["data"]["generic_methods"]
+
+  file=cf_file
+
+  with codecs.open(file, encoding="utf-8") as fd:
+    content = fd.read()
+  try:
+    result = ncf.parse_technique_metadata(content)
+    technique = result["result"]
+
+    technique['method_calls'] = ncf.parse_technique_methods(file, methods)
+
+  except ncf.NcfError as e:
+    print("Could not parse Technique '"+ file + "' cause:" + str(e))
+    exit(1)
+
+  with open(json_translation, "w") as fd:
+    fd.write(json.dumps(technique, indent=4))
+
+  print("Json written to " + json_translation)
+
+def compare_json(first, second):
+  with open(first, "r") as f1:  
+    with open(second, "r") as f2:
+      j1 = json.load(f1)
+      j2 = json.load(f2)
+  diff = jsondiff.diff(j1, j2, syntax="symmetric", marshal=True)
+  ## diff hacks
+  if 'bundle_name' in diff:
+    if diff['bundle_name'][0] + "_technique" == diff['bundle_name'][1]:
+      del diff['bundle_name']
+  ## TEST
+  if len(diff) != 0:
+    print(json.dumps(diff, indent=4, sort_keys=True))
+    exit(1)
+
+def load_cf(file_name):
+  # Check file exists
+  if not os.path.exists(file_name):
+    print("No such file: " + file_name)
+    exit(1)
+
+  env = os.environ.copy()
+  env['RES_OPTIONS'] = 'attempts:0'
+  out = check_output([ncf.CFENGINE_PATH, "-pjson", "-f", file_name], env=env)
+  try:
+    promises = json.loads(out)
+  except Exception as e:
+    print("An error occured while parsing technique '"+file_name+"'", cause = e)
+    exit(1)
+  return promises
+
+def empty_dict_cleaner(diff_dict):
+  if type(diff_dict) is dict:
+    for element in diff_dict:
+      empty_dict_cleaner(diff_dict[element])
+      if len(diff_dict[element]) == 0:
+        diff_dict.pop(element)
+        return
+
+def deep_get(haystack, deep_list, needle, index=0):
+  if type(haystack) is list:
+    for elem in haystack:
+      deep_get(elem, deep_list, needle, index)
+  elif type(haystack) is tuple:
+    for elem in haystack:
+      deep_get(elem, deep_list, needle, index)
+  elif type(haystack) is dict and index < len(deep_list) and deep_list[index] in haystack:
+    for key, value in haystack[deep_list[index]].copy().items():
+      deep_get(value, deep_list, needle, index + 1)
+      if type(needle) is str and needle in value:
+        return value[needle]
+  return None
+
+
+## Warning1: only delete keys from dict!
+## Warning2: compare (needle) either from key or with dict content 
+def deep_del(haystack, deep_list, needle, delfrom, index=0):
+  ## consider list to be iterated on like any other dict content
+  istodel = False
+  if type(haystack) is list:
+    for elem in haystack:
+      istodel |= deep_del(elem, deep_list, needle, delfrom, index)
+  elif type(haystack) is tuple:
+    for elem in haystack:
+      istodel |= deep_del(elem, deep_list, needle, delfrom, index)
+  elif type(haystack) is dict and index < len(deep_list) and deep_list[index] in haystack:
+    for key, value in haystack[deep_list[index]].copy().items():
+      istodel |= deep_del(value, deep_list, needle, delfrom, index + 1)
+      ## remove seeked child content if needle is a string
+      if istodel and type(needle) is str and needle in value:
+        value.pop(needle)
+      ## remove content if needle has matched another dict
+      if istodel and delfrom == key:
+        haystack[deep_list[index]].pop(key)
+
+  if type(needle) is str and needle in haystack:
+    ## Will need to remove the child element (needle in haystack) from the parent as we recursively go back only from there (never deeper)
+    return True
+  if haystack == needle or (type(needle) is str and needle in haystack):
+    return True
+  return istodel
+
+## deletes from diff list every i/o difference done on purpose (ie that are not a bug)
+def remove_wilful_entries(diff):
+  ## del name since `_technique` is always added
+  name = deep_get(diff, ['bundles'], 'name')
+  if name[0] + '_technique' == name[1]:
+    deep_del(diff, ['bundles'], 'name', 'name')
+  ## del sourcePath since it is not relevant
+  deep_del(diff, ['bundles'], 'sourcePath', 'sourcePath')
+  ## del superfluous if true equivalent condition
+  deep_del(diff, ['bundles', 'promiseTypes', 'contexts', 'promises', 'attributes', 'rval', 'arguments'], {'type': 'string', 'value': 'any'}, '$delete')
+
+def compare_cf(first, second):
+  j1 = load_cf(first)
+  j2 = load_cf(second)
+  diff = jsondiff.diff(j1, j2, syntax="symmetric", marshal=True)
+  remove_wilful_entries(diff)
+  empty_dict_cleaner(diff)
+  if len(diff) != 0:
+    print(json.dumps(diff, indent=2))
+
+if __name__ == "__main__":
+  arguments = docopt.docopt(__doc__)
+  if arguments['ncf-to-json']:
+    ncf_to_json(arguments['<file.cf>'], arguments['<new.json>'])
+  elif arguments['compare-json']:
+    compare_json(arguments['<first.json>'], arguments['<new.json>'])
+  elif arguments['compare-cf']:
+    compare_cf(arguments['<first.cf>'], arguments['<new.cf>'])

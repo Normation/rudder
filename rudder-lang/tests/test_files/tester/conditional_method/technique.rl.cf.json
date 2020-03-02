@@ -1,0 +1,21 @@
+{
+    "name": "conditional method",
+    "description": "one method with several conditons",
+    "version": "1.0",
+    "bundle_name": "conditional_method_technique",
+    "bundle_args": [],
+    "parameter": [],
+    "method_calls": [
+        {
+            "class_context": "debian",
+            "component": "HTTP request check status with headers",
+            "method_name": "http_request_check_status_headers",
+            "args": [
+                "GET",
+                "/myurl",
+                "200",
+                ""
+            ]
+        }
+    ]
+}

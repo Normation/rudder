@@ -1,0 +1,15 @@
+# @name condition any bsd
+# @description Kernel simplest
+# @version 1.0
+
+
+bundle agent condition_anybsd
+{
+  vars:
+    "resources_dir" string => "${this.promise_dirname}/resources";
+  methods:
+    "Kernel module loaded_${report_data.directive_id}_0" usebundle => _method_reporting_context("Kernel module loaded", "test"),
+                                                                if => concat("(dragonfly|freebsd|netbsd|openbsd)");
+    "Kernel module loaded_${report_data.directive_id}_0" usebundle => kernel_module_loaded("test"),
+                                                                if => concat("(dragonfly|freebsd|netbsd|openbsd)");
+}
