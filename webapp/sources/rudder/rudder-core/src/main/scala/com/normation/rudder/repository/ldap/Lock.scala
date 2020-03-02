@@ -26,12 +26,10 @@ import java.util.concurrent.locks.ReadWriteLock
 import com.normation.NamedZioLogger
 import com.normation.errors._
 import com.normation.zio.ZioRuntime
-import zio._
 import zio.clock.Clock
 import zio.duration.Duration
 
 import zio._
-import zio.syntax._
 
 object LdapLockLogger extends NamedZioLogger {
   override def loggerName: String = "ldap-rw-lock"

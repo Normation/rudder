@@ -780,7 +780,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   }.toBox
 
   def cfagentScheduleConfiguration = agentScheduleEditForm.cfagentScheduleConfiguration
-  def agentPolicyModeConfiguration = agentPolicyModeEditForm.cfagentPolicyModeConfiguration
+  def agentPolicyModeConfiguration = agentPolicyModeEditForm.cfagentPolicyModeConfiguration(None)
   def complianceModeConfiguration = complianceModeEditForm.complianceModeConfiguration
 
   def cfengineGlobalProps = { xml : NodeSeq =>

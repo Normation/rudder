@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -97,16 +97,6 @@ app.factory('configNodeFactory', function ($http){
     }
 });
 app.controller('auditmodeCtrl', function ($scope, $http, $location, $timeout, configGlobalFactory, configNodeFactory) {
-  function getNodeId(){
-    var nodeId;
-    try {
-      var hash = JSON.parse($location.hash());
-      nodeId = hash.nodeId;
-    } catch(err){}
-    return nodeId;
-  }
-
-  var nodeId = getNodeId();
   // variable used for saving animations
   $scope.saving = 0;
   // global configuration
@@ -119,34 +109,39 @@ app.controller('auditmodeCtrl', function ($scope, $http, $location, $timeout, co
   // appropriated factory
   $scope.factory;
 
-  // -- Get global configuration
-  configGlobalFactory.policyMode.getValue().then(function(currentPolicyMode){
-    $scope.globalConfiguration.policyMode = currentPolicyMode;
-    if(!nodeId){
-      $scope.conf.policyMode = currentPolicyMode;
-    }
-  });
-  configGlobalFactory.overrideMode.getValue().then(function(currentOverrideMode){
-    $scope.globalConfiguration.overrideMode = currentOverrideMode;
-    if(!nodeId){
-      $scope.conf.overrideMode = $scope.currentConf.overrideMode;
-    }
-  });
+  $scope.init = function(nodeId){
+    $scope.nodeId = nodeId;
+    var inNode = $scope.nodeId != '';
 
-  // -- Get appropriated factory and initialize scope
-  if(nodeId !== undefined){
-    // case : node
-    $scope.isGlobalForm = false;
-    $scope.factory = configNodeFactory(nodeId)
-    $scope.factory.policyMode.getValue().then(function(currentPolicyMode){
-      $scope.currentConf.policyMode = currentPolicyMode;
-      $scope.conf.policyMode = currentPolicyMode;
+    // -- Get global configuration
+    configGlobalFactory.policyMode.getValue().then(function(currentPolicyMode){
+      $scope.globalConfiguration.policyMode = currentPolicyMode;
+      if(!inNode){
+        $scope.conf.policyMode = currentPolicyMode;
+      }
     });
-  }else{
-    // case : global
-    $scope.isGlobalForm = true;
-    $scope.factory = configGlobalFactory;
-    $scope.currentConf = $scope.globalConfiguration;
+    configGlobalFactory.overrideMode.getValue().then(function(currentOverrideMode){
+      $scope.globalConfiguration.overrideMode = currentOverrideMode;
+      if(!inNode){
+        $scope.conf.overrideMode = $scope.currentConf.overrideMode;
+      }
+    });
+
+    // -- Get appropriated factory and initialize scope
+    if(inNode){
+      // case : node
+      $scope.isGlobalForm = false;
+      $scope.factory = configNodeFactory($scope.nodeId)
+      $scope.factory.policyMode.getValue().then(function(currentPolicyMode){
+        $scope.currentConf.policyMode = currentPolicyMode;
+        $scope.conf.policyMode = currentPolicyMode;
+      });
+    }else{
+      // case : global
+      $scope.isGlobalForm = true;
+      $scope.factory = configGlobalFactory;
+      $scope.currentConf = $scope.globalConfiguration;
+    }
   }
 
   // -- Detect current modifications
@@ -172,7 +167,7 @@ app.controller('auditmodeCtrl', function ($scope, $http, $location, $timeout, co
         }
       ).then(
         // Almost like a finally, set saving to 2 so we know saving state has changed
-        function(result) {$scope.saving = 2;} 
+        function(result) {$scope.saving = 2;}
       );
     }
   };

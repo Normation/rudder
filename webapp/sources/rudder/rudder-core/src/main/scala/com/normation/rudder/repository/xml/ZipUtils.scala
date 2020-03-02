@@ -20,7 +20,6 @@
 
 package com.normation.rudder.repository.xml
 
-import java.io.ByteArrayInputStream
 import java.util.zip.ZipFile
 import java.io.File
 
