@@ -58,19 +58,11 @@ const CONFIG: &str = "/opt/rudder/etc/rudderc.conf";
 #[structopt(rename_all = "kebab-case")]
 struct Opt {
     /// rudderc.conf path. Should only be called when working locally
-<<<<<<< HEAD
     #[structopt(long, default_value="/opt/rudder/etc/rudderc.conf")]
     config_file: PathBuf,   
     /// use default directory for input/output with the specified filename
     #[structopt(long, short)]
     base: Option<PathBuf>,
-=======
-    #[structopt(long)]
-    config: Option<PathBuf>,   
-    /// use default directory for input/output with the specified filename
-    #[structopt(long, short)]
-    base: Option<PathBuf>,    
->>>>>>> Work in progress
     /// Output file or directory
     #[structopt(long, short)]
     output: Option<PathBuf>,
@@ -110,7 +102,6 @@ fn main() {
         &exec_action,
     );
     
-<<<<<<< HEAD
     let (
         libs_dir,
         translate_config,
@@ -132,10 +123,6 @@ fn main() {
         Ok(paths) => paths
     };
 
-=======
-    // get default path unless a config path has been specified
-    let config = if opt.config.is_some() { opt.config.unwrap() } else { PathBuf::from(CONFIG) };
->>>>>>> Work in progress
     // if input / output file are not set, panic seems ok since nothing else can be done,
     // including printing the output closure properly
     let (

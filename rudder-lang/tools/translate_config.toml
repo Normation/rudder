@@ -1,4 +1,4 @@
-COUCOU[resources]
+[resources]
 variable = { parameter_count=2 }
 
 [classes]
