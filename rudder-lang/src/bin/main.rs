@@ -144,6 +144,7 @@ fn main() {
         input,
         output
     ) = file_paths::get(exec_action, &config, &opt.base, &opt.input, &opt.output).unwrap();
+
     let result;
     if is_compile_default {
         result = compile_file(&input, &output, is_compile_default, &libs_dir);

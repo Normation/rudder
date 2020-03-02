@@ -88,7 +88,7 @@ print $stdlib join("\n", @state);
 print $stdlib "\n\n";
 close($stdlib);
 
-my $config_header = "COUCOU[resources]
+my $config_header = "[resources]
 variable = { parameter_count=2 }
 
 [classes]
