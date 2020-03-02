@@ -4,28 +4,18 @@
 Ncf / rudder-lang compatibility tester
 
 Usage: 
-<<<<<<< HEAD
     cfjson_tester ncf-to-json <file.cf> <new.json> [<local_config_path.conf>]
     cfjson_tester compare-json <first.json> <new.json> [<local_config_path.conf>]
     cfjson_tester compare-cf <first.cf> <new.cf> [<local_config_path.conf>]
-=======
-    ncf ncf-to-json <file.cf> <new.json> [<local_config_path.conf>]
-    ncf compare-json <first.json> <new.json> [<local_config_path.conf>]
-    ncf compare-cf <first.cf> <new.cf> [<local_config_path.conf>]
->>>>>>> Work in progress
 """
 
 import sys
 import os
-<<<<<<< HEAD
 
 try:
     import configparser
 except ImportError:
     import ConfigParser as configparser
-=======
-import configparser
->>>>>>> Work in progress
 
 cfgpath = '/tools/rudderc.conf'
 if len(sys.argv) >= 5:
