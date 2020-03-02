@@ -224,6 +224,14 @@ object NodeApi extends ApiModuleProvider[NodeApi] {
     val description = "Get information about the given accepted node"
     val (action, path)  = GET / "nodes" / "{id}"
   }
+  final case object ApplyPocicyAllNodes extends NodeApi with ZeroParam with StartsAtVersion8 with SortIndex { val z = implicitly[Line].value
+    val description = "Ask all nodes to start a run with the given policy"
+    val (action, path)  = POST / "nodes" / "applyPolicy"
+  }
+  final case object ChangePendingNodeStatus extends NodeApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
+    val description = "Accept or refuse pending nodes"
+    val (action, path)  = POST / "nodes" / "pending"
+  }
   final case object UpdateNode extends NodeApi with OneParam with StartsAtVersion5 with SortIndex { val z = implicitly[Line].value
     val description = "Update given node information (node properties, policy mode...)"
     val (action, path)  = POST / "nodes" / "{id}"
@@ -232,18 +240,10 @@ object NodeApi extends ApiModuleProvider[NodeApi] {
     val description = "Delete given node"
     val (action, path)  = DELETE / "nodes" / "{id}"
   }
-  final case object ChangePendingNodeStatus extends NodeApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
-    val description = "Accept or refuse pending nodes"
-    val (action, path)  = POST / "nodes" / "pending"
-  }
   final case object ChangePendingNodeStatus2 extends NodeApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     override val name = "ChangePendingNodeStatus"
     val description = "Accept or refuse given pending node"
     val (action, path)  = POST / "nodes" / "pending" / "{id}"
-  }
-  final case object ApplyPocicyAllNodes extends NodeApi with ZeroParam with StartsAtVersion8 with SortIndex { val z = implicitly[Line].value
-    val description = "Ask all nodes to start a run with the given policy"
-    val (action, path)  = POST / "nodes" / "applyPolicy"
   }
   final case object ApplyPolicy extends NodeApi with OneParam with StartsAtVersion8 with SortIndex { val z = implicitly[Line].value
     val description = "Ask given node to start a run with the given policy"
