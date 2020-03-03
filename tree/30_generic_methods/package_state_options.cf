@@ -73,14 +73,14 @@ bundle agent package_state_options(name, version, architecture, provider, state,
       "reenable_reporting_${class_prefix}"
                               usebundle => enable_reporting,
                              ifvarclass => "should_report";
-      "class copy"            usebundle => _classes_copy("ncf_package_${canonified_state}_${canonified_name}", "${old_class_prefix}"),
+      "class copy"            usebundle => _classes_copy("${inner_class_prefix}", "${old_class_prefix}"),
                              ifvarclass => "ncf_package_${canonified_state}_${canonified_name}_reached";
       "new class copy"        usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                              ifvarclass => "${inner_class_prefix}_reached";
 
       # For compatibility with previous version of the generic method
-      "class copy compat"      usebundle => _classes_copy("ncf_package_${canonified_state}_${canonified_name}", "package_${canonified_state}_${canonified_name}"),
-                              ifvarclass => "ncf_package_${canonified_state}_${canonified_name}_reached";
+      "class copy compat"      usebundle => _classes_copy("${inner_class_prefix}", "package_${canonified_state}_${canonified_name}"),
+                              ifvarclass => "${inner_class_prefix}_reached";
 
       "report"                 usebundle => _log_v3("${ncf_package.message}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
