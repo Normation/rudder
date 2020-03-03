@@ -1,0 +1,10 @@
+name: composition
+in: query
+description: Boolean operator to use between each  `where` criteria.
+schema:
+  type: string
+  enum:
+    - and
+    - or
+  default: and
+  example: and

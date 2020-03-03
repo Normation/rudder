@@ -1,0 +1,1 @@
+curl --header "X-API-Token: yourToken" --request POST https://rudder.example.com/rudder/api/latest/nodes/pending/17dadf50-6056-4c8b-a935-6b97d14b89a7 --data "status=accepted"

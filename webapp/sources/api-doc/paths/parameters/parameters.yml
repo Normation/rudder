@@ -1,0 +1,97 @@
+get:
+  summary: List all global parameters
+  description: Get the current value of all the global parameters
+  operationId: listParameters
+  responses:
+    "200":
+      description: Settings
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - listParameters
+              data:
+                type: object
+                description: Parameters
+                required:
+                  - parameters
+                properties:
+                  parameters:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/parameter.yml
+  tags:
+    - Parameters
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/parameters/list-parameters.sh
+put:
+  summary: Create a new parameter
+  description: Create a new global parameter
+  operationId: createParameter
+  requestBody:
+    required: true
+    content:
+      application/x-www-form-urlencoded:
+        schema:
+          $ref: ../../components/schemas/parameter.yml
+  responses:
+    "200":
+      description: Settings
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+              - id
+            properties:
+              id:
+                type: string
+                description: Id of the parameter
+                example: rudder_file_edit_footer
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - createParameter
+              data:
+                type: object
+                description: Parameters
+                required:
+                  - parameters
+                properties:
+                  parameters:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/parameter.yml
+  tags:
+    - Parameters
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/parameters/create-parameter.sh

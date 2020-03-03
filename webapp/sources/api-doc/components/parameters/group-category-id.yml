@@ -1,0 +1,8 @@
+name: groupCategoryId
+in: path
+required: true
+schema:
+  type: string
+  format: uuid
+  description: Group category id
+  example: e0a311fa-f7b2-4f9e-89a9-db517b9c6b90

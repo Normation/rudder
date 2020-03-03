@@ -1,0 +1,36 @@
+type: object
+properties:
+  properties:
+    type: array
+    items:
+      type: object
+      required:
+        - name
+        - value
+      properties:
+        name:
+          type: string
+          description: Property name
+          example: datacenter
+        value:
+          format: string or JSON
+          example: AMS2
+          description: Property value (can be a string or JSON object)
+  policy:
+    type: string
+    description: In which mode the node will apply its configuration policy. Use `default` to use the global mode.
+    enum:
+      - "audit"
+      - "enforce"
+      - "default"
+    example: audit
+  state:
+    type: string
+    description: The node life cycle state. See [dedicated doc](https://docs.rudder.io/reference/current/usage/advanced_node_management.html#node-lifecycle) for more information.
+    enum:
+      - enabled
+      - ignored
+      - empty-policies
+      - initializing
+      - preparing-eol
+    example: enabled

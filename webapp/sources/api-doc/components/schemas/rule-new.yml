@@ -1,0 +1,55 @@
+type: object
+properties:
+  source:
+    type: string
+    format: uuid
+    example: b9f6d98a-28bc-4d80-90f7-d2f14269e215
+    description: The id of the rule the clone will be based onto. If this parameter if provided,  the new rule will be a clone of this source. Other value will override values from the source.
+  id:
+    type: string
+    description: Rule id
+    example: 0c1713ae-cb9d-4f7b-abda-ca38c5d643ea
+    format: uuid
+  displayName:
+    type: string
+    example: Security policy
+    description: Rule name
+  shortDescription:
+    type: string
+    example: Baseline applying CIS guidelines
+    description: One line rule description
+  longDescription:
+    type: string
+    example: This rules should be applied to all Linux nodes required basic hardening
+    description: Rule documentation
+  directives:
+    type: array
+    description: Directives linked to the rule
+    items:
+      type: string
+      description: "Directive id"
+  targets:
+    type: array
+    description: Groups linked to the rule
+    items:
+      type: string
+      description: "Group id"
+  enabled:
+    type: boolean
+    description: Is the rule enabled
+    example: true
+  system:
+    type: boolean
+    description: If true it is an internal Rudder rule
+    example: false
+  tags:
+    type: array
+    items:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Value of the `name` key
+          example: value
+      example:
+        customer: MyCompany

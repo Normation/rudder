@@ -1,0 +1,49 @@
+post:
+  summary: Check that update on a directive is valid
+  description: Check that update on a directive is valid
+  operationId: checkDirective
+  requestBody:
+    required: true
+    content:
+      application/x-www-form-urlencoded:
+        schema:
+          # FIXME add techniqueVersion
+          $ref: ../../components/schemas/directive.yml
+  responses:
+    "200":
+      description: Directives information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - checkDirective
+              data:
+                type: object
+                required:
+                  - directives
+                properties:
+                  directives:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/directive.yml
+  tags:
+    - Directives
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/directives/check.sh

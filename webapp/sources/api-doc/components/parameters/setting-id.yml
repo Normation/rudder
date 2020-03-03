@@ -1,0 +1,7 @@
+name: "settingId"
+in: path
+required: true
+description: Id of the setting to set
+schema:
+  type: string
+  example: global_policy_mode

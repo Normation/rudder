@@ -1,0 +1,7 @@
+name: datasourceId
+in: path
+required: true
+description: Id of the data source
+schema:
+  type: string
+  example: "test-data-source"

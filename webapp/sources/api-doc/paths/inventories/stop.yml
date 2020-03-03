@@ -1,0 +1,36 @@
+post:
+  summary: Stop inventory watcher
+  description: Stop the inventory watcher if necessary
+  operationId: fileWatcherStop
+  responses:
+    "200":
+      description: Stopped
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - fileWatcherStop
+              data:
+                type: string
+                example: "Incoming inventory watcher stopped"
+  tags:
+    - Inventories
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/inventories/stop.sh

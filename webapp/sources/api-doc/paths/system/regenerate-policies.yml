@@ -1,0 +1,42 @@
+post:
+  summary: Trigger a new policy generation
+  description: Trigger a full policy generation
+  operationId: regeneratePolicies
+  responses:
+    "200":
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - regeneratePolicies
+              data:
+                type: object
+                required:
+                  - policies
+                properties:
+                  policies:
+                    type: string
+                    enum:
+                      - Started
+  tags:
+    - System
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/system/regenerate-policies.sh

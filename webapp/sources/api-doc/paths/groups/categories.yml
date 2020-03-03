@@ -1,0 +1,48 @@
+put:
+  summary: Create a group category
+  description: Create a new group category
+  operationId: CreateGroupCategory
+  requestBody:
+    required: true
+    content:
+      application/x-www-form-urlencoded:
+        schema:
+          $ref: ../../components/schemas/group-category.yml
+  responses:
+    "200":
+      description: Groups category information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - CreateGroupCategory
+              data:
+                type: object
+                required:
+                  - groupCategories
+                properties:
+                  groupCategories:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/group-category.yml
+  tags:
+    - Groups
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/groups/category-id-new.sh

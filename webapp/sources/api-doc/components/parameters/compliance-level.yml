@@ -1,0 +1,7 @@
+name: "level"
+in: query
+schema:
+  type: integer
+  example: 4
+  default: 10
+description: Number of depth level of compliance objects to display (1:rules, 2:directives, 3:components, 4:nodes, 5:values, 6:reports)

@@ -1,0 +1,58 @@
+delete:
+  summary: Accept a request details
+  description: Accept a change request
+  operationId: acceptChangeRequest
+  parameters:
+    - $ref: ../../components/parameters/change-request-id.yml
+  requestBody:
+    required: true
+    content:
+      application/x-www-form-urlencoded:
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              description: New status of the change request
+              enum:
+                - pending deployment
+                - deployed
+              example: deployed
+  responses:
+    "200":
+      description: Change requests information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - acceptChangeRequest
+              data:
+                type: object
+                required:
+                  - rules
+                properties:
+                  rules:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/change-request.yml
+  tags:
+    - 🧩 Change requests
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/change-requests/accept.sh

@@ -1,0 +1,36 @@
+post:
+  summary: Update properties from data sources
+  description: Update properties from all data source on all nodes. The call is asynchronous.
+  operationId: ReloadAllDatasourcesAllNodes
+  responses:
+    "200":
+      description: Data source reloaded
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - ReloadAllDatasourcesAllNodes
+              data:
+                type: string
+                example: Data for all nodes, for all configured data sources are going to be updated
+  tags:
+    - "🧩 Data sources"
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/datasources/reload.sh

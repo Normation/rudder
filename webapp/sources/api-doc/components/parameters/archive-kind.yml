@@ -1,0 +1,12 @@
+name: "archiveKind"
+in: path
+required: true
+schema:
+  type: string
+  enum:
+    - full
+    - groups
+    - rules
+    - directives
+  example: full
+description: Type of archive to make

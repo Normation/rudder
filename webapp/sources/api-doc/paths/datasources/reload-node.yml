@@ -1,0 +1,38 @@
+post:
+  summary: Update properties for one node from all data sources
+  description: Update properties from all data sources on one nodes. The call is asynchronous.
+  operationId: ReloadAllDatasourcesOneNode
+  parameters:
+    - $ref: ../../components/parameters/node-id.yml
+  responses:
+    "200":
+      description: Data sources reloaded
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - ReloadAllDatasourcesOneNode
+              data:
+                type: string
+                example: Data for node '4e3336f9-ace8-44d6-8d07-496ff1631b01', for all configured data sources, is going to be updated
+  tags:
+    - "🧩 Data sources"
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/datasources/reload-node.sh

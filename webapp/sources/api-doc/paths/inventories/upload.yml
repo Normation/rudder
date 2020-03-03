@@ -1,0 +1,48 @@
+post:
+  summary: Upload an inventory for processing
+  description: Upload an inventory to the web application
+  operationId: uploadInventory
+  requestBody:
+    content:
+      multipart/form-data:
+        schema:
+          type: object
+          properties:
+            file:
+              type: string
+              format: binary
+            signature:
+              type: string
+              format: binary
+  responses:
+    "200":
+      description: Inventory uploaded
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - uploadInventory
+              data:
+                type: string
+                example: Inventory 'file.xml' for Node 'c1bab9fc-bcf6-4d59-a397-84c8e2fc06c0' added to processing queue.
+  tags:
+    - Inventories
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/inventories/upload.sh

@@ -1,0 +1,121 @@
+## same as directive-new without source
+type: object
+properties:
+  id:
+    type: string
+    format: uuid
+    example: 91252ea2-feb2-412d-8599-c6945fee02c4
+    description: Directive id
+  displayName:
+    type: string
+    example: 91252ea2-feb2-412d-8599-c6945fee02c4
+    description: Human readable name of the directive
+  shortDescription:
+    type: string
+    example: 91252ea2-feb2-412d-8599-c6945fee02c4
+    description: One line directive description
+  longDescription:
+    type: string
+    format: markdown
+    example: >-
+      # Documentation
+
+      * [Ticket link](https://tickets.example.com/issues/3456)
+    description: Description of the technique (rendered as markdown)
+  techniqueName:
+    type: string
+    example: userManagement
+    description: Directive id
+  techniqueVersion:
+    type: string
+    example: "8.0"
+    description: Directive id
+  priority:
+    type: integer
+    description: Directive priority. `0` has highest priority.
+    example: 5
+    minimum: 0
+    maximum: 10
+  enabled:
+    type: boolean
+    example: true
+    description: Is the directive enabled
+  system:
+    type: boolean
+    description: If true it is an internal Rudder directive
+    example: false
+  tags:
+    type: array
+    items:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Value of the `name` key
+          example: value
+      example:
+        customer: MyCompany
+  parameters:
+    type: object
+    description: Directive parameters (depends on the source technique)
+    example:
+      name: sections
+      sections:
+        - section:
+            name: File to manage
+            vars:
+              - var:
+                  name: FILE_AND_FOLDER_MANAGEMENT_ACTION
+                  value: copy
+              - var:
+                  name: FILE_AND_FOLDER_MANAGEMENT_SOURCE
+                  value: "/vagrant/node.sh"
+              - var:
+                  name: FILE_AND_FOLDER_MANAGEMENT_SYMLINK_ENFORCE
+                  value: "false"
+            sections:
+              - section:
+                  name: File
+                  vars:
+                    - var:
+                        name: FILE_AND_FOLDER_MANAGEMENT_PATH
+                        value: "/root/test"
+              - section:
+                  name: File cleaning options
+                  vars:
+                    - var:
+                        name: FILE_AND_FOLDER_DELETION_DAYS
+                        value: "0"
+                    - var:
+                        name: FILE_AND_FOLDER_DELETION_OPTION
+                        value: none
+                    - var:
+                        name: FILE_AND_FOLDER_DELETION_PATTERN
+                        value: ".*"
+              - section:
+                  name: Permissions
+                  vars:
+                    - var:
+                        name: FILE_AND_FOLDER_MANAGEMENT_CHECK_PERMISSIONS
+                        value: "false"
+                    - var:
+                        name: FILE_AND_FOLDER_MANAGEMENT_GROUP
+                        value: ""
+                    - var:
+                        name: FILE_AND_FOLDER_MANAGEMENT_OWNER
+                        value: ""
+                    - var:
+                        name: FILE_AND_FOLDER_MANAGEMENT_PERM
+                        value: "000"
+                    - var:
+                        name: FILE_AND_FOLDER_MANAGEMENT_RECURSIVE
+                        value: "1"
+              - section:
+                  name: Post-modification hook
+                  vars:
+                    - var:
+                        name: FILE_AND_FOLDER_MANAGEMENT_POST_HOOK_COMMAND
+                        value: ""
+                    - var:
+                        name: FILE_AND_FOLDER_MANAGEMENT_POST_HOOK_RUN
+                        value: "false"

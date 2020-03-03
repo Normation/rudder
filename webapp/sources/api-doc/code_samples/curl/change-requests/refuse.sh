@@ -1,0 +1,1 @@
+curl --header "X-API-Token: yourToken" --request DELETE https://rudder.example.com/rudder/api/latest/changeRequests/43

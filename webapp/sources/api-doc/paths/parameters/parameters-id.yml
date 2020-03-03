@@ -1,0 +1,180 @@
+get:
+  summary: Get the value of a parameter
+  description: Get the current value of a given parameter
+  operationId: parameterDetails
+  parameters:
+    - $ref: ../../components/parameters/parameter-id.yml
+  responses:
+    "200":
+      description: Settings
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+              - id
+            properties:
+              id:
+                type: string
+                description: Id of the parameter
+                example: rudder_file_edit_footer
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - parameterDetails
+              data:
+                type: object
+                description: Parameters
+                required:
+                  - parameters
+                properties:
+                  parameters:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/parameter.yml
+  tags:
+    - Parameters
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/parameters/get-parameter.sh
+post:
+  summary: Update a parameter's value
+  description: Update the properties of a parameter
+  operationId: updateParameter
+  parameters:
+    - $ref: ../../components/parameters/parameter-id.yml
+  responses:
+    "200":
+      description: Settings
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+              - id
+            properties:
+              id:
+                type: string
+                description: Id of the parameter
+                example: rudder_file_edit_footer
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - updateParameter
+              data:
+                type: object
+                description: Parameters
+                required:
+                  - parameters
+                properties:
+                  parameters:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/parameter.yml
+  tags:
+    - Parameters
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/parameters/modify-parameter.sh
+delete:
+  summary: Delete a parameter
+  description: Delete an existing parameter
+  operationId: deleteParameter
+  parameters:
+    - $ref: ../../components/parameters/parameter-id.yml
+  responses:
+    "500":
+      description: Non existing parameter
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+              - id
+            properties:
+              id:
+                type: string
+                description: Id of the parameter
+                example: rudder_file_edit_footer
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - deleteParameter
+              errorDetails:
+                type: string
+                example: "Could not delete Parameter rudder_file_edit_footer cause is: Could not find Parameter rudder_file_edit_footer."
+
+    "200":
+      description: Settings
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+              - id
+            properties:
+              id:
+                type: string
+                description: Id of the parameter
+                example: rudder_file_edit_footer
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - deleteParameter
+              data:
+                type: object
+                description: Parameters
+                required:
+                  - parameters
+                properties:
+                  parameters:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/parameter.yml
+  tags:
+    - Parameters
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/parameters/delete-parameter.sh
