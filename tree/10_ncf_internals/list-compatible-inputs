@@ -12,7 +12,7 @@ then
 fi
 
 # add a default path since it is emptied by cfengine, and busybox for android
-PATH="/sbin:/bin:/usr/sbin:/usr/bin:/usr/locan/sbin:/usr/local/bin:/system/xbin:${PATH}"
+PATH="/usr/gnu/bin:/usr/gnu/x86_64-pc-solaris2.11/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin:/system/xbin:${PATH}"
 export PATH
 
 # tag matching
