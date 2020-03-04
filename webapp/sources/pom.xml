@@ -396,7 +396,7 @@ limitations under the License.
     <http4s-version>0.21.0-M6</http4s-version>
     <shapeless-version>2.3.3</shapeless-version>
     <cats-effect-version>2.0.0</cats-effect-version>
-    <dev-zio-version>1.0.0-RC17+281-0351fa8d-SNAPSHOT</dev-zio-version>
+    <dev-zio-version>1.0.0-RC18</dev-zio-version>
     <zio-cats-version>2.0.0.0-RC10</zio-cats-version>
 
     <!--
