@@ -216,18 +216,25 @@ object FillTemplateThreadUnsafe {
                       }.untraced
                     }
                   }.untraced
+      // set the ST Variable for RudderUniqueID
+      _         = replaceId match {
+                       case None => // nothing
+                       case Some((from, to)) =>
+                          val variable = STVariable(from, true, ArraySeq(to), true)
+                         template.setAttribute(variable.name, variable.values.unsafeArray)
+                   }
       t1        <- currentTimeNanos
       _         <- timer.fill.update(_ + t1 - t0)
      //return the actual template with replaced variable in case of success
-     string     <- IOResult.effectNonBlocking("An error occured when converting template to string")(template.toString())
+     policy     <- IOResult.effectNonBlocking("An error occured when converting template to string")(template.toString())
                    // if the technique is multipolicy, replace rudderTag by reportId
      result     =  replaceId match {
-                       case None => (string, templateName)
+                       case None => (policy, templateName)
                        case Some((from, to)) =>
                          // this is done quite heavely on big instances, with string rather big, and the performance of
                          // StringUtils.replace ix x4 the one of String.replace (no regex), see:
                          // https://stackoverflow.com/questions/16228992/commons-lang-stringutils-replace-performance-vs-string-replace/19163566
-                         (StringUtils.replace(string, from, to), StringUtils.replace(templateName, from , to))
+                         (policy, StringUtils.replace(templateName, from , to))
                      }
       t2        <- currentTimeNanos
       delta     =  t2 - t1
