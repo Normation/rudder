@@ -1,0 +1,20 @@
+get:
+  summary: Download policies
+  description: Downloads an archive containing the policies to apply to the given node
+  operationId: getDscPolicies
+  parameters:
+    - $ref: "../components/parameters/node-id.yml"
+  responses:
+    "200":
+      description: File content
+      content:
+        application/zip:
+          schema:
+            type: string
+            format: binary
+  tags:
+    - Policies
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../code_samples/curl/policies/dsc.sh

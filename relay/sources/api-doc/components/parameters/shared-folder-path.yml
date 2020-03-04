@@ -1,0 +1,10 @@
+name: path
+in: path
+description: >-
+  Path of the file to download (relative to the shared-folder
+  directory, `/var/rudder/configuration-repository/shared-files`)
+required: true
+example: myapplication/configuration.ini
+schema:
+  type: string
+  format: path

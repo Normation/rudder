@@ -1,0 +1,15 @@
+post:
+  summary: Trigger agent run on all the remote nodes
+  description: "Trigger the agent on all of the managed nodes (if port `5309` is open to the node). **WARNING**: When running the agent, the `/tmp` folder may not be the global one but a private one, specific to the relay service. You should not rely on `/tmp` content in your policies but use `/var/rudder/tmp` instead."
+  operationId: remoteRunAll
+  requestBody:
+    $ref: "../../components/requestBodies/remote-run.yml"
+  responses:
+    200:
+      $ref: "../../components/responses/agent-output.yml"
+  tags:
+    - Remote run
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/remote-run/all.sh

@@ -1,0 +1,52 @@
+openapi: 3.0.3
+info:
+  title: Rudder relay API
+  version: "1"
+  description: introduction.yml
+  x-logo:
+    url: "assets/rudder.png"
+  contact:
+    email: dev@rudder.io
+    name: Rudder developers
+    url: "https://www.rudder.io"
+  license:
+    name: "CC-BY-SA 2.0"
+    url: "https://spdx.org/licenses/CC-BY-SA-2.0.html"
+servers:
+  - url: "http://localhost:3030/rudder/relay-api/1/"
+    description: "Local API"
+  - url: "https://rudder.example.local/rudder/relay-api/"
+    description: "Public API (does not include the `System` API)"
+externalDocs:
+  description: Learn more about Rudder.
+  url: "https://docs.rudder.io"
+tags:
+  - name: System
+    description: Internal relay service management
+  - name: Policies
+    description: Policies distributed by the relay
+  - name: Shared folder
+    description: Distribute file from the shared folder
+  - name: Shared files
+    description: Share files between nodes
+  - name: Remote run
+    description: Trigger agents runs
+paths:
+  "/system/status":
+    $ref: paths/system/status.yml
+  "/system/info":
+    $ref: paths/system/info.yml
+  "/system/reload":
+    $ref: paths/system/reload.yml
+  "/shared-folder/{path}":
+    $ref: paths/shared-folder.yml
+  "/shared-files/{targetNodeId}/{sourceNodeId}/{fileId}":
+    $ref: paths/shared-files.yml
+  "/policies/{nodeId}/rules/dsc/rudder.zip":
+    $ref: paths/policies.yml
+  "/relay-api/remote-run/nodes/{nodeId}":
+    $ref: paths/remote-run/node.yml
+  "/relay-api/remote-run/nodes":
+    $ref: paths/remote-run/nodes.yml
+  "/relay-api/remote-run/nodes/all":
+    $ref: paths/remote-run/all.yml

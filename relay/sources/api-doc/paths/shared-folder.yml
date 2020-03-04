@@ -1,0 +1,58 @@
+head:
+  summary: Get the state a file from the shared folder
+  description: >-
+    Get the state of a given file from the the shared folder of the policy
+    server, typically to check if it needs to be updated. Note that contrary
+    to what you could expect, the `Content-Length` and `Content-Type`
+    headers will not match what you would get with a *GET* call on the same
+    file.
+  operationId: headSharedFolder
+  parameters:
+    - $ref: "../components/parameters/shared-folder-path.yml"
+    - name: "hash"
+      in: query
+      description: Hash of the target file (hexadecimal string)
+      example: "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+      schema:
+        type: string
+        format: hexadecimal
+    - name: hash_type
+      in: query
+      description: "Hash algorithm to use"
+      schema:
+        type: string
+        enum:
+          - sha256
+          - sha512
+        default: sha256
+  responses:
+    "200":
+      description: >-
+        The file exists but does not match the hash (or the hash is not
+        provided)
+    "304":
+      description: The file exists and content matched the provided hash
+    "404":
+      description: The file does not exist
+  tags:
+    - Shared folder
+get:
+  summary: Download a file from the shared folder
+  description: Downloads a given file from the the shared folder of the policy server
+  operationId: getSharedFolder
+  parameters:
+    - $ref: "../components/parameters/shared-folder-path.yml"
+  responses:
+    "200":
+      description: File content
+      content:
+        application/binary:
+          schema:
+            type: string
+            format: binary
+  tags:
+    - Shared folder
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../code_samples/curl/shared-folder/get.sh

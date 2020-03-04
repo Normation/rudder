@@ -1,0 +1,118 @@
+head:
+  summary: Get the state a file in the shared files
+  description: >-
+    Get the state of a given file from the the shared files of the policy
+    server, typically to check if it needs to be sent. Note that contrary
+    to what you could expect, the `Content-Length` and `Content-Type`
+    headers will not match what you would get with a *GET* call on the same
+    file.
+  operationId: headSharedFiles
+  parameters:
+    - $ref: "../components/parameters/source-node-id.yml"
+    - $ref: "../components/parameters/target-node-id.yml"
+    - $ref: "../components/parameters/file-id.yml"
+    - name: "hash"
+      in: query
+      required: true
+      description: Hash of the target file (hexadecimal string)
+      example: "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+      schema:
+        type: string
+        format: hexadecimal
+  responses:
+    "200":
+      description: >-
+        The file exists but does not match the hash (or the hash is not
+        provided)
+    "304":
+      description: The file exists and content matched the provided hash
+    "404":
+      description: The file does not exist
+  tags:
+    - Shared files
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../code_samples/curl/shared-files/head.sh
+put:
+  summary: Upload a shared file
+  description: >-
+    Shares a file, along with metadata and a ttl. The request body is a the
+    concatenation of the metadata (containing the signature) with the file content,
+    separated by an empty line. The receiving relay will either directly share it
+    if the target node is a sub node, or forward the request to the appropriate
+    relay (sub relay or upstream depending if it is under the current relay or not).
+  operationId: putSharedFiles
+  parameters:
+    - $ref: "../components/parameters/source-node-id.yml"
+    - $ref: "../components/parameters/target-node-id.yml"
+    - $ref: "../components/parameters/file-id.yml"
+    - name: "ttl"
+      required: true
+      in: "query"
+      example: "1d"
+      schema:
+        type: string
+        description: "TTL of the file, can be a number of seconds or a duration (in the `1d 2h 3m 4s`, `1d`, `1 day`, `3 hours`, etc.) form"
+        format: "duration"
+  requestBody:
+    description: "The file to share with its metadata"
+    required: true
+    content:
+      text/plain:
+        schema:
+          type: object
+          properties:
+            header:
+              description: "Version of the metadata"
+              enum:
+                - "rudder-signature-v1"
+              example: "rudder-signature-v1"
+            algorithm:
+              description: "Hash algorithm used in signature"
+              enum:
+                - "sha256"
+                - "sha512"
+              example: "sha256"
+            digest:
+              description: "Signature of the uploaded file"
+              example: "9ae39f50bbbd3a[...]2e529a1be61"
+            hash_value:
+              description: "Hash of the file (using the given algorithm)"
+              example: "c22a3fb1e9de4bfa697ba258f60f14339b72c3faeb043cb75379b9ebcb2717c3"
+            short_pubkey:
+              description: "Public key of the node (PEM without begin and end markers)"
+              example: "MIICCgKCAgE[...]l7fmZ8CAwEAAQ=="
+            hostname:
+              description: "Hostname of source node"
+              example: "node.example.com"
+            keydate:
+              description: "Formatted date, `yyyy-mm-dd HH:mm:ss.ms +XXXX` where `XXXX` stands for the four timezone digits, according to RFC 822."
+              example: "2020-01-24 12:17:59.014153459 +0100"
+            keyid:
+              description: "Public key identifier (last 4 bytes of the modulus)"
+              example: "B85B4E8F"
+          required:
+            - header
+            - algorithm
+            - digest
+            - hash_value
+            - short_pubkey
+            - hostname
+            - keydate
+            - keyid
+      application/binary:
+        schema:
+          type: string
+          format: binary
+  responses:
+    "200":
+      description: >-
+        The file exists but does not match the hash (or the hash is not
+        provided)
+    "304":
+      description: The file exists and content matched the provided hash
+    "404":
+      description: The file does not exist
+  tags:
+    - Shared files

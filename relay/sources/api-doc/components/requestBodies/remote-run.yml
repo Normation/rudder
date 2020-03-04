@@ -1,0 +1,27 @@
+content:
+  application/x-www-form-urlencoded:
+    schema:
+      type: object
+      properties:
+        asynchronous:
+          description: Return early or wait for the end of the agent run
+          type: boolean
+          default: false
+        keep_output:
+          type: boolean
+          description: Forward agent output
+          default: false
+        conditions:
+          type: string
+          description: "Conditions passed as parameter to make it available during agent run, separated by a comma, each condition must match `^[a-zA-Z0-9][a-zA-Z0-9_]*$`"
+          default: ""
+          example: "trigger_backup,force_inventory"
+          format: comma-separated conditions
+        classes:
+          type: string
+          description: Deprecated alias for `conditions`
+        nodes:
+          type: string
+          description: Nodes to trigger run on, used only when calling `/nodes`
+          format: "comma separated node ids"
+          example: "root,4ac35ef0-582d-468d-8c95-cd3f2ee333f9"

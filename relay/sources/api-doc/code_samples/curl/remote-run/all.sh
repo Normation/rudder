@@ -1,0 +1,1 @@
+curl --request POST https://rudder.example.com/rudder/relay-api/remote-run/all --data keep_output=true
