@@ -1,0 +1,98 @@
+get:
+  summary: Compliance details for all nodes
+  description: Get current compliance of all the nodes of a Rudder server
+  operationId: getNodesCompliance
+  parameters:
+    - $ref: ../../components/parameters/compliance-level.yml
+  responses:
+    "200":
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+                example: success
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getNodesCompliance
+              data:
+                type: object
+                required:
+                  - nodes
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - mode
+                        - compliance
+                        - complianceDetails
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          description: id of the node
+                          example: f37f4928-fcb5-4acf-a422-d40f123a9670
+                        mode:
+                          type: string
+                          enum:
+                            - full-compliance
+                            - changes-only
+                            - reports-disabled
+                        compliance:
+                          type: number
+                          format: float
+                          description: Rule compliance level
+                          example: 57.43
+                        complianceDetails:
+                          type: object
+                          properties:
+                            successAlreadyOK:
+                              type: number
+                              format: float
+                              example: 48.68
+                            noReport:
+                              type: number
+                              format: float
+                              example: 36.18
+                            successNotApplicable:
+                              type: number
+                              format: float
+                              example: 5.92
+                            unexpectedMissingComponent:
+                              type: number
+                              format: float
+                              example: 2.63
+                            error:
+                              type: number
+                              format: float
+                              example: 1.32
+                            unexpectedUnknownComponent:
+                              type: number
+                              format: float
+                              example: 2.63
+                            successRepaired:
+                              type: number
+                              format: float
+                              example: 2.63
+  tags:
+    - Compliance
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/compliance/nodes.sh

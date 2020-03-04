@@ -1,0 +1,1 @@
+curl --header "X-API-Token: yourToken" --request POST https://rudder.example.com/rudder/api/latest/changeRequests/42  --data "name=new Name of change request" -d "description=add a new description"

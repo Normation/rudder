@@ -1,0 +1,80 @@
+get:
+  summary: Global compliance
+  description: Get current global compliance of a Rudder server
+  operationId: getGlobalCompliance
+  responses:
+    "200":
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+                example: success
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getGlobalCompliance
+              data:
+                type: object
+                required:
+                  - globalCompliance
+                properties:
+                  globalCompliance:
+                    type: object
+                    required:
+                      - compliance
+                    properties:
+                      compliance:
+                        type: number
+                        format: integer
+                        description: Global compliance level (`-1` when no policies are defined)
+                        example: 57
+                      complianceDetails:
+                        type: object
+                        properties:
+                          successAlreadyOK:
+                            type: number
+                            format: float
+                            example: 48.68
+                          noReport:
+                            type: number
+                            format: float
+                            example: 36.18
+                          successNotApplicable:
+                            type: number
+                            format: float
+                            example: 5.92
+                          unexpectedMissingComponent:
+                            type: number
+                            format: float
+                            example: 2.63
+                          error:
+                            type: number
+                            format: float
+                            example: 1.32
+                          unexpectedUnknownComponent:
+                            type: number
+                            format: float
+                            example: 2.63
+                          successRepaired:
+                            type: number
+                            format: float
+                            example: 2.63
+  tags:
+    - Compliance
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/compliance/global.sh

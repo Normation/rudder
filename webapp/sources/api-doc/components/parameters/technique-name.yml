@@ -1,0 +1,8 @@
+name: techniqueName
+in: path
+description: Technique name
+required: true
+schema:
+  type: string
+  example: userManagement
+  description: Technique name

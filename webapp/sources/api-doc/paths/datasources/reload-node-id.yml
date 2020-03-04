@@ -1,0 +1,39 @@
+post:
+  summary: Update properties for one node from a data source
+  description: Update properties from a data source on one nodes. The call is asynchronous.
+  operationId: ReloadOneDatasourceOneNode
+  parameters:
+    - $ref: ../../components/parameters/node-id.yml
+    - $ref: ../../components/parameters/datasource-id.yml
+  responses:
+    "200":
+      description: Data sources reloaded
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - ReloadOneDatasourceOneNode
+              data:
+                type: string
+                example: Data for node '4e3336f9-ace8-44d6-8d07-496ff1631b01', for ' test-data-source' data source, is going to be updated
+  tags:
+    - "🧩 Data sources"
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/datasources/reload-node-id.sh

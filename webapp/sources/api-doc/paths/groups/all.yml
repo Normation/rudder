@@ -1,0 +1,89 @@
+get:
+  summary: List all groups
+  description: List all groups
+  operationId: listGroups
+  responses:
+    "200":
+      description: Groups information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - listGroups
+              data:
+                type: object
+                required:
+                  - groups
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/group.yml
+  tags:
+    - Groups
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/groups/all.sh
+put:
+  summary: Create a group
+  description: Create a new group based in provided parameters
+  operationId: createGroup
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: ../../components/schemas/group.yml
+  responses:
+    "200":
+      description: Group information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - createGroup
+              data:
+                type: object
+                required:
+                  - groups
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/group-new.yml
+  tags:
+    - Groups
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/groups/create.sh

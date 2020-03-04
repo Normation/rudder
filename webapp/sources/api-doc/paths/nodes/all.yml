@@ -1,0 +1,52 @@
+get:
+  summary: List managed nodes
+  description: Get information about the nodes managed by the target server
+  operationId: listAcceptedNodes
+  parameters:
+    - $ref: ../../components/parameters/include.yml
+    - $ref: ../../components/parameters/node-query.yml
+    - $ref: ../../components/parameters/node-where.yml
+    - $ref: ../../components/parameters/node-composition.yml
+    - $ref: ../../components/parameters/node-select.yml
+  responses:
+    "200":
+      description: Nodes
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - listAcceptedNodes
+              data:
+                type: object
+                description: Information about the nodes
+                required:
+                  - nodes
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/node-full.yml
+  tags:
+    - Nodes
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/nodes/all.sh
+    - lang: python
+      source:
+        $ref: ../../code_samples/python/nodes/all.py

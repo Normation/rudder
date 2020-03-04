@@ -1,0 +1,44 @@
+post:
+  summary: Reload a group
+  description: Recompute the content of a group
+  operationId: reloadGroup
+  parameters:
+    - $ref: ../../components/parameters/group-id.yml
+  responses:
+    "200":
+      description: Groups information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - reloadGroup
+              data:
+                type: object
+                required:
+                  - groups
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/group.yml
+  tags:
+    - Groups
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/groups/reload.sh

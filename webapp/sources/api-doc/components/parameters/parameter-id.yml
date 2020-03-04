@@ -1,0 +1,7 @@
+name: "parameterId"
+in: path
+required: true
+description: Id of the parameter to manage
+schema:
+  type: string
+  example: rudder_file_edit_header

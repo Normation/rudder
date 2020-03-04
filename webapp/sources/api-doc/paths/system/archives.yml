@@ -1,0 +1,124 @@
+get:
+  summary: List archives
+  description: List configuration archives
+  operationId: listArchives
+  parameters:
+    - $ref: ../../components/parameters/archive-kind.yml
+  responses:
+    "200":
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The kind of the archive
+                enum:
+                  - archiveFull
+                  - archiveGroups
+                  - archiveRules
+                  - archiveDirectives
+                example: archiveFull
+              data:
+                type: object
+                required:
+                  - full
+                properties:
+                  full:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - commiter
+                        - gitCommit
+                        - id
+                      properties:
+                        commiter:
+                          type: string
+                          example: Rudder system account
+                        gitCommit:
+                          type: string
+                          format: hash
+                          example: 546de1b211ecc5b7ca295abac2191bc6bb05d44e
+                        id:
+                          type: string
+                          example: "2019-09-17_16-06-15.255"
+  tags:
+    - System
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/system/list-archives.sh
+post:
+  summary: Create an archive
+  description: Create new archive of the given kind
+  operationId: createArchive
+  parameters:
+    - $ref: ../../components/parameters/archive-kind.yml
+  responses:
+    "200":
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The kind of the archive
+                enum:
+                  - archiveFull
+                  - archiveGroups
+                  - archiveRules
+                  - archiveDirectives
+                example: archiveFull
+              data:
+                type: object
+                required:
+                  - full
+                properties:
+                  full:
+                    type: object
+                    required:
+                      - commiter
+                      - gitCommit
+                      - id
+                    properties:
+                      commiter:
+                        type: string
+                        example: Rudder system account
+                      gitCommit:
+                        type: string
+                        format: hash
+                        example: 546de1b211ecc5b7ca295abac2191bc6bb05d44e
+                      id:
+                        type: string
+                        example: "2019-09-17_16-06-15.255"
+  tags:
+    - System
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/system/create-archive.sh

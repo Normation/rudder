@@ -1,0 +1,46 @@
+get:
+  summary: List all directives based on a version of a technique
+  description: List all directives based on a version of a technique
+  # FIXME same as name.yml
+  operationId: listTechniqueVersionDirectives
+  parameters:
+    - $ref: ../../components/parameters/technique-name.yml
+    - $ref: ../../components/parameters/technique-version.yml
+  responses:
+    "200":
+      description: Techniques information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - listTechniqueDirectives
+              data:
+                type: object
+                required:
+                  - directives
+                properties:
+                  directives:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/directive.yml
+  tags:
+    - Techniques
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/techniques/name-version.sh

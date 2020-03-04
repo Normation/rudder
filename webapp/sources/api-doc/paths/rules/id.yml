@@ -1,0 +1,138 @@
+get:
+  summary: Get a rule details
+  description: Get the details of a rule
+  operationId: ruleDetails
+  parameters:
+    - $ref: ../../components/parameters/rule-id.yml
+  responses:
+    "200":
+      description: Rules information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - ruleDetails
+              data:
+                type: object
+                required:
+                  - rules
+                properties:
+                  rules:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/rule.yml
+  tags:
+    - Rules
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/rules/get.sh
+post:
+  summary: Update a rule details
+  description: Update the details of a rule
+  operationId: updateRule
+  parameters:
+    - $ref: ../../components/parameters/rule-id.yml
+  requestBody:
+    required: true
+    content:
+      application/x-www-form-urlencoded:
+        schema:
+          $ref: ../../components/schemas/rule.yml
+  responses:
+    "200":
+      description: Rules information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - updateRule
+              data:
+                type: object
+                required:
+                  - rules
+                properties:
+                  rules:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/rule.yml
+  tags:
+    - Rules
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/rules/update.sh
+delete:
+  summary: Delete a rule
+  description: Delete a rule.
+  operationId: deleteRule
+  parameters:
+    - $ref: ../../components/parameters/rule-id.yml
+  responses:
+    "200":
+      description: Rules information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - deleteRule
+              data:
+                type: object
+                required:
+                  - rules
+                properties:
+                  rules:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/rule.yml
+  tags:
+    - Rules
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/rules/delete.sh

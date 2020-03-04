@@ -1,0 +1,1 @@
+curl --header "X-API-Token: yourToken" --request POST https://rudder.example.com/rudder/api/latest/settings/global_policy_mode_overridable --data "value=true"

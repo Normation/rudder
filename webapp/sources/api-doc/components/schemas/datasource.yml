@@ -1,0 +1,105 @@
+type: object
+properties:
+  id:
+    type: string
+    description: Unique identifier of the data source to create.
+    example: test-data-source
+  name:
+    type: string
+    description: The human readable name of the data source to create.
+    example: Test data source
+  description:
+    type: string
+    description: Description of the goal of the data source to create.
+    example: "Synchronize example data from the CMDB"
+  enabled:
+    type: boolean
+    description: Enable or disable data source.
+    example: true
+  updateTimeout:
+    type: integer
+    description: Duration in seconds before aborting data source update. The main goal is to prevent never ending requests. If a periodicity if configured, you should set that timeout at a lower value.
+    example: 30
+  runParameters:
+    type: object
+    description: Parameters to configure when the data source is fetched to update node properties.
+    properties:
+      onGeneration:
+        type: boolean
+        example: true
+        description: Trigger a fetch at the beginning of a policy generation
+      onNewNode:
+        type: boolean
+        example: true
+        description: Trigger a fetch when a new node is accepted, for that node
+      schedule:
+        type: object
+        description: Configure if data source should be fetch periodically
+        properties:
+          type:
+            type: string
+            description: "`scheduled` enables periodic update, `notscheduled` disables them"
+            enum:
+              - scheduled
+              - notscheduled
+            example: scheduled
+  type:
+    type: object
+    description: Define and configure data source type.
+    properties:
+      name:
+        type: string
+        description: Data source type name
+        example: HTTP
+        enum:
+          - HTTP
+      parameters:
+        type: object
+        description: You can use Rudder variable expansion (`${rudder.node`, `${node.properties...}`)
+        properties:
+          url:
+            type: string
+            description: URL to contact. Rudder expansion available.
+            example: http://jsonplaceholder.typicode.com/users/1
+          requestMethod:
+            type: string
+            example: GET
+            enum:
+              - GET
+              - POST
+            description: HTTP method to use to contact the URL.
+          headers:
+            type: array
+            description: Represent HTTP headers for the query. Rudder expansion available.
+            items:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: X-API-Key
+                  description: Name of the header
+                value:
+                  type: string
+                  example: 05ce8e3d9df6
+                  description: Value of the header
+          path:
+            type: string
+            description: JSON path (as defined in [the specification](https://github.com/jayway/JsonPath/), without the leading `$.`) to find the interesting sub-json or string/number/boolean value in the answer. Let empty to use the whole answer as value.
+          checkSsl:
+            type: boolean
+            example: true
+            description: Check SSL certificate validity for https. Must be set to false for self-signed certificate
+          requestTimeout:
+            type: integer
+            example: 10
+            description: Timeout in seconds for each HTTP request
+          requestMode:
+            type: object
+            description: Configure the strategy used to query the HTTP data source.
+            properties:
+              name:
+                type: string
+                description: Node by node strategy
+                enum:
+                  - byNode
+                example: byNode

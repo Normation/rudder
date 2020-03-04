@@ -1,0 +1,15 @@
+post:
+  summary: Trigger an agent run
+  description: This API allows to trigger an agent run on the target node. Response is a stream of the actual agent run on the node.
+  operationId: applyNode
+  parameters:
+    - $ref: ../../components/parameters/node-id.yml
+  responses:
+    200:
+      $ref: "../../components/responses/agent-output.yml"
+  tags:
+    - Nodes
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/nodes/id.sh

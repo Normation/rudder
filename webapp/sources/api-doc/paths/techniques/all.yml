@@ -1,0 +1,40 @@
+get:
+  summary: List all techniques
+  description: List all technique with their versions
+  operationId: listTechniques
+  responses:
+    "200":
+      description: Techniques information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - listTechniques
+              data:
+                type: object
+                required:
+                  - techniques
+                properties:
+                  techniques:
+                    $ref: ../../components/schemas/techniques.yml
+  tags:
+    - Techniques
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/techniques/all.sh

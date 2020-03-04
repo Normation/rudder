@@ -1,0 +1,91 @@
+get:
+  summary: List all data sources
+  description: Get the configuration of all present data sources
+  operationId: getAllDataSources
+  responses:
+    "200":
+      description: Data sources information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getAllDataSources
+              data:
+                type: object
+                required:
+                  - datasources
+                properties:
+                  datasources:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/datasource.yml
+  tags:
+    - 🧩 Data sources
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/datasources/all.sh
+put:
+  summary: Create a data source
+  description: Create a new data source
+  operationId: createDataSource
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: ../../components/schemas/datasource.yml
+  responses:
+    "200":
+      description: Created
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - createDataSource
+              data:
+                type: object
+                description: Information about the data sources
+                required:
+                  - datasources
+                properties:
+                  datasources:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/datasource.yml
+
+  tags:
+    - 🧩 Data sources
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/datasources/create.sh

@@ -1,0 +1,58 @@
+post:
+  summary: Update pending Node status
+  description: Accept or refuse a pending node
+  operationId: changePendingNodeStatus
+  parameters:
+    - $ref: ../../components/parameters/node-id.yml
+  requestBody:
+    content:
+      application/x-www-form-urlencoded:
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              description: New status of the pending node
+              enum:
+                - accepted
+                - refused
+              example: accepted
+  responses:
+    "200":
+      description: Nodes
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - changePendingNodeStatus
+              data:
+                type: object
+                description: Information about the node
+                required:
+                  - nodes
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/node-full.yml
+  tags:
+    - Nodes
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/nodes/pending-id.sh

@@ -1,0 +1,47 @@
+post:
+  summary: Reload both techniques and dynamic groups
+  description: Reload both techniques and dynamic groups
+  operationId: reloadAll
+  responses:
+    "200":
+      description: Service reload
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - reloadAll
+              data:
+                type: object
+                required:
+                  - groups
+                  - techniques
+                properties:
+                  groups:
+                    type: string
+                    enum:
+                      - Started
+                  techniques:
+                    type: string
+                    enum:
+                      - Started
+  tags:
+    - System
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/system/reload.sh

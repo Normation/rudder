@@ -1,0 +1,7 @@
+name: select
+in: query
+# FIXME what does this actually mean?
+description: What kind of data we want to include. Here we can get policy servers/relay by setting `nodeAndPolicyServer`. Only used if `where` is defined.
+schema:
+  type: string
+  default: node

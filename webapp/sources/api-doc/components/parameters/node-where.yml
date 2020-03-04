@@ -1,0 +1,28 @@
+name: where
+in: query
+description: The criterion you want to find for your nodes
+content:
+  application/json: # serialized JSON
+    schema:
+      type: array
+      description: List of criteria
+      items:
+        type: object
+        properties:
+          objectType:
+            type: string
+            description: Type of the object
+            example: node
+          attribute:
+            description: Attribute to compare
+            example: OS
+            type: string
+          comparator:
+            description: Comparator to use
+            example: eq
+            # FIXME enum
+            type: string
+          value:
+            type: string
+            example: Linux
+            description: Value to compare against

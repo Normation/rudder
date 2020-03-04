@@ -1,0 +1,167 @@
+openapi: 3.0.3
+info:
+  title: Rudder API
+  version: 11
+  # Will be substituted by content of the file at build
+  description: "introduction.md"
+  x-logo:
+    url: "assets/rudder.png"
+  contact:
+    email: dev@rudder.io
+    name: Rudder developers
+    url: "https://www.rudder.io"
+  license:
+    name: "CC-BY-SA 2.0"
+    url: "https://spdx.org/licenses/CC-BY-SA-2.0.html"
+servers:
+  - url: "https://rudder.example.local/rudder/api/latest/"
+    description: "Rudder server"
+externalDocs:
+  description: "Learn more about Rudder."
+  url: "https://docs.rudder.io"
+components:
+  securitySchemes:
+    $ref: components/securitySchemes/token.yml
+security:
+  # Apply the same auth everywhere
+  - "API tokens": []
+tags:
+  - name: Compliance
+    description: Access compliance data
+  - name: Rules
+    description: Rules management
+  - name: Directives
+    description: Directives management
+  - name: Techniques
+    description: Techniques management
+  - name: Groups
+    description: Groups management
+  - name: Nodes
+    description: Nodes management
+  - name: Inventories
+    description: Inventory processing service
+  - name: Parameters
+    description: Global parameters
+  - name: Settings
+    description: Server configuration
+  - name: System
+    description: Internal components and administration
+  - name: "🧩 Change requests"
+    description: >-
+      **Requires that the `changes-validation` plugin is installed on the server.**
+
+
+      Manage change requests.
+  - name: "🧩 Data sources"
+    description: >-
+      **Requires that the `datasources` plugin is installed on the server.**
+
+
+      Data sources plugin configuration.
+paths:
+  "/changeRequests/{changeRequestId}/accept":
+    $ref: paths/change-requests/accept.yml
+  "/changeRequests/{changeRequestId}":
+    $ref: paths/change-requests/id.yml
+  "/api/changeRequests":
+    $ref: paths/change-requests/all.yml
+  "/compliance":
+    $ref: paths/compliance/global.yml
+  "/compliance/rules":
+    $ref: paths/compliance/rules.yml
+  "/compliance/rules/{ruleId}":
+    $ref: paths/compliance/rule.yml
+  "/compliance/nodes":
+    $ref: paths/compliance/nodes.yml
+  "/compliance/nodes/{nodeId}":
+    $ref: paths/compliance/node.yml
+  "/system/status":
+    $ref: paths/system/status.yml
+  "/system/info":
+    $ref: paths/system/info.yml
+  "/system/reload":
+    $ref: paths/system/reload.yml
+  "/reload/techniques":
+    $ref: paths/system/reload-techniques.yml
+  "/reload/groups":
+    $ref: paths/system/reload-groups.yml
+  "/regenerate/policies":
+    $ref: paths/system/regenerate-policies.yml
+  "/system/update/policies":
+    $ref: paths/system/update-policies.yml
+  "/system/archives/{archiveKind}":
+    $ref: paths/system/archives.yml
+  "/settings":
+    $ref: paths/settings/list.yml
+  "/settings/{settingId}":
+    $ref: paths/settings/setting.yml
+  "/parameters":
+    $ref: paths/parameters/parameters.yml
+  "/parameters/{parameterId}":
+    $ref: paths/parameters/parameters-id.yml
+  "/inventories/info":
+    $ref: paths/inventories/info.yml
+  "/inventories/upload":
+    $ref: paths/inventories/upload.yml
+  "/inventories/watcher/start":
+    $ref: paths/inventories/start.yml
+  "/inventories/watcher/stop":
+    $ref: paths/inventories/stop.yml
+  "/inventories/watcher/restart":
+    $ref: paths/inventories/restart.yml
+  "/datasources":
+    $ref: paths/datasources/all.yml
+  "/datasources/{datasourceId}":
+    $ref: paths/datasources/id.yml
+  "/datasources/reload":
+    $ref: paths/datasources/reload.yml
+  "/datasources/reload/{datasourceId}":
+    $ref: paths/datasources/reload-id.yml
+  "/nodes/{nodeId}/fetchData":
+    $ref: paths/datasources/reload-node.yml
+  "/nodes/{nodeId}/fetchData/{datasourceId}":
+    $ref: paths/datasources/reload-node-id.yml
+  "/nodes":
+    $ref: paths/nodes/all.yml
+  "/nodes/{nodeId}":
+    $ref: paths/nodes/id.yml
+  "/nodes/pending/{nodeId}":
+    $ref: paths/nodes/pending-id.yml
+  "/nodes/applyPolicy":
+    $ref: paths/nodes/apply-policy.yml
+  "/nodes/{nodeId}/applyPolicy":
+    $ref: paths/nodes/apply-policy-id.yml
+  "/techniques":
+    $ref: paths/techniques/all.yml
+  "/techniques/{techniqueName}/directives":
+    $ref: paths/techniques/name.yml
+  "/techniques/{techniqueName}/{techniqueVersion}/directives":
+    $ref: paths/techniques/name-version.yml
+  "/groups":
+    $ref: paths/groups/all.yml
+  "/groups/{groupId}":
+    $ref: paths/groups/id.yml
+  "/groups/{groupId}/reload":
+    $ref: paths/groups/reload.yml
+  "/groups/categories/{groupCategoryId}":
+    $ref: paths/groups/category-id.yml
+  "/groups/categories":
+    $ref: paths/groups/categories.yml
+  "/groups/tree":
+    $ref: paths/groups/tree.yml
+  "/directives":
+    $ref: paths/directives/all.yml
+  "/directives/{directiveId}":
+    $ref: paths/directives/id.yml
+  "/directives/{directiveId}/check":
+    $ref: paths/directives/id-check.yml
+  "/rules":
+    $ref: paths/rules/all.yml
+  "/rules/{ruleId}":
+    $ref: paths/rules/id.yml
+  "/rules/categories":
+    $ref: paths/rules/categories.yml
+  "/rules/categories/{ruleCategoryId}":
+    $ref: paths/rules/category-id.yml
+  "/rules/tree":
+    $ref: paths/rules/tree.yml

@@ -1,0 +1,44 @@
+name: query
+in: query
+description: The criterion you want to find for your nodes. Replaces the `where`, `composition` and `select` parameters in a single parameter.
+content:
+  ## WARNING partially duplicated content from node-where.yml, node-composition.yml and node-select.yml, and also present in groups schema.
+  application/json: # serialized JSON
+    schema:
+      type: object
+      properties:
+        select:
+          description: What kind of data we want to include. Here we can get policy servers/relay by setting `nodeAndPolicyServer`. Only used if `where` is defined.
+          type: string
+          default: node
+        composition:
+          type: string
+          enum:
+            - and
+            - or
+          default: and
+          description: Boolean operator to use between each  `where` criteria.
+          example: and
+        where:
+          type: array
+          description: List of criteria
+          items:
+            type: object
+            properties:
+              objectType:
+                type: string
+                description: Type of the object
+                example: node
+              attribute:
+                description: Attribute to compare
+                example: OS
+                type: string
+              comparator:
+                description: Comparator to use
+                example: eq
+                # FIXME enum
+                type: string
+              value:
+                type: string
+                example: Linux
+                description: Value to compare against

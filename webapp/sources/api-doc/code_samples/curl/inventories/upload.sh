@@ -1,0 +1,1 @@
+curl --request POST --header "X-API-Token: yourToken" https://rudder.example.com/rudder/api/latest/inventories/upload -F "file=@inventory-file" -F "signature=@signature-file"

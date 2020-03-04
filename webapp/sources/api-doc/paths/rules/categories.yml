@@ -1,0 +1,48 @@
+put:
+  summary: Create a rule category
+  description: Create a new rule category
+  operationId: CreateRuleCategory
+  requestBody:
+    required: true
+    content:
+      application/x-www-form-urlencoded:
+        schema:
+          $ref: ../../components/schemas/rule-category.yml
+  responses:
+    "200":
+      description: Rules category information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - CreateRuleCategory
+              data:
+                type: object
+                required:
+                  - ruleCategories
+                properties:
+                  ruleCategories:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/rule-category.yml
+  tags:
+    - Rules
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/rules/category-id-new.sh

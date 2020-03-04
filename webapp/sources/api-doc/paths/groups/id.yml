@@ -1,0 +1,138 @@
+get:
+  summary: Get group details
+  description: Get detailed information about a group
+  operationId: groupDetails
+  parameters:
+    - $ref: ../../components/parameters/group-id.yml
+  responses:
+    "200":
+      description: Groups information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - groupDetails
+              data:
+                type: object
+                required:
+                  - groups
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/group.yml
+  tags:
+    - Groups
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/groups/id.sh
+post:
+  summary: Update group details
+  description: Update detailed information about a group
+  operationId: updateGroup
+  parameters:
+    - $ref: ../../components/parameters/group-id.yml
+  requestBody:
+    required: true
+    content:
+      application/x-www-form-urlencoded:
+        schema:
+          $ref: ../../components/schemas/group-update.yml
+  responses:
+    "200":
+      description: Groups information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - updateGroup
+              data:
+                type: object
+                required:
+                  - groups
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/group.yml
+  tags:
+    - Groups
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/groups/update.sh
+delete:
+  summary: Delete a group
+  description: Update detailed information about a group
+  operationId: deleteGroup
+  parameters:
+    - $ref: ../../components/parameters/group-id.yml
+  responses:
+    "200":
+      description: Groups information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - deleteGroup
+              data:
+                type: object
+                required:
+                  - groups
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/group.yml
+  tags:
+    - Groups
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/groups/delete.sh

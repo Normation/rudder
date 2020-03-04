@@ -1,0 +1,42 @@
+type: object
+description: Content of the change request
+properties:
+  id:
+    type: integer
+    example: 42
+  name:
+    type: string
+    example: "Remove unused security policy"
+  description:
+    type: string
+  status:
+    type: string
+    enum:
+      - Deployed
+      - Pending deployment
+      - Cancelled
+      - Pending validation
+      - Open
+  acceptable:
+    type: boolean
+    example: true
+  created by:
+    type: string
+    example: "Matthieu C."
+  changes:
+    type: object
+    properties:
+      rules:
+        type: array
+        items:
+          type: object
+          properties:
+            action:
+              type: string
+              example: modify Rule
+            #rule:
+            #  allOf:
+            #    $ref: ./rule.yml
+      #directives:
+      #groups:
+      #parameters:
