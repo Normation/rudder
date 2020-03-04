@@ -34,3 +34,17 @@ properties:
       - initializing
       - preparing-eol
     example: enabled
+  agentKey:
+    type: object
+    description: The agent key information
+    properties:
+      status:
+        type: string
+        enum:
+          - "certified"
+          - "undefined"
+        description: Status of certificate verification (reset to `undefined` to trust a new certificate)
+      value:
+        type: string
+        format: PEM
+        description: Certificate (or public key for <6.0 agents) used by the agent

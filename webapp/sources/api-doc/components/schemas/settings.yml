@@ -72,6 +72,17 @@ settings:
     relay_server_synchronize_shared_files:
       type: boolean
       description: If **rsync** is set as a synchronization method, use rsync to synchronize shared files between Rudder server and relays. If false, you'll have to synchronize shared files yourself.
+    rudder_report_protocol_default:
+      type: string
+      enum:
+        - "HTTPS"
+        - SYSLOG
+      example: "HTTPS"
+      description: Default reporting protocol used
+    syslog_protocol_disabled:
+      type: boolean
+      description: Completely disable syslog protocol
+      example: true
     rsyslog_reporting_protocol:
       type: string
       enum:

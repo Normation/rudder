@@ -1,0 +1,1 @@
+curl --head --cert "C:\...\etc\ssl\localhost.cert:Rudder-dsc passphrase" --key "C:\...\etc\ssl\localhost.priv" https://rudder.example.com/rudder/relay-api/shared-folder/myapplication/myfile.conf?hash_type=sha256&hash=181210f8f9c779c26da1d9b2075bde0127302ee0e3fca38c9a83f5b1dd8e5d3b

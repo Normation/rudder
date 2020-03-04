@@ -1,0 +1,48 @@
+get:
+  summary: Get relay information
+  description: Get information about the relay service
+  operationId: getSystemInfo
+  responses:
+    "200":
+      description: Service information
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getSystemInfo
+              data:
+                type: object
+                description: Information about the service
+                required:
+                  - rudder
+                properties:
+                  rudder:
+                    required:
+                      - major-version
+                      - full-version
+                    properties:
+                      major-version:
+                        type: string
+                        example: "6.0"
+                        format: X.Y
+                      full-version:
+                        type: string
+                        example: 6.0.4
+                        format: X.Y.Z
+  tags:
+    - System
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/system/info.sh

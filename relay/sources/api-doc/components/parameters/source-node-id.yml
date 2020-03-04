@@ -1,0 +1,9 @@
+name: sourceNodeId
+in: path
+description: >-
+  Id of the source node
+required: true
+example: "306136b2-69bb-40bc-928a-8e4eb5804bff"
+schema:
+  type: string
+  format: uuid

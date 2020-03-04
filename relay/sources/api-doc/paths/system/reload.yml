@@ -1,0 +1,32 @@
+post:
+  summary: Reload relay service
+  description: Reload relay configuration and data files
+  operationId: reloadConfiguration
+  responses:
+    "200":
+      description: Service reload
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getSystemInfo
+  tags:
+    - System
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/system/reload.sh

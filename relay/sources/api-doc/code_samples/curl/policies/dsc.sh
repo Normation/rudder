@@ -1,0 +1,1 @@
+curl --output rudder.zip --cert "C:\...\etc\ssl\localhost.cert:Rudder-dsc passphrase" --key "C:\...\etc\ssl\localhost.priv" https://rudder.example.com/policies/3c0781e1-b59f-4b7e-a85b-819297dfce1d/rules/dsc/rudder.zip

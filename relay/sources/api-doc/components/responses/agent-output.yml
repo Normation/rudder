@@ -1,0 +1,25 @@
+description: Agent output
+content:
+  text/plain:
+    schema:
+      type: string
+      example: >-
+        Start execution with config [20200218-112602-11ce4f64]
+
+        Hostname        M| State         Technique                 Component                 Key                Message
+        192.168.210.5   E| compliant     Common                    ncf Initialization                           Configuration library initialization was correct
+        192.168.210.5   E| compliant     Common                    Update                                       Policy and configuration library are already up to date. No action required.
+        [...]
+
+        ## Summary #####################################################################
+        90 components verified in 15 directives
+          => 62 components in Enforce mode
+              -> 48 compliant
+              -> 13 not-applicable
+              -> 1 error
+          => 28 components in Audit mode
+              -> 15 compliant
+              -> 3 not-applicable
+              -> 10 non-compliant
+        Execution time: 8.89s
+        ################################################################################

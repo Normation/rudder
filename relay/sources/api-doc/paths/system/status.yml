@@ -1,0 +1,62 @@
+get:
+  summary: Get relay status
+  description: Get information about current relay service status
+  operationId: getStatus
+  responses:
+    "200":
+      description: Service status
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getStatus
+              data:
+                type: object
+                description: Status of the service
+                required:
+                  - database
+                  - configuration
+                properties:
+                  database:
+                    required:
+                      - status
+                    properties:
+                      status:
+                        type: string
+                        enum:
+                          - success
+                          - error
+                      details:
+                        type: string
+                  configuration:
+                    required:
+                      - status
+                    properties:
+                      status:
+                        type: string
+                        example: error
+                        enum:
+                          - success
+                          - error
+                      details:
+                        type: string
+                        example: >-
+                          configuration parsing error: missing field
+                          `node_id` for key `general` at line 45 column 1
+  tags:
+    - System
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/system/status.sh

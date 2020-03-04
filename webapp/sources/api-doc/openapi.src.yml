@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Rudder API
-  version: 11
+  version: 12
   # Will be substituted by content of the file at build
   description: "introduction.md"
   x-logo:
