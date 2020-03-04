@@ -1,0 +1,111 @@
+get:
+  summary: Get the value of a setting
+  description: Get the current value of a specific setting
+  operationId: getSetting
+  parameters:
+    - $ref: ../../components/parameters/setting-id.yml
+  responses:
+    "200":
+      description: Settings
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+              - id
+            properties:
+              id:
+                type: string
+                description: Id of the setting
+                example: global_policy_mode
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getSetting
+              data:
+                type: object
+                description: Information about the setting
+                required:
+                  - settings
+                properties:
+                  settingId:
+                    type: string
+                    example: value
+                    description: Id and value of the property
+  tags:
+    - Settings
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/settings/get-setting.sh
+post:
+  summary: Set the value of a setting
+  description: Set the current value of a specific setting
+  operationId: modifySetting
+  parameters:
+    - $ref: ../../components/parameters/setting-id.yml
+  requestBody:
+    required: true
+    content:
+      application/x-www-form-urlencoded:
+        schema:
+          type: object
+          properties:
+            value:
+              description: New value of the setting
+              type: string
+              example: "enforce"
+  responses:
+    "200":
+      description: Settings
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+              - id
+            properties:
+              id:
+                type: string
+                description: Id of the setting
+                example: global_policy_mode
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - modifySetting
+              data:
+                type: object
+                description: Information about the setting
+                required:
+                  - settings
+                properties:
+                  settingId:
+                    type: string
+                    example: value
+                    description: Id and value of the property
+  tags:
+    - Settings
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/settings/set-setting.sh

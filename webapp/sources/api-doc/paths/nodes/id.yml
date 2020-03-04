@@ -1,0 +1,141 @@
+get:
+  summary: Get information about a node
+  description: Get details about a given node
+  operationId: nodeDetails
+  parameters:
+    - $ref: ../../components/parameters/node-id.yml
+    - $ref: ../../components/parameters/include.yml
+  responses:
+    "200":
+      description: Nodes
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - nodeDetails
+              data:
+                type: object
+                description: Information about the node
+                required:
+                  - nodes
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/node-full.yml
+  tags:
+    - Nodes
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/nodes/id.sh
+post:
+  summary: Update node settings and properties
+  description: Update node settings and properties
+  operationId: updateNode
+  parameters:
+    - $ref: ../../components/parameters/node-id.yml
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: ../../components/schemas/node-settings.yml
+  responses:
+    "200":
+      description: Nodes
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - updateNode
+              data:
+                type: object
+                description: Information about the node
+                required:
+                  - nodes
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/node-full.yml
+  tags:
+    - Nodes
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/nodes/id-update.sh
+delete:
+  summary: Delete a node
+  description: Remove a node from the Rudder server. It won't be managed anymore.
+  operationId: deleteNode
+  parameters:
+    - $ref: ../../components/parameters/node-id.yml
+  responses:
+    "200":
+      description: Nodes
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - deleteNode
+              data:
+                type: object
+                description: Information about the node
+                required:
+                  - nodes
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/node-full.yml
+  tags:
+    - Nodes
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/nodes/delete.sh

@@ -1,0 +1,138 @@
+get:
+  summary: Get data source configuration
+  description: Get the configuration of a data source
+  operationId: getDataSource
+  parameters:
+    - $ref: ../../components/parameters/datasource-id.yml
+  responses:
+    "200":
+      description: Data source information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getDataSource
+              data:
+                type: object
+                required:
+                  - datasources
+                properties:
+                  datasources:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/datasource.yml
+  tags:
+    - "🧩 Data sources"
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/datasources/get.sh
+post:
+  summary: Update a data source configuration
+  description: Update the configuration of a data source
+  operationId: updateDataSource
+  parameters:
+    - $ref: ../../components/parameters/datasource-id.yml
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: ../../components/schemas/datasource.yml
+  responses:
+    "200":
+      description: Data source information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - updateDataSource
+              data:
+                type: object
+                required:
+                  - datasources
+                properties:
+                  datasources:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/datasource.yml
+  tags:
+    - "🧩 Data sources"
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/datasources/update.sh
+delete:
+  summary: Delete a data source
+  description: Delete a data source configuration
+  # FIXME check
+  operationId: deleteDataSource
+  parameters:
+    - $ref: ../../components/parameters/datasource-id.yml
+  responses:
+    "200":
+      description: Data source information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - deleteDataSource
+              data:
+                type: object
+                required:
+                  - datasources
+                properties:
+                  datasources:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/datasource.yml
+  tags:
+    - "🧩 Data sources"
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/datasources/delete.sh

@@ -1,0 +1,41 @@
+get:
+  summary: Get server status
+  description: Get information about current server status
+  operationId: getStatus
+  responses:
+    "200":
+      description: Service status
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getStatus
+              data:
+                type: object
+                description: Status of the service
+                properties:
+                  global:
+                    type: string
+                    enum:
+                      - OK
+  tags:
+    - System
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/system/status.sh

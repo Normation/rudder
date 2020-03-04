@@ -1,0 +1,15 @@
+type: array
+items:
+  type: object
+  properties:
+    name:
+      type: string
+      description: Technique name
+      example: userManagement
+    versions:
+      type: array
+      description: Available versions for this technique
+      items:
+        type: string
+        description: Technique version
+        example: "6.0"

@@ -1,0 +1,1 @@
+curl --header "X-API-Token: yourToken" --header "Content-Type: application/json" --request PUT https://rudder.example.com/rudder/api/latest/parameters --data @JSON-file-name

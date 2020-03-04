@@ -1,0 +1,51 @@
+post:
+  summary: Trigger a agent runs
+  description: This API allows to trigger an agent run on the target node. Response contains a json stating if agent could be started on each node, but not if the run went fine and do not display any output from it. You can see the result of the run in Rudder web interface or in the each agent logs.
+  operationId: applyPolicyAllNodes
+  responses:
+    "200":
+      description: Result
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - applyPolicyAllNodes
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      format: uuid (or "root")
+                      example: 249e14ac-2418-457c-a27d-1650907b13c7
+                      description: Rudder id of the node
+                    hostname:
+                      type: string
+                      example: node.example.com
+                      description: Node hostname
+                    result:
+                      type: string
+                      description: Result or policy application trigger
+                      example: Started
+  tags:
+    - Nodes
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/nodes/apply-all.sh

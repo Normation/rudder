@@ -1,0 +1,7 @@
+name: changeRequestId
+in: path
+required: true
+schema:
+  type: integer
+  description: Change request id
+  example: 37

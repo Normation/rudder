@@ -1,0 +1,41 @@
+get:
+  summary: List all settings
+  description: Get the current value of all the settings
+  operationId: getAllSettings
+  responses:
+    "200":
+      description: Settings
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getAllSettings
+              data:
+                type: object
+                description: Information about the setting
+                required:
+                  - settings
+                properties:
+                  $ref: ../../components/schemas/settings.yml
+
+  tags:
+    - Settings
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/settings/list.sh

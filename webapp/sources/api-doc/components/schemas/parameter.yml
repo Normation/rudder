@@ -1,0 +1,21 @@
+type: object
+required:
+  - id
+properties:
+  # FIXME: required on not depends on where it's used
+  id:
+    type: string
+    description: Name of the parameter
+    example: rudder_file_edit_footer
+  value:
+    example: "### End of file managed by Rudder ###"
+    description: Value of the parameter
+    type: string
+  description:
+    type: string
+    example: "Default inform message put in footer of managed files by Rudder"
+    description: Description of the parameter
+  overridable:
+    type: boolean
+    description: Is the global parameter overridable by node
+    example: false

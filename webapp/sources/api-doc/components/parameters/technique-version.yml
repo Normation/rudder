@@ -1,0 +1,8 @@
+name: techniqueVersion
+in: path
+description: Technique version
+required: true
+schema:
+  type: string
+  example: "6.0"
+  description: Technique version

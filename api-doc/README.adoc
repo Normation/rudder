@@ -1,0 +1,33 @@
+= API documentation
+
+== Usage (openapi/redoc)
+
+Building the doc requires installing:
+
+```
+npm install -g redoc-cli @redocly/openapi-cli
+```
+
+* `openapi-cli` builds a single openapi file from the sources
+* `redoc-cli` produces the HTML output from the openapi file
+
+Then run:
+
+```
+make
+```
+
+And the resulting files will be in `target/`.
+
+== Sources
+
+The sources are in `{component}/sources/api-doc`. The main file is `openapi.src.yml`.
+It is then read and modified by the build process to add the documentation
+from the markdown file in `info/description`.
+
+Each Rudder branch contains the sources of the docs for the APIs introduced in
+its version.
+
+If a Rudder branch introduced several version, the latest one should be named
+`openapi.src.yml`, and previous ones `openapi-VERSION.src.yml`
+(to allow easier upmerge of changes).

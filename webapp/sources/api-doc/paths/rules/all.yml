@@ -1,0 +1,89 @@
+get:
+  summary: List all rules
+  description: List all rules
+  operationId: listRules
+  responses:
+    "200":
+      description: Rules information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - listRules
+              data:
+                type: object
+                required:
+                  - rules
+                properties:
+                  rules:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/rule.yml
+  tags:
+    - Rules
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/rules/all.sh
+put:
+  summary: Create a rule
+  description: Create a new rule. You can specify a source rule to clone it.
+  operationId: createRule
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: ../../components/schemas/rule-new.yml
+  responses:
+    "200":
+      description: Rules information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - createRule
+              data:
+                type: object
+                required:
+                  - rules
+                properties:
+                  rules:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/rule.yml
+  tags:
+    - Rules
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/rules/create.sh

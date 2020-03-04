@@ -1,0 +1,18 @@
+type: object
+required:
+  - parent
+  - name
+properties:
+  parent:
+    type: string
+    format: uuid
+    example: b9f6d98a-28bc-4d80-90f7-d2f14269e215
+    description: The parent category of the groups
+  name:
+    type: string
+    description: Name of the group category
+    example: "Hardware groups"
+  description:
+    type: string
+    description: Group category description
+    example: "Nodes by hardware provider"

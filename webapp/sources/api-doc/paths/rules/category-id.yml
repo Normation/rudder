@@ -1,0 +1,138 @@
+get:
+  summary: Get rule category details
+  description: Get detailed information about a rule category
+  operationId: GetRuleCategoryDetails
+  parameters:
+    - $ref: ../../components/parameters/rule-category-id.yml
+  responses:
+    "200":
+      description: Rules category information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - GetRuleCategoryDetails
+              data:
+                type: object
+                required:
+                  - rulesCategories
+                properties:
+                  rulesCategories:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/rule-category.yml
+  tags:
+    - Rules
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/rules/category-id.sh
+delete:
+  summary: Delete group category
+  description: Delete a group category. It must have no child groups and no children categories.
+  operationId: DeleteRuleCategory
+  parameters:
+    - $ref: ../../components/parameters/rule-category-id.yml
+  responses:
+    "200":
+      description: Groups category information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - DeleteRuleCategory
+              data:
+                type: object
+                required:
+                  - groupCategories
+                properties:
+                  groupCategories:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/rule-category.yml
+  tags:
+    - Rules
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/rules/category-id-delete.sh
+post:
+  summary: Update rule category details
+  description: Update detailed information about a rule category
+  operationId: UpdateRuleCategory
+  parameters:
+    - $ref: ../../components/parameters/rule-category-id.yml
+  requestBody:
+    required: true
+    content:
+      application/x-www-form-urlencoded:
+        schema:
+          $ref: ../../components/schemas/rule-category-update.yml
+  responses:
+    "200":
+      description: Rules category information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - UpdateRuleCategory
+              data:
+                type: object
+                required:
+                  - ruleCategories
+                properties:
+                  ruleCategories:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/rule-category.yml
+  tags:
+    - Rules
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/rules/category-id-update.sh

@@ -1,0 +1,138 @@
+get:
+  summary: Get group category details
+  description: Get detailed information about a group category
+  operationId: GetGroupCategoryDetails
+  parameters:
+    - $ref: ../../components/parameters/group-category-id.yml
+  responses:
+    "200":
+      description: Groups category information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - GetGroupCategoryDetails
+              data:
+                type: object
+                required:
+                  - groupCategories
+                properties:
+                  groupCategories:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/group-category.yml
+  tags:
+    - Groups
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/groups/category-id.sh
+delete:
+  summary: Delete group category
+  description: Delete a group category. It must have no child groups and no children categories.
+  operationId: DeleteGroupCategory
+  parameters:
+    - $ref: ../../components/parameters/group-category-id.yml
+  responses:
+    "200":
+      description: Groups category information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - DeleteGroupCategory
+              data:
+                type: object
+                required:
+                  - groupCategories
+                properties:
+                  groupCategories:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/group-category.yml
+  tags:
+    - Groups
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/groups/category-id-delete.sh
+post:
+  summary: Update group category details
+  description: Update detailed information about a group category
+  operationId: UpdateGroupCategory
+  parameters:
+    - $ref: ../../components/parameters/group-category-id.yml
+  requestBody:
+    required: true
+    content:
+      application/x-www-form-urlencoded:
+        schema:
+          $ref: ../../components/schemas/group-category-update.yml
+  responses:
+    "200":
+      description: Groups category information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - UpdateGroupCategory
+              data:
+                type: object
+                required:
+                  - groupCategories
+                properties:
+                  groupCategories:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/group-category.yml
+  tags:
+    - Groups
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/groups/category-id-update.sh

@@ -1,0 +1,42 @@
+get:
+  summary: List all change requests
+  description: List all change requests
+  operationId: listChangeRequests
+  responses:
+    "200":
+      description: Change requests information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - listChangeRequests
+              data:
+                type: object
+                required:
+                  - rules
+                properties:
+                  rules:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/change-request.yml
+  tags:
+    - 🧩 Change requests
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/change-requests/all.sh

@@ -1,0 +1,89 @@
+get:
+  summary: List all directives
+  description: List all directives
+  operationId: listDirectives
+  responses:
+    "200":
+      description: Directives information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - listDirectives
+              data:
+                type: object
+                required:
+                  - directives
+                properties:
+                  directives:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/directive.yml
+  tags:
+    - Directives
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/directives/all.sh
+put:
+  summary: Create a directive
+  description: Create a new directive from provided parameters. You can specify a source directive to clone it.
+  operationId: createDirective
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: ../../components/schemas/directive-new.yml
+  responses:
+    "200":
+      description: Directives information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - createDirective
+              data:
+                type: object
+                required:
+                  - directives
+                properties:
+                  directives:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/directive.yml
+  tags:
+    - Directives
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/directives/create.sh

@@ -1,0 +1,8 @@
+name: "directiveId"
+in: path
+required: true
+description: Id of the directive
+schema:
+  type: string
+  format: uuid
+  example: 9a1773c9-0889-40b6-be89-f6504443ac1b

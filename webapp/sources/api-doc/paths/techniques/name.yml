@@ -1,0 +1,44 @@
+get:
+  summary: List all directives based on a technique
+  description: List all directives based on all version of a technique
+  operationId: listTechniquesDirectives
+  parameters:
+    - $ref: ../../components/parameters/technique-name.yml
+  responses:
+    "200":
+      description: Techniques information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - listTechniquesDirectives
+              data:
+                type: object
+                required:
+                  - directives
+                properties:
+                  directives:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/directive.yml
+  tags:
+    - Techniques
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/techniques/name.sh

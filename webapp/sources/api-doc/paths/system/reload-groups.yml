@@ -1,0 +1,42 @@
+post:
+  summary: Reload dynamic groups
+  description: Reload dynamic groups
+  operationId: reloadGroups
+  responses:
+    "200":
+      description: Service reload
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - reloadGroups
+              data:
+                type: object
+                required:
+                  - groups
+                properties:
+                  groups:
+                    type: string
+                    enum:
+                      - Started
+  tags:
+    - System
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/system/reload-groups.sh

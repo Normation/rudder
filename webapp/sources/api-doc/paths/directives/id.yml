@@ -1,0 +1,136 @@
+get:
+  summary: Get directive details
+  description: Get all information about a given directive
+  operationId: directiveDetails
+  parameters:
+    - $ref: ../../components/parameters/directive-id.yml
+  responses:
+    "200":
+      description: Directives information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - directiveDetails
+              data:
+                type: object
+                required:
+                  - directives
+                properties:
+                  directives:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/directive.yml
+  tags:
+    - Directives
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/directives/get.sh
+delete:
+  summary: Delete a directive
+  description: Delete a directive
+  operationId: deleteDirective
+  parameters:
+    - $ref: ../../components/parameters/directive-id.yml
+  responses:
+    "200":
+      description: Directives information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - deleteDirective
+              data:
+                type: object
+                required:
+                  - directives
+                properties:
+                  directives:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/directive.yml
+  tags:
+    - Directives
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/directives/delete.sh
+post:
+  summary: Update a directive details
+  description: Update directive information
+  operationId: updateDirective
+  requestBody:
+    required: true
+    content:
+      application/x-www-form-urlencoded:
+        schema:
+          $ref: ../../components/schemas/directive.yml
+  responses:
+    "200":
+      description: Directives information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - updateDirective
+              data:
+                type: object
+                required:
+                  - directives
+                properties:
+                  directives:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/directive.yml
+  tags:
+    - Directives
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/directives/update.sh

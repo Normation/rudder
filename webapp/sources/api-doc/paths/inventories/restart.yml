@@ -1,0 +1,36 @@
+post:
+  summary: Restart inventory watcher
+  description: Restart the inventory watcher if necessary
+  operationId: fileWatcherRestart
+  responses:
+    "200":
+      description: Started
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - fileWatcherRestart
+              data:
+                type: string
+                example: "Incoming inventory watcher restarted"
+  tags:
+    - Inventories
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/inventories/restart.sh
