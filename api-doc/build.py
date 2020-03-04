@@ -50,7 +50,7 @@ for template in templates:
                      "--output", openapi_file])
 
     # Build doc from yaml file (with pre-rendered html)
-    html_file = "%s/openapi.html" % target
+    html_file = "%s/index.html" % target
     subprocess.call(["redoc-cli", "bundle", openapi_file,
                      "--output", html_file,
                      # Don't help google track our users
