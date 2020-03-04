@@ -390,6 +390,72 @@ hr.separator-filter-tree{
   transition-duration: .2s;
   font-size: 12px;
 }
+
+/* TAGS LABEL */
+.tooltip > .tooltip-inner h4.tags-tooltip-title {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 14px;
+  color: #222D42;
+  background-color: #f9f9f9;
+}
+.tooltip .tooltip-inner > div.tags-list{
+  padding: 10px 5px 5px 5px;
+  font-size: 14px;
+}
+.tags-label{
+  padding: 4px 8px;
+  border-radius : 20px;
+  background-color: #222D4215;
+  color: #222D42AA;
+  display: inline-block;
+  cursor: default;
+  transition-duration: .2s;
+  margin-right: 5px;
+}
+.jstree-anchor > span.tags-label {
+  padding: 0px 6px;
+  font-size: .9em;
+}
+.tags-list .tags-label{
+  margin-bottom: 5px;
+}
+.tags-label.more{
+  cursor: help;
+}
+
+.tags-label:hover {
+  background-color: #222D4233;
+  color: #222D42DD;
+}
+.tags-table table{
+  margin-bottom: 0 !important;
+}
+/*
+.tags-list > div {
+  border-bottom: 1px solid #e5e5e5;
+  font-size: 14px;
+  color: #222D42;
+}
+.tags-list > div > span{
+  display: inline-block;
+  padding: 4px 0;
+}
+.tags-list > div > span:first-child,
+.tags-list > div > span:last-child{
+  width: calc((100% - 20px)/2);
+}
+.tags-list > div > span:nth-child(2){
+  width: 20px;
+  text-align: center;
+  background-color: #f9f9f9;
+  border-left: 1px solid #e5e5e5;
+  border-right: 1px solid #e5e5e5;
+}
+.tags-list > div > span:last-child{
+  padding-left: 10px;
+}
+*/
 @-webkit-keyframes exist {
   0%   {box-shadow: 0 0 0    #c2c2c2;}
   50%  {box-shadow: 0 0 13px #c2c2c2;}

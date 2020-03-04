@@ -233,6 +233,30 @@
                    data-container="body"
                    data-original-title="{{getTooltipContent(directive)}}"
                 ></i>
+                <span class="tags-label" ng-repeat="t in directive.tags | limitTo:3">
+                  <i class="fa fa-tag" aria-hidden="true"></i>
+                  <span class="tag-key">
+                    <span ng-show="t.key!=''">{{t.key}}</span>
+                    <i class="fa fa-asterisk" ng-show="tag.key==''"></i>
+                  </span>
+                  <span class="tag-separator">=</span>
+                  <span class="tag-value">
+                    <span ng-show="t.value!=''">{{t.value}}</span>
+                    <i class="fa fa-asterisk" ng-show="t.value==''"></i>
+                  </span>
+                </span>
+                <span
+                  class="tags-label more"
+                  ng-if="directive.tags.length>3"
+                  data-toggle="tooltip"
+                  data-placement="top"
+                  data-html="true"
+                  data-container="body"
+                  data-original-title="{{getTooltipTagsContent(directive, 3)}}"
+                >
+                  <i class="fa fa-tags" aria-hidden="true"></i>
+                  <i>{{directive.tags.length - 3}} more</i>
+                </span>
                 <span class="target-remove" ng-click="removeInclude(directive.id)">
                   <i class="fa fa-times"></i>
                 </span>

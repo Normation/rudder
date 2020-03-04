@@ -41,11 +41,7 @@ import scala.xml.NodeSeq
 import scala.xml.Text
 import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.AuthorizationType
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.FullRuleTargetInfo
-import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.{FullActiveTechnique, FullActiveTechniqueCategory, FullNodeGroupCategory}
 import com.normation.rudder.web.components.popup.RuleModificationValidationPopup
@@ -69,14 +65,10 @@ import net.liftweb.json._
 import net.liftweb.util.ClearClearable
 import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model.WBSelectField
-import com.normation.rudder.domain.policies.TargetExclusion
 import com.normation.rudder.rule.category.RuleCategoryId
-import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.RuleModAction
 import com.normation.rudder.web.ChooseTemplate
-
 import com.normation.box._
 
 object RuleEditForm {
@@ -108,7 +100,7 @@ object RuleEditForm {
 
 // these two case classes are needed to generate the JS for selected directive & target. They need to be top level else lift goes mad.
 final case class JsGroup(target: String, link:String, name: String, desc: String)
-final case class JsDirective(id: String, link:String, name: String, desc: String, techniqueName: String, techniqueVersion: String, mode: String)
+final case class JsDirective(id: String, link:String, name: String, desc: String, techniqueName: String, techniqueVersion: String, mode: String, tags: JValue)
 
 /**
  * The form that handles Rule edition
@@ -291,6 +283,7 @@ class RuleEditForm(
               , t.newestAvailableTechnique.get.name
               , d.techniqueVersion.toString
               , d.policyMode.map(_.name).getOrElse(globalMode.mode.name)
+              , JsonTagSerialisation.serializeTags(d.tags)
             )
           case None => //the rule reference a non-existing directive. It will break generation. We need to make it appears
             JsDirective(
@@ -301,6 +294,7 @@ class RuleEditForm(
               , "Technique unknown"
               , "Technique version unknown"
               , "error"
+              , JArray(Nil)
             )
         }
         (id.value, details)
@@ -472,8 +466,8 @@ class RuleEditForm(
     val dirTechName    = t.newestAvailableTechnique.get.name.encJs
     val dirTechVersion = d.techniqueVersion.toString.encJs
     val dirMode        = d.policyMode.map(_.name).getOrElse(gm).encJs
-
-    JsRaw(s"""onClickDirective("${dirId}", ${dirName}, ${dirLink}, ${dirDescription}, ${dirTechName}, ${dirTechVersion}, ${dirMode})""")
+    val dirTags        = JsonTagSerialisation.serializeTags(d.tags)
+    JsRaw(s"""onClickDirective("${dirId}", ${dirName}, ${dirLink}, ${dirDescription}, ${dirTechName}, ${dirTechVersion}, ${dirMode}, ${dirTags})""")
   }
 
   private[this] def includeRuleTarget(targetInfo: FullRuleTargetInfo) : JsCmd = {

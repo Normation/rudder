@@ -398,7 +398,6 @@ var buildTechniqueDependencyTree = function(id, initially_select, appContext) {
 }
 
 var buildDirectiveTree = function(id, initially_select, appContext, select_limit) {
-  
   var select_multiple_modifier = "on"
   if (select_limit > 0) {
     select_multiple_modifier = "ctrl"

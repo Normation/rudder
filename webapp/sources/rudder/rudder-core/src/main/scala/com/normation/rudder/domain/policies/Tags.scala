@@ -68,14 +68,14 @@ object JsonTagSerialisation {
   import net.liftweb.json._
   import net.liftweb.json.JsonDSL._
 
-  def serializeTags( tags : Tags ) : String = {
+  def serializeTags( tags : Tags ) : JValue = {
 
     // sort all the tags by name
     val m : JValue = JArray( tags.tags.toList.sortBy ( _.name.value ).map {
        t => ( "key" ->t.name.value) ~ ("value" -> t.value.value ) : JObject
     } )
 
-    compactRender( m )
+    m
   }
 
 }

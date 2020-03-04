@@ -41,6 +41,10 @@ import org.specs2.mutable._
 import org.specs2.runner._
 import net.liftweb.common._
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
+import net.liftweb.json.JsonAST.JArray
+import net.liftweb.json.JsonAST.JField
+import net.liftweb.json.JsonAST.JObject
+import net.liftweb.json.JsonAST.JString
 
 @RunWith(classOf[JUnitRunner])
 class TagsTest extends Specification with Loggable {
@@ -55,15 +59,20 @@ class TagsTest extends Specification with Loggable {
 
   val simpleTags = Tags(Set[Tag](tag1, tag2, tag3))
   val simpleSerialization = """[{"key":"tag1","value":"tag1-value"},{"key":"tag2","value":"tag2-value"},{"key":"tag3","value":"tag3-value"}]"""
-
+  val jsonSimple =
+    JArray( JObject(JField("key", JString("tag1") ), JField("value", JString("tag1-value")))::
+            JObject(JField("key", JString("tag2") ), JField("value", JString("tag2-value"))) ::
+            JObject(JField("key", JString("tag3") ), JField("value", JString("tag3-value"))) ::
+            Nil
+    )
   val invalidSerialization = """[{"key" :"tag1"},{"key" :"tag2", "value":"tag2-value"},{"key" :"tag3", "value":"tag3-value"}]"""
 
   val duplicatedSerialization = """[{"key" :"tag2", "value":"tag2-value"},{"key" :"tag2", "value":"tag2-value"},{"key" :"tag3", "value":"tag3-value"},{"key" : "tag1", "value": "tag1-value"}]"""
 
   "Serializing and unserializing" should {
     "serialize in correct JSON" in {
-      JsonTagSerialisation.serializeTags(simpleTags).toString must
-      equalTo(simpleSerialization)
+      JsonTagSerialisation.serializeTags(simpleTags) must
+      equalTo(jsonSimple)
     }
 
     "unserialize correct JSON" in {

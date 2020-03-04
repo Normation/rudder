@@ -223,6 +223,7 @@ ul.applied-list > li .rudder-label{
 ul.applied-list > li .icon-info{
   color: #ccc;
   transition-duration: .2s;
+  margin-right: 5px;
 }
 
 ul.applied-list > li:hover .icon-info{

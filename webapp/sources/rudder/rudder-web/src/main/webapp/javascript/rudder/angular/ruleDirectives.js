@@ -81,13 +81,8 @@ ruleDirectives.controller('DirectiveCtrl', ['$scope', '$timeout', function($scop
     // directiveIds is expected to be a json of {directiveId : directiveName }
     $scope.init = function ( selectedDirectives ) {
       $scope.directives = selectedDirectives;
-
       //init tooltips
       $timeout(function(){
-        $('.icon-info').bsTooltip();
-        $('#selectGroups, #selectDirectives').on('hidden.bs.modal', function (e) {
-          $('.icon-info').bsTooltip();
-        });
         //Init the Directive fitlers app
         var scopeElmnt = '#directiveFilters';
         if(!angular.element(scopeElmnt).scope()){
@@ -99,6 +94,10 @@ ruleDirectives.controller('DirectiveCtrl', ['$scope', '$timeout', function($scop
         $("#directiveTree").on("clear_search.jstree",function(e, data){
           $('#directiveTree_alert').hide();
           $(this).jstree(true).show_all();
+        });
+        $('.icon-info, .tags-label').bsTooltip();
+        $('#selectGroups, #selectDirectives').on('hidden.bs.modal', function (e) {
+          $('.icon-info .tags-label').bsTooltip();
         });
       }, 200);
     };
@@ -156,6 +155,27 @@ ruleDirectives.controller('DirectiveCtrl', ['$scope', '$timeout', function($scop
         return title + tech + desc;
     }
 
+    $scope.getTooltipTagsContent = function(directive, limit){
+      var tags  = directive.tags
+      //Used to not display all tags of a directive
+      if(limit && tags.length <= limit) return "";
+      var tagsCpt = limit ? ("<i>" + (tags.length - limit) + " more</i>") : tags.length;
+      var title = "<h4 class='tags-tooltip-title'>Tags <span class='tags-label'><i class='fa fa-tag'></i> "+tagsCpt+"</span></h4>";
+      var list  = ["<div class='tags-list'>"];
+      var tag, tagHead, tagKey, tagSep, tagVal;
+      tagHead = "<span class='tags-label' ng-repeat='t in directive.tags'><i class='fa fa-tag' aria-hidden='true'></i>";
+      tagSep  = "<span class='tag-separator'> = </span>";
+      for(var t=limit ; t<tags.length ; t++){
+        tagKey = '<span class="tag-key"  > '+ tags[t].key   +' </span>';
+        tagVal = '<span class="tag-value"> '+ tags[t].value +' </span>';
+        tag = tagHead + tagKey + tagSep + tagVal + '</span>';
+        list.push(tag);
+      }
+      list.push('</div>')
+      var content = list.join('');
+      return title + content;
+    }
+
     $scope.getListLength = function(list){
       return list == undefined ? 0 : Object.keys(list).length;
     };
@@ -174,7 +194,7 @@ ruleDirectives.directive('tooltip', function () {
 
 
 // Helper function to access from outside angular scope
-function onClickDirective(dId, dName, dLink, dDescription, dTechName, dTechVersion, dMode) {
+function onClickDirective(dId, dName, dLink, dDescription, dTechName, dTechVersion, dMode, dTags) {
   var selectedDir =
   { "id"               : dId
   , "link"             : dLink
@@ -183,9 +203,11 @@ function onClickDirective(dId, dName, dLink, dDescription, dTechName, dTechVersi
   , "techniqueName"    : dTechName
   , "techniqueVersion" : dTechVersion
   , "mode"             : dMode
+  , "tags"             : dTags
   }
   var scope = angular.element($("#DirectiveCtrl")).scope();
   scope.$apply(function(){
     scope.toggleDirective(selectedDir);
   });
+  $('.tags-label').bsTooltip();
 };

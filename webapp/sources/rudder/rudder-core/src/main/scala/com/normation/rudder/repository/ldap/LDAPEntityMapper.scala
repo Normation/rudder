@@ -691,7 +691,7 @@ class LDAPEntityMapper(
     entry +=! (A_IS_ENABLED, directive.isEnabled.toLDAPString)
     entry +=! (A_IS_SYSTEM, directive.isSystem.toLDAPString)
     directive.policyMode.foreach ( mode => entry +=! (A_POLICY_MODE, mode.name) )
-    entry +=! (A_SERIALIZED_TAGS, JsonTagSerialisation.serializeTags(directive.tags))
+    entry +=! (A_SERIALIZED_TAGS, net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(directive.tags)))
     entry
   }
 
@@ -795,7 +795,7 @@ class LDAPEntityMapper(
     entry +=! (A_DIRECTIVE_UUID, rule.directiveIds.map( _.value).toSeq :_* )
     entry +=! (A_DESCRIPTION, rule.shortDescription)
     entry +=! (A_LONG_DESCRIPTION, rule.longDescription.toString)
-    entry +=! (A_SERIALIZED_TAGS, JsonTagSerialisation.serializeTags(rule.tags))
+    entry +=! (A_SERIALIZED_TAGS, net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(rule.tags)))
 
     entry
   }

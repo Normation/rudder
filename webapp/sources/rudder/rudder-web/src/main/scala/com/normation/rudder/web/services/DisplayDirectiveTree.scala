@@ -49,19 +49,17 @@ import net.liftweb.http.js.JsCmd
 import net.liftweb.util.Helpers
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullActiveTechnique
-import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.{Directive, DirectiveId, GlobalPolicyMode}
+
 import scala.xml.Text
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullActiveTechnique
-import com.normation.rudder.domain.policies.DirectiveId
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.S
 import com.normation.cfclerk.domain.Technique
-import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
-import net.liftweb.http.js.JsObj
 import com.normation.inventory.domain.AgentType
 import bootstrap.liftweb.RudderConfig
 
@@ -190,7 +188,6 @@ object DisplayDirectiveTree extends Loggable {
     }
 
    /////////////////////////////////////////////////////////////////////////////////////////////
-
     def displayActiveTechnique(
         activeTechnique: FullActiveTechnique
       , onClickTechnique: Option[FullActiveTechnique => JsCmd]
@@ -304,6 +301,27 @@ object DisplayDirectiveTree extends Loggable {
           }
         }
 
+
+        val directiveTagsListHtml = <div>{directive.tags.tags.map(tag => <span class="tags-label"><i class="fa fa-tag"></i> <span class="tag-key">{tag.name.value}</span><span class="tag-separator"> = </span><span class="tag-value">{tag.value.value}</span></span>)}</div>
+        val tagsTooltipContent    = s"""
+          <h4 class='tags-tooltip-title'>Tags <span class='tags-label'><i class='fa fa-tag'></i> ${directive.tags.tags.size}</span></h4>
+          <div class='tags-list'>
+            ${directiveTagsListHtml}
+          </div>
+        """
+        val directiveTagsTooltip =
+          if (directive.tags.tags.size > 0) {
+            <span class="tags-label"
+                  data-toggle="tooltip"
+                  data-placement="top"
+                  data-html="true"
+                  data-original-title={tagsTooltipContent}>
+              <i class="fa fa-tags"></i>
+              <b> {directive.tags.tags.size}</b>
+            </span>
+          } else {
+            NodeSeq.Empty
+          }
         val actionBtns = if (addActionBtns)  {
           onClickDirective match {
             case Some(f) =>
@@ -399,7 +417,8 @@ object DisplayDirectiveTree extends Loggable {
             } else {
               NodeSeq.Empty
             }}
-          </span>
+          </span> ++
+          {directiveTagsTooltip} ++
           <div class="treeActions-container"> {actionBtns} {editButton} </div> ++
           Script(JsRaw(s"""$$('#badge-apm-${tooltipId}').replaceWith(createBadgeAgentPolicyMode('directive',"${policyMode}", "${explanation.toString()}", "#boxDirectiveTree"));""")
           )

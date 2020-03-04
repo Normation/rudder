@@ -21,7 +21,7 @@ class TagsEditForm(tags : Tags) extends Loggable {
 
   def editTagsTemplate: NodeSeq = ChooseTemplate(templatePath, "tags-editform")
 
-  val jsTags = JsonTagSerialisation.serializeTags(tags)
+  val jsTags = net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(tags))
 
   def parseResult(s : String) : Box[Tags] = CompleteJson.unserializeTags(s)
 
