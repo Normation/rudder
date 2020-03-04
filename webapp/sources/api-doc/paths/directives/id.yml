@@ -90,6 +90,8 @@ post:
   summary: Update a directive details
   description: Update directive information
   operationId: updateDirective
+  parameters:
+    - $ref: ../../components/parameters/directive-id.yml
   requestBody:
     required: true
     content:

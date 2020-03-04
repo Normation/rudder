@@ -533,50 +533,52 @@ properties:
   software:
     type: array
     description: Software installed on the node (can have thousands items)
-    properties:
-      name:
-        type: string
-        description: Name of the software (as reported by the node)
-        example: libcurl
-      version:
-        type: string
-        description: Version of the software
-        example: 7.29.0-54.el7_7.2
-      editor:
-        type: string
-        description: Editor of the software
-        example: CentOS
-      description:
-        type: string
-        description: A description of the software
-        example: A library for getting files from web servers
-      releaseDate:
-        type: string
-        format: date
-        description: Release date of the software
-      license:
-        type: object
-        description: Information about the license
-        properties:
-          oem:
-            type: string
-            description: Is this an OEM license (and information)
-          name:
-            type: string
-            description: License name
-          productId:
-            type: string
-            description: License product identifier
-          productKey:
-            type: string
-            description: License key
-          description:
-            type: string
-            description: License description
-          expirationDate:
-            format: date
-            type: string
-            description: License expiration date
+    items:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the software (as reported by the node)
+          example: libcurl
+        version:
+          type: string
+          description: Version of the software
+          example: 7.29.0-54.el7_7.2
+        editor:
+          type: string
+          description: Editor of the software
+          example: CentOS
+        description:
+          type: string
+          description: A description of the software
+          example: A library for getting files from web servers
+        releaseDate:
+          type: string
+          format: date
+          description: Release date of the software
+        license:
+          type: object
+          description: Information about the license
+          properties:
+            oem:
+              type: string
+              description: Is this an OEM license (and information)
+            name:
+              type: string
+              description: License name
+            productId:
+              type: string
+              description: License product identifier
+            productKey:
+              type: string
+              description: License key
+            description:
+              type: string
+              description: License description
+            expirationDate:
+              format: date
+              type: string
+              description: License expiration date
   sound:
     type: array
     description: Sound card information
