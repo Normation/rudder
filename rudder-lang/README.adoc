@@ -60,6 +60,6 @@ The compiler is very pedantic to avoid defining invalid states as much as possib
 == Tests
 
 === Required modules
-- perl (script: *tools/generate-lib*)
+- perl (script: *tools/generate_lib*)
 === Configuration
 - *tools/rudderc.conf* to define the cfengine and ncf binaries paths, and the compilation, translation paths

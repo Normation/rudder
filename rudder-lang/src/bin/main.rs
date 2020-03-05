@@ -18,7 +18,7 @@ use rudderc::{ compile::compile_file, file_paths, logger, translate::translate_f
 ///!
 ///!  2- json technique -> translate() -> rl
 ///!
-///!  3- ncf library -> generate-lib() -> stdlib.rl + translate-config
+///!  3- ncf library -> generate_lib() -> stdlib.rl + translate-config
 ///!
 
 // MAIN

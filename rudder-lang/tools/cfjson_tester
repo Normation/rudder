@@ -21,19 +21,24 @@ if not os.path.exists(cfg_full_path):
   print("No such file: " + cfg_full_path)
   exit(1)
 
+# use config file to add modules paths
 cfg = configparser.ConfigParser()
 cfg.read(os.getcwd()+cfgpath)
-ncf_dir = cfg['default_paths']['ncf'].strip('\"')
-cfengine_path = cfg['default_paths']['cfengine'].strip('\"')
 
+ncf_dir = cfg['default_paths']['ncf'].strip('\"')
 sys.path.append(ncf_dir+'/tools')
 import ncf
+
+cfengine_path = cfg['default_paths']['cfengine'].strip('\"')
+modules = cfg['default_paths']['py_modules'].strip('\"')
+sys.path.append(modules)
+import jsondiff
+import docopt
+
 import codecs
 import json
 from pprint import pprint
-import docopt
 import re
-import jsondiff
 from subprocess import check_output
 
 ncf.CFENGINE_PATH=cfengine_path
@@ -59,8 +64,6 @@ def ncf_to_json(cf_file, json_translation):
 
   with open(json_translation, "w") as fd:
     fd.write(json.dumps(technique, indent=4))
-
-  print("Json written to " + json_translation)
 
 def compare_json(first, second):
   with open(first, "r") as f1:  
@@ -95,24 +98,74 @@ def load_cf(file_name):
 
 def empty_dict_cleaner(diff_dict):
   if type(diff_dict) is dict:
-    for element in diff_dict:
-      empty_dict_cleaner(diff_dict[element])
-      if len(diff_dict[element]) == 0:
+    for element in diff_dict.copy():
+      child = diff_dict[element]
+      empty_dict_cleaner(child)
+      if len(child) == 0 or (len(child) == 1 and list(diff_dict[element].keys())[0] == 'line'):
         diff_dict.pop(element)
-        return
+
+def deep_get(haystack, deep_list, needle, index=0):
+  if type(haystack) is list:
+    for elem in haystack:
+      deep_get(elem, deep_list, needle, index)
+  elif type(haystack) is tuple:
+    for elem in haystack:
+      deep_get(elem, deep_list, needle, index)
+  elif type(haystack) is dict and index < len(deep_list) and deep_list[index] in haystack:
+    for key, value in haystack[deep_list[index]].copy().items():
+      deep_get(value, deep_list, needle, index + 1)
+      if type(needle) is str and needle in value:
+        return value[needle]
+  return None
+
+
+# Warning1: only delete keys from dict!
+# Warning2: compare (needle) either from key or with dict content 
+def deep_del(haystack, deep_list, needle, delfrom, index=0):
+  ## consider list to be iterated on like any other dict content
+  istodel = False
+  if type(haystack) is list:
+    for elem in haystack:
+      istodel |= deep_del(elem, deep_list, needle, delfrom, index)
+  elif type(haystack) is tuple:
+    for elem in haystack:
+      istodel |= deep_del(elem, deep_list, needle, delfrom, index)
+  elif type(haystack) is dict and index < len(deep_list) and deep_list[index] in haystack:
+    for key, value in haystack[deep_list[index]].copy().items():
+      istodel |= deep_del(value, deep_list, needle, delfrom, index + 1)
+      ## remove seeked child content if needle is a string
+      if istodel and type(needle) is str and needle in value:
+        value.pop(needle)
+      ## remove content if needle has matched another dict
+      if istodel and delfrom == key:
+        haystack[deep_list[index]].pop(key)
+
+  if type(needle) is str and needle in haystack:
+    ## Will need to remove the child element (needle in haystack) from the parent as we recursively go back only from there (never deeper)
+    return True
+  if haystack == needle or (type(needle) is str and needle in haystack):
+    return True
+  return istodel
+
+# deletes from diff list every i/o difference done on purpose (ie that are not a bug)
+def remove_wilful_entries(diff):
+  ## del name since `_technique` is always added
+  name = deep_get(diff, ['bundles'], 'name')
+  if name[0] + '_technique' == name[1]:
+    deep_del(diff, ['bundles'], 'name', 'name')
+  ## del sourcePath since it is not relevant
+  deep_del(diff, ['bundles'], 'sourcePath', 'sourcePath')
+  ## del superfluous if true equivalent condition
+  deep_del(diff, ['bundles', 'promiseTypes', 'contexts', 'promises', 'attributes', 'rval', 'arguments'], {'type': 'string', 'value': 'any'}, '$delete')
 
 def compare_cf(first, second):
   j1 = load_cf(first)
   j2 = load_cf(second)
   diff = jsondiff.diff(j1, j2, syntax="symmetric", marshal=True)
-  if 'bundles' in diff:
-    if diff['bundles'][0]['sourcePath']:
-      del diff['bundles'][0]['sourcePath']
-    if diff['bundles'][0]['name'][0] + '_technique' == diff['bundles'][0]['name'][1]:
-      del diff['bundles'][0]['name']
+  remove_wilful_entries(diff)
   empty_dict_cleaner(diff)
   if len(diff) != 0:
-    print(json.dumps(diff, indent=4, sort_keys=True))
+    print(json.dumps(diff, indent=2))
 
 if __name__ == "__main__":
   arguments = docopt.docopt(__doc__)

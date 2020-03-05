@@ -8,6 +8,10 @@ homepage = "https://www.rudder.io"
 repository = "https://github.com/Normation/rudder"
 license = "GPL3"
 
+[[bin]]
+name = "rudderc"
+path = "src/bin/main.rs"
+
 [dependencies]
 maplit = "^1.0"
 serde = { version = "1.0", features = ["derive"] }

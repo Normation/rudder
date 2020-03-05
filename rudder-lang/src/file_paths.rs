@@ -73,8 +73,8 @@ pub fn get(exec_action: &str, default_paths: &PathBuf, opt_base: &Option<PathBuf
         Some(m) => m
     };
 
-    let rudderclibs = match paths.get("rudderclibs") {
-        None => return err_gen("No rudderclibs section in toml config file"),
+    let rudderc_libs = match paths.get("rudderc_libs") {
+        None => return err_gen("No rudderc_libs section in toml config file"),
         Some(m) => PathBuf::from(m.as_str().unwrap())
     };
     let translate_config = match paths.get("translate_config") {
@@ -83,7 +83,7 @@ pub fn get(exec_action: &str, default_paths: &PathBuf, opt_base: &Option<PathBuf
     };
 
     Ok((
-        rudderclibs,
+        rudderc_libs,
         translate_config,
         get_input(exec_action, paths, opt_base, opt_input)?,
         get_output(exec_action, paths, opt_base, opt_input, opt_output)?,

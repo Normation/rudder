@@ -1,4 +1,6 @@
 [resources]
+http_request = { parameter_count=2 }
+sharedfile = { parameter_count=2 }
 variable = { parameter_count=2 }
 
 [classes]
