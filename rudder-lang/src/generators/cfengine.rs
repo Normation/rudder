@@ -84,18 +84,30 @@ impl CFEngine {
     }
     fn format_case_expr(&mut self, gc: &AST, case: &EnumExpression) -> Result<String> {
         Ok(match case {
-            EnumExpression::And(e1, e2) => format!(
-                "({}).({})",
-                self.format_case_expr(gc, e1)?,
-                self.format_case_expr(gc, e2)?
-            ),
+            EnumExpression::And(e1, e2) => {
+                let mut lexpr = self.format_case_expr(gc, e1)?;
+                let mut rexpr = self.format_case_expr(gc, e2)?;
+                if lexpr.contains("|") {
+                    lexpr = format!("({})", lexpr);
+                }
+                if rexpr.contains("|") {
+                    rexpr = format!("({})", rexpr);
+                }
+                format!("{}.{}", lexpr, rexpr)
+            },
             EnumExpression::Or(e1, e2) => format!(
-                "({})|({})",
+                "{}|{}",
                 self.format_case_expr(gc, e1)?,
                 self.format_case_expr(gc, e2)?
             ),
             // TODO what about classes that have not yet been set ? can it happen ?
-            EnumExpression::Not(e1) => format!("!({})", self.format_case_expr(gc, e1)?),
+            EnumExpression::Not(e1) => {
+                let mut expr = self.format_case_expr(gc, e1)?;
+                if expr.contains("|") || expr.contains("&") {
+                    expr = format!("!({})", expr);
+                }
+                format!("!{}", expr)
+            },
             EnumExpression::Compare(var, e, item) => {
                 if gc.enum_list.is_global(*e) {
                     let final_enum = gc.enum_list.find_descendant_enum(*e, *item);
@@ -168,8 +180,9 @@ impl CFEngine {
                     ", ",
                 )?;
                 let class = self.format_class(in_class)?;
-                let state_param = if sd.state_params.len() > 0 {
-                    if let Ok(param) = self.parameter_to_cfengine(&sd.state_params[0]) {
+                println!("state param empty ? {:#?}", sd.state_params);
+                let state_param = if sd.resource_params.len() > 0 {
+                    if let Ok(param) = self.parameter_to_cfengine(&sd.resource_params[0]) {
                         format!(", {}", param)
                     } else {
                         "".to_string()
