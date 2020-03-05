@@ -2,6 +2,8 @@ post:
   summary: Check that update on a directive is valid
   description: Check that update on a directive is valid
   operationId: checkDirective
+  parameters:
+    - $ref: ../../components/parameters/directive-id.yml
   requestBody:
     required: true
     content:
