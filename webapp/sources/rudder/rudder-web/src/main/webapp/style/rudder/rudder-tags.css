@@ -403,7 +403,8 @@ hr.separator-filter-tree{
   padding: 10px 5px 5px 5px;
   font-size: 14px;
 }
-.tags-label{
+.tags-label,
+.tooltip > .tooltip-inner .tags-label{
   padding: 4px 8px;
   border-radius : 20px;
   background-color: #222D4215;
@@ -431,31 +432,17 @@ hr.separator-filter-tree{
 .tags-table table{
   margin-bottom: 0 !important;
 }
-/*
-.tags-list > div {
-  border-bottom: 1px solid #e5e5e5;
-  font-size: 14px;
-  color: #222D42;
+
+.dataTable td .tags-label{
+  padding: 3px 8px 1px 8px;
+  font-size: .9em;
+  margin-left: 5px;
+  margin-right: 2px;
 }
-.tags-list > div > span{
-  display: inline-block;
-  padding: 4px 0;
+.dataTable td{
+  position: relative;
 }
-.tags-list > div > span:first-child,
-.tags-list > div > span:last-child{
-  width: calc((100% - 20px)/2);
-}
-.tags-list > div > span:nth-child(2){
-  width: 20px;
-  text-align: center;
-  background-color: #f9f9f9;
-  border-left: 1px solid #e5e5e5;
-  border-right: 1px solid #e5e5e5;
-}
-.tags-list > div > span:last-child{
-  padding-left: 10px;
-}
-*/
+
 @-webkit-keyframes exist {
   0%   {box-shadow: 0 0 0    #c2c2c2;}
   50%  {box-shadow: 0 0 13px #c2c2c2;}
