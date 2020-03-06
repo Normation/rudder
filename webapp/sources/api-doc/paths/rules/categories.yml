@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
 put:
   summary: Create a rule category
   description: Create a new rule category

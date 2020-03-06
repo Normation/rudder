@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
 name: query
 in: query
 description: The criterion you want to find for your nodes. Replaces the `where`, `composition` and `select` parameters in a single parameter.

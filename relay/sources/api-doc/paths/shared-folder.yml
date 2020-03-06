@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
 head:
   summary: Get the state a file from the shared folder
   description: >-

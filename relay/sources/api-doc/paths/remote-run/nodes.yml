@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
 post:
   summary: Trigger agent run on a list of remote nodes
   description: "Trigger the agent on a list of managed nodes (if port `5309` is open to the node). **WARNING**: When running the agent, the `/tmp` folder may not be the global one but a private one, specific to the relay service. You should not rely on `/tmp` content in your policies but use `/var/rudder/tmp` instead."

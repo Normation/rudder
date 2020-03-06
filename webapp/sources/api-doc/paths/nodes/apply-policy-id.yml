@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
 post:
   summary: Trigger an agent run
   description: This API allows to trigger an agent run on the target node. Response is a stream of the actual agent run on the node.

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
 post:
   summary: Update properties for one node from all data sources
   description: Update properties from all data sources on one nodes. The call is asynchronous.

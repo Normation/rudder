@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
 "API tokens":
   description: >-
     Authenticating against the API is mandatory for every request, as sensitive information like inventories or configuration rules may get exposed.
