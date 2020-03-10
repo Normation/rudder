@@ -226,7 +226,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
       case Some(updateQuery) =>
         ZioRuntime.unsafeRun(for {
           updated  <- transactTask(xa => updateQuery.update.run.transact(xa))
-          inserted <- ZIO.sequence(rules.map(r => transactTask(xa => insertRule(now)(r).transact(xa))))
+          inserted <- ZIO.collectAll(rules.map(r => transactTask(xa => insertRule(now)(r).transact(xa))))
         } yield {
           ()
         })

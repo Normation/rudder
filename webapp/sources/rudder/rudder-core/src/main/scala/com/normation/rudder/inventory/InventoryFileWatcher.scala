@@ -58,6 +58,7 @@ import zio._
 import zio.syntax._
 import zio.duration._
 import com.normation.zio._
+import zio.blocking.Blocking
 
 final class Watchers(incoming: FileMonitor, updates: FileMonitor) {
   def start()(implicit executionContext: ExecutionContext): Either[Throwable, Unit] = {
@@ -189,7 +190,7 @@ class InventoryFileWatcher(
   val failed   = File(failedInventoryPath)
   logDirPerm(failed, "Failed")
 
-  implicit val scheduler = ZioRuntime.unsafeRun(ZioRuntime.environment.blocking.blockingExecutor).asEC
+  implicit val scheduler = ZioRuntime.unsafeRun(ZIO.access[Blocking](_.get.blockingExecutor.asEC).provide(ZioRuntime.environment))
   val fileProcessor = new ProcessFile(inventoryProcessor.saveInventory, received, failed, waitForSig, sigExtension)
 
   var watcher = Option.empty[Watchers]
@@ -313,13 +314,11 @@ class ProcessFile(
             // - then execute on different IO scheduler
             // - if the map wasn't interrupted in the first 500 ms, it is not interruptible anymore
 
-            val effect = ZioRuntime.environment.blocking.blockingExecutor.flatMap(executor =>
-              (
-                   UIO.unit.delay(fileWrittenThreshold).provide(ZioRuntime.environment)
-                *> queue.offer(WatchEvent.End(file))
-                *> processFile(file, locks).uninterruptible
-              ).fork.lock(executor)
-            )
+            val effect = ZioRuntime.blocking(
+                 UIO.unit.delay(fileWrittenThreshold).provide(ZioRuntime.environment)
+              *> queue.offer(WatchEvent.End(file))
+              *> processFile(file, locks).uninterruptible
+            ).forkDaemon
 
             effect.map(e => s + (file -> e))
           }
@@ -335,7 +334,7 @@ class ProcessFile(
   }
 
   //start the process
-  ZioRuntime.internal.unsafeRunSync(loop.fork)
+  ZioRuntime.internal.unsafeRunSync(loop.forkDaemon)
 
   def addFile(file: File): Unit = {
     ZioRuntime.internal.unsafeRunSync(queue.offer(WatchEvent.Mod(file)))

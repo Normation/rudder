@@ -227,7 +227,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
   val updateCacheFromRequest: IO[Nothing, Unit] = invalidateComplianceRequest.take.flatMap(invalidatedIds =>
     // batch node processing by slice of batchSize.
     // Be careful, sliding default step is 1.
-    ZIO.traverse_(invalidatedIds.sliding(batchSize,batchSize).to(Iterable))(nodeIds =>
+    ZIO.foreach_(invalidatedIds.sliding(batchSize,batchSize).to(Iterable))(nodeIds =>
       (for {
         updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(nodeIds.toSet, Set()).toIO
         _       <- IOResult.effectNonBlocking { cache = cache ++ updated }
@@ -237,7 +237,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
   )
 
   // start updating
-  updateCacheFromRequest.forever.fork.runNow
+  updateCacheFromRequest.forever.forkDaemon.runNow
 
 
   private[this] def cacheToLog(c: Map[NodeId, NodeStatusReport]): String = {

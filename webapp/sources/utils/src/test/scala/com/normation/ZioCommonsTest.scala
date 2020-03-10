@@ -27,7 +27,6 @@ package com.normation
 
 
 import _root_.zio._
-import _root_.zio.blocking.Blocking
 import _root_.zio.clock.Clock
 import _root_.zio.duration.Duration
 import _root_.zio.syntax._
@@ -79,6 +78,79 @@ class ZioCommonsTest extends Specification {
 
 }
 
+class internalRuntime {
+
+  lazy val runtime = Runtime.default
+  runtime.unsafeRun(UIO.effectTotal(println("**** case 0: non blocking")))
+  unsafeRun(UIO.effectTotal(println("**** case 1: blocking")))
+
+  def blocking[E, A](e: ZIO[Any, E, A]): ZIO[Any, E, A] = {
+    ZIO.accessM[_root_.zio.blocking.Blocking](_.get.blocking(e)).provideLayer(ZLayer.succeedMany(runtime.environment))
+  }
+  def unsafeRun[E, A](e: => ZIO[Any, E, A]): Unit = {
+    runtime.unsafeRun(ZIO.accessM[_root_.zio.blocking.Blocking](_.get.blocking(e)))
+  }
+
+}
+
+object someRoot { // this is the entry point for my runtime
+  lazy val zioRuntime = new internalRuntime()
+}
+
+object Elsewhere { // somewhere else, a blocking unsafe run is called
+
+  someRoot.zioRuntime.runtime.unsafeRun(UIO.effectTotal(println("**** case 1000: non blocking")))
+  someRoot.zioRuntime.unsafeRun(UIO.effectTotal(println("**** case 2000: blocking")))
+
+  def print()= println("ok")
+}
+
+object TestRuntime {
+  def main(args: Array[String]): Unit = {
+    // in internal, it blocks
+    someRoot.zioRuntime.runtime.unsafeRun(UIO.effectTotal(println("**** case 100: non blocking")))
+    someRoot.zioRuntime.unsafeRun(UIO.effectTotal(println("**** case 200: blocking")))
+
+    // it blocks here, when calling the blocking variant
+    Elsewhere.print()
+    println("done")
+
+/* console output:
+**** case 0: non blocking
+**** case 1: blocking
+**** case 100: non blocking
+**** case 200: blocking
+**** case 1000: non blocking
+ -- blocks here --
+"main@1" prio=5 tid=0x1 nid=NA waiting
+  java.lang.Thread.State: WAITING
+	  at java.lang.Object.wait(Object.java:-1)
+	  at java.lang.Object.wait(Object.java:328)
+	  at zio.internal.OneShot.get(OneShot.scala:79)
+	  at zio.Runtime.unsafeRunSync(Runtime.scala:82)
+	  at zio.Runtime.unsafeRunSync$(Runtime.scala:77)
+	  at zio.Runtime$$anon$2.unsafeRunSync(Runtime.scala:226)
+	  at zio.Runtime.unsafeRun(Runtime.scala:57)
+	  at zio.Runtime.unsafeRun$(Runtime.scala:56)
+	  at zio.Runtime$$anon$2.unsafeRun(Runtime.scala:226)
+	  at com.normation.internalRuntime.unsafeRun(ZioCommonsTest.scala:91)
+	  at com.normation.Elsewhere$.<clinit>(ZioCommonsTest.scala:103)
+	  at com.normation.TestRuntime$.main(ZioCommonsTest.scala:115)
+	  at com.normation.TestRuntime.main(ZioCommonsTest.scala:-1)
+
+"zio-default-blocking-1-399534175@1482" daemon prio=5 tid=0xf nid=NA runnable
+  java.lang.Thread.State: RUNNABLE
+	  at com.normation.Elsewhere$$$Lambda$142.1966250569.apply$mcV$sp(Unknown Source:-1)
+	  at scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.scala:18)
+	  at zio.internal.FiberContext.evaluateNow(FiberContext.scala:382)
+	  at zio.internal.FiberContext.$anonfun$evaluateLater$1(FiberContext.scala:687)
+	  at zio.internal.FiberContext$$Lambda$125.1907431275.run(Unknown Source:-1)
+	  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	  at java.lang.Thread.run(Thread.java:834)
+* */
+  }
+}
 
 object TestImplicits {
   import _root_.zio._
@@ -234,7 +306,7 @@ object TestSemaphore {
   } yield ()
 
   def main(args: Array[String]): Unit = {
-    ZioRuntime.runNow(inLock.provide(ZioRuntime.environment))
+    ZioRuntime.runNow(inLock.provideLayer(ZioRuntime.layers))
   }
 
 }
@@ -251,26 +323,26 @@ object TestJavaLockWithZio {
   trait ScalaLock {
     def lock(): Unit
     def unlock(): Unit
-    def clock: Clock
-    def blocking: Blocking
+    def clockEnv: ZLayer[Any, Nothing, Clock]
+    def blockingEnv: ZLayer[Any, Nothing, blocking.Blocking]
 
     def name: String
 
     def apply[T](block: => IOResult[T]): IOResult[T] = {
-      println(s"***** calling lock '${name}'")
-      _root_.zio.blocking.blockingExecutor.flatMap(executor =>
-      ZIO.bracket(
+      println(s"*calling lock '${name}'")
+
+      (ZIO.bracket(
         log(s"Get lock '${name}'") *>
 //        log(Thread.currentThread().getStackTrace.mkString("\n")) *>
-        IO.effect(this.lock()).lock(executor).timeout(Duration.Finite(100*1000*1000 /* ns */))
+        blocking.blocking(IO.effect(this.lock())).provideLayer(blockingEnv).timeout(Duration.Finite(100*1000*1000 /* ns */)).provideLayer(clockEnv)
           .mapError(ex => SystemError(s"Error when trying to get LDAP lock", ex))
       )(_ =>
         log(s"Release lock '${name}'") *>
-        IO.effect(this.unlock()).lock(executor).catchAll(t => log(s"${t.getClass.getName}:${t.getMessage}") *> ZIO.foreach(t.getStackTrace) { s => log(s.toString) }).unit
+        blocking.blocking(IO.effect(this.unlock())).provideLayer(blockingEnv).catchAll(t => log(s"${t.getClass.getName}:${t.getMessage}") *> ZIO.foreach(t.getStackTrace) { s => log(s.toString) }).unit
       )(_ =>
         log(s"Do things in lock '${name}'") *>
         block
-      ).provide(clock).lock(executor)).provide(blocking)
+      ))
     }
   }
   val lock = new ScalaLock {
@@ -288,19 +360,19 @@ object TestJavaLockWithZio {
       println(s"lock info after release: ${jrwlock.toString}")
     }
 
-    override def clock: Clock = ZioRuntime.environment
-    override def blocking: Blocking = ZioRuntime.environment
+    override def clockEnv = ZioRuntime.layers
+    override def blockingEnv = ZioRuntime.layers
     override def name: String = "test-scala-lock"
   }
 
-  def prog1(c: Clock) = for {
+  def prog1(c: ZLayer[Any, Nothing, Clock]) = for {
     _   <- log("sem get 1")
     a   <- lock(IOResult.effect(println("Hello world 1")))
     _   <- log("sem get 2")
     b   <- lock(IOResult.effect({println("sleeping now"); Thread.sleep(2000); println("after sleep: second hello")}))
     _   <- log("sem get 3")
            // at tham point, the semaphore is free because b is fully executed, so no timeout
-    c   <- lock(IOResult.effect(println("third hello"))).timeout(Duration(5, java.util.concurrent.TimeUnit.MILLISECONDS)).provide(c)
+    c   <- lock(IOResult.effect(println("third hello"))).timeout(Duration(5, java.util.concurrent.TimeUnit.MILLISECONDS)).provideLayer(c)
     _   <- c match {
              case None => log("---- A timeout happened")
              case Some(y) => log("++++ No timeout")
@@ -308,7 +380,7 @@ object TestJavaLockWithZio {
   } yield ()
 
   def main(args: Array[String]): Unit = {
-    ZioRuntime.runNow(prog1(ZioRuntime.environment))
+    ZioRuntime.runNow(prog1(ZioRuntime.layers))
   }
 
 }
@@ -317,7 +389,7 @@ object TestJavaLockWithZio {
  * This test show that without a fork, execution is purely mono-fiber and sequential.
  */
 object TestZioSemantic {
-  val rt = new DefaultRuntime {}
+  val rt = ZioRuntime.internal
   trait LOG {
     def apply(s: String): UIO[Unit]
   }
@@ -327,7 +399,7 @@ object TestZioSemantic {
   })
 
   val semaphore = Semaphore.make(1)
-  def prog1(c: Clock) = for {
+  def prog1(c: ZLayer[Any, Nothing, Clock]) = for {
     sem <- semaphore
     log <- makeLog
     _   <- log("sem get 1")
@@ -336,13 +408,13 @@ object TestZioSemantic {
     b   <- sem.withPermit(IO.effect({println("sleeping now"); Thread.sleep(2000); println("after sleep: second hello")}))
     _   <- log("sem get 3")
            // at tham point, the semaphore is free because b is fully executed, so no timeout
-    c   <- sem.withPermit(IO.effect(println("third hello"))).timeout(Duration(5, java.util.concurrent.TimeUnit.MILLISECONDS)).provide(c)
+    c   <- sem.withPermit(IO.effect(println("third hello"))).timeout(Duration(5, java.util.concurrent.TimeUnit.MILLISECONDS)).provideLayer(c)
     _   <- c match {
              case None => log("---- A timeout happened")
              case Some(y) => log("++++ No timeout")
            }
   } yield ()
-  def prog2(c: Clock) = for {
+  def prog2(c: ZLayer[Any, Nothing, Clock]) = for {
     sem <- semaphore
     log <- makeLog
     _   <- log("sem get 1")
@@ -350,7 +422,7 @@ object TestZioSemantic {
     _   <- log("sem get 2")
     b   <- sem.withPermit(IO.effect({println("sleeping now"); Thread.sleep(2000); println("after sleep: second hello")})).fork
     _   <- log("sem get 3")
-    c   <- sem.withPermit(IO.effect(println("third hello"))).timeout(Duration(5, java.util.concurrent.TimeUnit.MILLISECONDS)).provide(c).fork
+    c   <- sem.withPermit(IO.effect(println("third hello"))).timeout(Duration(5, java.util.concurrent.TimeUnit.MILLISECONDS)).provideLayer(c).fork
     _   <- a.join
     _   <- b.join
     x   <- c.join
@@ -362,9 +434,9 @@ object TestZioSemantic {
 
 
   def main(args: Array[String]): Unit = {
-    rt.unsafeRunSync(prog1(rt.Environment))
+    rt.unsafeRunSync(prog1(ZioRuntime.layers))
     println("****************")
-    rt.unsafeRunSync(prog2(rt.Environment))
+    rt.unsafeRunSync(prog2(ZioRuntime.layers))
 
 /* exec prints:
 
@@ -469,7 +541,7 @@ Process finished with exit code 0
         Thread.sleep(2000)
         println("... end")
       }
-    }.run.unit.fork.provide(ZioRuntime.environment))
+    }.run.unit.forkDaemon.provideLayer(ZioRuntime.layers))
     println("after async prog, wait")
 
     Thread.sleep(3000)
@@ -477,73 +549,6 @@ Process finished with exit code 0
   }
 }
 
-
-
-object TestConcurrentRun {
-/*
-runs with jvm arg:
-
--Dscala.concurrent.context.minThreads=1
--Dscala.concurrent.context.maxThreads=20
--Dscala.concurrent.context.maxExtraThreads=10000
- */
-import _root_.zio._
-import _root_.zio.clock._
-import _root_.zio.console._
-import _root_.zio.duration._
-import _root_.zio.internal._
-import _root_.zio.random._
-import _root_.zio.syntax._
-import _root_.zio.system.{System => ZSystem}
-
-  def main(args: Array[String]): Unit = {
-
-    val runtime = new DefaultRuntime() {
-      object ForkJoinBlockin extends Blocking {
-        val blocking: Blocking.Service[Any] = new Blocking.Service[Any] {
-          val blockingExecutor: UIO[Executor] = Executor.fromExecutionContext(Int.MaxValue)(scala.concurrent.ExecutionContext.global).succeed
-        }
-      }
-      override val Platform: Platform = PlatformLive.fromExecutionContext(scala.concurrent.ExecutionContext.global) //.withTracingConfig(_root_.zio.internal.tracing.TracingConfig.disabled)
-      override val Environment = new Clock.Live with Console.Live with ZSystem.Live with Random.Live with Blocking.Live
-    }
-
-    val schedule = ZSchedule.spaced(100.millis).forever
-    val start = System.currentTimeMillis
-    def time = (System.currentTimeMillis()-start).toString
-
-
-    import _root_.zio.interop.catz._
-
-
-    println("before declaration: " + time)
-
-    val c = (cats.effect.IO { println("cats blcocking "); Thread.sleep(5000)})
-
-    val p1 = IOResult.effect { println("1 - " + time); Thread.sleep(5000)}.repeat(schedule)
-    val p2 = IOResult.effect { println("2 - " + time); Thread.sleep(5000)}.repeat(schedule).delay(100.millis)
-    val p3 = IOResult.effect { println("3 - " + time); Thread.sleep(5000)}.repeat(schedule).delay(200.millis)
-    val p4 = IOResult.effect { println("4 - " + time); Thread.sleep(5000)}.repeat(schedule).delay(300.millis)
-
-    val p = IOResult.effect{ println("== " + time)}.delay(400.millis).repeat(schedule)
-
-    println("start run " + time)
-
-//    runtime.unsafeRunSync(blocking.blocking(scala.concurrent.blocking(cats.effect.IO { println("cats blcocking "); Thread.sleep(5000)}).to[Task]))
-
-
-//    c.unsafeRunSync() // this block the thread until end of exex
-    runtime.unsafeRunSync(c.to[Task].fork)
-    runtime.unsafeRunSync(p1.fork)
-    runtime.unsafeRunSync(p2.fork)
-    runtime.unsafeRunSync(p3.fork)
-    runtime.unsafeRunSync(p4.fork)
-    runtime.unsafeRunSync(p.fork)
-
-    println("terminating after 3s")
-    Thread.sleep(3*1000)
-  }
-}
 
 object CollectAllSemantic {
 

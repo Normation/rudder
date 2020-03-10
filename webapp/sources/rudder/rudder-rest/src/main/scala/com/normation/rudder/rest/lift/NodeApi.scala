@@ -768,7 +768,7 @@ class NodeApiService8 (
       in  <- IOResult.effect(new PipedInputStream(pipeSize))
       out <- IOResult.effect(new PipedOutputStream(in))
       _   <- NodeLoggerPure.trace("remote-run: reading stream from remote API")
-      _   <- copy(out, readTimeout).fork // read from HTTP request
+      _   <- copy(out, readTimeout).forkDaemon // read from HTTP request
       res <- IOResult.effect(copyStreamTo(pipeSize, in) _) // give the writter function waiting for out
       // don't close out here, it was closed inside `copy`
     } yield res).catchAll { err =>

@@ -26,6 +26,8 @@
 package com.normation
 
 
+import java.util.concurrent.TimeUnit
+
 import net.liftweb.common.{Logger => _, _}
 import cats.data._
 import cats.implicits._
@@ -34,10 +36,11 @@ import com.normation.errors.Chained
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
 import com.normation.errors.SystemError
-import _root_.zio._
-import _root_.zio.syntax._
 import com.normation.zio.ZioRuntime
 import org.slf4j.Logger
+import _root_.zio._
+import _root_.zio.syntax._
+import _root_.zio.internal.Platform
 
 /**
  * This is our based error for Rudder. Any method that can
@@ -230,7 +233,7 @@ object errors {
      * Execute sequentially and accumulate errors
      */
     def accumulateNEL[R, E, B](f: A => ZIO[R, E, B]): ZIO[R, NonEmptyList[E], List[B]] = {
-      transform(ZIO.traverse(in){ x => f(x).either }).untraced
+      transform(ZIO.foreach(in){ x => f(x).either }).untraced
     }
 
     def accumulateNELPure[R, E, B](f: A => Either[E, B]): Either[NonEmptyList[E], List[B]] = {
@@ -242,7 +245,7 @@ object errors {
      * Execute in parallel, non ordered, and accumulate error, using at max N fibers
      */
     def accumulateParNELN[R, E, B](n: Int)(f: A => ZIO[R, E, B]): ZIO[R, NonEmptyList[E], List[B]] = {
-      transform(ZIO.traverseParN(n)(in){ x => f(x).either }).untraced
+      transform(ZIO.foreachParN(n)(in){ x => f(x).either }).untraced
     }
   }
 
@@ -321,12 +324,12 @@ object errors {
 
 object zio {
 
-  val currentTimeMillis = UIO.effectTotal(System.currentTimeMillis())
-  val currentTimeNanos  = UIO.effectTotal(System.nanoTime())
+  val currentTimeMillis = ZIO.accessM[_root_.zio.clock.Clock](_.get.currentTime(TimeUnit.MILLISECONDS)).provide(ZioRuntime.environment)
+  val currentTimeNanos  = ZIO.accessM[_root_.zio.clock.Clock](_.get.nanoTime).provide(ZioRuntime.environment)
 
-  /*
+    /*
    * Default ZIO Runtime used everywhere.
-   */
+     */
   object ZioRuntime {
     /*
      * Internal runtime. You should not access it within rudder.
@@ -334,24 +337,21 @@ object zio {
      * IO into an async thread pool to avoid deadlock in case of
      * a hierarchy of calls.
      */
-    val internal = new DefaultRuntime() {
-      import _root_.zio.internal._
-      import _root_.zio.clock._
-      import _root_.zio.random._
-      import _root_.zio.console._
-      import _root_.zio.system._
-      override val Environment: ZEnv  = new Clock.Live with Console.Live with System.Live with Random.Live with RudderBlockingService //_root_.zio.blocking.Blocking.Live
-    }
+    val internal = Runtime.default
+
+    def platform: Platform = internal.platform
+    def layers: ZLayer[Any, Nothing, ZEnv] = ZLayer.succeedMany(internal.environment)
+    def environment: ZEnv = internal.environment
 
     /*
      * use the blocking thread pool provided by that runtime.
      */
     def blocking[E,A](io: ZIO[Any,E,A]): ZIO[Any,E,A] = {
-      _root_.zio.blocking.blocking(io).provide(internal.Environment)
+      ZIO.accessM[_root_.zio.blocking.Blocking](_.get.blocking(io)).provide(environment)
     }
 
     def effectBlocking[A](effect: => A): ZIO[Any, Throwable, A] = {
-      _root_.zio.blocking.effectBlocking(effect).provide(internal.Environment)
+      ZIO.accessM[_root_.zio.blocking.Blocking](_.get.effectBlocking(effect)).provide(environment)
     }
 
     def runNow[A](io: IOResult[A]): A = {
@@ -373,7 +373,6 @@ object zio {
      */
     def unsafeRun[E, A](zio: => ZIO[Any, E, A]): A = internal.unsafeRun(blocking(zio))
 
-    def environment = internal.Environment
   }
 
   /*
@@ -383,7 +382,6 @@ object zio {
     def runNow: A = ZioRuntime.runNow(io)
     def runNowLogError(logger: RudderError => Unit): Unit = ZioRuntime.runNowLogError(logger)(io)
   }
-
 }
 
 /*

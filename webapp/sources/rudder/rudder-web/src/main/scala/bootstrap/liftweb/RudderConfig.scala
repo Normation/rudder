@@ -516,6 +516,7 @@ object RudderConfig extends Loggable {
   // we need that to be the first thing, and take care of Exception so that the error is
   // human undertandable when the directory is not up
 
+
   val roLDAPConnectionProvider: LDAPConnectionProvider[RoLDAPConnection] = roLdap
   // test connection is up and try to make an human understandable error message.
   ApplicationLogger.debug(s"Test if LDAP connection is active")
@@ -523,9 +524,9 @@ object RudderConfig extends Loggable {
     con    <- roLdap
   } yield {
     con.backed.getConnectionName
-  }).untraced.orDieWith(ex =>
-     InitError("An error occured when testing for LDAP connection: " + ex.fullMsg)
-  ))
+  }).untraced.orDieWith { ex =>
+    InitError("An error occured when testing for LDAP connection: " + ex.fullMsg)
+  })
 
   val pendingNodesDit: InventoryDit = pendingNodesDitImpl
   val acceptedNodesDit: InventoryDit = acceptedNodesDitImpl

@@ -220,7 +220,7 @@ final case class WoReportsExecutionRepositoryImpl (
     }
 
 
-    ZioRuntime.unsafeRun(ZIO.sequence(runs.toList.map(updateOne))).flatMap(x => x match {
+    ZioRuntime.unsafeRun(ZIO.collectAll(runs.toList.map(updateOne))).flatMap(x => x match {
       case Left(ex)        =>
         Some(Failure(s"Error when updating last agent runs information: ${ex.getMessage()}"))
       case Right(Some(res)) =>

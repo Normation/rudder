@@ -201,7 +201,7 @@ object RunNuCommand {
                           IOResult.effect(errorMsg) {
                             process.closeStdin(true)
                             process.waitFor(limit.toMillis, java.util.concurrent.TimeUnit.MILLISECONDS)
-                          }.fork
+                          }.forkDaemon
                         }
     } yield {
       promise

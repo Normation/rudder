@@ -552,7 +552,7 @@ object JsEngine {
       val (default, js, isPassword) = getEvaluatorTuple(variable)
 
       (for {
-        values <- ZIO.traverse(variable.values) { value =>
+        values <- ZIO.foreach(variable.values) { value =>
           (if (value.startsWith(default)) {
             val script = value.substring(default.length())
             //do something with script

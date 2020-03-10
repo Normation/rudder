@@ -45,7 +45,7 @@ object TestAccumulate {
 
     val data = new TestNodeConfiguration("webapp/sources/rudder/rudder-core/")
 
-    def prog(s: String) = IOResult.effect{println(s); Thread.sleep(1*1000)}.forever.fork.unit
+    def prog(s: String) = IOResult.effect{println(s); Thread.sleep(1*1000)}.forever.forkDaemon.unit
 
 
     val pid = new java.io.File("/proc/self").getCanonicalFile().getName()
@@ -73,7 +73,7 @@ object TestAccumulate {
 object ThatDoesNotBlock {
   def main(args: Array[String]): Unit = {
 
-    def prog(s: String) = IOResult.effect{println(s); Thread.sleep(2*1000)}.forever.fork.unit
+    def prog(s: String) = IOResult.effect{println(s); Thread.sleep(2*1000)}.forever.forkDaemon.unit
 
     val pid = new java.io.File("/proc/self").getCanonicalFile().getName()
     println(s"Test starts with PID ${pid} on ${java.lang.Runtime.getRuntime().availableProcessors()} cores")

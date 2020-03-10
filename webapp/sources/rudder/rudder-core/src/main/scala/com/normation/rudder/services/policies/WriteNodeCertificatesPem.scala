@@ -82,7 +82,7 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
 
   @silent("a type was inferred to be `Any`")
   override def writeCerticatesAsync(file: File, allNodeInfos: Map[NodeId, NodeInfo]): Unit = {
-    ZioRuntime.runNow(writeCertificates(file, allNodeInfos).catchAll(e => logger.error(e.fullMsg)).fork)
+    ZioRuntime.runNow(writeCertificates(file, allNodeInfos).catchAll(e => logger.error(e.fullMsg)).forkDaemon)
   }
 
   override def writeCertificates(file: File, allNodeInfos: Map[NodeId, NodeInfo]): IOResult[Unit] = {

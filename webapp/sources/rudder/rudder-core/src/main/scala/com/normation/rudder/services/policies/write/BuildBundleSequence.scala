@@ -266,14 +266,14 @@ class BuildBundleSequence(
     for {
       _                          <- PolicyGenerationLoggerPure.trace(s"Preparing bundle list and input list for node : ${agentNodeProps.nodeId.value}")
       // - build techniques bundles from the sorted list of techniques
-      techniquesBundles          <- ZIO.traverse(sortedPolicies)(buildTechniqueBundles(agentNodeProps.nodeId, agentNodeProps.agentType, globalPolicyMode, nodePolicyMode)(_).toIO)
+      techniquesBundles          <- ZIO.foreach(sortedPolicies)(buildTechniqueBundles(agentNodeProps.nodeId, agentNodeProps.agentType, globalPolicyMode, nodePolicyMode)(_).toIO)
       //split system and user directive (technique)
       (systemBundle, userBundle) =  techniquesBundles.toList.removeEmptyBundle.partition( _.isSystem )
       bundleVars                 <- writeAllAgentSpecificFiles.getBundleVariables(agentNodeProps, systemInputFiles, systemBundle, userInputFiles, userBundle, runHooks).toIO.chainError(
                                       s"Error for node '${agentNodeProps.nodeId.value}' bundle creation"
                                     )
       // map to correct variables
-      vars                       <- ZIO.sequence(List(
+      vars                       <- ZIO.collectAll(List(
                                         //this one is CFengine specific and kept for historical reason
                                         systemVariableSpecService.get("INPUTLIST"                         ).map(v => (v.name, SystemVariable(v, CfengineBundleVariables.formatBundleFileInputFiles(inputs.map(_.path))))).toIO
                                         //this one is CFengine specific and kept for historical reason

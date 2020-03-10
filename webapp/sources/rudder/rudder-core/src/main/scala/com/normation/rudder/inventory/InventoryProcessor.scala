@@ -138,7 +138,7 @@ class InventoryProcessor(
   }
 
   // start the inventory processing
-  ZioRuntime.unsafeRun(loop().fork)
+  ZioRuntime.unsafeRun(loop().forkDaemon)
 
   // we need something that can produce the stream several time because we are reading the file several time - not very
   // optimized :/

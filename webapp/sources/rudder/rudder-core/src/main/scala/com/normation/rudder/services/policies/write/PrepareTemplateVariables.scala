@@ -162,7 +162,7 @@ class PrepareTemplateVariablesImpl(
                             )
         t1               <- currentTimeMillis
         _                <- timer.buildBundleSeq.update(_ + t1 - t0)
-        parameters       <- ZIO.traverse(agentNodeConfig.config.parameters) { x =>
+        parameters       <- ZIO.foreach(agentNodeConfig.config.parameters) { x =>
                               agentRegister.findMap(agentNodeProps){ agent =>
                                 net.liftweb.common.Full(ParameterEntry(x.name.value, agent.escape(x.value), agentNodeConfig.agentType))
                               }.toIO
@@ -213,7 +213,7 @@ class PrepareTemplateVariablesImpl(
     for {
       variableHandler    <- agentRegister.findHandler(agentNodeProps).toIO.chainError(s"Error when trying to fetch variable escaping method for node ${agentNodeProps.nodeId.value}")
                             // here, `traverse` seems to give similar but more consistant results than `traverseParN`
-      preparedTechniques <- ZIO.traverse(policies) { p =>
+      preparedTechniques <- ZIO.foreach(policies) { p =>
                               for {
                                 _         <- PolicyGenerationLoggerPure.trace(s"Processing node '${agentNodeProps.nodeId.value}':${p.ruleName}/${p.directiveName} [${p.id.value}]")
                                 variables <- prepareVariables(agentNodeProps, variableHandler, p, systemVars).chainError(s"Error when trying to build variables for technique(s) in node ${agentNodeProps.nodeId.value}")

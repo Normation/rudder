@@ -307,7 +307,7 @@ sealed class RoLDAPConnection(
   ReadOnlyTreeLDAPConnection
 {
 
-  def blocking[A](effect: => A): Task[A] = blockingModule.blocking.blocking( IO.effect(effect) )
+  def blocking[A](effect: => A): Task[A] = ZIO.accessM[Blocking](_.get.blocking( IO.effect(effect) )).provide(blockingModule)
 
   /*
    * //////////////////////////////////////////////////////////////////

@@ -61,8 +61,8 @@ final class InternalConnection[LDAP <: RoLDAPConnection](provider: LDAPConnectio
 
 trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] {
 
-  protected def newConnection : LDAPIOResult[LDAP]
-  protected def getInternalConnection() : LDAPIOResult[LDAP]
+  protected def newConnection : ZIO[Blocking, LDAPRudderError, LDAP]
+  protected def getInternalConnection() : ZIO[Blocking, LDAPRudderError, LDAP]
   protected def releaseInternalConnection(con:LDAP) : UIO[Unit]
   protected def releaseDefuncInternalConnection(con:LDAP) : UIO[Unit]
 
@@ -114,10 +114,10 @@ trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] {
    * user method sequence with exception handling.
    */
   protected[sdk] def withCon[E <:RudderError, A](f: LDAP => IO[E, A]) : IOResult[A] = {
-    IO.bracket(getInternalConnection)(releaseInternalConnection)(f)
+    ZIO.bracket(getInternalConnection)(releaseInternalConnection)(x => ZioRuntime.blocking(f(x))).provide(ZioRuntime.environment)
   }
   protected[sdk] def withConLdap[A](f: LDAP => LDAPIOResult[A]) : LDAPIOResult[A] = {
-    IO.bracket(getInternalConnection)(releaseInternalConnection)(f)
+    ZIO.bracket(getInternalConnection)(releaseInternalConnection)(x => ZioRuntime.blocking(f(x))).provide(ZioRuntime.environment)
   }
 }
 
@@ -206,7 +206,7 @@ trait OneConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionProv
     semaphore.withPermit(
       for {
         c <- connection.get
-        n <- c match {
+        n <- (c match {
                case None => newConnection
                case Some(con) =>
                  if(con.backed.isConnected) {
@@ -214,7 +214,7 @@ trait OneConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionProv
                  } else {
                    releaseInternalConnection(con) *> newConnection
                  }
-             }
+             }).provide(ZioRuntime.environment)
         _ <- connection.set(Some(n))
     } yield {
       n

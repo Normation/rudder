@@ -281,7 +281,7 @@ class FillTemplatesService {
                                     template = new SynchronizedFileTemplate(templateName, parsed)
                                   } yield {
                                     template
-                                  }).fork
+                                  }).forkDaemon
                              _ <- cache.update(_ + (content -> p))
                            } yield p
                     }
