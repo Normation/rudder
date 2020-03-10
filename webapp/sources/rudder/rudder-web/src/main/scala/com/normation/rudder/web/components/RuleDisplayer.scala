@@ -265,7 +265,8 @@ class RuleDisplayer (
                             </div>
                             <div class="tags-container">
                               <div class="btn-group btn-group-xs" role="group"  ng-repeat="tag in tags track by $index">
-                                <button class="btn btn-default tag" ng-class="{'onlyKey':only.key, 'onlyValue':only.value, 'already-exist':tag.alreadyExist}" ng-click="modifyTag(tag,'ruleFilterKeyInput','ruleFilterValueInput')" >
+                                <button class="btn btn-default tags-label" ng-class="{'onlyKey':only.key, 'onlyValue':only.value, 'already-exist':tag.alreadyExist}" ng-click="modifyTag(tag,'ruleFilterKeyInput','ruleFilterValueInput')" >
+                                  <i class="fa fa-tag"></i>
                                   <span class="tag-key">
                                     <span ng-show="tag.key!=''">{{{{tag.key}}}}</span>
                                     <i class='fa fa-asterisk' aria-hidden='true' ng-show="tag.key==''"></i>
