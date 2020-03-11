@@ -1,6 +1,6 @@
 #######################################################
 #
-# Test sysctl value setting
+# Test sysctl value setting in audit mode
 # All values are put in 00_rudder.conf file and it ought to be
 # cleaned in post execution
 # 
@@ -31,7 +31,7 @@ bundle agent init
   vars:
       "tmp"                        string => getenv("TEMP", 1024);
 
-
+    # Store initial values
       "exp1" string => execresult("${paths.sysctl} vm.swappiness > ${tmp}/backup.conf", "useshell");
       "exp2" string => execresult("${paths.sysctl} vm.dirty_ratio >> ${tmp}/backup.conf", "useshell");
       "exp3" string => execresult("${paths.sysctl} vm.lowmem_reserve_ratio >> ${tmp}/backup.conf", "useshell");
@@ -39,77 +39,61 @@ bundle agent init
       "exp5" string => execresult("${paths.sysctl} vm.stat_interval >> ${tmp}/backup.conf", "useshell");
 
 
-    # REPAIR
-
       "key[1]"       string => "vm.swappiness";
-      "value[1]"     string => "1";
-      "expected[1]"  string => "1";
+      "value[1]"     string => execresult("${paths.sysctl} -n vm.swappiness", "useshell");
+      "expected[1]"  string => "${value[1]}";
       "filename[1]"  string => "00_rudder";
       "option[1]"    string => "default";
-      "mode[1]"      string => "enforce";       # mode, "enforce" or "audit"
-      "status[1]"    string => "repaired";      # expected status, "repaired", "success" or "error"
-      "execute[1]"   string => "true";          # Tell if an execution is needed
+      "mode[1]"      string => "audit";       # mode, "enforce" or "audit"
+      "status[1]"    string => "success";     # expected status, "repaired", "success" or "error"
+      "execute[1]"   string => "true";        # Tell if an execution is needed
 
       "key[2]"       string => "vm.dirty_ratio";
-      "value[2]"     string => "31";
-      "expected[2]"  string => "31";
+      "value[2]"     string => "aaaa";
+      "expected[2]"  string => "aaaa";
       "filename[2]"  string => "00_rudder";
       "option[2]"    string => "default";
-      "mode[2]"      string => "enforce";
-      "status[2]"    string => "repaired";
+      "mode[2]"      string => "audit";
+      "status[2]"    string => "error";
       "execute[2]"   string => "true";
+
+      "key[3]"       string => "vm.lowmem_reserve_ratio";
+      "value[3]"     string => execresult("${paths.sysctl} -n vm.lowmem_reserve_ratio", "useshell");
+      "expected[3]"  string => "${value[3]}";
+      "filename[3]"  string => "00_rudder";
+      "option[3]"    string => "min";
+      "mode[3]"      string => "audit";
+      "status[3]"    string => "success";
+      "execute[3]"   string => "true";
 
       "key[4]"       string => "vm.oom_dump_tasks";
       "value[4]"     string => "99999"; # usually this is 1
-      "expected[4]"  string => "99999";
+      "expected[4]"  string => execresult("${paths.sysctl} -n vm.oom_dump_tasks", "useshell");
       "filename[4]"  string => "00_rudder";
-      "option[4]"    string => "min";
-      "mode[4]"      string => "enforce";
-      "status[4]"    string => "repaired";
+      "option[4]"    string => "max";
+      "mode[4]"      string => "audit";
+      "status[4]"    string => "success";
       "execute[4]"   string => "true";
 
       "key[5]"       string => "vm.stat_interval";
       "value[5]"     string => "0"; # default is 1
-      "expected[5]"  string => "0";
+      "expected[5]"  string => execresult("${paths.sysctl} -n vm.stat_interval", "useshell");
       "filename[5]"  string => "00_rudder";
-      "option[5]"    string => "max";
-      "mode[5]"      string => "enforce";
-      "status[5]"    string => "repaired";
+      "option[5]"    string => "min";
+      "mode[5]"      string => "audit";
+      "status[5]"    string => "success";
       "execute[5]"   string => "true";
 
-      # non existent nor creatable key, should fail
-      "key[6]"       string => "rudder.key6";
-      "value[6]"     string => "abcf.fgfggf.fgfgfgde";
-      "expected[6]"  string => "abcf.fgfggf.fgfgfgde";
+      "key[6]"       string => "vm.oom_dump_tasks";
+      "value[6]"     string => "999";
+      "expected[6]"  string => execresult("${paths.sysctl} -n vm.oom_dump_tasks", "useshell");
       "filename[6]"  string => "00_rudder";
-      "option[6]"    string => "max";
-      "mode[6]"      string => "enforce";
+      "option[6]"    string => "min";
+      "mode[6]"      string => "audit";
       "status[6]"    string => "error";
       "execute[6]"   string => "true";
 
-
-      # Audit.
-      # Key not present, should fail
-      "key[7]"       string => "rudder.key7";
-      "value[7]"     string => "256	256	32";
-      "expected[7]"  string => "";
-      "filename[7]"  string => "00_rudder";
-      "option[7]"    string => "max";
-      "mode[7]"      string => "audit";
-      "status[7]"    string => "error";
-      "execute[7]"   string => "false";
-
-      # Success for an already modifie value
-      "key[8]"       string => "vm.oom_dump_tasks";
-      "value[8]"     string => "99999"; # usually this is 1
-      "expected[8]"  string => "99999";
-      "filename[8]"  string => "00_rudder";
-      "option[8]"    string => "default";
-      "mode[8]"      string => "enforce";
-      "status[8]"    string => "success";
-      "execute[8]"   string => "true";
-
-      "indices" slist => {1, 2, 3, 4, 5, 6, 7, 8};
+      "indices" slist => getindices("key");
 
   classes:
       "pass3" expression => "pass2";
@@ -133,17 +117,13 @@ bundle agent test
 
   methods:
     pass1.!pass2::
-    #REPAIRED
       "ph1" usebundle => apply_gm("sysctl_value", @{args1}, "${init.status[1]}", "ph1", "${init.mode[1]}" );
       "ph2" usebundle => apply_gm("sysctl_value", @{args2}, "${init.status[2]}", "ph2", "${init.mode[2]}" );
+      "ph3" usebundle => apply_gm("sysctl_value", @{args3}, "${init.status[3]}", "ph3", "${init.mode[3]}" );
       "ph4" usebundle => apply_gm("sysctl_value", @{args4}, "${init.status[4]}", "ph4", "${init.mode[4]}" );
       "ph5" usebundle => apply_gm("sysctl_value", @{args5}, "${init.status[5]}", "ph5", "${init.mode[5]}" );
-    # ENFORCE ERROR
       "ph6" usebundle => apply_gm("sysctl_value", @{args6}, "${init.status[6]}", "ph6", "${init.mode[6]}" );
-    # AUDIT ERROR
-      "ph7" usebundle => apply_gm("sysctl_value", @{args7}, "${init.status[7]}", "ph7", "${init.mode[7]}" );
-    # SUCCESS
-      "ph8" usebundle => apply_gm("sysctl_value", @{args8}, "${init.status[8]}", "ph8", "${init.mode[8]}" );
+
 }
 
 #######################################################

@@ -18,17 +18,54 @@
 
 # @name Sysctl value
 # @description Enforce a value in sysctl (optionaly increase or decrease it)
-# @documentation Checks for the current value defined.
-# If it is not set, this method will set it in the file defined as argument
-# If it is set, and correspond to the desired value, it will success
-# If it is set, and does not correspond, the value will be set in the file defined as argument
-# and the resulting value will be checked. If it is not taken into account by sysctl because it's overriden
-# it will thus return an error
-# Optional parameters:
-# min: The value is only changed/set if the current value is unset or lower than what is provided as input
-# max: The value is only changed/set if the current value is unset or higher than what is provided as input
-# default (default value): The Value is enforced to be what is provided as input for Generic Method
-# @parameter key            The key to check
+# @documentation Enforce a value in sysctl
+#
+# #### Behaviours
+#
+# Checks for the current value defined for the given key
+# If it is not set, this method attempts to set it in the file defined as argument
+# If it is set, and corresponds to the desired value, it will success
+# If it is set, and does not correspond, the value will be set in the file defined, sysctl 
+# configuration is reloaded with `sysctl --system` and the 
+# resulting value is checked. 
+# If it is not taken into account by sysctl because
+# its overriden in another file or its an invalid key, the method returns an error
+#
+# #### Prerequisite
+#
+# This method requires an /etc/sysctl.d folder, and the `sysctl --system` option.
+# It does not support Debian 6 or earlier, Centos/RedHat 6 or earlier, SLES 11 or earlier,
+# Ubuntu 12_04 or earlier, AIX and Solaris.
+#
+# ##### Parameters
+#
+# `key`   : the key to enforce/check
+# `value` : the expected value for the key
+# `filename` : filename (without extension) containing the key=value when need to be set, within /etc/sysctl.d.
+#              This method adds the correct extension at the end of the filename
+# Optional parameter:
+#  `min`: The value is the minimal value we request. the value is only changed if the current value is lower than `value`
+#  `max`: The value is the maximal value we request: the value is only changed if the current value is higher than `value`
+#  `default` (default value): The value is strictly enforced.
+#
+# Comparision is numerical if possible, else alphanumerical
+# So 10 > 2, but Test10 < Test2
+#
+# #### Examples
+#
+# To ensure that swappiness is disabled, and storing the configuration parameter in 99_rudder.conf
+#
+# ```
+#  sysctl_value("vm.swappiness", "99_rudder", "0", "")
+# ```
+#
+# To ensure that the UDP buffer is at least 26214400
+#
+# ```
+#  sysctl_value("net.core.rmem_max", "99_rudder", "26214400", "min")
+# ```
+#
+# @parameter key            The key to enforce
 # @parameter value          The desired value
 # @parameter filename       File name where to put the value in /etc/sysctl.d (without the .conf extension)
 # @parameter option         Optional modifier on value: Min, Max or Default (default value)
@@ -48,8 +85,8 @@ bundle agent sysctl_value(key, value, filename, option) {
       "class_prefix"          string => string_head("${full_class_prefix}", "1000");
 
 
-      "sysctl_get_query"      string => "${paths.sysctl} -n ${key} # Get value (expect ${value})";
-      "sysctl_check_query"    string => "${paths.sysctl} -n ${key} # Check value (expect ${value})";
+      "sysctl_get_query"      string => "${paths.sysctl} -n ${key} # Get value (expect ${value}, option ${option})";
+      "sysctl_check_query"    string => "${paths.sysctl} -n ${key} # Check value (expect ${value}, option ${option})";
       "canonified_key"        string => canonify("key");
 
       "sysctl_file_path"      string => "/etc/sysctl.d/${filename}.conf";
@@ -65,7 +102,7 @@ bundle agent sysctl_value(key, value, filename, option) {
       "inner_class_prefix_variable_get"
                               string => string_head("${full_inner_class_prefix_variable_get}", "1000");
 
-      # we fetch on the getKey
+      # we fetch on the checkKey
       "checkKey"              string => canonify("check${key}");
       "full_inner_class_prefix_variable_check"
                               string => canonify("variable_string_from_command_sysctl_var_${checkKey}_${sysctl_check_query}");
@@ -75,9 +112,9 @@ bundle agent sysctl_value(key, value, filename, option) {
 
       # reloading the configuration. In info we let it output its output
     info|debug::
-      "sysctl_reload"         string => "${paths.sysctl} --system  # Reload value ${key} (expect ${value})";
+      "sysctl_reload"         string => "${paths.sysctl} --system  # Reload value ${key} (expect ${value}, option ${option})";
     !(info|debug)::
-      "sysctl_reload"         string => "${paths.sysctl} --system  > /dev/null # Reload value ${key} (expect ${value})";
+      "sysctl_reload"         string => "${paths.sysctl} --system  > /dev/null # Reload value ${key} (expect ${value}, option ${option})";
     any::
       "full_inner_class_prefix_sysctl_reload"
                               string => canonify("command_execution_${sysctl_reload}");
@@ -90,7 +127,7 @@ bundle agent sysctl_value(key, value, filename, option) {
   classes:
       # Sanity check : need sysctl.d folder, need redhat7 or more, debian 7 or more, sles12 or more, and 
       "sysctl_d_exists"   expression => isdir("/etc/sysctl.d");
-      "can_edit"          expression => "sysctl_d_exists.!(debian_3|debian_4|debian_5|debian_6|redhat_3|redhat_4|redhat_5|redhat_6|sles_9|sles_10|sles_11|aix|solaris)";
+      "can_edit"          expression => "sysctl_d_exists.!(debian_3|debian_4|debian_5|debian_6|redhat_3|redhat_4|redhat_5|redhat_6|sles_9|sles_10|sles_11|ubuntu_12|ubuntu_10|aix|solaris)";
 
       "should_report"     expression => "${report_data.should_report}";
 
@@ -120,7 +157,7 @@ bundle agent sysctl_value(key, value, filename, option) {
       "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${class_prefix}"
+      "disable_reporting_${full_class_prefix}"
                           usebundle => disable_reporting;
 
       "get_value_from_${canonified_key}"
@@ -142,7 +179,7 @@ bundle agent sysctl_value(key, value, filename, option) {
                           usebundle => variable_string_from_command("sysctl_var", "${checkKey}", "${sysctl_check_query}"),
                                  if => "${inner_class_prefix_sysctl_reload}_repaired";
 
-      "reenable_reporting_${class_prefix}"
+      "reenable_reporting_${full_class_prefix}"
                           usebundle => enable_reporting,
                                  if => "should_report";
 
@@ -162,10 +199,10 @@ bundle agent sysctl_value(key, value, filename, option) {
 
 
       "error"    usebundle => _classes_failure("${old_class_prefix}"),
-                        if => "(${inner_class_prefix_key_value}_repaired.!correct_value_post_modif)|${inner_class_prefix_variable_get}_error|${inner_class_prefix_key_value}_error|${inner_class_prefix_variable_check}_error|${inner_class_prefix_sysctl_reload}_error|!can_edit";
+                        if => "!correct_value.((${inner_class_prefix_key_value}_repaired.!correct_value_post_modif)|${inner_class_prefix_variable_get}_error|${inner_class_prefix_key_value}_error|${inner_class_prefix_variable_check}_error|${inner_class_prefix_sysctl_reload}_error|!can_edit)";
 
       "error"    usebundle => _classes_failure("${class_prefix}"),
-                        if => "(${inner_class_prefix_key_value}_repaired.!correct_value_post_modif)|${inner_class_prefix_variable_get}_error|${inner_class_prefix_key_value}_error|${inner_class_prefix_variable_check}_error|${inner_class_prefix_sysctl_reload}_error|!can_edit";
+                        if => "!correct_value.((${inner_class_prefix_key_value}_repaired.!correct_value_post_modif)|${inner_class_prefix_variable_get}_error|${inner_class_prefix_key_value}_error|${inner_class_prefix_variable_check}_error|${inner_class_prefix_sysctl_reload}_error|!can_edit)";
 
   pass3.can_edit::
       "report"   usebundle => _log_v3("Set sysctl value for key ${key}, using file ${filename} with option ${option}", "${key}", "${old_class_prefix}", "${class_prefix}", @{args});
