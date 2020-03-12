@@ -1,5 +1,6 @@
 [resources]
-variable = 2
+variable = { parameter_count=2 }
+http_request = { parameter_count=2 }
 
 [classes]
 command_execution = "(command_execution)_(.*)"
@@ -172,6 +173,7 @@ variable_iterator = { class_prefix="variable_iterator", class_parameter_id = 1 }
 variable_iterator_from_file = { class_prefix="variable_iterator_from_file", class_parameter_id = 1 }
 variable_string = { class_prefix="variable_string", class_parameter_id = 1 }
 variable_string_default = { class_prefix="variable_string_default", class_parameter_id = 1 }
+variable_string_escaped = { class_prefix="variable_string_escaped", class_parameter_id = 0 }
 variable_string_from_command = { class_prefix="variable_string_from_command", class_parameter_id = 1 }
 variable_string_from_file = { class_prefix="variable_string_from_file", class_parameter_id = 1 }
 variable_string_from_math_expression = { class_prefix="variable_string_from_math_expression", class_parameter_id = 1 }

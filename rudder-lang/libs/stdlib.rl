@@ -1,21 +1,21 @@
 @format=0
 
-resource condition(p0)
 resource kernel_module(p0)
-resource environment(p0)
-resource directory(p0)
+resource file(p0)
+resource variable(p0,p1)
+resource service(p0)
+resource command(p0)
+resource condition(p0)
+resource schedule(p0)
+resource package(p0)
 resource sharedfile(p0)
 resource group(p0)
-resource file(p0)
-resource command(p0)
-resource schedule(p0)
-resource user(p0)
+resource http_request(p0,p1)
 resource permissions(p0)
-resource http(p0)
-resource service(p0)
+resource user(p0)
 resource monitoring(p0)
-resource variable(p0,p1)
-resource package(p0)
+resource directory(p0)
+resource environment(p0)
 
 command state execution(){}
 command state execution_once(p1,p2,p3){}
@@ -101,8 +101,8 @@ file state symlink_present_option(p1,p2){}
 file state template_expand(p1,p2,p3,p4){}
 group state absent(){}
 group state present(){}
-http state request_check_status_headers(p1,p2,p3){}
-http state request_content_headers(p1,p2,p3){}
+http_request state check_status_headers(p2,p3){}
+http_request state content_headers(p2,p3){}
 kernel_module state configuration(p1){}
 kernel_module state enabled_at_boot(){}
 kernel_module state loaded(){}
@@ -180,8 +180,8 @@ variable state iterator(p2,p3){}
 variable state iterator_from_file(p2,p3,p4){}
 variable state string(p2){}
 variable state string_default(p2,p3){}
+variable state string_escaped(){}
 variable state string_from_command(p2){}
 variable state string_from_file(p2){}
 variable state string_from_math_expression(p2,p3){}
 variable state string_match(){}
-
