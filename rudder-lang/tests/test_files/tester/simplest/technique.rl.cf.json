@@ -7,7 +7,7 @@
     "parameter": [],
     "method_calls": [
         {
-            "class_context": "scientific_linux",
+            "class_context": "debian",
             "component": "File absent",
             "method_name": "file_absent",
             "args": [

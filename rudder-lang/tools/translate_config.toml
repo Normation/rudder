@@ -1,13 +1,11 @@
 [resources]
+http_request = { parameter_count=2 }
+sharedfile = { parameter_count=2 }
 variable = { parameter_count=2 }
-
 [classes]
 command_execution = "(command_execution)_(.*)"
-
 [variables]
-
 [conditions]
-
 [methods]
 command_execution = { class_prefix="command_execution", class_parameter_id = 0 }
 command_execution_once = { class_prefix="command_execution_once", class_parameter_id = 0 }

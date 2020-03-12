@@ -1,14 +1,12 @@
 # This file has been generated with rltranslate
 @format=0
-
 @name="simplest"
 @description="rudderlang simplest for a complete loop"
 @version="1.0"
-@parameters=[]
-
+@parameters= [
+]
 resource simplest()
-
 simplest state technique() {
   @component = "File absent"
-  if scientific_linux => file("tmp").absent() as file_absent_tmp
+  if debian => file("tmp").absent() as file_absent_tmp
 }

@@ -123,14 +123,11 @@ fn translate(config: &toml::Value, technique: &Technique) -> Result<String> {
     let out = format!(
         r#"# This file has been generated with rltranslate
 @format=0
-
 @name="{name}"
 @description="{description}"
 @version="{version}"
 @parameters= [{newline}{parameters_meta}]
-
 resource {bundle_name}({parameters})
-
 {bundle_name} state technique() {{
 {calls}
 }}
@@ -394,7 +391,7 @@ fn translate_condition(_config: &toml::Value, cond: &str) -> Result<String> {
         static ref OS_RE: Regex = Regex::new(
             // OS part: debian_9_0 \ And optional condition: (!(ubuntu|otheros).something)
             // r"^\(?(?P<os>([a-zA-Z\d]+)(_([a-zA-Z\d]+))*(\|([a-zA-Z\d]+)(_([a-zA-Z\d]+))*)*)\)?(.(?P<cdt>\(\(*!*\(*\w+\)*([.|]\(*!*\(*\w+\)*)*\)))?$"
-            r"^(\(*\w+\(*\)*(\.|\|)\(*\w+\)*)*$"
+            r"^(\(*\w+\(*\)*[.|]\(*\w+\)*)*$"
         ).unwrap();
     }
 
@@ -414,6 +411,7 @@ fn translate_condition(_config: &toml::Value, cond: &str) -> Result<String> {
         {
             return Ok(format!("{} =~ {}", method, status));
         }
+        println!("CAPS = {:?}", caps);
     };
 
     // detect system classes

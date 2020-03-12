@@ -7,7 +7,7 @@
     "parameter": [],
     "method_calls": [
         {
-            "class_context": "(dragonfly)|(openbsd)",
+            "class_context": "dragonfly|openbsd",
             "component": "Command execution",
             "method_name": "command_execution",
             "args": [

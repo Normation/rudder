@@ -98,14 +98,10 @@ my $config_header = "[resources]
 http_request = { parameter_count=2 }
 sharedfile = { parameter_count=2 }
 variable = { parameter_count=2 }
-
 [classes]
 command_execution = \"(command_execution)_(.*)\"
-
 [variables]
-
 [conditions]
-
 [methods]
 ";
 open(my $conf, '>', $translate_config) or die "Cannot write methods config ($translate_config)";

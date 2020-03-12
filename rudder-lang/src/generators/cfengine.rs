@@ -132,17 +132,17 @@ impl CFEngine {
         })
     }
 
-    fn get_config_from_file() -> Result<toml::Value> {
-        let config_filename = "libs/translate_config.toml";
+    fn get_config_from_file(translate_config: &Path) -> Result<toml::Value> {
+        let fname = translate_config.to_str().unwrap();
         let file_error =
             |filename: &str, err| err!(Token::new(&filename.to_owned(), ""), "{}", err);
         let config_data =
-            std::fs::read_to_string(config_filename).map_err(|e| file_error(config_filename, e))?;
-        toml::from_str(&config_data).map_err(|e| err!(Token::new(config_filename, ""), "{}", e))
+            std::fs::read_to_string(translate_config).map_err(|e| file_error(fname, e))?;
+        toml::from_str(&config_data).map_err(|e| err!(Token::new(fname, ""), "{}", e))
     }
-    fn get_class_parameter_index(method_name: String) -> Result<usize> {
+    fn get_class_parameter_index(method_name: String, translate_config: &Path) -> Result<usize> {
         // outcome detection and formating
-        let config = Self::get_config_from_file()?;
+        let config = Self::get_config_from_file(translate_config)?;
         let mconf = match config.get("methods") {
             None => return Err(Error::User("No methods section in config.toml".into())),
             Some(m) => m,
@@ -177,6 +177,7 @@ impl CFEngine {
         st: &Statement,
         id: usize,
         in_class: String,
+        translate_config: &Path,
     ) -> Result<String> {
         match st {
             Statement::StateDeclaration(sd) => {
@@ -198,7 +199,7 @@ impl CFEngine {
                     ", ",
                 )?;
                 let method_name = format!("{}_{}", sd.resource.fragment(), sd.state.fragment());
-                let index = Self::get_class_parameter_index(method_name)?;
+                let index = Self::get_class_parameter_index(method_name, translate_config)?;
                 let class = self.format_class(in_class)?;
                 let state_param = if sd.resource_params.len() > 0 {
                     if let Ok(param) = self.parameter_to_cfengine(&sd.resource_params[0]) {
@@ -245,7 +246,15 @@ impl CFEngine {
                         let case_exp = self.format_case_expr(gc, case)?;
                         map_strings_results(
                             vst.iter(),
-                            |st| self.format_statement(gc, st, id, case_exp.clone()),
+                            |st| {
+                                self.format_statement(
+                                    gc,
+                                    st,
+                                    id,
+                                    case_exp.clone(),
+                                    translate_config,
+                                )
+                            },
                             "",
                         )
                     },
@@ -387,6 +396,7 @@ impl Generator for CFEngine {
         gc: &AST,
         input_file: Option<&Path>,
         output_file: Option<&Path>,
+        translate_config: &Path,
         technique_metadata: bool,
     ) -> Result<()> {
         let mut files: HashMap<&str, String> = HashMap::new();
@@ -443,7 +453,13 @@ impl Generator for CFEngine {
                 );
                 content.push_str("  methods:\n");
                 for (i, st) in state.statements.iter().enumerate() {
-                    content.push_str(&self.format_statement(gc, st, i, "any".to_string())?);
+                    content.push_str(&self.format_statement(
+                        gc,
+                        st,
+                        i,
+                        "any".to_string(),
+                        translate_config,
+                    )?);
                 }
                 content.push_str("}\n");
                 files.insert(file_to_create, content);

@@ -1,11 +1,10 @@
 #!/bin/bash
 
 set -xe # -x # to print every line as it occurs
-name=$1
 
 dir=/tmp/rudderc/tester/
 cfjson_tester=/opt/rudder/share/rudder-lang/tools/cfjson_tester
-technique_path=/var/rudder/configuration-repository/techniques/ncf_techniques/$name/1.0/technique.cf
+technique_path=/var/rudder/configuration-repository/techniques/ncf_techniques/$1/1.0/technique.cf
 
 mkdir -p $dir/
 
@@ -27,4 +26,3 @@ $cfjson_tester compare-json $dir/technique.json $dir/technique.rl.cf.json
 
 # TODO compare generated cf files
 $cfjson_tester compare-cf $technique_path $dir/technique.rl.cf
-# diff --width=210 --suppress-common-lines --side-by-side $technique_path $dir/technique.rl.cf

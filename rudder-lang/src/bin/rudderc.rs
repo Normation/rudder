@@ -126,7 +126,7 @@ fn main() {
 
     // Actual action
     let result = match action {
-        Action::Compile => compile_file(&input, &output, true, &libs_dir),
+        Action::Compile => compile_file(&input, &output, true, &libs_dir, &translate_config),
         Action::Translate => translate_file(&input, &output, &translate_config),
     };
     match &result {
