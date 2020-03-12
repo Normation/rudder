@@ -45,9 +45,8 @@ systemctl stop rudder-relayd >> ${LOG_FILE} || true
 echo " Done"
 
 # share directory with rudder-policy-reader
-chgrp -R rudder-policy-reader /var/rudder/share
-chmod 750 /var/rudder/share
-find /var/rudder/share -type d | xargs chmod g+s-w
+chgrp rudder-policy-reader /var/rudder/share
+chmod g+s-w /var/rudder/share
 
 # change some directory to rudder owner
 chown rudder: /var/rudder/shared-files
