@@ -91,6 +91,7 @@ import zio.syntax._
 import scala.Option.option2Iterable
 import scala.collection.immutable.SortedMap
 import com.normation.ldap.sdk.syntax._
+import com.unboundid.ldif.LDIFChangeRecord
 
 class RoLDAPNodeGroupRepository(
     val rudderDit     : RudderDit
@@ -745,6 +746,17 @@ class WoLDAPNodeGroupRepository(
                        } else UIO.unit)
     } yield {
       diff
+    }
+  }
+
+  override def createPolicyServerTarget(target : PolicyServerTarget, modId: ModificationId, actor:EventActor, reason:Option[String]): IOResult[LDIFChangeRecord] = {
+    for {
+      con    <- ldap
+      categoryEntry    <-  getCategoryEntry(con, ???).notOptional(s"Entry with ID '${id}' was not found")
+      entry  = rudderDit.RULETARGET.ruleTargetModel(target.nodeId.value, s"${target.nodeId.value} policy server", categoryEntry ,s"Only the ${target.nodeId.value} policy server")
+      result <- con.save(entry, true)
+    } yield {
+      result
     }
   }
 

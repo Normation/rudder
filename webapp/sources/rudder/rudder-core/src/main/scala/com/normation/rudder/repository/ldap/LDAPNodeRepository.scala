@@ -54,6 +54,7 @@ import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.SecurityToken
 import com.normation.inventory.ldap.core.InventoryDit
+import com.normation.rudder.domain.RudderDit
 import zio._
 import zio.syntax._
 
@@ -63,6 +64,7 @@ class WoLDAPNodeRepository(
   , mapper              : LDAPEntityMapper
   , ldap                : LDAPConnectionProvider[RwLDAPConnection]
   , actionLogger        : EventLogRepository
+  , rudderDit           : RudderDit
 ) extends WoNodeRepository with NamedZioLogger {
   repo =>
 
@@ -183,5 +185,27 @@ class WoLDAPNodeRepository(
     }
 
     ZIO.when(newNode.id == Constants.ROOT_POLICY_SERVER_ID) { validateRoot(newNode) }
+  }
+
+  override def createNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = {
+    val entry = mapper.nodeToEntry(node)
+    for {
+      con <- ldap
+      res <- con.save(entry).chainError(s"Error when trying to save node in promote to relay ${entry.dn}")
+      _ <- IOResult.effect(println(s"-----  ENTRY  : $entry"))
+      _ <- IOResult.effect(println(s"-----  RESULT : $res"))
+    } yield {
+      node
+    }
+  }
+
+  override def deleteNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = {
+    val entry = rudderDit.NODE_CONFIGS.dn
+    for {
+      con <- ldap
+      res <- con.delete(entry).chainError(s"Error when trying to delete node '${node.id.value}")
+    } yield {
+      node
+    }
   }
 }

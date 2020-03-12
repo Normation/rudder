@@ -55,6 +55,11 @@ trait WoNodeRepository {
    */
   def updateNode(node: Node, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Node]
 
+  def createNode(node: Node, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Node]
+  def deleteNode(node: Node, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Node]
+
+
+
   /**
    * We have a special case for agentKey and agentKey status because even if they are from inventory,
    * we want to be able to directly manage them via API to:
