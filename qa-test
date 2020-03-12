@@ -23,7 +23,7 @@ webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh
 
 # Python linter
 export PYTHONPATH=./relay/sources/rudder-pkg/lib/rudder-pkg/:./relay/sources/rudder-pkg/lib:$PYTHONPATH
-find . ! -name 'convertOpenLDAPSchema.py' -name '*.py' | xargs pylint -E --persistent=n --disable=C,R,import-error,no-member,no-name-in-module
+find . ! -name 'convertOpenLDAPSchema.py' ! -wholename '*jsondiff/*' -name '*.py' | xargs pylint -E --persistent=n --disable=C,R,import-error,no-member,no-name-in-module
 pylint -E --persistent=n --disable=C,R,no-member relay/sources/rudder-pkg/rudder-pkg
 
 # Rudder-pkg check
