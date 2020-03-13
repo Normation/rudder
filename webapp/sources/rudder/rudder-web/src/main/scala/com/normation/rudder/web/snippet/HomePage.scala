@@ -196,7 +196,6 @@ class HomePage extends Loggable {
                              , complianceLevel.complianceWithoutPending.round
                              ))
                            }
-   //   global    =  reportingService.computeComplianceFromReports(reports)
       n5 = System.currentTimeMillis
       _ = TimingDebugLogger.trace(s"Compute global compliance in: ${n5 - n4}ms")
       _ = TimingDebugLogger.debug(s"Compute compliance: ${n5 - n2}ms")
@@ -204,8 +203,6 @@ class HomePage extends Loggable {
 
       // log global compliance info (useful for metrics on number of components and log data analysis)
       ComplianceLogger.info(s"[metrics] global compliance (number of components): ${global.map(g => g._1.total + " "+ g._1.toString).getOrElse("undefined")}")
-
-      //val reportsByNode = reports.mapValues { status => ComplianceLevel.sum(status.reports.map(_.compliance)) }
 
       /*
        * Here, for the compliance by node, we want to distinguish (but NOT ignore, like in globalCompliance) the
