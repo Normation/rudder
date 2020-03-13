@@ -363,6 +363,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
         $(nTd).prepend(elem);
         var badge = createBadgeAgentPolicyMode('rule',data.policyMode, data.explanation);
         $(nTd).prepend(badge);
+        displayTags(nTd, oData.tagsDisplayed)
       }
   };
 
@@ -483,7 +484,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
         , "searchable": true
       }]
     , "fnDrawCallback": function( oSettings ) {
-      $('.rudder-label').bsTooltip();
+      $('.rudder-label, .tags-label').bsTooltip();
       $('#updateRuleTable').on('click',function(){
         refresh();
       })
@@ -559,22 +560,22 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
     , "mDataProp": "rule"
     , "sTitle": "Rule"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        $(nTd).addClass("listopen");
-        $(nTd).empty();
-        //rule name is escaped server side, avoid double escape with .text()
-        $(nTd).html(oData.rule);
-        if (! oData.isSystem) {
-          var editIcon = $("<i>");
-          editIcon.addClass("fa fa-pencil");
-          var editLink = $("<a />");
-          editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}');
-          editLink.click(function(e) {e.stopPropagation();});
-          editLink.append(editIcon);
-          editLink.addClass("reportIcon");
-          $(nTd).append(editLink);
-          $(nTd).prepend(createBadgeAgentPolicyMode('rule', oData.policyMode, oData.explanation));
-        }
+      $(nTd).addClass("listopen");
+      $(nTd).empty();
+      //rule name is escaped server side, avoid double escape with .text()
+      $(nTd).html(oData.rule);
+      if (! oData.isSystem) {
+        var editIcon = $("<i>");
+        editIcon.addClass("fa fa-pencil");
+        var editLink = $("<a />");
+        editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}');
+        editLink.click(function(e) {e.stopPropagation();});
+        editLink.append(editIcon);
+        editLink.addClass("reportIcon");
+        $(nTd).append(editLink);
+        $(nTd).prepend(createBadgeAgentPolicyMode('rule', oData.policyMode, oData.explanation));
       }
+    }
   } , {
     "sWidth": "25%"
       , "mDataProp": "compliancePercent"
@@ -635,7 +636,7 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
         "mDataProp": "value"
       , "sTitle"   : "Value"
     } ];
-    return function (gridId,data) {createTable(gridId, data, columns, defaultParams, contextPath); createTooltip();$('.rudder-label').bsTooltip();}
+    return function (gridId,data) {createTable(gridId, data, columns, defaultParams, contextPath); createTooltip();$('.rudder-label, .tags-label').bsTooltip();}
   };
 
   var localComponentTable = function() {
@@ -669,7 +670,7 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
           toolTipContainer.attr("id",tooltipId);
           $(nTd).append(tooltipIcon);
           $(nTd).append(toolTipContainer);
-
+          displayTags(nTd, oData.tags)
           if (! oData.isSystem) {
             var editLink = $("<a />");
             editLink.attr("href",contextPath + '/secure/configurationManager/directiveManagement#{"directiveId":"'+oData.id+'"}');
@@ -692,7 +693,7 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
 
     return function (gridId, data, refresh) {
       createTable(gridId, data, columns, params, contextPath, refresh);
-      createTooltip();$('.rudder-label').bsTooltip();
+      createTooltip();$('.rudder-label, .tags-label').bsTooltip();
     }
   };
 
@@ -702,6 +703,7 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
       $(nTd).addClass("listopen");
       $(nTd).text(oData.rule);
+      displayTags(nTd, oData.tags)
       if (! oData.isSystem) {
         var editLink = $("<a />");
         editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}');
@@ -717,14 +719,12 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
   } ];
   var params = jQuery.extend({"fnDrawCallback" : function( oSettings ) {
         createInnerTable(this, localDirectiveTable(), contextPath, "rule");
-        $('.rudder-label').bsTooltip();
+        $('.rudder-label, .tags-label').bsTooltip();
       }
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   }
   , defaultParams);
-
   createTable(gridId,data, ruleColumn, params, contextPath, refresh);
-
 }
 
 
@@ -773,6 +773,7 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
         toolTipContainer.attr("id",tooltipId);
         $(nTd).append(tooltipIcon);
         $(nTd).append(toolTipContainer);
+        displayTags(nTd, oData.tags);
         if (! oData.isSystem) {
           var editLink = $("<a />");
           editLink.attr("href",contextPath + '/secure/configurationManager/directiveManagement#{"directiveId":"'+oData.id+'"}');
@@ -806,7 +807,7 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
     , "aaSorting": [[ 0, "asc" ]]
     , "fnDrawCallback" : function( oSettings ) {
         createInnerTable(this, createComponentTable(isTopLevel, isNodeView, contextPath), contextPath, "directive");
-        $('.rudder-label').bsTooltip();
+        $('.rudder-label, .tags-label').bsTooltip();
       }
   };
 
@@ -822,7 +823,8 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
 
   return function (gridId, data, refresh) {
     createTable(gridId, data, columns, params, contextPath, refresh);
-    createTooltip();$('.rudder-label').bsTooltip();
+    createTooltip();
+    $('.rudder-label, .tags-label').bsTooltip();
   }
 }
 
@@ -1892,5 +1894,35 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
   $('#grid_remove_popup_grid').parents('.modal-dialog').addClass("modal-lg");
 
   return table;
+}
+
+function displayTags(element, tagsArray){
+  //Do nothing if there is no tag
+  if(!Array.isArray(tagsArray) || tagsArray.length <= 0) return false;
+  var tagsLabel = $("<span class='tags-label'></span>");
+  var iconTag   = $("<i class='fa fa-tag'></i>");
+  var tagsCpt   = $('<b></b>');
+  var listTags  = [];
+  var tmp;
+  for(var t in tagsArray){
+    tmp  =
+      [ "<span class='tags-label'><i class='fa fa-tag'></i>"
+      , "<span class='tag-key'> " + tagsArray[t].key + " </span>"
+      , "<span class='tag-separator'> = </span>"
+      , "<span class='tag-value'> " + tagsArray[t].value + " </span>"
+      , "</span>"
+      ].join('');
+    listTags.push(tmp);
+  }
+  var tagsTooltipContent =
+    [ "<h4 class='tags-tooltip-title'>Tags <span class='tags-label'><i class='fa fa-tag'></i> "+ tagsArray.length +"</span></h4>"
+    , "<div class='tags-list'>"
+    , listTags.join('')
+    , "</div>"
+    ].join('');
+  tagsCpt.html(" "+tagsArray.length);
+  tagsLabel.attr("data-toggle","tooltip").attr("data-placement","top").attr("data-html","true").attr("data-original-title",tagsTooltipContent)
+  tagsLabel.append(iconTag).append(tagsCpt);
+  $(element).append(tagsLabel);
 }
 

@@ -64,6 +64,7 @@ import net.liftweb.json.JArray
 import net.liftweb.json.JField
 import net.liftweb.json.JObject
 import net.liftweb.json.JString
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonParser
 import net.liftweb.util.Helpers._
 import org.joda.time.Interval
@@ -667,7 +668,7 @@ class RuleGrid(
     TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: callback: ${t5-t4}ms")
 
     val tags = JsObj(line.rule.tags.map(tag => (tag.name.value, Str(tag.value.value))).toList:_*).toJsCmd
-
+    val tagsDisplayed = JsonTagSerialisation.serializeTags(line.rule.tags)
     RuleLine (
         line.rule.name
       , line.rule.id
@@ -682,6 +683,7 @@ class RuleGrid(
       , policyMode
       , explanation
       , tags
+      , tagsDisplayed
    )
   }
 }
@@ -716,6 +718,7 @@ final case class RuleLine (
   , policyMode       : String
   , explanation      : String
   , tags             : String
+  , tagsDisplayed    : JValue
 ) extends JsTableLine {
 
   /* Would love to have a reflexive way to generate that map ...  */
@@ -730,16 +733,17 @@ final case class RuleLine (
       val optFields : Seq[(String,JsExp)]= reasonField.toSeq ++ cbCallbackField ++ callbackField
 
       val base = JsObj(
-          ( "name", name )
-        , ( "id", id.value )
-        , ( "description", description )
-        , ( "applying",  applying )
-        , ( "category", category )
-        , ( "status", status )
-        , ( "trClass", trClass )
-        , ( "policyMode", policyMode )
-        , ( "explanation", explanation )
-        , ( "tags", tags)
+          ( "name"         , name          )
+        , ( "id"           , id.value      )
+        , ( "description"  , description   )
+        , ( "applying"     , applying      )
+        , ( "category"     , category      )
+        , ( "status"       , status        )
+        , ( "trClass"      , trClass       )
+        , ( "policyMode"   , policyMode    )
+        , ( "explanation"  , explanation   )
+        , ( "tags"         , tags          )
+        , ( "tagsDisplayed", tagsDisplayed )
       )
 
       base +* JsObj(optFields:_*)

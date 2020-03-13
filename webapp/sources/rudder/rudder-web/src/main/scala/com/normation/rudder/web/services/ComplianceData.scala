@@ -53,6 +53,7 @@ import org.joda.time.Interval
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 import com.normation.rudder.domain.policies.PolicyMode._
 import com.normation.rudder.repository.FullNodeGroupCategory
+import net.liftweb.json.JsonAST.JValue
 
 object ComputePolicyMode {
   def ruleMode(globalMode : GlobalPolicyMode, directives : Set[Directive], nodeModes: Set[Option[PolicyMode]]) = {
@@ -307,20 +308,22 @@ final case class RuleComplianceLine (
   , details          : JsTableData[DirectiveComplianceLine]
   , policyMode       : String
   , modeExplanation  : String
+  , tags             : JValue
 ) extends JsTableLine {
   val json = {
     JsObj (
-        ( "rule"       -> escapeHTML(rule.name) )
-      , ( "compliance" -> jsCompliance(compliance) )
+        ( "rule"       -> escapeHTML(rule.name)       )
+      , ( "compliance" -> jsCompliance(compliance)    )
       , ( "compliancePercent" -> compliance.compliance)
-      , ( "id"         -> rule.id.value )
-      , ( "details"    -> details.json )
+      , ( "id"         -> rule.id.value               )
+      , ( "details"    -> details.json                )
       //unique id, usable as DOM id - rules, directives, etc can
       //appear several time in a page
-      , ( "jsid"       -> nextFuncName )
-      , ( "isSystem"   -> rule.isSystem )
-      , ( "policyMode" -> policyMode )
-      , ( "explanation"-> modeExplanation )
+      , ( "jsid"       -> nextFuncName                )
+      , ( "isSystem"   -> rule.isSystem               )
+      , ( "policyMode" -> policyMode                  )
+      , ( "explanation"-> modeExplanation             )
+      , ( "tags"      -> tags                         )
     )
   }
 }
@@ -348,22 +351,24 @@ final case class DirectiveComplianceLine (
   , details          : JsTableData[ComponentComplianceLine]
   , policyMode       : String
   , modeExplanation  : String
+  , tags             : JValue
 ) extends JsTableLine {
   val json =  {
     JsObj (
-        ( "directive"        -> escapeHTML(directive.name) )
-      , ( "id"               -> directive.id.value )
-      , ( "techniqueName"    -> escapeHTML(techniqueName) )
+        ( "directive"        -> escapeHTML(directive.name)            )
+      , ( "id"               -> directive.id.value                    )
+      , ( "techniqueName"    -> escapeHTML(techniqueName)             )
       , ( "techniqueVersion" -> escapeHTML(techniqueVersion.toString) )
-      , ( "compliance"       -> jsCompliance(compliance))
-      , ( "compliancePercent"-> compliance.compliance)
-      , ( "details"          -> details.json )
+      , ( "compliance"       -> jsCompliance(compliance)              )
+      , ( "compliancePercent"-> compliance.compliance                 )
+      , ( "details"          -> details.json                          )
       //unique id, usable as DOM id - rules, directives, etc can
       //appear several time in a page
-      , ( "jsid"             -> nextFuncName )
-      , ( "isSystem"         -> directive.isSystem )
-      , ( "policyMode"       -> policyMode )
-      , ( "explanation"      -> modeExplanation )
+      , ( "jsid"             -> nextFuncName                          )
+      , ( "isSystem"         -> directive.isSystem                    )
+      , ( "policyMode"       -> policyMode                            )
+      , ( "explanation"      -> modeExplanation                       )
+      , ( "tags"             -> tags                                  )
     )
   }
 }
@@ -540,6 +545,7 @@ object ComplianceData extends Loggable {
         , JsTableData(details)
         , policyMode
         , explanation
+        , JsonTagSerialisation.serializeTags(rule.tags)
       )
 
     }
@@ -575,6 +581,7 @@ object ComplianceData extends Loggable {
         , JsTableData(Nil)
         , policyMode
         , explanation
+        , JsonTagSerialisation.serializeTags(overridenDir.tags)
       )
     }
 
@@ -618,7 +625,7 @@ object ComplianceData extends Loggable {
       val techniqueVersion = directive.techniqueVersion
       val components       =  getComponentsComplianceDetails(directiveStatus.components.values.toSet, true)
       val (policyMode,explanation) = computeMode(directive.policyMode)
-
+      val directiveTags    = JsonTagSerialisation.serializeTags(directive.tags)
       DirectiveComplianceLine (
           directive
         , techniqueName
@@ -627,6 +634,7 @@ object ComplianceData extends Loggable {
         , components
         , policyMode
         , explanation
+        , directiveTags
       )
     }
 

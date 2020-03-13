@@ -387,9 +387,8 @@ hr.separator-filter-tree{
   padding: 10px 5px 5px 5px;
   font-size: 14px;
 }
-
-.tags-label{
-  font-size: 12px;
+.tags-label,
+.tooltip > .tooltip-inner .tags-label{
   padding: 4px 8px;
   border-radius : 20px;
   background-color: #222D4215;
@@ -426,6 +425,16 @@ hr.separator-filter-tree{
 }
 .tags-table table{
   margin-bottom: 0 !important;
+}
+
+.dataTable td .tags-label{
+  padding: 3px 8px 1px 8px;
+  font-size: .9em;
+  margin-left: 5px;
+  margin-right: 2px;
+}
+.dataTable td{
+  position: relative;
 }
 
 @-webkit-keyframes exist {
