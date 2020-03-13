@@ -75,8 +75,8 @@ final class RuleStatusReport private (
   , val report : AggregatedStatusReport
   , val overrides : List[OverridenPolicy]
 ) extends StatusReport {
-  val compliance = report.compliance
-  val byNodes: Map[NodeId, AggregatedStatusReport] = report.reports.groupBy(_.nodeId).view.mapValues(AggregatedStatusReport(_)).toMap
+  lazy val compliance = report.compliance
+  lazy val byNodes: Map[NodeId, AggregatedStatusReport] = report.reports.groupBy(_.nodeId).view.mapValues(AggregatedStatusReport(_)).toMap
 }
 
 object RuleStatusReport {
@@ -108,20 +108,21 @@ final class NodeStatusReport private (
   , val runInfo   : RunAndConfigInfo
   , val statusInfo: RunComplianceInfo
   , val overrides : List[OverridenPolicy]
-  , val report    : AggregatedStatusReport
+  , val reports   : Set[RuleNodeStatusReport]
 ) extends StatusReport {
-  lazy val compliance = report.compliance
-  lazy val byRules: Map[RuleId, AggregatedStatusReport] = report.reports.groupBy(_.ruleId).view.mapValues(AggregatedStatusReport(_)).toMap
+  // here, reports is a set. Be careful to not loose compliance with map (b/c scala make a set of the result)
+  lazy val compliance = ComplianceLevel.sum(reports.iterator.map(_.compliance).iterator.to(Iterable))
+  lazy val byRules: Map[RuleId, AggregatedStatusReport] = reports.groupBy(_.ruleId).view.mapValues(AggregatedStatusReport(_)).toMap
 }
 
 object NodeStatusReport {
-  def apply(nodeId: NodeId, runInfo:  RunAndConfigInfo, statusInfo: RunComplianceInfo, overrides : List[OverridenPolicy], reports: Iterable[RuleNodeStatusReport]) = {
-    new NodeStatusReport(nodeId, runInfo, statusInfo, overrides, AggregatedStatusReport(reports.toSet.filter( _.nodeId == nodeId)))
-  }
-
-  // To use when you are sure that all reports are indeed for the designated node.
-  def applyByNode(nodeId: NodeId, runInfo:  RunAndConfigInfo, statusInfo: RunComplianceInfo, overrides : List[OverridenPolicy], reports: Iterable[RuleNodeStatusReport]) = {
-    new NodeStatusReport(nodeId, runInfo, statusInfo, overrides, AggregatedStatusReport(reports.toSet))
+  // To use when you are sure that all reports are indeed for the designated node. RuleNodeStatusReports must be merged
+  // Only used in `getNodeStatusReports`
+  def apply(nodeId: NodeId, runInfo:  RunAndConfigInfo, statusInfo: RunComplianceInfo, overrides: List[OverridenPolicy], reports: Set[RuleNodeStatusReport]) = {
+    assert(reports.forall(_.nodeId == nodeId), {
+      s"You can't build a NodeStatusReport with reports for other node than itself. Current node id: ${nodeId.value}; Wrong reports: ${reports.filter(_.nodeId != nodeId).map(r => s"${r.nodeId.value}:${r.ruleId.value}").mkString("|")}"
+    })
+    new NodeStatusReport(nodeId, runInfo, statusInfo, overrides, reports)
   }
 
   /*
@@ -137,10 +138,8 @@ object NodeStatusReport {
       , nodeStatusReport.runInfo
       , nodeStatusReport.statusInfo
       , nodeStatusReport.overrides
-      , AggregatedStatusReport.applyFromAggregatedStatusReport(nodeStatusReport.report, ruleIds)
+      , nodeStatusReport.reports.filter(r => ruleIds.contains(r.ruleId))
     )
-
-
   }
 }
 
@@ -168,6 +167,10 @@ object AggregatedStatusReport {
   def apply(reports: Iterable[RuleNodeStatusReport]) = {
     val merged = RuleNodeStatusReport.merge(reports)
     new AggregatedStatusReport(merged.values.toSet)
+  }
+
+  def applyFromUniqueNode(reports: Set[RuleNodeStatusReport]) = {
+    new AggregatedStatusReport(reports)
   }
 
   /*
@@ -457,6 +460,13 @@ object NodeStatusReportSerialization {
   }
 
   implicit class AggregatedStatusReportToJs(val x: AggregatedStatusReport) extends AnyVal {
+    def toJValue(): JValue = x.reports.toJValue()
+    def toJson() = prettyRender(toJValue)
+    def toCompactJson = compactRender(toJValue)
+  }
+
+
+  implicit class SetRuleNodeStatusReportToJs(reports: Set[RuleNodeStatusReport]) {
     import ComplianceLevelSerialisation._
 
     def toJValue(): JValue = {
@@ -467,7 +477,7 @@ object NodeStatusReportSerialization {
       //but in that case, we should also keep the total
       //number of events to be able to rebuild raw data
 
-      ("rules" -> (x.reports.map { r =>
+      ("rules" -> (reports.map { r =>
         (
           ("ruleId"        -> r.ruleId.value)
         ~ ("compliance"    -> r.compliance.pc.toJson)

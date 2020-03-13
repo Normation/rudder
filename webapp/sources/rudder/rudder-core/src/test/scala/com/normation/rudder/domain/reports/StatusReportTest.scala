@@ -43,7 +43,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 
-import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -228,12 +227,7 @@ class StatusReportTest extends Specification {
        n1, r1, 0, d1, c1  , v1  , "", pending   , pending msg
        n1, r2, 0, d1, c0  , v0  , "", success   , pending msg
        n1, r3, 0, d1, c1  , v1  , "", error     , pending msg
-       n2, r4, 0, d1, c0  , v0  , "", pending   , pending msg
-    """))
-
-    "Filter out n2" in {
-      report.report.reports.map( _.nodeId).toSet === Set(NodeId("n1"))
-    }
+    """).toSet)
 
     "Correctly compute the compliance" in {
       report.compliance === ComplianceLevel(pending = 2, success = 1, error = 1)
@@ -316,7 +310,7 @@ class StatusReportTest extends Specification {
     }
   }
 
-  private[this] def parse(s: String): Seq[RuleNodeStatusReport] = {
+  private[this] def parse(s: String): List[RuleNodeStatusReport] = {
 
 
     def ?(s: String): Option[String] = s.trim match {
@@ -357,7 +351,7 @@ class StatusReportTest extends Specification {
     case s => throw new IllegalArgumentException(s)
   }
 
-  private[this] def aggregate(nr: Seq[RuleNodeStatusReport]): AggregatedStatusReport = {
+  private[this] def aggregate(nr: Iterable[RuleNodeStatusReport]): AggregatedStatusReport = {
     AggregatedStatusReport(nr)
   }
 

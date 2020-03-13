@@ -77,7 +77,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     val node1 = NodeConfigData.node1.node
     NodeConfigData.node1.copy(node = node1.copy(id = NodeId(id)))
   }
-  def run(id: String, info: RunAndConfigInfo) = NodeStatusReport(NodeId(id), info, RunComplianceInfo.OK, Nil, Nil)
+  def run(id: String, info: RunAndConfigInfo) = NodeStatusReport(NodeId(id), info, RunComplianceInfo.OK, Nil, Set())
   // a list of node, on node by type of reports, in a triplet:
   // (node, expired report, still ok report)
   def expected(id: String) = NodeExpectedReports(NodeId(id), NodeConfigId(id), null, null, null, Nil, Nil)

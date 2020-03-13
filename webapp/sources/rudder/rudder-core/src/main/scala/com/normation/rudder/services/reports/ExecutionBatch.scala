@@ -592,6 +592,7 @@ final case class ContextForNoAnswer(
    * The contract is to give to that function a list of expected
    * report for an unique given node
    *
+   *  It returns a properly merged NodeStatusReports
    */
   def getNodeStatusReports(
       nodeId                  : NodeId
@@ -603,15 +604,18 @@ final case class ContextForNoAnswer(
     , unexpectedInterpretation: UnexpectedReportInterpretation
   ) : NodeStatusReport = {
 
-    def buildUnexpectedVersion(runTime: DateTime, runVersion: Option[NodeConfigIdInfo], runExpiration: DateTime, expectedConfig: NodeExpectedReports, expectedExpiration: DateTime, nodeStatusReports: Seq[ResultReports]) = {
-        //mark all report of run unexpected,
-        //all expected missing
-        buildRuleNodeStatusReport(
-            MergeInfo(nodeId, Some(runTime), Some(expectedConfig.nodeConfigId), expectedExpiration)
-          , expectedConfig
-          , ReportType.Missing
-        ) ++
-        buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), runVersion.map(_.configId), runExpiration), nodeStatusReports)
+    // UnexpectedVersion are always called for only one node
+    // The status can't merge, as the merge group by nodeconfigid, and unexpected and missing have, by constuct, different configid
+    def buildUnexpectedVersion(runTime: DateTime, runVersion: Option[NodeConfigIdInfo], runExpiration: DateTime, expectedConfig: NodeExpectedReports, expectedExpiration: DateTime, nodeStatusReports: Seq[ResultReports]): Set[RuleNodeStatusReport] = {
+      // we have 2 separate status: the missing and the expected, so two different RuleNodeStatusReport that will never merge
+      //all expected missing
+      buildRuleNodeStatusReport(
+          MergeInfo(nodeId, Some(runTime), Some(expectedConfig.nodeConfigId), expectedExpiration)
+        , expectedConfig
+        , ReportType.Missing
+      ) ++
+      buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), runVersion.map(_.configId), runExpiration), nodeStatusReports)
+
     }
 
     //only interesting reports: for that node, with a status
@@ -742,7 +746,7 @@ final case class ContextForNoAnswer(
       case _                          => Nil
     }
 
-    NodeStatusReport.applyByNode(nodeId, runInfo, status, overrides, ruleNodeStatusReports)
+    NodeStatusReport.apply(nodeId, runInfo, status, overrides, ruleNodeStatusReports)
   }
 
 
@@ -797,10 +801,8 @@ final case class ContextForNoAnswer(
     val t0 = System.currentTimeMillis
     val reportsPerRule = executionReports.groupBy(_.ruleId)
     val complianceForRun: Map[RuleId, RuleNodeStatusReport] = (for {
-      RuleExpectedReports(ruleId
-        , directives       ) <- lastRunNodeConfig.ruleExpectedReports
-      directiveStatusReports =  {
-
+      RuleExpectedReports(ruleId, directives) <- lastRunNodeConfig.ruleExpectedReports
+      (missing, unexpected, expected) =  {
                                    val t1 = System.nanoTime
                                    //here, we had at least one report, even if it not a ResultReports (i.e: run start/end is meaningful
 
@@ -843,7 +845,7 @@ final case class ContextForNoAnswer(
                                    // If okKeys.size == reportKeys.size, there is no unexpected reports
                                    // If okKeys.size == expectedKeys.size, there is no missing reports
                                    val missing = (if (okKeys.size != expectedKeys.size) {
-                                     expectedComponents.view.filterKeys(k => !reportKeys.contains(k)).toMap.map { case ((d,_), (pm,mrs,c)) =>
+                                     expectedComponents.filter(k => !reportKeys.contains(k._1)).map { case ((d,_), (pm,mrs,c)) =>
                                          DirectiveStatusReport(d, Map(c.componentName ->
                                            /*
                                             * Here, we group by unexpanded component value, not expanded one. We want in the end:
@@ -872,7 +874,7 @@ final case class ContextForNoAnswer(
                                    //unexpected contains the one with unexpected key and all non matching serial/version
                                    val unexpected = (if (okKeys.size != reportKeys.size) {
                                      buildUnexpectedDirectives(
-                                       reports.view.filterKeys(k => !expectedKeys.contains(k)).values.flatten.toSeq
+                                       reports.filter(k => !expectedKeys.contains(k._1)).values.flatten.toSeq
                                      )
                                    } else {
                                      Seq[DirectiveStatusReport]()
@@ -881,19 +883,30 @@ final case class ContextForNoAnswer(
                                    val t4 = System.nanoTime
                                    u3 += t4-t3
 
-                                   val expected = okKeys.map { k =>
-                                     val (policyMode, missingReportStatus, components) = expectedComponents(k)
-                                     DirectiveStatusReport(k._1, Map(k._2 ->
-                                       checkExpectedComponentWithReports(components, reports(k), missingReportStatus, policyMode, unexpectedInterpretation)
-                                     ))
-                                   }
+                                   // okKeys is DirectiveId, ComponentName
+                                   val expected = okKeys.groupBy(_._1).map { case (directiveId, cptName) =>
+                                      DirectiveStatusReport(directiveId, cptName.toSeq.map { case (_, cpt) =>
+                                        val k = (directiveId, cpt)
+                                        val (policyMode, missingReportStatus, components) = expectedComponents(k)
+                                        (cpt, checkExpectedComponentWithReports(components, reports(k), missingReportStatus, policyMode, unexpectedInterpretation))
+                                      }.toMap)
+                                    }
 
                                    val t5 = System.nanoTime
                                    u4 += t5-t4
 
-                                   missing ++ unexpected ++ expected
+
+                                   (missing, unexpected, expected)
                                 }
     } yield {
+      // if there is no missing nor unexpected, then data is alreay correct, otherwise we need to merge it
+      val directiveStatusReports = {
+        if (missing.nonEmpty || unexpected.nonEmpty) {
+          DirectiveStatusReport.merge(expected ++ missing ++ unexpected)
+        } else {
+          expected.map( dir => (dir.directiveId, dir)).toMap
+        }
+      }
       (
           ruleId
         , RuleNodeStatusReport(
@@ -901,7 +914,7 @@ final case class ContextForNoAnswer(
             , ruleId
             , mergeInfo.run
             , mergeInfo.configId
-            , DirectiveStatusReport.merge(directiveStatusReports)
+            , directiveStatusReports
             , mergeInfo.expirationTime
           )
       )
@@ -965,16 +978,21 @@ final case class ContextForNoAnswer(
   private[this] def buildUnexpectedReports(mergeInfo: MergeInfo, reports: Seq[Reports]): Set[RuleNodeStatusReport] = {
     reports.groupBy(x => x.ruleId).map { case (ruleId, seq) =>
       RuleNodeStatusReport(
-          mergeInfo.nodeId
+        mergeInfo.nodeId
         , ruleId
         , mergeInfo.run
         , mergeInfo.configId
-        , DirectiveStatusReport.merge(buildUnexpectedDirectives(seq))
+        , seq.groupBy(_.directiveId).map{ case (directiveId, reportsByDirectives) =>
+          (directiveId, DirectiveStatusReport(directiveId, reportsByDirectives.groupBy(_.component).map { case (component, reportsByComponents) =>
+            (component, ComponentStatusReport(component, reportsByComponents.groupBy(_.keyValue).map { case (keyValue, reportsByComponent) =>
+              (keyValue, ComponentValueStatusReport(keyValue, keyValue, reportsByComponent.map(r => MessageStatusReport(ReportType.Unexpected, r.message)).toList))
+              }.toMap)
+            )}.toMap)
+          )}.toMap
         , mergeInfo.expirationTime
       )
     }.toSet
   }
-
   /**
    * Build unexpected reports for the given reports
    */
@@ -988,6 +1006,7 @@ final case class ContextForNoAnswer(
     }
   }
 
+  // by construct, NodeExpectedReports are correctly grouped by Rule/Directive/Component
   private[reports] def buildRuleNodeStatusReport(
       mergeInfo      : MergeInfo
     , expectedReports: NodeExpectedReports
@@ -996,7 +1015,7 @@ final case class ContextForNoAnswer(
   ): Set[RuleNodeStatusReport] = {
     expectedReports.ruleExpectedReports.map { case RuleExpectedReports(ruleId, directives) =>
       val d = directives.map { d =>
-        DirectiveStatusReport(d.directiveId,
+        (d.directiveId, DirectiveStatusReport(d.directiveId,
           d.components.map { c =>
             (c.componentName, ComponentStatusReport(c.componentName,
               c.groupedComponentValues.map { case(v,uv) =>
@@ -1005,13 +1024,13 @@ final case class ContextForNoAnswer(
             ))
           }.toMap
         )
-      }
+        )}.toMap
       RuleNodeStatusReport(
           mergeInfo.nodeId
         , ruleId
         , mergeInfo.run
         , mergeInfo.configId
-        , DirectiveStatusReport.merge(d)
+        , d
         , mergeInfo.expirationTime
       )
     }.toSet

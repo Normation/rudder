@@ -252,6 +252,11 @@ object Doobie {
     Write[String].contramap(_.toCompactJson)
   }
 
+  implicit val SetRuleNodeStatusReportComposite: Write[Set[RuleNodeStatusReport]] = {
+    import NodeStatusReportSerialization._
+    Write[String].contramap(_.toCompactJson)
+  }
+
 
   import doobie.enum.JdbcType.Other
   implicit val XmlMeta: Meta[Elem] =
