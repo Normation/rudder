@@ -405,7 +405,7 @@ class PolicyWriterServiceImpl(
         gte                  <- fillTimer.get.get.map(_/nanoToMillis)
         gtw                  <- fillTimer.waitGet.get.map(_/nanoToMillis)
         _                    <- timingLogger.trace(s" -> fill template: ${f} ms [fill template: ${ftf} ms | to string template: ${fts} ms | fill template wait: ${ftw} ms | get template exec: ${gte} ms | get template wait: ${gtw} ms]")
-        _                    <- timingLogger.trace(s" -> write template: ${w} ms | copy resources: ${c} ms | agent specific: ${a} ms | write CSV: ${c} ms| write JSON: ${j} ms")
+        _                    <- timingLogger.trace(s" -> write template: ${w} ms | copy resources: ${r} ms | agent specific: ${a} ms | write CSV: ${c} ms| write JSON: ${j} ms")
         getRefTime           <- currentTimeMillis
         _                    <- timingLogger.debug(s"Getting info for timing trace in ${getRefTime - promiseWrittenTime} ms")
 
