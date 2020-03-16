@@ -23,7 +23,9 @@
 # @parameter mode      Mode to enforce
 # @parameter owner     Owner to enforce
 # @parameter group     Group to enforce
-# 
+# @parameter_constraint mode "allow_empty_string" : true
+# @parameter_constraint owner "allow_empty_string" : true
+# @parameter_constraint group "allow_empty_string" : true
 # @class_prefix permissions
 # @class_parameter path
 

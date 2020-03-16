@@ -1459,3 +1459,20 @@ body acl add_posix_acl(aces)
       acl_type   => "posix";
       aces       => { @{aces} };
 }
+
+
+body perms ncf_mog_with_option(mode,user,group)
+# @brief Set the file's mode, owner and group
+# @param mode The new mode
+# @param user The username of the new owner
+# @param group The group name
+# Uses the classes permission_type_mode_set, permission_type_owner_set, permission_type_group_set to guard changing perms
+{
+  permission_type_owner_set::
+      owners => { "$(user)" };
+  permission_type_group_set::
+      groups => { "$(group)" };
+  permission_type_mode_set::
+      mode   => "$(mode)";
+}
+
