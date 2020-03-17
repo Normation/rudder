@@ -23,7 +23,9 @@
 # @parameter mode Mode to enforce
 # @parameter owner Owner to enforce
 # @parameter group Group to enforce
-#
+# @parameter_constraint mode "allow_empty_string" : true
+# @parameter_constraint owner "allow_empty_string" : true
+# @parameter_constraint group "allow_empty_string" : true
 # @class_prefix permissions
 # @class_parameter path
 
@@ -34,7 +36,7 @@ bundle agent permissions_dirs_recursive(path, mode, owner, group)
 
       "args"                     slist => { "${path}", "${mode}", "${owner}", "${group}" };
       "report_param"            string => join("_", args);
-      "full_class_prefix"       string => canonify("permissions_${report_param}");
+      "full_class_prefix"       string => canonify("permissions_dirs_recursive_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
 
       "full_inner_class_prefix" string => canonify("permissions_${report_param}_directories_inf");

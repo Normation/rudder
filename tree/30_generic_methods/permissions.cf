@@ -23,7 +23,9 @@
 # @parameter mode Mode to enforce (like "640")
 # @parameter owner Owner to enforce (like "root")
 # @parameter group Group to enforce (like "wheel")
-#
+# @parameter_constraint mode "allow_empty_string" : true
+# @parameter_constraint owner "allow_empty_string" : true
+# @parameter_constraint group "allow_empty_string" : true
 # @class_prefix permissions
 # @class_parameter path
 
