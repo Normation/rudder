@@ -32,7 +32,8 @@ bundle common ncf_paths {
       "path[curl]"   string => "${paths.path[curl]}",
                      unless => isvariable("g.rudder_curl");
 
-     
+      "path[id]"     string => "/usr/bin/id";
+
       "all_paths"     slist => getindices("path");
       "$(all_paths)" string => "$(path[$(all_paths)])";
 
