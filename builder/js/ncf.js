@@ -486,38 +486,36 @@ $scope.getSelectedMethodIndex = function(method) {
 $scope.methodIsSelected = function(method) {
   return $scope.getSelectedMethodIndex(method) >= 0;
 };
+
 $scope.getSessionStorage = function(){
   $scope.resetFlags();
-  var deleted = true;
-  var t1,t2   = undefined;
-  t1 = JSON.parse(sessionStorage.getItem('selectedTechnique'));
-  t2 = JSON.parse(sessionStorage.getItem('originalTechnique'));
-  if(t2 !== null && t2.bundle_name === "") t2.bundle_name=undefined;
-  $scope.originalTechnique = angular.copy(t2);
-  if(t1 !== null){
-    ngToast.create({ content: "<b>Info: </b> Technique restored from current session.", className: 'info'});
-    $scope.selectedTechnique = angular.copy(t1);
-    updateFileManagerConf()
-    if(t2.bundle_name !== undefined){
-      //Not a new technique
-      var existingTechnique = $scope.techniques.find(function(technique){return technique.bundle_name === t2.bundle_name })
-      if (existingTechnique !== undefined) {
-        if(t2.hasOwnProperty('saving'))existingTechnique.saving   = false;
-        if(t2.hasOwnProperty('isClone'))existingTechnique.isClone = false;
 
-        for(var i=0; i<t2.method_calls.length; i++){
-          if(t2.method_calls[i].hasOwnProperty('agent_support')){
-            existingTechnique.method_calls[i].agent_support = t2.method_calls[i].agent_support;
-          }
-          if(existingTechnique.method_calls[i].hasOwnProperty('promiser')){
-            t2.method_calls[i].promiser = existingTechnique.method_calls[i].promiser;
-          }
-        }
-        var checkTechnique1 = angular.copy(existingTechnique);
-        var checkTechnique2 = angular.copy(t2);
-        if(checkTechnique1 && checkTechnique1.resources !== undefined) delete checkTechnique1.resources;
-        if(checkTechnique2 && checkTechnique2.resources !== undefined) delete checkTechnique2.resources;
-        if(!angular.equals(checkTechnique1, checkTechnique2)){
+  //Used to know if the technique has been deleted while the user was away
+  var deleted = false;
+
+  var storedSelectedTechnique,storedOriginalTechnique;
+  storedSelectedTechnique = JSON.parse(sessionStorage.getItem('storedSelectedTechnique'));
+  storedOriginalTechnique = JSON.parse(sessionStorage.getItem('storedOriginalTechnique'));
+
+  if(storedOriginalTechnique !== null && storedOriginalTechnique.bundle_name === "") storedOriginalTechnique.bundle_name=undefined;
+  if(storedSelectedTechnique !== null && storedSelectedTechnique.bundle_name === "") storedSelectedTechnique.bundle_name=undefined;
+
+  $scope.originalTechnique = angular.copy(storedOriginalTechnique);
+
+  if(storedSelectedTechnique !== null){
+    //Restore selected technique and inform user
+    ngToast.create({ content: "<b>Info: </b> Technique restored from current session.", className: 'info'});
+    $scope.selectedTechnique = angular.copy(storedSelectedTechnique);
+    updateFileManagerConf()
+
+    //Check if it's not a new technique
+    if(storedOriginalTechnique.bundle_name !== undefined){
+
+      var existingTechnique = $scope.techniques.find(function(technique){return technique.bundle_name === storedOriginalTechnique.bundle_name })
+      if (existingTechnique !== undefined) {
+
+        //Check if the origignal technique stored is different from the one actually saved
+        if($scope.checkDiff(storedOriginalTechnique, existingTechnique)){
           $scope.conflictFlag = true;
           var modalInstance = $uibModal.open({
             templateUrl: 'RestoreWarningModal.html',
@@ -539,7 +537,9 @@ $scope.getSessionStorage = function(){
             }
           });
         }
-        deleted=false;
+      }else{
+        //Technique has been deleted while user was away
+        deleted = true;
       }
       $scope.suppressFlag = (deleted && !$scope.conflictFlag && $scope.originalTechnique.bundle_name !== undefined);
       if(!$scope.conflictFlag && !deleted){
@@ -561,17 +561,21 @@ $scope.getSessionStorage = function(){
     $scope.$broadcast("elastic:adjust");
   }, 0);
 }
-
 $scope.$watch('selectedTechnique', function(newValue, oldValue) {
-  $scope.updateItemSessionStorage('selectedTechnique', oldValue, newValue);
+  $scope.updateItemSessionStorage('storedSelectedTechnique' , oldValue, newValue);
 },true);
 $scope.$watch('originalTechnique', function(newValue, oldValue) {
-  $scope.updateItemSessionStorage('originalTechnique', oldValue, newValue);
+  $scope.updateItemSessionStorage('storedOriginalTechnique' , oldValue, newValue);
+
 },true);
 
 $scope.clearSessionStorage = function(){
+  //<Cleaning old cache>
   sessionStorage.removeItem('selectedTechnique');
   sessionStorage.removeItem('originalTechnique');
+  //</>
+  sessionStorage.removeItem('storedSelectedTechnique');
+  sessionStorage.removeItem('storedOriginalTechnique');
   $scope.resetFlags();
 }
 
@@ -580,17 +584,25 @@ $scope.resetFlags = function(){
   $scope.conflictFlag = false;
 }
 
+
 $scope.updateItemSessionStorage = function(item, oldTechnique, newTechnique){
   //Checking oldTechnique allows us to not clear the session storage when page is loading so $scope.selectedTechnique and $scope.originalTechnique are still undefined.
   if(oldTechnique && !newTechnique){
     $scope.clearSessionStorage();
   } else if(newTechnique){
-    var savedTechnique = angular.copy(newTechnique);
-    if(savedTechnique.name        === undefined) savedTechnique.name        = "";
-    if(savedTechnique.bundle_name === undefined) savedTechnique.bundle_name = "";
+    var checkList      = $scope.getChecksList();
+    var savedTechnique = {};
+    var c, check, propertyChecked;
+    for(c in checkList){
+      var check = checkList[c];
+      propertyChecked       = newTechnique[check];
+      //We can't store 'undefined' value, so we convert it into an empty string
+      savedTechnique[check] = propertyChecked === undefined ? "" : angular.copy(propertyChecked);
+    }
     sessionStorage.setItem(item, JSON.stringify(savedTechnique));
   }
 }
+
 // Call ncf api to get techniques
 $scope.getTechniques = function () {
 
@@ -951,7 +963,7 @@ $scope.onImportFileChange = function (fileEl) {
         return r.state != "untouched";
       })
     }
-    return (angular.equals(technique, $scope.originalTechnique) && checkUntouchedResources);
+    return (!$scope.checkDiff(technique, $scope.originalTechnique) && checkUntouchedResources);
   };
 
   // Check if a technique has been saved,
@@ -1151,7 +1163,7 @@ $scope.onImportFileChange = function (fileEl) {
       if ($scope.selectedTechnique.isClone) {
         return res
       }
-      return res || $scope.isUnchanged($scope.selectedTechnique)
+      return res || $scope.isUnchanged($scope.selectedTechnique);
     }
     return false;
   }
@@ -1486,6 +1498,78 @@ $scope.onImportFileChange = function (fileEl) {
 
   $scope.toggleDisplay = function(showTechniques){
     $scope.ui.showTechniques = showTechniques;
+  }
+
+  $scope.getChecksList = function(){
+    // List of technique properties that we want to compare
+    // If we add another properties here, we have to make sure that is is correctly compared in the checkDiff() function
+    var checks =
+      [ "name"
+      , "bundle_name"
+      , "description"
+      , "category"
+      , "version"
+      , "method_calls"
+      , "parameter"
+      //, "resources"
+      ]
+    return checks;
+  }
+
+  $scope.checkDiff = function(storedTech, currentTech){
+    // Avoid errors if scope is not completly intialized
+    if(storedTech===undefined || currentTech===undefined) return false;
+
+    // get the list of technique's properties that we want to compare
+    var checks   = $scope.getChecksList();
+    // Used to store all divergency problems
+    var diverges = [];
+    var c, check, diff;
+    for (c in checks) {
+      check = checks[c]
+      //Compare properties in the right way according to their "type"
+      switch(check){
+        case "category" :
+          diff = (storedTech[check] != "" && (storedTech[check] != currentTech[check]));
+          break;
+
+        case "method_calls" :
+          var st = angular.copy(storedTech.method_calls );
+          var ct = angular.copy(currentTech.method_calls);
+          if(ct.length==st.length){
+            for(var i=0; i<st.length; i++){
+              if(st[i].hasOwnProperty('agent_support')){
+                ct[i].agent_support = st[i].agent_support;
+              }
+              if(ct[i].hasOwnProperty('promiser')){
+                st[i].promiser = ct[i].promiser;
+              }
+            }
+          }
+          diff = !angular.equals(st , ct);
+          break;
+
+        default    :
+          diff = !angular.equals(storedTech[check] , currentTech[check]);
+          break;
+      }
+      // If there is a difference, the old value and the current one are stored
+      if(diff){
+        var div =
+        { "field": check
+        , "storage_value": storedTech[check]
+        , "current_value": currentTech[check]
+        };
+        diverges.push(div);
+      }
+    }
+    // divergencies detected
+    if(diverges.length>0){
+      // DEBUG : console.log(diverges)
+      // TODO  : display that information into the popup
+      return diverges;
+    }
+    return false;
   }
 
   $scope.reloadData();
