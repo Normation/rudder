@@ -349,6 +349,29 @@ fn penum_mapping(i: PInput) -> PResult<PEnumMapping> {
     )(i)
 }
 
+
+// Old enums: 
+//   global enum abc { a, b, c }
+//   enum a ~> abc { a1 -> a, a2-> a, a3 -> a, * -> *}
+// 
+// New enums
+//   global enum abc { a,b,c, }
+//   enum a { a1, a2, a3}
+// 
+
+// -> no parser change
+// -> TODO remove EnumMapping parsing
+
+// Old enum expression:
+//  var=~value:type  # fully specified
+//  var=~value       # type from higer possible type
+//  globalvalue      # var name = type name
+// New enum expression:
+//  var=~value       # names must be unique 
+//  globalvalue      # var name = enum root name
+
+// -> no parser change, TODO let's remove/comment type for a while
+
 /// An enum expression is used as a condition in a case expression.
 /// This is a boolean expression based on enum comparison.
 /// A comparison check if the variable is of the right type and contains
