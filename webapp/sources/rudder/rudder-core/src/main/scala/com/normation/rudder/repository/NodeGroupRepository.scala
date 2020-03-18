@@ -37,19 +37,16 @@
 
 package com.normation.rudder.repository
 
-import com.normation.rudder.domain.nodes._
-import com.normation.inventory.domain.NodeId
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.nodes._
-import com.normation.inventory.domain.NodeId
-import com.normation.utils.Utils
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
-import scala.collection.immutable.SortedMap
-import com.normation.rudder.domain.policies._
-
 import com.normation.errors._
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.nodes._
+import com.normation.rudder.domain.policies._
+import com.normation.utils.Utils
+import com.unboundid.ldif.LDIFChangeRecord
+
+import scala.collection.immutable.SortedMap
 
 /**
  * Here is the ordering for a List[NodeGroupCategoryId]
@@ -329,6 +326,7 @@ trait WoNodeGroupRepository {
    */
   def create(group: NodeGroup, into: NodeGroupCategoryId, modId: ModificationId, actor:EventActor, why: Option[String]): IOResult[AddNodeGroupDiff]
 
+  def createPolicyServerTarget(target: PolicyServerTarget, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[LDIFChangeRecord]
 
   /**
    * Update the given existing group

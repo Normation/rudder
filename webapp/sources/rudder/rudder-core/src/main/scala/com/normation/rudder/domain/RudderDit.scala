@@ -151,6 +151,49 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   }
 
 
+//  def activeTechniqueModel(
+//                            uuid:String
+//                            , parentDN:DN
+//                            , techniqueName:TechniqueName
+//                            , acceptationDateTimes:JObject
+//                            , isEnabled:Boolean
+//                            , isSystem : Boolean
+//                          ) : LDAPEntry = {
+//    val mod = LDAPEntry(new DN(buildRDN(uuid),parentDN))
+//    mod +=! (A_OC, OC.objectClassNames(OC_ACTIVE_TECHNIQUE).toSeq:_*)
+//    mod +=! (A_TECHNIQUE_UUID, techniqueName.value)
+//    mod +=! (A_IS_ENABLED, isEnabled.toLDAPString)
+//    mod +=! (A_IS_SYSTEM, isSystem.toLDAPString)
+//    mod +=! (A_ACCEPTATION_DATETIME, compactRender(acceptationDateTimes))
+//    mod
+//  }
+//  def policyServerTarget(
+//      uuid : String
+//    , parentDN : DN
+//    , name :  String = ""
+//    , description : String = ""
+//  ) : LDAPEntry = {
+//  val mod = LDAPEntry(new DN(buildRDN(uuid),parentDN))
+//  mod +=! (A_OC, OC.objectClassNames(OC_SPECIAL_TARGET).toSeq:_*)
+//  mod +=! (A_NAME, name)
+//  mod +=! (A_DESCRIPTION, description)
+//  mod +=! (A_IS_SYSTEM, isSystem.toLDAPString)
+//  mod +=! (A_IS_ENABLED, isEnabled.toLDAPString)
+//  mod +=! (A_RULE_TARGET, uuid)
+//  mod
+
+//
+//  new CATEGORY(
+//      uuid            = uuid
+//      , name            = name
+//      , description     = description
+//      , parentDN        = parentDN
+//      , objectClass = OC_SPECIAL_TARGET
+//      , objectClassUuid = A_NODE_POLICY_SERVER
+//    )
+//  }
+
+
   /*
    * Register object here, and force their loading
    */
@@ -304,6 +347,32 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       mod +=! (A_NAME, name)
       mod +=! (A_DESCRIPTION, description)
       mod +=! (A_IS_SYSTEM, isSystem.toLDAPString)
+
+      mod
+    }
+  }
+
+  object RULETARGET {
+
+      def ruleTargetDN(targetId:String) : RDN = new RDN(A_ACTIVE_TECHNIQUE_UUID, targetId)
+
+      def ruleTargetModel(
+          uuid: String
+        , name: String
+        , parentDN:DN
+        , description: String
+        , isSystem: Boolean = true
+        , isEnabled: Boolean = true
+      ) : LDAPEntry = {
+
+      val mod = LDAPEntry(new DN(ruleTargetDN(uuid), parentDN))
+      mod +=! (A_OC, OC.objectClassNames(OC_SPECIAL_TARGET).toSeq:_*)
+      mod +=! (A_NAME, name)
+      mod +=! (A_DESCRIPTION, description)
+      mod +=! (A_IS_SYSTEM, isSystem.toLDAPString)
+      mod +=! (A_IS_ENABLED, isEnabled.toLDAPString)
+      mod +=! (A_RULE_TARGET, uuid)
+
 
       mod
     }
