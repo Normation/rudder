@@ -3,7 +3,6 @@
 
 pub mod context;
 pub mod enums;
-pub mod enum2;
 pub mod resource;
 pub mod value;
 
@@ -65,7 +64,7 @@ impl<'src> AST<'src> {
         } = past;
         let mut ast = AST::new();
         ast.add_enums(enums);
-        ast.add_enum_mappings(enum_mappings);
+        //ast.add_enum_mappings(enum_mappings);
         ast.add_variables(variable_declarations);
         ast.add_default_values(parameter_defaults);
         ast.add_resource_list(&resources);
@@ -105,7 +104,7 @@ impl<'src> AST<'src> {
         }
     }
 
-    /// Insert all enum mappings
+/*    /// Insert all enum mappings
     fn add_enum_mappings(&mut self, enum_mappings: Vec<PEnumMapping<'src>>) {
         let mut mappings = enum_mappings;
         let enum_list = &mut self.enum_list; // borrow checking out of the closure
@@ -151,7 +150,7 @@ impl<'src> AST<'src> {
             mappings = new_mappings;
         }
     }
-
+*/
     /// Insert variables types into the variables context
     /// Insert the variables definition into the global declaration space
     fn add_variables(&mut self, variable_declarations: Vec<(Token<'src>, PValue<'src>)>) {
@@ -547,15 +546,17 @@ impl<'src> AST<'src> {
     // - true / false
     fn invalid_variable_check(&self, name: Token<'src>, global: bool) -> Result<()> {
         self.invalid_identifier_check(name)?;
-        if self.enum_list.enum_exists(name) && (!global || !self.enum_list.is_global(name)) {
-            // there is a global variable for each global enum
-            fail!(
-                name,
-                "Variable name {} cannot be used because it is an enum name",
-                name
-            );
-        }
-        if let Some(e) = self.enum_list.global_values.get(&name) {
+        if let Some(is_global) = self.enum_list.enum_is_global(name) {
+            if !global || !is_global {
+                // there is already a global variable for each global enum
+                fail!(
+                    name,
+                    "Variable name {} cannot be used because it is an enum name",
+                    name
+                );
+            }
+            }
+        if let Some(e) = self.enum_list.global_item(name) {
             fail!(
                 name,
                 "Variable name {} cannot be used because it is an item of the global enum {}",
@@ -621,14 +622,13 @@ impl<'src> AST<'src> {
             // check for invalid variable name
             errors.push(self.invalid_variable_check(*name, true));
         }
-        // analyse enums
-        for (e, (_global, items)) in self.enum_list.iter() {
-            // check for invalid enum name
-            errors.push(self.invalid_identifier_check(*e));
-            // check for invalid item name
-            for i in items.iter() {
-                errors.push(self.invalid_identifier_check(*i));
-            }
+        // analyse enum names
+        for e in self.enum_list.enum_iter() {
+            errors.push(self.invalid_identifier_check(e));
+        }
+        // analyse enum items
+        for e in self.enum_list.item_iter() {
+            errors.push(self.invalid_identifier_check(e));
         }
         // Stop here if there is any error
         fix_results(errors.into_iter())?;

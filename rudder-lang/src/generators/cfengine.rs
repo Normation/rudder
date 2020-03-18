@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::Generator;
-use crate::ast::enums::*;
+use crate::ast::enums::{EnumExpression, EnumList};
 use crate::ast::resource::*;
 use crate::ast::value::*;
 use crate::ast::*;
@@ -98,33 +98,17 @@ impl CFEngine {
             // TODO what about classes that have not yet been set ? can it happen ?
             EnumExpression::Not(e1) => format!("!({})", self.format_case_expr(gc, e1)?),
             EnumExpression::Compare(var, e, item) => {
-                if gc.enum_list.is_global(*e) {
-                    let final_enum = gc.enum_list.find_descendant_enum(*e, *item);
-                    if *e == final_enum {
-                        item.fragment().to_string() // here
-                    } else {
-                        let others = gc
-                            .enum_list
-                            .enum_iter(*e)
-                            .filter(|i| {
-                                (**i != *item)
-                                    && gc.enum_list.is_ancestor(*e, **i, final_enum, *item)
-                            })
-                            .map(|i| i.fragment())
-                            .collect::<Vec<_>>();
-                        format!(
-                            "{}.!({})",
-                            item.fragment().to_string(),
-                            (&others[..]).join("|")
-                        )
-                    }
+                if let Some(true) = gc.enum_list.enum_is_global(*e) {
+                    // We probably need some translation here since not all enums are available in cfengine (ex debian_only)
+                    item.fragment().to_string() // here
                 } else {
                     // concat var name + item
                     let prefix = &self.var_prefixes[var.fragment()];
                     // TODO there may still be some conflicts with var or enum containing '_'
                     format!("{}_{}_{}", prefix, e.fragment(), item.fragment())
                 }
-            }
+            },
+            EnumExpression::Range(var, e, item1, item2) => { unimplemented!() }, // TODO
             EnumExpression::Default(_) => {
                 // extract current cases and build an opposite expression
                 if self.current_cases.is_empty() {

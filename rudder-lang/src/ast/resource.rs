@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::context::{VarContext, VarKind};
-use super::enums::*;
+use super::enums::{EnumExpression, EnumList};
 use super::value::Value;
 use crate::error::*;
 use crate::parser::*;
