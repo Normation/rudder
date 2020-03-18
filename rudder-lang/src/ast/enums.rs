@@ -1,7 +1,10 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2019-2020 Normation SAS
+
 use super::context::VarKind;
 use super::resource::Statement;
 use crate::error::*;
-use crate::parser::{PEnum, PEnumExpression, Token};
+use crate::parser::{PEnum, PSubEnum, PEnumExpression, Token};
 use std::collections::{HashMap, HashSet};
 
 // TODO Should a non global enum item be permitted as a variable name and must it be unique ?
@@ -153,18 +156,18 @@ impl<'src> EnumList<'src> {
     }
 
     /// Iterate over enum names
-    pub fn enum_iter(&self) -> impl Iterator<Item=Token<'src>> + '_ {
-        self.enums.iter().map(|(k,_)| *k)
+    pub fn enum_iter(&self) -> impl Iterator<Item=&Token<'src>> {
+        self.enums.iter().map(|(k,_)| k)
     }
 
     /// Iterate over enum values
-    pub fn item_iter(&self) -> impl Iterator<Item=Token<'src>> + '_ {
-        self.elements.iter().map(|(k,_)| *k)
+    pub fn item_iter(&self) -> impl Iterator<Item=&Token<'src>> {
+        self.elements.iter().map(|(k,_)| k)
     }
 
     // TODO Update when parser will be modified
     /// Add an enum definition from the parser
-    pub fn add_enum(&mut self, e: PEnum<'src>) -> Result<()> {
+    pub fn add_enum(&mut self, mut e: PEnum<'src>) -> Result<()> {
         // check for tree name duplicate
         if self.enums.contains_key(&e.name) {
             fail!(
@@ -173,6 +176,11 @@ impl<'src> EnumList<'src> {
                 e.name,
                 self.enums.entry(e.name).key()
             );
+        }
+        // detect incompleteness
+        let incomplete = e.items.contains(&Token::from("*"));
+        if incomplete {
+            e.items.retain(|x| *x != Token::from("*"));
         }
         // check that enum is not empty
         if e.items.is_empty() {
@@ -191,21 +199,25 @@ impl<'src> EnumList<'src> {
             }
             self.elements.insert(*i, e.name);
         }
-        let tree = EnumTree::new(e.name, e.items, false, e.global);
+        let tree = EnumTree::new(e.name, e.items, incomplete, e.global);
         self.enums.insert(e.name, tree);
         Ok(())
-        // TODO incomplete
     }
 
     // TODO Update when parser will be modified
     /// Extend an existing enum with "enum in" from the parser
-    /// return Some(()) if the parent doesn't exist (yet)
-    pub fn extend_enum(&mut self, e: PEnum<'src>) -> Result<Option<()>> {
+    /// return the structue back if the parent doesn't exist (yet)
+    pub fn extend_enum(&mut self, mut e: PSubEnum<'src>) -> Result<Option<PSubEnum<'src>>> {
         // find tree name
         let treename = match self.elements.get(&e.name) {
-            None => return Ok(Some(())),
+            None => return Ok(Some(e)),
             Some(t) => *t,
         };
+        // detect incompleteness
+        let incomplete = e.items.contains(&Token::from("*"));
+        if incomplete {
+            e.items.retain(|x| *x != Token::from("*"));
+        }
         // find tree
         if let Some(tree) = self.enums.get_mut(&treename) {
             // check that enum is not empty
@@ -230,10 +242,9 @@ impl<'src> EnumList<'src> {
                 self.elements.insert(*i, treename);
             }
             // insert keys
-            tree.extend(e.name, e.items, false);
+            tree.extend(e.name, e.items, incomplete);
         }
         Ok(None)
-        // TODO incomplete
     }
 
     /// Transforms a parsed enum expression into its final form using all enum definitions
@@ -567,10 +578,10 @@ mod tests {
         assert!(elist.add_enum(penum_t("enum T { a, b, c }")).is_err());
         assert!(elist.add_enum(penum_t("enum U { c, d, e }")).is_err());
         assert!(elist.add_enum(penum_t("enum V { f, g, h }")).is_ok());
-        assert_eq!(elist.extend_enum(penum_t("enum a { aa, ab, ac }")), Ok(()));
-        assert!(elist.extend_enum(penum_t("enum a { ba, bb, bc }")).is_err());
-        assert!(elist.extend_enum(penum_t("enum b { aa, ab, ac }")).is_err());
-        assert!(elist.extend_enum(penum_t("enum aa { ba, bb, bc }")).is_ok());
+        assert_eq!(elist.extend_enum(psub_enum_t("items in a { aa, ab, ac }")), Ok(()));
+        assert!(elist.extend_enum(psub_enum_t("items in a { ba, bb, bc }")).is_err());
+        assert!(elist.extend_enum(psub_enum_t("items in b { aa, ab, ac }")).is_err());
+        assert!(elist.extend_enum(psub_enum_t("items in aa { ba, bb, bc }")).is_ok());
     }
 
     #[test]
@@ -578,9 +589,9 @@ mod tests {
         let mut elist = EnumList::new();
         let getter = |_| None;
         elist.add_enum(penum_t("global enum T { a, b, c }")).unwrap();
-        elist.extend_enum(penum_t("enum a { d, e, f }")).unwrap();
-        elist.extend_enum(penum_t("enum b { g, h, i }")).unwrap();
-        elist.extend_enum(penum_t("enum k { k, k, l }")).unwrap();
+        elist.extend_enum(psub_enum_t("items in a { d, e, f }")).unwrap();
+        elist.extend_enum(psub_enum_t("items in b { g, h, i }")).unwrap();
+        elist.extend_enum(psub_enum_t("items in k { k, k, l }")).unwrap();
         assert_eq!(elist.canonify_expression(&getter, penum_expression_t("a")).unwrap(),
             EnumExpression::Compare("T".into(), "T".into(), "a".into())
         );
@@ -617,12 +628,12 @@ mod tests {
         let mut elist = EnumList::new();
         let getter = |_| None;
         elist.add_enum(penum_t("global enum T { a, b, c }")).unwrap();
-        elist.extend_enum(penum_t("enum a { d, e, f }")).unwrap();
-        elist.extend_enum(penum_t("enum b { g, h, i }")).unwrap();
-        elist.extend_enum(penum_t("enum g { j, k, l }")).unwrap();
-
+        elist.extend_enum(psub_enum_t("items in b { g, h, i }")).unwrap();
+        elist.extend_enum(psub_enum_t("items in a { d, e, f }")).unwrap();
+        elist.extend_enum(psub_enum_t("items in g { j, k, l }")).unwrap();
         let mut h1 = HashMap::new();
         elist
+
             .canonify_expression(&getter, penum_expression_t("a"))
             .unwrap()
             .list_variables_tree(&mut h1);
@@ -685,9 +696,9 @@ mod tests {
         let mut elist = EnumList::new();
         let getter = |_| None;
         elist.add_enum(penum_t("global enum T { a, b, c }")).unwrap();
-        elist.extend_enum(penum_t("enum a { d, e, f }")).unwrap();
-        elist.extend_enum(penum_t("enum b { g, h, i }")).unwrap();
-        elist.extend_enum(penum_t("enum g { j, k, l }")).unwrap();
+        elist.extend_enum(psub_enum_t("items in a { d, e, f }")).unwrap();
+        elist.extend_enum(psub_enum_t("items in b { g, h, i }")).unwrap();
+        elist.extend_enum(psub_enum_t("items in g { j, k, l }")).unwrap();
         elist.add_enum(penum_t("global enum U { A, B, C }")).unwrap();
         let e1 = elist.canonify_expression(&getter, penum_expression_t("a")).unwrap();
         let e2 = elist.canonify_expression(&getter, penum_expression_t("b")).unwrap();
