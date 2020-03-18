@@ -663,11 +663,10 @@ class TechniqueArchiverImpl (
 
   def deleteTechnique(techniqueName : String, techniqueVersion : String, category : String,  modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
     (for {
-      git     <- gitRepo.git
       ident   <- personIdentservice.getPersonIdentOrDefault(commiter.name)
-      rm      <- IOResult.effect(git.rm.addFilepattern(s"techniques/${category}/${techniqueName}/${techniqueVersion}").call())
+      rm      <- IOResult.effect(gitRepo.git.rm.addFilepattern(s"techniques/${category}/${techniqueName}/${techniqueVersion}").call())
 
-      commit  <- IOResult.effect(git.commit.setCommitter(ident).setMessage(msg).call())
+      commit  <- IOResult.effect(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
     } yield {
       s"techniques/${category}/${techniqueName}/${techniqueVersion}"
     }).chainError(s"error when deleting and committing Technique '${techniqueName}/${techniqueVersion}").unit
@@ -683,15 +682,14 @@ class TechniqueArchiverImpl (
         s"dsc/ncf/50_techniques/${technique.bundleName.value}" +:
         technique.ressources.filter(f => f.state == Deleted ).map(f => s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/resources/${f.path}")
     (for {
-      git     <- gitRepo.git
       ident   <- personIdentservice.getPersonIdentOrDefault(commiter.name)
       added   <- ZIO.foreach(filesToAdd) { f =>
-                   IOResult.effect (git.add.addFilepattern(f).call())
+                   IOResult.effect (gitRepo.git.add.addFilepattern(f).call())
                  }
       removed <- ZIO.foreach(filesToDelete) { f =>
-                   IOResult.effect(git.rm.addFilepattern(f).call())
+                   IOResult.effect(gitRepo.git.rm.addFilepattern(f).call())
                  }
-      commit  <- IOResult.effect(git.commit.setCommitter(ident).setMessage(msg).call())
+      commit  <- IOResult.effect(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
     } yield {
       gitPath
     }).chainError(s"error when committing Technique '${technique.name}/${technique.version}").unit

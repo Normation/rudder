@@ -136,7 +136,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
 
   val file2 = TechniqueResourceIdByName(TechniqueId(TechniqueName("p1_1"), TechniqueVersion("1.0")), "file2.txt")
 
-  val repo = new GitRepositoryProviderImpl(gitRoot.getAbsolutePath)
+  val repo = GitRepositoryProviderImpl.make(gitRoot.getAbsolutePath).runNow
 
   //post init hook
   postInitHook
@@ -244,7 +244,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
       val newPath = reader.canonizedRelativePath.map( _ + "/").getOrElse("") + "cat1/p1_1/2.0/newFile.st"
       val newFile = new File(gitRoot.getAbsoluteFile.getPath + "/" + newPath)
       FileUtils.writeStringToFile(newFile, "Some content for the new file", StandardCharsets.UTF_8)
-      val git = new Git(repo.db.runNow)
+      val git = new Git(repo.db)
       git.add.addFilepattern(newPath).call
       git.commit.setMessage("Modify PT: cat1/p1_1/2.0").call
 
@@ -266,7 +266,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
       reader.readTechniques()
       val newFile = new File(gitRoot.getAbsolutePath + "/" + name)
       FileUtils.writeStringToFile(newFile, "Some more content for the new file arg arg arg", StandardCharsets.UTF_8)
-      val git = new Git(repo.db.runNow)
+      val git = new Git(repo.db)
       git.add.addFilepattern(name).call
       git.commit.setMessage("Modify file /libdir/file1.txt in technique: cat1/p1_1/1.0").call
       val n = TechniqueName("p1_1")
@@ -307,7 +307,7 @@ class JGitPackageReader_ChildRootTest extends JGitPackageReaderSpec {
     logger.info("Add false techniques outside root in '%s'".format(gitRoot.getPath + "/phantomPTs"))
     FileUtils.copyDirectory(new File("src/test/resources/phantomTechniques") ,dest)
     //commit in git these files
-    val git = new Git(repo.db.runNow)
+    val git = new Git(repo.db)
     git.add.addFilepattern(destName).call
     git.commit.setMessage("Commit something looking like a technique but outside PT root directory").call
     ()

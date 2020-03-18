@@ -65,7 +65,6 @@ import com.normation.rudder.services.policies.TechniqueAcceptationUpdater
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.utils.StringUuidGeneratorImpl
 import org.joda.time.DateTime
-import com.normation.zio._
 import com.normation.errors._
 import zio._
 import zio.syntax._
@@ -82,8 +81,8 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
   val setupRepos = new TestNodeConfiguration()
 
   val fsRepos       = setupRepos.techniqueRepository
-  val git           = setupRepos.repo.git.runNow
-  val techniqueRoot = File(setupRepos.repo.db.runNow.getWorkTree.getAbsolutePath, "techniques")
+  val git           = setupRepos.repo.git
+  val techniqueRoot = File(setupRepos.repo.db.getWorkTree.getAbsolutePath, "techniques")
 
   val modid = new ModificationId("test")
   val actor = new EventActor("test")

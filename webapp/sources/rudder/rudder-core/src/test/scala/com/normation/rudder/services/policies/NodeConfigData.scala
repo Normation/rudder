@@ -117,6 +117,7 @@ import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.repository.FullNodeGroupCategory
 import org.apache.commons.io.FileUtils
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
+import com.normation.zio._
 
 /*
  * This file is a container for testing data that are a little boring to
@@ -488,7 +489,7 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
   val t1 = System.currentTimeMillis()
   println(s"Paths inits             : ${t1-t0} ms")
 
-  val repo = new GitRepositoryProviderImpl(configurationRepositoryRoot.getAbsolutePath)
+  val repo = GitRepositoryProviderImpl.make(configurationRepositoryRoot.getAbsolutePath).runNow
   val t2 = System.currentTimeMillis()
   println(s"Git repo provider       : ${t2-t1} ms")
 

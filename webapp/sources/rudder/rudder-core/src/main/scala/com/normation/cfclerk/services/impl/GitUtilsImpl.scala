@@ -61,43 +61,48 @@ import com.normation.zio._
  * If a .git repository is found in it, it is considered as the repository
  * to use, else if none is found, one is created.
  */
-class GitRepositoryProviderImpl(techniqueDirectoryPath: String) extends GitRepositoryProvider { //we expect to have a .git here
-  /**
-   * Check for root package existence
-   */
-  private def checkPackageDirectory(dir: File): IOResult[Unit] = {
-    if (!dir.exists) {
-      Inconsistancy("Directory %s does not exist, how do you want that I read policy package in it?".format(dir)).fail
-    } else if (!dir.canRead) {
-      Inconsistancy("Directory %s is not readable, how do you want that I read policy package in it?".format(dir)).fail
-    } else UIO.unit
-  }
+class GitRepositoryProviderImpl(override val db: Repository) extends GitRepositoryProvider { //we expect to have a .git here
+  override val git = new Git(db)
+}
 
+object GitRepositoryProviderImpl {
   /**
-   * Ckeck git repos existence.
-   * If no git repos is found, create one.
+   * Use the provided full path as the root directory for given git provider.
    */
-  private def checkGitRepos(root:File) : IOResult[Repository] = {
-    IOResult.effect {
-      val db = (new FileRepositoryBuilder().setWorkTree(root).build).asInstanceOf[FileRepository]
-      if(!db.getConfig.getFile.exists) {
-        GitRepositoryLogger.logEffect.info(s"Git directory was not initialised: create a new git repository into folder '${root.getAbsolutePath}' and add all its content as initial release")
-        db.create()
-        val git = new Git(db)
-        git.add.addFilepattern(".").call
-        git.commit.setMessage("initial commit").call
-      }
-      db
+  def make(gitRootPath: String): IOResult[GitRepositoryProviderImpl] = {
+    /**
+     * Check for root package existence
+     */
+    def checkPackageDirectory(dir: File): IOResult[Unit] = {
+      if (!dir.exists) {
+        Inconsistancy("Directory %s does not exist, how do you want that I read policy package in it?".format(dir)).fail
+      } else if (!dir.canRead) {
+        Inconsistancy("Directory %s is not readable, how do you want that I read policy package in it?".format(dir)).fail
+      } else UIO.unit
     }
-  }
 
-  override val db = {
-    val dir = new File(techniqueDirectoryPath)
+    /**
+     * Ckeck git repos existence.
+     * If no git repos is found, create one.
+     */
+    def checkGitRepos(root:File) : IOResult[Repository] = {
+      IOResult.effect {
+        val db = (new FileRepositoryBuilder().setWorkTree(root).build).asInstanceOf[FileRepository]
+        if(!db.getConfig.getFile.exists) {
+          GitRepositoryLogger.logEffect.info(s"Git directory was not initialised: create a new git repository into folder '${root.getAbsolutePath}' and add all its content as initial release")
+          db.create()
+          val git = new Git(db)
+          git.add.addFilepattern(".").call
+          git.commit.setMessage("initial commit").call
+        }
+        db
+      }
+    }
+
+    val dir = new File(gitRootPath)
     checkPackageDirectory(dir) *>
-    checkGitRepos(dir)
+    checkGitRepos(dir).flatMap(db => IOResult.effect(new GitRepositoryProviderImpl(db)))
   }
-
-  override val git = db.map(x => new Git(x))
 }
 
 
@@ -123,22 +128,20 @@ class SimpleGitRevisionProvider(refPath:String,repo:GitRepositoryProvider) exten
   private[this] var currentId = Ref.make[ObjectId](getAvailableRevTreeId.runNow).runNow
 
   override def getAvailableRevTreeId : IOResult[ObjectId] = {
-    repo.db.flatMap(db =>
-      IOResult.effect {
-        val treeId = db.resolve(refPath)
+    IOResult.effect {
+      val treeId = repo.db.resolve(refPath)
 
-        if(null == treeId) {
-          val message = s"The reference branch '${refPath}' is not found in the Policy Templates User Library's git repository"
-          GitRepositoryLogger.logEffect.error(message)
-          throw new IllegalArgumentException(message)
-        }
-
-        val rw = new RevWalk(db)
-        val id = rw.parseTree(treeId).getId
-        rw.dispose
-        id
+      if(null == treeId) {
+        val message = s"The reference branch '${refPath}' is not found in the Policy Templates User Library's git repository"
+        GitRepositoryLogger.logEffect.error(message)
+        throw new IllegalArgumentException(message)
       }
-    )
+
+      val rw = new RevWalk(repo.db)
+      val id = rw.parseTree(treeId).getId
+      rw.dispose
+      id
+    }
   }
 
   override def currentRevTreeId = currentId.get

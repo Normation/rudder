@@ -162,6 +162,18 @@ object TestImplicits {
   }
 }
 
+object SimpleEvalTest {
+
+  val hello = IOResult.effect(println("plop"))
+
+  def main(args: Array[String]): Unit = {
+    // write a first time
+    hello.runNow
+    // write a second time
+    hello.runNow
+  }
+}
+
 
 object TestLog {
 

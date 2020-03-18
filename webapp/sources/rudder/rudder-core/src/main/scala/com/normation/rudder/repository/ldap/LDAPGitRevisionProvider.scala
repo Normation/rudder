@@ -99,8 +99,7 @@ class LDAPGitRevisionProvider(
 
   override def getAvailableRevTreeId: IOResult[ObjectId] = {
     (for {
-      db  <- gitRepo.db
-      res <- GitFindUtils.findRevTreeFromRevString(db, refPath)
+      res <- GitFindUtils.findRevTreeFromRevString(gitRepo.db, refPath)
     } yield res).catchAll(err =>
       logPure.error(err.fullMsg) *> Chained("Error when looking for a commit tree in git", err).fail
     )
