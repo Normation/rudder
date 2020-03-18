@@ -178,8 +178,7 @@ class GitTechniqueReader(
   private[this] val currentTechniquesInfoCache: Ref[TechniquesInfo] = semaphore.withPermit(
     for {
       currentRevTree <- revisionProvider.currentRevTreeId
-      db             <- repo.db
-      res            <- processRevTreeId(db, currentRevTree).catchAll {
+      res            <- processRevTreeId(repo.db, currentRevTree).catchAll {
                           case err @ SystemError(m, NoRootCategory(msg)) =>
                             for {
                               _            <- TechniqueReaderLoggerPure.error(s"The stored Git revision '${currentRevTree}' does not provide a root category.xml, which is mandatory. Error message was: ${err.fullMsg}")
@@ -187,7 +186,7 @@ class GitTechniqueReader(
                               res <- if(newRevTreeId != currentRevTree) {
                                         TechniqueReaderLoggerPure.error(s"Trying to load last available revision of the technique library to unstuck the situation.") *>
                                         revisionProvider.setCurrentRevTreeId(newRevTreeId) *>
-                                        processRevTreeId(db, newRevTreeId)
+                                        processRevTreeId(repo.db, newRevTreeId)
                                       } else {
                                         Inconsistancy("Please add a root category.xml and commit it before restarting Rudder.").fail
                                       }
@@ -197,7 +196,7 @@ class GitTechniqueReader(
                                 "That may happen if a commit was reverted, the Git repository was deleted and created again, or if LDAP datas where corrupted. Loading the last available Techique library version.") *>
                             revisionProvider.getAvailableRevTreeId.flatMap(newRevTreeId =>
                               revisionProvider.setCurrentRevTreeId(newRevTreeId) *>
-                              processRevTreeId(db, newRevTreeId)
+                              processRevTreeId(repo.db, newRevTreeId)
                             )
                         }
     } yield res
@@ -290,13 +289,12 @@ class GitTechniqueReader(
     (for {
       nextId   <- revisionProvider.getAvailableRevTreeId
       cached   <- nextTechniquesInfoCache.get
-      db       <- repo.db
       mods     <- if(nextId == cached._1) modifiedTechniquesCache.get
                   else for {
-                    nextTechniquesInfo <- processRevTreeId(db, nextId)
+                    nextTechniquesInfo <- processRevTreeId(repo.db, nextId)
                     managedDiffFmt     =  ZManaged.make(IOResult.effect{
                                             val diffFmt = new DiffFormatter(null)
-                                            diffFmt.setRepository(db)
+                                            diffFmt.setRepository(repo.db)
                                             diffFmt
                                           })(diffFmt => effectUioUnit(diffFmt.close))
                     diffPathEntries    <- managedDiffFmt.use(diffFmt => IOResult.effect {
@@ -304,7 +302,7 @@ class GitTechniqueReader(
                                               Seq( (toTechniquePath(diffEntry.getOldPath), diffEntry.getChangeType), (toTechniquePath(diffEntry.getNewPath), diffEntry.getChangeType))
                                             }.toSet
                                           })
-                    next               <- processRevTreeId(db, nextId)
+                    next               <- processRevTreeId(repo.db, nextId)
                     mods               =  buildTechniqueMods(diffPathEntries, cached._2, next)
                     nextCache          =  (nextId, next)
                     _                  <- semaphore.withPermit(
@@ -324,11 +322,10 @@ class GitTechniqueReader(
 
     val managed = Managed.make(
       for {
-        db        <- repo.db
         currentId <- revisionProvider.currentRevTreeId
         optStream <- IOResult.effect {
                        try {
-                         val tw = new TreeWalk(db)
+                         val tw = new TreeWalk(repo.db)
                          tw.setFilter(new FileTreeFilter(canonizedRelativePath, path))
                          tw.setRecursive(true)
                          tw.reset(currentId)
@@ -341,7 +338,7 @@ class GitTechniqueReader(
                              logger.error("Metadata file %s was not found for technique with id %s.".format(techniqueDescriptorName, techniqueId))
                              Option.empty[ObjectStream]
                            case h :: Nil =>
-                             Some(db.open(h).openStream)
+                             Some(repo.db.open(h).openStream)
                            case _ =>
                              logger.error(s"There is more than one Technique with ID '${techniqueId}', what is forbidden. Please check if several categories have that Technique, and rename or delete the clones.")
                              Option.empty[ObjectStream]
@@ -377,12 +374,11 @@ class GitTechniqueReader(
 
     val managed = Managed.make(
       for {
-        db        <- repo.db
         currentId <- revisionProvider.currentRevTreeId
         optStream <- IOResult.effect {
                        try {
                          //now, the treeWalk
-                         val tw = new TreeWalk(db)
+                         val tw = new TreeWalk(repo.db)
                          tw.setFilter(filenameFilter)
                          tw.setRecursive(true)
                          tw.reset(currentId)
@@ -395,7 +391,7 @@ class GitTechniqueReader(
                              logger.error(s"Template with id ${techniqueResourceId.toString} was not found")
                              Option.empty[ObjectStream]
                            case h :: Nil =>
-                             Some(db.open(h).openStream)
+                             Some(repo.db.open(h).openStream)
                            case _ =>
                              logger.error(s"There is more than one Technique with name '${techniqueResourceId.name}' which is forbidden. Please check if several categories have that Technique and rename or delete the clones")
                              Option.empty[ObjectStream]

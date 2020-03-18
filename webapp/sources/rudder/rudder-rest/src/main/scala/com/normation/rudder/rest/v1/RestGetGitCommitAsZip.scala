@@ -48,7 +48,6 @@ import org.joda.time.format.DateTimeFormat
 import net.liftweb.util.Helpers
 import org.joda.time.format.DateTimeFormatterBuilder
 
-import com.normation.zio._
 import com.normation.box._
 
 /**
@@ -106,7 +105,7 @@ class RestGetGitCommitAsZip(
   }
 
   private[this] def getZip(commitId:String, paths:List[String], archiveType: String) = {
-    val db = repo.db.runNow
+    val db = repo.db
     val rw = new RevWalk(db)
 
     (for {

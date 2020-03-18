@@ -1271,7 +1271,7 @@ object RudderConfig extends Loggable {
     eventLogRepo
   }
   private[this] lazy val inventoryLogEventServiceImpl = new InventoryEventLogServiceImpl(logRepository)
-  private[this] lazy val gitRepo = new GitRepositoryProviderImpl(RUDDER_DIR_GITROOT)
+  private[this] lazy val gitRepo = GitRepositoryProviderImpl.make(RUDDER_DIR_GITROOT).runNow
   private[this] lazy val gitRevisionProviderImpl = new LDAPGitRevisionProvider(rwLdap, rudderDitImpl, gitRepo, RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH)
   private[this] lazy val techniqueReader: TechniqueReader = {
     //find the relative path from gitRepo to the ptlib root

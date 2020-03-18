@@ -79,9 +79,7 @@ object ScalaLock {
   }
 
   protected def pureZioSemaphore(n: String, _not_used: Any) : ScalaLock = new ScalaLock {
-    import scala.concurrent.duration.{Duration => _, _}
     // we set a timeout here to avoid deadlock. We prefer to identify them with errors
-    val timeout = 5.seconds
     val semaphore = Semaphore.make(1)
     override def lock(): Unit = ()
     override def unlock(): Unit = ()

@@ -111,7 +111,7 @@ trait GitArchiverUtils {
     createDirectory(file) match {
       case Right(dir) => dir
       case Left(err) =>
-        val msg = s"Error when checking required directories '${file.getPath}' to archive in git: ${err.fullMsg}"
+        val msg = s"Error when checking required directories '${file.getPath}' to archive in gitRepo.git: ${err.fullMsg}"
         GitArchiveLogger.error(msg)
         throw new IllegalArgumentException(msg)
     }
@@ -126,14 +126,13 @@ trait GitArchiverUtils {
       lock.withPermit(
         for {
           _      <- GitArchiveLoggerPure.debug(s"Add file '${gitPath}' from configuration repository")
-          git    <- gitRepo.git
-          add    <- IOResult.effect(git.add.addFilepattern(gitPath).call)
-          status <- IOResult.effect(git.status.call)
+          add    <- IOResult.effect(gitRepo.git.add.addFilepattern(gitPath).call)
+          status <- IOResult.effect(gitRepo.git.status.call)
          //for debugging
           _      <- if(!(status.getAdded.contains(gitPath) || status.getChanged.contains(gitPath))) {
-                      GitArchiveLoggerPure.warn(s"Auto-archive git failure: not found in git added files: '${gitPath}'. You can safely ignore that warning if the file was already existing in Git and was not modified by that archive.")
+                      GitArchiveLoggerPure.warn(s"Auto-archive gitRepo.git failure: not found in gitRepo.git added files: '${gitPath}'. You can safely ignore that warning if the file was already existing in gitRepo.git and was not modified by that archive.")
                     } else UIO.unit
-          rev    <- IOResult.effect(git.commit.setCommitter(commiter).setMessage(commitMessage).call)
+          rev    <- IOResult.effect(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
           commit <- IOResult.effect(GitCommitId(rev.getName))
           _      <- GitArchiveLoggerPure.debug(s"file '${gitPath}' was added in commit '${commit.value}'")
           mod    <- gitModificationRepository.addCommit(commit, modId)
@@ -153,13 +152,12 @@ trait GitArchiverUtils {
       lock.withPermit(
         for {
           _      <- GitArchiveLoggerPure.debug(s"remove file '${gitPath}' from configuration repository")
-          git    <- gitRepo.git
-          rm     <- IOResult.effect(git.rm.addFilepattern(gitPath).call)
-          status <- IOResult.effect(git.status.call)
+          rm     <- IOResult.effect(gitRepo.git.rm.addFilepattern(gitPath).call)
+          status <- IOResult.effect(gitRepo.git.status.call)
           _      <- if(!status.getRemoved.contains(gitPath)) {
-                      GitArchiveLoggerPure.warn(s"Auto-archive git failure: not found in git removed files: '${gitPath}'. You can safely ignore that warning if the file was already existing in Git and was not modified by that archive.")
+                      GitArchiveLoggerPure.warn(s"Auto-archive gitRepo.git failure: not found in gitRepo.git removed files: '${gitPath}'. You can safely ignore that warning if the file was already existing in gitRepo.git and was not modified by that archive.")
                     } else UIO.unit
-          rev    <- IOResult.effect(git.commit.setCommitter(commiter).setMessage(commitMessage).call)
+          rev    <- IOResult.effect(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
           commit <- IOResult.effect(GitCommitId(rev.getName))
           _      <- GitArchiveLoggerPure.debug(s"file '${gitPath}' was removed in commit '${commit.value}'")
           mod    <- gitModificationRepository.addCommit(commit, modId)
@@ -172,9 +170,9 @@ trait GitArchiverUtils {
 
   /**
    * Commit files in oldGitPath and newGitPath, trying to commit them so that
-   * git is aware of moved from old files to new ones.
-   * More preciselly, files in oldGitPath are 'git rm', files in newGitPath are
-   * 'git added' (with and without the 'update' mode).
+   * gitRepo.git is aware of moved from old files to new ones.
+   * More preciselly, files in oldGitPath are 'gitRepo.git rm', files in newGitPath are
+   * 'gitRepo.git added' (with and without the 'update' mode).
    * commitMessage is used for the message of the commit.
    */
   def commitMvDirectory(modId : ModificationId, commiter:PersonIdent, oldGitPath:String, newGitPath:String, commitMessage:String) : IOResult[GitCommitId] = {
@@ -182,17 +180,16 @@ trait GitArchiverUtils {
       lock.withPermit(
         for {
           _      <- GitArchiveLoggerPure.debug(s"move file '${oldGitPath}' from configuration repository to '${newGitPath}'")
-          git    <- gitRepo.git
           update <- IOResult.effect {
-                      git.rm.addFilepattern(oldGitPath).call
-                      git.add.addFilepattern(newGitPath).call
-                      git.add.setUpdate(true).addFilepattern(newGitPath).call //if some files were removed from dest dir
+                      gitRepo.git.rm.addFilepattern(oldGitPath).call
+                      gitRepo.git.add.addFilepattern(newGitPath).call
+                      gitRepo.git.add.setUpdate(true).addFilepattern(newGitPath).call //if some files were removed from dest dir
                     }
-          status <- IOResult.effect(git.status.call)
+          status <- IOResult.effect(gitRepo.git.status.call)
           _      <- if(!status.getAdded.asScala.exists( path => path.startsWith(newGitPath) ) ) {
-                      GitArchiveLoggerPure.warn(s"Auto-archive git failure when moving directory (not found in added file): '${newGitPath}'. You can safely ignore that warning if the file was already existing in Git and was not modified by that archive.")
+                      GitArchiveLoggerPure.warn(s"Auto-archive gitRepo.git failure when moving directory (not found in added file): '${newGitPath}'. You can safely ignore that warning if the file was already existing in gitRepo.git and was not modified by that archive.")
                     } else UIO.unit
-          rev    <- IOResult.effect(git.commit.setCommitter(commiter).setMessage(commitMessage).call)
+          rev    <- IOResult.effect(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
           commit <- IOResult.effect(GitCommitId(rev.getName))
           _      <- GitArchiveLoggerPure.debug(s"file '${oldGitPath}' was moved to '${newGitPath}' in commit '${commit.value}'")
           mod    <- gitModificationRepository.addCommit(commit, modId)
@@ -233,56 +230,52 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
    * The commitMessage is used in the commit.
    */
   def commitFullGitPathContentAndTag(commiter:PersonIdent, commitMessage:String) : IOResult[GitArchiveId] = {
-    gitRepo.git.flatMap(git =>
-      IOResult.effect {
-        //remove existing and add modified
-        git.add.setUpdate(true).addFilepattern(relativePath).call
-        //also add new one
-        git.add.addFilepattern(relativePath).call
-        val commit = git.commit.setCommitter(commiter).setMessage(commitMessage).call
-        val path = GitPath(tagPrefix+DateTime.now.toString(GitTagDateTimeFormatter))
-        logEffect.info("Create a new archive: " + path.value)
-        git.tag.setMessage(commitMessage).
-          setName(path.value).
-          setTagger(commiter).
-          setObjectId(commit).call
-        GitArchiveId(path, GitCommitId(commit.getName), commiter)
-      }
-    )
+    IOResult.effect {
+      //remove existing and add modified
+      gitRepo.git.add.setUpdate(true).addFilepattern(relativePath).call
+      //also add new one
+      gitRepo.git.add.addFilepattern(relativePath).call
+      val commit = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
+      val path = GitPath(tagPrefix+DateTime.now.toString(GitTagDateTimeFormatter))
+      logEffect.info("Create a new archive: " + path.value)
+      gitRepo.git.tag.setMessage(commitMessage).
+        setName(path.value).
+        setTagger(commiter).
+        setObjectId(commit).call
+      GitArchiveId(path, GitCommitId(commit.getName), commiter)
+    }
   }
 
   def restoreCommitAtHead(commiter:PersonIdent, commitMessage:String, commit:GitCommitId, archiveMode:ArchiveMode,modId:ModificationId): IOResult[GitCommitId] = {
-    gitRepo.git.flatMap(git => gitRepo.db.flatMap(db =>
-      IOResult.effect {
-        // We don't want any commit when we are restoring HEAD
-        val head = db.resolve("HEAD")
-        val target = db.resolve(commit.value)
-        if (target == head) {
-          // we are restoring HEAD
-          commit
-        } else {
-          /* Configure rm with archive mode and call it
-           *this will delete latest (HEAD) configuration files from the repository
-           */
-          archiveMode.configureRm(git.rm).call
+    IOResult.effect {
+      // We don't want any commit when we are restoring HEAD
+      val head = gitRepo.db.resolve("HEAD")
+      val target = gitRepo.db.resolve(commit.value)
+      if (target == head) {
+        // we are restoring HEAD
+        commit
+      } else {
+        /* Configure rm with archive mode and call it
+         *this will delete latest (HEAD) configuration files from the repository
+         */
+        archiveMode.configureRm(gitRepo.git.rm).call
 
-          /* Configure checkout with archive mode, set reference commit to target commit,
-           * set master as branches to update, and finally call checkout on it
-           *This will add the content from the commit to be restored on the HEAD of branch master
-           */
-          archiveMode.configureCheckout(git.checkout).setStartPoint(commit.value).setName("master").call
+        /* Configure checkout with archive mode, set reference commit to target commit,
+         * set master as branches to update, and finally call checkout on it
+         *This will add the content from the commit to be restored on the HEAD of branch master
+         */
+        archiveMode.configureCheckout(gitRepo.git.checkout).setStartPoint(commit.value).setName("master").call
 
-          // The commit will actually delete old files and replace them with those from the checkout
-          val newCommit = git.commit.setCommitter(commiter).setMessage(commitMessage).call
-          val newCommitId = GitCommitId(newCommit.getName)
-          // Store the commit the modification repository
-          gitModificationRepository.addCommit(newCommitId, modId)
+        // The commit will actually delete old files and replace them with those from the checkout
+        val newCommit = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
+        val newCommitId = GitCommitId(newCommit.getName)
+        // Store the commit the modification repository
+        gitModificationRepository.addCommit(newCommitId, modId)
 
-          GitArchiveLogger.debug("Restored commit %s at HEAD (commit %s)".format(commit.value,newCommitId.value))
-          newCommitId
-        }
+        GitArchiveLogger.debug("Restored commit %s at HEAD (commit %s)".format(commit.value,newCommitId.value))
+        newCommitId
       }
-    ))
+      }
   }
 
   /**
@@ -321,9 +314,9 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
    * https://bugs.eclipse.org/bugs/show_bug.cgi?id=360650
    *
    * They used a workaround here:
-   * http://git.eclipse.org/c/orion/org.eclipse.orion.server.git/commit/?id=5fca49ced7f0c220472c724678884ee84d13e09d
+   * http://gitRepo.git.eclipse.org/c/orion/org.eclipse.orion.server.gitRepo.git/commit/?id=5fca49ced7f0c220472c724678884ee84d13e09d
    *
-   * But the correction with `gitRepo.git.tagList.call` does not provide a
+   * But the correction with `gitRepo.tagList.call` does not provide a
    * much easier access, since it returns a REF that need to be parsed..
    * So just keep the working workaround.
    */
@@ -334,22 +327,21 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
 
     import scala.collection.mutable.ArrayBuffer
 
-    gitRepo.db.flatMap(db =>
-      ZIO.bracket(IOResult.effect(new RevWalk(db)))(db => effectUioUnit(db.close)){ revWalk =>
-        IOResult.effect {
-          val tags = ArrayBuffer[RevTag]()
-          val refList = db.getRefDatabase().getRefsByPrefix(Constants.R_TAGS).asScala
-          refList.foreach { ref =>
-            try {
-              val tag = revWalk.parseTag(ref.getObjectId())
-              tags.append(tag)
-            } catch {
-              case e:IncorrectObjectTypeException =>
-                GitArchiveLogger.debug("Ignoring object due to JGit bug: " + ref.getName, e)
-            }
+    ZIO.bracket(IOResult.effect(new RevWalk(gitRepo.db)))(rw => effectUioUnit(rw.close)){ revWalk =>
+      IOResult.effect {
+        val tags = ArrayBuffer[RevTag]()
+        val refList = gitRepo.db.getRefDatabase().getRefsByPrefix(Constants.R_TAGS).asScala
+        refList.foreach { ref =>
+          try {
+            val tag = revWalk.parseTag(ref.getObjectId())
+            tags.append(tag)
+          } catch {
+            case e:IncorrectObjectTypeException =>
+              GitArchiveLogger.debug("Ignoring object due to JGit bug: " + ref.getName, e)
           }
-          tags.sortWith( (o1, o2) => o1.getTagName().compareTo(o2.getTagName()) <= 0 ).toSeq
         }
-      })
+        tags.sortWith( (o1, o2) => o1.getTagName().compareTo(o2.getTagName()) <= 0 ).toSeq
+      }
+    }
   }
 }

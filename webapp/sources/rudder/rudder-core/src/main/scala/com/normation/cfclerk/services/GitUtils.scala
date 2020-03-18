@@ -51,9 +51,9 @@ trait GitRepositoryProvider {
   /**
    * Obtain access to JGit porcelain API.
    */
-  def git: IOResult[Git]
+  def git: Git
 
-  def db: IOResult[Repository]
+  def db: Repository
 }
 
 object GitRepositoryLogger extends NamedZioLogger() { def loggerName = "git-repository" }

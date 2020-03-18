@@ -73,8 +73,7 @@ trait GitParseCommon[T] {
 
   def getArchive(archiveId: GitCommitId): IOResult[T] = {
     for {
-      db      <- repo.db
-      treeId  <- GitFindUtils.findRevTreeFromRevString(db, archiveId.value)
+      treeId  <- GitFindUtils.findRevTreeFromRevString(repo.db, archiveId.value)
       archive <- getArchiveForRevTreeId(treeId)
     } yield {
       archive
@@ -107,9 +106,8 @@ class GitParseRules(
     val root = getGitDirectoryPath(rulesRootDirectory)
 
     for {
-      db    <- repo.db
       //// BE CAREFUL: GIT DOES NOT LIST DIRECTORIES
-      files <- GitFindUtils.listFiles(db, revTreeId, List(root.root), List(".xml"))
+      files <- GitFindUtils.listFiles(repo.db, revTreeId, List(root.root), List(".xml"))
       paths =  files.filter { p =>
                    p.size > root.directoryPath.size &&
                    p.startsWith(root.directoryPath) &&
@@ -117,7 +115,7 @@ class GitParseRules(
                    UuidRegex.isValid(p.substring(root.directoryPath.size,p.size - 4))
                }
       xmls  <- ZIO.foreach(paths) { crPath =>
-                 GitFindUtils.getFileContent(db, revTreeId, crPath){ inputStream =>
+                 GitFindUtils.getFileContent(repo.db, revTreeId, crPath){ inputStream =>
                    ParseXml(inputStream, Some(crPath))
                  }
                }
@@ -149,15 +147,14 @@ class GitParseGlobalParameters(
 
     //// BE CAREFUL: GIT DOES NOT LIST DIRECTORIES
     for {
-      db     <- repo.db
-      files  <- GitFindUtils.listFiles(db, revTreeId, List(root.root), List(".xml"))
+      files  <- GitFindUtils.listFiles(repo.db, revTreeId, List(root.root), List(".xml"))
       paths  =  files.filter { p =>
                    p.size > root.directoryPath.size &&
                    p.startsWith(root.directoryPath) &&
                    p.endsWith(".xml")
                  }
       xmls   <- ZIO.foreach(paths.toSeq) { paramPath =>
-                  GitFindUtils.getFileContent(db, revTreeId, paramPath){ inputStream =>
+                  GitFindUtils.getFileContent(repo.db, revTreeId, paramPath){ inputStream =>
                     ParseXml(inputStream, Some(paramPath))
                   }
                 }
@@ -192,8 +189,7 @@ class GitParseRuleCategories(
       // that's the directory of a RuleCategory.
       // don't forget to recurse sub-categories
       for {
-        db           <- repo.db
-        xml          <- GitFindUtils.getFileContent(db, revTreeId, categoryPath){ inputStream =>
+        xml          <- GitFindUtils.getFileContent(repo.db, revTreeId, categoryPath){ inputStream =>
                           ParseXml(inputStream, Some(categoryPath)).chainError(s"Error when parsing file '${categoryPath}' as a category")
                         }
         categoryXml  <- xmlMigration.getUpToDateXml(xml).toIO
@@ -220,9 +216,8 @@ class GitParseRuleCategories(
     val root = getGitDirectoryPath(rulesRootDirectory)
 
     for {
-      db    <- repo.db
       //// BE CAREFUL: GIT DOES NOT LIST DIRECTORIES
-      paths <- GitFindUtils.listFiles(db, revTreeId, List(root.root), List(".xml"))
+      paths <- GitFindUtils.listFiles(repo.db, revTreeId, List(root.root), List(".xml"))
       res   <- recParseDirectory(paths, root.directoryPath)
     } yield {
       res
@@ -250,8 +245,7 @@ class GitParseGroupLibrary(
       // ignore files other than NodeGroup (UUID.xml) and directories
       // don't forget to recurse sub-categories
       for {
-        db           <- repo.db
-        xml          <- GitFindUtils.getFileContent(db, revTreeId, categoryPath){ inputStream =>
+        xml          <- GitFindUtils.getFileContent(repo.db, revTreeId, categoryPath){ inputStream =>
                           ParseXml(inputStream, Some(categoryPath)).chainError(s"Error when parsing file '${categoryPath}' as a category")
                         }
         categoryXml  <- xmlMigration.getUpToDateXml(xml).toIO
@@ -266,7 +260,7 @@ class GitParseGroupLibrary(
                         }
         groups       <- ZIO.foreach(groupFiles.toSeq) { groupPath =>
                           for {
-                            xml2     <- GitFindUtils.getFileContent(db, revTreeId, groupPath){ inputStream =>
+                            xml2     <- GitFindUtils.getFileContent(repo.db, revTreeId, groupPath){ inputStream =>
                               ParseXml(inputStream, Some(groupPath)).chainError(s"Error when parsing file '${groupPath}' as a directive")
                             }
                             groupXml <- xmlMigration.getUpToDateXml(xml2).toIO
@@ -313,9 +307,8 @@ class GitParseGroupLibrary(
     val root = getGitDirectoryPath(libRootDirectory)
 
     for {
-      db    <- repo.db
       //// BE CAREFUL: GIT DOES NOT LIST DIRECTORIES
-      paths <- GitFindUtils.listFiles(db, revTreeId, List(root.root), Nil)
+      paths <- GitFindUtils.listFiles(repo.db, revTreeId, List(root.root), Nil)
       res   <- recParseDirectory(paths, root.directoryPath)
     } yield {
       res
@@ -351,8 +344,7 @@ class GitParseActiveTechniqueLibrary(
           // ignore files other than uptcFileName (parsed as an ActiveTechniqueCategory), recurse on sub-directories
           // don't forget to sub-categories and UPT and UPTC
           for {
-            db       <- repo.db
-            xml      <- GitFindUtils.getFileContent(db, revTreeId, category){ inputStream =>
+            xml      <- GitFindUtils.getFileContent(repo.db, revTreeId, category){ inputStream =>
                           ParseXml(inputStream, Some(category)).chainError(s"Error when parsing file '${category}' as a category")
                         }
             //here, we have to migrate XML fileformat, if not up to date
@@ -389,8 +381,7 @@ class GitParseActiveTechniqueLibrary(
           // ignore sub-directories, parse uptFileName as an ActiveTechnique, parse UUID.xml as PI
           // don't forget to add PI ids to UPT
           for {
-            db     <- repo.db
-            xml    <- GitFindUtils.getFileContent(db, revTreeId, template){ inputStream =>
+            xml    <- GitFindUtils.getFileContent(repo.db, revTreeId, template){ inputStream =>
                          ParseXml(inputStream, Some(template)).chainError(s"Error when parsing file '${template}' as a category")
                        }
             uptXml  <- xmlMigration.getUpToDateXml(xml).toIO
@@ -405,7 +396,7 @@ class GitParseActiveTechniqueLibrary(
                        }
             directives <- ZIO.foreach(piFiles.toSeq) { piFile =>
                          for {
-                           xml2  <- GitFindUtils.getFileContent(db, revTreeId, piFile){ inputStream =>
+                           xml2  <- GitFindUtils.getFileContent(repo.db, revTreeId, piFile){ inputStream =>
                                       ParseXml(inputStream, Some(piFile)).chainError(s"Error when parsing file '${piFile}' as a directive")
                                     }
                            piXml <- xmlMigration.getUpToDateXml(xml2).toIO
@@ -428,8 +419,7 @@ class GitParseActiveTechniqueLibrary(
     val root = getGitDirectoryPath(libRootDirectory)
 
     (for {
-      db    <- repo.db
-      paths <- GitFindUtils.listFiles(db, revTreeId, List(root.root), Nil)
+      paths <- GitFindUtils.listFiles(repo.db, revTreeId, List(root.root), Nil)
       //// BE CAREFUL: GIT DOES NOT LIST DIRECTORIES
       res   <- recParseDirectory(paths, root.directoryPath)
     } yield {
