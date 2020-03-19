@@ -15,7 +15,7 @@ cargo run -- --translate -i $dir/json/${name}.json -o $dir/rl/${name}.json.rl
 
 # Take rudder lang technique and compile it into cf file
 # output format is generated behind the scenes, it actually is a cf file, not rl
-cargo run -- --compile -i $dir/rl/${name}.rl -o $dir/target/${name}.rl.cf
+cargo run -- -i $dir/rl/${name}.rl -o $dir/target/${name}.rl.cf
 
 # take generated cf file a new json
 $cfjson_tester ncf-to-json --config=tools/rudderc-dev.conf $dir/target/${name}.rl.cf $dir/target/${name}.rl.cf.json

@@ -9,7 +9,7 @@ use log::*;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
-use rudderc::{ compile::compile_file, file_paths, logger, translate::translate_file };
+use rudderc::{compile::compile_file, file_paths, logger, translate::translate_file};
 
 ///!  Principle:
 ///!  1-  rl -> PAST::add_file() -> PAST
@@ -40,7 +40,7 @@ use rudderc::{ compile::compile_file, file_paths, logger, translate::translate_f
 // TODO except if S is the "absent" state
 
 /// Usage example (long / short version):
-/// cargo run -- --compile --input tests/compile/s_basic.rl --output tests/target/s_basic.rl --log-level debug --json-log-fmt
+/// cargo run -- --input tests/compile/s_basic.rl --output tests/target/s_basic.rl --log-level debug --json-log-fmt
 /// cargo run -- -c -i tests/compile/s_basic.rl -o tests/target/s_basic.rl -l debug -j
 
 /// JSON log format note, read this when parsing json logs:
@@ -50,16 +50,13 @@ use rudderc::{ compile::compile_file, file_paths, logger, translate::translate_f
 /// completion (success or failure) log looks like this: "Compilation result": { "status": "str", "from": "str", "to": "str", "pwd": "str" }
 /// `panic!` log looks like this: { "status": "str", "message": "str" } (a lightweight version of a default log)
 
-// config path on server, can manually be changed
-const CONFIG: &str = "/opt/rudder/etc/rudderc.conf";
-
-/// Rust langage compiler
+/// Rust language compiler
 #[derive(Debug, StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 struct Opt {
     /// rudderc.conf path. Should only be called when working locally
-    #[structopt(long, default_value="/opt/rudder/etc/rudderc.conf")]
-    config_file: PathBuf,   
+    #[structopt(long, short, default_value = "/opt/rudder/etc/rudderc.conf")]
+    config_file: PathBuf,
     /// use default directory for input/output with the specified filename
     #[structopt(long, short)]
     base: Option<PathBuf>,
@@ -72,18 +69,21 @@ struct Opt {
     /// Set to use technique translation mode
     #[structopt(long, short)]
     translate: bool,
-    /// Set to compile a single technique
-    #[structopt(long, short)]
-    compile: bool,
     /// Output format to use
+    /// FIXME what is it supposed to be?
     #[structopt(long, short = "f")]
     output_fmt: Option<String>,
-    /// Set to change default env logger behavior (off, error, warn, info, debug, trace), default being warn
+    /// Log level
+    #[structopt(
+        long,
+        short,
+        possible_values = &["off", "error", "warn", "info", "debug", "trace"],
+        default_value = "warn"
+    )]
+    log_level: LevelFilter,
+    /// Use json logs instead of human readable output
     #[structopt(long, short)]
-    log_level: Option<LevelFilter>,
-    /// Output format to use: standard terminal or json style
-    #[structopt(long, short)]
-    json_log_fmt: bool,
+    json_log: bool,
 }
 
 // TODO use termination
@@ -93,39 +93,36 @@ fn main() {
     let opt = Opt::from_args();
 
     // compile should be the default case, so if none of compile / translate is passed -> compile
-    let is_compile_default = if !opt.translate { true } else { false };
-    let exec_action = if is_compile_default { "compile" } else { "translate" };
-    
-    logger::set(
-        opt.log_level,
-        opt.json_log_fmt,
-        &exec_action,
-    );
-    
-    let (
-        libs_dir,
-        translate_config,
-        input,
-        output
-    ) = match file_paths::get(exec_action, &opt.config_file, &opt.base, &opt.input, &opt.output) {
+    let is_compile = !opt.translate;
+    let exec_action = if is_compile { "compile" } else { "translate" };
+
+    logger::set(opt.log_level, opt.json_log, &exec_action);
+
+    let (libs_dir, translate_config, input, output) = match file_paths::get(
+        exec_action,
+        &opt.config_file,
+        &opt.base,
+        &opt.input,
+        &opt.output,
+    ) {
         Err(e) => {
             error!("{}", e);
             // required before returning in order to have proper logging. Set for an error
             logger::print_output_closure(
-                opt.json_log_fmt,
+                opt.json_log,
                 false,
                 "possibly no input path found",
                 "possibly no output path found",
                 &exec_action,
             );
-            return ;
-        },
-        Ok(paths) => paths
+            return;
+        }
+        Ok(paths) => paths,
     };
 
     let result;
-    if is_compile_default {
-        result = compile_file(&input, &output, is_compile_default, &libs_dir);
+    if is_compile {
+        result = compile_file(&input, &output, true, &libs_dir);
         match &result {
             Err(e) => error!("{}", e),
             Ok(_) => info!("{} {}", "Compilation".bright_green(), "OK".bright_cyan()),
@@ -143,7 +140,7 @@ fn main() {
     }
 
     logger::print_output_closure(
-        opt.json_log_fmt,
+        opt.json_log,
         result.is_ok(),
         input.to_str().unwrap_or("no input path found"),
         output.to_str().unwrap_or("no output path found"),

@@ -15,7 +15,7 @@ cargo run -- --translate --config ./tools/rudderc-dev.conf -i $dir/technique.jso
 
 # Take rudder lang technique and compile it into cf file
 # output format is generated behind the scenes, it actually is a cf file, not rl
-cargo run -- --compile --config ./tools/rudderc-dev.conf -i $dir/technique.rl
+cargo run -- --config ./tools/rudderc-dev.conf -i $dir/technique.rl
 
 # take generated cf file a new json
 $cfjson_tester ncf-to-json $dir/technique.rl.cf $dir/technique.rl.cf.json /tools/rudderc-dev.conf

@@ -14,16 +14,7 @@ use std::{
 /// The level is set through program arguments. Default is Warn
 /// run the program with `-l info` (eq. `--logger info`) optional argument. Case-insensitive
 /// There is also an optional json formatter that outputs plain json format. run the program with `-j` or `--json` optional argument.
-pub fn set(
-    log_level: Option<LevelFilter>,
-    is_fmt_json: bool,
-    exec_action: &str,
-) {
-    let log_level = match log_level {
-        Some(level) => level,
-        None => LevelFilter::Warn,
-    };
-
+pub fn set(log_level: LevelFilter, is_fmt_json: bool, exec_action: &str) {
     // Content called when panic! is encountered to close logger brackets and print error
     set_panic_hook(is_fmt_json, exec_action.to_owned());
 
@@ -113,7 +104,10 @@ fn set_json(exec_action: &str) {
         Ok(since_the_epoch) => since_the_epoch.as_millis().to_string(),
         Err(_) => "could not get correct time".to_owned(),
     };
-    println!("{{\n  \"action\": {:?},\n  \"time\": {:?},\n  \"logs\": [", exec_action, time);
+    println!(
+        "{{\n  \"action\": {:?},\n  \"time\": {:?},\n  \"logs\": [",
+        exec_action, time
+    );
 }
 
 pub fn print_output_closure(

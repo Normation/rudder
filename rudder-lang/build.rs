@@ -35,7 +35,9 @@ type Version = (Option<String>, Option<Vec<String>>);
 struct Os(String, Vec<Version>);
 /// Generates an Os and all its possible variants as a vec of stringified Os'es
 impl Os {
-    fn get_name(&self) -> &str { &self.0 }
+    fn get_name(&self) -> &str {
+        &self.0
+    }
     fn get_versions(&self) -> Vec<Version> {
         // hack to make sure enven with an empty array a default major is created
         if self.1.len() > 0 {
@@ -50,8 +52,10 @@ impl Os {
 
         match parent {
             ParentBranch::Type(name) => tree_builder.types.push(format!("{} -> {}", osname, name)),
-            ParentBranch::Family(name) => tree_builder.families.push(format!("{} -> {}", osname, name)),
-            _ => ()
+            ParentBranch::Family(name) => tree_builder
+                .families
+                .push(format!("{} -> {}", osname, name)),
+            _ => (),
         };
 
         for version in &self.get_versions() {
@@ -64,10 +68,17 @@ impl Os {
                 None => vec!["0".to_owned()],
             };
             for minor in minors {
-                tree_builder.minor.push(format!("{}_{}_{}", osname, major, minor));
-                tree_builder.minor_map.push(format!("{}_{}_{} -> {}_{}", osname, major, minor, osname, major));
+                tree_builder
+                    .minor
+                    .push(format!("{}_{}_{}", osname, major, minor));
+                tree_builder.minor_map.push(format!(
+                    "{}_{}_{} -> {}_{}",
+                    osname, major, minor, osname, major
+                ));
             }
-            tree_builder.major.push(format!("{}_{} -> {}", osname, major, osname));
+            tree_builder
+                .major
+                .push(format!("{}_{} -> {}", osname, major, osname));
         }
     }
 }
@@ -79,20 +90,26 @@ fn rec_oslib_builder(os_tree: &OsTree, tree_builder: &mut OsTreeBuilder, parent:
             for os in oses {
                 os.as_vec(tree_builder, &parent);
             }
-        },
+        }
         OsTree::Family((name, osboxes)) => {
             if let ParentBranch::Type(parent_name) = parent {
-                tree_builder.types.push(format!("{} -> {}", name, parent_name));
+                tree_builder
+                    .types
+                    .push(format!("{} -> {}", name, parent_name));
             }
             for osbox in osboxes {
-                rec_oslib_builder(&*osbox, tree_builder, ParentBranch::Family(name.to_string()));
+                rec_oslib_builder(
+                    &*osbox,
+                    tree_builder,
+                    ParentBranch::Family(name.to_string()),
+                );
             }
-        },
+        }
         OsTree::Type((name, osboxes)) => {
             for osbox in osboxes {
                 rec_oslib_builder(&*osbox, tree_builder, ParentBranch::Type(name.to_string()));
             }
-        },
+        }
     };
 }
 
@@ -103,11 +120,13 @@ fn generate_oslib(fname: &str, oslib_filename: &str) -> std::io::Result<()> {
     let recvd_tree: Vec<OsTree> = from_reader(file_tree).unwrap();
 
     let mut tree_builder = OsTreeBuilder::default();
-    recvd_tree.iter().for_each(|branch| rec_oslib_builder(branch, &mut tree_builder, ParentBranch::None));
-    
+    recvd_tree
+        .iter()
+        .for_each(|branch| rec_oslib_builder(branch, &mut tree_builder, ParentBranch::None));
+
     // write global enum os in a file
     let content = format!(
-r#"@format=0
+        r#"@format=0
 
 enum os ~> family {{
   {},
@@ -145,5 +164,6 @@ global enum minor {{
 
 fn main() {
     println!("Generating OS list");
-    generate_oslib("./tools/osbuilder.ron", "./libs/oslib.rl").expect("Could not generate the os list");
+    generate_oslib("./tools/osbuilder.ron", "./libs/oslib.rl")
+        .expect("Could not generate the os list");
 }

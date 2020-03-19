@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use super::value::Value;
 use crate::error::*;
 use crate::parser::Token;
-use super::value::Value;
 use std::collections::hash_map;
 use std::collections::HashMap;
 //use super::enums::EnumList;
@@ -90,7 +90,11 @@ impl<'src> VarContext<'src> {
     /// Inserts a key, value into its related parent content.
     /// Recursive function, meaning it goes deep to insert an element and check it does not exist yet
     /// If the path is exactly the same as any existing global variable, throws an error
-    fn push_new_variable(name: Token<'src>, stored_ctx: &mut Value<'src>, new_var: &Value<'src>) -> Result<()> {
+    fn push_new_variable(
+        name: Token<'src>,
+        stored_ctx: &mut Value<'src>,
+        new_var: &Value<'src>,
+    ) -> Result<()> {
         match stored_ctx {
             Value::Struct(existing_map) => {
                 for (stored_k, stored_v) in existing_map.iter_mut() {
@@ -98,27 +102,23 @@ impl<'src> VarContext<'src> {
                         Value::Struct(new_map) => {
                             for (new_k, new_v) in new_map {
                                 if stored_k == new_k {
-                                    return Self::push_new_variable(name, stored_v, &new_v)
+                                    return Self::push_new_variable(name, stored_v, &new_v);
                                 } else {
                                     existing_map.insert(new_k.to_owned(), new_v.clone());
-                                    return Ok(())
+                                    return Ok(());
                                 }
                             }
-                        },
+                        }
                         // A bit tricky, following fail is a recursion side effect: code is designed to push directly the parent struct
                         // not its String (or else) content. If another type has to be pushed, it means we entered into the recursive condition
                         // therefore the content to push already exists
-                        _ => fail!(
-                            name,
-                            "Variable {} already defined",
-                            name,
-                        )
+                        _ => fail!(name, "Variable {} already defined", name,),
                     }
                 }
                 Ok(())
-            },
+            }
             // Not really sure which kind of cases this could handle, could maybe panic
-            _ => unimplemented!()
+            _ => unimplemented!(),
         }
     }
 
@@ -131,9 +131,11 @@ impl<'src> VarContext<'src> {
     ) -> Result<()> {
         if let Some(ref mut existing_kind) = self.variables.get_mut(&name) {
             match existing_kind {
-                VarKind::Generic(ref mut existing_var) => Self::push_new_variable(name, existing_var, &value)?,
+                VarKind::Generic(ref mut existing_var) => {
+                    Self::push_new_variable(name, existing_var, &value)?
+                }
                 // For now could as well be a panic since we are not currently allowing splitted enum declarations
-                VarKind::Enum(_, _) => unimplemented!()
+                VarKind::Enum(_, _) => unimplemented!(),
             };
         } else {
             // now only the second part of this checker makes really sense here since the first check is already done
