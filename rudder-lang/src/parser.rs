@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-
 mod error;
 mod token;
 
@@ -783,7 +782,9 @@ fn pvariable_definition(i: PInput) -> PResult<(Token, PValue)> {
     )(i)
 }
 
-fn fill_map_rec<'src>(mut tokens: std::iter::Peekable<std::slice::Iter<Token<'src>>>) -> HashMap<String, PValue<'src>> {
+fn fill_map_rec<'src>(
+    mut tokens: std::iter::Peekable<std::slice::Iter<Token<'src>>>,
+) -> HashMap<String, PValue<'src>> {
     let mut map: HashMap<String, PValue> = HashMap::new();
     if let Some(tk) = tokens.next() {
         let tk_str = tk.fragment().to_owned();

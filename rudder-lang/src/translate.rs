@@ -85,27 +85,33 @@ fn translate_meta_parameters(parameters: &Vec<Value>) -> Result<String> {
     for param in parameters {
         match param.as_object() {
             Some(map) => {
-                let name = &map.get("name").expect("Unable to parse name parameter").to_string();
-                let id = &map.get("id").expect("Unable to parse id parameter").to_string();
-                let constraints = &map.get("constraints").expect("Unable to parse constraints parameter").to_string();
+                let name = &map
+                    .get("name")
+                    .expect("Unable to parse name parameter")
+                    .to_string();
+                let id = &map
+                    .get("id")
+                    .expect("Unable to parse id parameter")
+                    .to_string();
+                let constraints = &map
+                    .get("constraints")
+                    .expect("Unable to parse constraints parameter")
+                    .to_string();
                 parameters_meta.push_str(&format!(
                     r#"  {{ "name": {}, "id": {}, "constraints": {} }}{}"#,
-                    name,
-                    id,
-                    constraints,
-                    ",\n"
+                    name, id, constraints, ",\n"
                 ));
-            },
-            None => return Err(Error::User(String::from("Unable to parse meta parameters")))
+            }
+            None => return Err(Error::User(String::from("Unable to parse meta parameters"))),
         }
     }
     // let parameters_meta = serde_json::to_string(&technique.parameter);
     // if parameters_meta.is_err() {
-        // return Err(Error::User("Unable to parse technique file".to_string()));
+    // return Err(Error::User("Unable to parse technique file".to_string()));
     // }
     Ok(parameters_meta)
 }
- 
+
 fn translate(config: &toml::Value, technique: &Technique) -> Result<String> {
     let parameters_meta = translate_meta_parameters(&technique.parameter).unwrap();
     let parameters = technique.bundle_args.join(",");
@@ -155,11 +161,13 @@ fn translate_call(config: &toml::Value, call: &MethodCall) -> Result<String> {
         // here is the common case
         None => match RE.captures(&call.method_name) {
             Some(caps) => (caps.get(1).unwrap().as_str(), caps.get(2).unwrap().as_str()),
-            None => return Err(Error::User(format!(
-                        "Invalid method name '{}'",
-                        call.method_name
-                    )))
-        }
+            None => {
+                return Err(Error::User(format!(
+                    "Invalid method name '{}'",
+                    call.method_name
+                )))
+            }
+        },
     };
 
     // split argument list
@@ -410,10 +418,7 @@ fn translate_condition(_config: &toml::Value, cond: &str) -> Result<String> {
     // detect system classes
     if let Some(_caps) = OS_RE.captures(cond) {
         if !is_balanced(cond) {
-            return Err(Error::User(format!(
-                "Parenthesis error '{}'",
-                cond
-            )))
+            return Err(Error::User(format!("Parenthesis error '{}'", cond)));
         }
         let os = OS_RE.replace_all(cond, "$os");
         let mut result = os.to_string();

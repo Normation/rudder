@@ -155,7 +155,11 @@ impl<'src> AST<'src> {
     /// Insert the variables definition into the global declaration space
     fn add_variables(&mut self, variable_declarations: Vec<(Token<'src>, PValue<'src>)>) {
         for (variable, value) in variable_declarations {
-            if let Err(e) = self.context.new_variable(None, variable, Value::from_static_pvalue(value.clone()).unwrap()) {
+            if let Err(e) = self.context.new_variable(
+                None,
+                variable,
+                Value::from_static_pvalue(value.clone()).unwrap(),
+            ) {
                 self.errors.push(e);
             }
             let getter = |k| self.context.variables.get(&k).map(VarKind::clone);

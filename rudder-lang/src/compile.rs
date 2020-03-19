@@ -9,11 +9,7 @@ use crate::{
 };
 
 use colored::Colorize;
-use std::{
-    cell::UnsafeCell,
-    fs,
-    path::Path
-};
+use std::{cell::UnsafeCell, fs, path::Path};
 
 /// Read file, parse it and store it
 fn add_file<'a>(

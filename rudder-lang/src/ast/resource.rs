@@ -230,12 +230,12 @@ impl<'src> Parameter<'src> {
                 Some(val) => val.clone(),
                 // if no default value, define an empty string
                 // may be better to store an option directly
-                None => Value::from_static_pvalue(PValue::generate_automatic(PType::String))?
-            }
+                None => Value::from_static_pvalue(PValue::generate_automatic(PType::String))?,
+            },
         };
         Ok(Parameter {
             name: p.name,
-            value
+            value,
         })
     }
 

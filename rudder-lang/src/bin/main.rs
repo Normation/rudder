@@ -9,7 +9,7 @@ use log::*;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
-use rudderc::{ compile::compile_file, file_paths, logger, translate::translate_file };
+use rudderc::{compile::compile_file, file_paths, logger, translate::translate_file};
 
 ///!  Principle:
 ///!  1-  rl -> PAST::add_file() -> PAST
@@ -58,8 +58,8 @@ const CONFIG: &str = "/opt/rudder/etc/rudderc.conf";
 #[structopt(rename_all = "kebab-case")]
 struct Opt {
     /// rudderc.conf path. Should only be called when working locally
-    #[structopt(long, default_value="/opt/rudder/etc/rudderc.conf")]
-    config_file: PathBuf,   
+    #[structopt(long, default_value = "/opt/rudder/etc/rudderc.conf")]
+    config_file: PathBuf,
     /// use default directory for input/output with the specified filename
     #[structopt(long, short)]
     base: Option<PathBuf>,
@@ -94,20 +94,21 @@ fn main() {
 
     // compile should be the default case, so if none of compile / translate is passed -> compile
     let is_compile_default = if !opt.translate { true } else { false };
-    let exec_action = if is_compile_default { "compile" } else { "translate" };
-    
-    logger::set(
-        opt.log_level,
-        opt.json_log_fmt,
-        &exec_action,
-    );
-    
-    let (
-        libs_dir,
-        translate_config,
-        input,
-        output
-    ) = match file_paths::get(exec_action, &opt.config_file, &opt.base, &opt.input, &opt.output) {
+    let exec_action = if is_compile_default {
+        "compile"
+    } else {
+        "translate"
+    };
+
+    logger::set(opt.log_level, opt.json_log_fmt, &exec_action);
+
+    let (libs_dir, translate_config, input, output) = match file_paths::get(
+        exec_action,
+        &opt.config_file,
+        &opt.base,
+        &opt.input,
+        &opt.output,
+    ) {
         Err(e) => {
             error!("{}", e);
             // required before returning in order to have proper logging. Set for an error
@@ -118,9 +119,9 @@ fn main() {
                 "possibly no output path found",
                 &exec_action,
             );
-            return ;
-        },
-        Ok(paths) => paths
+            return;
+        }
+        Ok(paths) => paths,
     };
 
     let result;

@@ -138,7 +138,8 @@ impl CFEngine {
 
     fn get_config_from_file() -> Result<toml::Value> {
         let config_filename = "libs/translate_config.toml";
-        let file_error = |filename: &str, err| err!(Token::new(&filename.to_owned(), ""), "{}", err);
+        let file_error =
+            |filename: &str, err| err!(Token::new(&filename.to_owned(), ""), "{}", err);
         let config_data =
             std::fs::read_to_string(config_filename).map_err(|e| file_error(config_filename, e))?;
         toml::from_str(&config_data).map_err(|e| err!(Token::new(config_filename, ""), "{}", e))
@@ -160,13 +161,11 @@ impl CFEngine {
             Some(m) => m,
         };
         match method.get("class_parameter_id") {
-            None => {
-                Err(Error::User(format!(
-                    "Undefined class_parameter_id for {}",
-                    &method_name
-                )))
-            }
-            Some(m) => Ok(m.as_integer().unwrap() as usize)
+            None => Err(Error::User(format!(
+                "Undefined class_parameter_id for {}",
+                &method_name
+            ))),
+            Some(m) => Ok(m.as_integer().unwrap() as usize),
         }
     }
 
@@ -237,10 +236,7 @@ impl CFEngine {
                     let condition = &format!("{}if => concat(\"{}\");", padding_spaces, class);
                     Ok(format!(
                         "{},\n{}\n{},\n{}\n",
-                        method_reporting_context,
-                        condition,
-                        method,
-                        condition
+                        method_reporting_context, condition, method, condition
                     ))
                 }
             }
@@ -340,8 +336,8 @@ impl CFEngine {
                     if let Ok(val_s) = self.value_to_string(val, false) {
                         return match val {
                             Value::String(_) => format!("{:?}: {:?}", entry, val_s),
-                            _ => format!("{:?}: {}", entry, val_s)
-                        }
+                            _ => format!("{:?}: {}", entry, val_s),
+                        };
                     }
                 }
             }
@@ -364,7 +360,8 @@ impl CFEngine {
     fn generate_ncf_metadata(&mut self, _name: &Token, resource: &ResourceDef) -> Result<String> {
         let mut meta = resource.metadata.clone();
         // removes parameters from meta and returns it formatted
-        let parameters: String = self.generate_parameters_metadatas(meta.remove(&Token::from("parameters")));
+        let parameters: String =
+            self.generate_parameters_metadatas(meta.remove(&Token::from("parameters")));
         // description must be the last field
         let mut map = map_hashmap_results(meta.iter(), |(n, v)| {
             Ok((n.fragment(), self.value_to_string(v, false)?))
@@ -389,7 +386,13 @@ impl CFEngine {
 
 impl Generator for CFEngine {
     // TODO methods differ if this is a technique generation or not
-    fn generate(&mut self, gc: &AST, input_file: Option<&Path>, output_file: Option<&Path>, technique_metadata: bool) -> Result<()> {
+    fn generate(
+        &mut self,
+        gc: &AST,
+        input_file: Option<&Path>,
+        output_file: Option<&Path>,
+        technique_metadata: bool,
+    ) -> Result<()> {
         let mut files: HashMap<&str, String> = HashMap::new();
         // TODO add global variable definitions
         for (rn, res) in gc.resources.iter() {
@@ -453,12 +456,11 @@ impl Generator for CFEngine {
         if files.len() == 0 {
             match output_file {
                 Some(filename) => File::create(filename).expect("Could not create output file"),
-                None => return Err(Error::User("No file to create".to_owned()))
+                None => return Err(Error::User("No file to create".to_owned())),
             };
         }
         for (name, content) in files.iter() {
-            let mut file =
-                File::create(name).expect("Could not create output file");
+            let mut file = File::create(name).expect("Could not create output file");
             file.write_all(content.as_bytes())
                 .expect("Could not write content into output file");
         }

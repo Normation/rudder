@@ -61,12 +61,7 @@ fn should_compile(technique_name: &str) -> bool {
 
 /// Compile technique from base crate and expose its result
 fn compile_file(input_path: &Path, output_path: &Path, technique_name: &str) -> Result<(), String> {
-    match rudderc::compile::compile_file(
-        input_path,
-        output_path,
-        true,
-        &PathBuf::from("libs/")
-    ) {
+    match rudderc::compile::compile_file(input_path, output_path, true, &PathBuf::from("libs/")) {
         Ok(_) => {
             println!(
                 "{}: compilation of {}",
@@ -83,7 +78,7 @@ fn compile_file(input_path: &Path, output_path: &Path, technique_name: &str) -> 
                 e
             );
             Err(e)
-        },
+        }
         Err(rudderc::error::Error::List(e)) => {
             println!(
                 "{}: compilation of {} failed: {:#?}",
