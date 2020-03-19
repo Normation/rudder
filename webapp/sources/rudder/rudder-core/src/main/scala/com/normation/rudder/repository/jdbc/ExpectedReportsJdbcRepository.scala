@@ -548,6 +548,7 @@ class UpdateExpectedReportsJdbcRepository(
   /**
    * Delete all NodeConfigId that finished before date (meaning: all NodeConfigId that have one created before date)
    * This must be transactionnal to avoid conflict with other potential updates
+   * If there aren't any nodeconfigid remaining, keep the youngest one so that we don't loose the last seen
    */
   override def deleteNodeConfigIdInfo(date:DateTime) : Box[Int] = {
     transactRunBox(xa => (for {
@@ -558,7 +559,15 @@ class UpdateExpectedReportsJdbcRepository(
                                    config.endOfLife.map( x => x.isBefore(date)).getOrElse(false))
                                 )
                                }.toMap
-      update                <- updateNodeConfigIdInfo(mapOfBeforeAfter.map{ case (nodeId, (old, current)) => (nodeId, current)})
+      resultingMap          =  mapOfBeforeAfter.map { case (nodeId, (old, current)) =>
+                                  if (current.isEmpty) {
+                                    val youngestReport = old.sortBy(_.creation).lastOption
+                                    (nodeId, youngestReport.map(Vector(_)).getOrElse(Vector()))
+                                  } else {
+                                    (nodeId, current)
+                                  }
+                               }
+      update                <- updateNodeConfigIdInfo(resultingMap)
     } yield {
       update.size
     }).transact(xa))
