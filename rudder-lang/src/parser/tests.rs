@@ -283,36 +283,17 @@ fn test_penum() {
 }
 
 #[test]
-fn test_penum_mapping() {
+fn test_psub_enum() {
     assert_eq!(
-        map_res(penum_mapping, "enum abc ~> def { a -> d, b -> e, * -> f}"),
+        map_res(psub_enum, "items in def { d, e, f}"),
         Ok((
             "",
-            PEnumMapping {
-                from: "abc".into(),
-                to: "def".into(),
-                mapping: vec![
-                    ("a".into(), "d".into()),
-                    ("b".into(), "e".into()),
-                    ("*".into(), "f".into()),
-                ]
-            }
-        ))
-    );
-    assert_eq!(
-        map_res(
-            penum_mapping,
-            "enum outcome ~> okerr { kept->ok, repaired->ok, error->error }"
-        ),
-        Ok((
-            "",
-            PEnumMapping {
-                from: "outcome".into(),
-                to: "okerr".into(),
-                mapping: vec![
-                    ("kept".into(), "ok".into()),
-                    ("repaired".into(), "ok".into()),
-                    ("error".into(), "error".into()),
+            PSubEnum {
+                name: "def".into(),
+                items: vec![
+                    "d".into(),
+                    "e".into(),
+                    "f".into(),
                 ]
             }
         ))
@@ -1040,8 +1021,8 @@ pub fn penum_t<'a>(input: &'a str) -> PEnum<'a> {
     test_t(penum, input)
 }
 
-pub fn penum_mapping_t(input: &str) -> PEnumMapping {
-    test_t(penum_mapping, input)
+pub fn psub_enum_t(input: &str) -> PSubEnum {
+    test_t(psub_enum, input)
 }
 
 pub fn penum_expression_t(input: &str) -> PEnumExpression {

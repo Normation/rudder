@@ -54,7 +54,7 @@ impl<'src> AST<'src> {
     pub fn from_past(past: PAST) -> Result<AST> {
         let PAST {
             enums,
-            enum_mappings,
+            sub_enums,
             resources,
             states,
             variable_declarations,
@@ -64,7 +64,7 @@ impl<'src> AST<'src> {
         } = past;
         let mut ast = AST::new();
         ast.add_enums(enums);
-        ast.add_enum_mappings(enum_mappings);
+        ast.add_sub_enums(sub_enums);
         ast.add_variables(variable_declarations);
         ast.add_default_values(parameter_defaults);
         ast.add_resource_list(&resources);
@@ -91,10 +91,9 @@ impl<'src> AST<'src> {
 
     /// Insert all initial enums
     fn add_enums(&mut self, enums: Vec<PEnum<'src>>) {
-        let context = &mut self.context; // borrow checking out of the closure
         for en in enums {
             if en.global {
-                if let Err(e) = context.new_enum_variable(None, en.name, en.name, None) {
+                if let Err(e) = self.context.new_enum_variable(None, en.name, en.name, None) {
                     self.errors.push(e);
                 }
             }
@@ -104,50 +103,38 @@ impl<'src> AST<'src> {
         }
     }
 
-    /// Insert all enum mappings
-    fn add_enum_mappings(&mut self, enum_mappings: Vec<PEnumMapping<'src>>) {
-        let mut mappings = enum_mappings;
-        let enum_list = &mut self.enum_list; // borrow checking out of the closure
-                                             // Iterate over mappings as long as we can insert some
+    /// Insert all sub enum 
+    fn add_sub_enums(&mut self, mut sub_enums: Vec<PSubEnum<'src>>) {
         loop {
-            let map_count = mappings.len();
+            let map_count = sub_enums.len();
             // Try inserting every mapping that have an existing ancestor until there is no more
-            let mut new_mappings = Vec::new();
-            for em in mappings {
-                // Add it to global context if its parent is global
-                if self.context.variables.get(&em.from).is_some() {
-                    if let Err(e) = self.context.new_enum_variable(None, em.to, em.to, None) {
-                        self.errors.push(e);
-                    }
-                }
-                if enum_list.enum_exists(em.from) {
-                    if let Err(e) = enum_list.add_mapping(em) {
-                        self.errors.push(e);
-                    }
-                } else {
-                    new_mappings.push(em);
+            let mut new_enums = Vec::new();
+            for se in sub_enums {
+                match self.enum_list.extend_enum(se) {
+                    Ok(Some(e)) => new_enums.push(e),
+                    Ok(None) => {},
+                    Err(e) => self.errors.push(e),
                 }
             }
-            if new_mappings.is_empty() {
+            if new_enums.is_empty() {
                 // Yay, finished !
                 break;
-            } else if map_count == new_mappings.len() {
+            } else if map_count == new_enums.len() {
                 // Nothing changed since last loop, we failed !
-                for em in new_mappings {
+                for se in new_enums {
                     self.errors.push(err!(
-                        em.to,
-                        "Enum {} not found when trying to define mapping {}{}",
-                        em.from,
-                        em.to,
+                        se.name,
+                        "Enum item {} not found when trying to define sub enum {}",
+                        se.name,
                         get_suggestion_message(
-                            em.from.fragment(),
-                            enum_list.iter().map(|(k, _)| k)
+                            se.name.fragment(),
+                            self.enum_list.item_iter()
                         ),
                     ));
                 }
                 break;
             }
-            mappings = new_mappings;
+            sub_enums = new_enums;
         }
     }
 
@@ -546,15 +533,17 @@ impl<'src> AST<'src> {
     // - true / false
     fn invalid_variable_check(&self, name: Token<'src>, global: bool) -> Result<()> {
         self.invalid_identifier_check(name)?;
-        if self.enum_list.enum_exists(name) && (!global || !self.enum_list.is_global(name)) {
-            // there is a global variable for each global enum
-            fail!(
-                name,
-                "Variable name {} cannot be used because it is an enum name",
-                name
-            );
-        }
-        if let Some(e) = self.enum_list.global_values.get(&name) {
+        if let Some(is_global) = self.enum_list.enum_is_global(name) {
+            if !global || !is_global {
+                // there is already a global variable for each global enum
+                fail!(
+                    name,
+                    "Variable name {} cannot be used because it is an enum name",
+                    name
+                );
+            }
+            }
+        if let Some(e) = self.enum_list.global_item(name) {
             fail!(
                 name,
                 "Variable name {} cannot be used because it is an item of the global enum {}",
@@ -620,14 +609,13 @@ impl<'src> AST<'src> {
             // check for invalid variable name
             errors.push(self.invalid_variable_check(*name, true));
         }
-        // analyse enums
-        for (e, (_global, items)) in self.enum_list.iter() {
-            // check for invalid enum name
+        // analyse enum names
+        for e in self.enum_list.enum_iter() {
             errors.push(self.invalid_identifier_check(*e));
-            // check for invalid item name
-            for i in items.iter() {
-                errors.push(self.invalid_identifier_check(*i));
-            }
+        }
+        // analyse enum items
+        for e in self.enum_list.item_iter() {
+            errors.push(self.invalid_identifier_check(*e));
         }
         // Stop here if there is any error
         fix_results(errors.into_iter())?;

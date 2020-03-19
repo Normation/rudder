@@ -40,7 +40,7 @@ pub use token::PInput;
 #[derive(Debug)]
 pub struct PAST<'src> {
     pub enums: Vec<PEnum<'src>>,
-    pub enum_mappings: Vec<PEnumMapping<'src>>,
+    pub sub_enums: Vec<PSubEnum<'src>>,
     pub resources: Vec<PResourceDef<'src>>,
     pub states: Vec<PStateDef<'src>>,
     pub variable_declarations: Vec<(Token<'src>, PValue<'src>)>,
@@ -53,7 +53,7 @@ impl<'src> PAST<'src> {
     pub fn new() -> PAST<'static> {
         PAST {
             enums: Vec::new(),
-            enum_mappings: Vec::new(),
+            sub_enums: Vec::new(),
             resources: Vec::new(),
             states: Vec::new(),
             variable_declarations: Vec::new(),
@@ -77,7 +77,7 @@ impl<'src> PAST<'src> {
             .into_iter()
             .for_each(|declaration| match declaration {
                 PDeclaration::Enum(e) => self.enums.push(e),
-                PDeclaration::Mapping(e) => self.enum_mappings.push(e),
+                PDeclaration::SubEnum(e) => self.sub_enums.push(e),
                 PDeclaration::Resource((r, d, p)) => {
                     self.parameter_defaults.push((r.name, None, d));
                     if let Some(parent) = p {
@@ -289,7 +289,7 @@ fn penum(i: PInput) -> PResult<PEnum> {
             e:      space_terminated("enum");
             _fail:  or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
             name:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
-            b:      etag("{"); // do not fail here, it could still be a mapping
+            b:      or_fail(etag("{"), || PErrorKind::ExpectedKeyword("{"));
             items:  separated_nonempty_list(sp(etag(",")), pidentifier); // all enum members
             _x:     opt(tag(",")); // optional, applies only to the last member
             _x:     or_fail(tag("}"), || PErrorKind::UnterminatedDelimiter(b));
@@ -301,53 +301,50 @@ fn penum(i: PInput) -> PResult<PEnum> {
     )(i)
 }
 
-/// An enum mapping maps an enum to another one creating the second one in the process.
-/// The mapping must map all items from the source enum.
-/// A default keyword '*' can be used to map all unmapped items.
-/// '*->xxx' maps then to xxx, '*->*' maps them to the same name in the new enum.
-/// The new enum as the same properties as the original one .
+
 #[derive(Debug, PartialEq)]
-pub struct PEnumMapping<'src> {
-    pub from: Token<'src>,
-    pub to: Token<'src>,
-    pub mapping: Vec<(Token<'src>, Token<'src>)>,
+pub struct PSubEnum<'src> {
+    pub name: Token<'src>,
+    pub items: Vec<Token<'src>>,
 }
-fn penum_mapping(i: PInput) -> PResult<PEnumMapping> {
+fn psub_enum(i: PInput) -> PResult<PSubEnum> {
     wsequence!(
         {
             metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
-            e:     space_terminated("enum");
-            _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
-            from:  or_fail(pidentifier,|| PErrorKind::InvalidName(e));
-            _x:    ftag("~>"); // already stated it is no enum, so fail
-            to:    or_fail(pidentifier,|| PErrorKind::InvalidName(e));
-            b:     ftag("{");
-            mapping:
-                separated_nonempty_list(
-                    sp(etag(",")),
-                    separated_pair(
-                        or_fail(
-                            alt((
-                                pidentifier,
-                                map(etag("*"), |x: PInput| x.into())
-                            )),
-                            || PErrorKind::InvalidName(to.into())),
-                        or_fail(
-                            sp(etag("->")),
-                            || PErrorKind::ExpectedToken("->")),
-                        or_fail(
-                            alt((
-                                pidentifier,
-                                map(etag("*"), |x: PInput| x.into())
-                            )),
-                            || PErrorKind::InvalidName(to.into()))
-                    )
-                );
-            _x: opt(tag(",")); // optional, applies only to the last member
-            _x: or_fail(tag("}"),|| PErrorKind::UnterminatedDelimiter(b));
-        } => PEnumMapping {from, to, mapping}
+            e:      space_terminated("items");
+            i:      space_terminated("in");
+            _fail:  or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
+            name:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
+            b:      or_fail(etag("{"), || PErrorKind::ExpectedKeyword("{"));
+            items:  separated_nonempty_list(sp(etag(",")), pidentifier); // all enum members
+            _x:     opt(tag(",")); // optional, applies only to the last member
+            _x:     or_fail(tag("}"), || PErrorKind::UnterminatedDelimiter(b));
+        } => PSubEnum {
+                name,
+                items,
+        }
     )(i)
 }
+
+// TODO reformat
+// Old enums: 
+//   global enum abc { a, b, c }
+//   enum a ~> abc { a1 -> a, a2-> a, a3 -> a, * -> *}
+// 
+// New enums
+//   global enum abc { a,b,c, }
+//   enum a { a1, a2, a3}
+// 
+
+// Old enum expression:
+//  var=~value:type  # fully specified
+//  var=~value       # type from higer possible type
+//  globalvalue      # var name = type name
+// New enum expression:
+//  var=~value       # names must be unique 
+//  globalvalue      # var name = enum root name
+
+// TODO extend expression
 
 /// An enum expression is used as a condition in a case expression.
 /// This is a boolean expression based on enum comparison.
@@ -1036,7 +1033,7 @@ fn palias_def(i: PInput) -> PResult<PAliasDef> {
 #[derive(Debug, PartialEq)]
 pub enum PDeclaration<'src> {
     Enum(PEnum<'src>),
-    Mapping(PEnumMapping<'src>),
+    SubEnum(PSubEnum<'src>),
     Resource(
         (
             PResourceDef<'src>,
@@ -1053,7 +1050,7 @@ fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
     or_fail(
         alt((
             map(penum, PDeclaration::Enum),
-            map(penum_mapping, PDeclaration::Mapping),
+            map(psub_enum, PDeclaration::SubEnum),
             map(presource_def, PDeclaration::Resource),
             map(pstate_def, PDeclaration::State),
             map(pvariable_definition, PDeclaration::GlobalVar),
