@@ -3,6 +3,8 @@ SHELL = /bin/bash
 
 include ../rust.makefile
 
+DOC_EXAMPLES := $(wildcard docs/examples/*.rl)
+
 apt-dependencies:
 	apt update && apt install -y --no-install-recommends perl
 	echo | cpan
@@ -17,8 +19,14 @@ build:
 	perl tools/generate-lib
 	cargo build --release
 
+test-docs: $(DOC_EXAMPLES)
+
+$(DOC_EXAMPLES):
+	cargo run -- --config-file tools/rudderc-dev.conf --input $@ --output $@.cf
+	rm $@.cf
+
 docs:
 	mkdir -p target/docs
 	asciidoctor --destination-dir=target/docs docs/index.adoc
 
-.PHONY: docs
+.PHONY: docs $(DOC_EXAMPLES)
