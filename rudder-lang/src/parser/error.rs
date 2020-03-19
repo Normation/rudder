@@ -31,7 +31,7 @@ pub enum PErrorKind<I> {
     InvalidVariableReference,    // during string interpolation
     UnsupportedMetadata(I),      // metadata or comments are not supported everywhere (metadata key)
     UnterminatedDelimiter(I),    // after an opening delimiter (first delimiter)
-    Unparsed(I),                 // cannot be parsed 
+    Unparsed(I),                 // cannot be parsed
 }
 
 #[derive(Debug, PartialEq, Clone)]

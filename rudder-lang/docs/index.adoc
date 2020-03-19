@@ -1,0 +1,47 @@
+= Rudder language
+
+== Language
+
+This language is not:
+
+- a general purpose language
+- a turing complete language
+- an imperative language
+
+It has no:
+
+- recursion
+- generator / generic iterator
+- way of looping except on finite list
+
+This language is a DSL targeted at *state definition*.
+
+Everything that is not a state definition is a convenience for easier definition of a state.
+
+The compiler is very pedantic to avoid defining invalid states as much as possible.
+
+File extension is `rl` for *R*udder *L*anguage.
+
+Example:
+
+ntp.rl
+[source,rl]
+----
+@format=0
+
+@name="Configure NTP"
+@description="test"
+@version="1.0"
+@parameters=[]
+
+resource Configure_NTP()
+
+Configure_NTP state technique() {
+  @component = "Package present"
+  package("ntp").present("","","") as package_present_ntp
+}
+----
+
+// TODO: comparison with CFEngine, Puppet (mgmt ?)
+
+include::concepts.adoc[leveloffset=+1]
