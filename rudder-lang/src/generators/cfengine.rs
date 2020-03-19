@@ -107,8 +107,8 @@ impl CFEngine {
                     // TODO there may still be some conflicts with var or enum containing '_'
                     format!("{}_{}_{}", prefix, e.fragment(), item.fragment())
                 }
-            },
-            EnumExpression::Range(var, e, item1, item2) => { unimplemented!() }, // TODO
+            }
+            EnumExpression::Range(var, e, item1, item2) => unimplemented!(), // TODO
             EnumExpression::Default(_) => {
                 // extract current cases and build an opposite expression
                 if self.current_cases.is_empty() {

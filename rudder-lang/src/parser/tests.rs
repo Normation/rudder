@@ -290,11 +290,7 @@ fn test_psub_enum() {
             "",
             PSubEnum {
                 name: "def".into(),
-                items: vec![
-                    "d".into(),
-                    "e".into(),
-                    "f".into(),
-                ]
+                items: vec!["d".into(), "e".into(), "f".into(),]
             }
         ))
     );

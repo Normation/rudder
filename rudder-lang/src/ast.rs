@@ -103,7 +103,7 @@ impl<'src> AST<'src> {
         }
     }
 
-    /// Insert all sub enum 
+    /// Insert all sub enum
     fn add_sub_enums(&mut self, mut sub_enums: Vec<PSubEnum<'src>>) {
         loop {
             let map_count = sub_enums.len();
@@ -112,7 +112,7 @@ impl<'src> AST<'src> {
             for se in sub_enums {
                 match self.enum_list.extend_enum(se) {
                     Ok(Some(e)) => new_enums.push(e),
-                    Ok(None) => {},
+                    Ok(None) => {}
                     Err(e) => self.errors.push(e),
                 }
             }
@@ -126,10 +126,7 @@ impl<'src> AST<'src> {
                         se.name,
                         "Enum item {} not found when trying to define sub enum {}",
                         se.name,
-                        get_suggestion_message(
-                            se.name.fragment(),
-                            self.enum_list.item_iter()
-                        ),
+                        get_suggestion_message(se.name.fragment(), self.enum_list.item_iter()),
                     ));
                 }
                 break;
@@ -546,7 +543,7 @@ impl<'src> AST<'src> {
                     name
                 );
             }
-            }
+        }
         if let Some(e) = self.enum_list.global_item(name) {
             fail!(
                 name,
