@@ -4,17 +4,18 @@
 use std::path::PathBuf;
 
 use crate::error::*;
+use crate::Action;
 
 /// get explicit input. If none, get default path + filename. If none, error
 fn get_input(
-    exec_action: &str,
+    action: Action,
     paths: &toml::Value,
     opt_base: &Option<PathBuf>,
     opt_input: &Option<PathBuf>,
 ) -> Result<PathBuf> {
     Ok(match opt_input {
         Some(input) => input.to_path_buf(),
-        None => match paths.get(format!("{}_input", exec_action)) {
+        None => match paths.get(format!("{}_input", action)) {
             None => {
                 return Err(Error::User(
                     "There should either be an explicit or default input path".to_owned(),
@@ -38,7 +39,7 @@ fn get_input(
 
 /// get explicit output. If no explicit output get default path + filename. I none, use input path (and update extension). If none worked, error
 fn get_output(
-    exec_action: &str,
+    action: Action,
     paths: &toml::Value,
     opt_base: &Option<PathBuf>,
     opt_input: &Option<PathBuf>,
@@ -48,25 +49,24 @@ fn get_output(
         Some(output) => output.to_path_buf(),
         None => {
             let path = match opt_base {
-                Some(filename) => match paths.get(format!("{}_output", exec_action)) {
+                Some(filename) => match paths.get(format!("{}_output", action)) {
                     Some(default_path) => PathBuf::from(default_path.as_str().unwrap()).join(&filename),
                     // if no default, try to get input path
-                    None => match get_input(exec_action, paths, opt_base, opt_input) {
+                    None => match get_input(action, paths, opt_base, opt_input) {
                         Ok(input) => input,
                         Err(_) => return Err(Error::User("Could not determine output path without ouput default or input defined".to_owned())),
                     },
                 },
                 // if no default, try to get input path
-                None => match get_input(exec_action, paths, opt_base, opt_input) {
+                None => match get_input(action, paths, opt_base, opt_input) {
                     Ok(input) => input,
                     Err(_) => return Err(Error::User("Could not determine output path without ouput default or input defined".to_owned())),
                 }
             };
-            if exec_action == "compile" {
-                path.with_extension("rl.cf")
-            } else {
-                path.with_extension("rl")
-            }
+            path.with_extension(match action {
+                Action::Compile => "rl.cf",
+                Action::Translate => "rl",
+            })
         }
     })
 }
@@ -74,9 +74,9 @@ fn get_output(
 /// get the lib and translate_config paths and
 /// get the correct input and output paths based on parameters
 /// Input priority is input > default
-/// Output prority is output > default > input
+/// Output priority is output > default > input
 pub fn get(
-    exec_action: &str,
+    action: Action,
     default_paths: &PathBuf,
     opt_base: &Option<PathBuf>,
     opt_input: &Option<PathBuf>,
@@ -109,7 +109,7 @@ pub fn get(
     Ok((
         rudderclibs,
         translate_config,
-        get_input(exec_action, paths, opt_base, opt_input)?,
-        get_output(exec_action, paths, opt_base, opt_input, opt_output)?,
+        get_input(action, paths, opt_base, opt_input)?,
+        get_output(action, paths, opt_base, opt_input, opt_output)?,
     ))
 }

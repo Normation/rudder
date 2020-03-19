@@ -4,7 +4,7 @@
 use super::context::VarKind;
 use super::resource::Statement;
 use crate::error::*;
-use crate::parser::{PEnum, PSubEnum, PEnumExpression, Token};
+use crate::parser::{PEnum, PEnumExpression, PSubEnum, Token};
 use std::collections::{HashMap, HashSet};
 
 // TODO Should a non global enum item be permitted as a variable name and must it be unique ?
@@ -24,7 +24,12 @@ pub struct EnumTree<'src> {
 }
 impl<'src> EnumTree<'src> {
     /// create a new enumtree with a single level of children
-    pub fn new(name: Token<'src>, elders: Vec<Token<'src>>, incomplete: bool, global: bool) -> EnumTree<'src> {
+    pub fn new(
+        name: Token<'src>,
+        elders: Vec<Token<'src>>,
+        incomplete: bool,
+        global: bool,
+    ) -> EnumTree<'src> {
         let mut myself = EnumTree {
             global,
             name,
@@ -144,25 +149,25 @@ impl<'src> EnumList<'src> {
 
     /// Returns the item if it is global and None otherwise
     pub fn global_item(&self, e: Token<'src>) -> Option<Token<'src>> {
-        if let Some((item,treename)) = self.elements.get_key_value(&e) {
+        if let Some((item, treename)) = self.elements.get_key_value(&e) {
             if self.enums[treename].global {
                 Some(*item)
             } else {
                 None
-            }         
+            }
         } else {
             None
         }
     }
 
     /// Iterate over enum names
-    pub fn enum_iter(&self) -> impl Iterator<Item=&Token<'src>> {
-        self.enums.iter().map(|(k,_)| k)
+    pub fn enum_iter(&self) -> impl Iterator<Item = &Token<'src>> {
+        self.enums.iter().map(|(k, _)| k)
     }
 
     /// Iterate over enum values
-    pub fn item_iter(&self) -> impl Iterator<Item=&Token<'src>> {
-        self.elements.iter().map(|(k,_)| k)
+    pub fn item_iter(&self) -> impl Iterator<Item = &Token<'src>> {
+        self.elements.iter().map(|(k, _)| k)
     }
 
     // TODO Update when parser will be modified
@@ -314,8 +319,12 @@ impl<'src> EnumList<'src> {
         match expr {
             EnumExpression::Default(_) => true,
             EnumExpression::Not(e) => !self.eval_case(values, &e),
-            EnumExpression::Or(e1, e2) => self.eval_case(values, &e1) || self.eval_case(values, &e2),
-            EnumExpression::And(e1, e2) => self.eval_case(values, &e1) && self.eval_case(values, &e2),
+            EnumExpression::Or(e1, e2) => {
+                self.eval_case(values, &e1) || self.eval_case(values, &e2)
+            }
+            EnumExpression::And(e1, e2) => {
+                self.eval_case(values, &e1) && self.eval_case(values, &e2)
+            }
             EnumExpression::Compare(var, _, value) => values[&var] == *value,
             // TODO implement range
             EnumExpression::Range(var, _, None, None) => true,
@@ -350,13 +359,23 @@ impl<'src> EnumList<'src> {
         let mut errors = Vec::new();
         for context in CrossIterator::new(&var_items) {
             // evaluate each case for context and count matching cases
-            let count = cases.iter().fold(0, |c, (exp, _)| if self.eval_case(&context, exp){c+1} else { c });
+            let count = cases.iter().fold(0, |c, (exp, _)| {
+                if self.eval_case(&context, exp) {
+                    c + 1
+                } else {
+                    c
+                }
+            });
             // Now check for errors
             if count == 0 {
                 errors.push(err!(case_name, "case {} is ignored", format_case(&context)));
             }
             if count > 1 {
-                errors.push(err!(case_name, "case {} is handles at least twoce", format_case(&context)));
+                errors.push(err!(
+                    case_name,
+                    "case {} is handles at least twoce",
+                    format_case(&context)
+                ));
             }
             // TODO also check for default and open ranges
         }
@@ -367,7 +386,11 @@ impl<'src> EnumList<'src> {
 
 // just format a list of var=value
 fn format_case(context: &HashMap<Token, Token>) -> String {
-    context.iter().map(|(k,v)| format!("{}=~{}",k,v)).collect::<Vec<String>>().join(" & ")
+    context
+        .iter()
+        .map(|(k, v)| format!("{}=~{}", k, v))
+        .collect::<Vec<String>>()
+        .join(" & ")
 }
 
 // we need an item reference because ve we a pointer to the item list
@@ -396,7 +419,7 @@ impl<'it, 'src> VariableIterator<'it, 'src> {
             None => {
                 self.iterator = self.items.iter();
                 None
-            }, 
+            }
             Some(c) => {
                 self.current = *c;
                 Some(*c)
@@ -535,7 +558,12 @@ mod tests {
 
     #[test]
     fn test_tree() {
-        let mut tree = EnumTree::new("T".into(), vec!["a".into(), "b".into(), "c".into()], true, true);
+        let mut tree = EnumTree::new(
+            "T".into(),
+            vec!["a".into(), "b".into(), "c".into()],
+            true,
+            true,
+        );
         tree.extend("a".into(), vec!["d".into(), "e".into(), "f".into()], false);
         tree.extend("e".into(), vec!["g".into(), "h".into(), "i".into()], false);
         /*// siblings
@@ -578,62 +606,101 @@ mod tests {
         assert!(elist.add_enum(penum_t("enum T { a, b, c }")).is_err());
         assert!(elist.add_enum(penum_t("enum U { c, d, e }")).is_err());
         assert!(elist.add_enum(penum_t("enum V { f, g, h }")).is_ok());
-        assert_eq!(elist.extend_enum(psub_enum_t("items in a { aa, ab, ac }")), Ok(()));
-        assert!(elist.extend_enum(psub_enum_t("items in a { ba, bb, bc }")).is_err());
-        assert!(elist.extend_enum(psub_enum_t("items in b { aa, ab, ac }")).is_err());
-        assert!(elist.extend_enum(psub_enum_t("items in aa { ba, bb, bc }")).is_ok());
+        assert!(elist
+            .extend_enum(psub_enum_t("items in a { aa, ab, ac }"))
+            .is_ok());
+        assert!(elist
+            .extend_enum(psub_enum_t("items in a { ba, bb, bc }"))
+            .is_err());
+        assert!(elist
+            .extend_enum(psub_enum_t("items in b { aa, ab, ac }"))
+            .is_err());
+        assert!(elist
+            .extend_enum(psub_enum_t("items in aa { ba, bb, bc }"))
+            .is_ok());
     }
 
     #[test]
     fn test_canonify() {
         let mut elist = EnumList::new();
         let getter = |_| None;
-        elist.add_enum(penum_t("global enum T { a, b, c }")).unwrap();
-        elist.extend_enum(psub_enum_t("items in a { d, e, f }")).unwrap();
-        elist.extend_enum(psub_enum_t("items in b { g, h, i }")).unwrap();
-        elist.extend_enum(psub_enum_t("items in k { k, k, l }")).unwrap();
-        assert_eq!(elist.canonify_expression(&getter, penum_expression_t("a")).unwrap(),
+        elist
+            .add_enum(penum_t("global enum T { a, b, c }"))
+            .unwrap();
+        elist
+            .extend_enum(psub_enum_t("items in a { d, e, f }"))
+            .unwrap();
+        elist
+            .extend_enum(psub_enum_t("items in b { g, h, i }"))
+            .unwrap();
+        elist
+            .extend_enum(psub_enum_t("items in k { k, k, l }"))
+            .unwrap();
+        assert_eq!(
+            elist
+                .canonify_expression(&getter, penum_expression_t("a"))
+                .unwrap(),
             EnumExpression::Compare("T".into(), "T".into(), "a".into())
         );
-        assert_eq!(elist
-            .canonify_expression(&getter, penum_expression_t("var=~a")).unwrap(),
+        assert_eq!(
+            elist
+                .canonify_expression(&getter, penum_expression_t("var=~a"))
+                .unwrap(),
             EnumExpression::Compare("var".into(), "T".into(), "a".into())
         );
-        assert_eq!(elist
-            .canonify_expression(&getter, penum_expression_t("var=~T:a")).unwrap(),
+        assert_eq!(
+            elist
+                .canonify_expression(&getter, penum_expression_t("var=~T:a"))
+                .unwrap(),
             EnumExpression::Compare("var".into(), "T".into(), "a".into())
         );
-        assert_eq!(elist
-            .canonify_expression(&getter, penum_expression_t("var=~a:T")).unwrap(),
+        assert_eq!(
+            elist
+                .canonify_expression(&getter, penum_expression_t("var=~a:T"))
+                .unwrap(),
             EnumExpression::Compare("var".into(), "a".into(), "T".into())
         ); // TODO this one should fail (or the previous)
-        assert_eq!(elist
-            .canonify_expression(&getter, penum_expression_t("var=~d")).unwrap(),
+        assert_eq!(
+            elist
+                .canonify_expression(&getter, penum_expression_t("var=~d"))
+                .unwrap(),
             EnumExpression::Compare("var".into(), "T".into(), "d".into())
         );
-        assert_eq!(elist
-            .canonify_expression(&getter, penum_expression_t("var=~d:T")).unwrap(),
+        assert_eq!(
+            elist
+                .canonify_expression(&getter, penum_expression_t("var=~d:T"))
+                .unwrap(),
             EnumExpression::Compare("var".into(), "d".into(), "T".into())
         );
-        assert_eq!(elist
-            .canonify_expression(&getter, penum_expression_t("d:T")).unwrap(),
+        assert_eq!(
+            elist
+                .canonify_expression(&getter, penum_expression_t("d:T"))
+                .unwrap(),
             EnumExpression::Compare("d".into(), "d".into(), "T".into())
         );
-        assert!(elist 
-            .canonify_expression(&getter, penum_expression_t("d|a&!b")).is_ok());
+        assert!(elist
+            .canonify_expression(&getter, penum_expression_t("d|a&!b"))
+            .is_ok());
     }
 
     #[test]
     fn test_listvars() {
         let mut elist = EnumList::new();
         let getter = |_| None;
-        elist.add_enum(penum_t("global enum T { a, b, c }")).unwrap();
-        elist.extend_enum(psub_enum_t("items in b { g, h, i }")).unwrap();
-        elist.extend_enum(psub_enum_t("items in a { d, e, f }")).unwrap();
-        elist.extend_enum(psub_enum_t("items in g { j, k, l }")).unwrap();
+        elist
+            .add_enum(penum_t("global enum T { a, b, c }"))
+            .unwrap();
+        elist
+            .extend_enum(psub_enum_t("items in b { g, h, i }"))
+            .unwrap();
+        elist
+            .extend_enum(psub_enum_t("items in a { d, e, f }"))
+            .unwrap();
+        elist
+            .extend_enum(psub_enum_t("items in g { j, k, l }"))
+            .unwrap();
         let mut h1 = HashMap::new();
         elist
-
             .canonify_expression(&getter, penum_expression_t("a"))
             .unwrap()
             .list_variables_tree(&mut h1);
@@ -695,19 +762,59 @@ mod tests {
     fn test_evaluation() {
         let mut elist = EnumList::new();
         let getter = |_| None;
-        elist.add_enum(penum_t("global enum T { a, b, c }")).unwrap();
-        elist.extend_enum(psub_enum_t("items in a { d, e, f }")).unwrap();
-        elist.extend_enum(psub_enum_t("items in b { g, h, i }")).unwrap();
-        elist.extend_enum(psub_enum_t("items in g { j, k, l }")).unwrap();
-        elist.add_enum(penum_t("global enum U { A, B, C }")).unwrap();
-        let e1 = elist.canonify_expression(&getter, penum_expression_t("a")).unwrap();
-        let e2 = elist.canonify_expression(&getter, penum_expression_t("b")).unwrap();
-        let e3 = elist.canonify_expression(&getter, penum_expression_t("c")).unwrap();
-        let cases1 = [(e1.clone(),Vec::new()),(e2.clone(),Vec::new()),(e3.clone(),Vec::new())];
-        assert_eq!(elist.evaluate(&getter, &cases1[..], Token::from("test1")).len(), 0);
-        let cases2 = [(e2.clone(),Vec::new()),(e3.clone(),Vec::new())];
-        assert_eq!(elist.evaluate(&getter, &cases2[..], Token::from("test2")).len(), 1);
-        let cases3 = [(e1.clone(),Vec::new()),(e2.clone(),Vec::new()),(e3.clone(),Vec::new()),(e3.clone(),Vec::new())];
-        assert_eq!(elist.evaluate(&getter, &cases3[..], Token::from("test3")).len(), 1);
+        elist
+            .add_enum(penum_t("global enum T { a, b, c }"))
+            .unwrap();
+        elist
+            .extend_enum(psub_enum_t("items in a { d, e, f }"))
+            .unwrap();
+        elist
+            .extend_enum(psub_enum_t("items in b { g, h, i }"))
+            .unwrap();
+        elist
+            .extend_enum(psub_enum_t("items in g { j, k, l }"))
+            .unwrap();
+        elist
+            .add_enum(penum_t("global enum U { A, B, C }"))
+            .unwrap();
+        let e1 = elist
+            .canonify_expression(&getter, penum_expression_t("a"))
+            .unwrap();
+        let e2 = elist
+            .canonify_expression(&getter, penum_expression_t("b"))
+            .unwrap();
+        let e3 = elist
+            .canonify_expression(&getter, penum_expression_t("c"))
+            .unwrap();
+        let cases1 = [
+            (e1.clone(), Vec::new()),
+            (e2.clone(), Vec::new()),
+            (e3.clone(), Vec::new()),
+        ];
+        assert_eq!(
+            elist
+                .evaluate(&getter, &cases1[..], Token::from("test1"))
+                .len(),
+            0
+        );
+        let cases2 = [(e2.clone(), Vec::new()), (e3.clone(), Vec::new())];
+        assert_eq!(
+            elist
+                .evaluate(&getter, &cases2[..], Token::from("test2"))
+                .len(),
+            1
+        );
+        let cases3 = [
+            (e1.clone(), Vec::new()),
+            (e2.clone(), Vec::new()),
+            (e3.clone(), Vec::new()),
+            (e3.clone(), Vec::new()),
+        ];
+        assert_eq!(
+            elist
+                .evaluate(&getter, &cases3[..], Token::from("test3"))
+                .len(),
+            1
+        );
     }
 }

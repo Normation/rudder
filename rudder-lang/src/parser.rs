@@ -300,7 +300,6 @@ fn penum(i: PInput) -> PResult<PEnum> {
     )(i)
 }
 
-
 #[derive(Debug, PartialEq)]
 pub struct PSubEnum<'src> {
     pub name: Token<'src>,
@@ -326,21 +325,21 @@ fn psub_enum(i: PInput) -> PResult<PSubEnum> {
 }
 
 // TODO reformat
-// Old enums: 
+// Old enums:
 //   global enum abc { a, b, c }
 //   enum a ~> abc { a1 -> a, a2-> a, a3 -> a, * -> *}
-// 
+//
 // New enums
 //   global enum abc { a,b,c, }
 //   enum a { a1, a2, a3}
-// 
+//
 
 // Old enum expression:
 //  var=~value:type  # fully specified
 //  var=~value       # type from higer possible type
 //  globalvalue      # var name = type name
 // New enum expression:
-//  var=~value       # names must be unique 
+//  var=~value       # names must be unique
 //  globalvalue      # var name = enum root name
 
 // TODO extend expression

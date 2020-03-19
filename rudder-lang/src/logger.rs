@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use crate::Action;
 use log::LevelFilter;
 use regex::Regex;
 use std::{
+    fmt::Display,
     io::Write,
     panic,
     path::PathBuf,
@@ -15,12 +17,12 @@ use std::{
 /// run the program with `-l info` (eq. `--logger info`) optional argument. Case-insensitive
 /// There is also an optional json formatter that outputs plain json format. run the program with `-j` or `--json` optional argument.
 
-pub fn set(log_level: LevelFilter, is_fmt_json: bool, exec_action: &str) {
+pub fn set(log_level: LevelFilter, is_fmt_json: bool, action: Action) {
     // Content called when panic! is encountered to close logger brackets and print error
-    set_panic_hook(is_fmt_json, exec_action.to_owned());
+    set_panic_hook(is_fmt_json, action);
 
     if is_fmt_json {
-        set_json(exec_action);
+        set_json(action);
         // prevents any output stylization from the colored crate
         colored::control::set_override(false);
     }
@@ -66,7 +68,7 @@ fn parse_core_panic_message(msg: &str) -> String {
 
 /// panic default format takeover to print either proper json format output
 /// or rudder-lang own error logging format
-fn set_panic_hook(is_fmt_json: bool, exec_action: String) {
+fn set_panic_hook(is_fmt_json: bool, action: Action) {
     panic::set_hook(Box::new(move |e| {
         let e_message = match e.payload().downcast_ref::<&str>() {
             Some(msg) => msg.to_string(),
@@ -91,7 +93,7 @@ fn set_panic_hook(is_fmt_json: bool, exec_action: String) {
     }}
   ]
 }}"#,
-                exec_action, message
+                action, message
             );
         } else {
             error!("{}", message);
@@ -99,7 +101,7 @@ fn set_panic_hook(is_fmt_json: bool, exec_action: String) {
     }));
 }
 
-fn set_json(exec_action: &str) {
+fn set_json(action: Action) {
     let start = SystemTime::now();
     let time = match start.duration_since(UNIX_EPOCH) {
         Ok(since_the_epoch) => since_the_epoch.as_millis().to_string(),
@@ -107,16 +109,16 @@ fn set_json(exec_action: &str) {
     };
     println!(
         "{{\n  \"action\": {:?},\n  \"time\": {:?},\n  \"logs\": [",
-        exec_action, time
+        action, time
     );
 }
 
-pub fn print_output_closure(
+pub fn print_output_closure<T: Display>(
     is_fmt_json: bool,
     is_success: bool,
-    input_file: &str,
-    output_file: &str,
-    exec_action: &str,
+    input_file: T,
+    output_file: T,
+    action: Action,
 ) {
     let pwd = std::env::current_dir().unwrap_or(PathBuf::new());
     match is_fmt_json {
@@ -130,14 +132,14 @@ pub fn print_output_closure(
       "Result": {{
         "action": {:?},
         "status": {:?},
-        "from": {:?},
-        "to": {:?},
+        "from": {},
+        "to": {},
         "pwd": {:?}
       }}
     }}
   ]
 }}"#,
-                exec_action, res_str, input_file, output_file, pwd
+                action, res_str, input_file, output_file, pwd
             );
         }
         false => {
@@ -147,7 +149,7 @@ pub fn print_output_closure(
                     output_file, input_file
                 ),
                 false => format!(
-                    "An error occured, '{}' file has not been created from '{}'",
+                    "An error occurred, '{}' file has not been created from '{}'",
                     output_file, input_file
                 ),
             };
