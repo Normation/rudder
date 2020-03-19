@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::Generator;
-use crate::ast::enums::{EnumExpression, EnumList};
+use crate::ast::enums::EnumExpression;
 use crate::ast::resource::*;
 use crate::ast::value::*;
 use crate::ast::*;
@@ -417,7 +417,7 @@ impl Generator for CFEngine {
                     .map(|p| p.name.fragment())
                     .collect::<Vec<&str>>()
                     .join(",");
-                if params.len() > 0 {
+                if !params.is_empty() {
                     params = format!("({})", params);
                 }
                 content.push_str(&format!(
@@ -437,7 +437,7 @@ impl Generator for CFEngine {
                 files.insert(file_to_create, content);
             }
         }
-        if files.len() == 0 {
+        if files.is_empty() {
             match output_file {
                 Some(filename) => File::create(filename).expect("Could not create output file"),
                 None => return Err(Error::User("No file to create".to_owned())),

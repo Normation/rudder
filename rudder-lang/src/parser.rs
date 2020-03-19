@@ -542,7 +542,7 @@ fn pinterpolated_string(i: PInput) -> PResult<Vec<PInterpolatedElement>> {
 fn pnumber(i: PInput) -> PResult<(Token, f64)> {
     let (i, val) = recognize_float(i)?;
     match double::<&[u8], (&[u8], nom::error::ErrorKind)>(val.fragment.as_bytes()) {
-        Err(_e) => panic!(format!("A parsed number canot be reparsed : {:?}", val)),
+        Err(_e) => panic!(format!("A parsed number cannot be reparsed: {:?}", val)),
         Ok((_, n)) => Ok((i, (val.into(), n))),
     }
 }
@@ -1063,7 +1063,7 @@ fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
 
 fn end_of_pfile(i: PInput) -> PResult<()> {
     let (i, _) = strip_spaces_and_comment(i)?;
-    if i.fragment.len() == 0 {
+    if i.fragment.is_empty() {
         return Err(nom::Err::Error(PError {
             context: None,
             kind: PErrorKind::Nom(VerboseError::from_error_kind(i, ErrorKind::Eof)),

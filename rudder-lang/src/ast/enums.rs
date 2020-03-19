@@ -441,10 +441,10 @@ struct CrossIterator<'it, 'src> {
 
 impl<'it, 'src> CrossIterator<'it, 'src> {
     /// Create the iterator from a variable list and their possible values
-    fn new(variables: &'it Vec<(Token<'src>, HashSet<Token<'src>>)>) -> CrossIterator<'it, 'src> {
+    fn new(variables: &'it [(Token<'src>, HashSet<Token<'src>>)]) -> CrossIterator<'it, 'src> {
         CrossIterator {
             var_iterators: variables
-                .into_iter()
+                .iter()
                 .map(|(v, i)| VariableIterator::new(*v, i))
                 .collect(),
             init: true,
@@ -470,7 +470,7 @@ impl<'it, 'src> Iterator for CrossIterator<'it, 'src> {
             );
         }
         for v in &mut self.var_iterators {
-            if let None = v.next() {
+            if v.next().is_none() {
                 v.next(); // reset iterator then increment next one
             } else {
                 return Some(
@@ -524,11 +524,11 @@ impl<'src> EnumExpression<'src> {
                 e2.list_variables_tree(variables);
             }
             EnumExpression::Compare(var, tree, item) => {
-                let list = variables.entry((*var, *tree)).or_insert(HashSet::new());
+                let list = variables.entry((*var, *tree)).or_insert_with(HashSet::new);
                 list.insert(*item);
             }
             EnumExpression::Range(var, tree, item1, item2) => {
-                let list = variables.entry((*var, *tree)).or_insert(HashSet::new());
+                let list = variables.entry((*var, *tree)).or_insert_with(HashSet::new);
                 // we only need one variable for its siblings
                 // a range must be withing siblings
                 // -> pushing only one item is sufficient

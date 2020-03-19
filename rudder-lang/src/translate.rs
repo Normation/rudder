@@ -80,7 +80,7 @@ pub fn translate_file(json_file: &Path, rl_file: &Path, config_filename: &Path) 
     Ok(())
 }
 
-fn translate_meta_parameters(parameters: &Vec<Value>) -> Result<String> {
+fn translate_meta_parameters(parameters: &[Value]) -> Result<String> {
     let mut parameters_meta = String::new();
     for param in parameters {
         match param.as_object() {
@@ -428,7 +428,7 @@ fn translate_condition(_config: &toml::Value, cond: &str) -> Result<String> {
         };
         // TODO here we consider any match is an os match, should we have an OS whitelist ?
         // OS are global enum so we don't have to say which enum to match
-        return Ok(result.into());
+        return Ok(result);
     }
 
     // TODO detect condition expressions

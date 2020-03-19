@@ -18,7 +18,9 @@ use log::*;
 use std::{path::PathBuf, process::exit};
 use structopt::StructOpt;
 
-use rudderc::{compile::compile_file, file_paths, logger, translate::translate_file, Action};
+use rudderc::{
+    compile::compile_file, file_paths, logger::Logger, translate::translate_file, Action,
+};
 
 // MAIN
 
@@ -98,8 +100,14 @@ fn main() {
         Action::Compile
     };
 
+    let logger = if opt.json_log {
+        Logger::Json
+    } else {
+        Logger::Terminal
+    };
+
     // Initialize logger
-    logger::set(opt.log_level, opt.json_log, action);
+    logger.init(opt.log_level, action);
 
     // Load files
     let (libs_dir, translate_config, input, output) =
@@ -107,8 +115,7 @@ fn main() {
             .unwrap_or_else(|e| {
                 error!("{}", e);
                 // required before returning in order to have proper logging
-                logger::print_output_closure(
-                    opt.json_log,
+                logger.end(
                     false,
                     "possibly no input path found",
                     "possibly no output path found",
@@ -130,13 +137,7 @@ fn main() {
             "OK".bright_cyan()
         ),
     };
-    logger::print_output_closure(
-        opt.json_log,
-        result.is_ok(),
-        input.display(),
-        output.display(),
-        action,
-    );
+    logger.end(result.is_ok(), input.display(), output.display(), action);
     if result.is_err() {
         exit(1)
     }

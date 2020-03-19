@@ -290,7 +290,7 @@ impl<'src> AST<'src> {
         &self,
         resource: Token<'src>,
         state: Option<Token<'src>>,
-        params: &Vec<Value<'src>>,
+        params: &[Value<'src>],
     ) -> Result<()> {
         let fun_kind = if let Some(st) = state { st } else { resource };
         let emptyvec = Vec::new();

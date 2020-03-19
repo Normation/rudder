@@ -83,7 +83,7 @@ pub fn get(
     opt_output: &Option<PathBuf>,
 ) -> Result<(PathBuf, PathBuf, PathBuf, PathBuf)> {
     // Ease of read closure
-    let err_gen = |e: &str| Err(Error::User(format!("{}", e)));
+    let err_gen = |e: &str| Err(Error::User(e.to_string()));
 
     let config: toml::Value = match std::fs::read_to_string(default_paths) {
         Err(e) => return err_gen(&format!("Could not read toml config file: {}", e)),
