@@ -137,7 +137,7 @@ rudder.jdbc.batch.max.size=500
 # Defaults: archive disabled, delete after 4 days.
 #
 
-rudder.batch.reportscleaner.archive.TTL=4
+rudder.batch.reportscleaner.archive.TTL=0
 rudder.batch.reportscleaner.delete.TTL=4
 
 # Report with level "log" (log_info, log_warn, etc) are not kept more than a couple of runs.

@@ -73,8 +73,8 @@ object AutomaticReportsCleaning {
   val defaultHour   = 0
   val defaultDay    = "sunday"
 
-  val defaultArchiveTTL = 4
-  val defaultDeleteTTL  = 15
+  val defaultArchiveTTL = 0
+  val defaultDeleteTTL  = 4
 
   /**
    *  Build a frequency depending on the value
