@@ -40,6 +40,7 @@ package com.normation.rudder.inventory
 import java.io.InputStream
 import java.security.{PublicKey => JavaSecPubKey}
 
+import com.github.ghik.silencer.silent
 import com.normation.errors.Chained
 import com.normation.errors.IOResult
 import com.normation.errors.SystemError
@@ -133,8 +134,10 @@ class InventoryProcessor(
   /*
    * Saving reports is a loop which consume items from queue
    */
+
+  @silent("a type was inferred to be `Any`")
   def loop(): UIO[Nothing] = {
-    queue.take.flatMap(saveReport).flatMap(_ => loop())
+    queue.take.flatMap(saveReport).forever
   }
 
   // start the inventory processing
