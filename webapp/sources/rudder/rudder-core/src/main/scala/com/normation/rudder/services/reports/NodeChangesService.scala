@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.reports
 
-import com.github.ghik.silencer.silent
 import org.joda.time.DateTime
 import org.joda.time.Interval
 import com.normation.rudder.domain.policies.RuleId
@@ -235,8 +234,7 @@ class CachedNodeChangesServiceImpl(
       }
     }
 
-    @silent("dead code following this construct") // yes, that's a loop
-    def consumeLoop(queue: Queue[ChangesUpdate]): ZIO[Blocking, Nothing, Nothing] = {
+    def consumeOne(queue: Queue[ChangesUpdate]): ZIO[Blocking, Nothing, Unit] = {
       for {
         // takeAll doesn't wait for items, so we wait for at least one and then take all other
         one  <- queue.take
@@ -246,11 +244,7 @@ class CachedNodeChangesServiceImpl(
         // update the cache, log and never fail
         fib  <- blocking.blocking(updateCache(mergeUpdates(one, all))).fork
         _    <- fib.join
-        _    <- ReportLoggerPure.Changes.trace(s"done, looping")
-        loop <- consumeLoop(queue)
-      } yield {
-        loop
-      }
+      } yield ()
     }
 
     /*
@@ -269,7 +263,7 @@ class CachedNodeChangesServiceImpl(
     ZioRuntime.runNow(
       for{
         _ <- ReportLoggerPure.Changes.debug(s"Start waiting for rule changes update")
-       _  <- consumeLoop(queue).provide(ZioRuntime.environment).forkDaemon
+       _  <- (consumeOne(queue) *> ReportLoggerPure.Changes.trace(s"done, looping")).forever.provide(ZioRuntime.environment).forkDaemon
       } yield ()
     )
   }

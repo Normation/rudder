@@ -297,7 +297,7 @@ class ProcessFile(
   val queue = ZioRuntime.unsafeRun(Queue.bounded[WatchEvent](10000))
 
   // processing message is a loop, so UIO[Nothing]
-  def loop: UIO[Nothing] = processMessage().flatMap(_ => loop)
+  def loop: UIO[Nothing] = processMessage().forever
   def processMessage(): UIO[Unit] = {
     queue.take.flatMap {
       case WatchEvent.End(file) => // simple case: remove file from map
