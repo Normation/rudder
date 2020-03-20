@@ -39,27 +39,65 @@ You will also need a wsgi file to deploy your application. You can start from nc
 To run ncf api in a development environment, run the following commands:
 
 ```shell
-wget https://raw.githubusercontent.com/Normation/rudder-packages/master/ncf-api-virtualenv/SOURCES/virtualenv.py
+wget https://repository.rudder.io/build-dependencies/virtualenv/virtualenv-16.5.0.tar.gz
+tar xzvf virtualenv-16.5.0.tar.gz
+rm -rf virtualenv-16.5.0.tar.gz
+mv virtualenv-16.5.0/* <ncf_path>/api/
+cd <ncf_path>/api/
 python virtualenv.py flask
 flask/bin/pip install -r requirements.txt
-export PYTHONPATH=/path/to/ncf/tools:$PYTHONPATH
+export PYTHONPATH=<ncf_full_path>/tools:$PYTHONPATH
 ./run.py
 ```
 
-ncf API is now available on http://localhost:5000 
+ncf API is now available at http://localhost:5000 
 
 ### ncf technique editor
 
-You will need apache to be installed (apache2/httpd)
+#### Manual install
+
+##### CFEngine required
+The simplest way to have cfengine installed and setup to the right version is to install a `rudder-agent`
+To install a rudder agent:
+```
+wget --quiet -O- "https://repository.rudder.io/apt/rudder_apt_key.pub" | sudo apt-key add -
+echo "deb http://repository.rudder.io/apt/6.0/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/rudder.list
+sudo apt update
+sudo apt install -y rudder-agent
+```
+
+##### apache required
+Depending on your OS, the package will be named `apache2` (Debian-like, `apt install apache2`) or `httpd` (RHEL for example).
+Be careful as directories differ a bit: `/etc/apache2/conf-enabled/` for systems using `apache2`, `/etc/httpd/conf.d/` for systems using `httpd`
+
+> Replace `<user>` and `<ncf_full_path>`
 
 ```shell
-cp  /path/to/ncf/api/dev-env/ncf-builder.conf /etc/(apache2|httpd)/conf.d/
-chmod 755 /path/to/ncf/builder -R
-service (apache2|httpd) restart
+sudo cp <ncf_full_path>/api/dev_env/ncf-builder.conf /etc/apache2/conf-enabled/
+sudo sed -i "s/8042/8080/g" /etc/apache2/conf-enabled/ncf-builder.conf
+sudo sed -i "s/\/path\/to\/ncf\/builder/\/home\/<user>\/rudder\/ncf\/builder/g" /etc/apache2/conf-enabled/ncf-builder.conf
+chmod 755 <ncf_full_path>/builder -R
+sudo a2enmod rewrite
+sudo a2enmod proxy
+sudo a2enmod proxy_http
+sudo service apache2 restart
 ```
 
 ncf API is now available on http://localhost/ncf
 ncf technique editor is now available on http://localhost/ncf-builder
+
+#### Setup script
+
+All the previous steps are summed up in the following script: [setup_dev_env.sh](https://github.com/Normation/ncf/blob/master/api/setup_dev_env.sh)
+Do not run this script as sudo! Though some commands require sudo privileges, you may be prompted to type sudo password
+
+The first param is your local user 
+The second param is the action you want to do: simply `--install`, `--run` or do both (`--full`)
+This script should be copied anywhere on your machine and simply executed.
+```bash
+./setup_dev_env.sh <user> <--action>
+```
+Then let it run (the running script is the ncf api)
 
 ### Disable Rudder authentication
 
