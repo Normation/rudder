@@ -1,11 +1,21 @@
 {
-    "name": "variables",
-    "description": "technique using variables",
+    "name": "parameters mult",
+    "description": "technique using multiple parameters",
     "version": "1.0",
     "parameter": [
         {
-            "name": "coucou",
-            "id": "ac15b0bd-a226-4ad7-b93c-5515cae507a1",
+            "name": "paramtest",
+            "id": "d74a03dd-5b0b-4b06-8dcf-b4e0cb387c60",
+            "constraints": {
+                "allow_whitespace_string": false,
+                "allow_empty_string": false,
+                "max_length": 16384
+            },
+            "type": "string"
+        },
+        {
+            "name": "12",
+            "id": "6e82d276-1181-4596-8fd8-bc3c007ae9ff",
             "constraints": {
                 "allow_whitespace_string": false,
                 "allow_empty_string": false,
@@ -14,9 +24,10 @@
             "type": "string"
         }
     ],
-    "bundle_name": "variables_technique",
+    "bundle_name": "parameters_mult",
     "bundle_args": [
-        "coucou"
+        "paramtest",
+        "12"
     ],
     "method_calls": [
         {
@@ -28,16 +39,6 @@
                 "",
                 "",
                 ""
-            ]
-        },
-        {
-            "class_context": "any",
-            "component": "Variable string",
-            "method_name": "variable_string",
-            "args": [
-                "hello",
-                "world",
-                "valhelloworld"
             ]
         }
     ]

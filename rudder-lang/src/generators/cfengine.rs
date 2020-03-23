@@ -85,18 +85,30 @@ impl CFEngine {
     }
     fn format_case_expr(&mut self, gc: &AST, case: &EnumExpression) -> Result<String> {
         Ok(match case {
-            EnumExpression::And(e1, e2) => format!(
-                "({}).({})",
-                self.format_case_expr(gc, e1)?,
-                self.format_case_expr(gc, e2)?
-            ),
+            EnumExpression::And(e1, e2) => {
+                let mut lexpr = self.format_case_expr(gc, e1)?;
+                let mut rexpr = self.format_case_expr(gc, e2)?;
+                if lexpr.contains("|") {
+                    lexpr = format!("({})", lexpr);
+                }
+                if rexpr.contains("|") {
+                    rexpr = format!("({})", rexpr);
+                }
+                format!("{}.{}", lexpr, rexpr)
+            }
             EnumExpression::Or(e1, e2) => format!(
-                "({})|({})",
+                "{}|{}",
                 self.format_case_expr(gc, e1)?,
                 self.format_case_expr(gc, e2)?
             ),
             // TODO what about classes that have not yet been set ? can it happen ?
-            EnumExpression::Not(e1) => format!("!({})", self.format_case_expr(gc, e1)?),
+            EnumExpression::Not(e1) => {
+                let mut expr = self.format_case_expr(gc, e1)?;
+                if expr.contains("|") || expr.contains("&") {
+                    expr = format!("!({})", expr);
+                }
+                format!("!{}", expr)
+            }
             EnumExpression::Compare(var, e, item) => {
                 if let Some(true) = gc.enum_list.enum_is_global(*e) {
                     // We probably need some translation here since not all enums are available in cfengine (ex debian_only)
@@ -188,8 +200,8 @@ impl CFEngine {
                 let method_name = format!("{}_{}", sd.resource.fragment(), sd.state.fragment());
                 let index = Self::get_class_parameter_index(method_name)?;
                 let class = self.format_class(in_class)?;
-                let resource_param = if sd.resource_params.len() > index {
-                    if let Ok(param) = self.parameter_to_cfengine(&sd.resource_params[index]) {
+                let state_param = if sd.resource_params.len() > 0 {
+                    if let Ok(param) = self.parameter_to_cfengine(&sd.resource_params[0]) {
                         format!(", {}", param)
                     } else {
                         "".to_string()
@@ -202,7 +214,7 @@ impl CFEngine {
                     component,
                     id,
                     component,
-                    resource_param,
+                    state_param,
                 );
                 let method = &format!(
                     "    \"{}_${{report_data.directive_id}}_{}\" usebundle => {}_{}({})",

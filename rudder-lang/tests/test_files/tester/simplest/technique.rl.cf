@@ -8,7 +8,7 @@ bundle agent simplest_technique
   vars:
     "resources_dir" string => "${this.promise_dirname}/resources";
   methods:
-    "File absent_${report_data.directive_id}_0" usebundle => _method_reporting_context("File absent"),
+    "File absent_${report_data.directive_id}_0" usebundle => _method_reporting_context("File absent", "tmp"),
                                                        if => concat("scientific_linux");
     "File absent_${report_data.directive_id}_0" usebundle => file_absent("tmp"),
                                                        if => concat("scientific_linux");

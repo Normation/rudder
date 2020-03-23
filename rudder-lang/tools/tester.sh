@@ -5,7 +5,7 @@ name=$1
 
 dir=/tmp/rudderc/tester/
 cfjson_tester=/opt/rudder/share/rudder-lang/tools/cfjson_tester
-technique_path=/var/rudder/configuration-repository/techniques/ncf_techniques/1.0/technique.cf
+technique_path=/var/rudder/configuration-repository/techniques/ncf_techniques/$name/1.0/technique.cf
 
 mkdir -p $dir/
 

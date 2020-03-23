@@ -393,7 +393,8 @@ fn translate_condition(_config: &toml::Value, cond: &str) -> Result<String> {
         // matches a word that can be negative and that be followed by .| + word... possibly wrapped into parenthesis
         static ref OS_RE: Regex = Regex::new(
             // OS part: debian_9_0 \ And optional condition: (!(ubuntu|otheros).something)
-            r"^\(?(?P<os>([a-zA-Z\d]+)(_([a-zA-Z\d]+))*(\|([a-zA-Z\d]+)(_([a-zA-Z\d]+))*)*)\)?(.(?P<cdt>\(\(*!*\(*\w+\)*([.|]\(*!*\(*\w+\)*)*\)))?$"
+            // r"^\(?(?P<os>([a-zA-Z\d]+)(_([a-zA-Z\d]+))*(\|([a-zA-Z\d]+)(_([a-zA-Z\d]+))*)*)\)?(.(?P<cdt>\(\(*!*\(*\w+\)*([.|]\(*!*\(*\w+\)*)*\)))?$"
+            r"^(\(*\w+\(*\)*(\.|\|)\(*\w+\)*)*$"
         ).unwrap();
     }
 
@@ -420,15 +421,10 @@ fn translate_condition(_config: &toml::Value, cond: &str) -> Result<String> {
         if !is_balanced(cond) {
             return Err(Error::User(format!("Parenthesis error '{}'", cond)));
         }
-        let os = OS_RE.replace_all(cond, "$os");
-        let mut result = os.to_string();
-        let cdt = OS_RE.replace_all(cond, "$cdt");
-        if cdt.len() > 0 {
-            result.push_str(&format!("&& {}", cdt));
-        };
+        let transformed_and = cond.replace(".", "&");
         // TODO here we consider any match is an os match, should we have an OS whitelist ?
         // OS are global enum so we don't have to say which enum to match
-        return Ok(result);
+        return Ok(transformed_and.into());
     }
 
     // TODO detect condition expressions

@@ -7,12 +7,12 @@ my %resource = ();
 my @state = ();
 my @config_lines= ();
 
-my $cfgpath = "./tools/rudderc.conf";
+my $cfgpath = "/opt/rudder/etc/rudderc.conf";
 if (@ARGV) {
   ($cfgpath) = @ARGV;
 }
 # ultralight homemade parser
-my $ncfpath = get_ncfpath_from_conf_file($cfgpath);
+my ($ncfpath, $libpath, $translate_config) = get_paths_from_conf_file($cfgpath);
 my $ncf_methods = $ncfpath . "/tree/30_generic_methods/*";
 my $is_empty=1;
 foreach my $file (glob $ncf_methods) {
@@ -25,9 +25,11 @@ foreach my $file (glob $ncf_methods) {
   open(my $fd, "<$file") or die "cannot read $file";
 
   my $resource_blocks=1;
-  my $resource_identfiers=1;
-  if ($file =~ /\/variable_/) { $resource_identfiers=2; }
-  # only one paramater, TODO hack for translate
+  my $resource_identifiers=1;
+  if ($file =~ /\/http_request_/) { $resource_identifiers=2; }
+  if ($file =~ /\/sharedfile_/) { $resource_identifiers=2; }
+  if ($file =~ /\/variable_/) { $resource_identifiers=2; }
+  # exception's exception: only one parameter for these resources, TODO hack for translate
   if ($file =~ /\/variable_string_escaped/) { next; }
 
   # init data
@@ -43,7 +45,7 @@ foreach my $file (glob $ncf_methods) {
   {
     if ($line =~ /^#.*\@parameter\s+(\w+)\s.*$/) {
       $param_id{$1}=$i;
-      if ($i < $resource_identfiers) {
+      if ($i < $resource_identifiers) {
         push @resource_params, "p$i";
       } else {
         push @state_params, "p$i";
@@ -58,10 +60,14 @@ foreach my $file (glob $ncf_methods) {
     }
     elsif($line =~ /^bundle agent (\w+)\(/) {
       $gm = $1;
-      # expection for kernel that should be named kernel_module
+      # exception for kernel that should be kernel_module (took from state)
       my $res_type = "[a-zA-Z0-9]+";
       if ($1 =~ /kernel_module/) {
         $res_type = "kernel_module";
+      }
+      # exception for http resource that should be http_request (took from state)
+      elsif ($1 =~ /http_request/) {
+        $res_type = "http_request";
       }
       $gm =~ /^((?:$res_type\_){$resource_blocks})(\w+)$/;
       ($resource, $state) = ($1, $2);
@@ -79,7 +85,7 @@ if ($is_empty) {
   print "no ncf method found for $ncf_methods";
 }
 
-open(my $stdlib,">./libs/stdlib.rl") or die "Cannot write stdlib";
+open(my $stdlib, '>', "$libpath/stdlib.rl") or die "Cannot write stdlib ($libpath/stdlib.rl)";
 print $stdlib "\@format=0";
 print $stdlib "\n\n";
 print $stdlib join("\n",keys %resource);
@@ -89,6 +95,8 @@ print $stdlib "\n\n";
 close($stdlib);
 
 my $config_header = "[resources]
+http_request = { parameter_count=2 }
+sharedfile = { parameter_count=2 }
 variable = { parameter_count=2 }
 
 [classes]
@@ -100,22 +108,30 @@ command_execution = \"(command_execution)_(.*)\"
 
 [methods]
 ";
-open(my $conf,">./tools/translate_config.toml") or die "Cannot write methods config";
+open(my $conf, '>', $translate_config) or die "Cannot write methods config ($translate_config)";
 print $conf join("\n",$config_header);
 print $conf join("\n",@config_lines);
 close($conf);
 
 
-sub get_ncfpath_from_conf_file {
+sub get_paths_from_conf_file {
   my ($file) = @_;
 
   my $is_default = 0;
-  my $ncf = "";
+  my $ncf = "/usr/share/ncf";
+  my $libpath = "/opt/rudder/share/rudder-lang/lib";
+  my $translate_config = "/opt/rudder/share/rudder-lang/tools/translate_config.toml";
   open (FILE, $file);
   while (<FILE>) {
     chomp;
-    if ($is_default = 1 && /\s*ncf\s*=\s*"(?<path>[\/\w]+)"\s*/ ) {
+    if ($is_default == 1 && /\s*ncf\s*=\s*"(?<path>[\/\w.-]+)"\s*/ ) {
       $ncf = $+{path};
+    }
+    if ($is_default == 1 && /\s*rudderc_libs\s*=\s*"(?<path>[\/\w.-]+)"\s*/ ) {
+      $libpath = $+{path};
+    }
+    if ($is_default == 1 && /\s*translate_config\s*=\s*"(?<path>[\/\w.-]+)"\s*/ ) {
+      $translate_config = $+{path};
     }
     if ( /\s*\[\s*(?<group>\w+)\s*\]\s*/ ) {
       if ($+{group} eq "default_paths") {
@@ -126,5 +142,5 @@ sub get_ncfpath_from_conf_file {
     }
   }
   close (FILE);
-  return $ncf;
+  return ($ncf, $libpath, $translate_config);
 }

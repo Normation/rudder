@@ -27,10 +27,10 @@ if not os.path.exists(cfg_full_path):
 
 cfg = configparser.ConfigParser()
 cfg.read(os.getcwd()+cfgpath)
-ncf_dir = cfg['default_paths']['ncf'].strip('\"')
 cfengine_path = cfg['default_paths']['cfengine'].strip('\"')
-
+ncf_dir = cfg['default_paths']['ncf'].strip('\"')
 sys.path.append(ncf_dir+'/tools')
+
 import ncf
 import codecs
 import json
