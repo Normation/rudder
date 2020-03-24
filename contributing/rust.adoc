@@ -1,5 +1,8 @@
 = Rust dev environment
 
+The compiler version used to build the projets are
+set in a `rust-toolchain` file in the project root.
+
 We can rely on recent Rust compilers as we control the version
 installed on our package builders. The easiest way to install and manage
 Rust toolchains is to use https://rustup.rs[rustup].
