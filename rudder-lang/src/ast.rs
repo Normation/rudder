@@ -391,6 +391,13 @@ impl<'src> AST<'src> {
                             }
                         }
                     }
+                    if cases.is_empty() {
+                        fail!(
+                            keyword,
+                            "Case list must not be empty in { }",
+                            keyword
+                        )
+                    }
                     fix_results(cases.iter().flat_map(|(_cond, sts)| {
                         sts.iter().map(|st| self.cases_check(variables, st, false))
                     }))?;
