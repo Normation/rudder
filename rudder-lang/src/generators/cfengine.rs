@@ -120,7 +120,7 @@ impl CFEngine {
                     format!("{}_{}_{}", prefix, e.fragment(), item.fragment())
                 }
             }
-            EnumExpression::Range(var, e, item1, item2) => unimplemented!(), // TODO
+            EnumExpression::RangeCompare(var, e, item1, item2) => unimplemented!(), // TODO
             EnumExpression::Default(_) => {
                 // extract current cases and build an opposite expression
                 if self.current_cases.is_empty() {
@@ -129,6 +129,7 @@ impl CFEngine {
                     format!("!({})", self.current_cases.join("|"))
                 }
             }
+            EnumExpression::NoDefault(_) => { "".to_string() }
         })
     }
 

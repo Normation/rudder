@@ -25,7 +25,6 @@ use test_case::test_case;
 #[test_case("f_enum")]
 #[test_case("f_fuzzy")]
 #[test_case("s_basic")]
-#[test_case("s_enum_mapping")]
 #[test_case("s_state_case")]
 // #[test_case("s_declare")]
 // #[test_case("s_does_not_exist")] // supposed to fail as the file does not exist
@@ -128,19 +127,6 @@ enum success {
 enum enum {
     ascendant,
 }"#; "f_enum_reserved_keyword")]
-// ======= ENUM MAPPINGS ======= (313)
-
-// TD is this really supposed to work ?
-#[test_case("s_mapenum_wildcards", r#"@format=0
-enum success { ok }
-enum success ~> wild {
-    * -> *
-}"#; "s_mapenum_wildcards")]
-#[test_case("f_mapenum_wildcards", r#"@format=0
-enum success { ok }
-enum success ~> wild {
-    * > *
-}"#; "f_mapenum_wildcards")]
 // ======= RESOURCE DEFINITIONS ======= (713)
 #[test_case("s_resdef", r#"@format=0
 resource Rname ()
@@ -216,8 +202,8 @@ resource Configure_NTP()
 Configure_NTP state technique() {
   case {
     # this case makes no sense, testing purpose
-    os=~ubuntu => file("/tmp").absent(),
-    os=~os:debian => file("/tmp").present(),
+    system=~ubuntu => file("/tmp").absent(),
+    system=~debian => file("/tmp").present(),
     default => log "info: ok"
   }
 }"#; "s_state_case")]
@@ -227,7 +213,7 @@ Configure_NTP state technique() {
 // Configure_NTP state technique() {
 //   case {
 //     ubuntu => file("/tmp").doesnotexist(),
-//     os:debian => file("/tmp").doesnoteither()
+//     debian => file("/tmp").doesnoteither()
 //   }
 // }"#; "f_state_case")] // PANIC
 #[test_case("f_state_case_nonexhaustive", r#"@format=0
@@ -236,7 +222,7 @@ Configure_NTP state technique() {
 resource Configure_NTP()
 Configure_NTP state technique() {
   case {
-    os=~os:debian => file("/tmp").absent()
+    system=~debian => file("/tmp").absent()
   }
 }"#; "f_state_case_nonexhaustive")]
 #[test_case("s_state_casedefault", r#"@format=0
@@ -245,7 +231,7 @@ resource Configure_NTP()
 Configure_NTP state technique() {
   case {
     # this case makes no sense, testing purpose
-    os=~ubuntu => file("/tmp").absent(),
+    system=~ubuntu => file("/tmp").absent(),
     default => log "info: ok"
   }
 }"#; "s_state_casedefault")]

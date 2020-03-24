@@ -391,6 +391,13 @@ impl<'src> AST<'src> {
                             }
                         }
                     }
+                    if cases.is_empty() {
+                        fail!(
+                            keyword,
+                            "Case list must not be empty in { }",
+                            keyword
+                        )
+                    }
                     fix_results(cases.iter().flat_map(|(_cond, sts)| {
                         sts.iter().map(|st| self.cases_check(variables, st, false))
                     }))?;
@@ -417,16 +424,9 @@ impl<'src> AST<'src> {
     }
 
     fn enum_expression_check(&self, context: &VarContext, statement: &Statement) -> Result<()> {
-        let getter = |k| {
-            context
-                .variables
-                .get(&k)
-                .or_else(|| self.context.variables.get(&k))
-                .map(VarKind::clone)
-        };
         match statement {
             Statement::Case(case, cases) => {
-                let errors = self.enum_list.evaluate(&getter, cases, *case);
+                let errors = self.enum_list.evaluate(cases, *case);
                 if !errors.is_empty() {
                     return Err(Error::from_vec(errors));
                 }

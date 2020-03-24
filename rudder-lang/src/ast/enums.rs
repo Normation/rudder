@@ -6,28 +6,64 @@ use super::resource::Statement;
 use crate::error::*;
 use crate::parser::{PEnum, PEnumExpression, PSubEnum, Token};
 use std::collections::{HashMap, HashSet};
+use std::fmt;
+
+// TODO enum alias
+// TODO 
+// - trouver les todo
+
+/// This item type is internal, because First and Last cannot be constructed from an enum declaration or from and enum expression
+#[derive(Debug,Hash,PartialEq,Eq,Clone)]
+enum EnumItem<'src> {
+    First(Token<'src>), // token is the parent item
+    Item(Token<'src>),
+    Last(Token<'src>), // token is the parent item
+}
+
+/// Format the full token for compiler debug info
+impl<'src> fmt::Display for EnumItem<'src> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            EnumItem::First(p) => write!(f, "'First item of {}'", p),
+            EnumItem::Item(i) => write!(f, "{}", i),
+            EnumItem::Last(p) => write!(f, "'Last item of {}'", p),
+        }
+    }
+}
+
+/// Convert a Vec of tokns into a vec of EnumItems
+fn from_item_vec<'src>(father: Token<'src>, items: Vec<Token<'src>>) -> Vec<EnumItem<'src>> {
+        // detect incompleteness
+        let incomplete = items.contains(&Token::from("*"));
+        if incomplete {
+            let mut item_list = items.into_iter().filter(|x| *x != Token::from("*")).map(EnumItem::Item).collect::<Vec<EnumItem>>();
+            item_list.insert(0, EnumItem::First(father));
+            item_list.push(EnumItem::Last(father));
+            item_list
+        } else {
+            items.into_iter().map(EnumItem::Item).collect()   
+        }
+}
 
 // TODO Should a non global enum item be permitted as a variable name and must it be unique ?
 /// An enum tree is a structure containing the whole definition of an enum
 #[derive(Debug)]
-pub struct EnumTree<'src> {
-    // a global tree has an automatic variable of its name and its items cannot be used as a variable name
+struct EnumTree<'src> {
+    // global tree items cannot be used as a variable name
+    // a global variable is automatically created with the same name as a global enum
     global: bool,
     // Tree name = root element
     name: Token<'src>,
     // parent -> ordered children
-    children: HashMap<Token<'src>, Vec<Token<'src>>>,
+    children: HashMap<Token<'src>, Vec<EnumItem<'src>>>,
     // child -> parent
-    parents: HashMap<Token<'src>, Token<'src>>,
-    // List of parents that have an incomplete children list
-    incompletes: HashSet<Token<'src>>,
+    parents: HashMap<EnumItem<'src>, Token<'src>>,
 }
 impl<'src> EnumTree<'src> {
     /// create a new enumtree with a single level of children
-    pub fn new(
+    fn new(
         name: Token<'src>,
-        elders: Vec<Token<'src>>,
-        incomplete: bool,
+        items: Vec<Token<'src>>,
         global: bool,
     ) -> EnumTree<'src> {
         let mut myself = EnumTree {
@@ -35,86 +71,100 @@ impl<'src> EnumTree<'src> {
             name,
             children: HashMap::new(),
             parents: HashMap::new(),
-            incompletes: HashSet::new(),
         };
-        if incomplete {
-            myself.incompletes.insert(name);
+        let item_list = from_item_vec(name, items);
+        for i in item_list.iter() {
+            myself.parents.insert(i.clone(), name);
         }
-        for i in elders.iter() {
-            myself.parents.insert(*i, name);
-        }
-        myself.children.insert(name, elders);
+        myself.children.insert(name, item_list);
         myself
     }
 
     /// add a new level to an existing tree
-    pub fn extend(&mut self, father: Token<'src>, children: Vec<Token<'src>>, incomplete: bool) {
-        if !self.parents.contains_key(&father) {
+    fn extend(&mut self, father: Token<'src>, items: Vec<Token<'src>>) {
+        let father_item = EnumItem::Item(father);
+        if !self.parents.contains_key(&father_item) {
             panic!("Subtree's parent must exist !")
         }
-        if incomplete {
-            self.incompletes.insert(father);
+        let item_list = from_item_vec(father, items);
+        for i in item_list.iter() {
+            self.parents.insert(i.clone(), father);
         }
-        for i in children.iter() {
-            self.parents.insert(*i, father);
-        }
-        self.children.insert(father, children);
+        self.children.insert(father, item_list);
     }
 
     /// iterate over ascendance (root, ... great father, father )
-    fn get_ascendance(&self, item: Token<'src>) -> Vec<Token<'src>> {
+    fn get_ascendance(&self, item: EnumItem<'src>) -> Vec<Token<'src>> {
         if self.parents.contains_key(&item) {
-            let mut ascendance = self.get_ascendance(self.parents[&item]);
+            let mut ascendance = self.get_ascendance(EnumItem::Item(self.parents[&item]));
             ascendance.push(self.parents[&item]);
             ascendance
         } else {
-            vec![]
+            Vec::new()
         }
     }
 
-    /*    // iterate over a range (A..D -> A,B,C,D),
-    // a range can be unterminated or unstarted but not both
-    fn get_range(&self, first: Option<Token<'src>>, last: Option<Token<'src>>) -> &[Token<'src>] {
-        match first {
-            None => match last {
-                None => panic!("BUG"),
-                Some(last) => {
-                    let siblings = &self.children[&self.parents[&last]];
-                    let pos = siblings.iter().position(|i| *i==last).unwrap();
-                    &siblings[..pos+1]
-                },
+    /// Return true if item is in the range between first and last (inclusive) None means last sibling
+    fn is_in_range(&self, item: &EnumItem<'src>, first: &Option<EnumItem<'src>>, last: &Option<EnumItem<'src>>) -> bool {
+        // 3 cases : item is a sibling, item is a descendant, item is somewhere else
+
+        // find siblings
+        let item_list = if let Some(i) = first {
+            &self.children[&self.parents[&i]]
+        } else if let Some(i) = last {
+            &self.children[&self.parents[&i]]
+        } else { panic!("Empty range") }; // else None,None is imposible
+        
+        // if item is a descendant, find its ancestor that is a sibling
+        let test_item = if item_list.contains(item) { // Item is a sibling
+            item.clone()
+        } else {
+            match self.get_ascendance(item.clone()).iter().find(|i| item_list.contains(&EnumItem::Item(**i))) {
+                Some(p) => EnumItem::Item(*p), // p is an ascendant of item that is in the list
+                None => return false // item is not in this subtree
             }
-            Some(first) => match last {
-                None => {
-                    let siblings = &self.children[&self.parents[&first]];
-                    let pos = siblings.iter().position(|i| *i==first).unwrap();
-                    &siblings[pos..]
-                },
-                Some(last) => {
-                    let siblings = &self.children[&self.parents[&first]];
-                    let pos1 = siblings.iter().position(|i| *i==first).unwrap();
-                    let pos2 = siblings.iter().position(|i| *i==last).unwrap();
-                    &siblings[pos1..pos2+1]
-                }
-            }
-        }
-    }*/
+        };
+        // find each item position
+        let item_position = item_list.iter().position(|x| x == &test_item ).unwrap(); // item is necessary in the list
+        let first_position = match first {
+            None => 0,
+            Some(i) => item_list.iter().position(|x| x == i ).unwrap(), // first and last are necessary in the list
+        };
+        let last_position = match last {
+            None => item_list.len()-1,
+            Some(i) => item_list.iter().position(|x| x == i ).unwrap(), // first and last are necessary in the list
+        };
+        item_position >= first_position && item_position <= last_position
+    }
+
+    /// return true if left and right have same parent
+    fn are_siblings(&self, left: Token<'src>, right: Token<'src>) -> bool {
+        self.parents.get(&EnumItem::Item(left)) == self.parents.get(&EnumItem::Item(right))
+    }
 
     /// Given a list of nodes, find the subtree that includes all those nodes and their siblings
-    /// This subtree is the minimal enum tree use by an expression
+    /// This subtree is the minimal enum tree used by an expression
     /// Terminators returns the leaves of this subtree
-    fn terminators(&self, items: HashSet<Token<'src>>) -> HashSet<Token<'src>> {
+    fn terminators(&self, nodefault: bool, items: HashSet<Token<'src>>) -> HashSet<EnumItem<'src>> {
         let mut terminators = HashSet::new();
         // insert root elements of tree
-        terminators.insert(self.name);
+        terminators.insert(EnumItem::Item(self.name));
         // invariant: terminators is the leaves list of a subtree of 'tree'
         for item in items.iter() {
             // from top to bottom ascendant, if ascendant in list, remove it and add its children
-            for ascendant in self.get_ascendance(*item).iter() {
-                if terminators.contains(ascendant) {
-                    terminators.remove(ascendant);
+            for ascendant in self.get_ascendance(EnumItem::Item(*item)).iter() {
+                let ascendant_item = EnumItem::Item(*ascendant);
+                if terminators.contains(&ascendant_item) {
+                    terminators.remove(&ascendant_item);
                     for i in self.children[ascendant].iter() {
-                        terminators.insert(*i);
+                        if nodefault {
+                            match i {
+                                EnumItem::First(_)|EnumItem::Last(_) => {},
+                                _ => {terminators.insert(i.clone());},
+                            }
+                        } else {
+                            terminators.insert(i.clone());
+                        }
                     }
                 }
             }
@@ -127,7 +177,7 @@ impl<'src> EnumTree<'src> {
 /// It also has a direct pointer from an item name to its enum type
 #[derive(Debug)]
 pub struct EnumList<'src> {
-    // element -> treename
+    // element -> treename, this list doesn't contain First and Last items of incomplete enums
     elements: HashMap<Token<'src>, Token<'src>>,
     // treename -> (tree, global)
     enums: HashMap<Token<'src>, EnumTree<'src>>,
@@ -170,9 +220,22 @@ impl<'src> EnumList<'src> {
         self.elements.iter().map(|(k, _)| k)
     }
 
-    // TODO Update when parser will be modified
+    /// Return true if item is in the range between first and last (inclusive) None means first/last sibling
+    fn is_in_range(&self, item: &EnumItem<'src>, first: &Option<Token<'src>>, last: &Option<Token<'src>>) -> bool {
+        // find tree then call is_in_range
+        let name = match item {
+            EnumItem::First(i) => i,
+            EnumItem::Item(i) => i,
+            EnumItem::Last(i) => i,
+        };
+        let first_item = first.map(EnumItem::Item);
+        let last_item = last.map(EnumItem::Item);
+        let tree = self.elements[&name];
+        self.enums[&tree].is_in_range(item, &first_item, &last_item)
+    }
+
     /// Add an enum definition from the parser
-    pub fn add_enum(&mut self, mut e: PEnum<'src>) -> Result<()> {
+    pub fn add_enum(&mut self, e: PEnum<'src>) -> Result<()> {
         // check for tree name duplicate
         if self.enums.contains_key(&e.name) {
             fail!(
@@ -182,17 +245,14 @@ impl<'src> EnumList<'src> {
                 self.enums.entry(e.name).key()
             );
         }
-        // detect incompleteness
-        let incomplete = e.items.contains(&Token::from("*"));
-        if incomplete {
-            e.items.retain(|x| *x != Token::from("*"));
-        }
         // check that enum is not empty
         if e.items.is_empty() {
             fail!(e.name, "Enum {} is empty", e.name);
         }
         // check for key name duplicate and insert reference
         for i in e.items.iter() {
+            // default value is not a real item
+            if i.fragment() == "*" { continue }
             if self.elements.contains_key(i) {
                 fail!(
                     i,
@@ -204,25 +264,19 @@ impl<'src> EnumList<'src> {
             }
             self.elements.insert(*i, e.name);
         }
-        let tree = EnumTree::new(e.name, e.items, incomplete, e.global);
+        let tree = EnumTree::new(e.name, e.items, e.global);
         self.enums.insert(e.name, tree);
         Ok(())
     }
 
-    // TODO Update when parser will be modified
-    /// Extend an existing enum with "enum in" from the parser
-    /// return the structue back if the parent doesn't exist (yet)
-    pub fn extend_enum(&mut self, mut e: PSubEnum<'src>) -> Result<Option<PSubEnum<'src>>> {
+    /// Extend an existing enum with "items in" from the parser
+    /// return the structure back if the parent doesn't exist (yet)
+    pub fn extend_enum(&mut self, e: PSubEnum<'src>) -> Result<Option<PSubEnum<'src>>> {
         // find tree name
         let treename = match self.elements.get(&e.name) {
             None => return Ok(Some(e)),
             Some(t) => *t,
         };
-        // detect incompleteness
-        let incomplete = e.items.contains(&Token::from("*"));
-        if incomplete {
-            e.items.retain(|x| *x != Token::from("*"));
-        }
         // find tree
         if let Some(tree) = self.enums.get_mut(&treename) {
             // check that enum is not empty
@@ -235,10 +289,12 @@ impl<'src> EnumList<'src> {
             }
             // check for key name duplicate and insert reference
             for i in e.items.iter() {
+                // default value is not a real item
+                if i.fragment() == "*" { continue }
                 if self.elements.contains_key(i) {
                     fail!(
                         i,
-                        "Enum Item {}:{} is already defined by {}",
+                        "Enum Item {}:{} is already defined at {}",
                         e.name,
                         i,
                         self.elements.entry(*i).key()
@@ -247,7 +303,7 @@ impl<'src> EnumList<'src> {
                 self.elements.insert(*i, treename);
             }
             // insert keys
-            tree.extend(e.name, e.items, incomplete);
+            tree.extend(e.name, e.items);
         }
         Ok(None)
     }
@@ -265,6 +321,7 @@ impl<'src> EnumList<'src> {
     {
         match expr {
             PEnumExpression::Default(t) => Ok(EnumExpression::Default(t)),
+            PEnumExpression::NoDefault(t) => Ok(EnumExpression::NoDefault(t)),
             PEnumExpression::Not(e) => Ok(EnumExpression::Not(Box::new(
                 self.canonify_expression(getter, *e)?,
             ))),
@@ -277,7 +334,7 @@ impl<'src> EnumList<'src> {
                     (Err(er1), Err(er2)) => Err(er1.append(er2)),
                     (Ok(ex1), Ok(ex2)) => Ok(EnumExpression::Or(Box::new(ex1), Box::new(ex2))),
                 }
-            }
+            },
             PEnumExpression::And(e1, e2) => {
                 let r1 = self.canonify_expression(getter, *e1);
                 let r2 = self.canonify_expression(getter, *e2);
@@ -287,16 +344,13 @@ impl<'src> EnumList<'src> {
                     (Err(er1), Err(er2)) => Err(er1.append(er2)),
                     (Ok(ex1), Ok(ex2)) => Ok(EnumExpression::And(Box::new(ex1), Box::new(ex2))),
                 }
-            }
-            PEnumExpression::Compare(var, enum1, value) => {
+            },
+            PEnumExpression::Compare(var, value) => {
                 // get enum1 real type
-                let treename = match enum1 {
-                    Some(e) => e,
-                    None => match self.elements.get(&value) {
-                        Some(t) => *t,
-                        None => fail!(value, "Enum value unknown {}", value), // TODO do not ignore the fact that it can be a variable name representing a boolean
-                                                                              // TODO and some other error cases (see original version)
-                    },
+                let treename = match self.elements.get(&value) {
+                    Some(t) => *t,
+                    None => fail!(value, "Enum value unknown {}", value), // TODO do not ignore the fact that it can be a variable name representing a boolean
+                                                                          // TODO and some other error cases (see original version)
                 };
                 // get var real name
                 let varname = match var {
@@ -304,20 +358,76 @@ impl<'src> EnumList<'src> {
                     None => treename, // TODO forbidden if tree is not global
                                       // TODO  and some other error cases (see original version)
                 };
-                // TODO check that var exists and has the right type
+                // TODO non global enum must have a variable here
+                // check that var exists and has the right kind
+                if let Some(variable) = var {
+                    match getter(variable) {
+                        Some(VarKind::Enum(_, _)) => {},
+                        _ => fail!(
+                            variable,
+                            "Variable {} doesn't exist or doesn't have an enum type{}",
+                            variable,
+                            get_suggestion_message(variable.fragment(), self.enums.keys()),
+                        )
+                    }
+                }
+                // TODO check that var as the right type
                 Ok(EnumExpression::Compare(varname, treename, value))
-            }
+            },
+            PEnumExpression::RangeCompare(var, left, right, position) => {
+                // left and right must not be both None
+                let value = if let Some(item) = left {
+                    item
+                } else if let Some(item) = right {
+                    item
+                } else {
+                    fail!(position, "Empty range is forbidden")
+                };
+                // get enum1 real type
+                let treename = match self.elements.get(&value) {
+                    Some(t) => *t,
+                    None => fail!(value, "Enum value unknown {}", value), // TODO do not ignore the fact that it can be a variable name representing a boolean
+                                                                            // TODO and some other error cases (see original version)
+                };
+                // get var real name
+                let varname = match var {
+                    Some(v) => v,
+                    None => treename, // TODO forbidden if tree is not global
+                                      // TODO  and some other error cases (see original version)
+                };
+                // check tat left and right are right type
+                if let Some(item) = left {
+                    if Some(&treename) != self.elements.get(&item) {
+                        fail!(item, "{} is unknown", item);
+                    }
+                }
+                if let Some(item) = right {
+                    if Some(&treename) != self.elements.get(&item) {
+                        fail!(item, "{} is unknown", item);
+                    }
+                }
+                // check that left and right are siblings
+                if let (Some(item1),Some(item2)) =  (left,right) {
+                    if ! self.enums[&treename].are_siblings(item1,item2) {
+                        fail!(item1, "{} and {} are not siblings", item1, item2);
+                    }
+                }
+                // TODO non global enum must have a variable here
+                // TODO check that var exists and has the right type
+                Ok(EnumExpression::RangeCompare(varname, treename, left, right))
+            },
         }
     }
 
     /// Evaluate a boolean expression (final version) given a set of variable=value
     fn eval_case(
         &self,
-        values: &HashMap<Token<'src>, Token<'src>>,
+        values: &HashMap<Token<'src>, EnumItem<'src>>,
         expr: &EnumExpression<'src>,
     ) -> bool {
         match expr {
-            EnumExpression::Default(_) => true,
+            EnumExpression::Default(_) => true, // never happens
+            EnumExpression::NoDefault(_) => true, // never happens
             EnumExpression::Not(e) => !self.eval_case(values, &e),
             EnumExpression::Or(e1, e2) => {
                 self.eval_case(values, &e1) || self.eval_case(values, &e2)
@@ -325,41 +435,42 @@ impl<'src> EnumList<'src> {
             EnumExpression::And(e1, e2) => {
                 self.eval_case(values, &e1) && self.eval_case(values, &e2)
             }
-            EnumExpression::Compare(var, _, value) => values[&var] == *value,
-            // TODO implement range
-            EnumExpression::Range(var, _, None, None) => true,
-            EnumExpression::Range(var, _, Some(a), None) => unimplemented!(),
-            EnumExpression::Range(var, _, None, Some(b)) => unimplemented!(),
-            EnumExpression::Range(var, _, Some(a), Some(b)) => unimplemented!(),
+            EnumExpression::Compare(var, _type, value) => values[&var] == EnumItem::Item(*value),
+            EnumExpression::RangeCompare(var, _type, first, last) => self.is_in_range(&values[&var], first, last),
         }
     }
 
     /// Evaluates a set of expressions possible outcome to check for missing cases and redundancy
     /// Variable context is here to guess variable type and to properly evaluate variables that are constant
-    pub fn evaluate<VG>(
+    pub fn evaluate(
         &self,
-        getter: &VG,
         cases: &[(EnumExpression<'src>, Vec<Statement<'src>>)],
         case_name: Token<'src>,
     ) -> Vec<Error> {
+        // keep only cases that are not default (default must be the last case and cases must not be empty)
+        let (match_cases, default, nodefault) = match cases.last().unwrap().0 {
+            EnumExpression::Default(_) => (cases.split_last().unwrap().1, true, false),
+            EnumExpression::NoDefault(_) => (cases.split_last().unwrap().1, false, true),
+            _ => (cases, false, false),
+        };
         // list variables
         let mut variables = HashMap::new();
         for case in cases.iter() {
             case.0.list_variables_tree(&mut variables);
         }
         // list terminators (highest nodes for each variables that can be used for iteration)
-        let var_items: Vec<(Token<'src>, HashSet<Token<'src>>)> = variables
+        let var_items: Vec<(Token<'src>, HashSet<EnumItem<'src>>)> = variables
             .into_iter()
             .map(|((variable, treename), items)| {
                 let tree = &self.enums[&treename];
-                (variable, tree.terminators(items))
+                (variable, tree.terminators(nodefault, items))
             })
             .collect();
         // create a cross product iterator var1_terminators x var2_terminators x ...
         let mut errors = Vec::new();
         for context in CrossIterator::new(&var_items) {
             // evaluate each case for context and count matching cases
-            let count = cases.iter().fold(0, |c, (exp, _)| {
+            let count = match_cases.iter().fold(0, |c, (exp, _)| {
                 if self.eval_case(&context, exp) {
                     c + 1
                 } else {
@@ -367,13 +478,13 @@ impl<'src> EnumList<'src> {
                 }
             });
             // Now check for errors
-            if count == 0 {
+            if count == 0 && !default {
                 errors.push(err!(case_name, "case {} is ignored", format_case(&context)));
             }
             if count > 1 {
                 errors.push(err!(
                     case_name,
-                    "case {} is handles at least twoce",
+                    "case {} is handles at least twice",
                     format_case(&context)
                 ));
             }
@@ -384,8 +495,8 @@ impl<'src> EnumList<'src> {
     }
 }
 
-// just format a list of var=value
-fn format_case(context: &HashMap<Token, Token>) -> String {
+/// Just format a list of var=value
+fn format_case(context: &HashMap<Token, EnumItem>) -> String {
     context
         .iter()
         .map(|(k, v)| format!("{}=~{}", k, v))
@@ -393,27 +504,29 @@ fn format_case(context: &HashMap<Token, Token>) -> String {
         .join(" & ")
 }
 
-// we need an item reference because ve we a pointer to the item list
+/// This is the basis of the cross iterator, it iterates over a single list
+/// of items in an enum
+// We need an item reference because we have a reference to the item list
 // we cannot store the list in the same structure as its iterator
-// so let the caller store it and juste take reference
+// so let the caller store it and just take reference
 struct VariableIterator<'it, 'src> {
     variable: Token<'src>,
-    current: Token<'src>,
-    items: &'it HashSet<Token<'src>>,
-    iterator: std::collections::hash_set::Iter<'it, Token<'src>>,
+    current: EnumItem<'src>,
+    items: &'it HashSet<EnumItem<'src>>,
+    iterator: std::collections::hash_set::Iter<'it, EnumItem<'src>>,
 }
 
 impl<'it, 'src> VariableIterator<'it, 'src> {
-    fn new(variable: Token<'src>, items: &'it HashSet<Token<'src>>) -> VariableIterator<'it, 'src> {
+    fn new(variable: Token<'src>, items: &'it HashSet<EnumItem<'src>>) -> VariableIterator<'it, 'src> {
         let mut iterator = items.iter();
         VariableIterator {
             variable,
-            current: *iterator.next().unwrap(),
+            current: iterator.next().unwrap().clone(),
             items,
             iterator,
         }
     }
-    fn next(&mut self) -> Option<Token<'src>> {
+    fn next(&mut self) -> Option<EnumItem<'src>> {
         match self.iterator.next() {
             // end of iterator, signal it then loop again
             None => {
@@ -421,8 +534,8 @@ impl<'it, 'src> VariableIterator<'it, 'src> {
                 None
             }
             Some(c) => {
-                self.current = *c;
-                Some(*c)
+                self.current = c.clone();
+                Some(c.clone())
             }
         }
     }
@@ -441,7 +554,7 @@ struct CrossIterator<'it, 'src> {
 
 impl<'it, 'src> CrossIterator<'it, 'src> {
     /// Create the iterator from a variable list and their possible values
-    fn new(variables: &'it [(Token<'src>, HashSet<Token<'src>>)]) -> CrossIterator<'it, 'src> {
+    fn new(variables: &'it [(Token<'src>, HashSet<EnumItem<'src>>)]) -> CrossIterator<'it, 'src> {
         CrossIterator {
             var_iterators: variables
                 .iter()
@@ -454,7 +567,7 @@ impl<'it, 'src> CrossIterator<'it, 'src> {
 
 impl<'it, 'src> Iterator for CrossIterator<'it, 'src> {
     //                  variable  -> value
-    type Item = HashMap<Token<'src>, Token<'src>>;
+    type Item = HashMap<Token<'src>, EnumItem<'src>>;
     /// Iterate: we store an iterator for each variables
     /// - we increment the first iterator
     /// - if it ended reset it and increment the next iterator
@@ -465,7 +578,7 @@ impl<'it, 'src> Iterator for CrossIterator<'it, 'src> {
             return Some(
                 self.var_iterators
                     .iter()
-                    .map(|vi| (vi.variable, vi.current))
+                    .map(|vi| (vi.variable, vi.current.clone()))
                     .collect(),
             );
         }
@@ -476,7 +589,7 @@ impl<'it, 'src> Iterator for CrossIterator<'it, 'src> {
                 return Some(
                     self.var_iterators
                         .iter()
-                        .map(|vi| (vi.variable, vi.current))
+                        .map(|vi| (vi.variable, vi.current.clone()))
                         .collect(),
                 ); // return here to avoid incrementing next one
             }
@@ -491,7 +604,7 @@ pub enum EnumExpression<'src> {
     //      variable     enum tree    enum item
     Compare(Token<'src>, Token<'src>, Token<'src>),
     //      variable   enum tree    first item           last item
-    Range(
+    RangeCompare(
         Token<'src>,
         Token<'src>,
         Option<Token<'src>>,
@@ -501,6 +614,7 @@ pub enum EnumExpression<'src> {
     Or(Box<EnumExpression<'src>>, Box<EnumExpression<'src>>),
     Not(Box<EnumExpression<'src>>),
     Default(Token<'src>), // token for position handling only
+    NoDefault(Token<'src>), // token for position handling only
 }
 
 impl<'src> EnumExpression<'src> {
@@ -514,6 +628,7 @@ impl<'src> EnumExpression<'src> {
     ) {
         match self {
             EnumExpression::Default(_) => (),
+            EnumExpression::NoDefault(_) => (),
             EnumExpression::Not(e) => e.list_variables_tree(variables),
             EnumExpression::Or(e1, e2) => {
                 e1.list_variables_tree(variables);
@@ -527,14 +642,14 @@ impl<'src> EnumExpression<'src> {
                 let list = variables.entry((*var, *tree)).or_insert_with(HashSet::new);
                 list.insert(*item);
             }
-            EnumExpression::Range(var, tree, item1, item2) => {
+            EnumExpression::RangeCompare(var, tree, left, right) => {
                 let list = variables.entry((*var, *tree)).or_insert_with(HashSet::new);
                 // we only need one variable for its siblings
                 // a range must be withing siblings
                 // -> pushing only one item is sufficient
-                if let Some(item) = item1 {
+                if let Some(item) = left {
                     list.insert(*item);
-                } else if let Some(item) = item2 {
+                } else if let Some(item) = right {
                     list.insert(*item);
                 } // else no item at all is forbidden
             }
@@ -545,6 +660,7 @@ impl<'src> EnumExpression<'src> {
     pub fn is_default(&self) -> bool {
         match self {
             EnumExpression::Default(_) => true,
+            EnumExpression::NoDefault(_) => true,
             _ => false,
         }
     }
@@ -556,74 +672,71 @@ mod tests {
     use crate::parser::tests::*;
     use maplit::{hashmap, hashset};
 
+    fn item(name: &str) -> EnumItem {
+        EnumItem::Item(name.into())
+    }
+
     #[test]
     fn test_tree() {
         let mut tree = EnumTree::new(
             "T".into(),
             vec!["a".into(), "b".into(), "c".into()],
             true,
-            true,
         );
-        tree.extend("a".into(), vec!["d".into(), "e".into(), "f".into()], false);
-        tree.extend("e".into(), vec!["g".into(), "h".into(), "i".into()], false);
-        /*// siblings
-        assert_eq!(tree.get_siblings("e".into()), vec![ "d".into(), "f".into() ]);
-        assert_eq!(tree.get_siblings("d".into()), vec![ "e".into(), "f".into() ]);
-        assert_eq!(tree.get_siblings("a".into()), vec![ "b".into(), "c".into() ]);
-        assert_eq!(tree.get_siblings("b".into()), vec![ "a".into(), "c".into() ]);
-        // elders
-        //assert_eq!(tree.get_elders().map(|i| i.clone()).collect::<Vec<Token>>(), vec![ "a".into(), "b".into(), "c".into() ]);*/
+        tree.extend("a".into(), vec!["d".into(), "e".into(), "f".into()]);
+        tree.extend("e".into(), vec!["g".into(), "h".into(), "*".into()]);
         // ascendance
-        assert_eq!(tree.get_ascendance("a".into()), vec!["T".into()]);
+        assert_eq!(tree.get_ascendance(item("a")), vec!["T".into()]);
         assert_eq!(
-            tree.get_ascendance("g".into()),
+            tree.get_ascendance(item("g")),
             vec!["T".into(), "a".into(), "e".into()]
         );
-        /*// range
-        //assert_eq!(tree.get_range(Some("e".into()), None), &[ "e".into(), "f".into() ]);
-        //assert_eq!(tree.get_range(None, Some("e".into())), &[ "d".into(), "e".into() ]);
-        //assert_eq!(tree.get_range(Some("d".into()), Some("e".into())), &[ "d".into(), "e".into() ]);
-         */
-
+        // terminators
         assert_eq!(
-            tree.terminators(hashset! {"a".into(), "b".into()}),
-            hashset! {"a".into(), "b".into(), "c".into()}
+            tree.terminators(false, hashset! {"a".into(), "b".into()}),
+            hashset! {item("a"), item("b"), item("c")}
         );
         assert_eq!(
-            tree.terminators(hashset! {"a".into(), "a".into(), "e".into()}),
-            hashset! {"b".into(), "c".into(), "d".into(), "e".into(), "f".into()}
+            tree.terminators(false, hashset! {"a".into(), "a".into(), "e".into()}),
+            hashset! {item("b"), item("c"), item("d"), item("e"), item("f")}
         );
         assert_eq!(
-            tree.terminators(hashset! {"a".into(), "g".into()}),
-            hashset! {"b".into(), "c".into(), "d".into(), "f".into(), "g".into(), "h".into(), "i".into()}
+            tree.terminators(false, hashset! {"a".into(), "g".into()}),
+            hashset! {item("b"), item("c"), item("d"), item("f"), item("g"), item("h"), EnumItem::First("e".into()), EnumItem::Last("e".into())}
         );
     }
 
     #[test]
     fn test_enums() {
         let mut elist = EnumList::new();
-        assert!(elist.add_enum(penum_t("global enum T { a, b, c }")).is_ok());
+        assert_eq!(elist.add_enum(penum_t("global enum T { a, b, c }")), Ok(()) );
         assert!(elist.add_enum(penum_t("enum T { a, b, c }")).is_err());
         assert!(elist.add_enum(penum_t("enum U { c, d, e }")).is_err());
-        assert!(elist.add_enum(penum_t("enum V { f, g, h }")).is_ok());
-        assert!(elist
-            .extend_enum(psub_enum_t("items in a { aa, ab, ac }"))
-            .is_ok());
+        assert_eq!(elist.add_enum(penum_t("enum V { f, g, h }")), Ok(()));
+        assert_eq!(elist
+            .extend_enum(psub_enum_t("items in a { aa, ab, ac }")),
+            Ok(None));
         assert!(elist
             .extend_enum(psub_enum_t("items in a { ba, bb, bc }"))
             .is_err());
         assert!(elist
             .extend_enum(psub_enum_t("items in b { aa, ab, ac }"))
             .is_err());
-        assert!(elist
-            .extend_enum(psub_enum_t("items in aa { ba, bb, bc }"))
-            .is_ok());
+        assert_eq!(elist
+            .extend_enum(psub_enum_t("items in aa { ba, bb, bc }")),
+            Ok(None));
+        assert_eq!(elist
+            .extend_enum(psub_enum_t("items in ab { aba, abb, * }")),
+            Ok(None));
+        assert_eq!(elist
+            .extend_enum(psub_enum_t("items in abb { xba, xbb, * }")),
+            Ok(None));
     }
 
     #[test]
     fn test_canonify() {
         let mut elist = EnumList::new();
-        let getter = |_| None;
+        let getter = |_| Some(VarKind::Enum("T".into(), None));
         elist
             .add_enum(penum_t("global enum T { a, b, c }"))
             .unwrap();
@@ -632,9 +745,6 @@ mod tests {
             .unwrap();
         elist
             .extend_enum(psub_enum_t("items in b { g, h, i }"))
-            .unwrap();
-        elist
-            .extend_enum(psub_enum_t("items in k { k, k, l }"))
             .unwrap();
         assert_eq!(
             elist
@@ -650,33 +760,9 @@ mod tests {
         );
         assert_eq!(
             elist
-                .canonify_expression(&getter, penum_expression_t("var=~T:a"))
-                .unwrap(),
-            EnumExpression::Compare("var".into(), "T".into(), "a".into())
-        );
-        assert_eq!(
-            elist
-                .canonify_expression(&getter, penum_expression_t("var=~a:T"))
-                .unwrap(),
-            EnumExpression::Compare("var".into(), "a".into(), "T".into())
-        ); // TODO this one should fail (or the previous)
-        assert_eq!(
-            elist
                 .canonify_expression(&getter, penum_expression_t("var=~d"))
                 .unwrap(),
             EnumExpression::Compare("var".into(), "T".into(), "d".into())
-        );
-        assert_eq!(
-            elist
-                .canonify_expression(&getter, penum_expression_t("var=~d:T"))
-                .unwrap(),
-            EnumExpression::Compare("var".into(), "d".into(), "T".into())
-        );
-        assert_eq!(
-            elist
-                .canonify_expression(&getter, penum_expression_t("d:T"))
-                .unwrap(),
-            EnumExpression::Compare("d".into(), "d".into(), "T".into())
         );
         assert!(elist
             .canonify_expression(&getter, penum_expression_t("d|a&!b"))
@@ -686,7 +772,7 @@ mod tests {
     #[test]
     fn test_listvars() {
         let mut elist = EnumList::new();
-        let getter = |_| None;
+        let getter = |_| Some(VarKind::Enum("T".into(), None));
         elist
             .add_enum(penum_t("global enum T { a, b, c }"))
             .unwrap();
@@ -697,7 +783,7 @@ mod tests {
             .extend_enum(psub_enum_t("items in a { d, e, f }"))
             .unwrap();
         elist
-            .extend_enum(psub_enum_t("items in g { j, k, l }"))
+            .extend_enum(psub_enum_t("items in g { j, k, * }"))
             .unwrap();
         let mut h1 = HashMap::new();
         elist
@@ -721,7 +807,7 @@ mod tests {
 
         let mut h3 = HashMap::new();
         elist
-            .canonify_expression(&getter, penum_expression_t("var=~T:a"))
+            .canonify_expression(&getter, penum_expression_t("var=~a"))
             .unwrap()
             .list_variables_tree(&mut h3);
         assert_eq!(
@@ -736,26 +822,26 @@ mod tests {
             .list_variables_tree(&mut h4);
         assert_eq!(
             h4,
-            hashmap! { ("T".into(), "T".into()) => hashset!{ "d".into(), "e".into(), "f".into(), "g".into(), "h".into(), "i".into(), "c".into() } }
+            hashmap! { ("T".into(), "T".into()) => hashset!{ "d".into(), "h".into() } }
         );
     }
 
     #[test]
     fn test_iterator() {
-        let a = hashset! {"a1".into(), "a2".into()};
-        let b = hashset! {"b1".into()};
-        let c = hashset! {"c1".into(), "c2".into(), "c3".into()};
+        let a = hashset! {item("a1"), item("a2")};
+        let b = hashset! {item("b1")};
+        let c = hashset! {item("c1"), item("c2"), item("c3")};
         let varlist = vec![("a".into(), a), ("b".into(), b), ("c".into(), c)];
         let it = CrossIterator::new(&varlist);
-        // hadr to test since hash(set/map) iterator don't have a fixed order
-        let result = it.collect::<Vec<HashMap<Token, Token>>>();
+        // hard to test since hash(set/map) iterator don't have a fixed order
+        let result = it.collect::<Vec<HashMap<Token, EnumItem>>>();
         assert_eq!(result.len(), 6);
-        assert!(result.contains(&hashmap!{ Token::from("a") => Token::from("a1"), Token::from("b") => Token::from("b1"), Token::from("c") => Token::from("c1")}));
-        assert!(result.contains(&hashmap!{ Token::from("a") => Token::from("a1"), Token::from("b") => Token::from("b1"), Token::from("c") => Token::from("c2")}));
-        assert!(result.contains(&hashmap!{ Token::from("a") => Token::from("a1"), Token::from("b") => Token::from("b1"), Token::from("c") => Token::from("c3")}));
-        assert!(result.contains(&hashmap!{ Token::from("a") => Token::from("a2"), Token::from("b") => Token::from("b1"), Token::from("c") => Token::from("c1")}));
-        assert!(result.contains(&hashmap!{ Token::from("a") => Token::from("a2"), Token::from("b") => Token::from("b1"), Token::from("c") => Token::from("c2")}));
-        assert!(result.contains(&hashmap!{ Token::from("a") => Token::from("a2"), Token::from("b") => Token::from("b1"), Token::from("c") => Token::from("c3")}));
+        assert!(result.contains(&hashmap!{ Token::from("a") => item("a1"), Token::from("b") => item("b1"), Token::from("c") => item("c1")}));
+        assert!(result.contains(&hashmap!{ Token::from("a") => item("a1"), Token::from("b") => item("b1"), Token::from("c") => item("c2")}));
+        assert!(result.contains(&hashmap!{ Token::from("a") => item("a1"), Token::from("b") => item("b1"), Token::from("c") => item("c3")}));
+        assert!(result.contains(&hashmap!{ Token::from("a") => item("a2"), Token::from("b") => item("b1"), Token::from("c") => item("c1")}));
+        assert!(result.contains(&hashmap!{ Token::from("a") => item("a2"), Token::from("b") => item("b1"), Token::from("c") => item("c2")}));
+        assert!(result.contains(&hashmap!{ Token::from("a") => item("a2"), Token::from("b") => item("b1"), Token::from("c") => item("c3")}));
     }
 
     #[test]
@@ -769,10 +855,10 @@ mod tests {
             .extend_enum(psub_enum_t("items in a { d, e, f }"))
             .unwrap();
         elist
-            .extend_enum(psub_enum_t("items in b { g, h, i }"))
+            .extend_enum(psub_enum_t("items in b { g, h, i, * }"))
             .unwrap();
         elist
-            .extend_enum(psub_enum_t("items in g { j, k, l }"))
+            .extend_enum(psub_enum_t("items in h { j, k, l, * }"))
             .unwrap();
         elist
             .add_enum(penum_t("global enum U { A, B, C }"))
@@ -786,21 +872,28 @@ mod tests {
         let e3 = elist
             .canonify_expression(&getter, penum_expression_t("c"))
             .unwrap();
+        let e4 = elist
+            .canonify_expression(&getter, penum_expression_t("..g|i.."))
+            .unwrap();
+        let e5 = elist
+            .canonify_expression(&getter, penum_expression_t("l.."))
+            .unwrap();
+        let e6 = elist
+            .canonify_expression(&getter, penum_expression_t("..k"))
+            .unwrap();
         let cases1 = [
             (e1.clone(), Vec::new()),
             (e2.clone(), Vec::new()),
             (e3.clone(), Vec::new()),
         ];
         assert_eq!(
-            elist
-                .evaluate(&getter, &cases1[..], Token::from("test1"))
-                .len(),
-            0
+            elist.evaluate(&cases1[..], Token::from("test1")),
+            Vec::new()
         );
         let cases2 = [(e2.clone(), Vec::new()), (e3.clone(), Vec::new())];
         assert_eq!(
             elist
-                .evaluate(&getter, &cases2[..], Token::from("test2"))
+                .evaluate(&cases2[..], Token::from("test2"))
                 .len(),
             1
         );
@@ -812,9 +905,20 @@ mod tests {
         ];
         assert_eq!(
             elist
-                .evaluate(&getter, &cases3[..], Token::from("test3"))
+                .evaluate(&cases3[..], Token::from("test3"))
                 .len(),
             1
+        );
+        let cases4 = [
+            (e1.clone(), Vec::new()),
+            (e3.clone(), Vec::new()),
+            (e4.clone(), Vec::new()),
+            (e5.clone(), Vec::new()),
+            (e6.clone(), Vec::new()),
+        ];
+        assert_eq!(
+            elist.evaluate(&cases4[..], Token::from("test4")),
+            Vec::new()
         );
     }
 }

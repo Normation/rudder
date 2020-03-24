@@ -32,6 +32,5 @@ proptest = "0.9"
 test-case = "0.3"
 
 [build-dependencies]
-ron = "0.5"
 serde = { version = "1", features = ["derive"] }
 colored = "1"

@@ -30,7 +30,7 @@ ntp state configuration (x="default")
 
   case {
     ubuntu => File("/tmp").permissions("root", "root", "g+w"),
-    os:debian => File("/tmp").permissions("user", "user", "g+w")
+    debian => File("/tmp").permissions("user", "user", "g+w")
   }
 }
 

@@ -1,180 +1,96 @@
 @format=0
 
-enum os ~> family {
-  dragonfly -> bsd,
-  freebsd -> bsd,
-  netbsd -> bsd,
-  openbsd -> bsd,
-  redhat_es -> redhat_entreprise,
-  redhat_as -> redhat_entreprise,
-  redhat_wa -> redhat_entreprise,
-  redhat_c -> redhat_entreprise,
-  redhat_w -> redhat_entreprise,
-  windows -> windows,
-  windows_server -> windows,
-  *->*
+# do not extend system (or so ?)
+global enum system {
+  unix,
+  linux,
+  windows
 }
 
-enum family ~> type {
-  bsd -> unix,
-  redhat_entreprise -> unix,
-  aix -> unix,
-  hp_ux -> unix,
-  solaris -> unix,
-  android -> linux,
-  alpine_linux -> linux,
-  arch_linux -> linux,
-  centos -> linux,
-  debian -> linux,
-  fedora -> linux,
-  gentoo -> linux,
-  mandrake -> linux,
-  mandriva -> linux,
-  oracle -> linux,
-  oracle_vm_server -> linux,
-  redhat -> linux,
-  scientific_linux -> linux,
-  slackwave -> linux,
-  suse -> linux,
-  ubuntu -> linux,
-  windows -> ms_dos,
-  *->*
+items in windows {
+  windows_XP,
+  windows_Vista,
+  windows_7,
+  windows_8,
+  windows_10,
+  windows_2000,
+  windows_2003,
+  windows_2008,
+  windows_2012,
+  windows_2016,
+  windows_2019,
+  *
 }
 
-enum major ~> os {
-  dragonfly_0 -> dragonfly,
-  freebsd_0 -> freebsd,
-  netbsd_0 -> netbsd,
-  openbsd_0 -> openbsd,
-  redhat_es_0 -> redhat_es,
-  redhat_as_0 -> redhat_as,
-  redhat_wa_0 -> redhat_wa,
-  redhat_c_0 -> redhat_c,
-  redhat_w_0 -> redhat_w,
-  aix_0 -> aix,
-  hp_ux_0 -> hp_ux,
-  solaris_10 -> solaris,
-  solaris_11 -> solaris,
-  android_0 -> android,
-  alpine_linux_0 -> alpine_linux,
-  arch_linux_0 -> arch_linux,
-  centos_0 -> centos,
-  debian_8 -> debian,
-  debian_9 -> debian,
-  debian_10 -> debian,
-  fedora_0 -> fedora,
-  gentoo_0 -> gentoo,
-  mandrake_0 -> mandrake,
-  mandriva_0 -> mandriva,
-  oracle_0 -> oracle,
-  oracle_vm_server_0 -> oracle_vm_server,
-  redhat_7 -> redhat,
-  redhat_8 -> redhat,
-  scientific_linux_0 -> scientific_linux,
-  slackwave_0 -> slackwave,
-  suse_12 -> suse,
-  suse_15 -> suse,
-  ubuntu_16 -> ubuntu,
-  ubuntu_18 -> ubuntu,
-  windows_7 -> windows,
-  windows_2000 -> windows,
-  windows_XP -> windows,
-  windows_Vista -> windows,
-  windows_server_2003 -> windows_server,
-  windows_server_2008 -> windows_server,
-  windows_server_2012 -> windows_server,
-  *->*
+items in unix {
+  aix,
+  bsd,
+  hp_ux,
+  solaris,
+  *
 }
 
-enum minor ~> major {
-  dragonfly_0_0 -> dragonfly_0,
-  freebsd_0_0 -> freebsd_0,
-  netbsd_0_0 -> netbsd_0,
-  openbsd_0_0 -> openbsd_0,
-  redhat_es_0_0 -> redhat_es_0,
-  redhat_as_0_0 -> redhat_as_0,
-  redhat_wa_0_0 -> redhat_wa_0,
-  redhat_c_0_0 -> redhat_c_0,
-  redhat_w_0_0 -> redhat_w_0,
-  aix_0_0 -> aix_0,
-  hp_ux_0_0 -> hp_ux_0,
-  solaris_10_0 -> solaris_10,
-  solaris_11_0 -> solaris_11,
-  android_0_0 -> android_0,
-  alpine_linux_0_0 -> alpine_linux_0,
-  arch_linux_0_0 -> arch_linux_0,
-  centos_0_0 -> centos_0,
-  debian_8_7 -> debian_8,
-  debian_8_8 -> debian_8,
-  debian_8_9 -> debian_8,
-  debian_9_0 -> debian_9,
-  debian_10_0 -> debian_10,
-  fedora_0_0 -> fedora_0,
-  gentoo_0_0 -> gentoo_0,
-  mandrake_0_0 -> mandrake_0,
-  mandriva_0_0 -> mandriva_0,
-  oracle_0_0 -> oracle_0,
-  oracle_vm_server_0_0 -> oracle_vm_server_0,
-  redhat_7_0 -> redhat_7,
-  redhat_8_0 -> redhat_8,
-  scientific_linux_0_0 -> scientific_linux_0,
-  slackwave_0_0 -> slackwave_0,
-  suse_12_0 -> suse_12,
-  suse_15_0 -> suse_15,
-  ubuntu_16_04 -> ubuntu_16,
-  ubuntu_18_04 -> ubuntu_18,
-  windows_7_0 -> windows_7,
-  windows_2000_0 -> windows_2000,
-  windows_XP_0 -> windows_XP,
-  windows_Vista_0 -> windows_Vista,
-  windows_server_2003_0 -> windows_server_2003,
-  windows_server_2008_R2 -> windows_server_2008,
-  windows_server_2012_R2 -> windows_server_2012,
-  *->*
+items in bsd {
+  dragonfly,
+  freebsd,
+  netbsd,
+  openbsd,
+  *
 }
 
-global enum minor {
-  dragonfly_0_0,
-  freebsd_0_0,
-  netbsd_0_0,
-  openbsd_0_0,
-  redhat_es_0_0,
-  redhat_as_0_0,
-  redhat_wa_0_0,
-  redhat_c_0_0,
-  redhat_w_0_0,
-  aix_0_0,
-  hp_ux_0_0,
-  solaris_10_0,
-  solaris_11_0,
-  android_0_0,
-  alpine_linux_0_0,
-  arch_linux_0_0,
-  centos_0_0,
-  debian_8_7,
-  debian_8_8,
-  debian_8_9,
-  debian_9_0,
-  debian_10_0,
-  fedora_0_0,
-  gentoo_0_0,
-  mandrake_0_0,
-  mandriva_0_0,
-  oracle_0_0,
-  oracle_vm_server_0_0,
-  redhat_7_0,
-  redhat_8_0,
-  scientific_linux_0_0,
-  slackwave_0_0,
-  suse_12_0,
-  suse_15_0,
-  ubuntu_16_04,
-  ubuntu_18_04,
-  windows_7_0,
-  windows_2000_0,
-  windows_XP_0,
-  windows_Vista_0,
-  windows_server_2003_0,
-  windows_server_2008_R2,
-  windows_server_2012_R2
+items in linux {
+  alpine_linux,
+  arch_linux,
+  debian_family,
+  fedora,
+  gentoo,
+  mandrake,
+  mandriva,
+  oracle,
+  oracle_vm_server,
+  redhat_family,
+  slackware,
+  suse,
+  *
+}
+
+items in redhat_family {
+  centos,
+  redhat,
+  redhat_entreprise,
+  scientific_linux,
+  *
+}
+
+items in debian_family {
+  debian,
+  ubuntu,
+  *
+}
+
+items in redhat_entreprise {
+  redhat_es,
+  redhat_as,
+  redhat_wa,
+  redhat_c,
+  redhat_w,
+  * # really ?
+}
+
+items in solaris {
+  solaris_10,
+  solaris_11,
+  solaris_12,
+  *
+}
+
+items in debian {
+  debian_4,
+  debian_5,
+  debian_6,
+  debian_7,
+  debian_8,
+  debian_9,
+  debian_10,
+  *
 }
