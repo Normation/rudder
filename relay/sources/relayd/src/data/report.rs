@@ -106,11 +106,12 @@ fn line_timestamp(i: &str) -> IResult<&str, DateTime<FixedOffset>> {
 fn simpleline(i: &str) -> IResult<&str, &str> {
     let (i, _) = opt(line_timestamp)(i)?;
     let (i, _) = not(alt((agent_log_level, map(tag("R: @@"), |_| ""))))(i)?;
-    // All reports should end with \r\n but keeping compatibility with simple
-    // \n for easier testing.
+    // Compatible with all possible line endings: \n, \r or \r\n
+    // * MIME line endings are \r\n
+    // * Log lines can contain \r
+    // * compatible with simple \n for easier testing
     let (i, res) = take_till(|c| c == '\n' || c == '\r')(i)?;
-    let (i, _) = opt(tag("\r"))(i)?;
-    let (i, _) = tag("\n")(i)?;
+    let (i, _) = alt((tag("\r\n"), tag("\r"), tag("\n")))(i)?;
     Ok((i, res))
 }
 
@@ -359,6 +360,10 @@ mod tests {
             "The thing".to_string()
         );
         assert_eq!(
+            simpleline("The thing\r").unwrap().1,
+            "The thing".to_string()
+        );
+        assert_eq!(
             simpleline("2019-05-09T13:36:46+00:00 The thing\n")
                 .unwrap()
                 .1,
@@ -470,6 +475,17 @@ mod tests {
                 event_type: "log_info",
                 msg: "Executing".to_string(),
                 datetime: DateTime::parse_from_str("2019-05-09T13:36:46+00:00", "%+").unwrap(),
+            }
+        );
+
+        assert_eq!(
+            log_entry("2020-03-24T12:30:27+00:00 CRITICAL: test\rlog\n")
+                .unwrap()
+                .1,
+            LogEntry {
+                event_type: "log_warn",
+                msg: "test\nlog".to_string(),
+                datetime: DateTime::parse_from_str("2020-03-24T12:30:27+00:00", "%+").unwrap(),
             }
         );
     }
