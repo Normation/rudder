@@ -6,8 +6,8 @@ include ../../../rust.makefile
 # Dev tools, for build see ../Makefile
 
 yum-dependencies:
-	yum install pkgconfig postgresql-devel openssl-devel zlib-devel asciidoc
+	$(YUM) pkgconfig postgresql-devel openssl-devel zlib-devel
 
 apt-dependencies:
-	apt update && apt install -y --no-install-recommends pkg-config libpq-dev libssl-dev zlib1g-dev asciidoc
+	$(APT) pkg-config libpq-dev libssl-dev zlib1g-dev
 

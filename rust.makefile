@@ -1,6 +1,22 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+.DEFAULT_GOAL := build
+SHELL := /bin/bash
+
+APT := apt update && apt install -y --no-install-recommends
+YUM := yum install -y 
+
+DESTDIR	:= $(CURDIR)/make_target
+REDHATOS := $(wildcard /etc/redhat-release*)
+DEBIANOS := $(wildcard /etc/debian_version*)
+
+ifneq ($(DEBIANOS),)
+PKG_INSTALLER := $(APT)
+else ifneq ($(REDHATOS),)
+PKG_INSTALLER := $(YUM)
+endif
+
 build-env:
 	curl https://sh.rustup.rs -sSf | sh
 	rustup component add clippy
