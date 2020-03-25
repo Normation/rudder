@@ -150,7 +150,6 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
     )
   }
 
-
   /*
    * Register object here, and force their loading
    */
@@ -304,6 +303,32 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       mod +=! (A_NAME, name)
       mod +=! (A_DESCRIPTION, description)
       mod +=! (A_IS_SYSTEM, isSystem.toLDAPString)
+
+      mod
+    }
+  }
+
+  object RULETARGET {
+
+      def ruleTargetDN(targetId:String) : RDN = new RDN(A_RULE_TARGET, targetId)
+
+      def ruleTargetModel(
+          uuid: String
+        , name: String
+        , parentDN:DN
+        , description: String
+        , isSystem: Boolean = true
+        , isEnabled: Boolean = true
+      ) : LDAPEntry = {
+
+      val mod = LDAPEntry(new DN(ruleTargetDN(uuid), parentDN))
+      mod +=! (A_OC, OC.objectClassNames(OC_SPECIAL_TARGET).toSeq:_*)
+      mod +=! (A_NAME, name)
+      mod +=! (A_DESCRIPTION, description)
+      mod +=! (A_IS_SYSTEM, isSystem.toLDAPString)
+      mod +=! (A_IS_ENABLED, isEnabled.toLDAPString)
+      mod +=! (A_RULE_TARGET, uuid)
+
 
       mod
     }
