@@ -54,7 +54,6 @@ import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.SecurityToken
 import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.rudder.domain.RudderDit
 import zio._
 import zio.syntax._
 
@@ -64,7 +63,6 @@ class WoLDAPNodeRepository(
   , mapper              : LDAPEntityMapper
   , ldap                : LDAPConnectionProvider[RwLDAPConnection]
   , actionLogger        : EventLogRepository
-  , rudderDit           : RudderDit
 ) extends WoNodeRepository with NamedZioLogger {
   repo =>
 
