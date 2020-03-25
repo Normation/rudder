@@ -30,7 +30,7 @@ pylint -E --persistent=n --disable=C,R,no-member relay/sources/rudder-pkg/rudder
 cd relay/sources/rudder-pkg/lib/rudder-pkg/tests && ./testall && cd -
 
 # Shellcheck
-find . -path ./.git -prune -o -type f -exec grep -Eq '^#!(.*/|.*env +)(sh|bash|ksh)' {} \; -print |
+find . \( -path ./.git -prune -o -path ./rudder-lang/target -prune -o -path ./relay/sources/relayd/target -prune \) -o -type f -exec grep -Eq '^#!(.*/|.*env +)(sh|bash|ksh)' {} \; -print |
   while IFS="" read -r file
   do
     # with recent shellcheck, "-S error" replaces this hack
