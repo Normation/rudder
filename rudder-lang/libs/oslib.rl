@@ -1,13 +1,13 @@
 @format=0
 
 # do not extend system (or so ?)
-enum system {
+global enum system {
   unix,
   linux,
   windows
 }
 
-enum in windows {
+items in windows {
   windows_XP,
   windows_Vista,
   windows_7,
@@ -22,7 +22,7 @@ enum in windows {
   *
 }
 
-enum in unix {
+items in unix {
   aix,
   bsd,
   hp_ux,
@@ -30,7 +30,7 @@ enum in unix {
   *
 }
 
-enum in bsd {
+items in bsd {
   dragonfly,
   freebsd,
   netbsd,
@@ -38,10 +38,9 @@ enum in bsd {
   *
 }
 
-enum in linux {
+items in linux {
   alpine_linux,
   arch_linux,
-  centos,
   debian_family,
   fedora,
   gentoo,
@@ -55,7 +54,7 @@ enum in linux {
   *
 }
 
-enum in redhat_family {
+items in redhat_family {
   centos,
   redhat,
   redhat_entreprise,
@@ -63,13 +62,13 @@ enum in redhat_family {
   *
 }
 
-enum in debian_family {
+items in debian_family {
   debian,
   ubuntu,
   *
 }
 
-enum in redhat_entreprise {
+items in redhat_entreprise {
   redhat_es,
   redhat_as,
   redhat_wa,
@@ -78,14 +77,14 @@ enum in redhat_entreprise {
   * # really ?
 }
 
-enum in solaris {
+items in solaris {
   solaris_10,
   solaris_11,
   solaris_12,
   *
 }
 
-enum in debian {
+items in debian {
   debian_4,
   debian_5,
   debian_6,

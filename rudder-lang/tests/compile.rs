@@ -25,7 +25,6 @@ use test_case::test_case;
 #[test_case("f_enum")]
 #[test_case("f_fuzzy")]
 #[test_case("s_basic")]
-#[test_case("s_enum_mapping")]
 #[test_case("s_state_case")]
 // #[test_case("s_declare")]
 // #[test_case("s_does_not_exist")] // supposed to fail as the file does not exist
@@ -203,8 +202,8 @@ resource Configure_NTP()
 Configure_NTP state technique() {
   case {
     # this case makes no sense, testing purpose
-    os=~ubuntu => file("/tmp").absent(),
-    os=~debian => file("/tmp").present(),
+    system=~ubuntu => file("/tmp").absent(),
+    system=~debian => file("/tmp").present(),
     default => log "info: ok"
   }
 }"#; "s_state_case")]
@@ -223,7 +222,7 @@ Configure_NTP state technique() {
 resource Configure_NTP()
 Configure_NTP state technique() {
   case {
-    os=~debian => file("/tmp").absent()
+    system=~debian => file("/tmp").absent()
   }
 }"#; "f_state_case_nonexhaustive")]
 #[test_case("s_state_casedefault", r#"@format=0
@@ -232,7 +231,7 @@ resource Configure_NTP()
 Configure_NTP state technique() {
   case {
     # this case makes no sense, testing purpose
-    os=~ubuntu => file("/tmp").absent(),
+    system=~ubuntu => file("/tmp").absent(),
     default => log "info: ok"
   }
 }"#; "s_state_casedefault")]

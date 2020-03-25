@@ -358,7 +358,19 @@ impl<'src> EnumList<'src> {
                                       // TODO  and some other error cases (see original version)
                 };
                 // TODO non global enum must have a variable here
-                // TODO check that var exists and has the right type
+                // check that var exists and has the right kind
+                if let Some(variable) = var {
+                    match getter(variable) {
+                        Some(VarKind::Enum(_, _)) => {},
+                        _ => fail!(
+                            variable,
+                            "Variable {} doesn't exist or doesn't have an enum type{}",
+                            variable,
+                            get_suggestion_message(variable.fragment(), self.enums.keys()),
+                        )
+                    }
+                }
+                // TODO check that var as the right type
                 Ok(EnumExpression::Compare(varname, treename, value))
             },
             PEnumExpression::RangeCompare(var, left, right, position) => {
@@ -723,7 +735,7 @@ mod tests {
     #[test]
     fn test_canonify() {
         let mut elist = EnumList::new();
-        let getter = |_| None;
+        let getter = |_| Some(VarKind::Enum("T".into(), None));
         elist
             .add_enum(penum_t("global enum T { a, b, c }"))
             .unwrap();
@@ -759,7 +771,7 @@ mod tests {
     #[test]
     fn test_listvars() {
         let mut elist = EnumList::new();
-        let getter = |_| None;
+        let getter = |_| Some(VarKind::Enum("T".into(), None));
         elist
             .add_enum(penum_t("global enum T { a, b, c }"))
             .unwrap();

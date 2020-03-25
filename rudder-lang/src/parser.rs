@@ -319,7 +319,7 @@ fn psub_enum(i: PInput) -> PResult<PSubEnum> {
         {
             metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
             e:      space_terminated("items");
-            _i:      space_terminated("in");
+            _i:     space_terminated("in");
             _fail:  or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
             name:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
             b:      or_fail(etag("{"), || PErrorKind::ExpectedKeyword("{"));

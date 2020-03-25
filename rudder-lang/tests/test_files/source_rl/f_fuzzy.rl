@@ -2,8 +2,8 @@ global enum os {
   debin # 1 ast::enum_mapping()
 }
 
-enum osa ~> family { # 1 ast::add_enum_mappings()
-  ubunt -> debian, # 1 enum::add_mapping()
+items in debian {
+  ubuntu
 }
 
 resource comman(p0) # 3 ast::add_resources()
