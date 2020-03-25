@@ -8,15 +8,9 @@ use crate::parser::{PEnum, PEnumExpression, PSubEnum, Token};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 
-
-// TODO
-// - vérifier que tous les check d'erreur sont fait
-// - supprimer enum_old
-// - clippy
-// - supprimer la syntaxe T:
-// - Ecrire les os dans stdlib
+// TODO enum alias
+// TODO 
 // - trouver les todo
-// - supprimer la comparaison de type d'une variable ?
 
 /// This item type is internal, because First and Fast cannot be constructed from an enum declaration or from and enum expression
 #[derive(Debug,Hash,PartialEq,Eq,Clone)]
@@ -42,12 +36,12 @@ fn from_item_vec<'src>(father: Token<'src>, items: Vec<Token<'src>>) -> Vec<Enum
         // detect incompleteness
         let incomplete = items.contains(&Token::from("*"));
         if incomplete {
-            let mut item_list = items.into_iter().filter(|x| *x != Token::from("*")).map(|i| EnumItem::Item(i)).collect::<Vec<EnumItem>>();
+            let mut item_list = items.into_iter().filter(|x| *x != Token::from("*")).map(EnumItem::Item).collect::<Vec<EnumItem>>();
             item_list.insert(0, EnumItem::First(father));
             item_list.push(EnumItem::Last(father));
             item_list
         } else {
-            items.into_iter().map(|i| EnumItem::Item(i)).collect()   
+            items.into_iter().map(EnumItem::Item).collect()   
         }
 }
 
@@ -233,13 +227,12 @@ impl<'src> EnumList<'src> {
             EnumItem::Item(i) => i,
             EnumItem::Last(i) => i,
         };
-        let first_item = first.map(|i| EnumItem::Item(i));
-        let last_item = last.map(|i| EnumItem::Item(i));
+        let first_item = first.map(EnumItem::Item);
+        let last_item = last.map(EnumItem::Item);
         let tree = self.elements[&name];
         self.enums[&tree].is_in_range(item, &first_item, &last_item)
     }
 
-    // TODO Update when parser will be modified
     /// Add an enum definition from the parser
     pub fn add_enum(&mut self, e: PEnum<'src>) -> Result<()> {
         // check for tree name duplicate
@@ -275,7 +268,6 @@ impl<'src> EnumList<'src> {
         Ok(())
     }
 
-    // TODO Update when parser will be modified
     /// Extend an existing enum with "enum in" from the parser
     /// return the structue back if the parent doesn't exist (yet)
     pub fn extend_enum(&mut self, e: PSubEnum<'src>) -> Result<Option<PSubEnum<'src>>> {
@@ -352,15 +344,12 @@ impl<'src> EnumList<'src> {
                     (Ok(ex1), Ok(ex2)) => Ok(EnumExpression::And(Box::new(ex1), Box::new(ex2))),
                 }
             },
-            PEnumExpression::Compare(var, enum1, value) => {
+            PEnumExpression::Compare(var, value) => {
                 // get enum1 real type
-                let treename = match enum1 {
-                    Some(e) => e,
-                    None => match self.elements.get(&value) {
-                        Some(t) => *t,
-                        None => fail!(value, "Enum value unknown {}", value), // TODO do not ignore the fact that it can be a variable name representing a boolean
-                                                                              // TODO and some other error cases (see original version)
-                    },
+                let treename = match self.elements.get(&value) {
+                    Some(t) => *t,
+                    None => fail!(value, "Enum value unknown {}", value), // TODO do not ignore the fact that it can be a variable name representing a boolean
+                                                                          // TODO and some other error cases (see original version)
                 };
                 // get var real name
                 let varname = match var {
@@ -368,10 +357,11 @@ impl<'src> EnumList<'src> {
                     None => treename, // TODO forbidden if tree is not global
                                       // TODO  and some other error cases (see original version)
                 };
+                // TODO non global enum must have a variable here
                 // TODO check that var exists and has the right type
                 Ok(EnumExpression::Compare(varname, treename, value))
             },
-            PEnumExpression::RangeCompare(var, enum1, left, right, position) => {
+            PEnumExpression::RangeCompare(var, left, right, position) => {
                 // left and right must not be both None
                 let value = if let Some(item) = left {
                     item
@@ -381,13 +371,10 @@ impl<'src> EnumList<'src> {
                     fail!(position, "Empty range is forbidden")
                 };
                 // get enum1 real type
-                let treename = match enum1 {
-                    Some(e) => e,
-                    None => match self.elements.get(&value) {
-                        Some(t) => *t,
-                        None => fail!(value, "Enum value unknown {}", value), // TODO do not ignore the fact that it can be a variable name representing a boolean
-                                                                              // TODO and some other error cases (see original version)
-                    },
+                let treename = match self.elements.get(&value) {
+                    Some(t) => *t,
+                    None => fail!(value, "Enum value unknown {}", value), // TODO do not ignore the fact that it can be a variable name representing a boolean
+                                                                            // TODO and some other error cases (see original version)
                 };
                 // get var real name
                 let varname = match var {
@@ -396,25 +383,23 @@ impl<'src> EnumList<'src> {
                                       // TODO  and some other error cases (see original version)
                 };
                 // check tat left and right are right type
-                if left.is_some() {
-                    let item = &left.unwrap();
-                    if Some(&treename) != self.elements.get(item) {
+                if let Some(item) = left {
+                    if Some(&treename) != self.elements.get(&item) {
                         fail!(item, "{} is unknown", item);
                     }
                 }
-                if right.is_some() {
-                    let item = &right.unwrap();
-                    if Some(&treename) != self.elements.get(item) {
+                if let Some(item) = right {
+                    if Some(&treename) != self.elements.get(&item) {
                         fail!(item, "{} is unknown", item);
                     }
                 }
                 // check that left and right are siblings
-                match (left,right) {
-                    (Some(item1),Some(item2)) => if ! self.enums[&treename].are_siblings(item1,item2) {
+                if let (Some(item1),Some(item2)) =  (left,right) {
+                    if ! self.enums[&treename].are_siblings(item1,item2) {
                         fail!(item1, "{} and {} are not siblings", item1, item2);
                     }
-                    _ => {}
                 }
+                // TODO non global enum must have a variable here
                 // TODO check that var exists and has the right type
                 Ok(EnumExpression::RangeCompare(varname, treename, left, right))
             },
@@ -437,16 +422,15 @@ impl<'src> EnumList<'src> {
             EnumExpression::And(e1, e2) => {
                 self.eval_case(values, &e1) && self.eval_case(values, &e2)
             }
-            EnumExpression::Compare(var, _, value) => values[&var] == EnumItem::Item(*value),
-            EnumExpression::RangeCompare(var, _, first, last) => self.is_in_range(&values[&var], first, last),
+            EnumExpression::Compare(var, _type, value) => values[&var] == EnumItem::Item(*value),
+            EnumExpression::RangeCompare(var, _type, first, last) => self.is_in_range(&values[&var], first, last),
         }
     }
 
     /// Evaluates a set of expressions possible outcome to check for missing cases and redundancy
     /// Variable context is here to guess variable type and to properly evaluate variables that are constant
-    pub fn evaluate<VG>(
+    pub fn evaluate(
         &self,
-        getter: &VG,
         cases: &[(EnumExpression<'src>, Vec<Statement<'src>>)],
         case_name: Token<'src>,
     ) -> Vec<Error> {
@@ -763,33 +747,9 @@ mod tests {
         );
         assert_eq!(
             elist
-                .canonify_expression(&getter, penum_expression_t("var=~T:a"))
-                .unwrap(),
-            EnumExpression::Compare("var".into(), "T".into(), "a".into())
-        );
-        assert_eq!(
-            elist
-                .canonify_expression(&getter, penum_expression_t("var=~a:T"))
-                .unwrap(),
-            EnumExpression::Compare("var".into(), "a".into(), "T".into())
-        ); // TODO this one should fail (or the previous)
-        assert_eq!(
-            elist
                 .canonify_expression(&getter, penum_expression_t("var=~d"))
                 .unwrap(),
             EnumExpression::Compare("var".into(), "T".into(), "d".into())
-        );
-        assert_eq!(
-            elist
-                .canonify_expression(&getter, penum_expression_t("var=~d:T"))
-                .unwrap(),
-            EnumExpression::Compare("var".into(), "d".into(), "T".into())
-        );
-        assert_eq!(
-            elist
-                .canonify_expression(&getter, penum_expression_t("d:T"))
-                .unwrap(),
-            EnumExpression::Compare("d".into(), "d".into(), "T".into())
         );
         assert!(elist
             .canonify_expression(&getter, penum_expression_t("d|a&!b"))
@@ -834,7 +794,7 @@ mod tests {
 
         let mut h3 = HashMap::new();
         elist
-            .canonify_expression(&getter, penum_expression_t("var=~T:a"))
+            .canonify_expression(&getter, penum_expression_t("var=~a"))
             .unwrap()
             .list_variables_tree(&mut h3);
         assert_eq!(
@@ -914,13 +874,13 @@ mod tests {
             (e3.clone(), Vec::new()),
         ];
         assert_eq!(
-            elist.evaluate(&getter, &cases1[..], Token::from("test1")),
+            elist.evaluate(&cases1[..], Token::from("test1")),
             Vec::new()
         );
         let cases2 = [(e2.clone(), Vec::new()), (e3.clone(), Vec::new())];
         assert_eq!(
             elist
-                .evaluate(&getter, &cases2[..], Token::from("test2"))
+                .evaluate(&cases2[..], Token::from("test2"))
                 .len(),
             1
         );
@@ -932,7 +892,7 @@ mod tests {
         ];
         assert_eq!(
             elist
-                .evaluate(&getter, &cases3[..], Token::from("test3"))
+                .evaluate(&cases3[..], Token::from("test3"))
                 .len(),
             1
         );
@@ -944,7 +904,7 @@ mod tests {
             (e6.clone(), Vec::new()),
         ];
         assert_eq!(
-            elist.evaluate(&getter, &cases4[..], Token::from("test4")),
+            elist.evaluate(&cases4[..], Token::from("test4")),
             Vec::new()
         );
     }

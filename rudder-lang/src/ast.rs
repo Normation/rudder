@@ -424,16 +424,9 @@ impl<'src> AST<'src> {
     }
 
     fn enum_expression_check(&self, context: &VarContext, statement: &Statement) -> Result<()> {
-        let getter = |k| {
-            context
-                .variables
-                .get(&k)
-                .or_else(|| self.context.variables.get(&k))
-                .map(VarKind::clone)
-        };
         match statement {
             Statement::Case(case, cases) => {
-                let errors = self.enum_list.evaluate(&getter, cases, *case);
+                let errors = self.enum_list.evaluate(cases, *case);
                 if !errors.is_empty() {
                     return Err(Error::from_vec(errors));
                 }

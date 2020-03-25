@@ -308,7 +308,7 @@ fn penum(i: PInput) -> PResult<PEnum> {
     )(i)
 }
 
-/// A sub enum is an extesion of an existing enum
+/// A sub enum is an extension of an existing enum, t adds children to an existong enum item
 #[derive(Debug, PartialEq)]
 pub struct PSubEnum<'src> {
     pub name: Token<'src>,
@@ -319,7 +319,7 @@ fn psub_enum(i: PInput) -> PResult<PSubEnum> {
         {
             metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
             e:      space_terminated("items");
-            i:      space_terminated("in");
+            _i:      space_terminated("in");
             _fail:  or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
             name:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
             b:      or_fail(etag("{"), || PErrorKind::ExpectedKeyword("{"));
@@ -333,55 +333,23 @@ fn psub_enum(i: PInput) -> PResult<PSubEnum> {
     )(i)
 }
 
-// TODO reformat
-// Old enums:
-//   global enum abc { a, b, c }
-//   enum a ~> abc { a1 -> a, a2-> a, a3 -> a, * -> *}
-//
-// New enums
-//   global enum abc { a,b,c, }
-//   enum a { a1, a2, a3}
-//
-
-// Old enum expression:
-//  var=~value:type  # fully specified
-//  var=~value       # type from higer possible type
-//  globalvalue      # var name = type name
-// New enum expression:
-//  var=~value       # names must be unique
-//  globalvalue      # var name = enum root name
-
-// TODO extend expression
-
 /// An enum expression is used as a condition in a case expression.
 /// This is a boolean expression based on enum comparison.
 /// A comparison check if the variable is of the right type and contains
-/// the provided item as a value, or an ancestor item if this is a mapped enum.
+/// the provided item as a value, or an ancestor item if this is an enum tree.
 /// 'default' is a value that is equivalent of 'true'.
 #[derive(Debug, PartialEq, Clone)]
 pub enum PEnumExpression<'src> {
-    //             variable                 enum              value/item
-    Compare(Option<Token<'src>>, Option<Token<'src>>, Token<'src>),
-    //                  variable             enum                 range start          range end     position in case everything else is None
-    RangeCompare(Option<Token<'src>>, Option<Token<'src>>, Option<Token<'src>>, Option<Token<'src>>, Token<'src>),
+    //             variable      value/item
+    Compare(Option<Token<'src>>, Token<'src>),
+    //                  variable             range start          range end     position in case everything else is None
+    RangeCompare(Option<Token<'src>>, Option<Token<'src>>, Option<Token<'src>>, Token<'src>),
     And(Box<PEnumExpression<'src>>, Box<PEnumExpression<'src>>),
     Or(Box<PEnumExpression<'src>>, Box<PEnumExpression<'src>>),
     Not(Box<PEnumExpression<'src>>),
     Default(Token<'src>),
     NoDefault(Token<'src>),
 }
-// impl<'src> PEnumExpression<'src> {
-//     // extract the first token of the expression
-//     pub fn token(&self) -> Token<'src> {
-//         match self {
-//             PEnumExpression::Compare(_, _, v) => *v,
-//             PEnumExpression::And(a, _) => a.token(),
-//             PEnumExpression::Or(a, _) => a.token(),
-//             PEnumExpression::Not(a) => a.token(),
-//             PEnumExpression::Default(t) => *t,
-//         }
-//     }
-// }
 
 fn penum_expression(i: PInput) -> PResult<PEnumExpression> {
     alt((
@@ -423,12 +391,11 @@ fn enum_atom(i: PInput) -> PResult<PEnumExpression> {
             {
                 var: pvariable_identifier;
                 _x: etag("=~");
-                penum: opt(terminated(pidentifier, sp(etag(":"))));
                 value: or_fail(enum_range_or_item, || PErrorKind::InvalidEnumExpression);
             } => {
                 match value {
-                    RangeOrItem::Range(left,right,dots) => PEnumExpression::RangeCompare(Some(var), penum, left, right, dots), 
-                    RangeOrItem::Item(val) => PEnumExpression::Compare(Some(var), penum, val), 
+                    RangeOrItem::Range(left,right,dots) => PEnumExpression::RangeCompare(Some(var), left, right, dots), 
+                    RangeOrItem::Item(val) => PEnumExpression::Compare(Some(var), val), 
                 }
             }
         ),
@@ -436,24 +403,18 @@ fn enum_atom(i: PInput) -> PResult<PEnumExpression> {
             {
                 var: pvariable_identifier;
                 _x: etag("!~");
-                penum: opt(terminated(pidentifier, sp(etag(":"))));
                 value: or_fail(enum_range_or_item, || PErrorKind::InvalidEnumExpression);
             } => {
                 match value {
-                    RangeOrItem::Range(left,right,dots) => PEnumExpression::Not(Box::new(PEnumExpression::RangeCompare(Some(var), penum, left, right, dots))), 
-                    RangeOrItem::Item(val) => PEnumExpression::Not(Box::new(PEnumExpression::Compare(Some(var), penum, val))), 
+                    RangeOrItem::Range(left,right,dots) => PEnumExpression::Not(Box::new(PEnumExpression::RangeCompare(Some(var), left, right, dots))), 
+                    RangeOrItem::Item(val) => PEnumExpression::Not(Box::new(PEnumExpression::Compare(Some(var), val))), 
                 }
             }
         ),
-        wsequence!(
-            {
-                penum: opt(terminated(pidentifier, sp(etag(":"))));
-                value: enum_range_or_item;
-            } => {
-                match value {
-                    RangeOrItem::Range(left,right,dots) => PEnumExpression::RangeCompare(None, penum, left, right, dots), 
-                    RangeOrItem::Item(val) => PEnumExpression::Compare(None, penum, val), 
-                }
+        map(enum_range_or_item, |value|
+            match value {
+                RangeOrItem::Range(left,right,dots) => PEnumExpression::RangeCompare(None, left, right, dots), 
+                RangeOrItem::Item(val) => PEnumExpression::Compare(None, val), 
             }
         ),
     ))(i)
