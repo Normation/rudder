@@ -271,6 +271,14 @@ fn pvariable_identifier(i: PInput) -> PResult<Token> {
     )(i)
 }
 
+/// An enum item can be either a classic identifier or a *
+fn penum_item(i: PInput) -> PResult<Token> {
+    alt((
+        pidentifier,
+        map(tag("*"), |x: PInput| x.into()),
+    ))(i)
+}
+
 /// An enum is a list of values, like a C enum.
 /// An enum can be global, which means its values are globally unique and can be guessed without specifying type.
 /// A global enum also has a matching global variable with the same name as its type.
@@ -289,7 +297,7 @@ fn penum(i: PInput) -> PResult<PEnum> {
             _fail:  or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
             name:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
             b:      or_fail(etag("{"), || PErrorKind::ExpectedKeyword("{"));
-            items:  separated_nonempty_list(sp(etag(",")), pidentifier); // all enum members
+            items:  separated_nonempty_list(sp(etag(",")), penum_item); // all enum members
             _x:     opt(tag(",")); // optional, applies only to the last member
             _x:     or_fail(tag("}"), || PErrorKind::UnterminatedDelimiter(b));
         } => PEnum {
@@ -315,7 +323,7 @@ fn psub_enum(i: PInput) -> PResult<PSubEnum> {
             _fail:  or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
             name:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
             b:      or_fail(etag("{"), || PErrorKind::ExpectedKeyword("{"));
-            items:  separated_nonempty_list(sp(etag(",")), pidentifier); // all enum members
+            items:  separated_nonempty_list(sp(etag(",")), penum_item); // all enum members
             _x:     opt(tag(",")); // optional, applies only to the last member
             _x:     or_fail(tag("}"), || PErrorKind::UnterminatedDelimiter(b));
         } => PSubEnum {
