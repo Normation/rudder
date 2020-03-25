@@ -28,6 +28,21 @@ build-env-update:
 	rustup update
 	cargo install-update -a
 
+version:
+	cargo --version
+	rustc --version
+
+build: version
+	cargo build --release
+
+lint: version
+	RUSTFLAGS="-D warnings" cargo check --all-targets --examples --tests
+	cargo clippy --all-targets --examples --tests
+
+check: lint
+	cargo test
+	cargo audit
+
 clean:
 	cargo clean
 	rm -rf target

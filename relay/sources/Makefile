@@ -45,7 +45,7 @@ build: man rudder-pkg/rudder_plugins_key.pub autocomplete/rudder-pkg.sh
 	mkdir -p ../../../../../.cargo/ relayd/target/
 	$(CACHE) get ../../../../../.cargo/ name=cargo major=$(RUDDER_MAJOR_VERSION) || true
 	$(CACHE) get relayd/target/ --with-env name=relayd major=$(RUDDER_MAJOR_VERSION) || true
-	cd relayd && cargo build --release --bin rudder-relayd
+	cd relayd && make build
 	# the cache is always updated and cargo will rebuild only what is needed
 	$(CACHE) put ../../../../../.cargo/ name=cargo major=$(RUDDER_MAJOR_VERSION) || true
 	$(CACHE) put relayd/target/ --with-env name=relayd major=$(RUDDER_MAJOR_VERSION) || true
@@ -138,13 +138,8 @@ endif
 
 # Quality
 
-lint:
-	cd relayd && RUSTFLAGS="-D warnings" cargo check --all-targets --examples --tests
-	cd relayd && cargo clippy --all-targets --examples --tests
-
-check: lint
-	cd relayd && cargo test
-	cd relayd && cargo audit
+check:
+	cd relayd && make check
 
 # Clean
 

@@ -3,11 +3,10 @@
 
 include ../../../rust.makefile
 
-# Dev tools, for build see ../Makefile
+# relayd tools, for general relay build see ../Makefile
 
 yum-dependencies:
 	$(YUM) pkgconfig postgresql-devel openssl-devel zlib-devel
 
 apt-dependencies:
 	$(APT) pkg-config libpq-dev libssl-dev zlib1g-dev
-
