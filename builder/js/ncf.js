@@ -214,6 +214,9 @@ app.controller('ncf-builder', function ($scope, $uibModal, $http, $q, $location,
   , text           : ""
   }
 
+  //Array containing the divergences of a technique
+  $scope.diverges = [];
+
   var usingRudder = false;
 
   $scope.CForm = {};
@@ -515,17 +518,23 @@ $scope.getSessionStorage = function(){
       if (existingTechnique !== undefined) {
 
         //Check if the origignal technique stored is different from the one actually saved
-        if($scope.checkDiff(storedOriginalTechnique, existingTechnique)){
+        if($scope.checkDiff(existingTechnique, storedOriginalTechnique)){
           $scope.conflictFlag = true;
           var modalInstance = $uibModal.open({
             templateUrl: 'RestoreWarningModal.html',
             controller: RestoreWarningModalCtrl,
+            size: 'lg',
             backdrop : 'static',
             resolve: {
-              technique: function () {
+              technique  : function () {
                 return $scope.selectedTechnique;
               }
-              , editForm  : function() { return  $scope.ui.editForm }
+              , editForm : function() {
+                return  $scope.ui.editForm
+              }
+              , diverges : function() {
+                return $scope.diverges;
+              }
             }
           });
           modalInstance.result.then(function (doSave) {
@@ -592,9 +601,8 @@ $scope.updateItemSessionStorage = function(item, oldTechnique, newTechnique){
   } else if(newTechnique){
     var checkList      = $scope.getChecksList();
     var savedTechnique = {};
-    var c, check, propertyChecked;
-    for(c in checkList){
-      var check = checkList[c];
+    var check, propertyChecked;
+    for(check in checkList){
       propertyChecked       = newTechnique[check];
       //We can't store 'undefined' value, so we convert it into an empty string
       savedTechnique[check] = propertyChecked === undefined ? "" : angular.copy(propertyChecked);
@@ -1374,18 +1382,24 @@ $scope.onImportFileChange = function (fileEl) {
 
   // Popup definitions
   // Popup to know if there is some changes to save before switching of selected technique
-  // paramters:
+  // parameters:
   // - Next technique you want to switch too
   // - Action to perform once the technique you validate the popup
   $scope.selectPopup = function( nextTechnique, select ) {
     var modalInstance = $uibModal.open({
       templateUrl: 'SaveChangesModal.html',
       controller: SaveChangesModalCtrl,
+      size: 'lg',
       resolve: {
-          technique: function () {
+          technique : function () {
             return $scope.originalTechnique;
           }
-        , editForm  : function() { return  $scope.ui.editForm }
+        , editForm  : function() {
+            return  $scope.ui.editForm
+          }
+        , diverges  : function(){
+            return $scope.diverges;
+          }
       }
     });
     modalInstance.result.then(function (doSave) {
@@ -1504,15 +1518,16 @@ $scope.onImportFileChange = function (fileEl) {
     // List of technique properties that we want to compare
     // If we add another properties here, we have to make sure that is is correctly compared in the checkDiff() function
     var checks =
-      [ "name"
-      , "bundle_name"
-      , "description"
-      , "category"
-      , "version"
-      , "method_calls"
-      , "parameter"
+      { "name"         : "Name"
+      , "bundle_name"  : "Technique ID"
+      , "description"  : "Description"
+      , "category"     : "Category"
+      , "version"      : "Version"
+      , "method_calls" : "Generic Methods have been modified"
+      , "parameter"    : "Parameters"
       //, "resources"
-      ]
+      }
+
     return checks;
   }
 
@@ -1523,10 +1538,10 @@ $scope.onImportFileChange = function (fileEl) {
     // get the list of technique's properties that we want to compare
     var checks   = $scope.getChecksList();
     // Used to store all divergency problems
-    var diverges = [];
-    var c, check, diff;
-    for (c in checks) {
-      check = checks[c]
+    $scope.diverges = [];
+    var check, diff, diverge;
+    for (check in checks) {
+      diverge = false;
       //Compare properties in the right way according to their "type"
       switch(check){
         case "category" :
@@ -1536,7 +1551,16 @@ $scope.onImportFileChange = function (fileEl) {
         case "method_calls" :
           var st = angular.copy(storedTech.method_calls );
           var ct = angular.copy(currentTech.method_calls);
-          if(ct.length==st.length){
+          var stList = [];
+          var ctList = [];
+          var nb, field;
+          for(var i in ct) {
+            ctList.push(i + "-\xA0" + ct[i].component)
+          }
+          for(var i in st) {
+            stList.push(i + "-\xA0" + st[i].component)
+          }
+          if(ct.length == st.length) {
             for(var i=0; i<st.length; i++){
               if(st[i].hasOwnProperty('agent_support')){
                 ct[i].agent_support = st[i].agent_support;
@@ -1545,8 +1569,25 @@ $scope.onImportFileChange = function (fileEl) {
                 st[i].promiser = ct[i].promiser;
               }
             }
+            diff  = !angular.equals(st , ct);
+            field = diff ? checks[check] : undefined;
+          } else {
+            diff = true;
+            if(ct.length < st.length) {
+              nb    = st.length - ct.length;
+              field = (nb + " Method" + (nb>1 ? 's' : '' ) + " ha" + (nb>1 ? 've' : 's' ) + " been added.");
+            } else {
+              nb    = ct.length - st.length;
+              field = (nb + " Method" + (nb>1 ? 's' : '' ) + " ha" + (nb>1 ? 've' : 's' ) + " been removed.");
+            }
           }
-          diff = !angular.equals(st , ct);
+          if(diff){
+            diverge =
+            { "field": field
+            , "storage_value": stList.join('\n')
+            , "current_value": ctList.join('\n')
+            };
+          }
           break;
 
         default    :
@@ -1555,21 +1596,18 @@ $scope.onImportFileChange = function (fileEl) {
       }
       // If there is a difference, the old value and the current one are stored
       if(diff){
-        var div =
-        { "field": check
-        , "storage_value": storedTech[check]
-        , "current_value": currentTech[check]
-        };
-        diverges.push(div);
+        if(!diverge){
+          diverge =
+          { "field": checks[check]
+          , "storage_value": storedTech[check]
+          , "current_value": currentTech[check]
+          };
+        }
+        $scope.diverges.push(diverge);
       }
     }
-    // divergencies detected
-    if(diverges.length>0){
-      // DEBUG : console.log(diverges)
-      // TODO  : display that information into the popup
-      return diverges;
-    }
-    return false;
+    // If there is no difference then return false, else return the array
+    return $scope.diverges.length>0 ? $scope.diverges : false;
   }
 
   $scope.reloadData();
@@ -1612,28 +1650,36 @@ var cloneModalCtrl = function ($scope, $uibModalInstance, technique, techniques)
 };
 
 
-var SaveChangesModalCtrl = function ($scope, $uibModalInstance, technique, editForm) {
+var SaveChangesModalCtrl = function ($scope, $uibModalInstance, technique, editForm, diverges) {
   $scope.technique = technique;
+  $scope.diverges  = diverges;
+  $scope.showDiff  = false;
   $scope.save = function() {
     $uibModalInstance.close(true);
   }
-
   $scope.discard = function () {
     $uibModalInstance.close(false);
   };
-
   $scope.cancel = function () {
     $uibModalInstance.dismiss('cancel');
   };
+  $scope.toggleShowDiff = function () {
+    $scope.showDiff = !$scope.showDiff;
+  }
 };
 
-var RestoreWarningModalCtrl = function ($scope, $uibModalInstance, technique, editForm) {
+var RestoreWarningModalCtrl = function ($scope, $uibModalInstance, technique, editForm, diverges) {
+  $scope.diverges  = diverges;
+  $scope.showDiff  = false;
   $scope.save = function() {
     $uibModalInstance.close(true);
   }
   $scope.discard = function () {
     $uibModalInstance.close(false);
   };
+  $scope.toggleShowDiff = function () {
+    $scope.showDiff = !$scope.showDiff;
+  }
 };
 
 app.config(function($httpProvider,$locationProvider) {
