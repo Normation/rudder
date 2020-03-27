@@ -40,6 +40,7 @@ pub use token::PInput;
 pub struct PAST<'src> {
     pub enums: Vec<PEnum<'src>>,
     pub sub_enums: Vec<PSubEnum<'src>>,
+    pub enum_aliases: Vec<PEnumAlias<'src>>,
     pub resources: Vec<PResourceDef<'src>>,
     pub states: Vec<PStateDef<'src>>,
     pub variable_declarations: Vec<(Token<'src>, PValue<'src>)>,
@@ -53,6 +54,7 @@ impl<'src> PAST<'src> {
         PAST {
             enums: Vec::new(),
             sub_enums: Vec::new(),
+            enum_aliases: Vec::new(),
             resources: Vec::new(),
             states: Vec::new(),
             variable_declarations: Vec::new(),
@@ -77,6 +79,7 @@ impl<'src> PAST<'src> {
             .for_each(|declaration| match declaration {
                 PDeclaration::Enum(e) => self.enums.push(e),
                 PDeclaration::SubEnum(e) => self.sub_enums.push(e),
+                PDeclaration::EnumAlias(e) => self.enum_aliases.push(e),
                 PDeclaration::Resource((r, d, p)) => {
                     self.parameter_defaults.push((r.name, None, d));
                     if let Some(parent) = p {
@@ -96,48 +99,7 @@ impl<'src> PAST<'src> {
     }
 }
 
-/// Parse a string for interpolation
-pub fn parse_string(content: &str) -> Result<Vec<PInterpolatedElement>> {
-    fix_error_type(pinterpolated_string(PInput::new_extra(content, "")))
-}
-
-// ===== Parsers =====
-
-// TODO nomplus: sp!(parser) sp!(parser,sp) sp sequence, wsequence, cut_with
-
-fn etag<'src>(token: &'static str) -> impl Fn(PInput<'src>) -> PResult<PInput<'src>> {
-    move |i| or_err(tag(token), || PErrorKind::ExpectedToken(token))(i)
-}
-
-fn ftag<'src>(token: &'static str) -> impl Fn(PInput<'src>) -> PResult<PInput<'src>> {
-    move |i| or_fail(tag(token), || PErrorKind::ExpectedToken(token))(i)
-}
-
-fn space_terminated<'src>(token: &'static str) -> impl Fn(PInput<'src>) -> PResult<PInput<'src>> {
-    move |i| {
-        let (i, r) = tag(token)(i)?;
-        or_fail(space1, || PErrorKind::ExpectedKeyword(token))(i)?;
-        Ok((i, r))
-    }
-}
-
-fn parameter_list<'src, O, P>(
-    open_deli: &'static str,
-    parser: P,
-    close_deli: &'static str,
-) -> impl Fn(PInput<'src>) -> PResult<Vec<O>>
-where
-    P: Copy + Fn(PInput<'src>) -> PResult<O>,
-    O: 'src,
-{
-    move |i| {
-        let (i, r) = sp(etag(open_deli))(i)?;
-        let (i, params) = sp(separated_list(sp(etag(",")), parser))(i)?;
-        let (i, _) = sp(opt(tag(",")))(i)?; // end of list comma is authorized but optional
-        let (i, _) = or_fail(sp(tag(close_deli)), || PErrorKind::UnterminatedDelimiter(r))(i)?;
-        Ok((i, params))
-    }
-}
+// ===== Tools and combinators =====
 
 /// Eat everything that can be ignored between tokens
 /// ie white spaces, newlines and simple comments (with a single #)
@@ -149,9 +111,9 @@ fn strip_spaces_and_comment(i: PInput) -> PResult<()> {
         terminated(
             etag("#"),
             alt((
-                delimited(not(etag("#")), take_until("\n"), newline),
+                delimited(not(tag("#")), take_until("\n"), newline),
                 // comment is the last line
-                preceded(not(etag("#")), rest),
+                preceded(not(tag("#")), rest),
             )),
         ),
     )))(i)?;
@@ -194,11 +156,12 @@ where
 macro_rules! sequence {
     ( { $($f:ident : $parser:expr;)* } => $output:expr ) => {
         move |i| {
+            let i0 = i;
             $(
                 // intercept error to update its context if it should lead to a handled compilation error
                 let (j, $f) = match $parser (i) {
                     Ok(res) => res,
-                    Err(e) => return Err(update_error_context(e, get_accurate_context(i)))
+                    Err(e) => return Err(update_error_context(e, get_context(i0,i)))
                 };
                 let i = j;
             )*
@@ -211,11 +174,12 @@ macro_rules! sequence {
 macro_rules! wsequence {
     ( { $($f:ident : $parser:expr;)* } => $output:expr ) => {
         move |i| {
+            let i0 = i;
             $(
                 // intercept error to update its context if it should lead to a handled compilation error
                 let (j, $f) = match $parser (i) {
                     Ok(res) => res,
-                    Err(e) => return Err(update_error_context(e, get_accurate_context(i)))
+                    Err(e) => return Err(update_error_context(e, get_context(i0,i)))
                 };
                 let (i,_) = strip_spaces_and_comment(j)?;
             )*
@@ -224,14 +188,104 @@ macro_rules! wsequence {
     };
 }
 
-/// Tool function allowing to save last state of parsing offset line before any error
-fn get_accurate_context(i: PInput) -> PInput {
-    // Might be useful to expand via a second parameter the limit pattern or even a function to combine with
-    let single_line_result: nom::IResult<PInput, PInput> = take_until("\n")(i);
-    // return the received input by default
-    let (_next, updated_context) = single_line_result.unwrap_or((i, i));
-    updated_context
+/// Parse a string for interpolation
+pub fn parse_string(content: &str) -> Result<Vec<PInterpolatedElement>> {
+    fix_error_type(pinterpolated_string(PInput::new_extra(content, "")))
 }
+
+/// Parse a tag or return an error
+fn etag<'src>(token: &'static str) -> impl Fn(PInput<'src>) -> PResult<PInput<'src>> {
+    move |i| or_err(tag(token), || PErrorKind::ExpectedToken(token))(i)
+}
+
+/// Parse a tag of fail the parser
+fn ftag<'src>(token: &'static str) -> impl Fn(PInput<'src>) -> PResult<PInput<'src>> {
+    move |i| or_fail(tag(token), || PErrorKind::ExpectedToken(token))(i)
+}
+
+/// Parse a tag that must be terminated by a space or return an error
+fn estag<'src>(token: &'static str) -> impl Fn(PInput<'src>) -> PResult<PInput<'src>> {
+    move |i| or_err(terminated(tag(token), space1), || PErrorKind::ExpectedKeyword(token))(i)
+}
+
+/// parses a delimited sequence (same as nom delimited but with spaces and specific error)
+fn delimited_parser<'src, O, P>(
+    open_delimiter: &'static str,
+    parser: P,
+    close_delimiter: &'static str,
+) -> impl Fn(PInput<'src>) -> PResult<O>
+    where
+        P: Copy + Fn(PInput<'src>) -> PResult<O>,
+        O: 'src,
+{
+    wsequence!({
+            open: etag(open_delimiter);
+            list: parser;
+            _x:   opt(tag(",")); // end of list comma is authorized but optional
+            _y:   or_fail(sp(tag(close_delimiter)), || PErrorKind::UnterminatedDelimiter(open));
+        } => list
+    )
+}
+
+/// parses a list of something separated by separator with specific delimiters
+fn delimited_list<'src, O, P>(
+    open_delimiter: &'static str,
+    parser: P,
+    separator: &'static str,
+    close_delimiter: &'static str,
+) -> impl Fn(PInput<'src>) -> PResult<Vec<O>>
+    where
+        P: Copy + Fn(PInput<'src>) -> PResult<O>,
+        O: 'src,
+{
+    move |i| delimited_parser(
+        open_delimiter,
+        |j| terminated(separated_list(sp(etag(separator)), parser), opt(tag(separator)))(j),
+        close_delimiter
+    )(i)
+}
+
+/// parses a list of something separated by separator with specific delimiters
+fn delimited_nonempty_list<'src, O, P>(
+    open_delimiter: &'static str,
+    parser: P,
+    separator: &'static str,
+    close_delimiter: &'static str,
+) -> impl Fn(PInput<'src>) -> PResult<Vec<O>>
+    where
+        P: Copy + Fn(PInput<'src>) -> PResult<O>,
+        O: 'src,
+{
+    move |i| delimited_parser(
+        open_delimiter,
+        |j| terminated(separated_nonempty_list(sp(etag(separator)), parser), opt(tag(separator)))(j),
+        close_delimiter
+    )(i)
+}
+
+/// Function to extract the context string, ie what was trying to be parsed when an error happened
+/// It extracts the longest string between a single line and everything until the parsing error
+fn get_context<'src>(i: PInput<'src>, err_pos: PInput<'src>) -> PInput<'src> {
+    // One line, or everything else if no new line (end of file)
+    let single_line: nom::IResult<PInput, PInput> = alt((take_until("\n"), rest))(i);
+    let line_size = single_line.clone().map(|(_,x)| x.fragment.len());
+    // Until next text
+    let complete: nom::IResult<PInput, PInput> = take_until(err_pos.fragment)(i);
+    let complete_size= complete.clone().map(|(_,x)| x.fragment.len());
+    match (line_size,complete_size) {
+        (Ok(lsize),Ok(csize)) =>
+            if lsize > csize {
+                single_line.unwrap().1
+            } else {
+                complete.unwrap().1
+            },
+        (Ok(_lsize),_) => single_line.unwrap().1,
+        (_,Ok(_csize)) => complete.unwrap().1,
+        (_,_) => i // error should never happen anyway
+    }
+}
+
+// ===== Main parsers =====
 
 /// A source file header consists of a single line '@format=<version>'.
 /// Shebang accepted.
@@ -292,14 +346,11 @@ fn penum(i: PInput) -> PResult<PEnum> {
     wsequence!(
         {
             metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
-            global: opt(space_terminated("global"));
-            e:      space_terminated("enum");
+            global: opt(estag("global"));
+            e:      estag("enum");
             _fail:  or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
             name:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
-            b:      or_fail(etag("{"), || PErrorKind::ExpectedKeyword("{"));
-            items:  separated_nonempty_list(sp(etag(",")), penum_item); // all enum members
-            _x:     opt(tag(",")); // optional, applies only to the last member
-            _x:     or_fail(tag("}"), || PErrorKind::UnterminatedDelimiter(b));
+            items : delimited_nonempty_list("{", penum_item, ",", "}");
         } => PEnum {
                 global: global.is_some(),
                 name,
@@ -318,17 +369,38 @@ fn psub_enum(i: PInput) -> PResult<PSubEnum> {
     wsequence!(
         {
             metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
-            e:      space_terminated("items");
-            _i:     space_terminated("in");
+            e:      estag("items");
+            _i:     estag("in");
             _fail:  or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
             name:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
-            b:      or_fail(etag("{"), || PErrorKind::ExpectedKeyword("{"));
-            items:  separated_nonempty_list(sp(etag(",")), penum_item); // all enum members
-            _x:     opt(tag(",")); // optional, applies only to the last member
-            _x:     or_fail(tag("}"), || PErrorKind::UnterminatedDelimiter(b));
+            items : delimited_nonempty_list("{", penum_item, ",", "}");
         } => PSubEnum {
                 name,
                 items,
+        }
+    )(i)
+}
+
+/// An enum alias gives the ability to give another name to an enum item
+#[derive(Debug, PartialEq)]
+pub struct PEnumAlias<'src> {
+    pub name: Token<'src>, // new name
+// TODO    pub tree: Option<Token<'src>>, // enum name for disambiguation
+    pub item: Token<'src>, // original name
+}
+fn penum_alias(i: PInput) -> PResult<PEnumAlias> {
+    wsequence!(
+        {
+            metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
+            e:      estag("enum");
+            _i:     estag("alias");
+            _fail:  or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
+            name:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
+            _x:     ftag("=");
+            item:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
+        } => PEnumAlias {
+            name,
+            item,
         }
     )(i)
 }
@@ -380,13 +452,7 @@ fn enum_range_or_item(i: PInput) -> PResult<RangeOrItem> {
 }
 fn enum_atom(i: PInput) -> PResult<PEnumExpression> {
     alt((
-        wsequence!(
-            {
-                t: etag("(");
-                e: penum_expression;
-                _x: or_fail(tag(")"), || PErrorKind::UnterminatedDelimiter(t));
-            } => e
-        ),
+        delimited_parser("(", penum_expression, ")"),
         wsequence!(
             {
                 var: pvariable_identifier;
@@ -551,7 +617,7 @@ fn pnumber(i: PInput) -> PResult<(Token, f64)> {
     }
 }
 
-/// A list is stored in a Vec
+/// A list is stored in a Vec TODO
 fn plist(i: PInput) -> PResult<Vec<PValue>> {
     wsequence!(
         {
@@ -559,24 +625,16 @@ fn plist(i: PInput) -> PResult<Vec<PValue>> {
             // values: separated_list(sp(etag(",")), pvalue);
             // _x: or_fail(peek(is_not(",")), || PErrorKind::ExpectedToken("parameter"));
             // _x: or_fail(tag("]"),|| PErrorKind::UnterminatedDelimiter(s));
-            values: parameter_list("[", pvalue, "]");
+            values: delimited_list("[", pvalue, ",", "]");
         } => values
     )(i)
 }
 
-/// A struct is stored in a HashMap
+/// A struct is stored in a HashMap TODO
 fn pstruct(i: PInput) -> PResult<HashMap<String, PValue>> {
-    wsequence!(
-        {
-            s: etag("{");
-            values: separated_list(
-                        sp(etag(",")),
-                        separated_pair(pescaped_string, sp(etag(":")), pvalue)
-                    );
-            // _x: or_fail(peek(alt((is_not(","), is_not(":")))), || PErrorKind::ExpectedToken("parameter"));
-            _x: opt(tag(",")); // optional, applies only to the last member
-            _x: or_fail(tag("}"),|| PErrorKind::UnterminatedDelimiter(s));
-        } => values.into_iter().map(|(k,v)| (k.1,v)).collect()
+    map(
+        delimited_list("{", |j| separated_pair(pescaped_string, sp(etag(":")), pvalue)(j), ",", "}"),
+        |l| l.into_iter().map(|(k,v)| (k.1,v)).collect()
     )(i)
 }
 
@@ -593,6 +651,7 @@ fn pstruct(i: PInput) -> PResult<HashMap<String, PValue>> {
 //         } => values.into_iter().map(|(k,v)| (k.1,v)).collect()
 //     )(i)
 // }
+
 /// A PType is the type a variable or a parameter can take.
 /// Its only purpose is to be a PValue construction helper
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -738,9 +797,9 @@ fn presource_def(i: PInput) -> PResult<(PResourceDef, Vec<Option<PValue>>, Optio
     wsequence!(
         {
             metadata: pmetadata_list;
-            _x: space_terminated("resource");
+            _x: estag("resource");
             name: pidentifier;
-            param_list: parameter_list("(", pparameter, ")");
+            param_list: delimited_list("(", pparameter, ",", ")");
             parent: opt(preceded(sp(etag(":")),pidentifier));
         } => {
             let (parameters, parameter_defaults) = param_list.into_iter().unzip();
@@ -760,13 +819,7 @@ fn presource_ref(i: PInput) -> PResult<(Token, Vec<PValue>)> {
     wsequence!(
         {
             name: pidentifier;
-            params: opt(parameter_list("(", pvalue, ")"));
-            // params: opt(wsequence!({
-            //     t: sp(etag("("));
-            //     parameters: separated_list(sp(etag(",")), pvalue);
-            //     _x: or_fail(peek(is_not(",")), || PErrorKind::ExpectedToken("parameter"));
-            //     _x: or_fail(tag(")"), || PErrorKind::UnterminatedDelimiter(t));
-            // } => parameters));
+            params: opt(delimited_list("(", pvalue, ",", ")"));
         } => (name, params.unwrap_or_else(Vec::new))
     )(i)
 }
@@ -812,7 +865,7 @@ fn pvalue_varagent(i: PInput) -> PResult<PValue> {
 fn pvaragent_declaration(i: PInput) -> PResult<(Token, PValue)> {
     wsequence!(
         {
-            _identifier: space_terminated("declare");
+            _identifier: estag("declare");
             variable: pidentifier;
             value: pvalue_varagent;
         } => (variable, value)
@@ -853,7 +906,7 @@ fn pstate_declaration(i: PInput) -> PResult<PStateDeclaration> {
             resource: presource_ref;
             _t: etag(".");
             state: pidentifier;
-            state_params: parameter_list("(", pvalue, ")");
+            state_params: delimited_list("(", pvalue, ",", ")");
             outcome: opt(preceded(sp(etag("as")),pidentifier));
         } => PStateDeclaration {
                 metadata,
@@ -866,6 +919,7 @@ fn pstate_declaration(i: PInput) -> PResult<PStateDeclaration> {
         }
     )(i)
 }
+
 
 /// A statement is the atomic element of a state definition.
 #[derive(Debug, PartialEq)]
@@ -886,6 +940,24 @@ pub enum PStatement<'src> {
     // Do nothing
     Noop,
 }
+/// A single case in a case switch
+fn pcase(i: PInput) -> PResult<(PEnumExpression, Vec<PStatement>)> {
+    alt((
+        map(etag("nodefault"), |t| {
+            (PEnumExpression::NoDefault(Token::from(t)), vec![PStatement::Noop])
+        }),
+        wsequence!(
+            {
+                expr: or_fail(penum_expression, || PErrorKind::ExpectedKeyword("enum expression"));
+                _x: ftag("=>");
+                stmt: or_fail(alt((
+                    map(pstatement, |x| vec![x]),
+                    delimited_parser("{", |j| many0(pstatement)(j), "}"),
+                )), || PErrorKind::ExpectedKeyword("statement"));
+            } => (expr,stmt)
+        )
+    ))(i)
+}
 fn pstatement(i: PInput) -> PResult<PStatement> {
     alt((
         // One state
@@ -903,38 +975,14 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
                 metadata: pmetadata_list; // metadata is invalid here, check it after the 'case' tag below
                 case: etag("case");
                 _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
-                s: etag("{");
-                cases: separated_list(sp(etag(",")),
-                    alt((
-                        map(etag("nodefault"), |t| {
-                            (PEnumExpression::NoDefault(Token::from(t)), vec![PStatement::Noop])
-                        }),
-                        wsequence!(
-                            {
-                                expr: or_fail(penum_expression, || PErrorKind::ExpectedKeyword("enum expression"));
-                                _x: ftag("=>");
-                                stmt: or_fail(alt((
-                                    map(pstatement, |x| vec![x]),
-                                    wsequence!(
-                                        {
-                                            s: etag("{");
-                                            vec: many0(pstatement);
-                                            _x: or_fail(tag("}"),|| PErrorKind::UnterminatedDelimiter(s));
-                                        } => vec
-                                    ),
-                                )), || PErrorKind::ExpectedKeyword("statement"));
-                            } => (expr,stmt)
-                        )
-                    )));
-                _x: or_fail(peek(is_not(",")), || PErrorKind::ExpectedToken("Parameter"));
-                _x: or_fail(tag("}"),|| PErrorKind::UnterminatedDelimiter(s));
+                cases: delimited_list("{", pcase, ",", "}" );
             } => PStatement::Case(case.into(), cases)
         ),
         // if
         wsequence!(
             {
                 metadata: pmetadata_list; // metadata is invalid here, check it after the 'if' tag below
-                case: space_terminated("if");
+                case: estag("if");
                 expr: or_fail(penum_expression, || PErrorKind::ExpectedKeyword("enum expression"));
                 _x: ftag("=>");
                 stmt: or_fail(pstatement, || PErrorKind::ExpectedKeyword("statement"));
@@ -952,15 +1000,15 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
         ),
         // Flow statements
         map(
-            preceded(sp(space_terminated("return")), pvariable_identifier),
+            preceded(sp(etag("return")), pvariable_identifier),
             PStatement::Return,
         ),
         map(
-            preceded(sp(space_terminated("fail")), pvalue),
+            preceded(sp(etag("fail")), pvalue),
             PStatement::Fail,
         ),
         map(
-            preceded(sp(space_terminated("log")), pvalue),
+            preceded(sp(etag("log")), pvalue),
             PStatement::Log,
         ),
         map(etag("noop"), |_| PStatement::Noop),
@@ -983,12 +1031,10 @@ fn pstate_def(i: PInput) -> PResult<(PStateDef, Vec<Option<PValue>>)> {
         {
             metadata: pmetadata_list;
             resource_name: pidentifier;
-            _st: space_terminated("state");
+            _st: estag("state");
             name: pidentifier;
-            param_list: parameter_list("(", pparameter, ")");
-            sb: ftag("{");
-            statements: many0(pstatement);
-            _x: or_fail(tag("}"), || PErrorKind::UnterminatedDelimiter(sb));
+            param_list: delimited_list("(", pparameter, ",", ")");
+            statements: delimited_parser("{", |j| many0(pstatement)(j),"}");
         } => {
             let (parameters, parameter_defaults) = param_list.into_iter().unzip();
             (PStateDef {
@@ -1019,18 +1065,18 @@ fn palias_def(i: PInput) -> PResult<PAliasDef> {
     wsequence!(
         {
             metadata: pmetadata_list;
-            _x: space_terminated("alias");
+            _x: estag("alias");
             resource_alias: pidentifier;
-            resource_alias_parameters: parameter_list("(", pidentifier, ")");
+            resource_alias_parameters: delimited_list("(", pidentifier, ",", ")");
             _x: ftag(".");
             state_alias: pidentifier;
-            state_alias_parameters: parameter_list("(", pidentifier, ")");
+            state_alias_parameters: delimited_list("(", pidentifier, ",", ")");
             _x: ftag("=");
             resource: pidentifier;
-            resource_parameters: parameter_list("(", pidentifier, ")");
+            resource_parameters: delimited_list("(", pidentifier, ",", ")");
             _x: ftag(".");
             state: pidentifier;
-            state_parameters: parameter_list("(", pidentifier, ")");
+            state_parameters: delimited_list("(", pidentifier, ",", ")");
         } => PAliasDef {metadata, resource_alias, resource_alias_parameters,
                         state_alias, state_alias_parameters,
                         resource, resource_parameters,
@@ -1043,6 +1089,7 @@ fn palias_def(i: PInput) -> PResult<PAliasDef> {
 pub enum PDeclaration<'src> {
     Enum(PEnum<'src>),
     SubEnum(PSubEnum<'src>),
+    EnumAlias(PEnumAlias<'src>),
     Resource(
         (
             PResourceDef<'src>,
@@ -1058,6 +1105,7 @@ fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
     end_of_pfile(i)?;
     or_fail(
         alt((
+            map(penum_alias, PDeclaration::EnumAlias), // alias must come before enum since they start with the same tag
             map(penum, PDeclaration::Enum),
             map(psub_enum, PDeclaration::SubEnum),
             map(presource_def, PDeclaration::Resource),
@@ -1066,7 +1114,7 @@ fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
             map(pvaragent_declaration, PDeclaration::GlobalVar),
             map(palias_def, PDeclaration::Alias),
         )),
-        || PErrorKind::Unparsed(get_accurate_context(i)),
+        || PErrorKind::Unparsed(get_context(i,i)),
     )(i)
 }
 

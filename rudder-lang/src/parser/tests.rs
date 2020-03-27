@@ -146,7 +146,7 @@ fn test_pheader() {
     );
     assert_eq!(
         map_res(pheader, "@format=21.5\n"),
-        Err(("21.5", PErrorKind::InvalidFormat))
+        Err(("@format=21.5", PErrorKind::InvalidFormat))
     );
 }
 
@@ -274,11 +274,11 @@ fn test_penum() {
     );
     assert_eq!(
         map_res(penum, "enum .abc { a, b, }"),
-        Err((".abc { a, b, }", PErrorKind::InvalidName("enum")))
+        Err(("enum .abc { a, b, }", PErrorKind::InvalidName("enum")))
     );
     assert_eq!(
         map_res(penum, "enum abc { a, b, "),
-        Err(("", PErrorKind::UnterminatedDelimiter("{")))
+        Err(("{ a, b, ", PErrorKind::UnterminatedDelimiter("{")))
     );
 }
 
@@ -291,6 +291,20 @@ fn test_psub_enum() {
             PSubEnum {
                 name: "def".into(),
                 items: vec!["d".into(), "e".into(), "f".into(),]
+            }
+        ))
+    );
+}
+
+#[test]
+fn test_penum_alias() {
+    assert_eq!(
+        map_res(penum_alias, "enum alias a = b"),
+        Ok((
+            "",
+            PEnumAlias {
+                name: "a".into(),
+                item: "b".into(),
             }
         ))
     );
@@ -382,11 +396,11 @@ fn test_penum_expression() {
     );
     assert_eq!(
         map_res(penum_expression, "a=~"),
-        Err(("", PErrorKind::InvalidEnumExpression))
+        Err(("a=~", PErrorKind::InvalidEnumExpression))
     );
     assert_eq!(
         map_res(penum_expression, "a=~b|(c=~d"),
-        Err(("", PErrorKind::UnterminatedDelimiter("(")))
+        Err(("(c=~d", PErrorKind::UnterminatedDelimiter("(")))
     );
 }
 
@@ -406,15 +420,15 @@ fn test_pescaped_strings() {
     );
     assert_eq!(
         map_res(pescaped_string, r#""2hello\xHerman""#),
-        Err((r#"2hello\xHerman""#, PErrorKind::InvalidEscapeSequence))
+        Err((r#""2hello\xHerman""#, PErrorKind::InvalidEscapeSequence))
     );
     assert_eq!(
         map_res(pescaped_string, r#""3hello"#),
-        Err(("", PErrorKind::UnterminatedDelimiter("\"")))
+        Err(("\"3hello", PErrorKind::UnterminatedDelimiter("\"")))
     );
     assert_eq!(
         map_res(pescaped_string, r#""4hello\n\"Herman\""#),
-        Err(("", PErrorKind::UnterminatedDelimiter("\"")))
+        Err((r#""4hello\n\"Herman\""#, PErrorKind::UnterminatedDelimiter("\"")))
     );
 }
 
@@ -434,7 +448,7 @@ fn test_punescaped_strings() {
     );
     assert_eq!(
         map_res(punescaped_string, r#""""2hello"""#),
-        Err((r#"2hello"""#, PErrorKind::UnterminatedDelimiter("\"\"\"")))
+        Err((r#""""2hello"""#, PErrorKind::UnterminatedDelimiter("\"\"\"")))
     );
 }
 
@@ -463,7 +477,7 @@ fn test_pinterpolated_string() {
     );
     assert_eq!(
         map_res(pinterpolated_string, "hello herman 10$x"),
-        Err(("x", PErrorKind::InvalidVariableReference))
+        Err(("$x", PErrorKind::InvalidVariableReference))
     );
     assert_eq!(
         map_res(pinterpolated_string, "hello herman ${variable1} ${var2}"),
@@ -479,15 +493,15 @@ fn test_pinterpolated_string() {
     );
     assert_eq!(
         map_res(pinterpolated_string, "hello${pouet "),
-        Err((" ", PErrorKind::UnterminatedDelimiter("${")))
+        Err(("${pouet ", PErrorKind::UnterminatedDelimiter("${")))
     );
     assert_eq!(
         map_res(pinterpolated_string, "hello${}"),
-        Err(("}", PErrorKind::InvalidVariableReference))
+        Err(("${}", PErrorKind::InvalidVariableReference))
     );
     assert_eq!(
         map_res(pinterpolated_string, "hello${"),
-        Err(("", PErrorKind::InvalidVariableReference))
+        Err(("${", PErrorKind::InvalidVariableReference))
     );
 }
 
@@ -509,15 +523,15 @@ fn test_pvalue() {
     );
     assert_eq!(
         map_res(pvalue, "\"\"\"hello\"\""),
-        Err(("hello\"\"", PErrorKind::UnterminatedDelimiter("\"\"\"")))
+        Err(("\"\"\"hello\"\"", PErrorKind::UnterminatedDelimiter("\"\"\"")))
     );
     assert_eq!(
-        map_res(pvalue, "\"hello\\x\""),
-        Err(("hello\\x\"", PErrorKind::InvalidEscapeSequence))
+        map_res(pvalue, "\"hello1\\x\""),
+        Err(("\"hello1\\x\"", PErrorKind::InvalidEscapeSequence))
     );
     assert_eq!(
-        map_res(pvalue, "\"hello\\"),
-        Err(("hello\\", PErrorKind::InvalidEscapeSequence))
+        map_res(pvalue, "\"hello2\\"),
+        Err(("\"hello2\\", PErrorKind::InvalidEscapeSequence))
     );
     assert_eq!(
         map_res(pvalue, "12.5"),
@@ -534,8 +548,8 @@ fn test_pvalue() {
         ))
     );
     assert_eq!(
-        map_res(pvalue, r#"[ "hello", 12"#),
-        Err(("[ \"hello\", 12", PErrorKind::UnterminatedDelimiter("[")))
+        map_res(pvalue, r#"[ "hello", 13"#),
+        Err(("[ \"hello\", 13", PErrorKind::UnterminatedDelimiter("[")))
     );
     assert_eq!(
         map_res(pvalue, r#"{"key":"value"}"#),
@@ -562,7 +576,7 @@ fn test_pvalue() {
     );
     assert_eq!(
         map_res(pvalue, r#"{"key":"value""#),
-        Err(("", PErrorKind::UnterminatedDelimiter("{")))
+        Err((r#"{"key":"value""#, PErrorKind::UnterminatedDelimiter("{")))
     );
 }
 
@@ -601,7 +615,7 @@ fn test_pmetadata() {
     );
     assert_eq!(
         map_res(pmetadata, "@key value"),
-        Err(("value", PErrorKind::ExpectedToken("=")))
+        Err(("@key value", PErrorKind::ExpectedToken("=")))
     );
 }
 
@@ -662,7 +676,7 @@ fn test_pparameter() {
     );
     assert_eq!(
         map_res(pparameter, "hello:"),
-        Err(("", PErrorKind::ExpectedKeyword("type")))
+        Err((":", PErrorKind::ExpectedKeyword("type")))
     );
     assert_eq!(
         map_res(pparameter, "hello : string "),
@@ -692,7 +706,7 @@ fn test_pparameter() {
     );
     assert_eq!(
         map_res(pparameter, "hello="),
-        Err(("", PErrorKind::ExpectedKeyword("value")))
+        Err(("=", PErrorKind::ExpectedKeyword("value")))
     );
 }
 
@@ -858,7 +872,7 @@ fn test_variable_definition() {
     );
     assert_eq!(
         map_res(pvariable_definition, "var = :\n"),
-        Err((":", PErrorKind::ExpectedKeyword("value")))
+        Err(("var = :", PErrorKind::ExpectedKeyword("value")))
     );
 }
 

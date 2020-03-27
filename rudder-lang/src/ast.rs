@@ -53,6 +53,7 @@ impl<'src> AST<'src> {
     /// Call this when all files have been parsed.
     pub fn from_past(past: PAST) -> Result<AST> {
         let PAST {
+            enum_aliases,
             enums,
             sub_enums,
             resources,
@@ -65,6 +66,7 @@ impl<'src> AST<'src> {
         let mut ast = AST::new();
         ast.add_enums(enums);
         ast.add_sub_enums(sub_enums);
+        ast.add_enum_aliases(enum_aliases);
         ast.add_variables(variable_declarations);
         ast.add_default_values(parameter_defaults);
         ast.add_resource_list(&resources);
@@ -132,6 +134,15 @@ impl<'src> AST<'src> {
                 break;
             }
             sub_enums = new_enums;
+        }
+    }
+
+    /// Insert all enums aliases
+    fn add_enum_aliases(&mut self, aliases: Vec<PEnumAlias<'src>>) {
+        for alias in aliases {
+            if let Err(e) = self.enum_list.add_alias(alias) {
+                self.errors.push(e);
+            }
         }
     }
 
