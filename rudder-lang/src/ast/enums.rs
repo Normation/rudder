@@ -11,7 +11,6 @@ use std::fmt;
 // TODO convert aliases in canonify
 // TODO finish checks
 // TODO Add alias tests
-// TODO better etag/ftag in parser
 // TODO Should a non global enum item be permitted as a variable name and must it be unique ?
 
 /// This item type is internal, because First and Last cannot be constructed from an enum declaration or from and enum expression
