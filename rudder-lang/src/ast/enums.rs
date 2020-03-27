@@ -12,7 +12,7 @@ use std::fmt;
 // TODO 
 // - trouver les todo
 
-/// This item type is internal, because First and Fast cannot be constructed from an enum declaration or from and enum expression
+/// This item type is internal, because First and Last cannot be constructed from an enum declaration or from and enum expression
 #[derive(Debug,Hash,PartialEq,Eq,Clone)]
 enum EnumItem<'src> {
     First(Token<'src>), // token is the parent item
@@ -49,7 +49,8 @@ fn from_item_vec<'src>(father: Token<'src>, items: Vec<Token<'src>>) -> Vec<Enum
 /// An enum tree is a structure containing the whole definition of an enum
 #[derive(Debug)]
 struct EnumTree<'src> {
-    // a global tree has an automatic variable of its name and its items cannot be used as a variable name
+    // global tree items cannot be used as a variable name
+    // a global variable is automatically created with the same name as a global enum
     global: bool,
     // Tree name = root element
     name: Token<'src>,
@@ -105,14 +106,14 @@ impl<'src> EnumTree<'src> {
 
     /// Return true if item is in the range between first and last (inclusive) None means last sibling
     fn is_in_range(&self, item: &EnumItem<'src>, first: &Option<EnumItem<'src>>, last: &Option<EnumItem<'src>>) -> bool {
-        // 3 cases : item is a sibling, item is a descendant, item is womewhere else
+        // 3 cases : item is a sibling, item is a descendant, item is somewhere else
 
         // find siblings
         let item_list = if let Some(i) = first {
             &self.children[&self.parents[&i]]
         } else if let Some(i) = last {
             &self.children[&self.parents[&i]]
-        } else { panic!("Empt range") }; // else None,None is imposible
+        } else { panic!("Empty range") }; // else None,None is imposible
         
         // if item is a descendant, find its ancestor that is a sibling
         let test_item = if item_list.contains(item) { // Item is a sibling
@@ -142,7 +143,7 @@ impl<'src> EnumTree<'src> {
     }
 
     /// Given a list of nodes, find the subtree that includes all those nodes and their siblings
-    /// This subtree is the minimal enum tree use by an expression
+    /// This subtree is the minimal enum tree used by an expression
     /// Terminators returns the leaves of this subtree
     fn terminators(&self, nodefault: bool, items: HashSet<Token<'src>>) -> HashSet<EnumItem<'src>> {
         let mut terminators = HashSet::new();
@@ -268,8 +269,8 @@ impl<'src> EnumList<'src> {
         Ok(())
     }
 
-    /// Extend an existing enum with "enum in" from the parser
-    /// return the structue back if the parent doesn't exist (yet)
+    /// Extend an existing enum with "items in" from the parser
+    /// return the structure back if the parent doesn't exist (yet)
     pub fn extend_enum(&mut self, e: PSubEnum<'src>) -> Result<Option<PSubEnum<'src>>> {
         // find tree name
         let treename = match self.elements.get(&e.name) {
@@ -505,9 +506,9 @@ fn format_case(context: &HashMap<Token, EnumItem>) -> String {
 
 /// This is the basis of the cross iterator, it iterates over a single list
 /// of items in an enum
-// we need an item reference because ve we a pointer to the item list
+// We need an item reference because we have a reference to the item list
 // we cannot store the list in the same structure as its iterator
-// so let the caller store it and juste take reference
+// so let the caller store it and just take reference
 struct VariableIterator<'it, 'src> {
     variable: Token<'src>,
     current: EnumItem<'src>,
