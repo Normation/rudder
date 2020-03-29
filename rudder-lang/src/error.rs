@@ -91,7 +91,7 @@ macro_rules! err {
     });
 }
 
-/// This macro returns from current function/closure with an error.
+/// This macro returns from current function/closure with a Result.
 /// When writing an iteration, use this within a map so we can continue on
 /// next iteration and aggregate errors.
 macro_rules! fail {

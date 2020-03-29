@@ -124,12 +124,23 @@ impl<'src> AST<'src> {
             } else if map_count == new_enums.len() {
                 // Nothing changed since last loop, we failed !
                 for se in new_enums {
-                    self.errors.push(err!(
-                        se.name,
-                        "Enum item {} not found when trying to define sub enum {}",
-                        se.name,
-                        get_suggestion_message(se.name.fragment(), self.enum_list.item_iter()),
-                    ));
+                    match se.enum_name {
+                        // This should be a global enum item
+                        None => self.errors.push(err!(
+                            se.name,
+                            "Global enum item {} not found when trying to define sub enum {}",
+                            se.name,
+                            get_suggestion_message(se.name.fragment(), self.enum_list.global_item_iter())
+                        )),
+                        // We know in which enum we shoud be
+                        Some(name) => self.errors.push(err!(
+                            se.name,
+                            "Enum {} item {} not found when trying to define sub enum {}",
+                            name,
+                            se.name,
+                            get_suggestion_message(se.name.fragment(), self.enum_list.enum_item_iter(name))
+                        ))
+                    }
                 }
                 break;
             }
@@ -555,7 +566,7 @@ impl<'src> AST<'src> {
                 );
             }
         }
-        if let Some(e) = self.enum_list.global_item(name) {
+        if let Some(e) = self.enum_list.global_enum(name) {
             fail!(
                 name,
                 "Variable name {} cannot be used because it is an item of the global enum {}",
@@ -626,7 +637,7 @@ impl<'src> AST<'src> {
             errors.push(self.invalid_identifier_check(*e));
         }
         // analyse enum items
-        for e in self.enum_list.item_iter() {
+        for e in self.enum_list.global_item_iter() {
             errors.push(self.invalid_identifier_check(*e));
         }
         // Stop here if there is any error

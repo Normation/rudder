@@ -290,6 +290,18 @@ fn test_psub_enum() {
             "",
             PSubEnum {
                 name: "def".into(),
+                enum_name: None,
+                items: vec!["d".into(), "e".into(), "f".into(),]
+            }
+        ))
+    );
+    assert_eq!(
+        map_res(psub_enum, "items in T.def { d, e, f}"),
+        Ok((
+            "",
+            PSubEnum {
+                name: "def".into(),
+                enum_name: Some("T".into()),
                 items: vec!["d".into(), "e".into(), "f".into(),]
             }
         ))
@@ -304,6 +316,18 @@ fn test_penum_alias() {
             "",
             PEnumAlias {
                 name: "a".into(),
+                enum_name: None,
+                item: "b".into(),
+            }
+        ))
+    );
+    assert_eq!(
+        map_res(penum_alias, "enum alias a = T.b"),
+        Ok((
+            "",
+            PEnumAlias {
+                name: "a".into(),
+                enum_name: Some("T".into()),
                 item: "b".into(),
             }
         ))
@@ -316,46 +340,74 @@ fn test_penum_expression() {
         map_res(penum_expression, "a=~bc"),
         Ok((
             "",
-            PEnumExpression::Compare(Some("a".into()), "bc".into())
+            PEnumExpression::Compare(Some("a".into()), None, "bc".into())
+        ))
+    );
+    assert_eq!(
+        map_res(penum_expression, "a=~T.bc"),
+        Ok((
+            "",
+            PEnumExpression::Compare(Some("a".into()), Some("T".into()), "bc".into())
         ))
     );
     assert_eq!(
         map_res(penum_expression, "a=~bc..de"),
         Ok((
             "",
-            PEnumExpression::RangeCompare(Some("a".into()), Some("bc".into()), Some("de".into()), "..".into())
+            PEnumExpression::RangeCompare(Some("a".into()), None, Some("bc".into()), Some("de".into()), "..".into())
+        ))
+    );
+    assert_eq!(
+        map_res(penum_expression, "a=~T.bc..de"),
+        Ok((
+            "",
+            PEnumExpression::RangeCompare(Some("a".into()), Some("T".into()), Some("bc".into()), Some("de".into()), "..".into())
         ))
     );
     assert_eq!(
         map_res(penum_expression, "bc"),
-        Ok(("", PEnumExpression::Compare(None, "bc".into())))
+        Ok(("", PEnumExpression::Compare(None, None, "bc".into())))
     );
     assert_eq!(
         map_res(penum_expression, "bc..de"),
         Ok((
             "",
-            PEnumExpression::RangeCompare(None, Some("bc".into()), Some("de".into()), "..".into())
+            PEnumExpression::RangeCompare(None, None, Some("bc".into()), Some("de".into()), "..".into())
         ))
     );
     assert_eq!(
         map_res(penum_expression, "..de"),
         Ok((
             "",
-            PEnumExpression::RangeCompare(None, None, Some("de".into()), "..".into())
+            PEnumExpression::RangeCompare(None, None, None, Some("de".into()), "..".into())
+        ))
+    );
+    assert_eq!(
+        map_res(penum_expression, "..T.de"),
+        Ok((
+            "",
+            PEnumExpression::RangeCompare(None, Some("T".into()), None, Some("de".into()), "..".into())
         ))
     );
     assert_eq!(
         map_res(penum_expression, "bc.."),
         Ok((
             "",
-            PEnumExpression::RangeCompare(None, Some("bc".into()), None, "..".into())
+            PEnumExpression::RangeCompare(None, None, Some("bc".into()), None, "..".into())
+        ))
+    );
+    assert_eq!(
+        map_res(penum_expression, "T.bc.."),
+        Ok((
+            "",
+            PEnumExpression::RangeCompare(None, Some("T".into()), Some("bc".into()), None, "..".into())
         ))
     );
     assert_eq!(
         map_res(penum_expression, "(a =~ hello)"),
         Ok((
             "",
-            PEnumExpression::Compare(Some("a".into()), "hello".into())
+            PEnumExpression::Compare(Some("a".into()), None, "hello".into())
         ))
     );
     assert_eq!(
@@ -364,6 +416,7 @@ fn test_penum_expression() {
             "",
             PEnumExpression::Not(Box::new(PEnumExpression::Compare(
                 Some("a".into()),
+                None,
                 "hello".into()
             )))
         ))
@@ -373,11 +426,12 @@ fn test_penum_expression() {
         Ok((
             "",
             PEnumExpression::And(
-                Box::new(PEnumExpression::Compare(None, "bc".into())),
+                Box::new(PEnumExpression::Compare(None, None, "bc".into())),
                 Box::new(PEnumExpression::Or(
-                    Box::new(PEnumExpression::Compare(None, "a".into())),
+                    Box::new(PEnumExpression::Compare(None, None, "a".into())),
                     Box::new(PEnumExpression::Compare(
                         Some("b".into()),
+                        None,
                         "g".into()
                     ))
                 )),
@@ -390,6 +444,7 @@ fn test_penum_expression() {
             "var = x",
             PEnumExpression::Not(Box::new(PEnumExpression::Compare(
                 Some("a".into()),
+                None,
                 "hello".into()
             )))
         ))
