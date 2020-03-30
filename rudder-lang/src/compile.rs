@@ -9,7 +9,7 @@ use crate::{
 };
 
 use colored::Colorize;
-use std::{cell::UnsafeCell, fs, path::Path};
+use std::{cell::UnsafeCell, fs, path::Path, pin::Pin};
 
 /// Read file, parse it and store it
 fn add_file<'a>(
@@ -33,7 +33,7 @@ fn add_file<'a>(
 /// The goal is to be able to hold references to immutable data while
 /// still appending new data at the end of the list.
 #[derive(Default)]
-pub struct SourceList(UnsafeCell<Option<(String, Box<SourceList>)>>);
+pub struct SourceList(UnsafeCell<Option<(String, Pin<Box<SourceList>>)>>);
 
 impl SourceList {
     pub fn new() -> SourceList {
@@ -44,7 +44,7 @@ impl SourceList {
         let cell_ref = unsafe { &*unsafe_ptr };
         if cell_ref.is_none() {
             unsafe {
-                *unsafe_ptr = Some((s, Box::new(SourceList(UnsafeCell::new(None)))));
+                *unsafe_ptr = Some((s, Box::pin(SourceList(UnsafeCell::new(None)))));
                 &(&*unsafe_ptr).as_ref().unwrap().0
             }
         } else {
