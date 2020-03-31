@@ -3,7 +3,7 @@
 == Tests
 
 === Required modules
-- perl (script: *tools/generate-lib*)
+- perl (script: *tools/generate_lib*)
 
 === Configuration
 - *tools/rudderc.conf* to define the CFEngine and ncf binaries paths, and the compilation, translation paths

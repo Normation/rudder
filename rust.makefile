@@ -3,6 +3,7 @@
 
 .DEFAULT_GOAL := build
 SHELL := /bin/bash
+PATH := $(PATH):$(HOME)/.cargo/bin:$(PATH)
 
 APT := apt update && apt install -y --no-install-recommends
 YUM := yum install -y 
@@ -18,7 +19,7 @@ PKG_INSTALLER := $(YUM)
 endif
 
 build-env:
-	curl https://sh.rustup.rs -sSf | sh
+	curl https://sh.rustup.rs -sSf | sh -s -- -y 
 	rustup component add clippy
 	cargo install cargo-update
 	cargo install cargo-audit

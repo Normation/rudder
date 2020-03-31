@@ -34,9 +34,9 @@ impl Logger {
                 writeln!(
                     buf,
                     r#"    {{
-          "status": {:?},
-          "message": {:?}
-        }},"#,
+      "status": "{}",
+      "message": {:#?}
+    }},"#,
                     record.level().to_string().to_ascii_lowercase(),
                     record.args().to_string()
                 )
@@ -57,7 +57,7 @@ impl Logger {
             Err(_) => "could not get correct time".to_owned(),
         };
         println!(
-            "{{\n  \"action\": {:?},\n  \"time\": {:?},\n  \"logs\": [",
+            "{{\n  \"action\": \"{}\",\n  \"time\": \"{}\",\n  \"logs\": [",
             action, time
         );
     }
@@ -98,38 +98,34 @@ impl Logger {
                 Logger::Json => println!(
                     r#"    {{
       "Result": {{
-          "action": {:?},
-          "status": "unrecoverable error",
-          "message": {:?}
+        "status": "unrecoverable error",
+        "message": "{}"
       }}
     }}
   ]
-}}"#,
-                    action, message
-                ),
+}}"#, action),
                 Logger::Terminal => error!("{}", message),
             };
         }));
     }
 
-    pub fn end<T: Display>(self, is_success: bool, input_file: T, output_file: T, action: Action) {
+    pub fn end<T: Display>(self, is_success: bool, input_file: T, output_file: T) {
         let pwd = current_dir().unwrap_or_default();
         match self {
             Logger::Json => {
                 let res_str = if is_success { "success" } else { "failure" };
                 println!(
                     r#"    {{
-          "Result": {{
-            "action": {:?},
-            "status": {:?},
-            "from": {},
-            "to": {},
-            "pwd": {:?}
-          }}
-        }}
-      ]
-    }}"#,
-                    action, res_str, input_file, output_file, pwd
+      "result": {{
+        "status": "{}",
+        "from": "{}",
+        "to": "{}",
+        "pwd": {:?}
+      }}
+    }}
+  ]
+}}"#,
+                    res_str, input_file, output_file, pwd
                 );
             }
             Logger::Terminal => {

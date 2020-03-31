@@ -17,12 +17,17 @@ then
   exit 1
 fi
 
-technique="$1"
+technique_name="$1"
 
 # Default values for rudder server
 self_dir=$(dirname $(readlink -e $0))
 test_dir=$(mktemp -d)
+#old test_dir=/tmp/rudderc/tester/$technique_name
+#mkdir -p $dir
+
+# cfjson_tester is always in the same directory as tester.sh
 cfjson_tester="${self_dir}/cfjson_tester"
+#old cfjson_tester=/opt/rudder/share/rudder-lang/tools/cfjson_tester
 
 # Detect technique path
 technique_path="/var/rudder/configuration-repository/techniques/ncf_techniques/${technique}/1.0/technique.cf"
@@ -33,7 +38,7 @@ then
   exit 1
 fi
 
-# Detect rudderc configuration
+# Detect rudderc and cfjson_tester configuration
 config_file="/opt/rudder/etc/rudderc.conf"
 [ -f "${config_file}" ] || config_file="${self_dir}/rudderc.conf"
 if [ ! -f "${config_file}" ]
@@ -42,12 +47,15 @@ then
   exit 1
 fi
 
+# logs handler
+logger=&>> /var/log/rudder/rudder-lang/
+
 # Detect rudderc
 rudderc="/opt/rudder/bin/rudderc"
 [ -f "${rudderc}" ] || rudderc="cargo run -- "
 
 # Take original technique an make a json
-${cfjson_tester} ncf-to-json --config="${config_file}" "${technique_path}" "${test_dir}/technique.json"
+${cfjson_tester} ncf-to-json ${cfjson_config} "${technique_path}" "${test_dir}/technique.json" ${logs}
 
 # Take json and produce a rudder-lang technique
 ${rudderc} --config-file "${config_file}" --translate -i "${test_dir}/technique.json"

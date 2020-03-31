@@ -70,6 +70,7 @@ import com.normation.rudder.services.user.PersonIdentService
 import net.liftweb.common.Full
 import zio._
 import zio.syntax._
+import sys.process._
 
 import scala.xml.NodeSeq
 import scala.xml.{Node => XmlNode}
@@ -248,6 +249,7 @@ class TechniqueWriter (
       libUpdate  <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")).
                       toIO.chainError(s"An error occured during technique update after files were created for ncf Technique ${technique.name}")
      } yield {
+      Seq("/opt/rudder/share/rudder-lang/tools/tester.sh", technique.name).run
       agentFiles
     }
   }
