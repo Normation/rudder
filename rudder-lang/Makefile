@@ -14,6 +14,7 @@ install:
 	mkdir -p $(DESTDIR)/opt/rudder/share/python
 	mkdir -p $(DESTDIR)/opt/rudder/share/rudder-lang/lib
 	mkdir -p $(DESTDIR)/opt/rudder/share/rudder-lang/tools
+	mkdir -p $(DESTDIR)/var/log/rudder/rudder-lang/	
 
 	# Install executable and helper scripts
 	install -m 755 target/release/rudderc $(DESTDIR)/opt/rudder/bin/rudderc
@@ -25,22 +26,24 @@ install:
 	# required for rudderc execution
 	install -m 640 tools/rudderc-prod.conf $(DESTDIR)/opt/rudder/etc/rudderc.conf
 	install -m 644 libs/corelib.rl $(DESTDIR)/opt/rudder/share/rudder-lang/lib/corelib.rl
-	install -m 644 libs/cfengine_core.rl $(DESTDIR)/opt/rudder/share/rudder-lang/lib/cfengine_core.rl
 	install -m 644 libs/oslib.rl $(DESTDIR)/opt/rudder/share/rudder-lang/lib/oslib.rl
+	install -m 644 libs/cfengine_core.rl $(DESTDIR)/opt/rudder/share/rudder-lang/lib/cfengine_core.rl
 
 	# Python libs
 	install -m 644 tools/docopt.py $(DESTDIR)/opt/rudder/share/python/docopt.py
 	cp -r tools/jsondiff $(DESTDIR)/opt/rudder/share/python/
 	chmod 755 $(DESTDIR)/opt/rudder/share/python/jsondiff
 	chmod 644 $(DESTDIR)/opt/rudder/share/python/jsondiff/*
-
+	chmod 644 $(DESTDIR)/opt/rudder/etc/rudderc.conf
+	chmod 644 $(DESTDIR)/var/log/rudder/rudder-lang
+	
 	# TODO run in postinst script
 	# /opt/rudder/share/rudder-lang/tools/generate_lib
 
 test-docs: $(DOC_EXAMPLES)
 
 $(DOC_EXAMPLES):
-	cargo run -- --config-file tools/rudderc-dev.conf --input $@ --output $@.cf
+	cargo run -- --config tools/rudderc-dev.conf --input $@ --output $@.cf
 	rm $@.cf
 
 docs:

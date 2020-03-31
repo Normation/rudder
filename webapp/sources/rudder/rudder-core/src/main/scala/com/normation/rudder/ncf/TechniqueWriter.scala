@@ -80,6 +80,13 @@ import com.normation.utils.Control
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 
+import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.hooks.Cmd
+import com.normation.rudder.hooks.RunNuCommand
+import com.normation.errors.RudderError
+import scala.jdk.CollectionConverters._
+import com.normation.zio._
+
 trait NcfError extends RudderError {
   def message : String
   def exception : Option[Throwable]
@@ -247,10 +254,23 @@ class TechniqueWriter (
       agentFiles <- writeTechnique(technique,methods,modId,committer)
       libUpdate  <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")).
                       toIO.chainError(s"An error occured during technique update after files were created for ncf Technique ${technique.name}")
-     } yield {
+    } yield {
+      runRudderLangTestLoop(technique.bundleName.value)
       agentFiles
     }
   }
+
+  def runRudderLangTestLoop(techniqueBundleName: String): Unit = {
+    System.getenv().asScala.get("PATH") match {
+      case Some(path: String) => RunNuCommand.run(Cmd("/opt/rudder/share/rudder-lang/tools/tester.sh", techniqueBundleName :: Nil, Map("PATH" -> path))).either.runNow match {
+        case Left(error: Error) => ApplicationLogger.error(error.getMessage)
+        case Left(error: RudderError) => ApplicationLogger.error(error.msg)
+        case Right(_)  => ApplicationLogger.info(s"rudder-lang tester successfully looped for technique ${techniqueBundleName}")
+      }
+      case None => ApplicationLogger.error(s"PATH environment variable must be defined to run rudder-lang test loop.")
+    }
+  }
+
   // Write and commit all techniques files
   def writeTechnique(technique : Technique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor) : IOResult[Seq[String]] = {
     for {

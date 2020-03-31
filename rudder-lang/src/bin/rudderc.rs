@@ -119,7 +119,6 @@ fn main() {
                     false,
                     "possibly no input path found",
                     "possibly no output path found",
-                    action,
                 );
                 exit(1);
             });
@@ -137,7 +136,7 @@ fn main() {
             "OK".bright_cyan()
         ),
     };
-    logger.end(result.is_ok(), input.display(), output.display(), action);
+    logger.end(result.is_ok(), input.display(), output.display());
     if result.is_err() {
         exit(1)
     }

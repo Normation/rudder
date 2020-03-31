@@ -74,7 +74,7 @@ pub fn compile_file(
     // add stdlib
     parse_stdlib(&mut past, &sources, libs_dir)?;
 
-    // read and add files
+	// read and add files
     info!(
         "{} of {} into {}",
         "Processing compilation".bright_green(),

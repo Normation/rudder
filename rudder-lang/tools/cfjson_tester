@@ -3,9 +3,9 @@
 """
 Cf and Json / rudder-lang compatibility tester
 Usage: 
-    cfjson_tester ncf-to-json [--config=<local_config_path.conf>] <file.cf> <new.json>
-    cfjson_tester compare-json [--config=<local_config_path.conf>] <first.json> <new.json>
-    cfjson_tester compare-cf [--config=<local_config_path.conf>] <first.cf> <new.cf>
+    cfjson_tester ncf-to-json [--config-file=<local_config_path.conf>] <file.cf> <new.json>
+    cfjson_tester compare-json [--config-file=<local_config_path.conf>] <first.json> <new.json>
+    cfjson_tester compare-cf [--config-file=<local_config_path.conf>] <first.cf> <new.cf>
 """
 
 import sys
@@ -14,10 +14,16 @@ import configparser
 import codecs
 import json
 from pprint import pprint
-import docopt
 import re
-import jsondiff
 from subprocess import check_output
+
+# prints the output at json format. If no issue : nothing is printed. Else, print either json diff or python error
+def print_json(filename, json_to_format, is_python_error=False):
+  if is_python_error:
+    formatted_json = { "file": filename, "diff": json_to_format }
+  else:
+    formatted_json = { "file": filename,  "error": json_to_format }
+  print(json.dumps(formatted_json, indent=2) + ',')
 
 def ncf_to_json(cf_file, json_translation):
   methods_data = ncf.get_all_generic_methods_metadata(ncf_path)
@@ -25,40 +31,51 @@ def ncf_to_json(cf_file, json_translation):
 
   file=cf_file
 
-  with codecs.open(file, encoding="utf-8") as fd:
-    content = fd.read()
+  try:
+    with codecs.open(file, encoding="utf-8") as fd:
+      content = fd.read()
+  except IOError as e:
+    print_json(file, str(e), True)
+    exit(1)
+
   try:
     result = ncf.parse_technique_metadata(content)
     technique = result["result"]
-
     technique['method_calls'] = ncf.parse_technique_methods(file, methods)
-
   except ncf.NcfError as e:
-    print("Could not parse Technique '"+ file + "' cause:" + str(e))
+    print_json(file, str(e), True)
     exit(1)
 
   with open(json_translation, "w") as fd:
     fd.write(json.dumps(technique, indent=4))
 
 def compare_json(first, second):
-  with open(first, "r") as f1:  
-    with open(second, "r") as f2:
-      j1 = json.load(f1)
-      j2 = json.load(f2)
+  try:
+    with open(first, "r") as f1:
+      try:
+        with open(second, "r") as f2:
+          j1 = json.load(f1)
+          j2 = json.load(f2)
+      except IOError as e:
+        print_json(second, str(e), True)
+        exit(1)
+  except IOError as e:
+    print_json(first, str(e), True)
+    exit(1)
   diff = jsondiff.diff(j1, j2, syntax="symmetric", marshal=True)
   ## diff hacks
   if 'bundle_name' in diff:
     if diff['bundle_name'][0] + "_technique" == diff['bundle_name'][1]:
       del diff['bundle_name']
-  ## TEST
+  ## print if diff
   if len(diff) != 0:
-    print(json.dumps(diff, indent=2, sort_keys=True))
+    print_json(second, diff)
     exit(1)
 
 def load_cf(file_name):
   # Check file exists
   if not os.path.exists(file_name):
-    print("No such file: " + file_name)
+    print_json(file_name, 'No such file', True)
     exit(1)
 
   env = os.environ.copy()
@@ -67,9 +84,31 @@ def load_cf(file_name):
   try:
     promises = json.loads(out)
   except Exception as e:
-    print("An error occured while parsing technique '"+file_name+"'")
+    print_json(file_name, 'An error occured while parsing technique: {}'.format(str(e)), True)
     exit(1)
   return promises
+
+def compare_cf(first, second):
+  j1 = load_cf(first)
+  j2 = load_cf(second)
+  diff = jsondiff.diff(j1, j2, syntax="symmetric", marshal=True)
+  remove_wilful_entries(diff)
+  empty_dict_cleaner(diff)
+  if diff and len(diff) != 0:
+    print_json(second, diff)
+
+
+## deletes from diff list every i/o difference done on purpose (ie that are not a bug)
+def remove_wilful_entries(diff):
+  ## del name since `_technique` is always added
+  name = deep_get(diff, ['bundles'], 'name')
+  if name[0] + '_technique' == name[1]:
+    deep_del(diff, ['bundles'], 'name', 'name')
+  ## del sourcePath since it is not relevant
+  deep_del(diff, ['bundles'], 'sourcePath', 'sourcePath')
+  ## del superfluous if true equivalent condition
+  deep_del(diff, ['bundles', 'promiseTypes', 'contexts', 'promises', 'attributes', 'rval', 'arguments'], {'type': 'string', 'value': 'any'}, '$delete')
+
 
 def empty_dict_cleaner(diff_dict):
   if type(diff_dict) is dict:
@@ -78,6 +117,7 @@ def empty_dict_cleaner(diff_dict):
       if len(diff_dict[element]) == 0:
         diff_dict.pop(element)
         return
+
 
 def deep_get(haystack, deep_list, needle, index=0):
   if type(haystack) is list:
@@ -122,76 +162,39 @@ def deep_del(haystack, deep_list, needle, delfrom, index=0):
     return True
   return istodel
 
-## deletes from diff list every i/o difference done on purpose (ie that are not a bug)
-def remove_wilful_entries(diff):
-  ## del name since `_technique` is always added
-  name = deep_get(diff, ['bundles'], 'name')
-  if name[0] + '_technique' == name[1]:
-    deep_del(diff, ['bundles'], 'name', 'name')
-  ## del sourcePath since it is not relevant
-  deep_del(diff, ['bundles'], 'sourcePath', 'sourcePath')
-  ## del superfluous if true equivalent condition
-  deep_del(diff, ['bundles', 'promiseTypes', 'contexts', 'promises', 'attributes', 'rval', 'arguments'], {'type': 'string', 'value': 'any'}, '$delete')
 
-def compare_cf(first, second):
-  j1 = load_cf(first)
-  j2 = load_cf(second)
-  diff = jsondiff.diff(j1, j2, syntax="symmetric", marshal=True)
-  remove_wilful_entries(diff)
-  empty_dict_cleaner(diff)
-  if len(diff) != 0:
-    print(json.dumps(diff, indent=2))
-
-def load_cf(file_name):
-  # Check file exists
-  if not os.path.exists(file_name):
-    print("No such file: " + file_name)
-    exit(1)
-
-  env = os.environ.copy()
-  env['RES_OPTIONS'] = 'attempts:0'
-  out = check_output([ncf.CFENGINE_PATH, "-pjson", "-f", file_name], env=env)
-  try:
-    promises = json.loads(out)
-  except Exception as e:
-    print("An error occured while parsing technique '"+file_name+"'", cause = e)
-    exit(1)
-  return promises
-
-def compare_cf(first, second):
-  j1 = load_cf(first)
-  j2 = load_cf(second)
-  diff = jsondiff.diff(j1, j2, syntax="symmetric", marshal=True)
-  print(json.dumps(diff, indent=2))
-
-def get_config(path):
-  cfgpath = 'tools/rudderc.conf'
-  if path:
-    cfgpath = path
-  if cfgpath.startswith("/"):
-    cfg_full_path = cfgpath
-  else:
-    cfg_full_path = os.getcwd() + '/' + cfgpath
-  if not os.path.exists(cfg_full_path):
-    print("No such file: " + cfg_full_path)
-    exit(1)
-
+def load_config():
   cfg = configparser.ConfigParser()
-  cfg.read(cfg_full_path)
+  cfgpath='/opt/rudder/etc/rudderc.conf'
+  if os.path.exists(cfgpath):
+    cfg.read(cfgpath)
+    python_modules_dir = cfg['default_paths']['py_modules'].strip('\"')
+    sys.path.append(python_modules_dir)
   return cfg
 
 if __name__ == "__main__":
-  arguments = docopt.docopt(__doc__)
+  try:
+    cfg = load_config()
+    import docopt
+    import jsondiff
+    arguments = docopt.docopt(__doc__)
+    if arguments['--config-file']:
+      cfg.read(arguments['--config-file'])
+    ncf_dir = cfg['default_paths']['ncf'].strip('\"')
+    cfengine_path = cfg['default_paths']['cfengine'].strip('\"')
+  except Exception as e:
+    print_json('(Not yet defined)', 'An error occured while setting config: {}'.format(str(e)), True)
+    exit(1)
 
-  cfg = get_config(arguments['--config'])
-  ncf_dir = cfg['default_paths']['ncf'].strip('\"')
-  cfengine_path = cfg['default_paths']['cfengine'].strip('\"')
-
-  sys.path.append(ncf_dir+'/tools')
-  import ncf
-  ncf.CFENGINE_PATH=cfengine_path
-  ncf_path=ncf_dir+'/tree/30_generic_methods'
-
+  try:
+    sys.path.append(ncf_dir+'/tools')
+    import ncf
+    ncf.CFENGINE_PATH=cfengine_path
+    ncf_path=ncf_dir+'/tree/30_generic_methods'
+  except Exception as e:
+    print_json('(Not yet defined)', 'An error occured while importing ncf: {}'.format(str(e)), True)
+    exit(1)
+  
   if arguments['ncf-to-json']:
     ncf_to_json(arguments['<file.cf>'], arguments['<new.json>'])
   elif arguments['compare-json']:
