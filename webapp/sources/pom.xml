@@ -564,6 +564,11 @@ limitations under the License.
         <artifactId>bcpkix-jdk15on</artifactId>
         <version>${bcpkix-jdk15on-version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpg-jdk15on</artifactId>
+        <version>${bcpkix-jdk15on-version}</version>
+      </dependency>
 
 
       <!-- commons -->
