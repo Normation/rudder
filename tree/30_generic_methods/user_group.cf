@@ -61,12 +61,12 @@ bundle agent user_group(user, group_name) {
 
 
     user_exists.group_exists::
-      "groups_test"           string => execresult("${ncf_paths.path[id]} -Gn ${user}", "noshell");
+      "groups_test"           string => execresult("${ncf_paths.path[id]} -Gn ${user} # with ${group_name}", "useshell");
       "current_groups"         slist => string_split("${groups_test}", " ", "999999");
 
     # if we needed to change the group, check groups afterwards
     pass2.!within_group::
-      "groups_test_post_change"   string => execresult("${ncf_paths.path[id]} -Gn ${user} #post change", "useshell"),
+      "groups_test_post_change"   string => execresult("${ncf_paths.path[id]} -Gn ${user} #post change with ${group_name}", "useshell"),
                                       if => "${inner_class_prefix}_reached";
       "current_groups_post_change" slist => string_split("${groups_test_post_change}", " ", "999999"),
                                       if => "${inner_class_prefix}_reached";
@@ -130,5 +130,4 @@ bundle agent user_group(user, group_name) {
     pass3.user_exists.group_exists::
       "report"
         usebundle => _log_v3("Secondary group ${group_name} for user ${user}", "${user}", "${old_class_prefix}", "${class_prefix}", @{args});
-        
- }
+}

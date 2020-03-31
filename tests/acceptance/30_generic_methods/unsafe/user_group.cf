@@ -144,7 +144,7 @@ bundle agent test
     #REPAIRED
       "ph1" usebundle => apply_gm("user_group", @{args1}, "${init.status[1]}", "ph1", "${init.mode[1]}" );
       "ph2" usebundle => apply_gm("user_group", @{args2}, "${init.status[2]}", "ph2", "${init.mode[2]}" );
-      "ph2bis" usebundle => apply_gm("user_group", @{args2bis}, "${init.status[2bis]}", "ph2bs", "${init.mode[2bis]}" );
+      "ph2bis" usebundle => apply_gm("user_group", @{args2bis}, "${init.status[2bis]}", "ph2bis", "${init.mode[2bis]}" );
     # SUCCESS
       "ph3" usebundle => apply_gm("user_group", @{args3}, "${init.status[3]}", "ph3", "${init.mode[3]}" );
       "ph4" usebundle => apply_gm("user_group", @{args4}, "${init.status[4]}", "ph4", "${init.mode[4]}" );
