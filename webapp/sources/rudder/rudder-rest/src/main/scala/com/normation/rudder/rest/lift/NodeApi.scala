@@ -294,11 +294,19 @@ class NodeApi (
     val schema = API.ApplyPolicy
     val restExtractor = restExtractorService
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val prettify = params.prettify
       (for {
         classes <- restExtractorService.extractList("classes")(req)(json => Full(json))
-        response = apiV8service.runNode(NodeId(id),classes)
+        optNode <- apiV2.nodeInfoService.getNodeInfo(NodeId(id))
       } yield {
-        OutputStreamResponse(response)
+        optNode match {
+          case Some(node) if(node.agentsName.exists(a => a.agentType == AgentType.CfeCommunity || a.agentType == AgentType.CfeEnterprise)) =>
+            OutputStreamResponse(apiV8service.runNode(node.id, classes))
+          case Some(node) =>
+            toJsonError(None, s"Node with id '${id}' has an agent type (${node.agentsName.map(_.agentType.displayName).mkString(",")}) which doesn't support remote run")("applyPolicy", prettify)
+          case None =>
+            toJsonError(None, s"Node with id '${id}' was not found")("applyPolicy", prettify)
+        }
       }) match {
         case Full(response) => response
         case eb : EmptyBox => {
@@ -315,12 +323,12 @@ class NodeApi (
 }
 
 class NodeApiService2 (
-    newNodeManager    : NewNodeManager
-  , nodeInfoService   : NodeInfoService
-  , removeNodeService : RemoveNodeService
-  , uuidGen           : StringUuidGenerator
-  , restExtractor     : RestExtractorService
-  , restSerializer    : RestDataSerializer
+    newNodeManager     : NewNodeManager
+  , val nodeInfoService: NodeInfoService
+  , removeNodeService  : RemoveNodeService
+  , uuidGen            : StringUuidGenerator
+  , restExtractor      : RestExtractorService
+  , restSerializer     : RestDataSerializer
 ) ( implicit userService : UserService ) extends Loggable {
 
   import restSerializer._
@@ -783,28 +791,33 @@ class NodeApiService8 (
       nodes <- nodeInfoService.getAll() ?~! s"Could not find nodes informations"
 
     } yield {
-
-      val res =
-      for {
-        node <- nodes.values.toList
-      } yield {
-        {
-
-         val request = remoteRunRequest(node.id, classes, false, true)
-         val commandRun = {
-
-           val result = request.asString
-           if (result.isSuccess) {
-             "Started"
-           } else {
-             s"An error occured when applying policy on Node '${node.id.value}', cause is: ${result.body}"
-           }
-         }
-         ( ( "id" -> node.id.value)
-         ~ ( "hostname" -> node.hostname)
-         ~ ( "result"   -> commandRun)
-         )
-
+      val res = {
+        for {
+          node <- nodes.values.toList
+        } yield {
+          // remote run only works for CFEngine based agent
+          val  commandResult = {
+            if(node.agentsName.exists(a => a.agentType == AgentType.CfeEnterprise || a.agentType == AgentType.CfeCommunity)) {
+              val request = remoteRunRequest(node.id, classes, false, true)
+              try {
+                val result = request.asString
+                if (result.isSuccess) {
+                  "Started"
+                } else {
+                  s"An error occured when applying policy on Node '${node.id.value}', cause is: ${result.body}"
+                }
+              } catch {
+                case ex: ConnectException =>
+                  s"Can not connect to local remote run API (${request.method.toUpperCase}:${request.url})"
+              }
+            } else {
+              s"Node with id '${node.id.value}' has an agent type (${node.agentsName.map(_.agentType.displayName).mkString(",")}) which doesn't support remote run"
+            }
+          }
+           ( ( "id" -> node.id.value)
+           ~ ( "hostname" -> node.hostname)
+           ~ ( "result"   -> commandResult)
+           )
         }
       }
       JArray(res)
