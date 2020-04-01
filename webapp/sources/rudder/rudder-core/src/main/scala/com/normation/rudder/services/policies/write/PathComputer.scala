@@ -141,7 +141,7 @@ class PathComputerImpl(
         for {
           toNode <- allNodeConfig.get(toNodeId).notOptionalPure(s"Missing node with id ${toNodeId.value} when trying to build the policies files path for node ${fromNodeId.value}")
           pid    =  toNode.policyServerId
-          parent <- allNodeConfig.get(pid).notOptionalPure("Can not find the parent node (${pid.value}) of node ${toNodeId.value} when trying to build the policies files for node ${fromNodeId.value}")
+          parent <- allNodeConfig.get(pid).notOptionalPure(s"Can not find the parent node with id '${pid.value}' of node '${toNode.hostname}' (${toNodeId.value}) when trying to build the policies files for node ${fromNodeId.value}")
           result <- parent match {
                       case root if root.id == NodeId("root") =>
                           // root is a specific case, it is the root of everything

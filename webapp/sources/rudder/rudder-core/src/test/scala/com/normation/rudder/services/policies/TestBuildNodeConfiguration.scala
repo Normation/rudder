@@ -139,7 +139,7 @@ class TestBuildNodeConfiguration extends Specification {
       val t2 = System.currentTimeMillis()
       val nodeContexts = buildContext.getNodeContexts(allNodes.keySet, allNodes, groupLib, Nil, data.globalAgentRun, data.globalComplianceMode, globalPolicyMode).getOrElse(throw new RuntimeException("oups"))
       val t3 = System.currentTimeMillis()
-      BuildNodeConfiguration.buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, maxParallelism, jsTimeout, generationContinueOnError)
+      BuildNodeConfiguration.buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts.ok, allNodeModes, scriptEngineEnabled, globalPolicyMode, maxParallelism, jsTimeout, generationContinueOnError)
       val t4 = System.currentTimeMillis()
 
       println(s"ruleval: ${t2-t1} ms")

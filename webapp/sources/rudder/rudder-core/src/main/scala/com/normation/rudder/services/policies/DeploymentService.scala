@@ -228,7 +228,7 @@ trait PromiseGenerationService {
       fetch0Time           =  System.currentTimeMillis
       (updatedNodesId, updatedNodeInfo, expectedReports, allErrors, errorNodes, timeFetchAll, timeHistorize, timeRuleVal, timeBuildConfig, timeWriteNodeConfig, timeSetExpectedReport) <- for {
         (updatedNodeConfigIds, allNodeConfigurations, allNodeConfigsInfos, updatedNodesId, updatedNodeInfo, globalPolicyMode, allNodeModes, allErrors, errorNodes, timeFetchAll, timeHistorize, timeRuleVal, timeBuildConfig) <- for {
-          (activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, nodeConfigCaches, timeFetchAll, timeHistorize, timeRuleVal) <- for {
+          (activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, nodeConfigCaches, timeFetchAll, timeHistorize, timeRuleVal, errors) <- for {
              allRules             <- findDependantRules() ?~! "Could not find dependant rules"
              fetch1Time           =  System.currentTimeMillis
              _                    =  PolicyGenerationLogger.timing.trace(s"Fetched rules in ${fetch1Time-fetch0Time} ms")
@@ -293,18 +293,19 @@ trait PromiseGenerationService {
 
              nodeContextsTime      =  System.currentTimeMillis
              activeNodeIds         =  ruleVals.foldLeft(Set[NodeId]()){case(s,r) => s ++ r.nodeIds}
-             nodeContexts          <- getNodeContexts(activeNodeIds, allNodeInfos, groupLib, allParameters.toList, globalAgentRun, globalComplianceMode, globalPolicyMode) ?~! "Could not get node interpolation context"
+             NodesContextResult(nodeContexts, errors) <-
+                                      getNodeContexts(activeNodeIds, allNodeInfos, groupLib, allParameters.toList, globalAgentRun, globalComplianceMode, globalPolicyMode) ?~! "Could not get node interpolation context"
              timeNodeContexts      =  (System.currentTimeMillis - nodeContextsTime)
              _                     =  PolicyGenerationLogger.timing.debug(s"Node contexts built in ${timeNodeContexts} ms, start to build new node configurations.")
           } yield {
-            (activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, nodeConfigCaches, timeFetchAll, timeHistorize, timeRuleVal)
+            (activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, nodeConfigCaches, timeFetchAll, timeHistorize, timeRuleVal, errors)
           }
           buildConfigTime       =  System.currentTimeMillis
           /// here, we still have directive by directive info
           configsAndErrors      <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, maxParallelism, jsTimeout, generationContinueOnError) ?~! "Cannot build target configuration node"
           /// only keep successfull node config. We will keep the failed one to fail the whole process in the end if needed
           allNodeConfigurations =  configsAndErrors.ok.map(c => (c.nodeInfo.id, c)).toMap
-          allErrors             =  configsAndErrors.errors.map(_.fullMsg)
+          allErrors             =  configsAndErrors.errors.map(_.fullMsg) ++ errors.values
           errorNodes            =  activeNodeIds -- allNodeConfigurations.keySet
 
           timeBuildConfig       =  (System.currentTimeMillis - buildConfigTime)
@@ -533,7 +534,7 @@ trait PromiseGenerationService {
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode
     , globalPolicyMode      : GlobalPolicyMode
-  ): Box[Map[NodeId, InterpolationContext]]
+  ): Box[NodesContextResult]
 
   /*
    * From a list of ruleVal, find the list of all impacted nodes
@@ -766,6 +767,12 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   }
 }
 
+
+final case class NodesContextResult(
+    ok   : Map[NodeId, InterpolationContext]
+  , error: Map[NodeId, String]
+)
+
 trait PromiseGeneration_BuildNodeContext {
 
   def interpolatedValueCompiler: InterpolatedValueCompiler
@@ -789,7 +796,7 @@ trait PromiseGeneration_BuildNodeContext {
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode
     , globalPolicyMode      : GlobalPolicyMode
-  ): Box[Map[NodeId, InterpolationContext]] = {
+  ): Box[NodesContextResult] = {
 
     /*
      * parameters have to be taken appart:
@@ -817,7 +824,7 @@ trait PromiseGeneration_BuildNodeContext {
       globalSystemVariables <- systemVarService.getGlobalSystemVariables(globalAgentRun)
       parameters            <- buildParams(globalParameters).toBox ?~! "Can not parsed global parameter (looking for interpolated variables)"
     } yield {
-      (nodeIds.flatMap { nodeId:NodeId =>
+      nodeIds.foldLeft(NodesContextResult(Map(), Map())) { case (res, nodeId) =>
         (for {
           nodeInfo     <- Box(allNodeInfos.get(nodeId)) ?~! s"Node with ID ${nodeId.value} was not found"
           policyServer <- Box(allNodeInfos.get(nodeInfo.policyServerId)) ?~! s"Node with ID ${nodeId.value} was not found"
@@ -836,11 +843,11 @@ trait PromiseGeneration_BuildNodeContext {
           case eb:EmptyBox =>
             val e = eb ?~! s"Error while building target configuration node for node '${nodeId.value}' which is one of the target of rules. Ignoring it for the rest of the process"
             PolicyGenerationLogger.error(e.messageChain)
-            None
+            res.copy(error = res.error + ((nodeId, e.messageChain)))
 
-          case x => x
+          case Full(x) => res.copy(ok = res.ok + x)
         }
-      }).toMap
+      }
     }
   }
 
