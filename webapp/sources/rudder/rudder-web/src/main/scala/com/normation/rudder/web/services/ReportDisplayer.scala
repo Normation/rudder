@@ -60,6 +60,7 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.box._
+import com.normation.inventory.domain.AgentType
 import org.joda.time.DateTime
 
 
@@ -329,24 +330,39 @@ class ReportDisplayer(
 
       val intro = displayIntro(report)
 
+      /*
+       * Start a remote run for that node and display results.
+       * Remoterun are only supported on cfengine agent, so disable access to button for
+       * other kind of agent (windows in particular).
+       */
       def triggerAgent(node: NodeInfo) : NodeSeq = {
-        <div id="triggerAgent">
-          <button id="triggerBtn" class="btn btn-primary btn-trigger"  onClick={s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node).toJsCmd});"}>
-            <span>Trigger Agent</span>
+        if(node.agentsName.exists(agent => agent.agentType == AgentType.CfeCommunity || agent.agentType == AgentType.CfeEnterprise)) {
+          <div id="triggerAgent">
+            <button id="triggerBtn" class="btn btn-primary btn-trigger"  onClick={s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node).toJsCmd});"}>
+              <span>Trigger Agent</span>
+              &nbsp;
+              <i class="fa fa-play"></i>
+            </button>
             &nbsp;
-            <i class="fa fa-play"></i>
-          </button>
-          &nbsp;
-          <button id="visibilityOutput" class="btn btn-content btn-state" type="button" data-toggle="collapse" data-target="#report" aria-expanded="false" aria-controls="report" style="display: none;" >
-          </button>
-          &emsp;
-          <div id="countDown" style="display:inline-block;">
-            <span style="color:#999;"></span>
+            <button id="visibilityOutput" class="btn btn-content btn-state" type="button" data-toggle="collapse" data-target="#report" aria-expanded="false" aria-controls="report" style="display: none;" >
+            </button>
+            &emsp;
+            <div id="countDown" style="display:inline-block;">
+              <span style="color:#999;"></span>
+            </div>
+            <div id="report" style="margin-top:10px;" class="collapse">
+              <pre></pre>
+            </div>
           </div>
-          <div id="report" style="margin-top:10px;" class="collapse">
-            <pre></pre>
+        } else {
+          <div id="triggerAgent">
+            <button id="triggerBtn" class="btn btn-primary btn-trigger" disabled="disabled" title="This action is not supported for Windows node">
+              <span>Trigger Agent</span>
+              &nbsp;
+              <i class="fa fa-play"></i>
+            </button>
           </div>
-        </div>
+        }
       }
 
       /*
