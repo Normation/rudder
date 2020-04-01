@@ -105,6 +105,7 @@
             <button class="btn btn-danger" ng-click="confirm()">{{actionName}} <i class="fas fa-times-circle"></i> </button>
           </div>
         </script>
+
         <script id="template/cloneModal.html" type="text/ng-template">
           <form name="cloneForm" novalidate>
             <div class="modal-header">
@@ -114,10 +115,23 @@
               <div class="form-group">
                 <label for="cloneName" class="control-label">New Technique name:</label>
                 <div>
-                  <input  type="text" id="cloneName" name="name" techniquename class="form-control" ng-model="technique.name" placeholder="Technique Name" required>
+                  <input  type="text" id="cloneName" name="name" techniquename class="form-control" ng-model="technique.name" placeholder="Technique Name" required ng-change="updateBundleName()">
                 </div>
                 <span class="text-danger pull-left" ng-show="cloneForm.name.$error.techniqueName">Technique name must be unique</span>
               </div>
+              <div class="form-group">
+                <label for="cloneName" class="control-label">New Technique name:</label>
+                <div>
+                  <input readonly id="bundleName" bundlename name="bundle_name" class="form-control" ng-model="technique.bundle_name" ng-maxlength="252" ng-pattern="/^[^_].*$/">
+              </div>
+                <span class="text-danger" ng-show="cloneForm.bundle_name.$error.maxlength">
+                  Technique IDs longer than 255 characters won't work on most filesystems.
+                </span>
+                <span class="text-danger" ng-show="cloneForm.bundle_name.$error.bundleName">
+                  Technique ID must be unique.
+                </span>
+              </div>
+
             </div>
             <div class="modal-footer">
               <button class="btn btn-primary btn-outline pull-left" ng-click="cancel()">Cancel <i class="fas fa-arrow-left"></i></button>
@@ -125,6 +139,8 @@
             </div>
           </form >
         </script>
+
+
         <script src="js/ncf.js?version=dev" ></script>
         <script type="text/javascript">
           ($(function() {
