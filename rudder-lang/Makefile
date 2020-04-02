@@ -23,7 +23,7 @@ install:
 	
 	# Copy configuration and library files
 	# required for rudderc execution
-	install -m 640 tools/rudderc.conf $(DESTDIR)/opt/rudder/etc/rudderc.conf
+	install -m 640 tools/rudderc-prod.conf $(DESTDIR)/opt/rudder/etc/rudderc.conf
 	install -m 644 libs/corelib.rl $(DESTDIR)/opt/rudder/share/rudder-lang/lib/corelib.rl
 	install -m 644 libs/cfengine_core.rl $(DESTDIR)/opt/rudder/share/rudder-lang/lib/cfengine_core.rl
 	install -m 644 libs/oslib.rl $(DESTDIR)/opt/rudder/share/rudder-lang/lib/oslib.rl

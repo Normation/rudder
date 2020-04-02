@@ -168,7 +168,10 @@ def get_config(path):
   cfgpath = 'tools/rudderc.conf'
   if path:
     cfgpath = path
-  cfg_full_path = os.getcwd() + '/' + cfgpath
+  if cfgpath.startswith("/"):
+    cfg_full_path = cfgpath
+  else:
+    cfg_full_path = os.getcwd() + '/' + cfgpath
   if not os.path.exists(cfg_full_path):
     print("No such file: " + cfg_full_path)
     exit(1)
