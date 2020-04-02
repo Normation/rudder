@@ -166,7 +166,7 @@ Now your are sure that LDAP connection is working
 ### Import Rudder project
 1. Import rudder repository :
 ```
-git clone git@github.com:ElaadF/rudder.git
+git clone git@github.com:normation/rudder.git
 ```
 
 2. In IntelliJ : _Import Project or File -> New -> Module from existing sources_
