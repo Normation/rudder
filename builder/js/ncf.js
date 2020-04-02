@@ -764,6 +764,9 @@ $scope.onImportFileChange = function (fileEl) {
       // Select the technique, by using angular.copy to have different objects
       $scope.selectedTechnique=angular.copy(technique);
       $scope.originalTechnique=angular.copy($scope.selectedTechnique);
+      if (technique.isClone) {
+        $scope.originalTechnique.bundle_name = undefined;
+      }
       $scope.$broadcast('endSaving');
       updateFileManagerConf()
     }
@@ -1603,6 +1606,10 @@ var cloneModalCtrl = function ($scope, $uibModalInstance, technique, techniques)
   $scope.techniques = techniques;
   $scope.technique = technique;
   $scope.oldTechniqueName = technique.name;
+
+  $scope.updateBundleName = function () {
+      $scope.technique.bundle_name = technique.name ? technique.name.replace(/\W/g,"_") : "";
+  };
   $scope.clone = function() {
     $uibModalInstance.close(technique);
   }
