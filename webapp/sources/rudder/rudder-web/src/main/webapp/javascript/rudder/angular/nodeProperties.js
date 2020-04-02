@@ -40,6 +40,7 @@ var app = angular.module('nodeProperties', ['datatables', 'monospaced.elastic'])
 app.controller('nodePropertiesCtrl', function ($scope, $http, DTOptionsBuilder, DTColumnDefBuilder) {
   //Initialize scope
   $scope.properties;
+  $scope.hasEditRight;
   $scope.nodeId;
   $scope.tableId          = "#nodePropertiesTab";
   $scope.urlAPI           = contextPath + '/secure/api/nodes/';
@@ -94,10 +95,8 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, DTOptionsBuilder, 
         DTColumnDefBuilder.newColumnDef(2).withOption("sWidth",'5%')
     ];
   var currentNodeId
-  $scope.init = function(properties, nodeId, right){
-    if(!right){
-      $scope.columns[2].notVisible();
-    }
+  $scope.init = function(properties, nodeId, isUserHasRights){
+    $scope.hasEditRight = isUserHasRights;
     currentNodeId = nodeId
     $scope.properties = properties;
     $scope.urlAPI = contextPath + '/secure/api/nodes/'+ nodeId;
