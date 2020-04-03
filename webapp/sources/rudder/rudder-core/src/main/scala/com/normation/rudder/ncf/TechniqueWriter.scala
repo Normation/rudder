@@ -63,6 +63,7 @@ import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
+import com.normation.rudder.hooks.RunNuCommand
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
@@ -70,7 +71,6 @@ import com.normation.rudder.services.user.PersonIdentService
 import net.liftweb.common.Full
 import zio._
 import zio.syntax._
-import sys.process._
 
 import scala.xml.NodeSeq
 import scala.xml.{Node => XmlNode}
@@ -80,6 +80,11 @@ import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.Control
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
+
+import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.hooks.Cmd
+import com.normation.rudder.hooks.CmdResult
+import com.normation.errors.RudderError
 
 trait NcfError extends RudderError {
   def message : String
@@ -248,8 +253,11 @@ class TechniqueWriter (
       agentFiles <- writeTechnique(technique,methods,modId,committer)
       libUpdate  <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")).
                       toIO.chainError(s"An error occured during technique update after files were created for ncf Technique ${technique.name}")
-     } yield {
-      Seq("/opt/rudder/share/rudder-lang/tools/tester.sh", technique.name).run
+    } yield {
+      RunNuCommand.run(Cmd("/opt/rudder/share/rudder-lang/tools/tester.sh", technique.bundleName.value :: Nil, Map())).either // match {
+//        case Left(error: Error) => ApplicationLogger.error(error.getMessage)
+//        case Right(_)  => ApplicationLogger.debug(s"rudder-lang tester successfully looped for technique ${technique.bundleName.value}")
+//      }
       agentFiles
     }
   }

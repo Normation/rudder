@@ -1,29 +1,52 @@
 #!/bin/bash
 
-set -e
-set -x # -x # to print every line as it occurs
+prod_env=true
 
-if [ "$1" = "-k" ]
-then
-  cleanup=no
-  shift
-fi
+#####################
+# ARGUMENTS & USAGE #
+#####################
+
+allowed_options="d|k"
+for param in "$@"
+do
+  # force dev env optional parameter
+  if [ "$1" = "--dev" ] || [[ "$1" =~ ^-[${allowed_options}]?d[${allowed_options}]?$ ]]
+  then
+    prod_env=false
+  fi
+
+  # cleanup optional parameter
+  if [ "$1" = "--keep" ] || [[ "$1" =~ ^-[${allowed_options}]?k[${allowed_options}]?$ ]]
+  then
+    cleanup=no
+  fi
+
+  # shift on option
+  if [[ "$1" =~ ^--?[a-z]* ]]
+  then
+    shift
+  fi
+done
 
 if [ "$1" = "" ]
 then
-  echo "Usage tester.sh [-k] <technique>"
-  echo " -k: keep temporary files after cleanup"
+  echo "Usage tester.sh [--dev] [--keep] <technique>"
+  echo " --dev or -d: force using a development environnement (meaning no json logs and local rudder repo rather than production files)"
+  echo " --keep or -k: keep temporary files after cleanup"
   echo " <technique>: can be either a technique name from ncf directory or an absolute path"
   exit 1
 fi
 
-technique_name="$1"
+
+###############
+# SETUP PATHS #
+###############
+
+technique="$1"
 
 # Default values for rudder server
 self_dir=$(dirname $(readlink -e $0))
 test_dir=$(mktemp -d)
-#old test_dir=/tmp/rudderc/tester/$technique_name
-#mkdir -p $dir
 
 # cfjson_tester is always in the same directory as tester.sh
 cfjson_tester="${self_dir}/cfjson_tester"
@@ -31,7 +54,7 @@ cfjson_tester="${self_dir}/cfjson_tester"
 
 # Detect technique path
 technique_path="/var/rudder/configuration-repository/techniques/ncf_techniques/${technique}/1.0/technique.cf"
-[ -f "${technique_path}" ] || technique_path="$1"
+([ ${prod_env} = true ] && [ -f "${technique_path}" ]) || (technique_path="$1" && prod_env=false)
 if [ ! -f "${technique_path}" ]
 then
   echo "Cannot find /var/rudder/configuration-repository/techniques/ncf_techniques/${technique}/1.0/technique.cf nor $1"
@@ -40,38 +63,99 @@ fi
 
 # Detect rudderc and cfjson_tester configuration
 config_file="/opt/rudder/etc/rudderc.conf"
-[ -f "${config_file}" ] || config_file="${self_dir}/rudderc.conf"
+([ ${prod_env} = true ] && [ -f "${config_file}" ]) || (config_file="${self_dir}/rudderc.conf" && prod_env=false)
 if [ ! -f "${config_file}" ]
 then
   echo "Cannot find /opt/rudder/etc/rudderc.conf nor ${self_dir}/rudderc.conf"
   exit 1
 fi
 
-# logs handler
-logger=&>> /var/log/rudder/rudder-lang/
-
-# Detect rudderc
 rudderc="/opt/rudder/bin/rudderc"
-[ -f "${rudderc}" ] || rudderc="cargo run -- "
+([ ${prod_env} = true ] && [ -f "${rudderc}" ]) || (rudderc="cargo run -- " && prod_env=false)
 
-# Take original technique an make a json
-${cfjson_tester} ncf-to-json ${cfjson_config} "${technique_path}" "${test_dir}/technique.json" ${logs}
+###############################
+# EXECUTE SCRIPTS AND PROGRAM #
+###############################
 
-# Take json and produce a rudder-lang technique
-${rudderc} --config-file "${config_file}" --translate -i "${test_dir}/technique.json"
+# 1. Script - Takes a CF technique and produces a JSON file
+# 2. Rudderc - Takes this JSON and produces a rudder-lang technique
+# 3. Rudderc - Takes the rudder-lang technique and compiles it into a cf file
+# 4. Script - Takes this generated cf file and produces a new json
+# 5. Script - Compares original / generated JSON files
+# 6. Script - Compares original / generated CF files
 
-# Take rudder lang technique and compile it into cf file
-# output format is generated behind the scenes, it actually is a cf file, not rl
-${rudderc} --config-file "${config_file}" -i "${test_dir}/technique.rl"
+if [ ${prod_env} = false ] 
+then
 
-# take generated cf file a new json
-${cfjson_tester} ncf-to-json --config="${config_file}" "${test_dir}/technique.rl.cf" "${test_dir}/technique.rl.cf.json"
+  ##########################
+  # DEVELOPMENT EVIRONMENT #
+  ##########################
+  ${cfjson_tester} ncf-to-json --config-file=${config_file} "${technique_path}" "${test_dir}/${technique}.json" \
+  && ${rudderc} --config-file=${config_file} --translate -i "${test_dir}/${technique}.json" \
+  && ${rudderc} --config-file=${config_file} -i "${test_dir}/${technique}.rl" \
+  && ${cfjson_tester} ncf-to-json --config-file="${config_file}" "${test_dir}/${technique}.rl.cf" "${test_dir}/${technique}.rl.cf.json" \
+  && ${cfjson_tester} compare-json --config-file="${config_file}" "${test_dir}/${technique}.json" "${test_dir}/${technique}.rl.cf.json" \
+  && ${cfjson_tester} compare-cf --config-file="${config_file}" "${technique_path}" "${test_dir}/${technique}.rl.cf"
 
-# compare generated json
-${cfjson_tester} compare-json --config="${config_file}" "${test_dir}/technique.json" "${test_dir}/technique.rl.cf.json"
+else
+  ##########################
+  # PRODUCTION ENVIRONMENT #
+  ##########################
 
-# compare generated cf files
-${cfjson_tester} compare-cf --config="${config_file}" "${technique_path}" "${test_dir}/technique.rl.cf"
+  logpath="/var/log/rudder/rudder-lang"
+  # be careful, file order matters
+  logfiles=(
+    "${logpath}/ncf_to_original_json_err"
+    "${logpath}/rudderc_translate_output"
+    "${logpath}/rudderc_compile_output"
+    "${logpath}/ncf_to_generated_json_err"
+    "${logpath}/diff_json"
+    "${logpath}/diff_cf"
+  )
+
+  # JSON log fmt - prepare to receive log data (remove last ']')
+  for log in ${logfiles[@]}
+  do
+    if [ ! -f "${log}.json" ]
+	then
+      echo -e '[\n]' > "${log}.json"
+    fi
+    if [[ ! "${log}" =~ /rudderc_ ]]
+	then
+      ([ -f "${log}.trace" ] && echo -e "=== ${technique} ===" >> "${log}.trace") || touch "${log}.trace"
+    fi
+    # in case log root array is not empty: 
+    perl -0777 -i -ne 's/\}\n]\n$/\},\n/; print $last = $_; END{print $last}' "${log}.json" &> "/dev/null"
+    # in case log root array is empty:
+    perl -0777 -i -ne 's/\[\n]\n$/[\n/; print $last = $_; END{print $last}' "${log}.json" &> "/dev/null"
+  done
+
+	${cfjson_tester} ncf-to-json "${technique_path}" "${test_dir}/${technique}.json" >> "${logfiles[0]}.json" 2>> "${logfiles[0]}.trace" \
+    && ${rudderc} -j --translate -i "${test_dir}/${technique}.json" &>> "${logfiles[1]}.json" \
+    && ${rudderc} -j -i "${test_dir}/${technique}.rl" &>> "${logfiles[2]}.json" \
+    && ${cfjson_tester} ncf-to-json "${test_dir}/${technique}.rl.cf" "${test_dir}/${technique}.rl.cf.json" >> "${logfiles[3]}.json" 2>> "${logfiles[3]}.trace" \
+    && ${cfjson_tester} compare-json "${test_dir}/${technique}.json" "${test_dir}/${technique}.rl.cf.json" >> "${logfiles[4]}.json" 2>> "${logfiles[4]}.trace" \
+    && ${cfjson_tester} compare-cf "${technique_path}" "${test_dir}/${technique}.rl.cf" >> "${logfiles[5]}.json" 2>> "${logfiles[5]}.trace"
+  
+  # JSON log fmt - end of file (repush last ']' now that content has been added)
+  for log in ${logfiles[@]}
+  do
+    # clean new log trace entry if no uncatched errors were found
+    if [ -f "${log}.trace" ] && [[ $(tail -n 1 "${log}.trace") =~ "=== ${technique} ===" ]]
+	then
+	  head -n -1 "${log}.trace" > "${test_dir}/tmp.trace"; mv "${test_dir}/tmp.trace" "${log}.trace"
+	fi
+    # in case log root array is not empty:
+    perl -i -ne 's/,\n$/\n]\n/ if eof; print $last = $_; END{print $last}' "${log}.json" &> "/dev/null"
+    # in case log root array is empty:
+    perl -i -ne 's/\[\n$/\[\n]\n/ if eof; print $last = $_; END{print $last}' "${log}.json" &> "/dev/null"
+  done
+fi
+
+
+###########
+# CLEANUP #
+###########
 
 if [ "${cleanup}" != "no" ]
 then

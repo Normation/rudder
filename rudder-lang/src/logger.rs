@@ -97,13 +97,13 @@ impl Logger {
             match self {
                 Logger::Json => println!(
                     r#"    {{
-      "Result": {{
+      "result": {{
         "status": "unrecoverable error",
         "message": "{}"
       }}
     }}
   ]
-}}"#, action),
+}},"#, action),
                 Logger::Terminal => error!("{}", message),
             };
         }));
@@ -124,7 +124,7 @@ impl Logger {
       }}
     }}
   ]
-}}"#,
+}},"#,
                     res_str, input_file, output_file, pwd
                 );
             }
