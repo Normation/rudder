@@ -1485,6 +1485,7 @@
             confirm: 'Confirm',
             cancel: 'Cancel',
             close: 'Close',
+            save: 'Save',
             upload_files: 'Upload files',
             files_will_uploaded_to: 'Files will be uploaded to',
             select_files: 'Select files',
