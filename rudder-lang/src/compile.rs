@@ -8,51 +8,40 @@ use crate::{
     parser::{Token, PAST},
 };
 
+use typed_arena::Arena;
 use colored::Colorize;
-use std::{cell::UnsafeCell, fs, path::Path, pin::Pin};
+use std::{fs, path::Path};
 
-/// Read file, parse it and store it
-fn add_file<'a>(
-    past: &mut PAST<'a>,
-    source_list: &'a SourceList,
-    path: &'a Path,
-    filename: &'a str,
-) -> Result<()> {
+/// Parses the whole stdlib
+pub fn parse_stdlib<'src>(past: &mut PAST<'src>, sources: &'src Arena<String>, libs_dir: &'src Path) -> Result<()> {
+    let core_lib = libs_dir.join("corelib.rl");
+    parse_file(past, sources, &core_lib, "corelib.rl")?;
+
+    let oses = libs_dir.join("oslib.rl");
+    parse_file(past, sources, &oses, "oslib.rl")?;
+
+    let cfengine_core = libs_dir.join("cfengine_core.rl");
+    parse_file(past, sources, &cfengine_core, "cfengine_core.rl")?;
+
+    let stdlib = libs_dir.join("stdlib.rl");
+    parse_file(past, sources, &stdlib, "stdlib.rl")?;
+
+    Ok(())
+}
+
+/// Add a single file content to the sources and parse it
+pub fn parse_file<'src>(past: &mut PAST<'src>, sources: &'src Arena<String>, path: &Path, filename: &'src str) -> Result<()> {
     info!("|- {} {}", "Parsing".bright_green(), filename);
     match fs::read_to_string(path) {
         Ok(content) => {
-            let content_str = source_list.append(content);
-            past.add_file(filename, &content_str)
+            let content_str = sources.alloc(content);
+            past.add_file(filename, content_str)
         }
         Err(e) => Err(err!(Token::new(filename, ""), "{}", e)),
     }
 }
 
-/// Implementation of a linked list containing immutable data
-/// but where we can append new data.
-/// The goal is to be able to hold references to immutable data while
-/// still appending new data at the end of the list.
-#[derive(Default)]
-pub struct SourceList(UnsafeCell<Option<(String, Pin<Box<SourceList>>)>>);
-
-impl SourceList {
-    pub fn new() -> SourceList {
-        SourceList(UnsafeCell::new(None))
-    }
-    pub fn append(&self, s: String) -> &str {
-        let unsafe_ptr = self.0.get();
-        let cell_ref = unsafe { &*unsafe_ptr };
-        if cell_ref.is_none() {
-            unsafe {
-                *unsafe_ptr = Some((s, Box::pin(SourceList(UnsafeCell::new(None)))));
-                &(&*unsafe_ptr).as_ref().unwrap().0
-            }
-        } else {
-            cell_ref.as_ref().unwrap().1.append(s)
-        }
-    }
-}
-
+/// Compile a file from rudder-lang to cfengine
 pub fn compile_file(
     source: &Path,
     dest: &Path,
@@ -60,16 +49,15 @@ pub fn compile_file(
     libs_dir: &Path,
     translate_config: &Path,
 ) -> Result<()> {
-    let sources = SourceList::new();
+    let sources = Arena::new();
+    let mut past = PAST::new();
+
+    // add stdlib
+    parse_stdlib(&mut past, &sources, libs_dir);
 
     // read and add files
-    let oses = libs_dir.join("oslib.rl");
-    let corelib = libs_dir.join("corelib.rl");
-    let cfenginecore = libs_dir.join("cfengine_core.rl");
-    let stdlib = libs_dir.join("stdlib.rl");
     let input_filename = source.to_string_lossy();
     let output_filename = dest.to_string_lossy();
-
     info!(
         "{} of {} into {}",
         "Processing compilation".bright_green(),
@@ -77,13 +65,7 @@ pub fn compile_file(
         output_filename.bright_yellow()
     );
 
-    // data
-    let mut past = PAST::new();
-    add_file(&mut past, &sources, &corelib, "corelib.rl")?;
-    add_file(&mut past, &sources, &cfenginecore, "cfengine_core.rl")?;
-    add_file(&mut past, &sources, &stdlib, "stdlib.rl")?;
-    add_file(&mut past, &sources, &oses, "oslib.rl")?;
-    add_file(&mut past, &sources, &source, &input_filename)?;
+    parse_file(&mut past, &sources, &source, &input_filename)?;
 
     // finish parsing into AST
     info!("|- {}", "Generating intermediate code".bright_green());
