@@ -8,29 +8,48 @@ use crate::{
     parser::{Token, PAST},
 };
 
-use typed_arena::Arena;
 use colored::Colorize;
 use std::{fs, path::Path};
+use typed_arena::Arena;
+use walkdir::WalkDir;
 
 /// Parses the whole stdlib
-pub fn parse_stdlib<'src>(past: &mut PAST<'src>, sources: &'src Arena<String>, libs_dir: &'src Path) -> Result<()> {
-    let core_lib = libs_dir.join("corelib.rl");
-    parse_file(past, sources, &core_lib, "corelib.rl")?;
+/// Parse all `.rl` files recursively to allow future layout changes.
+pub fn parse_stdlib<'src>(
+    past: &mut PAST<'src>,
+    sources: &'src Arena<String>,
+    libs_dir: &'src Path,
+) -> Result<()> {
+    fn is_rl_file(file: &Path) -> bool {
+        file.extension().map(|e| e == "rl").unwrap_or(false)
+    }
 
-    let oses = libs_dir.join("oslib.rl");
-    parse_file(past, sources, &oses, "oslib.rl")?;
-
-    let cfengine_core = libs_dir.join("cfengine_core.rl");
-    parse_file(past, sources, &cfengine_core, "cfengine_core.rl")?;
-
-    let stdlib = libs_dir.join("stdlib.rl");
-    parse_file(past, sources, &stdlib, "stdlib.rl")?;
+    let walker = WalkDir::new(libs_dir)
+        .into_iter()
+        .filter(|r| r.as_ref().map(|e| is_rl_file(e.path())).unwrap_or(true));
+    for entry in walker {
+        match entry {
+            Ok(e) => {
+                let path = e.path();
+                parse_file(past, sources, path)?;
+            }
+            Err(e) => return Err(err!(Token::new(&libs_dir.to_string_lossy(), ""), "{}", e)),
+        }
+    }
 
     Ok(())
 }
 
 /// Add a single file content to the sources and parse it
-pub fn parse_file<'src>(past: &mut PAST<'src>, sources: &'src Arena<String>, path: &Path, filename: &'src str) -> Result<()> {
+pub fn parse_file<'src>(
+    past: &mut PAST<'src>,
+    sources: &'src Arena<String>,
+    path: &Path,
+) -> Result<()> {
+    let filename = sources.alloc(match path.file_name() {
+        Some(file) => file.to_string_lossy().to_string(),
+        None => return Err(Error::User(format!("{:?} should be a .rl file", path))),
+    });
     info!("|- {} {}", "Parsing".bright_green(), filename);
     match fs::read_to_string(path) {
         Ok(content) => {
@@ -53,19 +72,17 @@ pub fn compile_file(
     let mut past = PAST::new();
 
     // add stdlib
-    parse_stdlib(&mut past, &sources, libs_dir);
+    parse_stdlib(&mut past, &sources, libs_dir)?;
 
     // read and add files
-    let input_filename = source.to_string_lossy();
-    let output_filename = dest.to_string_lossy();
     info!(
         "{} of {} into {}",
         "Processing compilation".bright_green(),
-        input_filename.bright_yellow(),
-        output_filename.bright_yellow()
+        source.to_string_lossy().bright_yellow(),
+        dest.to_string_lossy().bright_yellow()
     );
 
-    parse_file(&mut past, &sources, &source, &input_filename)?;
+    parse_file(&mut past, &sources, source)?;
 
     // finish parsing into AST
     info!("|- {}", "Generating intermediate code".bright_green());
