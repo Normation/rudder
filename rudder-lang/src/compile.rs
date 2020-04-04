@@ -12,32 +12,40 @@ use typed_arena::Arena;
 use colored::Colorize;
 use std::{fs, path::Path};
 
-/// Parses the whole stdlib
+/// Parses the whole stdlib, ie everything that's in the library directory
 pub fn parse_stdlib<'src>(past: &mut PAST<'src>, sources: &'src Arena<String>, libs_dir: &'src Path) -> Result<()> {
-    let core_lib = libs_dir.join("corelib.rl");
-    parse_file(past, sources, &core_lib, "corelib.rl")?;
-
-    let oses = libs_dir.join("oslib.rl");
-    parse_file(past, sources, &oses, "oslib.rl")?;
-
-    let cfengine_core = libs_dir.join("cfengine_core.rl");
-    parse_file(past, sources, &cfengine_core, "cfengine_core.rl")?;
-
-    let stdlib = libs_dir.join("stdlib.rl");
-    parse_file(past, sources, &stdlib, "stdlib.rl")?;
-
+    let dir = match fs::read_dir(libs_dir) {
+        Ok(d) => d,
+        Err(_) => return Err(Error::User(format!("Unable to open library directory {:?}", libs_dir))),
+    };
+    for entry in dir {
+        let path = match entry {
+            Ok(e) => e.path(),
+            Err(_) => return Err(Error::User(format!("Unable to read library directory content {:?}", libs_dir))),
+        };
+        if path.ends_with(".rl") {
+            parse_file(past, sources, &path)?;
+        }
+    }
     Ok(())
 }
 
 /// Add a single file content to the sources and parse it
-pub fn parse_file<'src>(past: &mut PAST<'src>, sources: &'src Arena<String>, path: &Path, filename: &'src str) -> Result<()> {
-    info!("|- {} {}", "Parsing".bright_green(), filename);
+pub fn parse_file<'src>(past: &mut PAST<'src>, sources: &'src Arena<String>, path: &Path) -> Result<()> {
+    let file_name = match path.file_name() {
+        None => return Err(Error::User(format!("Invalid rl file name {:?}", path))),
+        Some(p) => p
+    };
+    let file_name = String::from(file_name.to_string_lossy());
+    info!("|- {} {}", "Parsing".bright_green(), file_name);
     match fs::read_to_string(path) {
         Ok(content) => {
+            // store name and content in the arena to make it live long enough
+            let file_name = sources.alloc(file_name.into());
             let content_str = sources.alloc(content);
-            past.add_file(filename, content_str)
+            past.add_file(file_name, content_str)
         }
-        Err(e) => Err(err!(Token::new(filename, ""), "{}", e)),
+        Err(e) => return Err(Error::User(format!("Uname to read file file name {}", file_name))),
     }
 }
 
@@ -56,16 +64,14 @@ pub fn compile_file(
     parse_stdlib(&mut past, &sources, libs_dir);
 
     // read and add files
-    let input_filename = source.to_string_lossy();
-    let output_filename = dest.to_string_lossy();
     info!(
         "{} of {} into {}",
         "Processing compilation".bright_green(),
-        input_filename.bright_yellow(),
-        output_filename.bright_yellow()
+        source.to_string_lossy().bright_yellow(),
+        dest.to_string_lossy().bright_yellow()
     );
 
-    parse_file(&mut past, &sources, &source, &input_filename)?;
+    parse_file(&mut past, &sources, &source)?;
 
     // finish parsing into AST
     info!("|- {}", "Generating intermediate code".bright_green());

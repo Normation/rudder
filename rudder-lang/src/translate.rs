@@ -12,7 +12,7 @@ use nom::combinator::*;
 use nom::multi::many1;
 use nom::sequence::*;
 use nom::IResult;
-use regex::Regex;
+use regex::{Regex, Captures};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fs;
@@ -382,7 +382,26 @@ fn is_balanced(cond: &str) -> bool {
     parenthesis_count == 0
 }
 
-fn translate_condition(_config: &toml::Value, cond: &str) -> Result<String> {
+fn translate_condition(config: &toml::Value, expr: &str) -> Result<String> {
+    lazy_static! {
+        static ref CLASS_RE: Regex = Regex::new(r"(\w+)").unwrap();
+    }
+    let mut errs = Vec::new();
+    // replace all matching words as classes
+    let result = CLASS_RE.replace_all(expr, |caps: &Captures| {
+        match translate_class(&caps[1]) {
+            Ok(s) => s,
+            Err(e) => {errs.push(e); "".into()}
+         }
+    });
+    if errs.is_empty() {
+        Ok(result.into())
+    } else {
+        Err(Error::from_vec(errs))
+    }
+}
+
+fn translate_class(cond: &str) -> Result<String> {
     lazy_static! {
         static ref METHOD_RE: Regex = Regex::new(r"^(\w+)_(\w+)$").unwrap();
         // Permissive expr to accept versions and _ separators in OS name + conditions under the following form : `.(...)`
