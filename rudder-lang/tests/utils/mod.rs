@@ -65,8 +65,8 @@ fn compile_file(input_path: &Path, output_path: &Path, technique_name: &str) -> 
         input_path,
         output_path,
         true,
-        &PathBuf::from("libs/"),
-        &PathBuf::from("tools/translate_config.toml"),
+        &PathBuf::from("./libs/"),
+        &PathBuf::from("./tools/translate_config.toml"),
     ) {
         Ok(_) => {
             println!(

@@ -23,7 +23,7 @@ pub fn parse_stdlib<'src>(past: &mut PAST<'src>, sources: &'src Arena<String>, l
             Ok(e) => e.path(),
             Err(_) => return Err(Error::User(format!("Unable to read library directory content {:?}", libs_dir))),
         };
-        if path.ends_with(".rl") {
+        if path.extension() == Some(std::ffi::OsStr::new("rl")) {
             parse_file(past, sources, &path)?;
         }
     }
@@ -61,7 +61,7 @@ pub fn compile_file(
     let mut past = PAST::new();
 
     // add stdlib
-    parse_stdlib(&mut past, &sources, libs_dir);
+    parse_stdlib(&mut past, &sources, libs_dir)?;
 
     // read and add files
     info!(
