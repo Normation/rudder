@@ -245,8 +245,9 @@ fn test_penum() {
             "",
             PEnum {
                 global: false,
+                metadata: Vec::new(),
                 name: "abc1".into(),
-                items: vec!["a".into(), "b".into(), "c".into()]
+                items: vec![(Vec::new(),"a".into()), (Vec::new(),"b".into()), (Vec::new(),"c".into())]
             }
         ))
     );
@@ -256,8 +257,9 @@ fn test_penum() {
             "",
             PEnum {
                 global: true,
+                metadata: Vec::new(),
                 name: "abc2".into(),
-                items: vec!["a".into(), "b".into(), "c".into()]
+                items: vec![(Vec::new(),"a".into()), (Vec::new(),"b".into()), (Vec::new(),"c".into())]
             }
         ))
     );
@@ -267,8 +269,28 @@ fn test_penum() {
             "",
             PEnum {
                 global: false,
+                metadata: Vec::new(),
                 name: "abc3".into(),
-                items: vec!["a".into(), "b".into()]
+                items: vec![(Vec::new(),"a".into()), (Vec::new(),"b".into())]
+            }
+        ))
+    );
+    assert_eq!(
+        map_res(penum, "@meta=\"hello\"\nenum abc3 { @metadata=\"value\" a, b, }"),
+        Ok((
+            "",
+            PEnum {
+                global: false,
+                metadata: vec![ PMetadata {
+                    key: "meta".into(),
+                    value: PValue::String("\"".into(), "hello".into()),
+                }],
+                name: "abc3".into(),
+                items: vec![(vec![PMetadata {
+                                    key: "metadata".into(),
+                                    value: PValue::String("\"".into(), "value".into()),
+                                }],"a".into()),
+                            (Vec::new(),"b".into())]
             }
         ))
     );
@@ -291,7 +313,7 @@ fn test_psub_enum() {
             PSubEnum {
                 name: "def".into(),
                 enum_name: None,
-                items: vec!["d".into(), "e".into(), "f".into(),]
+                items: vec![(Vec::new(),"d".into()), (Vec::new(),"e".into()), (Vec::new(),"f".into())]
             }
         ))
     );
@@ -302,7 +324,7 @@ fn test_psub_enum() {
             PSubEnum {
                 name: "def".into(),
                 enum_name: Some("T".into()),
-                items: vec!["d".into(), "e".into(), "f".into(),]
+                items: vec![(Vec::new(),"d".into()), (Vec::new(),"e".into()), (Vec::new(),"f".into())]
             }
         ))
     );

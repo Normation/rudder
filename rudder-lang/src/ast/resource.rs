@@ -10,12 +10,12 @@ use std::collections::{hash_map::Entry, HashMap, HashSet};
 
 ///! There are 2 kinds of functions return
 ///! - Result: could not return data, fatal to the caller
-///! - Error vec: data partialy created, you may continue
+///! - Error vec: data partially created, you may continue
 
 /// Create final metadata from parsed metadata
-fn create_metadata<'src>(
-    pmetadata: Vec<PMetadata<'src>>,
-) -> (Vec<Error>, HashMap<Token<'src>, Value<'src>>) {
+pub fn create_metadata(
+    pmetadata: Vec<PMetadata>,
+) -> (Vec<Error>, HashMap<Token, Value>) {
     let mut errors = Vec::new();
     let mut metadata = HashMap::new();
     for meta in pmetadata {

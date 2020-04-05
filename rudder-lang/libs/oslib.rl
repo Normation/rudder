@@ -41,6 +41,7 @@ items in bsd {
 items in linux {
   alpine_linux,
   arch_linux,
+  @cfengine_name="debian"
   debian_family,
   fedora,
   gentoo,
@@ -48,6 +49,7 @@ items in linux {
   mandriva,
   oracle,
   oracle_vm_server,
+  @cfengine_name="redhat"
   redhat_family,
   slackware,
   suse,
@@ -56,6 +58,7 @@ items in linux {
 
 items in redhat_family {
   centos,
+  @cfengine_name="(redhat.!centos)"
   redhat,
   redhat_entreprise,
   scientific_linux,
@@ -63,6 +66,7 @@ items in redhat_family {
 }
 
 items in debian_family {
+  @cfengine_name="(debian.!ubuntu)"
   debian,
   ubuntu,
   *

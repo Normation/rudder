@@ -3,11 +3,11 @@
 
 use super::context::VarKind;
 use super::resource::Statement;
-use super::enum_tree::EnumTree;
+use super::enum_tree::{EnumItem, EnumTree};
+use super::value::Value;
 use crate::error::*;
-use crate::parser::{PEnum, PEnumAlias, PEnumExpression, PSubEnum, Token};
+use crate::parser::{PEnum, PEnumAlias, PEnumExpression, PMetadata, PSubEnum, Token};
 use std::collections::{HashMap, HashSet};
-use std::fmt;
 
 // TODO named item tests
 // TODO aliases tests
@@ -35,6 +35,16 @@ impl<'src> EnumList<'src> {
     /// Returns true if the given enum is global and None if the enum doesn't exist
     pub fn enum_is_global(&self, e: Token<'src>) -> Option<bool> {
         self.enums.get(&e).map(|e| e.global)
+    }
+
+    /// Returns the metadata of a given enum
+    pub fn enum_metadata(&self, e: Token<'src>) -> Option<&HashMap<Token<'src>, Value<'src>>> {
+        self.enums.get(&e).map(|e| &e.metadata)
+    }
+
+    /// Returns the metadata of a given enum item
+    pub fn enum_item_metadata(&self, e: Token<'src>, i: Token<'src>) -> Option<&HashMap<Token<'src>, Value<'src>>> {
+        self.enums.get(&e).and_then(|e| e.item_metadata.get(&i))
     }
 
     /// Returns the item if it is global and None otherwise
@@ -67,7 +77,7 @@ impl<'src> EnumList<'src> {
     }
 
     /// check for item duplicates and insert reference into global list if needed
-    fn add_to_global(global_items: &mut HashMap<Token<'src>, Token<'src>>, global: bool, name: Token<'src>, items: &Vec<Token<'src>>) -> Result<()> {
+    fn add_to_global(global_items: &mut HashMap<Token<'src>, Token<'src>>, global: bool, name: Token<'src>, items: &Vec<(Vec<PMetadata<'src>>,Token<'src>)>) -> Result<()> {
         // check that enum is not empty
         if items.is_empty() {
             fail!(name, "Enum {} is empty", name);
@@ -76,7 +86,7 @@ impl<'src> EnumList<'src> {
         let mut local_item_list = HashMap::new();
         let item_list = if global { global_items } else { &mut local_item_list };
         // check for key name duplicate and insert reference
-        for i in items.iter() {
+        for (_,i) in items.iter() {
             // default value is not a real item
             if i.fragment() == "*" { continue }
             if item_list.contains_key(i) {
@@ -105,8 +115,9 @@ impl<'src> EnumList<'src> {
             );
         }
         Self::add_to_global(&mut self.global_items, e.global, e.name, &e.items)?;
-        let tree = EnumTree::new(e.name, e.items, e.global);
-        self.enums.insert(e.name, tree);
+        let name = e.name;
+        let tree = EnumTree::new(e)?;
+        self.enums.insert(name, tree);
         Ok(())
     }
 
@@ -125,13 +136,13 @@ impl<'src> EnumList<'src> {
         // find tree object
         if let Some(tree) = self.enums.get_mut(&tree_name) {
             // check that we do not extend twice the same entry
-            if tree.children.contains_key(&e.name) {
+            if tree.is_item_defined(&e.name) {
                 fail!(e.name, "Sub enum {} is already defined", e.name);
             }
             // check for key name duplicate and insert reference
             Self::add_to_global(&mut self.global_items, tree.global, tree_name, &e.items)?;
             // insert keys
-            tree.extend(e.name, e.items);
+            tree.extend(e)?;
         } else {
             fail!(e.name, "Enum {} doesn't exist for {}", tree_name, e.name);
         }

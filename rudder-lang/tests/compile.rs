@@ -108,21 +108,21 @@ enum success {
     ok,
     err
 }"#; "s_enum")]
-#[test_case("f_enum_meta", r#"@format=0
+#[test_case("s_enum_meta", r#"@format=0
 @forbiddenmeta = "Should not be here"
 enum success {
     ok,
-}"#; "f_enum_meta")]
+}"#; "s_enum_meta")]
 #[test_case("s_enum_comment", r#"@format=0
 #simple comment authorized
 enum success {
     ok,
 }"#; "s_enum_comment")]
-#[test_case("f_enum_comment", r#"@format=0
-##forbiddencomment
+#[test_case("s_enum_meta_comment", r#"@format=0
+##allowedcomment
 enum success {
     ok,
-}"#; "f_enum_comment")]
+}"#; "s_enum_meta_comment")]
 #[test_case("f_enum_reserved_keyword", r#"@format=0
 enum enum {
     ascendant,

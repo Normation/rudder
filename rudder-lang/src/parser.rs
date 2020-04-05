@@ -132,11 +132,16 @@ fn pheader(i: PInput) -> PResult<PHeader> {
 }
 
 /// An enum item can be either a classic identifier or a *
-fn penum_item(i: PInput) -> PResult<Token> {
-    alt((
-        pidentifier,
-        map(tag("*"), |x: PInput| x.into()),
-    ))(i)
+fn penum_item(i: PInput) -> PResult<(Vec<PMetadata>,Token)> {
+    wsequence!(
+        {
+            metadata: pmetadata_list;
+            identifier: alt((
+                pidentifier,
+                map(tag("*"), |x: PInput| x.into()),
+            ));
+        } => (metadata, identifier)
+    )(i)
 }
 
 /// An enum is a list of values, like a C enum.
@@ -145,19 +150,20 @@ fn penum_item(i: PInput) -> PResult<Token> {
 #[derive(Debug, PartialEq)]
 pub struct PEnum<'src> {
     pub global: bool,
+    pub metadata: Vec<PMetadata<'src>>,
     pub name: Token<'src>,
-    pub items: Vec<Token<'src>>,
+    pub items: Vec<(Vec<PMetadata<'src>>,Token<'src>)>,
 }
 fn penum(i: PInput) -> PResult<PEnum> {
     wsequence!(
         {
-            metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
+            metadata: pmetadata_list;
             global: opt(estag("global"));
             e:      estag("enum");
-            _fail:  or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
             name:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
             items : delimited_nonempty_list("{", penum_item, ",", "}");
         } => PEnum {
+                metadata,
                 global: global.is_some(),
                 name,
                 items,
@@ -165,12 +171,12 @@ fn penum(i: PInput) -> PResult<PEnum> {
     )(i)
 }
 
-/// A sub enum is an extension of an existing enum, t adds children to an existong enum item
+/// A sub enum is an extension of an existing enum, t adds children to an existing enum item
 #[derive(Debug, PartialEq)]
 pub struct PSubEnum<'src> {
     pub name: Token<'src>,
     pub enum_name: Option<Token<'src>>,
-    pub items: Vec<Token<'src>>,
+    pub items: Vec<(Vec<PMetadata<'src>>,Token<'src>)>,
 }
 fn psub_enum(i: PInput) -> PResult<PSubEnum> {
     wsequence!(
