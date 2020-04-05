@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::error::*;
-use crate::parser::{Token, PEnum, PMetadata, PSubEnum};
 use super::value::Value;
-use std::collections::{HashMap, HashSet};
-use std::fmt;
-use crate::ast::resource::create_metadata;
+use crate::{
+    ast::resource::create_metadata,
+    error::*,
+    parser::{PEnum, PMetadata, PSubEnum, Token},
+};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt,
+};
 
 /// This item type is internal, because First and Last cannot be constructed from an enum declaration or from and enum expression
-#[derive(Debug,Hash,PartialEq,Eq,Clone)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub enum EnumItem<'src> {
     First(Token<'src>), // token is the parent item
     Item(Token<'src>),
@@ -48,13 +52,20 @@ pub struct EnumTree<'src> {
 }
 impl<'src> EnumTree<'src> {
     /// Insert items to this tree
-    fn insert_items(&mut self, father: Token<'src>, items: Vec<(Vec<PMetadata<'src>>,Token<'src>)>) -> Result<()> {
+    fn insert_items(
+        &mut self,
+        father: Token<'src>,
+        items: Vec<(Vec<PMetadata<'src>>, Token<'src>)>,
+    ) -> Result<()> {
         // detect incompleteness
         let mut incomplete = false;
         let mut children = Vec::new();
         let mut errors = Vec::new();
-        for (meta,item) in items.into_iter() {
-            if *item == "*" { incomplete = true; continue }
+        for (meta, item) in items.into_iter() {
+            if *item == "*" {
+                incomplete = true;
+                continue;
+            }
             self.parents.insert(EnumItem::Item(item), father);
             children.push(EnumItem::Item(item));
             let (mut err, metadata) = create_metadata(meta);
@@ -78,10 +89,15 @@ impl<'src> EnumTree<'src> {
     /// create a new enum tree with a single level of children
     pub fn new(penum: PEnum<'src>) -> Result<EnumTree<'src>> {
         let PEnum {
-            name, items, global, metadata
+            name,
+            items,
+            global,
+            metadata,
         } = penum;
         let (errors, metadata) = create_metadata(metadata);
-        if !errors.is_empty() { return Err(Error::from_vec(errors)); }
+        if !errors.is_empty() {
+            return Err(Error::from_vec(errors));
+        }
         let mut myself = EnumTree {
             global,
             metadata,
@@ -97,8 +113,12 @@ impl<'src> EnumTree<'src> {
     }
 
     /// add a new level to an existing tree
-    pub fn extend(&mut self, psub_enum: PSubEnum<'src>) -> Result<()>{
-        let PSubEnum { name, enum_name, items } = psub_enum;
+    pub fn extend(&mut self, psub_enum: PSubEnum<'src>) -> Result<()> {
+        let PSubEnum {
+            name,
+            enum_name,
+            items,
+        } = psub_enum;
         let father = EnumItem::Item(name);
         if !self.parents.contains_key(&father) {
             panic!("Subtree's parent must exist !")
@@ -121,18 +141,24 @@ impl<'src> EnumTree<'src> {
     pub fn unalias(&self, name: Token<'src>) -> Token<'src> {
         match self.aliases.get(&name) {
             None => name,
-            Some(i) => *i
+            Some(i) => *i,
         }
     }
 
     /// Iterate over all items of this tree (excluding First and Last)
-    pub fn item_iter<'a>(&'a self) -> Box<dyn Iterator<Item = &Token<'src>>+'a> {
-        Box::new(self.parents.iter()
-                     .filter(|(k, _)| match k { EnumItem::Item(_) => true, _ => false })
-                     .map(move |(k, _)| match k {
-                         EnumItem::Item(i) => i,
-                         _ => &self.name // never happens
-                     }))
+    pub fn item_iter<'a>(&'a self) -> Box<dyn Iterator<Item = &Token<'src>> + 'a> {
+        Box::new(
+            self.parents
+                .iter()
+                .filter(|(k, _)| match k {
+                    EnumItem::Item(_) => true,
+                    _ => false,
+                })
+                .map(move |(k, _)| match k {
+                    EnumItem::Item(i) => i,
+                    _ => &self.name, // never happens
+                }),
+        )
     }
 
     /// iterate over ascendants (root, ... great father, father )
@@ -152,7 +178,12 @@ impl<'src> EnumTree<'src> {
     }
 
     /// Return true if item is in the range between first and last (inclusive) None means last sibling
-    pub fn is_in_range(&self, item: &EnumItem<'src>, first: &Option<EnumItem<'src>>, last: &Option<EnumItem<'src>>) -> bool {
+    pub fn is_in_range(
+        &self,
+        item: &EnumItem<'src>,
+        first: &Option<EnumItem<'src>>,
+        last: &Option<EnumItem<'src>>,
+    ) -> bool {
         // 3 cases : item is a sibling, item is a descendant, item is somewhere else
 
         // find siblings
@@ -160,26 +191,33 @@ impl<'src> EnumTree<'src> {
             &self.children[&self.parents[&i]]
         } else if let Some(i) = last {
             &self.children[&self.parents[&i]]
-        } else { panic!("Empty range") }; // else None,None is imposible
+        } else {
+            panic!("Empty range")
+        }; // else None,None is imposible
 
         // if item is a descendant, find its ancestor that is a sibling
-        let test_item = if item_list.contains(item) { // Item is a sibling
+        let test_item = if item_list.contains(item) {
+            // Item is a sibling
             item.clone()
         } else {
-            match self.get_ascendants(item.clone()).iter().find(|i| item_list.contains(&EnumItem::Item(**i))) {
+            match self
+                .get_ascendants(item.clone())
+                .iter()
+                .find(|i| item_list.contains(&EnumItem::Item(**i)))
+            {
                 Some(p) => EnumItem::Item(*p), // p is an ascendant of item that is in the list
-                None => return false // item is not in this subtree
+                None => return false,          // item is not in this subtree
             }
         };
         // find each item position
-        let item_position = item_list.iter().position(|x| x == &test_item ).unwrap(); // item is necessary in the list
+        let item_position = item_list.iter().position(|x| x == &test_item).unwrap(); // item is necessary in the list
         let first_position = match first {
             None => 0,
-            Some(i) => item_list.iter().position(|x| x == i ).unwrap(), // first and last are necessary in the list
+            Some(i) => item_list.iter().position(|x| x == i).unwrap(), // first and last are necessary in the list
         };
         let last_position = match last {
-            None => item_list.len()-1,
-            Some(i) => item_list.iter().position(|x| x == i ).unwrap(), // first and last are necessary in the list
+            None => item_list.len() - 1,
+            Some(i) => item_list.iter().position(|x| x == i).unwrap(), // first and last are necessary in the list
         };
         item_position >= first_position && item_position <= last_position
     }
@@ -192,7 +230,11 @@ impl<'src> EnumTree<'src> {
     /// Given a list of nodes, find the subtree that includes all those nodes and their siblings
     /// This subtree is the minimal enum tree used by an expression
     /// Terminators returns the leaves of this subtree
-    pub fn terminators(&self, nodefault: bool, items: HashSet<Token<'src>>) -> HashSet<EnumItem<'src>> {
+    pub fn terminators(
+        &self,
+        nodefault: bool,
+        items: HashSet<Token<'src>>,
+    ) -> HashSet<EnumItem<'src>> {
         let mut terminators = HashSet::new();
         // insert root elements of tree
         terminators.insert(EnumItem::Item(self.name));
@@ -206,8 +248,10 @@ impl<'src> EnumTree<'src> {
                     for i in self.children[ascendant].iter() {
                         if nodefault {
                             match i {
-                                EnumItem::First(_)|EnumItem::Last(_) => {},
-                                _ => {terminators.insert(i.clone());},
+                                EnumItem::First(_) | EnumItem::Last(_) => {}
+                                _ => {
+                                    terminators.insert(i.clone());
+                                }
                             }
                         } else {
                             terminators.insert(i.clone());
@@ -223,8 +267,8 @@ impl<'src> EnumTree<'src> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use maplit::{hashset};
-    use crate::parser::tests::{penum_t,psub_enum_t};
+    use crate::parser::tests::{penum_t, psub_enum_t};
+    use maplit::hashset;
 
     fn item(name: &str) -> EnumItem {
         EnumItem::Item(name.into())
@@ -255,5 +299,4 @@ mod tests {
             hashset! {item("b"), item("c"), item("d"), item("f"), item("g"), item("h"), EnumItem::First("e".into()), EnumItem::Last("e".into())}
         );
     }
-
 }

@@ -7,14 +7,15 @@ pub mod enums;
 pub mod resource;
 pub mod value;
 
-use crate::error::*;
-use crate::parser::*;
+use crate::{error::*, parser::*};
 use std::collections::{HashMap, HashSet};
 
-use self::context::{VarContext, VarKind};
-use self::enums::EnumList;
-use self::resource::*;
-use self::value::Value;
+use self::{
+    context::{VarContext, VarKind},
+    enums::EnumList,
+    resource::*,
+    value::Value,
+};
 
 // TODO v2: type inference, compatibility metadata
 // TODO aliases
@@ -131,7 +132,10 @@ impl<'src> AST<'src> {
                             se.name,
                             "Global enum item {} not found when trying to define sub enum {}",
                             se.name,
-                            get_suggestion_message(se.name.fragment(), self.enum_list.global_item_iter())
+                            get_suggestion_message(
+                                se.name.fragment(),
+                                self.enum_list.global_item_iter()
+                            )
                         )),
                         // We know in which enum we shoud be
                         Some(name) => self.errors.push(err!(
@@ -139,8 +143,11 @@ impl<'src> AST<'src> {
                             "Enum {} item {} not found when trying to define sub enum {}",
                             name,
                             se.name,
-                            get_suggestion_message(se.name.fragment(), self.enum_list.enum_item_iter(name))
-                        ))
+                            get_suggestion_message(
+                                se.name.fragment(),
+                                self.enum_list.enum_item_iter(name)
+                            )
+                        )),
                     }
                 }
                 break;
@@ -415,11 +422,7 @@ impl<'src> AST<'src> {
                         }
                     }
                     if cases.is_empty() {
-                        fail!(
-                            keyword,
-                            "Case list must not be empty in { }",
-                            keyword
-                        )
+                        fail!(keyword, "Case list must not be empty in { }", keyword)
                     }
                     fix_results(cases.iter().flat_map(|(_cond, sts)| {
                         sts.iter().map(|st| self.cases_check(variables, st, false))

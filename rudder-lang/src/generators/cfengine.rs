@@ -2,16 +2,12 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::Generator;
-use crate::ast::enums::EnumExpression;
-use crate::ast::resource::*;
-use crate::ast::value::*;
-use crate::ast::*;
-use crate::parser::*;
+use crate::{
+    ast::{enums::EnumExpression, resource::*, value::*, *},
+    parser::*,
+};
 
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::Write;
-use std::path::Path;
+use std::{collections::HashMap, fs::File, io::Write, path::Path};
 
 use crate::error::*;
 
@@ -129,7 +125,7 @@ impl CFEngine {
                     format!("!({})", self.current_cases.join("|"))
                 }
             }
-            EnumExpression::NoDefault(_) => { "".to_string() }
+            EnumExpression::NoDefault(_) => "".to_string(),
         })
     }
 
@@ -168,7 +164,7 @@ impl CFEngine {
 
     // TODO simplify expression and remove useless conditions for more readable cfengine
     // TODO underscore escapement
-    // TODO how does cfengine use utf8
+    // TODO how does cfengine use utf-8
     // TODO variables
     // TODO comments and metadata
     // TODO use in_class everywhere
@@ -226,7 +222,7 @@ impl CFEngine {
                     sd.state.fragment(),
                     param_str,
                 );
-                // facultative, only aesthetic to align the method `=>` with the conditonal `=>` like cfengine does
+                // facultative, only aesthetic to align the method `=>` with the conditional `=>` like cfengine does
                 let padding_spaces = str::repeat(" ", component.len() + id.to_string().len() + 43);
                 if class == "any" {
                     Ok(format!("{};\n{};\n", method_reporting_context, method))
@@ -301,7 +297,7 @@ impl CFEngine {
                     .map(|t| match t {
                         PInterpolatedElement::Static(s) => {
                             // replace ${const.xx}
-                            s.replace("$", "${consr.dollar}")
+                            s.replace("$", "${const.dollar}")
                                 .replace("\\n", "${const.n}")
                                 .replace("\\r", "${const.r}")
                                 .replace("\\t", "${const.t}")

@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use super::context::VarKind;
-use super::enums::{EnumExpression, EnumList};
-use crate::error::*;
-use crate::parser::*;
+use super::{
+    context::VarKind,
+    enums::{EnumExpression, EnumList},
+};
+use crate::{error::*, parser::*};
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Clone)]

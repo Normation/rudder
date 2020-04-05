@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use super::context::VarKind;
-use super::resource::Statement;
-use super::enum_tree::{EnumItem, EnumTree};
-use super::value::Value;
-use crate::error::*;
-use crate::parser::{PEnum, PEnumAlias, PEnumExpression, PMetadata, PSubEnum, Token};
+use super::{
+    context::VarKind,
+    enum_tree::{EnumItem, EnumTree},
+    resource::Statement,
+    value::Value,
+};
+use crate::{
+    error::*,
+    parser::{PEnum, PEnumAlias, PEnumExpression, PMetadata, PSubEnum, Token},
+};
 use std::collections::{HashMap, HashSet};
 
 // TODO named item tests
@@ -43,7 +47,11 @@ impl<'src> EnumList<'src> {
     }
 
     /// Returns the metadata of a given enum item
-    pub fn enum_item_metadata(&self, e: Token<'src>, i: Token<'src>) -> Option<&HashMap<Token<'src>, Value<'src>>> {
+    pub fn enum_item_metadata(
+        &self,
+        e: Token<'src>,
+        i: Token<'src>,
+    ) -> Option<&HashMap<Token<'src>, Value<'src>>> {
         self.enums.get(&e).and_then(|e| e.item_metadata.get(&i))
     }
 
@@ -63,40 +71,61 @@ impl<'src> EnumList<'src> {
     }
 
     /// Iterate over item values in a given enum
-    pub fn enum_item_iter<'a>(&'a self, tree_name: Token<'src>) -> Box<dyn Iterator<Item = &Token<'src>>+'a> {
-        self.enums.get(&tree_name)
+    pub fn enum_item_iter<'a>(
+        &'a self,
+        tree_name: Token<'src>,
+    ) -> Box<dyn Iterator<Item = &Token<'src>> + 'a> {
+        self.enums
+            .get(&tree_name)
             .map(|tree| tree.item_iter())
             .unwrap_or_else(|| Box::new(std::iter::empty::<&Token>()))
     }
 
     /// Return true if item is in the range between first and last (inclusive) None means first/last sibling
-    fn is_in_range(&self, item: &EnumItem<'src>, tree_name: Token<'src>, first: &Option<Token<'src>>, last: &Option<Token<'src>>) -> bool {
+    fn is_in_range(
+        &self,
+        item: &EnumItem<'src>,
+        tree_name: Token<'src>,
+        first: &Option<Token<'src>>,
+        last: &Option<Token<'src>>,
+    ) -> bool {
         let first_item = first.map(EnumItem::Item);
         let last_item = last.map(EnumItem::Item);
         self.enums[&tree_name].is_in_range(item, &first_item, &last_item)
     }
 
     /// check for item duplicates and insert reference into global list if needed
-    fn add_to_global(global_items: &mut HashMap<Token<'src>, Token<'src>>, global: bool, name: Token<'src>, items: &Vec<(Vec<PMetadata<'src>>,Token<'src>)>) -> Result<()> {
+    fn add_to_global(
+        global_items: &mut HashMap<Token<'src>, Token<'src>>,
+        global: bool,
+        name: Token<'src>,
+        items: &Vec<(Vec<PMetadata<'src>>, Token<'src>)>,
+    ) -> Result<()> {
         // check that enum is not empty
         if items.is_empty() {
             fail!(name, "Enum {} is empty", name);
         }
         // local list, if this is not a global enum
         let mut local_item_list = HashMap::new();
-        let item_list = if global { global_items } else { &mut local_item_list };
+        let item_list = if global {
+            global_items
+        } else {
+            &mut local_item_list
+        };
         // check for key name duplicate and insert reference
-        for (_,i) in items.iter() {
+        for (_, i) in items.iter() {
             // default value is not a real item
-            if i.fragment() == "*" { continue }
+            if i.fragment() == "*" {
+                continue;
+            }
             if item_list.contains_key(i) {
                 fail!(
-                        i,
-                        "Enum Item {}:{} is already defined by {}",
-                        name,
-                        i,
-                        item_list.entry(*i).key()
-                    );
+                    i,
+                    "Enum Item {}:{} is already defined by {}",
+                    name,
+                    i,
+                    item_list.entry(*i).key()
+                );
             }
             item_list.insert(*i, name);
         }
@@ -126,11 +155,12 @@ impl<'src> EnumList<'src> {
     pub fn extend_enum(&mut self, e: PSubEnum<'src>) -> Result<Option<PSubEnum<'src>>> {
         // find tree name
         let tree_name = match e.enum_name {
-            None => match self.global_items.get(&e.name) { // implicit (must be global)
+            None => match self.global_items.get(&e.name) {
+                // implicit (must be global)
                 None => return Ok(Some(e)), // return because this can be because the parent hasn't been defined yet
-                Some(t) => *t
+                Some(t) => *t,
             },
-            Some(t) => t // explicit
+            Some(t) => t, // explicit
         };
 
         // find tree object
@@ -155,32 +185,56 @@ impl<'src> EnumList<'src> {
         let tree_name = match alias.enum_name {
             // implicit tree name (must be global)
             None => match self.global_items.get(&alias.item) {
-                None => fail!(alias.name, "Alias {} points to a non existent global enum", alias.name),
-                Some(t) => *t
+                None => fail!(
+                    alias.name,
+                    "Alias {} points to a non existent global enum",
+                    alias.name
+                ),
+                Some(t) => *t,
             },
             // explicit tree name
-            Some(t) => if !self.enums.contains_key(&t) {
-                fail!(alias.name, "Alias {} points to a non existent enum {}", alias.name, t);
-            } else {
-                t
+            Some(t) => {
+                if !self.enums.contains_key(&t) {
+                    fail!(
+                        alias.name,
+                        "Alias {} points to a non existent enum {}",
+                        alias.name,
+                        t
+                    );
+                } else {
+                    t
+                }
             }
         };
 
         // alias must point to a existing item
         if !self.enums[&tree_name].has_item(alias.item) {
-            fail!(alias.name, "Alias {} points to a non existent item {}", alias.name, alias.item);
+            fail!(
+                alias.name,
+                "Alias {} points to a non existent item {}",
+                alias.name,
+                alias.item
+            );
         }
 
         // refuse duplicate names
         if self.enums[&tree_name].has_item(alias.name) {
-            fail!(alias.name, "Alias {} duplicates existing item in {}", alias.name, tree_name);
+            fail!(
+                alias.name,
+                "Alias {} duplicates existing item in {}",
+                alias.name,
+                tree_name
+            );
         }
 
         // Ok
         if self.enums[&tree_name].global {
             self.global_items.insert(alias.name, tree_name);
         }
-        self.enums.get_mut(&tree_name).unwrap().add_alias(alias.name, alias.item);
+        self.enums
+            .get_mut(&tree_name)
+            .unwrap()
+            .add_alias(alias.name, alias.item);
         Ok(())
     }
 
@@ -201,67 +255,80 @@ impl<'src> EnumList<'src> {
     fn item_in_enum(&self, tree_name: Token<'src>, item: Token<'src>) -> Result<Token<'src>> {
         match self.enums.get(&tree_name) {
             None => fail!(tree_name, "Enum {} doesn't exist", tree_name),
-            Some(tree) => if tree.has_item(item) {
-                Ok(tree.unalias(item))
-            } else {
-                fail!(item, "Item {} doesn't exist in enum {}", item, tree_name)
+            Some(tree) => {
+                if tree.has_item(item) {
+                    Ok(tree.unalias(item))
+                } else {
+                    fail!(item, "Item {} doesn't exist in enum {}", item, tree_name)
+                }
             }
         }
     }
 
     /// Validate a comparison between a variable and an enum item
     /// if the comparison is valid, return the fully qualified variable and enum item
-    fn validate_comparison<VG>(&self, getter: &VG,
-                           variable: Option<Token<'src>>,
-                           tree_name: Option<Token<'src>>,
-                           value: Token<'src>,
-                           my_be_boolean: bool,
+    fn validate_comparison<VG>(
+        &self,
+        getter: &VG,
+        variable: Option<Token<'src>>,
+        tree_name: Option<Token<'src>>,
+        value: Token<'src>,
+        my_be_boolean: bool,
     ) -> Result<(Token<'src>, Token<'src>, Token<'src>)>
     where
         VG: Fn(Token<'src>) -> Option<VarKind<'src>>,
     {
-        match (variable,tree_name) {
+        match (variable, tree_name) {
             (None, None) => {
                 if let Some(tree_name) = self.global_items.get(&value) {
                     // - value exist and tree is global => var = treename = value global name
                     let val = self.item_in_enum(*tree_name, value)?;
                     Ok((*tree_name, *tree_name, val))
-                    // tree_name
-                    // var = tree_name
+                // tree_name
+                // var = tree_name
                 } else {
                     if my_be_boolean {
                         // - value !exist => var = value, treename = boolean, value = true // var must exist and of type boolean
                         let t = self.get_var_enum(getter, value)?;
-                        if t.fragment() == "boolean" { // TODO store these strings/token somewhere else ?
+                        if t.fragment() == "boolean" {
+                            // TODO store these strings/token somewhere else ?
                             Ok((value, "boolean".into(), "true".into()))
                         } else {
-                            fail!(value, "{} is not an enum item nor a boolean variable", value);
+                            fail!(
+                                value,
+                                "{} is not an enum item nor a boolean variable",
+                                value
+                            );
                         }
                     } else {
                         fail!(value, "{} is not a global enum item", value);
                     }
                 }
-            },
+            }
             (None, Some(t)) => {
                 let tree = match self.enums.get(&t) {
                     None => fail!(t, "Enum {} doesn't exist or is not global", t),
-                    Some(tree) => tree
+                    Some(tree) => tree,
                 };
                 if !tree.global {
-                    fail!(t, "Enum {} must be global when not compared with a variable", t);
+                    fail!(
+                        t,
+                        "Enum {} must be global when not compared with a variable",
+                        t
+                    );
                 }
                 let val = self.item_in_enum(t, value)?;
                 Ok((t, t, val))
-            },
+            }
             (Some(v), None) => {
                 // tree name = var type / value must exist and be in tree
-                let t = self.get_var_enum(getter,v)?;
+                let t = self.get_var_enum(getter, v)?;
                 let val = self.item_in_enum(t, value)?;
                 Ok((v, t, val))
-            },
+            }
             (Some(v), Some(t)) => {
                 // var type must equal tree name, value must exist and be in tree
-                let var_tree_name = self.get_var_enum(getter,v)?;
+                let var_tree_name = self.get_var_enum(getter, v)?;
                 if var_tree_name != t {
                     fail!(v, "Variable {} should have the type {}", v, t);
                 }
@@ -296,7 +363,7 @@ impl<'src> EnumList<'src> {
                     (Err(er1), Err(er2)) => Err(er1.append(er2)),
                     (Ok(ex1), Ok(ex2)) => Ok(EnumExpression::Or(Box::new(ex1), Box::new(ex2))),
                 }
-            },
+            }
             PEnumExpression::And(e1, e2) => {
                 let r1 = self.canonify_expression(getter, *e1);
                 let r2 = self.canonify_expression(getter, *e2);
@@ -306,11 +373,12 @@ impl<'src> EnumList<'src> {
                     (Err(er1), Err(er2)) => Err(er1.append(er2)),
                     (Ok(ex1), Ok(ex2)) => Ok(EnumExpression::And(Box::new(ex1), Box::new(ex2))),
                 }
-            },
+            }
             PEnumExpression::Compare(var, tree_name, value) => {
-                let (var_name, tree_name, value) = self.validate_comparison(getter, var, tree_name, value, true)?;
+                let (var_name, tree_name, value) =
+                    self.validate_comparison(getter, var, tree_name, value, true)?;
                 Ok(EnumExpression::Compare(var_name, tree_name, value))
-            },
+            }
             PEnumExpression::RangeCompare(var, tree_name, left, right, position) => {
                 // left and right must not be both None
                 let value = if let Some(item) = left {
@@ -320,24 +388,32 @@ impl<'src> EnumList<'src> {
                 } else {
                     fail!(position, "Empty range is forbidden in enum expression")
                 };
-                let (var_name, tree_name, value) = self.validate_comparison(getter, var, tree_name, value, false)?;
+                let (var_name, tree_name, value) =
+                    self.validate_comparison(getter, var, tree_name, value, false)?;
                 // check tat left and right are right type
                 let new_left = match left {
                     None => None,
-                    Some(item) => Some(self.item_in_enum(tree_name, item)?)
+                    Some(item) => Some(self.item_in_enum(tree_name, item)?),
                 };
                 let new_right = match right {
                     None => None,
-                    Some(item) => Some(self.item_in_enum(tree_name, item)?)
+                    Some(item) => Some(self.item_in_enum(tree_name, item)?),
                 };
                 // check that left and right are siblings
-                if let (Some(item1),Some(item2)) =  (new_left,new_right) {
-                    if ! self.enums[&tree_name].are_siblings(item1, item2) {
-                        fail!(value, "{} and {} are not siblings", left.unwrap(), right.unwrap());
+                if let (Some(item1), Some(item2)) = (new_left, new_right) {
+                    if !self.enums[&tree_name].are_siblings(item1, item2) {
+                        fail!(
+                            value,
+                            "{} and {} are not siblings",
+                            left.unwrap(),
+                            right.unwrap()
+                        );
                     }
                 }
-                Ok(EnumExpression::RangeCompare(var_name, tree_name, new_left, new_right))
-            },
+                Ok(EnumExpression::RangeCompare(
+                    var_name, tree_name, new_left, new_right,
+                ))
+            }
         }
     }
 
@@ -348,7 +424,7 @@ impl<'src> EnumList<'src> {
         expr: &EnumExpression<'src>,
     ) -> bool {
         match expr {
-            EnumExpression::Default(_) => true, // never happens
+            EnumExpression::Default(_) => true,   // never happens
             EnumExpression::NoDefault(_) => true, // never happens
             EnumExpression::Not(e) => !self.eval_case(values, &e),
             EnumExpression::Or(e1, e2) => {
@@ -358,7 +434,9 @@ impl<'src> EnumList<'src> {
                 self.eval_case(values, &e1) && self.eval_case(values, &e2)
             }
             EnumExpression::Compare(var, _, value) => values[&var] == EnumItem::Item(*value),
-            EnumExpression::RangeCompare(var, tree_name, first, last) => self.is_in_range(&values[&var], *tree_name, first, last),
+            EnumExpression::RangeCompare(var, tree_name, first, last) => {
+                self.is_in_range(&values[&var], *tree_name, first, last)
+            }
         }
     }
 
@@ -440,7 +518,10 @@ struct VariableIterator<'it, 'src> {
 }
 
 impl<'it, 'src> VariableIterator<'it, 'src> {
-    fn new(variable: Token<'src>, items: &'it HashSet<EnumItem<'src>>) -> VariableIterator<'it, 'src> {
+    fn new(
+        variable: Token<'src>,
+        items: &'it HashSet<EnumItem<'src>>,
+    ) -> VariableIterator<'it, 'src> {
         let mut iterator = items.iter();
         VariableIterator {
             variable,
@@ -537,7 +618,7 @@ pub enum EnumExpression<'src> {
     And(Box<EnumExpression<'src>>, Box<EnumExpression<'src>>),
     Or(Box<EnumExpression<'src>>, Box<EnumExpression<'src>>),
     Not(Box<EnumExpression<'src>>),
-    Default(Token<'src>), // token for position handling only
+    Default(Token<'src>),   // token for position handling only
     NoDefault(Token<'src>), // token for position handling only
 }
 
@@ -603,28 +684,32 @@ mod tests {
     #[test]
     fn test_enums() {
         let mut elist = EnumList::new();
-        assert_eq!(elist.add_enum(penum_t("global enum T { a, b, c }")), Ok(()) );
+        assert_eq!(elist.add_enum(penum_t("global enum T { a, b, c }")), Ok(()));
         assert!(elist.add_enum(penum_t("enum T { a, b, c }")).is_err());
         assert_eq!(elist.add_enum(penum_t("enum U { c, d, e }")), Ok(()));
         assert_eq!(elist.add_enum(penum_t("enum V { f, g, h }")), Ok(()));
-        assert_eq!(elist
-            .extend_enum(psub_enum_t("items in a { aa, ab, ac }")),
-            Ok(None));
+        assert_eq!(
+            elist.extend_enum(psub_enum_t("items in a { aa, ab, ac }")),
+            Ok(None)
+        );
         assert!(elist
             .extend_enum(psub_enum_t("items in a { ba, bb, bc }"))
             .is_err());
         assert!(elist
             .extend_enum(psub_enum_t("items in b { aa, ab, ac }"))
             .is_err());
-        assert_eq!(elist
-            .extend_enum(psub_enum_t("items in aa { ba, bb, bc }")),
-            Ok(None));
-        assert_eq!(elist
-            .extend_enum(psub_enum_t("items in ab { aba, abb, * }")),
-            Ok(None));
-        assert_eq!(elist
-            .extend_enum(psub_enum_t("items in abb { xba, xbb, * }")),
-            Ok(None));
+        assert_eq!(
+            elist.extend_enum(psub_enum_t("items in aa { ba, bb, bc }")),
+            Ok(None)
+        );
+        assert_eq!(
+            elist.extend_enum(psub_enum_t("items in ab { aba, abb, * }")),
+            Ok(None)
+        );
+        assert_eq!(
+            elist.extend_enum(psub_enum_t("items in abb { xba, xbb, * }")),
+            Ok(None)
+        );
     }
 
     #[test]
@@ -785,24 +870,14 @@ mod tests {
             Vec::new()
         );
         let cases2 = [(e2.clone(), Vec::new()), (e3.clone(), Vec::new())];
-        assert_eq!(
-            elist
-                .evaluate(&cases2[..], Token::from("test2"))
-                .len(),
-            1
-        );
+        assert_eq!(elist.evaluate(&cases2[..], Token::from("test2")).len(), 1);
         let cases3 = [
             (e1.clone(), Vec::new()),
             (e2.clone(), Vec::new()),
             (e3.clone(), Vec::new()),
             (e3.clone(), Vec::new()),
         ];
-        assert_eq!(
-            elist
-                .evaluate(&cases3[..], Token::from("test3"))
-                .len(),
-            1
-        );
+        assert_eq!(elist.evaluate(&cases3[..], Token::from("test3")).len(), 1);
         let cases4 = [
             (e1.clone(), Vec::new()),
             (e3.clone(), Vec::new()),

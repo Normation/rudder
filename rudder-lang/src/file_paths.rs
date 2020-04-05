@@ -3,8 +3,7 @@
 
 use std::path::PathBuf;
 
-use crate::error::*;
-use crate::Action;
+use crate::{error::*, Action};
 
 /// get explicit input. If none, get default path + filename. If none, error
 fn get_input(

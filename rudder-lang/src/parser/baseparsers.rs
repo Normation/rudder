@@ -1,12 +1,8 @@
-use nom::branch::*;
-use nom::bytes::complete::*;
-use nom::character::complete::*;
-use nom::combinator::*;
-use nom::multi::*;
-use nom::sequence::*;
+use nom::{
+    branch::*, bytes::complete::*, character::complete::*, combinator::*, multi::*, sequence::*,
+};
 
-use super::error::*;
-use super::token::*;
+use super::{error::*, token::*};
 
 /// Eat everything that can be ignored between tokens
 /// ie white spaces, newlines and simple comments (with a single #)
@@ -30,9 +26,9 @@ pub fn strip_spaces_and_comment(i: PInput) -> PResult<()> {
 /// Combinator automatically call strip_spaces_and_comment before and after a parser
 /// This avoids having to call it manually many times
 pub fn sp<'src, O, F>(f: F) -> impl Fn(PInput<'src>) -> PResult<O>
-    where
-        F: Fn(PInput<'src>) -> PResult<O>,
-        O: 'src,
+where
+    F: Fn(PInput<'src>) -> PResult<O>,
+    O: 'src,
 {
     move |i| {
         let (i, _) = strip_spaces_and_comment(i)?;
@@ -109,7 +105,11 @@ pub fn ftag<'src>(token: &'static str) -> impl Fn(PInput<'src>) -> PResult<PInpu
 
 /// Parse a tag that must be terminated by a space or return an error
 pub fn estag<'src>(token: &'static str) -> impl Fn(PInput<'src>) -> PResult<PInput<'src>> {
-    move |i| or_err(terminated(tag(token), space1), || PErrorKind::ExpectedKeyword(token))(i)
+    move |i| {
+        or_err(terminated(tag(token), space1), || {
+            PErrorKind::ExpectedKeyword(token)
+        })(i)
+    }
 }
 
 /// parses a delimited sequence (same as nom delimited but with spaces and specific error)
@@ -118,9 +118,9 @@ pub fn delimited_parser<'src, O, P>(
     parser: P,
     close_delimiter: &'static str,
 ) -> impl Fn(PInput<'src>) -> PResult<O>
-    where
-        P: Copy + Fn(PInput<'src>) -> PResult<O>,
-        O: 'src,
+where
+    P: Copy + Fn(PInput<'src>) -> PResult<O>,
+    O: 'src,
 {
     wsequence!({
             open: etag(open_delimiter);
@@ -138,15 +138,22 @@ pub fn delimited_list<'src, O, P>(
     separator: &'static str,
     close_delimiter: &'static str,
 ) -> impl Fn(PInput<'src>) -> PResult<Vec<O>>
-    where
-        P: Copy + Fn(PInput<'src>) -> PResult<O>,
-        O: 'src,
+where
+    P: Copy + Fn(PInput<'src>) -> PResult<O>,
+    O: 'src,
 {
-    move |i| delimited_parser(
-        open_delimiter,
-        |j| terminated(separated_list(sp(etag(separator)), parser), opt(tag(separator)))(j),
-        close_delimiter
-    )(i)
+    move |i| {
+        delimited_parser(
+            open_delimiter,
+            |j| {
+                terminated(
+                    separated_list(sp(etag(separator)), parser),
+                    opt(tag(separator)),
+                )(j)
+            },
+            close_delimiter,
+        )(i)
+    }
 }
 
 /// parses a list of something separated by separator with specific delimiters
@@ -156,15 +163,22 @@ pub fn delimited_nonempty_list<'src, O, P>(
     separator: &'static str,
     close_delimiter: &'static str,
 ) -> impl Fn(PInput<'src>) -> PResult<Vec<O>>
-    where
-        P: Copy + Fn(PInput<'src>) -> PResult<O>,
-        O: 'src,
+where
+    P: Copy + Fn(PInput<'src>) -> PResult<O>,
+    O: 'src,
 {
-    move |i| delimited_parser(
-        open_delimiter,
-        |j| terminated(separated_nonempty_list(sp(etag(separator)), parser), opt(tag(separator)))(j),
-        close_delimiter
-    )(i)
+    move |i| {
+        delimited_parser(
+            open_delimiter,
+            |j| {
+                terminated(
+                    separated_nonempty_list(sp(etag(separator)), parser),
+                    opt(tag(separator)),
+                )(j)
+            },
+            close_delimiter,
+        )(i)
+    }
 }
 
 /// Function to extract the context string, ie what was trying to be parsed when an error happened
@@ -172,20 +186,21 @@ pub fn delimited_nonempty_list<'src, O, P>(
 pub fn get_context<'src>(i: PInput<'src>, err_pos: PInput<'src>) -> PInput<'src> {
     // One line, or everything else if no new line (end of file)
     let single_line: nom::IResult<PInput, PInput> = alt((take_until("\n"), rest))(i);
-    let line_size = single_line.clone().map(|(_,x)| x.fragment.len());
+    let line_size = single_line.clone().map(|(_, x)| x.fragment.len());
     // Until next text
     let complete: nom::IResult<PInput, PInput> = take_until(err_pos.fragment)(i);
-    let complete_size= complete.clone().map(|(_,x)| x.fragment.len());
-    match (line_size,complete_size) {
-        (Ok(lsize),Ok(csize)) =>
+    let complete_size = complete.clone().map(|(_, x)| x.fragment.len());
+    match (line_size, complete_size) {
+        (Ok(lsize), Ok(csize)) => {
             if lsize > csize {
                 single_line.unwrap().1
             } else {
                 complete.unwrap().1
-            },
-        (Ok(_lsize),_) => single_line.unwrap().1,
-        (_,Ok(_csize)) => complete.unwrap().1,
-        (_,_) => i // error should never happen anyway
+            }
+        }
+        (Ok(_lsize), _) => single_line.unwrap().1,
+        (_, Ok(_csize)) => complete.unwrap().1,
+        (_, _) => i, // error should never happen anyway
     }
 }
 

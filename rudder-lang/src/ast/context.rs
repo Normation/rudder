@@ -2,10 +2,8 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::value::Value;
-use crate::error::*;
-use crate::parser::Token;
-use std::collections::hash_map;
-use std::collections::HashMap;
+use crate::{error::*, parser::Token};
+use std::collections::{hash_map, HashMap};
 //use super::enums::EnumList;
 //use super::value::Value;
 

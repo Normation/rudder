@@ -1,23 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::error::*;
-use crate::parser::Token;
+use crate::{error::*, parser::Token};
 use colored::Colorize;
 use lazy_static::lazy_static;
-use nom::branch::alt;
-use nom::bytes::complete::*;
-use nom::character::complete::*;
-use nom::combinator::*;
-use nom::multi::many1;
-use nom::sequence::*;
-use nom::IResult;
+use nom::{
+    branch::alt, bytes::complete::*, character::complete::*, combinator::*, multi::many1,
+    sequence::*, IResult,
+};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::fs;
-use std::path::Path;
-use std::str;
+use std::{fs, path::Path, str};
 use toml;
 
 #[derive(Serialize, Deserialize)]
