@@ -672,15 +672,17 @@ ul.graph-legend > li.legend:hover{
  }
  .sidebar > ul.sidebar-menu {
    height: 100%;
-   overflow-y: auto !important;
-   overflow-x: hidden !important;
+   overflow-y: auto;
+   overflow-x: hidden;
    display: flex;
    flex-direction: column;
  }
- .sidebar-mini .sidebar > ul.sidebar-menu {
-   overflow-y: visible !important;
-   overflow-x: visible !important;
+
+ .sidebar-mini.sidebar-collapse .sidebar > ul.sidebar-menu {
+   overflow-y: visible;
+   overflow-x: visible;
  }
+
 /* ----- <DROPDOWN MENU>  ----- */
 @media (max-width: 767px){
   .navbar-nav .open .dropdown-menu {
