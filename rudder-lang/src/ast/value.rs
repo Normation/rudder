@@ -6,6 +6,7 @@ use super::enums::{EnumExpression, EnumList};
 use crate::error::*;
 use crate::parser::*;
 use std::collections::HashMap;
+use std::convert::TryFrom;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct StringObject<'src> {
@@ -52,6 +53,25 @@ impl<'src> StringObject<'src> {
             })
             .collect::<Vec<String>>()
             .join("")
+    }
+}
+
+/// transform into a string object if there is no variable interpolation
+impl<'src> TryFrom<&StringObject<'src>> for String {
+    type Error = Error; // rudder-lang
+
+    fn try_from(value: &StringObject<'src>) -> Result<Self> {
+        if value.data.iter().any(|x| match x { PInterpolatedElement::Static(_) => false, _ => true } ) {
+            fail!(value.pos, "Value cannot be extracted since it contains data");
+        }
+        Ok(value.data
+            .iter()
+            .map(|x| match x {
+                PInterpolatedElement::Static(s) => s.clone(),
+                _ => "".into(),
+            })
+            .collect::<Vec<String>>()
+            .join(""))
     }
 }
 

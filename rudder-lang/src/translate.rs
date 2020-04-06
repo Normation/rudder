@@ -3,6 +3,10 @@
 
 use crate::error::*;
 use crate::parser::Token;
+use crate::compile::parse_stdlib;
+use crate::parser::PAST;
+use crate::ast::AST;
+use crate::ast::value;
 use colored::Colorize;
 use lazy_static::lazy_static;
 use nom::branch::alt;
@@ -12,13 +16,15 @@ use nom::combinator::*;
 use nom::multi::many1;
 use nom::sequence::*;
 use nom::IResult;
-use regex::Regex;
+use regex::{Regex, Captures};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::convert::TryFrom;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str;
 use toml;
+use typed_arena::Arena;
 
 #[derive(Serialize, Deserialize)]
 struct Technique {
@@ -63,6 +69,16 @@ pub fn translate_file(json_file: &Path, rl_file: &Path, config_filename: &Path) 
         toml::from_str(&config_data).map_err(|e| err!(Token::new(config_filename, ""), "{}", e))?;
 
     info!(
+        "|- {}",
+        "Reading stdlib".bright_green()
+    );
+    let sources = Arena::new();
+    let mut past = PAST::new();
+    let libs_dir = &PathBuf::from("./libs/"); // TODO
+    parse_stdlib(&mut past, &sources, libs_dir)?;
+    let ast = AST::from_past(past)?;
+
+    info!(
         "|- {} {}",
         "Serializating".bright_green(),
         input_filename.bright_yellow()
@@ -75,7 +91,7 @@ pub fn translate_file(json_file: &Path, rl_file: &Path, config_filename: &Path) 
         "|- {} (translation phase)",
         "Generating output code".bright_green()
     );
-    let rl_technique = translate(&config, &technique)?;
+    let rl_technique = translate(&ast, &config, &technique)?;
     fs::write(&rl_file, rl_technique).map_err(|e| file_error(output_filename, e))?;
     Ok(())
 }
@@ -112,12 +128,12 @@ fn translate_meta_parameters(parameters: &[Value]) -> Result<String> {
     Ok(parameters_meta)
 }
 
-fn translate(config: &toml::Value, technique: &Technique) -> Result<String> {
+fn translate(stdlib: &AST, config: &toml::Value, technique: &Technique) -> Result<String> {
     let parameters_meta = translate_meta_parameters(&technique.parameter).unwrap();
     let parameters = technique.bundle_args.join(",");
     let calls = map_strings_results(
         technique.method_calls.iter(),
-        |c| translate_call(config, c),
+        |c| translate_call(stdlib, config, c),
         "\n",
     )?;
     let out = format!(
@@ -144,7 +160,7 @@ resource {bundle_name}({parameters})
     Ok(out)
 }
 
-fn translate_call(config: &toml::Value, call: &MethodCall) -> Result<String> {
+fn translate_call(stdlib: &AST, config: &toml::Value, call: &MethodCall) -> Result<String> {
     lazy_static! {
         static ref RE: Regex = Regex::new(r"^([a-z]+)_(\w+)$").unwrap();
         static ref RE_KERNEL_MODULE: Regex = Regex::new(r"^(kernel_module)_(\w+)$").unwrap();
@@ -195,7 +211,7 @@ fn translate_call(config: &toml::Value, call: &MethodCall) -> Result<String> {
     let out_state = if call.class_context == "any" {
         format!("  {}", call_str)
     } else {
-        let condition = translate_condition(config, &call.class_context)?;
+        let condition = translate_condition(stdlib, config, &call.class_context)?;
         format!("  if {} => {}", condition, call_str)
     };
 
@@ -382,17 +398,53 @@ fn is_balanced(cond: &str) -> bool {
     parenthesis_count == 0
 }
 
-fn translate_condition(_config: &toml::Value, cond: &str) -> Result<String> {
+fn translate_condition(stdlib: &AST, config: &toml::Value, expr: &str) -> Result<String> {
+    lazy_static! {
+        static ref CLASS_RE: Regex = Regex::new(r"([\w${}.]+)").unwrap();
+    }
+    let mut errs = Vec::new();
+    // replace all matching words as classes
+    let result = CLASS_RE.replace_all(expr, |caps: &Captures| {
+        match translate_class(stdlib, &caps[1]) {
+            Ok(s) => s,
+            Err(e) => {errs.push(e); "".into()}
+         }
+    });
+    if errs.is_empty() {
+        Ok(result.into())
+    } else {
+        Err(Error::from_vec(errs))
+    }
+}
+
+fn translate_class(stdlib: &AST, cond: &str) -> Result<String> {
     lazy_static! {
         static ref METHOD_RE: Regex = Regex::new(r"^(\w+)_(\w+)$").unwrap();
         // Permissive expr to accept versions and _ separators in OS name + conditions under the following form : `.(...)`
         // following version includes parenthesis handling and makes it barely readable
         // matches a word that can be negative and that be followed by .| + word... possibly wrapped into parenthesis
         static ref OS_RE: Regex = Regex::new(
-            // OS part: debian_9_0 \ And optional condition: (!(ubuntu|otheros).something)
+            // OS part: debian_9_0 \ And optional condition: (!(ubuntu|other_os).something)
             // r"^\(?(?P<os>([a-zA-Z\d]+)(_([a-zA-Z\d]+))*(\|([a-zA-Z\d]+)(_([a-zA-Z\d]+))*)*)\)?(.(?P<cdt>\(\(*!*\(*\w+\)*([.|]\(*!*\(*\w+\)*)*\)))?$"
             r"^(\(*\w+\(*\)*[.|]\(*\w+\)*)*$"
         ).unwrap();
+    }
+
+    // detect known system class
+    for i in stdlib.enum_list.enum_item_iter("system".into()) {
+        match stdlib.enum_list.enum_item_metadata("system".into(),*i).expect("Enum item exists").get(&"cfengine_name".into()) {
+            None => if **i == cond { return Ok(cond.into()); },  // no @cfengine_name -> enum item = cfengine class
+            Some(value::Value::String(name)) => if String::try_from(name)? == cond { return Ok((**i).into()); }, // simple cfengine name
+            Some(value::Value::List(_)) => unimplemented!(), // list of cfengine names
+            _ => return Err(Error::User(format!("@cfengine_name must be a string or a list '{}'", *i))),
+        }
+    }
+
+    // detect group classes
+    if cond.starts_with("group_") {
+        // group classes are implemented with boolean variables of the sane name
+        // TODO declare the variable
+        return Ok(cond.into())
     }
 
     // detect method outcome class
@@ -411,21 +463,7 @@ fn translate_condition(_config: &toml::Value, cond: &str) -> Result<String> {
         {
             return Ok(format!("{} =~ {}", method, status));
         }
-        println!("CAPS = {:?}", caps);
     };
-
-    // detect system classes
-    if let Some(_caps) = OS_RE.captures(cond) {
-        if !is_balanced(cond) {
-            return Err(Error::User(format!("Parenthesis error '{}'", cond)));
-        }
-        let transformed_and = cond.replace(".", "&");
-        // TODO here we consider any match is an os match, should we have an OS whitelist ?
-        // OS are global enum so we don't have to say which enum to match
-        return Ok(transformed_and.into());
-    }
-
-    // TODO detect condition expressions
 
     Err(Error::User(format!(
         "Don't know how to handle class '{}'",
