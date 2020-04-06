@@ -603,6 +603,7 @@ class DSCTechniqueWriter(
             |  )
             |
             |  $$local_classes = New-ClassContext
+            |  $$resources_dir = $$PSScriptRoot + "/resources"
             |
             |${calls.mkString("\n\n")}
             |
@@ -635,7 +636,17 @@ class DSCTechniqueWriter(
       <FILES>
         <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/${computeTechniqueFilePath(technique)}"}>
           <INCLUDED>true</INCLUDED>
-        </FILE>
+        </FILE> {
+          for {
+            resource <- technique.ressources
+            if resource.state != ResourceFileState.Deleted
+          } yield {
+            <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/resources/${resource.path}"}>
+              <INCLUDED>false</INCLUDED>
+              <OUTPATH>{technique.bundleName.value}/{technique.version.value}/resources/{resource.path}</OUTPATH>
+            </FILE>
+          }
+        }
       </FILES>
     </AGENT>
     Right(xml)
