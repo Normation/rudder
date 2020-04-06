@@ -420,14 +420,6 @@ fn translate_condition(stdlib: &AST, config: &toml::Value, expr: &str) -> Result
 fn translate_class(stdlib: &AST, cond: &str) -> Result<String> {
     lazy_static! {
         static ref METHOD_RE: Regex = Regex::new(r"^(\w+)_(\w+)$").unwrap();
-        // Permissive expr to accept versions and _ separators in OS name + conditions under the following form : `.(...)`
-        // following version includes parenthesis handling and makes it barely readable
-        // matches a word that can be negative and that be followed by .| + word... possibly wrapped into parenthesis
-        static ref OS_RE: Regex = Regex::new(
-            // OS part: debian_9_0 \ And optional condition: (!(ubuntu|other_os).something)
-            // r"^\(?(?P<os>([a-zA-Z\d]+)(_([a-zA-Z\d]+))*(\|([a-zA-Z\d]+)(_([a-zA-Z\d]+))*)*)\)?(.(?P<cdt>\(\(*!*\(*\w+\)*([.|]\(*!*\(*\w+\)*)*\)))?$"
-            r"^(\(*\w+\(*\)*[.|]\(*\w+\)*)*$"
-        ).unwrap();
     }
 
     // detect known system class
@@ -435,7 +427,13 @@ fn translate_class(stdlib: &AST, cond: &str) -> Result<String> {
         match stdlib.enum_list.enum_item_metadata("system".into(),*i).expect("Enum item exists").get(&"cfengine_name".into()) {
             None => if **i == cond { return Ok(cond.into()); },  // no @cfengine_name -> enum item = cfengine class
             Some(value::Value::String(name)) => if String::try_from(name)? == cond { return Ok((**i).into()); }, // simple cfengine name
-            Some(value::Value::List(_)) => unimplemented!(), // list of cfengine names
+            Some(value::Value::List(list)) => for value in list {
+                if let value::Value::String(name) = value {
+                    if String::try_from(name)? == cond {
+                        return Ok((**i).into());
+                    }
+                }
+            }, // list of cfengine names
             _ => return Err(Error::User(format!("@cfengine_name must be a string or a list '{}'", *i))),
         }
     }
