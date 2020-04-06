@@ -38,6 +38,7 @@
 $(document).ready(function(){
   var treeId = '#activeTechniquesTree';
   var formId = '#edit-box';
+  var storageTreeId = 'directiveTreeSettings_nodesState'
   $(window).on('resize',function(){
     adjustHeight(treeId);
     adjustHeight(formId,"#directiveToolbar");
@@ -50,5 +51,11 @@ $(document).ready(function(){
     $('#activeTechniquesTree_alert').hide();
     $(this).jstree(true).show_all();
     adjustHeight(treeId);
+  });
+  $(treeId).on('close_node.jstree', function(e, data){
+    updateTreeSettings(storageTreeId, data, false);
+  });
+  $(treeId).on('open_node.jstree', function(e, data){
+    updateTreeSettings(storageTreeId, data, true);
   });
 });
