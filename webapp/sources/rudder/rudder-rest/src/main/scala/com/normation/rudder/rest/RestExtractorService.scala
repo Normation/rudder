@@ -1118,7 +1118,7 @@ final case class RestExtractorService (
     for {
       bundleName  <- CompleteJson.extractJsonString(json, "bundle_name", s => Full(BundleName(s)))
       version     <- CompleteJson.extractJsonString(json, "version")
-      category <- OptionnalJson.extractJsonString(json, "category").map(_.getOrElse("ncf_techniques"))
+      category    <- OptionnalJson.extractJsonString(json, "category").map(_.filter(_.nonEmpty).getOrElse("ncf_techniques"))
       description <- CompleteJson.extractJsonString(json, "description")
       name        <- CompleteJson.extractJsonString(json, "name")
       calls       <- CompleteJson.extractJsonArray(json , "method_calls")(extractMethodCall(_, methods))
