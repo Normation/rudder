@@ -45,6 +45,7 @@ function copyFileFromSharedFolder_RudderUniqueID {
     $postHookComponent = "Post-modification hook"
     $HashCheckType = "md5"
     $local_classes = New-ClassContext
+    $resources_dir = $PSScriptRoot + "\resources"
 
     for ($i=0; $i -lt $trackingkey.length; $i++) {
       $local_classes = Merge-ClassContext $local_classes $(File-From-Shared-Folder -Source $names[$i] -Destination $destinations[$i] -HashType $HashCheckType -ReportId $trackingkey[$i] -TechniqueName $techniqueName -auditOnly:$auditOnly -Report:$true -componentName $componentName -componentKey $destinations[$i])

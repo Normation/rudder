@@ -603,7 +603,7 @@ class DSCTechniqueWriter(
             |  )
             |
             |  $$local_classes = New-ClassContext
-            |  $$resources_dir = $$PSScriptRoot + "/resources"
+            |  $$resources_dir = $$PSScriptRoot + "\\resources"
             |
             |${calls.mkString("\n\n")}
             |
