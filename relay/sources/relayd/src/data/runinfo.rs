@@ -30,7 +30,10 @@ impl Display for RunInfo {
 }
 
 fn parse_runinfo(i: &str) -> IResult<&str, RunInfo> {
-    let (i, timestamp) = map_res(take_until("@"), |d| DateTime::parse_from_str(d, "%+"))(i)?;
+    let (i, timestamp) = map_res(take_until("@"), |d: &str| {
+        // On Windows, filenames can't contain : so we replace them by underscores
+        DateTime::parse_from_str(&d.replace("_", ":"), "%+")
+    })(i)?;
     let (i, _) = tag("@")(i)?;
     let (i, node_id) = take_until(".")(i)?;
     let (i, _) = tag(".log")(i)?;
@@ -110,6 +113,11 @@ mod tests {
             reference
         );
         assert_eq!(
+            RunInfo::from_str("2018-08-24T15_55_01+00_00@e745a140-40bc-4b86-b6dc-084488fc906b.log")
+                .unwrap(),
+            reference
+        );
+        assert_eq!(
             RunInfo::from_str(
                 "2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log.gz"
             )
@@ -146,7 +154,7 @@ mod tests {
                              h in 0u32..24, min in 0u32..60,
                              s in 0u32..60, ref pm in "[+-]",
                              tmh in 0u32..13, tmm in 0u32..60,
-                             ref id in r"\w+") {
+                             ref id in r"[a-zA-Z0-1-]+") {
             let reference = RunInfo {
                 timestamp: DateTime::parse_from_str(&format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}{}{:02}:{:02}", y, m, d, h, min, s, pm, tmh, tmm), "%+").expect("invalid date"),
                 node_id: id.clone(),
