@@ -413,7 +413,7 @@ ul.tabs-list > li > .badge.empty{
   margin-left: 10px;
 }
 .main #methods{
-  padding: 0 15px;
+  padding: 15px 15px 30px 15px;
 }
 #no-methods{
   padding: 15px;
