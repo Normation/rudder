@@ -78,6 +78,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
         <intercept-url pattern="/secure/**" access="isAuthenticated()" />
 
+        <!--
+          Allow content to be embedeed in local iframe
+        -->
+        <headers>
+            <frame-options policy="SAMEORIGIN" />
+        </headers>
 
         <!-- End comment -->
 
