@@ -403,7 +403,9 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
     select_multiple_modifier = "ctrl"
   }
   var tree = $(id).on("loaded.jstree", function (event, data) {
-    data.instance.open_all();
+
+    openTreeNodes(id, "directiveTreeSettings_nodesState", data);
+
     $(id+' .rudder-label').bsTooltip();
     }).jstree({
       "core" : { 
@@ -521,3 +523,40 @@ var correctNode = function(elem) {
   }
   return _results;
 };
+
+function updateTreeSettings(settingsId, data, openedState){
+  var node     = data.node;
+  var settings = localStorage.getItem(settingsId);
+  var newSettings;
+  if(settings===null){
+    newSettings = {}
+    newSettings[node.id] = openedState;
+  }else{
+    try {
+      newSettings = JSON.parse(settings);
+      newSettings[node.id] = openedState;
+    }catch(e){}
+  }
+  if(newSettings){
+    try{
+      localStorage.setItem(settingsId, JSON.stringify(newSettings));
+    } catch(e){}
+  }
+}
+
+function openTreeNodes(treeId, settingsStorageId, data){
+  // Get the state of a tree and keep closed only nodes we want to
+  var settings;
+  try {
+    settings = JSON.parse(localStorage.getItem(settingsStorageId));
+  }catch(e){};
+
+  if(settings !== undefined && settings !== null){
+    var nodes  = $(treeId).jstree()._model.data;
+    for(var node in nodes){
+      if(settings[node] === undefined || settings[node] === true) $(treeId).jstree().open_node(node);
+    }
+  }else{
+    data.instance.open_all();
+  }
+}
