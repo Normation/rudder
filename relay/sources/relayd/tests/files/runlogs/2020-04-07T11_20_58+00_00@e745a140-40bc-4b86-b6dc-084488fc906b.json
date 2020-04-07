@@ -1,0 +1,126 @@
+{
+  "info": {
+    "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
+    "timestamp": "2020-04-07T11:20:58+00:00"
+  },
+  "reports": [
+    {
+      "start_datetime": "2020-04-07T13:20:57+02:00",
+      "rule_id": "rudder",
+      "directive_id": "run",
+      "component": "start",
+      "key_value": "20200407-053748-e976e8d5",
+      "event_type": "control",
+      "msg": "Start execution",
+      "policy": "Common",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
+      "execution_datetime": "2020-04-07T11:20:58+00:00",
+      "serial": 0
+    },
+    {
+      "start_datetime": "2020-04-07T13:20:57+02:00",
+      "rule_id": "dsc-agent-all",
+      "directive_id": "dsc-common-all",
+      "component": "Reporting configuration",
+      "key_value": "NXLog",
+      "event_type": "result_success",
+      "msg": "Managing nxlog configuration file",
+      "policy": "logging",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
+      "execution_datetime": "2020-04-07T11:20:58+00:00",
+      "serial": 0
+    },
+    {
+      "start_datetime": "2020-04-07T13:20:57+02:00",
+      "rule_id": "dsc-agent-all",
+      "directive_id": "dsc-common-all",
+      "component": "Service status",
+      "key_value": "nxlog",
+      "event_type": "result_success",
+      "msg": "Checking service nxlog",
+      "policy": "logging",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
+      "execution_datetime": "2020-04-07T11:20:58+00:00",
+      "serial": 0
+    },
+    {
+      "start_datetime": "2020-04-07T13:20:57+02:00",
+      "rule_id": "dsc-agent-all",
+      "directive_id": "dsc-common-all",
+      "component": "System variables",
+      "key_value": "parameters",
+      "event_type": "result_success",
+      "msg": "Defined Rudder global parameters",
+      "policy": "variables",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
+      "execution_datetime": "2020-04-07T11:20:58+00:00",
+      "serial": 0
+    },
+    {
+      "start_datetime": "2020-04-07T13:20:57+02:00",
+      "rule_id": "dsc-agent-all",
+      "directive_id": "dsc-common-all",
+      "component": "System variables",
+      "key_value": "properties",
+      "event_type": "result_success",
+      "msg": "Defined Rudder properties",
+      "policy": "variables",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
+      "execution_datetime": "2020-04-07T11:20:58+00:00",
+      "serial": 0
+    },
+    {
+      "start_datetime": "2020-04-07T13:20:57+02:00",
+      "rule_id": "dsc-agent-all",
+      "directive_id": "dsc-common-all",
+      "component": "Agent Configuration",
+      "key_value": "Agent-Schedule",
+      "event_type": "result_success",
+      "msg": "File C:\\Program Files\\Rudder\\share\\scheduler\\Rudder-Agent.xml content already match template C:\\Program Files\\Rudder\\policy\\dsc-common\\1.0\\template\\Rudder-Agent.xml",
+      "policy": "execution scheduler",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
+      "execution_datetime": "2020-04-07T11:20:58+00:00",
+      "serial": 0
+    },
+    {
+      "start_datetime": "2020-04-07T13:20:57+02:00",
+      "rule_id": "dsc-agent-all",
+      "directive_id": "dsc-common-all",
+      "component": "Agent tasks",
+      "key_value": "Rudder-Agent",
+      "event_type": "result_success",
+      "msg": "The Rudder-Inventory task, scheduled to be run every night",
+      "policy": "execution scheduler",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
+      "execution_datetime": "2020-04-07T11:20:58+00:00",
+      "serial": 0
+    },
+    {
+      "start_datetime": "2020-04-07T13:20:57+02:00",
+      "rule_id": "dsc-agent-all",
+      "directive_id": "dsc-common-all",
+      "component": "Agent tasks",
+      "key_value": "Rudder-Inventory",
+      "event_type": "result_success",
+      "msg": "The Rudder-Inventory task, scheduled to be run every night",
+      "policy": "execution scheduler",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
+      "execution_datetime": "2020-04-07T11:20:58+00:00",
+      "serial": 0
+    },
+    {
+      "start_datetime": "2020-04-07T13:20:57+02:00",
+      "rule_id": "rudder",
+      "directive_id": "run",
+      "component": "end",
+      "key_value": "20200407-053748-e976e8d5",
+      "event_type": "control",
+      "msg": "End execution",
+      "policy": "Common",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
+      "execution_datetime": "2020-04-07T11:20:58+00:00",
+      "serial": 0
+    }
+  ]
+}
+
