@@ -712,17 +712,26 @@ ul.files-list > li > span.warning-sign  > i {
  right: calc( 50% - 8px);
 }
 
-ul.files-list > li .use-with{
+ul.files-list > li .use-with,
+ul.files-list > li .empty-name,
+ul.files-list > li .full-name{
   font-size: .8em;
   margin-top: 2px;
   color: #888;
+  display: inline-block;
 }
 ul.files-list > li .use-with:before {
   content: "Use with:";
   margin-right: 6px;
   display: inline-block;
 }
-ul.files-list > li .use-with > span{
+ul.files-list > li .full-name:before{
+  content: ", Full name:";
+  margin-right: 6px;
+  display: inline-block;
+}
+ul.files-list > li .use-with > span,
+ul.files-list > li .full-name > span{
   font-family: monospace, Menlo, Monaco, Consolas, "Courier New";
   font-weight: bold;
   word-break: break-word;
