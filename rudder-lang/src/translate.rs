@@ -60,12 +60,12 @@ pub fn translate_file(json_file: &Path, rl_file: &Path, config_filename: &Path) 
 
     info!(
         "|- {} {}",
-        "Serializating".bright_green(),
+        "Reading".bright_green(),
         config_filename.bright_yellow()
     );
     let config_data =
         fs::read_to_string(config_filename).map_err(|e| file_error(config_filename, e))?;
-    let config: toml::Value =
+    let configuration: toml::Value =
         toml::from_str(&config_data).map_err(|e| err!(Token::new(config_filename, ""), "{}", e))?;
 
     info!(
@@ -76,11 +76,11 @@ pub fn translate_file(json_file: &Path, rl_file: &Path, config_filename: &Path) 
     let mut past = PAST::new();
     let libs_dir = &PathBuf::from("./libs/"); // TODO
     parse_stdlib(&mut past, &sources, libs_dir)?;
-    let ast = AST::from_past(past)?;
+    let stdlib = AST::from_past(past)?;
 
     info!(
         "|- {} {}",
-        "Serializating".bright_green(),
+        "Reading".bright_green(),
         input_filename.bright_yellow()
     );
     let json_data = fs::read_to_string(&json_file).map_err(|e| file_error(input_filename, e))?;
@@ -91,53 +91,29 @@ pub fn translate_file(json_file: &Path, rl_file: &Path, config_filename: &Path) 
         "|- {} (translation phase)",
         "Generating output code".bright_green()
     );
-    let rl_technique = translate(&ast, &config, &technique)?;
+    let mut translator = Translator { stdlib, technique, configuration };
+    let rl_technique = translator.translate()?;
     fs::write(&rl_file, rl_technique).map_err(|e| file_error(output_filename, e))?;
     Ok(())
 }
 
-fn translate_meta_parameters(parameters: &[Value]) -> Result<String> {
-    let mut parameters_meta = String::new();
-    for param in parameters {
-        match param.as_object() {
-            Some(map) => {
-                let name = &map
-                    .get("name")
-                    .expect("Unable to parse name parameter")
-                    .to_string();
-                let id = &map
-                    .get("id")
-                    .expect("Unable to parse id parameter")
-                    .to_string();
-                let constraints = &map
-                    .get("constraints")
-                    .expect("Unable to parse constraints parameter")
-                    .to_string();
-                parameters_meta.push_str(&format!(
-                    r#"  {{ "name": {}, "id": {}, "constraints": {} }}{}"#,
-                    name, id, constraints, ",\n"
-                ));
-            }
-            None => return Err(Error::User(String::from("Unable to parse meta parameters"))),
-        }
-    }
-    // let parameters_meta = serde_json::to_string(&technique.parameter);
-    // if parameters_meta.is_err() {
-    // return Err(Error::User("Unable to parse technique file".to_string()));
-    // }
-    Ok(parameters_meta)
+struct Translator<'src> {
+    stdlib: AST<'src>,
+    technique: Technique,
+    configuration: toml::Value,
 }
 
-fn translate(stdlib: &AST, config: &toml::Value, technique: &Technique) -> Result<String> {
-    let parameters_meta = translate_meta_parameters(&technique.parameter).unwrap();
-    let parameters = technique.bundle_args.join(",");
-    let calls = map_strings_results(
-        technique.method_calls.iter(),
-        |c| translate_call(stdlib, config, c),
-        "\n",
-    )?;
-    let out = format!(
-        r#"# This file has been generated with rltranslate
+impl<'src> Translator<'src> {
+    fn translate(&self) -> Result<String> {
+        let parameters_meta = self.translate_meta_parameters(&self.technique.parameter).unwrap();
+        let parameters = self.technique.bundle_args.join(",");
+        let calls = map_strings_results(
+            self.technique.method_calls.iter(),
+            |c| self.translate_call(c),
+            "\n",
+        )?;
+        let out = format!(
+            r#"# This file has been generated with rltranslate
 @format=0
 @name="{name}"
 @description="{description}"
@@ -148,115 +124,231 @@ resource {bundle_name}({parameters})
 {calls}
 }}
 "#,
-        description = technique.description,
-        version = technique.version,
-        name = technique.name,
-        bundle_name = technique.bundle_name,
-        newline = "\n",
-        parameters_meta = parameters_meta,
-        parameters = parameters,
-        calls = calls
-    );
-    Ok(out)
-}
-
-fn translate_call(stdlib: &AST, config: &toml::Value, call: &MethodCall) -> Result<String> {
-    lazy_static! {
-        static ref RE: Regex = Regex::new(r"^([a-z]+)_(\w+)$").unwrap();
-        static ref RE_KERNEL_MODULE: Regex = Regex::new(r"^(kernel_module)_(\w+)$").unwrap();
+            description = self.technique.description,
+            version = self.technique.version,
+            name = self.technique.name,
+            bundle_name = self.technique.bundle_name,
+            newline = "\n",
+            parameters_meta = parameters_meta,
+            parameters = parameters,
+            calls = calls
+        );
+        Ok(out)
     }
 
-    // `kernel_module` uses the main `_` resource/state separator
-    // so an exception is required to parse it properly
-    // dealt with the exception first, then with the common case
-    let (resource, state) = match RE_KERNEL_MODULE.captures(&call.method_name) {
-        Some(caps) => (caps.get(1).unwrap().as_str(), caps.get(2).unwrap().as_str()),
-        // here is the common case
-        None => match RE.captures(&call.method_name) {
+    fn translate_call(&self, call: &MethodCall) -> Result<String> {
+        lazy_static! {
+            static ref RE: Regex = Regex::new(r"^([a-z]+)_(\w+)$").unwrap();
+            static ref RE_KERNEL_MODULE: Regex = Regex::new(r"^(kernel_module)_(\w+)$").unwrap();
+        }
+
+        // `kernel_module` uses the main `_` resource/state separator
+        // so an exception is required to parse it properly
+        // dealt with the exception first, then with the common case
+        let (resource, state) = match RE_KERNEL_MODULE.captures(&call.method_name) {
             Some(caps) => (caps.get(1).unwrap().as_str(), caps.get(2).unwrap().as_str()),
+            // here is the common case
+            None => match RE.captures(&call.method_name) {
+                Some(caps) => (caps.get(1).unwrap().as_str(), caps.get(2).unwrap().as_str()),
+                None => {
+                    return Err(Error::User(format!(
+                        "Invalid method name '{}'",
+                        call.method_name
+                    )))
+                }
+            },
+        };
+
+        // split argument list
+        let rconf = match self.configuration.get("resources") {
+            None => return Err(Error::User("No resources section in config.toml".into())),
+            Some(m) => m,
+        };
+        let res_arg_v = match rconf.get(resource) {
+            None => toml::value::Value::Integer(1),
+            Some(r) => r.clone(),
+        };
+
+        let res_arg_count: usize = match res_arg_v.as_integer() {
             None => {
                 return Err(Error::User(format!(
-                    "Invalid method name '{}'",
-                    call.method_name
+                    "Resource prefix '{}' must have a number as its parameter count",
+                    resource
                 )))
             }
-        },
-    };
+            Some(v) => v as usize,
+        };
+        let it = &mut call.args.iter();
+        let res_args = map_strings_results(it.take(res_arg_count), |x| self.translate_arg(x), ",")?;
+        let st_args = map_strings_results(it, |x| self.translate_arg(x), ",")?;
 
-    // split argument list
-    let rconf = match config.get("resources") {
-        None => return Err(Error::User("No resources section in config.toml".into())),
-        Some(m) => m,
-    };
-    let res_arg_v = match rconf.get(resource) {
-        None => toml::value::Value::Integer(1),
-        Some(r) => r.clone(),
-    };
+        // call formating
+        let call_str = format!("{}({}).{}({})", resource, res_args, state, st_args);
+        let out_state = if call.class_context == "any" {
+            format!("  {}", call_str)
+        } else {
+            let condition = self.translate_condition(&call.class_context)?;
+            format!("  if {} => {}", condition, call_str)
+        };
 
-    let res_arg_count: usize = match res_arg_v.as_integer() {
-        None => {
-            return Err(Error::User(format!(
-                "Resource prefix '{}' must have a number as its parameter count",
-                resource
-            )))
-        }
-        Some(v) => v as usize,
-    };
-    let it = &mut call.args.iter();
-    let res_args = map_strings_results(it.take(res_arg_count), |x| translate_arg(config, x), ",")?;
-    let st_args = map_strings_results(it, |x| translate_arg(config, x), ",")?;
+        // outcome detection and formating
+        let mconf = match self.configuration.get("methods") {
+            None => return Err(Error::User("No methods section in config.toml".into())),
+            Some(m) => m,
+        };
+        let method = match mconf.get(&call.method_name) {
+            None => {
+                return Err(Error::User(format!(
+                    "Unknown generic method call: {}",
+                    &call.method_name
+                )))
+            }
+            Some(m) => m,
+        };
+        let class_prefix = match method.get("class_prefix") {
+            None => {
+                return Err(Error::User(format!(
+                    "Undefined class_prefix for {}",
+                    &call.method_name
+                )))
+            }
+            Some(m) => m.as_str().unwrap(),
+        };
+        let class_parameter_id = match method.get("class_parameter_id") {
+            None => {
+                return Err(Error::User(format!(
+                    "Undefined class_parameter_id for {}",
+                    &call.method_name
+                )))
+            }
+            Some(m) => m.as_integer().unwrap(),
+        };
+        let class_parameter_value = &call.args[class_parameter_id as usize];
+        let canonic_parameter = canonify(class_parameter_value);
+        let outcome = format!(" as {}_{}", class_prefix, canonic_parameter);
+        // TODO remove outcome if there is no usage
+        Ok(format!(
+            "  @component = \"{}\"\n{}{}",
+            &call.component, out_state, outcome
+        ))
+    }
 
-    // call formating
-    let call_str = format!("{}({}).{}({})", resource, res_args, state, st_args);
-    let out_state = if call.class_context == "any" {
-        format!("  {}", call_str)
-    } else {
-        let condition = translate_condition(stdlib, config, &call.class_context)?;
-        format!("  if {} => {}", condition, call_str)
-    };
+    fn translate_meta_parameters(&self, parameters: &[Value]) -> Result<String> {
+        let mut parameters_meta = String::new();
+        for param in parameters {
+            match param.as_object() {
+                Some(map) => {
+                    let name = &map
+                        .get("name")
+                        .expect("Unable to parse name parameter")
+                        .to_string();
+                    let id = &map
+                        .get("id")
+                        .expect("Unable to parse id parameter")
+                        .to_string();
+                    let constraints = &map
+                        .get("constraints")
+                        .expect("Unable to parse constraints parameter")
+                        .to_string();
+                    parameters_meta.push_str(&format!(
+                        r#"  {{ "name": {}, "id": {}, "constraints": {} }}{}"#,
+                        name, id, constraints, ",\n"
+                    ));
+                }
+                None => return Err(Error::User(String::from("Unable to parse meta parameters"))),
+            }
+        }
+        // let parameters_meta = serde_json::to_string(&technique.parameter);
+        // if parameters_meta.is_err() {
+        // return Err(Error::User("Unable to parse technique file".to_string()));
+        // }
+        Ok(parameters_meta)
+    }
 
-    // outcome detection and formating
-    let mconf = match config.get("methods") {
-        None => return Err(Error::User("No methods section in config.toml".into())),
-        Some(m) => m,
-    };
-    let method = match mconf.get(&call.method_name) {
-        None => {
-            return Err(Error::User(format!(
-                "Unknown generic method call: {}",
-                &call.method_name
-            )))
+    fn translate_arg(&self, arg: &str) -> Result<String> {
+        let var = match parse_cfstring(arg) {
+            Err(_) => return Err(Error::User(format!("Invalid variable syntax in '{}'", arg))),
+            Ok((_, o)) => o,
+        };
+
+        map_strings_results(var.iter(), |x| Ok(format!("\"{}\"", x.to_string()?)), ",")
+    }
+
+    fn translate_condition(&self, expr: &str) -> Result<String> {
+        lazy_static! {
+            static ref CLASS_RE: Regex = Regex::new(r"([\w${}.]+)").unwrap();
+            static ref ANY_RE: Regex = Regex::new(r"(any\.)").unwrap();
         }
-        Some(m) => m,
-    };
-    let class_prefix = match method.get("class_prefix") {
-        None => {
-            return Err(Error::User(format!(
-                "Undefined class_prefix for {}",
-                &call.method_name
-            )))
+        let no_any = ANY_RE.replace_all(expr, "");
+        let mut errs = Vec::new();
+        // replace all matching words as classes
+        let result = CLASS_RE.replace_all(&no_any, |caps: &Captures| {
+            match self.translate_class(&caps[1]) {
+                Ok(s) => s,
+                Err(e) => {errs.push(e); "".into()}
+            }
+        });
+        if errs.is_empty() {
+            Ok(result.into())
+        } else {
+            Err(Error::from_vec(errs))
         }
-        Some(m) => m.as_str().unwrap(),
-    };
-    let class_parameter_id = match method.get("class_parameter_id") {
-        None => {
-            return Err(Error::User(format!(
-                "Undefined class_parameter_id for {}",
-                &call.method_name
-            )))
+    }
+
+    fn translate_class(&self, cond: &str) -> Result<String> {
+        lazy_static! {
+        static ref METHOD_RE: Regex = Regex::new(r"^(\w+)_(\w+)$").unwrap();
+    }
+
+        // detect known system class
+        for i in self.stdlib.enum_list.enum_item_iter("system".into()) {
+            match self.stdlib.enum_list.enum_item_metadata("system".into(),*i).expect("Enum item exists").get(&"cfengine_name".into()) {
+                None => if **i == cond { return Ok(cond.into()); },  // no @cfengine_name -> enum item = cfengine class
+                Some(value::Value::String(name)) => if String::try_from(name)? == cond { return Ok((**i).into()); }, // simple cfengine name
+                Some(value::Value::List(list)) => for value in list {
+                    if let value::Value::String(name) = value {
+                        if String::try_from(name)? == cond {
+                            return Ok((**i).into());
+                        }
+                    }
+                }, // list of cfengine names
+                _ => return Err(Error::User(format!("@cfengine_name must be a string or a list '{}'", *i))),
+            }
         }
-        Some(m) => m.as_integer().unwrap(),
-    };
-    let class_parameter_value = &call.args[class_parameter_id as usize];
-    let canonic_parameter = canonify(class_parameter_value);
-    let outcome = format!(" as {}_{}", class_prefix, canonic_parameter);
-    // TODO remove outcome if there is no usage
-    Ok(format!(
-        "  @component = \"{}\"\n{}{}",
-        &call.component, out_state, outcome
-    ))
+
+        // detect group classes
+        if cond.starts_with("group_") {
+            // group classes are implemented with boolean variables of the sane name
+            // TODO declare the variable
+            return Ok(cond.into())
+        }
+
+        // detect method outcome class
+        if let Some(caps) = METHOD_RE.captures(cond) {
+            let (method, status) = (caps.get(1).unwrap().as_str(), caps.get(2).unwrap().as_str());
+            if vec!["kept", "success"].iter().any(|x| x == &status) {
+                return Ok(format!("{} =~ success", method));
+            } else if vec!["error", "not_ok", "failed", "denied", "timeout"]
+                .iter()
+                .any(|x| x == &status)
+            {
+                return Ok(format!("{} =~ error", method));
+            } else if vec!["repaired", "ok", "reached"]
+                .iter()
+                .any(|x| x == &status)
+            {
+                return Ok(format!("{} =~ {}", method, status));
+            }
+        };
+
+        Err(Error::User(format!(
+            "Don't know how to handle class '{}'",
+            cond
+        )))
+    }
 }
 
+/// Canonify a string the same way cfengine does
 fn canonify(input: &str) -> String {
     let s = input
         .as_bytes()
@@ -376,166 +468,3 @@ fn parse_cfstring(i: &str) -> IResult<&str, Vec<CFStringElt>> {
         value(vec![CFStringElt::Static("".into())], not(anychar)),
     )))(i)
 }
-
-fn translate_arg(_config: &toml::Value, arg: &str) -> Result<String> {
-    let var = match parse_cfstring(arg) {
-        Err(_) => return Err(Error::User(format!("Invalid variable syntax in '{}'", arg))),
-        Ok((_, o)) => o,
-    };
-
-    map_strings_results(var.iter(), |x| Ok(format!("\"{}\"", x.to_string()?)), ",")
-}
-
-fn is_balanced(cond: &str) -> bool {
-    let mut parenthesis_count: i32 = 0;
-    for c in cond.chars() {
-        if c == '(' {
-            parenthesis_count += 1;
-        } else if c == ')' {
-            parenthesis_count -= 1;
-        }
-    }
-    parenthesis_count == 0
-}
-
-fn translate_condition(stdlib: &AST, config: &toml::Value, expr: &str) -> Result<String> {
-    lazy_static! {
-        static ref CLASS_RE: Regex = Regex::new(r"([\w${}.]+)").unwrap();
-    }
-    let mut errs = Vec::new();
-    // replace all matching words as classes
-    let result = CLASS_RE.replace_all(expr, |caps: &Captures| {
-        match translate_class(stdlib, &caps[1]) {
-            Ok(s) => s,
-            Err(e) => {errs.push(e); "".into()}
-         }
-    });
-    if errs.is_empty() {
-        Ok(result.into())
-    } else {
-        Err(Error::from_vec(errs))
-    }
-}
-
-fn translate_class(stdlib: &AST, cond: &str) -> Result<String> {
-    lazy_static! {
-        static ref METHOD_RE: Regex = Regex::new(r"^(\w+)_(\w+)$").unwrap();
-    }
-
-    // detect known system class
-    for i in stdlib.enum_list.enum_item_iter("system".into()) {
-        match stdlib.enum_list.enum_item_metadata("system".into(),*i).expect("Enum item exists").get(&"cfengine_name".into()) {
-            None => if **i == cond { return Ok(cond.into()); },  // no @cfengine_name -> enum item = cfengine class
-            Some(value::Value::String(name)) => if String::try_from(name)? == cond { return Ok((**i).into()); }, // simple cfengine name
-            Some(value::Value::List(list)) => for value in list {
-                if let value::Value::String(name) = value {
-                    if String::try_from(name)? == cond {
-                        return Ok((**i).into());
-                    }
-                }
-            }, // list of cfengine names
-            _ => return Err(Error::User(format!("@cfengine_name must be a string or a list '{}'", *i))),
-        }
-    }
-
-    // detect group classes
-    if cond.starts_with("group_") {
-        // group classes are implemented with boolean variables of the sane name
-        // TODO declare the variable
-        return Ok(cond.into())
-    }
-
-    // detect method outcome class
-    if let Some(caps) = METHOD_RE.captures(cond) {
-        let (method, status) = (caps.get(1).unwrap().as_str(), caps.get(2).unwrap().as_str());
-        if vec!["kept", "success"].iter().any(|x| x == &status) {
-            return Ok(format!("{} =~ success", method));
-        } else if vec!["error", "not_ok", "failed", "denied", "timeout"]
-            .iter()
-            .any(|x| x == &status)
-        {
-            return Ok(format!("{} =~ error", method));
-        } else if vec!["repaired", "ok", "reached"]
-            .iter()
-            .any(|x| x == &status)
-        {
-            return Ok(format!("{} =~ {}", method, status));
-        }
-    };
-
-    Err(Error::User(format!(
-        "Don't know how to handle class '{}'",
-        cond
-    )))
-}
-
-//#[cfg(test)]
-//mod tests {
-//    use super::*;
-//
-//    #[test]
-//    fn test_json() {
-//        let data = r#"
-//{
-//  "name": "variable",
-//  "description": "",
-//  "version": "1.0",
-//  "bundle_name": "variable",
-//  "parameter": [
-//    {
-//      "constraints": {
-//        "allow_whitespace_string": false,
-//        "allow_empty_string": false,
-//        "max_length": 16384
-//      },
-//      "name": "iname",
-//      "id": "53042794-4d2a-41c7-a690-b0d760a78a51"
-//    },
-//    {
-//      "constraints": {
-//        "allow_whitespace_string": false,
-//        "allow_empty_string": false,
-//        "max_length": 16384
-//      },
-//      "name": "ip",
-//      "id": "aa74f824-6085-46b4-94b4-42803760fd61"
-//    }
-//  ],
-//  "bundle_args": [
-//    "iname",
-//    "ip"
-//  ],
-//  "method_calls": [
-//    {
-//      "method_name": "variable_string",
-//      "class_context": "any",
-//      "args": [
-//        "foo",
-//        "bar",
-//        "vim"
-//      ],
-//      "component": "Variable string"
-//    },
-//    {
-//      "method_name": "package_state",
-//      "class_context": "any",
-//      "args": [
-//        "${foo.bar}",
-//        "",
-//        "",
-//        "",
-//        "present"
-//      ],
-//      "component": "Package state"
-//    }
-//  ]
-//}
-//"#;
-//        let p: Result<Technique> = serde_json::from_str(data);
-//        assert!(p.is_ok());
-//        //assert_eq!(p.unwrap().name, "variable".to_string());
-//        let s = translate(&p.unwrap());
-//        assert!(s.is_ok());
-//        print!("{}",s.unwrap());
-//    }
-//}

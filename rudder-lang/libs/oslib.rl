@@ -4,7 +4,7 @@
 # remove them once we don't need it anymore
 
 global enum system {
-  windows
+  windows,
   linux,
   aix,
   bsd,
@@ -348,10 +348,10 @@ items in rhel {
   rhel_5,
   @cfengine_name="redhat_6"
   rhel_6,
-  @cfengine_name=["redhat_7", "rhel_7"]
-  redhat_7,
-  @cfengine_name=["redhat_8", "rhel_8"]
-  redhat_8,
+  @cfengine_name=["rhel_7", "redhat_7"]
+  rhel_7,
+  @cfengine_name=["rhel_7", "redhat_8"]
+  rhel_8,
   *
 }
 
