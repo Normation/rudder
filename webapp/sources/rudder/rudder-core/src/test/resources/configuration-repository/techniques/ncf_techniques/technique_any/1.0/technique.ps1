@@ -11,6 +11,7 @@
   )
 
   $local_classes = New-ClassContext
+  $resources_dir = $PSScriptRoot + "\resources"
 
   $local_classes = Merge-ClassContext $local_classes $(Package-Install-Version -PackageName "$($node.properties[apache_package_name])" -PackageVersion "2.2.11" -componentName "Test component$&é)à\'`"" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")
 
