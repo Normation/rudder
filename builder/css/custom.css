@@ -73,6 +73,9 @@ ul.dropdown-menu > li > a{
 .popover{
   max-width: 450px;
 }
+.popover.condition {
+  left: -250px !important;
+}
 .popover-content b{
   color: #f08004;
 }
