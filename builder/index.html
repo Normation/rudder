@@ -281,7 +281,7 @@
               </div>
               <div class="col main">
                 <form class="editForm" name="ui.editForm" novalidate >
-                <div class="row flex-column no-gutters">
+                <div class="flex-column no-gutters">
                   <div class="col-auto">
                     <div class="col-xs-12">
                       <div class="alert alert-info" ng-if="!conflictFlag && suppressFlag">
@@ -392,7 +392,7 @@
                     <h5>
                       Generic Methods
                       <span class="badge badge-secondary">{{selectedTechnique.method_calls.length}}</span>
-                      <button class="btn-sm btn btn-success" ng-click="toggleDisplay(false)">Add  <i class="fas fa-plus-circle"></i></button>
+                      <button class="btn-sm btn btn-success" ng-click="toggleDisplay(false)" ng-class="{'invisible':!ui.showTechniques}">Add <i class="fas fa-plus-circle"></i></button>
                     </h5>
                   </div>
 
