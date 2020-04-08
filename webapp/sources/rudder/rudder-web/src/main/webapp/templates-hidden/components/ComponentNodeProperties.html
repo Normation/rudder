@@ -59,7 +59,7 @@
                  <th> Name    </th>
                  <th> Format  </th>
                  <th> Value   </th>
-                 <th> Actions </th>
+                 <th ng-if="$parent.hasEditRight"> Actions </th>
                </tr>
              </thead>
              <tbody>
@@ -102,7 +102,7 @@
                      <small class="text-danger" ng-if="!editedProperties[property.name].new.isValid">JSON check is enabled, but the value format is invalid</small>
                    </div>
                  </td>
-                 <td class="text-center" ng-class="{'default-actions':!isEdited(property.name), 'edit-actions is-edited':isEdited(property.name)}">
+                 <td ng-if="$parent.hasEditRight" class="text-center" ng-class="{'default-actions':!isEdited(property.name), 'edit-actions is-edited':isEdited(property.name)}">
                    <div ng-if="!isEdited(property.name) && property.rights !== 'read-only'">
                      <span class="action-icon fa fa-pencil" ng-click="editProperty(property)" title="Edit"></span>
                      <span class="action-icon fa fa-times text-danger" ng-click="popupDeletion(property.name, $index)" title="Delete"></span>

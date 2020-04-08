@@ -688,7 +688,7 @@ object DisplayNode extends Loggable {
 
       val nodeId = node.id.value
       val jsonProperties = compactRender(node.properties.toApiJson())
-      val userHasRights = CurrentUser.checkRights(AuthorizationType.Node.Write)
+      val userHasRights = CurrentUser.checkRights(AuthorizationType.Node.Edit)
       def tabProperties = ChooseTemplate(List("templates-hidden", "components", "ComponentNodeProperties") , "nodeproperties-tab")
       val tabId = htmlId(jsId,"sd_props_")
       val css: CssSel =  "#tabPropsId [id]" #> tabId
