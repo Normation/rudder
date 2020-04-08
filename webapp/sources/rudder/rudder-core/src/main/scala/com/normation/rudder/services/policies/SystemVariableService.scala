@@ -43,10 +43,13 @@ import com.normation.cfclerk.domain.SystemVariableSpec
 import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.services.MissingSystemVariable
 import com.normation.cfclerk.services.SystemVariableSpecService
+import com.normation.inventory.domain.AgentInfo
 import com.normation.inventory.domain.AgentType
+import com.normation.inventory.domain.AgentVersion
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.ServerRole
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.GroupTarget
@@ -530,17 +533,50 @@ class SystemVariableServiceImpl(
     val varNodeGroups = systemVariableSpecService.get("RUDDER_NODE_GROUPS_VARS").toVariable(Seq(stringNodeGroupsVars))
     val varNodeGroupsClasses = systemVariableSpecService.get("RUDDER_NODE_GROUPS_CLASSES").toVariable(Seq(stringNodeGroupsClasses))
 
-    // If Syslog is disabled, we force HTTPS
-    val varNodeReportingProtocol = getSyslogProtocolDisabled() match {
-      case Full(true)  => systemVariableSpecService.get("REPORTING_PROTOCOL").toVariable(Seq(AgentReportingHTTPS.value))
-      case Full(false) => nodeInfo.nodeReportingConfiguration.agentReportingProtocol match {
-                            case Some(protocol) => systemVariableSpecService.get("REPORTING_PROTOCOL").toVariable(Seq(protocol.value))
-                            case _              => getProp("REPORTING_PROTOCOL", () =>  getReportProtocolDefault().map(_.value))
-                          }
-      case eb:EmptyBox =>
-        val e = eb ?~! s"Failed to get information on syslog protocol global status, fallbacking to default value."
-        logger.error( e.messageChain )
-        getProp("REPORTING_PROTOCOL", () => getReportProtocolDefault().map(_.value))
+    // If Syslog is disabled, we force HTTPS.
+    val varNodeReportingProtocol = {
+      // By default, we are tolerant: it's far worse to fail a generation while support is ok than to
+      // succeed and have a node that doesn't rerport.
+      // => version must exists and and starts by 2.x, 3.x, 4.x, 5.x
+      def versionHasSyslogOnly(maybeVersion: Option[AgentVersion]): Boolean = {
+        maybeVersion match {
+          case None    =>
+            false // we don't know, so say HTTPS is supported
+          case Some(v) =>
+            val forbiden = List("2.", "3.", "4.", "5.")
+            forbiden.exists(x => v.value.startsWith(x))
+        }
+      }
+
+      def failure(nodeInfo: NodeInfo, badVersion: Option[AgentInfo], dsc: Option[AgentInfo]) = {
+        Failure(s"Node ${nodeInfo.hostname} (${nodeInfo.id.value}) has an agent which doesn't support sending compliance reports in HTTPS: ${
+                  dsc match {
+                    case None => s"agent version ${badVersion.flatMap(_.version.map(_.value)).getOrElse("")} is too old"
+                    case _    => s"Windows agent has only syslog reporting"
+                  }
+                }. You need to either disable that node (in node details > settings > Node State) or use HTTPS + syslog (in " +
+                s"Settings > General > Reporting protocol)")
+      }
+      // as we don't have capalities and version is not reliable, we only fail when we are sure:
+      // - version provided and starts by 2.x, 3.x, 4.x, 5.x
+      // - agent is DSC
+      val badVersion = nodeInfo.agentsName.find { agent => versionHasSyslogOnly(agent.version) }
+      val dsc = nodeInfo.agentsName.find { agent => agent.agentType == AgentType.Dsc }
+      val onlySyslogSupported = badVersion.nonEmpty || dsc.nonEmpty
+
+      getSyslogProtocolDisabled().flatMap { syslogDisabled => (syslogDisabled, onlySyslogSupported) match {
+        case (true, true )  =>
+          // If HTTPS is used on a node that does support it, we fails.
+          // Also, special case root, because not having root cause strange things.
+          if(nodeInfo.id == Constants.ROOT_POLICY_SERVER_ID) getReportProtocolDefault()
+          else failure(nodeInfo, badVersion, dsc)
+        case (true, false)  => Full(AgentReportingHTTPS)
+        case (false, true)  => Full(AgentReportingSyslog)
+        case (false, false) => getReportProtocolDefault()
+      } }.map { reportingProtocol =>
+        val v = systemVariableSpecService.get("REPORTING_PROTOCOL").toVariable(Seq(reportingProtocol.value))
+        (v.spec.name, v)
+      }
     }
 
     import  net.liftweb.json.{prettyRender,JObject,JString,JField}
@@ -574,22 +610,23 @@ class SystemVariableServiceImpl(
         , varNodeConfigVersion
         , varNodeGroups
         , varNodeGroupsClasses
-        , varNodeReportingProtocol
         , varRudderInventoryVariables
       ) map (x => (x.spec.name, x))
     }
 
     val variables = globalSystemVariables ++ baseVariables ++ policyServerVars
 
-    AgentRunVariables match {
-      case Full(runValues)  =>
-        Full(variables ++ runValues)
-      case Empty =>
-        Full(variables)
-      case fail: Failure =>
+    (AgentRunVariables, varNodeReportingProtocol) match {
+      case (Full(runValues), Full(reporting))  =>
+        Full(variables ++ runValues + reporting)
+      case (Empty, Full(reporting)) =>
+        Full(variables + reporting)
+      case (f1, f2:Failure) =>
+        // prefer message on reporting mode
+        f2
+      case (fail, _) =>
         fail
     }
-
   }
 
   // Fetch the Set of node hostnames having specific role
@@ -611,7 +648,8 @@ class SystemVariableServiceImpl(
     }
   }
 
-  //obtaining variable values from (failable) properties
+  // obtaining variable values from (failable) properties.
+  // If property fails, variable will be empty.
   private[this] def getProp[T](specName: String, getter: () => Box[T]): SystemVariable = {
       //try to get the user configured value, else log an error and use the default value.
       val variable = systemVariableSpecService.get(specName).toVariable()
