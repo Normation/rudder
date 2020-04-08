@@ -359,9 +359,9 @@ class FusionReportUnmarshaller(
              case None => Failure("could not parse agent certificate (tag AGENT_CERT), which is mandatory for dsc agent")
            }
            case _         =>
-             (optCert,optKey) match {
-               case (Some(cert), _        ) => Full(Certificate(cert))
-               case (None      , Some(key)) => Full(PublicKey(key))
+             (optCert,optKey) match { // in 5.0, we must return PublicKey, because we don't know how to distribute with cert (ACL, etc)
+               case (_         , Some(key)) => Full(PublicKey(key))
+               case (Some(cert), None     ) => Full(Certificate(cert))
                case (None      , None     ) => Failure("could not parse agent security Token (tag AGENT_KEY or CFENGINE_KEY or AGENT_CERT), which is mandatory for cfengine agent")
              }
          }
