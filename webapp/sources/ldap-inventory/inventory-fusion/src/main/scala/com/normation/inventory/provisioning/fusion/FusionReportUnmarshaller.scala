@@ -318,6 +318,12 @@ class FusionReportUnmarshaller(
       (xml \ "SERVER_ROLES" \ "SERVER_ROLE").flatMap(e => optText(e).map(ServerRole(_)))
     }
 
+    //parse the sub list of AGENT_CAPABILITIES/AGENT_CAPABILITY, ignore other elements
+    //note: agent capabilities should per agent to be really useful.
+    def processAgentCapabilities(xml:NodeSeq) : Set[AgentCapability] = {
+      (xml \ "AGENT_CAPABILITIES" \ "AGENT_CAPABILITY").flatMap(e => optText(e).map(s => AgentCapability(s.toLowerCase))).toSet
+    }
+
     // as a temporary solution, we are getting information from packages
 
     def findAgent(software: Seq[Software], agentType: AgentType): Option[AgentVersion] = {
@@ -364,7 +370,6 @@ class FusionReportUnmarshaller(
 
          rootUser  <- boxFromOption(optText(agentXML \\ "OWNER") ,"could not parse rudder user (tag OWNER) from rudder specific inventory")
          policyServerId <- boxFromOption(optText(agentXML \\ "POLICY_SERVER_UUID") ,"could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
-
          optCert = optText(agentXML \ "AGENT_CERT")
          optKey  = optText(agentXML \ "AGENT_KEY").orElse(optText(agentXML \ "CFENGINE_KEY"))
          securityToken <- agentType match {
@@ -384,7 +389,7 @@ class FusionReportUnmarshaller(
 
         val version = findAgent(report.applications, agentType)
 
-        Some((AgentInfo(agentType,version,securityToken), rootUser, policyServerId))
+        Some((AgentInfo(agentType,version,securityToken,Set()), rootUser, policyServerId))
       }
 
       agent.catchAll { eb =>
@@ -405,6 +410,8 @@ class FusionReportUnmarshaller(
         // Node Custom properties from agent hooks
         customProperties =  processCustomProperties(xml \ "CUSTOM_PROPERTIES")
         // hostname is a special case processed in `processHostname`
+        // capabilties should be per agent
+        capabilities   =  processAgentCapabilities(xml)
       } yield {
 
         report.copy (
@@ -414,7 +421,7 @@ class FusionReportUnmarshaller(
                 , policyServerId = NodeId(policyServerId)
                 , id = NodeId(uuid)
               )
-            , agents = agents.map(_._1)
+            , agents = agents.map(_._1.copy(capabilities = capabilities))
             , customProperties = customProperties
             , serverRoles = serverRoles
           )

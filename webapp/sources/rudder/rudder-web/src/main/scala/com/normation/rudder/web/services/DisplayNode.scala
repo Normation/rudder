@@ -429,7 +429,12 @@ object DisplayNode extends Loggable {
             }}
           </div>
           { displayServerRole(sm, inventoryStatus) }
-          <div><label>Agent:</label> {sm.node.agents.map(a => s"${a.agentType.displayName} (${a.version.map(_.value).getOrElse("unknown version")})").headOption.getOrElse("Not found")}</div>
+          <div><label>Agent:</label> {sm.node.agents.map { a =>
+              val capabilities =
+                if(a.capabilities.isEmpty) "no extra capabilities"
+                else "capabilities: " + a.capabilities.map(_.value).toList.sorted.mkString(", ")
+              s"${a.agentType.displayName} (${a.version.map(_.value).getOrElse("unknown version")} with ${capabilities})"
+          }.headOption.getOrElse("Not found")}</div>
           { displayPolicyServerInfos(sm) }
           <div><label>Administrator account:</label> {sm.node.main.rootUser}</div>
           { sm.node.agents.headOption match {

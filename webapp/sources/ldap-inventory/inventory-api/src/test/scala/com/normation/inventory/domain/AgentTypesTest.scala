@@ -85,20 +85,34 @@ class AgentTypesTest extends Specification {
       ,"version"  :"4.1.13"
     }"""
 
+  val json61 = s"""
+    {
+       "agentType":"cfengine-community"
+      ,"version"  :"6.1.0"
+      ,"securityToken": { "value":"$key","type":"certificate"}
+      , "capabilities": ["https", "very", "good"]
+    }"""
 
   "Parsing agent type" should {
 
     "works for 4_3 format" in {
       val res = ZioRuntime.runNow(AgentInfoSerialisation.parseJson(json43, None))
       res must beEqualTo(
-        AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.3.2")), PublicKey(key))
+        AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.3.2")), PublicKey(key), Set())
       )
     }
 
     "be able to read 4_1 serialized info" in {
       val res = ZioRuntime.runNow(AgentInfoSerialisation.parseJson(json41, Some(key)))
       res must beEqualTo(
-        AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.1.13")), PublicKey(key))
+        AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.1.13")), PublicKey(key), Set())
+      )
+    }
+
+    "works for 6_1 format" in {
+      val res = ZioRuntime.runNow(AgentInfoSerialisation.parseJson(json61, None))
+      res must beEqualTo(
+        AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("6.1.0")), Certificate(key), Set("https","very", "good").map(AgentCapability))
       )
     }
   }

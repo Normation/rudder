@@ -313,9 +313,15 @@ object NodeDetailLevel {
 
     val managementDetails = {
       ( inv : FullInventory ) =>
-        val keys = inv.node.agents.map{ag =>  JString(ag.securityToken.key)}
+        val agents = inv.node.agents
+        val keys = agents.map{ag =>  JString(ag.securityToken.key)}
+        val capabilities = agents.flatMap(ag => ag.capabilities.map(_.value)).toList.sorted
+        val roles = inv.node.serverRoles.map(_.value).toList.sorted
+
         ( "cfengineKeys" -> JArray(keys.toList) ) ~
-        ( "cfengineUser" -> inv.node.main.rootUser )
+        ( "cfengineUser" -> inv.node.main.rootUser ) ~
+        ( "capabilities" -> JArray(capabilities.map(JString))) ~
+        ( "serverRoles" -> JArray(roles.map(JString)))
     }
 
     val fileSystems = {

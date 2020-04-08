@@ -157,6 +157,8 @@ final case class AgentInfo(
     //and must try to find it from packages
   , version       : Option[AgentVersion]
   , securityToken : SecurityToken
+    // agent capabilties are lower case string used as tags giving information about what agent can do
+  , capabilities  : Set[AgentCapability]
 )
 
 object AgentInfoSerialisation {
@@ -175,6 +177,7 @@ object AgentInfoSerialisation {
               ("value" -> agent.securityToken.key)
             ~ ("type"  -> SecurityToken.kind(agent.securityToken))
           )
+        ~ ("capabilities" -> JArray(agent.capabilities.map(_.value).toList.sorted.map(JString(_))))
       )
   }
 
@@ -243,16 +246,22 @@ object AgentInfoSerialisation {
                 case JObject(json) => parseSecurityToken(agentType, json, optToken)
                 case _             => parseSecurityToken(agentType, JNothing, optToken)
               }).toIO
-
+      capabilities <- IOResult.effect(json \ "capabilities" match {
+                        case JArray(capa) => capa.flatMap(c => c match {
+                          case JString(s) => Some(AgentCapability(s))
+                          case _          => None
+                        })
+                        case _            => Nil
+                      })
     } yield {
-      AgentInfo(agentType, agentVersion, token)
+      AgentInfo(agentType, agentVersion, token, capabilities.toSet)
     }
   }
 
   /*
    * Parsing agent must be done in two steps for compat with old versions:
    * - try to parse in json: if ok, we have the new version
-   * - else, try to parse in old format, put None to version.
+   * - else, try to parse in old format, put None to version and empty capabilities
    */
   def parseCompatNonJson(s: String, optToken : Option[String]): IOResult[AgentInfo] = {
     parseJson(s, optToken).catchAll { eb =>
@@ -267,7 +276,7 @@ object AgentInfoSerialisation {
                          )
           token       <- IO.fromEither(parseSecurityToken(agentType, JNothing, optToken))
         } yield {
-          AgentInfo(agentType, None, token)
+          AgentInfo(agentType, None, token, Set())
         }
     }
   }

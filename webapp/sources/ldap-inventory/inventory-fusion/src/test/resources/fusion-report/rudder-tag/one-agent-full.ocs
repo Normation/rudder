@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<REQUEST>
+  <CONTENT>
+    <OPERATINGSYSTEM>
+      <FULL_NAME>Debian GNU/Linux 10.0.3 (Buster)</FULL_NAME>
+      <KERNEL_NAME>linux</KERNEL_NAME>
+      <KERNEL_VERSION>5.5.3-2-686</KERNEL_VERSION>
+      <NAME>Debian</NAME>
+      <VERSION>10.0.3</VERSION>
+    </OPERATINGSYSTEM>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <COMMENTS>Configuration management and audit tool - agent</COMMENTS>
+      <FILESIZE>41105438</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>17/12/2019</INSTALLDATE>
+      <NAME>rudder-agent</NAME>
+      <PUBLISHER>Normation</PUBLISHER>
+      <SYSTEM_CATEGORY>Applications/System</SYSTEM_CATEGORY>
+      <VERSION>6.1.0.release-1.EL.7</VERSION>
+    </SOFTWARES>
+    <RUDDER>
+      <AGENT>
+        <AGENT_CERT>-----BEGIN CERTIFICATE----
+certificate
+-----END CERTIFICATE-----
+        </AGENT_CERT>
+        <AGENT_NAME>cfengine-community</AGENT_NAME>
+        <CFENGINE_KEY>-----BEGIN RSA PUBLIC KEY-----
+key
+-----END RSA PUBLIC KEY-----
+        </CFENGINE_KEY>
+        <OWNER>root</OWNER>
+        <POLICY_SERVER_HOSTNAME>server</POLICY_SERVER_HOSTNAME>
+        <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
+      </AGENT>
+      <AGENT_CAPABILITIES>
+        <AGENT_CAPABILITY>cfengine</AGENT_CAPABILITY>
+        <AGENT_CAPABILITY>yaml</AGENT_CAPABILITY>
+        <AGENT_CAPABILITY>xml</AGENT_CAPABILITY>
+        <AGENT_CAPABILITY>curl</AGENT_CAPABILITY>
+        <AGENT_CAPABILITY>http_reporting</AGENT_CAPABILITY>
+        <AGENT_CAPABILITY>acl</AGENT_CAPABILITY>
+      </AGENT_CAPABILITIES>
+      <HOSTNAME>relay.rudder.local</HOSTNAME>
+      <SERVER_ROLES>relay</SERVER_ROLES>
+      <UUID>89587531-8649-4f9f-b0e6-1a6202d01576</UUID>
+      <CUSTOM_PROPERTIES>[{&quot;cpu_vulnerabilities&quot;:{&quot;spectre_v2&quot;:
+        {&quot;status&quot;:&quot;vulnerable&quot;,&quot;details&quot;:&quot;Retpoline without IBPB&quot;},&quot;spectre_v1&quot;:
+        {&quot;status&quot;:&quot;mitigated&quot;,&quot;details&quot;:&quot;Load fences&quot;},&quot;meltdown&quot;:
+        {&quot;status&quot;:&quot;mitigated&quot;,&quot;details&quot;:&quot;PTI&quot;}}}
+        ]</CUSTOM_PROPERTIES>
+    </RUDDER>
+  </CONTENT>
+  <QUERY>INVENTORY</QUERY>
+  <DEVICEID>foo</DEVICEID>
+</REQUEST>

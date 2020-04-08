@@ -172,7 +172,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , List("127.0.0.1", "192.168.0.100")
     , DateTime.now
     , UndefinedKey
-    , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("4.0.0")), PublicKey(PUBKEY)))
+    , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("4.0.0")), PublicKey(PUBKEY), Set()))
     , rootId
     , rootAdmin
     , Set( //by default server roles for root
@@ -211,7 +211,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , List("192.168.0.10")
     , DateTime.now
     , UndefinedKey
-    , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("4.0.0")), PublicKey(PUBKEY)))
+    , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("4.0.0")), PublicKey(PUBKEY), Set()))
     , rootId
     , admin1
     , Set()
@@ -277,7 +277,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , List("192.168.0.5")
     , DateTime.now
     , UndefinedKey
-    , Seq(AgentInfo(AgentType.Dsc, Some(AgentVersion("5.0.0")), Certificate("windows-node-dsc-certificate")))
+    , Seq(AgentInfo(AgentType.Dsc, Some(AgentVersion("5.0.0")), Certificate("windows-node-dsc-certificate"), Set()))
     , rootId
     , admin1
     , Set()
@@ -378,7 +378,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
           , None
           , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
           , Nil, DateTime.now
-          , UndefinedKey, Seq(AgentInfo(CfeCommunity, None, PublicKey("rsa public key"))), NodeId("root")
+          , UndefinedKey, Seq(AgentInfo(CfeCommunity, None, PublicKey("rsa public key"), Set())), NodeId("root")
           , "" , Set(), None, None, None
     )
   }).map(n => (n.id, n)).toMap

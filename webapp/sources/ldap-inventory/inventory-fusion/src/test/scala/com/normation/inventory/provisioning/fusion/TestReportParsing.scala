@@ -45,9 +45,7 @@ import com.normation.inventory.domain._
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.ZioRuntime
 import net.liftweb.common._
-import net.liftweb.json.JsonAST.JBool
-import net.liftweb.json.JsonAST.JInt
-import net.liftweb.json.JsonAST.JString
+import net.liftweb.json.JsonAST._
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
@@ -211,6 +209,24 @@ class TestReportParsing extends Specification with Loggable {
     "have dsc agent agent when using rudder-agent based on dsc" in {
       val agents = parseRun("fusion-report/dsc-agent.ocs").node.agents.map(_.agentType).toList
       agents === (Dsc :: Nil)
+    }
+
+    "correctly parse a 6.1 agent declaration with cert, capabilities and custom propeties" in {
+    val reports = parseRun("fusion-report/rudder-tag/one-agent-full.ocs")
+
+      (reports.node.agents.head === AgentInfo(
+          AgentType.CfeCommunity
+        , Some(AgentVersion("6.1.0.release-1.EL.7"))
+        , Certificate("-----BEGIN CERTIFICATE----\ncertificate\n-----END CERTIFICATE-----")
+        , Set("cfengine", "yaml", "xml", "curl", "http_reporting", "acl").map(AgentCapability)
+      )) and (
+        reports.node.customProperties === List(
+          CustomProperty("cpu_vulnerabilities", JObject(List(
+            JField("spectre_v2",JObject(List(JField("status",JString("vulnerable")), JField("details",JString("Retpoline without IBPB")))))
+          , JField("spectre_v1",JObject(List(JField("status",JString("mitigated")), JField("details",JString("Load fences")))))
+          , JField("meltdown",JObject(List(JField("status",JString("mitigated")), JField("details",JString("PTI"))))))))
+        )
+      )
     }
 
   }

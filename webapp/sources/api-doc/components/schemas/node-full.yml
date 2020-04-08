@@ -314,6 +314,20 @@ properties:
         type: string
         description: Local user account used by the agent
         example: root
+      capabilities:
+        type: array
+        description: List of agent capabilities
+        items:
+          type: string
+          description: Special capacities of the agent, like parsing xml or yaml, support of advanced acl, etc.
+          example: xml
+      serverRoles:
+        type: array
+        description: Local user account used by the agent
+        items:
+          type: string
+          description: A role that node fulfills in management technology
+          example: rudder-db
   memories:
     type: array
     description: Memory slots

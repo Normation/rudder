@@ -209,20 +209,20 @@ class InventoryNodeInfoCompatTest extends Specification {
 
   "Agent type " should {
     "correctly unserialize Linux node from 4_1" in {
-      node(linux41Ldif).agentsName(0) must beEqualTo(AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.1.14")), PublicKey("publickey")))
+      node(linux41Ldif).agentsName(0) must beEqualTo(AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.1.14")), PublicKey("publickey"), Set()))
     }
 
     "correctly unserialize Linux node from 4_2" in {
-      node(linux42Ldif).agentsName(0) must beEqualTo(AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.2.8")), PublicKey("publickey")))
+      node(linux42Ldif).agentsName(0) must beEqualTo(AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.2.8")), PublicKey("publickey"), Set()))
     }
 
     "correctly unserialize Linux node from 4_3" in {
-      node(linux43Ldif).agentsName(0) must beEqualTo(AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.3.2")), PublicKey("publickey")))
+      node(linux43Ldif).agentsName(0) must beEqualTo(AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.3.2")), PublicKey("publickey"), Set()))
     }
 
 
     "correctly unserialize DSC node from 4_2" in {
-      node(dsc42Ldif).agentsName(0) must beEqualTo(AgentInfo(AgentType.Dsc, Some(AgentVersion("4.2-1.9")), Certificate("certificate")))
+      node(dsc42Ldif).agentsName(0) must beEqualTo(AgentInfo(AgentType.Dsc, Some(AgentVersion("4.2-1.9")), Certificate("certificate"), Set()))
     }
   }
 }

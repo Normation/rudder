@@ -182,6 +182,33 @@ class TestNodeUnserialisation extends Specification {
       |timezoneName: Pacific Standard Time
       |timezoneOffset: -0700""".stripMargin
 
+  val linux61Ldif =
+    """dn: nodeId=root,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+      |objectClass: top
+      |objectClass: node
+      |objectClass: unixNode
+      |objectClass: linuxNode
+      |nodeId: root
+      |localAdministratorAccountName: root
+      |policyServerId: root
+      |osFullName: SUSE Linux Enterprise Server 11 (x86_64)
+      |osServicePack: 3
+      |ram: 1572864000
+      |swap: 781189120
+      |lastLoggedUser: root
+      |osKernelVersion: 3.0.76-0.11-default
+      |osName: Suse
+      |osVersion: 11
+      |keyStatus: certified
+      |nodeHostname: orchestrateur-3.labo.normation.com
+      |osArchitectureType: x86_64
+      |timezoneOffset: +0200
+      |timezoneName: Europe/Paris
+      |agentName: {"agentType":"cfengine-community","version":"6.1.0","securityToken":{"value":"certificate","type":"certificate"},"capabilities":["https"]}
+      |inventoryDate: 20180717000031.000Z
+      |receiveDate: 20180717000527.050Z
+      |lastLoggedUserTime: 20000714084300.000Z""".stripMargin
+
 
   def node(ldif: String): NodeInventory = {
     val nodeEntry = new LDAPEntry(new Entry(ldif.split("\n").toSeq:_*))
@@ -190,21 +217,25 @@ class TestNodeUnserialisation extends Specification {
 
   "Agent type " should {
     "correctly unserialize Linux node from 4_1" in {
-      node(linux41Ldif).agents(0) must beEqualTo(AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.1.14")), PublicKey("publickey")))
+      node(linux41Ldif).agents(0) must beEqualTo(AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.1.14")), PublicKey("publickey"), Set()))
     }
 
     "correctly unserialize Linux node from 4_2" in {
-      node(linux42Ldif).agents(0) must beEqualTo(AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.2.8")), PublicKey("publickey")))
+      node(linux42Ldif).agents(0) must beEqualTo(AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.2.8")), PublicKey("publickey"), Set()))
     }
 
     "correctly unserialize Linux node from 4_3" in {
-      node(linux43Ldif).agents(0) must beEqualTo(AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.3.2")), PublicKey("publickey")))
+      node(linux43Ldif).agents(0) must beEqualTo(AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.3.2")), PublicKey("publickey"), Set()))
     }
 
+    "correctly unserialize Linux node from 4_3" in {
+      node(linux61Ldif).agents(0) must beEqualTo(AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("6.1.0")), Certificate("certificate"), Set(AgentCapability("https"))))
+    }
 
     "correctly unserialize DSC node from 4_2" in {
-      node(dsc42Ldif).agents(0) must beEqualTo(AgentInfo(AgentType.Dsc, Some(AgentVersion("4.2-1.9")), Certificate("certificate")))
+      node(dsc42Ldif).agents(0) must beEqualTo(AgentInfo(AgentType.Dsc, Some(AgentVersion("4.2-1.9")), Certificate("certificate"), Set()))
     }
+
   }
 }
 

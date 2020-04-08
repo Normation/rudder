@@ -355,6 +355,8 @@ object KeyStatus {
 
 final case class ServerRole(value: String) extends AnyVal
 
+final case class AgentCapability(value: String) extends AnyVal
+
 final case class NodeInventory(
     main                 : NodeSummary
   , name                 : Option[String]     = None
