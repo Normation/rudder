@@ -49,6 +49,7 @@ import com.normation.rudder.hooks.HookReturnCode.Ok
 import com.normation.rudder.hooks.HookReturnCode.ScriptError
 import com.normation.rudder.hooks.HookReturnCode.Warning
 import org.specs2.specification.AfterAll
+
 import scala.concurrent.duration._
 import scala.collection.JavaConverters._
 
@@ -74,7 +75,9 @@ class HooksTest() extends Specification with AfterAll {
   }
 
   override def afterAll(): Unit = {
-   // tmp.delete()
+    if(System.getProperty("tests.clean.tmp") != "false") {
+      File("/tmp/rudder-test-hook/").delete()
+    }
   }
 
   "A successful hook should be a success" >> {
@@ -103,7 +106,7 @@ class HooksTest() extends Specification with AfterAll {
   }
 
 // This one is more for testing performance. I don't want to make it a test, because in
-// a CI it can be exptremelly different. But at least the code is here for anybody to check. 
+// a CI it can be exptremelly different. But at least the code is here for anybody to check.
 //  "Running a hook 1000 times should be extremely fast" >> {
 //
 //    //org.slf4j.LoggerFactory.getLogger("hooks").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.DEBUG)

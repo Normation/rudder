@@ -54,15 +54,27 @@ import org.specs2.mutable.Specification
 import org.joda.time.DateTime
 import org.specs2.matcher.ContentMatchers
 import java.io.File
+
 import net.liftweb.common.Loggable
 import com.normation.rudder.services.policies.InterpolatedValueCompilerImpl
+import org.apache.commons.io.FileUtils
+import org.specs2.specification.BeforeAfterAll
 
 @RunWith(classOf[JUnitRunner])
-class TestTechniqueWriter extends Specification with ContentMatchers with Loggable {
+class TestTechniqueWriter extends Specification with ContentMatchers with Loggable with BeforeAfterAll {
   import ResultHelper._
   sequential
-  val basePath = "/tmp/test-technique-writer" + DateTime.now.toString()
-  new File(basePath).mkdirs()
+  lazy val basePath = "/tmp/test-technique-writer-" + DateTime.now.toString()
+
+  override def beforeAll: Unit = {
+    new File(basePath).mkdirs()
+  }
+
+  override def afterAll: Unit = {
+    if(System.getProperty("tests.clean.tmp") != "false") {
+      FileUtils.deleteDirectory(new File(basePath))
+    }
+  }
 
   val expectedPath = "src/test/resources/configuration-repository"
   object TestTechniqueArchiver extends TechniqueArchiver {

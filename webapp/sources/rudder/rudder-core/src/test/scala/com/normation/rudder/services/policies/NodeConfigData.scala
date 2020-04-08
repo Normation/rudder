@@ -478,6 +478,11 @@ class TestNodeConfiguration() {
 
   val abstractRoot = new File("/tmp/test-rudder-config-repo-" + DateTime.now.toString())
   abstractRoot.mkdirs()
+  if(System.getProperty("tests.clean.tmp") != "false") {
+    Runtime.getRuntime.addShutdownHook(new Thread(new Runnable {
+      override def run(): Unit = FileUtils.deleteDirectory(abstractRoot)
+    }))
+  }
 
   // config-repo will also be the git root, as a normal rudder
   val configurationRepositoryRoot = abstractRoot/"configuration-repository"
