@@ -348,7 +348,13 @@
                                 </button>
                               </div>
                             </div>
-                            <div class="use-with"><span>{{'${'+getBundleName(param.name)+'}'}}</span></div>
+                            <div ng-if="param.name">
+                              <div class="use-with"><span>{{'${'+getBundleName(param.name)+'}'}}</span></div>
+                              <div class="full-name"><span>{{selectedTechnique.bundle_name+'.'+getBundleName(param.name)}}</span></div>
+                            </div>
+                            <div ng-if="!param.name">
+                              <div class="empty-name">Set a parameter name</div>
+                            </div>
                           </div>
                           <div class="col-auto remove-item" ng-click="selectedTechnique.parameter.splice($index,1)">
                             <i class="fa fa-times"></i>
