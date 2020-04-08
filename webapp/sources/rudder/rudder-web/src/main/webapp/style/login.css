@@ -13,7 +13,7 @@ html,body{
 #login-page a:hover{
     text-decoration: none;
 }
-#login-page form{
+#login-page #formbox{
 	background-color: #fff;
 	padding: 0;
 	border-radius: 5px;
@@ -24,7 +24,7 @@ html,body{
 	margin-right:auto;
 }
 
-#login-page form .legend{
+#login-page #formbox .legend{
 	border-top-left-radius: 5px;
 	border-top-right-radius: 5px;
     color: #fff;
@@ -32,18 +32,18 @@ html,body{
     padding: 20px 50px;
     margin-bottom: 0;
 }
-#login-page form .legend img{
+#login-page #formbox .legend img{
 	height: auto;
 	width: 100%;
 }
-#login-page form .legend span{
+#login-page #formbox .legend span{
 	position: absolute;
     right: 5px;
     font-size: 15px;
     font-weight: 600;
     bottom: 1px;
 }
-#login-page form .welcome{
+#login-page #formbox .welcome{
 	color: #222D32;
 	text-align: center;
 	font-style: italic;
@@ -53,7 +53,7 @@ html,body{
 	-o-animation: opacity-1 1.4s ease forwards;
 	animation: opacity-1 1.4s ease forwards;
 }
-#login-page form .input-group-addon{
+#login-page #formbox .input-group-addon{
 	background-color: #222D32;
 	color: #fff;
     border-color: #222D32;
@@ -64,7 +64,7 @@ html,body{
 #login-page .rudder-form .has-feedback label~.form-control-feedback {
     top: 0px;
 }
-#login-page form .input-group-addon .ion-android-lock{
+#login-page #formbox .input-group-addon .ion-android-lock{
 	width: 15px;
 }
 #login-page .rudder-form .has-error .help-block {
@@ -104,20 +104,20 @@ html,body{
     top: 30px;
     left: calc(50% - 10px);
 }
-#login-page form.rudder-form .form-control:focus,#login-page .rudder-form .form-group.has-error .form-control:focus {
+#login-page #formbox.rudder-form .form-control:focus,#login-page .rudder-form .form-group.has-error .form-control:focus {
     box-shadow: none;
 }
-#login-page form .form-control{
+#login-page #formbox .form-control{
   font-size: 20px;
   border-top-right-radius:5px;
   border-bottom-right-radius:5px;
   height: 36px;
 }
-#login-page form .form-control:focus{
+#login-page #formbox .form-control:focus{
 	color: #222D32;
 	border-color: #222D32;
 }
-#login-page form .btn.btn-warning-rudder{
+#login-page #formbox .btn.btn-warning-rudder{
 	font-weight: 600;
     background-color: #f08004;
     color: #fff;
@@ -127,73 +127,73 @@ html,body{
     margin-bottom: 10px;
     outline: none !important;
 }
-#login-page form .btn.btn-warning-rudder span{
+#login-page #formbox .btn.btn-warning-rudder span{
 	font-size: 25px;
     top: 8px;
 }
-#login-page form .btn.btn-warning-rudder:active{
+#login-page #formbox .btn.btn-warning-rudder:active{
 	outline: none;
 }
 
-#login-page form .form-footer{
+#login-page #formbox .form-footer{
 	background-color: #222D32;
 	color: #fff;
 	padding-top: 30px;
 	border-bottom-left-radius:4px;
 	border-bottom-right-radius:4px;
 }
-#login-page form .form-footer div{
+#login-page #formbox .form-footer div{
 	margin-bottom: 15px;
 }
-#login-page form .form-footer div a{
+#login-page #formbox .form-footer div a{
 	color: #fff;
 	opacity: .5;
 	font-size: 16px;
 	transition-duration:.1s;
 }
-#login-page form .form-footer div a:focus {
+#login-page #formbox .form-footer div a:focus {
     outline: none;
 }
-#login-page form .form-footer div a:hover, a:focus {
+#login-page #formbox .form-footer div a:hover, a:focus {
     text-decoration: none;
 }
-#login-page form .form-footer div a:hover{
+#login-page #formbox .form-footer div a:hover{
 	opacity: 1;
 }
-#login-page form .form-footer div a span{
+#login-page #formbox .form-footer div a span{
 	width: 25px;
 	font-size: 20px;
 }
-#login-page form .form-footer div a:hover span{
+#login-page #formbox .form-footer div a:hover span{
 	color:#f08004;
 }
 
-/* ------------- FORM --------------- */
+/* ------------- #formbox --------------- */
 
-form.rudder-form .form-group {
+#formbox.rudder-form .form-group {
     margin-bottom: 8px;
 }
-form.rudder-form{
+#formbox.rudder-form{
     box-shadow: 0px 10px 10px -10px rgba(0, 0, 0, 0.18);
     margin-bottom: 15px;
     padding-bottom: 20px;
 }
 
-form.rudder-form .legend{
+#formbox.rudder-form .legend{
     padding-left: 15px;
     padding-bottom: 5px;
     padding-top: 5px;
 }
 
-form.rudder-form .form-group label{
+#formbox.rudder-form .form-group label{
   margin-bottom: 3px;
 }
-form.rudder-form .form-control{
+#formbox.rudder-form .form-control{
   border-radius: 3px;
   border-color: rgb(198, 200, 201);
   box-shadow: 0 0 2px #C1BFBF;
 }
-form.rudder-form .form-control:focus,.rudder-form .form-group.has-error .form-control:focus{
+#formbox.rudder-form .form-control:focus,.rudder-form .form-group.has-error .form-control:focus{
   box-shadow: 0 0 6px #C1BFBF;
 }
 
@@ -289,86 +289,86 @@ animation: opacity-1 .2s linear forwards;
 
 /* LG */
 @media (min-width: 1200px){
-	#login-page form{
+	#login-page #formbox{
 		margin-top: 80px;
-	    height: auto;	 
+	    height: auto;
 	}
-	#login-page form .welcome{
+	#login-page #formbox .welcome{
 		margin-top: 30px;
 		margin-bottom: 40px;
 	}
-	#login-page form .group-password{
+	#login-page #formbox .group-password{
 		margin-bottom: 45px;
 	}
-	#login-page form .group-user{
+	#login-page #formbox .group-user{
 		margin-bottom: 40px
 	}
-	#login-page form .group-user.has-error{
+	#login-page #formbox .group-user.has-error{
 		margin-bottom: 15px;
 	}
 	.col-lg-offset-45 {
     margin-left: 37.5%;
   }
-}	
+}
 /* MD */
 @media (min-width: 992px) and (max-width: 1200px){
-	#login-page form{
+	#login-page #formbox{
 		margin-top: 20px;
 	}
-	#login-page form .welcome{
+	#login-page #formbox .welcome{
 	    margin-top: 30px;
 		margin-bottom: 40px;
 	}
-	#login-page form .group-password{
+	#login-page #formbox .group-password{
 		margin-bottom: 30px;
 	}
-	#login-page form .group-password{
+	#login-page #formbox .group-password{
 		margin-top: 20px
 	}
-	#login-page form .form-control,#login-page form .welcome,#login-page form .btn.btn-warning-rudder{
+	#login-page #formbox .form-control,#login-page #formbox .welcome,#login-page #formbox .btn.btn-warning-rudder{
 		font-size: 16px;
 	}
-	#login-page form .form-footer div a {
+	#login-page #formbox .form-footer div a {
 	    font-size: 14px;
 	}
 }
 /* SM */
 @media (min-width: 768px) and (max-width: 992px){
-	#login-page form{
+	#login-page #formbox{
 		margin-top: 20px;
 		margin-top: 20px;
 	}
-	#login-page form .welcome{
+	#login-page #formbox .welcome{
 	    margin-top: 30px;
 		margin-bottom: 40px;
 	}
-	#login-page form .group-password{
+	#login-page #formbox .group-password{
 		margin-bottom: 30px;
 	}
-	#login-page form .group-password{
+	#login-page #formbox .group-password{
 		margin-top: 20px
 	}
 }
 /* XS */
 @media (max-width: 768px){
-	#login-page form{
+	#login-page #formbox{
     margin-top: 20px;
 	}
-	#login-page form .legend img{
+	#login-page #formbox .legend img{
 	    padding: 0 50px;
 	}
 
-	#login-page form .welcome{
+	#login-page #formbox .welcome{
 		margin: 50px 0;
 		font-size: 20px;
 	}
-	#login-page form .group-password{
+	#login-page #formbox .group-password{
 		margin-bottom: 30px;
 	}
-	#login-page form .group-user{
+	#login-page #formbox .group-user{
 		margin-bottom: 40px
 	}
-	#login-page form .group-user.has-error{
+	#login-page #formbox .group-user.has-error{
 		margin-bottom: 10px;
 	}
 }
