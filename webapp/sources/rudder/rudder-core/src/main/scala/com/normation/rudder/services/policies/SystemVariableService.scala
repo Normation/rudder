@@ -538,41 +538,45 @@ class SystemVariableServiceImpl(
       // By default, we are tolerant: it's far worse to fail a generation while support is ok than to
       // succeed and have a node that doesn't rerport.
       // => version must exists and and starts by 2.x, 3.x, 4.x, 5.x
-      def versionHasSyslogOnly(maybeVersion: Option[AgentVersion]): Boolean = {
+      def versionHasSyslogOnly(maybeVersion: Option[AgentVersion], agentType: AgentType): Boolean = {
         maybeVersion match {
           case None    =>
             false // we don't know, so say HTTPS is supported
           case Some(v) =>
-            val forbiden = List("2.", "3.", "4.", "5.")
+            val forbidenUnix = List("2.", "3.", "4.", "5.")
+            val forbidenDSC = List("2.", "3.", "4.", "5.", "6.0.")
+            val forbiden = agentType match {
+              case AgentType.Dsc => forbidenDSC
+              case _             => forbidenUnix
+            }
             forbiden.exists(x => v.value.startsWith(x))
         }
       }
 
-      def failure(nodeInfo: NodeInfo, badVersion: Option[AgentInfo], dsc: Option[AgentInfo]) = {
+      def failure(nodeInfo: NodeInfo, badVersion: AgentInfo) = {
         Failure(s"Node ${nodeInfo.hostname} (${nodeInfo.id.value}) has an agent which doesn't support sending compliance reports in HTTPS: ${
-                  dsc match {
-                    case None => s"agent version ${badVersion.flatMap(_.version.map(_.value)).getOrElse("")} is too old"
-                    case _    => s"Windows agent has only syslog reporting"
+                  badVersion.agentType match {
+                    case AgentType.Dsc => s"Rudder agent on Windows only support HTTPS reporting for version >= 6.1"
+                    case _             => s"Rudder agent only support HTTPS reporting for version >= 6.0"
                   }
                 }. You need to either disable that node (in node details > settings > Node State) or use HTTPS + syslog (in " +
                 s"Settings > General > Reporting protocol)")
       }
       // as we don't have capalities and version is not reliable, we only fail when we are sure:
-      // - version provided and starts by 2.x, 3.x, 4.x, 5.x
-      // - agent is DSC
-      val badVersion = nodeInfo.agentsName.find { agent => versionHasSyslogOnly(agent.version) }
-      val dsc = nodeInfo.agentsName.find { agent => agent.agentType == AgentType.Dsc }
-      val onlySyslogSupported = badVersion.nonEmpty || dsc.nonEmpty
+      // - version provided and
+      //   - starts by 2.x, 3.x, 4.x, 5.x for Unix
+      //   - agent is DSC < 6.1
+      val onlySyslogSupported = nodeInfo.agentsName.find { agent => versionHasSyslogOnly(agent.version, agent.agentType) }
 
       getSyslogProtocolDisabled().flatMap { syslogDisabled => (syslogDisabled, onlySyslogSupported) match {
-        case (true, true )  =>
+        case (true , Some(agentInfo) ) =>
           // If HTTPS is used on a node that does support it, we fails.
           // Also, special case root, because not having root cause strange things.
           if(nodeInfo.id == Constants.ROOT_POLICY_SERVER_ID) getReportProtocolDefault()
-          else failure(nodeInfo, badVersion, dsc)
-        case (true, false)  => Full(AgentReportingHTTPS)
-        case (false, true)  => Full(AgentReportingSyslog)
-        case (false, false) => getReportProtocolDefault()
+          else failure(nodeInfo, agentInfo)
+        case (true , None   )          => Full(AgentReportingHTTPS)
+        case (false, Some(x))          => Full(AgentReportingSyslog)
+        case (false, None   )          => getReportProtocolDefault()
       } }.map { reportingProtocol =>
         val v = systemVariableSpecService.get("REPORTING_PROTOCOL").toVariable(Seq(reportingProtocol.value))
         (v.spec.name, v)
