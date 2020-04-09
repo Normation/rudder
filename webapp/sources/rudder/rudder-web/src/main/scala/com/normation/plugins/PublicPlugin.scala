@@ -94,6 +94,14 @@ trait DefaultPluginDef extends RudderPluginDef {
       PluginVersion(0,0,1, s"ERROR-PARSING-VERSION: ${versionString}")
     )
   }
+  override lazy val versionInfo = {
+    try {
+      Some(buildConf.getString("version-info"))
+    } catch {
+      case e:ConfigException.Missing => None
+    }
+  }
+
 
   override def description : NodeSeq  = (
      <div>

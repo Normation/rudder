@@ -146,6 +146,13 @@ trait RudderPluginDef {
    */
   def version : PluginVersion
 
+  /**
+   * Additional information about the version. I.E : "technical preview"
+   */
+  def versionInfo : Option[String]
+
+
+
 
   /*
    * Information about the plugin activation status
