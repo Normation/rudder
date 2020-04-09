@@ -1,6 +1,6 @@
 #!/bin/bash
 
-prod_env=true
+env="prod"
 
 #####################
 # ARGUMENTS & USAGE #
@@ -12,7 +12,7 @@ do
   # force dev env optional parameter
   if [ "$1" = "--dev" ] || [[ "$1" =~ ^-[${allowed_options}]?d[${allowed_options}]?$ ]]
   then
-    prod_env=false
+    env="dev"
   fi
 
   # cleanup optional parameter
@@ -54,24 +54,36 @@ cfjson_tester="${self_dir}/cfjson_tester"
 
 # Detect technique path
 technique_path="/var/rudder/configuration-repository/techniques/ncf_techniques/${technique}/1.0/technique.cf"
-([ ${prod_env} = true ] && [ -f "${technique_path}" ]) || (technique_path="$1" && prod_env=false)
-if [ ! -f "${technique_path}" ]
+if [ ${env} = "dev" ] && [ -f "$1" ]
 then
-  echo "Cannot find /var/rudder/configuration-repository/techniques/ncf_techniques/${technique}/1.0/technique.cf nor $1"
+  technique_path="$1"
+elif [ ! -f "${technique_path}" ]
+then
+  echo "Cannot find either of ${technique_path} nor $1"
   exit 1
 fi
 
 # Detect rudderc and cfjson_tester configuration
 config_file="/opt/rudder/etc/rudderc.conf"
-([ ${prod_env} = true ] && [ -f "${config_file}" ]) || (config_file="${self_dir}/rudderc.conf" && prod_env=false)
+[ ${env} = "prod" ] || config_file="${self_dir}/rudderc-dev.conf"
 if [ ! -f "${config_file}" ]
 then
-  echo "Cannot find /opt/rudder/etc/rudderc.conf nor ${self_dir}/rudderc.conf"
+  echo "Cannot find ${config_file}"
   exit 1
 fi
 
 rudderc="/opt/rudder/bin/rudderc"
-([ ${prod_env} = true ] && [ -f "${rudderc}" ]) || (rudderc="cargo run -- " && prod_env=false)
+if [ ${env} = "prod" ]
+then
+  if [ ! -f "${rudderc}" ]
+  then
+    echo "Cannot find ${rudderc}"
+	exit 1
+  fi
+else
+  rudderc="cargo run -- "
+fi
+
 
 ###############################
 # EXECUTE SCRIPTS AND PROGRAM #
@@ -84,7 +96,7 @@ rudderc="/opt/rudder/bin/rudderc"
 # 5. Script - Compares original / generated JSON files
 # 6. Script - Compares original / generated CF files
 
-if [ ${prod_env} = false ] 
+if [ ${env} = "dev" ] 
 then
 
   ##########################
@@ -163,3 +175,4 @@ then
 else
   echo "Done testing in ${test_dir}"
 fi
+

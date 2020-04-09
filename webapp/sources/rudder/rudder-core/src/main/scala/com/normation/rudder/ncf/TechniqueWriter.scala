@@ -63,7 +63,6 @@ import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
-import com.normation.rudder.hooks.RunNuCommand
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
@@ -83,6 +82,7 @@ import net.liftweb.common.EmptyBox
 
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.hooks.Cmd
+import com.normation.rudder.hooks.RunNuCommand
 import com.normation.errors.RudderError
 import scala.jdk.CollectionConverters._
 import com.normation.zio._
