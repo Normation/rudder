@@ -61,6 +61,7 @@ class RunNuCommandTest() extends Specification {
   "A command" should {
 
     val PATH = System.getenv().asScala.getOrElse("PATH", throw new RuntimeException(s"PATH environment variable must be defined to run process tests."))
+    val teest = RunNuCommand.run(Cmd("env", Nil, Map("PATH" -> PATH, "foo" -> "bar"))).awaitAllChildren
 
     "has only the environment variable explicitly defined" in {
       val prog =

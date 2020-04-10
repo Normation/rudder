@@ -183,6 +183,13 @@ trait RoDirectiveRepository {
    */
   def getDirectives(activeTechniqueId:ActiveTechniqueId, includeSystem:Boolean = false) : IOResult[Seq[Directive]]
 
+
+  /**
+   * Get ActiveTechnique based on a specific technique name
+   */
+  def getActiveTechniqueByTechniqueName(techniqueName: TechniqueName) : IOResult[Seq[ActiveTechnique]]
+
+
   /**
    * Get all pairs of (category details, Set(active technique))
    * in a map in which keys are the parent category of the

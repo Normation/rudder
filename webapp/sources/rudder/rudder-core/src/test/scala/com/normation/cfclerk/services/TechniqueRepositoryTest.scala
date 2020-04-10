@@ -130,6 +130,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     override def getDirectiveWithContext(directiveId: DirectiveId): IOResult[Option[(Technique, ActiveTechnique, Directive)]] = ???
     override def getActiveTechniqueAndDirective(id: DirectiveId): IOResult[Option[(ActiveTechnique, Directive)]] = ???
     override def getDirectives(activeTechniqueId: ActiveTechniqueId, includeSystem: Boolean): IOResult[Seq[Directive]] = ???
+    override def getActiveTechniqueByTechniqueName(techniqueName: TechniqueName) : IOResult[Seq[ActiveTechnique]] = ???
     override def getActiveTechniqueByCategory(includeSystem: Boolean): IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
     override def getActiveTechniqueByActiveTechnique(id: ActiveTechniqueId): IOResult[Option[ActiveTechnique]] = ???
     override def getActiveTechnique(techniqueName: TechniqueName): IOResult[Option[ActiveTechnique]] = ???
