@@ -466,7 +466,7 @@ class RuleEditForm(
     val dirTechName    = t.newestAvailableTechnique.get.name.encJs
     val dirTechVersion = d.techniqueVersion.toString.encJs
     val dirMode        = d.policyMode.map(_.name).getOrElse(gm).encJs
-    val dirTags        = JsonTagSerialisation.serializeTags(d.tags)
+    val dirTags        = net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(d.tags))
     JsRaw(s"""onClickDirective("${dirId}", ${dirName}, ${dirLink}, ${dirDescription}, ${dirTechName}, ${dirTechVersion}, ${dirMode}, ${dirTags})""")
   }
 
