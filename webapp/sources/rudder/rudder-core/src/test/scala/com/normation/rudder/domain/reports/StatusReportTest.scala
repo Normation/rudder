@@ -37,12 +37,11 @@
 
 package com.normation.rudder.domain.reports
 
+import com.github.ghik.silencer.silent
 import scala.io.Source
-
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
-
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -275,6 +274,9 @@ class StatusReportTest extends Specification {
       "init correctly" in {
         val result = initData.headOption.map(x => ComplianceLevel.compute(x._2))
 
+        // used to warm up
+        @silent // remove unused
+        val comp = ComplianceLevel.sum(Seq(result.get))
         result.size === 1
       }
 
@@ -296,10 +298,14 @@ class StatusReportTest extends Specification {
       "run fast enough to sum" in {
         ComplianceLevel.sum(initData.map( x => ComplianceLevel.compute(x._2)))
 
+        val source = initData.map(x => (x._1, ComplianceLevel.compute(x._2))).map( _._2)
         val t0 = System.nanoTime
 
         for (i <- 1 to 100) {
           val t0_0 = System.nanoTime
+          // use to warm up
+          @silent // remove unused
+          val  result = ComplianceLevel.sum(source)
           val t1_1 = System.nanoTime
           println(s"${i}th call to sum for ${nbSet} sets took ${(t1_1-t0_0)/1000} µs")
         }
