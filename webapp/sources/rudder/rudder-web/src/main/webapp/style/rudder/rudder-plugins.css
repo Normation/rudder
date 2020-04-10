@@ -1,0 +1,88 @@
+.plugin:first-child h3.title-section{
+  margin-top: 0;
+}
+.plugin h3.title-section:before{
+  content: "\f12e";
+  display: inline-block;
+  font: normal normal normal 14px/1 FontAwesome;
+  font-size: inherit;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  margin-right: 6px;
+  color: #222D4277;
+}
+
+.plugin .description{
+  color: #222D42AA;
+}
+
+.license-card{
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #e1e3e6;
+  border-left: 4px solid #337ab7;
+  max-width: 780px;
+  padding: 10px;
+}
+.license-card .license-info h4{
+  color: #337ab7;
+  margin-top: 0;
+  padding-right: 40px;
+  position: relative;
+}
+.license-card .license-info h4 + p {
+  padding-right: 40px;
+}
+.license-card .license-info h4 .license-icon{
+  font-size: 50px;
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+.license-card .license-info  p:last-child,
+.license-card .license-info dl:last-child {
+  margin-bottom: 0;
+}
+.license-card .license-info dl{
+  margin-bottom: 10px;
+}
+.license-info .fa-exclamation-triangle {
+  margin-right: 6px;
+}
+/* === License warning === */
+.license-card.warning{
+  border-left-color: #f08004;
+  background-color: #f080040d;
+}
+.license-card.warning .license-info h4{
+  color: #f08004;
+}
+.license-card.warning  p.txt-warning {
+  color: #ef8004;
+  font-weight: bold;
+  margin-top: 6px;
+}
+/* === License danger === */
+.license-card.critical{
+  border-left-color: #C80004;
+  background-color: #ff040908;
+}
+.txt-critical {
+  color: #9e0205 !important;
+}
+.license-card.critical .license-info h4{
+  color: #C80004;
+}
+
+/* === LICENSE DETAILS === */
+.table-license tr > td{
+  padding: 2px 3px;
+}
+.table-license tr > td:first-child{
+  font-weight: bold;
+  text-align: right;
+  padding-left: 0;
+}
+.table-license tr > td:last-child{
+  padding-left: 10px;
+}

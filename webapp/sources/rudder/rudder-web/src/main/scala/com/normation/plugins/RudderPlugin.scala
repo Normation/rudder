@@ -168,30 +168,43 @@ trait RudderPluginDef {
     import net.liftweb.util.Helpers._
 
     val info = (
-      <div><div id="license-information" style="padding:5px; margin: 5px;" class="bs-callout">
-        <h4>License information</h4>
-        <p>This binary version of this plugin is suject to license with the following information:</p>
-        <div id="license-information-details"/>
-      </div></div>
+      <div class="license-card">
+        <div id="license-information" class="license-info">
+          <h4><span>License information</span> <i class="license-icon ion ion-ribbon-b"></i></h4>
+          <div class="license-information-details"></div>
+        </div>
+      </div>
     )
 
     def details(i: PluginLicenseInfo) = {
-      <dl class="dl-horizontal" style="padding:5px;">
-        <dt>Plugin with ID</dt> <dd>{i.softwareId}</dd>
-        <dt>Licensee</dt> <dd>{i.licensee}</dd>
-        <dt>Supported version</dt> <dd>from {i.minVersion} to {i.maxVersion}</dd>
-        <dt>Validity period</dt> <dd>from {i.startDate.toString("YYYY-MM-dd")} to {i.endDate.toString("YYYY-MM-dd")}</dd>
-        <dt>Allowed number of nodes</dt> <dd>{i.maxNodes.map(_.toString).getOrElse("Unlimited")}</dd>
+      <table class="table-license">
+        <tr>
+          <td>Licensee:</td> <td>{i.licensee}</td>
+        </tr>
+        <tr>
+          <td>Supported version:</td> <td>from {i.minVersion} to {i.maxVersion}</td>
+        </tr>
+        <tr>
+          <td>Validity period:</td> <td>from {i.startDate.toString("YYYY-MM-dd")} to {i.endDate.toString("YYYY-MM-dd")}</td>
+        </tr>
+        <tr>
+          <td>Allowed number of nodes:</td> <td>{i.maxNodes.map(_.toString).getOrElse("Unlimited")}</td>
+        </tr>
         {
           if(i.others.isEmpty) {
             NodeSeq.Empty
           } else {
-            <dt>Other properties for that license:</dt><ul>
-              {i.others.toList.sortBy(_._1).map { case (k,v) => <li>{s"${k}: ${v}"}</li>}}
-            </ul>
+            <tr>
+              <td>Other properties for that license:</td>
+              <td>
+                <ul>
+                  {i.others.toList.sortBy(_._1).map { case (k,v) => <li>{s"${k}: ${v}"}</li>}}
+                </ul>
+              </td>
+            </tr>
           }
         }
-      </dl>
+      </table>
     }
 
     status.current match {
@@ -199,28 +212,32 @@ trait RudderPluginDef {
         NodeSeq.Empty
 
       case PluginStatusInfo.Disabled(msg, optDetails) =>
-        ("#license-information [class+]" #> "bs-callout-danger" andThen
-         "#license-information-details"  #> (
-           <div class="bg-danger">{
-             optDetails match {
-               case None    => <p>It was not possible to read information about the license.</p>
-               case Some(i) => details(i)
-             } }
-             <p class="text-danger">{msg}</p>
-           </div>
-         )
+        (".license-card [class+]" #> "critical" andThen
+        ".license-information-details"  #> (
+          <div>{
+            optDetails match {
+              case None    => <p><i class="txt-critical fa fa-exclamation-triangle"></i>It was impossible to read information about the license.</p>
+              case Some(i) => details(i)
+            } }
+            <p class="txt-critical">{msg}</p>
+          </div>
+          )
         )(info)
 
       case PluginStatusInfo.EnabledWithLicense(i) =>
-        val (callout, background) = if(i.endDate.minusMonths(1).isBeforeNow) {
-          ("bs-callout-danger", "bg-warning")
+        val (callout, warningTxt) = if(i.endDate.minusMonths(1).isBeforeNow) {
+          ("warning", <p class="txt-warning"><i class="fa fa-exclamation-triangle"></i>Plugin license expires in a few days.</p>)
         } else {
-          ("bs-callout-info", "bg-info")
+          ("", NodeSeq.Empty)
         }
 
-        ("#license-information [class+]" #> callout andThen
-         "#license-information-details"  #> (
-           <div class={background}>{details(i)}</div>
+        (".license-card [class+]" #> callout andThen
+         ".license-information-details"  #> (
+           <p>This binary version of this plugin is suject to license with the following information:</p>
+           <div>
+             {details(i)}
+             {warningTxt}
+           </div>
          )
         )(info)
     }

@@ -1473,16 +1473,13 @@ label.text-fit{
   border: 1px solid #ccc;
   border-radius: 3px;
 }
-.skin-yellow .tooltip.right > .tooltip-inner {
-  padding: 10px !important;
-  font-size: 14px;
-  color: #555;
-}
 
 .skin-yellow .tooltip.top > .tooltip-arrow{
   border-top-color: #ccc;
 }
-
+.skin-yellow .tooltip.bottom > .tooltip-arrow{
+  border-bottom-color: #ccc;
+}
 .skin-yellow .tooltip.right > .tooltip-arrow{
   border-right-color: #ccc;
 }
@@ -3640,6 +3637,50 @@ table a > i.fa-pencil:hover{
 }
 .markdown > p:last-child{
   margin-bottom: 0;
+}
+
+/*PLUGIN WARNING */
+.plugin-warning{
+  background-color: #e8cb00;
+}
+.plugin-warning.critical{
+  background-color: #C80004;
+}
+.plugin-warning > a{
+  font-size: 1.4em;
+  color: #fff;
+  background: none !important;
+}
+
+.plugin-warning > a > .fa:after{
+  content: "\f071";
+  color: #ffffffa1;
+  border: 2px solid #e8cb00;
+  background-color: #e8cb00;
+  border-radius: 50%;
+  position: absolute;
+  top: calc(50%);
+  right: 8px;
+  font-size: .6em;
+}
+.plugin-warning.critical > a > .fa:after{
+  border-color: #C80004;
+  background-color: #C80004;
+}
+.plugin-warning + .tooltip > .tooltip-inner h4,
+.tooltip > .tooltip-inner h4.warning {
+  color: #F08004;
+}
+.plugin-warning.critical + .tooltip > .tooltip-inner h4,
+.tooltip > .tooltip-inner h4.critical {
+  color: #a94442;
+}
+
+.plugin-icon.icon-info{
+  color: #F08004;
+}
+.plugin-icon.icon-info.critical{
+  color: #C80004;
 }
 
 /* KEYFRAMES */
