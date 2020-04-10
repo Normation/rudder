@@ -910,10 +910,10 @@ ul.graph-legend > li.legend:hover{
 }
 /* REFRESH */
 .main-header .navbar .nav li.notifications-menu.bg-refresh, .main-header .navbar .nav li.notifications-menu.bg-refresh #generation-status{
-  background-color:#abacac;
+  background-color: #3c8dbc;
 }
 .main-header .navbar .nav li.notifications-menu.bg-refresh:hover #generation-status,.main-header .navbar .nav li.notifications-menu.bg-refresh.open #generation-status{
-  background-color:#9a9b9b;
+  background-color:#367fa9;
 }
 .main-header .navbar .nav li.notifications-menu.bg-refresh #generation-status > span:after{
   display: inline-block;
