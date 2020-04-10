@@ -1,5 +1,5 @@
 <!--
-  Copyright 2011-2014 Normation SAS
+  Copyright 2011-2020 Normation SAS
 
   This file is part of Rudder.
 
@@ -35,6 +35,9 @@
   The "authentication" tag should have a "hash" attribute, with these allowed values:
     "bcrypt", "md5", "sha1", "sha256", "sha-256", "sha512", "sha-512"
 
+  It is advised to use 'bcrypt' (default since 6.1). When upgrading from previous
+  releases, you need to reset all the passwords to bcrypt hashes and change the authentication tag.
+
   Not specifying the "hash" attribute means using plain text passwords, which is not
   adviseable for security reasons.
 
@@ -49,7 +52,6 @@
   field (which will be ignored - it can be left empty) and the "role" field
   (where you define the actual authorisations of the user). The "hash" field of
   "authentication" can be omitted.
-
 
   The "role" tag must contain one or more of these values (comma separated), depending
   on the what the user should be allowed to do:
@@ -69,12 +71,13 @@
   application itself (upper right corner) or on
   https://docs.rudder.io/reference/current/administration/users.html
 
-  IMPORTANT: After changing this file, the rudder webapp must be restarted to take changes
-  into account: /etc/init.d/rudder-jetty restart
+  IMPORTANT: After changing this file, the webapp needs to reload the user list.
+  You can do it in the "User management" plugin or by restarting the webapp with:
+  systemctl restart rudder-jetty
 -->
 
 <authentication hash="bcrypt">
   <!--
-    <user name="admin" password="REPLACE_BY_HASH" role="administrator" />
+    <user name="NAME" password="REPLACE_BY_HASH" role="ROLE" />
   -->
 </authentication>
