@@ -37,7 +37,6 @@
 
 package com.normation.rudder.ncf
 
-import java.io.File
 import java.io.InputStream
 
 import com.normation.cfclerk.domain
@@ -72,7 +71,6 @@ import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
-import com.normation.rudder.services.policies.InterpolatedValueCompilerImpl
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.NodeGroupChangeRequest
@@ -82,9 +80,9 @@ import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.zio._
 import net.liftweb.common.Box
 import net.liftweb.common.Full
-import net.liftweb.common.Loggable
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
+import java.io.File
 import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -92,15 +90,25 @@ import zio._
 
 import scala.collection.SortedMap
 import scala.collection.SortedSet
+import net.liftweb.common.Loggable
+import com.normation.rudder.services.policies.InterpolatedValueCompilerImpl
+import org.apache.commons.io.FileUtils
+import org.specs2.specification.BeforeAfterAll
 
 @RunWith(classOf[JUnitRunner])
-class TestTechniqueWriter extends Specification with ContentMatchers with Loggable {
+class TestTechniqueWriter extends Specification with ContentMatchers with Loggable with BeforeAfterAll {
   sequential
-  val basePath = "/tmp/test-technique-writer" + DateTime.now.toString()
+  lazy val basePath = "/tmp/test-technique-writer-" + DateTime.now.toString()
 
-  val dir = new File(basePath)
-  dir.deleteOnExit()
-  dir.mkdirs()
+  override def beforeAll: Unit = {
+    new File(basePath).mkdirs()
+  }
+
+  override def afterAll: Unit = {
+    if(System.getProperty("tests.clean.tmp") != "false") {
+      FileUtils.deleteDirectory(new File(basePath))
+    }
+  }
 
   val expectedPath = "src/test/resources/configuration-repository"
   object TestTechniqueArchiver extends TechniqueArchiver {

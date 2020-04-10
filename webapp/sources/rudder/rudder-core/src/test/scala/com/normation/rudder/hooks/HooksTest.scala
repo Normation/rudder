@@ -74,7 +74,9 @@ class HooksTest() extends Specification with AfterAll {
   }
 
   override def afterAll(): Unit = {
-   // tmp.delete()
+    if(System.getProperty("tests.clean.tmp") != "false") {
+      File("/tmp/rudder-test-hook/").delete()
+    }
   }
 
   "A successful hook should be a success" >> {
