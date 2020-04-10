@@ -27,7 +27,7 @@ bundle agent init
 
     "tmp"                    string => getenv("TEMP", 1024);
 
-    "source_file"            string => "http://www.normation.com/robots.txt";
+    "source_file"            string => "http://repository.rudder.io/tools/ncf-setup";
     "destination_file"       string => "${tmp}/test_file_from_http_server.txt";
     "destination_file_canon" string => canonify("${destination_file}");
 
