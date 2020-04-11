@@ -128,6 +128,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
               NodeGroupId("temporary"),
               null,
               null,
+              Nil,
               query,
               true,
               serverList.openOr(Seq[NodeInfo]()).map(_.id).toSet,

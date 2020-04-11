@@ -185,18 +185,7 @@ class ImportGroupLibraryImpl(
           for {
             category      <- con.save(categoryEntry) .chainError("Error when persisting category with DN '%s' in LDAP".format(categoryEntry.dn))
             groups        <- ZIO.foreach(content.groups) { nodeGroup =>
-                               val nodeGroupEntry = rudderDit.GROUP.groupModel(
-                                  nodeGroup.id.value,
-                                  categoryEntry.dn,
-                                  nodeGroup.name,
-                                  nodeGroup.description,
-                                  nodeGroup.query,
-                                  nodeGroup.isDynamic,
-                                  nodeGroup.serverList,
-                                  nodeGroup.isEnabled,
-                                  nodeGroup.isSystem
-                               )
-
+                               val nodeGroupEntry = mapper.nodeGroupToLdap(nodeGroup, categoryEntry.dn)
                                con.save(nodeGroupEntry,true) .chainError("Error when persisting group entry with DN '%s' in LDAP".format(nodeGroupEntry.dn))
                              }
             subCategories <- ZIO.foreach(content.categories) { cat =>

@@ -121,7 +121,16 @@ class CreateCloneGroupPopup(
         val isDynamic = isStatic.get match { case "dynamic" => true ; case _ => false }
         val srvList =  nodeGroup.map(x => x.serverList).getOrElse(Set[NodeId]())
         val nodeId = NodeGroupId(uuidGen.newUuid)
-        val clone = NodeGroup(nodeId,groupName.get,groupDescription.get,query,isDynamic,srvList,true)
+        val clone = NodeGroup(
+            nodeId
+          , groupName.get
+          , groupDescription.get
+          , nodeGroup.map(_.properties).getOrElse(Nil)
+          , query
+          , isDynamic
+          , srvList
+          , true
+        )
 
         woNodeGroupRepository.create(
             clone

@@ -711,7 +711,7 @@ class WoLDAPDirectiveRepository(
    * If no directive has such id, return a success.
    */
   override def deleteSystemDirective(id: DirectiveId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = {
-    internalDeleteDirective(id, modId, actor, reason:Option[String], callSystem = true)
+    internalDeleteDirective(id, modId, actor, reason, callSystem = true)
   }
 
   /**
@@ -721,7 +721,7 @@ class WoLDAPDirectiveRepository(
    * hand if you want.
    */
   override def delete(id: DirectiveId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = {
-    internalDeleteDirective(id, modId, actor, reason:Option[String], callSystem = false)
+    internalDeleteDirective(id, modId, actor, reason, callSystem = false)
   }
 
   private[this] def internalDeleteDirective(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String], callSystem: Boolean) : IOResult[Option[DeleteDirectiveDiff]] = {

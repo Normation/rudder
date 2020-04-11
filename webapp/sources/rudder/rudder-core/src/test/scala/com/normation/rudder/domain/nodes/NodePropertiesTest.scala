@@ -42,6 +42,7 @@ import org.specs2.mutable._
 import org.specs2.runner._
 import net.liftweb.common._
 import com.normation.BoxSpecMatcher
+import com.normation.errors.PureResult
 import net.liftweb.json.JsonAST.JString
 
 @RunWith(classOf[JUnitRunner])
@@ -57,7 +58,7 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
     override def compare(x: NodeProperty, y: NodeProperty): Int = x.name.compareTo(y.name)
   }
 
-  val baseProps = Seq(
+  val baseProps = List(
       NodeProperty("none"   , "node"   , None   )
     , NodeProperty("default", "default", RudderP)
     , NodeProperty("p1"     , "p1"     , P1     )
@@ -67,29 +68,29 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
   "Creation of properties" should {
     "be ok" in {
       val newProps = baseProps.map( p => p.copy(name = p.name+"_2" ) )
-      CompareProperties.updateProperties(baseProps, Some(newProps)).map( _.sorted ) mustFullEq( (baseProps++newProps).sorted )
+      CompareProperties.updateProperties(baseProps, Some(newProps)).map( _.sorted ) must beRight((baseProps++newProps).sorted)
     }
   }
 
   "Deletion of properties" should {
     "be a noop if different keys" in {
       val newProps = baseProps.map( p => p.copy(name = p.name+"_2", value = JString("") ) )
-      CompareProperties.updateProperties(baseProps, Some(newProps)).map( _.sorted ) mustFullEq( baseProps )
+      CompareProperties.updateProperties(baseProps, Some(newProps)).map( _.sorted ) must beRight(baseProps)
     }
     "be ok with same metadata" in {
       val newProps = baseProps.map( p => p.copy(value = JString("") ) )
-      CompareProperties.updateProperties(baseProps, Some(newProps)) mustFullEq( Seq() )
+      CompareProperties.updateProperties(baseProps, Some(newProps)) must beRight(List.empty[NodeProperty])
     }
   }
 
   "Update with the same properties metadata" should {
     "be a noop with same values" in {
-      CompareProperties.updateProperties(baseProps, Some(baseProps)).map( _.sorted ) mustFullEq( baseProps )
+      CompareProperties.updateProperties(baseProps, Some(baseProps)).map( _.sorted ) must beRight(baseProps)
     }
 
     "ok with differents values" in {
       val newProps = baseProps.map( p => p.copy(value = JString("42") ) )
-      CompareProperties.updateProperties(baseProps, Some(newProps)).map( _.sorted ) mustFullEq( baseProps.map( _.copy(value = JString("42") ) ) )
+      CompareProperties.updateProperties(baseProps, Some(newProps)).map( _.sorted ) must beRight(baseProps.map( _.copy(value = JString("42") ) ) )
     }
   }
 
@@ -108,7 +109,7 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
         , updateAndDelete(NodeProperty("none"   , "xxx", P2))
         , updateAndDelete(NodeProperty("default", "xxx", P1))
         , updateAndDelete(NodeProperty("default", "xxx", P2))
-      ).flatten must contain( (res: Box[Seq[NodeProperty]]) => res must beAnInstanceOf[Full[_]] ).foreach
+      ).flatten must contain( (res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Right[_,_]] ).foreach
     }
 
     "fails for different, non default providers" in {
@@ -119,7 +120,7 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
         , updateAndDelete(NodeProperty("p2"     , "xxx", None))
         , updateAndDelete(NodeProperty("p2"     , "xxx", RudderP))
         , updateAndDelete(NodeProperty("p2"     , "xxx", P1))
-      ).flatten must contain( (res: Box[Seq[NodeProperty]]) => res must beAnInstanceOf[Failure] ).foreach
+      ).flatten must contain( (res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Left[_,_]] ).foreach
     }
 
 
@@ -127,7 +128,7 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
       List(
           updateAndDelete(NodeProperty("none"   , "xxx", RudderP))
         , updateAndDelete(NodeProperty("default", "xxx", None))
-      ).flatten must contain( (res: Box[Seq[NodeProperty]]) => res must beAnInstanceOf[Full[_]] ).foreach
+      ).flatten must contain( (res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Right[_,_]] ).foreach
     }
   }
 }

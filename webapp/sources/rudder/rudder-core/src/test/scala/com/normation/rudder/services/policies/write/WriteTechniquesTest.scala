@@ -168,7 +168,7 @@ final case class RegexFileContent(regex: List[String]) extends LinesContent[File
 
   def getSystemVars(nodeInfo: NodeInfo, allNodeInfos: Map[NodeId, NodeInfo], allGroups: FullNodeGroupCategory) = {
     systemVariableService.getSystemVariables(
-                         nodeInfo, allNodeInfos, allGroups
+                         nodeInfo, allNodeInfos, allGroups.getTarget(nodeInfo).map(_._2).toList
                        , globalSystemVariables, globalAgentRun, globalComplianceMode
                      ).openOrThrowException("I should get system variable in tests")
   }
@@ -353,7 +353,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
     def getRootNodeConfig(groupLib: FullNodeGroupCategory) = {
       // system variables for root
       val systemVariables = systemVariableService.getSystemVariables(
-          root, allNodesInfo_rootOnly, groupLib
+          root, allNodesInfo_rootOnly, groupLib.getTarget(root).map(_._2).toList
         , globalSystemVariables, globalAgentRun, globalComplianceMode
       ).openOrThrowException("I should get system variable in tests")
 

@@ -701,7 +701,7 @@ object DisplayNode extends Loggable {
         angular.bootstrap('#nodeProp', ['nodeProperties']);
         var scope  = angular.element($$("#nodeProp")).scope();
         scope.$$apply(function(){
-          scope.init(${jsonProperties},"${nodeId}",${userHasRights});
+          scope.init(${jsonProperties},"${nodeId}",${userHasRights},'node');
         });
       """)))
     }

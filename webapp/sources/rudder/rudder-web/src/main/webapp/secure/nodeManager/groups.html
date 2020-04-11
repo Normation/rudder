@@ -1,10 +1,13 @@
 <lift:surround with="common-layout" at="content">
 
-<head>
+<head_merge>
   <title>Rudder - Node Groups Management</title>
   <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-groups.css"/>
   <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-template.css"/>
-</head>
+  <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/angular/elastic.min.js"></script>
+  <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/angular/auditMode.js"></script>
+  <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/angular/nodeProperties.js"></script>
+</head_merge>
 
 <span data-list="node.Groups.head"></span>
 <div class="rudder-template">

@@ -255,6 +255,12 @@ class NodeGroupSerialisationImpl(xmlVersion:String) extends NodeGroupSerialisati
         }</nodeIds>
         <isEnabled>{group.isEnabled}</isEnabled>
         <isSystem>{group.isSystem}</isSystem>
+        <properties>{group.properties.sortBy(_.name).map { p =>
+          // value parsing of properties is a bit messy and semantically linked
+          // to json, since value part can be a string or json object.
+          // Parsing that back from xml would be tedious.
+          <property><name>{p.name}</name><value>{Unparsed(net.liftweb.json.compactRender(p.value))}</value></property>
+        }}</properties>
     )
   }
 }

@@ -778,6 +778,8 @@ trait PromiseGeneration_BuildNodeContext {
   def interpolatedValueCompiler: InterpolatedValueCompiler
   def systemVarService: SystemVariableService
 
+
+
   /**
    * Build interpolation contexts.
    *
@@ -820,16 +822,20 @@ trait PromiseGeneration_BuildNodeContext {
       }.map(_.toMap)
     }
 
+    var timeNanoMergeProp = 0L
     for {
       globalSystemVariables <- systemVarService.getGlobalSystemVariables(globalAgentRun)
       parameters            <- buildParams(globalParameters).toBox ?~! "Can not parsed global parameter (looking for interpolated variables)"
     } yield {
-      nodeIds.foldLeft(NodesContextResult(Map(), Map())) { case (res, nodeId) =>
+      val all = nodeIds.foldLeft(NodesContextResult(Map(), Map())) { case (res, nodeId) =>
         (for {
-          nodeInfo     <- Box(allNodeInfos.get(nodeId)) ?~! s"Node with ID ${nodeId.value} was not found"
+          info         <- Box(allNodeInfos.get(nodeId)) ?~! s"Node with ID ${nodeId.value} was not found"
+          nodeTargets  =  allGroups.getTarget(info).map(_._2).toList
+          timeMerge    =  System.nanoTime
+          nodeInfo     <- MergeNodeProperties.withGroups(info, nodeTargets).toBox
+          _            =  {timeNanoMergeProp = timeNanoMergeProp + System.nanoTime - timeMerge}
           policyServer <- Box(allNodeInfos.get(nodeInfo.policyServerId)) ?~! s"Node with ID ${nodeId.value} was not found"
-
-          nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, allGroups, globalSystemVariables, globalAgentRun, globalComplianceMode  : ComplianceMode)
+          nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, nodeTargets, globalSystemVariables, globalAgentRun, globalComplianceMode  : ComplianceMode)
         } yield {
           (nodeId, InterpolationContext(
                         nodeInfo
@@ -848,6 +854,8 @@ trait PromiseGeneration_BuildNodeContext {
           case Full(x) => res.copy(ok = res.ok + x)
         }
       }
+      PolicyGenerationLogger.timing.debug(s"Merge group properties took ${timeNanoMergeProp/(1_000_000)} ms for ${nodeIds.size} nodes")
+      all
     }
   }
 

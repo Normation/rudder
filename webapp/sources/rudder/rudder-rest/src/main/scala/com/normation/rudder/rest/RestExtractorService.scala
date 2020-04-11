@@ -100,6 +100,8 @@ import com.normation.errors._
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.PublicKey
+import com.normation.rudder.domain.nodes.GenericPropertyUtils
+import com.normation.rudder.domain.nodes.GroupProperty
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import org.bouncycastle.cert.X509CertificateHolder
 import zio._
@@ -576,8 +578,9 @@ final case class RestExtractorService (
       query       <- extractOneValue(params, "query")(toQuery)
       _           <- if (query.map(_.criteria.size > 0).getOrElse(true)) Full("Query has at least one criteria") else Failure("Query should containt at least one criteria")
       category    <- extractOneValue(params, "category")(toGroupCategoryId)
+      properties  <- extractGroupProperties(params)
     } yield {
-      RestGroup(name,description,query,dynamic,enabled,category)
+      RestGroup(name,description,properties,query,dynamic,enabled,category)
     }
   }
 
@@ -606,17 +609,22 @@ final case class RestExtractorService (
    * Looking for parameter: "properties=foo=bar"
    * ==> set foo to bar; delete baz, set plop to plop.
    */
-  def extractNodeProperties (params : Map[String, List[String]]) : Box[Option[Seq[NodeProperty]]] = {
+  def extractNodeProperties (params : Map[String, List[String]]) : Box[Option[List[NodeProperty]]] = {
     // properties coming from the API are always provider=rudder / mode=read-write
+    extractProperties(params, (k,v) => NodeProperty(k,v,None))
+  }
+  def extractGroupProperties (params : Map[String, List[String]]) : Box[Option[List[GroupProperty]]] = {
+    // properties coming from the API are always provider=rudder / mode=read-write
+    extractProperties(params, (k,v) => GroupProperty(k,v))
+  }
 
+  def extractProperties[A](params : Map[String, List[String]], make:(String, JValue) => A): Box[Option[List[A]]] = {
     extractList(params, "properties") { props =>
-      val splitted = props.map { prop =>
+      Full(props.map { prop =>
         val parts = prop.split('=')
-        if(parts.size == 1) NodeProperty(parts(0), "", None)
-        //here, we should parse parts(1) and only fallback to string if not successful.
-        else NodeProperty(parts(0), parts(1), None)
-      }
-      Full(splitted)
+        if(parts.size == 1) make(parts(0), JString(""))
+        else make(parts(0), GenericPropertyUtils.parseValue(parts(1)))
+      })
     }
   }
 
@@ -638,8 +646,6 @@ final case class RestExtractorService (
   }
 
   def extractNode (params : Map[String, List[String]]) : Box[RestNode] = {
-
-
     for {
       properties <- extractNodeProperties(params)
       mode       <- extractOneValue(params, "policyMode")(PolicyMode.parseDefault(_).toBox)
@@ -688,10 +694,10 @@ final case class RestExtractorService (
     }
   }
 
-  def extractNodePropertiesFromJSON (json : JValue) : Box[Option[Seq[NodeProperty]]] = {
+  def extractNodePropertiesFromJSON (json : JValue) : Box[Option[List[NodeProperty]]] = {
     import com.normation.utils.Control.sequence
     json \ "properties" match {
-        case JArray(props) => sequence(props){extractNodeProperty}.map(Some(_))
+        case JArray(props) => sequence(props){extractNodeProperty}.map(x => Some(x.toList))
         case JNothing      => Full(None)
         case x             => Failure(s"""Error: the given parameter is not a JSON object with a 'properties' key""")
     }
@@ -840,18 +846,34 @@ final case class RestExtractorService (
     }
   }
 
+  def extractGroupPropertiesFromJSON (json : JValue) : Box[Option[Seq[GroupProperty]]] = {
+    import com.normation.utils.Control.sequence
+    json \ "properties" match {
+        case JArray(props) => sequence(props){p => GroupProperty.unserializeLdapGroupProperty(p).toBox}.map(Some(_))
+        case JNothing      => Full(None)
+        case x             => Failure(s"""Error: the given parameter is not a JSON object with a 'properties' key""")
+    }
+  }
+
   def extractGroupFromJSON (json : JValue) : Box[RestGroup] = {
     for {
       name        <- extractJsonString(json, "displayName", toMinimalSizeString(3))
       description <- extractJsonString(json, "description")
+      properties  <- extractGroupPropertiesFromJSON(json)
       enabled     <- extractJsonBoolean(json, "enabled")
       dynamic     <- extractJsonBoolean(json, "dynamic")
-      stringQuery <- queryParser.jsonParse(json \ "query")
-      query       <- queryParser.parse(stringQuery)
-      _           <- if (query.criteria.size > 0) Full("Query has at least one criteria") else Failure("Query should containt at least one criteria")
+      query       <- json \ "query" match {
+                       case JNothing    => Full(None)
+                       case stringQuery =>
+                         for {
+                           st <- queryParser.jsonParse(stringQuery)
+                           q  <- queryParser.parse(st)
+                           _  <- if (q.criteria.size > 0) Full("Query has at least one criteria") else Failure("Query should containt at least one criteria")
+                         } yield Some(q)
+                     }
       category    <- extractJsonString(json, "category", toGroupCategoryId)
     } yield {
-      RestGroup(name,description,Some(query),dynamic,enabled,category)
+      RestGroup(name,description,properties,query,dynamic,enabled,category)
     }
   }
 

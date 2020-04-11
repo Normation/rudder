@@ -91,7 +91,6 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.domain.policies.PolicyMode
-
 import com.normation.box._
 
 final case class XmlUnserializerImpl (
@@ -235,11 +234,16 @@ class NodeGroupUnserialisationImpl(
                           }
       isEnabled       <- (group \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isEnabled' in entry type nodeGroup : " + entry)
       isSystem        <- (group \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type nodeGroup : " + entry)
+      properties      <- sequence((group \ "properties").toList) {
+                           case <property>{p @ _*}</property> => Full(GroupProperty((p\"name").text.trim, (p\"value").text.trim))
+                           case xml                           => Failure(s"Found unexpected xml under <properties> tag: ${xml}")
+                         }
     } yield {
       NodeGroup(
           id = NodeGroupId(id)
         , name = name
         , description = description
+        , properties = properties.toList
         , query = query
         , isDynamic = isDynamic
         , serverList = serverList

@@ -723,16 +723,7 @@ class WoLDAPNodeGroupRepository(
                          s"Cannot create a group '${nodeGroup.name}': a group with the same id (${nodeGroup.id.value}) or name already exists".fail
                        else UIO.unit
       categoryEntry <- getCategoryEntry(con, into).notOptional("Entry with ID '%s' was not found".format(into))
-      entry         =  rudderDit.GROUP.groupModel(
-                           nodeGroup.id.value
-                         , categoryEntry.dn
-                         , nodeGroup.name
-                         , nodeGroup.description
-                         , nodeGroup.query
-                         , nodeGroup.isDynamic
-                         , nodeGroup.serverList
-                         , nodeGroup.isEnabled
-                       )
+      entry         =  mapper.nodeGroupToLdap(nodeGroup, categoryEntry.dn)
       result        <- groupLibMutex.writeLock { con.save(entry, true) }
       diff          <- diffMapper.addChangeRecords2NodeGroupDiff(entry.dn, result).toIO
       loggedAction  <- actionlogEffect.saveAddNodeGroup(modId, principal = actor, addDiff = diff, reason = reason )
@@ -805,32 +796,22 @@ class WoLDAPNodeGroupRepository(
                             "The group configuration changed compared to the reference group you want to change the node list for. Aborting to preserve consistency".fail
                           }
                         }
-        entry        =  rudderDit.GROUP.groupModel(
-          nodeGroup.id.value
-          , existing.dn.getParent
-          , nodeGroup.name
-          , nodeGroup.description
-          , nodeGroup.query
-          , nodeGroup.isDynamic
-          , nodeGroup.serverList
-          , nodeGroup.isEnabled
-          , nodeGroup.isSystem
-        )
+        entry        =  mapper.nodeGroupToLdap(nodeGroup, existing.dn.getParent)
         result       <- groupLibMutex.writeLock { con.save(entry, true).chainError(s"Error when saving entry: ${entry}") }
         optDiff      <- diffMapper.modChangeRecords2NodeGroupDiff(existing, result).toIO.chainError(s"Error when mapping change record to a diff object: ${result}")
         loggedAction <- optDiff match {
-          case None => UIO.unit
-          case Some(diff) =>
-            actionlogEffect.saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = reason).chainError("Error when logging modification as an event")
-        }
+                          case None => UIO.unit
+                          case Some(diff) =>
+                            actionlogEffect.saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = reason).chainError( "Error when logging modification as an event")
+                        }
         autoArchive  <- (if(autoExportOnModify && optDiff.isDefined && !nodeGroup.isSystem) { //only persists if modification are present
-          for {
-            parent   <- getNodeGroupCategory(nodeGroup.id)
-            parents  <- getParents_NodeGroupCategory(parent.id)
-            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-            archived <- gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map( _.id), Some((modId, commiter, reason)))
-          } yield archived
-        } else Full("ok")).succeed
+                          for {
+                            parent   <- getNodeGroupCategory(nodeGroup.id)
+                            parents  <- getParents_NodeGroupCategory(parent.id)
+                            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                            archived <- gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map( _.id), Some((modId, commiter, reason)))
+                          } yield archived
+                        } else UIO.unit).chainError("Error when trying to archive automatically nodegroup change")
       } yield {
         optDiff
       }

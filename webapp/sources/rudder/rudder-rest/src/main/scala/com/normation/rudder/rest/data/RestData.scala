@@ -46,6 +46,7 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.Technique
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.SecurityToken
+import com.normation.rudder.domain.nodes.GroupProperty
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.domain.policies.Directive
@@ -215,6 +216,7 @@ final case class DirectiveUpdate(
 final case class RestGroup(
       name        : Option[String] = None
     , description : Option[String] = None
+    , properties  : Option[Seq[GroupProperty]]
     , query       : Option[Query] = None
     , isDynamic   : Option[Boolean] = None
     , enabled     : Option[Boolean] = None
@@ -233,12 +235,15 @@ final case class RestGroup(
       val updateDesc  = description.getOrElse(group.description)
       val updateisDynamic = isDynamic.getOrElse(group.isDynamic)
       val updateEnabled = enabled.getOrElse(group.isEnabled)
+      val updateProperties = GroupProperty.getUpdateProperties(group.properties, properties)
+      val updateQuery = query.orElse(group.query)
       group.copy(
           name        = updateName
         , description = updateDesc
-        , query       = query
+        , query       = updateQuery
         , isDynamic   = updateisDynamic
         , _isEnabled  = updateEnabled
+        , properties  = updateProperties.toList
       )
 
     }
@@ -254,7 +259,7 @@ final case class RestNodeProperties(
 
 
 final case class RestNode (
-    properties    : Option[Seq[NodeProperty]]
+    properties    : Option[List[NodeProperty]]
   , policyMode    : Option[Option[PolicyMode]]
   , state         : Option[NodeState]
   , agentKey      : Option[SecurityToken]

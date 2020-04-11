@@ -123,7 +123,7 @@ class ShowNodeDetailsFromNode(
   def saveHeart(nodeInfo : NodeInfo)( complianceMode : NodeComplianceMode) : Box[Unit] = {
     val heartbeatConfiguration = HeartbeatConfiguration(complianceMode.overrideGlobal, complianceMode.heartbeatPeriod)
     val modId = ModificationId(uuidGen.newUuid)
-    boxNodeInfo = Full(Some(nodeInfo.copy( nodeInfo.node.copy( nodeReportingConfiguration = nodeInfo.node.nodeReportingConfiguration.copy(heartbeatConfiguration = Some(heartbeatConfiguration))))))
+    boxNodeInfo = Full(Some(nodeInfo.copy( nodeInfo.node.copy(nodeReportingConfiguration = nodeInfo.node.nodeReportingConfiguration.copy(heartbeatConfiguration = Some(heartbeatConfiguration))))))
     for {
       result <- nodeRepo.updateNode(nodeInfo.node, modId, CurrentUser.actor, None).toBox
     } yield {
@@ -184,7 +184,7 @@ class ShowNodeDetailsFromNode(
   def saveSchedule(nodeInfo : NodeInfo)( schedule: AgentRunInterval) : Box[Unit] = {
     val modId =  ModificationId(uuidGen.newUuid)
     val user  =  CurrentUser.actor
-    val newNodeInfo = nodeInfo.copy( nodeInfo.node.copy( nodeReportingConfiguration = nodeInfo.node.nodeReportingConfiguration.copy(agentRunInterval = Some(schedule))))
+    val newNodeInfo = nodeInfo.copy( nodeInfo.node.copy(nodeReportingConfiguration = nodeInfo.node.nodeReportingConfiguration.copy(agentRunInterval = Some(schedule))))
     boxNodeInfo = Full(Some(newNodeInfo))
     for {
       oldNode <- nodeInfoService.getNodeInfo(nodeId).flatMap( _.map( _.node ))

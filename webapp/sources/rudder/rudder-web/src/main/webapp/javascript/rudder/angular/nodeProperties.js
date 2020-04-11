@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -35,15 +35,16 @@
 *************************************************************************************
 */
 
-var app = angular.module('nodeProperties', ['datatables', 'monospaced.elastic']);
+var nodePropertiesApp = angular.module('nodeProperties', ['datatables', 'monospaced.elastic']);
 
-app.controller('nodePropertiesCtrl', function ($scope, $http, DTOptionsBuilder, DTColumnDefBuilder) {
+nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOptionsBuilder, DTColumnDefBuilder) {
   //Initialize scope
   $scope.properties;
   $scope.hasEditRight;
+  $scope.objectName       = "";
   $scope.nodeId;
   $scope.tableId          = "#nodePropertiesTab";
-  $scope.urlAPI           = contextPath + '/secure/api/nodes/';
+  $scope.urlAPI           = "in init"
   $scope.newProperty      = {'name':"", 'value':""};
   $scope.deletedProperty  = {'name':"", 'index':""};
   $scope.alreadyUsed      = false;
@@ -87,19 +88,20 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, DTOptionsBuilder, 
       withOption("pageLength", 25).
       withOption("jQueryUI", true).
       withOption("bAutoWidth", false)
-      
-      
+
+
   $scope.columns = [
         DTColumnDefBuilder.newColumnDef(0).withOption("sWidth",'20%'),
         DTColumnDefBuilder.newColumnDef(1).withOption("sWidth",'75%'),
         DTColumnDefBuilder.newColumnDef(2).withOption("sWidth",'5%')
     ];
   var currentNodeId
-  $scope.init = function(properties, nodeId, isUserHasRights){
+  $scope.init = function(properties, nodeId, isUserHasRights, objectName){
     $scope.hasEditRight = isUserHasRights;
     currentNodeId = nodeId
     $scope.properties = properties;
-    $scope.urlAPI = contextPath + '/secure/api/nodes/'+ nodeId;
+    $scope.objectName = objectName;
+    $scope.urlAPI = contextPath + '/secure/api/'+ objectName +'s/' + nodeId;
     $('.rudder-label').bsTooltip();
     new ClipboardJS('.btn-clipboard');
   }
@@ -122,7 +124,7 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, DTOptionsBuilder, 
       propertyToSave.value = newValue
       var data = {
           "properties": [ propertyToSave ]
-        , 'reason' : "Add property '"+$scope.newProperty.name+"' to Node '"+currentNodeId+"'"
+        , 'reason' : "Add property '"+$scope.newProperty.name+"' to "+$scope.objectName+" '"+currentNodeId+"'"
       };
       $http.post($scope.urlAPI, data).then(function successCallback(response) {
         $scope.errorSaving = false;
@@ -148,9 +150,9 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, DTOptionsBuilder, 
   $scope.deleteProperty = function(){
     var data = {
         "properties":[{"name":$scope.deletedProperty.name, "value":""}]
-      , 'reason' : "Delete property '"+$scope.deletedProperty.name+"' to Node '"+currentNodeId+"'"
+      , 'reason' : "Delete property '"+$scope.deletedProperty.name+"' to "+$scope.objectName+" '"+currentNodeId+"'"
     };
-    
+
     $scope.errorDeleting = false;
     $http.post($scope.urlAPI, data).then(function successCallback(response) {
       $('#deletePropPopup').bsModal('hide');
@@ -241,7 +243,7 @@ app.controller('nodePropertiesCtrl', function ($scope, $http, DTOptionsBuilder, 
   $('.rudder-label').bsTooltip();
 });
 
-app.config(function($locationProvider) {
+nodePropertiesApp.config(function($locationProvider) {
   $locationProvider.html5Mode({
     enabled: true,
     requireBase: false

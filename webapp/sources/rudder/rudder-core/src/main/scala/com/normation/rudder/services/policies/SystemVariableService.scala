@@ -52,10 +52,10 @@ import com.normation.inventory.domain.ServerRole
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.reports._
-import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 import com.normation.zio._
@@ -72,7 +72,7 @@ trait SystemVariableService {
   def getSystemVariables(
       nodeInfo              : NodeInfo
     , allNodeInfos          : Map[NodeId, NodeInfo]
-    , allGroups             : FullNodeGroupCategory
+    , nodeTargets           : List[FullRuleTargetInfo]
     , globalSystemVariables : Map[String, Variable]
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode  ) : Box[Map[String, Variable]]
@@ -242,7 +242,7 @@ class SystemVariableServiceImpl(
   def getSystemVariables(
         nodeInfo              : NodeInfo
       , allNodeInfos          : Map[NodeId, NodeInfo]
-      , allGroups             : FullNodeGroupCategory
+      , nodeTargets           : List[FullRuleTargetInfo]
       , globalSystemVariables : Map[String, Variable]
       , globalAgentRun        : AgentRunInterval
       , globalComplianceMode  : ComplianceMode
@@ -502,7 +502,7 @@ class SystemVariableServiceImpl(
      *     with a meta: { "inventory", "attribute_name=rudder_groups" }
      */
     //build the list of nodeId -> names, taking care of special nodeIds for special target
-    val nodeGroups = allGroups.getTarget(nodeInfo).map { case(target, info) =>
+    val nodeGroups = nodeTargets.map { info =>
       val id = info.target.target match {
         case GroupTarget(id) => id.value
         case t => t.target

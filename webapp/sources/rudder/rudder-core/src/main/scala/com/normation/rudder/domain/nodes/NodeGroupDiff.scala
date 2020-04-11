@@ -68,16 +68,18 @@ final case class ModifyToNodeGroupDiff(group:NodeGroup) extends NodeGroupDiff wi
 final case class ModifyNodeGroupDiff(
     id            : NodeGroupId
   , name          : String //keep the name around to be able to display it as it was at that time
-  , modName       : Option[SimpleDiff[String]]        = None
-  , modDescription: Option[SimpleDiff[String]]        = None
-  , modQuery      : Option[SimpleDiff[Option[Query]]] = None
-  , modIsDynamic  : Option[SimpleDiff[Boolean]]       = None
-  , modNodeList   : Option[SimpleDiff[Set[NodeId]]]   = None
-  , modIsActivated: Option[SimpleDiff[Boolean]]       = None
-  , modIsSystem   : Option[SimpleDiff[Boolean]]       = None
+  , modName       : Option[SimpleDiff[String]]              = None
+  , modDescription: Option[SimpleDiff[String]]              = None
+  , modProperties : Option[SimpleDiff[List[GroupProperty]]] = None
+  , modQuery      : Option[SimpleDiff[Option[Query]]]       = None
+  , modIsDynamic  : Option[SimpleDiff[Boolean]]             = None
+  , modNodeList   : Option[SimpleDiff[Set[NodeId]]]         = None
+  , modIsActivated: Option[SimpleDiff[Boolean]]             = None
+  , modIsSystem   : Option[SimpleDiff[Boolean]]             = None
 ) extends NodeGroupDiff {
 
   def needDeployment : Boolean = {
-    modQuery.isDefined || modIsDynamic.isDefined || modNodeList.isDefined || modIsActivated.isDefined || modName.isDefined
+    modQuery.isDefined || modIsDynamic.isDefined || modNodeList.isDefined ||
+    modIsActivated.isDefined || modName.isDefined || modProperties.isDefined
   }
 }

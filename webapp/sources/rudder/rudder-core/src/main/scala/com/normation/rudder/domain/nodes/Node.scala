@@ -37,28 +37,28 @@
 
 package com.normation.rudder.domain.nodes
 
+import com.normation.errors.Inconsistency
+import com.normation.errors.PureResult
+import com.normation.inventory.domain.FullInventory
+import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.PublicKey
+import com.normation.inventory.domain.SecurityToken
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.reports.ReportingConfiguration
-import com.normation.utils.Control.sequence
-import com.normation.rudder.services.policies.ParameterEntry
-import org.joda.time.DateTime
-import com.normation.rudder.domain.policies.SimpleDiff
-import com.normation.inventory.domain.FullInventory
-import com.normation.inventory.domain.KeyStatus
-import com.normation.inventory.domain.PublicKey
-import com.normation.inventory.domain.SecurityToken
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.JsonParser.ParseException
-import net.liftweb.common.Box
-import net.liftweb.common.Full
-import net.liftweb.common.Failure
-import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
+import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
+import com.normation.rudder.services.policies.ParameterEntry
+import net.liftweb.common.Box
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
 import net.liftweb.http.S
+import net.liftweb.json.JsonAST._
+import net.liftweb.json.JsonParser.ParseException
+import org.joda.time.DateTime
 
 /**
  * The entry point for a REGISTERED node in Rudder.
@@ -75,11 +75,11 @@ final case class Node(
   , isPolicyServer            : Boolean
   , creationDate              : DateTime
   , nodeReportingConfiguration: ReportingConfiguration
-  , properties                : Seq[NodeProperty]
+  , properties                : List[NodeProperty]
   , policyMode                : Option[PolicyMode]
 )
 
-final case object Node {
+case object Node {
   def apply (inventory : FullInventory) : Node = {
     Node(
         inventory.node.main.id
@@ -90,14 +90,14 @@ final case object Node {
       , false
       , inventory.node.inventoryDate.getOrElse(new DateTime(0))
       , ReportingConfiguration(None,None, None)
-      , Seq()
+      , Nil
       , None
     )
   }
 }
 
 sealed trait NodeState { def name: String }
-final object NodeState {
+object NodeState {
 
   final case object Enabled          extends NodeState { val name = "enabled"       }
   final case object Ignored          extends NodeState { val name = "ignored"       }
@@ -133,14 +133,10 @@ final case class NodePropertyProvider(value: String) extends AnyVal
 
 /**
  * A node property is a key/value pair + metadata.
- * For now, only metadata availables are:
+ * For now, only metadata availables is:
  * - the provider of the property. By default Rudder.
- * - the mode: read-write (default) or read-only.
- *   (TODO: add mode="none" ?)
  *
- * If mode is read-only, only the provider can modify
- * the properties. This is typically what happens
- * when the property is set by an external source.
+ * Only the provider of a property can modify it.
  */
 final case class NodeProperty(
     name    : String
@@ -153,6 +149,29 @@ final case class NodeProperty(
   }
 }
 
+
+object GenericPropertyUtils {
+  import net.liftweb.json.JsonAST.JNothing
+  import net.liftweb.json.JsonAST.JString
+  import net.liftweb.json.{parse => jsonParse}
+
+  def parseValue(value: String): JValue = {
+    try {
+      jsonParse(value) match {
+        case JNothing => JString("")
+        case json     => json
+      }
+    } catch {
+      case ex: ParseException =>
+        // in that case, we didn't had a valid json top-level structure,
+        // i.e either object or array. Use a JString with the content
+        JString(value)
+    }
+  }
+
+}
+
+
 object NodeProperty {
 
   val rudderNodePropertyProvider = NodePropertyProvider("default")
@@ -160,35 +179,22 @@ object NodeProperty {
   // the provider that manages inventory custom properties
   val customPropertyProvider = NodePropertyProvider("inventory")
 
-
-  import net.liftweb.json.parse
-  import net.liftweb.json.JsonAST.{JNothing, JString}
-
   /**
    * A builder with the logic to handle the value part.
    *
    * For compatibity reason, we want to be able to process
    * empty (JNothing) and primitive types, especially string, specificaly as
-   * a JString *but* a string representing and actual JSON should be
+   * a JString *but* a string representing an actual JSON should be
    * used as json.
    */
   def apply(name: String, value: String, provider: Option[NodePropertyProvider]): NodeProperty = {
-    try {
-      val v = parse(value) match {
-        case JNothing => JString("")
-        case json     => json
-      }
-      NodeProperty(name, v, provider)
-    } catch {
-      case ex: ParseException =>
-        // in that case, we didn't had a valid json top-level structure,
-        // i.e either object or array. Use a JString with the content
-        NodeProperty(name, JString(value), provider)
-    }
+    NodeProperty(name, GenericPropertyUtils.parseValue(value), provider)
   }
 }
 
 object CompareProperties {
+  import cats.implicits._
+
   /**
    * Update a set of properties with the map:
    * - if a key of the map matches a property name,
@@ -202,7 +208,7 @@ object CompareProperties {
    *
    * A "none" provider actually means Rudder system one.
    */
-  def updateProperties(oldProps: Seq[NodeProperty], optNewProps: Option[Seq[NodeProperty]]): Box[Seq[NodeProperty]] = {
+  def updateProperties(oldProps: List[NodeProperty], optNewProps: Option[List[NodeProperty]]): PureResult[List[NodeProperty]] = {
 
     //when we compare providers, we actually compared them with "none" replaced by RudderProvider
     //if the old provider is None/default, it can always be updated by new
@@ -215,39 +221,40 @@ object CompareProperties {
       }
     }
     //check if the prop should be removed or updated
-    def updateOrRemoveProp(prop: NodeProperty): Either[String, NodeProperty] = {
-     if(prop.value == JString("")) {
-       Left(prop.name)
+    def updateOrRemoveProp(oldValue:JValue, newProp: NodeProperty): Either[String, NodeProperty] = {
+     if(newProp.value == JString("")) {
+       Left(newProp.name)
      } else {
-       Right(prop)
+       Right(newProp.copy(value = oldValue.merge(newProp.value)))
      }
     }
 
     optNewProps match {
-      case None => Full(oldProps)
+      case None => Right(oldProps)
       case Some(newProps) =>
         val oldPropsMap = oldProps.map(p => (p.name, p)).toMap
 
         //update only according to rights - we get a seq of option[either[remove, update]]
         for {
-          updated <- sequence(newProps) { newProp =>
+          updated <- newProps.toList.traverse { newProp =>
                        oldPropsMap.get(newProp.name) match {
                          case None =>
-                           Full(updateOrRemoveProp(newProp))
+                           Right(updateOrRemoveProp(JNothing, newProp))
                          case Some(oldProp@NodeProperty(name, value, provider)) =>
                              if(canBeUpdated(old = provider, newer = newProp.provider)) {
-                               Full(updateOrRemoveProp(newProp))
+                               Right(updateOrRemoveProp(value, newProp))
                              } else {
                                val old = provider.getOrElse(NodeProperty.rudderNodePropertyProvider).value
                                val current = newProp.provider.getOrElse(NodeProperty.rudderNodePropertyProvider).value
-                               Failure(s"You can not update property '${name}' which is owned by provider '${old}' thanks to provider '${current}'")
+                               Left(Inconsistency(s"You can not update property '${name}' which is owned by provider '${old}' thanks to provider '${current}'"))
                              }
                        }
                      }
         } yield {
           val toRemove = updated.collect { case Left(name)  => name }.toSet
           val toUpdate = updated.collect { case Right(prop) => (prop.name, prop) }.toMap
-          (oldPropsMap.view.filterKeys(k => !toRemove.contains(k)).toMap ++ toUpdate).map(_._2).toSeq
+          // merge properties
+          (oldPropsMap.view.filterKeys(k => !toRemove.contains(k)).toMap ++ toUpdate).map(_._2).toList
         }
     }
   }
@@ -284,7 +291,7 @@ object ModifyNodeAgentRunDiff{
  * Diff on the list of properties
  */
 object ModifyNodePropertiesDiff{
-  def apply(id: NodeId, modProperties: Option[SimpleDiff[Seq[NodeProperty]]]) = ModifyNodeDiff(id,None,None, modProperties, None, None, None)
+  def apply(id: NodeId, modProperties: Option[SimpleDiff[List[NodeProperty]]]) = ModifyNodeDiff(id,None,None, modProperties, None, None, None)
 }
 
 /**
@@ -294,7 +301,7 @@ final case class ModifyNodeDiff(
     id           : NodeId
   , modHeartbeat : Option[SimpleDiff[Option[HeartbeatConfiguration]]]
   , modAgentRun  : Option[SimpleDiff[Option[AgentRunInterval]]]
-  , modProperties: Option[SimpleDiff[Seq[NodeProperty]]]
+  , modProperties: Option[SimpleDiff[List[NodeProperty]]]
   , modPolicyMode: Option[SimpleDiff[Option[PolicyMode]]]
   , modKeyValue  : Option[SimpleDiff[SecurityToken]]
   , modKeyStatus : Option[SimpleDiff[KeyStatus]]
@@ -334,8 +341,8 @@ object ModifyNodeDiff {
  */
 object JsonSerialisation {
 
-  import net.liftweb.json._
   import net.liftweb.json.JsonDSL._
+  import net.liftweb.json._
 
   implicit class JsonNodeProperty(val x: NodeProperty) extends AnyVal {
     def toJson(): JObject = (

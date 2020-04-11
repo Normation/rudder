@@ -77,7 +77,7 @@ trait RestDataSerializer {
 
   def serializeCR(changeRequest:ChangeRequest , status : WorkflowNodeId, isAcceptable : Boolean, apiVersion: ApiVersion) : JValue
 
-  def serializeGroup(group : NodeGroup, crId: Option[ChangeRequestId], apiVersion: ApiVersion): JValue
+  def serializeGroup(group : NodeGroup, crId: Option[ChangeRequestId]): JValue
   def serializeGroupCategory (category:FullNodeGroupCategory, parent: NodeGroupCategoryId, detailLevel : DetailLevel, apiVersion: ApiVersion): JValue
 
   def serializeParameter (parameter:Parameter , crId: Option[ChangeRequestId]): JValue
@@ -206,9 +206,9 @@ final case class RestDataSerializerImpl (
    )
   }
 
-  override def serializeGroup (group : NodeGroup, crId: Option[ChangeRequestId], apiVersion: ApiVersion): JValue = {
+  override def serializeGroup (group : NodeGroup, crId: Option[ChangeRequestId]): JValue = {
     val query = group.query.map(query => query.toJSON)
-    val withoutClasses = (
+    (
         ("changeRequestId" -> crId.map(_.value.toString))
       ~ ("id"              -> group.id.value)
       ~ ("displayName"     -> group.name)
@@ -217,18 +217,15 @@ final case class RestDataSerializerImpl (
       ~ ("nodeIds"         -> group.serverList.map(_.value))
       ~ ("dynamic"         -> group.isDynamic)
       ~ ("enabled"         -> group.isEnabled )
-      )
-    if (apiVersion.value < 7) {
-      withoutClasses
-    } else {
-      withoutClasses ~ ("groupClass" ->  List(group.id.value, group.name).map(RuleTarget.toCFEngineClassName _) )
-    }
+      ~ ("groupClass"      -> List(group.id.value, group.name).map(RuleTarget.toCFEngineClassName _) )
+      ~ ("properties"      -> GroupProperty.JsonGroupProperties(group.properties).toApiJson)
+    )
   }
 
   override def serializeGroupCategory (category:FullNodeGroupCategory, parent: NodeGroupCategoryId, detailLevel : DetailLevel, apiVersion: ApiVersion): JValue = {
     val (groups ,categories) : (Seq[JValue],Seq[JValue]) = detailLevel match {
       case FullDetails =>
-        ( category.ownGroups.values.map(fullGroup => serializeGroup(fullGroup.nodeGroup,None, apiVersion)).toSeq
+        ( category.ownGroups.values.map(fullGroup => serializeGroup(fullGroup.nodeGroup,None)).toSeq
         , category.subCategories.map(serializeGroupCategory(_,category.id, detailLevel, apiVersion))
         )
       case MinimalDetails =>
@@ -431,12 +428,12 @@ final case class RestDataSerializerImpl (
     } yield {
       diff match {
         case AddNodeGroupDiff(group) =>
-          val change = serializeGroup(group,None, apiVersion)
+          val change = serializeGroup(group,None)
           (   ("action" -> create)
             ~ ("change" -> change)
           )
         case DeleteNodeGroupDiff(group) =>
-          val change = serializeGroup(group,None, apiVersion)
+          val change = serializeGroup(group,None)
           (   ("action" -> delete)
             ~ ("change" -> change)
           )

@@ -983,7 +983,7 @@ class EventLogDetailsServiceImpl(
       policyMode   <- getFromTo[Option[PolicyMode]]((node \ "policyMode" ).headOption ,{ x => PolicyMode.parseDefault(x.text).toBox })
       agentRun     <- getFromTo[Option[AgentRunInterval]](  (node \ "agentRun").headOption ,{ x => extractAgentRun(xml)(x) })
       heartbeat    <- getFromTo[Option[HeartbeatConfiguration]]((node \ "heartbeat").headOption ,{ x => extractHeartbeatConfiguration(xml)(x) })
-      properties   <- getFromTo[Seq[NodeProperty]]( (node \ "properties").headOption ,{ x => extractNodeProperties(xml)(x) })
+      properties   <- getFromTo[List[NodeProperty]]( (node \ "properties").headOption ,{ x => extractNodeProperties(xml)(x).map(_.toList) })
       agentKey     <- getFromTo[SecurityToken]( (node \ "agentKey").headOption ,{ x => val s = x.text; if(s.contains("BEGIN CERTIFICATE")) Full(Certificate(s)) else Full(PublicKey(s)) })
       keyStatus    <- getFromTo[KeyStatus]( (node \ "keyStatus").headOption , {x => KeyStatus.apply(x.text).map(Full(_)).getOrElse(Failure(s"Unrecognized agent key status '${x.text}'"))} )
     } yield {

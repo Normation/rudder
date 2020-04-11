@@ -119,10 +119,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     val getAll : Box[Map[NodeId, NodeInfo]] = {
       def build(id: String, mode: Option[PolicyMode]) = {
         val node1 = NodeConfigData.node1.node
-        NodeConfigData.node1.copy(node = node1.copy(
-            id = NodeId(id)
-          , policyMode = mode
-        ))
+        NodeConfigData.node1.copy(node = node1.copy(id = NodeId(id), policyMode = mode))
       }
       Full(Seq(
           build("n0", None)

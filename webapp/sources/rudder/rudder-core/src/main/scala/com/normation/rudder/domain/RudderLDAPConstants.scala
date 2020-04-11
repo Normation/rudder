@@ -94,6 +94,7 @@ object RudderLDAPConstants extends Loggable {
   val A_POLICY_MODE = "policyMode"
 
   val A_NODE_PROPERTY = "serializedNodeProperty"
+  val A_JSON_PROPERTY = "serializedProperty"
 
   val A_PRIORITY = "directivePriority"
   val A_LONG_DESCRIPTION = "longDescription"
@@ -204,7 +205,7 @@ object RudderLDAPConstants extends Loggable {
 
   OC += (OC_RUDDER_NODE_GROUP,
     must = Set(A_NODE_GROUP_UUID, A_NAME, A_IS_DYNAMIC),
-    may = Set(A_NODE_UUID, A_DESCRIPTION, A_QUERY_NODE_GROUP, A_IS_SYSTEM, A_IS_ENABLED))
+    may = Set(A_NODE_UUID, A_DESCRIPTION, A_QUERY_NODE_GROUP, A_IS_SYSTEM, A_IS_ENABLED, A_JSON_PROPERTY))
 
   OC += (OC_NODE_CONFIGURATION,
     must = Set(A_NODE_UUID, A_IS_POLICY_SERVER),

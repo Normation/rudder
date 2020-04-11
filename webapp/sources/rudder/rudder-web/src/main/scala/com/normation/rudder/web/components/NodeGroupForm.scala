@@ -222,6 +222,7 @@ class NodeGroupForm(
       & "group-delete" #> SHtml.ajaxButton("Delete", () => onSubmitDelete(), ("class" -> " btn btn-danger"))
       & "group-notifications" #> updateAndDisplayNotifications()
       & "#groupRuleTabsContent" #> showRulesForTarget(GroupTarget(nodeGroup.id))
+      & "#groupPropertiesTabContent" #> showGroupProperties(nodeGroup)
       & "#group-shownodestable *" #> (searchNodeComponent.get match {
           case Full(req) => req.displayNodesTable
           case eb:EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
@@ -256,6 +257,23 @@ class NodeGroupForm(
         case eb:EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
       })
     )
+  }
+
+  def showGroupProperties(group: NodeGroup): NodeSeq = {
+    import com.normation.rudder.AuthorizationType
+    import net.liftweb.json._
+
+    val groupId = group.id.value
+    val jsonProperties = compactRender(group.properties.toApiJson)
+    val userHasRights = CurrentUser.checkRights(AuthorizationType.Group.Edit)
+    def tabProperties = ChooseTemplate(List("templates-hidden", "components", "ComponentNodeProperties") , "nodeproperties-tab")
+    tabProperties ++ Script(OnLoad(JsRaw(s"""
+      angular.bootstrap('#nodeProp', ['nodeProperties']);
+      var scope  = angular.element($$("#nodeProp")).scope();
+      scope.$$apply(function(){
+        scope.init(${jsonProperties},"${groupId}",${userHasRights},'group');
+      });
+    """)))
   }
 
   ///////////// fields for category settings ///////////////////

@@ -117,12 +117,15 @@ class DiffServiceImpl extends DiffService {
     val diffDynamic = if (reference.isDynamic == newItem.isDynamic) None else Some(SimpleDiff(reference.isDynamic,newItem.isDynamic))
     val diffServerList = if (reference.serverList == newItem.serverList) None else Some(SimpleDiff(reference.serverList,newItem.serverList))
     val diffQuery = if (reference.query == newItem.query) None else Some(SimpleDiff(reference.query,newItem.query))
+    val diffProperties = if(reference.properties == newItem.properties) None
+                         else Some(SimpleDiff(reference.properties, newItem.properties))
 
     ModifyNodeGroupDiff (
         reference.id
       , reference.name
       , diffName
       , diffDescription
+      , diffProperties
       , diffQuery
       , diffDynamic
       , diffServerList

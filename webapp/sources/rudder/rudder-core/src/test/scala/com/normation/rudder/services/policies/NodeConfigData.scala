@@ -161,7 +161,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , true
     , DateTime.now
     , emptyNodeReportingConfiguration
-    , Seq()
+    , Nil
     , Some(Enforce)
   )
   val root = NodeInfo (
@@ -199,7 +199,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , false
     , DateTime.now
     , emptyNodeReportingConfiguration
-    , Seq()
+    , Nil
     , None
   )
 
@@ -265,7 +265,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , true //is draft server
     , DateTime.now
     , emptyNodeReportingConfiguration
-    , Seq()
+    , Nil
     , None
   )
 
@@ -368,7 +368,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     NodeId(s"${i}")
   }).toSet
 
-  def newNode(id : NodeId) = Node(id,"" ,"", NodeState.Enabled, false, false, DateTime.now, ReportingConfiguration(None,None, None), Seq(), None)
+  def newNode(id : NodeId) = Node(id,"" ,"", NodeState.Enabled, false, false, DateTime.now, ReportingConfiguration(None,None, None), Nil, None)
 
   val nodes = (Set(root, node1, node2) ++ nodeIds.map {
     id =>
@@ -390,13 +390,13 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
    */
 
   val g0id = NodeGroupId("0")
-  val g0 = NodeGroup (g0id, "Real nodes", "", None, false, Set(rootId, node1.id, node2.id), true)
-  val g1 = NodeGroup (NodeGroupId("1"), "Empty group", "", None, false, Set(), true)
-  val g2 = NodeGroup (NodeGroupId("2"), "only root", "", None, false, Set(NodeId("root")), true)
-  val g3 = NodeGroup (NodeGroupId("3"), "Even nodes", "", None, false, nodeIds.filter(_.value.toInt == 2), true)
-  val g4 = NodeGroup (NodeGroupId("4"), "Odd nodes", "", None, false, nodeIds.filter(_.value.toInt != 2), true)
-  val g5 = NodeGroup (NodeGroupId("5"), "Nodes id divided by 3", "", None, false, nodeIds.filter(_.value.toInt == 3), true)
-  val g6 = NodeGroup (NodeGroupId("6"), "Nodes id divided by 5", "", None, false, nodeIds.filter(_.value.toInt == 5), true)
+  val g0 = NodeGroup (g0id, "Real nodes", "", Nil, None, false, Set(rootId, node1.id, node2.id), true)
+  val g1 = NodeGroup (NodeGroupId("1"), "Empty group", "", Nil, None, false, Set(), true)
+  val g2 = NodeGroup (NodeGroupId("2"), "only root", "", Nil, None, false, Set(NodeId("root")), true)
+  val g3 = NodeGroup (NodeGroupId("3"), "Even nodes", "", Nil, None, false, nodeIds.filter(_.value.toInt == 2), true)
+  val g4 = NodeGroup (NodeGroupId("4"), "Odd nodes", "", Nil, None, false, nodeIds.filter(_.value.toInt != 2), true)
+  val g5 = NodeGroup (NodeGroupId("5"), "Nodes id divided by 3", "", Nil, None, false, nodeIds.filter(_.value.toInt == 3), true)
+  val g6 = NodeGroup (NodeGroupId("6"), "Nodes id divided by 5", "", Nil, None, false, nodeIds.filter(_.value.toInt == 5), true)
   val groups = Set(g0, g1, g2, g3, g4, g5, g6).map(g => (g.id, g))
 
   val groupTargets = groups.map{ case (id, g) => (GroupTarget(g.id), g) }
@@ -608,6 +608,7 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
                 , NodeGroup(NodeGroupId("a-group-for-root-only")
                     , "Serveurs [€ðŋ] cassés"
                     , "Liste de l'ensemble de serveurs cassés à réparer"
+                    , Nil
                     , None
                     , true
                     , Set(NodeId("root"))

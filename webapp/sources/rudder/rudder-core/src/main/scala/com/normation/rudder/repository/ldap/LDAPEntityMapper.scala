@@ -46,6 +46,7 @@ import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.inventory.ldap.core.InventoryMappingResult._
 import com.normation.errors._
+import com.normation.inventory.ldap.core.InventoryMappingRudderError
 import com.normation.inventory.ldap.core.InventoryMappingRudderError.UnexpectedObject
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.inventory.ldap.core.LDAPConstants._
@@ -76,7 +77,6 @@ import net.liftweb.util.Helpers._
 import org.joda.time.DateTime
 import zio._
 import zio.syntax._
-
 import com.normation.ldap.sdk.syntax._
 
 final object NodeStateEncoder {
@@ -261,7 +261,7 @@ class LDAPEntityMapper(
                 , false //we don't know anymore if it was a policy server
                 , new DateTime(0) // we don't know anymore the acceptation date
                 , ReportingConfiguration(None, None, None) //we don't know anymore agent run frequency
-                , Seq() //we forgot node properties
+                , Nil //we forgot node properties
                 , None
               )
      nodeInfo <- inventoryEntriesToNodeInfos(node, inventoryEntry, machineEntry)
@@ -359,7 +359,7 @@ class LDAPEntityMapper(
   * prioritary.
   * In all case, a user shoud just avoid these cases, so we log.
   */
-  def overrideProperties(nodeId: NodeId, existing: Seq[NodeProperty], inventory: Seq[NodeProperty]): Seq[NodeProperty] = {
+  def overrideProperties(nodeId: NodeId, existing: Seq[NodeProperty], inventory: List[NodeProperty]): List[NodeProperty] = {
     val customProperties = inventory.map(x => (x.name, x) ).toMap
     val overriden = existing.map { current =>
       customProperties.get(current.name) match {
@@ -379,7 +379,7 @@ class LDAPEntityMapper(
     // now, filter remaining inventory properties (ie the one not already processed)
     val alreadyDone = overriden.map( _.name ).toSet
 
-    overriden ++ inventory.filter(x => !alreadyDone.contains(x.name))
+    (overriden ++ inventory.filter(x => !alreadyDone.contains(x.name))).toList
   }
 
 
@@ -595,17 +595,33 @@ class LDAPEntityMapper(
                          Right(None)
                      }
                    }
+        properties <- e.valuesFor(A_JSON_PROPERTY).toList.traverse(GroupProperty.parseSerializedGroupProperty).left.map(err => InventoryMappingRudderError.UnexpectedObject(err.fullMsg))
         isDynamic   = e.getAsBoolean(A_IS_DYNAMIC).getOrElse(false)
         isEnabled   = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         isSystem    = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
         description = e(A_DESCRIPTION).getOrElse("")
       } yield {
-         NodeGroup(NodeGroupId(id), name, description, query, isDynamic, nodeIds, isEnabled, isSystem)
+         NodeGroup(NodeGroupId(id), name, description, properties, query, isDynamic, nodeIds, isEnabled, isSystem)
       }
     } else {
       Thread.currentThread().getStackTrace.foreach(println)
       Left(Err.UnexpectedObject("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_RUDDER_NODE_GROUP, e)))
     }
+  }
+
+  def nodeGroupToLdap(group: NodeGroup, parentDN: DN): LDAPEntry = {
+    val entry = rudderDit.GROUP.groupModel(
+        group.id.value
+      , parentDN
+      , group.name
+      , group.description
+      , group.query
+      , group.isDynamic
+      , group.serverList
+      , group.isEnabled
+    )
+    entry +=! (A_JSON_PROPERTY, group.properties.map(p => compactRender(p.toJson)):_* )
+    entry
   }
 
   //////////////////////////////    Special Policy target info    //////////////////////////////

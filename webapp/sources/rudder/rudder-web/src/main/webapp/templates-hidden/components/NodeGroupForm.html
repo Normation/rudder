@@ -54,6 +54,7 @@
       <li><a href="#groupParametersTab">Parameters</a></li>
       <li><a href="#groupCriteriaTab">Criteria</a></li>
       <li><a href="#groupRulesTab">Related Rules</a></li>
+      <li><a href="#groupPropertiesTab">Group Properties</a></li>
     </ul>
   </div>
   <div class="main-details">
@@ -88,6 +89,30 @@
         This group is used in following rule targets (either as a target or exception group):
       </div>
       <div id="groupRuleTabsContent"></div>
+    </div>
+    <div id="groupPropertiesTab" class="main-form">
+      <div>
+        <h4>Hierarchy of group and unicity of property name</h4>
+        <p>A group property with a given name can be defined in several group if and only if these
+        groups are in a sub-group hierarchical relation. A group 'S' is a subgroup of group 'P' if
+          'S' uses the <span style="font-family: monospace;background-color:lightgray">'AND'</span>
+          operand with the <span style="font-family: monospace;background-color:lightgray">'Group > Group ID = P'</span>
+          criterion.</p>
+      </div>
+      <div>
+        <h4>Property inheritance and overriding in hierarchy</h4>
+        <p>When a group is a subgroup of another one, it inherit all its properties. If it defines
+        a property with the same name than a parent, then that property value is overriden and
+        the subgroup value is used. A node can also define a property with the same name, and in
+        that case its value will override any group's value for that property name.</p>
+      </div>
+      <div>
+        <h4>Overriding order between several parents</h4>
+        <p>If a group is a subgroup of several groups, then the overriding is done in the
+        same order than groups are defined in criteria lines: the last group define the
+        group whose value will be chosen among parents.</p>
+      </div>
+      <div id="groupPropertiesTabContent"></div>
     </div>
     <div id="groupCriteriaTab" class="main-form">
       <group-static></group-static>

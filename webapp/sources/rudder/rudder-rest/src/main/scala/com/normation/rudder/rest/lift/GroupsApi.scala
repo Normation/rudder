@@ -123,21 +123,13 @@ class GroupsApi(
         req.json match {
           case Full(arg) =>
             val restGroup = restExtractor.extractGroupFromJSON(arg)
-            if(version.value < 5) {
-             serviceV2.createGroup(restGroup, req, version)
-            } else {
-              serviceV5.createGroup(restGroup, req, version)
-            }
+            serviceV5.createGroup(restGroup, req, version)
           case eb:EmptyBox=>
             toJsonError(None, "No Json data sent")("createGroup",restExtractor.extractPrettify(req.params))
         }
       } else {
         val restGroup = restExtractor.extractGroup(req.params)
-        if(version.value < 5) {
-          serviceV2.createGroup(restGroup, req, version)
-        } else {
-          serviceV5.createGroup(restGroup, req, version)
-        }
+        serviceV5.createGroup(restGroup, req, version)
       }
     }
   }
@@ -328,7 +320,7 @@ class GroupApiService2 (
     ) match {
       case Full((crId, workflow)) =>
         val optCrId = if (workflow.needExternalValidation()) Some(crId) else None
-        val jsonGroup = List(serializeGroup(group, optCrId, apiVersion))
+        val jsonGroup = List(serializeGroup(group, optCrId))
         toJsonResponse(Some(id), ("groups" -> JArray(jsonGroup)))
 
       case eb:EmptyBox =>
@@ -343,7 +335,7 @@ class GroupApiService2 (
     implicit val prettify = restExtractor.extractPrettify(req.params)
     readGroup.getAll.toBox match {
       case Full(groups) =>
-        toJsonResponse(None, ( "groups" -> JArray(groups.map(g => serializeGroup(g, None, apiVersion)).toList)))
+        toJsonResponse(None, ( "groups" -> JArray(groups.map(g => serializeGroup(g, None)).toList)))
       case eb: EmptyBox =>
         val message = (eb ?~ ("Could not fetch Groups")).msg
         toJsonError(None, message)
@@ -369,7 +361,7 @@ class GroupApiService2 (
             // Trigger a deployment only if it is needed
             asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
           }
-          val jsonGroup = List(serializeGroup(change.newGroup, None, apiVersion))
+          val jsonGroup = List(serializeGroup(change.newGroup, None))
           toJsonResponse(Some(groupId.value), ("groups" -> JArray(jsonGroup)))
 
         case eb:EmptyBox =>
@@ -398,7 +390,7 @@ class GroupApiService2 (
           // If enable is missing in parameter consider it to true
           val defaultEnabled = restGroup.enabled.getOrElse(true)
           // create from scratch - base rule is the same with default values
-          val baseGroup = NodeGroup(groupId,name,"",None,true,Set(), defaultEnabled)
+          val baseGroup = NodeGroup(groupId,name,"", Nil,None,true,Set(), defaultEnabled)
 
           val change = NodeGroupChangeRequest(DGModAction.CreateSolo, restGroup.updateGroup(baseGroup), restGroup.category, Some(baseGroup))
 
@@ -446,7 +438,7 @@ class GroupApiService2 (
     implicit val prettify = restExtractor.extractPrettify(req.params)
     readGroup.getNodeGroup(NodeGroupId(id)).toBox match {
       case Full((group,_)) =>
-        val jsonGroup = List(serializeGroup(group,None,apiVersion))
+        val jsonGroup = List(serializeGroup(group,None))
         toJsonResponse(Some(id),("groups" -> JArray(jsonGroup)))
       case eb:EmptyBox =>
         val fail = eb ?~!(s"Could not find Group ${id}" )
@@ -474,10 +466,10 @@ class GroupApiService2 (
               toJsonError(Some(id), message)
           }
           case None =>
-            val jsonGroup = List(serializeGroup(group,None, apiVersion))
+            val jsonGroup = List(serializeGroup(group,None))
             toJsonResponse(Some(id),("groups" -> JArray(jsonGroup)))
         }
-        val jsonGroup = List(serializeGroup(group,None, apiVersion))
+        val jsonGroup = List(serializeGroup(group,None))
         toJsonResponse(Some(id),("groups" -> JArray(jsonGroup)))
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not find Group ${id}" )
@@ -540,7 +532,7 @@ class GroupApiService5 (
   def createGroup(restGroup: Box[RestGroup], req:Req, apiVersion: ApiVersion) = {
     val restGroupChecked =
       restGroup match {
-          case Full(RestGroup(_,_,None,_,_,_)) => Failure("Cannot create a group with an empty query")
+          case Full(RestGroup(_,_,None,_,_,_,_)) => Failure("Cannot create a group with an empty query")
           case a => a
       }
     apiService2.createGroup(restGroupChecked, req, apiVersion)

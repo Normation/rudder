@@ -28,7 +28,7 @@ class RuleTargetTest extends Specification with Loggable {
     NodeId(s"${i}")
   }).toSet
 
-  def newNode(id : NodeId) = Node(id,"" ,"", NodeState.Enabled, false, false, DateTime.now, ReportingConfiguration(None,None, None), Seq(), None)
+  def newNode(id : NodeId) = Node(id,"" ,"", NodeState.Enabled, false, false, DateTime.now, ReportingConfiguration(None,None, None), List(), None)
 
   val allNodeIds = nodeIds + NodeId("root")
   val nodes = allNodeIds.map {
@@ -48,22 +48,22 @@ class RuleTargetTest extends Specification with Loggable {
   }.toMap
 
   val g1 = NodeGroup (
-    NodeGroupId("1"), "Empty group", "", None, false, Set(), true
+    NodeGroupId("1"), "Empty group", "", Nil, None, false, Set(), true
   )
   val g2 = NodeGroup (
-    NodeGroupId("2"), "only root", "", None, false, Set(NodeId("root")), true
+    NodeGroupId("2"), "only root", "", Nil, None, false, Set(NodeId("root")), true
   )
   val g3 = NodeGroup (
-    NodeGroupId("3"), "Even nodes", "", None, false, nodeIds.filter(_.value.toInt == 2), true
+    NodeGroupId("3"), "Even nodes", "", Nil, None, false, nodeIds.filter(_.value.toInt == 2), true
   )
   val g4 = NodeGroup (
-    NodeGroupId("4"), "Odd nodes", "", None, false, nodeIds.filter(_.value.toInt != 2), true
+    NodeGroupId("4"), "Odd nodes", "", Nil, None, false, nodeIds.filter(_.value.toInt != 2), true
   )
   val g5 = NodeGroup (
-    NodeGroupId("5"), "Nodes id divided by 3", "", None, false, nodeIds.filter(_.value.toInt == 3), true
+    NodeGroupId("5"), "Nodes id divided by 3", "", Nil, None, false, nodeIds.filter(_.value.toInt == 3), true
   )
   val g6 = NodeGroup (
-    NodeGroupId("6"), "Nodes id divided by 5", "", None, false, nodeIds.filter(_.value.toInt == 5), true
+    NodeGroupId("6"), "Nodes id divided by 5", "", Nil, None, false, nodeIds.filter(_.value.toInt == 5), true
   )
 
   val groups = Set(g1, g2, g3, g4, g5, g6 )

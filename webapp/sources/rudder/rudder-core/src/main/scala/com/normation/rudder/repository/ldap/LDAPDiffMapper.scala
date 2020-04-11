@@ -63,6 +63,7 @@ import com.unboundid.ldif.LDIFChangeRecord
 import com.unboundid.ldif.LDIFModifyChangeRecord
 import com.unboundid.ldif.LDIFModifyDNChangeRecord
 import net.liftweb.common._
+import cats.implicits._
 
 class LDAPDiffMapper(
     mapper         : LDAPEntityMapper
@@ -346,6 +347,13 @@ class LDAPDiffMapper(
                 case A_IS_SYSTEM =>
                   nonNull(diff, mod.getAttribute().getValueAsBoolean) { (d, value) =>
                     d.copy(modIsSystem = Some(SimpleDiff(oldGroup.isSystem, value)))
+                  }
+                case A_JSON_PROPERTY =>
+                  for {
+                    d     <- diff
+                    props <- mod.getAttribute().getValues.toList.traverse(s => GroupProperty.parseSerializedGroupProperty(s))
+                  } yield {
+                    d.copy(modProperties = Some(SimpleDiff(oldGroup.properties, props)))
                   }
                 case x => Left(Err.UnexpectedObject("Unknown diff attribute: " + x))
               }

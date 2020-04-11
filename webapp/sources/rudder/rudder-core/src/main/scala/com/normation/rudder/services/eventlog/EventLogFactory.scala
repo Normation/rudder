@@ -563,7 +563,10 @@ class EventLogFactoryImpl(
               ids.toSeq.map { id => <id>{id.value}</id> }
             } ) ++
           modifyDiff.modIsActivated.map(x => SimpleDiff.booleanToXml(<isEnabled/>, x ) ) ++
-          modifyDiff.modIsSystem.map(x => SimpleDiff.booleanToXml(<isSystem/>, x ) )
+          modifyDiff.modIsSystem.map(x => SimpleDiff.booleanToXml(<isSystem/>, x ) ) ++
+          modifyDiff.modProperties.map(x => SimpleDiff.toXml[List[GroupProperty]](<properties/>, x)(props =>
+              props.flatMap { p => <property><name>{ p.name }</name><value>{Unparsed(net.liftweb.json.compactRender(p.value))}</value></property> }
+          ))
         }
       </nodeGroup>)
     }

@@ -650,7 +650,7 @@ class NodeApiService8 (
       }
     }
 
-    def updateNode(node: Node, restNode: RestNode, newProperties: Seq[NodeProperty]): Node = {
+    def updateNode(node: Node, restNode: RestNode, newProperties: List[NodeProperty]): Node = {
       import com.softwaremill.quicklens._
 
       (node
@@ -662,7 +662,7 @@ class NodeApiService8 (
 
     for {
       node           <- nodeInfoService.getNodeInfo(nodeId).flatMap( _.map( _.node ))
-      newProperties  <- CompareProperties.updateProperties(node.properties, restNode.properties)
+      newProperties  <- CompareProperties.updateProperties(node.properties, restNode.properties).toBox
       updated        =  updateNode(node, restNode, newProperties)
       keyInfo        =  getKeyInfo(restNode)
       saved          <- if(updated == node) Full(node)
