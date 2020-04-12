@@ -1,3 +1,3 @@
 ProtectSystem=strict
-ReadWritePaths=/var/rudder/reports /var/rudder/inventories /var/rudder/shared-files
+ReadWritePaths=/var/rudder/reports /var/rudder/inventories /var/rudder/shared-files /var/rudder/cfengine-community/state
 PrivateTmp=True
