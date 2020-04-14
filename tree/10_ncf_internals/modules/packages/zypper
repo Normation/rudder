@@ -34,7 +34,7 @@ fi
 
 # Licensed under:
 # MIT Public License
-# Copyright (C) 2012-2014 CFEngine AS
+# Copyright 2017 Northern.tech AS
 
 import sys
 import os
