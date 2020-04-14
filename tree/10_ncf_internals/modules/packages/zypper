@@ -34,12 +34,13 @@ else
 
 # Licensed under:
 # MIT Public License
-# Copyright (C) 2012-2014 CFEngine AS
+# Copyright 2017 Northern.tech AS
 
 import sys
 import os
 import subprocess
 import re
+from distutils.version import StrictVersion
 
 
 rpm_cmd = os.environ.get('CFENGINE_TEST_RPM_CMD', "/bin/rpm")
@@ -51,8 +52,20 @@ zypper_options = ["--quiet", "-n"]
 
 NULLFILE = open(os.devnull, 'w')
 
-
 redirection_is_broken_cached = -1
+zypper_supports_oldpackage_cached = -1
+
+def zypper_supports_oldpackage():
+    # Suse zypper "--oldpackage" option is only supported greater that 1.6.169
+    global zypper_supports_oldpackage_cached
+    if zypper_supports_oldpackage_cached == -1:
+        zypper_version = subprocess.Popen([zypper_cmd, "-n", "--version"], stdout=subprocess.PIPE).communicate()[0]
+        zypper_version = zypper_version.decode().split(" ", 1)[1].rstrip()
+        if StrictVersion(zypper_version) >= StrictVersion("1.6.169"):
+            zypper_supports_oldpackage_cached = 1
+        else:
+            zypper_supports_oldpackage_cached = 0
+    return zypper_supports_oldpackage_cached
 
 def redirection_is_broken():
     # Older versions of Python have a bug where it is impossible to redirect
@@ -101,9 +114,18 @@ def subprocess_Popen(cmd, stdout=None, stderr=None):
     return result
 
 
+# If subprocess.PIPE is passed as stderr, it will re-write it in an ErrorMessage
 def subprocess_call(cmd, stdout=None, stderr=None):
     process = subprocess_Popen(cmd, stdout, stderr)
-    return process.wait()
+    outs, errs = process.communicate()
+    if stderr == subprocess.PIPE:
+        lines = [line for line in errs.decode("utf-8").splitlines()]
+        if len(lines):
+            printed_error = "ErrorMessage=" + " ".join(lines)
+            sys.stdout.write(printed_error)
+            sys.stdout.flush()
+    return process.returncode
+
 
 
 def get_package_data():
@@ -120,7 +142,8 @@ def get_package_data():
         # Absolute file.
         sys.stdout.write("PackageType=file\n")
         sys.stdout.flush()
-        return subprocess_call([rpm_cmd, "--qf", rpm_output_format, "-qp", pkg_string])
+        subprocess_call([rpm_cmd, "--qf", rpm_output_format, "-qp", pkg_string], stderr=subprocess.PIPE)
+        return 0
     elif re.search("[:,]", pkg_string):
         # Contains an illegal symbol.
         sys.stdout.write(line + "ErrorMessage: Package string with illegal format\n")
@@ -135,8 +158,8 @@ def list_installed():
     # Ignore everything.
     sys.stdin.readlines()
 
-    return subprocess_call([rpm_cmd, "-qa", "--qf", rpm_output_format])
-
+    subprocess_call([rpm_cmd, "-qa", "--qf", rpm_output_format])
+    return 0
 
 def list_updates(online):
     # Ignore everything.
@@ -147,15 +170,15 @@ def list_updates(online):
         online_flag = ["--no-refresh"]
 
     process = subprocess_Popen([zypper_cmd] + zypper_options + online_flag + ["list-updates"], stdout=subprocess.PIPE)
-    lastline = ""
+
     for line in process.stdout:
 
 # Zypper's output looks like:
 #
-# S | Repository        | Name         | Current Version                    | Available Version                              | Arch  
+# S | Repository        | Name         | Current Version                    | Available Version                              | Arch
 # --+-------------------+--------------+------------------------------------+------------------------------------------------+-------
 # v | Rudder repository | rudder-agent | 1398866025:3.2.6.release-1.SLES.11 | 1398866025:3.2.7.rc1.git201609190419-1.SLES.11 | x86_64
-#    
+#
 # Which gives:
 #
 # v    | Rudder repository | rudder-agent       | 1398866025:3.2.6.release-1.SLES.11 | 1398866025:3.2.7.rc1.git201609190419-1.SLES.11 | x86_64
@@ -320,26 +343,30 @@ def repo_install():
     # since it's unlikely that people will do a whole lot of downgrades
     # simultaneously.
 
-    ret = 0
     single_cmd_args, multi_cmd_args = package_arguments_builder(True)
 
     if single_cmd_args:
+
         cmd_line = [zypper_cmd] + zypper_options + ["install"]
+
+        if zypper_supports_oldpackage():
+            cmd_line += ["--oldpackage"]
+
         cmd_line.extend(single_cmd_args)
 
-        ret = subprocess_call(cmd_line, stdout=NULLFILE)
+        subprocess_call(cmd_line, stdout=NULLFILE, stderr=subprocess.PIPE)
 
     if multi_cmd_args:
         for block in multi_cmd_args:
             # Try to upgrade.
             cmd_line = [zypper_cmd] + zypper_options + ["update"] + block
-            subprocess_call(cmd_line, stdout=NULLFILE)
+            subprocess_call(cmd_line, stdout=NULLFILE, stderr=subprocess.PIPE)
 
             # See if it succeeded.
             success = True
             for item in block:
                 cmd_line = [rpm_cmd] + rpm_quiet_option + ["-q", item]
-                if subprocess_call(cmd_line, stdout=NULLFILE) != 0:
+                if subprocess_call(cmd_line, stdout=NULLFILE, stderr=subprocess.PIPE) != 0:
                     success = False
                     break
 
@@ -347,15 +374,22 @@ def repo_install():
                 continue
 
             # Try to plain install.
-            cmd_line = [zypper_cmd] + zypper_options + ["install"] + block
-            subprocess_call(cmd_line, stdout=NULLFILE)
+
+            cmd_line = [zypper_cmd] + zypper_options + ["install"]
+
+            if zypper_supports_oldpackage():
+                cmd_line += ["--oldpackage"]
+
+            cmd_line += block
+
+            subprocess_call(cmd_line, stdout=NULLFILE, stderr=subprocess.PIPE)
 
             # No final check. CFEngine will figure out that it's missing
             # if it failed.
 
-    # ret == 0 doesn't mean we succeeded with everything, but it's expensive to
+    # return 0 doesn't mean we succeeded with everything, but it's expensive to
     # check, so let CFEngine do that.
-    return ret
+    return 0
 
 
 def remove():
@@ -367,7 +401,7 @@ def remove():
     args = package_arguments_builder(False)[0]
 
     if args:
-        return subprocess_call(cmd_line + args, stdout=NULLFILE)
+        return subprocess_call(cmd_line + args, stdout=NULLFILE, stderr=subprocess.PIPE)
     return 0
 
 
@@ -382,7 +416,8 @@ def file_install():
     if not found:
         return 0
 
-    return subprocess_call(cmd_line, stdout=NULLFILE)
+    subprocess_call(cmd_line, stdout=NULLFILE, stderr=subprocess.PIPE)
+    return 0
 
 
 def main():

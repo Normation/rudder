@@ -21,7 +21,7 @@ fi
 # pkgsrc bootstrapped manually to non-standard locations is not currently supported.
 export PATH=/opt/local/bin:/opt/local/sbin:/opt/pkg/bin:/opt/pkg/sbin:/usr/pkg/bin:/usr/pkg/sbin:$PATH
 export MACHINE_ARCH=$(pkg_info -X pkg_install | grep MACHINE_ARCH | cut -d = -f 2)
-export PKG_ROOT=$(pkg_info -pq pkg_install | cut -d ' ' -f 2)
+export PKG_ROOT=$(pkg_info -pq pkg_install | cut -d ' ' -f 2 | sort -u)
 export PKG_INSTALL_CONF=${PKG_ROOT}/etc/pkg_install.conf
 
 LEVEL=0
@@ -102,7 +102,7 @@ get_package_data () {
         # or version, return nothing.
         # There's possibly a bug here because we're already emitting that the
         # PackageType is repo.
-        parse_pkg_data "$(pkgin -pP avail | grep "^${File}-" | grep "$Version;" | sort -n | tail -1)" | grep Name
+        parse_pkg_data "$(pkgin -pP avail | grep "^${File}-[0-9]" | grep "$Version;" | sort -n | tail -1)" | grep Name
     fi
 }
 
@@ -140,7 +140,7 @@ parse_pkg_data () {
 }
 
 # Cfengine passes data on STDIN. Absorb that and convert to shell variables.
-while IFS= read -r -u 0 line; do
+while IFS= read -r line; do
   eval "$line"
   # options can be passed multiple times so we need to avoid clobbering
   # previous instances. Plus, what we really want to eval is the value of
