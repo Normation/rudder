@@ -479,6 +479,7 @@ $(document).ready(function() {
       return ((a < b) ? 1 : ((a > b) ? -1 : 0));
     }
   } );
+  $('[data-toggle="tooltip"]').bsTooltip();
 });
 
 function checkMigrationButton(currentVersion,selectId) {

@@ -60,10 +60,57 @@ class PluginExpirationInfo extends DispatchSnippet with Loggable {
 
 
   def dispatch = {
-    case "render" => pluginInfo
+    case "render"     => pluginInfo
+    case "renderIcon" => pluginInfoIcon
   }
 
   def pluginInfo(html: NodeSeq) : NodeSeq = {
+    /*
+     * Summary of the status of the different plugins
+     */
+    val warnings = PluginsInfo.plugins.foldLeft(Warning(Nil, Map(), Map())) { case (current, (_, plugin)) =>
+      plugin.status.current match {
+        case PluginStatusInfo.EnabledNoLicense =>
+          current
+        case PluginStatusInfo.EnabledWithLicense(lic) =>
+          if(lic.endDate.minusMonths(1).isBeforeNow()) {
+            current.modify(_.licenseNearExpiration).using(m => m + (plugin.name.value -> lic.endDate))
+          } else {
+            current
+          }
+        case PluginStatusInfo.Disabled(_, None) =>
+          current.modify(_.licenseError).using(plugin.name.value :: _)
+        case PluginStatusInfo.Disabled(_, Some(lic)) =>
+          if(lic.endDate.isBeforeNow) {
+            current.modify(_.licenseExpired).using(m => m + (plugin.name.value -> lic.endDate))
+          } else {
+            current.modify(_.licenseError).using(plugin.name.value :: _)
+          }
+      }
+    }
+
+    def notifHtml (notifClass:String , notifTitle:String): NodeSeq ={
+      val tooltipContent = "<h4><i class='fa fa-exclamation-triangle'></i> "+ notifTitle +"</h4><div>More details on <b>Plugin information</b> page</div>"
+      <li
+      class={"plugin-warning " + notifClass}
+      data-toggle="tooltip"
+      data-placement="bottom"
+      data-html="true"
+      data-original-title={tooltipContent}
+      >
+        <a href="/secure/plugins/pluginInformation"><span class="fa fa-puzzle-piece"></span></a>
+      </li>
+    }
+    if(warnings.licenseError.nonEmpty || warnings.licenseExpired.nonEmpty) {
+      notifHtml("critical", "Plugin license error require your attention")
+    } else if(warnings.licenseNearExpiration.nonEmpty) {
+      notifHtml("warning", "Plugin license near expiration")
+    } else {
+      NodeSeq.Empty
+    }
+  }
+
+  def pluginInfoIcon(html: NodeSeq) : NodeSeq = {
     /*
      * Summary of the status of the different plugins
      */
@@ -86,15 +133,14 @@ class PluginExpirationInfo extends DispatchSnippet with Loggable {
           }
       }
     }
-
+    def displayPluginIcon(iconClass: String, notifTitle: String) = {
+      val tooltipContent = "<h4 class='"+ iconClass +"' > <i class='fa fa-exclamation-triangle'></i> "+ notifTitle +"</h4><div>More details on <b>Plugin information</b> page</div>"
+      <i class={"fa fa-exclamation-triangle plugin-icon icon-info " ++ iconClass} data-toggle="tooltip" data-placement="right" data-html="true" data-original-title={tooltipContent} data-container="body"></i>
+    }
     if(warnings.licenseError.nonEmpty || warnings.licenseExpired.nonEmpty) {
-      <li title="Plugin license error require your attention" class="bg-danger">
-        <a href="/secure/plugins/pluginInformation" style="font-size:120%"><span class="fa fa-puzzle-piece"></span></a>
-      </li>
+      displayPluginIcon("critical" ,"Plugin license error require your attention")
     } else if(warnings.licenseNearExpiration.nonEmpty) {
-      <li title="Plugin license near expiration" class="bg-info">
-        <a href="/secure/plugins/pluginInformation" style="font-size:120%"><span class="fa fa-puzzle-piece"></span></a>
-      </li>
+      displayPluginIcon("warning"  ,"Plugin license near expiration")
     } else {
       NodeSeq.Empty
     }

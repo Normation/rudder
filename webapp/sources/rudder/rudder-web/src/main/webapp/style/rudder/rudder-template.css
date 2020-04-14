@@ -129,11 +129,28 @@
   animation: fadein .8s ease-out forwards;
   overflow: hidden;
 }
+.rudder-template.one-col .template-main{
+  flex-basis: 100%;
+}
 
 .rudder-template .template-main .main-header{
   padding: 15px;
+  max-height: initial;
 }
-
+.rudder-template.one-col .template-main .main-header{
+  padding: 15px 30px;
+}
+.rudder-template .template-main .main-header .header-description{
+  margin-top: 10px;
+  color: #222D42AA;
+  font-size: 14px;
+}
+.rudder-template .template-main .main-header .header-description p{
+  margin-bottom: 6px;
+}
+.rudder-template .template-main .main-header .header-description p:last-child{
+  margin-bottom: 0;
+}
 .rudder-template .template-main .main-navbar ul{
   padding: 0 15px;
 }
@@ -150,6 +167,14 @@
   flex: 1;
   flex-direction: column;
   overflow: auto;
+  font-size: 14px;
+}
+.rudder-template.one-col .template-main .main-details,
+.rudder-template.one-col .template-main .main-navbar ul{
+  padding: 0 30px;
+}
+.rudder-template.one-col .template-main .main-details{
+  padding-bottom: 50px;
 }
 .rudder-template .template-main .main-container{
   display: flex;
@@ -193,6 +218,17 @@
 .rudder-template .template-main .main-table .dataTables_wrapper_top,
 .rudder-template .template-main .main-table .dataTables_wrapper_bottom{
   padding-left: 15px;
+}
+
+.rudder-template .template-main h3.title-section{
+  color: #222d42CC;
+  padding: 5px 0 !important;
+  display: block;
+  margin-bottom: 10px;
+  line-height: inherit;
+  border: 0;
+  border-bottom: 2px solid #e5e5e5;
+  font-size: 20px;
 }
 
 @keyframes fadein {

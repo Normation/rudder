@@ -443,7 +443,7 @@ class Boot extends Loggable {
       )
 
     def pluginsMenu = {
-      (Menu("PluginsHome", <i class="fa fa-puzzle-piece"></i> ++ <span>Plugins</span>: NodeSeq) /
+      (Menu("PluginsHome", <i class="fa fa-puzzle-piece"></i> ++ <span>Plugins</span> ++ <span data-lift="PluginExpirationInfo.renderIcon"></span>: NodeSeq) /
         "secure" / "plugins" / "index"
         >> LocGroup("pluginsGroup")
         >> TestAccess ( () => userIsAllowed("/secure/index", AuthorizationType.Administration.Read)

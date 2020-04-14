@@ -1,55 +1,49 @@
 <lift:surround with="common-layout" at="content">
 
 <head>
-<title>Rudder - Plugins Management</title>
+  <title>Rudder - Plugins Management</title>
+  <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-template.css" media="screen" />
+  <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-plugins.css" media="screen" />
 </head>
 
-<div class="portlet">
-  <div class="inner-portlet">
-    <h3 class="page-title">Plugins</h3>
-
-    <div class="portlet-content">
-      <div class="col-xs-12 callout-fade callout-info">
-        <div class="marker">
-          <span class="glyphicon glyphicon-info-sign"></span>
+<div class="rudder-template one-col">
+  <div class="template-main">
+    <div class="main-container">
+      <div class="main-header">
+        <div class="header-title">
+          <h1>Plugins</h1>
         </div>
-        <p>
-          Plugins can extend Rudder’s base functionality to add extra features. They can be either open source or proprietary (this is up to the plugin author).
-        </p>
-        <p>
-          Available plugins are documented in <a href="https://www.rudder.io/en/use/plugins/">Rudder Plugin page</a>.
-        </p>
+        <div class="header-description">
+          <p>
+            Plugins can extend Rudder’s base functionality to add extra features. They can be either open source or proprietary (this is up to the plugin author).
+          </p>
+          <p>
+            Available plugins are documented in <a href="https://www.rudder.io/en/use/plugins/">Rudder Plugin page</a>.
+          </p>
+        </div>
       </div>
+      <div class="main-navbar">
+        <ul class="ui-tabs-nav"></ul>
+      </div>
+      <div class="main-details">
+        <div class="lift:administration.PluginManagement.display">
 
-      <div class="lift:administration.PluginManagement.display">
-        <div class="inner-portlet">
-          <h4 class="page-subtitle" data-plugin="name">[Here comes the plugins name]</h4>
-
-          <div class="col-xs-12 callout-fade callout-info">
-            <div class="marker">
-              <span class="glyphicon glyphicon-info-sign"></span>
-            </div>
+          <div class="inner-portlet plugin">
+            <h3 class="title-section" data-plugin="name">[Here comes the plugins name]</h3>
+            <p class="description" data-plugin="description">[Here comes the plugin description]</p>
+            <ul class="plugin-details">
+              <li><b>Plugin ID:</b> <span data-plugin="fullid">[Here comes the plugin full id]</span></li>
+              <li><b>Plugin version:</b> <span data-plugin="version">[Here comes the plugin version]</span></li>
+            </ul>
             <div class="plugin-description" class="pluginpadd">
-              <span data-plugin="description">[Here comes the plugin description]</span>
+              <span data-plugin="statusInformation">[Here comes optionnal information about plugin status/license]</span>
             </div>
+
           </div>
 
-          <div class="portlet-content">
-            <div class="deca">
-              <ul class="pluginpadd">
-                <li><b>Plugin ID:</b> <span data-plugin="fullid">[Here comes the plugin full id]</span></li>
-                <li><b>Plugin version:</b> <span data-plugin="version">[Here comes the plugin version]</span></li>
-                <li><b>Plugin base class:</b> <span data-plugin="baseclass">[Here comes the plugin base class]</span></li>
-              </ul>
-              <br/>
-              <div class="plugin-description" class="pluginpadd">
-                <span data-plugin="statusInformation">[Here comes optionnal information about plugin status/license]</span>
-            </div>
-            </div>
-          </div>
         </div>
-      </div>
-   </div>
+     </div>
+    </div>
   </div>
 </div>
 </lift:surround>
