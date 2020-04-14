@@ -44,7 +44,7 @@ import org.apache.commons.codec.digest.Md5Crypt
 import org.apache.commons.codec.digest.Sha2Crypt
 import org.apache.commons.codec.digest.UnixCrypt
 import ca.mrvisser.sealerate.values
-import com.normation.errors.Inconsistancy
+import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
 
 sealed trait HashAlgoConstraint {
@@ -58,7 +58,7 @@ sealed trait HashAlgoConstraint {
   def serialize(input:Array[Byte]): String = s"${prefix}:${hash(input)}"
   def unserialize(value:String) : PureResult[String] = HashAlgoConstraint.unserialize(value) match {
     case Right((algo, v)) if algo == this => Right(v)
-    case Right((algo,_))                  => Left(Inconsistancy(s"Bad algorithm prefix: found ${algo.prefix}, was expecting ${this.prefix}"))
+    case Right((algo,_))                  => Left(Inconsistency(s"Bad algorithm prefix: found ${algo.prefix}, was expecting ${this.prefix}"))
     case Left(eb)                         => Left(eb)
   }
 }
@@ -265,10 +265,10 @@ object HashAlgoConstraint {
   private[this] val format = """([\w-]+):(.*)""".r
   def unserializeIn(algos: Set[HashAlgoConstraint], value:String): PureResult[(HashAlgoConstraint, String)] = value match {
     case format(algo,h) => HashAlgoConstraint.fromStringIn(algos, algo) match {
-      case None    => Left(Inconsistancy(s"Unknown algorithm ${algo}. List of know algorithm: ${algoNames(algos)}"))
+      case None    => Left(Inconsistency(s"Unknown algorithm ${algo}. List of know algorithm: ${algoNames(algos)}"))
       case Some(a) => Right((a,h))
     }
-    case _ => Left(Inconsistancy(s"Bad format of serialized hashed value, expected format is: 'algorithm:hash', with algorithm among: ${algoNames(algos)}"))
+    case _ => Left(Inconsistency(s"Bad format of serialized hashed value, expected format is: 'algorithm:hash', with algorithm among: ${algoNames(algos)}"))
   }
 
   def unserialize(value:String): PureResult[(HashAlgoConstraint, String)] = {

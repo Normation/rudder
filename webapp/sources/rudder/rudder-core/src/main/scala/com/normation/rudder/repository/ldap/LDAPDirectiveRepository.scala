@@ -623,11 +623,11 @@ class WoLDAPDirectiveRepository(
                            mapper.entry2Directive(otherPi).toIO.flatMap { x =>
                              (x.isSystem, systemCall) match {
                                case (true, false) => Unexpected(s"System directive '${x.name}' (${x.id.value}) can't be updated").fail
-                               case (false, true) => Inconsistancy("Non-system directive can not be updated with that method").fail
+                               case (false, true) => Inconsistency("Non-system directive can not be updated with that method").fail
                                case _ => Some(otherPi).succeed
                              }
                            }
-                         } else Inconsistancy(s"An other directive with the id '${directive.id.value}' exists in an other category that the one with id '${inActiveTechniqueId.value}}': ${otherPi.dn}}").fail
+                         } else Inconsistency(s"An other directive with the id '${directive.id.value}' exists in an other category that the one with id '${inActiveTechniqueId.value}}': ${otherPi.dn}}").fail
                      }
       // We have to keep the old rootSection to generate the event log
       oldRootSection <- getActiveTechniqueAndDirective(directive.id).map {
@@ -639,7 +639,7 @@ class WoLDAPDirectiveRepository(
                         }
       exists            <- directiveNameExists(con, directive.name, directive.id)
       nameIsAvailable   <- ZIO.when(exists) {
-                             Inconsistancy(s"Cannot set directive with name '${directive.name}}' : this name is already in use.").fail
+                             Inconsistency(s"Cannot set directive with name '${directive.name}}' : this name is already in use.").fail
                            }
       piEntry           =  mapper.userDirective2Entry(directive, uptEntry.dn)
       result            <- userLibMutex.writeLock { con.save(piEntry, true) }
@@ -1050,7 +1050,7 @@ class WoLDAPDirectiveRepository(
             autoArchive        <- ZIO.when(autoExportOnModify && deleted.size > 0 && !oldTechnique.isSystem) {
                                      for {
                                        ptName   <- activeTechnique(A_TECHNIQUE_UUID) match {
-                                         case None    =>  Inconsistancy("Missing required reference technique name").fail
+                                         case None    =>  Inconsistency("Missing required reference technique name").fail
                                          case Some(x) => x.succeed
                                        }
                                        commiter <- personIdentService.getPersonIdentOrDefault(actor.name)

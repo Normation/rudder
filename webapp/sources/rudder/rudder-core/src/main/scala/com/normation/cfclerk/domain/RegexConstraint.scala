@@ -38,7 +38,7 @@
 package com.normation.cfclerk.domain
 import java.util.regex.Pattern
 
-import com.normation.errors.Inconsistancy
+import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
 
 /**
@@ -59,7 +59,7 @@ case class RegexConstraint(pattern: String, errorMsg: String) {
     if(variablePattern.matcher(varValue).matches || compiled.matcher(varValue).matches) {
       Right(varValue)
     } else {
-      Left(Inconsistancy(s"Please modify ${varName} to match the requested format ${if (errorMsg != "") " : " + errorMsg else ""}"))
+      Left(Inconsistency(s"Please modify ${varName} to match the requested format ${if (errorMsg != "") " : " + errorMsg else ""}"))
     }
 }
 

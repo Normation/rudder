@@ -117,7 +117,7 @@ class ReadOnlySoftwareDAOImpl(
       ids           <- ZIO.foreach(softwareEntry) { entry =>
                          entry(A_SOFTWARE_UUID) match {
                            case Some(value) => value.succeed
-                           case _ => Inconsistancy(s"Missing attribute ${A_SOFTWARE_UUID} for entry ${entry.dn} ${entry.toString()}").fail
+                           case _ => Inconsistency(s"Missing attribute ${A_SOFTWARE_UUID} for entry ${entry.dn} ${entry.toString()}").fail
                          }
                        }
       softIds       =  ids.map(id => SoftwareUuid(id)).toSet

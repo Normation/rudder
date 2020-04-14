@@ -168,7 +168,7 @@ class TechniqueAPIService6 (
       ZIO.foreach(directives.filter(filter)) { directive =>
         techniques.get(directive.techniqueVersion) match {
           case None            =>
-            Inconsistancy(s"Version ${directive.techniqueVersion} of Technique '${techniqueName.value}' does not exist, but is used by Directive '${directive.id.value}'").fail
+            Inconsistency(s"Version ${directive.techniqueVersion} of Technique '${techniqueName.value}' does not exist, but is used by Directive '${directive.id.value}'").fail
           case Some(technique) =>
             serialize(technique,directive).succeed
         }
@@ -180,7 +180,7 @@ class TechniqueAPIService6 (
         case Some(versions) =>
           ZIO.foreach(versions) { version =>
             ZIO.when(!techniques.keySet.contains(version)) {
-              Inconsistancy(s"Version '${version}' of Technique '${techniqueName.value}' does not exist").fail
+              Inconsistency(s"Version '${version}' of Technique '${techniqueName.value}' does not exist").fail
             }
           }
         case None => UIO.unit

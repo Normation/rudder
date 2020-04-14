@@ -88,7 +88,7 @@ class PathComputerImpl(
    */
   def computeBaseNodePath(searchedNodeId : NodeId, rootNodeId: NodeId, allNodeConfigs: Map[NodeId, NodeInfo]): PureResult[NodePoliciesPaths] = {
     if(searchedNodeId == rootNodeId) {
-      Left(Inconsistancy("ComputeBaseNodePath can not be used to get the (special) root paths"))
+      Left(Inconsistency("ComputeBaseNodePath can not be used to get the (special) root paths"))
     } else {
       for {
         path <- recurseComputePath(rootNodeId, searchedNodeId, "/"  + searchedNodeId.value, allNodeConfigs, Nil)
