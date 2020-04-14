@@ -67,7 +67,7 @@ def redirection_is_broken():
     # and that's good, because it would have been much more tricky to solve.
     global redirection_is_broken_cached
     if redirection_is_broken_cached == -1:
-        cmd_line = [sys.argv[0], "internal-test-stderr"]
+        cmd_line = [sys.executable, sys.argv[0], "internal-test-stderr"]
         if subprocess.call(cmd_line, stdout=sys.stderr) == 0:
             redirection_is_broken_cached = 0
         else:
