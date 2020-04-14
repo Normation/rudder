@@ -594,6 +594,9 @@ object RudderConfig extends Loggable {
   lazy val roAgentRunsRepository : RoReportsExecutionRepository = cachedAgentRunRepository
   lazy val woAgentRunsRepository : WoReportsExecutionRepository = cachedAgentRunRepository
 
+  lazy val readOnlyLDAP = roLdap
+  lazy val directiveReadWriteMutex = uptLibReadWriteMutex
+  lazy val entityMapper = ldapEntityMapper
 
   lazy val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles(agentRegister)
 
