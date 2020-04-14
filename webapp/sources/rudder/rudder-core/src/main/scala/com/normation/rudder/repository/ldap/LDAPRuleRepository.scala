@@ -147,7 +147,7 @@ class WoLDAPRuleRepository(
     })
   }
 
-  def delete(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[DeleteRuleDiff] = {
+  private[this] def deleteRule(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[DeleteRuleDiff] = {
     for {
       con          <- ldap
       entry        <- con.get(rudderDit.RULES.configRuleDN(id.value)).notOptional("rule with ID '%s' is not present".format(id.value))
@@ -168,6 +168,44 @@ class WoLDAPRuleRepository(
       diff
     }
   }
+
+  private[this] def internalRuleSystemDirective(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[DeleteRuleDiff] = {
+    for {
+      con          <- ldap
+      entry        <- con.get(rudderDit.RULES.configRuleDN(id.value)).notOptional("rule with ID '%s' is not present".format(id.value))
+      oldCr        <- mapper.entry2Rule(entry).toIO.chainError("Error when transforming LDAP entry into a rule for id %s. Entry: %s".format(id, entry))
+      deleted      <- con.delete(rudderDit.RULES.configRuleDN(id.value)).chainError("Error when deleting system rule with ID %s".format(id))
+      diff         =  DeleteRuleDiff(oldCr)
+      loggedAction <- actionLogger.saveDeleteRule(modId, principal = actor, deleteDiff = diff, reason = reason)
+      autoArchive  <- ZIO.when(autoExportOnModify && deleted.nonEmpty  && !oldCr.isSystem) {
+        for {
+          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+          archive  <- gitCrArchiver.deleteRule(id, Some((modId, commiter, reason)))
+        } yield {
+          archive
+        }
+      }
+    } yield {
+      diff
+    }
+  }
+
+  private[this] def deleteRuleCommon(ruleId: RuleId, modId: ModificationId, actor:EventActor, reason:Option[String], isSystem: Boolean) ={
+    if(isSystem){
+      internalRuleSystemDirective(ruleId, modId, actor, reason)
+    } else {
+      deleteRule(ruleId, modId, actor, reason)
+    }
+  }
+
+  override def deleteSystemRule(id: RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[DeleteRuleDiff] = {
+    deleteRuleCommon(id, modId, actor, reason:Option[String], isSystem = true)
+  }
+
+  override def delete(id: RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[DeleteRuleDiff] = {
+    deleteRuleCommon(id, modId, actor, reason:Option[String], isSystem = false)
+  }
+
 
   def create(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[AddRuleDiff] = {
     semaphore.flatMap(_.withPermit(

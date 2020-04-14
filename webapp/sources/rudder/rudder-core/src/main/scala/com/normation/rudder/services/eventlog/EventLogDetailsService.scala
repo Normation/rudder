@@ -164,6 +164,10 @@ trait EventLogDetailsService {
 
   // Node modifiction
   def getModifyNodeDetails(xml:NodeSeq) : Box[ModifyNodeDiff]
+
+  def getPromotedNodeToRelayDetails(xml:NodeSeq) : Box[(NodeId, String)]
+
+
 }
 
 /**
@@ -326,6 +330,7 @@ class EventLogDetailsServiceImpl(
       )
     }
   }
+
 
   /**
    * Map XML into a rule
@@ -949,7 +954,21 @@ class EventLogDetailsServiceImpl(
       }
   }
 
-
+  def getPromotedNodeToRelayDetails(xml:NodeSeq) : Box[(NodeId, String)] = {
+    for {
+      entry        <- getEntryContent(xml)
+      node         <- (entry \ "node").headOption ?~! ("Entry type is not node : " + entry)
+      fileFormatOk <- TestFileFormat(node)
+      changeTypeOk <- {
+        if(node.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
+        else Failure(s"'Node promotion' entry does not have attribute 'changeType' with value 'modify', entry is: ${entry}")
+      }
+      id           <- (node \ "id").headOption.map( x => NodeId(x.text) ) ?~! ("Missing element 'id' in entry type Node: " + entry)
+      name         <- (node \ "hostname").headOption.map( x => x.text ) ?~! ("Missing element 'hostname' in entry type Node: " + entry)
+    } yield {
+      (id,name)
+    }
+  }
 
   def getModifyNodeDetails(xml:NodeSeq) : Box[ModifyNodeDiff] = {
     for {
