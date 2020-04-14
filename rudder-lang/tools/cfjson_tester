@@ -18,36 +18,36 @@ import re
 from subprocess import check_output
 
 # prints the output at json format. If no issue : nothing is printed. Else, print either json diff or python error
-def print_json(filename, json_to_format, is_python_error=False):
+def print_json(function, filename, json_to_format, is_python_error=False):
   if is_python_error:
-    formatted_json = { "file": filename, "diff": json_to_format }
+    formatted_json = { "function": function, "file": filename, "diff": json_to_format }
   else:
-    formatted_json = { "file": filename,  "error": json_to_format }
+    formatted_json = { "function": function, "file": filename,  "error": json_to_format }
   print(json.dumps(formatted_json, indent=2) + ',')
+
 
 def ncf_to_json(cf_file, json_translation):
   methods_data = ncf.get_all_generic_methods_metadata(ncf_path)
   methods = methods_data["data"]["generic_methods"]
 
-  file=cf_file
-
   try:
-    with codecs.open(file, encoding="utf-8") as fd:
+    with codecs.open(cf_file, encoding="utf-8") as fd:
       content = fd.read()
   except IOError as e:
-    print_json(file, str(e), True)
+    print_json("ncf_to_json", cf_file, str(e), True)
     exit(1)
 
   try:
     result = ncf.parse_technique_metadata(content)
     technique = result["result"]
-    technique['method_calls'] = ncf.parse_technique_methods(file, methods)
+    technique['method_calls'] = ncf.parse_technique_methods(cf_file, methods)
   except ncf.NcfError as e:
-    print_json(file, str(e), True)
+    print_json("ncf_to_json", cf_file, str(e), True)
     exit(1)
 
   with open(json_translation, "w") as fd:
     fd.write(json.dumps(technique, indent=4))
+
 
 def compare_json(first, second):
   try:
@@ -57,10 +57,10 @@ def compare_json(first, second):
           j1 = json.load(f1)
           j2 = json.load(f2)
       except IOError as e:
-        print_json(second, str(e), True)
+        print_json("compare_json", second, str(e), True)
         exit(1)
   except IOError as e:
-    print_json(first, str(e), True)
+    print_json("compare_json", first, str(e), True)
     exit(1)
   diff = jsondiff.diff(j1, j2, syntax="symmetric", marshal=True)
   ## diff hacks
@@ -69,24 +69,28 @@ def compare_json(first, second):
       del diff['bundle_name']
   ## print if diff
   if len(diff) != 0:
-    print_json(second, diff)
+    print_json("compare_json", second, diff)
     exit(1)
+
 
 def load_cf(file_name):
   # Check file exists
   if not os.path.exists(file_name):
-    print_json(file_name, 'No such file', True)
-    exit(1)
+    file_name = "{}/{}".format(os.getcwd(), file_name)
+    if not os.path.exists(file_name):
+      print_json("compare_cf", file_name, 'No such file', True)
+      exit(1)
 
   env = os.environ.copy()
   env['RES_OPTIONS'] = 'attempts:0'
-  out = check_output([ncf.CFENGINE_PATH, "-pjson", "-f", file_name], env=env)
   try:
+    out = check_output([ncf.CFENGINE_PATH, "-pjson", "-f", file_name], env=env)
     promises = json.loads(out)
   except Exception as e:
-    print_json(file_name, 'An error occured while parsing technique: {}'.format(str(e)), True)
+    print_json("compare_cf", file_name, 'An error occured while parsing cf technique: {}'.format(str(e)), True)
     exit(1)
   return promises
+
 
 def compare_cf(first, second):
   j1 = load_cf(first)
@@ -95,7 +99,7 @@ def compare_cf(first, second):
   remove_wilful_entries(diff)
   empty_dict_cleaner(diff)
   if diff and len(diff) != 0:
-    print_json(second, diff)
+    print_json("compare_cf", second, diff)
 
 
 ## deletes from diff list every i/o difference done on purpose (ie that are not a bug)
@@ -112,11 +116,14 @@ def remove_wilful_entries(diff):
 
 def empty_dict_cleaner(diff_dict):
   if type(diff_dict) is dict:
-    for element in diff_dict:
-      empty_dict_cleaner(diff_dict[element])
-      if len(diff_dict[element]) == 0:
+    for element in diff_dict.copy():
+      cur = diff_dict[element]
+      empty_dict_cleaner(cur)
+      if len(cur) == 0:
         diff_dict.pop(element)
         return
+      elif type(cur) is dict and len(cur) == 1 and 'line' in cur.keys():
+        diff_dict.pop(element)
 
 
 def deep_get(haystack, deep_list, needle, index=0):
@@ -183,7 +190,7 @@ if __name__ == "__main__":
     ncf_dir = cfg['default_paths']['ncf'].strip('\"')
     cfengine_path = cfg['default_paths']['cfengine'].strip('\"')
   except Exception as e:
-    print_json('(Not yet defined)', 'An error occured while setting config: {}'.format(str(e)), True)
+    print_json('(Not defined yet)', '(Not defined yet)', 'An error occured while setting config up: {}'.format(str(e)), True)
     exit(1)
 
   try:
@@ -192,7 +199,7 @@ if __name__ == "__main__":
     ncf.CFENGINE_PATH=cfengine_path
     ncf_path=ncf_dir+'/tree/30_generic_methods'
   except Exception as e:
-    print_json('(Not yet defined)', 'An error occured while importing ncf: {}'.format(str(e)), True)
+    print_json('(Not defined yet)', '(Not defined yet)', 'An error occured while importing ncf: {}'.format(str(e)), True)
     exit(1)
   
   if arguments['ncf-to-json']:
