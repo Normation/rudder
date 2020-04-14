@@ -114,6 +114,8 @@ class ReadOnlySoftwareDAOImpl(
     // Accepted Dit, to get the software
     val acceptedDit = inventoryDitService.getDit(AcceptedInventory)
 
+    val NB_BATCH_NODES = 25
+
     // We need to search on the parent parent, as acceptedDit.NODES.dn.getParent ou=Accepted inventories
     val nodeBaseSearch = acceptedDit.NODES.dn.getParent.getParent
     var mutSetSoftwares: scala.collection.mutable.Set[SoftwareUuid] = scala.collection.mutable.Set[SoftwareUuid]()
@@ -123,18 +125,24 @@ class ReadOnlySoftwareDAOImpl(
 
       // fetch all nodes
       nodes        = con.searchSub(nodeBaseSearch, IS(OC_NODE), A_NODE_UUID)
-      batchedNodes = nodes.grouped(50).toSeq
-
+      batchedNodes = nodes.grouped(NB_BATCH_NODES).toSeq
       _            <- sequence(batchedNodes) { nodeEntries: Seq[LDAPEntry] =>
-                             val nodeIds      = nodeEntries.flatMap(_(A_NODE_UUID)).map(NodeId(_))
+                             // We need to help garbage collection by enclosing parts in { }
+                             val (ids, t2) = {
+                               val (softwareEntries, t2) = {
+                                 val nodeIds = nodeEntries.flatMap(_ (A_NODE_UUID)).map(NodeId(_))
+                                 val t2 = System.currentTimeMillis
+                                 val orFilter = BuildFilter.OR(nodeIds.map(x => EQ(A_NODE_UUID, x.value)): _*)
+                                 (con.searchSub(nodeBaseSearch, orFilter, A_SOFTWARE_DN), t2)
+                               }
+                               // we need to dedup the softwares here
+                               (softwareEntries.flatMap(entry => entry.valuesFor(A_SOFTWARE_DN)).toSet.toSeq
+                               , t2)
+                             }
 
-                             val t2           = System.currentTimeMillis
-                             val orFilter     = BuildFilter.OR(nodeIds.map(x => EQ(A_NODE_UUID, x.value)): _*)
-                             val softwareEntry=  con.searchSub(nodeBaseSearch, orFilter, A_SOFTWARE_DN)
-                             val ids          = softwareEntry.flatMap(entry => entry.valuesFor(A_SOFTWARE_DN).toSet )
                              val results      = sequence(ids) { id => acceptedDit.SOFTWARE.SOFT.idFromDN(new DN(id)) }
                              val t3           = System.currentTimeMillis()
-                             logger.debug(s"Software DNs from 50 nodes fetched in ${t3-t2}ms")
+                             logger.debug(s"Software DNs from ${NB_BATCH_NODES} nodes fetched in ${t3-t2}ms")
                              results match { // we don't want to return "results" because we need on-site dedup.
                                case Full(softIds) =>
                                  mutSetSoftwares = mutSetSoftwares ++ softIds
