@@ -328,7 +328,7 @@ trait WoNodeGroupRepository {
 
   def createPolicyServerTarget(target: PolicyServerTarget, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[LDIFChangeRecord]
 
-  /**
+    /**
    * Update the given existing group
    * That method does nothing at the configuration level,
    * so you will have to manage rule deployment
@@ -376,6 +376,13 @@ trait WoNodeGroupRepository {
    * @return
    */
   def delete(id:NodeGroupId, modId: ModificationId, actor:EventActor, whyDescription:Option[String]) : IOResult[DeleteNodeGroupDiff]
+
+  /**
+   * Delete the given policyServerTarget.
+   * If no policyServerTarget has such id in the directory, return a success.
+   */
+  def deletePolicyServerTarget(policyServer : PolicyServerTarget): IOResult[PolicyServerTarget]
+
 
   /**
    * Add that group category into the given parent category

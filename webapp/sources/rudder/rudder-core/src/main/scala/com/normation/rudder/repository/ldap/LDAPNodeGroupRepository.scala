@@ -760,6 +760,25 @@ class WoLDAPNodeGroupRepository(
     }
   }
 
+  /**
+   * Delete the given policyServerTarget.
+   * If no policyServerTarget has such id in the directory, return a success.
+   */
+  override def deletePolicyServerTarget(policyServer : PolicyServerTarget): IOResult[PolicyServerTarget] = {
+    val rdn = rudderDit.RULETARGET.ruleTargetDN(policyServer.target)
+    for {
+      con           <- ldap
+      _             <- getCategoryEntry(con, NodeGroupCategoryId("SystemGroups")).flatMap {
+                         case Some(categoryEntry) =>
+                           val entry = LDAPEntry(new DN(rdn, categoryEntry.dn))
+                           con.delete(entry.dn)
+                         case None => policyServer.target.succeed
+                    }
+    } yield {
+      policyServer
+    }
+  }
+
   private[this] def internalUpdate(nodeGroup:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String], systemCall:Boolean, onlyUpdateNodes: Boolean): IOResult[Option[ModifyNodeGroupDiff]] = {
     semaphore.flatMap(_.withPermit(
       for {

@@ -306,6 +306,17 @@ trait WoDirectiveRepository {
    */
   def delete(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[DeleteDirectiveDiff]]
 
+  /**
+   * Delete a directive's system.
+   * No dependency check are done, and so you will have to
+   * delete dependent rule (or other items) by
+   * hand if you want.
+   *
+   * If no directive has such id, return a success.
+   */
+  def deleteSystemDirective(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[DeleteDirectiveDiff]]
+
+
 
   /**
    * Create an active technique from the parameter WBTechnique
