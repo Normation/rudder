@@ -188,26 +188,8 @@ class RoLDAPDirectiveRepository(
       directives <- ZIO.foreach(entries) { piEntry =>
                       mapper.entry2Directive(piEntry).toIO.chainError(s"Error when transforming LDAP entry into a directive. Entry: ${piEntry}")
                     }
-
     } yield {
       directives
-    })
-  }
-
-  /**
-   * Get ActiveTechnique based on a specific technique name
-   */
-  def getActiveTechniqueByTechniqueName(techniqueName: TechniqueName) : IOResult[Seq[ActiveTechnique]] = {
-    userLibMutex.readLock(for {
-      con                    <- ldap
-      rootCategoryEntry      <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn).notOptional(
-             "The root category of the user library of techniques seems to be missing in LDAP directory. Please check its content"
-      )
-      filter                 = AND(IS(OC_ACTIVE_TECHNIQUE), EQ(A_TECHNIQUE_UUID, techniqueName.value))
-      allEntries             <- con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter)
-      activeTechniques       <- allEntries.toList.traverse(entry => mapper.entry2ActiveTechnique(entry).chainError(s"Error when transforming LDAP entry into an Active Technique. Entry: ${entry}")).toIO
-    } yield {
-      activeTechniques
     })
   }
 
