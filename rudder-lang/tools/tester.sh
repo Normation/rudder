@@ -50,7 +50,6 @@ test_dir=$(mktemp -d)
 
 # cfjson_tester is always in the same directory as tester.sh
 cfjson_tester="${self_dir}/cfjson_tester"
-#old cfjson_tester=/opt/rudder/share/rudder-lang/tools/cfjson_tester
 
 # Detect technique path
 technique_path="/var/rudder/configuration-repository/techniques/ncf_techniques/${technique}/1.0/technique.cf"
@@ -114,53 +113,57 @@ else
   # PRODUCTION ENVIRONMENT #
   ##########################
 
-  logpath="/var/log/rudder/rudder-lang"
+  trace="/var/log/rudder/rudder-lang/unhandled_errors.log"
+  logpath="/var/log/rudder/rudder-lang/${technique}"
+  mkdir -p "${logpath}"
   # be careful, file order matters
   logfiles=(
-    "${logpath}/ncf_to_original_json_err"
-    "${logpath}/rudderc_translate_output"
-    "${logpath}/rudderc_compile_output"
-    "${logpath}/ncf_to_generated_json_err"
-    "${logpath}/diff_json"
-    "${logpath}/diff_cf"
+    "${logpath}/ncftojson_original.log"
+    "${logpath}/rudderc_translate.log"
+    "${logpath}/rudderc_compile.log"
+    "${logpath}/ncftojson_generated.log"
+    "${logpath}/compare_json.log"
+    "${logpath}/compare_cf.log"
   )
 
   # JSON log fmt - prepare to receive log data (remove last ']')
   for log in "${logfiles[@]}"
   do
-    if [ ! -f "${log}.json" ]
-  then
-      echo -e '[\n]' > "${log}.json"
-    fi
-    if [[ ! "${log}" =~ /rudderc_ ]]
-  then
-      ([ -f "${log}.trace" ] && echo -e "=== ${technique} ===" >> "${log}.trace") || touch "${log}.trace"
+    if [ ! -f "${log}" ]
+    then
+      echo -e '[\n]' > "${log}"
     fi
     # in case log root array is not empty: 
-    perl -0777 -i -ne 's/\}\n]\n$/\},\n/; print $last = $_; END{print $last}' "${log}.json" &> "/dev/null"
+    perl -0777 -i -ne 's/\}\n]\n$/\},\n/; print $last = $_; END{print $last}' "${log}" &> "/dev/null"
     # in case log root array is empty:
-    perl -0777 -i -ne 's/\[\n]\n$/[\n/; print $last = $_; END{print $last}' "${log}.json" &> "/dev/null"
+    perl -0777 -i -ne 's/\[\n]\n$/[\n/; print $last = $_; END{print $last}' "${log}" &> "/dev/null"
   done
 
-  ${cfjson_tester} ncf-to-json "${technique_path}" "${test_dir}/${technique}.json" >> "${logfiles[0]}.json" 2>> "${logfiles[0]}.trace" \
-    && ${rudderc} -j --translate -i "${test_dir}/${technique}.json" &>> "${logfiles[1]}.json" \
-    && ${rudderc} -j -i "${test_dir}/${technique}.rl" &>> "${logfiles[2]}.json" \
-    && ${cfjson_tester} ncf-to-json "${test_dir}/${technique}.rl.cf" "${test_dir}/${technique}.rl.cf.json" >> "${logfiles[3]}.json" 2>> "${logfiles[3]}.trace" \
-    && ${cfjson_tester} compare-json "${test_dir}/${technique}.json" "${test_dir}/${technique}.rl.cf.json" >> "${logfiles[4]}.json" 2>> "${logfiles[4]}.trace" \
-    && ${cfjson_tester} compare-cf "${technique_path}" "${test_dir}/${technique}.rl.cf" >> "${logfiles[5]}.json" 2>> "${logfiles[5]}.trace"
-  
+  # prepare new entry for log trace or create log trace
+  ([ -f "${trace}" ] && echo -e "\n=== ${technique} ===" >> "${trace}") || touch "${trace}"
+
+  ${cfjson_tester} ncf-to-json "${technique_path}" "${test_dir}/${technique}.json" >> "${logfiles[0]}" 2>> "${trace}" \
+    && ${rudderc} -j --translate -i "${test_dir}/${technique}.json" &>> "${logfiles[1]}" \
+    && ${rudderc} -j -i "${test_dir}/${technique}.rl" &>> "${logfiles[2]}" \
+    && ${cfjson_tester} ncf-to-json "${test_dir}/${technique}.rl.cf" "${test_dir}/${technique}.rl.cf.json" >> "${logfiles[3]}" 2>> "${trace}" \
+    && ${cfjson_tester} compare-json "${test_dir}/${technique}.json" "${test_dir}/${technique}.rl.cf.json" >> "${logfiles[4]}" 2>> "${trace}" \
+    && ${cfjson_tester} compare-cf "${technique_path}" "${test_dir}/${technique}.rl.cf" >> "${logfiles[5]}" 2>> "${trace}"
+
+
+  # clean new log trace entry if no uncatched errors were found
+  if [ -f "${trace}" ] && [[ $(tail -n 1 "${trace}") == "=== ${technique} ===" ]]
+  then
+    head -n -1 "${trace}" > "${test_dir}/tmp.trace"
+	mv "${test_dir}/tmp.trace" "${trace}"
+  fi
+
   # JSON log fmt - end of file (repush last ']' now that content has been added)
   for log in "${logfiles[@]}"
   do
-    # clean new log trace entry if no uncatched errors were found
-    if [ -f "${log}.trace" ] && [[ $(tail -n 1 "${log}.trace") == "=== ${technique} ===" ]]
-  then
-    head -n -1 "${log}.trace" > "${test_dir}/tmp.trace"; mv "${test_dir}/tmp.trace" "${log}.trace"
-  fi
+    # in case log root array is empty, just delete it:
+    [[ $(cat "${log}" | wc -l) == 1 ]] && rm -f ${log}
     # in case log root array is not empty:
-    perl -i -ne 's/,\n$/\n]\n/ if eof; print $last = $_; END{print $last}' "${log}.json" &> "/dev/null"
-    # in case log root array is empty:
-    perl -i -ne 's/\[\n$/\[\n]\n/ if eof; print $last = $_; END{print $last}' "${log}.json" &> "/dev/null"
+    perl -i -ne 's/,\n$/\n]\n/ if eof; print $last = $_; END{print $last}' "${log}" &> "/dev/null"
   done
 fi
 
