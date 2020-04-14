@@ -233,6 +233,16 @@ pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
   background-color: #81a927;
   border-color: #62801e;
 }
+
+.content-wrapper .radio input[type="radio"],
+.content-wrapper .radio-inline input[type="radio"],
+.content-wrapper .checkbox input[type="checkbox"],
+.content-wrapper .checkbox-inline input[type="checkbox"] {
+  margin: 0;
+  left: 0;
+  top: calc(50% - 7px);
+}
+
 /* SPINNERS */
 .content-wrapper .btn i.fa-spin {
   position: absolute;
@@ -2006,7 +2016,8 @@ form.rudder-form .btn-group .btn{
   min-width: 85px;
 }
 form.rudder-form .policymode-group .btn-group .btn,form.rudder-form .btn-group.yesno .btn{
-	font-size:14px;
+  font-size:14px;
+  line-height: 21px;
 }
 form.rudder-form .policymode-group .btn-group .btn .mode{
   color: #3694d1;
@@ -2339,9 +2350,12 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   text-align: center;
   line-height: 34px;
   position: relative;
-  top: 5px;
+  top: 1px;
   margin-bottom:0;
   background-color: #fff;
+}
+.rudder-form  input[type=checkbox] + .label-radio{
+  top: 5px;
 }
 .rudder-form input[type=radio] + .label-radio{
   border-radius: 50%;

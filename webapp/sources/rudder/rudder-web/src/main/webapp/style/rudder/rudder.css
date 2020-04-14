@@ -202,24 +202,28 @@ input.deleteNetwork * {
 }
 
 @media screen and (min-width: 993px) {
-  #reportsGrid tr>th:last-child,#reportsGrid tr>td:last-child{
-    width:30% !important;
+  #reportsGrid tr>th:last-child,#reportsGrid tr>td:last-child,
+  #nodeReportsGrid tr>th:last-child,#nodeReportsGrid tr>td:last-child{
+    width:350px!important;
     white-space:nowrap;
   }
 }
 @media screen and (max-width: 992px) {
-  #reportsGrid tr>th:last-child,#reportsGrid tr>td:last-child{
-    width:40% !important;
+  #reportsGrid tr>th:last-child,#reportsGrid tr>td:last-child,
+  #nodeReportsGrid tr>th:last-child,#nodeReportsGrid tr>td:last-child{
+    width:300px !important;
     white-space:nowrap;
   }
 }
 @media screen and (max-width: 768px) {
-  #reportsGrid tr>th:last-child,#reportsGrid tr>td:last-child{
+  #reportsGrid tr>th:last-child,#reportsGrid tr>td:last-child,
+  #nodeReportsGrid tr>th:last-child,#nodeReportsGrid tr>td:last-child{
     width:50% !important;
     white-space:nowrap;
   }
 }
-#reportsGrid tr>th:first-child,#reportsGrid tr>td:first-child{
+#reportsGrid tr>th:last-child,#reportsGrid tr>td:last-child,
+#nodeReportsGrid tr>th:last-child,#nodeReportsGrid tr>td:last-child{
   width:auto !important;
   white-space: normal;
 }
