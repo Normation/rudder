@@ -54,7 +54,6 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.FullActiveTechnique
-
 import com.normation.rudder.api.ApiAccount
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.web.components.DateFormaterService
@@ -99,8 +98,8 @@ trait RestDataSerializer {
 }
 
 final case class RestDataSerializerImpl (
-    readTechnique : TechniqueRepository
-  , diffService   : DiffService
+    readTechnique       : TechniqueRepository
+  , diffService         : DiffService
 ) extends RestDataSerializer with Loggable {
 
   private[this] def serializeMachineType(machine: Option[MachineType]): JValue = {

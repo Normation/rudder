@@ -1193,9 +1193,9 @@ final case class RestExtractorService (
       select     <- OptionnalJson.extractJsonListString(json, "select")
 
     } yield {
-      ( if (allowEmpty) Nil else NonEmpty :: Nil) :::
-      ( if (allowWS) Nil else NoWhiteSpace :: Nil) :::
-      ( MaxLength(maxLength) ::
+      ( AllowEmpty(allowEmpty) ::
+        AllowWhiteSpace(allowWS) ::
+        MaxLength(maxLength) ::
         minLength.map(MinLength).toList :::
         regex.map(MatchRegex).toList :::
         notRegex.map(NotMatchRegex).toList :::

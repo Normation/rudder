@@ -107,6 +107,7 @@ class TechniqueWriter (
   , xmlPrettyPrinter : RudderPrettyPrinter
   , basePath         : String
   , parameterTypeService: ParameterTypeService
+  , techniqueSerializer: TechniqueSerializer
 ) {
 
   private[this] val agentSpecific = new ClassicTechniqueWriter(basePath, parameterTypeService) :: new DSCTechniqueWriter(basePath, translater, parameterTypeService) :: Nil
@@ -276,6 +277,7 @@ class TechniqueWriter (
     for {
       agentFiles <- writeAgentFiles(technique, methods, modId, committer)
       metadata   <- writeMetadata(technique, methods, modId, committer)
+      json       <- writeJson(technique)
       commit     <- archiver.commitTechnique(technique,metadata +: agentFiles, modId, committer, s"Committing technique ${technique.name}")
     } yield {
       metadata +: agentFiles
@@ -309,6 +311,23 @@ class TechniqueWriter (
   }
 
 
+  def writeJson(technique: Technique) = {
+    val metadataPath = s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/technique.json"
+
+    val path = s"${basePath}/${metadataPath}"
+
+    val content = techniqueSerializer.serializeTechniqueMetadata(technique)
+    for {
+
+      _       <- IOResult.effect(s"An error occurred while creating json file for Technique '${technique.name}'") {
+        implicit val charSet = StandardCharsets.UTF_8
+        val file = File (path).createFileIfNotExists (true)
+        file.write (net.liftweb.json.prettyRender(content))
+      }
+    } yield {
+      metadataPath
+    }
+  }
 }
 
 trait AgentSpecificTechniqueWriter {
