@@ -555,6 +555,7 @@ class Boot extends Loggable {
             override val shortName: String = sn
             override val description: NodeSeq = <p>{p.name}</p>
             override val version: PluginVersion = p.version
+            override val versionInfo: Option[String] = None
             override val status: PluginStatus = AlwaysEnabledPluginStatus
             override val init = ()
             override val basePackage: String = p.name
