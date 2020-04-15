@@ -136,27 +136,35 @@ resource {bundle_name}({parameters})
         Ok(out)
     }
 
-    fn translate_call(&self, call: &MethodCall) -> Result<String> {
-        lazy_static! {
-            static ref RE: Regex = Regex::new(r"^([a-z]+)_(\w+)$").unwrap();
-            static ref RE_KERNEL_MODULE: Regex = Regex::new(r"^(kernel_module)_(\w+)$").unwrap();
-        }
-
-        // `kernel_module` uses the main `_` resource/state separator
-        // so an exception is required to parse it properly
-        // dealt with the exception first, then with the common case
-        let (resource, state) = match RE_KERNEL_MODULE.captures(&call.method_name) {
-            Some(caps) => (caps.get(1).unwrap().as_str(), caps.get(2).unwrap().as_str()),
-            // here is the common case
-            None => match RE.captures(&call.method_name) {
-                Some(caps) => (caps.get(1).unwrap().as_str(), caps.get(2).unwrap().as_str()),
-                None => {
-                    return Err(Error::User(format!(
-                        "Invalid method name '{}'",
-                        call.method_name
-                    )))
+    fn get_method_from_stdlib(&self, method_name: &str) -> Option<(String, String)> {
+        let matched_pairs: Vec<(&str, &str)> = self.stdlib
+            .resources
+            .iter()
+            .filter_map(|(res_as_tk, resdef)| {
+                if method_name.starts_with(**res_as_tk) {
+                    let matched_pairs = resdef.states.iter().filter_map(|(state_as_tk, _)| {
+                        if method_name == &format!("{}_{}", **res_as_tk, **state_as_tk) {
+                            return Some((**res_as_tk, **state_as_tk))
+                        }
+                        None
+                    }).collect::<Vec<(&str, &str)>>();
+                    return Some(matched_pairs)
                 }
-            },
+                None
+            })
+            .flatten()
+            .collect();
+        match matched_pairs.as_slice() {
+            [] => None,
+            [(resource, state)] => Some(((*resource).to_owned(), (*state).to_owned())),
+            _ => panic!(format!("The standard library contains several matches for the following method: {}", method_name))
+        }
+    }
+    
+    fn translate_call(&self, call: &MethodCall) -> Result<String> {
+        let (resource, state) = match self.get_method_from_stdlib(&call.method_name) {
+            Some(res) => res,
+            None => return Err(Error::User(format!("Invalid method name '{}'", call.method_name)))
         };
 
         // split argument list
@@ -164,7 +172,7 @@ resource {bundle_name}({parameters})
             None => return Err(Error::User("No resources section in config.toml".into())),
             Some(m) => m,
         };
-        let res_arg_v = match rconf.get(resource) {
+        let res_arg_v = match rconf.get(&resource) {
             None => toml::value::Value::Integer(1),
             Some(r) => r.clone(),
         };
@@ -173,7 +181,7 @@ resource {bundle_name}({parameters})
             None => {
                 return Err(Error::User(format!(
                     "Resource prefix '{}' must have a number as its parameter count",
-                    resource
+                    &resource
                 )))
             }
             Some(v) => v as usize,
@@ -183,7 +191,7 @@ resource {bundle_name}({parameters})
         let st_args = map_strings_results(it, |x| self.translate_arg(x), ",")?;
 
         // call formating
-        let call_str = format!("{}({}).{}({})", resource, res_args, state, st_args);
+        let call_str = format!("{}({}).{}({})", &resource, res_args, &state, st_args);
         let out_state = if call.class_context == "any" {
             format!("  {}", call_str)
         } else {
