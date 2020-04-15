@@ -106,7 +106,7 @@ class TemplateCliTest extends Specification with ContentMatchers with AfterAll {
       val res = TemplateCli.process(Config(variables = new File(testDir, "variables.json") )).either.runNow
       res match {
         case Right(_)  => ko(s"It should be a failure but we get: ${res}")
-        case Left(err) => err.fullMsg === "Inconsistancy: Can not get template content from stdin and no template file given"
+        case Left(err) => err.fullMsg === "Inconsistency: Can not get template content from stdin and no template file given"
       }
     }
 

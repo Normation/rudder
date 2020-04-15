@@ -843,7 +843,7 @@ class InventoryMapper(
     set.toSeq.flatMap { x =>
       (for {
         dn   <- try { Right(new DN(x)) } catch { case e:LDAPException => Left(MalformedDN(s"Can not parse DN: '${x}'. Exception was: ${e.getMessage}")) }
-        dit  <- ditService.getDit(dn).toRight(Inconsistancy(s"Can not find DIT from DN '${x}'"))
+        dit  <- ditService.getDit(dn).toRight(Inconsistency(s"Can not find DIT from DN '${x}'"))
         uuid <- dit.MACHINES.MACHINE.idFromDN(dn)
         st   =  ditService.getInventoryStatus(dit)
       } yield (uuid, st) ) match {

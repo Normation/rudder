@@ -75,9 +75,9 @@ object GitRepositoryProviderImpl {
      */
     def checkPackageDirectory(dir: File): IOResult[Unit] = {
       if (!dir.exists) {
-        Inconsistancy("Directory %s does not exist, how do you want that I read policy package in it?".format(dir)).fail
+        Inconsistency("Directory %s does not exist, how do you want that I read policy package in it?".format(dir)).fail
       } else if (!dir.canRead) {
-        Inconsistancy("Directory %s is not readable, how do you want that I read policy package in it?".format(dir)).fail
+        Inconsistency("Directory %s is not readable, how do you want that I read policy package in it?".format(dir)).fail
       } else UIO.unit
     }
 

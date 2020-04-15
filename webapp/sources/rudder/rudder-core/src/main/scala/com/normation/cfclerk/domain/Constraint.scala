@@ -37,7 +37,7 @@
 
 package com.normation.cfclerk.domain
 
-import com.normation.errors.Inconsistancy
+import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
 import org.joda.time.format.ISODateTimeFormat
 
@@ -87,7 +87,7 @@ sealed trait STBoolean extends VTypeConstraint {
     try {
       Right(value.toBoolean)
     } catch {
-      case _:Exception => Left(Inconsistancy(s"Wrong value ${value} for field '${forField}': expecting a boolean"))
+      case _:Exception => Left(Inconsistency(s"Wrong value ${value} for field '${forField}': expecting a boolean"))
     }
   }
 }
@@ -161,7 +161,7 @@ final case class IntegerVType(regex: Option[RegexConstraint] = None) extends VTy
       (try {
         Right(value.toInt)
       } catch {
-        case _:Exception => Left(Inconsistancy(s"Wrong value ${value} for field '${forField}': expecting an integer."))
+        case _:Exception => Left(Inconsistency(s"Wrong value ${value} for field '${forField}': expecting an integer."))
       }).map( _ => value )
     )
   }
@@ -181,7 +181,7 @@ final case class DateTimeVType(regex: Option[RegexConstraint] = None) extends VT
       (try
         Right(ISODateTimeFormat.dateTimeParser.parseDateTime(value))
       catch {
-        case _:Exception => Left(Inconsistancy(s"Wrong value ${value} for field '${forField}': expecting a datetime in ISO 8601 standard."))
+        case _:Exception => Left(Inconsistency(s"Wrong value ${value} for field '${forField}': expecting a datetime in ISO 8601 standard."))
       }).map( _.toString(ISODateTimeFormat.dateTime()))
     )
   }

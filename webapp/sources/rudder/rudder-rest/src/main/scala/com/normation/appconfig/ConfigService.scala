@@ -507,7 +507,7 @@ class LDAPBasedConfigService(
     try {
       p.map(Integer.parseInt(_))
     } catch {
-      case ex:NumberFormatException => Inconsistancy(ex.getMessage).fail
+      case ex:NumberFormatException => Inconsistency(ex.getMessage).fail
     }
   }
 
@@ -544,7 +544,7 @@ class LDAPBasedConfigService(
       save("rudder_workflow_enabled", value) <*
       IOResult.effect(workflowUpdate ! WorkflowUpdate)
     } else {
-      Inconsistancy("You can't change the change validation workflow type. Perhaps are you missing the 'changes validation' plugin?").fail
+      Inconsistency("You can't change the change validation workflow type. Perhaps are you missing the 'changes validation' plugin?").fail
     }
   }
   def set_rudder_workflow_self_validation(value: Boolean): IOResult[Unit] = save("rudder_workflow_self_validation", value)

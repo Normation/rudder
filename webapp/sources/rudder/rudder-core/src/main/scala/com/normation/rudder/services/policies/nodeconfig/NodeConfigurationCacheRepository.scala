@@ -417,7 +417,7 @@ class LdapNodeConfigurationHashRepository(
       case Some(e) =>
         for {
           typeOk <- ZIO.when(!e.isA(OC_NODES_CONFIG)) {
-                      Inconsistancy(s"Entry ${e.dn} is not a '${OC_NODES_CONFIG}', can not find node configuration caches. Entry details: ${e}").fail
+                      Inconsistency(s"Entry ${e.dn} is not a '${OC_NODES_CONFIG}', can not find node configuration caches. Entry details: ${e}").fail
                     }
         } yield {
            e.valuesFor(A_NODE_CONFIG).flatMap { json =>

@@ -999,7 +999,7 @@ class PolicyWriterServiceImpl(
              } yield ()
            } else {
              PolicyGenerationLoggerPure.error(s"Could not find freshly created policies at '${sourceFolder}'") *>
-             Inconsistancy(s"Source policies at '${src.pathAsString}' are missing'").fail
+             Inconsistency(s"Source policies at '${src.pathAsString}' are missing'").fail
            }
     } yield ()
   }
@@ -1021,7 +1021,7 @@ class PolicyWriterServiceImpl(
         UIO.unit
       } else {
         PolicyGenerationLoggerPure.error(s"Could not find freshly backup policies at '${backupFolder}'") *>
-        Inconsistancy(s"Backup policies could not be found at '${src.pathAsString}', and valid policies couldn't be restored.").fail
+        Inconsistency(s"Backup policies could not be found at '${src.pathAsString}', and valid policies couldn't be restored.").fail
       }
     }
   }

@@ -146,8 +146,8 @@ object errors {
   // a generic error to tell "I wasn't expecting that value"
   final case class Unexpected(msg: String) extends RudderError
 
-  // a generic error to tell "there is some (business logic related) inconsistancy"
-  final case class Inconsistancy(msg: String) extends RudderError
+  // a generic error to tell "there is some (business logic related) Inconsistency"
+  final case class Inconsistency(msg: String) extends RudderError
 
   trait BaseChainError[E <: RudderError] extends RudderError {
     def cause: E
@@ -200,13 +200,13 @@ object errors {
   // not optional - mandatory presence of an object
   implicit class OptionToPureResult[A](val res: Option[A]) extends AnyVal {
     def notOptionalPure(error: => String) = res match {
-      case None    => Left(Inconsistancy(error))
+      case None    => Left(Inconsistency(error))
       case Some(x) => Right(x)
     }
   }
   implicit class OptionToIoResult[A](val res: Option[A]) extends AnyVal {
     def notOptional(error: => String) = res match {
-      case None    => Inconsistancy(error).fail
+      case None    => Inconsistency(error).fail
       case Some(x) => x.succeed
     }
   }

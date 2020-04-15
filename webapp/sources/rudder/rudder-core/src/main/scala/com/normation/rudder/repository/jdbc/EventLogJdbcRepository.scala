@@ -96,7 +96,7 @@ class EventLogJdbcRepository(
           saved
         }).blocking
 
-      case _ => Inconsistancy(s"Eventlog with type '${eventLog.eventType} has invalid XML for details (it must be a well formed document with only one root): ${eventLog.details}'").fail
+      case _ => Inconsistency(s"Eventlog with type '${eventLog.eventType} has invalid XML for details (it must be a well formed document with only one root): ${eventLog.details}'").fail
     }
   }
 
@@ -294,7 +294,7 @@ private object EventLogReportsMapper extends NamedZioLogger {
       case Some(value) =>
         Right(value)
       case None        =>
-        Left(Inconsistancy(s"Unknow Event type: '${eventType.serialize}'"))
+        Left(Inconsistency(s"Unknow Event type: '${eventType.serialize}'"))
     }
   }
 }

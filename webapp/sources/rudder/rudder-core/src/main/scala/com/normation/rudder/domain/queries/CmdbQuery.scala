@@ -145,7 +145,7 @@ sealed trait CriterionType extends ComparatorList {
         case Exists | NotExists => Right(value) //ok, just ignored it
         case _                  => validateSubCase(value,c)
       }
-    case None    => Left(Inconsistancy("Unrecognized comparator name: " + compName))
+    case None    => Left(Inconsistency("Unrecognized comparator name: " + compName))
   }
 
   protected def validateSubCase(value: String, comparator: CriterionComparator) : PureResult[String]
@@ -155,7 +155,7 @@ sealed trait CriterionType extends ComparatorList {
       val _ = java.util.regex.Pattern.compile(value) //yes, "_" is not used, side effects are fabulous! KEEP IT
       Right(value)
     } catch {
-      case ex: java.util.regex.PatternSyntaxException => Left(Inconsistancy(s"The regular expression '${value}' is not valid. Expected regex syntax is the java one, documented here: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html. Exception was: ${ex.getMessage}"))
+      case ex: java.util.regex.PatternSyntaxException => Left(Inconsistency(s"The regular expression '${value}' is not valid. Expected regex syntax is the java one, documented here: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html. Exception was: ${ex.getMessage}"))
     }
   }
 }
@@ -202,7 +202,7 @@ final case object NodeStateComparator extends NodeCriterionType {
   override def comparators = Seq(Equals, NotEquals)
 
   override protected def validateSubCase(v: String, comparator:CriterionComparator): PureResult[String] = {
-    if (null == v || v.isEmpty) Left(Inconsistancy("Empty string not allowed")) else Right(v)
+    if (null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
   }
 
   override def matches(comparator: CriterionComparator, value: String): NodeInfoMatcher = {
@@ -262,14 +262,14 @@ final case class NodePropertyComparator(ldapAttr: String) extends NodeCriterionT
         if(value.contains("=")) {
           Right(value)
         } else {
-          Left(Inconsistancy(s"When looking for 'key=value', the '=' is mandatory. The left part is a key name, and the right part is the string to look for."))
+          Left(Inconsistency(s"When looking for 'key=value', the '=' is mandatory. The left part is a key name, and the right part is the string to look for."))
         }
       case KeyValueComparator.JsonSelect =>
         val x = value.split(":")
         if(x.nonEmpty) { // remaining '=' will be considered part of the value
           Right(value)
         } else {
-          Left(Inconsistancy(s"When looking for 'key=json path expression', we found zero ':', but at least one is mandatory. The left "+
+          Left(Inconsistency(s"When looking for 'key=json path expression', we found zero ':', but at least one is mandatory. The left "+
                   "part is a key name, and the right part is the JSON path expression (see https://github.com/json-path/JsonPath). For example: datacenter:world.europe.[?(@.city=='Paris')]"))
         }
       case Regex | NotRegex   => validateRegex(value)
@@ -359,7 +359,7 @@ final case class BareComparator(override val comparators: CriterionComparator*) 
 trait TStringComparator extends LDAPCriterionType {
 
   override protected def validateSubCase(v: String, comparator: CriterionComparator) = {
-    if(null == v || v.isEmpty) Left(Inconsistancy("Empty string not allowed")) else {
+    if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else {
       comparator match {
         case Regex | NotRegex => validateRegex(v)
         case x                => Right(v)
@@ -424,7 +424,7 @@ final case object DateComparator extends LDAPCriterionType {
     Right(frenchFmt.parseDateTime(v).toString)
   } catch {
     case e:Exception =>
-      Left(Inconsistancy(s"Invalide date: '${v}'. Error was: ${e.getMessage}"))
+      Left(Inconsistency(s"Invalide date: '${v}'. Error was: ${e.getMessage}"))
   }
   //init a jquery datepicker
   override def initForm(formId:String) : JsCmd = OnLoad(JsRaw(
@@ -441,7 +441,7 @@ final case object DateComparator extends LDAPCriterionType {
     Right(date)
   } catch {
     case e:Exception =>
-      Left(Inconsistancy(s"Invalide date: '${value}'. Error was: ${e.getMessage}"))
+      Left(Inconsistency(s"Invalide date: '${value}'. Error was: ${e.getMessage}"))
   }
 
   /*
@@ -476,11 +476,11 @@ final case object BooleanComparator extends LDAPCriterionType {
   override val comparators = BaseComparators.comparators
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = v.toLowerCase match {
     case "t" | "f" | "true" | "false" => Right(v)
-    case _ => Left(Inconsistancy(s"Bad input: boolean expected, '${v}' found"))
+    case _ => Left(Inconsistency(s"Bad input: boolean expected, '${v}' found"))
   }
   override def toLDAP(v:String) = v.toLowerCase match {
     case "t" | "f" | "true" | "false" => Right(v)
-    case _ => Left(Inconsistancy(s"Bad input: boolean expected, '${v}' found"))
+    case _ => Left(Inconsistency(s"Bad input: boolean expected, '${v}' found"))
   }
 }
 
@@ -489,12 +489,12 @@ final case object LongComparator extends LDAPCriterionType {
   override protected def validateSubCase(v:String,comparator:CriterionComparator) =  try {
     Right((v.toLong).toString)
   } catch {
-    case e:Exception => Left(Inconsistancy(s"Invalid long : '${v}'"))
+    case e:Exception => Left(Inconsistency(s"Invalid long : '${v}'"))
   }
   override def toLDAP(v:String) = try {
     Right((v.toLong).toString)
   } catch {
-    case e:Exception => Left(Inconsistancy(s"Invalid long : '${v}'"))
+    case e:Exception => Left(Inconsistency(s"Invalid long : '${v}'"))
   }
 }
 
@@ -505,13 +505,13 @@ final case object MemoryComparator extends LDAPCriterionType {
       case Regex | NotRegex => validateRegex(v)
       case _ =>
         if(MemorySize.parse(v).isDefined) Right(v)
-        else Left(Inconsistancy(s"Invalid memory size : '${v}', expecting '300 M', '16KB', etc"))
+        else Left(Inconsistency(s"Invalid memory size : '${v}', expecting '300 M', '16KB', etc"))
     }
   }
 
   override def toLDAP(v:String) = MemorySize.parse(v) match {
     case Some(m) => Right(m.toString)
-    case None => Left(Inconsistancy(s"Invalid memory size : '${v}', expecting '300 M', '16KB', etc"))
+    case None => Left(Inconsistency(s"Invalid memory size : '${v}', expecting '300 M', '16KB', etc"))
   }
 }
 
@@ -522,7 +522,7 @@ final case object MachineComparator extends LDAPCriterionType {
 
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v: String, comparator:CriterionComparator) = {
-    if (null == v || v.isEmpty) Left(Inconsistancy("Empty string not allowed")) else Right(v)
+    if (null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
   }
 
   override def toLDAP(value: String) = Right(value)
@@ -552,7 +552,7 @@ final case object OstypeComparator extends LDAPCriterionType {
   val osTypes = List("AIX", "BSD", "Linux", "Solaris", "Windows")
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
-    if(null == v || v.isEmpty) Left(Inconsistancy("Empty string not allowed")) else Right(v)
+    if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
   }
   override def toLDAP(value:String) = Right(value)
 
@@ -592,7 +592,7 @@ final case object OsNameComparator extends LDAPCriterionType {
 
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
-    if(null == v || v.isEmpty) Left(Inconsistancy("Empty string not allowed")) else Right(v)
+    if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
   }
   override def toLDAP(value:String) = Right(value)
 
@@ -645,7 +645,7 @@ final case object AgentComparator extends LDAPCriterionType {
 
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
-    if(null == v || v.isEmpty) Left(Inconsistancy("Empty string not allowed")) else Right(v)
+    if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
   }
   override def toLDAP(value:String) = Right(value)
 
@@ -692,7 +692,7 @@ final case object EditorComparator extends LDAPCriterionType {
   val editors = List("Microsoft", "RedHat", "Debian", "Adobe", "Macromedia")
   override val comparators = BaseComparators.comparators
   override protected def validateSubCase(v:String,comparator:CriterionComparator) =
-    if(editors.contains(v)) Right(v) else Left(Inconsistancy(s"Invalide editor : '${v}'"))
+    if(editors.contains(v)) Right(v) else Left(Inconsistency(s"Invalide editor : '${v}'"))
   override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
     SHtml.select(
       (editors map (e => (e,e))).toSeq,
@@ -916,7 +916,7 @@ final case object QueryReturnType {
     value match {
       case NodeReturnType.value => Right(NodeReturnType)
       case NodeAndPolicyServerReturnType.value => Right(NodeAndPolicyServerReturnType)
-      case _ => Left(Inconsistancy(s"Query return type '${value}' is not valid"))
+      case _ => Left(Inconsistency(s"Query return type '${value}' is not valid"))
     }
   }
 }

@@ -96,12 +96,12 @@ trait GitArchiverUtils {
           if(directory.isDirectory) {
             if(directory.canWrite) {
               Right(directory)
-            } else Left(Inconsistancy(s"The directory '${directory.getPath}' has no write permission, please use another directory"))
-          } else Left(Inconsistancy("File at '%s' is not a directory, please change configuration".format(directory.getPath)))
+            } else Left(Inconsistency(s"The directory '${directory.getPath}' has no write permission, please use another directory"))
+          } else Left(Inconsistency("File at '%s' is not a directory, please change configuration".format(directory.getPath)))
         } else if(directory.mkdirs) {
           GitArchiveLogger.debug(s"Creating missing directory '${directory.getPath}'")
           Right(directory)
-        } else Left(Inconsistancy(s"Directory '${directory.getPath}' does not exists and can not be created, please use another directory"))
+        } else Left(Inconsistency(s"Directory '${directory.getPath}' does not exists and can not be created, please use another directory"))
       } catch {
         case NonFatal(ex) => Left(SystemError(s"Exception when checking directory '${directory.getPath}'", ex))
       }

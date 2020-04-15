@@ -510,7 +510,7 @@ class RuleApiService6 (
       (category,parent) =  found
       rules             <- readRule.getAll()
       ok                <- ZIO.when(!category.canBeDeleted(rules.toList)) {
-                             Inconsistancy(s"Cannot delete category '${category.name}' since that category is not empty").fail
+                             Inconsistency(s"Cannot delete category '${category.name}' since that category is not empty").fail
                            }
       _                <- writeRuleCategory.delete(id, modId, actor, reason)
       category         <- getCategoryInformations(category,parent,MinimalDetails).toIO

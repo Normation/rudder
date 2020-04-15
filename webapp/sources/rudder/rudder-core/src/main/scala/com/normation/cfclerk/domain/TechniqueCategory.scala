@@ -156,7 +156,7 @@ sealed trait TechniqueCategory {
   val isSystem : Boolean
 
   require(subCategoryIds.forall(sc => sc.parentId == id),
-      "Inconsistancy in the Technique Category; one of the subcategories is not marked as having [%s] as parent. Subcategory ids: %s".format(
+      "Inconsistency in the Technique Category; one of the subcategories is not marked as having [%s] as parent. Subcategory ids: %s".format(
           id.toString,
           subCategoryIds.map( _.toString).mkString("\n", "\n", "\n")
       ) )

@@ -192,12 +192,12 @@ object TemplateCli {
   def readStdin(): IOResult[String] = {
     for {
       in      <- IOResult.effect("Error when trying to access stdin")(new java.io.InputStreamReader(System.in))
-      ready   <- if(in.ready) UIO.unit else Inconsistancy("Can not get template content from stdin and no template file given").fail
+      ready   <- if(in.ready) UIO.unit else Inconsistency("Can not get template content from stdin and no template file given").fail
       content <- IOResult.effect("Error when trying to read content from stdin")(IOUtils.toString(System.in, "UTF-8"))
       ok      <- if(content.length > 0) {
                    content.succeed
                  } else {
-                   Inconsistancy("Can not get template content from stdin and no template file given").fail
+                   Inconsistency("Can not get template content from stdin and no template file given").fail
                  }
     } yield {
       ok
@@ -214,7 +214,7 @@ object TemplateCli {
    */
   def fill(variables: Seq[STVariable], outDir: File, inputExtension: String, outputExtension: String, timer: FillTemplateTimer)(template: File): IOResult[String] = {
     for {
-      ok      <- if(template.getName.endsWith(inputExtension)) { UIO.unit } else { Inconsistancy(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'").fail }
+      ok      <- if(template.getName.endsWith(inputExtension)) { UIO.unit } else { Inconsistency(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'").fail }
       content <- IOResult.effect(s"Error when reading variables from ${template.getAbsolutePath}")(FileUtils.readFileToString(template, StandardCharsets.UTF_8))
       filled  <- fillerService.fill(template.getAbsolutePath, content, variables, timer)
       name     = template.getName
@@ -230,7 +230,7 @@ object TemplateCli {
    */
   def fillToStdout(variables: Seq[STVariable], inputExtension: String, timer: FillTemplateTimer)(template: File): IOResult[String] = {
     for {
-      ok      <- if(template.getName.endsWith(inputExtension)) { UIO.unit } else { Inconsistancy(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'").fail }
+      ok      <- if(template.getName.endsWith(inputExtension)) { UIO.unit } else { Inconsistency(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'").fail }
       content <- IOResult.effect(s"Error when reading variables from ${template.getAbsolutePath}")(FileUtils.readFileToString(template, StandardCharsets.UTF_8))
       writed  <- filledAndWriteToStdout(variables, content, template.getName, timer)
     } yield {

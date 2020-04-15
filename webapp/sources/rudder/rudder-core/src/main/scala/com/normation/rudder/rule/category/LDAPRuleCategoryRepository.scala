@@ -107,7 +107,7 @@ class RoLDAPRuleCategoryRepository(
         case 1 => Some(categoryEntries(0)).succeed
         case _ =>
           val categoryDN = categoryEntries.map( _.dn).mkString("; ")
-          Inconsistancy(s"Error, the directory contains multiple occurrence of group category with id ${id.value}. DN: ${categoryDN}").fail
+          Inconsistency(s"Error, the directory contains multiple occurrence of group category with id ${id.value}. DN: ${categoryDN}").fail
       }
     }
   }
@@ -207,7 +207,7 @@ class WoLDAPRuleCategoryRepository(
   private[this] def getParents(id:RuleCategoryId) : IOResult[List[RuleCategory]] = {
     for {
       root    <- getRootCategory
-      parents <- root.findParents(id).leftMap(s => Inconsistancy(s)).toIO
+      parents <- root.findParents(id).leftMap(s => Inconsistency(s)).toIO
     } yield {
       parents
     }
@@ -231,7 +231,7 @@ class WoLDAPRuleCategoryRepository(
       parentCategoryEntry <- getCategoryEntry(con, into, "1.1").notOptional(s"The parent category '${into.value}' was not found, can not add")
       exists              <- categoryExists(con, that.name, parentCategoryEntry.dn)
       canAddByName        <- ZIO.when(exists) {
-                               Inconsistancy(s"Cannot create the Node Group Category with name '${that.name}' : a category with the same name exists at the same level").fail
+                               Inconsistency(s"Cannot create the Node Group Category with name '${that.name}' : a category with the same name exists at the same level").fail
                              }
       categoryEntry       =  mapper.ruleCategory2ldap(that,parentCategoryEntry.dn)
       result              <- categoryMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
@@ -270,7 +270,7 @@ class WoLDAPRuleCategoryRepository(
         newParent        <- getCategoryEntry(con, containerId, "1.1").notOptional(s"Parent entry with ID '${containerId.value}' was not found")
         exists           <- categoryExists(con, category.name, newParent.dn, category.id)
         canAddByName     <- ZIO.when(exists) {
-                              Inconsistancy(s"Cannot update the Node Group Category with name ${category.name} : a category with the same name exists at the same level").fail
+                              Inconsistency(s"Cannot update the Node Group Category with name ${category.name} : a category with the same name exists at the same level").fail
                             }
         categoryEntry    =  mapper.ruleCategory2ldap(category,newParent.dn)
         moved            <- if (newParent.dn == oldCategoryEntry.dn.getParent) {

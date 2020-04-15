@@ -36,7 +36,7 @@
 
 package com.normation.rudder.services.policies.write
 
-import com.normation.errors.Inconsistancy
+import com.normation.errors.Inconsistency
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -61,7 +61,7 @@ class PathComputerTest extends Specification {
 
   "The paths for " should {
     "the root node should raise an error" in {
-      pathComputer.computeBaseNodePath(root.id, root.id, allNodeConfig.view.mapValues(_.nodeInfo).toMap) must beAnInstanceOf[Left[Inconsistancy, _]]
+      pathComputer.computeBaseNodePath(root.id, root.id, allNodeConfig.view.mapValues(_.nodeInfo).toMap) must beAnInstanceOf[Left[Inconsistency, _]]
     }
 
     "the nodeConfig should be " in {
@@ -81,7 +81,7 @@ class PathComputerTest extends Specification {
       val badNode1 = node1NodeConfig.copy(nodeInfo = node1NodeConfig.nodeInfo.copy(policyServerId = node2.id) )
       val badNode2 = node2NodeConfig.copy(nodeInfo = node2NodeConfig.nodeInfo.copy(policyServerId = node1.id) )
       val badConfig = allNodeConfig + (node1.id -> badNode1) + (node2.id -> badNode2)
-      pathComputer.computeBaseNodePath(node1.id, root.id, badConfig.view.mapValues(_.nodeInfo).toMap) must beAnInstanceOf[Left[Inconsistancy, _]]
+      pathComputer.computeBaseNodePath(node1.id, root.id, badConfig.view.mapValues(_.nodeInfo).toMap) must beAnInstanceOf[Left[Inconsistency, _]]
     }
   }
 

@@ -178,7 +178,7 @@ class LDAPEntityMapper(
     if(e.isA(OC_RUDDER_NODE)||e.isA(OC_POLICY_SERVER_NODE)) {
       //OK, translate
       for {
-        id   <- nodeDit.NODES.NODE.idFromDn(e.dn).toRight(Inconsistancy(s"Bad DN found for a Node: ${e.dn}"))
+        id   <- nodeDit.NODES.NODE.idFromDn(e.dn).toRight(Inconsistency(s"Bad DN found for a Node: ${e.dn}"))
         date <- e.requiredAs[GeneralizedTime]( _.getAsGTime, A_OBJECT_CREATION_DATE)
         agentRunInterval = e(A_SERIALIZED_AGENT_RUN_INTERVAL).map(unserializeAgentRunInterval(_))
         heartbeatConf = e(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION).map(unserializeNodeHeartbeatConfiguration(_))

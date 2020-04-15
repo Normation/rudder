@@ -188,7 +188,7 @@ class GitTechniqueReader(
                                         revisionProvider.setCurrentRevTreeId(newRevTreeId) *>
                                         processRevTreeId(repo.db, newRevTreeId)
                                       } else {
-                                        Inconsistancy("Please add a root category.xml and commit it before restarting Rudder.").fail
+                                        Inconsistency("Please add a root category.xml and commit it before restarting Rudder.").fail
                                       }
                             } yield res
                           case SystemError(m, ex:MissingObjectException) => //ah, that commit is not know on our repos

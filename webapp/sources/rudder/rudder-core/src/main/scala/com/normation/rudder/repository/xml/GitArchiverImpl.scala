@@ -365,7 +365,7 @@ class GitActiveTechniqueArchiverImpl(
   private[this] def newActiveTechniqueFile(ptName:TechniqueName, parents: List[ActiveTechniqueCategoryId]) = {
     //parents can not be null: we must have at least the root category
     parents match {
-      case Nil => Inconsistancy(s"Active Techniques '${ptName.value}' was asked to be saved in a category which does not exist (empty list of parents, not even the root cateogy was given!)").fail
+      case Nil => Inconsistency(s"Active Techniques '${ptName.value}' was asked to be saved in a category which does not exist (empty list of parents, not even the root cateogy was given!)").fail
       case h::tail => new File(new File(newCategoryDirectory(h,tail),ptName.value), activeTechniqueFileName).succeed
     }
   }
@@ -484,7 +484,7 @@ class GitDirectiveArchiverImpl(
     , parents: List[ActiveTechniqueCategoryId]
   ) = {
     parents match {
-      case Nil => Inconsistancy("Can not save directive '%s' for technique '%s' because no category (not even the root one) was given as parent for that technique".format(directiveId.value, ptName.value)).fail
+      case Nil => Inconsistency("Can not save directive '%s' for technique '%s' because no category (not even the root one) was given as parent for that technique".format(directiveId.value, ptName.value)).fail
       case h::tail =>
         new File(new File(newCategoryDirectory(h, tail), ptName.value), directiveId.value+".xml").succeed
     }
@@ -695,7 +695,7 @@ class GitNodeGroupArchiverImpl(
   private[this] def newNgFile(ngId:NodeGroupId, parents: List[NodeGroupCategoryId]) = {
     parents match {
       case h :: t => new File(newCategoryDirectory(h, t), ngId.value + ".xml").succeed
-      case Nil    => Inconsistancy("The given parent category list for node group with id '%s' is empty, what is forbiden".format(ngId.value)).fail
+      case Nil    => Inconsistency("The given parent category list for node group with id '%s' is empty, what is forbiden".format(ngId.value)).fail
     }
   }
 
