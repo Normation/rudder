@@ -120,6 +120,8 @@ trait WoRuleRepository {
    */
   def delete(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[DeleteRuleDiff]
 
+  def deleteSystemRule(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[DeleteRuleDiff]
+
   /**
    * A (dangerous) method that replace all existing rules
    * by the list given in parameter.

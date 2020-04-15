@@ -601,7 +601,6 @@ class WoLDAPDirectiveRepository(
 
   override def loggerName: String = this.getClass.getName
 
-
   /**
    * Save the given directive into given active technique
    * If the directive is already present in the system but not
@@ -703,6 +702,17 @@ class WoLDAPDirectiveRepository(
     })
   }
 
+  /**
+   * Delete a directive's system.
+   * No dependency check are done, and so you will have to
+   * delete dependent rule (or other items) by
+   * hand if you want.
+   *
+   * If no directive has such id, return a success.
+   */
+  override def deleteSystemDirective(id: DirectiveId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = {
+    internalDeleteDirective(id, modId, actor, reason:Option[String], callSystem = true)
+  }
 
   /**
    * Delete a directive.
@@ -710,7 +720,11 @@ class WoLDAPDirectiveRepository(
    * delete dependent rule (or other items) by
    * hand if you want.
    */
-  override def delete(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[DeleteDirectiveDiff]] = {
+  override def delete(id: DirectiveId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = {
+    internalDeleteDirective(id, modId, actor, reason:Option[String], callSystem = false)
+  }
+
+  private[this] def internalDeleteDirective(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String], callSystem: Boolean = false) : IOResult[Option[DeleteDirectiveDiff]] = {
     getActiveTechniqueAndDirectiveEntries(id).flatMap {
       case None => // directive already deleted, do nothing
         None.succeed
@@ -720,9 +734,11 @@ class WoLDAPDirectiveRepository(
           //for logging, before deletion
           activeTechnique <- mapper.entry2ActiveTechnique(uptEntry).chainError(s"Error when mapping active technique entry to its entity. Entry: ${uptEntry}").toIO
           directive       <- mapper.entry2Directive(entry).chainError(s"Error when transforming LDAP entry into a directive for id '${id.value}'. Entry: ${entry}").toIO
-          okNotSystem     <- ZIO.when(directive.isSystem) {
-                               s"Error: system directive (like '${directive.name} [id: ${directive.id.value}])' can't be deleted".fail
-                             }
+          checkSystem     <- (directive.isSystem, callSystem) match {
+                              case (true, false) => Unexpected(s"System directive '${id.value}' can't be deleted").fail
+                              case (false, true) => Inconsistancy(s"Non-system directive '${id.value}' can not be deleted with that method").fail
+                              case _             => directive.succeed
+                            }
           technique       <- techniqueRepository.get(TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion)).succeed
           //delete
           deleted         <- userLibMutex.writeLock { con.delete(entry.dn) }
