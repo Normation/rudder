@@ -354,7 +354,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
 
     val content =
       s"""# @name ${technique.name}
-         |# @description ${technique.description}
+         |# @description ${technique.description.replaceAll("\\R", "\n# ")}
          |# @version ${technique.version.value}
          |${technique.parameters.map(p =>s"""# @parameter { "name": "${p.name.value}", "id": "${p.id.value}" }""" ).mkString("\n")}
          |
