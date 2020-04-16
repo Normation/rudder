@@ -44,11 +44,13 @@ import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Collection
+
 import com.normation.rudder._
 import com.normation.rudder.api._
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.rest.RoleApiMapping
+import org.bouncycastle.crypto.DataLengthException
 import org.bouncycastle.util.encoders.Hex
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
@@ -115,7 +117,13 @@ object PasswordEncoder {
       OpenBSDBCrypt.generate("2b", rawPassword.toString.toCharArray, salt, RudderConfig.RUDDER_BCRYPT_COST)
     }
     override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = {
-      OpenBSDBCrypt.checkPassword(encodedPassword, rawPassword.toString.toCharArray)
+      try {
+        OpenBSDBCrypt.checkPassword(encodedPassword, rawPassword.toString.toCharArray)
+      } catch {
+        case e =>
+          ApplicationLogger.error(s"Invalid password format: ${e.getMessage}")
+          false
+      }
     }
   }
 }
