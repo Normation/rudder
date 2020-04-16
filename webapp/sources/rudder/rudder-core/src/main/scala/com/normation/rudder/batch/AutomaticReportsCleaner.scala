@@ -433,7 +433,8 @@ class AutomaticReportsCleaning(
           // Error while cleaning. Do not start again, since there is heavy chance
           // that without an human intervention, it will fail again, leading to
           // log explosion. Perhaps we could start-it again after a little time (several minutes)
-          reportLogger.error("Reports database: Error while processing database %s, cause is: %s ".format(cleanaction.continue.toLowerCase(),eb))
+          val err = eb ?~! s"Reports database: Error while processing database ${cleanaction.continue.toLowerCase()}"
+          reportLogger.error(err.messageChain)
           currentState = IdleCleaner
         case Full(res) =>
           if (res==0)
