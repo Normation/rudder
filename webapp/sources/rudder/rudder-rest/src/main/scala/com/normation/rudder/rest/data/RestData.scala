@@ -60,6 +60,7 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.workflows.ChangeRequestInfo
+import net.liftweb.json.JsonAST.JValue
 
 
 sealed trait DetailLevel {
@@ -272,7 +273,7 @@ final case object RefuseNode extends NodeStatusAction
 final case object DeleteNode extends NodeStatusAction
 
 final case class RestParameter(
-      value       : Option[String] = None
+      value       : Option[JValue] = None
     , description : Option[String] = None
     , overridable : Option[Boolean] = None
   ) {
@@ -281,11 +282,9 @@ final case class RestParameter(
     def updateParameter(parameter: GlobalParameter) = {
       val updateValue = value.getOrElse(parameter.value)
       val updateDescription = description.getOrElse(parameter.description)
-      val updateOverridable = overridable.getOrElse(parameter.overridable)
       parameter.copy(
           value       = updateValue
         , description = updateDescription
-        , overridable = updateOverridable
       )
 
     }

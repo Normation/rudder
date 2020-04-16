@@ -48,6 +48,7 @@ import net.liftweb.http.js._
 import net.liftweb.http.js.JsCmds._
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.domain.nodes.GenericPropertyUtils
 import com.normation.rudder.domain.parameters.GlobalParameter
 import net.liftweb.http.js.JE.JsRaw
 import com.normation.rudder.web.components.popup.CreateOrUpdateGlobalParameterPopup
@@ -93,10 +94,9 @@ class ParameterManagement extends DispatchSnippet with Loggable {
         ".parameterLine [jsuuid]" #> lineHtmlId &
         ".parameterLine [class]" #> Text("curspoint") &
         ".name *" #> <b>{param.name.value}</b> &
-        ".value *" #> <pre class="json-beautify">{param.value}</pre> &
+        ".value *" #> <pre class="json-beautify">{GenericPropertyUtils.serializeValue(param.value)}</pre> &
         ".description *" #> <span><ul class="evlogviewpad"><li><b>Description:</b> {Text(param.description)}</li></ul></span> &
         ".description [id]" #> ("description-" + lineHtmlId) &
-        ".overridable *" #> param.overridable &
         ".change *" #> <div>{
           (if(CurrentUser.checkRights(AuthorizationType.Parameter.Edit)) {
             ajaxButton("Edit", () => showPopup(GlobalParamModAction.Update, Some(param)), ("class", "btn btn-default btn-sm"), ("style", "min-width:50px;"))

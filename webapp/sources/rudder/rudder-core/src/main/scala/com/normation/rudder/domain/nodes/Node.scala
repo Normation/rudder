@@ -155,6 +155,9 @@ object GenericPropertyUtils {
   import net.liftweb.json.JsonAST.JString
   import net.liftweb.json.{parse => jsonParse}
 
+  /**
+   * Parse a value that can be a string or some json.
+   */
   def parseValue(value: String): JValue = {
     try {
       jsonParse(value) match {
@@ -169,6 +172,21 @@ object GenericPropertyUtils {
     }
   }
 
+  /**
+   * Write back a value as a string. There is
+   * some care to take, because simple jvalue (string, boolean, etc)
+   * must be written directly as string without quote.
+   */
+  def serializeValue(value: JValue): String = {
+    value match {
+      case JNothing | JNull => ""
+      case JString(s)       => s
+      case JBool(v)         => v.toString
+      case JDouble(v)       => v.toString
+      case JInt(v)          => v.toString
+      case json             => compactRender(json)
+    }
+  }
 }
 
 

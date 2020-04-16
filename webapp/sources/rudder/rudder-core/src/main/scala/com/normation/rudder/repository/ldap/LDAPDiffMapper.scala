@@ -410,15 +410,11 @@ class LDAPDiffMapper(
               mod.getAttributeName() match {
                 case A_PARAMETER_VALUE =>
                   nonNull(diff, mod.getAttribute().getValue) { (d, value) =>
-                    d.copy(modValue = Some(SimpleDiff(oldParam.value, value)))
+                    d.copy(modValue = Some(SimpleDiff(oldParam.value, GenericPropertyUtils.parseValue(value))))
                   }
                 case A_DESCRIPTION =>
                   nonNull(diff, mod.getAttribute().getValue) { (d, value) =>
                     d.copy(modDescription = Some(SimpleDiff(oldParam.description, value)))
-                  }
-                case A_PARAMETER_OVERRIDABLE =>
-                  nonNull(diff, mod.getAttribute().getValueAsBoolean) { (d, value) =>
-                    d.copy(modOverridable = Some(SimpleDiff(oldParam.overridable, value)))
                   }
                 case x => Left(Err.UnexpectedObject("Unknown diff attribute: " + x))
               }

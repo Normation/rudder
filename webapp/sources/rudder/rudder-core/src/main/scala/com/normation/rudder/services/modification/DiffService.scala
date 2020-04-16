@@ -164,13 +164,11 @@ class DiffServiceImpl extends DiffService {
   def diffGlobalParameter(reference:GlobalParameter, newItem:GlobalParameter) : ModifyGlobalParameterDiff = {
     val diffValue = if (reference.value == newItem.value) None else Some(SimpleDiff(reference.value,newItem.value))
     val diffDescription = if (reference.description == newItem.description) None else Some(SimpleDiff(reference.description,newItem.description))
-    val diffOverridable = if (reference.overridable == newItem.overridable) None else Some(SimpleDiff(reference.overridable,newItem.overridable))
 
     ModifyGlobalParameterDiff(
         reference.name
       , diffValue
       , diffDescription
-      , diffOverridable
     )
   }
 }

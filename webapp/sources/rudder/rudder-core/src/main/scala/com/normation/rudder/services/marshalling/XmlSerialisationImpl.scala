@@ -296,7 +296,6 @@ class GlobalParameterSerialisationImpl(xmlVersion:String) extends GlobalParamete
        <name>{param.name.value}</name>
        <value>{param.value}</value>
        <description>{param.description}</description>
-       <overridable>{param.overridable}</overridable>
     )
   }
 }

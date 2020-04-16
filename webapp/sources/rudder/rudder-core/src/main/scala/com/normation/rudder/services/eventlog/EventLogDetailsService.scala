@@ -75,6 +75,7 @@ import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.PublicKey
 import com.normation.inventory.domain.SecurityToken
+import net.liftweb.json.JsonAST.JValue
 
 /**
  * A service that helps mapping event log details to there structured data model.
@@ -791,7 +792,8 @@ class EventLogDetailsServiceImpl(
                             (s"Entry type is not a Global Parameter: ${entry}")
       name               <- (globalParam \ "name").headOption.map( _.text ) ?~!
                            ("Missing attribute 'name' in entry type Global Parameter: ${entry}")
-      modValue           <- getFromToString((globalParam \ "value").headOption)
+      modValue           <- getFromTo[JValue]((globalParam \ "value").headOption,
+                             { s => Full(GenericPropertyUtils.parseValue(s.text)) })
       modDescription     <- getFromToString((globalParam \ "description").headOption)
       modOverridable     <- getFromTo[Boolean]((globalParam \ "overridable").headOption,
                              { s => tryo { s.text.toBoolean } } )
@@ -799,9 +801,8 @@ class EventLogDetailsServiceImpl(
     } yield {
       ModifyGlobalParameterDiff(
           name = ParameterName(name)
-        , modValue = modValue
+        , modValue = (modValue)
         , modDescription = modDescription
-        , modOverridable = modOverridable
       )
     }
   }
