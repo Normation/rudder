@@ -702,47 +702,6 @@ class WoLDAPDirectiveRepository(
     })
   }
 
-  private[this] def internalDeleteSystemDirective(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[DeleteDirectiveDiff]] = {
-    getActiveTechniqueAndDirectiveEntries(id).flatMap {
-      case None => // directive already deleted, do nothing
-        None.succeed
-      case Some((uptEntry, entry)) =>
-        for {
-          con             <- ldap
-          //for logging, before deletion
-          activeTechnique <- mapper.entry2ActiveTechnique(uptEntry).chainError(s"Error when mapping active technique entry to its entity. Entry: ${uptEntry}").toIO
-          directive       <- mapper.entry2Directive(entry).chainError(s"Error when transforming LDAP entry into a system directive for id '${id.value}'. Entry: ${entry}").toIO
-          technique       <- techniqueRepository.get(TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion)).succeed
-          //delete
-          deleted         <- userLibMutex.writeLock { con.delete(entry.dn) }
-          diff            =  DeleteDirectiveDiff(activeTechnique.techniqueName, directive)
-          loggedAction    <- { //we can have a missing technique if the technique was deleted but not its directive. In that case, make a fake root section
-            val rootSection = technique.map( _.rootSection).getOrElse(SectionSpec("Missing technique information"))
-            actionLogger.saveDeleteDirective(
-              modId, principal = actor, deleteDiff = diff, varsRootSectionSpec = rootSection, reason = reason
-            )
-          }
-          autoArchive     <- ZIO.when(autoExportOnModify && deleted.size > 0 && !directive.isSystem) {
-            for {
-              parents  <- activeTechniqueBreadCrump(activeTechnique.id)
-              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-              archived <- gitPiArchiver.deleteDirective(directive.id, activeTechnique.techniqueName, parents.map( _.id), Some((modId, commiter, reason)))
-            } yield archived
-          }
-        } yield {
-          Some(diff)
-        }
-    }
-  }
-
-  private[this] def deleteDirectiveCommon(directiveId:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String], isSystem: Boolean) ={
-    if(isSystem){
-      internalDeleteSystemDirective(directiveId, modId, actor, reason)
-    } else {
-      deleteDirective(directiveId, modId, actor, reason)
-    }
-  }
-
   /**
    * Delete a directive's system.
    * No dependency check are done, and so you will have to
@@ -752,7 +711,7 @@ class WoLDAPDirectiveRepository(
    * If no directive has such id, return a success.
    */
   override def deleteSystemDirective(id: DirectiveId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = {
-    deleteDirectiveCommon(id, modId, actor, reason:Option[String], isSystem = true)
+    internalDeleteDirective(id, modId, actor, reason:Option[String], callSystem = true)
   }
 
   /**
@@ -762,10 +721,10 @@ class WoLDAPDirectiveRepository(
    * hand if you want.
    */
   override def delete(id: DirectiveId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = {
-    deleteDirectiveCommon(id, modId, actor, reason:Option[String], isSystem = false)
+    internalDeleteDirective(id, modId, actor, reason:Option[String], callSystem = false)
   }
 
-  private[this] def deleteDirective(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[DeleteDirectiveDiff]] = {
+  private[this] def internalDeleteDirective(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String], callSystem: Boolean = false) : IOResult[Option[DeleteDirectiveDiff]] = {
     getActiveTechniqueAndDirectiveEntries(id).flatMap {
       case None => // directive already deleted, do nothing
         None.succeed
@@ -775,9 +734,11 @@ class WoLDAPDirectiveRepository(
           //for logging, before deletion
           activeTechnique <- mapper.entry2ActiveTechnique(uptEntry).chainError(s"Error when mapping active technique entry to its entity. Entry: ${uptEntry}").toIO
           directive       <- mapper.entry2Directive(entry).chainError(s"Error when transforming LDAP entry into a directive for id '${id.value}'. Entry: ${entry}").toIO
-          okNotSystem     <- ZIO.when(directive.isSystem) {
-                               s"Error: system directive (like '${directive.name} [id: ${directive.id.value}])' can't be deleted".fail
-                             }
+          checkSystem     <- (directive.isSystem, callSystem) match {
+                              case (true, false) => Unexpected(s"System directive '${id.value}' can't be deleted").fail
+                              case (false, true) => Inconsistancy(s"Non-system directive '${id.value}' can not be deleted with that method").fail
+                              case _             => directive.succeed
+                            }
           technique       <- techniqueRepository.get(TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion)).succeed
           //delete
           deleted         <- userLibMutex.writeLock { con.delete(entry.dn) }

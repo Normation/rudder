@@ -147,12 +147,16 @@ class WoLDAPRuleRepository(
     })
   }
 
-  private[this] def deleteRule(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[DeleteRuleDiff] = {
+  private[this] def internalDeleteRule(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String], callSystem: Boolean = false) : IOResult[DeleteRuleDiff] = {
     for {
       con          <- ldap
       entry        <- con.get(rudderDit.RULES.configRuleDN(id.value)).notOptional("rule with ID '%s' is not present".format(id.value))
       oldCr        <- mapper.entry2Rule(entry).toIO.chainError("Error when transforming LDAP entry into a rule for id %s. Entry: %s".format(id, entry))
-      isSytem      <- ZIO.when(oldCr.isSystem) { s"Deleting system rule '${oldCr.name}' (${oldCr.id.value}}) is forbiden".fail }
+      checkSystem  <-  (oldCr.isSystem, callSystem) match {
+                        case (true, false) => Unexpected(s"System Rule '${id.value}' can't be deleted").fail
+                        case (false, true) => Inconsistancy(s"Non-system Rule '${id.value}' can not be deleted with that method").fail
+                        case _ => oldCr.succeed
+                      }
       deleted      <- con.delete(rudderDit.RULES.configRuleDN(id.value)).chainError("Error when deleting rule with ID %s".format(id))
       diff         =  DeleteRuleDiff(oldCr)
       loggedAction <- actionLogger.saveDeleteRule(modId, principal = actor, deleteDiff = diff, reason = reason)
@@ -169,41 +173,13 @@ class WoLDAPRuleRepository(
     }
   }
 
-  private[this] def internalRuleSystemDirective(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[DeleteRuleDiff] = {
-    for {
-      con          <- ldap
-      entry        <- con.get(rudderDit.RULES.configRuleDN(id.value)).notOptional("rule with ID '%s' is not present".format(id.value))
-      oldCr        <- mapper.entry2Rule(entry).toIO.chainError("Error when transforming LDAP entry into a rule for id %s. Entry: %s".format(id, entry))
-      deleted      <- con.delete(rudderDit.RULES.configRuleDN(id.value)).chainError("Error when deleting system rule with ID %s".format(id))
-      diff         =  DeleteRuleDiff(oldCr)
-      loggedAction <- actionLogger.saveDeleteRule(modId, principal = actor, deleteDiff = diff, reason = reason)
-      autoArchive  <- ZIO.when(autoExportOnModify && deleted.nonEmpty  && !oldCr.isSystem) {
-        for {
-          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-          archive  <- gitCrArchiver.deleteRule(id, Some((modId, commiter, reason)))
-        } yield {
-          archive
-        }
-      }
-    } yield {
-      diff
-    }
-  }
-
-  private[this] def deleteRuleCommon(ruleId: RuleId, modId: ModificationId, actor:EventActor, reason:Option[String], isSystem: Boolean) ={
-    if(isSystem){
-      internalRuleSystemDirective(ruleId, modId, actor, reason)
-    } else {
-      deleteRule(ruleId, modId, actor, reason)
-    }
-  }
 
   override def deleteSystemRule(id: RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[DeleteRuleDiff] = {
-    deleteRuleCommon(id, modId, actor, reason:Option[String], isSystem = true)
+    internalDeleteRule(id, modId, actor, reason, callSystem = true)
   }
 
   override def delete(id: RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[DeleteRuleDiff] = {
-    deleteRuleCommon(id, modId, actor, reason:Option[String], isSystem = false)
+    internalDeleteRule(id, modId, actor, reason, callSystem = false)
   }
 
 

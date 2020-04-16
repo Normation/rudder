@@ -130,6 +130,8 @@ class ReadOnlySoftwareDAOImpl(
     // Accepted Dit, to get the software
     val acceptedDit = inventoryDitService.getDit(AcceptedInventory)
 
+    val NB_BATCH_NODES = 25
+
     // We need to search on the parent parent, as acceptedDit.NODES.dn.getParent ou=Accepted inventories
     val nodeBaseSearch = acceptedDit.NODES.dn.getParent.getParent
 
@@ -139,16 +141,21 @@ class ReadOnlySoftwareDAOImpl(
       // fetch all nodes
       nodes           <- con.searchSub(nodeBaseSearch, IS(OC_NODE), A_NODE_UUID)
       mutSetSoftwares <- Ref.make[scala.collection.mutable.Set[SoftwareUuid]](scala.collection.mutable.Set())
-      _               <- ZIO.foreach(nodes.grouped(50).to(Iterable)) { nodeEntries => // batch by 50 nodes to avoid destroying ram/ldap con
+      _               <- ZIO.foreach(nodes.grouped(NB_BATCH_NODES).to(Iterable)) { nodeEntries => // batch by 50 nodes to avoid destroying ram/ldap con
                            for {
                              nodeIds       <- ZIO.foreach(nodeEntries) { e => IOResult.effect(e(A_NODE_UUID).map(NodeId(_))).notOptional(s"Missing mandatory attribute '${A_NODE_UUID}'") }
                              t2            <- currentTimeMillis
-                             orFilter      =  BuildFilter.OR(nodeIds.map(x => EQ(A_NODE_UUID, x.value)): _*)
-                             softwareEntry <- con.searchSub(nodeBaseSearch, orFilter, A_SOFTWARE_DN)
-                             ids           =  softwareEntry.flatMap(entry => entry.valuesFor(A_SOFTWARE_DN).toSet )
+                             ids           <- {
+                                val orFilter =  BuildFilter.OR(nodeIds.map(x => EQ(A_NODE_UUID, x.value)): _*)
+                                for {
+                                  softwareEntry <- con.searchSub(nodeBaseSearch, orFilter, A_SOFTWARE_DN)
+                                } yield {
+                                  softwareEntry.flatMap(entry => entry.valuesFor(A_SOFTWARE_DN)).toSet.toSeq
+                                }
+                             }
                              results       <- ZIO.foreach(ids) { id => acceptedDit.SOFTWARE.SOFT.idFromDN(new DN(id)).toIO }.either
                              t3            <- currentTimeMillis
-                             _             <- InventoryProcessingLogger.debug(s"Software DNs from 50 nodes fetched in ${t3-t2} ms")
+                             _             <- InventoryProcessingLogger.debug(s"Software DNs from ${NB_BATCH_NODES} nodes fetched in ${t3-t2} ms")
                              _             <- results match { // we don't want to return "results" because we need on-site dedup.
                                                 case Right(softIds) =>
                                                    mutSetSoftwares.update(_ ++ softIds)
