@@ -77,9 +77,9 @@ class TechniqueReader(
   def updateTechniquesMetadataFile = {
     for {
       update <- RunNuCommand.run(Cmd("/usr/share/ncf/ncf", "write_all_techniques" :: Nil, Map.empty))
-      methods <- readTechniquesMetadataFile
+      techniques <- readTechniquesMetadataFile
     } yield {
-      methods
+      techniques
     }
   }
 }

@@ -300,6 +300,25 @@ class NcfApi(
 
   }
 
+
+  object UpdateTechniques extends  LiftApiModule0 {
+
+    val schema = API.UpdateTechniques
+    val restExtractor = restExtractorService
+    implicit val dataName = "techniques"
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      val response= for {
+        techniques <- techniqueReader.updateTechniquesMetadataFile.toBox
+      } yield {
+        JArray(techniques.map(techniqueSerializer.serializeTechniqueMetadata))
+     }
+      resp(response, req, "Could not get generic methods metadata")("getMethods")
+
+    }
+
+  }
+
   object CreateTechnique extends LiftApiModule0 {
 
     def moveRessources(technique : Technique, internalId : String) = {
