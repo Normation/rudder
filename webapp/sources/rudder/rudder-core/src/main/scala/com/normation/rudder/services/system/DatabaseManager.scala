@@ -130,8 +130,10 @@ class DatabaseManagerImpl(
      val nodeConfigs = expectedReportsRepo.deleteNodeConfigIdInfo(reports.date) ?~! "An error occured while deleting old node configuration IDs"
      val deleteNodeConfigs = expectedReportsRepo.deleteNodeConfigurations(reports.date) ?~! "An error occured while deleting Node Configurations"
      val deleteNodeCompliances = expectedReportsRepo.deleteNodeCompliances(reports.date) ?~! "An error occured while deleting Node Compliances"
-     val deleteNodeComplianceLevels = Box(complianceLevels).flatMap(c => expectedReportsRepo.deleteNodeComplianceLevels(c.date) ?~! "An error occured while deleting Node Compliances")
-
+     val deleteNodeComplianceLevels = complianceLevels match {
+       case Some(c) => expectedReportsRepo.deleteNodeComplianceLevels(c.date) ?~! "An error occured while deleting Node Compliances"
+       case None    => Full(0) // we don't want to delete ComplianceLevel, it should not fail
+     }
      // Accumulate errors, them sum values
      (Control.bestEffort(Seq(nodeReports, nodeConfigs, deleteNodeConfigs, deleteNodeCompliances, deleteNodeComplianceLevels)) (identity)).map(_.sum)
    }
