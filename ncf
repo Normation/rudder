@@ -5,7 +5,8 @@
 import os
 import sys
 import shutil
-import traceback
+import json
+from pprint import pprint
 
 DEFAULT_NCF_DIR = '/usr/share/ncf'
 
@@ -51,11 +52,34 @@ def init(args):
 
   print("INFO: Success")
 
+def write_everything(path, force):
+  write_all_methods(path)
+  write_all_techniques(path,force)
+
+def write_all_methods(path):
+  methods = ncf.get_all_generic_methods_metadata()
+  with open('/var/rudder/configuration-repository/ncf/generic_methods.json', 'w') as outfile:
+    json.dump(methods, outfile, indent=2)
+
+def write_all_techniques(path, force):
+  techniques = ncf.get_all_techniques_metadata(True,force)
+  for bundle_name in techniques["data"]["techniques"]:
+    technique = techniques["data"]["techniques"][bundle_name]
+    category = technique["category"] if len(technique["category"]) > 0 else "ncf_techniques"
+    version = technique["version"] if len(technique["version"]) > 0 else "1.0"
+    techniqueFile = '/var/rudder/configuration-repository/techniques/'+category+"/"+ bundle_name +"/"+version+'/technique.json'
+    if not os.path.exists(techniqueFile):
+      with open('/var/rudder/configuration-repository/techniques/'+category+"/"+ bundle_name +"/"+version+'/technique.json', 'w') as outfile:
+       json.dump(technique, outfile, indent=2)
+
+
+
 def usage():
   sys.stderr.write("Can't parse parameters\n")
   print("Usage: ncf <command> [arguments]")
   print("Available commands:")
   print(" - init <ncf_path>")
+  print(" - techniques_metadata <ncf_path>")
 
 
 if __name__ == '__main__':
@@ -66,6 +90,12 @@ if __name__ == '__main__':
 
   if sys.argv[1] == "init":
     init(sys.argv[2:])
+  elif sys.argv[1] == "write_all_techniques":
+    write_all_techniques("", False)
+  elif sys.argv[1] == "write_all_methods":
+    write_all_methods("")
+  elif sys.argv[1] == "write_everything":
+    write_everything("", False)
   else:
     usage()
     exit(1)

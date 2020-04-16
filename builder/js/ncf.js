@@ -87,10 +87,11 @@ app.directive('constraint', function($http, $q, $timeout) {
   return {
     scope: {
       parameter: '='
+    , parameterinfo: "="
     },
     require: 'ngModel',
     link: function(scope, elm, attrs, ctrl) {
-    if((scope.parameter.constraints.allow_empty_string)&&(scope.parameter.value === undefined)){
+    if((scope.parameterinfo.constraints.allow_empty_string)&&(scope.parameter.value === undefined)){
       scope.parameter.value = "";
     }
     ctrl.$asyncValidators.constraint = function(modelValue, viewValue) {
@@ -98,12 +99,12 @@ app.directive('constraint', function($http, $q, $timeout) {
       if (modelValue === undefined) {
         return $q.reject("Value is empty");
       }
-      var data = {"value" : modelValue, "constraints" : scope.parameter.constraints}
+      var data = {"value" : modelValue, "constraints" : scope.parameterinfo.constraints}
 
       var timeoutStatus = false;
       var timeout = $q.defer();
 
-      var request = $http.post("/rudder/secure/api/techniques/parameter/check",data, { 'timeout' : timeout.promise }).then(
+      var request = $http.post("/rudder/secure/api/internal/techniques/parameter/check",data, { 'timeout' : timeout.promise }).then(
           function(successResult) {
             scope.parameter.$errors= [];
             if (! successResult.data.data.parameterCheck.result) {
@@ -317,8 +318,8 @@ function defineMethodClassContext (method_call) {
   }
 }
 function updateResources() {
-  var urlParam= ($scope.originalTechnique.bundle_name !== undefined) ? $scope.selectedTechnique.bundle_name : $scope.selectedTechnique.internalId + "/new"
-  var resourceUrl = '/rudder/secure/api/techniques/' + urlParam +"/" + $scope.selectedTechnique.version +"/resources"
+  var urlParam= ($scope.originalTechnique.bundle_name !== undefined) ? $scope.selectedTechnique.bundle_name : "draft/" + $scope.selectedTechnique.internalId
+  var resourceUrl = '/rudder/secure/api/internal/techniques/' + urlParam +"/" + $scope.selectedTechnique.version +"/resources"
   $http.get(resourceUrl).then(
     function(response) {
       $scope.selectedTechnique.resources = response.data.data.resources;
@@ -331,7 +332,7 @@ function updateResources() {
 }
 function updateFileManagerConf () {
 
-  var urlParam= $scope.originalTechnique.bundle_name !== undefined ? $scope.selectedTechnique.bundle_name : $scope.selectedTechnique.internalId + "/new"
+  var urlParam= $scope.originalTechnique.bundle_name !== undefined ? $scope.selectedTechnique.bundle_name : "draft/" + $scope.selectedTechnique.internalId
   var newUrl =  "/rudder/secure/api/resourceExplorer/"+ urlParam +"/" + $scope.selectedTechnique.version
   updateResources()
 
@@ -449,7 +450,6 @@ function toTechUI (technique) {
 
       // Handle class_context
       defineMethodClassContext(method_call)
-      method_call.parameters=$scope.getMethodParameters(method_call)
       return method_call;
     } );
     technique.method_calls = calls;
@@ -469,6 +469,7 @@ function toTechNcf (baseTechnique) {
   technique.method_calls = calls;
   return technique;
 };
+
 
 // Check if a technique is selected
 $scope.isSelected = function(technique) {
@@ -607,12 +608,13 @@ $scope.updateItemSessionStorage = function(item, oldTechnique, newTechnique){
 $scope.getTechniques = function () {
 
   $scope.techniques = [];
-  $http.get('/ncf/api/techniques').
+
+  $http.get('/rudder/secure/api/internal/methods').
     success(function(response, status, headers, config) {
 
-      if (response.data !== undefined && response.data.techniques !== undefined) {
+      if (response.data !== undefined && response.data.methods !== undefined) {
 
-        $scope.generic_methods = response.data.generic_methods;
+        $scope.generic_methods = response.data.methods;
 
         $.each( response.data.generic_methods, function(methodName, method) {
           method.documentation = converter.makeHtml(method.documentation)
@@ -620,16 +622,26 @@ $scope.getTechniques = function () {
         });
         $scope.methodsByCategory = $scope.groupMethodsByCategory();
         $scope.authenticated = true;
-        if (response.data.usingRudder !== undefined) {
-          usingRudder = response.data.usingRudder;
-        }
+      } else {
+        errorNotification( "Error while fetching methods", "Data received via api are invalid")
+      }
+
+    } ).
+    error(handle_error(" while fetching methods"));
+
+  $http.get('/rudder/secure/api/internal/techniques').
+    success(function(response, status, headers, config) {
+
+      if (response.data !== undefined && response.data.techniques !== undefined) {
+
         $.each( response.data.techniques, function(techniqueName, technique_raw) {
           var technique = toTechUI(technique_raw);
           $scope.techniques.push(technique);
-        });
+
         $scope.getSessionStorage();
+        });
       } else {
-        errorNotification( "Error while fetching methods and techniques", "Data received via api are invalid")
+        errorNotification( "Error while fetching techniques", "Data received via api are invalid")
       }
 
       // Display single errors
@@ -1034,12 +1046,6 @@ $scope.onImportFileChange = function (fileEl) {
 
   // Utilitary methods on Method call
 
-  $scope.getMethodName = function(method_call) {
-    if (method_call && method_call.method_name in $scope.generic_methods ) {
-      return $scope.generic_methods[method_call.method_name].name;
-    }
-    return method_call.method_name;
-  };
 
   $scope.getMethodBundleName = function(method_call) {
     if (method_call && method_call.method_name in $scope.generic_methods ) {
@@ -1115,8 +1121,11 @@ $scope.onImportFileChange = function (fileEl) {
     if (method_call.method_name in $scope.generic_methods ) {
       var method = $scope.generic_methods[method_call.method_name];
       var class_parameter = method.class_parameter;
-      var param_index = method.bundle_args.indexOf(class_parameter);
-      return method_call.parameters[param_index];
+      var param = method.parameter.find(element => element.name === class_parameter);
+      if (param === undefined)
+        return method_call.parameters[0];
+      else
+        return param;
     } else {
       return method_call.parameters[0];
     }
@@ -1230,7 +1239,7 @@ $scope.onImportFileChange = function (fileEl) {
 
   // Delete a technique
   $scope.deleteTechnique = function() {
-    $http.delete("/rudder/secure/api/techniques/"+$scope.selectedTechnique.bundle_name+"/"+$scope.selectedTechnique.version, {params : {force : false}}).
+    $http.delete("/rudder/secure/api/internal/techniques/"+$scope.selectedTechnique.bundle_name+"/"+$scope.selectedTechnique.version, {params : {force : false}}).
       success(function(data, status, headers, config) {
 
         ngToast.create({ content: "<b>Success!</b> Technique '" + $scope.originalTechnique.name + "' deleted!"});
@@ -1369,9 +1378,9 @@ $scope.onImportFileChange = function (fileEl) {
 
     // Actually save the technique through API
     if ($scope.originalTechnique.bundle_name === undefined) {
-      $http.put("/rudder/secure/api/techniques", data).success(saveSuccess).error(saveError("creating", data)).finally(function(){$scope.$broadcast('endSaving');});
+      $http.put("/rudder/secure/api/internal/techniques", data).success(saveSuccess).error(saveError("creating", data)).finally(function(){$scope.$broadcast('endSaving');});
     } else {
-      $http.post("/rudder/secure/api/techniques", data).success(saveSuccess).error(saveError("updating", data)).finally(function(){$scope.$broadcast('endSaving');});
+      $http.post("/rudder/secure/api/internal/techniques", data).success(saveSuccess).error(saveError("updating", data)).finally(function(){$scope.$broadcast('endSaving');});
     }
   };
 
@@ -1440,10 +1449,10 @@ $scope.onImportFileChange = function (fileEl) {
     window.top.location.reload();
   }
 
-  $scope.checkMissingParameters = function(parameters){
+  $scope.checkMissingParameters = function(parameters, parameterInfo){
     var result = [];
     for(var i=0; i<parameters.length; i++) {
-      if(parameters[i].constraints.allow_empty_string === false && !parameters[i].value && (parameters[i].$errors && parameters[i].$errors.length <= 0)){
+      if(parameterInfo[i].constraints.allow_empty_string === false && !parameters[i].value && (parameters[i].$errors && parameters[i].$errors.length <= 0)){
         result.push(parameters[i].name);
       }
     }
@@ -1487,7 +1496,7 @@ $scope.onImportFileChange = function (fileEl) {
 
   $scope.getStatusTooltipMessage = function(method){
     var msg;
-    var missingParameters = $scope.checkMissingParameters(method.parameters).length;
+    var missingParameters = $scope.checkMissingParameters(method.parameters,$scope.generic_methods[method.method_name].parameter).length;
     var errorParameters   = $scope.checkErrorParameters(method.parameters).length;
     if(errorParameters>0){
       msg = (errorParameters + " invalid parameter" + (errorParameters > 1 ? 's' : ''))

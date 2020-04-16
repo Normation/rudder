@@ -410,7 +410,7 @@
                     <li
                       ng-repeat="method_call in selectedTechnique.method_calls"
                       ng-show="checkFilterMethod(method_call)"
-                      ng-class="{'active': methodIsSelected(method_call), 'missingParameters': checkMissingParameters(method_call.parameters).length > 0, 'errorParameters': checkErrorParameters(method_call.parameters).length > 0, 'is-edited' : canResetMethod(method_call)}"
+                      ng-class="{'active': methodIsSelected(method_call), 'missingParameters': checkMissingParameters(method_call.parameters, method.parameter).length > 0, 'errorParameters': checkErrorParameters(method_call.parameters).length > 0, 'is-edited' : canResetMethod(method_call)}"
                       >
                       <div
                         class="method row no-gutters"
@@ -447,11 +447,11 @@
                             </div>
 
                             <div class="method-name col-auto">
-                              {{method_call.component ? method_call.component : getMethodName(method_call)}}
+                              {{method_call.component ? method_call.component : method.name }}
                               <span
                                 class="cursor-help"
                                 uib-popover-template="'deprecatedMethod.html'"
-                                popover-title="{{getMethodName(method_call)}}"
+                                popover-title="{{method.name}}"
                                 popover-trigger="mouseenter"
                                 popover-append-to-body="true">
                                 <i class="fas fa-info-circle tooltip-icon" ng-class="{'deprecated-icon':(method_call.deprecated || isDeprecated(method_call.method_name))}"></i>
@@ -475,7 +475,7 @@
                                   tooltip-append-to-body="true"
                                   ng-click="selectMethod(method_call)"
                                   >
-                                  <b>{{checkMissingParameters(method_call.parameters).length}}</b> required parameter{{checkMissingParameters(method_call.parameters).length > 1 ? "s" : ""}} missing
+                                  <b>{{checkMissingParameters(method_call.parameters, method.parameter).length}}</b> required parameter{{checkMissingParameters(method_call.parameters, method.parameter).length > 1 ? "s" : ""}} missing
                                 </span>
                                 <span class="warn-param error"
                                   uib-tooltip="{{getErrorTooltipMessage(checkErrorParameters(method_call.parameters))}}"
@@ -501,7 +501,7 @@
                         <div>
                           <div class="form-group">
                             <label for="component">Report component:</label>
-                            <input type="text" name="component" class="form-control" ng-model="method_call.component"  placeholder="{{getMethodName(method_call)}}"/>
+                            <input type="text" name="component" class="form-control" ng-model="method_call.component"  placeholder="{{method.name}}"/>
                           </div>
                           <div class="row">
                             <ul class="tabs-list">
@@ -518,15 +518,16 @@
                           </div>
                           <div class="tabs">
                             <div class="tab-parameters" ng-if="ui.methodTabs[method_call['$$hashKey']]=='parameters' || ui.methodTabs[method_call['$$hashKey']]===undefined">
-                              <div class="form-group method-parameter" show-errors ng-form="subForm" ng-repeat="parameter in method_call.parameters track by $index">
+                              <div class="form-group method-parameter" show-errors ng-form="subForm" ng-repeat="parameter in method_call.parameters track by $index" ng-init="parameterInfo = (method.parameter[$index])">
                                 <ng-form name="paramForm" role="form">
                                   <label for="param-{{$index}}">
-                                    <span>{{parameter.name | parameterName}} - <span class="badge badge-secondary ng-binding">{{parameter.type}}</span> - </span>
+
+                                    <span> {{parameterInfo.name | parameterName}} - <span class="badge badge-secondary ng-binding">{{parameterInfo.type}}</span> - </span>
                                     <small>
-                                      {{parameter.description}}
+                                      {{parameterInfo.description}}
                                     </small>
                                   </label>
-                                  <textarea msd-elastic name="param" class="form-control" rows="1" id="param-{{$index}}" ng-trim="{{trimParameter(parameter)}}" ng-model="parameter.value"></textarea>
+                                  <textarea msd-elastic name="param" class="form-control" rows="1" id="param-{{$index}}" ng-trim="{{trimParameter(parameterInfo)}}" ng-model="parameter.value"></textarea>
                                   <ul class="list-unstyled" >
                                     <li class="text-danger" ng-repeat="error in parameter.$errors">{{error}}</li>
                                   </ul>
