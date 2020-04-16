@@ -64,7 +64,6 @@ import com.normation.rudder.ncf.Technique
 import com.normation.rudder.ncf.TechniqueReader
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
-import com.normation.rudder.rest.NcfApi.GetMethods
 import com.normation.rudder.rest.TwoParam
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.JsonAST.JObject
@@ -275,7 +274,25 @@ class NcfApi(
       val response = for {
         methods <- techniqueReader.readMethodsMetadataFile.toBox
       } yield {
-         JObject(methods.toList.map(m => JField(m._1.value, techniqueSerializer.serializeMethodMetadata(m._2))))
+        JObject(methods.toList.map(m => JField(m._1.value, techniqueSerializer.serializeMethodMetadata(m._2))))
+      }
+      resp(response, req, "Could not get generic methods metadata")("getMethods")
+
+    }
+
+  }
+
+  object UpdateMethods extends  LiftApiModule0 {
+
+    val schema = API.UpdateMethods
+    val restExtractor = restExtractorService
+    implicit val dataName = "methods"
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      val response= for {
+        methods <- techniqueReader.updateMethodsMetadataFile.toBox
+      } yield {
+        JObject(methods.toList.map(m => JField(m._1.value, techniqueSerializer.serializeMethodMetadata(m._2))))
       }
       resp(response, req, "Could not get generic methods metadata")("getMethods")
 

@@ -94,8 +94,8 @@ class CheckNcfTechniqueUpdate(
     def updateNcfTechniques  = {
       import NcfTechniqueUpgradeError._
       for {
-        methods    <- techniqueReader.readMethodsMetadataFile
-        techniques <- techniqueReader.readTechniquesMetadataFile
+        methods    <- techniqueReader.updateMethodsMetadataFile
+        techniques <- techniqueReader.updateTechniquesMetadataFile
         // Actually write techniques
         written    <- ZIO.foreach(techniques)(
                                 techniqueWrite.writeTechnique(_, methods, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value)).toBox

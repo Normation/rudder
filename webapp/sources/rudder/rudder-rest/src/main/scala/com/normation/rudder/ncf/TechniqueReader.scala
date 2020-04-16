@@ -3,6 +3,8 @@ package com.normation.rudder.ncf
 import better.files.File
 import com.normation.errors.IOResult
 import com.normation.errors.Inconsistency
+import com.normation.rudder.hooks.Cmd
+import com.normation.rudder.hooks.RunNuCommand
 import com.normation.rudder.rest.RestExtractorService
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -59,6 +61,23 @@ class TechniqueReader(
           }
         case a => Inconsistency(s"Could not extract methods from ncf api, expecting an object got: ${a}").fail
       }
+    } yield {
+      methods
+    }
+  }
+
+  def updateMethodsMetadataFile = {
+    for {
+      update <- RunNuCommand.run(Cmd("/usr/share/ncf/ncf", "write_all_methods" :: Nil, Map.empty))
+      methods <- readMethodsMetadataFile
+    } yield {
+      methods
+    }
+  }
+  def updateTechniquesMetadataFile = {
+    for {
+      update <- RunNuCommand.run(Cmd("/usr/share/ncf/ncf", "write_all_techniques" :: Nil, Map.empty))
+      methods <- readTechniquesMetadataFile
     } yield {
       methods
     }
