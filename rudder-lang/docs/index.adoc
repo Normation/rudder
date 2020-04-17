@@ -1,6 +1,12 @@
+// TODO put images on a rudder server and put documentation images dir url here
+:imagesdir: resources/
+
 = Rudder language
 
 == Language
+
+This language is:
+
 
 This language is not:
 
@@ -14,7 +20,7 @@ It has no:
 - generator / generic iterator
 - way of looping except on finite list
 
-This language is a DSL targeted at *state definition*.
+This language is a DSL (_domain-specific language_) targeted at *state definition*.
 
 Everything that is not a state definition is a convenience for easier definition of a state.
 
@@ -33,3 +39,9 @@ include::examples/ntp.rl[]
 // TODO: comparison with CFEngine, Puppet (mgmt ?)
 
 include::concepts.adoc[leveloffset=+1]
+
+include::syntax.adoc[leveloffset=+1]
+
+include::stdlib.adoc[leveloffset=+1]
+
+include::operating-system.adoc[leveloffset=+1]

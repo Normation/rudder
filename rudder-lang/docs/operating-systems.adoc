@@ -1,0 +1,53 @@
+// TODO rename and move, don't know where to put this
+= Operating systems
+
+== Syntax
+
+=== OS list construction
+
+* Underscore is used as a separator `_`
+* 4 accuracy layers, all following this syntax rule:
+** `system` -> `linux`, etc
+** `os` -> `ubuntu`, etc
+** `os_major` -> `ubuntu_20`, etc
+** `os_major_minor` -> `ubuntu_20_04`, etc
+
+=== Language syntax
+
+Since _rudder-lang_ OS list is composed of `enums`, it meets the requirements that are specific to `enums`:
+
+- a top layer, that is the `global enum system`
+- _sub-enums_ that expand their parent item: `items in linux` or `items in ubuntu_20`
+- _aliases_ can be used to define any sub-enum, like: `enum alias focal = ubuntu_20_04` 
+
+More about xref:syntax.adoc#enums[enums]
+
+== Usage
+_rudder-lang_ makes use of an exhaustive list of operating systems, including major and minor versions. +
+This list is defined in the *stdlib* (more about it here: xref:stdlib.adoc[stdlib])
+
+For now they are used in _conditions_ to check whether a method should be applied or not.
+
+Several degrees of accuracy can be chosen when defining a condition:
+
+- _system_ (kernel): `windows`, `linux`, `bsd`, etc
+- _operating system_: `ubuntu`, `windows_server`, etc
+- _major version_: for example, `ubuntu_20`
+- _minor version_: for example, `ubuntu_20_04`
+
+Yet any _sub-enum_ is a standalone, meaning it is directly defined on its own: `ubuntu_20`.
+
+NOTE: The fact `ubuntu_20` is part of `ubuntu` -> `linux` -> `system` is only important for accuracy sake: `if linux` evaluates to true on `ubunutu_20`
+
+=== Example with `ubuntu_20_10` as the targetted OS
+
+The following expressions will be evaluated to `true`:
+
+- `if linux`
+- `if ubuntu` 
+- `if ubuntu_20`
+
+The following expressions will be evaluated to `false`:
+
+- `if windows`
+- `if ubuntu_20_04`

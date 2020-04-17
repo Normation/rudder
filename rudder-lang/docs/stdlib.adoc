@@ -1,0 +1,30 @@
+= Libraries
+
+** exhaustive list of _cfengine_ special variables that act as reserved namespaces / keywords.
+
+[[stdlib]]
+== *stdlib*
+What is called _stdlib_ (_rudder-lang_ own _standard library_) is the following set of files. +
+Folder: `./libs`:
+
+=== _resourcelib.rl_
+Contains the list of available methods. A method is composed of:
+
+* a resource
+* its relative states
+* the resource parameters
+* states own parameters
+
+=== _corelib.rl_
+Contains standard enums available to rudder-lang users like the general purpose enums `boolean` and `result`
+
+=== _oslib.rl_
+Contains the exhaustive list of supported operating systems, including major and minor versions. +
+Stored in the form of nested `enum`s.
+
+//TODO rename OS section
+More about supported OSes and their usage in _rudder-lang_ here: xref:syntax.adoc#supported-operating-systems[supported OSes]
+
+=== _cfengine_core.rl_
+Contains the exhaustive list of _CFEngine_ reserved words and namespaces. +
+Required since these words cannot be created by _rudder-lang_ to avoid any conflicts with _CFEngine_.
