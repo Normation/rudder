@@ -1288,20 +1288,20 @@ $scope.onImportFileChange = function (fileEl) {
   }
 
   $scope.checkMissingParameters = function(parameters){
-    var result = false;
+    var result = [];
     for(var i=0; i<parameters.length; i++) {
       if(parameters[i].constraints.allow_empty_string === false && !parameters[i].value && (parameters[i].$errors && parameters[i].$errors.length <= 0)){
-        result = true;
+        result.push(parameters[i].name);
       }
     }
     return result;
   }
 
   $scope.checkErrorParameters = function(parameters){
-    var result = false;
+    var result = [];
     for(var i=0; i<parameters.length; i++) {
       if(parameters[i].$errors && parameters[i].$errors.length > 0){
-        result = true;
+        result.push(parameters[i].name);
       }
     }
     return result;
@@ -1335,10 +1335,12 @@ $scope.onImportFileChange = function (fileEl) {
 
   $scope.getStatusTooltipMessage = function(method){
     var msg;
-    if($scope.checkErrorParameters(method.parameters)){
-      msg = "Invalid parameters"
-    }else if ($scope.checkMissingParameters(method.parameters)){
-      msg = "Required parameters missing"
+    var missingParameters = $scope.checkMissingParameters(method.parameters).length;
+    var errorParameters   = $scope.checkErrorParameters(method.parameters).length;
+    if(errorParameters>0){
+      msg = (errorParameters + " invalid parameter" + (errorParameters > 1 ? 's' : ''))
+    }else if (missingParameters>0){
+      msg = (missingParameters + " required parameter"+ (missingParameters > 1 ? 's' : '') +" missing")
     }else if ($scope.canResetMethod(method)){
       msg = "This generic method has been edited"
     }else{
@@ -1346,7 +1348,14 @@ $scope.onImportFileChange = function (fileEl) {
     }
     return msg;
   }
-
+  $scope.getWarningTooltipMessage = function(params){
+    var paramString = params.join(', ');
+    return ("Parameter" + (params.length > 1 ? "s " : " ") + paramString + (params.length > 1 ? " are" : " is") + " missing.")
+  }
+  $scope.getErrorTooltipMessage = function(params){
+    var paramString = params.join(', ');
+    return ("Invalid constraint for parameter" + (params.length > 1 ? "s: " : " ") + paramString + ".")
+  }
   $scope.reloadData();
   $scope.setPath();
 });
