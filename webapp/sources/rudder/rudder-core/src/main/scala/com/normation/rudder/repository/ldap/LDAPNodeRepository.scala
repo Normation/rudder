@@ -189,7 +189,7 @@ class WoLDAPNodeRepository(
     val entry = mapper.nodeToEntry(node)
     for {
       con <- ldap
-      _ <- con.save(entry).chainError(s"Cannot create node with id '${node.id.value}'")
+      _   <- con.save(entry).chainError(s"Cannot create node with id '${node.id.value}'")
     } yield {
       node
     }
@@ -199,7 +199,7 @@ class WoLDAPNodeRepository(
     val entry = mapper.nodeToEntry(node)
     for {
       con <- ldap
-      _ <- con.delete(entry.dn).chainError(s"Error when trying to delete node '${node.id.value}'")
+      _   <- con.delete(entry.dn).chainError(s"Error when trying to delete node '${node.id.value}'")
     } yield {
       node
     }

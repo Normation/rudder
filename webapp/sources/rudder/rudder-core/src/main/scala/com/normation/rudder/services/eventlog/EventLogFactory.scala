@@ -56,6 +56,9 @@ import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.marshalling._
 import net.liftweb.util.Helpers._
 import org.joda.time.format.ISODateTimeFormat
+import com.normation.rudder.domain._
+import com.normation.rudder.domain.nodes.Node
+
 
 trait EventLogFactory {
 
@@ -283,6 +286,15 @@ trait EventLogFactory {
     , reason             : Option[String]
   ) : ModifyNode
 
+ def getPromoteToRelayFromDiff(
+    id             : Option[Int] = None
+  , modificationId : Option[ModificationId] = None
+  , principal      : EventActor
+  , promotedNode   : NodeInfo
+  , creationDate   : DateTime = DateTime.now()
+  , severity       : Int = 100
+  , reason         : Option[String]
+ ) : PromoteNode
 }
 
 class EventLogFactoryImpl(
@@ -893,6 +905,34 @@ class EventLogFactoryImpl(
     ModifyGlobalProperty(eventLogType,eventLogDetails)
   }
 
+ override def getPromoteToRelayFromDiff(
+      id             : Option[Int] = None
+    , modificationId : Option[ModificationId] = None
+    , principal      : EventActor
+    , promotedNode   : NodeInfo
+    , creationDate   : DateTime = DateTime.now()
+    , severity       : Int = 100
+    , reason         : Option[String]
+ ) : PromoteNode = {
+
+   val details = EventLog.withContent{
+     scala.xml.Utility.trim(
+       <node changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
+         <id>{promotedNode.node.id.value}</id>
+         <hostname>{promotedNode.hostname}</hostname>
+       </node>
+     )
+   }
+   PromoteNode(EventLogDetails(
+       id = id
+     , modificationId = modificationId
+     , principal = principal
+     , details = details
+     , creationDate = creationDate
+     , reason = reason
+     , severity = severity
+   ) )
+ }
 
   def getModifyNodeFromDiff(
       id                 : Option[Int] = None

@@ -223,6 +223,7 @@ class EventLogDetailsGenerator(
       case x:DeleteAPIAccountEventLog      => apiAccountDesc(x, Text(" deleted"))
       case x:ModifyGlobalProperty          => Text(s"Modify '${x.propertyName}' global property")
       case x:ModifyNode                    => nodeDesc(x, Text(" modified"))
+      case x:PromoteNode                   => nodeDesc(x, Text(" promoted to relay"))
       case _ => Text("Unknow event type")
     }
   }
@@ -922,6 +923,19 @@ class EventLogDetailsGenerator(
               errorMessage(e)
           }
           }
+        case x:PromoteNode =>
+          "*" #> { logDetailsService.getPromotedNodeToRelayDetails(x.details) match {
+            case Full(details) =>
+              <div class="evloglmargin">
+
+                <h4>Node promoted to relay overview:</h4>
+                { promotedNodeDetails(details._1, details._2) }
+                { reasonHtml }
+                { xmlParameters(event.id) }
+              </div>
+            case e:EmptyBox => errorMessage(e)
+          }
+             }
 
         // other case: do not display details at all
         case _ => "*" #> ""
@@ -1153,7 +1167,15 @@ class EventLogDetailsGenerator(
         )
     }
   }
-
+  private[this] def promotedNodeDetails(id: NodeId, name:String) = (
+    "#nodeID" #> id.value &
+      "#nodeName" #> name
+    )(
+    <ul class="evlogviewpad">
+      <li><b>Node ID: </b><value id="nodeID"/></li>
+      <li><b>Hostname: </b><value id="nodeName"/></li>
+    </ul>
+  )
   private[this] def nodeDetails(details:InventoryLogDetails) = (
     "#nodeID" #> details.nodeId.value &
       "#nodeName" #> details.hostname &

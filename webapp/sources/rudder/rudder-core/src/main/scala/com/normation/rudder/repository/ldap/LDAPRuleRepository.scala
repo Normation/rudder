@@ -173,6 +173,7 @@ class WoLDAPRuleRepository(
     }
   }
 
+
   override def deleteSystemRule(id: RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[DeleteRuleDiff] = {
     internalDeleteRule(id, modId, actor, reason, callSystem = true)
   }

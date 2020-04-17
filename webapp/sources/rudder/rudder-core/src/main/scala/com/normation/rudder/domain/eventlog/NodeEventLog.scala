@@ -52,9 +52,22 @@ object ModifyNode extends EventLogFilter {
   override def apply(x : (EventLogType, EventLogDetails)) : ModifyNode = ModifyNode(x._2)
 }
 
+final case class PromoteNode(
+    override val eventDetails : EventLogDetails
+) extends NodeEventLog {
+  override val eventType = PromoteNode.eventType
+}
+
+object PromoteNode extends EventLogFilter {
+  override val eventType = PromoteNodeToRelayEventType
+
+  override def apply(x : (EventLogType, EventLogDetails)) : PromoteNode = PromoteNode(x._2)
+}
+
 object NodeEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
-      ModifyNode
+        ModifyNode
+      , PromoteNode
       //one day: create, delete
     )
 }

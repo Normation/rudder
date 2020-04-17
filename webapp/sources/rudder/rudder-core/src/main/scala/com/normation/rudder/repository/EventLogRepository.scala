@@ -53,6 +53,7 @@ import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyNodeDiff
 import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
+import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.parameters.AddGlobalParameterDiff
 import com.normation.rudder.domain.parameters.DeleteGlobalParameterDiff
 import com.normation.rudder.domain.parameters.ModifyGlobalParameterDiff
@@ -367,6 +368,23 @@ trait EventLogRepository {
         )
     )
   }
+
+  def savePromoteToRelay(
+    modId        : ModificationId
+  , principal    : EventActor
+  , promotedNode : NodeInfo
+  , reason       : Option[String]
+  ) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getPromoteToRelayFromDiff (
+          principal  = principal
+        , promotedNode = promotedNode
+        , reason = reason
+      )
+    )
+  }
+
 
   /**
    * Returns eventlog matching criteria
