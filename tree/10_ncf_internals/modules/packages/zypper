@@ -8,6 +8,7 @@ elif command -v python3 >/dev/null 2>/dev/null; then
   exec python3 "$0" "$@"
 else
   exec python2 "$0" "$@"
+fi
 '''
 
 
