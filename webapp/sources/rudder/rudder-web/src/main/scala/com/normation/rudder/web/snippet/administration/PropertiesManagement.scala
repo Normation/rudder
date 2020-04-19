@@ -743,7 +743,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         }
       , () => startNewPolicyGeneration
       , globalMode
-      , false
     )
   }
   val agentPolicyModeEditForm = {

@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -64,18 +64,16 @@ complianceModeModule.controller("complianceModeController", function($scope) {
   $scope.callback;
   $scope.savedValue;
   $scope.contextPath;
-  $scope.disabledChangeOnly;
 
- $scope.init = function(complianceMode, globalValue, isNodePage, callback, contextPath, allModes, disabledChangeOnly) {
+ $scope.init = function(complianceMode, globalValue, isNodePage, callback, contextPath, allModes) {
    $scope.complianceMode=complianceMode;
    $scope.globalValue = globalValue;
    $scope.isNodePage =  isNodePage;
    $scope.callback=callback;
    $scope.contextPath=contextPath;
    $scope.savedValue = angular.copy($scope.complianceMode);
-   $scope.disabledChangeOnly = disabledChangeOnly;
  }
- 
+
  $scope.disableHeartbeat = function(){
    if ($scope.isNodePage) {
      return false;
@@ -87,7 +85,7 @@ complianceModeModule.controller("complianceModeController", function($scope) {
   $scope.checkMaximumValue = function() {
    return 60 * 24 / $scope.agentRun
   }
-  
+
   $scope.updateAgentRun = function(run) {
     $scope.agentRun = run;
   }

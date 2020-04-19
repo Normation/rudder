@@ -105,7 +105,6 @@ class ShowNodeDetailsFromNode(
       , saveHeart(nodeInfo)
       , () => ()
       , globalMode
-      , false
     )
   }
   def getHeartBeat(nodeInfo : NodeInfo) : Box[(GlobalComplianceMode,NodeComplianceMode)] = {

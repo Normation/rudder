@@ -58,7 +58,7 @@
           <li class="rudder-form">
             <div class="input-group">
               <label class="input-group-addon" for="noncompliant">
-                <input type="radio" ng-model="complianceMode.name"  ng-disabled="disabledChangeOnly" value="changes-only" id="noncompliant"/>
+                <input type="radio" ng-model="complianceMode.name" value="changes-only" id="noncompliant"/>
                 <label for="noncompliant" class="label-radio">
                   <span class="ion ion-record"></span>
                 </label>
@@ -87,7 +87,7 @@
       </div>
 
       <div ng-hide="complianceMode.name !== 'changes-only'" class="animate-hide">
-        <div class="page-title">Agent run heartbeat</div>
+        <div class="page-subtitle">Agent run heartbeat</div>
         <div class="portlet-content" >
           <div class="callout-fade callout-info">
           <!-- global run is defined on node page, so first section is displayed in global settings page -->
