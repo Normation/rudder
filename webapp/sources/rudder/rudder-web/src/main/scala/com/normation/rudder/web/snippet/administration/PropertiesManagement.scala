@@ -743,7 +743,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         }
       , () => startNewPolicyGeneration
       , globalMode
-      , configService.rudder_report_protocol_default().map(_ == AgentReportingHTTPS).toBox.getOrElse(false)
     )
   }
   val agentPolicyModeEditForm = {
