@@ -724,7 +724,7 @@ class WoLDAPDirectiveRepository(
     internalDeleteDirective(id, modId, actor, reason:Option[String], callSystem = false)
   }
 
-  private[this] def internalDeleteDirective(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String], callSystem: Boolean = false) : IOResult[Option[DeleteDirectiveDiff]] = {
+  private[this] def internalDeleteDirective(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String], callSystem: Boolean) : IOResult[Option[DeleteDirectiveDiff]] = {
     getActiveTechniqueAndDirectiveEntries(id).flatMap {
       case None => // directive already deleted, do nothing
         None.succeed
@@ -736,7 +736,7 @@ class WoLDAPDirectiveRepository(
           directive       <- mapper.entry2Directive(entry).chainError(s"Error when transforming LDAP entry into a directive for id '${id.value}'. Entry: ${entry}").toIO
           checkSystem     <- (directive.isSystem, callSystem) match {
                               case (true, false) => Unexpected(s"System directive '${id.value}' can't be deleted").fail
-                              case (false, true) => Inconsistancy(s"Non-system directive '${id.value}' can not be deleted with that method").fail
+                              case (false, true) => Inconsistency(s"Non-system directive '${id.value}' can not be deleted with that method").fail
                               case _             => directive.succeed
                             }
           technique       <- techniqueRepository.get(TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion)).succeed

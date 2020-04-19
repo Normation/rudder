@@ -57,7 +57,6 @@ import com.normation.rudder.services.marshalling._
 import net.liftweb.util.Helpers._
 import org.joda.time.format.ISODateTimeFormat
 import com.normation.rudder.domain._
-import com.normation.rudder.domain.nodes.Node
 
 
 trait EventLogFactory {

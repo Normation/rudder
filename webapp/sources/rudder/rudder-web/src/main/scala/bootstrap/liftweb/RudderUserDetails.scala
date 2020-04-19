@@ -50,7 +50,6 @@ import com.normation.rudder.api._
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.rest.RoleApiMapping
-import org.bouncycastle.crypto.DataLengthException
 import org.bouncycastle.util.encoders.Hex
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
@@ -120,7 +119,7 @@ object PasswordEncoder {
       try {
         OpenBSDBCrypt.checkPassword(encodedPassword, rawPassword.toString.toCharArray)
       } catch {
-        case e =>
+        case e: Exception =>
           ApplicationLogger.error(s"Invalid password format: ${e.getMessage}")
           false
       }
