@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+name: "username"
+in: path
+required: true
+description: Username of an user (unique)
+schema:
+  type: string
+  example: JaneDoe

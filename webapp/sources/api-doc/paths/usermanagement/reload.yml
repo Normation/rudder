@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+get:
+  summary: Reload user
+  description: Reload the users from the file system, in the configuration file
+  operationId: reloadUserConf
+  responses:
+    "200":
+      description: Reload informations
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - reloadUserConf
+              data:
+                type: object
+                required:
+                  - reload
+                properties:
+                  reload:
+                    type: object
+                    required:
+                      - status
+                    properties:
+                      status:
+                        type: string
+                        example: Done
+
+  tags:
+    - 🧩 User Management
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/usermanagement/reload.sh
