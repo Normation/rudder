@@ -60,7 +60,15 @@ tags:
 
 
       Data sources plugin configuration.
+  - name: "🧩 Scale out Relay"
+    description: >-
+      **Requires that the `scale-out-relay` plugin is installed on the server.**
+
+
+      Manage relays.
 paths:
+  "/scaleoutrelay/promote/{nodeId}":
+    $ref: paths/scale-out-relay/promote.yml
   "/changeRequests/{changeRequestId}/accept":
     $ref: paths/change-requests/accept.yml
   "/changeRequests/{changeRequestId}":
