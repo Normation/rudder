@@ -210,12 +210,12 @@ object NcfApi extends ApiModuleProvider[NcfApi] {
     val (action, path)  = GET / "ncf" / "methods"
   }
   final case object UpdateMethods extends NcfApi with ZeroParam with StartsAtVersion15 with SortIndex { val z = implicitly[Line].value
-    val description = "Update methods metadata"
-    val (action, path)  = POST / "ncf" / "methods"
+    val description = "reload methods metadata from file system"
+    val (action, path)  = POST / "ncf" / "reload" / "methods"
   }
   final case object UpdateTechniques extends NcfApi with ZeroParam with StartsAtVersion15 with SortIndex { val z = implicitly[Line].value
-    val description = "Update techniques metadata"
-    val (action, path)  = POST / "ncf" / "techniques"
+    val description = "reload techniques metadata from file system"
+    val (action, path)  = POST / "ncf" / "reload" / "techniques"
   }
 
   def endpoints = ca.mrvisser.sealerate.values[NcfApi].toList.sortBy( _.z )
