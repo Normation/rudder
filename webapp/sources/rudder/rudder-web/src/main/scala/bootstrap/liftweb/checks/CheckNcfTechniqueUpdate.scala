@@ -38,7 +38,6 @@
 package bootstrap.liftweb
 package checks
 
-import net.liftweb.common._
 import better.files.File
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
@@ -47,8 +46,6 @@ import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.eventlog.EventActor
 import com.normation.rudder.api.ApiAccount
-import com.normation.box._
-import com.normation.errors.IOResult
 import com.normation.errors.RudderError
 import com.normation.rudder.ncf.TechniqueReader
 import zio._
@@ -89,46 +86,30 @@ class CheckNcfTechniqueUpdate(
 
     val ncfTechniqueUpdateFlag = File("/opt/rudder/etc/force_ncf_technique_update")
 
-    import zio.syntax._
+    import com.normation.errors._
 
     def updateNcfTechniques  = {
-      import NcfTechniqueUpgradeError._
       for {
         methods    <- techniqueReader.updateMethodsMetadataFile
         techniques <- techniqueReader.updateTechniquesMetadataFile
         // Actually write techniques
-        written    <- ZIO.foreach(techniques)(
-                                techniqueWrite.writeTechnique(_, methods, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value)).toBox
-                                  match {
-                                  case Full(m) => m.succeed
-                                  case eb : EmptyBox =>
-                                    val fail = eb ?~! "An error occured while writing ncf Techniques"
-                                    WriteTechniqueError(fail.messageChain, None).fail
-                                }
-                              )
+        written    <- ZIO.foreach(techniques)( t =>
+                        techniqueWrite.writeTechnique(t, methods, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value)).chainError(s"An error occured while writing technique ${t.bundleName.value}")
+                      )
                                                         // Update technique library once all technique are updated
-        libUpdate   <- techLibUpdate.update(ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value), Some(s"Update Technique library after updating all techniques at start up")) match {
-                                case Full(techniques) => techniques.succeed
-                                case eb: EmptyBox =>
-                                  val fail = eb ?~! s"An error occured during techniques update after update of all techniques from the editor"
-                                  TechniqueUpdateError(fail.msg, fail.exception).fail
-                              }
+        libUpdate   <- techLibUpdate.update(ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value), Some(s"Update Technique library after updating all techniques at start up")).toIO.chainError( s"An error occured during techniques update after update of all techniques from the editor")
+
         flagDeleted <- IOResult.effect( ncfTechniqueUpdateFlag.delete() )
       } yield {
          techniques
       }
     }
 
-    try {
-      if (ncfTechniqueUpdateFlag.exists) {
-        ZioRuntime.runNow(updateNcfTechniques)
-      } else {
-        BootstrapLogger.logEffect.info(s"Flag file '${ncfTechniqueUpdateFlag}' does not exist, do not regenerate ncf Techniques")
-      }
-    } catch {
-      // Exception while checking the flag existence
-      case e : Exception =>
-        BootstrapLogger.logEffect.error(s"An error occurred while accessing flag file '${ncfTechniqueUpdateFlag}', cause is: ${e.getMessage}")
-    }
+    val prog = (for {
+      flagExists <- IOResult.effect(s"An error occurred while accessing flag file '${ncfTechniqueUpdateFlag}'")(ncfTechniqueUpdateFlag.exists)
+      _ <- if (flagExists) updateNcfTechniques else BootstrapLogger.info(s"Flag file '${ncfTechniqueUpdateFlag}' does not exist, do not regenerate ncf Techniques")
+    } yield ())
+
+    ZioRuntime.runNowLogError(err => BootstrapLogger.error(s"An error occurred while updating techniques based on ncf; error message is: ${err.fullMsg}"))(prog)
   }
 }

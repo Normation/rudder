@@ -99,6 +99,8 @@ class NcfApi(
         case API.DeleteTechnique  => DeleteTechnique
         case API.GetTechniques    => GetTechniques
         case API.GetMethods       => GetMethods
+        case API.UpdateMethods    => UpdateMethods
+        case API.UpdateTechniques => UpdateTechniques
     })
   }
 
