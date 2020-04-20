@@ -36,6 +36,8 @@
 */
 
 package com.normation.cfclerk.domain
+import java.nio.charset.Charset
+
 import com.normation.utils.HashcodeCaching
 
 /**
@@ -87,40 +89,20 @@ final class TechniqueVersion(val epoch: Int, val upsreamTechniqueVersion: Upstre
 
 object TechniqueVersion {
 
-  /*  epoch :This is a single (generally small) unsigned integer. It may be omitted, in
-   *  which case zero is assumed(value=0). If it is omitted then the upstream_version may
-   *  not contain any colons.
-   */
-  def splitEpochUpstream(value: String): (Int, UpstreamTechniqueVersion) = {
-    val arr = value.split(":")
-    if (arr.length <= 1) return (0, UpstreamTechniqueVersion(value))
-
-    val errorEx = new TechniqueVersionFormatException("The epoch value has to be an unsigned integer which is not the case of : " + arr(0))
-    try {
-      val epochVal = arr(0).toInt
-      if (epochVal < 0) throw errorEx
-      return (epochVal, UpstreamTechniqueVersion(rest(value, arr(0) + ":")))
-    } catch {
-      case e: NumberFormatException => throw errorEx
+  def apply(value: String): TechniqueVersion = {
+    ParseVersion.parse(value) match {
+      case Right(v)  => new TechniqueVersion(v.epoch.toInt, UpstreamTechniqueVersion(v.toVersionStringNoEpoch))
+      case Left(err) => throw new TechniqueVersionFormatException(err)
     }
-  }
-
-  def rest(hole: String, pref: String) = hole.substring(pref.length, hole.length)
-
-  def apply(value: String) = {
-    val (epoch, upsreamTechniqueVersion) = splitEpochUpstream(value)
-    new TechniqueVersion(epoch, upsreamTechniqueVersion)
   }
 }
 
 case class UpstreamTechniqueVersion(value: String) extends Ordered[UpstreamTechniqueVersion] with HashcodeCaching {
-  checkValid(value)
 
+  val parsed = checkValid(value)
+
+  def checkValid(value: String): Version = {
   import scala.util.matching.Regex
-  import TechniqueVersion.rest
-
-  def checkValid(strings: String*): Unit = {
-    for (value <- strings) {
       if (value.isEmpty || !value(0).isDigit)
         throw new TechniqueVersionFormatException("The upstream_version should start with a digit : " + value)
 
@@ -130,83 +112,216 @@ case class UpstreamTechniqueVersion(value: String) extends Ordered[UpstreamTechn
           throw new TechniqueVersionFormatException("The upstream_version contains invalid charaters.\n" +
             "The upstream_version may contain only alphanumerics and " +
             "the characters . + - : ~ (full stop, plus, hyphen, colon, tilde).")
-        case _ =>
+      case _ => ParseVersion.parse(value) match {
+        case Right(v)  => v
+        case Left(err) => throw new TechniqueVersionFormatException(err)
       }
     }
   }
-
-  val intsReg = new Regex("[0-9]+")
 
   def compare(upsreamTechniqueVersion: UpstreamTechniqueVersion): Int = {
-    val (s1, s2) = (value, upsreamTechniqueVersion.value)
-
-    (intsReg.findPrefixOf(value), intsReg.findPrefixOf(s2)) match {
-      case (Some(subInt1), Some(subInt2)) =>
-        val cmpI = subInt1.toInt compare subInt2.toInt
-        if (cmpI != 0)
-          cmpI
-        else compareRest(rest(s1, subInt1), rest(s2, subInt2))
-      case (Some(_), _) => 1
-      case (_, Some(_)) => -1
-      case _ => 0
-    }
+    parsed.compareTo(upsreamTechniqueVersion.parsed)
   }
 
-  val noIntsReg = new Regex("[^0-9]*")
-
-  def compareRest(s1: String, s2: String): Int = {
-    val (sub1, sub2) = (noIntsReg.findPrefixOf(s1).get, noIntsReg.findPrefixOf(s2).get)
-    val cmpS = compareStrings(sub1.toList, sub2.toList)
-
-    // if a difference is found (or if the end is reached), return it
-    if (cmpS != 0 || (s1.length == sub1.length && s2.length == sub2.length))
-      cmpS
-    else {
-      val (restS1, restS2) = (rest(s1, sub1), rest(s2, sub2))
-      val cmpI = compareIntegers(restS1, restS2)
-      if (cmpI != 0 || sub1.isEmpty) cmpI
-      else compareRest(restS1, restS2)
-    }
-  }
-
-  def compareStrings(s1: List[Char], s2: List[Char]): Int = {
-    (s1, s2) match {
-      case (h1 :: t1, h2 :: t2) => {
-        val (cv1, cv2) = (CharVersion(h1), CharVersion(h2))
-        if (cv1 == cv2) compareStrings(t1, t2)
-        else cv1 compare cv2
-      }
-      case (h1, h2 :: t2) =>
-        if (h2 == '~') 1
-        else -1
-      case (h1 :: t1, h2) =>
-        if (h1 == '~') -1
-        else 1
-      case (h1, h2) => 0
-    }
-  }
-
-  def compareIntegers(s1: String, s2: String): Int = {
-    (intsReg.findPrefixOf(s1), intsReg.findPrefixOf(s2)) match {
-      case (Some(i1), Some(i2)) => i1.toInt compare i2.toInt
-      case (Some(_), _) => 1
-      case (_, Some(_)) => -1
-      case _ => 0
-    }
-  }
-
-  private case class CharVersion(c: Char) extends Ordered[CharVersion] with HashcodeCaching {
-    def compare(cv: CharVersion): Int = {
-      if (c == cv.c) 0
-      else if (c == '~' && cv.c != '~') -1
-      else if (c != '~' && cv.c == '~') 1
-      else if (c.isLetter && !cv.c.isLetter) -1
-      else if (!c.isLetter && cv.c.isLetter) 1
-      else c compare cv.c
-    }
-  }
 }
 
 
+// alternative implementation with a parser
+
+/*
+ * A version is composed of :
+ * - an optionnal Epoch: a natural number followed by ":"
+ * - a list of version parts seperated by "." or "-" or "~"
+ * - a change from letters to digits define a version part as if
+ *   separated with a "-", "1.2.2sp1" == "1.2.2-sp1"
+ * - "." is higher than "-" so that "1.2.2" > "1.2-2"
+ * - "~" modify the following part to mean "before what precede"
+ * - some words also mean "before", they are, sorted in that order:
+ *   snapshot[s], nightly|nightlies, alpha, beta, milestone, rc
+ *   so that "1.2-alpha1" == "1.2~alpha-1"
+ * - all other words mean "after", and they are sorted alphabetically
+ */
+final case class Version(epoch: Long, head: PartType, parts: List[VersionPart]) extends ToVersionString with Ordered[Version] {
+  def toVersionString: String =
+    (if(epoch == 0) "" else epoch.toString + ":") + toVersionStringNoEpoch
+
+  def toVersionStringNoEpoch = head.toVersionString + parts.map(_.toVersionString).mkString("")
+
+  override def compare(other: Version): Int = Version.compare(this, other)
+}
+
+object Version {
+  //create a list of default value, ie a list of ".0", of the given size
+  def defaultList(size: Int) = List.fill(size)(VersionPart.After(Separator.Dot, PartType.Numeric(0)))
+  @scala.annotation.tailrec
+  def compareList(a: List[VersionPart], b: List[VersionPart]): Int = {
+    (a, b) match {
+      case (Nil, Nil) => 0
+      case (Nil, l  ) => compareList(defaultList(l.size), l)
+      case (l  , Nil) => compareList(l, defaultList(l.size))
+      case (h1::t1, h2::t2) =>
+        val h = VersionPart.compare(h1, h2)
+        if(h == 0) compareList(t1, t2) else h
+    }
+  }
+  def compare(a: Version, b: Version): Int = {
+    val e = a.epoch - b.epoch
+    if(e == 0L) {
+      val h = PartType.compare(a.head, b.head)
+      if(h == 0) compareList(a.parts, b.parts)
+      else h
+    } else e.signum
+  }
+}
+
+sealed trait ToVersionString {
+  def toVersionString: String
+}
+
+/*
+ * Separator are ordered '~' , ''|'-', '.'
+ */
+sealed trait Separator extends ToVersionString with Ordered[Separator] {
+  def index: Int
+  override def compare(other: Separator): Int = Separator.compare(this, other)
+}
+object Separator {
+  final case object Tilde extends Separator { def index= 0; def toVersionString: String = "~" }
+  final case object Minus extends Separator { def index= 1; def toVersionString: String = "-" }
+  final case object Plus  extends Separator { def index= 1; def toVersionString: String = "+" }
+  final case object Comma extends Separator { def index= 1; def toVersionString: String = "," }
+  // None is same as "." to allow both "1.0 == 1.0.0" and "1.a == 1a"
+  final case object None  extends Separator { def index= 2; def toVersionString: String = ""  }
+  final case object Dot   extends Separator { def index= 2; def toVersionString: String = "." }
+
+  def compare(a: Separator, b: Separator): Int = a.index - b.index
+}
+
+/*
+ * For parts, alpha is before number, so that:
+ * 1.2.0 < 1.2.something
+ * APART for the case were we have known name (alpha, etc) which are specifically sorted
+ */
+sealed trait PartType extends ToVersionString with Ordered[PartType] {
+  def index: Int
+  override def compare(other: PartType): Int = PartType.compare(this, other)
+}
+object PartType {
+  //snapshot < nightly < alpha < beta < milestone < rc < [0-9] < other
+
+  // we keep original name in value
+  final case class Snapshot (value: String) extends PartType { def index = 0; def toVersionString: String = value }
+  final case class Nightly  (value: String) extends PartType { def index = 1; def toVersionString: String = value }
+  final case class Alpha    (value: String) extends PartType { def index = 2; def toVersionString: String = value }
+  final case class Beta     (value: String) extends PartType { def index = 3; def toVersionString: String = value }
+  final case class Milestone(value: String) extends PartType { def index = 4; def toVersionString: String = value }
+  final case class RC       (value: String) extends PartType { def index = 5; def toVersionString: String = value }
+  final case class Numeric  (value: Long  ) extends PartType { def index = 6; def toVersionString: String = value.toString }
+  final case class Chars    (value: String) extends PartType { def index = 7; def toVersionString: String = value}
+
+  def compare(a: PartType, b: PartType): Int = {
+    val d = a.index - b.index
+    if(d == 0) {
+      (a, b) match {
+        case (Numeric(na), Numeric(nb)) => (na - nb).signum
+        case (Chars(aa)  , Chars(ab)  ) => String.CASE_INSENSITIVE_ORDER.compare(aa, ab)
+      case _ => 0
+    }
+    } else d
+  }
+  }
+
+sealed trait VersionPart extends ToVersionString with Ordered[VersionPart] {
+  def separator: Separator
+  def value    : PartType
+
+  override def toVersionString: String = separator.toVersionString + value.toVersionString
+  override def compare(other: VersionPart): Int = VersionPart.compare(this, other)
+  }
+object VersionPart {
+  final case class Before(separator: Separator, value: PartType) extends VersionPart //we can have before with "-" separator for ex with alpha, etc
+  final case class After (separator: Separator, value: PartType) extends VersionPart
+
+  def compare(a: VersionPart, b: VersionPart) = (a, b) match {
+    case (_: Before, _: After ) => -1
+    case (_: After , _: Before) =>  1
+    case (a, b)                 =>
+      val c = Separator.compare(a.separator, b.separator) // not sure? Does 1.0~alpha < 1.0.alpha ?
+      if(c == 0) PartType.compare(a.value, b.value) else c
+    }
+  }
+
+object ParseVersion {
+  import fastparse._, NoWhitespace._
+
+  def ascii = Charset.forName("US-ASCII").newEncoder()
+  // chars allowed in a version. Only ascii, non control, non space
+  def versionChar(c: Char) = ascii.canEncode(c) && !(c.isDigit || c.isControl || c.isSpaceChar || separatorChar(c))
+  def separatorChar(c: Char) = List('~', '+', ',', '-', '.').contains(c)
+
+  def num[_ :P] = P(CharIn("0-9").rep(1).!.map(_.toLong))
+  def chars[_ : P] = P( CharsWhile(versionChar).rep(1).! ).map { s =>
+    import PartType._
+    s.toLowerCase match {
+      case "snapshot"  => Snapshot(s)
+      case "nightly"   => Nightly(s)
+      case "alpha"     => Alpha(s)
+      case "beta"      => Beta(s)
+      case "milestone" => Milestone(s)
+      case "rc"        => RC(s)
+      case _           => Chars(s)
+  }}
+
+  def epoch[_:P] = P( num ~ ":")
+  def toSeparator(c: Char) = { c match {
+    case '~' => Separator.Tilde
+    case '-' => Separator.Minus
+    case '+' => Separator.Plus
+    case ',' => Separator.Comma
+    case '.' => Separator.Dot
+  }}
+  def separators[_:P] = P( CharsWhile(separatorChar).! ).map { (s: String) =>
+    s.toSeq.map(toSeparator)
+  }
+
+  def listOfSepToPart(list: List[Separator]): List[VersionPart] = { list.map {
+    case Separator.Tilde => VersionPart.Before(Separator.Tilde, PartType.Chars(""))
+    case sep             => VersionPart.After(sep, PartType.Chars(""))
+  } }
+  def numPart[_:P]: P[List[VersionPart]] = P( separators ~ num).map { case (seq, n) => // seq is at least 1
+    seq.last match {
+      case Separator.Tilde => listOfSepToPart(seq.init.toList) ::: VersionPart.Before(Separator.Tilde, PartType.Numeric(n)) :: Nil
+      case sep             => listOfSepToPart(seq.init.toList) ::: VersionPart.After (sep            , PartType.Numeric(n)) :: Nil
+  }}
+
+  def charPart[_:P]: P[List[VersionPart]] = P( separators ~ chars).map { case (seq, n) => // seq is at least 1
+    (seq.last, n) match {
+      case (Separator.Tilde, s)                => listOfSepToPart(seq.init.toList) ::: VersionPart.Before(Separator.Tilde, s) :: Nil
+      case (sep            , c:PartType.Chars) => listOfSepToPart(seq.init.toList) ::: VersionPart.After(sep, c)              :: Nil
+      case (sep            , prerelease      ) => listOfSepToPart(seq.init.toList) ::: VersionPart.Before(sep, prerelease)    :: Nil
+  }}
+
+  def noSepPart1[_:P] = P( chars ).map { c =>
+      VersionPart.After(Separator.None, c) :: Nil
+  }
+  def noSepPart2[_:P] = P( num ).map { n =>
+      VersionPart.After(Separator.None, PartType.Numeric(n)) :: Nil
+  }
+
+  def startNum[_:P] = P( num ).map(PartType.Numeric)
+
+  def version[_ :P] = P( Start ~ epoch.? ~/ (startNum | chars) ~/
+                         (numPart | charPart | noSepPart1 | noSepPart2).rep(0) ~ separators.? ~ End).map {
+    case (e, head, list, opt) =>
+      Version(e.getOrElse(0L), head, list.flatten.toList ::: listOfSepToPart(opt.toList.flatten))
+  }
 
 
+  def parse(s: String): Either[String, Version] = {
+    fastparse.parse(s, version(_)) match {
+      case Parsed.Success(value, index) => Right(value)
+      case _:Parsed.Failure => Left(s"Error when parsing '${s}' as a version. Only ascii (non-control, non-space) chars are allowed in a version string.")
+    }
+  }
+
+}

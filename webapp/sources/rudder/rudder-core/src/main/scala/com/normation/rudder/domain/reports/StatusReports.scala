@@ -120,7 +120,6 @@ object NodeStatusReport {
   // Only used in `getNodeStatusReports`
   def apply(nodeId: NodeId, runInfo:  RunAndConfigInfo, statusInfo: RunComplianceInfo, overrides: List[OverridenPolicy], reports: Set[RuleNodeStatusReport]) = {
     assert(reports.forall(_.nodeId == nodeId), {
-      import com.normation.rudder.domain.reports.NodeStatusReportSerialization.SetRuleNodeStatusReportToJs
       s"You can't build a NodeStatusReport with reports for other node than itself. Current node id: ${nodeId.value}; Wrong reports: ${reports.filter(_.nodeId != nodeId).map(r => s"${r.nodeId.value}:${r.ruleId.value}").mkString("|")}"
     })
     new NodeStatusReport(nodeId, runInfo, statusInfo, overrides, reports)
