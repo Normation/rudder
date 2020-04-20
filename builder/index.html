@@ -191,7 +191,6 @@
               </div>
               <div class="w-100"></div>
               <div class="col techniques-list-container">
-                <div style="display:none;">{{listTechniques}}</div>
                 <ul>
                   <li
                   class="row no-gutters"
@@ -270,11 +269,27 @@
                     </li>
                     <li ng-click="ui.activeTab = 'parameters'" ng-class="{'active': ui.activeTab == 'parameters'}" >
                       Parameters
-                      <span class="badge badge-secondary" ng-class="{'empty' : selectedTechnique.parameter.length <= 0}">{{selectedTechnique.parameter.length}}</span>
+                      <span class="badge badge-secondary badge-resources" ng-class="{'empty' : selectedTechnique.parameter.length <= 0}">
+                        <span>{{selectedTechnique.parameter.length}}</span>
+                      </span>
                     </li>
                     <li ng-click="ui.activeTab = 'resources'"  ng-class="{'active': ui.activeTab == 'resources' }" >
                       Resources
-                      <span class="badge badge-secondary" ng-class="{'empty' : selectedTechnique.resources.length <= 0}">{{selectedTechnique.resources.length}}</span>
+                      <span
+                        class="badge badge-secondary badge-resources tooltip-bs"
+                        ng-class="{'empty' : selectedTechnique.resources.length <= 0}"
+                        data-toggle="tooltip"
+                        data-trigger="hover"
+                        data-container="body"
+                        data-placement="right"
+                        data-title="{{getResourcesInfo()}}"
+                        data-html="true"
+                        data-delay='{"show":"400", "hide":"100"}'
+                        >
+                        <span ng-if="(selectedTechnique.resources.length <= 0 || getResourcesByState(selectedTechnique.resources, 'new').length != selectedTechnique.resources.length && getResourcesByState(selectedTechnique.resources, 'deleted').length != selectedTechnique.resources.length)" class="nb-resources">{{selectedTechnique.resources.length - (getResourcesByState(selectedTechnique.resources, 'new').length + getResourcesByState(selectedTechnique.resources, 'deleted').length)}}</span>
+                        <span ng-if="getResourcesByState(selectedTechnique.resources, 'new').length>0" class="nb-resources new"> {{getResourcesByState(selectedTechnique.resources, 'new').length}}+ </span>
+                        <span ng-if="getResourcesByState(selectedTechnique.resources, 'deleted').length>0" class="nb-resources del"> {{getResourcesByState(selectedTechnique.resources, 'deleted').length}}- </span>
+                      </span>
                     </li>
                   </ul>
                 </div>
@@ -355,7 +370,7 @@
                           </div>
                         </li>
                       </ul>
-                      <div class="text-center">
+                      <div class="text-center btn-manage">
                         <div ng-click="addParameter()" class="btn btn-success btn-outline" >
                           Add parameter <i class="fas fa-plus-circle"></i>
                         </div>
@@ -379,7 +394,13 @@
                             <div class="use-with"><span>{{"${resources_dir}/"+ resource.name}}</span></div>
                           </li>
                         </ul>
-                        <div class="text-center">
+                        <div class="resources-uncommitted" ng-if="getResourcesByState(selectedTechnique.resources, 'new').length>0 || getResourcesByState(selectedTechnique.resources, 'deleted').length > 0">
+                          <span>
+                            <i class="fas fa-exclamation-triangle"></i>
+                            There {{(getResourcesByState(selectedTechnique.resources, 'new').length + getResourcesByState(selectedTechnique.resources, 'deleted').length) > 1 ? "are" : "is" }} <b>{{(getResourcesByState(selectedTechnique.resources, 'new').length + getResourcesByState(selectedTechnique.resources, 'deleted').length)}}</b> uncommitted file{{(getResourcesByState(selectedTechnique.resources, 'new').length + getResourcesByState(selectedTechnique.resources, 'deleted').length) > 1 ? "s" : "" }}, save your changes to commit {{(getResourcesByState(selectedTechnique.resources, 'new').length + getResourcesByState(selectedTechnique.resources, 'deleted').length) > 1 ? "them" : "it" }}.
+                          </span>
+                        </div>
+                        <div class="text-center btn-manage">
                           <div ng-click="fileManagerState.open = true" class="btn btn-success btn-outline" >
                             Manage resources <i class="fas fa-folder"></i>
                           </div>

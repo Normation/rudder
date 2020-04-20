@@ -191,7 +191,8 @@ app.controller('ncf-builder', function ($scope, $uibModal, $http, $q, $location,
   $scope.techniques;
 
   $scope.fileManagerState = {
-    open : false
+    open : false,
+    updating : false,
   };
 
   $scope.closeWindow = function(event, enforce){
@@ -323,14 +324,16 @@ function updateResources() {
     function(response) {
       $scope.selectedTechnique.resources = response.data.data.resources;
       $scope.originalTechnique.resources = $scope.originalTechnique.resources === undefined ? response.data.data.resources : $scope.originalTechnique.resources;
+      $scope.fileManagerState.updating = false;
     }
   , function(response) {
       // manage error
+      $scope.fileManagerState.updating = false;
     }
   )
 }
 function updateFileManagerConf () {
-
+  $scope.fileManagerState.updating = true;
   var urlParam= $scope.originalTechnique.bundle_name !== undefined ? $scope.selectedTechnique.bundle_name : $scope.selectedTechnique.internalId + "/new"
   var newUrl =  "/rudder/secure/api/resourceExplorer/"+ urlParam +"/" + $scope.selectedTechnique.version
   updateResources()
@@ -1358,7 +1361,6 @@ $scope.onImportFileChange = function (fileEl) {
         // We will lose the link between the selected method and the technique, to prevent unintended behavior, close the edit method panel
         $scope.ui.selectedMethods = [];
       }
-
       updateFileManagerConf()
       $scope.resetFlags();
     }
@@ -1514,7 +1516,7 @@ $scope.onImportFileChange = function (fileEl) {
       , "version"
       , "method_calls"
       , "parameter"
-      //, "resources"
+      , "resources"
       ]
     return checks;
   }
@@ -1552,6 +1554,11 @@ $scope.onImportFileChange = function (fileEl) {
           diff = !angular.equals(st , ct);
           break;
 
+        case "resources" :
+          var st = angular.copy(storedTech.resources );
+          var ct = angular.copy(currentTech.resources);
+          diff   = !$scope.fileManagerState.updating && !angular.equals(st , ct);
+          break;
         default    :
           diff = !angular.equals(storedTech[check] , currentTech[check]);
           break;
@@ -1573,6 +1580,26 @@ $scope.onImportFileChange = function (fileEl) {
       return diverges;
     }
     return false;
+  }
+
+  $scope.getResourcesByState = function(resources, state){
+    return resources === undefined ? [] : resources.filter(resource => resource.state == state);
+  }
+
+  $scope.getResourcesInfo = function(){
+    var msg, nbResources, nbUncommitted;
+    nbResources = ($scope.selectedTechnique !== undefined && $scope.selectedTechnique.resources !== undefined) ? $scope.selectedTechnique.resources.length : undefined;
+    if(nbResources === undefined || nbResources <= 0){
+      msg = "There is no resource files."
+    }else{
+      nbUncommitted = $scope.selectedTechnique.resources.filter(resource => resource.state != 'untouched').length;
+      if(nbUncommitted <= 0){
+        msg = "There " + (nbResources   > 1 ? "are " : "is ") + nbResources   + " resource file" + (nbResources > 1 ? "s." : ".");
+      }else{
+        msg = "There " + (nbUncommitted > 1 ? "are " : "is ") + nbUncommitted + " uncommitted file" + (nbUncommitted > 1 ? "s" : "") + ", save your changes to commit " + (nbUncommitted > 1 ? "them." : "it.");
+      }
+    }
+    return msg;
   }
 
   $scope.reloadData();
