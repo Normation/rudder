@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+post:
+  summary: Promote a node to relay
+  description: Promote a node to relay
+  operationId: promoteToRelay
+  parameters:
+    - $ref: ../../components/parameters/node-id.yml
+  responses:
+    "200":
+      description: Promote response
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - action
+              - result
+              - data
+            properties:
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - promoteToRelay
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              data:
+                type: string
+                description: Success or error message
+                example: 17dadf50-6056-4c8b-a935-6b97d14b89a7
+  tags:
+    - 🧩 Scale out Relay
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/scale-out-relay/promote.sh
