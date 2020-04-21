@@ -179,15 +179,15 @@ object NcfApi extends ApiModuleProvider[NcfApi] {
 
   final case object UpdateTechnique extends NcfApi with ZeroParam with StartsAtVersion9 with SortIndex { val z = implicitly[Line].value
     val description = "Update technique created with technique editor"
-    val (action, path)  = POST / "techniques"
+    val (action, path)  = POST / "techniques" / "library"
   }
   final case object CreateTechnique extends NcfApi with ZeroParam with StartsAtVersion9 with SortIndex { val z = implicitly[Line].value
     val description = "Create a new technique in Rudder from a technique in the technique editor"
-    val (action, path)  = PUT / "techniques"
+    val (action, path)  = PUT / "techniques" / "library"
   }
   final case object DeleteTechnique extends NcfApi with TwoParam with StartsAtVersion9 with SortIndex { val z = implicitly[Line].value
     val description = "Delete a technique from technique editor"
-    val (action, path)  = DELETE / "techniques" / "{techniqueId}" / "{techniqueVersion}"
+    val (action, path)  = DELETE / "techniques"  / "library" / "{techniqueId}" / "{techniqueVersion}"
   }
   final case object GetResources extends NcfApi with TwoParam with StartsAtVersion15 with SortIndex { val z = implicitly[Line].value
     val description = "Get currently deployed resources of a technique"
@@ -195,7 +195,7 @@ object NcfApi extends ApiModuleProvider[NcfApi] {
   }
   final case object GetNewResources extends NcfApi with TwoParam with StartsAtVersion15 with SortIndex { val z = implicitly[Line].value
     val description = "Get resources of a new technique"
-    val (action, path)  = GET / "techniques" / "{techniqueId}" / "new" / "{techniqueVersion}" / "resources"
+    val (action, path)  = GET / "techniques" / "create" / "{techniqueId}" / "{techniqueVersion}" / "resources"
   }
   final case object ParameterCheck extends NcfApi with ZeroParam with StartsAtVersion15 with SortIndex { val z = implicitly[Line].value
     val description = "Get currently deployed resources of a technique"
@@ -203,19 +203,19 @@ object NcfApi extends ApiModuleProvider[NcfApi] {
   }
   final case object GetTechniques extends NcfApi with ZeroParam with StartsAtVersion15 with SortIndex { val z = implicitly[Line].value
     val description = "Get all Techniques metadata"
-    val (action, path)  = GET / "ncf" / "techniques"
+    val (action, path)  = GET / "techniques"  / "library"
   }
   final case object GetMethods extends NcfApi with ZeroParam with StartsAtVersion15 with SortIndex { val z = implicitly[Line].value
     val description = "Get all methods metadata"
-    val (action, path)  = GET / "ncf" / "methods"
+    val (action, path)  = GET / "techniques" / "library" / "methods"
   }
   final case object UpdateMethods extends NcfApi with ZeroParam with StartsAtVersion15 with SortIndex { val z = implicitly[Line].value
     val description = "reload methods metadata from file system"
-    val (action, path)  = POST / "ncf" / "reload" / "methods"
+    val (action, path)  = POST / "techniques"  / "library" / "reload" / "methods"
   }
   final case object UpdateTechniques extends NcfApi with ZeroParam with StartsAtVersion15 with SortIndex { val z = implicitly[Line].value
     val description = "reload techniques metadata from file system"
-    val (action, path)  = POST / "ncf" / "reload" / "techniques"
+    val (action, path)  = POST / "techniques"  / "library" / "reload"
   }
 
   def endpoints = ca.mrvisser.sealerate.values[NcfApi].toList.sortBy( _.z )

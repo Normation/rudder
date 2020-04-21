@@ -391,7 +391,7 @@ class SharedFilesAPI(
       }
       def apply(req: Req): () => Box[LiftResponse] =
         req.path.partPath match {
-          case techniqueId :: "new" :: techniqueVersion  :: _ =>
+          case "create" :: techniqueId :: techniqueVersion  :: _ =>
             val path = File(s"/var/rudder/configuration-repository/workspace/${techniqueId}/${techniqueVersion}/resources")
             path.createIfNotExists(true,true)
             val pf = requestDispatch(path)
