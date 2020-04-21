@@ -36,7 +36,6 @@ install:
 	$(CP_A) tree $(DESTDIR)/share/ncf/
 	$(CP_A) tools $(DESTDIR)/share/ncf/
 	$(CP_A) builder $(DESTDIR)/share/ncf/
-	$(CP_A) api $(DESTDIR)/share/ncf/
 	$(INSTALL) -m 755 ncf $(DESTDIR)/share/ncf/
 	mkdir -p $(DESTDIR)/bin
 	ln -sf ../share/ncf/ncf $(DESTDIR)/bin/ncf
