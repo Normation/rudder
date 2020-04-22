@@ -330,7 +330,7 @@ object AnalyseParamInterpolation extends AnalyseInterpolation[ParamInterpolation
    * Retrieve the global parameter from the node context.
    */
   def getRudderGlobalParam(context: ParamInterpolationContext, paramName: ParameterName): PureResult[String] = {
-    context.parameters.get(paramName) match {
+    context.parameters.get(paramName.value) match {
       case Some(value) =>
         if(context.depth >= maxEvaluationDepth) {
           Left(Unexpected(s"""Can not evaluted global parameter "${paramName.value}" because it uses an interpolation variable that depends upon """
@@ -347,7 +347,7 @@ object AnalyseNodeInterpolation extends AnalyseInterpolation[String, Interpolati
    * Retrieve the global parameter from the node context.
    */
   def getRudderGlobalParam(context: InterpolationContext, paramName: ParameterName): PureResult[String] = {
-    context.parameters.get(paramName) match {
+    context.parameters.get(paramName.value) match {
       case Some(value) =>
         Right(value)
       case _           =>

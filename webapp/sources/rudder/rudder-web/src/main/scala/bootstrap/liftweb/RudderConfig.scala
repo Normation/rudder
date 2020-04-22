@@ -603,6 +603,7 @@ object RudderConfig extends Loggable {
   val automaticReportLogger: AutomaticReportLogger = autoReportLogger
   val removeNodeService: RemoveNodeService = removeNodeServiceImpl
   val nodeInfoService: NodeInfoService = nodeInfoServiceImpl
+  lazy val nodePropertiesInheritance: NodePropertiesOverridingService = new NodePropertiesOverridingServiceImpl(roNodeGroupRepository, roLDAPParameterRepository)
   val reportDisplayer: ReportDisplayer = reportDisplayerImpl
   lazy val dependencyAndDeletionService: DependencyAndDeletionService =  dependencyAndDeletionServiceImpl
   val itemArchiveManager: ItemArchiveManager = itemArchiveManagerImpl

@@ -44,7 +44,6 @@ import com.normation.cfclerk.domain.TechniqueResourceId
 import com.normation.cfclerk.domain.TechniqueTemplate
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
@@ -183,12 +182,12 @@ final case class RegexFileContent(regex: List[String]) extends LinesContent[File
   val baseRootNodeConfig = rootNodeConfig.copy(
       policies    = policies(rootNodeConfig.nodeInfo, baseRootDrafts)
     , nodeContext = getSystemVars(root, allNodesInfo_rootOnly, groupLib)
-    , parameters  = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
+    , parameters  = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
   )
 
   val cfeNodeConfig = NodeConfigData.node1NodeConfig.copy(
       nodeInfo   = cfeNode
-    , parameters = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
+    , parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
   )
 
 
@@ -279,7 +278,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
       val rnc = baseRootNodeConfig.copy(
           policies = policies(baseRootNodeConfig.nodeInfo, baseRootDrafts ++ userDrafts)
           //testing escape of "
-        , parameters = baseRootNodeConfig.parameters + ParameterForConfiguration(ParameterName("ntpserver"), """pool."ntp".org""")
+        , parameters = baseRootNodeConfig.parameters + ParameterForConfiguration("ntpserver", """pool."ntp".org""")
      )
 
       // Actually write the promise files for the root node
@@ -361,7 +360,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
       rootNodeConfig.copy(
           policies    = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_rootOnly), serverRole, distributePolicy, inventoryAll))
         , nodeContext = systemVariables
-        , parameters  = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
+        , parameters  = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
       )
     }
 
@@ -403,7 +402,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
     val rnc = rootNodeConfig.copy(
         policies    = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode), serverRole, distributePolicy, inventoryAll))
       , nodeContext = getSystemVars(root, allNodesInfo_cfeNode, groupLib)
-      , parameters  = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
+      , parameters  = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
     )
 
     val p = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, pkg, ncf1))
@@ -440,7 +439,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
     val rnc = rootNodeConfig.copy(
         policies    = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode), serverRole, distributePolicy, inventoryAll))
       , nodeContext = getSystemVars(root, allNodesInfo_cfeNode, groupLib)
-      , parameters  = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
+      , parameters  = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
     )
 
     val cfeNC = cfeNodeConfig.copy(
@@ -477,7 +476,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
     val rnc = rootNodeConfig.copy(
       policies    = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode), serverRole, distributePolicy, inventoryAll) ++ techniqueList)
       , nodeContext = getSystemVars(root, allNodesInfo_cfeNode, groupLib)
-      , parameters  = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
+      , parameters  = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
     )
 
 

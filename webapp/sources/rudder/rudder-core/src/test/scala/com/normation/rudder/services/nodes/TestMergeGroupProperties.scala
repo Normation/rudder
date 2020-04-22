@@ -35,21 +35,19 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.services.policies
+package com.normation.rudder.services.nodes
 
-import com.normation.rudder.domain.nodes.GroupProperty
-import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.queries._
+import com.softwaremill.quicklens._
 import net.liftweb.json.JsonAST.JString
+import net.liftweb.json._
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-import com.softwaremill.quicklens._
-import net.liftweb.json._
 
 /*
  * This class test the JsEngine. 6.0
@@ -65,6 +63,32 @@ class TestMergeGroupProperties extends Specification {
   implicit class ToTarget(g: NodeGroup) {
     def toTarget = FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, "", true, true)
     def toCriterion = CriterionLine(null, Criterion("some ldap attr", new SubGroupComparator(null)), null, g.id.value)
+  }
+
+  implicit class ToNodePropertyHierarchy(groups: List[NodeGroup]) {
+    def toParents(name: String) = {
+      groups.flatMap { g =>
+        g.properties.find(_.name == name).map(p => FullParentProperty.Group(g.name, g.id, p.value))
+      }
+    }
+    // use first parent to build a fully inherited prop
+    def toH1(name: String) = {
+      toParents(name) match {
+        case h::t => NodePropertyHierarchy(new NodeProperty(name, h.value, Some(GroupProp.INHERITANCE_PROVIDER)), h::t)
+        case _ => throw new IllegalArgumentException(s"No value found for prop '${name}' in group list")
+      }
+    }
+    def toH2(prop: NodeProperty) = {
+      NodePropertyHierarchy(prop, toParents(prop.name))
+    }
+    def toH3(name: String, globalParam: JValue) = {
+      toH1(name).modify(_.parents).using( _ :+ FullParentProperty.Global(globalParam))
+    }
+  }
+  implicit class ToNodeProp(global: JValue) {
+    def toG(name: String) = {
+      NodePropertyHierarchy(new NodeProperty(name, global, Some(GroupProp.INHERITANCE_PROVIDER)), FullParentProperty.Global(global) :: Nil)
+    }
   }
 
   val parent1   = NodeGroup(NodeGroupId("parent1"), "parent1", "",
@@ -88,13 +112,14 @@ class TestMergeGroupProperties extends Specification {
 
 
   "overriding a property in a hierarchy should work" >> {
-    val merged = MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: child.toTarget :: Nil)
-    merged must beRight(List(childProp))
+    val merged = MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: child.toTarget :: Nil, Map())
+    val expected = List(child, parent1).toH1("foo") :: Nil
+    merged must beRight(expected)
   }
 
   "if the composition is OR, subgroup must be ignored" >> {
     val ct2 = child.modify(_.query).setTo(Some(query.modify(_.composition).setTo(Or))).toTarget
-    val merged = MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: ct2 :: Nil)
+    val merged = MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: ct2 :: Nil, Map())
     merged must beLeft
   }
 
@@ -105,8 +130,22 @@ class TestMergeGroupProperties extends Specification {
                 .modify(_.properties).setTo(Nil) // remove child property to get one of parent
                 .toTarget
 
-    val merged = MergeNodeProperties.checkPropertyMerge(parent2.toTarget :: parent1.toTarget  :: ct2 :: Nil)
-    merged must beRight(List(parent2Prop))
+    val merged = MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: parent2.toTarget :: ct2 :: Nil, Map())
+    val expected = List(parent2, parent1).toH1("foo")
+    (merged must beRight(expected :: Nil)) and (merged.getOrElse(Nil).head.prop.value === JString("bar2") )
+  }
+
+  "global parameter are inherited" >> {
+    val g = JString("bar")
+    val merged = MergeNodeProperties.checkPropertyMerge(Nil, Map("foo" -> g))
+    merged must beRight(List(g.toG("foo")))
+  }
+
+  "global parameter are inherited and overriden by group" >> {
+    val g = JString("bar")
+    val merged = MergeNodeProperties.checkPropertyMerge(child.toTarget :: parent1.toTarget :: Nil, Map("foo" -> g))
+    val expected = List(child, parent1).toH3("foo", g) :: Nil
+    merged must beRight(expected)
   }
 
   "when overriding json we" should {
@@ -118,12 +157,9 @@ class TestMergeGroupProperties extends Specification {
           case x             => x
         }
       }
-      MergeNodeProperties.checkPropertyMerge(groups.map(_.toTarget)) match {
+      MergeNodeProperties.checkPropertyMerge(groups.map(_.toTarget), Map()) match {
         case Left(_)  => throw new IllegalArgumentException(s"Error when overriding properties")
-        case Right(v) => v.map(g => (g.name, g.value match {
-          case JString(s) => s
-          case x          => compactRender(sort(x))
-        })).toMap
+        case Right(v) => v.map(p => (p.prop.name, GenericPropertyUtils.serializeValue(sort(p.prop.value)))).toMap
       }
     }
     def getGroups(parentProps: Map[String, String], childProps: Map[String, String]) = {

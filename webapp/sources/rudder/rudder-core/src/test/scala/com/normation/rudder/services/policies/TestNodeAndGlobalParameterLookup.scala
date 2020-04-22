@@ -39,7 +39,6 @@ package com.normation.rudder.services.policies
 
 import com.normation.cfclerk.domain.InputVariableSpec
 import com.normation.cfclerk.domain.Variable
-import com.normation.rudder.domain.parameters.ParameterName
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -93,21 +92,19 @@ class TestNodeAndGlobalParameterLookup extends Specification {
   val lookupService = new RuleValServiceImpl(compiler)
 
   val context = ParamInterpolationContext(
-        parameters      = Map()
-      , nodeInfo        = node1
-      , globalPolicyMode= defaultModesConfig.globalPolicyMode
-      , policyServerInfo= root
-        //environment variable for that server
-      , nodeContext     = Map()
+      parameters      = Map()
+    , globalPolicyMode= defaultModesConfig.globalPolicyMode
+    , nodeInfo        = node1
+    , policyServerInfo= root
   )
 
-  def toNodeContext(c: ParamInterpolationContext, params: Map[ParameterName, String]) = InterpolationContext(
+  def toNodeContext(c: ParamInterpolationContext, params: Map[String, String]) = InterpolationContext(
       parameters      = params
     , nodeInfo        = c.nodeInfo
     , globalPolicyMode= c.globalPolicyMode
     , policyServerInfo= c.policyServerInfo
       //environment variable for that server
-    , nodeContext     = c.nodeContext
+    , nodeContext     = Map()
   )
 
 
@@ -162,14 +159,14 @@ class TestNodeAndGlobalParameterLookup extends Specification {
   val badUnclosed = InputVariableSpec("empty", "").toVariable(Seq("== ${rudder.param.foo =="))
   val badUnknown = InputVariableSpec("empty", "").toVariable(Seq("== ${rudder.foo} =="))
 
-  val fooParam = ParameterForConfiguration(ParameterName("foo"), "fooValue")
-  val barParam = ParameterForConfiguration(ParameterName("bar"), "barValue")
-  val recurParam = ParameterForConfiguration(ParameterName("recurToFoo"), """${rudder.param.foo}""")
+  val fooParam = ParameterForConfiguration("foo", "fooValue")
+  val barParam = ParameterForConfiguration("bar", "barValue")
+  val recurParam = ParameterForConfiguration("recurToFoo", """${rudder.param.foo}""")
 
   val badChars = """$¹ ${plop} (foo) \$ @ %plop & \\ | $[xas]^"""
-  val dangerousChars = ParameterForConfiguration(ParameterName("danger"), badChars)
+  val dangerousChars = ParameterForConfiguration("danger", badChars)
 
-  def p(params: ParameterForConfiguration*): Map[ParameterName, ParamInterpolationContext => PureResult[String]] = {
+  def p(params: ParameterForConfiguration*): Map[String, ParamInterpolationContext => PureResult[String]] = {
     import cats.implicits._
     params.toList.traverse { param =>
       for {
@@ -440,7 +437,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       val res = "p1 replaced"
       val i = compileAndGet("${rudder.param.p1}")
       val c = context.copy(parameters = Map(
-          (ParameterName("p1"), (i:ParamInterpolationContext) => Right(res))
+          ("p1", (i:ParamInterpolationContext) => Right(res))
       ))
       i(c) must beEqualTo(Right(res))
     }
@@ -458,8 +455,8 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       val i = compileAndGet("${rudder.param.p1}")
       val p1value = compileAndGet("${rudder.param.p2}")
       val c = context.copy(parameters = Map(
-          (ParameterName("p1"), p1value)
-        , (ParameterName("p2"), (i:ParamInterpolationContext) => Right(res))
+          ("p1", p1value)
+        , ("p2", (i:ParamInterpolationContext) => Right(res))
       ))
       i(c) must beEqualTo(Right(res))
     }
@@ -471,10 +468,10 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       val p2value = compileAndGet("${rudder.param.p3}")
       val p3value = compileAndGet("${rudder.param.p4}")
       val c = context.copy(parameters = Map(
-          (ParameterName("p1"), p1value)
-        , (ParameterName("p2"), p2value)
-        , (ParameterName("p3"), p3value)
-        , (ParameterName("p4"), (i:ParamInterpolationContext) => Right(res))
+          ("p1", p1value)
+        , ("p2", p2value)
+        , ("p3", p3value)
+        , ("p4", (i:ParamInterpolationContext) => Right(res))
       ))
 
       (AnalyseParamInterpolation.maxEvaluationDepth == 5) and
@@ -488,11 +485,11 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       val p2value = compileAndGet("${rudder.param.p3}")
       val p3value = compileAndGet("${rudder.param.p4}")
       val c = context.copy(parameters = Map(
-          (ParameterName("p1"), p1value)
-        , (ParameterName("p2"), p2value)
-        , (ParameterName("p3"), p3value)
-        , (ParameterName("p4"), p3value)
-        , (ParameterName("p5"), (i:ParamInterpolationContext) => Right(res))
+          ("p1", p1value)
+        , ("p2", p2value)
+        , ("p3", p3value)
+        , ("p4", p3value)
+        , ("p5", (i:ParamInterpolationContext) => Right(res))
       ))
 
       (AnalyseParamInterpolation.maxEvaluationDepth == 5) and
@@ -505,7 +502,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
     "fails to replace recurring parameter value" in {
       val i = compileAndGet("${rudder.param.p1}")
       val c = context.copy(parameters = Map(
-          (ParameterName("p1"), i)
+          ("p1", i)
       ))
 
       i(c) match {
@@ -687,9 +684,9 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       val i = compileAndGet("${rudder.param.xX}")
       val c = context.copy(parameters = Map(
           //test all combination
-          (ParameterName("XX"), (i:ParamInterpolationContext) => Right("bad"))
-        , (ParameterName("Xx"), (i:ParamInterpolationContext) => Right("bad"))
-        , (ParameterName("xx"), (i:ParamInterpolationContext) => Right("bad"))
+          ("XX", (i:ParamInterpolationContext) => Right("bad"))
+        , ("Xx", (i:ParamInterpolationContext) => Right("bad"))
+        , ("xx", (i:ParamInterpolationContext) => Right("bad"))
       ))
       i(c) match {
         case Right(_) => ko("No, case must matter!")
