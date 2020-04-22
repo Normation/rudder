@@ -23,7 +23,7 @@
 <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/authorizedNetworks.js"></script>
 </head>
 <div class="portlet">
-  
+
     <div class="inner-portlet">
       <h3 class="page-title">Allowed Networks</h3>
       <div class="portlet-content">
@@ -148,7 +148,7 @@
         </div>
 
     </div>
-  
+
     <div class="inner-portlet">
       <h3 class="page-title">Security</h3>
       <div class="lift:administration.PropertiesManagement.denyBadClocks" id="denyBadClocksForm">
@@ -176,7 +176,7 @@
         </form>
       </div>
     </div>
- 
+
     <div class="inner-portlet">
     <h3 class="page-title">Reporting protocol</h3>
         <div class="col-lg-12 callout-fade callout-info">
@@ -186,7 +186,7 @@
           Choose reporting protocol used by nodes to send compliance back to Rudder server:
           <ul>
             <li><b>HTTPS (default):</b> Secure, fast and optimised reporting protocol, you should switch as soon as possible to it</li>
-            <li><b>Syslog:</b> Rudder legacy reporting protocol, It will be removed in a future version (possibly 5.2), it is set on upgrade from 5.0 to keep your reporting working as before
+            <li><b>Syslog:</b> Rudder legacy reporting protocol (deprecated). It will be removed in a future version (7.0), it is set on upgrade from 5.0 to keep your reporting working as before
               <ul>
                 <li><b>UDP (default):</b> the syslog never stalls an a non responsive connection, which could also stale other services on the node which use the same syslog, but packets could be lost.</li>
                 <li><b>TCP:</b> Reports and the resulting compliance errors wil be never lost.</li>
