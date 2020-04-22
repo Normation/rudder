@@ -67,6 +67,7 @@ import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.rudder.rest.TwoParam
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.JsonAST.JObject
+import zio.ZIO
 
 class NcfApi(
     techniqueWriter     : TechniqueWriter
@@ -310,12 +311,16 @@ class NcfApi(
     implicit val dataName = "techniques"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      val modId = ModificationId(uuidGen.newUuid)
       val response= for {
-        techniques <- techniqueReader.updateTechniquesMetadataFile.toBox
+        techniques <- techniqueReader.updateTechniquesMetadataFile
+        methods <- techniqueReader.readMethodsMetadataFile
+        _ <- ZIO.foreach(techniques)(t => techniqueWriter.writeTechnique(t, methods, modId, authzToken.actor))
+
       } yield {
         JArray(techniques.map(techniqueSerializer.serializeTechniqueMetadata))
      }
-      resp(response, req, "Could not get generic methods metadata")("getMethods")
+      resp(response.toBox, req, "Could not get generic methods metadata")("getMethods")
 
     }
 

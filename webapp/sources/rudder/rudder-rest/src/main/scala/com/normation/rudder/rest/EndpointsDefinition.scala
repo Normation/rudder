@@ -177,43 +177,43 @@ object DirectiveApi extends ApiModuleProvider[DirectiveApi] {
 sealed trait NcfApi extends EndpointSchema with GeneralApi with SortIndex
 object NcfApi extends ApiModuleProvider[NcfApi] {
 
-  final case object UpdateTechnique extends NcfApi with ZeroParam with StartsAtVersion9 with SortIndex { val z = implicitly[Line].value
+  final case object UpdateTechnique extends NcfApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
     val description = "Update technique created with technique editor"
-    val (action, path)  = POST / "Internal" / "techniques"
+    val (action, path)  = POST / "internal" / "techniques"
   }
-  final case object CreateTechnique extends NcfApi with ZeroParam with StartsAtVersion9 with SortIndex { val z = implicitly[Line].value
+  final case object CreateTechnique extends NcfApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
     val description = "Create a new technique in Rudder from a technique in the technique editor"
     val (action, path)  = PUT / "internal" / "techniques"
   }
-  final case object DeleteTechnique extends NcfApi with TwoParam with StartsAtVersion9 with SortIndex { val z = implicitly[Line].value
+  final case object DeleteTechnique extends NcfApi with TwoParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
     val description = "Delete a technique from technique editor"
     val (action, path)  = DELETE / "internal" / "techniques"  / "{techniqueId}" / "{techniqueVersion}"
   }
-  final case object GetResources extends NcfApi with TwoParam with StartsAtVersion15 with SortIndex { val z = implicitly[Line].value
+  final case object GetResources extends NcfApi with TwoParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
     val description = "Get currently deployed resources of a technique"
     val (action, path)  = GET / "internal" / "techniques" / "{techniqueId}" / "{techniqueVersion}" / "resources"
   }
-  final case object GetNewResources extends NcfApi with TwoParam with StartsAtVersion15 with SortIndex { val z = implicitly[Line].value
+  final case object GetNewResources extends NcfApi with TwoParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
     val description = "Get resources of a technique draft"
     val (action, path)  = GET / "internal" /  "techniques" / "draft" / "{techniqueId}" / "{techniqueVersion}" / "resources"
   }
-  final case object ParameterCheck extends NcfApi with ZeroParam with StartsAtVersion15 with SortIndex { val z = implicitly[Line].value
+  final case object ParameterCheck extends NcfApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
     val description = "Get currently deployed resources of a technique"
     val (action, path)  = POST / "internal" / "techniques" / "parameter" / "check"
   }
-  final case object GetTechniques extends NcfApi with ZeroParam with StartsAtVersion15 with SortIndex { val z = implicitly[Line].value
+  final case object GetTechniques extends NcfApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
     val description = "Get all Techniques metadata"
     val (action, path)  = GET / "internal" / "techniques"
   }
-  final case object GetMethods extends NcfApi with ZeroParam with StartsAtVersion15 with SortIndex { val z = implicitly[Line].value
+  final case object GetMethods extends NcfApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
     val description = "Get all methods metadata"
     val (action, path)  = GET / "internal" / "methods"
   }
-  final case object UpdateMethods extends NcfApi with ZeroParam with StartsAtVersion15 with SortIndex { val z = implicitly[Line].value
+  final case object UpdateMethods extends NcfApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
     val description = "reload methods metadata from file system"
     val (action, path)  = POST / "internal" / "methods" / "reload"
   }
-  final case object UpdateTechniques extends NcfApi with ZeroParam with StartsAtVersion15 with SortIndex { val z = implicitly[Line].value
+  final case object UpdateTechniques extends NcfApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
     val description = "reload techniques metadata from file system"
     val (action, path)  = POST / "internal" / "techniques"   / "reload"
   }

@@ -278,7 +278,7 @@ class TechniqueWriter (
       agentFiles <- writeAgentFiles(technique, methods, modId, committer)
       metadata   <- writeMetadata(technique, methods, modId, committer)
       json       <- writeJson(technique)
-      commit     <- archiver.commitTechnique(technique,metadata +: agentFiles, modId, committer, s"Committing technique ${technique.name}")
+      commit     <- archiver.commitTechnique(technique,json +: metadata +: agentFiles, modId, committer, s"Committing technique ${technique.name}")
     } yield {
       metadata +: agentFiles
     }
