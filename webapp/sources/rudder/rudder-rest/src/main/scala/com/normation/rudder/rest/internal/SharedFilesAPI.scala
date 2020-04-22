@@ -378,7 +378,7 @@ class SharedFilesAPI(
     new PartialFunction[Req, () => Box[LiftResponse]] {
       def isDefinedAt(req: Req): Boolean = {
         req.path.partPath match {
-          case "create" :: techniqueId :: techniqueVersion :: _ =>
+          case "draft" :: techniqueId :: techniqueVersion :: _ =>
             val path = File(s"/var/rudder/configuration-repository/workspace/${techniqueId}/${techniqueVersion}/resources")
             val pf = requestDispatch(path)
             pf.isDefinedAt(req.withNewPath(req.path.drop(3)))
@@ -391,7 +391,7 @@ class SharedFilesAPI(
       }
       def apply(req: Req): () => Box[LiftResponse] =
         req.path.partPath match {
-          case "create" :: techniqueId :: techniqueVersion  :: _ =>
+          case "draft" :: techniqueId :: techniqueVersion  :: _ =>
             val path = File(s"/var/rudder/configuration-repository/workspace/${techniqueId}/${techniqueVersion}/resources")
             path.createIfNotExists(true,true)
             val pf = requestDispatch(path)
