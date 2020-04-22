@@ -6,7 +6,7 @@ get:
   operationId: reloadUserConf
   responses:
     "200":
-      description: Reload informations
+      description: Reload information
       content:
         application/json:
           schema:
