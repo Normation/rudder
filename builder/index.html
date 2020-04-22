@@ -404,7 +404,7 @@
                     <li
                       ng-repeat="method_call in selectedTechnique.method_calls"
                       ng-show="checkFilterMethod(method_call)"
-                      ng-class="{'active': methodIsSelected(method_call), 'missingParameters': checkMissingParameters(method_call.parameters), 'errorParameters': checkErrorParameters(method_call.parameters), 'is-edited' : canResetMethod(method_call)}"
+                      ng-class="{'active': methodIsSelected(method_call), 'missingParameters': checkMissingParameters(method_call.parameters).length > 0, 'errorParameters': checkErrorParameters(method_call.parameters).length > 0, 'is-edited' : canResetMethod(method_call)}"
                       >
                       <div
                         class="method row no-gutters"
@@ -452,21 +452,38 @@
                               </span>
                             </div>
 
-                            <div class="method-param col-auto flex-form"  ng-if="getClassParameter(method_call).value">
-                              <label>{{getClassParameter(method_call).name | parameterName}}: </label>
-                              <textarea class="form-control" msd-elastic rows="1" ng-model="getClassParameter(method_call).value" ng-readonly="true" ng-click="$event.stopPropagation();"></textarea>
+                            <div class="method-content">
+                              <div class="method-param col-auto flex-form"  ng-if="getClassParameter(method_call).value && checkMissingParameters(method_call.parameters).length<=0 && checkErrorParameters(method_call.parameters).length<=0">
+                                <label>{{getClassParameter(method_call).name | parameterName}}: </label>
+                                <textarea class="form-control" msd-elastic rows="1" ng-model="getClassParameter(method_call).value" ng-readonly="true" ng-click="$event.stopPropagation();"></textarea>
+                              </div>
+                              <div ng-form="arg_method" ng-repeat="parameter in method_call.parameters  track by $index" class="method-errors col-auto">
+                                <input ng-hide="true" type="text" name="param" ng-model="parameter.value" constraint parameter="parameter">
+                              </div>
+                              <div class="warns" ng-if="!getClassParameter(method_call).value || checkMissingParameters(method_call.parameters).length>0 || checkErrorParameters(method_call.parameters).length>0">
+                                <span class="warn-param warning"
+                                  uib-tooltip="{{getWarningTooltipMessage(checkMissingParameters(method_call.parameters))}}"
+                                  tooltip-placement="top"
+                                  tooltip-trigger="mouseenter"
+                                  popup-open-delay="300"
+                                  tooltip-append-to-body="true"
+                                  ng-click="selectMethod(method_call)"
+                                  >
+                                  <b>{{checkMissingParameters(method_call.parameters).length}}</b> required parameter{{checkMissingParameters(method_call.parameters).length > 1 ? "s" : ""}} missing
+                                </span>
+                                <span class="warn-param error"
+                                  uib-tooltip="{{getErrorTooltipMessage(checkErrorParameters(method_call.parameters))}}"
+                                  tooltip-placement="top"
+                                  tooltip-trigger="mouseenter"
+                                  popup-open-delay="300"
+                                  tooltip-append-to-body="true"
+                                  ng-click="selectMethod(method_call)"
+                                  >
+                                  <b>{{checkErrorParameters(method_call.parameters).length}}</b> invalid parameter{{checkErrorParameters(method_call.parameters).length > 1 ? "s" : ""}}
+                                </span>
+                              </div>
                             </div>
-                            <div ng-form="arg_method" ng-repeat="parameter in method_call.parameters  track by $index" class="method-errors col-auto">
-                              <input ng-hide="true" type="text" name="param" ng-model="parameter.value" constraint parameter="parameter">
-                              <ng-messages ng-if="parameter.$errors.length > 0" for="arg_method.param.$error" multiple>
-                                <div class="text-danger" ng-message="constraint">
-                                  Invalid constraint for parameter: '{{parameter.name | parameterName}}'
-                                </div>
-                              </ng-messages>
-                            </div>
-                            <div class="col-auto requiredParameters">
-                              Required parameters missing
-                            </div>
+
                           </div>
                         </div>
                         <div class="edit-method col-auto" ng-click="selectMethod(method_call)" dnd-nodrag uib-tooltip="{{getStatusTooltipMessage(method_call)}}" tooltip-placement="left" tooltip-trigger="mouseenter" popup-open-delay="300">
