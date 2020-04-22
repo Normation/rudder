@@ -77,6 +77,7 @@
 -->
 
 <authentication hash="bcrypt">
-
-    <user name="admin" password="$2y$12$/xHlfPfZTQb87HKnXGqEF.eXLcVInVB3ZnrodFKr/m4ibDbJpLbuK" role="administrator" />
-  </authentication>
+  <!--
+    <user name="NAME" password="REPLACE_BY_HASH" role="ROLE" />
+  -->
+</authentication>
