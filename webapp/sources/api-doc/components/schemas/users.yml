@@ -17,7 +17,7 @@ properties:
     example: passwdWillBeStoredHashed
   role:
     type: array
-    description: defined user's permissions
+    description: Defined user's permissions
     items:
       type: string
       example: user
