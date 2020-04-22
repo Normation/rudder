@@ -6,7 +6,7 @@ get:
   operationId: getUserInfo
   responses:
     "200":
-      description: Users informations
+      description: Users information
       content:
         application/json:
           schema:
