@@ -666,12 +666,7 @@ button.btn-save.saving{
 button.btn-save.saving span.saving{
   display: inline-block;
 }
-.requiredParameters{
-  color: #f08004;
-  font-size: 14px;
-  line-height: 22px;
-  display: none;
-}
+
 .method.missingParameters:after{
   content: "";
   display: block;
@@ -685,12 +680,39 @@ button.btn-save.saving span.saving{
   z-index: -1;
   animation: pulse 1s forwards;
 }
-.missingParameters .requiredParameters{
-  display: block !important;
+.method-content{
+  height: 28px;
+  display: flex;
 }
-.requiredParameters > .glyphicon{
-  top:2px;
+.warns{
+  margin-top: 2px;
 }
+.warn-param{
+  background-color: #b9c2cc;
+  color: #fff;
+  padding: 2px 8px 2px 3px;
+  border-radius: 20px;
+  display: inline-block;
+  font-size: .9em;
+  display: none;
+  cursor: pointer;
+  align-items: center;
+}
+.missingParameters .warn-param.warning {
+  display: inline-flex;
+  background-color: #F08004;
+}
+.errorParameters .warn-param.error{
+  display: inline-flex;
+  background-color: #dd4b39;
+}
+.warn-param b {
+  background-color: #00000055;
+  padding: 2px 6px;
+  border-radius: 20px;
+  margin-right: 2px;
+}
+
 .btn.btn-save[disabled]{
   cursor: not-allowed;
 }
@@ -727,6 +749,9 @@ span.text-fit {
 
 .classic-icon{
   color: #999;
+}
+#methods .method-name{
+  margin-bottom: 2px;
 }
 #methods .btn-method .method-name{
   text-align: left;

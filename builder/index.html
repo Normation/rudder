@@ -323,7 +323,7 @@
                         <li
                         ng-repeat="method_call in selectedTechnique.method_calls"
                         class="panel-margin-top method"
-                        ng-class="{'active': isSelectedMethod(method_call), 'missingParameters': checkMissingParameters(method_call.parameters), 'errorParameters': checkErrorParameters(method_call.parameters), 'is-edited' : canResetMethod(method_call)}"
+                        ng-class="{'active': isSelectedMethod(method_call), 'missingParameters': checkMissingParameters(method_call.parameters).length > 0, 'errorParameters': checkErrorParameters(method_call.parameters).length>0, 'is-edited' : canResetMethod(method_call)}"
                         dnd-draggable="method_call"
                         dnd-effect-allowed="move"
                         dnd-moved="selectedTechnique.method_calls.splice($index,1)">
@@ -376,35 +376,53 @@
                                     </button>
                                   </span>
                                 </h4>
-                                <div class="input-group col-xs-12 text-grey"  ng-if="getClassParameter(method_call).value">
-                                  <label class="input-xs text-light  input-group-addon text-grey">{{getClassParameter(method_call).name}}:</label>
-                                  <input ng-click="$event.stopPropagation();" class="input-xs form-control parameter" ng-readonly="true" ng-model="getClassParameter(method_call).value" />
-                                </div>
-                                <div ng-form="arg_method" ng-repeat="parameter in method_call.parameters  track by $index">
-                                  <input ng-hide="true" type="text" name="param" ng-model="parameter.value" constraint parameter="parameter">
-                                  <ng-messages ng-if="parameter.$errors.length > 0" for="arg_method.param.$error" multiple>
-                                    <div class="text-danger" ng-message="constraint">
-                                      Invalid constraint for parameter: '{{parameter.name}}'
-                                    </div>
-                                  </ng-messages>
-                                </div>
-                                <div class="requiredParameters">
-                                  Required parameters missing
+                                <div class="method-content">
+                                  <div class="input-group col-xs-12 text-grey"  ng-if="getClassParameter(method_call).value && checkMissingParameters(method_call.parameters).length<=0 && checkErrorParameters(method_call.parameters).length<=0">
+                                    <label class="input-xs text-light input-group-addon text-grey">{{getClassParameter(method_call).name}}:</label>
+                                    <input ng-click="$event.stopPropagation();" class="input-xs form-control parameter" ng-readonly="true" ng-model="getClassParameter(method_call).value" />
+                                  </div>
+
+                                  <div ng-form="arg_method" ng-repeat="parameter in method_call.parameters  track by $index">
+                                    <input ng-hide="true" type="text" name="param" ng-model="parameter.value" constraint parameter="parameter">
+                                  </div>
+
+                                  <div class="warns" ng-if="!getClassParameter(method_call).value || checkMissingParameters(method_call.parameters).length>0 || checkErrorParameters(method_call.parameters).length>0">
+                                    <span class="warn-param warning"
+                                      uib-tooltip="{{getWarningTooltipMessage(checkMissingParameters(method_call.parameters))}}"
+                                      tooltip-placement="top"
+                                      tooltip-trigger="mouseenter"
+                                      popup-open-delay="300"
+                                      tooltip-append-to-body="true"
+                                      ng-click="selectMethod(method_call)"
+                                      >
+                                      <b>{{checkMissingParameters(method_call.parameters).length}}</b> required parameter{{checkMissingParameters(method_call.parameters).length > 1 ? "s" : ""}} missing
+                                    </span>
+                                    <span class="warn-param error"
+                                      uib-tooltip="{{getErrorTooltipMessage(checkErrorParameters(method_call.parameters))}}"
+                                      tooltip-placement="top"
+                                      tooltip-trigger="mouseenter"
+                                      popup-open-delay="300"
+                                      tooltip-append-to-body="true"
+                                      ng-click="selectMethod(method_call)"
+                                      >
+                                      <b>{{checkErrorParameters(method_call.parameters).length}}</b> invalid parameter{{checkErrorParameters(method_call.parameters).length > 1 ? "s" : ""}}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
-                          </div>
-                          <div class="edit-method" ng-click="selectMethod(method_call)" dnd-nodrag uib-tooltip="{{getStatusTooltipMessage(method_call)}}" tooltip-placement="left" tooltip-trigger="mouseenter" popup-open-delay="300">
-                            <div>
-                              <i class="fas fa-pen"></i>
+                            </div>
+                            <div class="edit-method" ng-click="selectMethod(method_call)" dnd-nodrag uib-tooltip="{{getStatusTooltipMessage(method_call)}}" tooltip-placement="left" tooltip-trigger="mouseenter" popup-open-delay="300">
+                              <div>
+                                <i class="fas fa-pen"></i>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </li>
-                  </ul>
-              </div>
-            </div>
-            </form>
-            <div ng-if="selectedTechnique" class="col-md-5 col-md-offset-2 col-xs-12 col-xs-offset-0 fixed-footer">
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </form>
+              <div ng-if="selectedTechnique" class="col-md-5 col-md-offset-2 col-xs-12 col-xs-offset-0 fixed-footer">
                 <button ng-click="openMethods()" class="btn btn-success btn-outline pull-left">
                     Add methods <i class="fas fa-plus-circle"></i>
                 </button>
