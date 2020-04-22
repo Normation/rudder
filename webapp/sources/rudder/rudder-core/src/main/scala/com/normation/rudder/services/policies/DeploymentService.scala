@@ -94,9 +94,14 @@ import scala.concurrent.duration.FiniteDuration
 import com.normation.box._
 import com.normation.errors._
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
+import com.normation.rudder.domain.nodes.CompareProperties
+import com.normation.rudder.domain.nodes.GenericPropertyUtils
+import com.normation.rudder.domain.nodes.NodeProperty
+import com.normation.utils.Control
 import zio._
 import zio.syntax._
 import com.normation.zio._
+import com.softwaremill.quicklens._
 
 /**
  * A deployment hook is a class that accept callbacks.
@@ -812,10 +817,10 @@ trait PromiseGeneration_BuildNodeContext {
      *   - to node info parameters: ok
      *   - to parameters : hello loops!
      */
-    def buildParams(parameters: List[GlobalParameter]): PureResult[Map[ParameterName, InterpolationContext => PureResult[String]]] = {
+    def buildParams(parameters: List[GlobalParameter]): PureResult[Map[ParameterName, ParamInterpolationContext => PureResult[String]]] = {
       parameters.accumulatePure { param =>
         for {
-          p <- interpolatedValueCompiler.compile(param.value).chainError(s"Error when looking for interpolation variable in global parameter '${param.name}'")
+          p <- interpolatedValueCompiler.compileParam(GenericPropertyUtils.serializeValue(param.value)).chainError(s"Error when looking for interpolation variable in global parameter '${param.name}'")
         } yield {
           (param.name, p)
         }
@@ -836,13 +841,31 @@ trait PromiseGeneration_BuildNodeContext {
           _            =  {timeNanoMergeProp = timeNanoMergeProp + System.nanoTime - timeMerge}
           policyServer <- Box(allNodeInfos.get(nodeInfo.policyServerId)) ?~! s"Node with ID ${nodeId.value} was not found"
           nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, nodeTargets, globalSystemVariables, globalAgentRun, globalComplianceMode  : ComplianceMode)
+          context      =  ParamInterpolationContext(
+                              nodeInfo
+                            , policyServer
+                            , globalPolicyMode
+                            , nodeContext
+                            , parameters
+                          )
+          nodeParam   <- Control.bestEffort(parameters.toSeq) { case (name, param) =>
+                            for {
+                              p <- param(context).toBox
+                            } yield {
+                              (name, p)
+                            }
+                          }
+          // now we set defaults global parameters to all nodes
+          withDefautls <- CompareProperties.updateProperties(nodeParam.toList.map { case (k,v) => NodeProperty(k.value, v, None)}, Some(nodeInfo.properties)).map(p =>
+                            nodeInfo.modify(_.node.properties).setTo(p)
+                          ).toBox
         } yield {
           (nodeId, InterpolationContext(
-                        nodeInfo
+                        withDefautls
                       , policyServer
                       , globalPolicyMode
                       , nodeContext
-                      , parameters
+                      , nodeParam.toMap
                     )
           )
         }) match {
@@ -1044,24 +1067,6 @@ object BuildNodeConfiguration extends Loggable {
                                 t1_1           <- nanoTime
                                 _              <- counters.sumTimeFilter.update(_ + t1_1 - t1_0)
 
-                                /*
-                                 * Clearly, here, we are evaluating parameters, and we are not using that just after in the
-                                 * variable expansion, which mean that we are doing the same work again and again and again.
-                                 * Moreover, we also are evaluating again and again parameters whose context ONLY depends
-                                 * on other parameter, and not node config at all. Bad bad bad bad.
-                                 * TODO: two stages parameter evaluation
-                                 *  - global
-                                 *  - by node
-                                 *  + use them in variable expansion (the variable expansion should have a fully evaluated InterpolationContext)
-                                 */
-                                parameters     <- context.parameters.accumulate { case (name, param) =>
-                                                    for {
-                                                      p <- param(context).toIO
-                                                    } yield {
-                                                      (name, p)
-                                                    }
-                                                  }.mapError(_.deduplicate)
-
                     ////////////////////////////////////////////  fboundedDraft ////////////////////////////////////////////
 
                                 t1_2           <- nanoTime
@@ -1117,7 +1122,7 @@ object BuildNodeConfiguration extends Loggable {
                                   , runHooks     = MergePolicyService.mergeRunHooks(policies.filter( ! _.technique.isSystem), nodeModes.nodePolicyMode, nodeModes.globalPolicyMode)
                                   , policies     = policies
                                   , nodeContext  = context.nodeContext
-                                  , parameters   = parameters.map { case (k,v) => ParameterForConfiguration(k, v) }.toSet
+                                  , parameters   = context.parameters.map { case (k,v) => ParameterForConfiguration(k, v) }.toSet
                                   , isRootServer = context.nodeInfo.id == context.policyServerInfo.id
                                 )
                                 nodeConfig

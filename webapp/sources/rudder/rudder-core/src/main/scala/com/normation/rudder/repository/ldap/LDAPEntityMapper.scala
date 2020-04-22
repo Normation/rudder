@@ -961,13 +961,11 @@ class LDAPEntityMapper(
         name        <- e.required(A_PARAMETER_NAME)
         value       =  e(A_PARAMETER_VALUE).getOrElse("")
         description =  e(A_DESCRIPTION).getOrElse("")
-        overridable =  e.getAsBoolean(A_PARAMETER_OVERRIDABLE).getOrElse(true)
       } yield {
         GlobalParameter(
             ParameterName(name)
           , value
           , description
-          , overridable
         )
       }
     } else Left(Err.UnexpectedObject("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_PARAMETER, e)))
@@ -977,8 +975,7 @@ class LDAPEntityMapper(
     val entry = rudderDit.PARAMETERS.parameterModel(
         parameter.name
     )
-    entry +=! (A_PARAMETER_VALUE, parameter.value)
-    entry +=! (A_PARAMETER_OVERRIDABLE, parameter.overridable.toLDAPString)
+    entry +=! (A_PARAMETER_VALUE, GenericPropertyUtils.serializeValue(parameter.value))
     entry +=! (A_DESCRIPTION, parameter.description)
     entry
   }

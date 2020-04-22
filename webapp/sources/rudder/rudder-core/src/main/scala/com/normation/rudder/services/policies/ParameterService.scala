@@ -45,7 +45,6 @@ import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoParameterRepository
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
-import com.normation.inventory.domain.NodeId
 
 import com.normation.box._
 
@@ -60,11 +59,6 @@ trait RoParameterService {
    * Returns all defined Global Parameters
    */
   def getAllGlobalParameters() : Box[Seq[GlobalParameter]]
-
-  /**
-   * Returns all parameters applicable for a given node
-   */
-  def getParametersByNode(nodeId: NodeId) : Box[Seq[Parameter]]
 }
 
 trait WoParameterService {
@@ -125,14 +119,6 @@ class RoParameterServiceImpl(
         logger.error("Error while trying to fetch all parameters : %s".format(e.messageChain))
         e
     }
-  }
-
-  /**
-   * Returns all parameters applicable for a given node
-   * Hyper naive implementation : all parameters !
-   */
-  def getParametersByNode(nodeId: NodeId) : Box[Seq[Parameter]] = {
-    getAllGlobalParameters()
   }
 }
 

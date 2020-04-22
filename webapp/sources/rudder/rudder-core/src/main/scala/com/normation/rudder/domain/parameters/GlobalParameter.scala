@@ -37,6 +37,9 @@
 package com.normation.rudder.domain.parameters
 import java.util.regex.Pattern
 
+import com.normation.rudder.domain.nodes.GenericPropertyUtils
+import net.liftweb.json._
+
 final case class ParameterName(value:String) extends AnyVal
 
 object ParameterName {
@@ -44,25 +47,26 @@ object ParameterName {
 }
 
 /**
- * A Parameter is an object that has a name and a value, to store and reuse
- * values at different places within Rudder
- */
-sealed trait Parameter {
-  def name        : ParameterName
-  def value       : String
-  def description : String
-  def overridable : Boolean
-}
-
-/**
  * A Global Parameter is a parameter globally defined, that may be overriden
  */
 final case class GlobalParameter(
-    override val name       : ParameterName
-  , override val value      : String
-  , override val description: String
-  , override val overridable: Boolean
-) extends Parameter {
+    name       : ParameterName
+  , value      : JValue
+  , description: String
+)
 
+object GlobalParameter {
+
+  /**
+   * A builder with the logic to handle the value part.
+   *
+   * For compatibity reason, we want to be able to process
+   * empty (JNothing) and primitive types, especially string, specificaly as
+   * a JString *but* a string representing an actual JSON should be
+   * used as json.
+   */
+  def apply(name: String, value: String, description: String =""): GlobalParameter = {
+    GlobalParameter(ParameterName(name), GenericPropertyUtils.parseValue(value), description)
+  }
 }
 

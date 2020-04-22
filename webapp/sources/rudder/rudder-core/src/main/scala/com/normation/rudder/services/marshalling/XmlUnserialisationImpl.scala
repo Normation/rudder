@@ -641,10 +641,9 @@ class GlobalParameterUnserialisationImpl extends GlobalParameterUnserialisation 
       overridable      <- (globalParam \ "overridable").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'overridable' in entry type globalParameter : " + entry)
     } yield {
       GlobalParameter(
-          ParameterName(name)
+          name
         , value
         , description
-        , overridable
       )
     }
   }
