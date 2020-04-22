@@ -84,7 +84,7 @@ paths:
   "/usermanagement/users/reload":
     $ref: paths/usermanagement/reload.yml
   "/usermanagement":
-     $ref: paths/usermanagement/add.yml
+    $ref: paths/usermanagement/add.yml
   "/scaleoutrelay/promote/{nodeId}":
     $ref: paths/scale-out-relay/promote.yml
   "/changeRequests/{changeRequestId}/accept":
