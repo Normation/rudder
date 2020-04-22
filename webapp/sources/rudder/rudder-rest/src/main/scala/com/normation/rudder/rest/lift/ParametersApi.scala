@@ -243,7 +243,7 @@ extends Loggable {
 
     restParameter match {
       case Full(restParameter) =>
-            val parameter = restParameter.updateParameter(GlobalParameter(parameterName,"","",false))
+            val parameter = restParameter.updateParameter(GlobalParameter(parameterName,"",""))
 
             val diff = AddGlobalParameterDiff(parameter)
             createChangeRequestAndAnswer(

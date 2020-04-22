@@ -775,8 +775,7 @@ class EventLogDetailsGenerator(
                 {(
                 "#name" #> modDiff.name.value &
                   "#value" #>  mapSimpleDiff(modDiff.modValue) &
-                  "#description *" #> mapSimpleDiff(modDiff.modDescription) &
-                  "#overridable *" #> mapSimpleDiff(modDiff.modOverridable)
+                  "#description *" #> mapSimpleDiff(modDiff.modDescription)
                 )(globalParamModDetailsXML)
                 }
                 { reasonHtml }
@@ -1123,9 +1122,8 @@ class EventLogDetailsGenerator(
 
   private[this] def globalParameterDetails(xml: NodeSeq, globalParameter: GlobalParameter) = (
     "#name" #> globalParameter.name.value &
-      "#value" #> globalParameter.value &
-      "#description" #> globalParameter.description &
-      "#overridable" #> globalParameter.overridable
+      "#value" #> GenericPropertyUtils.serializeValue(globalParameter.value) &
+      "#description" #> globalParameter.description
     )(xml)
 
   private[this] def apiAccountDetails(xml: NodeSeq, apiAccount: ApiAccount) = (

@@ -49,7 +49,7 @@ import org.joda.time.DateTime
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.exceptions.NotFoundException
 import com.normation.cfclerk.domain.TechniqueId
-import com.normation.rudder.domain.parameters.Parameter
+import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import cats.data.NonEmptyList
@@ -62,8 +62,8 @@ import com.normation.cfclerk.domain.TechniqueResourceId
 import com.normation.cfclerk.domain.AgentConfig
 import com.normation.cfclerk.domain.TechniqueGenerationMode
 import com.normation.cfclerk.domain.TechniqueVersion
-
 import com.normation.errors._
+import com.normation.rudder.domain.nodes.GenericPropertyUtils
 
 /*
  * This file contains all the specific data structures used during policy generation.
@@ -121,11 +121,45 @@ object BundleOrder {
   }
 }
 
+sealed trait GenericInterpolationContext[T]{
+  def nodeInfo        : NodeInfo
+  def policyServerInfo: NodeInfo
+  def globalPolicyMode: GlobalPolicyMode
+  //environment variable for that server
+  //must be a case insensitive Map !!!!
+  def nodeContext     : TreeMap[String, Variable]
+  // parameters for this node
+  //must be a case SENSITIVE Map !!!!
+  def parameters      : Map[ParameterName, T]
+  //the depth of the interpolation context evaluation
+  //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
+  //for ex: param a => param b => param c => ..... => param a
+  //should not be evaluated
+  def depth           : Int
+}
+
 /**
  * A class that hold all information that can be used to resolve
  * interpolated variables in directives variables.
  * It is by nature node dependent.
  */
+final case class ParamInterpolationContext(
+        nodeInfo        : NodeInfo
+      , policyServerInfo: NodeInfo
+      , globalPolicyMode: GlobalPolicyMode
+        //environment variable for that server
+        //must be a case insensitive Map !!!!
+      , nodeContext     : TreeMap[String, Variable]
+        // parameters for this node
+        //must be a case SENSITIVE Map !!!!
+      , parameters      : Map[ParameterName, ParamInterpolationContext => PureResult[String]]
+        //the depth of the interpolation context evaluation
+        //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
+        //for ex: param a => param b => param c => ..... => param a
+        //should not be evaluated
+      , depth           : Int
+) extends GenericInterpolationContext[ParamInterpolationContext => PureResult[String]]
+
 final case class InterpolationContext(
         nodeInfo        : NodeInfo
       , policyServerInfo: NodeInfo
@@ -135,13 +169,13 @@ final case class InterpolationContext(
       , nodeContext     : TreeMap[String, Variable]
         // parameters for this node
         //must be a case SENSITIVE Map !!!!
-      , parameters      : Map[ParameterName, InterpolationContext => PureResult[String]]
+      , parameters      : Map[ParameterName, String]
         //the depth of the interpolation context evaluation
         //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
         //for ex: param a => param b => param c => ..... => param a
         //should not be evaluated
       , depth           : Int
-)
+) extends GenericInterpolationContext[String]
 
 object InterpolationContext {
   implicit val caseInsensitiveString = new Ordering[String] {
@@ -157,7 +191,7 @@ object InterpolationContext {
       , nodeContext     : Map[String, Variable]
         // parameters for this node
         //must be a case SENSITIVE Map !!!!
-      , parameters      : Map[ParameterName, InterpolationContext => PureResult[String]]
+      , parameters      : Map[ParameterName, String]
         //the depth of the interpolation context evaluation
         //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
         //for ex: param a => param b => param c => ..... => param a
@@ -166,14 +200,39 @@ object InterpolationContext {
   ) = new InterpolationContext(nodeInfo, policyServerInfo, globalPolicyMode, TreeMap(nodeContext.toSeq:_*), parameters, depth)
 }
 
+object ParamInterpolationContext {
+  implicit val caseInsensitiveString = new Ordering[String] {
+    def compare(x: String, y: String): Int = x.compareToIgnoreCase(y)
+  }
+
+  def apply(
+        nodeInfo        : NodeInfo
+      , policyServerInfo: NodeInfo
+      , globalPolicyMode: GlobalPolicyMode
+        //environment variable for that server
+        //must be a case insensitive Map !!!!
+      , nodeContext     : Map[String, Variable]
+        // parameters for this node
+        //must be a case SENSITIVE Map !!!!
+      , parameters      : Map[ParameterName, ParamInterpolationContext => PureResult[String]]
+        //the depth of the interpolation context evaluation
+        //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
+        //for ex: param a => param b => param c => ..... => param a
+        //should not be evaluated
+      , depth           : Int = 0
+  ) = new ParamInterpolationContext(nodeInfo, policyServerInfo, globalPolicyMode, TreeMap(nodeContext.toSeq:_*), parameters, depth)
+}
+
 final case class ParameterForConfiguration(
     name       : ParameterName
   , value      : String
 )
 
 final case object ParameterForConfiguration {
-  def fromParameter(param: Parameter) : ParameterForConfiguration = {
-    ParameterForConfiguration(param.name, param.value)
+  def fromParameter(param: GlobalParameter) : ParameterForConfiguration = {
+    // here, we need to go back to a string for resolution of
+    // things like ${rudder.param[foo] | default = ... }
+    ParameterForConfiguration(param.name, GenericPropertyUtils.serializeValue(param.value))
   }
 }
 

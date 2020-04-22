@@ -80,7 +80,7 @@ trait RestDataSerializer {
   def serializeGroup(group : NodeGroup, crId: Option[ChangeRequestId]): JValue
   def serializeGroupCategory (category:FullNodeGroupCategory, parent: NodeGroupCategoryId, detailLevel : DetailLevel, apiVersion: ApiVersion): JValue
 
-  def serializeParameter (parameter:Parameter , crId: Option[ChangeRequestId]): JValue
+  def serializeParameter (parameter:GlobalParameter , crId: Option[ChangeRequestId]): JValue
 
   def serializeRule (rule:Rule , crId: Option[ChangeRequestId]): JValue
   def serializeRuleCategory (category:RuleCategory, parent: RuleCategoryId, rules : Map[RuleCategoryId,Seq[Rule]], detailLevel : DetailLevel): JValue
@@ -197,12 +197,11 @@ final case class RestDataSerializerImpl (
     )
   }
 
-  def serializeParameter (parameter:Parameter, crId: Option[ChangeRequestId]): JValue = {
+  def serializeParameter (parameter:GlobalParameter, crId: Option[ChangeRequestId]): JValue = {
    (   ( "changeRequestId" -> crId.map(_.value.toString))
      ~ ( "id"              -> parameter.name.value )
      ~ ( "value"           -> parameter.value )
      ~ ( "description"     -> parameter.description )
-     ~ ( "overridable"     -> parameter.overridable )
    )
   }
 
@@ -356,12 +355,10 @@ final case class RestDataSerializerImpl (
 
       val description :JValue = diff.modDescription.map(displaySimpleDiff(_)).getOrElse(initialState.description)
       val value :JValue       = diff.modValue.map(displaySimpleDiff(_)).getOrElse(initialState.value)
-      val overridable :JValue = diff.modOverridable.map(displaySimpleDiff(_)).getOrElse(initialState.overridable)
 
       (   ("name"        -> initialState.name)
         ~ ("value"       -> value)
         ~ ("description" -> description)
-        ~ ("overridable" -> overridable)
       )
     }
 

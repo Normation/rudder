@@ -482,10 +482,6 @@ final case object CheckGlobalParameter extends CheckChanges[GlobalParameter]  {
           debugLog(s"Global Parameter '${initialFixed.name}' value has changed: original state from CR: ${initialFixed.value}, current value: ${currentFixed.value}")
         }
 
-        if ( initialFixed.overridable != currentFixed.overridable) {
-          debugLog(s"Global Parameter '${initialFixed.name}' overridable status has changed: original state from CR: ${initialFixed.overridable}, current value: ${currentFixed.overridable}")
-        }
-
         //return
         false
       }

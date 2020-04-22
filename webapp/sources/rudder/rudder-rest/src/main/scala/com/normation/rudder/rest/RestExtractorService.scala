@@ -599,9 +599,9 @@ final case class RestExtractorService (
     for {
       description <- extractOneValue(params, "description")()
       overridable <- extractOneValue(params, "overridable")( toBoolean)
-      value       <- extractOneValue(params, "value")()
+      value       <- extractOneValue(params, "value")(s => Full(GenericPropertyUtils.parseValue(s)))
     } yield {
-      RestParameter(value,description,overridable)
+      RestParameter(value, description, overridable)
     }
   }
 
@@ -899,9 +899,12 @@ final case class RestExtractorService (
     for {
       description <- extractJsonString(json, "description")
       overridable <- extractJsonBoolean(json, "overridable")
-      value       <- extractJsonString(json, "value")
+      value       <- Full((json \ "value") match {
+                       case JNothing => None
+                       case x        => Some(x)
+                     })
     } yield {
-      RestParameter(value,description,overridable)
+      RestParameter(value, description, overridable)
     }
   }
 

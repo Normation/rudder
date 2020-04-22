@@ -51,6 +51,7 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.model._
 import java.util.regex.Pattern
 
+import com.normation.rudder.domain.nodes.GenericPropertyUtils
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
@@ -113,9 +114,8 @@ class CreateOrUpdateGlobalParameterPopup(
     } else {
       val newParameter = new GlobalParameter(
         name        = ParameterName(parameterName.get),
-        value       = parameterValue.get,
+        value       = GenericPropertyUtils.parseValue(parameterValue.get),
         description = parameterDescription.get,
-        overridable = parameterOverridable
       )
       val savedChangeRequest = {
         for {
@@ -194,7 +194,7 @@ class CreateOrUpdateGlobalParameterPopup(
   }
 
   // The value may be empty
-  private[this] val parameterValue = new WBTextAreaField("Value", change.previousGlobalParam.map(_.value).getOrElse("")) {
+  private[this] val parameterValue = new WBTextAreaField("Value", change.previousGlobalParam.map(p => GenericPropertyUtils.serializeValue(p.value)).getOrElse("")) {
     override def setFilter = trim _ :: Nil
     override def inputField = ( change.action match {
       case GlobalParamModAction.Delete => super.inputField % ("disabled" -> "true")

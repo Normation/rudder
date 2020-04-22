@@ -44,6 +44,7 @@ import net.liftweb.json.JsonAST.JValue
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.errors._
+import com.normation.rudder.services.policies.InterpolatedValueCompilerImpl._
 
 /**
  * A parser that handle parameterized value of
@@ -127,6 +128,7 @@ trait InterpolatedValueCompiler {
    * parsing of all values, and EmptyBox. an error.
    */
   def compile(value: String): PureResult[InterpolationContext => PureResult[String]]
+  def compileParam(value: String): PureResult[ParamInterpolationContext => PureResult[String]]
 
   /**
    *
@@ -151,8 +153,8 @@ object InterpolatedValueCompilerImpl {
    */
   sealed trait Token extends Any//could be Either[CharSeq, Interpolation]
 
-final case class   CharSeq(s:String) extends AnyVal with Token
-  sealed trait Interpolation     extends Any with Token
+  final case class CharSeq(s:String) extends AnyVal with Token
+  sealed trait     Interpolation     extends Any with Token
 
   //everything is expected to be lower case
   final case class NodeAccessor(path:List[String]) extends AnyVal with Interpolation
@@ -163,13 +165,12 @@ final case class   CharSeq(s:String) extends AnyVal with Token
 
   //here, we have node property option
   sealed trait PropertyOption extends Any
-  final case object InterpreteOnNode                 extends PropertyOption
+  final case object InterpreteOnNode                 extends             PropertyOption
   final case class  DefaultValue(value: List[Token]) extends AnyVal with PropertyOption
 }
 
-class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueCompiler {
 
-  import InterpolatedValueCompilerImpl._
+trait AnalyseInterpolation[T, I <: GenericInterpolationContext[T]] {
 
   /*
    * Number of time we allows to recurse for interpolated variable
@@ -193,35 +194,11 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
   val maxEvaluationDepth = 5
 
   /*
-   * In our parser, whitespace are relevant,
-   * we are not parsing a language here.
-   */
-  override val skipWhitespace = false
-
-  /*
-   * just call the parser on a value, and in case of successful parsing, interprete
-   * the resulting AST (seq of token)
-   */
-  override def compile(value: String): PureResult[InterpolationContext => PureResult[String]] = {
-    parseAll(all, value) match {
-      case NoSuccess(msg, remaining)  => Left(Unexpected(s"""Error when parsing value "${value}", error message is: ${msg}"""))
-      case Success(tokens, remaining) => Right(parseToken(tokens))
-    }
-  }
-
-  def translateToAgent(value: String, agent : AgentType): Box[String] = {
-    parseAll(all, value) match {
-      case NoSuccess(msg, remaining)  => FailedBox(s"""Error when parsing value "${value}", error message is: ${msg}""")
-      case Success(tokens, remaining) => Full(tokens.map(translate(agent, _) ).mkString(""))
-    }
-  }
-
-  /*
-   * The funny part that for each token add the interpretation of the token
+   * The funny part that for each token adds the interpretation of the token
    * by composing interpretation function.
    */
-  def parseToken(tokens:List[Token]): InterpolationContext => PureResult[String] = {
-    def build(context: InterpolationContext) = {
+  def parseToken(tokens:List[Token]): I => PureResult[String] = {
+    def build(context: I) = {
       val init: PureResult[String] = Right("")
       (tokens).foldLeft(init) {
         case (Right(str), token) => analyse(context, token).map(s => (str + s))
@@ -238,7 +215,7 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
    * the final string (that may not succeed at run time, because of
    * unknown parameter, etc)
    */
-  def analyse(context: InterpolationContext, token:Token): PureResult[String] = {
+  def analyse(context: I, token:Token): PureResult[String] = {
     token match {
       case CharSeq(s)          => Right(s)
       case NodeAccessor(path)  => getNodeAccessorTarget(context, path)
@@ -266,39 +243,16 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
     }
   }
 
-  // Transform a token to its correct value for the agent passed as parameter
-  def translate(agent: AgentType, token:Token): String = {
-    token match {
-      case CharSeq(s)          => s
-      case NodeAccessor(path)  => s"$${rudder.node.${path.mkString(".")}}"
-      case Param(name)         => s"$${rudder.param.${name}}"
-      case Property(path, opt) => agent match {
-        case AgentType.Dsc =>
-          s"$$($$node.properties[${path.mkString("][")}])"
-        case AgentType.CfeCommunity | AgentType.CfeEnterprise =>
-          s"$${node.properties[${path.mkString("][")}]}"
-      }
-    }
-  }
-
   /**
    * Retrieve the global parameter from the node context.
    */
-  def getRudderGlobalParam(context: InterpolationContext, paramName: ParameterName): PureResult[String] = {
-    context.parameters.get(paramName) match {
-      case Some(value) =>
-        if(context.depth >= maxEvaluationDepth) {
-          Left(Unexpected(s"""Can not evaluted global parameter "${paramName.value}" because it uses an interpolation variable that depends upon """
-           + s"""other interpolated variables in a stack more than ${maxEvaluationDepth} in depth. We fear it's a circular dependancy."""))
-        } else value(context.copy(depth = context.depth+1))
-      case _ => Left(Unexpected(s"Error when trying to interpolate a variable: Rudder parameter not found: '${paramName.value}'"))
-    }
-  }
+  def getRudderGlobalParam(context: I, paramName: ParameterName): PureResult[String]
+
 
   /**
    * Get the targeted accessed node information, checking that it exists.
    */
-  def getNodeAccessorTarget(context: InterpolationContext, path: List[String]): PureResult[String] = {
+  def getNodeAccessorTarget(context: I, path: List[String]): PureResult[String] = {
     val error = Left(Unexpected(s"Unknow interpolated variable $${node.${path.mkString(".")}}" ))
     path match {
       case Nil => Left(Unexpected("In node interpolated variable, at least one accessor must be provided"))
@@ -333,7 +287,7 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
    * If the path length is more than one, try to parse the string has a
    * json value and access the remaining part as a json path.
    */
-  def getNodeProperty(context: InterpolationContext, path: List[String]): PureResult[String] = {
+  def getNodeProperty(context: I, path: List[String]): PureResult[String] = {
     val errmsg = s"Missing property '$${node.properties[${path.mkString("][")}]}' on node '${context.nodeInfo.hostname}' [${context.nodeInfo.id.value}]"
     path match {
       //we should not reach that case since we enforce at leat one match of [...] in the parser
@@ -368,6 +322,90 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
       prop
     }
   }
+}
+
+object AnalyseParamInterpolation extends AnalyseInterpolation[ParamInterpolationContext => PureResult[String], ParamInterpolationContext] {
+
+  /**
+   * Retrieve the global parameter from the node context.
+   */
+  def getRudderGlobalParam(context: ParamInterpolationContext, paramName: ParameterName): PureResult[String] = {
+    context.parameters.get(paramName) match {
+      case Some(value) =>
+        if(context.depth >= maxEvaluationDepth) {
+          Left(Unexpected(s"""Can not evaluted global parameter "${paramName.value}" because it uses an interpolation variable that depends upon """
+           + s"""other interpolated variables in a stack more than ${maxEvaluationDepth} in depth. We fear it's a circular dependancy."""))
+        } else value(context.copy(depth = context.depth+1))
+      case _ => Left(Unexpected(s"Error when trying to interpolate a variable: Rudder parameter not found: '${paramName.value}'"))
+    }
+  }
+}
+
+object AnalyseNodeInterpolation extends AnalyseInterpolation[String, InterpolationContext] {
+
+  /**
+   * Retrieve the global parameter from the node context.
+   */
+  def getRudderGlobalParam(context: InterpolationContext, paramName: ParameterName): PureResult[String] = {
+    context.parameters.get(paramName) match {
+      case Some(value) =>
+        Right(value)
+      case _           =>
+        Left(Unexpected(s"Error when trying to interpolate a variable: Rudder parameter not found: '${paramName.value}'"))
+    }
+  }
+}
+
+class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueCompiler {
+
+  import InterpolatedValueCompilerImpl._
+
+  /*
+   * In our parser, whitespace are relevant,
+   * we are not parsing a language here.
+   */
+  override val skipWhitespace = false
+
+  /*
+   * just call the parser on a value, and in case of successful parsing, interprete
+   * the resulting AST (seq of token)
+   */
+  override def compile(value: String): PureResult[InterpolationContext => PureResult[String]] = {
+    parseAll(all, value) match {
+      case NoSuccess(msg, remaining)  => Left(Unexpected(s"""Error when parsing value "${value}", error message is: ${msg}"""))
+      case Success(tokens, remaining) => Right(AnalyseNodeInterpolation.parseToken(tokens))
+    }
+  }
+
+  override def compileParam(value: String): PureResult[ParamInterpolationContext => PureResult[String]] = {
+    parseAll(all, value) match {
+      case NoSuccess(msg, remaining)  => Left(Unexpected(s"""Error when parsing value "${value}", error message is: ${msg}"""))
+      case Success(tokens, remaining) => Right(AnalyseParamInterpolation.parseToken(tokens))
+    }
+  }
+
+  def translateToAgent(value: String, agent : AgentType): Box[String] = {
+    parseAll(all, value) match {
+      case NoSuccess(msg, remaining)  => FailedBox(s"""Error when parsing value "${value}", error message is: ${msg}""")
+      case Success(tokens, remaining) => Full(tokens.map(translate(agent, _) ).mkString(""))
+    }
+  }
+
+  // Transform a token to its correct value for the agent passed as parameter
+  def translate(agent: AgentType, token:Token): String = {
+    token match {
+      case CharSeq(s)          => s
+      case NodeAccessor(path)  => s"$${rudder.node.${path.mkString(".")}}"
+      case Param(name)         => s"$${rudder.param.${name}}"
+      case Property(path, opt) => agent match {
+        case AgentType.Dsc =>
+          s"$$($$node.properties[${path.mkString("][")}])"
+        case AgentType.CfeCommunity | AgentType.CfeEnterprise =>
+          s"$${node.properties[${path.mkString("][")}]}"
+      }
+    }
+  }
+
 
   //// parsing language
 
