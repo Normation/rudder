@@ -754,18 +754,11 @@ ul.files-list > li > .remove-item:hover{
 .is-edited .method .edit-method {
   color: #3379b7 !important;
 }
-.missingParameters .method .edit-method,
-.requiredParameters{
+.missingParameters .method .edit-method{
   color: #f08004 !important;
 }
 .errorParameters .method .edit-method {
   color: #c63d3a !important;
-}
-.requiredParameters{
-  display: none;
-}
-.missingParameters .requiredParameters{
-  display: block !important;
 }
 .btn.clipboard{
   border-color: #ced4da !important;
@@ -821,7 +814,11 @@ ul.files-list > li > .remove-item:hover{
 }
 
 .method-details .form-group{
-  margin-bottom: 8px;
+  margin-bottom: 2px;
+}
+.method-details textarea + ul.list-unstyled{
+  min-height: 19px;
+  font-size: .9em;
 }
 .method-details ul.list-unstyled > li{
   margin-bottom: 0px;
@@ -966,9 +963,9 @@ ul.list-unstyled > li{
 .method .method-condition,
 .method .method-name,
 .method .method-param,
-.method .method-errors,
-.method .requiredParameters{
+.method .method-errors{
   position: relative;
+  padding: 0;
 }
 .method .method-condition ~ div:before,
 .method .method-condition > label:before {
@@ -1123,7 +1120,41 @@ ul.list-unstyled > li{
 .method-details-footer > .btn{
   margin-left: 10px;
 }
-
+#methods .method-name{
+  margin-bottom: 2px;
+}
+.method-content{
+  height: 28px;
+  display: flex;
+}
+.warns{
+  margin-top: 2px;
+}
+.warn-param{
+  background-color: #b9c2cc;
+  color: #fff;
+  padding: 2px 8px 2px 3px;
+  border-radius: 20px;
+  display: inline-block;
+  font-size: .9em;
+  display: none;
+  cursor: pointer;
+  align-items: center;
+}
+.missingParameters .warn-param.warning {
+  display: inline-flex;
+  background-color: #F08004;
+}
+.errorParameters .warn-param.error{
+  display: inline-flex;
+  background-color: #dd4b39;
+}
+.warn-param b {
+  background-color: #00000055;
+  padding: 2px 6px;
+  border-radius: 20px;
+  margin-right: 2px;
+}
 /* RESULT CONDITIONS */
 .result-class .result-success .input-group-text,
 .result-class .result-repaired .input-group-text,
