@@ -68,7 +68,7 @@ tags:
       Manage relays.
   - name: "🧩 User Management"
     description: >-
-      **Requires that the `scale-out-relay` plugin is installed on the server.**
+      **Requires that the `user-management` plugin is installed on the server.**
 
 
       Manage users settings and configuration file.
