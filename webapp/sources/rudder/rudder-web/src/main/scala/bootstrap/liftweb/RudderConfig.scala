@@ -94,8 +94,10 @@ import com.normation.rudder.inventory.InventoryFileWatcher
 import com.normation.rudder.inventory.InventoryProcessor
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.migration._
+import com.normation.rudder.ncf
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
 import com.normation.rudder.ncf.TechniqueArchiverImpl
+import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.AgentRunIntervalServiceImpl
@@ -888,7 +890,9 @@ object RudderConfig extends Loggable {
       )
 
   val techniqueArchiver = new TechniqueArchiverImpl(gitRepo,   new File(RUDDER_DIR_GITROOT) , prettyPrinter, "/", gitModificationRepository, personIdentService)
-  val ncfTechniqueWriter = new TechniqueWriter(techniqueArchiver, updateTechniqueLibrary, interpolationCompiler, roDirectiveRepository, techniqueRepository, workflowLevelService, prettyPrinter, RUDDER_DIR_GITROOT, typeParameterService)
+  val techniqueSerializer = new TechniqueSerializer(typeParameterService)
+  val ncfTechniqueWriter = new TechniqueWriter(techniqueArchiver, updateTechniqueLibrary, interpolationCompiler, roDirectiveRepository, techniqueRepository, workflowLevelService, prettyPrinter, RUDDER_DIR_GITROOT, typeParameterService, techniqueSerializer)
+  val ncfTechniqueReader : ncf.TechniqueReader = new ncf.TechniqueReader(restExtractorService)
 
   lazy val pipelinedReportUnmarshaller : ReportUnmarshaller = {
     val fusionReportParser = {
@@ -1027,7 +1031,7 @@ object RudderConfig extends Loggable {
         new ComplianceApi(restExtractorService, complianceAPIService)
       , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, stringUuidGenerator, groupApiService2, groupApiService5, groupApiService6)
       , new DirectiveApi(roDirectiveRepository, restExtractorService, directiveApiService2, stringUuidGenerator)
-      , new NcfApi(ncfTechniqueWriter, restExtractorService, stringUuidGenerator)
+      , new NcfApi(ncfTechniqueWriter, ncfTechniqueReader, restExtractorService, techniqueSerializer, stringUuidGenerator)
       , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8)
       , new ParameterApi(restExtractorService, parameterApiService2)
       , new SettingsApi(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator, policyServerManagementService, nodeInfoService)
@@ -1990,6 +1994,7 @@ object RudderConfig extends Loggable {
         , roLDAPApiAccountRepository.systemAPIAccount
         , uuidGen
         , updateTechniqueLibrary
+        , ncfTechniqueReader
       )
     , new ResumePolicyUpdateRunning(
           asyncDeploymentAgent

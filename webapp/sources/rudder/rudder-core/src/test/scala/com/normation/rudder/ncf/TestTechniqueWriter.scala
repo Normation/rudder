@@ -197,14 +197,15 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     override def getAllCategories: Map[TechniqueCategoryId, TechniqueCategory] = ???
   }
 
+
   val valueCompiler = new InterpolatedValueCompilerImpl
   val parameterTypeService : PlugableParameterTypeService = new PlugableParameterTypeService
-  val writer = new TechniqueWriter(TestTechniqueArchiver,TestLibUpdater,valueCompiler, readDirectives, techRepo, workflowLevelService, new RudderPrettyPrinter(Int.MaxValue, 2), basePath, parameterTypeService)
+  val writer = new TechniqueWriter(TestTechniqueArchiver,TestLibUpdater,valueCompiler, readDirectives, techRepo, workflowLevelService, new RudderPrettyPrinter(Int.MaxValue, 2), basePath, parameterTypeService, new TechniqueSerializer(parameterTypeService) )
   val dscWriter = new DSCTechniqueWriter(basePath, valueCompiler, new ParameterType.PlugableParameterTypeService)
   val classicWriter = new ClassicTechniqueWriter(basePath, new ParameterType.PlugableParameterTypeService)
 
   import ParameterType._
-  val defaultConstraint = Constraint.NonEmpty :: Constraint.NoWhiteSpace :: Constraint.MaxLength(16384) :: Nil
+  val defaultConstraint = Constraint.AllowEmpty(false) :: Constraint.AllowWhiteSpace(false) :: Constraint.MaxLength(16384) :: Nil
   val methods = ( GenericMethod(
       BundleName("package_install_version")
     , "Package install version"
@@ -419,12 +420,12 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
       val value5 = "sdfsqdfsqfsdf sfhdskjhdfs jkhsdkfjhksqdhf"
       val value6 = ""
 
-      Constraint.NoWhiteSpace.check(value1) must equalTo(Constraint.OK)
-      Constraint.NoWhiteSpace.check(value2) must equalTo(Constraint.OK)
-      Constraint.NoWhiteSpace.check(value3) must equalTo(Constraint.OK)
-      Constraint.NoWhiteSpace.check(value4) must equalTo(Constraint.OK)
-      Constraint.NoWhiteSpace.check(value5) must equalTo(Constraint.OK)
-      Constraint.NoWhiteSpace.check(value6) must equalTo(Constraint.OK)
+      Constraint.AllowWhiteSpace(false).check(value1) must equalTo(Constraint.OK)
+      Constraint.AllowWhiteSpace(false).check(value2) must equalTo(Constraint.OK)
+      Constraint.AllowWhiteSpace(false).check(value3) must equalTo(Constraint.OK)
+      Constraint.AllowWhiteSpace(false).check(value4) must equalTo(Constraint.OK)
+      Constraint.AllowWhiteSpace(false).check(value5) must equalTo(Constraint.OK)
+      Constraint.AllowWhiteSpace(false).check(value6) must equalTo(Constraint.OK)
     }
 
     "Correctly refuse text starting or ending with withspace" in {
@@ -435,10 +436,10 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
       val value3 = " "
       val value4 = "sdfsqdfsqfsdf sfhdskjhdfs jkhsdkfjhksqdhf "
 
-      Constraint.NoWhiteSpace.check(value1) must haveClass[Constraint.NOK]
-      Constraint.NoWhiteSpace.check(value2) must haveClass[Constraint.NOK]
-      Constraint.NoWhiteSpace.check(value3) must haveClass[Constraint.NOK]
-      Constraint.NoWhiteSpace.check(value4) must haveClass[Constraint.NOK]
+      Constraint.AllowWhiteSpace(false).check(value1) must haveClass[Constraint.NOK]
+      Constraint.AllowWhiteSpace(false).check(value2) must haveClass[Constraint.NOK]
+      Constraint.AllowWhiteSpace(false).check(value3) must haveClass[Constraint.NOK]
+      Constraint.AllowWhiteSpace(false).check(value4) must haveClass[Constraint.NOK]
     }
   }
 

@@ -38,29 +38,22 @@
 package bootstrap.liftweb
 package checks
 
-import net.liftweb.common._
 import better.files.File
-
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.ncf.TechniqueWriter
-import scalaj.http.Http
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-
 import com.normation.eventlog.EventActor
 import com.normation.rudder.api.ApiAccount
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonAST.JArray
-import com.normation.box._
+import com.normation.errors.RudderError
+import com.normation.rudder.ncf.TechniqueReader
 import zio._
-import zio.duration._
 import com.normation.zio._
 
-sealed trait NcfTechniqueUpgradeError {
+sealed trait NcfTechniqueUpgradeError extends RudderError{
   def msg : String
   def exception : Option[Throwable]
-
 }
 object NcfTechniqueUpgradeError {
 final case class NcfApiAuthFailed    (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
@@ -71,13 +64,7 @@ final case class WriteTechniqueError (msg: String, exception: Option[Throwable])
 final case class FlagFileError       (msg: String, exception: Option[Throwable]) extends NcfTechniqueUpgradeError
 
   type Result[T] = Either[NcfTechniqueUpgradeError, T]
-  def tryo[T]( f : => T, errorMessage : String, catcher : (String,Option[Throwable]) => NcfTechniqueUpgradeError) : Result[T] = {
-    try {
-      Right(f)
-    } catch {
-      case e : Throwable => Left(catcher(errorMessage,Some(e)))
-    }
-  }
+
 }
 
 /**
@@ -90,111 +77,39 @@ class CheckNcfTechniqueUpdate(
   , systemApiToken : ApiAccount
   , uuidGen        : StringUuidGenerator
   , techLibUpdate  : UpdateTechniqueLibrary
+  , techniqueReader: TechniqueReader
 ) extends BootstrapChecks {
 
   override val description = "Regenerate all ncf techniques"
 
   override def checks() : Unit = {
 
-    def request(path : String) = {
-      Http(s"http://localhost/ncf/api/${path}")
-        .header("X-API-TOKEN", systemApiToken.token.value)
-        // that request can timeout, 1000 ms for connection timeout, 5 minutes to get data
-        .timeout(1000, 300000)
-    }
-
-    val authRequest = request("auth")
-    def techniquesRequest(migration : Boolean) = request("techniques").param("migration",migration.toString)
-
     val ncfTechniqueUpdateFlag = File("/opt/rudder/etc/force_ncf_technique_update")
 
-    def updateNcfTechniques : Unit = {
-      import net.liftweb.json.parse
-      import com.normation.utils.Control.sequence
-      import NcfTechniqueUpgradeError._
-      ( for {
-        authResponse       <- tryo ( authRequest.asString , "An error occurred while authentication to ncf API", NcfApiAuthFailed)
-        authResult         <- if(authResponse.isSuccess) {
-                                Right(authResponse.body)
-                              } else {
-                                Left(NcfApiAuthFailed(s"Failure during authentication to ncf api: code ${authResponse.code}: ${authResponse.body}", None))
-                              }
-        // Technique request get both techniques and generic methods
-        techniquesResponse <- tryo ( techniquesRequest(true).asString, "An error occurred while fetching techniques from ncf API", NcfApiRequestFailed)
-        techniquesResult   <- if( techniquesResponse.isSuccess) {
-          Right(techniquesResponse.body)
-        } else {
-          Left(NcfApiRequestFailed(s"Failure getting techniques from ncf api: code ${techniquesResponse.code}: ${techniquesResponse.body}", None))
-        }
-        methods            <- (parse(techniquesResult) \ "data" \ "generic_methods" match {
-                                case JObject(fields) =>
-                                  restExtractor.extractGenericMethod(JArray(fields.map(_.value))).map(_.map(m => (m.id,m)).toMap) match {
-                                    case Full(m) => Right(m)
-                                    case eb : EmptyBox =>
-                                      val fail = eb ?~!  s"An Error occured while extracting data from generic methods ncf API"
-                                      Left(JsonExtractionError(fail.messageChain, None))
-                                  }
-                                case a => Left(JsonExtractionError(s"Could not extract methods from ncf api, expecting an object got: ${a}", None))
-                              })
+    import com.normation.errors._
 
-
-        techniques         <- (parse(techniquesResult) \ "data" \ "techniques" match {
-                                case JObject(fields) =>
-                                  sequence(fields.map(_.value))(restExtractor.extractNcfTechnique(_, methods, false)) match {
-                                    case Full(m) => Right(m)
-                                    case eb : EmptyBox =>
-                                      val fail = eb ?~!  s"An Error occured while extracting data from techniques ncf API"
-                                      Left(JsonExtractionError(fail.messageChain, None))
-
-                                  }
-                                case a => Left(JsonExtractionError(s"Could not extract techniques from ncf api, expecting an object got: ${a}", None))
-                              })
+    def updateNcfTechniques  = {
+      for {
+        methods    <- techniqueReader.updateMethodsMetadataFile
+        techniques <- techniqueReader.updateTechniquesMetadataFile
         // Actually write techniques
-        techniqueUpdated   <- (sequence(techniques)(
-                                techniqueWrite.writeTechnique(_, methods, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value)).toBox
-                              )) match {
-                                case Full(m) => Right(m)
-                                case eb : EmptyBox =>
-                                  val fail = eb ?~! "An error occured while writing ncf Techniques"
-                                  Left(WriteTechniqueError(fail.messageChain, None))
-                              }
-        // Update technique library once all technique are updated
-        libUpdate          <- techLibUpdate.update(ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value), Some(s"Update Technique library after updating all techniques at start up")) match {
-                                case Full(techniques) => Right(techniques)
-                                case eb: EmptyBox =>
-                                  val fail = eb ?~! s"An error occured during techniques update after update of all techniques from the editor"
-                                  Left(TechniqueUpdateError(fail.msg, fail.exception))
-                              }
-        flagDeleted        <- tryo (
-                                  ncfTechniqueUpdateFlag.delete()
-                                , s"An error occured while deleting file ${ncfTechniqueUpdateFlag} after techniques were written, you may need to delete it manually"
-                                , FlagFileError
-                              )
+        written    <- ZIO.foreach(techniques)( t =>
+                        techniqueWrite.writeTechnique(t, methods, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value)).chainError(s"An error occured while writing technique ${t.bundleName.value}")
+                      )
+                                                        // Update technique library once all technique are updated
+        libUpdate   <- techLibUpdate.update(ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value), Some(s"Update Technique library after updating all techniques at start up")).toIO.chainError( s"An error occured during techniques update after update of all techniques from the editor")
+
+        flagDeleted <- IOResult.effect( ncfTechniqueUpdateFlag.delete() )
       } yield {
          techniques
-      } ) match {
-        case Right(techniques) =>
-          BootstrapLogger.logEffect.info(s"All ncf techniques were updated, ${techniques.size} were migrated")
-        case Left(NcfApiAuthFailed(msg,e)) =>
-          BootstrapLogger.logEffect.warn(s"Could not authenticate in ncf API, maybe it was not initialized yet, retrying in 5 seconds, details ${msg}")
-          ZioRuntime.internal.unsafeRunAsync(Task.effect(updateNcfTechniques).delay(5.seconds))( _ => ())
-        case Left(FlagFileError(_,_)) =>
-          BootstrapLogger.logEffect.warn(s"All ncf techniques were updated, but we could not delete flag file ${ncfTechniqueUpdateFlag}, please delete it manually")
-        case Left(e : NcfTechniqueUpgradeError) =>
-          BootstrapLogger.logEffect.error(s"An error occured while updating ncf techniques: ${e.msg}")
       }
     }
 
-    try {
-      if (ncfTechniqueUpdateFlag.exists) {
-        ZioRuntime.internal.unsafeRunAsync(Task.effect(updateNcfTechniques).delay(10.seconds))( _ => ())
-      } else {
-        BootstrapLogger.logEffect.info(s"Flag file '${ncfTechniqueUpdateFlag}' does not exist, do not regenerate ncf Techniques")
-      }
-    } catch {
-      // Exception while checking the flag existence
-      case e : Exception =>
-        BootstrapLogger.logEffect.error(s"An error occurred while accessing flag file '${ncfTechniqueUpdateFlag}', cause is: ${e.getMessage}")
-    }
+    val prog = (for {
+      flagExists <- IOResult.effect(s"An error occurred while accessing flag file '${ncfTechniqueUpdateFlag}'")(ncfTechniqueUpdateFlag.exists)
+      _ <- if (flagExists) updateNcfTechniques else BootstrapLogger.info(s"Flag file '${ncfTechniqueUpdateFlag}' does not exist, do not regenerate ncf Techniques")
+    } yield ())
+
+    ZioRuntime.runNowLogError(err => BootstrapLogger.error(s"An error occurred while updating techniques based on ncf; error message is: ${err.fullMsg}"))(prog)
   }
 }

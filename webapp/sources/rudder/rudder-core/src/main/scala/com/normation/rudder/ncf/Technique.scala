@@ -44,8 +44,14 @@ import com.normation.errors.Unexpected
 import cats.data.NonEmptyList
 import com.normation.inventory.domain.Version
 import com.normation.inventory.domain.AgentType
+import com.normation.rudder.ncf
 import com.normation.rudder.ncf.Constraint.Constraint
 import com.normation.rudder.ncf.Constraint.CheckResult
+import com.normation.rudder.ncf.ParameterType.ParameterTypeService
+import net.liftweb.json.JField
+import net.liftweb.json.JObject
+import net.liftweb.json.JString
+import net.liftweb.json.JValue
 
 sealed trait NcfId {
   def value : String
@@ -132,6 +138,7 @@ object ParameterType {
 
   trait ParameterTypeService {
     def create(value : String) : PureResult[ParameterType]
+    def value(parameterType: ParameterType) : PureResult[String]
     def translate(value : String, paramType : ParameterType, agentType: AgentType) : PureResult[String]
   }
 
@@ -145,6 +152,14 @@ object ParameterType {
       }
     }
 
+    def value(parameterType: ParameterType) = {
+      parameterType match {
+        case StringParameter => Right("string")
+        case Raw             => Right("raw")
+        case HereString      => Right("HereString")
+        case _               => Left(Unexpected(s"parameter type '${parameterType}' has no value defined"))
+      }
+    }
     def translate(value : String, paramType : ParameterType, agentType: AgentType) : PureResult[String] = {
       (paramType,agentType) match {
         case (Raw,_) => Right(value)
@@ -170,6 +185,12 @@ object ParameterType {
         case(service, _) => service.create(value)
       }
     }
+    def value(parameterType: ParameterType) = {
+      (innerServices foldRight (Left(Unexpected(s"parameter type '${parameterType}' has no value defined"))   : PureResult[String])) {
+        case(_, res @ Right(_)) => res
+        case(service, _) => service.value(parameterType)
+      }
+    }
 
     def translate(value : String, paramType : ParameterType, agentType: AgentType) : PureResult[String] = {
       (innerServices foldRight (Left(Unexpected(s"'${value}' is not a valid method parameter type")) : PureResult[String])) {
@@ -191,9 +212,9 @@ object Constraint {
   }
   import NonEmptyList.one
 
-  case object NonEmpty extends  Constraint {
+  case class AllowEmpty(allow : Boolean) extends  Constraint {
     def check(value: String): CheckResult = {
-      if (value.nonEmpty) {
+      if (allow || value.nonEmpty) {
         OK
       } else {
         NOK(one("Must not be empty"))
@@ -201,9 +222,9 @@ object Constraint {
     }
   }
 
-  case object NoWhiteSpace extends  Constraint {
+  case class AllowWhiteSpace(allow: Boolean) extends  Constraint {
     def check(value: String): CheckResult = {
-      if (Pattern.compile("""^(?!\s).*(?<!\s)$""", Pattern.DOTALL).asPredicate().test(value)) {
+      if (allow || Pattern.compile("""^(?!\s).*(?<!\s)$""", Pattern.DOTALL).asPredicate().test(value)) {
         OK
       } else {
         NOK(one("Must not have leading or trailing whitespaces"))
@@ -273,4 +294,94 @@ object CheckConstraint  {
       case (_,res:NOK) => res
     }
   }
+}
+
+class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
+
+  import net.liftweb.json.JsonDSL._
+  def serializeTechniqueMetadata(technique : ncf.Technique) : JValue = {
+
+    def serializeTechniqueParameter(parameter : TechniqueParameter) : JValue = {
+      ( ( "id"   -> parameter.id.value   )
+        ~ ( "name" -> parameter.name.value )
+        )
+    }
+    def serializeMethodCall(call : MethodCall) : JValue = {
+      val params : JValue = call.parameters.map {
+        case (methodId, value) =>
+          ( ( "methodId" -> methodId.value )
+            ~ ( "value"    -> value          )
+            )
+      }
+
+      ( ( "method_name"   -> call.methodId.value    )
+        ~ ( "class_context" -> call.condition         )
+        ~ ( "component"     -> call.component         )
+        ~ ( "args"          -> call.parameters.values )
+        ~ ( "parameters"    -> params                 )
+        )
+    }
+
+    def serializeResource(resourceFile: ResourceFile) = {
+      ( ( "name"  -> resourceFile.path        )
+        ~ ( "state" -> resourceFile.state.value )
+        )
+    }
+
+    val resource = technique.ressources.map(serializeResource)
+    val parameters = technique.parameters.map(serializeTechniqueParameter).toList
+    val calls = technique.methodCalls.map(serializeMethodCall).toList
+    ( ( "bundle_name"  -> technique.bundleName.value )
+      ~ ( "version"      -> technique.version.value    )
+      ~ ( "category"     -> technique.category         )
+      ~ ( "description"  -> technique.description      )
+      ~ ( "name"         -> technique.name             )
+      ~ ( "method_calls" -> calls                      )
+      ~ ( "parameter"    -> parameters                 )
+      ~ ( "resources"    -> resource                   )
+      )
+  }
+
+
+  def serializeMethodMetadata(method : GenericMethod) : JValue = {
+    def serializeMethodParameter(param: MethodParameter) : JValue = {
+
+      def serializeMethodConstraint(constraint: ncf.Constraint.Constraint) : JField = {
+        constraint match {
+          case ncf.Constraint.AllowEmpty(allow)      => JField("allow_empty_string", allow)
+          case ncf.Constraint.AllowWhiteSpace(allow) => JField("allow_whitespace_string", allow)
+          case ncf.Constraint.MaxLength(max)         => JField("max_length", max)
+          case ncf.Constraint.MinLength(min)         => JField("min_length", min)
+          case ncf.Constraint.MatchRegex(re)         => JField("regex", re)
+          case ncf.Constraint.NotMatchRegex(re)      => JField("not_regex", re)
+          case ncf.Constraint.FromList(list)         => JField("select", list)
+        }
+      }
+      val constraints = JObject(param.constraint.map(serializeMethodConstraint))
+      val paramType = JString(parameterTypeService.value(param.parameterType).getOrElse("Unknown"))
+      ( ( "name"        -> param.id.value    )
+        ~ ( "description" -> param.description )
+        ~ ( "constraints" -> constraints       )
+        ~ ( "type"        -> paramType         )
+        )
+    }
+    def serializeAgentSupport(agent : AgentType) = {
+      agent match  {
+        case AgentType.Dsc => JString("dsc")
+        case AgentType.CfeCommunity | AgentType.CfeEnterprise => JString("cfengine-community")
+      }
+    }
+    val parameters = method.parameters.map(serializeMethodParameter)
+    val agentSupport = method.agentSupport.map(serializeAgentSupport)
+    ( ( "bundle_name"     -> method.id.value             )
+      ~ ( "name"            -> method.name                 )
+      ~ ( "description"     -> method.description          )
+      ~ ( "class_prefix"    -> method.classPrefix          )
+      ~ ( "class_parameter" -> method.classParameter.value )
+      ~ ( "agent_support"   -> agentSupport                )
+      ~ ( "parameter"       -> parameters                  )
+      )
+
+  }
+
 }

@@ -59,7 +59,6 @@ class CheckInventoryUpdate(
 ) {
 
   val logger = ScheduledJobLoggerPure
-
   //start batch
   if(updateInterval < 1.second) {
     logger.logEffect.info(s"Disable automatic check for node inventories main information updates (update interval less than 1s)")
