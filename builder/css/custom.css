@@ -1177,6 +1177,61 @@ ul.list-unstyled > li{
 .result-class .clipboard:hover{
   background-color: #6c757d;
 }
+
+/* SHOW DIFF */
+.btn.toggle-diff{
+  box-shadow: none !important;
+  outline: none !important;
+  background-color: #f7f7f7;
+  min-width: 160px;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  border: 1px solid #e5e5E5;
+  text-align: left;
+  position: relative;
+  padding-right: 25px;
+}
+.btn.toggle-diff:hover{
+  background-color: #fff;
+}
+.btn.toggle-diff .badge{
+  background-color: #222D4220;
+  color: #222D42BB;
+  margin-left: 4px;
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: .9em;
+  position: absolute;
+  top: calc(50% - 11px);
+  right: 12px;
+  transition-duration: .2s;
+}
+.btn.toggle-diff:hover .badge{
+  background-color: #222D4225;
+  color: #222D42CC;
+}
+.show-diff table{
+  border-left: 1px solid #dee2e6;
+  border-bottom: 1px solid #dee2e6;
+  border-right: 1px solid #dee2e6;
+  background-color: #f7f7f7;
+  border-radius: 4px;
+  table-layout : fixed;
+  width: 100%;
+}
+.show-diff table tbody > tr > td:nth-child(2),
+.show-diff table tbody > tr > td:nth-child(3) {
+  font-family: monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.show-diff table tbody > tr > td:nth-child(2) {
+  color: #dd4b39;
+}
+.show-diff table tbody > tr > td:nth-child(3) {
+  color: #789c22;
+}
+
 /* LOADER */
 .loading{
   position: absolute;
