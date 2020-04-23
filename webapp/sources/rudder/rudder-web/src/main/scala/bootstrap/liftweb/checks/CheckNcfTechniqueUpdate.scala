@@ -90,8 +90,11 @@ class CheckNcfTechniqueUpdate(
 
     def updateNcfTechniques  = {
       for {
-        methods    <- techniqueReader.updateMethodsMetadataFile
-        techniques <- techniqueReader.updateTechniquesMetadataFile
+        _          <- techniqueReader.updateMethodsMetadataFile
+        _          <- techniqueReader.updateTechniquesMetadataFile
+
+        methods    <- techniqueReader.readMethodsMetadataFile
+        techniques <- techniqueReader.readTechniquesMetadataFile
         // Actually write techniques
         written    <- ZIO.foreach(techniques)( t =>
                         techniqueWrite.writeTechnique(t, methods, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value)).chainError(s"An error occured while writing technique ${t.bundleName.value}")
