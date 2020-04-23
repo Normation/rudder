@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: object
+description: Timezone information of the node.
+required:
+  - name
+  - offset
+properties:
+  name:
+    type: string
+    description: The standard name of the timezone
+    example: CEST
+  offset:
+    type: string
+    description: Timezone offset compared to UTC, in +/-HHMM format
+    example: +0200

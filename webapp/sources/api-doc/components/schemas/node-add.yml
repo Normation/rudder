@@ -1,0 +1,100 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: array
+items:
+  type: object
+  required:
+    - id
+    - hostname
+    - status
+    - os
+  #  - policyServerId [Optional, by default "root"]
+    - machineType
+  #  - state [Optional, by default "enable"]
+  #  - policyMode [Optional, by default global mode]
+  #  - agentKey [Optional]
+    - properties
+    - ipAddresses
+  #  - timezone [Optional]
+  properties:
+    id:
+      type: string
+      description: The Rudder node unique identifier in /opt/rudder/etc/uuid.hive
+      example: 378740d3-c4a9-4474-8485-478e7e52db52
+    hostname:
+      type: string
+      description: The fully qualified name of the node
+      example: my.node.hostname.local
+    status:
+      type: string
+      description: Target status of the node
+      enum:
+        - accepted
+        - pending
+    os:
+      $ref: os.yml
+    policyServerId:
+      type: string
+      description: The policy server ID for that node. By default, "root"
+      example: "root"
+    machineType:
+      type: string
+      description: The kind of machine for the node (use vm for a generic VM)
+      enum:
+        - vmware
+        - physical
+        - vm
+        - solariszone
+        - qemu
+        - xen
+        - aixlpar
+        - hyperv
+        - bsdjail
+    state:
+      type: string
+      description: Node lifecycle state. Can only be specified when status=accepted. If not specified, enable is used
+      enum:
+        - enable
+        - ignored
+        - empty-policies
+        - initializing
+        - preparing-eol
+    policyMode:
+      type: string
+      description: The policy mode for the node. Can only be specified when status=accepted. If not specified, the default (global) mode will be used
+      enum:
+        - enforce
+        - audit
+    agentKey:
+      $ref: agent-key.yml
+    properties:
+      type: object
+      description: Node properties in "key":"value" format, where "key" is a string, and "value" is either a string, a json array, or a json object.
+      properties:
+        tags:
+          type: array
+          items:
+            type: string
+            enum:
+              - some
+              - tags
+        env:
+          type: string
+          example: "prod"
+        vars:
+          type: object
+          properties:
+            var1:
+              type: string
+              example: value1
+            vars2:
+              type: string
+              example: value2
+    ipAddresses:
+      type: array
+      description: an array of IPs.
+      items:
+        type: string
+        example: 192.168.180.90
+    timezone:
+      $ref: timezone.yml

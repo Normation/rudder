@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+
+name: "Node parameters"
+in: query
+description: Description of a node configuration
+content:
+  application/json: # serialized JSON
+    schema:
+      $ref: ../../components/schemas/node-add.yml
