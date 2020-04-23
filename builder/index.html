@@ -71,6 +71,29 @@
             Some changes made on Technique '{{technique.name}}' were not saved.<br/>
             If you switch before saving, all your changes will be lost.<br/>
             <span class="text-danger" ng-if="ui.editForm.$invalid">Technique cannot be saved because it has some errors</span>
+
+            <button type="button" class="btn btn-defaut toggle-diff" ng-click="toggleShowDiff()" ng-class="{'toggle':showDiff}">
+              {{showDiff ? "Hide" : "Show"}} details  <span class="badge">{{diverges.length}}</span>
+            </button>
+            <div class="show-diff" ng-if="showDiff">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Field        </th>
+                    <th>Stored value </th>
+                    <th>New value    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="d in diverges">
+                    <td>{{d.field}}         </td>
+                    <td>{{d.current_value ? d.current_value : "--"}} </td>
+                    <td>{{d.storage_value ? d.storage_value : "--"}} </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
           </div>
           <div class="modal-footer">
             <button class="btn btn-primary btn-outline pull-left" ng-click="cancel()">Cancel <i class="fas fa-arrow-left"></i></button>
@@ -87,6 +110,29 @@
             <div class="alert alert-warning">
               If you decide to keep your changes and save it, your version will replace the current one. However you will still have the choice to update it before saving.
             </div>
+
+            <button type="button" class="btn btn-defaut toggle-diff" ng-click="toggleShowDiff()" ng-class="{'toggle':showDiff}">
+              {{showDiff ? "Hide" : "Show"}} details  <span class="badge">{{diverges.length}}</span>
+            </button>
+            <div class="show-diff" ng-if="showDiff">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Field        </th>
+                    <th>Stored value </th>
+                    <th>New value    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="d in diverges">
+                    <td>{{d.field}}         </td>
+                    <td>{{d.current_value ? d.current_value : "--"}} </td>
+                    <td>{{d.storage_value ? d.storage_value : "--"}} </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
           </div>
           <div class="modal-footer">
             <button class="btn btn-danger" ng-click="discard()">Keep changes</button>
