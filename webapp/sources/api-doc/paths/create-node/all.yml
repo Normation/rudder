@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+put:
+  summary: Create a new node
+  description: Create a new node
+  operationId: createNodes
+  parameters:
+    - $ref: ../../components/parameters/node-info.yml
+  responses:
+    "200":
+      description: Creation informations
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - createNodes
+              data:
+                type: object
+                required:
+                  - created
+                  - failed
+                properties:
+                  created:
+                    type: array
+                    items:
+                      type: string
+                      description: created nodes ID
+                      example: 378740d3-c4a9-4474-8485-478e7e52db52
+                  failed:
+                    type: array
+                    items:
+                      type: string
+                      description: failed nodes ID
+  tags:
+    - 🧩 Create Node
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/create-node/all.sh

@@ -1,0 +1,53 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: object
+required:
+  - type
+  - name
+  - version
+  - fullName
+#  - servicePack [Optional]
+properties:
+  type:
+    type: string
+    enum:
+      - linux
+      - windows
+      - solaris
+      - aix
+      - freebsd
+      - unknown
+  name:
+    type: string
+    description : For Linux, a distribution, for Windows, the commercial name
+    enum:
+      - debian
+      - ubuntu
+      - redhat
+      - centos
+      - fedora
+      - suse
+      - oracle
+      - scientific
+      - slackware
+      - xp
+      - vista
+      - seven
+      - "10"
+      - "2000"
+      - "2003"
+      - "2008 r2"
+      - "2012"
+      - "2012 r2"
+      - "2016"
+  version:
+    type: string
+    description: A string representation of the version
+    example: 9.5
+  fullName:
+    type: string
+    description: The long description name of the os
+    example: Debian GNU/Linux 9 (stretch)
+  servicePack:
+    type: string
+    description: a service pack informationnal string

@@ -66,7 +66,15 @@ tags:
 
 
       Manage relays.
+  - name: "🧩 Create Node"
+    description: >-
+      **Requires that the `create-node` plugin is installed on the server.**
+
+
+      Add new nodes.
 paths:
+  "/createnodes":
+    $ref: paths/create-node/all.yml
   "/scaleoutrelay/promote/{nodeId}":
     $ref: paths/scale-out-relay/promote.yml
   "/changeRequests/{changeRequestId}/accept":
