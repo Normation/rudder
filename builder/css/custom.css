@@ -378,6 +378,38 @@ ul.tabs-list > li > .badge{
 ul.tabs-list > li > .badge.empty{
   opacity: .4;
 }
+
+.badge-parameters,
+.badge-resources{
+  padding: 0 !important;
+  display: inline-flex;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.badge-parameters > span,
+.badge-resources  > span{
+  padding: 6px;
+  min-width: 26px;
+}
+.badge-resources > .nb-resources.new{
+  background-color: #9bc832;
+  color: #fff;
+}
+.badge-resources > .nb-resources.del{
+  background-color: #dd4b39;
+  color: #fff;
+}
+.col-techniques .badge-resources{
+  margin-left: 4px;
+  position: relative;
+  top: -2px;
+}
+.col-techniques .badge-resources > span {
+  font-size: 10px;
+  padding: 4px;
+  min-width: 22px;
+}
+
 .main {
   padding-top: 15px;
 }
@@ -577,7 +609,7 @@ ul.tabs-list > li > .badge.empty{
 ul.files-list{
   float: left;
   width: 100%;
-  margin: 0 0 15px 0;
+  margin: 0 0 10px 0;
   padding: 0 15px;
 }
 ul.files-list .form-control{
@@ -751,6 +783,29 @@ ul.files-list > li > .remove-item:hover{
   color: #fff;
   background-color: #d9534f;
 }
+
+.resources-uncommitted {
+  float: left;
+  width: 100%;
+  text-align: center;
+  margin-bottom: 20px;
+  text-align: left;
+  padding: 0 15px;
+  color: #222D42CC;
+}
+.resources-uncommitted > span{
+  background-color: #e2f2ff;
+  padding: 10px;
+  border-radius: 4px;
+  display: block;
+}
+.resources-uncommitted .fas{
+  color: #337ab7;
+}
+.btn-manage{
+  margin-bottom: 20px;
+}
+
 .is-edited .method .edit-method {
   color: #3379b7 !important;
 }
