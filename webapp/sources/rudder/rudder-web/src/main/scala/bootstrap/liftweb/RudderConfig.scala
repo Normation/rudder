@@ -89,9 +89,11 @@ import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain._
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
+import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.inventory.InventoryFileWatcher
 import com.normation.rudder.inventory.InventoryProcessor
+import com.normation.rudder.metrics._
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.migration._
 import com.normation.rudder.ncf
@@ -159,6 +161,7 @@ import net.liftweb.common.Loggable
 import net.liftweb.common._
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.joda.time.DateTimeZone
 import zio.syntax._
 import zio.duration._
 
@@ -505,6 +508,31 @@ object RudderConfig extends Loggable {
     config.getInt("inventories.watcher.waitForSignatureDuration")
   } catch {
     case ex: ConfigException => 10 // in seconds
+  }
+
+  val METRICS_NODES_DIRECTORY_GIT_ROOT = "/var/rudder/metrics/nodes"
+
+  val METRICS_NODES_MIN_PERIOD = try {
+    Duration.fromScala(scala.concurrent.duration.Duration(config.getString("metrics.node.scheduler.period.min")))
+  } catch {
+    case ex: ConfigException => // default
+      15.minutes
+    case ex: NumberFormatException =>
+      ApplicationLogger.error(s"Error when reading key: 'metrics.node.scheduler.period.min', defaulting to 15min: ${ex.getMessage}")
+      15.minutes
+  }
+  val METRICS_NODES_MAX_PERIOD = try {
+    Duration.fromScala(scala.concurrent.duration.Duration(config.getString("metrics.node.scheduler.period.max")))
+  } catch {
+    case ex: ConfigException => // default
+      4.hours
+    case ex: NumberFormatException =>
+      ApplicationLogger.error(s"Error when reading key: 'metrics.node.scheduler.period.max', defaulting to 4h: ${ex.getMessage}")
+      4.hours
+  }
+  if(METRICS_NODES_MAX_PERIOD <= METRICS_NODES_MIN_PERIOD) {
+    throw new IllegalArgumentException(s"Value for 'metrics.node.scheduler.period.max' (${METRICS_NODES_MAX_PERIOD.render}) must " +
+                                       s"be bigger than for 'metrics.node.scheduler.period.max' (${METRICS_NODES_MIN_PERIOD.render})")
   }
 
   ApplicationLogger.info(s"Starting Rudder ${rudderFullVersion} web application [build timestamp: ${builtTimestamp}]")
@@ -2137,5 +2165,30 @@ object RudderConfig extends Loggable {
 
   // This needs to be done at the end, to be sure that all is initialized
   deploymentService.setDynamicsGroupsService(dyngroupUpdaterBatch)
+
+  // aggregate information about node count
+  // don't forget to start-it once out of the zone which lead to dead-lock (ie: in Lift boot)
+  val historizeNodeCountBatch = for {
+    gitLogger  <- CommitLogServiceImpl.make(METRICS_NODES_DIRECTORY_GIT_ROOT)
+    writer     <- WriteNodeCSV.make(METRICS_NODES_DIRECTORY_GIT_ROOT, ";", "yyyy-MM")
+    service    =  new HistorizeNodeCountService(
+                      new FetchDataServiceImpl(RudderConfig.nodeInfoService, RudderConfig.reportingService)
+                    , writer
+                    , gitLogger
+                    , ZioRuntime.environment
+                    , DateTimeZone.UTC // never change log line
+                  )
+    cron       <- Scheduler.make(METRICS_NODES_MIN_PERIOD, METRICS_NODES_MAX_PERIOD, s => service.scheduledLog(s)
+                    , "Automatic recording of active nodes".succeed, ZioRuntime.environment
+                  )
+    _          <- ScheduledJobLoggerPure.metrics.info(
+                    s"Starting node count historization batch (min:${METRICS_NODES_MIN_PERIOD.render}; max:${METRICS_NODES_MAX_PERIOD})"
+                  )
+    _          <- cron.start
+  } yield ()
+  // start node count historization
+  ZioRuntime.runNowLogError(err =>
+    ScheduledJobLoggerPure.metrics.error(s"Error when starting node count historization batch: ${err.fullMsg}")
+  )(RudderConfig.historizeNodeCountBatch)
 
 }
