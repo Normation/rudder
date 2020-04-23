@@ -152,12 +152,6 @@ return {
 }
 });
 
-app.directive('popover', function() {
-  return function(scope, elem) {
-    $(elem).popover();
-  }
-});
-
 app.filter('parameterName', function () {
   return function (text) {
       if (!text) {
