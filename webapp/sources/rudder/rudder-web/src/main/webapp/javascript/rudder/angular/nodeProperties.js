@@ -37,6 +37,25 @@
 
 var nodePropertiesApp = angular.module('nodeProperties', ['datatables', 'monospaced.elastic']);
 
+nodePropertiesApp.directive('mandatory', function (){
+   return {
+      require: 'ngModel',
+      link: function(scope, elem, attr, ngModel) {
+          //For DOM -> model validation
+          ngModel.$parsers.unshift(function(value) {
+             var valid = (value !== undefined && value !== null && value !=="");
+             ngModel.$setValidity('mandatory', valid);
+             return valid ? value : undefined;
+          });
+          //For model -> DOM validation
+          ngModel.$formatters.unshift(function(value) {
+             ngModel.$setValidity('mandatory', (value !== undefined && value !== null && value !==""));
+             return value;
+          });
+      }
+   };
+});
+
 nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOptionsBuilder, DTColumnDefBuilder) {
   //Initialize scope
   $scope.properties;
