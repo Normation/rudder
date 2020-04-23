@@ -6,18 +6,18 @@
          <lift:authz role="node_write">
            <div class="col-lg-7 col-md-8 col-xs-12 add-prop-form">
              <label for="newPropName">Add a new property:</label>
-             <form name="newPropForm">
+             <ng-form name="newPropForm">
                <table id="addPropTable">
                  <tbody>
                  <tr>
-                   <td class="form-group" ng-class="{'has-error': alreadyUsed || newPropForm.newPropName.$error.required && newPropForm.newPropName.$dirty}">
-                     <input placeholder="Name" class="form-control input-sm input-key ng-pristine ng-untouched ng-valid ng-empty" id="newPropName" name="newPropName" ng-model="newProperty.name" required>
+                   <td class="form-group" ng-class="{'has-error': alreadyUsed || newPropForm.newPropName.$error.mandatory && newPropForm.newPropName.$dirty}">
+                     <input placeholder="Name" class="form-control input-sm input-key ng-pristine ng-untouched ng-valid ng-empty" id="newPropName" name="newPropName" ng-model="newProperty.name" mandatory>
                    </td>
                    <td>
                      <span class="input-group-addon addon-json">=</span>
                    </td>
-                   <td class="form-group" ng-class="{'has-error': (newPropForm.newPropValue.$error.required && newPropForm.newPropValue.$dirty) || !isValid}">
-                     <textarea placeholder="Value" msd-elastic name="newPropValue" class="form-control input-sm input-value" required ng-model="newProperty.value"></textarea>
+                   <td class="form-group" ng-class="{'has-error': (newPropForm.newPropValue.$error.mandatory && newPropForm.newPropValue.$dirty) || !isValid}">
+                     <textarea placeholder="Value" msd-elastic name="newPropValue" class="form-control input-sm input-value" mandatory ng-model="newProperty.value"></textarea>
                    </td>
                    <td class="json-check-col">
                      <div>
@@ -36,15 +36,15 @@
                  </tr>
                  </tbody>
                </table>
-             </form>
-             <div class="text-danger" ng-show="newPropForm.newPropName.$error.required && newPropForm.newPropName.$dirty">Name is required</div>
+             </ng-form>
+             <div class="text-danger" ng-show="newPropForm.newPropName.$error.mandatory && newPropForm.newPropName.$dirty">Name is required</div>
              <div class="text-danger" ng-show="alreadyUsed">This name is already used by another property</div>
              <div class="text-danger" ng-show="!isValid">JSON check is enabled, but the value format is invalid.</div>
              <div class="alert alert-danger errorSaving" ng-show="errorSaving">
                <i class="fa fa-exclamation-triangle" style="margin-right:6px"></i>
                An error occured while saving this new property : <b>{{errorSaving}}</b>
              </div>
-             <div class="text-danger" ng-show="newPropForm.newPropValue.$error.required && newPropForm.newPropValue.$dirty">Value is required</div>
+             <div class="text-danger" ng-show="newPropForm.newPropValue.$error.mandatory && newPropForm.newPropValue.$dirty">Value is required</div>
            </div>
          </lift:authz>
 

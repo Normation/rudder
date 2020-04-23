@@ -1,0 +1,60 @@
+post:
+  summary: Add user
+  description: Add a new user
+  operationId: addUser
+  requestBody:
+    required: true
+    content:
+      application/x-www-form-urlencoded:
+        schema:
+          $ref: ../../components/schemas/users.yml
+  responses:
+    "200":
+      description: Updated
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - addUser
+              data:
+                type: object
+                required:
+                  - addedUser
+                properties:
+                  addedUser:
+                    type: object
+                    properties:
+                      username:
+                        type: string
+                        example: John Doe
+                      password:
+                        type: string
+                        description: this password will be hashed for you if the `isPreHashed` is set on false
+                        example: passwdWillBeStoredHashed
+                      role:
+                        type: array
+                        description: defined user's permissions
+                        items:
+                          type: string
+                          example: user
+  tags:
+    - 🧩 User Management
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/usermanagement/add.sh

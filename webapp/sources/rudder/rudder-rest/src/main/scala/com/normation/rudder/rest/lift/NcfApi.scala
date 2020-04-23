@@ -275,12 +275,11 @@ class NcfApi(
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val response = for {
-        methods <- techniqueReader.readMethodsMetadataFile.toBox
+        methods <- techniqueReader.readMethodsMetadataFile
       } yield {
         JObject(methods.toList.map(m => JField(m._1.value, techniqueSerializer.serializeMethodMetadata(m._2))))
       }
-      resp(response, req, "Could not get generic methods metadata")("getMethods")
-
+      resp(response.toBox, req, "Could not get generic methods metadata")("getMethods")
     }
 
   }
@@ -293,12 +292,12 @@ class NcfApi(
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val response= for {
-        methods <- techniqueReader.updateMethodsMetadataFile.toBox
+        _ <- techniqueReader.updateMethodsMetadataFile
+        methods <- techniqueReader.readMethodsMetadataFile
       } yield {
         JObject(methods.toList.map(m => JField(m._1.value, techniqueSerializer.serializeMethodMetadata(m._2))))
       }
-      resp(response, req, "Could not get generic methods metadata")("getMethods")
-
+      resp(response.toBox, req, "Could not get generic methods metadata")("getMethods")
     }
 
   }
@@ -313,10 +312,10 @@ class NcfApi(
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val modId = ModificationId(uuidGen.newUuid)
       val response= for {
-        techniques <- techniqueReader.updateTechniquesMetadataFile
-        methods <- techniqueReader.readMethodsMetadataFile
-        _ <- ZIO.foreach(techniques)(t => techniqueWriter.writeTechnique(t, methods, modId, authzToken.actor))
-
+        _          <- techniqueReader.updateTechniquesMetadataFile
+        methods    <- techniqueReader.readMethodsMetadataFile
+        techniques <- techniqueReader.readTechniquesMetadataFile
+        _          <- ZIO.foreach(techniques)(t => techniqueWriter.writeTechnique(t, methods, modId, authzToken.actor))
       } yield {
         JArray(techniques.map(techniqueSerializer.serializeTechniqueMetadata))
      }

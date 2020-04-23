@@ -1,0 +1,60 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+get:
+  summary: List all roles
+  description: Get all available roles and their rights
+  operationId: getRole
+  responses:
+    "200":
+      description: Roles informations
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getRole
+              data:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - id
+                    - rights
+                  properties:
+                    id:
+                      type: string
+                      description: Name of the role
+                      enum:
+                        - inventory
+                        - compliance
+                        - administrator
+                        - etc
+                    rights:
+                      type: array
+                      description: Role's rights
+                      items:
+                        type: string
+                        enum:
+                          - node_read
+                          - userAccount_all
+
+  tags:
+    - 🧩 User Management
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/usermanagement/roles.sh

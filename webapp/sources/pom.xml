@@ -345,8 +345,8 @@ limitations under the License.
 
     <!-- Libraries version that MUST be used in all children project -->
 
-    <current-year>2019</current-year>
-    <rudder-major-version>6.0</rudder-major-version>
+    <current-year>2020</current-year>
+    <rudder-major-version>6.1</rudder-major-version>
     <rudder-version>6.1.0~alpha1-SNAPSHOT</rudder-version>
 
     <scala-version>2.13.1</scala-version>

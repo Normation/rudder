@@ -72,9 +72,27 @@ tags:
 
 
       Add new nodes.
+  - name: "🧩 User Management"
+    description: >-
+      **Requires that the `user-management` plugin is installed on the server.**
+
+
+      Manage users settings and configuration file.
 paths:
   "/createnodes":
     $ref: paths/create-node/all.yml
+  "/usermanagement/users":
+    $ref: paths/usermanagement/all.yml
+  "/usermanagement/{username}":
+    $ref: paths/usermanagement/id.yml
+  "/usermanagement/update/{username}":
+    $ref: paths/usermanagement/update.yml
+  "/usermanagement/roles":
+    $ref: paths/usermanagement/roles.yml
+  "/usermanagement/users/reload":
+    $ref: paths/usermanagement/reload.yml
+  "/usermanagement":
+    $ref: paths/usermanagement/add.yml
   "/scaleoutrelay/promote/{nodeId}":
     $ref: paths/scale-out-relay/promote.yml
   "/changeRequests/{changeRequestId}/accept":

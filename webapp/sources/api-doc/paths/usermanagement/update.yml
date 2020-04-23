@@ -1,0 +1,67 @@
+post:
+  summary: Update user's infos
+  description: Rename, change password (pre-hashed or not) and change permission of an user. If a parameter is empty, it will be ignored.
+  operationId: updateUser
+  parameters:
+    - $ref: ../../components/parameters/username.yml
+  requestBody:
+    required: true
+    content:
+      application/x-www-form-urlencoded:
+        schema:
+          $ref: ../../components/schemas/users.yml
+  responses:
+    "200":
+      description: Updated
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - updateUser
+              data:
+                type: object
+                required:
+                  - updatedUser
+                properties:
+                  updatedUser:
+                    type: object
+                    required:
+                      - username
+                      - password
+                      - role
+                    properties:
+                      username:
+                        type: string
+                        description: New Username
+                        example: Titi
+                      password:
+                        type: string
+                        description: New password given
+                        example: Titi
+                      role:
+                        type: array
+                        description: defined user's permissions
+                        items:
+                          type: string
+                          example: user
+  tags:
+    - 🧩 User Management
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/usermanagement/update.sh

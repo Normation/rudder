@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+delete:
+  summary: Delete an user
+  description: Delete the user and his permissions
+  operationId: deleteUser
+  parameters:
+    - $ref: ../../components/parameters/username.yml
+  responses:
+    "200":
+      description: Deleted user
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - deleteUser
+              data:
+                type: object
+                required:
+                  - deletedUser
+                properties:
+                  deletedUser:
+                    type: object
+                    required:
+                      - username
+                    properties:
+                      username:
+                        type: string
+                        description: Username of the deleted user
+                        example: Toto
+  tags:
+    - 🧩 User Management
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/usermanagement/delete.sh

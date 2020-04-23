@@ -30,7 +30,6 @@ install:
 	install -m 644 libs/cfengine_core.rl $(DESTDIR)/opt/rudder/share/rudder-lang/lib/cfengine_core.rl
 
 	# Python libs
-	install -m 644 tools/docopt.py $(DESTDIR)/opt/rudder/share/python/docopt.py
 	cp -r tools/jsondiff $(DESTDIR)/opt/rudder/share/python/
 	chmod 755 $(DESTDIR)/opt/rudder/share/python/jsondiff
 	chmod 644 $(DESTDIR)/opt/rudder/share/python/jsondiff/*

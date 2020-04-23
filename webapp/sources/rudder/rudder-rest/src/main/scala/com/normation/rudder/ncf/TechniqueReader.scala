@@ -12,6 +12,8 @@ import net.liftweb.json.parse
 import zio.ZIO._
 import zio.syntax._
 import com.normation.errors._
+import com.normation.rudder.hooks.CmdResult
+import zio.ZIO
 
 class TechniqueReader(
   restExtractor  : RestExtractorService
@@ -54,6 +56,9 @@ class TechniqueReader(
   def readMethodsMetadataFile : IOResult[Map[BundleName, GenericMethod]] = {
 
     for {
+      metdataFileExists <- IOResult.effect(methodsFile.exists)
+      update <- if (!metdataFileExists) {updateMethodsMetadataFile.map(_.code).unit} else (().succeed)
+
       genericMethodContent <- IOResult.effect(s"error while reading ${methodsFile.pathAsString}")(methodsFile.contentAsString)
       methods <- parse(genericMethodContent) match {
         case JObject(fields) =>
@@ -67,20 +72,25 @@ class TechniqueReader(
     }
   }
 
-  def updateMethodsMetadataFile : IOResult[Map[BundleName, GenericMethod]] = {
+  def updateMethodsMetadataFile: IOResult[CmdResult] = {
     for {
-      update <- RunNuCommand.run(Cmd("/usr/share/ncf/ncf", "write_all_methods" :: Nil, Map.empty))
-      methods <- readMethodsMetadataFile
+      updateCmd <- RunNuCommand.run(Cmd("/usr/share/ncf/ncf", "write_all_methods" :: Nil, Map.empty))
+      res       <- updateCmd.await
+      _         <- ZIO.when(res.code != 0) (Inconsistency(s"An error occured while updating generic methods library,\n error out: ${res.stderr}\n std out: ${res.stdout}").fail)
     } yield {
-      methods
+      res
     }
   }
-  def updateTechniquesMetadataFile : IOResult[List[Technique]] = {
+  def updateTechniquesMetadataFile : IOResult[CmdResult] = {
+    import scala.jdk.CollectionConverters._
     for {
-      update <- RunNuCommand.run(Cmd("/usr/share/ncf/ncf", "write_all_techniques" :: Nil, Map.empty))
-      techniques <- readTechniquesMetadataFile
+      // Need some environement variable especially PATH towrite techniques
+      env <- IOResult.effect(System.getenv().asScala.toMap)
+      updateCmd <- RunNuCommand.run(Cmd("/usr/share/ncf/ncf", "write_all_techniques" :: Nil, env))
+      res       <- updateCmd.await
+      _         <- ZIO.when(res.code != 0) (Inconsistency(s"An error occured while updating generic methods library,\n error out: ${res.stderr}\n std out: ${res.stdout}").fail)
     } yield {
-      techniques
+      res
     }
   }
 }

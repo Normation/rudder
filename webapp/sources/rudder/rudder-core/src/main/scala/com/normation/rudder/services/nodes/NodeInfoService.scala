@@ -413,7 +413,10 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
                      }
                   } else {
                     logPure.debug(s"NodeInfo cache is up to date, ${nodeCache.map(c => s"last modification time: '${c.lastModTime}' for: '${c.lastModEntryCSN.mkString("','")}'").getOrElse("")}") *>
-                    nodeCache.get.nodeInfos.succeed //get is ok because in a synchronized block with a test on isEmpty
+                    (nodeCache match {
+                      case Some(cache) => cache.nodeInfos.succeed
+                      case None => Inconsistancy("When trying to access Node information from cache was empty, but it should not, this is a developper issue, please open an issue on https://issues.rudder.io").fail
+                    })
                   }
         res    <- useCache(info)
         t1     <- currentTimeMillis
@@ -510,7 +513,9 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
    * Clear cache.
    */
   override def clearCache(): Unit = {
-    this.nodeCache = None
+    semaphore.flatMap((_.withPermit(
+      (this.nodeCache = None).succeed
+    ))).runNow
   }
 
   def getAll(): Box[Map[NodeId, NodeInfo]] = withUpToDateCache("all nodes info") { cache =>
