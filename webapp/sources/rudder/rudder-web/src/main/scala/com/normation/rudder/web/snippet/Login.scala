@@ -9,18 +9,18 @@ import scala.xml.NodeSeq
 class Login extends DispatchSnippet with DefaultExtendableSnippet[Login] {
 
   val userListProvider = RudderConfig.rudderUserListProvider
-//  Rudder server installation is complete! To get started, create a first user with:
   def mainDispatch = Map(
     "display" -> { authForm:NodeSeq =>
       if(userListProvider.authConfig.users.isEmpty) {
         <div class="col-xs-12" style="min-height:250px">
           <div class="row" style="margin-top:30px">
             <h3 class="text-center">
-              Rudder installation complete!
               <i class="fa fa-check-circle" style="color: #9bc832;" aria-hidden="true"></i>
+              Rudder installation complete!
             </h3>
             <div class="text-center" style="margin-top:20px">
-                To get started, create a first user with:
+              <i class="fa fa-info-circle" aria-hidden="true" style="color: #3694d1;"></i>
+              To get started, create a first user with:
             </div>
           </div>
           <div class="row" style="margin-top:10px">
