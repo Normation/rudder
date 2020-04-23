@@ -772,6 +772,13 @@ limitations under the License.
       <version>${scala-parser-combinators-version}</version>
       <scope>test</scope>
     </dependency>
+    <!-- zio tests -->
+    <dependency>
+      <groupId>dev.zio</groupId>
+      <artifactId>zio-test_${scala-binary-version}</artifactId>
+      <version>${dev-zio-version}</version>
+      <scope>test</scope>
+    </dependency>
 
     <!--
         included to use slf4j native backend

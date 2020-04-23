@@ -41,6 +41,7 @@ import org.slf4j.Logger
 import _root_.zio._
 import _root_.zio.syntax._
 import _root_.zio.internal.Platform
+import com.normation.errors.effectUioUnit
 
 /**
  * This is our based error for Rudder. Any method that can
@@ -417,6 +418,20 @@ object box {
       case Left(err) => Failure(err.fullMsg)
       case Right(x)  => Full(x)
     }
+  }
+
+
+
+  /**
+   * A utility alias type / methods to create ZIO `Managed[RudderError, A]`
+   */
+  type IOManaged[A] = Managed[RudderError, A]
+  object IOManaged {
+    def make[A](acquire: => A)(release: A => Unit): ZManaged[Any, RudderError, A] =
+      Managed.make(IOResult.effect(acquire))(a => effectUioUnit(release(a)))
+
+    def makeM[A](acquire: IOResult[A])(release: A => Unit): ZManaged[Any, RudderError, A] =
+      Managed.make(acquire)(a => effectUioUnit(release(a)))
   }
 }
 

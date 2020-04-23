@@ -59,11 +59,16 @@ object PluginLogger extends Logger {
  * A logger dedicated to scheduled jobs and batches
  */
 object ScheduledJobLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("scheduledJob")
+  override protected def _logger = LoggerFactory.getLogger("scheduled.job")
 }
 
 object ScheduledJobLoggerPure extends NamedZioLogger {
-  def loggerName = "scheduledJob"
+  parent =>
+  def loggerName = "scheduled.job"
+
+  object metrics extends NamedZioLogger {
+    def loggerName: String = parent.loggerName + ".metrics"
+  }
 }
 
 /**

@@ -521,7 +521,6 @@ class Boot extends Loggable {
         }
       case _ => ApplicationLogger.info("Application Rudder started")
     }
-
   }
 
   private[this] def addPluginsMenuTo(plugins: List[RudderPluginDef], menus:List[Menu]) : List[Menu] = {
