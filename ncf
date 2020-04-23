@@ -59,7 +59,7 @@ def write_everything(path, force):
 def write_all_methods(path):
   methods = ncf.get_all_generic_methods_metadata()
   with open('/var/rudder/configuration-repository/ncf/generic_methods.json', 'w') as outfile:
-    json.dump(methods, outfile, indent=2)
+    json.dump(methods["data"]["generic_methods"], outfile, indent=2)
 
 def write_all_techniques(path, force):
   techniques = ncf.get_all_techniques_metadata(True,force)
