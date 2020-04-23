@@ -1,0 +1,53 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+get:
+  summary: List all users
+  description: Get the list of all present users and their permissions
+  operationId: getUserInfo
+  responses:
+    "200":
+      description: Users information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getUserInfo
+              data:
+                type: object
+                required:
+                  - digest
+                  - users
+                properties:
+                  digest:
+                    type: string
+                    enum:
+                      - BCRYPT
+                      - SHA512
+                      - SHA256
+                      - SHA1
+                      - MD5
+                  users:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/users.yml
+  tags:
+    - 🧩 User Management
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/usermanagement/all.sh
