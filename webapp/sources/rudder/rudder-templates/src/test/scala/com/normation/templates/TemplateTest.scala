@@ -38,7 +38,6 @@
 package com.normation.templates
 
 import org.junit.Test;
-import org.junit._
 import org.junit.Assert._
 
 import org.antlr.stringtemplate._;

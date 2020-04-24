@@ -135,7 +135,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     var mandatory = configService.rudder_ui_changeMessage_mandatory.toBox.getOrElse(false)
     var explanation = configService.rudder_ui_changeMessage_explanation.toBox.getOrElse("Please enter a reason explaining this change.")
 
-    def submit = {
+    def submit() = {
 
       // Save new value
       configService.set_rudder_ui_changeMessage_enabled(enabled).toBox.
@@ -287,7 +287,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     // form values
     var denyBadClocks = initDenyBadClocks.getOrElse(false)
 
-    def submit = {
+    def submit() = {
       configService.set_cfengine_server_denybadclocks(denyBadClocks).toBox.foreach(updateOk => initDenyBadClocks = Full(denyBadClocks))
 
       // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
@@ -349,7 +349,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     // form values
     var enforceCertificate = initEnforceCertificate.getOrElse(false)
 
-    def submit = {
+    def submit() = {
       configService.set_rudder_verify_certificates(enforceCertificate, CurrentUser.actor, genericReasonMessage).toBox.foreach(updateOk => initEnforceCertificate = Full(enforceCertificate))
 
       // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
@@ -407,7 +407,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       Run( s""" $$("#relaySynchronizationSubmit").prop('disabled', ${noModif});""".stripMargin )
     }
 
-    def submit = {
+    def submit() = {
       configService.set_relay_server_sync_method(relaySyncMethod).toBox.foreach(updateOk => initRelaySyncMethod = Full(relaySyncMethod))
       configService.set_relay_server_syncpromises(relaySyncPromises).toBox.foreach(updateOk => initRelaySyncPromises = Full(relaySyncPromises))
       configService.set_relay_server_syncsharedfiles(relaySyncSharedFiles).toBox.foreach(updateOk => initRelaySyncSharedFiles = Full(relaySyncSharedFiles))
@@ -559,7 +559,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       Run( s""" $$("#reportProtocolSubmit").prop('disabled', ${noModif});""".stripMargin)
     }
 
-    def submit = {
+    def submit() = {
       val actor = CurrentUser.actor
       configService.set_rudder_report_protocol_default(reportProtocol).toBox.foreach(updateOk => initReportProtocol = Full(reportProtocol))
       configService.set_rudder_syslog_protocol(syslogProtocol, actor, None).toBox.foreach(updateOk => initSyslogProtocol = Full(syslogProtocol))
@@ -773,7 +773,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     // form values
     var modifiedFilesTtl = initModifiedFilesTtl.getOrElse(30).toString
 
-    def submit = {
+    def submit() = {
       // first, check if the content are effectively Int
       try {
         val intModifiedFilesTtl = Integer.parseInt(modifiedFilesTtl)
@@ -825,7 +825,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     var storeAllCentralizedLogsInFile  = initStoreAllCentralizedLogsInFile.getOrElse(false)
     var cfengineOutputsTtl = initCfengineOutputsTtl.getOrElse(7).toString
 
-    def submit = {
+    def submit() = {
       try{
         val intCfengineOutputsTtl = Integer.parseInt(cfengineOutputsTtl)
         configService.set_cfengine_outputs_ttl(intCfengineOutputsTtl).toBox.foreach(updateOk => initCfengineOutputsTtl = Full(intCfengineOutputsTtl))

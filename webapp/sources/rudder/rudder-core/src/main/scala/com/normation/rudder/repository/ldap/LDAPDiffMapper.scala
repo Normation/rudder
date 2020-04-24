@@ -37,7 +37,6 @@
 
 package com.normation.rudder.repository.ldap
 
-import cats.implicits._
 import com.normation.cfclerk.domain._
 import com.normation.errors._
 import com.normation.inventory.domain._

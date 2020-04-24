@@ -39,7 +39,6 @@ package com.normation.rudder.web.services
 
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
-import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.web.model.JsTreeNode
 import net.liftweb.common.Loggable
 import net.liftweb.http.SHtml
@@ -47,13 +46,11 @@ import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmd
 import net.liftweb.util.Helpers
-import com.normation.rudder.repository.FullActiveTechniqueCategory
-import com.normation.rudder.repository.FullActiveTechnique
-import com.normation.rudder.domain.policies.{Directive, DirectiveId, GlobalPolicyMode}
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.GlobalPolicyMode
 
 import scala.xml.Text
-import com.normation.rudder.repository.FullActiveTechnique
-import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullActiveTechnique
 import net.liftweb.http.js.JE.JsRaw

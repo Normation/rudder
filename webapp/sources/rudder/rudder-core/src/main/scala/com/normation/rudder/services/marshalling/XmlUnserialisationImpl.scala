@@ -45,15 +45,12 @@ import net.liftweb.common.Failure
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.Directive
-import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.domain.policies.SectionVal
 import com.normation.utils.Control.sequence
 import com.normation.cfclerk.domain.TechniqueVersion
 import net.liftweb.util.Helpers.tryo
-import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleTarget
-import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
@@ -77,7 +74,6 @@ import com.normation.rudder.domain.workflows.DirectiveChanges
 import com.normation.rudder.domain.policies._
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.cfclerk.domain.TechniqueId
 import com.normation.rudder.domain.workflows.DirectiveChangeItem
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.cfclerk.domain.TechniqueId
@@ -87,7 +83,6 @@ import scala.util.Success
 import scala.util.{Failure => Catch}
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api._
-import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.domain.policies.PolicyMode

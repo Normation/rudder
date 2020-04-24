@@ -39,8 +39,6 @@ package com.normation.rudder.web.snippet
 
 import net.liftweb.common._
 import net.liftweb.http._
-import net.liftweb.util._
-import Helpers._
 import net.liftweb.http.js._
 import net.liftweb.util.Helpers._
 import org.springframework.security.core.context.SecurityContextHolder

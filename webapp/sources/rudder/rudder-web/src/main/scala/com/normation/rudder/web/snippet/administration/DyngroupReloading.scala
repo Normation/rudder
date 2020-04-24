@@ -37,8 +37,6 @@
 
 package com.normation.rudder.web.snippet.administration
 
-import net.liftweb._
-import http._
 import bootstrap.liftweb.RudderConfig
 import net.liftweb.common._
 import net.liftweb.http._

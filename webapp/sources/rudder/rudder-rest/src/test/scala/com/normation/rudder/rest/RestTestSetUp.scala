@@ -239,7 +239,7 @@ object RestTestSetUp {
   val rudderApi = {
     //append to list all new format api to test it
     val modules = List(new com.normation.rudder.rest.lift.SystemApi(restExtractorService, apiService11, "5.0", "5.0.0", "some time"))
-    val api = new LiftHandler(apiDispatcher, ApiVersions, new AclApiAuthorization(LiftApiProcessingLogger, userService, apiAuthorizationLevelService.aclEnabled _), None)
+    val api = new LiftHandler(apiDispatcher, ApiVersions, new AclApiAuthorization(LiftApiProcessingLogger, userService, () => apiAuthorizationLevelService.aclEnabled), None)
     modules.foreach { module =>
       api.addModules(module.getLiftEndpoints)
     }

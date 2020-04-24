@@ -215,33 +215,6 @@ class RoLDAPNodeGroupRepository(
   }
 
   /**
-   * retrieve the hierarchy of group category/group containing the selected node
-   */
-//  protected def findGroupHierarchy(categoryId : NodeGroupCategoryId, targets : Seq[RuleTarget])  : IOResult[NodeGroupCategory] = {
-//    for {
-//      category    <- groupLibMutex.readLock { getGroupCategory(categoryId) }
-//      newCategory <- new NodeGroupCategory(
-//                         category.id
-//                       , category.name
-//                       , category.description
-//                       , category.children.filter( x => findGroupHierarchy(x, targets) match {
-//                            case Full(x) if x.isSystem == false => true
-//                            case _ => false
-//                         })
-//                       , category.items.filter( p => targets.contains(p.target))
-//                       , category.isSystem
-//                     )
-//      checked     <- if ((newCategory.items.size == 0) && (newCategory.children.size==0)) {
-//                       Failure("Not element found in category hierarchy")
-//                     } else {
-//                       Full(newCategory)
-//                     }
-//    } yield {
-//      checked
-//    }
-//  }
-
-  /**
    * Return the list of parents for that category, the nearest parent
    * first, until the root of the library.
    * The the last parent is not the root of the library, return a Failure.
@@ -356,7 +329,7 @@ class RoLDAPNodeGroupRepository(
     } }
   }
 
-  def getAll : IOResult[Seq[NodeGroup]] = {
+  def getAll(): IOResult[Seq[NodeGroup]] = {
     groupLibMutex.readLock { for {
       con    <- ldap
       //for each directive entry, map it. if one fails, all fails

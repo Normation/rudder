@@ -38,7 +38,6 @@
 package com.normation.rudder.web.components
 
 import bootstrap.liftweb.RudderConfig
-import net.liftweb.http.DispatchSnippet
 import net.liftweb.common._
 import net.liftweb.http.SHtml
 import scala.xml._

@@ -40,7 +40,6 @@ package com.normation.inventory.ldap.core
 
 import cats.data.NonEmptyList
 import com.normation.errors._
-import com.normation.errors._
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.LDAPConstants.A_CONTAINER_DN
 import com.normation.inventory.ldap.core.LDAPConstants.A_NODE_UUID

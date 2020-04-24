@@ -259,7 +259,7 @@ class ImportGroupLibraryImpl(
         }
       }
 
-      def recSanitizeCategory(content:NodeGroupCategoryContent, parent: NodeGroupCategory, isRoot:Boolean = false) : Option[NodeGroupCategoryContent] = {
+      def recSanitizeCategory(content: NodeGroupCategoryContent, parent: NodeGroupCategory, isRoot: Boolean) : Option[NodeGroupCategoryContent] = {
         val cat = content.category
         if( !isRoot && content.category.isSystem && includeSystem == false) None
         else if(categoryIds.contains(cat.id)) {
@@ -278,7 +278,7 @@ class ImportGroupLibraryImpl(
             categoryIds += cat.id
             categoryNamesByParent += (cat.name -> (parent.id :: categoryNamesByParent.getOrElse(cat.name, Nil)))
 
-            val subCategories = content.categories.flatMap(c => recSanitizeCategory(c, cat) ).toSet
+            val subCategories = content.categories.flatMap(c => recSanitizeCategory(c, cat, false) ).toSet
             val subNodeGroups = content.groups.flatMap( sanitizeNodeGroup(_) ).toSet
 
             //remove from sub cat groups that where not correct

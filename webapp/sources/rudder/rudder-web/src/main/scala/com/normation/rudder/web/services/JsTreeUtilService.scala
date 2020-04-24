@@ -47,7 +47,6 @@ import com.normation.cfclerk.domain.TechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
-import com.normation.cfclerk.domain.TechniqueName
 
 import com.normation.box._
 

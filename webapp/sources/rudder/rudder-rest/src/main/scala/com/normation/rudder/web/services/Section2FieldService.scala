@@ -39,7 +39,6 @@ package com.normation.rudder.web.services
 
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.web.model._
-import net.liftweb.common._
 import com.normation.cfclerk.domain._
 import net.liftweb.common._
 import com.normation.utils.Control.sequence

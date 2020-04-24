@@ -37,18 +37,15 @@
 
 package com.normation.rudder.services.workflows
 
-import java.io.ByteArrayInputStream
 
 import com.normation.box._
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.rudder.domain.logger.ChangeRequestLogger
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
@@ -57,10 +54,7 @@ import com.normation.rudder.domain.parameters._
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.repository._
-import com.normation.rudder.services.marshalling.XmlSerializer
-import com.normation.rudder.services.marshalling.XmlUnserializer
 import com.normation.rudder.services.policies.DependencyAndDeletionService
-import com.normation.rudder.services.queries.DynGroupUpdaterService
 import com.normation.utils.Control._
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common._

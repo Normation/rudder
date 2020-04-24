@@ -50,9 +50,6 @@ import net.liftweb.http._
 import js._
 import JsCmds._
 import JE._
-import com.normation.cfclerk.domain.{ VariableSpec, TechniqueId }
-import org.slf4j.LoggerFactory
-import scala.xml._
 import net.liftweb.util.Helpers
 
 /**

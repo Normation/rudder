@@ -117,11 +117,11 @@ object LDAPTree {
    * Copy an LDAPTree changing its parent dn
    *
    */
-  def move(tree:LDAPTree, newRdn:Option[RDN] = None,newParentDn:Option[DN] = None) : LDAPTree = {
+  def move(tree: LDAPTree, newRdn: Option[RDN], newParentDn: Option[DN]) : LDAPTree = {
     val rdn = newRdn.orElse(tree.root.rdn)
     val parentDn = newParentDn.orElse(tree.root.parentDn)
     val newRoot = LDAPEntry(rdn,parentDn,tree.root.attributes.toSeq:_*)
-    apply(newRoot,tree._children.map{ kv => (kv._1,LDAPTree.move(kv._2, newParentDn = newRoot.optDn))})
+    apply(newRoot,tree._children.map{ kv => (kv._1, LDAPTree.move(kv._2, None, newRoot.optDn))})
   }
 
   /*

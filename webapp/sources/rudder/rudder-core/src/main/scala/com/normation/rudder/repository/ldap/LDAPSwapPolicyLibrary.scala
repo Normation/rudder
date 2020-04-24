@@ -99,7 +99,7 @@ class ImportTechniqueLibraryImpl(
       //save the new one
       //we need to keep the git commit id
       def saveUserLib(con:RwLDAPConnection, userLib:ActiveTechniqueCategoryContent, gitId:Option[String]) : IOResult[Unit] = {
-        def recSaveUserLib(parentDN:DN, content:ActiveTechniqueCategoryContent, isRoot:Boolean = false) : IOResult[Unit] = {
+        def recSaveUserLib(parentDN: DN, content: ActiveTechniqueCategoryContent, isRoot: Boolean) : IOResult[Unit] = {
           //start with the category
           //then with technique/directive for that category
           //then recurse on sub-categories
@@ -125,7 +125,7 @@ class ImportTechniqueLibraryImpl(
                                }
                              }
             subCategories <- ZIO.foreach(content.categories) { cat =>
-                               recSaveUserLib(categoryEntry.dn, cat)
+                               recSaveUserLib(categoryEntry.dn, cat, false)
                              }
           } yield {
             () // unit is expected
@@ -214,7 +214,7 @@ class ImportTechniqueLibraryImpl(
         }
       }
 
-      def recSanitizeCategory(content:ActiveTechniqueCategoryContent, parent: ActiveTechniqueCategory, isRoot:Boolean = false) : Option[ActiveTechniqueCategoryContent] = {
+      def recSanitizeCategory(content:ActiveTechniqueCategoryContent, parent: ActiveTechniqueCategory, isRoot: Boolean) : Option[ActiveTechniqueCategoryContent] = {
         val cat = content.category
         if( !isRoot && content.category.isSystem && includeSystem == false) None
         else if(categoryIds.contains(cat.id)) {
@@ -233,7 +233,7 @@ class ImportTechniqueLibraryImpl(
             categoryIds += cat.id
             categoryNamesByParent += (cat.name -> (parent.id :: categoryNamesByParent.getOrElse(cat.name, Nil)))
 
-            val subCategories = content.categories.flatMap(c => recSanitizeCategory(c, cat))
+            val subCategories = content.categories.flatMap(c => recSanitizeCategory(c, cat, false))
             val subUPTs = content.templates.flatMap( sanitizeUPT(_) )
 
             Some(content.copy(

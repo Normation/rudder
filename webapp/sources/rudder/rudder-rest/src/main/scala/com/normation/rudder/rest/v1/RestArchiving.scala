@@ -70,31 +70,31 @@ extends RestHelper {
   //  List archives: /api/archives/list
   serve {
     case Get("api" :: "archives" :: "list" :: "groups" :: Nil, _) =>
-      listTags(itemArchiveManager.getGroupLibraryTags _, "groups")
+      listTags(() => itemArchiveManager.getGroupLibraryTags, "groups")
 
     case Get("api" :: "archives" :: "list" :: "directives" :: Nil, _) =>
-      listTags(itemArchiveManager.getTechniqueLibraryTags _, "technique library")
+      listTags(() => itemArchiveManager.getTechniqueLibraryTags, "technique library")
 
     case Get("api" :: "archives" :: "list" :: "rules" :: Nil, _) =>
-      listTags(itemArchiveManager.getRulesTags _, "rules")
+      listTags(() => itemArchiveManager.getRulesTags, "rules")
 
     case Get("api" :: "archives" :: "list" :: "full" :: Nil, _) =>
-      listTags(itemArchiveManager.getFullArchiveTags _, "full archive")
+      listTags(() => itemArchiveManager.getFullArchiveTags, "full archive")
   }
 
   // restore last archive /api/archives/restore/{groups,..}/latestArchive
   serve {
     case Get("api" :: "archives" :: "restore" :: "groups" :: "latestArchive" :: Nil, req) =>
-      restoreLatestArchive(req, itemArchiveManager.getGroupLibraryTags _, itemArchiveManager.importGroupLibrary, "groups")
+      restoreLatestArchive(req, () => itemArchiveManager.getGroupLibraryTags, itemArchiveManager.importGroupLibrary, "groups")
 
     case Get("api" :: "archives" :: "restore" :: "directives" :: "latestArchive" :: Nil, req) =>
-      restoreLatestArchive(req, itemArchiveManager.getTechniqueLibraryTags _, itemArchiveManager.importTechniqueLibrary, "technique library")
+      restoreLatestArchive(req, () => itemArchiveManager.getTechniqueLibraryTags, itemArchiveManager.importTechniqueLibrary, "technique library")
 
     case Get("api" :: "archives" :: "restore" :: "rules" :: "latestArchive" :: Nil, req) =>
-      restoreLatestArchive(req, itemArchiveManager.getRulesTags _, itemArchiveManager.importRules, "rules")
+      restoreLatestArchive(req, () => itemArchiveManager.getRulesTags, itemArchiveManager.importRules, "rules")
 
     case Get("api" :: "archives" :: "restore" :: "full" :: "latestArchive" :: Nil, req) =>
-      restoreLatestArchive(req, itemArchiveManager.getFullArchiveTags _, itemArchiveManager.importAll, "full archive")
+      restoreLatestArchive(req, () => itemArchiveManager.getFullArchiveTags, itemArchiveManager.importAll, "full archive")
   }
 
   // restore from Git HEAD /api/archives/restore/{groups,..}/latestCommit
@@ -131,16 +131,16 @@ extends RestHelper {
   // restore last archive /api/archives/restore/{groups,..}/latest
   serve {
     case Get("api" :: "archives" :: "restore" :: "groups" :: "datetime" :: datetime :: Nil, req) =>
-      restoreByDatetime(req, itemArchiveManager.getGroupLibraryTags _, itemArchiveManager.importGroupLibrary, datetime, "groups")
+      restoreByDatetime(req, () => itemArchiveManager.getGroupLibraryTags, itemArchiveManager.importGroupLibrary, datetime, "groups")
 
     case Get("api" :: "archives" :: "restore" :: "directives" :: "datetime" :: datetime :: Nil, req) =>
-      restoreByDatetime(req, itemArchiveManager.getTechniqueLibraryTags _, itemArchiveManager.importTechniqueLibrary, datetime, "technique library")
+      restoreByDatetime(req, () => itemArchiveManager.getTechniqueLibraryTags, itemArchiveManager.importTechniqueLibrary, datetime, "technique library")
 
     case Get("api" :: "archives" :: "restore" :: "rules" :: "datetime" :: datetime :: Nil, req) =>
-      restoreByDatetime(req, itemArchiveManager.getRulesTags _, itemArchiveManager.importRules, datetime, "rules")
+      restoreByDatetime(req, () => itemArchiveManager.getRulesTags, itemArchiveManager.importRules, datetime, "rules")
 
     case Get("api" :: "archives" :: "restore" :: "full" :: "datetime" :: datetime :: Nil, req) =>
-      restoreByDatetime(req, itemArchiveManager.getFullArchiveTags _, itemArchiveManager.importAll, datetime, "full archive")
+      restoreByDatetime(req, () => itemArchiveManager.getFullArchiveTags, itemArchiveManager.importAll, datetime, "full archive")
   }
 
   ////////////////////////////////////////////////////////////

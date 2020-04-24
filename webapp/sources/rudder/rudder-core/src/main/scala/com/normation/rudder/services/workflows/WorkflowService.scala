@@ -287,7 +287,7 @@ class NoWorkflowServiceImpl(
 
   def findStep(changeRequestId: ChangeRequestId) : Box[WorkflowNodeId] = Failure("No state when no workflow")
 
-  def getAllChangeRequestsStep : Box[Map[ChangeRequestId,WorkflowNodeId]] = Failure("No state when no workflow")
+  def getAllChangeRequestsStep() : Box[Map[ChangeRequestId,WorkflowNodeId]] = Failure("No state when no workflow")
 
   val openSteps : List[WorkflowNodeId] = List()
   val closedSteps : List[WorkflowNodeId] = List()

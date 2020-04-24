@@ -110,7 +110,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
         <groupId>com.lihaoyi</groupId>
         <artifactId>fastparse_${scala-binary-version}</artifactId>
-        <version>2.2.4</version>
+        <version>${fastparse-version}</version>
     </dependency>
 
     <dependency>
@@ -181,7 +181,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>com.github.ben-manes.caffeine</groupId>
       <artifactId>caffeine</artifactId>
-      <version>2.3.5</version>
+      <version>${cafeine-version}</version>
     </dependency>
 
     <!-- High performance, low memory native process fork/exec -->

@@ -164,7 +164,7 @@ class ImportRuleCategoryLibraryImpl(
       // for a name, all Category already containing a child with that name.
       val categoryNamesByParent = Map[String, List[RuleCategoryId]]()
 
-      def recSanitizeCategory(cat:RuleCategory, parent:RuleCategory, isRoot:Boolean = false) : Option[RuleCategory] = {
+      def recSanitizeCategory(cat: RuleCategory, parent: RuleCategory, isRoot: Boolean) : Option[RuleCategory] = {
         if( !isRoot && cat.isSystem && includeSystem == false) None
         else if(categoryIds.contains(cat.id)) {
           logEffect.error(s"Ignoring Rule category because its ID was already processed: ${cat}")
@@ -184,7 +184,7 @@ class ImportRuleCategoryLibraryImpl(
               val currentStatus = parentCategories.getOrElse(Nil)
               categoryNamesByParent += (cat.name -> (parent.id :: currentStatus))
 
-              val subCategories = cat.childs.flatMap( recSanitizeCategory(_,cat) )
+              val subCategories = cat.childs.flatMap( recSanitizeCategory(_, cat, false) )
 
               Some(cat.copy(childs = subCategories))
           } }

@@ -40,7 +40,6 @@ package com.normation.rudder.web.snippet.configuration
 import com.normation.rudder.domain.policies.{DirectiveId, Directive}
 import com.normation.cfclerk.domain.Technique
 import com.normation.rudder.web.components.{DirectiveEditForm,DateFormaterService}
-import com.normation.rudder.repository._
 import scala.xml._
 import net.liftweb.common._
 import Box._

@@ -39,7 +39,6 @@ package com.normation.rudder.services.servers
 
 import net.liftweb.common.Box
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.Constants
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.domain.Constants

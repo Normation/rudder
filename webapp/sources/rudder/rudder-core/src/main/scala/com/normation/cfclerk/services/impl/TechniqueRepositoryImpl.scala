@@ -212,7 +212,7 @@ class TechniqueRepositoryImpl(
    * Return all the policies available
    * @return
    */
-  override def getAll: Map[TechniqueId, Technique] = {
+  override def getAll(): Map[TechniqueId, Technique] = {
     (for {
       (id, versions) <- techniqueInfosCache.techniques
       (v, p) <- versions

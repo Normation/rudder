@@ -914,7 +914,7 @@ object RudderConfig extends Loggable {
         , roNodeGroupRepository
         , reportingService
         , roDirectiveRepository
-        , globalComplianceModeService.getGlobalComplianceMode _
+        , () => globalComplianceModeService.getGlobalComplianceMode
       )
 
   val techniqueArchiver = new TechniqueArchiverImpl(gitRepo,   new File(RUDDER_DIR_GITROOT) , prettyPrinter, "/", gitModificationRepository, personIdentService)
@@ -1070,7 +1070,7 @@ object RudderConfig extends Loggable {
         // info api must be resolved latter, because else it misses plugin apis !
     )
 
-    val api = new LiftHandler(apiDispatcher, ApiVersions, new AclApiAuthorization(LiftApiProcessingLogger, userService, apiAuthorizationLevelService.aclEnabled _), None)
+    val api = new LiftHandler(apiDispatcher, ApiVersions, new AclApiAuthorization(LiftApiProcessingLogger, userService, () => apiAuthorizationLevelService.aclEnabled), None)
     modules.foreach { module =>
       api.addModules(module.getLiftEndpoints)
     }
@@ -1823,7 +1823,7 @@ object RudderConfig extends Loggable {
         , nodeInfoServiceImpl
         , roDirectiveRepository
         , roRuleRepository
-        , globalComplianceModeService.getGlobalComplianceMode _
+        , () => globalComplianceModeService.getGlobalComplianceMode
         , configService.rudder_global_policy_mode _
         , () => configService.rudder_compliance_unexpected_report_interpretation().toBox
         , RUDDER_JDBC_BATCH_MAX_SIZE

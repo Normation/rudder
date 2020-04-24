@@ -243,14 +243,14 @@ final case class PermSet(file:FilePerms,perms:(Perm => Unit, () => Perm)* ) {
 }
 
 object PermSet {
-  val u = (file:FilePerms) => new PermSet(file,(file._u_= _ , file._u _))
-  val g = (file:FilePerms) => new PermSet(file,(file._g_= _ , file._g _))
-  val o = (file:FilePerms) => new PermSet(file,(file._o_= _ , file._o _))
-  val ug = (file:FilePerms) => new PermSet(file,(file._u_= _ , file._u _),(file._g_= _ , file._g _))
-  val uo = (file:FilePerms) => new PermSet(file,(file._u_= _ , file._u _),(file._o_= _ , file._o _))
-  val go = (file:FilePerms) => new PermSet(file,(file._g_= _ , file._g _),(file._o_= _ , file._o _))
-  val ugo = (file:FilePerms) => new PermSet(file,(file._u_= _ , file._u _),(file._g_= _ , file._g _),(file._o_= _ , file._o _))
-  val a = (file:FilePerms) => new PermSet(file,(file._u_= _ , file._u _),(file._g_= _ , file._g _),(file._o_= _ , file._o _))
+  val u   = (file:FilePerms) => new PermSet(file,(file._u_= _ , () => file._u))
+  val g   = (file:FilePerms) => new PermSet(file,(file._g_= _ , () => file._g))
+  val o   = (file:FilePerms) => new PermSet(file,(file._o_= _ , () => file._o))
+  val ug  = (file:FilePerms) => new PermSet(file,(file._u_= _ , () => file._u),(file._g_= _ , () => file._g))
+  val uo  = (file:FilePerms) => new PermSet(file,(file._u_= _ , () => file._u),(file._o_= _ , () => file._o))
+  val go  = (file:FilePerms) => new PermSet(file,(file._g_= _ , () => file._g),(file._o_= _ , () => file._o))
+  val ugo = (file:FilePerms) => new PermSet(file,(file._u_= _ , () => file._u),(file._g_= _ , () => file._g),(file._o_= _ , () => file._o))
+  val a   = (file:FilePerms) => new PermSet(file,(file._u_= _ , () => file._u),(file._g_= _ , () => file._g),(file._o_= _ , () => file._o))
 }
 
 class FilePerms( //special bits have to be explicitly set

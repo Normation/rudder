@@ -38,8 +38,6 @@
 package com.normation.rudder.web.services
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 

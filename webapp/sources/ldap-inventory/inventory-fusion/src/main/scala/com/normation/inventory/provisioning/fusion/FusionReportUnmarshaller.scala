@@ -46,7 +46,6 @@ import java.net.InetAddress
 import java.util.Locale
 
 import com.normation.inventory.domain.InventoryError.Inconsistency
-import com.normation.errors._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
@@ -252,12 +251,13 @@ class FusionReportUnmarshaller(
   def getHostname(xml : NodeSeq): IOResult[String] = {
     def validHostname( hostname : String ) : Boolean = {
       val invalidList = "localhost" :: "127.0.0.1" :: "::1" :: Nil
+
       /* Invalid cases are:
        * * hostname is null
        * * hostname is empty
        * * hostname is one of the invalid list
        */
-      ! ( hostname == null || hostname.isEmpty() || invalidList.contains(hostname))
+      !( hostname == null || hostname.isEmpty() || invalidList.contains(hostname))
     }
 
     (optTextHead(xml \\ "RUDDER" \ "HOSTNAME"), optTextHead(xml \\ "OPERATINGSYSTEM" \ "FQDN")) match {

@@ -67,7 +67,6 @@ import com.normation.rudder.services.ClearCacheService
 import com.normation.rudder.services.system.DebugInfoScriptResult
 import com.normation.rudder.services.system.DebugInfoService
 import com.normation.utils.StringUuidGenerator
-import com.normation.zio._
 import net.liftweb.common._
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
@@ -673,7 +672,7 @@ class SystemApiService11(
     implicit val action = "archiveGroupDateRestore"
     implicit val prettify = params.prettify
 
-    restoreByDatetime(req, itemArchiveManager.getGroupLibraryTags _, itemArchiveManager.importGroupLibrary, dateTime, "group") match {
+    restoreByDatetime(req, () => itemArchiveManager.getGroupLibraryTags, itemArchiveManager.importGroupLibrary, dateTime, "group") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
@@ -683,7 +682,7 @@ class SystemApiService11(
     implicit val action = "archiveDirectiveDateRestore"
     implicit val prettify = params.prettify
 
-    restoreByDatetime(req, itemArchiveManager.getTechniqueLibraryTags _, itemArchiveManager.importTechniqueLibrary, dateTime, "directive") match {
+    restoreByDatetime(req, () => itemArchiveManager.getTechniqueLibraryTags, itemArchiveManager.importTechniqueLibrary, dateTime, "directive") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
@@ -693,7 +692,7 @@ class SystemApiService11(
     implicit val action = "archiveRuleDateRestore"
     implicit val prettify = params.prettify
 
-    restoreByDatetime(req, itemArchiveManager.getRulesTags _, itemArchiveManager.importRules, dateTime, "rule") match {
+    restoreByDatetime(req, () => itemArchiveManager.getRulesTags, itemArchiveManager.importRules, dateTime, "rule") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
@@ -703,7 +702,7 @@ class SystemApiService11(
     implicit val action = "archiveFullDateRestore"
     implicit val prettify = params.prettify
 
-    restoreByDatetime(req, itemArchiveManager.getFullArchiveTags _, itemArchiveManager.importAll, dateTime, "full") match {
+    restoreByDatetime(req, () => itemArchiveManager.getFullArchiveTags, itemArchiveManager.importAll, dateTime, "full") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
@@ -757,7 +756,7 @@ class SystemApiService11(
     implicit val action = "restoreGroupsLatestArchive"
     implicit val prettify = params.prettify
 
-    restoreLatestArchive(req, itemArchiveManager.getGroupLibraryTags _, itemArchiveManager.importGroupLibrary, "groups") match {
+    restoreLatestArchive(req, () => itemArchiveManager.getGroupLibraryTags, itemArchiveManager.importGroupLibrary, "groups") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
@@ -768,7 +767,7 @@ class SystemApiService11(
     implicit val action = "restoreDirectivesLatestArchive"
     implicit val prettify = params.prettify
 
-    restoreLatestArchive(req, itemArchiveManager.getTechniqueLibraryTags _, itemArchiveManager.importTechniqueLibrary, "directives") match {
+    restoreLatestArchive(req, () => itemArchiveManager.getTechniqueLibraryTags, itemArchiveManager.importTechniqueLibrary, "directives") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
@@ -780,7 +779,7 @@ class SystemApiService11(
     implicit val action = "restoreRulesLatestArchive"
     implicit val prettify = params.prettify
 
-    restoreLatestArchive(req, itemArchiveManager.getRulesTags _, itemArchiveManager.importRules, "rules") match {
+    restoreLatestArchive(req, () => itemArchiveManager.getRulesTags, itemArchiveManager.importRules, "rules") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
@@ -791,7 +790,7 @@ class SystemApiService11(
     implicit val action = "restoreFullLatestArchive"
     implicit val prettify = params.prettify
 
-    restoreLatestArchive(req, itemArchiveManager.getFullArchiveTags _, itemArchiveManager.importAll, "full") match {
+    restoreLatestArchive(req, () => itemArchiveManager.getFullArchiveTags, itemArchiveManager.importAll, "full") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
@@ -848,7 +847,7 @@ class SystemApiService11(
     implicit val action = "listGroupsArchive"
     implicit val prettify = params.prettify
 
-    listTags(itemArchiveManager.getGroupLibraryTags _, "groups") match {
+    listTags(() => itemArchiveManager.getGroupLibraryTags, "groups") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
@@ -859,7 +858,7 @@ class SystemApiService11(
     implicit val action = "listDirectivesArchive"
     implicit val prettify = params.prettify
 
-    listTags(itemArchiveManager.getTechniqueLibraryTags _, "directives") match {
+    listTags(() => itemArchiveManager.getTechniqueLibraryTags, "directives") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
@@ -870,7 +869,7 @@ class SystemApiService11(
     implicit val action = "listRulesArchive"
     implicit val prettify = params.prettify
 
-    listTags(itemArchiveManager.getRulesTags _, "rules") match {
+    listTags(() => itemArchiveManager.getRulesTags, "rules") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
@@ -881,7 +880,7 @@ class SystemApiService11(
     implicit val action = "listFullArchive"
     implicit val prettify = params.prettify
 
-    listTags(itemArchiveManager.getFullArchiveTags _, "full") match {
+    listTags(() => itemArchiveManager.getFullArchiveTags, "full") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }

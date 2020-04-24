@@ -37,9 +37,6 @@
 
 package com.normation.rudder.services.policies
 
-import org.junit.runner._
-import org.specs2.runner._
-import org.specs2.mutable._
 import com.normation.cfclerk.domain.InputVariableSpec
 import com.normation.cfclerk.domain.Variable
 import com.normation.rudder.domain.parameters.ParameterName

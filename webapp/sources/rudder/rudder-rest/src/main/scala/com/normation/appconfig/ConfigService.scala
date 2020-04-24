@@ -42,7 +42,6 @@ import com.typesafe.config.Config
 import com.normation.rudder.batch.AsyncWorkflowInfo
 import com.normation.rudder.services.workflows.WorkflowUpdate
 import com.typesafe.config.ConfigFactory
-import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.domain.appconfig.RudderWebProperty

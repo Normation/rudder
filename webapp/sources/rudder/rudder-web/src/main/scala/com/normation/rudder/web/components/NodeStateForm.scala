@@ -39,7 +39,6 @@ package com.normation.rudder.web.components
 
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.web.ChooseTemplate
-import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
 import net.liftweb.http.SHtml

@@ -100,11 +100,11 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   sequential
   lazy val basePath = "/tmp/test-technique-writer-" + DateTime.now.toString()
 
-  override def beforeAll: Unit = {
+  override def beforeAll(): Unit = {
     new File(basePath).mkdirs()
   }
 
-  override def afterAll: Unit = {
+  override def afterAll(): Unit = {
     if(System.getProperty("tests.clean.tmp") != "false") {
       FileUtils.deleteDirectory(new File(basePath))
     }

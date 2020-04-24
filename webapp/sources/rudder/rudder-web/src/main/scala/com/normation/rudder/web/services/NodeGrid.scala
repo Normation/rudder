@@ -40,7 +40,6 @@ package com.normation.rudder.web.services
 import com.normation.utils.Utils.isEmpty
 import com.normation.inventory.domain.{NodeId,InventoryStatus}
 import com.normation.inventory.ldap.core._
-import com.normation.rudder.domain.servers.Srv
 import org.slf4j.LoggerFactory
 import scala.xml._
 import net.liftweb.common._

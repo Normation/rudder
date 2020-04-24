@@ -48,7 +48,6 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.services.policies.BundleOrder
 import com.normation.rudder.services.policies.PolicyId
-import com.normation.rudder.services.policies.BoundPolicyDraft
 import com.normation.rudder.services.policies.MergePolicyService
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.policies.BoundPolicyDraft
