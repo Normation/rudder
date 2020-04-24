@@ -69,6 +69,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
+import java.nio.file.attribute.PosixFilePermission
 import java.util.concurrent.TimeUnit
 
 import com.normation.rudder.hooks.HookReturnCode
@@ -111,12 +112,17 @@ trait PolicyWriterService {
 }
 
 object PolicyWriterServiceImpl {
+  val defaultPermissions = Set[PosixFilePermission](PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE
+                                                  , PosixFilePermission.GROUP_READ)
+  val defaultFolderPermissions = Set[PosixFilePermission](PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE
+                                                  , PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_EXECUTE)
+
   //an utility that write text in a file and create file parents if needed
   implicit class CreateParentAndWrite(val file: File) extends AnyVal {
     // open file mode for create or overwrite mode
     def createParentsAndWrite(text: String) = IOResult.effect {
-      file.parent.createDirectoryIfNotExists(true)
-      file.writeText(text)(Seq(StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE), StandardCharsets.UTF_8)
+      file.parent.createDirectoryIfNotExists(true).setPermissions(defaultFolderPermissions)
+      file.writeText(text)(Seq(StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE), StandardCharsets.UTF_8).setPermissions(defaultPermissions)
     }
   }
 }
