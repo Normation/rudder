@@ -9,9 +9,7 @@
 # - RUDDER_AGENT_TYPE            : agent type ("cfengine-community", "cfengine-nova" or "dsc")
 # - RUDDER_POLICIES_DIRECTORY_NEW: new policies directory (for ex for nodes under root: /var/rudder/share/$RUDDER_NODE_ID/rules.new)
 
-# Correct all file permissions
-/bin/chmod -R u-x,u+rwX,g-wx,g+rX,o-rwx "${RUDDER_POLICIES_DIRECTORY_NEW}"
-r1=$?
+# Correct directory permission
 /bin/chmod u-x,u+rwX,g-wx,g+rX,o-rwx "${RUDDER_POLICIES_DIRECTORY_NEW}/.."
 r2=$?
 
