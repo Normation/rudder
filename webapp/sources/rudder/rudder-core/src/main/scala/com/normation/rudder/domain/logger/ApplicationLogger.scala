@@ -48,6 +48,10 @@ object ApplicationLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("application")
 }
 
+object ApplicationLoggerPure extends NamedZioLogger {
+  def loggerName = "application"
+}
+
 /**
  * A logger dedicated to "plugin" information, especially boot info.
  */

@@ -62,6 +62,7 @@ import com.normation.plugins.RudderPluginModule
 import com.normation.plugins.PluginName
 import com.normation.plugins.PluginStatus
 import com.normation.plugins.PluginVersion
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.EndpointSchema
@@ -502,6 +503,11 @@ class Boot extends Loggable {
     // load users from rudder-users.xml
     RudderConfig.rudderUserListProvider.reload()
 
+    // start node count historization
+    ZioRuntime.runNow(RudderConfig.historizeNodeCountBatch.catchAll(err =>
+      ApplicationLoggerPure.error(s"Error when starting node historization batch: ${err.fullMsg}")
+    ))
+
     RudderConfig.eventLogRepository.saveEventLog(
         ModificationId(RudderConfig.stringUuidGenerator.newUuid)
       , ApplicationStarted(
@@ -512,14 +518,10 @@ class Boot extends Loggable {
               , reason = None
             )
         )
-    ).runNow match {
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error when trying to save the EventLog for application start"
-        ApplicationLogger.error(e.messageChain)
-        e.rootExceptionCause.foreach { ex =>
-          ApplicationLogger.error("Exception was:", ex)
-        }
-      case _ => ApplicationLogger.info("Application Rudder started")
+    ).either.runNow match {
+      case Left(err) =>
+        ApplicationLogger.error(s"Error when trying to save the EventLog for application start: ${err}")
+      case Right(_)  => ApplicationLogger.info("Application Rudder started")
     }
   }
 
