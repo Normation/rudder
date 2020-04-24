@@ -41,7 +41,6 @@ import cats.implicits._
 import com.normation.box._
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core.LDAPConstants
-import com.normation.ldap.sdk.BuildFilter._
 import com.normation.ldap.sdk._
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.logger.NodeLogger
@@ -53,8 +52,21 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import net.liftweb.common._
-import zio._
 import com.normation.ldap.sdk.syntax._
+import com.unboundid.ldap.sdk.DereferencePolicy
+import com.unboundid.ldap.sdk.SearchRequest
+import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.ldap.sdk.BuildFilter._
+import com.unboundid.ldap.sdk.Filter
+import com.unboundid.ldap.sdk.LDAPException
+import com.unboundid.ldap.sdk.LDAPSearchException
+import com.unboundid.ldap.sdk.ResultCode
+import org.joda.time.DateTime
+import zio._
+import zio.syntax._
+import com.normation.errors._
+import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
+import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 
 /**
  * A service used to manage dynamic groups : find
@@ -67,6 +79,11 @@ trait DynGroupService {
    * Retrieve the list of all dynamic groups.
    */
   def getAllDynGroups(): Box[Seq[NodeGroup]]
+
+  /**
+   *  Find if changes happened since `lastTime`.
+   */
+  def changesSince(lastTime: DateTime): Box[Boolean]
 }
 
 class DynGroupServiceImpl(
@@ -106,6 +123,61 @@ class DynGroupServiceImpl(
       dyngroupIds.sortBy(numberOfQuery)
     }
   }.toBox
+
+  override def changesSince(lastTime: DateTime): Box[Boolean] = {
+    val n0 = System.currentTimeMillis
+    if(n0 - lastTime.getMillis < 100) {
+      Full(true)
+    } else {
+      /*
+       * We want to see if an entry in:
+       * - ou=inventories
+       *   - DN: ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+       *   - DN: ou=Removed Inventories,ou=Inventories,cn=rudder-configuration
+       *   - DN: ou=Software,ou=Inventories,cn=rudder-configuration
+       * - ou=nodes: DN: ou=Nodes,cn=rudder-configuration (it will also trigger if compliance mode etc change, but no way to filter out that)
+       * - ou=groups: DN: groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration (we can filter out categories here)
+       */
+      val searchRequest = new SearchRequest("cn=rudder-configuration", Sub.toUnboundid, DereferencePolicy.NEVER, 1, 0, false
+        , AND(
+              OR(
+                  // ou=Removed Inventories,ou=Inventories,cn=rudder-configuration
+                  Filter.create(s"entryDN:dnSubtreeMatch:=ou=Removed Inventories,ou=Inventories,cn=rudder-configuration")
+                  // ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+                , Filter.create(s"entryDN:dnSubtreeMatch:=ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
+                , AND(IS(OC_SOFTWARE), Filter.create(s"entryDN:dnSubtreeMatch:=ou=Software,ou=Inventories,cn=rudder-configuration"))
+                  // ou=Nodes,cn=rudder-configuration - the objectClass is used only here
+                , AND(IS(OC_RUDDER_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=ou=Nodes,cn=rudder-configuration"))
+                , AND(IS(OC_RUDDER_NODE_GROUP), Filter.create(s"entryDN:dnSubtreeMatch:=groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration"))
+              )
+            , GTEQ("modifyTimestamp", GeneralizedTime(lastTime).toString)
+          )
+        , "1.1"
+      )
+
+      (for {
+        con     <- ldap
+        entries <- //here, I have to rely on low-level LDAP connection, because I need to proceed size-limit exceeded as OK
+                   (Task.effect(con.backed.search(searchRequest).getSearchEntries) catchAll {
+                     case e:LDAPSearchException if(e.getResultCode == ResultCode.SIZE_LIMIT_EXCEEDED) =>
+                       e.getSearchEntries().succeed
+                     case e:LDAPException =>
+                       SystemError("Error when searching dyngroup information", e).fail
+                   }).foldM(
+                     err =>
+                       ScheduledJobLoggerPure.debug(s"Error when checking if dynamic group need update. Error was: ${err.fullMsg}") *> true.succeed
+                   , seq => {
+                       //we only have interesting entries in the result, so it's up to date if we have exactly 0 entries
+                       (!seq.isEmpty).succeed
+                     }
+                   )
+        n1       <- UIO(System.currentTimeMillis)
+        _        <- TimingDebugLoggerPure.debug(s"Check if dynamic groups may need update (${entries}): ${n1 - n0}ms")
+      } yield {
+        entries
+      }).toBox
+    }
+  }
 }
 
 object CheckPendingNodeInDynGroups {

@@ -472,7 +472,7 @@ class SystemApiService11(
   //For now we are not able to give information about the group reload process.
   //We still send OK instead to inform the endpoint has correctly triggered.
   private[this] def reloadDyngroupsWrapper() : Either[String, JField] = {
-    updateDynamicGroups.startManualUpdate
+    updateDynamicGroups.forceStartUpdate
     Right(JField("groups", "Started"))
   }
 

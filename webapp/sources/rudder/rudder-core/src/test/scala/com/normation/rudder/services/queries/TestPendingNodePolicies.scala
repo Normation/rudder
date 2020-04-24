@@ -56,6 +56,7 @@ import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
+import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -148,6 +149,7 @@ class TestPendingNodePolicies extends Specification {
     override def getAllDynGroups(): Box[Seq[NodeGroup]] = Full(List(
       a, b, c, d, e, /*f, static */ g, h, i, j, k, l, m, n, o, pp
     ))
+    override def changesSince(lastTime: DateTime): Box[Boolean] = Full(true)
   }
 
   // a fake query checker
