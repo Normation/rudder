@@ -62,6 +62,7 @@ import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.NodeGroupChangeRequest
 import com.normation.rudder.web.ChooseTemplate
 import net.liftweb.util.CssSel
+import com.normation.zio._
 
 object NodeGroupForm {
   val templatePath = "templates-hidden" :: "components" :: "NodeGroupForm" :: Nil
@@ -99,6 +100,7 @@ class NodeGroupForm(
   private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
   private[this] val workflowLevelService       = RudderConfig.workflowLevelService
   private[this] val dependencyService          = RudderConfig.dependencyAndDeletionService
+  private[this] val roNodeGroupRepository      = RudderConfig.roNodeGroupRepository
 
   private[this] val nodeGroupCategoryForm = new LocalSnippet[NodeGroupCategoryForm]
   private[this] val nodeGroupForm = new LocalSnippet[NodeGroupForm]
@@ -106,6 +108,7 @@ class NodeGroupForm(
 
   private[this] var query : Option[Query] = nodeGroup.toOption.flatMap(_.query)
   private[this] var srvList : Box[Seq[NodeInfo]] = getNodeList(nodeGroup)
+
 
   private def setSearchNodeComponent : Unit = {
     searchNodeComponent.set(Full(new SearchNodeComponent(
@@ -353,7 +356,7 @@ class NodeGroupForm(
   private[this] def error(msg:String) = <span class="error">{msg}</span>
 
   private[this] def onFailure : JsCmd = {
-    formTracker.addFormError(error("There was problem with your request."))
+    formTracker.addFormError(error("There was a problem with your request."))
     updateFormClientSide() & JsRaw("""scrollToElement("errorNotification","#ajaxItemContainer");""")
   }
 
@@ -362,6 +365,18 @@ class NodeGroupForm(
     nodeGroup match {
       case Left(target) => Noop
       case Right(ng)    =>
+        // properties can have been modifier since the page was displayed, but we don't know it.
+        // so we look back for them. We also check that other props weren't modified in parallel
+        val savedGroup = roNodeGroupRepository.getNodeGroup(ng.id).either.runNow match {
+          case Right(g)  => g._1
+          case Left(err) =>
+            formTracker.addFormError(Text("Error when saving group"))
+            logger.error(s"Error when looking for group with id '${ng.id.value}': ${err}")
+            ng
+        }
+        if(ng.copy(properties = savedGroup.properties, serverList = savedGroup.serverList) != savedGroup) {
+          formTracker.addFormError(Text("Error: group was updated while you were modifying it. Please reload the page. "))
+        }
 
         // Since we are doing the submit from the component, it ought to exist
         searchNodeComponent.get match {
@@ -383,7 +398,7 @@ class NodeGroupForm(
           }
 
           // submit can be done only for node group, not system one
-          val newGroup = ng.copy(
+          val newGroup = savedGroup.copy(
               name = groupName.get
             , description = groupDescription.get
             //, container = container
@@ -392,7 +407,7 @@ class NodeGroupForm(
             , serverList =  srvList.getOrElse(Set()).map( _.id ).toSet
           )
 
-          if(newGroup == ng && optContainer.isEmpty) {
+          if(newGroup == savedGroup && optContainer.isEmpty) {
             formTracker.addFormError(Text("There are no modifications to save"))
             onFailure & onFailureCallback()
           } else {
