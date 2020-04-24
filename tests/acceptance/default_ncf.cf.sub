@@ -165,3 +165,10 @@ bundle agent apply_gm(name, args, status, result_class, mode)
       "Found unexpected class ${define_expected_classes.unexpected_classes_class_prefix_${result_class}}"
         ifvarclass => "${define_expected_classes.unexpected_classes_class_prefix_${result_class}}";
 }
+
+# Mimic default node properties values
+bundle common node
+{
+  vars:
+      "properties" data => '{ "rudder": { "packages": { "installed_cache_expire": 60, "updates_cache_expire": 240 } } }';
+}

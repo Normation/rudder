@@ -221,7 +221,7 @@ bundle common common_knowledge
 # This common bundle defines general things about platforms.
 {
   vars:
-      "list_update_ifelapsed" string => "240";
+      "list_update_ifelapsed" string => "${node.properties[rudder][packages][updates_cache_expire]}";
 }
 
 bundle common debian_knowledge

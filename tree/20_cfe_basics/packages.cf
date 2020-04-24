@@ -414,7 +414,7 @@ body package_method yum_rpm_no_version
 
     # set it to "0" to avoid caching of list during upgrade
     package_list_update_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
-    package_list_update_ifelapsed => "240";
+    package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
 
     package_patch_installed_regex => "^\s.*";
     package_patch_name_regex    => "([^.]+).*";
@@ -446,7 +446,7 @@ body package_method redhat_local_install
     package_installed_regex => ".*";
     package_name_convention => "$(name)";
     package_list_update_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
-    package_list_update_ifelapsed => "240";     # sometimes, caching is pretty disturbing
+    package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
     package_patch_installed_regex => "^\s.*";
     package_patch_name_regex    => "([^.]+).*";
     package_patch_version_regex => "[^\s]\s+([^\s]+).*";
@@ -474,7 +474,7 @@ body package_method redhat_install
     package_installed_regex => ".*";
     package_name_convention => "$(name)";
     package_list_update_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
-    package_list_update_ifelapsed => "240";     # sometimes, caching is pretty disturbing
+    package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
     package_patch_installed_regex => "^\s.*";
     package_patch_name_regex    => "([^.]+).*";
     package_patch_version_regex => "[^\s]\s+([^\s]+).*";
@@ -496,7 +496,7 @@ body package_method debian_local_install
     package_list_command => "$(debian_knowledge.call_dpkg) -l";
     # set it to "0" to avoid caching of list during upgrade
     package_list_update_command => "$(debian_knowledge.call_apt_get) update";
-    package_list_update_ifelapsed => "240";
+    package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
     package_list_name_regex    => ".i\s+([^\s]+).*";
     package_list_version_regex => ".i\s+[^\s]+\s+([^\s]+).*";
     package_installed_regex => ".i.*"; # packages that have been uninstalled may be listed
@@ -532,7 +532,7 @@ body package_method ncf_generic
     package_list_command => "/bin/rpm -qa --queryformat \"i | repos | %{name} | %{version}-%{release} | %{arch}\n\"";
     # set it to "0" to avoid caching of list during upgrade
     package_list_update_command => "/usr/bin/zypper --non-interactive refresh";
-    package_list_update_ifelapsed => "240"; # 4 hours
+    package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
     package_installed_regex => "i.*";
     package_list_name_regex    => "[^|]+\|[^|]+\|\s+([^\s]+).*";
     package_list_version_regex => "[^|]+\|[^|]+\|[^|]+\|\s+([^\s]+).*";
@@ -556,7 +556,7 @@ body package_method ncf_generic
     package_installed_regex => ".*";
     package_name_convention => "$(name)";
     package_list_update_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
-    package_list_update_ifelapsed => "240";     # sometimes, caching is pretty disturbing
+    package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
     package_patch_installed_regex => "^\s.*";
     package_patch_name_regex    => "([^.]+).*";
     package_patch_version_regex => "[^\s]\s+([^\s]+).*";
@@ -576,7 +576,7 @@ body package_method ncf_generic
     package_list_version_regex => ".i\s+[^\s]+\s+([^\s]+).*";
     package_installed_regex => ".i.*"; # packages that have been uninstalled may be listed
     package_name_convention => "$(name)";
-    package_list_update_ifelapsed => "240";		# 4 hours
+    package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
 
     # make correct version comparisons
     package_version_less_command => "$(debian_knowledge.dpkg_compare_less)";
@@ -640,8 +640,7 @@ body package_method ncf_generic
     package_name_convention => "$(name)";
     package_list_update_command => "/bin/true";               # I prefer manual syncing
     #package_list_update_command => "/usr/bin/emerge --sync"; # if you like automatic
-    package_list_update_ifelapsed => "240";                   # should happen every 4 hours
-
+    package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
     package_add_command => "/usr/bin/emerge -q --quiet-build";
     package_delete_command => "/usr/bin/emerge --depclean";
     package_update_command => "/usr/bin/emerge --update";
@@ -656,7 +655,7 @@ body package_method ncf_generic
     package_list_version_regex => ".*\s+(.*)";
     package_installed_regex => ".*";
     package_name_convention => "$(name)";
-    package_list_update_ifelapsed => "240";
+    package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
     package_add_command => "/usr/bin/pacman -S --noconfirm --noprogressbar --needed";
     package_delete_command => "/usr/bin/pacman -Rs --noconfirm";
     package_update_command => "/usr/bin/pacman -S --noconfirm --noprogressbar --needed";
@@ -671,7 +670,7 @@ body package_method ncf_generic_version
     package_list_command => "/bin/rpm -qa --queryformat \"i | repos | %{name} | %{version}-%{release} | %{arch}\n\"";
     # set it to "0" to avoid caching of list during upgrade
     package_list_update_command => "/usr/bin/zypper --non-interactive refresh";
-    package_list_update_ifelapsed => "240"; # 4 hours
+    package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
     package_installed_regex => "i.*";
     package_list_name_regex    => "[^|]+\|[^|]+\|\s+([^\s]+).*";
     package_list_version_regex => "[^|]+\|[^|]+\|[^|]+\|\s+([^\s]+).*";
@@ -695,7 +694,7 @@ body package_method ncf_generic_version
     package_installed_regex => ".*";
     package_name_convention => "$(name)-$(version)";
     package_list_update_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
-    package_list_update_ifelapsed => "240";     # sometimes, caching is pretty disturbing
+    package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
     package_patch_installed_regex => "^\s.*";
     package_patch_name_regex    => "([^.]+).*";
     package_patch_version_regex => "[^\s]\s+([^\s]+).*";
@@ -715,7 +714,7 @@ body package_method ncf_generic_version
     package_list_version_regex => ".i\s+[^\s]+\s+([^\s]+).*";
     package_installed_regex => ".i.*"; # packages that have been uninstalled may be listed
     package_name_convention => "$(name)=$(version)";
-    package_list_update_ifelapsed => "240";		# 4 hours
+    package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
 
     # make correct version comparisons
     package_version_less_command => "$(debian_knowledge.dpkg_compare_less)";
@@ -780,7 +779,7 @@ body package_method ncf_generic_version
     package_name_convention => "$(name)";
     package_list_update_command => "/bin/true";               # I prefer manual syncing
     #package_list_update_command => "/usr/bin/emerge --sync"; # if you like automatic
-    package_list_update_ifelapsed => "240";                   # should happen every 4 hours
+    package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
 
     package_add_command => "/usr/bin/emerge -q --quiet-build";
     package_delete_command => "/usr/bin/emerge --depclean";
@@ -796,7 +795,7 @@ body package_method ncf_generic_version
     package_list_version_regex => ".*\s+(.*)";
     package_installed_regex => ".*";
     package_name_convention => "$(name)";
-    package_list_update_ifelapsed => "240";
+    package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
     package_add_command => "/usr/bin/pacman -S --noconfirm --noprogressbar --needed";
     package_delete_command => "/usr/bin/pacman -Rs --noconfirm";
     package_update_command => "/usr/bin/pacman -S --noconfirm --noprogressbar --needed";
@@ -843,7 +842,7 @@ body package_method rudder_rug
     package_changes               => "individual";
 
     package_list_command          => "/bin/rpm -qa --queryformat \"i | repos | %{name} | %{version}-%{release} | %{arch}\n\"";
-    package_list_update_ifelapsed => "240";
+    package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
     package_installed_regex       => "i.*";
     package_list_name_regex       => "[^|]+\|[^|]+\|\s+([^\s]+).*";
     package_list_version_regex    => "[^|]+\|[^|]+\|[^|]+\|\s+([^\s]+).*";
@@ -875,7 +874,7 @@ body package_method rudder_yum
     package_installed_regex       => ".*";
     package_name_convention       => "${name}";
     package_list_update_command   => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
-    package_list_update_ifelapsed => "240";
+    package_list_update_ifelapsed => "$(common_knowledge.list_update_ifelapsed)";
     package_patch_name_regex      => "([^.]+).*";
     package_patch_version_regex   => "[^\s]\s+([^\s]+).*";
     package_patch_arch_regex      => "[^.]+\.([^\s]+).*";
