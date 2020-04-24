@@ -323,7 +323,7 @@ properties:
           example: xml
       serverRoles:
         type: array
-        description: Local user account used by the agent
+        description: Roles fullfilled by the agent
         items:
           type: string
           description: A role that node fulfills in management technology
