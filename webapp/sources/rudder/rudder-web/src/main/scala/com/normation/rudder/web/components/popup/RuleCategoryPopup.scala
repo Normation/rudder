@@ -49,8 +49,6 @@ import com.normation.rudder.web.model.{
 }
 import com.normation.rudder.web.model.CurrentUser
 import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.rule.category.RuleCategory
-import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.rule.category.RuleCategory

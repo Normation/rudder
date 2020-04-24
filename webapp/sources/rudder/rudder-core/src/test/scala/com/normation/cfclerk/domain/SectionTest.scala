@@ -42,7 +42,6 @@ import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
 import org.xml.sax.SAXParseException
-import scala.xml._
 import com.normation.cfclerk.xmlparsers._
 import CfclerkXmlConstants._
 import scala.xml._

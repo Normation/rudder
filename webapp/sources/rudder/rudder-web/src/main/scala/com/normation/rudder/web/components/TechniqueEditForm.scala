@@ -38,7 +38,6 @@
 package com.normation.rudder.web.components
 
 import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.policies._
 import net.liftweb.http.js._
 import JsCmds._
 import JE._

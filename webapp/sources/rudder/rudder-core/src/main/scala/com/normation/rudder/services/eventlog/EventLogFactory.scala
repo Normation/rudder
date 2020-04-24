@@ -56,7 +56,6 @@ import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.marshalling._
 import net.liftweb.util.Helpers._
 import org.joda.time.format.ISODateTimeFormat
-import com.normation.rudder.domain._
 
 
 trait EventLogFactory {

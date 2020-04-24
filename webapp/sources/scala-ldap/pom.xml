@@ -49,7 +49,7 @@ limitations under the License.
     <dependency>
       <groupId>com.unboundid</groupId>
       <artifactId>unboundid-ldapsdk</artifactId>
-      <version>4.0.7</version>
+      <version>${unboundid-version}</version>
     </dependency>
     <dependency>
       <groupId>com.normation</groupId>

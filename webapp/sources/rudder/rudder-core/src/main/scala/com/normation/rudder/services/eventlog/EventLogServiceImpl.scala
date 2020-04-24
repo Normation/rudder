@@ -39,7 +39,6 @@ package com.normation.rudder.services.eventlog
 
 import com.normation.rudder.domain.eventlog._
 import com.normation.eventlog._
-import com.normation.rudder.repository._
 import net.liftweb.common._
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.repository.EventLogRepository

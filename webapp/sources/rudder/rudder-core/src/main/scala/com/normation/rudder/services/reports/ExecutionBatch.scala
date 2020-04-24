@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.reports
 
-import com.normation.inventory.domain.NodeId
 import org.joda.time._
 import com.normation.rudder.domain.logger.ComplianceDebugLogger
 import com.normation.rudder.domain.logger.ComplianceDebugLogger._

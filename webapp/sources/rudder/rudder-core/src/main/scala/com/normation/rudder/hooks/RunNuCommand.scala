@@ -87,9 +87,11 @@ object RunNuCommand {
   val logger = NamedZioLogger("command-runner")
 
   // we don't want NuCommand to log with its format which is totally broken along our, so we redefined it.
+  // we don't really use that class but need that trick to be able to access protected fields.
   object SilentLogger extends BasePosixProcess(null) {
     import java.util.logging._
-    override def start(command: util.List[String], environment: Array[String], cwd: Path): NuProcess = {null}
+    override def start(command: util.List[String], environment: Array[String], cwd: Path): NuProcess = null
+    override def run(command: util.List[String], environment: Array[String], cwd: Path): Unit = {}
     def silent() = {
       BasePosixProcess.LOGGER.setLevel(java.util.logging.Level.WARNING)
       BasePosixProcess.LOGGER.setUseParentHandlers(false)

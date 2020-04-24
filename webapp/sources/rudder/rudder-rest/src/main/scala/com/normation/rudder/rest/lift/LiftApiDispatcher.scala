@@ -115,7 +115,7 @@ class LiftHandler(
   val logger = LiftApiProcessingLogger
 
   private[this] var _apis = List.empty[LiftApiModule]
-  def apis = _apis
+  def apis() = _apis
   def addModule(module: LiftApiModule): Unit = {
     _apis = _apis :+ module
   }

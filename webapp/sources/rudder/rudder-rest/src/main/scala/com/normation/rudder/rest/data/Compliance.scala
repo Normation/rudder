@@ -37,13 +37,7 @@
 
 package com.normation.rudder.rest.data
 
-import com.normation.rudder.domain.policies.RuleId
 import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
-import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.domain.policies.DirectiveId

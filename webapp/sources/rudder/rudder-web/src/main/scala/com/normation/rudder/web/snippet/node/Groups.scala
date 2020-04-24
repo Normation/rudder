@@ -51,7 +51,6 @@ import com.normation.rudder.repository._
 import com.normation.rudder.web.components.NodeGroupCategoryForm
 import com.normation.rudder.web.components.NodeGroupForm
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
-import com.normation.rudder.web.model._
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.services.DisplayNodeGroupTree
 import net.liftweb.common._

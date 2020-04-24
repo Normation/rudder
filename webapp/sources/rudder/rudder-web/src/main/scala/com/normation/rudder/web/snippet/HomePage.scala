@@ -59,11 +59,7 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.SearchRequest
-import com.normation.inventory.domain.VirtualMachineType
-import com.normation.inventory.domain.PhysicalMachineType
-import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.logger.ComplianceLogger
-import com.unboundid.ldap.sdk.controls.MatchedValuesRequestControl
 import com.unboundid.ldap.sdk.controls.MatchedValuesFilter
 import com.unboundid.ldap.sdk.controls.MatchedValuesRequestControl
 import net.liftweb.common._

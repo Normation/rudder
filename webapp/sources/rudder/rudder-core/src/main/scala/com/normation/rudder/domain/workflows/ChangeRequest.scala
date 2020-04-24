@@ -38,7 +38,6 @@
 package com.normation.rudder.domain.workflows
 
 import org.joda.time.DateTime
-import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.nodes._
 import com.normation.eventlog.EventActor

@@ -54,7 +54,6 @@ import org.slf4j.LoggerFactory
 import doobie.util.log.ExecFailure
 import doobie.util.log.ProcessingFailure
 import doobie.postgres.implicits._ // it is necessary whatever intellij/scalac tells
-import doobie._
 import doobie.implicits.javasql._
 import cats.data._
 import cats.effect.{IO => _, _}

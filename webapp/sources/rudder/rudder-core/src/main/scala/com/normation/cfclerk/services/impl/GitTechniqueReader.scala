@@ -68,7 +68,6 @@ import zio.syntax._
 import GitTechniqueReader._
 import com.normation.rudder.domain.logger.TechniqueReaderLoggerPure
 import org.eclipse.jgit.lib.Repository
-import com.github.ghik.silencer.silent
 import org.eclipse.jgit.lib.ObjectStream
 
 
@@ -200,7 +199,7 @@ class GitTechniqueReader(
                             )
                         }
     } yield res
-  ).flatMap(Ref.make(_)).runNow: @silent("a type was inferred to be `Any`") // yes, that's what we want
+  ).flatMap(Ref.make(_)).runNow
 
   private[this] val nextTechniquesInfoCache: Ref[(ObjectId,TechniquesInfo)] = {
     (for {
@@ -416,7 +415,7 @@ class GitTechniqueReader(
    * to modifiedTechniques does nothing, even if some
    * commit were done in git repository.
    */
-  override def readTechniques : TechniquesInfo = {
+  override def readTechniques(): TechniquesInfo = {
     semaphore.withPermit(
       for {
         needed <- needReloadPure

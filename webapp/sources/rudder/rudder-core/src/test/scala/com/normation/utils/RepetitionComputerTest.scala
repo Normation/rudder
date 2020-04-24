@@ -38,11 +38,9 @@
 package com.normation.utils
 
 import org.junit.Test;
-import org.junit._
 
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
-import org.joda.time.format._
 
 import org.joda.time.{Days => _, _ }
 import org.joda.time.format._

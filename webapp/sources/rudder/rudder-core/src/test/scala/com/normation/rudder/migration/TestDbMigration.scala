@@ -126,7 +126,7 @@ class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
   var logs5WithId : Map[String,MigrationTestLog] = null //init in initDb
   var logs6WithId : Seq[MigrationTestLog] = null
 
-  override def initDb = {
+  override def initDb() = {
     super.initDb
 
     def insertLog(log: MigrationTestLog): Int = {

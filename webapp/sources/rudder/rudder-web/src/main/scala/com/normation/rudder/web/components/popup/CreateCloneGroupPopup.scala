@@ -1,7 +1,6 @@
 package com.normation.rudder.web.components.popup
 
 import com.normation.rudder.domain.nodes._
-import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js._
 import JsCmds._
 import com.normation.inventory.domain.NodeId

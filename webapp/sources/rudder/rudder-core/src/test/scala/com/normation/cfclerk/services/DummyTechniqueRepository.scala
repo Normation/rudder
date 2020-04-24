@@ -91,7 +91,7 @@ class DummyTechniqueRepository(policies: Seq[Technique] = Seq()) extends Techniq
 
   override def getByName(policyName: TechniqueName) = ???
 
-  override def getTechniquesInfo = ???
+  override def getTechniquesInfo() = ???
 
   override def getTechniqueVersions(name:TechniqueName) : SortedSet[TechniqueVersion] = SortedSet.empty[TechniqueVersion]
 

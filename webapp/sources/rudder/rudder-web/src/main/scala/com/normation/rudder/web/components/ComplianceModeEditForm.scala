@@ -37,7 +37,6 @@
 
 package com.normation.rudder.web.components
 
-import net.liftweb.http.DispatchSnippet
 import net.liftweb.common._
 import net.liftweb.http.{S, SHtml}
 import net.liftweb.http.DispatchSnippet
@@ -47,13 +46,10 @@ import JE._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ComplianceModeName
-import net.liftweb.json.JsonAST._
-import com.normation.rudder.reports.ComplianceMode
-import com.normation.rudder.reports.GlobalComplianceMode
-import com.normation.rudder.reports.NodeComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.NodeComplianceMode
 import com.normation.rudder.web.ChooseTemplate
+import net.liftweb.json.JsonAST._
 
 import scala.xml.NodeSeq
 

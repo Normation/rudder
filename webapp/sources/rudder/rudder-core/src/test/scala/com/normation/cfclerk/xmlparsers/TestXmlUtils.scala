@@ -41,7 +41,6 @@ import com.normation.cfclerk.domain.LoadTechniqueError
 
 import scala.xml._
 import org.junit.Test
-import org.junit._
 import org.junit.Assert._
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner

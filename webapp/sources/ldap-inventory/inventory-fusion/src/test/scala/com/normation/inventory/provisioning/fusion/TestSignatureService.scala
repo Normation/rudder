@@ -39,7 +39,6 @@ package com.normation.inventory.provisioning.fusion
 import java.io.InputStream
 import java.security.Security
 
-import com.normation.errors._
 import com.normation.inventory.domain.InventoryError
 import com.normation.inventory.domain.InventoryReport
 import com.normation.errors._

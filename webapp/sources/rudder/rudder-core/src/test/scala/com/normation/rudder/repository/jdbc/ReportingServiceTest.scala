@@ -37,11 +37,6 @@
 
 package com.normation.rudder.repository.jdbc
 
-import org.joda.time.DateTime
-import org.joda.time.Duration
-import org.junit.runner.RunWith
-import org.specs2.runner.JUnitRunner
-import net.liftweb.common.Full
 import com.normation.BoxSpecMatcher
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueName
@@ -73,7 +68,6 @@ import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
 import com.normation.rudder.services.reports.DefaultFindRuleNodeStatusReports
 import com.normation.rudder.services.reports.NodeChangesServiceImpl
 import com.normation.rudder.services.reports.ReportingServiceImpl
-import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 import doobie.implicits._
 import net.liftweb.common.Box
 import net.liftweb.common.Empty

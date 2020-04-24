@@ -26,6 +26,7 @@ import com.unboundid.ldap.sdk.LDAPInterface
 import com.unboundid.ldap.sdk.LDAPResult
 import com.unboundid.ldap.sdk.ResultCode
 import com.unboundid.ldap.sdk.ChangeType
+import com.unboundid.ldap.sdk.Control
 import com.unboundid.util.ByteStringBuffer
 
 final case class LDIFNoopChangeRecord(dn:DN) extends LDIFChangeRecord(dn.toString, null) {
@@ -44,4 +45,6 @@ final case class LDIFNoopChangeRecord(dn:DN) extends LDIFChangeRecord(dn.toStrin
     buffer.append("NoopChangeRecord:").append(dn.toString)
     () // unit is expected
   }
+
+  override def duplicate(controls: Control*): LDIFChangeRecord = LDIFNoopChangeRecord(dn)
 }

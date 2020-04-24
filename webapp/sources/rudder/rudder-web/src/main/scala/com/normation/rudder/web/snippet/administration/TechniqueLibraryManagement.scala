@@ -784,7 +784,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   private[this] def reloadTechniqueLibrary(isTechniqueLibraryPage : Boolean) : NodeSeq = {
 
       def initJs = SetHtml("techniqueLibraryUpdateInterval" , <span>{updateTecLibInterval}</span>)
-      def process = {
+      def process() = {
         val createNotification = updatePTLibService.update(ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("Technique library reloaded by user")) match {
           case Full(x) =>
             JsRaw("""createSuccessNotification("The Technique library was successfully reloaded")""")

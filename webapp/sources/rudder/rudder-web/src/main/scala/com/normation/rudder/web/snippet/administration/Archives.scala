@@ -87,7 +87,7 @@ class Archives extends DispatchSnippet with Loggable {
       , archiveErrorMessage       = "Error when exporting groups, Directive library and Rules."
       , archiveSuccessDebugMessage= s => "Exporting groups, Directive library and Rules on user request, archive id: %s".format(s)
       , archiveDateSelectId       = "importAllSelect"
-      , archiveListFunction       = itemArchiver.getFullArchiveTags _
+      , archiveListFunction       = () => itemArchiver.getFullArchiveTags
       , restoreButtonId           = "importAllButton"
       , restoreButtonName         = "Restore everything"
       , restoreFunction           = itemArchiver.importAll
@@ -108,7 +108,7 @@ class Archives extends DispatchSnippet with Loggable {
       , archiveErrorMessage       = "Error when exporting Rules."
       , archiveSuccessDebugMessage= s => "Exporting Rules on user request, archive id: %s".format(s)
       , archiveDateSelectId       = "importRulesSelect"
-      , archiveListFunction       = itemArchiver.getRulesTags _
+      , archiveListFunction       = () => itemArchiver.getRulesTags
       , restoreButtonId           = "importRulesButton"
       , restoreButtonName         = "Restore Rules"
       , restoreFunction           = itemArchiver.importRules
@@ -129,7 +129,7 @@ class Archives extends DispatchSnippet with Loggable {
       , archiveErrorMessage       = "Error when exporting Directive library."
       , archiveSuccessDebugMessage= s => "Exporting Directive library on user request, archive id: %s".format(s)
       , archiveDateSelectId       = "importDirectiveLibrarySelect"
-      , archiveListFunction       = itemArchiver.getTechniqueLibraryTags _
+      , archiveListFunction       = () => itemArchiver.getTechniqueLibraryTags
       , restoreButtonId           = "importDirectiveLibraryButton"
       , restoreButtonName         = "Restore Directive library"
       , restoreFunction           = itemArchiver.importTechniqueLibrary
@@ -150,7 +150,7 @@ class Archives extends DispatchSnippet with Loggable {
       , archiveErrorMessage       = "Error when exporting groups."
       , archiveSuccessDebugMessage= s => "Exporting groups on user request, archive id: %s".format(s)
       , archiveDateSelectId       = "importGroupLibrarySelect"
-      , archiveListFunction       = itemArchiver.getGroupLibraryTags _
+      , archiveListFunction       = () => itemArchiver.getGroupLibraryTags
       , restoreButtonId           = "importGroupLibraryButton"
       , restoreButtonName         = "Restore groups"
       , restoreFunction           = itemArchiver.importGroupLibrary
