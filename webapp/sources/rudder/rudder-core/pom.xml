@@ -107,6 +107,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <groupId>org.scala-lang.modules</groupId>
       <artifactId>scala-parser-combinators_${scala-binary-version}</artifactId>
     </dependency>
+    <dependency>
+        <groupId>com.lihaoyi</groupId>
+        <artifactId>fastparse_${scala-binary-version}</artifactId>
+        <version>2.2.4</version>
+    </dependency>
 
     <dependency>
       <groupId>commons-io</groupId>

@@ -44,9 +44,78 @@ import org.specs2.runner._
 @RunWith(classOf[JUnitRunner])
 class TechniqueVersionTest extends Specification {
 
+  sequential
+
+  "parse version" >> {
+    import Separator._
+    import PartType._
+    import VersionPart._
+    def parse(s: String) = ParseVersion.parse(s).getOrElse(throw new RuntimeException(s"Can not parse: ${s}"))
+
+    parse("1.0") === Version(0, Numeric(1), After(Dot, Numeric(0)) :: Nil)
+    parse("1.0-alpha10") === Version(0,
+        Numeric(1)
+      , After(Dot, Numeric(0)) ::
+        Before(Minus, Alpha("alpha")) ::
+        After(None, Numeric(10)) ::
+        Nil
+    )
+    parse("1.1.0") === Version(0,
+        Numeric(1)
+      , After(Dot, Numeric(1)) ::
+        After(Dot, Numeric(0)) ::
+        Nil
+    )
+    parse("2.0") === Version(0,
+        Numeric(2)
+      , After(Dot, Numeric(0)) ::
+        Nil
+    )
+    parse("1~~a") === Version(0,
+        Numeric(1)
+      , Before(Tilde, Chars("")) ::
+        Before(Tilde, Chars("a")) ::
+        Nil
+    )
+    parse("1~~") === Version(0,
+        Numeric(1)
+      , Before(Tilde, Chars("")) ::
+        Before(Tilde, Chars("")) ::
+        Nil
+    )
+  }
+
+
+  "Different sizes" should {
+    increasingVersions("1.0", "1.0.1")
+    increasingVersions("1", "1.0.0.0.0.0.1")
+  }
+
+  "numbered preversion" should {
+    increasingVersions("1.0-alpha5", "1.0-alpha10")
+    increasingVersions("1.0-SNAPSHOT", "1.0-alpha1")
+    increasingVersions("1.0-beta1", "1.0-rc1")
+  }
+
+  "preversion" should {
+    increasingVersions("1.0-alpha5", "1.0")
+    increasingVersions("1.0-SNAPSHOT", "1.0")
+    increasingVersions("1.0-beta1", "1.0")
+    increasingVersions("1.0~anything", "1.0")
+    increasingVersions("1.0~1", "1.0")
+  }
+
+  "number and char without separators" should {
+    increasingVersions("1.release3", "1.release10")
+    increasingVersions("1.3b", "1.10a")
+  }
+
   "Two clearly differents versions" should {
-    increasingVersions("0:1~", "2.2.0~beta1")
-    increasingVersions("0:1~", "1:0")
+    increasingVersions("0:1~0", "2.2.0~beta1")
+    increasingVersions("0:1~1", "1:0")
+    increasingVersions("1.0", "1.1")
+    increasingVersions("1.0", "1.0.1")
+    increasingVersions("1.1.0", "2.0")
   }
 
   "Slighty increasing versions after ~" should {
@@ -74,7 +143,7 @@ class TechniqueVersionTest extends Specification {
 
   "Invalid version" should {
 
-    val msg1 = "The epoch value has to be an unsigned integer"
+    val msg1 = "The version format of a technique should be : [epoch:]upstream_version"
     "throw a TechniqueVersionFormatException : %s".format(msg1) in {
       TechniqueVersion("a:18") must throwA[TechniqueVersionFormatException].like { case e => e.getMessage must contain(msg1) }
     }
