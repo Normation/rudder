@@ -415,7 +415,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
                     logPure.debug(s"NodeInfo cache is up to date, ${nodeCache.map(c => s"last modification time: '${c.lastModTime}' for: '${c.lastModEntryCSN.mkString("','")}'").getOrElse("")}") *>
                     (nodeCache match {
                       case Some(cache) => cache.nodeInfos.succeed
-                      case None => Inconsistancy("When trying to access Node information from cache was empty, but it should not, this is a developper issue, please open an issue on https://issues.rudder.io").fail
+                      case None => Inconsistency("When trying to access Node information from cache was empty, but it should not, this is a developper issue, please open an issue on https://issues.rudder.io").fail
                     })
                   }
         res    <- useCache(info)
