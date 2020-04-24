@@ -198,6 +198,20 @@ html,body{
 }
 
 /* WITH ERRORS */
+.cmd-server {
+  position: relative;
+  padding: 0 5px;
+  margin-top:10px;
+  border-radius: 3px;
+  font: .75em/2 Consolas,monospace;
+  color: #274466;
+  white-space: nowrap;
+  background-color: #eff7ff;
+  display: inline-block;
+}
+.cmd-text {
+  color: #0366d6;
+}
 .rudder-form .form-group.has-error label {
     color: #C50000;
 }
