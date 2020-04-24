@@ -62,7 +62,7 @@ case class DynGroupDiff(
 object DynGroupDiff {
   def apply(newGroup : NodeGroup, oldGroup : NodeGroup): DynGroupDiff = {
     val plus = newGroup.serverList -- oldGroup.serverList
-    val minus = newGroup.serverList -- newGroup.serverList
+    val minus = oldGroup.serverList -- newGroup.serverList
     DynGroupDiff(newGroup.serverList, minus, plus)
   }
 }
