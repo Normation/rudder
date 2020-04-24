@@ -16,6 +16,14 @@
 #
 #####################################################################################
 
+# Used in Rudder tests
+body package_module test
+{
+      query_installed_ifelapsed => "$(ncf_def.package_module_query_installed_ifelapsed)";
+      query_updates_ifelapsed => "$(ncf_def.package_module_query_updates_ifelapsed)";
+      #default_options =>  {};
+}
+
 # Called by package_* generic methods
 bundle agent ncf_package(name, version, architecture, provider, state, options)
 {

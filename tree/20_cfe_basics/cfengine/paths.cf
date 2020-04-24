@@ -59,12 +59,17 @@ bundle common paths
 # **Example:**
 #
 # ```cf3
-# bundle agent repair_newlines(filename)
+# bundle agent no_carriage_returns(filename)
 # {
 # commands:
 #   _stdlib_path_exists_sed::
-#      "$(path[sed])"
-#        args => "-i 's/^M//' $(filename)"
+#      "$(paths.sed)" -> { "CFE-3216" }
+#        args => "-i 's/^M//' $(filename)",
+#        comment => "Preferred reference style";
+#
+#      "$(paths[sed])"
+#        args => "-i 's/^M//' $(filename)",
+#        comment => "Alternate array reference style";
 # }
 # ```
 {
@@ -117,10 +122,11 @@ bundle common paths
     !_have_bin_timedatectl::
       "path[timedatectl]"    string => "/usr/bin/timedatectl";
 
-
     linux::
       "path[lsattr]"        string => "/usr/bin/lsattr";
       "path[tar]"           string => "/bin/tar";
+      "path[true]"          string => "/bin/true";
+      "path[false]"         string => "/bin/false";
       "path[pgrep]"         string => "/usr/bin/pgrep";
       "path[getent]"        string => "/usr/bin/getent";
       "path[mailx]"         string => "/usr/bin/mailx";
@@ -346,6 +352,7 @@ bundle common paths
       "path[ethtool]"       string => "/usr/sbin/ethtool";
       "path[find]"          string => "/usr/bin/find";
       "path[free]"          string => "/usr/bin/free";
+      "path[getenforce]"    string => "/usr/sbin/getenforce";
       "path[grep]"          string => "/bin/grep";
       "path[hostname]"      string => "/bin/hostname";
       "path[init]"          string => "/sbin/init";
@@ -358,7 +365,9 @@ bundle common paths
       "path[ping]"          string => "/usr/bin/ping";
       "path[perl]"          string => "/usr/bin/perl";
       "path[printf]"        string => "/usr/bin/printf";
+      "path[restorecon]"    string => "/sbin/restorecon";
       "path[sed]"           string => "/bin/sed";
+      "path[semanage]"      string => "/usr/sbin/semanage";
       "path[sort]"          string => "/bin/sort";
       "path[test]"          string => "/usr/bin/test";
       "path[tr]"            string => "/usr/bin/tr";
@@ -376,8 +385,8 @@ bundle common paths
       "path[service]"   string => "/sbin/service";
       "path[svc]"       string => "/sbin/service";
       "path[useradd]"   string => "/usr/sbin/useradd";
-      "path[usermod]"   string => "/usr/sbin/usermod";
       "path[userdel]"   string => "/usr/sbin/userdel";
+      "path[usermod]"   string => "/usr/sbin/usermod";
       "path[yum]"       string => "/usr/bin/yum";
 
     darwin::
@@ -438,6 +447,7 @@ bundle common paths
       "path[ethtool]"       string => "/sbin/ethtool";
       "path[find]"          string => "/usr/bin/find";
       "path[free]"          string => "/usr/bin/free";
+      "path[getenforce]"    string => "/usr/sbin/getenforce";
       "path[grep]"          string => "/bin/grep";
       "path[hostname]"      string => "/bin/hostname";
       "path[init]"          string => "/sbin/init";
@@ -450,7 +460,9 @@ bundle common paths
       "path[ping]"          string => "/bin/ping";
       "path[perl]"          string => "/usr/bin/perl";
       "path[printf]"        string => "/usr/bin/printf";
+      "path[restorecon]"    string => "/sbin/restorecon";
       "path[sed]"           string => "/bin/sed";
+      "path[semanage]"      string => "/usr/sbin/semanage";
       "path[sort]"          string => "/usr/bin/sort";
       "path[test]"          string => "/usr/bin/test";
       "path[tr]"            string => "/usr/bin/tr";
@@ -489,6 +501,52 @@ bundle common paths
 
     !(suse|sles)::
       "path[logger]"        string => "/usr/bin/logger";
+
+    opensuse::
+      "path[ls]"        string => "/usr/bin/ls";
+      "path[lsof]"      string => "/usr/bin/lsof";
+      "path[awk]"       string => "/usr/bin/awk";
+      "path[cat]"       string => "/usr/bin/cat";
+      "path[cksum]"     string => "/usr/bin/cksum";
+      "path[crontab]"   string => "/usr/bin/crontab";
+      "path[curl]"      string => "/usr/bin/curl";
+      "path[cut]"       string => "/usr/bin/cut";
+      "path[df]"        string => "/usr/bin/df";
+      "path[diff]"      string => "/usr/bin/diff";
+      "path[dig]"       string => "/usr/bin/dig";
+      "path[dmidecode]" string => "/usr/sbin/dmidecode";
+      "path[echo]"      string => "/usr/bin/echo";
+      "path[egrep]"     string => "/usr/bin/egrep";
+      "path[ethtool]"   string => "/usr/sbin/ethtool";
+      "path[find]"      string => "/usr/bin/find";
+      "path[free]"      string => "/usr/bin/free";
+      "path[grep]"      string => "/usr/bin/grep";
+      "path[hostname]"  string => "/usr/bin/hostname";
+      "path[init]"      string => "/sbin/init";
+      "path[iptables]"  string => "/usr/sbin/iptables";
+      "path[ls]"        string => "/usr/bin/ls";
+      "path[lsof]"      string => "/usr/bin/lsof";
+      "path[nologin]"   string => "/sbin/nologin";
+      "path[ping]"      string => "/usr/bin/ping";
+      "path[perl]"      string => "/usr/bin/perl";
+      "path[printf]"    string => "/usr/bin/printf";
+      "path[sed]"       string => "/usr/bin/sed";
+      "path[sort]"      string => "/usr/bin/sort";
+      "path[test]"      string => "/usr/bin/test";
+      "path[tr]"        string => "/usr/bin/tr";
+      "path[logger]"    string => "/usr/bin/logger";
+      "path[wget]"      string => "/usr/bin/wget";
+      "path[chkconfig]" string => "/sbin/chkconfig";
+      "path[groupadd]"  string => "/usr/sbin/groupadd";
+      "path[groupdel]"  string => "/usr/sbin/groupdel";
+      "path[groupmod]"  string => "/usr/sbin/groupmod";
+      "path[ip]"        string => "/sbin/ip";
+      "path[rpm]"       string => "/usr/bin/rpm";
+      "path[service]"   string => "/sbin/service";
+      "path[useradd]"   string => "/usr/sbin/useradd";
+      "path[userdel]"   string => "/usr/sbin/userdel";
+      "path[usermod]"   string => "/usr/sbin/usermod";
+      "path[zypper]"    string => "/usr/bin/zypper";
 
     suse|sles::
 

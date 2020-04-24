@@ -120,7 +120,7 @@ body service_method standard_services
 #       service_method => standard_services;
 # ```
 {
-        service_bundle => standard_services( $(this.promiser), $(this.service_policy) );
+        service_bundle => default:standard_services( $(this.promiser), $(this.service_policy) );
 }
 
 ##
@@ -169,8 +169,15 @@ bundle agent standard_services(service,state)
   vars:
       "call_systemctl" string => "$(paths.systemctl) --no-ask-password --global --system";
       "systemd_properties" string => "-pLoadState,CanStop,UnitFileState,ActiveState,LoadState,CanStart,CanReload";
-      "init" string => "/etc/init.d/$(service)";
       "c_service" string => canonify("$(service)");
+
+    freebsd::
+      "init" string => ifelse(fileexists("/usr/local/etc/rc.d/$(service)"),
+                              "/usr/local/etc/rc.d/$(service)",
+                              "/etc/rc.d/$(service)");
+
+    !freebsd::
+      "init" string => "/etc/init.d/$(service)";
 
     start|restart|reload::
       "chkconfig_mode" string => "on";
@@ -231,7 +238,8 @@ bundle agent standard_services(service,state)
       "service_enabled" expression => reglist(@(systemd_service_info), "UnitFileState=enabled");
       "service_enabled" -> { "CFE-2923" }
         expression => returnszero( "$(call_systemctl) is-enabled $(service) > /dev/null 2>&1", useshell);
-      "service_active"  expression => reglist(@(systemd_service_info), "ActiveState=active");
+      "service_active" -> { "CFE-3238" }
+        expression => reglist(@(systemd_service_info), "ActiveState=(active|activating)");
       "service_loaded"  expression => reglist(@(systemd_service_info), "LoadState=loaded");
       "service_notfound" expression => reglist(@(systemd_service_info), "LoadState=not-found");
 

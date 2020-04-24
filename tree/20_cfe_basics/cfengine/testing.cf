@@ -281,11 +281,11 @@ bundle agent testing_generic_report(format, outfile)
       "$(this.bundle): TAP report results summary: $(tap_results_info)";
 }
 
+bundle agent testing_tap_bailout(reason)
 # @brief Bail out in TAP format **immediately**
 # @param reason the bailout reason
 #
 # **See also:** `testing_tap_report`, `testing_ok_if`, `testing_todo`, `testing_skip`, and `testing_ok`
-bundle agent testing_tap_bailout(reason)
 {
   reports:
       "$(const.n)Bail out! $(reason)";

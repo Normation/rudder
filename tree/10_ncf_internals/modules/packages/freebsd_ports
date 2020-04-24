@@ -75,8 +75,17 @@ Architecture=none/'
 
 remove() {
   name="${INPUT_Name?Name must be given to remove}"
-  BATCH=1
-  cd $(whereis -sq "$name")
+  export BATCH=1
+
+  PORT_PATH=$(whereis -sq "$name")
+
+  if [ -z "$PORT_PATH" ]
+  then
+    echo "ErrorMessage=Could not remove $name, port does not exist"
+    exit 0
+  fi
+
+  cd "$PORT_PATH"
   make deinstall >&2
 }
 

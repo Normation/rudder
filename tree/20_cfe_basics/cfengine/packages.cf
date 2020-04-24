@@ -63,7 +63,7 @@ bundle common package_module_knowledge
     redhat|amazon_linux::
       "platform_default" string => "yum";
 
-    suse|sles::
+    suse|sles|opensuse::
       "platform_default" string => "zypper";
 
     aix::
@@ -71,26 +71,27 @@ bundle common package_module_knowledge
 
     slackware::
       "platform_default" string => "slackpkg";
+
+      # CFEngine 3.12.2+ and 3.14+ have new package module on Windows
+    windows.cfengine_3_12.!(cfengine_3_12_0|cfengine_3_12_1)::
+      "platform_default" string => "msiexec";
+@if minimum_version(3.14)
+    windows::
+      "platform_default" string => "msiexec";
+@endif
 }
 
 body package_module apt_get
 {
-    query_installed_ifelapsed => "60";
-    query_updates_ifelapsed => "240";
+    query_installed_ifelapsed => "$(ncf_def.package_module_query_installed_ifelapsed)";
+    query_updates_ifelapsed => "$(ncf_def.package_module_query_updates_ifelapsed)";
     #default_options =>  {};
 }
 
 body package_module zypper
 {
-      query_installed_ifelapsed => "60";
-      query_updates_ifelapsed => "240";
-      #default_options =>  {};
-}
-
-body package_module zypper_pattern
-{
-      query_installed_ifelapsed => "60";
-      query_updates_ifelapsed => "240";
+      query_installed_ifelapsed => "$(ncf_def.package_module_query_installed_ifelapsed)";
+      query_updates_ifelapsed => "$(ncf_def.package_module_query_updates_ifelapsed)";
       #default_options =>  {};
 }
 
@@ -111,9 +112,8 @@ body package_module nimclient
 # }
 # ```
 {
-    query_installed_ifelapsed => "60";
-    query_updates_ifelapsed => "14400";
-
+    query_installed_ifelapsed => "$(ncf_def.package_module_query_installed_ifelapsed)";
+    query_updates_ifelapsed => "$(ncf_def.package_module_query_updates_ifelapsed)";
     # This would likey be customized based on your infrastructure specifics
     # you may for example want to default the lpp_source based on something
     # like `oslevel -s` output.
@@ -134,31 +134,41 @@ body package_module pkgsrc
 # }
 # ```
 {
-    query_installed_ifelapsed => "60";
-    query_updates_ifelapsed => "14400";
+    query_installed_ifelapsed => "$(ncf_def.package_module_query_installed_ifelapsed)";
+    query_updates_ifelapsed => "$(ncf_def.package_module_query_updates_ifelapsed)";
 }
 
 body package_module yum
+# @brief Define details used when interfacing with yum
 {
-    query_installed_ifelapsed => "60";
-    query_updates_ifelapsed => "240";
+    query_installed_ifelapsed => "$(ncf_def.package_module_query_installed_ifelapsed)";
+    query_updates_ifelapsed => "$(ncf_def.package_module_query_updates_ifelapsed)";
     #default_options => {};
 }
 
 body package_module slackpkg
+# @brief Define details used when interfacing with slackpkg
 {
-      query_installed_ifelapsed => "60";
-      query_updates_ifelapsed => "240";
+      query_installed_ifelapsed => "$(ncf_def.package_module_query_installed_ifelapsed)";
+      query_updates_ifelapsed => "$(ncf_def.package_module_query_updates_ifelapsed)";
       #default_options =>  {};
 }
 
 body package_module pkg
+# @brief Define details used when interfacing with pkg
 {
-    query_installed_ifelapsed => "60";
-    query_updates_ifelapsed => "240";
+    query_installed_ifelapsed => "$(ncf_def.package_module_query_installed_ifelapsed)";
+    query_updates_ifelapsed => "$(ncf_def.package_module_query_updates_ifelapsed)";
     #default_options => {};
 }
 
+body package_module snap
+# @brief Define details used when interfacing with snapcraft
+{
+    query_installed_ifelapsed => "$(ncf_def.package_module_query_installed_ifelapsed)";
+    query_updates_ifelapsed => "$(ncf_def.package_module_query_updates_ifelapsed)";
+    #default_options => {};
+}
 
 body package_module freebsd_ports
 # @brief Define details used when interfacing with the freebsd ports package
@@ -180,19 +190,12 @@ body package_module freebsd_ports
 # }
 # ```
 {
-    query_installed_ifelapsed => "60";
-    query_updates_ifelapsed => "240";
-}
-
-body package_module test
-{
-    query_installed_ifelapsed => "60";
-    query_updates_ifelapsed => "240";
-    default_options => { "$(G.testfile)" };
+    query_installed_ifelapsed => "$(ncf_def.package_module_query_installed_ifelapsed)";
+    query_updates_ifelapsed => "$(ncf_def.package_module_query_updates_ifelapsed)";
 }
 
 bundle common packages_common
-# @ignore
+# @brief Define inputs required for this policy file
 {
   vars:
       "inputs" slist => {
@@ -203,7 +206,7 @@ bundle common packages_common
 }
 
 body file control
-# @ignore
+# @brief include policy needed by this file
 {
       inputs => { @(packages_common.inputs) };
 }
