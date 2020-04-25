@@ -2186,9 +2186,5 @@ object RudderConfig extends Loggable {
                   )
     _          <- cron.start
   } yield ()
-  // start node count historization
-  ZioRuntime.runNowLogError(err =>
-    ScheduledJobLoggerPure.metrics.error(s"Error when starting node count historization batch: ${err.fullMsg}")
-  )(RudderConfig.historizeNodeCountBatch)
 
 }
