@@ -128,6 +128,7 @@ final case class MethodParameter(
 final case class TechniqueParameter (
     id   : ParameterId
   , name : ParameterId
+  , description : String
 )
 
 object ParameterType {
@@ -304,6 +305,7 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
     def serializeTechniqueParameter(parameter : TechniqueParameter) : JValue = {
       ( ( "id"   -> parameter.id.value   )
         ~ ( "name" -> parameter.name.value )
+        ~ ( "description" -> parameter.description )
         )
     }
     def serializeMethodCall(call : MethodCall) : JValue = {

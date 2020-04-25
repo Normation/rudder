@@ -33,11 +33,11 @@
       <INPUT>
         <NAME>PACKAGE_VERSION</NAME>
         <DESCRIPTION>version</DESCRIPTION>
+        <LONGDESCRIPTION>Package version to install</LONGDESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
           <MAYBEEMPTY>false</MAYBEEMPTY>
         </CONSTRAINT>
-        <LONGDESCRIPTION></LONGDESCRIPTION>
       </INPUT>
     </SECTION>
   </SECTIONS>
