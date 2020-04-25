@@ -828,11 +828,9 @@ function generateMarkdown(text, container) {
 function setupMarkdown(initialValue, id) {
   $("#" + id + " textarea").keyup(function() {
     var value = $(this).val()
-    console.log(value)
     generateMarkdown(value,"#" + id + "Markdown")
     generateMarkdown(value,"#" + id + "PreviewMarkdown")
 
-    console.log($("#" + id + "Markdown"))
     if (value.length === 0) {
       $("#" + id + "MarkdownEmpty").show();
     } else {
