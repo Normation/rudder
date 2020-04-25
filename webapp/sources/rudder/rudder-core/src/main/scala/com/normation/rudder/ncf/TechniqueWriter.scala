@@ -207,11 +207,11 @@ class TechniqueWriter (
       <INPUT>
         <NAME>{parameter.id.value.toUpperCase()}</NAME>
         <DESCRIPTION>{parameter.name.value}</DESCRIPTION>
+        <LONGDESCRIPTION>{parameter.description}</LONGDESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
           <MAYBEEMPTY>false</MAYBEEMPTY>
         </CONSTRAINT>
-        <LONGDESCRIPTION></LONGDESCRIPTION>
       </INPUT>
     }
     // Regroup method calls from which we expect a reporting
@@ -395,7 +395,9 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
       s"""# @name ${technique.name}
          |# @description ${technique.description.replaceAll("\\R", "\n# ")}
          |# @version ${technique.version.value}
-         |${technique.parameters.map(p =>s"""# @parameter { "name": "${p.name.value}", "id": "${p.id.value}" }""" ).mkString("\n")}
+         |${technique.parameters.map(
+              p =>
+                s"""# @parameter { "name": "${p.name.value}", "id": "${p.id.value}", "description", "${p.description.replaceAll("\\R", "\n# ") }" }""" ).mkString("\n")}
          |
          |bundle agent ${technique.bundleName.value}${bundleParams}
          |{
