@@ -412,10 +412,14 @@
                             <div ng-if="param.name">
                               <div class="use-with"><span>{{'${'+getBundleName(param.name)+'}'}}</span></div>
                               <div class="full-name"><span>{{selectedTechnique.bundle_name+'.'+getBundleName(param.name)}}</span></div>
+
                             </div>
                             <div ng-if="!param.name">
                               <div class="empty-name">Set a parameter name</div>
                             </div>
+                            <button class="btn btn-sm btn-outline-primary" style="margin-top:5px;" ng-click="toggleParameterDescription(param)">Description <i class="fa" ng-class="parameterDescriptionOpened(param) ? 'fa-times' : 'fa-pen'" ></i><i class="fa times"></i> </button>
+
+                            <textarea ng-show="parameterDescriptionOpened(param)" style="margin-top:10px;" class="form-control" msd-elastic rows="1" ng-model="param.description"> </textarea>
                           </div>
                           <div class="col-auto remove-item" ng-click="selectedTechnique.parameter.splice($index,1)">
                             <i class="fa fa-times"></i>
@@ -527,16 +531,16 @@
                             </div>
 
                             <div class="method-content">
-                              <div class="method-param col-auto flex-form"  ng-if="getClassParameter(method_call).value && checkMissingParameters(method_call.parameters).length<=0 && checkErrorParameters(method_call.parameters).length<=0">
+                              <div class="method-param col-auto flex-form"  ng-if="getClassParameter(method_call).value && checkMissingParameters(method_call.parameters, method.parameter).length<=0 && checkErrorParameters(method_call.parameters).length<=0">
                                 <label>{{getClassParameter(method_call).name | parameterName}}: </label>
                                 <textarea class="form-control" msd-elastic rows="1" ng-model="getClassParameter(method_call).value" ng-readonly="true" ng-click="$event.stopPropagation();"></textarea>
                               </div>
                               <div ng-form="arg_method" ng-repeat="parameter in method_call.parameters  track by $index" class="method-errors col-auto">
-                                <input ng-hide="true" type="text" name="param" ng-model="parameter.value" constraint parameter="parameter">
+                                <input ng-hide="true" type="text" name="param" ng-model="parameter.value" constraint parameter="parameter" parameterinfo="(method.parameter[$index])" >
                               </div>
-                              <div class="warns" ng-if="!getClassParameter(method_call).value || checkMissingParameters(method_call.parameters).length>0 || checkErrorParameters(method_call.parameters).length>0">
+                              <div class="warns" ng-if="!getClassParameter(method_call).value || checkMissingParameters(method_call.parameters, method.parameter).length>0 || checkErrorParameters(method_call.parameters).length>0">
                                 <span class="warn-param warning"
-                                  uib-tooltip="{{getWarningTooltipMessage(checkMissingParameters(method_call.parameters))}}"
+                                  uib-tooltip="{{getWarningTooltipMessage(checkMissingParameters(method_call.parameters, method.parameter))}}"
                                   tooltip-placement="top"
                                   tooltip-trigger="mouseenter"
                                   popup-open-delay="300"

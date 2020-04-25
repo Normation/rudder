@@ -175,12 +175,13 @@ app.controller('ncf-builder', function ($scope, $uibModal, $http, $q, $location,
 
   //UI state
   $scope.ui = {
-    showTechniques    : true,
-    activeTab         : 'general',
-    showMethodsFilter : true,
-    methodTabs        : {},
-    selectedMethods   : [],
-    editForm          : {}
+    showTechniques         : true
+  , activeTab              : 'general'
+  , showMethodsFilter      : true
+  , methodTabs             : {}
+  , selectedMethods        : []
+  , editForm               : {}
+  , openedParamDescription : []
   }
   // Path of ncf files, defined as a url parameter
   $scope.path;
@@ -773,6 +774,7 @@ $scope.onImportFileChange = function (fileEl) {
     $scope.resetFlags();
     // Always clean Selected methods and display methods list
     $scope.ui.selectedMethods = [];
+    $scope.ui.openedParamDescription = [];
     // Check if that technique is the same as the original selected one
     var test1 = angular.copy($scope.originalTechnique)
     var test2 = angular.copy(technique)
@@ -947,6 +949,20 @@ $scope.onImportFileChange = function (fileEl) {
       $scope.ui.selectedMethods.push(method_call);
     }
   };
+
+  // toggle description of a technique parameter
+  $scope.toggleParameterDescription = function(parameter) {
+    if($scope.parameterDescriptionOpened(parameter)){
+      $scope.ui.openedParamDescription = $scope.ui.openedParamDescription.filter(function(elem) { return elem !== parameter.id})
+      $timeout( function() {$anchorScroll();}, 0 , false)
+    } else {
+      $scope.ui.openedParamDescription.push(parameter.id);
+    }
+  };
+
+  $scope.parameterDescriptionOpened = function(parameter) {
+    return $scope.ui.openedParamDescription.includes(parameter.id)
+  }
 
   function toMethodCall(bundle) {
     var original_index = undefined;
