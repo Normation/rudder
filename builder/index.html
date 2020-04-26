@@ -389,6 +389,16 @@
                                 <b><span class="glyphicon glyphicon-exclamation-sign"></span></b> Technique IDs longer than 100 characters may not work on some filesystems (Windows, in particular).
                               </span>
                           </div>
+                          <div class="form-group" show-errors>
+                              <label for="category" class="col-sm-3 control-label">Category</label>
+                              <div class="col-sm-8">
+                                <select ng-if="originalTechnique.bundle_name === undefined" class="form-control" name="category" id="category" ng-model="selectedTechnique.category">
+                                  <option ng-repeat="(id,name) in techniqueCategories" value="{{id}}">{{name}}</option>
+                                </select>
+                                <input  ng-if="originalTechnique.bundle_name !== undefined" readonly id="category" bundlename name="category" class="form-control" ng-model="techniqueCategories[selectedTechnique.category]">
+                              </div>
+
+                          </div>
                     </div>
                     <div class="tab tab-parameters" ng-show="ui.activeTab == 'parameters'">
                       <ul class="files-list parameters">

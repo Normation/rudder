@@ -191,6 +191,7 @@ app.controller('ncf-builder', function ($scope, $uibModal, $http, $q, $location,
   $scope.methodsByCategory;
   // ncf technique container
   $scope.techniques;
+  $scope.techniqueCategories = {};
 
   $scope.fileManagerState = {
     open : false,
@@ -661,7 +662,27 @@ $scope.getTechniques = function () {
         errorNotification(error.message,error.details)
       })
     } ).
-    error(handle_error(" while fetching methods and techniques"));
+    error(handle_error(" while fetching techniques"));
+
+  $http.get('/rudder/secure/api/internal/techniques/categories').
+  success(function(response, status, headers, config) {
+
+    if (response.data !== undefined && response.data.techniqueCategories !== undefined) {
+
+
+      $scope.techniqueCategories= response.data.techniqueCategories
+
+
+    } else {
+      errorNotification( "Error while fetching technique categories", "Data received via api are invalid")
+    }
+
+    // Display single errors
+    $.each( response.errors, function(index, error) {
+      errorNotification(error.message,error.details)
+    })
+  } ).
+  error(handle_error(" while fetching technique categories"));
 };
 
 
@@ -1056,6 +1077,7 @@ $scope.onImportFileChange = function (fileEl) {
     , "parameter"    : []
     , "resources"    : []
     , "internalId"   : uuidv4()
+    , "category"     : "ncf_techniques"
     };
   }
 
