@@ -320,17 +320,17 @@ class TechniqueEditForm(
   }
 
   private[this] def onFailure() : JsCmd = {
-    formTracker.addFormError(error("There was problem with your request"))
+    formTracker.addFormError(error("There was a problem with your request"))
     updateFormClientSide()
   }
 
   private[this] def onFailureRemovePopup() : JsCmd = {
-    formTrackerRemovePopup.addFormError(error("There was problem with your request"))
+    formTrackerRemovePopup.addFormError(error("There was a problem with your request"))
     updateRemoveFormClientSide()
   }
 
   private[this] def onFailureDisablePopup() : JsCmd = {
-    formTrackerDisactivatePopup.addFormError(error("There was problem with your request"))
+    formTrackerDisactivatePopup.addFormError(error("There was a problem with your request"))
     updateDisableFormClientSide()
   }
 

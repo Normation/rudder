@@ -353,7 +353,7 @@ class DirectiveEditForm(
   def addFormMsg(msg: NodeSeq) = formTracker.addFormError(msg)
 
   private[this] def onFailure(): JsCmd = {
-    formTracker.addFormError(error("There was problem with your request."))
+    formTracker.addFormError(error("There was a problem with your request."))
     showErrorNotifications()
   }
 
