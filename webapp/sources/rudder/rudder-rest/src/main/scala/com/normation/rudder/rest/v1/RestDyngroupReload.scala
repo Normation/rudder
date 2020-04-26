@@ -52,7 +52,7 @@ class RestDyngroupReload(
 
   serve {
     case Get("api" :: "dyngroup" :: "reload" :: Nil, req) =>
-      updateDynamicGroups.startManualUpdate
+      updateDynamicGroups.forceStartUpdate
       PlainTextResponse("OK")
   }
 

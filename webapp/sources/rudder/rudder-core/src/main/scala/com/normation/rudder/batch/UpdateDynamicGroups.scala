@@ -56,6 +56,7 @@ sealed trait GroupUpdateMessage
 final object GroupUpdateMessage {
   final case object StartUpdate       extends GroupUpdateMessage
   final case object ManualStartUpdate extends GroupUpdateMessage
+  final case object ForceStartUpdate  extends GroupUpdateMessage
   final case object DelayedUpdate     extends GroupUpdateMessage
   final case class  DynamicUpdateResult(id:Long, modId:ModificationId, start: DateTime, end:DateTime, results: Map[NodeGroupId, Box[DynGroupDiff]]) extends GroupUpdateMessage
 }
@@ -102,6 +103,10 @@ class UpdateDynamicGroups(
     laUpdateDyngroupManager ! GroupUpdateMessage.ManualStartUpdate
   }
 
+  def forceStartUpdate : Unit = {
+    laUpdateDyngroupManager ! GroupUpdateMessage.ForceStartUpdate
+  }
+
   def isIdle() = laUpdateDyngroupManager.isIdle()
 
   ////////////////////////////////////////////////////////////////
@@ -120,6 +125,8 @@ class UpdateDynamicGroups(
     val logger = ScheduledJobLogger
 
     private var updateId = 0L
+    private var lastUpdateTime = new DateTime(0)
+    private var avoidedUpdate = 0L
     private var currentState: DynamicGroupUpdaterStates = IdleGroupUpdater
     private var onePending = false
     private var needDeployment = false
@@ -136,7 +143,10 @@ class UpdateDynamicGroups(
     def isIdle() = currentState == IdleGroupUpdater
 
     private[this] def processUpdate = {
+      val need = dynGroupService.changesSince(lastUpdateTime).getOrElse(true)
+      if(need) {
         logger.trace("***** Start a new update")
+
         currentState match {
           case IdleGroupUpdater =>
             dynGroupService.getAllDynGroups match {
@@ -152,6 +162,10 @@ class UpdateDynamicGroups(
           case _ =>
             logger.debug("Ignoring start dynamic group update request because another update is in progress")
         }
+      } else {
+        avoidedUpdate = avoidedUpdate + 1
+        logger.debug(s"No changes that can lead to a dynamic group update happened since ${lastUpdateTime.toString(ISODateTimeFormat.dateTime())} (total ${avoidedUpdate} times avoided)")
+      }
     }
 
     private[this] def displayNodechange (nodes : Set[NodeId]) : String = {
@@ -177,6 +191,10 @@ class UpdateDynamicGroups(
       case GroupUpdateMessage.ManualStartUpdate =>
         processUpdate
 
+      case GroupUpdateMessage.ForceStartUpdate =>
+        lastUpdateTime = new DateTime(0)
+        processUpdate
+
       // This case is launched when an update was pending, it only launch the process
       // and it does not schedule a new update.
       case GroupUpdateMessage.DelayedUpdate =>
@@ -188,7 +206,7 @@ class UpdateDynamicGroups(
       //
       case GroupUpdateMessage.DynamicUpdateResult(id, modId, start, end, results) => //TODO: other log ?
         logger.trace(s"***** Get result for process: ${id}")
-
+        lastUpdateTime = start
         currentState = IdleGroupUpdater
 
         // If one update is pending, immediately start a new group update

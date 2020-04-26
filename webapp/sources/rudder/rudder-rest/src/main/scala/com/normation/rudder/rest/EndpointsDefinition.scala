@@ -217,7 +217,10 @@ object NcfApi extends ApiModuleProvider[NcfApi] {
     val description = "reload techniques metadata from file system"
     val (action, path)  = POST / "internal" / "techniques"   / "reload"
   }
-
+  final case object GetAllTechniqueCategories extends NcfApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
+    val description = "Get all technique categories"
+    val (action, path)  = GET / "internal" / "techniques"   / "categories"
+  }
   def endpoints = ca.mrvisser.sealerate.values[NcfApi].toList.sortBy( _.z )
 }
 

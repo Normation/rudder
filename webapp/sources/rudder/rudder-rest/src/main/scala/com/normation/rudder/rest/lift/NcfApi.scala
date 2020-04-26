@@ -55,6 +55,7 @@ import net.liftweb.http.Req
 import net.liftweb.json.JsonAST.JValue
 import org.eclipse.jgit.api.Git
 import com.normation.box._
+import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors.IOResult
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
@@ -67,11 +68,13 @@ import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.rudder.rest.TwoParam
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.JsonAST.JObject
+import net.liftweb.json.JsonAST.JString
 import zio.ZIO
 
 class NcfApi(
     techniqueWriter     : TechniqueWriter
   , techniqueReader     : TechniqueReader
+  , techniqueRepository : TechniqueRepository
   , restExtractorService: RestExtractorService
   , techniqueSerializer : TechniqueSerializer
   , uuidGen             : StringUuidGenerator
@@ -92,16 +95,17 @@ class NcfApi(
   def schemas = API
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {
-        case API.UpdateTechnique  => UpdateTechnique
-        case API.CreateTechnique  => CreateTechnique
-        case API.GetResources     => new GetResources[API.GetResources.type](false, API.GetResources)
-        case API.GetNewResources  => new GetResources[API.GetNewResources.type ](true, API.GetNewResources)
-        case API.ParameterCheck   => ParameterCheck
-        case API.DeleteTechnique  => DeleteTechnique
-        case API.GetTechniques    => GetTechniques
-        case API.GetMethods       => GetMethods
-        case API.UpdateMethods    => UpdateMethods
-        case API.UpdateTechniques => UpdateTechniques
+        case API.UpdateTechnique           => UpdateTechnique
+        case API.CreateTechnique           => CreateTechnique
+        case API.GetResources              => new GetResources[API.GetResources.type](false, API.GetResources)
+        case API.GetNewResources           => new GetResources[API.GetNewResources.type ](true, API.GetNewResources)
+        case API.ParameterCheck            => ParameterCheck
+        case API.DeleteTechnique           => DeleteTechnique
+        case API.GetTechniques             => GetTechniques
+        case API.GetMethods                => GetMethods
+        case API.UpdateMethods             => UpdateMethods
+        case API.UpdateTechniques          => UpdateTechniques
+        case API.GetAllTechniqueCategories => GetAllTechniqueCategories
     })
   }
 
@@ -320,6 +324,23 @@ class NcfApi(
         JArray(techniques.map(techniqueSerializer.serializeTechniqueMetadata))
      }
       resp(response.toBox, req, "Could not get generic methods metadata")("getMethods")
+
+    }
+
+  }
+
+
+  object GetAllTechniqueCategories extends  LiftApiModule0 {
+
+    val schema = API.GetAllTechniqueCategories
+    val restExtractor = restExtractorService
+    implicit val dataName = "techniqueCategories"
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      val response=
+        JObject(techniqueRepository.getAllCategories.toList.filter(_._1.name.value != "/").map(c => JField(c._1.name.value,JString(c._2.name))))
+
+      resp(Full(response), req, "Could not get generic methods metadata")("getMethods")
 
     }
 
