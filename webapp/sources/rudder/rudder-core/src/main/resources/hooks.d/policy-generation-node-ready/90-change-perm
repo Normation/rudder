@@ -21,8 +21,8 @@ if [ "${RUDDER_NODE_ID}" != "root" ]; then
   /bin/chgrp rudder-policy-reader "${RUDDER_POLICIES_DIRECTORY_NEW}/.."
   r4=$?
   # Return aggregated error code
-  [ $r1 -eq 0 ] && [ $r2 -eq 0 ] && [ $r3 -eq 0 ] && [ $r4 -eq 0 ]
+  [ $r2 -eq 0 ] && [ $r3 -eq 0 ] && [ $r4 -eq 0 ]
 else
   # Return aggregated error code
-  [ $r1 -eq 0 ] && [ $r2 -eq 0 ]
+  [ $r2 -eq 0 ]
 fi
