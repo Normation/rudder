@@ -88,7 +88,6 @@ import com.normation.rudder.batch._
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain._
 import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.rudder.domain.queries._
@@ -2008,6 +2007,7 @@ object RudderConfig extends Loggable {
     , new CheckInitUserTemplateLibrary(
         rudderDitImpl, rwLdap, techniqueRepositoryImpl,
         roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen, asyncDeploymentAgentImpl) //new CheckDirectiveBusinessRules()
+    , new CheckRudderGlobalParameter(roLDAPParameterRepository, woLDAPParameterRepository, uuidGen)
     , new CheckMigrationXmlFileFormat5_6(controlXmlFileFormatMigration_5_6)
     , new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, uuidGen)
     , new CheckRootRuleCategoryExport (itemArchiveManager, ruleCategoriesDirectory,  personIdentServiceImpl, uuidGen)
