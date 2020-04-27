@@ -18,6 +18,6 @@
 
 bundle agent ncf_def {
   vars:
-      "package_module_query_installed_ifelapsed" => "60";
-      "package_module_query_updates_ifelapsed" => "240";
+      "package_module_query_installed_ifelapsed" string => "60";
+      "package_module_query_updates_ifelapsed"   string => "240";
 }
