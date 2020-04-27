@@ -44,7 +44,6 @@ import better.files.File
 import org.joda.time.DateTime
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.repository._
 import com.normation.rudder.services.eventlog.HistorizationService
@@ -97,11 +96,12 @@ import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.rudder.domain.nodes.CompareProperties
 import com.normation.rudder.domain.nodes.GenericPropertyUtils
 import com.normation.rudder.domain.nodes.NodeProperty
-import com.normation.utils.Control
+import com.normation.rudder.services.nodes.MergeNodeProperties
 import zio._
 import zio.syntax._
 import com.normation.zio._
 import com.softwaremill.quicklens._
+import cats.implicits._
 
 /**
  * A deployment hook is a class that accept callbacks.
@@ -817,12 +817,12 @@ trait PromiseGeneration_BuildNodeContext {
      *   - to node info parameters: ok
      *   - to parameters : hello loops!
      */
-    def buildParams(parameters: List[GlobalParameter]): PureResult[Map[ParameterName, ParamInterpolationContext => PureResult[String]]] = {
+    def buildParams(parameters: List[GlobalParameter]): PureResult[Map[String, ParamInterpolationContext => PureResult[String]]] = {
       parameters.accumulatePure { param =>
         for {
           p <- interpolatedValueCompiler.compileParam(GenericPropertyUtils.serializeValue(param.value)).chainError(s"Error when looking for interpolation variable in global parameter '${param.name}'")
         } yield {
-          (param.name, p)
+          (param.name.value, p)
         }
       }.map(_.toMap)
     }
@@ -835,28 +835,28 @@ trait PromiseGeneration_BuildNodeContext {
       val all = nodeIds.foldLeft(NodesContextResult(Map(), Map())) { case (res, nodeId) =>
         (for {
           info         <- Box(allNodeInfos.get(nodeId)) ?~! s"Node with ID ${nodeId.value} was not found"
-          nodeTargets  =  allGroups.getTarget(info).map(_._2).toList
-          timeMerge    =  System.nanoTime
-          nodeInfo     <- MergeNodeProperties.withGroups(info, nodeTargets).toBox
-          _            =  {timeNanoMergeProp = timeNanoMergeProp + System.nanoTime - timeMerge}
-          policyServer <- Box(allNodeInfos.get(nodeInfo.policyServerId)) ?~! s"Node with ID ${nodeId.value} was not found"
-          nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, nodeTargets, globalSystemVariables, globalAgentRun, globalComplianceMode  : ComplianceMode)
+          policyServer <- Box(allNodeInfos.get(info.policyServerId)) ?~! s"Node with ID ${nodeId.value} was not found"
           context      =  ParamInterpolationContext(
-                              nodeInfo
+                              info
                             , policyServer
                             , globalPolicyMode
-                            , nodeContext
                             , parameters
                           )
-          nodeParam   <- Control.bestEffort(parameters.toSeq) { case (name, param) =>
+          nodeParam   <- parameters.toList.traverse { case (name, param) =>
                             for {
-                              p <- param(context).toBox
+                              p <- param(context)
                             } yield {
                               (name, p)
                             }
-                          }
+                          }.toBox
+          nodeTargets  =  allGroups.getTarget(info).map(_._2).toList
+          timeMerge    =  System.nanoTime
+          mergedProps  <- MergeNodeProperties.withDefaults(info, nodeTargets, nodeParam.map{case(k,v) => (k, GenericPropertyUtils.parseValue(v))}.toMap).toBox
+          _            =  {timeNanoMergeProp = timeNanoMergeProp + System.nanoTime - timeMerge}
+          nodeInfo     =  info.modify(_.node.properties).setTo(mergedProps.map(_.prop))
+          nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, nodeTargets, globalSystemVariables, globalAgentRun, globalComplianceMode: ComplianceMode)
           // now we set defaults global parameters to all nodes
-          withDefautls <- CompareProperties.updateProperties(nodeParam.toList.map { case (k,v) => NodeProperty(k.value, v, None)}, Some(nodeInfo.properties)).map(p =>
+          withDefautls <- CompareProperties.updateProperties(nodeParam.toList.map { case (k,v) => NodeProperty(k, v, None)}, Some(nodeInfo.properties)).map(p =>
                             nodeInfo.modify(_.node.properties).setTo(p)
                           ).toBox
         } yield {

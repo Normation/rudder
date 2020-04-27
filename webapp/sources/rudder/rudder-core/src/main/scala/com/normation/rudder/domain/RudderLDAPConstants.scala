@@ -370,7 +370,7 @@ object RudderLDAPConstants extends Loggable {
    * the expected format for an LDAP attribute values
    */
   def parametersToSeq(targets: Seq[ParameterForConfiguration]): Seq[String] = {
-    targets.map { p  => policyVariableToString(p.name.value, 0, p.value, true)  }
+    targets.map { p  => policyVariableToString(p.name, 0, p.value, true)  }
   }
 
 }

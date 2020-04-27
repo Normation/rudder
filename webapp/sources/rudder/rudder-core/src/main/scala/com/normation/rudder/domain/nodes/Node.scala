@@ -56,6 +56,7 @@ import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.http.S
+import net.liftweb.json.JValue
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonParser.ParseException
 import org.joda.time.DateTime
@@ -187,6 +188,13 @@ object GenericPropertyUtils {
       case json             => compactRender(json)
     }
   }
+
+  /*
+   * Merge two json values, overriding or merging recursively
+   */
+  def mergeValues(oldValue: JValue, newValue: JValue): JValue = {
+    oldValue.merge(newValue)
+  }
 }
 
 
@@ -243,7 +251,7 @@ object CompareProperties {
      if(newProp.value == JString("")) {
        Left(newProp.name)
      } else {
-       Right(newProp.copy(value = oldValue.merge(newProp.value)))
+       Right(newProp.copy(value = GenericPropertyUtils.mergeValues(oldValue, newProp.value)))
      }
     }
 
@@ -278,6 +286,35 @@ object CompareProperties {
   }
 
 }
+
+/*
+ * A node property with all its inheritance context.
+ * - key / provider
+ * - resulting value on node
+ * - list of diff:
+ *   - name of the diff provider: group/target name, global parameter
+ */
+sealed trait ParentProperty[A] {
+  def displayName: String // human readable information about the parent providing prop
+  def value      : A
+}
+
+/**
+ * A node property with its ohneritance/overriding context.
+ */
+final case class NodePropertyHierarchy[A](prop: NodeProperty,  parents: List[ParentProperty[A]])
+
+sealed trait FullParentProperty extends ParentProperty[JValue]
+object FullParentProperty {
+  final case class Group(name: String, id: NodeGroupId, value: JValue) extends FullParentProperty {
+    override def displayName: String = s"${name} (${id.value})"
+  }
+  // a global parameter has the same name as property so no need to be specific for name
+  final case class Global(value: JValue) extends FullParentProperty {
+    val displayName = "Global Parameter"
+  }
+}
+
 
 /**
  * Node diff for event logs:
@@ -383,6 +420,39 @@ object JsonSerialisation {
 
     def toDataJson(): JObject = {
       props.map(dataJson(_)).toList.sortBy { _.name }
+    }
+  }
+
+  implicit class FullParentPropertyToJSon(val p: ParentProperty[JValue]) extends AnyVal {
+    def toJson = {
+      p match {
+        case FullParentProperty.Global(value) =>
+          (
+            ( "kind"  -> "global")
+          ~ ( "value" -> value   )
+          )
+        case FullParentProperty.Group(name, id, value) =>
+          (
+            ( "kind"  -> "group" )
+          ~ ( "name"  -> name    )
+          ~ ( "id"    -> id.value)
+          ~ ( "value" -> value   )
+          )
+        case _ => JNothing
+      }
+    }
+  }
+
+  implicit class JsonNodePropertiesHierarchy(val props: List[NodePropertyHierarchy[JValue]]) extends AnyVal {
+    implicit def formats = DefaultFormats
+
+    def toApiJson(): JArray = {
+      JArray(props.sortBy(_.prop.name).map { p =>
+        p.parents match {
+          case Nil  => p.prop.toJson()
+          case list => JObject(p.prop.toJson().obj :+ JField("parents", JArray(list.map(_.toJson))))
+        }
+      })
     }
   }
 

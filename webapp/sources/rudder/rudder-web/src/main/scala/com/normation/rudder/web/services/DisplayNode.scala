@@ -692,7 +692,8 @@ object DisplayNode extends Loggable {
       import net.liftweb.json._
 
       val nodeId = node.id.value
-      val jsonProperties = compactRender(node.properties.toApiJson())
+      val allProps = ZioRuntime.runNow(RudderConfig.nodePropertiesInheritance.getNodePropertiesTree(node))
+      val jsonProperties = compactRender(allProps.toApiJson())
       val userHasRights = CurrentUser.checkRights(AuthorizationType.Node.Edit)
       def tabProperties = ChooseTemplate(List("templates-hidden", "components", "ComponentNodeProperties") , "nodeproperties-tab")
       val tabId = htmlId(jsId,"sd_props_")
@@ -703,6 +704,7 @@ object DisplayNode extends Loggable {
         scope.$$apply(function(){
           scope.init(${jsonProperties},"${nodeId}",${userHasRights},'node');
         });
+        $$('.rudder-label').bsTooltip();
       """)))
     }
 

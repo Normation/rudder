@@ -200,7 +200,7 @@ class PolicyWriterServiceImpl(
     }
 
     val file = File(agentNodeConfig.paths.newFolder, Constants.GENERATED_PARAMETER_FILE)
-    val jsonParameters = generateParametersJson(agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name.value, x.value, agentNodeConfig.agentType)))
+    val jsonParameters = generateParametersJson(agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name, x.value, agentNodeConfig.agentType)))
     val parameterContent = JsonAST.prettyRender(jsonParameters)
     for {
       _ <- PolicyGenerationLoggerPure.trace(s"Create parameter file '${agentNodeConfig.paths.newFolder}/${file.name}'")

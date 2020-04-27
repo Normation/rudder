@@ -164,7 +164,7 @@ class PrepareTemplateVariablesImpl(
         _                <- timer.buildBundleSeq.update(_ + t1 - t0)
         parameters       <- ZIO.foreach(agentNodeConfig.config.parameters) { x =>
                               agentRegister.findMap(agentNodeProps){ agent =>
-                                net.liftweb.common.Full(ParameterEntry(x.name.value, agent.escape(x.value), agentNodeConfig.agentType))
+                                net.liftweb.common.Full(ParameterEntry(x.name, agent.escape(x.value), agentNodeConfig.agentType))
                               }.toIO
                             }
         allSystemVars    =  systemVariables ++ bundleVars

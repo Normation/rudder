@@ -41,7 +41,6 @@ import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TrackerVariable
 import com.normation.cfclerk.domain.Variable
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.policies.{DirectiveId, GlobalPolicyMode, PolicyMode, RuleId}
 
 import scala.collection.immutable.TreeMap
@@ -121,16 +120,13 @@ object BundleOrder {
   }
 }
 
-sealed trait GenericInterpolationContext[T]{
+sealed trait GenericInterpolationContext[PARAM]{
   def nodeInfo        : NodeInfo
   def policyServerInfo: NodeInfo
   def globalPolicyMode: GlobalPolicyMode
-  //environment variable for that server
-  //must be a case insensitive Map !!!!
-  def nodeContext     : TreeMap[String, Variable]
   // parameters for this node
   //must be a case SENSITIVE Map !!!!
-  def parameters      : Map[ParameterName, T]
+  def parameters      : Map[String, PARAM]
   //the depth of the interpolation context evaluation
   //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
   //for ex: param a => param b => param c => ..... => param a
@@ -147,17 +143,14 @@ final case class ParamInterpolationContext(
         nodeInfo        : NodeInfo
       , policyServerInfo: NodeInfo
       , globalPolicyMode: GlobalPolicyMode
-        //environment variable for that server
-        //must be a case insensitive Map !!!!
-      , nodeContext     : TreeMap[String, Variable]
         // parameters for this node
         //must be a case SENSITIVE Map !!!!
-      , parameters      : Map[ParameterName, ParamInterpolationContext => PureResult[String]]
+      , parameters      : Map[String, ParamInterpolationContext => PureResult[String]]
         //the depth of the interpolation context evaluation
         //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
         //for ex: param a => param b => param c => ..... => param a
         //should not be evaluated
-      , depth           : Int
+      , depth           : Int = 0
 ) extends GenericInterpolationContext[ParamInterpolationContext => PureResult[String]]
 
 final case class InterpolationContext(
@@ -169,7 +162,7 @@ final case class InterpolationContext(
       , nodeContext     : TreeMap[String, Variable]
         // parameters for this node
         //must be a case SENSITIVE Map !!!!
-      , parameters      : Map[ParameterName, String]
+      , parameters      : Map[String, String]
         //the depth of the interpolation context evaluation
         //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
         //for ex: param a => param b => param c => ..... => param a
@@ -191,7 +184,7 @@ object InterpolationContext {
       , nodeContext     : Map[String, Variable]
         // parameters for this node
         //must be a case SENSITIVE Map !!!!
-      , parameters      : Map[ParameterName, String]
+      , parameters      : Map[String, String]
         //the depth of the interpolation context evaluation
         //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
         //for ex: param a => param b => param c => ..... => param a
@@ -200,31 +193,8 @@ object InterpolationContext {
   ) = new InterpolationContext(nodeInfo, policyServerInfo, globalPolicyMode, TreeMap(nodeContext.toSeq:_*), parameters, depth)
 }
 
-object ParamInterpolationContext {
-  implicit val caseInsensitiveString = new Ordering[String] {
-    def compare(x: String, y: String): Int = x.compareToIgnoreCase(y)
-  }
-
-  def apply(
-        nodeInfo        : NodeInfo
-      , policyServerInfo: NodeInfo
-      , globalPolicyMode: GlobalPolicyMode
-        //environment variable for that server
-        //must be a case insensitive Map !!!!
-      , nodeContext     : Map[String, Variable]
-        // parameters for this node
-        //must be a case SENSITIVE Map !!!!
-      , parameters      : Map[ParameterName, ParamInterpolationContext => PureResult[String]]
-        //the depth of the interpolation context evaluation
-        //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
-        //for ex: param a => param b => param c => ..... => param a
-        //should not be evaluated
-      , depth           : Int = 0
-  ) = new ParamInterpolationContext(nodeInfo, policyServerInfo, globalPolicyMode, TreeMap(nodeContext.toSeq:_*), parameters, depth)
-}
-
 final case class ParameterForConfiguration(
-    name       : ParameterName
+    name       : String
   , value      : String
 )
 
@@ -232,7 +202,7 @@ final case object ParameterForConfiguration {
   def fromParameter(param: GlobalParameter) : ParameterForConfiguration = {
     // here, we need to go back to a string for resolution of
     // things like ${rudder.param[foo] | default = ... }
-    ParameterForConfiguration(param.name, GenericPropertyUtils.serializeValue(param.value))
+    ParameterForConfiguration(param.name.value, GenericPropertyUtils.serializeValue(param.value))
   }
 }
 
