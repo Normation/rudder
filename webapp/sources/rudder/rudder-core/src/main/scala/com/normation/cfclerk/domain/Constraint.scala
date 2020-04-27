@@ -39,6 +39,8 @@ package com.normation.cfclerk.domain
 
 import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
+import com.normation.rudder.services.policies.PropertyParser
+import com.normation.rudder.services.policies.PropertyParserTokens
 import org.joda.time.format.ISODateTimeFormat
 
 class ConstraintException(val msg: String) extends Exception(msg)
@@ -123,6 +125,20 @@ object VTypeConstraint {
   }
 
   val allTypeNames = validTypes(None,Seq()).map( _.name ).mkString(", ")
+
+  def checkIsProperty(value: String, forField: String)(elsePart: String => PureResult[Unit]): PureResult[Unit] = {
+    PropertyParser.parse(value) match {
+      case Left(err) => //likely an error with property name
+        Left(Inconsistency(s"Wrong value ${value} for field '${forField}': check property syntax"))
+      case Right(tokens) => // we need to check that there's at least some var, not just a pure string
+        if(PropertyParserTokens.containsVariable(tokens)) {
+          Right(())
+        } else { //pure string
+          elsePart(value)
+        }
+    }
+
+  }
 }
 
 sealed trait StringVType extends VTypeConstraint with VTypeWithRegex with STString {
@@ -157,12 +173,15 @@ object MailVType extends FixedRegexVType {
 final case class IntegerVType(regex: Option[RegexConstraint] = None) extends VTypeConstraint with VTypeWithRegex  {
   override val name = "integer"
   override def getFormatedValidated(value:String, forField:String, escapeString: String => String) : PureResult[String] = {
-    super.getFormatedValidated(value, forField, escapeString).flatMap( _ =>
-      (try {
-        Right(value.toInt)
-      } catch {
-        case _:Exception => Left(Inconsistency(s"Wrong value ${value} for field '${forField}': expecting an integer."))
-      }).map( _ => value )
+    super.getFormatedValidated(value, forField, escapeString).flatMap( escaped =>
+      VTypeConstraint.checkIsProperty(value, forField) { v =>
+        try {
+          v.toInt
+          Right(())
+        } catch {
+          case _:NumberFormatException => Left(Inconsistency(s"Wrong value ${v} for field '${forField}': expecting an integer."))
+        }
+      }.map(_ => escaped)
     )
   }
 }
@@ -177,12 +196,15 @@ final case class SizetbVType(regex: Option[RegexConstraint] = None) extends Size
 final case class DateTimeVType(regex: Option[RegexConstraint] = None) extends VTypeConstraint with VTypeWithRegex {
   override val name = "datetime"
   override def getFormatedValidated(value:String, forField:String, escapeString: String => String) : PureResult[String] = {
-    super.getFormatedValidated(value, forField, escapeString).flatMap( _ =>
-      (try
-        Right(ISODateTimeFormat.dateTimeParser.parseDateTime(value))
-      catch {
-        case _:Exception => Left(Inconsistency(s"Wrong value ${value} for field '${forField}': expecting a datetime in ISO 8601 standard."))
-      }).map( _.toString(ISODateTimeFormat.dateTime()))
+    super.getFormatedValidated(value, forField, escapeString).flatMap( escaped =>
+      VTypeConstraint.checkIsProperty(value, forField) { v =>
+        try {
+          ISODateTimeFormat.dateTimeParser.parseDateTime(v)
+          Right(())
+        } catch {
+          case _:Exception => Left(Inconsistency(s"Wrong value ${v} for field '${forField}': expecting a datetime in ISO 8601 standard."))
+        }
+      }.map(_ => escaped)
     )
   }
 }

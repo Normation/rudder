@@ -70,64 +70,66 @@ class QSRegexQueryParserTest extends Specification {
    * if not, with """attribute:hostname foo""", we can't look for just "foo", always for " foo"
    */
 
+  sequential
+
    //Test the component part
   "Bad queries" should {
     "be refused because empty string" in {
-      parse("").mustFails
+      parse("") must beLeft
     }
     "be refused because whitespace string" in {
-      parse(" \t  ").mustFails
+      parse(" \t  ") must beLeft
     }
     "be refused because only filters" in {
-      parse(" in:directives ").mustFails
+      parse(" in:directives ") must beLeft
     }
   }
 
   "Simple queries" should {
     "give the exact same string, but trimed" in {
       val q = """ some node """
-      parse(q).mustFull(Query(q.trim, QSObject.all, QSAttribute.all))
+      parse(q) must beRight(Query(q.trim, QSObject.all, QSAttribute.all))
     }
     "give the exact same string, but trimed, even with regexp" in {
       val q = """ some.node[0-9]+.foo """
-      parse(q).mustFull(Query(q.trim, QSObject.all, QSAttribute.all))
+      parse(q) must beRight(Query(q.trim, QSObject.all, QSAttribute.all))
     }
     "give the exact same string, but trimed, even with part of rudder variable" in {
       val q = """ /foo/${rudder. """
-      parse(q).mustFull(Query(q.trim, QSObject.all, QSAttribute.all))
+      parse(q) must beRight(Query(q.trim, QSObject.all, QSAttribute.all))
     }
   }
 
   "Queries with filter" should {
     "if only on object, give all attributes" in {
-      parse(" Is:Directives is:RuLes here, the query").mustFull(
+      parse(" Is:Directives is:RuLes here, the query") must beRight(
           Query("here, the query", Set(Directive, Rule), QSAttribute.all)
       )
     }
 
     "if only on attributes, give all objects" in {
-      parse(" iN:display_name here, the query in:Node_Id").mustFull(
+      parse(" iN:display_name here, the query in:Node_Id") must beRight(
           Query("here, the query", QSObject.all, Set(NodeId, Name))
       )
     }
 
     "on both sides works" in {
-      parse(" Is:Directive is:RuLes iN:display_Name here, the query in:Node_Id").mustFull(
+      parse(" Is:Directive is:RuLes iN:display_Name here, the query in:Node_Id") must beRight(
           Query("here, the query", Set(Directive, Rule), Set(NodeId, Name))
       )
     }
     "only at end works" in {
-      parse(" here, the query is:node in:descriptions").mustFull(
+      parse(" here, the query is:node in:descriptions") must beRight(
           Query("here, the query", Set(Node), Set(Description, LongDescription))
       )
     }
     "only at starts works" in {
-      parse(" is:Directive is:RuLes in:display_Name here, the query ").mustFull(
+      parse(" is:Directive is:RuLes in:display_Name here, the query ") must beRight(
           Query("here, the query", Set(Directive, Rule), Set(Name))
       )
     }
     "parse multiple filter comma separated" in {
-      parse(" is:Directive,rules in:display_Name here, the query in:Node_Id,Rule_Id").mustFull(
+      parse(" is:Directive,rules in:display_Name here, the query in:Node_Id,Rule_Id") must beRight(
           Query("here, the query", Set(Directive, Rule), Set(NodeId, Name, RuleId))
       )
     }

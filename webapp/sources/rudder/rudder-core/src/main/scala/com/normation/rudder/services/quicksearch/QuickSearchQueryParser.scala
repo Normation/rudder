@@ -37,14 +37,20 @@
 
 package com.normation.rudder.services.quicksearch
 
-import scala.util.parsing.combinator.RegexParsers
-import net.liftweb.common.{ Failure => FailedBox, _ }
+import com.normation.errors._
 
 /**
  * This file contains an implementation of the query parser
  */
 
-object QSRegexQueryParser extends RegexParsers {
+object QSRegexQueryParser {
+
+
+  /*
+   * In our parser, whitespace are relevant, but only in the query string,
+   * not as a separator of different tokens.
+   */
+  import fastparse._, SingleLineWhitespace._
 
   /*
    *  parse a string like:
@@ -66,13 +72,13 @@ object QSRegexQueryParser extends RegexParsers {
    * just call the parser on a value, and in case of successful parsing, interprete
    * the resulting AST (seq of token)
    */
-  def parse(value: String): Box[Query] = {
+  def parse(value: String): PureResult[Query] = {
     if(value.trim.isEmpty()) {
-      FailedBox("You can't search with an empty or whitespace only query")
+      Left(Unexpected("You can't search with an empty or whitespace only query"))
     } else {
-      parseAll(all, value) match {
-        case NoSuccess(msg   , remaining) => FailedBox(s"""Error when parsing query "${value}", error message is: ${msg}""")
-        case Success  (parsed, remaining) => interprete(parsed)
+      fastparse.parse(value, all(_)) match {
+        case Parsed.Success(parsed, index)   => interprete(parsed)
+        case Parsed.Failure(label, i, extra) => Left(Unexpected(s"""Error when parsing query "${value}", error message is: ${label}"""))
       }
     }
   }
@@ -81,19 +87,22 @@ object QSRegexQueryParser extends RegexParsers {
    * The funny part that for each token add the interpretation of the token
    * by composing interpretation function.
    */
-  def interprete(parsed: (QueryString, List[Filter])): Box[Query] = {
+  def interprete(parsed: (QueryString, List[Filter])): PureResult[Query] = {
 
     parsed match {
       case (EmptyQuery, _) =>
-        FailedBox("No query string was found (the query is only composed of whitespaces and filters)")
+        Left(Unexpected("No query string was found (the query is only composed of whitespaces and filters)"))
       case (CharSeq(query), filters) =>
         val is = filters.collect { case FilterType(set) => set }.flatten
         val in = filters.collect { case FilterAttr(set) => set }.flatten
 
         (for {
-          (objs , oKeys) <- getObjects(is.toSet)    ?~! "Check 'is' filters"
-          (attrs, aKeys) <- getAttributes(in.toSet) ?~! "Check 'in' filters"
+          o <- getObjects(is.toSet)    chainError("Check 'is' filters")
+          a <- getAttributes(in.toSet) chainError("Check 'in' filters")
         } yield {
+          val (objs , oKeys) = o
+          val (attrs, aKeys) = a
+
           /*
            * we need to add all attributes and objects if
            * sets are empty - the user just didn't provided any filters.
@@ -103,7 +112,7 @@ object QSRegexQueryParser extends RegexParsers {
             , if( objs.isEmpty) { QSObject.all    } else { objs  }
             , if(attrs.isEmpty) { QSAttribute.all } else { attrs }
           )
-        }) ?~! {
+        }) chainError {
           val allNames = (
                QSMapping.objectNameMapping.keys.map( _.capitalize)
             ++ QSMapping.attributeNameMapping.keys
@@ -112,12 +121,6 @@ object QSRegexQueryParser extends RegexParsers {
         }
     }
   }
-
-  /*
-   * In our parser, whitespace are relevant, but only in the query string,
-   * not as a separator of different tokens.
-   */
-  override val skipWhitespace = true
 
   /*
    * Our AST for interpolated variable:
@@ -156,55 +159,46 @@ object QSRegexQueryParser extends RegexParsers {
   ///// this is the entry point /////
   /////
 
-  private[this] def all            : Parser[QF] = ( nominal | onlyFilters )
+  private[this] def all[_:P]          : P[QF] = P( Start ~ ( nominal | onlyFilters ) ~ End )
 
   /////
   ///// different structure of queries
   /////
 
   //degenerated case with only filters, no query string
-  private[this] def onlyFilters    : Parser[QF] = ( filter.+ )                     ^^ { case f              => (EmptyQuery, f) }
+  private[this] def onlyFilters[_:P]  : P[QF] = P( filter.rep(1) )                      map { case f             => (EmptyQuery, f.toList) }
 
   //nonimal case: zero of more filter, a query string, zero or more filter
-  private[this] def nominal        : Parser[QF] = ( filter.* ~ ( case0 | case1 ) ) ^^ { case ~(f1, (q, f2)) => (check(q), f1 ::: f2) }
+  private[this] def nominal[_:P]      : P[QF] = P( filter.rep(0) ~/ ( case0 | case1 ) ) map { case (f1, (q, f2)) => (check(q), f1.toList ::: f2.toList) }
 
   //need the two following rules so that so the parsing is correctly done for filter in the end
-  private[this] def case0          : Parser[QF] = ( queryInMiddle ~ filter.+ )     ^^ { case ~(q, f)        => (check(q)  , f   ) }
-  private[this] def case1          : Parser[QF] = ( queryAtEnd               )     ^^ { case q              => (check(q)  , Nil ) }
+  private[this] def case0[_:P]        : P[QF] = P( queryInMiddle ~ filter.rep(1) )      map { case (q, f)        => (check(q)  , f.toList) }
+  private[this] def case1[_:P]        : P[QF] = P( queryAtEnd                    )      map { case q             => (check(q)  , Nil     ) }
 
   /////
   ///// simple elements: filters
   /////
 
   // deal with filters: they all start with "in:"
-  private[this] def filter         : Parser[Filter] = ( filterAttr | filterType )
-  private[this] def filterType     : Parser[Filter] = word("is:") ~> filterKeys ^^ { FilterType }
-  private[this] def filterAttr     : Parser[Filter] = word("in:") ~> filterKeys ^^ { FilterAttr }
+  private[this] def filter[_:P]       : P[Filter] = P( filterAttr | filterType )
+  private[this] def filterType[_:P]   : P[Filter] = P( IgnoreCase("is:") ~ filterKeys )  map { FilterType }
+  private[this] def filterAttr[_:P]   : P[Filter] = P( IgnoreCase("in:") ~ filterKeys )  map { FilterAttr }
 
   // the keys part
-  private[this] def filterKeys     : Parser[Set[String]] = filterKey ~ rep("," ~> filterKey) ^^ { case ~(h, t) => (h :: t).toSet }
-  private[this] def filterKey      : Parser[String]      = """[\-\._a-zA-Z0-9]+""".r
+  private[this] def filterKeys[_:P]   : P[Set[String]] = P( filterKey.rep(sep = ",") )   map { l => l.toSet }
+  private[this] def filterKey[_:P]    : P[String]      = P( CharsWhileIn("""\\-._a-zA-Z0-9""").! )
 
   /////
   ///// simple elements: query string
   /////
 
   // we need to case, because regex are bad to look-ahead and see if there is still filter after. .+? necessary to stop at first filter
-  private[this] def queryInMiddle  : Parser[QueryString] = """(?iums)(.+?(?=((in:)|(is:))))""".r ^^ { x => CharSeq(x.trim) }
-  private[this] def queryAtEnd     : Parser[QueryString] = """(?iums)(.+)""".r           ^^ { x => CharSeq(x.trim) }
+  private[this] def queryInMiddle[_:P]: P[QueryString] = P( (!("in:"|"is:") ~ AnyChar).rep(1).! ) map { x => CharSeq(x.trim) }
+  private[this] def queryAtEnd[_:P]   : P[QueryString] = P( AnyChar.rep(1).!                    ) map { x => CharSeq(x.trim) }
 
   /////
   ///// utility methods
   /////
-
-  //maches exaclty a name (case insensitive)
-  //modifier: see http://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html
-  //i: ignore case
-  //u: considere unicode char for ignore case
-  //s: match end of line in ".*" pattern
-  //m: multi-lines mode
-  //exactly quote s - no regex authorized in
-  private[this] def word(s: String) = ("""(?iu)\Q""" + s + """\E""").r
 
   /*
    * Check that the query is not empty (else, say it is the EmptyQuery),
@@ -221,7 +215,7 @@ object QSRegexQueryParser extends RegexParsers {
       }
   }
 
-  private[this] def getMapping[T](names: Set[String], map: Map[String, T]): Box[(Set[T], Set[String])] = {
+  private[this] def getMapping[T](names: Set[String], map: Map[String, T]): PureResult[(Set[T], Set[String])] = {
     val pairs = names.flatMap { name =>
       map.get(name.toLowerCase) match {
         case Some(obj) => Some((obj, name))
@@ -232,9 +226,9 @@ object QSRegexQueryParser extends RegexParsers {
     val values = pairs.map( _._1).toSet
 
     if(keys == names) {
-      Full((values, keys))
+      Right((values, keys))
     } else {
-      FailedBox(s"Some filters are not know: ${names -- keys}")
+      Left(Unexpected(s"Some filters are not know: ${names -- keys}"))
     }
   }
 
@@ -245,7 +239,7 @@ object QSRegexQueryParser extends RegexParsers {
    * Returned the set of matching attribute, and set of matching names for the
    * inputs
    */
-  private[this] def getObjects(names: Set[String]): Box[(Set[QSObject], Set[String])] = {
+  private[this] def getObjects(names: Set[String]): PureResult[(Set[QSObject], Set[String])] = {
     import QSMapping._
     getMapping(names, objectNameMapping)
   }
@@ -254,7 +248,7 @@ object QSRegexQueryParser extends RegexParsers {
    * Mapping between a string and actual attributes.
    * We try to be kind with users: not case sensitive, not plural sensitive
    */
-  private[this] def getAttributes(names: Set[String]): Box[(Set[QSAttribute], Set[String])] = {
+  private[this] def getAttributes(names: Set[String]): PureResult[(Set[QSAttribute], Set[String])] = {
     import QSMapping._
     getMapping(names, attributeNameMapping).map { case (attrs, keys) =>
       (attrs.flatten, keys)

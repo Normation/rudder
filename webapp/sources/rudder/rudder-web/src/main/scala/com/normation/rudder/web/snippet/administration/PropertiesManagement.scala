@@ -73,7 +73,6 @@ import com.normation.rudder.reports.AgentReportingProtocol
 import com.normation.rudder.reports.AgentReportingSyslog
 
 import scala.xml.Text
-import scala.xml.UnprefixedAttribute
 
 /**
  * This class manage the displaying of user configured properties.

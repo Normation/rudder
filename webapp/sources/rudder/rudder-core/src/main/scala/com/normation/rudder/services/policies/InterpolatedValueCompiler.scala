@@ -37,14 +37,15 @@
 
 package com.normation.rudder.services.policies
 
-import scala.util.parsing.combinator.RegexParsers
-import net.liftweb.common.{Failure => FailedBox, _}
-import com.normation.rudder.domain.parameters.ParameterName
-import net.liftweb.json.JsonAST.JValue
-import com.normation.inventory.domain.AgentType
-import com.normation.rudder.domain.policies.PolicyModeOverrides
+
+import com.normation.box._
 import com.normation.errors._
-import com.normation.rudder.services.policies.InterpolatedValueCompilerImpl._
+import com.normation.inventory.domain.AgentType
+import com.normation.rudder.domain.parameters.ParameterName
+import com.normation.rudder.domain.policies.PolicyModeOverrides
+import com.normation.rudder.services.policies.PropertyParserTokens._
+import net.liftweb.common._
+import net.liftweb.json.JsonAST.JValue
 
 /**
  * A parser that handle parameterized value of
@@ -141,7 +142,7 @@ trait InterpolatedValueCompiler {
 
 }
 
-object InterpolatedValueCompilerImpl {
+object PropertyParserTokens {
 
   /*
    * Our AST for interpolated variable:
@@ -153,7 +154,15 @@ object InterpolatedValueCompilerImpl {
    */
   sealed trait Token extends Any//could be Either[CharSeq, Interpolation]
 
-  final case class CharSeq(s:String) extends AnyVal with Token
+  // a string that is not part of a interpolated value
+  final case class CharSeq(s:String) extends AnyVal with Token {
+    def prefix(p: String) = CharSeq(p + s)
+  }
+
+  // ${} but not for rudder
+  final case class NonRudderVar(s: String) extends AnyVal with Token
+
+  // an interpolation
   sealed trait     Interpolation     extends Any with Token
 
   //everything is expected to be lower case
@@ -167,6 +176,11 @@ object InterpolatedValueCompilerImpl {
   sealed trait PropertyOption extends Any
   final case object InterpreteOnNode                 extends             PropertyOption
   final case class  DefaultValue(value: List[Token]) extends AnyVal with PropertyOption
+
+  def containsVariable(tokens: List[Token]): Boolean = {
+    tokens.exists(t => t.isInstanceOf[Interpolation] || t.isInstanceOf[NonRudderVar])
+  }
+
 }
 
 
@@ -217,8 +231,9 @@ trait AnalyseInterpolation[T, I <: GenericInterpolationContext[T]] {
    */
   def analyse(context: I, token:Token): PureResult[String] = {
     token match {
-      case CharSeq(s)          => Right(s)
-      case NodeAccessor(path)  => getNodeAccessorTarget(context, path)
+      case CharSeq(s)         => Right(s)
+      case NonRudderVar(s)    => Right(s)
+      case NodeAccessor(path) => getNodeAccessorTarget(context, path)
       case Param(name)         => getRudderGlobalParam(context, ParameterName(name))
       case Property(path, opt) => opt match {
         case None =>
@@ -356,46 +371,30 @@ object AnalyseNodeInterpolation extends AnalyseInterpolation[String, Interpolati
   }
 }
 
-class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueCompiler {
-
-  import InterpolatedValueCompilerImpl._
-
-  /*
-   * In our parser, whitespace are relevant,
-   * we are not parsing a language here.
-   */
-  override val skipWhitespace = false
+class InterpolatedValueCompilerImpl extends InterpolatedValueCompiler {
 
   /*
    * just call the parser on a value, and in case of successful parsing, interprete
    * the resulting AST (seq of token)
    */
   override def compile(value: String): PureResult[InterpolationContext => PureResult[String]] = {
-    parseAll(all, value) match {
-      case NoSuccess(msg, remaining)  => Left(Unexpected(s"""Error when parsing value "${value}", error message is: ${msg}"""))
-      case Success(tokens, remaining) => Right(AnalyseNodeInterpolation.parseToken(tokens))
-    }
+    PropertyParser.parse(value).map(AnalyseNodeInterpolation.parseToken)
   }
 
   override def compileParam(value: String): PureResult[ParamInterpolationContext => PureResult[String]] = {
-    parseAll(all, value) match {
-      case NoSuccess(msg, remaining)  => Left(Unexpected(s"""Error when parsing value "${value}", error message is: ${msg}"""))
-      case Success(tokens, remaining) => Right(AnalyseParamInterpolation.parseToken(tokens))
-    }
+    PropertyParser.parse(value).map(AnalyseParamInterpolation.parseToken)
   }
 
   def translateToAgent(value: String, agent : AgentType): Box[String] = {
-    parseAll(all, value) match {
-      case NoSuccess(msg, remaining)  => FailedBox(s"""Error when parsing value "${value}", error message is: ${msg}""")
-      case Success(tokens, remaining) => Full(tokens.map(translate(agent, _) ).mkString(""))
-    }
+    PropertyParser.parse(value).map(_.map(translate(agent, _) ).mkString("")).toBox
   }
 
   // Transform a token to its correct value for the agent passed as parameter
   def translate(agent: AgentType, token:Token): String = {
     token match {
-      case CharSeq(s)          => s
-      case NodeAccessor(path)  => s"$${rudder.node.${path.mkString(".")}}"
+      case CharSeq(s)         => s
+      case NonRudderVar(s)    => s
+      case NodeAccessor(path) => s"$${rudder.node.${path.mkString(".")}}"
       case Param(name)         => s"$${rudder.param.${name}}"
       case Property(path, opt) => agent match {
         case AgentType.Dsc =>
@@ -406,64 +405,83 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
     }
   }
 
+}
 
-  //// parsing language
+object PropertyParser {
 
-  //make a case insensitive regex from the parameter
-  //modifier: see http://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html
-  //i: ignore case
-  //u: considere unicode char for ignore case
-  //s: match end of line in ".*" pattern
-  //m: multi-lines mode
-  //exactly quote s - no regex authorized in
-  def id(s: String) = ("""(?iu)\Q""" + s + """\E""").r
+  import fastparse._, NoWhitespace._
 
-  val all       : Parser[List[Token]] = (rep1(interpol   | plainString ) | emptyVar)
+  def parse(value: String): PureResult[List[Token]] = {
+    fastparse.parse(value, all(_)) match {
+      case Parsed.Success(value, index)    => Right(value)
+      case Parsed.Failure(label, i, extra) => Left(Unexpected(s"""Error when parsing value "${value}", error message is: ${label}"""))
+    }
+  }
 
-  val space = """\s*""".r
+  def all[_: P] : P[List[Token]] = P( Start ~ ( (noVariableStart | variableStart).rep(1) | emptyVar) ~ End).map(_.toList)
 
   //empty string is a special case that must be look appart from plain string.
   //also parse full blank string, because no need to look for more case for them.
-  val emptyVar    : Parser[List[CharSeq]] = """(?iums)(\s)*""".r ^^ { x => List(CharSeq(x)) }
-
+  def emptyVar[_: P]: P[List[CharSeq]] = P(CharsWhile(_.isSpaceChar, 0).!).map(x => List(CharSeq(x)) )
+  def space[_:P] = P(CharsWhile(_.isWhitespace, 0))
   // plain string must not match our identifier, ${rudder.* and ${node.properties.*}
-  // here we defined a function to build them, with the possibility to
-  val plainString : Parser[CharSeq] = ("""(?iums)((?!(\Q${\E\s*rudder\s*\.|\Q${\E\s*node\s*\.\s*properties)).)+""").r  ^^ { CharSeq(_) }
+  // here we defined a function to build them
+  def noVariableStart[_: P] : P[CharSeq] = P( (!"${" ~ AnyChar).rep(1).! ).map { CharSeq(_) }
+  def noVariableEnd [_: P] : P[CharSeq] = P( (!"}" ~ AnyChar).rep(1).! ).map { CharSeq(_) }
 
+  /*
+   * This bit is a bit complicated, because we need to differentiate:
+   * - a variable ${.... }
+   *   - and here, ${rudder.node.plop} should be an error,
+   *   - but ${foobar} should an "other prop"
+   * - a string ${ ....
+   * - a string $ .... }
+   */
+  def variableStart[_: P] = P( "${" ~/ (
+                                space ~ variable ~ space ~ "}"
+                              | noVariableEnd.map(_.prefix("${") )
+                            )
+                          )
+
+  def variable[_: P] = P( interpolatedVariable | otherVariable )
+
+  // other cases of ${}: cfengine variables, etc
+  def otherVariable[_: P]: P[NonRudderVar] = noVariableEnd.map { case CharSeq(s) => NonRudderVar("${"+s+"}") }
+
+  def interpolatedVariable [_: P]   : P[Interpolation] = P( rudderVariable | nodeProperty )
   //identifier for step in the path or param names
-  val propId      : Parser[String] = """[\-_a-zA-Z0-9]+""".r
+  def variableId[_: P]      : P[String] = P(CharIn("""\-_a-zA-Z0-9""").rep(1).!)
 
   //an interpolated variable looks like: ${rudder.XXX}, or ${RuDder.xXx}
-  val rudderProp  : Parser[Interpolation] = "${" ~> space ~> id("rudder") ~> space ~> id(".") ~> space ~>(nodeAccess | parameter ) <~ space <~ "}"
+  // after "${rudder." there is no backtracking to an "otherProp" or string possible.
+  def rudderVariable[_: P]  : P[Interpolation] = P( IgnoreCase("rudder") ~ space ~ "." ~ space ~/ (rudderNode | parameter ) )
 
   //a node path looks like: ${rudder.node.HERE.PATH}
-  val nodeAccess  : Parser[Interpolation] = { id("node") ~> space ~> id(".") ~> space ~> repsep(propId, space ~> id(".") ~> space) ^^ { seq => NodeAccessor(seq) } }
+  def rudderNode[_: P]  : P[Interpolation] = P( IgnoreCase("node") ~/ space ~ "." ~ space ~/ variableId.rep(sep = space ~ "." ~ space) ).map { seq => NodeAccessor(seq.toList) }
 
-  //a parameter looks like: ${rudder.PARAM_NAME}
-  val parameter   : Parser[Interpolation] = { id("param") ~> space ~> id(".") ~> space ~> propId ^^ { p => Param(p) } }
+  //a parameter looks like: ${rudder.param.PARAM_NAME}
+  def parameter[_: P]  : P[Interpolation] = P( IgnoreCase("param") ~/ space ~ "." ~ space ~/ variableId).map{ p => Param(p) }
 
-  //an interpolated variable looks like: ${rudder.XXX}, or ${RuDder.xXx}
-  val nodeProp    : Parser[Interpolation] = "${" ~> space ~> id("node") ~> space ~> id(".") ~> space ~> id("properties") ~> rep1( space ~> "[" ~> space ~>
-                                            propId <~ space <~ "]" ) ~ opt(propOption) <~ space <~ "}" ^^ { case ~(path, opt) => Property(path, opt) }
-
-  // all interpolation
-  val interpol    : Parser[Interpolation] = rudderProp | nodeProp
+  //a node property looks like: ${node.properties[.... Cut after "properties".
+  def nodeProperty[_: P]    : P[Interpolation] =  ( IgnoreCase("node") ~ space ~ "." ~ space ~ IgnoreCase("properties") ~/ ( space ~ "[" ~ space ~ variableId ~ space ~ "]" ).rep(1) ~/
+                                                    nodePropertyOption.? ).map { case (path, opt) => Property(path.toList, opt) }
 
   //here, the number of " must be strictly decreasing - ie. triple quote before
-  val propOption  : Parser[PropertyOption] = space ~> "|" ~> space ~>  ( onNodeOpt |  "default" ~> space ~> "=" ~> space ~>
-                                             ( interpolOpt | emptyTQuote | tqString | emptySQuote | sqString )  )
+  def nodePropertyOption[_: P]  : P[PropertyOption] = P( space ~ "|" ~/ space ~ ( onNodeOption | defaultOption ) )
 
-  val onNodeOpt   : Parser[InterpreteOnNode.type] = id("node") ^^^ InterpreteOnNode
+  def defaultOption[_: P]  : P[DefaultValue] = P( IgnoreCase("default") ~/ space ~ "=" ~/ space ~/ ( innerVariable | emptyTripleQuote | tripleQuoteString | emptySingleQuote | singleQuoteString ) )
+  def onNodeOption[_: P]   : P[InterpreteOnNode.type] = P( IgnoreCase("node")).map(_ => InterpreteOnNode)
 
-  val interpolOpt : Parser[DefaultValue] = interpol ^^ { x => DefaultValue(x::Nil) }
-  val emptySQuote : Parser[DefaultValue] = id("\"\"")         ^^   { _ => DefaultValue(CharSeq("")::Nil) }
-  val emptyTQuote : Parser[DefaultValue] = id("\"\"\"\"\"\"") ^^   { _ => DefaultValue(CharSeq("")::Nil) }
+  def innerVariable[_: P] = P("${" ~ space ~/ variable ~/ space ~ "}").map { x => DefaultValue(x::Nil) }
+
+
 
   //string must be simple or triple quoted string
-  val sqString    : Parser[DefaultValue] = id("\"")  ~> rep1(sqplainStr | interpol )<~ id("\"") ^^ { case x => DefaultValue(x) }
-  val sqplainStr  : Parser[Token]        = ("""(?iums)((?!(\Q${\E\s*rudder\s*\.|\Q${\E\s*node\s*\.\s*properties|")).)+""").r  ^^ { str => CharSeq(str) }
+  def emptySingleQuote[_: P] : P[DefaultValue] = P( "\"\"" ).map { _ => DefaultValue(CharSeq("")::Nil) }
+  def singleQuoteString[_: P]    : P[DefaultValue] = P( "\"" ~ (innerVariable | singleQuotePlainString  ).rep(1) ~ "\"").map { case x => DefaultValue(x.flatMap(_.value).toList) }
+  def singleQuotePlainString[_: P]  : P[DefaultValue]        = P( (!"${" ~ (!"\"" ~ AnyChar)).rep(1).! ).map { str => DefaultValue(CharSeq(str) :: Nil) }
 
-  val tqString    : Parser[DefaultValue]   = id("\"\"\"")  ~> rep1(tqplainStr | interpol )<~ id("\"\"\"") ^^ { case x => DefaultValue(x) }
-  val tqplainStr  : Parser[Token]          = ("""(?iums)((?!(\Q${\E\s*rudder\s*\.|\Q${\E\s*node\s*\.\s*properties|"""+"\"\"\""+ """)).)+""").r  ^^ { str => CharSeq(str) }
-
+  def emptyTripleQuote[_: P] : P[DefaultValue] = P("\"\"\"\"\"\"").map { _ => DefaultValue(CharSeq("")::Nil) }
+  def tripleQuoteString[_: P]    : P[DefaultValue]   = P( "\"\"\"" ~ (tripleQuotePlainString | innerVariable).rep(1) ~ "\"\"\"" ).map { case x => DefaultValue(x.flatMap(_.value).toList) }
+  def tripleQuotePlainString[_: P]  : P[DefaultValue]          = P(  (!"${" ~ (!"\"\"\"" ~ AnyChar)).rep(1).! ).map { str => DefaultValue(CharSeq(str) :: Nil) }
 }
