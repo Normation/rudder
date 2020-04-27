@@ -18,13 +18,13 @@ use walkdir::WalkDir;
 pub fn parse_stdlib<'src>(
     past: &mut PAST<'src>,
     sources: &'src Arena<String>,
-    libs_dir: &'src Path,
+    stdlib_dir: &'src Path,
 ) -> Result<()> {
     fn is_rl_file(file: &Path) -> bool {
         file.extension().map(|e| e == "rl").unwrap_or(false)
     }
 
-    let walker = WalkDir::new(libs_dir)
+    let walker = WalkDir::new(stdlib_dir)
         .into_iter()
         .filter(|r| r.as_ref().map(|e| is_rl_file(e.path())).unwrap_or(true));
     for entry in walker {
@@ -33,7 +33,7 @@ pub fn parse_stdlib<'src>(
                 let path = e.path();
                 parse_file(past, sources, path)?;
             }
-            Err(e) => return Err(err!(Token::new(&libs_dir.to_string_lossy(), ""), "{}", e)),
+            Err(e) => return Err(err!(Token::new(&stdlib_dir.to_string_lossy(), ""), "{}", e)),
         }
     }
 
@@ -65,14 +65,14 @@ pub fn compile_file(
     source: &Path,
     dest: &Path,
     technique: bool,
-    libs_dir: &Path,
+    stdlib_dir: &Path,
     translate_config: &Path,
 ) -> Result<()> {
     let sources = Arena::new();
     let mut past = PAST::new();
 
-    // add stdlib
-    parse_stdlib(&mut past, &sources, libs_dir)?;
+    // add stdlib: resourcelib + corelib + oslib + cfengine_core
+    parse_stdlib(&mut past, &sources, stdlib_dir)?;
 
 	// read and add files
     info!(

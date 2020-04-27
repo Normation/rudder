@@ -10,7 +10,7 @@
 //!
 //!  2- json technique -> translate() -> rl
 //!
-//!  3- ncf library -> generate_lib() -> stdlib.rl + translate-config
+//!  3- ncf library -> generate_lib() -> resourcelib.rl + translate-config
 
 use colored::Colorize;
 // imports log macros;
@@ -110,7 +110,7 @@ fn main() {
     logger.init(opt.log_level, action);
 
     // Load files
-    let (libs_dir, translate_config, input, output) =
+    let (stdlib_dir, translate_config, input, output) =
         file_paths::get(action, &opt.config_file, &opt.base, &opt.input, &opt.output)
             .unwrap_or_else(|e| {
                 error!("{}", e);
@@ -125,7 +125,7 @@ fn main() {
 
     // Actual action
     let result = match action {
-        Action::Compile => compile_file(&input, &output, true, &libs_dir, &translate_config),
+        Action::Compile => compile_file(&input, &output, true, &stdlib_dir, &translate_config),
         Action::Translate => translate_file(&input, &output, &translate_config),
     };
     match &result {
