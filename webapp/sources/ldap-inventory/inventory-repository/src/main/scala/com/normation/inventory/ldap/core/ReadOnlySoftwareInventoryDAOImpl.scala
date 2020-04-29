@@ -46,6 +46,7 @@ import net.liftweb.common._
 import Box._
 import com.normation.utils.Control.{bestEffort, sequence}
 import com.unboundid.ldap.sdk.DN
+import net.liftweb.util.Helpers.tryo
 
 class ReadOnlySoftwareDAOImpl(
   inventoryDitService:InventoryDitService,
@@ -128,27 +129,29 @@ class ReadOnlySoftwareDAOImpl(
       batchedNodes = nodes.grouped(NB_BATCH_NODES).toSeq
       _            <- sequence(batchedNodes) { nodeEntries: Seq[LDAPEntry] =>
                              // We need to help garbage collection by enclosing parts in { }
-                             val (ids, t2) = {
+                             val (boxedIds, t2) = {
                                val (softwareEntries, t2) = {
                                  val nodeIds = nodeEntries.flatMap(_ (A_NODE_UUID)).map(NodeId(_))
                                  val t2 = System.currentTimeMillis
                                  val orFilter = BuildFilter.OR(nodeIds.map(x => EQ(A_NODE_UUID, x.value)): _*)
-                                 (con.searchSub(nodeBaseSearch, orFilter, A_SOFTWARE_DN), t2)
+                                 (tryo(con.searchSub(nodeBaseSearch, orFilter, A_SOFTWARE_DN)), t2)
                                }
-                               // we need to dedup the softwares here
-                               (softwareEntries.flatMap(entry => entry.valuesFor(A_SOFTWARE_DN)).toSet.toSeq
+                               (softwareEntries.map(x => x.flatMap(entry => entry.valuesFor(A_SOFTWARE_DN)).toSet.toSeq)
                                , t2)
                              }
-
-                             val results      = sequence(ids) { id => acceptedDit.SOFTWARE.SOFT.idFromDN(new DN(id)) }
-                             val t3           = System.currentTimeMillis()
-                             logger.debug(s"Software DNs from ${NB_BATCH_NODES} nodes fetched in ${t3-t2}ms")
-                             results match { // we don't want to return "results" because we need on-site dedup.
-                               case Full(softIds) =>
-                                 mutSetSoftwares = mutSetSoftwares ++ softIds
-                                 Full(Unit)
-                               case failure =>
-                                 failure // otherwise the time is wrong
+                             for {
+                               softIds <- boxedIds
+                               results = sequence(softIds) { id => acceptedDit.SOFTWARE.SOFT.idFromDN(new DN(id)) }
+                               t3 = System.currentTimeMillis()
+                               _ = logger.debug(s"Software DNs from ${NB_BATCH_NODES} nodes fetched in ${t3 - t2}ms")
+                             } yield {
+                               results match { // we don't want to return "results" because we need on-site dedup.
+                                 case Full(softIds) =>
+                                   mutSetSoftwares = mutSetSoftwares ++ softIds
+                                   Full(Unit)
+                                 case failure =>
+                                   failure // otherwise the time is wrong
+                               }
                              }
                            }
     } yield {
