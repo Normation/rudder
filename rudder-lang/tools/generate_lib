@@ -12,7 +12,7 @@ if (@ARGV) {
   ($cfgpath) = @ARGV;
 }
 # ultralight homemade parser
-my ($ncfpath, $libpath, $translate_config) = get_paths_from_conf_file($cfgpath);
+my ($ncfpath, $stdlibpath, $translate_config) = get_paths_from_conf_file($cfgpath);
 my $ncf_methods = $ncfpath . "/tree/30_generic_methods/*";
 my $is_empty=1;
 foreach my $file (glob $ncf_methods) {
@@ -85,14 +85,14 @@ if ($is_empty) {
   print "no ncf method found for $ncf_methods";
 }
 
-open(my $stdlib, '>', "$libpath/stdlib.rl") or die "Cannot write stdlib ($libpath/stdlib.rl)";
-print $stdlib "\@format=0";
-print $stdlib "\n\n";
-print $stdlib join("\n",keys %resource);
-print $stdlib "\n\n";
-print $stdlib join("\n", @state);
-print $stdlib "\n\n";
-close($stdlib);
+open(my $resourcelib, '>', "$stdlibpath/resourcelib.rl") or die "Cannot write resourcelib ($stdlibpath/resourcelib.rl)";
+print $resourcelib "\@format=0";
+print $resourcelib "\n\n";
+print $resourcelib join("\n",keys %resource);
+print $resourcelib "\n\n";
+print $resourcelib join("\n", @state);
+print $resourcelib "\n\n";
+close($resourcelib);
 
 my $config_header = "[resources]
 http_request = { parameter_count=2 }
@@ -115,7 +115,7 @@ sub get_paths_from_conf_file {
 
   my $is_default = 0;
   my $ncf = "/usr/share/ncf";
-  my $libpath = "/opt/rudder/share/rudder-lang/lib";
+  my $stdlibpath = "/opt/rudder/share/rudder-lang/lib";
   my $translate_config = "/opt/rudder/share/rudder-lang/tools/translate_config.toml";
   open (FILE, $file);
   while (<FILE>) {
@@ -124,7 +124,7 @@ sub get_paths_from_conf_file {
       $ncf = $+{path};
     }
     if ($is_default == 1 && /\s*rudderc_libs\s*=\s*"(?<path>[\/\w.-]+)"\s*/ ) {
-      $libpath = $+{path};
+      $stdlibpath = $+{path};
     }
     if ($is_default == 1 && /\s*translate_config\s*=\s*"(?<path>[\/\w.-]+)"\s*/ ) {
       $translate_config = $+{path};
@@ -138,5 +138,5 @@ sub get_paths_from_conf_file {
     }
   }
   close (FILE);
-  return ($ncf, $libpath, $translate_config);
+  return ($ncf, $stdlibpath, $translate_config);
 }

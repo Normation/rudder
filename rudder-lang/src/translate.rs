@@ -74,8 +74,8 @@ pub fn translate_file(json_file: &Path, rl_file: &Path, config_filename: &Path) 
     );
     let sources = Arena::new();
     let mut past = PAST::new();
-    let libs_dir = &PathBuf::from("./libs/"); // TODO
-    parse_stdlib(&mut past, &sources, libs_dir)?;
+    let stdlib_dir = &PathBuf::from("./libs/"); // TODO
+    parse_stdlib(&mut past, &sources, stdlib_dir)?;
     let stdlib = AST::from_past(past)?;
 
     info!(

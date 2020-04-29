@@ -71,7 +71,7 @@ fn get_output(
     })
 }
 
-/// get the lib and translate_config paths and
+/// get stdlib and translate_config paths and
 /// get the correct input and output paths based on parameters
 /// Input priority is input > default
 /// Output priority is output > default > input
@@ -97,8 +97,8 @@ pub fn get(
         Some(m) => m,
     };
 
-    let rudderc_libs = match paths.get("rudderc_libs") {
-        None => return err_gen("No rudderc_libs section in toml config file"),
+    let stdlib = match paths.get("stdlib") {
+        None => return err_gen("No stdlib section in toml config file"),
         Some(m) => PathBuf::from(m.as_str().unwrap()),
     };
     let translate_config = match paths.get("translate_config") {
@@ -107,7 +107,7 @@ pub fn get(
     };
 
     Ok((
-        rudderc_libs,
+        stdlib,
         translate_config,
         get_input(action, paths, opt_base, opt_input)?,
         get_output(action, paths, opt_base, opt_input, opt_output)?,
