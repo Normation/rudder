@@ -46,6 +46,13 @@ properties:
     type: boolean
     description: If true it is an internal Rudder directive
     example: false
+  policyMode:
+    type: string
+    enum:
+      - enforce
+      - audit
+    description: Policy mode of the directive
+    example: audit
   tags:
     type: array
     items:
