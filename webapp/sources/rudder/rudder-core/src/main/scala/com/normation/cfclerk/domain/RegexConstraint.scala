@@ -40,6 +40,8 @@ import java.util.regex.Pattern
 
 import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
+import com.normation.rudder.services.policies.PropertyParserTokens
+import com.normation.rudder.services.policies.PropertyParser
 
 /**
  * We require a non empty regex pattern
@@ -52,15 +54,26 @@ case class RegexConstraint(pattern: String, errorMsg: String) {
 
   val compiled = Pattern.compile(pattern)
 
-  val variablePattern = Pattern.compile(".*?\\$\\{.*?\\}.*?")
-
   /* throw a ConstraintException if the value doesn't match the pattern */
-  def check(varValue: String, varName: String) : PureResult[String]=
-    if(variablePattern.matcher(varValue).matches || compiled.matcher(varValue).matches) {
+  def check(varValue: String, varName: String) : PureResult[String] = {
+    // don't fail on interpolated values. That value can be in the middle of a string, and
+    // we can't say much about the respect of the resulting expanded string regarding the regex,
+    // so just accept and believe in our users
+    if(compiled.matcher(varValue).matches) {
       Right(varValue)
     } else {
-      Left(Inconsistency(s"Please modify ${varName} to match the requested format ${if (errorMsg != "") " : " + errorMsg else ""}"))
+      PropertyParser.parse(varValue) match {
+        case Left(err) => // most likely the user wanted to use a property but made a typo
+          Left(Inconsistency(s"Please modify ${varName}: error while parsing property: ${varValue}")) // parser error are not hyper user friendly
+        case Right(tokens) => // check that we don't have a pure string
+          if(PropertyParserTokens.containsVariable(tokens)) {
+            Right(varValue)
+          } else {
+            Left(Inconsistency(s"Please modify ${varName} to match the requested format ${if (errorMsg != "") " : " + errorMsg else ""}"))
+          }
+      }
     }
+  }
 }
 
 object RegexConstraint {

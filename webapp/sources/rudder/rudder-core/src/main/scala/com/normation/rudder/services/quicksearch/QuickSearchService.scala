@@ -49,6 +49,7 @@ import net.liftweb.common.Box
 import net.liftweb.common.Loggable
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
+import com.normation.box._
 
 /**
  * This class allow to return a list of Rudder object given a string.
@@ -100,7 +101,7 @@ object QuickSearchService {
 
 
   implicit class QSParser(val query: String) extends AnyVal {
-    def parse(): Box[Query] = QSRegexQueryParser.parse(query)
+    def parse(): Box[Query] = QSRegexQueryParser.parse(query).toBox
   }
 
   implicit class QSBackendImpl(b: QSBackend)(implicit

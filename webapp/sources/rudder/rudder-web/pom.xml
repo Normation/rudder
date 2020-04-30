@@ -201,12 +201,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>${rudder-version}</version>
     </dependency>
 
-    <!-- it seems to not be resolved, don't know why -->
-    <dependency>
-      <groupId>org.scala-lang.modules</groupId>
-      <artifactId>scala-parser-combinators_${scala-binary-version}</artifactId>
-    </dependency>
-
     <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>javax.servlet-api</artifactId>
