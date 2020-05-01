@@ -87,15 +87,13 @@ class RuleCompliance (
 
   def tagsEditForm = new TagsEditForm(rule.tags)
   def display : NodeSeq = {
-
-    (
-      "#ruleName" #>   rule.name &
-      "#ruleCategory" #> categoryService.shortFqdn(rootRuleCategory, rule.categoryId) &
-      "#tagField *" #> tagsEditForm.viewTags("viewRuleTags", "ruleViewTagsApp", true) &
-      "#rudderID" #> rule.id.value &
+    ( "#ruleName"             #> rule.name &
+      "#ruleCategory"         #> categoryService.shortFqdn(rootRuleCategory, rule.categoryId) &
+      "#tagField *"           #> tagsEditForm.viewTags("viewRuleTags", "ruleViewTagsApp", true) &
+      "#ruleID"               #> rule.id.value &
       "#ruleShortDescription" #> rule.shortDescription &
-      "#ruleLongDescription" #>  rule.longDescription &
-      "#compliancedetails" #> showCompliance
+      "#ruleLongDescription"  #> rule.longDescription &
+      "#compliancedetails"    #> showCompliance
     )(details)
   }
 
