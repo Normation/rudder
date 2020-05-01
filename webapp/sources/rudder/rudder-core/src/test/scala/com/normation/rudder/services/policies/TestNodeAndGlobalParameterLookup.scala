@@ -211,19 +211,19 @@ class TestNodeAndGlobalParameterLookup extends Specification {
     }
 
     "parse a rudder param variable" in {
-      test(variableStart(_), """${rudder.param.foo}""", Param("foo"))
+      test(variable(_), """${rudder.param.foo}""", Param("foo"))
     }
 
     "parse a rudder param variable with spaces" in {
-      test(variableStart(_), """${rudder . param . foo}""", Param("foo"))
+      test(variable(_), """${rudder . param . foo}""", Param("foo"))
     }
 
     "parse a rudder node variable" in {
-      test(variableStart(_), """${rudder.node.foo.bar.baz}""", NodeAccessor(List("foo", "bar", "baz")))
+      test(variable(_), """${rudder.node.foo.bar.baz}""", NodeAccessor(List("foo", "bar", "baz")))
     }
 
     "parse a rudder node variable with spaces" in {
-      test(variableStart(_), """${rudder . node . foo . bar . baz}""", NodeAccessor(List("foo", "bar", "baz")))
+      test(variable(_), """${rudder . node . foo . bar . baz}""", NodeAccessor(List("foo", "bar", "baz")))
     }
 
     "parse a rudder param variable with all parser" in {
@@ -235,11 +235,11 @@ class TestNodeAndGlobalParameterLookup extends Specification {
     }
 
     "parse a non rudder param variable with all parser" in {
-      test(all(_), """${something.cfengine}""", List(NonRudderVar("${something.cfengine}")))
+      test(all(_), """${something.cfengine}""", List(NonRudderVar("something.cfengine")))
     }
 
-    "parse a non rudder param variable with all parser with space and keep them" in {
-      test(all(_), """${something . cfengine}""", List(NonRudderVar("${something . cfengine}")))
+    "parse a non valid cfengine variable as a string" in {
+      test(all(_), """${something . cfengine}""", List(CharSeq("${something . cfengine"), CharSeq("}")))
     }
 
     "parse blank test" in {
@@ -265,27 +265,27 @@ class TestNodeAndGlobalParameterLookup extends Specification {
 
     "parse a standard cfengine variable" in {
       val s = """${bla.foo}"""
-      test(all(_), s, List(NonRudderVar(s)))
+      test(all(_), s, List(NonRudderVar("bla.foo")))
     }
 
     "accept rudder_parameters variable as a plain variable" in {
       val s = """${rudder_parameters.foo}"""
-      test(all(_), s, List(NonRudderVar(s)))
+      test(all(_), s, List(NonRudderVar("rudder_parameters.foo")))
     }
 
     "accept rudderthing variable as a plain variable" in {
       val s = """${rudderthings.foo}"""
-      test(all(_), s, List(NonRudderVar(s)))
+      test(all(_), s, List(NonRudderVar("rudderthings.foo")))
     }
 
     "accept node.things variable as a plain variable" in {
       val s = """${node.thing.foo}"""
-      test(all(_), s, List(NonRudderVar(s)))
+      test(all(_), s, List(NonRudderVar("node.thing.foo")))
     }
 
     "accept nodethings variable as a plain variable" in {
       val s = """${nodething.foo}"""
-      test(all(_), s, List(NonRudderVar(s)))
+      test(all(_), s, List(NonRudderVar("nodething.foo")))
     }
 
     "fails to find a rudder var on unknown rudder subpath" in {
@@ -416,11 +416,39 @@ class TestNodeAndGlobalParameterLookup extends Specification {
         , CharSeq("  and some more text")
       ))
     }
+    "parse node properties 'default:node.properties + string' option" in {
+      val s = """some text and ${node.properties[datacenter][Europe]|default=" default ${nod"}  and some more text"""
+      test(all(_), s, List(
+        CharSeq("some text and ")
+        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(CharSeq(" default ") ::  CharSeq("${nod") :: Nil)))
+        , CharSeq("  and some more text")
+      ))
+    }
     "parse node properties 'default:node.properties+default' option" in {
       val s = """some text and ${node.properties[datacenter][Europe]|default=${node.properties[defaultDatacenter]|default="some default value"}}  and some more text"""
       test(all(_), s, List(
-          CharSeq("some text and ")
+        CharSeq("some text and ")
         , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(Property("defaultDatacenter" :: Nil, Some(DefaultValue(CharSeq("some default value")::Nil)))::Nil)))
+        , CharSeq("  and some more text")
+      ))
+    }
+    "parse node properties 'default:node.properties+variable' option" in {
+      val s = """some text and ${node.properties[datacenter][Europe]|default=${node.properties[defaultDatacenter]|default="Default vars : ${vars.default} value"}}  and some more text"""
+      test(all(_), s, List(
+        CharSeq("some text and ")
+        , Property(
+            "datacenter" :: "Europe" :: Nil
+          , Some(
+              DefaultValue(
+                Property(
+                  "defaultDatacenter" :: Nil
+                , Some(
+                    DefaultValue(CharSeq("Default vars : ") :: NonRudderVar("vars.default") :: CharSeq(" value") ::Nil)
+                  )
+                ) :: Nil
+              )
+          )
+        )
         , CharSeq("  and some more text")
       ))
     }
