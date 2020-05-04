@@ -639,30 +639,30 @@ $scope.getTechniques = function () {
         errorNotification( "Error while fetching methods", "Data received via api are invalid")
       }
 
+      $http.get('/rudder/secure/api/internal/techniques').
+      success(function(response, status, headers, config) {
+
+        if (response.data !== undefined && response.data.techniques !== undefined) {
+
+          $.each( response.data.techniques, function(techniqueName, technique_raw) {
+            var technique = toTechUI(technique_raw);
+            $scope.techniques.push(technique);
+
+          $scope.getSessionStorage();
+          });
+        } else {
+          errorNotification( "Error while fetching techniques", "Data received via api are invalid")
+        }
+
+        // Display single errors
+        $.each( response.errors, function(index, error) {
+          errorNotification(error.message,error.details)
+        })
+      } ).
+      error(handle_error(" while fetching techniques"));
+
     } ).
     error(handle_error(" while fetching methods"));
-
-  $http.get('/rudder/secure/api/internal/techniques').
-    success(function(response, status, headers, config) {
-
-      if (response.data !== undefined && response.data.techniques !== undefined) {
-
-        $.each( response.data.techniques, function(techniqueName, technique_raw) {
-          var technique = toTechUI(technique_raw);
-          $scope.techniques.push(technique);
-
-        $scope.getSessionStorage();
-        });
-      } else {
-        errorNotification( "Error while fetching techniques", "Data received via api are invalid")
-      }
-
-      // Display single errors
-      $.each( response.errors, function(index, error) {
-        errorNotification(error.message,error.details)
-      })
-    } ).
-    error(handle_error(" while fetching techniques"));
 
   $http.get('/rudder/secure/api/internal/techniques/categories').
   success(function(response, status, headers, config) {
@@ -1170,7 +1170,7 @@ $scope.onImportFileChange = function (fileEl) {
     if (method_call.method_name in $scope.generic_methods ) {
       var method = $scope.generic_methods[method_call.method_name];
       var class_parameter = method.class_parameter;
-      var param = method.parameter.find(element => element.name === class_parameter);
+      var param = method_call.parameters.find(element => element.name === class_parameter);
       if (param === undefined)
         return method_call.parameters[0];
       else
