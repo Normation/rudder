@@ -51,6 +51,7 @@ div#query-search-content {
   color: #222D42 !important;
   font-size: 24px !important;
 }
+
 .page-title-description{
   padding: 0 15px;
   margin-bottom: 8px;
@@ -329,4 +330,35 @@ pre.display-keys > label{
 .node-compliance-bar .progress-bar span{
   vertical-align  : middle;
   horizontal-align: middle;
+}
+
+/* NODE ERROR */
+.info-card{
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #e1e3e6;
+  border-left: 4px solid #337ab7;
+  max-width: 780px;
+  padding: 10px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+.info-card .card-info h4{
+  color: #337ab7;
+  margin-top: 0;
+  padding-left: 30px;
+  position: relative;
+}
+.info-card .card-info h4 .info-icon{
+  font-size: 25px;
+  position: absolute;
+  top: -2px;
+  left: 0;
+}
+.info-card.critical{
+  border-left-color: #C80004;
+  background-color: #ff040908;
+}
+.info-card.critical .card-info h4{
+  color: #C80004;
 }

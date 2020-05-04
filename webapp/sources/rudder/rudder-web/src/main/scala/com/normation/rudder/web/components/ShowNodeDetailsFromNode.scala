@@ -214,7 +214,18 @@ class ShowNodeDetailsFromNode(
   private[this] def privateDisplay(withinPopup : Boolean, displayCompliance : Boolean) : NodeSeq = {
     boxNodeInfo match {
       case Full(None) =>
-        <div class="error">Node with id {nodeId.value} was not found</div>
+        ( <ul id="NodeDetailsTabMenu" class="rudder-ui-tabs ui-tabs-nav"></ul>
+          <div class="col-xs-12">
+            <div class="info-card critical">
+              <div class="card-info">
+                <h4><span>Node not found</span> <i class="info-icon ion ion-alert-circled"></i></h4>
+                <div class="card-information-details">
+                  Node with id {nodeId.value} was not found
+                </div>
+              </div>
+            </div>
+          </div>
+        )
       case eb:EmptyBox =>
         val e = eb ?~! s"Error when getting node with id '${nodeId.value}'"
         logger.debug("Root exception:", e)
