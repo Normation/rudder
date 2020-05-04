@@ -37,6 +37,7 @@
 
 package com.normation.rudder.services.nodes
 
+import com.normation.errors.RudderError
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
@@ -44,6 +45,7 @@ import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.queries._
 import com.softwaremill.quicklens._
 import net.liftweb.json.JsonAST.JString
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
 import org.junit.runner._
 import org.specs2.mutable._
@@ -135,15 +137,97 @@ class TestMergeGroupProperties extends Specification {
     (merged must beRight(expected :: Nil)) and (merged.getOrElse(Nil).head.prop.value === JString("bar2") )
   }
 
+
+  "when looking for a node property, we" should {
+
+    "be able to detect conflict" in {
+      val parent1 = NodeGroup(NodeGroupId("parent1"), "parent1", "",
+          List(GroupProperty("dns", JString("1.1.1.1")))
+        , Some(Query(NodeReturnType, And, List()))
+        , true, Set(), true
+      )
+      val parent2   = NodeGroup(NodeGroupId("parent2"), "parent2", "",
+          List(GroupProperty("dns", JString("9.9.9.9")))
+        , Some(Query(NodeReturnType, And, List()))
+        , true, Set(), true
+      )
+
+      val merged = MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: parent2.toTarget :: Nil, Map())
+
+      merged must beLeft[RudderError].like { case e =>
+        e.fullMsg must =~("find overrides for group property 'dns'. Several groups")
+      }
+    }
+
+    "be able to correct conflict" in {
+      val parent1 = NodeGroup(NodeGroupId("parent1"), "parent1", "",
+          List(GroupProperty("dns", JString("1.1.1.1")))
+        , Some(Query(NodeReturnType, And, List()))
+        , true, Set(), true
+      )
+      val parent2   = NodeGroup(NodeGroupId("parent2"), "parent2", "",
+          List(GroupProperty("dns", JString("9.9.9.9")))
+        , Some(Query(NodeReturnType, And, List()))
+        , true, Set(), true
+      )
+      val priorize   = NodeGroup(NodeGroupId("parent3"), "parent3", "",
+          Nil
+        , Some(Query(NodeReturnType, And, List(parent1.toCriterion, parent2.toCriterion)))
+        , true, Set(), true
+      )
+
+      val merged = MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: parent2.toTarget :: priorize.toTarget :: Nil, Map())
+      val expected = List(parent2, parent1).toH1("dns") :: Nil
+      merged must beRight(expected)
+    }
+
+    /*
+     * Test case:
+     * p1: dns=1.1.1.1     p2: dns=9.9.9.9
+     *           p3: p1 overriden by p2
+     * p4: only subgroup of p1
+     * ---------
+     * node in p4 and p3
+     */
+    "one can solve conflicts at parent level" in {
+      val parent1 = NodeGroup(NodeGroupId("parent1"), "parent1", "",
+          List(GroupProperty("dns", JString("1.1.1.1")))
+        , Some(Query(NodeReturnType, And, List()))
+        , true, Set(), true
+      )
+      val parent2   = NodeGroup(NodeGroupId("parent2"), "parent2", "",
+          List(GroupProperty("dns", JString("9.9.9.9")))
+        , Some(Query(NodeReturnType, And, List()))
+        , true, Set(), true
+      )
+      val priorize   = NodeGroup(NodeGroupId("parent3"), "parent3", "",
+          Nil
+        , Some(Query(NodeReturnType, And, List(parent1.toCriterion, parent2.toCriterion)))
+        , true, Set(), true
+      )
+      val parent4   = NodeGroup(NodeGroupId("parent4"), "parent4", "",
+          Nil
+        , Some(Query(NodeReturnType, And, List(parent1.toCriterion)))
+        , true, Set(), true
+      )
+
+      val merged = MergeNodeProperties.checkPropertyMerge(List(parent1, parent2, priorize, parent4).map(_.toTarget), Map())
+      val expected = List(parent2, parent1).toH1("dns") :: Nil
+      merged must beRight(expected)
+    }
+  }
+
   "global parameter are inherited" >> {
     val g = JString("bar")
     val merged = MergeNodeProperties.checkPropertyMerge(Nil, Map("foo" -> g))
     merged must beRight(List(g.toG("foo")))
   }
 
-  "global parameter are inherited and overriden by group" >> {
+  "global parameter are inherited and overriden by group and only one time" >> {
+    // empty properties, see if global is duplicated
+    val p2 = parent2.copy(properties = Nil)
     val g = JString("bar")
-    val merged = MergeNodeProperties.checkPropertyMerge(child.toTarget :: parent1.toTarget :: Nil, Map("foo" -> g))
+    val merged = MergeNodeProperties.checkPropertyMerge(List(parent1, p2, child).map(_.toTarget), Map("foo" -> g))
     val expected = List(child, parent1).toH3("foo", g) :: Nil
     merged must beRight(expected)
   }
@@ -204,4 +288,5 @@ class TestMergeGroupProperties extends Specification {
     }
   }
 }
+
 
