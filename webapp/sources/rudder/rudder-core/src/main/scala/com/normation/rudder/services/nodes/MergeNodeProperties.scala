@@ -37,6 +37,7 @@
 
 package com.normation.rudder.services.nodes
 
+import cats.implicits._
 import com.normation.errors._
 import com.normation.rudder.domain.nodes.FullParentProperty
 import com.normation.rudder.domain.nodes.GenericPropertyUtils
@@ -56,6 +57,13 @@ import com.softwaremill.quicklens._
 import net.liftweb.json.Diff
 import net.liftweb.json.JsonAST.JNothing
 import net.liftweb.json.JsonAST.JValue
+import org.jgrapht.alg.connectivity.ConnectivityInspector
+import org.jgrapht.graph.AsSubgraph
+import org.jgrapht.graph.DefaultDirectedGraph
+import org.jgrapht.graph.DefaultEdge
+import org.jgrapht.traverse.TopologicalOrderIterator
+
+import scala.jdk.CollectionConverters._
 
 /**
  * This file handle how node properties are merged with other (global, groups, etc)
@@ -72,10 +80,10 @@ import net.liftweb.json.JsonAST.JValue
  *
  * When overriding happens, we use a merge-override strategy, ie:
  * - if the overriding value is a simple value or an array, it replaces the previous one
- * - if the overriding value is an object and the overriden value is a simple type or an array,
+ * - if the overriding value is an object and the overridden value is a simple type or an array,
  *   the latter one is replaced by the former
- * - if both overriding/overriden are arrays, overriding values are appended to overriden array
- * - if both overriding/overriden are objects, then each key is overriden recursively as explained,
+ * - if both overriding/overridden are arrays, overriding values are appended to overridden array
+ * - if both overriding/overridden are objects, then each key is overridden recursively as explained,
  *   and new keys are added.
  */
 
@@ -113,7 +121,9 @@ object GroupProp {
 
   /**
    * Utility class to transform RuleTarget (which are the things where we get when
-   * we resolve node belongings, for some reason I don't know about) into GroupProp
+   * we resolve node belongings, for some reason I don't know about) into GroupProp.
+   * Parent order is keep so that if P1 is on line 1, P2 is on line 2, then we get:
+   * P1 :: P2 :: Nil
    */
   implicit class FromTarget(target: FullRuleTargetInfo) {
     def toGroupProp: PureResult[GroupProp] = {
@@ -161,37 +171,12 @@ object GroupProp {
   }
 }
 
-/**
- * A group property with information about the group in which
- * it is defined.
- */
-final case class OneGroupProp(
-    property    : GroupProperty
-  , groupId     : NodeGroupId
-  , condition   : CriterionComposition
-  , isDynamic   : Boolean
-  , parentGroups: List[String] // groupd ids - a list because order is important!
-  , groupName   : String // for error
-)
-
-/**
- * We need a tree structure to modelize sub-group relationship.
- * The tree starts from root and go up to parents, and the outer most
- * parents are leaf. Like a real tree. You know.
- */
-final case class InvertedTree[A](value: A, parents: List[InvertedTree[A]]) {
-  // we need to be able to test for a "contains" on a A:
-  def contains(predicat: A => Boolean): Boolean = {
-    predicat(value) || parents.exists(_.contains(predicat))
-  }
-
-  // change content of nodes
-  def map[B](f: A => B): InvertedTree[B] = InvertedTree(f(value), parents.map(_.map(f)))
-}
-
-
 object MergeNodeProperties {
 
+  /**
+   * Merge that node properties with properties of groups which contain it.
+   * Groups are not sorted, but all groups with that node are present.
+   */
   def withDefaults(node: NodeInfo, nodeTargets: List[FullRuleTargetInfo], globalParams: Map[String, JValue]): PureResult[List[NodePropertyHierarchy[JValue]]] = {
     for {
       defaults <- checkPropertyMerge(nodeTargets, globalParams)
@@ -204,7 +189,7 @@ object MergeNodeProperties {
    * Actually merge existing properties with default inherited ones.
    * Fully inherited properties got an "inherited" provider.
    * NodePropertyHierarchy with a non empty parent list means they were inherited and at least
-   * partially overriden
+   * partially overridden
    */
   def mergeDefault(properties: Map[String, NodeProperty], defaults: Map[String, NodePropertyHierarchy[JValue]]): Map[String, NodePropertyHierarchy[JValue]] = {
     val fullyInherited = defaults.keySet -- properties.keySet
@@ -237,48 +222,24 @@ object MergeNodeProperties {
   def checkPropertyMerge(targets: List[FullRuleTargetInfo], globalParams: Map[String, JValue]): PureResult[List[NodePropertyHierarchy[JValue]]] = {
     /*
      * General strategy:
-     * - build all disjoint hierarchies of trees that contains that node
-     *   (a tree is defined by our inherance rules, so we can perfectly have
+     * - build all disjoint hierarchies of groups that contains that node
+     *   (a hierarchy is defined by our inherance rules, so we can perfectly have
      *   n overlapping groups for the set of nodes they contains that are not
      *   in a hierarchy).
-     * - for each tree, resolve overriding in properties
+     * - for each hierarchy, resolve overriding in properties
      * - then, merge all resulting properties. At that point, two properties with the
      *   same key are in conflict (by our definition of "not in conflict only if
      *   they are in the same hierarchy").
      */
 
-
     /*
-     * For a tree, merge properties and for each key, return the deepest child with that property.
-     * The merge is done with rules explain above, and priority when there is several
-     * parent is done by starting with the first group in the criterion line - the last
-     * group in criteria is the one which wins.
-     * We do the merge recursively and by starting by the most prioritary group each time,
-     * depth first, so that once a property is defined, its value is never replaced (but it can
-     * be augmented in the case of object, but here again only for new keys).
-     *
-     * /!\ /!\ /!\ We assume that the list of parents in the order of criterion
-     * lines, so that the HEAD is the LEAST prioritary parent (ie the one which will
-     * have the most of its values changed).
-     */
-    def overrideTree(tree: InvertedTree[GroupProp]): Map[String, NodePropertyHierarchy[JValue]] = {
-      val current = tree.value.toNodePropHierarchy
-      tree.parents match {
-        case Nil  => current
-        case many =>
-          // depth first
-          overrideValues(many.map(overrideTree) :+ current)
-      }
-    }
-
-    /*
-     * merge overriding properties with overriden one. Here, conflict resolution was done,
+     * merge overriding properties with overridden one. Here, we don't deal with conflicts,
      * so we just want to merge according to following rules:
      * - if the overriding value is a simple value or an array, it replaces the previous one
-     * - if the overriding value is an object and the overriden value is a simple type or an array,
+     * - if the overriding value is an object and the overridden value is a simple type or an array,
      *   the latter one is replaced by the former
-     * - if both overriding/overriden are array, then overriding values are appended to overriden array
-     * - if both overriding/overriden are object, then each key is overriden recursively as explained,
+     * - if both overriding/overridden are array, then overriding values are appended to overridden array
+     * - if both overriding/overridden are object, then each key is overridden recursively as explained,
      *   and new keys are added.
      * See https://github.com/lift/lift/tree/master/framework/lift-base/lift-json/#merging--diffing
      * for more information.
@@ -336,9 +297,13 @@ object MergeNodeProperties {
     }
 
     for {
-      trees     <- builtTrees(targets)
-      overriden =  trees.map(overrideTree).flatMap(_.values)
-      merged    <- mergeAll(overriden)
+      groups    <- targets.traverse (_.toGroupProp.map(g => (g.groupId.value, g))).map(_.toMap)
+      sorted    <- sortGroups(groups)
+      // add global values as the most default NnodePropertyHierarchy
+      overridden =  sorted.map(groups => overrideValues(groups.map(_.toNodePropHierarchy)))
+      // now flatten properties from all groups so that we can check for duplicates
+      flatten   =  overridden.map(_.values).flatten
+      merged    <- mergeAll(flatten)
     } yield {
       // here, we add global parameters as a first default
       val globalParamProps = globalParams.map { case (n, v) =>
@@ -349,87 +314,94 @@ object MergeNodeProperties {
     }
   }
 
-  /*
-   * For a same property identified by key, check that all groups are
-   * in a hierarchy and sort them from outermost parent in head to
-   * last children in tail
-   */
-  def builtTrees(targets: List[FullRuleTargetInfo]): PureResult[List[InvertedTree[GroupProp]]] = {
-    /*
-     * The recusrive function: process group in `remains` and add it to `done`.
-     * Each step can fail if we miss some group reference.
-     */
-    def recurseTrees(allTargets: Map[NodeGroupId, GroupProp], remain: List[GroupProp], done: List[InvertedTree[GroupProp]]): PureResult[List[InvertedTree[GroupProp]]] = {
-      remain match {
-        case Nil => Right(done)
-        case h::tail =>
-          buildOneTree(h, allTargets).flatMap(tree =>
-            // remove groups which were processed in that hierarchy
-            recurseTrees(allTargets, tail.filterNot(g => tree.contains(_.groupId == g.groupId)), tree :: done)
-          )
-      }
-    }
-
-    for {
-      all   <- targets.accumulatePure(_.toGroupProp.map(g => (g.groupId, g))).map(_.toMap)
-      trees <- recurseTrees(all, all.values.toList, Nil)
-    } yield {
-      trees
-    }
-  }
-
-
-  /*
-   * Build a tree from given group with the `allTargets` context which is supposed to
-   * contain all group related to that one and more.
-   * Algorithm to build hierarchy:
-   * - take one of the group at random (the one given in parameter)
-   * - search for root, ie recursively search for one child having parameter group as parent
-   *     - 0 means we have the last child: root
-   *     - 1 means more children! Recurse.
-   *     - n > 1 means a diamond hierarchy. Take one branche at random, the other
-   *       one will be processed in another call to parent method. Recurse!
+  /**
    *
-   * When we are at root, we need to go back up, actually building the tree with all
-   * its branches and not only the one we took during descent:
-   *   - look at each line in criterion (we only have subgroup criterion here), keeping line
-   *     order (because it defines override order):
-   *     - 0 means we have the outer most parent
-   *     - n > 0 means: more parents!
+   * Sort groups.
+   * 1/ Start by finding all graph (almost tree) of groups. That part can fail if any parent
+   * referenced in a group criterium is missing in the parameter list.
+   *
+   * Edges are defined thanks to two properties:
+   * - if S is a subgroup of P, then there's an edge from P to S (P -> S),
+   * - if S is subgroup of P1 (line 1) and P2 (line 2), then there's an edge from P1 to P2 (P1 -> p2)
+   *
+   * 2/ Then, for each graph, return the topological sort of its GroupProp. That part can
+   * fail is there is cycle in any graph.
+   *
+   * The sort returns the oldest parent first.
+   *
    */
-  def buildOneTree(group: GroupProp, allTargets: Map[NodeGroupId, GroupProp]): PureResult[InvertedTree[GroupProp]] = {
-    /*
-     * Descend to root
-     */
-    @scala.annotation.tailrec
-    def searchDown(current: GroupProp, all: Map[NodeGroupId, GroupProp]): PureResult[InvertedTree[GroupProp]] = {
-      all.collect { case g if g._2.parentGroups.contains(current.groupId.value) => g._2 } match {
-        case Nil      => // found root, go up now
-          buildUp(current, all)
-        case h :: _ => // recurse
-          searchDown(h, all)
-      }
-    }
-
-    /*
-     * Here, we look up for parent groups. We know that "all" contains all parents.
-     */
-    def buildUp(root: GroupProp, all: Map[NodeGroupId, GroupProp]): PureResult[InvertedTree[GroupProp]] = {
-      // recursively takes parent, keeping criterion line order
+  def sortGroups(groups: Map[String, GroupProp]): PureResult[List[List[GroupProp]]] = {
+    type GRAPH = DefaultDirectedGraph[GroupProp, DefaultEdge]
+    // Recursively add groups in the list. The last group is the oldest parent.
+    // `addEdge` can throw exception if one of the vertice is missing (it can only be the parent in our case)
+    def recAddEdges(graph: GRAPH, child: GroupProp, parents: List[GroupProp]): PureResult[GRAPH] = {
       for {
-        parents <- root.parentGroups.accumulatePure { id =>
-                     all.get(NodeGroupId(id)) match {
-                       case None    => Left(Inconsistency(s"Group '${root.groupName}' (${root.groupId.value}) has a group comparator " +
-                                                       s"criterion but the corresponding group was not found: ${id}"))
-                       case Some(g) => buildUp(g, all)
-                     }
-                   }
-      } yield {
-        InvertedTree(root, parents)
-      }
+        _ <- parents.traverse { p =>
+               // P -> S
+               try {
+                 Right(graph.addEdge(p, child))
+               } catch {
+                 case ex: Exception => // At least NPE, IllegalArgEx, UnsupportedException...
+                   Left(SystemError(s"Error when trying to build group hierarchy of group '${child.groupName}' " +
+                                    s"(${child.groupId.value}) for parent '${p.groupName}' (${p.groupId.value})", ex))
+               }
+             }
+        g <- parents match {
+               case Nil  => Right(graph)
+               case h::t => recAddEdges(graph, h, t)
+             }
+      } yield g
     }
 
-    searchDown(group, allTargets)
+    // we are in java highly mutable land - this algo can't be parallelized without going to ZIO
+    val graph = new DefaultDirectedGraph[GroupProp, DefaultEdge](classOf[DefaultEdge])
+    val groupList = groups.values.toList
+    for {
+      // we need to proceed in two pass because all vertices need to be added before edges
+      // add veritce
+      _      <- groupList.traverse { group =>
+                  try {
+                    Right(graph.addVertex(group))
+                  } catch {
+                    case ex: Exception => // At least NPE, IllegalArgEx, UnsupportedException...
+                      Left(SystemError(s"Error when trying to build group hierarchy of group '${group.groupName}' ${group.groupId.value})", ex))
+                  }
+                }
+      // add edges
+      _      <- groupList.traverse { group =>
+                  for {
+                    parents <- group.parentGroups.traverse { p =>
+                                 groups.get(p) match {
+                                   case None    =>
+                                     Left(Inconsistency(s"Error when looking for parent group '${p}' of group '${group.groupName}' " +
+                                                        s"[${group.groupId.value}]. Please check criterium for that group."))
+                                   case Some(g) =>
+                                     Right(g)
+                                 }
+                               }
+                               // reverse parents here, because we need to start from child and go up hierarchy
+                    _       <- recAddEdges(graph, group, parents.reverse)
+                  } yield ()
+                }
+      // get connected components
+      sets   <- try {
+                  Right(new ConnectivityInspector(graph).connectedSets().asScala)
+                } catch {
+                  case ex: Exception => Left(SystemError(s"Error when looking for groups hierarchies", ex))
+                }
+      sorted <- sets.toList.traverse { set =>
+                  try {
+                    val subgraph = new AsSubgraph[GroupProp, DefaultEdge](graph, set, null)
+                    val sort = new TopologicalOrderIterator[GroupProp, DefaultEdge](subgraph)
+                    // can throw if there is cycles
+                    Right(sort.asScala.toList)
+                  } catch {
+                    case ex: Exception =>
+                      Left(SystemError(s"Error when sorting group of node: there is cycles in parent hierarchy or in their" +
+                                       s" priority order. Please ensure that `group` criteria are always in the same order", ex))
+                  }
+                }
+    } yield sorted
   }
 
 }
