@@ -103,6 +103,7 @@ import com.normation.inventory.domain.PublicKey
 import com.normation.rudder.domain.nodes.GenericPropertyUtils
 import com.normation.rudder.domain.nodes.GroupProperty
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
+import com.normation.rudder.services.policies.PropertyParser
 import org.bouncycastle.cert.X509CertificateHolder
 import zio._
 import zio.syntax._
@@ -619,12 +620,18 @@ final case class RestExtractorService (
   }
 
   def extractProperties[A](params : Map[String, List[String]], make:(String, JValue) => A): Box[Option[List[A]]] = {
+    import cats.implicits._
+    import com.normation.box._
+
     extractList(params, "properties") { props =>
-      Full(props.map { prop =>
+      (props.traverse { prop =>
         val parts = prop.split('=')
-        if(parts.size == 1) make(parts(0), JString(""))
-        else make(parts(0), GenericPropertyUtils.parseValue(parts(1)))
-      })
+
+        PropertyParser.validPropertyName(parts(0)).map { name =>
+          if(parts.size == 1) make(name, JString(""))
+          else make(name, GenericPropertyUtils.parseValue(parts(1)))
+        }
+      }).toBox
     }
   }
 
@@ -674,8 +681,10 @@ final case class RestExtractorService (
           //if not defined of not a string, use default
           case _              => None
         }
+        PropertyParser.validPropertyName(nameValue).map(name =>
+          NodeProperty(nameValue, value, provider)
+        ).toBox
 
-        Full(NodeProperty(nameValue, value, provider))
       case (a, b)  =>
         Failure(s"""Error when trying to parse new property: '${compactRender(json)}'. The awaited format is: {"name": string, "value": json}""")
     }
