@@ -29,27 +29,6 @@
         <script src="js/class_utils.js?version=dev"></script>
         <script src="js/ui-bootstrap-tpls-0.14.3.min.js?version=dev"></script>
         <script src="js/showdown-1.9.0.min.js?version=dev"></script>
-        <script type="text/ng-template" id="deprecatedMethod.html">
-          <div>
-            <!-- This template is used inside a tooltip, which appears : -->
-
-            <!-- 1. In the general generic methods list -->
-            <div ng-if="method_call === undefined && method" ng-bind-html="getTooltipContent(method)"></div>
-
-            <!-- 2. In the generic methods list of a technique -->
-            <div ng-if="method_call" ng-bind-html="getTooltipContent(method_call)"></div>
-
-            <!-- 3. In the details of a selected generic method -->
-            <div ng-if="method_call === undefined && selectedMethod" ng-bind-html="getTooltipContent(selectedMethod)"></div>
-
-          </div>
-        </script>
-        <script type="text/ng-template" id="deprecatedCategory.html">
-          <div>All generic methods in this category are <b>deprecated</b>.</div>
-        </script>
-        <script type="text/ng-template" id="TechniqueWithDeprecatedMethod.html">
-          <div>This technique uses <b>deprecated</b> generic methods.</div>
-        </script>
         <script id="template/uib-accordion/uib-accordion-group.html" type="text/ng-template">
           <div class="panel panel-default">
             <div class="panel-heading" ng-click="isOpen = !isOpen">
@@ -193,6 +172,12 @@
             if (window.self != window.top) {
               $(document.body).addClass("iframe");
             }
+            $(document).on('mouseover','.popover-bs',function(){
+              $(this).popover('show');
+            });
+            $(document).on('mouseover','.tooltip-bs',function(){
+              $(this).tooltip('show');
+            });
           }));
         </script>
          <base href="/ncf-builder" />
@@ -247,12 +232,13 @@
                       <span
                       class="cursor-help"
                       ng-if="hasDeprecatedMethod(technique)"
-                      popover-title="{{technique.name}}"
-                      uib-popover-template="'TechniqueWithDeprecatedMethod.html'"
-                      rel="popover"
-                      popover-placement="right"
-                      popover-trigger="mouseenter"
-                      popover-append-to-body="true"
+                      data-toggle="popover"
+                      data-trigger="hover"
+                      data-container="body"
+                      data-placement="right"
+                      data-title="{{technique.name}}"
+                      data-content="<div>This technique uses <b>deprecated</b> generic methods.</div>"
+                      data-html="true"
                       >
                         <i class="glyphicon glyphicon-info-sign deprecated-icon"></i>
                       </span>
@@ -504,7 +490,18 @@
                         </div>
                         <div class="col method-info" dnd-nodrag>
                           <div class="btn-holder">
-                            <button type="button" uib-tooltip="Clone this method" tooltip-append-to-body="true" popup-trigger="click" popup-open-delay="500" ng-click="cloneMethod($index);$event.stopPropagation();" class="text-success method-action">
+                            <button
+                            type="button"
+                            class="text-success method-action tooltip-bs"
+                            ng-click="cloneMethod($index);$event.stopPropagation();"
+                            data-toggle="tooltip"
+                            data-trigger="hover"
+                            data-container="body"
+                            data-placement="left"
+                            data-title="Clone this method"
+                            data-html="true"
+                            data-delay='{"show":"400", "hide":"100"}'
+                            >
                               <i class="fas fa-clone"></i>
                             </button>
                             <button type="button" ng-click="removeMethod($index);$event.stopPropagation();" class="text-danger method-action">
@@ -515,28 +512,36 @@
                             <div class="method-condition col-auto flex-form" ng-if="method_call.class_context !== 'any'">
                               <label>Condition:</label>
                               <textarea
-                                class="form-control"
+                                class="form-control popover-bs"
                                 msd-elastic
                                 rows="1"
                                 ng-model="method_call.class_context"
                                 ng-readonly="true"
                                 ng-click="$event.stopPropagation();"
-                                uib-popover-html="'<small>Click <span class=\'text-info\'>3</span> times to copy the whole condition below</small>'"
-                                popover-trigger="mouseenter"
-                                popover-append-to-body="true"
-                                popover-title="{{method_call.class_context}}">
+                                data-toggle="popover"
+                                data-trigger="hover"
+                                data-placement="top"
+                                data-title="{{method_call.class_context}}"
+                                data-content="<small>Click <span class='text-info'>3</span> times to copy the whole condition below</small>"
+                                data-template='<div class="popover condition" role="tooltip"><div class="arrow"></div><h3 class="popover-header"></h3><div class="popover-body"></div></div>'
+                                data-html="true">
                               </textarea>
                             </div>
 
                             <div class="method-name col-auto">
                               {{method_call.component ? method_call.component : method.name }}
-                              <span
-                                class="cursor-help"
-                                uib-popover-template="'deprecatedMethod.html'"
-                                popover-title="{{method.name}}"
-                                popover-trigger="mouseenter"
-                                popover-append-to-body="true">
-                                <i class="fas fa-info-circle tooltip-icon" ng-class="{'deprecated-icon':(method_call.deprecated || isDeprecated(method_call.method_name))}"></i>
+                              <span class="cursor-help">
+                                <i
+                                class="fas fa-info-circle tooltip-icon popover-bs"
+                                ng-class="{'deprecated-icon':(method_call.deprecated || isDeprecated(method_call.method_name))}"
+                                data-toggle="popover"
+                                data-trigger="hover"
+                                data-container="body"
+                                data-placement="auto"
+                                data-title="{{getMethodName(method_call)}}"
+                                data-content="{{getTooltipContent(method_call)}}"
+                                data-html="true"
+                                ></i>
                               </span>
                             </div>
 
@@ -549,23 +554,29 @@
                                 <input ng-hide="true" type="text" name="param" ng-model="parameter.value" constraint parameter="parameter" parameterinfo="(method.parameter[$index])" >
                               </div>
                               <div class="warns" ng-if="!getClassParameter(method_call).value || checkMissingParameters(method_call.parameters, method.parameter).length>0 || checkErrorParameters(method_call.parameters).length>0">
-                                <span class="warn-param warning"
-                                  uib-tooltip="{{getWarningTooltipMessage(checkMissingParameters(method_call.parameters, method.parameter))}}"
-                                  tooltip-placement="top"
-                                  tooltip-trigger="mouseenter"
-                                  popup-open-delay="300"
-                                  tooltip-append-to-body="true"
+                                <span
+                                  class="warn-param warning popover-bs"
                                   ng-click="selectMethod(method_call)"
+                                  data-toggle="popover"
+                                  data-trigger="hover"
+                                  data-container="body"
+                                  data-placement="top"
+                                  data-title="<b>{{checkMissingParameters(method_call.parameters, method.parameter).length}}</b> required parameter{{checkMissingParameters(method_call.parameters, method.parameter).length > 1 ? 's' : ''}} missing"
+                                  data-content="{{getWarningTooltipMessage(checkMissingParameters(method_call.parameters, method.parameter))}}"
+                                  data-html="true"
                                   >
-                                  <b>{{checkMissingParameters(method_call.parameters, method.parameter).length}}</b> required parameter{{checkMissingParameters(method_call.parameters, method.parameter).length > 1 ? "s" : ""}} missing
+                                  <b>{{checkMissingParameters(method_call.parameters, method.parameter).length}}</b> required parameter{{checkMissingParameters(method_call.parameters, method.parameter).length > 1 ? 's' : ''}} missing
                                 </span>
-                                <span class="warn-param error"
-                                  uib-tooltip="{{getErrorTooltipMessage(checkErrorParameters(method_call.parameters))}}"
-                                  tooltip-placement="top"
-                                  tooltip-trigger="mouseenter"
-                                  popup-open-delay="300"
-                                  tooltip-append-to-body="true"
+                                <span
+                                  class="warn-param error popover-bs"
                                   ng-click="selectMethod(method_call)"
+                                  data-toggle="popover"
+                                  data-trigger="hover"
+                                  data-container="body"
+                                  data-placement="top"
+                                  data-title="<b>{{checkErrorParameters(method_call.parameters).length}}</b> invalid parameter{{checkErrorParameters(method_call.parameters).length > 1 ? 's' : ''}}"
+                                  data-content="{{getErrorTooltipMessage(checkErrorParameters(method_call.parameters))}}"
+                                  data-html="true"
                                   >
                                   <b>{{checkErrorParameters(method_call.parameters).length}}</b> invalid parameter{{checkErrorParameters(method_call.parameters).length > 1 ? "s" : ""}}
                                 </span>
@@ -574,7 +585,18 @@
 
                           </div>
                         </div>
-                        <div class="edit-method col-auto" ng-click="selectMethod(method_call)" dnd-nodrag uib-tooltip="{{getStatusTooltipMessage(method_call)}}" tooltip-placement="left" tooltip-trigger="mouseenter" popup-open-delay="300">
+                        <div
+                          class="edit-method col-auto tooltip-bs"
+                          ng-click="selectMethod(method_call)"
+                          dnd-nodrag
+                          data-toggle="tooltip"
+                          data-trigger="hover"
+                          data-container="body"
+                          data-placement="left"
+                          data-title="{{getStatusTooltipMessage(method_call)}}"
+                          data-html="true"
+                          data-delay='{"show":"400", "hide":"100"}'
+                          >
                           <i class="fas fa-pen"></i>
                         </div>
                       </div>
@@ -794,12 +816,17 @@
                         </div>
                         <div class="method-name col" ng-click="addMethod(method)">
                           {{method.name}}
-                          <span
-                            class="cursor-help"
-                            ng-if="method.deprecated"
-                            popover-title="{{method.name}}" uib-popover-template="'deprecatedMethod.html'"
-                            popover-placement="bottom" popover-trigger="mouseenter" popover-append-to-body="true">
-                            <i class="fas fa-info-circle tooltip-icon deprecated-icon"></i>
+                          <span class="cursor-help" ng-if="method.deprecated">
+                            <i
+                              class="fas fa-info-circle tooltip-icon deprecated-icon popover-bs"
+                              data-toggle="popover"
+                              data-trigger="hover"
+                              data-container="body"
+                              data-placement="top"
+                              data-title="{{method.name}}"
+                              data-content="{{getTooltipContent(method)}}"
+                              data-html="true"
+                            ></i>
                           </span>
                           <img src="ncf-builder/css/dsc-icon.svg" class="dsc-icon" ng-if="checkAgentSupport(method,'dsc')">
                         </div>
@@ -818,13 +845,15 @@
                       <a href="" ng-click="scroll(kind)">
                         {{capitaliseFirstLetter(kind)}}
                         <span
-                        class="cursor-help"
+                        class="cursor-help popover-bs"
                         ng-if="!checkDeprecatedFilter(methods)"
-                        popover-title="{{capitaliseFirstLetter(kind)}}"
-                        uib-popover-template="'deprecatedCategory.html'"
-                        popover-placement="bottom"
-                        popover-trigger="hover"
-                        popover-append-to-body="true"
+                        data-toggle="popover"
+                        data-trigger="hover"
+                        data-container="body"
+                        data-placement="bottom"
+                        data-title="{{capitaliseFirstLetter(kind)}}"
+                        data-content="<div>All generic methods in this category are <b>deprecated</b>.</div>"
+                        data-html="true"
                         > <i class="glyphicon glyphicon-info-sign deprecated-icon"></i>
                         </span>
                       </a>

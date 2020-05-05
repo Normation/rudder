@@ -153,12 +153,6 @@ return {
 }
 });
 
-app.directive('popover', function() {
-  return function(scope, elem) {
-    $(elem).popover();
-  }
-});
-
 app.filter('parameterName', function () {
   return function (text) {
       if (!text) {
@@ -668,11 +662,7 @@ $scope.getTechniques = function () {
   success(function(response, status, headers, config) {
 
     if (response.data !== undefined && response.data.techniqueCategories !== undefined) {
-
-
       $scope.techniqueCategories= response.data.techniqueCategories
-
-
     } else {
       errorNotification( "Error while fetching technique categories", "Data received via api are invalid")
     }
