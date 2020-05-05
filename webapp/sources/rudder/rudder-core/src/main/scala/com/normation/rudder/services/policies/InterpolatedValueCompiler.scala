@@ -418,6 +418,19 @@ object PropertyParser {
     }
   }
 
+  /*
+   * Defines what is accepted as a valid property character name.
+   */
+  final val invalidPropertyChar = Set('"', '$','{','}','[',']')
+  def validPropertyNameChar(c: Char): Boolean = {
+    !(c.isControl || c.isSpaceChar || c.isWhitespace || invalidPropertyChar.contains(c))
+  }
+  def validPropertyName(name: String): PureResult[String] = {
+    if(name.forall(validPropertyNameChar)) Right(name)
+    else Left(Inconsistency(s"Property name is invalid: it must contains only non space, non control chars and different from: '${invalidPropertyChar.mkString("', '")}'"))
+  }
+
+
   def all[_: P] : P[List[Token]] = P( Start ~ ((noVariableStart | variable | ( "${" ~ noVariableEnd.map(_.prefix("${"))) ).rep(1) | empty )  ~ End).map(_.toList)
 
   //empty string is a special case that must be look appart from plain string.
@@ -432,6 +445,7 @@ object PropertyParser {
 
   def variableType[_: P] = P( interpolatedVariable | otherVariable )
   def variableId[_: P] : P[String] = P(CharIn("""\-_a-zA-Z0-9""").rep(1).!)
+  def propertyId[_: P] : P[String] = P(CharsWhile(validPropertyNameChar).!)
 
   // other cases of ${}: cfengine variables, etc
   def otherVariable[_: P]: P[NonRudderVar] = P( (variableId ~ ".").rep(0) ~ variableId ).map { case (begin, end) =>  NonRudderVar((begin :+ end).mkString(".")) }
@@ -450,7 +464,7 @@ object PropertyParser {
   def parameter[_: P]  : P[Interpolation] = P( IgnoreCase("param") ~/ space ~ "." ~ space ~/ variableId).map{ p => Param(p) }
 
   //a node property looks like: ${node.properties[.... Cut after "properties".
-  def nodeProperty[_: P]    : P[Interpolation] =  ( IgnoreCase("node") ~ space ~ "." ~ space ~ IgnoreCase("properties") ~/ ( space ~ "[" ~ space ~ variableId ~ space ~ "]" ).rep(1) ~/
+  def nodeProperty[_: P]    : P[Interpolation] =  ( IgnoreCase("node") ~ space ~ "." ~ space ~ IgnoreCase("properties") ~/ ( space ~ "[" ~ space ~ propertyId ~ space ~ "]" ).rep(1) ~/
                                                     nodePropertyOption.? ).map { case (path, opt) => Property(path.toList, opt) }
 
   //here, the number of " must be strictly decreasing - ie. triple quote before

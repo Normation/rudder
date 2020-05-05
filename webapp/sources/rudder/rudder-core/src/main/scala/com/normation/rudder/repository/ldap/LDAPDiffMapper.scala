@@ -63,6 +63,7 @@ import com.unboundid.ldif.LDIFModifyChangeRecord
 import com.unboundid.ldif.LDIFModifyDNChangeRecord
 import net.liftweb.common._
 import cats.implicits._
+import com.normation.rudder.domain.logger.ApplicationLogger
 
 class LDAPDiffMapper(
     mapper         : LDAPEntityMapper
@@ -350,7 +351,13 @@ class LDAPDiffMapper(
                 case A_JSON_PROPERTY =>
                   for {
                     d     <- diff
-                    props <- mod.getAttribute().getValues.toList.traverse(s => GroupProperty.parseSerializedGroupProperty(s))
+                             // ignore invalide properties, don't make group unusable
+                    props =  mod.getAttribute().getValues.toList.flatMap(s => GroupProperty.parseSerializedGroupProperty(s) match {
+                               case Right(p)  => Some(p)
+                               case Left(err) =>
+                                ApplicationLogger.error(s"Group has an invalid property that will be ignore: ${err.fullMsg}")
+                                None
+                             })
                   } yield {
                     d.copy(modProperties = Some(SimpleDiff(oldGroup.properties, props)))
                   }

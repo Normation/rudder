@@ -45,6 +45,7 @@ import com.normation.rudder.domain.queries.And
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.SubGroupComparator
+import com.normation.rudder.services.policies.PropertyParser
 import net.liftweb.json.DefaultFormats
 import net.liftweb.json.JArray
 import net.liftweb.json.JField
@@ -140,7 +141,8 @@ object GroupProperty {
     implicit val formats = DefaultFormats
     json.extractOpt[GroupProperty] match {
       case None    => Left(Inconsistency(s"Cannot parse group property from provided json: ${compactRender(json)}"))
-      case Some(v) => Right(v)
+      case Some(v) =>
+        PropertyParser.validPropertyName(v.name).map(_ => v)
     }
   }
 

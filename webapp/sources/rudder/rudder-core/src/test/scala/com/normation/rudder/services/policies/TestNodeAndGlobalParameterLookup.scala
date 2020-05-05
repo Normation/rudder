@@ -318,6 +318,23 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       test(all(_), s, List(Property("datacenter" :: "Europe" :: Nil, None)))
     }
 
+    "parse node properties with UTF-8 name" in {
+      val s = """${node.properties[emo😄ji]}"""
+      test(all(_), s, List(Property("emo😄ji" :: Nil, None)))
+    }
+
+    "fails on invalid property chars" in {
+      (PropertyParser.parse("""${node.properties[bad"bad]}""") must beLeft) and
+      (PropertyParser.parse("""${node.properties[bad$bad]}""") must beLeft) and
+      (PropertyParser.parse("""${node.properties[bad[bad]}""") must beLeft) and
+      (PropertyParser.parse("""${node.properties[bad]bad]}""") must beLeft) and
+      (PropertyParser.parse("""${node.properties[bad{bad]}""") must beLeft) and
+      (PropertyParser.parse("""${node.properties[bad}bad]}""") must beLeft) and
+      (PropertyParser.parse("""${node.properties[bad bad]}""") must beLeft) and
+      (PropertyParser.parse(  "${node.properties[bad\nbad]}") must beLeft) and
+      (PropertyParser.parse(  "${node.properties[bad\u0010bad]}") must beLeft)
+    }
+
     "parse node properties with path=N>2" in {
       val s = """${node.properties[datacenter][Europe][France][Paris][3]}"""
       test(all(_), s, List(Property("datacenter" :: "Europe" :: "France" :: "Paris" :: "3" :: Nil, None)))

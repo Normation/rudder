@@ -46,7 +46,6 @@ import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.inventory.ldap.core.InventoryMappingResult._
 import com.normation.errors._
-import com.normation.inventory.ldap.core.InventoryMappingRudderError
 import com.normation.inventory.ldap.core.InventoryMappingRudderError.UnexpectedObject
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.inventory.ldap.core.LDAPConstants._
@@ -78,6 +77,7 @@ import org.joda.time.DateTime
 import zio._
 import zio.syntax._
 import com.normation.ldap.sdk.syntax._
+import com.normation.rudder.domain.logger.ApplicationLogger
 
 final object NodeStateEncoder {
   implicit def enc(state: NodeState): String = state.name
@@ -595,7 +595,13 @@ class LDAPEntityMapper(
                          Right(None)
                      }
                    }
-        properties <- e.valuesFor(A_JSON_PROPERTY).toList.traverse(GroupProperty.parseSerializedGroupProperty).left.map(err => InventoryMappingRudderError.UnexpectedObject(err.fullMsg))
+        // better to ignore a bad property (set by something extern to rudder) than to make group unusable
+        properties =  e.valuesFor(A_JSON_PROPERTY).toList.flatMap(s => GroupProperty.parseSerializedGroupProperty(s) match {
+                        case Right(p)  => Some(p)
+                        case Left(err) =>
+                         ApplicationLogger.error(s"Group has an invalid property that will be ignore: ${err.fullMsg}")
+                         None
+                      })
         isDynamic   = e.getAsBoolean(A_IS_DYNAMIC).getOrElse(false)
         isEnabled   = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         isSystem    = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
