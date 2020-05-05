@@ -310,10 +310,10 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
     }
     def serializeMethodCall(call : MethodCall) : JValue = {
       val params : JValue = call.parameters.map {
-        case (methodId, value) =>
-          ( ( "methodId" -> methodId.value )
-            ~ ( "value"    -> value          )
-            )
+        case (parameterName, value) =>
+          ( ( "name"  -> parameterName.value )
+          ~ ( "value" -> value               )
+          )
       }
 
       ( ( "method_name"   -> call.methodId.value    )
