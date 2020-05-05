@@ -40,10 +40,10 @@ import java.util.regex.Pattern
 import com.normation.rudder.domain.nodes.GenericPropertyUtils
 import net.liftweb.json._
 
-final case class ParameterName(value:String) extends AnyVal
+final case class ParameterName(value: String)
 
 object ParameterName {
-  val patternName = Pattern.compile("[a-zA-Z0-9_]+");
+  val patternName = Pattern.compile("""[\-a-zA-Z0-9_]+""")
 }
 
 /**
@@ -65,8 +65,13 @@ object GlobalParameter {
    * a JString *but* a string representing an actual JSON should be
    * used as json.
    */
-  def apply(name: String, value: String, description: String =""): GlobalParameter = {
-    GlobalParameter(ParameterName(name), GenericPropertyUtils.parseValue(value), description)
+  def apply(name: String, value: String, description: String): GlobalParameter = {
+    new GlobalParameter(ParameterName(name), GenericPropertyUtils.parseValue(value), description)
+  }
+
+  // we need this one to avoir lift json string2jvalue which leads to #17326
+  def apply(name: ParameterName, value: String, description: String): GlobalParameter = {
+    new GlobalParameter(name, GenericPropertyUtils.parseValue(value), description)
   }
 }
 
