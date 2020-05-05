@@ -41,7 +41,6 @@ package com.normation.rudder.services.policies
 import com.normation.box._
 import com.normation.errors._
 import com.normation.inventory.domain.AgentType
-import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.services.policies.PropertyParserTokens._
 import net.liftweb.common._
@@ -234,7 +233,7 @@ trait AnalyseInterpolation[T, I <: GenericInterpolationContext[T]] {
       case CharSeq(s)         => Right(s)
       case NonRudderVar(s)    => Right(s"$${${s}}")
       case NodeAccessor(path) => getNodeAccessorTarget(context, path)
-      case Param(name)         => getRudderGlobalParam(context, ParameterName(name))
+      case Param(name)         => getRudderGlobalParam(context, name)
       case Property(path, opt) => opt match {
         case None =>
           getNodeProperty(context, path)
@@ -261,7 +260,7 @@ trait AnalyseInterpolation[T, I <: GenericInterpolationContext[T]] {
   /**
    * Retrieve the global parameter from the node context.
    */
-  def getRudderGlobalParam(context: I, paramName: ParameterName): PureResult[String]
+  def getRudderGlobalParam(context: I, paramName: String): PureResult[String]
 
 
   /**
@@ -344,14 +343,14 @@ object AnalyseParamInterpolation extends AnalyseInterpolation[ParamInterpolation
   /**
    * Retrieve the global parameter from the node context.
    */
-  def getRudderGlobalParam(context: ParamInterpolationContext, paramName: ParameterName): PureResult[String] = {
-    context.parameters.get(paramName.value) match {
+  def getRudderGlobalParam(context: ParamInterpolationContext, paramName: String): PureResult[String] = {
+    context.parameters.get(paramName) match {
       case Some(value) =>
         if(context.depth >= maxEvaluationDepth) {
-          Left(Unexpected(s"""Can not evaluted global parameter "${paramName.value}" because it uses an interpolation variable that depends upon """
+          Left(Unexpected(s"""Can not evaluted global parameter "${paramName}" because it uses an interpolation variable that depends upon """
            + s"""other interpolated variables in a stack more than ${maxEvaluationDepth} in depth. We fear it's a circular dependancy."""))
         } else value(context.copy(depth = context.depth+1))
-      case _ => Left(Unexpected(s"Error when trying to interpolate a variable: Rudder parameter not found: '${paramName.value}'"))
+      case _ => Left(Unexpected(s"Error when trying to interpolate a variable: Rudder parameter not found: '${paramName}'"))
     }
   }
 }
@@ -361,12 +360,12 @@ object AnalyseNodeInterpolation extends AnalyseInterpolation[String, Interpolati
   /**
    * Retrieve the global parameter from the node context.
    */
-  def getRudderGlobalParam(context: InterpolationContext, paramName: ParameterName): PureResult[String] = {
-    context.parameters.get(paramName.value) match {
+  def getRudderGlobalParam(context: InterpolationContext, paramName: String): PureResult[String] = {
+    context.parameters.get(paramName) match {
       case Some(value) =>
         Right(value)
       case _           =>
-        Left(Unexpected(s"Error when trying to interpolate a variable: Rudder parameter not found: '${paramName.value}'"))
+        Left(Unexpected(s"Error when trying to interpolate a variable: Rudder parameter not found: '${paramName}'"))
     }
   }
 }

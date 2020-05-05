@@ -278,9 +278,10 @@ class DeploymentStatusSerialisationImpl(xmlVersion:String) extends DeploymentSta
 class GlobalParameterSerialisationImpl(xmlVersion:String) extends GlobalParameterSerialisation {
   def serialise(param:GlobalParameter):  Elem = {
     createTrimedElem(XML_TAG_GLOBAL_PARAMETER, xmlVersion) (
-       <name>{param.name.value}</name>
+       <name>{param.name}</name>
        <value>{param.value}</value>
        <description>{param.description}</description>
+       <provider>{param.provider.map(_.value).getOrElse("")}</provider>
     )
   }
 }
@@ -421,7 +422,7 @@ class ChangeRequestChangesSerialisationImpl(
           </rule>
         }
         val params = changeRequest.globalParams.map{ case (paramName, param) =>
-          <globalParameter name={paramName.value}>
+          <globalParameter name={paramName}>
             <initialState>
               {param.changes.initialState.map{
                 case (initialParam) =>

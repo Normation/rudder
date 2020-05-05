@@ -402,7 +402,7 @@ class LDAPDiffMapper(
   }
 
   def modChangeRecords2GlobalParameterDiff(
-      parameterName     : ParameterName
+      parameterName     : String
     , parameterDn       : DN
     , oldParam          : GlobalParameter
     , change            : LDIFChangeRecord
@@ -421,6 +421,10 @@ class LDAPDiffMapper(
                 case A_DESCRIPTION =>
                   nonNull(diff, mod.getAttribute().getValue) { (d, value) =>
                     d.copy(modDescription = Some(SimpleDiff(oldParam.description, value)))
+                  }
+                case A_PROPERTY_PROVIDER =>
+                  nonNull(diff, mod.getAttribute().getValue) { (d, value) =>
+                    d.copy(modProvider = Some(SimpleDiff(oldParam.provider, Some(PropertyProvider(value)))))
                   }
                 case x => Left(Err.UnexpectedObject("Unknown diff attribute: " + x))
               }

@@ -60,7 +60,7 @@ class NodePropertiesOverridingServiceImpl(
       groups       <- groupRepo.getFullGroupLibrary()
       nodeTargets  =  groups.getTarget(nodeInfo).map(_._2).toList
       params       <- paramRepo.getAllGlobalParameters()
-      info         <- MergeNodeProperties.withDefaults(nodeInfo, nodeTargets, params.map(p => (p.name.value, p.value)).toMap).toIO
+      info         <- MergeNodeProperties.withDefaults(nodeInfo, nodeTargets, params.map(p => (p.name, p.value)).toMap).toIO
     } yield {
       info
     }

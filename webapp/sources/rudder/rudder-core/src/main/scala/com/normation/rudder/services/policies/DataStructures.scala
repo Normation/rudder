@@ -202,7 +202,7 @@ final case object ParameterForConfiguration {
   def fromParameter(param: GlobalParameter) : ParameterForConfiguration = {
     // here, we need to go back to a string for resolution of
     // things like ${rudder.param[foo] | default = ... }
-    ParameterForConfiguration(param.name.value, GenericPropertyUtils.serializeValue(param.value))
+    ParameterForConfiguration(param.name, GenericPropertyUtils.serializeValue(param.value))
   }
 }
 

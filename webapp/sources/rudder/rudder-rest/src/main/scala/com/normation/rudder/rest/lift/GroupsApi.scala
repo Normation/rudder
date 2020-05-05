@@ -380,10 +380,11 @@ class GroupApiService2 (
           for {
             (group, cat) <- readGroup.getNodeGroup(NodeGroupId(sourceId)).toBox ?~!
               s"Could not create group ${name} (id:${id.value}) by cloning group '${sourceId}')"
+            updated      <- restGroup.updateGroup(group).toBox
           } yield {
             // in that case, we take rest category and if empty, we default to cloned group category
             val category = restGroup.category.orElse(Some(cat))
-            NodeGroupChangeRequest(DGModAction.CreateSolo, restGroup.updateGroup(group), category, Some(group))
+            NodeGroupChangeRequest(DGModAction.CreateSolo, updated, category, Some(group))
           }
 
         case None =>
@@ -391,8 +392,6 @@ class GroupApiService2 (
           val defaultEnabled = restGroup.enabled.getOrElse(true)
           // create from scratch - base rule is the same with default values
           val baseGroup = NodeGroup(groupId,name,"", Nil,None,true,Set(), defaultEnabled)
-
-          val change = NodeGroupChangeRequest(DGModAction.CreateSolo, restGroup.updateGroup(baseGroup), restGroup.category, Some(baseGroup))
 
           // if only the name parameter is set, consider it to be enabled
           // if not if workflow are enabled, consider it to be disabled
@@ -404,6 +403,8 @@ class GroupApiService2 (
            * else defaultEnabled
            */
           for {
+            updated  <- restGroup.updateGroup(baseGroup).toBox
+            change   =  NodeGroupChangeRequest(DGModAction.CreateSolo, updated, restGroup.category, Some(baseGroup))
             workflow <- workflowLevelService.getForNodeGroup(actor, change) ?~! "Could not find workflow status for that rule creation"
           } yield {
             // we don't actually start a workflow, we only disable the rule if a workflow should be
@@ -502,24 +503,18 @@ class GroupApiService2 (
     val actor = getActor(req)
     val groupId = NodeGroupId(id)
 
-    readGroup.getNodeGroup(groupId).toBox match {
-      case Full((group,_)) =>
-        restValues match {
-          case Full(restGroup) =>
-            val updatedGroup = restGroup.updateGroup(group)
-            val diff = ModifyToNodeGroupDiff(updatedGroup)
-            createChangeRequestAndAnswer(id, diff, updatedGroup, Some(group), actor, req, DGModAction.Update, apiVersion)
-
-          case eb : EmptyBox =>
-            val fail = eb ?~ (s"Could extract values from request" )
-            val message = s"Could not modify Group ${groupId.value} cause is: ${fail.msg}."
-            toJsonError(Some(groupId.value), message)
-        }
-
-      case eb:EmptyBox =>
-        val fail = eb ?~ (s"Could not find Group ${groupId.value}" )
-        val message = s"Could not modify Group ${groupId.value} cause is: ${fail.msg}."
-        toJsonError(Some(groupId.value), message)
+    (for {
+      (group, _) <- readGroup.getNodeGroup(groupId).toBox
+      restGroup  <- restValues
+      updated    <- restGroup.updateGroup(group).toBox
+    } yield {
+      (group, updated, ModifyToNodeGroupDiff(updated))
+    }) match {
+      case Full((group, updated, diff)) =>
+        createChangeRequestAndAnswer(id, diff, updated, Some(group), actor, req, DGModAction.Update, apiVersion)
+      case eb : EmptyBox =>
+            val fail = eb ?~ s"Could not modify Group ${groupId.value}"
+            toJsonError(Some(groupId.value), fail.messageChain)
     }
   }
 

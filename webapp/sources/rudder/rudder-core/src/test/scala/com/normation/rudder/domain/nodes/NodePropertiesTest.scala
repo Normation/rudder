@@ -49,9 +49,9 @@ import net.liftweb.json.JsonAST.JString
 class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher {
 
 
-  val RudderP = Some(NodeProperty.rudderNodePropertyProvider)
-  val P1 = Some(NodePropertyProvider("p1"))
-  val P2 = Some(NodePropertyProvider("p2"))
+  val RudderP = Some(GenericPropertyUtils.defaultPropertyProvider)
+  val P1 = Some(PropertyProvider("p1"))
+  val P2 = Some(PropertyProvider("p2"))
 
   //just to have sequence in same order
   implicit val ord = new Ordering[NodeProperty]{

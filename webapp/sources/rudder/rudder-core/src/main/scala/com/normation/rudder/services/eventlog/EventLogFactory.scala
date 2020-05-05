@@ -707,7 +707,7 @@ class EventLogFactoryImpl(
   ) : ModifyGlobalParameter = {
     val details = EventLog.withContent{
       scala.xml.Utility.trim(<globalParameter changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
-        <name>{modifyDiff.name.value}</name>{
+        <name>{modifyDiff.name}</name>{
           modifyDiff.modValue.map(x => SimpleDiff.toXml(<value/>, x){v => Text(GenericPropertyUtils.serializeValue(v))}) ++
           modifyDiff.modDescription.map(x => SimpleDiff.stringToXml(<description/>, x ) )
         }

@@ -57,7 +57,6 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
-import com.normation.rudder.domain.nodes.JsonSerialisation._
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.parameters._
@@ -191,7 +190,7 @@ class LDAPEntityMapper(
                         case Some(value) => PolicyMode.parse(value).map {Some(_) }
                       }
         properties <- e.valuesFor(A_NODE_PROPERTY).toList.traverse(v => net.liftweb.json.parseOpt(v) match {
-                        case Some(json) => unserializeLdapNodeProperty(json).toPureResult
+                        case Some(json) => NodeProperty.unserializeLdapNodeProperty(json)
                         case None => Left(Unexpected("Invalid data when unserializing node property"))
                       })
       } yield {
@@ -366,7 +365,7 @@ class LDAPEntityMapper(
         case None         => current
         case Some(custom) =>
           current.provider match {
-            case None | Some(NodeProperty.rudderNodePropertyProvider) => //override and log
+            case None | Some(GenericPropertyUtils.defaultPropertyProvider) => //override and log
               logEffect.info(s"On node [${nodeId.value}]: overriding existing node property '${current.name}' with custom node inventory property with same name.")
               custom
             case other => // keep existing prop from other provider but log
@@ -967,11 +966,13 @@ class LDAPEntityMapper(
         name        <- e.required(A_PARAMETER_NAME)
         value       =  e(A_PARAMETER_VALUE).getOrElse("")
         description =  e(A_DESCRIPTION).getOrElse("")
+        provider    =  e(A_PROPERTY_PROVIDER).map(PropertyProvider)
       } yield {
         GlobalParameter(
-            ParameterName(name)
+            name
           , value
           , description
+          , provider
         )
       }
     } else Left(Err.UnexpectedObject("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_PARAMETER, e)))
@@ -983,6 +984,9 @@ class LDAPEntityMapper(
     )
     entry +=! (A_PARAMETER_VALUE, GenericPropertyUtils.serializeValue(parameter.value))
     entry +=! (A_DESCRIPTION, parameter.description)
+    parameter.provider.foreach(p =>
+      entry +=! (A_PROPERTY_PROVIDER, p.value)
+    )
     entry
   }
 

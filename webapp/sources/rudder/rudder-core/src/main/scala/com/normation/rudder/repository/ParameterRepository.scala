@@ -48,11 +48,9 @@ import com.normation.errors._
  */
 trait RoParameterRepository {
 
-  def getGlobalParameter(parameterName : ParameterName) : IOResult[Option[GlobalParameter]]
+  def getGlobalParameter(parameterName : String) : IOResult[Option[GlobalParameter]]
 
   def getAllGlobalParameters() : IOResult[Seq[GlobalParameter]]
-
-  def getAllOverridable() : IOResult[Seq[GlobalParameter]]
 }
 
 trait WoParameterRepository {
@@ -60,7 +58,7 @@ trait WoParameterRepository {
 
   def updateParameter(parameter : GlobalParameter, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[ModifyGlobalParameterDiff]]
 
-  def delete(parameterName:ParameterName, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[DeleteGlobalParameterDiff]
+  def delete(parameterName:String, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[DeleteGlobalParameterDiff]
 
   /**
    * A (dangerous) method that replace all existing parameters

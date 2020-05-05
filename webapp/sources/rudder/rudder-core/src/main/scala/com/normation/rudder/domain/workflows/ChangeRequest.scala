@@ -141,7 +141,7 @@ final case class ConfigurationChangeRequest(
   , directives  : Map[DirectiveId, DirectiveChanges]
   , nodeGroups  : Map[NodeGroupId, NodeGroupChanges]
   , rules       : Map[RuleId, RuleChanges]
-  , globalParams: Map[ParameterName, GlobalParameterChanges]
+  , globalParams: Map[String, GlobalParameterChanges]
 ) extends ChangeRequest {
   val owner = {
 

@@ -53,7 +53,6 @@ import com.normation.rudder.repository.ActiveTechniqueLibraryArchiveId
 import com.normation.rudder.repository.NodeGroupLibraryArchiveId
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.api.ApiAccountId
-import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import com.normation.ldap.sdk.syntax._
 import com.normation.rudder.rule.category.RuleCategoryId
@@ -493,10 +492,10 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
 
     def getParameter(dn:DN) : Box[String] = singleRdnValue(dn,A_PARAMETER_NAME)
 
-    def parameterDN(parameterName:ParameterName) = new DN(new RDN(A_PARAMETER_NAME, parameterName.value), parameters.dn)
+    def parameterDN(parameterName:String) = new DN(new RDN(A_PARAMETER_NAME, parameterName), parameters.dn)
 
     def parameterModel(
-        name        : ParameterName
+        name        : String
     ) : LDAPEntry = {
       val mod = LDAPEntry(parameterDN(name))
       mod +=! (A_OC,OC.objectClassNames(OC_PARAMETER).toSeq:_*)

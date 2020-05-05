@@ -403,5 +403,5 @@ trait ChangeRequestChangesUnserialisation {
         </globalParameters>
       </changeRequest>
    */
-  def unserialise(xml:XNode): Box[(Box[Map[DirectiveId,DirectiveChanges]],Map[NodeGroupId,NodeGroupChanges],Map[RuleId,RuleChanges],Map[ParameterName,GlobalParameterChanges])]
+  def unserialise(xml:XNode): Box[(Box[Map[DirectiveId,DirectiveChanges]],Map[NodeGroupId,NodeGroupChanges],Map[RuleId,RuleChanges],Map[String,GlobalParameterChanges])]
 }

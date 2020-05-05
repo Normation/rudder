@@ -47,7 +47,6 @@ object RudderLDAPConstants extends Loggable {
 
   /* UUIDs */
   val A_NODE_POLICY_SERVER = "policyServerId"
-  val A_TARGET_NODE_POLICY_SERVER = "targetPolicyServerId"
   val A_DIRECTIVE_UUID = "directiveId"
   val A_TARGET_DIRECTIVE_UUID = "targetDirectiveId"
   val A_GROUP_CATEGORY_UUID = "groupCategoryId"
@@ -66,7 +65,6 @@ object RudderLDAPConstants extends Loggable {
   val A_RULE_TARGET = "ruleTarget"
   val A_LAST_UPDATE_DATE = "lastUpdateTimestamp"
   val A_DIRECTIVE_VARIABLES = "directiveVariable"
-  val A_WRITTEN_DATE = "writtenTimestamp"
   val A_RULE_CATEGORY = "tag"
 
   /*
@@ -100,20 +98,9 @@ object RudderLDAPConstants extends Loggable {
   val A_LONG_DESCRIPTION = "longDescription"
   //val A_SERIAL = "serial" - removed in 4.3 but kept in schema for compatibility reason
 
-  val A_NODE_CONFIGURATION_SYSTEM_VARIABLE = "systemVariable"
-  val A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE = "targetSystemVariable"
-
-  val A_NODE_CONFIGURATION_PARAMETER = "parameter"
-  val A_NODE_CONFIGURATION_TARGET_PARAMETER = "targetParameter"
-
-  // Details about a NodeConfiguration
-  val A_TARGET_NAME = "targetName"
-  val A_TARGET_HOSTNAME = "targetNodeHostname"
-  val A_TARGET_AGENTS_NAME = "targetAgentName"
-  val A_TARGET_ROOT_USER = "targetLocalAdministratorAccountName"
-
   // Creation date of an object
   // it's an operational attribute of OpenLDAP
+  // see A_CREATION_DATETIME for API token
   val A_OBJECT_CREATION_DATE = "createTimestamp"
 
   //API Token related
@@ -129,13 +116,15 @@ object RudderLDAPConstants extends Loggable {
   // Parameters
   val A_PARAMETER_NAME = "parameterName"
   val A_PARAMETER_VALUE = "parameterValue"
-  val A_PARAMETER_OVERRIDABLE = "overridable"
 
   // Web properties
   val A_PROPERTY_NAME = "propertyName"
   val A_PROPERTY_VALUE = "propertyValue"
 
-  //node configuraiton
+  // property provider
+  val A_PROPERTY_PROVIDER = "propertyProvider"
+
+  //node configuration hashes
   val A_NODE_CONFIG = "nodeConfig"
 
   // key=value tags, in JSON
@@ -151,13 +140,10 @@ object RudderLDAPConstants extends Loggable {
   val OC_RULE_CATEGORY = "ruleCategory"
   val OC_RUDDER_NODE_GROUP = "nodeGroup"
   val OC_SPECIAL_TARGET = "specialRuleTarget"
-  val OC_ROOT_POLICY_SERVER = "rootPolicyServerNodeConfiguration"
   val OC_ACTIVE_TECHNIQUE = "activeTechnique"
   val OC_DIRECTIVE = "directive"
   val OC_RULE = "rule"
   val OC_ACTIVE_TECHNIQUE_LIB_VERSION = "activeTechniqueLibraryVersion"
-  val OC_ABSTRACT_RULE_WITH_CF3POLICYDRAFT = "abstractDirectiveNodeConfiguration"
-  val OC_NODE_CONFIGURATION = "nodeConfiguration" //actually a node configuration, not a "rudder server"
   val OC_PARAMETER = "parameter"
   val OC_PROPERTY = "property"
   val OC_NODES_CONFIG = "nodeConfigurations"
@@ -207,21 +193,6 @@ object RudderLDAPConstants extends Loggable {
     must = Set(A_NODE_GROUP_UUID, A_NAME, A_IS_DYNAMIC),
     may = Set(A_NODE_UUID, A_DESCRIPTION, A_QUERY_NODE_GROUP, A_IS_SYSTEM, A_IS_ENABLED, A_JSON_PROPERTY))
 
-  OC += (OC_NODE_CONFIGURATION,
-    must = Set(A_NODE_UUID, A_IS_POLICY_SERVER),
-    may = Set(A_DESCRIPTION, A_SERVER_IS_MODIFIED,
-      A_NAME, A_HOSTNAME, A_NODE_POLICY_SERVER, A_ROOT_USER, A_AGENTS_NAME,
-      A_TARGET_NAME, A_TARGET_HOSTNAME, A_TARGET_NODE_POLICY_SERVER, A_TARGET_ROOT_USER, A_TARGET_AGENTS_NAME,
-      A_NODE_CONFIGURATION_SYSTEM_VARIABLE, A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE, A_WRITTEN_DATE,
-      A_NODE_CONFIGURATION_PARAMETER, A_NODE_CONFIGURATION_TARGET_PARAMETER))
-
-  OC += (OC_ROOT_POLICY_SERVER, sup = OC(OC_NODE_CONFIGURATION))
-
-  OC += (OC_ABSTRACT_RULE_WITH_CF3POLICYDRAFT,
-    must = Set(A_NAME, A_LAST_UPDATE_DATE),
-    may = Set(A_DESCRIPTION, A_RULE_TARGET, A_DIRECTIVE_VARIABLES,
-              A_IS_SYSTEM, A_IS_ENABLED))
-
   OC += (OC_ACTIVE_TECHNIQUE_LIB_VERSION,
     may = Set(A_INIT_DATETIME))
 
@@ -232,7 +203,7 @@ object RudderLDAPConstants extends Loggable {
 
   OC += ( OC_PARAMETER,
     must = Set(A_PARAMETER_NAME),
-    may = Set(A_PARAMETER_VALUE, A_DESCRIPTION, A_PARAMETER_OVERRIDABLE))
+    may = Set(A_PARAMETER_VALUE, A_DESCRIPTION, A_PROPERTY_PROVIDER))
 
   OC += ( OC_PROPERTY,
     must = Set(A_PROPERTY_NAME),

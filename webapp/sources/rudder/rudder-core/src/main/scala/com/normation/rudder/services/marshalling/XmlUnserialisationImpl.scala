@@ -230,7 +230,12 @@ class NodeGroupUnserialisationImpl(
       isEnabled       <- (group \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isEnabled' in entry type nodeGroup : " + entry)
       isSystem        <- (group \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type nodeGroup : " + entry)
       properties      <- sequence((group \ "properties").toList) {
-                           case <property>{p @ _*}</property> => Full(GroupProperty((p\"name").text.trim, (p\"value").text.trim))
+                           case <property>{p @ _*}</property> =>
+                             Full(GroupProperty(
+                                 (p\"name").text.trim
+                               , (p\"value").text.trim
+                               , (p\"provider").headOption.map(p => PropertyProvider(p.text.trim))
+                             ))
                            case xml                           => Failure(s"Found unexpected xml under <properties> tag: ${xml}")
                          }
     } yield {
@@ -428,7 +433,7 @@ class ChangeRequestChangesUnserialisationImpl (
   , techRepo                : TechniqueRepository
   , sectionSpecUnserialiser : SectionSpecParser
 ) extends ChangeRequestChangesUnserialisation with Loggable {
-  def unserialise(xml:XNode): Box[(Box[Map[DirectiveId,DirectiveChanges]],Map[NodeGroupId,NodeGroupChanges],Map[RuleId,RuleChanges],Map[ParameterName,GlobalParameterChanges])] = {
+  def unserialise(xml:XNode): Box[(Box[Map[DirectiveId,DirectiveChanges]],Map[NodeGroupId,NodeGroupChanges],Map[RuleId,RuleChanges],Map[String,GlobalParameterChanges])] = {
     def unserialiseNodeGroupChange(changeRequest:XNode): Box[Map[NodeGroupId,NodeGroupChanges]]= {
       (for {
           groupsNode  <- (changeRequest \ "groups").headOption ?~! s"Missing child 'groups' in entry type changeRequest : ${xml}"
@@ -559,13 +564,13 @@ class ChangeRequestChangesUnserialisationImpl (
       })
     }
 
-    def unserialiseGlobalParameterChange(changeRequest:XNode): Box[Map[ParameterName,GlobalParameterChanges]]= {
+    def unserialiseGlobalParameterChange(changeRequest:XNode): Box[Map[String,GlobalParameterChanges]]= {
       (for {
           paramsNode  <- (changeRequest \ "globalParameters").headOption ?~! s"Missing child 'globalParameters' in entry type changeRequest : ${xml}"
       } yield {
         (paramsNode \ "globalParameter").iterator.flatMap{ param =>
           for {
-            paramName    <- param.attribute("name").map(name => ParameterName(name.text)) ?~!
+            paramName    <- param.attribute("name").map(_.text) ?~!
                              s"Missing attribute 'name' in entry type globalParameters Global Parameter changes  : ${param}"
             initialParam  <- (param \ "initialState").headOption
             initialState <- (initialParam \ "globalParameter").headOption match {
@@ -633,12 +638,13 @@ class GlobalParameterUnserialisationImpl extends GlobalParameterUnserialisation 
       name             <- (globalParam \ "name").headOption.map( _.text ) ?~! ("Missing attribute 'name' in entry type globalParameter : " + entry)
       value            <- (globalParam \ "value").headOption.map( _.text ) ?~! ("Missing attribute 'value' in entry type globalParameter : " + entry)
       description      <- (globalParam \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type globalParameter : " + entry)
-      overridable      <- (globalParam \ "overridable").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'overridable' in entry type globalParameter : " + entry)
+      provider         =  (globalParam \ "provider").headOption.map(x => PropertyProvider(x.text))
     } yield {
       GlobalParameter(
           name
         , value
         , description
+        , provider
       )
     }
   }

@@ -35,25 +35,23 @@
 *************************************************************************************
 */
 package com.normation.rudder.domain.parameters
-import java.util.regex.Pattern
 
 import com.normation.rudder.domain.nodes.GenericPropertyUtils
+import com.normation.rudder.domain.nodes.Property
+import com.normation.rudder.domain.nodes.PropertyProvider
 import net.liftweb.json._
-
-final case class ParameterName(value: String)
-
-object ParameterName {
-  val patternName = Pattern.compile("""[\-a-zA-Z0-9_]+""")
-}
 
 /**
  * A Global Parameter is a parameter globally defined, that may be overriden
  */
 final case class GlobalParameter(
-    name       : ParameterName
+    name       : String
   , value      : JValue
   , description: String
-)
+  , provider   : Option[PropertyProvider] // optional, default "rudder"
+) extends Property[GlobalParameter] {
+  override def setValue(v: JValue) = GlobalParameter(name, v, description, provider)
+}
 
 object GlobalParameter {
 
@@ -65,13 +63,9 @@ object GlobalParameter {
    * a JString *but* a string representing an actual JSON should be
    * used as json.
    */
-  def apply(name: String, value: String, description: String): GlobalParameter = {
-    new GlobalParameter(ParameterName(name), GenericPropertyUtils.parseValue(value), description)
+  def apply(name: String, value: String, description: String, provider: Option[PropertyProvider]): GlobalParameter = {
+    new GlobalParameter(name, GenericPropertyUtils.parseValue(value), description, provider)
   }
 
-  // we need this one to avoir lift json string2jvalue which leads to #17326
-  def apply(name: ParameterName, value: String, description: String): GlobalParameter = {
-    new GlobalParameter(name, GenericPropertyUtils.parseValue(value), description)
-  }
 }
 

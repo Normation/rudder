@@ -44,7 +44,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.{AclPath, ApiAccountId, ApiAccountName, ApiAclElement, HttpAction, ApiAuthorization => ApiAuthz}
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeProperty
-import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.queries.NodeReturnType
@@ -67,7 +66,7 @@ import net.liftweb.json.JsonDSL._
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Version
-import com.normation.rudder.domain.nodes.NodePropertyProvider
+import com.normation.rudder.domain.nodes.PropertyProvider
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.rudder.web.services.ReasonBehavior
 import com.normation.rudder.repository.ldap.NodeStateEncoder
@@ -198,12 +197,12 @@ final case class RestExtractorService (
     }
   }
 
-  private[this] def toParameterName (value:String) : Box[ParameterName] = {
+  private[this] def toParameterName (value:String) : Box[String] = {
       toMinimalSizeString(1)(value) match {
         case Full(value) =>
-          if (ParameterName.patternName.matcher(value).matches)
-            Full(ParameterName(value))
-          else Failure(s"Parameter Name should be respect the following regex : ${ParameterName.patternName.pattern()}")
+          if (GenericPropertyUtils.patternName.matcher(value).matches)
+            Full(value)
+          else Failure(s"Parameter Name should be respect the following regex : ${GenericPropertyUtils.patternName.pattern()}")
 
         case eb : EmptyBox => eb ?~! "Parameter Name should not be empty"
       }
@@ -457,7 +456,7 @@ final case class RestExtractorService (
     }
   }
 
-  def extractParameterName (params : Map[String,List[String]]) : Box[ParameterName] = {
+  def extractParameterName (params : Map[String,List[String]]) : Box[String] = {
      extractOneValue(params, "id")(toParameterName) match {
        case Full(None) => Failure("Parameter id should not be empty")
        case Full(Some(value)) => Full(value)
@@ -599,10 +598,9 @@ final case class RestExtractorService (
   def extractParameter (params : Map[String,List[String]]) : Box[RestParameter] = {
     for {
       description <- extractOneValue(params, "description")()
-      overridable <- extractOneValue(params, "overridable")( toBoolean)
       value       <- extractOneValue(params, "value")(s => Full(GenericPropertyUtils.parseValue(s)))
     } yield {
-      RestParameter(value, description, overridable)
+      RestParameter(value, description)
     }
   }
 
@@ -616,7 +614,7 @@ final case class RestExtractorService (
   }
   def extractGroupProperties (params : Map[String, List[String]]) : Box[Option[List[GroupProperty]]] = {
     // properties coming from the API are always provider=rudder / mode=read-write
-    extractProperties(params, (k,v) => GroupProperty(k,v))
+    extractProperties(params, (k,v) => new GroupProperty(k, v, None))
   }
 
   def extractProperties[A](params : Map[String, List[String]], make:(String, JValue) => A): Box[Option[List[A]]] = {
@@ -677,7 +675,7 @@ final case class RestExtractorService (
     ( (json \ "name"), (json \ "value") ) match {
       case ( JString(nameValue), value ) =>
         val provider = (json \ "provider") match {
-          case JString(value) => Some(NodePropertyProvider(value))
+          case JString(value) => Some(PropertyProvider(value))
           //if not defined of not a string, use default
           case _              => None
         }
@@ -882,7 +880,7 @@ final case class RestExtractorService (
                      }
       category    <- extractJsonString(json, "category", toGroupCategoryId)
     } yield {
-      RestGroup(name,description,properties,query,dynamic,enabled,category)
+      RestGroup(name,description,properties.map(_.toList),query,dynamic,enabled,category)
     }
   }
 
@@ -896,7 +894,7 @@ final case class RestExtractorService (
     }
   }
 
-  def extractParameterNameFromJSON (json : JValue) : Box[ParameterName] = {
+  def extractParameterNameFromJSON (json : JValue) : Box[String] = {
      extractJsonString(json, "id", toParameterName) match {
        case Full(None) => Failure("Parameter id should not be empty")
        case Full(Some(value)) => Full(value)
@@ -907,13 +905,12 @@ final case class RestExtractorService (
   def extractParameterFromJSON (json : JValue) : Box[RestParameter] = {
     for {
       description <- extractJsonString(json, "description")
-      overridable <- extractJsonBoolean(json, "overridable")
       value       <- Full((json \ "value") match {
                        case JNothing => None
                        case x        => Some(x)
                      })
     } yield {
-      RestParameter(value, description, overridable)
+      RestParameter(value, description)
     }
   }
 

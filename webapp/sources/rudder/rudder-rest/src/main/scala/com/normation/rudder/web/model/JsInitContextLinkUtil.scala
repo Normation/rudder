@@ -45,7 +45,6 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import net.liftweb.http.S
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
-import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.policies.RuleTarget
 import net.liftweb.http.js.JsCmds.RedirectTo
 import net.liftweb.http.js.JsCmd
@@ -115,13 +114,13 @@ class LinkUtil (
   def redirectToNodeLink(id:NodeId) : JsCmd =
      RedirectTo(baseNodeLink(id))
 
-  def baseGlobalParameterLink(name:ParameterName) =
+  def baseGlobalParameterLink(name:String) =
     s"/secure/configurationManager/parameterManagement"
 
-  def globalParameterLink(name:ParameterName) =
+  def globalParameterLink(name:String) =
     s"${S.contextPath}${baseGlobalParameterLink(name)}"
 
-  def redirectToGlobalParameterLink(name:ParameterName) : JsCmd =
+  def redirectToGlobalParameterLink(name:String) : JsCmd =
      RedirectTo(baseGlobalParameterLink(name))
 
   def baseChangeRequestLink(id:ChangeRequestId) =
@@ -171,7 +170,7 @@ class LinkUtil (
     }
   }
   // Naive implementation that redirect simply to all Global Parameter page
-  def createGlobalParameterLink(name:ParameterName) = {
+  def createGlobalParameterLink(name:String) = {
       <span> <a href={baseGlobalParameterLink(name)}>{name}</a></span>
   }
 }

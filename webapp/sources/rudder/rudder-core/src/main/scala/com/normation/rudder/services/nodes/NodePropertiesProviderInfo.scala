@@ -37,7 +37,7 @@
 
 package com.normation.rudder.services.nodes
 
-import com.normation.rudder.domain.nodes.NodePropertyProvider
+import com.normation.rudder.domain.nodes.PropertyProvider
 
 import net.liftweb.common.Box
 import net.liftweb.common.Full
@@ -80,7 +80,7 @@ class NodePropertiesProviderInfo() {
 
   private[this] val providers = collection.mutable.Buffer[NodePropertiesProviderInfoExtension]()
 
-  def getInfo(provider: NodePropertyProvider, key: String): Box[Option[ProviderKeyInfo]] = {
+  def getInfo(provider: PropertyProvider, key: String): Box[Option[ProviderKeyInfo]] = {
     providers.find(p => p.isDefined(provider)) match {
       // default Rudder information
       case None    => Full(None)
@@ -102,7 +102,7 @@ class NodePropertiesProviderInfo() {
  */
 trait NodePropertiesProviderInfoExtension {
 
-  def isDefined(provider: NodePropertyProvider): Boolean
+  def isDefined(provider: PropertyProvider): Boolean
 
   def getInfo(key: String): Box[Option[ProviderKeyInfo]]
 

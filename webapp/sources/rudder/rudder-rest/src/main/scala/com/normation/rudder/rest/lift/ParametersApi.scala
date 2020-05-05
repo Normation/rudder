@@ -236,18 +236,18 @@ extends Loggable {
     }
   }
 
-  def createParameter(restParameter: Box[RestParameter], parameterName : ParameterName, req:Req) = {
+  def createParameter(restParameter: Box[RestParameter], parameterName : String, req:Req) = {
     implicit val action = "createParameter"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor = RestUtils.getActor(req)
 
     restParameter match {
       case Full(restParameter) =>
-            val parameter = restParameter.updateParameter(GlobalParameter(parameterName,"",""))
+            val parameter = restParameter.updateParameter(GlobalParameter(parameterName,"","",None))
 
             val diff = AddGlobalParameterDiff(parameter)
             createChangeRequestAndAnswer(
-                parameterName.value
+                parameterName
               , diff
               , parameter
               , None
@@ -258,8 +258,8 @@ extends Loggable {
 
       case eb : EmptyBox =>
         val fail = eb ?~ (s"Could extract values from request" )
-        val message = s"Could not create Parameter ${parameterName.value} cause is: ${fail.msg}."
-        toJsonError(Some(parameterName.value), message)
+        val message = s"Could not create Parameter ${parameterName} cause is: ${fail.msg}."
+        toJsonError(Some(parameterName), message)
     }
   }
 
@@ -267,7 +267,7 @@ extends Loggable {
     implicit val action = "parameterDetails"
     implicit val prettify = restExtractor.extractPrettify(req.params)
 
-    readParameter.getGlobalParameter(ParameterName(id)).notOptional(s"Could not find Parameter ${id}").toBox match {
+    readParameter.getGlobalParameter(id).notOptional(s"Could not find Parameter ${id}").toBox match {
       case Full(parameter) =>
         val jsonParameter = List(serialize(parameter,None))
         toJsonResponse(Some(id),("parameters" -> JArray(jsonParameter)))
@@ -282,7 +282,7 @@ extends Loggable {
     implicit val action = "deleteParameter"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor = RestUtils.getActor(req)
-    val parameterId = ParameterName(id)
+    val parameterId = id
 
     readParameter.getGlobalParameter(parameterId).notOptional(s"Could not find Parameter ${id}").toBox match {
       case Full(parameter) =>
@@ -290,9 +290,9 @@ extends Loggable {
         createChangeRequestAndAnswer(id, deleteParameterDiff, parameter, Some(parameter), actor, req, GlobalParamModAction.Delete)
 
       case eb:EmptyBox =>
-        val fail = eb ?~ (s"Could not find Parameter ${parameterId.value}" )
-        val message = s"Could not delete Parameter ${parameterId.value} cause is: ${fail.msg}."
-        toJsonError(Some(parameterId.value), message)
+        val fail = eb ?~ (s"Could not find Parameter ${parameterId}" )
+        val message = s"Could not delete Parameter ${parameterId} cause is: ${fail.msg}."
+        toJsonError(Some(parameterId), message)
     }
   }
 
@@ -300,7 +300,7 @@ extends Loggable {
     implicit val action = "updateParameter"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor = getActor(req)
-    val parameterId = ParameterName(id)
+    val parameterId = id
     logger.info(req)
     readParameter.getGlobalParameter(parameterId).notOptional(s"Could not find Parameter ${id}").toBox match {
       case Full(parameter) =>
@@ -312,14 +312,14 @@ extends Loggable {
 
           case eb : EmptyBox =>
             val fail = eb ?~ (s"Could extract values from request" )
-            val message = s"Could not modify Parameter ${parameterId.value} cause is: ${fail.msg}."
-            toJsonError(Some(parameterId.value), message)
+            val message = s"Could not modify Parameter ${parameterId} cause is: ${fail.msg}."
+            toJsonError(Some(parameterId), message)
         }
 
       case eb:EmptyBox =>
-        val fail = eb ?~ (s"Could not find Parameter ${parameterId.value}" )
-        val message = s"Could not modify Parameter ${parameterId.value} cause is: ${fail.msg}."
-        toJsonError(Some(parameterId.value), message)
+        val fail = eb ?~ (s"Could not find Parameter ${parameterId}" )
+        val message = s"Could not modify Parameter ${parameterId} cause is: ${fail.msg}."
+        toJsonError(Some(parameterId), message)
     }
   }
 

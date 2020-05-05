@@ -346,7 +346,7 @@ trait GlobalParameterSerialisation {
        <name>{param.name.value}</name>
        <value>{param.value}</value>
        <description>{param.description}</description>
-       <overridable>{param.overridable}</overridable>
+       <provider>{param.provider}</provider>
      </globalParameter>
    */
   def serialise(param:GlobalParameter):  Elem

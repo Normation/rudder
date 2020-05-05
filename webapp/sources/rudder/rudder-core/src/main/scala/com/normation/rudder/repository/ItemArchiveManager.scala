@@ -49,7 +49,6 @@ import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.parameters.GlobalParameter
-import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
@@ -475,7 +474,7 @@ trait GitParameterArchiver {
    *
    * reason is an optional commit message to add to the standard one.
    */
-  def deleteParameter(parameterName:ParameterName, gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : IOResult[GitPath]
+  def deleteParameter(parameterName: String, gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : IOResult[GitPath]
 
   /**
    * Get the root directory where parameter are saved
