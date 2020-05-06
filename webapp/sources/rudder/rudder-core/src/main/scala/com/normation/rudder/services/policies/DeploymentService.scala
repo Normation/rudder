@@ -822,7 +822,7 @@ trait PromiseGeneration_BuildNodeContext {
         for {
           p <- interpolatedValueCompiler.compileParam(GenericPropertyUtils.serializeValue(param.value)).chainError(s"Error when looking for interpolation variable in global parameter '${param.name}'")
         } yield {
-          (param.name.value, p)
+          (param.name, p)
         }
       }.map(_.toMap)
     }

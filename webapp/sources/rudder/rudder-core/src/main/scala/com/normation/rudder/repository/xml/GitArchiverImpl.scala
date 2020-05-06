@@ -60,7 +60,6 @@ import scala.collection.mutable.Buffer
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.parameters.GlobalParameter
-import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.errors._
 import zio._
 import zio.syntax._
@@ -794,7 +793,7 @@ class GitParameterArchiverImpl(
   override val relativePath = parameterRootDir
   override val tagPrefix = "archives/parameters/"
 
-  private[this] def newParameterFile(parameterName:ParameterName) = new File(getRootDirectory, parameterName.value + ".xml")
+  private[this] def newParameterFile(parameterName:String) = new File(getRootDirectory, parameterName + ".xml")
 
   def archiveParameter(
       parameter:GlobalParameter
@@ -810,7 +809,7 @@ class GitParameterArchiverImpl(
                  )
       commit  <- doCommit match {
                    case Some((modId, commiter, reason)) =>
-                     val msg = "Archive parameter with name '%s'%s".format(parameter.name.value, GET(reason))
+                     val msg = "Archive parameter with name '%s'%s".format(parameter.name, GET(reason))
                      commitAddFile(modId, commiter, gitPath, msg)
                    case None => UIO.unit
                  }
@@ -826,7 +825,7 @@ class GitParameterArchiverImpl(
     )
   }
 
-  def deleteParameter(parameterName:ParameterName, doCommit:Option[(ModificationId, PersonIdent,Option[String])]) : IOResult[GitPath] = {
+  def deleteParameter(parameterName:String, doCommit:Option[(ModificationId, PersonIdent,Option[String])]) : IOResult[GitPath] = {
     val paramFile = newParameterFile(parameterName)
     val gitPath = toGitPath(paramFile)
     if(paramFile.exists) {
@@ -835,7 +834,7 @@ class GitParameterArchiverImpl(
         _        <- logPure.debug(s"Deleted archive of parameter: ${paramFile.getPath}")
         commited <- doCommit match {
                       case Some((modId, commiter, reason)) =>
-                        commitRmFile(modId, commiter, gitPath, s"Delete archive of parameter with name '${parameterName.value}'${GET(reason)}")
+                        commitRmFile(modId, commiter, gitPath, s"Delete archive of parameter with name '${parameterName}'${GET(reason)}")
                       case None => UIO.unit
                     }
       } yield {

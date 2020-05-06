@@ -800,7 +800,7 @@ class EventLogDetailsServiceImpl(
       fileFormatOk       <- TestFileFormat(globalParam)
     } yield {
       ModifyGlobalParameterDiff(
-          name = ParameterName(name)
+          name = name
         , modValue = (modValue)
         , modDescription = modDescription
       )
@@ -946,7 +946,7 @@ class EventLogDetailsServiceImpl(
                            val x = json.openOr(JString(value))
 
                            // 'provider' is optionnal, default to "default"
-                           val provider = (prop \ "provider" ).headOption.map( p => NodePropertyProvider(p.text) )
+                           val provider = (prop \ "provider" ).headOption.map( p => PropertyProvider(p.text) )
                            NodeProperty(name, x, provider)
                          }
                        }

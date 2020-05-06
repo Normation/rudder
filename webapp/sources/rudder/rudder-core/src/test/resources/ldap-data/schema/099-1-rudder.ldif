@@ -33,10 +33,6 @@ objectclass: top
 ################## Attributes #########################
 #######################################################
 ### UUIDs ###
-attributeTypes: ( 1.3.6.1.4.1.35061.2.1.101
-  NAME 'targetPolicyServerId'
-  DESC 'The identifier of a Node policy server'
-  SUP uuid )
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.102
   NAME 'directiveId'
   DESC 'Unique identifier for a directive'
@@ -114,12 +110,6 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.206
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
   EQUALITY generalizedTimeMatch
   ORDERING generalizedTimeOrderingMatch )
-attributeTypes: ( 1.3.6.1.4.1.35061.2.1.207
-  NAME 'lastUpdateTimestamp'
-  DESC 'Last date when the item was updated'
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
-  EQUALITY generalizedTimeMatch
-  ORDERING generalizedTimeOrderingMatch )
 #
 # A policy variable and its values.
 # The expected format is:
@@ -131,12 +121,6 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.208
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
-attributeTypes: ( 1.3.6.1.4.1.35061.2.1.209
-  NAME 'writtenTimestamp'
-  DESC 'Last date when the item was written'
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
-  EQUALITY generalizedTimeMatch
-  ORDERING generalizedTimeOrderingMatch )
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.210
   NAME 'acceptationTimestamp'
   DESC 'Creation date of a user policy'
@@ -149,11 +133,6 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.211.0
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch )
-attributeTypes: ( 1.3.6.1.4.1.35061.2.1.211
-  NAME 'isModified'
-  DESC 'Define if the server is modified and should be processed as such or if it is up to date. Default to false if not specified'
-  EQUALITY booleanMatch
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.7  )
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.212
   NAME 'isEnabled'
   DESC 'Define if the object is currently activated or not (and so should be ignore)'
@@ -197,60 +176,12 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.219
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
   EQUALITY integerMatch
   ORDERING integerOrderingMatch )
-attributeTypes: ( 1.3.6.1.4.1.35061.2.1.220
-  NAME 'systemVariable'
-  DESC 'The current system variables of a node'
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
-  EQUALITY caseIgnoreMatch
-  SUBSTR caseIgnoreSubstringsMatch )
-attributeTypes: ( 1.3.6.1.4.1.35061.2.1.221
-  NAME 'targetSystemVariable'
-  DESC 'The target system variables of a node'
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
-  EQUALITY caseIgnoreMatch
-  SUBSTR caseIgnoreSubstringsMatch )
-attributeTypes: ( 1.3.6.1.4.1.35061.2.1.222
-  NAME 'targetName'
-  DESC 'Host name of the server'
-  EQUALITY caseIgnoreMatch
-  SUBSTR caseIgnoreSubstringsMatch
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
-attributeTypes: ( 1.3.6.1.4.1.35061.2.1.223
-  NAME 'targetNodeHostname'
-  DESC 'Host name of the server'
-  EQUALITY caseIgnoreMatch
-  SUBSTR caseIgnoreSubstringsMatch
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
-attributeTypes: ( 1.3.6.1.4.1.35061.2.1.224
-  NAME 'targetAgentName'
-  DESC 'List of name of the agent (Nova, Community, ...)'
-  EQUALITY caseIgnoreMatch
-  SUBSTR caseIgnoreSubstringsMatch
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
-attributeTypes: ( 1.3.6.1.4.1.35061.2.1.225
-  NAME 'targetLocalAdministratorAccountName'
-  DESC 'The local administrator account name (login) on the node'
-  EQUALITY caseIgnoreMatch
-  SUBSTR caseIgnoreSubstringsMatch
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.226
   NAME 'creationTimestamp'
   DESC 'Creation date of an object - can be different than the createTimestamp operational attribute'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
   EQUALITY generalizedTimeMatch
   ORDERING generalizedTimeOrderingMatch )
-attributeTypes: ( 1.3.6.1.4.1.35061.2.1.227
-  NAME 'parameter'
-  DESC 'The current parameters applied to a node'
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
-  EQUALITY caseExactMatch
-  SUBSTR caseIgnoreSubstringsMatch )
-attributeTypes: ( 1.3.6.1.4.1.35061.2.1.228
-  NAME 'targetParameter'
-  DESC 'The target parameters applied to a node'
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
-  EQUALITY caseExactMatch
-  SUBSTR caseIgnoreSubstringsMatch )
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.229
   NAME 'tag'
   DESC 'ID of tag'
@@ -258,7 +189,7 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.229
 ### node configuration
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.230
   NAME 'nodeConfig'
-  DESC 'Parameter of a node used to generate its policies'
+  DESC 'Attribute used to store a structured hash of a node configuration'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{4096} )
@@ -321,27 +252,38 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.301
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.302
   NAME 'parameterValue'
-  DESC 'Name of parameter that matches [a-zA-Z0-9_]+'
+  DESC 'Value of a parameter'
   EQUALITY caseExactMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
-attributeTypes: ( 1.3.6.1.4.1.35061.2.1.303
-  NAME 'overridable'
-  DESC 'Define if the parameter may be overriden'
-  EQUALITY booleanMatch
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.7  )
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.304
   NAME 'propertyName'
-  DESC 'Name of parameter that matches [a-zA-Z0-9_]+'
+  DESC 'Name of property that matches [a-zA-Z0-9_]+'
   EQUALITY caseExactMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.305
   NAME 'propertyValue'
-  DESC 'Name of parameter that matches [a-zA-Z0-9_]+'
+  DESC 'Value of a property'
   EQUALITY caseExactMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.307
+  NAME 'propertyProvider'
+  DESC 'Provider for properties and parameter'
+  EQUALITY caseExactMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+#
+# A key=value serialisation, with being json.
+# It's the same than serializedNodeProperty but for
+# other elements (like groups).
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.306
+  NAME 'serializedProperty'
+  DESC 'Serialization of a property, typically a key=value pair)'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+  EQUALITY caseExactMatch
+  SUBSTR caseIgnoreSubstringsMatch )
 #### Nodes
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.351
   NAME 'serializedAgentRunInterval'
@@ -410,7 +352,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.11
   MUST ( nodeGroupId $
   cn $ isDynamic )
   MAY ( nodeId $ description $ jsonNodeGroupQuery $
-  isEnabled $ isSystem  ) )
+  isEnabled $ isSystem $ serializedProperty ) )
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.12
   NAME 'specialRuleTarget'
   DESC 'A special target (other than a nodeGroup), for example: all servers'
@@ -466,54 +408,8 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.31
   MUST ( ruleCategoryId $ cn )
   MAY ( description $ isSystem ) )
 #
-# Node configurations
-# (current and expected state of
-#  a node configuration)
+# Node configurations (structured hashes about node configuration)
 #
-objectClasses: ( 1.3.6.1.4.1.35061.2.2.101
-  NAME 'nodeConfiguration'
-  DESC 'The mapping of the node configuration, a container for promises'
-  SUP top
-  STRUCTURAL
-  MUST ( nodeId $ isPolicyServer )
-  MAY ( cn $ description $ isModified $
-  lastUpdateTimestamp $ writtenTimestamp $
-  targetName $
-  localAdministratorAccountName $ targetLocalAdministratorAccountName $
-  nodeHostname $ targetNodeHostname $
-  policyServerId $ targetPolicyServerId $
-  agentName $ targetAgentName $
-  systemVariable $ targetSystemVariable $
-  parameter $ targetParameter  ) )
-objectClasses: ( 1.3.6.1.4.1.35061.2.2.102
-  NAME 'rootPolicyServerNodeConfiguration'
-  SUP  nodeConfiguration
-  DESC 'The ROOT policy server of an Rudder Domain' )
-#cn is the policy name for the directive
-objectClasses: ( 1.3.6.1.4.1.35061.2.2.103
-  NAME 'abstractDirectiveNodeConfiguration'
-  DESC 'An abstract instance of a Directive'
-  SUP top
-  ABSTRACT
-  MUST ( techniqueId )
-  MAY ( lastUpdateTimestamp $
-  description $ ruleTarget $ directiveVariable $
-  isEnabled $ isSystem $ serial $ directivePriority $
-  techniqueId $ techniqueVersion $
-  ruleId ) )
-objectClasses: ( 1.3.6.1.4.1.35061.2.2.104
-  NAME 'directiveNodeConfiguration'
-  DESC 'An instance of a policy'
-  SUP abstractDirectiveNodeConfiguration
-  STRUCTURAL
-  MUST ( directiveId ) )
-objectClasses: ( 1.3.6.1.4.1.35061.2.2.105
-  NAME 'targetDirectiveNodeConfiguration'
-  DESC 'An instance of a target state for a directive'
-  SUP abstractDirectiveNodeConfiguration
-  STRUCTURAL
-  MUST ( targetdirectiveId ) )
-# all node configurations things are supersided by that:
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.110
   NAME 'nodeConfigurations'
   DESC 'Store node configurations'
@@ -542,7 +438,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.120
   SUP top
   STRUCTURAL
   MUST ( parameterName )
-  MAY ( parameterValue $ description $ overridable ) )
+  MAY ( parameterValue $ description $ propertyProvider) )
 #
 # Application properties
 #

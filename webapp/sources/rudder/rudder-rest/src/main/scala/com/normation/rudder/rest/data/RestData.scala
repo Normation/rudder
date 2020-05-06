@@ -44,8 +44,10 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.Technique
+import com.normation.errors.PureResult
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.SecurityToken
+import com.normation.rudder.domain.nodes.CompareProperties
 import com.normation.rudder.domain.nodes.GroupProperty
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.Tags
@@ -217,7 +219,7 @@ final case class DirectiveUpdate(
 final case class RestGroup(
       name        : Option[String] = None
     , description : Option[String] = None
-    , properties  : Option[Seq[GroupProperty]]
+    , properties  : Option[List[GroupProperty]]
     , query       : Option[Query] = None
     , isDynamic   : Option[Boolean] = None
     , enabled     : Option[Boolean] = None
@@ -231,22 +233,22 @@ final case class RestGroup(
                    enabled.isEmpty     &&
                    category.isEmpty
 
-    def updateGroup(group: NodeGroup) = {
-      val updateName  = name.getOrElse(group.name)
-      val updateDesc  = description.getOrElse(group.description)
-      val updateisDynamic = isDynamic.getOrElse(group.isDynamic)
-      val updateEnabled = enabled.getOrElse(group.isEnabled)
-      val updateProperties = GroupProperty.getUpdateProperties(group.properties, properties)
-      val updateQuery = query.orElse(group.query)
-      group.copy(
-          name        = updateName
-        , description = updateDesc
-        , query       = updateQuery
-        , isDynamic   = updateisDynamic
-        , _isEnabled  = updateEnabled
-        , properties  = updateProperties.toList
-      )
-
+    def updateGroup(group: NodeGroup): PureResult[NodeGroup] = {
+      CompareProperties.updateProperties(group.properties, properties).map { updateProperties =>
+        val updateName  = name.getOrElse(group.name)
+        val updateDesc  = description.getOrElse(group.description)
+        val updateisDynamic = isDynamic.getOrElse(group.isDynamic)
+        val updateEnabled = enabled.getOrElse(group.isEnabled)
+        val updateQuery = query.orElse(group.query)
+        group.copy(
+            name        = updateName
+          , description = updateDesc
+          , query       = updateQuery
+          , isDynamic   = updateisDynamic
+          , _isEnabled  = updateEnabled
+          , properties  = updateProperties
+        )
+      }
     }
 }
 
@@ -275,7 +277,6 @@ final case object DeleteNode extends NodeStatusAction
 final case class RestParameter(
       value       : Option[JValue] = None
     , description : Option[String] = None
-    , overridable : Option[Boolean] = None
   ) {
 
 
@@ -285,8 +286,8 @@ final case class RestParameter(
       parameter.copy(
           value       = updateValue
         , description = updateDescription
+        , provider    = None // rest API can only use default provider.
       )
-
     }
 }
 

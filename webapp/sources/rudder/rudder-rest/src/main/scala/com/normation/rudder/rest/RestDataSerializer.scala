@@ -121,7 +121,6 @@ final case class RestDataSerializerImpl (
   }
 
   def serializeNode(node : Node) : JValue = {
-    import com.normation.rudder.domain.nodes.JsonSerialisation._
     (   ("id"         -> node.id.value)
       ~ ("properties" -> node.properties.toApiJson)
       ~ ("policyMode" -> node.policyMode.map(_.name).getOrElse("default"))
@@ -198,7 +197,7 @@ final case class RestDataSerializerImpl (
 
   def serializeParameter (parameter:GlobalParameter, crId: Option[ChangeRequestId]): JValue = {
    (   ( "changeRequestId" -> crId.map(_.value.toString))
-     ~ ( "id"              -> parameter.name.value )
+     ~ ( "id"              -> parameter.name )
      ~ ( "value"           -> parameter.value )
      ~ ( "description"     -> parameter.description )
    )
@@ -216,7 +215,7 @@ final case class RestDataSerializerImpl (
       ~ ("dynamic"         -> group.isDynamic)
       ~ ("enabled"         -> group.isEnabled )
       ~ ("groupClass"      -> List(group.id.value, group.name).map(RuleTarget.toCFEngineClassName _) )
-      ~ ("properties"      -> GroupProperty.JsonGroupProperties(group.properties).toApiJson)
+      ~ ("properties"      -> group.properties.toApiJson)
     )
   }
 
@@ -350,8 +349,6 @@ final case class RestDataSerializerImpl (
   def serializeGlobalParameterChange(change : GlobalParameterChange): Box[JValue] = {
 
     def serializeGlobalParameterDiff(diff:ModifyGlobalParameterDiff,initialState:GlobalParameter) : JValue= {
-      implicit def convert[T] (value : T) : JValue = value.toString
-
       val description :JValue = diff.modDescription.map(displaySimpleDiff(_)).getOrElse(initialState.description)
       val value :JValue       = diff.modValue.map(displaySimpleDiff(_)).getOrElse(initialState.value)
 

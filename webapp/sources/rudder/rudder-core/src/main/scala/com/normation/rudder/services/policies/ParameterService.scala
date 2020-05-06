@@ -53,7 +53,7 @@ trait RoParameterService {
   /**
    * Returns a Global Parameter by its name
    */
-  def getGlobalParameter(parameterName : ParameterName) : Box[Option[GlobalParameter]]
+  def getGlobalParameter(parameterName : String) : Box[Option[GlobalParameter]]
 
   /**
    * Returns all defined Global Parameters
@@ -89,7 +89,7 @@ trait WoParameterService {
   /**
    * Delete a global parameter
    */
-  def delete(parameterName:ParameterName, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[ParameterName]
+  def delete(parameterName:String, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[String]
 }
 
 class RoParameterServiceImpl(
@@ -98,12 +98,12 @@ class RoParameterServiceImpl(
   /**
    * Returns a Global Parameter by its name
    */
-  def getGlobalParameter(parameterName : ParameterName) : Box[Option[GlobalParameter]] = {
+  def getGlobalParameter(parameterName : String) : Box[Option[GlobalParameter]] = {
     roParamRepo.getGlobalParameter(parameterName).toBox match {
       case Full(entry) => Full(entry)
       case Empty       => Full(None)
       case e:Failure   =>
-        logger.error("Error while trying to fetch param %s : %s".format(parameterName.value, e.messageChain))
+        logger.error("Error while trying to fetch param %s : %s".format(parameterName, e.messageChain))
         e
     }
   }
@@ -140,11 +140,11 @@ class WoParameterServiceImpl(
   ) : Box[GlobalParameter] = {
     woParamRepo.saveParameter(parameter, modId, actor, reason).toBox match {
       case e:Failure =>
-        logger.error("Error while trying to create param %s : %s".format(parameter.name.value, e.messageChain))
+        logger.error("Error while trying to create param %s : %s".format(parameter.name, e.messageChain))
         e
       case Empty =>
-        logger.error("Error : Empty result when trying to create param %s".format(parameter.name.value))
-        Failure("Something unexpected happened when trying to create parameter %s".format(parameter.name.value))
+        logger.error("Error : Empty result when trying to create param %s".format(parameter.name))
+        Failure("Something unexpected happened when trying to create parameter %s".format(parameter.name))
       case Full(diff) =>
         // Ok, it's been save, try to fetch the new value
         roParamService.getGlobalParameter(parameter.name) match {
@@ -152,13 +152,13 @@ class WoParameterServiceImpl(
           case Full(option) =>
             option match {
               case Some(entry) =>
-                logger.debug("Successfully created parameter %s".format(parameter.name.value))
+                logger.debug("Successfully created parameter %s".format(parameter.name))
                 // launch a deployement
                 asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
                 Full(entry)
               case None =>
-                logger.error("Could not fetch back newly created global parameter with name %s".format(parameter.name.value))
-                Failure("Could not fetch back newly created global parameter with name %s".format(parameter.name.value))
+                logger.error("Could not fetch back newly created global parameter with name %s".format(parameter.name))
+                Failure("Could not fetch back newly created global parameter with name %s".format(parameter.name))
             }
         }
     }
@@ -177,11 +177,11 @@ class WoParameterServiceImpl(
    ) : Box[GlobalParameter] = {
     woParamRepo.updateParameter(parameter, modId, actor, reason).toBox match {
       case e:Failure =>
-        logger.error("Error while trying to update param %s : %s".format(parameter.name.value, e.messageChain))
+        logger.error("Error while trying to update param %s : %s".format(parameter.name, e.messageChain))
         e
       case Empty =>
-        logger.error("Error : Empty result when trying to update param %s".format(parameter.name.value))
-        Failure("Something unexpected happened when trying to update parameter %s".format(parameter.name.value))
+        logger.error("Error : Empty result when trying to update param %s".format(parameter.name))
+        Failure("Something unexpected happened when trying to update parameter %s".format(parameter.name))
       case Full(diff) =>
         // Ok, it's been updated, try to fetch the new value
         roParamService.getGlobalParameter(parameter.name) match {
@@ -189,28 +189,28 @@ class WoParameterServiceImpl(
           case Full(option) =>
             option match {
               case Some(entry) =>
-                logger.debug("Successfully udated parameter %s".format(parameter.name.value))
+                logger.debug("Successfully udated parameter %s".format(parameter.name))
                 // launch a deployement
                 asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
                 Full(entry)
               case None =>
-                logger.error("Could not fetch back updated global parameter with name %s".format(parameter.name.value))
-                Failure("Could not fetch back updated global parameter with name %s".format(parameter.name.value))
+                logger.error("Could not fetch back updated global parameter with name %s".format(parameter.name))
+                Failure("Could not fetch back updated global parameter with name %s".format(parameter.name))
             }
         }
     }
   }
 
-  def delete(parameterName:ParameterName, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[ParameterName] = {
+  def delete(parameterName:String, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[String] = {
     woParamRepo.delete(parameterName, modId, actor, reason).toBox match {
       case e:Failure =>
-        logger.error("Error while trying to delete param %s : %s".format(parameterName.value, e.messageChain))
+        logger.error("Error while trying to delete param %s : %s".format(parameterName, e.messageChain))
         e
       case Empty =>
-        logger.error("Error : Empty result when trying to delete param %s".format(parameterName.value))
-        Failure("Something unexpected happened when trying to update parameter %s".format(parameterName.value))
+        logger.error("Error : Empty result when trying to delete param %s".format(parameterName))
+        Failure("Something unexpected happened when trying to update parameter %s".format(parameterName))
       case Full(diff) =>
-        logger.debug("Successfully deleted parameter %s".format(parameterName.value))
+        logger.debug("Successfully deleted parameter %s".format(parameterName))
         asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
         Full(parameterName)
     }

@@ -37,24 +37,11 @@
 
 package com.normation.rudder.domain.nodes
 
-import com.normation.errors.Inconsistency
-import com.normation.errors.RudderError
-import com.normation.errors.SystemError
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.queries.And
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.SubGroupComparator
-import com.normation.rudder.services.policies.PropertyParser
-import net.liftweb.json.DefaultFormats
-import net.liftweb.json.JArray
-import net.liftweb.json.JField
-import net.liftweb.json.JObject
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.JsonParser.ParseException
 
 /**
  * UUId type for Node Groups, so that they
@@ -62,100 +49,6 @@ import net.liftweb.json.JsonParser.ParseException
  */
 final case class NodeGroupId(value:String) extends AnyVal
 
-final case class GroupProperty(
-    name    : String
-  , value   : JValue
-) {
-  def renderValue: String = value match {
-    case JString(s) => s
-    case v          => net.liftweb.json.compactRender(v)
-  }
-}
-
-object GroupProperty {
-  import net.liftweb.json.JsonAST.JString
-
-  /**
-   * A builder with the logic to handle the value part.
-   *
-   * For compatibity reason, we want to be able to process
-   * empty (JNothing) and primitive types, especially string, specificaly as
-   * a JString *but* a string representing an actual JSON should be
-   * used as json.
-   */
-  def apply(name: String, value: String): GroupProperty = {
-    GroupProperty(name, GenericPropertyUtils.parseValue(value))
-  }
-
-  def getUpdateProperties(oldProps: Seq[GroupProperty], optNewProps: Option[Seq[GroupProperty]]): Seq[GroupProperty] = {
-
-    //check if the prop should be removed or updated
-    def updateOrRemoveProp(prop: GroupProperty): Either[String, GroupProperty] = {
-     if(prop.value == JString("")) {
-       Left(prop.name)
-     } else {
-       Right(prop)
-     }
-    }
-
-    optNewProps match {
-      case None => oldProps
-      case Some(newProps) =>
-        val oldPropsMap = oldProps.map(p => (p.name, p)).toMap
-        //update only according to rights - we get a seq of option[either[remove, update]]
-        val updated  = newProps.map(updateOrRemoveProp)
-        val toRemove = updated.collect { case Left(name)  => name }.toSet
-        val toUpdate = updated.collect { case Right(prop) => (prop.name, prop) }.toMap
-        (oldPropsMap.view.filterKeys(k => !toRemove.contains(k)).toMap ++ toUpdate).map(_._2).toSeq
-    }
-  }
-
-  implicit class JsonGroupProperty(val x: GroupProperty) extends AnyVal {
-    def toJson: JObject = (
-        ( "name"     -> x.name  )
-      ~ ( "value"    -> x.value )
-    )
-
-    def toJsonString: String = {
-      compactRender(toJson)
-    }
-  }
-
-  implicit class JsonGroupProperties(val props: Seq[GroupProperty]) extends AnyVal {
-    implicit def formats = DefaultFormats
-
-    def dataJson(x: GroupProperty) : JField = {
-      JField(x.name, x.value)
-    }
-
-    def toApiJson: JArray = {
-      JArray(props.map(_.toJson).toList)
-    }
-
-    def toDataJson: JObject = {
-      props.map(dataJson(_)).toList.sortBy { _.name }
-    }
-  }
-
-  def unserializeLdapGroupProperty(json: JValue): Either[RudderError, GroupProperty] = {
-    implicit val formats = DefaultFormats
-    json.extractOpt[GroupProperty] match {
-      case None    => Left(Inconsistency(s"Cannot parse group property from provided json: ${compactRender(json)}"))
-      case Some(v) =>
-        PropertyParser.validPropertyName(v.name).map(_ => v)
-    }
-  }
-
-  def parseSerializedGroupProperty(s: String): Either[RudderError, GroupProperty] = {
-    try {
-      unserializeLdapGroupProperty(parse(s))
-    } catch {
-      case ex: ParseException => Left(SystemError("Error when parsing serialized property", ex))
-    }
-  }
-
-
-}
 
 object NodeGroup {
   /*

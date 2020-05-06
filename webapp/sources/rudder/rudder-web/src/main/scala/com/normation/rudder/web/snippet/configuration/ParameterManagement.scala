@@ -93,17 +93,19 @@ class ParameterManagement extends DispatchSnippet with Loggable {
         val lineHtmlId = Helpers.nextFuncName
         ".parameterLine [jsuuid]" #> lineHtmlId &
         ".parameterLine [class]" #> Text("curspoint") &
-        ".name *" #> <b>{param.name.value}</b> &
+        ".name *" #> <b>{param.name}</b> &
         ".value *" #> <pre class="json-beautify">{GenericPropertyUtils.serializeValue(param.value)}</pre> &
         ".description *" #> <span><ul class="evlogviewpad"><li><b>Description:</b> {Text(param.description)}</li></ul></span> &
         ".description [id]" #> ("description-" + lineHtmlId) &
         ".change *" #> <div>{
-          (if(CurrentUser.checkRights(AuthorizationType.Parameter.Edit)) {
-            ajaxButton("Edit", () => showPopup(GlobalParamModAction.Update, Some(param)), ("class", "btn btn-default btn-sm"), ("style", "min-width:50px;"))
-          } else NodeSeq.Empty) ++
-          (if(CurrentUser.checkRights(AuthorizationType.Parameter.Write)) {
-            ajaxButton("Delete", () => showPopup(GlobalParamModAction.Delete, Some(param)), ("class", "btn btn-danger btn-sm"), ("style", "margin-left:5px;min-width:50px;"))
-          } else NodeSeq.Empty)
+          if(param.provider.isEmpty || param.provider == Some(GenericPropertyUtils.defaultPropertyProvider)) {
+            (if(CurrentUser.checkRights(AuthorizationType.Parameter.Edit)) {
+              ajaxButton("Edit", () => showPopup(GlobalParamModAction.Update, Some(param)), ("class", "btn btn-default btn-sm"), ("style", "min-width:50px;"))
+            } else NodeSeq.Empty) ++
+            (if(CurrentUser.checkRights(AuthorizationType.Parameter.Write)) {
+              ajaxButton("Delete", () => showPopup(GlobalParamModAction.Delete, Some(param)), ("class", "btn btn-danger btn-sm"), ("style", "margin-left:5px;min-width:50px;"))
+            } else NodeSeq.Empty)
+          } else NodeSeq.Empty
         }</div>
       }) &
       ".createParameter *" #> (if(CurrentUser.checkRights(AuthorizationType.Parameter.Write)) {

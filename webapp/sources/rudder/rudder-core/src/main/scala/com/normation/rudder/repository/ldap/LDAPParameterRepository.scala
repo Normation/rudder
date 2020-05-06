@@ -36,7 +36,6 @@
 */
 package com.normation.rudder.repository.ldap
 
-import com.normation.NamedZioLogger
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -46,6 +45,8 @@ import com.normation.ldap.sdk._
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.archives.ParameterArchiveId
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
+import com.normation.rudder.domain.nodes.GenericPropertyUtils
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.repository.EventLogRepository
@@ -56,19 +57,16 @@ import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import zio._
 import zio.syntax._
-import com.normation.ldap.sdk.syntax._
 
 class RoLDAPParameterRepository(
     val rudderDit   : RudderDit
   , val ldap        : LDAPConnectionProvider[RoLDAPConnection]
   , val mapper      : LDAPEntityMapper
   , val userLibMutex: ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
-) extends RoParameterRepository with NamedZioLogger {
+) extends RoParameterRepository {
   repo =>
 
-  override def loggerName: String = this.getClass.getName
-
-  def getGlobalParameter(parameterName : ParameterName) : IOResult[Option[GlobalParameter]] = {
+  def getGlobalParameter(parameterName : String) : IOResult[Option[GlobalParameter]] = {
     userLibMutex.readLock(for {
       con     <- ldap
       opt     <- con.get(rudderDit.PARAMETERS.parameterDN(parameterName))
@@ -98,10 +96,6 @@ class RoLDAPParameterRepository(
   def getAllGlobalParameters() : IOResult[Seq[GlobalParameter]] = {
      getGP(con => con.searchSub(rudderDit.PARAMETERS.dn, IS(OC_PARAMETER)))
   }
-
-  def getAllOverridable() : IOResult[Seq[GlobalParameter]] = {
-    getGP(con => con.searchSub(rudderDit.PARAMETERS.dn, AND(IS(OC_PARAMETER), EQ(A_PARAMETER_OVERRIDABLE, true.toLDAPString))))
-  }
 }
 
 class WoLDAPParameterRepository(
@@ -112,25 +106,23 @@ class WoLDAPParameterRepository(
   , gitParameterArchiver      : GitParameterArchiver
   , personIdentService        : PersonIdentService
   , autoExportOnModify        : Boolean
-) extends WoParameterRepository with NamedZioLogger {
+) extends WoParameterRepository {
   repo =>
 
   import roLDAPParameterRepository._
 
   val semaphore = Semaphore.make(1)
 
-  override def loggerName: String = this.getClass.getName
-
   def saveParameter(
       parameter : GlobalParameter
     , modId     : ModificationId
-    , actor     :EventActor
-    , reason    :Option[String]) : IOResult[AddGlobalParameterDiff] = {
+    , actor     : EventActor
+    , reason    : Option[String]) : IOResult[AddGlobalParameterDiff] = {
     semaphore.flatMap(_.withPermit(
       for {
         con             <- ldap
         doesntExists    <- roLDAPParameterRepository.getGlobalParameter(parameter.name).flatMap {
-                              case Some(entry) => Inconsistency(s"Cannot create a global parameter with name ${parameter.name.value} : there is already a parameter with the same name").fail
+                              case Some(entry) => Inconsistency(s"Cannot create a global parameter with name ${parameter.name} : there is already a parameter with the same name").fail
                               case None => UIO.unit
                            }
         paramEntry      =  mapper.parameter2Entry(parameter)
@@ -162,7 +154,13 @@ class WoLDAPParameterRepository(
     semaphore.flatMap(_.withPermit(
       for {
         con             <- ldap
-        oldParamEntry   <- roLDAPParameterRepository.getGlobalParameter(parameter.name).notOptional(s"Cannot update Global Parameter '${parameter.name}': there is no parameter with that name")
+        oldParameter    <- roLDAPParameterRepository.getGlobalParameter(parameter.name).notOptional(s"Cannot update Global Parameter '${parameter.name}': there is no parameter with that name")
+        _               <- if(GenericPropertyUtils.canBeUpdated(oldParameter.provider, parameter.provider)) UIO.unit
+                           else {
+                             val newProvider = parameter.provider.getOrElse(GenericPropertyUtils.defaultPropertyProvider).value
+                             val oldProvider = oldParameter.provider.getOrElse(GenericPropertyUtils.defaultPropertyProvider).value
+                             Inconsistency(s"Parameter with name '${parameter.name}' can not be updated by provider '${newProvider}' since its current provider is '${oldProvider}'").fail
+                           }
         paramEntry      =  mapper.parameter2Entry(parameter)
         result          <- userLibMutex.writeLock {
                              con.save(paramEntry).chainError(s"Error when saving parameter entry in repository: ${paramEntry}")
@@ -170,7 +168,7 @@ class WoLDAPParameterRepository(
         optDiff         <- diffMapper.modChangeRecords2GlobalParameterDiff(
                                 parameter.name
                               , paramEntry.dn
-                              , oldParamEntry
+                              , oldParameter
                               , result
                             ).toIO
         loggedAction    <-  optDiff match {
@@ -191,7 +189,7 @@ class WoLDAPParameterRepository(
     ))
   }
 
-  def delete(parameterName:ParameterName, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[DeleteGlobalParameterDiff] = {
+  def delete(parameterName:String, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[DeleteGlobalParameterDiff] = {
     for {
       con          <- ldap
       oldParamEntry<- roLDAPParameterRepository.getGlobalParameter(parameterName).notOptional(s"Cannot delete Global Parameter '${parameterName}': there is no parameter with that name")
@@ -264,10 +262,10 @@ class WoLDAPParameterRepository(
                              id
                            }).catchAll(
                              e => //ok, so there, we have a problem
-                               logPure.error(s"Error when importing params, trying to restore old Parameters. Error was: ${e.msg}") *>
+                               ApplicationLoggerPure.error(s"Error when importing params, trying to restore old Parameters. Error was: ${e.msg}") *>
                                restore(con, existingParams).foldM(
                                  err   => Chained(s"Error when rollbacking corrupted import for parameters, expect other errors. Archive ID: ${id.value}", e).fail
-                               , value => logPure.info("Rollback parameters: ok") *>
+                               , value => ApplicationLoggerPure.info("Rollback parameters: ok") *>
                                           Chained("Rollbacked imported parameters to previous state", e).fail
                                )
                            )

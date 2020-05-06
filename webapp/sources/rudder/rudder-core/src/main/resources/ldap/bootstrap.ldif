@@ -327,7 +327,6 @@ objectClass: parameter
 objectClass: top
 parameterName: rudder_file_edit_header
 description: Default inform message put in header of managed files by Rudder
-overridable: TRUE
 parameterValue: ### Managed by Rudder, edit with care ###
 
 ## Application properties

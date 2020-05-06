@@ -176,7 +176,6 @@ class PolicyWriterServiceImpl(
   private[this] def writeNodePropertiesFile (agentNodeConfig: AgentNodeConfiguration) = {
 
     def generateNodePropertiesJson(properties : Seq[NodeProperty]): JValue = {
-      import com.normation.rudder.domain.nodes.JsonSerialisation._
       import net.liftweb.json.JsonDSL._
       ( "properties" -> properties.toDataJson())
     }

@@ -770,10 +770,10 @@ class EventLogDetailsGenerator(
                 { generatedByChangeRequest }
                 <h4>Global Parameter overview:</h4>
                 <ul class="evlogviewpad">
-                  <li><b>Global Parameter name:</b> { modDiff.name.value }</li>
+                  <li><b>Global Parameter name:</b> { modDiff.name }</li>
                 </ul>
                 {(
-                "#name" #> modDiff.name.value &
+                "#name" #> modDiff.name &
                   "#value" #>  mapSimpleDiff(modDiff.modValue) &
                   "#description *" #> mapSimpleDiff(modDiff.modDescription)
                 )(globalParamModDetailsXML)
@@ -1121,7 +1121,7 @@ class EventLogDetailsGenerator(
     )(xml)
 
   private[this] def globalParameterDetails(xml: NodeSeq, globalParameter: GlobalParameter) = (
-    "#name" #> globalParameter.name.value &
+    "#name" #> globalParameter.name &
       "#value" #> GenericPropertyUtils.serializeValue(globalParameter.value) &
       "#description" #> globalParameter.description
     )(xml)

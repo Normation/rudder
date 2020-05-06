@@ -113,9 +113,10 @@ class CreateOrUpdateGlobalParameterPopup(
       onFailure
     } else {
       val newParameter = new GlobalParameter(
-        name        = ParameterName(parameterName.get),
+        name        = parameterName.get,
         value       = GenericPropertyUtils.parseValue(parameterValue.get),
         description = parameterDescription.get,
+        provider    = None
       )
       val savedChangeRequest = {
         for {
@@ -136,15 +137,15 @@ class CreateOrUpdateGlobalParameterPopup(
       }
       savedChangeRequest match {
         case Full(id) =>
-            if (workflowEnabled) {
-              // TODO : do more than that
-              closePopup() & onSuccessCallback(Right(id))
-            } else
-             closePopup() & onSuccessCallback(Left(newParameter))
+          if (workflowEnabled) {
+            // TODO : do more than that
+            closePopup() & onSuccessCallback(Right(id))
+          } else closePopup() & onSuccessCallback(Left(newParameter))
         case eb:EmptyBox =>
-            logger.error("An error occurred while updating the parameter")
-            formTracker.addFormError(error("An error occurred while updating the parameter"))
-            onFailure
+          val msg = (eb ?~! "An error occurred while updating the parameter").messageChain
+          logger.error(msg)
+          formTracker.addFormError(error(msg))
+          onFailure
       }
     }
   }
@@ -181,7 +182,7 @@ class CreateOrUpdateGlobalParameterPopup(
   ////////////////////////// fields for form ////////////////////////
   private[this] val patternName = Pattern.compile("[a-zA-Z0-9_]+");
 
-  private[this] val parameterName = new WBTextField("Name", change.previousGlobalParam.map(_.name.value).getOrElse("")) {
+  private[this] val parameterName = new WBTextField("Name", change.previousGlobalParam.map(_.name).getOrElse("")) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-lg-12 errors-container"
     override def inputField = (change.previousGlobalParam match {
@@ -221,7 +222,7 @@ class CreateOrUpdateGlobalParameterPopup(
     case GlobalParamModAction.Delete => "btn-danger"
   }
 
-  private[this] val defaultRequestName = s"${change.action.name.capitalize} Global Parameter " + change.previousGlobalParam.map(_.name.value).getOrElse("")
+  private[this] val defaultRequestName = s"${change.action.name.capitalize} Global Parameter " + change.previousGlobalParam.map(_.name).getOrElse("")
   private[this] val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-lg-12 errors-container"

@@ -37,8 +37,6 @@
 
 package com.normation.rudder.domain.nodes
 
-import com.normation.errors.Inconsistency
-import com.normation.errors.PureResult
 import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.NodeId
@@ -49,16 +47,7 @@ import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.reports.ReportingConfiguration
-import com.normation.rudder.repository.json.DataExtractor.CompleteJson
-import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
-import com.normation.rudder.services.policies.ParameterEntry
-import net.liftweb.common.Box
-import net.liftweb.common.Failure
-import net.liftweb.common.Full
 import net.liftweb.http.S
-import net.liftweb.json.JValue
-import net.liftweb.json.JsonAST._
-import net.liftweb.json.JsonParser.ParseException
 import org.joda.time.DateTime
 
 /**
@@ -127,194 +116,6 @@ object NodeState {
 
 }
 
-/*
- * Name of the owner of a node property.
- */
-final case class NodePropertyProvider(value: String) extends AnyVal
-
-/**
- * A node property is a key/value pair + metadata.
- * For now, only metadata availables is:
- * - the provider of the property. By default Rudder.
- *
- * Only the provider of a property can modify it.
- */
-final case class NodeProperty(
-    name    : String
-  , value   : JValue
-  , provider: Option[NodePropertyProvider] // optional, default "rudder"
-) {
-  def renderValue: String = value match {
-    case JString(s) => s
-    case v          => net.liftweb.json.compactRender(v)
-  }
-}
-
-
-object GenericPropertyUtils {
-  import net.liftweb.json.JsonAST.JNothing
-  import net.liftweb.json.JsonAST.JString
-  import net.liftweb.json.{parse => jsonParse}
-
-  /**
-   * Parse a value that can be a string or some json.
-   */
-  def parseValue(value: String): JValue = {
-    try {
-      jsonParse(value) match {
-        case JNothing => JString("")
-        case json     => json
-      }
-    } catch {
-      case ex: ParseException =>
-        // in that case, we didn't had a valid json top-level structure,
-        // i.e either object or array. Use a JString with the content
-        JString(value)
-    }
-  }
-
-  /**
-   * Write back a value as a string. There is
-   * some care to take, because simple jvalue (string, boolean, etc)
-   * must be written directly as string without quote.
-   */
-  def serializeValue(value: JValue): String = {
-    value match {
-      case JNothing | JNull => ""
-      case JString(s)       => s
-      case JBool(v)         => v.toString
-      case JDouble(v)       => v.toString
-      case JInt(v)          => v.toString
-      case json             => compactRender(json)
-    }
-  }
-
-  /*
-   * Merge two json values, overriding or merging recursively
-   */
-  def mergeValues(oldValue: JValue, newValue: JValue): JValue = {
-    oldValue.merge(newValue)
-  }
-}
-
-
-object NodeProperty {
-
-  val rudderNodePropertyProvider = NodePropertyProvider("default")
-
-  // the provider that manages inventory custom properties
-  val customPropertyProvider = NodePropertyProvider("inventory")
-
-  /**
-   * A builder with the logic to handle the value part.
-   *
-   * For compatibity reason, we want to be able to process
-   * empty (JNothing) and primitive types, especially string, specificaly as
-   * a JString *but* a string representing an actual JSON should be
-   * used as json.
-   */
-  def apply(name: String, value: String, provider: Option[NodePropertyProvider]): NodeProperty = {
-    NodeProperty(name, GenericPropertyUtils.parseValue(value), provider)
-  }
-}
-
-object CompareProperties {
-  import cats.implicits._
-
-  /**
-   * Update a set of properties with the map:
-   * - if a key of the map matches a property name,
-   *   use the map value for the key as value for
-   *   the property
-   * - if the value is the emtpy string, remove
-   *   the property
-   *
-   * Each time, we have to check the provider of the update to see if it's compatible.
-   * Node that in read-write mode, the provider is the last who wrote the property.
-   *
-   * A "none" provider actually means Rudder system one.
-   */
-  def updateProperties(oldProps: List[NodeProperty], optNewProps: Option[List[NodeProperty]]): PureResult[List[NodeProperty]] = {
-
-    //when we compare providers, we actually compared them with "none" replaced by RudderProvider
-    //if the old provider is None/default, it can always be updated by new
-    def canBeUpdated(old: Option[NodePropertyProvider], newer: Option[NodePropertyProvider]) = {
-      old match {
-        case None | Some(NodeProperty.rudderNodePropertyProvider) =>
-          true
-        case Some(p1) =>
-          p1 == newer.getOrElse(NodeProperty.rudderNodePropertyProvider)
-      }
-    }
-    //check if the prop should be removed or updated
-    def updateOrRemoveProp(oldValue:JValue, newProp: NodeProperty): Either[String, NodeProperty] = {
-     if(newProp.value == JString("")) {
-       Left(newProp.name)
-     } else {
-       Right(newProp.copy(value = GenericPropertyUtils.mergeValues(oldValue, newProp.value)))
-     }
-    }
-
-    optNewProps match {
-      case None => Right(oldProps)
-      case Some(newProps) =>
-        val oldPropsMap = oldProps.map(p => (p.name, p)).toMap
-
-        //update only according to rights - we get a seq of option[either[remove, update]]
-        for {
-          updated <- newProps.toList.traverse { newProp =>
-                       oldPropsMap.get(newProp.name) match {
-                         case None =>
-                           Right(updateOrRemoveProp(JNothing, newProp))
-                         case Some(oldProp@NodeProperty(name, value, provider)) =>
-                             if(canBeUpdated(old = provider, newer = newProp.provider)) {
-                               Right(updateOrRemoveProp(value, newProp))
-                             } else {
-                               val old = provider.getOrElse(NodeProperty.rudderNodePropertyProvider).value
-                               val current = newProp.provider.getOrElse(NodeProperty.rudderNodePropertyProvider).value
-                               Left(Inconsistency(s"You can not update property '${name}' which is owned by provider '${old}' thanks to provider '${current}'"))
-                             }
-                       }
-                     }
-        } yield {
-          val toRemove = updated.collect { case Left(name)  => name }.toSet
-          val toUpdate = updated.collect { case Right(prop) => (prop.name, prop) }.toMap
-          // merge properties
-          (oldPropsMap.view.filterKeys(k => !toRemove.contains(k)).toMap ++ toUpdate).map(_._2).toList
-        }
-    }
-  }
-
-}
-
-/*
- * A node property with all its inheritance context.
- * - key / provider
- * - resulting value on node
- * - list of diff:
- *   - name of the diff provider: group/target name, global parameter
- */
-sealed trait ParentProperty[A] {
-  def displayName: String // human readable information about the parent providing prop
-  def value      : A
-}
-
-/**
- * A node property with its ohneritance/overriding context.
- */
-final case class NodePropertyHierarchy[A](prop: NodeProperty,  parents: List[ParentProperty[A]])
-
-sealed trait FullParentProperty extends ParentProperty[JValue]
-object FullParentProperty {
-  final case class Group(name: String, id: NodeGroupId, value: JValue) extends FullParentProperty {
-    override def displayName: String = s"${name} (${id.value})"
-  }
-  // a global parameter has the same name as property so no need to be specific for name
-  final case class Global(value: JValue) extends FullParentProperty {
-    val displayName = "Global Parameter"
-  }
-}
-
 
 /**
  * Node diff for event logs:
@@ -325,8 +126,6 @@ object FullParentProperty {
  *
  * For now, other simple properties are not handle.
  */
-
-sealed trait NodeDiff
 
 /**
  * Denote a change on the heartbeat frequency.
@@ -388,105 +187,4 @@ object ModifyNodeDiff {
 
     ModifyNodeDiff(nodeId, None, None, None, None, keyInfo, keyStatus)
   }
-}
-
-/**
- * The part dealing with JsonSerialisation of node related
- * attributes (especially properties) and parameters
- */
-object JsonSerialisation {
-
-  import net.liftweb.json.JsonDSL._
-  import net.liftweb.json._
-
-  implicit class JsonNodeProperty(val x: NodeProperty) extends AnyVal {
-    def toJson(): JObject = (
-        ( "name"     -> x.name  )
-      ~ ( "value"    -> x.value )
-      ~ ( "provider" -> x.provider.map(_.value) )
-    )
-  }
-
-  implicit class JsonNodeProperties(val props: Seq[NodeProperty]) extends AnyVal {
-    implicit def formats = DefaultFormats
-
-    def dataJson(x: NodeProperty) : JField = {
-      JField(x.name, x.value)
-    }
-
-    def toApiJson(): JArray = {
-      JArray(props.map(_.toJson()).toList)
-    }
-
-    def toDataJson(): JObject = {
-      props.map(dataJson(_)).toList.sortBy { _.name }
-    }
-  }
-
-  implicit class FullParentPropertyToJSon(val p: ParentProperty[JValue]) extends AnyVal {
-    def toJson = {
-      p match {
-        case FullParentProperty.Global(value) =>
-          (
-            ( "kind"  -> "global")
-          ~ ( "value" -> value   )
-          )
-        case FullParentProperty.Group(name, id, value) =>
-          (
-            ( "kind"  -> "group" )
-          ~ ( "name"  -> name    )
-          ~ ( "id"    -> id.value)
-          ~ ( "value" -> value   )
-          )
-        case _ => JNothing
-      }
-    }
-  }
-
-  implicit class JsonNodePropertiesHierarchy(val props: List[NodePropertyHierarchy[JValue]]) extends AnyVal {
-    implicit def formats = DefaultFormats
-
-    def toApiJson(): JArray = {
-      JArray(props.sortBy(_.prop.name).map { p =>
-        p.parents match {
-          case Nil  => p.prop.toJson()
-          case list => JObject(p.prop.toJson().obj :+ JField("parents", JArray(list.map(_.toJson))))
-        }
-      })
-    }
-  }
-
-  implicit class JsonParameter(val x: ParameterEntry) extends AnyVal {
-    def toJson(): JObject = (
-        ( "name"     -> x.parameterName )
-      ~ ( "value"    -> x.escapedValue  )
-    )
-  }
-
-  implicit class JsonParameters(val parameters: Set[ParameterEntry]) extends AnyVal {
-    implicit def formats = DefaultFormats
-
-    def dataJson(x: ParameterEntry) : JField = {
-      JField(x.parameterName, x.escapedValue)
-    }
-
-    def toDataJson(): JObject = {
-      parameters.map(dataJson(_)).toList.sortBy { _.name }
-    }
-  }
-
-
-  def unserializeLdapNodeProperty(json:JValue): Box[NodeProperty] = {
-
-    for {
-       name  <- CompleteJson.extractJsonString(json, "name")
-       value <- json \ "value" match { case JNothing => Failure("Cannot be Empty")
-                                       case value => Full(value)
-                                     }
-       provider <- OptionnalJson.extractJsonString(json, "provider", p => Full(NodePropertyProvider(p)) )
-    } yield {
-      NodeProperty(name,value,provider)
-    }
-  }
-
 }

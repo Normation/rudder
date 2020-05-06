@@ -46,7 +46,7 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.nodes.NodePropertyHierarchy
-import com.normation.rudder.domain.nodes.NodePropertyProvider
+import com.normation.rudder.domain.nodes.PropertyProvider
 import com.normation.rudder.domain.policies.FullCompositeRuleTarget
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.FullOtherTarget
@@ -102,7 +102,7 @@ final case class GroupProp(
 
 object GroupProp {
 
-  val INHERITANCE_PROVIDER = NodePropertyProvider("inherited")
+  val INHERITANCE_PROVIDER = PropertyProvider("inherited")
   val EMPTY_DIFF = Diff(JNothing, JNothing, JNothing)
 
   implicit class ToNodePropertyHierarchy(g: GroupProp) {

@@ -194,7 +194,6 @@ class RestQuicksearch (
   private[this] implicit class JsonSearchResult(r: QuickSearchResult) {
     import com.normation.inventory.domain.NodeId
     import com.normation.rudder.domain.nodes.NodeGroupId
-    import com.normation.rudder.domain.parameters.ParameterName
     import com.normation.rudder.domain.policies.DirectiveId
     import com.normation.rudder.domain.policies.RuleId
     import com.normation.rudder.services.quicksearch.QuickSearchResultId._
@@ -206,7 +205,7 @@ class RestQuicksearch (
         case QRRuleId(v)      => ruleLink(RuleId(v))
         case QRDirectiveId(v) => directiveLink(DirectiveId(v))
         case QRGroupId(v)     => groupLink(NodeGroupId(v))
-        case QRParameterId(v) => globalParameterLink(ParameterName(v))
+        case QRParameterId(v) => globalParameterLink(v)
       }
 
       //limit description length to avoid having a whole file printed
