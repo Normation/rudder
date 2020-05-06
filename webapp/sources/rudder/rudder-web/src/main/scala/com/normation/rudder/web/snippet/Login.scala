@@ -30,6 +30,11 @@ class Login extends DispatchSnippet with DefaultExtendableSnippet[Login] {
               </span>
             </span>
           </div>
+          <script type="text/javascript">
+            // <![CDATA[
+            window.setTimeout('location.reload()', 4000);
+            // ]]>
+          </script>
         </div>
       } else authForm
     }
