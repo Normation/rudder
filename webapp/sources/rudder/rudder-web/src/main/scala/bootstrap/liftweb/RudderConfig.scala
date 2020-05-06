@@ -1831,6 +1831,7 @@ object RudderConfig extends Loggable {
       )
     , nodeInfoServiceImpl
     , RUDDER_JDBC_BATCH_MAX_SIZE // use same size as for SQL requests
+    , complianceRepositoryImpl
   )
 
   private[this] lazy val pgIn = new PostgresqlInClause(70)
