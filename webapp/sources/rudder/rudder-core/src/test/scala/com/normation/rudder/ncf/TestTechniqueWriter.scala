@@ -264,37 +264,37 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
       , "ncf_techniques"
       , MethodCall(
             BundleName("package_install_version")
-          , Map((ParameterId("package_name"),"${node.properties[apache_package_name]}"),(ParameterId("package_version"),"2.2.11"))
+          , List((ParameterId("package_name"),"${node.properties[apache_package_name]}"),(ParameterId("package_version"),"2.2.11"))
           , "any"
           , "Customized component"
         ) ::
         MethodCall(
             BundleName("command_execution")
-          , Map((ParameterId("command"),"Write-Host \"testing special characters ` è &é 'à é \""))
+          , List((ParameterId("command"),"Write-Host \"testing special characters ` è &é 'à é \""))
           , "windows"
           , "Command execution"
         ) ::
         MethodCall(
             BundleName("service_start")
-          , Map((ParameterId("service_name"),"${node.properties[apache_package_name]}"))
+          , List((ParameterId("service_name"),"${node.properties[apache_package_name]}"))
           , "package_install_version_${node.properties[apache_package_name]}_repaired"
           , "Customized component"
         ) ::
         MethodCall(
             BundleName("package_install")
-          , Map((ParameterId("package_name"),"openssh-server"))
+          , List((ParameterId("package_name"),"openssh-server"))
           , "redhat"
           , "Package install"
         ) ::
         MethodCall(
             BundleName("command_execution")
-          , Map((ParameterId("command"),"/bin/echo \"testing special characters ` è &é 'à é \"\\"))
+          , List((ParameterId("command"),"/bin/echo \"testing special characters ` è &é 'à é \"\\"))
           , "cfengine-community"
           , "Command execution"
         ) ::
         MethodCall(
             BundleName("_logger")
-          , Map((ParameterId("message"),"NA"),(ParameterId("old_class_prefix"),"NA"))
+          , List((ParameterId("message"),"NA"),(ParameterId("old_class_prefix"),"NA"))
           , "any"
           , "Not sure we should test it ..."
         ) :: Nil
@@ -356,7 +356,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
       , "ncf_techniques"
       , MethodCall(
             BundleName("package_install_version")
-          , Map((ParameterId("package_name"),"${node.properties[apache_package_name]}"),(ParameterId("package_version"),"2.2.11"))
+          , List((ParameterId("package_name"),"${node.properties[apache_package_name]}"),(ParameterId("package_version"),"2.2.11"))
           , "any"
           , "Test component$&é)à\\'\""
         ) :: Nil

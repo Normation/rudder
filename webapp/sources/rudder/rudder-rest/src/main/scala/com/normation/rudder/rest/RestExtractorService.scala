@@ -1174,7 +1174,7 @@ final case class RestExtractorService (
                            case s => Failure(s"Invalid format of method call when extracting from json, expecting and array but got : ${s}")
                          }
 
-      parameters = methods.get(methodId).toList.flatMap(_.parameters.map(_.id)).zip(parameterValues).toMap
+      parameters = methods.get(methodId).toList.flatMap(_.parameters.map(_.id)).zip(parameterValues)
     } yield {
       MethodCall(methodId, parameters, condition, component)
     }

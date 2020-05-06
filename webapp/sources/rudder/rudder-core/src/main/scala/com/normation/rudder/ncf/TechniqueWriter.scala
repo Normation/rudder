@@ -176,7 +176,7 @@ class TechniqueWriter (
               case None => Left(MethodNotFound(s"Cannot find method ${call.methodId.value} when writing a method call of Technique '${technique.bundleName.value}'", None))
               case Some(m) => Right(m)
             }
-            class_param <- call.parameters.get(method.classParameter) match {
+            class_param <- call.parameters.find(_._1 == method.classParameter) match {
               case None => Left(MethodNotFound(s"Cannot find call parameter of ${call.methodId.value} when writing a method call of Technique '${technique.bundleName.value}'", None))
               case Some(m) => Right(m)
             }
@@ -365,17 +365,17 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
       ( for {
         (method,index) <- technique.methodCalls.zipWithIndex
         method_info <- methods.get(method.methodId)
-        classParameterValue <- method.parameters.get(method_info.classParameter)
+        (_, classParameterValue) <- method.parameters.find( _._1 == method_info.classParameter)
 
         params <- Control.sequence(method_info.parameters) {
           p =>
             import  com.normation.box.EitherToBox
             for {
-            value <- Box(method.parameters.get(p.id))
-            escaped <- parameterTypeService.translate(value, p.parameterType, AgentType.CfeCommunity).toBox
-          } yield {
-            escaped
-          }
+              (_,value) <- Box(method.parameters.find(_._1 == p.id))
+              escaped   <- parameterTypeService.translate(value, p.parameterType, AgentType.CfeCommunity).toBox
+            } yield {
+              escaped
+            }
         }
 
       } yield {
@@ -429,7 +429,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
           // Skip that method if name starts with _
           if ! method.methodId.value.startsWith("_")
           method_info <- methods.get(method.methodId)
-          classParameterValue <- method.parameters.get(method_info.classParameter)
+          (_,classParameterValue) <- method.parameters.find(_._1 == method_info.classParameter)
 
           escapedClassParameterValue = escapeCFEngineString(classParameterValue)
           classPrefix = s"$${class_prefix}_${method_info.classPrefix}_${escapedClassParameterValue}"
