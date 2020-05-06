@@ -168,6 +168,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[RuleStatusReport] = null
     def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
     def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]] = null
+
+    override def complianceRepository: ComplianceRepository = null
     override def invalidate(nodeIds: Set[NodeId]) = ZIO.succeed(Map())
 
     def getUserNodeStatusReports() : Box[Map[NodeId, NodeStatusReport]] = Full(Map())
