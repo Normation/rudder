@@ -159,7 +159,7 @@ lint:
 
 check: lint
 	cd relayd && cargo test
-	cd relayd && cargo audit
+	cd relayd && cargo deny check
 
 # Clean
 

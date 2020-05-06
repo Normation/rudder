@@ -28,7 +28,7 @@ build-env:
 	curl https://sh.rustup.rs -sSf | sh
 	rustup component add clippy
 	cargo install cargo-update
-	cargo install cargo-audit
+	cargo install cargo-deny
 
 build-env-update:
 	rustup self update
