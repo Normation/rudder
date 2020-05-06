@@ -51,6 +51,7 @@ import com.normation.rudder.domain.reports.RuleStatusReport
 import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
+import com.normation.rudder.repository.ComplianceRepository
 import com.normation.rudder.repository.FindExpectedReportRepository
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.services.nodes.LDAPNodeInfo
@@ -152,6 +153,8 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     var reports = Map[NodeId, NodeStatusReport]()
     // store all updated nodes
     var updated: List[NodeId] = Nil
+
+    override def complianceRepository: ComplianceRepository = ???
 
     override def defaultFindRuleNodeStatusReports = new DefaultFindRuleNodeStatusReports() {
       override def confExpectedRepo: FindExpectedReportRepository = ???
