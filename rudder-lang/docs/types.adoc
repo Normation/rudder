@@ -1,0 +1,32 @@
+= Types
+
+[#string-type]
+== string
+
+_rudder-lang_ supports multiline string format, interpolation, escaping sequences:
+* an escaped string is delimited by `"`
+* an unescaped string is delimited by `"""`
+* interpolation has the following syntax: `${...}`
+* supported escape sequences: `\\`, `\n`, `\r`, `\t`
+
+[#num-type]
+== num
+
+Internally represented by a float64
+
+[#boolean-type]
+== boolean
+
+true or false
+
+Internally represented by the `boolean` exhaustive enum
+
+[#struct-type]
+== struct
+
+Structs are delimited by curly braces `{...}`, are composed by pairs of `key: value` and use commas (`,`) as separators
+
+[#list-type]
+== list
+
+Lists are delimited by square brackets `[...]` and use commas (`,`) as separators

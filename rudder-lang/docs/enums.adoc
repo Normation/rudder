@@ -1,0 +1,64 @@
+
+[#enums]
+= Enums
+
+Enums are not properly _rudder-lang_ types yet they are a full feature and have a defined syntax
+
+== `enum` vs `global enum`
+
+An enum can be _global_. There are some key differences:
+
+|=======
+|difference |enum |global enum
+|unique name |no |yes
+|enum type must be specified |no |yes
+|each item has a global variable associated* |no |yes
+|=======
+_* all item names of a global enum are variables, meaning it becomes reserved, no other variable can be created with this name_
+
+In other words, item names of global enums are directly available in the global namespace
+
+[source, rudder-lang]
+----
+# arbitrary system list
+global enum system {
+  windows,
+  linux
+}
+----
+
+To call an item of this enum, just do `linux` (rather than `system.linux`) as it now exists in the global namespace.
+Still it remains different from a single variable since internally a reference to the enum tree is kept
+
+[#access-enum-content]
+== Access to enum content
+
+It is possible to access an enum item or range of items.
+
+NOTE: enum ranges are not sorted therefore range order is the same as enum definition order
+
+Depending on the enum being global or not, it is possible to directly call items, since global enums declare a variable for each of its items
+
+* item: `enum.item` or `item` if the enum is global
+* range: is expressed this way:
+** `enum_item..`
+** `enum_item..enum_item2`
+** `..enum_item`
+
+Example:
+
+[source, rudder-lang]
+----
+# arbitrary system list that is not global
+enum system {
+  windows,
+  linux,
+  aix,
+  bsd
+}
+
+`if linux =~ system.linux` # is true
+`if linux =~ ..system.windows` # is false
+`if windows !~ system.linux..system.bsd` # is true
+`if aix =~ system.linux..` # is true
+----

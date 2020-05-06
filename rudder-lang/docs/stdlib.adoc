@@ -1,8 +1,6 @@
 = Libraries
 
-** exhaustive list of _cfengine_ special variables that act as reserved namespaces / keywords.
-
-[[stdlib]]
+[#stdlib]
 == *stdlib*
 What is called _stdlib_ (_rudder-lang_ own _standard library_) is the following set of files. +
 Folder: `./libs`:
@@ -23,7 +21,7 @@ Contains the exhaustive list of supported operating systems, including major and
 Stored in the form of nested `enum`s.
 
 //TODO rename OS section
-More about supported OSes and their usage in _rudder-lang_ here: xref:syntax.adoc#supported-operating-systems[supported OSes]
+More about supported OSes and their usage in _rudder-lang_ here: <<operating-systems,supported OSes>>
 
 === _cfengine_core.rl_
 Contains the exhaustive list of _CFEngine_ reserved words and namespaces. +

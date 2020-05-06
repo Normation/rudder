@@ -1,5 +1,11 @@
-// TODO rename and move, don't know where to put this
+[#operating-systems]
 = Operating systems
+
+Since _rudder-lang_ is a language designed to configure servers, operating systems are an important part of it
+
+A part of the _stdlib_ is dedicated to declare a structured list of handled operating systems in the form of enums
+
+This chapter is about explaining how to use it
 
 == Syntax
 
@@ -20,11 +26,11 @@ Since _rudder-lang_ OS list is composed of `enums`, it meets the requirements th
 - _sub-enums_ that expand their parent item: `items in linux` or `items in ubuntu_20`
 - _aliases_ can be used to define any sub-enum, like: `enum alias focal = ubuntu_20_04` 
 
-More about xref:syntax.adoc#enums[enums]
+More about <<enums,enums>>
 
 == Usage
 _rudder-lang_ makes use of an exhaustive list of operating systems, including major and minor versions. +
-This list is defined in the *stdlib* (more about it here: xref:stdlib.adoc[stdlib])
+This list is defined in the *stdlib* (more about it <<stdlib,here>>)
 
 For now they are used in _conditions_ to check whether a method should be applied or not.
 
