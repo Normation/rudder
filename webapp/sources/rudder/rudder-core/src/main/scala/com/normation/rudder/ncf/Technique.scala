@@ -104,7 +104,7 @@ final case class Technique(
 
 final case class MethodCall(
     methodId   : BundleName
-  , parameters : Map[ParameterId,String]
+  , parameters : List[(ParameterId,String)]
   , condition  : String
   , component  : String
 )
@@ -316,10 +316,10 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
           )
       }
 
-      ( ( "method_name"   -> call.methodId.value    )
+      ( ( "method_name"     -> call.methodId.value    )
         ~ ( "class_context" -> call.condition         )
         ~ ( "component"     -> call.component         )
-        ~ ( "args"          -> call.parameters.values )
+        ~ ( "args"          -> call.parameters.map(_._2) )
         ~ ( "parameters"    -> params                 )
         )
     }
