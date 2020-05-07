@@ -178,7 +178,7 @@ class TechniqueWriter (
             }
             class_param <- call.parameters.find(_._1 == method.classParameter) match {
               case None => Left(MethodNotFound(s"Cannot find call parameter of ${call.methodId.value} when writing a method call of Technique '${technique.bundleName.value}'", None))
-              case Some(m) => Right(m)
+              case Some(m) => Right(m._2)
             }
 
           } yield {
