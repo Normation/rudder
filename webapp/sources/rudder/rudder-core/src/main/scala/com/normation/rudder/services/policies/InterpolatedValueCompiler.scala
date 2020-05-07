@@ -41,6 +41,7 @@ package com.normation.rudder.services.policies
 import com.normation.box._
 import com.normation.errors._
 import com.normation.inventory.domain.AgentType
+import com.normation.rudder.domain.nodes.GenericPropertyUtils
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.services.policies.PropertyParserTokens._
 import net.liftweb.common._
@@ -167,9 +168,9 @@ object PropertyParserTokens {
   //everything is expected to be lower case
   final case class NodeAccessor(path:List[String]) extends AnyVal with Interpolation
   //everything is expected to be lower case
-  final case class Param(name:String)              extends AnyVal with Interpolation
+  final case class Param(path: List[String])       extends AnyVal with Interpolation
   //here, we keep the case as it is given
-  final case class Property(path: List[String], opt: Option[PropertyOption])    extends Interpolation
+  final case class Property(path: List[String], opt: Option[PropertyOption]) extends Interpolation
 
   //here, we have node property option
   sealed trait PropertyOption extends Any
@@ -230,10 +231,10 @@ trait AnalyseInterpolation[T, I <: GenericInterpolationContext[T]] {
    */
   def analyse(context: I, token:Token): PureResult[String] = {
     token match {
-      case CharSeq(s)         => Right(s)
-      case NonRudderVar(s)    => Right(s"$${${s}}")
-      case NodeAccessor(path) => getNodeAccessorTarget(context, path)
-      case Param(name)         => getRudderGlobalParam(context, name)
+      case CharSeq(s)          => Right(s)
+      case NonRudderVar(s)     => Right(s"$${${s}}")
+      case NodeAccessor(path)  => getNodeAccessorTarget(context, path)
+      case Param(path)         => getRudderGlobalParam(context, path)
       case Property(path, opt) => opt match {
         case None =>
           getNodeProperty(context, path)
@@ -260,7 +261,7 @@ trait AnalyseInterpolation[T, I <: GenericInterpolationContext[T]] {
   /**
    * Retrieve the global parameter from the node context.
    */
-  def getRudderGlobalParam(context: I, paramName: String): PureResult[String]
+  def getRudderGlobalParam(context: I, path: List[String]): PureResult[String]
 
 
   /**
@@ -343,29 +344,52 @@ object AnalyseParamInterpolation extends AnalyseInterpolation[ParamInterpolation
   /**
    * Retrieve the global parameter from the node context.
    */
-  def getRudderGlobalParam(context: ParamInterpolationContext, paramName: String): PureResult[String] = {
-    context.parameters.get(paramName) match {
-      case Some(value) =>
-        if(context.depth >= maxEvaluationDepth) {
-          Left(Unexpected(s"""Can not evaluted global parameter "${paramName}" because it uses an interpolation variable that depends upon """
-           + s"""other interpolated variables in a stack more than ${maxEvaluationDepth} in depth. We fear it's a circular dependancy."""))
-        } else value(context.copy(depth = context.depth+1))
-      case _ => Left(Unexpected(s"Error when trying to interpolate a variable: Rudder parameter not found: '${paramName}'"))
+  def getRudderGlobalParam(context: ParamInterpolationContext, path: List[String]): PureResult[String] = {
+    val errmsg = s"Missing parameter '$${node.parameter[${path.mkString("][")}]}'"
+    path match {
+      //we should not reach that case since we enforce at leat one match of [...] in the parser
+      case Nil       => Left(Unexpected(s"The syntax $${rudder.parameters} is invalid, only $${rudder.parameters[name]} is accepted"))
+      case h :: tail => context.parameters.get(h) match {
+        case Some(value) =>
+          if(context.depth >= maxEvaluationDepth) {
+            Left(Unexpected(s"""Can not evaluted global parameter "${h}" because it uses an interpolation variable that depends upon """
+             + s"""other interpolated variables in a stack more than ${maxEvaluationDepth} in depth. We fear it's a circular dependancy."""))
+          } else {
+            // we need to check if we were looking for a string or a json value
+            for {
+              firtLevel <- value(context.copy(depth = context.depth+1))
+              res       <- tail match {
+                             case Nil     => Right(firtLevel)
+                             case subpath => getJsonProperty(subpath, GenericPropertyUtils.parseValue(firtLevel)).chainError(errmsg)
+                           }
+            } yield {
+              res
+            }
+          }
+        case _ => Left(Unexpected(errmsg))
+      }
     }
   }
 }
 
-object AnalyseNodeInterpolation extends AnalyseInterpolation[String, InterpolationContext] {
+object AnalyseNodeInterpolation extends AnalyseInterpolation[JValue, InterpolationContext] {
 
   /**
    * Retrieve the global parameter from the node context.
    */
-  def getRudderGlobalParam(context: InterpolationContext, paramName: String): PureResult[String] = {
-    context.parameters.get(paramName) match {
-      case Some(value) =>
-        Right(value)
-      case _           =>
-        Left(Unexpected(s"Error when trying to interpolate a variable: Rudder parameter not found: '${paramName}'"))
+  def getRudderGlobalParam(context: InterpolationContext, path: List[String]): PureResult[String] = {
+    val errmsg = s"Missing parameter '$${node.parameter[${path.mkString("][")}]}'"
+    path match {
+      //we should not reach that case since we enforce at leat one match of [...] in the parser
+      case Nil       => Left(Unexpected(s"The syntax $${rudder.parameters} is invalid, only $${rudder.parameters[name]} is accepted"))
+      case h :: tail => context.parameters.get(h) match {
+        case None       => Left(Unexpected(errmsg))
+        case Some(json) => tail match {
+          case Nil     => Right(GenericPropertyUtils.serializeValue(json))
+          //here, we need to parse the value in json and try to find the asked path
+          case subpath => getJsonProperty(subpath, json).chainError(errmsg)
+        }
+      }
     }
   }
 }
@@ -413,7 +437,8 @@ object PropertyParser {
   def parse(value: String): PureResult[List[Token]] = {
     fastparse.parse(value, all(_)) match {
       case Parsed.Success(value, index)    => Right(value)
-      case Parsed.Failure(label, i, extra) => Left(Unexpected(s"""Error when parsing value "${value}", error message is: ${label}"""))
+      case Parsed.Failure(label, i, extra) => Left(Unexpected(
+        s"""Error when parsing value (without ''): '${value}'. Error message is: ${extra.trace().aggregateMsg}""".stripMargin))
     }
   }
 
@@ -454,17 +479,23 @@ object PropertyParser {
 
   //an interpolated variable looks like: ${rudder.XXX}, or ${RuDder.xXx}
   // after "${rudder." there is no backtracking to an "otherProp" or string possible.
-  def rudderVariable[_: P]  : P[Interpolation] = P( IgnoreCase("rudder") ~ space ~ "." ~ space ~/ (rudderNode | parameter ) )
+  def rudderVariable[_: P]  : P[Interpolation] = P( IgnoreCase("rudder") ~ space ~ "." ~ space ~/ (rudderNode | parameters | oldParameter) )
 
   //a node path looks like: ${rudder.node.HERE.PATH}
   def rudderNode[_: P]  : P[Interpolation] = P( IgnoreCase("node") ~/ space ~ "." ~ space ~/ variableId.rep(sep = space ~ "." ~ space) ).map { seq => NodeAccessor(seq.toList) }
 
-  //a parameter looks like: ${rudder.param.PARAM_NAME}
-  def parameter[_: P]  : P[Interpolation] = P( IgnoreCase("param") ~/ space ~ "." ~ space ~/ variableId).map{ p => Param(p) }
+  //a parameter old syntax looks like: ${rudder.param.PARAM_NAME}
+  def oldParameter[_: P]  : P[Interpolation] = P(IgnoreCase("param") ~ space ~ "." ~/ space ~/ variableId).map{ p => Param(p :: Nil) }
+
+  //a parameter new syntax looks like: ${rudder.parameters[PARAM_NAME][SUB_NAME]}
+  def parameters[_: P]  : P[Interpolation] = P(IgnoreCase("parameters") ~/ arrayNames ).map{ p => Param(p.toList) }
 
   //a node property looks like: ${node.properties[.... Cut after "properties".
-  def nodeProperty[_: P]    : P[Interpolation] =  ( IgnoreCase("node") ~ space ~ "." ~ space ~ IgnoreCase("properties") ~/ ( space ~ "[" ~ space ~ propertyId ~ space ~ "]" ).rep(1) ~/
-                                                    nodePropertyOption.? ).map { case (path, opt) => Property(path.toList, opt) }
+  def nodeProperty[_: P]    : P[Interpolation] =  (IgnoreCase("node") ~ space ~ "." ~ space ~ IgnoreCase("properties") ~/ arrayNames ~/
+                                                   nodePropertyOption.? ).map { case (path, opt) => Property(path.toList, opt) }
+
+  // parse an array of property names: `[name1][name2]..` (for parameter/node properties)
+  def arrayNames[_: P] : P[List[String]] = P((space ~ "[" ~ space ~ propertyId ~ space ~ "]" ).rep(1) ).map(_.toList)
 
   //here, the number of " must be strictly decreasing - ie. triple quote before
   def nodePropertyOption[_: P]  : P[PropertyOption] = P( space ~ "|" ~/ space ~ ( onNodeOption | defaultOption ) )
