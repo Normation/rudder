@@ -1,0 +1,88 @@
+#####################################################################################
+# Copyright 2020 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+#
+# @name File Augeas set 
+# @description Use Augeas binaries to call Augtool command and set a node's label value.
+# @documentation There is two ways you can use this method, either you simply provide a path to the node label as a parameter or you can specify a file associated with a lens then the regular path. When you only specify the path to the node label's, your request will include by default Augeas charging all the lenses and files, on the other hand, if you have a specific file for example such as a json file and you want to associate it to the existing Json lense, then in that case you need to specify in addition the file and lens parameter, this way Augeas won't load all its files and lenses except the ones you specified. 
+# The generic method will set a node's label value otherwise if Augeas isn't installed on the agent, it will produces an error. 
+# The method provides a way to make a backup of the file before applying any changes on it, you can find them under '/var/rudder/modified-files/'.
+#
+# #### Two uses cases examples:
+# 
+# # Use case 1: To simply set the value of the ip address of the first line in the '/etc/hosts' file to '192.168.1.5'
+# file_augeas_set("/etc/hosts/1/ipaddr","192.168.1.5");
+# # Use case 2: To associate the 'Hosts' lens with the '/etc/hosts' file then set the node value
+# file_augeas_set("/etc/hosts/1/ipaddr","192.168.1.5","Hosts","/etc/hosts");
+#
+# @parameter path            The path to the file and node label
+# @parameter value           The value to set
+# @parameter lens            The lens specified by the user in case he wants to load a specified lens associated with its file
+# @parameter file            The file specified by the user in case he wants to load a specified file associated with its lens
+# @parameter_constraint file "allow_empty_string" : true
+# @parameter_constraint lens "allow_empty_string" : true
+# @class_prefix file_augeas_set
+# @class_parameter lens
+
+
+bundle agent file_augeas_set(path, value, lens, file)
+{
+ vars:       
+     "old_class_prefix" string => canonify("file_augeas_set_${lens}");
+     "promisers" slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+     "class_prefix" string => canonify(join("_", "promisers"));
+     "args" slist => {"${path}", "${value}", "${lens}","${file}"};
+
+   pass1.file_defined::
+     "result" string => "printf \"set /augeas/load/${lens}/lens \"${lens}.lns\" \n set /augeas/load/${lens}/incl \"${file}\" \n load \n set /files${path} ${value} \n save\" | ${ncf_paths.path[augtool]} --noautoload -b";
+     "timestamp" string => execresult("LANG=C date +%s","useshell");
+     "date" string => canonify(execresult("LANG=C date +\"%a_%b_%e_%H_%M_%S_%Y\"","useshell"));
+     "cfile" string => canonify("${file}");
+
+   pass1.!file_defined::
+     "result" string => "printf \"set /files${path} ${value} \n save\" | ${ncf_paths.path[augtool]}";
+
+ classes:
+     "pass2" expression => "pass1";
+     "pass1";
+
+   pass2::
+     "variable_defined" expression => returnszero("${result}","useshell");
+     "copy" expression => returnszero("mv ${file}.augsave /var/rudder/modified-files/${cfile}_$(timestamp)_$(date)_cf_before_edit","useshell"),
+                    if => fileexists("${file}.augsave");  
+     "augeas_binaries" expression => fileexists("${ncf_paths.path[augtool]}");
+   
+   pass1::
+     "file_defined" expression => not(strcmp("${file}",""));
+    
+ methods: 
+    pass2.augeas_binaries.variable_defined::
+       "success" usebundle => _classes_success("${old_class_prefix}");
+       "success" usebundle => _classes_success("${class_prefix}");
+       "report" usebundle => _log("Setting the node value for ${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    pass2.augeas_binaries.!variable_defined::
+      "failure" usebundle => _classes_failure("${old_class_prefix}");
+      "failure" usebundle => _classes_failure("${class_prefix}");
+      "report" usebundle => _log("Augeas binaries does exist, but your request has failed. Setting the node value for ${path}","${old_class_prefix}", "${class_prefix}", @{args});
+
+    pass2.!augeas_binaries::
+      "failure" usebundle => _classes_failure("${old_class_prefix}");
+      "failure" usebundle => _classes_failure("${class_prefix}");
+      "report" usebundle => _log("Augeas binaries does not exist.", "${old_class_prefix}", "${class_prefix}", @{args});
+}
+

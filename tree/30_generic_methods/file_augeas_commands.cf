@@ -1,0 +1,79 @@
+#####################################################################################
+# Copyright 2020 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+#
+# @name File Augeas commands
+# @description Use augeas binaries to execute augtool command(s) directly on the agent. 
+# The generic method will return the command(s) execution output otherwise if the augeas isn't installed on the agent, it will produces an error.
+#
+# @parameter variable_prefix The prefix of the variable name
+# @parameter variable_name   The variable to define, the full name will be variable_prefix.variable_name
+# @parameter commands        The augeas command(s) 
+# @parameter autoload        Deactivate the '--autoload' option if you don't want augeas to charge all the files/lens, it's 'true' by default.
+# @parameter_constraint autoload "allow_empty_string" : true
+# @parameter_constraint autoload "select" : [ "", "true", "false" ]
+# @class_prefix file_augeas_commands
+# @class_parameter variable_name
+
+
+bundle agent file_augeas_commands(variable_prefix, variable_name, commands, autoload)
+{
+ vars:       
+     "old_class_prefix" string => canonify("file_augeas_commands_${variable_name}");
+     "promisers" slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+     "class_prefix" string => canonify(join("_", "promisers"));
+     "args" slist => {"${variable_prefix}", "${variable_name}", "${commands}", "${autoload}"};
+
+   pass1.!autoload_defined::
+     "${variable_prefix}.${variable_name}" string =>  execresult("printf \"${commands}\" | ${ncf_paths.path[augtool]} --noautoload","useshell"); 
+
+   pass1.autoload_defined::
+     "${variable_prefix}.${variable_name}" string =>  execresult("printf \"${commands}\" | ${ncf_paths.path[augtool]}","useshell");
+
+  
+ defaults:
+     "autoload" string => "true", if_match_regex => "";
+
+ classes:
+    "pass2" expression => "pass1";
+    "pass1";
+
+   pass1::
+     "autoload_defined" expression => strcmp("${autoload}", "true");
+
+   pass2::
+     "variable_defined" expression => isvariable("${variable_prefix}.${variable_name}");  
+     "augeas_binaries" expression => fileexists("${ncf_paths.path[augtool]}");
+    
+ methods: 
+    pass2.augeas_binaries.variable_defined::
+       "success" usebundle => _classes_success("${old_class_prefix}");
+       "success" usebundle => _classes_success("${class_prefix}");
+       "report" usebundle => _log("Executing ${commands}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    pass2.augeas_binaries.!variable_defined::
+      "failure" usebundle => _classes_failure("${old_class_prefix}");
+      "failure" usebundle => _classes_failure("${class_prefix}");
+      "report" usebundle => _log("Augeas binaries does exist, but your request has failed. Executing ${commands}","${old_class_prefix}", "${class_prefix}", @{args});
+
+    pass2.!augeas_binaries::
+      "failure" usebundle => _classes_failure("${old_class_prefix}");
+      "failure" usebundle => _classes_failure("${class_prefix}");
+      "report" usebundle => _log("Augeas binaries does not exist.", "${old_class_prefix}", "${class_prefix}", @{args});
+    
+}
+
