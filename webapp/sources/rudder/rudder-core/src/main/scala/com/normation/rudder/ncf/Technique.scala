@@ -117,6 +117,7 @@ final case class GenericMethod(
   , classPrefix    : String
   , agentSupport   : Seq[AgentType]
   , description    : String
+  , documentation  : Option[String]
 )
 
 final case class MethodParameter(
@@ -382,6 +383,7 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
       ~ ( "class_parameter" -> method.classParameter.value )
       ~ ( "agent_support"   -> agentSupport                )
       ~ ( "parameter"       -> parameters                  )
+      ~ ( "documentation"   -> method.documentation        )
       )
 
   }

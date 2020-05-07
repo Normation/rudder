@@ -1258,8 +1258,9 @@ final case class RestExtractorService (
                              case _ => Failure("invalid agent")
                           })).map(_.flatten)
         parameters     <- CompleteJson.extractJsonArray(json , "parameter")(extractMethodParameter)
+        documentation  <- OptionnalJson.extractJsonString(json, "documentation")
       } yield {
-        GenericMethod(bundleName, name, parameters, classParameter, classPrefix, agentSupport, description)
+        GenericMethod(bundleName, name, parameters, classParameter, classPrefix, agentSupport, description, documentation)
       }
     }
 
