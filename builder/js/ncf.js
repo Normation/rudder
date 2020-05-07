@@ -1009,7 +1009,7 @@ $scope.onImportFileChange = function (fileEl) {
   // Check if a technique has not been changed, and if we can use reset function
   $scope.isUnchanged = function(technique) {
     if(technique === undefined) return true;
-    //Check if there is uncommited resource
+    //Check if there is unsaved resource
     var checkUntouchedResources = true;
     if( technique.resources !== undefined && technique.resources !== null ){
       checkUntouchedResources = !technique.resources.some(function(r){
@@ -1672,16 +1672,16 @@ $scope.onImportFileChange = function (fileEl) {
   }
 
   $scope.getResourcesInfo = function(){
-    var msg, nbResources, nbUncommitted;
+    var msg, nbResources, nbUnsaved;
     nbResources = ($scope.selectedTechnique !== undefined && $scope.selectedTechnique.resources !== undefined) ? $scope.selectedTechnique.resources.length : undefined;
     if(nbResources === undefined || nbResources <= 0){
       msg = "There is no resource files."
     }else{
-      nbUncommitted = $scope.selectedTechnique.resources.filter(resource => resource.state != 'untouched').length;
-      if(nbUncommitted <= 0){
+      nbUnsaved = $scope.selectedTechnique.resources.filter(resource => resource.state != 'untouched').length;
+      if(nbUnsaved <= 0){
         msg = "There " + (nbResources   > 1 ? "are " : "is ") + nbResources   + " resource file" + (nbResources > 1 ? "s." : ".");
       }else{
-        msg = "There " + (nbUncommitted > 1 ? "are " : "is ") + nbUncommitted + " uncommitted file" + (nbUncommitted > 1 ? "s" : "") + ", save your changes to commit " + (nbUncommitted > 1 ? "them." : "it.");
+        msg = "There " + (nbUnsaved > 1 ? "are " : "is ") + nbUnsaved + " unsaved file" + (nbUnsaved > 1 ? "s" : "") + ", save your changes to complete upload.";
       }
     }
     return msg;

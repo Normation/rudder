@@ -449,7 +449,7 @@
                         <div class="resources-uncommitted" ng-if="getResourcesByState(selectedTechnique.resources, 'new').length>0 || getResourcesByState(selectedTechnique.resources, 'deleted').length > 0">
                           <span>
                             <i class="fas fa-exclamation-triangle"></i>
-                            There {{(getResourcesByState(selectedTechnique.resources, 'new').length + getResourcesByState(selectedTechnique.resources, 'deleted').length) > 1 ? "are" : "is" }} <b>{{(getResourcesByState(selectedTechnique.resources, 'new').length + getResourcesByState(selectedTechnique.resources, 'deleted').length)}}</b> uncommitted file{{(getResourcesByState(selectedTechnique.resources, 'new').length + getResourcesByState(selectedTechnique.resources, 'deleted').length) > 1 ? "s" : "" }}, save your changes to commit {{(getResourcesByState(selectedTechnique.resources, 'new').length + getResourcesByState(selectedTechnique.resources, 'deleted').length) > 1 ? "them" : "it" }}.
+                            There {{(getResourcesByState(selectedTechnique.resources, 'new').length + getResourcesByState(selectedTechnique.resources, 'deleted').length) > 1 ? "are" : "is" }} <b>{{(getResourcesByState(selectedTechnique.resources, 'new').length + getResourcesByState(selectedTechnique.resources, 'deleted').length)}}</b> unsaved file{{(getResourcesByState(selectedTechnique.resources, 'new').length + getResourcesByState(selectedTechnique.resources, 'deleted').length) > 1 ? "s" : "" }}, save your changes to complete upload.
                           </span>
                         </div>
                         <div class="text-center btn-manage">
