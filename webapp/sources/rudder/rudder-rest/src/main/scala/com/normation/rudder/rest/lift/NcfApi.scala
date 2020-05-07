@@ -338,7 +338,7 @@ class NcfApi(
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val response=
-        JObject(techniqueRepository.getAllCategories.toList.filter(_._1.name.value != "/").map(c => JField(c._1.name.value,JString(c._2.name))))
+        JObject(techniqueRepository.getAllCategories.toList.filter(_._1.name.value != "/").map(c => JField(c._1.getPathFromRoot.tail.map(_.value).mkString("/"),JString(c._2.name))))
 
       resp(Full(response), req, "Could not get generic methods metadata")("getMethods")
 
