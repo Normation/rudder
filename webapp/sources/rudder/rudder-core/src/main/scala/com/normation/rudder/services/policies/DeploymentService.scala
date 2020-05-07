@@ -846,17 +846,17 @@ trait PromiseGeneration_BuildNodeContext {
                             for {
                               p <- param(context)
                             } yield {
-                              (name, p)
+                              (name, GenericPropertyUtils.parseValue(p))
                             }
                           }.toBox
           nodeTargets  =  allGroups.getTarget(info).map(_._2).toList
           timeMerge    =  System.nanoTime
-          mergedProps  <- MergeNodeProperties.withDefaults(info, nodeTargets, nodeParam.map{case(k,v) => (k, GenericPropertyUtils.parseValue(v))}.toMap).toBox
+          mergedProps  <- MergeNodeProperties.withDefaults(info, nodeTargets, nodeParam.map{case(k,v) => (k, v)}.toMap).toBox
           _            =  {timeNanoMergeProp = timeNanoMergeProp + System.nanoTime - timeMerge}
           nodeInfo     =  info.modify(_.node.properties).setTo(mergedProps.map(_.prop))
           nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, nodeTargets, globalSystemVariables, globalAgentRun, globalComplianceMode: ComplianceMode)
           // now we set defaults global parameters to all nodes
-          withDefautls <- CompareProperties.updateProperties(nodeParam.toList.map { case (k,v) => NodeProperty(k, v, None)}, Some(nodeInfo.properties)).map(p =>
+          withDefautls <- CompareProperties.updateProperties(nodeParam.toList.map { case (k,v) => new NodeProperty(k, v, None)}, Some(nodeInfo.properties)).map(p =>
                             nodeInfo.modify(_.node.properties).setTo(p)
                           ).toBox
         } yield {
@@ -1122,7 +1122,7 @@ object BuildNodeConfiguration extends Loggable {
                                   , runHooks     = MergePolicyService.mergeRunHooks(policies.filter( ! _.technique.isSystem), nodeModes.nodePolicyMode, nodeModes.globalPolicyMode)
                                   , policies     = policies
                                   , nodeContext  = context.nodeContext
-                                  , parameters   = context.parameters.map { case (k,v) => ParameterForConfiguration(k, v) }.toSet
+                                  , parameters   = context.parameters.map { case (k,v) => ParameterForConfiguration(k, GenericPropertyUtils.serializeValue(v)) }.toSet
                                   , isRootServer = context.nodeInfo.id == context.policyServerInfo.id
                                 )
                                 nodeConfig

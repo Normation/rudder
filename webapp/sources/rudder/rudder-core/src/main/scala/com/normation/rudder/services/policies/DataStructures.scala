@@ -63,6 +63,7 @@ import com.normation.cfclerk.domain.TechniqueGenerationMode
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors._
 import com.normation.rudder.domain.nodes.GenericPropertyUtils
+import net.liftweb.json.JValue
 
 /*
  * This file contains all the specific data structures used during policy generation.
@@ -162,13 +163,13 @@ final case class InterpolationContext(
       , nodeContext     : TreeMap[String, Variable]
         // parameters for this node
         //must be a case SENSITIVE Map !!!!
-      , parameters      : Map[String, String]
+      , parameters      : Map[String, JValue]
         //the depth of the interpolation context evaluation
         //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
         //for ex: param a => param b => param c => ..... => param a
         //should not be evaluated
       , depth           : Int
-) extends GenericInterpolationContext[String]
+) extends GenericInterpolationContext[JValue]
 
 object InterpolationContext {
   implicit val caseInsensitiveString = new Ordering[String] {
@@ -184,7 +185,7 @@ object InterpolationContext {
       , nodeContext     : Map[String, Variable]
         // parameters for this node
         //must be a case SENSITIVE Map !!!!
-      , parameters      : Map[String, String]
+      , parameters      : Map[String, JValue]
         //the depth of the interpolation context evaluation
         //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
         //for ex: param a => param b => param c => ..... => param a
