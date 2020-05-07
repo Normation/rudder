@@ -4,6 +4,7 @@
 .DEFAULT_GOAL := build
 SHELL := /bin/bash
 PATH := $(PATH):$(HOME)/.cargo/bin:$(PATH)
+DEBUGOPT:=$(shell make -v --debug=n >/dev/null2>&1 && echo --debug=n)
 
 APT := apt update && apt install -y --no-install-recommends
 YUM := yum install -y 
