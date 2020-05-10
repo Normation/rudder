@@ -144,6 +144,25 @@ properties:
           type: string
           description: Agent version
           example: "6.0.3.release-1.EL.7"
+        capabilities:
+          type: array
+          description: List of agent capabilities
+          items:
+            type: string
+            description: Special capacities of the agent, like parsing xml or yaml, support of advanced acl, etc.
+            example: xml
+        nodeKind:
+          type: string
+          description: kind of node for the management engine, like `root`, `relay`, `node`, `root-component`
+          example: "node"
+        rootComponents:
+          type: array
+          description: Roles fullfilled by the agent
+          items:
+            type: string
+            description: A role that node fulfills in management technology
+            example: rudder-db
+
   policyServerId:
     type: string
     format: uuid (or "root")
@@ -314,20 +333,6 @@ properties:
         type: string
         description: Local user account used by the agent
         example: root
-      capabilities:
-        type: array
-        description: List of agent capabilities
-        items:
-          type: string
-          description: Special capacities of the agent, like parsing xml or yaml, support of advanced acl, etc.
-          example: xml
-      serverRoles:
-        type: array
-        description: Roles fullfilled by the agent
-        items:
-          type: string
-          description: A role that node fulfills in management technology
-          example: rudder-db
   memories:
     type: array
     description: Memory slots
