@@ -159,11 +159,11 @@ class FetchDataServiceImpl(nodeInfoService: NodeInfoService, reportingService: R
     } yield {
       val modes = compliance.values.groupMapReduce(r => mode(r.compliance))(_ => 1)(_+_)
       FrequentNodeMetrics(
-          accepted.size
-        , pending.size
-        , modes.getOrElse(Mode.Audit, 0)
-        , modes.getOrElse(Mode.Enforce, 0)
-        , modes.getOrElse(Mode.Mixed, 0)
+          pending     = pending.size
+        , accepted    = accepted.size
+        , modeAudit   = modes.getOrElse(Mode.Audit, 0)
+        , modeEnforce = modes.getOrElse(Mode.Enforce, 0)
+        , modeMixed   = modes.getOrElse(Mode.Mixed, 0)
       )
     }).toIO
   }
