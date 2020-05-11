@@ -7,7 +7,7 @@ description = "Rudder relay component"
 readme = "README.md"
 homepage = "https://www.rudder.io"
 repository = "https://github.com/Normation/rudder"
-license = "GPL3"
+license = "GPL-3.0-or-later"
 
 [[bin]]
 name = "rudder-relayd"
