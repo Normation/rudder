@@ -40,6 +40,7 @@ package com.normation.rudder.rest.data
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import com.normation.inventory.domain._
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.domain.nodes.NodeInfo
 import org.joda.time.DateTime
@@ -218,11 +219,27 @@ object NodeDetailLevel {
     }
 
     val management = {
-     ( info : INFO ) =>
-       val agents : List[JValue] = info._1.agentsName.map{
-         agent =>
-           ( "name"    -> agent.agentType.displayName ) ~
-           ( "version" -> agent.version.map(_.value) )
+      ( info : INFO ) =>
+        val agents : List[JValue] = info._1.agentsName.map{
+          agent =>
+            val capabilities = agent.capabilities.map(_.value).toList.sorted
+
+            // server roles: webapp, etc
+            val roles = info._1.serverRoles.map(_.value).toList.sorted
+            // kind: root, root component, relay or simple node ?
+            val kind = (info._1.id, info._1.isPolicyServer, roles.isEmpty) match {
+              case (Constants.ROOT_POLICY_SERVER_ID, _    , _    ) => "root"
+              case (_                              , true , _    ) => "relay"
+              case (_                              , false, true ) => "node"
+              case (_                              , false, false) => "root-component"
+            }
+
+            ( "name"    -> agent.agentType.displayName ) ~
+            ( "version" -> agent.version.map(_.value) ) ~
+            ( "capabilities" -> JArray(capabilities.map(JString))) ~
+            ( "nodeKind" -> kind) ~
+            ( "rootComponents" -> JArray(roles.map(JString)))
+
        }.toList
        JArray(agents)
     }
@@ -312,15 +329,10 @@ object NodeDetailLevel {
 
     val managementDetails = {
       ( inv : FullInventory ) =>
-        val agents = inv.node.agents
-        val keys = agents.map{ag =>  JString(ag.securityToken.key)}
-        val capabilities = agents.flatMap(ag => ag.capabilities.map(_.value)).toList.sorted
-        val roles = inv.node.serverRoles.map(_.value).toList.sorted
+        val keys = inv.node.agents.map{ag =>  JString(ag.securityToken.key)}
 
         ( "cfengineKeys" -> JArray(keys.toList) ) ~
-        ( "cfengineUser" -> inv.node.main.rootUser ) ~
-        ( "capabilities" -> JArray(capabilities.map(JString))) ~
-        ( "serverRoles" -> JArray(roles.map(JString)))
+        ( "cfengineUser" -> inv.node.main.rootUser )
     }
 
     val fileSystems = {
