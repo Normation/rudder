@@ -531,12 +531,18 @@ impl<'src> AST<'src> {
     fn invalid_identifier_check(&self, name: Token<'src>) -> Result<()> {
         if vec![
             // TODO
-            //"string",
-            "struct", "list", "if", "case", "enum", "global", "default", "resource",
-            //"state",
-            "fail", "log", "return", "noop", "format", "comment", //"dict",
-            "json", "enforce", //"condition",
-            "audit",
+            // header
+            "format"
+            // enums
+            "enum", "global", "items", "alias",
+            // types
+            "string", "num", "boolean", "struct", "list",
+            // variables
+            "declare", "resource", "state",
+            // flow statements
+            "if", "case", "default", "nodefault", "fail", "log", "return", "noop",
+            // historical invalid identifiers
+            "comment", "json", "enforce", "audit" //"dict", "condition"
         ]
         .contains(&name.fragment())
         {

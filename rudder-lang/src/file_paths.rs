@@ -97,7 +97,7 @@ pub fn get(
         Some(m) => m,
     };
 
-    let stdlib = match paths.get("stdlib") {
+    let stdlib = match paths.get("rudderc_stdlib") {
         None => return err_gen("No stdlib section in toml config file"),
         Some(m) => PathBuf::from(m.as_str().unwrap()),
     };
