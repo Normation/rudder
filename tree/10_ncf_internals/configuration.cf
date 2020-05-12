@@ -29,16 +29,9 @@ bundle common configuration
       "debug" string => "[DEBUG]";
       "trace" string => "[TRACE]";
 
-    rudder_policies::
-      "enabled_loggers"        slist => { "log_rudder" };
       "enabled_abort_handlers" slist => { "_abort_default", "abort_rudder" };
       "cfengine_port"         string => "5309";
       "flag_file"             string => "/var/rudder/agent-data/flags.json";
-    !rudder_policies::
-      "enabled_loggers"        slist => { "_log_default" };
-      "enabled_abort_handlers" slist => { "_abort_default" };
-      "cfengine_port"         string => "5308";
-      "flag_file"             string => "/var/cfengine-community/state/flags.json";
 
   classes:
       # Define verbosity classes according to classes
