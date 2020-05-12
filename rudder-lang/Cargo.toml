@@ -6,7 +6,7 @@ edition = "2018"
 readme = "README.adoc"
 homepage = "https://www.rudder.io"
 repository = "https://github.com/Normation/rudder"
-license = "GPL3"
+license = "GPL-3.0-or-later"
 
 [[bin]]
 name = "rudderc"
