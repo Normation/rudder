@@ -8,43 +8,14 @@
     padding : 0;
     margin : 0;
     z-index:999999;
+
 }
+
 .rudder-notification > li{
     max-height : unset !important;
-}
-.toasty-container {
-    padding: 1em;
-    border-radius: 5px;
+    -webkit-box-shadow: 5px 5px 5px 0px rgba(0, 0, 0, .3);
+    box-shadow: 5px 5px 5px 0px rgba(0, 0, 0, .3);
     cursor: pointer;
-    -webkit-box-shadow: 0 5px 5px -5px rgba(0, 0, 0, .5);
-    box-shadow: 0 5px 5px -5px rgba(0, 0, 0, .5);
-    color: #fff;
-    font-size: 13px
-}
-
-.toasty-title {
-    font-size: 26px;
-    margin: 0
-}
-
-.toasty-message {
-    font-size: 16px;
-    margin-top: 8px;
-    margin-bottom: 0
-}
-
-.toasty-success {
-    background-color: rgba(155, 200, 50, .9);
-    border: 1px solid #a4c74e
-;}
-
-.toasty-warning {
-    background-color: #ff851b
-}
-
-.toasty-error {
-    background-color: rgba(200, 0, 4, .9);
-    border: 1px solid #c3000e;
 }
 
 .animated {
@@ -150,4 +121,21 @@
 .fadeOutRightBig {
     -webkit-animation-name: fadeOutRightBig;
     animation-name: fadeOutRightBig
+}
+
+.rudder-notification .callout-fade.callout-success{
+  border-color: #9bc832;
+}
+/* --- INFO --- */
+.rudder-notification .callout-fade.callout-info{
+  border-color: #1b809e;
+}
+/* --- WARNING --- */
+.rudder-notification .callout-fade.callout-warning{
+  border-color: #f08004;
+}
+
+/* --- DANGER --- */
+.rudder-notification .callout-fade.callout-danger{
+  border-color: #C50000;
 }

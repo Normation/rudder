@@ -1,4 +1,4 @@
-var appNode, appNotif, createSuccessNotification, createErrorNotification;
+var appNode, appNotif, createSuccessNotification, createErrorNotification, createInfoNotification;
 
 $(document).ready(function(){
   const flags = { contextPath: contextPath};
@@ -17,5 +17,8 @@ $(document).ready(function(){
   };
   createWarningNotification = function (msg, code){
     appNotif.ports.warningNotification.send(msg, code);
+  };
+  createInfoNotification = function (msg, code){
+    appNotif.ports.infoNotification.send(msg, code);
   };
 });
