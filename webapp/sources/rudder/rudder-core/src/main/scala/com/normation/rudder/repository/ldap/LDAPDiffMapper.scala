@@ -426,6 +426,7 @@ class LDAPDiffMapper(
                   nonNull(diff, mod.getAttribute().getValue) { (d, value) =>
                     d.copy(modProvider = Some(SimpleDiff(oldParam.provider, Some(PropertyProvider(value)))))
                   }
+                case "overridable" => diff //ignore, it's for cleaning
                 case x => Left(Err.UnexpectedObject("Unknown diff attribute: " + x))
               }
             }
