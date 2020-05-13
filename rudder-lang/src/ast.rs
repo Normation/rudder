@@ -530,15 +530,19 @@ impl<'src> AST<'src> {
     // - a reserved keyword for future language: format comment dict json enforce condition audit let
     fn invalid_identifier_check(&self, name: Token<'src>) -> Result<()> {
         if vec![
+            // old list
+            // "struct", "list", "if", "case", "enum", "global", "default", "resource",
+            // "fail", "log", "return", "noop", "format", "comment",
+            // "json", "enforce", "audit",
             // TODO
             // header
-            "format"
+            "format",
             // enums
             "enum", "global", "items", "alias",
             // types
-            "string", "num", "boolean", "struct", "list",
+            "num", "struct", "list", // "string", "boolean", // should not be used
             // variables
-            "declare", "resource", "state",
+            "declare", "resource", // "state", // should not be used
             // flow statements
             "if", "case", "default", "nodefault", "fail", "log", "return", "noop",
             // historical invalid identifiers
