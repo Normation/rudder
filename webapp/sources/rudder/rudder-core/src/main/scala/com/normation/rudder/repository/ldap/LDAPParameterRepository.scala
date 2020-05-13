@@ -163,7 +163,8 @@ class WoLDAPParameterRepository(
                            }
         paramEntry      =  mapper.parameter2Entry(parameter)
         result          <- userLibMutex.writeLock {
-                             con.save(paramEntry).chainError(s"Error when saving parameter entry in repository: ${paramEntry}")
+                             // remove missing to clean up `overridable` (RudderAttributes:303) so that it can be removed in 7.0
+                             con.save(paramEntry, removeMissingAttributes = true).chainError(s"Error when saving parameter entry in repository: ${paramEntry}")
                            }
         optDiff         <- diffMapper.modChangeRecords2GlobalParameterDiff(
                                 parameter.name
