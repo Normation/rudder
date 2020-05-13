@@ -1,0 +1,151 @@
+There are two ways to interact with rudder-lang: directly from the terminal or through the Technique Editor
+
+== Using the command line interface (CLI)
+
+=== Installation
+
+_rudder-lang_ program is called *rudderc*, standing for *Rudder Compiler*
+
+To start working with _rudder-lang_, install a beta agent (see link:https://docs.rudder.io/history/6.1/reference/6.1/installation/agent/debian.html[rudder agent installation (debian)], other OSes guides available)
+
+_rudderc_ being a part of the agent, it is now installed at the following location: `/opt/rudder/bin/rudderc`
+
+Optionally add rudderc to your path `export PATH=$PATH:/opt/rudder/bin/rudderc` to simply run it with the following command: `rudderc`
+
+=== Usage
+
+`rudderc` has 2 features: 
+* Compile which is the default behavior: takes a _RL_ technique as an input and generates the desired 
+* Translate which is the alternative mode:  takes a _JSON_ technique as an input and generates a _rudder-lang_ technique (_.rl_) 
+
+Any information log is displayed to `SDTOUT`, errors should be printed to `STDERR`
+
+image::rudderc-simple.svg[rudderc abilities]
+
+.The CLI usage (`rudderc --help` or `rudderc -h` output slightly modified)
+----
+USAGE:
+    rudderc [FLAGS] [OPTIONS]
+
+FLAGS:
+    -h, --help         Prints help information
+    -j, --json-log     Use json logs instead of human readable output
+    -t, --translate    Use technique translation mode rather than default compilation mode
+    -V, --version      Prints version information
+
+OPTIONS:
+    -c, --config-file <config-file>
+            Path of the configuration file to use.
+            A configuration file is required (containing at least stdlib and generic_method paths)
+            [default: /opt/rudder/etc/rudderc.conf]
+
+    -d, --dest <dest>
+            Output file path, overrides config and technique-name.
+            If neither an output nor a configuration file output path is set, source path is used
+
+    -f, --format <format>
+            Enforce a compiler output format (overrides configuration format)
+            [possible values: cf, dsc, json]
+
+    -l, --log-level <log-level>
+            rudderc output logs verbosity
+            [default: warn]
+            [possible values: off, trace, debug, info, warn, error]
+
+    -o, --output-technique-name <output-technique-name>
+            Technique name to use for output (if no output provided), based on configuration file path
+
+    -s, --source <source>
+            Input file path. Overwrites base input
+
+    -n, --technique-name <technique-name>
+            Technique name to use for both input (if no input provided) and output (if no output or provided), based on configuration file paths
+----
+
+Most options are pretty straightforward but some explanations might help:
+
+* Flags and options must be written in `kebab-case`
+* 
+* A configuration file is required because _rudderc_ needs its own libraries to work (default path should point to an already working _Rudder_ configuration if _rudder agent_ was installed like previously suggested)
+* Unlike the prevailing `--source` and `--dest` options, the `--technique-name <technique joined>` option makes use of the configuration file input and output paths and concatenates the `technique joined>` to these
+* `--source` > configuration source + `--technique-name` > configuration source if it is a file
+* `--dest` > configuration dest + `--technique-name` > configuration dest if it is a file > `--source` as destination with updated format
+* `--format` > configuration format > `--dest` option extension
+* Log levels are ordered (trace > debug > info > warn > error)
+
+==== Configuration file
+
+A configuration file is required because _rudderc_ needs its own libraries to work.
+
+Entire _rudder-lang_ environment is already set up alongside the agent: this includes all needed libraries and a configuration file with preset paths.
+
+.default configuration file
+[source,toml]
+----
+[default_paths]
+    rudderc_stdlib="libs/"
+
+    # required for translation
+    generic_methods="tools/generic_methods.toml"
+
+    # optional default compilation technique paths
+    # not needed if --source option is used
+    compile_input="tests/test_files/tester/"
+    # not needed if --dest option is used
+    compile_output="tests/test_files/tester/"
+
+    # optional default translation technique paths
+    # not needed if --source option is used
+    translate_input="tests/test_files/tester/"
+    # not needed if --dest option is used
+    translate_output="tests/test_files/tester/"
+----
+
+==== Compile
+// TODO
+
+
+==== Translate
+// TODO
+
+==== Examples
+
+===== Translation example
+----
+rudderc --translate --source technique.json --dest rl/fromjson.rl --config-file tools/myconf -log-level debug -json-log
+----
+can be shortened to:
+----
+rudderc -tj -i technique.json -o rl/fromjson.rl -l debug -c tools/myconf
+----
+What it means:
+
+* Translate (`-t`) `./technique.json` (`-i`) into `./rl/fromjson.rl` (`-o`),
+* Use the configuration file located at `./tools/myconf` (`-c`),
+* Output log format is JSON (`-j`),
+* The following log levels: error, warn, info, debug will be printed to the terminal
+
+By using an adapted configuration file, it can be simplified:
+.tools/myconf
+[source,toml]
+----
+[default_paths]
+    rudderc_stdlib="libs/"
+    generic_methods="tools/generic_methods.toml"
+    translate_input="technique.json"
+    translate_output="rl/fromjson.rl"
+----
+----
+rudderc -tj -l debug -c tools/myconf
+---- 
+// TODO check if config can hold input FILE
+
+== Using the Technique Editor
+
+Since _rudder-lang_ has not been released yet, it is accessible from the _6.1_ beta version (and later)
+
+_RL_ is called from the _Technique Editor_ as a backend program every time a technique is saved. For now it only is a testing loop. Once fully released, every technique will directly be saved using _rudder-lang_
+
+NOTE: This testing loop generates two _CFEngine_ techniques, one using the usual _ncf_ framework and an other one using _rudder-lang_. The two are then compared.
+
+Since the Technique Editor is meant to simplify methods generation no _rudder-lang_ code is written (the language is fully abstracted). It is used as an internal _CFEngine_ generator

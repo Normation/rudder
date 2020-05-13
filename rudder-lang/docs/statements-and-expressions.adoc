@@ -59,4 +59,4 @@ Expressions are a composition of the following elements:
 ** `var !~ enum` variable is not equivalent to enum range or item
 ** implicit boolean comparison that only takes an expression (for example `!linux & !windows`)
 
-NOTE: see enum related syntax <<access-enum-content,here>>, inclunding items and range and expression examples
+NOTE: see enum related syntax <<access-enum-content,here>>, including items and range and expression examples

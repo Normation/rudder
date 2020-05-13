@@ -2,13 +2,12 @@
 
 rights = "g+x"
 
-resource res()
+resource configure_NTP()
 
-res state st(user="root")
+configure_NTP state technique()
 {
   # list of possible statements
   @info="i am a metadata"
-  user_cpy = user
   is_debian = os =~ debian
 
   if is_debian =~ true => return kept # stop here if system is debian

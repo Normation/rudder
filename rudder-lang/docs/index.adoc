@@ -15,7 +15,7 @@
 
 alias _rudder-lang_
 
-== Language
+== Language Presentation
 
 This language is not:
 
@@ -77,3 +77,7 @@ include::statements-and-expressions.adoc[leveloffset=+2]
 include::stdlib.adoc[leveloffset=+2]
 
 include::operating-systems.adoc[leveloffset=+2]
+
+= Rudder-lang usage
+
+include::usage.adoc[leveloffset=+1]
