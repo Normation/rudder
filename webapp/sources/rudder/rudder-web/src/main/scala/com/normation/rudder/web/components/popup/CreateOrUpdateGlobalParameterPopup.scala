@@ -51,12 +51,13 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.model._
 import java.util.regex.Pattern
 
-import com.normation.rudder.domain.nodes.GenericPropertyUtils
+import com.normation.rudder.domain.nodes.GenericProperty
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowService
+import com.normation.box._
 
 class CreateOrUpdateGlobalParameterPopup(
     change            : GlobalParamChangeRequest
@@ -112,19 +113,15 @@ class CreateOrUpdateGlobalParameterPopup(
     if(formTracker.hasErrors) {
       onFailure
     } else {
-      val newParameter = new GlobalParameter(
-        name        = parameterName.get,
-        value       = GenericPropertyUtils.parseValue(parameterValue.get),
-        description = parameterDescription.get,
-        provider    = None
-      )
       val savedChangeRequest = {
         for {
-          diff  <- globalParamDiffFromAction(newParameter)
+          value <- GenericProperty.parseValue(parameterValue.get).toBox
+          param =  GlobalParameter(parameterName.get, value, parameterDescription.get, None)
+          diff  <- globalParamDiffFromAction(param)
           cr    =  ChangeRequestService.createChangeRequestFromGlobalParameter(
                          changeRequestName.get
                        , paramReasons.map( _.get ).getOrElse("")
-                       , newParameter
+                       , param
                        , change.previousGlobalParam
                        , diff
                        , CurrentUser.actor
@@ -132,15 +129,14 @@ class CreateOrUpdateGlobalParameterPopup(
                        )
           id    <- workflowService.startWorkflow(cr, CurrentUser.actor, paramReasons.map(_.get))
         } yield {
-          id
-        }
-      }
-      savedChangeRequest match {
-        case Full(id) =>
           if (workflowEnabled) {
             // TODO : do more than that
             closePopup() & onSuccessCallback(Right(id))
-          } else closePopup() & onSuccessCallback(Left(newParameter))
+          } else closePopup() & onSuccessCallback(Left(param))        }
+      }
+      savedChangeRequest match {
+        case Full(res) =>
+          res
         case eb:EmptyBox =>
           val msg = (eb ?~! "An error occurred while updating the parameter").messageChain
           logger.error(msg)
@@ -195,7 +191,7 @@ class CreateOrUpdateGlobalParameterPopup(
   }
 
   // The value may be empty
-  private[this] val parameterValue = new WBTextAreaField("Value", change.previousGlobalParam.map(p => GenericPropertyUtils.serializeValue(p.value)).getOrElse("")) {
+  private[this] val parameterValue = new WBTextAreaField("Value", change.previousGlobalParam.map(p => p.valueAsString).getOrElse("")) {
     override def setFilter = trim _ :: Nil
     override def inputField = ( change.action match {
       case GlobalParamModAction.Delete => super.inputField % ("disabled" -> "true")

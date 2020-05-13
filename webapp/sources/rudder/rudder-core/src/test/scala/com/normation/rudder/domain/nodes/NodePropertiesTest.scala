@@ -43,13 +43,13 @@ import org.specs2.runner._
 import net.liftweb.common._
 import com.normation.BoxSpecMatcher
 import com.normation.errors.PureResult
-import net.liftweb.json.JsonAST.JString
+import GenericProperty._
 
 @RunWith(classOf[JUnitRunner])
 class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher {
 
 
-  val RudderP = Some(GenericPropertyUtils.defaultPropertyProvider)
+  val RudderP = Some(PropertyProvider.defaultPropertyProvider)
   val P1 = Some(PropertyProvider("p1"))
   val P2 = Some(PropertyProvider("p2"))
 
@@ -59,26 +59,28 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
   }
 
   val baseProps = List(
-      NodeProperty("none"   , "node"   , None   )
-    , NodeProperty("default", "default", RudderP)
-    , NodeProperty("p1"     , "p1"     , P1     )
-    , NodeProperty("p2"     , "p2"     , P2     )
+      NodeProperty("none"   , "node".toConfigValue   , None   )
+    , NodeProperty("default", "default".toConfigValue, RudderP)
+    , NodeProperty("p1"     , "p1".toConfigValue     , P1     )
+    , NodeProperty("p2"     , "p2".toConfigValue     , P2     )
   ).sorted
+
+  sequential
 
   "Creation of properties" should {
     "be ok" in {
-      val newProps = baseProps.map( p => p.copy(name = p.name+"_2" ) )
+      val newProps = baseProps.map( p => p.withName(p.name+"_2" ) )
       CompareProperties.updateProperties(baseProps, Some(newProps)).map( _.sorted ) must beRight((baseProps++newProps).sorted)
     }
   }
 
   "Deletion of properties" should {
     "be a noop if different keys" in {
-      val newProps = baseProps.map( p => p.copy(name = p.name+"_2", value = JString("") ) )
+      val newProps = baseProps.map( p => p.withName(p.name+"_2").withValue("") )
       CompareProperties.updateProperties(baseProps, Some(newProps)).map( _.sorted ) must beRight(baseProps)
     }
     "be ok with same metadata" in {
-      val newProps = baseProps.map( p => p.copy(value = JString("") ) )
+      val newProps = baseProps.map( p => p.withValue("") )
       CompareProperties.updateProperties(baseProps, Some(newProps)) must beRight(List.empty[NodeProperty])
     }
   }
@@ -89,8 +91,8 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
     }
 
     "ok with differents values" in {
-      val newProps = baseProps.map( p => p.copy(value = JString("42") ) )
-      CompareProperties.updateProperties(baseProps, Some(newProps)).map( _.sorted ) must beRight(baseProps.map( _.copy(value = JString("42") ) ) )
+      val newProps = baseProps.map( p => p.withValue("42") )
+      CompareProperties.updateProperties(baseProps, Some(newProps)).map( _.sorted ) must beRight(baseProps.map( _.withValue("42") ) )
     }
   }
 
@@ -99,35 +101,44 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
     def updateAndDelete(prop: NodeProperty) = {
       List(
           CompareProperties.updateProperties(baseProps, Some(prop :: Nil))
-        , CompareProperties.updateProperties(baseProps, Some(prop.copy(value = JString("")) :: Nil))
+        , CompareProperties.updateProperties(baseProps, Some(prop.withValue("") :: Nil))
       )
     }
 
-    "works is providers goes from default to an other" in {
+    "works if providers goes from default to an other" in {
       List(
-          updateAndDelete(NodeProperty("none"   , "xxx", P1))
-        , updateAndDelete(NodeProperty("none"   , "xxx", P2))
-        , updateAndDelete(NodeProperty("default", "xxx", P1))
-        , updateAndDelete(NodeProperty("default", "xxx", P2))
+          updateAndDelete(NodeProperty("none"   , "xxx".toConfigValue, P1))
+        , updateAndDelete(NodeProperty("none"   , "xxx".toConfigValue, P2))
+        , updateAndDelete(NodeProperty("default", "xxx".toConfigValue, P1))
+        , updateAndDelete(NodeProperty("default", "xxx".toConfigValue, P2))
+      ).flatten must contain( (res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Right[_,_]] ).foreach
+    }
+
+    "works if providers goes from anything to system" in {
+      List(
+          updateAndDelete(NodeProperty("none"   , "xxx".toConfigValue, Some(PropertyProvider.systemPropertyProvider)))
+        , updateAndDelete(NodeProperty("p1"     , "xxx".toConfigValue, Some(PropertyProvider.systemPropertyProvider)))
+        , updateAndDelete(NodeProperty("default", "xxx".toConfigValue, Some(PropertyProvider.systemPropertyProvider)))
+        , updateAndDelete(NodeProperty("default", "xxx".toConfigValue, Some(PropertyProvider.systemPropertyProvider)))
       ).flatten must contain( (res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Right[_,_]] ).foreach
     }
 
     "fails for different, non default providers" in {
       List(
-          updateAndDelete(NodeProperty("p1"     , "xxx", None))
-        , updateAndDelete(NodeProperty("p1"     , "xxx", RudderP))
-        , updateAndDelete(NodeProperty("p1"     , "xxx", P2))
-        , updateAndDelete(NodeProperty("p2"     , "xxx", None))
-        , updateAndDelete(NodeProperty("p2"     , "xxx", RudderP))
-        , updateAndDelete(NodeProperty("p2"     , "xxx", P1))
+          updateAndDelete(NodeProperty("p1"     , "xxx".toConfigValue, None))
+        , updateAndDelete(NodeProperty("p1"     , "xxx".toConfigValue, RudderP))
+        , updateAndDelete(NodeProperty("p1"     , "xxx".toConfigValue, P2))
+        , updateAndDelete(NodeProperty("p2"     , "xxx".toConfigValue, None))
+        , updateAndDelete(NodeProperty("p2"     , "xxx".toConfigValue, RudderP))
+        , updateAndDelete(NodeProperty("p2"     , "xxx".toConfigValue, P1))
       ).flatten must contain( (res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Left[_,_]] ).foreach
     }
 
 
     "be ok with compatible one (default)" in {
       List(
-          updateAndDelete(NodeProperty("none"   , "xxx", RudderP))
-        , updateAndDelete(NodeProperty("default", "xxx", None))
+          updateAndDelete(NodeProperty("none"   , "xxx".toConfigValue, RudderP))
+        , updateAndDelete(NodeProperty("default", "xxx".toConfigValue, None))
       ).flatten must contain( (res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Right[_,_]] ).foreach
     }
   }

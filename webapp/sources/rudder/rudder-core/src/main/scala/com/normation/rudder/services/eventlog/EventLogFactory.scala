@@ -564,7 +564,7 @@ class EventLogFactoryImpl(
           modifyDiff.modIsActivated.map(x => SimpleDiff.booleanToXml(<isEnabled/>, x ) ) ++
           modifyDiff.modIsSystem.map(x => SimpleDiff.booleanToXml(<isSystem/>, x ) ) ++
           modifyDiff.modProperties.map(x => SimpleDiff.toXml[List[GroupProperty]](<properties/>, x)(props =>
-              props.flatMap { p => <property><name>{ p.name }</name><value>{Unparsed(net.liftweb.json.compactRender(p.value))}</value></property> }
+              props.flatMap { p => <property><name>{ p.name }</name><value>{Unparsed(p.valueAsString)}</value></property> }
           ))
         }
       </nodeGroup>)
@@ -708,8 +708,8 @@ class EventLogFactoryImpl(
     val details = EventLog.withContent{
       scala.xml.Utility.trim(<globalParameter changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <name>{modifyDiff.name}</name>{
-          modifyDiff.modValue.map(x => SimpleDiff.toXml(<value/>, x){v => Text(GenericPropertyUtils.serializeValue(v))}) ++
-          modifyDiff.modDescription.map(x => SimpleDiff.stringToXml(<description/>, x ) )
+        modifyDiff.modValue.map(x => SimpleDiff.toXml(<value/>, x){v => Text(GenericProperty.serializeToHocon(v))}) ++
+        modifyDiff.modDescription.map(x => SimpleDiff.stringToXml(<description/>, x ) )
         }
       </globalParameter>)
     }

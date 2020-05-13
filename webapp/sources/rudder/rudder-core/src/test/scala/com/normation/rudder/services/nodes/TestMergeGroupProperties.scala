@@ -44,9 +44,8 @@ import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.queries._
 import com.softwaremill.quicklens._
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json._
+import com.typesafe.config.ConfigValue
+import com.typesafe.config.ConfigValueFactory
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
@@ -76,35 +75,38 @@ class TestMergeGroupProperties extends Specification {
     // use first parent to build a fully inherited prop
     def toH1(name: String) = {
       toParents(name) match {
-        case h::t => NodePropertyHierarchy(new NodeProperty(name, h.value, Some(GroupProp.INHERITANCE_PROVIDER)), h::t)
+        case h::t => NodePropertyHierarchy(NodeProperty(name, h.value, Some(GroupProp.INHERITANCE_PROVIDER)), h :: t)
         case _ => throw new IllegalArgumentException(s"No value found for prop '${name}' in group list")
       }
     }
     def toH2(prop: NodeProperty) = {
       NodePropertyHierarchy(prop, toParents(prop.name))
     }
-    def toH3(name: String, globalParam: JValue) = {
+    def toH3(name: String, globalParam: ConfigValue) = {
       toH1(name).modify(_.parents).using( _ :+ FullParentProperty.Global(globalParam))
     }
   }
-  implicit class ToNodeProp(global: JValue) {
+  implicit class ToNodeProp(global: ConfigValue) {
     def toG(name: String) = {
-      NodePropertyHierarchy(new NodeProperty(name, global, Some(GroupProp.INHERITANCE_PROVIDER)), FullParentProperty.Global(global) :: Nil)
+      NodePropertyHierarchy(NodeProperty(name, global, Some(GroupProp.INHERITANCE_PROVIDER)), FullParentProperty.Global(global) :: Nil)
     }
+  }
+  implicit class ToConfigValue(s: String) {
+    def toConfigValue = ConfigValueFactory.fromAnyRef(s)
   }
 
   val parent1   = NodeGroup(NodeGroupId("parent1"), "parent1", "",
-      List(GroupProperty("foo", "bar1", None))
+      List(GroupProperty("foo", "bar1".toConfigValue, None))
     , Some(Query(NodeReturnType, And, List()))
     , true, Set(), true
   )
-  val parent2Prop = GroupProperty("foo", "bar2", None)
+  val parent2Prop = GroupProperty("foo", "bar2".toConfigValue, None)
   val parent2   = NodeGroup(NodeGroupId("parent2"), "parent2", "",
       List(parent2Prop)
     , Some(Query(NodeReturnType, And, List()))
     , true, Set(), true
   )
-  val childProp = GroupProperty("foo", "baz", None)
+  val childProp = GroupProperty("foo", "baz".toConfigValue, None)
   val query = Query(NodeReturnType, And, List(parent1.toCriterion))
   val child = NodeGroup(NodeGroupId("child"), "child", "",
       List(childProp)
@@ -134,7 +136,7 @@ class TestMergeGroupProperties extends Specification {
 
     val merged = MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: parent2.toTarget :: ct2 :: Nil, Map())
     val expected = List(parent2, parent1).toH1("foo")
-    (merged must beRight(expected :: Nil)) and (merged.getOrElse(Nil).head.prop.value === JString("bar2") )
+    (merged must beRight(expected :: Nil)) and (merged.getOrElse(Nil).head.prop.valueAsString === "bar2")
   }
 
 
@@ -142,12 +144,12 @@ class TestMergeGroupProperties extends Specification {
 
     "be able to detect conflict" in {
       val parent1 = NodeGroup(NodeGroupId("parent1"), "parent1", "",
-          List(GroupProperty("dns", "1.1.1.1", None))
+          List(GroupProperty("dns", "1.1.1.1".toConfigValue, None))
         , Some(Query(NodeReturnType, And, List()))
         , true, Set(), true
       )
       val parent2   = NodeGroup(NodeGroupId("parent2"), "parent2", "",
-          List(GroupProperty("dns", "9.9.9.9", None))
+          List(GroupProperty("dns", "9.9.9.9".toConfigValue, None))
         , Some(Query(NodeReturnType, And, List()))
         , true, Set(), true
       )
@@ -161,12 +163,12 @@ class TestMergeGroupProperties extends Specification {
 
     "be able to correct conflict" in {
       val parent1 = NodeGroup(NodeGroupId("parent1"), "parent1", "",
-          List(GroupProperty("dns", "1.1.1.1", None))
+          List(GroupProperty("dns", "1.1.1.1".toConfigValue, None))
         , Some(Query(NodeReturnType, And, List()))
         , true, Set(), true
       )
       val parent2   = NodeGroup(NodeGroupId("parent2"), "parent2", "",
-          List(GroupProperty("dns", "9.9.9.9", None))
+          List(GroupProperty("dns", "9.9.9.9".toConfigValue, None))
         , Some(Query(NodeReturnType, And, List()))
         , true, Set(), true
       )
@@ -191,12 +193,12 @@ class TestMergeGroupProperties extends Specification {
      */
     "one can solve conflicts at parent level" in {
       val parent1 = NodeGroup(NodeGroupId("parent1"), "parent1", "",
-          List(GroupProperty("dns", "1.1.1.1", None))
+          List(GroupProperty("dns", "1.1.1.1".toConfigValue, None))
         , Some(Query(NodeReturnType, And, List()))
         , true, Set(), true
       )
       val parent2   = NodeGroup(NodeGroupId("parent2"), "parent2", "",
-          List(GroupProperty("dns", "9.9.9.9", None))
+          List(GroupProperty("dns", "9.9.9.9".toConfigValue, None))
         , Some(Query(NodeReturnType, And, List()))
         , true, Set(), true
       )
@@ -218,7 +220,7 @@ class TestMergeGroupProperties extends Specification {
   }
 
   "global parameter are inherited" >> {
-    val g = JString("bar")
+    val g = "bar".toConfigValue
     val merged = MergeNodeProperties.checkPropertyMerge(Nil, Map("foo" -> g))
     merged must beRight(List(g.toG("foo")))
   }
@@ -226,7 +228,7 @@ class TestMergeGroupProperties extends Specification {
   "global parameter are inherited and overriden by group and only one time" >> {
     // empty properties, see if global is duplicated
     val p2 = parent2.copy(properties = Nil)
-    val g = JString("bar")
+    val g = "bar".toConfigValue
     val merged = MergeNodeProperties.checkPropertyMerge(List(parent1, p2, child).map(_.toTarget), Map("foo" -> g))
     val expected = List(child, parent1).toH3("foo", g) :: Nil
     merged must beRight(expected)
@@ -234,21 +236,18 @@ class TestMergeGroupProperties extends Specification {
 
   "when overriding json we" should {
     def getOverrides(groups: List[NodeGroup]): Map[String, String] = {
-      //sort obj by key for easy string comparison
-      def sort(json: JValue): JValue = {
-        json match {
-          case JObject(list) => JObject(list.sortBy(_.name).map { case JField(k,v) => JField(k, sort(v)) })
-          case x             => x
-        }
-      }
+
       MergeNodeProperties.checkPropertyMerge(groups.map(_.toTarget), Map()) match {
         case Left(_)  => throw new IllegalArgumentException(s"Error when overriding properties")
-        case Right(v) => v.map(p => (p.prop.name, GenericPropertyUtils.serializeValue(sort(p.prop.value)))).toMap
+        case Right(v) => v.map(p => (p.prop.name, GenericProperty.serializeToHocon(p.prop.value))).toMap
       }
     }
     def getGroups(parentProps: Map[String, String], childProps: Map[String, String]) = {
       def toProps(map: Map[String, String]) = map.map { case (k, v) =>
-        GroupProperty(k, v, None)
+        GroupProperty.parse(k, v, None).fold(
+          err => throw new IllegalArgumentException("Error in test: " + err.fullMsg)
+        , res => res
+        )
       }.toList
       val parent = NodeGroup(NodeGroupId("parent1"), "parent1", "",
           toProps(parentProps)
@@ -269,7 +268,7 @@ class TestMergeGroupProperties extends Specification {
       val child =
         Map("s" -> "c" , "arr" -> "c"    , "obj" -> "c")
       val props = checkOverrides(
-        Map("s" -> "p" , "arr" -> "[1,2]", "obj" -> """{"a" -> "b"}""")
+        Map("s" -> "p" , "arr" -> "[1,2]", "obj" -> """{"a":"b"}""")
       , child
       )
       props must beEqualTo(child)
@@ -281,7 +280,7 @@ class TestMergeGroupProperties extends Specification {
       )
       props must beEqualTo(
         Map(
-          "arr" -> "[1,2,3,4]"
+          "arr" -> "[3,4]"
         , "obj" -> """{"a":"b","c":"d","i":"j2","x":{"y1":"z","y2":"z"}}"""
         )
       )

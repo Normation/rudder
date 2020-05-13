@@ -113,6 +113,29 @@ object errors {
     }
   }
 
+  object PureResult {
+    def effect[A](error: String)(effect: => A): Either[SystemError, A] = {
+      try {
+        Right(effect)
+      } catch {
+        case ex: Exception =>
+          Left(SystemError(error, ex))
+      }
+    }
+    def effect[A](effect: => A): Either[SystemError, A] = {
+      this.effect("An error occured")(effect)
+    }
+    def effectM[A](error: String)(effect: => PureResult[A]): PureResult[A] = {
+      PureResult.effect(error)(effect) match {
+        case Left(err)  => Left(err)
+        case Right(res) => res
+      }
+    }
+    def effectM[A](effect: => PureResult[A]): PureResult[A] = {
+      this.effectM("An error occured")(effect)
+    }
+  }
+
   object RudderError {
 
     /*
