@@ -175,7 +175,7 @@ def load_config():
   cfgpath='/opt/rudder/etc/rudderc.conf'
   if os.path.exists(cfgpath):
     cfg.read(cfgpath)
-    python_modules_dir = cfg['default_paths']['py_modules'].strip('\"')
+    python_modules_dir = cfg['testing_loop']['py_modules'].strip('\"')
     sys.path.append(python_modules_dir)
   return cfg
 
@@ -187,8 +187,8 @@ if __name__ == "__main__":
     arguments = docopt.docopt(__doc__)
     if arguments['--config-file']:
       cfg.read(arguments['--config-file'])
-    ncf_dir = cfg['default_paths']['ncf'].strip('\"')
-    cfengine_path = cfg['default_paths']['cfengine'].strip('\"')
+    ncf_dir = cfg['shared']['ncf'].strip('\"')
+    cfengine_path = cfg['testing_loop']['cfengine'].strip('\"')
   except Exception as e:
     print_json('(Not defined yet)', '(Not defined yet)', 'An error occured while setting config up: {}'.format(str(e)), True)
     exit(1)

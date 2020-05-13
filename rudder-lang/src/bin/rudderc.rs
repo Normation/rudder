@@ -15,11 +15,16 @@
 use colored::Colorize;
 // imports log macros;
 use log::*;
-use std::{path::PathBuf, process::exit};
+use std::process::exit;
 use structopt::StructOpt;
 
 use rudderc::{
-    compile::compile_file, file_paths, logger::Logger, translate::translate_file, Action,
+    compile::compile_file,
+    logger::Logger,
+    translate::translate_file,
+    io,
+    opt::Opt,
+    Action,
 };
 
 // MAIN
@@ -41,8 +46,8 @@ use rudderc::{
 // TODO except if S is the "absent" state
 
 // Usage example (long / short version):
-// cargo run -- --input tests/compile/s_basic.rl --output tests/target/s_basic.rl --log-level debug --json-log-fmt
-// cargo run -- -c -i tests/compile/s_basic.rl -o tests/target/s_basic.rl -l debug -j
+// cargo run -- --source tests/compile/s_basic.rl --dest tests/target/s_basic.rl --log-level debug --json-log-fmt
+// cargo run -- -s tests/compile/s_basic.rl -d tests/target/s_basic.rl -l debug -j
 
 // JSON log format note, read this when parsing json logs:
 // { "input:: "str", "output": "str", "time": "timestamp unix epoch", "logs": [ ... ] }
@@ -52,40 +57,6 @@ use rudderc::{
 // `panic!` log looks like this: { "status": "str", "message": "str" } (a lightweight version of a default log)
 
 /// Rudder language compiler
-#[derive(Debug, StructOpt)]
-#[structopt(rename_all = "kebab-case")]
-struct Opt {
-    /// Path of the configuration file to use
-    #[structopt(long, short, default_value = "/opt/rudder/etc/rudderc.conf")]
-    config_file: PathBuf,
-    /// Base directory to use for input and output
-    #[structopt(long, short)]
-    base: Option<PathBuf>,
-    /// Output file or directory
-    #[structopt(long, short)]
-    output: Option<PathBuf>,
-    /// Input file or directory
-    #[structopt(long, short)]
-    input: Option<PathBuf>,
-    /// Use technique translation mode
-    #[structopt(long, short)]
-    translate: bool,
-    /// Output format to use
-    // FIXME what is it supposed to be?
-    #[structopt(long, short = "f")]
-    output_fmt: Option<String>,
-    /// Log level
-    #[structopt(
-        long,
-        short,
-        possible_values = &["off", "error", "warn", "info", "debug", "trace"],
-        default_value = "warn"
-    )]
-    log_level: LevelFilter,
-    /// Use json logs instead of human readable output
-    #[structopt(long, short)]
-    json_log: bool,
-}
 
 // TODO use termination
 
@@ -110,23 +81,23 @@ fn main() {
     logger.init(opt.log_level, action);
 
     // Load files
-    let (stdlib_dir, translate_config, input, output) =
-        file_paths::get(action, &opt.config_file, &opt.base, &opt.input, &opt.output)
-            .unwrap_or_else(|e| {
-                error!("{}", e);
-                // required before returning in order to have proper logging
-                logger.end(
-                    false,
-                    "possibly no input path found",
-                    "possibly no output path found",
-                );
-                exit(1);
-            });
+    let ctx: io::IOContext = io::get(action, &opt.io).unwrap_or_else(|e| {
+        error!("{}", e);
+        // required before returning in order to have proper logging
+        logger.end(
+            false,
+            "input not set",
+            "output not set",
+        );
+        exit(1);
+    });
+
+    info!("I/O context: {}", ctx);
 
     // Actual action
     let result = match action {
-        Action::Compile => compile_file(&input, &output, true, &stdlib_dir, &translate_config),
-        Action::Translate => translate_file(&input, &output, &stdlib_dir, &translate_config),
+        Action::Compile => compile_file(&ctx, true),
+        Action::Translate => translate_file(&ctx),
     };
     match &result {
         Err(e) => error!("{}", e),
@@ -136,7 +107,7 @@ fn main() {
             "OK".bright_cyan()
         ),
     };
-    logger.end(result.is_ok(), input.display(), output.display());
+    logger.end(result.is_ok(), ctx.source.display(), ctx.dest.display());
     if result.is_err() {
         exit(1)
     }

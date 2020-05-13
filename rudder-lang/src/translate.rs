@@ -7,6 +7,7 @@ use crate::compile::parse_stdlib;
 use crate::parser::PAST;
 use crate::ast::AST;
 use crate::ast::value;
+use crate::io::IOContext;
 use colored::Colorize;
 use lazy_static::lazy_static;
 use nom::branch::alt;
@@ -21,7 +22,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::convert::TryFrom;
 use std::fs;
-use std::path::Path;
 use std::str;
 use toml;
 use typed_arena::Arena;
@@ -45,29 +45,28 @@ struct MethodCall {
     component: String,
 }
 
-/// Translation entry point
-pub fn translate_file(json_file: &Path, rl_file: &Path, stdlib_dir: &Path, config_filename: &Path) -> Result<()> {
-    let input_filename = &json_file.to_string_lossy();
-    let output_filename = &rl_file.to_string_lossy();
-    let config_filename = config_filename.to_str().unwrap();
+pub fn translate_file(context: &IOContext) -> Result<()> {
+    let input_path = context.source.to_string_lossy();
+    let output_path = context.dest.to_string_lossy();
+    let generic_methods_path = context.generic_methods.to_str().unwrap();
     let file_error = |filename: &str, err| err!(Token::new(&filename.to_owned(), ""), "{}", err);
 
     info!(
         "{} of {} into {}",
         "Processing translation".bright_green(),
-        input_filename.bright_yellow(),
-        output_filename.bright_yellow()
+        input_path.bright_yellow(),
+        output_path.bright_yellow()
     );
 
     info!(
         "|- {} {}",
-        "Deserializing".bright_green(),
-        config_filename.bright_yellow()
+        "Reading".bright_green(),
+        generic_methods_path.bright_yellow()
     );
     let config_data =
-        fs::read_to_string(config_filename).map_err(|e| file_error(config_filename, e))?;
+        fs::read_to_string(generic_methods_path).map_err(|e| file_error(generic_methods_path, e))?;
     let configuration: toml::Value =
-        toml::from_str(&config_data).map_err(|e| err!(Token::new(config_filename, ""), "{}", e))?;
+        toml::from_str(&config_data).map_err(|e| err!(Token::new(generic_methods_path, ""), "{}", e))?;
 
     info!(
         "|- {}",
@@ -75,17 +74,17 @@ pub fn translate_file(json_file: &Path, rl_file: &Path, stdlib_dir: &Path, confi
     );
     let sources = Arena::new();
     let mut past = PAST::new();
-    parse_stdlib(&mut past, &sources, stdlib_dir)?;
+    parse_stdlib(&mut past, &sources, &context.stdlib)?;
     let stdlib = AST::from_past(past)?;
 
     info!(
         "|- {} {}",
         "Reading".bright_green(),
-        input_filename.bright_yellow()
+        input_path.bright_yellow()
     );
-    let json_data = fs::read_to_string(&json_file).map_err(|e| file_error(input_filename, e))?;
+    let json_data = fs::read_to_string(&context.source).map_err(|e| file_error(&input_path, e))?;
     let technique = serde_json::from_str::<Technique>(&json_data)
-        .map_err(|e| err!(Token::new(input_filename, ""), "{}", e))?;
+        .map_err(|e| err!(Token::new(&input_path, ""), "{}", e))?;
 
     info!(
         "|- {} (translation phase)",
@@ -93,7 +92,7 @@ pub fn translate_file(json_file: &Path, rl_file: &Path, stdlib_dir: &Path, confi
     );
     let translator = Translator { stdlib, technique, configuration };
     let rl_technique = translator.translate()?;
-    fs::write(&rl_file, rl_technique).map_err(|e| file_error(output_filename, e))?;
+    fs::write(&context.dest, rl_technique).map_err(|e| file_error(&output_path, e))?;
     Ok(())
 }
 
@@ -119,6 +118,7 @@ impl<'src> Translator<'src> {
 @description="{description}"
 @version="{version}"
 @parameters= [{newline}{parameters_meta}]
+
 resource {bundle_name}({parameters})
 {bundle_name} state technique() {{
 {calls}

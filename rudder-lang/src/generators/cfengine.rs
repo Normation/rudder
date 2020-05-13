@@ -134,17 +134,16 @@ impl CFEngine {
         })
     }
 
-    fn get_config_from_file(translate_config: &Path) -> Result<toml::Value> {
-        let fname = translate_config.to_str().unwrap();
-        let file_error =
-            |filename: &str, err| err!(Token::new(&filename.to_owned(), ""), "{}", err);
+    fn get_config_from_file(generic_methods: &Path) -> Result<toml::Value> {
+        let path = generic_methods.to_str().unwrap();
+        let file_error = |file: &str, err| err!(Token::new(&file.to_owned(), ""), "{}", err);
         let config_data =
-            std::fs::read_to_string(translate_config).map_err(|e| file_error(fname, e))?;
-        toml::from_str(&config_data).map_err(|e| err!(Token::new(fname, ""), "{}", e))
+            std::fs::read_to_string(generic_methods).map_err(|e| file_error(path, e))?;
+        toml::from_str(&config_data).map_err(|e| err!(Token::new(path, ""), "{}", e))
     }
-    fn get_class_parameter_index(method_name: String, translate_config: &Path) -> Result<usize> {
+    fn get_class_parameter_index(method_name: String, generic_methods: &Path) -> Result<usize> {
         // outcome detection and formating
-        let config = Self::get_config_from_file(translate_config)?;
+        let config = Self::get_config_from_file(generic_methods)?;
         let mconf = match config.get("methods") {
             None => return Err(Error::User("No methods section in config.toml".into())),
             Some(m) => m,
@@ -179,7 +178,7 @@ impl CFEngine {
         st: &Statement,
         id: usize,
         in_class: String,
-        translate_config: &Path,
+        generic_methods: &Path,
     ) -> Result<String> {
         match st {
             Statement::StateDeclaration(sd) => {
@@ -201,7 +200,7 @@ impl CFEngine {
                     ", ",
                 )?;
                 let method_name = format!("{}_{}", sd.resource.fragment(), sd.state.fragment());
-                let index = Self::get_class_parameter_index(method_name, translate_config)?;
+                let index = Self::get_class_parameter_index(method_name, generic_methods)?;
                 let class = self.format_class(in_class)?;
                 let state_param = if sd.resource_params.len() > 0 {
                     if let Ok(param) = self.parameter_to_cfengine(&sd.resource_params[0]) {
@@ -254,7 +253,7 @@ impl CFEngine {
                                     st,
                                     id,
                                     case_exp.clone(),
-                                    translate_config,
+                                    generic_methods,
                                 )
                             },
                             "",
@@ -396,9 +395,9 @@ impl Generator for CFEngine {
     fn generate(
         &mut self,
         gc: &AST,
-        input_file: Option<&Path>,
-        output_file: Option<&Path>,
-        translate_config: &Path,
+        source_file: Option<&Path>,
+        dest_file: Option<&Path>,
+        generic_methods: &Path,
         technique_metadata: bool,
     ) -> Result<()> {
         let mut files: HashMap<String, String> = HashMap::new();
@@ -408,7 +407,7 @@ impl Generator for CFEngine {
                 // This condition actually rejects every file that is not the input filename
                 // therefore preventing from having an output in another directory
                 // Solutions: check filename rather than path, or accept everything that is not from crate root lib
-                let file_to_create = match get_output_file(input_file, sn.file(), output_file) {
+                let file_to_create = match get_dest_file(source_file, sn.file(), dest_file) {
 					Some(file) => file,
 					None => continue
 				};
@@ -451,7 +450,7 @@ impl Generator for CFEngine {
                         st,
                         i,
                         "any".to_string(),
-                        translate_config,
+                        generic_methods,
                     )?);
                 }
                 content.push_str("}\n");
@@ -459,7 +458,7 @@ impl Generator for CFEngine {
             }
         }
 		if files.is_empty() {
-            match output_file {
+            match dest_file {
                 Some(filename) => File::create(filename).expect("Could not create output file"),
                 None => return Err(Error::User("No file to create".to_owned())),
             };
@@ -473,21 +472,21 @@ impl Generator for CFEngine {
     }
 }
 
-fn get_output_file(input: Option<&Path>, cur_file: &str, output: Option<&Path>) -> Option<String> {
-	 let output_file = match input {
+fn get_dest_file(input: Option<&Path>, cur_file: &str, output: Option<&Path>) -> Option<String> {
+	 let dest_file = match input {
         	Some(filepath) => {
 				if filepath.file_name() != Some(&OsStr::new(cur_file)) {
     	           	return None;
 				}
-				// can unwrap here since if input_file is Some, so does output_file (see end of compile.rs)
+				// can unwrap here since if source_file is Some, so does dest_file (see end of compile.rs)
 				match output.unwrap().to_str() {
-					Some(output_filename) => output_filename,
+					Some(dest_filename) => dest_filename,
 					None => cur_file,
 				}
 		},
 		None => cur_file,
 	};
-	Some(output_file.to_owned())
+	Some(dest_file.to_owned())
 }
 
 
@@ -496,17 +495,17 @@ mod tests {
 	use super::*;
 
     #[test]
-    fn output_file() {
+    fn dest_file() {
         assert_eq!(
-        	get_output_file(Some(Path::new("/path/my_file.rl")), "my_file.rl", Some(Path::new(""))),
+        	get_dest_file(Some(Path::new("/path/my_file.rl")), "my_file.rl", Some(Path::new(""))),
 			Some("".to_owned())
 		);
         assert_eq!(
-        	get_output_file(Some(Path::new("/path/my_file.rl")), "my_file.rl", Some(Path::new("/output/file.rl.cf"))),
+        	get_dest_file(Some(Path::new("/path/my_file.rl")), "my_file.rl", Some(Path::new("/output/file.rl.cf"))),
 			Some("/output/file.rl.cf".to_owned())
 		);
         assert_eq!(
-        	get_output_file(Some(Path::new("/path/my_file.rl")), "wrong_file.rl", Some(Path::new("/output/file.rl.cf"))),
+        	get_dest_file(Some(Path::new("/path/my_file.rl")), "wrong_file.rl", Some(Path::new("/output/file.rl.cf"))),
 			None
 		);
     }

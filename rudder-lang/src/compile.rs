@@ -6,6 +6,7 @@ use crate::{
     error::*,
     generators::*,
     parser::{Token, PAST},
+    io::IOContext,
 };
 
 use colored::Colorize;
@@ -50,7 +51,7 @@ pub fn parse_file<'src>(
         Some(file) => file.to_string_lossy().to_string(),
         None => return Err(Error::User(format!("{:?} should be a .rl file", path))),
     });
-    info!("|- {} {}", "Parsing".bright_green(), filename);
+    info!("|- {} {}", "Parsing".bright_green(), filename.bright_yellow());
     match fs::read_to_string(path) {
         Ok(content) => {
             let content_str = sources.alloc(content);
@@ -62,27 +63,24 @@ pub fn parse_file<'src>(
 
 /// Compile a file from rudder-lang to cfengine
 pub fn compile_file(
-    source: &Path,
-    dest: &Path,
+    ctx: &IOContext,
     technique: bool,
-    stdlib_dir: &Path,
-    translate_config: &Path,
 ) -> Result<()> {
     let sources = Arena::new();
     let mut past = PAST::new();
 
-    // add stdlib: resourcelib, oslib, corelib, cfengine_core
-    parse_stdlib(&mut past, &sources, stdlib_dir)?;
+    // add stdlib: resourcelib + corelib + oslib + cfengine_core
+    parse_stdlib(&mut past, &sources, &ctx.stdlib)?;
 
 	// read and add files
     info!(
         "{} of {} into {}",
         "Processing compilation".bright_green(),
-        source.to_string_lossy().bright_yellow(),
-        dest.to_string_lossy().bright_yellow()
+        ctx.source.to_string_lossy().bright_yellow(),
+        ctx.dest.to_string_lossy().bright_yellow()
     );
 
-    parse_file(&mut past, &sources, source)?;
+    parse_file(&mut past, &sources, &ctx.source)?;
 
     // finish parsing into AST
     info!("|- {}", "Generating intermediate code".bright_green());
@@ -94,12 +92,12 @@ pub fn compile_file(
 
     // generate final output
     info!("|- {}", "Generating output code".bright_green());
-    let mut cfe = CFEngine::new();
     let (input_file, output_file) = if technique {
         // TODO this should be a technique name not a file name
-        (Some(source), Some(dest))
+        (Some(ctx.source.as_path()), Some(ctx.dest.as_path()))
     } else {
         (None, None)
     };
-    cfe.generate(&ast, input_file, output_file, translate_config, technique)
+    let mut generator = new_generator(&ctx.format)?;
+    generator.generate(&ast, input_file, output_file, &ctx.generic_methods, technique)
 }
