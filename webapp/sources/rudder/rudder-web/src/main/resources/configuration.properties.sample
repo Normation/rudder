@@ -568,6 +568,18 @@ rudder.relayd.reload=/opt/rudder/bin/rudder relay reload -p
 #
 rudder.jvm.fatal.exceptions=
 
+###################
+# Rudder lang      #############################################################
+###################
+
+#
+# Rudder lang is the new rudder configuration langage. We are ramping it up, and
+# for now only testing its output in a side generation chanel.
+# You can disable that test if needed.
+#
+rudder.lang.test-loop.exec=true
+
+
 ########################
 # DEPRECATED properties #############################################################
 ########################
