@@ -57,6 +57,10 @@ import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowService
+import net.liftweb.json.JsonAST.{JNothing, JString}
+import net.liftweb.json.JsonParser.ParseException
+import net.liftweb.json.{parse => jsonParse}
+
 
 class CreateOrUpdateGlobalParameterPopup(
     change            : GlobalParamChangeRequest
@@ -112,40 +116,68 @@ class CreateOrUpdateGlobalParameterPopup(
     if(formTracker.hasErrors) {
       onFailure
     } else {
-      val newParameter = new GlobalParameter(
-        name        = parameterName.get,
-        value       = GenericPropertyUtils.parseValue(parameterValue.get),
-        description = parameterDescription.get,
-        provider    = None
-      )
-      val savedChangeRequest = {
-        for {
-          diff  <- globalParamDiffFromAction(newParameter)
-          cr    =  ChangeRequestService.createChangeRequestFromGlobalParameter(
-                         changeRequestName.get
-                       , paramReasons.map( _.get ).getOrElse("")
-                       , newParameter
-                       , change.previousGlobalParam
-                       , diff
-                       , CurrentUser.actor
-                       , paramReasons.map( _.get )
-                       )
-          id    <- workflowService.startWorkflow(cr, CurrentUser.actor, paramReasons.map(_.get))
-        } yield {
-          id
-        }
+
+      val jsonCheck = parameterFormat.get match {
+        case "json" => true
+        case _      => false
       }
-      savedChangeRequest match {
-        case Full(id) =>
-          if (workflowEnabled) {
-            // TODO : do more than that
-            closePopup() & onSuccessCallback(Right(id))
-          } else closePopup() & onSuccessCallback(Left(newParameter))
-        case eb:EmptyBox =>
-          val msg = (eb ?~! "An error occurred while updating the parameter").messageChain
-          logger.error(msg)
-          formTracker.addFormError(error(msg))
-          onFailure
+      val (validJson, value) =
+        if(jsonCheck){
+          try {
+            //Valid Json
+            jsonParse(parameterValue.get) match {
+              case JNothing => (true, JString(""))
+              case json     => (true, json)
+            }
+          } catch {
+            //Invalid Json
+            case ex: ParseException =>
+              (false, JString(""))
+          }
+        }else{
+          (true, JString(parameterValue.get))
+        }
+      if(!validJson){
+        val msg = "JSON check is enabled, but the value format is invalid."
+        logger.error(msg)
+        formTracker.addFormError(error(msg))
+        onFailure
+      }else{
+        val newParameter = new GlobalParameter(
+          name        = parameterName.get,
+          value       = value,
+          description = parameterDescription.get,
+          provider    = None
+        )
+        val savedChangeRequest = {
+          for {
+            diff  <- globalParamDiffFromAction(newParameter)
+            cr    =  ChangeRequestService.createChangeRequestFromGlobalParameter(
+              changeRequestName.get
+              , paramReasons.map( _.get ).getOrElse("")
+              , newParameter
+              , change.previousGlobalParam
+              , diff
+              , CurrentUser.actor
+              , paramReasons.map( _.get )
+            )
+            id    <- workflowService.startWorkflow(cr, CurrentUser.actor, paramReasons.map(_.get))
+          } yield {
+            id
+          }
+        }
+        savedChangeRequest match {
+          case Full(id) =>
+            if (workflowEnabled) {
+              // TODO : do more than that
+              closePopup() & onSuccessCallback(Right(id))
+            } else closePopup() & onSuccessCallback(Left(newParameter))
+          case eb:EmptyBox =>
+            val msg = (eb ?~! "An error occurred while updating the parameter").messageChain
+            logger.error(msg)
+            formTracker.addFormError(error(msg))
+            onFailure
+        }
       }
     }
   }
@@ -174,7 +206,8 @@ class CreateOrUpdateGlobalParameterPopup(
       NodeSeq.Empty
     }
     else {
-      <div id="notifications" class="alert alert-danger text-center col-lg-12 col-xs-12 col-sm-12" role="alert"><ul class="text-danger">{notifications.map( n => <li>{n}</li>) }</ul>
+      <div id="notifications" class="alert alert-danger text-center col-lg-12 col-xs-12 col-sm-12" role="alert">
+        <ul class="text-danger">{notifications.map( n => <li>{n}</li>) }</ul>
       </div>
     }
   }
@@ -192,6 +225,28 @@ class CreateOrUpdateGlobalParameterPopup(
     override def validations =
       valMinLen(1, "The name must not be empty") _ ::
       valRegex(patternName, "The name can contain only letters, digits and underscore") _ :: Nil
+  }
+
+  // The value may be empty
+  private[this] val parameterFormat = {
+    val l = Seq (
+      "string"
+    , "json"
+    )
+    val defaultMode = "string"
+    new WBRadioField(
+      "Format",
+      l,
+      defaultMode,
+      {
+        case "string" => <span class="audit-btn" > String </span>
+        case "json"   => <span class="global-btn"> JSON   </span>
+        case _ => NodeSeq.Empty
+      }
+    ) {
+      override def setFilter = notNull _ :: trim _ :: Nil
+      override def className = "checkbox-group"
+    }
   }
 
   // The value may be empty
@@ -277,10 +332,11 @@ class CreateOrUpdateGlobalParameterPopup(
 
     (
       "#title *" #> titles &
-      ".name" #> parameterName.toForm_! &
-      ".value" #> parameterValue.toForm_! &
-      ".description *" #> parameterDescription.toForm_! &
-      "#titleWorkflow *" #> titleWorkflow &
+      ".name"    #> parameterName.toForm_! &
+      ".value"   #> parameterValue.toForm_! &
+      ".format"  #> parameterFormat.toForm_! &
+      ".description *"     #> parameterDescription.toForm_! &
+      "#titleWorkflow *"   #> titleWorkflow &
       "#changeRequestName" #> {
           if (workflowEnabled) {
             changeRequestName.toForm
@@ -328,6 +384,7 @@ class CreateOrUpdateGlobalParameterPopup(
                 <div class="notifications">Here comes validation messages</div>
                 <div class="name"/>
                 <div class="value"/>
+                <div class="format"/>
                 <div class="description"/>
                 <div id="changeRequestZone">
                     <div id="titleWorkflow"/>
