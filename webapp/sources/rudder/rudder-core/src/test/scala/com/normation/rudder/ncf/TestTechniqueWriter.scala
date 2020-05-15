@@ -200,7 +200,19 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
 
   val valueCompiler = new InterpolatedValueCompilerImpl
   val parameterTypeService : PlugableParameterTypeService = new PlugableParameterTypeService
-  val writer = new TechniqueWriter(TestTechniqueArchiver,TestLibUpdater,valueCompiler, readDirectives, techRepo, workflowLevelService, new RudderPrettyPrinter(Int.MaxValue, 2), basePath, parameterTypeService, new TechniqueSerializer(parameterTypeService) )
+  val writer = new TechniqueWriter(
+      TestTechniqueArchiver
+    , TestLibUpdater
+    , valueCompiler
+    , readDirectives
+    , techRepo
+    , workflowLevelService
+    , new RudderPrettyPrinter(Int.MaxValue, 2)
+    , basePath
+    , parameterTypeService
+    , new TechniqueSerializer(parameterTypeService)
+    , false
+  )
   val dscWriter = new DSCTechniqueWriter(basePath, valueCompiler, new ParameterType.PlugableParameterTypeService)
   val classicWriter = new ClassicTechniqueWriter(basePath, new ParameterType.PlugableParameterTypeService)
 

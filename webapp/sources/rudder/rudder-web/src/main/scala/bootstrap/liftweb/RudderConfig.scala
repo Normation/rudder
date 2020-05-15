@@ -535,6 +535,14 @@ object RudderConfig extends Loggable {
                                        s"be bigger than for 'metrics.node.scheduler.period.max' (${METRICS_NODES_MIN_PERIOD.render})")
   }
 
+  val RUDDER_LANG_EXEC_TEST_LOOP = {
+    try {
+      config.getBoolean("rudder.lang.test-loop.exec")
+    } catch {
+      case ex: ConfigException => true
+    }
+  }
+
   ApplicationLogger.info(s"Starting Rudder ${rudderFullVersion} web application [build timestamp: ${builtTimestamp}]")
 
   //
@@ -920,7 +928,19 @@ object RudderConfig extends Loggable {
 
   val techniqueArchiver = new TechniqueArchiverImpl(gitRepo,   new File(RUDDER_DIR_GITROOT) , prettyPrinter, "/", gitModificationRepository, personIdentService)
   val techniqueSerializer = new TechniqueSerializer(typeParameterService)
-  val ncfTechniqueWriter = new TechniqueWriter(techniqueArchiver, updateTechniqueLibrary, interpolationCompiler, roDirectiveRepository, techniqueRepository, workflowLevelService, prettyPrinter, RUDDER_DIR_GITROOT, typeParameterService, techniqueSerializer)
+  val ncfTechniqueWriter = new TechniqueWriter(
+      techniqueArchiver
+    , updateTechniqueLibrary
+    , interpolationCompiler
+    , roDirectiveRepository
+    , techniqueRepository
+    , workflowLevelService
+    , prettyPrinter
+    , RUDDER_DIR_GITROOT
+    , typeParameterService
+    , techniqueSerializer
+    , RUDDER_LANG_EXEC_TEST_LOOP
+  )
   val ncfTechniqueReader : ncf.TechniqueReader = new ncf.TechniqueReader(restExtractorService)
 
   lazy val pipelinedReportUnmarshaller : ReportUnmarshaller = {
