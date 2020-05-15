@@ -418,6 +418,9 @@ pub struct UpstreamConfig {
     pub user: String,
     /// When the section is there, password is mandatory
     pub password: Secret,
+    /// Default password, to be used for new inventories
+    #[serde(default = "UpstreamConfig::default_default_password")]
+    pub default_password: Secret,
     #[serde(default = "UpstreamConfig::default_verify_certificates")]
     pub verify_certificates: bool,
     // TODO timeout?
@@ -431,6 +434,10 @@ impl UpstreamConfig {
     fn default_verify_certificates() -> bool {
         true
     }
+
+    fn default_default_password() -> Secret {
+        Secret::new("rudder".into())
+    }
 }
 
 impl Default for UpstreamConfig {
@@ -439,6 +446,7 @@ impl Default for UpstreamConfig {
             url: Default::default(),
             user: Self::default_user(),
             password: Default::default(),
+            default_password: Default::default(),
             verify_certificates: Self::default_verify_certificates(),
         }
     }
@@ -503,6 +511,7 @@ mod tests {
                     url: "".to_string(),
                     user: "rudder".to_string(),
                     password: Secret::new("".to_string()),
+                    default_password: Secret::new("".to_string()),
                     verify_certificates: true,
                 },
                 database: DatabaseConfig {
@@ -589,6 +598,7 @@ mod tests {
                     url: "https://127.0.0.1:8080".to_string(),
                     user: "rudder".to_string(),
                     password: Secret::new("password".to_string()),
+                    default_password: Secret::new("rudder".to_string()),
                     verify_certificates: false,
                 },
                 database: DatabaseConfig {
