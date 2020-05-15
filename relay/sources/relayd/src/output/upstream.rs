@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{processing::inventory::InventoryType, Error, JobConfig};
+use crate::{configuration::Secret, processing::inventory::InventoryType, Error, JobConfig};
 use futures::Future;
 use std::{path::PathBuf, sync::Arc};
 use tracing::{debug, span, Level};
@@ -12,7 +12,12 @@ pub fn send_report(
 ) -> Box<dyn Future<Item = (), Error = Error> + Send> {
     let report_span = span!(Level::TRACE, "upstream");
     let _report_enter = report_span.enter();
-    Box::new(forward_file(job_config, "reports", path))
+    Box::new(forward_file(
+        job_config.clone(),
+        "reports",
+        path,
+        job_config.cfg.output.upstream.password.clone(),
+    ))
 }
 
 pub fn send_inventory(
@@ -23,12 +28,16 @@ pub fn send_inventory(
     let report_span = span!(Level::TRACE, "upstream");
     let _report_enter = report_span.enter();
     Box::new(forward_file(
-        job_config,
+        job_config.clone(),
         match inventory_type {
             InventoryType::New => "inventories",
             InventoryType::Update => "inventory-updates",
         },
         path,
+        match inventory_type {
+            InventoryType::New => job_config.cfg.output.upstream.default_password.clone(),
+            InventoryType::Update => job_config.cfg.output.upstream.password.clone(),
+        },
     ))
 }
 
@@ -36,6 +45,7 @@ fn forward_file(
     job_config: Arc<JobConfig>,
     endpoint: &str,
     path: PathBuf,
+    password: Secret,
 ) -> impl Future<Item = (), Error = Error> + '_ {
     tokio::fs::read(path.clone())
         .map_err(|e| e.into())
@@ -51,10 +61,12 @@ fn forward_file(
                 ))
                 .basic_auth(
                     &job_config.cfg.output.upstream.user,
-                    Some(&job_config.cfg.output.upstream.password.value()),
+                    Some(&password.value()),
                 )
                 .body(d)
                 .send()
+                // HTTP error -> Err()
+                .and_then(|r| r.error_for_status())
                 .map(|r| debug!("Server response: {:#?}", r))
                 .map_err(|e| e.into())
         })
