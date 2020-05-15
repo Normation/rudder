@@ -52,7 +52,7 @@ import com.normation.rudder.repository.WoParameterRepository
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.json._
 import com.normation.rudder.domain.eventlog._
-import com.normation.rudder.domain.nodes.GenericPropertyUtils
+import com.normation.rudder.domain.nodes.GenericProperty
 import com.normation.rudder.domain.nodes.PropertyProvider
 import com.normation.zio.ZioRuntime
 
@@ -92,11 +92,11 @@ class CheckRudderGlobalParameter(
       saved <- roParamRepo.getGlobalParameter(p.name)
       _     <- saved match {
                 case None =>
-                  BootstrapLogger.info(s"Creating missing global parameter '${p.name}' with value: ${compactRender(p.value)}") *>
+                  BootstrapLogger.info(s"Creating missing global parameter '${p.name}' with value: '${p.valueAsString}''") *>
                   woParamRepo.saveParameter(p, modId, RudderEventActor, Some(s"Creating global system parameter '${p.name}' to its default value"))
                 case Some(s) if(p.value != s.value || p.provider != s.provider) =>
-                  val provider = p.provider.getOrElse(GenericPropertyUtils.systemPropertyProvider).value
-                  BootstrapLogger.info(s"Reseting global parameter '${p.name}' from ${provider} provider to value: ${compactRender(p.value)}") *>
+                  val provider = p.provider.getOrElse(PropertyProvider.systemPropertyProvider).value
+                  BootstrapLogger.info(s"Reseting global parameter '${p.name}' from ${provider} provider to value: ${p.valueAsString}") *>
                   woParamRepo.updateParameter(p, modId, RudderEventActor, Some(s"Reseting global system parameter '${p.name}' to its default value"))
                 case _ => UIO.unit
               }
@@ -122,5 +122,5 @@ class CheckRudderGlobalParameter(
 
 // lift json need that to be topevel
 private[checks] final case class JsonParam(name: String, description: String, value: JValue, provider: Option[String]) {
-  def toGlobalParam = new GlobalParameter(name, value, description, provider.map(PropertyProvider))
+  def toGlobalParam = GlobalParameter(name, GenericProperty.fromJsonValue(value), description, provider.map(PropertyProvider.apply))
 }

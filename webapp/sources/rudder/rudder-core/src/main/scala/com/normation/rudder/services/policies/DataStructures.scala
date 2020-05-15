@@ -62,8 +62,7 @@ import com.normation.cfclerk.domain.AgentConfig
 import com.normation.cfclerk.domain.TechniqueGenerationMode
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors._
-import com.normation.rudder.domain.nodes.GenericPropertyUtils
-import net.liftweb.json.JValue
+import com.typesafe.config.ConfigValue
 
 /*
  * This file contains all the specific data structures used during policy generation.
@@ -163,13 +162,13 @@ final case class InterpolationContext(
       , nodeContext     : TreeMap[String, Variable]
         // parameters for this node
         //must be a case SENSITIVE Map !!!!
-      , parameters      : Map[String, JValue]
+      , parameters      : Map[String, ConfigValue]
         //the depth of the interpolation context evaluation
         //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
         //for ex: param a => param b => param c => ..... => param a
         //should not be evaluated
       , depth           : Int
-) extends GenericInterpolationContext[JValue]
+) extends GenericInterpolationContext[ConfigValue]
 
 object InterpolationContext {
   implicit val caseInsensitiveString = new Ordering[String] {
@@ -185,7 +184,7 @@ object InterpolationContext {
       , nodeContext     : Map[String, Variable]
         // parameters for this node
         //must be a case SENSITIVE Map !!!!
-      , parameters      : Map[String, JValue]
+      , parameters      : Map[String, ConfigValue]
         //the depth of the interpolation context evaluation
         //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
         //for ex: param a => param b => param c => ..... => param a
@@ -203,7 +202,7 @@ final case object ParameterForConfiguration {
   def fromParameter(param: GlobalParameter) : ParameterForConfiguration = {
     // here, we need to go back to a string for resolution of
     // things like ${rudder.param[foo] | default = ... }
-    ParameterForConfiguration(param.name, GenericPropertyUtils.serializeValue(param.value))
+    ParameterForConfiguration(param.name, param.valueAsString)
   }
 }
 

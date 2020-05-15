@@ -279,12 +279,12 @@ final case class NodePropertyComparator(ldapAttr: String) extends NodeCriterionT
 
 
   def matchJsonPath(key: String, path: PureResult[JsonPath])(p: NodeProperty): Boolean = {
-    (p.name == key) && path.flatMap(JsonSelect.exists(_, p.renderValue).toPureResult).getOrElse(false)
+    (p.name == key) && path.flatMap(JsonSelect.exists(_, p.valueAsString).toPureResult).getOrElse(false)
   }
 
   val regexMatcher = (value: String) => new NodeInfoMatcher {
                             val predicat = (p: NodeProperty) => try {
-                                value.r.pattern.matcher(s"${p.name}=${p.renderValue}").matches()
+                                value.r.pattern.matcher(s"${p.name}=${p.valueAsString}").matches()
                               } catch { //malformed patterned should not be saved, but never let an exception be silent
                                 case ex: PatternSyntaxException => false
                               }
@@ -298,7 +298,7 @@ final case class NodePropertyComparator(ldapAttr: String) extends NodeCriterionT
       // equals mean: the key is equals to kv._1 and the value is defined and the value is equals to kv._2.get
       case Equals         => {
                                val kv = splitInput(value, "=")
-                               NodeInfoMatcher((node: NodeInfo) => node.properties.find(p => p.name == kv.key && p.renderValue == kv.value).isDefined)
+                               NodeInfoMatcher((node: NodeInfo) => node.properties.find(p => p.name == kv.key && p.valueAsString == kv.value).isDefined)
       }
       // not equals mean: the key is not equals to kv._1 or the value is not defined or the value is defined but equals to kv._2.get
       case NotEquals      => NodeInfoMatcher((node: NodeInfo) => !matches(Equals, value).matches(node))

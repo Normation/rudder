@@ -41,11 +41,12 @@ package com.normation.rudder.services.policies
 import com.normation.box._
 import com.normation.errors._
 import com.normation.inventory.domain.AgentType
-import com.normation.rudder.domain.nodes.GenericPropertyUtils
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.services.policies.PropertyParserTokens._
 import net.liftweb.common._
-import net.liftweb.json.JsonAST.JValue
+import com.normation.rudder.domain.nodes.GenericProperty
+import com.typesafe.config.ConfigFactory
+import com.typesafe.config.ConfigValue
 
 /**
  * A parser that handle parameterized value of
@@ -310,33 +311,20 @@ trait AnalyseInterpolation[T, I <: GenericInterpolationContext[T]] {
       case h :: tail => context.nodeInfo.properties.find(p => p.name == h) match {
         case None       => Left(Unexpected(errmsg))
         case Some(prop) => tail match {
-          case Nil     => Right(prop.renderValue)
+          case Nil     => Right(prop.valueAsString)
           //here, we need to parse the value in json and try to find the asked path
-          case subpath => getJsonProperty(subpath, prop.value).chainError(errmsg)
+          case subpath =>
+            val path = (GenericProperty.VALUE::subpath).mkString(".")
+            if(prop.config.hasPath(path)) {
+              Right(GenericProperty.serializeToHocon(prop.config.getValue(path)))
+            } else {
+              Left(Unexpected(s"Can not find property at path ${subpath.mkString(".")} in '${prop.valueAsString}'"))
+            }
         }
       }
     }
   }
 
-  def getJsonProperty(path: List[String], json: JValue): PureResult[String] = {
-    import net.liftweb.json._
-
-    @scala.annotation.tailrec
-    def access(json: => JValue, path: List[String]): JValue = path match {
-      case Nil       => json
-      case h :: tail => access( json \ h, tail)
-    }
-
-    for {
-      prop <- access(json, path) match {
-                case JNothing   => Left(Unexpected(s"Can not find property in JSON '${compactRender(json)}'"))
-                case JString(s) => Right(s) //needed to special case to not have '\"' everywhere
-                case x          => Right(compactRender(x))
-              }
-    } yield {
-      prop
-    }
-  }
 }
 
 object AnalyseParamInterpolation extends AnalyseInterpolation[ParamInterpolationContext => PureResult[String], ParamInterpolationContext] {
@@ -360,7 +348,14 @@ object AnalyseParamInterpolation extends AnalyseInterpolation[ParamInterpolation
               firtLevel <- value(context.copy(depth = context.depth+1))
               res       <- tail match {
                              case Nil     => Right(firtLevel)
-                             case subpath => getJsonProperty(subpath, GenericPropertyUtils.parseValue(firtLevel)).chainError(errmsg)
+                             case subpath =>
+                               val config = ConfigFactory.parseString(s"""{"x":${firtLevel}}""")
+                               val path = ("x"::subpath).mkString(".")
+                               if(config.hasPath(path)) {
+                                 Right(GenericProperty.serializeToHocon(config.getValue(path)))
+                               } else {
+                                 Left(Inconsistency(errmsg))
+                               }
                            }
             } yield {
               res
@@ -372,7 +367,7 @@ object AnalyseParamInterpolation extends AnalyseInterpolation[ParamInterpolation
   }
 }
 
-object AnalyseNodeInterpolation extends AnalyseInterpolation[JValue, InterpolationContext] {
+object AnalyseNodeInterpolation extends AnalyseInterpolation[ConfigValue, InterpolationContext] {
 
   /**
    * Retrieve the global parameter from the node context.
@@ -385,9 +380,17 @@ object AnalyseNodeInterpolation extends AnalyseInterpolation[JValue, Interpolati
       case h :: tail => context.parameters.get(h) match {
         case None       => Left(Unexpected(errmsg))
         case Some(json) => tail match {
-          case Nil     => Right(GenericPropertyUtils.serializeValue(json))
+          case Nil     => Right(GenericProperty.serializeToHocon(json))
           //here, we need to parse the value in json and try to find the asked path
-          case subpath => getJsonProperty(subpath, json).chainError(errmsg)
+          case subpath => {
+            val path = (GenericProperty.VALUE::subpath).mkString(".")
+            val config = GenericProperty.valueToConfig(json)
+            if(config.hasPath(path)) {
+              Right(GenericProperty.serializeToHocon(config.getValue(path)))
+            } else {
+              Left(Unexpected(s"Can not find property at paht ${subpath.mkString(".")} in '${GenericProperty.serializeToHocon(json)}'"))
+            }
+          }.chainError(errmsg)
         }
       }
     }

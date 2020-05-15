@@ -56,7 +56,8 @@ import org.specs2.matcher.Matcher
 import net.liftweb.json._
 import com.normation.errors._
 import cats.implicits._
-import com.normation.rudder.domain.nodes.GenericPropertyUtils
+import com.normation.rudder.domain.nodes.GenericProperty
+import com.typesafe.config.ConfigValue
 
 
 /**
@@ -99,8 +100,8 @@ class TestNodeAndGlobalParameterLookup extends Specification {
     , policyServerInfo= root
   )
 
-  def toNodeContext(c: ParamInterpolationContext, params: Map[String, String]) = InterpolationContext(
-      parameters      = params.map { case (k, v) => (k, GenericPropertyUtils.parseValue(v)) }
+  def toNodeContext(c: ParamInterpolationContext, params: Map[String, ConfigValue]) = InterpolationContext(
+      parameters      = params
     , nodeInfo        = c.nodeInfo
     , globalPolicyMode= c.globalPolicyMode
     , policyServerInfo= c.policyServerInfo
@@ -125,7 +126,8 @@ class TestNodeAndGlobalParameterLookup extends Specification {
   ) = {
     (for {
       params <- lookupParam.parameters.toList.traverse { case (k, c) => c(lookupParam).map((k, _)) }
-      res    <- lookupService.lookupNodeParameterization(variables)(toNodeContext(lookupParam, params.toMap))
+      p      <- params.toList.traverse { case (k, value) => GenericProperty.parseValue(value).map(v => (k, v))}
+      res    <- lookupService.lookupNodeParameterization(variables)(toNodeContext(lookupParam, p.toMap))
     } yield res)
   }
 
@@ -679,7 +681,11 @@ class TestNodeAndGlobalParameterLookup extends Specification {
     }
 
     "match when node properties are on multiline" in {
-      val node = context.nodeInfo.node.copy(properties = List(NodeProperty("datacenter", jparse("""{"Europe": "Paris"}"""), None)))
+      val v = GenericProperty.parseValue("""{"Europe": "Paris"}""").fold(
+        err => throw new IllegalArgumentException("Error in test: " + err.fullMsg)
+      , identity
+      )
+      val node = context.nodeInfo.node.copy(properties = List(NodeProperty("datacenter", v, None)))
       val c = context.copy(nodeInfo = context.nodeInfo.copy(node = node))
       lookup(Seq(multilineNodePropVariable), c.copy(parameters = p(fooParam)))( values =>
         values must containTheSameElementsAs(Seq(Seq("=\r= \nParis =\n=")))
@@ -742,7 +748,13 @@ class TestNodeAndGlobalParameterLookup extends Specification {
 
     def compare(param: String, props: List[(String, String)])= {
       val i = compileAndGet(param)
-      val p = props.map { case (k, v) => NodeProperty(k, jparse(v), None) }
+      val p = props.map { case (k, value) =>
+        val v = GenericProperty.parseValue(value).fold(
+          err => throw new IllegalArgumentException("Error in test: " + err.fullMsg)
+        , identity
+        )
+        NodeProperty(k, v, None)
+      }
       val node = context.nodeInfo.node.copy(properties = p)
       val c = context.copy(nodeInfo = context.nodeInfo.copy(node = node))
 
@@ -834,11 +846,14 @@ class TestNodeAndGlobalParameterLookup extends Specification {
     }
 
     "matter in node properties" in {
-      val value = "some data center somewhere"
+      val value = GenericProperty.parseValue("some data center somewhere").fold(
+        err => throw new IllegalArgumentException("Error in test: " + err.fullMsg)
+      , identity
+      )
 
       def compare(s1: String, s2: String) = {
         val i = compileAndGet(s"$${node.properties[${s1}]}")
-        val props = List(NodeProperty(s2, jparse(value), None))
+        val props = List(NodeProperty(s2, value, None))
         val node = context.nodeInfo.node.copy(properties = props)
         val c = context.copy(nodeInfo = context.nodeInfo.copy(node = node))
 
@@ -847,7 +862,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
 
       compare("DataCenter", "datacenter") must haveClass[Left[_,_]]
       compare("datacenter", "DataCenter") must haveClass[Left[_,_]]
-      compare("datacenter", "datacenter") must beEqualTo(Right(value))
+      compare("datacenter", "datacenter") must beEqualTo(Right(GenericProperty.serializeToJson(value)))
     }
 
   }

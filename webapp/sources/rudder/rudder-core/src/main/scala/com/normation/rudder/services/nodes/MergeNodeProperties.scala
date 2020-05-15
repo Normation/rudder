@@ -40,12 +40,12 @@ package com.normation.rudder.services.nodes
 import cats.implicits._
 import com.normation.errors._
 import com.normation.rudder.domain.nodes.FullParentProperty
-import com.normation.rudder.domain.nodes.GenericPropertyUtils
 import com.normation.rudder.domain.nodes.GroupProperty
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.nodes.NodePropertyHierarchy
+import com.normation.rudder.domain.nodes.GenericProperty
 import com.normation.rudder.domain.nodes.PropertyProvider
 import com.normation.rudder.domain.policies.FullCompositeRuleTarget
 import com.normation.rudder.domain.policies.FullGroupTarget
@@ -54,9 +54,8 @@ import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.services.nodes.GroupProp._
 import com.softwaremill.quicklens._
-import net.liftweb.json.Diff
-import net.liftweb.json.JsonAST.JNothing
-import net.liftweb.json.JsonAST.JValue
+import com.typesafe.config.ConfigParseOptions
+import com.typesafe.config.ConfigValue
 import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.AsSubgraph
 import org.jgrapht.graph.DefaultDirectedGraph
@@ -82,7 +81,7 @@ import scala.jdk.CollectionConverters._
  * - if the overriding value is a simple value or an array, it replaces the previous one
  * - if the overriding value is an object and the overridden value is a simple type or an array,
  *   the latter one is replaced by the former
- * - if both overriding/overridden are arrays, overriding values are appended to overridden array
+ * - if both overriding/overridden are arrays, overriding values REPLACE the overriden ones
  * - if both overriding/overridden are objects, then each key is overridden recursively as explained,
  *   and new keys are added.
  */
@@ -103,15 +102,14 @@ final case class GroupProp(
 object GroupProp {
 
   val INHERITANCE_PROVIDER = PropertyProvider("inherited")
-  val EMPTY_DIFF = Diff(JNothing, JNothing, JNothing)
 
   implicit class ToNodePropertyHierarchy(g: GroupProp) {
-    def toNodePropHierarchy: Map[String, NodePropertyHierarchy[JValue]] = {
+    def toNodePropHierarchy: Map[String, NodePropertyHierarchy[ConfigValue]] = {
       g.properties.map { p =>
         (
           p.name
         , NodePropertyHierarchy(
-              NodeProperty(p.name, p.value, Some(INHERITANCE_PROVIDER))
+              NodeProperty(p.config).withProvider(INHERITANCE_PROVIDER)
             , FullParentProperty.Group(g.groupName, g.groupId, p.value) :: Nil
           )
         )
@@ -177,7 +175,7 @@ object MergeNodeProperties {
    * Merge that node properties with properties of groups which contain it.
    * Groups are not sorted, but all groups with that node are present.
    */
-  def withDefaults(node: NodeInfo, nodeTargets: List[FullRuleTargetInfo], globalParams: Map[String, JValue]): PureResult[List[NodePropertyHierarchy[JValue]]] = {
+  def withDefaults(node: NodeInfo, nodeTargets: List[FullRuleTargetInfo], globalParams: Map[String, ConfigValue]): PureResult[List[NodePropertyHierarchy[ConfigValue]]] = {
     for {
       defaults <- checkPropertyMerge(nodeTargets, globalParams)
     } yield {
@@ -191,7 +189,7 @@ object MergeNodeProperties {
    * NodePropertyHierarchy with a non empty parent list means they were inherited and at least
    * partially overridden
    */
-  def mergeDefault(properties: Map[String, NodeProperty], defaults: Map[String, NodePropertyHierarchy[JValue]]): Map[String, NodePropertyHierarchy[JValue]] = {
+  def mergeDefault(properties: Map[String, NodeProperty], defaults: Map[String, NodePropertyHierarchy[ConfigValue]]): Map[String, NodePropertyHierarchy[ConfigValue]] = {
     val fullyInherited = defaults.keySet -- properties.keySet
     val fromNodeOnly = properties.keySet -- defaults.keySet
     val merged = defaults.keySet.intersect(properties.keySet)
@@ -201,12 +199,12 @@ object MergeNodeProperties {
       // here, we actually do merge/override, the new value being the node value.
       // I'm not sure if we should ONLY override node properties with "default" provider here, or perhaps we should
       // add a notion of provider to nodes and only merge compatible providers?
-      (k, d.copy(prop = p.copy(value = GenericPropertyUtils.mergeValues(d.prop.value, p.value))))
+      (k, d.copy(prop = p.fromConfig(GenericProperty.mergeConfig(d.prop.config, p.config))))
     }.toMap
     (
        defaults.filter(kv => fullyInherited.contains(kv._1))
     ++ overrided
-    ++ properties.flatMap { case (k, v) => if(fromNodeOnly.contains(k)) Some((k, NodePropertyHierarchy[JValue](v, Nil))) else None }.toMap
+    ++ properties.flatMap { case (k, v) => if(fromNodeOnly.contains(k)) Some((k, NodePropertyHierarchy[ConfigValue](v, Nil))) else None }.toMap
     )
   }
 
@@ -219,7 +217,7 @@ object MergeNodeProperties {
    *
    * We know that we have all groups/subgroups in which the node is here.
    */
-  def checkPropertyMerge(targets: List[FullRuleTargetInfo], globalParams: Map[String, JValue]): PureResult[List[NodePropertyHierarchy[JValue]]] = {
+  def checkPropertyMerge(targets: List[FullRuleTargetInfo], globalParams: Map[String, ConfigValue]): PureResult[List[NodePropertyHierarchy[ConfigValue]]] = {
     /*
      * General strategy:
      * - build all disjoint hierarchies of groups that contains that node
@@ -245,8 +243,8 @@ object MergeNodeProperties {
      * for more information.
      * The most prioritary is the last in the list
      */
-    def overrideValues(overriding: List[Map[String, NodePropertyHierarchy[JValue]]]): Map[String, NodePropertyHierarchy[JValue]] = {
-      overriding.foldLeft(Map[String, NodePropertyHierarchy[JValue]]()){ case (old, newer) =>
+    def overrideValues(overriding: List[Map[String, NodePropertyHierarchy[ConfigValue]]]): Map[String, NodePropertyHierarchy[ConfigValue]] = {
+      overriding.foldLeft(Map[String, NodePropertyHierarchy[ConfigValue]]()){ case (old, newer) =>
         // for each newer value, we look if an older exists. If so, we keep the old value in the list of parents,
         // and merge its value for the next iteration.
         val merged = newer.map { case(k, v) =>
@@ -254,8 +252,8 @@ object MergeNodeProperties {
             case None          => //ok, no merge needed
               (k, v)
             case Some(oldProp) => //merge prop and add old to parents
-              val value = GenericPropertyUtils.mergeValues(oldProp.prop.value, v.prop.value)
-              val mergedProp = v.modify(_.prop.value).setTo(value).modify(_.parents).using( _ ::: oldProp.parents)
+              val config = GenericProperty.mergeConfig(oldProp.prop.config, v.prop.config)
+              val mergedProp = v.modify(_.prop).using(_.fromConfig(config)).modify(_.parents).using( _ ::: oldProp.parents)
               (k, mergedProp)
           }
         }
@@ -267,7 +265,7 @@ object MergeNodeProperties {
      * Last merge: check if any property is defined in at least two groups.
      * If it's the case, report error, else return all properties
      */
-    def mergeAll(propByTrees: List[NodePropertyHierarchy[JValue]]): PureResult[List[NodePropertyHierarchy[JValue]]] = {
+    def mergeAll(propByTrees: List[NodePropertyHierarchy[ConfigValue]]): PureResult[List[NodePropertyHierarchy[ConfigValue]]] = {
       val grouped = propByTrees.groupBy(_.prop.name).map {
         case (_, Nil)    => Left(Unexpected(s"A groupBY lead to an empty group. This is a developper bug, please report it."))
         case (_, h::Nil) => Right(h)
@@ -304,13 +302,14 @@ object MergeNodeProperties {
       // now flatten properties from all groups so that we can check for duplicates
       flatten   =  overridden.map(_.values).flatten
       merged    <- mergeAll(flatten)
+      globals   =  globalParams.toList.map { case (n, v) =>
+                     val config = GenericProperty.toConfig(n, v, Some(INHERITANCE_PROVIDER), None, ConfigParseOptions.defaults().setOriginDescription(s"Global parameter '${n}'"))
+                     (n, NodePropertyHierarchy[ConfigValue](NodeProperty(config), FullParentProperty.Global(v) :: Nil))
+                   }
     } yield {
       // here, we add global parameters as a first default
-      val globalParamProps = globalParams.map { case (n, v) =>
-        (n, NodePropertyHierarchy[JValue](NodeProperty(n, v, Some(INHERITANCE_PROVIDER)), FullParentProperty.Global(v) :: Nil))
-      }.toMap
       val mergedProps = merged.map(p => (p.prop.name, p)).toMap
-      overrideValues(globalParamProps :: mergedProps :: Nil).values.toList
+      overrideValues(globals.toMap :: mergedProps :: Nil).values.toList
     }
   }
 

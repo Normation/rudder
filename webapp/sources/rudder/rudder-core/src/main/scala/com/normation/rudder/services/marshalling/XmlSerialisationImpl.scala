@@ -244,7 +244,7 @@ class NodeGroupSerialisationImpl(xmlVersion:String) extends NodeGroupSerialisati
           // value parsing of properties is a bit messy and semantically linked
           // to json, since value part can be a string or json object.
           // Parsing that back from xml would be tedious.
-          <property><name>{p.name}</name><value>{Unparsed(net.liftweb.json.compactRender(p.value))}</value></property>
+          <property><name>{p.name}</name><value>{Unparsed(p.valueAsString)}</value></property>
         }}</properties>
     )
   }
@@ -279,7 +279,7 @@ class GlobalParameterSerialisationImpl(xmlVersion:String) extends GlobalParamete
   def serialise(param:GlobalParameter):  Elem = {
     createTrimedElem(XML_TAG_GLOBAL_PARAMETER, xmlVersion) (
        <name>{param.name}</name>
-       <value>{param.value}</value>
+       <value>{param.valueAsString}</value>
        <description>{param.description}</description>
        <provider>{param.provider.map(_.value).getOrElse("")}</provider>
     )

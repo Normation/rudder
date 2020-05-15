@@ -68,14 +68,13 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.marshalling._
 import com.normation.rudder.services.marshalling.TestFileFormat
-import net.liftweb.json.JsonAST.JString
 import org.joda.time.DateTime
 import com.normation.box._
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.PublicKey
 import com.normation.inventory.domain.SecurityToken
-import net.liftweb.json.JsonAST.JValue
+import com.typesafe.config.ConfigValue
 
 /**
  * A service that helps mapping event log details to there structured data model.
@@ -792,8 +791,8 @@ class EventLogDetailsServiceImpl(
                             (s"Entry type is not a Global Parameter: ${entry}")
       name               <- (globalParam \ "name").headOption.map( _.text ) ?~!
                            ("Missing attribute 'name' in entry type Global Parameter: ${entry}")
-      modValue           <- getFromTo[JValue]((globalParam \ "value").headOption,
-                             { s => Full(GenericPropertyUtils.parseValue(s.text)) })
+      modValue           <- getFromTo[ConfigValue]((globalParam \ "value").headOption,
+                             { s => GenericProperty.parseValue(s.text).toBox })
       modDescription     <- getFromToString((globalParam \ "description").headOption)
       modOverridable     <- getFromTo[Boolean]((globalParam \ "overridable").headOption,
                              { s => tryo { s.text.toBoolean } } )
@@ -923,36 +922,33 @@ class EventLogDetailsServiceImpl(
   }
 
   private[this] def extractHeartbeatConfiguration(xml : NodeSeq)(details: NodeSeq) = {
-      if((details\"_").isEmpty) { //no children
-        Full(None)
-      } else for {
-        overrides <- (details \ "override").headOption.flatMap(x => tryo(x.text.toBoolean )) ?~! s"Missing attribute 'override' in entry type node : '${xml}'"
-        period    <- (details \ "period").headOption.flatMap(x => tryo(x.text.toInt )) ?~! s"Missing attribute 'period' in entry type node : '${xml}'"
-      } yield {
-        Some(HeartbeatConfiguration(overrides, period))
-      }
+    if((details\"_").isEmpty) { //no children
+      Full(None)
+    } else for {
+      overrides <- (details \ "override").headOption.flatMap(x => tryo(x.text.toBoolean )) ?~! s"Missing attribute 'override' in entry type node : '${xml}'"
+      period    <- (details \ "period").headOption.flatMap(x => tryo(x.text.toInt )) ?~! s"Missing attribute 'period' in entry type node : '${xml}'"
+    } yield {
+      Some(HeartbeatConfiguration(overrides, period))
     }
+  }
 
   private[this] def extractNodeProperties(xml : NodeSeq)(details: NodeSeq): Box[Seq[NodeProperty]] = {
-      import net.liftweb.json.{parse => jparse }
-      if(details.isEmpty) Full(Seq())
-      else for {
-        properties <- sequence((details \ "property").toSeq) { prop =>
-                         for {
-                           name  <- (prop \ "name" ).headOption.map( _.text ) ?~! s"Missing attribute 'name' in entry type node : '${xml}'"
-                           value <- (prop \ "value").headOption.map( _.text ) ?~! s"Missing attribute 'value' in entry type node : '${xml}'"
-                         } yield {
-                           val json = tryo { jparse(value) }
-                           val x = json.openOr(JString(value))
-
-                           // 'provider' is optionnal, default to "default"
-                           val provider = (prop \ "provider" ).headOption.map( p => PropertyProvider(p.text) )
-                           NodeProperty(name, x, provider)
-                         }
+    if(details.isEmpty) Full(Seq())
+    else for {
+      properties <- sequence((details \ "property").toSeq) { prop =>
+                       for {
+                         name     <- (prop \ "name" ).headOption.map( _.text ) ?~! s"Missing attribute 'name' in entry type node : '${xml}'"
+                         value    <- (prop \ "value").headOption.map( _.text ) ?~! s"Missing attribute 'value' in entry type node : '${xml}'"
+                                     // 'provider' is optionnal, default to "default"
+                         provider =  (prop \ "provider" ).headOption.map( p => PropertyProvider(p.text) )
+                         prop     <- NodeProperty.parse(name, value, provider).toBox
+                       } yield {
+                         prop
                        }
-      } yield {
-        properties
-      }
+                     }
+    } yield {
+      properties
+    }
   }
 
   def getPromotedNodeToRelayDetails(xml:NodeSeq) : Box[(NodeId, String)] = {

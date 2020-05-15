@@ -198,7 +198,7 @@ final case class RestDataSerializerImpl (
   def serializeParameter (parameter:GlobalParameter, crId: Option[ChangeRequestId]): JValue = {
    (   ( "changeRequestId" -> crId.map(_.value.toString))
      ~ ( "id"              -> parameter.name )
-     ~ ( "value"           -> parameter.value )
+     ~ ( "value"           -> parameter.valueAsString)
      ~ ( "description"     -> parameter.description )
    )
   }
@@ -350,7 +350,7 @@ final case class RestDataSerializerImpl (
 
     def serializeGlobalParameterDiff(diff:ModifyGlobalParameterDiff,initialState:GlobalParameter) : JValue= {
       val description :JValue = diff.modDescription.map(displaySimpleDiff(_)).getOrElse(initialState.description)
-      val value :JValue       = diff.modValue.map(displaySimpleDiff(_)).getOrElse(initialState.value)
+      val value :JValue       = diff.modValue.map(displaySimpleDiff(_)(x => JString(GenericProperty.serializeToHocon(x)))).getOrElse(GenericProperty.serializeToHocon(initialState.value))
 
       (   ("name"        -> initialState.name)
         ~ ("value"       -> value)
