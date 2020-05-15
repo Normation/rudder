@@ -79,11 +79,12 @@ import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.Control
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
-
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.RunNuCommand
 import com.normation.errors.RudderError
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
+
 import scala.jdk.CollectionConverters._
 import com.normation.zio._
 
@@ -98,16 +99,17 @@ final case class TechniqueUpdateError(message : String, exception : Option[Throw
 final case class MethodNotFound(message : String, exception : Option[Throwable]) extends NcfError
 
 class TechniqueWriter (
-    archiver         : TechniqueArchiver
-  , techLibUpdate    : UpdateTechniqueLibrary
-  , translater       : InterpolatedValueCompiler
-  , readDirectives   : RoDirectiveRepository
+    archiver            : TechniqueArchiver
+  , techLibUpdate       : UpdateTechniqueLibrary
+  , translater          : InterpolatedValueCompiler
+  , readDirectives      : RoDirectiveRepository
   , techniqueRepository : TechniqueRepository
   , workflowLevelService: WorkflowLevelService
-  , xmlPrettyPrinter : RudderPrettyPrinter
-  , basePath         : String
+  , xmlPrettyPrinter    : RudderPrettyPrinter
+  , basePath            : String
   , parameterTypeService: ParameterTypeService
-  , techniqueSerializer: TechniqueSerializer
+  , techniqueSerializer : TechniqueSerializer
+  , doRudderLangTest    : Boolean
 ) {
 
   private[this] val agentSpecific = new ClassicTechniqueWriter(basePath, parameterTypeService) :: new DSCTechniqueWriter(basePath, translater, parameterTypeService) :: Nil
@@ -255,8 +257,12 @@ class TechniqueWriter (
       agentFiles <- writeTechnique(technique,methods,modId,committer)
       libUpdate  <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")).
                       toIO.chainError(s"An error occured during technique update after files were created for ncf Technique ${technique.name}")
+      _          <- ZIO.when(doRudderLangTest) {
+                      IOResult.effect(runRudderLangTestLoop(technique.bundleName.value)).catchAll(err =>
+                        ApplicationLoggerPure.error("Error when doing rudder-lang test loop. You can disable that test with property " +
+                                                    s"'rudder.lang.test-loop.exec' in rudder config file: ${err.fullMsg}"))
+                    }
     } yield {
-      runRudderLangTestLoop(technique.bundleName.value)
       agentFiles
     }
   }
