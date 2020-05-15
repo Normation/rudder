@@ -116,7 +116,7 @@ def get_all_techniques_filenames(migrate_technique = False):
   else:
     path = os.path.join(basePath,"techniques")
 
-  return get_all_cf_filenames_under_dir(path, not migrate_technique)
+  return list(set(get_all_cf_filenames_under_dir(path, not migrate_technique)))
 
 excluded_dirs = [ "applications", "fileConfiguration", "fileDistribution", "jobScheduling", "systemSettings", "system" ]
 def get_all_cf_filenames_under_dir(parent_dir, only_technique_cf):
