@@ -154,7 +154,9 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     // store all updated nodes
     var updated: List[NodeId] = Nil
 
-    override def complianceRepository: ComplianceRepository = ???
+    override def complianceRepository: ComplianceRepository = new ComplianceRepository {
+      override def saveRunCompliance(compliance: List[NodeStatusReport]): Box[List[NodeStatusReport]] = Full(Nil)
+    }
 
     override def defaultFindRuleNodeStatusReports = new DefaultFindRuleNodeStatusReports() {
       override def confExpectedRepo: FindExpectedReportRepository = ???
