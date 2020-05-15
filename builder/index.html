@@ -171,6 +171,13 @@
           ($(function() {
             if (window.self != window.top) {
               $(document.body).addClass("iframe");
+
+              $(document).on('mouseover','.popover-bs',function(){
+                $(this).popover('show');
+              });
+              $(document).on('mouseover','.tooltip-bs',function(){
+                $(this).tooltip('show');
+              });
             }
             $(document).on('mouseover','.popover-bs',function(){
               $(this).popover('show');
@@ -240,7 +247,7 @@
                       data-content="<div>This technique uses <b>deprecated</b> generic methods.</div>"
                       data-html="true"
                       >
-                        <i class="glyphicon glyphicon-info-sign deprecated-icon"></i>
+                      <i class="glyphicon glyphicon-info-sign deprecated-icon"></i>
                       </span>
                     </div>
                     <div class="col-auto align-self-center" ng-click="checkSelect(technique,selectTechnique);toggleDisplay(false); $event.stopPropagation();">
@@ -491,16 +498,16 @@
                         <div class="col method-info" dnd-nodrag>
                           <div class="btn-holder">
                             <button
-                            type="button"
-                            class="text-success method-action tooltip-bs"
-                            ng-click="cloneMethod($index);$event.stopPropagation();"
-                            data-toggle="tooltip"
-                            data-trigger="hover"
-                            data-container="body"
-                            data-placement="left"
-                            data-title="Clone this method"
-                            data-html="true"
-                            data-delay='{"show":"400", "hide":"100"}'
+                              type="button"
+                              class="text-success method-action tooltip-bs"
+                              ng-click="cloneMethod($index);$event.stopPropagation();"
+                              data-toggle="tooltip"
+                              data-trigger="hover"
+                              data-container="body"
+                              data-placement="left"
+                              data-title="Clone this method"
+                              data-html="true"
+                              data-delay='{"show":"400", "hide":"100"}'
                             >
                               <i class="fas fa-clone"></i>
                             </button>

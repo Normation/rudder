@@ -1565,7 +1565,6 @@ $scope.onImportFileChange = function (fileEl) {
       { "name"         : "Name"
       , "bundle_name"  : "Technique ID"
       , "description"  : "Description"
-      , "category"     : "Category"
       , "version"      : "Version"
       , "method_calls" : "Generic Methods have been modified"
       , "parameter"    : "Parameters"
@@ -1587,10 +1586,6 @@ $scope.onImportFileChange = function (fileEl) {
       diverge = false;
       //Compare properties in the right way according to their "type"
       switch(check){
-        case "category" :
-          diff = (storedTech[check] != "" && (storedTech[check] != currentTech[check]));
-          break;
-
         case "method_calls" :
           var st = angular.copy(storedTech.method_calls );
           var ct = angular.copy(currentTech.method_calls);
