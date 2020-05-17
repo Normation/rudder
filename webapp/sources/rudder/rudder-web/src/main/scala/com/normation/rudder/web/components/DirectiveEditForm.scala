@@ -547,7 +547,7 @@ class DirectiveEditForm(
       }
     ) {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def className = "policymode-group"
+      override def className = "checkbox-group policymode-group"
       override def labelClassName = "hidden"
       override def subContainerClassName = "col-xs-12"
     }
