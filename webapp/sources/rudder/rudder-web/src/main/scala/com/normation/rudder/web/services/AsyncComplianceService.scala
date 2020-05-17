@@ -108,6 +108,30 @@ class AsyncComplianceService (
     }
   }
 
+  private[this] class NodeSystemCompliance(
+    val nodeIds: Set[NodeId]
+    , val ruleIds: Set[RuleId]
+  ) extends ComplianceBy[NodeId] {
+    def value(key : NodeId) : String = key.value
+    val jsContainer : String = "nodeSystemCompliances"
+    def empty : Boolean = nodeIds.isEmpty
+
+    // Compute compliance
+    def computeCompliance : Box[Map[NodeId,Option[ComplianceLevel]]] =  {
+      for {
+        reports <- reportingService.findRuleNodeStatusReports(nodeIds, ruleIds)
+      } yield {
+        val found = reports.map { case (nodeId, status) =>
+          toCompliance(nodeId, status.reports)
+        }
+        //add missing elements with "None" compliance, see #7281, #8030, #8141, #11842
+        val missingIds = nodeIds -- found.keySet
+        found ++ (missingIds.map(id => (id,None)))
+      }
+    }
+
+  }
+
   private[this] class NodeCompliance(
       val nodeIds: Set[NodeId]
     , val ruleIds: Set[RuleId]
@@ -192,6 +216,10 @@ class AsyncComplianceService (
 
   def complianceByNode(nodeIds: Set[NodeId], ruleIds: Set[RuleId], tableId : String) : JsCmd = {
     val kind = new NodeCompliance(nodeIds,ruleIds)
+    compliance(kind,tableId)
+  }
+  def systemComplianceByNode(nodeIds: Set[NodeId], ruleIds: Set[RuleId], tableId : String) : JsCmd = {
+    val kind = new NodeSystemCompliance(nodeIds,ruleIds)
     compliance(kind,tableId)
   }
 

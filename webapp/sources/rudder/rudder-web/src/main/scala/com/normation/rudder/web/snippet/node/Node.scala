@@ -77,11 +77,12 @@ class NodeDetails extends StatefulSnippet with Loggable {
       case eb: EmptyBox =>
         _ => <p>No node ID was given in URL. How did you get there?</p>
       case Full(nodeId) =>
-        val displayCompliance = S.param("displayCompliance") match {
-          case Full("true") => true
-          case _            => false
+        val displayMode = (S.param("displayCompliance"), S.param("systemStatus")) match {
+          case (Full("true"), _)  => ShowNodeDetailsFromNode.Compliance
+          case (_, Full("true"))  => ShowNodeDetailsFromNode.Compliance
+          case (_, _)  => ShowNodeDetailsFromNode.Summary
         }
-        _ => new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary).display(false, displayCompliance)
+        _ => new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary).display(false, displayMode)
     }
   }
 }

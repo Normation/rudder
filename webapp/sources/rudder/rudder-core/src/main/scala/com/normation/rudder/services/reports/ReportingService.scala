@@ -62,9 +62,17 @@ trait ReportingService {
   def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[RuleStatusReport]
 
   /**
-   * find node status reports for a given node.
-   */
+    * find node status reports for a given node.
+    */
   def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport]
+  /**
+    * find node status reports for a given node.
+    */
+  def findUserNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport]
+  /**
+    * find system node status reports for a given node.
+    */
+  def findSystemNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport]
 
 
   /**
