@@ -53,31 +53,27 @@ import com.normation.zio.ZioRuntime
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.blocking
-import scala.util.control.NonFatal
 import zio._
 import zio.syntax._
 import zio.duration._
 import com.normation.zio._
+import org.joda.time.DateTime
 import zio.blocking.Blocking
+import zio.clock.Clock
 
 final class Watchers(incoming: FileMonitor, updates: FileMonitor) {
-  def start()(implicit executionContext: ExecutionContext): Either[Throwable, Unit] = {
-    try {
-      incoming.start()
-      updates.start()
+  def start(): IOResult[Unit] = {
+    IOResult.effect {
+      incoming.start()(ZioRuntime.platform.executor.asECES)
+      updates.start()(ZioRuntime.platform.executor.asECES)
       Right(())
-    } catch {
-      case NonFatal(ex) => Left(ex)
     }
   }
-  def stop(): Either[Throwable, Unit] = {
-    try {
+  def stop(): IOResult[Unit] = {
+    IOResult.effect {
       incoming.close()
       updates.close()
       Right(())
-    } catch {
-      case NonFatal(ex) =>
-        Left(ex)
     }
   }
 }
@@ -156,6 +152,47 @@ object Watchers {
   }
 }
 
+/*
+ * A class that periodically add inventories that we likely missed by inotify
+ */
+class SchedulerMissedNotify(
+    directories: List[File]
+  , addFiles   : List[File] => UIO[Unit]
+  , period     : Duration
+  , zclock     : Clock
+){
+
+  /*
+   * List all files that need to be rehad - simply all files older than period
+   */
+  def listFiles(d: Duration): UIO[List[File]] = {
+    IOResult.effect{
+      val ageLimit = DateTime.now().minusMillis(d.toMillis.toInt)
+      val filter = (f:File) => (
+           (f.isRegularFile && ageLimit.isAfter(f.lastModifiedTime.toEpochMilli))
+      )
+      directories.flatMap(_.collectChildren(filter).toList)
+    }.catchAll(err =>
+      InventoryProcessingLogger.error(s"Error when looking for old inventories that weren't processed: ${err.fullMsg}")*>
+      Nil.succeed
+    )
+  }
+
+
+  val schedule = {
+    def loop(d: Duration) = for {
+      files <- listFiles(d)
+      _     <- ZIO.when(files.nonEmpty) {
+                 InventoryProcessingLogger.debug(s"Found old inventories: ${files.map(_.pathAsString).mkString(", ")}")
+               }
+      _     <- addFiles(files)
+      _     <- UIO.unit.delay(period)
+    } yield ()
+
+    (loop(Duration.Zero) *> loop(period).forever).forkDaemon.provide(zclock)
+  }
+}
+
 /**
  * That class is in charge of watching file creation on a repos and process
  * inventory file as soon as an inventory+signature file is created.
@@ -168,6 +205,7 @@ class InventoryFileWatcher(
   , failedInventoryPath  : String
   , waitForSig           : Duration
   , sigExtension         : String // signature file extension, most likely ".sign"
+  , collectOldInventories: Duration // how often you check for old inventories
 ) {
 
   def logDirPerm(dir: File, name: String) = {
@@ -181,6 +219,7 @@ class InventoryFileWatcher(
   val semaphore = Semaphore.make(1).runNow
 
 
+
   val incoming = File(incomingInventoryPath)
   logDirPerm(incoming, "Incoming")
   val updated = File(updatedInventoryPath)
@@ -191,52 +230,58 @@ class InventoryFileWatcher(
   logDirPerm(failed, "Failed")
 
   implicit val scheduler = ZioRuntime.unsafeRun(ZIO.access[Blocking](_.get.blockingExecutor.asEC).provide(ZioRuntime.environment))
+  // the cron that look for old files (or existing ones on startup/watcher retart)
+  val cronForMissed = new SchedulerMissedNotify(
+      incoming :: updated :: Nil
+    , files => ZIO.foreach_(files)(fileProcessor.addFilePure)
+    , collectOldInventories
+    , ZioRuntime.environment
+  )
+  // service that will actually process files (queue for event from inotify/cron for missed files)
   val fileProcessor = new ProcessFile(inventoryProcessor.saveInventory, received, failed, waitForSig, sigExtension)
+  // That reference holds watcher instance and scheduler fiber to be able to stop them if asked
+  val ref = RefM.make(Option.empty[(Watchers,Fiber[Nothing, Nothing])]).runNow
+  def startWatcher() = semaphore.withPermit(
+    ref.update(opt =>
+      opt match {
+        case Some(_) => // does nothing
+          InventoryProcessingLogger.info(s"Starting incoming inventory watcher ignored (already started).") *>
+          opt.succeed
 
-  var watcher = Option.empty[Watchers]
+        case None    =>
+          val w = Watchers(incoming, updated, fileProcessor.addFile)
+          (for {
+            _ <- w.start()
+                 // start scheduler for old file, it will take care of inventories
+            s <- cronForMissed.schedule
+            _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher started - process existing inventories")
+          } yield Some((w,s)) ).catchAll(err =>
+            InventoryProcessingLogger.error(s"Error when trying to start incoming inventories file watcher. Reported exception was: ${err.fullMsg}") *>
+            err.fail
+          )
+      }
+    )
+  ).either.runNow
 
-  def startWatcher() = semaphore.withPermit(IOResult.effect {
-    watcher match {
-      case Some(w) => // does nothing
-        InventoryProcessingLogger.logEffect.info(s"Starting incoming inventory watcher ignored (already started).")
+  def stopWatcher() = semaphore.withPermit(
+    ref.update(opt =>
+      opt match {
+        case None    => //ok
+          InventoryProcessingLogger.info(s"Stoping incoming inventory watcher ignored (already stoped).")*>
+          None.succeed
 
-      case None    =>
-        val w = Watchers(incoming, updated, fileProcessor.addFile)
-        w.start() match {
-          case Right(()) =>
-            InventoryProcessingLogger.logEffect.info(s"Incoming inventory watcher started - process existing inventories")
-            // a touch on all files should trigger a "onModify"
-            incoming.collectChildren(_.isRegularFile).toList.map(_.touch())
-            updated.collectChildren(_.isRegularFile).toList.map(_.touch())
-            watcher = Some(w)
-          case Left(ex) =>
-            InventoryProcessingLogger.logEffect.error(s"Error when trying to start incoming inventories file watcher. Reported exception was: ${ex.getMessage()}")
-            throw ex
-        }
-    }
-  }).either.runNow
-
-  def stopWatcher() = semaphore.withPermit(IOResult.effect {
-    watcher match {
-      case None    => //ok
-        InventoryProcessingLogger.logEffect.info(s"Stoping incoming inventory watcher ignored (already stoped).")
-
-      case Some(w) =>
-        w.stop() match {
-          case Right(()) =>
-            InventoryProcessingLogger.logEffect.info(s"Incoming inventory watcher stoped")
-            watcher = None
-
-          case Left(ex) =>
-            InventoryProcessingLogger.logEffect.error(s"Error when trying to stop incoming inventories file watcher. Reported exception was: ${ex.getMessage()}.")
-            // in all case, remove the previous watcher, it's most likely in a dead state
-            watcher = None
-            throw ex
-        }
-    }
-  }).either.runNow
-
-
+        case Some((w, f)) =>
+          (for {
+            _ <- ZIO.collectAll(w.stop() :: f.interrupt :: Nil)
+            _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher stoped")
+          } yield None).catchAll(err =>
+              InventoryProcessingLogger.error(s"Error when trying to stop incoming inventories file watcher. Reported exception was: ${err.fullMsg}.") *>
+              // in all case, remove the previous watcher, it's most likely in a dead state
+              err.fail
+          )
+      }
+    )
+  ).either.runNow
 }
 
 
@@ -336,8 +381,12 @@ class ProcessFile(
   //start the process
   ZioRuntime.internal.unsafeRunSync(loop.forkDaemon)
 
+  def addFilePure(file: File): UIO[Unit] = {
+    queue.offer(WatchEvent.Mod(file)).unit
+  }
+
   def addFile(file: File): Unit = {
-    ZioRuntime.internal.unsafeRunSync(queue.offer(WatchEvent.Mod(file)))
+    ZioRuntime.internal.unsafeRunSync(addFilePure(file))
   }
 
 

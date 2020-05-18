@@ -40,7 +40,6 @@ package bootstrap.liftweb
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.security.Security
-import java.util.concurrent.TimeUnit
 
 import bootstrap.liftweb.checks._
 import com.normation.appconfig._
@@ -505,9 +504,19 @@ object RudderConfig extends Loggable {
   }
 
   val WATCHER_WAIT_FOR_SIG = try {
-    config.getInt("inventories.watcher.waitForSignatureDuration")
+    Duration.fromScala(scala.concurrent.duration.Duration.apply(config.getString("inventories.watcher.waitForSignatureDuration")))
   } catch {
-    case ex: ConfigException => 10 // in seconds
+    case ex: Exception => try {
+      config.getInt("inventories.watcher.waitForSignatureDuration").seconds
+    } catch {
+      case ex: ConfigException => 10.seconds
+    }
+  }
+
+  val WATCHER_GARBAGE_OLD_INVENTORIES_PERIOD = try {
+    Duration.fromScala(scala.concurrent.duration.Duration.apply(config.getString("inventories.watcher.period.garbage.old")))
+  } catch {
+    case ex: Exception => 5.minutes
   }
 
   val METRICS_NODES_DIRECTORY_GIT_ROOT = "/var/rudder/metrics/nodes"
@@ -1051,8 +1060,9 @@ object RudderConfig extends Loggable {
       , INVENTORY_ROOT_DIR + "/accepted-nodes-updates"
       , INVENTORY_ROOT_DIR + "/received"
       , INVENTORY_ROOT_DIR + "/failed"
-      , zio.duration.Duration(WATCHER_WAIT_FOR_SIG.toLong, TimeUnit.SECONDS)
+      , WATCHER_WAIT_FOR_SIG
       , ".sign"
+      , WATCHER_GARBAGE_OLD_INVENTORIES_PERIOD
     )
     if(WATCHER_ENABLE) {
       watcher.startWatcher()
