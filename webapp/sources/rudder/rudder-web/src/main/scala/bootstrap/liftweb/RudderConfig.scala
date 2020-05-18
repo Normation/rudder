@@ -624,7 +624,7 @@ object RudderConfig extends Loggable {
   val ditQueryData: DitQueryData = ditQueryDataImpl
   val reportsRepository : ReportsRepository = reportsRepositoryImpl
   val eventLogDeploymentService: EventLogDeploymentService = eventLogDeploymentServiceImpl
-  lazy val srvGrid = new SrvGrid(roAgentRunsRepository, asyncComplianceService, configService)
+  lazy val srvGrid = new SrvGrid(roAgentRunsRepository, asyncComplianceService, configService, roLdapRuleRepository)
   val findExpectedReportRepository : FindExpectedReportRepository = findExpectedRepo
   val historizationRepository : HistorizationRepository =  historizationJdbcRepository
   val roApiAccountRepository : RoApiAccountRepository = roLDAPApiAccountRepository
@@ -2126,7 +2126,6 @@ object RudderConfig extends Loggable {
   private[this] lazy val reportDisplayerImpl = new ReportDisplayer(
       roLdapRuleRepository
     , roLdapDirectiveRepository
-    , reportingServiceImpl
     , techniqueRepositoryImpl
     , configService
     , logDisplayerImpl

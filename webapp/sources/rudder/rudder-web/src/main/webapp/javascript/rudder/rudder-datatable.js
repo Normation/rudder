@@ -41,6 +41,7 @@ var recentChanges = {};
 var recentChangesCount = {};
 var recentGraphs = {};
 var nodeCompliances = {};
+var nodeSystemCompliances = {};
 /* Create an array with the values of all the checkboxes in a column */
 $.fn.dataTable.ext.order['dom-checkbox'] = function  ( settings, col )
 {
@@ -1101,6 +1102,8 @@ function createNodeTable(gridId, data, contextPath, refresh) {
         var el = '<span>'+sData+state+'</span>';
         var nodeLink = $(el);
         link.append(nodeLink);
+        var complianceBar = '<span id="system-compliance-bar-'+oData.id+'"></span>';
+        link.append(complianceBar)
         $(nTd).empty();
         $(nTd).append(link);
       }
@@ -1167,6 +1170,11 @@ function createNodeTable(gridId, data, contextPath, refresh) {
            var compliance = nodeCompliances[row.id];
            if (compliance !== undefined) {
            $("#compliance-bar-"+row.id).html(buildComplianceBar(compliance));
+          }
+          var systemCompliance = nodeSystemCompliances[row.id];
+          if (systemCompliance !== undefined) {
+          if (computeComplianceOK(systemCompliance).percent < 100)
+            $("#system-compliance-bar-"+row.id).html('  <a href="'+contextPath+'/secure/nodeManager/node/'+row.id+'?systemStatus=true"  title="Some system policies could not be applied on this node" class="text-danger fa fa-exclamation-triangle"> </a>');
           }
         })
         $('.rudder-label').bsTooltip();

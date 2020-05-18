@@ -812,3 +812,6 @@ textarea.form-control, .content-wrapper textarea.form-control {
   opacity:0.5
 }
 
+.ui-widget-content a.text-danger {
+  color: #a94442;
+}

@@ -43,8 +43,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.repository.{FullActiveTechniqueCategory, RoDirectiveRepository, RoRuleRepository}
-import com.normation.rudder.services.reports.{ReportingService, _}
-import com.normation.rudder.web.model.JsNodeId
+import com.normation.rudder.services.reports._
 import net.liftweb.common._
 import net.liftweb.http.{S, SHtml}
 import net.liftweb.http.js.JE._
@@ -61,6 +60,7 @@ import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.box._
 import com.normation.inventory.domain.AgentType
+import com.normation.rudder.web.model.JsNodeId
 import org.joda.time.DateTime
 
 
@@ -71,7 +71,6 @@ import org.joda.time.DateTime
 class ReportDisplayer(
     ruleRepository      : RoRuleRepository
   , directiveRepository : RoDirectiveRepository
-  , reportingService    : ReportingService
   , techniqueRepository : TechniqueRepository
   , configService       : ReadConfigService
   , logDisplayer: LogDisplayer
@@ -89,15 +88,15 @@ class ReportDisplayer(
    * - missing reports table if such reports exists
    * - unknown reports table if such reports exists
    */
-  def asyncDisplay(node : NodeInfo) : NodeSeq = {
+  def asyncDisplay(node : NodeInfo,tabId : String, containerId : String, tableId : String,  getReports : NodeId => Box[NodeStatusReport]) : NodeSeq = {
     val id = JsNodeId(node.id)
-    val callback =  SHtml.ajaxInvoke(() => SetHtml("reportsDetails", displayReports(node)) )
+    val callback =  SHtml.ajaxInvoke(() => SetHtml(containerId, displayReports(node, getReports, tableId, containerId)) )
     Script(OnLoad(JsRaw(s"""
-      if($$("[aria-controls='node_reports']").hasClass('ui-tabs-active')){
+      if($$("[aria-controls='${tabId}']").hasClass('ui-tabs-active')){
         ${callback.toJsCmd}
       }
       $$("#details_${id}").on( "tabsactivate", function(event, ui) {
-        if(ui.newPanel.attr('id')== 'node_reports') {
+        if(ui.newPanel.attr('id')== '${tabId}') {
           ${callback.toJsCmd}
         }
       });
@@ -107,10 +106,10 @@ class ReportDisplayer(
   /**
    * Refresh the main compliance table
    */
-  def refreshReportDetail(node : NodeInfo) = {
+  def refreshReportDetail(node : NodeInfo, tableId : String, getReports : NodeId => Box[NodeStatusReport]) = {
     def refreshData : Box[JsCmd] = {
       for {
-        report  <- reportingService.findNodeStatusReport(node.id)
+        report  <- getReports(node.id)
         data    <- getComplianceData(node.id, report)
         runDate : Option[DateTime] = report.runInfo match {
           case a : ComputeCompliance => Some(a.lastRunDateTime)
@@ -125,7 +124,7 @@ class ReportDisplayer(
       } yield {
         import net.liftweb.util.Helpers.encJs
         val intro = encJs(displayIntro(report).toString)
-        JsRaw(s"""refreshTable("reportsGrid",${data.json.toJsCmd}); $$("#node-compliance-intro").replaceWith(${intro})""")
+        JsRaw(s"""refreshTable("${tableId}",${data.json.toJsCmd}); $$("#node-compliance-intro").replaceWith(${intro})""")
       }
     }
 
@@ -308,13 +307,13 @@ class ReportDisplayer(
     </div>
   }
 
-  private[this] def displayReports(node : NodeInfo) : NodeSeq = {
+  private[this] def displayReports(node : NodeInfo, getReports: NodeId => Box[NodeStatusReport], tableId : String, containerId : String) : NodeSeq = {
     val boxXml = (
       if(node.state == NodeState.Ignored) {
         Full(<div><div class="col-sm-3"><p class="center bg-info" style="padding: 25px; margin:5px;">This node is disabled.</p></div></div>)
       } else {
       for {
-        report       <- reportingService.findNodeStatusReport(node.id)
+        report       <- getReports(node.id)
         directiveLib <- directiveRepository.getFullDirectiveLibrary.toBox
       } yield {
 
@@ -328,17 +327,17 @@ class ReportDisplayer(
           case NoRunNoExpectedReport => None
         }
 
-      val intro = displayIntro(report)
+      val intro = if (tableId == "reportsGrid") displayIntro(report) else NodeSeq.Empty
 
       /*
        * Start a remote run for that node and display results.
        * Remoterun are only supported on cfengine agent, so disable access to button for
        * other kind of agent (windows in particular).
        */
-      def triggerAgent(node: NodeInfo) : NodeSeq = {
+      def triggerAgent(node: NodeInfo) : NodeSeq = if (tableId == "reportsGrid") {
         if(node.agentsName.exists(agent => agent.agentType == AgentType.CfeCommunity || agent.agentType == AgentType.CfeEnterprise)) {
           <div id="triggerAgent">
-            <button id="triggerBtn" class="btn btn-primary btn-trigger"  onClick={s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node).toJsCmd});"}>
+            <button id="triggerBtn" class="btn btn-primary btn-trigger"  onClick={s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports).toJsCmd});"}>
               <span>Trigger Agent</span>
               &nbsp;
               <i class="fa fa-play"></i>
@@ -363,6 +362,8 @@ class ReportDisplayer(
             </button>
           </div>
         }
+      } else {
+        NodeSeq.Empty
       }
 
       /*
@@ -405,9 +406,9 @@ class ReportDisplayer(
           (
               "lastreportgrid-intro"      #> intro
             & "runagent"                  #> triggerAgent(node)
-            & "lastreportgrid-grid"       #> showReportDetail(filtered, node, withCompliance = false)
-            & "#AllLogButton  [class+]"   #>  { if (runDate.isEmpty) "hide" else "" }
-            & "#AllLogButton  [onClick]"  #> { if (runDate.nonEmpty) {
+            & "lastreportgrid-grid"       #> showReportDetail(filtered, node, withCompliance = false, tableId, containerId, getReports)
+            & "#AllLogButton  [class+]"   #>  { if (runDate.isEmpty || tableId != "reportsGrid") "hide" else "" }
+            & "#AllLogButton  [onClick]"  #> { if (runDate.nonEmpty || tableId == "reportsGrid") {
                 val init = AnonFunc(logDisplayer.asyncDisplay(node.id,runDate,"complianceLogsGrid"))
                 val refresh = AnonFunc(logDisplayer.ajaxRefresh(node.id,runDate, "complianceLogsGrid"))
                 s"""showHideRunLogs("#logRun", ${init.toJsCmd}, ${refresh.toJsCmd})"""
@@ -424,9 +425,9 @@ class ReportDisplayer(
           (
               "lastreportgrid-intro"      #> intro
             & "runagent"                  #> triggerAgent(node)
-            & "lastreportgrid-grid"       #> showReportDetail(report, node, withCompliance = true)
-            & "#AllLogButton [class+]"    #>  { if (runDate.isEmpty) "hide" else "" }
-            & "#AllLogButton [onClick]"   #> { if (runDate.nonEmpty) {
+            & "lastreportgrid-grid"       #> showReportDetail(report, node, withCompliance = true, tableId, containerId, getReports)
+            & "#AllLogButton [class+]"    #>  { if (runDate.isEmpty || tableId != "reportsGrid") "hide" else "" }
+            & "#AllLogButton [onClick]"   #> { if (runDate.nonEmpty || tableId == "reportsGrid") {
                 val init = AnonFunc(logDisplayer.asyncDisplay(node.id,runDate,"complianceLogsGrid"))
                 val refresh = AnonFunc(logDisplayer.ajaxRefresh(node.id,runDate, "complianceLogsGrid"))
                 s"""showHideRunLogs("#logRun",${init.toJsCmd}, ${refresh.toJsCmd})"""
@@ -445,7 +446,7 @@ class ReportDisplayer(
     }
   }
 
-  private[this] def showReportDetail(reports: NodeStatusReport, node: NodeInfo, withCompliance: Boolean): NodeSeq = {
+  private[this] def showReportDetail(reports: NodeStatusReport, node: NodeInfo, withCompliance: Boolean, tableId : String, id : String, getReports : NodeId => Box[NodeStatusReport]): NodeSeq = {
     val data = getComplianceData(node.id, reports).map(_.json).getOrElse(JsArray())
 
     val jsFunctionName = if(withCompliance) {
@@ -454,9 +455,10 @@ class ReportDisplayer(
       "createExpectedReportTable"
     }
 
-    <table id="reportsGrid" class="tablewidth" cellspacing="0"></table> ++
+
+    <table id={tableId} class="tablewidth" cellspacing="0"></table> ++
     Script(JsRaw(s"""
-      ${jsFunctionName}("reportsGrid",${data.toJsCmd},"${S.contextPath}", ${refreshReportDetail(node).toJsCmd});
+      ${jsFunctionName}("${tableId}",${data.toJsCmd},"${S.contextPath}", ${refreshReportDetail(node,tableId,  getReports).toJsCmd});
       createTooltip();
     """))
   }
