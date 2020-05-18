@@ -76,6 +76,11 @@ object ShowNodeDetailsFromNode {
       List("templates-hidden", "server", "server_details")
     , "detail-server"
   )
+
+  sealed trait DisplayDetailsMode { def tab : Int}
+  case object Summary    extends DisplayDetailsMode { override def tab = 0 }
+  case object Compliance extends DisplayDetailsMode { override def tab = 1 }
+  case object System     extends DisplayDetailsMode { override def tab = 6 }
 }
 
 class ShowNodeDetailsFromNode(
@@ -195,23 +200,27 @@ class ShowNodeDetailsFromNode(
   }
 
   def mainDispatch = Map(
-    "popupDetails"    -> { _:NodeSeq => privateDisplay(true, false)  }
-  , "popupCompliance" -> { _:NodeSeq => privateDisplay(true, true)   }
-  , "mainDetails"     -> { _:NodeSeq => privateDisplay(false, false) }
-  , "mainCompliance"  -> { _:NodeSeq => privateDisplay(false, true)  }
+    "popupDetails"    -> { _:NodeSeq => privateDisplay(true , Summary   ) }
+  , "popupCompliance" -> { _:NodeSeq => privateDisplay(true , Compliance) }
+  , "popupSystem"     -> { _:NodeSeq => privateDisplay(true , System    ) }
+  , "mainDetails"     -> { _:NodeSeq => privateDisplay(false, Summary   ) }
+  , "mainCompliance"  -> { _:NodeSeq => privateDisplay(false, Compliance) }
+  , "mainSystem"      -> { _:NodeSeq => privateDisplay(false, System    ) }
   )
 
-  def display(popupDisplay : Boolean, complianceDisplay : Boolean) : NodeSeq = {
-    val dispatchName = (popupDisplay, complianceDisplay) match {
-      case (true, true)  => "popupCompliance"
-      case (true, _)     => "popupDetails"
-      case (false, true) => "mainCompliance"
-      case (false, _)    => "mainDetails"
+  def display(popupDisplay : Boolean, displayDetailsMode: DisplayDetailsMode) : NodeSeq = {
+    val dispatchName = (popupDisplay, displayDetailsMode) match {
+      case (true, System     ) => "popupSystem"
+      case (true, Compliance ) => "popupCompliance"
+      case (true, Summary    ) => "popupDetails"
+      case (false, System    ) => "mainSystem"
+      case (false, Compliance) => "mainCompliance"
+      case (false, Summary   ) => "mainDetails"
     }
     dispatch (dispatchName) (NodeSeq.Empty)
   }
 
-  private[this] def privateDisplay(withinPopup : Boolean, displayCompliance : Boolean) : NodeSeq = {
+  private[this] def privateDisplay(withinPopup : Boolean, displayDetailsMode: DisplayDetailsMode) : NodeSeq = {
     boxNodeInfo match {
       case Full(None) =>
         ( <ul id="NodeDetailsTabMenu" class="rudder-ui-tabs ui-tabs-nav"></ul>
@@ -236,14 +245,14 @@ class ShowNodeDetailsFromNode(
       case Full(Some(node)) => // currentSelectedNode = Some(server)
         serverAndMachineRepo.get(node.id, AcceptedInventory).toBox match {
           case Full(Some(sm)) =>
-            val tab = if (displayCompliance) 1 else 0
+            val tab = displayDetailsMode.tab
             val jsId = JsNodeId(nodeId,"")
             def htmlId(jsId:JsNodeId, prefix:String) : String = prefix + jsId.toString
             val detailsId = htmlId(jsId,"details_")
             configService.rudder_global_policy_mode().toBox match {
               case Full(globalMode) =>
 
-                bindNode(node, sm, withinPopup,displayCompliance, globalMode) ++ Script(
+                bindNode(node, sm, withinPopup, globalMode) ++ Script(
                   DisplayNode.jsInit(node.id, sm.node.softwareIds, "") &
                   JsRaw(s"""
                     $$('.portlet-header.page-title').html("${sm.node.main.hostname}");
@@ -280,7 +289,7 @@ class ShowNodeDetailsFromNode(
    * Show the content of a node in the portlet
    * @return
    */
-  private def bindNode(node : NodeInfo, inventory: FullInventory, withinPopup : Boolean , displayCompliance: Boolean, globalMode : GlobalPolicyMode) : NodeSeq = {
+  private def bindNode(node : NodeInfo, inventory: FullInventory, withinPopup : Boolean ,  globalMode : GlobalPolicyMode) : NodeSeq = {
     val id = JsNodeId(node.id)
     ( "#node_groupTree" #>
         <div id={groupTreeId}>
@@ -288,7 +297,8 @@ class ShowNodeDetailsFromNode(
         </div> &
       "#nodeDetails"        #> DisplayNode.showNodeDetails(inventory, Some((node, globalMode)), Some(node.creationDate),  AcceptedInventory, isDisplayingInPopup = withinPopup) &
       "#nodeInventory *"    #> DisplayNode.showInventoryVerticalMenu(inventory) &
-      "#reportsDetails *"   #> reportDisplayer.asyncDisplay(node) &
+      "#reportsDetails *"   #> reportDisplayer.asyncDisplay(node, "node_reports", "reportsDetails", "reportsGrid", RudderConfig.reportingService.findUserNodeStatusReport) &
+      "#systemStatus *"     #> reportDisplayer.asyncDisplay(node, "system_status", "systemStatus", "systemStatusGrid", RudderConfig.reportingService.findSystemNodeStatusReport) &
       "#nodeProperties *"   #> DisplayNode.displayTabProperties(id, node) &
       "#logsDetails *"      #> Script(OnLoad(logDisplayer.asyncDisplay(node.id,None, "logsGrid"))) &
       "#node_parameters -*" #> (if(node.id == Constants.ROOT_POLICY_SERVER_ID) NodeSeq.Empty else nodeStateEditForm(node).nodeStateConfiguration) &

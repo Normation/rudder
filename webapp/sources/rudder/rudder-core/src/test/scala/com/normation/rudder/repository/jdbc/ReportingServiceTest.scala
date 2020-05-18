@@ -158,6 +158,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     def nodeInfoService: NodeInfoService = self.nodeInfoService
     def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[RuleStatusReport] = null
     def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
+    def findUserNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
+    def findSystemNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
     def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]] = null
 
     override def complianceRepository: ComplianceRepository = null

@@ -169,6 +169,8 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
       override def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = ???
       override def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]] = ???
       override def findNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport] = ???
+      override def findUserNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport] = ???
+      override def findSystemNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport] = ???
 
       override def jdbcMaxBatchSize: Int = batchSize
       override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]): Box[Map[NodeId, NodeStatusReport]] = {
@@ -182,6 +184,9 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     override def getUserNodeStatusReports(): Box[Map[NodeId, NodeStatusReport]] = ???
     override def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = ???
     override def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]] = ???
+    override def findUserNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport] = ???
+    override def findSystemNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport] = ???
+
   }
 
   /*

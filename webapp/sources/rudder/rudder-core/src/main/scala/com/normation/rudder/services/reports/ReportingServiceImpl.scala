@@ -132,9 +132,31 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
     }
   }
 
-   override def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = {
+  override def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = {
     for {
       reports <- findRuleNodeStatusReports(Set(nodeId), Set())
+      status  <- Box(reports.get(nodeId)) ?~! s"Can not find report for node with ID ${nodeId.value}"
+    } yield {
+      status
+    }
+  }
+
+  override def findUserNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = {
+    for {
+      userRules <- rulesRepo.getIds().toBox
+      reports <- findRuleNodeStatusReports(Set(nodeId), userRules)
+      status  <- Box(reports.get(nodeId)) ?~! s"Can not find report for node with ID ${nodeId.value}"
+    } yield {
+      status
+    }
+  }
+
+  override def findSystemNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = {
+    for {
+      allRules <- rulesRepo.getIds(true).toBox
+      userRules <- rulesRepo.getIds().toBox
+      systemRules = allRules.diff(userRules)
+      reports <- findRuleNodeStatusReports(Set(nodeId), systemRules)
       status  <- Box(reports.get(nodeId)) ?~! s"Can not find report for node with ID ${nodeId.value}"
     } yield {
       status

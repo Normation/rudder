@@ -40,6 +40,7 @@ package com.normation.rudder.web.services
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.utils.Utils.isEmpty
 import org.slf4j.LoggerFactory
+
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
@@ -56,8 +57,8 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import com.normation.appconfig.ReadConfigService
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
-
 import com.normation.box._
+import com.normation.rudder.repository.RoRuleRepository
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
@@ -82,6 +83,7 @@ class SrvGrid(
     roAgentRunsRepository : RoReportsExecutionRepository
   , asyncComplianceService: AsyncComplianceService
   , configService         : ReadConfigService
+  , roRuleRepository      : RoRuleRepository
 ) extends Loggable {
 
   def jsVarNameForId(tableId:String) = "oTable" + tableId
@@ -172,13 +174,19 @@ class SrvGrid(
   ) = {
     val ajaxCall = SHtml.ajaxCall(JsNull, (s) => {
       val nodes = refreshNodes()
-      val futureCompliances = asyncComplianceService.complianceByNode(nodes.map(_.id).toSet, Set(), tableId)
+      val rules = roRuleRepository.getIds().toBox.getOrElse(Set())
+      val futureCompliances = asyncComplianceService.complianceByNode(nodes.map(_.id).toSet, rules, tableId)
+
+      val systemRules = roRuleRepository.getIds(true).map(_.diff(rules)).toBox.getOrElse(Set())
+      val futureSystemCompliances = asyncComplianceService.systemComplianceByNode(nodes.map(_.id).toSet, systemRules, tableId)
 
       val data = getTableData(nodes,callback)
       JsRaw(s"""
           nodeCompliances = {};
+          nodeSystemCompliances = {};
           refreshTable("${tableId}",${data.json.toJsCmd});
           ${futureCompliances.toJsCmd}
+          ${futureSystemCompliances.toJsCmd}
       """)
     } )
 
