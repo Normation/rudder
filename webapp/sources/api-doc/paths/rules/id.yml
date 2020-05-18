@@ -53,7 +53,7 @@ post:
     content:
       application/x-www-form-urlencoded:
         schema:
-          $ref: ../../components/schemas/rule.yml
+          $ref: ../../components/schemas/rule-with-category.yml
   responses:
     "200":
       description: Rules information
@@ -85,7 +85,7 @@ post:
                   rules:
                     type: array
                     items:
-                      $ref: ../../components/schemas/rule.yml
+                      $ref: ../../components/schemas/rule-with-category.yml
   tags:
     - Rules
   x-code-samples:
