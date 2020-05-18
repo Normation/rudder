@@ -78,6 +78,12 @@ tags:
 
 
       Manage users settings and configuration file.
+  - name: "🧩 Branding"
+    description: >-
+      **Requires that the `branding` plugin is installed on the server.**
+
+
+      Manage web interface customization.
 paths:
   "/createnodes":
     $ref: paths/create-node/all.yml
@@ -207,3 +213,7 @@ paths:
     $ref: paths/rules/category-id.yml
   "/rules/tree":
     $ref: paths/rules/tree.yml
+  "/branding":
+    $ref: paths/branding/conf.yml
+  "/branding/reload":
+    $ref: paths/branding/reload.yml

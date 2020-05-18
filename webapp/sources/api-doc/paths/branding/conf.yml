@@ -1,0 +1,90 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+get:
+  summary: Get branding configuration
+  description: Get all web interface customization parameters
+  operationId: getBrandingConf
+  responses:
+    "200":
+      description: Branding configuration
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getBrandingConf
+              data:
+                type: object
+                required:
+                  - branding
+                properties:
+                  branding:
+                    $ref: ../../components/schemas/branding-conf.yml
+  tags:
+    - 🧩 Branding
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/branding/conf.sh
+
+
+post:
+  summary: Update web interface customization
+  description: change color, logo, label etc.
+  operationId: updateBRandingConf
+  requestBody:
+    required: true
+    content:
+      application/x-www-form-urlencoded:
+        schema:
+          $ref: ../../components/schemas/branding-conf.yml
+  responses:
+    "200":
+      description: Updated
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - updateBRandingConf
+              data:
+                type: object
+                required:
+                  - branding
+                properties:
+                  branding:
+                    $ref: ../../components/schemas/branding-conf.yml
+  tags:
+    - 🧩 Branding
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/branding/update.sh
