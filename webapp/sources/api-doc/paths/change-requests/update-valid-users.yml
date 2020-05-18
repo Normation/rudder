@@ -1,0 +1,53 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+post:
+  summary: Update validated user list
+  description: Add and remove user from validated users
+  operationId: saveWorkflowUser
+  requestBody:
+    required: true
+    content:
+      application/x-www-form-urlencoded:
+        schema:
+          type: object
+          required:
+            - validatedUsers
+          properties:
+            validatedUsers:
+              type: array
+              description: list of user to put in validated list
+              items:
+                type: string
+                example: John Do
+
+  responses:
+    "200":
+      description: Updated
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - addUser
+              data:
+                $ref: ../../components/schemas/validated-user.yml
+  tags:
+    - 🧩 Change requests
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/change-requests/update-valid-users.sh

@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+delete:
+  summary: Remove an user from validated user list
+  description: The user is again subject to workflow validation
+  operationId: removeValidatedUser
+  parameters:
+    - $ref: ../../components/parameters/username.yml
+  responses:
+    "200":
+      description: Removed user
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - listUsers
+              data:
+                type: string
+                description: the user removed from validated list
+                example: John Do
+
+  tags:
+    - 🧩 Change requests
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/change-requests/remove-valid-users.sh

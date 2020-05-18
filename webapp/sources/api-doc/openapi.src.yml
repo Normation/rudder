@@ -101,6 +101,12 @@ paths:
     $ref: paths/change-requests/id.yml
   "/api/changeRequests":
     $ref: paths/change-requests/all.yml
+  "/users":
+    $ref: paths/change-requests/valid-users.yml
+  "/validatedUsers/{username}":
+    $ref: paths/change-requests/remove-valid-users.yml
+  "/validatedUsers":
+    $ref: paths/change-requests/update-valid-users.yml
   "/compliance":
     $ref: paths/compliance/global.yml
   "/compliance/rules":

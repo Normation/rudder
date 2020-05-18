@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+
+type: object
+description: list of users with their workflow settings
+required:
+  - username
+  - isValidated
+  - userExists
+properties:
+  username:
+    type: string
+    example: John Do
+  isValidated:
+    type: boolean
+    description: whether the user's actions generate chanque-request or not
+  userExists:
+    type: boolean
+    description: whether the user exists in file or not
