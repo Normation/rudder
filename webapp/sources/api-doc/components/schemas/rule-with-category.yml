@@ -1,12 +1,5 @@
-# SPDX-License-Identifier: CC-BY-SA-2.0
-# SPDX-FileCopyrightText: 2013-2020 Normation SAS
 type: object
 properties:
-  source:
-    type: string
-    format: uuid
-    example: b9f6d98a-28bc-4d80-90f7-d2f14269e215
-    description: The id of the rule the clone will be based onto. If this parameter if provided, the new rule will be a clone of this source. Other value will override values from the source.
   id:
     type: string
     description: Rule id
@@ -28,7 +21,7 @@ properties:
     type: string
     format: uuid
     example: 38e0c6ea-917f-47b8-82e0-e6a1d3dd62ca
-    description: The parent category id. If provided, the new rule will be in this parent category
+    description: The parent category id.
   directives:
     type: array
     description: Directives linked to the rule
