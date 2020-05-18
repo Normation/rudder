@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: object
+required:
+  - displayBar
+  - displayLabel
+  - labelText
+  - barColor
+  - labelColor
+  - wideLogo
+  - smallLogo
+  - displayBarLogin
+  - displayMotd
+  - motd
+properties:
+  displayBar:
+    type: boolean
+    description: Whether header bar is displayed or not
+  displayLabel:
+    type: boolean
+    description: Whether header bar's label is displayed or not
+  labelText:
+    type: string
+    description: The header bar's label title
+    example: Production
+  barColor:
+    $ref: color.yml
+  labelColor:
+    $ref: color.yml
+  wideLogo:
+    $ref: logo.yml
+  smallLogo:
+    $ref: logo.yml
+  displayBarLogin:
+    type: boolean
+    description: Whether header bar is displayed in loggin page or not
+  displayMotd:
+    type: boolean
+    description: Whether the message of the day is displayed in loggin page or not
+  motd:
+    type: string
+    description: Message of the day in loggin page
+    example: "Welcome, please sign in:"

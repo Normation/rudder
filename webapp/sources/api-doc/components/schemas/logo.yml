@@ -1,0 +1,7 @@
+type: object
+required:
+  - enable
+properties:
+  enable:
+    type: boolean
+    description: Whether the wide logo is displayed or not

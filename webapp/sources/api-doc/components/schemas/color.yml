@@ -1,0 +1,31 @@
+type: object
+required:
+  - red
+  - blue
+  - green
+  - alpha
+properties:
+  red:
+    type: number
+    description: percentage of red component
+    minimum: 0
+    maximum: 1
+    example: 0.2
+  blue:
+    type: number
+    description: percentage of blue component
+    minimum: 0
+    maximum: 1
+    example: 0.235
+  green:
+    type: number
+    description: percentage of green component
+    minimum: 0
+    maximum: 1
+    example: 0.01
+  alpha:
+    type: number
+    description: percentage of opacity
+    minimum: 0
+    maximum: 1
+    example: 0.5
