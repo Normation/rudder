@@ -37,6 +37,8 @@ bundle agent log_rudder_mode(mode, message, class_parameter, class_prefix)
       "c_class_prefix"         string => "";
       "c_class_prefix"         string => canonify("${class_prefix}");
       "component_key"          string => "${class_parameter}";
+    rudder_report_force_component_none::
+      "component_key"          string => "None";
 
     pass1.!known_mode::
       "effective_mode"         string => "log_warn";
@@ -93,6 +95,9 @@ bundle agent log_rudder(message, class_parameter, old_class_prefix, class_prefix
       "class_prefix_length"       int => string_length("${class_prefix}");
 
       "component_key"          string => "${class_parameter}";
+
+    rudder_report_force_component_none::
+      "component_key"          string => "None";
 
   defaults:
       # if class_parameter is not set, then use the component_key from report_data
@@ -728,3 +733,29 @@ bundle agent endExecution
 * Any existing configuration policy will continue to be applied without change. *
 *********************************************************************************";
 }
+
+# This needs to be called with "true" to force None, and then
+# with false to go back to normal behavior
+bundle agent rudder_set_force_component_none(mode)
+{
+  vars:
+    # this is a way to remove the class without side effect
+    pass2.!set_mode::
+      "ignored" string        => "",
+                      classes => if_ok_cancel("rudder_report_force_component_none");
+
+  classes:
+      "set_mode" expression => strcmp("${mode}", "true");
+      "pass2" expression      => "pass1";
+      "pass1" expression      => "any";
+
+    pass2.set_mode::
+      "rudder_report_force_component_none" expression    => "any", scope => "namespace";
+
+  reports:
+    pass2.debug.unset_mode::
+      "${configuration.debug} Disabling force None component mode";
+    pass2.debug.!unset_mode::
+      "${configuration.debug} Enabling force None component mode";
+}
+
