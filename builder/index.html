@@ -386,7 +386,7 @@
                               <label for="category" class="col-sm-3 control-label">Category</label>
                               <div class="col-sm-8">
                                 <select ng-if="originalTechnique.bundle_name === undefined" class="form-control" name="category" id="category" ng-model="selectedTechnique.category">
-                                  <option ng-repeat="(id,name) in techniqueCategories" value="{{id}}">{{name}}</option>
+                                  <option ng-repeat="category in techniqueCategories | orderBy:'+value'" value="{{category.key}}">{{category.value}}</option>
                                 </select>
                                 <input  ng-if="originalTechnique.bundle_name !== undefined" readonly id="category" bundlename name="category" class="form-control" ng-model="techniqueCategories[selectedTechnique.category]">
                               </div>
