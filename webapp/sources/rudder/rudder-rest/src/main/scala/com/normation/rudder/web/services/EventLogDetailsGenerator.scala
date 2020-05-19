@@ -1122,7 +1122,7 @@ class EventLogDetailsGenerator(
 
   private[this] def globalParameterDetails(xml: NodeSeq, globalParameter: GlobalParameter) = (
     "#name" #> globalParameter.name &
-      "#value" #> GenericPropertyUtils.serializeValue(globalParameter.value) &
+      "#value" #> globalParameter.valueAsString &
       "#description" #> globalParameter.description
     )(xml)
 

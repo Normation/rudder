@@ -131,7 +131,7 @@ class LDAPEntityMapper(
 
     // for node properties, we ALWAYS filter-out properties coming from inventory,
     // because we don't want to store them there.
-    entry +=! (A_NODE_PROPERTY, node.properties.collect { case p if(p.provider != Some(NodeProperty.customPropertyProvider)) => compactRender(p.toJson)}:_* )
+    entry +=! (A_NODE_PROPERTY, node.properties.collect { case p if(p.provider != Some(NodeProperty.customPropertyProvider)) => p.toData}:_* )
 
     node.nodeReportingConfiguration.heartbeatConfiguration match {
       case Some(heatbeatConfiguration) =>
@@ -189,10 +189,7 @@ class LDAPEntityMapper(
                         case None => Right(None)
                         case Some(value) => PolicyMode.parse(value).map {Some(_) }
                       }
-        properties <- e.valuesFor(A_NODE_PROPERTY).toList.traverse(v => net.liftweb.json.parseOpt(v) match {
-                        case Some(json) => NodeProperty.unserializeLdapNodeProperty(json)
-                        case None => Left(Unexpected("Invalid data when unserializing node property"))
-                      })
+        properties <- e.valuesFor(A_NODE_PROPERTY).toList.traverse(NodeProperty.unserializeLdapNodeProperty)
       } yield {
         val hostname = e(A_NAME).getOrElse("")
         Node(
@@ -304,13 +301,12 @@ class LDAPEntityMapper(
                        }
       // custom properties mapped as NodeProperties
       properties    <- ZIO.foreach(inventoryEntry.valuesFor(A_CUSTOM_PROPERTY)) { json =>
-                         import inventoryMapper.CustomPropertiesSerialization._
-                         json.toCustomProperty.foldM(
-                           err =>
+                         GenericProperty.parseConfig(json).toIO.foldM(
+                           err  =>
                              logPure.error(Chained(s"Error when trying to deserialize Node Custom Property, it will be ignored", err).fullMsg) *>
                              None.succeed
-                         , cs  =>
-                             Some(NodeProperty(cs.name, cs.value, Some(NodeProperty.customPropertyProvider))).succeed
+                         , conf =>
+                             Some(NodeProperty(conf).withProvider(NodeProperty.customPropertyProvider)).succeed
                          )
                        }
       agentsInfo    <- parseAgentInfo(node.id, inventoryEntry)
@@ -365,7 +361,7 @@ class LDAPEntityMapper(
         case None         => current
         case Some(custom) =>
           current.provider match {
-            case None | Some(GenericPropertyUtils.defaultPropertyProvider) => //override and log
+            case None | Some(PropertyProvider.defaultPropertyProvider) => //override and log
               logEffect.info(s"On node [${nodeId.value}]: overriding existing node property '${current.name}' with custom node inventory property with same name.")
               custom
             case other => // keep existing prop from other provider but log
@@ -595,7 +591,7 @@ class LDAPEntityMapper(
                      }
                    }
         // better to ignore a bad property (set by something extern to rudder) than to make group unusable
-        properties =  e.valuesFor(A_JSON_PROPERTY).toList.flatMap(s => GroupProperty.parseSerializedGroupProperty(s) match {
+        properties =  e.valuesFor(A_JSON_PROPERTY).toList.flatMap(s => GroupProperty.unserializeLdapGroupProperty(s) match {
                         case Right(p)  => Some(p)
                         case Left(err) =>
                          ApplicationLogger.error(s"Group has an invalid property that will be ignore: ${err.fullMsg}")
@@ -625,7 +621,7 @@ class LDAPEntityMapper(
       , group.serverList
       , group.isEnabled
     )
-    entry +=! (A_JSON_PROPERTY, group.properties.map(p => compactRender(p.toJson)):_* )
+    entry +=! (A_JSON_PROPERTY, group.properties.map(p => p.toData):_* )
     entry
   }
 
@@ -966,14 +962,10 @@ class LDAPEntityMapper(
         name        <- e.required(A_PARAMETER_NAME)
         value       =  e(A_PARAMETER_VALUE).getOrElse("")
         description =  e(A_DESCRIPTION).getOrElse("")
-        provider    =  e(A_PROPERTY_PROVIDER).map(PropertyProvider)
+        provider    =  e(A_PROPERTY_PROVIDER).map(PropertyProvider.apply)
+        g           <- GlobalParameter.parse(name, value, description, provider).left.map(err => Err.UnexpectedObject(err.fullMsg))
       } yield {
-        GlobalParameter(
-            name
-          , value
-          , description
-          , provider
-        )
+        g
       }
     } else Left(Err.UnexpectedObject("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_PARAMETER, e)))
   }
@@ -982,7 +974,7 @@ class LDAPEntityMapper(
     val entry = rudderDit.PARAMETERS.parameterModel(
         parameter.name
     )
-    entry +=! (A_PARAMETER_VALUE, GenericPropertyUtils.serializeValue(parameter.value))
+    entry +=! (A_PARAMETER_VALUE, parameter.valueAsString)
     entry +=! (A_DESCRIPTION, parameter.description)
     parameter.provider.foreach(p =>
       entry +=! (A_PROPERTY_PROVIDER, p.value)

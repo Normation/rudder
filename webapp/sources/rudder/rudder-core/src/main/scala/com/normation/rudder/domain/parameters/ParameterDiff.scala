@@ -40,7 +40,7 @@ package com.normation.rudder.domain.parameters
 import com.normation.rudder.domain.nodes.PropertyProvider
 import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.domain.policies.TriggerDeploymentDiff
-import net.liftweb.json.JsonAST.JValue
+import com.typesafe.config.ConfigValue
 
 sealed trait ParameterDiff extends TriggerDeploymentDiff
 
@@ -59,7 +59,7 @@ final case class DeleteGlobalParameterDiff(parameter:GlobalParameter) extends Pa
 
 final case class ModifyGlobalParameterDiff(
     name          : String
-  , modValue      : Option[SimpleDiff[JValue]] = None
+  , modValue      : Option[SimpleDiff[ConfigValue]] = None
   , modDescription: Option[SimpleDiff[String]] = None
   , modProvider   : Option[SimpleDiff[Option[PropertyProvider]]] = None
 ) extends ParameterDiff {

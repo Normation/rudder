@@ -352,7 +352,7 @@ class LDAPDiffMapper(
                   for {
                     d     <- diff
                              // ignore invalide properties, don't make group unusable
-                    props =  mod.getAttribute().getValues.toList.flatMap(s => GroupProperty.parseSerializedGroupProperty(s) match {
+                    props =  mod.getAttribute().getValues.toList.flatMap(s => GroupProperty.unserializeLdapGroupProperty(s) match {
                                case Right(p)  => Some(p)
                                case Left(err) =>
                                 ApplicationLogger.error(s"Group has an invalid property that will be ignore: ${err.fullMsg}")
@@ -415,8 +415,15 @@ class LDAPDiffMapper(
             diff <- modify.getModifications().foldLeft(ModifyGlobalParameterDiff(parameterName).asRight[RudderError]) { (diff, mod) =>
               mod.getAttributeName() match {
                 case A_PARAMETER_VALUE =>
-                  nonNull(diff, mod.getAttribute().getValue) { (d, value) =>
-                    d.copy(modValue = Some(SimpleDiff(oldParam.value, GenericPropertyUtils.parseValue(value))))
+                  mod.getAttribute().getValue match {
+                    case null  => diff
+                    case value =>
+                      for {
+                        d <- diff
+                        v <- GenericProperty.parseValue(value)
+                      } yield {
+                        d.copy(modValue = Some(SimpleDiff(oldParam.value, v)))
+                      }
                   }
                 case A_DESCRIPTION =>
                   nonNull(diff, mod.getAttribute().getValue) { (d, value) =>

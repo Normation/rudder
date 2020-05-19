@@ -449,12 +449,12 @@ final case object CheckGlobalParameter extends CheckChanges[GlobalParameter]  {
     }
 
     def compareGlobalParameter(initial:GlobalParameter, current:GlobalParameter) : Boolean = {
-      val initialFixed = initial.copy(
-          description = normalizeString(initial.description)
+      val initialFixed = initial.withDescription(
+          normalizeString(initial.description)
       )
 
-      val currentFixed = current.copy(
-          description = normalizeString(current.description)
+      val currentFixed = current.withDescription(
+          normalizeString(current.description)
       )
 
       if (initialFixed == currentFixed) {

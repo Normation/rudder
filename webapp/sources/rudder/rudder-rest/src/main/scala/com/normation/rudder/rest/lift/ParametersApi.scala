@@ -243,18 +243,19 @@ extends Loggable {
 
     restParameter match {
       case Full(restParameter) =>
-            val parameter = restParameter.updateParameter(GlobalParameter(parameterName,"","",None))
+        import com.normation.rudder.domain.nodes.GenericProperty._
+        val parameter = restParameter.updateParameter(GlobalParameter(parameterName,"".toConfigValue,"",None))
 
-            val diff = AddGlobalParameterDiff(parameter)
-            createChangeRequestAndAnswer(
-                parameterName
-              , diff
-              , parameter
-              , None
-              , actor
-              , req
-              , GlobalParamModAction.Create
-            )
+        val diff = AddGlobalParameterDiff(parameter)
+        createChangeRequestAndAnswer(
+            parameterName
+          , diff
+          , parameter
+          , None
+          , actor
+          , req
+          , GlobalParamModAction.Create
+        )
 
       case eb : EmptyBox =>
         val fail = eb ?~ (s"Could extract values from request" )

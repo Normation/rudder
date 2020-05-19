@@ -57,12 +57,13 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.domain.nodes.PropertyProvider
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.workflows.ChangeRequestInfo
-import net.liftweb.json.JsonAST.JValue
+import com.typesafe.config.ConfigValue
 
 
 sealed trait DetailLevel {
@@ -275,19 +276,16 @@ final case object RefuseNode extends NodeStatusAction
 final case object DeleteNode extends NodeStatusAction
 
 final case class RestParameter(
-      value       : Option[JValue] = None
+      value       : Option[ConfigValue] = None
     , description : Option[String] = None
   ) {
 
 
     def updateParameter(parameter: GlobalParameter) = {
-      val updateValue = value.getOrElse(parameter.value)
-      val updateDescription = description.getOrElse(parameter.description)
-      parameter.copy(
-          value       = updateValue
-        , description = updateDescription
-        , provider    = None // rest API can only use default provider.
-      )
+      val updateValue = (p: GlobalParameter) => (value.map(x => p.withValue(x))).getOrElse(p)
+      val updateDesc  = (p: GlobalParameter) => (description.map(x => p.withDescription(x))).getOrElse(p)
+
+      updateDesc(updateValue(parameter)).withProvider(PropertyProvider.defaultPropertyProvider)
     }
 }
 

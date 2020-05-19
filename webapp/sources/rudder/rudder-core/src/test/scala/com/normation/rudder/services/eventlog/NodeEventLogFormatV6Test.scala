@@ -44,11 +44,10 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.SimpleDiff
 import net.liftweb.common.Full
 import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.domain.nodes.NodeProperty
+import com.normation.rudder.domain.nodes.GenericProperty._
 import com.normation.rudder.domain.nodes.ModifyNodeDiff
+import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.reports.HeartbeatConfiguration
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.JsonDSL._
 import scala.collection.mutable.ArrayBuffer
 import com.normation.rudder.domain.eventlog.EventTypeFactory
 import com.normation.rudder.domain.eventlog.ModifyNodeEventType
@@ -100,14 +99,16 @@ class NodeEventLogFormatV6Test extends Specification {
           , modAgentRun   = None
           , modProperties = Some(SimpleDiff(
                               ArrayBuffer(
-                                NodeProperty("env_type", JString("production"), None)
-                              , NodeProperty("shell", JString("/bin/sh"), None)
+                                NodeProperty("env_type", "production".toConfigValue, None)
+                              , NodeProperty("shell", "/bin/sh".toConfigValue, None)
                               ).toList
                             , ArrayBuffer(
-                                NodeProperty("shell", JString("/bin/sh"), None)
-                              , NodeProperty("env", JString("PROD"), None)
-                              , NodeProperty("datacenter", ("Europe" -> ("France" -> true) ), None)
-                              ).toList
+                                NodeProperty("shell", "/bin/sh".toConfigValue, None)
+                              , NodeProperty("env", "PROD".toConfigValue, None)
+                              , NodeProperty.parse("datacenter", """{"Europe":{"France":true}}""", None).fold(
+                                  err => throw new IllegalArgumentException("Error in test: " + err.fullMsg)
+                                , res => res
+                              )).toList
                             ))
           , modPolicyMode = None
           , modKeyValue   = None

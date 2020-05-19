@@ -41,9 +41,9 @@ import java.util.regex.Pattern
 
 import com.normation.errors._
 import com.normation.rudder.services.policies.ParameterEntry
+import com.typesafe.config._
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
-import net.liftweb.json.JsonParser.ParseException
 
 /*
  * A property provider is the thing responsible for that property.
@@ -75,29 +75,71 @@ import net.liftweb.json.JsonParser.ParseException
  */
 final case class PropertyProvider(value: String) extends AnyVal
 
-object GenericPropertyUtils {
-  import net.liftweb.json.JsonAST.JNothing
-  import net.liftweb.json.JsonAST.JString
-  import net.liftweb.json.{parse => jsonParse}
-
-
-
-  /**
-   * Property name must matches that pattern
-   */
-  val patternName = Pattern.compile("""[\-a-zA-Z0-9_]+""")
-
-
+object PropertyProvider {
   /*
    * System property provider. These properties should never
    * be updated/deleted by things other than rudder.
    */
   final val systemPropertyProvider = PropertyProvider("system")
   final val defaultPropertyProvider = PropertyProvider("default")
+}
 
 
-  /*
-   * Check if old property can be updated by a new one matching its providers.
+/*
+ * A property is backed by an HOCON config that MUST looks like:
+ * { "name": name, "value": value, "provider": "default", "description":"..." }
+ * Any other format will lead to errors.
+ * Only the name is mandatory, and it is alway escapped as a string.
+ * Description, if not provided will return an empty string. Anything else than a string will lead to an error.
+ * Provider, if not provided will return None
+ * This trait provides update methods for generic processing (since we don't have case class compiler support).
+ */
+trait GenericProperty[P <: GenericProperty[_]] {
+  import GenericProperty._
+
+  def config  : Config
+  def fromConfig(v: Config): P
+
+  final def name : String      = config.getString(NAME)
+  final def value: ConfigValue = {
+    if(config.hasPath(VALUE)) config.getValue(VALUE)
+    else ConfigValueFactory.fromAnyRef("")
+  }
+
+  final def provider: Option[PropertyProvider] = {
+    // optional, default "rudder"
+    if(config.hasPath(PROVIDER)) Some(PropertyProvider(config.getString(PROVIDER)))
+    else None
+  }
+
+  final def description: String = {
+    if(config.hasPath(GenericProperty.DESCRIPTION)) config.getString(GenericProperty.DESCRIPTION)
+    else ""
+  }
+
+  final def withName(name: String): P             = fromConfig(config.withValue(GenericProperty.NAME, name.toConfigValue))
+  final def withValue(value: ConfigValue): P      = fromConfig(config.withValue(GenericProperty.VALUE, value))
+  final def withValue(value: String): P           = fromConfig(config.withValue(GenericProperty.VALUE, value.toConfigValue))
+  final def withProvider(p: PropertyProvider): P  = fromConfig(config.withValue(GenericProperty.PROVIDER, p.value.toConfigValue))
+  final def withDescription(d: String): P         = fromConfig(config.withValue(GenericProperty.DESCRIPTION, d.toConfigValue))
+
+  override def toString: String = this.getClass.getSimpleName+"("+this.config.root.render(ConfigRenderOptions.defaults())+")"
+}
+
+object GenericProperty {
+
+  val VALUE       = "value"
+  val NAME        = "name"
+  val PROVIDER    = "provider"
+  val DESCRIPTION = "description"
+
+  /**
+   * Property name must matches that pattern
+   */
+  val patternName = Pattern.compile("""[\-a-zA-Z0-9_]+""")
+
+  /**
+   * Check if old property can be updated by a new one matching its provider.
    * The rules are:
    * - system provider has always the right to update,
    * - else default provider has always the right to be updated,
@@ -106,30 +148,34 @@ object GenericPropertyUtils {
    * Sum up: system > all other providers > none|defaults
    */
   def canBeUpdated(old: Option[PropertyProvider], newer: Option[PropertyProvider]): Boolean = {
-    if(newer == Some(systemPropertyProvider)) true
-    else old match {
-      case None | Some(`defaultPropertyProvider`) =>
+    if(newer == Some(PropertyProvider.systemPropertyProvider)) {
+      true
+    } else old match {
+      case None =>
+        true
+      case Some(p1) if p1 == PropertyProvider.defaultPropertyProvider =>
         true
       case Some(p1) =>
-        p1 == newer.getOrElse(defaultPropertyProvider)
+        val res = p1 == newer.getOrElse(PropertyProvider.defaultPropertyProvider)
+        res
     }
   }
 
   /**
-   * Parse a value that can be a string or some json.
+   * Serialize to hocon format, but just authorize comments (else keep json).
+   * We may relaxe constraints later.
+   * See `serialize` for info about how different value type are serialized.
    */
-  def parseValue(value: String): JValue = {
-    try {
-      jsonParse(value) match {
-        case JNothing => JString("")
-        case json     => json
-      }
-    } catch {
-      case ex: ParseException =>
-        // in that case, we didn't had a valid json top-level structure,
-        // i.e either object or array. Use a JString with the content
-        JString(value)
-    }
+  def serializeToHocon(value: ConfigValue): String = {
+    serialize(value, ConfigRenderOptions.concise().setComments(true))
+  }
+
+  /**
+   * Serialize to json, loosing comments.
+   * See `serialize` for info about how different value type are serialized.
+   */
+  def serializeToJson(value: ConfigValue): String = {
+    serialize(value, ConfigRenderOptions.concise())
   }
 
   /**
@@ -137,65 +183,199 @@ object GenericPropertyUtils {
    * some care to take, because simple jvalue (string, boolean, etc)
    * must be written directly as string without quote.
    */
-  def serializeValue(value: JValue): String = {
-    value match {
-      case JNothing | JNull => ""
-      case JString(s)       => s
-      case JBool(v)         => v.toString
-      case JDouble(v)       => v.toString
-      case JInt(v)          => v.toString
-      case json             => compactRender(json)
+  def serialize(value: ConfigValue, option: ConfigRenderOptions): String = {
+    // special case for string: we need to remove "" for compat with agents
+    if(value.valueType() == ConfigValueType.STRING) {
+      value.unwrapped().toString
+    } else {
+      value.render(option)
     }
   }
 
   /*
    * Merge two json values, overriding or merging recursively
    */
-  def mergeValues(oldValue: JValue, newValue: JValue): JValue = {
-    oldValue.merge(newValue)
-  }
-}
-
-
-
-trait Property[P <: Property[_]] {
-  def name    : String
-  def value   : JValue
-  def provider: Option[PropertyProvider] // optional, default "rudder"
-
-  def setValue(v: JValue): P
-}
-
-object Property {
-  implicit class RenderNodeProperty(val p: Property[_]) extends AnyVal {
-    def renderValue: String = GenericPropertyUtils.serializeValue(p.value)
+  def mergeValues(oldValue: ConfigValue, newValue: ConfigValue): ConfigValue = {
+    newValue.withFallback(oldValue)
   }
 
-  implicit class PropertyToJson(val x: Property[_]) extends AnyVal {
+  /**
+   * Merge two properties. newProp values will win.
+   * You should have check before that "name" and "provider" are OK.
+   */
+  def mergeConfig(oldProp: Config, newProp: Config): Config = {
+    newProp.withFallback(oldProp)
+  }
+
+  /**
+   * Find the first non comment char in a (multiline) string. In our convention, an
+   * hocon string must starts (excluded comments and whitespaces) by a '{'.
+   */
+  @scala.annotation.tailrec
+  def firstNonCommentChar(s: String): Option[Char] = {
+    val trim = s.dropWhile(c => c.isWhitespace || c.isSpaceChar)
+    if(trim.isEmpty) None
+    else {
+      if(trim.startsWith("#") || trim.startsWith("//")) {
+        firstNonCommentChar(trim.dropWhile(_ != '\n'))
+      } else { // trim is non empty
+        Some(trim.charAt(0))
+      }
+    }
+  }
+
+  /**
+   * Contrary to native hocon, we only have TWO kinds of values:
+   * - object, which are mandatory to start with a '{' and end by a '}'
+   *   (in middle, it's whatever hocon authorize: comments, etc. But the structure must be key/value structured)
+   * - strings, which must not start by '{' (you must escape it with \ if so). <- check that. Is it indempotent regarding serialisation?
+   *   String can't have comments or anything, they are taken "as is".
+   */
+  def parseValue(value: String): PureResult[ConfigValue] = {
+    // find first char that is no in a commented line nor a space
+
+    if(value == "") Right(ConfigValueFactory.fromAnyRef(""))
+    else firstNonCommentChar(value) match {
+      case None => // here, either we return empty string, or the orginal one. I thing we should return empty string, since user can quote if he wants.case _: scala.None.type =>
+        Right(ConfigValueFactory.fromAnyRef(""))
+      case Some(c) if(c == '{') =>
+        PureResult.effect(s"Error: value is not parsable as a property: ${value}") {
+          ConfigFactory.parseString(
+            // it's necessary to put it on its own line to avoid pb with comments/multilines
+            s"""{"x":
+                ${value}
+                }""").getValue("x")
+        }
+      case _ => // it's a string that should be understood as a string
+        Right(ConfigValueFactory.fromAnyRef(value))
+    }
+  }
+
+  /**
+   * Parse a JSON JValue to ConfigValue. It always succeeds.
+   */
+  def fromJsonValue(value: JValue): ConfigValue = {
+    import scala.jdk.CollectionConverters._
+    value match {
+      case JNothing | JNull => ConfigValueFactory.fromAnyRef("")
+      case JString(s)       => ConfigValueFactory.fromAnyRef(s)
+      case JDouble(d)       => ConfigValueFactory.fromAnyRef(d)
+      case JInt(num)        => ConfigValueFactory.fromAnyRef(num)
+      case JBool(b)         => ConfigValueFactory.fromAnyRef(b)
+      case JObject(arr)     => {
+                                 val m = new java.util.HashMap[String, ConfigValue]()
+                                 arr.foreach(f => m.put(f.name, fromJsonValue(f.value)))
+                                 ConfigValueFactory.fromMap(m)
+                               }
+      case JArray(arr)      => ConfigValueFactory.fromIterable(arr.map(x => fromJsonValue(x)).asJava)
+    }
+  }
+
+  /**
+   * Parse a name, provider, description and value as a config object. It can fail if `value` doesn't fulfill our requirements:
+   * either starts by a `{` and is well formatted hocon property string, or is a string.
+   */
+  def parseConfig(name: String, value: String, provider: Option[PropertyProvider], description: Option[String], options: ConfigParseOptions = ConfigParseOptions.defaults()): PureResult[Config] = {
+    parseValue(value).flatMap { v =>
+      val m = new java.util.HashMap[String, ConfigValue]()
+      m.put(NAME, ConfigValueFactory.fromAnyRef(name))
+      provider.foreach(x => m.put(PROVIDER, ConfigValueFactory.fromAnyRef(x.value)))
+      description.foreach(x => m.put(DESCRIPTION, ConfigValueFactory.fromAnyRef(x)))
+      m.put(VALUE, v)
+      PureResult.effect(ConfigFactory.parseMap(m))
+    }
+  }
+
+  /**
+   * Transform a name, provider, description, and value (as a ConfigValue) into a config.
+   */
+  def toConfig(name: String, value: ConfigValue, provider: Option[PropertyProvider], description: Option[String], options: ConfigParseOptions = ConfigParseOptions.defaults()): Config = {
+    val m = new java.util.HashMap[String, ConfigValue]()
+    m.put(NAME, ConfigValueFactory.fromAnyRef(name))
+    provider.foreach(x => m.put(PROVIDER, ConfigValueFactory.fromAnyRef(x.value)))
+    description.foreach(x => m.put(DESCRIPTION, ConfigValueFactory.fromAnyRef(x)))
+    m.put(VALUE, value)
+    ConfigFactory.parseMap(m)
+  }
+
+
+  def valueToConfig(value: ConfigValue): Config = {
+    ConfigFactory.empty().withValue(VALUE, value)
+  }
+
+  /**
+   * Parse a string a hocon config object
+   */
+  def parseConfig(json: String): PureResult[Config] = {
+    PureResult.effectM(s"Error when parsing data as a property: ${json}") {
+      val cfg = ConfigFactory.parseString(json)
+      if(cfg.hasPath(NAME) && cfg.hasPath(VALUE)) Right(cfg)
+      else Left(Inconsistency(s"Error when parsing data as a property: it misses required field 'name' or 'value': ${json}"))
+    }
+  }
+
+  implicit class RenderProperty(val p: GenericProperty[_]) extends AnyVal {
+    def valueAsString: String = GenericProperty.serializeToHocon(p.value)
+    // get value as a JValue
+    def jsonValue: JValue = {
+      p.value.valueType() match {
+        case ConfigValueType.NULL    => JNothing
+        case ConfigValueType.BOOLEAN => JBool(p.value.unwrapped().asInstanceOf[Boolean])
+        case ConfigValueType.NUMBER  => p.value.unwrapped() match {
+          case d: java.lang.Double   => JDouble(d)
+          case i: java.lang.Integer  => JInt(BigInt(i))
+          case l: java.lang.Long     => JInt(BigInt(l))
+        }
+        case ConfigValueType.STRING  => JString(p.value.unwrapped().asInstanceOf[String])
+        // the only safe and compatible way for array/object seems to be to render and then parse
+        case _    => parse(p.value.render(ConfigRenderOptions.concise()))
+      }
+    }
+  }
+
+  /*
+   * Implicit class to change values to ConfigValue
+   */
+  implicit class StringToConfigValue(val x: String) extends AnyVal {
+    def toConfigValue: ConfigValue = ConfigValueFactory.fromAnyRef(x)
+  }
+  implicit class AnyValToConfigValue[T <: AnyVal](val x: T) extends AnyVal {
+    def toConfigValue: ConfigValue = ConfigValueFactory.fromAnyRef(x)
+  }
+  implicit class BitIntToConfigValue(val x: BigInt) extends AnyVal {
+    def toConfigValue: ConfigValue = ConfigValueFactory.fromAnyRef(x)
+  }
+  implicit class IterableToConfig[T](val x: Iterable[T]) extends AnyVal {
+    import scala.jdk.CollectionConverters._
+    def toConfigValue: ConfigValue = ConfigValueFactory.fromIterable(x.asJava)
+  }
+  implicit class MapToConfig[T](val x: Map[String, T]) extends AnyVal {
+    import scala.jdk.CollectionConverters._
+    def toConfigValue: ConfigValue = ConfigValueFactory.fromMap(x.asJava)
+  }
+
+  /*
+   * Implicit class to render properties to JSON
+   */
+  implicit class PropertyToJson(val x: GenericProperty[_]) extends AnyVal {
     def toJson(): JObject = (
         ( "name"     -> x.name  )
-      ~ ( "value"    -> x.value )
+      ~ ( "value"    -> parse(x.value.render(ConfigRenderOptions.concise()) ) )
       ~ ( "provider" -> x.provider.map(_.value) )
     )
 
-    def toJsonString: String = {
-      compactRender(toJson)
-    }
+    def toData: String = x.config.root().render(ConfigRenderOptions.concise().setComments(true))
   }
 
-  implicit class JsonProperties(val props: Seq[Property[_]]) extends AnyVal {
+  implicit class JsonProperties(val props: Seq[GenericProperty[_]]) extends AnyVal {
     implicit def formats = DefaultFormats
-
-    def dataJson(x: Property[_]) : JField = {
-      JField(x.name, x.value)
-    }
 
     def toApiJson(): JArray = {
       JArray(props.map(_.toJson()).toList)
     }
 
     def toDataJson(): JObject = {
-      props.map(dataJson(_)).toList.sortBy { _.name }
+      props.map(x => JField(x.name, x.jsonValue)).toList.sortBy { _.name }
     }
   }
 }
@@ -207,12 +387,8 @@ object Property {
  *
  * Only the provider of a property can modify it.
  */
-final case class NodeProperty(
-    name    : String
-  , value   : JValue
-  , provider: Option[PropertyProvider] // optional, default "rudder"
-) extends Property[NodeProperty] {
-  override def setValue(v: JValue) = NodeProperty(name, v, provider)
+final case class NodeProperty(config: Config) extends GenericProperty[NodeProperty] {
+  override def fromConfig(c: Config) = NodeProperty(c)
 }
 
 object NodeProperty {
@@ -228,27 +404,21 @@ object NodeProperty {
    * a JString *but* a string representing an actual JSON should be
    * used as json.
    */
-  def apply(name: String, value: String, provider: Option[PropertyProvider]): NodeProperty = {
-    NodeProperty(name, GenericPropertyUtils.parseValue(value), provider)
+  def parse(name: String, value: String, provider: Option[PropertyProvider]): PureResult[NodeProperty] = {
+    GenericProperty.parseConfig(name, value, provider, None).map(c => new NodeProperty(c))
+  }
+  def apply(name: String, value: ConfigValue, provider: Option[PropertyProvider]): NodeProperty = {
+    new NodeProperty(GenericProperty.toConfig(name, value, provider, None))
   }
 
-  def unserializeLdapNodeProperty(json: JValue): PureResult[NodeProperty] = {
-    implicit val formats = DefaultFormats
-    json.extractOpt[JsonProperty] match {
-      case None    => Left(Inconsistency(s"Cannot parse node property from provided json: ${compactRender(json)}"))
-      case Some(v) => Right(v.toNode)
-    }
+  def unserializeLdapNodeProperty(json: String): PureResult[NodeProperty] = {
+    GenericProperty.parseConfig(json).map(new NodeProperty(_))
   }
 }
 
 
-
-final case class GroupProperty(
-    name    : String
-  , value   : JValue
-  , provider: Option[PropertyProvider] // optional, default "rudder"
-) extends Property[GroupProperty] {
-  override def setValue(v: JValue) = GroupProperty(name, v, provider)
+final case class GroupProperty(config: Config) extends GenericProperty[GroupProperty] {
+  override def fromConfig(c: Config) = GroupProperty(c)
 }
 
 object GroupProperty {
@@ -260,26 +430,16 @@ object GroupProperty {
    * a JString *but* a string representing an actual JSON should be
    * used as json.
    */
-  def apply(name: String, value: String, provider: Option[PropertyProvider]): GroupProperty = {
-    new GroupProperty(name, GenericPropertyUtils.parseValue(value), provider)
+  def parse(name: String, value: String, provider: Option[PropertyProvider]): PureResult[GroupProperty] = {
+    GenericProperty.parseConfig(name, value, provider, None).map(c => new GroupProperty(c))
+  }
+  def apply(name: String, value: ConfigValue, provider: Option[PropertyProvider]): GroupProperty = {
+    new GroupProperty(GenericProperty.toConfig(name, value, provider, None))
   }
 
-  def unserializeLdapGroupProperty(json: JValue): PureResult[GroupProperty] = {
-    implicit val formats = DefaultFormats
-    json.extractOpt[JsonProperty] match {
-      case None    => Left(Inconsistency(s"Cannot parse group property from provided json: ${compactRender(json)}"))
-      case Some(v) => Right(v.toGroup)
-    }
+  def unserializeLdapGroupProperty(json: String): PureResult[GroupProperty] = {
+    GenericProperty.parseConfig(json).map(new GroupProperty(_))
   }
-
-  def parseSerializedGroupProperty(s: String): Either[RudderError, GroupProperty] = {
-    try {
-      unserializeLdapGroupProperty(parse(s))
-    } catch {
-      case ex: ParseException => Left(SystemError("Error when parsing serialized property", ex))
-    }
-  }
-
 }
 
 
@@ -299,17 +459,15 @@ object CompareProperties {
    *
    * A "none" provider actually means Rudder system one.
    */
-  def updateProperties[P <: Property[P]](oldProps: List[P], optNewProps: Option[List[P]]): PureResult[List[P]] = {
+  def updateProperties[P <: GenericProperty[P]](oldProps: List[P], optNewProps: Option[List[P]]): PureResult[List[P]] = {
 
 
     //check if the prop should be removed or updated
-    def updateOrRemoveProp(oldValue:JValue, newProp: P): Either[String, P] = {
-     if(newProp.value == JString("")) {
-       Left(newProp.name)
-     } else {
-       Right(newProp.setValue(GenericPropertyUtils.mergeValues(oldValue, newProp.value)))
-     }
-    }
+    def isDelete(prop: P): Boolean = (
+         !prop.config.hasPath(GenericProperty.VALUE)
+      ||  prop.value.valueType() == ConfigValueType.NULL
+      || (prop.value.valueType() == ConfigValueType.STRING && prop.value.unwrapped().asInstanceOf[String] == "")
+    )
 
     optNewProps match {
       case None => Right(oldProps)
@@ -321,17 +479,25 @@ object CompareProperties {
           updated <- newProps.toList.traverse { newProp =>
                        oldPropsMap.get(newProp.name) match {
                          case None =>
-                           Right(updateOrRemoveProp(JNothing, newProp))
+                           if(isDelete(newProp)) {
+                             Right(Left(newProp.name))
+                           } else {
+                             Right(Right(newProp))
+                           }
                          case Some(oldProp) =>
-                             if(GenericPropertyUtils.canBeUpdated(old = oldProp.provider, newer = newProp.provider)) {
-                               Right(updateOrRemoveProp(oldProp.value, newProp))
+                           if(GenericProperty.canBeUpdated(old = oldProp.provider, newer = newProp.provider)) {
+                             if(isDelete(newProp)) {
+                               Right(Left(newProp.name))
                              } else {
-                               val old = oldProp.provider.getOrElse(GenericPropertyUtils.defaultPropertyProvider).value
-                               val current = newProp.provider.getOrElse(GenericPropertyUtils.defaultPropertyProvider).value
-                               Left(Inconsistency(s"You can not update property '${oldProp.name}' which is owned by provider '${old}' thanks to provider '${current}'"))
+                               Right(Right(newProp.fromConfig(GenericProperty.mergeConfig(oldProp.config, newProp.config))))
                              }
+                           } else {
+                             val old = oldProp.provider.getOrElse(PropertyProvider.defaultPropertyProvider).value
+                             val current = newProp.provider.getOrElse(PropertyProvider.defaultPropertyProvider).value
+                             Left(Inconsistency(s"You can not update property '${oldProp.name}' which is owned by provider '${old}' thanks to provider '${current}'"))
+                           }
                        }
-                     }
+        }
         } yield {
           val toRemove = updated.collect { case Left(name)  => name }.toSet
           val toUpdate = updated.collect { case Right(prop) => (prop.name, prop) }.toMap
@@ -360,13 +526,13 @@ sealed trait ParentProperty[A] {
  */
 final case class NodePropertyHierarchy[A](prop: NodeProperty,  parents: List[ParentProperty[A]])
 
-sealed trait FullParentProperty extends ParentProperty[JValue]
+sealed trait FullParentProperty extends ParentProperty[ConfigValue]
 object FullParentProperty {
-  final case class Group(name: String, id: NodeGroupId, value: JValue) extends FullParentProperty {
+  final case class Group(name: String, id: NodeGroupId, value: ConfigValue) extends FullParentProperty {
     override def displayName: String = s"${name} (${id.value})"
   }
   // a global parameter has the same name as property so no need to be specific for name
-  final case class Global(value: JValue) extends FullParentProperty {
+  final case class Global(value: ConfigValue) extends FullParentProperty {
     val displayName = "Global Parameter"
   }
 }
@@ -380,27 +546,27 @@ object JsonSerialisation {
   import net.liftweb.json.JsonDSL._
   import net.liftweb.json._
 
-  implicit class FullParentPropertyToJSon(val p: ParentProperty[JValue]) extends AnyVal {
+  implicit class FullParentPropertyToJSon(val p: ParentProperty[ConfigValue]) extends AnyVal {
     def toJson = {
       p match {
         case FullParentProperty.Global(value) =>
           (
             ( "kind"  -> "global")
-          ~ ( "value" -> value   )
+          ~ ("value" -> GenericProperty.serializeToJson(value))
           )
         case FullParentProperty.Group(name, id, value) =>
           (
             ( "kind"  -> "group" )
           ~ ( "name"  -> name    )
           ~ ( "id"    -> id.value)
-          ~ ( "value" -> value   )
+          ~ ("value" -> GenericProperty.serializeToJson(value))
           )
         case _ => JNothing
       }
     }
   }
 
-  implicit class JsonNodePropertiesHierarchy(val props: List[NodePropertyHierarchy[JValue]]) extends AnyVal {
+  implicit class JsonNodePropertiesHierarchy(val props: List[NodePropertyHierarchy[ConfigValue]]) extends AnyVal {
     implicit def formats = DefaultFormats
 
     def toApiJson(): JArray = {
@@ -434,10 +600,4 @@ object JsonSerialisation {
 
 }
 
-/*
- * A simple class container for Json extraction. Lift need it top level
- */
-final case class JsonProperty(name: String, value: JValue, provider: Option[String]) {
-  def toNode  = new NodeProperty(name, value, provider.map(PropertyProvider))
-  def toGroup = new GroupProperty(name, value, provider.map(PropertyProvider))
-}
+

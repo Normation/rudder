@@ -99,7 +99,7 @@ import com.normation.errors._
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.PublicKey
-import com.normation.rudder.domain.nodes.GenericPropertyUtils
+import com.normation.rudder.domain.nodes.GenericProperty
 import com.normation.rudder.domain.nodes.GroupProperty
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.services.policies.PropertyParser
@@ -200,9 +200,9 @@ final case class RestExtractorService (
   private[this] def toParameterName (value:String) : Box[String] = {
       toMinimalSizeString(1)(value) match {
         case Full(value) =>
-          if (GenericPropertyUtils.patternName.matcher(value).matches)
+          if (GenericProperty.patternName.matcher(value).matches)
             Full(value)
-          else Failure(s"Parameter Name should be respect the following regex : ${GenericPropertyUtils.patternName.pattern()}")
+          else Failure(s"Parameter Name should be respect the following regex : ${GenericProperty.patternName.pattern()}")
 
         case eb : EmptyBox => eb ?~! "Parameter Name should not be empty"
       }
@@ -598,7 +598,7 @@ final case class RestExtractorService (
   def extractParameter (params : Map[String,List[String]]) : Box[RestParameter] = {
     for {
       description <- extractOneValue(params, "description")()
-      value       <- extractOneValue(params, "value")(s => Full(GenericPropertyUtils.parseValue(s)))
+      value       <- extractOneValue(params, "value")(s => GenericProperty.parseValue(s).toBox)
     } yield {
       RestParameter(value, description)
     }
@@ -610,14 +610,14 @@ final case class RestExtractorService (
    */
   def extractNodeProperties (params : Map[String, List[String]]) : Box[Option[List[NodeProperty]]] = {
     // properties coming from the API are always provider=rudder / mode=read-write
-    extractProperties(params, (k,v) => NodeProperty(k,v,None))
+    extractProperties(params, (k,v) => NodeProperty.parse(k, v, None))
   }
   def extractGroupProperties (params : Map[String, List[String]]) : Box[Option[List[GroupProperty]]] = {
     // properties coming from the API are always provider=rudder / mode=read-write
-    extractProperties(params, (k,v) => new GroupProperty(k, v, None))
+    extractProperties(params, (k,v) => GroupProperty.parse(k, v, None))
   }
 
-  def extractProperties[A](params : Map[String, List[String]], make:(String, JValue) => A): Box[Option[List[A]]] = {
+  def extractProperties[A](params : Map[String, List[String]], make:(String, String) => PureResult[A]): Box[Option[List[A]]] = {
     import cats.implicits._
     import com.normation.box._
 
@@ -625,9 +625,12 @@ final case class RestExtractorService (
       (props.traverse { prop =>
         val parts = prop.split('=')
 
-        PropertyParser.validPropertyName(parts(0)).map { name =>
-          if(parts.size == 1) make(name, JString(""))
-          else make(name, GenericPropertyUtils.parseValue(parts(1)))
+        for {
+          name <- PropertyParser.validPropertyName(parts(0))
+          prop <- if(parts.size == 1) make(name, "")
+                  else make(name, parts(1))
+        } yield {
+          prop
         }
       }).toBox
     }
@@ -679,9 +682,11 @@ final case class RestExtractorService (
           //if not defined of not a string, use default
           case _              => None
         }
-        PropertyParser.validPropertyName(nameValue).map(name =>
-          NodeProperty(nameValue, value, provider)
-        ).toBox
+        (for {
+          _ <- PropertyParser.validPropertyName(nameValue)
+        } yield {
+          NodeProperty(nameValue, GenericProperty.fromJsonValue(value), provider)
+        }).toBox
 
       case (a, b)  =>
         Failure(s"""Error when trying to parse new property: '${compactRender(json)}'. The awaited format is: {"name": string, "value": json}""")
@@ -856,7 +861,7 @@ final case class RestExtractorService (
   def extractGroupPropertiesFromJSON (json : JValue) : Box[Option[Seq[GroupProperty]]] = {
     import com.normation.utils.Control.sequence
     json \ "properties" match {
-        case JArray(props) => sequence(props){p => GroupProperty.unserializeLdapGroupProperty(p).toBox}.map(Some(_))
+        case JArray(props) => sequence(props){p => GroupProperty.unserializeLdapGroupProperty(compactRender(p)).toBox}.map(Some(_))
         case JNothing      => Full(None)
         case x             => Failure(s"""Error: the given parameter is not a JSON object with a 'properties' key""")
     }
@@ -907,7 +912,7 @@ final case class RestExtractorService (
       description <- extractJsonString(json, "description")
       value       <- Full((json \ "value") match {
                        case JNothing => None
-                       case x        => Some(x)
+                       case x        => Some(GenericProperty.fromJsonValue(x))
                      })
     } yield {
       RestParameter(value, description)

@@ -180,12 +180,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     </dependency>
 
     <dependency>
-      <groupId>com.typesafe</groupId>
-      <artifactId>config</artifactId>
-      <version>1.3.1</version>
-    </dependency>
-
-    <dependency>
       <groupId>com.normation.rudder</groupId>
       <artifactId>rudder-rest</artifactId>
       <version>${rudder-version}</version>

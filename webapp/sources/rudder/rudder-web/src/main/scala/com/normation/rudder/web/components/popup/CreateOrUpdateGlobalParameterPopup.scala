@@ -51,16 +51,17 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.model._
 import java.util.regex.Pattern
 
-import com.normation.rudder.domain.nodes.GenericPropertyUtils
+import com.normation.rudder.domain.nodes.GenericProperty
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowService
-import net.liftweb.json.JsonAST.{JNothing, JString}
-import net.liftweb.json.JsonParser.ParseException
-import net.liftweb.json.{parse => jsonParse}
-
+import com.normation.box._
+import com.normation.errors.PureResult
+import com.normation.inventory.domain.InventoryError.Inconsistency
+import com.typesafe.config.ConfigValue
+import com.typesafe.config.ConfigValueType
 
 class CreateOrUpdateGlobalParameterPopup(
     change            : GlobalParamChangeRequest
@@ -112,75 +113,59 @@ class CreateOrUpdateGlobalParameterPopup(
     }
   }
 
+  private def parseValue(value: String, jsonRequired: Boolean): PureResult[ConfigValue] = {
+    for {
+      v <- GenericProperty.parseValue(value)
+      _ <- if(jsonRequired && v.valueType() == ConfigValueType.STRING) {
+             Left(Inconsistency("JSON check is enabled, but the value format is invalid."))
+           } else Right(())
+    } yield {
+      v
+    }
+  }
+
   private[this] def onSubmit() : JsCmd = {
     if(formTracker.hasErrors) {
       onFailure
     } else {
-
       val jsonCheck = parameterFormat.get match {
         case "json" => true
         case _      => false
       }
-      val (validJson, value) =
-        if(jsonCheck){
-          try {
-            //Valid Json
-            jsonParse(parameterValue.get) match {
-              case JNothing => (true, JString(""))
-              case json     => (true, json)
-            }
-          } catch {
-            //Invalid Json
-            case ex: ParseException =>
-              (false, JString(""))
-          }
-        }else{
-          (true, JString(parameterValue.get))
-        }
-      if(!validJson){
-        val msg = "JSON check is enabled, but the value format is invalid."
-        logger.error(msg)
-        formTracker.addFormError(error(msg))
-        onFailure
-      }else{
-        val newParameter = new GlobalParameter(
-          name        = parameterName.get,
-          value       = value,
-          description = parameterDescription.get,
-          provider    = None
-        )
-        val savedChangeRequest = {
-          for {
-            diff  <- globalParamDiffFromAction(newParameter)
-            cr    =  ChangeRequestService.createChangeRequestFromGlobalParameter(
-              changeRequestName.get
-              , paramReasons.map( _.get ).getOrElse("")
-              , newParameter
-              , change.previousGlobalParam
-              , diff
-              , CurrentUser.actor
-              , paramReasons.map( _.get )
-            )
-            id    <- workflowService.startWorkflow(cr, CurrentUser.actor, paramReasons.map(_.get))
-          } yield {
-            id
+      val savedChangeRequest = {
+        for {
+          value <- parseValue(parameterValue.get, jsonCheck).toBox
+          param =  GlobalParameter(parameterName.get, value, parameterDescription.get, None)
+          diff  <- globalParamDiffFromAction(param)
+          cr    =  ChangeRequestService.createChangeRequestFromGlobalParameter(
+                      changeRequestName.get
+                      , paramReasons.map( _.get ).getOrElse("")
+                               , param
+                      , change.previousGlobalParam
+                      , diff
+                      , CurrentUser.actor
+                      , paramReasons.map( _.get )
+                    )
+          id    <- workflowService.startWorkflow(cr, CurrentUser.actor, paramReasons.map(_.get))
+        } yield {
+          if (workflowEnabled) {
+            closePopup() & onSuccessCallback(Right(id))
+          } else {
+            closePopup() & onSuccessCallback(Left(param))
           }
         }
-        savedChangeRequest match {
-          case Full(id) =>
-            if (workflowEnabled) {
-              // TODO : do more than that
-              closePopup() & onSuccessCallback(Right(id))
-            } else closePopup() & onSuccessCallback(Left(newParameter))
-          case eb:EmptyBox =>
-            val msg = (eb ?~! "An error occurred while updating the parameter").messageChain
-            logger.error(msg)
-            formTracker.addFormError(error(msg))
-            onFailure
+      }
+      savedChangeRequest match {
+        case Full(res) =>
+          res
+        case eb:EmptyBox =>
+          val msg = (eb ?~! "An error occurred while updating the parameter").messageChain
+          logger.error(msg)
+          formTracker.addFormError(error(msg))
+          onFailure
         }
       }
     }
-  }
 
   private[this] def onFailure: JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them"))
@@ -250,7 +235,7 @@ class CreateOrUpdateGlobalParameterPopup(
   }
 
   // The value may be empty
-  private[this] val parameterValue = new WBTextAreaField("Value", change.previousGlobalParam.map(p => GenericPropertyUtils.serializeValue(p.value)).getOrElse("")) {
+  private[this] val parameterValue = new WBTextAreaField("Value", change.previousGlobalParam.map(p => p.valueAsString).getOrElse("")) {
     override def setFilter = trim _ :: Nil
     override def inputField = ( change.action match {
       case GlobalParamModAction.Delete => super.inputField % ("disabled" -> "true")
