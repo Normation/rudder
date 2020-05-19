@@ -301,7 +301,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
              } }
            } &
            "#techniqueID *" #>  technique.id.name.value &
-           "#techniqueDescription *" #>  technique.description &
+           "#techniqueDescription *" #>  Script(JsRaw(s"""generateMarkdown(${Str(technique.description).toJsCmd}, "#techniqueDescription")""")) &
            "#techniqueLongDescription" #>  technique.longDescription &
            "#isSingle *" #> showIsSingle(technique) &
            "#isDisabled *" #> {
