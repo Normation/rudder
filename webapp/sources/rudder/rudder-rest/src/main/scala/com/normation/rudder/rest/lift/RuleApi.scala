@@ -91,13 +91,12 @@ class RuleApi(
 ) extends LiftApiModuleProvider[API] {
 
   import RestUtils._
-  val dataName = "ruleCategories"
 
-  def response ( function : Box[JValue], req : Req, errorMessage : String)(implicit action : String) : LiftResponse = {
+  def response ( function : Box[JValue], req : Req, errorMessage : String, dataName : String)(implicit action : String) : LiftResponse = {
     RestUtils.response(restExtractorService, dataName,None)(function, req, errorMessage)
   }
 
-  def actionResponse ( function : Box[ActionType], req : Req, errorMessage : String, id : Option[String], actor: EventActor)(implicit action : String) : LiftResponse = {
+  def actionResponse ( function : Box[ActionType], req : Req, errorMessage : String, id : Option[String], actor: EventActor, dataName : String)(implicit action : String) : LiftResponse = {
     RestUtils.actionResponse2(restExtractorService, dataName, uuidGen, id)(function, req, errorMessage)(action, actor)
   }
 
@@ -142,10 +141,10 @@ class RuleApi(
       } yield {
         if (optCloneId.nonEmpty)
           action = "cloneRule"
-        result
+        JArray(result :: Nil)
       }
 
-      actionResponse(response, req, "Could not create Rule", id.map(_.value), authzToken.actor)(action)
+      actionResponse(response, req, "Could not create Rule", id.map(_.value), authzToken.actor, "rules")(action)
     }
   }
 
@@ -192,6 +191,7 @@ class RuleApi(
           serviceV6.getCategoryTree
         , req
         , s"Could not fetch Rule category tree"
+        , "ruleCategories"
       ) ("GetRuleTree")
     }
   }
@@ -205,6 +205,7 @@ class RuleApi(
           serviceV6.getCategoryDetails(RuleCategoryId(id))
         , req
         , s"Could not fetch Rule category '${id}' details"
+        , "ruleCategories"
      ) ("getRuleCategoryDetails")
     }
   }
@@ -219,6 +220,7 @@ class RuleApi(
         , s"Could not delete Rule category '${id}'"
         , Some(id)
         , authzToken.actor
+        , "ruleCategories"
       ) ("deleteRuleCategory")
     }
   }
@@ -248,6 +250,7 @@ class RuleApi(
         , s"Could not update Rule category '${id}'"
         , Some(id)
         , authzToken.actor
+        , "ruleCategories"
       ) ("updateRuleCategory")
     }
   }
@@ -277,6 +280,7 @@ class RuleApi(
         , s"Could not create Rule category"
         , Some(id.value)
         , authzToken.actor
+        , "ruleCategories"
       ) ("createRuleCategory")
     }
   }
