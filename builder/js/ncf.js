@@ -185,7 +185,7 @@ app.controller('ncf-builder', function ($scope, $uibModal, $http, $q, $location,
   $scope.methodsByCategory;
   // ncf technique container
   $scope.techniques;
-  $scope.techniqueCategories = {};
+  $scope.techniqueCategories = [];
 
   $scope.fileManagerState = {
     open : false,
@@ -662,7 +662,11 @@ $scope.getTechniques = function () {
   success(function(response, status, headers, config) {
 
     if (response.data !== undefined && response.data.techniqueCategories !== undefined) {
-      $scope.techniqueCategories= response.data.techniqueCategories
+
+      for (var key in response.data.techniqueCategories) {
+        $scope.techniqueCategories.push({"key" :key, "value": response.data.techniqueCategories[key]  })
+      }
+
     } else {
       errorNotification( "Error while fetching technique categories", "Data received via api are invalid")
     }
