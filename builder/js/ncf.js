@@ -642,8 +642,8 @@ $scope.getTechniques = function () {
             var technique = toTechUI(technique_raw);
             $scope.techniques.push(technique);
 
-          $scope.getSessionStorage();
           });
+          $scope.getSessionStorage();
         } else {
           errorNotification( "Error while fetching techniques", "Data received via api are invalid")
         }
@@ -917,6 +917,7 @@ $scope.onImportFileChange = function (fileEl) {
     // Reset versions inputs
     method.OS_class.majorVersion = undefined;
     method.OS_class.minorVersion = undefined;
+
     // Update class context
     $scope.updateClassContext(method);
   }
@@ -1599,15 +1600,31 @@ $scope.onImportFileChange = function (fileEl) {
             stList.push(i + "-\xA0" + st[i].component)
           }
           if(ct.length == st.length) {
+            var st_params, ct_params;
             for(var i=0; i<st.length; i++){
-              if(st[i].hasOwnProperty('agent_support')){
-                ct[i].agent_support = st[i].agent_support;
-              }
-              if(ct[i].hasOwnProperty('promiser')){
-                st[i].promiser = ct[i].promiser;
+              //Remove some properties that we don't want to compare
+              delete st[i].agent_support;
+              delete ct[i].agent_support;
+              delete st[i].promiser;
+              delete ct[i].promiser;
+              if(st[i].OS_class.minorVersion === undefined) delete st[i].OS_class.minorVersion;
+              if(st[i].OS_class.majorVersion === undefined) delete st[i].OS_class.majorVersion;
+              if(ct[i].OS_class.minorVersion === undefined) delete ct[i].OS_class.minorVersion;
+              if(ct[i].OS_class.majorVersion === undefined) delete ct[i].OS_class.majorVersion;
+              //Store parameters to compare them separetly
+              st_params = st[i].parameters;
+              delete st[i].parameters;
+              ct_params = ct[i].parameters;
+              delete ct[i].parameters;
+            }
+            var diffParams = false;
+            for(var p in st_params){
+              if(st_params[p].name != ct_params[p].name || st_params[p].value != ct_params[p].value){
+                diffParams = true;
               }
             }
-            diff  = !angular.equals(st , ct);
+
+            diff  = diffParams || !angular.equals(st , ct);
             field = diff ? checks[check] : undefined;
           } else {
             diff = true;
