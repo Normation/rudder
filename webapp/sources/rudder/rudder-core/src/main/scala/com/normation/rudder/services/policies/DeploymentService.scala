@@ -94,7 +94,7 @@ import com.normation.box._
 import com.normation.errors._
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.rudder.domain.nodes.CompareProperties
-import com.normation.rudder.domain.nodes.GenericPropertyUtils
+import com.normation.rudder.domain.nodes.GenericProperty
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.services.nodes.MergeNodeProperties
 import zio._
@@ -820,7 +820,7 @@ trait PromiseGeneration_BuildNodeContext {
     def buildParams(parameters: List[GlobalParameter]): PureResult[Map[String, ParamInterpolationContext => PureResult[String]]] = {
       parameters.accumulatePure { param =>
         for {
-          p <- interpolatedValueCompiler.compileParam(GenericPropertyUtils.serializeValue(param.value)).chainError(s"Error when looking for interpolation variable in global parameter '${param.name}'")
+          p <- interpolatedValueCompiler.compileParam(param.valueAsString).chainError(s"Error when looking for interpolation variable in global parameter '${param.name}'")
         } yield {
           (param.name, p)
         }
@@ -845,8 +845,9 @@ trait PromiseGeneration_BuildNodeContext {
           nodeParam   <- parameters.toList.traverse { case (name, param) =>
                             for {
                               p <- param(context)
+                              v <- GenericProperty.parseValue(p)
                             } yield {
-                              (name, GenericPropertyUtils.parseValue(p))
+                              (name, v)
                             }
                           }.toBox
           nodeTargets  =  allGroups.getTarget(info).map(_._2).toList
@@ -856,7 +857,7 @@ trait PromiseGeneration_BuildNodeContext {
           nodeInfo     =  info.modify(_.node.properties).setTo(mergedProps.map(_.prop))
           nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, nodeTargets, globalSystemVariables, globalAgentRun, globalComplianceMode: ComplianceMode)
           // now we set defaults global parameters to all nodes
-          withDefautls <- CompareProperties.updateProperties(nodeParam.toList.map { case (k,v) => new NodeProperty(k, v, None)}, Some(nodeInfo.properties)).map(p =>
+          withDefautls <- CompareProperties.updateProperties(nodeParam.toList.map { case (k,v) => NodeProperty(k, v, None)}, Some(nodeInfo.properties)).map(p =>
                             nodeInfo.modify(_.node.properties).setTo(p)
                           ).toBox
         } yield {
@@ -1122,7 +1123,7 @@ object BuildNodeConfiguration extends Loggable {
                                   , runHooks     = MergePolicyService.mergeRunHooks(policies.filter( ! _.technique.isSystem), nodeModes.nodePolicyMode, nodeModes.globalPolicyMode)
                                   , policies     = policies
                                   , nodeContext  = context.nodeContext
-                                  , parameters   = context.parameters.map { case (k,v) => ParameterForConfiguration(k, GenericPropertyUtils.serializeValue(v)) }.toSet
+                                  , parameters   = context.parameters.map { case (k,v) => ParameterForConfiguration(k, GenericProperty.serializeToHocon(v)) }.toSet
                                   , isRootServer = context.nodeInfo.id == context.policyServerInfo.id
                                 )
                                 nodeConfig

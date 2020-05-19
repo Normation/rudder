@@ -104,6 +104,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     </dependency>
 
     <dependency>
+      <groupId>com.typesafe</groupId>
+      <artifactId>config</artifactId>
+      <version>${config-version}</version>
+    </dependency>
+    <dependency>
         <groupId>com.lihaoyi</groupId>
         <artifactId>fastparse_${scala-binary-version}</artifactId>
         <version>${fastparse-version}</version>

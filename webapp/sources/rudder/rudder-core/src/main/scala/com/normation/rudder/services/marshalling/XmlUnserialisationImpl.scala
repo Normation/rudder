@@ -231,11 +231,11 @@ class NodeGroupUnserialisationImpl(
       isSystem        <- (group \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type nodeGroup : " + entry)
       properties      <- sequence((group \ "properties").toList) {
                            case <property>{p @ _*}</property> =>
-                             Full(GroupProperty(
+                             GroupProperty.parse(
                                  (p\"name").text.trim
                                , (p\"value").text.trim
                                , (p\"provider").headOption.map(p => PropertyProvider(p.text.trim))
-                             ))
+                             ).toBox
                            case xml                           => Failure(s"Found unexpected xml under <properties> tag: ${xml}")
                          }
     } yield {
@@ -639,13 +639,9 @@ class GlobalParameterUnserialisationImpl extends GlobalParameterUnserialisation 
       value            <- (globalParam \ "value").headOption.map( _.text ) ?~! ("Missing attribute 'value' in entry type globalParameter : " + entry)
       description      <- (globalParam \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type globalParameter : " + entry)
       provider         =  (globalParam \ "provider").headOption.map(x => PropertyProvider(x.text))
+      g                <- GlobalParameter.parse(name, value, description, provider).toBox
     } yield {
-      GlobalParameter(
-          name
-        , value
-        , description
-        , provider
-      )
+      g
     }
   }
 }

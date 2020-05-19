@@ -46,7 +46,8 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.archives.ParameterArchiveId
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
-import com.normation.rudder.domain.nodes.GenericPropertyUtils
+import com.normation.rudder.domain.nodes.GenericProperty
+import com.normation.rudder.domain.nodes.PropertyProvider
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.repository.EventLogRepository
@@ -155,10 +156,10 @@ class WoLDAPParameterRepository(
       for {
         con             <- ldap
         oldParameter    <- roLDAPParameterRepository.getGlobalParameter(parameter.name).notOptional(s"Cannot update Global Parameter '${parameter.name}': there is no parameter with that name")
-        _               <- if(GenericPropertyUtils.canBeUpdated(oldParameter.provider, parameter.provider)) UIO.unit
+        _               <- if(GenericProperty.canBeUpdated(oldParameter.provider, parameter.provider)) UIO.unit
                            else {
-                             val newProvider = parameter.provider.getOrElse(GenericPropertyUtils.defaultPropertyProvider).value
-                             val oldProvider = oldParameter.provider.getOrElse(GenericPropertyUtils.defaultPropertyProvider).value
+                             val newProvider = parameter.provider.getOrElse(PropertyProvider.defaultPropertyProvider).value
+                             val oldProvider = oldParameter.provider.getOrElse(PropertyProvider.defaultPropertyProvider).value
                              Inconsistency(s"Parameter with name '${parameter.name}' can not be updated by provider '${newProvider}' since its current provider is '${oldProvider}'").fail
                            }
         paramEntry      =  mapper.parameter2Entry(parameter)

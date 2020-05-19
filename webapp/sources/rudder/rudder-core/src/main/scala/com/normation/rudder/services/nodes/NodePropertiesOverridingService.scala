@@ -42,12 +42,12 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodePropertyHierarchy
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
-import net.liftweb.json._
+import com.typesafe.config.ConfigValue
 
 
 trait NodePropertiesOverridingService {
 
-  def getNodePropertiesTree(nodeInfo: NodeInfo): IOResult[List[NodePropertyHierarchy[JValue]]]
+  def getNodePropertiesTree(nodeInfo: NodeInfo): IOResult[List[NodePropertyHierarchy[ConfigValue]]]
 
 }
 
@@ -55,7 +55,7 @@ class NodePropertiesOverridingServiceImpl(
     groupRepo: RoNodeGroupRepository
   , paramRepo: RoParameterRepository
 ) extends NodePropertiesOverridingService {
-  override def getNodePropertiesTree(nodeInfo: NodeInfo): IOResult[List[NodePropertyHierarchy[JValue]]] = {
+  override def getNodePropertiesTree(nodeInfo: NodeInfo): IOResult[List[NodePropertyHierarchy[ConfigValue]]] = {
     for {
       groups       <- groupRepo.getFullGroupLibrary()
       nodeTargets  =  groups.getTarget(nodeInfo).map(_._2).toList
