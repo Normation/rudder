@@ -21,7 +21,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::convert::TryFrom;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::str;
 use toml;
 use typed_arena::Arena;
@@ -45,7 +45,8 @@ struct MethodCall {
     component: String,
 }
 
-pub fn translate_file(json_file: &Path, rl_file: &Path, config_filename: &Path) -> Result<()> {
+/// Translation entry point
+pub fn translate_file(json_file: &Path, rl_file: &Path, stdlib_dir: &Path, config_filename: &Path) -> Result<()> {
     let input_filename = &json_file.to_string_lossy();
     let output_filename = &rl_file.to_string_lossy();
     let config_filename = config_filename.to_str().unwrap();
@@ -60,7 +61,7 @@ pub fn translate_file(json_file: &Path, rl_file: &Path, config_filename: &Path) 
 
     info!(
         "|- {} {}",
-        "Reading".bright_green(),
+        "Deserializing".bright_green(),
         config_filename.bright_yellow()
     );
     let config_data =
@@ -74,7 +75,6 @@ pub fn translate_file(json_file: &Path, rl_file: &Path, config_filename: &Path) 
     );
     let sources = Arena::new();
     let mut past = PAST::new();
-    let stdlib_dir = &PathBuf::from("./libs/"); // TODO
     parse_stdlib(&mut past, &sources, stdlib_dir)?;
     let stdlib = AST::from_past(past)?;
 
@@ -91,7 +91,7 @@ pub fn translate_file(json_file: &Path, rl_file: &Path, config_filename: &Path) 
         "|- {} (translation phase)",
         "Generating output code".bright_green()
     );
-    let mut translator = Translator { stdlib, technique, configuration };
+    let translator = Translator { stdlib, technique, configuration };
     let rl_technique = translator.translate()?;
     fs::write(&rl_file, rl_technique).map_err(|e| file_error(output_filename, e))?;
     Ok(())
