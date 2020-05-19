@@ -120,8 +120,17 @@ div#query-search-content {
 .id-card .node-state:before{
   content: "ENABLED";
 }
-.id-card .node-state.disabled:before{
-  content: "ENABLED";
+.id-card .node-state.ignored:before{
+  content: "IGNORED";
+}
+.id-card .node-state.empty-policies:before{
+  content: "EMPTY POLICIES";
+}
+.id-card .node-state.initializing:before{
+  content: "INITIALIZING";
+}
+.id-card .node-state.preparing-eol:before{
+  content: "PREPARING EOL";
 }
 .id-card .node-state:after{
   content: "";
@@ -134,11 +143,25 @@ div#query-search-content {
   border-radius: 50%;
   background-color: #4eb934;
 }
-.id-card .node-state.disabled{
-  color: #c80004;
+.id-card .node-state.ignored:after{
+  background-color: #a4aebf;
 }
-.id-card .node-state.disabled:after{
-  background-color: #C80004;
+.id-card .node-state.empty-policies:after{
+  background-color: #7591c599;
+}
+.id-card .node-state.initializing:after{
+  color: #08a3ef;
+  content: "\f1ce";
+  font: normal normal normal 14px/1 FontAwesome;
+  background-color: transparent;
+  font-weight: bold;
+  font-size: 1.1em;
+  animation: fa-spin 2s infinite linear;
+  height: 14px;
+  width: auto;
+}
+.id-card .node-state.preparing-eol:after{
+  background-color: #F08004;
 }
 
 .machine-info{
