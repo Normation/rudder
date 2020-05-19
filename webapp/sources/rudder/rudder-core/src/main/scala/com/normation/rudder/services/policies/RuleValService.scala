@@ -165,8 +165,10 @@ class RuleValServiceImpl(
     val wantedNodeIds = groupLib.getNodeIds(rule.targets, allNodeInfos)
     val nodeIds = wantedNodeIds.intersect(allNodeInfos.keySet)
     if(nodeIds.size != wantedNodeIds.size) {
-      logger.error(s"Some nodes are in the target of rule '${rule.name}' (${rule.id.value}) but are not present " +
-          s"in the system. It looks like an inconsistency error. Ignored nodes: ${(wantedNodeIds -- nodeIds).map( _.value).mkString(", ")}")
+      // ignored nodes are filtered-out early during generation, so we don't have access to their node info here,
+      // they are just missing from allNodeInfos map. 
+      logger.debug(s"Some nodes are in the target of rule '${rule.name}' (${rule.id.value}) but are not present " +
+          s"in the system. These nodes are likely in state `ignored`: ${(wantedNodeIds -- nodeIds).map( _.value).mkString(", ")}")
     }
     nodeIds
   }
