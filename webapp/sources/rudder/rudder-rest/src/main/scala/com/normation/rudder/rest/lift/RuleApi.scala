@@ -134,14 +134,14 @@ class RuleApi(
       val id = restExtractor.extractId(req)(x => Full(RuleId(x))).map(_.getOrElse(RuleId(uuidGen.newUuid)))
 
       val response = for {
-        ruleId <- id
-        restRule <- restExtractor.extractRule(req) ?~! s"Could not extract Rule parameters from request"
+        ruleId     <- id
+        restRule   <- restExtractor.extractRule(req) ?~! s"Could not extract Rule parameters from request"
         optCloneId <- restExtractor.extractString("source")(req)(x => Full(RuleId(x)))
-        result <- apiV2.createRule(restRule, ruleId, optCloneId, authzToken.actor)
+        result     <- apiV2.createRule(restRule, ruleId, optCloneId, authzToken.actor)
       } yield {
         if (optCloneId.nonEmpty)
           action = "cloneRule"
-        JArray(result :: Nil)
+        result
       }
 
       actionResponse(response, req, "Could not create Rule", id.map(_.value), authzToken.actor, "rules")(action)
@@ -352,7 +352,7 @@ class RuleApiService2 (
       _ <- writeRule.create(change.newRule, modId, actor, reason).toBox
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
-      serialize(change.newRule, None)
+      JArray(serialize(change.newRule, None) :: Nil)
     }) ?~ (s"Could not save Rule ${change.newRule.id.value}")
   }
 
