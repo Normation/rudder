@@ -29,11 +29,11 @@ pub fn parse_stdlib<'src>(
         .filter(|r| r.as_ref().map(|e| is_rl_file(e.path())).unwrap_or(true));
     for entry in walker {
         match entry {
-            Ok(e) => {
-                let path = e.path();
+            Ok(entry) => {
+                let path = entry.path();
                 parse_file(past, sources, path)?;
             }
-            Err(e) => return Err(err!(Token::new(&stdlib_dir.to_string_lossy(), ""), "{}", e)),
+            Err(err) => return Err(err!(Token::new(&stdlib_dir.to_string_lossy(), ""), "{}", err)),
         }
     }
 
@@ -71,7 +71,7 @@ pub fn compile_file(
     let sources = Arena::new();
     let mut past = PAST::new();
 
-    // add stdlib: resourcelib + corelib + oslib + cfengine_core
+    // add stdlib: resourcelib, oslib, corelib, cfengine_core
     parse_stdlib(&mut past, &sources, stdlib_dir)?;
 
 	// read and add files

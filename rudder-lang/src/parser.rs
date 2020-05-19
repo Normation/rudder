@@ -163,10 +163,10 @@ fn penum(i: PInput) -> PResult<PEnum> {
             name:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
             items : delimited_nonempty_list("{", penum_item, ",", "}");
         } => PEnum {
-                metadata,
-                global: global.is_some(),
-                name,
-                items,
+            metadata,
+            global: global.is_some(),
+            name,
+            items,
         }
     )(i)
 }
