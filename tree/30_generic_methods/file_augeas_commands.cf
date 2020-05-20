@@ -18,8 +18,35 @@
 #
 # @name File Augeas commands
 # @description Use augeas binaries to execute augtool command(s) directly on the agent. 
-# The generic method will return the command(s) execution output otherwise if the augeas isn't installed on the agent, it will produces an error.
 #
+# @documentation Augeas is a tool that provides an abstraction layer for all the complexities that turn around editing files with regular expressions.
+# It's a tree based hierarchy tool, that handles system configuration files where you can securely modify your files and to do so you have to provide 
+# the path to the node label's value.
+# Augeas uses lenses which are like sort of modules that are in charge of identifying and converting files into tree and back. 
+# This way, you can manipulate at first the tree and then save changes into the configuration files on the system.
+#
+# This method gives the possibilty to enter a list of augtool commands and options as a parameter. The method has in total 4 parameters: variable_prefix, variable_name, commands and autoload.
+# Augtool provides bunch of other commands and options that you can use in this generic method such as 'match' to print the matches for a specific 
+# path expression, 'span' to print position in input file corresponding to tree, 'retrieve' to transform tree into text and 'save' to save all pending changes.
+# If the Augeas isn't installed on the agent, it will produces an error.
+#
+# The particular thing you may want to do with this method is using it depending on you needs and in actually two cases.
+#
+# # Use case 1: 
+# The first case includes activating the ‘autoload’ option, it is ‘true’ by default, means you can leave the ‘autoload’ parameter's field empty and Augeas will 
+# accordingly charge all files and lenses before executing the commands you have specified. Below is an example that will shows as a result the configuration 
+# files that are parsed by default in '/files/etc' directory and then also print the content of the 'sshd_config' file, you can either leave the 'autoload' 
+# parameter empty or fill it by putting 'true' as a value.
+# file_augeas_commands("label","value","ls /files/etc \n print /files/etc/ssh/sshd_config","")
+# file_augeas_commands("label","value","ls /files/etc \n print /files/etc/ssh/sshd_config","true")
+#
+# # Use case 2: 
+# The second case is when you deactivate that option which means that you are specifying ‘false’ as parameter and in this case you have to 
+# charge manually your files and lenses in the commands parameter by using the set commands. Below is the second example where you can for example set 
+# the lens and the file then verifying by checking the '/augeas/load' path.
+# file_augeas_commands("label","value","set /augeas/load/Sshd/lens "Sshd.lns \n set /augeas/load/Sshd/incl "/etc/ssh/sshd_config" \n load \n print /augeas/load/Sshd \n print /augeas/load/Sshd \n print /files/etc/ssh/sshd_config","false")
+#
+# 
 # @parameter variable_prefix The prefix of the variable name
 # @parameter variable_name   The variable to define, the full name will be variable_prefix.variable_name
 # @parameter commands        The augeas command(s) 

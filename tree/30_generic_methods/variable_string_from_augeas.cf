@@ -17,15 +17,35 @@
 #####################################################################################
 #
 # @name Variable string from Augeas 
-# @description Use Augeas binaries to call Augtool command and get a node's label value.
-# @documentation There is two ways you can use this method, either you simply provide a path to the node label as a parameter or you can specify a file associated with a lens then the regular path. When you only specify the path to the node label's, your request will include by default Augeas charging all the lenses and files, on the other hand, if you have a specific file for example such as a json file and you want to associate it to the existing Json lense, then in that case you need to specify in addition the file and lens parameter, this way Augeas won't load all its files and lenses except the ones you specified. 
-# The generic method will get a node's label value otherwise if Augeas isn't installed on the agent, it will produces an error.
+# @description Use Augeas binaries to call Augtool commands and options to get a node label's value.
 #
+# @documentation Augeas is a tool that provides an abstraction layer for all the complexities that turn around editing files with regular expressions.
+# It's a tree based hierarchy tool, that handle system configuration files where you can securely modify your files. To do so you have to provide 
+# the path to the node label's value.
+# Augeas uses lenses which are sort of modules that are in charge of identifying and converting files into tree and back. 
+# This way, the you can manipulate at first the tree and then save changes into the configuration files on the system.
+#
+# In this method, we introduce using augtool commands and options in order to get the value of a given node's label in the parameters, this can be done 
+# by specifying the path to it. The method has in total 5 parameters: variable prefix, variable name, path, lens and file.
+#
+# Actually there is two ways you can use this method, either you simply provide a path to the node's label as a parameter or you specify a file 
+# associated with a lens, then you put the regular path. When you only specify the path to the node's label, your request will includes by default 
+# Augeas charging all the lenses and files, on the other hand, if you have a specific file for example such as a Json file and you want to associate it 
+# to the existing Json lense, then in that case, you need to fill in addition the file and the lens parameter, this way Augeas won't load all its files 
+# and lenses except the ones you have specified.
+# The generic method will get a node label's value from the agent, otherwise, if Augeas isn't installed on the agent, it will produces an error.
+# 
 # #### Two uses cases examples:
 # 
-# # Use case 1: To simply get the value of the ip address of the first line in the '/etc/hosts' file ('label' and 'value' are naming examples of 'variable_prefix' and 'variable_name')
+# # Use case 1: 
+# Let's consider that you want to obtain the value of the ip address of the first line in the '/etc/hosts' file by indicating the path to it.
+# (Note that the 'label' and 'value' paramertes mentioned are naming examples of 'variable prefix' and 'variable name', the path '/etc/hosts/1/ipaddr' 
+# represents the 'ipaddr' node label's value in the first line in the '/etc/hosts') .
 # variable_string_from_augeas("label","value","/etc/hosts/1/ipaddr");
-# # Use case 2: To associate the 'Hosts' lens with the '/etc/hosts' file then get the node value
+#
+# # Use case 2: 
+# The second case includes two needs of using it, either you want to prevent Augeas from charging all lenses and files while executing your request or 
+# you want to associate the 'Hosts' lens with the '/etc/hosts' file then get for example the same node value of the first use case.
 # variable_string_from_augeas("label","value","/etc/hosts/1/ipaddr","Hosts","/etc/hosts");
 #
 # @parameter variable_prefix The prefix of the variable name
