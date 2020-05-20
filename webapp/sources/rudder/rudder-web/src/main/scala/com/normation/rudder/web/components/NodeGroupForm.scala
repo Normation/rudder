@@ -267,14 +267,13 @@ class NodeGroupForm(
     import net.liftweb.json._
 
     val groupId = group.id.value
-    val jsonProperties = compactRender(group.properties.toApiJson)
     val userHasRights = CurrentUser.checkRights(AuthorizationType.Group.Edit)
     def tabProperties = ChooseTemplate(List("templates-hidden", "components", "ComponentNodeProperties") , "nodeproperties-tab")
     tabProperties ++ Script(OnLoad(JsRaw(s"""
       angular.bootstrap('#nodeProp', ['nodeProperties']);
       var scope  = angular.element($$("#nodeProp")).scope();
       scope.$$apply(function(){
-        scope.init(${jsonProperties},"${groupId}",${userHasRights},'group');
+        scope.init("${groupId}",${userHasRights},'group');
       });
     """)))
   }
