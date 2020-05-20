@@ -23,6 +23,7 @@ struct Info {
     #[serde(rename = "policy-server")]
     policy_server: NodeId,
     #[serde(rename = "key-hash")]
+    // May not exist if node keys were reset and not updated yet
     key_hash: Option<Hash>,
     #[serde(skip)]
     // Can be empty when not on a root server or no known certificates for
