@@ -115,12 +115,15 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
         DTColumnDefBuilder.newColumnDef(2).withOption("sWidth",'5%')
     ];
   var currentNodeId
-  $scope.init = function(properties, nodeId, isUserHasRights, objectName){
+  $scope.init = function(nodeId, isUserHasRights, objectName){
+
     $scope.hasEditRight = isUserHasRights;
     currentNodeId = nodeId
-    $scope.properties = properties;
     $scope.objectName = objectName;
     $scope.urlAPI = contextPath + '/secure/api/'+ objectName +'s/' + nodeId;
+    $http.get($scope.urlAPI).success( function (result) {
+      $scope.properties = result.data[objectName +'s'][0].properties
+    }).error(function(){createErrorNotification("Error while fetching "+objectName+" properties")});
     $('.rudder-label').bsTooltip();
     new ClipboardJS('.btn-clipboard');
   }
@@ -155,8 +158,10 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
           $('#newPropPopup').bsModal('hide');
           $scope.newPropForm.$setPristine();
         }
+        createSuccessNotification("Property '"+propertyToSave.name+ "' has been added");
       }, function errorCallback(response) {
         $scope.errorSaving = response.data.errorDetails;
+        createErrorNotification("Error while saving new property "+propertyToSave.name);
         return response.status==200;
       });
     }
@@ -176,6 +181,7 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
     $http.post($scope.urlAPI, data).then(function successCallback(response) {
       $('#deletePropPopup').bsModal('hide');
       $scope.properties.splice($scope.deletedProperty.index, 1);
+      createSuccessNotification("Property '"+$scope.deletedProperty.name+ "' has been removed");
     }, function errorCallback(response) {
       $('#deletePropPopup').bsModal('hide');
       $scope.errorDeleting = response.data.errorDetails;
@@ -183,6 +189,7 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
       var height = parseFloat($('#errorProp').css('height')) > 0 ? parseFloat($('#errorProp').css('height')) : 52;
       var offsetTop = el.offset().top;
       $('body').animate({scrollTop:offsetTop - height}, 300, 'easeInSine');
+      createErrorNotification("Error while deleting property "+propertyToSave.name);
       return response.status==200;
     });
   }
@@ -243,7 +250,9 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
       $http.post($scope.urlAPI, data).then(function successCallback(response) {
         $scope.properties[index] = propertyToSave;
         delete $scope.editedProperties[prop];
+        createSuccessNotification("Property '"+propertyToSave.name+ "' has been saved");
       }, function errorCallback(response) {
+        createErrorNotification("Error while saving "+$scope.objectName+" properties");
         return response.status==200;
       });
     }
@@ -257,7 +266,6 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
     var res   = (value.match(/\n/g) || []).length
     return res >= 3;
   }
-
 
   $('.rudder-label').bsTooltip();
 });

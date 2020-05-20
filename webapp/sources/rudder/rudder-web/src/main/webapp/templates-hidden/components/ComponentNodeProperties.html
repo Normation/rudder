@@ -1,8 +1,7 @@
 <nodeproperties-tab>
-  <div id="tabPropsId" class="sInventory overflow_auto">
+  <div id="tabPropsId">
      <div id="nodeProp" ng-controller="nodePropertiesCtrl">
        <div class="row">
-
          <lift:authz role="node_write">
            <div class="col-lg-7 col-md-8 col-xs-12 add-prop-form">
              <label for="newPropName">Add a new property:</label>
@@ -47,7 +46,6 @@
              <div class="text-danger" ng-show="newPropForm.newPropValue.$error.mandatory && newPropForm.newPropValue.$dirty">Value is required</div>
            </div>
          </lift:authz>
-
          <div class="col-xs-12" ng-if="properties">
            <div class="alert alert-danger errorSaving" id="errorDeleting" ng-show="errorDeleting">
              <i class="fa fa-exclamation-triangle" style="margin-right:6px"></i>
@@ -63,7 +61,6 @@
                </tr>
              </thead>
              <tbody>
-
                <tr ng-repeat="property in properties track by $index">
                  <td ng-class="{'is-edited':isEdited(property.name)}">
                    <div ng-if="!isEdited(property.name)">
