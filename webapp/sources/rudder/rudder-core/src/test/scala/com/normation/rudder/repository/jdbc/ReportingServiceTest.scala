@@ -162,7 +162,6 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     def findSystemNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
     def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]] = null
 
-    override def complianceRepository: ComplianceRepository = null
     override def invalidate(nodeIds: Set[NodeId]) = ZIO.succeed(Map())
 
     def getUserNodeStatusReports() : Box[Map[NodeId, NodeStatusReport]] = Full(Map())
@@ -196,8 +195,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   }
 
   lazy val dummyComplianceRepos = new ComplianceRepository() {
-    override def saveRunCompliance(reports: List[NodeStatusReport]): Box[List[NodeStatusReport]] = {
-      Full(reports)
+    override def saveRunCompliance(reports: List[NodeStatusReport]): IOResult[List[NodeStatusReport]] = {
+      reports.succeed
     }
   }
 
