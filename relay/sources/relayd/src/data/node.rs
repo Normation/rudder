@@ -50,7 +50,7 @@ struct Info {
     #[serde(rename = "policy-server")]
     policy_server: NodeId,
     #[serde(rename = "key-hash")]
-    key_hash: Hash,
+    key_hash: Option<Hash>,
     #[serde(skip)]
     // Can be empty when not on a root server or no known certificates for
     // a node
@@ -154,7 +154,7 @@ impl NodesList {
     }
 
     pub fn key_hash(&self, id: &NodeIdRef) -> Option<Hash> {
-        self.list.data.get(id).map(|s| s.key_hash.clone())
+        self.list.data.get(id).and_then(|s| s.key_hash.clone())
     }
 
     pub fn hostname(&self, id: &NodeIdRef) -> Option<Host> {
