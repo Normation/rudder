@@ -3,7 +3,7 @@
 
 use crate::{error::Error, hashing::Hash};
 use openssl::{stack::Stack, x509::X509};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json;
 use std::{
     collections::{HashMap, HashSet},
@@ -11,7 +11,7 @@ use std::{
     path::Path,
     str::FromStr,
 };
-use tracing::{error, info, trace, warn};
+use tracing::{debug, error, info, trace, warn};
 
 pub type NodeId = String;
 pub type NodeIdRef = str;
@@ -20,15 +20,41 @@ pub type Host = String;
 #[derive(Deserialize, Default)]
 struct Info {
     hostname: Host,
+
     #[serde(rename = "policy-server")]
     policy_server: NodeId,
+
     #[serde(rename = "key-hash")]
+    // If not present, use default which is `None`
+    #[serde(default)]
+    // If present deserialize it with `deserialize_hash`
+    // Which returns an `Option`:
+    // * `Some(hash)` if parsing was successful
+    // * `None` in case of deserializing/parsing error which is expected to happen
+    #[serde(deserialize_with = "deserialize_hash")]
     // May not exist if node keys were reset and not updated yet
     key_hash: Option<Hash>,
+
     #[serde(skip)]
     // Can be empty when not on a root server or no known certificates for
     // a node
     certificates: Option<Stack<X509>>,
+}
+
+fn deserialize_hash<'de, D>(deserializer: D) -> Result<Option<Hash>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    // Invalid hash likely means no hash (due to the server-side serialization using string-template)
+    // Will be "sha256:" when the node has no key. Let's ignore it.
+    Ok(String::deserialize(deserializer)
+        .map_err(|e| debug!("could no deserialize node hash, skipping: {}", e))
+        .ok()
+        .and_then(|s| {
+            Hash::from_str(&s)
+                .map_err(|e| debug!("could no parse node hash, skipping: {}", e))
+                .ok()
+        }))
 }
 
 impl Info {
@@ -285,6 +311,23 @@ mod tests {
             nodeslist.list.data["e745a140-40bc-4b86-b6dc-084488fc906b"].hostname,
             "node1.rudder.local"
         );
+        assert_eq!(
+            nodeslist.list.data["e745a140-40bc-4b86-b6dc-084488fc906b"]
+                .key_hash
+                .clone()
+                .unwrap(),
+            Hash::new(
+                "sha256".to_string(),
+                "23cbad1561a3f8ea6aa5b880219fecf2a442e1f417c50f084558c57b45f52ee8".to_string()
+            )
+            .unwrap()
+        );
+        assert!(nodeslist.list.data["c745a140-40bc-4b86-b6dc-084488fc906b"]
+            .key_hash
+            .is_none());
+        assert!(nodeslist.list.data["b745a140-40bc-4b86-b6dc-084488fc906b"]
+            .key_hash
+            .is_none());
         assert_eq!(nodeslist.list.data.len(), 6);
     }
 
