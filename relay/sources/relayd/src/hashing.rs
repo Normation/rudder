@@ -30,7 +30,6 @@
 
 use crate::error::Error;
 use openssl::hash::MessageDigest;
-use serde::{de, Deserialize, Deserializer};
 use sha2::{Digest, Sha256, Sha512};
 use std::{fmt, str, str::FromStr};
 
@@ -74,16 +73,6 @@ impl FromStr for Hash {
         } else {
             Err(Error::InvalidHash(s.to_string()))
         }
-    }
-}
-
-impl<'de> Deserialize<'de> for Hash {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        FromStr::from_str(&s).map_err(de::Error::custom)
     }
 }
 
