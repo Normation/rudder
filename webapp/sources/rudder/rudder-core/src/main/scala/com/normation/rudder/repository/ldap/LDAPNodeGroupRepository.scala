@@ -766,6 +766,7 @@ class WoLDAPNodeGroupRepository(
                           if(nodeGroup.copy(serverList = oldGroup.serverList) == oldGroup) {
                             UIO.unit
                           } else {
+                            logPure.debug(s"Inconsistency when modifying node lists for nodeGroup ${nodeGroup.name}: previous content was ${oldGroup}, new is ${nodeGroup} - only the node list should change")
                             "The group configuration changed compared to the reference group you want to change the node list for. Aborting to preserve consistency".fail
                           }
                         }
