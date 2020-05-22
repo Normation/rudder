@@ -21,9 +21,9 @@
 #
 # @documentation Augeas is a tool that provides an abstraction layer for all the complexities that turn around editing files with regular expressions.
 # It's a tree based hierarchy tool, that handles system configuration files where you can securely modify your files and to do so you have to provide 
-# the path to the node label's value.
+# the path to the node label's value.
 # Augeas uses lenses which are like sort of modules that are in charge of identifying and converting files into tree and back. 
-# This way, you can manipulate at first the tree and then save changes into the configuration files on the system.
+# This way, you can manipulate at first the tree and then save changes into the configuration files on the system.
 # 
 # In this method, we introduce using augtool commands and options in order to set the value of a given node's label in the parameters 
 # (which means that you simply want to modify your configuration file), this can be done by specifying the path to it. 
@@ -31,7 +31,7 @@
 #
 # Actually there is two ways you can use this method, either you simply provide a path to the node's label as a parameter or you specify a file 
 # associated with a lens then you put the regular path. When you only specify the path to the node's label, your request will includes by default Augeas 
-# charging all the lenses and files, on the other hand, if you have a specific file for example such as a Json file and you want to associate it 
+# charging all the lenses and files, on the other hand, if you have a specific file for example such as a Json file and you want to associate it
 # to the existing Json lense, then in that case, you need to fill in addition the file and the lens parameter, this way Augeas won't load all its files and 
 # lenses except the ones you have specified. 
 #
@@ -46,7 +46,7 @@
 # file_augeas_set("/etc/hosts/1/ipaddr","192.168.1.5");
 # ```
 #
-# # Use case 2: The second case includes two needs of using it, either you want to prevent Augeas from charging all lenses and files while executing your request or 
+# # Use case 2: The second case includes two needs of using it, either you want to prevent Augeas from charging all lenses and files while executing your request or
 # you want to associate the `Hosts` lens with the `/etc/hosts` file then set the value for the given path node.
 # file_augeas_set("/etc/hosts/1/ipaddr","192.168.1.5","Hosts","/etc/hosts");
 #

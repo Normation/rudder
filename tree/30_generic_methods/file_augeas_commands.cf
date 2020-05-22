@@ -21,16 +21,16 @@
 #
 # @documentation Augeas is a tool that provides an abstraction layer for all the complexities that turn around editing files with regular expressions.
 # It's a tree based hierarchy tool, that handles system configuration files where you can securely modify your files and to do so you have to provide 
-# the path to the node label's value.
+# the path to the node label's value.
 # Augeas uses lenses which are like sort of modules that are in charge of identifying and converting files into tree and back. 
-# This way, you can manipulate at first the tree and then save changes into the configuration files on the system.
+# This way, you can manipulate at first the tree and then save changes into the configuration files on the system.
 #
 # This method gives the possibilty to enter a list of augtool commands and options as a parameter. The method has in total 4 parameters: variable_prefix, variable_name, commands and autoload.
 # Augtool provides bunch of other commands and options that you can use in this generic method such as 'match' to print the matches for a specific 
 # path expression, 'span' to print position in input file corresponding to tree, 'retrieve' to transform tree into text and 'save' to save all pending changes.
 # If Augeas isn't installed on the agent, it will produces an error.
 #
-# The particular thing you may want to do with this method is using it depending on you needs and in two cases.
+# The particular thing you may want to do with this method is using it depending on you needs and in two cases.
 #
 # # Use case 1: 
 # The first case includes activating the `autoload` option, it is `true` by default, means you can leave the `autoload` parameter's field empty and Augeas will 
