@@ -35,7 +35,9 @@ version:
 	rustc --version
 
 build: version
-	cargo build --release
+	# strip release binaries, cf. https://github.com/rust-lang/cargo/issues/3483#issuecomment-431209957
+	# should be configurable in Cargo.toml in the future https://github.com/rust-lang/cargo/issues/3483#issuecomment-631584439
+	RUSTFLAGS="--codegen link-arg=-Wl,--strip-all" cargo build --release
 
 lint: version
 	RUSTFLAGS="-D warnings" cargo check --all-targets --examples --tests
