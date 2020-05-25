@@ -451,7 +451,7 @@ object DisplayNode extends Loggable {
                   <span>
                     <span class="glyphicon glyphicon-exclamation-sign text-warning tooltipable" title="" tooltipid={s"tooltip-key-${sm.node.main.id.value}"}></span>
                     <span class="tooltipContent" id={s"tooltip-key-${sm.node.main.id.value}"}>
-                      Inventories for this Node are not signed
+                      Certificate for this node has been reset, next inventory will be trusted automatically
                     </span>
                   </span>
                 case _ => // not accepted inventory? Should not get there
