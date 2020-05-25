@@ -233,11 +233,10 @@ object GenericProperty {
    */
   def parseValue(value: String): PureResult[ConfigValue] = {
     // find first char that is no in a commented line nor a space
-
     if(value == "") Right(ConfigValueFactory.fromAnyRef(""))
     else firstNonCommentChar(value) match {
-      case None => // here, either we return empty string, or the orginal one. I thing we should return empty string, since user can quote if he wants.case _: scala.None.type =>
-        Right(ConfigValueFactory.fromAnyRef(""))
+      case None => // here, we need to return the original string, user may want to use a comment (in bash for ex) as value
+        Right(ConfigValueFactory.fromAnyRef(value))
       case Some(c) if(c == '{') =>
         PureResult.effect(s"Error: value is not parsable as a property: ${value}") {
           ConfigFactory.parseString(
