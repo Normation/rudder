@@ -130,14 +130,15 @@ class ReadOnlySoftwareDAOImpl(
     // Accepted Dit, to get the software
     val acceptedDit = inventoryDitService.getDit(AcceptedInventory)
 
-    val NB_BATCH_NODES = 25
+    val NB_BATCH_NODES = 50
 
     // We need to search on the parent parent, as acceptedDit.NODES.dn.getParent ou=Accepted inventories
     val nodeBaseSearch = acceptedDit.NODES.dn.getParent.getParent
 
-    for {
-      con            <- ldap
-      t1             <- currentTimeMillis
+    (for {
+      con           <- ldap
+
+      // This method may do too many LDAP query, and cause error (see https://issues.rudder.io/issues/17176 and https://issues.rudder.io/issues/16636)
       // fetch all nodes
       nodes           <- con.searchSub(nodeBaseSearch, IS(OC_NODE), A_NODE_UUID)
       mutSetSoftwares <- Ref.make[scala.collection.mutable.Set[SoftwareUuid]](scala.collection.mutable.Set())
