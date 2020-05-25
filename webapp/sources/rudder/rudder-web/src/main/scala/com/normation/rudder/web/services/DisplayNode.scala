@@ -451,7 +451,7 @@ object DisplayNode extends Loggable {
                   <span>
                     <span class="glyphicon glyphicon-exclamation-sign text-warning tooltipable" title="" tooltipid={s"tooltip-key-${sm.node.main.id.value}"}></span>
                     <span class="tooltipContent" id={s"tooltip-key-${sm.node.main.id.value}"}>
-                      Inventories for this Node are not signed
+                      Certificate for this node has been reset, next inventory will be trusted automatically
                     </span>
                   </span>
                 case _ => // not accepted inventory? Should not get there
@@ -687,12 +687,9 @@ object DisplayNode extends Loggable {
     }
 
     def displayTabProperties(jsId:JsNodeId, node: NodeInfo) : NodeSeq = {
-      import com.normation.rudder.domain.nodes.JsonSerialisation._
       import com.normation.rudder.AuthorizationType
-      import net.liftweb.json._
 
       val nodeId = node.id.value
-      val allProps = ZioRuntime.runNow(RudderConfig.nodePropertiesInheritance.getNodePropertiesTree(node))
       val userHasRights = CurrentUser.checkRights(AuthorizationType.Node.Edit)
       def tabProperties = ChooseTemplate(List("templates-hidden", "components", "ComponentNodeProperties") , "nodeproperties-tab")
       val tabId = htmlId(jsId,"sd_props_")

@@ -52,7 +52,6 @@ import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.zio.ZioRuntime
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.blocking
 import zio._
 import zio.syntax._
 import zio.duration._
@@ -64,10 +63,11 @@ import zio.clock.Clock
 final class Watchers(incoming: FileMonitor, updates: FileMonitor) {
   def start(): IOResult[Unit] = {
     IOResult.effect {
-      incoming.start()(ZioRuntime.platform.executor.asECES)
-      updates.start()(ZioRuntime.platform.executor.asECES)
+      // Execution context is not used here - binding to scala default global to satisfy scalac
+      incoming.start()(scala.concurrent.ExecutionContext.global)
+      updates.start()(scala.concurrent.ExecutionContext.global)
       Right(())
-    }
+  }
   }
   def stop(): IOResult[Unit] = {
     IOResult.effect {
@@ -109,19 +109,25 @@ object Watchers {
         // When we call "stop" on the FileMonitor, it always throws a ClosedWatchServiceException.
         // It seems to be because the "run" in start continue to try to execute its
         // action on the stop watcher. We need to catch that.
-        override def start()(implicit executionContext: ExecutionContext) = {
-          this.watch(root, 0)
-          executionContext.execute(new Runnable {
-            override def run() = {
-              try {
-                blocking { Iterator.continually(service.take()).foreach(process) }
-              } catch {
+        override def start()(implicit executionContext: ExecutionContext): Unit = {
+          (
+            (
+              IOResult.effect(this.watch(root, 0)) *>
+              (for {
+                k <- IOResult.effect(service.take())
+                _ <- IOResult.effect(process(k))
+              } yield ()).forever
+            ).catchAll(err =>
+              err.cause match {
                 case ex: ClosedWatchServiceException if(stopRequired) => //ignored
-                  InventoryProcessingLogger.logEffect.debug(s"Exception ClosedWatchServiceException ignored because watcher is stopping")
+                  InventoryProcessingLogger.debug(s"Exception ClosedWatchServiceException ignored because watcher is stopping")
+                case _ =>
+                  InventoryProcessingLogger.error(s"Error when processing inventory: ${err.fullMsg}")
               }
-            }
-          })
+            )
+          ).forkDaemon.runNow
         }
+
         // This is a copy/paste of parent method, we just add a check for null before using `event.context`.
         // See https://issues.rudder.io/issues/14991 and https://github.com/pathikrit/better-files/pull/392
         override def process(key: WatchKey) = {
