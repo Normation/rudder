@@ -1,0 +1,62 @@
+[#statements]
+= Statements
+
+Statements are an important concept that can be expressed by either:
+
+* comments and metadata
+* a state declaration: `resource().state() as mystatedecl` to store a state into a local variable that can be called
+* a variable definition: `myvar = "value"`. Value can be of any primitive type
+* a (switch) `case`. cf <<case-conditions,case conditions>>
+* an `if` condition that contains an enum expression: `if expr => statement`. cf <<if-conditions,if conditions>>
+* a flow statement: `return` `log` `fail` `noop`
+Example of a state definition that exposes every statement type:
+
+[source, rudder-lang]
+----
+include::examples/statements.rl[]
+----
+
+[#if-conditions]
+== `if` conditions
+
+enum range or item access explained here <<access-enum-content,access to enum content>>
+
+syntax:  `if expression => statement`
+
+[#case-conditions]
+== `case` conditions
+
+Work the same way switch cases do in other languages
+
+Syntax:
+[source, rudder-lang]
+----
+case {
+  case_expression => statement, 
+  default => statement ## optional unless enum is global
+}
+----
+
+`case` expressions are mostly standard expressions so they handle `&`, `|`, `!`, `(..)`, `default` the same way.
+Only difference being `cases` have an additional `nodefault` expression that silently comes with a `noop` statement
+
+[#expressions]
+= Expressions
+
+Expressions are composed of boolean expressions based on enum comparison +
+Their purpose is to check whether the variable is of the right type and contains the provided item as a value, or an ancestor item if there is any
+NOTE: `default` is a value that is equivalent of `true`
+
+Expressions are a composition of the following elements:
+
+* or: `expr | expr`
+* and: `expr & expr`
+* not: `!expr`
+* parentheses: `(expr)` to handle priorities between expressions
+* default: `default` keyword that automatically comes with a `noop` statement
+* expression comparison:
+** `var =~ enum` variable is equivalent to enum range or item
+** `var !~ enum` variable is not equivalent to enum range or item
+** implicit boolean comparison that only takes an expression (for example `!linux & !windows`)
+
+NOTE: see enum related syntax <<access-enum-content,here>>, including items and range and expression examples

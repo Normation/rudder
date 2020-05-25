@@ -1,0 +1,195 @@
+= Items
+
+An item is a component of _rudder-lang_. Associated to a scope, an item name is actually a *variable* in the common variable meaning
+
+As explained in a previous chapter after the header come *declaration* and *definition* of _rudder lang_ items
+
+NOTE: - Item *declaration* means informing the compiler a variable now exists, with a given name and optionally type +
+- Item *definition* means giving the said variable a value
+
+Before defining variables, an overview of the language keywords as well as a better understanding of types, operators and enums is required
+
+== Local vs global scope
+
+Some items are considered to be declared or defined globally
+
+Two items cannot have the same name in a given scope. It implies that no local variable can be defined with the same name than a global item since the latter is by definition available from every single scope
+
+[#items-definition]
+== Declaration and definition patterns
+
+Most item definition patterns look like:
+[source, rudder-lang]
+-----
+# comment # optional
+@metadata="value" # optional
+
+type identifier(parameter_list) # lists are wrapped into `[` or `{` or `(`
+-----
+
+Unless specified otherwise, comments and metadatas are allowed.
+
+List of possible definitions:
+
+* *enum*
+** *enum* definition
+** *sub-enum* definition
+** *enum alias* is a declaration not a definition
+* *resource* definition
+* *state* definition
+* *variable* (global) definition
+* *alias* definition
+* *agent variable* (global) is a declaration not a definition
+
+NOTE: an identifier (abbr: ident) is a word composed of alphanumeric characters and underscores (`_`). All variable names, parameters, enum fields, aliases, are parsed as identifiers.
+
+NOTE: a value can be any _rudder-lang_ type
+
+=== definition: enum
+ 
+An enum is a list of values, like a C enum.
+See <<enums,enums>> to have an understanding on how _rudder-lang enums_ work
+
+==== Examples:
+
+Exhaustive enum:
+
+[source, rudder-lang]
+----
+enum boolean {
+  true,
+  false
+}
+----
+
+Global, non-exhaustive enum:
+
+[source, rudder-lang]
+----
+global enum system {
+  windows,
+  linux,
+  aix,
+  bsd,
+  hp_ux,
+  solaris,
+  *
+}
+----
+
+=== definition: sub-enum
+
+Sub enums extend an existing enum item, adding it children
+
+NOTE: sub-enums derived from `global enum` inherit the `global` property
+
+[source, rudder-lang]
+----
+items in aix {
+  aix_5,
+  aix_6,
+  aix_7,
+  *
+}
+----
+
+Items can have sub-enums on their own
+
+[source, rudder-lang]
+----
+items in debian_family {
+  @cfengine_name="(debian.!ubuntu)"
+  debian,
+  ubuntu,
+  # Warning: update debian if you make change here
+  *
+}
+----
+
+Note that each element can be supplemented by a comment or metadata
+
+=== declaration: enum alias
+
+Can be defined aliases of enum items
+
+Enum alias: +
+`enum alias ident = enum_name` +
+Enum item alias:
+`enum alias ident = enum_name.item`
+
+=== definition: resource
+
+A resource can also be defined with a parent linking: `resource ident(p1, p2): ident`
+
+`resource ident(p1, p2)`
+
+=== definition: state
+
+A state extends a resource and is private to the resource context
+
+State definition model:
+
+[source, rudder-lang]
+----
+resource_name state state_name(p1, p2) {
+  # statements
+}
+----
+
+Read more about statements <<statements,here>>
+
+Examples:
+
+[source, rudder-lang]
+----
+Configure_NTP state technique() {
+  @component = "Package present"
+  package("ntp").present("","","") as package_present_ntp
+}
+----
+The `Configure_NTP` is extended by a new state called `technique`, receiving no parameters since its content (called _statement_) does not require any
+
+Another example to illustrate parametered states: 
+
+[source, rudder-lang]
+----
+@metadata="value"
+ntp state configuration (to_log="file is absent")
+{
+  file("/tmp").absent() as abs_file
+  if abs_file =~ kept => log "info: ${to_log}"
+}
+----
+In the above example there is a local state declaration and a condition leading to an action
+
+NOTE: state declaration is always part of a statement whereas state definition is a top level feature
+
+=== definition: variable
+
+No comment or metadata allowed
+
+Variable definition does not require any particular syntax
+
+`ident = value`
+
+
+=== definition: alias
+
+Aliases allow to have elements of the resource and state pair both renamed
+// TODO does state aliases work only when used with the aliased resource?
+// couldn't states or resources have aliases by theirselves?
+
+==== Example:
+
+`alias resource_alias().state_alias() = resource().state()`
+
+=== declaration: agent variable
+
+No comment or metadata allowed
+
+==== Example:
+
+Declaring a variable is that simple: `declare ident`
+
+But it is possible to use paths, therefore expand namespaces: +
+`declare namespace1.namespace2.ident`

@@ -1,0 +1,118 @@
+
+= Lexical structure
+
+// TODO -> parameters: `name:type=defaultvalue` where _defaultvalue_ is optional
+
+File structure:
+
+* Starts with a header metadata: `@format=X`, `X` being the file version
+* After the header come *declaration* and *definition* of items (see <<items-definition, Items definition and declaration patterns>>)
+
+[#keywords]
+== Keywords
+
+The following keywords currently have the functionality described
+Sorted by category
+
+* header:
+** `@format ..`, defines the _rudder-lang_ version of the file. Indicates when compiling if a version conversion must be performed beforehand
+
+* enum:
+** `enum ..`, a list of values
+** `global ..`, usage: paired with `enum`. Means enum values are unique and can be guessed without specifying a type
+** `items` (`in`), sub-enums ie. extends an existing enum
+** `alias`, gives an other name to an enum item
+
+* types:
+** `string` type definition, cf: <<string-type, String type>>
+** `num` type definition, cf: <<num-type, Num type>>
+** `boolean` type definition, cf: <<boolean-type, Boolean type>>
+** `struct` type definition, cf: <<struct-type, Struct type>>
+** `list` type definition, cf: <<list-type, List type>>
+
+* `declare ..`, global agent variable declaration. Cannot be initialized as its value is defined by the agent
+* `resource ..`, to declare a new resource
+* `.. state ..`, to define a new state linked to an existing resource
+
+* flow operators:
+** `if ..`
+** `case ..`, list (condition, then)
+*** `default`, calls default behavior of an enum expression. Is mandatory when an enum ends with a `*`
+*** `nodefault` can be met in a single-cased case switch
+
+* flow statements:
+** `fail ..`, to stop engine with a final message
+** `log ..`, to inform the user
+** `return ..`, to return a specific result
+** `noop`, do nothing
+
+
+== Operators
+
+* `@` declares a metadata which is a key / value pair (syntax is `@key=value`). Cf <<metadatas>>
+* `#` simple comment
+* `##` parsed comment. `##` comments are considered to be metadatas and are parsed and kept.
+* `|` or, `&` and, `!` not
+* `.` item in enum
+* `..` items range, in enum
+* `=~` is included or equal, `!~` is not included or not equal. Used when comparing enum expressions
+* `!` _Audit_ state application
+* `?` _Condition_ state application
+
+== Identifiers
+
+An identifier is a word that contains alphanumeric chars
+
+Identifiers are variable names given by users 
+// TODO identifiers are not variable names
+Identifiers can be:
+* all kind of aliases
+* parameters
+* enum names or enum item names
+* sub-enum names or sub-enum item names
+* metadata names
+* resource names and resource reference names
+* state names
+* variable names
+* agent variable names and values
+
+Identifiers can be invalid. They cannot be:
+
+* an invalid namespace (`declare`d variables), including CFEngine core variables (see file *libs/cfengine_core.rl*)
+* the name of a type
+** `"string"`
+** `"num"`
+** `"boolean"`
+** `"struct"`
+** `"list"`
+* a reserved keyword in the language (see <<keywords,keywords>>)
+* a reserved keyword for future usage
+** `"format"`
+** `"comment"`
+** `"dict"`
+** `"json"`
+** `"enforce"`
+** `"condition"`
+** `"audit"`
+** `"let"`
+
+An invalid variable is:
+
+* invalid identifiers
+* enum names
+* global enum item names
+* resource names
+* `"true"` / `"false"`
+
+== Comments
+
+There are two kind of comments: 
+
+* simple comments `#` that are not parsed and not stored. They are comments in the common sense : only useful for the developer from inside the _.rl_ file
+* parsed comments `##` that are considered to be metadatas. They are parsed and stored as such, and will later be used by the compiler
+
+[#metadatas]
+== Metadatas
+
+Metadatas allow to extend the language and the generation process and give the user the ability to store structured data with resources.
+Hence metadatas that can be anything available in the language

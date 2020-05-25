@@ -1,20 +1,35 @@
+// TODO put images on a rudder server and put documentation images dir url here
+// :imagesdir: url
+:toc: left
+
+// TODO list
+// Comment migrer une technique
+// Le mapping avec le ncf existant
+// Les idées principales, la notion d'état et de resource -> DONE v0
+// mots cles, a quoi ils servent -> DONE v0
+// Des exemples -> DONE v0
+// Les enums -> DONE v0
+// Les variables -> DONE v0
+
 = Rudder language
 
-== Language
+alias _rudder-lang_
+
+== Language Presentation
 
 This language is not:
 
-- a general purpose language
-- a turing complete language
-- an imperative language
+* a general purpose language
+* a turing complete language
+* an imperative language
 
 It has no:
 
-- recursion
-- generator / generic iterator
-- way of looping except on finite list
+* recursion
+* generator / generic iterator
+* way of looping except on finite list
 
-This language is a DSL targeted at *state definition*.
+This language is a DSL (_domain-specific language_) targeted at *state definition*.
 
 Everything that is not a state definition is a convenience for easier definition of a state.
 
@@ -24,12 +39,45 @@ File extension is `rl` for *R*udder *L*anguage.
 
 Example:
 
-ntp.rl
-[source,rl]
+.ntp.rl
+[source,rudder-lang]
 ----
 include::examples/ntp.rl[]
 ----
 
+Once compiled to _CFEngine_ code:
+
+.ntp.rl.cf
+[source,cfengine]
+----
+include::examples/ntp.rl.cf[]
+----
 // TODO: comparison with CFEngine, Puppet (mgmt ?)
 
+
+// == Concepts
 include::concepts.adoc[leveloffset=+1]
+
+// == Lexical structure
+include::lexical-structure.adoc[leveloffset=+1]
+
+// == Types
+include::types.adoc[leveloffset=+1]
+
+// == Items
+include::items.adoc[leveloffset=+1]
+// === Enums                                                                                           
+include::enums.adoc[leveloffset=+2]
+
+== Statements and Expressions
+include::statements-and-expressions.adoc[leveloffset=+2]
+
+== Appendices
+
+include::stdlib.adoc[leveloffset=+2]
+
+include::operating-systems.adoc[leveloffset=+2]
+
+= Rudder-lang usage
+
+include::usage.adoc[leveloffset=+1]
