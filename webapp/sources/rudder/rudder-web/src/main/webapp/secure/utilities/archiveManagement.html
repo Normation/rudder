@@ -160,6 +160,35 @@
       </div>
     </div>
 
+    <div class="inner-portlet">
+      <div class="page-title">Archive Parameters</div>
+      <div class="portlet-content">
+        <div class="callout-fade callout-info">
+          <div class="marker">
+            <span class="glyphicon glyphicon-info-sign"></span>
+          </div>
+          <div>Archive or restore parameters only.</div>
+        </div>
+        <div class="deca">
+          <div class="lift:administration.Archives.parametersForm archiveAction" id="parametersForm">
+            <form class="lift:form.ajax">
+              <input id="exportParametersButton" type="submit" value="[Export Parameters]"/>
+              <br/>
+              <select id="importParametersSelect">
+                <option>2011-10-08 21:21:21</option>
+                <option>2011-10-09 21:21:21</option>
+                <option>2011-10-10 21:21:21</option>
+                <option>2011-10-11 21:21:21</option>
+              </select>
+              <input id="importParametersButton"   type="submit" value="[Import Parameters]" />
+              <input id="downloadParametersButton" type="submit" value="[Download Parameters]" />
+              <br/>
+              <span class="lift:Msg?parametersFormNotice&errorClass=error">[error]</span>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 

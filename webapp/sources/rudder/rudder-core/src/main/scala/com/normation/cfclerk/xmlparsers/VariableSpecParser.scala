@@ -153,7 +153,7 @@ class VariableSpecParser extends Loggable {
               _               =   // we use to have a "uniqueVariable" field that is not supported anymore in Rudder 4.3
                                   // => warn if it is used in the the technique.
                                   if(getUniqueNode(elt, "UNIQUEVARIABLE").isRight) {
-                                    logger.warn(s"Since Rudder 4.3, a variable can not be marked as 'UNIQUEVARIABLE' anymore and that attribute will be ignored. In place, " +
+                                    logger.warn(s"Bad tag in variable '${parentSectionName}': since Rudder 4.3, a variable can not be marked as 'UNIQUEVARIABLE' anymore and that attribute will be ignored. In place, " +
                                         "you should use a Rudder parameter to denote an unique value, or a Node Property for a value unique for a given node. To denote an " +
                                         "action unique to all directive derived from the same technique, you should use pre- or post-agent-run hooks")
                                   }

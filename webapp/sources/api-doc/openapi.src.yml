@@ -139,6 +139,10 @@ paths:
     $ref: paths/system/update-policies.yml
   "/system/archives/{archiveKind}":
     $ref: paths/system/archives.yml
+  "/system/archives/{archiveKind}/restore/{archiveRestoreKind}":
+    $ref: paths/system/archives-restore.yml
+  "/system/archives/{archiveKind}/zip/{commitId}":
+    $ref: paths/system/archives-zip.yml
   "/settings":
     $ref: paths/settings/list.yml
   "/settings/{settingId}":

@@ -10,5 +10,6 @@ schema:
     - groups
     - rules
     - directives
+    - parameters
   example: full
 description: Type of archive to make
