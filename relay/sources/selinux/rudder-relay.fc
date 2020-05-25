@@ -7,3 +7,4 @@
 /var/rudder/configuration-repository/shared-files(/.*)? gen_context(system_u:object_r:public_content_t,s0)
 /var/rudder/lib/ssl/allnodescerts.pem -- gen_context(system_u:object_r:rudder_relayd_var_lib_t,s0)
 /var/rudder/lib/relay(/.*)?              gen_context(system_u:object_r:rudder_relayd_var_lib_t,s0)
+/var/rudder/share(/.*)?                  gen_context(system_u:object_r:public_content_t,s0)
