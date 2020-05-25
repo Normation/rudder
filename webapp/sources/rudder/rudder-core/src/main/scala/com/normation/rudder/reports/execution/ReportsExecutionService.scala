@@ -50,6 +50,7 @@ import org.joda.time.format.PeriodFormat
 import net.liftweb.common._
 import com.normation.rudder.db.DB
 import com.normation.rudder.repository.ComplianceRepository
+import com.normation.errors._
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -223,8 +224,16 @@ class ReportsExecutionService (
     // notify changes updates
     cachedChanges.update(lowestId, highestId)
 
-    // update compliance cache
-    cachedCompliance.invalidate(updatedNodeIds).runNow
+    // update compliance cache and save updated compliance in base (we only save compliance associated to runs).
+    // Do not try to update base if cache update was in error, we will just get runs already saved
+    val updateCompliance = {
+      cachedCompliance.invalidate(updatedNodeIds) *>
+      (for {
+        runs <- cachedCompliance.findRuleNodeStatusReports(updatedNodeIds, Set()).toIO
+        _    <- complianceRepos.saveRunCompliance(runs.values.toList)
+      } yield ())
+    }
+    updateCompliance.runNow
 
     import org.joda.time.Duration
     logger.debug(s"Hooks execution time: ${PeriodFormat.getDefault().print(Duration.millis(System.currentTimeMillis - startHooks).toPeriod())}")
