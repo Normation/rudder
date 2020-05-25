@@ -221,7 +221,6 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    */
   def defaultFindRuleNodeStatusReports: DefaultFindRuleNodeStatusReports
   def nodeInfoService                 : NodeInfoService
-  def complianceRepository            : ComplianceRepository
   def batchSize                       : Int
 
   /**
@@ -255,7 +254,6 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
       (for {
         updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(nodeIds.toSet, Set()).toIO
         _       <- IOResult.effectNonBlocking { cache = cache ++ updated }
-        _       <- complianceRepository.saveRunCompliance(cache.values.toList).toIO
         _       <- ReportLoggerPure.Cache.debug(s"Compliance cache updated for nodes: ${nodeIds.map(_.value).mkString(", ")}")
       } yield ()).catchAll(err => ReportLoggerPure.Cache.error(s"Error when updating compliance cache for nodes: [${nodeIds.map(_.value).mkString(", ")}]: ${err.fullMsg}"))
     )

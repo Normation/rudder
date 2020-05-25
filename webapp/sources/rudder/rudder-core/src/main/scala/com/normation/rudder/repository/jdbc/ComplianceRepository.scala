@@ -46,6 +46,7 @@ import com.normation.rudder.db.Doobie._
 import doobie._
 import doobie.implicits._
 import cats.implicits._
+import com.normation.errors.IOResult
 import com.normation.rudder.services.reports._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ReportLogger
@@ -55,7 +56,8 @@ import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.CompliancePercent
 import zio.interop.catz._
 import com.normation.rudder.domain.reports.RuleNodeStatusReport
-
+import zio.syntax._
+import com.normation.errors._
 
 final case class RunCompliance(
     nodeId      : NodeId
@@ -98,7 +100,7 @@ class ComplianceJdbcRepository(
   /*
    * Save a list of node compliance reports
    */
-  override def saveRunCompliance(reports: List[NodeStatusReport]): Box[List[NodeStatusReport]] = {
+  override def saveRunCompliance(reports: List[NodeStatusReport]): IOResult[List[NodeStatusReport]] = {
 
     // Only compute compliance if we need to save complianceDetails or complianceLevels
     val runCompliances = if (getSaveComplianceDetails().getOrElse(false) || getSaveComplianceLevels().getOrElse(true)) {
@@ -179,27 +181,26 @@ class ComplianceJdbcRepository(
       logger.debug(s"Not persisting compliance levels in table 'nodecompliancelevels' because settings 'rudder_save_db_compliance_level' is false").pure[ConnectionIO]
     }
 
-    val res = transactRun(xa => (for {
+    transactIOResult("Error when saving node compliances:")(xa => (for {
       updated  <- saveComplianceDetails
       levels   <- saveComplianceLevels
     } yield {
       val saved = runCompliances.map(_.nodeId)
       reports.filter(r => saved.contains(r.nodeId))
-    }).transact(xa).either)
-
-    res match {
-      case Right(_) => // ok
-      case Left(ex) =>
+    }).transact(xa)).foldM(
+      err => {
         // that message can be huge because it may contains whole nodecompliance json. Truncate it in error, and
         // display whole in debub
-        val msg = if(ex.getMessage.size > 200) { ex.getMessage.substring(0, 196) ++ "..." } else { ex.getMessage }
-        logger.error("Error when saving node compliances: " + msg)
-        if(msg.endsWith("...")) {
-          logger.debug("Full error message was: " + ex.getMessage)
-        }
-    }
-
-    res
+        effectUioUnit {
+          val msg = if(err.fullMsg.size > 200) { err.fullMsg.substring(0, 196) ++ "..." } else { err.fullMsg }
+          logger.error(" " + msg)
+          if(msg.endsWith("...")) {
+            logger.debug("Full error message was: " + err.fullMsg)
+          }
+        } *> err.fail
+      },
+      res => res.succeed
+    )
   }
 
 }
