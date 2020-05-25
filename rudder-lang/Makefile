@@ -8,13 +8,13 @@ DOC_EXAMPLES := $(wildcard docs/examples/*.rl)
 dependencies:
 	$(PKG_INSTALLER) perl python3
 
-install:
+install: build
 	mkdir -p $(DESTDIR)/opt/rudder/etc
 	mkdir -p $(DESTDIR)/opt/rudder/bin
 	mkdir -p $(DESTDIR)/opt/rudder/share/python
 	mkdir -p $(DESTDIR)/opt/rudder/share/rudder-lang/lib
 	mkdir -p $(DESTDIR)/opt/rudder/share/rudder-lang/tools
-	mkdir -p $(DESTDIR)/var/log/rudder/rudder-lang/	
+	mkdir -p $(DESTDIR)/var/log/rudder/rudder-lang/
 
 	# Install executable and helper scripts
 	install -m 755 target/release/rudderc $(DESTDIR)/opt/rudder/bin/rudderc

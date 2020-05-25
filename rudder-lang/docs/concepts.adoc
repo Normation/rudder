@@ -12,12 +12,12 @@
 - a state is an elementary configuration of a resource
 - a state is defined by a name and 0 or more parameter
 - a given resource can have many states at the same time
-- a given resource can only have one state of a given name 
-- state application produces a status also named outcome
+- a given resource can only have one state of a given name
+- state application produces a status also named `result`
 
 == Variables and types
 
-- configurations can be parametered via constants and variables.
+- configurations can be parametered via constants and variables
 - constants and variables have a type
 - types are distinct from resource and state
 - types are all based on basic types: `integer`, `float`, `string`, `boolean`, `array`, `hashmap`
@@ -25,7 +25,7 @@
 
 == Enums and conditions
 
-- an enum is an exhaustive list of possible value
+- an enum is an exhaustive list of possible values
 - an enum mapping maps all possible values of an enum to another enum
 - a condition is an enum expression
 - an enum expression is a boolean expression of enum comparison
@@ -33,4 +33,3 @@
 - state application outcome are enums too
 - a `case` is a list of conditions that must match all possible cases exactly once
 - an `if` is a single condition
-
