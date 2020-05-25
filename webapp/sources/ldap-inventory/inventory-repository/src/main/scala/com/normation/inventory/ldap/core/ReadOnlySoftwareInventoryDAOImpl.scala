@@ -135,7 +135,7 @@ class ReadOnlySoftwareDAOImpl(
     // We need to search on the parent parent, as acceptedDit.NODES.dn.getParent ou=Accepted inventories
     val nodeBaseSearch = acceptedDit.NODES.dn.getParent.getParent
 
-    (for {
+    for {
       con           <- ldap
 
       // This method may do too many LDAP query, and cause error (see https://issues.rudder.io/issues/17176 and https://issues.rudder.io/issues/16636)
