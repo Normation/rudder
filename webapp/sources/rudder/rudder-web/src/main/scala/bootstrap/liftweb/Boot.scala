@@ -57,6 +57,7 @@ import org.joda.time.DateTime
 import com.normation.rudder.web.snippet.WithCachedResource
 import java.net.URLConnection
 
+import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.plugins.AlwaysEnabledPluginStatus
 import com.normation.plugins.RudderPluginModule
 import com.normation.plugins.PluginName
@@ -507,6 +508,12 @@ class Boot extends Loggable {
     ZioRuntime.runNow(RudderConfig.historizeNodeCountBatch.catchAll(err =>
       ApplicationLoggerPure.error(s"Error when starting node historization batch: ${err.fullMsg}")
     ))
+    // start inventory watchers if needed
+    if(RudderConfig.WATCHER_ENABLE) {
+      RudderConfig.inventoryWatcher.startWatcher()
+    } else { // don't start
+     InventoryProcessingLogger.debug(s"Not automatically starting incoming inventory watcher because 'inventories.watcher.enable'=${RudderConfig.WATCHER_ENABLE}")
+    }
 
     RudderConfig.eventLogRepository.saveEventLog(
         ModificationId(RudderConfig.stringUuidGenerator.newUuid)

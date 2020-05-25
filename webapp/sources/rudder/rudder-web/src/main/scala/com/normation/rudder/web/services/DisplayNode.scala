@@ -687,12 +687,9 @@ object DisplayNode extends Loggable {
     }
 
     def displayTabProperties(jsId:JsNodeId, node: NodeInfo) : NodeSeq = {
-      import com.normation.rudder.domain.nodes.JsonSerialisation._
       import com.normation.rudder.AuthorizationType
-      import net.liftweb.json._
 
       val nodeId = node.id.value
-      val allProps = ZioRuntime.runNow(RudderConfig.nodePropertiesInheritance.getNodePropertiesTree(node))
       val userHasRights = CurrentUser.checkRights(AuthorizationType.Node.Edit)
       def tabProperties = ChooseTemplate(List("templates-hidden", "components", "ComponentNodeProperties") , "nodeproperties-tab")
       val tabId = htmlId(jsId,"sd_props_")

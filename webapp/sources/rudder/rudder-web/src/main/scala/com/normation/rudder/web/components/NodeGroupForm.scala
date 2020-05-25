@@ -264,7 +264,6 @@ class NodeGroupForm(
 
   def showGroupProperties(group: NodeGroup): NodeSeq = {
     import com.normation.rudder.AuthorizationType
-    import net.liftweb.json._
 
     val groupId = group.id.value
     val userHasRights = CurrentUser.checkRights(AuthorizationType.Group.Edit)
