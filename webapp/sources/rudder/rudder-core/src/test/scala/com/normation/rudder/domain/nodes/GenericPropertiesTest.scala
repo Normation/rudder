@@ -68,7 +68,13 @@ class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatc
       GenericProperty.parseValue("""{}""") must beRight
     }
     "correctly parse non json-like structure as a string" in {
-      GenericProperty.parseValue("""hello, world!""") must beRight(ConfigValueFactory.fromAnyRef("hello, world!"))
+      GenericProperty.parseValue("hello, world!") must beRight(ConfigValueFactory.fromAnyRef("hello, world!"))
+    }
+    "correctly parse a string which is a comment as a string, not an hocon comment, 1" in {
+      GenericProperty.parseValue("# I'm a string, not a comment") must beRight(ConfigValueFactory.fromAnyRef("# I'm a string, not a comment"))
+    }
+    "correctly parse a string which is a comment as a string, not an hocon comment, 2" in {
+      GenericProperty.parseValue("// I'm a string, not a comment") must beRight(ConfigValueFactory.fromAnyRef("// I'm a string, not a comment"))
     }
     "correctly accept comments in json-like, wherever they are" in {
       val s = """//here, a comment
