@@ -1,5 +1,5 @@
 #####################################################################################
-# Copyright 2013-2016 Normation SAS
+# Copyright 2020 Normation SAS
 #####################################################################################
 #
 # This program is free software: you can redistribute it and/or modify
@@ -42,4 +42,33 @@ bundle agent _abort(reason, message)
         usebundle => ${configuration.enabled_abort_handlers}("${reason}", "${message}"),
         action  => immediate_ignore_dry_run,
         comment   => "Call the ${method} bundle with arguments ${reason}, ${message}";
+}
+
+# @name Abort default
+# @description Standard default agent abort handler
+#
+# @parameter reason  The reason to abort the agent
+# @parameter message The human readable message to display
+#
+# As this ends with an abort, we define no result conditions
+#
+
+bundle agent _abort_default(reason, message)
+{
+  reports:
+      "${configuration.fatal} Aborting agent run because of ${reason}: ${message}"
+        action  => immediate_ignore_dry_run;
+}
+
+# @name Abort rudder
+# @description Special handler when aborting from ncf
+#
+# @parameter reason  The reason to abort the agent
+# @parameter message The human readable message to display
+#
+bundle agent abort_rudder(reason, message)
+{
+  methods:
+      "abort log" usebundle => rudder_common_report("Common", "log_info", "${system_common.directiveId}", "Abort run", "${reason}", "${message}");
+      "end run"   usebundle => endExecution;
 }
