@@ -99,6 +99,9 @@ import com.normation.zio._
 import com.normation.errors._
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
+import com.normation.rudder.repository.RoNodeGroupRepository
+import com.normation.rudder.repository.RoParameterRepository
+import com.normation.rudder.services.nodes.MergeNodeProperties
 import zio.duration._
 
 /*
@@ -114,6 +117,7 @@ class NodeApi (
   , apiV4               : NodeApiService4
   , serviceV6           : NodeApiService6
   , apiV8service        : NodeApiService8
+  , inheritedProperties : NodeApiInheritedProperties
 ) extends LiftApiModuleProvider[API] {
 
   def schemas = API
@@ -122,6 +126,7 @@ class NodeApi (
     API.endpoints.map(e => e match {
       case API.ListPendingNodes         => ListPendingNodes
       case API.NodeDetails              => NodeDetails
+      case API.NodeInheritedProperties  => NodeInheritedProperties
       case API.PendingNodeDetails       => PendingNodeDetails
       case API.DeleteNode               => DeleteNode
       case API.ChangePendingNodeStatus  => ChangePendingNodeStatus
@@ -146,6 +151,21 @@ class NodeApi (
       }
     }
   }
+
+  object NodeInheritedProperties extends LiftApiModule {
+    val schema = API.NodeInheritedProperties
+    val restExtractor = restExtractorService
+    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      inheritedProperties.getNodePropertiesTree(NodeId(id)).either.runNow match {
+        case Right(properties) =>
+          toJsonResponse(None, properties)("nodeInheritedProperties", params.prettify)
+        case Left(err) =>
+          toJsonError(None, err.fullMsg)("nodeInheritedProperties", params.prettify)
+      }
+    }
+  }
+
+
 
   object PendingNodeDetails extends LiftApiModule {
     val schema = API.PendingNodeDetails
@@ -319,6 +339,33 @@ class NodeApi (
       }
     }
 
+  }
+}
+
+class NodeApiInheritedProperties(
+    infoService: NodeInfoService
+  , groupRepo  : RoNodeGroupRepository
+  , paramRepo  : RoParameterRepository
+) {
+
+  /*
+   * Full list of node properties, including inherited ones
+   *
+   */
+  def getNodePropertiesTree(nodeId: NodeId): IOResult[JValue] = {
+    for {
+      nodeInfo     <- infoService.getNodeInfoPure(nodeId).notOptional(s"Node with ID '${nodeId.value}' was not found.'")
+      groups       <- groupRepo.getFullGroupLibrary()
+      nodeTargets  =  groups.getTarget(nodeInfo).map(_._2).toList
+      params       <- paramRepo.getAllGlobalParameters()
+      properties   <- MergeNodeProperties.withDefaults(nodeInfo, nodeTargets, params.map(p => (p.name, p.value)).toMap).toIO
+    } yield {
+      import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
+      JArray((
+        ("nodeId"     -> nodeId.value)
+      ~ ("properties" -> properties.toApiJsonRenderParents)
+      ) :: Nil)
+    }
   }
 }
 

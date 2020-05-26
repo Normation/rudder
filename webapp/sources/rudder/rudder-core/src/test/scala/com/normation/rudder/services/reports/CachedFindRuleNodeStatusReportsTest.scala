@@ -37,6 +37,7 @@
 
 package com.normation.rudder.services.reports
 
+import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
@@ -133,6 +134,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   object testNodeInfoService extends NodeInfoService {
     def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition) : Box[Set[LDAPNodeInfo]] = ???
     def getNodeInfo(nodeId: NodeId) : Box[Option[NodeInfo]] = ???
+    def getNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
     def getNode(nodeId: NodeId): Box[Node] = ???
     def getAllNodes() : Box[Map[NodeId, Node]] = ???
     def getAllSystemNodeIds() : Box[Seq[NodeId]] = ???

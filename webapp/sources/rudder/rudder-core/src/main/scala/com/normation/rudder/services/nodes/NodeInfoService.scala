@@ -123,6 +123,9 @@ trait NodeInfoService {
    */
   def getNodeInfo(nodeId: NodeId) : Box[Option[NodeInfo]]
 
+  // Pure version of getNodeInfo
+  def getNodeInfoPure(nodeId: NodeId) : IOResult[Option[NodeInfo]]
+
   /**
    * Return the number of managed (ie non policy server, no rudder role )nodes.
    * Implementation of that method must as efficient as possible.
@@ -552,9 +555,11 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
     }
   }.toBox
 
-  def getNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = withUpToDateCache(s"${nodeId.value} node info") { cache =>
+  def getNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = getNodeInfoPure(nodeId).toBox
+
+  def getNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = withUpToDateCache(s"${nodeId.value} node info") { cache =>
     cache.get(nodeId).map( _._2).succeed
-  }.toBox
+  }
 }
 
 /**

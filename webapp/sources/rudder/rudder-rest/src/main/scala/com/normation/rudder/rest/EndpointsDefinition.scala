@@ -120,6 +120,10 @@ object GroupApi extends ApiModuleProvider[GroupApi] {
     val description = "Update given dynamic group node list"
     val (action, path)  = GET / "groups" / "{id}" / "reload"
   }
+  final case object GroupInheritedProperties extends GroupApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
+    val description = "Get all proporeties for that group, included inherited ones"
+    val (action, path)  = GET / "groups" / "{id}" / "inheritedProperties"
+  }
   // API v5 updates 'Create' methods but no new endpoints
   // API v6
 
@@ -242,6 +246,10 @@ object NodeApi extends ApiModuleProvider[NodeApi] {
   final case object NodeDetails extends NodeApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     val description = "Get information about the given accepted node"
     val (action, path)  = GET / "nodes" / "{id}"
+  }
+  final case object NodeInheritedProperties extends NodeApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
+    val description = "Get all proporeties for that node, included inherited ones"
+    val (action, path)  = GET / "nodes" / "{id}" / "inheritedProperties"
   }
   final case object ApplyPocicyAllNodes extends NodeApi with ZeroParam with StartsAtVersion8 with SortIndex { val z = implicitly[Line].value
     val description = "Ask all nodes to start a run with the given policy"
