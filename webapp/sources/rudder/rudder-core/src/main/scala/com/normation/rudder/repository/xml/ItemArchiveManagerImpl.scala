@@ -56,12 +56,11 @@ import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import com.normation.rudder.rule.category.GitRuleCategoryArchiver
 import java.io.File
 
-import com.normation.NamedZioLogger
 import com.normation.rudder.rule.category.ImportRuleCategoryLibrary
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.services.queries.DynGroupUpdaterService
-
 import com.normation.errors._
+import com.normation.rudder.domain.logger.GitArchiveLoggerPure
 import zio._
 import zio.syntax._
 
@@ -95,7 +94,6 @@ class ItemArchiveManagerImpl(
   , updateDynamicGroups               : DynGroupUpdaterService
 ) extends
   ItemArchiveManager with
-  NamedZioLogger with
   GitArchiverFullCommitUtils
 {
 
@@ -272,7 +270,7 @@ class ItemArchiveManagerImpl(
 
   override def importAll(archiveId:GitCommitId, commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : IOResult[GitCommitId] = {
     for {
-      _           <- logPure.info("Importing full archive with id '%s'".format(archiveId.value))
+      _           <- GitArchiveLoggerPure.info("Importing full archive with id '%s'".format(archiveId.value))
       rules       <- importRulesAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
       userLib     <- importTechniqueLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
       groupLIb    <- importGroupLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
@@ -299,7 +297,7 @@ class ItemArchiveManagerImpl(
 
   private[this] def importRuleCategories(archiveId:GitCommitId) : IOResult[GitCommitId] = {
     for {
-      _         <- logPure.info("Importing rule categories archive with id '%s'".format(archiveId.value))
+      _         <- GitArchiveLoggerPure.info("Importing rule categories archive with id '%s'".format(archiveId.value))
       parsed    <- parseRuleCategories.getArchive(archiveId)
       imported  <- importRuleCategoryLibrary.swapRuleCategory(parsed)
     } yield {
@@ -309,13 +307,13 @@ class ItemArchiveManagerImpl(
 
   private[this] def importRulesAndDeploy(archiveId:GitCommitId, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : IOResult[GitCommitId] = {
     for {
-      _          <- logPure.info("Importing rules archive with id '%s'".format(archiveId.value))
+      _          <- GitArchiveLoggerPure.info("Importing rules archive with id '%s'".format(archiveId.value))
       categories <- importRuleCategories(archiveId)
       parsed     <- parseRules.getArchive(archiveId)
       imported   <- woRuleRepository.swapRules(parsed)
       //try to clean
       _          <- woRuleRepository.deleteSavedRuleArchiveId(imported).catchAll(err =>
-                      logPure.warn(s"Error when trying to delete saved archive of old rule: ${err.fullMsg}")
+                      GitArchiveLoggerPure.warn(s"Error when trying to delete saved archive of old rule: ${err.fullMsg}")
                     )
       _          <- effectUioUnit(if(deploy) {asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)})
     } yield {
@@ -335,7 +333,7 @@ class ItemArchiveManagerImpl(
   }
   private[this] def importTechniqueLibraryAndDeploy(archiveId:GitCommitId, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : IOResult[GitCommitId] = {
       for {
-        _        <- logPure.info(s"Importing technique library archive with id '${archiveId.value}'")
+        _        <- GitArchiveLoggerPure.info(s"Importing technique library archive with id '${archiveId.value}'")
         parsed   <- parseActiveTechniqueLibrary.getArchive(archiveId)
         imported <- importTechniqueLibrary.swapActiveTechniqueLibrary(parsed, includeSystem)
       } yield {
@@ -356,7 +354,7 @@ class ItemArchiveManagerImpl(
 
   private[this] def importGroupLibraryAndDeploy(archiveId:GitCommitId, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : IOResult[GitCommitId] = {
       for {
-        _        <- logPure.info(s"Importing groups archive with id '${archiveId.value}'")
+        _        <- GitArchiveLoggerPure.info(s"Importing groups archive with id '${archiveId.value}'")
         parsed   <- parseGroupLibrary.getArchive(archiveId)
         imported <- importGroupLibrary.swapGroupLibrary(parsed, includeSystem)
         dynGroup <- updateDynamicGroups.updateAll(modId,actor,reason).toIO
@@ -378,12 +376,12 @@ class ItemArchiveManagerImpl(
 
   private[this] def importParametersAndDeploy(archiveId:GitCommitId, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : IOResult[GitCommitId] = {
     for {
-      _        <- logPure.info(s"Importing Parameters archive with id '${archiveId.value}'")
+      _        <- GitArchiveLoggerPure.info(s"Importing Parameters archive with id '${archiveId.value}'")
       parsed   <- parseGlobalParameters.getArchive(archiveId)
       imported <- woParameterRepository.swapParameters(parsed)
       //try to clean
       _        <- woParameterRepository.deleteSavedParametersArchiveId(imported).catchAll(err =>
-                    logPure.warn(s"Error when trying to delete saved archive of old parameters: ${err.fullMsg}")
+                    GitArchiveLoggerPure.warn(s"Error when trying to delete saved archive of old parameters: ${err.fullMsg}")
                   )
       _        <- effectUioUnit(if(deploy) {asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)})
     } yield {
@@ -399,7 +397,7 @@ class ItemArchiveManagerImpl(
 
   override def rollback(archiveId:GitCommitId, commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String],  rollbackedEvents :Seq[EventLog], target:EventLog, rollbackType:String, includeSystem:Boolean = false) : IOResult[GitCommitId] = {
     for {
-      _           <- logPure.info(s"Importing full archive with id '${archiveId.value}'")
+      _           <- GitArchiveLoggerPure.info(s"Importing full archive with id '${archiveId.value}'")
       rules       <- importRulesAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
       userLib     <- importTechniqueLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
       groupLIb    <- importGroupLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)

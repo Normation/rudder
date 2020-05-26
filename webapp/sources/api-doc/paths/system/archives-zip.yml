@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+get:
+  summary: Get an archive as a ZIP
+  description: Get an archive of the given kind as a zip
+  operationId: getZipArchive
+  parameters:
+    - $ref: ../../components/parameters/archive-kind.yml
+    - name: commitId
+      in: path
+      description: commit ID of the archive to get as a ZIP file
+      required: true
+      schema:
+        type: string
+  responses:
+    "200":
+      description: Success
+      content:
+        application/octet-stream:
+          schema:
+            type: string
+            format: binary
+  tags:
+    - System
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/system/get-archive-zip.sh

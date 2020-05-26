@@ -1,0 +1,1 @@
+curl --header "X-API-Token: yourToken" --request GET https://rudder.example.com/rudder/api/latest/system/archives/full/zip/cad7d5f0729f06d22878b99869b8d43629e05a78 -o full-archive.zip
