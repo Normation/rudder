@@ -229,7 +229,7 @@ class NodeGroupUnserialisationImpl(
                           }
       isEnabled       <- (group \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isEnabled' in entry type nodeGroup : " + entry)
       isSystem        <- (group \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type nodeGroup : " + entry)
-      properties      <- sequence((group \ "properties").toList) {
+      properties      <- sequence((group \ "properties" \ "property").toList) {
                            case <property>{p @ _*}</property> =>
                              GroupProperty.parse(
                                  (p\"name").text.trim

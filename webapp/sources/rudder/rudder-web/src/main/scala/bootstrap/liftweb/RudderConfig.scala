@@ -2210,7 +2210,7 @@ object RudderConfig extends Loggable {
                     , "Automatic recording of active nodes".succeed, ZioRuntime.environment
                   )
     _          <- ScheduledJobLoggerPure.metrics.info(
-                    s"Starting node count historization batch (min:${METRICS_NODES_MIN_PERIOD.render}; max:${METRICS_NODES_MAX_PERIOD})"
+                    s"Starting node count historization batch (min:${METRICS_NODES_MIN_PERIOD.render}; max:${METRICS_NODES_MAX_PERIOD.render})"
                   )
     _          <- cron.start
   } yield ()

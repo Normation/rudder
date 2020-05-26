@@ -106,26 +106,32 @@ class SystemApi(
       case API.ArchivesGroupsList             => ArchivesGroupsList
       case API.ArchivesDirectivesList         => ArchivesDirectivesList
       case API.ArchivesRulesList              => ArchivesRulesList
+      case API.ArchivesParametersList         => ArchivesParametersList
       case API.ArchivesFullList               => ArchivesFullList
       case API.RestoreGroupsLatestArchive     => RestoreGroupsLatestArchive
       case API.RestoreDirectivesLatestArchive => RestoreDirectivesLatestArchive
       case API.RestoreRulesLatestArchive      => RestoreRulesLatestArchive
+      case API.RestoreParametersLatestArchive => RestoreParametersLatestArchive
       case API.RestoreFullLatestArchive       => RestoreFullLatestArchive
       case API.RestoreGroupsLatestCommit      => RestoreGroupsLatestCommit
       case API.RestoreDirectivesLatestCommit  => RestoreDirectivesLatestCommit
       case API.RestoreRulesLatestCommit       => RestoreRulesLatestCommit
+      case API.RestoreParametersLatestCommit  => RestoreParametersLatestCommit
       case API.RestoreFullLatestCommit        => RestoreFullLatestCommit
       case API.ArchiveGroups                  => ArchiveGroups
       case API.ArchiveDirectives              => ArchiveDirectives
       case API.ArchiveRules                   => ArchiveRules
+      case API.ArchiveParameters              => ArchiveParameters
       case API.ArchiveFull                    => ArchiveAll
       case API.ArchiveGroupDateRestore        => ArchiveGroupDateRestore
       case API.ArchiveDirectiveDateRestore    => ArchiveDirectiveDateRestore
       case API.ArchiveRuleDateRestore         => ArchiveRuleDateRestore
+      case API.ArchiveParameterDateRestore    => ArchiveParameterDateRestore
       case API.ArchiveFullDateRestore         => ArchiveFullDateRestore
       case API.GetGroupsZipArchive            => GetGroupsZipArchive
       case API.GetDirectivesZipArchive        => GetDirectivesZipArchive
       case API.GetRulesZipArchive             => GetRulesZipArchive
+      case API.GetParametersZipArchive        => GetParametersZipArchive
       case API.GetAllZipArchive               => GetAllZipArchive
     })
   }
@@ -248,6 +254,15 @@ class SystemApi(
     }
   }
 
+  object ArchivesParametersList extends LiftApiModule0 {
+    val schema = API.ArchivesParametersList
+    val restExtractor = restExtractorService
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      apiv11service.listParametersArchive(params)
+    }
+  }
+
   object ArchivesFullList extends LiftApiModule0 {
     val schema = API.ArchivesFullList
     val restExtractor = restExtractorService
@@ -281,6 +296,15 @@ class SystemApi(
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       apiv11service.restoreRulesLatestArchive(req, params)
+    }
+  }
+
+  object RestoreParametersLatestArchive extends LiftApiModule0 {
+    val schema = API.RestoreParametersLatestArchive
+    val restExtractor = restExtractorService
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      apiv11service.restoreParametersLatestArchive(req, params)
     }
   }
 
@@ -320,6 +344,15 @@ class SystemApi(
     }
   }
 
+  object RestoreParametersLatestCommit extends LiftApiModule0 {
+    val schema = API.RestoreParametersLatestCommit
+    val restExtractor = restExtractorService
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      apiv11service.restoreParametersLatestCommit(req, params)
+    }
+  }
+
   object RestoreFullLatestCommit extends LiftApiModule0 {
     val schema = API.RestoreFullLatestCommit
     val restExtractor = restExtractorService
@@ -352,6 +385,15 @@ class SystemApi(
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       apiv11service.archiveRules(req, params)
+    }
+  }
+
+  object ArchiveParameters extends LiftApiModule0 {
+    val schema = API.ArchiveParameters
+    val restExtractor = restExtractorService
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      apiv11service.archiveParameters(req, params)
     }
   }
 
@@ -391,6 +433,15 @@ class SystemApi(
     }
   }
 
+  object ArchiveParameterDateRestore extends LiftApiModule {
+    val schema = API.ArchiveParameterDateRestore
+    val restExtractor = restExtractorService
+
+    def process(version: ApiVersion, path: ApiPath, dateTime: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      apiv11service.archiveParameterDateRestore(req, params, dateTime)
+    }
+  }
+
   object ArchiveFullDateRestore extends LiftApiModule {
     val schema = API.ArchiveFullDateRestore
     val restExtractor = restExtractorService
@@ -424,6 +475,15 @@ class SystemApi(
 
     def process(version: ApiVersion, path: ApiPath, commitId: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       apiv11service.getRulesZipArchive(params, commitId)
+    }
+  }
+
+  object GetParametersZipArchive extends LiftApiModule {
+    val schema = API.GetParametersZipArchive
+    val restExtractor = restExtractorService
+
+    def process(version: ApiVersion, path: ApiPath, commitId: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      apiv11service.getParametersZipArchive(params, commitId)
     }
   }
 
@@ -582,7 +642,8 @@ class SystemApiService11(
 
   private[this] val directiveFiles = List("directives","techniques", "parameters", "ncf")
   private[this] val ruleFiles = List("rules","ruleCategories")
-  private[this] val allFiles = "groups" :: ruleFiles ::: directiveFiles
+  private[this] val parameterFiles = List("parameters")
+  private[this] val allFiles = "groups" :: ruleFiles ::: directiveFiles ::: parameterFiles
 
   private[this] def getZip(commitId:String, paths:List[String], archiveType: String) : Either[String, (Array[Byte], List[(String, String)])] = {
     (ZIO.bracket(IOResult.effect(new RevWalk(repo.db)))(rw => effectUioUnit(rw.dispose)) { rw =>
@@ -656,6 +717,16 @@ class SystemApiService11(
     }
   }
 
+  def getParametersZipArchive(params: DefaultParams, commitId: String): LiftResponse = {
+    implicit val action = "getParametersZipArchive"
+    implicit val prettify = params.prettify
+
+    getZip(commitId, parameterFiles, "Parameters") match {
+      case Left(error)  => toJsonError(None, error)
+      case Right(field) => InMemoryResponse(field._1, field._2, Nil, 200)
+    }
+  }
+
   def getAllZipArchive(params: DefaultParams, commitId: String): LiftResponse = {
     implicit val action = "getFullZipArchive"
     implicit val prettify = params.prettify
@@ -693,6 +764,16 @@ class SystemApiService11(
     implicit val prettify = params.prettify
 
     restoreByDatetime(req, () => itemArchiveManager.getRulesTags, itemArchiveManager.importRules, dateTime, "rule") match {
+      case Left(error)  => toJsonError(None, error)
+      case Right(field) => toJsonResponse(None, JObject(field))
+    }
+  }
+
+  def archiveParameterDateRestore(req: Req, params: DefaultParams, dateTime: String) : LiftResponse = {
+    implicit val action = "archiveParameterDateRestore"
+    implicit val prettify = params.prettify
+
+    restoreByDatetime(req, () => itemArchiveManager.getParametersTags, itemArchiveManager.importParameters, dateTime, "parameter") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
@@ -738,6 +819,15 @@ class SystemApiService11(
       case Right(field) => toJsonResponse(None, JObject(field))
     }
   }
+  def archiveParameters(req: Req, params: DefaultParams) : LiftResponse = {
+    implicit val action = "archiveParameters"
+    implicit val prettify = params.prettify
+
+    archive(req, itemArchiveManager.exportParameters _, "parameters") match {
+      case Left(error)  => toJsonError(None, error)
+      case Right(field) => toJsonResponse(None, JObject(field))
+    }
+  }
 
   def archiveAll(req: Req, params: DefaultParams) : LiftResponse = {
     implicit val action = "archiveAll"
@@ -773,13 +863,21 @@ class SystemApiService11(
     }
   }
 
-
   def restoreRulesLatestArchive(req: Req, params: DefaultParams) : LiftResponse = {
-
     implicit val action = "restoreRulesLatestArchive"
     implicit val prettify = params.prettify
 
     restoreLatestArchive(req, () => itemArchiveManager.getRulesTags, itemArchiveManager.importRules, "rules") match {
+      case Left(error)  => toJsonError(None, error)
+      case Right(field) => toJsonResponse(None, JObject(field))
+    }
+  }
+
+  def restoreParametersLatestArchive(req: Req, params: DefaultParams) : LiftResponse = {
+    implicit val action = "restoreParametersLatestArchive"
+    implicit val prettify = params.prettify
+
+    restoreLatestArchive(req, () => itemArchiveManager.getParametersTags, itemArchiveManager.importParameters, "parameters") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
@@ -829,6 +927,16 @@ class SystemApiService11(
     }
   }
 
+  def restoreParametersLatestCommit(req: Req, params: DefaultParams) : LiftResponse = {
+
+    implicit val action = "restoreParametersLatestCommit"
+    implicit val prettify = params.prettify
+
+    restoreLatestCommit(req, itemArchiveManager.importHeadParameters, "parameters") match {
+      case Left(error)  => toJsonError(None, error)
+      case Right(field) => toJsonResponse(None, JObject(field))
+    }
+  }
   def restoreFullLatestCommit(req: Req, params: DefaultParams) : LiftResponse = {
 
     implicit val action = "restoreFullLatestCommit"
@@ -870,6 +978,17 @@ class SystemApiService11(
     implicit val prettify = params.prettify
 
     listTags(() => itemArchiveManager.getRulesTags, "rules") match {
+      case Left(error)  => toJsonError(None, error)
+      case Right(field) => toJsonResponse(None, JObject(field))
+    }
+  }
+
+  def listParametersArchive(params: DefaultParams) : LiftResponse = {
+
+    implicit val action = "listParametersArchive"
+    implicit val prettify = params.prettify
+
+    listTags(() => itemArchiveManager.getParametersTags, "parameters") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }

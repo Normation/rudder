@@ -132,7 +132,7 @@ class WoLDAPParameterRepository(
                            }
         diff            <- diffMapper.addChangeRecords2GlobalParameterDiff(paramEntry.dn, result).toIO
         loggedAction    <- actionLogger.saveAddGlobalParameter(modId, principal = actor, addDiff = diff, reason = reason).chainError("Error when logging modification as an event")
-        autoArchive     <- ZIO.when(autoExportOnModify) { //only persists if modification are present
+        autoArchive     <- ZIO.when(autoExportOnModify) {
                              for {
                                commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                                archive  <- gitParameterArchiver.archiveParameter(parameter,Some((modId, commiter, reason)))

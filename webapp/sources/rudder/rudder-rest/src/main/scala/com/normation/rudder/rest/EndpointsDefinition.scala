@@ -473,6 +473,11 @@ object SystemApi extends ApiModuleProvider[SystemApi] {
     val (action, path) = GET / "system" / "archives" / "rules"
   }
 
+  final case object ArchivesParametersList extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
+    val description    = "list parameters archives"
+    val (action, path) = GET / "system" / "archives" / "parameters"
+  }
+
   final case object ArchivesFullList extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
     val description    = "list all archives"
     val (action, path) = GET / "system" / "archives" / "full"
@@ -497,6 +502,11 @@ object SystemApi extends ApiModuleProvider[SystemApi] {
     val (action, path) = POST / "system" / "archives" / "rules" / "restore" / "latestArchive"
   }
 
+  final case object RestoreParametersLatestArchive extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
+    val description    = "restore parameters latest archive"
+    val (action, path) = POST / "system" / "archives" / "parameters" / "restore" / "latestArchive"
+  }
+
   final case object RestoreFullLatestArchive extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
     val description    = "restore all latest archive"
     val (action, path) = POST / "system" / "archives" / "full" / "restore" / "latestArchive"
@@ -518,6 +528,11 @@ object SystemApi extends ApiModuleProvider[SystemApi] {
     val (action, path) = POST / "system" / "archives" / "rules" / "restore" / "latestCommit"
   }
 
+  final case object RestoreParametersLatestCommit extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
+    val description    = "restore parameters latest commit"
+    val (action, path) = POST / "system" / "archives" / "parameters" / "restore" / "latestCommit"
+  }
+
   final case object RestoreFullLatestCommit extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
     val description    = "restore full latest commit"
     val (action, path) = POST / "system" / "archives" / "full" / "restore" / "latestCommit"
@@ -527,17 +542,22 @@ object SystemApi extends ApiModuleProvider[SystemApi] {
 
   final case object ArchiveGroupDateRestore extends SystemApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
     val description    = "restore a group archive created on date passed as parameter"
-    val (action, path) = POST / "system" / "archives" / "group" / "restore" / "{dateTime}"
+    val (action, path) = POST / "system" / "archives" / "groups" / "restore" / "{dateTime}"
   }
 
   final case object ArchiveDirectiveDateRestore extends SystemApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
     val description    = "restore a directive archive created on date passed as parameter"
-    val (action, path) = POST / "system" / "archives" / "directive" / "restore" / "{dateTime}"
+    val (action, path) = POST / "system" / "archives" / "directives" / "restore" / "{dateTime}"
   }
 
   final case object ArchiveRuleDateRestore extends SystemApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
     val description    = "restore a rule archive created on date passed as parameter"
-    val (action, path) = POST / "system" / "archives" / "rule" / "restore" / "{dateTime}"
+    val (action, path) = POST / "system" / "archives" / "rules" / "restore" / "{dateTime}"
+  }
+
+  final case object ArchiveParameterDateRestore extends SystemApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
+    val description    = "restore a parameter archive created on date passed as parameter"
+    val (action, path) = POST / "system" / "archives" / "parameters" / "restore" / "{dateTime}"
   }
 
   final case object ArchiveFullDateRestore extends SystemApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
@@ -562,6 +582,11 @@ object SystemApi extends ApiModuleProvider[SystemApi] {
     val (action, path) = POST / "system" / "archives" / "rules"
   }
 
+  final case object ArchiveParameters extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
+    val description    = "archive parameters"
+    val (action, path) = POST / "system" / "archives" / "parameters"
+  }
+
   final case object ArchiveFull extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
     val description    = "archive full"
     val (action, path) = POST / "system" / "archives" / "full"
@@ -582,6 +607,11 @@ object SystemApi extends ApiModuleProvider[SystemApi] {
   final case object GetRulesZipArchive extends SystemApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
     val description    = "Get a rules zip archive based on its commit id"
     val (action, path) = GET / "system" / "archives" / "rules" / "zip" / "{commitId}"
+  }
+
+  final case object GetParametersZipArchive extends SystemApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
+    val description    = "Get a parameters zip archive based on its commit id"
+    val (action, path) = GET / "system" / "archives" / "parameters" / "zip" / "{commitId}"
   }
 
   final case object GetAllZipArchive extends SystemApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value

@@ -72,6 +72,7 @@ class Archives extends DispatchSnippet with Loggable {
     case "rulesForm" => rulesForm
     case "groupLibraryForm" => groupLibraryForm
     case "directiveLibraryForm" => directiveLibraryForm
+    case "parametersForm" => parametersForm
   }
 
   /**
@@ -84,15 +85,15 @@ class Archives extends DispatchSnippet with Loggable {
       , archiveButtonId           = "exportAllButton"
       , archiveButtonName         = "Archive everything"
       , archiveFunction           = itemArchiver.exportAll
-      , archiveErrorMessage       = "Error when exporting groups, Directive library and Rules."
-      , archiveSuccessDebugMessage= s => "Exporting groups, Directive library and Rules on user request, archive id: %s".format(s)
+      , archiveErrorMessage       = "Error when exporting groups, parameters, directive library and rules."
+      , archiveSuccessDebugMessage= s => s"Exporting groups, parameters, directive library and rules on user request, archive id: ${s}"
       , archiveDateSelectId       = "importAllSelect"
       , archiveListFunction       = () => itemArchiver.getFullArchiveTags
       , restoreButtonId           = "importAllButton"
       , restoreButtonName         = "Restore everything"
       , restoreFunction           = itemArchiver.importAll
-      , restoreErrorMessage       = "Error when importing groups, Directive library and Rules."
-      , restoreSuccessDebugMessage= "Importing groups, Directive library and Rules on user request"
+      , restoreErrorMessage       = "Error when importing groups, parameters, directive library and rules."
+      , restoreSuccessDebugMessage= "Importing groups, parameters, directive library and rules on user request"
       , downloadButtonId          = "downloadAllButton"
       , downloadButtonName        = DL_NAME
       , downloadRestAction        = "all"
@@ -160,8 +161,29 @@ class Archives extends DispatchSnippet with Loggable {
       , downloadButtonName        = DL_NAME
       , downloadRestAction        = "groups"
     )
-
   }
+
+  private[this] def parametersForm = {
+    actionFormBuilder(
+        formName                  = "parametersForm"
+      , archiveButtonId           = "exportParametersButton"
+      , archiveButtonName         = "Archive Parameters"
+      , archiveFunction           = (a,b,c,d,e) => itemArchiver.exportParameters(a,b,c,d,e).map(x=> (x, noElements))
+      , archiveErrorMessage       = "Error when exporting Parameters."
+      , archiveSuccessDebugMessage= s => "Exporting Parameters on user request, archive id: %s".format(s)
+      , archiveDateSelectId       = "importParametersSelect"
+      , archiveListFunction       = () => itemArchiver.getParametersTags
+      , restoreButtonId           = "importParametersButton"
+      , restoreButtonName         = "Restore Parameters"
+      , restoreFunction           = itemArchiver.importParameters
+      , restoreErrorMessage       = "Error when imporing Parameters."
+      , restoreSuccessDebugMessage= "Importing Parameters on user request"
+      , downloadButtonId          = "downloadParametersButton"
+      , downloadButtonName        = DL_NAME
+      , downloadRestAction        = "parameters"
+    )
+  }
+
 
   /**
    * Create a form with a validation button for an export or an import
@@ -191,7 +213,7 @@ class Archives extends DispatchSnippet with Loggable {
       val e = eb ?~! msg
       logger.error(e.messageChain)
       logger.error(e.exceptionChain.mkString("", "\n", ""))
-      JsRaw(s"""createErrorNotification(${msg})""")
+      JsRaw(s"""createErrorNotification('${msg}')""") &
       Replace(formName, outerXml.applyAgain)
     }
 

@@ -179,7 +179,7 @@ trait ItemArchiveManager {
     importGroupLibrary(lastGitCommitId, commiter, modId, actor, reason, includeSystem)
   }
 
-  def importHeadParameters(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[GitCommitId]= {
+  def importHeadParameters(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : IOResult[GitCommitId]= {
     importParameters(lastGitCommitId, commiter, modId, actor, reason)
   }
 
