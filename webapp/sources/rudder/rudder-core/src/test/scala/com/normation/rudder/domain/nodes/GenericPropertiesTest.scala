@@ -46,6 +46,8 @@ import org.specs2.mutable._
 import org.specs2.runner._
 import java.util.{HashMap => JMap}
 
+import com.normation.errors.PureResult
+
 @RunWith(classOf[JUnitRunner])
 class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatcher {
 
@@ -53,6 +55,13 @@ class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatc
     val jmap = new JMap[A,B]()
     tuples.foreach { case (a,b) => jmap.put(a, b) }
     jmap
+  }
+
+  implicit class GetPureResult[A](res: PureResult[A]) {
+    def forceGet = res match {
+      case Right(v)  => v
+      case Left(err) => throw new RuntimeException(err.fullMsg)
+    }
   }
 
   sequential
@@ -134,6 +143,74 @@ class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatc
       val t = """{# comments!
         |"a":"b"}""".stripMargin
        GenericProperty.parseValue(s).map(GenericProperty.serializeToHocon) must beRight(t)
+    }
+  }
+
+/*
+
+This is what is the serialized values of properties from node in 6.0. They must be kept
+for compatibility
+
+Format:
+==
+propName propType
+propValue entered in node UI
+serialized value in LDAP
+==
+json1 JSON
+{
+  "foo": "bar"
+}
+{"name":"json1","value":{"foo":"bar"}}
+==
+string1 String
+simple string
+{"name":"string1","value":"simple string"}
+==
+string2 String
+#comment string
+{"name":"string2","value":"#comment string"}
+==
+string3 String
+{ contains curly braces }
+{"name":"string3","value":"{ contains curly braces }"}
+==
+string4 String
+line1
+line2
+line3
+{"name":"string4","value":"line1\nline2\nline3"}
+==
+string5 String
+"with double quotes"
+{"name":"string5","value":"\"with double quotes\""}
+==
+string6 String
+'with simple quotes'
+{"name":"string6","value":"'with simple quotes'"}
+==
+string7 String
+"""with triple double quotes"""
+{"name":"string7","value":"\"\"\"with triple double quotes\"\"\""}
+==
+ */
+  "compat with 6.0" should {
+
+    val strings = List(
+      """{"name":"string1","value":"simple string"}"""                         -> "simple string"
+    , """{"name":"string2","value":"#comment string"}"""                       -> "#comment string"
+    , """{"name":"string3","value":"{ contains curly braces }"}"""             -> "{ contains curly braces }"
+    , """{"name":"string4","value":"line1\nline2\nline3"}"""                   -> "line1\nline2\nline3"
+    , """{"name":"string5","value":"\"with double quotes\""}"""                -> "\"with double quotes\""
+    , """{"name":"string6","value":"'with simple quotes'"}"""                  -> "'with simple quotes'"
+    , """{"name":"string7","value":"\"\"\"with triple double quotes\"\"\""}""" -> "\"\"\"with triple double quotes\"\"\""
+    )
+
+    "strings" in {
+      val unser = strings.map { case (a, b) =>
+        NodeProperty(GenericProperty.parseConfig(a).forceGet).valueAsString must_===  b
+      }
+      unser.reduce(_ and _)
     }
   }
 }

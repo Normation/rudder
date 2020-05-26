@@ -120,8 +120,9 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
     $scope.hasEditRight = isUserHasRights;
     currentNodeId = nodeId
     $scope.objectName = objectName;
-    $scope.urlAPI = contextPath + '/secure/api/'+ objectName +'s/' + nodeId + '/inheritedProperties';
-    $http.get($scope.urlAPI).success( function (result) {
+    $scope.urlAPI = contextPath + '/secure/api/'+ objectName +'s/' + nodeId;
+    var getUrlAPI = contextPath + '/secure/api/'+ objectName +'s/' + nodeId + '/inheritedProperties';
+    $http.get(getUrlAPI).success( function (result) {
       $scope.properties = result.data[0].properties
     }).error(function(){createErrorNotification("Error while fetching "+objectName+" properties")});
     $('.rudder-label').bsTooltip();
