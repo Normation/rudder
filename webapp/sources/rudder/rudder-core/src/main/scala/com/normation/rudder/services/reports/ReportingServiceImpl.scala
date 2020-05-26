@@ -145,7 +145,32 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
     for {
       userRules <- rulesRepo.getIds().toBox
       reports <- findRuleNodeStatusReports(Set(nodeId), userRules)
-      status  <- Box(reports.get(nodeId)) ?~! s"Can not find report for node with ID ${nodeId.value}"
+      status  <- reports.get(nodeId) match {
+        case Some(report) => Full(report)
+        case None =>
+          findSystemNodeStatusReport(nodeId) match {
+            case Full(systemreport) =>
+              val runInfo = systemreport.runInfo match {
+                // Classic case with data we need, build NoUserRulesDefined
+                case a : ExpectedConfigAvailable with LastRunAvailable =>
+                  NoUserRulesDefined(a.lastRunDateTime, a.expectedConfig, a.lastRunConfigId, a.lastRunConfigInfo)
+
+                // Pending case / maybe we should keep pending
+                case pending @ Pending(expectedConfig, optLastRun, _)  =>
+                  optLastRun match {
+                    case Some((lastRunDate,lastRunConfigInfo)) =>
+                      NoUserRulesDefined(lastRunDate, expectedConfig, lastRunConfigInfo.nodeConfigId, Some(lastRunConfigInfo))
+                    case None => pending
+                  }
+                // Case we don't have enough information to build data / or state is worse than 'no rules'
+                case _: NoReportInInterval | _ : ReportsDisabledInInterval | _ : ErrorNoConfigData =>
+                  systemreport.runInfo
+              }
+              Full(NodeStatusReport(nodeId, runInfo, systemreport.statusInfo, Nil, Set()))
+
+            case eb : EmptyBox => eb
+          }
+      }
     } yield {
       status
     }
@@ -376,7 +401,6 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
   override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Map[NodeId, NodeStatusReport]] = {
     val n1 = System.currentTimeMillis
     for {
-
       reports <- checkAndGetCache(nodeIds)
       n2      =  System.currentTimeMillis
       _       =  ReportLogger.Cache.debug(s"Get node compliance from cache in: ${n2 - n1}ms")

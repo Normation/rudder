@@ -110,8 +110,13 @@ object ComplianceDebugLogger extends Logger {
 
       case UnexpectedUnknowVersion(lastRunDateTime, lastRunConfigId, expectedConfig, expectedExpiration) =>
         s"expected NodeConfigId: ${expectedConfig.toLog} |"+
-        s" last run: nodeConfigId: ${lastRunConfigId.value} received at ${lastRunDateTime} |"+
-        s" expired at ${expectedExpiration}"
+          s" last run: nodeConfigId: ${lastRunConfigId.value} received at ${lastRunDateTime} |"+
+          s" expired at ${expectedExpiration}"
+
+      case NoUserRulesDefined(lastRunDateTime, expectedConfig,lastRunConfigId, expectedExpiration) =>
+        s"expected NodeConfigId: ${expectedConfig.toLog} |"+
+          s" last run: nodeConfigId: ${lastRunConfigId.value} received at ${lastRunDateTime} |"+
+          s" expired at ${expectedExpiration}"
 
       case UnexpectedNoVersion(lastRunDateTime, lastRunConfigId, lastRunExpiration, expectedConfig, expectedExpiration) =>
         s"expected NodeConfigId: ${expectedConfig.toLog} |"+
@@ -135,6 +140,7 @@ object ComplianceDebugLogger extends Logger {
       case _: ReportsDisabledInInterval => "ReportsDisabledInInterval"
       case _: Pending                   => "Pending"
       case _: ComputeCompliance         => "ComputeCompliance"
+      case _: NoUserRulesDefined        => "NoUserRulesDefined"
     }
 
     def toLog: String = logName + ": " + logDetails
