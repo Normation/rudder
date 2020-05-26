@@ -59,6 +59,12 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                             , multivalued = true
                                             , constraint = Constraint(mayBeEmpty=true)
                                           )
+      // we need to keep CMDBENDPOINT for rudder version where upgrade from 5.0 is allowed,
+      // so likely remove it on 7.0, not before.
+    , SystemVariableSpec(
+                             "CMDBENDPOINT" , "The cmdb endpoint"
+                                            , multivalued  = false
+                        )
     , SystemVariableSpec(
                             "COMMUNITYPORT" , "The port used by the community edition"
                                             , multivalued  = false
