@@ -155,7 +155,7 @@ def dictToAsciiTable(data):
            repoUrl = http://download.rudder.io/plugins
         => fileDst = /tmp/rpkg/./5.0/windows/release/SHA512SUMS
 """
-def download(completeUrl, dst=""):
+def download(completeUrl, dst="", quiet=False):
     if dst == "":
         fileDst = FOLDER_PATH + "/" + completeUrl.replace(URL + "/", '')
     else:
@@ -175,10 +175,12 @@ def download(completeUrl, dst=""):
                for data in r.iter_content(chunk_size=4096):
                    dl += len(data)
                    f.write(data)
-                   done = int(50 * dl / bar_length)
-                   sys.stdout.write("\r%s%s[%s%s]"%(completeUrl, ' ' * (columns - len(completeUrl) - 53), '=' * done, ' ' * (50-done)))
-                   sys.stdout.flush()
-               sys.stdout.write("\n")
+                   if not quiet:
+                     done = int(50 * dl / bar_length)
+                     sys.stdout.write("\r%s%s[%s%s]"%(completeUrl, ' ' * (columns - len(completeUrl) - 53), '=' * done, ' ' * (50-done)))
+                     sys.stdout.flush()
+               if not quiet:
+                 sys.stdout.write("\n")
        elif r.status_code == 401:
            fail("Received a HTTP 401 Unauthorized error when trying to get %s. Please check your credentials in %s"%(completeUrl, CONFIG_PATH))
        elif r.status_code > 400:
@@ -223,17 +225,17 @@ def verifyHash(targetPath, shaSumPath):
    If the verification or the download fails, it will exit with an error, otherwise, return the path
    of the local rpkg path verified and downloaded.
 """
-def download_and_verify(completeUrl, dst=""):
+def download_and_verify(completeUrl, dst="", quiet=False):
     global GPG_HOME
     # donwload the target file
     logging.info("downloading rpkg file  %s"%(completeUrl))
-    targetPath = download(completeUrl, dst)
+    targetPath = download(completeUrl, dst, quiet)
     # download the attached SHASUM and SHASUM.asc
     (baseUrl, leaf) = os.path.split(completeUrl)
     logging.info("downloading shasum file  %s"%(baseUrl + "/SHA512SUMS"))
-    shaSumPath = download(baseUrl + "/SHA512SUMS", dst)
+    shaSumPath = download(baseUrl + "/SHA512SUMS", dst, quiet)
     logging.info("downloading shasum sign file  %s"%(baseUrl + "/SHA512SUMS.asc"))
-    signPath = download(baseUrl + "/SHA512SUMS.asc", dst)
+    signPath = download(baseUrl + "/SHA512SUMS.asc", dst, quiet)
     # verify authenticity
     gpgCommand = "/usr/bin/gpg --homedir " + GPG_HOME + " --verify " + signPath + " " + shaSumPath
     logging.debug("Executing %s"%(gpgCommand))
@@ -246,8 +248,8 @@ def download_and_verify(completeUrl, dst=""):
     fail("Hash verification of %s failed"%(targetPath))
 
 """Download the .rpkg file matching the given rpkg Object and verify its authenticity"""
-def downloadByRpkg(rpkg):
-    return download_and_verify(URL + "/" + rpkg.path)
+def downloadByRpkg(rpkg, quiet=False):
+    return download_and_verify(URL + "/" + rpkg.path, quiet)
 
 def package_check(metadata):
   if 'type' not in metadata or metadata['type'] != 'plugin':

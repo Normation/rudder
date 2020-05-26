@@ -5,8 +5,8 @@ Rudder package manager
 
 Usage:
     rudder package [--debug] install-file <package.rpkg>...
-    rudder package [--debug] install <package> [--version=<version>] [--nightly]
-    rudder package [--debug] upgrade-all [--nightly]
+    rudder package [--debug] install <package> [--version=<version>] [--nightly] [--quiet]
+    rudder package [--debug] upgrade-all [--nightly] [--quiet]
     rudder package [--debug] show <package> [--version=<version>] [--nightly]
     rudder package [--debug] remove <package>...
     rudder package [--debug] search <package>...
@@ -109,9 +109,9 @@ if __name__ == "__main__":
         rudderPkg.update()
     elif args['upgrade-all']:
         if args['--nightly']:
-            rudderPkg.upgrade_all("nightly")
+            rudderPkg.upgrade_all("nightly", args['--quiet'])
         else:
-            rudderPkg.upgrade_all("release")
+            rudderPkg.upgrade_all("release", args['--quiet'])
 
     elif args['licenses']:
         rudderPkg.update_licenses()
@@ -120,14 +120,14 @@ if __name__ == "__main__":
     elif args['install']:
         if args['--version']:
             if args['--nightly']:
-                rudderPkg.package_install_specific_version(args['<package>'], args['--version'], "nightly")
+                rudderPkg.package_install_specific_version(args['<package>'], args['--version'], "nightly", args['--quiet'])
             else:
-                rudderPkg.package_install_specific_version(args['<package>'], args['--version'], "release")
+                rudderPkg.package_install_specific_version(args['<package>'], args['--version'], "release", args['--quiet'])
         else:
             if args['--nightly']:
-                rudderPkg.package_install_latest(args['<package>'], "nightly")
+                rudderPkg.package_install_latest(args['<package>'], "nightly", args['--quiet'])
             else:
-                rudderPkg.package_install_latest(args['<package>'])
+                rudderPkg.package_install_latest(args['<package>'], quiet=args['--quiet'])
     elif args['remove']:
         rudderPkg.remove(args['<package>'])
     elif args['rudder-postupgrade']:

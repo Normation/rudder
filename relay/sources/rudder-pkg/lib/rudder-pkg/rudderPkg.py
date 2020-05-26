@@ -163,13 +163,13 @@ def package_search(name):
     It will not check for compatibility and will let it to the installer since
     the user explicitly asked for this version.
 """
-def package_install_specific_version(name, longVersion, mode="release"):
+def package_install_specific_version(name, longVersion, mode="release", quiet=False):
     utils.readConf()
     pkgs = plugin.Plugin(name[0])
     pkgs.getAvailablePackages()
     rpkg = pkgs.getRpkgByLongVersion(longVersion, mode)
     if rpkg is not None:
-        rpkgPath = utils.downloadByRpkg(rpkg)
+        rpkgPath = utils.downloadByRpkg(rpkg, quiet)
         install_file([rpkgPath])
     else:
         utils.fail("Could not find any package for %s in version %s"%(name, longVersion))
@@ -178,7 +178,7 @@ def package_install_specific_version(name, longVersion, mode="release"):
     Install the latest available and compatible package for a given plugin.
     If no release mode is given, it will only look in the released rpkg.
 """
-def package_install_latest(name, mode="release"):
+def package_install_latest(name, mode="release", quiet=False):
     utils.readConf()
     pkgs = plugin.Plugin(name[0])
     pkgs.getAvailablePackages()
@@ -187,7 +187,7 @@ def package_install_latest(name, mode="release"):
     else:
         rpkg = pkgs.getLatestCompatibleNightly()
     if rpkg is not None:
-        rpkgPath = utils.downloadByRpkg(rpkg)
+        rpkgPath = utils.downloadByRpkg(rpkg, quiet)
         install_file([rpkgPath])
     else:
         utils.fail("Could not find any compatible %s for %s"%(mode, name))
@@ -325,7 +325,7 @@ def update():
 """
     Upgrade all plugins install in their latest compatible version
 """
-def upgrade_all(mode):
+def upgrade_all(mode, quiet=False):
     for p in utils.DB["plugins"].keys():
         currentVersion = rpkg.PluginVersion(utils.DB["plugins"][p]["version"])
         pkgs = plugin.Plugin(p)
@@ -336,6 +336,6 @@ def upgrade_all(mode):
             latestVersion = pkgs.getLatestCompatibleRelease().version
         if currentVersion < latestVersion:
             print("The plugin %s is installed in version %s. The version %s %s is available, the plugin will be upgraded."%(p, currentVersion.pluginLongVersion, mode, latestVersion.pluginLongVersion))
-            package_install_latest([p], mode)
+            package_install_latest([p], mode, quiet)
         else:
             print("No newer %s compatible versions found for the plugin %s"%(mode, p))
