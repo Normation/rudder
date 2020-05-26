@@ -59,7 +59,7 @@ class CheckNashornWarning() extends BootstrapChecks {
       val javaVersionElements = System.getProperty("java.version").split('.')
       val major = Integer.parseInt(javaVersionElements(0))
       if(major >= 11) {
-        BootstrapLogger.logEffect.warn(s"Set '${nashornProp}=${nashornVal}' to avoid redundant deprecation warnings")
+        BootstrapLogger.logEffect.info(s"Set '${nashornProp}=${nashornVal}' to avoid redundant deprecation warnings")
         System.getProperty(nashornProp) match {
           case null  => System.setProperty(nashornProp, nashornVal)
           case value =>
