@@ -361,9 +361,22 @@
                               <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="ui.editForm.name.$error.required && ui.editForm.name.$dirty">Technique name is required</span>
                           </div>
                           <div class="form-group">
-                              <label for="techniqueDescription" class="col-sm-3 control-label"><span class="text-fit">Description</span></label>
+                              <label for="techniqueDescription" class="col-sm-3 control-label">
+                                <span class="text-fit">Documentation</span>
+                                <img
+                                   class="markdown-icon tooltip-icon popover-bs"
+                                   src="ncf-builder/css/markdown-mark-solid.svg"
+                                   data-toggle="popover"
+                                   data-trigger="hover"
+                                   data-container="body"
+                                   data-placement="right"
+                                   data-content="Markdown format"
+                                   data-html="true"
+                                />
+                              </label>
+                              <div id="markdown-info">This content will be displayed in directives using this technique</div>
                               <div class="col-sm-8">
-                                  <textarea name="description" class="form-control" id="techniqueDescription" msd-elastic rows="1" ng-model="selectedTechnique.description" placeholder="Technique Description"></textarea>
+                                  <textarea name="description" class="form-control" id="techniqueDescription" msd-elastic rows="4" ng-model="selectedTechnique.description" placeholder="Technique Documentation"></textarea>
                               </div>
                           </div>
                           <div class="form-group" show-errors>
