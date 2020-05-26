@@ -241,6 +241,9 @@ div#query-search-content {
 }
 
 /* OS ICONS */
+.id-card .card-img{
+  background-image: url(../../images/os/unknown-logo.svg);
+}
 .id-card .card-img.linux{
   background-image: url(../../images/os/linux-logo.svg);
 }
