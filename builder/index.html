@@ -394,9 +394,9 @@
                               <label for="category" class="col-sm-3 control-label">Category</label>
                               <div class="col-sm-8">
                                 <select ng-if="originalTechnique.bundle_name === undefined" class="form-control" name="category" id="category" ng-model="selectedTechnique.category">
-                                  <option ng-repeat="category in techniqueCategories | orderBy:'+value'" value="{{category.key}}">{{category.value}}</option>
+                                  <option ng-repeat="category in techniqueCategories | orderBy:'+value'" ng-selected="category.key === selectedTechnique.category" value="{{category.key}}">{{category.value}}</option>
                                 </select>
-                                <input  ng-if="originalTechnique.bundle_name !== undefined" readonly id="category" bundlename name="category" class="form-control" ng-model="techniqueCategories[selectedTechnique.category]">
+                                <input  ng-if="originalTechnique.bundle_name !== undefined" readonly id="category" bundlename name="category" class="form-control" ng-model="getCategory(selectedTechnique.category).value">
                               </div>
 
                           </div>

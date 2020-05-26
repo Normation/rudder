@@ -641,8 +641,8 @@ $scope.getTechniques = function () {
           $.each( response.data.techniques, function(techniqueName, technique_raw) {
             var technique = toTechUI(technique_raw);
             $scope.techniques.push(technique);
-
           });
+
           $scope.getSessionStorage();
         } else {
           errorNotification( "Error while fetching techniques", "Data received via api are invalid")
@@ -714,12 +714,13 @@ $scope.exportTechnique = function(){
   var exportedTechnique = {
     type: 'ncf_technique', version: 1.0,
     data: {
-      bundle_args: $scope.selectedTechnique["bundle_args"],
-      bundle_name: $scope.selectedTechnique["bundle_name"],
-      description: $scope.selectedTechnique["description"],
-      name:        $scope.selectedTechnique["name"],
-      version:     $scope.selectedTechnique["version"],
-      parameter:   $scope.selectedTechnique["parameter"],
+      bundle_args : $scope.selectedTechnique["bundle_args"],
+      bundle_name : $scope.selectedTechnique["bundle_name"],
+      description : $scope.selectedTechnique["description"],
+      name        : $scope.selectedTechnique["name"],
+      version     : $scope.selectedTechnique["version"],
+      parameter   : $scope.selectedTechnique["parameter"],
+      category    : $scope.selectedTechnique["category"],
       method_calls: calls
     }
   };
@@ -763,6 +764,12 @@ $scope.onImportFileChange = function (fileEl) {
   reader.readAsText(file);
 }
 
+  $scope.getCategory = function(selectedTechniqueCategory) {
+    var category = $scope.techniqueCategories.find(function(value) { return value.key === selectedTechniqueCategory});
+
+    category = category === undefined ? selectedTechniqueCategory : category
+    return category
+  }
 
   // Method used to check if we can select a technique without losing changes
   $scope.checkSelect = function(technique, select) {
@@ -1574,6 +1581,7 @@ $scope.onImportFileChange = function (fileEl) {
       , "method_calls" : "Generic Methods have been modified"
       , "parameter"    : "Parameters"
       , "resources"    : "Resources"
+      , "category"     : "Category"
       }
     return checks;
   }
@@ -1653,6 +1661,9 @@ $scope.onImportFileChange = function (fileEl) {
           var st = angular.copy(storedTech.resources );
           var ct = angular.copy(currentTech.resources);
           diff   = !$scope.fileManagerState.updating && !angular.equals(st , ct);
+          break;
+        case "category" :
+          diff = false;
           break;
         default    :
           diff = !angular.equals(storedTech[check] , currentTech[check]);
