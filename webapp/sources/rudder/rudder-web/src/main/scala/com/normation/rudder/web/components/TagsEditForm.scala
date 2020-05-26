@@ -12,7 +12,7 @@ import com.normation.rudder.domain.policies.JsonTagSerialisation
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.web.ChooseTemplate
 
-class TagsEditForm(tags : Tags) extends Loggable {
+class TagsEditForm(tags : Tags, objectId : String) extends Loggable {
 
   val templatePath = List("templates-hidden", "components", "ComponentTags")
   def tagsTemplate = ChooseTemplate(templatePath, "tags-form")
@@ -54,7 +54,7 @@ class TagsEditForm(tags : Tags) extends Loggable {
       }
       var scope = angular.element($$("#${controllerId}")).scope();
       scope.$$apply(function(){
-        scope.init(  ${jsTags}, "${filterId}" ,  ${isEditForm}, ${isRule});
+        scope.init(  ${jsTags}, "${filterId}" ,  ${isEditForm}, ${isRule}, "${objectId}");
       });
     """)))
   }

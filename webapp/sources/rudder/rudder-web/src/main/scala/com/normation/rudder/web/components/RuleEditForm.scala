@@ -502,7 +502,7 @@ class RuleEditForm(
         formTracker.addFormError(error(failure.messageChain))
     }
   }
-  def tagsEditForm = new TagsEditForm(rule.tags)
+  def tagsEditForm = new TagsEditForm(rule.tags, rule.id.value)
 
   private[this] val crName = new WBTextField("Name", rule.name) {
     override def setFilter = notNull _ :: trim _ :: Nil

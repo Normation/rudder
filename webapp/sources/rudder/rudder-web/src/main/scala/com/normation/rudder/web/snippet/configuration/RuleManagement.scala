@@ -160,6 +160,7 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
 
     //update UI
     onRuleChange(changeMsgEnabled)(rule) &
+    JsRaw(s"sessionStorage.removeItem('tags-${rule.id.value}');") &
     Replace(htmlId_editRuleDiv, editRule(changeMsgEnabled, action))
   }
 
@@ -238,7 +239,10 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
     updateEditComponent(rule, changeMsgEnabled)
     //update UI
     Replace(htmlId_editRuleDiv, editRule(changeMsgEnabled, action )) &
-    JsRaw("""this.window.location.hash = "#" + JSON.stringify({'ruleId':'%s'})""".format(rule.id.value))
+    JsRaw(s"""
+      sessionStorage.removeItem('tags-${rule.id.value}');
+      this.window.location.hash = "#" + JSON.stringify({'ruleId':'${rule.id.value}'});
+    """.stripMargin)
   }
 
 }
