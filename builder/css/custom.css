@@ -135,14 +135,6 @@ body > .container-fluid > .row > div {
   margin: 10px;
 }
 
-#markdown-info {
-  color: #938ea2;
-  font-style: italic;
-  font-size: 0.8em;
-  margin-bottom: 10px;
-  margin-left: 15px;
-}
-
 /* ===== TECHNIQUES & METHODS ===== */
 .col-techniques,
 .col-methods{
