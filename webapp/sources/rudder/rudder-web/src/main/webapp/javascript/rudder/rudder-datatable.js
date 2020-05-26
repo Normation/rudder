@@ -1173,8 +1173,9 @@ function createNodeTable(gridId, data, contextPath, refresh) {
           }
           var systemCompliance = nodeSystemCompliances[row.id];
           if (systemCompliance !== undefined) {
-          if (computeComplianceOK(systemCompliance).percent < 100)
-            $("#system-compliance-bar-"+row.id).html('  <a href="'+contextPath+'/secure/nodeManager/node/'+row.id+'?systemStatus=true"  title="Some system policies could not be applied on this node" class="text-danger fa fa-exclamation-triangle"> </a>');
+            var allReports = reportsSum(systemCompliance)
+            if (computeComplianceOK(systemCompliance).number != allReports)
+              $("#system-compliance-bar-"+row.id).html('  <a href="'+contextPath+'/secure/nodeManager/node/'+row.id+'?systemStatus=true"  title="Some system policies could not be applied on this node" class="text-danger fa fa-exclamation-triangle"> </a>');
           }
         })
         $('.rudder-label').bsTooltip();
@@ -1535,6 +1536,14 @@ function computeComplianceOK (complianceArray) {
     }
   } else {
     return { percent: 0, number: 0};
+  }
+}
+
+function reportsSum (complianceArray) {
+  if (Array.isArray(complianceArray)) {
+    return complianceArray.reduce(function(total, value) { return total + value.number }, 0 )
+  } else {
+    return 0
   }
 }
 /*
