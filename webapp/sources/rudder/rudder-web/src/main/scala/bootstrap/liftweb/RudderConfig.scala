@@ -619,7 +619,6 @@ object RudderConfig extends Loggable {
   val automaticReportLogger: AutomaticReportLogger = autoReportLogger
   val removeNodeService: RemoveNodeService = removeNodeServiceImpl
   val nodeInfoService: NodeInfoService = nodeInfoServiceImpl
-  lazy val nodePropertiesInheritance: NodePropertiesOverridingService = new NodePropertiesOverridingServiceImpl(roNodeGroupRepository, roLDAPParameterRepository)
   val reportDisplayer: ReportDisplayer = reportDisplayerImpl
   lazy val dependencyAndDeletionService: DependencyAndDeletionService =  dependencyAndDeletionServiceImpl
   val itemArchiveManager: ItemArchiveManager = itemArchiveManagerImpl
@@ -1080,12 +1079,15 @@ object RudderConfig extends Loggable {
   lazy val rudderApi = {
     import com.normation.rudder.rest.lift._
 
+    val nodeInheritedProperties = new NodeApiInheritedProperties(nodeInfoService, roNodeGroupRepository, roLDAPParameterRepository)
+    val groupInheritedProperties = new GroupApiInheritedProperties(roNodeGroupRepository, roLDAPParameterRepository)
+
     val modules = List(
         new ComplianceApi(restExtractorService, complianceAPIService)
-      , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, stringUuidGenerator, groupApiService2, groupApiService5, groupApiService6)
+      , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, stringUuidGenerator, groupApiService2, groupApiService5, groupApiService6, groupInheritedProperties)
       , new DirectiveApi(roDirectiveRepository, restExtractorService, directiveApiService2, stringUuidGenerator)
       , new NcfApi(ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, restExtractorService, techniqueSerializer, stringUuidGenerator)
-      , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8)
+      , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeInheritedProperties)
       , new ParameterApi(restExtractorService, parameterApiService2)
       , new SettingsApi(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator, policyServerManagementService, nodeInfoService)
       , new TechniqueApi(restExtractorService, techniqueApiService6)

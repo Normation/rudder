@@ -193,7 +193,7 @@ class PolicyWriterServiceImpl(
 
   private[this] def writeRudderParameterFile(agentNodeConfig: AgentNodeConfiguration): IOResult[Unit] = {
     def generateParametersJson(parameters : Set[ParameterEntry]): JValue = {
-      import com.normation.rudder.domain.nodes.JsonSerialisation._
+      import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
       import net.liftweb.json.JsonDSL._
       ( "parameters" -> parameters.toDataJson())
     }

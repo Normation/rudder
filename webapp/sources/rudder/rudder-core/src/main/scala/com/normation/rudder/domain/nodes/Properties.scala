@@ -540,7 +540,7 @@ object FullParentProperty {
  * The part dealing with JsonSerialisation of node related
  * attributes (especially properties) and parameters
  */
-object JsonSerialisation {
+object JsonPropertySerialisation {
 
   import net.liftweb.json.JsonDSL._
   import net.liftweb.json._
@@ -572,10 +572,22 @@ object JsonSerialisation {
       JArray(props.sortBy(_.prop.name).map { p =>
         p.parents match {
           case Nil  => p.prop.toJson()
-          case list => JObject(p.prop.toJson().obj :+ JField("parents", JArray(list.map(_.toJson))))
+          case list => p.prop.toJson() ~ ("parents" -> JArray(list.map(_.toJson)))
         }
       })
     }
+
+    def toApiJsonRenderParents = {
+      JArray(props.sortBy(_.prop.name).map { p =>
+        val parents = p.parents match {
+          case Nil => None
+          case _   => Some(p.parents.reverse.map(p => s"<p><b>from ${p.displayName}:</b><pre>${p.value.render(ConfigRenderOptions.defaults().setOriginComments(false))}</pre></p>").mkString(""))
+        }
+
+        p.prop.toJson() ~ ("parents" -> parents)
+      })
+    }
+
   }
 
   implicit class JsonParameter(val x: ParameterEntry) extends AnyVal {

@@ -68,7 +68,7 @@
                      <span ng-if="property.provider !== undefined && property.provider !== 'inherited'" class='rudder-label label-provider label-sm' data-toggle='tooltip' data-placement='top' data-html='true' title="This node property is managed by its provider <b>‘{{ property.provider }}</b>’, and can not be modified manually. Check Rudder’s settings to adjust this provider’s configuration.">
                        {{ property.provider }}
                      </span>
-                     <span ng-if="property.parents !== undefined" class='rudder-label label-provider label-sm' data-toggle='tooltip' data-placement='top' data-html='true' title="This node property is inherited from these group or global parameters: <b>‘{{ property.parents }}</b>’.">
+                     <span ng-if="property.parents !== undefined" class='rudder-label label-provider label-sm' data-toggle='tooltip' data-placement='top' data-html='true' title="This node property is inherited from these group or global parameters: <div>{{ property.parents }}</div>.">
                        inherited
                      </span>
                    </div>

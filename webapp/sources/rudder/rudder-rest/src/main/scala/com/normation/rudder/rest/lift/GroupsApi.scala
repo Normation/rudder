@@ -59,8 +59,12 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
-
 import com.normation.box._
+import com.normation.errors._
+import com.normation.zio._
+import com.normation.rudder.domain.policies.FullRuleTargetInfo
+import com.normation.rudder.repository.RoParameterRepository
+import com.normation.rudder.services.nodes.MergeNodeProperties
 
 class GroupsApi(
     readGroup           : RoNodeGroupRepository
@@ -69,6 +73,7 @@ class GroupsApi(
   , serviceV2           : GroupApiService2
   , serviceV5           : GroupApiService5
   , serviceV6           : GroupApiService6
+  , inheritedProperties : GroupApiInheritedProperties
 ) extends LiftApiModuleProvider[API] {
 
 
@@ -80,17 +85,18 @@ class GroupsApi(
    */
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {
-        case API.ListGroups  => List
-        case API.GetGroupTree => GetTree
-        case API.GroupDetails => Get
-        case API.DeleteGroup  => Delete
-        case API.CreateGroup => Create
-        case API.UpdateGroup => Update
-        case API.DeleteGroupCategory => DeleteCategory
-        case API.CreateGroupCategory => CreateCategory
-        case API.GetGroupCategoryDetails => GetCategory
-        case API.UpdateGroupCategory => UpdateCategory
-        case API.ReloadGroup => Reload
+        case API.ListGroups               => List
+        case API.GetGroupTree             => GetTree
+        case API.GroupDetails             => Get
+        case API.GroupInheritedProperties => GroupInheritedProperties
+        case API.DeleteGroup              => Delete
+        case API.CreateGroup              => Create
+        case API.UpdateGroup              => Update
+        case API.DeleteGroupCategory      => DeleteCategory
+        case API.CreateGroupCategory      => CreateCategory
+        case API.GetGroupCategoryDetails  => GetCategory
+        case API.UpdateGroupCategory      => UpdateCategory
+        case API.ReloadGroup              => Reload
     }).toList
   }
 
@@ -106,6 +112,18 @@ class GroupsApi(
     val restExtractor = restExtractorService
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       serviceV2.groupDetails(id, req, version)
+    }
+  }
+  object GroupInheritedProperties extends LiftApiModule {
+    val schema = API.GroupInheritedProperties
+    val restExtractor = restExtractorService
+    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      inheritedProperties.getNodePropertiesTree(NodeGroupId(id)).either.runNow match {
+        case Right(value) =>
+          toJsonResponse(None, value)("groupInheritedProperties", restExtractor.extractPrettify(req.params))
+        case Left(err)    =>
+          toJsonError(None, err.fullMsg)("groupInheritedProperties", restExtractor.extractPrettify(req.params))
+      }
     }
   }
   object Delete extends LiftApiModule {
@@ -272,6 +290,31 @@ class GroupsApi(
   }
 }
 
+class GroupApiInheritedProperties(
+    groupRepo  : RoNodeGroupRepository
+  , paramRepo  : RoParameterRepository
+) {
+
+  /*
+   * the returned format is a list of properties:
+   *
+   */
+  def getNodePropertiesTree(groupId: NodeGroupId): IOResult[JArray] = {
+    for {
+      groups     <- groupRepo.getFullGroupLibrary()
+      group      <- groups.allGroups.get(groupId).notOptional(s"Group with ID '${groupId.value}' was not found.")
+      targt      =  FullRuleTargetInfo(group, group.nodeGroup.name, group.nodeGroup.description, group.nodeGroup.isEnabled, group.nodeGroup.isSystem)
+      params     <- paramRepo.getAllGlobalParameters()
+      properties <- MergeNodeProperties.checkPropertyMerge(targt :: Nil, params.map(p => (p.name, p.value)).toMap).toIO
+    } yield {
+      import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
+      JArray((
+        ("groupId"    -> groupId.value)
+      ~ ("properties" -> properties.toApiJsonRenderParents)
+      ) :: Nil)
+    }
+  }
+}
 
 class GroupApiService2 (
     readGroup            : RoNodeGroupRepository
