@@ -1,13 +1,16 @@
-policy_module(rudder-relay, 1.1.0)
+policy_module(rudder-relay, 1.1.1)
 
 require {
         # To allow apache to write logs in /var/log/rudder
         type httpd_log_t;
         # To allow apache to write reports and inventories
         type public_content_rw_t;
+        type httpd_t;
+        type http_port_t;
         type proc_t;
         type sudo_exec_t;
-        type unconfined_t;
+        type unconfined_service_t;
+        class tcp_socket name_connect;
 }
 
 ########################################
@@ -45,12 +48,15 @@ corenet_tcp_connect_postgresql_port(rudder_relayd_t)
 allow rudder_relayd_t self:tcp_socket { accept listen };
 allow rudder_relayd_t http_port_t:tcp_socket { accept listen name_bind };
 allow rudder_relayd_t node_t:tcp_socket node_bind;
+allow httpd_t http_port_t:tcp_socket name_connect;
 
 # Command for remote-run
 
+allow unconfined_service_t sudo_exec_t:file entrypoint;
+
 tunable_policy(`rudder_relayd_enable_remote_run',`
     # https://danwalsh.livejournal.com/57276.html
-    domain_auto_trans(rudder_relayd_t, sudo_exec_t, unconfined_t)
+    domain_auto_trans(rudder_relayd_t, sudo_exec_t, unconfined_service_t)
 ')
 
 # Files
