@@ -75,7 +75,7 @@ done
 if [ ! -f /opt/rudder/etc/ssl/rudder.crt ] || [ ! -f /opt/rudder/etc/ssl/rudder.key ]; then
   echo -n "INFO: No usable SSL certificate detected for Rudder relay HTTPS support, generating one automatically..."
   MACHINE_NAME=$(hostname --fqdn) || MACHINE_NAME=$(hostname)
-  SUBJALTNAME=DNS:${MACHINE_NAME} openssl req -new --batch -x509 -newkey rsa:2048 -subj "/C=FR/ST=France/L=Paris/CN=${MACHINE_NAME}/emailAddress=root@${MACHINE_NAME}/" -keyout /opt/rudder/etc/ssl/rudder.key -out /opt/rudder/etc/ssl/rudder.crt -days 1460 -nodes -sha256 -config /opt/rudder/etc/ssl/openssl.cnf -extensions server_cert >/dev/null
+  SUBJALTNAME=DNS:${MACHINE_NAME} openssl req -new -batch -x509 -newkey rsa:2048 -subj "/C=FR/ST=France/L=Paris/CN=${MACHINE_NAME}/emailAddress=root@${MACHINE_NAME}/" -keyout /opt/rudder/etc/ssl/rudder.key -out /opt/rudder/etc/ssl/rudder.crt -days 1460 -nodes -sha256 -config /opt/rudder/etc/ssl/openssl.cnf -extensions server_cert >/dev/null
   chgrp ${APACHE_GROUP} /opt/rudder/etc/ssl/rudder.key && chmod 640 /opt/rudder/etc/ssl/rudder.key
   echo " Done"
 fi
