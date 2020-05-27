@@ -11,8 +11,8 @@ Usage:
     rudder package [--debug] remove <package>...
     rudder package [--debug] search <package>...
     rudder package [--debug] list [--all]
-    rudder package [--debug] update
-    rudder package [--debug] licenses
+    rudder package [--debug] update [--quiet]
+    rudder package [--debug] licenses [--quiet]
     rudder package [--debug] rudder-postupgrade
     rudder package [--debug] check-compatibility
     rudder package [--debug] plugin save-status
@@ -106,7 +106,7 @@ if __name__ == "__main__":
         else:
             rudderPkg.package_list_installed()
     elif args['update']:
-        rudderPkg.update()
+        rudderPkg.update(args['--quiet'])
     elif args['upgrade-all']:
         if args['--nightly']:
             rudderPkg.upgrade_all("nightly", args['--quiet'])
@@ -114,7 +114,7 @@ if __name__ == "__main__":
             rudderPkg.upgrade_all("release", args['--quiet'])
 
     elif args['licenses']:
-        rudderPkg.update_licenses()
+        rudderPkg.update_licenses(args['--quiet'])
     elif args['search']:
         rudderPkg.package_search(args['<package>'])
     elif args['install']:

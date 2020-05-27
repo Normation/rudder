@@ -279,7 +279,7 @@ Update the licences from the Rudder repo
 It first check for the */licenses page and find the subfolders.
 Iterate through them to find all *.license files and *.key files.
 """
-def update_licenses():
+def update_licenses(quiet=False):
     utils.readConf()
     url = utils.URL + "/licenses"
     r = requests.get(url, auth=(utils.USERNAME, utils.PASSWORD))
@@ -301,11 +301,11 @@ def update_licenses():
             match = downloadPattern.search(link)
             if match is not None:
                 logging.info("downloading %s"%(link))
-                utils.download(link, utils.LICENCES_PATH + "/" + os.path.basename(link))
+                utils.download(link, utils.LICENCES_PATH + "/" + os.path.basename(link), quiet)
 
 # TODO validate index sign if any?
 """ Download the index file on the repos """
-def update():
+def update(quiet=False):
     utils.readConf()
     logging.debug('Updating the index')
     utils.getRudderKey()
@@ -314,7 +314,7 @@ def update():
     if os.path.isfile(utils.INDEX_PATH):
         os.rename(utils.INDEX_PATH, utils.INDEX_PATH + ".bkp")
     try:
-        utils.download(utils.URL + "/" + "rpkg.index")
+        utils.download(utils.URL + "/" + "rpkg.index", quiet)
     except Exception as e:
         traceback.print_exc(file=sys.stdout)
         if os.path.isfile(utils.INDEX_PATH + ".bkp"):
