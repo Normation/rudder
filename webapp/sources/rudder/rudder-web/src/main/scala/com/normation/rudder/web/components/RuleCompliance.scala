@@ -85,7 +85,7 @@ class RuleCompliance (
 
   import RuleCompliance._
 
-  def tagsEditForm = new TagsEditForm(rule.tags)
+  def tagsEditForm = new TagsEditForm(rule.tags, rule.id.value)
   def display : NodeSeq = {
     ( "#ruleName"             #> rule.name &
       "#ruleCategory"         #> categoryService.shortFqdn(rootRuleCategory, rule.categoryId) &

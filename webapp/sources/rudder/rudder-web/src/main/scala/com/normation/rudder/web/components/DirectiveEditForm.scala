@@ -479,7 +479,7 @@ class DirectiveEditForm(
         formTracker.addFormError(error(failure.messageChain))
     }
   }
-  def tagsEditForm = new TagsEditForm(directive.tags)
+  def tagsEditForm = new TagsEditForm(directive.tags, directive.id.value)
 
   def showDeprecatedVersion (version : TechniqueVersion) = {
     val deprecationInfo = fullActiveTechnique.techniques(version).deprecrationInfo match {
