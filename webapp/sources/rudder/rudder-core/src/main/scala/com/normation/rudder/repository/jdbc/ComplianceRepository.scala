@@ -113,7 +113,8 @@ class ComplianceJdbcRepository(
           //ignore case with no runs
           case _: NoReportInInterval |
                NoRunNoExpectedReport |
-               _: ReportsDisabledInInterval => None
+               _: ReportsDisabledInInterval |
+               _: NoUserRulesDefined => None
 
           case x: Pending => x.optLastRun match {
             case None =>

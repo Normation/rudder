@@ -150,6 +150,17 @@ final case class NoExpectedReport(
 ) extends ErrorNoConfigData
 
 /*
+ * No Rules defined, but run was ok
+ */
+final case class NoUserRulesDefined(
+    lastRunDateTime: DateTime
+  , expectedConfig : NodeExpectedReports
+  , lastRunConfigId: NodeConfigId
+  , lastRunConfigInfo: Option[NodeExpectedReports]
+) extends NoReport with LastRunAvailable
+
+
+/*
  * No report of interest (either none, or
  * some but too old for our situation)
  */
@@ -693,6 +704,12 @@ final case class ContextForNoAnswer(
         buildUnexpectedVersion(runTime, None, runExpiration, expectedConfig, expectedExpiration, nodeStatusReports)
 
       case UnexpectedUnknowVersion(runTime, runId, expectedConfig, expectedExpiration) => //same as unextected, different log
+        ComplianceDebugLogger.node(nodeId).warn(s"Received a run at ${runTime} for node '${nodeId.value}' configId '${runId.value}' which is not known by Rudder, and that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}")
+        buildUnexpectedVersion(runTime, None, runTime, expectedConfig, expectedExpiration, nodeStatusReports)
+
+
+      case NoUserRulesDefined(runTime, expectedConfig, runId, _) => //same as unextected, different log
+        val expectedExpiration = expectedConfig.beginDate.plus(expectedConfig.agentRun.interval.plus(GRACE_TIME_PENDING))
         ComplianceDebugLogger.node(nodeId).warn(s"Received a run at ${runTime} for node '${nodeId.value}' configId '${runId.value}' which is not known by Rudder, and that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}")
         buildUnexpectedVersion(runTime, None, runTime, expectedConfig, expectedExpiration, nodeStatusReports)
 

@@ -425,6 +425,11 @@ object NodeStatusReportSerialization {
         ~ ( "expectedConfigId" -> e.nodeConfigId.value       )
         ~ ( "runConfigId"      -> e.nodeConfigId.value       )
         )
+      case NoUserRulesDefined(_, e, _, _) =>
+        ( ( "type"             -> "NoUserRulesDefined" )
+        ~ ( "expectedConfigId" -> e.nodeConfigId.value       )
+        ~ ( "runConfigId"      -> e.nodeConfigId.value       )
+        )
     }
   }
   def jsonStatusInfo(statusInfo: RunComplianceInfo): JValue = {

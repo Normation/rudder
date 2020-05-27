@@ -149,8 +149,11 @@ class ReportDisplayer(
 
       info match {
         case ComputeCompliance(lastRunDateTime, expectedConfig, expirationDateTime) =>
-          (
-            <p>This node has up to date policy and the agent is running. Reports below are from the latest run, which started on the node at {lastRunDateTime.toString(dateFormat)}.</p>
+          ( <p>This node has up to date policy and the agent is running. Reports below are from the latest run, which started on the node at {lastRunDateTime.toString(dateFormat)}.</p>
+            <p>{currentConfigId(expectedConfig)}.</p>
+          )
+        case NoUserRulesDefined(lastRunDateTime, expectedConfig, _, _) =>
+          ( <p>This node has up to date policy and the agent is running, but no user rules are defined. Last run was started on the node at {lastRunDateTime.toString(dateFormat)}.</p>
             <p>{currentConfigId(expectedConfig)}.</p>
           )
 
@@ -252,7 +255,7 @@ class ReportDisplayer(
       case _: ReportsDisabledInInterval =>
         ("progress-bar-reportsdisabled", NodeSeq.Empty)
 
-      case  _:Pending =>
+      case  _:Pending | _ : NoUserRulesDefined =>
         ("bg-info text-info", NodeSeq.Empty)
 
       case _:ComputeCompliance =>
@@ -387,7 +390,7 @@ class ReportDisplayer(
 
         case _:UnexpectedVersion | _:UnexpectedNoVersion |
              _:UnexpectedUnknowVersion | _:NoReportInInterval |
-             _:ReportsDisabledInInterval =>
+             _:ReportsDisabledInInterval | _ : NoUserRulesDefined =>
 
           /*
            * In these case, filter out "unexpected" reports to only
