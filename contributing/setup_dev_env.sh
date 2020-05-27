@@ -24,7 +24,7 @@ rudder_dir=/home/$username/rudder
 
     sudo /usr/sbin/usermod -aG sudo $username
     sudo apt update
-    sudo apt install -y git openssh-server curl wget python3 python3-pip openjdk-11-jdk net-tools ldap-utils maven
+    sudo apt install -y git openssh-server curl wget python3 python3-pip openjdk-11-jdk net-tools ldap-utils maven apache2
     sudo service ssh start
     pip3 install docopt requests pexpect urllib3
 ###################################
@@ -82,6 +82,7 @@ rudder_dir=/home/$username/rudder
     git clone https://github.com/Normation/rudder-techniques.git
     git clone https://github.com/Normation/rudder-tests
     git clone https://github.com/Normation/rudder-api-client
+    git clone https://github.com/Normation/ncf
 
 ########################
 # RTF DEV ENV VM SETUP #
@@ -106,7 +107,7 @@ rudder_dir=/home/$username/rudder
 ###########################
 
     
-    sudo mkdir -p /var/rudder/inventories/incoming /var/rudder/share /var/rudder/inventories/accepted-nodes-updates /var/rudder/inventories/received /var/rudder/inventories/failed /var/log/rudder/core /var/log/rudder/compliance/ /var/rudder/run/ /var/rudder/configuration-repository
+    sudo mkdir -p /var/rudder/inventories/incoming /var/rudder/share /var/rudder/inventories/accepted-nodes-updates /var/rudder/inventories/received /var/rudder/inventories/failed /var/log/rudder/core /var/log/rudder/compliance/ /var/rudder/run/ /var/rudder/configuration-repository/ncf
     sudo touch /var/log/rudder/core/rudder-webapp.log /var/log/rudder/compliance/non-compliant-reports.log /var/rudder/run/api-token
     # since a lot has been installed as root apps launched as $username could need permissions to access its home space
     sudo chown $username -R /var/rudder
@@ -120,6 +121,14 @@ rudder_dir=/home/$username/rudder
     sed -i "s/\[PATH TO \.m2 DIRECTORY\]/\/home\/$username\//" /home/$username/.m2/settings.xml
     #takes a while
     cd $rudder_dir/rudder/webapp/sources && mvn clean install
+
+    # Technique editor
+    sudo ln -s $rudder_dir/ncf /usr/share/ncf
+    chmod 755 $rudder_dir/ncf/builder -R
+    cp $rudder_dir/rudder/contributing/rudder.conf /etc/apache2/sites-enabled/
+    sed -i "s#<pathToncfRepo>#$rudder_dir/ncf#" /etc/apache2/sites-enabled/rudder.conf
+    sudo service apache2 restart
+
 
 ###################################################
 # SOFTWARES TO SETUP :::: HAVE TO DO IT MANUALLY  #

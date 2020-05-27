@@ -309,25 +309,45 @@ The `Program` field value is the same for these 3 watchers
 
 Otherwise at every modification you will need to run the `src/main/elm/build-dev.sh` script in the module.
 
+## Setup technique editor
+
+Clone ncf repository
+
+```
+git clone https://github.com/Normation/ncf.git
+sudo ln -s <path/to/ncf/repo> /usr/share/ncf
+chmod 755 <path/to/ncf/repo>/builder -R
+mkdir -p /var/rudder/configuration-repository/ncf 
+```
+
+Setup apache configuration:
+
+* Install apache (httpd or apache2)
+
+* Run the following commands (done on Fedora with httpd, path/service are different on deb systems) 
+
+```
+cp <path/to/rudder/repo>/contributing/rudder.conf /etc/httpd/conf.d/
+sed -i "s#<pathToncfRepo>#<path/to/ncf/repo>#" /etc/httpd/conf.d/rudder.conf
+service httpd restart
+```
+
 ## Running Rudder
 
 **Congratulation** the process is over !   
 You can now compile and run Rudder in IntelliJ !   
 You can access the application by running it from IntelliJ. The url is:
-##### http://localhost:8080/rudder
+##### http://localhost/rudder
 > Warning : make sure your development's environment is running before running Rudder. `./rtf platform setup <env's name>` in rudder-test directory. Otherwise you will get errors in IntelliJ's console.
 
 Let's code ! :rocket:
 
+
+
 ## Now what ?
-#### NCF api and Technique Editor
-The webapp neither comes with the NCF api nor the Technique Editor.
-If your testing case requires it to be running, please follow this documentation link ([ncf dev setup](https://github.com/Normation/ncf/tree/master/api#development))
-> Note: the setup process might not be painless. Some tweaks could be necessary depending on your distribution
 
 #### Entire Script
-All the previous steps BUT the ncf-api/technique editor are summed up in the following script: [setup_dev_env.sh](https://github.com/Normation/rudder/blob/master/contributing/setup_dev_env.sh).\
-Though, another automated setup script is available directly in the ncf repository (see previous section).
+All the previous steps are summed up in the following script: [setup_dev_env.sh](https://github.com/Normation/rudder/blob/master/contributing/setup_dev_env.sh).\
 
 Do not run this script as sudo! Though some commands require sudo privileges, you may be prompted to type sudo password
 
