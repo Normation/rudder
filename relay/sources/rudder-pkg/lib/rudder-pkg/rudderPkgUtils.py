@@ -249,7 +249,7 @@ def download_and_verify(completeUrl, dst="", quiet=False):
 
 """Download the .rpkg file matching the given rpkg Object and verify its authenticity"""
 def downloadByRpkg(rpkg, quiet=False):
-    return download_and_verify(URL + "/" + rpkg.path, quiet)
+    return download_and_verify(URL + "/" + rpkg.path, quiet=quiet)
 
 def package_check(metadata):
   if 'type' not in metadata or metadata['type'] != 'plugin':
