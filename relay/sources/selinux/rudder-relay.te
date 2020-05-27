@@ -6,6 +6,8 @@ require {
         # To allow apache to write reports and inventories
         type public_content_rw_t;
         type proc_t;
+        type sudo_exec_t;
+        type unconfined_t;
 }
 
 ########################################
@@ -44,10 +46,11 @@ allow rudder_relayd_t self:tcp_socket { accept listen };
 allow rudder_relayd_t http_port_t:tcp_socket { accept listen name_bind };
 allow rudder_relayd_t node_t:tcp_socket node_bind;
 
-# Commands
+# Command for remote-run
 
 tunable_policy(`rudder_relayd_enable_remote_run',`
-    sudo_exec(rudder_relayd_t)
+    # https://danwalsh.livejournal.com/57276.html
+    domain_auto_trans(rudder_relayd_t, sudo_exec_t, unconfined_t)
 ')
 
 # Files
