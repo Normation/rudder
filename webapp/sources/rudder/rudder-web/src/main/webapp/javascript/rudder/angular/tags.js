@@ -48,10 +48,12 @@ app.controller('tagsController', function ($scope, $http, $location, $timeout, $
 
   $scope.contextPath = contextPath
   $scope.kind = "directive"
-  $scope.init = function(tags, filterId, isEditForm, isRuleTag){
-    $scope.tags = tags;
+  $scope.init = function(tags, filterId, isEditForm, isRuleTag, objectId){
+    $scope.objectId   = objectId;
+    var storedTags    = $scope.getStoredTags();
+    $scope.tags       = storedTags ? storedTags : tags;
     $scope.isEditForm = isEditForm
-    
+
     if(isRuleTag) {
       $scope.kind = "rule"
     }
@@ -95,10 +97,12 @@ app.controller('tagsController', function ($scope, $http, $location, $timeout, $
     $scope.newTag = { "key" : "" , "value" : "" };
     $scope.$broadcast('angucomplete-alt:clearInput', 'newTagKey');
     $scope.$broadcast('angucomplete-alt:clearInput', 'newTagValue');
+    $scope.storeTags();
   }
   
   $scope.removeTag = function(index){
     $scope.tags.splice(index, 1);
+    $scope.storeTags();
   }
   
   // Autocomplete methods
@@ -132,7 +136,22 @@ app.controller('tagsController', function ($scope, $http, $location, $timeout, $
     $scope.newTag.key = res
   }
   
-  
+  $scope.getStoredTags = function(){
+    var data = sessionStorage.getItem('tags-'+$scope.objectId);
+    var res;
+    try{
+      res = data === null ? false : JSON.parse(data);
+    }catch(e){
+      res = false;
+    }
+    return res;
+  }
+
+  $scope.storeTags = function(){
+    var tags = JSON.stringify($scope.tags);
+    sessionStorage.setItem('tags-'+$scope.objectId, tags);
+  }
+
 });
 
 app.config(function($locationProvider) {
