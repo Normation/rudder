@@ -223,7 +223,7 @@ class TechniqueAcceptationUpdater(
       _                <- handleCategoriesUpdate(updatedCategories)
       techLib          <- roActiveTechniqueRepo.getFullDirectiveLibrary
       activeTechniques =  techLib.allActiveTechniques.map { case (_, at) => (at.techniqueName, at) }
-      accepted         <- ZIO.foreach(techniqueMods) { case (name, mod) =>
+      accepted         <- techniqueMods.accumulate { case (name, mod) =>
                             (mod, activeTechniques.get(name) ) match {
 
                               case (TechniqueDeleted(name, versions), None) =>
