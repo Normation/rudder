@@ -1028,7 +1028,7 @@ $scope.onImportFileChange = function (fileEl) {
         return r.state != "untouched";
       })
     }
-    return (!$scope.checkDiff(technique, $scope.originalTechnique) && checkUntouchedResources);
+    return (!$scope.checkDiff($scope.originalTechnique, technique) && checkUntouchedResources);
   };
 
   // Check if a technique has been saved,
@@ -1612,6 +1612,7 @@ $scope.onImportFileChange = function (fileEl) {
             stList.push(i + "-\xA0" + st[i].component)
           }
           if(ct.length == st.length) {
+            var diffParams = false;
             var st_params, ct_params;
             for(var i=0; i<st.length; i++){
               //Remove some properties that we don't want to compare
@@ -1624,18 +1625,16 @@ $scope.onImportFileChange = function (fileEl) {
               if(ct[i].OS_class.minorVersion === undefined) delete ct[i].OS_class.minorVersion;
               if(ct[i].OS_class.majorVersion === undefined) delete ct[i].OS_class.majorVersion;
               //Store parameters to compare them separetly
-              st_params = st[i].parameters;
-              delete st[i].parameters;
-              ct_params = ct[i].parameters;
-              delete ct[i].parameters;
-            }
-            var diffParams = false;
-            for(var p in st_params){
-              if(st_params[p].name != ct_params[p].name || st_params[p].value != ct_params[p].value){
-                diffParams = true;
+              st_params = st[i].args;
+              delete st[i].args;
+              ct_params = ct[i].args;
+              delete ct[i].args;
+              for(var p in st_params){
+                if(st_params[p] != ct_params[p]){
+                  diffParams = true;
+                }
               }
             }
-
             diff  = diffParams || !angular.equals(st , ct);
             field = diff ? checks[check] : undefined;
           } else {
