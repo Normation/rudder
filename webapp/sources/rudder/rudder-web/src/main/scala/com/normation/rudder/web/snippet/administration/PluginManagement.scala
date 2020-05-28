@@ -63,15 +63,15 @@ class PluginManagement extends DispatchSnippet with Loggable {
 
   private[this] def displayPlugin(p:RudderPluginDef)(xml:NodeSeq) : NodeSeq = {
     (
-      "data-plugin=name *" #>  {
+      "data-plugin=name" #>  {
         p.versionInfo match {
           case Some(info) =>
-            <h4 class="page-subtitle">
+            <h3 class="title-section">
               {p.displayName}
               <span class="badge-plugin-version">{info}</span>
-            </h4>
+            </h3>
           case None =>
-            <h4 class="page-subtitle">{p.displayName}</h4>
+            <h3 class="title-section">{p.displayName}</h3>
         }
       } &
       "data-plugin=fullid" #> p.name.value &
