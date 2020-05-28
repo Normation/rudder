@@ -1470,7 +1470,7 @@ label.text-fit{
 }
 .skin-yellow .tooltip > .tooltip-inner {
   background-color: #fff;
-  padding: 0 !important;
+  padding: 10px !important;
   padding-bottom: 8px !important;
   color: #222D32;
   text-align: left !important;
@@ -1483,7 +1483,12 @@ label.text-fit{
   border: 1px solid #ccc;
   border-radius: 3px;
 }
-
+.skin-yellow .tooltip > .tooltip-inner > ul > li {
+  margin-bottom: 4px;
+}
+.skin-yellow .tooltip > .tooltip-inner > ul {
+  margin-bottom: 0;
+}
 .skin-yellow .tooltip.top > .tooltip-arrow{
   border-top-color: #ccc;
 }
