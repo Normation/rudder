@@ -1,5 +1,7 @@
 package com.normation.rudder.ncf
 
+import java.time.Instant
+
 import better.files.File
 import com.normation.errors.IOResult
 import com.normation.errors.Inconsistency
@@ -53,11 +55,34 @@ class TechniqueReader(
     }
   }
 
+  private[this] def checkNeedsUpdate(methodsFileModifiedTime: Instant, dirs: List[File]) : Boolean = {
+    def isAMethodNewerThanCache(file : File) : Boolean = {
+      file.isRegularFile && file.extension(false).map(_ == "cf").getOrElse(false)  && file.lastModifiedTime.isAfter(methodsFileModifiedTime)
+    }
+    dirs.exists(_.collectChildren(isAMethodNewerThanCache).isEmpty)
+  }
+  private[this] def doesMethodsMetadataFileNeedsUpdate: IOResult[Boolean]  = {
+    val baseDir = root / "usr" / "share" / "ncf" / "tree" / "30_generic_methods"
+    val userDir = configuration_repository / "ncf" / "30_generic_methods"
+    for {
+      metadataFileExists <- IOResult.effect(methodsFile.exists)
+      needsUpdate <- if (metadataFileExists) {
+                       IOResult.effect("An error occurs while checking if generic methods metadata needs to be updated") {
+                         val methodsFileModifiedTime = methodsFile.lastModifiedTime()
+                         checkNeedsUpdate(methodsFileModifiedTime, baseDir :: userDir :: Nil)
+                       }
+                     } else true.succeed
+    } yield {
+      // File does not exists or a cf file is newer than the metadata file
+      needsUpdate
+    }
+  }
+
   def readMethodsMetadataFile : IOResult[Map[BundleName, GenericMethod]] = {
 
     for {
-      metdataFileExists <- IOResult.effect(methodsFile.exists)
-      update <- if (!metdataFileExists) {updateMethodsMetadataFile.map(_.code).unit} else (().succeed)
+      needUpdate <- doesMethodsMetadataFileNeedsUpdate
+      update <- if (needUpdate) {updateMethodsMetadataFile.map(_.code).unit} else (().succeed)
 
       genericMethodContent <- IOResult.effect(s"error while reading ${methodsFile.pathAsString}")(methodsFile.contentAsString)
       methods <- parse(genericMethodContent) match {
