@@ -788,7 +788,7 @@ class NodeApiService8 (
                   if (status >= 200 && status < 300) {
                     copyStreamTo(pipeSize, is)(os)
                   } else {
-                    val error = errorMessageWithHint(s"(HTTP code ${status}) \n${HttpConstants.readString(is)}\n\n")
+                    val error = errorMessageWithHint(s"(HTTP code ${status})")
                     NodeLogger.error(error)
                     os.write(error.getBytes)
                     os.flush
