@@ -615,15 +615,14 @@ $scope.updateItemSessionStorage = function(item, oldTechnique, newTechnique){
 $scope.getTechniques = function () {
 
   $scope.techniques = [];
+  $scope.generic_methods = {};
 
   $http.get('/rudder/secure/api/internal/methods').
     success(function(response, status, headers, config) {
 
       if (response.data !== undefined && response.data.methods !== undefined) {
 
-        $scope.generic_methods = response.data.methods;
-
-        $.each( response.data.generic_methods, function(methodName, method) {
+        $.each( response.data.methods, function(methodName, method) {
           method.documentation = converter.makeHtml(method.documentation)
           $scope.generic_methods[methodName] = method;
         });
