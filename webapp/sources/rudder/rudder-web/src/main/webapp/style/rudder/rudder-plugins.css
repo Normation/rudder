@@ -86,3 +86,7 @@
 .table-license tr > td:last-child{
   padding-left: 10px;
 }
+
+.skin-yellow .tooltip > .tooltip-inner {
+  padding: 0px !important;
+}
