@@ -18,34 +18,56 @@
 
 # @name Condition from command
 # @description Execute a command and create result conditions depending on its exit code
-# @documentation This method executes a command, and defines a `${condition_prefix}_true` or a `${condition_prefix}_false` condition depending on the result of the command:
+# @documentation
+# This method executes a command, and defines a `${condition_prefix}_true` or a
+#  `${condition_prefix}_false` condition depending on the result of the command:
 #
-# * If the exit code is in the `true_codes` list, this will produce a kept outcome class and a `${condition_prefix}_true` condition
-# * If the exit code is in the `false_codes` list, this will produce a repaired outcome class and a `${condition_prefix}_false` condition
-# * If the exit code is not in the list, or if the command is not present, this will produce an error outcome class and no classes with `${condition_prefix}`
-# * In audit mode, this method will still execute the command passed in parameter. Which means that you should only pass non system-impacting commands to this method.
+# * If the exit code **is in the "True codes"** list, this will produce a
+#    kept outcome and a
+#    `${condition_prefix}_true` condition,
+# * If the exit code **is in the "False codes"** list, this will produce a
+#    kept outcome and a
+#    `${condition_prefix}_false` condition,
+# * If the exit code **is not in "True codes" nor in "False codes"**, or if
+#    the command can not be found, it will produce an
+#    error outcome and
+#    and no condition from `${condition_prefix}`
 #
-# WARNING: This method will still execute the given command in `Audit mode`. This is because we assume that only commands which are not changing the system state should be used to define a condition.
 #
 # The created condition is global to the agent.
 #
-# #### Example
+# ##### Example:
 #
-# If you run a command `/bin/check_network_status` that output code 0, 1 or 2 in case of correct configuration, and 18 or 52 in case of invalid configuration,
-# and you want to get this define a condition based on this command, you can use the following policy
+# If you run a command `/bin/check_network_status` that output code 0, 1 or 2 in
+# case of correct configuration, and 18 or 52 in case of invalid configuration,
+# and you want to define a condition based on its execution result,
+# you can use:
 #
 # ```
 # condition_from_command("network_correctly_defined", "/bin/check_network_status", "0,1,2", "18,52")
 # ```
 #
-# * If the command exits 0, 1 or 2, then it will define the following conditions
-# `network_correctly_defined_true`, `condition_from_command_network_correctly_defined_kept`, `condition_from_command_network_correctly_defined_reached`
-# * If the command exits 18, 52, then it will define the following conditions
-# `network_correctly_defined_false`, `condition_from_command_network_correctly_defined_kept`, `condition_from_command_network_correctly_defined_reached`
-# * If the command exits any other code, then it will define the following conditions
-# `condition_from_command_network_correctly_defined_error`, `condition_from_command_network_correctly_defined_reached`
-# * Finally, if the command is not present on the node, it will define
-# `condition_from_command_network_correctly_defined_error`, `condition_from_command_network_correctly_defined_reached`
+# * If the command exits with 0, 1 or 2, then it will define the conditions
+#     * `network_correctly_defined_true`,
+#     * `condition_from_command_network_correctly_defined_kept`,
+#     * `condition_from_command_network_correctly_defined_reached`,
+#
+# * If the command exits 18, 52, then it will define the conditions
+#     * `network_correctly_defined_false`,
+#     * `condition_from_command_network_correctly_defined_kept`,
+#     * `condition_from_command_network_correctly_defined_reached`
+#
+# * If the command exits any other code or is not found, then it will define the conditions
+#     * `condition_from_command_network_correctly_defined_error`,
+#     * `condition_from_command_network_correctly_defined_reached`
+#
+# ##### Notes:
+#
+# * In audit mode, this method will still execute the command passed in parameter.
+#   Which means that you should only pass non system-impacting commands to this method.
+#
+# * Rudder will automatically "canonify" the given **Condition prefix** at execution time,
+#   which means that all non `[a-zA-Z0-9_]` characters will be replaced by an underscore.
 #
 # @parameter condition_prefix   The condition name
 # @parameter command            The command to run

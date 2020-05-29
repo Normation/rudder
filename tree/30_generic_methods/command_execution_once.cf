@@ -19,37 +19,43 @@
 # @name Command execution once
 # @description Execute a command only once on a node
 # @action
-# @documentation Execute a command only once.
+# @documentation
 #
 # This method is useful for specific commands that should only be executed once per node.
 #
 # If you can spot a condition for the command execution by testing the state of its target,
-# it is better to use `condition_from_command` to test the state and `command_execution_result`
-# to run the command if necessary.
+# it is better to use the `condition_from_command` method to test the state coupled with
+# the `command_execution_result` method to run the command if necessary.
 #
-# When you use this method, it will:
+# ##### The method will:
 #
-# * If a `command_execution_once` has already been executed on this machine with the same
-#   unique id, define a `command_execution_once_${command}_kept` condition and do nothing
-# * If it is the first occurrence, it will execute the command and:
-#   * If the until parameter is `any`, it will consider the command as executed on the machine and define
-#     `command_execution_once_${command}_repaired/error` depending if the return code is in `ok_codes`
-#   * If the until parameter is `ok`, it will store consider it done only if the return code is in the
-#     `ok_codes` list and define `command_execution_once_${command}_repaired.` If not, it will retry at
-#     the next agent run and define `command_execution_once_${command}_error`
+# **Define** the `command_execution_once_${command}_kept` condition and do nothing if
+# a `command_execution_once` has already been executed on this machine with the same
+# **Unique id**.
 #
-# If an exit code is not in the list it will lead to an error status. 
-# If you want 0 to be a success you have to list it in the ok_codes list
+# **Execute** the command if it is the first occurence and:
+# * If the parameter **Until** is `*any*`, it will consider the command as executed on the machine and define
+#   eiter:
+#   * `command_execution_once_${command}_repaired` if the return code is in **ok_codes**,
+#   * `command_execution_once_${command}_error` otherwise.
+# * If the parameter **Until** is *ok* and:
+#   * If the return code is in the **Ok codes** list, define the
+#     `command_execution_once_${command}_repaired` condition
+#   * If the return code is not in **Ok codes** it define the
+#      `command_execution_once_${command}_error` condition and **retry at next agent run**.
 #
-# #### Example
+# If an exit code is not in the list it will lead to an error status.
+# If you want "0" to be a success you have to list it in the **Ok codes** list
+#
+# ##### Example:
 #
 # If you use:
 #
 # ```
-# command_execution_once("command -a -t", "0", "ok", "my_program_setup")
+#     command_execution_once("command -a -t", "0", "ok", "my_program_setup")
 # ```
 #
-# Will retry to run `command -a -t` until it returns `0`. Then it will
+# It will retry to run `command -a -t` until it returns "0". Then it will
 # not execute it again.
 #
 # @parameter command        Command to run

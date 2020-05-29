@@ -18,29 +18,44 @@
 
 # @name Condition from expression
 # @description Create a new condition
-# @documentation This method evaluates an expression, and produces a `${condition_prefix}_true` or a `${condition_prefix}_false` condition depending on the result on the expression:
+# @documentation
+# This method evaluates an expression, and produces a `${condition_prefix}_true`
+# or a `${condition_prefix}_false` condition depending on the result of the
+# expression evaluation:
 #
-# * If the expression results in a "defined" state, this will produce a kept outcome class and a `${condition_prefix}_true` condition
-# * If the expression results in an "undefined" state, this will produce a kept outcome class and a `${condition_prefix}_false` condition
+# * This method always result with a *success* outcome status
+# * If the evaluation results in a "defined" state, this will define a
+#    `${condition_prefix}_true` condition,
+# * If the evaluation results in an "undefined" state, this will produce a
+#    `${condition_prefix}_false` condition.
+#
 #
 # Calling this method with a condition expression transforms a complex expression into a single condition.
 #
 # The created condition is global to the agent.
 #
-# #### Example
+# ##### Example
 #
-# If you want to check if a condition evaluates to true, like checking that you are on Monday, 2am, on RedHat systems, you can use the following policy
+# If you want to check if a condition evaluates to true, like checking that you
+# are on Monday, 2am, on RedHat systems, you can use the following policy
 #
 # ```
 # condition_from_expression("backup_time", "Monday.redhat.Hr02")
 # ```
 #
-# * If the system is a RedHat like system, on Monday, at 2am, then it will define the following conditions
-# `backup_time_true`, `condition_from_expression_backup_time_kept`, `condition_from_expression_backup_time_reached`
-# * If the system not a RedHat like system, or it's not Monday, or it's not 2am, then it will define the following conditions
-# `backup_time_false`, `condition_from_expression_backup_time_kept`, `condition_from_expression_backup_time_reached`
-# * If the condition is invalid (cannot be parsed), it will define only
-# `condition_from_expression_backup_time_kept`, `condition_from_expression_backup_time_reached`
+# The method will define:
+# * In any case:
+#      * `condition_from_expression_backup_time_kept`
+#      * `condition_from_expression_backup_time_reached`
+# * And:
+#     * `backup_time_true` if the system is a RedHat like system, on Monday, at 2am.
+#     * `backup_time_false` if the system not a RedHat like system, or it's not Monday, or it's not 2am
+#     * no extra condition if the expression is invalid (cannot be parsed)
+#
+# ##### Notes:
+#
+# Rudder will automatically "canonify" the given **Condition prefix** at execution time,
+# which means that all non `[a-zA-Z0-9_]` characters will be replaced by an underscore.
 #
 # @parameter condition_prefix     The condition prefix
 # @parameter condition_expression The expression evaluated to create the condition (use 'any' to always evaluate to true)

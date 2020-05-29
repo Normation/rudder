@@ -19,9 +19,19 @@
 # @name Command execution
 # @description Execute a command
 # @action
+# @documentation
+#
+# Execute the **Command** in shell.
+# On DSC agent, the **Command** in executed through the Powershell `&` operator.
+#
+# The method status will report:
+#
+# * a **Repaired** if the return code is "0",
+# * an **Error** if the return code is not "0"
+#
 #
 # @parameter command  Command to run
-# 
+#
 # @class_prefix command_execution
 # @class_parameter command
 

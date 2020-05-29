@@ -18,9 +18,14 @@
 
 # @name Condition from variable existence
 # @description Create a condition from the existence of a variable
-# @documentation This bundle will define a condition `{condition_prefix}_{variable_name}_{true/false}`
-# * `{condition_prefix}_{variable_name}_true` if the variable is defined
-# * `{condition_prefix}_{variable_name}_false` if the variable is not defined
+# @documentation
+# This method define a condition:
+# * `{condition_prefix}_{variable_name}_true` if the variable named from
+#   the parameter **Variable name** is defined
+# * `{condition_prefix}_{variable_name}_false` if the variable named from
+#   the parameter **Variable name** is not defined
+#
+# Also, this method always result with a *success* outcome status.
 #
 # @parameter condition_prefix Prefix of the condition
 # @parameter variable_name Complete name of the variable being tested, like my_prefix.my_variable

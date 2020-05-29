@@ -18,14 +18,14 @@
 
 # @name Condition once
 # @description Create a new condition only once
-# @documentation This method evaluates an expression, and produces a `${condition}` when it is
-# first called. Following calls will not define the condition.
+# @documentation This method define a condition named from the parameter **Condition** when it is
+# called for the first time. Following agent execution will not define the
+# condition.
 #
 # This allows executing actions only once on a given machine.
-#
 # The created condition is global to the agent.
 #
-# #### Example
+# ##### Example:
 #
 # If you use:
 #
@@ -33,10 +33,10 @@
 # condition_once("my_condition")
 # ```
 #
-# The first agent run will have `my_condition` defined, contrary to subsequent runs
-# for which no class will be defined.
+# The first agent run will have the condition `my_condition` defined, contrary to subsequent runs
+# for which no condition will be defined.
 #
-# See also : [command_execution_once](#_command_execution_once)
+# See also : [command\_execution\_once](#_command_execution_once)
 # @parameter condition     The condition to define
 #
 # @class_prefix condition_once

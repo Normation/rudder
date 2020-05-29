@@ -21,13 +21,13 @@
 # @action
 # @documentation Execute a command and create result conditions
 # depending on the exit codes given in parameters.
-# If an exit code is not in the list it will lead to an error status. 
-# If you want 0 to be a success you have to list it in the kept_codes list
+# If an exit code is not in the list it will lead to an error status.
+# If you want 0 to be a success you have to list it in the **kept_codes** list
 #
 # @parameter command        Command to run
 # @parameter kept_codes     List of codes that produce a kept status separated with commas (ex: 1,2,5)
 # @parameter repaired_codes List of codes that produce a repaired status separated with commas (ex: 3,4,6)
-# 
+#
 # @class_prefix command_execution_result
 # @class_parameter command
 
