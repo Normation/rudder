@@ -52,17 +52,20 @@ def init(args):
 
   print("INFO: Success")
 
-def write_everything(path, force):
+def write_everything(path):
   write_all_methods(path)
-  write_all_techniques(path,force)
+  # Write all 6.X
+  write_all_techniques(path,False)
+  # Write all 5.0
+  write_all_techniques(path,True)
 
 def write_all_methods(path):
   methods = ncf.get_all_generic_methods_metadata()
   with open('/var/rudder/configuration-repository/ncf/generic_methods.json', 'w') as outfile:
     json.dump(methods["data"]["generic_methods"], outfile, indent=2)
 
-def write_all_techniques(path, force):
-  techniques = ncf.get_all_techniques_metadata(True,force)
+def write_all_techniques(path, migrate_old):
+  techniques = ncf.get_all_techniques_metadata(True,migrate_old)
   for bundle_name in techniques["data"]["techniques"]:
     technique = techniques["data"]["techniques"][bundle_name]
     category = technique["category"] if len(technique["category"]) > 0 else "ncf_techniques"
@@ -91,11 +94,14 @@ if __name__ == '__main__':
   if sys.argv[1] == "init":
     init(sys.argv[2:])
   elif sys.argv[1] == "write_all_techniques":
+    # Write all 6.X
     write_all_techniques("", False)
+    # write all 5.0
+    write_all_techniques("", True)
   elif sys.argv[1] == "write_all_methods":
     write_all_methods("")
   elif sys.argv[1] == "write_everything":
-    write_everything("", False)
+    write_everything("")
   else:
     usage()
     exit(1)
