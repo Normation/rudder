@@ -59,6 +59,14 @@ tunable_policy(`rudder_relayd_enable_remote_run',`
     domain_auto_trans(rudder_relayd_t, sudo_exec_t, unconfined_service_t)
 ')
 
+# libpq detects kerberos auth
+
+optional_policy(`
+    kerberos_read_config(rudder_relayd_t)
+    kerberos_use(rudder_relayd_t)
+    kerberos_read_keytab(rudder_relayd_t)
+')
+
 # Files
 
 allow rudder_relayd_t proc_t:file { open read getattr };
