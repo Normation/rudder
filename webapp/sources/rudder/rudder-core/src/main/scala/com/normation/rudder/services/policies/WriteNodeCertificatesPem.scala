@@ -111,6 +111,8 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
       _ <- ZIO.foreach(certs) { cert =>
              IOResult.effect(file.writeText(cert + "\n"))
            }
+      // Ensure that file exists even if no certificate exists
+      _ <- ZIO.when(file.notExists)(IOResult.effect(file.createFileIfNotExists()))
     } yield ()
   }
 
