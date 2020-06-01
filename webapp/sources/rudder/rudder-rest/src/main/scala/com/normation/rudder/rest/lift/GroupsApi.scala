@@ -62,7 +62,6 @@ import net.liftweb.json._
 import com.normation.box._
 import com.normation.errors._
 import com.normation.zio._
-import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.services.nodes.MergeNodeProperties
 
@@ -300,12 +299,11 @@ class GroupApiInheritedProperties(
    *
    */
   def getNodePropertiesTree(groupId: NodeGroupId): IOResult[JArray] = {
+
     for {
-      groups     <- groupRepo.getFullGroupLibrary()
-      group      <- groups.allGroups.get(groupId).notOptional(s"Group with ID '${groupId.value}' was not found.")
-      targt      =  FullRuleTargetInfo(group, group.nodeGroup.name, group.nodeGroup.description, group.nodeGroup.isEnabled, group.nodeGroup.isSystem)
+      allGroups  <- groupRepo.getFullGroupLibrary().map(_.allGroups)
       params     <- paramRepo.getAllGlobalParameters()
-      properties <- MergeNodeProperties.checkPropertyMerge(targt :: Nil, params.map(p => (p.name, p.value)).toMap).toIO
+      properties <- MergeNodeProperties.forGroup(groupId, allGroups, params.map(p => (p.name, p.value)).toMap).toIO
     } yield {
       import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
       JArray((

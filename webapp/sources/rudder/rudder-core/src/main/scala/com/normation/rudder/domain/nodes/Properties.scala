@@ -515,23 +515,22 @@ object CompareProperties {
  * - list of diff:
  *   - name of the diff provider: group/target name, global parameter
  */
-sealed trait ParentProperty[A] {
+sealed trait ParentProperty {
   def displayName: String // human readable information about the parent providing prop
-  def value      : A
+  def value      : ConfigValue
 }
 
 /**
  * A node property with its ohneritance/overriding context.
  */
-final case class NodePropertyHierarchy[A](prop: NodeProperty,  parents: List[ParentProperty[A]])
+final case class NodePropertyHierarchy(prop: NodeProperty,  parents: List[ParentProperty])
 
-sealed trait FullParentProperty extends ParentProperty[ConfigValue]
-object FullParentProperty {
-  final case class Group(name: String, id: NodeGroupId, value: ConfigValue) extends FullParentProperty {
+object ParentProperty {
+  final case class Group(name: String, id: NodeGroupId, value: ConfigValue) extends ParentProperty {
     override def displayName: String = s"${name} (${id.value})"
   }
   // a global parameter has the same name as property so no need to be specific for name
-  final case class Global(value: ConfigValue) extends FullParentProperty {
+  final case class Global(value: ConfigValue) extends ParentProperty {
     val displayName = "Global Parameter"
   }
 }
@@ -545,15 +544,15 @@ object JsonPropertySerialisation {
   import net.liftweb.json.JsonDSL._
   import net.liftweb.json._
 
-  implicit class FullParentPropertyToJSon(val p: ParentProperty[ConfigValue]) extends AnyVal {
+  implicit class ParentPropertyToJSon(val p: ParentProperty) extends AnyVal {
     def toJson = {
       p match {
-        case FullParentProperty.Global(value) =>
+        case ParentProperty.Global(value) =>
           (
             ( "kind"  -> "global")
           ~ ("value" -> GenericProperty.serializeToJson(value))
           )
-        case FullParentProperty.Group(name, id, value) =>
+        case ParentProperty.Group(name, id, value) =>
           (
             ( "kind"  -> "group" )
           ~ ( "name"  -> name    )
@@ -565,7 +564,7 @@ object JsonPropertySerialisation {
     }
   }
 
-  implicit class JsonNodePropertiesHierarchy(val props: List[NodePropertyHierarchy[ConfigValue]]) extends AnyVal {
+  implicit class JsonNodePropertiesHierarchy(val props: List[NodePropertyHierarchy]) extends AnyVal {
     implicit def formats = DefaultFormats
 
     def toApiJson(): JArray = {

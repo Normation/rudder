@@ -358,7 +358,7 @@ class NodeApiInheritedProperties(
       groups       <- groupRepo.getFullGroupLibrary()
       nodeTargets  =  groups.getTarget(nodeInfo).map(_._2).toList
       params       <- paramRepo.getAllGlobalParameters()
-      properties   <- MergeNodeProperties.withDefaults(nodeInfo, nodeTargets, params.map(p => (p.name, p.value)).toMap).toIO
+      properties   <- MergeNodeProperties.forNode(nodeInfo, nodeTargets, params.map(p => (p.name, p.value)).toMap).toIO
     } yield {
       import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
       JArray((

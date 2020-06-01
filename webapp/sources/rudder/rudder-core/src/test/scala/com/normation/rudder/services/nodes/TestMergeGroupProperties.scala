@@ -69,7 +69,7 @@ class TestMergeGroupProperties extends Specification {
   implicit class ToNodePropertyHierarchy(groups: List[NodeGroup]) {
     def toParents(name: String) = {
       groups.flatMap { g =>
-        g.properties.find(_.name == name).map(p => FullParentProperty.Group(g.name, g.id, p.value))
+        g.properties.find(_.name == name).map(p => ParentProperty.Group(g.name, g.id, p.value))
       }
     }
     // use first parent to build a fully inherited prop
@@ -83,12 +83,12 @@ class TestMergeGroupProperties extends Specification {
       NodePropertyHierarchy(prop, toParents(prop.name))
     }
     def toH3(name: String, globalParam: ConfigValue) = {
-      toH1(name).modify(_.parents).using( _ :+ FullParentProperty.Global(globalParam))
+      toH1(name).modify(_.parents).using( _ :+ ParentProperty.Global(globalParam))
     }
   }
   implicit class ToNodeProp(global: ConfigValue) {
     def toG(name: String) = {
-      NodePropertyHierarchy(NodeProperty(name, global, Some(GroupProp.INHERITANCE_PROVIDER)), FullParentProperty.Global(global) :: Nil)
+      NodePropertyHierarchy(NodeProperty(name, global, Some(GroupProp.INHERITANCE_PROVIDER)), ParentProperty.Global(global) :: Nil)
     }
   }
   implicit class ToConfigValue(s: String) {
