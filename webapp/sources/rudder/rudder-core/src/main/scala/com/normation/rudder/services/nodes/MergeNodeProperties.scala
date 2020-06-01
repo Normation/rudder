@@ -102,7 +102,16 @@ final case class GroupProp(
 
 object GroupProp {
 
+  /**
+   * This provider means that the property is purely inherited, ie it is not
+   * overriden for given node or group.
+   */
   val INHERITANCE_PROVIDER = PropertyProvider("inherited")
+  /**
+   * This provider means that the property is inherited but also
+   * overriden for given node or group.
+   */
+  val OVERRIDE_PROVIDER = PropertyProvider("overridden")
 
   implicit class ToNodePropertyHierarchy(g: GroupProp) {
     def toNodePropHierarchy: Map[String, NodePropertyHierarchy] = {
@@ -196,39 +205,45 @@ object MergeNodeProperties {
   def forGroup(groupId: NodeGroupId, allGroups: Map[NodeGroupId, FullGroupTarget], globalParams: Map[String, ConfigValue]): PureResult[List[NodePropertyHierarchy]] = {
     // get parents till the top, recursively.
     // This can fail is a parent is missing from "all groups"
-    def getParents(currents: List[FullGroupTarget], allGroups: Map[NodeGroupId, FullGroupTarget], acc: Map[NodeGroupId, FullGroupTarget]): PureResult[List[FullGroupTarget]] = {
+    def withParents(currents: List[FullGroupTarget], allGroups: Map[NodeGroupId, FullGroupTarget], acc: Map[NodeGroupId, FullGroupTarget]): PureResult[Map[NodeGroupId, FullGroupTarget]] = {
       import cats.implicits._
       currents match {
-        case Nil  => Right(acc.values.toList)
-        case list => list.traverse(g =>
-          if(acc.isDefinedAt(g.nodeGroup.id)) Right(Nil) // already done previously
-          else {
-            import com.normation.rudder.services.nodes.GroupProp._
-            for {
-              prop    <- g.nodeGroup.toGroupProp
-              parents <- prop.parentGroups.traverse { parentId =>
-                           val pId = NodeGroupId(parentId)
-                           if(acc.isDefinedAt(pId)) Right(Nil)
-                           else allGroups.get(pId) match {
-                             case None    => Left(Inconsistency(s"Parent group with id '${parentId}' is missing for group '${g.nodeGroup.name}'(${g.nodeGroup.id.value})"))
-                             case Some(p) => Right(p :: Nil)
-                           }
-                         }
-              rec     <- getParents(parents.flatten, allGroups, acc ++ list.map(g => (g.nodeGroup.id, g)))
-            } yield {
-              rec
-            }
+        case Nil  => Right(acc)
+        case list => list.foldLeft(Right(acc): Either[RudderError, Map[NodeGroupId, FullGroupTarget]]) { case (optAcc, g) =>
+          optAcc match {
+            case Left(err)  => Left(err)
+            case Right(acc) =>
+              if(acc.isDefinedAt(g.nodeGroup.id)) Right(acc) // already done previously
+              else {
+                import com.normation.rudder.services.nodes.GroupProp._
+                for {
+                  prop    <- g.nodeGroup.toGroupProp
+                  parents <- prop.parentGroups.traverse { parentId =>
+                               val pId = NodeGroupId(parentId)
+                               if(acc.isDefinedAt(pId)) Right(Nil)
+                               else allGroups.get(pId) match {
+                                 case None    => Left(Inconsistency(s"Parent group with id '${parentId}' is missing for group '${g.nodeGroup.name}'(${g.nodeGroup.id.value})"))
+                                 case Some(p) => Right(p :: Nil)
+                               }
+                             }
+                  rec     <- withParents(parents.flatten, allGroups, acc + (g.nodeGroup.id -> g))
+                } yield {
+                  rec
+                }
+              }
           }
-        ).map(_.flatten)
+        }
       }
     }
     for {
-      group      <- allGroups.get(groupId).notOptionalPure(s"Group with ID '${groupId.value}' was not found.")
-      hierarchy  <- getParents(group::Nil, allGroups, Map())
-      targets    =  hierarchy.map(g => FullRuleTargetInfo(g, g.nodeGroup.name, g.nodeGroup.description, g.nodeGroup.isEnabled, g.nodeGroup.isSystem))
-      properties <- checkPropertyMerge(targets, globalParams)
+      group       <- allGroups.get(groupId).notOptionalPure(s"Group with ID '${groupId.value}' was not found.")
+      hierarchy   <- withParents(group::Nil, allGroups, Map())
+      //withParents include current group, don't forget to remove it
+      parents     =  (hierarchy-group.nodeGroup.id).values.map(g => FullRuleTargetInfo(g, g.nodeGroup.name, g.nodeGroup.description, g.nodeGroup.isEnabled, g.nodeGroup.isSystem))
+      hierarchies <- checkPropertyMerge(parents.toList, globalParams)
     } yield {
-      properties
+      val groupPropsAsNode = group.nodeGroup.properties.map(g => (g.name, NodeProperty(g.config))).toMap
+      mergeDefault(groupPropsAsNode, hierarchies.map(h => (h.prop.name, h)).toMap).values.toList
     }
   }
 
@@ -245,7 +260,7 @@ object MergeNodeProperties {
     val overrided = merged.map { k =>
       val p = properties(k)
       val d = defaults(k)
-      (k, d.copy(prop = p.fromConfig(GenericProperty.mergeConfig(d.prop.config, p.config))))
+      (k, d.copy(prop = p.fromConfig(GenericProperty.mergeConfig(d.prop.config, p.config)).withProvider(OVERRIDE_PROVIDER)))
     }.toMap
     (
        defaults.filter(kv => fullyInherited.contains(kv._1))
