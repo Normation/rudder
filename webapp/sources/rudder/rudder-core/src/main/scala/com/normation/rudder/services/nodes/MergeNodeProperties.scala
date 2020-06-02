@@ -39,13 +39,14 @@ package com.normation.rudder.services.nodes
 
 import cats.implicits._
 import com.normation.errors._
-import com.normation.rudder.domain.nodes.FullParentProperty
 import com.normation.rudder.domain.nodes.GroupProperty
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.nodes.NodePropertyHierarchy
 import com.normation.rudder.domain.nodes.GenericProperty
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.ParentProperty
 import com.normation.rudder.domain.nodes.PropertyProvider
 import com.normation.rudder.domain.policies.FullCompositeRuleTarget
 import com.normation.rudder.domain.policies.FullGroupTarget
@@ -104,16 +105,47 @@ object GroupProp {
   val INHERITANCE_PROVIDER = PropertyProvider("inherited")
 
   implicit class ToNodePropertyHierarchy(g: GroupProp) {
-    def toNodePropHierarchy: Map[String, NodePropertyHierarchy[ConfigValue]] = {
+    def toNodePropHierarchy: Map[String, NodePropertyHierarchy] = {
       g.properties.map { p =>
         (
           p.name
         , NodePropertyHierarchy(
               NodeProperty(p.config).withProvider(INHERITANCE_PROVIDER)
-            , FullParentProperty.Group(g.groupName, g.groupId, p.value) :: Nil
+            , ParentProperty.Group(g.groupName, g.groupId, p.value) :: Nil
           )
         )
       }.toMap
+    }
+  }
+
+  implicit class FromNodeGroup(group: NodeGroup) {
+    def toGroupProp: PureResult[GroupProp] = {
+      group.query match {
+        case None =>
+          // if group doesn't has a query: not sure. Error ? Default ?
+          Right(GroupProp(
+              group.properties
+            , group.id
+            , And
+            , group.isDynamic
+            , Nil   // terminal leaf
+            , group.name
+          ))
+        case Some(q) =>
+          Right(GroupProp(
+              group.properties
+            , group.id
+            , q.composition
+            , group.isDynamic
+            , q.criteria.flatMap {
+                // we are only interested in subgroup criterion with AND, and we want to
+                // keep order for overriding priority.
+                case CriterionLine(_, a, _, value) if(q.composition == And && a.cType.isInstanceOf[SubGroupComparator]) => Some(value)
+                case _ => None
+              }
+            , group.name
+          ))
+      }
     }
   }
 
@@ -138,32 +170,7 @@ object GroupProp {
             , target.name
           ))
         case FullGroupTarget(t, g) =>
-          g.query match {
-            case None =>
-              // if group doesn't has a query: not sure. Error ? Default ?
-              Right(GroupProp(
-                  g.properties
-                , g.id
-                , And
-                , g.isDynamic
-                , Nil   // terminal leaf
-                , target.name
-              ))
-            case Some(q) =>
-              Right(GroupProp(
-                  g.properties
-                , g.id
-                , q.composition
-                , g.isDynamic
-                , q.criteria.flatMap {
-                    // we are only interested in subgroup criterion with AND, and we want to
-                    // keep order for overriding priority.
-                    case CriterionLine(_, a, _, value) if(q.composition == And && a.cType.isInstanceOf[SubGroupComparator]) => Some(value)
-                    case _ => None
-                  }
-                , target.name
-              ))
-          }
+          g.toGroupProp
       }
     }
   }
@@ -175,11 +182,53 @@ object MergeNodeProperties {
    * Merge that node properties with properties of groups which contain it.
    * Groups are not sorted, but all groups with that node are present.
    */
-  def withDefaults(node: NodeInfo, nodeTargets: List[FullRuleTargetInfo], globalParams: Map[String, ConfigValue]): PureResult[List[NodePropertyHierarchy[ConfigValue]]] = {
+  def forNode(node: NodeInfo, nodeTargets: List[FullRuleTargetInfo], globalParams: Map[String, ConfigValue]): PureResult[List[NodePropertyHierarchy]] = {
     for {
-      defaults <- checkPropertyMerge(nodeTargets, globalParams)
+      properties <- checkPropertyMerge(nodeTargets, globalParams)
     } yield {
-      mergeDefault(node.properties.map(p => (p.name, p)).toMap, defaults.map(p => (p.prop.name, p)).toMap).map(_._2).toList.sortBy(_.prop.name)
+      mergeDefault(node.properties.map(p => (p.name, p)).toMap, properties.map(p => (p.prop.name, p)).toMap).map(_._2).toList.sortBy(_.prop.name)
+    }
+  }
+
+  /*
+   * Find parent group for a given group and merge its properties
+   */
+  def forGroup(groupId: NodeGroupId, allGroups: Map[NodeGroupId, FullGroupTarget], globalParams: Map[String, ConfigValue]): PureResult[List[NodePropertyHierarchy]] = {
+    // get parents till the top, recursively.
+    // This can fail is a parent is missing from "all groups"
+    def getParents(currents: List[FullGroupTarget], allGroups: Map[NodeGroupId, FullGroupTarget], acc: Map[NodeGroupId, FullGroupTarget]): PureResult[List[FullGroupTarget]] = {
+      import cats.implicits._
+      currents match {
+        case Nil  => Right(acc.values.toList)
+        case list => list.traverse(g =>
+          if(acc.isDefinedAt(g.nodeGroup.id)) Right(Nil) // already done previously
+          else {
+            import com.normation.rudder.services.nodes.GroupProp._
+            for {
+              prop    <- g.nodeGroup.toGroupProp
+              parents <- prop.parentGroups.traverse { parentId =>
+                           val pId = NodeGroupId(parentId)
+                           if(acc.isDefinedAt(pId)) Right(Nil)
+                           else allGroups.get(pId) match {
+                             case None    => Left(Inconsistency(s"Parent group with id '${parentId}' is missing for group '${g.nodeGroup.name}'(${g.nodeGroup.id.value})"))
+                             case Some(p) => Right(p :: Nil)
+                           }
+                         }
+              rec     <- getParents(parents.flatten, allGroups, acc ++ list.map(g => (g.nodeGroup.id, g)))
+            } yield {
+              rec
+            }
+          }
+        ).map(_.flatten)
+      }
+    }
+    for {
+      group      <- allGroups.get(groupId).notOptionalPure(s"Group with ID '${groupId.value}' was not found.")
+      hierarchy  <- getParents(group::Nil, allGroups, Map())
+      targets    =  hierarchy.map(g => FullRuleTargetInfo(g, g.nodeGroup.name, g.nodeGroup.description, g.nodeGroup.isEnabled, g.nodeGroup.isSystem))
+      properties <- checkPropertyMerge(targets, globalParams)
+    } yield {
+      properties
     }
   }
 
@@ -189,22 +238,19 @@ object MergeNodeProperties {
    * NodePropertyHierarchy with a non empty parent list means they were inherited and at least
    * partially overridden
    */
-  def mergeDefault(properties: Map[String, NodeProperty], defaults: Map[String, NodePropertyHierarchy[ConfigValue]]): Map[String, NodePropertyHierarchy[ConfigValue]] = {
+  def mergeDefault(properties: Map[String, NodeProperty], defaults: Map[String, NodePropertyHierarchy]): Map[String, NodePropertyHierarchy] = {
     val fullyInherited = defaults.keySet -- properties.keySet
     val fromNodeOnly = properties.keySet -- defaults.keySet
     val merged = defaults.keySet.intersect(properties.keySet)
     val overrided = merged.map { k =>
       val p = properties(k)
       val d = defaults(k)
-      // here, we actually do merge/override, the new value being the node value.
-      // I'm not sure if we should ONLY override node properties with "default" provider here, or perhaps we should
-      // add a notion of provider to nodes and only merge compatible providers?
       (k, d.copy(prop = p.fromConfig(GenericProperty.mergeConfig(d.prop.config, p.config))))
     }.toMap
     (
        defaults.filter(kv => fullyInherited.contains(kv._1))
     ++ overrided
-    ++ properties.flatMap { case (k, v) => if(fromNodeOnly.contains(k)) Some((k, NodePropertyHierarchy[ConfigValue](v, Nil))) else None }.toMap
+    ++ properties.flatMap { case (k, v) => if(fromNodeOnly.contains(k)) Some((k, NodePropertyHierarchy(v, Nil))) else None }.toMap
     )
   }
 
@@ -217,7 +263,7 @@ object MergeNodeProperties {
    *
    * We know that we have all groups/subgroups in which the node is here.
    */
-  def checkPropertyMerge(targets: List[FullRuleTargetInfo], globalParams: Map[String, ConfigValue]): PureResult[List[NodePropertyHierarchy[ConfigValue]]] = {
+  def checkPropertyMerge(targets: List[FullRuleTargetInfo], globalParams: Map[String, ConfigValue]): PureResult[List[NodePropertyHierarchy]] = {
     /*
      * General strategy:
      * - build all disjoint hierarchies of groups that contains that node
@@ -243,8 +289,8 @@ object MergeNodeProperties {
      * for more information.
      * The most prioritary is the last in the list
      */
-    def overrideValues(overriding: List[Map[String, NodePropertyHierarchy[ConfigValue]]]): Map[String, NodePropertyHierarchy[ConfigValue]] = {
-      overriding.foldLeft(Map[String, NodePropertyHierarchy[ConfigValue]]()){ case (old, newer) =>
+    def overrideValues(overriding: List[Map[String, NodePropertyHierarchy]]): Map[String, NodePropertyHierarchy] = {
+      overriding.foldLeft(Map[String, NodePropertyHierarchy]()){ case (old, newer) =>
         // for each newer value, we look if an older exists. If so, we keep the old value in the list of parents,
         // and merge its value for the next iteration.
         val merged = newer.map { case(k, v) =>
@@ -265,7 +311,7 @@ object MergeNodeProperties {
      * Last merge: check if any property is defined in at least two groups.
      * If it's the case, report error, else return all properties
      */
-    def mergeAll(propByTrees: List[NodePropertyHierarchy[ConfigValue]]): PureResult[List[NodePropertyHierarchy[ConfigValue]]] = {
+    def mergeAll(propByTrees: List[NodePropertyHierarchy]): PureResult[List[NodePropertyHierarchy]] = {
       val grouped = propByTrees.groupBy(_.prop.name).map {
         case (_, Nil)    => Left(Unexpected(s"A groupBY lead to an empty group. This is a developper bug, please report it."))
         case (_, h::Nil) => Right(h)
@@ -297,14 +343,14 @@ object MergeNodeProperties {
     for {
       groups    <- targets.traverse (_.toGroupProp.map(g => (g.groupId.value, g))).map(_.toMap)
       sorted    <- sortGroups(groups)
-      // add global values as the most default NnodePropertyHierarchy
+      // add global values as the most default NodePropertyHierarchy
       overridden =  sorted.map(groups => overrideValues(groups.map(_.toNodePropHierarchy)))
       // now flatten properties from all groups so that we can check for duplicates
       flatten   =  overridden.map(_.values).flatten
       merged    <- mergeAll(flatten)
       globals   =  globalParams.toList.map { case (n, v) =>
                      val config = GenericProperty.toConfig(n, v, Some(INHERITANCE_PROVIDER), None, ConfigParseOptions.defaults().setOriginDescription(s"Global parameter '${n}'"))
-                     (n, NodePropertyHierarchy[ConfigValue](NodeProperty(config), FullParentProperty.Global(v) :: Nil))
+                     (n, NodePropertyHierarchy(NodeProperty(config), ParentProperty.Global(v) :: Nil))
                    }
     } yield {
       // here, we add global parameters as a first default

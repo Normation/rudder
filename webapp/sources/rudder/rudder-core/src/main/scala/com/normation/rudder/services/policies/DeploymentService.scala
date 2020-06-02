@@ -852,7 +852,7 @@ trait PromiseGeneration_BuildNodeContext {
                           }.toBox
           nodeTargets  =  allGroups.getTarget(info).map(_._2).toList
           timeMerge    =  System.nanoTime
-          mergedProps  <- MergeNodeProperties.withDefaults(info, nodeTargets, nodeParam.map{case(k,v) => (k, v)}.toMap).toBox
+          mergedProps  <- MergeNodeProperties.forNode(info, nodeTargets, nodeParam.map{case(k,v) => (k, v)}.toMap).toBox
           _            =  {timeNanoMergeProp = timeNanoMergeProp + System.nanoTime - timeMerge}
           nodeInfo     =  info.modify(_.node.properties).setTo(mergedProps.map(_.prop))
           nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, nodeTargets, globalSystemVariables, globalAgentRun, globalComplianceMode: ComplianceMode)
