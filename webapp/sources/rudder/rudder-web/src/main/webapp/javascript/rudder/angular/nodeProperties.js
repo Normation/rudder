@@ -196,7 +196,7 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
   }
 
   $scope.editProperty = function(property){
-    if (property.provider === undefined){
+    if (property.provider === undefined || property.provider === 'overridden'){
       var newProp = angular.copy(property)
       newProp.checkJson = $scope.getFormat(newProp.value)=="JSON";
       newProp.value = newProp.checkJson ? JSON.stringify(property.value, null, 4) : property.value;
