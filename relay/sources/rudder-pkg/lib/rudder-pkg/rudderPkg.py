@@ -52,11 +52,32 @@ def package_list_installed():
     pluginName = []
     version = []
     latestRelease = []
+    currentStatus = []
 
     for p in utils.DB["plugins"].keys():
         pluginName.append(p)
+
+        # Get version
         currentVersion = rpkg.PluginVersion(utils.DB["plugins"][p]["version"])
         version.append(currentVersion.pluginLongVersion)
+
+        # Get status
+        # Only plugin containing jars can be disabled
+        status = "enabled"
+        if not os.path.exists(utils.PLUGINS_CONTEXT_XML):
+            return
+        text = open(utils.PLUGINS_CONTEXT_XML).read()
+        match = re.search(r'<Set name="extraClasspath">(.*?)</Set>', text)
+        if match:
+            enabled = match.group(1).split(',')
+        metadata = utils.DB["plugins"][p]
+        if 'jar-files' in metadata:
+            for j in metadata['jar-files']:
+                if j not in enabled:
+                   status = "disabled"
+        currentStatus.append(status)
+
+        # Get latest available version
         extra = ""
         try:
             if printLatest:
@@ -74,9 +95,10 @@ def package_list_installed():
     table = [
                 { "title": "Plugin Name", "value": pluginName },
                 { "title": "Version"    , "value": version    },
+                { "title": "Status"     , "value": currentStatus  },
             ]
     if printLatest:
-        table.append({ "title": "Latest release", "value": latestRelease })
+        table.insert(2, { "title": "Latest release", "value": latestRelease })
     print(utils.dictToAsciiTable(table))
 
 """
