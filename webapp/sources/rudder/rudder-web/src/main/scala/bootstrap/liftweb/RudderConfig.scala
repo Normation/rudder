@@ -258,6 +258,16 @@ object RudderConfig extends Loggable {
 
   //other values
 
+  val RUDDER_EMAIL_CONF = {
+    try {
+      Some(config.getString("rudder.email.settings"))
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.debug("Property 'rudder.email.settings' is missing or empty in rudder.configFile.")
+        None
+    }
+  }
+
   val LDAP_HOST = config.getString("ldap.host")
   val LDAP_PORT = config.getInt("ldap.port")
   val LDAP_AUTHDN = config.getString("ldap.authdn")
