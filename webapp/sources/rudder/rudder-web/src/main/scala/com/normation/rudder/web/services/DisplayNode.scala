@@ -700,7 +700,9 @@ object DisplayNode extends Loggable {
         scope.$$apply(function(){
           scope.init("${nodeId}",${userHasRights},'node');
         });
-        $$('.rudder-label').bsTooltip();
+        setTimeout(function(){
+          $$('.rudder-label').bsTooltip();
+        }, 1000);
       """)))
     }
 
