@@ -7,6 +7,9 @@ pub use self::cfengine::CFEngine;
 use crate::ast::AST;
 use crate::error::*;
 use std::path::Path;
+use std::str::FromStr;
+use std::fmt;
+use serde::de::{self, Deserialize, Deserializer};
 
 /// A generator is something that can generate final code for a given language from an AST
 /// We want at least cfengine, dsc, mgmt
@@ -16,9 +19,63 @@ pub trait Generator {
     fn generate(
         &mut self,
         gc: &AST,
-        input_file: Option<&Path>,
-        output_file: Option<&Path>,
-        translate_config: &Path,
+        source_file: Option<&Path>,
+        dest_file: Option<&Path>,
+        generic_methods: &Path,
         technique_metadata: bool,
     ) -> Result<()>;
+}
+
+pub fn new_generator(format: &Format) -> Result<impl Generator> {
+    match format {
+        Format::CFEngine => Ok(CFEngine::new()),
+        // Format::DSC => Ok(DSC::new()),
+        // Format::JSON => Ok(JSON::new()),
+        _ => Err(Error::User(format!("No Generator for {} format", format))),
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Format {
+    // rudder_lang usage is only internal to handle translation. Not a compilation format 
+    RudderLang,
+    CFEngine,
+    DSC,
+    // JSON
+}
+impl fmt::Display for Format {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Format::CFEngine => "cf",
+                Format::DSC => "dsc",
+                Format::RudderLang => "rl",
+                // Format::JSON => "json",
+            }
+        )
+    }
+}
+// Since format can only be defined by users as string, Rudder-lang does not appear to be a supported format
+impl FromStr for Format {
+    type Err = Error;
+
+    fn from_str(format: &str) -> Result<Self> {
+        match format {
+            "cf" | "cfengine" => Ok(Format::CFEngine),
+            "dsc" => Ok(Format::DSC),
+            // "json" => Ok(Format::json),
+            // RudderLang is an error, not a compilation format
+            _ => Err(Error::User(format!("Could not parse format {}", format))),
+        }
+    }
+}
+impl<'de> Deserialize<'de> for Format {
+    fn deserialize<D>(deserializer: D) -> core::result::Result<Self, D::Error>
+        where D: Deserializer<'de>
+    {
+        let strfmt = String::deserialize(deserializer)?;
+        Format::from_str(&strfmt).map_err(de::Error::custom)
+    }
 }

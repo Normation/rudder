@@ -30,7 +30,8 @@ use test_case::test_case;
 // #[test_case("s_does_not_exist")] // supposed to fail as the file does not exist
 fn real_files(filename: &str) {
     // manually define here the output folder (direct parent folder is /tests/)
-    test_real_file(filename);
+    test_real_file(filename, &rudderc::Format::CFEngine);
+    // test_real_file(filename, &rudderc::Format::DSC);
 }
 
 // ======== Tests every raw string listed below ======== //
@@ -299,5 +300,6 @@ alias resource_alias()state_alias() resource()state()
 // #[test_case("v_purest", "@format=0\n"; "v_purest")] // supposed to fail as the prefix `v_` is not expected
 
 fn generated_files(filename: &str, content: &str) {
-    test_generated_file(filename, content);
+    test_generated_file(filename, content, &rudderc::Format::CFEngine);
+    // test_generated_file(filename, content, &rudderc::Format::DSC);
 }

@@ -7,22 +7,24 @@ extern crate log;
 
 #[macro_use]
 pub mod error;
+pub mod opt;
+pub mod io;
 mod ast;
 pub mod compile;
-pub mod file_paths;
 mod generators;
+pub use generators::Format;
 pub mod logger;
 mod parser;
 pub mod translate;
 
+use serde::Deserialize;
 use std::fmt;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Deserialize)]
 pub enum Action {
     Compile,
     Translate,
 }
-
 impl fmt::Display for Action {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -35,7 +37,6 @@ impl fmt::Display for Action {
         )
     }
 }
-
 impl fmt::Debug for Action {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(

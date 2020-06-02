@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use rudderc::{
+    Action,
+    Format
+};
+
 const RLFILES_PATH: &'static str = "tests/test_files/source_rl";
 const TESTFILES_PATH: &'static str = "tests/test_files/tmp";
 
@@ -13,30 +18,30 @@ use std::{
 
 /// Paired with `test_case` proc-macro calls from the `compile.rs` test file.
 /// Generates a file from a string and tests it
-pub fn test_generated_file(technique_name: &str, content: &str) {
+pub fn test_generated_file(technique_name: &str, content: &str, format: &Format) {
     let dir = format!("{}/{}", TESTFILES_PATH, technique_name);
     fs::create_dir_all(&dir).expect(&format!("Could not create {} dir", dir));
     let path = PathBuf::from(format!("{}/technique.rl", dir));
     let mut file = fs::File::create(&path).expect("Could not create file");
     file.write_all(content.as_bytes())
         .expect("Could not write to file");
-    test_file(&path, &path, technique_name);
+    test_file(&path, &path, technique_name, format);
     fs::remove_dir_all(dir).expect("Could not delete temporary directory");
 }
 
 /// Paired with `test_case` proc-macro calls from the `compile.rs` test file.
 /// Tests the file that matches the `technique_name` argument
-pub fn test_real_file(technique_name: &str) {
+pub fn test_real_file(technique_name: &str, format: &Format) {
     let dir = format!("{}/real/{}", TESTFILES_PATH, technique_name);
     fs::create_dir_all(&dir).expect(&format!("Could not create {} dir", &dir));
-    let input_path = PathBuf::from(format!("{}/{}.rl", RLFILES_PATH, technique_name));
-    let output_path = PathBuf::from(format!("{}/technique.rl", dir));
-    test_file(&input_path, &output_path, technique_name);
+    let source = PathBuf::from(format!("{}/{}.rl", RLFILES_PATH, technique_name));
+    let dest = PathBuf::from(format!("{}/technique.rl", dir));
+    test_file(&source, &dest, technique_name, format);
 }
 
 /// Core test function that actually compares the file compilation result to expected result
-fn test_file(input_path: &Path, output_path: &Path, technique_name: &str) {
-    let result = compile_file(&input_path, &output_path, technique_name);
+fn test_file(source: &Path, dest: &Path, technique_name: &str, format: &Format) {
+    let result = compile_file(&source, &dest, technique_name, format);
     assert_eq!(
         result.is_ok(),
         should_compile(technique_name),
@@ -60,14 +65,16 @@ fn should_compile(technique_name: &str) -> bool {
 }
 
 /// Compile technique from base crate and expose its result
-fn compile_file(input_path: &Path, output_path: &Path, technique_name: &str) -> Result<(), String> {
-    match rudderc::compile::compile_file(
-        input_path,
-        output_path,
-        true,
-        &PathBuf::from("libs/"),
-        &PathBuf::from("tools/translate_config.toml"),
-    ) {
+fn compile_file(source: &Path, dest: &Path, technique_name: &str, format: &Format) -> Result<(), String> {
+    let io = rudderc::io::IOContext {
+        stdlib: PathBuf::from("libs/"),
+        generic_methods: PathBuf::from("tools/generic_methods.toml"),
+        source: source.to_path_buf(),
+        dest: dest.to_path_buf(),
+        mode: Action::Compile,
+        format: format.clone(),
+    };
+    match rudderc::compile::compile_file(&io, true) {
         Ok(_) => {
             println!(
                 "{}: compilation of {}",
