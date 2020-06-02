@@ -370,7 +370,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
     /**
      * Create a new group entry
      */
-    def groupModel(uuid:String, parentDN:DN, name:String, description : String, query: Option[Query], isDynamic : Boolean, srvList : Set[NodeId], isEnabled : Boolean, isSystem : Boolean = false) : LDAPEntry = {
+    def groupModel(uuid:String, parentDN:DN, name:String, description : String, query: Option[Query], isDynamic : Boolean, srvList : Set[NodeId], isEnabled : Boolean, isSystem : Boolean) : LDAPEntry = {
       val mod = LDAPEntry(group.groupDN(uuid, parentDN))
       mod +=! (A_OC, OC.objectClassNames(OC_RUDDER_NODE_GROUP).toSeq:_*)
       mod +=! (A_NAME, name)

@@ -620,6 +620,7 @@ class LDAPEntityMapper(
       , group.isDynamic
       , group.serverList
       , group.isEnabled
+      , group.isSystem
     )
     entry +=! (A_JSON_PROPERTY, group.properties.map(p => p.toData):_* )
     entry
