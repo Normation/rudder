@@ -1,5 +1,5 @@
 // TODO put images on a rudder server and put documentation images dir url here
-// :imagesdir: url
+:imagesdir: images/
 :toc: left
 
 // TODO list

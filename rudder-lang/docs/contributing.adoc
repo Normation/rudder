@@ -1,4 +1,4 @@
-:imagesdir: resources/
+:imagesdir: images/
 
 NOTE: This documentation has been written to the attention of _rudder-lang_ contributors, or anyone would like to have an insight into _rudder-lang_ source.
 
