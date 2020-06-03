@@ -105,8 +105,8 @@ final case object OnlyAdmin extends AuthorizationApiMapping {
         case Administration.Read  => SettingsApi.GetAllSettings.x :: SettingsApi.GetSetting.x :: SystemApi.ArchivesDirectivesList.x ::
                                      SystemApi.ArchivesFullList.x :: SystemApi.ArchivesGroupsList.x :: SystemApi.ArchivesRulesList.x ::
                                      SystemApi.GetAllZipArchive.x :: SystemApi.GetDirectivesZipArchive.x :: SystemApi.GetGroupsZipArchive.x ::
-                                     SystemApi.GetRulesZipArchive.x :: SystemApi.Info.x :: SystemApi.Status.x :: SystemApi.ArchivesParametersList ::
-                                     SystemApi.GetParametersZipArchive :: Nil
+                                     SystemApi.GetRulesZipArchive.x :: SystemApi.Info.x :: SystemApi.Status.x :: SystemApi.ArchivesParametersList.x ::
+                                     SystemApi.GetParametersZipArchive.x :: Nil
         case Administration.Write => SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: SystemApi.endpoints.map(_.x)
         case Administration.Edit  => SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: SystemApi.endpoints.map(_.x)
 
@@ -138,13 +138,13 @@ final case object OnlyAdmin extends AuthorizationApiMapping {
         case Directive.Edit       => DirectiveApi.UpdateDirective.x :: Nil
 
         case Group.Read           => GroupApi.ListGroups.x :: GroupApi.GroupDetails.x :: GroupApi.GetGroupTree.x ::
-                                     GroupApi.GetGroupCategoryDetails.x :: GroupApi.GroupInheritedProperties :: Nil
+                                     GroupApi.GetGroupCategoryDetails.x :: GroupApi.GroupInheritedProperties.x :: Nil
         case Group.Write          => GroupApi.CreateGroup.x :: GroupApi.DeleteGroup.x :: GroupApi.ReloadGroup.x ::
                                      GroupApi.DeleteGroupCategory.x :: GroupApi.CreateGroupCategory.x :: Nil
         case Group.Edit           => GroupApi.UpdateGroup.x :: GroupApi.UpdateGroupCategory.x :: Nil
 
         case Node.Read            => NodeApi.ListAcceptedNodes.x :: NodeApi.ListPendingNodes.x :: NodeApi.NodeDetails.x ::
-                                     NodeApi.NodeInheritedProperties ::
+                                     NodeApi.NodeInheritedProperties.x ::
                                      // node read also allows to read some settings
                                      AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("global_policy_mode") :: Nil ) ::
                                      AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("global_policy_mode_overridable") :: Nil ) ::
