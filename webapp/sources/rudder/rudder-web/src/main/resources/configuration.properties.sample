@@ -260,6 +260,14 @@ rudder.batch.purge.inventories.delete.TTL=7
 # Interval in hours
 rudder.batch.purge.inventories.delete.interval=24
 
+#
+# Node information are put in a cache, and that cache is looked for change with following
+# period. If a change is detected, a generation starts. Typically, it's what happen when a
+# node inventory makes a change in hostname, ip, etc.
+# Format is 'int timeunit', with time unit among: 's' (seconds), 'm' (minutes), 'h' (hours), 'd' (days).
+#
+rudder.batch.check.node.cache.interval=15 s
+
 ####################
 # Webdav properties #################################################################
 ####################

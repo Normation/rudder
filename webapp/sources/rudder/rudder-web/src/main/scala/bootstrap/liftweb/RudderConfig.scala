@@ -40,6 +40,7 @@ package bootstrap.liftweb
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.security.Security
+import java.util.concurrent.TimeUnit
 
 import bootstrap.liftweb.checks._
 import com.normation.appconfig._
@@ -403,6 +404,16 @@ object RudderConfig extends Loggable {
     }
   }
 
+  val RUDDER_BATCH_CHECK_NODE_CACHE_INTERVAL = {
+    try {
+      Duration.fromScala(scala.concurrent.duration.Duration(config.getString("rudder.batch.check.node.cache.interval")))
+    } catch {
+      case ex: Exception =>
+        ApplicationLogger.info("Property 'rudder.batch.check.node.cache.interval' is missing or empty in rudder.configFile. Default to '15 s'.")
+        Duration(15, TimeUnit.SECONDS)
+    }
+  }
+
   // Roles definitions
   val RUDDER_SERVER_ROLES = Seq(
       //each time, it's (role name, key in the config file)
@@ -610,7 +621,7 @@ object RudderConfig extends Loggable {
   val policyServerManagementService: PolicyServerManagementService = psMngtService
   //val updateDynamicGroupsService : DynGroupUpdaterService = dynGroupUpdaterService
   val updateDynamicGroups: UpdateDynamicGroups = dyngroupUpdaterBatch
-  val checkInventoryUpdate = new CheckInventoryUpdate(nodeInfoServiceImpl, asyncDeploymentAgent, stringUuidGenerator, 15.seconds)
+  val checkInventoryUpdate = new CheckInventoryUpdate(nodeInfoServiceImpl, asyncDeploymentAgent, stringUuidGenerator, RUDDER_BATCH_CHECK_NODE_CACHE_INTERVAL)
   val purgeDeletedInventories = new PurgeDeletedInventories(removeNodeServiceImpl, FiniteDuration(RUDDER_BATCH_PURGE_DELETED_INVENTORIES_INTERVAL.toLong, "hours"), RUDDER_BATCH_PURGE_DELETED_INVENTORIES)
   val purgeUnreferencedSoftwares = new PurgeUnreferencedSoftwares(softwareService, FiniteDuration(RUDDER_BATCH_DELETE_SOFTWARE_INTERVAL.toLong, "hours"))
   val databaseManager: DatabaseManager = databaseManagerImpl
