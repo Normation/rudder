@@ -267,6 +267,8 @@ object CFEngineKey {
       parser     <- Box(Option(new PEMParser(new StringReader(key.key))))
                     // read the PEM b64 pubkey string
       pubkeyInfo <- tryo { parser.readObject.asInstanceOf[SubjectPublicKeyInfo] }
+                    // when bouncy castle doesn't successfuly load key, pubkeyinfo is null
+      _          <- if(pubkeyInfo == null) Failure(s"Error when reading key (it is likely malformed)") else Full(())
       digest     <- getCfengineDigest(pubkeyInfo, algo)
     } yield {
       digest
@@ -325,6 +327,8 @@ object CFEngineKey {
       parser     <- Box(Option(new PEMParser(new StringReader(key.key))))
                     // read the PEM b64 pubkey string
       pubkeyInfo <- tryo { parser.readObject.asInstanceOf[SubjectPublicKeyInfo] }
+                    // when bouncy castle doesn't successfuly load key, pubkeyinfo is null
+      _          <- if(pubkeyInfo == null) Failure(s"Error when reading key (it is likely malformed)") else Full(())
       sha256     <- tryo { MessageDigest.getInstance("SHA-256") }
     } yield {
       sha256.update(pubkeyInfo.getEncoded)
@@ -335,6 +339,8 @@ object CFEngineKey {
   def getSha256Digest(cert: Certificate): Box[String] = {
     for {
       (pubkeyInfo,_) <- SecurityToken.parseCertificate(cert).toBox
+                        // when bouncy castle doesn't successfuly load key, pubkeyinfo is null
+      _              <- if(pubkeyInfo == null) Failure(s"Error when reading certificate (it is likely malformed)") else Full(())
       sha256         <- tryo { MessageDigest.getInstance("SHA-256") }
     } yield {
       sha256.update(pubkeyInfo.getEncoded)
