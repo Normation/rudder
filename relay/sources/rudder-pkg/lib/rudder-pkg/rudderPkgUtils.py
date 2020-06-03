@@ -1,6 +1,5 @@
 import os, logging, sys, re, hashlib, requests, json
 import distutils.spawn
-import logging.handlers
 from pprint import pprint
 from pkg_resources import parse_version
 import fcntl, termios, struct, traceback
@@ -15,49 +14,15 @@ try:
 except Exception:
     import configparser
 
+logger = logging.getLogger("rudder-pkg")
+
 # See global variables at the end of the file
 """ Get Terminal width """
 def terminal_size():
-    if sys.stdout.isatty():
-        h, w, hp, wp = struct.unpack('HHHH',
-            fcntl.ioctl(0, termios.TIOCGWINSZ,
-            struct.pack('HHHH', 0, 0, 0, 0)))
-        return h, w
-    return 25,80
-
-
-"""
-    Start two different loggers:
-      -one for the output           => stdoutHandler
-      -another one for the log file => fileHandler
-    They have the same root, so logging is common to both handler,
-    but they will each log what they should based on their log level.
-"""
-def startLogger(logLevel):
-    root = logging.getLogger()
-    # stdout logger
-    stdoutHandler = logging.StreamHandler(sys.stdout)
-    stdoutFormatter = logging.Formatter('%(message)s')
-    stdoutHandler.setFormatter(stdoutFormatter)
-    if logLevel == 'INFO':
-        root.setLevel(logging.INFO)
-        stdoutHandler.setLevel(logging.INFO)
-    elif logLevel == 'DEBUG':
-        root.setLevel(logging.DEBUG)
-        stdoutHandler.setLevel(logging.DEBUG)
-    else:
-        fail("unknow loglevel %s"%(logLevel))
-
-    # log file logger
-    if not os.path.isdir(os.path.dirname(LOG_PATH)):
-      os.makedirs(os.path.dirname(LOG_PATH))
-    fileHandler = logging.handlers.RotatingFileHandler(filename=LOG_PATH,maxBytes=1000000,backupCount=1)
-    fileHandler.setLevel(logging.DEBUG)
-    fileFormatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    fileHandler.setFormatter(fileFormatter)
-
-    root.addHandler(stdoutHandler)
-    root.addHandler(fileHandler)
+    h, w, hp, wp = struct.unpack('HHHH',
+        fcntl.ioctl(0, termios.TIOCGWINSZ,
+        struct.pack('HHHH', 0, 0, 0, 0)))
+    return h, w
 
 """
 
@@ -66,8 +31,8 @@ def startLogger(logLevel):
 """
 def shell(command, comment=None, keep_output=False, fail_exit=True, keep_error=False):
   if comment is not None:
-    logging.info(comment)
-    logging.info(" $ " + command)
+    logger.info(comment)
+    logger.info(" $ " + command)
   if keep_output or keep_error:
     if keep_output:
       keep_out = PIPE
@@ -86,14 +51,14 @@ def shell(command, comment=None, keep_output=False, fail_exit=True, keep_error=F
     output = None
     error = None
   if fail_exit and retcode != 0:
-    logging.error("execution of '%s' failed"%(command))
-    logging.error(error)
+    logger.error("execution of '%s' failed"%(command))
+    logger.error(error)
     fail(output, retcode)
   return (retcode, output, error)
 
 def fail(message, code=1):
-    logging.debug(traceback.format_exc())
-    logging.error(message)
+    logger.debug(traceback.format_exc())
+    logger.error(message)
     exit(code)
 
 def sha512(fname):
@@ -200,15 +165,15 @@ def verifyHash(targetPath, shaSumPath):
     (folder, leaf) = os.path.split(targetPath)
     lines = [line.rstrip('\n') for line in open(shaSumPath)]
     pattern = re.compile(r'(?P<hash>[a-zA-Z0-9]+)[\s]+%s'%(leaf))
-    logging.info("verifying file hash")
+    logger.info("verifying file hash")
     for line in lines:
         match = pattern.search(line)
         if match:
             fileHash.append(match.group('hash'))
     if len(fileHash) != 1:
-        logging.warning('Multiple hash found matching the package, this should not happend')
+        logger.warning('Multiple hash found matching the package, this should not happend')
     if sha512(targetPath) in fileHash:
-        logging.info("=> OK!\n")
+        logger.info("=> OK!\n")
         return True
     fail("hash could not be verified")
 
@@ -226,20 +191,20 @@ def verifyHash(targetPath, shaSumPath):
 def download_and_verify(completeUrl, dst=""):
     global GPG_HOME
     # donwload the target file
-    logging.info("downloading rpkg file  %s"%(completeUrl))
+    logger.info("downloading rpkg file  %s"%(completeUrl))
     targetPath = download(completeUrl, dst)
     # download the attached SHASUM and SHASUM.asc
     (baseUrl, leaf) = os.path.split(completeUrl)
-    logging.info("downloading shasum file  %s"%(baseUrl + "/SHA512SUMS"))
+    logger.info("downloading shasum file  %s"%(baseUrl + "/SHA512SUMS"))
     shaSumPath = download(baseUrl + "/SHA512SUMS", dst)
-    logging.info("downloading shasum sign file  %s"%(baseUrl + "/SHA512SUMS.asc"))
+    logger.info("downloading shasum sign file  %s"%(baseUrl + "/SHA512SUMS.asc"))
     signPath = download(baseUrl + "/SHA512SUMS.asc", dst)
     # verify authenticity
     gpgCommand = "/usr/bin/gpg --homedir " + GPG_HOME + " --verify " + signPath + " " + shaSumPath
-    logging.debug("Executing %s"%(gpgCommand))
-    logging.info("verifying shasum file signature %s"%(gpgCommand))
+    logger.debug("Executing %s"%(gpgCommand))
+    logger.info("verifying shasum file signature %s"%(gpgCommand))
     shell(gpgCommand, keep_output=False, fail_exit=True, keep_error=False)
-    logging.info("=> OK!\n")
+    logger.info("=> OK!\n")
     # verify hash
     if verifyHash(targetPath, shaSumPath):
         return targetPath
@@ -285,16 +250,16 @@ def check_plugin_compatibility(metadata):
 
 """Add the rudder key to a custom home for trusted gpg keys"""
 def getRudderKey():
-    logging.debug("check if rudder gpg key is already trusted")
+    logger.debug("check if rudder gpg key is already trusted")
     checkKeyCommand = "/usr/bin/gpg --homedir " + GPG_HOME + " --fingerprint"
     output = shell(checkKeyCommand, keep_output=True, fail_exit=False, keep_error=False)[1]
     if output.find(GPG_RUDDER_KEY_FINGERPRINT) == -1:
-        logging.debug("rudder gpg key was not found, adding it from %s"%(GPG_RUDDER_KEY))
+        logger.debug("rudder gpg key was not found, adding it from %s"%(GPG_RUDDER_KEY))
         addKeyCommand = "/usr/bin/gpg --homedir " + GPG_HOME + " --import " + GPG_RUDDER_KEY
         # Could not find why, but at creation, we need to run it 2 times to work properly
         shell(addKeyCommand, keep_output=True, fail_exit=True, keep_error=False)
-        logging.debug("executing %s"%(addKeyCommand))
-    logging.debug("=> OK!")
+        logger.debug("executing %s"%(addKeyCommand))
+    logger.debug("=> OK!")
 
 # Indexing methods
 def db_load():
@@ -326,16 +291,16 @@ def install_dependencies(metadata):
       if system == "binary":
         for executable in metadata["depends"][system]:
           if distutils.spawn.find_executable(executable) is None:
-            logging.warning("The binary " + executable + " was not found on the system, you must install it before installing " + metadata['name'])
+            logger.warning("The binary " + executable + " was not found on the system, you must install it before installing " + metadata['name'])
             return False
       else:
         has_depends = True
         if not depends_printed:
-          logging.info("This package depends on the following")
+          logger.info("This package depends on the following")
           depends_printed = True
-        logging.info("  on " + system + " : " + ", ".join(metadata["depends"][system]))
+        logger.info("  on " + system + " : " + ", ".join(metadata["depends"][system]))
     if has_depends:
-      logging.info("It is up to you to make sure those dependencies are installed")
+      logger.info("It is up to you to make sure those dependencies are installed")
   return True
 
 
@@ -376,7 +341,7 @@ def remove_files(metadata):
   for filename in reversed(metadata['files']):
     # ignore already removed files
     if not os.path.exists(filename):
-      logging.info("Skipping removal of " + filename + " as it does not exist")
+      logger.info("Skipping removal of " + filename + " as it does not exist")
       continue
 
     # remove old files
@@ -408,7 +373,7 @@ def install(metadata, package_file, exist):
 def readConf():
     # Repos specific variables
     global URL, USERNAME, PASSWORD
-    logging.debug('Reading conf file %s'%(CONFIG_PATH))
+    logger.debug('Reading conf file %s'%(CONFIG_PATH))
     try:
         config = configparser.RawConfigParser()
         config.read(CONFIG_PATH)
@@ -444,7 +409,6 @@ def list_plugin_name():
 ############# Variables ############# 
 """ Defining global variables."""
 
-LOG_PATH = "/var/log/rudder/rudder-pkg/rudder-pkg.log"
 CONFIG_PATH = "/opt/rudder/etc/rudder-pkg/rudder-pkg.conf"
 FOLDER_PATH = "/var/rudder/tmp/plugins"
 INDEX_PATH = FOLDER_PATH + "/rpkg.index"
