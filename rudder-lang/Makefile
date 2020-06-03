@@ -48,6 +48,8 @@ $(DOC_EXAMPLES):
 
 docs:
 	mkdir -p target/docs
+	cp -r docs/images target/docs/
 	asciidoctor --destination-dir=target/docs docs/index.adoc
+	asciidoctor --destination-dir=target/docs docs/contributing.adoc
 
 .PHONY: docs $(DOC_EXAMPLES)

@@ -20,7 +20,7 @@ alias _rudder-lang_
 This language is not:
 
 * a general purpose language
-* a turing complete language
+* a Turing-complete language
 * an imperative language
 
 It has no:
@@ -30,12 +30,10 @@ It has no:
 * way of looping except on finite list
 
 This language is a DSL (_domain-specific language_) targeted at *state definition*.
-
 Everything that is not a state definition is a convenience for easier definition of a state.
-
 The compiler is very pedantic to avoid defining invalid states as much as possible.
 
-File extension is `rl` for *R*udder *L*anguage.
+File extension is `rl` for *Rudder Language*.
 
 Example:
 
@@ -66,10 +64,12 @@ include::types.adoc[leveloffset=+1]
 
 // == Items
 include::items.adoc[leveloffset=+1]
+
 // === Enums                                                                                           
 include::enums.adoc[leveloffset=+2]
 
 == Statements and Expressions
+
 include::statements-and-expressions.adoc[leveloffset=+2]
 
 == Appendices
