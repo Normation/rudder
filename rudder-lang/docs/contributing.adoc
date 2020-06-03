@@ -5,6 +5,7 @@ NOTE: This documentation has been written to the attention of _rudder-lang_ cont
 NOTE: _rudder-lang_ is often abbreviated to *RL*
 
 = rudderc
+
 *rudderc* is a binary, standing for _rudder compiler_. +
 It is _rudder-lang_ (_.rl_ file format) compiler.
 For now its purpose is to generate a configuration file (_CFEngine_, _DSC_, _JSON_...) from an RL file.
@@ -19,35 +20,41 @@ As of now *rudderc* has two capabilities:
 - compile
 
 === Translate
+
 Temporary functionality. +
 Takes a _JSON_ technique and converts it into a _rudder-lang_ (_.rl_) technique. +
 *Translate* purpose is to allow a full testing cycle of the language (more on that here: <<integration-testing-loop>>).
 
-===== View of the `translate()` process.
+===== View of the `translate()` process
+
 [align=center]
 image::translate.svg[translate() steps]
 
 === Compile
+
 Default and main behavior. +
 For now *compile* purpose is to generate a _cfengine_ technique from a _rudder-lang_ technique. +
 Upcoming versions of _rudderc-lang_ will support generation of several other formats like _DSC_ or _JSON_.
 
-===== Simple view of the `compile()` process.
+===== Simple view of the `compile()` process
+
 [align=center]
 image::compile.svg[compile() steps]
 
-===== Complete view of the `compile()` process.
+===== Complete view of the `compile()` process
 
 ====== Part 1 - Parsing and abstract syntax tree creation 
 
 image::compilation-process-1.svg[link="compilation-process-1.svg"]
 
 ====== Part 2 - Generation of output format from abstract syntax tree
+
 Example taken from the CFEngine generator
 
 image::compilation-process-2.svg[link="compilation-process-2.svg"]
 
 == *stdlib*
+
 What is called _stdlib_ (standing for _standard library_) is the following set of files, available in `./libs`:
 - _resourcelib.rl_
 Contains the list of methods (resources and their relative states and params) available to rudder-lang users.
@@ -60,7 +67,9 @@ Contains the exhaustive list of CFEngine reserved words and namespaces that rudd
 
 
 == Side tools (scripts)
+
 ==== generate_lib
+
 A perl script that generates _rudder-lang_ libraries, calling ncf api.
 Files generated are:
 - _resourcelib.rl_
@@ -70,7 +79,9 @@ Files generated are:
 image::generate-lib.svg[_rudder-lang-lib generation]
 
 ==== cfjson_tester
+
 A python script that can either:
+
 - generate a _json_ technique out of a _cfengine_ technique using _ncf api_
 - compare two _json_ techniques and output unexpected differences
 - compare two _cf_ techniques and output unexpected differences
@@ -78,6 +89,7 @@ A python script that can either:
 It is called by `./tools/tester.sh` in the full testing loop.
 
 ===== Full testing loop: tester.sh
+
 It is the script called both from the production and dev (with a configuration file) environments.
 See <<integration-testing-loop>> for explanations.
 
@@ -101,6 +113,7 @@ image::test-loop.svg[test loop]
 NOTE: Once log errors become rare enough _rudder-lang_ will be released.
 
 == Supported File formats
+
 *rudderc* mostly deals with the following file formats, whether as input or output files:
 
 - _JSON_ (_.json_)
@@ -113,9 +126,11 @@ NOTE: Once log errors become rare enough _rudder-lang_ will be released.
 image::io-file-formats.svg[I/O file formats]
 
 = Contribution process
+
 Contribute by simply declaring a new issue here: https://issues.rudder.io/issues/
 
 Contribute by fixing issues: 
-First, fork https://github.com/Normation/rudder
-Push your fix with the following commit name: `git commit -m "Fixes #{issue_id}: {branch name}"`
-Create a pull request to the right branch. Add the following PR comment: `+https://issues.rudder.io/issues/{issue_id}+`
+
+* First, fork https://github.com/Normation/rudder
+* Push your fix with the following commit name: `git commit -m "Fixes #{issue_id}: {branch name}"`
+* Create a pull request to the right branch. Add the following PR comment: `+https://issues.rudder.io/issues/{issue_id}+`

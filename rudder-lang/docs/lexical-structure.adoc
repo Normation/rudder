@@ -61,11 +61,11 @@ Sorted by category
 
 == Identifiers
 
-An identifier is a word that contains alphanumeric chars
+Identifiers are variable names given by users, containing only alphanumeric chars.
 
-Identifiers are variable names given by users 
 // TODO identifiers are not variable names
 Identifiers can be:
+
 * all kind of aliases
 * parameters
 * enum names or enum item names
