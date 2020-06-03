@@ -142,9 +142,11 @@ class UpdateDynamicGroups(
 
     def isIdle() = currentState == IdleGroupUpdater
 
-    private[this] def processUpdate = {
+    private[this] def processUpdate(force: Boolean) = {
       val need = dynGroupService.changesSince(lastUpdateTime).getOrElse(true)
-      if(need) {
+      // if there was a delayedUpdate, we need to force recomputation of groups, or
+      // if there is one pending (which
+      if(need || force || onePending) {
         logger.trace("***** Start a new update")
 
         currentState match {
@@ -186,20 +188,20 @@ class UpdateDynamicGroups(
           // schedule next update, in minutes
           LAPinger.schedule(this, GroupUpdateMessage.StartUpdate, realUpdateInterval*1000L*60)
         } // no else part as there is nothing to do (would only be Unit)
-        processUpdate
+        processUpdate(false)
 
       case GroupUpdateMessage.ManualStartUpdate =>
-        processUpdate
+        processUpdate(true)
 
       case GroupUpdateMessage.ForceStartUpdate =>
         lastUpdateTime = new DateTime(0)
-        processUpdate
+        processUpdate(true)
 
       // This case is launched when an update was pending, it only launch the process
       // and it does not schedule a new update.
       case GroupUpdateMessage.DelayedUpdate =>
         onePending = false
-        processUpdate
+        processUpdate(true)
 
       //
       //Process a dynamic group update response
