@@ -30,8 +30,6 @@ RUN \
 
 VOLUME ["/data"]
 
-EXPOSE 443 5309
-
 ENTRYPOINT ["/bin/bash", "-c"]
 
 CMD ["bash generate-id.sh && rudder agent check && rudder agent inventory && /opt/rudder/bin/cf-execd --no-fork --inform"]
