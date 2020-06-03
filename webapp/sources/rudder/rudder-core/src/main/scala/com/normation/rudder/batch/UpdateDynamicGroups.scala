@@ -216,7 +216,7 @@ class UpdateDynamicGroups(
 
         // Maybe should be done at the end, when we know it's ok to start deployment ...
         if(onePending) {
-          logger.debug("Immediatly start another update process: pending request")
+          logger.debug("Immediatly start another dynamic groups update process: pending request")
           this ! GroupUpdateMessage.DelayedUpdate
         }
 
