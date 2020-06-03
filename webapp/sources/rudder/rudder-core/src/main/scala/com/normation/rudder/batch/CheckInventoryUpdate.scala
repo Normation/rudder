@@ -75,6 +75,6 @@ class CheckInventoryUpdate(
       IOResult.effectNonBlocking(asyncDeploymentAgent ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor))
   }.catchAll(err => logger.error(s"Error when trying to update node inventories information. Error is: ${err.fullMsg}"))
 
-  ZioRuntime.unsafeRun(prog.delay(30.seconds).repeat(Schedule.spaced(updateInterval)).provide(ZioRuntime.environment).forkDaemon)
+  ZioRuntime.unsafeRun(prog.repeat(Schedule.fixed(updateInterval)).delay(30.seconds).provide(ZioRuntime.environment).forkDaemon)
 }
 
