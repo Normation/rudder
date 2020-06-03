@@ -131,7 +131,7 @@ class NodeApi (
       case API.DeleteNode               => DeleteNode
       case API.ChangePendingNodeStatus  => ChangePendingNodeStatus
       case API.ChangePendingNodeStatus2 => ChangePendingNodeStatus2
-      case API.ApplyPocicyAllNodes      => ApplyPocicyAllNodes
+      case API.ApplyPolicyAllNodes      => ApplyPocicyAllNodes
       case API.UpdateNode               => UpdateNode
       case API.ListAcceptedNodes        => ListAcceptedNodes
       case API.ApplyPolicy              => ApplyPolicy
@@ -289,7 +289,7 @@ class NodeApi (
   }
 
   object ApplyPocicyAllNodes extends LiftApiModule0 {
-    val schema = API.ApplyPocicyAllNodes
+    val schema = API.ApplyPolicyAllNodes
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val prettify = params.prettify
