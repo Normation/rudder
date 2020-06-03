@@ -72,7 +72,7 @@ class CheckInventoryUpdate(
       logger.trace("No update in node inventories main information detected")
     case false =>
       logger.info("Update in node inventories main information detected: triggering a policy generation") *>
-      IOResult.effectNonBlocking(asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor, "Main inventory information of at least one node were updated"))
+      IOResult.effectNonBlocking(asyncDeploymentAgent ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor))
   }.catchAll(err => logger.error(s"Error when trying to update node inventories information. Error is: ${err.fullMsg}"))
 
   ZioRuntime.unsafeRun(prog.delay(30.seconds).repeat(Schedule.spaced(updateInterval)).provide(ZioRuntime.environment).forkDaemon)

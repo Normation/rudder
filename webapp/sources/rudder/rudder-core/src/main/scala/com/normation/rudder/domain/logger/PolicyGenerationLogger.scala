@@ -46,6 +46,11 @@ import net.liftweb.common.Logger
 object PolicyGenerationLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("policy.generation")
 
+  // async deployment agent
+  object manager extends Logger {
+    override protected def _logger = LoggerFactory.getLogger("policy.generation.manager")
+  }
+
   object expectedReports extends Logger {
     override protected def _logger = LoggerFactory.getLogger("policy.generation.expected_reports")
   }
