@@ -251,7 +251,7 @@ object NodeApi extends ApiModuleProvider[NodeApi] {
     val description = "Get all proporeties for that node, included inherited ones"
     val (action, path)  = GET / "nodes" / "{id}" / "inheritedProperties"
   }
-  final case object ApplyPocicyAllNodes extends NodeApi with ZeroParam with StartsAtVersion8 with SortIndex { val z = implicitly[Line].value
+  final case object ApplyPolicyAllNodes extends NodeApi with ZeroParam with StartsAtVersion8 with SortIndex { val z = implicitly[Line].value
     val description = "Ask all nodes to start a run with the given policy"
     val (action, path)  = POST / "nodes" / "applyPolicy"
   }

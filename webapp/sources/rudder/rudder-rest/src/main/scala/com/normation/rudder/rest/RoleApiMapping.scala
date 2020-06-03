@@ -102,9 +102,11 @@ final case object OnlyAdmin extends AuthorizationApiMapping {
         case AnyRights            => ApiAuthz.allAuthz.acl
         // Administration is Rudder setting
 
-        case Administration.Read  => SettingsApi.GetAllSettings.x :: SettingsApi.GetSetting.x :: SystemApi.ArchivesDirectivesList.x :: SystemApi.ArchivesFullList.x :: SystemApi.ArchivesGroupsList.x ::
-                                     SystemApi.ArchivesRulesList.x :: SystemApi.GetAllZipArchive.x :: SystemApi.GetDirectivesZipArchive.x :: SystemApi.GetGroupsZipArchive.x :: SystemApi.GetRulesZipArchive.x ::
-                                     SystemApi.Info.x :: SystemApi.Status.x ::  Nil
+        case Administration.Read  => SettingsApi.GetAllSettings.x :: SettingsApi.GetSetting.x :: SystemApi.ArchivesDirectivesList.x ::
+                                     SystemApi.ArchivesFullList.x :: SystemApi.ArchivesGroupsList.x :: SystemApi.ArchivesRulesList.x ::
+                                     SystemApi.GetAllZipArchive.x :: SystemApi.GetDirectivesZipArchive.x :: SystemApi.GetGroupsZipArchive.x ::
+                                     SystemApi.GetRulesZipArchive.x :: SystemApi.Info.x :: SystemApi.Status.x :: SystemApi.ArchivesParametersList ::
+                                     SystemApi.GetParametersZipArchive :: Nil
         case Administration.Write => SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: SystemApi.endpoints.map(_.x)
         case Administration.Edit  => SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: SystemApi.endpoints.map(_.x)
 
@@ -136,18 +138,19 @@ final case object OnlyAdmin extends AuthorizationApiMapping {
         case Directive.Edit       => DirectiveApi.UpdateDirective.x :: Nil
 
         case Group.Read           => GroupApi.ListGroups.x :: GroupApi.GroupDetails.x :: GroupApi.GetGroupTree.x ::
-                                     GroupApi.GetGroupCategoryDetails.x :: Nil
+                                     GroupApi.GetGroupCategoryDetails.x :: GroupApi.GroupInheritedProperties :: Nil
         case Group.Write          => GroupApi.CreateGroup.x :: GroupApi.DeleteGroup.x :: GroupApi.ReloadGroup.x ::
                                      GroupApi.DeleteGroupCategory.x :: GroupApi.CreateGroupCategory.x :: Nil
         case Group.Edit           => GroupApi.UpdateGroup.x :: GroupApi.UpdateGroupCategory.x :: Nil
 
         case Node.Read            => NodeApi.ListAcceptedNodes.x :: NodeApi.ListPendingNodes.x :: NodeApi.NodeDetails.x ::
+                                     NodeApi.NodeInheritedProperties ::
                                      // node read also allows to read some settings
                                      AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("global_policy_mode") :: Nil ) ::
                                      AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("global_policy_mode_overridable") :: Nil ) ::
                                      Nil
         case Node.Write           => NodeApi.DeleteNode.x :: NodeApi.ChangePendingNodeStatus.x :: NodeApi.ChangePendingNodeStatus2.x ::
-                                     NodeApi.ApplyPocicyAllNodes.x :: NodeApi.ApplyPolicy.x :: Nil
+                                     NodeApi.ApplyPolicyAllNodes.x :: NodeApi.ApplyPolicy.x :: Nil
         case Node.Edit            => NodeApi.UpdateNode.x :: Nil
 
         case Rule.Read            => RuleApi.ListRules.x :: RuleApi.RuleDetails.x :: RuleApi.GetRuleTree.x ::
@@ -157,9 +160,13 @@ final case object OnlyAdmin extends AuthorizationApiMapping {
         case Rule.Edit            => RuleApi.UpdateRule.x :: RuleApi.UpdateRuleCategory.x :: Nil
 
         case Technique.Read       => TechniqueApi.ListTechniques.x :: TechniqueApi.ListTechniquesDirectives.x ::
-                                     TechniqueApi.ListTechniqueDirectives.x :: Nil
+                                     TechniqueApi.ListTechniqueDirectives.x :: NcfApi.GetMethods.x :: NcfApi.GetTechniques.x  ::
+                                     NcfApi.GetAllTechniqueCategories.x :: NcfApi.GetResources.x :: NcfApi.GetNewResources.x  ::
+                                     NcfApi.ParameterCheck.x :: Nil
         case Technique.Write      => NcfApi.CreateTechnique.x :: SystemApi.PoliciesUpdate.x :: SystemApi.PoliciesRegenerate.x :: Nil
-        case Technique.Edit       => NcfApi.UpdateTechnique.x :: SystemApi.PoliciesUpdate.x :: SystemApi.PoliciesRegenerate.x :: Nil
+        case Technique.Edit       => NcfApi.UpdateTechnique.x :: SystemApi.PoliciesUpdate.x :: SystemApi.PoliciesRegenerate.x ::
+                                     NcfApi.DeleteTechnique.x :: NcfApi.UpdateTechniques.x :: NcfApi.UpdateMethods.x :: Nil
+
 
         case UserAccount.Read     => UserApi.GetApiToken.x :: Nil
         case UserAccount.Write    => Nil
