@@ -56,6 +56,12 @@ nodePropertiesApp.directive('mandatory', function (){
    };
 });
 
+nodePropertiesApp.directive('bsTooltip', function() {
+  return function(scope, element, attrs) {
+    $(element).bsTooltip();
+  };
+});
+
 nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOptionsBuilder, DTColumnDefBuilder) {
   //Initialize scope
   $scope.properties;
@@ -125,7 +131,6 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
     $http.get(getUrlAPI).success( function (result) {
       $scope.properties = result.data[0].properties
     }).error(function(){createErrorNotification("Error while fetching "+objectName+" properties")});
-    $('.rudder-label').bsTooltip();
     new ClipboardJS('.btn-clipboard');
   }
 
