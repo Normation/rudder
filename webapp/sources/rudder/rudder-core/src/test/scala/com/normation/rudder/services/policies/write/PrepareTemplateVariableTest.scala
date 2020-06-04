@@ -112,23 +112,23 @@ bundle agent run_directive2
 bundle agent run_directive3
 {
   methods:
-      "Nodes only/Name resolution version "3.0" and counting" usebundle => disable_reporting;
-      "Nodes only/Name resolution version "3.0" and counting" usebundle => check_dns_configuration;
-      "Nodes only/Name resolution version "3.0" and counting" usebundle => clean_reporting_context;
+      "Nodes only/Name resolution version \"3.0\" and counting" usebundle => disable_reporting;
+      "Nodes only/Name resolution version \"3.0\" and counting" usebundle => check_dns_configuration;
+      "Nodes only/Name resolution version \"3.0\" and counting" usebundle => clean_reporting_context;
 }
 bundle agent run_directive4
 {
   methods:
-      "Nodes only/Package \"management\" for Debian" usebundle => disable_reporting;
-      "Nodes only/Package \"management\" for Debian" usebundle => check_apt_package_installation;
-      "Nodes only/Package \"management\" for Debian" usebundle => clean_reporting_context;
+      "Nodes only/Package \\\"management\\\" for Debian" usebundle => disable_reporting;
+      "Nodes only/Package \\\"management\\\" for Debian" usebundle => check_apt_package_installation;
+      "Nodes only/Package \\\"management\\\" for Debian" usebundle => clean_reporting_context;
 }
 bundle agent run_directive5
 {
   methods:
-      "Nodes only/Package \\"management\\" for Debian - again" usebundle => disable_reporting;
-      "Nodes only/Package \\"management\\" for Debian - again" usebundle => check_apt_package_installation2;
-      "Nodes only/Package \\"management\\" for Debian - again" usebundle => clean_reporting_context;""")
+      "Nodes only/Package \\\\\"management\\\\\" for Debian - again" usebundle => disable_reporting;
+      "Nodes only/Package \\\\\"management\\\\\" for Debian - again" usebundle => check_apt_package_installation2;
+      "Nodes only/Package \\\\\"management\\\\\" for Debian - again" usebundle => clean_reporting_context;""")
 
       actual must containTheSameElementsAs(expected)
     }
@@ -187,23 +187,23 @@ bundle agent run_directive2
 bundle agent run_directive3
 {
   methods:
-      "Nodes only/Name resolution version "3.0" and counting" usebundle => disable_reporting;
-      "Nodes only/Name resolution version "3.0" and counting" usebundle => check_dns_configuration;
-      "Nodes only/Name resolution version "3.0" and counting" usebundle => clean_reporting_context;
+      "Nodes only/Name resolution version \"3.0\" and counting" usebundle => disable_reporting;
+      "Nodes only/Name resolution version \"3.0\" and counting" usebundle => check_dns_configuration;
+      "Nodes only/Name resolution version \"3.0\" and counting" usebundle => clean_reporting_context;
 }
 bundle agent run_directive4
 {
   methods:
-      "Nodes only/Package \"management\" for Debian" usebundle => disable_reporting;
-      "Nodes only/Package \"management\" for Debian" usebundle => check_apt_package_installation;
-      "Nodes only/Package \"management\" for Debian" usebundle => clean_reporting_context;
+      "Nodes only/Package \\\"management\\\" for Debian" usebundle => disable_reporting;
+      "Nodes only/Package \\\"management\\\" for Debian" usebundle => check_apt_package_installation;
+      "Nodes only/Package \\\"management\\\" for Debian" usebundle => clean_reporting_context;
 }
 bundle agent run_directive5
 {
   methods:
-      "Nodes only/Package \\"management\\" for Debian - again" usebundle => disable_reporting;
-      "Nodes only/Package \\"management\\" for Debian - again" usebundle => check_apt_package_installation2;
-      "Nodes only/Package \\"management\\" for Debian - again" usebundle => clean_reporting_context;""")
+      "Nodes only/Package \\\\\"management\\\\\" for Debian - again" usebundle => disable_reporting;
+      "Nodes only/Package \\\\\"management\\\\\" for Debian - again" usebundle => check_apt_package_installation2;
+      "Nodes only/Package \\\\\"management\\\\\" for Debian - again" usebundle => clean_reporting_context;""")
 
       actual must containTheSameElementsAs(expected)
     }
