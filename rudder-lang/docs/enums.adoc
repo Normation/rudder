@@ -14,7 +14,8 @@ An enum can be _global_. There are some key differences:
 |enum type must be specified |no |yes
 |each item has a global variable associated* |no |yes
 |=======
-_* all item names of a global enum are variables, meaning it becomes reserved, no other variable can be created with this name_
+
+All item names of a global enum are variables, meaning it becomes reserved, no other variable can be created with this name.
 
 In other words, item names of global enums are directly available in the global namespace
 
@@ -28,6 +29,7 @@ global enum system {
 ----
 
 To call an item of this enum, just do `linux` (rather than `system.linux`) as it now exists in the global namespace.
+
 Still it remains different from a single variable since internally a reference to the enum tree is kept
 
 [#access-enum-content]

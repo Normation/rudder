@@ -135,6 +135,9 @@ fn get_dest(
 
     // format is part of dest file so it makes sense to return it from this function plus it needs to be defined here to update dest if needed
     let (format, format_as_str) = get_format(config, opt, &technique)?;
+    if technique.ends_with(&format_as_str) {
+
+    }
     Ok((technique.with_extension(&format_as_str), format))
 }
 
@@ -165,7 +168,8 @@ fn get_format(config: &ActionConfig, opt: &IOOpt, dest: &PathBuf) -> Result<(For
     // This list must match each Generator implementation type + "rl" translation type
     // TODO get list from Generator directly
     if config.action == Some(Action::Compile) && fmt != Format::RudderLang {
-        Ok((fmt.clone(), format!("{}.{}", "rl", fmt)))
+        Ok((fmt.clone(), format!("{}.{}", "rl", fmt))) // TODO discuss about file extension handling
+        // Ok((fmt.clone(), fmt.to_string()))
     } else if config.action == Some(Action::Translate) && fmt == Format::RudderLang {
         // translate can only have RL as output format
         Ok((fmt, "rl".to_owned()))

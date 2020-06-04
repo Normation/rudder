@@ -20,6 +20,7 @@ Optionally add rudderc to your path `export PATH=$PATH:/opt/rudder/bin/rudderc` 
 
 Any information log is displayed to `SDTOUT`, errors should be printed to `STDERR`
 
+[align=center]
 image::rudderc-simple.svg[rudderc abilities]
 
 .The CLI usage (`rudderc --help` or `rudderc -h` output slightly modified)
@@ -44,7 +45,7 @@ OPTIONS:
             If neither an output nor a configuration file output path is set, source path is used
 
     -f, --format <format>
-            Enforce a compiler output format (overrides configuration format)
+            Enforce a compiler output format (overrides configuration format and manual technique extension)
             [possible values: cf, dsc, json]
 
     -l, --log-level <log-level>
@@ -70,7 +71,7 @@ Most options are pretty straightforward but some explanations might help:
 * Unlike the prevailing `--source` and `--dest` options, the `--technique-name <technique joined>` option makes use of the configuration file input and output paths and concatenates the `technique joined>` to these
 * `--source` > configuration source + `--technique-name` > configuration source if it is a file
 * `--dest` > configuration dest + `--technique-name` > configuration dest if it is a file > `--source` as destination with updated format
-* `--format` > configuration format > `--dest` option extension
+* `--format` > configuration format > `--dest` technique extension
 * Log levels are ordered (trace > debug > info > warn > error)
 
 ==== Configuration file
@@ -82,63 +83,158 @@ Entire _rudder-lang_ environment is already set up alongside the agent: this inc
 .default configuration file
 [source,toml]
 ----
-[default_paths]
-    rudderc_stdlib="libs/"
+[shared]
+    stdlib="libs/" # only required field for rudderc --compile
+    generic_methods="tools/generic_methods.toml" # required field for rudderc --translate
+    ncf="/usr/share/ncf"
 
-    # required for translation
-    generic_methods="tools/generic_methods.toml"
+[compile]
+    source="./tests/test_files/tester/"
+    dest="./tests/test_files/tester/"
+    # format="dsc"
 
-    # optional default compilation technique paths
-    # not needed if --source option is used
-    compile_input="tests/test_files/tester/"
-    # not needed if --dest option is used
-    compile_output="tests/test_files/tester/"
+[translate]
+    source="tests/test_files/tester/"
+    dest="tests/test_files/tester/"
 
-    # optional default translation technique paths
-    # not needed if --source option is used
-    translate_input="tests/test_files/tester/"
-    # not needed if --dest option is used
-    translate_output="tests/test_files/tester/"
+[testing_loop]
+    cfengine="/opt/rudder/bin/cf-promises"
+    py_modules="tools/"
 ----
 
-==== Compile
-// TODO
+The configuration file can be used to shorten arguments.
 
+The `source` and `dest` fields from both `[translate]` and `[compile]` can either be filled with a path or a file.
 
-==== Translate
-// TODO
+===== Configuration file set with directories
 
-==== Examples
-
-===== Translation example
+[source,toml]
 ----
-rudderc --translate --source technique.json --dest rl/fromjson.rl --config-file tools/myconf -log-level debug -json-log
-----
-can be shortened to:
-----
-rudderc -tj -i technique.json -o rl/fromjson.rl -l debug -c tools/myconf
-----
-What it means:
+...
 
-* Translate (`-t`) `./technique.json` (`-i`) into `./rl/fromjson.rl` (`-o`),
-* Use the configuration file located at `./tools/myconf` (`-c`),
-* Output log format is JSON (`-j`),
-* The following log levels: error, warn, info, debug will be printed to the terminal
+[compile]
+    source="rl/"
+    dest="cf/"
+----
 
-By using an adapted configuration file, it can be simplified:
+Paths will respectively be prepended to _rudderc_ `-i` and `-o` options
+
+===== Configuration file set with files
+
+Paths will be used as they are, since they already define a single technique.
+
+Note that `-i` and `-o` _rudderc_ options will use the config specified directories and only override technique name
+
+==== Compilation example
+
+1. Required: a config file to work on a local environment: 
+
 .tools/myconf
 [source,toml]
 ----
-[default_paths]
-    rudderc_stdlib="libs/"
+[shared]
+    stdlib="libs/" # only required field for rudderc --compile
+----
+
+2. CLI full version
+----
+rudderc --json-log --log-level debug --config-file tools/myconf --source rl/technique.rl --dest dsc/technique.rl.dsc --format dsc
+----
+
+3. CLI shortened version
+----
+rudderc -j -l debug -c tools/myconf -n technique.rl -o technique.rl.dsc -f dsc
+----
+
+What it means:
+
+* Compile is the default behavior, therefore it has no dedicated option.
+* Compiles `./rl/technique.rl` (`-s`) into `./dsc/technique.rl.dsc` (`-d`),
+* Use the configuration file located at `./tools/myconf` (`-c`),
+* Output technique format is DSC (`--format`). Note that this parameter is optional since `-d` defines the right technique format by its extension
+* Output log format is JSON (`-j`),
+* The following log levels: error, warn, info, debug will be printed to the terminal
+
+4. CLI + config shortened version
+
+By using an adapted configuration file, it can be simplified:
+
+.tools/myconf
+[source,toml]
+----
+[shared]
+    stdlib="libs/" # only required field for rudderc
     generic_methods="tools/generic_methods.toml"
-    translate_input="technique.json"
-    translate_output="rl/fromjson.rl"
+
+[compile]
+    source="rl/technique.rl"
+    dest="dsc/technique.rl.dsc"
+    format="dsc"
 ----
+
+Lightest compilation using CLI.
 ----
-rudderc -tj -l debug -c tools/myconf
+rudderc -j -l debug -c tools/myconf
 ---- 
-// TODO check if config can hold input FILE
+
+Or using `rl` and `dsc` directories with other techniques:
+----
+rudderc -j -l debug -c tools/myconf -i another.rl -o another_from_rl.rl.dsc
+---- 
+
+==== Translation example
+
+1. Required: a config file to work on a local environment: 
+.tools/myconf
+[source,toml]
+----
+[shared]
+    stdlib="libs/" # only required field for rudderc --compile
+    generic_methods="tools/generic_methods.toml" # required field for rudderc --translate
+----
+
+2. CLI full version
+----
+rudderc --json-log --log-level debug --config-file tools/myconf --translate --source json/technique.json --dest rl/from_json.rl
+----
+
+3. CLI shortened version
+----
+rudderc -tj -l debug -c tools/myconf -s technique.json -d rl/from_json.rl
+----
+
+What it means:
+
+* Translate (`-t`) `./json/technique.json` (`-s`) into `./rl/from_json.rl` (`-d`),
+* Use the configuration file located at `./tools/myconf` (`-c`),
+* Output log format is JSON (`-j`),
+* The following log levels: error, warn will be printed to the terminal
+
+4. CLI + config lightened version
+
+By using an adapted configuration file, it can be simplified:
+
+.tools/myconf
+[source,toml]
+----
+[shared]
+    stdlib="libs/" # only required field for rudderc
+    generic_methods="tools/generic_methods.toml"
+
+[translate]
+    source="json/technique.json"
+    dest="rl/from_json.rl"
+----
+
+Lightest translation using CLI.
+----
+rudderc -tj -l warn -c tools/myconf
+---- 
+
+Or using `json` and `rl` directories with other techniques:
+----
+rudderc -tj -l warn -c tools/myconf -i another.json -o another_from_json.rl
+---- 
 
 == Using the Technique Editor
 
