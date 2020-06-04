@@ -76,6 +76,7 @@ sys.path.insert(0,"/opt/rudder/share/python/rudder-pkg")
 
 import docopt
 import rudderPkg
+import rudderPkgLogger
 import rudderPkgUtils as utils
 
 ## MAIN
@@ -85,9 +86,10 @@ if __name__ == "__main__":
     # it will parse sys.argv[1:]
     args = docopt.docopt(__doc__, argv=["package"]  + sys.argv[1:])
     if args['--debug']:
-        utils.startLogger('DEBUG')
+        rudderPkgLogger.startLogger('DEBUG')
     else:
-        utils.startLogger('INFO')
+        rudderPkgLogger.startLogger('INFO')
+    logger = logging.getLogger("rudder-pkg")
     utils.db_load()
 
     if args['install-file']:
@@ -150,4 +152,4 @@ if __name__ == "__main__":
 
     if utils.jetty_needs_restart:
         utils.shell("service rudder-jetty restart", "Restarting jetty")
-        logging.info("done")
+        logger.info("done")
