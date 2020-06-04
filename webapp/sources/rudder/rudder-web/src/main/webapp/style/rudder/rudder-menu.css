@@ -1466,7 +1466,7 @@ label.text-fit{
   left:0 !important;
 }
 .skin-yellow .tooltip{
-  z-index:999;
+  z-index:9999;
 }
 .skin-yellow .tooltip > .tooltip-inner {
   background-color: #fff;
