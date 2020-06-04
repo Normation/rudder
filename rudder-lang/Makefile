@@ -43,7 +43,7 @@ install: build
 test-docs: $(DOC_EXAMPLES)
 
 $(DOC_EXAMPLES):
-	cargo run -- --config tools/rudderc-dev.conf --input $@ --output $@.cf
+	cargo run -- --config-file tools/rudderc-dev.conf --source $@ --dest $@ --format cf
 	rm $@.cf
 
 docs:

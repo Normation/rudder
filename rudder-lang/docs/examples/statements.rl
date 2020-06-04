@@ -2,22 +2,20 @@
 
 rights = "g+x"
 
-resource configure_NTP()
+resource deb()
 
-configure_NTP state technique()
+deb state technique()
 {
   # list of possible statements
   @info="i am a metadata"
-  is_debian = os =~ debian
 
-  if is_debian =~ true => return kept # stop here if system is debian
-
-  File("/tmp").permissions("root", "x$${root}i${user}2","g+w") as outvar
+  permissions("/tmp").dirs("root", "x$${root}i${user}2","g+w") as outvar
+  
+  if outvar=~kept => return kept
 
   case {
-    outvar =~ kept => return kept,
-    outvar =~ repaired  => log "info: repaired",
-    is_debian =~ true && outvar =~ error => fail "failed agent"
-    default
+    outvar=~repaired  => log "info: repaired",
+    outvar=~error => fail "failed agent",
+    default => log "default case"
   }
 }

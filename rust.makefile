@@ -55,10 +55,6 @@ veryclean: clean
 	rustup self uninstall
 	rm -rf ~/.rustup ~/.cargo
 
-# fmt, build, test, audit, clean, bench, etc.
-%:
-	cargo $@
-
 outdated:
 	# only check on our dependencies
 	cargo outdated --root-deps-only
