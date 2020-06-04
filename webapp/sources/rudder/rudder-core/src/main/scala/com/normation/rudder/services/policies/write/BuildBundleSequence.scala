@@ -496,7 +496,7 @@ object CfengineBundleVariables {
       if (bundleSeq.nonEmpty) {
         bundleSeq.map {
           bundle =>
-            val subBundles = bundle.bundleSequence.map { b => s"""      "${bundle.promiser.value}" usebundle => ${b.callBundle(escape)};"""}
+            val subBundles = bundle.bundleSequence.map { b => s"""      "${CFEngineAgentSpecificGeneration.escape(bundle.promiser.value)}" usebundle => ${b.callBundle(escape)};"""}
             s"""bundle agent ${bundle.runBundle.name.value}
                |{
                |  methods:
