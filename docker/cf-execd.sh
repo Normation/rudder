@@ -1,6 +1,7 @@
 #!/bin/sh
 
-set -ex
+set -e
+set -x
 
 # Needed because standard paths are symlinks
 
@@ -20,3 +21,6 @@ if [ ! -f /opt/rudder/etc/ssl/agent.cert ]; then
   openssl req -new -sha256 -key /data/ppkeys/localhost.priv -out /data/ssl/agent.cert -passin "pass:Cfengine passphrase" -x509 -days 3650 -extensions agent_cert -config /opt/rudder/etc/ssl/openssl-agent.cnf -subj "/UID=${uuid}"
 fi
 
+rudder agent check
+
+/opt/rudder/bin/cf-execd --no-fork --inform

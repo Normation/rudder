@@ -1,25 +1,30 @@
 FROM centos:8
 
 RUN \
-       yum -y update && \
-       yum -y install wget psmisc ca-certificates gnupg2 iptables && \
-       wget -q https://repository.rudder.io/tools/rudder-setup && \
-       chmod +x rudder-setup
-
-RUN \
+        ln -sf /bin/true /usr/sbin/service && \
         ln -sf /bin/true /bin/systemctl && \
         ln -sf /bin/true /usr/bin/systemctl
 
 RUN \
-       bash rudder-setup add-repository 6.1-nightly && \
-       yum -y install rudder-agent && \
-       yum clean all
+        yum -y install curl && \
+        curl -o rudder-setup https://repository.rudder.io/tools/rudder-setup && \
+        sh rudder-setup add-repository 6.1 && \
+        yum -y install rudder-agent
 
+RUN \
+        ln -sf /data/uuid.hive /opt/rudder/etc/uuid.hive && \
+        ln -sf /data/ssl/agent.cert /opt/rudder/etc/ssl/agent.cert && \
+        ln -sf /data/ppkeys/localhost.pub /var/rudder/cfengine-community/ppkeys/localhost.pub && \
+        ln -sf /data/ppkeys/localhost.priv /var/rudder/cfengine-community/ppkeys/localhost.priv
 
-COPY serverd.sh .
+COPY cf-serverd.sh .
+
+RUN \
+        yum clean all && \
+        rm -rf /var/rudder/cfengine-community/state/*
 
 EXPOSE 5309
 
 ENTRYPOINT ["/bin/bash", "-c"]
 
-CMD ["bash serverd.sh"]
+CMD ["./cf-serverd.sh"]
