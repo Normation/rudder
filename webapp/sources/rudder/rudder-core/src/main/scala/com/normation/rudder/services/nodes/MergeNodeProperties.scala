@@ -39,6 +39,7 @@ package com.normation.rudder.services.nodes
 
 import cats.implicits._
 import com.normation.errors._
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.GroupProperty
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
@@ -48,6 +49,7 @@ import com.normation.rudder.domain.nodes.GenericProperty
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.ParentProperty
 import com.normation.rudder.domain.nodes.PropertyProvider
+import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.policies.FullCompositeRuleTarget
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.FullOtherTarget
@@ -195,7 +197,7 @@ object MergeNodeProperties {
     for {
       properties <- checkPropertyMerge(nodeTargets, globalParams)
     } yield {
-      mergeDefault(node.properties.map(p => (p.name, p)).toMap, properties.map(p => (p.prop.name, p)).toMap).map(_._2).toList.sortBy(_.prop.name)
+      mergeDefault(node.node.id.value, node.properties.map(p => (p.name, p)).toMap, properties.map(p => (p.prop.name, p)).toMap).map(_._2).toList.sortBy(_.prop.name)
     }
   }
 
@@ -238,12 +240,11 @@ object MergeNodeProperties {
     for {
       group       <- allGroups.get(groupId).notOptionalPure(s"Group with ID '${groupId.value}' was not found.")
       hierarchy   <- withParents(group::Nil, allGroups, Map())
-      //withParents include current group, don't forget to remove it
       parents     =  (hierarchy-group.nodeGroup.id).values.map(g => FullRuleTargetInfo(g, g.nodeGroup.name, g.nodeGroup.description, g.nodeGroup.isEnabled, g.nodeGroup.isSystem))
       hierarchies <- checkPropertyMerge(parents.toList, globalParams)
     } yield {
-      val groupPropsAsNode = group.nodeGroup.properties.map(g => (g.name, NodeProperty(g.config))).toMap
-      mergeDefault(groupPropsAsNode, hierarchies.map(h => (h.prop.name, h)).toMap).values.toList
+      val groupProps = group.nodeGroup.properties.map(g => (g.name, g)).toMap
+      mergeDefault(groupId.value, groupProps, hierarchies.map(h => (h.prop.name, h)).toMap).values.toList
     }
   }
 
@@ -253,19 +254,25 @@ object MergeNodeProperties {
    * NodePropertyHierarchy with a non empty parent list means they were inherited and at least
    * partially overridden
    */
-  def mergeDefault(properties: Map[String, NodeProperty], defaults: Map[String, NodePropertyHierarchy]): Map[String, NodePropertyHierarchy] = {
+  def mergeDefault[A <: GenericProperty[A]](objectId: String, properties: Map[String, A], defaults: Map[String, NodePropertyHierarchy]): Map[String, NodePropertyHierarchy] = {
     val fullyInherited = defaults.keySet -- properties.keySet
     val fromNodeOnly = properties.keySet -- defaults.keySet
     val merged = defaults.keySet.intersect(properties.keySet)
     val overrided = merged.map { k =>
       val p = properties(k)
       val d = defaults(k)
-      (k, d.copy(prop = p.fromConfig(GenericProperty.mergeConfig(d.prop.config, p.config)).withProvider(OVERRIDE_PROVIDER)))
+      val mergedProp = NodeProperty(GenericProperty.mergeConfig(d.prop.config, p.config)).withProvider(OVERRIDE_PROVIDER)
+      val obj = p match {
+        case x: NodeProperty    => ParentProperty.Node  ("this node" , NodeId(objectId)     , p.value)
+        case x: GroupProperty   => ParentProperty.Group ("this group", NodeGroupId(objectId), p.value)
+        case x: GlobalParameter => ParentProperty.Global(                                     p.value)
+      }
+      (k, NodePropertyHierarchy(mergedProp, obj :: d.hierarchy))
     }.toMap
     (
        defaults.filter(kv => fullyInherited.contains(kv._1))
     ++ overrided
-    ++ properties.flatMap { case (k, v) => if(fromNodeOnly.contains(k)) Some((k, NodePropertyHierarchy(v, Nil))) else None }.toMap
+    ++ properties.flatMap { case (k, v) => if(fromNodeOnly.contains(k)) Some((k, NodePropertyHierarchy(NodeProperty(v.config), Nil))) else None }.toMap
     )
   }
 
@@ -314,7 +321,7 @@ object MergeNodeProperties {
               (k, v)
             case Some(oldProp) => //merge prop and add old to parents
               val config = GenericProperty.mergeConfig(oldProp.prop.config, v.prop.config)
-              val mergedProp = v.modify(_.prop).using(_.fromConfig(config)).modify(_.parents).using( _ ::: oldProp.parents)
+              val mergedProp = v.modify(_.prop).using(_.fromConfig(config)).modify(_.hierarchy).using(_ ::: oldProp.hierarchy)
               (k, mergedProp)
           }
         }
@@ -337,7 +344,7 @@ object MergeNodeProperties {
           } else {
             // faulty groups are the head of parent list of each parent list
             val faulty = (h::more).map { p =>
-              p.parents match {
+              p.hierarchy match {
                 case Nil        => "" // should not happen
                 case g::Nil     =>
                   g.displayName
