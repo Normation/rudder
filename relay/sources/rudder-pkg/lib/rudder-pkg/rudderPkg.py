@@ -14,6 +14,8 @@ import rudderPkgUtils as utils
 from lxml import html
 import traceback
 
+logger = logging.getLogger("rudder-pkg")
+
 
 """
     Expect a list of path as parameter.
@@ -21,7 +23,7 @@ import traceback
 """
 def install_file(package_files):
     for package_file in package_files:
-        logging.info("Installing " + package_file)
+        logger.info("Installing " + package_file)
         # First, check if file exists
         if not os.path.isfile(package_file):
             utils.fail("Error: Package file " + package_file + " does not exist")
@@ -33,7 +35,7 @@ def install_file(package_files):
         if not utils.install_dependencies(metadata):
             exit(1)
         if exist:
-            logging.info("The package is already installed, I will upgrade it.")
+            logger.info("The package is already installed, I will upgrade it.")
         script_dir = utils.extract_scripts(metadata, package_file)
         utils.run_script("preinst", script_dir, exist)
         utils.install(metadata, package_file, exist)
@@ -217,7 +219,7 @@ def package_install_latest(name, mode="release", quiet=False):
 """Remove a given plugin. Expect a list of name as parameter."""
 def remove(package_names):
     for package_name in package_names:
-        logging.info("Removing " + package_name)
+        logger.info("Removing " + package_name)
         if package_name not in utils.DB["plugins"]:
             utils.fail("This package is not installed. Aborting!", 2)
         script_dir = utils.DB_DIRECTORY + "/" + package_name
@@ -241,12 +243,12 @@ def check_compatibility():
     for p in utils.DB["plugins"]:
         metadata = utils.DB["plugins"][p]
         if not utils.check_plugin_compatibility(metadata):
-            logging.warning("Plugin " + p + " is not compatible with rudder anymore, disabling it.")
+            logger.warning("Plugin " + p + " is not compatible with rudder anymore, disabling it.")
             if 'jar-files' in metadata:
                 for j in metadata['jar-files']:
                     utils.jar_status(j, False)
-            logging.warning("Please install a new version of " + p + " to enable it again.")
-            logging.info("")
+            logger.warning("Please install a new version of " + p + " to enable it again.")
+            logger.info("")
             utils.jetty_needs_restart = True
 
 def plugin_save_status():
@@ -322,17 +324,17 @@ def update_licenses(quiet=False):
         for link in set([elem[2] for elem in htmlElements.iterlinks()]):
             match = downloadPattern.search(link)
             if match is not None:
-                logging.info("downloading %s"%(link))
+                logger.info("downloading %s"%(link))
                 utils.download(link, utils.LICENCES_PATH + "/" + os.path.basename(link), quiet)
 
 # TODO validate index sign if any?
 """ Download the index file on the repos """
 def update(quiet=False):
     utils.readConf()
-    logging.debug('Updating the index')
+    logger.debug('Updating the index')
     utils.getRudderKey()
     # backup the current indexFile if it exists
-    logging.debug("backuping %s in %s"%(utils.INDEX_PATH, utils.INDEX_PATH + ".bkp"))
+    logger.debug("backuping %s in %s"%(utils.INDEX_PATH, utils.INDEX_PATH + ".bkp"))
     if os.path.isfile(utils.INDEX_PATH):
         os.rename(utils.INDEX_PATH, utils.INDEX_PATH + ".bkp")
     try:
@@ -340,7 +342,7 @@ def update(quiet=False):
     except Exception as e:
         traceback.print_exc(file=sys.stdout)
         if os.path.isfile(utils.INDEX_PATH + ".bkp"):
-            logging.debug("restoring %s from %s"%(utils.INDEX_PATH, utils.INDEX_PATH + ".bkp"))
+            logger.debug("restoring %s from %s"%(utils.INDEX_PATH, utils.INDEX_PATH + ".bkp"))
             os.rename(utils.INDEX_PATH + ".bkp", utils.INDEX_PATH)
         utils.fail(e)
 

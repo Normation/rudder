@@ -2,6 +2,8 @@ import json, logging, re
 import rudderPkgUtils as utils
 import rpkg
 
+logger = logging.getLogger("rudder-pkg")
+
 """
     Define a Plugin object, which is a group of all the rpkgs corresponding to the plugin.
     Since multiple rpkgs can provide the exact same plugin, we are using sets. For each multiple occurence,
@@ -33,12 +35,12 @@ class Plugin:
                     else:
                         utils.fail('Unknown release mode, found %s and expecting release or nightly'%(version.mode))
         except Exception as e:
-            logging.error("could not parse the index file %s"%(utils.INDEX_PATH))
+            logger.error("could not parse the index file %s"%(utils.INDEX_PATH))
             utils.fail("could not parse the index file %s"%(utils.INDEX_PATH))
         if not len(self.packagesInfo):
-            logging.debug('No packages were found corresponding to %s'%(self.name))
+            logger.debug('No packages were found corresponding to %s'%(self.name))
         else:
-            logging.debug("Found corresponding packages: %s"%(self.packagesInfo))
+            logger.debug("Found corresponding packages: %s"%(self.packagesInfo))
 
     """Return a set of Rpkg objects, matching all the rpkgs found compatible with the current Rudder version."""
     def getCompatiblePackagesInfo(self):
