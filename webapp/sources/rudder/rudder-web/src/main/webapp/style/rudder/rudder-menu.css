@@ -2115,18 +2115,19 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   position: absolute;
   right: 0;
   bottom: 9px;
-  visibility:hidden;
-  animation: opacity-0 .2s linear forwards;
+  opacity: 0;
+  transition-property: opacity;
+  transition-duration: .2s;
 }
 .group-help .check-icon.visible{
-  visibility:visible;
-  animation: opacity-1 .2s linear forwards;
+  opacity: 1;
 }
 
 /* BUTTON-GROUP-ERROR */
 .button-group-error .button-error{
-  visibility:hidden;
-  animation: opacity-0 .2s linear forwards;
+  opacity: 0;
+  transition-property: opacity;
+  transition-duration: .2s;
   background-color: #c50000;
   display: inline-block;
   color: #fff;
@@ -2150,8 +2151,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   top: 30px;
 }
 .button-group-error .button-error.error{
-  visibility:visible;
-  animation: opacity-1 .2s linear forwards;
+  opacity: 1;
 }
 /* BUTTON-GROUP-SUCCESS */
 .rudder-form .button-group-success{
@@ -2240,8 +2240,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
 .button-group-success .pop.button-warning:before{
 }
 .button-group-success .button-success.pop,.button-group-success .button-warning.pop{
-  visibility:visible;
-  animation: opacity-1 .3s linear forwards;
+  opacity: 1;
 }
 
 /* WITH ERRORS */
@@ -2254,12 +2253,12 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   box-shadow: 0 0 2px #C1BFBF;
 }
 .rudder-form .help-block{
-  visibility:hidden;
-  animation: opacity-0 .2s linear forwards;
+  opacity: 0;
+  transition-property: opacity;
+  transition-duration: .2s;
 }
 .rudder-form .has-error .help-block{
-  visibility:visible;
-  animation: opacity-1 .3s linear forwards;
+  opacity: 1;
   background-color: #C50000;
   color: #fff;
   padding: 6px 12px;
@@ -2281,12 +2280,12 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
 .rudder-form .has-feedback label~.form-control-feedback {
   top: 23px;
   color:#C50000;
-  visibility:hidden;
-  animation: opacity-0 .2s linear forwards;
+  opacity: 0;
+  transition-property: opacity;
+  transition-duration: .2s;
 }
 .rudder-form .has-error.has-feedback label~.form-control-feedback {
-  visibility:visible;
-  animation: opacity-1 .3s linear forwards;
+  opacity: 1;
 }
 /* SUCCESS FORM MESSAGE */
 
@@ -2296,8 +2295,9 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   z-index: 500;
 }
 .rudder-form .validation-form-message .message{
-  visibility:hidden;
-  animation: opacity-0 .2s linear forwards;
+  opacity: 0;
+  transition-property: opacity;
+  transition-duration: .2s;
   display: inline-block;
   color: #fff;
   margin-bottom: 4px;
@@ -2313,8 +2313,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   background-color: #f08004;
 }
 .rudder-form .validation-form-message .message.success{
-  visibility:visible;
-  animation: opacity-1 .3s linear forwards;
+  opacity: 1;
 }
 .rudder-form .validation-form-message .message:after {
   width: 0;
@@ -2384,15 +2383,11 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   border: 2px solid rgb(198, 200, 201);
   text-align: center;
   line-height: 34px;
-  position: relative;
-  top: 1px;
+  position: absolute;
+  top: calc(50% - 7.5px);
+  left: 7.5px;
   margin-bottom:0;
   background-color: #fff;
-}
-
-.rudder-form input[type=radio] + input[type=hidden] + .label-radio,
-.rudder-form  input[type=checkbox] + .label-radio{
-  top: 5px;
 }
 
 .rudder-form input[type=radio] + .label-radio{
@@ -2413,11 +2408,12 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
 .rudder-form input[type=checkbox] + input[type=hidden] + .label-radio span,
 .rudder-form input[type=checkbox] + .label-radio span{
   font-size: 9px;
-  top: -12.5px;
-  left: 0.1px;
-  position: relative;
-  visibility:hidden;
-  animation: opacity-0 .1s linear forwards;
+  position: absolute;
+  top: calc(50% - 4.5px);
+  left: calc(50% - 3.6px);
+  opacity: 0;
+  transition-property: opacity;
+  transition-duration: .1s;
   color: #222D32;
 }
 
@@ -2428,13 +2424,13 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   position: absolute;
   top: calc(50% - 4.5px);
   left: calc(50% - 3.6px);
-  visibility:hidden;
-  animation: opacity-0 .1s linear forwards;
+  opacity: 0;
+  transition-property: opacity;
+  transition-duration: .1s;
 }
 .rudder-form  input:checked + input[type=hidden] + .label-radio span,
 .rudder-form  input:checked + .label-radio span{
-  visibility:visible;
-  animation: opacity-1 .1s linear forwards;
+  opacity: 1;
 }
 .rudder-form .text-radio{
   position: relative;
@@ -2454,8 +2450,9 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   top: 10px;
   color: #222d32;
   z-index: 10;
-  visibility:hidden;
-  animation: opacity-0 .1s linear forwards;
+  opacity: 0;
+  transition-property: opacity;
+  transition-duration: .1s;
 }
 .rudder-form.form-sm  input + input[type=hidden] + .label-radio + .check-icon,
 .rudder-form.form-sm  input + .label-radio + .check-icon{
@@ -2467,8 +2464,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
 }
 .rudder-form  input:checked + input[type=hidden] + .label-radio + .check-icon,
 .rudder-form  input:checked + .label-radio + .check-icon{
-  visibility:visible;
-  animation: opacity-1 .1s linear forwards;
+  opacity: 1;
 }
 /* HR */
 hr.separation{
@@ -2509,16 +2505,13 @@ hr.separation{
   position: absolute;
   right: 10px;
   top: 10px;
-  visibility:hidden;
-  animation: opacity-0 .2s linear forwards;
+  opacity: 0;
+  transition-property: opacity;
+  transition-duration: .2s;
 }
-.btn:hover span.ion{
-  visibility:visible;
-  animation: opacity-1 .2s linear forwards;
-}
+.btn:hover span.ion,
 .btn:focus span.ion{
-  visibility:visible;
-  animation: opacity-1 .2s linear forwards;
+  opacity: 1;
 }
 /* BUTTON PRIMARY */
 .content-wrapper .btn-primary-rudder:disabled {
@@ -2697,9 +2690,10 @@ ul.list-sm > li.rudder-form > .input-group label.form-control,#directiveRulesTab
 ul > li.rudder-form > .input-group .input-group-addon{
   padding: 3px 11px;
   background-color: #f4f4f4;
+  min-width: 30px;
 }
 ul > li.rudder-form.form-sm > .input-group .input-group-addon{
-  padding: 0px 8px;
+  padding: 8px;
 }
 ul > li.rudder-form.form-sm > .input-group label.form-control{
   height: 30px;
@@ -2735,8 +2729,9 @@ ul > li.rudder-form > .input-group.disabled *{
   right: 15px;
   color: #222d32;
   z-index: 10;
-  visibility:hidden;
-  animation: opacity-0 .1s linear forwards;
+  opacity: 0;
+  transition-property: opacity;
+  transition-duration: .1s;
 }
 .list-sm .rudder-form  input[type=checkbox] + .label-radio + .check-icon,.rudder-form  input[type=radio] + .label-radio + .check-icon{
   top: 8px;
@@ -2745,8 +2740,7 @@ ul > li.rudder-form > .input-group.disabled *{
   color: #7d7d7d;
 }
 .rudder-form  input[type=checkbox]:checked + .label-radio + .check-icon,.rudder-form  input[type=radio]:checked + .label-radio + .check-icon{
-  visibility:visible;
-  animation: opacity-1 .1s linear forwards;
+  opacity: 1;
 }
 
 /* SWITCH */
@@ -3746,15 +3740,6 @@ table a > i.fa-pencil:hover{
 }
 
 /* KEYFRAMES */
-@keyframes opacity-1 {
-  0%   {opacity:0;visibility: visible;}
-  100% {opacity:1;visibility: visible;}
-}
-@keyframes opacity-0 {
-  0%   {opacity:1;visibility: visible;}
-  99%  {opacity:0;visibility: visible;}
-  100% {opacity:0;visibility: hidden;}
-}
 @-webkit-keyframes text-radio-on {
   0%   {color: #646464;}
   100% {color: #222D32;}
