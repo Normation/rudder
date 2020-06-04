@@ -3698,6 +3698,7 @@ table a > i.fa-pencil:hover{
 /*PLUGIN WARNING */
 .plugin-warning{
   background-color: #e8cb00;
+  max-height: 50px;
 }
 .plugin-warning.critical{
   background-color: #C80004;
