@@ -817,7 +817,7 @@ function updateNodeIdAndReload(nodeId) {
   location.reload()
 }
 
-var converter = new showdown.Converter();
+var converter = new showdown.Converter({ extensions: ['xssfilter'] });
 
 function generateMarkdown(text, container) {
   var html = converter.makeHtml(text)
