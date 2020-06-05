@@ -19,10 +19,15 @@ logger = logging.getLogger("rudder-pkg")
 # See global variables at the end of the file
 """ Get Terminal width """
 def terminal_size():
-    h, w, hp, wp = struct.unpack('HHHH',
-        fcntl.ioctl(0, termios.TIOCGWINSZ,
-        struct.pack('HHHH', 0, 0, 0, 0)))
-    return h, w
+   try:
+       if sys.stdout.isatty():
+           h, w, hp, wp = struct.unpack('HHHH',
+               fcntl.ioctl(0, termios.TIOCGWINSZ,
+                   struct.pack('HHHH', 0, 0, 0, 0)))
+       return h, w
+   except:
+       pass
+   return 25, 80
 
 """
 
