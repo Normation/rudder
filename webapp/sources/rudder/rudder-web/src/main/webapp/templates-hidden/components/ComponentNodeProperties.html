@@ -65,13 +65,13 @@
                  <td ng-class="{'is-edited':isEdited(property.name)}">
                    <div ng-if="!isEdited(property.name)">
                      {{ property.name }}
-                     <span ng-if="property.provider !== undefined && property.provider !== 'inherited' && property.provider !== 'overridden'" class='rudder-label label-provider label-sm' data-toggle='tooltip' data-placement='top' data-html='true' title="This property is managed by its provider <b>‘{{ property.provider }}</b>’, and can not be modified manually. Check Rudder’s settings to adjust this provider’s configuration." data-container="body" bs-tooltip>
+                     <span ng-if="property.provider !== undefined && property.provider !== 'inherited' && property.provider !== 'overridden'" class='rudder-label label-provider label-sm' data-toggle='tooltip' data-placement='right' data-html='true' title="This property is managed by its provider <b>‘{{ property.provider }}</b>’, and can not be modified manually. Check Rudder’s settings to adjust this provider’s configuration." data-container="body" bs-tooltip>
                        {{ property.provider }}
                      </span>
-                     <span ng-if="property.provider === 'inherited'" class='rudder-label label-provider label-sm' data-toggle='tooltip' data-placement='top' data-html='true' title="This property is inherited from these group(s) or global parameter: <div>{{ property.hierarchy }}</div>." data-container="body" bs-tooltip>
+                     <span ng-if="property.provider === 'inherited'" class='rudder-label label-provider label-sm' data-toggle='tooltip' data-placement='right' data-html='true' title="This property is inherited from these group(s) or global parameter: <div>{{ property.hierarchy }}</div>." data-container="body" bs-tooltip>
                        inherited
                      </span>
-                     <span ng-if="property.provider === 'overridden'" class='rudder-label label-provider label-sm' data-toggle='tooltip' data-placement='top' data-html='true' title="This property is overridden on this object and was inherited from these group(s) or global parameter: <div>{{ property.hierarchy }}</div>." data-container="body" bs-tooltip>
+                     <span ng-if="property.provider === 'overridden'" class='rudder-label label-provider label-sm' data-toggle='tooltip' data-placement='right' data-html='true' title="This property is overridden on this object and was inherited from these group(s) or global parameter: <div>{{ property.hierarchy }}</div>." data-container="body" bs-tooltip>
                        overridden
                      </span>
                    </div>
