@@ -152,8 +152,12 @@ object RestUtils extends Loggable {
       case Full(category : JValue) =>
         toJsonResponse(id, ( dataName -> category))
       case eb: EmptyBox =>
-        val message = (eb ?~! errorMessage).messageChain
-        toJsonError(id, message)
+        val err = eb ?~! errorMessage
+        // we don't get DB error in message - add them in log
+        err.rootExceptionCause.foreach(ex =>
+          logger.error("Api error cause by exception: " + ex.getMessage)
+        )
+        toJsonError(id, err.messageChain)
     }
   }
 
