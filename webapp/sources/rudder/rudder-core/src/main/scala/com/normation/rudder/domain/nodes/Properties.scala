@@ -40,6 +40,7 @@ package com.normation.rudder.domain.nodes
 import java.util.regex.Pattern
 
 import com.normation.errors._
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.policies.ParameterEntry
 import com.typesafe.config._
 import net.liftweb.json._
@@ -270,6 +271,21 @@ object GenericProperty {
     }
   }
 
+  def toJsonValue(value: ConfigValue): JValue = {
+    value.valueType() match {
+      case ConfigValueType.NULL    => JNothing
+      case ConfigValueType.BOOLEAN => JBool(value.unwrapped().asInstanceOf[Boolean])
+      case ConfigValueType.NUMBER  => value.unwrapped() match {
+        case d: java.lang.Double   => JDouble(d)
+        case i: java.lang.Integer  => JInt(BigInt(i))
+        case l: java.lang.Long     => JInt(BigInt(l))
+      }
+      case ConfigValueType.STRING  => JString(value.unwrapped().asInstanceOf[String])
+      // the only safe and compatible way for array/object seems to be to render and then parse
+      case _    => parse(value.render(ConfigRenderOptions.concise()))
+    }
+  }
+
   /**
    * Parse a name, provider, description and value as a config object. It can fail if `value` doesn't fulfill our requirements:
    * either starts by a `{` and is well formatted hocon property string, or is a string.
@@ -316,20 +332,7 @@ object GenericProperty {
   implicit class RenderProperty(val p: GenericProperty[_]) extends AnyVal {
     def valueAsString: String = GenericProperty.serializeToHocon(p.value)
     // get value as a JValue
-    def jsonValue: JValue = {
-      p.value.valueType() match {
-        case ConfigValueType.NULL    => JNothing
-        case ConfigValueType.BOOLEAN => JBool(p.value.unwrapped().asInstanceOf[Boolean])
-        case ConfigValueType.NUMBER  => p.value.unwrapped() match {
-          case d: java.lang.Double   => JDouble(d)
-          case i: java.lang.Integer  => JInt(BigInt(i))
-          case l: java.lang.Long     => JInt(BigInt(l))
-        }
-        case ConfigValueType.STRING  => JString(p.value.unwrapped().asInstanceOf[String])
-        // the only safe and compatible way for array/object seems to be to render and then parse
-        case _    => parse(p.value.render(ConfigRenderOptions.concise()))
-      }
-    }
+    def jsonValue: JValue = toJsonValue(p.value)
   }
 
   /*
@@ -523,9 +526,12 @@ sealed trait ParentProperty {
 /**
  * A node property with its ohneritance/overriding context.
  */
-final case class NodePropertyHierarchy(prop: NodeProperty,  parents: List[ParentProperty])
+final case class NodePropertyHierarchy(prop: NodeProperty, hierarchy: List[ParentProperty])
 
 object ParentProperty {
+  final case class Node(name: String, id: NodeId, value: ConfigValue) extends ParentProperty {
+    override def displayName: String = s"${name} (${id.value})"
+  }
   final case class Group(name: String, id: NodeGroupId, value: ConfigValue) extends ParentProperty {
     override def displayName: String = s"${name} (${id.value})"
   }
@@ -569,21 +575,25 @@ object JsonPropertySerialisation {
 
     def toApiJson(): JArray = {
       JArray(props.sortBy(_.prop.name).map { p =>
-        p.parents match {
+        p.hierarchy match {
           case Nil  => p.prop.toJson()
-          case list => p.prop.toJson() ~ ("parents" -> JArray(list.map(_.toJson)))
+          case list => p.prop.toJson() ~ ("hierarchy" -> JArray(list.map(_.toJson)))
         }
       })
     }
 
     def toApiJsonRenderParents = {
       JArray(props.sortBy(_.prop.name).map { p =>
-        val parents = p.parents match {
-          case Nil => None
-          case _   => Some(p.parents.reverse.map(p => s"<p><b>from ${p.displayName}:</b><pre>${p.value.render(ConfigRenderOptions.defaults().setOriginComments(false))}</pre></p>").mkString(""))
+        val (parents, origval) = p.hierarchy match {
+          case Nil => (None, None)
+          case _   =>
+            (
+              Some(p.hierarchy.reverse.map(p => s"<p>from <b>${p.displayName}</b>:<pre>${p.value.render(ConfigRenderOptions.defaults().setOriginComments(false))}</pre></p>").mkString(""))
+            , p.hierarchy.headOption.map(v => GenericProperty.toJsonValue(v.value))
+            )
         }
 
-        p.prop.toJson() ~ ("parents" -> parents)
+        p.prop.toJson() ~ ("hierarchy" -> parents) ~ ("origval" -> origval)
       })
     }
 

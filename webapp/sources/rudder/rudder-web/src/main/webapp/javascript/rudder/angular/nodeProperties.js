@@ -70,6 +70,7 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
   $scope.nodeId;
   $scope.tableId          = "#nodePropertiesTab";
   $scope.urlAPI           = "in init"
+  $scope.fetchProperties  = function() {};
   $scope.newProperty      = {'name':"", 'value':""};
   $scope.deletedProperty  = {'name':"", 'index':""};
   $scope.alreadyUsed      = false;
@@ -128,15 +129,18 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
     $scope.objectName = objectName;
     $scope.urlAPI = contextPath + '/secure/api/'+ objectName +'s/' + nodeId;
     var getUrlAPI = contextPath + '/secure/api/'+ objectName +'s/' + nodeId + '/inheritedProperties';
-    $http.get(getUrlAPI).success( function (result) {
-      $scope.properties = result.data[0].properties
-    }).error(function(){createErrorNotification("Error while fetching "+objectName+" properties")});
+    $scope.fetchProperties = function() {
+      return $http.get(getUrlAPI).success( function (result) {
+        $scope.properties = result.data[0].properties
+      }).error(function(){createErrorNotification("Error while fetching "+objectName+" properties")});
+    };
+    $scope.fetchProperties();
     new ClipboardJS('.btn-clipboard');
   }
 
   $scope.addProperty = function(){
     function checkNameUnicity(property, index, array) {
-      return property.name == $scope.newProperty.name;
+      return property.name == $scope.newProperty.name && property.provider !== "inherited";
     }
     var propertyToSave = angular.copy($scope.newProperty)
     var newValue = propertyToSave.value
@@ -154,22 +158,24 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
           "properties": [ propertyToSave ]
         , 'reason' : "Add property '"+$scope.newProperty.name+"' to "+$scope.objectName+" '"+currentNodeId+"'"
       };
-      $http.post($scope.urlAPI, data).then(function successCallback(response) {
-        $scope.errorSaving = false;
-        //Check if new property's name is already used or not.
-        $scope.alreadyUsed = $scope.properties.some(checkNameUnicity);
-        if(!$scope.alreadyUsed){
+      //Check if new property's name is already used or not.
+      $scope.alreadyUsed = $scope.properties.some(checkNameUnicity);
+      if(!$scope.alreadyUsed){
+        $http.post($scope.urlAPI, data).then(function successCallback(response) {
+          $scope.errorSaving = false;
           $scope.properties.push(propertyToSave);
           $scope.resetNewProperty();
           $('#newPropPopup').bsModal('hide');
           $scope.newPropForm.$setPristine();
-        }
-        createSuccessNotification("Property '"+propertyToSave.name+ "' has been added");
-      }, function errorCallback(response) {
-        $scope.errorSaving = response.data.errorDetails;
-        createErrorNotification("Error while saving new property "+propertyToSave.name);
-        return response.status==200;
-      });
+          createSuccessNotification("Property '"+propertyToSave.name+ "' has been added");
+          // need to reload everything for inherited etc...
+          $scope.fetchProperties();
+        }, function errorCallback(response) {
+          $scope.errorSaving = response.data.errorDetails;
+          createErrorNotification("Error while saving new property "+propertyToSave.name);
+          return response.status==200;
+        });
+      }
     }
   };
   $scope.popupDeletion = function(prop,index) {
@@ -186,8 +192,9 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
     $scope.errorDeleting = false;
     $http.post($scope.urlAPI, data).then(function successCallback(response) {
       $('#deletePropPopup').bsModal('hide');
-      $scope.properties.splice($scope.deletedProperty.index, 1);
       createSuccessNotification("Property '"+$scope.deletedProperty.name+ "' has been removed");
+      // need to reload to take care of inherited properties etc
+      $scope.fetchProperties();
     }, function errorCallback(response) {
       $('#deletePropPopup').bsModal('hide');
       $scope.errorDeleting = response.data.errorDetails;
@@ -204,7 +211,11 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
     if (property.provider === undefined || property.provider === 'overridden'){
       var newProp = angular.copy(property)
       newProp.checkJson = $scope.getFormat(newProp.value)=="JSON";
-      newProp.value = newProp.checkJson ? JSON.stringify(property.value, null, 4) : property.value;
+      var value = property.value;
+      if(property.provider === "overridden" ) {
+        value = property.origval;
+      }
+      newProp.value = newProp.checkJson ? JSON.stringify(value, null, 4) : value;
       newProp.isValid = true;
       $scope.editedProperties[property.name] = angular.copy(property);
       $scope.editedProperties[property.name].new = newProp;
@@ -219,7 +230,11 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
   }
   $scope.saveEdit = function(prop, index){
     function checkNameUnicity(property, index, array) {
-      return ( ($scope.editedProperties[prop].new.name != $scope.editedProperties[prop].name) && (property.name == $scope.editedProperties[prop].new.name));
+      return (
+           ($scope.editedProperties[prop].new.name != $scope.editedProperties[prop].name)
+        && (property.name == $scope.editedProperties[prop].new.name)
+        && (property.provider !== "inherited")
+      );
     }
     //Check if the modified property's name is already used or not.
     $scope.editedProperties[prop].new.alreadyUsed = $scope.properties.some(checkNameUnicity);
@@ -254,9 +269,10 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
       , "reason"     : "Edit property '"+$scope.editedProperties[prop].name+"' "+keyInfoMessage+"from Node '"+currentNodeId+"'"
       };
       $http.post($scope.urlAPI, data).then(function successCallback(response) {
-        $scope.properties[index] = propertyToSave;
         delete $scope.editedProperties[prop];
         createSuccessNotification("Property '"+propertyToSave.name+ "' has been saved");
+        // we need to get back all properties to compute hierarchy, take care of renaming props, etc
+        $scope.fetchProperties();
       }, function errorCallback(response) {
         createErrorNotification("Error while saving "+$scope.objectName+" properties");
         return response.status==200;

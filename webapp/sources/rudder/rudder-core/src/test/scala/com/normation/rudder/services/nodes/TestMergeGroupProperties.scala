@@ -37,18 +37,23 @@
 
 package com.normation.rudder.services.nodes
 
+import com.normation.errors.PureResult
 import com.normation.errors.RudderError
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.queries._
+import com.normation.rudder.services.policies.NodeConfigData
 import com.softwaremill.quicklens._
 import com.typesafe.config.ConfigValue
 import com.typesafe.config.ConfigValueFactory
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
+import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
+import net.liftweb.json._
+import net.liftweb.json.JsonDSL._
 
 /*
  * This class test the JsEngine. 6.0
@@ -83,7 +88,7 @@ class TestMergeGroupProperties extends Specification {
       NodePropertyHierarchy(prop, toParents(prop.name))
     }
     def toH3(name: String, globalParam: ConfigValue) = {
-      toH1(name).modify(_.parents).using( _ :+ ParentProperty.Global(globalParam))
+      toH1(name).modify(_.hierarchy).using(_ :+ ParentProperty.Global(globalParam))
     }
   }
   implicit class ToNodeProp(global: ConfigValue) {
@@ -94,6 +99,24 @@ class TestMergeGroupProperties extends Specification {
   implicit class ToConfigValue(s: String) {
     def toConfigValue = ConfigValueFactory.fromAnyRef(s)
   }
+
+  implicit class ForceGet[A](a: PureResult[A]) {
+    def forceGet = a match {
+      case Right(value) => value
+      case Left(err)    => throw new RuntimeException(s"Error in test: forceGet a result which was in error: ${err.fullMsg}")
+    }
+  }
+
+  /*
+   *  Hierartchy:
+   *   global
+   *      |
+   *   parent1       parent2
+   *      |
+   *   childProp
+   *      |
+   *    node
+   */
 
   val parent1   = NodeGroup(NodeGroupId("parent1"), "parent1", "",
       List(GroupProperty("foo", "bar1".toConfigValue, None))
@@ -113,7 +136,7 @@ class TestMergeGroupProperties extends Specification {
     , Some(query)
     , true, Set(), true
   )
-
+  val nodeInfo = NodeConfigData.node1.modify(_.node.properties).setTo(NodeProperty("foo", "barNode".toConfigValue, None) :: Nil)
 
   "overriding a property in a hierarchy should work" >> {
     val merged = MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: child.toTarget :: Nil, Map())
@@ -284,6 +307,56 @@ class TestMergeGroupProperties extends Specification {
         , "obj" -> """{"a":"b","c":"d","i":"j2","x":{"y1":"z","y2":"z"}}"""
         )
       )
+    }
+  }
+
+  // checking that we get the overriden value for node and groups
+  "preparing value for API" should {
+
+    "present only node value for override" in {
+      val globals = Map(                                ("foo" -> GenericProperty.parseValue("""{"global":"global value", "override":"global"}""").forceGet) )
+      val parent  = parent1 .modify(_.properties)     .setTo(List(GroupProperty.parse("foo", """{"parent":"parent value", "override":"parent"}""", None).forceGet))
+      val child_  = child   .modify(_.properties)     .setTo(List(GroupProperty.parse("foo", """{"child" :"child value" , "override":"child" }""", None).forceGet))
+      val node    = nodeInfo.modify(_.node.properties).setTo(List(NodeProperty.parse ("foo", """{"node"  :"node value"  , "override":"node"  }""", None).forceGet))
+      val merged = MergeNodeProperties.forNode(node, List(parent, child_).map(_.toTarget), globals).forceGet
+
+      val actual = merged.toApiJsonRenderParents
+      val expected = JArray(List(
+          ( "name"   -> "foo" )
+        ~ ( "value"  -> (
+              ("child"    -> "child value")
+            ~ ("global"   -> "global value")
+            ~ ("node"     -> "node value")
+            ~ ("override" -> "node")
+            ~ ("parent"   -> "parent value")
+          ) )
+        ~ ( "provider" -> "overridden" )
+        ~ ("hierarchy" ->
+            """<p>from <b>Global Parameter</b>:<pre>{
+             |    "global" : "global value",
+             |    "override" : "global"
+             |}
+             |</pre></p><p>from <b>parent1 (parent1)</b>:<pre>{
+             |    "override" : "parent",
+             |    "parent" : "parent value"
+             |}
+             |</pre></p><p>from <b>child (child)</b>:<pre>{
+             |    "child" : "child value",
+             |    "override" : "child"
+             |}
+             |</pre></p><p>from <b>this node (node1)</b>:<pre>{
+             |    "node" : "node value",
+             |    "override" : "node"
+             |}
+             |</pre></p>""".stripMargin
+          )
+        ~ ("origval" -> (
+              ("node" -> "node value")
+            ~ ("override" -> "node")
+          ) )
+      ))
+
+      actual must beEqualTo(expected)
     }
   }
 }

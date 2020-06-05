@@ -68,10 +68,10 @@
                      <span ng-if="property.provider !== undefined && property.provider !== 'inherited' && property.provider !== 'overridden'" class='rudder-label label-provider label-sm' data-toggle='tooltip' data-placement='top' data-html='true' title="This property is managed by its provider <b>‘{{ property.provider }}</b>’, and can not be modified manually. Check Rudder’s settings to adjust this provider’s configuration." data-container="body" bs-tooltip>
                        {{ property.provider }}
                      </span>
-                     <span ng-if="property.provider === 'inherited'" class='rudder-label label-provider label-sm' data-toggle='tooltip' data-placement='top' data-html='true' title="This property is inherited from these group(s) or global parameter: <div>{{ property.parents }}</div>." data-container="body" bs-tooltip>
+                     <span ng-if="property.provider === 'inherited'" class='rudder-label label-provider label-sm' data-toggle='tooltip' data-placement='top' data-html='true' title="This property is inherited from these group(s) or global parameter: <div>{{ property.hierarchy }}</div>." data-container="body" bs-tooltip>
                        inherited
                      </span>
-                     <span ng-if="property.provider === 'overridden'" class='rudder-label label-provider label-sm' data-toggle='tooltip' data-placement='top' data-html='true' title="This property is overridden on this object and was inherited from these group(s) or global parameter: <div>{{ property.parents }}</div>." data-container="body" bs-tooltip>
+                     <span ng-if="property.provider === 'overridden'" class='rudder-label label-provider label-sm' data-toggle='tooltip' data-placement='top' data-html='true' title="This property is overridden on this object and was inherited from these group(s) or global parameter: <div>{{ property.hierarchy }}</div>." data-container="body" bs-tooltip>
                        overridden
                      </span>
                    </div>
@@ -101,8 +101,15 @@
                      <button class="btn btn-xs btn-default btn-clipboard" data-clipboard-text="{{formatContent(property)}}" data-toggle='tooltip' data-placement='left' data-container="html" title="Copy to clipboard"><i class="ion ion-clipboard"></i></button>
                    </div>
                    <div ng-if="isEdited(property.name)">
-                     <textarea placeholder="Value" msd-elastic rows="1" class="form-control input-sm input-value" ng-model="editedProperties[property.name].new.value"></textarea>
-                     <small class="text-danger" ng-if="!editedProperties[property.name].new.isValid">JSON check is enabled, but the value format is invalid</small>
+                     <div class="col-lg-6">
+                       <p>Current inherited, merged value:</p>
+                       <pre class="json-beautify">{{formatContent(property)}}</pre>
+                     </div>
+                     <div class="col-lg-6">
+                       <p>Overriding value:</p>
+                       <textarea placeholder="Value" msd-elastic rows="1" class="form-control input-sm input-value" ng-model="editedProperties[property.name].new.value"></textarea>
+                       <small class="text-danger" ng-if="!editedProperties[property.name].new.isValid">JSON check is enabled, but the value format is invalid</small>
+                     </div>
                    </div>
                  </td>
                  <td ng-if="$parent.hasEditRight" class="text-center" ng-class="{'default-actions':!isEdited(property.name), 'edit-actions is-edited':isEdited(property.name)}">
