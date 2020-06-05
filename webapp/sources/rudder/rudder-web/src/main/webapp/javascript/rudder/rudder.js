@@ -819,8 +819,14 @@ function updateNodeIdAndReload(nodeId) {
 
 var converter = new showdown.Converter();
 
+function htmlEncode(str){
+  return String(str).replace(/[^\w. ]/gi, function(c){
+     return '&#'+c.charCodeAt(0)+';';
+  });
+}
 function generateMarkdown(text, container) {
-  var html = converter.makeHtml(text)
+
+  var html = converter.makeHtml(htmlEncode(text))
   $(container).html(html)
 }
 
