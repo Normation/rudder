@@ -79,7 +79,7 @@ class NodeDetails extends StatefulSnippet with Loggable {
       case Full(nodeId) =>
         val displayMode = (S.param("displayCompliance"), S.param("systemStatus")) match {
           case (Full("true"), _)  => ShowNodeDetailsFromNode.Compliance
-          case (_, Full("true"))  => ShowNodeDetailsFromNode.Compliance
+          case (_, Full("true"))  => ShowNodeDetailsFromNode.System
           case (_, _)  => ShowNodeDetailsFromNode.Summary
         }
         _ => new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary).display(false, displayMode)

@@ -80,7 +80,7 @@ object ShowNodeDetailsFromNode {
   sealed trait DisplayDetailsMode { def tab : Int}
   case object Summary    extends DisplayDetailsMode { override def tab = 0 }
   case object Compliance extends DisplayDetailsMode { override def tab = 1 }
-  case object System     extends DisplayDetailsMode { override def tab = 6 }
+  case object System     extends DisplayDetailsMode { override def tab = 4 }
 }
 
 class ShowNodeDetailsFromNode(
