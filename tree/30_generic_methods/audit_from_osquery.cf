@@ -1,0 +1,126 @@
+#####################################################################################
+# Copyright 2020 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Audit from osquery
+# @description Audit a system property through osquery
+# @documentation This method uses osquery to fetch information about the system,
+# and compares the value with the given one, using the provided comparator.
+#
+# #### Parameters
+#
+# * `query` is an osquery query returning exactly one result
+# * `comparator` is the comparator to use: "=" for equality, "!=" for non-equality, "~" for regex comparison
+# * `value` is the expected value, can be a string or a regex depending on the comparator
+#
+# #### Setup
+#
+# This method requires the presence of [osquery](https://osquery.io/) on the target nodes.
+# It won't install it automatically. Check the correct way of doing so for your OS.
+#
+# #### Building queries
+#
+# To learn about the possible queries, read the [osquery schema](https://osquery.io/schema/) for your
+# osquery version.
+#
+# You can test the queries before using them with the `osqueryi` command, see the example below.
+#
+# ```
+# osqueryi "select cpu_logical_cores from system_info;"
+# ```
+#
+# You need to provide a query that returns exactly one value. If it's not the case, the method
+# will fail as it does not know what to check.
+#
+# #### Examples
+# 
+# ```
+# # To check the number of cpus on the machine
+# audit_from_osquery("select cpu_logical_cores from system_info;", "2");
+# ```
+#
+# Will report a compliant report if the machine has 3 cores, and a non compliant one if not.
+# 
+# @parameter query           The query to execute (ending with a semicolon)
+# @parameter comparator      The comparator to use ('=', '!=' or '~', default is '=')
+# @parameter_constraint comparator "allow_empty_string" : true
+# @parameter_constraint comparator "select" : [ "", "=", "!=", "~" ]
+# @parameter value           The expected value
+# 
+# @class_prefix audit_from_osquery
+# @class_parameter query
+
+bundle agent audit_from_osquery(query, comparator, value)
+{
+  vars:
+      "old_class_prefix"  string => canonify("audit_from_osquery_${query}");
+      "args"               slist => { "${query}", "${comparator}", "${value}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("audit_from_osquery_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      "c_query"           string => canonify("${query}");
+
+    "variable_string_from_command_${c_query}_ok"::
+      "audit_from_osquery_var.${c_query}" data => parsejson("${audit_from_osquery_tmp.${c_query}}");
+      "key"     slist => getindices("audit_from_osquery_var.${c_query}[0]");
+      "actual" string => "${audit_from_osquery_var.${c_query}[0][${key}]}";
+      "len"    int    => length("key");
+
+  defaults:
+      "comparator" string => "=", if_match_regex => "";
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
+    pass2::
+      "wrong_result"    not => strcmp("1", "${len}");
+
+      "audit_ok" expression => strcmp("${value}", "${actual}"),
+                         if => strcmp("${comparator}", "=");
+      "audit_ok" not        => strcmp("${value}", "${actual}"),
+                         if => strcmp("${comparator}", "!=");
+      "audit_ok" expression => regcmp("${value}", "${actual}"),
+                         if => strcmp("${comparator}", "~");
+
+    any::
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+      "disable_reporting_${class_prefix}"  usebundle => disable_reporting;
+      # store string output in temp variable
+      "query" usebundle => variable_string_from_command("audit_from_osquery_tmp", "${c_query}", "osqueryi --json \"${query}\" 2>/dev/null");
+      "reenable_reporting_${class_prefix}" usebundle => enable_reporting,
+                                           ifvarclass => "should_report";
+
+    pass3.(!audit_ok|wrong_result)::
+      "error" usebundle => _classes_failure("${old_class_prefix}");
+      "error" usebundle => _classes_failure("${class_prefix}");
+
+    pass3.audit_ok.!wrong_result::
+      "ok"    usebundle => _classes_success("${old_class_prefix}");
+      "ok"    usebundle => _classes_success("${class_prefix}");
+
+    pass3.!wrong_result::
+      "report" usebundle  => _log_v3("Checking '${query}' ${comparator} '${value}' (value was '${actual}')", "${query}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    pass3.wrong_result::
+      "report" usebundle  => _log_v3("Checking '${query}' failed (), the query must return exactly one result (was ${len})", "${query}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+}
