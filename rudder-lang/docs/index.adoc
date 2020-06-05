@@ -48,7 +48,7 @@ Once compiled to _CFEngine_ code:
 .ntp.rl.cf
 [source,cfengine]
 ----
-include::examples/ntp.rl.cf[]
+include::examples/documentation_ntp.rl.cf[]
 ----
 // TODO: comparison with CFEngine, Puppet (mgmt ?)
 
