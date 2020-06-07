@@ -1264,8 +1264,10 @@ final case class RestExtractorService (
                           })).map(_.flatten)
         parameters     <- CompleteJson.extractJsonArray(json , "parameter")(extractMethodParameter)
         documentation  <- OptionnalJson.extractJsonString(json, "documentation")
+        deprecated  <- OptionnalJson.extractJsonString(json, "deprecated")
+        renameTo  <- OptionnalJson.extractJsonString(json, "rename")
       } yield {
-        GenericMethod(bundleName, name, parameters, classParameter, classPrefix, agentSupport, description, documentation)
+        GenericMethod(bundleName, name, parameters, classParameter, classPrefix, agentSupport, description, documentation, deprecated, renameTo)
       }
     }
 

@@ -118,6 +118,9 @@ final case class GenericMethod(
   , agentSupport   : Seq[AgentType]
   , description    : String
   , documentation  : Option[String]
+  , deprecated     : Option[String]
+  // New name of the method replacing this method, may be defined only if deprecated is defined. Maybe we should have a deprecation info object
+  , renameTo       : Option[String]
 )
 
 final case class MethodParameter(
@@ -377,15 +380,16 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
     val parameters = method.parameters.map(serializeMethodParameter)
     val agentSupport = method.agentSupport.map(serializeAgentSupport)
     ( ( "bundle_name"     -> method.id.value             )
-      ~ ( "name"            -> method.name                 )
-      ~ ( "description"     -> method.description          )
-      ~ ( "class_prefix"    -> method.classPrefix          )
-      ~ ( "class_parameter" -> method.classParameter.value )
-      ~ ( "agent_support"   -> agentSupport                )
-      ~ ( "parameter"       -> parameters                  )
-      ~ ( "documentation"   -> method.documentation        )
-      )
-
+    ~ ( "name"            -> method.name                 )
+    ~ ( "description"     -> method.description          )
+    ~ ( "class_prefix"    -> method.classPrefix          )
+    ~ ( "class_parameter" -> method.classParameter.value )
+    ~ ( "agent_support"   -> agentSupport                )
+    ~ ( "parameter"       -> parameters                  )
+    ~ ( "documentation"   -> method.documentation        )
+    ~ ( "deprecated"      -> method.deprecated           )
+    ~ ( "rename"          -> method.renameTo             )
+    )
   }
 
 }

@@ -230,6 +230,8 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: AgentType.Dsc :: Nil
     , ""
     , None
+    , None
+    , None
   ) ::
   GenericMethod(
       BundleName("service_start")
@@ -239,6 +241,8 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     , "service_start"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: AgentType.Dsc :: Nil
     , "Service start"
+    , None
+    , None
     , None
   ) ::
   GenericMethod(
@@ -250,6 +254,8 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil
     , "Package install"
     , None
+    , None
+    , None
   ) ::
   GenericMethod(
       BundleName("command_execution")
@@ -259,6 +265,8 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     , "command_execution"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: AgentType.Dsc :: Nil
     , ""
+    , None
+    , None
     , None
   ) ::
   GenericMethod(
@@ -270,6 +278,8 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     , "_logger"
     , AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil
     , ""
+    , None
+    , None
     , None
   ) ::
   Nil ).map(m => (m.id,m)).toMap
