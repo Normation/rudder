@@ -994,8 +994,7 @@ $scope.onImportFileChange = function (fileEl) {
       , "class_context"  : "any"
       , "agent_support"  : bundle.agent_support
       , "parameters"     : bundle.parameter.map(function(v,i) {
-        v["value"] = undefined
-        return  v;
+        return  {"name" : v['name'], "value" : undefined};
       })
       , 'deprecated'     : bundle.deprecated
       , "component"      : bundle.name
@@ -1135,36 +1134,6 @@ $scope.onImportFileChange = function (fileEl) {
     }
     return "https://docs.rudder.io/reference/current/reference/generic_methods.html#_"+name;
   }
-
-  // Get parameters information relative to a method_call
-  $scope.getMethodParameters = function(method_call) {
-    var params = [];
-    // parameter information are stored into generic methods (maybe a better solution would be to merge data when we fetch them ...)
-    if (method_call.method_name in $scope.generic_methods ) {
-      var method = angular.copy($scope.generic_methods[method_call.method_name]);
-      for (var i = 0; i < method.parameter.length; i++) {
-         var parameter = method.parameter[i];
-         var param_value = method_call.args[i];
-         // Maybe parameter does not exists in current method_call, replace with empty value
-         param_value = param_value !== undefined ? param_value : '';
-         parameter["value"] = param_value;
-         parameter["$errors"] = [];
-         params.push(parameter);
-      }
-    } else {
-      // We have no informations about this generic method, just call it 'parameter'
-      params = method_call.args.map( function(value) {
-                 return {
-                     "name" : "Paramter"
-                   , "value" : value
-                   , "description" : "Unknown parameter"
-                   , "type" : "string"
-                   , "$errors" : []
-                 };
-               });
-    }
-    return params;
-  };
 
   // Get the value of the parameter used in generated class
   $scope.getClassParameter= function(method_call) {
