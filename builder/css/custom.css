@@ -853,6 +853,8 @@ ul.files-list > li > .remove-item:hover{
 }
 .method-details .form-control{
   padding: 4px 6px;
+  font-family: monospace;
+  font-size: 14px;
 }
 .method-details select.form-control:not([size]):not([multiple]) {
   height: calc(2.25rem);
@@ -1030,6 +1032,10 @@ ul.list-unstyled > li{
   position: relative;
   padding: 0;
 }
+.method .method-param{
+  flex: 1;
+  align-items: baseline;
+}
 .method .method-condition ~ div:before,
 .method .method-condition > label:before {
   content: "";
@@ -1083,6 +1089,9 @@ ul.list-unstyled > li{
   outline: none !important;
   width: auto !important;
   padding: 0;
+  font-family: monospace;
+  font-size: 14px;
+  min-height: 28px;
 }
 .method .show-doc,
 .method .edit-method{
@@ -1183,13 +1192,13 @@ ul.list-unstyled > li{
 .method-details-footer > .btn{
   margin-left: 10px;
 }
-#methods .method-name{
-  padding-bottom: 2px;
-}
 .method-content{
-  height: 28px;
+  min-height: 35px;
   display: flex;
   position: relative;
+}
+.method-errors{
+  flex: 0;
 }
 .warns{
   margin-top: 2px;
@@ -1197,7 +1206,8 @@ ul.list-unstyled > li{
 .warn-param{
   background-color: #b9c2cc;
   color: #fff;
-  padding: 2px 8px 2px 3px;
+  padding: 0px 8px 0px 0px;
+  height: 28px;
   border-radius: 20px;
   display: inline-block;
   font-size: .9em;
@@ -1215,7 +1225,7 @@ ul.list-unstyled > li{
 }
 .warn-param b {
   background-color: #00000055;
-  padding: 2px 6px;
+  padding: 2px 8px;
   border-radius: 20px;
   margin-right: 2px;
 }
