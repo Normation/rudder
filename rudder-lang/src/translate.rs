@@ -123,6 +123,7 @@ impl<'src> Translator<'src> {
 @parameters= [{newline}{parameters_meta}]
 
 resource {bundle_name}({parameter_list})
+
 {bundle_name} state technique() {{
 {calls}
 }}

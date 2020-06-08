@@ -36,8 +36,9 @@ foreach my $file (glob $ncf_methods) {
   my $i=0;
   my ($resource, $state, $prefix, $class_parameter) = ("", "", "", -1);
   my $gm = "";
+  my @params;
+  my @resource_params_unnamed=();
   my @resource_params=();
-  my @state_params=();
   my %param_id=();
 
   # loop over GM
@@ -46,10 +47,9 @@ foreach my $file (glob $ncf_methods) {
     if ($line =~ /^#.*\@parameter\s+(\w+)\s.*$/) {
       $param_id{$1}=$i;
       if ($i < $resource_identifiers) {
-        push @resource_params, "p$i";
-      } else {
-        push @state_params, "p$i";
+        push @resource_params_unnamed, "p$i";
       }
+      push @params, "$1";
       $i++;
     }
     elsif($line =~ /^#.*\@class_prefix\s+(\w+)/) {
@@ -57,6 +57,8 @@ foreach my $file (glob $ncf_methods) {
     }
     elsif($line =~ /^#.*\@class_parameter\s+(\w+)/) {
       $class_parameter = $param_id{$1};
+      splice @params, $class_parameter, 1;
+      push @resource_params, "\"$1\": $class_parameter";
     }
     elsif($line =~ /^bundle agent (\w+)\(/) {
       $gm = $1;
@@ -76,8 +78,8 @@ foreach my $file (glob $ncf_methods) {
   }
 
   # keep output
-  $resource{"resource $resource(".join(",",@resource_params).")"}=1;
-  push @state, "$resource state $state(".join(",",@state_params)."){}";
+  $resource{"resource $resource(".join(", ",@resource_params_unnamed).")"}=1;
+  push @state, "\@class_parameters={".join(", ", @resource_params)."}\n$resource state $state(".join(", ",@params).") {}\n";
   push @config_lines, "$gm = { class_prefix=\"$prefix\", class_parameter_id = $class_parameter }";
 }
 

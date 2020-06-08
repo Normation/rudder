@@ -16,7 +16,24 @@ use std::path::Path;
 
 use crate::error::*;
 
-pub struct CFEngine {
+/*
+    DSC parameter types:
+
+    [int]       32-bit signed integer                   => no match
+    [long]  	64-bit signed integer                   => no match
+    [string] 	Fixed-length string of Unicode chars    => corresponds to our String type
+    [char]  	Unicode 16-bit character                => no match
+    [bool]  	True/false value                        => corresponds to our Boolean type
+    [byte]  	8-bit unsigned integer                  => no match
+    [double]  	Double-precision 64-bit fp numbers      => corresponds to our Number type
+    [decimal]  	128-bit decimal value                   => no match
+    [single]  	Single-precision 32-bit fp numbers      => no match
+    [array]  	Array of values                         =>
+    [xml]       Xmldocument object                      => no match
+    [hashtable] Hashtable object (~Dictionary~)         =>
+*/
+
+pub struct DSC {
     // list of already formatted expression in current case
     current_cases: Vec<String>,
     // match enum local variables with class prefixes
@@ -27,7 +44,7 @@ pub struct CFEngine {
     return_condition: Option<String>,
 }
 
-impl CFEngine {
+impl DSC {
     pub fn new() -> Self {
         Self {
             current_cases: Vec::new(),
@@ -52,11 +69,11 @@ impl CFEngine {
         self.return_condition = None;
     }
 
-    fn parameter_to_cfengine(&mut self, param: &Value) -> Result<String> {
+    fn parameter_to_dsc(&self, param: &Value, param_name: &str) -> Result<String> {
         Ok(match param {
             Value::String(s) => {
-                // TODO variable reinterpret (rudlang systemvar to cfengine systemvar)
-                let formatted_param = s.format(
+                // TODO integrate name to parameters
+                let param_value = s.format(
                     |x: &str| {
                         x.replace("\\", "\\\\") // backslash escape
                             .replace("\"", "\\\"") // quote escape
@@ -64,7 +81,7 @@ impl CFEngine {
                     }, // dollar escape
                     |y: &str| format!("${{{}}}", y), // variable inclusion
                 );
-                format!(r#""{}""#, formatted_param)
+                format!(r#"-{} "{}""#, param_name, param_value)
             }
             Value::Number(_, _) => unimplemented!(),
             Value::Boolean(_, _) => unimplemented!(),
@@ -74,13 +91,6 @@ impl CFEngine {
         })
     }
 
-    fn format_class(&mut self, class: String) -> Result<String> {
-        self.current_cases.push(class.clone());
-        Ok(match &self.return_condition {
-            None => class,
-            Some(c) => format!("({}).({})", c, class),
-        })
-    }
     fn format_case_expr(&mut self, gc: &AST, case: &EnumExpression) -> Result<String> {
         Ok(match case {
             EnumExpression::And(e1, e2) => {
@@ -131,36 +141,78 @@ impl CFEngine {
         })
     }
 
-    fn get_config_from_file(generic_methods: &Path) -> Result<toml::Value> {
-        let path = generic_methods.to_str().unwrap();
-        let file_error = |file: &str, err| err!(Token::new(&file.to_owned(), ""), "{}", err);
-        let config_data =
-            std::fs::read_to_string(generic_methods).map_err(|e| file_error(path, e))?;
-        toml::from_str(&config_data).map_err(|e| err!(Token::new(path, ""), "{}", e))
-    }
-    fn get_class_parameter_index(method_name: String, generic_methods: &Path) -> Result<usize> {
-        // outcome detection and formating
-        let config = Self::get_config_from_file(generic_methods)?;
-        let mconf = match config.get("methods") {
-            None => return Err(Error::User("No methods section in config.toml".into())),
-            Some(m) => m,
+    fn get_method_parameters(&self, gc: &AST, state_decl: &StateDeclaration) -> Result<String> {
+        // depending on whether class_parameters should only be used for generic_methods or not
+        // might better handle relative errors as panic! rather than Error::User
+
+        let state_def = match gc.resources.get(&state_decl.resource) {
+            Some(r) => match r.states.get(&state_decl.state) {
+                Some(s) => s,
+                None => panic!(
+                    "No method relies on the \"{}\" state for \"{}\"",
+                    state_decl.state.fragment(),
+                    state_decl.resource.fragment()
+                ),
+            },
+            None => panic!(
+                "No method relies on the \"{}\" resource",
+                state_decl.resource.fragment()
+            ),
         };
-        let method = match mconf.get(&method_name) {
-            None => {
-                return Err(Error::User(format!(
-                    "Unknown generic method call: {}",
-                    &method_name
-                )))
+
+        let mut param_names = state_def
+            .parameters
+            .iter()
+            .map(|p| p.name.fragment())
+            .collect::<Vec<&str>>();
+
+        let mut class_param_names = match state_def.metadata.get(&Token::from("class_parameters")) {
+            Some(Value::Struct(parameters)) => parameters
+                .iter()
+                .map(|p| {
+                    let p_index = match p.1 {
+                        Value::Number(_, n) => *n as usize,
+                        _ => {
+                            return Err(Error::User(String::from(
+                                "Expected value type for class parameters metadata: Number",
+                            )))
+                        }
+                    };
+                    Ok((p.0.as_ref(), p_index))
+                })
+                .collect::<Result<Vec<(&str, usize)>>>()?,
+            _ => {
+                // swap to info! if class_parameter for all methods is a thing
+                debug!(
+                    "The {}_{} method has no class_parameters metadata attached",
+                    state_decl.state.fragment(),
+                    state_decl.resource.fragment()
+                );
+                Vec::new()
             }
-            Some(m) => m,
         };
-        match method.get("class_parameter_id") {
-            None => Err(Error::User(format!(
-                "Undefined class_parameter_id for {}",
-                &method_name
-            ))),
-            Some(m) => Ok(m.as_integer().unwrap() as usize),
+        class_param_names.sort_by(|a, b| a.1.cmp(&b.1));
+
+        for (name, index) in class_param_names {
+            if index <= param_names.len() {
+                param_names.insert(index, name);
+            } else {
+                return Err(Error::User(String::from(
+                    "Class parameter indexes are out of method bounds",
+                )));
+            }
         }
+
+        // TODO setup mode and output var by calling ... bundle
+        map_strings_results(
+            state_decl
+                .resource_params
+                .iter()
+                .chain(state_decl.state_params.iter())
+                .enumerate(),
+            |(i, x)| self.parameter_to_dsc(x, param_names.get(i).unwrap_or(&&"unnamed")),
+            " ",
+        )
     }
 
     // TODO simplify expression and remove useless conditions for more readable cfengine
@@ -169,14 +221,7 @@ impl CFEngine {
     // TODO variables
     // TODO comments and metadata
     // TODO use in_class everywhere
-    fn format_statement(
-        &mut self,
-        gc: &AST,
-        st: &Statement,
-        id: usize,
-        in_class: String,
-        generic_methods: &Path,
-    ) -> Result<String> {
+    fn format_statement(&mut self, gc: &AST, st: &Statement) -> Result<String> {
         match st {
             Statement::StateDeclaration(sd) => {
                 if let Some(var) = sd.outcome {
@@ -190,76 +235,33 @@ impl CFEngine {
                     },
                     _ => "any".to_string(),
                 };
-                // TODO setup mode and output var by calling ... bundle
-                let param_str = map_strings_results(
-                    sd.resource_params.iter().chain(sd.state_params.iter()),
-                    |x| self.parameter_to_cfengine(x),
-                    ", ",
-                )?;
-                let method_name = format!("{}_{}", sd.resource.fragment(), sd.state.fragment());
-                let _index = Self::get_class_parameter_index(method_name, generic_methods)?;
-                let class = self.format_class(in_class)?;
-                let state_param = if sd.resource_params.len() > 0 {
-                    if let Ok(param) = self.parameter_to_cfengine(&sd.resource_params[0]) {
-                        format!(", {}", param)
-                    } else {
-                        "".to_string()
-                    }
-                } else {
-                    "".to_string()
-                };
-                let method_reporting_context = &format!(
-                    "    \"{}_${{report_data.directive_id}}_{}\" usebundle => _method_reporting_context(\"{}\"{})",
+
+                Ok(format!(
+                    r#"  $local_classes = Merge-ClassContext $local_classes $({} {} -componentName "{}" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")"#,
+                    pascebab_case(&component),
+                    self.get_method_parameters(gc, sd)?,
                     component,
-                    id,
-                    component,
-                    state_param,
-                );
-                let method = &format!(
-                    "    \"{}_${{report_data.directive_id}}_{}\" usebundle => {}_{}({})",
-                    component,
-                    id,
-                    sd.resource.fragment(),
-                    sd.state.fragment(),
-                    param_str,
-                );
-                // facultative, only aesthetic to align the method `=>` with the conditonal `=>` like cfengine does
-                let padding_spaces = str::repeat(" ", component.len() + id.to_string().len() + 43);
-                if class == "any" {
-                    Ok(format!("{};\n{};\n", method_reporting_context, method))
-                } else {
-                    let condition = &format!("{}if => concat(\"{}\");", padding_spaces, class);
-                    Ok(format!(
-                        "{},\n{}\n{},\n{}\n",
-                        method_reporting_context, condition, method, condition
-                    ))
-                }
+                ))
             }
             Statement::Case(_case, vec) => {
                 self.reset_cases();
                 map_strings_results(
                     vec.iter(),
-                    |(case, vst)| {
+                    |(_case, vst)| {
                         // TODO case in case
-                        let case_exp = self.format_case_expr(gc, case)?;
-                        map_strings_results(
-                            vst.iter(),
-                            |st| {
-                                self.format_statement(gc, st, id, case_exp.clone(), generic_methods)
-                            },
-                            "",
-                        )
+                        // let case_exp = self.format_case_expr(gc, case)?;
+                        map_strings_results(vst.iter(), |st| self.format_statement(gc, st), "")
                     },
                     "",
                 )
             }
             Statement::Fail(msg) => Ok(format!(
                 "      \"method_call\" usebundle => ncf_fail({});\n",
-                self.parameter_to_cfengine(msg)?
+                self.parameter_to_dsc(msg, "Fail")?
             )),
             Statement::Log(msg) => Ok(format!(
                 "      \"method_call\" usebundle => ncf_log({});\n",
-                self.parameter_to_cfengine(msg)?
+                self.parameter_to_dsc(msg, "Log")?
             )),
             Statement::Return(outcome) => {
                 // handle end of bundle
@@ -376,19 +378,29 @@ impl CFEngine {
         for (key, val) in map.iter() {
             metadatas.push_str(&format!("# @{} {}\n", key, val));
         }
-        metadatas.push('\n');
         Ok(metadatas)
+    }
+
+    pub fn format_param_type(&self, value: &Value) -> String {
+        String::from(match value {
+            Value::String(_) => "string",
+            Value::Number(_, _) => "long",
+            Value::Boolean(_, _) => "bool",
+            Value::EnumExpression(_) => "enum_expression",
+            Value::List(_) => "list",
+            Value::Struct(_) => "struct",
+        })
     }
 }
 
-impl Generator for CFEngine {
+impl Generator for DSC {
     // TODO methods differ if this is a technique generation or not
     fn generate(
         &mut self,
         gc: &AST,
         source_file: Option<&Path>,
         dest_file: Option<&Path>,
-        generic_methods: &Path,
+        _generic_methods: &Path,
         technique_metadata: bool,
     ) -> Result<()> {
         let mut files: HashMap<String, String> = HashMap::new();
@@ -409,7 +421,7 @@ impl Generator for CFEngine {
                     Some(s) => s.to_string(),
                     None => {
                         if technique_metadata {
-                            self.generate_ncf_metadata(rn, res)?
+                            self.generate_ncf_metadata(rn, res)? // TODO dsc
                         } else {
                             String::new()
                         }
@@ -417,50 +429,62 @@ impl Generator for CFEngine {
                 };
 
                 // get parameters
-                let mut parameters = res
+                let method_parameters: String = res
                     .parameters
                     .iter()
                     .chain(state.parameters.iter())
-                    .map(|p| p.name.fragment())
-                    .collect::<Vec<&str>>()
-                    .join(",");
-                if !parameters.is_empty() {
-                    parameters = format!("({})", parameters);
-                }
+                    .map(|p| {
+                        format!(
+                            // TODO check if parameter is actually mandatory
+                            "    [parameter(Mandatory=$true)]\n    [{}]${}",
+                            self.format_param_type(&p.value),
+                            pascebab_case(p.name.fragment())
+                        )
+                    })
+                    .collect::<Vec<String>>()
+                    .join(",\n");
+
+                // add default dsc parameters
+                let parameters: String = vec![
+                    String::from("    [parameter(Mandatory=$true)]\n    [string]$techniqueName"),
+                    String::from("    [parameter(Mandatory=$true)]\n    [string]$reportId"),
+                    String::from("    [switch]$auditOnly"),
+                    method_parameters,
+                ]
+                .join(",\n");
 
                 // get methods
-                let methods: String = state
+                let methods = &state
                     .statements
                     .iter()
-                    .enumerate()
-                    .map(|(i, st)| {
-                        self.format_statement(gc, st, i, "any".to_string(), generic_methods)
-                    })
+                    .map(|st| self.format_statement(gc, st))
                     .collect::<Result<Vec<String>>>()?
                     .join("\n");
-
                 // merge header + parameters + methods with technique file body
                 let content = format!(
                     r#"# generated by rudder-lang
 {header}
+function {resource_name}-{state_name} {{
+  [CmdletBinding()]
+  param (
+{parameters}
+  )
+  
+  $local_classes = New-ClassContext
+  $resources_dir = $PSScriptRoot + "\resources"
 
-bundle agent {resource_name}_{state_name}{parameters}
-{{
-  vars:
-    "resources_dir" string => "${{this.promise_dirname}}/resources";
-
-  methods:
 {methods}
 }}"#,
                     header = header,
-                    resource_name = rn.fragment(),
-                    state_name = sn.fragment(),
+                    resource_name = pascebab_case(rn.fragment()),
+                    state_name = pascebab_case(sn.fragment()),
                     parameters = parameters,
                     methods = methods
                 );
                 files.insert(file_to_create, content);
             }
         }
+
         // create file if needed
         if files.is_empty() {
             match dest_file {
@@ -477,6 +501,31 @@ bundle agent {resource_name}_{state_name}{parameters}
         }
         Ok(())
     }
+}
+
+fn pascebab_case(s: &str) -> String {
+    let chars = s.chars().into_iter();
+
+    let mut pascebab = String::new();
+    let mut is_next_uppercase = true;
+    for c in chars {
+        let next = match c {
+            ' ' | '_' | '-' => {
+                is_next_uppercase = true;
+                String::from("-")
+            }
+            c => {
+                if is_next_uppercase {
+                    is_next_uppercase = false;
+                    c.to_uppercase().to_string()
+                } else {
+                    c.to_string()
+                }
+            }
+        };
+        pascebab.push_str(&next);
+    }
+    pascebab
 }
 
 fn get_dest_file(input: Option<&Path>, cur_file: &str, output: Option<&Path>) -> Option<String> {
@@ -514,15 +563,15 @@ mod tests {
             get_dest_file(
                 Some(Path::new("/path/my_file.rl")),
                 "my_file.rl",
-                Some(Path::new("/output/file.rl.cf"))
+                Some(Path::new("/output/file.rl.dsc"))
             ),
-            Some("/output/file.rl.cf".to_owned())
+            Some("/output/file.rl.dsc".to_owned())
         );
         assert_eq!(
             get_dest_file(
                 Some(Path::new("/path/my_file.rl")),
                 "wrong_file.rl",
-                Some(Path::new("/output/file.rl.cf"))
+                Some(Path::new("/output/file.rl.dsc"))
             ),
             None
         );

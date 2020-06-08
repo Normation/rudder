@@ -22,6 +22,8 @@ directory_create = { class_prefix="directory_create", class_parameter_id = 0 }
 directory_present = { class_prefix="directory_present", class_parameter_id = 0 }
 environment_variable_present = { class_prefix="environment_variable_present", class_parameter_id = 0 }
 file_absent = { class_prefix="file_absent", class_parameter_id = 0 }
+file_augeas_commands = { class_prefix="file_augeas_commands", class_parameter_id = 1 }
+file_augeas_set = { class_prefix="file_augeas_set", class_parameter_id = 2 }
 file_block_present = { class_prefix="file_block_present", class_parameter_id = 0 }
 file_block_present_in_section = { class_prefix="file_block_present_in_section", class_parameter_id = 0 }
 file_check_block_device = { class_prefix="file_check_block_device", class_parameter_id = 0 }
@@ -150,9 +152,11 @@ service_stop = { class_prefix="service_stop", class_parameter_id = 0 }
 service_stopped = { class_prefix="service_stopped", class_parameter_id = 0 }
 sharedfile_from_node = { class_prefix="sharedfile_from_node", class_parameter_id = 1 }
 sharedfile_to_node = { class_prefix="sharedfile_to_node", class_parameter_id = 1 }
+sysctl_value = { class_prefix="sysctl_value", class_parameter_id = 0 }
 user_absent = { class_prefix="user_absent", class_parameter_id = 0 }
 user_create = { class_prefix="user_create", class_parameter_id = 0 }
 user_fullname = { class_prefix="user_fullname", class_parameter_id = 0 }
+user_group = { class_prefix="user_group", class_parameter_id = 0 }
 user_home = { class_prefix="user_home", class_parameter_id = 0 }
 user_locked = { class_prefix="user_locked", class_parameter_id = 0 }
 user_password_hash = { class_prefix="user_password_hash", class_parameter_id = 0 }
@@ -170,6 +174,7 @@ variable_iterator = { class_prefix="variable_iterator", class_parameter_id = 1 }
 variable_iterator_from_file = { class_prefix="variable_iterator_from_file", class_parameter_id = 1 }
 variable_string = { class_prefix="variable_string", class_parameter_id = 1 }
 variable_string_default = { class_prefix="variable_string_default", class_parameter_id = 1 }
+variable_string_from_augeas = { class_prefix="variable_string_from_augeas", class_parameter_id = 1 }
 variable_string_from_command = { class_prefix="variable_string_from_command", class_parameter_id = 1 }
 variable_string_from_file = { class_prefix="variable_string_from_file", class_parameter_id = 1 }
 variable_string_from_math_expression = { class_prefix="variable_string_from_math_expression", class_parameter_id = 1 }

@@ -2,8 +2,10 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 mod cfengine;
+mod dsc;
 
 pub use self::cfengine::CFEngine;
+pub use self::dsc::DSC;
 use crate::ast::AST;
 use crate::error::*;
 use serde::de::{self, Deserialize, Deserializer};
@@ -26,10 +28,10 @@ pub trait Generator {
     ) -> Result<()>;
 }
 
-pub fn new_generator(format: &Format) -> Result<impl Generator> {
+pub fn new_generator(format: &Format) -> Result<Box<dyn Generator>> {
     match format {
-        Format::CFEngine => Ok(CFEngine::new()),
-        // Format::DSC => Ok(DSC::new()),
+        Format::CFEngine => Ok(Box::new(CFEngine::new())),
+        Format::DSC => Ok(Box::new(DSC::new())),
         // Format::JSON => Ok(JSON::new()),
         _ => Err(Error::User(format!("No Generator for {} format", format))),
     }
@@ -50,7 +52,7 @@ impl fmt::Display for Format {
             "{}",
             match self {
                 Format::CFEngine => "cf",
-                Format::DSC => "dsc",
+                Format::DSC => "ps1",
                 Format::RudderLang => "rl",
                 Format::JSON => "json",
             }
@@ -64,7 +66,7 @@ impl FromStr for Format {
     fn from_str(format: &str) -> Result<Self> {
         match format {
             "cf" | "cfengine" => Ok(Format::CFEngine),
-            "dsc" => Ok(Format::DSC),
+            "dsc" | "ps1" => Ok(Format::DSC),
             "json" => Ok(Format::JSON),
             "rl" => Ok(Format::RudderLang),
             // RudderLang is an error, not a compilation format
