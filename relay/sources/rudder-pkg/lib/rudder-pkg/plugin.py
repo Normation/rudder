@@ -35,7 +35,7 @@ class Plugin:
                     else:
                         utils.fail('Unknown release mode, found %s and expecting release or nightly'%(version.mode))
         except Exception as e:
-            logger.error("could not parse the index file %s"%(utils.INDEX_PATH))
+            logger.error("Verify that %s is correctly configured, run `rudder package update` and retry"%(utils.CONFIG_PATH))
             utils.fail("could not parse the index file %s"%(utils.INDEX_PATH))
         if not len(self.packagesInfo):
             logger.debug('No packages were found corresponding to %s'%(self.name))
