@@ -91,7 +91,6 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonDSL.pair2jvalue
 import net.liftweb.json.JsonDSL.string2jvalue
 import scalaj.http.Http
-import scalaj.http.HttpConstants
 import scalaj.http.HttpOptions
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.box._
