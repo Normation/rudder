@@ -61,7 +61,11 @@ def write_everything(path):
 
 def write_all_methods(path):
   methods = ncf.get_all_generic_methods_metadata()
-  with open('/var/rudder/configuration-repository/ncf/generic_methods.json', 'w') as outfile:
+
+  methodsFile = '/var/rudder/configuration-repository/ncf/generic_methods.json'
+  if not os.path.exists(os.path.dirname(methodsFile)):
+    os.makedirs(os.path.dirname(methodsFile))
+  with open(methodsFile, 'w') as outfile:
     json.dump(methods["data"]["generic_methods"], outfile, indent=2)
 
 def write_all_techniques(path, migrate_old):
