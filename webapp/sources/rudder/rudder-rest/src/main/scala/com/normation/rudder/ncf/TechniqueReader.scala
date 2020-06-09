@@ -69,7 +69,9 @@ class TechniqueReader(
       needsUpdate <- if (metadataFileExists) {
                        IOResult.effect("An error occurs while checking if generic methods metadata needs to be updated") {
                          val methodsFileModifiedTime = methodsFile.lastModifiedTime()
-                         checkNeedsUpdate(methodsFileModifiedTime, baseDir :: userDir :: Nil)
+                         val dirsToCheck = (baseDir :: userDir :: Nil).filter(_.exists)
+                         // Not sure what to do if empty; here it will be false, and we don't update, but updating would surely be an error
+                         checkNeedsUpdate(methodsFileModifiedTime, dirsToCheck)
                        }
                      } else true.succeed
     } yield {
