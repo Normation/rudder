@@ -422,7 +422,7 @@ object box {
     def errToFailure(err: RudderError): Failure = {
       err match {
         case Chained(msg, cause ) => new Failure(msg, Empty, Full(errToFailure(cause)))
-        case SystemError(msg, ex) => new Failure(msg, Full(ex), Empty)
+        case SystemError(msg, ex) => new Failure(s"${msg}. Cause was: ${ex.getClass.getSimpleName}: ${ex.getMessage()}", Full(ex), Empty)
         case other                => new Failure(other.fullMsg, Empty, Empty)
       }
     }
