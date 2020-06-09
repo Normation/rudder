@@ -114,8 +114,10 @@ class CreateOrUpdateGlobalParameterPopup(
   }
 
   private def parseValue(value: String, jsonRequired: Boolean): PureResult[ConfigValue] = {
+    import com.normation.rudder.domain.nodes.GenericProperty._
     for {
-      v <- GenericProperty.parseValue(value)
+           // in case of string, we need to force parse as string
+      v <- if(jsonRequired) GenericProperty.parseValue(value) else Right(value.toConfigValue)
       _ <- if(jsonRequired && v.valueType() == ConfigValueType.STRING) {
              Left(Inconsistency("JSON check is enabled, but the value format is invalid."))
            } else Right(())
