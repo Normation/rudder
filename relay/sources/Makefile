@@ -67,6 +67,7 @@ install: build
 	mkdir -p $(DESTDIR)/opt/rudder/etc/relayd/
 	mkdir -p $(DESTDIR)/opt/rudder/etc/ssl/
 	mkdir -p $(DESTDIR)/opt/rudder/etc/rudder-pkg/
+	chmod 700 $(DESTDIR)/opt/rudder/etc/rudder-pkg/
 	mkdir -p $(DESTDIR)/opt/rudder/share/selinux/
 	mkdir -p $(DESTDIR)/opt/rudder/share/python/
 	mkdir -p $(DESTDIR)/opt/rudder/share/package-scripts/
