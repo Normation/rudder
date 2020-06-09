@@ -226,6 +226,19 @@ object GenericProperty {
   }
 
   /**
+   * Parse a value that was correctly serialized to hocon (ie string are quoted, etc)
+   */
+  def parseSerialisedValue(value: String): PureResult[ConfigValue] = {
+    PureResult.effect(s"Error: value is not parsable as a property: ${value}") {
+      ConfigFactory.parseString(
+        // it's necessary to put it on its own line to avoid pb with comments/multilines
+        s"""{"x":
+            ${value}
+            }""").getValue("x")
+    }
+  }
+
+  /**
    * Contrary to native hocon, we only have TWO kinds of values:
    * - object, which are mandatory to start with a '{' and end by a '}'
    *   (in middle, it's whatever hocon authorize: comments, etc. But the structure must be key/value structured)
@@ -239,13 +252,7 @@ object GenericProperty {
       case None => // here, we need to return the original string, user may want to use a comment (in bash for ex) as value
         Right(ConfigValueFactory.fromAnyRef(value))
       case Some(c) if(c == '{') =>
-        PureResult.effect(s"Error: value is not parsable as a property: ${value}") {
-          ConfigFactory.parseString(
-            // it's necessary to put it on its own line to avoid pb with comments/multilines
-            s"""{"x":
-                ${value}
-                }""").getValue("x")
-        }
+        parseSerialisedValue(value)
       case _ => // it's a string that should be understood as a string
         Right(ConfigValueFactory.fromAnyRef(value))
     }
@@ -265,14 +272,7 @@ object GenericProperty {
   implicit class GlobalParameterParsing(value: String) {
     def parseGlobalParameter(forceString: Boolean): PureResult[ConfigValue] = {
       if(forceString) Right(ConfigValueFactory.fromAnyRef(value))
-      else PureResult.effect(s"Error: value is not parsable as a property: ${value}") {
-        ConfigFactory.parseString(
-          // it's necessary to put it on its own line to avoid pb with comments/multilines
-          s"""{"x":
-              ${value}
-              }"""
-        ).getValue("x")
-      }
+      else parseSerialisedValue(value)
     }
   }
   implicit class GlobalParameterSerialisation(value: ConfigValue) {
