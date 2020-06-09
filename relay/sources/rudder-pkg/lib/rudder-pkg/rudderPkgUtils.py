@@ -262,7 +262,7 @@ def getRudderKey():
     output = shell(checkKeyCommand, keep_output=True, fail_exit=False, keep_error=False)[1]
     if output.find(GPG_RUDDER_KEY_FINGERPRINT) == -1:
         logger.debug("rudder gpg key was not found, adding it from %s"%(GPG_RUDDER_KEY))
-        addKeyCommand = "/usr/bin/gpg --homedir " + GPG_HOME + " --import " + GPG_RUDDER_KEY
+        addKeyCommand = "/usr/bin/gpg --homedir " + GPG_HOME + " --import-ownertrust " + GPG_RUDDER_KEY
         # Could not find why, but at creation, we need to run it 2 times to work properly
         shell(addKeyCommand, keep_output=True, fail_exit=True, keep_error=False)
         logger.debug("executing %s"%(addKeyCommand))
