@@ -130,7 +130,7 @@ bundle agent sharedfile_to_node(target_uuid, file_id, file_path, ttl)
       "${old_class_prefix}_exist_true" expression => "${old_class_prefix}_exist_kept", scope => "namespace";
       "${old_class_prefix}_exist_false" expression => "${old_class_prefix}_exist_repaired", scope => "namespace";
       "${class_prefix}_exist_true" expression => "${class_prefix}_exist_kept", scope => "namespace";
-      "${class_prefix}_exist_false" expression => "${class_prefix}_exist_repaired", scope => "namespace";;
+      "${class_prefix}_exist_false" expression => "${class_prefix}_exist_repaired", scope => "namespace";
 
       "file_exists"  expression => fileexists("${file_path}");
       "check_failed" expression => "${old_class_prefix}_exist_error|${class_prefix}_exist_error";
