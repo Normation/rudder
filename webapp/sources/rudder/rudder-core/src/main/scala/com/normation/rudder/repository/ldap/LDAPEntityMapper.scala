@@ -956,7 +956,15 @@ class LDAPEntityMapper(
 
   //////////////////////////////    Parameters    //////////////////////////////
 
+
+
+  /*
+   * We need to know if the format is 6.0 and before or 6.1.
+   * For that, we look if attribute `overridable` is present: if so, it's 6.0 or before
+   * (and we remove it for 6.1 and above).
+   */
   def entry2Parameter(e:LDAPEntry) : InventoryMappingPure[GlobalParameter] = {
+    import com.normation.rudder.domain.nodes.GenericProperty._
     if(e.isA(OC_PARAMETER)) {
       //OK, translate
       for {
@@ -964,18 +972,19 @@ class LDAPEntityMapper(
         value       =  e(A_PARAMETER_VALUE).getOrElse("")
         description =  e(A_DESCRIPTION).getOrElse("")
         provider    =  e(A_PROPERTY_PROVIDER).map(PropertyProvider.apply)
-        g           <- GlobalParameter.parse(name, value, description, provider).left.map(err => Err.UnexpectedObject(err.fullMsg))
+        parsed      <- value.parseGlobalParameter(e.hasAttribute("overridable")).left.map(err => Err.UnexpectedObject(err.fullMsg))
       } yield {
-        g
+        GlobalParameter(name, parsed, description, provider)
       }
     } else Left(Err.UnexpectedObject("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_PARAMETER, e)))
   }
 
   def parameter2Entry(parameter: GlobalParameter) : LDAPEntry = {
+    import com.normation.rudder.domain.nodes.GenericProperty._
     val entry = rudderDit.PARAMETERS.parameterModel(
         parameter.name
     )
-    entry +=! (A_PARAMETER_VALUE, parameter.valueAsString)
+    entry +=! (A_PARAMETER_VALUE, parameter.value.serializeGlobalParameter)
     entry +=! (A_DESCRIPTION, parameter.description)
     parameter.provider.foreach(p =>
       entry +=! (A_PROPERTY_PROVIDER, p.value)

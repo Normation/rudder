@@ -251,6 +251,35 @@ object GenericProperty {
     }
   }
 
+  /*
+   * Specifi case for parameters.
+   * Parameters are not saved in json so are not able to use directly provided methods
+   * to parse/serialise them.
+   * We want to have what is stored in parameter be what would go on the right of a json ":", ie:
+   * paramValue: """{"foo":"bar"}"""  for the string {"foo":"bar"}
+   * and
+   * paramValue: {"foo":"bar"}  for the json {"foo":"bar"}
+   * If the value is not parsable (for ex: foo whithout quote) it's an error.
+   * And we had the compat with 6.0 which is always a string.
+   */
+  implicit class GlobalParameterParsing(value: String) {
+    def parseGlobalParameter(forceString: Boolean): PureResult[ConfigValue] = {
+      if(forceString) Right(ConfigValueFactory.fromAnyRef(value))
+      else PureResult.effect(s"Error: value is not parsable as a property: ${value}") {
+        ConfigFactory.parseString(
+          // it's necessary to put it on its own line to avoid pb with comments/multilines
+          s"""{"x":
+              ${value}
+              }"""
+        ).getValue("x")
+      }
+    }
+  }
+  implicit class GlobalParameterSerialisation(value: ConfigValue) {
+    // we keep quotes here
+    def serializeGlobalParameter: String = value.render(ConfigRenderOptions.concise().setComments(true))
+  }
+
   /**
    * Parse a JSON JValue to ConfigValue. It always succeeds.
    */
