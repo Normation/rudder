@@ -19,7 +19,7 @@ properties:
       - unknown
   name:
     type: string
-    description : For Linux, a distribution, for Windows, the commercial name
+    description: For Linux, a distribution, for Windows, the commercial name
     enum:
       - debian
       - ubuntu
