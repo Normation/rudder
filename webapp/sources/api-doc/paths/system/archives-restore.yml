@@ -16,7 +16,7 @@ post:
           - latestCommit
           - archive ID
         example: latestCommit
-description: What archive to restore (latest archive, latest commit in configuration repository, or archive with ID as given by listArchive)
+        description: What archive to restore (latest archive, latest commit in configuration repository, or archive with ID as given by listArchive)
   responses:
     "200":
       description: Success
@@ -57,12 +57,6 @@ description: What archive to restore (latest archive, latest commit in configura
                 example: archirestoreFullLatestCommitveFull
               data:
                 type: object
-                optional:
-                  - full
-                  - groups
-                  - rules
-                  - directives
-                  - parameters
                 properties:
                   full:
                     type: string

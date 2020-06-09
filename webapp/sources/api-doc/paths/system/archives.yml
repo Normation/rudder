@@ -126,101 +126,101 @@ post:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/system/create-archive.sh
-post:
-  summary: Restore an archive
-  description: Restore an archive of the given kind for the given moment
-  operationId: restoreArchive
-  parameters:
-    - $ref: ../../components/parameters/archive-kind.yml
-    - restore
-    - $ref: ../../components/parameters/archive-restore-kind.yml
-  responses:
-    "200":
-      description: Success
-      content:
-        application/json:
-          schema:
-            type: object
-            required:
-              - result
-              - action
-              - data
-            properties:
-              result:
-                type: string
-                description: Result of the request
-                enum:
-                  - success
-                  - error
-              action:
-                type: string
-                description: The kind of the archive
-                enum:
-                  - restoreFullLatestArchive
-                  - restoreGroupLatestArchive
-                  - restoreRulesLatestArchive
-                  - restoreDirectivesLatestArchive
-                  - restoreParametersLatestArchive
-                  - restoreFullLatestCommit
-                  - restoreGroupLatestCommit
-                  - restoreRulesLatestCommit
-                  - restoreDirectivesLatestCommit
-                  - restoreParametersLatestCommit
-                  - archiveFullDateRestore
-                  - archiveGroupDateRestore
-                  - archiveRulesDateRestore
-                  - archiveDirectivesDateRestore
-                  - archiveParametersDateRestore
-                example: archirestoreFullLatestCommitveFull
-              data:
-                type: object
-                optional:
-                  - full
-                  - groups
-                  - rules
-                  - directives
-                  - parameters
-                properties:
-                  full:
-                    type: string
-                    example: Started
-                  groups:
-                    type: string
-                    example: Started
-                  rules:
-                    type: string
-                    example: Started
-                  directive:
-                    type: string
-                    example: Started
-                  parameters:
-                    type: string
-                    example: Started
-  tags:
-    - System
-  x-code-samples:
-    - lang: curl
-      source:
-        $ref: ../../code_samples/curl/system/create-archive.sh
-get:
-  summary: Get an archive as a ZIP
-  description: Get an archive of the given kind as a zip
-  operationId: getZipArchive
-  parameters:
-    - $ref: ../../components/parameters/archive-kind.yml
-    - zip
-    - commitId
-  responses:
-    "200":
-      description: Success
-      content:
-        application/octet-stream:
-          schema:
-            type: string
-            format: binary
-  tags:
-    - System
-  x-code-samples:
-    - lang: curl
-      source:
-        $ref: ../../code_samples/curl/system/create-archive.sh
+#post:
+#  summary: Restore an archive
+#  description: Restore an archive of the given kind for the given moment
+#  operationId: restoreArchive
+#  parameters:
+#    - $ref: ../../components/parameters/archive-kind.yml
+#    - restore
+#    - $ref: ../../components/parameters/archive-restore-kind.yml
+#  responses:
+#    "200":
+#      description: Success
+#      content:
+#        application/json:
+#          schema:
+#            type: object
+#            required:
+#              - result
+#              - action
+#              - data
+#            properties:
+#              result:
+#                type: string
+#                description: Result of the request
+#                enum:
+#                  - success
+#                  - error
+#              action:
+#                type: string
+#                description: The kind of the archive
+#                enum:
+#                  - restoreFullLatestArchive
+#                  - restoreGroupLatestArchive
+#                  - restoreRulesLatestArchive
+#                  - restoreDirectivesLatestArchive
+#                  - restoreParametersLatestArchive
+#                  - restoreFullLatestCommit
+#                  - restoreGroupLatestCommit
+#                  - restoreRulesLatestCommit
+#                  - restoreDirectivesLatestCommit
+#                  - restoreParametersLatestCommit
+#                  - archiveFullDateRestore
+#                  - archiveGroupDateRestore
+#                  - archiveRulesDateRestore
+#                  - archiveDirectivesDateRestore
+#                  - archiveParametersDateRestore
+#                example: archirestoreFullLatestCommitveFull
+#              data:
+#                type: object
+#                optional:
+#                  - full
+#                  - groups
+#                  - rules
+#                  - directives
+#                  - parameters
+#                properties:
+#                  full:
+#                    type: string
+#                    example: Started
+#                  groups:
+#                    type: string
+#                    example: Started
+#                  rules:
+#                    type: string
+#                    example: Started
+#                  directive:
+#                    type: string
+#                    example: Started
+#                  parameters:
+#                    type: string
+#                    example: Started
+#  tags:
+#    - System
+#  x-code-samples:
+#    - lang: curl
+#      source:
+#        $ref: ../../code_samples/curl/system/create-archive.sh
+#get:
+#  summary: Get an archive as a ZIP
+#  description: Get an archive of the given kind as a zip
+#  operationId: getZipArchive
+#  parameters:
+#    - $ref: ../../components/parameters/archive-kind.yml
+#    - zip
+#    - commitId
+#  responses:
+#    "200":
+#      description: Success
+#      content:
+#        application/octet-stream:
+#          schema:
+#            type: string
+#            format: binary
+#  tags:
+#    - System
+#  x-code-samples:
+#    - lang: curl
+#      source:
+#        $ref: ../../code_samples/curl/system/create-archive.sh

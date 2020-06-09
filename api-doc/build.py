@@ -44,25 +44,33 @@ for template in templates:
 
     target = "%s/%s/%s" % (target_dir, api, version)
 
+    print("Built %s" % (src_openapi_file))
+
     # Build final openapi.yml
     openapi_file = "%s/openapi.yml" % target
-    subprocess.call(["openapi", "bundle", src_openapi_file,
-                     "--output", openapi_file])
+    if subprocess.call(["openapi", "bundle", src_openapi_file,
+                        "--output", openapi_file]):
+        print("Could not build %s" % (openapi_file))
+        exit(1)
+
+    print("Built %s" % (openapi_file))
 
     # Build doc from yaml file (with pre-rendered html)
     html_file = "%s/index.html" % target
-    subprocess.call(["redoc-cli", "bundle", openapi_file,
-                     "--output", html_file,
-                     # Don't help google track our users
-                     "--disableGoogleFont",
-                     # The famous Rudder orange
-                     "--options.theme.colors.primary.main='#f08004'",
-                     # Expand success examples by default
-                     "--options.expandResponses='200,'",
-                     # More readable in central column
-                     "--options.pathInMiddlePanel=1",
-                     # Hostname is meaningless as it won't match rudder server
-                     "--options.hideHostname=1"
-                     ])
+    if subprocess.call(["redoc-cli", "bundle", openapi_file,
+                        "--output", html_file,
+                        # Don't help google track our users
+                        "--disableGoogleFont",
+                        # The famous Rudder orange
+                        "--options.theme.colors.primary.main='#f08004'",
+                        # Expand success examples by default
+                        "--options.expandResponses='200,'",
+                        # More readable in central column
+                        "--options.pathInMiddlePanel=1",
+                        # Hostname is meaningless as it won't match rudder server
+                        "--options.hideHostname=1"
+                        ]):
+        print("Could not build %s" % (html_file))
+        exit(1)
 
     shutil.copytree("%s/assets" % source, "%s/assets" % target)
