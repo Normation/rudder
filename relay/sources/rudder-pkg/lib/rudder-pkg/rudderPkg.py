@@ -305,7 +305,7 @@ Iterate through them to find all *.license files and *.key files.
 """
 def update_licenses(quiet=False):
     utils.readConf()
-    url = utils.URL + "/licenses"
+    url = utils.URL.rstrip("/") + "/licenses"
     r = requests.get(url, auth=(utils.USERNAME, utils.PASSWORD))
     htmlElements = html.document_fromstring(r.text)
     htmlElements.make_links_absolute(url + "/", resolve_base_href=True)
@@ -316,16 +316,19 @@ def update_licenses(quiet=False):
     # Filter to only keep folders
     licenseFolders = list(filter(lambda x: folderPattern.match(x), [elem[2] for elem in htmlElements.iterlinks()]))
 
-    # Find the .licence and .key files under each folder
-    for folderUrl in set(licenseFolders):
-        r = requests.get(folderUrl, auth=(utils.USERNAME, utils.PASSWORD))
-        htmlElements = html.document_fromstring(r.text)
-        htmlElements.make_links_absolute(folderUrl + "/", resolve_base_href=True)
-        for link in set([elem[2] for elem in htmlElements.iterlinks()]):
-            match = downloadPattern.search(link)
-            if match is not None:
-                logger.info("downloading %s"%(link))
-                utils.download(link, utils.LICENCES_PATH + "/" + os.path.basename(link), quiet)
+    if len(licenseFolders) == 0:
+        logger.info("No license files found!")
+    else:
+        # Find the .licence and .key files under each folder
+        for folderUrl in set(licenseFolders):
+            r = requests.get(folderUrl, auth=(utils.USERNAME, utils.PASSWORD))
+            htmlElements = html.document_fromstring(r.text)
+            htmlElements.make_links_absolute(folderUrl + "/", resolve_base_href=True)
+            for link in set([elem[2] for elem in htmlElements.iterlinks()]):
+                match = downloadPattern.search(link)
+                if match is not None:
+                    logger.info("downloading %s"%(link))
+                    utils.download(link, utils.LICENCES_PATH + "/" + os.path.basename(link), quiet)
 
 # TODO validate index sign if any?
 """ Download the index file on the repos """
