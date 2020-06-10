@@ -265,7 +265,7 @@ def getRudderKey():
         addKeyCommand = "/usr/bin/gpg --homedir " + GPG_HOME + " --import " + GPG_RUDDER_KEY
         shell(addKeyCommand, keep_output=True, fail_exit=True, keep_error=False)
         logger.debug("executing %s"%(addKeyCommand))
-        trustKeyCommand = "echo -e \"5\\ny\\n\" | gpg --batch --homedir " + GPG_HOME + " --command-fd 0 --edit-key \"Rudder Project\" trust quit 2> /dev/null"
+        trustKeyCommand = "printf '5\\ny\\n' | gpg --batch --homedir " + GPG_HOME + " --command-fd 0 --edit-key \"Rudder Project\" trust quit 2> /dev/null"
         shell(trustKeyCommand, keep_output=True, fail_exit=True, keep_error=False)
         logger.debug("executing %s"%(trustKeyCommand))
     logger.debug("=> OK!")
