@@ -1,37 +1,32 @@
 version: "2"
 services:
     cf_execd:
-       stdin_open: true
-       tty: true 
+       read_only: true
        build:
          context: .
          dockerfile: cf-execd.Dockerfile
-       cap_add:
-          - NET_ADMIN
        volumes:
-          - rudder_config_files:/opt/rudder/etc
-          - cfengine_community_files:/var/rudder/cfengine-community/
-          - uuid_keys_files:/data
+          - cfengine_community:/var/rudder/cfengine-community/
+          - uuid_keys:/data
+          - ncf:/var/rudder/ncf
+          - shared:/var/rudder/share
        tmpfs:
           - /var/rudder/tmp
           - /var/backup/rudder
-          - /var/rudder/cfengine-community/state       
-       external_links:
-          - server                     
+          - /opt/rudder/var/fusioninventory
+          - /var/rudder/inventories
     cf_serverd: 
+       read_only: true
        build:
          context: .
          dockerfile: cf-serverd.Dockerfile
-       cap_add:
-         - NET_ADMIN
-       volumes_from:
-         - cf_execd:rw
-       external_links:
-          - server
-       stdin_open: true
-       tty: true
-       read_only: true
+       volumes:
+         - cfengine_community:/var/rudder/cfengine-community/
+         - uuid_keys:/data:ro
+         - ncf:/var/rudder/ncf:ro
+         - shared:/var/rudder/share:ro
 volumes:
-     rudder_config_files:
-     cfengine_community_files:
-     uuid_keys_files:
+     cfengine_community:
+     uuid_keys:
+     ncf:
+     shared:
