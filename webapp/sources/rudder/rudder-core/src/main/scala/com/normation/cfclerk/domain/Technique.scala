@@ -193,6 +193,11 @@ case class Technique(
   val templatesIds: Set[TechniqueResourceId] = agentConfigs.flatMap(cfg => cfg.templates.map(_.id)).toSet
 
   val getAllVariableSpecs = this.rootSection.getAllVariables ++ this.systemVariableSpecs :+ this.trackerVariableSpec
+
+  // Escape the description, so that text cannot be used to inject anything in display
+  def escapedDescription: String = {
+    xml.Utility.escape(description)
+  }
 }
 
 /**
