@@ -232,7 +232,7 @@ object DisplayDirectiveTree extends Loggable {
               s"""
               <h4>${technique.name}</h4>
               <div class="tooltip-content">
-                <p>${technique.description}</p>
+                <p>${technique.escapedDescription}</p>
                 ${agentCompat.techniqueText}
                 ${if(!activeTechnique.isEnabled){<div>This Technique is currently <b>disabled</b>.</div>}else{NodeSeq.Empty}}
               </div>"""
