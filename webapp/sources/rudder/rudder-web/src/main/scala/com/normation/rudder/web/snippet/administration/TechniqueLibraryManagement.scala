@@ -580,7 +580,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         val tooltipContent = s"""
           <h4>${technique.name}</h4>
           <div class="tooltip-content">
-            <p>${technique.description}</p>
+            <p>${technique.escapedDescription}</p>
             ${agentCompat.techniqueText}
           </div>
         """
@@ -655,7 +655,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
               val tooltipContent = s"""
               <h4>${technique.name}</h4>
               <div class="tooltip-content">
-                <p>${technique.description}</p>
+                <p>${technique.escapedDescription}</p>
                 ${agentCompat.techniqueText}
                 ${if(!activeTechnique.isEnabled){<div>This Technique is currently <b>disabled</b>.</div>}else{NodeSeq.Empty}}
               </div>
