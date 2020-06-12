@@ -30,15 +30,15 @@ do
   fi
 done
 
-if [ "$1" = "" ]
+if [ -z "$1" ]
 then
-  echo "Usage tester.sh [--dev] [--keep] <technique>"
+  echo "Usage tester.sh [--dev] [--keep] <technique_name> <technique_category>"
   echo " --dev or -d: force using a development environnement (meaning no json logs and local rudder repo rather than production files)"
   echo " --keep or -k: keep temporary files after cleanup"
-  echo " <technique>: can be either a technique name from ncf directory or an absolute path"
+  echo " <technique_name>: can be either a technique name from the production techniques directory or an absolute path"
+  echo " <technique_category>: when using the production environment, the location of a technique depends on its category"
   exit 1
 fi
-
 
 ###############
 # SETUP PATHS #
@@ -46,19 +46,26 @@ fi
 
 technique="$1"
 
+if [ ! -z "$2" ]
+then
+  category="$2"
+fi
+
 # Default values for rudder server
 self_dir=$(dirname $(readlink -e $0))
 test_dir=$(mktemp -d)
+chmod +rx "${test_dir}"
 
 # cfjson_tester is always in the same directory as tester.sh
 cfjson_tester="${self_dir}/cfjson_tester"
 
 # Detect technique path
-technique_path="/var/rudder/configuration-repository/techniques/ncf_techniques/${technique}/1.0/technique.cf"
+# requires an extension format to be used
+technique_path="/var/rudder/configuration-repository/techniques/${category}/${technique}/1.0/technique"
 if [ ${env} = "dev" ] && [ -f "$1" ]
 then
   technique_path="$1"
-elif [ ! -f "${technique_path}" ]
+elif [ ! -f "${technique_path}.cf" ]
 then
   echo "Cannot find either of ${technique_path} nor $1"
   exit 1
@@ -118,6 +125,7 @@ else
   trace="/var/log/rudder/rudder-lang/unhandled_errors.log"
   logpath="/var/log/rudder/rudder-lang/${technique}"
   mkdir -p "${logpath}"
+  chmod +rx "${logpath}"
   # be careful, file order matters
   logfiles=(
     "${logpath}/ncftojson_original.log"
@@ -144,12 +152,12 @@ else
   # prepare new entry for log trace or create log trace
   ([ -f "${trace}" ] && echo -e "\n=== ${technique} ===" >> "${trace}") || touch "${trace}"
 
-  ${cfjson_tester} ncf-to-json "${technique_path}" "${test_dir}/${technique}.json" >> "${logfiles[0]}" 2>> "${trace}" \
+  cp "${technique_path}.json" "${test_dir}/${technique}.json" >> "${logfiles[0]}" 2>> "${trace}" \
     && ${rudderc} -j --translate -s "${test_dir}/${technique}.json" &>> "${logfiles[1]}" \
     && ${rudderc} -j -s "${test_dir}/${technique}.rl" -f "cfengine" &>> "${logfiles[2]}" \
     && ${cfjson_tester} ncf-to-json "${test_dir}/${technique}.rl.cf" "${test_dir}/${technique}.rl.cf.json" >> "${logfiles[3]}" 2>> "${trace}" \
     && ${cfjson_tester} compare-json "${test_dir}/${technique}.json" "${test_dir}/${technique}.rl.cf.json" >> "${logfiles[4]}" 2>> "${trace}" \
-    && ${cfjson_tester} compare-cf "${technique_path}" "${test_dir}/${technique}.rl.cf" >> "${logfiles[5]}" 2>> "${trace}"
+    && ${cfjson_tester} compare-cf "${technique_path}.cf" "${test_dir}/${technique}.rl.cf" >> "${logfiles[5]}" 2>> "${trace}"
 
 
   # clean new log trace entry if no uncatched errors were found
@@ -182,7 +190,7 @@ else
   then
     echo "Done testing in ${test_dir}"
   else
-    echo "Done testing in ${technique_path} parent dir"
+    echo "Done testing in ${technique_path}.cf parent dir"
   fi
 fi
 

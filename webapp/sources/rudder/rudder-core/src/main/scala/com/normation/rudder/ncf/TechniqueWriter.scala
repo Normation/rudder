@@ -258,7 +258,7 @@ class TechniqueWriter (
       libUpdate  <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")).
                       toIO.chainError(s"An error occured during technique update after files were created for ncf Technique ${technique.name}")
       _          <- ZIO.when(doRudderLangTest) {
-                      IOResult.effect(runRudderLangTestLoop(technique.bundleName.value)).catchAll(err =>
+                      IOResult.effect(runRudderLangTestLoop(technique)).catchAll(err =>
                         ApplicationLoggerPure.error("Error when doing rudder-lang test loop. You can disable that test with property " +
                                                     s"'rudder.lang.test-loop.exec' in rudder config file: ${err.fullMsg}"))
                     }
@@ -267,12 +267,12 @@ class TechniqueWriter (
     }
   }
 
-  def runRudderLangTestLoop(techniqueBundleName: String): Unit = {
+  def runRudderLangTestLoop(technique : Technique): Unit = {
     System.getenv().asScala.get("PATH") match {
-      case Some(path: String) => RunNuCommand.run(Cmd("/opt/rudder/share/rudder-lang/tools/tester.sh", techniqueBundleName :: Nil, Map("PATH" -> path))).either.runNow match {
+      case Some(path: String) => RunNuCommand.run(Cmd("/opt/rudder/share/rudder-lang/tools/tester.sh", technique.bundleName.value :: technique.category :: Nil, Map("PATH" -> path))).either.runNow match {
         case Left(error: Error) => ApplicationLogger.error(error.getMessage)
         case Left(error: RudderError) => ApplicationLogger.error(error.msg)
-        case Right(_)  => ApplicationLogger.info(s"rudder-lang tester successfully looped for technique ${techniqueBundleName}")
+        case Right(_)  => ApplicationLogger.info(s"rudder-lang tester successfully looped for technique ${technique.bundleName.value}")
       }
       case None => ApplicationLogger.error(s"PATH environment variable must be defined to run rudder-lang test loop.")
     }
