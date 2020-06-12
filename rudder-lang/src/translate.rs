@@ -33,8 +33,6 @@ struct Technique {
     name: String,
     version: String,
     parameter: Vec<Value>,
-    #[serde(default)]
-    bundle_args: Vec<String>,
     method_calls: Vec<MethodCall>,
 }
 
