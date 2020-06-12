@@ -42,12 +42,10 @@ services:
        tmpfs:
           - /var/rudder/reports
           - /var/rudder/inventories
-    http:
+    httpd:
        build:
          context: .
-         dockerfile: http.Dockerfile
-       ports:
-         - 8090:80
+         dockerfile: httpd.Dockerfile
        volumes:
           - httpd_conf:/apache_conf_file:ro
           - secure_httpd:/opt/rudder/etc/ssl:ro

@@ -9,7 +9,6 @@ RUN \
         yum -y install diffutils curl && \
         curl -o rudder-setup https://repository.rudder.io/tools/rudder-setup && \
         sh rudder-setup add-repository 6.1 && \
-        yum -y install rudder-agent && \
         yum -y install rudder-server-relay
 
 RUN \
@@ -21,8 +20,6 @@ RUN \
 COPY \
         script.sh .
 
-#Make symbolic links to mount volume from cf-execd to httpd
-#To make the files under /apache_conf_file act like origin files, we make a copy of the origin file to /apache_cong_file
 RUN \
         sh script.sh && \
         ln -sf /apache_conf_file/rudder-networks-24.conf /opt/rudder/etc/rudder-networks-24.conf && \

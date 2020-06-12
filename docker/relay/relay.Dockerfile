@@ -15,6 +15,7 @@ RUN \
 
 COPY relay.sh .
 
+
 EXPOSE  80 443 3030
 
 ENTRYPOINT ["/bin/bash", "-c"]
