@@ -28,11 +28,12 @@ use typed_arena::Arena;
 
 #[derive(Serialize, Deserialize)]
 struct Technique {
-    name: String,
-    description: String,
-    version: String,
     bundle_name: String,
+    description: String,
+    name: String,
+    version: String,
     parameter: Vec<Value>,
+    #[serde(default)]
     bundle_args: Vec<String>,
     method_calls: Vec<MethodCall>,
 }
@@ -104,8 +105,9 @@ struct Translator<'src> {
 
 impl<'src> Translator<'src> {
     fn translate(&self) -> Result<String> {
-        let parameters_meta = self.translate_meta_parameters(&self.technique.parameter).unwrap();
-        let parameters = self.technique.bundle_args.join(",");
+        let (parameters_meta, parameter_list) = self.translate_meta_parameters(&self.technique.parameter).unwrap();
+        // let parameter_list = self.technique.bundle_args.join(","); // bundle_args not used anynmore
+        // sounds like parameters are taken from technique parameter field TODO : monitor resource parameters behavior 
         let calls = map_strings_results(
             self.technique.method_calls.iter(),
             |c| self.translate_call(c),
@@ -119,7 +121,7 @@ impl<'src> Translator<'src> {
 @version="{version}"
 @parameters= [{newline}{parameters_meta}]
 
-resource {bundle_name}({parameters})
+resource {bundle_name}({parameter_list})
 {bundle_name} state technique() {{
 {calls}
 }}
@@ -130,7 +132,7 @@ resource {bundle_name}({parameters})
             bundle_name = self.technique.bundle_name,
             newline = "\n",
             parameters_meta = parameters_meta,
-            parameters = parameters,
+            parameter_list = parameter_list.join(","),
             calls = calls
         );
         Ok(out)
@@ -241,8 +243,9 @@ resource {bundle_name}({parameters})
         ))
     }
 
-    fn translate_meta_parameters(&self, parameters: &[Value]) -> Result<String> {
+    fn translate_meta_parameters(&self, parameters: &[Value]) -> Result<(String, Vec<String>)> {
         let mut parameters_meta = String::new();
+        let mut parameter_list = Vec::new();
         for param in parameters {
             match param.as_object() {
                 Some(map) => {
@@ -254,14 +257,19 @@ resource {bundle_name}({parameters})
                         .get("id")
                         .expect("Unable to parse id parameter")
                         .to_string();
+                    let description = &map
+                        .get("description")
+                        .unwrap_or(&json!(""))
+                        .to_string();
                     let constraints = &map
                         .get("constraints")
-                        .expect("Unable to parse constraints parameter")
+                        .unwrap_or(&json!(""))
                         .to_string();
                     parameters_meta.push_str(&format!(
-                        r#"  {{ "name": {}, "id": {}, "constraints": {} }}{}"#,
-                        name, id, constraints, ",\n"
+                        r#"  {{ "name": {}, "id": {}, "description": {}, "constraints": {} }}{}"#,
+                        name, id, description, constraints, ",\n"
                     ));
+                    parameter_list.push(name.replace("\"", "").replace(" ", "_").to_owned());
                 }
                 None => return Err(Error::User(String::from("Unable to parse meta parameters"))),
             }
@@ -270,7 +278,7 @@ resource {bundle_name}({parameters})
         // if parameters_meta.is_err() {
         // return Err(Error::User("Unable to parse technique file".to_string()));
         // }
-        Ok(parameters_meta)
+        Ok((parameters_meta, parameter_list))
     }
 
     fn translate_arg(&self, arg: &str) -> Result<String> {

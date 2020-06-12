@@ -134,7 +134,7 @@ fn get_dest(
     };
 
     // format is part of dest file so it makes sense to return it from this function plus it needs to be defined here to update dest if needed
-    let (format, format_as_str) = get_format(config, opt, &technique)?;
+    let (format, format_as_str) = get_dest_format(config, opt, &technique)?;
     if technique.ends_with(&format_as_str) {
 
     }
@@ -142,7 +142,7 @@ fn get_dest(
 }
 
 /// get explicit dest. If no explicit dest get default path + filename. I none, use source path (and update format). If none worked, error
-fn get_format(config: &ActionConfig, opt: &IOOpt, dest: &PathBuf) -> Result<(Format, String)> {
+fn get_dest_format(config: &ActionConfig, opt: &IOOpt, dest: &PathBuf) -> Result<(Format, String)> {
     if opt.format.is_some() {
         info!("Command line format used");
     } else if config.format.is_some() {
@@ -170,9 +170,9 @@ fn get_format(config: &ActionConfig, opt: &IOOpt, dest: &PathBuf) -> Result<(For
     if config.action == Some(Action::Compile) && fmt != Format::RudderLang {
         Ok((fmt.clone(), format!("{}.{}", "rl", fmt))) // TODO discuss about file extension handling
         // Ok((fmt.clone(), fmt.to_string()))
-    } else if config.action == Some(Action::Translate) && fmt == Format::RudderLang {
+    } else if config.action == Some(Action::Translate) {
         // translate can only have RL as output format
-        Ok((fmt, "rl".to_owned()))
+        Ok((Format::RudderLang, "rl".to_owned()))
     } else {
         Err(Error::User(
             format!("Could not determine format: {} is not a valid format for {}", fmt, config.action.unwrap()),
@@ -201,14 +201,15 @@ pub fn get(
     action: Action,
     opt: &IOOpt
 ) -> Result<IOContext> {
-    // Ease of read closure
-    let err_gen = |e: &str| Err(Error::User(e.to_string()));
-
     let config: Config = match std::fs::read_to_string(&opt.config_file) {
-        Err(e) => return err_gen(&format!("Could not read toml config file: {}", e)),
+        Err(e) => return Err(Error::User(
+            format!("Could not read toml config file: {}", e)
+        )),
         Ok(config_data) => match toml::from_str(&config_data) {
             Ok(config) => config,
-            Err(e) => return err_gen(&format!("Could not parse (probably faulty) toml config file: {}", e)),
+            Err(e) => return Err(Error::User(
+                format!("Could not parse (probably faulty) toml config file: {}", e)
+            )),
         },
     };
 

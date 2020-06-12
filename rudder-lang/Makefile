@@ -8,7 +8,7 @@ DOC_EXAMPLES := $(wildcard docs/examples/*.rl)
 dependencies:
 	$(PKG_INSTALLER) perl python3
 
-install: build
+install:
 	mkdir -p $(DESTDIR)/opt/rudder/etc
 	mkdir -p $(DESTDIR)/opt/rudder/bin
 	mkdir -p $(DESTDIR)/opt/rudder/share/python

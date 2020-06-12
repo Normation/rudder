@@ -41,7 +41,7 @@ pub enum Format {
     RudderLang,
     CFEngine,
     DSC,
-    // JSON
+    JSON
 }
 impl fmt::Display for Format {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -52,7 +52,7 @@ impl fmt::Display for Format {
                 Format::CFEngine => "cf",
                 Format::DSC => "dsc",
                 Format::RudderLang => "rl",
-                // Format::JSON => "json",
+                Format::JSON => "json",
             }
         )
     }
@@ -65,7 +65,8 @@ impl FromStr for Format {
         match format {
             "cf" | "cfengine" => Ok(Format::CFEngine),
             "dsc" => Ok(Format::DSC),
-            // "json" => Ok(Format::json),
+            "json" => Ok(Format::JSON),
+            "rl" => Ok(Format::RudderLang),
             // RudderLang is an error, not a compilation format
             _ => Err(Error::User(format!("Could not parse format {}", format))),
         }

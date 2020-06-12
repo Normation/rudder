@@ -1,0 +1,34 @@
+{
+      "bundle_name": "normal",
+      "description": "ewf",
+      "name": "normal",
+      "version": "1.0",
+      "parameter": [
+        {
+          "id": "c6e6cc3a-9ce8-4889-bccc-6bfc1b091d0d",
+          "name": "parameter wdd",
+          "description": ""
+        },
+        {
+            "name": "paramtest",
+            "id": "d74a03dd-5b0b-4b06-8dcf-b4e0cb387c60",
+            "constraints": {
+                "allow_whitespace_string": false,
+                "allow_empty_string": false,
+                "max_length": 16384
+            },
+            "type": "string"
+        }
+      ],
+      "category": "systemSettings/misc",
+      "method_calls": [
+        {
+          "args": [
+            "mycond"
+          ],
+          "class_context": "any",
+          "method_name": "condition_once",
+          "component": "Condition once"
+        }
+      ]
+    }
