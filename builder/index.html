@@ -491,7 +491,6 @@
                     </li>
                     <li
                       ng-repeat="method_call in selectedTechnique.method_calls"
-                      ng-show="checkFilterMethod(method_call)"
                       ng-init="method = generic_methods[method_call['method_name']]"
                       ng-class="{'active': methodIsSelected(method_call), 'missingParameters': checkMissingParameters(method_call.parameters, method.parameter).length > 0, 'errorParameters': checkErrorParameters(method_call.parameters).length > 0, 'is-edited' : canResetMethod(method_call)}"
                       >
