@@ -115,19 +115,14 @@ class NcfApi(
     implicit val dataName = "resources"
     def process(version: ApiVersion, path: ApiPath, techniqueInfo: (String,String), req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
 
-      val (resourcesPath,action) = if (newTechnique)
-        (s"workspace/${techniqueInfo._1}/${techniqueInfo._2}/resources", "newTechniqueResources")
-                                 else
-        (s"techniques/ncf_techniques/${techniqueInfo._1}/${techniqueInfo._2}/resources", "techniqueResources")
-
-      val resourceDir = File(s"/var/rudder/configuration-repository/${resourcesPath}")
-
-      def getAllFiles (file : File):List[String]  = {
+      import zio.syntax._
+      import com.normation.errors.Inconsistency
+      def getAllFiles (resourceDir : File)( file : File):List[String]  = {
         if (file.exists) {
           if (file.isRegularFile) {
             resourceDir.relativize(file).toString :: Nil
           } else {
-            file.children.toList.flatMap(getAllFiles)
+            file.children.toList.flatMap(getAllFiles(resourceDir))
           }
         } else {
           Nil
@@ -139,15 +134,30 @@ class NcfApi(
       import ResourceFileState._
 
 
-      def toResource(fullPath : String, state : ResourceFileState) = {
+      def toResource( fullPath : String,resourcesPath : String, state : ResourceFileState) = {
         ResourceFile(fullPath.stripPrefix(s"${resourcesPath}/"), state)
       }
       def serializeResourceWithState( resource : ResourceFile) = {
           (("name" -> resource.path) ~ ("state" -> resource.state.value))
       }
+
+      val action = if (newTechnique) { "newTechniqueResources" } else { "techniqueResources" }
       def getRessourcesStatus = {
 
         for {
+          resourcesPath <- if (newTechnique) {
+                              s"workspace/${techniqueInfo._1}/${techniqueInfo._2}/resources".succeed
+                           } else {
+                             for {
+                               optTechnique <- techniqueReader.readTechniquesMetadataFile.map(_.find(_.bundleName.value == techniqueInfo._1))
+                               category <- optTechnique.map(_.category.succeed).getOrElse(Inconsistency(s"No technique found when looking for technique '${techniqueInfo._1}' resources").fail)
+                             } yield {
+                               s"techniques/${category}/${techniqueInfo._1}/${techniqueInfo._2}/resources"
+                             }
+                           }
+
+
+          resourceDir = File(s"/var/rudder/configuration-repository/${resourcesPath}")
 
           git      <- IOResult.effect("Error when opening configuration-repository") {
                         Git.open(File(s"/var/rudder/configuration-repository").toJava)
@@ -156,28 +166,28 @@ class NcfApi(
                         git.status().addPath(resourcesPath).call()
                       }
           allFiles <- IOResult.effect(s"Error when getting all resource files of technique ${techniqueInfo._1}/${techniqueInfo._2} ") {
-                        getAllFiles(resourceDir)
+                        getAllFiles(resourceDir)(resourceDir)
                       }
         } yield {
 
           // New files not added
-          val added = status.getUntracked.asScala.toList.map(toResource(_,New))
+          val added = status.getUntracked.asScala.toList.map(toResource(_, resourcesPath, New))
           // Files modified and not added
-          val modified = status.getModified.asScala.toList.map(toResource(_,Modified))
+          val modified = status.getModified.asScala.toList.map(toResource(_, resourcesPath, Modified))
           // Files deleted but not removed from git
-          val removed = status.getMissing.asScala.toList.map(toResource(_,Deleted))
+          val removed = status.getMissing.asScala.toList.map(toResource(_, resourcesPath, Deleted))
 
           val filesNotCommitted = modified ::: added ::: removed
 
           // We want to get all files from the resource directory and remove all added/modified/deleted files so we can have the list of all files not modified
-          val untouched = allFiles.filterNot(f => filesNotCommitted.exists(_.path == f)).map(ResourceFile(_, Untouched))
+          val untouched = allFiles.filterNot(f => filesNotCommitted.exists(_.path == f)).map(toResource(_, resourcesPath,  Untouched))
 
           // Create a new list with all a
           JArray((filesNotCommitted ::: untouched).map(serializeResourceWithState))
         }
       }
 
-      resp(getRessourcesStatus.toBox, req, "Could not get resource state of technique")("action")
+      resp(getRessourcesStatus.toBox, req, "Could not get resource state of technique")(action)
     }
   }
 
