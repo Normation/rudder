@@ -14,7 +14,8 @@ Optionally add rudderc to your path `export PATH=$PATH:/opt/rudder/bin/rudderc` 
 
 === Usage
 
-`rudderc` has 2 features: 
+`rudderc` has 2 features:
+
 * Compile which is the default behavior: takes a _RL_ technique as an input and generates the desired 
 * Translate which is the alternative mode:  takes a _JSON_ technique as an input and generates a _rudder-lang_ technique (_.rl_) 
 
@@ -40,10 +41,6 @@ OPTIONS:
             A configuration file is required (containing at least stdlib and generic_method paths)
             [default: /opt/rudder/etc/rudderc.conf]
 
-    -d, --dest <dest>
-            Output file path, overrides config and technique-name.
-            If neither an output nor a configuration file output path is set, source path is used
-
     -f, --format <format>
             Enforce a compiler output format (overrides configuration format and manual technique extension)
             [possible values: cf, dsc, json]
@@ -53,25 +50,28 @@ OPTIONS:
             [default: warn]
             [possible values: off, trace, debug, info, warn, error]
 
-    -o, --output-technique-name <output-technique-name>
-            Technique name to use for output (if no output provided), based on configuration file path
-
     -s, --source <source>
             Input file path. Overwrites base input
 
     -n, --technique-name <technique-name>
             Technique name to use for both input (if no input provided) and output (if no output or provided), based on configuration file paths
+
+    -d, --dest <dest>
+            Output file path, overrides config and technique-name.
+            If neither an output nor a configuration file output path is set, source path is used
+
+    -o, --output-technique-name <output-technique-name>
+            Technique name to use for output (if no output provided), based on configuration file path
 ----
 
 Most options are pretty straightforward but some explanations might help:
 
 * Flags and options must be written in `kebab-case`
-* 
 * A configuration file is required because _rudderc_ needs its own libraries to work (default path should point to an already working _Rudder_ configuration if _rudder agent_ was installed like previously suggested)
-* Unlike the prevailing `--source` and `--dest` options, the `--technique-name <technique joined>` option makes use of the configuration file input and output paths and concatenates the `technique joined>` to these
+* Unlike the prevailing `--source` (`-s`) and `--dest` (`-d`) options, the `--technique-name <technique joined>` (`-n`) and `--technique-output-name <technique joined>` (`-o`) options makes use of the configuration file input and output paths and concatenates the `<technique joined>` to these
 * `--source` > configuration source + `--technique-name` > configuration source if it is a file
-* `--dest` > configuration dest + `--technique-name` > configuration dest if it is a file > `--source` as destination with updated format
-* `--format` > configuration format > `--dest` technique extension
+* `--dest` > configuration dest + `--technique-name` (`-n`) > configuration dest if it is a file > `--source` as destination with updated format
+* `--format` (`-f`) > configuration format > `--dest` technique extension
 * Log levels are ordered (trace > debug > info > warn > error)
 
 ==== Configuration file
@@ -96,6 +96,7 @@ Entire _rudder-lang_ environment is already set up alongside the agent: this inc
 [translate]
     source="tests/test_files/tester/"
     dest="tests/test_files/tester/"
+    # format="dsc" # format here will just be ignored as translate can only generate rudder-lang
 
 [testing_loop]
     cfengine="/opt/rudder/bin/cf-promises"
@@ -117,13 +118,13 @@ The `source` and `dest` fields from both `[translate]` and `[compile]` can eithe
     dest="cf/"
 ----
 
-Paths will respectively be prepended to _rudderc_ `-i` and `-o` options
+Paths will respectively be prepended to _rudderc_ `-n` and `-o` options
 
 ===== Configuration file set with files
 
 Paths will be used as they are, since they already define a single technique.
 
-Note that `-i` and `-o` _rudderc_ options will use the config specified directories and only override technique name
+Note that `-n` and `-o` _rudderc_ options will use the config specified directories and only override technique name
 
 ==== Compilation example
 
@@ -179,7 +180,7 @@ rudderc -j -l debug -c tools/myconf
 
 Or using `rl` and `dsc` directories with other techniques:
 ----
-rudderc -j -l debug -c tools/myconf -i another.rl -o another_from_rl.rl.dsc
+rudderc -j -l debug -c tools/myconf -n another.rl -o another_from_rl.rl.dsc
 ---- 
 
 ==== Translation example
@@ -204,11 +205,10 @@ rudderc -tj -l debug -c tools/myconf -s technique.json -d rl/from_json.rl
 ----
 
 What it means:
-
-* Translate (`-t`) `./json/technique.json` (`-s`) into `./rl/from_json.rl` (`-d`),
-* Use the configuration file located at `./tools/myconf` (`-c`),
-* Output log format is JSON (`-j`),
-* The following log levels: error, warn will be printed to the terminal
+- Translate (`-t`) `./json/technique.json` (`-s`) into `./rl/from_json.rl` (`-d`),
+- Use the configuration file located at `./tools/myconf` (`-c`),
+- Output log format is JSON (`-j`),
+- The following log levels: error, warn will be printed to the terminal
 
 4. CLI + config lightened version
 
@@ -233,7 +233,7 @@ rudderc -tj -l warn -c tools/myconf
 
 Or using `json` and `rl` directories with other techniques:
 ----
-rudderc -tj -l warn -c tools/myconf -i another.json -o another_from_json.rl
+rudderc -tj -l warn -c tools/myconf -n another.json -o another_from_json.rl
 ---- 
 
 == Using the Technique Editor

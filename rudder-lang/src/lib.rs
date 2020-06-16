@@ -6,6 +6,9 @@
 extern crate log;
 
 #[macro_use]
+extern crate serde_json;
+
+#[macro_use]
 pub mod error;
 pub mod opt;
 pub mod io;

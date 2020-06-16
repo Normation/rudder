@@ -6,6 +6,8 @@ env="prod"
 # ARGUMENTS & USAGE #
 #####################
 
+# this script is designed to take a cf technique input
+
 allowed_options="d|k"
 for param in "$@"
 do
@@ -101,12 +103,12 @@ then
   ##########################
   # DEVELOPMENT EVIRONMENT #
   ##########################
-  ${cfjson_tester} ncf-to-json --config-file=${config_file} "${technique_path}" "${test_dir}/${technique}.json" \
-  && ${rudderc} --config-file=${config_file} --translate -i "${test_dir}/${technique}.json" \
-  && ${rudderc} --config-file=${config_file} -i "${test_dir}/${technique}.rl" \
-  && ${cfjson_tester} ncf-to-json --config-file="${config_file}" "${test_dir}/${technique}.rl.cf" "${test_dir}/${technique}.rl.cf.json" \
-  && ${cfjson_tester} compare-json --config-file="${config_file}" "${test_dir}/${technique}.json" "${test_dir}/${technique}.rl.cf.json" \
-  && ${cfjson_tester} compare-cf --config-file="${config_file}" "${technique_path}" "${test_dir}/${technique}.rl.cf"
+  ${cfjson_tester} ncf-to-json --config-file=${config_file} "${technique_path}" "${technique}.json" \
+  && ${rudderc} --config-file=${config_file} --translate -s "${technique}.json" \
+  && ${rudderc} --config-file=${config_file} -s "${technique}.rl" \
+  && ${cfjson_tester} ncf-to-json --config-file="${config_file}" "${technique}.rl.cf" "${technique}.rl.cf.json" \
+  && ${cfjson_tester} compare-json --config-file="${config_file}" "${technique}.json" "${technique}.rl.cf.json" \
+  && ${cfjson_tester} compare-cf --config-file="${config_file}" "${technique_path}" "${technique}.rl.cf"
 
 else
   ##########################
@@ -143,8 +145,8 @@ else
   ([ -f "${trace}" ] && echo -e "\n=== ${technique} ===" >> "${trace}") || touch "${trace}"
 
   ${cfjson_tester} ncf-to-json "${technique_path}" "${test_dir}/${technique}.json" >> "${logfiles[0]}" 2>> "${trace}" \
-    && ${rudderc} -j --translate -i "${test_dir}/${technique}.json" &>> "${logfiles[1]}" \
-    && ${rudderc} -j -i "${test_dir}/${technique}.rl" &>> "${logfiles[2]}" \
+    && ${rudderc} -j --translate -s "${test_dir}/${technique}.json" &>> "${logfiles[1]}" \
+    && ${rudderc} -j -s "${test_dir}/${technique}.rl" -f "cfengine" &>> "${logfiles[2]}" \
     && ${cfjson_tester} ncf-to-json "${test_dir}/${technique}.rl.cf" "${test_dir}/${technique}.rl.cf.json" >> "${logfiles[3]}" 2>> "${trace}" \
     && ${cfjson_tester} compare-json "${test_dir}/${technique}.json" "${test_dir}/${technique}.rl.cf.json" >> "${logfiles[4]}" 2>> "${trace}" \
     && ${cfjson_tester} compare-cf "${technique_path}" "${test_dir}/${technique}.rl.cf" >> "${logfiles[5]}" 2>> "${trace}"
@@ -176,6 +178,11 @@ if [ "${cleanup}" != "no" ]
 then
   rm -rf "${test_dir}"
 else
-  echo "Done testing in ${test_dir}"
+  if [ ${env} = "prod" ]
+  then
+    echo "Done testing in ${test_dir}"
+  else
+    echo "Done testing in ${technique_path} parent dir"
+  fi
 fi
 
