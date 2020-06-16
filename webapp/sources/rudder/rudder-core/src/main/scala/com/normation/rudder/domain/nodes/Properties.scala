@@ -41,6 +41,7 @@ import java.util.regex.Pattern
 
 import com.normation.errors._
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.services.policies.ParameterEntry
 import com.typesafe.config._
 import net.liftweb.json._
@@ -259,7 +260,7 @@ object GenericProperty {
   }
 
   /*
-   * Specifi case for parameters.
+   * Specify case for parameters.
    * Parameters are not saved in json so are not able to use directly provided methods
    * to parse/serialise them.
    * We want to have what is stored in parameter be what would go on the right of a json ":", ie:
@@ -270,9 +271,17 @@ object GenericProperty {
    * And we had the compat with 6.0 which is always a string.
    */
   implicit class GlobalParameterParsing(value: String) {
-    def parseGlobalParameter(forceString: Boolean): PureResult[ConfigValue] = {
-      if(forceString) Right(ConfigValueFactory.fromAnyRef(value))
-      else parseSerialisedValue(value)
+    // this method never fails. If we don't force string but don't successfully
+    // parse serialized value, we log error and parse as string
+    def parseGlobalParameter(name: String, forceString: Boolean): ConfigValue = {
+      if(forceString) ConfigValueFactory.fromAnyRef(value)
+      else parseSerialisedValue(value) match {
+        case Right(res) => res
+        case Left(err)  =>
+          ApplicationLogger.warn(s"Error when parsing global parameter '${name}' value from base, please update that value. It " +
+                                 s"may be a bug, please report it. Serialized value: \n  ${value}\n  Error was: ${err.fullMsg}")
+          ConfigValueFactory.fromAnyRef(value)
+      }
     }
   }
   implicit class GlobalParameterSerialisation(value: ConfigValue) {

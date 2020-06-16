@@ -45,8 +45,8 @@ import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoParameterRepository
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
-
 import com.normation.box._
+import com.normation.rudder.domain.nodes.PropertyProvider
 
 trait RoParameterService {
 
@@ -89,7 +89,7 @@ trait WoParameterService {
   /**
    * Delete a global parameter
    */
-  def delete(parameterName:String, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[String]
+  def delete(parameterName:String, provider: Option[PropertyProvider], modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[String]
 }
 
 class RoParameterServiceImpl(
@@ -201,8 +201,8 @@ class WoParameterServiceImpl(
     }
   }
 
-  def delete(parameterName:String, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[String] = {
-    woParamRepo.delete(parameterName, modId, actor, reason).toBox match {
+  def delete(parameterName:String, provider: Option[PropertyProvider], modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[String] = {
+    woParamRepo.delete(parameterName, provider, modId, actor, reason).toBox match {
       case e:Failure =>
         logger.error("Error while trying to delete param %s : %s".format(parameterName, e.messageChain))
         e

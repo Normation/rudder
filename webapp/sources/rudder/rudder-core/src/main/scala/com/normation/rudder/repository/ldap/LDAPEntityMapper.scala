@@ -957,7 +957,6 @@ class LDAPEntityMapper(
   //////////////////////////////    Parameters    //////////////////////////////
 
 
-
   /*
    * We need to know if the format is 6.0 and before or 6.1.
    * For that, we look if attribute `overridable` is present: if so, it's 6.0 or before
@@ -969,13 +968,12 @@ class LDAPEntityMapper(
       //OK, translate
       for {
         name        <- e.required(A_PARAMETER_NAME)
-        value       =  e(A_PARAMETER_VALUE).getOrElse("")
         description =  e(A_DESCRIPTION).getOrElse("")
         provider    =  e(A_PROPERTY_PROVIDER).map(PropertyProvider.apply)
-        parsed      <- value.parseGlobalParameter(e.hasAttribute("overridable")).left.map(err => Err.UnexpectedObject(err.fullMsg))
-      } yield {
-        GlobalParameter(name, parsed, description, provider)
-      }
+        parsed      =  e(A_PARAMETER_VALUE).getOrElse("").parseGlobalParameter(name, e.hasAttribute("overridable"))
+    } yield {
+      GlobalParameter(name, parsed, description, provider)
+    }
     } else Left(Err.UnexpectedObject("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_PARAMETER, e)))
   }
 
