@@ -15,7 +15,9 @@
 
 alias _rudder-lang_
 
-== Language Presentation
+== Preface
+
+=== Language Presentation
 
 This language is not:
 
@@ -29,7 +31,7 @@ It has no:
 * generator / generic iterator
 * way of looping except on finite list
 
-This language is a DSL (_domain-specific language_) targeted at *state definition*.
+This language is an _Open Source_  _DSL_ (_domain-specific language_) targeted at *state definition*.
 Everything that is not a state definition is a convenience for easier definition of a state.
 The compiler is very pedantic to avoid defining invalid states as much as possible.
 
@@ -52,6 +54,58 @@ include::examples/documentation_ntp.rl.cf[]
 ----
 // TODO: comparison with CFEngine, Puppet (mgmt ?)
 
+=== Abilities as of Rudder 6.1
+
+==== Purpose
+
+_rudder-lang_ purpose is to be the only technique generator tool (be it CFEngine, DSC, or JSON format)
+both as the _Technique Editor_ backend and as a language admins system can directly code in. 
+
+==== Present abilities
+
+_rudder-lang_ has just been deployed on _Rudder_ alongside the 6.1 version as an alpha tool.
+
+Currently it works in parallel with the main _NCF_ technique generator. However it has no incidence on the user since it is only called for testing purposes.
+
+How it is being used with _Rudder_ is explained in details (<<integration,here>>)
+
+But what is _rudder-lang_ (and _rudderc_) already able to do?
+
+- Generate techniques written in _rudder-lang_ into: _CFEngine_
+- Translate techniques written in _JSON_ into: _rudder-lang_
+
+These abilites make use of the following features:
+
+* A functional and evolutive *parser*
+* Variables based on a *type system* composed of strings, integers, booleans, structs, lists
+* A proper and contextualized *error handler* (helping you to write _rudder-lang_)
+* _rudder-lang_ *libraries*, automatically generated based on the last _rudder_ version, including:
+** Supported OSes
+** Available resources (and their relative states)
+** Reserved namespaces
+* Sugar features such as:
+** Aliases
+** Expressions and statements
+** Metadatas
+** Comments
+* Usage of parameters and configuration files (technique names and paths as input and output, libraires paths etc)
+* *Logs* generation, including log output settings like verbosity or format
+
+==== Short-term future abilities
+
+* Generate techniques written in _rudder-lang_ into: _DSC_
+* Generate techniques written in _rudder-lang_ into: _JSON_
+* Error feedback directly in the _Technique Editor_
+* Enhanced (or refactored):
+** Variable handling (for example in conditions)
+** _CFEngine_ generation
+
+==== Long-term future abilities
+
+* New keywords including the _action_, _measure_, _function_ keywords
+* Fully rewrite the ncf library into a self-susfficient _rudder-lang_ library
+* Plain integration and usage of _rudder-lang_ into _Rudder_ whether as code or into the _Technique Editor_
+* Various improvements and some reworks
 
 // == Concepts
 include::concepts.adoc[leveloffset=+1]
@@ -81,3 +135,7 @@ include::operating-systems.adoc[leveloffset=+2]
 = Rudder-lang usage
 
 include::usage.adoc[leveloffset=+1]
+
+= Integration to Rudder
+
+include::integration.adoc[leveloffset=+1]
