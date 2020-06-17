@@ -53,7 +53,7 @@ import zio.syntax._
 import scala.collection.SortedSet
 
 class TechniqueRepositoryImpl(
-  techniqueReader: TechniqueReader
+    techniqueReader: TechniqueReader
   , refLibCallbacks: Seq[TechniquesLibraryUpdateNotification]
   , uuidGen        : StringUuidGenerator
 ) extends TechniqueRepository with UpdateTechniqueLibrary with Loggable {

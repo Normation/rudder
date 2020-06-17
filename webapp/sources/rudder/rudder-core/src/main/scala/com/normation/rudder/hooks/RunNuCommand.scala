@@ -79,7 +79,9 @@ import zio.syntax._
  * It correspond to anything separated by a white space in an
  * unix command line.
  */
-final case class Cmd(cmdPath: String, parameters: List[String], environment: Map[String, String])
+final case class Cmd(cmdPath: String, parameters: List[String], environment: Map[String, String]) {
+  def display = s"${cmdPath} ${parameters.mkString(" ")}"
+}
 final case class CmdResult(code: Int, stdout: String, stderr: String)
 
 object RunNuCommand {
@@ -97,7 +99,7 @@ object RunNuCommand {
       BasePosixProcess.LOGGER.setUseParentHandlers(false)
       val h = new ConsoleHandler()
       h.setFormatter(new SimpleFormatter() {
-        private val format = "%1$tFT%1$tT%1$tz %2$-7s %3$s: %4$s"
+        private val format = "[%1$tFT%1$tT%1$tz] %2$-7s %3$s: %4$s\n"
         override def format(lr: LogRecord): String = {
           val msg = if(lr.getMessage == "Failed to start process") {
             "Failed to execute shell command from Rudder"
@@ -170,13 +172,12 @@ object RunNuCommand {
      *
      */
     import scala.jdk.CollectionConverters._
-    val cmdInfo =  s"'${cmd.cmdPath} ${cmd.parameters.mkString(" ")}'"
-    val errorMsg = s"Error when executing command ${cmdInfo}"
+    val errorMsg = s"Error when executing command ${cmd.display}"
 
 
     (for {
       _              <- ZIO.when(limit == Infinity|| limit.toMillis <= 0) {
-                          logger.warn(s"No duration limit set for command '${cmd.cmdPath} ${cmd.parameters.mkString(" ")}'. " +
+                          logger.warn(s"No duration limit set for command '${cmd.display}'. " +
                               "That can create a pill of zombies if termination of the command is not correct")
                         }
       promise        <- Promise.make[Nothing, CmdResult]
@@ -196,7 +197,7 @@ object RunNuCommand {
        */
       process        <- IOResult.effectNonBlocking(errorMsg)(processBuilder.start())
       _              <- if(process == null) {
-                          Unexpected(s"Error: unable to start native command ${cmdInfo}").fail
+                          Unexpected(s"Error: unable to start native command ${cmd.display}").fail
                         } else {
                           // that class#method does not accept interactive mode
                           // this part can block, waiting for things to complete
