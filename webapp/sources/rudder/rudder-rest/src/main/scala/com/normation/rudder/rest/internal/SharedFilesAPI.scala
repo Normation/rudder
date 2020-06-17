@@ -382,10 +382,10 @@ class SharedFilesAPI(
             val path = File(s"/var/rudder/configuration-repository/workspace/${techniqueId}/${techniqueVersion}/resources")
             val pf = requestDispatch(path)
             pf.isDefinedAt(req.withNewPath(req.path.drop(3)))
-          case techniqueId :: techniqueVersion :: _ =>
-            val path = File(s"/var/rudder/configuration-repository/techniques/ncf_techniques/${techniqueId}/${techniqueVersion}/resources")
+          case techniqueId :: techniqueVersion :: category =>
+            val path = File(s"/var/rudder/configuration-repository/techniques/${category}/${techniqueId}/${techniqueVersion}/resources")
             val pf = requestDispatch(path)
-            pf.isDefinedAt(req.withNewPath(req.path.drop(3)))
+            pf.isDefinedAt(req.withNewPath(req.path.drop(req.path.partPath.size)))
           case _ => false
         }
       }
@@ -396,11 +396,11 @@ class SharedFilesAPI(
             path.createIfNotExists(true,true)
             val pf = requestDispatch(path)
             pf.apply(req.withNewPath(req.path.drop(3)))
-          case techniqueId :: techniqueVersion  :: _ =>
-            val path = File(s"/var/rudder/configuration-repository/techniques/ncf_techniques/${techniqueId}/${techniqueVersion}/resources")
+          case techniqueId :: techniqueVersion  :: category =>
+            val path = File(s"/var/rudder/configuration-repository/techniques/${category.mkString("/")}/${techniqueId}/${techniqueVersion}/resources")
             path.createIfNotExists(true,true)
             val pf = requestDispatch(path)
-            pf.apply(req.withNewPath(req.path.drop(3)))
+            pf.apply(req.withNewPath(req.path.drop(req.path.partPath.size)))
           case _ => ( () => Failure("invalid request on shared file api"))
       }
     }
