@@ -93,19 +93,28 @@ class TechniqueAcceptationUpdater(
      */
     @scala.annotation.tailrec
     def findCategory(sourcesCatNames: List[CategoryInfo], existings: FullActiveTechniqueCategory): (ActiveTechniqueCategoryId, String) = {
-      if(sourcesCatNames.isEmpty ) (existings.id, existings.name)
-      else {
-        val catId = sourcesCatNames.head.id.trim
-
-        existings.subCategories.find { cat => cat.id.value == catId} match {
-          case None =>
-            //create and go deeper
-            createCategories(sourcesCatNames.map(x => CategoryInfo(x.id, x.name, x.description)), (existings.id, existings.name))
-          case Some(cat) =>
-            // continue !
-            findCategory(sourcesCatNames.tail, cat)
-
-        }
+      sourcesCatNames match {
+        case Nil               =>  (existings.id, existings.name)
+        case child :: children =>
+          val catId = child.id.trim
+          existings.subCategories.find { cat => cat.id.value == catId} match {
+            case None =>
+              // we need to check for name existence before attempting to create it.
+              // it used to be possible to have activeTechniqueId != category file name in fs
+              // see https://issues.rudder.io/issues/17774
+              val catName = child.name.trim
+              existings.subCategories.find { cat => cat.name.trim == catName} match {
+                case None =>
+                  //create and go deeper
+                  createCategories(sourcesCatNames.map(x => CategoryInfo(x.id, x.name, x.description)), (existings.id, existings.name))
+                case Some(cat) =>
+                  // continue !
+                  findCategory(children, cat)
+              }
+            case Some(cat) =>
+              // continue !
+              findCategory(children, cat)
+          }
       }
     }
 
@@ -117,9 +126,8 @@ class TechniqueAcceptationUpdater(
     @scala.annotation.tailrec
     def createCategories(names: List[CategoryInfo], parentCategory: (ActiveTechniqueCategoryId, String)): (ActiveTechniqueCategoryId, String) = {
       names match {
-        case Nil => parentCategory
-        case head::tail =>
-          val info = names.head
+        case Nil        => parentCategory
+        case info::tail =>
           //to maintain sync, active techniques categories have the same ID than the corresponding technique category
           val cat = ActiveTechniqueCategory(ActiveTechniqueCategoryId(info.id), info.name, info.description, List(), List())
 

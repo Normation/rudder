@@ -723,10 +723,10 @@ class WoLDAPDirectiveRepository(
   ) : Box[ActiveTechniqueCategory] = {
     for {
       con                 <- ldap
-      parentCategoryEntry <- getCategoryEntry(con, into, "1.1") ?~! "The parent category '%s' was not found, can not add".format(into)
+      parentCategoryEntry <- getCategoryEntry(con, into, A_NAME) ?~! "The parent category '%s' was not found, can not add".format(into)
       categoryEntry       =  mapper.activeTechniqueCategory2ldap(that,parentCategoryEntry.dn)
       canAddByName        <- if(existsByName(con,parentCategoryEntry.dn, that.name, that.id.value)) {
-                               Failure("A category with that name already exists in that category: category names must be unique for a given level")
+                               Failure(s"A category with name '${that.name}' already exists in category '${parentCategoryEntry(A_NAME).getOrElse("UNKNOWN")}': category names must be unique for a given level")
                              } else {
                                Full("Can add, no sub categorie with that name")
                              }
@@ -752,10 +752,11 @@ class WoLDAPDirectiveRepository(
   def saveActiveTechniqueCategory(category:ActiveTechniqueCategory, modId : ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategory] = {
     for {
       con              <- ldap
-      oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1") ?~! "Entry with ID '%s' was not found".format(category.id)
+      oldCategoryEntry <- getCategoryEntry(con, category.id, A_NAME) ?~! "Entry with ID '%s' was not found".format(category.id)
       categoryEntry    =  mapper.activeTechniqueCategory2ldap(category,oldCategoryEntry.dn.getParent)
       canAddByName     <- if(categoryEntry.dn != rudderDit.ACTIVE_TECHNIQUES_LIB.dn && existsByName(con,categoryEntry.dn.getParent, category.name, category.id.value)) {
-                            Failure("A category with that name already exists in that category: category names must be unique for a given level")
+                            Failure(s"You can't rename category ${oldCategoryEntry(A_NAME).getOrElse("UNKNOWN")} into '${category.name}' because an other category with " +
+                                    s"that name already exists: category names must be unique for a given level")
                           } else {
                             Full("Can add, no sub categorie with that name")
                           }
@@ -831,7 +832,7 @@ class WoLDAPDirectiveRepository(
         canAddByName   <- (categoryEntry(A_TECHNIQUE_CATEGORY_UUID) , categoryEntry(A_NAME)) match {
                             case (Some(id),Some(name)) =>
                               if(existsByName(con, newParentEntry.dn, name, id)) {
-                                Failure("A category with that name already exists in that category: category names must be unique for a given level")
+                                Failure(s"A category with name '${name}' already exists in category '${newParentEntry(A_NAME).getOrElse("UNKNOWN")}': category names must be unique for a given level")
                               } else {
                                 Full("Can add, no sub categorie with that name")
                               }
