@@ -191,25 +191,41 @@ class WoLDAPParameterRepository(
     ))
   }
 
-  def delete(parameterName:String, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[DeleteGlobalParameterDiff] = {
+  def delete(parameterName: String, provider: Option[PropertyProvider], modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteGlobalParameterDiff]] = {
+    def show(provider: Option[PropertyProvider]) = provider match {
+      case None    => PropertyProvider.defaultPropertyProvider.value
+      case Some(p) => p.value
+    }
+
     for {
       con          <- ldap
-      oldParamEntry<- roLDAPParameterRepository.getGlobalParameter(parameterName).notOptional(s"Cannot delete Global Parameter '${parameterName}': there is no parameter with that name")
-      deleted      <- userLibMutex.writeLock {
-                        con.delete(roLDAPParameterRepository.rudderDit.PARAMETERS.parameterDN(parameterName)).chainError(s"Error when deleting Global Parameter with name ${parameterName}")
-                      }
-      diff         =  DeleteGlobalParameterDiff(oldParamEntry)
-      loggedAction <- actionLogger.saveDeleteGlobalParameter(modId, principal = actor, deleteDiff = diff, reason = reason)
-      autoArchive  <- ZIO.when(autoExportOnModify && deleted.nonEmpty) {
-                        for {
-                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                          archive  <- gitParameterArchiver.deleteParameter(parameterName,Some((modId, commiter, reason)))
-                        } yield {
-                          archive
-                        }
+      optOldParam  <- roLDAPParameterRepository.getGlobalParameter(parameterName)
+      res          <- optOldParam match {
+                        case None                => None.succeed
+                        case Some(oldParamEntry) =>
+                          for {
+                            _            <- if(GenericProperty.canBeUpdated(oldParamEntry.provider, provider)) UIO.unit
+                                            else Inconsistency(s"Parameter '${oldParamEntry.name}' which has property provider '${show(oldParamEntry.provider)}' " +
+                                                               s"can't be deleted by property provider '${show(provider)}'").fail
+                            deleted      <- userLibMutex.writeLock {
+                                              con.delete(roLDAPParameterRepository.rudderDit.PARAMETERS.parameterDN(parameterName)).chainError(s"Error when deleting Global Parameter with name ${parameterName}")
+                                            }
+                            diff         =  DeleteGlobalParameterDiff(oldParamEntry)
+                            loggedAction <- actionLogger.saveDeleteGlobalParameter(modId, principal = actor, deleteDiff = diff, reason = reason)
+                            autoArchive  <- ZIO.when(autoExportOnModify && deleted.nonEmpty) {
+                                              for {
+                                                commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                                archive  <- gitParameterArchiver.deleteParameter(parameterName,Some((modId, commiter, reason)))
+                                              } yield {
+                                                archive
+                                              }
+                                            }
+                          } yield {
+                            Some(diff)
+                          }
                       }
     } yield {
-      diff
+     res
     }
   }
 

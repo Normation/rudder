@@ -67,6 +67,7 @@ import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 
 import com.normation.rudder.domain.logger.ChangeRequestLogger
+import com.normation.rudder.domain.nodes.PropertyProvider
 import com.normation.rudder.services.queries.DynGroupUpdaterService
 
 /**
@@ -607,7 +608,10 @@ final case object CheckGlobalParameter extends CheckChanges[GlobalParameter]  {
         change <- change.changes.change
         diff   <- (change.diff match {
                     case DeleteGlobalParameterDiff(param) =>
-                      woParameterRepository.delete(param.name, modId, change.actor, change.reason)
+                      woParameterRepository.delete(param.name, Some(PropertyProvider.defaultPropertyProvider), modId, change.actor, change.reason).map {
+                        case None       => new TriggerDeploymentDiff { override def needDeployment: Boolean = false }
+                        case Some(diff) => diff
+                      }
                     case AddGlobalParameterDiff(param) =>
                       woParameterRepository.saveParameter(param, modId, change.actor, change.reason)
                     case ModifyToGlobalParameterDiff(param) =>

@@ -40,8 +40,8 @@ import com.normation.rudder.domain.parameters._
 import com.normation.eventlog.ModificationId
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.archives.ParameterArchiveId
-
 import com.normation.errors._
+import com.normation.rudder.domain.nodes.PropertyProvider
 
 /**
  * The Parameter Repository (Read Only) to read parameters from LDAP
@@ -58,7 +58,7 @@ trait WoParameterRepository {
 
   def updateParameter(parameter : GlobalParameter, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[ModifyGlobalParameterDiff]]
 
-  def delete(parameterName:String, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[DeleteGlobalParameterDiff]
+  def delete(parameterName:String, provider: Option[PropertyProvider], modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[DeleteGlobalParameterDiff]]
 
   /**
    * A (dangerous) method that replace all existing parameters
