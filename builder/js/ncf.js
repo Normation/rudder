@@ -318,7 +318,7 @@ function defineMethodClassContext (method_call) {
   }
 }
 function updateResources() {
-  var urlParam= ($scope.originalTechnique.bundle_name !== undefined) ? $scope.selectedTechnique.bundle_name : "draft/" + $scope.selectedTechnique.internalId
+  var urlParam= ($scope.originalTechnique.bundle_name !== undefined) ?  $scope.selectedTechnique.bundle_name : "draft/" + $scope.selectedTechnique.internalId
   var resourceUrl = '/rudder/secure/api/internal/techniques/' + urlParam +"/" + $scope.selectedTechnique.version +"/resources"
   $http.get(resourceUrl).then(
     function(response) {
@@ -334,8 +334,8 @@ function updateResources() {
 }
 function updateFileManagerConf () {
   $scope.fileManagerState.updating = true;
-  var urlParam= $scope.originalTechnique.bundle_name !== undefined ? $scope.selectedTechnique.bundle_name : "draft/" + $scope.selectedTechnique.internalId
-  var newUrl =  "/rudder/secure/api/resourceExplorer/"+ urlParam +"/" + $scope.selectedTechnique.version
+  var urlParam= $scope.originalTechnique.bundle_name !== undefined ? $scope.selectedTechnique.bundle_name+"/" + $scope.selectedTechnique.version +"/" + $scope.selectedTechnique.category : "draft/" + $scope.selectedTechnique.internalId +"/" + $scope.selectedTechnique.version
+  var newUrl =  "/rudder/secure/api/resourceExplorer/"+ urlParam
   updateResources()
 
   apiHandler.prototype.deferredHandler = function(data, deferred, code, defaultMsg) {
