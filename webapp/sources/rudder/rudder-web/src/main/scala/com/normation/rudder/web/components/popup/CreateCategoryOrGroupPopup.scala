@@ -281,7 +281,7 @@ class CreateCategoryOrGroupPopup(
         ).toBox match {
           case Full(x) =>
             closePopup() &
-            onSuccessCallback(x.group.id.value) & onSuccessGroup(Right(x.group), NodeGroupCategoryId(piContainer.get))
+            onSuccessCallback(x.group.id.value) & onSuccessGroup(Right(x.group), NodeGroupCategoryId(piContainer.get)) & OnLoad(JsRaw("""$("[href='#groupCriteriaTab']").click();"""))
           case Empty =>
             logger.error("An error occurred while saving the group")
             formTracker.addFormError(error("An error occurred while saving the group"))
