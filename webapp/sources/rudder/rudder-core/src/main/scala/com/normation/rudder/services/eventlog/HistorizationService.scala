@@ -117,7 +117,11 @@ class HistorizationServiceImpl(
       // detect changes
       val changed = nodeInfos.filter(x => registered.get(x.id.value) match {
         case None => true
-        case Some(entry) => (entry.nodeName != x.hostname || entry.nodeDescription != Some(x.description) )
+        case Some(entry) =>
+          // If description is empty, serialization is None, so we need to compare "" with Some(""), and None
+          val differentDescription = ( x.description != "" && entry.nodeDescription != Some(x.description) ) ||
+            (x.description == "" && (entry.nodeDescription != None && entry.nodeDescription != Some("") ) )
+          (entry.nodeName != x.hostname || differentDescription )
       })
 
       // a node closable is a node that is current in the database, but don't exist in the
@@ -142,8 +146,12 @@ class HistorizationServiceImpl(
       val changed = nodeGroups.filter(x => registered.get(x.nodeGroup.id.value) match {
         case None => true
         case Some((entry, nodes)) =>
+          // If description is empty, serialization is None, so we need to compare "" with Some(""), and None
+          val differentDescription = ( x.nodeGroup.description != "" && entry.groupDescription != Some(x.nodeGroup.description) ) ||
+            (x.nodeGroup.description == "" && (entry.groupDescription != None && entry.groupDescription != Some("") ) )
+
           (entry.groupName != x.nodeGroup.name ||
-           entry.groupDescription != Some(x.nodeGroup.description) ||
+            differentDescription ||
            nodes.map(x => NodeId(x.nodes)).toSet != x.nodeGroup.serverList ||
            DB.Historize.fromSQLtoDynamic(entry.groupStatus) != Some(x.nodeGroup.isDynamic))
       }).toSeq.map( _.nodeGroup )
@@ -176,9 +184,14 @@ class HistorizationServiceImpl(
       val changed = directives.values.filter { case (technique, fullActiveTechnique, directive) =>
         registered.get(directive.id.value) match {
           case None => true
-          case Some(entry) => (
+          case Some(entry) =>
+            // If  short description is empty, serialization is None, so we need to compare "" with Some(""), and None
+            val differentShortDescription = ( directive.shortDescription != "" && entry.directiveDescription != Some(directive.shortDescription) ) ||
+              (directive.shortDescription == "" && (entry.directiveDescription != None && entry.directiveDescription != Some("") ) )
+
+            (
               entry.directiveName != directive.name
-           || entry.directiveDescription != Some(directive.shortDescription)
+           || differentShortDescription
            || entry.priority != directive.priority
            || entry.techniqueHumanName != technique.name
            || entry.techniqueName != fullActiveTechnique.techniqueName.value
