@@ -106,6 +106,12 @@ class HistorizationServiceImpl(
     }
   }
 
+  // Compare and Option[String] with a String, to check if they are equals
+  // returns true if entry is Some(value), or if entry is none or Some("") and value is ""
+  private[this] def compareOptionString(entry: Option[String], value:String): Boolean = {
+    entry.getOrElse("") == value
+  }
+
   override def updateNodes(allNodeInfo: Set[NodeInfo]) : Box[Unit] = {
 
     val nodeInfos = allNodeInfo.filterNot(_.isPolicyServer).toSeq
@@ -117,7 +123,8 @@ class HistorizationServiceImpl(
       // detect changes
       val changed = nodeInfos.filter(x => registered.get(x.id.value) match {
         case None => true
-        case Some(entry) => (entry.nodeName != x.hostname || entry.nodeDescription != Some(x.description) )
+        case Some(entry) =>
+          (entry.nodeName != x.hostname || !compareOptionString(entry.nodeDescription, x.description) )
       })
 
       // a node closable is a node that is current in the database, but don't exist in the
@@ -143,7 +150,7 @@ class HistorizationServiceImpl(
         case None => true
         case Some((entry, nodes)) =>
           (entry.groupName != x.nodeGroup.name ||
-           entry.groupDescription != Some(x.nodeGroup.description) ||
+            !compareOptionString(entry.groupDescription, x.nodeGroup.description) ||
            nodes.map(x => NodeId(x.nodes)).toSet != x.nodeGroup.serverList ||
            DB.Historize.fromSQLtoDynamic(entry.groupStatus) != Some(x.nodeGroup.isDynamic))
       }).toSeq.map( _.nodeGroup )
@@ -176,9 +183,10 @@ class HistorizationServiceImpl(
       val changed = directives.values.filter { case (technique, fullActiveTechnique, directive) =>
         registered.get(directive.id.value) match {
           case None => true
-          case Some(entry) => (
+          case Some(entry) =>
+            (
               entry.directiveName != directive.name
-           || entry.directiveDescription != Some(directive.shortDescription)
+           || !compareOptionString(entry.directiveDescription, directive.shortDescription)
            || entry.priority != directive.priority
            || entry.techniqueHumanName != technique.name
            || entry.techniqueName != fullActiveTechnique.techniqueName.value
