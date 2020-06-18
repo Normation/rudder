@@ -106,6 +106,12 @@ class HistorizationServiceImpl(
     }
   }
 
+  // Compare and Option[String] with a String, to check if they are equals
+  // returns true if entry is Some(value), or if entry is none or Some("") and value is ""
+  private[this] def compareOptionString(entry: Option[String], value:String): Boolean = {
+    entry.getOrElse("") == value
+  }
+
   override def updateNodes(allNodeInfo: Set[NodeInfo]) : Box[Unit] = {
 
     val nodeInfos = allNodeInfo.filterNot(_.isPolicyServer).toSeq
@@ -118,10 +124,7 @@ class HistorizationServiceImpl(
       val changed = nodeInfos.filter(x => registered.get(x.id.value) match {
         case None => true
         case Some(entry) =>
-          // If description is empty, serialization is None, so we need to compare "" with Some(""), and None
-          val differentDescription = ( x.description != "" && entry.nodeDescription != Some(x.description) ) ||
-            (x.description == "" && (entry.nodeDescription != None && entry.nodeDescription != Some("") ) )
-          (entry.nodeName != x.hostname || differentDescription )
+          (entry.nodeName != x.hostname || !compareOptionString(entry.nodeDescription, x.description) )
       })
 
       // a node closable is a node that is current in the database, but don't exist in the
@@ -146,12 +149,8 @@ class HistorizationServiceImpl(
       val changed = nodeGroups.filter(x => registered.get(x.nodeGroup.id.value) match {
         case None => true
         case Some((entry, nodes)) =>
-          // If description is empty, serialization is None, so we need to compare "" with Some(""), and None
-          val differentDescription = ( x.nodeGroup.description != "" && entry.groupDescription != Some(x.nodeGroup.description) ) ||
-            (x.nodeGroup.description == "" && (entry.groupDescription != None && entry.groupDescription != Some("") ) )
-
           (entry.groupName != x.nodeGroup.name ||
-            differentDescription ||
+            !compareOptionString(entry.groupDescription, x.nodeGroup.description) ||
            nodes.map(x => NodeId(x.nodes)).toSet != x.nodeGroup.serverList ||
            DB.Historize.fromSQLtoDynamic(entry.groupStatus) != Some(x.nodeGroup.isDynamic))
       }).toSeq.map( _.nodeGroup )
@@ -185,13 +184,9 @@ class HistorizationServiceImpl(
         registered.get(directive.id.value) match {
           case None => true
           case Some(entry) =>
-            // If  short description is empty, serialization is None, so we need to compare "" with Some(""), and None
-            val differentShortDescription = ( directive.shortDescription != "" && entry.directiveDescription != Some(directive.shortDescription) ) ||
-              (directive.shortDescription == "" && (entry.directiveDescription != None && entry.directiveDescription != Some("") ) )
-
             (
               entry.directiveName != directive.name
-           || differentShortDescription
+           || !compareOptionString(entry.directiveDescription, directive.shortDescription)
            || entry.priority != directive.priority
            || entry.techniqueHumanName != technique.name
            || entry.techniqueName != fullActiveTechnique.techniqueName.value
