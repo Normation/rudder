@@ -136,6 +136,7 @@
 .rudder-template .template-main .main-header{
   padding: 15px;
   max-height: initial;
+  position: static;
 }
 .rudder-template.one-col .template-main .main-header{
   padding: 15px 30px;
@@ -182,6 +183,10 @@
   height: calc(100vh - 50px);
   overflow: hidden;
 }
+#headerBar ~ .content-wrapper .rudder-template .template-main .main-container{
+  height: calc(100vh - 80px);
+}
+
 .rudder-template .template-main .main-container .row{
   height: initial;
 }
