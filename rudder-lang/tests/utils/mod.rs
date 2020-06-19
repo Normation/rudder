@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use rudderc::{
-    Action,
-    Format
-};
+use rudderc::{Action, Format};
 
 const RLFILES_PATH: &'static str = "tests/test_files/source_rl";
 const TESTFILES_PATH: &'static str = "tests/test_files/tmp";
@@ -65,7 +62,12 @@ fn should_compile(technique_name: &str) -> bool {
 }
 
 /// Compile technique from base crate and expose its result
-fn compile_file(source: &Path, dest: &Path, technique_name: &str, format: &Format) -> Result<(), String> {
+fn compile_file(
+    source: &Path,
+    dest: &Path,
+    technique_name: &str,
+    format: &Format,
+) -> Result<(), String> {
     let io = rudderc::io::IOContext {
         stdlib: PathBuf::from("libs/"),
         generic_methods: PathBuf::from("tools/generic_methods.toml"),

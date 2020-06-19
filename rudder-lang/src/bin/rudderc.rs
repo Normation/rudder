@@ -19,12 +19,7 @@ use std::process::exit;
 use structopt::StructOpt;
 
 use rudderc::{
-    compile::compile_file,
-    logger::Logger,
-    translate::translate_file,
-    io,
-    opt::Opt,
-    Action,
+    compile::compile_file, io, logger::Logger, opt::Opt, translate::translate_file, Action,
 };
 
 // MAIN
@@ -84,11 +79,7 @@ fn main() {
     let ctx: io::IOContext = io::get(action, &opt.io).unwrap_or_else(|e| {
         error!("{}", e);
         // required before returning in order to have proper logging
-        logger.end(
-            false,
-            "input not set",
-            "output not set",
-        );
+        logger.end(false, "input not set", "output not set");
         exit(1);
     });
 

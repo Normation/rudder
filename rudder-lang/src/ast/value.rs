@@ -61,10 +61,17 @@ impl<'src> TryFrom<&StringObject<'src>> for String {
     type Error = Error; // rudder-lang
 
     fn try_from(value: &StringObject<'src>) -> Result<Self> {
-        if value.data.iter().any(|x| match x { PInterpolatedElement::Static(_) => false, _ => true } ) {
-            fail!(value.pos, "Value cannot be extracted since it contains data");
+        if value.data.iter().any(|x| match x {
+            PInterpolatedElement::Static(_) => false,
+            _ => true,
+        }) {
+            fail!(
+                value.pos,
+                "Value cannot be extracted since it contains data"
+            );
         }
-        Ok(value.data
+        Ok(value
+            .data
             .iter()
             .map(|x| match x {
                 PInterpolatedElement::Static(s) => s.clone(),

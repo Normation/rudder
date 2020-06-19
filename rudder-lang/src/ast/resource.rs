@@ -13,9 +13,7 @@ use std::collections::{hash_map::Entry, HashMap, HashSet};
 ///! - Error vec: data partially created, you may continue
 
 /// Create final metadata from parsed metadata
-pub fn create_metadata(
-    pmetadata: Vec<PMetadata>,
-) -> (Vec<Error>, HashMap<Token, Value>) {
+pub fn create_metadata(pmetadata: Vec<PMetadata>) -> (Vec<Error>, HashMap<Token, Value>) {
     let mut errors = Vec::new();
     let mut metadata = HashMap::new();
     for meta in pmetadata {

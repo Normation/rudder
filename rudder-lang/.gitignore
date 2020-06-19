@@ -3,3 +3,4 @@
 *.iml
 /.idea
 /tests/test_files/tmp
+/tools/myrudderc.conf

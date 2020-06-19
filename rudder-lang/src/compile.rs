@@ -5,8 +5,8 @@ use crate::{
     ast::AST,
     error::*,
     generators::*,
-    parser::{Token, PAST},
     io::IOContext,
+    parser::{Token, PAST},
 };
 
 use colored::Colorize;
@@ -34,7 +34,13 @@ pub fn parse_stdlib<'src>(
                 let path = entry.path();
                 parse_file(past, sources, path)?;
             }
-            Err(err) => return Err(err!(Token::new(&stdlib_dir.to_string_lossy(), ""), "{}", err)),
+            Err(err) => {
+                return Err(err!(
+                    Token::new(&stdlib_dir.to_string_lossy(), ""),
+                    "{}",
+                    err
+                ))
+            }
         }
     }
 
@@ -51,7 +57,11 @@ pub fn parse_file<'src>(
         Some(file) => file.to_string_lossy().to_string(),
         None => return Err(Error::User(format!("{:?} should be a .rl file", path))),
     });
-    info!("|- {} {}", "Parsing".bright_green(), filename.bright_yellow());
+    info!(
+        "|- {} {}",
+        "Parsing".bright_green(),
+        filename.bright_yellow()
+    );
     match fs::read_to_string(path) {
         Ok(content) => {
             let content_str = sources.alloc(content);
@@ -62,17 +72,14 @@ pub fn parse_file<'src>(
 }
 
 /// Compile a file from rudder-lang to cfengine
-pub fn compile_file(
-    ctx: &IOContext,
-    technique: bool,
-) -> Result<()> {
+pub fn compile_file(ctx: &IOContext, technique: bool) -> Result<()> {
     let sources = Arena::new();
     let mut past = PAST::new();
 
     // add stdlib: resourcelib + corelib + oslib + cfengine_core
     parse_stdlib(&mut past, &sources, &ctx.stdlib)?;
 
-	// read and add files
+    // read and add files
     info!(
         "{} of {} into {}",
         "Processing compilation".bright_green(),
@@ -99,5 +106,11 @@ pub fn compile_file(
         (None, None)
     };
     let mut generator = new_generator(&ctx.format)?;
-    generator.generate(&ast, input_file, output_file, &ctx.generic_methods, technique)
+    generator.generate(
+        &ast,
+        input_file,
+        output_file,
+        &ctx.generic_methods,
+        technique,
+    )
 }

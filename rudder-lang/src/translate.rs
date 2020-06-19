@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::error::*;
-use crate::parser::Token;
-use crate::compile::parse_stdlib;
-use crate::parser::PAST;
-use crate::ast::AST;
 use crate::ast::value;
+use crate::ast::AST;
+use crate::compile::parse_stdlib;
+use crate::error::*;
 use crate::io::IOContext;
+use crate::parser::Token;
+use crate::parser::PAST;
 use colored::Colorize;
 use lazy_static::lazy_static;
 use nom::branch::alt;
@@ -17,7 +17,7 @@ use nom::combinator::*;
 use nom::multi::many1;
 use nom::sequence::*;
 use nom::IResult;
-use regex::{Regex, Captures};
+use regex::{Captures, Regex};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::convert::TryFrom;
@@ -62,15 +62,12 @@ pub fn translate_file(context: &IOContext) -> Result<()> {
         "Reading".bright_green(),
         generic_methods_path.bright_yellow()
     );
-    let config_data =
-        fs::read_to_string(generic_methods_path).map_err(|e| file_error(generic_methods_path, e))?;
-    let configuration: toml::Value =
-        toml::from_str(&config_data).map_err(|e| err!(Token::new(generic_methods_path, ""), "{}", e))?;
+    let config_data = fs::read_to_string(generic_methods_path)
+        .map_err(|e| file_error(generic_methods_path, e))?;
+    let configuration: toml::Value = toml::from_str(&config_data)
+        .map_err(|e| err!(Token::new(generic_methods_path, ""), "{}", e))?;
 
-    info!(
-        "|- {}",
-        "Reading stdlib".bright_green()
-    );
+    info!("|- {}", "Reading stdlib".bright_green());
     let sources = Arena::new();
     let mut past = PAST::new();
     parse_stdlib(&mut past, &sources, &context.stdlib)?;
@@ -89,7 +86,11 @@ pub fn translate_file(context: &IOContext) -> Result<()> {
         "|- {} (translation phase)",
         "Generating output code".bright_green()
     );
-    let translator = Translator { stdlib, technique, configuration };
+    let translator = Translator {
+        stdlib,
+        technique,
+        configuration,
+    };
     let rl_technique = translator.translate()?;
     fs::write(&context.dest, rl_technique).map_err(|e| file_error(&output_path, e))?;
     Ok(())
@@ -103,9 +104,11 @@ struct Translator<'src> {
 
 impl<'src> Translator<'src> {
     fn translate(&self) -> Result<String> {
-        let (parameters_meta, parameter_list) = self.translate_meta_parameters(&self.technique.parameter).unwrap();
+        let (parameters_meta, parameter_list) = self
+            .translate_meta_parameters(&self.technique.parameter)
+            .unwrap();
         // let parameter_list = self.technique.bundle_args.join(","); // bundle_args not used anynmore
-        // sounds like parameters are taken from technique parameter field TODO : monitor resource parameters behavior 
+        // sounds like parameters are taken from technique parameter field TODO : monitor resource parameters behavior
         let calls = map_strings_results(
             self.technique.method_calls.iter(),
             |c| self.translate_call(c),
@@ -137,18 +140,23 @@ resource {bundle_name}({parameter_list})
     }
 
     fn get_method_from_stdlib(&self, method_name: &str) -> Option<(String, String)> {
-        let matched_pairs: Vec<(&str, &str)> = self.stdlib
+        let matched_pairs: Vec<(&str, &str)> = self
+            .stdlib
             .resources
             .iter()
             .filter_map(|(res_as_tk, resdef)| {
                 if method_name.starts_with(**res_as_tk) {
-                    let matched_pairs = resdef.states.iter().filter_map(|(state_as_tk, _)| {
-                        if method_name == &format!("{}_{}", **res_as_tk, **state_as_tk) {
-                            return Some((**res_as_tk, **state_as_tk))
-                        }
-                        None
-                    }).collect::<Vec<(&str, &str)>>();
-                    return Some(matched_pairs)
+                    let matched_pairs = resdef
+                        .states
+                        .iter()
+                        .filter_map(|(state_as_tk, _)| {
+                            if method_name == &format!("{}_{}", **res_as_tk, **state_as_tk) {
+                                return Some((**res_as_tk, **state_as_tk));
+                            }
+                            None
+                        })
+                        .collect::<Vec<(&str, &str)>>();
+                    return Some(matched_pairs);
                 }
                 None
             })
@@ -157,14 +165,22 @@ resource {bundle_name}({parameter_list})
         match matched_pairs.as_slice() {
             [] => None,
             [(resource, state)] => Some(((*resource).to_owned(), (*state).to_owned())),
-            _ => panic!(format!("The standard library contains several matches for the following method: {}", method_name))
+            _ => panic!(format!(
+                "The standard library contains several matches for the following method: {}",
+                method_name
+            )),
         }
     }
-    
+
     fn translate_call(&self, call: &MethodCall) -> Result<String> {
         let (resource, state) = match self.get_method_from_stdlib(&call.method_name) {
             Some(res) => res,
-            None => return Err(Error::User(format!("Invalid method name '{}'", call.method_name)))
+            None => {
+                return Err(Error::User(format!(
+                    "Invalid method name '{}'",
+                    call.method_name
+                )))
+            }
         };
 
         // split argument list
@@ -255,14 +271,8 @@ resource {bundle_name}({parameter_list})
                         .get("id")
                         .expect("Unable to parse id parameter")
                         .to_string();
-                    let description = &map
-                        .get("description")
-                        .unwrap_or(&json!(""))
-                        .to_string();
-                    let constraints = &map
-                        .get("constraints")
-                        .unwrap_or(&json!(""))
-                        .to_string();
+                    let description = &map.get("description").unwrap_or(&json!("")).to_string();
+                    let constraints = &map.get("constraints").unwrap_or(&json!("")).to_string();
                     parameters_meta.push_str(&format!(
                         r#"  {{ "name": {}, "id": {}, "description": {}, "constraints": {} }}{}"#,
                         name, id, description, constraints, ",\n"
@@ -299,7 +309,10 @@ resource {bundle_name}({parameter_list})
         let result = CLASS_RE.replace_all(&no_any, |caps: &Captures| {
             match self.translate_class(&caps[1]) {
                 Ok(s) => s,
-                Err(e) => {errs.push(e); "".into()}
+                Err(e) => {
+                    errs.push(e);
+                    "".into()
+                }
             }
         });
         if errs.is_empty() {
@@ -311,22 +324,43 @@ resource {bundle_name}({parameter_list})
 
     fn translate_class(&self, cond: &str) -> Result<String> {
         lazy_static! {
-        static ref METHOD_RE: Regex = Regex::new(r"^(\w+)_(\w+)$").unwrap();
-    }
+            static ref METHOD_RE: Regex = Regex::new(r"^(\w+)_(\w+)$").unwrap();
+        }
 
         // detect known system class
         for i in self.stdlib.enum_list.enum_item_iter("system".into()) {
-            match self.stdlib.enum_list.enum_item_metadata("system".into(),*i).expect("Enum item exists").get(&"cfengine_name".into()) {
-                None => if **i == cond { return Ok(cond.into()); },  // no @cfengine_name -> enum item = cfengine class
-                Some(value::Value::String(name)) => if String::try_from(name)? == cond { return Ok((**i).into()); }, // simple cfengine name
-                Some(value::Value::List(list)) => for value in list {
-                    if let value::Value::String(name) = value {
-                        if String::try_from(name)? == cond {
-                            return Ok((**i).into());
+            match self
+                .stdlib
+                .enum_list
+                .enum_item_metadata("system".into(), *i)
+                .expect("Enum item exists")
+                .get(&"cfengine_name".into())
+            {
+                None => {
+                    if **i == cond {
+                        return Ok(cond.into());
+                    }
+                } // no @cfengine_name -> enum item = cfengine class
+                Some(value::Value::String(name)) => {
+                    if String::try_from(name)? == cond {
+                        return Ok((**i).into());
+                    }
+                } // simple cfengine name
+                Some(value::Value::List(list)) => {
+                    for value in list {
+                        if let value::Value::String(name) = value {
+                            if String::try_from(name)? == cond {
+                                return Ok((**i).into());
+                            }
                         }
                     }
-                }, // list of cfengine names
-                _ => return Err(Error::User(format!("@cfengine_name must be a string or a list '{}'", *i))),
+                } // list of cfengine names
+                _ => {
+                    return Err(Error::User(format!(
+                        "@cfengine_name must be a string or a list '{}'",
+                        *i
+                    )))
+                }
             }
         }
 
@@ -334,7 +368,7 @@ resource {bundle_name}({parameter_list})
         if cond.starts_with("group_") {
             // group classes are implemented with boolean variables of the sane name
             // TODO declare the variable
-            return Ok(cond.into())
+            return Ok(cond.into());
         }
 
         // detect method outcome class
