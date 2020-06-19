@@ -49,6 +49,8 @@ chgrp rudder-policy-reader /var/rudder/share
 chmod g+s-w /var/rudder/share
 
 # change some directory to rudder owner
+chown -R root:rudder /var/rudder/configuration-repository/shared-files
+chmod 2750 /var/rudder/configuration-repository/shared-files
 chown -R rudder-relayd:rudder /var/rudder/shared-files
 chmod 770 /var/rudder/shared-files
 chmod 755 /var/rudder/inventories
