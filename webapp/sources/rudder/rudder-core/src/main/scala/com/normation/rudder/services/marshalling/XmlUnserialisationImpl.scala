@@ -231,11 +231,16 @@ class NodeGroupUnserialisationImpl(
       isSystem        <- (group \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type nodeGroup : " + entry)
       properties      <- sequence((group \ "properties" \ "property").toList) {
                            case <property>{p @ _*}</property> =>
-                             GroupProperty.parse(
-                                 (p\"name").text.trim
-                               , (p\"value").text.trim
-                               , (p\"provider").headOption.map(p => PropertyProvider(p.text.trim))
-                             ).toBox
+                             val name = (p \\ "name").text.trim
+                             if(name.isBlank) {
+                               Failure(s"Found unexpected xml under <properties> tag (name is blank): ${p}")
+                             } else {
+                               GroupProperty.parse(
+                                   (p\\"name").text.trim
+                                 , (p\\"value").text.trim
+                                 , (p\\"provider").headOption.map(p => PropertyProvider(p.text.trim))
+                               ).toBox
+                             }
                            case xml                           => Failure(s"Found unexpected xml under <properties> tag: ${xml}")
                          }
     } yield {
@@ -445,7 +450,7 @@ class ChangeRequestChangesUnserialisationImpl (
             initialNode  <- (group \ "initialState").headOption
             initialState <- (initialNode \ "nodeGroup").headOption match {
               case Some(initialState) => nodeGroupUnserialiser.unserialise(initialState) match {
-                case Full(group) => Full(Some(group))
+                case Full(group)   => Full(Some(group))
                 case eb : EmptyBox => eb ?~! "could not unserialize group"
               }
               case None => Full(None)

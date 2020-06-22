@@ -154,9 +154,9 @@ class NodeGroupForm(
 
   val pendingChangeRequestXml =
     <div id="pendingChangeRequestNotification">
-      <div>
+      <div class="row">
         <i class="fa fa-exclamation-triangle warnicon" aria-hidden="true"></i>
-        <div style="float:left">
+        <div class="col-md-10">
           The following pending change requests affect this Group, you should check that your modification is not already pending:
           <ul id="changeRequestList"/>
         </div>
