@@ -37,6 +37,11 @@
 .section-title {
   border-bottom-color: #f08004 ;
 }
+
+#versionTable > thead > tr > th:last-child,
+#versionTable > tbody > tr > td:last-child{
+  display: none;
+}
 #versionTable + .checkbox-group{
   margin-top:4px;
 }
@@ -44,6 +49,7 @@
   margin: 0px 2px 0px 0px;
   position:relative;
   top:2px;
+  display: inline-block !important;
 }
 #versionTable + .checkbox-group input + label{
   font-weight:normal;
