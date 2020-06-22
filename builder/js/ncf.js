@@ -463,10 +463,6 @@ function toTechNcf (baseTechnique) {
   var technique = angular.copy(baseTechnique);
   var calls = technique.method_calls.map( function (method_call, method_index) {
     delete method_call.original_index;
-    method_call.args = method_call.parameters.map ( function ( param, param_index) {
-      return param.value;
-    });
-    return method_call;
   });
   technique.method_calls = calls;
   return technique;
@@ -713,7 +709,6 @@ $scope.exportTechnique = function(){
   var exportedTechnique = {
     type: 'ncf_technique', version: 1.0,
     data: {
-      bundle_args : $scope.selectedTechnique["bundle_args"],
       bundle_name : $scope.selectedTechnique["bundle_name"],
       description : $scope.selectedTechnique["description"],
       name        : $scope.selectedTechnique["name"],
@@ -1073,7 +1068,6 @@ $scope.onImportFileChange = function (fileEl) {
     , "description"  : ""
     , "version"      : "1.0"
     , "bundle_name"  : undefined
-    , "bundle_args"  : []
     , "parameter"    : []
     , "resources"    : []
     , "internalId"   : uuidv4()
@@ -1583,24 +1577,28 @@ $scope.onImportFileChange = function (fileEl) {
             var diffParams = false;
             var st_params, ct_params;
             for(var i=0; i<st.length; i++){
-              //Remove some properties that we don't want to compare
-              delete st[i].agent_support;
-              delete ct[i].agent_support;
-              delete st[i].promiser;
-              delete ct[i].promiser;
-              if(st[i].OS_class.minorVersion === undefined) delete st[i].OS_class.minorVersion;
-              if(st[i].OS_class.majorVersion === undefined) delete st[i].OS_class.majorVersion;
-              if(ct[i].OS_class.minorVersion === undefined) delete ct[i].OS_class.minorVersion;
-              if(ct[i].OS_class.majorVersion === undefined) delete ct[i].OS_class.majorVersion;
-              //Store parameters to compare them separetly
-              st_params = st[i].args;
-              delete st[i].args;
-              ct_params = ct[i].args;
-              delete ct[i].args;
-              for(var p in st_params){
-                if(st_params[p] != ct_params[p]){
-                  diffParams = true;
+              if (st[i].method_name === ct[i].method_name) {
+                //Remove some properties that we don't want to compare
+                delete st[i].agent_support;
+                delete ct[i].agent_support;
+                delete st[i].promiser;
+                delete ct[i].promiser;
+                if(st[i].OS_class.minorVersion === undefined) delete st[i].OS_class.minorVersion;
+                if(st[i].OS_class.majorVersion === undefined) delete st[i].OS_class.majorVersion;
+                if(ct[i].OS_class.minorVersion === undefined) delete ct[i].OS_class.minorVersion;
+                if(ct[i].OS_class.majorVersion === undefined) delete ct[i].OS_class.majorVersion;
+                //Store parameters to compare them separetly
+                st_params = st[i].parameters;
+                delete st[i].parameters;
+                ct_params = ct[i].parameters;
+                delete ct[i].parameters;
+                for(var p in st_params){
+                  if(st_params[p].value != ct_params[p].value){
+                    diffParams = true;
+                  }
                 }
+              } else {
+                diffParams = true
               }
             }
             diff  = diffParams || !angular.equals(st , ct);
