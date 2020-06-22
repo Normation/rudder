@@ -320,12 +320,11 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
           )
       }
 
-      ( ( "method_name"     -> call.methodId.value    )
-        ~ ( "class_context" -> call.condition         )
-        ~ ( "component"     -> call.component         )
-        ~ ( "args"          -> call.parameters.map(_._2) )
-        ~ ( "parameters"    -> params                 )
-        )
+      ( ( "method_name"   -> call.methodId.value )
+      ~ ( "class_context" -> call.condition      )
+      ~ ( "component"     -> call.component      )
+      ~ ( "parameters"    -> params              )
+      )
     }
 
     def serializeResource(resourceFile: ResourceFile) = {
