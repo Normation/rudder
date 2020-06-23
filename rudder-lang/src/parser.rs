@@ -988,6 +988,14 @@ fn pfile(i: PInput) -> PResult<PFile> {
     ))(i)
 }
 
+#[cfg(test)]
+pub fn test_new_pvalue(s: &str) -> PValue {
+    let res = pvaragent_declaration(
+        Token::from(s).into()
+    ).unwrap();
+    (res.1).1
+}
+
 // tests must be at the end to be able to test macros
 #[cfg(test)]
 pub mod tests; // pub for use by other tests only
