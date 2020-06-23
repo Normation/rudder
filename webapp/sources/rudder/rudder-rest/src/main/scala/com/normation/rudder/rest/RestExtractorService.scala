@@ -1165,18 +1165,37 @@ final case class RestExtractorService (
     }
   }
 
+  def extractMethodCallParameter(json : JValue) : Box[(ParameterId,String)] = {
+    for {
+      parameterId <- CompleteJson.extractJsonString(json,"name", s => Full(ParameterId(s)))
+      value       <- CompleteJson.extractJsonString(json,"value")
+    } yield {
+      (parameterId,value)
+    }
+  }
+
   def extractMethodCall (json : JValue, methods: Map[BundleName, GenericMethod]) : Box[MethodCall] = {
 
     for {
       methodId        <- CompleteJson.extractJsonString(json, "method_name", s => Full(BundleName(s)))
       condition       <- CompleteJson.extractJsonString(json, "class_context")
       component       <- OptionnalJson.extractJsonString(json, "component").map(_.getOrElse(methods.get(methodId).map(_.name).getOrElse(methodId.value)))
-      parameterValues <- CompleteJson.extractJsonArray(json , "args"){
+      // Args was removed in 6.1.0 and replaced by parameters. keept it when we are reading old format techniques, ie when migrating from 6.1
+      optArgs         <- OptionnalJson.extractJsonArray(json , "args"){
                            case JString(value) => Full(value)
                            case s => Failure(s"Invalid format of method call when extracting from json, expecting and array but got : ${s}")
                          }
+      // Parameters is the new correct starting from 6.1, it already contains all data we need
+      optParameters <- OptionnalJson.extractJsonArray(json,"parameters") (extractMethodCallParameter)
 
-      parameters = methods.get(methodId).toList.flatMap(_.parameters.map(_.id)).zip(parameterValues)
+      // For our parameters we take the new "parameters" and if empty, try parsing the "args"
+      parameters <- optParameters match {
+                      case Some(params) => Full(params)
+                      case None => optArgs match {
+                                     case Some(parameterValues) => Full(methods.get(methodId).toList.flatMap(_.parameters.map(_.id)).zip(parameterValues))
+                                     case None => Failure("Neither 'args' or 'parameters' defined for a method call")
+                                   }
+                    }
     } yield {
       MethodCall(methodId, parameters, condition, component)
     }
