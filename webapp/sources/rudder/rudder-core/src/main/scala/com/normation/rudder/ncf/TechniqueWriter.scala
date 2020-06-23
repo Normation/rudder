@@ -283,7 +283,11 @@ class TechniqueWriter (
     for {
       agentFiles <- writeAgentFiles(technique, methods, modId, committer)
       metadata   <- writeMetadata(technique, methods, modId, committer)
-      json       <- writeJson(technique)
+      // Before writing down technique, set all resources to Untouched state, and remove Delete resources, was the cause of #17750
+      updateResources  = technique.ressources.collect{case r if r.state != ResourceFileState.Deleted => r.copy(state = ResourceFileState.Untouched) }
+      techniqueWithResourceUpdated = technique.copy(ressources = updateResources)
+      json       <- writeJson(techniqueWithResourceUpdated)
+      // Commit technique with old resources, will effectively delete and add resources
       commit     <- archiver.commitTechnique(technique,json +: metadata +: agentFiles, modId, committer, s"Committing technique ${technique.name}")
     } yield {
       metadata +: agentFiles
