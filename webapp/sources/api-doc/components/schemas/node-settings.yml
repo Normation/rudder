@@ -18,7 +18,7 @@ properties:
           format: string or JSON
           example: AMS2
           description: Property value (can be a string or JSON object)
-  policy:
+  policyMode:
     type: string
     description: In which mode the node will apply its configuration policy. Use `default` to use the global mode.
     enum:
