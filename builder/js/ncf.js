@@ -463,6 +463,7 @@ function toTechNcf (baseTechnique) {
   var technique = angular.copy(baseTechnique);
   var calls = technique.method_calls.map( function (method_call, method_index) {
     delete method_call.original_index;
+    return method_call
   });
   technique.method_calls = calls;
   return technique;
