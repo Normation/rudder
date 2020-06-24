@@ -200,7 +200,7 @@ class RoLDAPDirectiveRepository(
   def containsDirective(id: ActiveTechniqueCategoryId) : UIO[Boolean] = {
     userLibMutex.readLock(for {
       con      <- ldap
-      category <- getCategoryEntry(con, id).notOptional(s"Entry with ID '${id}' was not found")
+      category <- getCategoryEntry(con, id).notOptional(s"Entry with ID '${id.value}' was not found")
       entries  <- con.searchSub(category.dn, IS(OC_DIRECTIVE), Seq[String]():_*)
       results  <- ZIO.foreach(entries)(x => mapper.entry2Directive(x).toIO)
     } yield {
@@ -806,7 +806,7 @@ class WoLDAPDirectiveRepository(
                                  archive  <- gitCatArchiver.archiveActiveTechniqueCategory(that,parents.map( _.id), Some((modId, commiter, reason)))
                                } yield archive
                              }
-      parentEntry         <- getCategoryEntry(con, into).chainError("Entry with ID '%s' was not found".format(into))
+      parentEntry         <- getCategoryEntry(con, into).chainError(s"Entry with ID '${into.value}' was not found")
       updatedParent       <- mapper.entry2ActiveTechniqueCategory(categoryEntry).chainError(s"Error when transforming LDAP entry '${categoryEntry}' into an active technique category").toIO
     } yield {
       updatedParent
