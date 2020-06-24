@@ -2010,23 +2010,36 @@ form.rudder-form .policymode-group .btn-group .btn,form.rudder-form .btn-group.y
   font-size:14px;
   line-height: 21px;
 }
-form.rudder-form .policymode-group .btn-group .btn .mode{
+.rudder-form + .policymode-group.readonly{
+  display: none !important;
+}
+.policymode-group.readonly{
+  font-size: 14px;
+}
+.policymode-group .mode{
   color: #3694d1;
   top: 2px;
   right: -2px;
 }
-form.rudder-form .policymode-group .btn-group .btn .mode.enforce{
+.policymode-group .mode.enforce{
   color: #9bc832;
 }
-form.rudder-form .policymode-group .btn-group .btn .mode:before{
+.policymode-group .mode:before{
   content: "(";
   color: #757575;
   margin: 0 0 0 2px;
 }
-form.rudder-form .policymode-group .btn-group .btn .mode:after{
+.policymode-group .mode:after{
   content: ")";
   color: #757575;
   margin: 0 2px 0 0;
+}
+.policymode-group .mode.node{
+  text-transform: capitalize;
+}
+.policymode-group .mode.node:before,
+.policymode-group .mode.node:after{
+  content: initial !important;
 }
 form.rudder-form .policymode-group .btn-group .btn.audit.active,form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   color:#fff;

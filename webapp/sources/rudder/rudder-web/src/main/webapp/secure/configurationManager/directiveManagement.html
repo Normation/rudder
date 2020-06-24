@@ -175,6 +175,14 @@
               </div>
               <div id="techniqueVersion" ng-controller="techniqueVersion">
                 <h4>Available versions</h4>
+                <lift:authz role="directive_write">
+                  <style>
+                    #versionTable > thead > tr > th:last-child,
+                    #versionTable > tbody > tr > td:last-child{
+                      display: table-cell !important;
+                    }
+                  </style>
+                </lift:authz>
                 <table id="versionTable">
                   <thead>
                     <tr>
@@ -182,9 +190,7 @@
                       <th>Instances</th>
                       <th colspan="2">Agent type</th>
                       <th>Last updated on</th>
-                      <lift:authz role="directive_write">
-                        <th>Use this version</th>
-                      </lift:authz>
+                      <th>Use this version</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -207,11 +213,9 @@
                       <td>
                         {{technique.acceptationDate}}
                       </td>
-                      <lift:authz role="directive_write">
-                        <td>
-                          <button type="button" ng-click="technique.action()" class="btn btn-success new-icon btn-xs">Create Directive</button>
-                        </td>
-                      </lift:authz>
+                      <td>
+                        <button type="button" ng-click="technique.action()" class="btn btn-success new-icon btn-xs">Create Directive</button
+                      </td>
                     </tr>
                   </tbody>
                 </table>
