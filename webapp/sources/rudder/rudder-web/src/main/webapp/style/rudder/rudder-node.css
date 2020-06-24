@@ -388,3 +388,11 @@ pre.display-keys > label{
 .info-card.critical .card-info h4{
   color: #C80004;
 }
+
+/* SETTINGS TAB */
+.node-submit + .currentNodeState {
+  display: none;
+}
+.currentNodeState {
+  font-size: 14px;
+}

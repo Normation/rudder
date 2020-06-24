@@ -29,14 +29,17 @@
 
     <div class="col-xs-12">
       <form role="form" class="lift:form.ajax?class=form-horizontal%20rudder-form%20no-shadow">
-        <div class="globalConf form-group">
-          <select class="form-control input-sm" id="nodeStateSelect"></select>
-        </div>
         <lift:authz role="administration_write">
-          <div class="form-group">
+          <div class="globalConf form-group">
+            <select class="form-control input-sm" id="nodeStateSelect"></select>
+          </div>
+          <div class="form-group node-submit">
             <button type="submit" class="btn btn-default" id="nodeStateSubmit">Save changes</button>
           </div>
         </lift:authz>
+        <div class="currentNodeState form-group">
+          <label>Current state: </label> <span id="currentNodeState"></div>
+        </div>
         <div id="nodeStateMessage" class="col-xs-12">
           <span class="lift:Msg?nodeStateMessage">[messages]</span>
         </div>

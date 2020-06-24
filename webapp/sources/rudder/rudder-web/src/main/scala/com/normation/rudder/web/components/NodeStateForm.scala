@@ -97,6 +97,7 @@ class NodeStateForm(
     val bind = (
       "#nodeStateSelect"    #> SHtml.selectObj[NodeState](states, Full(state), state = _)
     & "#nodeStateSelect *+" #> SHtml.hidden(process _)
+    & "#currentNodeState *" #> state.name
     )
     bind(nodeStateTemplate)
   }
