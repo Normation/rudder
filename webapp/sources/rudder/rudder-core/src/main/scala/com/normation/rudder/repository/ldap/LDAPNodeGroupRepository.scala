@@ -582,11 +582,11 @@ class WoLDAPNodeGroupRepository(
     semaphore.flatMap(_.withPermit(
       for {
         con              <- ldap
-        oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1").notOptional("Entry with ID '%s' was not found".format(category.id))
+        oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1").notOptional(s"Entry with ID '${category.id.value}' was not found")
         categoryEntry    =  mapper.nodeGroupCategory2ldap(category,oldCategoryEntry.dn.getParent)
         exists           <- categoryExists(con, category.name, oldCategoryEntry.dn.getParent, category.id)
         canAddByName     <- if (exists)
-                              "Cannot update the Node Group Category with name %s : a category with the same name exists at the same level".format(category.name).fail
+                              s"Cannot update the Node Group Category with name '${category.name}': a category with the same name exists at the same level".fail
                             else UIO.unit
         result           <- groupLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
         updated          <- getGroupCategory(category.id)
@@ -614,8 +614,8 @@ class WoLDAPNodeGroupRepository(
         oldParents       <- if(autoExportOnModify) {
                               getParents_NodeGroupCategory(category.id)
                             } else Nil.succeed
-        oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1").notOptional("Entry with ID '%s' was not found".format(category.id))
-        newParent        <- getCategoryEntry(con, containerId, "1.1").notOptional("Parent entry with ID '%s' was not found".format(containerId))
+        oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1").notOptional(s"Entry with ID '${category.id.value}' was not found")
+        newParent        <- getCategoryEntry(con, containerId, "1.1").notOptional(s"Parent entry with ID '${containerId.value}' was not found")
         exists           <- categoryExists(con, category.name, newParent.dn, category.id)
         canAddByName     <- if (exists)
                               "Cannot update the Node Group Category with name %s : a category with the same name exists at the same level".format(category.name).fail
@@ -695,7 +695,7 @@ class WoLDAPNodeGroupRepository(
       exists        <- if (exists)
                          s"Cannot create a group '${nodeGroup.name}': a group with the same id (${nodeGroup.id.value}) or name already exists".fail
                        else UIO.unit
-      categoryEntry <- getCategoryEntry(con, into).notOptional("Entry with ID '%s' was not found".format(into))
+      categoryEntry <- getCategoryEntry(con, into).notOptional(s"Entry with ID '${into.value}' was not found")
       entry         =  mapper.nodeGroupToLdap(nodeGroup, categoryEntry.dn)
       result        <- groupLibMutex.writeLock { con.save(entry, true) }
       diff          <- diffMapper.addChangeRecords2NodeGroupDiff(entry.dn, result).toIO
@@ -716,7 +716,7 @@ class WoLDAPNodeGroupRepository(
   override def createPolicyServerTarget(policyServer : PolicyServerTarget, modId: ModificationId, actor:EventActor, reason:Option[String]): IOResult[LDIFChangeRecord] = {
     for {
       con           <- ldap
-      categoryEntry <-  getCategoryEntry(con, NodeGroupCategoryId("SystemGroups")).notOptional(s"Entry with ID 'SystemGroups' was not found")
+      categoryEntry <-  getCategoryEntry(con, NodeGroupCategoryId("SystemGroups")).notOptional("Entry with ID 'SystemGroups' was not found")
       entry         = rudderDit.RULETARGET.ruleTargetModel(policyServer.target, s"${policyServer.target} policy server", categoryEntry.dn ,s"Only the ${policyServer.target} policy server")
       result        <- con.save(entry, true)
     } yield {
