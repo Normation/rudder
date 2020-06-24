@@ -763,9 +763,8 @@
               </form>
               </div>
               <div class="col-auto main-footer">
-                <button ng-disabled="ui.editForm.$pending || ui.editForm.$invalid || CForm.form.$invalid || checkSelectedTechnique() || saving" class="btn btn-success btn-save" ng-class="{saving : saving}" ng-click="saveTechnique()">
-                  <span class="glyphicon glyphicon-cog saving"></span>
-                  Save <i class="fas fa-download"></i>
+                <button ng-disabled="ui.editForm.$pending || ui.editForm.$invalid || CForm.form.$invalid || checkSelectedTechnique() || saving" class="btn btn-success btn-save" ng-click="saveTechnique()">
+                  Save <i ng-class="{'glyphicon glyphicon-cog fa-spin':saving, 'fas fa-download':!saving}"></i>
                 </button>
                 <button ng-disabled="isUnchanged(selectedTechnique)" class="btn btn-outline-primary" ng-click="resetTechnique()">Reset <i class="fas fa-undo-alt"></i></button>
               </div>
