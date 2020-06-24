@@ -445,19 +445,59 @@ function updateFileManagerConf () {
 // Transform a ncf technique into a valid UI technique
 // Add original_index to the method call, so we can track their modification on index
 // Handle classes so we split them into OS classes (the first one only) and advanced classes
-function toTechUI (technique) {
+function toTechUI (technique, version) {
   if ("method_calls" in technique) {
     var calls = technique.method_calls.map( function (method_call, method_index) {
       method_call["original_index"] = method_index;
 
       // Handle class_context
       defineMethodClassContext(method_call)
+
+      // support of version 1.0, method parameters are formatted like that : 'args':[param1,param2 ...]
+      // be careful position of the parameters in 'args' define in which method's parameters  it will be paired
+      if(version == 1.0){
+        method_call.parameters=$scope.getMethodParameters(method_call)
+      }
+
       return method_call;
     } );
     technique.method_calls = calls;
   }
   return technique;
 };
+
+// to support version 1.0 of technique
+$scope.getMethodParameters = function(method_call) {
+  var params = [];
+  // parameter information are stored into generic methods (maybe a better solution would be to merge data when we fetch them ...)
+  if (method_call.method_name in $scope.generic_methods ) {
+    var method = angular.copy($scope.generic_methods[method_call.method_name]);
+    for (var i = 0; i < method.parameter.length; i++) {
+       var parameter = method.parameter[i];
+       var param_value = method_call.args[i];
+       // Maybe parameter does not exists in current method_call, replace with empty value
+       param_value = param_value !== undefined ? param_value : '';
+       parameter["value"] = param_value;
+       parameter["$errors"] = [];
+       params.push(parameter);
+    }
+  } else {
+    // We have no informations about this generic method, just call it 'parameter'
+    params = method_call.args.map( function(value) {
+               return {
+                   "name" : "Paramter"
+                 , "value" : value
+                 , "description" : "Unknown parameter"
+                 , "type" : "string"
+                 , "$errors" : []
+               };
+             });
+  }
+  return params;
+};
+
+
+
 // Transform a ui technique into a valid ncf technique by removint original_index param
 function toTechNcf (baseTechnique) {
   var technique = angular.copy(baseTechnique);
@@ -700,14 +740,14 @@ $scope.exportTechnique = function(){
   for (var i = 0; i < $scope.selectedTechnique['method_calls'].length; i++) {
     var call = $scope.selectedTechnique['method_calls'][i]
     calls[i] = {
-      args:          call["args"],
+      parameters:    call["parameters"],
       class_context: call["class_context"],
       method_name:   call["method_name"],
       component:     call["component"]
     }
   }
   var exportedTechnique = {
-    type: 'ncf_technique', version: 1.0,
+    type: 'ncf_technique', version: 2.0,
     data: {
       bundle_name : $scope.selectedTechnique["bundle_name"],
       description : $scope.selectedTechnique["description"],
@@ -744,13 +784,18 @@ $scope.onImportFileChange = function (fileEl) {
     if (evt.target.readyState === FileReader.DONE) {
       $scope.$apply(function () {
         var importedTechnique = JSON.parse(evt.target.result);
-        if(importedTechnique['type'] == 'ncf_technique' && importedTechnique['version'] == 1.0) {
-          var technique = toTechUI(importedTechnique['data']);
-          $scope.checkSelect(technique, $scope.selectTechnique);
-          $scope.ui.editForm.$setDirty();
-          $scope.suppressFlag = true;
+        if(importedTechnique['type'] == 'ncf_technique') {
+          var version = importedTechnique['version']
+          if(version != 1.0 && version != 2.0){
+           alert("Unsupported technique version ! This version of Rudder only support import of ncf techniques files in format 1.0 and 2.0")
+          } else {
+            var technique = toTechUI(importedTechnique['data'], version);
+            $scope.checkSelect(technique, $scope.selectTechnique);
+            $scope.ui.editForm.$setDirty();
+            $scope.suppressFlag = true;
+          }
         } else {
-          alert("Unsupported file type ! This version of Rudder only support import of ncf techniques files in format 1.0");
+          alert("Unsupported file type " + "'" + importedTechnique['type'] + "'");
         }
       });
     }
@@ -1337,7 +1382,7 @@ $scope.onImportFileChange = function (fileEl) {
       ncfTechnique = data.data.techniques.technique;
 
       // Transform back ncfTechnique to UITechnique, that will make it ok
-      var savedTechnique = toTechUI(ncfTechnique);
+      var savedTechnique = toTechUI(ncfTechnique, 2.0);
 
       var invalidParametersArray = [];
       // Iterate over each parameters to ensure their validity
