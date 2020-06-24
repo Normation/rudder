@@ -47,7 +47,12 @@ import GenericProperty._
 
 @RunWith(classOf[JUnitRunner])
 class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher {
-
+  implicit class ForceGet(json: String) {
+    def forceParse = GenericProperty.parseValue(json) match {
+      case Right(value) => value
+      case Left(err)    => throw new IllegalArgumentException(s"Error in parsing value: ${err.fullMsg}")
+    }
+  }
 
   val RudderP = Some(PropertyProvider.defaultPropertyProvider)
   val P1 = Some(PropertyProvider("p1"))
@@ -93,6 +98,14 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
     "ok with differents values" in {
       val newProps = baseProps.map( p => p.withValue("42") )
       CompareProperties.updateProperties(baseProps, Some(newProps)).map( _.sorted ) must beRight(baseProps.map( _.withValue("42") ) )
+    }
+
+    "replace json value, not merge" in {
+      val json = """{"root":"val1", "env1":"prod1", "merge": { "test1":"val1" } }""".forceParse
+      val json2 = """{"root":"val2", "env2":"prod2", "merge": { "test2":"val2" } }""".forceParse
+      val p1 = NodeProperty("x", json, None)
+      val p2 = NodeProperty("x", json2, None)
+      CompareProperties.updateProperties(p1::Nil, Some(p2::Nil)).map( _.sorted ) must beRight(p2::Nil)
     }
   }
 
