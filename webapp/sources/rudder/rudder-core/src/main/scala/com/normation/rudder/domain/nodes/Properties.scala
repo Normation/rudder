@@ -529,7 +529,7 @@ object CompareProperties {
                              if(isDelete(newProp)) {
                                Right(Left(newProp.name))
                              } else {
-                               Right(Right(newProp.fromConfig(GenericProperty.mergeConfig(oldProp.config, newProp.config))))
+                               Right(Right(newProp))
                              }
                            } else {
                              val old = oldProp.provider.getOrElse(PropertyProvider.defaultPropertyProvider).value
