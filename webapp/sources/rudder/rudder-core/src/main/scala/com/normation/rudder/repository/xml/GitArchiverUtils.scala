@@ -130,7 +130,7 @@ trait GitArchiverUtils {
           status <- IOResult.effect(gitRepo.git.status.call)
          //for debugging
           _      <- if(!(status.getAdded.contains(gitPath) || status.getChanged.contains(gitPath))) {
-                      GitArchiveLoggerPure.warn(s"Auto-archive gitRepo.git failure: not found in gitRepo.git added files: '${gitPath}'. You can safely ignore that warning if the file was already existing in gitRepo.git and was not modified by that archive.")
+                      GitArchiveLoggerPure.debug(s"Auto-archive gitRepo.git failure: not found in gitRepo.git added files: '${gitPath}'. You can safely ignore that warning if the file was already existing in gitRepo.git and was not modified by that archive.")
                     } else UIO.unit
           rev    <- IOResult.effect(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
           commit <- IOResult.effect(GitCommitId(rev.getName))
@@ -155,7 +155,7 @@ trait GitArchiverUtils {
           rm     <- IOResult.effect(gitRepo.git.rm.addFilepattern(gitPath).call)
           status <- IOResult.effect(gitRepo.git.status.call)
           _      <- if(!status.getRemoved.contains(gitPath)) {
-                      GitArchiveLoggerPure.warn(s"Auto-archive gitRepo.git failure: not found in gitRepo.git removed files: '${gitPath}'. You can safely ignore that warning if the file was already existing in gitRepo.git and was not modified by that archive.")
+                      GitArchiveLoggerPure.debug(s"Auto-archive gitRepo.git failure: not found in gitRepo.git removed files: '${gitPath}'. You can safely ignore that warning if the file was already existing in gitRepo.git and was not modified by that archive.")
                     } else UIO.unit
           rev    <- IOResult.effect(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
           commit <- IOResult.effect(GitCommitId(rev.getName))
@@ -187,7 +187,7 @@ trait GitArchiverUtils {
                     }
           status <- IOResult.effect(gitRepo.git.status.call)
           _      <- if(!status.getAdded.asScala.exists( path => path.startsWith(newGitPath) ) ) {
-                      GitArchiveLoggerPure.warn(s"Auto-archive gitRepo.git failure when moving directory (not found in added file): '${newGitPath}'. You can safely ignore that warning if the file was already existing in gitRepo.git and was not modified by that archive.")
+                      GitArchiveLoggerPure.debug(s"Auto-archive gitRepo.git failure when moving directory (not found in added file): '${newGitPath}'. You can safely ignore that warning if the file was already existing in gitRepo.git and was not modified by that archive.")
                     } else UIO.unit
           rev    <- IOResult.effect(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
           commit <- IOResult.effect(GitCommitId(rev.getName))
