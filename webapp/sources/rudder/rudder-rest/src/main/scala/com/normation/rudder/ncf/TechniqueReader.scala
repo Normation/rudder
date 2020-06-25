@@ -2,54 +2,72 @@ package com.normation.rudder.ncf
 
 import java.time.Instant
 
-import better.files.File
+import better.files._
+import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.errors.IOResult
 import com.normation.errors.Inconsistency
+import com.normation.errors._
+import com.normation.eventlog.ModificationId
 import com.normation.rudder.hooks.Cmd
+import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.hooks.RunNuCommand
+import com.normation.rudder.repository.GitModificationRepository
+import com.normation.rudder.repository.xml.GitArchiverUtils
+import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.services.user.PersonIdentService
+import com.normation.utils.StringUuidGenerator
 import net.liftweb.json.JsonAST.JArray
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.parse
+import zio.ZIO
 import zio.ZIO._
 import zio.syntax._
-import com.normation.errors._
-import com.normation.rudder.hooks.CmdResult
-import zio.ZIO
+import com.normation.rudder.domain.eventlog.RudderEventActor
 
 class TechniqueReader(
-  restExtractor  : RestExtractorService
-) {
+    restExtractor                 : RestExtractorService
+  , uuidGen                       : StringUuidGenerator
+  , personIdentService            : PersonIdentService
+  , override val gitRepo          : GitRepositoryProvider
+  , override val gitRootDirectory : java.io.File
+  , override val xmlPrettyPrinter : RudderPrettyPrinter
+  , override val gitModificationRepository : GitModificationRepository
+  , override val encoding         : String = "UTF-8"
+) extends GitArchiverUtils {
   import better.files.File.root
-  val configuration_repository = root / "var" / "rudder" / "configuration-repository"
-  val methodsFile = configuration_repository / "ncf" / "generic_methods.json"
+  override val relativePath     : String = "ncf"
+  val configuration_repository = gitRootDirectory.toScala
+  val ncfRootDir = configuration_repository / relativePath
+  val methodsFile = ncfRootDir / "generic_methods.json"
+
+
+
   def getAllTechniqueFiles(currentPath : File): IOResult[List[File]]= {
     import com.normation.errors._
     for {
-      subdirs <- IOResult.effect (s"error when getting subdirectories of ${currentPath.pathAsString}") (currentPath.children.partition(_.isDirectory)._1.toList)
-
+      subdirs       <- IOResult.effect (s"error when getting subdirectories of ${currentPath.pathAsString}") (currentPath.children.partition(_.isDirectory)._1.toList)
       checkSubdirs  <- foreach(subdirs)(getAllTechniqueFiles).map(_.flatten)
       techniqueFilePath : File = currentPath / "technique.json"
-      result <- IOResult.effect(
-                  if (techniqueFilePath.exists) {
-                    techniqueFilePath :: checkSubdirs
-                  } else {
-                  checkSubdirs
-                  }
-                )
+      result        <- IOResult.effect(
+                         if (techniqueFilePath.exists) {
+                           techniqueFilePath :: checkSubdirs
+                         } else {
+                           checkSubdirs
+                         }
+                       )
     } yield {
       result
     }
   }
   def readTechniquesMetadataFile: IOResult[List[Technique]] = {
     for {
-      methods <- readMethodsMetadataFile
+      methods        <- readMethodsMetadataFile
       techniqueFiles <- getAllTechniqueFiles(configuration_repository / "techniques")
-      techniques <- foreach(techniqueFiles)(
-                      file =>
-                        restExtractor.extractNcfTechnique(parse(file.contentAsString), methods, false).toIO
-                          .chainError("An Error occured while extracting data from techniques ncf API")
-                    )
+      techniques     <- foreach(techniqueFiles)( file =>
+                          restExtractor.extractNcfTechnique(parse(file.contentAsString), methods, false).toIO
+                            .chainError("An Error occured while extracting data from techniques ncf API")
+                        )
     } yield {
       techniques
     }
@@ -61,9 +79,10 @@ class TechniqueReader(
     }
     dirs.exists(_.collectChildren(isAMethodNewerThanCache).isEmpty)
   }
+
   private[this] def doesMethodsMetadataFileNeedsUpdate: IOResult[Boolean]  = {
     val baseDir = root / "usr" / "share" / "ncf" / "tree" / "30_generic_methods"
-    val userDir = configuration_repository / "ncf" / "30_generic_methods"
+    val userDir = ncfRootDir / "30_generic_methods"
     for {
       metadataFileExists <- IOResult.effect(methodsFile.exists)
       needsUpdate <- if (metadataFileExists) {
@@ -81,29 +100,33 @@ class TechniqueReader(
   }
 
   def readMethodsMetadataFile : IOResult[Map[BundleName, GenericMethod]] = {
-
     for {
-      needUpdate <- doesMethodsMetadataFileNeedsUpdate
-      update <- if (needUpdate) {updateMethodsMetadataFile.map(_.code).unit} else (().succeed)
-
+      _                    <- ZIO.whenM(doesMethodsMetadataFileNeedsUpdate) {
+                                updateMethodsMetadataFile.map(_.code).unit
+                              }
       genericMethodContent <- IOResult.effect(s"error while reading ${methodsFile.pathAsString}")(methodsFile.contentAsString)
-      methods <- parse(genericMethodContent) match {
-        case JObject(fields) =>
-          restExtractor.extractGenericMethod(JArray(fields.map(_.value))).map(_.map(m => (m.id, m)).toMap).toIO
-          .chainError(s"An Error occured while extracting data from generic methods ncf API")
+      methods              <- parse(genericMethodContent) match {
+                                case JObject(fields) =>
+                                  restExtractor.extractGenericMethod(JArray(fields.map(_.value))).map(_.map(m => (m.id, m)).toMap).toIO
+                                  .chainError(s"An Error occured while extracting data from generic methods ncf API")
 
-        case a => Inconsistency(s"Could not extract methods from ncf api, expecting an object got: ${a}").fail
-      }
+                                case a => Inconsistency(s"Could not extract methods from ncf api, expecting an object got: ${a}").fail
+                              }
     } yield {
       methods
     }
   }
 
   def updateMethodsMetadataFile: IOResult[CmdResult] = {
+    val cmd = Cmd("/usr/share/ncf/ncf", "write_all_methods" :: Nil, Map.empty)
     for {
-      updateCmd <- RunNuCommand.run(Cmd("/usr/share/ncf/ncf", "write_all_methods" :: Nil, Map.empty))
+      updateCmd <- RunNuCommand.run(cmd)
       res       <- updateCmd.await
-      _         <- ZIO.when(res.code != 0) (Inconsistency(s"An error occured while updating generic methods library,\n error out: ${res.stderr}\n std out: ${res.stdout}").fail)
+      _         <- ZIO.when(res.code != 0) (Inconsistency(s"An error occured while updating generic methods library with command '${cmd.display}':\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}").fail)
+      // commit file
+      modId     =  ModificationId(uuidGen.newUuid)
+      ident     <- personIdentService.getPersonIdentOrDefault(RudderEventActor.name)
+      _         <- commitAddFile(modId, ident, toGitPath(methodsFile.toJava), "Saving updated generic methods definition")
     } yield {
       res
     }
@@ -112,10 +135,11 @@ class TechniqueReader(
     import scala.jdk.CollectionConverters._
     for {
       // Need some environement variable especially PATH towrite techniques
-      env <- IOResult.effect(System.getenv().asScala.toMap)
-      updateCmd <- RunNuCommand.run(Cmd("/usr/share/ncf/ncf", "write_all_techniques" :: Nil, env))
+      env       <- IOResult.effect(System.getenv().asScala.toMap)
+      cmd       =  Cmd("/usr/share/ncf/ncf", "write_all_techniques" :: Nil, env)
+      updateCmd <- RunNuCommand.run(cmd)
       res       <- updateCmd.await
-      _         <- ZIO.when(res.code != 0) (Inconsistency(s"An error occured while updating generic methods library,\n error out: ${res.stderr}\n std out: ${res.stdout}").fail)
+      _         <- ZIO.when(res.code != 0) (Inconsistency(s"An error occured while updating generic methods library with command '${cmd.display}':\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}").fail)
     } yield {
       res
     }
