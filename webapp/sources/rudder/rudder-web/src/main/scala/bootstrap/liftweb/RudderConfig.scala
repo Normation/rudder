@@ -960,7 +960,15 @@ object RudderConfig extends Loggable {
     , techniqueSerializer
     , RUDDER_LANG_EXEC_TEST_LOOP
   )
-  val ncfTechniqueReader : ncf.TechniqueReader = new ncf.TechniqueReader(restExtractorService)
+  val ncfTechniqueReader : ncf.TechniqueReader = new ncf.TechniqueReader(
+      restExtractorService
+    , stringUuidGenerator
+    , personIdentService
+    , gitRepo
+    , new File(RUDDER_DIR_GITROOT)
+    , prettyPrinter
+    , gitModificationRepository
+  )
 
   lazy val pipelinedReportUnmarshaller : ReportUnmarshaller = {
     val fusionReportParser = {
