@@ -232,7 +232,7 @@ class NodeGroupUnserialisationImpl(
       properties      <- sequence((group \ "properties" \ "property").toList) {
                            case <property>{p @ _*}</property> =>
                              val name = (p \\ "name").text.trim
-                             if(name.isBlank) {
+                             if(name.trim.isEmpty) {
                                Failure(s"Found unexpected xml under <properties> tag (name is blank): ${p}")
                              } else {
                                GroupProperty.parse(
