@@ -195,8 +195,13 @@ class EventLogJdbcRepository(
     transactIOResult(s"Error when retrieving event logs for change request '${xpath}'")(xa => (for {
       entries <- HC.stream[(String, String, EventLogDetails)](q, param, 512).compile.toVector
     } yield {
-      entries.map { case (crid, tpe, details) =>
-        (ChangeRequestId(crid.substring(1, crid.length()-1).toInt), toEventLog((tpe, details)) )
+      entries.flatMap { case (crid, tpe, details) =>
+        val optId = try {
+          Some(crid.filter(_ != '"').toInt)
+        } catch {
+          case ex: NumberFormatException => None
+        }
+        optId.map(id => (ChangeRequestId(id), toEventLog((tpe, details)) ))
       }.toMap
     }).transact(xa))
   }

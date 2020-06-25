@@ -405,10 +405,13 @@ final case class RestDataSerializerImpl (
       val serverList :JValue  = diff.modNodeList.map(displaySimpleDiff(_)(convertNodeList)).getOrElse(initialState.serverList.map(v => (v.value)).toList)
       val dynamic :JValue     = diff.modIsDynamic.map(displaySimpleDiff(_)).getOrElse(initialState.isDynamic)
       val enabled :JValue     = diff.modIsActivated.map(displaySimpleDiff(_)).getOrElse(initialState.isEnabled)
+      val properties: JValue  = diff.modProperties.map(displaySimpleDiff(_)).getOrElse(initialState.properties.toApiJson())
+
       ( ("id"          -> initialState.id.value)
       ~ ("displayName" -> name)
       ~ ("description" -> description)
       ~ ("query"       -> query)
+      ~ ("properties"  -> properties)
       ~ ("nodeIds"     -> serverList)
       ~ ("dynamic"   -> dynamic)
       ~ ("enabled"   -> enabled )

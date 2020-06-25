@@ -440,8 +440,13 @@ final case object CheckGlobalParameter extends CheckChanges[GlobalParameter]  {
           debugLog(s"Group ID ${initialFixed.id.value} enable status has changed: original state from CR: ${initialFixed.isEnabled}, current value: ${currentFixed.isEnabled}")
         }
 
-        if (initialFixed.serverList != currentFixed.serverList) {
+        // we compare nodes only for static group, not dynamic ones
+        if (!(initialFixed.isDynamic && currentFixed.isDynamic) && initialFixed.serverList != currentFixed.serverList) {
           debugLog(s"Group ID ${initialFixed.id.value} nodes list has changed: original state from CR: ${initialFixed.serverList.map(_.value).mkString("[ ", ", ", " ]")}, current value: ${currentFixed.serverList.map(_.value).mkString("[ ", ", ", " ]")}")
+        }
+
+        if( initialFixed.properties != currentFixed.properties ) {
+          debugLog(s"Group ID ${initialFixed.id.value} properties changed: original state from CR: ${initialFixed.properties.map(_.toData).mkString("[ ", ", ", " ]")}, current value: ${currentFixed.properties.map(_.toData).mkString("[ ", ", ", " ]")}")
         }
 
         //return

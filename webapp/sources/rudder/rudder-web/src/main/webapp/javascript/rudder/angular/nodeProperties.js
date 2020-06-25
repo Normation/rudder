@@ -167,9 +167,7 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
           $scope.resetNewProperty();
           $('#newPropPopup').bsModal('hide');
           $scope.newPropForm.$setPristine();
-          createSuccessNotification("Property '"+propertyToSave.name+ "' has been added");
-          // need to reload everything for inherited etc...
-          $scope.fetchProperties();
+          $scope.processResponse(response, "Property '"+propertyToSave.name+ "' has been added");
         }, function errorCallback(response) {
           $scope.errorSaving = response.data.errorDetails;
           createErrorNotification("Error while saving new property "+propertyToSave.name);
@@ -178,6 +176,23 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
       }
     }
   };
+
+  $scope.processResponse = function(response, successMsg) {
+    // check if it created a change request
+    var changeId = undefined;
+    try {
+      changeId = response.data.data[$scope.objectName+'s'][0].changeRequestId;
+    } catch {}
+    if(changeId === undefined) {
+      createSuccessNotification(successMsg);
+      // need to reload everything for inherited etc...
+      $scope.fetchProperties();
+    } else { // redirect to change request
+      window.location = contextPath + "/secure/plugins/changes/changeRequest/" + changeId;
+    }
+  }
+
+
   $scope.popupDeletion = function(prop,index) {
     $scope.deletedProperty.name = prop;
     $scope.deletedProperty.index = index;
@@ -192,9 +207,7 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
     $scope.errorDeleting = false;
     $http.post($scope.urlAPI, data).then(function successCallback(response) {
       $('#deletePropPopup').bsModal('hide');
-      createSuccessNotification("Property '"+$scope.deletedProperty.name+ "' has been removed");
-      // need to reload to take care of inherited properties etc
-      $scope.fetchProperties();
+      $scope.processResponse(response, "Property '"+$scope.deletedProperty.name+ "' has been removed");
     }, function errorCallback(response) {
       $('#deletePropPopup').bsModal('hide');
       $scope.errorDeleting = response.data.errorDetails;
@@ -206,6 +219,7 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
       return response.status==200;
     });
   }
+
 
   $scope.editProperty = function(property){
     if (property.provider === undefined || property.provider === 'overridden'){
@@ -270,9 +284,7 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
       };
       $http.post($scope.urlAPI, data).then(function successCallback(response) {
         delete $scope.editedProperties[prop];
-        createSuccessNotification("Property '"+propertyToSave.name+ "' has been saved");
-        // we need to get back all properties to compute hierarchy, take care of renaming props, etc
-        $scope.fetchProperties();
+        $scope.processResponse(response, "Property '"+propertyToSave.name+ "' has been saved");
       }, function errorCallback(response) {
         createErrorNotification("Error while saving "+$scope.objectName+" properties");
         return response.status==200;
