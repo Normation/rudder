@@ -255,16 +255,20 @@
                   <i class="fa fa-tags" aria-hidden="true"></i>
                   <i>{{directive.tags.length - 3}} more</i>
                 </span>
-                <span class="target-remove" ng-click="removeInclude(directive.id)">
-                  <i class="fa fa-times"></i>
-                </span>
+                <lift:authz role="rule_write">
+                  <span class="target-remove" ng-click="removeInclude(directive.id)">
+                    <i class="fa fa-times"></i>
+                  </span>
+                </lift:authz>
                 <span class="border"></span>
               </li>
             </ul>
-            <button class="btn btn-outline btn-success add-target" ng-click="modal('selectDirectives', true)">
-              <span>Select Directives</span>
-              <i class="fa fa-plus"></i>
-            </button>
+            <lift:authz role="rule_write">
+              <button class="btn btn-outline btn-success add-target" ng-click="modal('selectDirectives', true)">
+                <span>Select Directives</span>
+                <i class="fa fa-plus"></i>
+              </button>
+            </lift:authz>
           </div>
         </div>
 
@@ -454,10 +458,12 @@
               <span class="border"></span>
             </li>
           </ul>
-          <button class="btn btn-outline btn-success add-target" ng-click="modal('selectGroups', true)">
-            <span>Select Groups</span>
-            <i class="fa fa-plus"></i>
-          </button>
+          <lift:authz role="rule_write">
+            <button class="btn btn-outline btn-success add-target" ng-click="modal('selectGroups', true)">
+              <span>Select Groups</span>
+              <i class="fa fa-plus"></i>
+            </button>
+          </lift:authz>
 
 
         </div>
@@ -493,16 +499,20 @@
                    data-original-title="{{getTooltipContent(getTarget(excluded))}}"
                 ></i>
               </span>
-              <span class="target-remove" ng-click="removeExclude(excluded)">
-                  <i class="fa fa-times"></i>
+              <lift:authz role="rule_write">
+                <span class="target-remove" ng-click="removeExclude(excluded)">
+                    <i class="fa fa-times"></i>
                 </span>
+              </lift:authz>
               <span class="border"></span>
             </li>
           </ul>
-          <button class="btn btn-outline btn-danger add-target" ng-click="modal('selectGroups', true)">
-            <span>Select Groups</span>
-            <i class="fa fa-plus"></i>
-          </button>
+          <lift:authz role="rule_write">
+            <button class="btn btn-outline btn-danger add-target" ng-click="modal('selectGroups', true)">
+              <span>Select Groups</span>
+              <i class="fa fa-plus"></i>
+            </button>
+          </lift:authz>
 
 
         </div>
