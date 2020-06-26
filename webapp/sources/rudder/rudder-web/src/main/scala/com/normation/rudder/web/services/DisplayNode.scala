@@ -86,6 +86,7 @@ object DisplayNode extends Loggable {
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
   private[this] val nodeInfoService      = RudderConfig.nodeInfoService
   private[this] val linkUtil             = RudderConfig.linkUtil
+  private[this] val roRuleRepository     = RudderConfig.roRuleRepository
   private[this] val asyncComplianceService    = RudderConfig.asyncComplianceService
   private[this] val deleteNodePopupHtmlId = "deleteNodePopupHtmlId"
   private[this] val errorPopupHtmlId = "errorPopupHtmlId"
@@ -95,7 +96,14 @@ object DisplayNode extends Loggable {
   private def loadComplianceBar(nodeInfo: Option[NodeInfo]): Option[JsArray] = {
     for {
       node            <- nodeInfo
-      nodeCompliance  <- asyncComplianceService.nodeCompliance(node.id)
+      // Get only user rules.
+      rules           <- roRuleRepository.getIds(false).toBox.toOption match {
+                           // We don't want to continue if we have no user rules, and an empty set will put all rules, and here systems rule only
+                           case Some(ruleIds) if ruleIds.isEmpty => None
+                           case None                             => None
+                           case Some(ruleIds)                    => Some(ruleIds)
+                         }
+      nodeCompliance  <- asyncComplianceService.nodeCompliance(node.id, rules)
     } yield {
       ComplianceLevelSerialisation.ComplianceLevelToJs(nodeCompliance).toJsArray()
     }

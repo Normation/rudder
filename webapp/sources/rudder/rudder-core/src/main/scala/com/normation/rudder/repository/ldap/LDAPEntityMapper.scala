@@ -623,7 +623,7 @@ class LDAPEntityMapper(
       , group.isSystem
     )
     // we never ever want to save a property with a blank name
-    val props = group.properties.collect { case p if(!p.name.isBlank) => p.toData }
+    val props = group.properties.collect { case p if(!p.name.trim.isEmpty) => p.toData }
     if(ApplicationLogger.isDebugEnabled && props.size != group.properties.size) {
       ApplicationLogger.debug(s"Some properties from group '${group.name}' (${group.id.value}) were ignored because their name was blank and it's forbidden")
     }

@@ -10,9 +10,9 @@ properties:
     description: Name of the parameter
     example: rudder_file_edit_footer
   value:
+    format: string or JSON
     example: "### End of file managed by Rudder ###"
     description: Value of the parameter
-    type: string
   description:
     type: string
     example: "Default inform message put in footer of managed files by Rudder"

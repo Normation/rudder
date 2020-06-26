@@ -229,8 +229,8 @@ class AsyncComplianceService (
 
   }
 
-  def nodeCompliance(nodeId: NodeId): Box[ComplianceLevel] = {
-    val node = new NodeCompliance(Set(nodeId), Set())
+  def nodeCompliance(nodeId: NodeId, ruleIds: Set[RuleId]): Box[ComplianceLevel] = {
+    val node = new NodeCompliance(Set(nodeId), ruleIds)
     node.computeCompliance match {
       case Full(contentMap) =>
         contentMap.get(nodeId) match {
