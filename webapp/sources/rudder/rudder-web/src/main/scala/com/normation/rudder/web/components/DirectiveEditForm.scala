@@ -150,15 +150,17 @@ class DirectiveEditForm(
   }
 
   def migrateButton(version : => TechniqueVersion, text: String, id:String = "migrationButton") = {
-    SHtml.ajaxSubmit(
+    <lift:authz role="directive_write">
+      { SHtml.ajaxSubmit(
         text
-      , () => {
+        , () => {
           val newDirective = directive.copy(techniqueVersion = version)
           onMigrationCallback(newDirective,Some(directive))
         }
-      , ("id" -> id)
-      , ("class" -> "btn btn-default")
-    )
+        , ("id" -> id)
+        , ("class" -> "btn btn-default")
+      )}
+    </lift:authz>
   }
 
   val displayDeprecationWarning = technique.deprecrationInfo match {
