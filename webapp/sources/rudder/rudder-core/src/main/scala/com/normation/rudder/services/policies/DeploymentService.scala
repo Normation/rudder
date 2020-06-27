@@ -826,9 +826,8 @@ trait PromiseGeneration_BuildNodeContext {
     } yield {
       nodeIds.foldLeft(NodesContextResult(Map(), Map())) { case (res, nodeId) =>
         (for {
-          nodeInfo     <- Box(allNodeInfos.get(nodeId)) ?~! s"Node with ID ${nodeId.value} was not found"
-          policyServer <- Box(allNodeInfos.get(nodeInfo.policyServerId)) ?~! s"Node with ID ${nodeId.value} was not found"
-
+          nodeInfo     <- Box(allNodeInfos.get(nodeId)) ?~! s"Node '${nodeId.value}' was not found"
+          policyServer <- Box(allNodeInfos.get(nodeInfo.policyServerId)) ?~!  s"Policy server '${nodeInfo.policyServerId.value}' of Node '${nodeId.value}' was not found"
           nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, allGroups, globalSystemVariables, globalAgentRun, globalComplianceMode  : ComplianceMode)
         } yield {
           (nodeId, InterpolationContext(

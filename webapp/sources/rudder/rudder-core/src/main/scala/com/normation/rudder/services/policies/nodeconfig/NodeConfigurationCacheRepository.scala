@@ -128,17 +128,17 @@ object NodeConfigurationHash {
     )
   }
 
-  def fromJson(json: String): Either[String, NodeConfigurationHash] = {
+  def fromJson(json: String): Either[(String, JValue), NodeConfigurationHash] = {
     def jval = try {
       Right(parse(json))
     } catch {
-      case NonFatal(ex) => Left(s"Error when parsing node configuration cache entry. Expection was: ${ex.getMessage}")
+      case NonFatal(ex) => Left((s"Error when parsing node configuration cache entry. Expection was: ${ex.getMessage}", JString(json)))
     }
 
-    def readDate(date: String): Either[String, DateTime] = try {
+    def readDate(date: String): Either[(String,JValue), DateTime] = try {
       Right(ISODateTimeFormat.dateTimeParser().parseDateTime(date))
     } catch {
-      case NonFatal(ex) => Left(s"Error, written date can not be parsed as a date: ${date}")
+      case NonFatal(ex) => Left((s"Error, written date can not be parsed as a date: ${date}", JString(date)))
     }
 
     def readPolicy(p: JValue) = {
@@ -147,12 +147,12 @@ object NodeConfigurationHash {
           try {
             Right(PolicyHash(PolicyId(RuleId(ruleId), DirectiveId(directiveId), TechniqueVersion(techniqueVerion)), policyHash.toInt))
           } catch {
-            case ex: TechniqueVersionFormatException => Left(s"Technique version for policy '${ruleId}@@${directiveId}' was not recognized: ${techniqueVerion}")
+            case ex: TechniqueVersionFormatException => Left((s"Technique version for policy '${ruleId}@@${directiveId}' was not recognized: ${techniqueVerion}", p))
           }
       }
     }
 
-    def extractNodeConfigCAche(j: JValue): Either[String, NodeConfigurationHash] = {
+    def extractNodeConfigCAche(j: JValue): Either[(String, JValue), NodeConfigurationHash] = {
       j match {
         case JObject(List(
                  JField("i", JArray(List(JString(nodeId), JString(date), JInt(nodeInfoCache), JInt(paramCache), JInt(nodeContextCache))))
@@ -165,7 +165,7 @@ object NodeConfigurationHash {
           } yield {
             NodeConfigurationHash(NodeId(nodeId), d, nodeInfoCache.toInt, paramCache.toInt, nodeContextCache.toInt, p.toSet)
           }
-        case _ => Left(s"Cannot parse node configuration hash: ${json.splitAt(20)}...")
+        case _ => Left((s"Cannot parse node configuration hash (use 'DEBUG' log level for details).", j))
       }
     }
 
@@ -423,8 +423,9 @@ class LdapNodeConfigurationHashRepository(
            e.valuesFor(A_NODE_CONFIG).flatMap { json =>
              NodeConfigurationHash.fromJson(json) match {
                case Right(value) => Some(value)
-               case Left(error)  =>
-                 logger.info(s"Ignoring node configuration cache info because of deserialisation problem: ${error}")
+               case Left((error, json))  =>
+                 logger.info(s"Ignoring node configuration cache info because of deserialization issue: ${error}")
+                 logger.debug(s"Json causing node configuration deserialization issue: ${net.liftweb.json.compactRender(json)}")
                  None
              }
            }
