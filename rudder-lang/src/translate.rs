@@ -40,8 +40,17 @@ struct Technique {
 struct MethodCall {
     method_name: String,
     class_context: String,
+    #[serde(default)]
     args: Vec<String>,
+    #[serde(default)]
+    parameters: Vec<Parameter>,
     component: String,
+}
+
+#[derive(Serialize, Deserialize, Default)]
+struct Parameter {
+    name: String,
+    value: String,
 }
 
 pub fn translate_file(context: &IOContext) -> Result<()> {
@@ -62,15 +71,12 @@ pub fn translate_file(context: &IOContext) -> Result<()> {
         "Reading".bright_green(),
         generic_methods_path.bright_yellow()
     );
-    let config_data =
-        fs::read_to_string(generic_methods_path).map_err(|e| file_error(generic_methods_path, e))?;
-    let configuration: toml::Value =
-        toml::from_str(&config_data).map_err(|e| err!(Token::new(generic_methods_path, ""), "{}", e))?;
+    let config_data = fs::read_to_string(generic_methods_path)
+        .map_err(|e| file_error(generic_methods_path, e))?;
+    let configuration: toml::Value = toml::from_str(&config_data)
+        .map_err(|e| err!(Token::new(generic_methods_path, ""), "{}", e))?;
 
-    info!(
-        "|- {}",
-        "Reading stdlib".bright_green()
-    );
+    info!("|- {}", "Reading stdlib".bright_green());
     let sources = Arena::new();
     let mut past = PAST::new();
     parse_stdlib(&mut past, &sources, &context.stdlib)?;
@@ -82,8 +88,10 @@ pub fn translate_file(context: &IOContext) -> Result<()> {
         input_path.bright_yellow()
     );
     let json_data = fs::read_to_string(&context.source).map_err(|e| file_error(&input_path, e))?;
-    let technique = serde_json::from_str::<Technique>(&json_data)
+    let mut technique = serde_json::from_str::<Technique>(&json_data)
         .map_err(|e| err!(Token::new(&input_path, ""), "{}", e))?;
+
+    technique.method_calls.iter_mut().for_each(|method| method.args.push(method.parameters.iter().map(|p| p.value.to_owned()).collect()));
 
     info!(
         "|- {} (translation phase)",
