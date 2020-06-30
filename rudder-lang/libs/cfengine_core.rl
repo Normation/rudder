@@ -66,7 +66,6 @@ declare sys.policy_entry_basename
 declare sys.policy_hub
 declare sys.policy_entry_dirname
 declare sys.policy_entry_filename
-declare sys.policy_hub
 declare sys.policy_hub_port
 declare sys.release
 declare sys.resolv

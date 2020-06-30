@@ -40,8 +40,17 @@ struct Technique {
 struct MethodCall {
     method_name: String,
     class_context: String,
+    #[serde(default)]
     args: Vec<String>,
+    #[serde(default)]
+    parameters: Vec<Parameter>,
     component: String,
+}
+
+#[derive(Serialize, Deserialize, Default)]
+struct Parameter {
+    name: String,
+    value: String,
 }
 
 pub fn translate_file(context: &IOContext) -> Result<()> {
@@ -79,8 +88,10 @@ pub fn translate_file(context: &IOContext) -> Result<()> {
         input_path.bright_yellow()
     );
     let json_data = fs::read_to_string(&context.source).map_err(|e| file_error(&input_path, e))?;
-    let technique = serde_json::from_str::<Technique>(&json_data)
+    let mut technique = serde_json::from_str::<Technique>(&json_data)
         .map_err(|e| err!(Token::new(&input_path, ""), "{}", e))?;
+
+    technique.method_calls.iter_mut().for_each(|method| method.args.push(method.parameters.iter().map(|p| p.value.to_owned()).collect()));
 
     info!(
         "|- {} (translation phase)",
