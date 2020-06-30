@@ -252,9 +252,9 @@ class TechniqueWriter (
     }
   }
 
-  def writeTechniqueAndUpdateLib(technique : Technique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor) : IOResult[Seq[String]] = {
+  def writeTechniqueAndUpdateLib(technique : Technique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor) : IOResult[Technique] = {
     for {
-      agentFiles <- writeTechnique(technique,methods,modId,committer)
+      updatedTechnique <- writeTechnique(technique,methods,modId,committer)
       libUpdate  <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")).
                       toIO.chainError(s"An error occured during technique update after files were created for ncf Technique ${technique.name}")
       _          <- ZIO.when(doRudderLangTest) {
@@ -263,7 +263,7 @@ class TechniqueWriter (
                                                     s"'rudder.lang.test-loop.exec' in rudder config file: ${err.fullMsg}"))
                     }
     } yield {
-      agentFiles
+      updatedTechnique
     }
   }
 
@@ -279,7 +279,7 @@ class TechniqueWriter (
   }
 
   // Write and commit all techniques files
-  def writeTechnique(technique : Technique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor) : IOResult[Seq[String]] = {
+  def writeTechnique(technique : Technique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor) : IOResult[Technique] = {
     for {
       agentFiles <- writeAgentFiles(technique, methods, modId, committer)
       metadata   <- writeMetadata(technique, methods, modId, committer)
@@ -290,7 +290,7 @@ class TechniqueWriter (
       // Commit technique with old resources, will effectively delete and add resources
       commit     <- archiver.commitTechnique(technique,json +: metadata +: agentFiles, modId, committer, s"Committing technique ${technique.name}")
     } yield {
-      metadata +: agentFiles
+      techniqueWithResourceUpdated
     }
   }
 

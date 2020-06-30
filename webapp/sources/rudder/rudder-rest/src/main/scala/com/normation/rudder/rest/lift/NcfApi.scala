@@ -228,9 +228,9 @@ class NcfApi(
           methods   <- restExtractor.extractGenericMethod(json \ "methods")
           methodMap =  methods.map(m => (m.id,m)).toMap
           technique <- restExtractor.extractNcfTechnique(json \ "technique", methodMap, false)
-          allDone   <- techniqueWriter.writeTechniqueAndUpdateLib(technique, methodMap, modId, authzToken.actor ).toBox
+          updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique, methodMap, modId, authzToken.actor ).toBox
         } yield {
-          json
+          JObject(JField("technique", techniqueSerializer.serializeTechniqueMetadata(updatedTechnique)))
         }
       val wrapper : ActionType = {
         case _ => response
@@ -389,9 +389,9 @@ class NcfApi(
           internalId <- OptionnalJson.extractJsonString(json \ "technique", "internalId")
           // If no internalId (used to manage temporary folder for resources), ignore resources, this can happen when importing techniques through the api
           resoucesMoved <- internalId.map( internalId => moveRessources(technique,internalId).toBox).getOrElse(Full("Ok"))
-          allDone   <- techniqueWriter.writeTechniqueAndUpdateLib(technique, methodMap, modId, authzToken.actor).toBox
+          updatedTech   <- techniqueWriter.writeTechniqueAndUpdateLib(technique, methodMap, modId, authzToken.actor).toBox
         } yield {
-          json
+          JObject(JField("technique", techniqueSerializer.serializeTechniqueMetadata(updatedTech)))
         }
 
       val wrapper : ActionType = {
