@@ -835,7 +835,7 @@ trait PromiseGeneration_BuildNodeContext {
       val all = nodeIds.foldLeft(NodesContextResult(Map(), Map())) { case (res, nodeId) =>
         (for {
           info         <- Box(allNodeInfos.get(nodeId)) ?~! s"Node with ID ${nodeId.value} was not found"
-          policyServer <- Box(allNodeInfos.get(info.policyServerId)) ?~! s"Node with ID ${nodeId.value} was not found"
+          policyServer <- Box(allNodeInfos.get(info.policyServerId)) ?~! s"Policy server '${info.policyServerId.value}' of Node '${nodeId.value}' was not found"
           context      =  ParamInterpolationContext(
                               info
                             , policyServer
