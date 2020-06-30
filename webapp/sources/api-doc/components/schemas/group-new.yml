@@ -77,3 +77,20 @@ properties:
     type: boolean
     default: true
     description: Enable or disable the group
+  properties:
+    type: array
+    description: Group properties
+    items:
+      type: object
+      required:
+        - name
+        - value
+      properties:
+        name:
+          type: string
+          description: Property name
+          example: os
+        value:
+          format: string or JSON
+          example: debian10
+          description: Property value (can be a string or JSON object)

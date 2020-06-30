@@ -479,17 +479,19 @@ final case class MultivaluedSectionField(
 
   private def showAddAnother(): NodeSeq = {
     if (!readOnlySection) {
-      <div class="directiveAddGroup">{
-        SHtml.ajaxSubmit(
-            s"Add another '${name}'"
-          , { () =>
-              add()
-              //refresh UI - all item of that group
-              SetHtml(htmlId, this.content) & postModificationJS()
-            }
-          , ("class" -> "btn new-icon btn-success btn-outline")
-        )
-      }</div>
+      <lift:authz role="directive_write">
+        <div class="directiveAddGroup">{
+          SHtml.ajaxSubmit(
+              s"Add another '${name}'"
+            , { () =>
+                add()
+                //refresh UI - all item of that group
+                SetHtml(htmlId, this.content) & postModificationJS()
+              }
+            , ("class" -> "btn new-icon btn-success btn-outline")
+          )
+        }</div>
+      </lift:authz>
     } else {
       NodeSeq.Empty
     }
@@ -501,17 +503,19 @@ final case class MultivaluedSectionField(
         { section.childFields map (f => f.toFormNodeSeq) }
       </tbody>
     </table>
-    <div class="textright directiveDeleteGroup">{
-      if (!readOnlySection) {
-        val attr = (if (size > 1) ("" -> "") else ("disabled" -> "true")) :: ("class" -> "btn btn-danger") :: Nil
-        SHtml.ajaxSubmit(s"Delete '${name} #${i+1}'", { () =>
-          logError(delete(i))
-          //refresh UI - all item of that group
-          SetHtml(htmlId, this.content) & postModificationJS()
-        },
-          attr:_*)
-      }
-    }</div>
+    <lift:authz role="directive_write">
+      <div class="textright directiveDeleteGroup">{
+        if (!readOnlySection) {
+          val attr = (if (size > 1) ("" -> "") else ("disabled" -> "true")) :: ("class" -> "btn btn-danger") :: Nil
+          SHtml.ajaxSubmit(s"Delete '${name} #${i+1}'", { () =>
+            logError(delete(i))
+            //refresh UI - all item of that group
+            SetHtml(htmlId, this.content) & postModificationJS()
+          },
+            attr:_*)
+        }
+      }</div>
+    </lift:authz>
   }
 
   /**
