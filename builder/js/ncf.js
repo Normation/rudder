@@ -775,6 +775,7 @@ $scope.exportTechnique = function(){
   }
 }
 
+
 // method to import technique content from a json file
 $scope.onImportFileChange = function (fileEl) {
   var files = fileEl.files;
@@ -792,6 +793,8 @@ $scope.onImportFileChange = function (fileEl) {
           } else {
             var technique = toTechUI(importedTechnique['data'], version);
             $scope.checkSelect(technique, $scope.selectTechnique);
+            $scope.originalTechnique.bundle_name = undefined;
+            $scope.originalTechnique.name = "";
             $scope.ui.editForm.$setDirty();
             $scope.suppressFlag = true;
           }
