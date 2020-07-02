@@ -466,8 +466,7 @@ td.listclose:after {
 }
 
 .dtrg-group td::before {
-  content : "\f013  Run start date: ";
-  font-family: FontAwesome;
+  content : "Run start date: ";
 }
 
 table.dataTable tr.dtrg-group td {
