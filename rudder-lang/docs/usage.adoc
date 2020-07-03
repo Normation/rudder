@@ -86,7 +86,7 @@ Entire _rudder-lang_ environment is already set up alongside the agent: this inc
 [shared]
     stdlib="libs/" # only required field for rudderc --compile
     generic_methods="tools/generic_methods.toml" # required field for rudderc --translate
-    ncf="/usr/share/ncf"
+    ncf="/usr/share/ncf/tree/30_generic_methods/"
 
 [compile]
     source="./tests/test_files/tester/"

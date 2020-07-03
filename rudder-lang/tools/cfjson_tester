@@ -197,7 +197,7 @@ if __name__ == "__main__":
     sys.path.append(ncf_dir+'/tools')
     import ncf
     ncf.CFENGINE_PATH=cfengine_path
-    ncf_path=ncf_dir+'/tree/30_generic_methods'
+    ncf_path=ncf_dir
   except Exception as e:
     print_json('(Not defined yet)', '(Not defined yet)', 'An error occured while importing ncf: {}'.format(str(e)), True)
     exit(1)

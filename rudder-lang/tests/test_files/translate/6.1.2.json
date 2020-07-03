@@ -1,0 +1,22 @@
+{
+    "bundle_name":"ruder_lang",
+    "version":"1.0",
+    "category":"ncf_techniques",
+    "description":"wd",
+    "name":"ruder-lang",
+    "method_calls":[
+      {
+        "method_name":"command_execution",
+        "class_context":"any",
+        "component":"Command execution",
+        "parameters":[
+          {
+            "name":"command",
+            "value":"wd"
+          }
+        ]
+      }
+    ],
+    "parameter":[],
+    "resources":[]
+  }
