@@ -34,14 +34,19 @@ pub enum PErrorKind<I> {
     Unparsed(I),                 // cannot be parsed
 }
 
-#[derive(Debug, PartialEq, Clone)]
+// This is the same thing as a closure (Fn() -> I) but I couldn't manage to cope with lifetime
+pub struct Context<I> {
+    pub extractor: fn(I, I) -> I,
+    pub text: I,
+    pub token: I,
+}
 pub struct PError<I> {
-    pub context: Option<I>,
+    pub context: Option<Context<I>>,
     pub kind: PErrorKind<I>,
 }
 
 /// This trait must be implemented by the error type of a nom parser
-/// Implement all method to differenciate between :
+/// Implement all method to differentiate between :
 /// - nom VerboseError (stack errors)
 /// - pure PError (keep last error)
 impl<I: Clone> ParseError<I> for PError<I> {
@@ -82,16 +87,6 @@ impl<I: Clone> ParseError<I> for PError<I> {
             _ => self,
         }
     }
-
-    /// create a new error from an input position, a static string and an existing error.
-    /// This is used mainly in the [context] combinator, to add user friendly information
-    /// to errors when backtracking through a parse tree
-    fn add_context(input: I, ctx: &'static str, mut other: Self) -> Self {
-        if let PErrorKind::Nom(e) = other.kind {
-            other.kind = PErrorKind::Nom(VerboseError::add_context(input, ctx, e));
-        }
-        other
-    }
 }
 
 /// Proper printing of errors.
@@ -115,8 +110,9 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
         };
 
         // simply removes superfluous line return (prettyfication)
-        match self.context {
+        match &self.context {
             Some(ctx) => {
+                let ctx = (ctx.extractor)(ctx.text, ctx.token);
                 let context = ctx.fragment.trim_end_matches('\n');
                 // Formats final error output
                 f.write_str(&format!(
@@ -177,7 +173,7 @@ where
 }
 
 /// Similar code to `or_fail()` yet usage and behavior differ:
-/// primarly it is non-terminating as it does not turn Errors into Failures
+/// primarily it is non-terminating as it does not turn Errors into Failures
 /// but rather gives it a PError context (E parameter) therefore updating the generic Nom::ErrorKind
 pub fn or_err<'src, O, F, E>(f: F, e: E) -> impl Fn(PInput<'src>) -> PResult<'src, O>
 where
@@ -219,7 +215,8 @@ where
 /// Solely exists for (w)sequence macro
 pub fn update_error_context<'src>(
     e: Err<PError<PInput<'src>>>,
-    new_ctx: PInput<'src>,
+    //new_ctx: PInput<'src>,
+    new_ctx: Context<PInput<'src>>
 ) -> Err<PError<PInput<'src>>> {
     match e {
         Err::Failure(err) => {

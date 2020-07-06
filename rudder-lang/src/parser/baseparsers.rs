@@ -69,7 +69,7 @@ macro_rules! sequence {
                 // intercept error to update its context if it should lead to a handled compilation error
                 let (j, $f) = match $parser (i) {
                     Ok(res) => res,
-                    Err(e) => return Err(update_error_context(e, get_context(i0,i)))
+                    Err(e) => return Err(update_error_context(e, Context { extractor: get_context, text: i0, token: i}))
                 };
                 let i = j;
             )*
@@ -88,7 +88,7 @@ macro_rules! wsequence {
                 // intercept error to update its context if it should lead to a handled compilation error
                 let (j, $f) = match $parser (i) {
                     Ok(res) => res,
-                    Err(e) => return Err(update_error_context(e, get_context(i0,i)))
+                    Err(e) => return Err(update_error_context(e, Context { extractor: get_context, text: i0, token: i}))
                 };
                 let (i,_) = strip_spaces_and_comment(j)?;
             )*
