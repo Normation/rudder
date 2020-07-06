@@ -35,11 +35,13 @@ pub enum PErrorKind<I> {
 }
 
 // This is the same thing as a closure (Fn() -> I) but I couldn't manage to cope with lifetime
+#[derive(Debug)]
 pub struct Context<I> {
     pub extractor: fn(I, I) -> I,
     pub text: I,
     pub token: I,
 }
+#[derive(Debug)]
 pub struct PError<I> {
     pub context: Option<Context<I>>,
     pub kind: PErrorKind<I>,
