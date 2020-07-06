@@ -44,7 +44,7 @@ fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
         PErrorKind::Unparsed(i) => PErrorKind::Unparsed(i.fragment),
     };
     match err.context {
-        Some(context) => (context.fragment, kind),
+        Some(context) => ((context.extractor)(context.text,context.token).fragment, kind),
         None => ("", kind),
     }
 }
