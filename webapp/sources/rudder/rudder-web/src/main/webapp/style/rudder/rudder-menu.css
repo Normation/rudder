@@ -2603,6 +2603,14 @@ form input.dyngroupReloadingButton, form button#launchDebugScriptButton{
   float:left;
   width:100%;
 }
+
+.compliance-form:not(.ng-hide) + .agent-run-form > .page-title{
+  border-bottom: none;
+  font-size: 1.4em !important;
+  margin-bottom: 6px;
+  margin-top: 12px;
+  color: #333 !important;
+}
 /* SPINNERS */
 .btn i.fa-spin {
   position: absolute;

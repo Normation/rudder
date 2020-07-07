@@ -39,7 +39,7 @@
     </div>
     <form role="form" name="complianceModeForm" class="form-horizontal" >
 
-      <div ng-hide="isNodePage">
+      <div ng-hide="isNodePage" class="compliance-form">
         <ul>
           <li class="rudder-form">
             <div class="input-group">
@@ -86,13 +86,13 @@
         </ul>
       </div>
 
-      <div ng-hide="complianceMode.name !== 'changes-only'" class="animate-hide">
+      <div ng-hide="complianceMode.name !== 'changes-only'" class="agent-run-form animate-hide">
         <div class="page-title">Agent run heartbeat</div>
         <div class="portlet-content" >
           <div class="callout-fade callout-info">
           <!-- global run is defined on node page, so first section is displayed in global settings page -->
             <div ng-if="!isNodePage">
-              In "changes only" compliance mode, the agent will, by default, report a "heartbeat" every time it runs.<br/>
+              In "<b>changes only</b>" compliance mode, the agent will, by default, report a "heartbeat" every time it runs.<br/>
               A heartbeat is a set of two reports (startRun/endRun). When no other events are reported (no errors and no repairs),
               this is the only feedback sent by the node.<br/>
               The bandwidth consumed by these messages is tiny, but can add up over time. The setting below allows to change
