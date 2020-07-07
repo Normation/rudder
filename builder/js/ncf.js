@@ -1424,11 +1424,11 @@ $scope.onImportFileChange = function (fileEl) {
         savedTechnique.isClone    = false;
         $scope.originalTechnique  = angular.copy(savedTechnique);
         // Resources will be reset by resource manager if original technique resources are undefined
-        $scope.originalTechnique.resources = undefined;
         $scope.selectedTechnique  = angular.copy(savedTechnique);
         // We will lose the link between the selected method and the technique, to prevent unintended behavior, close the edit method panel
         $scope.ui.selectedMethods = [];
       }
+
       updateFileManagerConf()
       $scope.resetFlags();
     }
