@@ -1346,6 +1346,15 @@ ul.list-unstyled > li{
 .flex-form.method-condition textarea{
   word-break: break-all;
 }
+.sm-space-top {
+  margin-top: 10px;
+}
+.form-inline.sm-space-top > .form-group{
+  margin-right: 10px;
+}
+.form-inline.sm-space-top > .form-group > .form-control{
+  margin-left: 4px;
+}
 @keyframes pulse {
   0% {
     -moz-box-shadow: 0 0 0 0 rgba(199, 218, 252, .9);
