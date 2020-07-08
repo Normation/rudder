@@ -1056,6 +1056,9 @@ ul.list-unstyled > li{
   font-size: 16px;
   color: #222D42;
 }
+.method .method-name .dsc-icon {
+  margin-left: 6px;
+}
 .col-methods .method .method-name {
   cursor: pointer;
   padding: 8px;
