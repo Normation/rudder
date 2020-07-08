@@ -91,36 +91,39 @@ impl DSC {
             EnumExpression::And(e1, e2) => {
                 let mut lexpr = self.format_case_expr(gc, e1)?;
                 let mut rexpr = self.format_case_expr(gc, e2)?;
-                if lexpr.contains("|") {
+                if lexpr.contains(" -or ") {
                     lexpr = format!("({})", lexpr);
                 }
-                if rexpr.contains("|") {
+                if rexpr.contains(" -or ") {
                     rexpr = format!("({})", rexpr);
                 }
-                format!("{}.{}", lexpr, rexpr)
+                format!("{} -and {}", lexpr, rexpr)
             }
             EnumExpression::Or(e1, e2) => format!(
-                "{}|{}",
+                "{} -or {}",
                 self.format_case_expr(gc, e1)?,
                 self.format_case_expr(gc, e2)?
             ),
             // TODO what about classes that have not yet been set ? can it happen ?
             EnumExpression::Not(e1) => {
                 let mut expr = self.format_case_expr(gc, e1)?;
-                if expr.contains("|") || expr.contains("&") {
+                if expr.contains(" -or ") || expr.contains(" -and ") {
                     expr = format!("!({})", expr);
                 }
                 format!("!{}", expr)
             }
             EnumExpression::Compare(var, e, item) => {
                 if let Some(true) = gc.enum_list.enum_is_global(*e) {
+                    println!("some: {}", item.fragment());
                     // We probably need some translation here since not all enums are available in cfengine (ex debian_only)
                     item.fragment().to_string() // here
                 } else {
-                    // concat var name + item
-                    let prefix = &self.var_prefixes[var.fragment()];
-                    // TODO there may still be some conflicts with var or enum containing '_'
-                    format!("{}_{}_{}", prefix, e.fragment(), item.fragment())
+                    // Temporary keep this piece of code in case it has a purpose
+                    // // concat var name + item
+                    // let prefix = &self.var_prefixes[var.fragment()];
+                    // // TODO there may still be some conflicts with var or enum containing '_'
+                    // format!("{}_{}_{}", prefix, e.fragment(), item.fragment())
+                    format!("{}_{}", var.fragment(), item.fragment())
                 }
             }
             EnumExpression::RangeCompare(_var, _e, _item1, _item2) => unimplemented!(), // TODO
@@ -129,7 +132,7 @@ impl DSC {
                 if self.current_cases.is_empty() {
                     "any".to_string()
                 } else {
-                    format!("!({})", self.current_cases.join("|"))
+                    format!("!({})", self.current_cases.join(" -or "))
                 }
             }
             EnumExpression::NoDefault(_) => "".to_string(),
@@ -144,7 +147,7 @@ impl DSC {
 
         // if one day several class_parameters are used as they previously were, get the relative code from this commit
         // 89651a6a8a05475eabccefc23e4fe23235a7e011 . This file, line 170
-        match state_def.metadata.get(&Token::from("resource_parameter")) {
+        match state_def.metadata.get(&Token::from("class_parameter")) {
             Some(Value::Struct(parameters)) if parameters.len() == 1 => {
                 let p = parameters.iter().next().unwrap();
                 let p_index = match p.1 {
@@ -258,7 +261,7 @@ impl DSC {
     // TODO variables
     // TODO comments and metadata
     // TODO use in_class everywhere
-    fn format_statement(&mut self, gc: &AST, st: &Statement) -> Result<String> {
+    fn format_statement(&mut self, gc: &AST, st: &Statement, condition_content: String) -> Result<String> {
         match st {
             Statement::StateDeclaration(sd) => {
                 if let Some(var) = sd.outcome {
@@ -273,31 +276,51 @@ impl DSC {
                     _ => "any".to_string(),
                 };
 
-                let (params_formatted_str, class_param, is_dsc_technique) = self.get_method_parameters(gc, sd)?;
+                let (params_formatted_str, class_param, is_dsc_gm) = self.get_method_parameters(gc, sd)?;
 
-                Ok(match is_dsc_technique {
+                let condition = self.format_condition(condition_content)?;
+
+                let na_call = format!(
+                    r#"  _rudder_common_report_na -ComponentName "{}" -ComponentKey "{}" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly"#,
+                    component, class_param
+                );
+
+                let call = match is_dsc_gm {
                     true => format!(
-                        r#"  $local_classes = Merge-ClassContext $local_classes $({} {} -ComponentName "{}" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly"#,
+                        r#"  $LocalClasses = Merge-ClassContext $LocalClasses $({} {} -ComponentName "{}" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly"#,
                         pascebab_case(&component),
                         params_formatted_str,
                         component,
                     ),
-                    false => format!(
-                        r#"  _rudder_common_report_na -ComponentName "{}" -ComponentKey "{}" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly"#,
-                        component, class_param
-                    ),
-                })
+                    false => na_call.clone(),
+                };
+
+
+                if condition == "any" {
+                    Ok(call)
+                } else {
+                    let formatted_condition = &format!("\n  $Condition = \"any.({})\"\n  if (Evaluate-Class $Condition $LocalClasses $SystemClasses) {{", condition);
+                    Ok(match is_dsc_gm {
+                        true => format!("{}\n  {}\n  }} else {{\n  {}\n  }}", formatted_condition, call, na_call),
+                        false => format!("{}\n  {}\n  }}\n", formatted_condition, call)
+                    })
+                }
             }
             Statement::Case(_case, vec) => {
                 self.reset_cases();
                 map_strings_results(
                     vec.iter(),
-                    |(_case, vst)| {
-                        // TODO case in case
-                        // let case_exp = self.format_case_expr(gc, case)?;
-                        map_strings_results(vst.iter(), |st| self.format_statement(gc, st), "")
-                    },
-                    "",
+                    |(case, vst)| {
+                    let condition_content = self.format_case_expr(gc, case)?;
+                    map_strings_results(
+                        vst.iter(),
+                        |st| {
+                            self.format_statement(gc, st, condition_content.clone())
+                        },
+                        "",
+                    )
+                },
+                "",
                 )
             }
             Statement::Fail(msg) => Ok(format!(
@@ -309,23 +332,37 @@ impl DSC {
                 self.parameter_to_dsc(msg, "Log")?
             )),
             Statement::Return(outcome) => {
+                let outcome_str = if outcome.fragment() == "kept" {
+                    "success"
+                } else if outcome.fragment() == "repaired" {
+                    "repaired"
+                } else {
+                    "error"
+                };
+                let content = format!(r#"    $State = [ComplianceStatus]::result_{}
+    $Classes = _rudder_common_report -TechniqueName $TechniqueName  -Status $State -ReportId $ReportId -ComponentName "TODO" -ComponentKey "TODO" -Message "TODO" -MessageInfo "TODO" -MessageVerbose "TODO" -report:"TODO"
+    @{{"status" = $State; "classes" = $Classes}}
+"#,
+                    outcome_str
+                );
                 // handle end of bundle
                 self.return_condition = Some(match self.current_cases.last() {
                     None => "!any".into(),
                     Some(c) => format!("!({})", c),
                 });
-                Ok(if *outcome == Token::new("", "kept") {
-                    "      \"method_call\" usebundle => success();\n".into()
-                } else if *outcome == Token::new("", "repaired") {
-                    "      \"method_call\" usebundle => repaired();\n".into()
-                } else {
-                    "      \"method_call\" usebundle => error();\n".into()
-                })
+                Ok(content)
             }
             Statement::Noop => Ok(String::new()),
-            // TODO Statement::VariableDefinition()
             _ => Ok(String::new()),
         }
+    }
+
+    fn format_condition(&mut self, condition: String) -> Result<String> {
+        self.current_cases.push(condition.clone());
+        Ok(match &self.return_condition {
+            None => condition,
+            Some(c) => format!("({}) -and ({})", c, condition),
+        })
     }
 
     fn value_to_string(&mut self, value: &Value, string_delim: bool) -> Result<String> {
@@ -480,7 +517,7 @@ impl Generator for DSC {
                     .chain(state.parameters.iter())
                     .map(|p| {
                         format!(
-                            "        [Parameter(Mandatory=$True)]  [{}] ${}",
+                            "    [Parameter(Mandatory=$True)]  [{}] ${}",
                             uppercase_first_letter(&self.format_param_type(&p.value)),
                             pascebab_case(p.name.fragment())
                         )
@@ -490,9 +527,9 @@ impl Generator for DSC {
 
                 // add default dsc parameters
                 let parameters: String = format!(r#"{},
-        [Parameter(Mandatory=$False)] [Switch] $AuditOnly      = $False,
-        [Parameter(Mandatory=$True)]  [String] $ReportId,
-        [Parameter(Mandatory=$True)]  [String] $TechniqueName"#,
+    [Parameter(Mandatory=$False)] [Switch] $AuditOnly,
+    [Parameter(Mandatory=$True)]  [String] $ReportId,
+    [Parameter(Mandatory=$True)]  [String] $TechniqueName"#,
                     method_parameters,
                 );
 
@@ -500,20 +537,20 @@ impl Generator for DSC {
                 let methods = &state
                     .statements
                     .iter()
-                    .map(|st| self.format_statement(gc, st))
+                    .map(|st| self.format_statement(gc, st, "any".to_string()))
                     .collect::<Result<Vec<String>>>()?
                     .join("\n");
                 // merge header + parameters + methods with technique file body
                 let content = format!(r#"# generated by rudder-lang
 {header}
 function {resource_name}-{state_name} {{
-    [CmdletBinding()]
-    param (
+  [CmdletBinding()]
+  param (
 {parameters}
-    )
+  )
   
-  $local_classes = New-ClassContext
-  $resources_dir = $PSScriptRoot + "\resources"
+  $LocalClasses = New-ClassContext
+  $ResourcesDir = $PSScriptRoot + "\resources"
 
 {methods}
 }}"#,

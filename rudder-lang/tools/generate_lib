@@ -123,7 +123,7 @@ foreach my $file (glob $ncf_methods) {
 
   $resource{"resource $resource(".join(", ", @resource_params_unnamed).")"}=1;
   # keep output
-  push @state, "\@resource_parameter = {".join(", ", @resource_params)."}";
+  push @state, "\@class_parameter = {".join(", ", @resource_params)."}";
   push @state, "\@supported_formats  = [".join(", ", @supported_formats)."]";
   push @state, "$resource state $state(".join(", ", @params).") {}\n";
   push @config_lines, "$generic_method = { class_prefix=\"$prefix\", class_parameter_id = $class_parameter }";
