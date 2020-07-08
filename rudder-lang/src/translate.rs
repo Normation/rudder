@@ -319,8 +319,8 @@ resource {bundle_name}({parameter_list})
 
     fn translate_class(&self, cond: &str) -> Result<String> {
         lazy_static! {
-        static ref METHOD_RE: Regex = Regex::new(r"^(\w+)_(\w+)$").unwrap();
-    }
+            static ref CLASS_RE: Regex = Regex::new(r"(?U)^([\w${.}]+)(?:_(not_repaired|repaired|false|true|not_ok|ok|reached|error|failed|denied|timeout|success|not_kept|kept))?$").unwrap();
+        }
 
         // detect known system class
         for i in self.stdlib.enum_list.enum_item_iter("system".into()) {
@@ -338,28 +338,27 @@ resource {bundle_name}({parameter_list})
             }
         }
 
-        // detect group classes
-        if cond.starts_with("group_") {
-            // group classes are implemented with boolean variables of the sane name
-            // TODO declare the variable
-            return Ok(cond.into())
-        }
+        // - classprefix_classparameters_outcomesuffix
+        // - outcomesuffix is not mandatory
+        // - classprefix goes in pair with class_parameters and they are not mandatory
+        // - you can end up with only ${}
 
         // detect method outcome class
-        if let Some(caps) = METHOD_RE.captures(cond) {
-            let (method, status) = (caps.get(1).unwrap().as_str(), caps.get(2).unwrap().as_str());
-            if vec!["kept", "success"].iter().any(|x| x == &status) {
+        if let Some(caps) = CLASS_RE.captures(cond) {
+            let method = caps.get(1).unwrap().as_str();
+            let outcome = match caps.get(2) {
+                Some(res) => res.as_str(),
+                None => return Ok(method.to_owned())
+            };
+            if vec!["kept", "success"].iter().any(|x| x == &outcome) {
                 return Ok(format!("{} =~ success", method));
-            } else if vec!["error", "not_ok", "failed", "denied", "timeout"]
-                .iter()
-                .any(|x| x == &status)
+            } else if vec!["error", "not_ok", "failed", "denied", "timeout", "not_kept"].iter().any(|x| x == &outcome)
             {
                 return Ok(format!("{} =~ error", method));
-            } else if vec!["repaired", "ok", "reached"]
-                .iter()
-                .any(|x| x == &status)
+            } else if vec!["repaired", "ok", "reached"].iter().any(|x| x == &outcome)
             {
-                return Ok(format!("{} =~ {}", method, status));
+                return Ok(format!("{} =~ {}", method, outcome));
+            } else if cond == "" {
             }
         };
 
