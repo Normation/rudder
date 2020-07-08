@@ -9,10 +9,14 @@
 
 resource CIS_redhat7___Enable_Service(service)
 CIS_redhat7___Enable_Service state technique() {
+  p0="skip_item_${report_data.canonified_directive_id}"
+  p1="node.properties[skip][${report_data.directive_id}]"
   @component = "condition_from_variable_existence"
-  condition("skip_item_","${report_data.canonified_directive_id}","node.properties[skip][","${report_data.directive_id}","]").from_variable_existence() as condition_from_variable_existence_skip_item___report_data_canonified_directive_id_node_properties_skip____report_data_directive_id__
+  condition(p0).from_variable_existence(p1) as condition_from_variable_existence_skip_item___report_data_canonified_directive_id_
+  p0="${service}"
   @component = "service_enabled"
-  if (skip_item_${report_data.canonified_directive_id} =~ ok) => service("service").enabled() as service_enabled___service_
+  if (skip_item_${report_data.canonified_directive_id} =~ success) => service(p0).enabled() as service_enabled___service_
+  p0="${service}"
   @component = "service_started"
-  if (skip_item_${report_data.canonified_directive_id} =~ error) => service("service").started() as service_started___service_
+  if ((skip_item_${report_data.canonified_directive_id} =~ error | skip_item_${report_data.canonified_directive_id} =~ repaired)) => service(p0).started() as service_started___service_
 }
