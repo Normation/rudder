@@ -857,7 +857,8 @@ ul.files-list > li > .remove-item:hover{
   font-size: 14px;
 }
 .method-details select.form-control:not([size]):not([multiple]) {
-  height: calc(2.25rem);
+  height: auto;
+  padding: 6px;
 }
 .method-details label > small {
   opacity: .6;
