@@ -316,6 +316,7 @@ body > .container-fluid > .row > div {
   font-size: 14px;
   padding: 10px 14px;
   transition-duration: .2s;
+  cursor: pointer;
 }
 .main-header .dropdown-menu > li:nth-child(1) > a{
   color: #9bc832;
