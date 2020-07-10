@@ -1,0 +1,60 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+post:
+  summary: Update CVE database from remote source 
+  description: Update CVE database from remote source  
+  operationId: updateCVE
+  requestBody:
+    content:
+      application/json:
+        schema:
+          type: object
+          description: CVE update config
+          properties:
+            url:
+              type: string
+              description: Url used to update CVE, will default to one set in config
+              example: "https://nvd.nist.gov/feeds/json/cve/1.1"
+            years:
+              type: array
+              items:
+                type: string
+                description: Year of the CVE archive to download  
+                example: "2019"
+  responses:
+    "200":
+      description: updated CVE count 
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - updateCVE
+              data:
+                type: object 
+                required:
+                  - CVEs
+                properties:
+                  CVEs:
+                    type: integer
+                    example: 12345
+  tags:
+    - 🧩 CVE
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/cve/updateCVE.sh

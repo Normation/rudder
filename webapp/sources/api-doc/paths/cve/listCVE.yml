@@ -1,0 +1,58 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+post:
+  summary: Get a list of CVE details 
+  description: Get CVE details, from a list passed a paremeter
+  operationId: getCVEList
+  requestBody:
+    content:
+      application/json:
+        schema:
+          type: object
+          description: cveList
+          properties:
+            cveIds:
+              type: array
+              items:
+                type: string
+                description: CVE id
+                example: "CVE-2019-5953"
+  
+  responses:
+    "200":
+      description: CVE list
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getCVEList 
+              data:
+                type: object 
+                required:
+                  - CVEs
+                properties:
+                  CVEs:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/cveDetails.yml
+  tags:
+    - 🧩 CVE
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/cve/listCVE.sh
