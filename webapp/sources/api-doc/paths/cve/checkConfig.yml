@@ -1,0 +1,106 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+get:
+  summary: Get CVE check config 
+  description: Get CVE check config
+  operationId: getCVECheckConfiguration
+  responses:
+    "200":
+      description: CVE check config
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getCVECheckConfiguration
+              data:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    description: Url used to check CVE
+                    example: "https://api.rudder.io/cve/v1/"
+                  apiKey:
+                    type: string
+                    description: Token used by to contact the API to check CVE  
+  tags:
+    - 🧩 CVE
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/cve/getConfig.sh
+
+
+post:
+  summary: Update cve check config
+  description: Update cve check config
+  operationId: updateCVECheckConfiguration
+  requestBody:
+    content:
+      application/json:
+        schema:
+          type: object
+          description: CVE check config
+          properties:
+            url:
+              type: string
+              description: Url used to check CVE
+              example: "https://api.rudder.io/cve/v1/"
+            apiKey:
+              type: string
+              description: Token used by to contact the API to check CVE 
+  responses:
+    "200":
+      description: new CVE check config 
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getCVECheckConfiguration
+              data:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    description: Url used to check CVE
+                    example: "https://api.rudder.io/cve/v1/"
+                  apiKey:
+                    type: string
+                    description: Token used by to contact the API to check CVE  
+  tags:
+    - 🧩 CVE
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/cve/updateConfig.sh
+
+

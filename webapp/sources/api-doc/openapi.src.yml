@@ -52,6 +52,12 @@ tags:
 
 
       Manage change requests.
+  - name: "🧩 CVE"
+    description: >-
+      **Requires that the `cve` plugin is installed on the server.**
+
+
+      Manage CVE plugins data and configuration.
   - name: "🧩 Data sources"
     description: >-
       **Requires that the `datasources` plugin is installed on the server.**
@@ -165,3 +171,17 @@ paths:
     $ref: paths/rules/category-id.yml
   "/rules/tree":
     $ref: paths/rules/tree.yml
+  "/cve/check/last":
+    $ref: paths/cve/last.yml
+  "/cve/check":
+    $ref: paths/cve/check.yml
+  "/cve/check/config":
+    $ref: paths/cve/checkConfig.yml
+  "/cve":
+    $ref: paths/cve/allCVE.yml
+  "/cve/list":
+    $ref: paths/cve/listCVE.yml
+  "/cve/update/fs":
+    $ref: paths/cve/updateCVEFromFS.yml
+  "/cve/update/":
+    $ref: paths/cve/updateCVE.yml

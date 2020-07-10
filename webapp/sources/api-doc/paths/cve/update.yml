@@ -1,0 +1,44 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+post:
+  summary: Get all CVE details 
+  description: Get all CVE details
+  operationId: getAllCve
+  responses:
+    "200":
+      description: CVE check result
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getAllCve
+              data:
+                type: object 
+                required:
+                  - CVEs
+                properties:
+                  CVEs:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/cveDetails.yml
+  tags:
+    - 🧩 CVE
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/cve/allDetails.sh
