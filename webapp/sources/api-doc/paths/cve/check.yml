@@ -3,7 +3,7 @@
 post:
   summary: Trigger a CVE check 
   description: Trigger a CVE check
-  operationId: getLastCVECheck
+  operationId: checkCVE
   responses:
     "200":
       description: CVE check result

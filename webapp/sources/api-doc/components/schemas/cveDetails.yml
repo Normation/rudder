@@ -34,7 +34,8 @@ properties:
     description: CVSS V3 of the CVE
     properties:
       baseScore:
-        type: float 
+        type: number 
+        format: float (0 to 10)
         example: 9.8
         description: CVSS V3 base score
       vector:
@@ -55,7 +56,7 @@ properties:
     description: CVSS V2 of the CVE
     properties:
       baseScore:
-        type: int
+        type: integer
         description: CVSS V2 base score
       vector:
         type: string
