@@ -693,12 +693,12 @@ class PolicyWriterServiceImpl(
                  copyInfo <- techniqueRepository.getTemplateContent(templateId) { optInputStream =>
                                optInputStream match {
                                  case None =>
-                                   Unexpected(s"Error when trying to open template '${templateId.toString}'. Check that the file exists with a ${TechniqueTemplate.templateExtension} extension and is correctly commited in Git, or that the metadata for the technique are corrects.").fail
+                                   Unexpected(s"Error when trying to open template '${templateId.displayPath}'. Check that the file exists with a ${TechniqueTemplate.templateExtension} extension and is correctly commited in Git, or that the metadata for the technique are corrects.").fail
                                  case Some(inputStream) =>
                                    for {
-                                     _       <- PolicyGenerationLoggerPure.trace(s"Loading template: ${templateId}")
+                                     _       <- PolicyGenerationLoggerPure.trace(s"Loading template: ${templateId.displayPath}")
                                                //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
-                                     content <- IOResult.effect(s"Error when copying technique template '${templateId.toString}'")(inputStream.asString(false))
+                                     content <- IOResult.effect(s"Error when copying technique template '${templateId.displayPath}'")(inputStream.asString(false))
                                    } yield {
                                      TechniqueTemplateCopyInfo(templateId, templateOutPath, content)
                                    }
@@ -737,12 +737,12 @@ class PolicyWriterServiceImpl(
                  copyInfo <- techniqueRepository.getFileContent(templateId) { optInputStream =>
                                optInputStream match {
                                  case None =>
-                                   Unexpected(s"Error when trying to open template '${templateId.toString}'. Check that the file exists with a ${TechniqueTemplate.templateExtension} extension and is correctly commited in Git, or that the metadata for the technique are corrects.").fail
+                                   Unexpected(s"Error when trying to open resource '${templateId.displayPath}'. Check that the file exists is correctly commited in Git, or that the metadata for the technique are corrects.").fail
                                  case Some(inputStream) =>
                                    for {
-                                     _       <- PolicyGenerationLoggerPure.trace(s"Loading template: ${templateId}")
+                                     _       <- PolicyGenerationLoggerPure.trace(s"Loading resource: ${templateId.displayPath}")
                                                //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
-                                     content <- IOResult.effect(s"Error when copying technique resource '${templateId.toString}'")(inputStream.asString(false))
+                                     content <- IOResult.effect(s"Error when copying technique resource '${templateId.displayPath}'")(inputStream.asString(false))
                                    } yield {
                                      TechniqueResourceCopyInfo(templateId, templateOutPath, content)
                                    }
