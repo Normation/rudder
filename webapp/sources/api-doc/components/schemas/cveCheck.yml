@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: object
+properties:
+  cveid:
+    type: string
+    description: CVE id
+    example: CVE-2019-5953
+    format: cve id
+  nodes:
+    type: array
+    description: Id of Nodes affected by this CVE
+    items:
+      type: string
+      description: "Node id"
+  packages:
+    type: array
+    description: packages affected by this CVE
+    items:
+      type: object
+      description: "Packages affected by this CVE"
+      properties:
+        name:
+          type: string
+          description: Name of the package affected
+          example: libssh2-1
+        version:
+          type: string
+          description: Version of the package affected
+          example: 1.7.0-1

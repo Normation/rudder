@@ -1,0 +1,62 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: object
+properties:
+  id:
+    type: string
+    description: CVE id
+    example: CVE-2019-5953
+    format: cve id
+  publishedDate:
+    type: string
+    description: Date the CVE was published 
+    example: 2019-05-17 18:29:00+02
+    format: date
+  lastModifiedDate:
+    type: string
+    description: last Date the CVE was modified 
+    example: 2019-07-03 01:15:00+02
+    format: date
+  description:
+    type: string
+    description: CVE Description 
+    example: Buffer overflow in GNU Wget 1.20.1 and earlier allows remote attackers to cause a denial-of-service (DoS) or may execute an arbitrary code via unspecified vectors.
+    format: date
+  cweIds:
+    type: array
+    description: List of CWE (Common Weakness Enumeration) of the CVE
+    items:
+      type: string
+      example : CWE-119
+      description: id of a CWE
+  cvssv3:
+    type: object
+    description: CVSS V3 of the CVE
+    properties:
+      baseScore:
+        type: float 
+        example: 9.8
+        description: CVSS V3 base score
+      vector:
+        type: string
+        example: CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+        description: CVSS V3 vector
+      baseSeverity:
+        type: string
+        description: CVSS V3 Severity 
+        enum:
+          - critical
+          - high
+          - medium
+          - low
+          - none
+  cvssv2:
+    type: object
+    description: CVSS V2 of the CVE
+    properties:
+      baseScore:
+        type: int
+        description: CVSS V2 base score
+      vector:
+        type: string
+        description: CVSS V2 vector
