@@ -4,8 +4,10 @@
 use super::{PInput, Token};
 use crate::error::*;
 use colored::Colorize;
-use nom::error::{ErrorKind, ParseError, VerboseError};
-use nom::{Err, IResult};
+use nom::{
+    error::{ErrorKind, ParseError, VerboseError},
+    Err, IResult,
+};
 use std::fmt;
 
 /// Result for all parser
@@ -218,7 +220,7 @@ where
 pub fn update_error_context<'src>(
     e: Err<PError<PInput<'src>>>,
     //new_ctx: PInput<'src>,
-    new_ctx: Context<PInput<'src>>
+    new_ctx: Context<PInput<'src>>,
 ) -> Err<PError<PInput<'src>>> {
     match e {
         Err::Failure(err) => {

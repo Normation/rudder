@@ -2,9 +2,7 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use serde::Deserialize;
-use std::fmt;
-use std::path::PathBuf;
-use std::str::FromStr;
+use std::{fmt, path::PathBuf, str::FromStr};
 
 use crate::{error::*, generators::Format, opt::IOOpt, Action};
 

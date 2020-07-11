@@ -2,9 +2,11 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use nom_locate::LocatedSpanEx;
-use std::fmt;
-use std::hash::{Hash, Hasher};
-use std::ops::Deref;
+use std::{
+    fmt,
+    hash::{Hash, Hasher},
+    ops::Deref,
+};
 
 /// All parsers take PInput objects
 /// All input are Located str

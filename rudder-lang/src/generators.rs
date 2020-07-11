@@ -4,14 +4,10 @@
 mod cfengine;
 mod dsc;
 
-pub use self::cfengine::CFEngine;
-pub use self::dsc::DSC;
-use crate::ast::AST;
-use crate::error::*;
+pub use self::{cfengine::CFEngine, dsc::DSC};
+use crate::{ast::AST, error::*};
 use serde::de::{self, Deserialize, Deserializer};
-use std::fmt;
-use std::path::Path;
-use std::str::FromStr;
+use std::{fmt, path::Path, str::FromStr};
 
 /// A generator is something that can generate final code for a given language from an AST
 /// We want at least cfengine, dsc, mgmt

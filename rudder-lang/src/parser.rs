@@ -5,14 +5,10 @@ mod baseparsers;
 mod error;
 mod token;
 
-use nom::branch::*;
-use nom::bytes::complete::*;
-use nom::character::complete::*;
-use nom::combinator::*;
-use nom::error::*;
-use nom::multi::*;
-use nom::number::complete::*;
-use nom::sequence::*;
+use nom::{
+    branch::*, bytes::complete::*, character::complete::*, combinator::*, error::*, multi::*,
+    number::complete::*, sequence::*,
+};
 
 use std::collections::HashMap;
 
@@ -1001,9 +997,7 @@ fn pfile(i: PInput) -> PResult<PFile> {
 
 #[cfg(test)]
 pub fn test_new_pvalue(s: &str) -> PValue {
-    let res = pvaragent_declaration(
-        Token::from(s).into()
-    ).unwrap();
+    let res = pvaragent_declaration(Token::from(s).into()).unwrap();
     (res.1).1
 }
 

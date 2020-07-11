@@ -1,12 +1,8 @@
-use nom::branch::*;
-use nom::bytes::complete::*;
-use nom::character::complete::*;
-use nom::combinator::*;
-use nom::multi::*;
-use nom::sequence::*;
+use nom::{
+    branch::*, bytes::complete::*, character::complete::*, combinator::*, multi::*, sequence::*,
+};
 
-use super::error::*;
-use super::token::*;
+use super::{error::*, token::*};
 
 /// Eat everything that can be ignored between tokens
 /// ie white spaces, newlines and simple comments (with a single #)

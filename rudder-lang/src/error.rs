@@ -14,9 +14,7 @@
 use crate::parser::Token;
 use colored::Colorize;
 use ngrammatic::CorpusBuilder;
-use std::collections::HashMap;
-use std::fmt;
-use std::hash::Hash;
+use std::{collections::HashMap, fmt, hash::Hash};
 
 const FUZZY_THRESHOLD: f32 = 0.5; // pub + `crate::` before calling since it may end up in the main.rs file.
 

@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use super::context::VarKind;
-use super::enum_tree::{EnumItem, EnumTree};
-use super::resource::Statement;
-use super::value::Value;
-use crate::error::*;
-use crate::parser::{PEnum, PEnumAlias, PEnumExpression, PMetadata, PSubEnum, Token};
+use super::{
+    context::VarKind,
+    enum_tree::{EnumItem, EnumTree},
+    resource::Statement,
+    value::Value,
+};
+use crate::{
+    error::*,
+    parser::{PEnum, PEnumAlias, PEnumExpression, PMetadata, PSubEnum, Token},
+};
 use std::collections::{HashMap, HashSet};
 
 // TODO named item tests

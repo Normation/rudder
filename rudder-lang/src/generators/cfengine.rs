@@ -2,17 +2,12 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::Generator;
-use crate::ast::enums::EnumExpression;
-use crate::ast::resource::*;
-use crate::ast::value::*;
-use crate::ast::*;
-use crate::parser::*;
+use crate::{
+    ast::{enums::EnumExpression, resource::*, value::*, *},
+    parser::*,
+};
 
-use std::collections::HashMap;
-use std::ffi::OsStr;
-use std::fs::File;
-use std::io::Write;
-use std::path::Path;
+use std::{collections::HashMap, ffi::OsStr, fs::File, io::Write, path::Path};
 
 use crate::error::*;
 

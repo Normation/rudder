@@ -2,11 +2,15 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::value::Value;
-use crate::ast::resource::create_metadata;
-use crate::error::*;
-use crate::parser::{PEnum, PMetadata, PSubEnum, Token};
-use std::collections::{HashMap, HashSet};
-use std::fmt;
+use crate::{
+    ast::resource::create_metadata,
+    error::*,
+    parser::{PEnum, PMetadata, PSubEnum, Token},
+};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt,
+};
 
 /// This item type is internal, because First and Last cannot be constructed from an enum declaration or from and enum expression
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]

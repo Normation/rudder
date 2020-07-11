@@ -7,14 +7,15 @@ pub mod enums;
 pub mod resource;
 pub mod value;
 
-use crate::error::*;
-use crate::parser::*;
+use crate::{error::*, parser::*};
 use std::collections::{HashMap, HashSet};
 
-use self::context::{VarContext, VarKind};
-use self::enums::EnumList;
-use self::resource::*;
-use self::value::Value;
+use self::{
+    context::{VarContext, VarKind},
+    enums::EnumList,
+    resource::*,
+    value::Value,
+};
 
 // TODO v2: type inference, compatibility metadata
 // TODO aliases

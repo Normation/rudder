@@ -1,28 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::ast::value;
-use crate::ast::AST;
-use crate::compile::parse_stdlib;
-use crate::error::*;
-use crate::io::IOContext;
-use crate::parser::Token;
-use crate::parser::PAST;
+use crate::{
+    ast::{value, AST},
+    compile::parse_stdlib,
+    error::*,
+    io::IOContext,
+    parser::{Token, PAST},
+};
 use colored::Colorize;
 use lazy_static::lazy_static;
-use nom::branch::alt;
-use nom::bytes::complete::*;
-use nom::character::complete::*;
-use nom::combinator::*;
-use nom::multi::many1;
-use nom::sequence::*;
-use nom::IResult;
+use nom::{
+    branch::alt, bytes::complete::*, character::complete::*, combinator::*, multi::many1,
+    sequence::*, IResult,
+};
 use regex::{Captures, Regex};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::convert::TryFrom;
-use std::fs;
-use std::str;
+use std::{convert::TryFrom, fs, str};
 use toml;
 use typed_arena::Arena;
 
@@ -91,7 +86,15 @@ pub fn translate_file(context: &IOContext) -> Result<()> {
     let mut technique = serde_json::from_str::<Technique>(&json_data)
         .map_err(|e| err!(Token::new(&input_path, ""), "{}", e))?;
 
-    technique.method_calls.iter_mut().for_each(|method| method.args.push(method.parameters.iter().map(|p| p.value.to_owned()).collect()));
+    technique.method_calls.iter_mut().for_each(|method| {
+        method.args.push(
+            method
+                .parameters
+                .iter()
+                .map(|p| p.value.to_owned())
+                .collect(),
+        )
+    });
 
     info!(
         "|- {} (translation phase)",

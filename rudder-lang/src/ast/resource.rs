@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use super::context::{VarContext, VarKind};
-use super::enums::{EnumExpression, EnumList};
-use super::value::Value;
-use crate::error::*;
-use crate::parser::*;
+use super::{
+    context::{VarContext, VarKind},
+    enums::{EnumExpression, EnumList},
+    value::Value,
+};
+use crate::{error::*, parser::*};
 use std::collections::{hash_map::Entry, HashMap, HashSet};
 
 ///! There are 2 kinds of functions return
