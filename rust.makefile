@@ -4,7 +4,7 @@
 .DEFAULT_GOAL := build
 SHELL := /bin/bash
 PATH := $(PATH):$(HOME)/.cargo/bin:$(PATH)
-DEBUGOPT:=$(shell make -v --debug=n >/dev/null2>&1 && echo --debug=n)
+DEBUGOPT:=$(shell make -v --debug=n >/dev/null 2>&1 && echo --debug=n)
 
 APT := apt update && apt install -y --no-install-recommends
 YUM := yum install -y 
@@ -50,6 +50,9 @@ check: lint
 clean:
 	cargo clean
 	rm -rf target
+
+test:
+	cargo test
 
 veryclean: clean
 	rustup self uninstall

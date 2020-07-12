@@ -132,10 +132,7 @@ impl Logger {
             }
             Logger::Terminal => {
                 if is_success {
-                    println!(
-                        "Everything worked as expected, '{}' generated from '{}'",
-                        output_file, input_file
-                    );
+                    println!("'{}' written", output_file);
                 } else {
                     println!(
                         "An error occurred, '{}' file has not been created from '{}'",

@@ -4,12 +4,15 @@
 use super::Generator;
 use crate::{
     ast::{enums::EnumExpression, resource::*, value::*, *},
+    error::*,
+    generators::cfengine::syntax::{quoted, Bundle, Promise, Technique},
     parser::*,
 };
-
 use std::{collections::HashMap, ffi::OsStr, fs::File, io::Write, path::Path};
 
-use crate::error::*;
+mod syntax;
+
+type Condition = String;
 
 pub struct CFEngine {
     // list of already formatted expression in current case
@@ -38,45 +41,26 @@ impl CFEngine {
         let var = format!("{}{}", prefix, id);
         self.var_prefixes.insert(prefix.to_string(), var);
     }
+
     fn reset_cases(&mut self) {
         // TODO this make case in case fail
         self.current_cases = Vec::new();
     }
+
     fn reset_context(&mut self) {
         self.var_prefixes = HashMap::new();
         self.return_condition = None;
     }
 
-    fn parameter_to_cfengine(&mut self, param: &Value) -> Result<String> {
-        Ok(match param {
-            Value::String(s) => {
-                // TODO variable reinterpret (rudlang systemvar to cfengine systemvar)
-                let formatted_param = s.format(
-                    |x: &str| {
-                        x.replace("\\", "\\\\") // backslash escape
-                            .replace("\"", "\\\"") // quote escape
-                            .replace("$", "${const.dollar}")
-                    }, // dollar escape
-                    |y: &str| format!("${{{}}}", y), // variable inclusion
-                );
-                format!(r#""{}""#, formatted_param)
-            }
-            Value::Number(_, _) => unimplemented!(),
-            Value::Boolean(_, _) => unimplemented!(),
-            Value::EnumExpression(_e) => "".into(), // TODO
-            Value::List(_) => unimplemented!(),
-            Value::Struct(_) => unimplemented!(),
-        })
-    }
-
-    fn format_class(&mut self, class: String) -> Result<String> {
+    fn format_class(&mut self, class: Condition) -> Result<Condition> {
         self.current_cases.push(class.clone());
         Ok(match &self.return_condition {
             None => class,
             Some(c) => format!("({}).({})", c, class),
         })
     }
-    fn format_case_expr(&mut self, gc: &AST, case: &EnumExpression) -> Result<String> {
+
+    fn format_case_expr(&mut self, gc: &AST, case: &EnumExpression) -> Result<Condition> {
         Ok(match case {
             EnumExpression::And(e1, e2) => {
                 let mut lexpr = self.format_case_expr(gc, e1)?;
@@ -94,7 +78,7 @@ impl CFEngine {
                 self.format_case_expr(gc, e1)?,
                 self.format_case_expr(gc, e2)?
             ),
-            // TODO what about classes that have not yet been set ? can it happen ?
+            // TODO what about classes that have not yet been set? can it happen?
             EnumExpression::Not(e1) => {
                 let mut expr = self.format_case_expr(gc, e1)?;
                 if expr.contains("|") || expr.contains("&") {
@@ -104,7 +88,7 @@ impl CFEngine {
             }
             EnumExpression::Compare(var, e, item) => {
                 if let Some(true) = gc.enum_list.enum_is_global(*e) {
-                    // We probably need some translation here since not all enums are available in cfengine (ex debian_only)
+                    // FIXME: We need some translation here since not all enums are available in cfengine (ex debian_only)
                     item.fragment().to_string() // here
                 } else {
                     // concat var name + item
@@ -126,38 +110,6 @@ impl CFEngine {
         })
     }
 
-    fn get_config_from_file(generic_methods: &Path) -> Result<toml::Value> {
-        let path = generic_methods.to_str().unwrap();
-        let file_error = |file: &str, err| err!(Token::new(&file.to_owned(), ""), "{}", err);
-        let config_data =
-            std::fs::read_to_string(generic_methods).map_err(|e| file_error(path, e))?;
-        toml::from_str(&config_data).map_err(|e| err!(Token::new(path, ""), "{}", e))
-    }
-    fn get_class_parameter_index(method_name: String, generic_methods: &Path) -> Result<usize> {
-        // outcome detection and formating
-        let config = Self::get_config_from_file(generic_methods)?;
-        let mconf = match config.get("methods") {
-            None => return Err(Error::User("No methods section in config.toml".into())),
-            Some(m) => m,
-        };
-        let method = match mconf.get(&method_name) {
-            None => {
-                return Err(Error::User(format!(
-                    "Unknown generic method call: {}",
-                    &method_name
-                )))
-            }
-            Some(m) => m,
-        };
-        match method.get("class_parameter_id") {
-            None => Err(Error::User(format!(
-                "Undefined class_parameter_id for {}",
-                &method_name
-            ))),
-            Some(m) => Ok(m.as_integer().unwrap() as usize),
-        }
-    }
-
     // TODO simplify expression and remove useless conditions for more readable cfengine
     // TODO underscore escapement
     // TODO how does cfengine use utf8
@@ -168,15 +120,14 @@ impl CFEngine {
         &mut self,
         gc: &AST,
         st: &Statement,
-        id: usize,
         in_class: String,
-        generic_methods: &Path,
-    ) -> Result<String> {
+    ) -> Result<Vec<Promise>> {
         match st {
             Statement::StateDeclaration(sd) => {
                 if let Some(var) = sd.outcome {
                     self.new_var(&var);
                 }
+
                 let component = match sd.metadata.get(&"component".into()) {
                     // TODO use static_to_string
                     Some(Value::String(s)) => match &s.data[0] {
@@ -185,94 +136,72 @@ impl CFEngine {
                     },
                     _ => "any".to_string(),
                 };
+
                 // TODO setup mode and output var by calling ... bundle
-                let param_str = map_strings_results(
-                    sd.resource_params.iter().chain(sd.state_params.iter()),
-                    |x| self.parameter_to_cfengine(x),
-                    ", ",
-                )?;
-                let method_name = format!("{}_{}", sd.resource.fragment(), sd.state.fragment());
-                let _index = Self::get_class_parameter_index(method_name, generic_methods)?;
+                let parameters = sd
+                    .resource_params
+                    .iter()
+                    .chain(sd.state_params.iter())
+                    .map(|x| self.value_to_string(x, true))
+                    .collect::<Result<Vec<String>>>()?;
+
                 let class = self.format_class(in_class)?;
-                let state_param = if sd.resource_params.len() > 0 {
-                    if let Ok(param) = self.parameter_to_cfengine(&sd.resource_params[0]) {
-                        format!(", {}", param)
-                    } else {
-                        "".to_string()
-                    }
-                } else {
-                    "".to_string()
-                };
-                let method_reporting_context = &format!(
-                    "    \"{}_${{report_data.directive_id}}_{}\" usebundle => _method_reporting_context(\"{}\"{})",
-                    component,
-                    id,
-                    component,
-                    state_param,
-                );
-                let method = &format!(
-                    "    \"{}_${{report_data.directive_id}}_{}\" usebundle => {}_{}({})",
-                    component,
-                    id,
-                    sd.resource.fragment(),
-                    sd.state.fragment(),
-                    param_str,
-                );
-                // facultative, only aesthetic to align the method `=>` with the conditonal `=>` like cfengine does
-                let padding_spaces = str::repeat(" ", component.len() + id.to_string().len() + 43);
-                if class == "any" {
-                    Ok(format!("{};\n{};\n", method_reporting_context, method))
-                } else {
-                    let condition = &format!("{}if => concat(\"{}\");", padding_spaces, class);
-                    Ok(format!(
-                        "{},\n{}\n{},\n{}\n",
-                        method_reporting_context, condition, method, condition
-                    ))
-                }
+                let state_param = sd
+                    .resource_params
+                    .get(0)
+                    .and_then(|p| self.value_to_string(&p, false).ok())
+                    .clone()
+                    .unwrap_or("".to_string());
+
+                let method_reporting_context = Promise::usebundle(
+                    "_method_reporting_context",
+                    vec![quoted(&component), quoted(&state_param)],
+                )
+                .if_condition(&class);
+                let method = Promise::usebundle(
+                    format!("{}_{}", sd.resource.fragment(), sd.state.fragment()),
+                    parameters,
+                )
+                .if_condition(&class);
+                Ok(vec![method_reporting_context, method])
             }
             Statement::Case(_case, vec) => {
                 self.reset_cases();
-                map_strings_results(
-                    vec.iter(),
-                    |(case, vst)| {
-                        // TODO case in case
-                        let case_exp = self.format_case_expr(gc, case)?;
-                        map_strings_results(
-                            vst.iter(),
-                            |st| {
-                                self.format_statement(gc, st, id, case_exp.clone(), generic_methods)
-                            },
-                            "",
-                        )
-                    },
-                    "",
-                )
+                let mut res = vec![];
+
+                for (case, vst) in vec {
+                    let case_exp = self.format_case_expr(gc, case)?;
+                    for st in vst {
+                        res.append(&mut self.format_statement(gc, st, case_exp.clone())?);
+                    }
+                }
+                Ok(res)
             }
-            Statement::Fail(msg) => Ok(format!(
-                "      \"method_call\" usebundle => ncf_fail({});\n",
-                self.parameter_to_cfengine(msg)?
-            )),
-            Statement::Log(msg) => Ok(format!(
-                "      \"method_call\" usebundle => ncf_log({});\n",
-                self.parameter_to_cfengine(msg)?
-            )),
+            Statement::Fail(msg) => Ok(vec![Promise::usebundle(
+                "ncf_fail",
+                vec![self.value_to_string(msg, false)?],
+            )]),
+            Statement::Log(msg) => Ok(vec![Promise::usebundle(
+                "ncf_log",
+                vec![self.value_to_string(msg, false)?],
+            )]),
             Statement::Return(outcome) => {
                 // handle end of bundle
                 self.return_condition = Some(match self.current_cases.last() {
                     None => "!any".into(),
                     Some(c) => format!("!({})", c),
                 });
-                Ok(if *outcome == Token::new("", "kept") {
-                    "      \"method_call\" usebundle => success();\n".into()
+                Ok(vec![if *outcome == Token::new("", "kept") {
+                    Promise::usebundle("success", vec![])
                 } else if *outcome == Token::new("", "repaired") {
-                    "      \"method_call\" usebundle => repaired();\n".into()
+                    Promise::usebundle("repaired", vec![])
                 } else {
-                    "      \"method_call\" usebundle => error();\n".into()
-                })
+                    Promise::usebundle("error", vec![])
+                }])
             }
-            Statement::Noop => Ok(String::new()),
+            Statement::Noop => Ok(vec![]),
             // TODO Statement::VariableDefinition()
-            _ => Ok(String::new()),
+            _ => Ok(vec![]),
         }
     }
 
@@ -287,7 +216,9 @@ impl CFEngine {
                     .map(|t| match t {
                         PInterpolatedElement::Static(s) => {
                             // replace ${const.xx}
-                            s.replace("$", "${consr.dollar}")
+                            s.replace("$", "${const.dollar}")
+                                .replace("\\", "\\\\") // backslash escape
+                                .replace("\"", "\\\"") // quote escape
                                 .replace("\\n", "${const.n}")
                                 .replace("\\r", "${const.r}")
                                 .replace("\\t", "${const.t}")
@@ -318,62 +249,6 @@ impl CFEngine {
             ),
         })
     }
-
-    fn generate_parameters_metadatas<'src>(&mut self, parameters: Option<Value<'src>>) -> String {
-        let mut params_str = String::new();
-
-        let mut get_param_field = |param: &Value, entry: &str| -> String {
-            if let Value::Struct(param) = &param {
-                if let Some(val) = param.get(entry) {
-                    if let Ok(val_s) = self.value_to_string(val, false) {
-                        return match val {
-                            Value::String(_) => format!("{:?}: {:?}", entry, val_s),
-                            _ => format!("{:?}: {}", entry, val_s),
-                        };
-                    }
-                }
-            }
-            "".to_owned()
-        };
-
-        if let Some(Value::List(parameters)) = parameters {
-            parameters.iter().for_each(|param| {
-                params_str.push_str(&format!(
-                    "# @parameter {{ {}, {}, {} }}\n",
-                    get_param_field(param, "name"),
-                    get_param_field(param, "id"),
-                    get_param_field(param, "constraints")
-                ));
-            });
-        };
-        params_str
-    }
-
-    fn generate_ncf_metadata(&mut self, _name: &Token, resource: &ResourceDef) -> Result<String> {
-        let mut meta = resource.metadata.clone();
-        // removes parameters from meta and returns it formatted
-        let parameters: String =
-            self.generate_parameters_metadatas(meta.remove(&Token::from("parameters")));
-        // description must be the last field
-        let mut map = map_hashmap_results(meta.iter(), |(n, v)| {
-            Ok((n.fragment(), self.value_to_string(v, false)?))
-        })?;
-        let mut metadatas = String::new();
-        let mut push_metadata = |entry: &str| {
-            if let Some(val) = map.remove(entry) {
-                metadatas.push_str(&format!("# @{} {:#?}\n", entry, val));
-            }
-        };
-        push_metadata("name");
-        push_metadata("description");
-        push_metadata("version");
-        metadatas.push_str(&parameters);
-        for (key, val) in map.iter() {
-            metadatas.push_str(&format!("# @{} {}\n", key, val));
-        }
-        metadatas.push('\n');
-        Ok(metadatas)
-    }
 }
 
 impl Generator for CFEngine {
@@ -383,77 +258,66 @@ impl Generator for CFEngine {
         gc: &AST,
         source_file: Option<&Path>,
         dest_file: Option<&Path>,
-        generic_methods: &Path,
+        _generic_methods: &Path,
         technique_metadata: bool,
     ) -> Result<()> {
         let mut files: HashMap<String, String> = HashMap::new();
         // TODO add global variable definitions
-        for (rn, res) in gc.resources.iter() {
-            for (sn, state) in res.states.iter() {
+        for (resource_name, resource) in gc.resources.iter() {
+            for (state_name, state) in resource.states.iter() {
                 // This condition actually rejects every file that is not the input filename
                 // therefore preventing from having an output in another directory
                 // Solutions: check filename rather than path, or accept everything that is not from crate root lib
-                let file_to_create = match get_dest_file(source_file, sn.file(), dest_file) {
+                let file_to_create = match get_dest_file(source_file, state_name.file(), dest_file)
+                {
                     Some(file) => file,
                     None => continue,
                 };
                 self.reset_context();
 
-                // get header
-                let header = match files.get(&file_to_create) {
-                    Some(s) => s.to_string(),
-                    None => {
-                        if technique_metadata {
-                            self.generate_ncf_metadata(rn, res)?
-                        } else {
-                            String::new()
-                        }
-                    }
-                };
-
-                // get parameters
-                let mut parameters = res
+                // Result bundle
+                let bundle_name = format!("{}_{}", resource_name.fragment(), state_name.fragment());
+                let parameters = resource
                     .parameters
                     .iter()
                     .chain(state.parameters.iter())
-                    .map(|p| p.name.fragment())
-                    .collect::<Vec<&str>>()
-                    .join(",");
-                if !parameters.is_empty() {
-                    parameters = format!("({})", parameters);
-                }
+                    .map(|p| p.name.fragment().to_string())
+                    .collect::<Vec<String>>();
+                let mut bundle =
+                    Bundle::agent(bundle_name)
+                        .parameters(parameters)
+                        .promise(Promise::string(
+                            "resources_dir",
+                            "${this.promise_dirname}/resources",
+                        ));
 
-                // get methods
-                let methods: String = state
+                for methods in state
                     .statements
                     .iter()
-                    .enumerate()
-                    .map(|(i, st)| {
-                        self.format_statement(gc, st, i, "any".to_string(), generic_methods)
-                    })
-                    .collect::<Result<Vec<String>>>()?
-                    .join("\n");
+                    .flat_map(|statement| self.format_statement(gc, statement, "any".to_string()))
+                {
+                    for method in methods {
+                        bundle.add_promise(method);
+                    }
+                }
 
-                // merge header + parameters + methods with technique file body
-                let content = format!(
-                    r#"# generated by rudder-lang
-{header}
+                let mut extract = |name: &str| {
+                    resource
+                        .metadata
+                        .get(&Token::from(name))
+                        .and_then(|v| self.value_to_string(v, false).ok())
+                        .unwrap_or("unknown".to_string())
+                };
 
-bundle agent {resource_name}_{state_name}{parameters}
-{{
-  vars:
-    "resources_dir" string => "${{this.promise_dirname}}/resources";
-
-  methods:
-{methods}
-}}"#,
-                    header = header,
-                    resource_name = rn.fragment(),
-                    state_name = sn.fragment(),
-                    parameters = parameters,
-                    methods = methods
-                );
-                files.insert(file_to_create, content);
+                if technique_metadata {
+                    let technique = Technique::new()
+                        .name(extract("name"))
+                        .version(extract("version"))
+                        .bundle(bundle);
+                    files.insert(file_to_create, technique.to_string());
+                } else {
+                    files.insert(file_to_create, bundle.to_string());
+                }
             }
         }
         // create file if needed

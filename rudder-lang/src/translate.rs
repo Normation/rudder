@@ -21,6 +21,10 @@ use std::{convert::TryFrom, fs, str};
 use toml;
 use typed_arena::Arena;
 
+// This parses JSON from Rudder 6.X technique editor
+// It is a very limited subset of CFEngine in JSON representation
+// only containing method calls and Rudder metadata
+
 #[derive(Serialize, Deserialize)]
 struct Technique {
     bundle_name: String,
@@ -434,6 +438,7 @@ struct CFVariable {
     ns: Option<String>,
     name: String,
 }
+
 fn parse_cfvariable(i: &str) -> IResult<&str, CFVariable> {
     map(
         tuple((
@@ -452,11 +457,13 @@ fn parse_cfvariable(i: &str) -> IResult<&str, CFVariable> {
         |(ns, name)| CFVariable { ns, name },
     )(i)
 }
+
 #[derive(Clone)]
 enum CFStringElt {
     Static(String),       // static content
     Variable(CFVariable), // variable name
 }
+
 impl CFStringElt {
     fn to_string(&self) -> Result<String> {
         Ok(match self {
@@ -502,6 +509,7 @@ impl CFStringElt {
         })
     }
 }
+
 fn parse_cfstring(i: &str) -> IResult<&str, Vec<CFStringElt>> {
     // There is a rest inside so this just serve as a guard
     all_consuming(alt((
