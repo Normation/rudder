@@ -85,7 +85,7 @@ post:
                 type: string
                 description: The id of the action
                 enum:
-                  - getCVECheckConfiguration
+                  - updateCVECheckConfiguration
               data:
                 type: object
                 properties:
