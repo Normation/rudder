@@ -52,7 +52,8 @@ package com.normation.cfclerk.domain
  *   different.
  */
 sealed trait TechniqueResourceId {
-    def name: String
+  def name: String
+  def displayPath: String
 }
 
 /**
@@ -60,7 +61,9 @@ sealed trait TechniqueResourceId {
  * It can be a path like "subdirectory/myTemplate"
  * The name must not contain the extension.
  */
-final case class TechniqueResourceIdByName(techniqueId: TechniqueId, name: String) extends TechniqueResourceId
+final case class TechniqueResourceIdByName(techniqueId: TechniqueId, name: String) extends TechniqueResourceId {
+    def displayPath: String = techniqueId.toString() + "/" + name
+}
 
 /**
  * A template resource whose path is relative to the configuration-repository directory (i.e, the git root
@@ -69,7 +72,9 @@ final case class TechniqueResourceIdByName(techniqueId: TechniqueId, name: Strin
  * For example, an empty list means that the template is in configuration-repository directory.
  * Name is an unix compliant file name, without the ".st" extension.
  */
-final case class TechniqueResourceIdByPath(parentDirectories: List[String], name: String) extends TechniqueResourceId
+final case class TechniqueResourceIdByPath(parentDirectories: List[String], name: String) extends TechniqueResourceId {
+  def displayPath: String = parentDirectories.mkString("", "/", "/") + name
+}
 
 final case class TechniqueFile(
     /*
