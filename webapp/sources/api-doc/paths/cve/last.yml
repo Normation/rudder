@@ -30,9 +30,9 @@ get:
               data:
                 type: object
                 required:
-                  - cveChecks
+                  - CVEChecks
                 properties:
-                  cveChecks:
+                  CVEChecks:
                     type: array
                     items:
                       $ref: ../../components/schemas/cveCheck.yml

@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 type: object
 properties:
-  cveid:
+  cveId:
     type: string
     description: CVE id
     example: CVE-2019-5953
