@@ -51,10 +51,11 @@ import java.io.ByteArrayOutputStream
 
 import com.normation.NamedZioLogger
 import com.normation.rudder.repository.xml.ZipUtils.Zippable
-
 import zio._
 import zio.syntax._
 import com.normation.errors._
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.Status
 
 /**
  * Utility trait to find/list/get content
@@ -171,6 +172,19 @@ object GitFindUtils extends NamedZioLogger {
 
       ZipUtils.zip(out, all) *> IOResult.effect(out.toByteArray())
     }
+  }
+
+  /**
+   * Get git status (ie modified, added, removed, etc) for given repository, limiting
+   * result to given paths relative to git base (let list empty for no filtering).
+   *
+   * BE CAREFULL: there's a bug in jgit library so having a subrepository breaks:
+   * file in it are never filtered correctly: https://bugs.eclipse.org/bugs/show_bug.cgi?id=565251)
+   */
+  def getStatus(git: Git, onlyUnderPaths: List[String]): IOResult[Status] = {
+    val s = git.status()
+    onlyUnderPaths.foreach(p => s.addPath(p))
+    IOResult.effect(s.call())
   }
 }
 

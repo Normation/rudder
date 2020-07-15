@@ -52,8 +52,9 @@ import org.joda.time.DateTime
 import java.nio.charset.StandardCharsets
 import java.util.zip.ZipFile
 
-import com.normation.errors.IOResult
-import com.normation.zio.ZioRuntime
+import com.normation.errors._
+import com.normation.zio._
+import org.eclipse.jgit.api.Status
 import org.specs2.matcher.ContentMatchers
 
 @RunWith(classOf[JUnitRunner])
@@ -91,7 +92,7 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
     ("b"      , "root.txt") ::
     ("b"      , "root.pdf") ::
     ("b/a"    , "f.txt")    ::
-    ("b/a"    , "f.plop")    ::
+    ("b/a"    , "f.plop")   ::
     ("x/f.txt", "f.txt")    ::
     Nil
 
@@ -121,6 +122,8 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
     ZioRuntime.runNow(GitFindUtils.listFiles(db, id, rootDirectories, endPaths))
 
   ////////// actual tests //////////
+
+  sequential
 
   "the walk" should {
     "return all results when no filter provided" in {
@@ -196,4 +199,76 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
     gitRoot must haveSameFilesAs(unzip).withFilter((file: File) => !file.getAbsolutePath.contains(".git"))
   }
 
+  // all modification
+  def allModif(s: Status): List[String] = {
+    import scala.jdk.CollectionConverters._
+    List(s.getAdded, s.getChanged, s.getConflicting, s.getIgnoredNotInIndex, s.getMissing
+       , s.getModified, s.getRemoved, s.getUncommittedChanges, s.getUntracked, s.getUntrackedFolders
+    ).map(_.asScala).reduce(_++_).toList.sorted
+  }
+
+  "give correct status" in {
+
+    // delete a/root.txt, a/root.pdf, a/a/f.txt
+    FileUtils.deleteDirectory(new File(gitRoot, "a"))
+
+    // create not added c/untracked
+    mkfile("c", "untracked")
+
+    // create and add, not commited d/added
+    mkfile("d", "added")
+    git.add().addFilepattern("d/added").call
+
+
+    val all = GitFindUtils.getStatus(git, Nil).runNow
+
+    val a = GitFindUtils.getStatus(git, List("a")).runNow
+
+    val ad = GitFindUtils.getStatus(git, "a" :: "d" :: Nil).runNow
+
+    git.add().setUpdate(true).addFilepattern(".").call() // deleted and modified
+    git.add().setUpdate(false).addFilepattern(".").call() // untracked
+    git.commit().setMessage("Commit all").call()
+
+    val x = GitFindUtils.getStatus(git, Nil).runNow
+
+    (allModif(all) === List("a/a/f.txt", "a/root.pdf", "a/root.txt", "c", "c/untracked", "d/added")) and
+    (allModif(a)   === List("a/a/f.txt", "a/root.pdf", "a/root.txt")) and
+    (allModif(ad)  === List("a/a/f.txt", "a/root.pdf", "a/root.txt", "d/added")) and
+    (allModif(x)   === List())
+  }
+
+  "give correct status with sub git repos - BUG IN JGIT, BE CAREFULL" in {
+
+    // create a sub dir that is going to be a repos.
+    mkfile("subgit", "file")
+    val db2 = ((new FileRepositoryBuilder).setWorkTree(new File(gitRoot, "subgit")).build).asInstanceOf[FileRepository]
+    if(!db2.getConfig.getFile.exists) {
+      db2.create()
+    }
+    val git2 = new Git(db2)
+    git2.add().addFilepattern(".").call()
+    git2.commit().setMessage("first commit").call()
+
+    // also add in parent
+    git.add().addFilepattern(".").call()
+    git.commit().setMessage("add subrepo").call()
+
+    // modif file
+    FileUtils.writeStringToFile(new File(git2.getRepository.getDirectory, "file"), "some other text", StandardCharsets.UTF_8)
+
+    // commit only on sub repos
+    git2.add().addFilepattern(".").call()
+    git2.commit().setMessage("second commit").call()
+
+    (
+          (allModif(GitFindUtils.getStatus(git2, Nil).runNow) === Nil)
+      and (allModif(GitFindUtils.getStatus(git , Nil).runNow) === List("subgit"))
+      // not sure why but subgit is created as a submodule
+      // comment until https://bugs.eclipse.org/bugs/show_bug.cgi?id=565251 is corrected
+//      and (allModif(GitFindUtils.getStatus(git , List("a")).runNow) === Nil)
+    )
+  }
 }
+
+
