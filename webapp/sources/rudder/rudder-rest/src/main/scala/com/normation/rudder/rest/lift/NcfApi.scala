@@ -53,8 +53,8 @@ import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JsonAST.JValue
-import org.eclipse.jgit.api.Git
 import com.normation.box._
+import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors.IOResult
 import com.normation.rudder.ncf.ResourceFile
@@ -65,6 +65,7 @@ import com.normation.rudder.ncf.Technique
 import com.normation.rudder.ncf.TechniqueReader
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
+import com.normation.rudder.repository.xml.GitFindUtils
 import com.normation.rudder.rest.TwoParam
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.JsonAST.JObject
@@ -78,6 +79,7 @@ class NcfApi(
   , restExtractorService: RestExtractorService
   , techniqueSerializer : TechniqueSerializer
   , uuidGen             : StringUuidGenerator
+  , gitReposProvider    : GitRepositoryProvider
 ) extends LiftApiModuleProvider[API] with Loggable{
 
   import com.normation.rudder.rest.RestUtils._
@@ -133,10 +135,14 @@ class NcfApi(
       import net.liftweb.json.JsonDSL._
       import ResourceFileState._
 
-
-      def toResource( fullPath : String,resourcesPath : String, state : ResourceFileState) = {
-        ResourceFile(fullPath.stripPrefix(s"${resourcesPath}/"), state)
+      def toResource( fullPath : String, resourcesPath : String, state : ResourceFileState): Option[ResourceFile] = {
+        // workaround https://issues.rudder.io/issues/17977 - if the fullPath does not start by resourcePath,
+        // it's a bug from jgit filtering: ignore that file
+        val relativePath = fullPath.stripPrefix(s"${resourcesPath}/")
+        if(relativePath == fullPath) None
+        else Some(ResourceFile(relativePath, state))
       }
+
       def serializeResourceWithState( resource : ResourceFile) = {
           (("name" -> resource.path) ~ ("state" -> resource.state.value))
       }
@@ -157,30 +163,26 @@ class NcfApi(
                            }
 
 
-          resourceDir = File(s"/var/rudder/configuration-repository/${resourcesPath}")
-
-          git      <- IOResult.effect("Error when opening configuration-repository") {
-                        Git.open(File(s"/var/rudder/configuration-repository").toJava)
-                      }
-          status   <- IOResult.effect(s"Error when getting status of resource files of technique ${techniqueInfo._1}/${techniqueInfo._2}") {
-                        git.status().addPath(resourcesPath).call()
-                      }
-          allFiles <- IOResult.effect(s"Error when getting all resource files of technique ${techniqueInfo._1}/${techniqueInfo._2} ") {
+          status   <- GitFindUtils.getStatus(gitReposProvider.git, List(resourcesPath)).chainError(
+                        s"Error when getting status of resource files of technique ${techniqueInfo._1}/${techniqueInfo._2}"
+                      )
+          resourceDir = File(gitReposProvider.db.getDirectory.getAbsolutePath, resourcesPath)
+          allFiles    <- IOResult.effect(s"Error when getting all resource files of technique ${techniqueInfo._1}/${techniqueInfo._2} ") {
                         getAllFiles(resourceDir)(resourceDir)
                       }
         } yield {
 
           // New files not added
-          val added = status.getUntracked.asScala.toList.map(toResource(_, resourcesPath, New))
+          val added = status.getUntracked.asScala.toList.flatMap(toResource(_, resourcesPath, New))
           // Files modified and not added
-          val modified = status.getModified.asScala.toList.map(toResource(_, resourcesPath, Modified))
+          val modified = status.getModified.asScala.toList.flatMap(toResource(_, resourcesPath, Modified))
           // Files deleted but not removed from git
-          val removed = status.getMissing.asScala.toList.map(toResource(_, resourcesPath, Deleted))
+          val removed = status.getMissing.asScala.toList.flatMap(toResource(_, resourcesPath, Deleted))
 
           val filesNotCommitted = modified ::: added ::: removed
 
           // We want to get all files from the resource directory and remove all added/modified/deleted files so we can have the list of all files not modified
-          val untouched = allFiles.filterNot(f => filesNotCommitted.exists(_.path == f)).map(toResource(_, resourcesPath,  Untouched))
+          val untouched = allFiles.filterNot(f => filesNotCommitted.exists(_.path == f)).flatMap(toResource(_, resourcesPath,  Untouched))
 
           // Create a new list with all a
           JArray((filesNotCommitted ::: untouched).map(serializeResourceWithState))
