@@ -28,7 +28,7 @@ global enum system {
 }
 ----
 
-To call an item of this enum, just do `linux` (rather than `system.linux`) as it now exists in the global namespace.
+To call an item of this enum, just type `linux` (rather than `system.linux`) as it now exists in the global namespace.
 
 Still it remains different from a single variable since internally a reference to the enum tree is kept
 

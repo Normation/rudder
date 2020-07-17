@@ -918,38 +918,42 @@ fn test_presource_ref() {
 #[test]
 fn test_variable_definition() {
     assert_eq!(
-        map_res(pvariable_definition, r#"var="value""#),
+        map_res(pvariable_definition, r#"let my_var="value""#),
         Ok((
             "",
             (
-                "var".into(),
+                "my_var".into(),
                 PValue::String("\"".into(), "value".to_string())
             )
         ))
     );
     assert_eq!(
-        map_res(pvariable_definition, r#"var = "value" "#),
+        map_res(pvariable_definition, r#"let my_var = "value" "#),
         Ok((
             "",
             (
-                "var".into(),
+                "my_var".into(),
                 PValue::String("\"".into(), "value".to_string())
             )
         ))
     );
     assert_eq!(
-        map_res(pvariable_definition, "var=\"val\nue\"\n"),
+        map_res(pvariable_definition, "let my_var=\"val\nue\"\n"),
         Ok((
             "",
             (
-                "var".into(),
+                "my_var".into(),
                 PValue::String("\"".into(), "val\nue".to_string())
             )
         ))
     );
     assert_eq!(
-        map_res(pvariable_definition, "var = :\n"),
-        Err(("var = :", PErrorKind::ExpectedKeyword("value")))
+        map_res(pvariable_definition, "let my_var = :\n"),
+        Err(("let my_var = :", PErrorKind::ExpectedKeyword("value")))
+    );
+    assert_eq!(
+        map_res(pvariable_definition, "my_var = :\n"),
+        Err(("my_var = :", PErrorKind::ExpectedKeyword("let")))
     );
 }
 
@@ -992,24 +996,24 @@ fn test_pstatement() {
         ))
     );
     assert_eq!(
-        map_res(pstatement, "var=\"string\"\n"),
+        map_res(pstatement, "let my_var=\"string\"\n"),
         Ok((
             "",
             PStatement::VariableDefinition(
                 Vec::new(),
-                "var".into(),
+                "my_var".into(),
                 PValue::String("\"".into(), "string".into())
             )
         ))
     );
 
     assert_eq!(
-        map_res(pstatement, "var= a=~bc\n"),
+        map_res(pstatement, "let my_var= a=~bc\n"),
         Ok((
             "",
             PStatement::VariableDefinition(
                 Vec::new(),
-                "var".into(),
+                "my_var".into(),
                 PValue::EnumExpression(map_res(penum_expression, "a=~bc").unwrap().1)
             )
         ))

@@ -542,7 +542,7 @@ impl<'src> AST<'src> {
             // types
             "num", "struct", "list", // "string", "boolean", // should not be used
             // variables
-            "declare", "resource", // "state", // should not be used
+            "let", "resource", // "state", // should not be used
             // flow statements
             "if", "case", "default", "nodefault", "fail", "log", "return", "noop",
             // historical invalid identifiers

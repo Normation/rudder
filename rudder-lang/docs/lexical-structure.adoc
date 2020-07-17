@@ -30,7 +30,7 @@ Sorted by category
 ** `struct` type definition, cf: <<struct-type, Struct type>>
 ** `list` type definition, cf: <<list-type, List type>>
 
-* `declare ..`, global agent variable declaration. Cannot be initialized as its value is defined by the agent
+* `let ..`, global variable declaration
 * `resource ..`, to declare a new resource
 * `.. state ..`, to define a new state linked to an existing resource
 
@@ -78,7 +78,7 @@ Identifiers can be:
 
 Identifiers can be invalid. They cannot be:
 
-* an invalid namespace (`declare`d variables), including CFEngine core variables (see file *libs/cfengine_core.rl*)
+* an invalid namespace (declared variables), including CFEngine core variables (see file *libs/cfengine_core.rl*)
 * the name of a type
 ** `"string"`
 ** `"num"`

@@ -5,7 +5,7 @@ Statements are an important concept that can be expressed by either:
 
 * comments and metadata
 * a state declaration: `resource().state() as mystatedecl` to store a state into a local variable that can be called
-* a variable definition: `myvar = "value"`. Value can be of any primitive type
+* a variable definition: `let myvar = "value"`. Value can be of any primitive type
 * a (switch) `case`. cf <<case-conditions,case conditions>>
 * an `if` condition that contains an enum expression: `if expr => statement`. cf <<if-conditions,if conditions>>
 * a flow statement: `return` `log` `fail` `noop`
