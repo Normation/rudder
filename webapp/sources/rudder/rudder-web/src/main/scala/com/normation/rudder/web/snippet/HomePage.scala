@@ -499,7 +499,7 @@ final case class ColoredChartType(value: Double) extends ChartType
 
   private[this] def countAllGroups() : Box[Int] = {
     ldap.flatMap { con =>
-      con.searchSub(rudderDit.GROUP.dn, AND(IS(OC_RUDDER_NODE_GROUP), EQ(A_IS_SYSTEM, FALSE.toLDAPString)), "1.1")
+      con.searchSub(rudderDit.GROUP.dn, OR(IS(OC_RUDDER_NODE_GROUP), IS(OC_SPECIAL_TARGET)), "1.1")
     }.map(x => x.size)
   }.toBox
 
