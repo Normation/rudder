@@ -40,16 +40,19 @@
 #
 # #### Two uses cases examples:
 # 
-# # Use case 1: In the first case, let's suppose that you want to simply set the value of the ip address of the first line in the `/etc/hosts` file to `192.168.1.5`, 
+# In the first case, let's suppose that you want to simply set the value of the ip address of the first line in the `/etc/hosts` file to `192.168.1.5`,
 # to do so you need to provide the path and value parameters.
+#
 # ```
 # file_augeas_set("/etc/hosts/1/ipaddr","192.168.1.5");
 # ```
 #
-# # Use case 2: The second case includes two needs of using it, either you want to prevent Augeas from charging all lenses and files while executing your request or
+# The second case includes two needs of using it, either you want to prevent Augeas from charging all lenses and files while executing your request or
 # you want to associate the `Hosts` lens with the `/etc/hosts` file then set the value for the given path node.
-# file_augeas_set("/etc/hosts/1/ipaddr","192.168.1.5","Hosts","/etc/hosts");
 #
+# ```
+# file_augeas_set("/etc/hosts/1/ipaddr","192.168.1.5","Hosts","/etc/hosts");
+# ```
 #
 # @parameter path            The path to the file and node label
 # @parameter value           The value to set
