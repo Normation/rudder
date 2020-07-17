@@ -32,7 +32,6 @@ fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
         PErrorKind::Nom(e) => PErrorKind::NomTest(format!("{:?}", e)),
         PErrorKind::NomTest(e) => PErrorKind::NomTest(e),
         PErrorKind::ExpectedKeyword(i) => PErrorKind::ExpectedKeyword(i),
-        // PErrorKind::ExpectedReservedWord(i) => PErrorKind::ExpectedReservedWord(i),
         PErrorKind::ExpectedToken(i) => PErrorKind::ExpectedToken(i),
         PErrorKind::InvalidEnumExpression => PErrorKind::InvalidEnumExpression,
         PErrorKind::InvalidEscapeSequence => PErrorKind::InvalidEscapeSequence,
@@ -41,6 +40,7 @@ fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
         PErrorKind::InvalidVariableReference => PErrorKind::InvalidVariableReference,
         PErrorKind::UnsupportedMetadata(i) => PErrorKind::UnsupportedMetadata(i.fragment),
         PErrorKind::UnterminatedDelimiter(i) => PErrorKind::UnterminatedDelimiter(i.fragment),
+        PErrorKind::UnterminatedOrInvalid(i) => PErrorKind::UnterminatedOrInvalid(i.fragment),
         PErrorKind::Unparsed(i) => PErrorKind::Unparsed(i.fragment),
     };
     match err.context {
@@ -300,7 +300,7 @@ fn test_penum() {
     );
     assert_eq!(
         map_res(penum, "enum abc { a, b, "),
-        Err(("{ a, b, ", PErrorKind::UnterminatedDelimiter("{")))
+        Err(("{ a, b, ", PErrorKind::UnterminatedOrInvalid("{")))
     );
 }
 
@@ -477,7 +477,7 @@ fn test_penum_expression() {
     );
     assert_eq!(
         map_res(penum_expression, "a=~b|(c=~d"),
-        Err(("(c=~d", PErrorKind::UnterminatedDelimiter("(")))
+        Err(("(c=~d", PErrorKind::UnterminatedOrInvalid("(")))
     );
 }
 
@@ -626,7 +626,7 @@ fn test_pvalue() {
     );
     assert_eq!(
         map_res(pvalue, r#"[ "hello", 13"#),
-        Err(("[ \"hello\", 13", PErrorKind::UnterminatedDelimiter("[")))
+        Err(("[ \"hello\", 13", PErrorKind::UnterminatedOrInvalid("[")))
     );
     assert_eq!(
         map_res(pvalue, r#"{"key":"value"}"#),
@@ -653,7 +653,7 @@ fn test_pvalue() {
     );
     assert_eq!(
         map_res(pvalue, r#"{"key":"value""#),
-        Err((r#"{"key":"value""#, PErrorKind::UnterminatedDelimiter("{")))
+        Err((r#"{"key":"value""#, PErrorKind::UnterminatedOrInvalid("{")))
     );
 }
 
@@ -1039,7 +1039,7 @@ fn test_pstatement() {
 #[test]
 fn test_pstate_def() {
     assert_eq!(
-        map_res(pstate_def, "resource state configuration() {}"),
+        map_res(pstate_def, "resource state configuration() {noop}"),
         Ok((
             "",
             (
@@ -1048,7 +1048,7 @@ fn test_pstate_def() {
                     name: "configuration".into(),
                     resource_name: "resource".into(),
                     parameters: vec![],
-                    statements: vec![]
+                    statements: vec![PStatement::Noop]
                 },
                 vec![]
             )

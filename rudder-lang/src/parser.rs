@@ -794,7 +794,7 @@ fn pcase(i: PInput) -> PResult<(PEnumExpression, Vec<PStatement>)> {
                 stmt: or_fail(alt((
                     map(pstatement, |x| vec![x]),
                     delimited_parser("{", |j| many0(pstatement)(j), "}"),
-                )), || PErrorKind::ExpectedKeyword("statement"));
+                )), || PErrorKind::ExpectedToken("case statement"));
             } => (expr,stmt)
         )
     ))(i)
@@ -876,6 +876,7 @@ fn pstate_def(i: PInput) -> PResult<(PStateDef, Vec<Option<PValue>>)> {
             name: pidentifier;
             param_list: delimited_list("(", pparameter, ",", ")");
             statements: delimited_parser("{", |j| many0(pstatement)(j),"}");
+            // statements: delimited_parser("{", |j| many0(or_fail(pstatement, || PErrorKind::ExpectedToken("state statement")))(j), "}");
         } => {
             let (parameters, parameter_defaults) = param_list.into_iter().unzip();
             (PStateDef {
@@ -978,12 +979,10 @@ pub struct PFile<'src> {
     pub code: Vec<PDeclaration<'src>>,
 }
 fn pfile(i: PInput) -> PResult<PFile> {
-    all_consuming(sequence!(
+    all_consuming(wsequence!(
         {
             header: pheader;
-            _x: strip_spaces_and_comment;
             code: many0(or_fail_perr(pdeclaration));
-            _x: strip_spaces_and_comment;
         } => PFile {header, code}
     ))(i)
 }
