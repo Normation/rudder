@@ -85,7 +85,7 @@ fn compile_file(source: &Path, dest: &Path, technique_name: &str, format: &Forma
         }
         Err(rudderc::error::Error::User(e)) => {
             println!(
-                "{}: compilation of {} failed: {}",
+                "{}: compilation of {} failed:\n{}",
                 "Error (rudderc)".bright_red().bold(),
                 technique_name.bright_yellow(),
                 e
@@ -94,7 +94,7 @@ fn compile_file(source: &Path, dest: &Path, technique_name: &str, format: &Forma
         }
         Err(rudderc::error::Error::List(e)) => {
             println!(
-                "{}: compilation of {} failed: {:#?}",
+                "{}: compilation of {} failed:\n{:#?}",
                 "Error (rudderc)".bright_red().bold(),
                 technique_name.bright_yellow(),
                 e
