@@ -877,7 +877,19 @@ object RudderConfig extends Loggable {
       )
 
   val techniqueArchiver = new TechniqueArchiverImpl(gitRepo,   new File(RUDDER_DIR_GITROOT) , prettyPrinter, "/", gitModificationRepository, personIdentService)
-  val ncfTechniqueWriter = new TechniqueWriter(techniqueArchiver, updateTechniqueLibrary, interpolationCompiler, roDirectiveRepository, techniqueRepository, workflowLevelService, prettyPrinter, RUDDER_DIR_GITROOT, typeParameterService)
+
+  val ncfTechniqueWriter = new TechniqueWriter(
+      techniqueArchiver
+    , updateTechniqueLibrary
+    , interpolationCompiler
+    , roDirectiveRepository
+    , woDirectiveRepository
+    , techniqueRepository
+    , workflowLevelService
+    , prettyPrinter
+    , RUDDER_DIR_GITROOT
+    , typeParameterService
+  )
 
   lazy val pipelinedReportUnmarshaller : ReportUnmarshaller = {
     val fusionReportParser = {

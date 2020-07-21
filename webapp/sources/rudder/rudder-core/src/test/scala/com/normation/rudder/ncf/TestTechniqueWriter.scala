@@ -83,6 +83,8 @@ import net.liftweb.common.Full
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import java.io.File
+
+import com.normation.rudder.repository.WoDirectiveRepository
 import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -156,6 +158,8 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
 
     def containsDirective(id: ActiveTechniqueCategoryId): UIO[Boolean] = ???
   }
+
+  def writeDirectives : WoDirectiveRepository = ???
   def workflowLevelService: WorkflowLevelService = new WorkflowLevelService {
     def workflowLevelAllowsEnable: Boolean = ???
 
@@ -199,7 +203,18 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
 
   val valueCompiler = new InterpolatedValueCompilerImpl
   val parameterTypeService : PlugableParameterTypeService = new PlugableParameterTypeService
-  val writer = new TechniqueWriter(TestTechniqueArchiver,TestLibUpdater,valueCompiler, readDirectives, techRepo, workflowLevelService, new RudderPrettyPrinter(Int.MaxValue, 2), basePath, parameterTypeService)
+  val writer = new TechniqueWriter(
+      TestTechniqueArchiver
+    , TestLibUpdater
+    , valueCompiler
+    , readDirectives
+    , writeDirectives
+    , techRepo
+    , workflowLevelService
+    , new RudderPrettyPrinter(Int.MaxValue, 2)
+    , basePath
+    , parameterTypeService
+  )
   val dscWriter = new DSCTechniqueWriter(basePath, valueCompiler, new ParameterType.PlugableParameterTypeService)
   val classicWriter = new ClassicTechniqueWriter(basePath, new ParameterType.PlugableParameterTypeService)
 

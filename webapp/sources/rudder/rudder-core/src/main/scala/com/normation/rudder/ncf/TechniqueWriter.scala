@@ -79,6 +79,7 @@ import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.Control
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
+import com.normation.rudder.repository.WoDirectiveRepository
 
 trait NcfError extends RudderError {
   def message : String
@@ -91,10 +92,11 @@ final case class TechniqueUpdateError(message : String, exception : Option[Throw
 final case class MethodNotFound(message : String, exception : Option[Throwable]) extends NcfError
 
 class TechniqueWriter (
-    archiver         : TechniqueArchiver
-  , techLibUpdate    : UpdateTechniqueLibrary
-  , translater       : InterpolatedValueCompiler
-  , readDirectives   : RoDirectiveRepository
+    archiver            : TechniqueArchiver
+  , techLibUpdate       : UpdateTechniqueLibrary
+  , translater          : InterpolatedValueCompiler
+  , readDirectives      : RoDirectiveRepository
+  , writeDirectives     : WoDirectiveRepository
   , techniqueRepository : TechniqueRepository
   , workflowLevelService: WorkflowLevelService
   , xmlPrettyPrinter : RudderPrettyPrinter
@@ -148,7 +150,16 @@ class TechniqueWriter (
                            Unexpected(s"${directives.size} directives are defined for ${techniqueName}/${techniqueVersion} please delete them, or force deletion").fail
                      }
 
+      activeTech <- readDirectives.getActiveTechnique(TechniqueName(technique.name))
+      _          <- activeTech match {
+                      case None =>
+                        // No active technique found, let's delete it
+                        ().succeed
+                      case Some(activeTechnique) =>
+                        writeDirectives.deleteActiveTechnique(activeTechnique.id, modId, committer, Some(s"Deleting active technique ${techniqueName}"))
+                    }
       _          <- archiver.deleteTechnique(techniqueName,techniqueVersion, category.id.name.value, modId,committer, s"Deleting technique ${techniqueName}/${techniqueVersion}")
+
       _          <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of Technique ${techniqueName}")).toIO.chainError(
                       s"An error occurred during technique update after deletion of Technique ${techniqueName}"
                     )
