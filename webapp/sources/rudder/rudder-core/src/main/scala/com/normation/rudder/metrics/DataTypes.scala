@@ -68,7 +68,7 @@ final case class FrequentNodeMetrics(
  * Utility methods about `FrequentNodeMetrics` data to format them correctly in CSV
  */
 object FrequentNodeMetrics {
-  val csvHeaderNames = List("Pending", "Accepted", "Audit Mode", "Enforce Mode", "Mixed Mode")
+  val csvHeaderNames = List("Date", "Pending", "Accepted", "Audit Mode", "Enforce Mode", "Mixed Mode")
 
   // add double quotes to a string
   private def q(s: String) = '"'.toString + s + '"'.toString
