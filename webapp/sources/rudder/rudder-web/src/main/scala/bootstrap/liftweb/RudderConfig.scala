@@ -952,6 +952,7 @@ object RudderConfig extends Loggable {
     , updateTechniqueLibrary
     , interpolationCompiler
     , roDirectiveRepository
+    , woDirectiveRepository
     , techniqueRepository
     , workflowLevelService
     , prettyPrinter

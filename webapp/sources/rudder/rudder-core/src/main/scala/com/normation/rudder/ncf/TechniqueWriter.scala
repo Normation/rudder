@@ -84,6 +84,7 @@ import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.RunNuCommand
 import com.normation.errors.RudderError
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
+import com.normation.rudder.repository.WoDirectiveRepository
 
 import scala.jdk.CollectionConverters._
 import com.normation.zio._
@@ -103,6 +104,7 @@ class TechniqueWriter (
   , techLibUpdate       : UpdateTechniqueLibrary
   , translater          : InterpolatedValueCompiler
   , readDirectives      : RoDirectiveRepository
+  , writeDirectives     : WoDirectiveRepository
   , techniqueRepository : TechniqueRepository
   , workflowLevelService: WorkflowLevelService
   , xmlPrettyPrinter    : RudderPrettyPrinter
@@ -158,7 +160,16 @@ class TechniqueWriter (
                            Unexpected(s"${directives.size} directives are defined for ${techniqueName}/${techniqueVersion} please delete them, or force deletion").fail
                      }
 
+      activeTech <- readDirectives.getActiveTechnique(TechniqueName(technique.name))
+      _          <- activeTech match {
+                      case None =>
+                        // No active technique found, let's delete it
+                        ().succeed
+                      case Some(activeTechnique) =>
+                        writeDirectives.deleteActiveTechnique(activeTechnique.id, modId, committer, Some(s"Deleting active technique ${techniqueName}"))
+                    }
       _          <- archiver.deleteTechnique(techniqueName,techniqueVersion, category.id.name.value, modId,committer, s"Deleting technique ${techniqueName}/${techniqueVersion}")
+
       _          <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of Technique ${techniqueName}")).toIO.chainError(
                       s"An error occurred during technique update after deletion of Technique ${techniqueName}"
                     )
