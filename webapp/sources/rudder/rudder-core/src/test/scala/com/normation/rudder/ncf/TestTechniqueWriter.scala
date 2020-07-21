@@ -83,6 +83,8 @@ import net.liftweb.common.Full
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import java.io.File
+
+import com.normation.rudder.repository.WoDirectiveRepository
 import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -156,6 +158,8 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
 
     def containsDirective(id: ActiveTechniqueCategoryId): UIO[Boolean] = ???
   }
+
+  def writeDirectives : WoDirectiveRepository = ???
   def workflowLevelService: WorkflowLevelService = new WorkflowLevelService {
     def workflowLevelAllowsEnable: Boolean = ???
 
@@ -205,6 +209,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     , TestLibUpdater
     , valueCompiler
     , readDirectives
+    , writeDirectives
     , techRepo
     , workflowLevelService
     , new RudderPrettyPrinter(Int.MaxValue, 2)
