@@ -469,7 +469,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
           // Write report if the method does not support CFEngine ...
           ( if (! method_info.agentSupport.contains(AgentType.CfeCommunity)) {
             val message = s"""'${method_info.name}' method is not available on classic Rudder agent, skip"""
-            val condition = "false"
+            val condition = "\"false\""
             Some((condition,message))
          } else {
            // ... or if the condition needs rudder_reporting
