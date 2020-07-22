@@ -171,8 +171,8 @@ object PropertyParserTokens {
   //everything is expected to be lower case
   final case class Param(path: List[String])       extends AnyVal with Interpolation
   //here, we keep the case as it is given
-  final case class Property(path: List[String], opt: Option[PropertyOption]) extends Interpolation
 
+  final case class Property(path: List[Token], opt: Option[PropertyOption]) extends Interpolation
   //here, we have node property option
   sealed trait PropertyOption extends Any
   final case object InterpreteOnNode                 extends             PropertyOption
@@ -236,26 +236,32 @@ trait AnalyseInterpolation[T, I <: GenericInterpolationContext[T]] {
       case NonRudderVar(s)     => Right(s"$${${s}}")
       case NodeAccessor(path)  => getNodeAccessorTarget(context, path)
       case Param(path)         => getRudderGlobalParam(context, path)
-      case Property(path, opt) => opt match {
-        case None =>
-          getNodeProperty(context, path)
-        case Some(InterpreteOnNode) =>
-          //in that case, we want to exactly output the agent-compatible string. For now, easy, only one string
-          Right(("${node.properties[" + path.mkString("][") + "]}"))
-        case Some(DefaultValue(optionTokens)) =>
-          //in that case, we want to find the default value.
-          //we authorize to have default value = ${node.properties[bla][bla][bla]|node},
-          //because we may want to use prop1 and if node set, prop2 at run time.
-          for {
-            default <- parseToken(optionTokens)(context)
-            prop    <- getNodeProperty(context, path) match {
-                         case Left(_)  => Right(default)
-                         case Right(s) => Right(s)
-                       }
-          } yield {
-            prop
-          }
-      }
+      case Property(tokens, opt) =>
+        ((tokens foldLeft (Right(Nil): PureResult[List[String]])) {
+          case (l @ Left(_), _) => l
+          case (Right(acc), t) => analyse(context,t).map(acc :+ )
+        }).flatMap( path =>
+        opt match {
+          case None =>
+            getNodeProperty(context, path)
+          case Some(InterpreteOnNode) =>
+            //in that case, we want to exactly output the agent-compatible string. For now, easy, only one string
+            Right(("${node.properties[" + path.mkString("][") + "]}"))
+          case Some(DefaultValue(optionTokens)) =>
+            //in that case, we want to find the default value.
+            //we authorize to have default value = ${node.properties[bla][bla][bla]|node},
+            //because we may want to use prop1 and if node set, prop2 at run time.
+            for {
+              default <- parseToken(optionTokens)(context)
+              prop    <- getNodeProperty(context, path) match {
+                           case Left(_)  => Right(default)
+                           case Right(s) => Right(s)
+                         }
+            } yield {
+              prop
+            }
+        }
+        )
     }
   }
 
@@ -304,6 +310,8 @@ trait AnalyseInterpolation[T, I <: GenericInterpolationContext[T]] {
    * json value and access the remaining part as a json path.
    */
   def getNodeProperty(context: I, path: List[String]): PureResult[String] = {
+
+
     val errmsg = s"Missing property '$${node.properties[${path.mkString("][")}]}' on node '${context.nodeInfo.hostname}' [${context.nodeInfo.id.value}]"
     path match {
       //we should not reach that case since we enforce at leat one match of [...] in the parser
@@ -424,9 +432,9 @@ class InterpolatedValueCompilerImpl extends InterpolatedValueCompiler {
       case Param(name)         => s"$${rudder.param.${name}}"
       case Property(path, opt) => agent match {
         case AgentType.Dsc =>
-          s"$$($$node.properties[${path.mkString("][")}])"
+          s"$$($$node.properties[${path.map(translate(agent,_)).mkString("][")}])"
         case AgentType.CfeCommunity | AgentType.CfeEnterprise =>
-          s"$${node.properties[${path.mkString("][")}]}"
+          s"$${node.properties[${path.map(translate(agent,_)).mkString("][")}]}"
       }
     }
   }
@@ -458,8 +466,8 @@ object PropertyParser {
   }
 
 
-  def all[_: P] : P[List[Token]] = P( Start ~ ((noVariableStart | variable | ( "${" ~ noVariableEnd.map(_.prefix("${"))) ).rep(1) | empty )  ~ End).map(_.toList)
-
+  def all[_: P] : P[List[Token]] = P( Start ~ (token.rep(1) | empty )  ~ End).map(_.toList)
+  def token [_ : P] : P[Token] = noVariableStart | variable | ( "${" ~ noVariableEnd.map(_.prefix("${")))
   //empty string is a special case that must be look appart from plain string.
   def empty[_ : P] = P("").map(_ => CharSeq("") :: Nil)
   def space[_:P] = P(CharsWhile(_.isWhitespace, 0))
@@ -494,9 +502,11 @@ object PropertyParser {
   def parameters[_: P]  : P[Interpolation] = P(IgnoreCase("parameters") ~/ arrayNames ).map{ p => Param(p.toList) }
 
   //a node property looks like: ${node.properties[.... Cut after "properties".
-  def nodeProperty[_: P]    : P[Interpolation] =  (IgnoreCase("node") ~ space ~ "." ~ space ~ IgnoreCase("properties") ~/ arrayNames ~/
+  def nodeProperty[_: P]    : P[Interpolation] =  (IgnoreCase("node") ~ space ~ "." ~ space ~ IgnoreCase("properties") ~/ propertyPath ~/
                                                    nodePropertyOption.? ).map { case (path, opt) => Property(path.toList, opt) }
+  def propertyPath[_: P] : P[List[Token]] = P((space ~ "[" ~ space ~ propertyToken ~ space ~ "]" ).rep(1) ).map(_.toList)
 
+  def propertyToken [_ : P] : P[Token] = propertyId.map(CharSeq) | variable | ( "${" ~ noVariableEnd.map(_.prefix("${")))
   // parse an array of property names: `[name1][name2]..` (for parameter/node properties)
   def arrayNames[_: P] : P[List[String]] = P((space ~ "[" ~ space ~ propertyId ~ space ~ "]" ).rep(1) ).map(_.toList)
 

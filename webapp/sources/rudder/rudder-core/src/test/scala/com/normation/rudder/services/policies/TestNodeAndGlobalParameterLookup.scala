@@ -312,22 +312,30 @@ class TestNodeAndGlobalParameterLookup extends Specification {
 
     "parse node properties with path=1" in {
       val s = """${node.properties[datacenter]}"""
-      test(all(_), s, List(Property("datacenter" :: Nil, None)))
+      test(all(_), s, List(Property(CharSeq("datacenter") :: Nil, None)))
     }
 
     "parse node properties with path=1 with spaces" in {
       val s = """${node . properties [ datacenter ] }"""
-      test(all(_), s, List(Property("datacenter" :: Nil, None)))
+      test(all(_), s, List(Property(CharSeq("datacenter") :: Nil, None)))
     }
 
     "parse node properties with path=2" in {
       val s = """${node.properties[datacenter][Europe]}"""
-      test(all(_), s, List(Property("datacenter" :: "Europe" :: Nil, None)))
+      test(all(_), s, List(Property(CharSeq("datacenter") :: CharSeq("Europe") :: Nil, None)))
     }
 
     "parse node properties with UTF-8 name" in {
       val s = """${node.properties[emo😄ji]}"""
-      test(all(_), s, List(Property("emo😄ji" :: Nil, None)))
+      test(all(_), s, List(Property(CharSeq("emo😄ji") :: Nil, None)))
+    }
+    "parse node properties with inner properties" in {
+      val s = """${node.properties[${node.properties[country]}][datacenter]}"""
+      test(all(_), s, List(Property(Property(CharSeq("country") :: Nil, None) :: CharSeq("datacenter") :: Nil, None)))
+    }
+    "parse node properties with inner properties and default" in {
+      val s = """${node.properties[${node.properties[country] | default = "default"}][datacenter]}"""
+      test(all(_), s, List(Property(Property(CharSeq("country") :: Nil, Some(DefaultValue(CharSeq("default") :: Nil))) :: CharSeq("datacenter") :: Nil, None)))
     }
 
     "fails on invalid property chars" in {
@@ -344,24 +352,24 @@ class TestNodeAndGlobalParameterLookup extends Specification {
 
     "parse node properties with path=N>2" in {
       val s = """${node.properties[datacenter][Europe][France][Paris][3]}"""
-      test(all(_), s, List(Property("datacenter" :: "Europe" :: "France" :: "Paris" :: "3" :: Nil, None)))
+      test(all(_), s, List(Property(CharSeq("datacenter") :: CharSeq("Europe") :: CharSeq("France") :: CharSeq("Paris") :: CharSeq("3") :: Nil, None)))
     }
 
     "parse node properties in the middle of a string" in {
       val s = """some text and ${node.properties[datacenter][Europe]}  and some more text"""
-      test(all(_), s, List(CharSeq("some text and "), Property("datacenter" :: "Europe" :: Nil, None), CharSeq("  and some more text")))
+      test(all(_), s, List(CharSeq("some text and "), Property(CharSeq("datacenter") :: CharSeq("Europe") :: Nil, None), CharSeq("  and some more text")))
     }
 
     "parse node properties 'node' option" in {
       val s = """some text and ${node.properties[datacenter][Europe]|node}  and some more text"""
-      test(all(_), s, List(CharSeq("some text and "), Property("datacenter" :: "Europe" :: Nil, Some(InterpreteOnNode)), CharSeq("  and some more text")))
+      test(all(_), s, List(CharSeq("some text and "), Property(CharSeq("datacenter") :: CharSeq("Europe") :: Nil, Some(InterpreteOnNode)), CharSeq("  and some more text")))
     }
 
     "parse node properties 'default:''' option" in {
       val s = """some text and ${node.properties[datacenter][Europe]|default= ""}  and some more text"""
       test(all(_), s, List(
           CharSeq("some text and ")
-        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(CharSeq("")::Nil)))
+        , Property(CharSeq("datacenter") :: CharSeq("Europe") :: Nil, Some(DefaultValue(CharSeq("")::Nil)))
         , CharSeq("  and some more text")
       ))
     }
@@ -370,7 +378,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       val s = """some text and ${node.properties[datacenter][Europe]|default= "default value"}  and some more text"""
       test(all(_), s, List(
           CharSeq("some text and ")
-        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(CharSeq("default value")::Nil)))
+        , Property(CharSeq("datacenter") :: CharSeq("Europe") :: Nil, Some(DefaultValue(CharSeq("default value")::Nil)))
         , CharSeq("  and some more text")
       ))
     }
@@ -384,7 +392,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       val s = """some text and ${node.properties[datacenter][Europe]|default= "default {} value" }  and some more text"""
       test(all(_), s, List(
           CharSeq("some text and ")
-        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(CharSeq("default {} value")::Nil)))
+        , Property(CharSeq("datacenter") :: CharSeq("Europe") :: Nil, Some(DefaultValue(CharSeq("default {} value")::Nil)))
         , CharSeq("  and some more text")
       ))
     }
@@ -394,7 +402,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       val s = """some text and ${node.properties[datacenter][Europe]|default= """ + "\"\"\"\"\"\"" + """}  and some more text"""
       test(all(_), s, List(
           CharSeq("some text and ")
-        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(CharSeq("")::Nil)))
+        , Property(CharSeq("datacenter") :: CharSeq("Europe") :: Nil, Some(DefaultValue(CharSeq("")::Nil)))
         , CharSeq("  and some more text")
       ))
     }
@@ -403,7 +411,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       val s = """some text and ${node.properties[datacenter][Europe]|default= """ + "\"\"\"" + "default {} value"+ "\"\"\"" + """}  and some more text"""
       test(all(_), s, List(
           CharSeq("some text and ")
-        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(CharSeq("default {} value")::Nil)))
+        , Property(CharSeq("datacenter") :: CharSeq("Europe") :: Nil, Some(DefaultValue(CharSeq("default {} value")::Nil)))
         , CharSeq("  and some more text")
       ))
     }
@@ -412,7 +420,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       val s = """some text and ${node.properties[datacenter][Europe]|default= """ + "\"\"\"" + "default {} value"+ "\"\"\"" + """ }  and some more text"""
       test(all(_), s, List(
           CharSeq("some text and ")
-        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(CharSeq("default {} value")::Nil)))
+        , Property(CharSeq("datacenter") :: CharSeq("Europe") :: Nil, Some(DefaultValue(CharSeq("default {} value")::Nil)))
         , CharSeq("  and some more text")
       ))
     }
@@ -421,19 +429,19 @@ class TestNodeAndGlobalParameterLookup extends Specification {
 
     "parse node properties 'default:param' option" in {
       val s = """some text and ${node.properties[datacenter][Europe]|default=${rudder.param.foo}}  and some more text"""
-      test(all(_), s, List(CharSeq("some text and "), Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(Param("foo":: Nil)::Nil))), CharSeq("  and some more text")))
+      test(all(_), s, List(CharSeq("some text and "), Property(("datacenter" :: "Europe" :: Nil).map(CharSeq), Some(DefaultValue(Param("foo":: Nil)::Nil))), CharSeq("  and some more text")))
     }
 
     "parse node properties 'default:node.hostname' option" in {
       val s = """some text and ${node.properties[datacenter][Europe]|default=${rudder.node.hostname}}  and some more text"""
-      test(all(_), s, List(CharSeq("some text and "), Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(NodeAccessor(List("hostname"))::Nil))), CharSeq("  and some more text")))
+      test(all(_), s, List(CharSeq("some text and "), Property(("datacenter" :: "Europe" :: Nil).map(CharSeq), Some(DefaultValue(NodeAccessor(List("hostname"))::Nil))), CharSeq("  and some more text")))
     }
 
     "parse node properties 'default:node.properties' option" in {
       val s = """some text and ${node.properties[datacenter][Europe]|default=${node.properties[defaultDatacenter]}}  and some more text"""
       test(all(_), s, List(
           CharSeq("some text and ")
-        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(Property("defaultDatacenter" :: Nil, None)::Nil)))
+        , Property(("datacenter" :: "Europe" :: Nil).map(CharSeq), Some(DefaultValue(Property(CharSeq("defaultDatacenter") :: Nil, None)::Nil)))
         , CharSeq("  and some more text")
       ))
     }
@@ -441,21 +449,21 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       val s = """some text and ${node.properties[datacenter][Europe]|default="${node.properties[defaultDatacenter]}"}"""
       test(all(_), s, List(
         CharSeq("some text and ")
-        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(Property("defaultDatacenter" :: Nil, None) :: Nil)))
+        , Property(("datacenter" :: "Europe" :: Nil).map(CharSeq), Some(DefaultValue(Property(CharSeq("defaultDatacenter") :: Nil, None) :: Nil)))
       ))
     }
     "parse node properties 'default:node.properties without quote" in {
       val s = """some text and ${node.properties[datacenter][Europe]|default=${node.properties[defaultDatacenter]}}"""
       test(all(_), s, List(
         CharSeq("some text and ")
-        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(Property("defaultDatacenter" :: Nil, None) :: Nil)))
+        , Property(("datacenter" :: "Europe" :: Nil).map(CharSeq), Some(DefaultValue(Property(CharSeq("defaultDatacenter") :: Nil, None) :: Nil)))
       ))
     }
     "parse node properties 'default:node.properties + string' option" in {
       val s = """some text and ${node.properties[datacenter][Europe]|default=" default ${node.properties[defaultDatacenter]}"}  and some more text"""
       test(all(_), s, List(
         CharSeq("some text and ")
-        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(CharSeq(" default ") :: Property("defaultDatacenter" :: Nil, None) :: Nil)))
+        , Property(("datacenter" :: "Europe" :: Nil).map(CharSeq), Some(DefaultValue(CharSeq(" default ") :: Property(CharSeq("defaultDatacenter") :: Nil, None) :: Nil)))
         , CharSeq("  and some more text")
       ))
     }
@@ -463,7 +471,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       val s = """some text and ${node.properties[datacenter][Europe]|default=" default ${nod"}  and some more text"""
       test(all(_), s, List(
         CharSeq("some text and ")
-        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(CharSeq(" default ") ::  CharSeq("${nod") :: Nil)))
+        , Property(("datacenter" :: "Europe" :: Nil).map(CharSeq), Some(DefaultValue(CharSeq(" default ") ::  CharSeq("${nod") :: Nil)))
         , CharSeq("  and some more text")
       ))
     }
@@ -471,7 +479,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       val s = """some text and ${node.properties[datacenter][Europe]|default=${node.properties[defaultDatacenter]|default="some default value"}}  and some more text"""
       test(all(_), s, List(
         CharSeq("some text and ")
-        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(Property("defaultDatacenter" :: Nil, Some(DefaultValue(CharSeq("some default value")::Nil)))::Nil)))
+        , Property(("datacenter" :: "Europe" :: Nil).map(CharSeq), Some(DefaultValue(Property(CharSeq("defaultDatacenter") :: Nil, Some(DefaultValue(CharSeq("some default value")::Nil)))::Nil)))
         , CharSeq("  and some more text")
       ))
     }
@@ -480,11 +488,11 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       test(all(_), s, List(
         CharSeq("some text and ")
         , Property(
-            "datacenter" :: "Europe" :: Nil
+            ("datacenter" :: "Europe" :: Nil).map(CharSeq)
           , Some(
               DefaultValue(
                 Property(
-                  "defaultDatacenter" :: Nil
+                  CharSeq("defaultDatacenter") :: Nil
                 , Some(
                     DefaultValue(CharSeq("Default vars : ") :: NonRudderVar("vars.default") :: CharSeq(" value") ::Nil)
                   )
@@ -505,7 +513,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
         datacenter] [ Europe] | default= ${rudder . node
         . hostname }  }  and some more text"""
 
-      test(all(_), s, List(CharSeq("some text and "), Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(NodeAccessor(List("hostname"))::Nil))), CharSeq("  and some more text")))
+      test(all(_), s, List(CharSeq("some text and "), Property(("datacenter" :: "Europe" :: Nil).map(CharSeq), Some(DefaultValue(NodeAccessor(List("hostname"))::Nil))), CharSeq("  and some more text")))
     }
   }
   def compileAndGet(s:String) = compiler.compileParam(s) match {
@@ -810,6 +818,20 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       compare("""${node.properties[missing][key]|default= ${node.properties[datacenter][Europe]|node}}"""
            , ("datacenter", json) :: Nil) must beEqualTo(Right("""${node.properties[datacenter][Europe]}"""))
     }
+
+    "correctly return a node properties value with inner properties" in {
+      val s = """${node.properties[${node.properties[country]}][datacenter]}"""
+      compare(s,("country", "France") :: ("France", """{"datacenter":"France datacenter"}""") :: Nil) must beEqualTo(Right("France datacenter"))
+    }
+    "correctly return a node properties value with inner properties using an default value" in {
+      val s = """${node.properties[${node.properties[country] | default = "default"}][datacenter]}"""
+      compare(s,("default", """{"datacenter":"default datacenter"}""") :: Nil) must beEqualTo(Right("default datacenter"))
+    }
+    "correctly return default value  of node property with inner property" in {
+      val s = """${node.properties[${node.properties[country]}][datacenter]| default = "default datacenter"}"""
+      compare(s,("country", "France") :: Nil) must beEqualTo(Right("default datacenter"))
+    }
+
   }
 
 
