@@ -62,7 +62,9 @@ for template in templates:
                      # More readable in central column
                      "--options.pathInMiddlePanel=1",
                      # Hostname is meaningless as it won't match rudder server
-                     "--options.hideHostname=1"
+                     "--options.hideHostname=1",
+                     # We use a stable URL instead of embedded json
+                     "--options.hideDownloadButton=1"
                      ])
 
     shutil.copytree("%s/assets" % source, "%s/assets" % target)

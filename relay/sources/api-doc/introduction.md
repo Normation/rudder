@@ -1,6 +1,8 @@
-Rudder relay exposes an internal API, enabling the agents and other services to interact with the relay.
+Download OpenAPI specification: [openapi.yml](openapi.yml)
 
 # Introduction
+
+Rudder relay exposes an internal API, enabling the agents and other services to interact with the relay.
 
 ## Authentication
 

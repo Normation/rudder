@@ -24,7 +24,7 @@ components:
     $ref: components/securitySchemes/token.yml
 security:
   # Apply the same auth everywhere
-  - "API tokens": []
+  - "API-Tokens": []
 tags:
   - name: Compliance
     description: Access compliance data

@@ -1,4 +1,4 @@
-"API tokens":
+"API-Tokens":
   description: >-
     Authenticating against the API is mandatory for every request, as sensitive information like inventories or configuration rules may get exposed.
     It is done using a dedicated API Account, than can be created in the web interface on the 'API Accounts' page located inside the Administration part.
