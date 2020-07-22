@@ -49,6 +49,11 @@ else:
                               "--allow-remove-essential",
                               "--allow-change-held-packages"])
 
+apt_get_list_update_options = []
+
+if LooseVersion(apt_version) >= LooseVersion("1.0"):
+  apt_get_list_update_options.append("--with-new-pkgs")
+
 os.environ['DEBIAN_FRONTEND'] = "noninteractive"
 os.environ['LC_ALL'] = "C"
 
@@ -175,7 +180,7 @@ def list_updates(online):
    # available are listed. This makes package update listing compatible with
    # debian 8 and highers `apt list --upgradeable`
 
-    process = subprocess_Popen([apt_get_cmd] + apt_get_options + ["--simulate", "--ignore-hold", "upgrade"], stdout=subprocess.PIPE)
+    process = subprocess_Popen([apt_get_cmd] + apt_get_options + apt_get_list_update_options + ["--simulate", "--ignore-hold", "upgrade"], stdout=subprocess.PIPE)
     for line in process.stdout:
         if PY3:
             line = line.decode("utf-8")
