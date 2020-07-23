@@ -164,14 +164,17 @@ In the above example there is a local state declaration and a condition leading 
 
 NOTE: state declaration is always part of a statement whereas state definition is a top level feature
 
-=== definition: variable
+=== declaration & definition: variable
 
 No comment or metadata allowed
 
-Variable definition does not require any particular syntax
+Variables are declared using the `let` keyword and optionally define them inline
 
-`ident = value`
+`let ident = "value"` or `let my_var = other_var` or any type _rudder-lang_ handles
 
+Declaration of namespaces is possible:
+
+`let namespace1.namespace2.ident`
 
 === definition: alias
 
@@ -182,14 +185,3 @@ Aliases allow to have elements of the resource and state pair both renamed
 ==== Example:
 
 `alias resource_alias().state_alias() = resource().state()`
-
-=== declaration: agent variable
-
-No comment or metadata allowed
-
-==== Example:
-
-Declaring a variable is that simple: `declare ident`
-
-But it is possible to use paths, therefore expand namespaces: +
-`declare namespace1.namespace2.ident`

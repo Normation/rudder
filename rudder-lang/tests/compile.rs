@@ -178,7 +178,7 @@ Configure_NTP state technique() {
 resource Configure_NTP()
 Configure_NTP state technique() {
     @var_def = 123
-    filename = "s_test.rl"
+    let filename = "s_test.rl"
 }
 "#; "s_state_var")]
 // CASEs and IFs
@@ -208,15 +208,15 @@ Configure_NTP state technique() {
     default => log "info: ok"
   }
 }"#; "s_state_case")]
-// #[test_case("f_state_case", r#"@format=0
-// @metadata=1
-// resource Configure_NTP()
-// Configure_NTP state technique() {
-//   case {
-//     ubuntu => file("/tmp").doesnotexist(),
-//     debian => file("/tmp").doesnoteither()
-//   }
-// }"#; "f_state_case")] // PANIC
+#[test_case("f_state_case", r#"@format=0
+@metadata=1
+resource Configure_NTP()
+Configure_NTP state technique() {
+  case {
+    ubuntu => file("/tmp").doesnotexist(),
+    debian => file("/tmp").doesnoteither()
+  }
+}"#; "f_state_case")]
 #[test_case("f_state_case_nonexhaustive", r#"@format=0
 
 @metadata=1
@@ -273,16 +273,16 @@ Configure_NTP state technique() {
 }"#; "s_state_expr_nested")]
 // ======= VARIABLE DEFINITIONS ======= (754)
 #[test_case("s_variabledef_string", r#"@format=0
-varname = "value"
+let varname = "value"
 "#; "s_variabledef_string")]
 #[test_case("s_variabledef_int", r#"@format=0
-varname = 1
+let varname = 1
 "#; "s_variabledef_int")]
 #[test_case("s_variabledef_list", r#"@format=0
-varname = [ [1, 2, 3], [1], [] ]
+let varname = [ [1, 2, 3], [1], [] ]
 "#; "s_variabledef_list")]
 #[test_case("s_variabledef_struct", r#"@format=0
-varname = {
+let varname = {
     "key1": "value1",
     "key2": "value2",
 }
