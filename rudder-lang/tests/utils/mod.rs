@@ -84,24 +84,15 @@ fn compile_file(
                 technique_name.bright_yellow()
             );
             Ok(())
-        }
-        Err(rudderc::error::Error::User(e)) => {
+        },
+        Err(err) => {
             println!(
                 "{}: compilation of {} failed:\n{}",
                 "Error (rudderc)".bright_red().bold(),
                 technique_name.bright_yellow(),
-                e
+                err
             );
-            Err(e)
-        }
-        Err(rudderc::error::Error::List(e)) => {
-            println!(
-                "{}: compilation of {} failed:\n{:#?}",
-                "Error (rudderc)".bright_red().bold(),
-                technique_name.bright_yellow(),
-                e
-            );
-            Err(e.join("\n"))
+            Err(err.to_string())
         }
     }
 }

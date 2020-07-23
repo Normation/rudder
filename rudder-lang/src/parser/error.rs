@@ -140,7 +140,7 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
 /// Convert into a project error
 impl Into<Error> for PError<PInput<'_>> {
     fn into(self) -> Error {
-        Error::User(format!("{}", self))
+        Error::new(self.to_string())
     }
 }
 

@@ -57,4 +57,8 @@ pub struct Opt {
     /// Use json logs instead of human readable output
     #[structopt(long, short)]
     pub json_log: bool,
+
+    /// Generate a backtrace in case an error occurs
+    #[structopt(long, short)]
+    pub backtrace: bool,
 }

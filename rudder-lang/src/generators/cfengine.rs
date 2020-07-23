@@ -327,7 +327,7 @@ impl Generator for CFEngine {
         if files.is_empty() {
             match dest_file {
                 Some(filename) => File::create(filename).expect("Could not create output file"),
-                None => return Err(Error::User("No file to create".to_owned())),
+                None => return Err(Error::new("No file to create".to_owned())),
             };
         }
 

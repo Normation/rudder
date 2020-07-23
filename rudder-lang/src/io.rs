@@ -74,14 +74,14 @@ fn get_source(config: &ActionConfig, opt: &IOOpt) -> Result<PathBuf> {
                         // 3. config source is a file, use it as source technique
                         config_source.to_path_buf()
                     } else {
-                        return Err(Error::User(
+                        return Err(Error::new(
                             "Could not determine source: no parameters and configured source is a directory".to_owned(),
                         ));
                     }
                 }
             },
             None => {
-                return Err(Error::User(
+                return Err(Error::new(
                     "Could not determine source: neither parameters nor configured source"
                         .to_owned(),
                 ))
@@ -106,7 +106,7 @@ fn get_dest(config: &ActionConfig, opt: &IOOpt) -> Result<(PathBuf, Format)> {
                     } else {
                         match &opt.source {
                             Some(source) => source.to_path_buf(),
-                            None => return Err(Error::User(
+                            None => return Err(Error::new(
                                 "Could not determine destination: no parameters, configured destination is a directory and no input to base destination path on".to_owned(),
                             ))
                         }
@@ -115,7 +115,7 @@ fn get_dest(config: &ActionConfig, opt: &IOOpt) -> Result<(PathBuf, Format)> {
             },
             None => match &opt.source {
                 Some(source) => source.to_path_buf(),
-                None => return Err(Error::User(
+                None => return Err(Error::new(
                     "Could not determine destination: neither parameters nor configured source nor input to base destination path on".to_owned(),
                 ))
             }
@@ -146,7 +146,7 @@ fn get_dest_format(config: &ActionConfig, opt: &IOOpt, dest: &PathBuf) -> Result
             info!("Destination technique format used");
             match dest.extension().and_then(|fmt| fmt.to_str()) {
                 Some(fmt) => Format::from_str(fmt)?,
-                None => return Err(Error::User(
+                None => return Err(Error::new(
                     "Could not determine format: neither from argument nor configuration file, and destination technique has no defined format".to_owned(),
                 ))
             }
@@ -162,7 +162,7 @@ fn get_dest_format(config: &ActionConfig, opt: &IOOpt, dest: &PathBuf) -> Result
         // translate can only have RL as output format
         Ok((Format::RudderLang, "rl".to_owned()))
     } else {
-        Err(Error::User(format!(
+        Err(Error::new(format!(
             "Could not determine format: {} is not a valid format for {}",
             fmt,
             config.action.unwrap()
@@ -196,7 +196,7 @@ fn get_opt_action_mode(action: Action, config: &Config) -> ActionConfig {
 pub fn get(action: Action, opt: &IOOpt) -> Result<IOContext> {
     let config: Config = match std::fs::read_to_string(&opt.config_file) {
         Err(e) => {
-            return Err(Error::User(format!(
+            return Err(Error::new(format!(
                 "Could not read toml config file: {}",
                 e
             )))
@@ -204,7 +204,7 @@ pub fn get(action: Action, opt: &IOOpt) -> Result<IOContext> {
         Ok(config_data) => match toml::from_str(&config_data) {
             Ok(config) => config,
             Err(e) => {
-                return Err(Error::User(format!(
+                return Err(Error::new(format!(
                     "Could not parse (probably faulty) toml config file: {}",
                     e
                 )))

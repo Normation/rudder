@@ -73,7 +73,7 @@ fn main() {
     };
 
     // Initialize logger
-    logger.init(opt.log_level, action);
+    logger.init(opt.log_level, action, opt.backtrace);
 
     // Load files
     let ctx: io::IOContext = io::get(action, &opt.io).unwrap_or_else(|e| {

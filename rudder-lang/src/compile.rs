@@ -55,7 +55,7 @@ pub fn parse_file<'src>(
 ) -> Result<()> {
     let filename = sources.alloc(match path.file_name() {
         Some(file) => file.to_string_lossy().to_string(),
-        None => return Err(Error::User(format!("{:?} should be a .rl file", path))),
+        None => return Err(Error::new(format!("{:?} should be a .rl file", path))),
     });
     info!(
         "|- {} {}",

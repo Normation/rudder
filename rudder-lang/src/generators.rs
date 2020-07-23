@@ -29,7 +29,7 @@ pub fn new_generator(format: &Format) -> Result<Box<dyn Generator>> {
         Format::CFEngine => Ok(Box::new(CFEngine::new())),
         Format::DSC => Ok(Box::new(DSC::new())),
         // Format::JSON => Ok(JSON::new()),
-        _ => Err(Error::User(format!("No Generator for {} format", format))),
+        _ => Err(Error::new(format!("No Generator for {} format", format))),
     }
 }
 
@@ -66,7 +66,7 @@ impl FromStr for Format {
             "json" => Ok(Format::JSON),
             "rl" => Ok(Format::RudderLang),
             // RudderLang is an error, not a compilation format
-            _ => Err(Error::User(format!("Could not parse format {}", format))),
+            _ => Err(Error::new(format!("Could not parse format {}", format))),
         }
     }
 }

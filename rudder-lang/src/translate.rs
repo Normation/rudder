@@ -204,10 +204,7 @@ resource {bundle_name}({parameter_list})
         for param in params {
             // rl v2 behavior should make use of this, for now, just a syntax validator
             if parse_cfstring(&param.value).is_err() {
-                return Err(Error::User(format!(
-                    "Invalid variable syntax in '{}'",
-                    param.value
-                )));
+                return Err(Error::new(format!("Invalid variable syntax in '{}'", param.value)));
             }
             if param.value.contains('$') {
                 updated_params.push(format!("p{}", template_vars.len()));
@@ -227,7 +224,7 @@ resource {bundle_name}({parameter_list})
         let (resource, state) = match self.get_method_from_stdlib(&call.method_name) {
             Some(res) => res,
             None => {
-                return Err(Error::User(format!(
+                return Err(Error::new(format!(
                     "Invalid method name '{}'",
                     call.method_name
                 )))
@@ -236,7 +233,7 @@ resource {bundle_name}({parameter_list})
 
         // split argument list
         let rconf = match self.configuration.get("resources") {
-            None => return Err(Error::User("No resources section in config.toml".into())),
+            None => return Err(Error::new("No resources section in config.toml".into())),
             Some(m) => m,
         };
         let res_arg_v = match rconf.get(&resource) {
@@ -246,7 +243,7 @@ resource {bundle_name}({parameter_list})
 
         let res_arg_count: usize = match res_arg_v.as_integer() {
             None => {
-                return Err(Error::User(format!(
+                return Err(Error::new(format!(
                     "Resource prefix '{}' must have a number as its parameter count",
                     &resource
                 )))
@@ -272,12 +269,12 @@ resource {bundle_name}({parameter_list})
 
         // outcome detection and formating
         let mconf = match self.configuration.get("methods") {
-            None => return Err(Error::User("No methods section in config.toml".into())),
+            None => return Err(Error::new("No methods section in config.toml".into())),
             Some(m) => m,
         };
         let method = match mconf.get(&call.method_name) {
             None => {
-                return Err(Error::User(format!(
+                return Err(Error::new(format!(
                     "Unknown generic method call: {}",
                     &call.method_name
                 )))
@@ -286,7 +283,7 @@ resource {bundle_name}({parameter_list})
         };
         let class_prefix = match method.get("class_prefix") {
             None => {
-                return Err(Error::User(format!(
+                return Err(Error::new(format!(
                     "Undefined class_prefix for {}",
                     &call.method_name
                 )))
@@ -295,7 +292,7 @@ resource {bundle_name}({parameter_list})
         };
         let class_parameter_id = match method.get("class_parameter_id") {
             None => {
-                return Err(Error::User(format!(
+                return Err(Error::new(format!(
                     "Undefined class_parameter_id for {}",
                     &call.method_name
                 )))
@@ -337,12 +334,12 @@ resource {bundle_name}({parameter_list})
                     ));
                     parameter_list.push(name.replace("\"", "").replace(" ", "_").to_owned());
                 }
-                None => return Err(Error::User(String::from("Unable to parse meta parameters"))),
+                None => return Err(Error::new(String::from("Unable to parse meta parameters"))),
             }
         }
         // let parameters_meta = serde_json::to_string(&technique.parameter);
         // if parameters_meta.is_err() {
-        // return Err(Error::User("Unable to parse technique file".to_string()));
+        // return Err(Error::new("Unable to parse technique file".to_string()));
         // }
         Ok((parameters_meta, parameter_list))
     }
@@ -405,7 +402,7 @@ resource {bundle_name}({parameter_list})
                     }
                 } // list of cfengine names
                 _ => {
-                    return Err(Error::User(format!(
+                    return Err(Error::new(format!(
                         "@cfengine_name must be a string or a list '{}'",
                         *i
                     )))
@@ -442,7 +439,7 @@ resource {bundle_name}({parameter_list})
             }
         };
 
-        Err(Error::User(format!(
+        Err(Error::new(format!(
             "Don't know how to handle class '{}'",
             cond
         )))
@@ -515,7 +512,7 @@ impl CFStringElt {
                             "r" => "\\r",
                             "t" => "\\t",
                             _ => {
-                                return Err(Error::User(format!(
+                                return Err(Error::new(format!(
                                     "Unknown constant '{}.{}'",
                                     ns, v.name
                                 )))
@@ -523,13 +520,13 @@ impl CFStringElt {
                         })
                         .into(),
                         "sys" => {
-                            return Err(Error::User(format!(
+                            return Err(Error::new(format!(
                                 "Not implemented variable namespace sys '{}.{}'",
                                 ns, v.name
                             )))
                         }
                         "this" => {
-                            return Err(Error::User(format!(
+                            return Err(Error::new(format!(
                                 "Unsupported variable namespace this '{}.{}'",
                                 ns, v.name
                             )))

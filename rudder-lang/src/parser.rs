@@ -59,7 +59,7 @@ impl<'src> PAST<'src> {
     pub fn add_file(&mut self, filename: &'src str, content: &'src str) -> Result<()> {
         let pfile = fix_error_type(pfile(PInput::new_extra(content, filename)))?;
         if pfile.header.version != 0 {
-            return Err(Error::User(format!(
+            return Err(Error::new(format!(
                 "Format not supported yet: {}",
                 pfile.header.version
             )));

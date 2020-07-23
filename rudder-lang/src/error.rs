@@ -12,33 +12,44 @@
 /// - List: aggregate compilation errors so that user can fix them all ant once
 ///
 use crate::parser::Token;
+use crate::logger::Backtrace;
 use colored::Colorize;
 use ngrammatic::CorpusBuilder;
 use std::{collections::HashMap, fmt, hash::Hash};
 
 const FUZZY_THRESHOLD: f32 = 0.5; // pub + `crate::` before calling since it may end up in the main.rs file.
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone)]
 pub enum Error {
-    //   message
-    User(String),
-    //   Error list
-    List(Vec<String>),
+    //   message  backtrace
+    User((String, Option<Backtrace>)),
+    //   Error list, for now it does not have backtrace
+    List(Vec<(String, Option<Backtrace>)>),
 }
+
+// TODO add backtrace option for Errors : crate::logger::Backtrace::get()
 
 /// Redefine our own result type with fixed error type for readability.
 pub type Result<T> = std::result::Result<T, Error>;
 
 impl Error {
-    pub fn append(self, e2: Error) -> Error {
+    pub fn new(description: String) -> Self {
+        let  backtrace: Option<Backtrace> = match std::env::var("RUDDERC_BACKTRACE") {
+            Ok(ref val) if val != "0" => Some(Backtrace::new()),
+            _ => None
+        };
+        Error::User((description, backtrace))
+    }
+
+    pub fn append(self, e2: Self) -> Self {
         match (self, e2) {
-            (Error::User(s1), Error::User(s2)) => Error::List(vec![s1, s2]),
-            (Error::List(mut l), Error::User(s)) => {
-                l.push(s);
+            (Error::User(u1), Error::User(u2)) => Error::List(vec![u1, u2]),
+            (Error::List(mut l), Error::User(u)) => {
+                l.push(u);
                 Error::List(l)
             }
-            (Error::User(s), Error::List(mut l)) => {
-                l.push(s);
+            (Error::User(u), Error::List(mut l)) => {
+                l.push(u);
                 Error::List(l)
             }
             (Error::List(mut l1), Error::List(l2)) => {
@@ -48,7 +59,7 @@ impl Error {
         }
     }
 
-    pub fn from_vec(vec: Vec<Error>) -> Error {
+    pub fn from_vec(vec: Vec<Self>) -> Self {
         if vec.is_empty() {
             panic!("BUG do not call from_vec on empty vectors");
         }
@@ -59,7 +70,7 @@ impl Error {
 
     // results must only contain errors
     #[allow(dead_code)]
-    pub fn from_vec_result<X>(vec: Vec<Result<X>>) -> Error
+    pub fn from_vec_result<X>(vec: Vec<Result<X>>) -> Self
     where
         X: fmt::Debug,
     {
@@ -80,12 +91,14 @@ macro_rules! err {
         use crate::error::Error;
         use colored::Colorize;
 
-        Error::User(format!(
+        Error::new(
+            format!(
                 "{}:\n{} {}",
                 $origin.position_str().bright_yellow(),
                 "!-->".bright_blue(),
                 format!( $ ( $ arg ) * )
-        ))
+            )
+        )
     });
 }
 
@@ -171,16 +184,68 @@ where
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::User(msg) => write!(f, "{} at {}", "error".red(), msg),
-            Error::List(v) => write!(
-                f,
-                "{}:\n{}",
-                "errors".red(),
-                v.iter()
-                    .map(|x| x.to_string())
+            Error::User((msg, bt)) => {
+                write!(
+                    f,
+                    "{} at {}{}",
+                    "error".red(),
+                    msg,
+                    bt.as_ref().map_or("".to_owned(), |bt| bt.to_string())
+                )
+            },
+            Error::List(v) => {
+                write!(
+                    f,
+                    "{}:\n{}",
+                    "errors".red(),
+                    v.iter()
+                        .map(|(msg, bt)| format!(
+                            "{}{}",
+                            msg,
+                            bt.as_ref().map_or("".to_owned(), |bt| bt.to_string())
+                        ))
+                        .collect::<Vec<String>>()
+                        .join("\n")
+                )
+            }
+        }
+    }
+}
+
+// WARNING: the only purpose of this impl is to print a proper output in case of core::panic 
+// should not be used otherwise
+// debug was called on Error which was breaking the compilation output in case core::panic was called
+impl fmt::Debug for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let err_msg = match self {
+            Error::User((msg, _)) => msg.to_owned(),
+            Error::List(v) => {
+                let errors = v.iter()
+                    .map(|(msg, bt)| format!(
+                        "{}{}",
+                        msg,
+                        bt.as_ref().map_or("".to_owned(), |bt| bt.to_string())
+                    ))
                     .collect::<Vec<String>>()
-                    .join("\n")
-            ),
+                    .join("\n");
+                format!("(list) {}", errors)
+            }
+        };
+        write!(f, "{}", err_msg)
+    }
+}
+
+
+impl PartialEq for Error {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Error::User(a), Error::User(b)) => a.0 == b.0,
+            (Error::List(a), Error::List(b)) => {
+                a.iter()
+                    .map(|(e, _)| e)
+                    .eq(b.iter().map(|(e, _)| e))
+            }
+            _ => false,
         }
     }
 }
@@ -205,7 +270,7 @@ where
     I: Iterator<Item = &'src Token<'src>>,
 {
     let separator = ". ";
-    let mut output_str = String::new();
+    let mut output_str = "".to_owned();
     output_str.push_str(separator);
     match list.size_hint() {
         (_, Some(0)) => output_str.push_str("No variable in the current context"),
@@ -218,7 +283,7 @@ where
                 output_str.push_str(format!("Did you mean: \"{}\"?", message).as_str())
             }
             None => output_str.push_str("No similar name found."),
-            // previous is explicit, testing purpose. prod -> None => return String::new(),
+            // previous is explicit, testing purpose. prod -> None => return "".to_owned(),
         },
     };
     output_str

@@ -152,17 +152,17 @@ impl DSC {
                 let p_index = match p.1 {
                     Value::Number(_, n) => *n as usize,
                     _ => {
-                        return Err(Error::User(String::from(
-                            "Expected value type for class parameters metadata: Number",
-                        )))
+                        return Err(Error::new(
+                            "Expected value type for class parameters metadata: Number".to_owned(),
+                        ))
                     }
                 };
                 Ok((p.0.to_owned(), p_index))
-            }
-            _ => Err(Error::User(format!(
+            },
+            _ => Err(Error::new(format!(
                 "Generic methods should have 1 class parameter (not the case for {})",
                 generic_method_name
-            ))),
+            )))
         }
     }
 
@@ -212,15 +212,15 @@ impl DSC {
                             break;
                         }
                     } else {
-                        return Err(Error::User(String::from(
-                            "Expected value type for supported_formats metadata: String",
-                        )));
+                        return Err(Error::new(
+                            "Expected value type for supported_formats metadata: String".to_owned(),
+                        ))
                     }
                 }
                 is_dsc_listed
             }
             _ => {
-                return Err(Error::User(format!(
+                return Err(Error::new(format!(
                     "{} Generic method has no \"supported_formats\" metadata",
                     generic_method_name
                 )))
@@ -575,7 +575,7 @@ function {resource_name}-{state_name} {{
         if files.is_empty() {
             match dest_file {
                 Some(filename) => File::create(filename).expect("Could not create output file"),
-                None => return Err(Error::User("No file to create".to_owned())),
+                None => return Err(Error::new("No file to create".to_owned())),
             };
         }
 
