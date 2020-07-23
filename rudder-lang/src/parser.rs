@@ -981,7 +981,9 @@ fn pfile(i: PInput) -> PResult<PFile> {
     all_consuming(sequence!(
         {
             header: pheader;
+            _x: strip_spaces_and_comment;
             code: many0(or_fail_perr(pdeclaration));
+            _x: strip_spaces_and_comment;
         } => PFile {header, code}
     ))(i)
 }
