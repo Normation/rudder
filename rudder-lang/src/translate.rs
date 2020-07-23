@@ -49,8 +49,20 @@ struct MethodCall {
 
 #[derive(Serialize, Deserialize, Default)]
 struct Parameter {
-    name: String,
+    name: Option<String>,
     value: String,
+}
+impl Parameter {
+    pub fn new(name: Option<&str>, value: &str) -> Self {
+        let owned_name = match name {
+            Some(n) => Some(n.to_owned()),
+            None => None
+        };
+        Self {
+            name: owned_name,
+            value: value.to_owned()
+        }
+    }
 }
 
 pub fn translate_file(context: &IOContext) -> Result<()> {
@@ -91,7 +103,10 @@ pub fn translate_file(context: &IOContext) -> Result<()> {
     let mut technique = serde_json::from_str::<Technique>(&json_data)
         .map_err(|e| err!(Token::new(&input_path, ""), "{}", e))?;
 
-    technique.method_calls.iter_mut().for_each(|method| method.args.push(method.parameters.iter().map(|p| p.value.to_owned()).collect()));
+    technique.method_calls.iter_mut().for_each(|method| {
+        method.parameters.extend(method.args.iter().map(|v| Parameter::new(None, v)).collect::<Vec<Parameter>>())
+    });
+
 
     info!(
         "|- {} (translation phase)",
@@ -168,6 +183,28 @@ resource {bundle_name}({parameter_list})
             _ => panic!(format!("The standard library contains several matches for the following method: {}", method_name))
         }
     }
+
+    fn translate_args<I>(&self, args: I, template_vars: &mut Vec<String>) -> Result<String>
+    where I: Iterator<Item = &'src Parameter>
+    {
+        let mut updated_args = Vec::new();
+        for arg in args {
+            // rl v2 behavior should make use of this, for now, just a syntax validator
+            if parse_cfstring(&arg.value).is_err() {
+                return Err(Error::User(format!("Invalid variable syntax in '{}'", arg.value)));
+            }
+            if arg.value.contains("$") {
+                updated_args.push(format!("p{}", template_vars.len()));
+                template_vars.push(format!("  p{}=\"{}\"", template_vars.len(), arg.value));
+            } else {
+                updated_args.push(format!("\"{}\"", arg.value));
+            }
+        }
+
+        let validated_args = map_strings_results(updated_args.iter(), |x| Ok(x.to_owned()), ",")?;
+
+        Ok(validated_args)
+    }
     
     fn translate_call(&self, call: &MethodCall) -> Result<String> {
         let (resource, state) = match self.get_method_from_stdlib(&call.method_name) {
@@ -194,9 +231,13 @@ resource {bundle_name}({parameter_list})
             }
             Some(v) => v as usize,
         };
-        let it = &mut call.args.iter();
-        let res_args = map_strings_results(it.take(res_arg_count), |x| self.translate_arg(x), ",")?;
-        let st_args = map_strings_results(it, |x| self.translate_arg(x), ",")?;
+
+        let it = &mut call.parameters.iter();
+        let mut template_vars = Vec::new();
+        let res_args = self.translate_args(it.take(res_arg_count), &mut template_vars)?; // automatically takes the first rather than getting the right resource param index
+        let st_args = self.translate_args(it, &mut template_vars)?;
+        // empty string purpose: add an ending newline when joined into a string
+        template_vars.push(String::new());
 
         // call formating
         let call_str = format!("{}({}).{}({})", &resource, res_args, &state, st_args);
@@ -239,13 +280,13 @@ resource {bundle_name}({parameter_list})
             }
             Some(m) => m.as_integer().unwrap(),
         };
-        let class_parameter_value = &call.args[class_parameter_id as usize];
-        let canonic_parameter = canonify(class_parameter_value);
+        let class_parameter = &call.parameters[class_parameter_id as usize];
+        let canonic_parameter = canonify(&class_parameter.value);
         let outcome = format!(" as {}_{}", class_prefix, canonic_parameter);
         // TODO remove outcome if there is no usage
         Ok(format!(
-            "  @component = \"{}\"\n{}{}",
-            &call.component, out_state, outcome
+            "{}  @component = \"{}\"\n{}{}",
+            template_vars.join("\n"), &call.component, out_state, outcome
         ))
     }
 
@@ -287,24 +328,15 @@ resource {bundle_name}({parameter_list})
         Ok((parameters_meta, parameter_list))
     }
 
-    fn translate_arg(&self, arg: &str) -> Result<String> {
-        let var = match parse_cfstring(arg) {
-            Err(_) => return Err(Error::User(format!("Invalid variable syntax in '{}'", arg))),
-            Ok((_, o)) => o,
-        };
-
-        map_strings_results(var.iter(), |x| Ok(format!("\"{}\"", x.to_string()?)), ",")
-    }
-
     fn translate_condition(&self, expr: &str) -> Result<String> {
         lazy_static! {
-            static ref CLASS_RE: Regex = Regex::new(r"([\w${}.]+)").unwrap();
+            static ref CONDITION_RE: Regex = Regex::new(r"([\w${}.]+)").unwrap();
             static ref ANY_RE: Regex = Regex::new(r"(any\.)").unwrap();
         }
         let no_any = ANY_RE.replace_all(expr, "");
         let mut errs = Vec::new();
         // replace all matching words as classes
-        let result = CLASS_RE.replace_all(&no_any, |caps: &Captures| {
+        let result = CONDITION_RE.replace_all(&no_any, |caps: &Captures| {
             match self.translate_class(&caps[1]) {
                 Ok(s) => s,
                 Err(e) => {errs.push(e); "".into()}
@@ -319,8 +351,8 @@ resource {bundle_name}({parameter_list})
 
     fn translate_class(&self, cond: &str) -> Result<String> {
         lazy_static! {
-        static ref METHOD_RE: Regex = Regex::new(r"^(\w+)_(\w+)$").unwrap();
-    }
+            static ref CONDITION_RE: Regex = Regex::new(r"(?U)^([\w${.}]+)(?:_(not_repaired|repaired|false|true|not_ok|ok|reached|error|failed|denied|timeout|success|not_kept|kept))?$").unwrap();
+        }
 
         // detect known system class
         for i in self.stdlib.enum_list.enum_item_iter("system".into()) {
@@ -338,28 +370,26 @@ resource {bundle_name}({parameter_list})
             }
         }
 
-        // detect group classes
-        if cond.starts_with("group_") {
-            // group classes are implemented with boolean variables of the sane name
-            // TODO declare the variable
-            return Ok(cond.into())
-        }
+        // - classprefix_classparameters_outcomesuffix
+        // - outcomesuffix is not mandatory
+        // - classprefix goes in pair with class_parameters and they are not mandatory
+        // - you can end up with only ${}
 
         // detect method outcome class
-        if let Some(caps) = METHOD_RE.captures(cond) {
-            let (method, status) = (caps.get(1).unwrap().as_str(), caps.get(2).unwrap().as_str());
-            if vec!["kept", "success"].iter().any(|x| x == &status) {
+        if let Some(caps) = CONDITION_RE.captures(cond) {
+            let method = caps.get(1).unwrap().as_str();
+            let outcome = match caps.get(2) {
+                Some(res) => res.as_str(),
+                None => return Ok(method.to_owned())
+            };
+            if vec!["kept", "success"].iter().any(|x| x == &outcome) {
                 return Ok(format!("{} =~ success", method));
-            } else if vec!["error", "not_ok", "failed", "denied", "timeout"]
-                .iter()
-                .any(|x| x == &status)
-            {
+            } else if vec!["error", "not_ok", "failed", "denied", "timeout"].iter().any(|x| x == &outcome) {
                 return Ok(format!("{} =~ error", method));
-            } else if vec!["repaired", "ok", "reached"]
-                .iter()
-                .any(|x| x == &status)
-            {
-                return Ok(format!("{} =~ {}", method, status));
+            } else if vec!["repaired", "ok", "reached", "true", "false"].iter().any(|x| x == &outcome) {
+                return Ok(format!("{} =~ {}", method, outcome));
+            } else if &outcome == &"not_kept" {
+                return Ok(format!("({} =~ error | {} =~ repaired)", method, method));
             }
         };
 
@@ -468,11 +498,6 @@ fn parse_cfstring(i: &str) -> IResult<&str, Vec<CFStringElt>> {
             // variable ${}
             map(
                 delimited(tag("${"), parse_cfvariable, tag("}")),
-                CFStringElt::Variable,
-            ),
-            // variable $()
-            map(
-                delimited(tag("$("), parse_cfvariable, tag(")")),
                 CFStringElt::Variable,
             ),
             // constant
