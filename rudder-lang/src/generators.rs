@@ -6,10 +6,10 @@ mod cfengine;
 pub use self::cfengine::CFEngine;
 use crate::ast::AST;
 use crate::error::*;
+use serde::de::{self, Deserialize, Deserializer};
+use std::fmt;
 use std::path::Path;
 use std::str::FromStr;
-use std::fmt;
-use serde::de::{self, Deserialize, Deserializer};
 
 /// A generator is something that can generate final code for a given language from an AST
 /// We want at least cfengine, dsc, mgmt
@@ -37,11 +37,11 @@ pub fn new_generator(format: &Format) -> Result<impl Generator> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Format {
-    // rudder_lang usage is only internal to handle translation. Not a compilation format 
+    // rudder_lang usage is only internal to handle translation. Not a compilation format
     RudderLang,
     CFEngine,
     DSC,
-    JSON
+    JSON,
 }
 impl fmt::Display for Format {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -74,7 +74,8 @@ impl FromStr for Format {
 }
 impl<'de> Deserialize<'de> for Format {
     fn deserialize<D>(deserializer: D) -> core::result::Result<Self, D::Error>
-        where D: Deserializer<'de>
+    where
+        D: Deserializer<'de>,
     {
         let strfmt = String::deserialize(deserializer)?;
         Format::from_str(&strfmt).map_err(de::Error::custom)

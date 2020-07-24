@@ -10,11 +10,11 @@ extern crate serde_json;
 
 #[macro_use]
 pub mod error;
-pub mod opt;
-pub mod io;
 mod ast;
 pub mod compile;
 mod generators;
+pub mod io;
+pub mod opt;
 pub use generators::Format;
 pub mod logger;
 mod parser;

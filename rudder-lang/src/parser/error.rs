@@ -23,15 +23,15 @@ pub enum PErrorKind<I> {
     NomTest(String), // cannot be use outside of tests
     ExpectedKeyword(&'static str), // anywhere (keyword type)
     ExpectedToken(&'static str), // anywhere (expected token)
-    InvalidEnumExpression,       // in enum expression
-    InvalidEscapeSequence,       // in string definition
-    InvalidFormat,               // in header
-    InvalidName(I),              // in identifier expressions (type of expression)
-    InvalidVariableReference,    // during string interpolation
-    UnsupportedMetadata(I),      // metadata or comments are not supported everywhere (metadata key)
-    UnterminatedDelimiter(I),    // after an opening delimiter (first delimiter)
-    UnterminatedOrInvalid(I),       // can't say whether a delimiter is missing or a statement format is invalid 
-    Unparsed(I),                 // cannot be parsed
+    InvalidEnumExpression, // in enum expression
+    InvalidEscapeSequence, // in string definition
+    InvalidFormat,        // in header
+    InvalidName(I),       // in identifier expressions (type of expression)
+    InvalidVariableReference, // during string interpolation
+    UnsupportedMetadata(I), // metadata or comments are not supported everywhere (metadata key)
+    UnterminatedDelimiter(I), // after an opening delimiter (first delimiter)
+    UnterminatedOrInvalid(I), // can't say whether a delimiter is missing or a statement format is invalid
+    Unparsed(I),              // cannot be parsed
 }
 
 // This is the same thing as a closure (Fn() -> I) but I couldn't manage to cope with lifetime
@@ -218,7 +218,7 @@ where
 pub fn update_error_context<'src>(
     e: Err<PError<PInput<'src>>>,
     //new_ctx: PInput<'src>,
-    new_ctx: Context<PInput<'src>>
+    new_ctx: Context<PInput<'src>>,
 ) -> Err<PError<PInput<'src>>> {
     match e {
         Err::Failure(err) => {

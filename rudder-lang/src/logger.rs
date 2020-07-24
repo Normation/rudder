@@ -103,7 +103,9 @@ impl Logger {
       }}
     }}
   ]
-}},"#, action),
+}},"#,
+                    action
+                ),
                 Logger::Terminal => error!("{}", message),
             };
         }));

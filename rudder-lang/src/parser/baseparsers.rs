@@ -35,9 +35,9 @@ pub fn strip_spaces_and_comment(i: PInput) -> PResult<()> {
 /// Combinator automatically call strip_spaces_and_comment before and after a parser
 /// This avoids having to call it manually many times
 pub fn sp<'src, O, F>(f: F) -> impl Fn(PInput<'src>) -> PResult<O>
-    where
-        F: Fn(PInput<'src>) -> PResult<O>,
-        O: 'src,
+where
+    F: Fn(PInput<'src>) -> PResult<O>,
+    O: 'src,
 {
     move |i| {
         let (i, _) = strip_spaces_and_comment(i)?;
@@ -114,7 +114,11 @@ pub fn ftag<'src>(token: &'static str) -> impl Fn(PInput<'src>) -> PResult<PInpu
 
 /// Parse a tag that must be terminated by a space or return an error
 pub fn estag<'src>(token: &'static str) -> impl Fn(PInput<'src>) -> PResult<PInput<'src>> {
-    move |i| or_err(terminated(tag(token), space1), || PErrorKind::ExpectedKeyword(token))(i)
+    move |i| {
+        or_err(terminated(tag(token), space1), || {
+            PErrorKind::ExpectedKeyword(token)
+        })(i)
+    }
 }
 
 /// parses a delimited sequence (same as nom delimited but with spaces and specific error)
@@ -123,9 +127,9 @@ pub fn delimited_parser<'src, O, P>(
     parser: P,
     close_delimiter: &'static str,
 ) -> impl Fn(PInput<'src>) -> PResult<O>
-    where
-        P: Copy + Fn(PInput<'src>) -> PResult<O>,
-        O: 'src,
+where
+    P: Copy + Fn(PInput<'src>) -> PResult<O>,
+    O: 'src,
 {
     wsequence!({
             open: etag(open_delimiter);
@@ -143,15 +147,22 @@ pub fn delimited_list<'src, O, P>(
     separator: &'static str,
     close_delimiter: &'static str,
 ) -> impl Fn(PInput<'src>) -> PResult<Vec<O>>
-    where
-        P: Copy + Fn(PInput<'src>) -> PResult<O>,
-        O: 'src,
+where
+    P: Copy + Fn(PInput<'src>) -> PResult<O>,
+    O: 'src,
 {
-    move |i| delimited_parser(
-        open_delimiter,
-        |j| terminated(separated_list(sp(etag(separator)), parser), opt(tag(separator)))(j),
-        close_delimiter
-    )(i)
+    move |i| {
+        delimited_parser(
+            open_delimiter,
+            |j| {
+                terminated(
+                    separated_list(sp(etag(separator)), parser),
+                    opt(tag(separator)),
+                )(j)
+            },
+            close_delimiter,
+        )(i)
+    }
 }
 
 /// parses a list of something separated by separator with specific delimiters
@@ -161,35 +172,39 @@ pub fn delimited_nonempty_list<'src, O, P>(
     separator: &'static str,
     close_delimiter: &'static str,
 ) -> impl Fn(PInput<'src>) -> PResult<Vec<O>>
-    where
-        P: Copy + Fn(PInput<'src>) -> PResult<O>,
-        O: 'src,
+where
+    P: Copy + Fn(PInput<'src>) -> PResult<O>,
+    O: 'src,
 {
-    move |i| delimited_parser(
-        open_delimiter,
-        |j| terminated(separated_nonempty_list(sp(etag(separator)), parser), opt(tag(separator)))(j),
-        close_delimiter
-    )(i)
+    move |i| {
+        delimited_parser(
+            open_delimiter,
+            |j| {
+                terminated(
+                    separated_nonempty_list(sp(etag(separator)), parser),
+                    opt(tag(separator)),
+                )(j)
+            },
+            close_delimiter,
+        )(i)
+    }
 }
 
 /// Function to extract the context string, ie what was trying to be parsed when an error happened
 /// It extracts the longest string between a single line and everything until the parsing error
 pub fn get_context<'src>(i: PInput<'src>, err_pos: PInput<'src>) -> PInput<'src> {
     // One line, or everything else if no new line (end of file)
-    let line: PResult<PInput> = alt((
-        take_until("\n"),
-        rest
-    ))(i);
+    let line: PResult<PInput> = alt((take_until("\n"), rest))(i);
     let line = match line {
         Ok((_, rest)) => Some(rest),
-        _ => None
+        _ => None,
     };
 
     // Until next text
     let complete: PResult<PInput> = take_until("\n")(err_pos);
     let complete = match complete {
         Ok((_, rest)) => Some(rest),
-        _ => None
+        _ => None,
     };
 
     match (line, complete) {
@@ -199,10 +214,10 @@ pub fn get_context<'src>(i: PInput<'src>, err_pos: PInput<'src>) -> PInput<'src>
             } else {
                 c
             }
-        },
+        }
         (Some(l), None) => l,
         (None, Some(c)) => c,
-        (None, None) => panic!("Context should never be empty")
+        (None, None) => panic!("Context should never be empty"),
     }
 }
 

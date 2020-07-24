@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+mod baseparsers;
 mod error;
 mod token;
-mod baseparsers;
 
 use nom::branch::*;
 use nom::bytes::complete::*;
@@ -17,13 +17,12 @@ use nom::sequence::*;
 use std::collections::HashMap;
 
 use crate::error::*;
-use crate::{sequence,wsequence}; // macros are exported at the root of the crate
-use error::*;
+use crate::{sequence, wsequence}; // macros are exported at the root of the crate
 use baseparsers::*;
+use error::*;
 
 // reexport tokens
 pub use token::Token;
-
 
 #[allow(unused_imports)]
 use token::*;
@@ -132,7 +131,7 @@ fn pheader(i: PInput) -> PResult<PHeader> {
 }
 
 /// An enum item can be either a classic identifier or a *
-fn penum_item(i: PInput) -> PResult<(Vec<PMetadata>,Token)> {
+fn penum_item(i: PInput) -> PResult<(Vec<PMetadata>, Token)> {
     wsequence!(
         {
             metadata: pmetadata_list;
@@ -152,7 +151,7 @@ pub struct PEnum<'src> {
     pub global: bool,
     pub metadata: Vec<PMetadata<'src>>,
     pub name: Token<'src>,
-    pub items: Vec<(Vec<PMetadata<'src>>,Token<'src>)>,
+    pub items: Vec<(Vec<PMetadata<'src>>, Token<'src>)>,
 }
 fn penum(i: PInput) -> PResult<PEnum> {
     wsequence!(
@@ -176,7 +175,7 @@ fn penum(i: PInput) -> PResult<PEnum> {
 pub struct PSubEnum<'src> {
     pub name: Token<'src>,
     pub enum_name: Option<Token<'src>>,
-    pub items: Vec<(Vec<PMetadata<'src>>,Token<'src>)>,
+    pub items: Vec<(Vec<PMetadata<'src>>, Token<'src>)>,
 }
 fn psub_enum(i: PInput) -> PResult<PSubEnum> {
     wsequence!(
@@ -232,7 +231,13 @@ pub enum PEnumExpression<'src> {
     //             variable             enum name     value/item
     Compare(Option<Token<'src>>, Option<Token<'src>>, Token<'src>),
     //                  variable             enum name            range start          range end     position in case everything else is None
-    RangeCompare(Option<Token<'src>>, Option<Token<'src>>, Option<Token<'src>>, Option<Token<'src>>, Token<'src>),
+    RangeCompare(
+        Option<Token<'src>>,
+        Option<Token<'src>>,
+        Option<Token<'src>>,
+        Option<Token<'src>>,
+        Token<'src>,
+    ),
     And(Box<PEnumExpression<'src>>, Box<PEnumExpression<'src>>),
     Or(Box<PEnumExpression<'src>>, Box<PEnumExpression<'src>>),
     Not(Box<PEnumExpression<'src>>),
@@ -253,7 +258,12 @@ fn penum_expression(i: PInput) -> PResult<PEnumExpression> {
 }
 enum RangeOrItem<'src> {
     //           enum name            range start          range end     position in case everything else is None
-    Range(Option<Token<'src>>, Option<Token<'src>>, Option<Token<'src>>, Token<'src>),
+    Range(
+        Option<Token<'src>>,
+        Option<Token<'src>>,
+        Option<Token<'src>>,
+        Token<'src>,
+    ),
     //           enum name    item
     Item(Option<Token<'src>>, Token<'src>),
 }
@@ -318,12 +328,12 @@ fn enum_atom(i: PInput) -> PResult<PEnumExpression> {
                 }
             }
         ),
-        map(enum_range_or_item, |value|
-            match value {
-                RangeOrItem::Range(name,left,right,dots) => PEnumExpression::RangeCompare(None, name, left, right, dots),
-                RangeOrItem::Item(name,val) => PEnumExpression::Compare(None, name,val),
+        map(enum_range_or_item, |value| match value {
+            RangeOrItem::Range(name, left, right, dots) => {
+                PEnumExpression::RangeCompare(None, name, left, right, dots)
             }
-        ),
+            RangeOrItem::Item(name, val) => PEnumExpression::Compare(None, name, val),
+        }),
     ))(i)
 }
 fn enum_or_expression(i: PInput) -> PResult<PEnumExpression> {
@@ -474,8 +484,13 @@ fn plist(i: PInput) -> PResult<Vec<PValue>> {
 /// A struct is stored in a HashMap TODO
 fn pstruct(i: PInput) -> PResult<HashMap<String, PValue>> {
     map(
-        delimited_list("{", |j| separated_pair(pescaped_string, sp(etag(":")), pvalue)(j), ",", "}"),
-        |l| l.into_iter().map(|(k,v)| (k.1,v)).collect()
+        delimited_list(
+            "{",
+            |j| separated_pair(pescaped_string, sp(etag(":")), pvalue)(j),
+            ",",
+            "}",
+        ),
+        |l| l.into_iter().map(|(k, v)| (k.1, v)).collect(),
     )(i)
 }
 
@@ -761,7 +776,6 @@ fn pstate_declaration(i: PInput) -> PResult<PStateDeclaration> {
     )(i)
 }
 
-
 /// A statement is the atomic element of a state definition.
 #[derive(Debug, PartialEq)]
 pub enum PStatement<'src> {
@@ -785,7 +799,10 @@ pub enum PStatement<'src> {
 fn pcase(i: PInput) -> PResult<(PEnumExpression, Vec<PStatement>)> {
     alt((
         map(etag("nodefault"), |t| {
-            (PEnumExpression::NoDefault(Token::from(t)), vec![PStatement::Noop])
+            (
+                PEnumExpression::NoDefault(Token::from(t)),
+                vec![PStatement::Noop],
+            )
         }),
         wsequence!(
             {
@@ -796,7 +813,7 @@ fn pcase(i: PInput) -> PResult<(PEnumExpression, Vec<PStatement>)> {
                     delimited_parser("{", |j| many0(pstatement)(j), "}"),
                 )), || PErrorKind::ExpectedToken("case statement"));
             } => (expr,stmt)
-        )
+        ),
     ))(i)
 }
 fn pstatement(i: PInput) -> PResult<PStatement> {
@@ -844,14 +861,8 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
             preceded(sp(etag("return")), pvariable_identifier),
             PStatement::Return,
         ),
-        map(
-            preceded(sp(etag("fail")), pvalue),
-            PStatement::Fail,
-        ),
-        map(
-            preceded(sp(etag("log")), pvalue),
-            PStatement::Log,
-        ),
+        map(preceded(sp(etag("fail")), pvalue), PStatement::Fail),
+        map(preceded(sp(etag("log")), pvalue), PStatement::Log),
         map(etag("noop"), |_| PStatement::Noop),
     ))(i)
 }
@@ -955,7 +966,7 @@ fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
             map(pvariable_declaration, PDeclaration::GlobalVar),
             map(palias_def, PDeclaration::Alias),
         )),
-        || PErrorKind::Unparsed(get_context(i,i)),
+        || PErrorKind::Unparsed(get_context(i, i)),
     )(i)
 }
 
@@ -990,9 +1001,7 @@ fn pfile(i: PInput) -> PResult<PFile> {
 
 #[cfg(test)]
 pub fn test_new_pvalue(s: &str) -> PValue {
-    let res = pvariable_declaration(
-        Token::from(s).into()
-    ).unwrap();
+    let res = pvariable_declaration(Token::from(s).into()).unwrap();
     (res.1).1
 }
 

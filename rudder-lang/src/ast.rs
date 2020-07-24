@@ -131,7 +131,10 @@ impl<'src> AST<'src> {
                             se.name,
                             "Global enum item {} not found when trying to define sub enum {}",
                             se.name,
-                            get_suggestion_message(se.name.fragment(), self.enum_list.global_item_iter())
+                            get_suggestion_message(
+                                se.name.fragment(),
+                                self.enum_list.global_item_iter()
+                            )
                         )),
                         // We know in which enum we shoud be
                         Some(name) => self.errors.push(err!(
@@ -139,8 +142,11 @@ impl<'src> AST<'src> {
                             "Enum {} item {} not found when trying to define sub enum {}",
                             name,
                             se.name,
-                            get_suggestion_message(se.name.fragment(), self.enum_list.enum_item_iter(name))
-                        ))
+                            get_suggestion_message(
+                                se.name.fragment(),
+                                self.enum_list.enum_item_iter(name)
+                            )
+                        )),
                     }
                 }
                 break;
@@ -415,11 +421,7 @@ impl<'src> AST<'src> {
                         }
                     }
                     if cases.is_empty() {
-                        fail!(
-                            keyword,
-                            "Case list must not be empty in { }",
-                            keyword
-                        )
+                        fail!(keyword, "Case list must not be empty in { }", keyword)
                     }
                     fix_results(cases.iter().flat_map(|(_cond, sts)| {
                         sts.iter().map(|st| self.cases_check(variables, st, false))
@@ -538,15 +540,31 @@ impl<'src> AST<'src> {
             // header
             "format",
             // enums
-            "enum", "global", "items", "alias",
+            "enum",
+            "global",
+            "items",
+            "alias",
             // types
-            "num", "struct", "list", // "string", "boolean", // should not be used
+            "num",
+            "struct",
+            "list", // "string", "boolean", // should not be used
             // variables
-            "let", "resource", // "state", // should not be used
+            "let",
+            "resource", // "state", // should not be used
             // flow statements
-            "if", "case", "default", "nodefault", "fail", "log", "return", "noop",
+            "if",
+            "case",
+            "default",
+            "nodefault",
+            "fail",
+            "log",
+            "return",
+            "noop",
             // historical invalid identifiers
-            "comment", "json", "enforce", "audit" //"dict", "condition"
+            "comment",
+            "json",
+            "enforce",
+            "audit", //"dict", "condition"
         ]
         .contains(&name.fragment())
         {

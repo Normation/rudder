@@ -1,17 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use std::path::PathBuf;
-use std::fmt;
-use std::str::FromStr;
 use serde::Deserialize;
+use std::fmt;
+use std::path::PathBuf;
+use std::str::FromStr;
 
-use crate::{
-    error::*,
-    Action,
-    generators::Format,
-    opt::IOOpt
-};
+use crate::{error::*, generators::Format, opt::IOOpt, Action};
 
 // deserialized config file sub struct
 #[derive(Clone, Debug, Deserialize)]
@@ -21,7 +16,7 @@ struct ActionConfig {
     format: Option<Format>,
     // action is defined later in the code, should never be deserialized: set to None at first
     #[serde(skip, default)]
-    action: Option<Action>
+    action: Option<Action>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -33,7 +28,7 @@ struct LibsConfig {
 // deserialized config file main struct
 #[derive(Clone, Debug, Deserialize)]
 struct Config {
-    #[serde(rename="shared")]
+    #[serde(rename = "shared")]
     libs: LibsConfig,
     compile: ActionConfig,
     translate: ActionConfig,
@@ -67,12 +62,8 @@ impl fmt::Display for IOContext {
     }
 }
 
-
 /// get explicit source. If none, get config path + technique_name. Else, error
-fn get_source(
-    config: &ActionConfig,
-    opt: &IOOpt 
-) -> Result<PathBuf> {
+fn get_source(config: &ActionConfig, opt: &IOOpt) -> Result<PathBuf> {
     Ok(match &opt.source {
         // 1. argument source, use it as source technique
         Some(technique_path) => technique_path.to_path_buf(),
@@ -87,22 +78,22 @@ fn get_source(
                     } else {
                         return Err(Error::User(
                             "Could not determine source: no parameters and configured source is a directory".to_owned(),
-                        ))
+                        ));
                     }
                 }
             },
-            None => return Err(Error::User(
-                "Could not determine source: neither parameters nor configured source".to_owned(),
-            ))
-        }
+            None => {
+                return Err(Error::User(
+                    "Could not determine source: neither parameters nor configured source"
+                        .to_owned(),
+                ))
+            }
+        },
     })
 }
 
 /// get explicit dest. If no explicit dest get default path + filename. I none, use source path (and update format). If none worked, error
-fn get_dest(
-    config: &ActionConfig,
-    opt: &IOOpt
-) -> Result<(PathBuf, Format)> {
+fn get_dest(config: &ActionConfig, opt: &IOOpt) -> Result<(PathBuf, Format)> {
     let technique = match &opt.dest {
         // 1. argument dest, use it as destination technique
         Some(technique_path) => technique_path.to_path_buf(),
@@ -135,9 +126,7 @@ fn get_dest(
 
     // format is part of dest file so it makes sense to return it from this function plus it needs to be defined here to update dest if needed
     let (format, format_as_str) = get_dest_format(config, opt, &technique)?;
-    if technique.ends_with(&format_as_str) {
-
-    }
+    if technique.ends_with(&format_as_str) {}
     Ok((technique.with_extension(&format_as_str), format))
 }
 
@@ -148,7 +137,8 @@ fn get_dest_format(config: &ActionConfig, opt: &IOOpt, dest: &PathBuf) -> Result
     } else if config.format.is_some() {
         info!("Configuration format used");
     }
-    if config.action == Some(Action::Translate) && (config.format.is_some() || opt.format.is_some()) {
+    if config.action == Some(Action::Translate) && (config.format.is_some() || opt.format.is_some())
+    {
         warn!("Translate only supports rudder-lang format generation, overriding other settings");
     }
 
@@ -169,14 +159,16 @@ fn get_dest_format(config: &ActionConfig, opt: &IOOpt, dest: &PathBuf) -> Result
     // TODO get list from Generator directly
     if config.action == Some(Action::Compile) && fmt != Format::RudderLang {
         Ok((fmt.clone(), format!("{}.{}", "rl", fmt))) // TODO discuss about file extension handling
-        // Ok((fmt.clone(), fmt.to_string()))
+                                                       // Ok((fmt.clone(), fmt.to_string()))
     } else if config.action == Some(Action::Translate) {
         // translate can only have RL as output format
         Ok((Format::RudderLang, "rl".to_owned()))
     } else {
-        Err(Error::User(
-            format!("Could not determine format: {} is not a valid format for {}", fmt, config.action.unwrap()),
-        ))
+        Err(Error::User(format!(
+            "Could not determine format: {} is not a valid format for {}",
+            fmt,
+            config.action.unwrap()
+        )))
     }
 }
 
@@ -184,12 +176,18 @@ fn get_opt_action_mode(action: Action, config: &Config) -> ActionConfig {
     match action {
         Action::Compile => {
             info!("Compilation default mode");
-            ActionConfig { action: Some(Action::Compile), ..config.compile.clone() }
-        },
+            ActionConfig {
+                action: Some(Action::Compile),
+                ..config.compile.clone()
+            }
+        }
         Action::Translate => {
             info!("Translation alternative mode requested");
-            ActionConfig { action: Some(Action::Translate), ..config.translate.clone() }
-        },
+            ActionConfig {
+                action: Some(Action::Translate),
+                ..config.translate.clone()
+            }
+        }
     }
 }
 
@@ -197,19 +195,22 @@ fn get_opt_action_mode(action: Action, config: &Config) -> ActionConfig {
 /// get the correct source and dest paths based on parameters
 /// source priority is source > config + technique_name
 /// dest priority is dest > config + technique_name > source
-pub fn get(
-    action: Action,
-    opt: &IOOpt
-) -> Result<IOContext> {
+pub fn get(action: Action, opt: &IOOpt) -> Result<IOContext> {
     let config: Config = match std::fs::read_to_string(&opt.config_file) {
-        Err(e) => return Err(Error::User(
-            format!("Could not read toml config file: {}", e)
-        )),
+        Err(e) => {
+            return Err(Error::User(format!(
+                "Could not read toml config file: {}",
+                e
+            )))
+        }
         Ok(config_data) => match toml::from_str(&config_data) {
             Ok(config) => config,
-            Err(e) => return Err(Error::User(
-                format!("Could not parse (probably faulty) toml config file: {}", e)
-            )),
+            Err(e) => {
+                return Err(Error::User(format!(
+                    "Could not parse (probably faulty) toml config file: {}",
+                    e
+                )))
+            }
         },
     };
 
@@ -225,4 +226,3 @@ pub fn get(
         format,
     })
 }
-

@@ -13,7 +13,7 @@ pub struct IOOpt {
     pub config_file: PathBuf,
 
     /// Technique name to use for both input (if no input provided) and output (if no output provided), based on configuration file paths.
-    #[structopt(long, short="n")]
+    #[structopt(long, short = "n")]
     pub technique_name: Option<PathBuf>,
 
     /// Technique name to use for output (if no output provided), based on configuration file paths.
@@ -44,7 +44,7 @@ pub struct Opt {
 
     #[structopt(flatten)]
     pub io: IOOpt,
-   
+
     /// rudderc output logs verbosity.
     #[structopt(
         long,
