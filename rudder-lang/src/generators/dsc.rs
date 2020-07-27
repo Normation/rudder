@@ -136,8 +136,42 @@ impl DSC {
         })
     }
 
-    fn get_method_parameters(&self, gc: &AST, state_decl: &StateDeclaration) -> Result<String> {
-        // depending on whether class_parameters should only be used for generic_methods or not
+    fn get_class_parameter(
+        &self,
+        state_def: &StateDef,
+        generic_method_name: &str,
+    ) -> Result<(String, usize)> {
+
+        // if one day several class_parameters are used as they previously were, get the relative code from this commit
+        // 89651a6a8a05475eabccefc23e4fe23235a7e011 . This file, line 170
+        match state_def.metadata.get(&Token::from("resource_parameter")) {
+            Some(Value::Struct(parameters)) if parameters.len() == 1 => {
+                let p = parameters.iter().next().unwrap();
+                let p_index = match p.1 {
+                    Value::Number(_, n) => *n as usize,
+                    _ => {
+                        return Err(Error::User(String::from(
+                            "Expected value type for class parameters metadata: Number",
+                        )))
+                    }
+                };
+                Ok((p.0.to_owned(), p_index))
+            },
+            _ => {
+                return Err(Error::User(format!(
+                    "Generic methods should have 1 class parameter (not the case for {})",
+                    generic_method_name
+                )))
+            }
+        }
+    }
+
+    fn get_method_parameters(
+        &mut self,
+        gc: &AST,
+        state_decl: &StateDeclaration,
+    ) -> Result<(String, String, bool)> {
+        // depending on whether class_parameters should only be used for meta_generic_methods or not
         // might better handle relative errors as panic! rather than Error::User
 
         let state_def = match gc.resources.get(&state_decl.resource) {
@@ -155,62 +189,70 @@ impl DSC {
             ),
         };
 
+        let generic_method_name = &format!(
+            "{}_{}",
+            state_decl.state.fragment(),
+            state_decl.resource.fragment()
+        );
+
         let mut param_names = state_def
             .parameters
             .iter()
             .map(|p| p.name.fragment())
             .collect::<Vec<&str>>();
 
-        let mut class_param_names = match state_def.metadata.get(&Token::from("class_parameters")) {
-            Some(Value::Struct(parameters)) => parameters
-                .iter()
-                .map(|p| {
-                    let p_index = match p.1 {
-                        Value::Number(_, n) => *n as usize,
-                        _ => {
-                            return Err(Error::User(String::from(
-                                "Expected value type for class parameters metadata: Number",
-                            )))
+
+        let is_dsc_supported: bool = match state_def.metadata.get(&Token::from("supported_formats")) {
+            Some(Value::List(parameters)) => {
+                let mut is_dsc_listed = false;
+                for p in parameters {
+                    if let Value::String(_) = p {
+                        if &self.value_to_string(p, false)? == "dsc" {
+                            is_dsc_listed = true;
+                            break;
                         }
-                    };
-                    Ok((p.0.as_ref(), p_index))
-                })
-                .collect::<Result<Vec<(&str, usize)>>>()?,
+                    } else {
+                        return Err(Error::User(String::from(
+                            "Expected value type for supported_formats metadata: String",
+                        )))
+                    }
+                }
+                is_dsc_listed
+            },
             _ => {
-                // swap to info! if class_parameter for all methods is a thing
-                debug!(
-                    "The {}_{} method has no class_parameters metadata attached",
-                    state_decl.state.fragment(),
-                    state_decl.resource.fragment()
-                );
-                Vec::new()
+                return Err(Error::User(format!(
+                    "{} Generic method has no \"supported_formats\" metadata",
+                    generic_method_name
+                )))
             }
         };
-        class_param_names.sort_by(|a, b| a.1.cmp(&b.1));
 
-        for (name, index) in class_param_names {
-            if index <= param_names.len() {
-                param_names.insert(index, name);
-            } else {
-                return Err(Error::User(String::from(
-                    "Class parameter indexes are out of method bounds",
-                )));
-            }
-        }
+        let class_param = self.get_class_parameter(state_def, generic_method_name)?;
+
+        param_names.insert(class_param.1, &class_param.0);
 
         // TODO setup mode and output var by calling ... bundle
-        map_strings_results(
+        let params_string = map_strings_results(
             state_decl
                 .resource_params
                 .iter()
                 .chain(state_decl.state_params.iter())
                 .enumerate(),
-            |(i, x)| self.parameter_to_dsc(x, param_names.get(i).unwrap_or(&&"unnamed")),
+            |(i, x)| {
+                self.parameter_to_dsc(
+                    x,
+                    param_names.get(i).expect(&format!(
+                        "Wrong parameter count for method {}",
+                        generic_method_name
+                    )),
+                )
+            },
             " ",
-        )
+        )?;
+        Ok((params_string, class_param.0, is_dsc_supported))
     }
 
-    // TODO simplify expression and remove useless conditions for more readable cfengine
+    // TODO simplify expression and remove uselesmap_strings_results conditions for more readable cfengine
     // TODO underscore escapement
     // TODO how does cfengine use utf8
     // TODO variables
@@ -231,12 +273,20 @@ impl DSC {
                     _ => "any".to_string(),
                 };
 
-                Ok(format!(
-                    r#"  $local_classes = Merge-ClassContext $local_classes $({} {} -componentName "{}" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")"#,
-                    pascebab_case(&component),
-                    self.get_method_parameters(gc, sd)?,
-                    component,
-                ))
+                let (params_formatted_str, class_param, is_dsc_technique) = self.get_method_parameters(gc, sd)?;
+
+                Ok(match is_dsc_technique {
+                    true => format!(
+                        r#"  $local_classes = Merge-ClassContext $local_classes $({} {} -ComponentName "{}" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly"#,
+                        pascebab_case(&component),
+                        params_formatted_str,
+                        component,
+                    ),
+                    false => format!(
+                        r#"  _rudder_common_report_na -ComponentName "{}" -ComponentKey "{}" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly"#,
+                        component, class_param
+                    ),
+                })
             }
             Statement::Case(_case, vec) => {
                 self.reset_cases();
@@ -430,9 +480,8 @@ impl Generator for DSC {
                     .chain(state.parameters.iter())
                     .map(|p| {
                         format!(
-                            // TODO check if parameter is actually mandatory
-                            "    [parameter(Mandatory=$true)]\n    [{}]${}",
-                            self.format_param_type(&p.value),
+                            "        [Parameter(Mandatory=$True)]  [{}] ${}",
+                            uppercase_first_letter(&self.format_param_type(&p.value)),
                             pascebab_case(p.name.fragment())
                         )
                     })
@@ -440,13 +489,12 @@ impl Generator for DSC {
                     .join(",\n");
 
                 // add default dsc parameters
-                let parameters: String = vec![
-                    String::from("    [parameter(Mandatory=$true)]\n    [string]$techniqueName"),
-                    String::from("    [parameter(Mandatory=$true)]\n    [string]$reportId"),
-                    String::from("    [switch]$auditOnly"),
+                let parameters: String = format!(r#"{},
+        [Parameter(Mandatory=$False)] [Switch] $AuditOnly      = $False,
+        [Parameter(Mandatory=$True)]  [String] $ReportId,
+        [Parameter(Mandatory=$True)]  [String] $TechniqueName"#,
                     method_parameters,
-                ]
-                .join(",\n");
+                );
 
                 // get methods
                 let methods = &state
@@ -456,14 +504,13 @@ impl Generator for DSC {
                     .collect::<Result<Vec<String>>>()?
                     .join("\n");
                 // merge header + parameters + methods with technique file body
-                let content = format!(
-                    r#"# generated by rudder-lang
+                let content = format!(r#"# generated by rudder-lang
 {header}
 function {resource_name}-{state_name} {{
-  [CmdletBinding()]
-  param (
+    [CmdletBinding()]
+    param (
 {parameters}
-  )
+    )
   
   $local_classes = New-ClassContext
   $resources_dir = $PSScriptRoot + "\resources"
@@ -495,6 +542,14 @@ function {resource_name}-{state_name} {{
                 .expect("Could not write content into output file");
         }
         Ok(())
+    }
+}
+
+fn uppercase_first_letter(s: &str) -> String {
+    let mut c = s.chars();
+    match c.next() {
+        None => String::new(),
+        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
     }
 }
 

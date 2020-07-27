@@ -3,6 +3,41 @@
 use warnings;
 use strict;
 
+sub get_paths_from_conf_file {
+  my ($file) = @_;
+
+  my $is_default = 0;
+  my $ncf_gm_path = "/usr/share/ncf/tree/30_generic_methods/";
+  my $dsc_gm_path = "/var/rudder/configuration-repository/dsc/ncf/30_generic_methods/";
+  my $resourcelib_path = "/opt/rudder/share/rudder-lang/lib";
+  my $meta_gm = "/opt/rudder/share/rudder-lang/tools/meta_generic_methods.toml";
+  open (FILE, $file);
+  while (<FILE>) {
+    chomp;
+    if ($is_default == 1 && /^\s*ncf_generic_methods\s*=\s*"(?<path>[\-\w/.]+)"/ ) {
+      $ncf_gm_path = $+{path};
+    }
+    if ($is_default == 1 && /^\s*dsc_generic_methods\s*=\s*"(?<path>[\-\w/.]+)"/ ) {
+      $dsc_gm_path = $+{path};
+    }
+    if ($is_default == 1 && /^\s*stdlib\s*=\s*"(?<path>[\-\w/.]+)"/ ) {
+      $resourcelib_path = $+{path};
+    }
+    if ($is_default == 1 && /^\s*meta_generic_methods\s*=\s*"(?<path>[\-\w/.]+)"/ ) {
+      $meta_gm = $+{path};
+    }
+    if ( /^\s*\[\s*(?<group>\w+)\s*\]\s*$/ ) {
+      if ($+{group} eq "shared") {
+        $is_default = 1;
+      } else {
+        $is_default = 0;
+      }
+    }
+  }
+  close (FILE);
+  return ($ncf_gm_path, $dsc_gm_path, $resourcelib_path, $meta_gm);
+}
+
 my %resource = ();
 my @state = ();
 my @config_lines= ();
@@ -11,12 +46,13 @@ my $cfgpath = "/opt/rudder/etc/rudderc.conf";
 if (@ARGV) {
   ($cfgpath) = @ARGV;
 }
-# ultralight homemade parser
-my ($ncfpath, $stdlibpath, $generic_methods) = get_paths_from_conf_file($cfgpath);
-my $ncf_methods = $ncfpath . "/tree/30_generic_methods/*";
-my $is_empty=1;
+my ($ncf_gm_path, $dsc_gm_path, $resourcelib_path, $meta_gm) = get_paths_from_conf_file $cfgpath;
+
+# ultralight homemade parser NCF generic methods
+my $ncf_methods = $ncf_gm_path . "/*";
+my $is_ncf_empty=1;
 foreach my $file (glob $ncf_methods) {
-  $is_empty=0;
+  $is_ncf_empty=0;
   # file exclusion
   next if $file=~ /\/_/;
   next if $file=~ /README/;
@@ -35,8 +71,9 @@ foreach my $file (glob $ncf_methods) {
   # init data
   my $i=0;
   my ($resource, $state, $prefix, $class_parameter) = ("", "", "", -1);
-  my $gm = "";
+  my $generic_method = "";
   my @params;
+  my @supported_formats = ();
   my @resource_params_unnamed=();
   my @resource_params=();
   my %param_id=();
@@ -61,7 +98,7 @@ foreach my $file (glob $ncf_methods) {
       push @resource_params, "\"$1\": $class_parameter";
     }
     elsif($line =~ /^bundle agent (\w+)\(/) {
-      $gm = $1;
+      $generic_method = $1;
       # exception for kernel that should be kernel_module (took from state)
       my $res_type = "[a-zA-Z0-9]+";
       if ($1 =~ /kernel_module/) {
@@ -71,23 +108,32 @@ foreach my $file (glob $ncf_methods) {
       elsif ($1 =~ /http_request/) {
         $res_type = "http_request";
       }
-      $gm =~ /^((?:$res_type\_){$resource_blocks})(\w+)$/;
+      $generic_method =~ /^((?:$res_type\_){$resource_blocks})(\w+)$/;
       ($resource, $state) = ($1, $2);
       chop $resource;
     }
   }
+  push @supported_formats, "\"cf\"";
+  my $dsc_gm_path = $file;
 
+  $dsc_gm_path =~ s/^$ncf_gm_path\/tree(.*)\.cf$/$dsc_gm_path$1\.ps1/;
+  if (-e $dsc_gm_path) {
+    push @supported_formats, "\"dsc\"";
+  }
+
+  $resource{"resource $resource(".join(", ", @resource_params_unnamed).")"}=1;
   # keep output
-  $resource{"resource $resource(".join(", ",@resource_params_unnamed).")"}=1;
-  push @state, "\@class_parameters={".join(", ", @resource_params)."}\n$resource state $state(".join(", ",@params).") {}\n";
-  push @config_lines, "$gm = { class_prefix=\"$prefix\", class_parameter_id = $class_parameter }";
+  push @state, "\@resource_parameter = {".join(", ", @resource_params)."}";
+  push @state, "\@supported_formats  = [".join(", ", @supported_formats)."]";
+  push @state, "$resource state $state(".join(", ", @params).") {}\n";
+  push @config_lines, "$generic_method = { class_prefix=\"$prefix\", class_parameter_id = $class_parameter }";
 }
 
-if ($is_empty) {
+if ($is_ncf_empty) {
   print "no ncf method found for $ncf_methods";
 }
 
-open(my $resourcelib, '>', "$stdlibpath/resourcelib.rl") or die "Cannot write resourcelib ($stdlibpath/resourcelib.rl)";
+open(my $resourcelib, '>', "$resourcelib_path/resourcelib.rl") or die "Cannot write resourcelib ($resourcelib_path/resourcelib.rl)";
 print $resourcelib "\@format=0";
 print $resourcelib "\n\n";
 print $resourcelib join("\n",keys %resource);
@@ -106,39 +152,7 @@ command_execution = \"(command_execution)_(.*)\"
 [conditions]
 [methods]
 ";
-open(my $conf, '>', $generic_methods) or die "Cannot write methods config ($generic_methods)";
+open(my $conf, '>', $meta_gm) or die "Cannot write methods config ($meta_gm)";
 print $conf join("\n",$config_header);
 print $conf join("\n",@config_lines);
 close($conf);
-
-
-sub get_paths_from_conf_file {
-  my ($file) = @_;
-
-  my $is_default = 0;
-  my $ncf = "/usr/share/ncf";
-  my $stdlibpath = "/opt/rudder/share/rudder-lang/lib";
-  my $generic_methods = "/opt/rudder/share/rudder-lang/tools/generic_methods.toml";
-  open (FILE, $file);
-  while (<FILE>) {
-    chomp;
-    if ($is_default == 1 && /\s*ncf\s*=\s*"(?<path>[\/\w.-]+)"\s*/ ) {
-      $ncf = $+{path};
-    }
-    if ($is_default == 1 && /\s*stdlib\s*=\s*"(?<path>[\/\w.-]+)"\s*/ ) {
-      $stdlibpath = $+{path};
-    }
-    if ($is_default == 1 && /\s*generic_methods\s*=\s*"(?<path>[\/\w.-]+)"\s*/ ) {
-      $generic_methods = $+{path};
-    }
-    if ( /\s*\[\s*(?<group>\w+)\s*\]\s*/ ) {
-      if ($+{group} eq "shared") {
-        $is_default = 1;
-      } else {
-        $is_default = 0;
-      }
-    }
-  }
-  close (FILE);
-  return ($ncf, $stdlibpath, $generic_methods);
-}

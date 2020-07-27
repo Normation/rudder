@@ -110,7 +110,7 @@ pub fn compile_file(ctx: &IOContext, technique: bool) -> Result<()> {
         &ast,
         input_file,
         output_file,
-        &ctx.generic_methods,
+        &ctx.meta_gm,
         technique,
     )
 }
