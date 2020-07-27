@@ -5,7 +5,7 @@ use super::Generator;
 use crate::{
     ast::{enums::EnumExpression, resource::*, value::*, *},
     error::*,
-    generators::cfengine::syntax::{quoted, Bundle, Promise, Technique},
+    generators::cfengine::syntax::{Bundle, Method, Policy, Promise},
     parser::*,
 };
 use std::{collections::HashMap, ffi::OsStr, fs::File, io::Write, path::Path};
@@ -145,7 +145,6 @@ impl CFEngine {
                     .map(|x| self.value_to_string(x, true))
                     .collect::<Result<Vec<String>>>()?;
 
-                let class = self.format_class(in_class)?;
                 let state_param = sd
                     .resource_params
                     .get(0)
@@ -153,17 +152,14 @@ impl CFEngine {
                     .clone()
                     .unwrap_or("".to_string());
 
-                let method_reporting_context = Promise::usebundle(
-                    "_method_reporting_context",
-                    vec![quoted(&component), quoted(&state_param)],
-                )
-                .if_condition(&class);
-                let method = Promise::usebundle(
-                    format!("{}_{}", sd.resource.fragment(), sd.state.fragment()),
-                    parameters,
-                )
-                .if_condition(&class);
-                Ok(vec![method_reporting_context, method])
+                Ok(Method::new()
+                    .resource(sd.resource.fragment().to_string())
+                    .state(sd.state.fragment().to_string())
+                    .parameters(parameters)
+                    .report_parameter(state_param)
+                    .report_component(component)
+                    .condition(self.format_class(in_class)?)
+                    .build())
             }
             Statement::Case(_case, vec) => {
                 self.reset_cases();
@@ -259,7 +255,7 @@ impl Generator for CFEngine {
         source_file: Option<&Path>,
         dest_file: Option<&Path>,
         meta_gm: &Path,
-        technique_metadata: bool,
+        policy_metadata: bool,
     ) -> Result<()> {
         let mut files: HashMap<String, String> = HashMap::new();
         // TODO add global variable definitions
@@ -283,22 +279,29 @@ impl Generator for CFEngine {
                     .chain(state.parameters.iter())
                     .map(|p| p.name.fragment().to_string())
                     .collect::<Vec<String>>();
-                let mut bundle =
-                    Bundle::agent(bundle_name)
-                        .parameters(parameters)
-                        .promise(Promise::string(
-                            "resources_dir",
-                            "${this.promise_dirname}/resources",
-                        ));
+                let mut bundle = Bundle::agent(bundle_name.clone())
+                    .parameters(parameters.clone())
+                    // Standard variables for all techniques
+                    .promise_group(vec![
+                        Promise::string("resources_dir", "${this.promise_dirname}/resources"),
+                        Promise::slist("args", parameters.clone()),
+                        Promise::string_raw("report_param", "join(\"_\", args)"),
+                        Promise::string_raw(
+                            "full_class_prefix",
+                            format!("canonify(\"{}_${{report_param}}\")", &bundle_name),
+                        ),
+                        Promise::string_raw(
+                            "class_prefix",
+                            "string_head(\"${full_class_prefix}\", \"1000\")",
+                        ),
+                    ]);
 
                 for methods in state
                     .statements
                     .iter()
                     .flat_map(|statement| self.format_statement(gc, statement, "any".to_string()))
                 {
-                    for method in methods {
-                        bundle.add_promise(method);
-                    }
+                    bundle.add_promise_group(methods);
                 }
 
                 let mut extract = |name: &str| {
@@ -309,12 +312,12 @@ impl Generator for CFEngine {
                         .unwrap_or("unknown".to_string())
                 };
 
-                if technique_metadata {
-                    let technique = Technique::new()
+                if policy_metadata {
+                    let policy = Policy::new()
                         .name(extract("name"))
                         .version(extract("version"))
                         .bundle(bundle);
-                    files.insert(file_to_create, technique.to_string());
+                    files.insert(file_to_create, policy.to_string());
                 } else {
                     files.insert(file_to_create, bundle.to_string());
                 }

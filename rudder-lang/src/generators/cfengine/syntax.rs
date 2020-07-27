@@ -15,7 +15,7 @@ use std::{collections::HashMap, fmt};
 // No need to handle all promises and attributes, we only need to support the ones we are
 // able to generate.
 
-pub fn quoted(s: &str) -> String {
+fn quoted(s: &str) -> String {
     format!("\"{}\"", s)
 }
 
@@ -46,24 +46,31 @@ pub enum AttributeType {
     Unless,
     If,
     String,
+    Slist,
 }
 
-const ATTRIBUTES_ORDERING: [AttributeType; 4] = [
+const ATTRIBUTES_ORDERING: [AttributeType; 5] = [
     AttributeType::UseBundle,
     AttributeType::String,
+    AttributeType::Slist,
     AttributeType::Unless,
     AttributeType::If,
 ];
 
+const LONGUEST_ATTRIBUTE_LEN: usize = 9;
+
+// TODO add rudder-lang lines to comments
+
 impl PromiseType {
     fn allows(&self, attribute_type: AttributeType) -> bool {
         match self {
-            PromiseType::Vars => [
+            PromiseType::Vars => vec![
                 AttributeType::Unless,
                 AttributeType::If,
                 AttributeType::String,
+                AttributeType::Slist,
             ],
-            PromiseType::Methods => [
+            PromiseType::Methods => vec![
                 AttributeType::Unless,
                 AttributeType::If,
                 AttributeType::UseBundle,
@@ -84,6 +91,7 @@ impl fmt::Display for AttributeType {
                 AttributeType::Unless => "unless",
                 AttributeType::If => "if",
                 AttributeType::String => "string",
+                AttributeType::Slist => "slist",
             }
         )
     }
@@ -91,6 +99,8 @@ impl fmt::Display for AttributeType {
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Promise {
+    /// Comment in output file
+    comment: Option<String>,
     /// Type of the promise
     promise_type: PromiseType,
     /// Target of the promise
@@ -112,6 +122,7 @@ impl Promise {
             promise_type,
             promiser: promiser.into(),
             attributes: HashMap::new(),
+            comment: None,
         }
     }
 
@@ -124,10 +135,29 @@ impl Promise {
         self
     }
 
-    /// Shortcut for building a string variable with a raw value
+    /// Shortcut for building a string variable with a value to be quoted
     pub fn string<T: Into<String>, S: AsRef<str>>(name: T, value: S) -> Self {
-        Promise::new(PromiseType::Vars, name)
-            .attribute(AttributeType::String, quoted(value.as_ref()))
+        Promise::string_raw(name, quoted(value.as_ref()))
+    }
+
+    /// Shortcut for building a string variable with a raw value
+    pub fn string_raw<T: Into<String>, S: AsRef<str>>(name: T, value: S) -> Self {
+        Promise::new(PromiseType::Vars, name).attribute(AttributeType::String, value.as_ref())
+    }
+
+    /// Shortcut for building an slist variable with a list of values to be quoted
+    pub fn slist<T: Into<String>, S: AsRef<str>>(name: T, values: Vec<S>) -> Self {
+        Promise::new(PromiseType::Vars, name).attribute(
+            AttributeType::Slist,
+            format!(
+                "{{{}}}",
+                values
+                    .iter()
+                    .map(|v| quoted(v.as_ref()))
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            ),
+        )
     }
 
     /// Shortcut for calling a bundle with parameters
@@ -161,17 +191,30 @@ impl Promise {
         }
         self
     }
+
+    pub fn comment(self, comment: String) -> Self {
+        Self {
+            comment: Some(comment),
+            ..self
+        }
+    }
 }
 
 /// ID that must be unique for each technique instance. Combined with a simple index,
 /// it allows enforcing all methods are called, even with identical parameters.
 /// This has no semantic meaning and can almost be considered syntactic sugar.
 const UNIQUE_ID: &str = "${report_data.directive_id}";
+/// Indexes over three chars
+const INDEX_LEN: usize = 3;
+/// Length of directive id + _ + index
+const UNIQUE_ID_LEN: usize = UNIQUE_ID.len() + 1 + INDEX_LEN;
 
 impl Promise {
     /// Index is used to make methods promises unique
     /// It is ignored in other cases
-    fn format(&self, index: usize) -> String {
+    //
+    // padding for arrows is promiser len + max attribute name
+    fn format(&self, index: usize, padding: usize) -> String {
         let promiser = if self.promise_type == PromiseType::Methods {
             // Methods need to be unique
             format!("{}_{}", UNIQUE_ID, index)
@@ -179,37 +222,162 @@ impl Promise {
             self.promiser.clone()
         };
 
-        let padding = promiser.len()
-            // two quote and one space
-            + 3
-            + self
-                .attributes
-                .iter()
-                .map(|(k, _)| k.to_string().len())
-                .max()
-                .unwrap_or(0);
-
         let mut first = true;
 
+        let comment = self
+            .comment
+            .as_ref()
+            .map(|c| format!("    # {}\n", c))
+            .unwrap_or("".to_string());
+
         if self.attributes.is_empty() {
-            format!("\"{}\";", self.promiser)
+            format!("{}\"{}\";", comment, self.promiser)
         } else {
             format!(
-                "{};",
+                "{}{};",
+                comment,
                 ATTRIBUTES_ORDERING
                     .iter()
                     .filter_map(|t| self.attributes.get(t).map(|p| (t, p)))
                     .map(|(k, v)| {
                         if first {
                             first = false;
-                            format!("    \"{}\" {} => {}", promiser, k, v)
+                            format!(
+                                "    {:<promiser_width$} {:>width$} => {}",
+                                quoted(&promiser),
+                                k.to_string(),
+                                v,
+                                promiser_width = padding - LONGUEST_ATTRIBUTE_LEN - 1,
+                                width = LONGUEST_ATTRIBUTE_LEN
+                            )
                         } else {
-                            format!("    {:>width$} => {}", k, v, width = padding)
+                            format!("    {:>width$} => {}", k.to_string(), v, width = padding)
                         }
                     })
                     .collect::<Vec<String>>()
                     .join(",\n")
             )
+        }
+    }
+}
+
+/// Helper for reporting boilerplate (reporting context + na report)
+///
+/// Generates a `Vec<Promise>` including:
+///
+/// * method call
+/// * reporting context
+/// * n/a report
+#[derive(Default)]
+pub struct Method {
+    // TODO check if correct
+    resource: String,
+    // TODO check if correct
+    state: String,
+    // TODO check list of parameters
+    parameters: Vec<String>,
+    report_component: String,
+    report_parameter: String,
+    condition: String,
+}
+
+impl Method {
+    pub fn new() -> Self {
+        Self {
+            condition: "true".to_string(),
+            ..Self::default()
+        }
+    }
+
+    pub fn resource(self, resource: String) -> Self {
+        Self { resource, ..self }
+    }
+
+    pub fn state(self, state: String) -> Self {
+        Self { state, ..self }
+    }
+
+    pub fn parameters(self, parameters: Vec<String>) -> Self {
+        Self { parameters, ..self }
+    }
+
+    pub fn report_parameter(self, report_parameter: String) -> Self {
+        Self {
+            report_parameter,
+            ..self
+        }
+    }
+
+    pub fn report_component(self, report_component: String) -> Self {
+        Self {
+            report_component,
+            ..self
+        }
+    }
+
+    pub fn condition(self, condition: String) -> Self {
+        Self { condition, ..self }
+    }
+
+    pub fn build(self) -> Vec<Promise> {
+        assert!(!self.resource.is_empty());
+        assert!(!self.state.is_empty());
+        assert!(!self.report_parameter.is_empty());
+        assert!(!self.report_parameter.is_empty());
+
+        // Does the method have a real condition?
+        let has_condition = !TRUE_CLASSES.iter().any(|c| c == &self.condition);
+
+        // Reporting context
+        let reporting_context = Promise::usebundle(
+            "_method_reporting_context",
+            vec![
+                quoted(&self.report_component),
+                quoted(&self.report_parameter),
+            ],
+        )
+        .comment(format!(
+            "{}: {}_{}(\"{}\"){}",
+            self.report_component,
+            self.resource,
+            self.state,
+            self.report_parameter,
+            if has_condition {
+                format!(" if \"{}\"", self.condition)
+            } else {
+                "".to_string()
+            }
+        ));
+
+        // Actual method call
+        let method =
+            Promise::usebundle(format!("{}_{}", self.resource, self.state), self.parameters);
+
+        if has_condition {
+            let na_condition = format!(
+                "canonify(\"${{class_prefix}}_{}_{}_{}\")",
+                self.resource, self.state, self.report_parameter
+            );
+
+            vec![
+                reporting_context.if_condition(self.condition.clone()),
+                method.if_condition(self.condition.clone()),
+                // NA report
+                Promise::usebundle(
+                    "_classes_noop",
+                    vec![na_condition.clone()],
+                )
+                .unless_condition(&self.condition),
+                Promise::usebundle("log_rudder", vec![
+                    quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &self.report_component, &self.report_parameter, self.condition)),
+                    quoted(&self.report_parameter),
+                    na_condition.clone(),
+                    na_condition,
+                    "@{args}".to_string()
+                ]).unless_condition(&self.condition),
+            ]
+        } else {
+            vec![reporting_context, method]
         }
     }
 }
@@ -231,15 +399,19 @@ impl fmt::Display for BundleType {
     }
 }
 
+// Promises of a given promise type need to be ordered specifically,
+// hence the `Vec`.
+// Group promises for better readability (e.g. a generic method call)
+// String is a comment
+type Promises = HashMap<PromiseType, Vec<Vec<Promise>>>;
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct Bundle {
     bundle_type: BundleType,
     name: String,
     // Order matters!
     parameters: Vec<String>,
-    // Promises of a given promise type need to be ordered specifically,
-    // hence the `Vec`.
-    promises: HashMap<PromiseType, Vec<Promise>>,
+    promises: Promises,
 }
 
 impl Bundle {
@@ -261,11 +433,31 @@ impl Bundle {
         self
     }
 
+    pub fn promise_group(mut self, promise_group: Vec<Promise>) -> Self {
+        self.add_promise_group(promise_group);
+        self
+    }
+
     pub fn add_promise(&mut self, promise: Promise) {
         match self.promises.get_mut(&promise.promise_type) {
-            Some(promises) => promises.push(promise),
+            Some(promises) => promises.push(vec![promise]),
             None => {
-                self.promises.insert(promise.promise_type, vec![promise]);
+                self.promises
+                    .insert(promise.promise_type, vec![vec![promise]]);
+            }
+        }
+    }
+
+    pub fn add_promise_group(&mut self, promise_group: Vec<Promise>) {
+        if promise_group.is_empty() {
+            return;
+        }
+        let promise_type = promise_group[0].promise_type;
+        assert!(promise_group.iter().all(|p| p.promise_type == promise_type));
+        match self.promises.get_mut(&promise_type) {
+            Some(promises) => promises.push(promise_group),
+            None => {
+                self.promises.insert(promise_type, vec![promise_group]);
             }
         }
     }
@@ -273,9 +465,9 @@ impl Bundle {
 
 impl fmt::Display for Bundle {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
+        writeln!(
             f,
-            "bundle {} {}{} {{\n{}}}",
+            "bundle {} {}{} {{\n",
             self.bundle_type,
             self.name,
             if self.parameters.is_empty() {
@@ -283,31 +475,44 @@ impl fmt::Display for Bundle {
             } else {
                 format!("({})", self.parameters.join(", "))
             },
-            NORMAL_ORDERING
-                .iter()
-                .filter_map(|t| self.promises.get(&t).map(|p| (t, p)))
-                .map(|(t, p)| format!(
-                    "  {}:\n{}\n",
-                    t,
-                    p.iter()
-                        .enumerate()
-                        .map(|(i, p)| format!("{}", p.format(i)))
-                        .collect::<Vec<String>>()
-                        .join("\n")
-                ))
-                .collect::<Vec<String>>()
-                .join("\n")
-        )
+        )?;
+
+        for (promise_type, promises) in NORMAL_ORDERING
+            .iter()
+            .filter_map(|t| self.promises.get(&t).map(|p| (t, p)))
+        {
+            writeln!(f, "  {}:", promise_type)?;
+
+            for (index, group) in promises.iter().enumerate() {
+                // Align promise groups
+                let mut max_promiser = group.iter().map(|p| p.promiser.len()).max().unwrap_or(0);
+                // Take special method promiser into account
+                if *promise_type == PromiseType::Methods {
+                    max_promiser = std::cmp::max(max_promiser, UNIQUE_ID_LEN);
+                }
+
+                for promise in group {
+                    writeln!(
+                        f,
+                        "{}",
+                        promise.format(index, max_promiser + LONGUEST_ATTRIBUTE_LEN + 3)
+                    )?;
+                }
+                writeln!(f)?;
+            }
+        }
+
+        write!(f, "}}")
     }
 }
 
-pub struct Technique {
+pub struct Policy {
     bundles: Vec<Bundle>,
     name: Option<String>,
     version: Option<String>,
 }
 
-impl Technique {
+impl Policy {
     pub fn new() -> Self {
         Self {
             name: None,
@@ -336,9 +541,9 @@ impl Technique {
     }
 }
 
-impl fmt::Display for Technique {
+impl fmt::Display for Policy {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "# @generated by rudderc")?;
+        writeln!(f, "# generated by rudderc")?;
         if self.name.is_some() {
             writeln!(f, "# @name {}", self.name.as_ref().unwrap())?;
         }
@@ -362,41 +567,68 @@ mod tests {
     #[test]
     fn format_promise() {
         assert_eq!(
-            Promise::new(PromiseType::Vars, "test").format(0),
+            Promise::new(PromiseType::Vars, "test")
+                .format(0, LONGUEST_ATTRIBUTE_LEN + 3 + UNIQUE_ID_LEN),
             "\"test\";"
+        );
+        assert_eq!(
+            Promise::new(PromiseType::Vars, "test")
+                .comment("test".to_string())
+                .format(0, LONGUEST_ATTRIBUTE_LEN + 3 + UNIQUE_ID_LEN),
+            "    # test\n\"test\";"
         );
         assert_eq!(
             Promise::string("test", "plop")
                 .if_condition("debian")
-                .format(0),
-            "    \"test\" string => \"plop\",\n    if => concat(\"debian\");"
+                .format(0, LONGUEST_ATTRIBUTE_LEN + 3 + UNIQUE_ID_LEN),
+            "    \"test\"                               string => \"plop\",\n                                             if => concat(\"debian\");"
+        );
+    }
+
+    #[test]
+    fn format_method() {
+        assert_eq!(
+            Bundle::agent("test").promise_group(
+            Method::new()
+                    .resource("package".to_string())
+                    .state("present".to_string())
+                    .parameters(vec!["vim".to_string()])
+                    .report_parameter("parameter".to_string())
+                    .report_component("component".to_string())
+                    .condition("debian".to_string())
+                    .build()).to_string()
+            ,
+            "bundle agent test {\n\n  methods:\n    # component package_present(\"parameter\") if \"debian\"\n    \"${report_data.directive_id}_0\"   usebundle => _method_reporting_context(\"component\", \"parameter\"),\n                                             if => concat(\"debian\");\n    \"${report_data.directive_id}_0\"   usebundle => package_present(vim),\n                                             if => concat(\"debian\");\n    \"${report_data.directive_id}_0\"   usebundle => _classes_noop(canonify(\"${class_prefix}_package_present_parameter\")),\n                                         unless => concat(\"debian\");\n    \"${report_data.directive_id}_0\"   usebundle => log_rudder(\"Skipping method \'component\' with key parameter \'parameter\' since condition \'debian\' is not reached\", \"parameter\", canonify(\"${class_prefix}_package_present_parameter\"), canonify(\"${class_prefix}_package_present_parameter\"), @{args}),\n                                         unless => concat(\"debian\");\n\n}"
         );
     }
 
     #[test]
     fn format_bundle() {
-        assert_eq!(Bundle::agent("test").to_string(), "bundle agent test {\n}");
+        assert_eq!(
+            Bundle::agent("test").to_string(),
+            "bundle agent test {\n\n}"
+        );
         assert_eq!(
             Bundle::agent("test")
             .parameters(vec!["file".to_string(), "lines".to_string()])
             .promise(Promise::usebundle("test", vec![]))
             .to_string(),
-            "bundle agent test(file, lines) {\n  methods:\n    \"${report_data.directive_id}_0\" usebundle => test();\n}"
+            "bundle agent test(file, lines) {\n\n  methods:\n    \"${report_data.directive_id}_0\"   usebundle => test();\n\n}"
         );
     }
 
     #[test]
-    fn format_technique() {
+    fn format_policy() {
         let mut meta = HashMap::new();
         meta.insert("extra".to_string(), "plop".to_string());
 
         assert_eq!(
-            Technique::new()
+            Policy::new()
                 .name("test")
                 .version("1.0")
                 .bundle(Bundle::agent("test"))
                 .to_string(),
-            "# @generated by rudderc\n# @name test\n# @version 1.0\n\nbundle agent test {\n}"
+            "# generated by rudderc\n# @name test\n# @version 1.0\n\nbundle agent test {\n\n}"
         );
     }
 }
