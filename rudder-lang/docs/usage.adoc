@@ -38,7 +38,7 @@ FLAGS:
 OPTIONS:
     -c, --config-file <config-file>
             Path of the configuration file to use.
-            A configuration file is required (containing at least stdlib and generic_method_meta paths)
+            A configuration file is required (containing at least stdlib and meta_generic_methods paths)
             [default: /opt/rudder/etc/rudderc.conf]
 
     -f, --format <format>
@@ -101,6 +101,7 @@ Entire _rudder-lang_ environment is already set up alongside the agent: this inc
 
 [testing_loop]
     cfengine="/opt/rudder/bin/cf-promises"
+    ncf_tools="/usr/share/ncf/tools/"
     py_modules="tools/"
 ----
 
