@@ -20,7 +20,7 @@ struct ActionConfig {
 #[derive(Clone, Debug, Deserialize)]
 struct LibsConfig {
     stdlib: PathBuf,
-    generic_methods: PathBuf,
+    meta_generic_methods: PathBuf,
 }
 
 // deserialized config file main struct
@@ -36,7 +36,7 @@ struct Config {
 #[derive(Clone, Debug)]
 pub struct IOContext {
     pub stdlib: PathBuf,
-    pub generic_methods: PathBuf,
+    pub meta_gm: PathBuf,
     pub source: PathBuf,
     pub dest: PathBuf,
     pub mode: Action,
@@ -48,13 +48,13 @@ impl fmt::Display for IOContext {
             f,
             "{}",
             &format!(
-                "{} of {:?} into {:?}. Format used is {}. Libraries and generic_methods paths: {:?}, {:?}.",
+                "{} of {:?} into {:?}. Format used is {}. Libraries and meta_generic_methods paths: {:?}, {:?}.",
                 self.mode,
                 self.source,
                 self.dest,
                 self.format,
                 self.stdlib,
-                self.generic_methods,
+                self.meta_gm,
             )
         )
     }
@@ -189,7 +189,7 @@ fn get_opt_action_mode(action: Action, config: &Config) -> ActionConfig {
     }
 }
 
-/// get stdlib and generic_methods paths and
+/// get stdlib and meta_generic_methods paths and
 /// get the correct source and dest paths based on parameters
 /// source priority is source > config + technique_name
 /// dest priority is dest > config + technique_name > source
@@ -217,7 +217,7 @@ pub fn get(action: Action, opt: &IOOpt) -> Result<IOContext> {
 
     Ok(IOContext {
         stdlib: config.libs.stdlib.clone(),
-        generic_methods: config.libs.generic_methods.clone(),
+        meta_gm: config.libs.meta_generic_methods.clone(),
         source: get_source(&action_config, opt)?,
         dest,
         mode: action_config.action.unwrap(), // always Either Compile or Translate, set in get_opt_action_mode

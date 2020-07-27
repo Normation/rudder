@@ -55,7 +55,7 @@ struct Parameter {
 pub fn translate_file(context: &IOContext) -> Result<()> {
     let input_path = context.source.to_string_lossy();
     let output_path = context.dest.to_string_lossy();
-    let generic_methods_path = context.generic_methods.to_str().unwrap();
+    let meta_gm_path = context.meta_gm.to_str().unwrap();
     let file_error = |filename: &str, err| err!(Token::new(&filename.to_owned(), ""), "{}", err);
 
     info!(
@@ -68,12 +68,12 @@ pub fn translate_file(context: &IOContext) -> Result<()> {
     info!(
         "|- {} {}",
         "Reading".bright_green(),
-        generic_methods_path.bright_yellow()
+        meta_gm_path.bright_yellow()
     );
-    let config_data = fs::read_to_string(generic_methods_path)
-        .map_err(|e| file_error(generic_methods_path, e))?;
+    let config_data = fs::read_to_string(meta_gm_path)
+        .map_err(|e| file_error(meta_gm_path, e))?;
     let configuration: toml::Value = toml::from_str(&config_data)
-        .map_err(|e| err!(Token::new(generic_methods_path, ""), "{}", e))?;
+        .map_err(|e| err!(Token::new(meta_gm_path, ""), "{}", e))?;
 
     info!("|- {}", "Reading stdlib".bright_green());
     let sources = Arena::new();

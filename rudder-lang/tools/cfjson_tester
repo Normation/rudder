@@ -27,7 +27,7 @@ def print_json(function, filename, json_to_format, is_python_error=False):
 
 
 def ncf_to_json(cf_file, json_translation):
-  methods_data = ncf.get_all_generic_methods_metadata(ncf_path)
+  methods_data = ncf.get_all_meta_generic_methodsdata(ncf_path)
   methods = methods_data["data"]["generic_methods"]
 
   try:

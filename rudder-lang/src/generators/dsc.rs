@@ -171,7 +171,7 @@ impl DSC {
         gc: &AST,
         state_decl: &StateDeclaration,
     ) -> Result<(String, String, bool)> {
-        // depending on whether class_parameters should only be used for generic_methods or not
+        // depending on whether class_parameters should only be used for meta_generic_methods or not
         // might better handle relative errors as panic! rather than Error::User
 
         let state_def = match gc.resources.get(&state_decl.resource) {

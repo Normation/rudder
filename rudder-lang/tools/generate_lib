@@ -7,24 +7,24 @@ sub get_paths_from_conf_file {
   my ($file) = @_;
 
   my $is_default = 0;
-  my $ncf = "/usr/share/ncf/tree/30_generic_methods/";
-  my $dsc_ncf = "/var/rudder/configuration-repository/dsc/ncf/30_generic_methods/";
+  my $ncf_gm_path = "/usr/share/ncf/tree/30_generic_methods/";
+  my $dsc_gm_path = "/var/rudder/configuration-repository/dsc/ncf/30_generic_methods/";
   my $resourcelib_path = "/opt/rudder/share/rudder-lang/lib";
-  my $generic_methods = "/opt/rudder/share/rudder-lang/tools/generic_methods.toml";
+  my $meta_gm = "/opt/rudder/share/rudder-lang/tools/meta_generic_methods.toml";
   open (FILE, $file);
   while (<FILE>) {
     chomp;
-    if ($is_default == 1 && /^\s*ncf\s*=\s*"(?<path>[\/\w\.\-\~]+)"/ ) {
-      $ncf = $+{path};
+    if ($is_default == 1 && /^\s*ncf_generic_methods\s*=\s*"(?<path>[\-\w/.]+)"/ ) {
+      $ncf_gm_path = $+{path};
     }
-    if ($is_default == 1 && /^\s*dsc_ncf\s*=\s*"(?<path>[\/\w\.\-\~]+)"/ ) {
-      $dsc_ncf = $+{path};
+    if ($is_default == 1 && /^\s*dsc_generic_methods\s*=\s*"(?<path>[\-\w/.]+)"/ ) {
+      $dsc_gm_path = $+{path};
     }
-    if ($is_default == 1 && /^\s*stdlib\s*=\s*"(?<path>[\/\w\.\-\~]+)"/ ) {
+    if ($is_default == 1 && /^\s*stdlib\s*=\s*"(?<path>[\-\w/.]+)"/ ) {
       $resourcelib_path = $+{path};
     }
-    if ($is_default == 1 && /^\s*generic_methods\s*=\s*"(?<path>[\/\w\.\-\~]+)"/ ) {
-      $generic_methods = $+{path};
+    if ($is_default == 1 && /^\s*meta_generic_methods\s*=\s*"(?<path>[\-\w/.]+)"/ ) {
+      $meta_gm = $+{path};
     }
     if ( /^\s*\[\s*(?<group>\w+)\s*\]\s*$/ ) {
       if ($+{group} eq "shared") {
@@ -35,7 +35,7 @@ sub get_paths_from_conf_file {
     }
   }
   close (FILE);
-  return ($ncf, $dsc_ncf, $resourcelib_path, $generic_methods);
+  return ($ncf_gm_path, $dsc_gm_path, $resourcelib_path, $meta_gm);
 }
 
 my %resource = ();
@@ -46,10 +46,10 @@ my $cfgpath = "/opt/rudder/etc/rudderc.conf";
 if (@ARGV) {
   ($cfgpath) = @ARGV;
 }
-my ($ncf_path, $dsc_ncf_path, $resourcelib_path, $generic_methods) = get_paths_from_conf_file $cfgpath;
+my ($ncf_gm_path, $dsc_gm_path, $resourcelib_path, $meta_gm) = get_paths_from_conf_file $cfgpath;
 
 # ultralight homemade parser NCF generic methods
-my $ncf_methods = $ncf_path . "/*";
+my $ncf_methods = $ncf_gm_path . "/*";
 my $is_ncf_empty=1;
 foreach my $file (glob $ncf_methods) {
   $is_ncf_empty=0;
@@ -114,10 +114,10 @@ foreach my $file (glob $ncf_methods) {
     }
   }
   push @supported_formats, "\"cf\"";
-  my $dsc_gm = $file;
+  my $dsc_gm_path = $file;
 
-  $dsc_gm =~ s/^$ncf_path\/tree(.*)\.cf$/$dsc_ncf_path$1\.ps1/;
-  if (-e $dsc_gm) {
+  $dsc_gm_path =~ s/^$ncf_gm_path\/tree(.*)\.cf$/$dsc_gm_path$1\.ps1/;
+  if (-e $dsc_gm_path) {
     push @supported_formats, "\"dsc\"";
   }
 
@@ -152,7 +152,7 @@ command_execution = \"(command_execution)_(.*)\"
 [conditions]
 [methods]
 ";
-open(my $conf, '>', $generic_methods) or die "Cannot write methods config ($generic_methods)";
+open(my $conf, '>', $meta_gm) or die "Cannot write methods config ($meta_gm)";
 print $conf join("\n",$config_header);
 print $conf join("\n",@config_lines);
 close($conf);
