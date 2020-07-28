@@ -135,6 +135,16 @@ body > .container-fluid > .row > div {
   margin: 10px;
 }
 
+body > .ng-toast {
+  margin-top: 5px;
+}
+.ng-toast.ng-toast--right .ng-toast__list {
+  margin-right: 55px;
+}
+.alert.alert-dismissible pre {
+  white-space: normal;
+}
+
 /* ===== TECHNIQUES & METHODS ===== */
 .col-techniques,
 .col-methods{
