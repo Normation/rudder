@@ -8,7 +8,7 @@ bundle agent simplest_technique {
 
   methods:
     "${report_data.directive_id}_0" usebundle => _method_reporting_context("File absent", "tmp"),
-                                           if => concat("debian_family");
+    if => concat("debian_family");
     "${report_data.directive_id}_1" usebundle => file_absent("tmp"),
-                                           if => concat("debian_family");
+    if => concat("debian_family");
 }
