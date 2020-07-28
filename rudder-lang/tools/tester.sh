@@ -10,6 +10,15 @@ status_logs=(
   "Step 5: compare jsons"
   "Step 6: compare cfs"
 )
+declare -i status=0
+status_logs=(
+  "Step 1: original cf to json    "
+  "Step 2: rudderc translate      "
+  "Step 3: rudderc compile        "
+  "Step 4: generated cf to json   "
+  "Step 5: compare jsons          "
+  "Step 6: compare cfs            "
+)
 
 #####################
 # ARGUMENTS & USAGE #
@@ -125,12 +134,17 @@ then
   ##########################
   # DEVELOPMENT EVIRONMENT #
   ##########################
+
+  set -x
+
   ${cfjson_tester} ncf-to-json --config-file=${config_file} "${technique_path}" "${technique}.json" && status=$((${status}+1)) \
     && ${rudderc} --config-file=${config_file} --translate -s "${technique}.json" && status=$((${status}+1)) \
     && ${rudderc} --config-file=${config_file} -s "${technique}.rl" && status=$((${status}+1)) \
     && ${cfjson_tester} ncf-to-json --config-file="${config_file}" "${technique}.rl.cf" "${technique}.rl.cf.json" && status=$((${status}+1)) \
     && ${cfjson_tester} compare-json --config-file="${config_file}" "${technique}.json" "${technique}.rl.cf.json" && status=$((${status}+1)) \
     && ${cfjson_tester} compare-cf --config-file="${config_file}" "${technique_path}" "${technique}.rl.cf" && status=$((${status}+1))
+
+  set +x
 
 else
   ##########################
@@ -167,12 +181,16 @@ else
   # prepare new entry for log trace or create log trace
   ([ -f "${trace}" ] && echo -e "\n=== ${technique} ===" >> "${trace}") || touch "${trace}"
 
+  set -x
+
   cp "${technique_path}.json" "${test_dir}/${technique}.json" >> "${logfiles[${status}]}" 2>> "${trace}" && status=$((${status}+1)) \
     && ${rudderc} -j --translate -s "${test_dir}/${technique}.json" &>> "${logfiles[${status}]}" && status=$((${status}+1)) \
     && ${rudderc} -j -s "${test_dir}/${technique}.rl" -f "cfengine" &>> "${logfiles[${status}]}" && status=$((${status}+1)) \
     && ${cfjson_tester} ncf-to-json "${test_dir}/${technique}.rl.cf" "${test_dir}/${technique}.rl.cf.json" >> "${logfiles[${status}]}" 2>> "${trace}" && status=$((${status}+1)) \
     && ${cfjson_tester} compare-json "${test_dir}/${technique}.json" "${test_dir}/${technique}.rl.cf.json" >> "${logfiles[${status}]}" 2>> "${trace}" && status=$((${status}+1)) \
     && ${cfjson_tester} compare-cf "${technique_path}.cf" "${test_dir}/${technique}.rl.cf" >> "${logfiles[${status}]}" 2>> "${trace}" && status=$((${status}+1))
+
+  set +x
 
   # clean new log trace entry if no uncatched errors were found
   if [ -f "${trace}" ] && [[ $(tail -n 1 "${trace}") == "=== ${technique} ===" ]]
@@ -204,7 +222,7 @@ do
   else
     current_status="error"
   fi
-  echo "${log_to_print}: ${current_status}"
+  echo "${log_to_print}-> ${current_status}"
   index=${index}+1
 done
 

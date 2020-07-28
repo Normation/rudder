@@ -48,17 +48,11 @@ struct MethodCall {
 
 #[derive(Serialize, Deserialize, Default)]
 struct Parameter {
-    name: Option<String>,
     value: String,
 }
 impl Parameter {
-    pub fn new(name: Option<&str>, value: &str) -> Self {
-        let owned_name = match name {
-            Some(n) => Some(n.to_owned()),
-            None => None
-        };
+    pub fn new(value: &str) -> Self {
         Self {
-            name: owned_name,
             value: value.to_owned()
         }
     }
@@ -103,7 +97,7 @@ pub fn translate_file(context: &IOContext) -> Result<()> {
         .map_err(|e| err!(Token::new(&input_path, ""), "{}", e))?;
 
     technique.method_calls.iter_mut().for_each(|method| {
-        method.parameters.extend(method.args.iter().map(|v| Parameter::new(None, v)).collect::<Vec<Parameter>>())
+        method.parameters.extend(method.args.iter().map(|v| Parameter::new(v)).collect::<Vec<Parameter>>())
     });
 
     info!(
@@ -197,26 +191,26 @@ resource {bundle_name}({parameter_list})
         }
     }
 
-    fn translate_args<I>(&self, args: I, template_vars: &mut Vec<String>) -> Result<String>
+    fn translate_params<I>(&self, params: I, template_vars: &mut Vec<String>) -> Result<String>
     where I: Iterator<Item = &'src Parameter>
     {
-        let mut updated_args = Vec::new();
-        for arg in args {
+        let mut updated_params = Vec::new();
+        for param in params {
             // rl v2 behavior should make use of this, for now, just a syntax validator
-            if parse_cfstring(&arg.value).is_err() {
-                return Err(Error::User(format!("Invalid variable syntax in '{}'", arg.value)));
+            if parse_cfstring(&param.value).is_err() {
+                return Err(Error::User(format!("Invalid variable syntax in '{}'", param.value)));
             }
-            if arg.value.contains("$") {
-                updated_args.push(format!("p{}", template_vars.len()));
-                template_vars.push(format!("  p{}=\"{}\"", template_vars.len(), arg.value));
+            if param.value.contains("$") {
+                updated_params.push(format!("p{}", template_vars.len()));
+                template_vars.push(format!("  p{}=\"{}\"", template_vars.len(), param.value));
             } else {
-                updated_args.push(format!("\"{}\"", arg.value));
+                updated_params.push(format!("\"{}\"", param.value));
             }
         }
 
-        let validated_args = map_strings_results(updated_args.iter(), |x| Ok(x.to_owned()), ",")?;
+        let validated_params = map_strings_results(updated_params.iter(), |x| Ok(x.to_owned()), ",")?;
 
-        Ok(validated_args)
+        Ok(validated_params)
     }
     
     fn translate_call(&self, call: &MethodCall) -> Result<String> {
@@ -252,8 +246,8 @@ resource {bundle_name}({parameter_list})
 
         let it = &mut call.parameters.iter();
         let mut template_vars = Vec::new();
-        let res_args = self.translate_args(it.take(res_arg_count), &mut template_vars)?; // automatically takes the first rather than getting the right resource param index
-        let st_args = self.translate_args(it, &mut template_vars)?;
+        let res_args = self.translate_params(it.take(res_arg_count), &mut template_vars)?; // automatically takes the first rather than getting the right resource param index
+        let st_args = self.translate_params(it, &mut template_vars)?;
         // empty string purpose: add an ending newline when joined into a string
         template_vars.push(String::new());
 

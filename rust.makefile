@@ -51,9 +51,6 @@ clean:
 	cargo clean
 	rm -rf target
 
-test:
-	cargo test
-
 veryclean: clean
 	rustup self uninstall
 	rm -rf ~/.rustup ~/.cargo

@@ -10,3 +10,8 @@ yum-dependencies:
 
 apt-dependencies:
 	$(APT) pkg-config libpq-dev libssl-dev zlib1g-dev
+
+# Test
+
+test:
+	cargo test
