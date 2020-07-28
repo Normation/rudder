@@ -42,6 +42,19 @@ install: build
 
 test-docs: $(DOC_EXAMPLES)
 
+test:
+	# fires rudderc unit / integration tests
+	cargo test
+	# fires a technique compilation using explicit parameters: path                format verbosity json-output
+	cargo run -- -c tools/rudderc-dev.conf -s tests/techniques/simplest/technique.rl -f cf -l debug -j 
+	# fires a technique compilation using configuration file
+	cargo run -- -c tools/rudderc-dev.conf -n simplest/technique.rl
+	# fires a technique translation
+	cargo run -- -t -c tools/rudderc-dev.conf -s tests/helpers/6.1.2.json 
+	# fires a testing loop (--keep can be added)
+	tools/tester.sh --dev --keep ./tests/techniques/simplest/technique.cf
+
+
 $(DOC_EXAMPLES):
 	cargo run -- --config-file tools/rudderc-dev.conf --source $@ --dest $@ --format cf
 	rm $@.cf

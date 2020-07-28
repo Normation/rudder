@@ -3,8 +3,8 @@
 
 use rudderc::{Action, Format};
 
-const RLFILES_PATH: &'static str = "tests/test_files/source_rl";
-const TESTFILES_PATH: &'static str = "tests/test_files/tmp";
+const RLFILES_PATH: &'static str = "tests/compile_techniques";
+const TESTFILES_PATH: &'static str = "tests/tmp";
 
 use colored::Colorize;
 use std::{
@@ -29,7 +29,7 @@ pub fn test_generated_file(technique_name: &str, content: &str, format: &Format)
 /// Paired with `test_case` proc-macro calls from the `compile.rs` test file.
 /// Tests the file that matches the `technique_name` argument
 pub fn test_real_file(technique_name: &str, format: &Format) {
-    let dir = format!("{}/real/{}", TESTFILES_PATH, technique_name);
+    let dir = format!("{}/{}", TESTFILES_PATH, technique_name);
     fs::create_dir_all(&dir).expect(&format!("Could not create {} dir", &dir));
     let source = PathBuf::from(format!("{}/{}.rl", RLFILES_PATH, technique_name));
     let dest = PathBuf::from(format!("{}/technique.rl", dir));
