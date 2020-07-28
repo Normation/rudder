@@ -312,8 +312,8 @@ class DependencyAndDeletionServiceImpl(
       //if we are asked only for enable directives, remove disabled ones
       filteredPis =  onlyForState match {
                        case DontCare => directives
-                       //if the technique is not internally enable, there is no chance that its status will ever change
-                       case _ => directives.filter(directive => directive.isEnabled)
+                       case OnlyEnableable => directives.filter(directive => !directive.isEnabled)
+                       case OnlyDisableable => directives.filter(directive => directive.isEnabled)
                      }
       groupLib    <- boxGroupLib.toIO
       piAndCrs    <- ZIO.foreach(filteredPis) { directive =>
