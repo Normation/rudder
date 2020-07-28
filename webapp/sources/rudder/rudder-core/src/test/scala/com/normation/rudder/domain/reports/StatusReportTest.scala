@@ -311,7 +311,7 @@ class StatusReportTest extends Specification {
         }
         val t1 = System.nanoTime
         println(s"Time to run test for sum is ${(t1-t0)/1000} µs")
-        (t1-t0) must be lessThan( 50000*1000 )  // tests show 3159µs on recent XPS but 30795 µs on XPS 15 9650
+        (t1-t0) must be lessThan( 100000*1000 )  // tests show 3159µs on recent XPS but *30795* µs on XPS 15 9650 and > 60 000 on CI
       }
     }
   }
