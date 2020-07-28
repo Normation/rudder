@@ -1,6 +1,6 @@
 @format=0
 
-rights = "g+x"
+let rights = "g+x"
 
 resource deb()
 

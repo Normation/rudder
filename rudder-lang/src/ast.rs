@@ -550,8 +550,7 @@ impl<'src> AST<'src> {
             "struct",
             "list", // "string", "boolean", // should not be used
             // variables
-            "declare",
-            "resource", // "state", // should not be used
+            "let", "resource", // "state", // should not be used
             // flow statements
             "if",
             "case",

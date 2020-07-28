@@ -1,0 +1,57 @@
+{
+  "bundle_name": "CIS_redhat7___Enable_Service",
+  "description": "test",
+  "name": "CIS redhat7 - Enable Service",
+  "version": "1.0",
+  "parameter": [
+    {
+      "id": "981a5b9d-b062-4011-8dff-df1810cb2fe6",
+      "name": "service",
+      "description": ""
+    }
+  ],
+  "category": "CIS_redhat7",
+  "method_calls": [
+    {
+      "parameters": [
+        {
+          "name": "condition_prefix",
+          "value": "skip_item_${report_data.canonified_directive_id}",
+          "$errors": []
+        },
+        {
+          "name": "variable_name",
+          "value": "node.properties[skip][${report_data.directive_id}]",
+          "$errors": []
+        }
+      ],
+      "class_context": "any",
+      "method_name": "condition_from_variable_existence",
+      "component": "condition_from_variable_existence"
+    },
+    {
+      "parameters": [
+        {
+          "name": "service_name",
+          "value": "${service}",
+          "$errors": []
+        }
+      ],
+      "class_context": "any.(skip_item_${report_data.canonified_directive_id}_kept)",
+      "method_name": "service_enabled",
+      "component": "service_enabled"
+    },
+    {
+      "parameters": [
+        {
+          "name": "service_name",
+          "value": "${service}",
+          "$errors": []
+        }
+      ],
+      "class_context": "any.(skip_item_${report_data.canonified_directive_id}_not_kept)",
+      "method_name": "service_started",
+      "component": "service_started"
+    }
+  ]
+}

@@ -4,6 +4,18 @@ use nom::{
 
 use super::{error::*, token::*};
 
+pub fn strip_comment(i: PInput) -> PResult<PInput> {
+    // simple comments (ie # but not ##)
+    terminated(
+        etag("#"),
+        alt((
+            delimited(not(tag("#")), take_until("\n"), newline),
+            // comment is the last line
+            preceded(not(tag("#")), rest),
+        )),
+    )(i)
+}
+
 /// Eat everything that can be ignored between tokens
 /// ie white spaces, newlines and simple comments (with a single #)
 pub fn strip_spaces_and_comment(i: PInput) -> PResult<()> {
@@ -11,14 +23,7 @@ pub fn strip_spaces_and_comment(i: PInput) -> PResult<()> {
         // spaces
         multispace1,
         // simple comments (ie # but not ##)
-        terminated(
-            etag("#"),
-            alt((
-                delimited(not(tag("#")), take_until("\n"), newline),
-                // comment is the last line
-                preceded(not(tag("#")), rest),
-            )),
-        ),
+        strip_comment,
     )))(i)?;
     Ok((i, ()))
 }
@@ -126,7 +131,7 @@ where
             open: etag(open_delimiter);
             list: parser;
             _x:   opt(tag(",")); // end of list comma is authorized but optional
-            _y:   or_fail(sp(tag(close_delimiter)), || PErrorKind::UnterminatedDelimiter(open));
+            _y:   or_fail(tag(close_delimiter), || PErrorKind::UnterminatedOrInvalid(open));
         } => list
     )
 }
@@ -185,22 +190,33 @@ where
 /// It extracts the longest string between a single line and everything until the parsing error
 pub fn get_context<'src>(i: PInput<'src>, err_pos: PInput<'src>) -> PInput<'src> {
     // One line, or everything else if no new line (end of file)
-    let single_line: nom::IResult<PInput, PInput> = alt((take_until("\n"), rest))(i);
-    let line_size = single_line.clone().map(|(_, x)| x.fragment.len());
+    let line: PResult<PInput> = alt((
+        take_until("\n"),
+        rest
+    ))(i);
+    let line = match line {
+        Ok((_, rest)) => Some(rest),
+        _ => None
+    };
+
     // Until next text
-    let complete: nom::IResult<PInput, PInput> = take_until(err_pos.fragment)(i);
-    let complete_size = complete.clone().map(|(_, x)| x.fragment.len());
-    match (line_size, complete_size) {
-        (Ok(lsize), Ok(csize)) => {
-            if lsize > csize {
-                single_line.unwrap().1
+    let complete: PResult<PInput> = take_until("\n")(err_pos);
+    let complete = match complete {
+        Ok((_, rest)) => Some(rest),
+        _ => None
+    };
+
+    match (line, complete) {
+        (Some(l), Some(c)) => {
+            if l.line > c.line || (l.line == c.line && l.fragment.len() > c.fragment.len()) {
+                l
             } else {
-                complete.unwrap().1
+                c
             }
-        }
-        (Ok(_lsize), _) => single_line.unwrap().1,
-        (_, Ok(_csize)) => complete.unwrap().1,
-        (_, _) => i, // error should never happen anyway
+        },
+        (Some(l), None) => l,
+        (None, Some(c)) => c,
+        (None, None) => panic!("Context should never be empty")
     }
 }
 

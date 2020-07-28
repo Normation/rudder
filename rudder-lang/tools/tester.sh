@@ -1,6 +1,15 @@
 #!/bin/bash
 
 env="prod"
+declare -i status=0
+status_logs=(
+  "Step 1: original cf to json"
+  "Step 2: rudderc translate"
+  "Step 3: rudderc compile"
+  "Step 4: generated cf to json"
+  "Step 5: compare jsons"
+  "Step 6: compare cfs"
+)
 
 #####################
 # ARGUMENTS & USAGE #
@@ -35,7 +44,7 @@ then
   echo "Usage tester.sh [--dev] [--keep] <technique_name> <technique_category>"
   echo " --dev or -d: force using a development environnement (meaning no json logs and local rudder repo rather than production files)"
   echo " --keep or -k: keep temporary files after cleanup"
-  echo " <technique_name>: can be either a technique name from the production techniques directory or an absolute path"
+  echo " <technique_name>: can be either a technique name from the production techniques directory or a cfengine technique an absolute path (or starting by \"./\")."
   echo " <technique_category>: when using the production environment, the location of a technique depends on its category"
   exit 1
 fi
@@ -44,7 +53,14 @@ fi
 # SETUP PATHS #
 ###############
 
-technique="$1"
+[[ "$1" =~ ^(.*)\.cf?$ ]]
+if [ ! -z ${BASH_REMATCH[1]} ]
+then
+  technique=${BASH_REMATCH[1]}
+else
+  technique=${1}
+fi
+
 
 if [ ! -z "$2" ]
 then
@@ -62,12 +78,12 @@ cfjson_tester="${self_dir}/cfjson_tester"
 # Detect technique path
 # requires an extension format to be used
 technique_path="/var/rudder/configuration-repository/techniques/${category}/${technique}/1.0/technique"
-if [ ${env} = "dev" ] && [ -f "$1" ]
+if [ ${env} = "dev" ] && [ -f "${technique}.cf" ]
 then
-  technique_path="$1"
+  technique_path="${technique}.cf"
 elif [ ! -f "${technique_path}.cf" ]
 then
-  echo "Cannot find either of ${technique_path} nor $1"
+  echo "Cannot find either of ${technique_path}.cf nor ${technique}.cf"
   exit 1
 fi
 
@@ -106,16 +122,15 @@ fi
 
 if [ ${env} = "dev" ] 
 then
-
   ##########################
   # DEVELOPMENT EVIRONMENT #
   ##########################
-  ${cfjson_tester} ncf-to-json --config-file=${config_file} "${technique_path}" "${technique}.json" \
-  && ${rudderc} --config-file=${config_file} --translate -s "${technique}.json" \
-  && ${rudderc} --config-file=${config_file} -s "${technique}.rl" \
-  && ${cfjson_tester} ncf-to-json --config-file="${config_file}" "${technique}.rl.cf" "${technique}.rl.cf.json" \
-  && ${cfjson_tester} compare-json --config-file="${config_file}" "${technique}.json" "${technique}.rl.cf.json" \
-  && ${cfjson_tester} compare-cf --config-file="${config_file}" "${technique_path}" "${technique}.rl.cf"
+  ${cfjson_tester} ncf-to-json --config-file=${config_file} "${technique_path}" "${technique}.json" && status=$((${status}+1)) \
+    && ${rudderc} --config-file=${config_file} --translate -s "${technique}.json" && status=$((${status}+1)) \
+    && ${rudderc} --config-file=${config_file} -s "${technique}.rl" && status=$((${status}+1)) \
+    && ${cfjson_tester} ncf-to-json --config-file="${config_file}" "${technique}.rl.cf" "${technique}.rl.cf.json" && status=$((${status}+1)) \
+    && ${cfjson_tester} compare-json --config-file="${config_file}" "${technique}.json" "${technique}.rl.cf.json" && status=$((${status}+1)) \
+    && ${cfjson_tester} compare-cf --config-file="${config_file}" "${technique_path}" "${technique}.rl.cf" && status=$((${status}+1))
 
 else
   ##########################
@@ -152,19 +167,18 @@ else
   # prepare new entry for log trace or create log trace
   ([ -f "${trace}" ] && echo -e "\n=== ${technique} ===" >> "${trace}") || touch "${trace}"
 
-  cp "${technique_path}.json" "${test_dir}/${technique}.json" >> "${logfiles[0]}" 2>> "${trace}" \
-    && ${rudderc} -j --translate -s "${test_dir}/${technique}.json" &>> "${logfiles[1]}" \
-    && ${rudderc} -j -s "${test_dir}/${technique}.rl" -f "cfengine" &>> "${logfiles[2]}" \
-    && ${cfjson_tester} ncf-to-json "${test_dir}/${technique}.rl.cf" "${test_dir}/${technique}.rl.cf.json" >> "${logfiles[3]}" 2>> "${trace}" \
-    && ${cfjson_tester} compare-json "${test_dir}/${technique}.json" "${test_dir}/${technique}.rl.cf.json" >> "${logfiles[4]}" 2>> "${trace}" \
-    && ${cfjson_tester} compare-cf "${technique_path}.cf" "${test_dir}/${technique}.rl.cf" >> "${logfiles[5]}" 2>> "${trace}"
-
+  cp "${technique_path}.json" "${test_dir}/${technique}.json" >> "${logfiles[${status}]}" 2>> "${trace}" && status=$((${status}+1)) \
+    && ${rudderc} -j --translate -s "${test_dir}/${technique}.json" &>> "${logfiles[${status}]}" && status=$((${status}+1)) \
+    && ${rudderc} -j -s "${test_dir}/${technique}.rl" -f "cfengine" &>> "${logfiles[${status}]}" && status=$((${status}+1)) \
+    && ${cfjson_tester} ncf-to-json "${test_dir}/${technique}.rl.cf" "${test_dir}/${technique}.rl.cf.json" >> "${logfiles[${status}]}" 2>> "${trace}" && status=$((${status}+1)) \
+    && ${cfjson_tester} compare-json "${test_dir}/${technique}.json" "${test_dir}/${technique}.rl.cf.json" >> "${logfiles[${status}]}" 2>> "${trace}" && status=$((${status}+1)) \
+    && ${cfjson_tester} compare-cf "${technique_path}.cf" "${test_dir}/${technique}.rl.cf" >> "${logfiles[${status}]}" 2>> "${trace}" && status=$((${status}+1))
 
   # clean new log trace entry if no uncatched errors were found
   if [ -f "${trace}" ] && [[ $(tail -n 1 "${trace}") == "=== ${technique} ===" ]]
   then
     head -n -1 "${trace}" > "${test_dir}/tmp.trace"
-	mv "${test_dir}/tmp.trace" "${trace}"
+	  mv "${test_dir}/tmp.trace" "${trace}"
   fi
 
   # JSON log fmt - end of file (repush last ']' now that content has been added)
@@ -177,6 +191,29 @@ else
   done
 fi
 
+#######################
+# OUTPUT LOOP RESULTS #
+#######################
+
+declare -i index=0
+for log_to_print in "${status_logs[@]}"
+do
+  if [ ${status} -gt ${index} ]
+  then
+    current_status="success"
+  else
+    current_status="error"
+  fi
+  echo "${log_to_print}: ${current_status}"
+  index=${index}+1
+done
+
+if [ ${status} -eq 6 ]
+then
+  echo "Everything ran well with the testing loop"
+else
+  echo "An error occurred during the testing loop, with '${technique_path}.cf'"
+fi
 
 ###########
 # CLEANUP #
@@ -194,3 +231,4 @@ else
   fi
 fi
 
+[[ ${success} -eq 6 ]] && exit 0 || exit 1

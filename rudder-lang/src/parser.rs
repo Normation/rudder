@@ -516,7 +516,7 @@ pub enum PType {
 }
 /// PValue is a typed value of the content of a variable or a parameter.
 /// Must be cloneable because it is copied during default values expansion
-// TODO separate value from type and handle automatic values (varagent)
+// TODO separate value from type and handle automatic values (variable declaration)
 #[derive(Debug, PartialEq, Clone)]
 pub enum PValue<'src> {
     String(Token<'src>, String),
@@ -676,15 +676,37 @@ fn presource_ref(i: PInput) -> PResult<(Token, Vec<PValue>)> {
     )(i)
 }
 
-/// A variable definition is a var=value
+/// A variable definition is a let var=value
 fn pvariable_definition(i: PInput) -> PResult<(Token, PValue)> {
     wsequence!(
         {
+            _identifier: estag("let");
             variable: pidentifier;
             _t: etag("=");
             value: or_fail(pvalue, || PErrorKind::ExpectedKeyword("value"));
         } => (variable, value)
     )(i)
+}
+
+/// Global variable declaration is used both for declaration of normal variables and reserved agents variables
+fn pvariable_declaration(i: PInput) -> PResult<(Token, PValue)> {
+    wsequence!(
+        {
+            _identifier: estag("let");
+            variable: or_fail(pidentifier, || PErrorKind::ExpectedKeyword("identifier"));
+            namespace_content: pvariable_namespace;
+        } => (variable, namespace_content)
+    )(i)
+}
+
+fn pvariable_namespace(i: PInput) -> PResult<PValue> {
+    let (i, tokens) = many0(wsequence!(
+        {
+            _sep: etag(".");
+            value: or_fail(pidentifier, || PErrorKind::ExpectedToken("incomplete variable declaration (.)"));
+        } => value
+    ))(i)?;
+    Ok((i, PValue::Struct(fill_map_rec(tokens.iter().peekable()))))
 }
 
 fn fill_map_rec<'src>(
@@ -700,28 +722,6 @@ fn fill_map_rec<'src>(
         }
     }
     map
-}
-
-fn pvalue_varagent(i: PInput) -> PResult<PValue> {
-    let (i, tokens) = many0(wsequence!(
-        {
-            _sep: etag(".");
-            value: or_fail(pidentifier, || PErrorKind::ExpectedToken("incomplete declaration (.)"));
-        } => value
-    ))(i)?;
-    Ok((i, PValue::Struct(fill_map_rec(tokens.iter().peekable()))))
-}
-
-/// Global agent variable declaration is only a var declaration
-/// Cannot be initialized, its value is defined by the agent
-fn pvaragent_declaration(i: PInput) -> PResult<(Token, PValue)> {
-    wsequence!(
-        {
-            _identifier: estag("declare");
-            variable: pidentifier;
-            value: pvalue_varagent;
-        } => (variable, value)
-    )(i)
 }
 
 /// A call mode tell how a state must be applied
@@ -807,7 +807,7 @@ fn pcase(i: PInput) -> PResult<(PEnumExpression, Vec<PStatement>)> {
                 stmt: or_fail(alt((
                     map(pstatement, |x| vec![x]),
                     delimited_parser("{", |j| many0(pstatement)(j), "}"),
-                )), || PErrorKind::ExpectedKeyword("statement"));
+                )), || PErrorKind::ExpectedToken("case statement"));
             } => (expr,stmt)
         ),
     ))(i)
@@ -959,7 +959,7 @@ fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
             map(presource_def, PDeclaration::Resource),
             map(pstate_def, PDeclaration::State),
             map(pvariable_definition, PDeclaration::GlobalVar),
-            map(pvaragent_declaration, PDeclaration::GlobalVar),
+            map(pvariable_declaration, PDeclaration::GlobalVar),
             map(palias_def, PDeclaration::Alias),
         )),
         || PErrorKind::Unparsed(get_context(i, i)),
@@ -989,7 +989,7 @@ fn pfile(i: PInput) -> PResult<PFile> {
         {
             header: pheader;
             _x: strip_spaces_and_comment;
-            code: many0(or_fail_perr(pdeclaration));
+            code: many0(pdeclaration);
             _x: strip_spaces_and_comment;
         } => PFile {header, code}
     ))(i)
@@ -997,7 +997,9 @@ fn pfile(i: PInput) -> PResult<PFile> {
 
 #[cfg(test)]
 pub fn test_new_pvalue(s: &str) -> PValue {
-    let res = pvaragent_declaration(Token::from(s).into()).unwrap();
+    let res = pvariable_declaration(
+        Token::from(s).into()
+    ).unwrap();
     (res.1).1
 }
 

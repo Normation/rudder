@@ -87,7 +87,7 @@ def load_cf(file_name):
     out = check_output([ncf.CFENGINE_PATH, "-pjson", "-f", file_name], env=env)
     promises = json.loads(out)
   except Exception as e:
-    print_json("compare_cf", file_name, 'An error occured while parsing cf technique: {}'.format(str(e)), True)
+    print_json("compare_cf", file_name, 'An error occurred while parsing cf technique: {}'.format(str(e)), True)
     exit(1)
   return promises
 
@@ -190,7 +190,7 @@ if __name__ == "__main__":
     ncf_tools = cfg['testing_loop']['ncf_tools'].strip('\"')
     cfengine_path = cfg['testing_loop']['cfengine'].strip('\"')
   except Exception as e:
-    print_json('(Not defined yet)', '(Not defined yet)', 'An error occured while setting config up: {}'.format(str(e)), True)
+    print_json('(Not defined yet)', '(Not defined yet)', 'An error occurred while setting config up: {}'.format(str(e)), True)
     exit(1)
 
   try:
@@ -198,7 +198,7 @@ if __name__ == "__main__":
     import ncf
     ncf.CFENGINE_PATH=cfengine_path
   except Exception as e:
-    print_json('(Not defined yet)', '(Not defined yet)', 'An error occured while importing ncf: {}'.format(str(e)), True)
+    print_json('(Not defined yet)', '(Not defined yet)', 'An error occurred while importing ncf: {}'.format(str(e)), True)
     exit(1)
   
   if arguments['ncf-to-json']:

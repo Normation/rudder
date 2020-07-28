@@ -24,7 +24,6 @@ pub enum PErrorKind<I> {
     #[cfg(test)]
     NomTest(String), // cannot be use outside of tests
     ExpectedKeyword(&'static str), // anywhere (keyword type)
-    // ExpectedReservedWord(&'static str), // anywhere
     ExpectedToken(&'static str), // anywhere (expected token)
     InvalidEnumExpression,       // in enum expression
     InvalidEscapeSequence,       // in string definition
@@ -33,6 +32,7 @@ pub enum PErrorKind<I> {
     InvalidVariableReference,    // during string interpolation
     UnsupportedMetadata(I),      // metadata or comments are not supported everywhere (metadata key)
     UnterminatedDelimiter(I),    // after an opening delimiter (first delimiter)
+    UnterminatedOrInvalid(I),       // can't say whether a delimiter is missing or a statement format is invalid 
     Unparsed(I),                 // cannot be parsed
 }
 
@@ -101,7 +101,6 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
             #[cfg(test)]
             PErrorKind::NomTest(msg) => format!("Testing only error message, this should never happen {}.\nPlease fill a BUG with context on when this happened!", msg),
             PErrorKind::ExpectedKeyword(s) => format!("The following keyword was expected: '{}'.", s.bright_magenta()),
-            // PErrorKind::ExpectedReservedWord(s) => format!("The following reserved keyword was expected: '{}'.", s.bright_magenta()),
             PErrorKind::ExpectedToken(s) => format!("The following token was expected '{}'.", s.bright_magenta()),
             PErrorKind::InvalidEnumExpression => "This enum expression is invalid".to_string(),
             PErrorKind::InvalidEscapeSequence => "This escape sequence cannot be used in a string".to_string(),
@@ -110,6 +109,7 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
             PErrorKind::InvalidVariableReference => "This variable reference is invalid".to_string(),
             PErrorKind::UnsupportedMetadata(i) => format!("Parsed comment or metadata not supported at this place: '{}' found at {}", i.fragment.bright_magenta(), Token::from(*i).position_str().bright_yellow()),
             PErrorKind::UnterminatedDelimiter(i) => format!("Missing closing delimiter for '{}'", i.fragment.bright_magenta()),
+            PErrorKind::UnterminatedOrInvalid(i) => format!("Either an unexpected statement or no closing delimiter matching '{}'", i.fragment.bright_magenta()),
             PErrorKind::Unparsed(i) => format!("Could not parse the following: '{}'", i.fragment.bright_magenta()),
         };
 
@@ -123,14 +123,14 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
                     "{} near '{}'\n{} {}",
                     Token::from(ctx).position_str().bright_yellow(),
                     context,
-                    "-->".bright_blue(),
+                    "!-->".bright_blue(),
                     message.bold(),
                 ))
             }
             None => f.write_str(&format!(
                 "{}\n{} {}",
                 "undefined context".bright_yellow(),
-                "-->".bright_blue(),
+                "!-->".bright_blue(),
                 message.bold(),
             )),
         }
