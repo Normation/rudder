@@ -105,19 +105,19 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
             PErrorKind::InvalidEnumExpression => "This enum expression is invalid".to_string(),
             PErrorKind::InvalidEscapeSequence => "This escape sequence cannot be used in a string".to_string(),
             PErrorKind::InvalidFormat => "Invalid header format, it must contain a single line '@format=x' where x is an integer. Shebang accepted.".to_string(),
-            PErrorKind::InvalidName(i) => format!("The identifier is invalid in a {}.", i.fragment.bright_magenta()),
+            PErrorKind::InvalidName(i) => format!("The identifier is invalid in a {}.", i.fragment().bright_magenta()),
             PErrorKind::InvalidVariableReference => "This variable reference is invalid".to_string(),
-            PErrorKind::UnsupportedMetadata(i) => format!("Parsed comment or metadata not supported at this place: '{}' found at {}", i.fragment.bright_magenta(), Token::from(*i).position_str().bright_yellow()),
-            PErrorKind::UnterminatedDelimiter(i) => format!("Missing closing delimiter for '{}'", i.fragment.bright_magenta()),
-            PErrorKind::UnterminatedOrInvalid(i) => format!("Either an unexpected statement or no closing delimiter matching '{}'", i.fragment.bright_magenta()),
-            PErrorKind::Unparsed(i) => format!("Could not parse the following: '{}'", i.fragment.bright_magenta()),
+            PErrorKind::UnsupportedMetadata(i) => format!("Parsed comment or metadata not supported at this place: '{}' found at {}", i.fragment().bright_magenta(), Token::from(*i).position_str().bright_yellow()),
+            PErrorKind::UnterminatedDelimiter(i) => format!("Missing closing delimiter for '{}'", i.fragment().bright_magenta()),
+            PErrorKind::UnterminatedOrInvalid(i) => format!("Either an unexpected statement or no closing delimiter matching '{}'", i.fragment().bright_magenta()),
+            PErrorKind::Unparsed(i) => format!("Could not parse the following: '{}'", i.fragment().bright_magenta()),
         };
 
         // simply removes superfluous line return (prettyfication)
         match &self.context {
             Some(ctx) => {
                 let ctx = (ctx.extractor)(ctx.text, ctx.token);
-                let context = ctx.fragment.trim_end_matches('\n');
+                let context = ctx.fragment().trim_end_matches('\n');
                 // Formats final error output
                 f.write_str(&format!(
                     "{} near '{}'\n{} {}",

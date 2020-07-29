@@ -118,7 +118,7 @@ fn pheader(i: PInput) -> PResult<PHeader> {
             _x: or_fail(sp(etag("@format")), || PErrorKind::InvalidFormat);
             _x: or_fail(sp(etag("=")), || PErrorKind::InvalidFormat);
             version: or_fail(
-                map_res(take_until("\n"), |s: PInput| s.fragment.parse::<u32>()),
+                map_res(take_until("\n"), |s: PInput| s.fragment().parse::<u32>()),
                 || PErrorKind::InvalidFormat
             );
             _x: etag("\n");
@@ -439,7 +439,7 @@ fn pinterpolated_string(i: PInput) -> PResult<Vec<PInterpolatedElement>> {
             ),
             // static data
             map(take_until("$"), |s: PInput| {
-                PInterpolatedElement::Static(s.fragment.into())
+                PInterpolatedElement::Static((*s.fragment()).into())
             }),
             // end of string
             map(
@@ -447,7 +447,7 @@ fn pinterpolated_string(i: PInput) -> PResult<Vec<PInterpolatedElement>> {
                     peek(anychar), // do no take rest if we are already at the end
                     rest,
                 ),
-                |s: PInput| PInterpolatedElement::Static(s.fragment.into()),
+                |s: PInput| PInterpolatedElement::Static((*s.fragment()).into()),
             ),
         ))),
         // empty string
@@ -458,7 +458,7 @@ fn pinterpolated_string(i: PInput) -> PResult<Vec<PInterpolatedElement>> {
 /// A number is currently represented by a float64
 fn pnumber(i: PInput) -> PResult<(Token, f64)> {
     let (i, val) = recognize_float(i)?;
-    match double::<&[u8], (&[u8], nom::error::ErrorKind)>(val.fragment.as_bytes()) {
+    match double::<&[u8], (&[u8], nom::error::ErrorKind)>(val.fragment().as_bytes()) {
         Err(_e) => panic!(format!("A parsed number cannot be reparsed: {:?}", val)),
         Ok((_, n)) => Ok((i, (val.into(), n))),
     }
@@ -968,7 +968,7 @@ fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
 
 fn end_of_pfile(i: PInput) -> PResult<()> {
     let (i, _) = strip_spaces_and_comment(i)?;
-    if i.fragment.is_empty() {
+    if i.fragment().is_empty() {
         return Err(nom::Err::Error(PError {
             context: None,
             kind: PErrorKind::Nom(VerboseError::from_error_kind(i, ErrorKind::Eof)),

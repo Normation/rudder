@@ -26,31 +26,29 @@ status_logs=(
 
 # this script is designed to take a cf technique input
 
-allowed_options="d|k"
 for param in "$@"
 do
-  # force dev env optional parameter
-  if [ "$1" = "--dev" ] || [[ "$1" =~ ^-[${allowed_options}]?d[${allowed_options}]?$ ]]
+  if [ "$1" = "--dev" ] || [ "$1" = "-d" ]
   then
+    # force dev env optional parameter
     env="dev"
-  fi
-
-  # cleanup optional parameter
-  if [ "$1" = "--keep" ] || [[ "$1" =~ ^-[${allowed_options}]?k[${allowed_options}]?$ ]]
-  then
-    cleanup=no
-  fi
-
-  # shift on option
-  if [[ "$1" =~ ^--?[a-z]* ]]
-  then
     shift
+  elif [ "$1" = "--keep" ] || [ "$1" = "-k" ]
+  then
+    # cleanup optional parameter
+    cleanup=no
+    shift
+  # shift on option
+  elif [[ "$1" =~ ^--?[a-z]* ]]
+  then
+    echo "Unsupported option $1"
+    exit 1
   fi
 done
 
 if [ -z "$1" ]
 then
-  echo "Usage tester.sh [--dev] [--keep] <technique_name> <technique_category>"
+  echo "Usage tester.sh [--dev|-d] [--keep|-k] <technique_name> [<technique_category>]"
   echo " --dev or -d: force using a development environnement (meaning no json logs and local rudder repo rather than production files)"
   echo " --keep or -k: keep temporary files after cleanup"
   echo " <technique_name>: can be either a technique name from the production techniques directory or a cfengine technique an absolute path (or starting by \"./\")."
@@ -65,16 +63,13 @@ fi
 [[ "$1" =~ ^(.*)\.cf?$ ]]
 if [ ! -z ${BASH_REMATCH[1]} ]
 then
-  technique=${BASH_REMATCH[1]}
+  technique="${BASH_REMATCH[1]}"
 else
-  technique=${1}
+  technique="${1}"
 fi
 
-
-if [ ! -z "$2" ]
-then
-  category="$2"
-fi
+technique="$1"
+category="$2"
 
 # Default values for rudder server
 self_dir=$(dirname $(readlink -e $0))
@@ -84,7 +79,7 @@ chmod +rx "${test_dir}"
 # cfjson_tester is always in the same directory as tester.sh
 cfjson_tester="${self_dir}/cfjson_tester"
 
-# Detect technique path
+# Detect technique path
 # requires an extension format to be used
 technique_path="/var/rudder/configuration-repository/techniques/${category}/${technique}/1.0/technique"
 if [ ${env} = "dev" ] && [ -f "${technique}.cf" ]
@@ -106,12 +101,12 @@ then
 fi
 
 rudderc="/opt/rudder/bin/rudderc"
-if [ ${env} = "prod" ]
+if [ "${env}" = "prod" ]
 then
   if [ ! -f "${rudderc}" ]
   then
     echo "Cannot find ${rudderc}"
-	exit 1
+    exit 1
   fi
 else
   rudderc="cargo run -- "
@@ -196,14 +191,14 @@ else
   if [ -f "${trace}" ] && [[ $(tail -n 1 "${trace}") == "=== ${technique} ===" ]]
   then
     head -n -1 "${trace}" > "${test_dir}/tmp.trace"
-	  mv "${test_dir}/tmp.trace" "${trace}"
+    mv "${test_dir}/tmp.trace" "${trace}"
   fi
 
   # JSON log fmt - end of file (repush last ']' now that content has been added)
   for log in "${logfiles[@]}"
   do
     # in case log root array is empty, just delete it:
-    [[ $(cat "${log}" | wc -l) == 1 ]] && rm -f ${log}
+    [ $(cat "${log}" | wc -l) = 1 ] && rm -f ${log}
     # in case log root array is not empty:
     perl -i -ne 's/,\n$/\n]\n/ if eof; print $last = $_; END{print $last}' "${log}" &> "/dev/null"
   done
@@ -241,7 +236,7 @@ if [ "${cleanup}" != "no" ]
 then
   rm -rf "${test_dir}"
 else
-  if [ ${env} = "prod" ]
+  if [ "${env}" = "prod" ]
   then
     echo "Done testing in ${test_dir}"
   else

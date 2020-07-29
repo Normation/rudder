@@ -208,7 +208,7 @@ pub fn get_context<'src>(i: PInput<'src>, err_pos: PInput<'src>) -> PInput<'src>
 
     match (line, complete) {
         (Some(l), Some(c)) => {
-            if l.line > c.line || (l.line == c.line && l.fragment.len() > c.fragment.len()) {
+            if l.location_line() > c.location_line() || (l.location_line() == c.location_line() && l.fragment().len() > c.fragment().len()) {
                 l
             } else {
                 c

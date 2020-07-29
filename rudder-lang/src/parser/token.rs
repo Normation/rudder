@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use nom_locate::LocatedSpanEx;
+use nom_locate::LocatedSpan;
 use std::{
     fmt,
     hash::{Hash, Hasher},
@@ -11,7 +11,7 @@ use std::{
 /// All parsers take PInput objects
 /// All input are Located str
 /// Use the pinput function to create one
-pub type PInput<'src> = LocatedSpanEx<&'src str, &'src str>;
+pub type PInput<'src> = LocatedSpan<&'src str, &'src str>;
 
 /// All parser output are token based.
 /// A token contains a string pointer but also the original input position
@@ -21,7 +21,7 @@ pub type PInput<'src> = LocatedSpanEx<&'src str, &'src str>;
 #[derive(Debug, Copy, Clone)]
 //#[derive(Copy, Clone)]
 pub struct Token<'src> {
-    val: LocatedSpanEx<&'src str, &'src str>,
+    val: LocatedSpan<&'src str, &'src str>,
 }
 
 impl<'src> Token<'src> {
@@ -29,18 +29,18 @@ impl<'src> Token<'src> {
     /// It won't have a position
     pub fn new(name: &'src str, input: &'src str) -> Self {
         Token {
-            val: LocatedSpanEx::new_extra(input, name),
+            val: LocatedSpan::new_extra(input, name),
         }
     }
 
     /// Format a token position for compiler output (file name and position included)
     pub fn position_str(&self) -> String {
-        match self.val.offset {
+        match self.val.location_offset() {
             0 => self.val.extra.to_owned(),
             _ => format!(
                 "{}:{}:{}",
                 self.val.extra.to_string(),
-                self.val.line,
+                self.val.location_line(),
                 self.val.get_utf8_column(),
             ),
         }
@@ -48,7 +48,7 @@ impl<'src> Token<'src> {
 
     /// Extract the string part of the token
     pub fn fragment(&self) -> &'src str {
-        &self.val.fragment
+        &self.val.fragment()
     }
 
     /// Extract the file name of the token
@@ -61,7 +61,7 @@ impl<'src> Token<'src> {
 impl<'src> From<&'src str> for Token<'src> {
     fn from(input: &'src str) -> Self {
         Token {
-            val: LocatedSpanEx::new_extra(input, ""),
+            val: LocatedSpan::new_extra(input, ""),
         }
     }
 }
@@ -92,7 +92,7 @@ impl<'src> From<Token<'src>> for PInput<'src> {
 /// PartialEq used by tests and by Token users
 impl<'src> PartialEq for Token<'src> {
     fn eq(&self, other: &Token) -> bool {
-        self.val.fragment == other.val.fragment
+        self.val.fragment() == other.val.fragment()
     }
 }
 
@@ -102,14 +102,14 @@ impl<'src> Eq for Token<'src> {}
 /// Hash used by Token users as keys in HashMaps
 impl<'src> Hash for Token<'src> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.val.fragment.hash(state);
+        self.val.fragment().hash(state);
     }
 }
 
 /// Format the full token for compiler debug info
 impl<'src> fmt::Display for Token<'src> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "'{}' at {}", self.val.fragment, self.position_str())
+        write!(f, "'{}' at {}", self.val.fragment(), self.position_str())
     }
 }
 
@@ -117,6 +117,6 @@ impl<'src> fmt::Display for Token<'src> {
 impl<'src> Deref for Token<'src> {
     type Target = &'src str;
     fn deref(&self) -> &&'src str {
-        &self.val.fragment
+        &self.val.fragment()
     }
 }
