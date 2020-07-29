@@ -12,7 +12,10 @@ bundle agent simplest_technique {
     "class_prefix"         string => string_head("${full_class_prefix}", "1000");
 
   methods:
-    # File absent: file_absent("tmp") if "debian_family"
+    # File absent:
+    # 
+    #   file("tmp").absent() as file_absent_tmp
+    # 
     "${report_data.directive_id}_0"   usebundle => _method_reporting_context("File absent", "tmp"),
                                              if => concat("debian_family");
     "${report_data.directive_id}_0"   usebundle => file_absent("tmp"),

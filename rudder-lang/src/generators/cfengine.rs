@@ -159,6 +159,7 @@ impl CFEngine {
                     .report_parameter(state_param)
                     .report_component(component)
                     .condition(self.format_class(in_class)?)
+                    .source(sd.source.fragment())
                     .build())
             }
             Statement::Case(_case, vec) => {

@@ -99,8 +99,8 @@ impl fmt::Display for AttributeType {
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Promise {
-    /// Comment in output file
-    comment: Option<String>,
+    /// Comments in output file
+    comments: Vec<String>,
     /// Type of the promise
     promise_type: PromiseType,
     /// Target of the promise
@@ -122,7 +122,7 @@ impl Promise {
             promise_type,
             promiser: promiser.into(),
             attributes: HashMap::new(),
-            comment: None,
+            comments: vec![],
         }
     }
 
@@ -192,11 +192,9 @@ impl Promise {
         self
     }
 
-    pub fn comment(self, comment: String) -> Self {
-        Self {
-            comment: Some(comment),
-            ..self
-        }
+    pub fn comment<T: AsRef<str>>(mut self, comment: T) -> Self {
+        self.comments.push(comment.as_ref().to_string());
+        self
     }
 }
 
@@ -225,10 +223,11 @@ impl Promise {
         let mut first = true;
 
         let comment = self
-            .comment
-            .as_ref()
+            .comments
+            .iter()
             .map(|c| format!("    # {}\n", c))
-            .unwrap_or("".to_string());
+            .collect::<Vec<String>>()
+            .join("");
 
         if self.attributes.is_empty() {
             format!("{}\"{}\";", comment, self.promiser)
@@ -279,6 +278,8 @@ pub struct Method {
     report_component: String,
     report_parameter: String,
     condition: String,
+    // Generated from
+    source: String,
 }
 
 impl Method {
@@ -299,6 +300,13 @@ impl Method {
 
     pub fn parameters(self, parameters: Vec<String>) -> Self {
         Self { parameters, ..self }
+    }
+
+    pub fn source(self, source: &str) -> Self {
+        Self {
+            source: source.to_string(),
+            ..self
+        }
     }
 
     pub fn report_parameter(self, report_parameter: String) -> Self {
@@ -336,18 +344,10 @@ impl Method {
                 quoted(&self.report_parameter),
             ],
         )
-        .comment(format!(
-            "{}: {}_{}(\"{}\"){}",
-            self.report_component,
-            self.resource,
-            self.state,
-            self.report_parameter,
-            if has_condition {
-                format!(" if \"{}\"", self.condition)
-            } else {
-                "".to_string()
-            }
-        ));
+        .comment(format!("{}:", self.report_component,))
+        .comment("")
+        .comment(format!("  {}", self.source,))
+        .comment("");
 
         // Actual method call
         let method =
@@ -598,7 +598,7 @@ mod tests {
                     .condition("debian".to_string())
                     .build()).to_string()
             ,
-            "bundle agent test {\n\n  methods:\n    # component package_present(\"parameter\") if \"debian\"\n    \"${report_data.directive_id}_0\"   usebundle => _method_reporting_context(\"component\", \"parameter\"),\n                                             if => concat(\"debian\");\n    \"${report_data.directive_id}_0\"   usebundle => package_present(vim),\n                                             if => concat(\"debian\");\n    \"${report_data.directive_id}_0\"   usebundle => _classes_noop(canonify(\"${class_prefix}_package_present_parameter\")),\n                                         unless => concat(\"debian\");\n    \"${report_data.directive_id}_0\"   usebundle => log_rudder(\"Skipping method \'component\' with key parameter \'parameter\' since condition \'debian\' is not reached\", \"parameter\", canonify(\"${class_prefix}_package_present_parameter\"), canonify(\"${class_prefix}_package_present_parameter\"), @{args}),\n                                         unless => concat(\"debian\");\n\n}"
+            "bundle agent test {\n\n  methods:\n    # component:\n    # \n    #   \n    # \n    \"${report_data.directive_id}_0\"   usebundle => _method_reporting_context(\"component\", \"parameter\"),\n                                             if => concat(\"debian\");\n    \"${report_data.directive_id}_0\"   usebundle => package_present(vim),\n                                             if => concat(\"debian\");\n    \"${report_data.directive_id}_0\"   usebundle => _classes_noop(canonify(\"${class_prefix}_package_present_parameter\")),\n                                         unless => concat(\"debian\");\n    \"${report_data.directive_id}_0\"   usebundle => log_rudder(\"Skipping method \'component\' with key parameter \'parameter\' since condition \'debian\' is not reached\", \"parameter\", canonify(\"${class_prefix}_package_present_parameter\"), canonify(\"${class_prefix}_package_present_parameter\"), @{args}),\n                                         unless => concat(\"debian\");\n\n}"
         );
     }
 
