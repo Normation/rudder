@@ -1,5 +1,5 @@
 use nom::{
-    branch::*, bytes::complete::*, character::complete::*, combinator::*, multi::*, sequence::*,
+    branch::*, bytes::complete::*, character::complete::*, combinator::*, multi::*, sequence::*, Slice
 };
 
 use super::{error::*, token::*};
@@ -63,39 +63,99 @@ where
 /// use some intermediary result at some steps (for example for error management).
 #[macro_export]
 macro_rules! sequence {
-    ( { $($f:ident : $parser:expr;)* } => $output:expr ) => {
-        move |i| {
-            let i0 = i;
-            $(
-                // intercept error to update its context if it should lead to a handled compilation error
-                let (j, $f) = match $parser (i) {
-                    Ok(res) => res,
-                    Err(e) => return Err(update_error_context(e, Context { extractor: get_context, text: i0, token: i}))
-                };
-                let i = j;
-            )*
-            Ok((i, $output))
-        }
-    };
+    ( { $($f:ident : $parser:expr;)* } => $output:expr ) => {{
+        crate::generic_sequence!( s, _source, start, stop, $output, $($f : $parser;)* )
+    }};
+    ( { $($f:ident : $parser:expr;)* : $source:ident } => $output:expr ) => {{
+        crate::generic_sequence!( s, $source, start, stop, $output, $($f : $parser;)* )
+    }};
+    ( { $($f:ident : $parser:expr;)* : $source:ident($start:ident..) } => $output:expr ) => {{
+        crate::generic_sequence!( s, $source, $start, stop, $output, $($f : $parser;)* )
+    }};
+    ( { $($f:ident : $parser:expr;)* : $source:ident(..$stop:ident) } => $output:expr ) => {{
+        crate::generic_sequence!( s, $source, start, $stop, $output, $($f : $parser;)* )
+    }};
+    ( { $($f:ident : $parser:expr;)* : $source:ident($start:ident..$stop:ident) } => $output:expr ) => {{
+        crate::generic_sequence!( s, $source, $start, $stop, $output, $($f : $parser;)* )
+    }};
 }
-
 /// wsequence is the same a sequence, but we automatically insert space parsing between each call
 #[macro_export]
 macro_rules! wsequence {
-    ( { $($f:ident : $parser:expr;)* } => $output:expr ) => {
+    ( { $($f:ident : $parser:expr;)* } => $output:expr ) => {{
+        crate::generic_sequence!( w, _source, start, stop, $output, $($f : $parser;)* )
+    }};
+    ( { $($f:ident : $parser:expr;)* : $source:ident } => $output:expr ) => {{
+        crate::generic_sequence!( w, $source, start, stop, $output, $($f : $parser;)* )
+    }};
+    ( { $($f:ident : $parser:expr;)* : $source:ident($start:ident..) } => $output:expr ) => {{
+        crate::generic_sequence!( w, $source, $start, stop, $output, $($f : $parser;)* )
+    }};
+    ( { $($f:ident : $parser:expr;)* : $source:ident(..$stop:ident) } => $output:expr ) => {{
+        crate::generic_sequence!( w, $source, start, $stop, $output, $($f : $parser;)* )
+    }};
+    ( { $($f:ident : $parser:expr;)* : $source:ident($start:ident..$stop:ident) } => $output:expr ) => {{
+        crate::generic_sequence!( w, $source, $start, $stop, $output, $($f : $parser;)* )
+    }};
+}
+
+// Macro to avoid writing n macros for various sequences
+// This macro takes all parameters needed and is called by all other sequence macros
+#[macro_export]
+macro_rules! generic_sequence {
+    ( $space:ident, $context:ident, $start:ident, $stop:ident, $output:expr, $($f:ident : $parser:expr;)*   ) => {{
+        // macros within macro to have the equivalent of if then else
+        // the first line is called when we must strip whitespace
+        macro_rules! __if_space_strip {
+            ($xi:ident,$xj:ident,w) => { let ($xi,_) = strip_spaces_and_comment($xj)?; };
+            ($xi:ident,$xj:ident,s) => { let $xi = $xj; };
+        }
+        // start and stop are identifier for return values of one element of the sequence
+        macro_rules! __if_id_start {
+            ($start,$ctx:ident,$xi:ident) => { $ctx = $xi; };
+            ($xx:ident,$ctx:ident,$xi:ident) => { };
+        }
+        macro_rules! __if_id_stop {
+            ($stop,$ctx:ident,$xi:ident) => { $ctx = $xi; };
+            ($xx:ident,$ctx:ident,$xi:ident) => { };
+        }
+
+        // create a parser
         move |i| {
+            // remember initial input
             let i0 = i;
+            // context limits
+            #[allow(unused_mut,unused_assignments)]
+            let mut ctx_start = i0;
+            #[allow(unused_mut,unused_assignments)]
+            let mut ctx_stop = i0;
             $(
+                // store context start position
+                __if_id_start!($f,ctx_start,i);
                 // intercept error to update its context if it should lead to a handled compilation error
                 let (j, $f) = match $parser (i) {
                     Ok(res) => res,
-                    Err(e) => return Err(update_error_context(e, Context { extractor: get_context, text: i0, token: i}))
+                    Err(e) => return Err(update_error_context(e, Context { extractor: get_error_context, text: i0, token: i}))
                 };
-                let (i,_) = strip_spaces_and_comment(j)?;
+                // store context stop position
+                __if_id_stop!($f,ctx_stop,j);
+                // strip space if $space==w
+                __if_space_strip!(i,j,$space);
             )*
+            // no other stop found
+            if ctx_stop == i0 { ctx_stop = j; }
+            let $context = get_parsed_context(i0, ctx_start, ctx_stop);
+            // those lines should be optimized out when source is not used
             Ok((i, $output))
         }
-    };
+    }};
+}
+
+/// extract the parsed data once something hase been parsed
+pub fn get_parsed_context<'src>(input: PInput<'src>, start: PInput<'src>, stop: PInput<'src>) -> Token<'src> {
+    let start_offset = start.location_offset() - input.location_offset();
+    let stop_offset = stop.location_offset() - input.location_offset();
+    input.slice(start_offset..stop_offset).into()
 }
 
 /// Parse a tag or return an error
@@ -188,7 +248,7 @@ where
 
 /// Function to extract the context string, ie what was trying to be parsed when an error happened
 /// It extracts the longest string between a single line and everything until the parsing error
-pub fn get_context<'src>(i: PInput<'src>, err_pos: PInput<'src>) -> PInput<'src> {
+pub fn get_error_context<'src>(i: PInput<'src>, err_pos: PInput<'src>) -> PInput<'src> {
     // One line, or everything else if no new line (end of file)
     let line: PResult<PInput> = alt((
         take_until("\n"),

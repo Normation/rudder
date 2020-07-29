@@ -742,6 +742,7 @@ fn pcall_mode(i: PInput) -> PResult<PCallMode> {
 /// A State Declaration is a given required state on a given resource
 #[derive(Debug, PartialEq)]
 pub struct PStateDeclaration<'src> {
+    pub source: Token<'src>,
     pub metadata: Vec<PMetadata<'src>>,
     pub mode: PCallMode,
     pub resource: Token<'src>,
@@ -760,7 +761,9 @@ fn pstate_declaration(i: PInput) -> PResult<PStateDeclaration> {
             state: pidentifier;
             state_params: delimited_list("(", pvalue, ",", ")");
             outcome: opt(preceded(sp(etag("as")),pidentifier));
+            :source(mode..)
         } => PStateDeclaration {
+                source,
                 metadata,
                 mode,
                 resource: resource.0,
@@ -962,7 +965,7 @@ fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
             map(pvariable_declaration, PDeclaration::GlobalVar),
             map(palias_def, PDeclaration::Alias),
         )),
-        || PErrorKind::Unparsed(get_context(i, i)),
+        || PErrorKind::Unparsed(get_error_context(i, i)),
     )(i)
 }
 

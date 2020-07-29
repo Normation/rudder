@@ -4,6 +4,7 @@
 use super::*;
 use maplit::hashmap;
 use nom::Err;
+use nom_locate::LocatedSpan;
 
 //    type Result<'src, O> = std::Result< (PInput<'src>,O), Err<PError<PInput<'src>>> >;
 
@@ -1026,6 +1027,7 @@ fn test_pstatement() {
         Ok((
             "",
             PStatement::StateDeclaration(PStateDeclaration {
+                source: "resource().state()".into(),
                 metadata: Vec::new(),
                 mode: PCallMode::Enforce,
                 resource: "resource".into(),
@@ -1044,6 +1046,7 @@ fn test_pstatement() {
         Ok((
             "",
             PStatement::StateDeclaration(PStateDeclaration {
+                source: r#"resource().state( "p1", "p2") as resource_state"#.into(),
                 metadata: Vec::new(),
                 mode: PCallMode::Enforce,
                 resource: "resource".into(),
@@ -1094,7 +1097,7 @@ fn test_pstatement() {
                     ),
                     (
                         map_res(penum_expression, "debian").unwrap().1,
-                        vec![map_res(pstatement, "a().b()").unwrap().1]
+                        vec![map_res(pstatement, "a().b() ").unwrap().1]
                     ),
                 ]
             )
@@ -1158,6 +1161,7 @@ fn test_pdeclaration() {
                 parameters: vec![],
                 statements: vec![
                     PStatement::StateDeclaration(PStateDeclaration{
+                        source: "file(\"/tmp\").permissions(\"root\", \"root\", \"g+w\")\n".into(),
                         metadata: Vec::new(),
                         mode: PCallMode::Enforce,
                         resource: "file".into(),

@@ -10,7 +10,6 @@ use std::{
 
 /// All parsers take PInput objects
 /// All input are Located str
-/// Use the pinput function to create one
 pub type PInput<'src> = LocatedSpan<&'src str, &'src str>;
 
 /// All parser output are token based.
@@ -52,9 +51,10 @@ impl<'src> Token<'src> {
     }
 
     /// Extract the file name of the token
-    pub fn file(&self) -> &'src str {
-        &self.val.extra
-    }
+    pub fn file(&self) -> &'src str { &self.val.extra }
+
+    pub fn start_pos(&self) -> usize { self.val.location_offset() }
+    pub fn stop_pos(&self) -> usize { self.val.location_offset()+self.val.fragment().len() }
 }
 
 /// Convert from str (lossy, no file name nor position, use in terse tests only)

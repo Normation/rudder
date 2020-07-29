@@ -255,6 +255,7 @@ impl<'src> Parameter<'src> {
 /// A State Declaration is a given required state on a given resource
 #[derive(Debug, PartialEq)]
 pub struct StateDeclaration<'src> {
+    pub source: Token<'src>,
     pub metadata: HashMap<Token<'src>, Value<'src>>,
     pub mode: PCallMode,
     pub resource: Token<'src>,
@@ -345,6 +346,7 @@ impl<'src> Statement<'src> {
                 Statement::VariableDefinition(metadata, var, value)
             }
             PStatement::StateDeclaration(PStateDeclaration {
+                source,
                 metadata,
                 mode,
                 resource,
@@ -388,6 +390,7 @@ impl<'src> Statement<'src> {
                 map_results(state_params.iter(), |p| p.context_check(&getter))?;
                 let (mut _errors, metadata) = create_metadata(metadata);
                 Statement::StateDeclaration(StateDeclaration {
+                    source,
                     metadata,
                     mode,
                     resource,
