@@ -19,7 +19,7 @@ where
     F: Fn(PInput<'src>) -> PResult<'src, O>,
 {
     match f(PInput::new_extra(i, "")) {
-        Ok((x, y)) => Ok((x.fragment, y)),
+        Ok((x, y)) => Ok((x.fragment(), y)),
         Err(Err::Failure(e)) => Err(map_err(e)),
         Err(Err::Error(e)) => Err(map_err(e)),
         Err(Err::Incomplete(_)) => panic!("Incomplete should never happen"),
@@ -36,16 +36,16 @@ fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
         PErrorKind::InvalidEnumExpression => PErrorKind::InvalidEnumExpression,
         PErrorKind::InvalidEscapeSequence => PErrorKind::InvalidEscapeSequence,
         PErrorKind::InvalidFormat => PErrorKind::InvalidFormat,
-        PErrorKind::InvalidName(i) => PErrorKind::InvalidName(i.fragment),
+        PErrorKind::InvalidName(i) => PErrorKind::InvalidName(*i.fragment()),
         PErrorKind::InvalidVariableReference => PErrorKind::InvalidVariableReference,
-        PErrorKind::UnsupportedMetadata(i) => PErrorKind::UnsupportedMetadata(i.fragment),
-        PErrorKind::UnterminatedDelimiter(i) => PErrorKind::UnterminatedDelimiter(i.fragment),
-        PErrorKind::UnterminatedOrInvalid(i) => PErrorKind::UnterminatedOrInvalid(i.fragment),
-        PErrorKind::Unparsed(i) => PErrorKind::Unparsed(i.fragment),
+        PErrorKind::UnsupportedMetadata(i) => PErrorKind::UnsupportedMetadata(*i.fragment()),
+        PErrorKind::UnterminatedDelimiter(i) => PErrorKind::UnterminatedDelimiter(*i.fragment()),
+        PErrorKind::UnterminatedOrInvalid(i) => PErrorKind::UnterminatedOrInvalid(*i.fragment()),
+        PErrorKind::Unparsed(i) => PErrorKind::Unparsed(*i.fragment()),
     };
     match err.context {
         Some(context) => (
-            (context.extractor)(context.text, context.token).fragment,
+            (context.extractor)(context.text, context.token).fragment(),
             kind,
         ),
         None => ("", kind),
@@ -1179,7 +1179,7 @@ where
     X: 'a,
 {
     let (i, out) = f(PInput::new_extra(input, "")).expect(&format!("Syntax error in {}", input));
-    if i.fragment.len() != 0 {
+    if i.fragment().len() != 0 {
         panic!("Input not terminated in {}", input)
     }
     out
