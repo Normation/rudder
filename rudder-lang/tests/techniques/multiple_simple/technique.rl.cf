@@ -12,27 +12,45 @@ bundle agent multiple_simple_technique {
     "class_prefix"         string => string_head("${full_class_prefix}", "1000");
 
   methods:
-    # File absent: file_absent("/tmp")
+    # File absent:
+    # 
+    #   file("/tmp").absent() as file_absent__tmp
+    # 
     "${report_data.directive_id}_0"   usebundle => _method_reporting_context("File absent", "/tmp");
     "${report_data.directive_id}_0"   usebundle => file_absent("/tmp");
 
-    # File check exists: file_check_exists("/tmp")
+    # File check exists:
+    # 
+    #   file("/tmp").check_exists() as file_check_exists__tmp
+    # 
     "${report_data.directive_id}_1"   usebundle => _method_reporting_context("File check exists", "/tmp");
     "${report_data.directive_id}_1"   usebundle => file_check_exists("/tmp");
 
-    # File present: file_present("/tmp")
+    # File present:
+    # 
+    #   file("/tmp").present() as file_present__tmp
+    # 
     "${report_data.directive_id}_2"   usebundle => _method_reporting_context("File present", "/tmp");
     "${report_data.directive_id}_2"   usebundle => file_present("/tmp");
 
-    # Directory absent: directory_absent("/tmp")
+    # Directory absent:
+    # 
+    #   directory("/tmp").absent("false") as directory_absent__tmp
+    # 
     "${report_data.directive_id}_3"   usebundle => _method_reporting_context("Directory absent", "/tmp");
     "${report_data.directive_id}_3"   usebundle => directory_absent("/tmp", "false");
 
-    # Directory present: directory_present("/tmp")
+    # Directory present:
+    # 
+    #   directory("/tmp").present() as directory_present__tmp
+    # 
     "${report_data.directive_id}_4"   usebundle => _method_reporting_context("Directory present", "/tmp");
     "${report_data.directive_id}_4"   usebundle => directory_present("/tmp");
 
-    # Directory check exists: directory_check_exists("/tmp")
+    # Directory check exists:
+    # 
+    #   directory("/tmp").check_exists() as directory_check_exists__tmp
+    # 
     "${report_data.directive_id}_5"   usebundle => _method_reporting_context("Directory check exists", "/tmp");
     "${report_data.directive_id}_5"   usebundle => directory_check_exists("/tmp");
 
