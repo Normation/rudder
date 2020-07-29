@@ -268,6 +268,7 @@ pub struct StateDeclaration<'src> {
 /// A single statement within a state definition
 // TODO error reporting
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum Statement<'src> {
     // TODO should we split variable definition and enum definition ? this would probably help generators
     VariableDefinition(HashMap<Token<'src>, Value<'src>>, Token<'src>, Value<'src>),

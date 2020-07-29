@@ -62,7 +62,7 @@ const LONGUEST_ATTRIBUTE_LEN: usize = 9;
 // TODO add rudder-lang lines to comments
 
 impl PromiseType {
-    fn allows(&self, attribute_type: AttributeType) -> bool {
+    fn allows(self, attribute_type: AttributeType) -> bool {
         match self {
             PromiseType::Vars => vec![
                 AttributeType::Unless,
@@ -428,24 +428,9 @@ impl Bundle {
         Self { parameters, ..self }
     }
 
-    pub fn promise(mut self, promise: Promise) -> Self {
-        self.add_promise(promise);
-        self
-    }
-
     pub fn promise_group(mut self, promise_group: Vec<Promise>) -> Self {
         self.add_promise_group(promise_group);
         self
-    }
-
-    pub fn add_promise(&mut self, promise: Promise) {
-        match self.promises.get_mut(&promise.promise_type) {
-            Some(promises) => promises.push(vec![promise]),
-            None => {
-                self.promises
-                    .insert(promise.promise_type, vec![vec![promise]]);
-            }
-        }
     }
 
     pub fn add_promise_group(&mut self, promise_group: Vec<Promise>) {
@@ -611,7 +596,7 @@ mod tests {
         assert_eq!(
             Bundle::agent("test")
             .parameters(vec!["file".to_string(), "lines".to_string()])
-            .promise(Promise::usebundle("test", vec![]))
+            .promise_group(vec![Promise::usebundle("test", vec![])])
             .to_string(),
             "bundle agent test(file, lines) {\n\n  methods:\n    \"${report_data.directive_id}_0\"   usebundle => test();\n\n}"
         );

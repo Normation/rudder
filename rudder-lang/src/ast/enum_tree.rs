@@ -114,11 +114,7 @@ impl<'src> EnumTree<'src> {
 
     /// add a new level to an existing tree
     pub fn extend(&mut self, psub_enum: PSubEnum<'src>) -> Result<()> {
-        let PSubEnum {
-            name,
-            enum_name: _,
-            items,
-        } = psub_enum;
+        let PSubEnum { name, items, .. } = psub_enum;
         let father = EnumItem::Item(name);
         if !self.parents.contains_key(&father) {
             panic!("Subtree's parent must exist !")
@@ -150,10 +146,7 @@ impl<'src> EnumTree<'src> {
         Box::new(
             self.parents
                 .iter()
-                .filter(|(k, _)| match k {
-                    EnumItem::Item(_) => true,
-                    _ => false,
-                })
+                .filter(|(k, _)| matches!(k, EnumItem::Item(_)))
                 .map(move |(k, _)| match k {
                     EnumItem::Item(i) => i,
                     _ => &self.name, // never happens

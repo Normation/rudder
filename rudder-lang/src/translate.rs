@@ -18,7 +18,7 @@ use regex::{Captures, Regex};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{convert::TryFrom, fs, str};
-use toml;
+
 use typed_arena::Arena;
 
 // This parses JSON from Rudder 6.X technique editor
@@ -53,7 +53,7 @@ struct Parameter {
 impl Parameter {
     pub fn new(value: &str) -> Self {
         Self {
-            value: value.to_owned()
+            value: value.to_owned(),
         }
     }
 }
@@ -76,10 +76,9 @@ pub fn translate_file(context: &IOContext) -> Result<()> {
         "Reading".bright_green(),
         meta_gm_path.bright_yellow()
     );
-    let config_data = fs::read_to_string(meta_gm_path)
-        .map_err(|e| file_error(meta_gm_path, e))?;
-    let configuration: toml::Value = toml::from_str(&config_data)
-        .map_err(|e| err!(Token::new(meta_gm_path, ""), "{}", e))?;
+    let config_data = fs::read_to_string(meta_gm_path).map_err(|e| file_error(meta_gm_path, e))?;
+    let configuration: toml::Value =
+        toml::from_str(&config_data).map_err(|e| err!(Token::new(meta_gm_path, ""), "{}", e))?;
 
     info!("|- {}", "Reading stdlib".bright_green());
     let sources = Arena::new();
@@ -97,7 +96,13 @@ pub fn translate_file(context: &IOContext) -> Result<()> {
         .map_err(|e| err!(Token::new(&input_path, ""), "{}", e))?;
 
     technique.method_calls.iter_mut().for_each(|method| {
-        method.parameters.extend(method.args.iter().map(|v| Parameter::new(v)).collect::<Vec<Parameter>>())
+        method.parameters.extend(
+            method
+                .args
+                .iter()
+                .map(|v| Parameter::new(v))
+                .collect::<Vec<Parameter>>(),
+        )
     });
 
     info!(
@@ -169,7 +174,7 @@ resource {bundle_name}({parameter_list})
                         .states
                         .iter()
                         .filter_map(|(state_as_tk, _)| {
-                            if method_name == &format!("{}_{}", **res_as_tk, **state_as_tk) {
+                            if *method_name == format!("{}_{}", **res_as_tk, **state_as_tk) {
                                 return Some((**res_as_tk, **state_as_tk));
                             }
                             None
@@ -192,15 +197,19 @@ resource {bundle_name}({parameter_list})
     }
 
     fn translate_params<I>(&self, params: I, template_vars: &mut Vec<String>) -> Result<String>
-    where I: Iterator<Item = &'src Parameter>
+    where
+        I: Iterator<Item = &'src Parameter>,
     {
         let mut updated_params = Vec::new();
         for param in params {
             // rl v2 behavior should make use of this, for now, just a syntax validator
             if parse_cfstring(&param.value).is_err() {
-                return Err(Error::User(format!("Invalid variable syntax in '{}'", param.value)));
+                return Err(Error::User(format!(
+                    "Invalid variable syntax in '{}'",
+                    param.value
+                )));
             }
-            if param.value.contains("$") {
+            if param.value.contains('$') {
                 updated_params.push(format!("p{}", template_vars.len()));
                 template_vars.push(format!("  p{}=\"{}\"", template_vars.len(), param.value));
             } else {
@@ -208,11 +217,12 @@ resource {bundle_name}({parameter_list})
             }
         }
 
-        let validated_params = map_strings_results(updated_params.iter(), |x| Ok(x.to_owned()), ",")?;
+        let validated_params =
+            map_strings_results(updated_params.iter(), |x| Ok(x.to_owned()), ",")?;
 
         Ok(validated_params)
     }
-    
+
     fn translate_call(&self, call: &MethodCall) -> Result<String> {
         let (resource, state) = match self.get_method_from_stdlib(&call.method_name) {
             Some(res) => res,
@@ -298,7 +308,10 @@ resource {bundle_name}({parameter_list})
         // TODO remove outcome if there is no usage
         Ok(format!(
             "{}  @component = \"{}\"\n{}{}",
-            template_vars.join("\n"), &call.component, out_state, outcome
+            template_vars.join("\n"),
+            &call.component,
+            out_state,
+            outcome
         ))
     }
 
@@ -410,15 +423,21 @@ resource {bundle_name}({parameter_list})
             let method = caps.get(1).unwrap().as_str();
             let outcome = match caps.get(2) {
                 Some(res) => res.as_str(),
-                None => return Ok(method.to_owned())
+                None => return Ok(method.to_owned()),
             };
             if vec!["kept", "success"].iter().any(|x| x == &outcome) {
                 return Ok(format!("{} =~ success", method));
-            } else if vec!["error", "not_ok", "failed", "denied", "timeout"].iter().any(|x| x == &outcome) {
+            } else if vec!["error", "not_ok", "failed", "denied", "timeout"]
+                .iter()
+                .any(|x| x == &outcome)
+            {
                 return Ok(format!("{} =~ error", method));
-            } else if vec!["repaired", "ok", "reached", "true", "false"].iter().any(|x| x == &outcome) {
+            } else if vec!["repaired", "ok", "reached", "true", "false"]
+                .iter()
+                .any(|x| x == &outcome)
+            {
                 return Ok(format!("{} =~ {}", method, outcome));
-            } else if &outcome == &"not_kept" {
+            } else if outcome == "not_kept" {
                 return Ok(format!("({} =~ error | {} =~ repaired)", method, method));
             }
         };
@@ -480,6 +499,7 @@ enum CFStringElt {
 }
 
 impl CFStringElt {
+    #[allow(dead_code)]
     fn to_string(&self) -> Result<String> {
         Ok(match self {
             CFStringElt::Static(s) => s.to_string(),

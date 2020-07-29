@@ -13,26 +13,21 @@ name = "rudderc"
 path = "src/bin/rudderc.rs"
 
 [dependencies]
+colored = "2"
+env_logger = "0.7"
+lazy_static = "1"
+log = "0.4"
 maplit = "1"
+ngrammatic = "0.3"
+nom = "5"
+nom_locate = "2"
+regex = "1"
 serde = { version = "1", features = ["derive" ] }
 serde_json = "1"
 structopt = "0.3"
-nom = "5"
 toml = "0.5"
-regex = "1"
-lazy_static = "1"
-nom_locate = "2"
-colored = "1"
-ngrammatic = "0.3"
-log = "0.4"
-env_logger = "0.7"
 typed-arena = "2.0"
 walkdir = "2"
 
 [dev-dependencies]
-proptest = "0.9"
-test-case = "0.3"
-
-[build-dependencies]
-serde = { version = "1", features = ["derive"] }
-colored = "1"
+test-case = "1"

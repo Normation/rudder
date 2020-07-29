@@ -144,7 +144,6 @@ impl DSC {
         state_def: &StateDef,
         generic_method_name: &str,
     ) -> Result<(String, usize)> {
-
         // if one day several class_parameters are used as they previously were, get the relative code from this commit
         // 89651a6a8a05475eabccefc23e4fe23235a7e011 . This file, line 170
         match state_def.metadata.get(&Token::from("class_parameter")) {
@@ -159,13 +158,11 @@ impl DSC {
                     }
                 };
                 Ok((p.0.to_owned(), p_index))
-            },
-            _ => {
-                return Err(Error::User(format!(
-                    "Generic methods should have 1 class parameter (not the case for {})",
-                    generic_method_name
-                )))
             }
+            _ => Err(Error::User(format!(
+                "Generic methods should have 1 class parameter (not the case for {})",
+                generic_method_name
+            ))),
         }
     }
 
@@ -204,8 +201,8 @@ impl DSC {
             .map(|p| p.name.fragment())
             .collect::<Vec<&str>>();
 
-
-        let is_dsc_supported: bool = match state_def.metadata.get(&Token::from("supported_formats")) {
+        let is_dsc_supported: bool = match state_def.metadata.get(&Token::from("supported_formats"))
+        {
             Some(Value::List(parameters)) => {
                 let mut is_dsc_listed = false;
                 for p in parameters {
@@ -217,11 +214,11 @@ impl DSC {
                     } else {
                         return Err(Error::User(String::from(
                             "Expected value type for supported_formats metadata: String",
-                        )))
+                        )));
                     }
                 }
                 is_dsc_listed
-            },
+            }
             _ => {
                 return Err(Error::User(format!(
                     "{} Generic method has no \"supported_formats\" metadata",
@@ -244,10 +241,9 @@ impl DSC {
             |(i, x)| {
                 self.parameter_to_dsc(
                     x,
-                    param_names.get(i).expect(&format!(
-                        "Wrong parameter count for method {}",
-                        generic_method_name
-                    )),
+                    param_names.get(i).unwrap_or_else(|| {
+                        panic!("Wrong parameter count for method {}", generic_method_name)
+                    }),
                 )
             },
             " ",
@@ -261,7 +257,12 @@ impl DSC {
     // TODO variables
     // TODO comments and metadata
     // TODO use in_class everywhere
-    fn format_statement(&mut self, gc: &AST, st: &Statement, condition_content: String) -> Result<String> {
+    fn format_statement(
+        &mut self,
+        gc: &AST,
+        st: &Statement,
+        condition_content: String,
+    ) -> Result<String> {
         match st {
             Statement::StateDeclaration(sd) => {
                 if let Some(var) = sd.outcome {
@@ -276,7 +277,8 @@ impl DSC {
                     _ => "any".to_string(),
                 };
 
-                let (params_formatted_str, class_param, is_dsc_gm) = self.get_method_parameters(gc, sd)?;
+                let (params_formatted_str, class_param, is_dsc_gm) =
+                    self.get_method_parameters(gc, sd)?;
 
                 let condition = self.format_condition(condition_content)?;
 
@@ -285,24 +287,28 @@ impl DSC {
                     component, class_param
                 );
 
-                let call = match is_dsc_gm {
-                    true => format!(
+                let call = if is_dsc_gm {
+                    format!(
                         r#"  $LocalClasses = Merge-ClassContext $LocalClasses $({} {} -ComponentName "{}" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly"#,
                         pascebab_case(&component),
                         params_formatted_str,
                         component,
-                    ),
-                    false => na_call.clone(),
+                    )
+                } else {
+                    na_call.clone()
                 };
-
 
                 if condition == "any" {
                     Ok(call)
                 } else {
                     let formatted_condition = &format!("\n  $Condition = \"any.({})\"\n  if (Evaluate-Class $Condition $LocalClasses $SystemClasses) {{", condition);
-                    Ok(match is_dsc_gm {
-                        true => format!("{}\n  {}\n  }} else {{\n  {}\n  }}", formatted_condition, call, na_call),
-                        false => format!("{}\n  {}\n  }}\n", formatted_condition, call)
+                    Ok(if is_dsc_gm {
+                        format!(
+                            "{}\n  {}\n  }} else {{\n  {}\n  }}",
+                            formatted_condition, call, na_call
+                        )
+                    } else {
+                        format!("{}\n  {}\n  }}\n", formatted_condition, call)
                     })
                 }
             }
@@ -311,16 +317,14 @@ impl DSC {
                 map_strings_results(
                     vec.iter(),
                     |(case, vst)| {
-                    let condition_content = self.format_case_expr(gc, case)?;
-                    map_strings_results(
-                        vst.iter(),
-                        |st| {
-                            self.format_statement(gc, st, condition_content.clone())
-                        },
-                        "",
-                    )
-                },
-                "",
+                        let condition_content = self.format_case_expr(gc, case)?;
+                        map_strings_results(
+                            vst.iter(),
+                            |st| self.format_statement(gc, st, condition_content.clone()),
+                            "",
+                        )
+                    },
+                    "",
                 )
             }
             Statement::Fail(msg) => Ok(format!(
@@ -339,7 +343,8 @@ impl DSC {
                 } else {
                     "error"
                 };
-                let content = format!(r#"    $State = [ComplianceStatus]::result_{}
+                let content = format!(
+                    r#"    $State = [ComplianceStatus]::result_{}
     $Classes = _rudder_common_report -TechniqueName $TechniqueName  -Status $State -ReportId $ReportId -ComponentName "TODO" -ComponentKey "TODO" -Message "TODO" -MessageInfo "TODO" -MessageVerbose "TODO" -report:"TODO"
     @{{"status" = $State; "classes" = $Classes}}
 "#,
@@ -526,7 +531,8 @@ impl Generator for DSC {
                     .join(",\n");
 
                 // add default dsc parameters
-                let parameters: String = format!(r#"{},
+                let parameters: String = format!(
+                    r#"{},
     [Parameter(Mandatory=$False)] [Switch] $AuditOnly,
     [Parameter(Mandatory=$True)]  [String] $ReportId,
     [Parameter(Mandatory=$True)]  [String] $TechniqueName"#,
@@ -541,7 +547,8 @@ impl Generator for DSC {
                     .collect::<Result<Vec<String>>>()?
                     .join("\n");
                 // merge header + parameters + methods with technique file body
-                let content = format!(r#"# generated by rudder-lang
+                let content = format!(
+                    r#"# generated by rudder-lang
 {header}
 function {resource_name}-{state_name} {{
   [CmdletBinding()]
@@ -591,7 +598,7 @@ fn uppercase_first_letter(s: &str) -> String {
 }
 
 fn pascebab_case(s: &str) -> String {
-    let chars = s.chars().into_iter();
+    let chars = s.chars();
 
     let mut pascebab = String::new();
     let mut is_next_uppercase = true;

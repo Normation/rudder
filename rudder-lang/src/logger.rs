@@ -83,7 +83,7 @@ impl Logger {
     fn set_panic_hook(self, action: Action) {
         panic::set_hook(Box::new(move |e| {
             let e_message = match e.payload().downcast_ref::<&str>() {
-                Some(msg) => msg.to_string(),
+                Some(msg) => (*msg).to_string(),
                 None => Self::parse_core_panic_message(&e.to_string()),
             };
             let location = match e.location() {

@@ -1,5 +1,6 @@
 use nom::{
-    branch::*, bytes::complete::*, character::complete::*, combinator::*, multi::*, sequence::*, Slice
+    branch::*, bytes::complete::*, character::complete::*, combinator::*, multi::*, sequence::*,
+    Slice,
 };
 
 use super::{error::*, token::*};
@@ -152,7 +153,11 @@ macro_rules! generic_sequence {
 }
 
 /// extract the parsed data once something hase been parsed
-pub fn get_parsed_context<'src>(input: PInput<'src>, start: PInput<'src>, stop: PInput<'src>) -> Token<'src> {
+pub fn get_parsed_context<'src>(
+    input: PInput<'src>,
+    start: PInput<'src>,
+    stop: PInput<'src>,
+) -> Token<'src> {
     let start_offset = start.location_offset() - input.location_offset();
     let stop_offset = stop.location_offset() - input.location_offset();
     input.slice(start_offset..stop_offset).into()
@@ -250,33 +255,33 @@ where
 /// It extracts the longest string between a single line and everything until the parsing error
 pub fn get_error_context<'src>(i: PInput<'src>, err_pos: PInput<'src>) -> PInput<'src> {
     // One line, or everything else if no new line (end of file)
-    let line: PResult<PInput> = alt((
-        take_until("\n"),
-        rest
-    ))(i);
+    let line: PResult<PInput> = alt((take_until("\n"), rest))(i);
     let line = match line {
         Ok((_, rest)) => Some(rest),
-        _ => None
+        _ => None,
     };
 
     // Until next text
     let complete: PResult<PInput> = take_until("\n")(err_pos);
     let complete = match complete {
         Ok((_, rest)) => Some(rest),
-        _ => None
+        _ => None,
     };
 
     match (line, complete) {
         (Some(l), Some(c)) => {
-            if l.location_line() > c.location_line() || (l.location_line() == c.location_line() && l.fragment().len() > c.fragment().len()) {
+            if l.location_line() > c.location_line()
+                || (l.location_line() == c.location_line()
+                    && l.fragment().len() > c.fragment().len())
+            {
                 l
             } else {
                 c
             }
-        },
+        }
         (Some(l), None) => l,
         (None, Some(c)) => c,
-        (None, None) => panic!("Context should never be empty")
+        (None, None) => panic!("Context should never be empty"),
     }
 }
 

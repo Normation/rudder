@@ -4,7 +4,6 @@
 use super::*;
 use maplit::hashmap;
 use nom::Err;
-use nom_locate::LocatedSpan;
 
 //    type Result<'src, O> = std::Result< (PInput<'src>,O), Err<PError<PInput<'src>>> >;
 
@@ -1182,8 +1181,9 @@ where
     F: Fn(PInput<'a>) -> PResult<X>,
     X: 'a,
 {
-    let (i, out) = f(PInput::new_extra(input, "")).expect(&format!("Syntax error in {}", input));
-    if i.fragment().len() != 0 {
+    let (i, out) =
+        f(PInput::new_extra(input, "")).unwrap_or_else(|_| panic!("Syntax error in {}", input));
+    if !i.fragment().is_empty() {
         panic!("Input not terminated in {}", input)
     }
     out

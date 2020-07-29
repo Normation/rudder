@@ -96,7 +96,7 @@ fn get_dest(config: &ActionConfig, opt: &IOOpt) -> Result<(PathBuf, Format)> {
         // 1. argument dest, use it as destination technique
         Some(technique_path) => technique_path.to_path_buf(),
         None => match &config.dest {
-            Some(config_dest) => match opt.output_technique_name.as_ref().or(opt.technique_name.as_ref()) {
+            Some(config_dest) => match opt.output_technique_name.as_ref().or_else(|| opt.technique_name.as_ref()) {
                 // 2. join config dir + (dest) technique name
                 Some(technique_name) => config_dest.join(technique_name),
                 None => {
@@ -140,7 +140,7 @@ fn get_dest_format(config: &ActionConfig, opt: &IOOpt, dest: &PathBuf) -> Result
         warn!("Translate only supports rudder-lang format generation, overriding other settings");
     }
 
-    let fmt: Format = match opt.format.as_ref().or(config.format.as_ref()) {
+    let fmt: Format = match opt.format.as_ref().or_else(|| config.format.as_ref()) {
         Some(fmt) => fmt.clone(),
         None => {
             info!("Destination technique format used");
@@ -217,7 +217,7 @@ pub fn get(action: Action, opt: &IOOpt) -> Result<IOContext> {
 
     Ok(IOContext {
         stdlib: config.libs.stdlib.clone(),
-        meta_gm: config.libs.meta_generic_methods.clone(),
+        meta_gm: config.libs.meta_generic_methods,
         source: get_source(&action_config, opt)?,
         dest,
         mode: action_config.action.unwrap(), // always Either Compile or Translate, set in get_opt_action_mode

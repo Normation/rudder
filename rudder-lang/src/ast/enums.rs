@@ -99,7 +99,7 @@ impl<'src> EnumList<'src> {
         global_items: &mut HashMap<Token<'src>, Token<'src>>,
         global: bool,
         name: Token<'src>,
-        items: &Vec<(Vec<PMetadata<'src>>, Token<'src>)>,
+        items: &[(Vec<PMetadata<'src>>, Token<'src>)],
     ) -> Result<()> {
         // check that enum is not empty
         if items.is_empty() {
@@ -286,23 +286,21 @@ impl<'src> EnumList<'src> {
                     Ok((*tree_name, *tree_name, val))
                 // tree_name
                 // var = tree_name
-                } else {
-                    if my_be_boolean {
-                        // - value !exist => var = value, treename = boolean, value = true // var must exist and of type boolean
-                        let t = self.get_var_enum(getter, value)?;
-                        if t.fragment() == "boolean" {
-                            // TODO store these strings/token somewhere else ?
-                            Ok((value, "boolean".into(), "true".into()))
-                        } else {
-                            fail!(
-                                value,
-                                "{} is not an enum item nor a boolean variable",
-                                value
-                            );
-                        }
+                } else if my_be_boolean {
+                    // - value !exist => var = value, treename = boolean, value = true // var must exist and of type boolean
+                    let t = self.get_var_enum(getter, value)?;
+                    if t.fragment() == "boolean" {
+                        // TODO store these strings/token somewhere else ?
+                        Ok((value, "boolean".into(), "true".into()))
                     } else {
-                        fail!(value, "{} is not a global enum item", value);
+                        fail!(
+                            value,
+                            "{} is not an enum item nor a boolean variable",
+                            value
+                        );
                     }
+                } else {
+                    fail!(value, "{} is not a global enum item", value);
                 }
             }
             (None, Some(t)) => {

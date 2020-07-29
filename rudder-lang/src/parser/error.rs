@@ -25,15 +25,15 @@ pub enum PErrorKind<I> {
     NomTest(String), // cannot be use outside of tests
     ExpectedKeyword(&'static str), // anywhere (keyword type)
     ExpectedToken(&'static str), // anywhere (expected token)
-    InvalidEnumExpression,       // in enum expression
-    InvalidEscapeSequence,       // in string definition
-    InvalidFormat,               // in header
-    InvalidName(I),              // in identifier expressions (type of expression)
-    InvalidVariableReference,    // during string interpolation
-    UnsupportedMetadata(I),      // metadata or comments are not supported everywhere (metadata key)
-    UnterminatedDelimiter(I),    // after an opening delimiter (first delimiter)
-    UnterminatedOrInvalid(I),       // can't say whether a delimiter is missing or a statement format is invalid 
-    Unparsed(I),                 // cannot be parsed
+    InvalidEnumExpression, // in enum expression
+    InvalidEscapeSequence, // in string definition
+    InvalidFormat,        // in header
+    InvalidName(I),       // in identifier expressions (type of expression)
+    InvalidVariableReference, // during string interpolation
+    UnsupportedMetadata(I), // metadata or comments are not supported everywhere (metadata key)
+    UnterminatedDelimiter(I), // after an opening delimiter (first delimiter)
+    UnterminatedOrInvalid(I), // can't say whether a delimiter is missing or a statement format is invalid
+    Unparsed(I),              // cannot be parsed
 }
 
 // This is the same thing as a closure (Fn() -> I) but I couldn't manage to cope with lifetime
@@ -197,6 +197,7 @@ where
 
 /// This function turns our own `Error`s (not nom ones) into `Failure`s so they are properly handled
 /// by the `nom::multi::many0()` function which abstracts Errors, only breaking on failures which was an issue
+#[allow(dead_code)]
 pub fn or_fail_perr<'src, O, F>(f: F) -> impl Fn(PInput<'src>) -> PResult<'src, O>
 where
     F: Fn(PInput<'src>) -> PResult<'src, O>,

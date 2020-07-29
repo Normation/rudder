@@ -65,10 +65,10 @@ impl CFEngine {
             EnumExpression::And(e1, e2) => {
                 let mut lexpr = self.format_case_expr(gc, e1)?;
                 let mut rexpr = self.format_case_expr(gc, e2)?;
-                if lexpr.contains("|") {
+                if lexpr.contains('|') {
                     lexpr = format!("({})", lexpr);
                 }
-                if rexpr.contains("|") {
+                if rexpr.contains('|') {
                     rexpr = format!("({})", rexpr);
                 }
                 format!("{}.{}", lexpr, rexpr)
@@ -81,7 +81,7 @@ impl CFEngine {
             // TODO what about classes that have not yet been set? can it happen?
             EnumExpression::Not(e1) => {
                 let mut expr = self.format_case_expr(gc, e1)?;
-                if expr.contains("|") || expr.contains("&") {
+                if expr.contains('|') || expr.contains('&') {
                     expr = format!("!({})", expr);
                 }
                 format!("!{}", expr)
@@ -149,8 +149,7 @@ impl CFEngine {
                     .resource_params
                     .get(0)
                     .and_then(|p| self.value_to_string(&p, false).ok())
-                    .clone()
-                    .unwrap_or("".to_string());
+                    .unwrap_or_else(|| "".to_string());
 
                 Ok(Method::new()
                     .resource(sd.resource.fragment().to_string())
@@ -255,7 +254,7 @@ impl Generator for CFEngine {
         gc: &AST,
         source_file: Option<&Path>,
         dest_file: Option<&Path>,
-        meta_gm: &Path,
+        _meta_gm: &Path,
         policy_metadata: bool,
     ) -> Result<()> {
         let mut files: HashMap<String, String> = HashMap::new();
@@ -310,7 +309,7 @@ impl Generator for CFEngine {
                         .metadata
                         .get(&Token::from(name))
                         .and_then(|v| self.value_to_string(v, false).ok())
-                        .unwrap_or("unknown".to_string())
+                        .unwrap_or_else(|| "unknown".to_string())
                 };
 
                 if policy_metadata {

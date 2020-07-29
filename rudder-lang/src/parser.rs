@@ -37,7 +37,7 @@ pub use token::PInput;
 // ===== Public interfaces =====
 
 /// PAST is just a global structure that contain all parsed data sorted sequentially per type.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct PAST<'src> {
     pub enums: Vec<PEnum<'src>>,
     pub sub_enums: Vec<PSubEnum<'src>>,
@@ -52,17 +52,7 @@ pub struct PAST<'src> {
 
 impl<'src> PAST<'src> {
     pub fn new() -> PAST<'static> {
-        PAST {
-            enums: Vec::new(),
-            sub_enums: Vec::new(),
-            enum_aliases: Vec::new(),
-            resources: Vec::new(),
-            states: Vec::new(),
-            variable_declarations: Vec::new(),
-            parameter_defaults: Vec::new(),
-            parents: Vec::new(),
-            aliases: Vec::new(),
-        }
+        PAST::default()
     }
 
     /// The parse function that should be called to parse a file
@@ -223,6 +213,7 @@ fn penum_alias(i: PInput) -> PResult<PEnumAlias> {
 /// the provided item as a value, or an ancestor item if this is an enum tree.
 /// 'default' is a value that is equivalent of 'true'.
 #[derive(Debug, PartialEq, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub enum PEnumExpression<'src> {
     //             variable             enum name     value/item
     Compare(Option<Token<'src>>, Option<Token<'src>>, Token<'src>),
@@ -458,8 +449,9 @@ fn pinterpolated_string(i: PInput) -> PResult<Vec<PInterpolatedElement>> {
 /// A number is currently represented by a float64
 fn pnumber(i: PInput) -> PResult<(Token, f64)> {
     let (i, val) = recognize_float(i)?;
+    #[allow(clippy::match_wild_err_arm)]
     match double::<&[u8], (&[u8], nom::error::ErrorKind)>(val.fragment().as_bytes()) {
-        Err(_e) => panic!(format!("A parsed number cannot be reparsed: {:?}", val)),
+        Err(_) => panic!(format!("A parsed number cannot be reparsed: {:?}", val)),
         Ok((_, n)) => Ok((i, (val.into(), n))),
     }
 }
@@ -518,6 +510,7 @@ pub enum PType {
 /// Must be cloneable because it is copied during default values expansion
 // TODO separate value from type and handle automatic values (variable declaration)
 #[derive(Debug, PartialEq, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub enum PValue<'src> {
     String(Token<'src>, String),
     Number(Token<'src>, f64),
@@ -777,6 +770,7 @@ fn pstate_declaration(i: PInput) -> PResult<PStateDeclaration> {
 
 /// A statement is the atomic element of a state definition.
 #[derive(Debug, PartialEq)]
+#[allow(clippy::large_enum_variant)]
 pub enum PStatement<'src> {
     VariableDefinition(Vec<PMetadata<'src>>, Token<'src>, PValue<'src>),
     StateDeclaration(PStateDeclaration<'src>),
@@ -937,6 +931,7 @@ fn palias_def(i: PInput) -> PResult<PAliasDef> {
 
 /// A declaration is one of the a top level elements that can be found anywhere in the file.
 #[derive(Debug, PartialEq)]
+#[allow(clippy::large_enum_variant)]
 pub enum PDeclaration<'src> {
     Enum(PEnum<'src>),
     SubEnum(PSubEnum<'src>),
@@ -1000,9 +995,7 @@ fn pfile(i: PInput) -> PResult<PFile> {
 
 #[cfg(test)]
 pub fn test_new_pvalue(s: &str) -> PValue {
-    let res = pvariable_declaration(
-        Token::from(s).into()
-    ).unwrap();
+    let res = pvariable_declaration(Token::from(s).into()).unwrap();
     (res.1).1
 }
 

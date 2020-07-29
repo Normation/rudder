@@ -3,8 +3,8 @@
 
 use rudderc::{Action, Format};
 
-const RLFILES_PATH: &'static str = "tests/compile_techniques";
-const TESTFILES_PATH: &'static str = "tests/tmp";
+const RLFILES_PATH: &str = "tests/compile_techniques";
+const TESTFILES_PATH: &str = "tests/tmp";
 
 use colored::Colorize;
 use std::{
@@ -17,7 +17,7 @@ use std::{
 /// Generates a file from a string and tests it
 pub fn test_generated_file(technique_name: &str, content: &str, format: &Format) {
     let dir = format!("{}/{}", TESTFILES_PATH, technique_name);
-    fs::create_dir_all(&dir).expect(&format!("Could not create {} dir", dir));
+    fs::create_dir_all(&dir).unwrap_or_else(|_| panic!("Could not create {} dir", dir));
     let path = PathBuf::from(format!("{}/technique.rl", dir));
     let mut file = fs::File::create(&path).expect("Could not create file");
     file.write_all(content.as_bytes())
@@ -30,7 +30,7 @@ pub fn test_generated_file(technique_name: &str, content: &str, format: &Format)
 /// Tests the file that matches the `technique_name` argument
 pub fn test_real_file(technique_name: &str, format: &Format) {
     let dir = format!("{}/{}", TESTFILES_PATH, technique_name);
-    fs::create_dir_all(&dir).expect(&format!("Could not create {} dir", &dir));
+    fs::create_dir_all(&dir).unwrap_or_else(|_| panic!("Could not create {} dir", &dir));
     let source = PathBuf::from(format!("{}/{}.rl", RLFILES_PATH, technique_name));
     let dest = PathBuf::from(format!("{}/technique.rl", dir));
     test_file(&source, &dest, technique_name, format);
@@ -50,7 +50,7 @@ fn test_file(source: &Path, dest: &Path, technique_name: &str, format: &Format) 
 
 /// Tool function extracting expected compilation result
 fn should_compile(technique_name: &str) -> bool {
-    return match &technique_name[..2] {
+    match &technique_name[..2] {
         "s_" => true,
         "f_" => false,
         _ => panic!(
@@ -58,7 +58,7 @@ fn should_compile(technique_name: &str) -> bool {
             "Warning (test)".bright_yellow().bold(),
             technique_name.bright_yellow(),
         ),
-    };
+    }
 }
 
 /// Compile technique from base crate and expose its result

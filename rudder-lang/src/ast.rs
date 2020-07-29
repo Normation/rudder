@@ -7,14 +7,16 @@ pub mod enums;
 pub mod resource;
 pub mod value;
 
-use crate::{error::*, parser::*};
-use std::collections::{HashMap, HashSet};
-
 use self::{
     context::{VarContext, VarKind},
     enums::EnumList,
     resource::*,
     value::Value,
+};
+use crate::{error::*, parser::*};
+use std::{
+    cmp::Ordering,
+    collections::{HashMap, HashSet},
 };
 
 // TODO v2: type inference, compatibility metadata
@@ -329,8 +331,9 @@ impl<'src> AST<'src> {
             .get(&(resource, state))
             .unwrap_or(&emptyvec);
         let diff = defaults.len() as i32 - params.len() as i32;
-        if diff > 0 {
-            fail!(
+        match diff.cmp(&0) {
+            Ordering::Equal => (),
+            Ordering::Greater => fail!(
                 fun_kind,
                 "{} instance of {} is missing parameters and there is no default values for them",
                 if state.is_some() {
@@ -339,9 +342,8 @@ impl<'src> AST<'src> {
                     "Resource"
                 },
                 fun_kind
-            );
-        } else if diff < 0 {
-            fail!(
+            ),
+            Ordering::Less => fail!(
                 fun_kind,
                 "{} instance of {} has too many parameters, expecting {}, got {}",
                 if state.is_some() {
@@ -352,7 +354,7 @@ impl<'src> AST<'src> {
                 fun_kind,
                 defaults.len(),
                 params.len()
-            );
+            ),
         }
         Ok(())
     }
@@ -550,7 +552,8 @@ impl<'src> AST<'src> {
             "struct",
             "list", // "string", "boolean", // should not be used
             // variables
-            "let", "resource", // "state", // should not be used
+            "let",
+            "resource", // "state", // should not be used
             // flow statements
             "if",
             "case",

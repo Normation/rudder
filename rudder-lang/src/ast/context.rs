@@ -100,7 +100,7 @@ impl<'src> VarContext<'src> {
                 return Ok(());
             }
         };
-        Ok(match stored_ctx {
+        match stored_ctx {
             Value::Struct(existing_map) => {
                 for (stored_k, stored_v) in existing_map.iter_mut() {
                     if stored_k == key_to_push {
@@ -122,7 +122,8 @@ impl<'src> VarContext<'src> {
                 existing_map.insert(key_to_push.to_owned(), value_to_push.clone());
             }
             _ => panic!("Context should always be of type Struct"),
-        })
+        };
+        Ok(())
     }
 
     /// Create a generic variable in this context.
@@ -213,16 +214,56 @@ mod tests {
 
         let mut context = value_generator(Some("let sys"));
 
-        assert!(VarContext::push_new_variable(&mut context, &value_generator(Some("let sys.windows"))).is_ok());
-        assert!(VarContext::push_new_variable(&mut context, &value_generator(Some("let sys.windows"))).is_ok()); // direct duplicate
-        assert!(VarContext::push_new_variable(&mut context, &value_generator(Some("let sys.linux"))).is_ok());
-        assert!(VarContext::push_new_variable(&mut context, &value_generator(Some("let sys.linux.debian_9"))).is_ok()); // push inner into existing String element
-        assert!(VarContext::push_new_variable(&mut context, &value_generator(Some("let sys.linux.debian_10"))).is_ok());
-        assert!(VarContext::push_new_variable(&mut context, &value_generator(Some("let sys.linux.debian_9"))).is_ok()); // inner non-direct duplicate
-        assert!(VarContext::push_new_variable(&mut context, &value_generator(Some("let sys.long.var.decl.ok"))).is_ok()); // deep nested element 
-        assert!(VarContext::push_new_variable(&mut context, &value_generator(Some("let sys.long.var.decl.ok_too"))).is_ok()); // push deep innest element
-        assert!(VarContext::push_new_variable(&mut context, &value_generator(Some("let sys.long.var.decl2"))).is_ok()); // post-push deep outter element
-        assert!(VarContext::push_new_variable(&mut context, &value_generator(Some("let sys.linux"))).is_ok()); // outtest non-direct duplicate
+        assert!(VarContext::push_new_variable(
+            &mut context,
+            &value_generator(Some("let sys.windows"))
+        )
+        .is_ok());
+        assert!(VarContext::push_new_variable(
+            &mut context,
+            &value_generator(Some("let sys.windows"))
+        )
+        .is_ok()); // direct duplicate
+        assert!(VarContext::push_new_variable(
+            &mut context,
+            &value_generator(Some("let sys.linux"))
+        )
+        .is_ok());
+        assert!(VarContext::push_new_variable(
+            &mut context,
+            &value_generator(Some("let sys.linux.debian_9"))
+        )
+        .is_ok()); // push inner into existing String element
+        assert!(VarContext::push_new_variable(
+            &mut context,
+            &value_generator(Some("let sys.linux.debian_10"))
+        )
+        .is_ok());
+        assert!(VarContext::push_new_variable(
+            &mut context,
+            &value_generator(Some("let sys.linux.debian_9"))
+        )
+        .is_ok()); // inner non-direct duplicate
+        assert!(VarContext::push_new_variable(
+            &mut context,
+            &value_generator(Some("let sys.long.var.decl.ok"))
+        )
+        .is_ok()); // deep nested element
+        assert!(VarContext::push_new_variable(
+            &mut context,
+            &value_generator(Some("let sys.long.var.decl.ok_too"))
+        )
+        .is_ok()); // push deep innest element
+        assert!(VarContext::push_new_variable(
+            &mut context,
+            &value_generator(Some("let sys.long.var.decl2"))
+        )
+        .is_ok()); // post-push deep outter element
+        assert!(VarContext::push_new_variable(
+            &mut context,
+            &value_generator(Some("let sys.linux"))
+        )
+        .is_ok()); // outtest non-direct duplicate
 
         let os = [
             (
