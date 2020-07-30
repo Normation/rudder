@@ -25,4 +25,8 @@ bundle agent simplest_technique {
     "${report_data.directive_id}_0"   usebundle => log_rudder("Skipping method 'File absent' with key parameter 'tmp' since condition 'debian_family' is not reached", "tmp", canonify("${class_prefix}_file_absent_tmp"), canonify("${class_prefix}_file_absent_tmp"), @{args}),
                                          unless => concat("debian_family");
 
+    "${report_data.directive_id}_1"   usebundle => log_rudder_mode("log_info", "plop", "None", "log_info");
+
+    "${report_data.directive_id}_2"   usebundle => _abort("policy_fail", "test");
+
 }

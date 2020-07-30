@@ -15,7 +15,7 @@ use std::{collections::HashMap, fmt};
 // No need to handle all promises and attributes, we only need to support the ones we are
 // able to generate.
 
-fn quoted(s: &str) -> String {
+pub fn quoted(s: &str) -> String {
     format!("\"{}\"", s)
 }
 

@@ -11,4 +11,7 @@ resource simplest()
 simplest state technique() {
   @component = "File absent"
   if debian_family => file("tmp").absent() as file_absent_tmp
+
+  log "plop"
+  fail "test"
 }
