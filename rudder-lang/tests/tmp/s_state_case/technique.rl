@@ -36,6 +36,6 @@ bundle agent Configure_NTP_technique {
                                          unless => concat("debian");
     "${report_data.directive_id}_0"   usebundle => log_rudder("Skipping method 'any' with key parameter '/tmp' since condition 'debian' is not reached", "/tmp", canonify("${class_prefix}_file_present_/tmp"), canonify("${class_prefix}_file_present_/tmp"), @{args}),
                                          unless => concat("debian");
-    "${report_data.directive_id}_0"   usebundle => ncf_log(info: ok);
+    "${report_data.directive_id}_0"   usebundle => log_rudder_mode("log_info", "ok", "None", "log_info");
 
 }

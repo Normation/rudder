@@ -796,7 +796,9 @@ pub enum PStatement<'src> {
     // Stop engine with a final message
     Fail(PValue<'src>),
     // Inform the user of something
-    Log(PValue<'src>),
+    LogDebug(PValue<'src>),
+    LogInfo(PValue<'src>),
+    LogWarn(PValue<'src>),
     // Return a specific outcome
     Return(Token<'src>),
     // Do nothing
@@ -876,7 +878,9 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
             PStatement::Return,
         ),
         map(preceded(sp(etag("fail")), pvalue), PStatement::Fail),
-        map(preceded(sp(etag("log")), pvalue), PStatement::Log),
+        map(preceded(sp(etag("log_debug")), pvalue), PStatement::LogDebug),
+        map(preceded(sp(etag("log_info")), pvalue), PStatement::LogInfo),
+        map(preceded(sp(etag("log_warn")), pvalue), PStatement::LogWarn),
         map(etag("noop"), |_| PStatement::Noop),
     ))(i)
 }

@@ -282,7 +282,9 @@ pub enum Statement<'src> {
     // Stop engine
     Fail(Value<'src>),
     // Inform the user of something
-    Log(Value<'src>),
+    LogDebug(Value<'src>),
+    LogInfo(Value<'src>),
+    LogWarn(Value<'src>),
     // Return a specific outcome
     Return(Token<'src>),
     // Do nothing
@@ -310,6 +312,19 @@ fn push_default_parameters<'src>(
     Ok(())
 }
 
+fn string_value<'src, VG>(getter: &VG, enum_list: &EnumList<'src>, pvalue: PValue<'src>) -> Result<Value<'src>>
+    where VG: Fn(Token<'src>) -> Option<VarKind<'src>>,
+{
+    let value = Value::from_pvalue(enum_list, &getter, pvalue)?;
+    // check that definition use existing variables
+    value.context_check(&getter)?;
+    // we must have a string
+    match &value {
+        Value::String(_) => Ok(value),
+        _ => unimplemented!(), // TODO must fail here with a message
+    }
+}
+
 impl<'src> Statement<'src> {
     pub fn fom_pstatement<'b>(
         context: &'b mut VarContext<'src>,
@@ -319,17 +334,18 @@ impl<'src> Statement<'src> {
         parameter_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>,
         enum_list: &EnumList<'src>,
     ) -> Result<Statement<'src>> {
-        // TODO common getter
+        // we must not capture the context in this common getter since it is used
+        // as mutable elsewhere in this function
+        let common_getter = |ctx: &VarContext<'src>, k: Token<'src>| {
+            ctx
+                .variables
+                .get(&k)
+                .or_else(|| global_context.variables.get(&k))
+                .map(VarKind::clone)
+        };
         Ok(match st {
             PStatement::VariableDefinition(pmetadata, var, val) => {
-                let getter = |k| {
-                    context
-                        .variables
-                        .get(&k)
-                        .or_else(|| global_context.variables.get(&k))
-                        .map(VarKind::clone)
-                };
-                let value = Value::from_pvalue(enum_list, &getter, val)?;
+                let value = Value::from_pvalue(enum_list, &{ |x| common_getter(context,x) }, val)?;
                 match value {
                     Value::Boolean(_, _) => context.new_enum_variable(
                         Some(global_context),
@@ -339,7 +355,7 @@ impl<'src> Statement<'src> {
                     )?,
                     _ => {
                         // check that definition use existing variables
-                        value.context_check(&getter)?;
+                        value.context_check(&{ |x| common_getter(context,x) })?;
                         context.new_variable(Some(global_context), var, value.clone())?;
                     }
                 }
@@ -366,19 +382,12 @@ impl<'src> Statement<'src> {
                     )?;
                 }
                 children.insert(resource);
-                let getter = |k| {
-                    context
-                        .variables
-                        .get(&k)
-                        .or_else(|| global_context.variables.get(&k))
-                        .map(VarKind::clone)
-                };
                 let mut resource_params = map_vec_results(resource_params.into_iter(), |v| {
-                    Value::from_pvalue(enum_list, &getter, v)
+                    Value::from_pvalue(enum_list, &{ |x| common_getter(context,x) }, v)
                 })?;
                 push_default_parameters(resource, None, parameter_defaults, &mut resource_params)?;
                 let mut state_params = map_vec_results(state_params.into_iter(), |v| {
-                    Value::from_pvalue(enum_list, &getter, v)
+                    Value::from_pvalue(enum_list, &{ |x| common_getter(context,x) }, v)
                 })?;
                 push_default_parameters(
                     resource,
@@ -387,8 +396,8 @@ impl<'src> Statement<'src> {
                     &mut state_params,
                 )?;
                 // check that parameters use existing variables
-                map_results(resource_params.iter(), |p| p.context_check(&getter))?;
-                map_results(state_params.iter(), |p| p.context_check(&getter))?;
+                map_results(resource_params.iter(), |p| p.context_check(&{ |x| common_getter(context,x) }))?;
+                map_results(state_params.iter(), |p| p.context_check(&{ |x| common_getter(context,x) }))?;
                 let (mut _errors, metadata) = create_metadata(metadata);
                 Statement::StateDeclaration(StateDeclaration {
                     source,
@@ -402,40 +411,16 @@ impl<'src> Statement<'src> {
                 })
             }
             PStatement::Fail(f) => {
-                let getter = |k| {
-                    context
-                        .variables
-                        .get(&k)
-                        .or_else(|| global_context.variables.get(&k))
-                        .map(VarKind::clone)
-                };
-                let value = Value::from_pvalue(enum_list, &getter, f)?;
-                // check that definition use existing variables
-                value.context_check(&getter)?;
-                // we must fail with a string
-                match &value {
-                    Value::String(_) => (),
-                    _ => unimplemented!(), // TODO must fail here with a message
-                }
-                Statement::Fail(value)
+                Statement::Fail(string_value(&{ |x| common_getter(context,x) }, enum_list, f)?)
             }
-            PStatement::Log(l) => {
-                let getter = |k| {
-                    context
-                        .variables
-                        .get(&k)
-                        .or_else(|| global_context.variables.get(&k))
-                        .map(VarKind::clone)
-                };
-                let value = Value::from_pvalue(enum_list, &getter, l)?;
-                // check that definition use existing variables
-                value.context_check(&getter)?;
-                // we must fail with a string
-                match &value {
-                    Value::String(_) => (),
-                    _ => unimplemented!(), // TODO must fail here with a message
-                }
-                Statement::Log(value)
+            PStatement::LogDebug(l) => {
+                Statement::LogDebug(string_value(&{ |x| common_getter(context,x) }, enum_list, l)?)
+            }
+            PStatement::LogInfo(l) => {
+                Statement::LogInfo(string_value(&{ |x| common_getter(context,x) }, enum_list, l)?)
+            }
+            PStatement::LogWarn(l) => {
+                Statement::LogWarn(string_value(&{ |x| common_getter(context,x) }, enum_list, l)?)
             }
             PStatement::Return(r) => {
                 if r == Token::new("", "kept")
@@ -455,14 +440,7 @@ impl<'src> Statement<'src> {
             PStatement::Case(case, v) => Statement::Case(
                 case,
                 map_vec_results(v.into_iter(), |(exp, sts)| {
-                    let getter = |k| {
-                        context
-                            .variables
-                            .get(&k)
-                            .or_else(|| global_context.variables.get(&k))
-                            .map(VarKind::clone)
-                    };
-                    let expr = enum_list.canonify_expression(&getter, exp)?;
+                    let expr = enum_list.canonify_expression(&{ |x| common_getter(context,x) }, exp)?;
                     Ok((
                         expr,
                         map_vec_results(sts.into_iter(), |st| {

@@ -6,6 +6,6 @@ Configure_NTP state technique() {
     # this case makes no sense, testing purpose
     system=~ubuntu => file("/tmp").absent(),
     system=~debian => file("/tmp").present(),
-    default => log "info: ok"
+    default => log_info "ok"
   }
 }

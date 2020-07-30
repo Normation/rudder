@@ -331,7 +331,15 @@ impl DSC {
                 "      \"method_call\" usebundle => ncf_fail({});\n",
                 self.parameter_to_dsc(msg, "Fail")?
             )),
-            Statement::Log(msg) => Ok(format!(
+            Statement::LogDebug(msg) => Ok(format!(
+                "      \"method_call\" usebundle => ncf_log({});\n",
+                self.parameter_to_dsc(msg, "Log")?
+            )),
+            Statement::LogInfo(msg) => Ok(format!(
+                "      \"method_call\" usebundle => ncf_log({});\n",
+                self.parameter_to_dsc(msg, "Log")?
+            )),
+            Statement::LogWarn(msg) => Ok(format!(
                 "      \"method_call\" usebundle => ncf_log({});\n",
                 self.parameter_to_dsc(msg, "Log")?
             )),

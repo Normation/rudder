@@ -177,7 +177,17 @@ impl CFEngine {
                 "_abort",
                 vec![quoted("policy_fail"), self.value_to_string(msg, true)?],
             )]),
-            Statement::Log(msg) => Ok(vec![Promise::usebundle(
+            Statement::LogDebug(msg) => Ok(vec![Promise::usebundle(
+                "log_rudder_mode",
+                vec![
+                    quoted("log_debug"),
+                    self.value_to_string(msg, true)?,
+                    quoted("None"),
+                    // TODO: unique class prefix
+                    quoted("log_debug"),
+                ],
+            )]),
+            Statement::LogInfo(msg) => Ok(vec![Promise::usebundle(
                 "log_rudder_mode",
                 vec![
                     quoted("log_info"),
@@ -185,6 +195,16 @@ impl CFEngine {
                     quoted("None"),
                     // TODO: unique class prefix
                     quoted("log_info"),
+                ],
+            )]),
+            Statement::LogWarn(msg) => Ok(vec![Promise::usebundle(
+                "log_rudder_mode",
+                vec![
+                    quoted("log_warn"),
+                    self.value_to_string(msg, true)?,
+                    quoted("None"),
+                    // TODO: unique class prefix
+                    quoted("log_warn"),
                 ],
             )]),
             Statement::Return(outcome) => {

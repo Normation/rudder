@@ -205,7 +205,7 @@ Configure_NTP state technique() {
     # this case makes no sense, testing purpose
     system=~ubuntu => file("/tmp").absent(),
     system=~debian => file("/tmp").present(),
-    default => log "info: ok"
+    default => log_info "ok"
   }
 }"#; "s_state_case")]
 #[test_case("f_state_case", r#"@format=0
@@ -233,7 +233,7 @@ Configure_NTP state technique() {
   case {
     # this case makes no sense, testing purpose
     system=~ubuntu => file("/tmp").absent(),
-    default => log "info: ok"
+    default => log_info "ok"
   }
 }"#; "s_state_casedefault")]
 #[test_case("f_state_if_recursive", r#"@format=0

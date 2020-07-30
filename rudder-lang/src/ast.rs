@@ -561,6 +561,9 @@ impl<'src> AST<'src> {
             "nodefault",
             "fail",
             "log",
+            "log_debug",
+            "log_info",
+            "log_warn",
             "return",
             "noop",
             // historical invalid identifiers
