@@ -9,7 +9,7 @@ use super::{
 };
 use crate::{
     error::*,
-    parser::{PEnum, PEnumAlias, PEnumExpression, PMetadata, PSubEnum, Token},
+    parser::*,
 };
 use std::collections::{HashMap, HashSet};
 
@@ -343,41 +343,55 @@ impl<'src> EnumList<'src> {
         getter: &VG,
         expr: PEnumExpression<'src>,
     ) -> Result<EnumExpression<'src>>
-    where
-        VG: Fn(Token<'src>) -> Option<VarKind<'src>>,
+        where
+            VG: Fn(Token<'src>) -> Option<VarKind<'src>>,
+    {
+        let PEnumExpression { source, expression } = expr;
+        self.canonify_expression_part(getter, expression).map(
+            |x| EnumExpression{ source, expression: x }
+        )
+    }
+    
+    fn canonify_expression_part<VG>(
+        &self,
+        getter: &VG,
+        expr: PEnumExpressionPart<'src>,
+    ) -> Result<EnumExpressionPart<'src>>
+        where
+            VG: Fn(Token<'src>) -> Option<VarKind<'src>>,
     {
         match expr {
-            PEnumExpression::Default(t) => Ok(EnumExpression::Default(t)),
-            PEnumExpression::NoDefault(t) => Ok(EnumExpression::NoDefault(t)),
-            PEnumExpression::Not(e) => Ok(EnumExpression::Not(Box::new(
-                self.canonify_expression(getter, *e)?,
+            PEnumExpressionPart::Default(t) => Ok(EnumExpressionPart::Default(t)),
+            PEnumExpressionPart::NoDefault(t) => Ok(EnumExpressionPart::NoDefault(t)),
+            PEnumExpressionPart::Not(e) => Ok(EnumExpressionPart::Not(Box::new(
+                self.canonify_expression_part(getter, *e)?,
             ))),
-            PEnumExpression::Or(e1, e2) => {
-                let r1 = self.canonify_expression(getter, *e1);
-                let r2 = self.canonify_expression(getter, *e2);
+            PEnumExpressionPart::Or(e1, e2) => {
+                let r1 = self.canonify_expression_part(getter, *e1);
+                let r2 = self.canonify_expression_part(getter, *e2);
                 match (r1, r2) {
                     (Err(er), Ok(_)) => Err(er),
                     (Ok(_), Err(er)) => Err(er),
                     (Err(er1), Err(er2)) => Err(er1.append(er2)),
-                    (Ok(ex1), Ok(ex2)) => Ok(EnumExpression::Or(Box::new(ex1), Box::new(ex2))),
+                    (Ok(ex1), Ok(ex2)) => Ok(EnumExpressionPart::Or(Box::new(ex1), Box::new(ex2))),
                 }
             }
-            PEnumExpression::And(e1, e2) => {
-                let r1 = self.canonify_expression(getter, *e1);
-                let r2 = self.canonify_expression(getter, *e2);
+            PEnumExpressionPart::And(e1, e2) => {
+                let r1 = self.canonify_expression_part(getter, *e1);
+                let r2 = self.canonify_expression_part(getter, *e2);
                 match (r1, r2) {
                     (Err(er), Ok(_)) => Err(er),
                     (Ok(_), Err(er)) => Err(er),
                     (Err(er1), Err(er2)) => Err(er1.append(er2)),
-                    (Ok(ex1), Ok(ex2)) => Ok(EnumExpression::And(Box::new(ex1), Box::new(ex2))),
+                    (Ok(ex1), Ok(ex2)) => Ok(EnumExpressionPart::And(Box::new(ex1), Box::new(ex2))),
                 }
             }
-            PEnumExpression::Compare(var, tree_name, value) => {
+            PEnumExpressionPart::Compare(var, tree_name, value) => {
                 let (var_name, tree_name, value) =
                     self.validate_comparison(getter, var, tree_name, value, true)?;
-                Ok(EnumExpression::Compare(var_name, tree_name, value))
+                Ok(EnumExpressionPart::Compare(var_name, tree_name, value))
             }
-            PEnumExpression::RangeCompare(var, tree_name, left, right, position) => {
+            PEnumExpressionPart::RangeCompare(var, tree_name, left, right, position) => {
                 // left and right must not be both None
                 let value = if let Some(item) = left {
                     item
@@ -408,7 +422,7 @@ impl<'src> EnumList<'src> {
                         );
                     }
                 }
-                Ok(EnumExpression::RangeCompare(
+                Ok(EnumExpressionPart::RangeCompare(
                     var_name, tree_name, new_left, new_right,
                 ))
             }
@@ -419,20 +433,20 @@ impl<'src> EnumList<'src> {
     fn eval_case(
         &self,
         values: &HashMap<Token<'src>, EnumItem<'src>>,
-        expr: &EnumExpression<'src>,
+        expr: &EnumExpressionPart<'src>,
     ) -> bool {
         match expr {
-            EnumExpression::Default(_) => true,   // never happens
-            EnumExpression::NoDefault(_) => true, // never happens
-            EnumExpression::Not(e) => !self.eval_case(values, &e),
-            EnumExpression::Or(e1, e2) => {
+            EnumExpressionPart::Default(_) => true,   // never happens
+            EnumExpressionPart::NoDefault(_) => true, // never happens
+            EnumExpressionPart::Not(e) => !self.eval_case(values, &e),
+            EnumExpressionPart::Or(e1, e2) => {
                 self.eval_case(values, &e1) || self.eval_case(values, &e2)
             }
-            EnumExpression::And(e1, e2) => {
+            EnumExpressionPart::And(e1, e2) => {
                 self.eval_case(values, &e1) && self.eval_case(values, &e2)
             }
-            EnumExpression::Compare(var, _, value) => values[&var] == EnumItem::Item(*value),
-            EnumExpression::RangeCompare(var, tree_name, first, last) => {
+            EnumExpressionPart::Compare(var, _, value) => values[&var] == EnumItem::Item(*value),
+            EnumExpressionPart::RangeCompare(var, tree_name, first, last) => {
                 self.is_in_range(&values[&var], *tree_name, first, last)
             }
         }
@@ -446,15 +460,15 @@ impl<'src> EnumList<'src> {
         case_name: Token<'src>,
     ) -> Vec<Error> {
         // keep only cases that are not default (default must be the last case and cases must not be empty)
-        let (match_cases, default, nodefault) = match cases.last().unwrap().0 {
-            EnumExpression::Default(_) => (cases.split_last().unwrap().1, true, false),
-            EnumExpression::NoDefault(_) => (cases.split_last().unwrap().1, false, true),
+        let (match_cases, default, nodefault) = match cases.last().unwrap().0.expression {
+            EnumExpressionPart::Default(_) => (cases.split_last().unwrap().1, true, false),
+            EnumExpressionPart::NoDefault(_) => (cases.split_last().unwrap().1, false, true),
             _ => (cases, false, false),
         };
         // list variables used in this expression
         let mut variables = HashMap::new();
         for case in cases.iter() {
-            case.0.list_variables_tree(&mut variables);
+            case.0.expression.list_variables_tree(&mut variables);
         }
         // list terminators (list of items for each variables that must be used for iteration)
         // terminators include fake First and Last Item for incomplete enum branch so that we can check proper usage of open range and default
@@ -471,7 +485,7 @@ impl<'src> EnumList<'src> {
         for context in CrossIterator::new(&var_items) {
             // evaluate each case for context and count matching cases
             let count = match_cases.iter().fold(0, |c, (exp, _)| {
-                if self.eval_case(&context, exp) {
+                if self.eval_case(&context, &exp.expression) {
                     c + 1
                 } else {
                     c
@@ -603,7 +617,13 @@ impl<'it, 'src> Iterator for CrossIterator<'it, 'src> {
 }
 /// A boolean expression that can be defined using enums
 #[derive(Debug, PartialEq, Clone)]
-pub enum EnumExpression<'src> {
+pub struct EnumExpression<'src> {
+    pub source: Token<'src>,
+    pub expression: EnumExpressionPart<'src>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum EnumExpressionPart<'src> {
     //      variable     enum tree    enum item
     Compare(Token<'src>, Token<'src>, Token<'src>),
     //      variable   enum tree    first item           last item
@@ -613,14 +633,14 @@ pub enum EnumExpression<'src> {
         Option<Token<'src>>,
         Option<Token<'src>>,
     ),
-    And(Box<EnumExpression<'src>>, Box<EnumExpression<'src>>),
-    Or(Box<EnumExpression<'src>>, Box<EnumExpression<'src>>),
-    Not(Box<EnumExpression<'src>>),
+    And(Box<EnumExpressionPart<'src>>, Box<EnumExpressionPart<'src>>),
+    Or(Box<EnumExpressionPart<'src>>, Box<EnumExpressionPart<'src>>),
+    Not(Box<EnumExpressionPart<'src>>),
     Default(Token<'src>),   // token for position handling only
     NoDefault(Token<'src>), // token for position handling only
 }
 
-impl<'src> EnumExpression<'src> {
+impl<'src> EnumExpressionPart<'src> {
     /// List all variables that are used in an expression,
     /// and put them into the 'variables' hashset
     /// this is recursive mutable, pass it an empty hashset at first call
@@ -630,22 +650,22 @@ impl<'src> EnumExpression<'src> {
         variables: &mut HashMap<(Token<'src>, Token<'src>), HashSet<Token<'src>>>, // (variable, tree) -> item list
     ) {
         match self {
-            EnumExpression::Default(_) => (),
-            EnumExpression::NoDefault(_) => (),
-            EnumExpression::Not(e) => e.list_variables_tree(variables),
-            EnumExpression::Or(e1, e2) => {
+            EnumExpressionPart::Default(_) => (),
+            EnumExpressionPart::NoDefault(_) => (),
+            EnumExpressionPart::Not(e) => e.list_variables_tree(variables),
+            EnumExpressionPart::Or(e1, e2) => {
                 e1.list_variables_tree(variables);
                 e2.list_variables_tree(variables);
             }
-            EnumExpression::And(e1, e2) => {
+            EnumExpressionPart::And(e1, e2) => {
                 e1.list_variables_tree(variables);
                 e2.list_variables_tree(variables);
             }
-            EnumExpression::Compare(var, tree, item) => {
+            EnumExpressionPart::Compare(var, tree, item) => {
                 let list = variables.entry((*var, *tree)).or_insert_with(HashSet::new);
                 list.insert(*item);
             }
-            EnumExpression::RangeCompare(var, tree, left, right) => {
+            EnumExpressionPart::RangeCompare(var, tree, left, right) => {
                 let list = variables.entry((*var, *tree)).or_insert_with(HashSet::new);
                 // we only need one variable for its siblings
                 // a range must be withing siblings
@@ -658,12 +678,14 @@ impl<'src> EnumExpression<'src> {
             }
         }
     }
+}
 
+impl<'src> EnumExpression<'src> {
     /// return true if this is just the expression 'default'
     pub fn is_default(&self) -> bool {
-        match self {
-            EnumExpression::Default(_) => true,
-            EnumExpression::NoDefault(_) => true,
+        match &self.expression {
+            EnumExpressionPart::Default(_) => true,
+            EnumExpressionPart::NoDefault(_) => true,
             _ => false,
         }
     }
@@ -674,6 +696,7 @@ mod tests {
     use super::*;
     use crate::parser::tests::*;
     use maplit::{hashmap, hashset};
+    use pretty_assertions::assert_eq;
 
     fn item(name: &str) -> EnumItem {
         EnumItem::Item(name.into())
@@ -725,24 +748,24 @@ mod tests {
             .unwrap();
         assert_eq!(
             elist
-                .canonify_expression(&getter, penum_expression_t("a"))
+                .canonify_expression_part(&getter, penum_expression_t("a").expression)
                 .unwrap(),
-            EnumExpression::Compare("T".into(), "T".into(), "a".into())
+            EnumExpressionPart::Compare("T".into(), "T".into(), "a".into())
         );
         assert_eq!(
             elist
-                .canonify_expression(&getter, penum_expression_t("var=~a"))
+                .canonify_expression_part(&getter, penum_expression_t("var=~a").expression)
                 .unwrap(),
-            EnumExpression::Compare("var".into(), "T".into(), "a".into())
+            EnumExpressionPart::Compare("var".into(), "T".into(), "a".into())
         );
         assert_eq!(
             elist
-                .canonify_expression(&getter, penum_expression_t("var=~d"))
+                .canonify_expression_part(&getter, penum_expression_t("var=~d").expression)
                 .unwrap(),
-            EnumExpression::Compare("var".into(), "T".into(), "d".into())
+            EnumExpressionPart::Compare("var".into(), "T".into(), "d".into())
         );
         assert!(elist
-            .canonify_expression(&getter, penum_expression_t("d|a&!b"))
+            .canonify_expression_part(&getter, penum_expression_t("d|a&!b").expression)
             .is_ok());
     }
 
@@ -764,7 +787,7 @@ mod tests {
             .unwrap();
         let mut h1 = HashMap::new();
         elist
-            .canonify_expression(&getter, penum_expression_t("a"))
+            .canonify_expression_part(&getter, penum_expression_t("a").expression)
             .unwrap()
             .list_variables_tree(&mut h1);
         assert_eq!(
@@ -774,7 +797,7 @@ mod tests {
 
         let mut h2 = HashMap::new();
         elist
-            .canonify_expression(&getter, penum_expression_t("d"))
+            .canonify_expression_part(&getter, penum_expression_t("d").expression)
             .unwrap()
             .list_variables_tree(&mut h2);
         assert_eq!(
@@ -784,7 +807,7 @@ mod tests {
 
         let mut h3 = HashMap::new();
         elist
-            .canonify_expression(&getter, penum_expression_t("var=~a"))
+            .canonify_expression_part(&getter, penum_expression_t("var=~a").expression)
             .unwrap()
             .list_variables_tree(&mut h3);
         assert_eq!(
@@ -794,7 +817,7 @@ mod tests {
 
         let mut h4 = HashMap::new();
         elist
-            .canonify_expression(&getter, penum_expression_t("d|h"))
+            .canonify_expression_part(&getter, penum_expression_t("d|h").expression)
             .unwrap()
             .list_variables_tree(&mut h4);
         assert_eq!(

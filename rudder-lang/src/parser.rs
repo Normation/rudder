@@ -213,8 +213,22 @@ fn penum_alias(i: PInput) -> PResult<PEnumAlias> {
 /// the provided item as a value, or an ancestor item if this is an enum tree.
 /// 'default' is a value that is equivalent of 'true'.
 #[derive(Debug, PartialEq, Clone)]
+pub struct PEnumExpression<'src> {
+    pub source: Token<'src>,
+    pub expression: PEnumExpressionPart<'src>,
+}
+fn penum_expression(i: PInput) -> PResult<PEnumExpression> {
+    penum_expression_part(i).map(
+        |(rest,expression)| {
+            let source = get_parsed_context(i, i, rest);
+            (rest, PEnumExpression { source, expression })
+        }
+    )
+}
+
+#[derive(Debug, PartialEq, Clone)]
 #[allow(clippy::large_enum_variant)]
-pub enum PEnumExpression<'src> {
+pub enum PEnumExpressionPart<'src> {
     //             variable             enum name     value/item
     Compare(Option<Token<'src>>, Option<Token<'src>>, Token<'src>),
     //                  variable             enum name            range start          range end     position in case everything else is None
@@ -225,20 +239,20 @@ pub enum PEnumExpression<'src> {
         Option<Token<'src>>,
         Token<'src>,
     ),
-    And(Box<PEnumExpression<'src>>, Box<PEnumExpression<'src>>),
-    Or(Box<PEnumExpression<'src>>, Box<PEnumExpression<'src>>),
-    Not(Box<PEnumExpression<'src>>),
+    And(Box<PEnumExpressionPart<'src>>, Box<PEnumExpressionPart<'src>>),
+    Or(Box<PEnumExpressionPart<'src>>, Box<PEnumExpressionPart<'src>>),
+    Not(Box<PEnumExpressionPart<'src>>),
     Default(Token<'src>),
     NoDefault(Token<'src>),
 }
 
-fn penum_expression(i: PInput) -> PResult<PEnumExpression> {
+fn penum_expression_part(i: PInput) -> PResult<PEnumExpressionPart> {
     alt((
         enum_or_expression,
         enum_and_expression,
         enum_not_expression,
         map(etag("default"), |t| {
-            PEnumExpression::Default(Token::from(t))
+            PEnumExpressionPart::Default(Token::from(t))
         }), // default looks like an atom so it must come first
         enum_atom,
     ))(i)
@@ -288,9 +302,9 @@ fn enum_range_or_item(i: PInput) -> PResult<RangeOrItem> {
         ),
     ))(i)
 }
-fn enum_atom(i: PInput) -> PResult<PEnumExpression> {
+fn enum_atom(i: PInput) -> PResult<PEnumExpressionPart> {
     alt((
-        delimited_parser("(", penum_expression, ")"),
+        delimited_parser("(", penum_expression_part, ")"),
         wsequence!(
             {
                 var: pvariable_identifier;
@@ -298,8 +312,8 @@ fn enum_atom(i: PInput) -> PResult<PEnumExpression> {
                 value: or_fail(enum_range_or_item, || PErrorKind::InvalidEnumExpression);
             } => {
                 match value {
-                    RangeOrItem::Range(name,left,right,dots) => PEnumExpression::RangeCompare(Some(var), name, left, right, dots),
-                    RangeOrItem::Item(name,val) => PEnumExpression::Compare(Some(var), name, val),
+                    RangeOrItem::Range(name,left,right,dots) => PEnumExpressionPart::RangeCompare(Some(var), name, left, right, dots),
+                    RangeOrItem::Item(name,val) => PEnumExpressionPart::Compare(Some(var), name, val),
                 }
             }
         ),
@@ -310,20 +324,20 @@ fn enum_atom(i: PInput) -> PResult<PEnumExpression> {
                 value: or_fail(enum_range_or_item, || PErrorKind::InvalidEnumExpression);
             } => {
                 match value {
-                    RangeOrItem::Range(name,left,right,dots) => PEnumExpression::Not(Box::new(PEnumExpression::RangeCompare(Some(var), name, left, right, dots))),
-                    RangeOrItem::Item(name, val) => PEnumExpression::Not(Box::new(PEnumExpression::Compare(Some(var), name, val))),
+                    RangeOrItem::Range(name,left,right,dots) => PEnumExpressionPart::Not(Box::new(PEnumExpressionPart::RangeCompare(Some(var), name, left, right, dots))),
+                    RangeOrItem::Item(name, val) => PEnumExpressionPart::Not(Box::new(PEnumExpressionPart::Compare(Some(var), name, val))),
                 }
             }
         ),
         map(enum_range_or_item, |value| match value {
             RangeOrItem::Range(name, left, right, dots) => {
-                PEnumExpression::RangeCompare(None, name, left, right, dots)
+                PEnumExpressionPart::RangeCompare(None, name, left, right, dots)
             }
-            RangeOrItem::Item(name, val) => PEnumExpression::Compare(None, name, val),
+            RangeOrItem::Item(name, val) => PEnumExpressionPart::Compare(None, name, val),
         }),
     ))(i)
 }
-fn enum_or_expression(i: PInput) -> PResult<PEnumExpression> {
+fn enum_or_expression(i: PInput) -> PResult<PEnumExpressionPart> {
     wsequence!(
         {
             left: alt((enum_and_expression, enum_not_expression, enum_atom));
@@ -331,10 +345,10 @@ fn enum_or_expression(i: PInput) -> PResult<PEnumExpression> {
             right: or_fail(
                        alt((enum_or_expression, enum_and_expression, enum_not_expression, enum_atom)),
                        || PErrorKind::InvalidEnumExpression);
-        } => PEnumExpression::Or(Box::new(left), Box::new(right))
+        } => PEnumExpressionPart::Or(Box::new(left), Box::new(right))
     )(i)
 }
-fn enum_and_expression(i: PInput) -> PResult<PEnumExpression> {
+fn enum_and_expression(i: PInput) -> PResult<PEnumExpressionPart> {
     wsequence!(
         {
             left: alt((enum_not_expression, enum_atom));
@@ -342,15 +356,15 @@ fn enum_and_expression(i: PInput) -> PResult<PEnumExpression> {
             right: or_fail(
                        alt((enum_and_expression, enum_not_expression, enum_atom)),
                        || PErrorKind::InvalidEnumExpression);
-        } => PEnumExpression::And(Box::new(left), Box::new(right))
+        } => PEnumExpressionPart::And(Box::new(left), Box::new(right))
     )(i)
 }
-fn enum_not_expression(i: PInput) -> PResult<PEnumExpression> {
+fn enum_not_expression(i: PInput) -> PResult<PEnumExpressionPart> {
     wsequence!(
         {
             _x: etag("!");
             value: or_fail(enum_atom, || PErrorKind::InvalidEnumExpression);
-        } => PEnumExpression::Not(Box::new(value))
+        } => PEnumExpressionPart::Not(Box::new(value))
     )(i)
 }
 
@@ -793,7 +807,10 @@ fn pcase(i: PInput) -> PResult<(PEnumExpression, Vec<PStatement>)> {
     alt((
         map(etag("nodefault"), |t| {
             (
-                PEnumExpression::NoDefault(Token::from(t)),
+                PEnumExpression {
+                    source: Token::from(t),
+                    expression: PEnumExpressionPart::NoDefault(Token::from(t)),
+                },
                 vec![PStatement::Noop],
             )
         }),
@@ -846,7 +863,11 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
                     },
                     x => x,
                 };
-                PStatement::Case(case.into(), vec![(expr,vec![statement]), (PEnumExpression::Default("default".into()),vec![PStatement::Noop])] )
+                PStatement::Case(case.into(), vec![
+                    ( expr, vec![statement] ),
+                    ( PEnumExpression { source:"default".into(), expression: PEnumExpressionPart::Default("default".into()) },
+                      vec![PStatement::Noop])
+                ] )
             }
         ),
         // Flow statements

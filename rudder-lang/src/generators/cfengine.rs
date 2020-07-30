@@ -3,7 +3,7 @@
 
 use super::Generator;
 use crate::{
-    ast::{enums::EnumExpression, resource::*, value::*, *},
+    ast::{enums::EnumExpressionPart, resource::*, value::*, *},
     error::*,
     generators::cfengine::syntax::{quoted, Bundle, Method, Policy, Promise},
     parser::*,
@@ -60,9 +60,9 @@ impl CFEngine {
         })
     }
 
-    fn format_case_expr(&mut self, gc: &AST, case: &EnumExpression) -> Result<Condition> {
+    fn format_case_expr(&mut self, gc: &AST, case: &EnumExpressionPart) -> Result<Condition> {
         Ok(match case {
-            EnumExpression::And(e1, e2) => {
+            EnumExpressionPart::And(e1, e2) => {
                 let mut lexpr = self.format_case_expr(gc, e1)?;
                 let mut rexpr = self.format_case_expr(gc, e2)?;
                 if lexpr.contains('|') {
@@ -73,20 +73,20 @@ impl CFEngine {
                 }
                 format!("{}.{}", lexpr, rexpr)
             }
-            EnumExpression::Or(e1, e2) => format!(
+            EnumExpressionPart::Or(e1, e2) => format!(
                 "{}|{}",
                 self.format_case_expr(gc, e1)?,
                 self.format_case_expr(gc, e2)?
             ),
             // TODO what about classes that have not yet been set? can it happen?
-            EnumExpression::Not(e1) => {
+            EnumExpressionPart::Not(e1) => {
                 let mut expr = self.format_case_expr(gc, e1)?;
                 if expr.contains('|') || expr.contains('&') {
                     expr = format!("!({})", expr);
                 }
                 format!("!{}", expr)
             }
-            EnumExpression::Compare(var, e, item) => {
+            EnumExpressionPart::Compare(var, e, item) => {
                 if let Some(true) = gc.enum_list.enum_is_global(*e) {
                     // FIXME: We need some translation here since not all enums are available in cfengine (ex debian_only)
                     item.fragment().to_string() // here
@@ -97,8 +97,8 @@ impl CFEngine {
                     format!("{}_{}_{}", prefix, e.fragment(), item.fragment())
                 }
             }
-            EnumExpression::RangeCompare(_var, _e, _item1, _item2) => unimplemented!(), // TODO
-            EnumExpression::Default(_) => {
+            EnumExpressionPart::RangeCompare(_var, _e, _item1, _item2) => unimplemented!(), // TODO
+            EnumExpressionPart::Default(_) => {
                 // extract current cases and build an opposite expression
                 if self.current_cases.is_empty() {
                     "any".to_string()
@@ -106,7 +106,7 @@ impl CFEngine {
                     format!("!({})", self.current_cases.join("|"))
                 }
             }
-            EnumExpression::NoDefault(_) => "".to_string(),
+            EnumExpressionPart::NoDefault(_) => "".to_string(),
         })
     }
 
@@ -166,7 +166,7 @@ impl CFEngine {
                 let mut res = vec![];
 
                 for (case, vst) in vec {
-                    let case_exp = self.format_case_expr(gc, case)?;
+                    let case_exp = self.format_case_expr(gc, &case.expression)?;
                     for st in vst {
                         res.append(&mut self.format_statement(gc, st, case_exp.clone())?);
                     }
@@ -367,6 +367,7 @@ fn get_dest_file(input: Option<&Path>, cur_file: &str, output: Option<&Path>) ->
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn dest_file() {

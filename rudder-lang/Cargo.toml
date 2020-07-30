@@ -32,3 +32,4 @@ backtrace = "0.3"
 
 [dev-dependencies]
 test-case = "1"
+pretty_assertions = "0.6"
