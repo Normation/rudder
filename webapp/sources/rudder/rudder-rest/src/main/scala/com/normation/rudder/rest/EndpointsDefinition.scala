@@ -209,6 +209,9 @@ object NcfApi extends ApiModuleProvider[NcfApi] {
     val description = "Get all Techniques metadata"
     val (action, path)  = GET / "internal" / "techniques"
   }
+  /*
+   * Method are returned sorted alpha-numericaly
+   */
   final case object GetMethods extends NcfApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
     val description = "Get all methods metadata"
     val (action, path)  = GET / "internal" / "methods"
