@@ -14,8 +14,8 @@ deb state technique()
   if outvar=~kept => return kept
 
   case {
-    outvar=~repaired  => log "info: repaired",
+    outvar=~repaired  => log_info "repaired",
     outvar=~error => fail "failed agent",
-    default => log "default case"
+    default => log_info "default case"
   }
 }

@@ -10,14 +10,14 @@ An enum can be _global_. There are some key differences:
 
 |=======
 |difference |enum |global enum
-|unique name |no |yes
-|enum type must be specified |no |yes
+|globally unique items |no |yes
+|enum type must be specified at call time |yes |no
 |each item has a global variable associated* |no |yes
 |=======
 
-All item names of a global enum are variables, meaning it becomes reserved, no other variable can be created with this name.
+All item names of a global enum are globally unique and usable as is, meaning it becomes reserved, no other variable can be created with this name.
 
-In other words, item names of global enums are directly available in the global namespace
+In other words, item names of global enums are directly available in the global namespace.
 
 [source, rudder-lang]
 ----
@@ -28,7 +28,7 @@ global enum system {
 }
 ----
 
-To call an item of this enum, just type `linux` (rather than `system.linux`) as it now exists in the global namespace.
+To call an item of this enum, just type `linux` (rather than `system.linux`) as it exists in the global namespace.
 
 Still it remains different from a single variable since internally a reference to the enum tree is kept
 

@@ -8,7 +8,7 @@ Statements are an important concept that can be expressed by either:
 * a variable definition: `let myvar = "value"`. Value can be of any primitive type
 * a (switch) `case`. cf <<case-conditions,case conditions>>
 * an `if` condition that contains an enum expression: `if expr => statement`. cf <<if-conditions,if conditions>>
-* a flow statement: `return` `log` `fail` `noop`
+* a flow statement: `return` `log_debug` `log_info` `log_warn` `fail` `noop`
 Example of a state definition that exposes every statement type:
 
 [source, rudder-lang]

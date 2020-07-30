@@ -42,16 +42,18 @@ Sorted by category
 
 * flow statements:
 ** `fail ..`, to stop engine with a final message
-** `log ..`, to inform the user
+** `log_debug ..`, to print debug data
+** `log_info ..`, to inform the user
+** `log_warn ..`, to warn the user
 ** `return ..`, to return a specific result
 ** `noop`, do nothing
 
 
 == Operators
 
-* `@` declares a metadata which is a key / value pair (syntax is `@key=value`). Cf <<metadatas>>
+* `@` declares a metadata which is a key / value pair (syntax is `@key=value`). Cf <<metadata>>
 * `#` simple comment
-* `##` parsed comment. `##` comments are considered to be metadatas and are parsed and kept.
+* `##` parsed comment. `##` comments are considered to be metadata and are parsed and kept.
 * `|` or, `&` and, `!` not
 * `.` item in enum
 * `..` items range, in enum
@@ -109,10 +111,10 @@ An invalid variable is:
 There are two kind of comments: 
 
 * simple comments `#` that are not parsed and not stored. They are comments in the common sense : only useful for the developer from inside the _.rl_ file
-* parsed comments `##` that are considered to be metadatas. They are parsed and stored as such, and will later be used by the compiler
+* parsed comments `##` that are considered to be metadata. They are parsed and stored as such, and will later be used by the compiler
 
-[#metadatas]
-== Metadatas
+[#metadata]
+== Metadata
 
-Metadatas allow to extend the language and the generation process and give the user the ability to store structured data with resources.
-Hence metadatas that can be anything available in the language
+Metadata allow to extend the language and the generation process and give the user the ability to store structured data with resources.
+Hence metadata that can be anything available in the language

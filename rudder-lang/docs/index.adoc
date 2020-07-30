@@ -74,9 +74,9 @@ But what is _rudder-lang_ (and _rudderc_) already able to do?
 - Generate techniques written in _rudder-lang_ into: _CFEngine_
 - Translate techniques written in _JSON_ into: _rudder-lang_
 
-These abilites make use of the following features:
+These abilities make use of the following features:
 
-* A functional and evolutive *parser*
+* A functional *parser*
 * Variables based on a *type system* composed of strings, integers, booleans, structs, lists
 * A proper and contextualized *error handler* (helping you to write _rudder-lang_)
 * _rudder-lang_ *libraries*, automatically generated based on the last _rudder_ version, including:
@@ -86,7 +86,7 @@ These abilites make use of the following features:
 * Sugar features such as:
 ** Aliases
 ** Expressions and statements
-** Metadatas
+** Metadata
 ** Comments
 * Usage of parameters and configuration files (technique names and paths as input and output, libraires paths etc)
 * *Logs* generation, including log output settings like verbosity or format
@@ -103,7 +103,7 @@ These abilites make use of the following features:
 ==== Long-term future abilities
 
 * New keywords including the _action_, _measure_, _function_ keywords
-* Fully rewrite the ncf library into a self-susfficient _rudder-lang_ library
+* Fully rewrite the ncf library into a self-sufficient _rudder-lang_ library
 * Plain integration and usage of _rudder-lang_ into _Rudder_ whether as code or into the _Technique Editor_
 * Various improvements and some reworks
 

@@ -1,27 +1,27 @@
-Desing decision and their reason
+Design decision and their reason
 ================================
 
 * "as outvar" for status variables
 
-The important thing in the langage is the state definition.
+The important thing in the language is the state definition.
 State definition is done by calling a specific state on a specific resource.
 Everything else (such as variable definition) is unimportant.
-We want to deemphasise the variable defnition aspect of state definition by removing the '=' 
+We want to de-emphasise the variable definition aspect of state definition by removing the '='
 at the beginning of the statement. The '=' sign is very visible and signifies an affectation.
 We are not doing an affectation we are defining a state which sometimes has the side effect of defining a variable.
 
-* subresources and alias
+* sub resources and alias
 
 A sub resource is a part of resources. It means that changing a subresource implies changing the parent resource.
 However changing the resource does not necessarily means changing the sub resource.
 For robustness of the state checker, different states of the same resource are incompatible.
 This means that a resource must be split into sub resource to make different sub states compatible.
 (ex: FileContent and FilePermission are sub resources of file and are compatible).
-This means that thing that may be perceived as states are in fact subresources.
+This means that thing that may be perceived as states are in fact sub resources.
 
 That's why to make life easier for the user we want to also define aliases. Alases don't have the same constraint.
 There can be as many aliases as wanted for a single resource, an alias of a subresource can be interpreted by the user
-as a suplementary state of the parent resource.
+as a supplementary state of the parent resource.
 
 TODO since the compatibility is not the same for aliases and state, shouldn't we indicate the difference somehow.
 
@@ -52,20 +52,12 @@ Cela rend les message du parseur cryptiques ou non pertinents.
 Demander a terminer une définition de variable par un retour à la ligne permet de localiser l'erreur mais
 empeche la définition de variables multilignes.
 
-* unsafecell dans le stockage de code
-Les données parsées sont des références sur les fichier parsés (avec leur position et le nom de fichier).
-En tant que référence, rust vérifie de toujours pouvoir y accéder depuis leur origine, le texte du fichier
-doit donc être stocké de facon permanente sous un binding fixe.
-De plus la liste des fichiers lus doit pouvoir être étendue suite à des includes ontenus après parsing.
-Il n'y a pas de structure rust permettant ceci, c'est pourquoi j'ai créé une liste chainée dont seule
-la fin est modifiable pour l'étendre.
-
 * incompatibilité entre states d'une meme resource
 
 * lifetime 'src
-Presque tout le code contient des référence sur le code parsé.
-La lifetime associée s'appelle donc 'src et est facilement repérable.
-Cela rend d'autant plus facilement repérables les autres lifetime qui ne sont pas des références directes du code.
+Most of the data structures contain a reference to parsed code.
+So there is a lifetime everywhere that is in fact the same.
+That's why we chose to name it 'src to make it easy to catch and separate from other lifetimes.
 
 * comment = medatata
 Pour permettre une interraction simple avec le format json de technique, on ne crée pas de cas spécifique pour les commentaire.

@@ -1,13 +1,13 @@
 = Items
 
-An item is a component of _rudder-lang_. Associated to a scope, an item name is actually a *variable* in the common variable meaning
+An item is a component of _rudder-lang_.
 
-As explained in a previous chapter after the header come *declaration* and *definition* of _rudder lang_ items
+As explained in a previous chapter after the header come *declaration* and *definition* of _rudder lang_ items.
 
-NOTE: - Item *declaration* means informing the compiler a variable now exists, with a given name and optionally type +
+NOTE: - Item *declaration* means informing the compiler something now exists, with a given name and optionally type +
 - Item *definition* means giving the said variable a value
 
-Before defining variables, an overview of the language keywords as well as a better understanding of types, operators and enums is required
+Before defining variables, an overview of the language keywords as well as a better understanding of types, operators and enums is required<.
 
 == Local vs global scope
 
@@ -27,7 +27,7 @@ Most item definition patterns look like:
 type identifier(parameter_list) # lists are wrapped into `[` or `{` or `(`
 -----
 
-Unless specified otherwise, comments and metadatas are allowed.
+Unless specified otherwise, comments and metadata are allowed.
 
 List of possible definitions:
 
@@ -47,8 +47,8 @@ NOTE: a value can be any _rudder-lang_ type
 
 === definition: enum
  
-An enum is a list of values, like a C enum.
-See <<enums,enums>> to have an understanding on how _rudder-lang enums_ work
+An enum is a list of values, a bit like a C enum.
+See <<enums,enums>> to have an understanding on how _rudder-lang enums_ work.
 
 ==== Examples:
 
@@ -106,7 +106,7 @@ items in debian_family {
 }
 ----
 
-Note that each element can be supplemented by a comment or metadata
+Note that each element can be supplemented by a comment or metadata.
 
 === declaration: enum alias
 
