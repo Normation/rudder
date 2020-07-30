@@ -548,6 +548,7 @@ impl fmt::Display for Policy {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn format_promise() {

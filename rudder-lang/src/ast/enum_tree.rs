@@ -262,6 +262,7 @@ mod tests {
     use super::*;
     use crate::parser::tests::{penum_t, psub_enum_t};
     use maplit::hashset;
+    use pretty_assertions::assert_eq;
 
     fn item(name: &str) -> EnumItem {
         EnumItem::Item(name.into())

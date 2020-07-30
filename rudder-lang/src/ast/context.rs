@@ -168,6 +168,7 @@ impl<'src> VarContext<'src> {
 mod tests {
     use super::*;
     use crate::parser::{tests::*, *};
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn test_context() {
