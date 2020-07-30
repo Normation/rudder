@@ -25,15 +25,29 @@ as a supplementary state of the parent resource.
 
 TODO since the compatibility is not the same for aliases and state, shouldn't we indicate the difference somehow.
 
+* log
+We use log token because we don't want a log() function that would conflict with the function concept in rudder-lang.
+We split this token in 3 tokens (log_debug, log_info, log_warn) to make it easy to specify log level without
+having a function call syntax.
 
-* json read method
-
-* iterators
+* let keyword
+At first, not having a keyword at all seamed simpler, but parsing global variables became complex so we added
+one for global variables. Then we added one for magic variables.
+Now we only have one keyword "let" that is the same everywhere you want to declare a variable.
+This is easier to learn.
 
 * metadata
 We want to be able to extend the language and the generation process without changing the language.
 Moreover we want to give the user the ability to store structured data with resources.
 Hence metadata that can be anything available in the language
+
+* toml metadata
+TOML is a well known format, and has battle tester parsers.
+Let's support it instead of creating our own format.
+
+* json read method
+
+* iterators
 
 * subtyping
 
@@ -44,13 +58,6 @@ Les données locales (variables) doivent être définies avant d'etre utilisée 
 qui permet de détcter des erreurs logiques.
 Les données globales n'ont pas a etre définies dans l'ordre car il peut être difficile de maitriser
 l'ordre de chargement des fichier et les définition globales car elles peuvent être écrites ar plusieurs personnes.
-
-* définition de variable sur une ligne
-Il n'y a pas de déparateur de définition de variable explicite.
-Cela pose problème en cas d'erreur de la part de l'utilisateur, on ne peut pas localiser précisément l'erreur.
-Cela rend les message du parseur cryptiques ou non pertinents.
-Demander a terminer une définition de variable par un retour à la ligne permet de localiser l'erreur mais
-empeche la définition de variables multilignes.
 
 * incompatibilité entre states d'une meme resource
 

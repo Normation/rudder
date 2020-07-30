@@ -39,6 +39,8 @@ fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
         PErrorKind::InvalidFormat => PErrorKind::InvalidFormat,
         PErrorKind::InvalidName(i) => PErrorKind::InvalidName(*i.fragment()),
         PErrorKind::InvalidVariableReference => PErrorKind::InvalidVariableReference,
+        PErrorKind::NoMetadata => PErrorKind::NoMetadata,
+        PErrorKind::TomlError(i,e) => PErrorKind::TomlError(*i.fragment(),e),
         PErrorKind::UnsupportedMetadata(i) => PErrorKind::UnsupportedMetadata(*i.fragment()),
         PErrorKind::UnterminatedDelimiter(i) => PErrorKind::UnterminatedDelimiter(*i.fragment()),
         PErrorKind::UnterminatedOrInvalid(i) => PErrorKind::UnterminatedOrInvalid(*i.fragment()),
@@ -161,8 +163,8 @@ fn test_pcomment() {
         Ok((
             "",
             PMetadata {
-                key: "comment".into(),
-                value: PValue::String("##".into(), "hello Herman1".into()),
+                source: "##hello Herman1\n".into(),
+                values: toml::de::from_str("comment=\"hello Herman1\"").unwrap(),
             }
         ))
     );
@@ -171,8 +173,8 @@ fn test_pcomment() {
         Ok((
             "Hola",
             PMetadata {
-                key: "comment".into(),
-                value: PValue::String("##".into(), "hello Herman2".into()),
+                source: "##hello Herman2\n".into(),
+                values: toml::de::from_str("comment=\"hello Herman2\"").unwrap(),
             }
         ))
     );
@@ -181,38 +183,8 @@ fn test_pcomment() {
         Ok((
             "",
             PMetadata {
-                key: "comment".into(),
-                value: PValue::String("##".into(), "hello Herman3!".into()),
-            }
-        ))
-    );
-    assert_eq!(
-        map_res(pcomment, "##hello1\nHerman\n"),
-        Ok((
-            "Herman\n",
-            PMetadata {
-                key: "comment".into(),
-                value: PValue::String("##".into(), "hello1".into()),
-            }
-        ))
-    );
-    assert_eq!(
-        map_res(pcomment, "##hello2\nHerman\n## 2nd line"),
-        Ok((
-            "Herman\n## 2nd line",
-            PMetadata {
-                key: "comment".into(),
-                value: PValue::String("##".into(), "hello2".into()),
-            }
-        ))
-    );
-    assert_eq!(
-        map_res(pcomment, "##hello\n##Herman\n"),
-        Ok((
-            "",
-            PMetadata {
-                key: "comment".into(),
-                value: PValue::String("##".into(), "hello\nHerman".into()),
+                source: "##hello Herman3!".into(),
+                values: toml::de::from_str("comment=\"hello Herman3!\"").unwrap(),
             }
         ))
     );
@@ -290,22 +262,22 @@ fn test_penum() {
     assert_eq!(
         map_res(
             penum,
-            "@meta=\"hello\"\nenum abc3 { @metadata=\"value\" a, b, }"
+            "@meta=\"hello\"\nenum abc3 { @metadata=\"value\"\n a, b, }"
         ),
         Ok((
             "",
             PEnum {
                 global: false,
                 metadata: vec![PMetadata {
-                    key: "meta".into(),
-                    value: PValue::String("\"".into(), "hello".into()),
+                    source: "@meta=\"hello\"\n".into(),
+                    values: toml::de::from_str("meta=\"hello\"").unwrap(),
                 }],
                 name: "abc3".into(),
                 items: vec![
                     (
                         vec![PMetadata {
-                            key: "metadata".into(),
-                            value: PValue::String("\"".into(), "value".into()),
+                            source: "@metadata=\"value\"\n".into(),
+                            values: toml::de::from_str("metadata=\"value\"").unwrap(),
                         }],
                         "a".into()
                     ),
@@ -765,41 +737,42 @@ fn test_pvalue() {
 
 #[test]
 fn test_pmetadata() {
+    // Test with internal serde_toml structure to make sure we agree on this
+    let test1 = "@key=\"value\"\n";
+    let mut res = toml::map::Map::new();
+    res.insert("key".into(),TomlValue::String("value".into()));
     assert_eq!(
-        map_res(pmetadata, r#"@key="value""#),
-        Ok((
-            "",
-            PMetadata {
-                key: "key".into(),
-                value: PValue::String("\"".into(), "value".to_string())
+        map_res(pmetadata, test1),
+        Ok(("",
+            PMetadata{
+                source: test1.into(),
+                values: TomlValue::Table(res)
             }
         ))
     );
+    // use serde_toml for other tests since it should already be tested
+    let test2 = "@key1 = {\"key2\"=\"value\"}\n@key3 = 1234\n";
     assert_eq!(
-        map_res(pmetadata, r#"@key = "value""#),
-        Ok((
-            "",
-            PMetadata {
-                key: "key".into(),
-                value: PValue::String("\"".into(), "value".to_string())
+        map_res(pmetadata, test2),
+        Ok(("",
+            PMetadata{
+                source: test2.into(),
+                values: toml::de::from_str("key1 = {\"key2\"=\"value\"}\nkey3 = 1234\n").unwrap()
             }
         ))
     );
+    let test3 = "@key1 = {\"key2\"=\"value\"}\n@key3 = 1234\n";
     assert_eq!(
-        map_res(pmetadata, r#"@key = {"key":"value"}"#),
-        Ok((
-            "",
-            PMetadata {
-                key: "key".into(),
-                value: PValue::Struct(hashmap! {
-                "key".into() => PValue::String("\"".into(), "value".into())})
+        map_res(pmetadata, &("  ".to_owned()+test3)),
+        Ok(("",
+            PMetadata{
+                source: test3.into(),
+                values: toml::de::from_str("key1 = {\"key2\"=\"value\"}\nkey3 = 1234\n").unwrap()
             }
         ))
     );
-    assert_eq!(
-        map_res(pmetadata, "@key value"),
-        Err(("@key value", PErrorKind::ExpectedToken("=")))
-    );
+    assert!(pmetadata(PInput::new_extra("@key value\n","")).is_err());
+    assert!(pmetadata(PInput::new_extra("\n","")).is_err());
 }
 
 #[test]
@@ -807,22 +780,22 @@ fn test_pmetadata_list() {
     assert_eq!(
         map_res(
             pmetadata_list,
-            "@key=\"value\"\n##hello\n##Herman\n@key=123"
+            "@key=\"value\"\n##hello\n##Herman\n@key=123\n"
         ),
         Ok((
             "",
             vec![
-                PMetadata {
-                    key: "key".into(),
-                    value: PValue::String("\"".into(), "value".to_string())
+                PMetadata{
+                    source: "@key=\"value\"\n".into(),
+                    values: toml::de::from_str("key=\"value\"").unwrap()
                 },
                 PMetadata {
-                    key: "comment".into(),
-                    value: PValue::String("##".into(), "hello\nHerman".to_string())
+                    source: "##hello\n##Herman\n".into(),
+                    values: toml::de::from_str("comment=\"hello\\nHerman\"").unwrap(),
                 },
-                PMetadata {
-                    key: "key".into(),
-                    value: PValue::Number("123".into(), 123.0)
+                PMetadata{
+                    source: "@key=123\n".into(),
+                    values: toml::de::from_str("key=123").unwrap()
                 },
             ]
         ))

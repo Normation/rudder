@@ -14,16 +14,16 @@ sub get_paths_from_conf_file {
   open (FILE, $file);
   while (<FILE>) {
     chomp;
-    if ($is_default == 1 && /^\s*ncf_generic_methods\s*=\s*"(?<path>[\-\w/.]+)"/ ) {
+    if ($is_default == 1 && /^\s*ncf_generic_methods\s*=\s*"(?<path>[\-\w\/.]+)"/ ) {
       $ncf_gm_path = $+{path};
     }
-    if ($is_default == 1 && /^\s*dsc_generic_methods\s*=\s*"(?<path>[\-\w/.]+)"/ ) {
+    if ($is_default == 1 && /^\s*dsc_generic_methods\s*=\s*"(?<path>[\-\w\/.]+)"/ ) {
       $dsc_gm_path = $+{path};
     }
-    if ($is_default == 1 && /^\s*stdlib\s*=\s*"(?<path>[\-\w/.]+)"/ ) {
+    if ($is_default == 1 && /^\s*stdlib\s*=\s*"(?<path>[\-\w\/.]+)"/ ) {
       $resourcelib_path = $+{path};
     }
-    if ($is_default == 1 && /^\s*meta_generic_methods\s*=\s*"(?<path>[\-\w/.]+)"/ ) {
+    if ($is_default == 1 && /^\s*meta_generic_methods\s*=\s*"(?<path>[\-\w\/.]+)"/ ) {
       $meta_gm = $+{path};
     }
     if ( /^\s*\[\s*(?<group>\w+)\s*\]\s*$/ ) {
@@ -95,7 +95,7 @@ foreach my $file (glob $ncf_methods) {
     elsif($line =~ /^#.*\@class_parameter\s+(\w+)/) {
       $class_parameter = $param_id{$1};
       splice @params, $class_parameter, 1;
-      push @resource_params, "\"$1\": $class_parameter";
+      push @resource_params, "\"$1\"= $class_parameter";
     }
     elsif($line =~ /^bundle agent (\w+)\(/) {
       $generic_method = $1;

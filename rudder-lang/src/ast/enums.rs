@@ -5,13 +5,14 @@ use super::{
     context::VarKind,
     enum_tree::{EnumItem, EnumTree},
     resource::Statement,
-    value::Value,
 };
 use crate::{
     error::*,
     parser::*,
 };
 use std::collections::{HashMap, HashSet};
+use toml::map::Map as TomlMap;
+use toml::Value as TomlValue;
 
 // TODO named item tests
 // TODO aliases tests
@@ -42,7 +43,7 @@ impl<'src> EnumList<'src> {
     }
 
     /// Returns the metadata of a given enum
-    pub fn _enum_metadata(&self, e: Token<'src>) -> Option<&HashMap<Token<'src>, Value<'src>>> {
+    pub fn _enum_metadata(&self, e: Token<'src>) -> Option<&TomlMap<String, TomlValue>> {
         self.enums.get(&e).map(|e| &e.metadata)
     }
 
@@ -51,7 +52,7 @@ impl<'src> EnumList<'src> {
         &self,
         e: Token<'src>,
         i: Token<'src>,
-    ) -> Option<&HashMap<Token<'src>, Value<'src>>> {
+    ) -> Option<&TomlMap<String, TomlValue>> {
         self.enums.get(&e).and_then(|e| e.item_metadata.get(&i))
     }
 

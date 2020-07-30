@@ -7,55 +7,63 @@ use super::{
     value::Value,
 };
 use crate::{error::*, parser::*};
-use std::collections::{hash_map::Entry, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
+use toml::map::Map as TomlMap;
+use toml::Value as TomlValue;
 
 ///! There are 2 kinds of functions return
 ///! - Result: could not return data, fatal to the caller
 ///! - Error vec: data partially created, you may continue
 
-/// Create final metadata from parsed metadata
-pub fn create_metadata(pmetadata: Vec<PMetadata>) -> (Vec<Error>, HashMap<Token, Value>) {
+/// Create single final metadata table from parsed metadata list
+pub fn create_metadata(pmetadata: Vec<PMetadata>) -> (Vec<Error>, TomlMap<String, TomlValue>) {
     let mut errors = Vec::new();
-    let mut metadata = HashMap::new();
+    let mut output = TomlMap::new();
     for meta in pmetadata {
-        let value = match Value::from_static_pvalue(meta.value) {
-            Err(e) => {
-                errors.push(e);
-                continue;
-            }
-            Ok(v) => v,
+        // check that we have a real key=value table
+        let table = match meta.values {
+            TomlValue::Table(t) => t,
+            _ => { errors.push(err!(meta.source, "Metadata syntax error, must be a key=value")); continue }
         };
-        // Check for uniqueness and concat comments
-        match metadata.entry(meta.key) {
-            Entry::Occupied(mut entry) => {
-                let key: Token = *entry.key();
-                if key.fragment() == "comment" {
-                    match entry.get_mut() {
-                        Value::String(ref mut o1) => match value {
-                            Value::String(o2) => o1.append(o2),
-                            _ => errors
-                                .push(err!(meta.key, "Comment metadata must be of type string")),
-                        },
-                        _ => errors.push(err!(
+        for (key,value) in table {
+            // Check for uniqueness and concat comments
+            match output.entry(key) {
+                toml::map::Entry::Occupied(mut entry) => {
+                    let key = entry.key();
+                    if key == "comment" {
+                        // if this is an existing comment, just concatenate it
+                        let comment = match entry.get() {
+                            TomlValue::String(s1) => match value {
+                                TomlValue::String(s2) => s1.to_owned() + &s2,
+                                _ => { errors
+                                        .push(err!(meta.source, "Comment metadata must be of type string"));
+                                      continue },
+                            },
+                            _ => { errors.push(err!(
+                                        meta.source,
+                                        "Existing comment metadata must be of type string"
+                                    ));
+                                    continue
+                            }
+                        };
+                        entry.insert(TomlValue::String(comment));
+                    } else {
+                        // if this is an existing key, there is an error
+                        errors.push(err!(
+                            meta.source,
+                            "metadata {} already defined",
                             key,
-                            "Existing comment metadata must be of type string"
-                        )),
-                    };
-                } else {
-                    errors.push(err!(
-                        meta.key,
-                        "metadata {} already defined at {}",
-                        &meta.key,
-                        key,
-                    ));
+                        ));
+                    }
                 }
-            }
-            Entry::Vacant(entry) => {
-                entry.insert(value);
-            }
-        };
+                toml::map::Entry::Vacant(entry) => {
+                    // Just append new values
+                    entry.insert(value);
+                }
+            };
+        }
     }
-    (errors, metadata)
+    (errors, output)
 }
 
 /// Create function/resource/state parameter definition from parsed parameters.
@@ -95,7 +103,7 @@ fn create_default_context<'src>(
 /// Resource definition with associated metadata and states.
 #[derive(Debug)]
 pub struct ResourceDef<'src> {
-    pub metadata: HashMap<Token<'src>, Value<'src>>,
+    pub metadata: TomlMap<String, TomlValue>,
     pub parameters: Vec<Parameter<'src>>,
     pub states: HashMap<Token<'src>, StateDef<'src>>,
     pub children: HashSet<Token<'src>>,
@@ -155,7 +163,7 @@ impl<'src> ResourceDef<'src> {
 /// State definition and associated metadata
 #[derive(Debug)]
 pub struct StateDef<'src> {
-    pub metadata: HashMap<Token<'src>, Value<'src>>,
+    pub metadata: TomlMap<String, TomlValue>,
     pub parameters: Vec<Parameter<'src>>,
     pub statements: Vec<Statement<'src>>,
     pub context: VarContext<'src>,
@@ -256,7 +264,7 @@ impl<'src> Parameter<'src> {
 #[derive(Debug, PartialEq)]
 pub struct StateDeclaration<'src> {
     pub source: Token<'src>,
-    pub metadata: HashMap<Token<'src>, Value<'src>>,
+    pub metadata: TomlMap<String, TomlValue>,
     pub mode: PCallMode,
     pub resource: Token<'src>,
     pub resource_params: Vec<Value<'src>>,
@@ -271,7 +279,7 @@ pub struct StateDeclaration<'src> {
 #[allow(clippy::large_enum_variant)]
 pub enum Statement<'src> {
     // TODO should we split variable definition and enum definition ? this would probably help generators
-    VariableDefinition(HashMap<Token<'src>, Value<'src>>, Token<'src>, Value<'src>),
+    VariableDefinition(TomlMap<String, TomlValue>, Token<'src>, Value<'src>),
     // one state
     StateDeclaration(StateDeclaration<'src>),
     //   keyword    list of condition          then

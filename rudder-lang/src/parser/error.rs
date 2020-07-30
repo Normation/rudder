@@ -22,28 +22,30 @@ pub type PResult<'src, O> = IResult<PInput<'src>, O, PError<PInput<'src>>>;
 pub enum PErrorKind<I> {
     Nom(VerboseError<I>), // TODO remove this one
     #[cfg(test)]
-    NomTest(String), // cannot be use outside of tests
+    NomTest(String),          // cannot be use outside of tests
     ExpectedKeyword(&'static str), // anywhere (keyword type)
     ExpectedToken(&'static str), // anywhere (expected token)
-    InvalidEnumExpression, // in enum expression
-    InvalidEscapeSequence, // in string definition
-    InvalidFormat,        // in header
-    InvalidName(I),       // in identifier expressions (type of expression)
-    InvalidVariableReference, // during string interpolation
-    UnsupportedMetadata(I), // metadata or comments are not supported everywhere (metadata key)
-    UnterminatedDelimiter(I), // after an opening delimiter (first delimiter)
-    UnterminatedOrInvalid(I), // can't say whether a delimiter is missing or a statement format is invalid
-    Unparsed(I),              // cannot be parsed
+    InvalidEnumExpression,      // in enum expression
+    InvalidEscapeSequence,      // in string definition
+    InvalidFormat,              // in header
+    InvalidName(I),             // in identifier expressions (type of expression)
+    InvalidVariableReference,   // during string interpolation
+    NoMetadata,                 // Temporary error, always caught, should not happen
+    TomlError(I,toml::de::Error), // Error during toml parsing
+    UnsupportedMetadata(I),     // metadata or comments are not supported everywhere (metadata key)
+    UnterminatedDelimiter(I),   // after an opening delimiter (first delimiter)
+    UnterminatedOrInvalid(I),   // can't say whether a delimiter is missing or a statement format is invalid
+    Unparsed(I),                // cannot be parsed
 }
 
 // This is the same thing as a closure (Fn() -> I) but I couldn't manage to cope with lifetime
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Context<I> {
     pub extractor: fn(I, I) -> I,
     pub text: I,
     pub token: I,
 }
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct PError<I> {
     pub context: Option<Context<I>>,
     pub kind: PErrorKind<I>,
@@ -107,6 +109,8 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
             PErrorKind::InvalidFormat => "Invalid header format, it must contain a single line '@format=x' where x is an integer. Shebang accepted.".to_string(),
             PErrorKind::InvalidName(i) => format!("The identifier is invalid in a {}.", i.fragment().bright_magenta()),
             PErrorKind::InvalidVariableReference => "This variable reference is invalid".to_string(),
+            PErrorKind::NoMetadata => "Expecting metadata here".to_string(),
+            PErrorKind::TomlError(i,e) => format!("Unable to parse metadata block at {}: {}", Token::from(*i).position_str().bright_yellow(), e),
             PErrorKind::UnsupportedMetadata(i) => format!("Parsed comment or metadata not supported at this place: '{}' found at {}", i.fragment().bright_magenta(), Token::from(*i).position_str().bright_yellow()),
             PErrorKind::UnterminatedDelimiter(i) => format!("Missing closing delimiter for '{}'", i.fragment().bright_magenta()),
             PErrorKind::UnterminatedOrInvalid(i) => format!("Either an unexpected statement or no closing delimiter matching '{}'", i.fragment().bright_magenta()),

@@ -466,34 +466,6 @@ impl<'src> AST<'src> {
         }
     }
 
-    fn metadata_sub_check(k: &Token<'src>, v: &Value<'src>) -> Result<()> {
-        match v {
-            Value::String(s) => {
-                if !s.is_static() {
-                    // we don't know what else we can do so fail to keep a better behaviour for later
-                    fail!(
-                        k,
-                        "Metadata {} has a value that contains variables, this is not allowed",
-                        k
-                    );
-                }
-                Ok(())
-            }
-            Value::Number(_, _) => Ok(()),
-            Value::Boolean(_, _) => Ok(()), // actually not sure what should be returned here
-            Value::EnumExpression(_) => fail!(
-                k,
-                "Metadata {} contains an enum expression, this is not allowed",
-                k
-            ),
-            Value::List(l) => map_results(l.iter(), |v| AST::metadata_sub_check(k, v)),
-            Value::Struct(s) => map_results(s.iter(), |(_, v)| AST::metadata_sub_check(k, v)),
-        }
-    }
-    fn metadata_check(&self, metadata: &HashMap<Token<'src>, Value<'src>>) -> Result<()> {
-        map_results(metadata.iter(), |(k, v)| AST::metadata_sub_check(k, v))
-    }
-
     fn children_check(
         &self,
         name: Token<'src>,
@@ -641,13 +613,9 @@ impl<'src> AST<'src> {
         for (rn, resource) in self.resources.iter() {
             // check resource name
             errors.push(self.invalid_identifier_check(*rn));
-            // check that metadata does not contain any variable reference
-            errors.push(self.metadata_check(&resource.metadata));
             for (sn, state) in resource.states.iter() {
                 // check status name
                 errors.push(self.invalid_identifier_check(*sn));
-                // check that metadata does not contain any variable reference
-                errors.push(self.metadata_check(&state.metadata));
                 for st in state.statements.iter() {
                     // check for resources and state existence
                     // check for matching parameter and type

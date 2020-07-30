@@ -177,7 +177,7 @@ Configure_NTP state technique() {
 @metadata=1
 resource Configure_NTP()
 Configure_NTP state technique() {
-    @var_def = 123
+    @var_def=123
     let filename = "s_test.rl"
 }
 "#; "s_state_var")]

@@ -8,6 +8,7 @@ use crate::{
 };
 
 use std::{collections::HashMap, ffi::OsStr, fs::File, io::Write, path::Path};
+use toml::Value as TomlValue;
 
 use crate::error::*;
 
@@ -146,11 +147,11 @@ impl DSC {
     ) -> Result<(String, usize)> {
         // if one day several class_parameters are used as they previously were, get the relative code from this commit
         // 89651a6a8a05475eabccefc23e4fe23235a7e011 . This file, line 170
-        match state_def.metadata.get(&Token::from("class_parameter")) {
-            Some(Value::Struct(parameters)) if parameters.len() == 1 => {
+        match state_def.metadata.get("class_parameter") {
+            Some(TomlValue::Table(parameters)) if parameters.len() == 1 => {
                 let p = parameters.iter().next().unwrap();
                 let p_index = match p.1 {
-                    Value::Number(_, n) => *n as usize,
+                    TomlValue::Integer(n) => *n as usize,
                     _ => {
                         return Err(Error::new(
                             "Expected value type for class parameters metadata: Number".to_owned(),
@@ -201,13 +202,13 @@ impl DSC {
             .map(|p| p.name.fragment())
             .collect::<Vec<&str>>();
 
-        let is_dsc_supported: bool = match state_def.metadata.get(&Token::from("supported_formats"))
+        let is_dsc_supported: bool = match state_def.metadata.get("supported_formats")
         {
-            Some(Value::List(parameters)) => {
+            Some(TomlValue::Array(parameters)) => {
                 let mut is_dsc_listed = false;
                 for p in parameters {
-                    if let Value::String(_) = p {
-                        if &self.value_to_string(p, false)? == "dsc" {
+                    if let TomlValue::String(s) = p {
+                        if s == "dsc" {
                             is_dsc_listed = true;
                             break;
                         }
@@ -268,12 +269,9 @@ impl DSC {
                 if let Some(var) = sd.outcome {
                     self.new_var(&var);
                 }
-                let component = match sd.metadata.get(&"component".into()) {
+                let component = match sd.metadata.get("component") {
                     // TODO use static_to_string
-                    Some(Value::String(s)) => match &s.data[0] {
-                        PInterpolatedElement::Static(st) => st.clone(),
-                        _ => "any".to_string(),
-                    },
+                    Some(TomlValue::String(s)) => s.to_owned(),
                     _ => "any".to_string(),
                 };
 
@@ -421,24 +419,22 @@ impl DSC {
         })
     }
 
-    fn generate_parameters_metadatas<'src>(&mut self, parameters: Option<Value<'src>>) -> String {
+    fn generate_parameters_metadatas<'src>(&mut self, parameters: Option<TomlValue>) -> String {
         let mut params_str = String::new();
 
-        let mut get_param_field = |param: &Value, entry: &str| -> String {
-            if let Value::Struct(param) = &param {
+        let get_param_field = |param: &TomlValue, entry: &str| -> String {
+            if let TomlValue::Table(param) = &param {
                 if let Some(val) = param.get(entry) {
-                    if let Ok(val_s) = self.value_to_string(val, false) {
-                        return match val {
-                            Value::String(_) => format!("{:?}: {:?}", entry, val_s),
-                            _ => format!("{:?}: {}", entry, val_s),
-                        };
+                    match val {
+                        TomlValue::String(s) => return format!("{:?}: {:?}", entry, s),
+                        _ => { }
                     }
                 }
             }
             "".to_owned()
         };
 
-        if let Some(Value::List(parameters)) = parameters {
+        if let Some(TomlValue::Array(parameters)) = parameters {
             parameters.iter().for_each(|param| {
                 params_str.push_str(&format!(
                     "# @parameter {{ {}, {}, {} }}\n",
@@ -455,14 +451,17 @@ impl DSC {
         let mut meta = resource.metadata.clone();
         // removes parameters from meta and returns it formatted
         let parameters: String =
-            self.generate_parameters_metadatas(meta.remove(&Token::from("parameters")));
+            self.generate_parameters_metadatas(meta.remove("parameters"));
         // description must be the last field
         let mut map = map_hashmap_results(meta.iter(), |(n, v)| {
-            Ok((n.fragment(), self.value_to_string(v, false)?))
+            match v {
+                TomlValue::String(s) => Ok((n,s)),
+                _ => Err(err!(_name, "Expecting string parameters")),
+            }
         })?;
         let mut metadatas = String::new();
         let mut push_metadata = |entry: &str| {
-            if let Some(val) = map.remove(entry) {
+            if let Some(val) = map.remove(&entry.to_string()) {
                 metadatas.push_str(&format!("# @{} {:#?}\n", entry, val));
             }
         };

@@ -9,6 +9,7 @@ use nom::{
     branch::*, bytes::complete::*, character::complete::*, combinator::*, error::*, multi::*,
     number::complete::*, sequence::*,
 };
+use toml::Value as TomlValue;
 
 use std::collections::HashMap;
 
@@ -169,7 +170,7 @@ fn psub_enum(i: PInput) -> PResult<PSubEnum> {
             metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
             e:      estag("items");
             _i:     estag("in");
-            _fail:  or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
+            _fail:  or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].source.into()));
             enum_name: opt(terminated(pidentifier,etag(".")));
             name:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
             items : delimited_nonempty_list("{", penum_item, ",", "}");
@@ -194,7 +195,7 @@ fn penum_alias(i: PInput) -> PResult<PEnumAlias> {
             metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
             e:      estag("enum");
             _i:     estag("alias");
-            _fail:  or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
+            _fail:  or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].source.into()));
             name:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
             _x:     ftag("=");
             enum_name: opt(terminated(pidentifier,etag(".")));
@@ -570,23 +571,37 @@ fn ptype(i: PInput) -> PResult<PValue> {
 /// Currently metadata is not used by the compiler, just parsed, but that may change.
 #[derive(Debug, PartialEq)]
 pub struct PMetadata<'src> {
-    pub key: Token<'src>,
-    pub value: PValue<'src>,
+    pub source: Token<'src>,
+    pub values: TomlValue,
 }
 fn pmetadata(i: PInput) -> PResult<PMetadata> {
-    wsequence!(
-        {
-            key: preceded(etag("@"), pidentifier);
-            _x: ftag("=");
-            value: pvalue;
-        } => PMetadata { key, value }
-    )(i)
+    let (i0,_) = strip_spaces_and_comment(i)?;
+    let mut it = iterator(i0, delimited(tag("@"),not_line_ending,line_ending));
+    let metadata_string = it.map(|v| *v.fragment()).collect::<Vec<&str>>().join("\n");
+    let (rest,_) = it.finish()?;
+    if &metadata_string == "" {
+        return  Err(nom::Err::Error(PError {
+            context: None,
+            kind: PErrorKind::NoMetadata,
+        }));
+    }
+    let values = match toml::de::from_str(&metadata_string) {
+        Ok(v) => v,
+        Err(e) => return Err(nom::Err::Error(PError {
+            context: None,
+            kind: PErrorKind::TomlError(i,e),
+        })),
+    };
+
+    let source = get_parsed_context(i,i0,rest);
+    let (rest,_) = strip_spaces_and_comment(rest)?;
+    Ok((rest, PMetadata { source, values }))
 }
 
 /// A parsed comment block starts with a ## and ends with the end of line.
 /// Such comment is parsed and kept contrarily to comments starting with '#'.
 fn pcomment(i: PInput) -> PResult<PMetadata> {
-    let (i, start) = peek(etag("##"))(i)?;
+    let i0 = i;
     let (i, lines) = many1(map(
         preceded(
             etag("##"),
@@ -598,11 +613,14 @@ fn pcomment(i: PInput) -> PResult<PMetadata> {
         ),
         |x: PInput| x.to_string(),
     ))(i)?;
+    let source = get_parsed_context(i0,i0,i);
+    let mut data = toml::map::Map::new();
+    data.insert("comment".into(), TomlValue::String(lines.join("\n")));
     Ok((
         i,
         PMetadata {
-            key: "comment".into(),
-            value: PValue::String(start.into(), lines.join("\n")),
+            source,
+            values: TomlValue::Table(data),
         },
     ))
 }
@@ -844,7 +862,7 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
             {
                 metadata: pmetadata_list; // metadata is invalid here, check it after the 'case' tag below
                 case: etag("case");
-                _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].key.into()));
+                _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].source.into()));
                 cases: delimited_list("{", pcase, ",", "}" );
             } => PStatement::Case(case.into(), cases)
         ),

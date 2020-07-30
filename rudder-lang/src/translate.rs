@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use crate::{
-    ast::{value, AST},
+    ast::AST,
     compile::parse_stdlib,
     error::*,
     io::IOContext,
@@ -17,7 +17,8 @@ use nom::{
 use regex::{Captures, Regex};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::{convert::TryFrom, fs, str};
+use std::{fs, str};
+use toml::Value as TomlValue;
 
 use typed_arena::Arena;
 
@@ -380,22 +381,22 @@ resource {bundle_name}({parameter_list})
                 .enum_list
                 .enum_item_metadata("system".into(), *i)
                 .expect("Enum item exists")
-                .get(&"cfengine_name".into())
+                .get("cfengine_name")
             {
                 None => {
                     if **i == cond {
                         return Ok(cond.into());
                     }
                 } // no @cfengine_name -> enum item = cfengine class
-                Some(value::Value::String(name)) => {
-                    if String::try_from(name)? == cond {
+                Some(TomlValue::String(name)) => {
+                    if name == cond {
                         return Ok((**i).into());
                     }
                 } // simple cfengine name
-                Some(value::Value::List(list)) => {
+                Some(TomlValue::Array(list)) => {
                     for value in list {
-                        if let value::Value::String(name) = value {
-                            if String::try_from(name)? == cond {
+                        if let TomlValue::String(name) = value {
+                            if name == cond {
                                 return Ok((**i).into());
                             }
                         }

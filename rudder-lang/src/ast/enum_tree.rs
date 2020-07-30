@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use super::value::Value;
 use crate::{
     ast::resource::create_metadata,
     error::*,
@@ -11,6 +10,8 @@ use std::{
     collections::{HashMap, HashSet},
     fmt,
 };
+use toml::map::Map as TomlMap;
+use toml::Value as TomlValue;
 
 /// This item type is internal, because First and Last cannot be constructed from an enum declaration or from and enum expression
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -38,9 +39,9 @@ pub struct EnumTree<'src> {
     // a global variable is automatically created with the same name as a global enum
     pub global: bool,
     // tree metadata
-    pub metadata: HashMap<Token<'src>, Value<'src>>,
+    pub metadata: TomlMap<String, TomlValue>,
     // item metadata
-    pub item_metadata: HashMap<Token<'src>, HashMap<Token<'src>, Value<'src>>>,
+    pub item_metadata: HashMap<Token<'src>, TomlMap<String, TomlValue>>,
     // Tree name = root element
     name: Token<'src>,
     // parent -> ordered children

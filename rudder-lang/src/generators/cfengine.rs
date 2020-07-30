@@ -9,6 +9,7 @@ use crate::{
     parser::*,
 };
 use std::{collections::HashMap, ffi::OsStr, fs::File, io::Write, path::Path};
+use toml::Value as TomlValue;
 
 mod syntax;
 
@@ -128,12 +129,9 @@ impl CFEngine {
                     self.new_var(&var);
                 }
 
-                let component = match sd.metadata.get(&"component".into()) {
-                    // TODO use static_to_string
-                    Some(Value::String(s)) => match &s.data[0] {
-                        PInterpolatedElement::Static(st) => st.clone(),
-                        _ => "any".to_string(),
-                    },
+                let component = match sd.metadata.get("component") {
+                    Some(TomlValue::String(s)) => s.to_owned(),
+                    // TODO what is the any component ?
                     _ => "any".to_string(),
                 };
 
@@ -330,11 +328,15 @@ impl Generator for CFEngine {
                     bundle.add_promise_group(methods);
                 }
 
-                let mut extract = |name: &str| {
+                let extract = |name: &str| {
                     resource
                         .metadata
-                        .get(&Token::from(name))
-                        .and_then(|v| self.value_to_string(v, false).ok())
+                        .get(name)
+                        .and_then(|v|
+                            match v {
+                                TomlValue::String(s) => Some(s.to_owned()),
+                                _ => None,
+                            })
                         .unwrap_or_else(|| "unknown".to_string())
                 };
 
