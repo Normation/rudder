@@ -5,7 +5,7 @@ use super::Generator;
 use crate::{
     ast::{enums::EnumExpression, resource::*, value::*, *},
     error::*,
-    generators::cfengine::syntax::{Bundle, Method, Policy, Promise},
+    generators::cfengine::syntax::{quoted, Bundle, Method, Policy, Promise},
     parser::*,
 };
 use std::{collections::HashMap, ffi::OsStr, fs::File, io::Write, path::Path};
@@ -174,12 +174,18 @@ impl CFEngine {
                 Ok(res)
             }
             Statement::Fail(msg) => Ok(vec![Promise::usebundle(
-                "ncf_fail",
-                vec![self.value_to_string(msg, false)?],
+                "_abort",
+                vec![quoted("policy_fail"), self.value_to_string(msg, true)?],
             )]),
             Statement::Log(msg) => Ok(vec![Promise::usebundle(
-                "ncf_log",
-                vec![self.value_to_string(msg, false)?],
+                "log_rudder_mode",
+                vec![
+                    quoted("log_info"),
+                    self.value_to_string(msg, true)?,
+                    quoted("None"),
+                    // TODO: unique class prefix
+                    quoted("log_info"),
+                ],
             )]),
             Statement::Return(outcome) => {
                 // handle end of bundle
