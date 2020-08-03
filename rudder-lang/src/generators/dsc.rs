@@ -494,7 +494,6 @@ impl Generator for DSC {
         gc: &AST,
         source_file: Option<&Path>,
         dest_file: Option<&Path>,
-        _generic_methods: &Path,
         technique_metadata: bool,
     ) -> Result<()> {
         let mut files: HashMap<String, String> = HashMap::new();

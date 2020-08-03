@@ -19,7 +19,6 @@ pub trait Generator {
         gc: &AST,
         source_file: Option<&Path>,
         dest_file: Option<&Path>,
-        generic_methods: &Path,
         technique_metadata: bool,
     ) -> Result<()>;
 }

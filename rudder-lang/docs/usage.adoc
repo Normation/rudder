@@ -38,7 +38,7 @@ FLAGS:
 OPTIONS:
     -c, --config-file <config-file>
             Path of the configuration file to use.
-            A configuration file is required (containing at least stdlib and meta_generic_methods paths)
+            A configuration file is required (containing at least stdlib path)
             [default: /opt/rudder/etc/rudderc.conf]
 
     -f, --format <format>
@@ -85,7 +85,6 @@ Entire _rudder-lang_ environment is already set up alongside the agent: this inc
 ----
 [shared]
     stdlib="libs/" # only required field for rudderc --compile
-    meta_generic_methods="tools/meta_generic_methods.toml" # required field for rudderc --translate
     ncf_generic_methods="/usr/share/ncf/tree/30_generic_methods/"
     dsc_generic_methods="/var/rudder/configuration-repository/dsc/ncf/30_generic_methods/"
 
@@ -167,7 +166,6 @@ By using an adapted configuration file, it can be simplified:
 ----
 [shared]
     stdlib="libs/" # only required field for rudderc
-    meta_generic_methods="tools/meta_generic_methods.toml"
 
 [compile]
     source="rl/technique.rl"
@@ -193,7 +191,6 @@ rudderc -j -l debug -c tools/myconf -n another.rl -o another_from_rl.rl.dsc
 ----
 [shared]
     stdlib="libs/" # only required field for rudderc --compile
-    meta_generic_methods="tools/meta_generic_methods.toml" # required field for rudderc --translate
 ----
 
 2. CLI full version
@@ -221,7 +218,6 @@ By using an adapted configuration file, it can be simplified:
 ----
 [shared]
     stdlib="libs/" # only required field for rudderc
-    meta_generic_methods="tools/meta_generic_methods.toml"
 
 [translate]
     source="json/technique.json"

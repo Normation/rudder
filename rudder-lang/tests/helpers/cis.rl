@@ -8,6 +8,7 @@
 ]
 
 resource CIS_redhat7___Enable_Service(service)
+
 CIS_redhat7___Enable_Service state technique() {
   p0="skip_item_${report_data.canonified_directive_id}"
   p1="node.properties[skip][${report_data.directive_id}]"

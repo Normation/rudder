@@ -278,7 +278,6 @@ impl Generator for CFEngine {
         gc: &AST,
         source_file: Option<&Path>,
         dest_file: Option<&Path>,
-        _meta_gm: &Path,
         policy_metadata: bool,
     ) -> Result<()> {
         let mut files: HashMap<String, String> = HashMap::new();

@@ -106,5 +106,5 @@ pub fn compile_file(ctx: &IOContext, technique: bool) -> Result<()> {
         (None, None)
     };
     let mut generator = new_generator(&ctx.format)?;
-    generator.generate(&ast, input_file, output_file, &ctx.meta_gm, technique)
+    generator.generate(&ast, input_file, output_file, technique)
 }

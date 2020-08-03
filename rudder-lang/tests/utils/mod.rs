@@ -70,7 +70,6 @@ fn compile_file(
 ) -> Result<(), String> {
     let io = rudderc::io::IOContext {
         stdlib: PathBuf::from("libs/"),
-        meta_gm: PathBuf::from("tools/meta_generic_methods.toml"),
         source: source.to_path_buf(),
         dest: dest.to_path_buf(),
         mode: Action::Compile,

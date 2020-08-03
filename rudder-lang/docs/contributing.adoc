@@ -70,10 +70,7 @@ Contains the exhaustive list of CFEngine reserved words and namespaces that rudd
 
 ==== generate_lib
 
-A perl script that generates _rudder-lang_ libraries, calling ncf api.
-Files generated are:
-- _resourcelib.rl_
-- _translate_config.toml_
+A perl script that generates _resourcelib.rl_ calling ncf api: _rudder-lang_ generic methods library
 
 [align=center]
 image::generate-lib.svg[_rudder-lang-lib generation]

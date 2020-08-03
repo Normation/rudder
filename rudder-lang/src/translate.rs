@@ -62,7 +62,6 @@ impl Parameter {
 pub fn translate_file(context: &IOContext) -> Result<()> {
     let input_path = context.source.to_string_lossy();
     let output_path = context.dest.to_string_lossy();
-    let meta_gm_path = context.meta_gm.to_str().unwrap();
     let file_error = |filename: &str, err| err!(Token::new(&filename.to_owned(), ""), "{}", err);
 
     info!(
@@ -71,15 +70,6 @@ pub fn translate_file(context: &IOContext) -> Result<()> {
         input_path.bright_yellow(),
         output_path.bright_yellow()
     );
-
-    info!(
-        "|- {} {}",
-        "Reading".bright_green(),
-        meta_gm_path.bright_yellow()
-    );
-    let config_data = fs::read_to_string(meta_gm_path).map_err(|e| file_error(meta_gm_path, e))?;
-    let configuration: toml::Value =
-        toml::from_str(&config_data).map_err(|e| err!(Token::new(meta_gm_path, ""), "{}", e))?;
 
     info!("|- {}", "Reading stdlib".bright_green());
     let sources = Arena::new();
@@ -110,11 +100,7 @@ pub fn translate_file(context: &IOContext) -> Result<()> {
         "|- {} (translation phase)",
         "Generating output code".bright_green()
     );
-    let translator = Translator {
-        stdlib,
-        technique,
-        configuration,
-    };
+    let translator = Translator { stdlib, technique };
     let rl_technique = translator.translate()?;
     fs::write(&context.dest, rl_technique).map_err(|e| file_error(&output_path, e))?;
     Ok(())
@@ -123,7 +109,6 @@ pub fn translate_file(context: &IOContext) -> Result<()> {
 struct Translator<'src> {
     stdlib: AST<'src>,
     technique: Technique,
-    configuration: toml::Value,
 }
 
 impl<'src> Translator<'src> {
@@ -164,37 +149,73 @@ resource {bundle_name}({parameter_list})
         Ok(out)
     }
 
-    fn get_method_from_stdlib(&self, method_name: &str) -> Option<(String, String)> {
-        let matched_pairs: Vec<(&str, &str)> = self
+    fn get_resource_state_from_method(&self, method_name: &str) -> Result<(&Token, &Token)> {
+        let matched_pairs: Vec<(&Token, &Token)> = self
             .stdlib
             .resources
             .iter()
             .filter_map(|(res_as_tk, resdef)| {
                 if method_name.starts_with(**res_as_tk) {
-                    let matched_pairs = resdef
-                        .states
-                        .iter()
-                        .filter_map(|(state_as_tk, _)| {
-                            if *method_name == format!("{}_{}", **res_as_tk, **state_as_tk) {
-                                return Some((**res_as_tk, **state_as_tk));
-                            }
-                            None
-                        })
-                        .collect::<Vec<(&str, &str)>>();
-                    return Some(matched_pairs);
+                    return Some(
+                        resdef
+                            .states
+                            .iter()
+                            .filter_map(|(state_as_tk, _)| {
+                                if method_name == format!("{}_{}", **res_as_tk, **state_as_tk) {
+                                    return Some((res_as_tk, state_as_tk));
+                                }
+                                None
+                            })
+                            .collect::<Vec<(&Token, &Token)>>()
+                        )
                 }
                 None
             })
             .flatten()
             .collect();
         match matched_pairs.as_slice() {
-            [] => None,
-            [(resource, state)] => Some(((*resource).to_owned(), (*state).to_owned())),
+            [] => Err(Error::new(format!("Method '{}' does not exist", method_name))),
+            [(resource, state)] => Ok((*resource, *state)),
             _ => panic!(format!(
                 "The standard library contains several matches for the following method: {}",
                 method_name
             )),
         }
+    }
+
+
+    fn extract_method_data(&self, resource: &Token, state: &Token) -> (String, usize, usize) {
+        // safe unwraps because we previously itered on this very same method in self.get_resource_state_from_method
+        let resource_definition = self
+            .stdlib
+            .resources
+            .get(resource)
+            .unwrap();
+
+        let param_len = resource_definition.parameters.len();
+        
+        let metadatas = &resource_definition
+            .states
+            .get(state)
+            .unwrap()
+            .metadata;
+
+        // safe unwrap because we generate the resourcelib ourselves, if an error occurs, panic is justified, it is a developer issue
+        let param_index = metadatas
+            .get("class_parameter_index")
+            .expect(&format!("Resource '{}': missing 'class_parameter_index' metadata", **resource))
+            .as_integer()
+            .expect(&format!("Resource '{}': 'class_parameter_index' metadata value is not an integer", **resource))
+            as usize;
+
+        let class_prefix = metadatas
+            .get("class_prefix")
+            .expect(&format!("Resource '{}': missing 'class_prefix' metadata", **resource))
+            .as_str()
+            .expect(&format!("Resource '{}': 'class_prefix' metadata value is not a string", **resource))
+            .to_owned();
+
+        (class_prefix, param_len, param_index)
     }
 
     fn translate_params<I>(&self, params: I, template_vars: &mut Vec<String>) -> Result<String>
@@ -222,45 +243,18 @@ resource {bundle_name}({parameter_list})
     }
 
     fn translate_call(&self, call: &MethodCall) -> Result<String> {
-        let (resource, state) = match self.get_method_from_stdlib(&call.method_name) {
-            Some(res) => res,
-            None => {
-                return Err(Error::new(format!(
-                    "Invalid method name '{}'",
-                    call.method_name
-                )))
-            }
-        };
-
-        // split argument list
-        let rconf = match self.configuration.get("resources") {
-            None => return Err(Error::new("No resources section in config.toml".into())),
-            Some(m) => m,
-        };
-        let res_arg_v = match rconf.get(&resource) {
-            None => toml::value::Value::Integer(1),
-            Some(r) => r.clone(),
-        };
-
-        let res_arg_count: usize = match res_arg_v.as_integer() {
-            None => {
-                return Err(Error::new(format!(
-                    "Resource prefix '{}' must have a number as its parameter count",
-                    &resource
-                )))
-            }
-            Some(v) => v as usize,
-        };
+        let (resource, state) = self.get_resource_state_from_method(&call.method_name)?;
+        let (class_prefix, class_param_count, class_param_index, ) = self.extract_method_data(resource, state);
 
         let it = &mut call.parameters.iter();
         let mut template_vars = Vec::new();
-        let res_args = self.translate_params(it.take(res_arg_count), &mut template_vars)?; // automatically takes the first rather than getting the right resource param index
+        let res_args = self.translate_params(it.take(class_param_count), &mut template_vars)?; // automatically takes the first rather than getting the right resource param index
         let st_args = self.translate_params(it, &mut template_vars)?;
         // empty string purpose: add an ending newline when joined into a string
         template_vars.push(String::new());
 
         // call formating
-        let call_str = format!("{}({}).{}({})", &resource, res_args, &state, st_args);
+        let call_str = format!("{}({}).{}({})", **resource, res_args, **state, st_args);
         let out_state = if call.class_context == "any" {
             format!("  {}", call_str)
         } else {
@@ -268,39 +262,7 @@ resource {bundle_name}({parameter_list})
             format!("  if {} => {}", condition, call_str)
         };
 
-        // outcome detection and formating
-        let mconf = match self.configuration.get("methods") {
-            None => return Err(Error::new("No methods section in config.toml".into())),
-            Some(m) => m,
-        };
-        let method = match mconf.get(&call.method_name) {
-            None => {
-                return Err(Error::new(format!(
-                    "Unknown generic method call: {}",
-                    &call.method_name
-                )))
-            }
-            Some(m) => m,
-        };
-        let class_prefix = match method.get("class_prefix") {
-            None => {
-                return Err(Error::new(format!(
-                    "Undefined class_prefix for {}",
-                    &call.method_name
-                )))
-            }
-            Some(m) => m.as_str().unwrap(),
-        };
-        let class_parameter_id = match method.get("class_parameter_id") {
-            None => {
-                return Err(Error::new(format!(
-                    "Undefined class_parameter_id for {}",
-                    &call.method_name
-                )))
-            }
-            Some(m) => m.as_integer().unwrap(),
-        };
-        let class_parameter = &call.parameters[class_parameter_id as usize];
+        let class_parameter = &call.parameters[class_param_index];
         let canonic_parameter = canonify(&class_parameter.value);
         let outcome = format!(" as {}_{}", class_prefix, canonic_parameter);
         // TODO remove outcome if there is no usage
