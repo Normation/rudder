@@ -47,6 +47,7 @@ import com.normation.cfclerk.services._
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
@@ -240,6 +241,8 @@ class TechniqueAcceptationUpdater(
 
                               case (TechniqueDeleted(name, versions), Some(activeTechnique)) =>
                                 //if an active technique still exists for that technique, disable it
+                                ApplicationLoggerPure.warn(s"Technique '${name}' (${versions.map(_.toString).mkString(",")})' is deleted" +
+                                                           s"but an active technique is still present in tree: disabling it.") *>
                                 rwActiveTechniqueRepo.changeStatus(activeTechnique.id, false, modId, actor, reason)
 
                               case (TechniqueUpdated(name, mods), Some(activeTechnique)) =>

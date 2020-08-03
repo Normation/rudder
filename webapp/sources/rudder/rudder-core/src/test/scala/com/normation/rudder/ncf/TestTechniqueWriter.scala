@@ -116,7 +116,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
 
   val expectedPath = "src/test/resources/configuration-repository"
   object TestTechniqueArchiver extends TechniqueArchiver {
-    def commitTechnique(technique : Technique, gitPath : Seq[String], modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = UIO.unit
+    def commitTechnique(technique : Technique, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = UIO.unit
     def deleteTechnique(techniqueName: String, techniqueVersion: String, category : String, modId: ModificationId, commiter: EventActor, msg: String): IOResult[Unit] = UIO.unit
   }
 

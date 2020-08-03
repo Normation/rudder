@@ -45,6 +45,7 @@ import com.normation.cfclerk.services._
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.logger.TechniqueReaderLoggerPure
 import com.normation.utils.Control
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common._
@@ -56,12 +57,13 @@ class TechniqueRepositoryImpl(
     techniqueReader: TechniqueReader
   , refLibCallbacks: Seq[TechniquesLibraryUpdateNotification]
   , uuidGen        : StringUuidGenerator
-) extends TechniqueRepository with UpdateTechniqueLibrary with Loggable {
+) extends TechniqueRepository with UpdateTechniqueLibrary {
 
   /**
    * Callback to call on technique lib update
    */
   private[this] var callbacks = refLibCallbacks.sortBy( _.order )
+  val logger = TechniqueReaderLoggerPure.logEffect
 
 
   /*
