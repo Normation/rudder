@@ -233,7 +233,13 @@ class GitTechniqueReader(
         allKnownTechniquePaths.find { case (techniquePath, _) =>
           path.path.startsWith(techniquePath.path)
         }.map { case (n, techniqueId) =>
-          (techniqueId, changeType)
+          // a change in the "resources" sub-directory is always an update
+          val change = if(path.path.contains("/resources/")) {
+            ChangeType.MODIFY
+          } else {
+            changeType
+          }
+          (techniqueId, change)
         }
       }
 

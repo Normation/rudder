@@ -298,8 +298,7 @@ class TechniqueWriter (
       updateResources  = technique.ressources.collect{case r if r.state != ResourceFileState.Deleted => r.copy(state = ResourceFileState.Untouched) }
       techniqueWithResourceUpdated = technique.copy(ressources = updateResources)
       json       <- writeJson(techniqueWithResourceUpdated)
-      // Commit technique with old resources, will effectively delete and add resources
-      commit     <- archiver.commitTechnique(technique,json +: metadata +: agentFiles, modId, committer, s"Committing technique ${technique.name}")
+      commit     <- archiver.commitTechnique(technique, modId, committer, s"Committing technique ${technique.name}")
     } yield {
       techniqueWithResourceUpdated
     }
@@ -718,7 +717,7 @@ class DSCTechniqueWriter(
 
 trait TechniqueArchiver {
   def deleteTechnique(techniqueName : String, techniqueVersion : String, category : String, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
-  def commitTechnique(technique : Technique, filesToAdd : Seq[String], modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
+  def commitTechnique(technique : Technique, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
 }
 
 class TechniqueArchiverImpl (
@@ -729,8 +728,6 @@ class TechniqueArchiverImpl (
   , override val gitModificationRepository : GitModificationRepository
   , personIdentservice : PersonIdentService
 ) extends GitArchiverUtils with TechniqueArchiver {
-
-  import ResourceFileState._
 
   override val encoding : String = "UTF-8"
 
@@ -745,27 +742,24 @@ class TechniqueArchiverImpl (
     }).chainError(s"error when deleting and committing Technique '${techniqueName}/${techniqueVersion}").unit
   }
 
-  def commitTechnique(technique : Technique, gitPath : Seq[String], modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
+  def commitTechnique(technique : Technique, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
 
-    val filesToAdd =
-      gitPath ++
-        (technique.ressources.filter(f => f.state == New || f.state == Modified)).map(f => s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/resources/${f.path}")
+    val techniqueGitPath = s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}"
+    // additionnal files to delete, for migration purpose.
     val filesToDelete =
       s"ncf/50_techniques/${technique.bundleName.value}" +:
-        s"dsc/ncf/50_techniques/${technique.bundleName.value}" +:
-        technique.ressources.filter(f => f.state == Deleted ).map(f => s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/resources/${f.path}")
+        s"dsc/ncf/50_techniques/${technique.bundleName.value}" +: Nil
     (for {
       ident   <- personIdentservice.getPersonIdentOrDefault(commiter.name)
-      added   <- ZIO.foreach(filesToAdd) { f =>
-                   IOResult.effect (gitRepo.git.add.addFilepattern(f).call())
-                 }
+      // we want to add anything modified under technique path, because it's likelly the reality - if not, bug is
+      // elsewhere and we need to correct what caused the bad add/delete.
+      _       <- IOResult.effect (gitRepo.git.add.addFilepattern(techniqueGitPath).call())
+      _       <- IOResult.effect (gitRepo.git.add.setUpdate(true).addFilepattern(techniqueGitPath).call())
       removed <- ZIO.foreach(filesToDelete) { f =>
                    IOResult.effect(gitRepo.git.rm.addFilepattern(f).call())
                  }
       commit  <- IOResult.effect(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
-    } yield {
-      gitPath
-    }).chainError(s"error when committing Technique '${technique.name}/${technique.version}").unit
+    } yield ()).chainError(s"error when committing Technique '${technique.name}/${technique.version}").unit
   }
 
 }

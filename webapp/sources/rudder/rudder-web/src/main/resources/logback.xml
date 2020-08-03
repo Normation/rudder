@@ -250,6 +250,10 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     have these information.
   -->
   <logger name="com.normation.rudder.services.policies.write" level="info" />
+  <!--
+    The following logger take care of information about reading techniques in repository
+  -->
+  <logger name="techniques.reader" level="info" />
 
 
   <!--
