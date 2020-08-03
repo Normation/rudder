@@ -48,7 +48,7 @@ import net.liftweb.http.js._
 import JsCmds._
 import com.normation.rudder.web.components.popup.CreateOrCloneRulePopup
 import JE._
-import com.normation.rudder.web.components.{RuleEditForm, RuleGrid}
+import com.normation.rudder.web.components.{RuleEditForm}
 import com.normation.rudder.domain.policies.Rule
 import bootstrap.liftweb.RudderConfig
 import com.normation.plugins.DefaultExtendableSnippet
@@ -93,7 +93,6 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
 
   def head(changeMsgEnabled : Boolean) : NodeSeq = {
     RuleEditForm.staticInit ++
-    RuleGrid.staticInit ++
     {<head>
       {Script(
         JsRaw("""

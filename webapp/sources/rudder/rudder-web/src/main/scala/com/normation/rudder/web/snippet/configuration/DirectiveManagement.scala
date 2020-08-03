@@ -117,7 +117,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    * Head information (JsTree dependencies,...)
    */
   def head() : NodeSeq = {
-    DirectiveEditForm.staticInit ++
     (
       <head>
         {Script(OnLoad(parseJsArg()))}
@@ -174,8 +173,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                   , false
                 )
               }</ul>
-            case (x, y, z) =>
 
+            case (x, y, z) =>
               (x :: y :: z :: Nil).foreach {
                 case eb: EmptyBox =>
                   val f = eb ?~! "Error when trying to get the root category of Active Techniques"
@@ -204,10 +203,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         }
 
         buildDirectiveTree('#${htmlId_activeTechniquesTree}', [ directiveId ], '${S.contextPath}', 1);
-        $$(window).on('resize',function(){
-          adjustHeight('#activeTechniquesTree');
-        });
-        adjustHeight('#activeTechniquesTree');
         $$('#activeTechniquesTree').on('scroll',function(){$$('.tooltip').hide();});
         createTooltip();
     """)
@@ -223,13 +218,15 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   def initTechniqueDetails() : MemoizeTransform = SHtml.memoize {
     "#techniqueDetails *" #> ( currentTechnique match {
       case None =>
-        "#info-title *" #> "Directives" &
-        "#details *" #> {
-            <div class="col-lg-12">
-              <div class="col-lg-12 callout-fade callout-info">
-                <div class="marker">
-                  <span class="glyphicon glyphicon-info-sign"></span>
-                </div>
+        ".main-header [class+]" #> "no-header" &
+          "#details *" #> {
+            <div>
+              <style>
+                #policyConfiguration{{
+                display:none;}}
+              </style>
+              <div class="jumbotron">
+                <h1>Directives</h1>
                 <p>A Directive is an instance of a Technique, which allows to set values for the parameters of the latter.</p>
                 <p>Each Directive can have a unique name, and should be completed with a short and a long description, and a collection of parameters for the variables defined by the Technique.</p>
                 <p>Techniques are often available in several versions, numbered X.Y, X being the major version number and Y the minor version number:</p>
@@ -241,7 +238,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                 <p>You can find your own Techniques written in the Technique Editor in the <b>User Techniques</b> category.</p>
               </div>
             </div>
-      }
+          }
 
       case Some((fullActiveTechnique,version)) =>
         fullActiveTechnique.techniques.get(version) match {
@@ -281,35 +278,22 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                  None
              }
            }.toSeq.flatten.sortBy( _._1 )
-
+           ".main-container [class-]" #> "no-header" &
            "#directiveIntro " #> {
              currentDirectiveSettingForm.get.map { piForm =>
                (".directive *" #> piForm.directive.name)
              }
            } &
            "#techniqueName" #> <span class={ if(fullActiveTechnique.isEnabled) "" else "is-disabled" }>{technique.name}</span> &
-           "#compatibility" #> technique.compatible.map { comp =>
-             { if(comp.os.isEmpty) {
-               NodeSeq.Empty
-             } else {
-               <li><b>Supported operating systems: </b>{comp.os.mkString(", ")}</li>
-             } } ++ {
-             if (comp.agents.isEmpty) {
-               NodeSeq.Empty
-             } else {
-               <li><b>Supported agents: </b>{comp.agents.mkString(", ")}</li>
-             } }
-           } &
            "#techniqueID *" #>  technique.id.name.value &
            "#techniqueDescription *" #>  Script(JsRaw(s"""generateMarkdown(${Str(technique.description).toJsCmd}, "#techniqueDescription")""")) &
            "#techniqueLongDescription" #>  technique.longDescription &
            "#isSingle *" #> showIsSingle(technique) &
-           "#isDisabled *" #> {
+           "#isDisabled" #> {
              if(!fullActiveTechnique.isEnabled)
-               <div class="alert alert-warning">
+               <div class="main-alert alert alert-warning">
                  <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
                  This Technique is disabled.
-
                  <a class="btn btn-sm btn-default" href={s"/secure/administration/techniqueLibraryManagement/#${fullActiveTechnique.techniqueName}"}>Edit Technique</a>
                </div>
              else NodeSeq.Empty

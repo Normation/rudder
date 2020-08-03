@@ -286,9 +286,6 @@ input.deleteNetwork * {
 /**********************************
  *define the group/section table
  **********************************/
-#directiveInfo {
-  margin-bottom: 20px;
-}
 #querySearchSection{
   font-size: 14px;
 }
@@ -300,9 +297,6 @@ fieldset.groupFieldset {
   padding: 1px 10px 1px 10px;
 }
 
-#edit-box > .foldedSection > .section-title {
-  border-bottom-color: transparent;
-}
 .section-title {
   font-size: 22px;
   cursor: default;
@@ -325,6 +319,15 @@ fieldset.groupFieldset {
 .unfoldedSection .section-title,
 #querySearchSection{
   cursor: pointer;
+}
+
+.foldableSection .section-title .btn{
+  padding: 2px 10px;
+  margin-left: 10px;
+  position: relative;
+}
+.foldableSection .section-title .btn .fa{
+  margin-left: 4px;
 }
 
 div.unfoldedSection div.section-title:before,div.foldedSection div.section-title:before,
@@ -354,17 +357,39 @@ div.unfoldedSection div.section-title:before,div.foldedSection div.section-title
 }
 
 .sectionFieldset.foldableSection{
-  border-left: 4px solid #e5e5e5;
+  position:relative;
   transition-duration: .2s;
   padding-left: 10px;
 }
-.sectionFieldset.foldableSection.unfoldedSection:hover{
-   border-left-color: #f08004;
+.sectionFieldset.foldableSection:before{
+  content:"";
+  position: absolute;
+  top: 30px;
+  bottom: 0;
+  left: 12.5px;
+  width: 2px;
+  background-color: #e5e5e5;
+  transition: background-color .2s;
 }
-.sectionFieldset.foldableSection.foldedSection:hover{
-  border-left-color: #aaa;
+.sectionFieldset.foldableSection.unfoldedSection:hover:before{
+  background-color: #f08004;
+}
+.sectionFieldset.foldableSection.foldedSection:hover:before{
+  background-color: #aaa;
 }
 
+
+.sectionFieldset.foldableSection table.directiveSectionDef{
+  margin-left: 15px;
+  width: calc(100% - 15px);
+}
+table.directiveGroupDef{
+  border-left: 2px solid #e5e5e5;
+  transition: border-left-color .2s;
+}
+table.directiveGroupDef:hover{
+  border-left-color: #F08004;
+}
 
 div.unfoldedSection div.section-title:before,
 #querySearchSection.unfoldedSectionQuery:before{
@@ -1283,11 +1308,6 @@ table.directiveGroupDef, table.directiveVarDef, table.directiveSectionDef {
 input[type="number"] {
     padding: 5px 0 5px 5px;
     margin-top:-5px;
-}
-
-#clone {
-  margin-left:20px;
-  float:left;
 }
 
 * {

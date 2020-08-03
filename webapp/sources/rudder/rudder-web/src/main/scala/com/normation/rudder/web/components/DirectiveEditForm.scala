@@ -68,13 +68,6 @@ import com.normation.box._
 
 object DirectiveEditForm {
 
-  /**
-   * This is part of component static initialization.
-   * Any page which contains (or may contains after an ajax request)
-   * that component have to add the result of that method in it.
-   */
-  def staticInit: NodeSeq = RuleGrid.staticInit
-
   private def body = ChooseTemplate(
       "templates-hidden" :: "components" :: "ComponentDirectiveEditForm" :: Nil
     , "component-body"
@@ -142,7 +135,6 @@ class DirectiveEditForm(
   }
 
   def showForm(): NodeSeq = {
-    staticInit ++
     (
       "#container [id]" #> htmlId_policyConf &
       "#editForm" #> showDirectiveForm()
@@ -260,7 +252,7 @@ class DirectiveEditForm(
         ( "" , NodeSeq.Empty )
     }
     (
-      "#editForm *" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
+      "#editForm" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
       // don't show the action button when we are creating a popup
       "#pendingChangeRequestNotification" #> { xml:NodeSeq =>
           PendingChangeRequestDisplayer.checkByDirective(xml, directive.id)
@@ -273,13 +265,14 @@ class DirectiveEditForm(
       ClearClearable &
       //activation button: show disactivate if activated
       "#directiveTitle *" #> <span class={ if(fullActiveTechnique.isEnabled) "" else "is-disabled" }>{directive.name}</span> &
+      "#shortDescription *" #> directive.shortDescription &
       "#disactivateButtonLabel" #> {
         if (directive.isEnabled) "Disable" else "Enable"
        } &
-       "#removeAction *" #> {
+       "#removeAction" #> {
          SHtml.ajaxSubmit("Delete", () => onSubmitDelete(),("class" ,"btn btn-danger"))
        } &
-       "#desactivateAction *" #> {
+       "#desactivateAction" #> {
          val status = directive.isEnabled ? DGModAction.Disable | DGModAction.Enable
          SHtml.ajaxSubmit(status.name, () => onSubmitDisable(status), ("class" ,"btn btn-default"))
        } &
@@ -299,7 +292,7 @@ class DirectiveEditForm(
       "#techniqueDescription *" #> technique.description &
       "#isDisabled" #> {
         if (!fullActiveTechnique.isEnabled || !directive.isEnabled)
-          <div class="alert alert-warning">
+          <div class="main-alert alert alert-warning">
             <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
             {disableMessage}
             {enableBtn}
@@ -319,7 +312,7 @@ class DirectiveEditForm(
       "#parameters" #> parameterEditor.toFormNodeSeq &
       "#directiveRulesTab *" #> ruleDisplayer &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) % ("class" -> "btn btn-success") } &
-      "#notifications *" #> updateAndDisplayNotifications() &
+      "#notifications" #> updateAndDisplayNotifications() &
       "#showTechnical *" #> <button type="button" class="btn btn-technical-details btn-sm btn-primary" onclick="$('#technicalDetails').toggle(400);$(this).toggleClass('opened');">Technical Details</button> &
       "#isSingle *" #> showIsSingle &
       "#compatibilityOs" #> osCompatibility &
@@ -339,7 +332,8 @@ class DirectiveEditForm(
            |$$('#${directiveVersion.uniqueFieldId.getOrElse("id_not_found")}').change( function () {
            |  checkMigrationButton("${currentVersion}","${versionSelectId}")
            |} );
-           |adjustHeight("#edit-box","#directiveToolbar")""".stripMargin)
+           |$$(document).ready(function(){$$('.main-details').bsScrollSpy({ target: '#navbar-scrollspy' })});""".stripMargin)
+
     )
     )
   }
@@ -365,9 +359,7 @@ class DirectiveEditForm(
   }
 
   private[this] def showErrorNotifications() : JsCmd = {
-    onFailureCallback() & Replace("editForm", showDirectiveForm) &
-    //restore user to the update parameter tab
-    JsRaw("""scrollToElement("notifications", "#directiveDetails");""")
+    onFailureCallback() & Replace("editForm", showDirectiveForm)
   }
 
   private[this] def showIsSingle(): NodeSeq = {
@@ -401,6 +393,7 @@ class DirectiveEditForm(
     override def className = "form-control"
     override def labelClassName = "col-xs-12"
     override def subContainerClassName = "col-xs-12"
+    override def errorClassName = ""
     override def validations =
       valMinLen(1, "Name must not be empty") _ :: Nil
   }
@@ -772,8 +765,8 @@ class DirectiveEditForm(
       NodeSeq.Empty
     }
     else {
-      <div id="notifications" class="notify">
-        <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
+      <div class="main-alert alert alert-danger">
+        <ul>{notifications.map( n => <li>{n}</li>) }</ul>
       </div>
     }
   }

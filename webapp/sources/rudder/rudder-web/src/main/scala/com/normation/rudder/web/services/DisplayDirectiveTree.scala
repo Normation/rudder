@@ -311,6 +311,7 @@ object DisplayDirectiveTree extends Loggable {
             <span class="tags-label"
                   data-toggle="tooltip"
                   data-placement="top"
+                  data-container="body"
                   data-html="true"
                   data-original-title={tagsTooltipContent}>
               <i class="fa fa-tags"></i>
@@ -434,10 +435,6 @@ object DisplayDirectiveTree extends Loggable {
       if(!angular.element(scopeElmnt).scope()){
         angular.bootstrap(scopeElmnt, ['filters']);
       }
-      adjustHeight('#activeTechniquesTree');
-      $$('#showFiltersDirective').on('click', function () {
-        setTimeout(function(){adjustHeight('#activeTechniquesTree');}, 550);
-      });
       $$(".bsTooltip").bsTooltip({container: "${if(addEditLink){"#editRuleZonePortlet"}else{"#boxDirectiveTree"}}"})
     """))
     directiveLib.subCategories.filterNot(_.isSystem).sortBy( _.name ).flatMap { cat => displayCategory(cat, cat.id.value).toXml }
