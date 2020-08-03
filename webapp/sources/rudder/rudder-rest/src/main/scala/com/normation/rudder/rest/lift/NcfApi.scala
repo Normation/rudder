@@ -119,12 +119,12 @@ class NcfApi(
 
       import zio.syntax._
       import com.normation.errors.Inconsistency
-      def getAllFiles (resourceDir : File)( file : File):List[String]  = {
+      def getAllFiles(file : File):List[String] = {
         if (file.exists) {
           if (file.isRegularFile) {
-            resourceDir.relativize(file).toString :: Nil
+            file.toString() :: Nil
           } else {
-            file.children.toList.flatMap(getAllFiles(resourceDir))
+            file.children.toList.flatMap(getAllFiles)
           }
         } else {
           Nil
@@ -135,7 +135,7 @@ class NcfApi(
       import net.liftweb.json.JsonDSL._
       import ResourceFileState._
 
-      def toResource( fullPath : String, resourcesPath : String, state : ResourceFileState): Option[ResourceFile] = {
+      def toResource(resourcesPath: String)(fullPath : String, state: ResourceFileState): Option[ResourceFile] = {
         // workaround https://issues.rudder.io/issues/17977 - if the fullPath does not start by resourcePath,
         // it's a bug from jgit filtering: ignore that file
         val relativePath = fullPath.stripPrefix(s"${resourcesPath}/")
@@ -144,7 +144,7 @@ class NcfApi(
       }
 
       def serializeResourceWithState( resource : ResourceFile) = {
-          (("name" -> resource.path) ~ ("state" -> resource.state.value))
+        (("name" -> resource.path) ~ ("state" -> resource.state.value))
       }
 
       val action = if (newTechnique) { "newTechniqueResources" } else { "techniqueResources" }
@@ -162,27 +162,28 @@ class NcfApi(
                              }
                            }
 
-
-          status   <- GitFindUtils.getStatus(gitReposProvider.git, List(resourcesPath)).chainError(
-                        s"Error when getting status of resource files of technique ${techniqueInfo._1}/${techniqueInfo._2}"
-                      )
-          resourceDir = File(gitReposProvider.db.getDirectory.getAbsolutePath, resourcesPath)
+          status      <- GitFindUtils.getStatus(gitReposProvider.git, List(resourcesPath)).chainError(
+                           s"Error when getting status of resource files of technique ${techniqueInfo._1}/${techniqueInfo._2}"
+                         )
+          resourceDir =  File(gitReposProvider.db.getDirectory.getParent, resourcesPath)
           allFiles    <- IOResult.effect(s"Error when getting all resource files of technique ${techniqueInfo._1}/${techniqueInfo._2} ") {
-                        getAllFiles(resourceDir)(resourceDir)
-                      }
+                           getAllFiles(resourceDir)
+                         }
         } yield {
 
+          val toResourceFixed = toResource(resourceDir.pathAsString) _
+
           // New files not added
-          val added = status.getUntracked.asScala.toList.flatMap(toResource(_, resourcesPath, New))
+          val added = status.getUntracked.asScala.toList.flatMap(toResourceFixed(_, New))
           // Files modified and not added
-          val modified = status.getModified.asScala.toList.flatMap(toResource(_, resourcesPath, Modified))
+          val modified = status.getModified.asScala.toList.flatMap(toResourceFixed(_, Modified))
           // Files deleted but not removed from git
-          val removed = status.getMissing.asScala.toList.flatMap(toResource(_, resourcesPath, Deleted))
+          val removed = status.getMissing.asScala.toList.flatMap(toResourceFixed(_, Deleted))
 
           val filesNotCommitted = modified ::: added ::: removed
 
           // We want to get all files from the resource directory and remove all added/modified/deleted files so we can have the list of all files not modified
-          val untouched = allFiles.filterNot(f => filesNotCommitted.exists(_.path == f)).flatMap(toResource(_, resourcesPath,  Untouched))
+          val untouched = allFiles.filterNot(f => filesNotCommitted.exists(_.path == f)).flatMap(toResourceFixed(_, Untouched))
 
           // Create a new list with all a
           JArray((filesNotCommitted ::: untouched).map(serializeResourceWithState))
