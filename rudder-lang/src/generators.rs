@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-mod cfengine;
-mod dsc;
-mod markdown;
+pub mod cfengine;
+pub mod dsc;
+pub mod markdown;
 
 pub use self::{cfengine::CFEngine, dsc::DSC, markdown::Markdown};
 use crate::{ast::AST, error::*};

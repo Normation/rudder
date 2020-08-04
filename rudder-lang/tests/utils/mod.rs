@@ -42,7 +42,7 @@ fn test_file(source: &Path, dest: &Path, technique_name: &str, format: &Format) 
     assert_eq!(
         result.is_ok(),
         should_compile(technique_name),
-        "{}: {} assertion is not true. Compiler result (lhs) differs from expectations (rhs)",
+        "{}: {} assertion is not true. Generator result (lhs) differs from expectations (rhs)",
         "\nError (test)".bright_red().bold(),
         technique_name.bright_yellow(),
     );
@@ -75,7 +75,7 @@ fn compile_file(
         mode: Action::Compile,
         format: format.clone(),
     };
-    match rudderc::compile::compile_file(&io, true) {
+    match rudderc::compiler::compile_file(&io, true) {
         Ok(_) => {
             println!(
                 "{}: compilation of {}",

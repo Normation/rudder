@@ -102,6 +102,10 @@ macro_rules! err {
     });
 }
 
+pub fn err_wrapper<E: std::fmt::Display>(filename: &str, err: E) -> Error {
+    err!(Token::new(&filename.to_owned(), ""), "{}", err)
+}
+
 /// This macro returns from current function/closure with a Result.
 /// When writing an iteration, use this within a map so we can continue on
 /// next iteration and aggregate errors.

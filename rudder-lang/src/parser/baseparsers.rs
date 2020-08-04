@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2019-2020 Normation SAS
+
 use nom::{
     branch::*, bytes::complete::*, character::complete::*, combinator::*, multi::*, sequence::*,
     Slice,

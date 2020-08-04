@@ -4,48 +4,14 @@
 use crate::{
     ast::AST,
     error::*,
-    generators::*,
+    generators::{cfengine::CFEngine, dsc::DSC, new_generator},
     io::IOContext,
     parser::{Token, PAST},
+    rudderlang_lib::RudderlangLib
 };
-
 use colored::Colorize;
 use std::{fs, path::Path};
 use typed_arena::Arena;
-use walkdir::WalkDir;
-
-/// Parses the whole stdlib
-/// Parse all `.rl` files recursively to allow future layout changes.
-pub fn parse_stdlib<'src>(
-    past: &mut PAST<'src>,
-    sources: &'src Arena<String>,
-    stdlib_dir: &'src Path,
-) -> Result<()> {
-    fn is_rl_file(file: &Path) -> bool {
-        file.extension().map(|e| e == "rl").unwrap_or(false)
-    }
-
-    let walker = WalkDir::new(stdlib_dir)
-        .into_iter()
-        .filter(|r| r.as_ref().map(|e| is_rl_file(e.path())).unwrap_or(true));
-    for entry in walker {
-        match entry {
-            Ok(entry) => {
-                let path = entry.path();
-                parse_file(past, sources, path)?;
-            }
-            Err(err) => {
-                return Err(err!(
-                    Token::new(&stdlib_dir.to_string_lossy(), ""),
-                    "{}",
-                    err
-                ))
-            }
-        }
-    }
-
-    Ok(())
-}
 
 /// Add a single file content to the sources and parse it
 pub fn parse_file<'src>(
@@ -74,10 +40,9 @@ pub fn parse_file<'src>(
 /// Compile a file from rudder-lang to cfengine
 pub fn compile_file(ctx: &IOContext, technique: bool) -> Result<()> {
     let sources = Arena::new();
-    let mut past = PAST::new();
 
     // add stdlib: resourcelib + corelib + oslib + cfengine_core
-    parse_stdlib(&mut past, &sources, &ctx.stdlib)?;
+    let mut past = RudderlangLib::past(&ctx.stdlib, &sources)?;
 
     // read and add files
     info!(

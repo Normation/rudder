@@ -1,0 +1,326 @@
+{
+  "type": "ncf_technique",
+  "version": 2,
+  "data": {
+    "bundle_name": "CIS_9_1_configure_cron",
+    "description": "CIS benchmark section for cron.",
+    "name": "CIS 9.1 configure cron",
+    "version": "1.0",
+    "parameter": [],
+    "category": "ncf_techniques",
+    "method_calls": [
+      {
+        "parameters": [
+          {
+            "name": "service_name",
+            "value": "cron",
+            "$errors": []
+          }
+        ],
+        "class_context": "any.(debian)",
+        "method_name": "service_started",
+        "component": "Service started"
+      },
+      {
+        "parameters": [
+          {
+            "name": "service_name",
+            "value": "crond",
+            "$errors": []
+          }
+        ],
+        "class_context": "any.(redhat)",
+        "method_name": "service_started",
+        "component": "Service started"
+      },
+      {
+        "parameters": [
+          {
+            "name": "service_name",
+            "value": "cron",
+            "$errors": []
+          }
+        ],
+        "class_context": "any.(debian)",
+        "method_name": "service_check_started_at_boot",
+        "component": "Service check started at boot"
+      },
+      {
+        "parameters": [
+          {
+            "name": "service_name",
+            "value": "crond",
+            "$errors": []
+          }
+        ],
+        "class_context": "any.(redhat)",
+        "method_name": "service_check_started_at_boot",
+        "component": "Service check started at boot"
+      },
+      {
+        "parameters": [
+          {
+            "name": "path",
+            "value": "/etc/crontab",
+            "$errors": []
+          },
+          {
+            "name": "mode",
+            "value": "600",
+            "$errors": []
+          },
+          {
+            "name": "owner",
+            "value": "root",
+            "$errors": []
+          },
+          {
+            "name": "group",
+            "value": "root",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "permissions",
+        "component": "Permissions (non recursive)"
+      },
+      {
+        "parameters": [
+          {
+            "name": "path",
+            "value": "/etc/cron.hourly",
+            "$errors": []
+          },
+          {
+            "name": "mode",
+            "value": "700",
+            "$errors": []
+          },
+          {
+            "name": "owner",
+            "value": "root",
+            "$errors": []
+          },
+          {
+            "name": "group",
+            "value": "root",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "permissions_dirs",
+        "component": "Permissions dirs"
+      },
+      {
+        "parameters": [
+          {
+            "name": "path",
+            "value": "/etc/cron.daily",
+            "$errors": []
+          },
+          {
+            "name": "mode",
+            "value": "700",
+            "$errors": []
+          },
+          {
+            "name": "owner",
+            "value": "root",
+            "$errors": []
+          },
+          {
+            "name": "group",
+            "value": "root",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "permissions_dirs",
+        "component": "Permissions dirs"
+      },
+      {
+        "parameters": [
+          {
+            "name": "path",
+            "value": "/etc/cron.weekly",
+            "$errors": []
+          },
+          {
+            "name": "mode",
+            "value": "700",
+            "$errors": []
+          },
+          {
+            "name": "owner",
+            "value": "root",
+            "$errors": []
+          },
+          {
+            "name": "group",
+            "value": "root",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "permissions_dirs",
+        "component": "Permissions dirs"
+      },
+      {
+        "parameters": [
+          {
+            "name": "path",
+            "value": "/etc/cron.monthly",
+            "$errors": []
+          },
+          {
+            "name": "mode",
+            "value": "700",
+            "$errors": []
+          },
+          {
+            "name": "owner",
+            "value": "root",
+            "$errors": []
+          },
+          {
+            "name": "group",
+            "value": "root",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "permissions_dirs",
+        "component": "Permissions dirs"
+      },
+      {
+        "parameters": [
+          {
+            "name": "path",
+            "value": "/etc/cron.d",
+            "$errors": []
+          },
+          {
+            "name": "mode",
+            "value": "700",
+            "$errors": []
+          },
+          {
+            "name": "owner",
+            "value": "root",
+            "$errors": []
+          },
+          {
+            "name": "group",
+            "value": "root",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "permissions_dirs",
+        "component": "Permissions dirs"
+      },
+      {
+        "parameters": [
+          {
+            "name": "target",
+            "value": "/etc/cron.deny",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "file_absent",
+        "component": "File absent"
+      },
+      {
+        "parameters": [
+          {
+            "name": "target",
+            "value": "/etc/cron.at",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "file_absent",
+        "component": "File absent"
+      },
+      {
+        "parameters": [
+          {
+            "name": "target",
+            "value": "/etc/cron.allow",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "file_present",
+        "component": "File present"
+      },
+      {
+        "parameters": [
+          {
+            "name": "target",
+            "value": "/etc/at.allow",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "file_present",
+        "component": "File present"
+      },
+      {
+        "parameters": [
+          {
+            "name": "path",
+            "value": "/etc/cron.allow",
+            "$errors": []
+          },
+          {
+            "name": "mode",
+            "value": "600",
+            "$errors": []
+          },
+          {
+            "name": "owner",
+            "value": "root",
+            "$errors": []
+          },
+          {
+            "name": "group",
+            "value": "root",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "permissions",
+        "component": "Permissions (non recursive)"
+      },
+      {
+        "parameters": [
+          {
+            "name": "path",
+            "value": "/etc/at.allow",
+            "$errors": []
+          },
+          {
+            "name": "mode",
+            "value": "600",
+            "$errors": []
+          },
+          {
+            "name": "owner",
+            "value": "root",
+            "$errors": []
+          },
+          {
+            "name": "group",
+            "value": "root",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "permissions",
+        "component": "Permissions (non recursive)"
+      }
+    ]
+  }
+}

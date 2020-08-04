@@ -5,20 +5,21 @@
 #[macro_use]
 extern crate log;
 
-#[macro_use]
 extern crate serde_json;
 
 #[macro_use]
 pub mod error;
 mod ast;
-pub mod compile;
-mod generators;
 pub mod io;
 pub mod opt;
+pub mod compiler;
+pub mod generators;
 pub use generators::Format;
 pub mod logger;
 mod parser;
-pub mod translate;
+pub mod technique;
+pub mod rudderlang_lib;
+pub mod cfstrings;
 
 use serde::Deserialize;
 use std::fmt;

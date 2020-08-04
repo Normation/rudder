@@ -1,0 +1,92 @@
+{
+  "type": "ncf_technique",
+  "version": 2,
+  "data": {
+    "bundle_name": "Wazuh_windows_install",
+    "description": "",
+    "name": "Wazuh windows install",
+    "version": "1.0",
+    "parameter": [],
+    "category": "ncf_techniques",
+    "method_calls": [
+      {
+        "parameters": [
+          {
+            "name": "source",
+            "value": "wazuh-agent-3.7.2-1.msi",
+            "$errors": []
+          },
+          {
+            "name": "destination",
+            "value": "C:\\Program Files\\Rudder\\tmp\\exe\\wazuh-agent-3.7.2-1.msi",
+            "$errors": []
+          },
+          {
+            "name": "hash_type",
+            "value": "sha256",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "file_from_shared_folder",
+        "component": "File copy from Rudder shared folder"
+      },
+      {
+        "parameters": [
+          {
+            "name": "variable_prefix",
+            "value": "wazuh",
+            "$errors": []
+          },
+          {
+            "name": "variable_name",
+            "value": "is_installed",
+            "$errors": []
+          },
+          {
+            "name": "command",
+            "value": "test-path \"C:\\Program Files (x86)\\ossec-agent\\ossec-agent.exe\"",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "variable_string_from_command",
+        "component": "Variable string from command"
+      },
+      {
+        "parameters": [
+          {
+            "name": "condition_prefix",
+            "value": "wazuh_installed",
+            "$errors": []
+          },
+          {
+            "name": "variable_name",
+            "value": "wazuh.is_installed",
+            "$errors": []
+          },
+          {
+            "name": "expected_match",
+            "value": "True",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "condition_from_variable_match",
+        "component": "Condition from variable match"
+      },
+      {
+        "parameters": [
+          {
+            "name": "command",
+            "value": "\"C:\\Program Files\\Rudder\\tmp\\exe\\wazuh-agent-3.7.2-1.msi\" /q",
+            "$errors": []
+          }
+        ],
+        "class_context": "any.(wazuh_installed_false)",
+        "method_name": "command_execution",
+        "component": "Command execution"
+      }
+    ]
+  }
+}

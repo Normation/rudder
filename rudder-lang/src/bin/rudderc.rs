@@ -19,7 +19,7 @@ use std::process::exit;
 use structopt::StructOpt;
 
 use rudderc::{
-    compile::compile_file, io, logger::Logger, opt::Opt, translate::translate_file, Action,
+    compiler::compile_file, io, logger::Logger, opt::Opt, technique::generate, Action,
 };
 
 // MAIN
@@ -88,7 +88,7 @@ fn main() {
     // Actual action
     let result = match action {
         Action::Compile => compile_file(&ctx, true),
-        Action::Translate => translate_file(&ctx),
+        Action::Translate => generate(&ctx),
     };
     match &result {
         Err(e) => error!("{}", e),

@@ -1,0 +1,28 @@
+{
+  "type": "ncf_technique",
+  "version": 1,
+  "data": {
+    "bundle_name": "normal",
+    "description": "ewf",
+    "name": "normal",
+    "version": "1.0",
+    "parameter": [
+      {
+        "id": "c6e6cc3a-9ce8-4889-bccc-6bfc1b091d0d",
+        "name": "parameter",
+        "description": ""
+      }
+    ],
+    "category": "systemSettings/misc",
+    "method_calls": [
+      {
+        "args": [
+          "mycond"
+        ],
+        "class_context": "any",
+        "method_name": "condition_once",
+        "component": "Condition once"
+      }
+    ]
+  }
+}

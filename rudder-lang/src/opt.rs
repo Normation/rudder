@@ -1,8 +1,11 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2019-2020 Normation SAS
+
+use crate::generators::Format;
 use log::LevelFilter;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
-use crate::generators::Format;
 
 #[derive(Debug, StructOpt)]
 #[structopt(rename_all = "kebab-case")]

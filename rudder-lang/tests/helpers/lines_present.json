@@ -1,0 +1,69 @@
+{
+  "type": "ncf_technique",
+  "version": 2,
+  "data": {
+    "bundle_name": "CIS_redhat7___Ensure_lines_present_in_file",
+    "description": "",
+    "name": "CIS redhat7 - Ensure lines present in file",
+    "version": "1.0",
+    "parameter": [
+      {
+        "id": "7e9a3aa5-a697-4f88-8d3d-a02e27e1b5f8",
+        "name": "lines",
+        "description": ""
+      },
+      {
+        "id": "9e79f7f8-3ca6-4376-a510-11e00e134c91",
+        "name": "file",
+        "description": ""
+      },
+      {
+        "id": "1cf9a017-7fd9-49b8-bdaa-0c22365fa988",
+        "name": "extra_condition",
+        "description": ""
+      }
+    ],
+    "category": "CIS_redhat7",
+    "method_calls": [
+      {
+        "parameters": [
+          {
+            "name": "condition_prefix",
+            "value": "skip_item_${report_data.canonified_directive_id}",
+            "$errors": []
+          },
+          {
+            "name": "variable_name",
+            "value": "node.properties[skip][${report_data.directive_id}]",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "condition_from_variable_existence",
+        "component": "condition_from_variable_existence"
+      },
+      {
+        "parameters": [
+          {
+            "name": "file",
+            "value": "${file}",
+            "$errors": []
+          },
+          {
+            "name": "lines",
+            "value": "${lines}",
+            "$errors": []
+          },
+          {
+            "name": "enforce",
+            "value": "false",
+            "$errors": []
+          }
+        ],
+        "class_context": "any.(skip_item_${report_data.canonified_directive_id}_false.${extra_condition})",
+        "method_name": "file_content",
+        "component": "File content"
+      }
+    ]
+  }
+}

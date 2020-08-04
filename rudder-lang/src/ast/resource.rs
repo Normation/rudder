@@ -103,6 +103,7 @@ fn create_default_context<'src>(
 /// Resource definition with associated metadata and states.
 #[derive(Debug)]
 pub struct ResourceDef<'src> {
+    pub name: &'src str,
     pub metadata: TomlMap<String, TomlValue>,
     pub parameters: Vec<Parameter<'src>>,
     pub states: HashMap<Token<'src>, StateDef<'src>>,
@@ -151,6 +152,7 @@ impl<'src> ResourceDef<'src> {
         (
             errors,
             Some(ResourceDef {
+                name: *name,
                 metadata,
                 parameters,
                 states,
@@ -163,6 +165,7 @@ impl<'src> ResourceDef<'src> {
 /// State definition and associated metadata
 #[derive(Debug)]
 pub struct StateDef<'src> {
+    pub name: &'src str,
     pub metadata: TomlMap<String, TomlValue>,
     pub parameters: Vec<Parameter<'src>>,
     pub statements: Vec<Statement<'src>>,
@@ -195,7 +198,7 @@ impl<'src> StateDef<'src> {
         // create final version of statements
         let mut statements = Vec::new();
         for st0 in pstate.statements {
-            match Statement::fom_pstatement(
+            match Statement::from_pstatement(
                 &mut context,
                 children,
                 st0,
@@ -210,6 +213,7 @@ impl<'src> StateDef<'src> {
         (
             errors,
             Some(StateDef {
+                name: *pstate.name,
                 metadata,
                 parameters,
                 statements,
@@ -334,7 +338,7 @@ fn string_value<'src, VG>(getter: &VG, enum_list: &EnumList<'src>, pvalue: PValu
 }
 
 impl<'src> Statement<'src> {
-    pub fn fom_pstatement<'b>(
+    pub fn from_pstatement<'b>(
         context: &'b mut VarContext<'src>,
         children: &'b mut HashSet<Token<'src>>,
         st: PStatement<'src>,
@@ -448,7 +452,7 @@ impl<'src> Statement<'src> {
                     Ok((
                         expr,
                         map_vec_results(sts.into_iter(), |st| {
-                            Statement::fom_pstatement(
+                            Statement::from_pstatement(
                                 context,
                                 children,
                                 st,

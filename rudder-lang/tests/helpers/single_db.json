@@ -1,0 +1,149 @@
+{
+  "type": "ncf_technique",
+  "version": 2,
+  "data": {
+    "bundle_name": "Single_database",
+    "description": "",
+    "name": "Single database",
+    "version": "1.0",
+    "parameter": [
+      {
+        "id": "e40aad89-b73c-4a03-b520-ae2114e5be3c",
+        "name": "db_name",
+        "description": ""
+      },
+      {
+        "id": "854e604d-effc-4561-aa3d-7580ebea2024",
+        "name": "db_user",
+        "description": ""
+      }
+    ],
+    "category": "ncf_techniques",
+    "method_calls": [
+      {
+        "parameters": [
+          {
+            "name": "name",
+            "value": "mysql-server",
+            "$errors": []
+          },
+          {
+            "name": "version",
+            "value": "",
+            "$errors": []
+          },
+          {
+            "name": "architecture",
+            "value": "",
+            "$errors": []
+          },
+          {
+            "name": "provider",
+            "value": "",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "package_present",
+        "component": "Package present"
+      },
+      {
+        "parameters": [
+          {
+            "name": "service_name",
+            "value": "mysql",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "service_enabled",
+        "component": "Service enabled at boot"
+      },
+      {
+        "parameters": [
+          {
+            "name": "service_name",
+            "value": "mysql",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "service_started",
+        "component": "Service started"
+      },
+      {
+        "parameters": [
+          {
+            "name": "condition_prefix",
+            "value": "${db_name}_present",
+            "$errors": []
+          },
+          {
+            "name": "command",
+            "value": "echo \"\" | mysql ${db_name}",
+            "$errors": []
+          },
+          {
+            "name": "true_codes",
+            "value": "0",
+            "$errors": []
+          },
+          {
+            "name": "false_codes",
+            "value": "1",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "condition_from_command",
+        "component": "Condition from command"
+      },
+      {
+        "parameters": [
+          {
+            "name": "command",
+            "value": "echo \"CREATE DATABASE ${db_name}\" | mysql mysql",
+            "$errors": []
+          }
+        ],
+        "class_context": "any.(${db_name}_present_false)",
+        "method_name": "command_execution",
+        "component": "Command execution"
+      },
+      {
+        "parameters": [
+          {
+            "name": "variable_prefix",
+            "value": "database",
+            "$errors": []
+          },
+          {
+            "name": "variable_name",
+            "value": "secret",
+            "$errors": []
+          },
+          {
+            "name": "value",
+            "value": "{ \"password\": \"secret\" }",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "variable_dict",
+        "component": "Variable from Vault"
+      },
+      {
+        "parameters": [
+          {
+            "name": "command",
+            "value": "echo \"GRANT ALL ON ${db_name}.* TO '${db_user}'@% IDENTIFIED BY '${database.secret[password]}'\" | mysql mysql",
+            "$errors": []
+          }
+        ],
+        "class_context": "any.(${db_name}_present_false)",
+        "method_name": "command_execution",
+        "component": "Command execution"
+      }
+    ]
+  }
+}
