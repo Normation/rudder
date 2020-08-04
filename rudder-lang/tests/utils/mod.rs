@@ -75,7 +75,7 @@ fn compile_file(
         mode: Action::Compile,
         format: format.clone(),
     };
-    match rudderc::compiler::compile_file(&io, true) {
+    match rudderc::compile::compile_file(&io, true) {
         Ok(_) => {
             println!(
                 "{}: compilation of {}",

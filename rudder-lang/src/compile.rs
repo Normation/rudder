@@ -4,7 +4,7 @@
 use crate::{
     ast::AST,
     error::*,
-    generators::{cfengine::CFEngine, dsc::DSC, new_generator},
+    generator::new_generator,
     io::IOContext,
     parser::{Token, PAST},
     rudderlang_lib::RudderlangLib
@@ -37,12 +37,9 @@ pub fn parse_file<'src>(
     }
 }
 
-/// Compile a file from rudder-lang to cfengine
-pub fn compile_file(ctx: &IOContext, technique: bool) -> Result<()> {
-    let sources = Arena::new();
-
+pub fn technique_to_ast<'src>(ctx: &'src IOContext, sources: &'src Arena<String>) -> Result<AST<'src>> {
     // add stdlib: resourcelib + corelib + oslib + cfengine_core
-    let mut past = RudderlangLib::past(&ctx.stdlib, &sources)?;
+    let mut past = RudderlangLib::past(&ctx.stdlib, sources)?;
 
     // read and add files
     info!(
@@ -61,6 +58,14 @@ pub fn compile_file(ctx: &IOContext, technique: bool) -> Result<()> {
     // check that everything is OK
     info!("|- {}", "Semantic verification".bright_green());
     ast.analyze()?;
+
+    Ok(ast)
+}
+
+/// Compile a file from rudder-lang to cfengine
+pub fn compile_file(ctx: &IOContext, technique: bool) -> Result<()> {
+    let sources = Arena::new();
+    let ast = technique_to_ast(ctx, &sources)?;
 
     // generate final output
     info!("|- {}", "Generating output code".bright_green());

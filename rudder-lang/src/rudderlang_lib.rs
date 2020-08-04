@@ -2,31 +2,26 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use crate::{
-    ast::{
-        AST,
-        resource::ResourceDef,
-        resource::StateDef
-    },
-    compiler::parse_file,
+    ast::{resource::ResourceDef, resource::StateDef, AST},
+    compile::parse_file,
     error::*,
-    parser::{ Token, PAST }
+    parser::{Token, PAST},
 };
-use walkdir::WalkDir;
+use colored::Colorize;
 use lazy_static::lazy_static;
 use regex::Regex;
-use colored::Colorize;
 use std::path::Path;
 use std::str;
-use typed_arena::Arena;
 use toml::Value as TomlValue;
+use typed_arena::Arena;
+use walkdir::WalkDir;
 
 pub struct RudderlangLib<'src>(AST<'src>);
 
 impl<'src> core::ops::Deref for RudderlangLib<'src> {
     type Target = AST<'src>;
 
-    fn deref (self: &Self) -> &Self::Target
-    {
+    fn deref(self: &Self) -> &Self::Target {
         &self.0
     }
 }
@@ -55,7 +50,7 @@ impl<'src> RudderlangLib<'src> {
             "Parsing".bright_green(),
             "standard library".bright_yellow()
         );
-    
+
         let mut past = PAST::new();
         let walker = WalkDir::new(stdlib_dir)
             .into_iter()
@@ -97,28 +92,25 @@ impl<'src> RudderlangLib<'src> {
                                 }
                                 None
                             })
-                            .collect::<Vec<(&Token, &Token)>>()
-                    )
+                            .collect::<Vec<(&Token, &Token)>>(),
+                    );
                 }
                 None
             })
             .flatten()
             .collect();
         match matched_pairs.as_slice() {
-            [] => Err(Error::new(format!("Method '{}' does not exist", method_name))),
+            [] => Err(Error::new(format!(
+                "Method '{}' does not exist",
+                method_name
+            ))),
             [(resource, state)] => {
-                let resource_def = self
-                    .resources
-                    .get(resource)
-                    .unwrap();
+                let resource_def = self.resources.get(resource).unwrap();
 
-                let state_def = resource_def
-                    .states
-                    .get(state)
-                    .unwrap();
-    
+                let state_def = resource_def.states.get(state).unwrap();
+
                 Ok(LibMethod::new(resource_def, state_def))
-            },
+            }
             _ => panic!(format!(
                 "The standard library contains several matches for the following method: {}",
                 method_name
@@ -131,7 +123,8 @@ impl<'src> RudderlangLib<'src> {
     /// returns None if the condition is not an operating system
     pub fn cf_system(&self, cond: &str) -> Option<Result<String>> {
         for i in self.enum_list.enum_item_iter("system".into()) {
-            match self.enum_list
+            match self
+                .enum_list
                 .enum_item_metadata("system".into(), *i)
                 .expect("Enum item exists")
                 .get("cfengine_name")
@@ -156,12 +149,10 @@ impl<'src> RudderlangLib<'src> {
                     }
                 } // list of cfengine names
                 _ => {
-                    return Some(
-                        Err(Error::new(format!(
+                    return Some(Err(Error::new(format!(
                         "@cfengine_name must be a string or a list '{}'",
                         *i
-                        )))
-                    )
+                    ))))
                 }
             }
         }
@@ -212,32 +203,38 @@ pub struct LibMethod<'src> {
 }
 impl<'src> LibMethod<'src> {
     pub fn new(resource: &'src ResourceDef, state: &'src StateDef) -> Self {
-        Self {
-            resource,
-            state
-        }
+        Self { resource, state }
     }
 
     pub fn class_prefix(&self) -> String {
-        self
-            .state
+        self.state
             .metadata
             .get("class_prefix")
-            .expect(&format!("Resource '{}': missing 'class_prefix' metadata", self.resource.name))
+            .expect(&format!(
+                "Resource '{}': missing 'class_prefix' metadata",
+                self.resource.name
+            ))
             .as_str()
-            .expect(&format!("Resource '{}': 'class_prefix' metadata value is not a string", self.resource.name))
+            .expect(&format!(
+                "Resource '{}': 'class_prefix' metadata value is not a string",
+                self.resource.name
+            ))
             .to_owned()
     }
 
     // safe unwrap because we generate the resourcelib ourselves, if an error occurs, panic is justified, it is a developer issue
     pub fn class_param_index(&self) -> usize {
-        self
-            .state
+        self.state
             .metadata
             .get("class_parameter_index")
-            .expect(&format!("Resource '{}': missing 'class_parameter_index' metadata", self.resource.name))
+            .expect(&format!(
+                "Resource '{}': missing 'class_parameter_index' metadata",
+                self.resource.name
+            ))
             .as_integer()
-            .expect(&format!("Resource '{}': 'class_parameter_index' metadata value is not an integer", self.resource.name))
-            as usize
+            .expect(&format!(
+                "Resource '{}': 'class_parameter_index' metadata value is not an integer",
+                self.resource.name
+            )) as usize
     }
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::generators::Format;
+use crate::generator::Format;
 use log::LevelFilter;
 use std::path::PathBuf;
 use structopt::StructOpt;

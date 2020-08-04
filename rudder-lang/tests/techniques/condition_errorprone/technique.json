@@ -13,8 +13,12 @@
                 "class_context": "(dragonfly|openbsd)",
                 "component": "Command execution",
                 "method_name": "command_execution",
-                "args": [
-                    "pwd"
+                "parameters": [
+                    {
+                      "name": "command",
+                      "value": "pwd",
+                      "$errors": []
+                    }
                 ]
             }
         ]

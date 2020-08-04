@@ -13,49 +13,77 @@
                 "class_context": "any",
                 "component": "File absent",
                 "method_name": "file_absent",
-                "args": [
-                    "/tmp"
+                "parameters": [
+                    {
+                    "name": "dir",
+                    "value": "/tmp",
+                    "$errors": []
+                    }
                 ]
             },
             {
                 "class_context": "any",
                 "component": "File check exists",
                 "method_name": "file_check_exists",
-                "args": [
-                    "/tmp"
+                "parameters": [
+                    {
+                    "name": "dir",
+                    "value": "/tmp",
+                    "$errors": []
+                    }
                 ]
             },
             {
                 "class_context": "any",
                 "component": "File present",
                 "method_name": "file_present",
-                "args": [
-                    "/tmp"
+                "parameters": [
+                    {
+                    "name": "dir",
+                    "value": "/tmp",
+                    "$errors": []
+                    }
                 ]
             },
             {
                 "class_context": "any",
                 "component": "Directory absent",
                 "method_name": "directory_absent",
-                "args": [
-                    "/tmp",
-                    "false"
+                "parameters": [
+                    {
+                    "name": "dir",
+                    "value": "/tmp",
+                    "$errors": []
+                    },
+                    {
+                        "name": "bool",
+                        "value": "false",
+                        "$errors": []
+                    }
                 ]
             },
             {
                 "class_context": "any",
                 "component": "Directory present",
                 "method_name": "directory_present",
-                "args": [
-                    "/tmp"
+                "parameters": [
+                    {
+                    "name": "dir",
+                    "value": "/tmp",
+                    "$errors": []
+                    }
                 ]
             },
             {
                 "class_context": "any",
                 "component": "Directory check exists",
                 "method_name": "directory_check_exists",
-                "args": [
-                    "/tmp"
+                "parameters": [
+                    {
+                    "name": "dir",
+                    "value": "/tmp",
+                    "$errors": []
+                    }
                 ]
             }
         ]

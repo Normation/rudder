@@ -13,8 +13,12 @@
                 "class_context": "any.(${coucou})",
                 "component": "Command execution",
                 "method_name": "command_execution",
-                "args": [
-                    "pwd"
+                "parameters": [
+                    {
+                        "name": "name",
+                        "value": "pwd",
+                        "$errors": []
+                    }
                 ]
             }
         ]

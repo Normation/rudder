@@ -2,11 +2,11 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use crate::error::*;
-use std::str;
 use nom::{
     branch::alt, bytes::complete::*, character::complete::*, combinator::*, multi::many1,
     sequence::*, IResult,
 };
+use std::str;
 
 /// Canonify a string the same way cfengine does
 pub fn canonify(input: &str) -> String {

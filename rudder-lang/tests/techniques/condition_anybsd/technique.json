@@ -13,9 +13,13 @@
                 "class_context": "(dragonfly|freebsd|netbsd|openbsd)",
                 "component": "Kernel module loaded",
                 "method_name": "kernel_module_loaded",
-                "args": [
-                    "test"
-                ]
+                "parameters": [
+                    {
+                      "name": "name",
+                      "value": "test",
+                      "$errors": []
+                    }
+                  ]
             }
         ]
     }

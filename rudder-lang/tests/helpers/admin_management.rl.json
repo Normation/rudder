@@ -1,0 +1,67 @@
+{
+  "type": "rudderlang_technique",
+  "version": 0,
+  "data": {
+    "bundle_name": "Administrators Management",
+    "description": "test",
+    "name": "Administrators Management",
+    "version": "1.0",
+    "parameter": [
+      {
+        "id": "bbe964b5-5b0a-436d-90ed-8faf7c841b11",
+        "name": "login_name",
+        "description": "Login for the user"
+      }
+    ],
+    "category": "ncf_technique",
+    "method_calls": [
+      {
+        "parameters": [
+          {
+            "name": "login",
+            "value": "RMP",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "user_present",
+        "component": "User present"
+      },
+      {
+        "parameters": [
+          {
+            "name": "path",
+            "value": "/etc/sudoers",
+            "$errors": []
+          },
+          {
+            "name": "lines",
+            "value": "COUCOU",
+            "$errors": []
+          },
+          {
+            "name": "enforce",
+            "value": "true",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "file_content",
+        "component": "File content"
+      },
+      {
+        "parameters": [
+          {
+            "name": "service_name",
+            "value": "sshd",
+            "$errors": []
+          }
+        ],
+        "class_context": "any.(user_present___login_name__repaired)",
+        "method_name": "service_restart",
+        "component": "Service restart"
+      }
+    ],
+    "resources": []
+  }
+}

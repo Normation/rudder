@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+mod from_ast;
+
 use crate::{
-    ast::AST,
+    cfstrings,
     error::*,
     io::IOContext,
-    rudderlang_lib::{RudderlangLib, LibMethod},
-    cfstrings,
+    rudderlang_lib::{LibMethod, RudderlangLib},
 };
-use serde::{Deserialize, Serialize, Serializer, Deserializer};
-use std::convert::From;
 use colored::Colorize;
-use std::{fs, str};
 use lazy_static::lazy_static;
-use regex::{Regex, Captures};
+use regex::{Captures, Regex};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::{fs, str};
 use typed_arena::Arena;
 
 // Techniques are limited subsets of CFEngine in JSON representation
@@ -22,20 +22,22 @@ use typed_arena::Arena;
 pub fn generate(context: &IOContext) -> Result<()> {
     let sources: Arena<String> = Arena::new();
     let lib = RudderlangLib::new(&context.stdlib, &sources)?;
-    let technique = Technique::new(&context)?;
-    let technique_as_rudderlang = technique.to_rudderlang(&lib)?;
+    let rudderlang_technique = Technique::from_json(&context)?.to_rudderlang(&lib)?;
     let output_path = context.dest.to_string_lossy();
-    
+
     // will disapear soon, return string directly
-    fs::write(&context.dest, technique_as_rudderlang)
-        .map_err(|e| err_wrapper(&output_path, e))?;
+    fs::write(&context.dest, rudderlang_technique).map_err(|e| err_wrapper(&output_path, e))?;
     Ok(())
 }
 
 fn string_into_u8<S>(v: &str, s: S) -> std::result::Result<S::Ok, S::Error>
-where S: Serializer
+where
+    S: Serializer,
 {
-    s.serialize_f32(v.parse().expect("Version type cannot be parsed into an integer"))
+    s.serialize_u8(
+        v.parse()
+            .expect("Version type cannot be parsed into an integer"),
+    )
 }
 
 fn string_from_u8<'de, D>(deserializer: D) -> std::result::Result<String, D::Error>
@@ -56,35 +58,35 @@ pub struct Technique {
 }
 impl Technique {
     /// creates a Technique that will be used to generate a string representation of a rudderlang or json technique
-    fn new(context: &IOContext) -> Result<Self> {
+    fn from_json(context: &IOContext) -> Result<Self> {
         let input_path = &context.source.to_string_lossy();
-    
+
         info!(
             "{} from {}",
             "Processing generation".bright_green(),
             input_path.bright_yellow(),
         );
- 
+
         info!(
             "|- {} {}",
             "Parsing".bright_green(),
             input_path.bright_yellow()
         );
-        
-        let json_str = &fs::read_to_string(&context.source)
-            .map_err(|e| err_wrapper(input_path, e))?;
+
+        let json_str =
+            &fs::read_to_string(&context.source).map_err(|e| err_wrapper(input_path, e))?;
 
         serde_json::from_str::<Self>(json_str)
             .map_err(|e| Error::new(format!("Technique from JSON: {}", e)))
     }
 
-    fn to_json(&self, lib: &RudderlangLib) -> Result<String> {
+    pub fn to_json(&self) -> Result<String> {
         info!(
             "|- {} (translation phase)",
             "Generating JSON code".bright_green()
         );
 
-        serde_json::to_string(self)
+        serde_json::to_string_pretty(self)
             .map_err(|e| Error::new(format!("Technique to JSON: {}", e)))
     }
 
@@ -99,62 +101,32 @@ impl Technique {
     }
 }
 
-impl<'src> From<AST<'src>> for Technique {
-    fn from(_ast: AST<'src>) -> Self {
-        unimplemented!()
-        // Technique {
-        //     r#type: "ncf_technique",
-        //     version: 2,
-        //     data: TechniqueData {
-        //         bundle_name:,
-        //         version:,
-        //         category:,
-        //         description:,
-        //         name:,
-        //         method_calls: calls.iter().map(|r| MethodCall {
-        //             method_name:,
-        //             condition:,
-        //             component:,
-        //             parameters:
-        //         }).collect::<Vec<MethodCall>>(),
-        //         parameter: parameters.iter().map(|r| InterpolatedParameter {
-        //             id:,
-        //             name:,
-        //             description:,
-        //         }).collect::<Vec<InterpolatedParameter>>(),
-        //         resources: resources.iter().map(|r| Resource {
-        //             name:,
-        //             state:
-        //         }).collect::<Vec<Resource>>(),
-        //     }
-        // }
-    }
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct TechniqueData {
     bundle_name: String,
-    version: String,
-    #[serde(default)] // >=6.1
-    category: String, 
     description: String,
     name: String,
-    method_calls: Vec<MethodCall>,
-    #[serde(rename="parameter")]
+    #[serde(default)] // >=6.1
+    version: String,
+    #[serde(rename = "parameter")]
     interpolated_parameters: Vec<InterpolatedParameter>,
+    category: String,
+    method_calls: Vec<MethodCall>,
     #[serde(default)] // >=6.2
-    resources: Vec<Resource>
+    resources: Vec<Resource>,
 }
 impl TechniqueData {
     fn to_rudderlang(&self, lib: &RudderlangLib) -> Result<String> {
-        let (parameters_meta, parameter_list): (Vec<String>, Vec<String>) =  self.interpolated_parameters.iter()
+        let (parameters_meta, parameter_list): (Vec<String>, Vec<String>) = self
+            .interpolated_parameters
+            .iter()
             .map(|p| p.to_rudderlang())
             .collect::<Result<Vec<(String, String)>>>()?
             .into_iter()
             .unzip();
         let parameters_meta_fmt = match parameters_meta.is_empty() {
             true => "".to_owned(),
-            false => format!("\n  {}\n", parameters_meta.join(",\n  "))
+            false => format!("\n  {}\n", parameters_meta.join(",\n  ")),
         };
 
         let calls = self
@@ -164,7 +136,7 @@ impl TechniqueData {
             .collect::<Result<Vec<String>>>()?;
         let calls_fmt = match calls.is_empty() {
             true => "".to_owned(),
-            false => format!("\n  {}\n", calls.join("\n\n  "))
+            false => format!("\n  {}\n", calls.join("\n\n  ")),
         };
 
         Ok(format!(
@@ -191,34 +163,31 @@ resource {bundle_name}({parameter_list})
 }
 
 #[derive(Serialize, Deserialize, Default)]
-struct InterpolatedParameter {
+pub struct InterpolatedParameter {
     id: String,
     name: String,
     description: String,
 }
 impl InterpolatedParameter {
-    fn to_rudderlang(&self)     -> Result<(String, String)> {
+    fn to_rudderlang(&self) -> Result<(String, String)> {
         let parameter_meta = format!(
             r#"{{ "name": "{}", "id": "{}", "description": "{}" }}"#,
-            self.name,
-            self.id,
-            self.description,
+            self.name, self.id, self.description,
         );
-        let parameter = self.name.replace("\"", "")
-            .replace(" ", "_")
-            .to_owned();
+        let parameter = self.name.replace("\"", "").replace(" ", "_").to_owned();
 
         Ok((parameter_meta, parameter))
     }
 }
 
 #[derive(Serialize, Deserialize)]
-struct MethodCall {
-    method_name: String,
-    #[serde(rename="class_context")]
-    condition: String,
-    component: String,
+pub struct MethodCall {
+    #[serde(default)]
     parameters: Vec<Value>,
+    #[serde(rename = "class_context")]
+    condition: String,
+    method_name: String,
+    component: String,
 }
 impl MethodCall {
     fn to_rudderlang(&self, lib: &RudderlangLib) -> Result<String> {
@@ -228,11 +197,14 @@ impl MethodCall {
         // check. note: replace `1` by resource param count? not yet, error if several parameters
         let param_count = 1 + lib_method.state.parameters.len();
         if params.len() != param_count {
-            return Err(Error::new(
-                format!("Method {} is expected to have {} parameters", self.method_name, param_count)
-            ));
+            return Err(Error::new(format!(
+                "Method {} is expected to have {} parameters",
+                self.method_name, param_count
+            )));
         }
-        let state_params: Vec<String> = params.drain(lib_method.resource.parameters.len()..).collect();
+        let state_params: Vec<String> = params
+            .drain(lib_method.resource.parameters.len()..)
+            .collect();
 
         let mut call = format!(
             "{}({}).{}({})",
@@ -266,10 +238,10 @@ impl MethodCall {
                 (var, Some(template_var)) => {
                     vars.push(var);
                     template_vars.push(template_var);
-                },
+                }
                 (var, None) => vars.push(var),
             };
-        };
+        }
         template_vars.push("".to_owned());
         Ok((vars, template_vars))
     }
@@ -302,11 +274,11 @@ impl MethodCall {
     fn format_method(&self, lib: &RudderlangLib, cond: &str) -> Result<String> {
         // return known system class (formatted as cfengine system)
         if let Some(system) = lib.cf_system(cond) {
-            return system
+            return system;
         }
         // return method if outcome
         if let Some(outcome) = lib.cf_outcome(cond) {
-            return Ok(outcome)
+            return Ok(outcome);
         }
         // else
         Err(Error::new(format!(
@@ -331,23 +303,35 @@ impl Resource {
 
 #[derive(Serialize, Deserialize, Default)]
 struct Value {
-    // name: String, // not used in rudder-lang
+    name: String, // not used in rudder-lang
     value: String,
+    #[serde(skip_deserializing, rename = "$errors")]
+    // only useful when coupled with technique editor
+    errors: Vec<String>,
 }
 impl Value {
+    fn new(name: &str, value: &str) -> Self {
+        Self {
+            name: name.to_owned(),
+            value: value.to_owned(),
+            errors: Vec::new(),
+        }
+    }
+
     fn to_rudderlang(&self, template_len: usize) -> Result<(String, Option<String>)> {
         // rl v2 behavior should make use of this, for now, just a syntax lib
         if cfstrings::parse_string(&self.value).is_err() {
-            return Err(Error::new(
-                format!("Invalid variable syntax in '{}'", self.value)
-            ));
+            return Err(Error::new(format!(
+                "Invalid variable syntax in '{}'",
+                self.value
+            )));
         }
         Ok(match self.value.contains('$') {
             true => (
                 format!("p{}", template_len),
-                Some(format!("let p{} = {:#?}", template_len, self.value))
+                Some(format!("let p{} = {:#?}", template_len, self.value)),
             ),
-            false => (format!("{:#?}", self.value), None)
+            false => (format!("{:#?}", self.value), None),
         })
     }
 }

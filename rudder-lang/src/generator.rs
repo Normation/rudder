@@ -3,9 +3,10 @@
 
 pub mod cfengine;
 pub mod dsc;
+pub mod json;
 pub mod markdown;
 
-pub use self::{cfengine::CFEngine, dsc::DSC, markdown::Markdown};
+pub use self::{cfengine::CFEngine, dsc::DSC, markdown::Markdown, json::JSON};
 use crate::{ast::AST, error::*};
 use serde::de::{self, Deserialize, Deserializer};
 use std::{fmt, path::Path, str::FromStr};
@@ -29,7 +30,7 @@ pub fn new_generator(format: &Format) -> Result<Box<dyn Generator>> {
         Format::CFEngine => Ok(Box::new(CFEngine::new())),
         Format::DSC => Ok(Box::new(DSC::new())),
         Format::Markdown => Ok(Box::new(Markdown::new())),
-        // Format::JSON => Ok(JSON::new()),
+        Format::JSON => Ok(Box::new(JSON)),
         _ => Err(Error::new(format!("No Generator for {} format", format))),
     }
 }

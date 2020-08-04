@@ -55,6 +55,34 @@ impl<'src> Token<'src> {
         &self.val.extra
     }
 
+    pub fn from_lib(&self) -> bool {
+        // Should do the trick for now, since we have no context in here to get libs/std/ filenames dynamically
+        // Should be updated at some point since it is errorprone 
+        [
+            "command.rl",
+            "condition.rl",
+            "directory.rl",
+            "dsc.rl",
+            "environment.rl",
+            "file.rl",
+            "group.rl",
+            "http_request.rl",
+            "kernel_module.rl",
+            "monitoring.rl",
+            "package.rl",
+            "permissions.rl",
+            "registry.rl",
+            "schedule.rl",
+            "service.rl",
+            "sharedfile.rl",
+            "sysctl.rl",
+            "user.rl",
+            "variable.rl",
+            "windows.rl",
+        ].contains(&self.val.extra)
+    }
+
+
     pub fn start_pos(&self) -> usize {
         self.val.location_offset()
     }

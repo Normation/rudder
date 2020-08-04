@@ -26,8 +26,12 @@
     "category": "systemSettings/misc",
     "method_calls": [
       {
-        "args": [
-          "mycond"
+        "parameters": [
+          {
+            "name": "cond",
+            "value": "test",
+            "$errors": []
+          }
         ],
         "class_context": "any",
         "method_name": "condition_once",

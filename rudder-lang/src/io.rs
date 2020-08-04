@@ -4,7 +4,7 @@
 use serde::Deserialize;
 use std::{fmt, path::PathBuf, str::FromStr};
 
-use crate::{error::*, generators::Format, opt::IOOpt, Action};
+use crate::{error::*, generator::Format, opt::IOOpt, Action};
 
 // deserialized config file sub struct
 #[derive(Clone, Debug, Deserialize)]

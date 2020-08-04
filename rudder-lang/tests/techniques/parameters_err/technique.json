@@ -26,11 +26,27 @@
                 "class_context": "any",
                 "component": "Package absent",
                 "method_name": "package_absent",
-                "args": [
-                    "vpn",
-                    "",
-                    "",
-                    ""
+                "parameters": [
+                    {
+                    "name": "package",
+                    "value": "vpn",
+                    "$errors": []
+                    },
+                    {
+                        "name": "version",
+                        "value": "",
+                        "$errors": []
+                    },
+                    {
+                        "name": "architecture",
+                        "value": "",
+                        "$errors": []
+                    },
+                    {
+                        "name": "provider",
+                        "value": "",
+                        "$errors": []
+                    }
                 ]
             }
         ]

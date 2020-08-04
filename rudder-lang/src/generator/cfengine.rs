@@ -5,7 +5,7 @@ use super::Generator;
 use crate::{
     ast::{enums::EnumExpressionPart, resource::*, value::*, *},
     error::*,
-    generators::cfengine::syntax::{quoted, Bundle, Method, Policy, Promise},
+    generator::cfengine::syntax::{quoted, Bundle, Method, Policy, Promise},
     parser::*,
 };
 use std::{collections::HashMap, ffi::OsStr, fs::File, io::Write, path::Path};
