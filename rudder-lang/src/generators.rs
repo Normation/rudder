@@ -3,8 +3,9 @@
 
 mod cfengine;
 mod dsc;
+mod markdown;
 
-pub use self::{cfengine::CFEngine, dsc::DSC};
+pub use self::{cfengine::CFEngine, dsc::DSC, markdown::Markdown};
 use crate::{ast::AST, error::*};
 use serde::de::{self, Deserialize, Deserializer};
 use std::{fmt, path::Path, str::FromStr};
@@ -27,6 +28,7 @@ pub fn new_generator(format: &Format) -> Result<Box<dyn Generator>> {
     match format {
         Format::CFEngine => Ok(Box::new(CFEngine::new())),
         Format::DSC => Ok(Box::new(DSC::new())),
+        Format::Markdown => Ok(Box::new(Markdown::new())),
         // Format::JSON => Ok(JSON::new()),
         _ => Err(Error::new(format!("No Generator for {} format", format))),
     }
@@ -39,6 +41,7 @@ pub enum Format {
     CFEngine,
     DSC,
     JSON,
+    Markdown,
 }
 impl fmt::Display for Format {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -50,6 +53,7 @@ impl fmt::Display for Format {
                 Format::DSC => "ps1",
                 Format::RudderLang => "rl",
                 Format::JSON => "json",
+                Format::Markdown => "md",
             }
         )
     }
@@ -64,6 +68,7 @@ impl FromStr for Format {
             "dsc" | "ps1" => Ok(Format::DSC),
             "json" => Ok(Format::JSON),
             "rl" => Ok(Format::RudderLang),
+            "md" => Ok(Format::Markdown),
             // RudderLang is an error, not a compilation format
             _ => Err(Error::new(format!("Could not parse format {}", format))),
         }

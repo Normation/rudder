@@ -1,139 +1,539 @@
-#!/usr/bin/perl
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# Usage: ./generate_lib
+#
+# This is a module to generate the rudder-lang lib (stdlib + user-defined methods)
+# dynamically on the root server.
+#
 
-use warnings;
-use strict;
+# formatted with `autopep8 --in-place --aggressive --aggressive <filename>`
 
-sub get_paths_from_conf_file {
-  my ($file) = @_;
+import re
+import json
+import os.path
+import sys
+import os
+import codecs
+try:
+    from ConfigParser import ConfigParser
+except BaseException:
+    from configparser import ConfigParser
+from pprint import pprint
 
-  my $is_default = 0;
-  my $ncf_gm_path = "/usr/share/ncf/tree/30_generic_methods/";
-  my $dsc_gm_path = "/var/rudder/configuration-repository/dsc/ncf/30_generic_methods/";
-  my $resourcelib_path = "/opt/rudder/share/rudder-lang/lib";
-  open (FILE, $file);
-  while (<FILE>) {
-    chomp;
-    if ($is_default == 1 && /^\s*ncf_generic_methods\s*=\s*"(?<path>[\-\w\/.]+)"/ ) {
-      $ncf_gm_path = $+{path};
-    }
-    if ($is_default == 1 && /^\s*dsc_generic_methods\s*=\s*"(?<path>[\-\w\/.]+)"/ ) {
-      $dsc_gm_path = $+{path};
-    }
-    if ($is_default == 1 && /^\s*stdlib\s*=\s*"(?<path>[\-\w\/.]+)"/ ) {
-      $resourcelib_path = $+{path};
-    }
-    if ( /^\s*\[\s*(?<group>\w+)\s*\]\s*$/ ) {
-      if ($+{group} eq "shared") {
-        $is_default = 1;
-      } else {
-        $is_default = 0;
-      }
-    }
-  }
-  close (FILE);
-  return ($ncf_gm_path, $dsc_gm_path, $resourcelib_path);
-}
+tags = [
+    "name",
+    "description",
+    "parameter",
+    "method",
+    "documentation",
+    "class_prefix",
+    "class_parameter",
+    "class_parameter_id",
+    "deprecated",
+    "agent_requirements",
+    "parameter_constraint",
+    "parameter_type",
+    "action",
+    "rename"]
+optionnal_tags = [
+    "deprecated",
+    "documentation",
+    "parameter_constraint",
+    "parameter_type",
+    "agent_requirements",
+    "action",
+    "rename"]
+multiline_tags = ["description", "documentation", "deprecated"]
 
-my %resource = ();
-my @state = ();
 
-my $cfgpath = "/opt/rudder/etc/rudderc.conf";
-if (@ARGV) {
-  ($cfgpath) = @ARGV;
-}
-my ($ncf_gm_path, $dsc_gm_path, $resourcelib_path) = get_paths_from_conf_file $cfgpath;
+class NcfError(Exception):
+    def __init__(self, message, details="", cause=None):
+        self.message = message
+        self.details = details
+        # try to get details from inner cause
+        try:
+            # Will not add to details if cause is None or message is None
+            self.details += " caused by : " + cause.message
+            # Will not add to details if details is None
+            self.details += "\n" + cause.details
+        except BaseException:
+            # We got an error while extending error details, just ignore it and
+            # keep current value
+            pass
 
-# ultralight homemade parser NCF generic methods
-my $ncf_methods = $ncf_gm_path . "/*";
-my $is_ncf_empty=1;
-foreach my $file (glob $ncf_methods) {
-  $is_ncf_empty=0;
-  # file exclusion
-  next if $file=~ /\/_/;
-  next if $file=~ /README/;
-  next if $file=~ /permissions.cf/;
+    def __str__(self):
+        return repr(self.message)
 
-  open(my $fd, "<$file") or die "cannot read $file";
 
-  my $resource_blocks=1;
-  my $resource_identifiers=1;
-  if ($file =~ /\/http_request_/) { $resource_identifiers=2; }
-  if ($file =~ /\/sharedfile_/) { $resource_identifiers=2; }
-  if ($file =~ /\/variable_/) { $resource_identifiers=2; }
-  # exception's exception: only one parameter for these resources, TODO hack for translate
-  if ($file =~ /\/variable_string_escaped/) { next; }
+def format_errors(error_list):
+    formated_errors = []
+    for error in error_list:
+        sys.stderr.write("ERROR: " + error.message + "\n")
+        sys.stderr.write(error.details + "\n")
+        formated_errors.append(
+            {"message": error.message, "details": error.details})
+    sys.stderr.flush()
+    return formated_errors
 
-  # init data
-  my $i=0;
-  my ($resource, $state, $prefix, $class_parameter_name, $class_parameter_index) = ("", "", "", -1);
-  my $generic_method = "";
-  my @params;
-  my @supported_formats = ();
-  my @resource_params_unnamed=();
-  my @resource_params=();
-  my %param_id=();
 
-  # loop over GM
-  while(my $line=<$fd>)
-  {
-    if ($line =~ /^#.*\@parameter\s+(\w+)\s.*$/) {
-      $param_id{$1}=$i;
-      if ($i < $resource_identifiers) {
-        push @resource_params_unnamed, "p$i";
-      }
-      push @params, "$1";
-      $i++;
-    }
-    elsif($line =~ /^#.*\@class_prefix\s+(\w+)/) {
-      $prefix = $1;
-    }
-    elsif($line =~ /^#.*\@class_parameter\s+(\w+)/) {
-      $class_parameter_index = $param_id{$1};
-      $class_parameter_name = $1;
-      splice @params, $class_parameter_index, 1;
-    }
-    elsif($line =~ /^bundle agent (\w+)\(/) {
-      $generic_method = $1;
-      # exception for kernel that should be kernel_module (took from state)
-      my $res_type = "[a-zA-Z0-9]+";
-      if ($1 =~ /kernel_module/) {
-        $res_type = "kernel_module";
-      }
-      # exception for http resource that should be http_request (took from state)
-      elsif ($1 =~ /http_request/) {
-        $res_type = "http_request";
-      }
-      $generic_method =~ /^((?:$res_type\_){$resource_blocks})(\w+)$/;
-      ($resource, $state) = ($1, $2);
-      chop $resource;
-    }
-  }
-  push @supported_formats, "\"cf\"";
-  my $dsc_gm_path = $file;
+def get_methods_filenames(parent_dir):
+    filenames = []
+    filenames_add = filenames.append
+    for root, dirs, files in os.walk(parent_dir):
+        for dir in dirs:
+            filenames = filenames + \
+                get_methods_filenames(os.path.join(parent_dir, dir))
 
-  $dsc_gm_path =~ s/^$ncf_gm_path\/tree(.*)\.cf$/$dsc_gm_path$1\.ps1/;
-  if (-e $dsc_gm_path) {
-    push @supported_formats, "\"dsc\"";
-  }
+        for file in files:
+            if file.endswith(".cf") and not file.startswith("_"):
+                filenames.append(os.path.join(root, file))
+    return filenames
 
-  $resource{"resource $resource(".join(", ", @resource_params_unnamed).")"}=1;
-  # keep output
-  push @state, "\@class_parameter_index = $class_parameter_index";
-  push @state, "\@class_parameter_name = \"$class_parameter_name\"";
-  push @state, "\@class_prefix = \"$prefix\"";
-  push @state, "\@supported_formats = [".join(", ", @supported_formats)."]";
-  push @state, "$resource state $state(".join(", ", @params).") {}\n";
-}
+##############
+# data parsing
+##############
 
-if ($is_ncf_empty) {
-  print "no ncf method found for $ncf_methods";
-}
+# This function is adapted from the ncf lib
 
-open(my $resourcelib, '>', "$resourcelib_path/resourcelib.rl") or die "Cannot write resourcelib ($resourcelib_path/resourcelib.rl)";
-print $resourcelib "\@format=0";
-print $resourcelib "\n\n";
-print $resourcelib join("\n",keys %resource);
-print $resourcelib "\n\n";
-print $resourcelib join("\n", @state);
-print $resourcelib "\n\n";
-close($resourcelib);
+
+def parse_method_metadata(content):
+    res = {}
+    warnings = []
+    parameters = {}
+    param_names = set()
+    param_constraints = {}
+    param_types = {}
+    default_constraint = {}
+
+    multiline = False
+    previous_tag = None
+    match_line = ""
+    bundle_name = "unknown"
+
+    for line in content.splitlines():
+        # line should already be unicode
+        # unicodeLine = unicode(line,"UTF-8") #line.decode('unicode-escape')
+
+        # Parse metadata tag line
+        match = re.match(
+            r"^\s*#\s*@(\w+)\s*(([a-zA-Z0-9_]+)?\s+(.*?)|.*?)\s*$",
+            line,
+            flags=re.UNICODE)
+        if match:
+            tag = match.group(1)
+            # Check if we are a valid tag
+            if tag in tags:
+                # tag "parameter" may be multi-valued
+                if tag == "parameter":
+                    param_name = match.group(3)
+                    parameters[param_name] = {
+                        'name': param_name, 'description': match.group(4)}
+                    param_names.add(param_name)
+                if tag == "parameter_constraint":
+                    constraint = json.loads("{" + match.group(4) + "}")
+                    # extend default_constraint if it was not already defined)
+                    param_constraints.setdefault(
+                        match.group(3), default_constraint.copy()).update(constraint)
+                if tag == "parameter_type":
+                    param_type = match.group(4)
+                    param_types[match.group(3)] = param_type
+                else:
+                    res[tag] = match.group(2)
+                previous_tag = tag
+                continue
+
+        # Parse line without tag, if previous tag was a multiline tag
+        if previous_tag is not None and previous_tag in multiline_tags:
+            match = re.match(r"^\s*# ?(.*)$", line, flags=re.UNICODE)
+            if match:
+                res[previous_tag] += "\n" + match.group(1)
+                continue
+            else:
+                previous_tag = None
+
+        # manage multiline bundle definition
+        if multiline:
+            match_line += line
+        else:
+            match_line = line
+        if re.match(
+            r"[^#]*bundle\s+agent\s+(\w+)\s*\([^)]*$",
+            match_line,
+                flags=re.UNICODE | re.MULTILINE | re.DOTALL):
+            multiline = True
+
+        # read a complete bundle definition
+        match = re.match(
+            r"[^#]*bundle\s+agent\s+(\w+)\s*(\(([^)]*)\))?\s*\{?\s*$",
+            match_line,
+            flags=re.UNICODE | re.MULTILINE | re.DOTALL)
+        if match:
+            multiline = False
+
+            bundle_name = match.group(1)
+            split = bundle_name.split("_")
+
+            if bundle_name.startswith(
+                    "kernel_module") or bundle_name.startswith("http_request"):
+                shift = 2
+            else:
+                shift = 1
+
+            res['resource'] = '_'.join(split[:shift])
+            res['state'] = '_'.join(split[shift:])
+
+            if bundle_name.startswith("http_request_") or bundle_name.startswith(
+                    "sharedfile_") or bundle_name.startswith("variable_"):
+                resource_id = 2
+            else:
+                resource_id = 1
+
+            bundle_args = []
+
+            if match.group(3) is not None and len(match.group(3)):
+                bundle_args += [x.strip()
+                                for x in match.group(3).split(',')]
+
+            res["method"] = bundle_name
+
+            # Any tags should come before the "bundle agent" declaration
+            break
+
+    # The tag "class_parameter_id" is a magic tag, its value is built from
+    # class_parameter and the list of args
+    if "class_parameter_id" in tags:
+        try:
+            res['class_parameter_id'] = bundle_args.index(
+                res['class_parameter']) + 1
+        except BaseException:
+            res['class_parameter_id'] = 0
+            raise NcfError(
+                "The class_parameter name \"" +
+                res['class_parameter'] +
+                "\" does not seem to match any of the bundle's parameters in " +
+                bundle_name)
+
+    # Check that we don't have a constraint that is defined on a non existing
+    # parameter:
+    wrong_constraint_names = set(param_constraints.keys()) - param_names
+    if len(wrong_constraint_names) > 0:
+        warning_message = "Defining constraint on non existing parameters: " + \
+            ", ".join(wrong_constraint_names)
+        print(warning_message)
+        warnings.append(warning_message)
+
+    # Check that we don't have a type that is defined on a non existing
+    # parameter:
+    wrong_type_names = set(param_types.keys()) - param_names
+    if len(wrong_type_names) > 0:
+        warning_message = "Defining type on non existing parameters: " + \
+            ", ".join(wrong_type_names)
+        print(warning_message)
+        warnings.append(warning_message)
+
+    # Now we have checked validity let's split resource parameters from state
+    # parameters
+
+    res["resource_parameters"] = []
+    res["parameters"] = []
+    if len(bundle_args) > 0:
+        for param_name in bundle_args:
+            try:
+                param = parameters[param_name]
+            except BaseException:
+                raise NcfError(
+                    "Missing parameter metadata for " +
+                    param_name)
+            constraints = param_constraints.get(
+                param["name"], default_constraint)
+            param_type = param_types.get(param["name"], "string")
+            param["constraints"] = constraints
+            param["type"] = param_type
+
+            if resource_id > 0:
+                resource_id -= 1
+                res["resource_parameters"].append(param)
+            else:
+                res["parameters"].append(param)
+
+    # Remove trailing line breaks
+    for tag in multiline_tags:
+        if tag in res:
+            res[tag] = res[tag].strip('\n\r')
+
+    expected_tags = [tag for tag in tags if tag not in optionnal_tags]
+    if not set(res.keys()).issuperset(set(expected_tags)):
+        missing_keys = [
+            mkey for mkey in expected_tags if mkey not in set(
+                res.keys())]
+        raise NcfError(
+            "One or more metadata tags not found before the bundle agent declaration (" +
+            ", ".join(missing_keys) +
+            ") in " +
+            bundle_name)
+
+    result = {"result": res, "warnings": warnings}
+    return result
+
+
+def extract_resources(metadata):
+    resources = {}
+
+    for method_name in metadata:
+        method = metadata[method_name]
+        if method["resource"] not in resources:
+            resources[method["resource"]] = {}
+            resources[method["resource"]
+                      ]["parameters"] = method["resource_parameters"]
+            resources[method["resource"]]["states"] = [method]
+        else:
+            resources[method["resource"]]["states"].append(method)
+
+    # hardcode special cases for better consistency
+    resources["package"]["description"] = "Package of the system"
+    resources["file"]["parameters"][0]["description"] = "File path to manage"
+    resources["file"]["parameters"][0]["name"] = "path"
+    resources["package"]["parameters"][0]["name"] = "name"
+    resources["kernel_module"]["parameters"][0]["name"] = "name"
+    resources["group"]["parameters"][0]["name"] = "name"
+    resources["variable"]["parameters"][0]["name"] = "prefix"
+    resources["variable"]["parameters"][1]["name"] = "name"
+    resources["variable"]["parameters"][1]["description"] = "The variable to define, the full name will be prefix.name"
+    return resources
+
+
+def get_agents_support(method, content, dsc_filenames):
+    agents = []
+    for dsc_method in dsc_filenames:
+        if dsc_method.endswith("/" + method + ".ps1"):
+            agents.append("dsc")
+            break
+    if not re.search(
+        r'\n\s*bundle\s+agent\s+' +
+        method +
+        r'\b.*?\{\s*\}',
+        content,
+            re.DOTALL):  # this matches an empty bundle content
+        agents.append("cf")
+    return agents
+
+
+def get_generic_methods_metadata(filenames, dsc_filenames):
+    states = {}
+    errors = []
+    warnings = []
+
+    for file in filenames:
+        if file.endswith("variable_string_escaped.cf") or file.endswith(
+                "permissions.cf") or file.endswith(
+                "audit_from_osquery.cf"):
+            # FIXME find a way to support these
+            continue
+        with codecs.open(file, encoding="utf-8") as fd:
+            content = fd.read()
+        try:
+            result = parse_method_metadata(content)
+            metadata = result["result"]
+            warnings.extend(result["warnings"])
+            metadata["source_file"] = file
+            metadata["supported_agents"] = get_agents_support(
+                metadata["method"], content, dsc_filenames)
+
+            if "rename" in metadata:
+                # renaming is handled by translate process
+                # renamed method do not need to exist in rudder lang
+                continue
+
+            states[metadata['method']] = metadata
+
+        except NcfError as e:
+            bundle_name = os.path.splitext(os.path.basename(file))[0]
+            error = NcfError("Could not parse '" + bundle_name + "'", cause=e)
+            errors.append(error)
+            continue  # skip this file, it doesn't have the right tags in - yuk!
+
+    return {
+        "data": extract_resources(states),
+        "errors": format_errors(errors),
+        "warnings": warnings}
+
+
+def read_config(filename):
+    config = ConfigParser()
+    config.read(filename)
+    return config
+
+
+def config_value(config, key, default):
+    try:
+        return config["shared"][key].replace("\"", "")
+    except BaseException:
+        return default
+
+##############
+# rudder-lang generation
+##############
+
+
+def fmt_parameter(out, parameter):
+    out.write(
+        "@parameter." +
+        parameter["name"] +
+        ".description = " +
+        multiline_quoted(
+            parameter["description"]) +
+        "\n")
+    if parameter["type"] != "string":
+        # string is the default
+        out.write(
+            "@parameter." +
+            parameter["name"] +
+            ".type = " +
+            quoted(
+                parameter["type"]) +
+            "\n")
+    for constraint in parameter["constraints"]:
+        value = parameter["constraints"][constraint]
+        # toml without a toml lib
+        if isinstance(value, bool) or isinstance(value, int):
+            out_value = str(value).lower()
+        elif isinstance(value, str):
+            out_value = quoted(escaped(value))
+        else:
+            out_value = str(value)
+
+        fmt_attribute(
+            out,
+            "parameter." +
+            parameter["name"] +
+            ".constraints." +
+            constraint,
+            out_value)
+
+
+def quoted(value):
+    return '"' + value + '"'
+
+
+def multiline_quoted(value):
+    return "'''\n@" + "\n@".join(value.split("\n")) + "\n@'''"
+
+
+def escaped(value):
+    return value.replace('\\', '\\\\').replace('"', '\\"')
+
+
+def fmt_attribute(out, name, value):
+    out.write("@" + name + " = " + value + "\n")
+
+
+def generate_lib(resource_name, resource, lib_dir):
+    '''
+    renders lib in rudder lang
+    '''
+
+    file = lib_dir + "/" + resource_name + ".rl"
+    out = open(file, "w")
+    fmt_attribute(out, "format", "0")
+    out.write(
+        "# This file contains stubs for states directly implemented in targets languages\n")
+    out.write("\n\n")
+
+    if "description" in resource:
+        fmt_attribute(
+            out, "description", multiline_quoted(
+                resource["description"]))
+
+    for parameter in resource["parameters"]:
+        fmt_parameter(out, parameter)
+    params = [p["name"] for p in resource["parameters"]]
+    out.write("resource " + resource_name + "(" + ", ".join(params) + ")\n")
+    out.write("\n\n")
+
+    for state in resource["states"]:
+        fmt_attribute(
+            out, "description", multiline_quoted(
+                state["description"]))
+        if "documentation" in state:
+            fmt_attribute(
+                out, "documentation", multiline_quoted(
+                    state["documentation"]))
+        fmt_attribute(
+            out, "source_file", quoted(
+                escaped(
+                    state["source_file"])))
+        if "deprecated" in state:
+            fmt_attribute(
+                out, "deprecated", multiline_quoted(
+                    state["deprecated"]))
+        fmt_attribute(
+            out, "class_prefix", quoted(
+                escaped(
+                    state["class_prefix"])))
+        # FIXME not the same id?
+        fmt_attribute(
+            out, "class_parameter_index", str(
+                state["class_parameter_id"]))
+        for parameter in state["parameters"]:
+            fmt_parameter(out, parameter)
+        fmt_attribute(
+            out,
+            "supported_targets",
+            "[" +
+            ', '.join(
+                '"{0}"'.format(w) for w in state["supported_agents"]) +
+            "]")
+        params = [p["name"] for p in state["parameters"]]
+        out.write(
+            resource_name +
+            " state " +
+            state["state"] +
+            "(" +
+            ", ".join(params) +
+            ") {}\n")
+        out.write("\n")
+
+    out.close()
+
+##############
+# entry point
+##############
+
+
+def translate_lib(config_file):
+    config = read_config(config_file)
+    lib_dir = config_value(
+        config,
+        "stdlib",
+        "/opt/rudder/share/rudder-lang/lib/") + "/std/"
+    cfengine_methods = config_value(
+        config,
+        "cfengine_methods",
+        "/usr/share/ncf/tree/30_generic_methods/")
+    alt_cfengine_methods = config_value(
+        config,
+        "alt_cfengine_methods",
+        "/var/rudder/configuration-repository/ncf/30_generic_methods")
+    dsc_methods = config_value(
+        config,
+        "dsc_methods",
+        "/var/rudder/configuration-repository/dsc/ncf/30_generic_methods/")
+
+    method_files = get_methods_filenames(
+        cfengine_methods) + get_methods_filenames(alt_cfengine_methods)
+    dsc_files = get_methods_filenames(dsc_methods)
+
+    metadata = get_generic_methods_metadata(method_files, dsc_files)
+    for resource_name in metadata["data"]:
+        generate_lib(resource_name, metadata["data"][resource_name], lib_dir)
+
+
+if __name__ == '__main__':
+    if len(sys.argv) == 1:
+        translate_lib("/opt/rudder/etc/rudderc.conf")
+    elif len(sys.argv) == 2:
+        translate_lib(sys.argv[1])
+    else:
+        print(sys.argv[0] + " [config_file]")
+        exit(1)

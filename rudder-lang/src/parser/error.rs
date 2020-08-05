@@ -261,3 +261,4 @@ pub fn fix_error_type<T>(res: PResult<T>) -> Result<T> {
         Err(Err::Incomplete(_)) => panic!("Incomplete should never happen"),
     }
 }
+

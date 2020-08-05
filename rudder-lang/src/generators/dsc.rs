@@ -159,11 +159,11 @@ impl DSC {
                     }
                 };
                 Ok((p.0.to_owned(), p_index))
-            },
+            }
             _ => Err(Error::new(format!(
                 "Generic methods should have 1 class parameter (not the case for {})",
                 generic_method_name
-            )))
+            ))),
         }
     }
 
@@ -202,8 +202,7 @@ impl DSC {
             .map(|p| p.name.fragment())
             .collect::<Vec<&str>>();
 
-        let is_dsc_supported: bool = match state_def.metadata.get("supported_formats")
-        {
+        let is_dsc_supported: bool = match state_def.metadata.get("supported_targets") {
             Some(TomlValue::Array(parameters)) => {
                 let mut is_dsc_listed = false;
                 for p in parameters {
@@ -214,8 +213,8 @@ impl DSC {
                         }
                     } else {
                         return Err(Error::new(
-                            "Expected value type for supported_formats metadata: String".to_owned(),
-                        ))
+                            "Expected value type for supported_targets metadata: String".to_owned(),
+                        ));
                     }
                 }
                 is_dsc_listed
@@ -427,7 +426,7 @@ impl DSC {
                 if let Some(val) = param.get(entry) {
                     match val {
                         TomlValue::String(s) => return format!("{:?}: {:?}", entry, s),
-                        _ => { }
+                        _ => {}
                     }
                 }
             }
@@ -450,14 +449,11 @@ impl DSC {
     fn generate_ncf_metadata(&mut self, _name: &Token, resource: &ResourceDef) -> Result<String> {
         let mut meta = resource.metadata.clone();
         // removes parameters from meta and returns it formatted
-        let parameters: String =
-            self.generate_parameters_metadatas(meta.remove("parameters"));
+        let parameters: String = self.generate_parameters_metadatas(meta.remove("parameters"));
         // description must be the last field
-        let mut map = map_hashmap_results(meta.iter(), |(n, v)| {
-            match v {
-                TomlValue::String(s) => Ok((n,s)),
-                _ => Err(err!(_name, "Expecting string parameters")),
-            }
+        let mut map = map_hashmap_results(meta.iter(), |(n, v)| match v {
+            TomlValue::String(s) => Ok((n, s)),
+            _ => Err(err!(_name, "Expecting string parameters")),
         })?;
         let mut metadatas = String::new();
         let mut push_metadata = |entry: &str| {

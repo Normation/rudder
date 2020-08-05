@@ -54,43 +54,6 @@ include::examples/documentation_ntp.rl.cf[]
 ----
 // TODO: comparison with CFEngine, Puppet (mgmt ?)
 
-=== Abilities as of Rudder 6.1
-
-==== Purpose
-
-_rudder-lang_ purpose is to be the only technique generator tool (be it CFEngine, DSC, or JSON format)
-both as the _Technique Editor_ backend and as a language admins system can directly code in. 
-
-==== Present abilities
-
-_rudder-lang_ has just been deployed on _Rudder_ alongside the 6.1 version as an alpha tool.
-
-Currently it works in parallel with the main _NCF_ technique generator. However it has no incidence on the user since it is only called for testing purposes.
-
-How it is being used with _Rudder_ is explained in details (<<integration,here>>)
-
-But what is _rudder-lang_ (and _rudderc_) already able to do?
-
-- Generate techniques written in _rudder-lang_ into: _CFEngine_
-- Translate techniques written in _JSON_ into: _rudder-lang_
-
-These abilities make use of the following features:
-
-* A functional *parser*
-* Variables based on a *type system* composed of strings, integers, booleans, structs, lists
-* A proper and contextualized *error handler* (helping you to write _rudder-lang_)
-* _rudder-lang_ *libraries*, automatically generated based on the last _rudder_ version, including:
-** Supported OSes
-** Available resources (and their relative states)
-** Reserved namespaces
-* Sugar features such as:
-** Aliases
-** Expressions and statements
-** Metadata
-** Comments
-* Usage of parameters and configuration files (technique names and paths as input and output, libraires paths etc)
-* *Logs* generation, including log output settings like verbosity or format
-
 ==== Short-term future abilities
 
 * Generate techniques written in _rudder-lang_ into: _DSC_
@@ -132,10 +95,15 @@ include::stdlib.adoc[leveloffset=+2]
 
 include::operating-systems.adoc[leveloffset=+2]
 
-= Rudder-lang usage
+== Rudder-lang usage
 
 include::usage.adoc[leveloffset=+1]
 
-= Integration to Rudder
+== Integration to Rudder
 
 include::integration.adoc[leveloffset=+1]
+
+
+== Standard library
+
+include::../target/docs/std/lib.adoc[leveloffset=+1]

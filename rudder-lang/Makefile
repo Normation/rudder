@@ -36,9 +36,6 @@ install: build
 	chmod 644 $(DESTDIR)/opt/rudder/share/python/jsondiff/*
 	chmod 644 $(DESTDIR)/opt/rudder/etc/rudderc.conf
 	chmod 644 $(DESTDIR)/var/log/rudder/rudder-lang
-	
-	# TODO run in postinst script
-	# /opt/rudder/share/rudder-lang/tools/generate_lib
 
 test-docs: $(DOC_EXAMPLES)
 
@@ -59,10 +56,33 @@ $(DOC_EXAMPLES):
 	cargo run -- --config-file tools/rudderc-dev.conf --source $@ --dest $@ --format cf
 	rm $@.cf
 
-docs:
+libs:
+	mkdir -p repos
+
+	[ -d repos/ncf ] || git clone git@github.com:Normation/ncf.git repos/ncf
+	cd repos/ncf && git pull
+
+	[ -d repos/dsc ] || git clone git@github.com:Normation/rudder-agent-windows.git repos/dsc \
+	 || mkdir -p repos/dsc/plugin/ncf/30_generic_methods/ repos/dsc/packaging/Files/share/initial-policy/ncf/30_generic_methods/
+	cd repos/dsc && git pull || true
+
+libs-docs: libs
+	mkdir -p target/docs
+	tools/generate_lib tools/rudderc-dev.conf
+	# FIXME replace with proper option
+	mkdir -p target/docs/std
+	cargo run -- -l info -c tools/rudderc-dev.conf -n simplest/technique.rl -f md
+	echo "" > target/docs/std/lib.adoc
+	for resource in $$(ls -1 target/docs/std/*.md); \
+	  do pandoc -t asciidoc -f commonmark $${resource} >> target/docs/std/lib.adoc; \
+	  echo "" >> target/docs/std/lib.adoc ;\
+	done
+
+
+docs: libs-docs
 	mkdir -p target/docs
 	cp -r docs/images target/docs/
 	asciidoctor --destination-dir=target/docs docs/index.adoc
 	asciidoctor --destination-dir=target/docs docs/contributing.adoc
 
-.PHONY: docs $(DOC_EXAMPLES)
+.PHONY: docs $(DOC_EXAMPLES) libs
