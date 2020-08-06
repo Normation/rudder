@@ -496,6 +496,8 @@ class LDAPDiffMapper(
                     case ex: Exception => None
                   }
                   diff.map( _.copy(modExpirationDate = Some(SimpleDiff(expirationDate, diffDate))))
+                case A_API_KIND =>
+                  diff.map( _.copy(modAPIKind = Some(SimpleDiff(oldAccount.kind.kind.name, mod.getAttribute().getValue()))))
                 case A_API_AUTHZ_KIND =>
                   val oldAuthType = oldAccount.kind match {
                     case PublicApi(auth, _) =>
