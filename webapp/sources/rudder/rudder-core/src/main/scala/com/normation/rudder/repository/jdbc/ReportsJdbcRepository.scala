@@ -389,21 +389,13 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
                  AgentRun(AgentRunId(NodeId(t._1), t._2), optNodeConfigId, t._4, t._5)
                })
         }
-        val getRunsQuery = """select distinct
-                            |  T.nodeid, T.executiontimestamp, coalesce(C.keyvalue, '') as nodeconfigid, coalesce(C.iscomplete, false) as complete, T.insertionid
-                            |from
-                            |  (select nodeid, executiontimestamp, min(id) as insertionid from ruddersysevents where id > ? and id <= ? group by nodeid, executiontimestamp) as T
-                            |left join
-                            |  (select
-                            |    true as iscomplete, nodeid, executiontimestamp, keyvalue
-                            |  from
-                            |    ruddersysevents where id > ? and id <= ? and
-                            |    eventtype = 'control' and
-                            |    component = 'end'
-                            |  ) as C
-                            |on T.nodeid = C.nodeid and T.executiontimestamp = C.executiontimestamp""".stripMargin
 
-        Query[(Long, Long, Long, Long), AgentRun](getRunsQuery, None).toQuery0((fromId, toId, fromId, toId)).to[Vector]
+        val getRunsQuery = """select
+                             |  nodeid, executiontimestamp, coalesce(keyvalue, '') as nodeconfigid, true as complete, id as insertionid
+                             |from ruddersysevents where id > ? and id <= ? and
+                             |    eventtype = 'control' and
+                             |    component = 'end'""".stripMargin
+        Query[(Long, Long), AgentRun](getRunsQuery, None).toQuery0((fromId, toId)).to[Vector]
       }
     }
 
