@@ -432,6 +432,9 @@ class LDAPDiffMapper(
                     case v => GeneralizedTime.parse(v).map(_.dateTime)
                   }).getOrElse(None)
                   tryo(diff.copy(modExpirationDate = Some(SimpleDiff(expirationDate, diffDate))))
+                case A_API_KIND =>
+                  // API_KIND is the name of the kind of api kind
+                  tryo(diff.copy(modAPIKind = Some(SimpleDiff(oldAccount.kind.kind.name, mod.getAttribute().getValue()))))
                 case A_API_AUTHZ_KIND =>
                   val oldAuthType = oldAccount.kind match {
                     case PublicApi(auth, _) =>
