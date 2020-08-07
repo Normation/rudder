@@ -75,7 +75,11 @@ bundle agent file_from_local_source_with_check(source, destination, check_comman
 
   classes:
     agent::
-      "copy_needed" not => returnszero("${paths.path[diff]} \"${source}\" \"${destination}\"", "useshell");
+      "destination_exists" expression => fileexists("${destination}");
+      # We might need to copy if destination file exists and diff is not 0, or there's no destination file
+      "copy_needed"               not => returnszero("${paths.path[diff]} \"${source}\" \"${destination}\"", "useshell"),
+                           ifvarclass => "destination_exists";
+      "copy_needed"               not => "destination_exists";
 
       "should_report"    expression => "${report_data.should_report}";
 
