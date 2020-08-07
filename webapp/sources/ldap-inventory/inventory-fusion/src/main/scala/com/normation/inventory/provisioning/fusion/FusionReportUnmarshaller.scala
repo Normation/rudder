@@ -260,16 +260,17 @@ class FusionReportUnmarshaller(
       !( hostname == null || hostname.isEmpty() || invalidList.contains(hostname))
     }
 
-    (optTextHead(xml \\ "RUDDER" \ "HOSTNAME"), optTextHead(xml \\ "OPERATINGSYSTEM" \ "FQDN")) match {
-      // Rudder tag
-      case (Some(hostname), _             ) if validHostname(hostname) =>
+    optTextHead(xml \\ "RUDDER" \ "HOSTNAME") match {
+      case Some(hostname) if validHostname(hostname) =>
         hostname.succeed
-
-      // OS tag
-      case (_             , Some(hostname)) if validHostname(hostname) =>
-        hostname.succeed
-      case (None          , None          )                            =>
-        InventoryError.Inconsistency("Hostname could not be found in inventory (RUDDER/HOSTNAME and OPERATINGSYSTEM/FQDN are missing)").fail
+      case _ =>
+        optTextHead(xml \\ "OPERATINGSYSTEM" \ "FQDN") match {
+          // OS Section is the fallback
+          case Some(osfqdn) if validHostname(osfqdn) =>
+            osfqdn.succeed
+          case None =>
+            InventoryError.Inconsistency("Hostname could not be found in inventory (RUDDER/HOSTNAME and OPERATINGSYSTEM/FQDN are missing)").fail
+      }
     }
   }
 
