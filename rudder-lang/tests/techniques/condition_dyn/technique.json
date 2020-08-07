@@ -1,18 +1,22 @@
 {
-    "name": "condition dyn",
-    "description": "",
-    "version": "1.0",
-    "bundle_name": "condition_dyn",
-    "bundle_args": [],
-    "parameter": [],
-    "method_calls": [
-        {
-            "class_context": "any.(${coucou})",
-            "component": "Command execution",
-            "method_name": "command_execution",
-            "args": [
-                "pwd"
-            ]
-        }
-    ]
+    "type": "ncf_technique",
+    "version": 1,
+    "data": {
+        "name": "condition dyn",
+        "description": "",
+        "version": "1.0",
+        "bundle_name": "condition_dyn",
+        "bundle_args": [],
+        "parameter": [],
+        "method_calls": [
+            {
+                "class_context": "any.(${coucou})",
+                "component": "Command execution",
+                "method_name": "command_execution",
+                "args": [
+                    "pwd"
+                ]
+            }
+        ]
+    }
 }

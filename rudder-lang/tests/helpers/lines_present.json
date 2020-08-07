@@ -1,6 +1,6 @@
 {
   "type": "ncf_technique",
-  "version": 2,
+  "version": 1,
   "data": {
     "bundle_name": "CIS_redhat7___Ensure_lines_present_in_file",
     "description": "",

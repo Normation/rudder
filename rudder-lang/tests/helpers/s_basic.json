@@ -1,21 +1,25 @@
 {
-    "name": "Configure NTP",
-    "description": "test",
-    "version": "1.0",
-    "bundle_name": "Configure_NTP",
-    "bundle_args": [],
-    "parameter": [],
-    "method_calls": [
-        {
-            "class_context": "any",
-            "component": "Package present",
-            "method_name": "package_present",
-            "args": [
-                "ntp",
-                "",
-                "",
-                ""
-            ]
-        }
-    ]
+    "type": "ncf_technique",
+    "version": 1,
+    "data": {
+        "name": "Configure NTP",
+        "description": "test",
+        "version": "1.0",
+        "bundle_name": "Configure_NTP",
+        "bundle_args": [],
+        "parameter": [],
+        "method_calls": [
+            {
+                "class_context": "any",
+                "component": "Package present",
+                "method_name": "package_present",
+                "args": [
+                    "ntp",
+                    "",
+                    "",
+                    ""
+                ]
+            }
+        ]
+    }
 }

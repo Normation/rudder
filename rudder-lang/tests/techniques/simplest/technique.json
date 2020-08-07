@@ -1,18 +1,22 @@
 {
-    "name": "simplest",
-    "description": "rudderlang simplest for a complete loop",
-    "version": "1.0",
-    "bundle_name": "simplest",
-    "bundle_args": [],
-    "parameter": [],
-    "method_calls": [
-        {
-            "class_context": "debian",
-            "component": "File absent",
-            "method_name": "file_absent",
-            "args": [
-                "tmp"
-            ]
-        }
-    ]
+    "type": "ncf_technique",
+    "version": 1,
+    "data": {
+        "name": "simplest",
+        "description": "rudderlang simplest for a complete loop",
+        "version": "1.0",
+        "bundle_name": "simplest",
+        "bundle_args": [],
+        "parameter": [],
+        "method_calls": [
+            {
+                "class_context": "debian",
+                "component": "File absent",
+                "method_name": "file_absent",
+                "args": [
+                    "tmp"
+                ]
+            }
+        ]
+    }
 }
