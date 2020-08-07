@@ -301,4 +301,29 @@ class TestReportParsing extends Specification with Loggable {
     (inventory.machine.machineType must beEqualTo(VirtualMachineType(Virtuozzo))) and
     (inventory.node.main.osDetails must beEqualTo(Linux(Debian, "Debian GNU/Linux 9.5 (stretch)", new Version("9.5"), None, new Version("4.9.0-7-amd64"))))
   }
+  sequential
+
+  "Perfomance test" should {
+    "parse fast enough" in {
+      val dir = new File(this.getClass.getClassLoader.getResource("fusion-report/perfs").getFile)
+      val fileNames = dir.listFiles().collect { case f if (f.getName.endsWith(".ocs") || f.getName.endsWith(".xml")) => f.getName }.toList
+
+      val t0 = System.currentTimeMillis
+      val result = fileNames must contain { (f: String) =>
+        val name = "fusion-report/perfs/" + f
+        val report = parseRun(name)
+        report.node.main.osDetails match {
+          case _: UnknownOS =>
+            logger.error(s"Inventory '${name}' has an unknown OS type")
+            failure
+          case _ =>
+            success
+        }
+      }.foreach
+
+      val t1 = System.currentTimeMillis
+      println(s"Time to parse all inventories is ${t1 - t0} ms")
+      (t1 - t0) must be lessThan (20000) and result // Takes 4300 ms on XPS 13
+    }
+  }
 }
