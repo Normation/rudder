@@ -406,11 +406,9 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
           promiser = s"dummy_report_${index}"
         } yield {
           def naReport(condition : String, message : String) = {
-            s"""    "${promiser}" usebundle => _classes_noop(canonify("${classPrefix}")),
+            s"""    "${promiser}" usebundle => ${reportingContext(method, classParameterValue)},
                |     ${promiser.map(_ => ' ')}     unless => ${condition};
-               |    "${promiser}" usebundle => ${reportingContext(method, classParameterValue)},
-               |     ${promiser.map(_ => ' ')}     unless => ${condition};
-               |    "${promiser}" usebundle => log_rudder("${message}", "${escapedClassParameterValue}", "${classPrefix}", "${classPrefix}", @{args}),
+               |    "${promiser}" usebundle => log_na_rudder("${message}", "${escapedClassParameterValue}", "${classPrefix}", @{args}),
                |     ${promiser.map(_ => ' ')}     unless => ${condition};""".stripMargin('|')
           }
 
