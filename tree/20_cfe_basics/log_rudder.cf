@@ -127,6 +127,37 @@ bundle agent log_rudder(message, class_parameter, old_class_prefix, class_prefix
       "${configuration.info}: Class prefix is too long - fallbacking to old_class_prefix ${old_class_prefix} for reporting";
 }
 
+# @name Log for Non Applicable call to generic method
+# @description Logging output for non applicable reports
+#
+# @parameter message              The common part of the message to display
+# @parameter class_parameter      The class_parameter for reporting
+# @parameter unique_prefix        The unique identifier to avoid leakage
+# @parameter args                 The arguments used to call the generic method (slist)
+#
+# @class_prefix    log_na_rudder
+# @class_parameter unique_prefix
+
+bundle agent log_na_rudder(message, class_parameter, unique_prefix, args)
+{
+  vars:
+      "component_key"          string => "${class_parameter}";
+      "class_prefix"           string => string_head("${unique_prefix}", "1000");
+      "c_class_prefix"         string => canonify("${class_prefix}");
+
+  defaults:
+      # if class_parameter is not set, then use the component_key from report_data
+      "component_key"          string => "${report_data.component_key}", if_match_regex => "";
+
+  methods:
+      "report" usebundle => _rudder_report_na("${report_data.technique_name}", "${c_class_prefix}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message}"),
+        classes    => classes_generic("log_na_rudder_${c_class_prefix}");
+
+
+
+}
+
+
 # @name Logger for Rudder - legacy interface (DEPRECATED)
 # @deprecated Use [log_rudder](#log_rudder) instead.
 # @description Logging output for Rudder reports. This interface is for compatiblity with older generic methods and techniques, and is replaced by log_rudder.
@@ -213,7 +244,7 @@ bundle agent _rudder_common_report(technique_name, class_prefix, status, identif
 # component_key  : the value of the component reference variable (None if it does not exists)
 # message_prefix : The beginning of an explanation message understandable by a human
 #
-# Warning, any modification here should also be ported to _rudder_common_generic_hooks
+# Warning, any modification here should also be ported to _rudder_common_generic_hooks and rudder_report_na
 bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identifier, component_name, component_key, message_prefix)
 {
 
@@ -284,6 +315,29 @@ bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identi
       "unexpected error"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "audit_error", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired but should have been run in dry-run mode"),
         ifvarclass => "${class_prefix}_repaired";
+}
+
+bundle agent _rudder_report_na(technique_name, class_prefix, identifier, component_name, component_key, message_prefix)
+{
+  # We cannot allow for empty component_name
+  defaults:
+      "component_name" string => "None", if_match_regex => "";
+
+  classes:
+      "report" expression => "${report_data.should_report}";
+
+  methods:
+    !report::
+      "na"
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "log_info", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable");
+
+    report.!(dry_run|global_dry_run)::
+      "na"
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "result_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable");
+
+    report.(dry_run|global_dry_run)::
+      "na"
+        usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "audit_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable");
 }
 
 ######################################################################
