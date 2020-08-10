@@ -460,7 +460,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
                |     ${promiser.map(_ => ' ')}     unless => ${condition};
                |    "${promiser}" usebundle => ${reportingContext(method, classParameterValue)},
                |     ${promiser.map(_ => ' ')}     unless => ${condition};
-               |    "${promiser}" usebundle => log_rudder("${message}", "${escapedClassParameterValue}", canonify("${classPrefix}"), canonify("${classPrefix}"), @{args}),
+               |    "${promiser}" usebundle => log_rudder("${message}", "${escapedClassParameterValue}", "${classPrefix}", "${classPrefix}", @{args}),
                |     ${promiser.map(_ => ' ')}     unless => ${condition};""".stripMargin('|')
           }
 
