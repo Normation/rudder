@@ -257,7 +257,7 @@ case object FreeBSD        extends BsdType with HashcodeCaching { val name = "Fr
  * - Unknown
  */
 sealed abstract class OsDetails(
-    val os            : OsType         // give both type (Linux, Windows, etc) and name ("SuSE", "Windows", etc)
+    val os            : OsType         // give both type (Linux, Windows, etc) and name ("SUSE", "Windows", etc)
   , val fullName      : String         //"SUSE Linux Enterprise Server 11 (x86_64)"
   , val version       : Version        // "5.08", "11.04", "N/A" for windows
   , val servicePack   : Option[String] // a service pack

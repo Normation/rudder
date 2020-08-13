@@ -640,7 +640,7 @@ class FusionReportUnmarshaller(
        * NAME           : name os the os / distribution
        *                  "windows", "debian", etc
        * SERVICE_PACK   : a service pack if it exists
-       *                  (for Windows, SuSE, etc)
+       *                  (for Windows, SUSE, etc)
        * VERSION        : version of the os
        *                  "5.08", "11.04", "N/A" for windows
        * FQDN           : the fully qualified hostname
